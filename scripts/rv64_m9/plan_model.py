@@ -77,6 +77,18 @@ FIRST_PASS = {  # block: (seeded_s, curve_s, curve_calls)
     25229951: (1.154, 0.2438, 19279), 24628595: (1.2548, 0.1445, 13152), 24628611: (1.7132, 0.5352, 14070),
     26235159: (2.6462, 1.5068, 60853)}
 
+# --- M9 recursion-arch (codex/rv64-m9-recursion-arch, vectors/reports/rv64-m9-prep/m9-recursion-arch/{census.jsonl,model.json}):
+#     padded recursion-cell factor vs the same tree at the production outer profile, per basket block [D on M]:
+#     (factor with the log-24 composition tax [E], factor without it, folds, tree depth). Arity re-optimised. ---
+REC_ARCH = {
+    ('RECDIET', 'pm8'): dict(arity=5, key='post_m8/env23/diet', blocks={24626900: (0.909, 0.909, 5, 2), 24628590: (0.907, 0.907, 14, 3), 24628595: (0.906, 0.906, 17, 3), 24628607: (0.919, 0.919, 4, 2), 24628608: (0.93, 0.93, 5, 2), 24628611: (0.915, 0.915, 17, 3), 24647140: (0.921, 0.921, 4, 2), 24697070: (0.9, 0.9, 8, 3), 24697073: (0.885, 0.885, 6, 2), 25229951: (0.9, 0.9, 14, 3), 25229955: (0.902, 0.902, 12, 3), 25229957: (0.919, 0.919, 4, 2), 26235156: (0.854, 0.854, 3, 2), 26235159: (0.907, 0.907, 19, 3), 26235168: (0.901, 0.901, 12, 3)}),
+    ('RECDIET', 'fan'): dict(arity=6, key='fanin/blake23/diet', blocks={24626900: (0.922, 0.909, 3, 2), 24628590: (0.929, 0.918, 6, 2), 24628595: (0.936, 0.923, 7, 2), 24628607: (0.931, 0.922, 3, 2), 24628608: (0.9, 0.891, 3, 2), 24628611: (0.938, 0.925, 7, 2), 24647140: (0.927, 0.917, 3, 2), 24697070: (0.946, 0.937, 4, 2), 24697073: (0.941, 0.931, 4, 2), 25229951: (0.931, 0.92, 6, 2), 25229955: (0.93, 0.918, 5, 2), 25229957: (0.931, 0.922, 3, 2), 26235156: (0.9, 0.887, 2, 2), 26235159: (0.929, 0.915, 7, 2), 26235168: (0.93, 0.918, 5, 2)}),
+    ('RECBATCH', 'pm8'): dict(arity=6, key='post_m8/env23/batch2_diet/all', blocks={24626900: (0.755, 0.755, 4, 2), 24628590: (0.776, 0.776, 12, 3), 24628595: (0.772, 0.772, 14, 3), 24628607: (0.788, 0.788, 4, 2), 24628608: (0.781, 0.781, 4, 2), 24628611: (0.775, 0.775, 14, 3), 24647140: (0.788, 0.788, 3, 2), 24697070: (0.758, 0.758, 6, 2), 24697073: (0.753, 0.753, 5, 2), 25229951: (0.768, 0.768, 12, 3), 25229955: (0.768, 0.768, 11, 3), 25229957: (0.788, 0.788, 4, 2), 26235156: (0.742, 0.742, 3, 2), 26235159: (0.765, 0.765, 15, 3), 26235168: (0.767, 0.767, 11, 3)}),
+    ('RECBATCH', 'fan'): dict(arity=6, key='fanin/env23/batch2_diet/all', blocks={24626900: (0.822, 0.816, 3, 2), 24628590: (0.847, 0.84, 6, 2), 24628595: (0.853, 0.847, 7, 2), 24628607: (0.842, 0.838, 3, 2), 24628608: (0.804, 0.799, 3, 2), 24628611: (0.856, 0.849, 7, 2), 24647140: (0.832, 0.828, 3, 2), 24697070: (0.857, 0.852, 4, 2), 24697073: (0.858, 0.853, 4, 2), 25229951: (0.853, 0.847, 6, 2), 25229955: (0.844, 0.838, 5, 2), 25229957: (0.842, 0.838, 3, 2), 26235156: (0.826, 0.821, 2, 2), 26235159: (0.849, 0.842, 7, 2), 26235168: (0.843, 0.837, 5, 2)}),
+    ('RECNB3', 'pm8'): dict(arity=5, key='post_m8/env23/diet+native_blake3', blocks={24626900: (0.841, 0.841, 5, 2), 24628590: (0.851, 0.851, 14, 3), 24628595: (0.839, 0.839, 17, 3), 24628607: (0.822, 0.822, 4, 2), 24628608: (0.852, 0.852, 5, 2), 24628611: (0.855, 0.855, 17, 3), 24647140: (0.814, 0.814, 4, 2), 24697070: (0.8, 0.8, 8, 3), 24697073: (0.808, 0.808, 6, 2), 25229951: (0.846, 0.846, 14, 3), 25229955: (0.832, 0.832, 12, 3), 25229957: (0.822, 0.822, 4, 2), 26235156: (0.736, 0.736, 3, 2), 26235159: (0.842, 0.842, 19, 3), 26235168: (0.822, 0.822, 12, 3)}),
+    ('RECNB3', 'fan'): dict(arity=6, key='fanin/blake23/diet+native_blake3', blocks={24626900: (0.864, 0.855, 3, 2), 24628590: (0.885, 0.877, 6, 2), 24628595: (0.89, 0.884, 7, 2), 24628607: (0.886, 0.883, 3, 2), 24628608: (0.848, 0.837, 3, 2), 24628611: (0.901, 0.895, 7, 2), 24647140: (0.879, 0.876, 3, 2), 24697070: (0.855, 0.854, 4, 2), 24697073: (0.876, 0.871, 4, 2), 25229951: (0.894, 0.884, 6, 2), 25229955: (0.89, 0.885, 6, 2), 25229957: (0.886, 0.883, 3, 2), 26235156: (0.857, 0.853, 3, 2), 26235159: (0.898, 0.892, 9, 3), 26235168: (0.877, 0.872, 6, 2)}),
+}
+
 
 def _fp_fixed(v):  # first pass with the curve arithmetic fixed (Montgomery limbs): 1 us per curve call [E]
     return v[0] - v[1] + v[2] * 1e-6
@@ -193,6 +205,9 @@ SC = {
     'canon_pad': (2.07, 1.55, 1.22),
     'fold_miss': (1.0, 0.97, 0.79),   # share of folds that are new classes on a new block: 204/210 exact leaves [D/E]
     'fold_miss_canon': (0.85, 0.79, 0.6),  # with canonical leaves, exact outer shape: 165/210 [D/E]
+    # M9 recursion-arch: which REC_ARCH factor each scenario uses, and a multiplier for prover-side unknowns (Blake3
+    # outer Merkle kernels at parity with Blake2s, 2^26 PoW grinding ~2-3 ms/node, ll4 last layer) [E]
+    'rec_arch': (('taxed', 1.03), ('taxed', 1.0), ('untaxed', 1.0)),
 }
 D2D_PER_MI = 0.11 / 26.894777  # s/GPU per M instr (IO doc L5: <=0.11 s/GPU 607, <=0.75 s/GPU 159) [D]
 
@@ -203,7 +218,8 @@ D2D_PER_MI = 0.11 / 26.894777  # s/GPU per M instr (IO doc L5: <=0.11 s/GPU 607,
 # r4 (wave-2 streams): outer GKR as built is a recursion GPU-s loss -> off the order; OGKR_ENG (gated on a standalone
 # fused-kernel bench <= 0.3 ns/fact) takes its slot in the search. REPLAY = the replay prototype alone (no narrow-capture port).
 LEVER_ORDER = ['IO', 'INPLACE', 'STREAM', 'WITNESS', 'OCC', 'LEAVES', 'NGKR', 'OGKR_ENG', 'GPUCAP', 'GPU4']
-EXTRA_LEVERS = ['P2', 'D2REV', 'CANON', 'OGKR', 'REPLAY']
+EXTRA_LEVERS = ['P2', 'D2REV', 'CANON', 'OGKR', 'REPLAY', 'RECDIET', 'RECBATCH', 'RECNB3']
+REC_LEVERS = ('RECDIET', 'RECBATCH', 'RECNB3')
 LEVER_NAME = {
     'P2': 'Poseidon2-M31-W24 leaves (S2-S4)',
     'LEAVES': 'k-leaf fan-in: one leaf verifies 2-4 same-family natives (blake_g <= 2^23, <= 2.2 G cells)',
@@ -220,6 +236,9 @@ LEVER_NAME = {
     'OGKR_ENG': 'outer GKR with an engineered 0.25 ns/fact kernel + fused v2 binding pass',
     'REPLAY': 'GPU capture replay only (narrow capture + ledger stay on CPU)',
     'D2REV': 'revert D2: native blowup b4 -> b2 once recursion is cheap',
+    'RECDIET': 'outer-profile diet: q102/P26 + Blake3 outer commitments + whole-coset FRI leaves + last layer 2^4, fold arity re-optimised',
+    'RECBATCH': 'RECDIET + sibling pairs proven as one outer proof (needs a streaming batch prover: 4.2 G-cell jobs)',
+    'RECNB3': 'RECDIET + Blake3 native commitments (native proof-format change) [E]',
 }
 
 
@@ -247,6 +266,23 @@ def model(mi, sh, p, on=(), gpus=2, production=False):
         R2 = (Rl + Rf) * ratio
         Rl, Rf = R2 * FANIN_LEAF_SHARE, R2 * (1 - FANIN_LEAF_SHARE)
         io *= L2 / L; L, F, lv = L2, F2, lv2
+    rec = [l for l in REC_LEVERS if l in on]
+    if rec:  # M9 recursion-arch: padded recursion-cell factor on the tree in effect [D on M], arity re-optimised
+        tbl = REC_ARCH[(rec[-1], 'fan' if 'LEAVES' in on else 'pm8')]
+        which, mult = p['rec_arch']
+        blk = sh.get('block')
+        ref = blk if blk in tbl['blocks'] else (26235168 if mi < 150 else 26235159)
+        ft, fu, F3, lv3 = tbl['blocks'][ref]
+        f = (ft if which == 'taxed' else fu) * mult
+        R2 = (Rl + Rf) * f
+        if rec[-1] == 'RECNB3':
+            Rl, Rf = Rl * f, Rf * f
+        else:  # outer-profile levers shrink fold verification only; leaves keep their native verification
+            Rf = max(0.05 * Rf, R2 - Rl)
+        if blk in tbl['blocks']:
+            F, lv = F3, lv3
+        else:
+            F, lv = folds(L, tbl['arity'])
     nodes = L + F
     if 'CANON' in on:
         N *= p['canon_pad']
@@ -366,10 +402,23 @@ def run(gas_pct, out=None, gas_list=None):
     tot['bench15_extrap_warm_s'] = sum(bench15_extrapolated(r['mi']) for r in bk)
     tot['m3_s'] = sum(r['m3_s'] for r in bk)
     res['basket_totals'] = tot
+    # M9 recursion-arch variants on top of the best 2-GPU order (#1-#9) and on 4 GPUs (#1-#10)
+    all2 = tuple(l for l in LEVER_ORDER if l != 'GPU4')
+    res['rec_arch'] = {}
+    for lv in ('none',) + REC_LEVERS:
+        add = () if lv == 'none' else (lv,)
+        row = {}
+        for name in list(cases) + ['26235168', '26235159', '24628607']:
+            mi, sh = blocks[name]
+            row[name] = {n: dict(wall_2gpu=model(mi, sh, P[n], on=all2 + add)['wall_s'], wall_4gpu=model(mi, sh, P[n], on=tuple(LEVER_ORDER) + add)['wall_s'],
+                                 kernel_gpu_s=model(mi, sh, P[n], on=all2 + add)['kernel_gpu_s'], recursion_gpu_s=model(mi, sh, P[n], on=all2 + add)['recursion_gpu_s'],
+                                 baseline=model(mi, sh, P[n])['wall_s']) for n in P}
+        row['basket'] = {n: dict(wall_2gpu=total(all2 + add, n), wall_4gpu=total(tuple(LEVER_ORDER) + add, n), baseline=tot['baseline'][n]) for n in P}
+        res['rec_arch'][lv] = row
     # minimal 2-GPU lever sets reaching >=60% cut vs post-M8 baseline on p50, p95 and the basket (central)
     import itertools
-    cand = [l for l in LEVER_ORDER if l not in ('GPU4', 'INPLACE', 'IO')] + ['P2', 'D2REV', 'OGKR', 'OGKR_ENG', 'REPLAY']
-    excl = ({'OGKR', 'OGKR_ENG'}, {'GPUCAP', 'REPLAY'})  # variants of one lever
+    cand = [l for l in LEVER_ORDER if l not in ('GPU4', 'INPLACE', 'IO')] + ['P2', 'D2REV', 'OGKR', 'OGKR_ENG', 'REPLAY'] + list(REC_LEVERS)
+    excl = ({'OGKR', 'OGKR_ENG'}, {'GPUCAP', 'REPLAY'}, {'RECDIET', 'RECBATCH'}, {'RECDIET', 'RECNB3'}, {'RECBATCH', 'RECNB3'})  # variants of one lever
     base_on = ('IO', 'INPLACE')  # CANON excluded: as built it is a bench loss and keeps fold misses (canon-leaf review) [D/E]
     res['best_2gpu'] = {}
     for n in P:
@@ -457,6 +506,15 @@ def main():
             print('mainnet-weighted basket mean %-12s %s' % (k, ' '.join('%s %.1f' % (n, sum(bw[b] * model(*blocks[b], P[n], on=on)['wall_s'] for b in bw)) for n in P)))
         print('basket weights:', {b: round(v, 3) for b, v in bw.items()})
         print('basket mainnet percentiles:', {b: round(v, 2) for b, v in m['basket_mainnet_percentile'].items()})
+    print('\n== M9 recursion-arch on top of #1-#9 (2 GPU) and #1-#10 (4 GPU): wall s (cut vs post-M8 baseline), central [pess..opt]')
+    for lv, row in res['rec_arch'].items():
+        parts = []
+        for name in ('p50 (29.1M gas)', 'p95 (55.8M gas)', 'basket'):
+            c = row[name]['central']; pe = row[name]['pess']; op = row[name]['opt']
+            parts.append('%s %.2f (%.1f%%) [%.2f..%.2f] 4GPU %.2f (%.1f%%)' % (name.split(' ')[0], c['wall_2gpu'], 100 * (1 - c['wall_2gpu'] / c['baseline']),
+                                                                       pe['wall_2gpu'], op['wall_2gpu'], c['wall_4gpu'], 100 * (1 - c['wall_4gpu'] / c['baseline'])))
+        k = row['p50 (29.1M gas)']['central']
+        print('  %-9s %s | p50 kernel %.2f GPU-s (recursion %.2f)' % (lv, ' | '.join(parts), k['kernel_gpu_s'], k['recursion_gpu_s']))
     for n, cs in res['combos'].items():
         b = res['best_2gpu'][n]
         print('\nbest 2-GPU set (%s): min cut over p50/p95/basket %.0f%% with %s' % (n, 100 * b['min_cut'], '+'.join(b['levers'])))

@@ -28,7 +28,8 @@ class PlanModelTest(unittest.TestCase):
         for n in ('pess', 'central', 'opt'):
             self.assertEqual(self.res['combos'][n], [], n)
         self.assertGreater(self.res['best_2gpu']['central']['min_cut'], 0.40)
-        self.assertLess(self.res['best_2gpu']['central']['min_cut'], 0.47)
+        # recursion-arch (RECDIET/RECBATCH/RECNB3) joins the search: best central becomes about -47% with RECBATCH
+        self.assertLess(self.res['best_2gpu']['central']['min_cut'], 0.49)
         self.assertIn('OGKR_ENG', self.res['best_2gpu']['central']['levers'])
 
     def test_outer_gkr_as_built_loses(self):
