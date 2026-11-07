@@ -63,3 +63,7 @@ Timing (CUDA events, warm, GPU1) [M]:
 - OODS kernel is one thread per role (~1.2k nodes/role, ~40k nodes/segment): ~8 ms/segment [M]; a warp-per-role or
   register-reused schedule is the obvious next cut.
 - Host per request: flat script ~74 us [M]; roster/flat-entry packing from the inventory (driver).
+
+## Gate [M]
+- `rv64_gate.sh --stream m8-gn-s2` default: **PASS** at fb8e20588 (build, unit zig/python, small-block proofs byte-identical to the
+  frozen D2 golden, fresh CPU receivers, negative corpus): `/workspace/m3/runs/m8-gn-s2/gate-1/gate.json` sha256 96a45724a1ee26c5472d17c32827e7c308a23409b96fcc883a889d9e6cd5a965.
