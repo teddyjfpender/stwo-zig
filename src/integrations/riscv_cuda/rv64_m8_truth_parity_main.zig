@@ -408,7 +408,15 @@ fn classFor(a: std.mem.Allocator, rec: *const Record, sym: *const TJ.Symbols, wi
     const key = try K.classKey(rec.truth, rec.config, fixed.root);
     for (classes.items) |c| if (std.mem.eql(u8, &c.key, &key)) return c;
     var timer = try std.time.Timer.start();
-    const class = try K.build(a, .{ .truth = rec.truth, .config = rec.config, .fixed = fixed.columns, .fixed_root = fixed.root, .psym = sym.pcs, .wide_framing = wide });
+    // STWO_RV64_M8_TRUTH_CLASS_SKEW (default 1): build the class from the
+    // truth under a DIFFERENT span (same class key: classes are span-free),
+    // as a service does when a class warmed on one request proves another.
+    // Every job below runs with the record's own span, so byte identity
+    // checks that nothing request-specific leaks from the class authority.
+    const skew = !std.mem.eql(u8, env("STWO_RV64_M8_TRUTH_CLASS_SKEW") orelse "1", "0");
+    const authority = if (skew) K.withSpan(rec.truth, if (rec.truth.count() > 1) rec.truth.count() - 1 else rec.truth.count() + 1, rec.truth.first() + 1) else rec.truth;
+    if (!std.mem.eql(u8, &key, &try K.classKey(authority, rec.config, fixed.root))) return error.ParityClassKeyNotSpanFree;
+    const class = try K.build(a, .{ .truth = authority, .config = rec.config, .fixed = fixed.columns, .fixed_root = fixed.root, .psym = sym.pcs, .wide_framing = wide });
     errdefer {
         class.deinit();
         a.destroy(class);

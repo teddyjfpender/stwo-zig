@@ -202,17 +202,67 @@ pub fn delegatedId(truth: Truth) !u32 {
 
 /// Class key: family, span-free geometry, config, FIXED identity. Calls and
 /// first id are request values (the staged span), never class geometry.
+///
+/// Every field is framed explicitly as a little-endian u64: hashing the raw
+/// bytes of `Witness` (a tagged union: a payload-free tag leaves its payload
+/// bytes undefined) or of `Config` (struct padding, a null `?u32` payload)
+/// made the key depend on uninitialised memory, so the same class could get
+/// two keys (a warmed class reported as not warmed, or warmed twice).
 pub fn classKey(truth: Truth, config: Config, fixed_root: [32]u8) ![32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
-    h.update("rv64-m8-gpu-truth-class/v1\x00");
+    h.update("rv64-m8-gpu-truth-class/v2\x00");
     h.update(@tagName(std.meta.activeTag(truth)));
-    h.update(std.mem.asBytes(&try witnessOf(truth)));
-    var w: [8]u8 = undefined;
-    std.mem.writeInt(u64, &w, try truthLog(truth), .little);
-    h.update(&w);
-    h.update(std.mem.asBytes(&config));
+    h.update(&[_]u8{0});
+    const Frame = struct {
+        fn u(hasher: *std.crypto.hash.sha2.Sha256, v: u64) void {
+            var w: [8]u8 = undefined;
+            std.mem.writeInt(u64, &w, v, .little);
+            hasher.update(&w);
+        }
+    };
+    switch (try witnessOf(truth)) {
+        .keccak => |k| {
+            Frame.u(&h, 0);
+            Frame.u(&h, k.policy);
+            Frame.u(&h, k.chi_log);
+            Frame.u(&h, k.xor5_log);
+        },
+        .sha256 => Frame.u(&h, 1),
+        .arith256_mod => Frame.u(&h, 2),
+        .secp => |s| {
+            Frame.u(&h, 3);
+            Frame.u(&h, s.kind);
+            Frame.u(&h, @intFromBool(s.curve));
+        },
+    }
+    Frame.u(&h, try truthLog(truth));
+    Frame.u(&h, config.pow_bits);
+    Frame.u(&h, config.fri_config.log_blowup_factor);
+    Frame.u(&h, config.fri_config.log_last_layer_degree_bound);
+    Frame.u(&h, config.fri_config.n_queries);
+    Frame.u(&h, config.fri_config.fold_step);
+    if (config.lifting_log_size) |l| {
+        Frame.u(&h, 1);
+        Frame.u(&h, l);
+    } else Frame.u(&h, 0);
     h.update(&fixed_root);
     return h.finalResult();
+}
+
+/// `truth` with a request's span (calls, first id). A class is span-free
+/// (classKey), so the authority it was built from carries the FIRST
+/// request's span; everything that evaluates the request's statement (the
+/// delegated component's metadata: count, first id, active flag) must use
+/// the request's span instead.
+pub fn withSpan(truth: Truth, calls: u32, first_id: u32) Truth {
+    var t = truth;
+    switch (t) {
+        inline else => |*p| {
+            p.calls = calls;
+            p.first_id = first_id;
+        },
+    }
+    return t;
 }
 
 pub fn truthLog(truth: Truth) !u32 {
@@ -645,4 +695,46 @@ test "fixed identity framing matches fixed_setup.coefficientIdentity's layout" {
     h.update(std.mem.sliceAsBytes(&col));
     try std.testing.expectEqualSlices(u8, &h.finalResult(), &id);
     try std.testing.expectError(error.InvalidFixedSetupCoefficientShape, fixedIdentity(&.{.{ .log_size = 4, .words = &col }}, 2));
+}
+
+test "class key frames fields, not memory: padding and inactive payload bytes never change it" {
+    const ShaSetup = @typeInfo(@FieldType(@FieldType(Truth, "sha256"), "setup")).pointer.child;
+    var setup: ShaSetup = undefined;
+    setup.log = 7;
+    const truth = Truth{ .sha256 = .{ .setup = &setup, .first_id = 1, .calls = 3 } };
+    var configs: [2]Config = undefined;
+    for (&configs, [_]u8{ 0x00, 0xff }) |*c, fill| {
+        @memset(std.mem.asBytes(c), fill); // padding + the null optional's payload
+        c.pow_bits = 20;
+        c.fri_config.log_blowup_factor = 2;
+        c.fri_config.log_last_layer_degree_bound = 0;
+        c.fri_config.n_queries = 70;
+        c.fri_config.fold_step = 1;
+        c.lifting_log_size = null;
+    }
+    const root: [32]u8 = @splat(5);
+    const k0 = try classKey(truth, configs[0], root);
+    try std.testing.expectEqualSlices(u8, &k0, &try classKey(truth, configs[1], root));
+    // Span-free: a request span never changes the class.
+    try std.testing.expectEqualSlices(u8, &k0, &try classKey(withSpan(truth, 9, 40), configs[0], root));
+    // Every framed field does.
+    var other = configs[0];
+    other.lifting_log_size = 0;
+    try std.testing.expect(!std.mem.eql(u8, &k0, &try classKey(truth, other, root)));
+    other = configs[0];
+    other.fri_config.n_queries = 71;
+    try std.testing.expect(!std.mem.eql(u8, &k0, &try classKey(truth, other, root)));
+    setup.log = 8;
+    try std.testing.expect(!std.mem.eql(u8, &k0, &try classKey(truth, configs[0], root)));
+}
+
+test "withSpan replaces only the span" {
+    const ShaSetup = @typeInfo(@FieldType(@FieldType(Truth, "sha256"), "setup")).pointer.child;
+    var setup: ShaSetup = undefined;
+    const truth = Truth{ .sha256 = .{ .setup = &setup, .first_id = 1, .calls = 3 } };
+    const t = withSpan(truth, 11, 4);
+    try std.testing.expectEqual(@as(u32, 11), t.count());
+    try std.testing.expectEqual(@as(u32, 4), t.first());
+    try std.testing.expectEqual(@intFromPtr(&setup), @intFromPtr(t.sha256.setup));
+    try std.testing.expectEqual(@as(u32, 3), truth.count());
 }

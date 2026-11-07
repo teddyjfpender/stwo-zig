@@ -600,7 +600,7 @@ pub const Stage2 = struct {
             outputs[i] = try e.alloc(p.outputWords());
             try I.enqueue(p, &sym.interaction, e, .{ .fixed = fixed_ptrs[0..p.fixed_count], .main = main_ptrs[0..p.main_count], .parameters = params, .twiddles = self.twiddles[i].? }, .{ .output = outputs[i], .claims = claims, .zero = zero, .status = try status.slice(StatusIndex.first_role + i, 1) });
             e.free(params);
-        trace("s2.role", self.ordinal);
+            trace("s2.role", self.ordinal);
         }
         // mixManifestAndClaims (worker_protocol): header, digest, claims.
         try e.channel.mixWords(try staged.slice(t.header, 3));
@@ -733,7 +733,7 @@ pub const Stage2 = struct {
             }
             break :blk handles[0..3];
         } else blk: {
-            delegated = .{ .truth = c.truth, .wire = shared.wire, .bytes = try felt(self.local_felts[0..8]), .claim = claims[0] };
+            delegated = .{ .truth = K.withSpan(c.truth, self.calls, self.first_id), .wire = shared.wire, .bytes = try felt(self.local_felts[0..8]), .claim = claims[0] };
             handles[0] = delegated.asProverComponent();
             break :blk handles[0..1];
         };
