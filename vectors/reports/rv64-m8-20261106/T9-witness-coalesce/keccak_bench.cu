@@ -89,6 +89,31 @@ static void bench(const Shape& s, int reps) {
             float ms; CK(cudaEventElapsedTime(&ms, e0, e1));
             if (r >= 0) t[mode].push_back(ms);  // r=-1 is warm-up
         }
+    {  // Pass split of the coalesced path (CUDA events per kernel).
+        const auto& p = d.p;
+        const uint32_t pairs = (p.calls + 1) / 2, active = pairs * (p.policy ? 29 : 27), ee = (active + 1) / 2, ob = (1u << p.log) - active / 2;
+        cudaEvent_t m, mc; CK(cudaEventCreate(&m)); CK(cudaEventCreate(&mc));
+        std::vector<float> ta, tb, tc;
+        for (int r = 0; r < reps; ++r) {
+            CK(cudaEventRecord(e0, g_stream));
+            const uint32_t grid = (pairs + keccak_stage_warps - 1) / keccak_stage_warps;
+            if (p.policy) {
+                keccak_witness_counts<<<std::min((pairs + keccak_count_warps - 1) / keccak_count_warps, 340u), 32 * keccak_count_warps, 0, g_stream>>>(p);
+                CK(cudaEventRecord(mc, g_stream));
+                keccak_witness_staged<false><<<grid, 32 * keccak_stage_warps, 0, g_stream>>>(p);
+            } else {
+                CK(cudaEventRecord(mc, g_stream));
+                keccak_witness_staged<true><<<grid, 32 * keccak_stage_warps, 0, g_stream>>>(p);
+            }
+            CK(cudaEventRecord(m, g_stream));
+            if (p.log >= 10) keccak_bitrev<<<dim3(1u << (p.log - 10), 1923), 256, 0, g_stream>>>(p.main, p.log, ee, ob);
+            CK(cudaEventRecord(e1, g_stream)); CK(cudaEventSynchronize(e1));
+            float a, b, c; CK(cudaEventElapsedTime(&c, e0, mc)); CK(cudaEventElapsedTime(&a, mc, m)); CK(cudaEventElapsedTime(&b, m, e1)); ta.push_back(a); tb.push_back(b); tc.push_back(c);
+        }
+        std::sort(ta.begin(), ta.end()); std::sort(tb.begin(), tb.end()); std::sort(tc.begin(), tc.end());
+        std::printf("split policy=%u log=%u: counts(policy 1) median %.3f ms, staged median %.3f ms (min %.3f max %.3f), bitrev median %.3f ms (min %.3f max %.3f)\n", p.policy, p.log,
+            tc[tc.size() / 2], ta[ta.size() / 2], ta.front(), ta.back(), tb[tb.size() / 2], tb.front(), tb.back());
+    }
     const char* names[2] = {"reference keccak_witness", "coalesced staged+bitrev"};
     for (int mode = 0; mode < 2; ++mode) {
         auto v = t[mode]; std::sort(v.begin(), v.end());

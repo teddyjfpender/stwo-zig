@@ -128,11 +128,62 @@ __global__ void keccak_witness(StwoRv64KeccakWitness j) {
 constexpr uint32_t keccak_stage_warps=4;
 struct KeccakStage {uint64_t a[25][25],b[25][25],pa[24][5],pb[24][5];};  // 11,920 B per warp
 static_assert(sizeof(KeccakStage)*keccak_stage_warps<=48u*1024u,"static shared memory");
-__global__ void __launch_bounds__(32*keccak_stage_warps) keccak_witness_staged(StwoRv64KeccakWitness j) {
-  __shared__ KeccakStage stage[keccak_stage_warps];
-  const uint32_t lane=threadIdx.x&31,warp=threadIdx.x/32,pairs=(j.calls+1)/2,pair=blockIdx.x*keccak_stage_warps+warp;
-  KeccakStage &st=stage[warp];
-  if(pair<pairs) {
+// One round's lookup events, verbatim from keccak_witness (same tuples, same
+// order). Global: the original atomics + overflow status. Shared: privatised
+// table indexed by logical row (policy 1 only; keccak_witness_counts flushes
+// bin i to keccak_physical(i), where keccak_count puts it).
+template<bool Shared>
+__device__ __forceinline__ void keccak_events(const StwoRv64KeccakWitness &j,uint32_t round,uint32_t lane,uint64_t a,uint64_t b,
+    uint64_t pa,uint64_t pb,uint32_t *chi,uint32_t *xor5) {
+  if(j.policy) {
+    for(uint32_t event=lane;event<1600;event+=32) {
+      const uint32_t xx=(event/64)%5,yy=event/320,z=event%64;uint32_t row=0,power=1;
+      for(uint32_t offset=0;offset<3;++offset) {
+        const uint32_t target=(xx+offset)%5,sx=(target+3*yy)%5,sy=target,sz=(z+64-keccak_rho[sx+5*sy])&63;
+        const uint32_t aa=keccak_bit(keccak_at(a,sx+5*sy),sz)+keccak_bit(keccak_at(pa,(sx+4)%5),sz)+keccak_bit(keccak_at(pa,(sx+1)%5),(sz+63)&63);
+        const uint32_t bb=keccak_bit(keccak_at(b,sx+5*sy),sz)+keccak_bit(keccak_at(pb,(sx+4)%5),sz)+keccak_bit(keccak_at(pb,(sx+1)%5),(sz+63)&63);
+        row+=power*(aa+4*bb);power*=16;
+      }
+      if(!xx&&!yy&&keccak_bit(keccak_rc[round],z))row+=4096;
+      if(Shared)atomicAdd(chi+row,1u);else keccak_count(chi,row,13,j.status);
+    }
+    for(uint32_t event=lane;event<320;event+=32) {
+      const uint32_t xx=event/64,z=event%64;uint32_t row=0,power=1;
+      for(uint32_t yy=0;yy<5;++yy){const uint32_t aa=keccak_bit(keccak_at(a,xx+5*yy),z),bb=keccak_bit(keccak_at(b,xx+5*yy),z);row+=power*(aa+2*bb);power*=4;}
+      if(Shared)atomicAdd(xor5+row,1u);else keccak_count(xor5,row,10,j.status);
+    }
+  } else if(!Shared) {
+  for(uint32_t event=lane;event<320;event+=32) {
+    const uint32_t yy=event/64,z=event%64;uint32_t row=0,power=1;
+    for(uint32_t xx=0;xx<5;++xx) {
+      const uint32_t sx=(xx+3*yy)%5,sy=xx,sz=(z+64-keccak_rho[sx+5*sy])&63;
+      const uint32_t ta=keccak_bit(keccak_at(a,sx+5*sy),sz)+keccak_bit(keccak_at(pa,(sx+4)%5),sz)+keccak_bit(keccak_at(pa,(sx+1)%5),(sz+63)&63);
+      const uint32_t tb=keccak_bit(keccak_at(b,sx+5*sy),sz)+keccak_bit(keccak_at(pb,(sx+4)%5),sz)+keccak_bit(keccak_at(pb,(sx+1)%5),(sz+63)&63);
+      row+=power*(ta+4*tb);power*=16;
+    }
+    if(!yy&&keccak_bit(keccak_rc[round],z))row+=1u<<20;
+    keccak_count(chi,row,21,j.status);
+  }
+  for(uint32_t group=0;group<4;++group) {
+    const uint32_t event=lane+32*group;uint32_t row=0,power=1;
+    for(uint32_t i=0;i<3;++i) {
+      const uint32_t position=3*event+i,xx=position<320?position/64:0,z=position%64;
+      uint32_t sa=0,sb=0;
+#pragma unroll
+      for(uint32_t yy=0;yy<5;++yy) {
+        const uint32_t aa=keccak_bit(keccak_at(a,xx+5*yy),z),bb=keccak_bit(keccak_at(b,xx+5*yy),z);
+        if(position<320){sa+=aa;sb+=bb;}
+      }
+      row+=power*(sa+6*sb);power*=36;
+    }
+    if(event<107)keccak_count(xor5,row,16,j.status);
+  }
+  }
+}
+// Permutation of one pair (warp), exactly as keccak_witness; Stage records
+// the 25 states and 24 parities, Count emits the lookup events.
+template<bool Stage,uint32_t Count>  // Count: 0 none, 1 global, 2 shared
+__device__ __forceinline__ void keccak_pair(const StwoRv64KeccakWitness &j,uint32_t pair,uint32_t lane,KeccakStage *st,uint32_t *chi,uint32_t *xor5) {
   const uint32_t x=lane<25?lane%5:0,y=lane<25?lane/5:0;
   uint64_t a=0,b=0;
   if(lane<25) {
@@ -140,57 +191,13 @@ __global__ void __launch_bounds__(32*keccak_stage_warps) keccak_witness_staged(S
     a=uint64_t(p[0])|(uint64_t(p[1])<<32);
     if(2*pair+1<j.calls){p+=50;b=uint64_t(p[0])|(uint64_t(p[1])<<32);}
   }
-  if(lane<25){st.a[0][lane]=a;st.b[0][lane]=b;}
+  if(Stage&&lane<25){st->a[0][lane]=a;st->b[0][lane]=b;}
   for(uint32_t round=0;round<24;++round) {
     uint64_t pa=0,pb=0;
 #pragma unroll
     for(uint32_t yy=0;yy<5;++yy){pa^=keccak_at(a,x+5*yy);pb^=keccak_at(b,x+5*yy);}
-    if(lane<5){st.pa[round][lane]=pa;st.pb[round][lane]=pb;}
-    // Lookup events: verbatim from keccak_witness (same order, same atomics).
-    if(j.policy) {
-      for(uint32_t event=lane;event<1600;event+=32) {
-        const uint32_t xx=(event/64)%5,yy=event/320,z=event%64;uint32_t row=0,power=1;
-        for(uint32_t offset=0;offset<3;++offset) {
-          const uint32_t target=(xx+offset)%5,sx=(target+3*yy)%5,sy=target,sz=(z+64-keccak_rho[sx+5*sy])&63;
-          const uint32_t aa=keccak_bit(keccak_at(a,sx+5*sy),sz)+keccak_bit(keccak_at(pa,(sx+4)%5),sz)+keccak_bit(keccak_at(pa,(sx+1)%5),(sz+63)&63);
-          const uint32_t bb=keccak_bit(keccak_at(b,sx+5*sy),sz)+keccak_bit(keccak_at(pb,(sx+4)%5),sz)+keccak_bit(keccak_at(pb,(sx+1)%5),(sz+63)&63);
-          row+=power*(aa+4*bb);power*=16;
-        }
-        if(!xx&&!yy&&keccak_bit(keccak_rc[round],z))row+=4096;
-        keccak_count(j.chi,row,13,j.status);
-      }
-      for(uint32_t event=lane;event<320;event+=32) {
-        const uint32_t xx=event/64,z=event%64;uint32_t row=0,power=1;
-        for(uint32_t yy=0;yy<5;++yy){const uint32_t aa=keccak_bit(keccak_at(a,xx+5*yy),z),bb=keccak_bit(keccak_at(b,xx+5*yy),z);row+=power*(aa+2*bb);power*=4;}
-        keccak_count(j.xor5,row,10,j.status);
-      }
-    } else {
-    for(uint32_t event=lane;event<320;event+=32) {
-      const uint32_t yy=event/64,z=event%64;uint32_t row=0,power=1;
-      for(uint32_t xx=0;xx<5;++xx) {
-        const uint32_t sx=(xx+3*yy)%5,sy=xx,sz=(z+64-keccak_rho[sx+5*sy])&63;
-        const uint32_t ta=keccak_bit(keccak_at(a,sx+5*sy),sz)+keccak_bit(keccak_at(pa,(sx+4)%5),sz)+keccak_bit(keccak_at(pa,(sx+1)%5),(sz+63)&63);
-        const uint32_t tb=keccak_bit(keccak_at(b,sx+5*sy),sz)+keccak_bit(keccak_at(pb,(sx+4)%5),sz)+keccak_bit(keccak_at(pb,(sx+1)%5),(sz+63)&63);
-        row+=power*(ta+4*tb);power*=16;
-      }
-      if(!yy&&keccak_bit(keccak_rc[round],z))row+=1u<<20;
-      keccak_count(j.chi,row,21,j.status);
-    }
-    for(uint32_t group=0;group<4;++group) {
-      const uint32_t event=lane+32*group;uint32_t row=0,power=1;
-      for(uint32_t i=0;i<3;++i) {
-        const uint32_t position=3*event+i,xx=position<320?position/64:0,z=position%64;
-        uint32_t sa=0,sb=0;
-#pragma unroll
-        for(uint32_t yy=0;yy<5;++yy) {
-          const uint32_t aa=keccak_bit(keccak_at(a,xx+5*yy),z),bb=keccak_bit(keccak_at(b,xx+5*yy),z);
-          if(position<320){sa+=aa;sb+=bb;}
-        }
-        row+=power*(sa+6*sb);power*=36;
-      }
-      if(event<107)keccak_count(j.xor5,row,16,j.status);
-    }
-    }
+    if(Stage&&lane<5){st->pa[round][lane]=pa;st->pb[round][lane]=pb;}
+    if(Count)keccak_events<Count==2>(j,round,lane,a,b,pa,pb,chi,xor5);
     const uint64_t ta=a^keccak_at(pa,(x+4)%5)^keccak_rot(keccak_at(pa,(x+1)%5),1);
     const uint64_t tb=b^keccak_at(pb,(x+4)%5)^keccak_rot(keccak_at(pb,(x+1)%5),1);
     uint32_t source=0;
@@ -199,9 +206,16 @@ __global__ void __launch_bounds__(32*keccak_stage_warps) keccak_witness_staged(S
     a=ra^((~keccak_at(ra,(x+1)%5+5*y))&keccak_at(ra,(x+2)%5+5*y));
     b=rb^((~keccak_at(rb,(x+1)%5+5*y))&keccak_at(rb,(x+2)%5+5*y));
     if(!lane){a^=keccak_rc[round];b^=keccak_rc[round];}
-    if(lane<25){st.a[round+1][lane]=a;st.b[round+1][lane]=b;}
+    if(Stage&&lane<25){st->a[round+1][lane]=a;st->b[round+1][lane]=b;}
   }
-  }
+}
+// Count: policy 0 counts here with the original global atomics (its 2^21/2^16
+// tables do not fit in shared memory); policy 1 counts in keccak_witness_counts.
+template<bool Count>
+__global__ void __launch_bounds__(32*keccak_stage_warps) keccak_witness_staged(StwoRv64KeccakWitness j) {
+  __shared__ KeccakStage stage[keccak_stage_warps];
+  const uint32_t lane=threadIdx.x&31,warp=threadIdx.x/32,pairs=(j.calls+1)/2,pair=blockIdx.x*keccak_stage_warps+warp;
+  if(pair<pairs)keccak_pair<true,Count?1u:0u>(j,pair,lane,stage+warp,j.chi,j.xor5);
   __syncthreads();
   // Emit: thread k<count owns one logical row of this CTA (evens first, then
   // odds), so lane-consecutive threads hold consecutive circle rows.
@@ -237,6 +251,25 @@ __global__ void __launch_bounds__(32*keccak_stage_warps) keccak_witness_staged(S
     for(uint32_t bit=0;bit<64;++bit)out[uint64_t(1600+64*l+bit)*n]=keccak_bit(va,bit)+8*keccak_bit(vb,bit);
   }
   out[1920*n]=1;out[1921*n]=second;out[1922*n]=id;
+}
+// Policy 1 lookup counts: chi (2^13) and xor5 (2^10) privatised per CTA in
+// 36 KB of shared memory, persistent grid-stride over pairs, one flush per
+// nonzero bin. The overflow status matches keccak_count's: some increment
+// saw >= 0x7ffffffe <=> the final total >= 0x7fffffff <=> some flush ends there.
+constexpr uint32_t keccak_count_warps=8;
+__global__ void __launch_bounds__(32*keccak_count_warps) keccak_witness_counts(StwoRv64KeccakWitness j) {
+  __shared__ uint32_t chi[1u<<13],xor5[1u<<10];
+  for(uint32_t i=threadIdx.x;i<(1u<<13);i+=blockDim.x)chi[i]=0;
+  for(uint32_t i=threadIdx.x;i<(1u<<10);i+=blockDim.x)xor5[i]=0;
+  __syncthreads();
+  const uint32_t lane=threadIdx.x&31,pairs=(j.calls+1)/2;
+  for(uint32_t pair=blockIdx.x*keccak_count_warps+threadIdx.x/32;pair<pairs;pair+=gridDim.x*keccak_count_warps)
+    keccak_pair<false,2>(j,pair,lane,nullptr,chi,xor5);
+  __syncthreads();
+  for(uint32_t i=threadIdx.x;i<(1u<<13);i+=blockDim.x)
+    if(chi[i]&&atomicAdd(j.chi+keccak_physical(i,13),chi[i])+chi[i]-1>=0x7ffffffeu)atomicOr(j.status,1u);
+  for(uint32_t i=threadIdx.x;i<(1u<<10);i+=blockDim.x)
+    if(xor5[i]&&atomicAdd(j.xor5+keccak_physical(i,10),xor5[i])+xor5[i]-1>=0x7ffffffeu)atomicOr(j.status,1u);
 }
 __device__ __forceinline__ uint32_t keccak_brev(uint32_t v,uint32_t bits) {return bits?__brev(v)>>(32-bits):0;}
 // circle rows [even_end, odd_begin) were never written: read them as zero.
@@ -294,7 +327,15 @@ extern "C" int stwo_rv64_keccak_witness_on(void *ctx,uint32_t lane,const StwoRv6
     return int(cudaPeekAtLastError());
   }
   const uint32_t pairs=(p->calls+1)/2,active=pairs*(p->policy?29:27),even_end=(active+1)/2,odd_begin=(1u<<p->log)-active/2;
-  keccak_witness_staged<<<(pairs+keccak_stage_warps-1)/keccak_stage_warps,32*keccak_stage_warps,0,c.stream>>>(*p);
+  const uint32_t grid=(pairs+keccak_stage_warps-1)/keccak_stage_warps;
+  if(p->policy) {
+    int sms=0,device=0;
+    if(!cudaGetDevice(&device))cudaDeviceGetAttribute(&sms,cudaDevAttrMultiProcessorCount,device);
+    // 2 CTAs/SM fit (36 KB each); persistent grid caps the flush at 2*SMs*9216 atomics.
+    const uint32_t cgrid=min((pairs+keccak_count_warps-1)/keccak_count_warps,uint32_t(sms>0?2*sms:340));
+    keccak_witness_counts<<<cgrid,32*keccak_count_warps,0,c.stream>>>(*p);
+    keccak_witness_staged<false><<<grid,32*keccak_stage_warps,0,c.stream>>>(*p);
+  } else keccak_witness_staged<true><<<grid,32*keccak_stage_warps,0,c.stream>>>(*p);
   if(p->log>=10)keccak_bitrev<<<dim3(1u<<(p->log-10),1923),256,0,c.stream>>>(p->main,p->log,even_end,odd_begin);
   else keccak_bitrev_small<<<1923,256,0,c.stream>>>(p->main,p->log,even_end,odd_begin);
   return int(cudaPeekAtLastError());
