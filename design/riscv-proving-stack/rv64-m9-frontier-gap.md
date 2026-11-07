@@ -10,7 +10,9 @@ Labels:
 - **[pub]** published by the vendor or by ethproofs.org (fetched 2026-11-07), not reproduced by us.
 
 Model: `python3 -I scripts/rv64_m9/frontier_gap_model.py --gas-sample <gas_sample.json> --json vectors/reports/rv64-m9-prep/frontier-gap/model.json`. It is a **variant of `plan_model.py`** (M9 plan rev 4, `codex/rv64-m9-plan`). It loads that model unchanged and adds five levers by scaling the plan's own inputs: native GPU-s per Minstr, the recursion fit, and the leaf/fold split.
-- Tests: `python3 -I scripts/tests/test_rv64_m9_frontier_gap_model.py`, 6/6 pass. They check identity with the plan model when no new lever is on, that the leaf/fold/native scaling is exact, that globals are restored, and pin the central result.
+- Tests: `python3 -I scripts/tests/test_rv64_m9_frontier_gap_model.py`, 8/8 pass. They check identity with the plan model when no new lever is on, that the leaf/fold/native scaling is exact, that globals are restored, the grind cost and its serial tail, the NGKRFULL verifier cost under STACK, and pin the central and production results.
+
+> **Review 1 (2026-11-07) changed the headline.** Central best is now **p50 8.22 s (−58%)**, not 7.92 s (−60%). In the central case it no longer reaches 60% on 2 GPUs in any metric. Findings and fixes are in §8; every changed number below is marked [R1].
 - Census: `scripts/rv64_m9/frontier_gap_width_census.py` → `width-census-24628607-d2.json` [M], read from the producer log of the accepted D2 request.
 
 Frontier trees (read-only clones):
@@ -36,7 +38,7 @@ There is no SP1 clone. SP1 facts come from its docs and L2BEAT [pub].
    | SP1 Twin Peaks | 2×5090 | 28.8 s |
 
    Ours on 2×5090:
-   - today (bench15-1 fit): about 38 s at p50;
+   - today (bench15-1 fit): about 38 s at p50. [R1] This is extrapolated: p50 is 93 M instr and the largest measured bench15-1 block is 57.8 M instr, so label it [E];
    - post-M8 baseline: 19.7 s;
    - plan rev 4 best set: 11.0 s [E].
 
@@ -44,27 +46,29 @@ There is no SP1 clone. SP1 facts come from its docs and L2BEAT [pub].
 2. **Against ZisK, the gap is not work.** Our committed native LDE bits per instruction at D2 roughly equal ZisK's per step: 23.9 k vs 23.5 k [D]. The old "2× below ZisK" figure was at blowup 2; D2 doubled the LDE. Recursion cost per verified 2²²-row proof is also of the same order (§2). ZisK's lead is execution: busy time and ns/bit. That is the subject of `rv64-frontier-gpu-delta.md`.
 3. **Against Airbender v3, the gap is work.**
    - It commits 40–58 BabyBear columns per RV32 cycle at blowup 2, with no committed lookup or composition columns (GKR + WHIR). That is about 3.1 k LDE bits per cycle, **×7.8 below our 23.9 k per RV64 instruction** [D from code].
+   - [R1] **×7.8 is an upper bound.** It counts the six opcode-family circuits only. It leaves out the delegation circuits (`keccak_special5` 267, `bigint_with_control` 258, `blake2_with_compression` 872 columns per row), `inits_and_teardowns` (32 per row), lookup multiplicities and the GKR prover's compute. Our 193 cells/instr and ZisK's 23.5 k/step both include Keccak, and Keccak is 47% of ZisK's area (20.8 of 44.6 G, `committed-work-comparison-v1.json`). If Airbender's delegation share is similar, the like-for-like gap is about ×4 [E].
    - RV32 needs more cycles per gas than RV64, about ×1.3–1.8 [E].
 4. **The largest structural difference is how wide our proofs are to open.**
    - A native CPU-segment proof opens **5,833 values per query** [M]. ZisK's Main proof opens 247 [code], and an Airbender circuit opens about 50.
    - The reason: our columns are short. The median native tree's average column is 2^16.2 rows, against 2^22 for the tallest component [M, census].
    - Opened-row hashing is **68% of a CPU leaf's cells** [D]. In ZisK, Merkle paths are 70–75% of verifier hashes [code].
-   - Stacking short columns into equal-height ones would need about 136 opened values instead of 5,833 [D].
-5. **Plugged into the plan model** (§4), on top of the plan's best 2-GPU set, central [E]:
+   - Stacking short columns into equal-height ones would need about 151 opened values instead of 5,833 [D]. [R1] It was 136. That figure counted composition as 1, but composition is already 16 full-height columns.
+5. **Plugged into the plan model** (§4). Each lever alone against the post-M8 baseline, central [E]:
 
    | lever | p50 GPU-s alone |
    |---|---:|
    | stacked columns | −5.6 |
    | BLAKE3 (7-round) recursion hash | −2.8 |
    | full native GKR | −1.7 |
-   | query grinding 20 → 26 | −0.5 |
+   | query grinding 20 → 26 [R1] | **+4.5** at the as-built device grind (was −0.5 at an assumed 25 G/s) |
 
-   Combined with reverting D2 (b4 → b2), which loses alone (+5.6) but **wins once leaves are cheap**, the best set reaches:
-   - **p50 7.9 s (−60%), p95 13.3 s (−59%), basket 120 s (−59%)**;
-   - kernel GPU-s at p50 16.1 → 11.1, a **×0.69 cut**, against the ×0.67 needed;
-   - mainnet-weighted mean 8.1 s.
+   Reverting D2 (b4 → b2) loses alone (+5.6) but **wins once leaves are cheap**. Plan best + STACK + BLAKE3R + NGKRFULL + D2REV reaches, central [R1]:
+   - **p50 8.22 s (−58%), p95 13.81 s (−58%), basket 124.4 s (−58%)**;
+   - kernel GPU-s at p50 16.12 → 11.59, a **×0.72 cut**, against the ×0.67 needed;
+   - mainnet-weighted mean 8.4 s **warm**, meaning repeat blocks with class hits, as in plan rev 4.
+   - **[R1] Production** means every request is a new block, so the host class build is on the critical path: p50 14.1 s (−53% against a 29.7 s production baseline). Mainnet-weighted mean 14.2 s.
 
-   The pessimistic case reaches only −47% (12.7 s) and the optimistic −68%. **Central sits on the 60% line, pessimistic does not**, so this is a candidate set, not a plan of record. It turns on the two gates in §5.
+   The pessimistic case reaches −47% (12.7 s) and the optimistic −67% (5.8 s). **No case reaches 60% on 2 GPUs except the optimistic one**, so this is a candidate set, not a plan of record. With 4 GPUs, STACK + BLAKE3R gives −72% central and −64% pessimistic. The set turns on the gates in §5.
 6. **What changes the proof.**
    - Every lever except grinding changes the commitment or the hash, so every one needs a new profile, a new identity and a soundness note.
    - The query-phase security of each layer stays 128-bit conjectured, unchanged.
@@ -86,7 +90,7 @@ There is no SP1 clone. SP1 facts come from its docs and L2BEAT [pub].
 | ZisK 4×5090 | 4 | 7.3 s | 29.2 | $0.0064 |
 | Axiom OpenVM 16×5090 | 16 | 3.2 s | 51 | $0.0099 |
 | Succinct SP1 Twin Peaks 2×5090 | 2 | 28.8 s | 57.6 | $0.0093 |
-| **ours, post-M8 baseline / plan best / + frontier levers [E]** | 2 | 19.7 / 11.0 / 7.9 s (p50) | 39 / 22 / 16 | — |
+| **ours, post-M8 baseline / plan best / + frontier levers [E, R1]** | 2 | 19.7 / 11.0 / 8.2 s (p50, warm) | 39 / 22 / 16 | — |
 
 **Caveats on these numbers:**
 - They are averages, not p99. Ethproofs did not show soundcalc values for any of these clusters.
@@ -154,7 +158,7 @@ The effects below are relative to the post-M8 baseline at p50 (29.1 M gas, 93 M 
 - **DEEP:** the quotient on T uses the degree-2^s vanishing polynomial and interpolant. The per-query arithmetic count is unchanged (it still sums 2^s terms), but the hashes are divided by 2^s.
 
 **Evidence.**
-- The census (§2): ideal stacking leaves 136 of 5,833 opened values [D].
+- The census (§2): ideal stacking leaves 151 of 5,833 opened values [D]. [R1] It was 136, which counted composition as 1 instead of 16.
 - The model takes 15% (pess 35%, opt 6%), keeping mid-height components unstacked.
 - Opened-row share of leaf GPU-s: 0.66 (pess 0.55: truth leaves and NGKR overlap).
 - Native ×1.03 (pess 1.08) for the extra pass.
@@ -185,6 +189,14 @@ The effects below are relative to the post-M8 baseline at p50 (29.1 M gas, 93 M 
 - **p50 −2.8 GPU-s alone**, all in recursion; p95 −4.7.
 - After STACK it shrinks to about −1.1, because hashes become a smaller share of the leaf.
 
+**[R1] Prior art to reuse; it is not a green field.** `codex/rv64-m7-integrate` already has:
+- an experimental BLAKE3 channel and lifted Merkle hasher (`src/core/channel/blake3.zig`, `src/core/vcs/blake3_hash.zig`);
+- the 7-round compression (`src/core/crypto/blake3_compression*.zig`);
+- Metal kernels;
+- in the pre-RV64 product line, a typed in-circuit BLAKE3 G component: 124 columns, 80 degree-2 equations and 56 lookup requests per G, 72 rows per compression (`design/riscv-proving-stack/blake3-migration.md`, 2026-09-21–23 entries).
+
+Gate 3 starts from these. The typed G is wider per call than our Blake2s G (about 60 MAIN cells per G), so the cell saving still comes from 56 G calls against 80, not from a better G. None of it is qualified for production.
+
 **Relation to Poseidon2.** This is the cheap alternative to Poseidon2, which the reviewed stream found a net loss as built because of the ×23.9 serial transcript [M]. BLAKE3's serial channel costs the same as Blake2s per block or less, so it needs no transcript re-engineering [E].
 
 **Proof change.** A new hash in every native and outer tree and in the channel, so new identities and VKs. BLAKE3 claims 128-bit collision resistance, the same class as Blake2s. The security-level target is unchanged.
@@ -201,8 +213,11 @@ The effects below are relative to the post-M8 baseline at p50 (29.1 M gas, 93 M 
 **GRIND26.**
 - Native q54 → q51 and outer q108 → q102. Both stay at exactly 128 conjectured bits: 2·51 + 26 = 1·102 + 26 = 128.
 - The leaf/fold per-query share is 0.95.
-- Grinding costs 2^26 Blake2s per proof at about 25 G/s per GPU [E]: about 0.25 GPU-s at p50 over 83 proofs.
-- **p50 −0.5 GPU-s alone**, net of the grind. Small, but proof-neutral in structure: only the profile changes.
+- ~~Grinding costs 2^26 Blake2s per proof at about 25 G/s per GPU [E]: about 0.25 GPU-s at p50 over 83 proofs.~~
+- **[R1] The as-built device grind is about 1.1 G Blake2s/s, not 25.** Source: `codex/rv64-m8-gpu` `vectors/reports/rv64-m8-20261106/runtime/pipeline-diagnostic-1.json` [M, diagnostic]. Twelve jobs take 3.149 s at 28 bits against 0.192 s at 25 bits, about 0.246 s per 28-bit grind. That gives 2^28 / 0.246 s = 1.1 G/s at the expected nonce, and P(rate ≥ 5 G/s) < 1% [D].
+  - At 1.1 G/s, 87 proofs × 2^26 cost 5.3 GPU-s at p50.
+  - The last leaf and one fold per level grind serially, adding about 0.24 s to the tail. The model now charges that tail on the wall.
+- **p50 +4.5 GPU-s alone: a loss.** The break-even rate on the top set is **16.7 G/s per GPU**. That is above even the 13.4 G/s engineered estimate in `rv64-gpu-2s-block-plan.md` row 10, which the model uses as the optimistic case. GRIND26 is out of every recommended set until a grind kernel measures ≥ 17 G/s.
 
 ### 3.4 Committed intermediates: native GKR for all INTER (`NGKRFULL`, flag `STWO_RV64_M9_NATIVE_GKR_FULL`)
 
@@ -215,7 +230,8 @@ The effects below are relative to the post-M8 baseline at p50 (29.1 M gas, 93 M 
 **Effect.**
 - Native ×0.92 (pess ×1.0, gated on the GKR prover's ns/fact as outer GKR was [M]).
 - Leaf ×0.92 when STACK is off.
-- **p50 −1.7 GPU-s alone.**
+- **[R1]** With STACK on, the opened-width saving is gone, but the in-circuit GKR verifier stays. The model now adds +0.04 of today's leaf (pess 0.06, opt 0.02) [E]. For comparison, outer GKR as built was a recursion loss (`ogkr_alone` ×1.07).
+- **p50 −1.7 GPU-s alone.** In the best set its marginal gain is now 0.05 s at p50 (8.27 → 8.22).
 
 **Proof change.** Like NGKR: a new native profile and a GKR soundness term.
 
@@ -233,18 +249,34 @@ All subsets of {STACK, BLAKE3R, GRIND26, NGKRFULL, D2REV} were searched. Cut is 
 
 | added to plan best | p50 s (cut) | p50 kernel GPU-s (native / rec) | p95 s (cut) | basket s (cut) |
 |---|---:|---:|---:|---:|
+All rows below are [R1], recomputed after review.
+
+| added to plan best | p50 s (cut) | p50 kernel GPU-s (native / rec) | p95 s (cut) | basket s (cut) |
+|---|---:|---:|---:|---:|
 | (plan best alone) | 11.04 (44%) | 16.12 (8.50 / 7.63) | 18.84 (43%) | 166.6 (43%) |
-| + STACK + BLAKE3R + NGKRFULL | 8.33 (58%) | 11.89 (8.05 / 3.84) | 14.38 (56%) | 126.2 (57%) |
-| + STACK + BLAKE3R + GRIND26 + D2REV | 8.21 (58%) | 11.64 (6.25 / 5.39) | 13.90 (58%) | 124.3 (58%) |
-| **+ STACK + BLAKE3R + GRIND26 + NGKRFULL + D2REV (central best)** | **7.92 (60%)** | **11.14 (5.75 / 5.39)** | **13.33 (59%)** | **119.9 (59%)** |
-| same, pessimistic | 12.70 (47%) | 17.09 | 21.82 (47%) | 191.7 (47%) |
-| same, optimistic | 5.64 (68%) | 8.45 | 9.48 (67%) | 86.1 (67%) |
-| 4×5090 + STACK + BLAKE3R + GRIND26 (central / pess) | 5.54 (72%) / 8.63 (64%) | — | 9.17 / 14.24 | 85.0 / 130.6 |
+| + STACK + BLAKE3R | 8.74 (56%) | 12.59 (8.75 / 3.84) | 15.17 (54%) | 132.4 (55%) |
+| + STACK + BLAKE3R + NGKRFULL | 8.46 (57%) | 12.10 (8.05 / 4.05) | 14.59 (56%) | 128.2 (56%) |
+| + STACK + BLAKE3R + D2REV | 8.27 (58%) | 11.70 (6.25 / 5.45) | 13.98 (57%) | 125.2 (57%) |
+| **+ STACK + BLAKE3R + NGKRFULL + D2REV (central best)** | **8.22 (58%)** | **11.59 (5.75 / 5.83)** | **13.81 (58%)** | **124.4 (58%)** |
+| previous best + GRIND26 at the as-built grind | 11.18 (43%) | — | 18.77 | 168.0 |
+| pessimistic best (+ STACK + BLAKE3R) | 12.70 (47%) | 17.09 | 21.82 (47%) | 191.7 (47%) |
+| optimistic best (central-best set) | 5.79 (67%) | 8.68 | 9.72 (66%) | 88.4 (66%) |
+| 4×5090 + STACK + BLAKE3R (central / pess) | 5.57 (72%) / 8.59 (64%) | — | 9.19 / 14.15 | 85.4 / 130.1 |
 
-**Mainnet-weighted mean wall** (2,897-block sample, central): baseline 20.1 s → plan best 11.3 s → **central best 8.1 s** (p95 13.3 s).
+**Mainnet-weighted mean wall** (2,897-block sample, central, warm): baseline 20.1 s → plan best 11.3 s → **central best 8.4 s** (p95 13.8 s).
 
-**Is this the ×0.67?** Kernel GPU-s at p50 goes 16.12 → 11.14, which is **×0.69**. The 60% target holds at p50 in the central case and misses p95 and the basket by about 1 point.
-- **The two levers that carry it are STACK (−5.6) and BLAKE3R (−2.8).** Both are work reductions: fewer opened values and hashes, and fewer rounds.
+**[R1] Production view** (`model.json` → `production`, `mainnet_production`). Every mainnet request is a new block, so leaf classes and most fold classes miss. The host class build (`plan_model` `miss_s`, 5.6 s central at p50) then sits on the critical path, and none of these levers touches it. The plan's search is warm, and so was the original headline.
+
+| central | baseline | plan best | + central-best set |
+|---|---:|---:|---:|
+| p50 | 29.66 s | 16.98 s (−43%) | 14.08 s (−53%) |
+| p95 | 49.52 s | 28.09 s | 22.95 s (−54%) |
+| mainnet-weighted mean | 30.2 s | 17.2 s | 14.2 s |
+
+Pessimistic −45%, optimistic −61%. For production, the class build (canonical classes or a GPU planner) matters as much as any lever here. STACK may shrink the class build too, if the build scales with leaf cells. That is not modelled.
+
+**Is this the ×0.67?** No. Kernel GPU-s at p50 goes 16.12 → 11.59, which is **×0.72**. The warm cut is 58% in the central case, about 2 points short of 60% in every metric.
+- **The two levers that carry it are STACK (−5.6) and BLAKE3R (−2.8).** D2REV adds about 0.5 s on top. NGKRFULL adds 0.05 s once STACK is on, so it is not worth a new native profile for this alone [R1]. Both are work reductions: fewer opened values and hashes, and fewer rounds.
 - Neither touches a near-bandwidth kernel.
 - The pessimistic case stays at −47% on 2 GPUs and needs 4 GPUs (−64%).
 
@@ -263,7 +295,7 @@ All subsets of {STACK, BLAKE3R, GRIND26, NGKRFULL, D2REV} were searched. Cut is 
    - Measure committed cells per compression. **Kill** if it is above 0.80× Blake2s's 22.7 k.
    - Native BLAKE3 Merkle leaf kernel on the dev 5090: **kill** if it is slower than Blake2s at log 22–24.
 4. **D2REV re-decision.** Only after gates 1–2 pass. Run the A/B on the composed stack (b2 q108 vs b4 q54).
-5. **GRIND26.** Profile-only. Measure the GPU PoW rate on the dev 5090 to replace the 25 G/s [E].
+5. **GRIND26.** Profile-only. [R1] The as-built device grind measures about 1.1 G/s, and break-even is 16.7 G/s per GPU. **Kill** unless an optimised Blake2s grind kernel measures ≥ 17 G/s at 26 bits on the dev 5090, quiet-gated with independent nonces per job.
 6. **NGKRFULL.** Gated like the outer GKR was: standalone GKR prover ns/fact at the INTER shapes.
 
 ## 6. Integration after GPU-native lands
@@ -273,11 +305,15 @@ All flags are new and default off. Nothing here edits `rv64/jobs/` or gn-* files
 2. Re-run `plan_model.py` and `frontier_gap_model.py` on the GPU-native bench15. Recalibrate `k_m8`, busy, and the leaf/fold split from the new census, plus the truth-split roster from p-truth-split.
 3. Run gates 1 and 3; they need CPU only and can run while GPU-native settles.
 4. On pass, implement in this order:
-   - `STWO_RV64_M9_GRIND26` (profile only; registry entries `d2_native_b4_q51_p26_fold4`, `r1_outer_b2_q102_p26_fold4`);
-   - `STWO_RV64_M9_BLAKE3_RECURSION` (hash profile + in-circuit component);
+   - `STWO_RV64_M9_BLAKE3_RECURSION` (hash profile + in-circuit component, starting from the existing BLAKE3 suite in §3.2);
    - `STWO_RV64_M9_STACKED_COLUMNS` (native commitment layout + leaf verifier);
    - then the D2REV A/B;
-   - then `STWO_RV64_M9_NATIVE_GKR_FULL`.
+   - then `STWO_RV64_M9_NATIVE_GKR_FULL`, only if its marginal gain stays above noise after STACK;
+   - `STWO_RV64_M9_GRIND26` only after gate 5 passes. Registry entries: `d2_native_b4_q51_p26_fold4`, `r1_outer_b2_q102_p26_fold4`. A p26 outer candidate, `m3_outer_b4_q51_p26_fold4`, already exists in `rv64-m7-profiles.md` §1 [R1].
+   - **[R1] Integration costs the model leaves out:**
+     - STACK changes every leaf class, so the `FANIN_SAME` fan-in ratios, measured on today's leaf shape, must be re-measured.
+     - Recursion trace heights are powers of two, so a ×0.44 cell cut lands as ×0.5 or ×1.0 per leaf until fan-in is re-packed.
+     - Every new profile needs a VK, a receiver and a tamper corpus.
 
    Each gets its own soundness note in `rv64-m7-profiles.md` style, a fresh-receiver test and a tamper corpus.
 5. Fold the frontier comparison into M10 planning: the MLE row is the bound for a multilinear native rewrite.
@@ -289,3 +325,32 @@ All flags are new and default off. Nothing here edits `rv64/jobs/` or gn-* files
 - SP1 Twin Peaks internals: no clone.
 - ZisK recursive2 node sizes at production. `recursive_n_bits` is setup-dependent.
 - Our per-component (columns, height) table. The census gives per-tree totals only, so the STACK factor is a range until gate 1.
+
+## 8. Review 1 (2026-11-07): findings and fixes
+
+All fixes are on this branch; the tests went from 6/6 to 8/8.
+
+1. **GRIND26 used a grind rate about 23× too high.** It assumed 25 G/s; the as-built rate is about 1.1 G/s [M diag, `pipeline-diagnostic-1.json`].
+   - The serial grind on the tail (last leaf plus one fold per level) was also spread over 2 GPUs instead of being charged on the wall.
+   - Fixed: rate (0.8, 1.1, 13.4) G/s and `grind_tail_s`. GRIND26 alone is now +4.5 GPU-s, and it left the central best set. Break-even is 16.7 G/s.
+2. **The headline was warm only.** "Mainnet-weighted mean 8.1 s" assumed class hits, but mainnet requests are always new blocks.
+   - Added the `production` view: central best p50 14.1 s (−53%), mainnet mean 14.2 s.
+   - The warm numbers stay, labelled as warm.
+3. **NGKRFULL under STACK was free.** It had no leaf-side GKR verifier cost. Added `ngkrf_verify` (0.06 / 0.04 / 0.02 of today's leaf). Its marginal gain in the best set is now 0.05 s.
+4. **Ideal stacked width.** It was 136; it is 151, because composition is 16 full-height columns. Ideal STACK factor 0.026; the central 0.15 is unchanged.
+5. **Airbender ×7.8 is opcode-circuits only.** It excludes delegation (Keccak/bigint/Blake), init/teardown and multiplicities, while ours and ZisK's include Keccak. Now stated as an upper bound, about ×4 like-for-like [E].
+6. **"Today 38 s"** is extrapolated beyond the largest measured block (57.8 M instr) and is labelled [E].
+7. **BLAKE3 prior art** in `src/core/{channel,vcs,crypto}/blake3*` and `blake3-migration.md` is now cited for gate 3.
+
+Re-checked and left unchanged:
+- the [M] census reproduces byte-identically from the producer log (sha256 `c4bb809a…`);
+- the 5,833 / 2^16.2 / 7,409-at-2^12 figures;
+- 0.852 / 0.681 hash shares;
+- 23,944 bits/instr and ZisK 23,527;
+- Airbender widths 48/58/55/40/46/50 [code];
+- the ethproofs rows (re-fetched 2026-11-07);
+- the 128-bit conjectured arithmetic for q51/q102 + p26 and the OM31 algebraic margin of about 181 bits (`rv64-m7-profiles.md` §2), so STACK's ≤ 15-bit OODS cost leaves more than 40 bits of headroom.
+
+Still open:
+- STACK's interaction with WITNESS/OGKR_ENG, which is multiplicative and overlaps by less than 0.1 GPU-s [E];
+- leaf trace power-of-two quantisation.
