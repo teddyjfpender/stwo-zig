@@ -24,7 +24,7 @@ Profile facts the program encodes (found on real data): fold children are om31 n
 ### Recorded real inputs (legacy path)
 - [M] Recording runs (proof-only runner `gn_prove.py` = the gate's small-block-proof step + frozen-D2 parity; a25 base `m7-combined-residency` + jobs addon `b1` linked against it, the r-node recipe): `STWO_RV64_M8_OUTER_JOBS=1 OUTER_DEVICE_CHECKS=1 GN_NODE_RECORD=<dir>`.
   24628607 cold + warm byte-identical to the frozen D2 golden (39/39 artifacts each); 26235156 cold + warm 32/32.
-  Records: `/workspace/m3/runs/m8-gn-node/rec-24628607` (19 nodes + 14 native/truth PCS images, 280 MB), `rec-26235156` (15 + 11, 219 MB); proof.json sha256 3815a2c4… / 0a8a4f20….
+  Records (pod, deleted after the harness for disk; per-file sha256 in `rec-24628607.sha256` / `rec-26235156.sha256`): 19 nodes + 14 native/truth PCS images (280 MB) / 15 + 11 (219 MB); proof.json sha256 3815a2c4… / 0a8a4f20….
 
 ### Piece-only harness on the GPU (`jobs/outer_seed_harness_test.zig`, one RTX 5090, addon `b3x` sha256 7eb639dc…)
 Every node of both recorded blocks, children from their recorded regions; compared record for record with the legacy host values.
