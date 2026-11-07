@@ -1,0 +1,37 @@
+{
+ "schema": "rv64-m9-outer-gkr-tests/v1",
+ "label": "M",
+ "base_commit": "786429acac15a54885d991f0d08215fc76d0680b",
+ "zig": {
+  "command": "memguard run --gb 6 -- zig build test-riscv64-m9-outer-gkr -Doptimize=ReleaseSafe",
+  "result": "All 6 tests passed.",
+  "lines": [
+   "1/6 rv64_m9_outer_gkr_test_root.test_0...OK",
+   "2/6 outer_gkr.m9_node_test.test.outer GKR m9 flag: default off, 1 on, anything else refused...OK",
+   "3/6 outer_gkr.m9_node_test.test.outer GKR m9 real D2 leaf class: row logs, roster, layers, facts, id and versions...OK",
+   "4/6 outer_gkr.m9_node_test.test.outer GKR m9 node round on the real D2 leaf roster: tuples -> section -> receiver -> v2 binding -> circuit...",
+   "5/6 outer_gkr.m9_node_test.test.outer GKR m9 every round-coefficient word tamper of a node section is rejected natively and in circuit...OK",
+   "6/6 outer_gkr.m9_node_test.test.outer GKR m9 shape-only verifier cost equals the honest section's gate counts (v1 and v2)...OK"
+  ]
+ },
+ "python": {
+  "command": "python3 -m unittest scripts/tests/test_rv64_m9_outer_gkr_factor.py",
+  "result": "OK"
+ },
+ "source_sha256": {
+  "src/integrations/riscv_cpu/outer_gkr/m9_node.zig": "ed7650fb3eb3775d91b51f489fe8587f85526d7dc565f2454359c8cbc9db71bc",
+  "src/integrations/riscv_cpu/outer_gkr/m9_node_test.zig": "2998874d2d3c82d7c0347cd48396f487b674b4902b797300a14e02d913e4008e",
+  "src/integrations/riscv_cpu/rv64_m9_outer_gkr_tool_main.zig": "ddfa10396fa3171c6ca373619b81c4cd796c6aeb60cbac3c976d14c06e3fde1a",
+  "src/integrations/riscv_cpu/rv64_m9_outer_gkr_test_root.zig": "6c894f6b348679740431f7aecd3cf13693b9d3f7c3f0601d33148c0ae71b28e7",
+  "build_support/products/riscv_recursion.zig": "782542d6ff5b178b8e5ec775c1921075a1fbf4a34c18a16c8d742a3b544ed75f",
+  "build_support/products/catalog.zig": "a84f231f665c776544e1a9ce2a8ba37dfbb33cdaae9668f6780b6f02d07f8016",
+  "scripts/rv64_m9/outer_gkr_factor.py": "38b8cc8f40b428e748fb5ed3da4e3a0a8c9606920b9f6042987661292663d7af",
+  "scripts/rv64_m9_leaf_fanin_model.py": "c5dad91bd6c61741e41ef8413bb20fd22839ba6140687d52b616e2dc47de09f3",
+  "scripts/tests/test_rv64_m9_outer_gkr_factor.py": "32ef061d258f377eabca7092b32d6eee93c836e18a54f0f063dc52c1ebd1cb73",
+  "src/integrations/riscv_cpu/outer_gkr/profile.zig": "1080f735933193feb83c30ac36c1d902e720018db2156bc7dd237c086b2fcada",
+  "src/integrations/riscv_cpu/outer_gkr/section.zig": "290664c40ceb23e82aa1c0912daab5bb7993feb1334247510ab2db36dcb78a8e",
+  "src/integrations/riscv_cpu/outer_gkr/circuit.zig": "9a7eaa7601467a7aec23807de679172e292611cd4687869ecc49d6c2bd6e61c2",
+  "src/integrations/riscv_cpu/outer_gkr/binding_v2.zig": "a99967d73e83465d740306a48cafc5e132107a4a78c4e9d97105905c9e969478",
+  "src/integrations/riscv_cpu/outer_gkr/tuples.zig": "848235559a3902e102f38fc421e9f7e8538bc5e346d77f79e8116210f9c9d2e9"
+ }
+}

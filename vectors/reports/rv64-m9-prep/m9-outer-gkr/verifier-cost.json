@@ -1,0 +1,122 @@
+{
+ "schema": "rv64-m9-outer-gkr-verifier-cost/v1",
+ "m5_crosscheck": [
+  {
+   "class": "leaf-cpu-24628607",
+   "shape_only_D": {
+    "blake_g_gate": 195200,
+    "qm31_ops": 223203,
+    "m31_to_u32": 20360,
+    "triple_xor": 19520,
+    "eq": 1581
+   },
+   "m5_measured_on_gpu_sections_M": {
+    "blake_g_gate": 195200,
+    "qm31_ops": 223203,
+    "m31_to_u32": 20360,
+    "triple_xor": 19520,
+    "eq": 1581
+   },
+   "equal": true,
+   "layers": 27,
+   "facts": 257949696
+  },
+  {
+   "class": "fold-24628607",
+   "shape_only_D": {
+    "blake_g_gate": 193600,
+    "qm31_ops": 219570,
+    "m31_to_u32": 20168,
+    "triple_xor": 19360
+   },
+   "m5_measured_on_gpu_sections_M": {
+    "blake_g_gate": 193600,
+    "qm31_ops": 219570,
+    "m31_to_u32": 20168,
+    "triple_xor": 19360
+   },
+   "equal": true,
+   "layers": 27,
+   "facts": 246415360
+  }
+ ],
+ "d2_cpu_leaf": {
+  "v1": {
+   "name": "leaf-cpu-d2",
+   "class_id": 2672224181,
+   "binding_version": 1,
+   "raw": [
+    179654,
+    5533212,
+    337632,
+    875134,
+    3376320
+   ],
+   "row_logs": [
+    18,
+    23,
+    19,
+    20,
+    22,
+    16,
+    20,
+    8,
+    14,
+    18,
+    16
+   ],
+   "layers": 26,
+   "rounds": 325,
+   "instances": 8,
+   "facts": 137363456,
+   "section_bytes": 65588,
+   "blake_g_gate": 183840,
+   "qm31_ops": 208670,
+   "m31_to_u32": 19192,
+   "triple_xor": 18384,
+   "eq": 1472,
+   "draws": 403,
+   "variables": 981606,
+   "measure_ns": 14029750
+  },
+  "v2": {
+   "name": "leaf-cpu-d2",
+   "class_id": 2672224181,
+   "binding_version": 2,
+   "raw": [
+    179654,
+    5533212,
+    337632,
+    875134,
+    3376320
+   ],
+   "row_logs": [
+    18,
+    23,
+    19,
+    20,
+    22,
+    16,
+    20,
+    8,
+    14,
+    18,
+    16
+   ],
+   "layers": 26,
+   "rounds": 325,
+   "instances": 8,
+   "facts": 137363456,
+   "section_bytes": 65588,
+   "blake_g_gate": 183840,
+   "qm31_ops": 209107,
+   "m31_to_u32": 19192,
+   "triple_xor": 18384,
+   "eq": 1516,
+   "draws": 403,
+   "variables": 982043,
+   "measure_ns": 14509500
+  }
+ },
+ "note": "shape-only CG.measure on a shape-exact fabricated section; test 'shape-only verifier cost equals the honest section' pins equality at two scaled shapes for v1 and v2"
+}
