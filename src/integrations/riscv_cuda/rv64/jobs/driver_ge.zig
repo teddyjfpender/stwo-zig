@@ -403,6 +403,7 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     const rc = R.Config{
         .capacity_words = caps[0..made],
         .max_segments = 64,
+        .pool_current = libs.base.lookup(*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int, "stwo_exec_context_pool_current"),
         .slab_words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES", default_slab_bytes) / 4,
         .batch_pinned_words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES", default_batch_pinned_bytes) / 4,
     };

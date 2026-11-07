@@ -71,6 +71,9 @@ pub const Config = struct {
     /// main_resident capacity per GPU (0 = ceil(max_segments / devices) x
     /// the largest native class: what placement can put on one GPU).
     main_resident_words: u64 = 0,
+    /// stwo_exec_context_pool_current (used, reserved bytes of the device
+    /// arena / pool): its free part counts toward the plan capacity.
+    pool_current: ?*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int = null,
     /// Fixed part of the request pseudo-proof's stage-one region (bytes),
     /// added when any native class declares `stage_one_bytes`.
     stage_one_base_bytes: usize = G.stage_one_base_bytes,
@@ -300,6 +303,8 @@ pub const Driver = struct {
         while (it.next()) |e| {
             if (!e.*.phase_b) out[0] = @max(out[0], e.*.arena_peak_words);
             out[1] = @max(out[1], e.*.arena_peak_words);
+            // Install receipt: which class sets the plan's arena peaks.
+            std.log.info("M8 GPU-native class {x} arena_peak_words={d} phase_b={} main_resident_words={d}", .{ e.*.key[0..6].*, e.*.arena_peak_words, e.*.phase_b, e.*.main_resident_words });
         }
         return out;
     }
@@ -333,7 +338,27 @@ pub const Driver = struct {
         };
         var q = Q{ .info = info };
         try w.call(.{ .ctx = &q, .run = Q.run });
-        const measured = q.free / 4 + class_words + w.arenaWords();
+        // A device arena carved at context creation (STWO_RV64_DEVICE_ARENA
+        // =auto, the M5 platform default) leaves cudaMemGetInfo ~0 free while
+        // every allocation of this process is served from the carve: its
+        // unused part is capacity too. [M] gn-bind rev4 26235156: free-only
+        // measured 0.82G words on a 30 GB carve.
+        var pooled: u64 = 0;
+        if (self.config.pool_current) |pc| {
+            const P = struct {
+                f: *const fn (*anyopaque, *usize, *usize) callconv(.c) c_int,
+                used: usize = 0,
+                reserved: usize = 0,
+                fn run(raw: *anyopaque, wk: *W.Worker) anyerror!void {
+                    const p: *@This() = @ptrCast(@alignCast(raw));
+                    try O.check(p.f(wk.context, &p.used, &p.reserved));
+                }
+            };
+            var p = P{ .f = pc };
+            try w.call(.{ .ctx = &p, .run = P.run });
+            if (p.reserved > p.used) pooled = (p.reserved - p.used) / 4;
+        }
+        const measured = q.free / 4 + pooled + class_words + w.arenaWords();
         if (measured < cap_words) std.log.info("M8 GPU-native device {d}: plan capacity {d} words measured (cap {d})", .{ w.device_ordinal, measured, cap_words });
         return @min(cap_words, measured);
     }
