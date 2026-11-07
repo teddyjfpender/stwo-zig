@@ -246,6 +246,15 @@ pub fn verifyWithAuthorityAndLimits(a: std.mem.Allocator, setups: []const *const
     const verified_claims = try a.alloc(Manifest.Claims, inventory.workers.len);
     defer a.free(verified_claims);
     const RowWork = @import("stwo_prover_engine").lookups.row_work;
+    const Job = struct {
+        ordinal: usize,
+        bytes: usize,
+        failure: ?anyerror = null,
+
+        fn largerFirst(_: void, lhs: @This(), rhs: @This()) bool {
+            return lhs.bytes > rhs.bytes;
+        }
+    };
     const Physical = struct {
         allocator: std.mem.Allocator,
         setups: []const *const R.CpuSetup,
@@ -258,7 +267,8 @@ pub fn verifyWithAuthorityAndLimits(a: std.mem.Allocator, setups: []const *const
         config: Config,
         fixed: ?*const FixedSet,
         claims: []Manifest.Claims,
-        errors: [RowWork.MAX_SHARDS]?anyerror = @splat(null),
+        jobs: []Job,
+        next: std.atomic.Value(usize) = .init(0),
 
         fn verifyAt(self: *const @This(), ordinal: usize) !Manifest.Claims {
             const binding = if (self.fixed) |authority| authority.at(ordinal) else null;
@@ -273,15 +283,22 @@ pub fn verifyWithAuthorityAndLimits(a: std.mem.Allocator, setups: []const *const
             else
                 Truth.verifyTruthWithAuthority(self.allocator, truth, worker, self.pending, ordinal, self.config, &self.truth_proofs[i], binding);
         }
-        pub fn runRange(self: *@This(), shard: usize, first: usize, end: usize) void {
-            for (first..end) |ordinal| {
-                self.claims[ordinal] = self.verifyAt(ordinal) catch |err| {
-                    self.errors[shard] = err;
-                    return;
+        pub fn runRange(self: *@This(), _: usize, _: usize, _: usize) void {
+            while (true) {
+                const index = self.next.fetchAdd(1, .monotonic);
+                if (index >= self.jobs.len) return;
+                const job = &self.jobs[index];
+                self.claims[job.ordinal] = self.verifyAt(job.ordinal) catch |err| {
+                    job.failure = err;
+                    continue;
                 };
             }
         }
     };
+    const jobs = try a.alloc(Job, verified_claims.len);
+    defer a.free(jobs);
+    for (cpus, jobs[0..cpus.len], 0..) |proof, *job, i| job.* = .{ .ordinal = i, .bytes = proof.bytes.len };
+    for (truth_proofs, jobs[cpus.len..], cpus.len..) |proof, *job, i| job.* = .{ .ordinal = i, .bytes = proof.bytes.len };
     var physical = Physical{
         .allocator = a,
         .setups = setups,
@@ -294,14 +311,22 @@ pub fn verifyWithAuthorityAndLimits(a: std.mem.Allocator, setups: []const *const
         .config = config,
         .fixed = fixed,
         .claims = verified_claims,
+        .jobs = jobs,
     };
-    // All jobs join before closure. The first failing proof ordinal wins even
-    // if a later shard reports its failure sooner.
-    const shards = RowWork.forEachRange(verified_claims.len, &physical, .{
-        .max_shards = limits.physical_verify_workers,
-        .min_rows_per_shard = 1,
-    });
-    for (physical.errors[0..shards]) |maybe_error| if (maybe_error) |err| return err;
+    if (limits.physical_verify_workers <= 1) {
+        for (verified_claims, 0..) |*claim, ordinal| claim.* = try physical.verifyAt(ordinal);
+    } else {
+        // Pull the largest encodings first. A worker that finishes a small
+        // proof can immediately pick up another without waiting for a shard.
+        std.mem.sort(Job, jobs, {}, Job.largerFirst);
+        _ = RowWork.forEachRange(jobs.len, &physical, .{ .max_shards = limits.physical_verify_workers, .min_rows_per_shard = 1 });
+        // Preserve the lowest failing proof ordinal across all workers.
+        var first_failure: ?Job = null;
+        for (jobs) |job| {
+            if (job.failure != null and (first_failure == null or job.ordinal < first_failure.?.ordinal)) first_failure = job;
+        }
+        if (first_failure) |job| return job.failure.?;
+    }
     try pending.checkGlobalClosure(verified_claims);
     return .{ .completed = true, .total_steps = expected.total_steps, .physical_proofs = inventory.workers.len, .execution_identity = inventory.execution_identity, .manifest_identity = pending.digest };
 }

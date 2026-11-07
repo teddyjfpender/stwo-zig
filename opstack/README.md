@@ -111,6 +111,16 @@ expected report. The key budget and FIXED-setup admission are separate component
 budgets. The receiver refuses a persisted setup directory and derives authority
 independently of the producer. Failed runs retain receipts and cannot pass as prefixes.
 
+For the native CLI, `STWO_ZIG_RV64_RECEIVER_SETUP_THREADS=4` allows up to four
+concurrent source-key builders for identity-only or resident reception. The
+Python harnesses expose the same setting as `--receiver-setup-workers 4`. The
+default is one and the accepted range is 1–8. The receiver charges each setup
+helper's stack to the request budget until the helpers join. The request's
+`workers` value separately controls the pool for checking physical proofs.
+Compare `load_and_setup_ns` and `verify_ns` on a cold request and on subsequent
+resident requests. Resident reuse removes the cold source-key construction,
+while every request still checks its own proof bundle.
+
 `software`, `keccak`, `services` and `sponge` retain the upstream EVM/MPT source.
 `lean` additionally uses the existing optimized Revm interpreter/bytecode crates
 and the local capped-length MPT change. `frontier` is that guest with full LTO.
@@ -315,7 +325,7 @@ python3 opstack/capture.py --request /tmp/kona-bench/26207960-proof-config.json 
 ## Validation
 
 ```sh
-cargo +stable test --manifest-path opstack/kona/Cargo.toml --locked --features host --tests
+cargo +stable test --manifest-path opstack/kona/Cargo.toml --locked --features host,blob-derivation
 PROPTEST_CASES=16 cargo +stable test \
   --manifest-path opstack/kona/vendor/kona-mpt/Cargo.toml --locked --lib \
   -- --skip test_online_
@@ -336,12 +346,16 @@ formatting out of the diff.
 
 ## Remaining validity and settlement work
 
-Execution of supplied payload attributes does not establish L1 availability,
-valid sequencing, deposits or correct derivation. A verified Kona L1 derivation
-and blob/KZG guest must bind exactly the same payload commitment. Then qualify
-the execution/derivation bind in recursion, anchored L1 headers, reorg handling
-and a running accumulator. SP1's runtime is not needed for those jobs, but their
-constraints and independent acceptance are still required.
+`verify_calldata_transition` authenticates L1 ancestry and safe L2 history,
+derives the next payload in Kona, and binds execution to the expected output
+root. With `blob-derivation`, `verify_blob_transition` also accepts up to 256
+sidecars. It resolves blob hashes from the authenticated L1 transaction body,
+checks canonical field encodings and verifies Ethereum KZG against the blob
+challenge. The blob test vector is generated with c-kzg 2.1.8. A positive
+mainnet transition still needs the complete safe history, L1 derivation data
+and output-root witness. The execution guest currently proves supplied payload
+attributes. The derivation and execution binding still needs RV64 proof and
+recursive admission.
 
 A production replacement also needs modern OP Mainnet/Base fixtures and broad
 op-reth differential coverage, physical OP GPU measurements, bounded resident

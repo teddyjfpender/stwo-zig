@@ -60,6 +60,7 @@ def main():
     p.add_argument("--repeat", type=int, default=2)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--setup-workers", type=int, default=1)
+    p.add_argument("--receiver-setup-workers", type=int, choices=range(1, 9), default=1)
     p.add_argument("--batch-steps", type=int)
     p.add_argument("--key-bytes", type=int, default=1 << 30)
     p.add_argument("--timeout", type=int, default=7200)
@@ -93,6 +94,8 @@ def main():
         or not 1 <= args.receiver_key_bytes <= 4 << 30
     ):
         p.error("resident reception allows up to 32 bundles and 4 GiB of setup")
+    if args.receiver_setup_workers > 1 and args.receiver_setup == "committed":
+        p.error("parallel receiver setup requires identity-only or resident reception")
     if any(key.startswith("STWO_") for key in os.environ):
         raise ValueError("unset ambient STWO_* selections")
     resources = json.loads(args.resources.read_text())
@@ -148,6 +151,7 @@ def main():
         "setup_build_workers": args.setup_workers,
         "native_pool_workers": args.workers,
         "receiver_source_keys": args.receiver_setup,
+        "receiver_setup_workers": args.receiver_setup_workers,
         "runner_sha256": sha(args.runner),
         "harness_sha256": sha(__file__),
         "manifest": manifest,
@@ -165,6 +169,10 @@ def main():
     receiver_env = dict(env)
     if args.receiver_setup == "identity-only":
         receiver_env["STWO_ZIG_RV64_RECEIVER_IDENTITY_ONLY_CPU"] = "1"
+    if args.receiver_setup != "committed":
+        receiver_env["STWO_ZIG_RV64_RECEIVER_SETUP_THREADS"] = str(
+            args.receiver_setup_workers
+        )
     output = root / "proofs"
     receipt["produce"] = measured(
         [*tool, "batch-candidate", manifest_path, output],

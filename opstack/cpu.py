@@ -184,6 +184,7 @@ def main():
         default=1,
         help="independent setup-build concurrency; keep bounded separately from proof FFT workers",
     )
+    p.add_argument("--receiver-setup-workers", type=int, choices=range(1, 9), default=1)
     p.add_argument(
         "--setup",
         choices=("ephemeral", "uncached"),
@@ -205,6 +206,8 @@ def main():
         or not 1 <= args.timeout <= 21600
     ):
         p.error("batch steps 1..2^23-1, proof/setup workers 1..8, timeout 1..21600")
+    if args.receiver_setup_workers > 1 and args.receiver_setup == "committed":
+        p.error("parallel receiver setup requires --receiver-setup identity-only")
     config = json.loads(args.request.read_text())
     execution = json.loads(args.execution.read_text())
     selected_batch_steps = batch_steps(config, args.batch_steps)
@@ -276,6 +279,9 @@ def main():
         producer_env["STWO_ZIG_GKR_TREE_CHECKPOINTS"] = "2"
     if args.receiver_setup == "identity-only":
         receiver_env["STWO_ZIG_RV64_RECEIVER_IDENTITY_ONLY_CPU"] = "1"
+        receiver_env["STWO_ZIG_RV64_RECEIVER_SETUP_THREADS"] = str(
+            args.receiver_setup_workers
+        )
     if args.setup == "ephemeral":
         # An empty directory enables the existing identity-only/shared setup
         # path without loading or persisting any setup files. Receiver env is
@@ -299,6 +305,7 @@ def main():
         "service_schedule": resources["schedule"],
         "receiver_setup": "independently rebuilt; no producer cache",
         "receiver_source_keys": args.receiver_setup,
+        "receiver_setup_workers": args.receiver_setup_workers,
         "runner_sha256": sha(args.runner),
         "harness_sha256": sha(__file__),
         "platform": platform.platform(),

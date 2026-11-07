@@ -140,3 +140,41 @@ of proof checks. All twelve binary artifacts matched the prior larger
 shard proof. Both exact corruption checks passed. The two timings are
 individual samples and use different profiling settings.
 [Integrated-tree full proof](cpu-merged-unprofiled.json)
+
+## Matched resident receiver comparison
+
+The original 34.897 s cold receipt spent 32.475 s on loading and authority
+construction and 2.221 s checking the proofs. This comparison holds the
+33,596,418-byte bundle, chain-10 output, eight physical proof workers and
+receiver profile fixed. Each independent process admits four copies of
+block 121057303, with one cold request followed by three warm requests.
+Request timing sums load/setup and verification, excluding CLI teardown.
+
+| Receiver | Cold request | Cold source keys | Cold FIXED authority | Warm median | Warm range | Process peak RSS |
+|---|---:|---:|---:|---:|---:|---:|
+| Previous scheduler, one setup builder | 30.157 s | 16.609 s | 9.200 s | 909 ms | 566–1021 ms | 2.52 GiB |
+| Larger proofs first, one setup builder | 26.788 s | 13.299 s | 8.272 s | 615 ms | 486–925 ms | 2.53 GiB |
+| Larger proofs first, four setup builders | 21.946 s | 7.788 s | 10.660 s | 603 ms | 465–681 ms | 3.07 GiB |
+
+The last two rows use the same runner. Four setup builders reduce the
+cold request versus one in this sample, with higher peak memory. Warm latency
+varies across repeats and the three samples per row do not establish a stable
+speedup. The receiver starts larger encoded proofs first and keeps the
+lowest failing proof ordinal when checks complete in a different order.
+After a valid warm-up request, it rejects changed bytes at transport
+admission (`WideBundleFileChanged`) and after rehashing (`RootMismatch`).
+The trials restore the original bytes and retain all binary identities.
+
+To reproduce the receiver-only comparison, repeat the same pinned request and
+proof directory four times in an `rv64-cpu-receiver-inputs/v1` manifest. Set
+`setup_bytes=3221225472`, `fixed_setup_bytes=1073741824`, and
+`request_bytes=6442450944`. Run a fresh process for each setup-worker setting.
+
+```sh
+STWO_ZIG_RV64_RECEIVER_SETUP_THREADS=4 \
+  zig-out/bin/rv64-word16-ethereum-native \
+  --security-profile conjectured128_b2_q108_p20_fold4 \
+  verify-batch-candidate MANIFEST.json
+```
+
+[Verifier receipts and artifact hashes](verifier-latency.json)

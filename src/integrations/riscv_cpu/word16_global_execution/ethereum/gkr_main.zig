@@ -435,7 +435,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         var source_bounds: ?SourceBounds.Report = if (candidate) try SourceBounds.derive(a, program.log_size, loaded.cpu_declarations, loaded.truth_declarations, loaded.bundle.requests) else null;
         defer if (source_bounds) |*value| value.deinit();
         const native_keys_start_ns = timer.read();
-        const setup = try ReceiverSetup.Owner.create(a, &image, request.value, loaded.cpu_declarations, loaded.truth_declarations, pcs, caches, candidate, fixed_setup_bytes, receiver_session != null or try ReceiverSetup.identityOnly(), receiver_session);
+        const setup = try ReceiverSetup.Owner.create(a, receiver_budget.?, &image, request.value, loaded.cpu_declarations, loaded.truth_declarations, pcs, caches, candidate, fixed_setup_bytes, receiver_session != null or try ReceiverSetup.identityOnly(), receiver_session);
         defer setup.destroy();
         const keys = &setup.keys;
         const fixed_cache = setup.fixedCache();

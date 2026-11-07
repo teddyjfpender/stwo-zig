@@ -73,12 +73,17 @@ pub const Session = struct {
 };
 
 fn newCache(a: std.mem.Allocator, config: core.pcs.PcsConfig, fixed_bytes: usize) !Cache.Cache {
+    const workers = if (std.posix.getenv("STWO_ZIG_RV64_RECEIVER_SETUP_THREADS")) |value|
+        std.fmt.parseUnsigned(usize, value, 10) catch return error.InvalidReceiverSetupThreads
+    else
+        1;
+    if (workers == 0 or workers > 8) return error.InvalidReceiverSetupThreads;
     return Cache.Cache.init(a, .{ .log_blowup = config.fri_config.log_blowup_factor }, .{
         .mode = .verifier,
         .directory = null,
         .fixed_setup_bytes = fixed_bytes,
         .identity_only_cpu = true,
-        .max_build_threads = 1,
+        .max_build_threads = workers,
     });
 }
 
@@ -94,7 +99,7 @@ pub const Owner = struct {
     identity_only: bool,
 
     /// Heap owner keeps the cache address stable while keys/sets borrow it.
-    pub fn create(a: std.mem.Allocator, image: *const Image.Owner, request: Request.Config, cpus: []const W.CpuDeclaration, truths: []const W.TruthDeclaration, config: core.pcs.PcsConfig, caches: Materials.ImmutableCaches, candidate: bool, fixed_bytes: usize, identity_only: bool, session: ?*Session) !*Owner {
+    pub fn create(a: std.mem.Allocator, budget: *engine.host_budget_allocator.SharedHostBudget, image: *const Image.Owner, request: Request.Config, cpus: []const W.CpuDeclaration, truths: []const W.TruthDeclaration, config: core.pcs.PcsConfig, caches: Materials.ImmutableCaches, candidate: bool, fixed_bytes: usize, identity_only: bool, session: ?*Session) !*Owner {
         if (identity_only and !candidate) return error.ReceiverSourceKeysRequireCandidate;
         if (session) |shared| if (!identity_only or shared.fixed_bytes != fixed_bytes or shared.cache.candidate.log_blowup != config.fri_config.log_blowup_factor)
             return error.ReceiverSessionSetupMismatch;
@@ -106,6 +111,9 @@ pub const Owner = struct {
         errdefer if (self.cache) |*cache| cache.deinit();
         const shared_cache = if (session) |shared| &shared.cache else if (self.cache) |*cache| cache else null;
         self.keys = if (shared_cache) |cache| blk: {
+            const workers = @min(cache.max_build_threads, cpus.len + truths.len);
+            var stacks = try budget.reserveExternal((workers -| 1) * Cache.Cache.build_thread_stack_bytes);
+            defer stacks.deinit();
             try cache.bindRequest(request);
             break :blk try Keys.initResident(cache.allocator, image, cpus, truths, true, Materials.Suite.experimentalFold4(), caches, cache);
         } else try Keys.initWithSuiteAndCaches(a, image, cpus, truths, true, Materials.Suite.experimentalFold4(), caches);
