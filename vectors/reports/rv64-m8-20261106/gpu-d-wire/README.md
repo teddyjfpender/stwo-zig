@@ -31,3 +31,17 @@ Design: `design/riscv-proving-stack/rv64-m8-gpu-native.md` §1, §2 H1/H8/H13/H2
 ## Not done (blocked on the sibling factories)
 
 D4 and D5 need the factories' new hooks implemented: `NativeFactory.shape/pack/captured/publish` (n-stage1/n-stage2: block class mix from a warm capture, TraceChunk v1 packing from GE `Prepared`, `cpu-N.bin`/`stage-one.bin`/`cells.bin`/`bundle.json`/`report.json` writers) and `RecursionFactory.shape/captured/publish` plus the node job (r-node, r-truth). Until then `combined-serve` under the flag fails closed at install (`GpuNativeNativeShapeHookMissing`). Measured numbers above are probe-factory numbers, not proving numbers.
+
+## Review pass (b65fbae54)
+
+Each finding was checked against the code. Fixed:
+- **Late capture failure published proofs (fail-closed hole).** GE runs its final checks after the last segment seals: terminal state, collector equivalence, segment count, and the `captured` hooks. A failure there failed no Stage1 gate. Without a `needs_capture_end` truth, every device job succeeded and the request published. Fix: after the single device wait and before `G.publish`, `Driver.finish` calls `Stream.awaitCaptured()`. That call is a host sync with the capture thread, with no device wait. It passes only if `done` was clean and the end gate opened. The same call also orders the factories' `publish` hooks after their `captured` hooks, which could otherwise race. The receipt field is `capture_wait_ns`.
+- **A clean `Feed.finish` without `end` opened the end gate.** It now fails with `GpuNativeCaptureEndMissing`.
+- **GE adapter event-mismatch and cancel paths failed the stream but not the Feed.** They now go through `Feed.abort`, which records the first error.
+- Tests: `capture feed: a clean finish without end, or a capture error after the last seal, fails awaitCaptured` and `D1: a capture that fails after its last seal (no end-gated job) refuses publication`. Host `test-rv64-jobs` 501/511 (10 pre-existing skips) [M].
+
+Open, not fixed here:
+- `driver_ge.serve` builds `ND.Native{}` without `stage1_hooks` or `stage2_hooks`. `OD.Recursion` has no truth seam, so the n-stage1 Registry, the n-stage2 Factory and the r-truth Factory are merged but not bound. Binding them needs per-block class registration from the `shape` hooks, which do not exist yet. Install still fails closed at `GpuNativeNativeShapeHookMissing`.
+- `Driver.begin` returns only after every GPU's batch is enqueued, and gated Stage1s are staged on the worker thread. Begin therefore blocks for about the capture duration. In `serveSpool` (two deep), `finish(N)` waits behind `begin(N+1)`, so request N's publication can slip by up to capture(N+1) when proving after capture is shorter than capture [D]. A dedicated enqueue thread per in-flight request would remove this.
+
+**Gate after the review fix (`gate-3.json`, source b65fbae54, 26235156): PASS [M].** The build includes driver_ge in the combined exe. Cold and warm proofs are byte-identical to the frozen D2 golden (32/32 each), both fresh CPU receivers accept, and the corpus passes. The default path is unchanged; the fix touches only the flag-gated GPU-native driver.
