@@ -100,8 +100,13 @@ pub fn childRows(child_log: u6) Rows {
 }
 
 /// One native proof as the planner sees it.
-/// - `class`: an opaque native verifier class tag (equal tags mean equal
-///   verifier circuits).
+/// - `class`: the native FAMILY tag (cpu, cpu_tail, t_a, ...) that `same`
+///   grouping keys on. Review fix: it is NOT the verifier-circuit identity.
+///   Under today's exact native shapes every CPU segment has its own verifier
+///   circuit (`leaf_tape.cpuClass` hashes each local instance's row_log/terms
+///   and the sumcheck lengths; the D2 receipts show 11 distinct CPU leaf row
+///   vectors in 11 CPU segments, and the 3 t_a leaves differ too). Grouping on circuit identity would pair almost
+///   nothing; the circuit identity goes into `StatementShape.classDigest`.
 /// - `cpu`: the family kind.
 /// - `rows`: its predicted verification rows (conservative: the class maximum).
 pub const Native = struct { class: u32, cpu: bool, rows: Rows };
@@ -125,14 +130,20 @@ pub const Policy = struct {
         return self.max_group >= 2;
     }
     /// Producer and receiver must agree: these words join the topology fingerprint.
-    pub fn words(self: Policy) [10]u32 {
-        var out: [10]u32 = undefined;
+    /// Review fix: every field that changes the grouping is bound (cell_cap and
+    /// margin were missing: two policies differing only there planned different
+    /// trees under one fingerprint).
+    pub fn words(self: Policy) [13]u32 {
+        var out: [13]u32 = undefined;
         out[0] = 0x4d39_4c46; // "M9LF"
         out[1] = STATEMENT_VERSION;
         out[2] = self.max_group;
         out[3] = @intFromEnum(self.grouping);
         for (out[4..9], self.caps) |*o, c| o.* = c;
         out[9] = @intCast(self.fold_arity);
+        out[10] = @truncate(self.cell_cap);
+        out[11] = @truncate(self.cell_cap >> 32);
+        out[12] = self.margin_permille;
         return out;
     }
     pub fn fits(self: Policy, rows: Rows) bool {
@@ -279,15 +290,28 @@ pub const FaninPlan = struct {
 
 /// The k-leaf's statement shape. `classDigest` is position independent: it is
 /// the leaf circuit class, a T_rec member.
+///
+/// Review fix: the digest binds each child's exact native VERIFIER class key
+/// (`child_keys`, today's `leaf_tape.cpuClass` / `truthClass` per native), not
+/// only the family tag. Two pair leaves over CPU segments of different exact
+/// shapes are different circuits; with family tags only they would collide on
+/// one class digest while having different VKs. Consequence: under exact
+/// native shapes the k-leaf class set is per request (like today's CPU leaves),
+/// NOT "3 new VKs"; a bounded set needs canonical native shapes per (f, r)
+/// (rv64-m5-binding.md S^nat).
 pub const StatementShape = struct {
     k: u8,
     first_native: u32,
     class_tags: [max_group]u32 = @splat(0),
+    child_keys: [max_group][32]u8 = @splat(@splat(0)),
 
-    pub fn of(plan: *const FaninPlan, items: []const Native, group: usize) StatementShape {
+    pub fn of(plan: *const FaninPlan, items: []const Native, keys: []const [32]u8, group: usize) StatementShape {
         const g = plan.groups[group];
         var self = StatementShape{ .k = g.count, .first_native = g.first };
-        for (items[g.first..][0..g.count], 0..) |item, i| self.class_tags[i] = item.class;
+        for (items[g.first..][0..g.count], keys[g.first..][0..g.count], 0..) |item, key, i| {
+            self.class_tags[i] = item.class;
+            self.child_keys[i] = key;
+        }
         return self;
     }
     pub fn classDigest(self: StatementShape) [32]u8 {
@@ -297,9 +321,10 @@ pub const StatementShape = struct {
         std.mem.writeInt(u32, &buf, STATEMENT_VERSION, .little);
         h.update(&buf);
         h.update(&[_]u8{self.k});
-        for (self.class_tags[0..self.k]) |tag| {
+        for (self.class_tags[0..self.k], self.child_keys[0..self.k]) |tag, key| {
             std.mem.writeInt(u32, &buf, tag, .little);
             h.update(&buf);
+            h.update(&key);
         }
         var out: [32]u8 = undefined;
         h.final(&out);
@@ -485,17 +510,31 @@ test "leaf fanin: env policy parse fails closed" {
     try std.testing.expectError(error.InvalidLeafFanin, parsePolicy("x", null));
     try std.testing.expectError(error.InvalidLeafFanin, parsePolicy("2", "mixed"));
     try std.testing.expect(!std.mem.eql(u32, &(try parsePolicy("2", null)).words(), &(try parsePolicy("3", null)).words()));
+    // Every grouping-relevant field changes the words.
+    const base = try parsePolicy("2", null);
+    var capped = base;
+    capped.cell_cap -= 1;
+    try std.testing.expect(!std.mem.eql(u32, &base.words(), &capped.words()));
+    var margined = base;
+    margined.margin_permille += 1;
+    try std.testing.expect(!std.mem.eql(u32, &base.words(), &margined.words()));
 }
 
 test "leaf fanin: statement shape binds k and ordered child classes; spans must be adjacent" {
     var buf: [ready_dag.max_leaves]Native = undefined;
     const items = fixture.natives(fixture.basket[2], &buf);
     const plan = try FaninPlan.init(items, try parsePolicy("4", "same"));
-    const pair = StatementShape.of(&plan, items, 0);
+    var keys: [ready_dag.max_leaves][32]u8 = @splat(@splat(7));
+    const pair = StatementShape.of(&plan, items, keys[0..items.len], 0);
     try std.testing.expectEqual(@as(u8, 2), pair.k);
     var other = pair;
-    other.first_native = 2; // the same class elsewhere in the block: same VK
+    other.first_native = 2; // the same exact child circuits elsewhere in the block: same VK
     try std.testing.expectEqualSlices(u8, &pair.classDigest(), &other.classDigest());
+    // Same family, different exact child verifier circuit: a different class.
+    keys[1][0] ^= 1;
+    const reshaped = StatementShape.of(&plan, items, keys[0..items.len], 0);
+    try std.testing.expectEqualSlices(u32, &pair.class_tags, &reshaped.class_tags);
+    try std.testing.expect(!std.mem.eql(u8, &pair.classDigest(), &reshaped.classDigest()));
     var single = pair;
     single.k = 1;
     try std.testing.expect(!std.mem.eql(u8, &pair.classDigest(), &single.classDigest()));
