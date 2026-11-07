@@ -225,6 +225,7 @@ fn gpuParity() !void {
         var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
         defer dir.close();
         var roms = P.Roms.init(a);
+        roms.pinned = .{ .alloc = gpu.libs.ops.wait.host_alloc, .free = gpu.libs.ops.wait.host_free };
         defer roms.deinit();
         try loadRoms(a, dir, &roms);
         var segs: std.ArrayListUnmanaged(Segment) = .empty;

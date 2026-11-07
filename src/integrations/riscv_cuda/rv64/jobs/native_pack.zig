@@ -723,30 +723,55 @@ pub const Symbols = struct {
 
 /// Host words of persistent buffers (the program ROM), by key; filled by the
 /// capture-side serializer (install/warm or the first request of a program).
+/// With `pinned` set the words live in pinned host memory, so Stage 1 fills a
+/// fresh persistent region with one async h2d on its exec stream (no staging
+/// copy through the job's pinned slot, no host wait).
 pub const Roms = struct {
     a: std.mem.Allocator,
+    pinned: ?HostAlloc = null,
     mutex: std.Thread.Mutex = .{},
     map: std.AutoHashMapUnmanaged([8]u32, []const u32) = .empty,
+    pub const HostAlloc = struct {
+        alloc: *const fn (usize, *?*anyopaque) callconv(.c) c_int,
+        free: *const fn (*anyopaque) callconv(.c) c_int,
+    };
     pub fn init(a: std.mem.Allocator) Roms {
         return .{ .a = a };
     }
     pub fn deinit(self: *Roms) void {
         var it = self.map.valueIterator();
-        while (it.next()) |v| self.a.free(v.*);
+        while (it.next()) |v| self.release(v.*);
         self.map.deinit(self.a);
     }
-    /// Takes ownership of `words` (freed now if the key is already held).
+    fn release(self: *Roms, words: []const u32) void {
+        if (self.pinned) |h| {
+            _ = h.free(@ptrCast(@constCast(words.ptr)));
+        } else self.a.free(words);
+    }
+    /// Takes ownership of `words` (allocated with `a`; freed now when the key
+    /// is already held or when they are moved into pinned memory).
     pub fn put(self: *Roms, key: [8]u32, words: []const u32) !void {
         self.mutex.lock();
         defer self.mutex.unlock();
-        const gop = try self.map.getOrPut(self.a, key);
-        if (gop.found_existing) {
-            if (!std.mem.eql(u32, gop.value_ptr.*, words)) {
-                self.a.free(words);
-                return error.GnPackRomKeyMismatch;
-            }
-            self.a.free(words);
-        } else gop.value_ptr.* = words;
+        defer if (self.pinned != null) self.a.free(words);
+        if (self.map.get(key)) |held| {
+            const same = std.mem.eql(u32, held, words);
+            if (self.pinned == null) self.a.free(words);
+            if (!same) return error.GnPackRomKeyMismatch;
+            return;
+        }
+        var stored = words;
+        if (self.pinned) |h| {
+            var raw: ?*anyopaque = null;
+            if (h.alloc(@max(words.len, 1) * 4, &raw) != 0 or raw == null) return error.PinnedAllocationFailed;
+            const dst = @as([*]u32, @ptrCast(@alignCast(raw.?)))[0..words.len];
+            @memcpy(dst, words);
+            stored = dst;
+        }
+        self.map.put(self.a, key, stored) catch |err| {
+            if (self.pinned != null) self.release(stored);
+            return err;
+        };
     }
     pub fn has(self: *Roms, key: [8]u32) bool {
         self.mutex.lock();
@@ -774,8 +799,8 @@ fn cuda(status: c_int) !void {
 /// Device buffers of one program run (stage: allocated; enqueue: filled).
 pub const Bound = struct {
     devices: [max_buffers]?api.DeviceBuffer = @splat(null),
-    /// Persistent regions this job filled (fresh) and must not re-fill.
-    fresh: [max_buffers]bool = @splat(false),
+    /// Fresh persistent regions this job fills in enqueue (host source words).
+    fill: [max_buffers]?[]const u32 = @splat(null),
 
     /// Phase 1 (Stager): arena buffers + persistent regions (ROM filled once
     /// per GPU from `roms`; a missing host copy fails closed).
@@ -788,10 +813,9 @@ pub const Bound = struct {
                 if (r.fresh) {
                     const host = (roms orelse return error.GnPackRomNotHeld).get(b.key) orelse return error.GnPackRomNotHeld;
                     if (host.len != words) return error.GnPackRomShape;
-                    try s.upload(r.buffer, host);
+                    self.fill[id] = host;
                 }
                 self.devices[id] = r.buffer;
-                self.fresh[id] = r.fresh;
             } else self.devices[id] = try s.alloc(words);
         }
     }
@@ -811,6 +835,10 @@ pub const Bound = struct {
         const ectx = e.ctx();
         const stream = e.stream();
         if (offsets.len != p.columns) return error.GnPackColumnCount;
+        for (self.fill, 0..) |f, id| if (f) |host| {
+            const d = self.devices[id] orelse return error.GnPackNotStaged;
+            try cuda(sym.h2d(@ptrCast(d.ptr), @ptrCast(host.ptr), host.len * 4, 1, stream));
+        };
         for (p.buffers, 0..) |b, id| if (b.declared and b.init == .zero) {
             const d = self.devices[id] orelse return error.GnPackNotStaged;
             try cuda(sym.memset(ectx, @ptrCast(d.ptr), 0, d.words * 4));
