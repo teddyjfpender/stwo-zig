@@ -1,0 +1,8 @@
+PARITY PASS cases=16 mismatching_words=0
+BENCH log=24 cols=304 chunk=8 k=0 q=0 reps=5 lde_gb=20.401 | ref total=108.703 lde=55.088 leaf=52.360 layers=1.047 | fused total=157.855 w1=27.112 fused=129.486 layers=1.031 | ratio=1.452 pair_ratio=1.457
+BENCH log=24 cols=45 chunk=45 k=0 q=0 reps=5 lde_gb=3.020 | ref total=11.082 lde=7.857 leaf=2.201 layers=1.017 | fused total=19.230 w1=3.851 fused=14.351 layers=1.024 | ratio=1.735 pair_ratio=1.810
+BENCH log=23 cols=16 chunk=16 k=0 q=0 reps=5 lde_gb=0.537 | ref total=2.505 lde=1.306 leaf=0.678 layers=0.514 | fused total=3.414 w1=0.707 fused=2.185 layers=0.521 | ratio=1.363 pair_ratio=1.458
+BENCH log=22 cols=32 chunk=32 k=0 q=0 reps=5 lde_gb=0.537 | ref total=1.961 lde=1.250 leaf=0.459 layers=0.249 | fused total=2.333 w1=0.725 fused=1.348 layers=0.256 | ratio=1.190 pair_ratio=1.213
+BENCH log=21 cols=32 chunk=32 k=0 q=0 reps=5 lde_gb=0.268 | ref total=1.015 lde=0.620 leaf=0.244 layers=0.147 | fused total=0.956 w1=0.367 fused=0.434 layers=0.146 | ratio=0.942 pair_ratio=0.928
+BENCH log=20 cols=32 chunk=32 k=0 q=0 reps=5 lde_gb=0.134 | ref total=0.534 lde=0.290 leaf=0.133 layers=0.105 | fused total=0.496 w1=0.142 fused=0.240 layers=0.107 | ratio=0.929 pair_ratio=0.904
+BENCH log=18 cols=32 chunk=32 k=0 q=0 reps=5 lde_gb=0.034 | ref total=0.169 lde=0.065 leaf=0.029 layers=0.069 | fused total=0.177 w1=0.031 fused=0.070 layers=0.071 | ratio=1.051 pair_ratio=1.075

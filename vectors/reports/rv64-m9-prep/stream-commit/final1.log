@@ -1,0 +1,25 @@
+NVIDIA GeForce RTX 5090, 24 MHz, 405 MHz, 10.92 W, 49
+NVIDIA GeForce RTX 5090, 28 MHz, 405 MHz, 6.81 W, 39
+PARITY PASS cases=22 mismatching_words=0
+BENCH low=11 offset=0 log=24 cols=304 chunk=8 k=0 q=0 reps=3 lde_gb=20.401 | ref total=108.816 lde=55.202 leaf=52.369 layers=1.044 | fused total=132.061 w1=50.746 fused=80.079 layers=1.032 | ratio=1.214 pair_ratio=1.216
+BENCH low=11 offset=7 log=24 cols=304 chunk=16 k=0 q=0 reps=3 lde_gb=20.401 | ref total=92.869 lde=54.301 leaf=36.922 layers=1.024 | fused total=117.979 w1=49.094 fused=67.142 layers=1.031 | ratio=1.270 pair_ratio=1.274
+BENCH low=11 offset=0 log=24 cols=304 chunk=16 k=0 q=0 reps=3 lde_gb=20.401 | ref total=83.836 lde=54.618 leaf=28.075 layers=1.026 | fused total=106.486 w1=49.153 fused=56.161 layers=1.034 | ratio=1.270 pair_ratio=1.274
+BENCH low=11 offset=0 log=24 cols=304 chunk=16 k=10 q=108 reps=3 lde_gb=20.401 | ref total=83.987 lde=54.752 leaf=28.085 layers=1.031 | fused total=106.743 w1=49.168 fused=57.532 layers=0.052 | ratio=1.271 pair_ratio=1.288
+BENCH low=13 offset=0 log=24 cols=304 chunk=16 k=0 q=0 reps=3 lde_gb=20.401 | ref total=83.259 lde=54.063 leaf=28.052 layers=1.028 | fused total=133.956 w1=26.733 fused=106.060 layers=1.026 | ratio=1.609 pair_ratio=1.617
+BENCH low=10 offset=0 log=24 cols=304 chunk=16 k=0 q=0 reps=3 lde_gb=20.401 | ref total=83.351 lde=54.143 leaf=28.074 layers=1.032 | fused total=116.958 w1=80.815 fused=34.863 layers=1.022 | ratio=1.403 pair_ratio=1.407
+BENCH low=11 offset=0 log=24 cols=304 chunk=32 k=0 q=0 reps=3 lde_gb=20.401 | ref total=75.446 lde=54.847 leaf=19.488 layers=1.034 | fused total=100.514 w1=48.260 fused=51.135 layers=1.040 | ratio=1.332 pair_ratio=1.337
+BENCH low=11 offset=0 log=24 cols=16 chunk=16 k=0 q=0 reps=3 lde_gb=1.074 | ref total=5.200 lde=2.838 leaf=1.331 layers=1.024 | fused total=6.509 w1=2.567 fused=2.909 layers=1.027 | ratio=1.252 pair_ratio=1.313
+BENCH low=11 offset=0 log=24 cols=45 chunk=16 k=0 q=0 reps=3 lde_gb=3.020 | ref total=13.161 lde=7.977 leaf=4.148 layers=1.018 | fused total=16.748 w1=7.204 fused=8.459 layers=1.032 | ratio=1.272 pair_ratio=1.292
+BENCH low=11 offset=0 log=24 cols=114 chunk=16 k=0 q=0 reps=3 lde_gb=7.650 | ref total=32.256 lde=20.204 leaf=10.965 layers=1.034 | fused total=41.948 w1=18.529 fused=22.334 layers=1.026 | ratio=1.300 pair_ratio=1.311
+BENCH low=10 offset=0 log=23 cols=16 chunk=16 k=0 q=0 reps=3 lde_gb=0.537 | ref total=2.504 lde=1.310 leaf=0.676 layers=0.512 | fused total=2.638 w1=1.247 fused=0.872 layers=0.512 | ratio=1.053 pair_ratio=1.068
+BENCH low=10 offset=0 log=22 cols=32 chunk=32 k=0 q=0 reps=3 lde_gb=0.537 | ref total=1.961 lde=1.249 leaf=0.459 layers=0.248 | fused total=2.022 w1=0.928 fused=0.838 layers=0.250 | ratio=1.031 pair_ratio=1.034
+BENCH low=10 offset=0 log=21 cols=32 chunk=32 k=0 q=0 reps=5 lde_gb=0.268 | ref total=1.016 lde=0.620 leaf=0.242 layers=0.147 | fused total=0.960 w1=0.369 fused=0.436 layers=0.147 | ratio=0.945 pair_ratio=0.935
+BENCH low=10 offset=0 log=21 cols=32 chunk=32 k=10 q=108 reps=5 lde_gb=0.268 | ref total=1.004 lde=0.608 leaf=0.244 layers=0.146 | fused total=0.995 w1=0.368 fused=0.580 layers=0.041 | ratio=0.991 pair_ratio=1.113
+BENCH low=10 offset=0 log=20 cols=32 chunk=32 k=0 q=0 reps=5 lde_gb=0.134 | ref total=0.534 lde=0.287 leaf=0.133 layers=0.105 | fused total=0.498 w1=0.143 fused=0.242 layers=0.107 | ratio=0.933 pair_ratio=0.915
+BENCH low=10 offset=0 log=20 cols=32 chunk=32 k=10 q=108 reps=5 lde_gb=0.134 | ref total=0.527 lde=0.278 leaf=0.133 layers=0.108 | fused total=0.509 w1=0.144 fused=0.319 layers=0.040 | ratio=0.967 pair_ratio=1.126
+BENCH low=10 offset=0 log=19 cols=32 chunk=32 k=0 q=0 reps=5 lde_gb=0.067 | ref total=0.272 lde=0.128 leaf=0.053 layers=0.085 | fused total=0.299 w1=0.076 fused=0.133 layers=0.083 | ratio=1.096 pair_ratio=1.152
+BENCH low=10 offset=0 log=19 cols=32 chunk=32 k=10 q=108 reps=5 lde_gb=0.067 | ref total=0.263 lde=0.119 leaf=0.053 layers=0.084 | fused total=0.295 w1=0.076 fused=0.178 layers=0.035 | ratio=1.121 pair_ratio=1.476
+BENCH low=10 offset=0 log=18 cols=32 chunk=32 k=0 q=0 reps=5 lde_gb=0.034 | ref total=0.173 lde=0.065 leaf=0.029 layers=0.073 | fused total=0.179 w1=0.031 fused=0.070 layers=0.071 | ratio=1.034 pair_ratio=1.075
+BENCH low=10 offset=0 log=18 cols=32 chunk=32 k=10 q=108 reps=5 lde_gb=0.034 | ref total=0.168 lde=0.064 leaf=0.029 layers=0.070 | fused total=0.150 w1=0.031 fused=0.090 layers=0.024 | ratio=0.892 pair_ratio=1.300
+BENCH low=10 offset=0 log=16 cols=32 chunk=32 k=0 q=0 reps=5 lde_gb=0.008 | ref total=0.095 lde=0.022 leaf=0.012 layers=0.056 | fused total=0.107 w1=0.012 fused=0.035 layers=0.054 | ratio=1.120 pair_ratio=1.372
+BENCH low=10 offset=0 log=16 cols=32 chunk=32 k=10 q=108 reps=5 lde_gb=0.008 | ref total=0.097 lde=0.022 leaf=0.012 layers=0.057 | fused total=0.080 w1=0.012 fused=0.047 layers=0.015 | ratio=0.826 pair_ratio=1.752

@@ -1,0 +1,27 @@
+device NVIDIA GeForce RTX 5090 sms=170 l2=100663296 smem_block_optin=101376 smem_sm=102400
+OCC log=15 cluster=1 active_clusters=170 active_ctas=170 of 170 SMs
+OCC log=16 cluster=1 active_clusters=170 active_ctas=170 of 170 SMs
+OCC log=17 cluster=1 active_clusters=170 active_ctas=170 of 170 SMs
+OCC log=18 cluster=1 active_clusters=170 active_ctas=170 of 170 SMs
+OCC log=19 cluster=1 active_clusters=170 active_ctas=170 of 170 SMs
+OCC log=20 cluster=1 active_clusters=170 active_ctas=170 of 170 SMs
+OCC log=21 cluster=1 active_clusters=170 active_ctas=170 of 170 SMs
+OCC log=22 cluster=2 active_clusters=85 active_ctas=170 of 170 SMs
+OCC log=23 cluster=4 active_clusters=41 active_ctas=164 of 170 SMs
+OCC log=24 cluster=8 active_clusters=19 active_ctas=152 of 170 SMs
+parity log=24 cols=18 chunk=16 k=0 q=108 lifted=0@0 low=12: tree_words=268435448 bad=0 values=1944 bad=0 paths=20736 bad=0 status=0 root=0e997c27d857a591
+parity log=24 cols=18 chunk=16 k=5 q=108 lifted=3@22 low=11: tree_words=8388600 bad=0 values=2268 bad=0 paths=20736 bad=0 status=0 root=88452a4fb1db1263
+parity log=24 cols=17 chunk=16 k=10 q=108 lifted=0@0 low=10: tree_words=262136 bad=0 values=1836 bad=0 paths=20736 bad=0 status=0 root=75355d4613f19fb3
+parity log=23 cols=17 chunk=8 k=0 q=108 lifted=0@0 low=11: tree_words=134217720 bad=0 values=1836 bad=0 paths=19872 bad=0 status=0 root=f4770ee3810b1ce0
+parity log=23 cols=16 chunk=16 k=4 q=108 lifted=0@0 low=10: tree_words=8388600 bad=0 values=1728 bad=0 paths=19872 bad=0 status=0 root=8d90234098102add
+parity log=22 cols=16 chunk=16 k=0 q=108 lifted=5@20 low=10: tree_words=67108856 bad=0 values=2268 bad=0 paths=19008 bad=0 status=0 root=2db325bb3187e377
+PARITY PASS cases=22 mismatching_words=0
+BENCH low=13 offset=0 log=24 cols=64 chunk=16 k=0 q=0 reps=3 lde_gb=4.295 | ref total=18.117 lde=11.315 leaf=5.762 layers=1.021 | fused total=28.831 w1=5.585 fused=22.192 layers=1.029 | ratio=1.591 pair_ratio=1.627
+BENCH low=12 offset=0 log=24 cols=64 chunk=16 k=0 q=0 reps=3 lde_gb=4.295 | ref total=18.088 lde=11.292 leaf=5.758 layers=1.018 | fused total=25.441 w1=7.091 fused=17.296 layers=1.024 | ratio=1.407 pair_ratio=1.430
+BENCH low=11 offset=0 log=24 cols=64 chunk=16 k=0 q=0 reps=3 lde_gb=4.295 | ref total=18.101 lde=11.304 leaf=5.758 layers=1.020 | fused total=23.053 w1=10.250 fused=11.698 layers=1.026 | ratio=1.274 pair_ratio=1.286
+BENCH low=10 offset=0 log=24 cols=64 chunk=16 k=0 q=0 reps=3 lde_gb=4.295 | ref total=18.117 lde=11.311 leaf=5.760 layers=1.017 | fused total=24.980 w1=16.863 fused=7.075 layers=1.017 | ratio=1.379 pair_ratio=1.402
+BENCH low=12 offset=0 log=23 cols=32 chunk=16 k=0 q=0 reps=3 lde_gb=1.074 | ref total=4.566 lde=2.611 leaf=1.430 layers=0.510 | fused total=6.319 w1=1.420 fused=4.363 layers=0.518 | ratio=1.384 pair_ratio=1.431
+BENCH low=11 offset=0 log=23 cols=32 chunk=16 k=0 q=0 reps=3 lde_gb=1.074 | ref total=4.564 lde=2.613 leaf=1.430 layers=0.510 | fused total=5.295 w1=1.807 fused=2.954 layers=0.517 | ratio=1.160 pair_ratio=1.178
+BENCH low=10 offset=0 log=23 cols=32 chunk=16 k=0 q=0 reps=3 lde_gb=1.074 | ref total=4.559 lde=2.610 leaf=1.430 layers=0.509 | fused total=4.822 w1=2.520 fused=1.777 layers=0.511 | ratio=1.058 pair_ratio=1.064
+BENCH low=11 offset=0 log=22 cols=32 chunk=32 k=0 q=0 reps=3 lde_gb=0.537 | ref total=1.962 lde=1.248 leaf=0.459 layers=0.248 | fused total=2.352 w1=0.726 fused=1.360 layers=0.260 | ratio=1.199 pair_ratio=1.222
+BENCH low=10 offset=0 log=22 cols=32 chunk=32 k=0 q=0 reps=3 lde_gb=0.537 | ref total=1.962 lde=1.250 leaf=0.459 layers=0.248 | fused total=2.005 w1=0.918 fused=0.831 layers=0.251 | ratio=1.022 pair_ratio=1.024

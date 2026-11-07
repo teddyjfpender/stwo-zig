@@ -1,0 +1,17 @@
+parity log=15 cols=3 chunk=3 k=0 q=20 lifted=0@0 low=10: tree_words=524280 bad=524280 values=60 bad=60 paths=2400 bad=2400 status=0 root=208e310e45305489
+parity log=16 cols=37 chunk=37 k=0 q=64 lifted=0@0 low=10: tree_words=1048568 bad=1048568 values=2368 bad=2368 paths=8192 bad=8192 status=0 root=01a2c71a1db8ee38
+parity log=16 cols=37 chunk=8 k=5 q=64 lifted=5@13 low=10: tree_words=32760 bad=32760 values=2688 bad=2368 paths=8192 bad=8192 status=0 root=ae0922abe5858bcd
+parity log=17 cols=19 chunk=7 k=10 q=108 lifted=0@0 low=10: tree_words=2040 bad=2040 values=2052 bad=2052 paths=14688 bad=14688 status=0 root=2991066624aa9e7a
+parity log=18 cols=33 chunk=16 k=4 q=108 lifted=3@16 low=10: tree_words=262136 bad=262136 values=3888 bad=3564 paths=15552 bad=15552 status=0 root=27911f220c404e77
+parity log=19 cols=16 chunk=16 k=0 q=108 lifted=0@0 low=10: tree_words=8388600 bad=8388600 values=1728 bad=1728 paths=16416 bad=16416 status=0 root=e29e527b4685a0e4
+parity log=20 cols=32 chunk=32 k=5 q=108 lifted=0@0 low=10: tree_words=524280 bad=524280 values=3456 bad=3456 paths=17280 bad=17280 status=0 root=ffe32275d98a9616
+parity log=20 cols=21 chunk=5 k=1 q=108 lifted=17@18 low=10: tree_words=8388600 bad=8388600 values=4104 bad=2268 paths=17280 bad=17280 status=0 root=1b17a00a313d739b
+parity log=21 cols=32 chunk=32 k=10 q=108 lifted=0@0 low=10: tree_words=32760 bad=32760 values=3456 bad=3456 paths=18144 bad=18144 status=0 root=6ad7cee2e0d1cb4c
+parity log=22 cols=32 chunk=32 k=0 q=108 lifted=0@0 low=11: tree_words=67108856 bad=67108856 values=3456 bad=3456 paths=19008 bad=19008 status=0 root=66818242668f3f61
+parity log=22 cols=18 chunk=8 k=5 q=108 lifted=2@20 low=11: tree_words=2097144 bad=2097144 values=2160 bad=1944 paths=19008 bad=19008 status=0 root=aa9545f0d654c819
+parity log=23 cols=16 chunk=16 k=10 q=108 lifted=0@0 low=12: tree_words=131064 bad=131064 values=1728 bad=1728 paths=19872 bad=19872 status=0 root=34b8dd217cf3bd1a
+parity log=23 cols=17 chunk=8 k=3 q=108 lifted=6@21 low=12: tree_words=16777208 bad=16777208 values=2484 bad=1836 paths=19872 bad=19872 status=0 root=d0c169126dfa6aee
+parity log=24 cols=16 chunk=8 k=0 q=108 lifted=0@0 low=13: tree_words=268435448 bad=268435448 values=1728 bad=1728 paths=20736 bad=20736 status=0 root=90962f2904ee4ce6
+parity log=24 cols=45 chunk=8 k=10 q=108 lifted=0@0 low=13: tree_words=262136 bad=262136 values=4860 bad=4860 paths=20736 bad=20736 status=0 root=b141dd45a01e8d84
+parity log=24 cols=20 chunk=8 k=5 q=216 lifted=9@22 low=13: tree_words=8388600 bad=8388600 values=6264 bad=4320 paths=41472 bad=41472 status=0 root=8a0fa1cd4ef69052
+PARITY FAIL cases=16 mismatching_words=382724520
