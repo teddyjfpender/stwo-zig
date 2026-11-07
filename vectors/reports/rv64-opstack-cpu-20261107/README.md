@@ -67,3 +67,13 @@ overlapped compilation and both corruption checks passed.
 The 2,097,151-step plan for 121057303 derives three CPU and seven service
 proofs with 30.240 billion MAIN+INTERACTION bits. Its first producer attempt
 overlapped compilation and was killed. [Kernel run receipts](cpu-kernels.json)
+
+## Bounded scratch capture
+
+With scratch capture, block 120794432 completed in 37.657 s producer wall
+and 7.422 s fresh receiver wall. All five binary proof and sidecar hashes
+match its in-memory run. The smaller in-memory run overlapped compilation,
+so this is a byte-parity check with timings from separate host conditions.
+The scratch path matches the complete in-memory plan for block 121057303.
+The heavy block exhausted its 40 GiB backing cap after 955.248 s and exited
+with a controlled allocation error. [Capacity receipts](capture-backing.json)

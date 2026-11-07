@@ -9,6 +9,7 @@ const Program = @import("../../word16_execution/program.zig").Program;
 const Driver = @import("../../word16_execution/driver.zig");
 const Capture = @import("capture.zig").Owner;
 const CaptureOptions = @import("capture_options.zig").Options;
+const CaptureSpill = @import("capture_spill.zig");
 const DirectCapture = @import("direct.zig");
 pub const EarlyCPU = @import("early_cpu0.zig");
 pub const EarlySegments = @import("early_segments.zig");
@@ -377,6 +378,10 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const direct_capture = !(verify or prefix) and std.mem.eql(u8, args[3], "-");
     const capture_options = if (resources) |r| r.capture_options else CaptureOptions{};
     if (!direct_capture and capture_options.execution_workers != 0) return error.ExecutionWorkersRequireDirectCapture;
+    if (capture_options.spill != null and (combined or !direct_capture or !candidate)) return error.CaptureSpillRequiresNativeDirectCandidate;
+    var capture_spill = if (capture_options.spill) |options| try CaptureSpill.Owner.init(a, options) else null;
+    defer if (capture_spill) |*owner| owner.deinit();
+    const capture_allocator = if (capture_spill) |*owner| owner.allocator() else a;
     var timer = try std.time.Timer.start();
     // JOBS="-": execution (and the first segment walks) overlaps the expected
     // image/program init below; admission still happens batch by batch in
@@ -402,7 +407,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (prestage) |*p| if (p.stage.prestage == null or p.stage.join_prestage == null or p.stage.cancel_prestage == null) return error.CpuPrestageStageUnavailable;
     defer if (prestage) |*p| CpuPrestage.cancel(p);
     const walk_authority: ?Request.AuthorityProvider = if (shared_walk_authority and session != null) session.?.authorities.provider() else null;
-    var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.startWithAuthority(a, request.value, count, capture_options.execution_workers, walk_authority) else null;
+    var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.startWithAuthority(capture_allocator, request.value, count, capture_options.execution_workers, walk_authority) else null;
     if (prestage) |*p| direct_started.?.ready = .{ .context = p, .call = CpuPrestage.ready, .cancel = CpuPrestage.cancel, .first_pass = if (early_first) CpuPrestage.firstPass else null };
     defer if (direct_started) |value| value.deinit(&direct_stats);
     // M5 platform: a resident session reuses the receiver-derived
@@ -610,7 +615,11 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         const digest = @import("capture_digest.zig").digest(image.identity, &captured);
         return emit(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_options = resources.?.capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .image_and_import_ns = capture_ns, .capture_breakdown = capture_breakdown, .capture_inputs = capture_inputs, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .diagnostic_digest_ns = timer.read() - digest_start });
     }
-    if (plan_candidate) return emit(a, try CapturePlan.result(a, selected_profile, program.log_size, cpu, truths, &captured, count, capture_ns));
+    if (plan_candidate) {
+        var result = try CapturePlan.result(a, selected_profile, program.log_size, cpu, truths, &captured, count, capture_ns);
+        if (capture_spill) |*owner| result.capture_backing_peak_bytes = owner.backing.peak_bytes.load(.monotonic);
+        return emit(a, result);
+    }
     if (plan) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .scope = "geometry advice only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     const operational = resources.?;
     const resident = blk: {
@@ -768,7 +777,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     try b2i.finish(a, worker_timings, keys.cpus.len);
     defer a.free(b2i.segments);
     const native_publish_ns = timer.read() - publish_start_ns;
-    const native_report = .{ .captured_values_sha256 = captured_values_sha256, .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = &output, .keccak_uniform_throughput = uniform_throughput, .one_truth_per_family = one_truth_per_family, .coalesce_truth_families = coalesce_truth_families, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .block_to_inputs = b2i, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = &verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null };
+    const native_report = .{ .captured_values_sha256 = captured_values_sha256, .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = &output, .keccak_uniform_throughput = uniform_throughput, .one_truth_per_family = one_truth_per_family, .coalesce_truth_families = coalesce_truth_families, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .block_to_inputs = b2i, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_backing_peak_bytes = if (capture_spill) |*owner| owner.backing.peak_bytes.load(.monotonic) else null, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = &verify_ns, .native_verify_overlapped_with_recursion = overlap_verify, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null };
     if (!overlap_verify) try Driver.writeJson(a, dir, "report.json", native_report);
     if (fixed_cache) |owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     // A session persists new artifacts between requests, off the request wall.

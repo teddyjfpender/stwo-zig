@@ -3,4 +3,6 @@ test {
     _ = @import("tests/rv64_batch_memory_test.zig");
     _ = @import("tests/rv64_ethereum_chain_test.zig");
     _ = @import("tests/rv64_ethereum_prepared_test.zig");
+    _ = @import("word16_global_execution/ethereum/receiver_batch.zig");
+    _ = @import("word16_global_execution/ethereum/capture_spill.zig");
 }

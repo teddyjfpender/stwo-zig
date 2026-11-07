@@ -58,6 +58,22 @@ These modes preserve the transcript and have different memory admissions.
 without committing an unused historical source Merkle tree; its candidate FIXED
 authority is still independently reconstructed. The default remains `committed`.
 
+To use scratch-backed capture for direct native candidate production, add the
+following field to the resource JSON on Linux or macOS.
+
+```json
+"capture_options": {
+  "max_inflight_packets": 1,
+  "spill": { "directory": "/workspace/kona-capture-scratch", "bytes": 8589934592 }
+}
+```
+
+The byte cap covers live capture mappings, separate from the MAIN parking cap.
+The runner reserves disk space before mapping and unlinks each scratch file.
+Scratch backing can cost more time and is intended for workloads whose
+retained witness would exhaust RAM. The receiver independently checks the
+published candidate bundle.
+
 For consecutive blocks with bounded process-local setup reuse:
 
 ```sh

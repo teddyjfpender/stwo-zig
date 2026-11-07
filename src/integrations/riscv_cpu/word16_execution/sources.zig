@@ -88,6 +88,8 @@ pub const Source = struct {
         {
             var stage = try Profile.StageScope.begin(recorder, "source_cpu_materialize", "CPU materialization and final program binding");
             defer stage.end();
+            if (owned_memory != null and (prepared.cpu orelse return error.PreparedExecutionConsumed).capture_records_retired)
+                try prepared.moveRetiredCpuCapture(a);
             try prepared.ensureCpuMain(&materials.program, g.cpu_log);
             if ((prepared.cpu orelse return error.PreparedExecutionConsumed).device_ledgers != null) return error.DeviceOnlySourceRequiresFactory;
         }

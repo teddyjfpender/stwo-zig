@@ -35,6 +35,7 @@ pub const Result = struct {
     final_pc: u64,
     memory_words: usize,
     capture_ns: u64,
+    capture_backing_peak_bytes: ?usize = null,
     cpu: []const W.CpuDeclaration,
     truths: []const W.TruthDeclaration,
     source_shape: Bounds.Shape,
