@@ -50,25 +50,15 @@ test "a diverging host sequence is caught at the exact op" {
     const Swap = struct {
         inner: *P.ParityJob,
         ops: []const P.Op,
-        pub fn classKey(s: *@This()) [32]u8 {
-            return s.inner.classKey();
-        }
-        pub fn footprint(s: *@This()) api.Footprint {
-            return s.inner.footprint();
-        }
-        pub fn stage(s: *@This(), st: *api.Stager) !void {
-            return s.inner.stage(st);
-        }
+        pub fn classKey(s: *@This()) [32]u8 { return s.inner.classKey(); }
+        pub fn footprint(s: *@This()) api.Footprint { return s.inner.footprint(); }
+        pub fn stage(s: *@This(), st: *api.Stager) !void { return s.inner.stage(st); }
         pub fn enqueue(s: *@This(), e: *api.Enqueue) !void {
             try s.inner.enqueue(e);
             s.inner.script.ops = s.ops;
         }
-        pub fn finish(s: *@This(), v: api.SlabView) !void {
-            return s.inner.finish(v);
-        }
-        pub fn abort(s: *@This()) void {
-            s.inner.abort();
-        }
+        pub fn finish(s: *@This(), v: api.SlabView) !void { return s.inner.finish(v); }
+        pub fn abort(s: *@This()) void { s.inner.abort(); }
     };
     var swap = Swap{ .inner = &job, .ops = ops };
     fake.reset();

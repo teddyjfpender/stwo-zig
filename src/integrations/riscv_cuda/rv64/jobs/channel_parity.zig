@@ -296,14 +296,14 @@ pub fn coverageScript(a: std.mem.Allocator, with_pow: bool) !Script {
     var root: [8]u32 = undefined;
     for (&root) |*w| w.* = r.int(u32);
     try ops.appendSlice(a, &.{
-        .{ .mix_words = words[0..13] }, .{ .draw_felts = 1 },
-        .{ .mix_root = root },          .{ .draw_felts = 2 },
-        .{ .mix_felts = felts[0..24] }, .{ .draw_raw = {} },
-        .{ .draw_raw = {} },               .{ .draw_felts = 129 }, // > one block of 128 threads
-        .{ .mix_words = words[13..15] },   .{ .queries = .{ .log = 19, .count = 70 } },
-        .{ .mix_words = words[15..1039] }, .{ .draw_felts = 3 },
-        .{ .mix_words = &.{} },            .{ .queries = .{ .log = 28, .count = 8 } },
-        .{ .mix_felts = felts[24..64] },   .{ .draw_felts = 1 },
+        .{ .mix_words = words[0..13] },      .{ .draw_felts = 1 },
+        .{ .mix_root = root },               .{ .draw_felts = 2 },
+        .{ .mix_felts = felts[0..24] },      .{ .draw_raw = {} },
+        .{ .draw_raw = {} },                 .{ .draw_felts = 129 }, // > one block of 128 threads
+        .{ .mix_words = words[13..15] },     .{ .queries = .{ .log = 19, .count = 70 } },
+        .{ .mix_words = words[15..1039] },   .{ .draw_felts = 3 },
+        .{ .mix_words = &.{} },              .{ .queries = .{ .log = 28, .count = 8 } },
+        .{ .mix_felts = felts[24..64] },     .{ .draw_felts = 1 },
     });
     if (with_pow) try ops.appendSlice(a, &.{ .{ .pow = 12 }, .{ .queries = .{ .log = 21, .count = 108 } }, .{ .pow = 20 }, .{ .draw_felts = 1 } });
     var seed: Raw.Om31Checkpoint = .{ .digest = undefined, .draws = 5 };
