@@ -10,15 +10,16 @@ The plan (rev 3, §4.1 row 8; `plan_model.py` `ogkr_alone` = (0.65, 0.57, 0.50))
 That number is the M5 **committed-cell** factor (24628607, M4-era tree, `rv64-m5-outer-gkr.md` §6). Re-derived on today's trees:
 
 1. **The cell factor holds:** ×0.562 / ×0.566 / ×0.568 on 24628607 / 26235168 / 26235159 (post-M8 tree), and ×0.575 / ×0.617 / ×0.630 on the k-leaf fan-in tree [D].
-2. **The GPU-s factor does not.** Recursion kernel GPU-s goes **×1.07 central** on the post-M8 tree and ×1.07–1.15 on the fan-in tree (pess ×1.50–1.60, opt ×0.90–0.98) [D/E]. As built, **outer GKR is a net loss of GPU-s**, like Poseidon2 and canonical leaves in wave 1.
+2. **The GPU-s factor does not.** Recursion kernel GPU-s goes **×1.07 central** on the post-M8 tree and ×1.07–1.15 on the fan-in tree (pess ×1.50–1.60, opt ×0.90–0.98) [D/E]. As built, **outer GKR does not save GPU-s**: central it is a small loss, like Poseidon2 and canonical leaves in wave 1.
+   - *(Review, §10.)* The loss sits inside the fit error of r_k. r_k = 0.262 ± 0.053 ns/cell (1σ, 4 dof), corr(a, r_k) = −0.995 against the native term [D]. Across the leave-one-out range the post-M8 factor is ×1.04–1.17. It reaches break-even (×1.00) only at r_k = 0.316 (+1σ), and the 95% CI is ×0.92–1.63. Read the verdict as **"no gain, ±7%"**, not as a firm loss. Pricing the v2 binding pass (one more projection read per fact [E]) moves central to ×1.19–1.28.
    - Why: M8 made committed cells cheap. The bench15 fit is r_k = 0.26 ns per committed cell [D]. M5 used 0.47 ns (0.235 per LDE cell at b2, M4.0). The GPU GKR prover did not get cheaper: 0.575 ns/fact on materialised inputs [M, M5 fused route]. With projection from MAIN it is 0.82 ns/fact [D, + native-stage projection spans], and 1.58 ns/fact all-in on the native projected route [M].
    - Break-even is **0.55–0.68 ns/fact** (0.46–0.57 once streaming commit lands) [D]. Every GKR component loses at the central rate. Per-component break-evens are blake_g_gate 0.72, xor12 0.64, triple_xor 0.57, m31_to_u32 0.34 ns/fact [D].
-3. **The node wall improves a little,** ×0.89 (post-M8 tree) and ×0.95–0.96 (fan-in tree) [E]. The reason is that the per-cell wall rate (0.455 ns) is higher than the kernel rate. This is far from ×0.57.
+3. **The node wall:** ×0.89 (post-M8 tree) and ×0.95–0.96 (fan-in tree) [E] only if the GKR stage runs at its kernel rate (0.82 ns/fact) while committed cells run at the wall rate (0.455 ns/cell, ~57% busy). *(Review, §10.)* At the measured all-in GKR stage wall of 1.58 ns/fact [M], the 2-GPU recursion-after-native **makespan** gets *worse*: ×1.12 (post-M8) and ×1.12–1.19 (fan-in) [E]. The honest wall range is **×0.89–1.19**. That is no claimable wall gain, and it is far from ×0.57.
 4. **Two blockers come before any speed claim:**
    - **Memory.** GKR workspace is 64.3 B/fact [M]: 16.6 GB at a 2^23-blake fold. The M7 production fold already failed admission, needing 15.74 GB free [M].
    - **Power-of-two crossing.** Adding verifier rows to folds of fan-in leaves pushes blake_g_gate from 2^23 to 2^24. That happens in 3 of 9 folds on 26235168 and 6 of 12 on 26235159 [D/E]. Those folds get cells ×0.906 and a **30.6 GB** GKR workspace, which does not fit the 28 GiB gate.
 5. **Recommendation for the plan:**
-   - Set `ogkr_alone` = **(1.15, 1.07, 0.90)** as built.
+   - Set `ogkr_alone` = **(1.28, 1.07, 0.90)** as built. *(Review, §10: the pess entry was 1.15. It is now the case with the binding pass priced.)*
    - Add an *engineered* variant only behind a measured GKR kernel at ≤ 0.3 ns/fact with fused projection. That variant gives ×0.78–0.84 [E] (p50 −3.1 GPU-s instead of −6.0).
    - In the §4.3 search, no 2-GPU set reaches 60% with outer GKR as built. The search must be rerun with these factors.
 
@@ -106,7 +107,7 @@ Per-component break-even (r_k·(1−0.19) per removed column ÷ facts per row) [
 ## 5. Proof-format change
 
 - Each node proof gains one GKR section: v2 wire `[magic, version=2, class, n, L] salt roots` + per-layer rounds (4 coefficients) + masks. That is **57.5–73.7 kB** for L = 24–28 [D], and the identity domain is `…/lane-major/v2`.
-- Each proof opens 176 fewer INTER columns at 108 queries, saving **−76.0 kB** [D]. Net root proof: **−6 to −10 kB**. Child proofs are consumed in circuit.
+- Each proof opens 176 fewer INTER columns at 108 queries, saving **−76.0 kB** [D]. Net root proof: **−6 to −10 kB**, or −12 to −16 kB once the 176 fewer OODS samples are counted (review R6). Child proofs are consumed in circuit.
 - Class identity: the M5 classes are comptime constants. M9 run-time classes (`m9_node.classFor`) take their id from the node row logs (`0x9xxxxxxx`). In production the receiver must derive the class from the node statement or VK, never from the proof (`section.decode` pins `expected`). The class-stable outer shapes of plan §5 row 2c would bound the class count.
 - Optional v3: derive c0 from the claim (−25% of round bytes, M5 open item 5).
 
@@ -173,7 +174,7 @@ Cases:
 What the table shows:
 - Leaves and post-M8 folds behave alike (×1.06–1.08 central).
 - In the fan-in tree, the crossing folds give a fold factor of ×1.33–1.41 central. A fold-arity guard (3 children when 4 would cross) or a planner that counts verifier rows removes this.
-- **The plan's ×0.57 is wrong for GPU-s** at every case except a hypothetical sub-0.1 ns/fact prover. At p50 (post-M8 recursion 14.0 GPU-s) the lever is **+1.0 GPU-s** as built (central), −1.4 at opt and −3.1 engineered, against the plan's −6.0. At p95 it is +1.6 / −2.3 / −5.1 against −10.0.
+- **The plan's ×0.57 is wrong for GPU-s at any GKR rate.** *(Review fix: the original text said "except a hypothetical sub-0.1 ns/fact prover".)* With a free GKR prover (0 ns/fact) the central factor is still ×0.65–0.70 [D], because the 19% witness share scales with gate rows and not with INTER. At p50 (post-M8 recursion 14.0 GPU-s) the lever is **+1.0 GPU-s** as built (central), −1.4 at opt and −3.1 engineered, against the plan's −6.0. At p95 it is +1.6 / −2.3 / −5.1 against −10.0.
 
 ## 8. What would make it pay
 
@@ -185,7 +186,7 @@ What the table shows:
 
 ## 9. Integration steps after GPU-native lands
 
-1. Rerun the plan search (`plan_model.py`) with `ogkr_alone` = (1.15, 1.07, 0.90). Add an `ogkr_engineered` = (0.90, 0.80, 0.78) variant gated on step 2.
+1. Rerun the plan search (`plan_model.py`) with `ogkr_alone` = (1.28, 1.07, 0.90) (review §10). Add an `ogkr_engineered` = (0.90, 0.80, 0.78) variant gated on step 2.
 2. GPU microbenchmark (standalone, lock ≤ 5 min, CUDA events): the fused projected GKR route at the D2 leaf class (137.4 M facts) and the 2^23 fold class (257.9 M). Gate: ≤ 0.45 ns/fact to continue, ≤ 0.3 to schedule.
 3. If it passes:
    - port `m9_node.classFor` to the job classifier, so classes come from node shapes and are pinned in the VK;
@@ -194,3 +195,39 @@ What the table shows:
    - use chunked GKR (`gkr_chunk_contract.zig`) under global admission.
 4. Wire the M7 resident hybrid route (`hybrid_device.zig`, `hybrid_receiver.zig`, child verifier) under `STWO_RV64_M9_OUTER_GKR=1` in a new job class, without touching `rv64/jobs/` defaults. Owed before promotion: a fresh receiver plus the tamper corpus on 24628607 and 26235168, and a 3+3 paired A/B.
 5. Do not promote on cells. Promote only on paired request time.
+
+## 10. Adversarial review (2026-11-07)
+
+Script: `scripts/rv64_m9/outer_gkr_review.py`. Receipt: `vectors/reports/rv64-m9-prep/m9-outer-gkr/review.json`. CPU only.
+
+**Re-run [M]:**
+- Zig `test-riscv64-m9-outer-gkr` (ReleaseSafe, memguard 6 GB): 6/6 pass, 19 s, 1 GB RSS.
+- Python 3/3 pass.
+- `factor.json` reproduces from `gates.json`.
+- Both measured anchors check out against the M7 receipts:
+  - workspace 64.25 B/fact, from `GPU_OUTER_GKR_PLAN facts=257949696 workspace_bytes=16573396480` and `facts=137363456 workspace_bytes=8825725184` in production-negative prod3;
+  - the M5 fused 148.2 ms, which is on 2× RTX 5090 (the same GPU as bench15).
+
+**Confirmed and kept:**
+- the cell factors, the per-component break-evens (r_k·0.81·Δcols/lookups) and the p50/p95 arithmetic;
+- the union bound: the M5 ledger formula, with the node count and L of each tree. 206–209 bits strict OM31, against 151 required;
+- the characteristic bound: total uses ≤ 2^28.9 < p even at the crossing fold;
+- the memory blocker: the 15.74 GB free was measured inside the hybrid route, so it already reflects the narrower INTER.
+
+**Corrections:**
+
+| # | claim | finding | corrected |
+|---|---|---|---|
+| R1 | "net loss" ×1.07 [D/E] | r_k comes from a 2-parameter, no-intercept fit on 6 blocks where Minstr and cells are nearly collinear: r_k = 0.262 ± 0.053, corr −0.995. Break-even needs r_k ≥ 0.316 (post-M8) / 0.37–0.39 (fan-in). | post-M8 ×1.07 central, LOO ×1.04–1.17, +1σ ×1.00, 95% CI ×0.92–1.63; fan-in ×1.13–1.15, LOO ×1.10–1.25. **"no gain"**, not a firm loss. A per-phase kernel split (recursion vs native kernel GPU-s, one nsys-free span sum) would pin r_k. |
+| R2 | node wall ×0.89 [E] | It is a sum of node walls, not the request critical path. It also prices the GKR stage at kernel rate inside a ~57%-busy wall model. | 2-GPU recursion-after-native makespan (fan-in `schedule`, with the 2^24 composition tax): ×0.89 at 0.82 ns/fact wall and **×1.12–1.19 at the measured 1.58 ns/fact stage wall**. |
+| R3 | ×0.57 reachable "with a sub-0.1 ns/fact prover" | With a free GKR (0 ns/fact) the factor is ×0.65 (post-M8) / ×0.66–0.70 (fan-in) at witness share 0.19. | ×0.57 is unreachable at any GKR rate. |
+| R4 | central 0.82 ns/fact = fused GKR + projection | It is missing the v2 binding pass: the anchored Eq and cyclic prefix re-read every fact as n + γ·d per lane, after the GKR point is known. The 16 binding columns are priced at r_k per cell, but a blake row feeds them 26 lookups. | Priced as one more projection pass (+0.244 ns/fact [E]): central ×1.19–1.28. The engineered 0.25 ns/fact target must fuse this pass too (M7 "final-layer revisit"). |
+| R5 | "node round on the real D2 leaf roster" | The roster, lane groups and tuple authority are real. The MAIN/PP row values are pseudo-random, and closure is checked against the honest complement (−root_sum), so a real classic side never balances the GKR. | Wording: *real roster and relation shape, synthetic rows*. Closure against a real classic consumer (qm31_ops/eq, small tables) is still owed. It is the first parity item for the GPU step (§9 step 4). |
+| R6 | proof bytes "net −6 to −10 kB" [D] | The saving counts 176·4 B·108 queries only. It leaves out the 176 fewer OODS samples (32 B each, −5.6 kB), and any sibling openings the decommitment carries. | Net root proof **−12 to −16 kB** [D/E] (−6 to −10 kB plus 5.6 kB of OODS samples). It is still small. |
+
+**Corrected headline:**
+- cells ×0.56–0.63 [D];
+- recursion kernel GPU-s ×1.07 central (×1.04–1.17 LOO; fan-in ×1.13–1.15) [D/E], ×1.19–1.28 once the binding pass is priced [E];
+- critical-path wall ×0.89–1.19 [E];
+- p50 lever +1.0 GPU-s central (0.0 to +2.4 over the LOO band, +2.8 with the binding pass), against the plan's −6.0;
+- recommended `ogkr_alone` = (1.28, 1.07, 0.90) (pess, central, opt), replacing §0's (1.15, 1.07, 0.90). The pess entry is the binding-pass case on the fan-in tree. The engineered variant (0.25 ns/fact with the projection *and* binding passes fused) is ×0.78–0.84 [E], and it still needs the GPU microbenchmark gate of §9 step 2.
