@@ -27,11 +27,33 @@
 //!             authority region; the GKR terminal claims are copied into the
 //!             exchange claims slot and peer-published (the device seal reads
 //!             every segment's slot).
+//!   checkpoint the post-MAIN main-channel snapshot (16 words) into the
+//!             segment's resident checkpoint region: the transcript Stage 2
+//!             continues from (legacy `seedOf(worker.channel)` at stage two,
+//!             before `mixManifestAndClaims`).
 //!   checks    witness_status, binding_authority, root_match: one Verdict word
-//!             each in the request slab (stwo_rv64_n1_check_v1_on).
+//!             each in the request slab (stwo_rv64_n1_check_v2_on):
+//!               witness_status    scatter status word (every run in range);
+//!                                 full image coverage is refused on the host
+//!                                 at job init (validateCoverage), before any
+//!                                 enqueue;
+//!               binding_authority GKR closure status, binding verdict, the
+//!                                 traversal header guard (legacy
+//!                                 gkr.Header.validate) and the child channel
+//!                                 snapshot guard (legacy Section.verify
+//!                                 cursor/chain/status/draws);
+//!               root_match        device FIXED root == class authority root,
+//!                                 exchanged MAIN root == GKR-bound MAIN root,
+//!                                 post-MAIN main-channel guard (cursor, chain,
+//!                                 status latch: seed -> FIXED -> MAIN order).
+//!             NOT on device (no device GKR verifier exists): the legacy
+//!             `NB.checkAuthority` replay of the GKR proof (claims, OOD point,
+//!             eta vs a host partial verification) and the host replay of the
+//!             child digest. binding_authority covers only the guards above;
+//!             see the n-stage1 receipt.
 //!
 //! Resident layout of one segment (`ResidentLayout`, offsets 64-word aligned):
-//!   [MAIN coefficients | binding output | GKR section | authority words]
+//!   [MAIN coefficients | binding output | GKR section | authority words | checkpoint 16]
 //! `ClassEntry.main_resident_words` = `ResidentLayout.words`.
 //!
 //! Per-request host work that remains here (listed in the receipt): the two
@@ -60,13 +82,16 @@ fn up(x: usize) usize {
 // ---------------------------------------------------------------------------
 
 pub const Pair = extern struct { a: [*]const u32, b: [*]const u32, words: u32, reserved: u32 = 0 };
+/// A device run compared with constants carried in the launch parameters.
+pub const Const = extern struct { a: [*]const u32, words: u32, reserved: u32 = 0, values: [16]u32 = @splat(0) };
 pub const CheckSpec = extern struct {
     zero: [8][*]const u32 = undefined,
     pairs: [4]Pair = undefined,
+    consts: [4]Const = undefined,
     n_zero: u32 = 0,
     n_pairs: u32 = 0,
+    n_consts: u32 = 0,
     check: u32,
-    reserved: u32 = 0,
 
     pub fn mustBeZero(self: *CheckSpec, word: api.DeviceBuffer) !void {
         if (self.n_zero == 8 or word.words < 1) return error.NativeStage1CheckShape;
@@ -78,9 +103,30 @@ pub const CheckSpec = extern struct {
         self.pairs[self.n_pairs] = .{ .a = a.ptr, .b = b.ptr, .words = @intCast(a.words) };
         self.n_pairs += 1;
     }
+    /// `a[0..values.len) == values` on device (values travel by value).
+    pub fn mustMatch(self: *CheckSpec, a: api.DeviceBuffer, values: []const u32) !void {
+        if (self.n_consts == 4 or values.len == 0 or values.len > 16 or a.words != values.len) return error.NativeStage1CheckShape;
+        var c = Const{ .a = a.ptr, .words = @intCast(values.len) };
+        @memcpy(c.values[0..values.len], values);
+        self.consts[self.n_consts] = c;
+        self.n_consts += 1;
+    }
 };
 comptime {
-    if (@sizeOf(Pair) != 24 or @sizeOf(CheckSpec) != 8 * 8 + 4 * 24 + 16) @compileError("n1 check ABI changed");
+    if (@sizeOf(Pair) != 24 or @sizeOf(Const) != 80 or @sizeOf(CheckSpec) != 8 * 8 + 4 * 24 + 4 * 80 + 16) @compileError("n1 check ABI changed");
+}
+
+/// Words [8, 16) of a completed device channel snapshot (channel.zig
+/// Snapshot: draws, cursor, status, reserved, chain lo/hi, padding 2): the
+/// legacy host `Snapshot.validate(cursor, chain)` plus the draw counter.
+pub fn snapshotGuard(draws: u32, cursor: u32, chain: u64) [8]u32 {
+    return .{ draws, cursor, 0, 0, @truncate(chain), @truncate(chain >> 32), 0, 0 };
+}
+/// Words [8, 20) of a completed GKR traversal header (gkr.zig Header): the
+/// legacy host `Header.validate` (channel cursor 2L, chain, draws 1, layers,
+/// count, next_layer = layers, phase 2).
+pub fn headerGuard(layers: u32, count: u32, chain: u64) [12]u32 {
+    return snapshotGuard(1, 2 * layers, chain) ++ [4]u32{ layers, count, layers, 2 };
 }
 pub const Run = extern struct { dst: u64, src: u64, words: u64 };
 comptime {
@@ -102,7 +148,7 @@ pub const Symbols = struct {
     binding: NB.Symbols,
     pub fn load(base: *std.DynLib, addon: *std.DynLib, gkr: ?*const NG.Symbols) !Symbols {
         return .{
-            .check = addon.lookup(CheckFn, "stwo_rv64_n1_check_v1_on") orelse return error.MissingNativeStage1Kernel,
+            .check = addon.lookup(CheckFn, "stwo_rv64_n1_check_v2_on") orelse return error.MissingNativeStage1Kernel,
             .scatter = addon.lookup(ScatterFn, "stwo_rv64_n1_scatter_v1_on") orelse return error.MissingNativeStage1Kernel,
             .copy = addon.lookup(HJ.CopyAsync, "stwo_rv64_jobs_copy_async") orelse return error.MissingNativeStage1Kernel,
             .memset = base.lookup(*const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int, "stwo_exec_context_memset_async") orelse return error.MissingNativeStage1Kernel,
@@ -152,13 +198,21 @@ pub const ResidentLayout = struct {
     section_words: usize,
     authority: usize,
     authority_words: usize,
+    /// Post-MAIN main-channel snapshot (16 words; Stage 2 seeds from [0, 9)).
+    checkpoint: usize,
     words: usize,
 
+    pub const checkpoint_words: usize = 16;
     pub fn of(main_words: usize, binding_words: usize, section_words: usize, authority_words: usize) ResidentLayout {
         const binding = up(main_words);
         const section = binding + up(binding_words);
         const authority = section + up(section_words);
-        return .{ .main_words = main_words, .binding = binding, .binding_words = binding_words, .section = section, .section_words = section_words, .authority = authority, .authority_words = authority_words, .words = authority + up(authority_words) };
+        const checkpoint = authority + up(authority_words);
+        return .{ .main_words = main_words, .binding = binding, .binding_words = binding_words, .section = section, .section_words = section_words, .authority = authority, .authority_words = authority_words, .checkpoint = checkpoint, .words = checkpoint + up(checkpoint_words) };
+    }
+    pub fn checkpointView(self: ResidentLayout, resident: api.DeviceBuffer) !api.DeviceBuffer {
+        if (resident.words < self.words) return error.GpuNativeMainResidentTooSmall;
+        return resident.slice(self.checkpoint, checkpoint_words);
     }
     pub fn mainView(self: ResidentLayout, resident: api.DeviceBuffer) !api.DeviceBuffer {
         if (resident.words < self.words) return error.GpuNativeMainResidentTooSmall;
@@ -193,6 +247,9 @@ pub const Class = struct {
     /// MAIN evaluation image: column offsets (original order) and size.
     image_offsets: []usize,
     image_words: usize,
+    /// Draw counter of the GKR child channel at its snapshot (data
+    /// independent: the op sequence is class geometry; host replay once).
+    child_draws: u32 = 0,
 
     pub fn init(a: std.mem.Allocator, spec: Spec) !*Class {
         if (spec.gkr.fixed_count != spec.fixed_shapes.len or spec.gkr.logs.len != spec.fixed_shapes.len + spec.main_shapes.len) return error.NativeStage1ClassShape;
@@ -219,7 +276,7 @@ pub const Class = struct {
         var h = std.crypto.hash.sha2.Sha256.init(.{});
         h.update("rv64-m8-n1-fixed-v1");
         h.update(&spec.key);
-        self.* = .{ .a = a, .spec = spec, .fixed = fixed, .main = main, .bind = bind, .section = section, .resident = ResidentLayout.of(main.coefficient_cells, bind.output_words, section.words, bind.authorityWords()), .fixed_key = h.finalResult(), .image_offsets = image_offsets, .image_words = at };
+        self.* = .{ .a = a, .spec = spec, .fixed = fixed, .main = main, .bind = bind, .section = section, .resident = ResidentLayout.of(main.coefficient_cells, bind.output_words, section.words, bind.authorityWords()), .fixed_key = h.finalResult(), .image_offsets = image_offsets, .image_words = at, .child_draws = NG.expectedChild(spec.gkr, @splat(0))[8] };
         return self;
     }
     pub fn deinit(self: *Class) void {
@@ -316,6 +373,27 @@ pub fn validateChunk(words: []const u32, image_words: usize) !void {
     }
 }
 
+/// The runs of a segment's chunks must tile its MAIN evaluation image
+/// exactly (no gap: the arena image is not zeroed, a gap would commit stale
+/// words; no overlap: the result would depend on scatter order). Host, O(R
+/// log R) over the run tables only, at job init: a refusal enqueues nothing.
+pub fn validateCoverage(a: std.mem.Allocator, chunks: []const G.TraceChunk, image_words: usize) !void {
+    var spans: std.ArrayListUnmanaged([2]u64) = .empty;
+    defer spans.deinit(a);
+    for (chunks) |ch| for (try chunkRuns(ch.words)) |r| try spans.append(a, .{ r.dst, r.words });
+    std.mem.sort([2]u64, spans.items, {}, struct {
+        fn lt(_: void, x: [2]u64, y: [2]u64) bool {
+            return x[0] < y[0];
+        }
+    }.lt);
+    var at: u64 = 0;
+    for (spans.items) |sp| {
+        if (sp[0] != at) return error.NativeStage1WitnessCoverage;
+        at += sp[1];
+    }
+    if (at != image_words) return error.NativeStage1WitnessCoverage;
+}
+
 /// Where Stage 1 gets its MAIN evaluations from.
 pub const Witness = union(enum) {
     /// Captured chunks (pinned ring memory, valid until the job's `after`
@@ -354,6 +432,7 @@ pub const WarmJob = struct {
         self.fixed = self.class.fixed;
         self.main = self.class.main;
         self.gkr = try NG.Gkr.init(self.a, self.class.spec.gkr, self.sym.gkr orelse return error.NativeStage1SymbolsNotBound);
+        errdefer self.gkr.deinit();
         self.binding = .{ .plan = &self.class.bind, .sym = self.sym.binding };
         self.inputs = try self.a.alloc(C.Input, self.class.spec.fixed_host.len);
         for (self.inputs, self.class.spec.fixed_host) |*i, h| i.* = .{ .host = h };
@@ -467,9 +546,12 @@ pub const Stage1Job = struct {
         if (self.segment >= self.ctx.main_resident.len or self.segment >= self.ctx.segment_device.len) return error.GpuNativeSegmentOutOfRange;
         if (self.ctx.segment_device[self.segment] != self.device) return error.GpuNativeSegmentDeviceMismatch;
         switch (self.witness) {
-            .chunks => |chunks| for (chunks) |ch| {
-                if (ch.segment != self.segment) return error.NativeStage1ChunkSegment;
-                try validateChunk(ch.words, c.image_words);
+            .chunks => |chunks| {
+                for (chunks) |ch| {
+                    if (ch.segment != self.segment) return error.NativeStage1ChunkSegment;
+                    try validateChunk(ch.words, c.image_words);
+                }
+                try validateCoverage(self.a, chunks, c.image_words);
             },
             .device => |cols| if (cols.len != c.main.shapes.len) return error.NativeStage1WitnessShape,
         }
@@ -535,8 +617,8 @@ pub const Stage1Job = struct {
         try self.gkr.stageCommitted(s);
         try self.binding.stage(self.a, s);
         switch (self.witness) {
-            // Chunk data stays in the pinned ring; only its run table lands
-            // in arena memory here (from the ring too: h2d at enqueue).
+            // One arena buffer per chunk (run table + data); the h2d from
+            // the pinned ring is enqueued on the exec stream at enqueue.
             .chunks => |chunks| for (chunks, self.runs) |ch, *r| {
                 r.* = try s.alloc(ch.words.len);
             },
@@ -567,6 +649,7 @@ pub const Stage1Job = struct {
         const bind_view = try c.resident.bindingView(resident);
         const section_view = try c.resident.sectionView(resident);
         const authority_view = try c.resident.authorityView(resident);
+        const checkpoint_view = try c.resident.checkpointView(resident);
         const root_slot = try self.ctx.exchange.root(self.segment);
         const claims_slot = try self.ctx.exchange.claims(self.segment);
         if (claims_slot.words != 8 * @as(usize, c.claimsPerSegment())) return error.GpuNativeExchangeClaimsShape;
@@ -590,6 +673,11 @@ pub const Stage1Job = struct {
         const fixed = pro.fixed;
         const main = pro.main;
         const wstatus = pro.witness_status;
+        // The transcript Stage 2 continues from (seed -> FIXED -> MAIN).
+        const main_cursor = e.channel.step;
+        const main_chain = e.channel.expectedChain(main_cursor);
+        const checkpoint_slab = Slab.ProofSlab{ .device = checkpoint_view };
+        try e.channel.snapshot(&checkpoint_slab, 0);
         try self.ctx.peer.publish(self.device, root_slot);
 
         // Local GKR + binding.
@@ -603,17 +691,22 @@ pub const Stage1Job = struct {
         try self.ctx.peer.publish(self.device, claims_slot);
 
         // Device acceptance checks (one Verdict word each).
+        const traversal = (self.gkr.traversal orelse return error.NativeGkrNotEnqueued).traversal;
+        const header = try e.slab.field(.gkr_section, c.spec.gkr.fields.header());
+        const child = try e.slab.field(.snapshot, c.spec.gkr.fields.base);
         var w = CheckSpec{ .check = @intFromEnum(G.Check.witness_status) };
         try w.mustBeZero(wstatus);
         try cuda(sym.check(ectx, 0, &w, st_witness.ptr));
         var b = CheckSpec{ .check = @intFromEnum(G.Check.binding_authority) };
         try b.mustBeZero(try e.slab.field(.status, c.spec.gkr.fields.status()));
         try b.mustBeZero(bverdict);
-        try b.mustEqual(claims_out, claims);
+        try b.mustMatch(try header.slice(8, 12), &headerGuard(traversal.layers, traversal.count, traversal.chain));
+        try b.mustMatch(try child.slice(8, 8), &snapshotGuard(c.child_draws, self.gkr.child_steps, self.gkr.child_chain));
         try cuda(sym.check(ectx, 0, &b, st_binding.ptr));
         var r = CheckSpec{ .check = @intFromEnum(G.Check.root_match) };
         try r.mustEqual(fixed_root, class_root);
         try r.mustEqual(root_out, try e.slab.field(.gkr_section, c.spec.gkr.fields.mainRoot()));
+        try r.mustMatch(try checkpoint_view.slice(8, 8), &snapshotGuard(0, main_cursor, main_chain));
         try cuda(sym.check(ectx, 0, &r, st_root.ptr));
         try self.span.mark(self.timing, .end, stream);
     }
@@ -716,6 +809,12 @@ pub const Registry = struct {
     timing: ?*const HJ.Timing = null,
     /// Workers by driver device index (WarmJob per class and GPU at install).
     workers: []const *W.Worker = &.{},
+    /// GPUs the service runs (set before warm): `held_words` is reserved on
+    /// each of them. 0 = `workers.len`; a class registered with neither set
+    /// refuses to warm (it would budget only GPU 0).
+    devices: u32 = 0,
+    /// Devices the warmed entries reserved held words on.
+    warmed_devices: u32 = 0,
     sealed: bool = false,
 
     /// native_device.Native.stage1_hooks of this registry.
@@ -727,11 +826,12 @@ pub const Registry = struct {
     }
     fn hWarm(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {
         const self = reg(raw);
-        return self.warm(cache, @intCast(@max(1, self.workers.len)));
+        return self.warm(cache, if (self.devices != 0) self.devices else @intCast(self.workers.len));
     }
     fn hInstalled(raw: *anyopaque, info: *const G.Installed) anyerror!void {
         const self = reg(raw);
         if (self.workers.len < info.devices) return error.NativeStage1WorkersNotBound;
+        if (self.classes.count() != 0 and info.devices > self.warmed_devices) return error.NativeStage1DevicesNotWarmed;
         try self.warmDevices(self.workers[0..info.devices]);
         self.seal();
     }
@@ -795,6 +895,8 @@ pub const Registry = struct {
     pub fn warm(self: *Registry, cache: *G.ClassCache, devices: u32) !void {
         self.mutex.lock();
         defer self.mutex.unlock();
+        if (self.specs.count() != 0 and devices == 0) return error.NativeStage1DevicesNotBound;
+        self.warmed_devices = @min(devices, G.max_devices);
         for (self.specs.values()) |spec| {
             const cl = if (self.classes.get(spec.key)) |c| c else blk: {
                 const c = try Class.init(self.a, spec);

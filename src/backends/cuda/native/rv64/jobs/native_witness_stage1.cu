@@ -2,17 +2,22 @@
 // rv64-m8-gpu-native.md §3.2, §3.5; native range 0x02xx of gpu_native.Check).
 // Host side: src/integrations/riscv_cuda/rv64/jobs/native_device_stage1.zig.
 //
-// 1. stwo_rv64_n1_check_v1_on: one acceptance check = exactly one Verdict word.
+// 1. stwo_rv64_n1_check_v2_on: one acceptance check = exactly one Verdict word.
 //    Inputs are up to 8 "must be zero" words (device status/verdict words of
-//    the producers: GKR closure status, binding verdict, witness status) and
-//    up to 4 equal-pairs (a[0..words) == b[0..words): FIXED device root vs the
-//    class authority root, the exchanged MAIN root vs the commit's root, the
-//    exchanged marginals vs the GKR terminal claims). Accept (0) iff every
-//    zero word is 0 and every pair is equal; otherwise
-//    (check << 16) | detail, detail = 1 + index of the first failing input
-//    (zero words first, then pairs at 0x10 + pair index). A zero word holding
-//    Verdict.unset (0xffffffff: its producer never ran) also rejects.
-//    One thread: the inputs are a few dozen words.
+//    the producers: GKR closure status, binding verdict, witness status), up
+//    to 4 equal-pairs (a[0..words) == b[0..words): FIXED device root vs the
+//    class authority root, the exchanged MAIN root vs the GKR-bound root) and
+//    up to 4 constant runs (a[0..words) == values[0..words), values carried in
+//    the launch parameters: the plan-determined guard words of a device
+//    channel snapshot or traversal header - cursor, chain, status latch,
+//    draws, layer/phase counters - i.e. the legacy host Snapshot.validate /
+//    Header.validate, so no expected value needs device memory). Accept (0)
+//    iff every zero word is 0, every pair is equal and every run matches;
+//    otherwise (check << 16) | detail, detail = 1 + index of the first failing
+//    input (zero words first, then pairs at 0x10 + index, then constant runs
+//    at 0x20 + index). A zero word holding Verdict.unset (0xffffffff: its
+//    producer never ran) also rejects. One thread: a few dozen words.
+//    v2 = v1 + constant runs (the v1 symbol is gone: its ABI was smaller).
 //
 // 2. stwo_rv64_n1_scatter_v1_on: chunked MAIN evaluation ingress. Copies a
 //    run table {dst offset, src offset, words} from a staged chunk buffer into
@@ -31,16 +36,24 @@ struct StwoRv64N1Pair {
   uint32_t words;
   uint32_t reserved;
 };
+struct StwoRv64N1Const {
+  const uint32_t *a;
+  uint32_t words;  // 1..16
+  uint32_t reserved;
+  uint32_t values[16];
+};
 struct StwoRv64N1Check {
   const uint32_t *zero[8];
   StwoRv64N1Pair pairs[4];
+  StwoRv64N1Const consts[4];
   uint32_t n_zero;
   uint32_t n_pairs;
+  uint32_t n_consts;
   uint32_t check;  // gpu_native.Check id (0x02xx)
-  uint32_t reserved;
 };
 static_assert(sizeof(StwoRv64N1Pair) == 24, "n1 pair ABI");
-static_assert(sizeof(StwoRv64N1Check) == 8 * 8 + 4 * 24 + 16, "n1 check ABI");
+static_assert(sizeof(StwoRv64N1Const) == 80, "n1 const ABI");
+static_assert(sizeof(StwoRv64N1Check) == 8 * 8 + 4 * 24 + 4 * 80 + 16, "n1 check ABI");
 
 struct StwoRv64N1Run {
   uint64_t dst;    // word offset in the MAIN evaluation image
@@ -60,6 +73,12 @@ __global__ void n1_check(StwoRv64N1Check c, uint32_t *verdict) {
     for (uint32_t k = 0; k < c.pairs[p].words; ++k)
       if (c.pairs[p].a[k] != c.pairs[p].b[k]) {
         detail = 0x10 + p;
+        break;
+      }
+  for (uint32_t q = 0; q < c.n_consts && !detail; ++q)
+    for (uint32_t k = 0; k < c.consts[q].words; ++k)
+      if (c.consts[q].a[k] != c.consts[q].values[k]) {
+        detail = 0x20 + q;
         break;
       }
   verdict[0] = detail ? ((c.check << 16) | detail) : 0u;
@@ -85,11 +104,14 @@ __global__ void n1_scatter(const StwoRv64N1Run *runs, uint32_t n_runs, const uin
 }  // namespace stwo::cuda::rv64
 
 // Every pointer is device memory of `context`; verdict: 1 word (written).
-extern "C" int stwo_rv64_n1_check_v1_on(void *context, uint32_t lane, const StwoRv64N1Check *check,
+extern "C" int stwo_rv64_n1_check_v2_on(void *context, uint32_t lane, const StwoRv64N1Check *check,
                                         uint32_t *verdict) {
   using namespace stwo::cuda::rv64;
-  if (!check || check->n_zero > 8 || check->n_pairs > 4 || (check->check >> 8) != 0x02u)
+  if (!check || check->n_zero > 8 || check->n_pairs > 4 || check->n_consts > 4 || (check->check >> 8) != 0x02u)
     return int(cudaErrorInvalidValue);
+  for (uint32_t q = 0; q < check->n_consts; ++q)
+    if (!check->consts[q].a || !check->consts[q].words || check->consts[q].words > 16)
+      return int(cudaErrorInvalidValue);
   for (uint32_t p = 0; p < check->n_pairs; ++p)
     if (!check->pairs[p].a || !check->pairs[p].b || !check->pairs[p].words || check->pairs[p].words > 4096)
       return int(cudaErrorInvalidValue);
@@ -122,5 +144,5 @@ extern "C" int stwo_rv64_n1_scatter_v1_on(void *context, uint32_t lane, const St
 }
 
 extern "C" uint32_t stwo_rv64_n1_version(void) {
-  return 1;
+  return 2;
 }
