@@ -1,4 +1,3 @@
-438M	.
 {"arm":"dag_chain_run","status":0,"mismatched_vars":0,"first_mismatch":-1}
 {"arm":"dag_chain_run","launches":328,"levels":41664,"ms_min":41.115,"ms_med":41.131,"ms_max":41.163,"exact":true}
 {"arm":"leaf.blake.m9rw","status":0,"mismatched_vars":0,"first_mismatch":-1}
