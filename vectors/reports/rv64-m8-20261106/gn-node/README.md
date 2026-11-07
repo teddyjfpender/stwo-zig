@@ -40,6 +40,21 @@ Every node of both recorded blocks, children from their recorded regions; compar
 - [M] Negatives (fold 4 of each block; device word == mirror word on every case): Merkle path sibling flipped → seed_tape 0x03050006; queried value := p → 0x03050005; raw query out of range → 0x03050004; image header → 0x03050003; empty region → 0x03050002 (+ child_binding 0x03060001); wire magic → child_binding 0x03060002; child identity → 0x03060004; child output count → 0x03060005; child FIXED root → seed_tape 0x03050008 + child_binding 0x03060006. 9/9 fail closed per block.
 - Machine-readable: `harness-24628607.json`, `harness-26235156.json` (`scripts/rv64_m8_gn_node_summary.py harness <log>`).
 
+### In-service: every node proved from device-filled inputs (`STWO_RV64_M8_GN_NODE=check`)
+Proof-only runner (`pod/gn_prove.py`: the gate's small-block-proof step + frozen-D2 parity) with `STWO_RV64_M8_OUTER_JOBS=1 OUTER_DEVICE_CHECKS=1 GN_NODE=check OUTER_GRAPH_THRESHOLD=1`, driver b6, addon b6 (a25 base). Before staging, every node's host seed limbs and transcript checkpoint are ERASED (and the staged expected outputs); the device seed fill + statement kernel writes them from the children's sources (legacy natives' PCS images via the recorder hook, proved nodes' wire + PCS image), and the node body proves from them.
+
+| block | node proofs from device inputs (cold + warm) | device outputs == legacy | device checkpoint == legacy | seed_tape / child_binding accepted | request artifacts vs frozen D2 | seed-fill GPU (CUDA events) |
+|---|---|---|---|---|---|---|
+| 24628607 | 38 / 38 | 38 / 38 | 38 / 38 | 38 / 38 | **39/39 + 39/39 byte-identical** | 0.37–1.99 ms / node, 34.1 ms over 38 nodes [M] |
+| 26235156 | 30 / 30 | 30 / 30 | 30 / 30 | 30 / 30 | **32/32 + 32/32 byte-identical** | 27.3 ms over 30 nodes [M] |
+
+- [M] Negative arm (`STWO_RV64_M8_FAULT_INJECTION=1 GN_NODE_FAULT_ORDINAL=4`, 24628607): one MAIN-tree Merkle path word of fold 4's first child flipped → `seed_tape` 0x03050006 on device → node refused (`GnNodeDeviceRejected`), request fails as intended (`arm-n-24628607-4`).
+- Check-mode host costs (child-source assembly, MAIN-root child search, program build per node: 2–620 ms [M]) are harness scaffolding: production builds programs at warm and reads children from the slab.
+- Machine-readable: `service-g-24628607.json`, `service-g-26235156.json`.
+
+### In-service: the production GPU-native node job (`STWO_RV64_M8_GN_NODE=job`)
+Every node is proved a second time through `outer_device.NodeJob` over its `NodeClasses` template (children in a node-local stand-in of the request slab: image in the last region words), device encoder into the node's region (image tail on, outputs from device memory, `device_publish`: no host decode in finish), and the bytes are compared with the published host bytes.
+
 ### Host tests (laptop, memguard 6 GB)
 - [M] `zig build test-rv64-jobs-outer` and `test-rv64-jobs` PASS. `outer_seed_device.zig`: synthetic children with real Merkle trees (trace + FRI), caps and full-path roots verified, five negative classes. `outer_device.zig`: the GPU-native node job end to end on the fake device (2 GPUs, the fold's second child on the peer GPU: one peer copy; seeds/outputs/checkpoint == mirror; seed_tape / child_binding / lookup_sum / channel_order words accepted in the request slab), and its negatives (corrupted peer child path → seed_tape reject, bad channel latch → channel_order reject, publish refuses; unknown child / wrong child count / unplanned class fail at plan time).
 
