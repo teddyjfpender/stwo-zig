@@ -55,7 +55,7 @@ Rejected variant, measured: decode heavy blocks into shared memory, 1 CTA per SM
 - a production-shaped synthetic class (31 values, 0.93 GB, 27.0×, calibrated to the measured 24628607 ratios of 38× FIXED / 20× tasks vs 42× / 20–35× [M]);
 - an edge-shape corpus: every legal channel count 1…128, partial last blocks, raw blocks, long periodic matches; 144 values.
 
-**Negative cases.** All refused [M]: broken payload chain (status 2), match offset 0 (status 8), truncated final payload (status 4), payload bit flip (status 4, or a word mismatch when the LZ4 grammar accepts the flip), illegal channel count (status 1). `compute-sanitizer` memcheck reports 0 errors and racecheck 0 hazards [M].
+**Negative cases** [M, corrected in review §6]. Refused by status: broken payload chain (status 2), match offset 0 (status 8), truncated final payload (status 4), illegal channel count (status 1), and (since review) a job table whose `first_block` prefix or `total_blocks` undercounts (status 1). A payload bit flip is **not** always refused: on the real and synthetic corpora the flip broke the grammar (status 4), but on the edge-shape corpus it stayed grammar-valid and decoded to 7 wrong words with **status 0**. Only the bench's word compare saw it. That is inherent (no checksum; the host `LZ4_decompress_safe` path behaves the same) and is not a soundness issue: a wrong static word only makes the node's proof fail to verify. `compute-sanitizer` memcheck reports 0 errors and racecheck 0 hazards [M, rerun in review on the fixed decoder incl. all negative cases].
 
 | corpus (one batched launch = one node) | logical | packed | decode median [M] | of which LZ4 / scan [M] | packed H2D [M] | logical H2D at 28.15 GB/s [D] |
 |---|---:|---:|---:|---:|---:|---:|
@@ -68,8 +68,8 @@ Rejected variant, measured: decode heavy blocks into shared memory, 1 CTA per SM
 
 **Critical path.** The LZ4 pass is bound by the longest serial sequence chain, not by bytes:
 - the actual leaf data have p50 24 / p99 5,336 / max 8,079 sequences per block [M];
-- that gives ≈285 ns per sequence [D: 2.40 ms / 8,079];
-- decode time is therefore flat at about 2–4.5 ms per node from 19 MB up to 1 GB.
+- that gives ≈286 ns per sequence [D: 2.31 ms FIXED-section LZ4 pass, which holds the 8,079-sequence block / 8,079];
+- decode time is therefore a tail floor of ≈2–2.9 ms plus a throughput term, **not** flat: the same data ×3 (same max chain) goes from 2.85 ms at 0.34 GB to 4.48 ms at 1.03 GB [M], ≈2.4 ms per extra GB [D]. A 0.83 GB production node is ≈4.0 ms [E: 2.85 + 0.49 × 2.38], unmeasured on production data (24628607's ratios are higher, 47× FIXED / 27× tasks [M IO telemetry], so fewer sequences; the estimate is likely conservative).
 
 **Overlap.** For most of that window only the few heavy-block warps are live, so the decode overlaps compute on another lane well. This is untested at request level.
 
@@ -94,7 +94,7 @@ Leaf nodes ≈ 2.7 × segments [D: 19 packed classes on 24628607, 7 segments; be
 | p95 ≈ 26235159 (57.7M, 49 seg) | ≈133 | ≈107 GB | **≈1.90 s** (2.18 s) | ≈0.27 s | ≈26 CPU-s |
 
 **Caveats.**
-- How much of the link time is wall time depends on how much H2D is exposed. The IO doc estimates ≈0.27–0.53 s on 24628607 and 4–5.5 s/GPU of link time on 26235159 [E]. These rows are the upper bound on the wall saving.
+- How much of the link time is wall time depends on how much H2D is exposed. The IO doc estimates ≈0.27–0.53 s on 24628607 and 4–5.5 s/GPU of link time on 26235159 [E]. These rows are the upper bound on the wall saving; see the review-corrected table in §6 for the rate-consistent upper bound and an exposure-scaled estimate.
 - The leaf-node count per segment for large blocks is extrapolated from one block. Measuring it is E1/Q1 in the IO doc.
 - Q1 is partly answered here: every packed class in the census is a leaf class, because `compressClass` packs leaves only by default. M8 fold residency therefore does not overlap L1a.
 
@@ -163,3 +163,30 @@ zig build-exe -OReleaseFast -lc --dep cache_pack -Mroot=tools/rv64-m9-packed-ing
 ./corpus raw real.m9pk 1:fixed_000.u32 ... 8:tasks.u32 ; ./corpus synth synth.m9pk 1 ; ./corpus shapes shapes.m9pk
 flock -w 3600 /workspace/m3/locks/gpu.lock ./bench real.m9pk 20
 ```
+
+## 6. Adversarial review (2026-11-07)
+
+Reviewed commits `8fc68b32e..92170823e`. Re-run on the pod (RTX 5090 ×2, standalone bench only, gpu.lock holds < 1 min) with freshly generated synthetic and edge-shape corpora; the real-leaf corpora were deleted by the builder and were not regenerated (the laptop capture needs 8 GB under memguard, above the 6 GB review budget). Receipt: `vectors/reports/rv64-m9-prep/packed-ingress/review/review-bench.txt`.
+
+**Fixed defects [M before/after, same bench binary against the old and fixed `.cu`]**
+1. **Second GPU could not launch `scan_pass`.** The >48 KiB dynamic shared-memory opt-in (`cudaFuncSetAttribute`) is per device, but it was guarded by a process-wide `static bool configured` (also a host data race between per-GPU worker threads). In a 2-GPU process the first device to call it configured only itself; on dev1 the launch returned `cudaErrorInvalidValue` (`launch_rc=1`). Fixed: set the attribute on every launch, as `transform/wide_tile.cuh` and `n2b_smem.cuh` already do. New `M9_BENCH_MULTI=1` section: dev1 parity PASS on both corpora.
+2. **Fail-open on an inconsistent job table.** Per-block checks catch a block that maps past its job, but a `first_block` prefix that undercounts a job, or a `total_blocks` below the sum, simply never launches some blocks: stale output words with status 0. The original bench counted such cases as "REFUSED" via its own word compare, which production does not have. Fixed: warp 0 of CTA 0 checks the whole table (`first_block` is the exact exclusive prefix, every job has ≥ 1 block, last job ends at `total_blocks`; status 1). New negative cases `total_short` / `prefix_short`: old decoder status 0 (ACCEPTED), fixed decoder status 1. The bench now requires a nonzero status for every case except `flip`.
+3. **Overclaims corrected** (above): "all five corrupted inputs refused" (a grammar-valid flip is undetected by status), "decode flat whatever the size", the 285 ns derivation.
+
+**Checked and not defects**
+- Accept set vs host: the device enforces the same end rules as `LZ4_decompress_safe` (match start ≤ out−12, match end ≤ out−5, literal-only last sequence ending exactly at `count*4`, offset ≤ op) and additionally refuses offset 0. liblz4's "fewer than 8 input bytes after non-final literals" rule is implied: any valid continuation needs 2 offset + 1 token + ≥ 5 final literal bytes, so the device fails later on the same streams.
+- Warp LZ4: the `__syncwarp` before each match orders every earlier literal/match write by any lane before the source read; overlapping matches only read the fully written window `[op-off, op)`. The scan fast path on partial blocks reads past `r1` but only into its own shared staging, and the over-read only feeds totals of later (empty) threads. Racecheck agrees.
+- [D] arithmetic of the projections is internally consistent (15.86 GB logical / 0.455 GB packed over 19 classes recomputed from the IO telemetry grep: 8.608 GB FIXED + 7.255 GB tasks; `static_words` × 4 = tasks only, so no unpacked indices are hidden in the 15.8 GB).
+- Timing reproduces [M]: synthetic node 2.768 ms fixed vs 2.772 ms old vs 2.774 ms builder; the table check costs nothing measurable.
+
+**Corrected projection [D/E].** Today's leaf statics go through the bounced copy measured in-request at 24.6 GB/s (IO doc), so the saving is computed at 24.6 GB/s, not at this bench's 28.15 GB/s pinned rate (the builder's rows are ≈13% low as upper bounds). Exposure: in the IO census ≈46% of H2D copy-s fell inside a host sync [D crude: (0.544 + 0.515) / (1.316 + 0.982)]; the decode runs on the node's dependency chain before B2N, so it is subtracted in full.
+
+| block | link upper bound per GPU [D] | exposure-scaled per GPU [E: ×0.46] | minus decode per GPU [E] | host unpack CPU-s saved |
+|---|---:|---:|---:|---:|
+| 24628607 (19 nodes [M]) | 0.31 s | 0.14 s | **≈0.10 s** | 3.70 [M] |
+| p50 ≈ 26235168 (≈76 nodes [E]) | 1.24 s | 0.57 s | **≈0.42 s** | ≈14.8 |
+| p95 ≈ 26235159 (≈133 nodes [E]) | 2.18 s | 1.00 s | **≈0.73 s** | ≈26 |
+
+On a 7.4M-gas block L1a is ≈1% of the 11.64 s warm request; its value is on large blocks and in host CPU. Once M8/L3 moves residual H2D onto a copy lane, the exposure factor and with it L1a's wall saving fall toward the decode-cost floor; L1a's lasting value is then host CPU (−3.7 CPU-s on 24628607), −15 GB of host memcpy and pinned staging (0.83 GB → 24 MB per node).
+
+**Integration costs not in §4.** (a) The staging upload and the decode must be ordered on one stream (or an event if L3 puts the upload on a copy lane). (b) The job table's output pointers are absolute and only the job table and status are custody-checked in `_on`; the jobs path must allocate every target inside the node's region (an out-of-region target is a device-memory write the decoder cannot detect). (c) Two jobs must not target overlapping outputs (decode is in place). (d) `fill` zeroes and copies the whole stage on the host (≈24 MB per node, a few ms of one core [E]).

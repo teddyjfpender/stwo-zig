@@ -10,3 +10,4 @@ The design and integration plan are in `design/riscv-proving-stack/rv64-m9-packe
 | `summary.json` | machine-readable numbers and the per-block projections [D/E] |
 
 Corpora are not in git. The raw dumps are 327 MB and the containers up to 1 GB; they lived in `/dev/shm/m9pk` on the pod and in the session scratchpad, and both copies have been deleted. To regenerate them, follow §5 of the design doc.
+| `review/review-bench.txt` | adversarial review rerun: old vs fixed decoder on shapes/synth, 2-GPU launch, table-undercount negatives, sanitizer [M]; see design doc §6 |

@@ -1,33 +1,206 @@
 {
-  "stream": "m9-packed-ingress",
-  "flag": "STWO_RV64_M9_CLASS_PACKED_INGRESS",
-  "base": "codex/rv64-m7-integrate@95e3d7e15",
-  "device": "RTX 5090 (170 SM), PCIe 5.0 x8, driver 570.195.03, CUDA 12.8, sm_120",
-  "labels": "M measured, D derived, E estimate",
-  "binaries_sha256_prefix": {"bench": "57acc9969e2428e3", "corpus": "880baf0d08572170"},
-  "parity": {
-    "real_cpu_leaf_d2": {"values": 46, "logical_bytes": 342501024, "packed_bytes": 14215015, "mismatched_words": 0, "status": 0, "label": "M"},
-    "real_cpu_leaf_x3": {"values": 138, "logical_bytes": 1027503072, "packed_bytes": 42645045, "mismatched_words": 0, "status": 0, "label": "M"},
-    "synthetic_production_class": {"values": 31, "logical_bytes": 932116480, "packed_bytes": 34563673, "mismatched_words": 0, "status": 0, "label": "M"},
-    "edge_shapes": {"values": 144, "channels": [1,2,4,8,16,32,64,128], "raw_blocks": 151, "mismatched_words": 0, "label": "M"},
-    "misaligned_output": "PASS on all corpora (M)",
-    "negative": {"chain": "status 2", "offset_zero": "status 8", "truncate": "status 4", "flip": "status 4 or word mismatch", "shape": "status 1", "label": "M"},
-    "compute_sanitizer": {"memcheck_errors": 0, "racecheck_hazards": 0, "corpus": "edge_shapes", "label": "M"}
+ "stream": "m9-packed-ingress",
+ "flag": "STWO_RV64_M9_CLASS_PACKED_INGRESS",
+ "base": "codex/rv64-m7-integrate@95e3d7e15",
+ "device": "RTX 5090 (170 SM), PCIe 5.0 x8, driver 570.195.03, CUDA 12.8, sm_120",
+ "labels": "M measured, D derived, E estimate",
+ "binaries_sha256_prefix": {
+  "bench": "57acc9969e2428e3",
+  "corpus": "880baf0d08572170"
+ },
+ "parity": {
+  "real_cpu_leaf_d2": {
+   "values": 46,
+   "logical_bytes": 342501024,
+   "packed_bytes": 14215015,
+   "mismatched_words": 0,
+   "status": 0,
+   "label": "M"
   },
-  "decode_ms_median": {
-    "real_cpu_leaf_x3_1.03GB": {"total": 4.483, "lz4_pass": 3.172, "scan_pass": 1.330, "label": "M"},
-    "real_cpu_leaf_0.34GB": {"total": 2.853, "lz4_pass": 2.40, "scan_pass": 0.45, "label": "M"},
-    "synthetic_0.93GB": {"total": 2.774, "label": "M"},
-    "rejected_smem_heavy_variant_real_0.34GB": {"total_range": [6.13, 6.50], "label": "M"},
-    "rejected_v0_cta_wide_tasks_GBps": {"value": 17.7, "label": "M"}
+  "real_cpu_leaf_x3": {
+   "values": 138,
+   "logical_bytes": 1027503072,
+   "packed_bytes": 42645045,
+   "mismatched_words": 0,
+   "status": 0,
+   "label": "M"
   },
-  "lz4_sequences_per_block_real": {"p50": 24, "p99": 5336, "max": 8079, "ns_per_sequence_critical_path": 285, "label": "M / D"},
-  "h2d_pinned_GBps": {"value": 28.15, "label": "M"},
-  "host_unpack_single_thread_GBps": {"range": [1.33, 1.40], "label": "M"},
-  "per_leaf_node_24628607": {"logical_GB": 0.83, "packed_MB": 24, "link_ms_today": 29.6, "link_ms_packed": 0.85, "decode_ms": 4.0, "host_unpack_cpu_s_saved": 0.195, "label": "D (IO doc M inputs), decode E"},
-  "per_block": [
-    {"block": "24628607", "gas_m": 7.4, "segments": 7, "leaf_nodes": 19, "link_saved_GB": 15.3, "link_s_per_gpu": 0.27, "decode_s_per_gpu": 0.04, "host_cpu_s_saved": 3.7, "label": "D"},
-    {"block": "p50~26235168", "gas_m": 29.1, "segments": 28, "leaf_nodes": 76, "link_saved_GB": 61, "link_s_per_gpu": 1.09, "decode_s_per_gpu": 0.15, "host_cpu_s_saved": 14.8, "label": "D/E"},
-    {"block": "p95~26235159", "gas_m": 57.7, "segments": 49, "leaf_nodes": 133, "link_saved_GB": 107, "link_s_per_gpu": 1.90, "decode_s_per_gpu": 0.27, "host_cpu_s_saved": 26, "label": "D/E"}
-  ]
+  "synthetic_production_class": {
+   "values": 31,
+   "logical_bytes": 932116480,
+   "packed_bytes": 34563673,
+   "mismatched_words": 0,
+   "status": 0,
+   "label": "M"
+  },
+  "edge_shapes": {
+   "values": 144,
+   "channels": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    64,
+    128
+   ],
+   "raw_blocks": 151,
+   "mismatched_words": 0,
+   "label": "M"
+  },
+  "misaligned_output": "PASS on all corpora (M)",
+  "negative": {
+   "chain": "status 2",
+   "offset_zero": "status 8",
+   "truncate": "status 4",
+   "shape": "status 1",
+   "total_short": "status 1 (was status 0 before review fix)",
+   "prefix_short": "status 1 (was status 0 before review fix)",
+   "flip": "status 4 on real/synth; status 0 + 7 wrong words on edge shapes (grammar-valid, undetectable without a checksum; host path identical)",
+   "label": "M"
+  },
+  "compute_sanitizer": {
+   "memcheck_errors": 0,
+   "racecheck_hazards": 0,
+   "corpus": "edge_shapes",
+   "label": "M"
+  }
+ },
+ "decode_ms_median": {
+  "real_cpu_leaf_x3_1.03GB": {
+   "total": 4.483,
+   "lz4_pass": 3.172,
+   "scan_pass": 1.33,
+   "label": "M"
+  },
+  "real_cpu_leaf_0.34GB": {
+   "total": 2.853,
+   "lz4_pass": 2.4,
+   "scan_pass": 0.45,
+   "label": "M"
+  },
+  "synthetic_0.93GB": {
+   "total": 2.774,
+   "label": "M"
+  },
+  "rejected_smem_heavy_variant_real_0.34GB": {
+   "total_range": [
+    6.13,
+    6.5
+   ],
+   "label": "M"
+  },
+  "rejected_v0_cta_wide_tasks_GBps": {
+   "value": 17.7,
+   "label": "M"
+  }
+ },
+ "lz4_sequences_per_block_real": {
+  "p50": 24,
+  "p99": 5336,
+  "max": 8079,
+  "ns_per_sequence_critical_path": 285,
+  "label": "M / D"
+ },
+ "h2d_pinned_GBps": {
+  "value": 28.15,
+  "label": "M"
+ },
+ "host_unpack_single_thread_GBps": {
+  "range": [
+   1.33,
+   1.4
+  ],
+  "label": "M"
+ },
+ "per_leaf_node_24628607": {
+  "logical_GB": 0.83,
+  "packed_MB": 24,
+  "link_ms_today": 29.6,
+  "link_ms_packed": 0.85,
+  "decode_ms": 4.0,
+  "host_unpack_cpu_s_saved": 0.195,
+  "label": "D (IO doc M inputs), decode E"
+ },
+ "per_block": [
+  {
+   "block": "24628607",
+   "gas_m": 7.4,
+   "segments": 7,
+   "leaf_nodes": 19,
+   "link_saved_GB": 15.3,
+   "link_s_per_gpu": 0.27,
+   "decode_s_per_gpu": 0.04,
+   "host_cpu_s_saved": 3.7,
+   "label": "D"
+  },
+  {
+   "block": "p50~26235168",
+   "gas_m": 29.1,
+   "segments": 28,
+   "leaf_nodes": 76,
+   "link_saved_GB": 61,
+   "link_s_per_gpu": 1.09,
+   "decode_s_per_gpu": 0.15,
+   "host_cpu_s_saved": 14.8,
+   "label": "D/E"
+  },
+  {
+   "block": "p95~26235159",
+   "gas_m": 57.7,
+   "segments": 49,
+   "leaf_nodes": 133,
+   "link_saved_GB": 107,
+   "link_s_per_gpu": 1.9,
+   "decode_s_per_gpu": 0.27,
+   "host_cpu_s_saved": 26,
+   "label": "D/E"
+  }
+ ],
+ "review": {
+  "date": "2026-11-07",
+  "receipt": "review/review-bench.txt",
+  "fixed": [
+   "scan_pass smem opt-in was per-process; dev1 launch_rc=1 (cudaErrorInvalidValue) in a 2-GPU process [M]; now set per launch, dev1 parity PASS [M]",
+   "job-table undercount (first_block prefix / total_blocks) left blocks undecoded with status 0 [M]; now status 1 [M]"
+  ],
+  "reproduced": {
+   "synthetic_0.93GB_decode_ms": {
+    "fixed": 2.768,
+    "old": 2.772,
+    "builder": 2.774,
+    "label": "M"
+   },
+   "parity_synth_shapes_aligned_misaligned_dev0_dev1": "PASS (M)",
+   "memcheck_errors": 0,
+   "racecheck_hazards": 0
+  },
+  "not_rerun": "real CPU leaf corpora (deleted; laptop capture needs 8 GB > 6 GB review budget)",
+  "corrected_projection_per_gpu_s": [
+   {
+    "block": "24628607",
+    "upper_at_24.6GBps": 0.31,
+    "exposure_scaled_x0.46": 0.14,
+    "net_of_decode": 0.1,
+    "label": "D/E"
+   },
+   {
+    "block": "p50~26235168",
+    "upper_at_24.6GBps": 1.24,
+    "exposure_scaled_x0.46": 0.57,
+    "net_of_decode": 0.42,
+    "label": "D/E"
+   },
+   {
+    "block": "p95~26235159",
+    "upper_at_24.6GBps": 2.18,
+    "exposure_scaled_x0.46": 1.0,
+    "net_of_decode": 0.73,
+    "label": "D/E"
+   }
+  ],
+  "decode_scaling": "not flat: 2.85 ms @0.34 GB -> 4.48 ms @1.03 GB same chain (M); ~2.4 ms/GB marginal (D); ~4.0 ms per 0.83 GB node (E)",
+  "ns_per_sequence": "286 (D: 2.31 ms fixed-section LZ4 pass / 8079), not 2.40/8079"
+ }
 }
