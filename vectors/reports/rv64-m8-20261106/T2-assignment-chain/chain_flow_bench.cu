@@ -9,7 +9,6 @@
 #include <random>
 #include <string>
 static cudaStream_t g_stream;
-static unsigned host_arity(uint32_t kind) { return kind == 15 ? 0 : kind <= 3 ? 2 : kind == 4 ? 3 : kind == 6 ? 6 : kind == 9 ? 2 : 1; }
 extern "C" int stwo_exec_context_lane_stream(void*, uint32_t, void** out) { *out = g_stream; return 0; }
 extern "C" int stwo_exec_context_validate_allocation(void*, const void*, size_t) { return 0; }
 extern "C" int stwo_exec_context_identity(void*, uint64_t* id) { *id = 1; return 0; }
@@ -42,7 +41,6 @@ static Dev upload(const Plan& p) {
 static void release(Dev& d) {
     for (void* x : {(void*)d.values, (void*)d.values0, (void*)d.records, (void*)d.indices, (void*)d.ends, (void*)d.status}) if (x) cudaFree(x);
 }
-// Executor: -1 reference chain_run, else chain_flow<Per>.
 // Executor variants: -1 reference chain_run; otherwise chain_flow<kWide[v]>.
 // -DT2_REFERENCE_ONLY builds against the pre-T2 circuit_fill_chain.cu (no
 // chain_flow): the "before" kernel for the A/B.
@@ -55,7 +53,6 @@ struct Variant { uint32_t wide; void (*launch)(StwoCircuitAssignmentJob, const u
 #define DEF(V) Variant{V, [](StwoCircuitAssignmentJob j, const uint32_t* e, uint32_t f, uint32_t l) { chain_flow<V><<<1, kChainThreads, 0, g_stream>>>(j, e, f, l); }},
 static const Variant kVariants[] = {VARIANTS(DEF) Variant{0, nullptr}};
 #undef DEF
-static void set_attrs() {}
 static std::string vname(int v) {
     if (v < 0) return "chain_run";
     return "chain_flow<wide=" + (kVariants[v].wide == 0xffffffffu ? std::string("never") : std::to_string(kVariants[v].wide)) + ">";
@@ -143,7 +140,7 @@ static Plan random_plan(uint64_t seed, uint32_t levels, int shape) {
             StwoCircuitAssignmentTask t{};
             static const uint32_t kinds[] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 8, 9, 10, 11, 12, 13, 14, 15, 0, 2};
             t.kind = shape == 2 ? (r() % 4 ? 6u : 4u) : kinds[r() % 20];
-            const unsigned ar = host_arity(t.kind);
+            const unsigned ar = arity_of(t.kind);
             for (unsigned a = 0; a < ar; ++a) t.args[a] = pick();
             if (t.kind == 8) t.args[0] = nonzero[r() % nonzero.size()];
             if (t.kind == 9) t.args[1] = nonzero[r() % nonzero.size()];
@@ -169,7 +166,7 @@ static Plan random_plan(uint64_t seed, uint32_t levels, int shape) {
         std::shuffle(level.begin(), level.end(), r);
         for (auto& t : level) {
             t.out = perm[t.out];
-            const unsigned ar = host_arity(t.kind);
+            const unsigned ar = arity_of(t.kind);
             for (unsigned a = 0; a < ar; ++a) if (!((t.kind == 12 || t.kind == 13) && a == 1)) t.args[a] = perm[t.args[a]];
             p.tasks.push_back(t);
         }
@@ -198,7 +195,9 @@ static int compare(const char* name, Plan& p) {
         uint32_t s = 0;
         run(p, d, per, false);
         const auto got = fetch_values(p, d, s);
-        const bool same = s == s_ref && (s_ref != 0 || got == ref);
+        // Values are compared on failing plans too: a failed task stores
+        // nothing in both executors, so every value must still agree.
+        const bool same = s == s_ref && got == ref;
         std::printf("PARITY %s %s tasks=%zu levels=%zu status_ref=%u status=%u values_equal=%d fnv=%016llx %s\n", name, vname(per).c_str(), p.tasks.size(), p.ends.size(), s_ref, s, int(got == ref), (unsigned long long)fnv(got), same ? "OK" : "MISMATCH");
         bad += !same;
     }
@@ -275,6 +274,50 @@ static int selftest() {
         r.tasks[r.ends[5]].kind = 6; r.tasks[r.ends[5]].out = r.values - 2;
         bad += compare("edge-blake-out-range", r);
     }
+    // Edge: in-chunk consumers of failing producers read the pre-chunk value
+    // (refused arg range, Blake G refused with 4 registered outputs, zero
+    // inverse, octet index > 3), in a width-1 chain so producer and consumer
+    // share a dataflow chunk.
+    {
+        const auto consume = [](Plan& p, uint32_t level, uint32_t var) {
+            auto& c = p.tasks[p.ends[level]];
+            c.kind = 0; c.args[0] = var; c.args[1] = 9;
+        };
+        auto a = random_plan(41, 60, 1);
+        a.tasks[a.ends[9]].kind = 0; a.tasks[a.ends[9]].args[0] = a.values + 1;
+        consume(a, 10, a.tasks[a.ends[9]].out);
+        bad += compare("edge-failed-producer-arg-range", a);
+        // An existing Blake G task keeps its own four outputs (no duplicate
+        // producer, so the chunk stays on the dataflow path).
+        auto b = random_plan(42, 200, 1);
+        uint32_t gl = 5;
+        while (b.tasks[b.ends[gl]].kind != 6) ++gl;
+        b.tasks[b.ends[gl]].args[3] = b.values + 7;
+        consume(b, gl + 1, b.tasks[b.ends[gl]].out + 2);
+        bad += compare("edge-failed-producer-blake", b);
+        auto c = random_plan(43, 60, 1);
+        c.tasks[c.ends[9]].kind = 8; c.tasks[c.ends[9]].args[0] = 4000;  // a seed (never produced), zeroed
+        for (uint32_t w = 0; w < 4; ++w) c.init[size_t(4000) * 4 + w] = 0;
+        consume(c, 10, c.tasks[c.ends[9]].out);
+        bad += compare("edge-failed-producer-zero-inverse", c);
+        auto d = random_plan(44, 60, 1);
+        d.tasks[d.ends[9]].kind = 12; d.tasks[d.ends[9]].args[1] = 4;
+        consume(d, 10, d.tasks[d.ends[9]].out);
+        bad += compare("edge-failed-producer-octet", d);
+    }
+    // Edge: empty levels inside chunks and at window starts, and the smallest
+    // plans (one level, one task).
+    {
+        auto p = random_plan(51, 2100, 0);
+        std::vector<uint32_t> ends;
+        for (size_t i = 0; i < p.ends.size(); ++i) { ends.push_back(p.ends[i]); if (i % 7 == 0 || i == 1023) ends.push_back(p.ends[i]); }
+        ends.insert(ends.begin(), 0u);
+        p.ends = ends;
+        chain_steps(p);
+        bad += compare("edge-empty-levels", p);
+        auto one = random_plan(52, 1, 1);
+        bad += compare("edge-one-level", one);
+    }
     { auto p = random_plan(31, 2500, 0); bad += compare_graph(p); }
     std::printf("SELFTEST %s failures=%d\n", bad ? "FAIL" : "PASS", bad);
     return bad ? 1 : 0;
@@ -285,14 +328,15 @@ static Plan load_dump(const char* path) {
     uint32_t h[8];
     if (std::fread(h, 4, 8, f) != 8 || h[0] != 0x54324e44u) { std::fprintf(stderr, "bad dump\n"); std::exit(2); }
     Plan p;
+    const auto read = [&](void* dst, size_t size, size_t count) {
+        if (count && std::fread(dst, size, count, f) != count) { std::fprintf(stderr, "short dump\n"); std::exit(2); }
+    };
     p.values = h[2];
-    p.steps.resize(h[6]);
-    std::fread(p.steps.data(), sizeof(StwoAssignmentGraphStep), h[6], f);
-    p.ends.resize(h[5]); std::fread(p.ends.data(), 4, h[5], f);
-    p.tasks.resize(h[3]); std::fread(p.tasks.data(), 32, h[3], f);
-    p.indices.resize(h[4]); if (h[4]) std::fread(p.indices.data(), 4, h[4], f);
-    p.init.resize(size_t(h[2]) * 4);
-    if (std::fread(p.init.data(), 4, p.init.size(), f) != p.init.size()) { std::fprintf(stderr, "short dump\n"); std::exit(2); }
+    p.steps.resize(h[6]); read(p.steps.data(), sizeof(StwoAssignmentGraphStep), h[6]);
+    p.ends.resize(h[5]); read(p.ends.data(), 4, h[5]);
+    p.tasks.resize(h[3]); read(p.tasks.data(), 32, h[3]);
+    p.indices.resize(h[4]); read(p.indices.data(), 4, h[4]);
+    p.init.resize(size_t(h[2]) * 4); read(p.init.data(), 4, p.init.size());
     std::fclose(f);
     return p;
 }
@@ -355,7 +399,6 @@ static int bench_plan(Plan& p, int reps, const std::vector<int>& pers) {
 }
 int main(int argc, char** argv) {
     CK(cudaStreamCreateWithFlags(&g_stream, cudaStreamNonBlocking));
-    set_attrs();
     if (argc >= 2 && std::string(argv[1]) == "selftest") return selftest();
     if (argc >= 3 && std::string(argv[1]) == "dump") {
         const int reps = argc >= 4 ? std::atoi(argv[3]) : 7;

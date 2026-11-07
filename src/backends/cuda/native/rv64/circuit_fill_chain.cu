@@ -267,7 +267,9 @@ __device__ __forceinline__ void run_levels(const StwoCircuitAssignmentJob& j, co
 // two producers of one variable, or a consumer whose producer is not in a
 // strictly earlier level (which also covers write-after-read) instead runs
 // with chain_run's exact per-level barrier semantics. Status failures equal
-// `at`'s: a failing task stores nothing and still releases its consumers.
+// `at`'s: a failing task stores nothing and releases its consumers with
+// kFlowFailed, so they read the variable from global memory (its pre-chunk
+// value, exactly what chain_run reads) instead of a stale shared slot.
 // Deadlock freedom: task k (chunk order) depends only on tasks < k; a warp
 // polls until each of its lanes' producers is ready, executing every ready
 // lane per round, so the lowest unfinished task can always run.
@@ -284,6 +286,9 @@ static_assert(kFlowTable >= 8 * kFlowCap, "flow map load factor <= 1/2");
 static_assert(((kFlowCap - 1) << 3 | 7) < 0xffffu, "producer code fits u16");
 constexpr uint32_t kFlowEmpty = 0xffffffffu;
 constexpr uint16_t kFlowGlobal = 0xffffu;
+// s_ready states: 0 pending, kFlowDone (outputs in s_vals), kFlowFailed
+// (stored nothing; consumers read global memory).
+constexpr uint32_t kFlowDone = 1, kFlowFailed = 2;
 __device__ __forceinline__ uint32_t flow_hash(uint32_t key) { return (key * 2654435761u) >> (32 - kFlowTableBits); }
 __device__ __forceinline__ q::QM31 flow_decode(uint4 v, uint32_t code) {
     if (!(code & 4)) return {{v.x, v.y}, {v.z, v.w}};
@@ -440,7 +445,7 @@ __global__ void __launch_bounds__(kChainThreads) chain_flow(StwoCircuitAssignmen
                     if (refused) {
                         fail(j.status);
                         __threadfence_block();
-                        s_ready[k] = 1;
+                        s_ready[k] = kFlowFailed;
                         pending = false;
                     } else {
                         // Inputs produced before this chunk are final.
@@ -460,12 +465,14 @@ __global__ void __launch_bounds__(kChainThreads) chain_flow(StwoCircuitAssignmen
                     __threadfence_block();
 #pragma unroll
                     for (unsigned a = 0; a < 6; ++a) {
-                        if (a < arity && dep[a] != kFlowGlobal) x[a] = flow_decode(s_vals[dep[a] >> 3], dep[a]);
+                        if (a < arity && dep[a] != kFlowGlobal)
+                            x[a] = s_ready[dep[a] >> 3] == kFlowFailed ? load(j.values, t.args[a]) : flow_decode(s_vals[dep[a] >> 3], dep[a]);
                     }
                     uint4 r;
-                    if (eval(j, t, x, r)) s_vals[k] = r;
+                    const bool ok = eval(j, t, x, r);
+                    if (ok) s_vals[k] = r;
                     __threadfence_block();
-                    s_ready[k] = 1;
+                    s_ready[k] = ok ? kFlowDone : kFlowFailed;
                     pending = false;
                 }
             }
@@ -477,10 +484,12 @@ __global__ void __launch_bounds__(kChainThreads) chain_flow(StwoCircuitAssignmen
     }
     if (tid == 0 && begin != j.first + j.count) fail(j.status);
 }
-// [E -> M pending real-node A/B] wide-level routing threshold.
+// [E -> M pending real-node A/B] wide-level routing threshold. Synthetic only
+// so far [M, CUDA events, 7 reps]: i.i.d. mixed widths wide=32 34.3 ms vs
+// wide=never 29.9 ms (chain_run 39.56 ms); it must be re-chosen on the real
+// node replay (chain_flow_bench dump) before FLOW can become a default.
 constexpr uint32_t kFlowWideWidth = 32;
 inline auto flow_kernel() { return chain_flow<kFlowWideWidth>; }
-inline size_t flow_smem() { return 0; }
 // 0: chain_run (default), 1: chain_flow. Read once per process.
 inline int flow_mode() {
     static const int mode = [] {
@@ -491,7 +500,6 @@ inline int flow_mode() {
     }();
     return mode;
 }
-inline int flow_prepare() { return 0; }  // static shared memory only
 }  // namespace stwo::cuda::circuit_fill
 
 // Optional generation-only grouping (capability: symbol present). `ends` is a
@@ -511,8 +519,7 @@ extern "C" int stwo_circuit_assignment_chain_run_on(void* ctx, uint32_t lane, co
     const int mode = flow_mode();
     if (mode < 0) return int(cudaErrorInvalidValue);
     if (mode == 1) {
-        if (const int rc = flow_prepare()) return rc;
-        flow_kernel()<<<1, kChainThreads, flow_smem(), c.stream>>>(*j, ends, first_level, levels);
+        flow_kernel()<<<1, kChainThreads, 0, c.stream>>>(*j, ends, first_level, levels);
     } else {
         chain_run<<<1, kChainThreads, 0, c.stream>>>(*j, ends, first_level, levels);
     }
@@ -582,7 +589,6 @@ int setNode(Graph& g, Node& node, const StwoCircuitAssignmentJob& base,
                : reinterpret_cast<void*>(circuit_fill::chain_run);
   p.gridDim = node.step.kind == 1 ? dim3(1) : dim3((job.count + 127) / 128);
   p.blockDim = node.step.kind == 1 ? dim3(circuit_fill::kChainThreads) : dim3(128);
-  p.sharedMemBytes = node.step.kind == 1 && g.flow ? unsigned(circuit_fill::flow_smem()) : 0u;
   p.kernelParams = args;
   // CUDA copies the complete argument values during Add/SetParams. The
   // dependency chain and launch geometry are unchanged across all replays.
@@ -653,7 +659,6 @@ extern "C" int stwo_assignment_graph_create_v1(void* ctx, uint32_t lane,
     g->values = j->value_count; g->records = j->record_count; g->indices = j->index_count; g->ends = end_count;
     g->flow = circuit_fill::flow_mode();
     if (g->flow < 0) return int(cudaErrorInvalidValue);
-    if (g->flow) if (const int rc = circuit_fill::flow_prepare()) return rc;
     if (const auto rc = cudaGraphCreate(&g->graph, 0)) return int(rc);
     g->nodes.resize(count);
     cudaGraphNode_t previous = nullptr;
