@@ -3,6 +3,7 @@
 
 #include "blake2s_protocol.cuh"
 #include "resident_layout.cuh"
+#include "merkle_fused.cuh"
 
 #include <cuda_runtime_api.h>
 
@@ -346,4 +347,119 @@ extern "C" int stwo_blake2s_contiguous_tail_plain_on(
     uint32_t level_count,
     void *stream) {
     return stwo_blake2s_contiguous_tail_on_impl<false>(previous, previous_size, outputs, output_capacity, level_count, stream);
+}
+
+namespace stwo::cuda::blake2s {
+
+// T6 tree schedule (STWO_RV64_M8_MERKLE_FUSED=1). Receipt:
+// vectors/reports/rv64-m8-20261106/opt-T6-merkle-leaf-tree/ (CUDA events,
+// RTX 5090, 7 reps, median ms of the fused layers for 2^10 / 2^14 / 2^20 /
+// 2^24 leaves; callers' layer loop 0.0301 / 0.0437 / 0.1041 / 1.0464):
+//   kFusedTailNodes (layers of <= this many nodes are built by one CTA)
+//     [M tune-1] 1024: 0.0136 / 0.0259 / 0.0684 / 0.8296, sum logs 10-24 1.810
+//                2048: 0.0135 / 0.0290 / 0.0724 / 0.8338, sum 1.820
+//                4096: 0.0136 / 0.0295 / 0.0735 / 0.8420; 8192: 0.0137 / 0.0343 /
+//                0.0785 / 0.8446 -> 2048 (tie with 1024 within noise).
+//   kSubtreeBlock (threads per subtree_levels_kernel CTA = its launch bound)
+//     [M tune-2] 64: 0.0139 / 0.0292 / 0.0724 / 0.8356; 128: 0.0134 / 0.0301 /
+//                0.0724 / 0.8294; 256: 0.0140 / 0.0322 / 0.0847 / 0.8373 -> 128.
+#ifndef STWO_T6_TAIL_NODES
+#define STWO_T6_TAIL_NODES 2048
+#endif
+constexpr uint32_t kFusedTailNodes = STWO_T6_TAIL_NODES;
+constexpr uint32_t kSubtreeBlock = STWO_T6_SUBTREE_BLOCK;
+constexpr uint32_t kFusedTailBlock = 1024;
+
+template <bool Prefixed>
+static int fused_tree_layers(Hash *tree, uint32_t leaves, cudaStream_t stream) {
+    uint64_t offset = 0;
+    uint32_t nodes = leaves;
+    while (nodes > kFusedTailNodes) {
+        uint32_t levels = 3;
+        while ((nodes >> levels) < kFusedTailNodes / 2 && levels > 1) --levels;
+        const uint32_t top = nodes >> levels;
+        Hash *layer1 = tree + offset + nodes;
+        Hash *layer2 = layer1 + nodes / 2;
+        Hash *layer3 = layer2 + nodes / 4;
+        const uint32_t blocks = (top + kSubtreeBlock - 1) / kSubtreeBlock;
+        switch (levels) {
+            case 3:
+                subtree_levels_kernel<Prefixed, 3><<<blocks, kSubtreeBlock, 0, stream>>>(
+                    tree + offset, top, layer1, layer2, layer3);
+                break;
+            case 2:
+                subtree_levels_kernel<Prefixed, 2><<<blocks, kSubtreeBlock, 0, stream>>>(
+                    tree + offset, top, layer1, layer2, nullptr);
+                break;
+            default:
+                subtree_levels_kernel<Prefixed, 1><<<blocks, kSubtreeBlock, 0, stream>>>(
+                    tree + offset, top, layer1, nullptr, nullptr);
+                break;
+        }
+        for (uint32_t l = 0; l < levels; ++l) {
+            offset += nodes;
+            nodes >>= 1;
+        }
+    }
+    if (nodes > 1) {
+        const uint32_t threads = nodes / 2 < kFusedTailBlock ? nodes / 2 : kFusedTailBlock;
+        fused_tail_kernel<Prefixed><<<1, threads, 0, stream>>>(
+            tree + offset, nodes, tree + offset + nodes);
+    }
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+}  // namespace stwo::cuda::blake2s
+
+// Test/bench hook: forces the STWO_RV64_M8_MERKLE_FUSED mode for this process
+// (0 or 1; -2 returns to the environment value).
+extern "C" void stwo_blake2s_m8_merkle_fused_override(int mode) {
+    __atomic_store_n(&stwo::cuda::blake2s::merkle_fused_override_slot(), mode,
+                     __ATOMIC_RELAXED);
+}
+
+// Builds every layer above the leaves of a contiguous tree in place: layer 0
+// (`leaves` hashes) at tree[0], each next layer right after the previous one,
+// the root at tree[2 * leaves - 2]. This is exactly the layout (and result)
+// of the callers' loop
+//   for (n = leaves, off = 0; n > 1; off += n, n /= 2)
+//     stwo_blake2s_layer_on(tree + off, n / 2, tree + off + n, stream);
+// which is what runs here with STWO_RV64_M8_MERKLE_FUSED unset/0. With =1
+// the layers come from subtree_levels_kernel passes and one tail CTA
+// (bit-identical). tree_capacity_nodes must cover 2 * leaves - 1 hashes.
+template <bool Prefixed>
+static int stwo_blake2s_merkle_layers_on_impl(
+    stwo::cuda::blake2s::Hash *tree, uint32_t leaves, uint64_t tree_capacity_nodes,
+    void *stream) {
+    using namespace stwo::cuda::blake2s;
+    DeviceRange range{};
+    if (tree == nullptr || stream == nullptr || leaves < 2 || !is_power_of_two(leaves) ||
+        tree_capacity_nodes < 2ull * leaves - 1 ||
+        tree_capacity_nodes > SIZE_MAX / sizeof(Hash) ||
+        !element_range(tree, size_t(tree_capacity_nodes), &range)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    const int mode = merkle_fused_mode();
+    const cudaStream_t s = reinterpret_cast<cudaStream_t>(stream);
+    if (mode == 1) return fused_tree_layers<Prefixed>(tree, leaves, s);
+    if (mode != 0) return static_cast<int>(cudaErrorInvalidValue);
+    uint64_t offset = 0;
+    for (uint32_t nodes = leaves; nodes > 1; nodes >>= 1) {
+        child_layer_kernel<Prefixed><<<blocks_for(nodes / 2), kBlockSize, 0, s>>>(
+            tree + offset, nodes / 2, tree + offset + nodes);
+        offset += nodes;
+    }
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_blake2s_merkle_layers_on(
+    stwo::cuda::blake2s::Hash *tree, uint32_t leaves, uint64_t tree_capacity_nodes,
+    void *stream) {
+    return stwo_blake2s_merkle_layers_on_impl<true>(tree, leaves, tree_capacity_nodes, stream);
+}
+
+extern "C" int stwo_blake2s_merkle_layers_plain_on(
+    stwo::cuda::blake2s::Hash *tree, uint32_t leaves, uint64_t tree_capacity_nodes,
+    void *stream) {
+    return stwo_blake2s_merkle_layers_on_impl<false>(tree, leaves, tree_capacity_nodes, stream);
 }
