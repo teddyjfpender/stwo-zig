@@ -131,6 +131,8 @@ pub const EncodedNode = struct {
     /// fill's statement kernel wrote them); the encoder reads them here and
     /// no host outputs are uploaded.
     outputs_device: ?api.DeviceBuffer = null,
+    /// With `outputs_device` bound after stage: never upload host outputs.
+    outputs_on_device: bool = false,
     /// GPU-native (gn-node child seed source): after the bytes, copy the
     /// node's PCS readback image into the LAST image words of the target
     /// region (a parent's seed fill reads it there; publish slices only the
@@ -213,7 +215,7 @@ pub const EncodedNode = struct {
             try s.upload(p.buffer, pinned);
         }
         const outputs = self.inner.staged.expected;
-        if (self.outputs_device != null) {} else if (outputs.len != 0) {
+        if (self.outputs_device != null or self.outputs_on_device) {} else if (outputs.len != 0) {
             const b = try s.alloc(outputs.len);
             const pinned = try s.pinned(outputs.len);
             @memcpy(pinned, outputs);
@@ -269,7 +271,7 @@ pub const EncodedNode = struct {
             .roots = .{ fixed_root, section.ptr + S.main_root, section.ptr + S.inter_root, section.ptr + S.composition_root },
             .claims = section.ptr + S.claims,
             .latches = section.ptr + S.status,
-            .outputs = if (self.outputs_device) |b| b.ptr else if (self.outputs_buf) |b| b.ptr else null,
+            .outputs = if (self.outputs_device) |b| b.ptr else if (self.outputs_on_device) return error.OuterEncodeOutputsUnbound else if (self.outputs_buf) |b| b.ptr else null,
             .claims_words = 8 * Plan.n_components,
             .latches_words = S.status_words,
             .outputs_words = @intCast(self.inner.staged.expected.len),
