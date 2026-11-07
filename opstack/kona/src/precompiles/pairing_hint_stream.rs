@@ -1,14 +1,10 @@
 //! Bounded, optional advice indexed by pairing-call ordinal. Advice can only
 //! establish a mathematically checked positive result; it cannot supply a bit.
 use super::{miller, residue};
+#[path = "pairing_factors.rs"]
+mod factors;
 #[cfg(feature = "host")]
 use alloc::vec::Vec;
-#[cfg(feature = "host")]
-use ark_bn254::Bn254;
-#[cfg(feature = "host")]
-use ark_ec::pairing::{MillerLoopOutput, Pairing};
-#[cfg(feature = "host")]
-use ark_ff::One;
 
 const MAGIC: &[u8; 8] = b"STWBNH01";
 const HEADER: usize = 12;
@@ -18,6 +14,7 @@ const MAX_HINTS: usize = 4096;
 pub(super) struct Stream {
     rows: &'static [u8],
     calls: u64,
+    factors: factors::Factors,
     #[cfg(feature = "host")]
     pub(super) collect: Option<Vec<u8>>,
 }
@@ -31,6 +28,7 @@ impl Stream {
         Self {
             rows: &[],
             calls: 0,
+            factors: factors::Factors::new(),
             #[cfg(feature = "host")]
             collect: None,
         }
@@ -78,18 +76,25 @@ impl Stream {
     }
 
     pub(super) fn check(&mut self, groups: &[miller::Group], hint: Option<&[u8]>) -> bool {
+        let (mask, product) = self.factors.collect(groups);
+        let merge = |value| {
+            if mask == 0 { value } else { value * product }
+        };
         if let Some(hint) = hint.and_then(residue::Hint::decode) {
             if hint.valid_seed()
-                && hint.check_tail(miller::run(groups, Some((&hint.seed, &hint.inverse))))
+                && hint.check_tail(merge(miller::run_skipping(
+                    groups,
+                    Some((&hint.seed, &hint.inverse)),
+                    mask,
+                )))
             {
                 return true;
             }
         }
         #[cfg(feature = "host")]
         if let Some(rows) = &mut self.collect {
-            let value = miller::run(groups, None);
-            let result =
-                Bn254::final_exponentiation(MillerLoopOutput(value)).is_some_and(|o| o.0.is_one());
+            let value = merge(miller::run_skipping(groups, None, mask));
+            let result = miller::check_value(value);
             if result && rows.len() / RECORD < MAX_HINTS {
                 if let (Ok(ordinal), Some(hint)) = (
                     u32::try_from(self.calls),
@@ -101,7 +106,7 @@ impl Stream {
             }
             return result;
         }
-        miller::check(groups)
+        miller::check_value(merge(miller::run_skipping(groups, None, mask)))
     }
 
     #[cfg(feature = "host")]

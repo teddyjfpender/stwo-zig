@@ -22,17 +22,26 @@ pub(super) fn normalize(groups: &mut [Group]) -> bool {
     groups.iter().any(|(point, _, _)| !point.is_zero())
 }
 
+#[cfg(any(test, not(feature = "pairing-hints")))]
 pub(super) fn check(groups: &[Group]) -> bool {
-    Bn254::final_exponentiation(MillerLoopOutput(run(groups, None))).is_some_and(|o| o.0.is_one())
+    check_value(run(groups, None))
+}
+
+pub(super) fn check_value(value: Fq12) -> bool {
+    Bn254::final_exponentiation(MillerLoopOutput(value)).is_some_and(|o| o.0.is_one())
 }
 
 /// With a checked inverse, the same signed loop computes f * seed^(6x+2).
 pub(super) fn run(groups: &[Group], seed: Option<(&Fq12, &Fq12)>) -> Fq12 {
+    run_skipping(groups, seed, 0)
+}
+
+pub(super) fn run_skipping(groups: &[Group], seed: Option<(&Fq12, &Fq12)>, skip: u16) -> Fq12 {
     let mut value = seed.map_or(Fq12::ONE, |(w, _)| *w);
     let mut line = 0;
     let mut evaluate = |value: &mut Fq12| {
-        for (point, _, prepared) in groups.iter() {
-            if point.is_zero() {
+        for (i, (point, _, prepared)) in groups.iter().enumerate() {
+            if point.is_zero() || (skip != 0 && (skip >> i) & 1 != 0) {
                 continue;
             }
             let (mut c0, mut c1, c2) = prepared.ell_coeffs[line];

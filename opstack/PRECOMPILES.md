@@ -88,3 +88,11 @@ extracts the negative L-th root in the remaining subgroup. The checked exponent
 derivation is in `opstack/tools/derive_pairing_residue.py`. Advice ordinals only
 select which field elements to try. The EVM result always comes from guest
 arithmetic, and the RV64 proof binds the exact extended input.
+
+The hinted guest also retains up to 16 exact single-pair Miller factors.
+A key binds the normalized G1 point and the same validated prepared G2 owner.
+It computes a factor inside the guest on the third encounter and multiplies it
+back into the combined accumulator. Shared squaring and sparse line
+multiplication distribute over this product, so both seeded and ordinary
+Miller values are identical to the uncached loop. Eviction can only increase
+the work. The cache also applies when the supplied residue fails its check.

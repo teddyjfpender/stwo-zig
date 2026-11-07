@@ -52,3 +52,8 @@ separate wall receipt and the guest checks the residue identity itself.
 
 [Hint generation and execution receipts](pairing-hints.json) ·
 [Field identity and reproduction](../../../opstack/PRECOMPILES.md#optional-positive-pairing-advice)
+
+The exact Miller factor cache keeps the same hinted input bytes on all six
+cases. Block 121065789 falls further to 425,529,933 instructions, 678,888
+Fp2 calls and 29,341,602 service RAM word transitions. All six runs match
+the independent oracle. [Factor cache receipts](pairing-factors.json)
