@@ -23,4 +23,6 @@ test {
     _ = @import("rv64/jobs/native_device_stage1.zig");
     _ = @import("rv64/jobs/native_device_stage1_gpu_test.zig");
     _ = @import("rv64/jobs/native_framing_cache.zig");
+    _ = @import("rv64/jobs/native_encode.zig");
+    _ = @import("rv64/jobs/native_device_stage2.zig");
 }
