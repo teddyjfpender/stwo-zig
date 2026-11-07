@@ -1,0 +1,17 @@
+diff --git a/src/core/vcs_lifted/verifier.zig b/src/core/vcs_lifted/verifier.zig
+index c9173fe28..138bbe27d 100644
+--- a/src/core/vcs_lifted/verifier.zig
++++ b/src/core/vcs_lifted/verifier.zig
+@@ -295,0 +296,12 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
++            if (comptime @TypeOf(self.root) == [32]u8) {
++                if (n_cols <= 8 and self.height >= 10 and self.height <= 24 and std.process.hasEnvVarConstant("STWO_EXPORT_SETTLEMENT_OPENINGS")) {
++                    std.debug.print("SETTLEMENT_ROOT {x} {d} {d}\n", .{ &self.root, self.height, n_cols });
++                    for (unique_positions.items, 0..) |position, index| {
++                        std.debug.print("SETTLEMENT_ROW {d} {x}", .{ position, &prev_layer.items[index].hash });
++                        for (dedup_cols) |column| std.debug.print(" {d}", .{column[index].v});
++                        std.debug.print("\n", .{});
++                    }
++                    for (decommitment.hash_witness) |hash| std.debug.print("SETTLEMENT_HASH {x}\n", .{&hash});
++                    std.debug.print("SETTLEMENT_END\n", .{});
++                }
++            }

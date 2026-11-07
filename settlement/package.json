@@ -1,0 +1,13 @@
+{
+  "name": "stwo-settlement",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/settlement.test.mjs"
+  },
+  "dependencies": {
+    "@foundry-rs/anvil": "1.7.1",
+    "ethers": "6.15.0",
+    "solc": "0.8.30"
+  }
+}
