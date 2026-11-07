@@ -1,0 +1,11 @@
+438M	.
+{"arm":"dag_chain_run","status":0,"mismatched_vars":0,"first_mismatch":-1}
+{"arm":"dag_chain_run","launches":328,"levels":41664,"ms_min":41.115,"ms_med":41.131,"ms_max":41.163,"exact":true}
+{"arm":"leaf.blake.m9rw","status":0,"mismatched_vars":0,"first_mismatch":-1}
+{"arm":"leaf.blake.m9rw","threads":256,"launches":333,"levels":9379,"strands":3341688,"blake_units":16747,"ms_min":21.078,"ms_med":21.082,"ms_max":21.088,"speedup_med":1.95,"exact":true}
+{"arm":"leaf.cap64.m9rw","status":0,"mismatched_vars":0,"first_mismatch":-1}
+{"arm":"leaf.cap64.m9rw","threads":256,"launches":196,"levels":4364,"strands":2392324,"blake_units":16747,"ms_min":26.517,"ms_med":26.547,"ms_max":26.565,"speedup_med":1.55,"exact":true}
+{"arm":"leaf.cap256.m9rw","status":0,"mismatched_vars":0,"first_mismatch":-1}
+{"arm":"leaf.cap256.m9rw","threads":256,"launches":160,"levels":4265,"strands":2392313,"blake_units":16747,"ms_min":25.004,"ms_med":25.009,"ms_max":25.023,"speedup_med":1.64,"exact":true}
+{"arm":"leaf.full.m9rw","status":0,"mismatched_vars":0,"first_mismatch":-1}
+{"arm":"leaf.full.m9rw","threads":256,"launches":132,"levels":4237,"strands":2392310,"blake_units":16747,"ms_min":29.072,"ms_med":29.078,"ms_max":29.093,"speedup_med":1.41,"exact":true}

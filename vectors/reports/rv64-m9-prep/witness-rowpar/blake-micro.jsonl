@@ -1,0 +1,14 @@
+{"variant":"single_thread_store","compressions":2000,"us_per_compression":2.921}
+{"variant":"single_thread_nostore","compressions":2000,"us_per_compression":0.610}
+{"variant":"single_thread_store_x32lanes_same_addr","compressions":2000,"us_per_compression":2.933}
+{"variant":"quad_store","compressions":2000,"us_per_compression":2.382}
+{"variant":"quad_nostore","compressions":2000,"us_per_compression":1.949}
+{"variant":"group4_select_store","compressions":2000,"us_per_compression":6.887}
+{"variant":"group16_select_store","compressions":2000,"us_per_compression":7.350}
+{"variant":"group16_select_store_x32groups","compressions":2000,"us_per_compression":10.129}
+{"variant":"group4_split_store","compressions":2000,"us_per_compression":10.614}
+{"variant":"group8_split_store","compressions":2000,"us_per_compression":16.294}
+{"variant":"group16_split_store","compressions":2000,"us_per_compression":2.606}
+{"variant":"group32_split_store","compressions":2000,"us_per_compression":2.273}
+{"variant":"group8_x32groups_same_target","compressions":2000,"us_per_compression":17.526}
+{"error":"no error"}

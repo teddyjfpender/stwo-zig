@@ -1,0 +1,10 @@
+{"arm":"dag_chain_run","status":0,"mismatched_vars":0,"first_mismatch":-1}
+{"arm":"dag_chain_run","launches":649,"levels":9026,"ms_min":11.309,"ms_med":11.321,"ms_max":11.334,"exact":true}
+{"arm":"fold4.blake.m9rw","status":0,"mismatched_vars":0,"first_mismatch":-1}
+{"arm":"fold4.blake.m9rw","threads":256,"launches":401,"levels":2947,"strands":5283734,"blake_units":47025,"ms_min":8.599,"ms_med":8.608,"ms_max":8.619,"speedup_med":1.32,"exact":true}
+{"arm":"fold4.cap64.m9rw","status":0,"mismatched_vars":0,"first_mismatch":-1}
+{"arm":"fold4.cap64.m9rw","threads":256,"launches":162,"levels":1361,"strands":3864623,"blake_units":47025,"ms_min":8.556,"ms_med":8.566,"ms_max":8.571,"speedup_med":1.32,"exact":true}
+{"arm":"fold4.cap256.m9rw","status":0,"mismatched_vars":0,"first_mismatch":-1}
+{"arm":"fold4.cap256.m9rw","threads":256,"launches":156,"levels":1329,"strands":3864618,"blake_units":47025,"ms_min":8.382,"ms_med":8.398,"ms_max":8.401,"speedup_med":1.35,"exact":true}
+{"arm":"fold4.full.m9rw","status":0,"mismatched_vars":0,"first_mismatch":-1}
+{"arm":"fold4.full.m9rw","threads":256,"launches":147,"levels":1320,"strands":3864618,"blake_units":47025,"ms_min":8.370,"ms_med":8.376,"ms_max":8.396,"speedup_med":1.35,"exact":true}
