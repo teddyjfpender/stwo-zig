@@ -56,17 +56,19 @@ Proof-only runner (`pod/gn_prove.py`: the gate's small-block-proof step + frozen
 Every node is proved a second time through `outer_device.NodeJob` over its `NodeClasses` template (children in a node-local stand-in of the request slab: image in the last region words), device encoder into the node's region (image tail on, outputs from device memory, `device_publish`: no host decode in finish), and the bytes are compared with the published host bytes.
 
 
-Cold request of each block (driver b9, addon b6; `job-cold-<block>.txt` = the GN_NODE_JOB lines):
+Driver b11 (ad0eba90f), addon b6; cold + warm request per block (`job-<block>.txt` = the GN_NODE_JOB lines, `job-summary.json`, `job-proof-<block>.json`):
 
-| block | nodes through the production node job | device-encoded bytes == published host bytes | own PCS image tail == node image | all 7 slab verdict words accepted | host launches / node | NodeJob host stage+enqueue / node |
-|---|---|---|---|---|---|---|
-| 24628607 | 19 (14 leaves, 5 folds incl. root) | 19/19 | 19/19 | 19/19 | 7 (seed fill 4 + lookup copy + channel verdict + 1 graph launch of the body; encoder/OODS/tail inside the made job) | 42–87 us [M] |
-| 26235156 | 15 (11 leaves, 4 folds incl. root) | 15/15 | 15/15 | 15/15 | 7 | 37–74 us [M] |
+| block | node jobs (cold + warm) | device-encoded bytes == published host bytes | own PCS image tail == node image | all 7 slab verdict words accepted | request artifacts vs frozen D2 | host launches / node | NodeJob host stage+enqueue / node |
+|---|---|---|---|---|---|---|---|
+| 24628607 | 38 (28 leaves, 10 folds incl. root) | 38/38 | 38/38 | 38/38 | **39/39 + 39/39** | 7 | 36–89 us, median 45 us [M] |
+| 26235156 | 30 (22 leaves, 8 folds incl. root) | 30/30 | 30/30 | 30/30 | **32/32 + 32/32** | 7 | 38–105 us, median 49 us [M] |
 
+- Host launches per node = seed fill 4 + lookup_sum copy + channel_order verdict + 1 launch of the body graph (the encoder, image tail and OODS check run inside the made job after the body). Design target ≤ 50 [E]: met.
 - Verdict words read back from the node's region: seed_tape, child_binding, lookup_sum, channel_order, node_pcs_status, encode_bounds, node_oods_constraint.
-- [M] Worker stage of the made job (hybrid window): leaves 27–192 ms, folds 138–322 ms per node — the template's node region (zeroed seeds, up to 24 MB) and, under the hybrid window's per-job class-region policy, the class schedule are re-packed and uploaded per node, plus the check-mode child-region upload. With persistent class regions (the GPU-native install) the schedule is uploaded once per worker; the seeds section needs the `device_inputs` flag requested in M8-INTERFACES.
-- [M] Body GPU wait 77–422 ms (leaves) / 243–533 ms (folds) per node: the whole-node prove itself.
-- Warm request of the same services failed in job mode (`InvalidDevicePcsColumn`): the class template borrowed its node's Authority-owned FIXED log table, freed after the cold request. Fixed in 131005f81 (templates own it; the Blake sample tape is handed over per node). Re-run below.
+- [M] Worker stage of the made job (hybrid window): leaves 17–260 ms, folds 70–307 ms per node — the template's node region (zeroed seeds, up to 24 MB) and, under the hybrid window's per-job class-region policy, the class schedule and FIXED raw evaluations are re-packed/uploaded per node, plus the check-mode child-region upload. With persistent class regions (GPU-native install) the schedule and FIXED are uploaded once per worker; the seeds section needs the `device_inputs` flag requested in M8-INTERFACES. Not a request-path number of the GPU-native driver.
+- [M] Body GPU wait 75–423 ms (leaves) / 242–542 ms (folds) per node: the whole-node prove itself.
+- Graph outcome `captured` on both requests: the hybrid window parks its workers between requests (arena epoch changes), so every node body is captured and launched once; replay of a class graph across requests needs the GPU-native install's stable arena.
+- Fixes found by these runs: template lifetime (Authority-borrowed FIXED log table: InvalidDevicePcsColumn on the warm request), hybrid-window memory (FIXED handoff + per-job class regions: arena overrun on folds), child wire capacity (759,512 B wires).
 
 ### Default gate
 - [M] `rv64_gate.sh --stream m8-gn-node` default (26235156) at 131005f81: **PASS** — build, unit (Zig + Python), cold + warm small-block proofs 32/32 + 32/32 byte-identical to the frozen D2 golden, 2/2 fresh CPU receivers, 19-case negative corpus (`gate-default-26235156.json`; run `/workspace/m3/runs/m8-gn-node/gate5`). ad0eba90f after it changes job-mode check code only (default off).
