@@ -1,0 +1,553 @@
+{
+ "schema": "rv64-m8-opt-combined-gates/v1",
+ "label": "M",
+ "gates": [
+  {
+   "name": "gate3-on-24628607",
+   "status": "PASS",
+   "block": 24628607,
+   "source_commit": "2d1c5b178",
+   "extra_env": {
+    "STWO_RV64_M8_CAPTURE_LOCAL_LEDGER": "1",
+    "STWO_RV64_M8_CAPTURE_INFLIGHT": "16",
+    "STWO_RV64_M8_ASSIGNMENT_FLOW": "1",
+    "STWO_RV64_M8_DEEP_LEGACY": "0",
+    "STWO_RV64_M8_SAMPLE_LEGACY": "0",
+    "STWO_RV64_M8_B2N_WIDE": "1",
+    "STWO_RV64_M8_FFT_SMALL": "1",
+    "STWO_RV64_M8_N2B_WIDE_MIN_LOG": "20",
+    "STWO_RV64_M8_N2B_WIDE_ROWS": "1",
+    "STWO_RV64_M8_AOT_REGISTER_SCHEDULE": "1",
+    "STWO_RV64_M8_MERKLE_FUSED": "1",
+    "STWO_RV64_M8_GKR_BATCH_PAR": "1",
+    "STWO_RV64_M8_LOGUP_BLOCK_INVERSE": "1",
+    "STWO_RV64_M8_WITNESS_COALESCE": "1",
+    "STWO_RV64_PCS_STREAM_CHUNK_WORDS": "268435456",
+    "STWO_RV64_TRACE_STREAM_CHUNK_WORDS": "268435456"
+   },
+   "runtime_library": "/workspace/m3/build/m8-opt-combined/img/native/libstwo-rv64-native.so",
+   "runtime_library_sha256": "b181cdd9ca1ae782d9981d74d17b3a5506c43771c0e53b8419cb76d3f174c871",
+   "frozen_default_sha256": "bd6bc79381f1c0c801d1db3814d2483b0a32295730bdb19a84360196d999dc29",
+   "steps": [
+    [
+     "build",
+     0,
+     142
+    ],
+    [
+     "unit-zig",
+     0,
+     827
+    ],
+    [
+     "unit-python",
+     0,
+     1
+    ],
+    [
+     "small-block-proof",
+     0,
+     84
+    ],
+    [
+     "fresh-cpu-receiver",
+     0,
+     82
+    ],
+    [
+     "negative-corpus",
+     0,
+     358
+    ]
+   ],
+   "parity": [
+    {
+     "byte_identical": true,
+     "artifact_count": 39
+    },
+    {
+     "byte_identical": true,
+     "artifact_count": 39
+    }
+   ],
+   "receivers": [
+    {
+     "accepted": true
+    },
+    {
+     "accepted": true
+    }
+   ],
+   "raw": "/workspace/m3/runs/m8-opt-combined/gate3-on-24628607/gate.json",
+   "raw_sha256": "a915732a484133733a114203c3912becc9246a9e7e9141413801e153f83721d5"
+  },
+  {
+   "name": "gate3-on-26235156",
+   "status": "PASS",
+   "block": 26235156,
+   "source_commit": "2d1c5b178",
+   "extra_env": {
+    "STWO_RV64_M8_CAPTURE_LOCAL_LEDGER": "1",
+    "STWO_RV64_M8_CAPTURE_INFLIGHT": "16",
+    "STWO_RV64_M8_ASSIGNMENT_FLOW": "1",
+    "STWO_RV64_M8_DEEP_LEGACY": "0",
+    "STWO_RV64_M8_SAMPLE_LEGACY": "0",
+    "STWO_RV64_M8_B2N_WIDE": "1",
+    "STWO_RV64_M8_FFT_SMALL": "1",
+    "STWO_RV64_M8_N2B_WIDE_MIN_LOG": "20",
+    "STWO_RV64_M8_N2B_WIDE_ROWS": "1",
+    "STWO_RV64_M8_AOT_REGISTER_SCHEDULE": "1",
+    "STWO_RV64_M8_MERKLE_FUSED": "1",
+    "STWO_RV64_M8_GKR_BATCH_PAR": "1",
+    "STWO_RV64_M8_LOGUP_BLOCK_INVERSE": "1",
+    "STWO_RV64_M8_WITNESS_COALESCE": "1",
+    "STWO_RV64_PCS_STREAM_CHUNK_WORDS": "268435456",
+    "STWO_RV64_TRACE_STREAM_CHUNK_WORDS": "268435456"
+   },
+   "runtime_library": "/workspace/m3/build/m8-opt-combined/img/native/libstwo-rv64-native.so",
+   "runtime_library_sha256": "b181cdd9ca1ae782d9981d74d17b3a5506c43771c0e53b8419cb76d3f174c871",
+   "frozen_default_sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95",
+   "steps": [
+    [
+     "build",
+     0,
+     1
+    ],
+    [
+     "unit-zig",
+     0,
+     6
+    ],
+    [
+     "unit-python",
+     0,
+     0
+    ],
+    [
+     "small-block-proof",
+     0,
+     200
+    ],
+    [
+     "fresh-cpu-receiver",
+     0,
+     61
+    ],
+    [
+     "negative-corpus",
+     0,
+     259
+    ]
+   ],
+   "parity": [
+    {
+     "byte_identical": true,
+     "artifact_count": 32
+    },
+    {
+     "byte_identical": true,
+     "artifact_count": 32
+    }
+   ],
+   "receivers": [
+    {
+     "accepted": true
+    },
+    {
+     "accepted": true
+    }
+   ],
+   "raw": "/workspace/m3/runs/m8-opt-combined/gate3-on-26235156/gate.json",
+   "raw_sha256": "4d822874d9cd21a6febcf26bb7d0e2c8de892684e3ec7cccd2f598928b4b35c7"
+  },
+  {
+   "name": "gate3-def-24628607",
+   "status": "PASS",
+   "block": 24628607,
+   "source_commit": "2d1c5b178",
+   "extra_env": {},
+   "runtime_library": "/workspace/m3/build/m8-opt-combined/img/native/libstwo-rv64-native.so",
+   "runtime_library_sha256": "b181cdd9ca1ae782d9981d74d17b3a5506c43771c0e53b8419cb76d3f174c871",
+   "frozen_default_sha256": "bd6bc79381f1c0c801d1db3814d2483b0a32295730bdb19a84360196d999dc29",
+   "steps": [
+    [
+     "build",
+     0,
+     1
+    ],
+    [
+     "unit-zig",
+     0,
+     6
+    ],
+    [
+     "unit-python",
+     0,
+     0
+    ],
+    [
+     "small-block-proof",
+     0,
+     103
+    ],
+    [
+     "fresh-cpu-receiver",
+     0,
+     82
+    ],
+    [
+     "negative-corpus",
+     0,
+     348
+    ]
+   ],
+   "parity": [
+    {
+     "byte_identical": true,
+     "artifact_count": 39
+    },
+    {
+     "byte_identical": true,
+     "artifact_count": 39
+    }
+   ],
+   "receivers": [
+    {
+     "accepted": true
+    },
+    {
+     "accepted": true
+    }
+   ],
+   "raw": "/workspace/m3/runs/m8-opt-combined/gate3-def-24628607/gate.json",
+   "raw_sha256": "67661e8a5a0ab7452277ad94da714758d22a97077c79adfcea036d1d1ec6b307"
+  },
+  {
+   "name": "gate3-def-26235156",
+   "status": "PASS",
+   "block": 26235156,
+   "source_commit": "2d1c5b178",
+   "extra_env": {},
+   "runtime_library": "/workspace/m3/build/m8-opt-combined/img/native/libstwo-rv64-native.so",
+   "runtime_library_sha256": "b181cdd9ca1ae782d9981d74d17b3a5506c43771c0e53b8419cb76d3f174c871",
+   "frozen_default_sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95",
+   "steps": [
+    [
+     "build",
+     0,
+     1
+    ],
+    [
+     "unit-zig",
+     0,
+     6
+    ],
+    [
+     "unit-python",
+     0,
+     0
+    ],
+    [
+     "small-block-proof",
+     0,
+     98
+    ],
+    [
+     "fresh-cpu-receiver",
+     0,
+     61
+    ],
+    [
+     "negative-corpus",
+     0,
+     257
+    ]
+   ],
+   "parity": [
+    {
+     "byte_identical": true,
+     "artifact_count": 32
+    },
+    {
+     "byte_identical": true,
+     "artifact_count": 32
+    }
+   ],
+   "receivers": [
+    {
+     "accepted": true
+    },
+    {
+     "accepted": true
+    }
+   ],
+   "raw": "/workspace/m3/runs/m8-opt-combined/gate3-def-26235156/gate.json",
+   "raw_sha256": "62af3009779042ad604ea4e7a7c62576fd16b3697767aed4691c77e813cb255a"
+  },
+  {
+   "name": "gate3-p0-26235156",
+   "status": "PASS",
+   "block": 26235156,
+   "source_commit": "2d1c5b178",
+   "extra_env": {},
+   "runtime_library": "/workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so",
+   "runtime_library_sha256": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+   "frozen_default_sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95",
+   "steps": [
+    [
+     "build",
+     0,
+     1
+    ],
+    [
+     "unit-zig",
+     0,
+     6
+    ],
+    [
+     "unit-python",
+     0,
+     0
+    ],
+    [
+     "small-block-proof",
+     0,
+     96
+    ],
+    [
+     "fresh-cpu-receiver",
+     0,
+     61
+    ],
+    [
+     "negative-corpus",
+     0,
+     261
+    ]
+   ],
+   "parity": [
+    {
+     "byte_identical": true,
+     "artifact_count": 32
+    },
+    {
+     "byte_identical": true,
+     "artifact_count": 32
+    }
+   ],
+   "receivers": [
+    {
+     "accepted": true
+    },
+    {
+     "accepted": true
+    }
+   ],
+   "raw": "/workspace/m3/runs/m8-opt-combined/gate3-p0-26235156/gate.json",
+   "raw_sha256": "c2bc65e6f46abb5cdca12bf01e3ec7d097385452b9370fccefbc446160d73b20"
+  },
+  {
+   "name": "gate4-def-24628607",
+   "status": "PASS",
+   "block": 24628607,
+   "source_commit": "3e1de5ddc",
+   "extra_env": {},
+   "runtime_library": "/workspace/m3/build/m8-opt-combined/img/native/libstwo-rv64-native.so",
+   "runtime_library_sha256": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+   "frozen_default_sha256": "bd6bc79381f1c0c801d1db3814d2483b0a32295730bdb19a84360196d999dc29",
+   "steps": [
+    [
+     "build",
+     0,
+     1
+    ],
+    [
+     "unit-zig",
+     0,
+     6
+    ],
+    [
+     "unit-python",
+     0,
+     1
+    ],
+    [
+     "small-block-proof",
+     0,
+     52
+    ],
+    [
+     "fresh-cpu-receiver",
+     0,
+     83
+    ],
+    [
+     "negative-corpus",
+     0,
+     350
+    ]
+   ],
+   "parity": [
+    {
+     "byte_identical": true,
+     "artifact_count": 39
+    },
+    {
+     "byte_identical": true,
+     "artifact_count": 39
+    }
+   ],
+   "receivers": [
+    {
+     "accepted": true
+    },
+    {
+     "accepted": true
+    }
+   ],
+   "raw": "/workspace/m3/runs/m8-opt-combined/gate4-def-24628607/gate.json",
+   "raw_sha256": "7b66b4aafcd917d264522b81a55b19a42433bd0c4569bca009400e6ffc51878e"
+  },
+  {
+   "name": "gate4-def-26235156",
+   "status": "PASS",
+   "block": 26235156,
+   "source_commit": "3e1de5ddc",
+   "extra_env": {},
+   "runtime_library": "/workspace/m3/build/m8-opt-combined/img/native/libstwo-rv64-native.so",
+   "runtime_library_sha256": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+   "frozen_default_sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95",
+   "steps": [
+    [
+     "build",
+     0,
+     1
+    ],
+    [
+     "unit-zig",
+     0,
+     5
+    ],
+    [
+     "unit-python",
+     0,
+     0
+    ],
+    [
+     "small-block-proof",
+     0,
+     44
+    ],
+    [
+     "fresh-cpu-receiver",
+     0,
+     61
+    ],
+    [
+     "negative-corpus",
+     0,
+     259
+    ]
+   ],
+   "parity": [
+    {
+     "byte_identical": true,
+     "artifact_count": 32
+    },
+    {
+     "byte_identical": true,
+     "artifact_count": 32
+    }
+   ],
+   "receivers": [
+    {
+     "accepted": true
+    },
+    {
+     "accepted": true
+    }
+   ],
+   "raw": "/workspace/m3/runs/m8-opt-combined/gate4-def-26235156/gate.json",
+   "raw_sha256": "7b38fd0c3d5cb86d1285984e54a98a6771e0794cfa07d1cf75a84f3795ec3ed4"
+  },
+  {
+   "name": "gate4-on-24628607",
+   "status": "PASS",
+   "block": 24628607,
+   "source_commit": "3e1de5ddc",
+   "extra_env": {
+    "STWO_RV64_M8_CAPTURE_LOCAL_LEDGER": "1",
+    "STWO_RV64_M8_CAPTURE_INFLIGHT": "16",
+    "STWO_RV64_M8_ASSIGNMENT_FLOW": "0",
+    "STWO_RV64_M8_DEEP_LEGACY": "0",
+    "STWO_RV64_M8_SAMPLE_LEGACY": "0",
+    "STWO_RV64_M8_B2N_WIDE": "1",
+    "STWO_RV64_M8_FFT_SMALL": "1",
+    "STWO_RV64_M8_N2B_WIDE_MIN_LOG": "20",
+    "STWO_RV64_M8_N2B_WIDE_ROWS": "1",
+    "STWO_RV64_M8_AOT_REGISTER_SCHEDULE": "1",
+    "STWO_RV64_M8_MERKLE_FUSED": "1",
+    "STWO_RV64_M8_GKR_BATCH_PAR": "1",
+    "STWO_RV64_M8_LOGUP_BLOCK_INVERSE": "1",
+    "STWO_RV64_M8_WITNESS_COALESCE": "1",
+    "STWO_RV64_PCS_STREAM_CHUNK_WORDS": "268435456",
+    "STWO_RV64_TRACE_STREAM_CHUNK_WORDS": "268435456"
+   },
+   "runtime_library": "/workspace/m3/build/m8-opt-combined/img/native/libstwo-rv64-native.so",
+   "runtime_library_sha256": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+   "frozen_default_sha256": "bd6bc79381f1c0c801d1db3814d2483b0a32295730bdb19a84360196d999dc29",
+   "steps": [
+    [
+     "build",
+     0,
+     1
+    ],
+    [
+     "unit-zig",
+     0,
+     6
+    ],
+    [
+     "unit-python",
+     0,
+     0
+    ],
+    [
+     "small-block-proof",
+     0,
+     53
+    ],
+    [
+     "fresh-cpu-receiver",
+     0,
+     82
+    ],
+    [
+     "negative-corpus",
+     0,
+     343
+    ]
+   ],
+   "parity": [
+    {
+     "byte_identical": true,
+     "artifact_count": 39
+    },
+    {
+     "byte_identical": true,
+     "artifact_count": 39
+    }
+   ],
+   "receivers": [
+    {
+     "accepted": true
+    },
+    {
+     "accepted": true
+    }
+   ],
+   "raw": "/workspace/m3/runs/m8-opt-combined/gate4-on-24628607/gate.json",
+   "raw_sha256": "5ef856a199ec72eacdf379d561ffd1ce306487a9dbd205a6bf9f46b3212d85f0"
+  }
+ ]
+}
