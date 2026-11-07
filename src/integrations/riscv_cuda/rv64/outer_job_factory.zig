@@ -901,6 +901,10 @@ pub const NodeClasses = struct {
         statement: Seed.Statement,
         program: []u32 = &.{},
         max_encoded_bytes: usize,
+        /// Per device: the worker's whole-node graph cache (the Prover of that
+        /// GPU; set by the binder). With it every node of the class replays
+        /// the class's captured body graph (rebinding only node buffers).
+        graphs: [OuterDevice.max_graph_devices]?*Graphs.Cache = @splat(null),
         /// The seed program for children regions of `region_words` words
         /// each (1 + the child class's encoded capacity), image at the end.
         pub fn programFor(self: *Entry, region_words: []const u32) !void {
@@ -1016,6 +1020,7 @@ pub const NodeClasses = struct {
         m.job = try Job.OuterNodeJob.initWhole(e.staged, &e.shared.kernels, e.shared.whole());
         errdefer m.job.deinit();
         m.job.defer_decode = true; // no host PCS decode: the device encoder publishes
+        if (target.device < e.graphs.len) m.job.graphs = e.graphs[target.device];
         m.enc = try EncJob.EncodedNode.initTarget(a, &m.job, e.shared.encode orelse return error.GnNodeEncoderUnloaded, e.desc, .{ .region = target.region, .pcs_status = target.pcs_status, .encode_status = target.encode_status, .layout_status_oods = target.oods_status });
         if (e.shared.oods) |sym| try m.enc.withOods(sym, e.oods_program);
         m.enc.image_tail = true;

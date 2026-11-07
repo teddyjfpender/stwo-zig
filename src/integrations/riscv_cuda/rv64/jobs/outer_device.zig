@@ -90,6 +90,8 @@ pub const NodeClass = struct {
     make: *const fn (ctx: *anyopaque, a: std.mem.Allocator, target: Target) anyerror!Made,
 };
 pub const Target = struct {
+    /// GPU the node runs on (its whole-node graph cache is per device).
+    device: u32 = 0,
     region: api.DeviceBuffer,
     pcs_status: api.DeviceBuffer,
     encode_status: api.DeviceBuffer,
@@ -102,6 +104,7 @@ pub const Made = struct {
     inputs: *const fn (*anyopaque) anyerror!Inputs,
     destroy: *const fn (*anyopaque) void,
 };
+pub const max_graph_devices = G.max_devices;
 pub const Inputs = struct { seeds: api.DeviceBuffer, channel_seed: api.DeviceBuffer, outputs: api.DeviceBuffer };
 /// Device entry points the node job needs (bound by the service).
 pub const DeviceOps = struct {
@@ -287,7 +290,7 @@ pub const Recursion = struct {
         if (device >= rc.segments.len or device >= rc.layout.segments.len) return error.GpuNativeProofDeviceOutOfRange;
         const seg = &rc.layout.segments[device];
         const buf = rc.segments[device];
-        const target = Target{ .region = try seg.encodedBuffer(buf, id), .pcs_status = try seg.statusBuffer(buf, id, .node_pcs_status), .encode_status = try seg.statusBuffer(buf, id, .encode_bounds), .oods_status = try seg.statusBuffer(buf, id, .node_oods_constraint) };
+        const target = Target{ .device = device, .region = try seg.encodedBuffer(buf, id), .pcs_status = try seg.statusBuffer(buf, id, .node_pcs_status), .encode_status = try seg.statusBuffer(buf, id, .encode_bounds), .oods_status = try seg.statusBuffer(buf, id, .node_oods_constraint) };
         const job = try self.a.create(NodeJob);
         errdefer self.a.destroy(job);
         job.* = .{ .a = self.a, .ops = ops, .class = nc, .device = device, .verdicts = .{
