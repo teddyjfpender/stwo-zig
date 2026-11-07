@@ -16,4 +16,6 @@ test {
     _ = @import("rv64/jobs/outer_device.zig");
     _ = @import("rv64/jobs/outer_encode.zig");
     _ = @import("rv64/jobs/outer_encode_oods.zig");
+    _ = @import("rv64/jobs/outer_seed_device.zig");
+    _ = @import("rv64/jobs/outer_seed_harness_test.zig");
 }

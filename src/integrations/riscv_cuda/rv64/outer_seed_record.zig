@@ -70,3 +70,114 @@ fn pcsImageInner(path: []const u8, shape: anytype, image: []const u32) !void {
     const name = try std.fmt.bufPrint(&name_buf, "pcs-{x}.gnp", .{digest[0..8].*});
     if (try writeOnce(path, name, out.items)) std.debug.print("GN_NODE_RECORD pcs trees={d} image_words={d} file={s}\n", .{ shape.trees.len, image.len, name });
 }
+
+/// STWO_RV64_M8_GN_NODE=check: the in-process registry of child seed
+/// sources for the in-service GPU-native node check (outer_job_factory.zig
+/// GnCheck). Every legacy PCS image (native segments, truths) and every
+/// proved outer node (its wire bytes + PCS image) is kept, keyed by its MAIN
+/// (tree 1) root, until a parent consumes it. Stands in for the request
+/// slab's encoded regions, which the GPU-native producers fill on device.
+pub fn liveSelected() !bool {
+    const v = std.posix.getenv("STWO_RV64_M8_GN_NODE") orelse return false;
+    if (std.mem.eql(u8, v, "0")) return false;
+    if (std.mem.eql(u8, v, "check")) return true;
+    return error.InvalidGnNodeSelection;
+}
+pub const Live = struct {
+    pub const Entry = struct {
+        key: [8]u32,
+        node: bool,
+        shape: []u32,
+        image: []u32,
+        wire: []u8,
+        identity: [8]u32 = @splat(0),
+        fixed_root: [8]u32 = @splat(0),
+        n_outputs: u32 = 0,
+        fn deinit(self: *Entry) void {
+            const a = std.heap.c_allocator;
+            a.free(self.shape);
+            a.free(self.image);
+            a.free(self.wire);
+        }
+    };
+    /// MAIN root offset in a PCS readback image (header 14, status 1, state 16, root 0).
+    pub const main_root_at: usize = 14 + 1 + 16 + 8;
+    pub const capacity = 128;
+    var mutex: std.Thread.Mutex = .{};
+    var entries: std.ArrayListUnmanaged(Entry) = .empty;
+    fn put(e: Entry) !void {
+        mutex.lock();
+        defer mutex.unlock();
+        const a = std.heap.c_allocator;
+        for (entries.items, 0..) |*x, i| if (std.mem.eql(u32, &x.key, &e.key) and x.node == e.node) {
+            x.deinit();
+            entries.items[i] = e;
+            return;
+        };
+        if (entries.items.len == capacity) {
+            entries.items[0].deinit();
+            _ = entries.orderedRemove(0);
+        }
+        try entries.append(a, e);
+    }
+    pub fn putPcs(shape: anytype, image: []const u32) void {
+        putPcsInner(shape, image) catch |err| std.debug.print("GN_NODE_LIVE pcs error={s}\n", .{@errorName(err)});
+    }
+    fn putPcsInner(shape: anytype, image: []const u32) !void {
+        if (image.len < main_root_at + 8) return error.GnNodeImageTooShort;
+        const a = std.heap.c_allocator;
+        var sw: std.ArrayListUnmanaged(u32) = .empty;
+        errdefer sw.deinit(a);
+        try appendShape(a, &sw, shape);
+        const img = try a.dupe(u32, image);
+        errdefer a.free(img);
+        try put(.{ .key = image[main_root_at..][0..8].*, .node = false, .shape = try sw.toOwnedSlice(a), .image = img, .wire = try a.alloc(u8, 0) });
+    }
+    pub fn putNode(shape: anytype, image: []const u32, wire: []const u8, identity: [8]u32, fixed_root: [8]u32, n_outputs: u32) !void {
+        if (image.len < main_root_at + 8) return error.GnNodeImageTooShort;
+        const a = std.heap.c_allocator;
+        var sw: std.ArrayListUnmanaged(u32) = .empty;
+        errdefer sw.deinit(a);
+        try appendShape(a, &sw, shape);
+        const img = try a.dupe(u32, image);
+        errdefer a.free(img);
+        const w = try a.dupe(u8, wire);
+        errdefer a.free(w);
+        try put(.{ .key = image[main_root_at..][0..8].*, .node = true, .shape = try sw.toOwnedSlice(a), .image = img, .wire = w, .identity = identity, .fixed_root = fixed_root, .n_outputs = n_outputs });
+    }
+    /// A copy of an entry (caller frees with `a` via Found.deinit).
+    pub const Found = struct {
+        at: usize, // seed index of the child's proof start (its tree-0 root)
+        entry: Entry,
+        pub fn deinit(self: *Found, a: std.mem.Allocator) void {
+            a.free(self.entry.shape);
+            a.free(self.entry.image);
+            a.free(self.entry.wire);
+        }
+    };
+    /// Children of a node from its host seed records (5 words each): every
+    /// registered source (of kind `node`) whose MAIN root appears as the 16
+    /// half-word seeds following a tree-0 root, in seed order. Check mode
+    /// only (production gets the children from the driver's DAG).
+    pub fn find(a: std.mem.Allocator, seeds: []const u32, node: bool, out: *std.ArrayListUnmanaged(Found)) !void {
+        mutex.lock();
+        defer mutex.unlock();
+        const n = seeds.len / 5;
+        for (entries.items) |e| {
+            if (e.node != node) continue;
+            var i: usize = 16;
+            scan: while (i + 16 <= n) : (i += 1) {
+                for (0..8) |w| {
+                    if (seeds[5 * (i + 2 * w) + 1] != (e.key[w] & 0xffff) or seeds[5 * (i + 2 * w + 1) + 1] != (e.key[w] >> 16)) continue :scan;
+                }
+                try out.append(a, .{ .at = i - 16, .entry = .{ .key = e.key, .node = e.node, .shape = try a.dupe(u32, e.shape), .image = try a.dupe(u32, e.image), .wire = try a.dupe(u8, e.wire), .identity = e.identity, .fixed_root = e.fixed_root, .n_outputs = e.n_outputs } });
+                break;
+            }
+        }
+        std.mem.sort(Found, out.items, {}, struct {
+            fn less(_: void, x: Found, y: Found) bool {
+                return x.at < y.at;
+            }
+        }.less);
+    }
+};

@@ -907,6 +907,7 @@ pub const Context = struct {
         if (result.words == null or result.count > (1 << 28)) return error.InvalidGpuPcsProof;
         // gn-node piece-harness recorder (default off; proof-neutral).
         if (GnRecord.dir() != null) GnRecord.pcsImage(prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
+        if (GnRecord.liveSelected() catch false) GnRecord.Live.putPcs(prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
         var decoded = try Decode.decodeWords(a, prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
         errdefer decoded.proof.deinit(a);
         channel.* = decoded.channel;
