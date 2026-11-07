@@ -113,7 +113,12 @@ pub const Factory = struct {
                     for (&held, 0..) |*h, d| {
                         if (d < 8 and (e.devices >> @intCast(d)) & 1 == 1) h.* = heldWords(c);
                     }
-                    return .{ .key = key, .plan = c, .destroy = noDestroy, .max_encoded_bytes = e.max_encoded_bytes, .extra_checks = &K.Class.extra_checks, .arena_peak_words = if (e.measured_peak_words != 0) e.measured_peak_words else declared, .held_words = held, .cost_us = 1 };
+                    // The declared PCS term undershoots: measured/declared stage-2
+                    // peak 0.68..1.48 over the 7 classes of 26235156 [M]
+                    // (runs/m8-gpu-r-truth/parity-4, keccak log13 0.998e9 vs
+                    // 0.676e9 words). Unmeasured classes budget 3/2 declared.
+                    const budget = if (e.measured_peak_words != 0) e.measured_peak_words else declared / 2 * 3;
+                    return .{ .key = key, .plan = c, .destroy = noDestroy, .max_encoded_bytes = e.max_encoded_bytes, .extra_checks = &K.Class.extra_checks, .arena_peak_words = budget, .held_words = held, .cost_us = 1 };
                 }
             };
             _ = try cache.warm(kv.key_ptr.*, .{ .ctx = kv.value_ptr, .build = Builder.build });

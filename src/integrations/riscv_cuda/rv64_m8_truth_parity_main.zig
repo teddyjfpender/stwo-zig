@@ -318,6 +318,7 @@ pub fn main() !void {
     const arena_bytes = try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 24 << 30);
     const worker = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignBackward(usize, arena_bytes / 4, W.Arena.granule), .pinned_slot_words = try envBytes("STWO_RV64_M8_JOBS_PINNED_BYTES", 1 << 30) / 4 });
     defer worker.destroy();
+    std.debug.print("GPU_M8_TRUTH_PARITY phase=worker_ready device={}\n", .{device});
     const sym = try TJ.Symbols.load(&libs.base, &libs.addon);
     const events = try Events.Api.load(&libs.base);
     const Version = *const fn () callconv(.c) u32;
@@ -333,6 +334,7 @@ pub fn main() !void {
     const pool = try Pool.createWithBinding(a, library, config, item.expected_cpu_segments, true);
     defer pool.deinit();
     try pool.stages().requireFullyResident();
+    std.debug.print("GPU_M8_TRUTH_PARITY phase=pool_ready\n", .{});
     var stages = pool.stages();
     var source = SourceDecorator{ .a = a, .inner = stages.truth_source orelse return error.ParityRequiresTruthSource };
     SourceDecorator.self_ptr = &source;
@@ -353,6 +355,7 @@ pub fn main() !void {
     std.crypto.hash.sha2.Sha256.hash("rv64-m8-truth-parity", &identity, .{});
     for (pool.devices, config.caps) |*d, cap| try d.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
     var timer = try std.time.Timer.start();
+    std.debug.print("GPU_M8_TRUTH_PARITY phase=legacy_start\n", .{});
     try Main.runWithResidentArgs(&recycler, &args, stages, &session);
     const legacy_ns = timer.read();
     for (pool.devices) |*d| try d.native.endBlock(identity);
@@ -405,7 +408,15 @@ fn classFor(a: std.mem.Allocator, rec: *const Record, sym: *const TJ.Symbols, wi
     const key = try K.classKey(rec.truth, rec.config, fixed.root);
     for (classes.items) |c| if (std.mem.eql(u8, &c.key, &key)) return c;
     var timer = try std.time.Timer.start();
-    const class = try K.build(a, .{ .truth = rec.truth, .config = rec.config, .fixed = fixed.columns, .fixed_root = fixed.root, .psym = sym.pcs, .wide_framing = wide });
+    // STWO_RV64_M8_TRUTH_CLASS_SKEW (default 1): build the class from the
+    // truth under a DIFFERENT span (same class key: classes are span-free),
+    // as a service does when a class warmed on one request proves another.
+    // Every job below runs with the record's own span, so byte identity
+    // checks that nothing request-specific leaks from the class authority.
+    const skew = !std.mem.eql(u8, env("STWO_RV64_M8_TRUTH_CLASS_SKEW") orelse "1", "0");
+    const authority = if (skew) K.withSpan(rec.truth, if (rec.truth.count() > 1) rec.truth.count() - 1 else rec.truth.count() + 1, rec.truth.first() + 1) else rec.truth;
+    if (!std.mem.eql(u8, &key, &try K.classKey(authority, rec.config, fixed.root))) return error.ParityClassKeyNotSpanFree;
+    const class = try K.build(a, .{ .truth = authority, .config = rec.config, .fixed = fixed.columns, .fixed_root = fixed.root, .psym = sym.pcs, .wide_framing = wide });
     errdefer {
         class.deinit();
         a.destroy(class);

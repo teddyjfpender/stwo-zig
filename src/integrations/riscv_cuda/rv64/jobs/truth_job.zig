@@ -120,6 +120,14 @@ pub const Symbols = struct {
 fn check(code: c_int) !void {
     if (code != 0) return error.CudaEnqueueFailed;
 }
+/// STWO_RV64_M8_TRUTH_TRACE=1: one line per enqueue phase (debugging only).
+fn trace(comptime what: []const u8, ordinal: u32) void {
+    const on = struct {
+        var value: ?bool = null;
+    };
+    if (on.value == null) on.value = if (std.posix.getenv("STWO_RV64_M8_TRUTH_TRACE")) |v| std.mem.eql(u8, v, "1") else false;
+    if (on.value.?) std.debug.print("GPU_M8_TRUTH_TRACE ordinal={} at={s}\n", .{ ordinal, what });
+}
 fn feltWords(n: u32) usize {
     return @as(usize, n) * 8;
 }
@@ -298,11 +306,13 @@ pub const Stage1 = struct {
         try check(self.sym.memset(e.ctx(), status.ptr, 0, 4));
         const main = try e.alloc(self.class.mainEvalWords());
         const bytes = try enqueueWitness(self.class, self.sym, e, compact, main, status.ptr, self.calls, self.first_id);
+        trace("s1.witness", self.ordinal);
         const ins = try self.a.alloc(C.Input, self.class.main_logs.len);
         defer self.a.free(ins);
         try mainInputs(self.class, main, ins);
         const slab_root = try e.slab.field(.root, 0);
         const committed = try self.main_plan.enqueue(self.sym.commit, e, ins, slab_root, false);
+        trace("s1.commit", self.ordinal);
         if (self.root_out) |r| try check(self.sym.copy_d2d(e.ctx(), r.ptr, slab_root.ptr, 32));
         e.free(committed.coefficients);
         if (bytes) |b| e.free(b);
@@ -419,6 +429,8 @@ pub const Stage2 = struct {
     bytes: []u8 = &.{},
     out_claims: []O = &.{},
     span: Span = .{},
+    /// pcs_status expectation (host struct; the launcher copies it by value).
+    expect: PcsExpect = undefined,
     /// Host finish (assembly) time of the last finish.
     assemble_ns: u64 = 0,
 
@@ -490,8 +502,10 @@ pub const Stage2 = struct {
             .parameter_program => table[t.programs[0] + 1] = c.bounds().staged + 1000, // out-of-range gather entry
             .class_root => table[t.roots] ^= 1,
             .stage1_root => table[t.host_root] ^= 1,
-            .pcs_header => table[t.expect] ^= 1,
+            .pcs_header => {},
         }
+        self.expect = pcsExpect(&self.pcs);
+        if (self.fault == .pcs_header) self.expect.header[0] ^= 1;
         if (self.fault == .stage1_root and self.stage1_root_words == null) return error.TruthFaultNeedsStage1Root;
         try self.span.open(self.timing);
         const staged = try s.alloc(t.words);
@@ -544,20 +558,24 @@ pub const Stage2 = struct {
         defer self.a.free(fixed_inputs);
         for (fixed_inputs, c.fixed_host) |*i, h| i.* = .{ .host = h };
         const fixed = try self.fixed_tree.enqueue(sym.commit, e, fixed_inputs, try roots.slice(0, 8));
+        trace("s2.fixed", self.ordinal);
         const main_eval = try e.alloc(c.mainEvalWords());
         const bytes = try enqueueWitness(c, sym, e, compact, main_eval, status.ptr + StatusIndex.witness, self.calls, self.first_id);
         const main_inputs = try self.a.alloc(C.Input, c.main_logs.len);
         defer self.a.free(main_inputs);
         try mainInputs(c, main_eval, main_inputs);
         const main = try self.main_plan.enqueue(sym.commit, e, main_inputs, try roots.slice(8, 8), true);
+        trace("s2.main", self.ordinal);
         if (bytes) |b| e.free(b);
         e.free(main_eval);
         // Local challenges (proof channel), shared challenges (fresh channel over the digest).
         try X.run(c.localScript(), e.channel, try staged.slice(t.local, X.stagedWords(c.localScript())), null, local);
+        trace("s2.local", self.ordinal);
         const state = try e.alloc(@import("channel.zig").state_words);
         var fresh = api.DeviceChannel.init(e.channel.worker, e.channel.exec, ctx, e.stream(), state, 0);
         try X.run(X.shared, &fresh, try staged.slice(t.shared, X.stagedWords(X.shared)), digest, shared);
         e.free(state);
+        trace("s2.shared", self.ordinal);
         // Interaction witnesses.
         const consts = try staged.slice(t.consts, feltWords(c.stagedFelts()));
         const b = c.bounds();
@@ -582,11 +600,13 @@ pub const Stage2 = struct {
             outputs[i] = try e.alloc(p.outputWords());
             try I.enqueue(p, &sym.interaction, e, .{ .fixed = fixed_ptrs[0..p.fixed_count], .main = main_ptrs[0..p.main_count], .parameters = params, .twiddles = self.twiddles[i].? }, .{ .output = outputs[i], .claims = claims, .zero = zero, .status = try status.slice(StatusIndex.first_role + i, 1) });
             e.free(params);
+            trace("s2.role", self.ordinal);
         }
         // mixManifestAndClaims (worker_protocol): header, digest, claims.
         try e.channel.mixWords(try staged.slice(t.header, 3));
         try e.channel.mixWords(try digest.slice(0, 8));
         try e.channel.mixFelts(claims);
+        trace("s2.mixed", self.ordinal);
         // INTER commit over the roles' published columns; the witnesses die after it.
         const inter_inputs = try self.a.alloc(C.Input, c.inter_logs.len);
         defer self.a.free(inter_inputs);
@@ -598,6 +618,7 @@ pub const Stage2 = struct {
             };
         }
         const inter = try self.inter_plan.enqueue(sym.commit, e, inter_inputs, try roots.slice(16, 8), true);
+        trace("s2.inter", self.ordinal);
         var k = c.roles.len;
         while (k > 0) {
             k -= 1;
@@ -616,6 +637,7 @@ pub const Stage2 = struct {
         const inter_cols = NC.Columns{ .base = inter.coefficients.ptr, .offsets = self.inter_plan.offsets };
         const comp = try self.composition.enqueueWithClaims(sym.composition, e, .{ fixed_cols, main_cols, inter_cols }, alpha.ptr, null, try roots.slice(24, 8), status.ptr + StatusIndex.composition);
         try e.channel.mixRootFromTree(try roots.slice(24, 8));
+        trace("s2.composition", self.ordinal);
         // OODS + enqueue-only PCS over the four trees.
         const trees = [4]struct { base: [*]const u32, offsets: []const usize }{
             .{ .base = fixed.coefficients.ptr, .offsets = c.fixed_offsets },
@@ -626,6 +648,7 @@ pub const Stage2 = struct {
         for (trees, 0..) |tree, index| for (tree.offsets, 0..) |offset, original| try self.pcs.bindColumn(index, original, tree.base + offset);
         const pcs_out = try e.slab.field(.opaque_words, 2);
         try self.pcs.enqueueOpening(sym.pcs, e, self.pinned, try e.slab.field(.opaque_words, 1), pcs_out);
+        trace("s2.pcs", self.ordinal);
         e.free(comp.coefficients);
         e.free(inter.coefficients);
         e.free(main.coefficients);
@@ -646,7 +669,8 @@ pub const Stage2 = struct {
         try e.channel.snapshot(e.slab, (try self.layout.get(.channel_state, 0)).offset);
         const cursor = e.channel.step + @intFromBool(self.fault == .channel_cursor);
         try check(sym.order(ctx, 0, e.channel.stateBuffer().ptr, cursor, e.channel.expectedChain(e.channel.step), (self.verdicts.channel_order orelse try own.slice(2, 1)).ptr));
-        try check(sym.pcs_status(ctx, 0, pcs_out.ptr, pcs_out.words, roots.ptr, @ptrCast(staged.ptr + t.expect), (self.verdicts.pcs_status orelse try own.slice(3, 1)).ptr));
+        // The launcher reads the expectation on the host (by value into the kernel).
+        try check(sym.pcs_status(ctx, 0, pcs_out.ptr, pcs_out.words, roots.ptr, &self.expect, (self.verdicts.pcs_status orelse try own.slice(3, 1)).ptr));
         try self.span.mark(self.timing, true, e.stream());
     }
 
@@ -709,7 +733,7 @@ pub const Stage2 = struct {
             }
             break :blk handles[0..3];
         } else blk: {
-            delegated = .{ .truth = c.truth, .wire = shared.wire, .bytes = try felt(self.local_felts[0..8]), .claim = claims[0] };
+            delegated = .{ .truth = K.withSpan(c.truth, self.calls, self.first_id), .wire = shared.wire, .bytes = try felt(self.local_felts[0..8]), .claim = claims[0] };
             handles[0] = delegated.asProverComponent();
             break :blk handles[0..1];
         };
