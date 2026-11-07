@@ -51,6 +51,8 @@ pub const modulus: u32 = 0x7fff_ffff;
 pub const program_magic: u32 = 0x3144_534f; // "OSD1"
 pub const program_version: u32 = 1;
 pub const max_children = 8;
+/// om31 claims per node proof (outer_plan.n_components), in the wire after the outputs.
+pub const n_claims = 11;
 pub const max_queries = Enc.max_queries;
 pub const image_magic: u32 = 0x5256_4d4f;
 /// om31 wire magic "STWOCOM1" as two little-endian words.
@@ -376,7 +378,10 @@ const Builder = struct {
             }
             const cl = capLogFor(tl.height, cap_log);
             try self.op(.hash, k, .image, tl.paths, tl.height - cl, 8, nq, tl.height * 8);
-            if (cl != 0) {
+            if (cl == 0) {
+                // Full paths (no cap): every query's path must hash to the root.
+                try self.caps.append(self.a, .{ .kind = 0, .child = k, .height = tl.height, .cl = 0, .values = @intCast(tl.values), .width = tl.columns, .paths = @intCast(tl.paths), .path_stride = tl.height * 8, .level0 = 0, .root = @intCast(L.roots + 8 * t), .scratch = 0, .queries = @intCast(L.queries), .nq = nq, .from_log = L.initial_log, .to_log = tl.height, .layer_log = 0, .pack = 0 });
+            } else {
                 tree_caps[t] = self.scratch;
                 try self.caps.append(self.a, .{ .kind = 0, .child = k, .height = tl.height, .cl = cl, .values = @intCast(tl.values), .width = tl.columns, .paths = @intCast(tl.paths), .path_stride = tl.height * 8, .level0 = 0, .root = @intCast(L.roots + 8 * t), .scratch = self.scratch, .queries = @intCast(L.queries), .nq = nq, .from_log = L.initial_log, .to_log = tl.height, .layer_log = 0, .pack = 0 });
                 self.scratch += (@as(u32, 1) << @intCast(cl)) * 8;
@@ -394,7 +399,9 @@ const Builder = struct {
             const cl = capLogFor(log, cap_log);
             const subset = @as(usize, 1) << @intCast(l.step);
             try self.op(.om31, k, .image, l.values, subset, 8, nq, subset * 8);
-            if (cl != 0) {
+            if (cl == 0) {
+                try self.caps.append(self.a, .{ .kind = 1, .child = k, .height = log, .cl = 0, .values = @intCast(l.values), .width = @intCast(subset), .paths = @intCast(l.paths + (l.step - l.leaf_log) * 8), .path_stride = l.slots * l.height * 8, .level0 = l.step - l.leaf_log, .root = @intCast(l.root), .scratch = 0, .queries = @intCast(L.queries), .nq = nq, .from_log = l.shift, .to_log = l.step, .layer_log = layer_log, .pack = @intFromBool(layer_log >= 2 and l.step > 1) });
+            } else {
                 const at = self.scratch;
                 try self.caps.append(self.a, .{ .kind = 1, .child = k, .height = log, .cl = cl, .values = @intCast(l.values), .width = @intCast(subset), .paths = @intCast(l.paths + (l.step - l.leaf_log) * 8), .path_stride = l.slots * l.height * 8, .level0 = l.step - l.leaf_log, .root = @intCast(l.root), .scratch = at, .queries = @intCast(L.queries), .nq = nq, .from_log = l.shift, .to_log = l.step, .layer_log = layer_log, .pack = @intFromBool(layer_log >= 2 and l.step > 1) });
                 self.scratch += (@as(u32, 1) << @intCast(cl)) * 8;
@@ -436,6 +443,7 @@ pub fn buildFold(a: std.mem.Allocator, children: []const ChildClass, cap_log: u3
         try b.proof(kk, c.shape, cap_log);
         try b.op(.word, kk, .region, 1 + 10, 8, 1, 1, 0); // wire bytes 40..72: authority identity
         try b.op(.q, kk, .region, 1 + 19, c.n_outputs, 4, 1, 0); // wire outputs
+        try b.op(.om31, kk, .region, 1 + 19 + 4 * c.n_outputs, n_claims, 8, 1, 0); // wire claims (F.guess)
     }
     return finish(a, &b, children, cap_log, vars, constants, statement);
 }
@@ -542,6 +550,7 @@ pub fn tapeLength(children: []const ChildClass, cap_log: u32, a: std.mem.Allocat
         try b.proof(@intCast(k), c.shape, cap_log);
         try b.op(.word, @intCast(k), .region, 11, 8, 1, 1, 0);
         try b.op(.q, @intCast(k), .region, 20, c.n_outputs, 4, 1, 0);
+        try b.op(.om31, @intCast(k), .region, 20 + 4 * c.n_outputs, n_claims, 8, 1, 0);
     }
     return b.tape;
 }
@@ -619,6 +628,10 @@ pub fn fillHost(program: Program, children: []const []const u32, scratch_in: []u
                 const sib = path[level * 8 ..][0..8].*;
                 node = if ((pos >> @intCast(level)) & 1 == 1) nodeHash(sib, node) else nodeHash(node, sib);
             }
+            if (c.cl == 0) {
+                if (!std.mem.eql(u32, &node, img[c.root..][0..8])) rank.note(&worst, .cap_root);
+                continue;
+            }
             const at: usize = pos >> @intCast(walk);
             if (at >= n_cap) {
                 rank.note(&worst, .query_range);
@@ -635,7 +648,7 @@ pub fn fillHost(program: Program, children: []const []const u32, scratch_in: []u
                 }
             }
         }
-        if (bad) continue;
+        if (bad or c.cl == 0) continue;
         for (known[0..n_cap]) |k| if (!k) rank.note(&worst, .cap_uncovered);
         var layer: [64]Hash = undefined;
         for (0..n_cap) |i| layer[i] = cap[i * 8 ..][0..8].*;
@@ -982,7 +995,36 @@ pub const Synthetic = struct {
                 for (0..h) |l| @memcpy(self.image[tl.paths + (qi * h + l) * 8 ..][0..8], &levels[l][(p >> @intCast(l)) ^ 1]);
             }
         }
-        // canonical samples / FRI values / terminal
+        // FRI layers: real Merkle trees over (packed) leaves of canonical values.
+        for (L.layers[0..L.n_layers]) |l| {
+            const width: usize = if (l.leaf_log == 2) 4 else 1;
+            const n_leaves = @as(usize, 1) << @intCast(l.height);
+            const vals = try a.alloc(u32, n_leaves * width * 8);
+            defer a.free(vals);
+            for (vals) |*v| v.* = r.uintLessThan(u32, modulus);
+            var levels = try a.alloc([]Hash, l.height + 1);
+            defer {
+                for (levels) |x| a.free(x);
+                a.free(levels);
+            }
+            levels[0] = try a.alloc(Hash, n_leaves);
+            for (0..n_leaves) |i| levels[0][i] = leafHash(vals[i * width * 8 ..][0 .. width * 8]);
+            for (1..l.height + 1) |lv| {
+                levels[lv] = try a.alloc(Hash, n_leaves >> @intCast(lv));
+                for (levels[lv], 0..) |*x, i| x.* = nodeHash(levels[lv - 1][2 * i], levels[lv - 1][2 * i + 1]);
+            }
+            @memcpy(self.image[l.root..][0..8], &levels[l.height][0]);
+            const subset = @as(usize, 1) << @intCast(l.step);
+            for (queries, 0..) |q, qi| {
+                const start = ((@as(usize, q) >> @intCast(l.shift)) >> @intCast(l.step)) << @intCast(l.step);
+                const first_leaf = start >> @intCast(l.leaf_log);
+                @memcpy(self.image[l.values + qi * subset * 8 ..][0 .. subset * 8], vals[first_leaf * width * 8 ..][0 .. subset * 8]);
+                for (0..l.slots) |slot| for (0..l.height) |lv| {
+                    @memcpy(self.image[l.paths + ((qi * l.slots + slot) * l.height + lv) * 8 ..][0..8], &levels[lv][((first_leaf + slot) >> @intCast(lv)) ^ 1]);
+                };
+            }
+        }
+        // canonical samples / terminal
         for (self.image[L.samples..L.queries]) |*w| w.* &= 0x3fff_ffff;
         self.region = try a.alloc(u32, wire_words + L.words);
         @memset(self.region, 0);
@@ -999,14 +1041,14 @@ test "seed program: synthetic children fill, caps verified, negatives fail close
     const t = std.testing;
     const a = t.allocator;
     var c0: Synthetic = undefined;
-    try c0.init(a, 1, 64);
+    try c0.init(a, 1, 128);
     defer c0.deinit(a);
     var c1: Synthetic = undefined;
-    try c1.init(a, 2, 64);
+    try c1.init(a, 2, 128);
     defer c1.deinit(a);
     const classes = [_]ChildClass{
-        .{ .shape = c0.shape, .wire_words = 64, .n_outputs = 2, .identity = @splat(7), .fixed_root = @splat(0) },
-        .{ .shape = c1.shape, .wire_words = 64, .n_outputs = 2, .identity = @splat(7), .fixed_root = @splat(0) },
+        .{ .shape = c0.shape, .wire_words = 128, .n_outputs = 2, .identity = @splat(7), .fixed_root = @splat(0) },
+        .{ .shape = c1.shape, .wire_words = 128, .n_outputs = 2, .identity = @splat(7), .fixed_root = @splat(0) },
     };
     const tape = try tapeLength(&classes, 3, a);
     const n_const = 5;
@@ -1016,7 +1058,8 @@ test "seed program: synthetic children fill, caps verified, negatives fail close
     const constants = [_][4]u32{ .{ 1, 2, 3, 4 }, .{ 5, 6, 7, 8 }, .{ 9, 0, 0, 0 }, .{ 0, 0, 0, 0 }, .{ 1, 1, 1, 1 } };
     const prog = try buildFold(a, &classes, 3, vars, &constants, null);
     defer prog.deinit(a);
-    try t.expectEqual(@as(u32, 4), prog.header(P.n_caps)); // 2 children x 2 trees of height 4 > cap_log 3
+    // 2 children x (2 trace trees of height 4 > cap_log 3 + 3 FRI layers of log <= 3, full-path root jobs)
+    try t.expectEqual(@as(u32, 10), prog.header(P.n_caps));
     const scratch = try a.alloc(u32, prog.header(P.scratch_words) + 8);
     defer a.free(scratch);
     const out = try a.alloc(u32, 5 * vars.len);
@@ -1034,13 +1077,13 @@ test "seed program: synthetic children fill, caps verified, negatives fail close
     const bad = try a.dupe(u32, c1.region);
     defer a.free(bad);
     const L1 = try Layout.of(c1.shape);
-    bad[64 + L1.trees[0].paths] ^= 1;
+    bad[128 + L1.trees[0].paths] ^= 1;
     const regions_bad = [_][]const u32{ c0.region, bad };
     const v = fillHost(prog, &regions_bad, scratch, out);
     try t.expect(v == (@as(u32, 0x0305) << 16 | @intFromEnum(SeedDetail.cap_mismatch)) or v == (@as(u32, 0x0305) << 16 | @intFromEnum(SeedDetail.cap_root)));
     // A noncanonical queried value.
     @memcpy(bad, c1.region);
-    bad[64 + L1.trees[1].values] = modulus;
+    bad[128 + L1.trees[1].values] = modulus;
     try t.expectEqual((@as(u32, 0x0305) << 16 | @intFromEnum(SeedDetail.noncanonical)), fillHost(prog, &regions_bad, scratch, out));
     // An empty child region (encoder never ran / overrun refused).
     @memcpy(bad, c1.region);
@@ -1048,7 +1091,7 @@ test "seed program: synthetic children fill, caps verified, negatives fail close
     try t.expectEqual((@as(u32, 0x0305) << 16 | @intFromEnum(SeedDetail.region)), fillHost(prog, &regions_bad, scratch, out));
     // A bad image header.
     @memcpy(bad, c1.region);
-    bad[64] = 0;
+    bad[128] = 0;
     try t.expectEqual((@as(u32, 0x0305) << 16 | @intFromEnum(SeedDetail.image_header)), fillHost(prog, &regions_bad, scratch, out));
     // Wrong child count or a corrupted program.
     try t.expectEqual((@as(u32, 0x0305) << 16 | @intFromEnum(SeedDetail.program)), fillHost(prog, regions[0..1], scratch, out));

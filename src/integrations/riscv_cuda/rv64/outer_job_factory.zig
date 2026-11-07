@@ -557,7 +557,10 @@ fn gnFaultOrdinal() !?u32 {
 }
 const GnCheck = struct {
     pub const field_index: u32 = 0x474e_4f44; // "GNOD"
+    /// Fold children: om31 node proofs under the diet-wire profile (fold
+    /// Merkle cap 2^3); leaf children: native proofs with full paths.
     const cap_log: u32 = 3;
+    const leaf_cap_log: u32 = 0;
     const fold_domain: u32 = 0x4f464c31;
     const wire_words: u32 = 160_000; // >= 1 + max om31 wire words (632,624 B -> 158,157)
     outer: *Job.OuterNodeJob,
@@ -630,14 +633,14 @@ const GnCheck = struct {
         if (input.is_leaf) {
             const f = found.items[0];
             const s0 = f.at;
-            const proof_len = try Seed.leafTapeLength(a, classes[0], cap_log);
+            const proof_len = try Seed.leafTapeLength(a, classes[0], leaf_cap_log);
             if (s0 + proof_len > n) return error.GnNodeLeafTapeTooLong;
             const tail: u32 = @intCast(n - s0 - proof_len);
             const outputs_at: u32 = @intCast(wire_words + f.entry.image.len + 4 * tail);
             const constants = try a.alloc([4]u32, s0);
             defer a.free(constants);
             for (constants, 0..) |*c, j| c.* = seeds[5 * j + 1 ..][0..4].*;
-            program = try Seed.buildLeaf(a, classes[0], cap_log, tail, vars, constants, .{ .kind = 2, .outputs_at = outputs_at, .domain = 0, .version_word = 0, .n_outputs = @intCast(n_out / 4), .prefix = prefix, .identity = identity, .fixed_root = fixed_root, .profile = @splat(0) });
+            program = try Seed.buildLeaf(a, classes[0], leaf_cap_log, tail, vars, constants, .{ .kind = 2, .outputs_at = outputs_at, .domain = 0, .version_word = 0, .n_outputs = @intCast(n_out / 4), .prefix = prefix, .identity = identity, .fixed_root = fixed_root, .profile = @splat(0) });
             errdefer program.deinit(a);
             // [len][wire placeholder][image][statement tail][outputs]: the
             // native producer's words (from the host values, erased below).

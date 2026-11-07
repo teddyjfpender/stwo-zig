@@ -620,7 +620,7 @@ test "gn-node: node job reads children from the request slab (own + peer GPU), f
     const a = t.allocator;
     fake.reset();
     // Two leaf children: leaf 0 on GPU 0, leaf 1 on GPU 1; the fold on GPU 0.
-    const wire_words: u32 = 64;
+    const wire_words: u32 = 128;
     var c0: Seed.Synthetic = undefined;
     try c0.init(a, 11, wire_words);
     defer c0.deinit(a);

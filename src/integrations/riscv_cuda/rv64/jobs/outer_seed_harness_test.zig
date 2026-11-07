@@ -205,6 +205,17 @@ fn runDevice(gpu: *Gpu, a: std.mem.Allocator, prog: S.Program, regions: []const 
     return .{ .seed_status = status[0], .bind_status = if (outputs_out != null) status[1] else 0, .gpu_us = us, .host_enqueue_ns = host_ns, .launches = @as(u32, 3) + @intFromBool(prog.header(S.P.n_caps) != 0) };
 }
 
+/// The op that wrote seed record `seed` (debug print on a mismatch).
+fn explain(prog: S.Program, seed: usize, got: []const u32, want: []const u32) void {
+    for (prog.ops(), 0..) |o, i| {
+        const n = @as(usize, o.count) * o.rows * S.Op.seedsPerUnit(@enumFromInt(o.kind));
+        if (seed >= o.dst and seed < o.dst + n) {
+            std.debug.print("GN_NODE_DIFF seed={d} op={d} kind={d} child={d} area={d} offset={d} count={d} stride={d} rows={d} row_stride={d} dst={d} got={any} want={any}\n", .{ seed, i, o.kind, o.child, o.area, o.offset, o.count, o.stride, o.rows, o.row_stride, o.dst, got[5 * seed ..][0..5], want[5 * seed ..][0..5] });
+            return;
+        }
+    }
+    std.debug.print("GN_NODE_DIFF seed={d} (constants) got={any} want={any}\n", .{ seed, got[5 * seed ..][0..5], want[5 * seed ..][0..5] });
+}
 fn firstDiff(x: []const u32, y: []const u32) ?usize {
     for (x, y, 0..) |p, q, i| if (p != q) return i;
     return if (x.len == y.len) null else @min(x.len, y.len);
@@ -217,7 +228,10 @@ test "gn-node harness: device seed fill, statement and checkpoint on recorded re
     defer l.deinit();
     var gpu_opt = try Gpu.open();
     defer if (gpu_opt) |*g| g.close();
+    // Fold children are om31 node proofs (diet-wire profile: cap 2^3);
+    // leaf children are native proofs, verified with full paths.
     const cap_log: u32 = 3;
+    const leaf_cap_log: u32 = 0;
     const wire_words = wireWords(&l);
     var folds: u32 = 0;
     var folds_ok: u32 = 0;
@@ -310,6 +324,7 @@ test "gn-node harness: device seed fill, statement and checkpoint on recorded re
                 dev_text = try std.fmt.bufPrint(&dev_line, "device_seed_status=0x{x} device_bind_status=0x{x} device_seeds_identical={} device_outputs_identical={} device_checkpoint_identical={} gpu_us={d} host_enqueue_ns={d} launches={d}", .{ d.seed_status, d.bind_status, d_seeds_eq, d_out_eq, d_cp_eq, d.gpu_us, d.host_enqueue_ns, d.launches });
             }
             const first = firstDiff(out, seeds);
+            if (first) |fd| explain(prog, fd / 5, out, seeds);
             std.debug.print("GN_NODE_HARNESS ordinal={d} kind=fold children={d} seeds={d} tape={d} constants={d} caps={d} ops={d} program_words={d} warm_ns={d} mirror_ns={d} seed_status=0x{x} seeds_identical={} first_diff={?d} bind_status=0x{x} outputs_identical={} checkpoint_identical={} {s}\n", .{ ord, kids.len, n, tape, n - tape, prog.header(S.P.n_caps), prog.header(S.P.n_ops), prog.words.len, warm_ns, mirror_ns, v, seeds_eq, if (first) |f| f / 5 else null, bv, out_eq, cp_eq, dev_text });
             if (seeds_eq and bv == 0 and out_eq and cp_eq and dev_ok) folds_ok += 1 else failures += 1;
             // Negative arms (first fold only): one corruption per check.
@@ -335,7 +350,7 @@ test "gn-node harness: device seed fill, statement and checkpoint on recorded re
                 const s0 = start orelse continue;
                 found = true;
                 const child = S.ChildClass{ .shape = p.shape, .wire_words = 64, .n_outputs = 0, .identity = @splat(0), .fixed_root = @splat(0) };
-                const proof_len = try S.leafTapeLength(a, child, cap_log);
+                const proof_len = try S.leafTapeLength(a, child, leaf_cap_log);
                 const tail: u32 = @intCast(n - s0 - proof_len);
                 const constants = try a.alloc([4]u32, s0);
                 defer a.free(constants);
@@ -343,7 +358,7 @@ test "gn-node harness: device seed fill, statement and checkpoint on recorded re
                 const n_out = r.expected.len;
                 const outputs_at: u32 = @intCast(64 + p.image.len + 4 * tail);
                 const stmt = S.Statement{ .kind = 2, .outputs_at = outputs_at, .domain = 0, .version_word = 0, .n_outputs = @intCast(n_out / 4), .prefix = r.prefix[0..8].*, .identity = r.identity, .fixed_root = r.fixed_root, .profile = @splat(0) };
-                const prog = try S.buildLeaf(a, child, cap_log, tail, vars, constants, stmt);
+                const prog = try S.buildLeaf(a, child, leaf_cap_log, tail, vars, constants, stmt);
                 defer prog.deinit(a);
                 // Native child region: [len][wire placeholder][image][tail seeds][outputs]
                 // (tail + outputs: the native producer's words; copied here).
@@ -382,6 +397,7 @@ test "gn-node harness: device seed fill, statement and checkpoint on recorded re
                     dev_text = try std.fmt.bufPrint(&dev_line, "device_seed_status=0x{x} device_seeds_identical={} device_checkpoint_identical={} gpu_us={d} host_enqueue_ns={d} launches={d}", .{ d.seed_status, d_eq, d_cp, d.gpu_us, d.host_enqueue_ns, d.launches });
                 }
                 const first = firstDiff(out, seeds);
+                if (first) |fd| explain(prog, fd / 5, out, seeds);
                 std.debug.print("GN_NODE_HARNESS ordinal={d} kind=leaf seeds={d} constants={d} proof_seeds={d} tail_seeds={d} caps={d} ops={d} mirror_ns={d} seed_status=0x{x} seeds_identical={} first_diff={?d} checkpoint_identical={} {s}\n", .{ ord, n, s0, proof_len, tail, prog.header(S.P.n_caps), prog.header(S.P.n_ops), mirror_ns, v, eq, if (first) |f| f / 5 else null, cp_eq, dev_text });
                 dev_ok = dev_ok and cp_eq;
                 if (eq and dev_ok) leaves_ok += 1 else failures += 1;

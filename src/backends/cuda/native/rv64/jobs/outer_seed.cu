@@ -205,6 +205,15 @@ __global__ void seed_caps(StwoRv64OuterSeedIo io) {
       else node_hash(node, path + l * 8, next);
       for (int i = 0; i < 8; ++i) node[i] = next[i];
     }
+    if (c.cl == 0) {  // full path: the walk must end at the committed root
+      for (int i = 0; i < 8; ++i)
+        if (node[i] != img[c.root + i]) {
+          note(rank, sCapRoot);
+          break;
+        }
+      at_of[qi] = 0;
+      continue;
+    }
     const uint32_t at = pos >> walk;
     if (at >= n_cap) {
       note(rank, sQueryRange);
@@ -216,7 +225,7 @@ __global__ void seed_caps(StwoRv64OuterSeedIo io) {
     for (int i = 0; i < 8; ++i) nodes[qi][i] = node[i];
   }
   __syncthreads();
-  if (threadIdx.x != 0 || bad) return;
+  if (threadIdx.x != 0 || bad || c.cl == 0) return;
   // Assemble in query order (the host's first-writer wins, later must agree).
   uint32_t *cap = io.scratch + c.scratch;
   uint64_t known = 0;
