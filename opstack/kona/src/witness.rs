@@ -25,6 +25,8 @@ pub enum Error {
     Metadata,
     Rlp,
 }
+impl core::error::Error for Error {}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "OP witness {self:?}")

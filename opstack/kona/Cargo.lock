@@ -350,9 +350,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-sol-macro"
-version = "1.7.3"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60dd79f578c3912f1fc2a150dbeb8110b8cfb976c60f98ebf6de9d5da5965a2b"
+checksum = "b5655c38d5f84955bf727b2eeb62fddd91ebb98fd1d7ae6eb77f73ea88f9b9cf"
 dependencies = [
  "alloy-sol-macro-expander",
  "alloy-sol-macro-input",
@@ -364,9 +364,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-sol-macro-expander"
-version = "1.7.3"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9edb8520f2f94275e1caa73c85207dcc78ec402a9a4c429240f9a0783a8f16c0"
+checksum = "6277c780e07b76951e09a59788dde230d1582612324177d11a43a61e21a6bb83"
 dependencies = [
  "alloy-sol-macro-input",
  "const-hex",
@@ -382,9 +382,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-sol-macro-input"
-version = "1.7.3"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66af2d9344882172993be5f5cbfd349fdfa52cb548f7af8715b446fb35ef6001"
+checksum = "9762b2ad3e5a0c09886de54fe549ab0056681df843cb082e2df7e1c0eb270d30"
 dependencies = [
  "const-hex",
  "dunce",
@@ -1386,6 +1386,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "kona-derive"
+version = "0.4.5"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=a271fd6b3feb76e49f3453e5a27be4b33a3c7211#a271fd6b3feb76e49f3453e5a27be4b33a3c7211"
+dependencies = [
+ "alloy-consensus",
+ "alloy-eips",
+ "alloy-primitives",
+ "alloy-rlp",
+ "alloy-rpc-types-engine",
+ "async-trait",
+ "kona-genesis",
+ "kona-hardforks",
+ "kona-interop",
+ "kona-macros",
+ "kona-protocol",
+ "op-alloy-consensus",
+ "op-alloy-rpc-types-engine",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "kona-executor"
 version = "0.4.0"
 source = "git+https://github.com/ethereum-optimism/optimism?rev=a271fd6b3feb76e49f3453e5a27be4b33a3c7211#a271fd6b3feb76e49f3453e5a27be4b33a3c7211"
@@ -1441,6 +1463,30 @@ dependencies = [
  "serde",
  "serde_json",
 ]
+
+[[package]]
+name = "kona-interop"
+version = "0.4.5"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=a271fd6b3feb76e49f3453e5a27be4b33a3c7211#a271fd6b3feb76e49f3453e5a27be4b33a3c7211"
+dependencies = [
+ "alloy-consensus",
+ "alloy-eips",
+ "alloy-primitives",
+ "alloy-rlp",
+ "alloy-sol-types",
+ "async-trait",
+ "derive_more",
+ "kona-genesis",
+ "kona-registry",
+ "op-alloy-consensus",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "kona-macros"
+version = "0.1.2"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=a271fd6b3feb76e49f3453e5a27be4b33a3c7211#a271fd6b3feb76e49f3453e5a27be4b33a3c7211"
 
 [[package]]
 name = "kona-mpt"
@@ -2536,29 +2582,34 @@ dependencies = [
 name = "stwo-kona-execution"
 version = "0.1.0"
 dependencies = [
- "ark-bn254",
- "ark-ec",
- "ark-ff",
  "alloy-consensus",
+ "alloy-eips",
  "alloy-op-evm",
  "alloy-primitives",
  "alloy-rlp",
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "async-trait",
  "ecdsa",
  "k256",
  "keccak",
+ "kona-derive",
  "kona-executor",
  "kona-genesis",
  "kona-mpt",
+ "kona-protocol",
  "kona-registry",
  "op-alloy-rpc-types-engine",
  "postcard",
  "revm-precompile",
  "serde",
  "serde_json",
- "spin",
  "sha2 0.10.9",
  "sha2 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha3",
+ "spin",
+ "thiserror",
 ]
 
 [[package]]

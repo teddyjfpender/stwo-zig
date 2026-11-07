@@ -90,3 +90,21 @@ failed extension splits preserve the original node. Allocator free-list metadata
 uses volatile stores because physical minimum-size slots can exceed a caller's
 logical Rust allocation size under LTO. These are separate ownership contracts,
 covered by targeted tests and complete execution replay.
+
+## Anchored L1 provider
+
+`stwo-kona-execution`'s opt-in `derivation` feature implements Kona's
+`ChainProvider` over the canonical preimage table. Initialize it with the L1
+number and hash from the checkpoint statement. Number lookups walk a contiguous
+parent chain from that head. Hash lookups must match the corresponding ancestor,
+even when a competing header is present in the witness. The provider opens the
+canonical transaction and receipt tries from the authenticated header and decodes
+all EIP-2718 entries in order. Missing or malformed data is a critical error.
+
+Run `cargo test --locked --manifest-path opstack/kona/Cargo.toml --features
+host,derivation` for the provider and existing execution tests. The provider tests
+cover fork substitution, a corrupt trie node and mismatched anchor height.
+The integration still needs the L2 safe-head provider, blob authentication,
+pipeline initialization from authenticated state, and execution and output-root
+binding in the guest. The execution benchmark entry point retains its current
+statement and fixtures.

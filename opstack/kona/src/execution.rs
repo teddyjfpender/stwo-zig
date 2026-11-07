@@ -33,7 +33,7 @@ pub struct Fixture {
 }
 #[derive(Debug)]
 struct Provider<'w, 'a>(&'w Witness<'a>);
-fn decode_exact<T: Decodable>(bytes: &[u8]) -> Result<T, Error> {
+pub(crate) fn decode_exact<T: Decodable>(bytes: &[u8]) -> Result<T, Error> {
     let mut remaining = bytes;
     let value = T::decode(&mut remaining).map_err(|_| Error::Rlp)?;
     if !remaining.is_empty() {

@@ -5,6 +5,8 @@ extern crate alloc;
 pub(crate) use sha2 as statement_sha2;
 #[cfg(feature = "sha-service")]
 pub(crate) use sha2_rv64 as statement_sha2;
+#[cfg(feature = "derivation")]
+pub mod anchored_l1;
 pub mod execution;
 pub mod metadata;
 #[cfg(feature = "precompile-services")]
