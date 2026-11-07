@@ -314,7 +314,10 @@ pub const Binding = struct {
     fn nShape(raw: *anyopaque, a: std.mem.Allocator, wb: G.WarmBlock) anyerror![]u64 {
         const self = of(raw);
         const n = self.inner_native;
-        if (self.native.shape_hooks != null) return n.vtable.shape.?(n.ctx, a, wb);
+        if (self.native.shape_hooks != null) return n.vtable.shape.?(n.ctx, a, wb) catch |err| {
+            std.debug.print("GPU_M8_GN_BIND native_shape_failed block={d} error={s}\n", .{ wb.block, @errorName(err) });
+            return err;
+        };
         return self.fallback.native_shape.?(self.fallback.ctx, a, wb);
     }
     fn nPack(raw: *anyopaque, ctx: *const G.RequestContext, cs: G.CapturedSegment, w: G.ChunkWriter) anyerror!u64 {

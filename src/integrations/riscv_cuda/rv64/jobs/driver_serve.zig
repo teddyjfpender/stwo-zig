@@ -134,13 +134,19 @@ pub const Service = struct {
             defer a.free(keys);
             // gn-shape: the block-qualified class (rows alone are ambiguous).
             for (rows, keys, 0..) |r, *k, s| k.* = if (native.vtable.class_of_block) |cob| try cob(native.ctx, block, @intCast(s), r) else try native.vtable.class_of(native.ctx, @intCast(s), r);
-            const rs = try rshape_hook(recursion.ctx, wb, keys);
+            const rs = rshape_hook(recursion.ctx, wb, keys) catch |err| {
+                std.debug.print("GPU_RESIDENT_SERVICE install_stage=recursion_shape block={d} error={s}\n", .{ block, @errorName(err) });
+                return err;
+            };
             var topo = try D.Topology.carry(a, @intCast(rows.len), rs.truths, rs.fold_arity);
             errdefer topo.deinit();
             shape.* = .{ .block = block, .rows = rows, .truths = rs.truths, .fold_arity = rs.fold_arity, .topology = topo };
             made += 1;
         }
-        const driver = try R.Driver.install(a, ops, peer, workers, native, recursion, config);
+        const driver = R.Driver.install(a, ops, peer, workers, native, recursion, config) catch |err| {
+            std.debug.print("GPU_RESIDENT_SERVICE install_stage=driver error={s}\n", .{@errorName(err)});
+            return err;
+        };
         errdefer driver.deinit();
         const ring: ?*C.Ring = if (ring_config.buffers != 0) try C.Ring.init(a, &ops.wait, ring_config.buffers, ring_config.words) else null;
         errdefer if (ring) |r| r.deinit();

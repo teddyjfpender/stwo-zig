@@ -128,6 +128,9 @@ pub const Source = struct {
             defer a.free(text);
             var config = try std.json.parseFromSlice(Request.Config, a, text, .{});
             errdefer config.deinit();
+            // The capture writes its artifacts under output_directory (the
+            // legacy resident path creates it before its first request).
+            if (config.value.output_directory.len != 0) try std.fs.cwd().makePath(config.value.output_directory);
             var image = try Image.Owner.init(a, config.value);
             errdefer image.deinit();
             var program = try Program.initCaptureWithAuthorityAndMetadataCache(a, &image.authority, &self.metadata);
@@ -207,7 +210,11 @@ pub const Source = struct {
         b.warm = null;
         var binding = try engine.work_pool.ScopedPoolBinding.init(self.pools[2]);
         defer binding.deinit();
-        b.warm = try self.captureBlock(b, null);
+        b.warm = self.captureBlock(b, null) catch |err| {
+            std.debug.print("GPU_M8_GN_BIND warm_capture_failed block={d} error={s}\n", .{ number, @errorName(err) });
+            return err;
+        };
+        std.debug.print("GPU_M8_GN_BIND warm_capture block={d} segments={d}\n", .{ number, b.warm.?.native.items.len });
         return endOf(b, &b.warm.?);
     }
     fn releaseWarm(raw: *anyopaque, number: u64) void {
