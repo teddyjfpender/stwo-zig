@@ -53,6 +53,25 @@ class Census(unittest.TestCase):
         self.assertLess(cells(f("batch4_cap3")), cells(f("batch2_cap3")))
         self.assertLess(cells(f("batch4_combo_ll4")), cells(f("batch4_cap3")))
 
+    def test_batch_opens_one_fixed_tree_per_circuit(self):
+        # A child's FIXED root is admitted per circuit (T_rec) and bound into the fold digest, so a batch proof keeps
+        # one FIXED tree per circuit; the shared-tree-0 geometry is a reference row only and is cheaper.
+        cells = lambda v: RA.BY[("fold4_log23", v)]["total"][5]
+        self.assertGreater(cells("batch2_cap3"), cells("batch2_sharedfixed_cap3"))
+        self.assertGreater(cells("batch2_combo_ll4"), cells("batch2_combo_ll4_sharedfixed"))
+        self.assertFalse(RA.BY[("fold4_log23", "batch2_cap3")]["batch_shared_fixed"])
+        # B FIXED trees + combined main/interaction + composition
+        r = RA.BY[("fold4_log23", "batch4_cap3")]
+        one = RA.BY[("fold4_log23", "prod_b2_q108_p20_f4_cap3")]
+        self.assertEqual(r["hash_calls"]["trace_leaf"], (4 + 3) * one["queries"])
+
+    def test_plan_rec_arch_table_is_the_receipt(self):
+        trees = json.load(open(os.path.join(ROOT, "vectors/reports/rv64-m9-prep/m9-recursion-arch/model.json")))["trees"]
+        for lk, t in PM.REC_ARCH.items():
+            self.assertEqual(t["arity"], trees[t["key"]]["arity"])
+            self.assertEqual(t["job_fits_post_p1"], trees[t["key"]]["max_job_post_p1_ok"])
+        self.assertFalse(PM.REC_ARCH[("RECBATCH", "fan")]["job_fits_post_p1"])
+
 
 class Tree(unittest.TestCase):
     def test_production_tree_matches_fanin_model(self):

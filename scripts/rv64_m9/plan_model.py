@@ -80,14 +80,28 @@ FIRST_PASS = {  # block: (seeded_s, curve_s, curve_calls)
 # --- M9 recursion-arch (codex/rv64-m9-recursion-arch, vectors/reports/rv64-m9-prep/m9-recursion-arch/{census.jsonl,model.json}):
 #     padded recursion-cell factor vs the same tree at the production outer profile, per basket block [D on M]:
 #     (factor with the log-24 composition tax [E], factor without it, folds, tree depth). Arity re-optimised. ---
-REC_ARCH = {
-    ('RECDIET', 'pm8'): dict(arity=5, key='post_m8/env23/diet', blocks={24626900: (0.909, 0.909, 5, 2), 24628590: (0.907, 0.907, 14, 3), 24628595: (0.906, 0.906, 17, 3), 24628607: (0.919, 0.919, 4, 2), 24628608: (0.93, 0.93, 5, 2), 24628611: (0.915, 0.915, 17, 3), 24647140: (0.921, 0.921, 4, 2), 24697070: (0.9, 0.9, 8, 3), 24697073: (0.885, 0.885, 6, 2), 25229951: (0.9, 0.9, 14, 3), 25229955: (0.902, 0.902, 12, 3), 25229957: (0.919, 0.919, 4, 2), 26235156: (0.854, 0.854, 3, 2), 26235159: (0.907, 0.907, 19, 3), 26235168: (0.901, 0.901, 12, 3)}),
-    ('RECDIET', 'fan'): dict(arity=6, key='fanin/blake23/diet', blocks={24626900: (0.922, 0.909, 3, 2), 24628590: (0.929, 0.918, 6, 2), 24628595: (0.936, 0.923, 7, 2), 24628607: (0.931, 0.922, 3, 2), 24628608: (0.9, 0.891, 3, 2), 24628611: (0.938, 0.925, 7, 2), 24647140: (0.927, 0.917, 3, 2), 24697070: (0.946, 0.937, 4, 2), 24697073: (0.941, 0.931, 4, 2), 25229951: (0.931, 0.92, 6, 2), 25229955: (0.93, 0.918, 5, 2), 25229957: (0.931, 0.922, 3, 2), 26235156: (0.9, 0.887, 2, 2), 26235159: (0.929, 0.915, 7, 2), 26235168: (0.93, 0.918, 5, 2)}),
-    ('RECBATCH', 'pm8'): dict(arity=6, key='post_m8/env23/batch2_diet/all', blocks={24626900: (0.755, 0.755, 4, 2), 24628590: (0.776, 0.776, 12, 3), 24628595: (0.772, 0.772, 14, 3), 24628607: (0.788, 0.788, 4, 2), 24628608: (0.781, 0.781, 4, 2), 24628611: (0.775, 0.775, 14, 3), 24647140: (0.788, 0.788, 3, 2), 24697070: (0.758, 0.758, 6, 2), 24697073: (0.753, 0.753, 5, 2), 25229951: (0.768, 0.768, 12, 3), 25229955: (0.768, 0.768, 11, 3), 25229957: (0.788, 0.788, 4, 2), 26235156: (0.742, 0.742, 3, 2), 26235159: (0.765, 0.765, 15, 3), 26235168: (0.767, 0.767, 11, 3)}),
-    ('RECBATCH', 'fan'): dict(arity=6, key='fanin/env23/batch2_diet/all', blocks={24626900: (0.822, 0.816, 3, 2), 24628590: (0.847, 0.84, 6, 2), 24628595: (0.853, 0.847, 7, 2), 24628607: (0.842, 0.838, 3, 2), 24628608: (0.804, 0.799, 3, 2), 24628611: (0.856, 0.849, 7, 2), 24647140: (0.832, 0.828, 3, 2), 24697070: (0.857, 0.852, 4, 2), 24697073: (0.858, 0.853, 4, 2), 25229951: (0.853, 0.847, 6, 2), 25229955: (0.844, 0.838, 5, 2), 25229957: (0.842, 0.838, 3, 2), 26235156: (0.826, 0.821, 2, 2), 26235159: (0.849, 0.842, 7, 2), 26235168: (0.843, 0.837, 5, 2)}),
-    ('RECNB3', 'pm8'): dict(arity=5, key='post_m8/env23/diet+native_blake3', blocks={24626900: (0.841, 0.841, 5, 2), 24628590: (0.851, 0.851, 14, 3), 24628595: (0.839, 0.839, 17, 3), 24628607: (0.822, 0.822, 4, 2), 24628608: (0.852, 0.852, 5, 2), 24628611: (0.855, 0.855, 17, 3), 24647140: (0.814, 0.814, 4, 2), 24697070: (0.8, 0.8, 8, 3), 24697073: (0.808, 0.808, 6, 2), 25229951: (0.846, 0.846, 14, 3), 25229955: (0.832, 0.832, 12, 3), 25229957: (0.822, 0.822, 4, 2), 26235156: (0.736, 0.736, 3, 2), 26235159: (0.842, 0.842, 19, 3), 26235168: (0.822, 0.822, 12, 3)}),
-    ('RECNB3', 'fan'): dict(arity=6, key='fanin/blake23/diet+native_blake3', blocks={24626900: (0.864, 0.855, 3, 2), 24628590: (0.885, 0.877, 6, 2), 24628595: (0.89, 0.884, 7, 2), 24628607: (0.886, 0.883, 3, 2), 24628608: (0.848, 0.837, 3, 2), 24628611: (0.901, 0.895, 7, 2), 24647140: (0.879, 0.876, 3, 2), 24697070: (0.855, 0.854, 4, 2), 24697073: (0.876, 0.871, 4, 2), 25229951: (0.894, 0.884, 6, 2), 25229955: (0.89, 0.885, 6, 2), 25229957: (0.886, 0.883, 3, 2), 26235156: (0.857, 0.853, 3, 2), 26235159: (0.898, 0.892, 9, 3), 26235168: (0.877, 0.872, 6, 2)}),
+REC_ARCH_JSON = os.path.join(ROOT, 'vectors/reports/rv64-m9-prep/m9-recursion-arch/model.json')
+# lever x tree -> model.json tree key (post-M8 tree: env23 envelope; fan-in tree: blake23, qm31 may reach 2^24)
+REC_ARCH_KEYS = {
+    ('RECDIET', 'pm8'): 'post_m8/env23/diet', ('RECDIET', 'fan'): 'fanin/blake23/diet',
+    ('RECBATCH', 'pm8'): 'post_m8/env23/batch2_diet/all', ('RECBATCH', 'fan'): 'fanin/blake23/batch2_diet/all',
+    ('RECNB3', 'pm8'): 'post_m8/env23/diet+native_blake3', ('RECNB3', 'fan'): 'fanin/blake23/diet+native_blake3',
 }
+
+
+def rec_arch_table(path=REC_ARCH_JSON):
+    """Read the per-block factors from model.json (no hand-copied table, so the plan cannot drift from the receipt)."""
+    trees = json.load(open(path))['trees']
+    out = {}
+    for lk, key in REC_ARCH_KEYS.items():
+        t = trees[key]
+        out[lk] = dict(arity=t['arity'], key=key, job_fits_post_p1=t['max_job_post_p1_ok'],
+                       blocks={int(b): (round(t['factor_taxed'][b], 3), round(t['factor'][b], 3), v['folds'], v['depth'])
+                               for b, v in t['blocks'].items()})
+    return out
+
+
+REC_ARCH = rec_arch_table()
 
 
 def _fp_fixed(v):  # first pass with the curve arithmetic fixed (Montgomery limbs): 1 us per curve call [E]
@@ -405,20 +419,27 @@ def run(gas_pct, out=None, gas_list=None):
     # M9 recursion-arch variants on top of the best 2-GPU order (#1-#9) and on 4 GPUs (#1-#10)
     all2 = tuple(l for l in LEVER_ORDER if l != 'GPU4')
     res['rec_arch'] = {}
-    for lv in ('none',) + REC_LEVERS:
-        add = () if lv == 'none' else (lv,)
+    # RECBATCH jobs (a batch job holds both circuits: 4.21 G cells on the fan-in tree, > the 2.2 G post-P1 cap) cannot
+    # share a 32 GB GPU, so OCC (two ~13 GB jobs per GPU) is off under it unless a streaming batch prover keeps a batch
+    # job <= 13 GB (unprototyped). 'RECBATCH' below is that optimistic case; 'RECBATCH-OCC' is the memory-feasible one.
+    for lv in ('none',) + REC_LEVERS + ('RECBATCH-OCC',):
+        add = () if lv == 'none' else (('RECBATCH',) if lv == 'RECBATCH-OCC' else (lv,))
+        drop = ('OCC',) if lv == 'RECBATCH-OCC' else ()
+        on2 = tuple(l for l in all2 if l not in drop) + add
+        on4 = tuple(l for l in LEVER_ORDER if l not in drop) + add
         row = {}
         for name in list(cases) + ['26235168', '26235159', '24628607']:
             mi, sh = blocks[name]
-            row[name] = {n: dict(wall_2gpu=model(mi, sh, P[n], on=all2 + add)['wall_s'], wall_4gpu=model(mi, sh, P[n], on=tuple(LEVER_ORDER) + add)['wall_s'],
-                                 kernel_gpu_s=model(mi, sh, P[n], on=all2 + add)['kernel_gpu_s'], recursion_gpu_s=model(mi, sh, P[n], on=all2 + add)['recursion_gpu_s'],
+            row[name] = {n: dict(wall_2gpu=model(mi, sh, P[n], on=on2)['wall_s'], wall_4gpu=model(mi, sh, P[n], on=on4)['wall_s'],
+                                 kernel_gpu_s=model(mi, sh, P[n], on=on2)['kernel_gpu_s'], recursion_gpu_s=model(mi, sh, P[n], on=on2)['recursion_gpu_s'],
                                  baseline=model(mi, sh, P[n])['wall_s']) for n in P}
-        row['basket'] = {n: dict(wall_2gpu=total(all2 + add, n), wall_4gpu=total(tuple(LEVER_ORDER) + add, n), baseline=tot['baseline'][n]) for n in P}
+        row['basket'] = {n: dict(wall_2gpu=total(on2, n), wall_4gpu=total(on4, n), baseline=tot['baseline'][n]) for n in P}
         res['rec_arch'][lv] = row
     # minimal 2-GPU lever sets reaching >=60% cut vs post-M8 baseline on p50, p95 and the basket (central)
     import itertools
     cand = [l for l in LEVER_ORDER if l not in ('GPU4', 'INPLACE', 'IO')] + ['P2', 'D2REV', 'OGKR', 'OGKR_ENG', 'REPLAY'] + list(REC_LEVERS)
-    excl = ({'OGKR', 'OGKR_ENG'}, {'GPUCAP', 'REPLAY'}, {'RECDIET', 'RECBATCH'}, {'RECDIET', 'RECNB3'}, {'RECBATCH', 'RECNB3'})  # variants of one lever
+    excl = ({'OGKR', 'OGKR_ENG'}, {'GPUCAP', 'REPLAY'}, {'RECDIET', 'RECBATCH'}, {'RECDIET', 'RECNB3'}, {'RECBATCH', 'RECNB3'},
+            {'RECBATCH', 'OCC'})  # variants of one lever; a RECBATCH job (4.2 G cells) cannot share a GPU (OCC)
     base_on = ('IO', 'INPLACE')  # CANON excluded: as built it is a bench loss and keeps fold misses (canon-leaf review) [D/E]
     res['best_2gpu'] = {}
     for n in P:
