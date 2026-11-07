@@ -732,3 +732,95 @@ test "native OODS: an honest composition sample set is accepted, one flipped sam
     samples[8 * 3] ^= 1;
     try std.testing.expectEqual(G.Verdict.reject(.oods_constraint, @intFromEnum(Detail.mismatch)), (try hostCheck(a, d, &samples, &.{}, &words8(alpha), &pw)).word);
 }
+
+test "native OODS fromPlan reads parameters / hc rows at the composition plan's table offsets (== build on a compact table)" {
+    const a = std.testing.allocator;
+    var prng = std.Random.DefaultPrng.init(0x0d5);
+    const rng = prng.random();
+    // Role A: no binding; r = (MAIN0 * FIXED0 + p0) * p1, second root MAIN0 * FIXED0.
+    var nodes_a = [_]ir.Node{
+        .{ .op = .input, .value = 0 },
+        .{ .op = .input, .value = 1 },
+        .{ .op = .mul, .lhs = 0, .rhs = 1 },
+        .{ .op = .parameter, .value = 0 },
+        .{ .op = .add, .lhs = 2, .rhs = 3 },
+        .{ .op = .parameter, .value = 1 },
+        .{ .op = .mul, .lhs = 4, .rhs = 5 },
+    };
+    var inputs_a = [_]ir.Input{ .{ .tree = 1, .column = 0 }, .{ .tree = 0, .column = 0 } };
+    var params_a = [_]OM{ OM.one(), OM.one() };
+    var roots_a = [_]u32{ 6, 2 };
+    var prog_a = Program{ .a = a, .authority = @splat(4), .nodes = &nodes_a, .inputs = &inputs_a, .constants = &.{}, .parameters = &params_a, .roots = &roots_a, .identity = undefined };
+    prog_a.identity = prog_a.identityDigest();
+    // Role B: local binding; r = MAIN1 * carry + is_first + p0 (reads hc rows).
+    var nodes_b = [_]ir.Node{
+        .{ .op = .input, .value = 0 },
+        .{ .op = .input, .value = 1 },
+        .{ .op = .input, .value = 2 },
+        .{ .op = .mul, .lhs = 0, .rhs = 1 },
+        .{ .op = .add, .lhs = 3, .rhs = 2 },
+        .{ .op = .parameter, .value = 0 },
+        .{ .op = .add, .lhs = 4, .rhs = 5 },
+    };
+    var inputs_b = [_]ir.Input{ .{ .tree = 1, .column = 0 }, .{ .tree = 2, .column = 2 }, .{ .tree = 2, .column = 0 } };
+    var params_b = [_]OM{OM.one()};
+    var roots_b = [_]u32{6};
+    var prog_b = Program{ .a = a, .authority = @splat(5), .nodes = &nodes_b, .inputs = &inputs_b, .constants = &.{}, .parameters = &params_b, .roots = &roots_b, .identity = undefined };
+    prog_b.identity = prog_b.identityDigest();
+    var pa: [16]u32 = undefined;
+    var pb: [8]u32 = undefined;
+    var hc: [16 * 4]u32 = undefined;
+    for ([_][]u32{ &pa, &pb, &hc }) |buf| for (0..buf.len / 8) |i| {
+        buf[8 * i ..][0..8].* = words8(testFelt(rng));
+    };
+    const masks_a = [_]u32{ 0, 0 };
+    const masks_b = [_]u32{ 0, 2, 0 };
+    const specs = [_]NComp.RoleSpec{
+        .{ .id = 1, .trace_log = 4, .eval_log = 5, .widths = .{ 1, 1, 0 }, .offsets = .{ 0, 0, 0 }, .parameters = &pa, .mask_columns = &masks_a, .constraints = 2 },
+        .{ .id = 2, .trace_log = 4, .eval_log = 5, .widths = .{ 0, 1, 0 }, .offsets = .{ 0, 1, 0 }, .aux = .hc, .hc = &hc, .parameters = &pb, .mask_columns = &masks_b, .constraints = 1 },
+    };
+    const fixed_logs = [_]u32{4};
+    const main_logs = [_]u32{ 4, 4 };
+    var plan = try NComp.Plan.init(a, .{ .roles = &specs, .log = 6, .split = 1, .total = 3, .beta = 1, .tree_logs = .{ &fixed_logs, &main_logs, &.{} } });
+    defer plan.deinit();
+    const counts = [_][]const u32{ &.{1}, &.{ 1, 1 }, &.{}, &([_]u32{1} ** 16) };
+    const progs = [_]*const Program{ &prog_a, &prog_b };
+    const d = try fromPlan(a, &plan, &progs, &counts, 6);
+    defer a.free(d);
+    // The descriptor addresses the plan table (t_params / t_hc), not a compact one.
+    try std.testing.expectEqual(@as(u32, @intCast(plan.roles[0].t_params)), d[H.header_words + Role.params_at]);
+    try std.testing.expectEqual(@as(u32, @intCast(plan.roles[1].t_params)), d[H.header_words + Role.words + Role.params_at]);
+    try std.testing.expectEqual(@as(u32, @intCast(plan.roles[1].t_hc)), d[H.header_words + Role.words + Role.hc_at]);
+    try std.testing.expectEqual(@as(u32, @intCast(plan.table.len)), d[H.table_words]);
+    // Reference: the same roles through `build` over a compact [pa | pb | hc] table.
+    var compact: [16 + 8 + 64]u32 = undefined;
+    @memcpy(compact[0..16], &pa);
+    @memcpy(compact[16..24], &pb);
+    @memcpy(compact[24..], &hc);
+    const ref = try build(a, &.{
+        .{ .program = &prog_a, .trace_log = 4, .widths = .{ 1, 1, 0 }, .offsets = .{ 0, 0, 0 }, .params_at = 0 },
+        .{ .program = &prog_b, .trace_log = 4, .widths = .{ 0, 1, 0 }, .offsets = .{ 0, 1, 0 }, .aux = true, .params_at = 16, .hc_at = 24 },
+    }, .{ .global_log = 6, .split = 1, .sample_counts = &counts, .table_words = compact.len });
+    defer a.free(ref);
+    var samples: [19 * 8]u32 = undefined;
+    for (0..19) |i| samples[8 * i ..][0..8].* = words8(testFelt(rng));
+    var ch = @import("stwo_core").channel.raw_mod_m31.Om31Channel.init();
+    ch.mixU64(0xf0);
+    const point = try core.circle.randomSecureFieldPointFor(OM, &ch);
+    var pw: [33]u32 = @splat(0);
+    pw[0..8].* = words8(point.x);
+    pw[8..16].* = words8(point.y);
+    const alpha = words8(testFelt(rng));
+    const got = try hostCheck(a, d, &samples, plan.table, &alpha, &pw);
+    const want = try hostCheck(a, ref, &samples, &compact, &alpha, &pw);
+    try std.testing.expect(got.evaluated != null and want.evaluated != null and got.evaluated.?.eql(want.evaluated.?));
+    // A patched plan-table parameter (what the device patches write) moves the evaluation.
+    const table = try a.dupe(u32, plan.table);
+    defer a.free(table);
+    table[plan.roles[1].t_params] = (table[plan.roles[1].t_params] + 1) % core.fields.m31.Modulus;
+    try std.testing.expect(!(try hostCheck(a, d, &samples, table, &alpha, &pw)).evaluated.?.eql(got.evaluated.?));
+    // Shape faults fail closed: program count, mask columns, a last-anchor role.
+    try std.testing.expectError(error.InvalidNativeOodsProgram, fromPlan(a, &plan, progs[0..1], &counts, 6));
+    const swapped = [_]*const Program{ &prog_b, &prog_a };
+    try std.testing.expectError(error.InvalidNativeOodsProgram, fromPlan(a, &plan, &swapped, &counts, 6));
+}

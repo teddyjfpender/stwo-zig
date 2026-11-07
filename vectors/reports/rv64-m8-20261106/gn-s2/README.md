@@ -63,3 +63,44 @@ Timing (CUDA events, warm, GPU1) [M]:
 - OODS kernel is one thread per role (~1.2k nodes/role, ~40k nodes/segment): ~8 ms/segment [M]; a warp-per-role or
   register-reused schedule is the obvious next cut.
 - Host per request: flat script ~74 us [M]; roster/flat-entry packing from the inventory (driver).
+
+## Gate [M]
+- `rv64_gate.sh --stream m8-gn-s2` default: **PASS** at fb8e20588 (build, unit zig/python, small-block proofs byte-identical to the
+  frozen D2 golden, fresh CPU receivers, negative corpus): `/workspace/m3/runs/m8-gn-s2/gate-1/gate.json` sha256 96a45724a1ee26c5472d17c32827e7c308a23409b96fcc883a889d9e6cd5a965.
+
+## Review (2026-11-07, review stream on e0129f186)
+Checked against the code: byte identity / transcript order, fail-closed device checks, custody / memory / stream order, host
+work on the critical path, measurement validity.
+- **Byte identity:** FlatScript emits exactly manifest.zig `emitCanonical` (PROFILE, execution, u64 8, u64 n, per entry
+  kind / relations / mass / ordinal / statement / fixed / MAIN, u64 local?, receipt digest, u64 instances, u64 values.len, felts
+  as canonical LE u32 coordinates; Writer.integer = u64 LE). Assumption, documented here: every native local-GKR instance has
+  exactly 2 terminal marginals (the claims slot holds 16 words per instance; the script emits `u64 2`). An instance with another
+  arity would produce a different digest, so the seal would not match the receiver. That costs liveness only, not soundness, and
+  it holds on all 11 recorded segments.
+- **Fail closed:** the oods_constraint word stays `unset` when ClassFraming.oods or Symbols.oods is missing. The driver memsets
+  the status words per request, so a stale accept can't survive. The kernel re-checks the header, spans and indices on the device,
+  and a refusal takes the minimum detail through atomicMin, so the reported detail doesn't depend on thread order. Flat seal:
+  every slot it reads (root, receipt, claims, truth root) gets a flag-tag test, and a non-canonical marginal refuses with detail 3.
+- **Custody / stream order:** the chi- and flat-seal custody ranges ([0, slot) and [slot+16, end) read-only, the slot
+  read-write) match what the kernels read. Root and flag offsets are bounded by `exchange_words` before custody. The OODS kernel
+  reads `pcs_out` samples, the `oods` field and `alpha` after the PCS enqueue on the same stream. It reads the composition
+  `table_device` after the composition kernel copied the claim slots in. That table is per-job staged memory
+  (NComp.Plan.stage `s.alloc`), so the instance lease ending at enqueue does not race it.
+- **Finding fixed (test coverage):** `fromPlan`, the production builder gn-shape calls at warm, had no test. The parity
+  harness builds its descriptor with `build` over its own compact table, so it never checks the plan's `t_params` / `t_hc`
+  offsets. Added the host test "native OODS fromPlan reads parameters / hc rows at the composition plan's table offsets":
+  it builds a real NComp.Plan with two roles (one plain, one local-binding with hc rows), checks that the descriptor offsets
+  equal t_params / t_hc / table.len, checks that the evaluation equals `build` over a compact table, checks that a patched
+  plan-table parameter changes the evaluation, and checks the shape faults (program count, swapped programs).
+- **Not exercised by the parity (stated, not fixed):** the claims layout (`fromItemsWith(..., false)` keeps the claims inside the
+  parameters; production zeroes them and copies them from the device claims buffer). The full Stage2Job in a request.
+- **Host / latency on the critical path (open, not changed):** the flat seal is one thread, byte-serial, and sits on the seal
+  barrier: 0.98-1.58 ms per request [M]. A word-wise fast path when `fill % 4 == 0` is a cheap cut. The OODS check is one thread
+  per role in one block: 3.8-9.6 ms per segment [M], serial before the encoder on the segment stream. It could run on a side
+  stream next to the encoder, or warp per role. FlatScript.build costs ~74 us of host time per request [M] and could move to
+  `beginRequest`.
+- **Reuse (open):** gn-truth's `truth_oods.build` (M8-INTERFACES) is a second secure_polynomial_program_v2 point interpreter.
+  The two should converge on one kernel.
+- **Measurements:** device times are CUDA events on the job stream, 3 repeats. The reported ranges include the first repeat,
+  which runs up to 1.4 ms slower on 24628607 seg 0. The host engine check (11.6-30.0 ms) is a single timed run per segment, n=1.
+  Both are labelled [M] correctly.
