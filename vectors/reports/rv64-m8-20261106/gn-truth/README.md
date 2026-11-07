@@ -71,7 +71,7 @@ Branch `codex/rv64-m8-gn-truth` (from `origin/codex/rv64-m8-gpu` @ b289b021f). L
 |---|---|---|
 | device OODS + encoder + merge, GPU | **17.6 ms** | **17.7 ms** |
 | of which the OODS check, GPU | 3.5 ms | 3.5 ms |
-| host assembly it replaces (decode + engine OODS + encodePhysical) | 651.6 ms | 679.8 ms |
+| host assembly it replaces (decode + engine OODS + encodePhysical; run 0 `.check` only, i.e. first run, serial sum over the 7 truths — see review note) | 651.6 ms | 679.8 ms |
 | finish host time, `.device` (harness: includes copying the bytes out of the job slab) | 4.9 ms | 5.8 ms |
 | stage 1 GPU | 273.1 ms | 350.8 ms |
 | stage 2 GPU (incl. the device encode) | 1444.1 ms | 1738.6 ms |
@@ -130,3 +130,49 @@ GPU 1, whose keccak log-18 stage-2 peak is 5.76e9 words.
   duplicated GPU work rather than host work.
 - Finish in the GPU-native factory path reads nothing; publication reads the request slab after the single
   D2H. The ~5.5 ms [M] above is the harness's own job-slab copy.
+
+## Review (2026-11-07, commit 7c38e67e2)
+Checked against the code: transcript order (the device OODS check and encoder run after the PCS and draw
+nothing from the channel), the kernel's descriptor validation, the parameter source (the device gather from
+the transcript felts, which `truth_status` checks), the verdict merge (unset propagates as a reject), and
+publication gating. `truth_oods` is in `Class.extra_checks`, and `encode_bounds` and `pcs_status` are in
+`requiredChecks(.truth)`, so every device check gates publication. The encoder checks that samples and
+queried values are canonical.
+
+Fixed:
+- **Anchor read in an unanchored role** (`truth_oods.cu` + mirror): the kernel writes `anchor_words` only
+  when `row.anchor` is set. An `Op.anchor` node in any other role would read shared memory nobody wrote,
+  while the mirror returned zero. Both now refuse this as `descriptor`, and there is a new unit test. Valid
+  descriptors are unaffected.
+- **Device-phase footprint** (`stage2Footprint`): the default arena is LIFO (`reuse_frees` off). In
+  `.device` the PCS image is allocated after the tree coefficients, so the coefficients stay resident under
+  the OODS and encoder scratch. The phase now counts them. The declared value does not change, because
+  `phase_pcs` still dominates (parity-13 declared words equal parity-10's).
+- `.check` together with a request-slab region is refused: the region leaves no bytes to compare.
+  `Factory.bytes()` is documented as null in `.device`.
+
+Re-test [M] (`parity-13.json`, 26235156, addon-5 = 7c38e67e2 linked against m7-combined-residency,
+`LEGACY_ARENA=auto` as in parity-10): **7/7 truths byte-identical** (`.check` and `.device`), **20/20
+negatives fire**, device OODS + encode 17.6 ms GPU per request (OODS alone 3.5 ms).
+(`LEGACY_ARENA` defaults to 22G in `parity.sh`. With that default the job worker requests its full 22G
+arena from a 22G process arena and fails at once with `GPU_ARENA_OVERRUN`. Use `auto`.)
+
+Gate [M]: `rv64_gate.sh --stream m8-gn-truth` (default env) **PASS** at 7c38e67e2 (`gate-3.json`: build, unit
+tests incl. the new anchor test, small-block cold + warm byte-identical to the frozen D2 golden, 2 fresh CPU
+receivers accepted, negative corpus).
+
+Measurement notes:
+- The "host assembly it replaces" figure (651.6 / 679.8 ms) is the serial sum of `stage2_assemble_ns` over
+  7 truths, measured only in run 0 (`.check`, the first run of the harness). It is a host-path cost [M],
+  not a warm per-request wall saving.
+- R6 footprint: the measured stage-2 arena peak exceeds the declared footprint for classic keccak (log 13:
+  1.48x, log 14: 1.44x, log 17: 1.15x, log 18: 1.14x). The gap was already there in r-truth
+  (gpu-r-truth/parity-4/5: same ratios to within 0.05%). gn-truth adds about 0.47 M words. Every class
+  still fits its `ClassEntry.arena_peak_words` budget (3/2 of declared until a measured peak replaces it).
+  The declared PCS term still needs a measured per-class peak; it remains a TODO for the memory plan.
+
+Still open, not this stream's files: gn-bind wiring (RecursionFactory.truth → truth_factory, publishing from
+the request-slab region), the native-seal framing of `Exchange.truthRoot`, the MAIN replay in stage 2
+(about 198 ms of host enqueue and 273–351 ms of GPU per request [M]). The job-slab readback in finish
+(roots, claims, felts) also stays: `.device` does not need it for publication, but the per-job wait/finish
+of the job runtime keeps it until gn-bind moves truths onto the single request readback.
