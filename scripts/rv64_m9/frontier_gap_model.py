@@ -65,8 +65,8 @@ FOLD_ROW_SHARE = 0.80 * 19 / (19 + 21)                               # folds ope
 #   Airbender v3 unrolled circuits: 40-58 committed BabyBear columns per row at 2^24 rows (circuit_defs/*/generated/layout.json)
 
 SC = {  # (pess, central, opt)
-    # STACK: opened-width factor after stacking short columns into equal-height ones. Ideal is (80.5+46.1+8+1)/5833 =
-    # 0.023 [D]; central keeps mid-height components unstacked and the truth proofs' widest tables partly [E].
+    # STACK: opened-width factor after stacking short columns into equal-height ones. Ideal is (80.5+46.1+8+16)/5833 =
+    # 0.026 [D] (composition is already full height); central keeps mid-height components unstacked and the truth proofs' widest tables partly [E].
     'stack_wf': (0.35, 0.15, 0.06),
     'stack_share': (0.55, 0.66, 0.68),   # opened-row share of leaf GPU-s (0.681 [D]; truth leaves and NGKR overlap [E])
     'stack_nat': (1.08, 1.03, 1.01),     # native: s fused butterfly layers to lift stacked LDEs + multi-point DEEP [E]
@@ -75,12 +75,22 @@ SC = {  # (pess, central, opt)
     'b3_save': (0.3 * 0.6, 0.3 * 0.8, 0.3 * 0.9),
     'b3_hash_leaf': (0.80, 0.852, 0.852),
     'b3_hash_fold': (0.70, 0.80, 0.80),
-    # GRIND26: per-query share of node cells (paths + rows + DEEP per query) [D/E]; grind rate Blake2s/s/GPU [E]
+    # GRIND26: per-query share of node cells (paths + rows + DEEP per query) [D/E]; grind rate Blake2s/s/GPU.
+    # [review] The as-built device grind is far below the 25 G/s first assumed: codex/rv64-m8-gpu
+    # vectors/reports/rv64-m8-20261106/runtime/pipeline-diagnostic-1.json [M, diagnostic, GPU 1 of the 2x5090 pod]
+    # takes 3.149 s for 12 jobs at 28 bits vs 0.192 s at 25 bits, i.e. ~0.246 s per 28-bit grind: 2^28/0.246 s =
+    # 1.1 G/s at the expected nonce (also the maximum-likelihood rate given the 25-bit row adds ~0 ms), and
+    # P(rate >= 5 G/s) < 1% under a geometric nonce [D]. Central = as built 1.1 G/s, pess 0.8 G/s, opt 13.4 G/s =
+    # an engineered kernel (rv64-gpu-2s-block-plan.md row 10: 2^26 in 5 ms) [E]. GRIND26 needs a faster kernel first.
     'grind_qshare': (0.90, 0.95, 0.97),
-    'grind_rate': (10e9, 25e9, 35e9),
+    'grind_rate': (0.8e9, 1.1e9, 13.4e9),
     # NGKRFULL: native beyond v2-strict NGKR (INTER 68.9 cells/instr; v2 strict halves INTER [D, 4-GPU s4.2]) [E]
     'ngkrf_nat': (1.0, 0.92, 0.86),
     'ngkrf_leaf': (1.0, 0.92, 0.85),     # INTER opened width; zero when STACK already compressed it [E]
+    # [review] in-circuit GKR verifier (sumcheck per layer, OM31) as a share of today's leaf. ngkrf_leaf nets it when STACK
+    # is off; with STACK on, the opened-width saving is gone but this cost stays (outer GKR as built was a net loss,
+    # plan_model ogkr_alone x1.07) [E]
+    'ngkrf_verify': (0.06, 0.04, 0.02),
     # MLE (speculative upper bound): native commit 50 BabyBear cols/cycle at LDE 2 vs our 193 cells/instr at LDE 4,
     # RV32 cycles x1.3-1.8 per RV64 instr, GKR prover compute replaces composition [E]
     'mle_nat': (0.75, 0.55, 0.40),
@@ -116,6 +126,8 @@ def factors(on, p, sh):
             hl = max(0.0, (hl - s) / (1 - s))
         fL *= 1 - hl * p['b3_save']
         fF *= 1 - p['b3_hash_fold'] * p['b3_save']
+    if 'NGKRFULL' in on and 'STACK' in on:
+        fL += p['ngkrf_verify']
     if 'GRIND26' in on:
         q = p['grind_qshare']
         fL *= 1 - q * (1 - 51 / 54)   # leaves verify native D2 proofs: (128-26)/2 = 51
@@ -123,6 +135,13 @@ def factors(on, p, sh):
         proofs = sh['seg'] + sh['truths'] + sh['leaves'] + sh['folds']
         extra += proofs * (2 ** 26 - 2 ** 20) / p['grind_rate']
     return fN, fL, fF, extra
+
+
+def grind_tail_s(on, p, sh):
+    """[review] Serial grind on the critical path: the last leaf and one fold per level grind one after another [D/E]."""
+    if 'GRIND26' not in on:
+        return 0.0
+    return (1 + sh['levels']) * (2 ** 26 - 2 ** 20) / p['grind_rate']
 
 
 @contextlib.contextmanager
@@ -155,8 +174,10 @@ def model(mi, sh, p, on=(), gpus=2, production=False):
         G = 4 if 'GPU4' in on else gpus
         busy = p['occ'] if 'OCC' in on else p['busy']
         eff = p['four_gpu_eff'] if 'GPU4' in on else 1.0
+        tail = grind_tail_s(on, p, sh)  # serial part: not spread over G GPUs
+        spread = (extra - tail) / (G * busy * eff)
         r = dict(r); r['kernel_gpu_s'] += extra; r['recursion_gpu_s'] += extra; r['grind_gpu_s'] = extra
-        r['wall_s'] += extra / (G * busy * eff); r['post_seal_s'] += extra / (G * busy * eff)
+        r['wall_s'] += spread + tail; r['post_seal_s'] += spread; r['tail_s'] += tail
     return r
 
 
@@ -183,7 +204,8 @@ def frontier_table(ipg):
         airbender_v3_committed_cols_per_cycle=ab_mean, airbender_v3_lde_bits_per_cycle=ab_mean * 31 * 2,
         ours_over_airbender_lde_bits_per_instr=lde_b4 / (ab_mean * 31 * 2),
         opened_width_ours_cpu_proof=sum(OPENED.values()), opened_width_zisk_main=247,
-        opened_width_ours_equal_height=round(EQ_HEIGHT['main'] + EQ_HEIGHT['inter'] + 8 + 1, 1),
+        # [review] composition is 16 columns at full height (16 x 2^23, rv64-m9-poseidon2-leaves.md s3): it cannot stack below 16
+        opened_width_ours_equal_height=round(EQ_HEIGHT['main'] + EQ_HEIGHT['inter'] + 8 + OPENED['comp'], 1),
         leaf_row_share=LEAF_ROW_SHARE, leaf_hash_share=LEAF_HASH_SHARE, fold_row_share=FOLD_ROW_SHARE,
         per_query_compressions_ours=_rowhash + _paths, per_query_row_compressions_ours=_rowhash,
         zisk_main_verify_blake3_perms=36201, zisk_main_queries_jbr128_b2_p24=211,
@@ -245,7 +267,7 @@ def run(gas_pct, gas_list=None):
         rows.sort(key=lambda r: -r['min_cut'])
         out['search'][n] = rows
         # 4 GPUs with the best 2-GPU set + the recommended new levers
-        rec = best + ('STACK', 'BLAKE3R', 'GRIND26', 'GPU4')
+        rec = best + ('STACK', 'BLAKE3R', 'GPU4')  # [review] GRIND26 dropped: a loss at the as-built grind rate
         w4 = {cc: model(*blocks[cc], P[n], on=rec, gpus=4) for cc in cases}
         tb4 = sum(model(blocks[str(r['block'])][0], blocks[str(r['block'])][1], P[n], on=rec, gpus=4)['wall_s'] for r in bk)
         out['on_best'][n] = dict(four_gpu=dict(levers=list(rec), p50_s=w4[cases[0]]['wall_s'], p95_s=w4[cases[1]]['wall_s'], basket_s=tb4,
@@ -255,11 +277,36 @@ def run(gas_pct, gas_list=None):
                                  plan_best=next(r for r in rows if not r['add']))
         if gas_list:
             ipg = res['fits']['instr_per_gas']
-            def dist(on):
-                w = sorted(model(g / 1e6 * ipg, pm.shape(g / 1e6 * ipg), P[n], on=on)['wall_s'] for g in gas_list)
+            def dist(on, production=False):
+                w = sorted(model(g / 1e6 * ipg, pm.shape(g / 1e6 * ipg), P[n], on=on, production=production)['wall_s'] for g in gas_list)
                 k = len(w); return dict(mean=sum(w) / k, p50=w[k // 2], p95=w[int(0.95 * (k - 1))])
-            out['on_best'][n]['mainnet'] = dict(baseline=dist(()), plan_best=dist(best), plan_best_plus=dist(best + ('STACK', 'BLAKE3R', 'GRIND26')),
+            out['on_best'][n]['mainnet_production'] = dict(
+                baseline=dist((), True), plan_best=dist(best, True), plan_best_top=dist(best + tuple(rows[0]['add']), True))
+            out['on_best'][n]['mainnet'] = dict(baseline=dist(()), plan_best=dist(best), plan_best_plus=dist(best + ('STACK', 'BLAKE3R')),
                                             plan_best_top=dist(best + tuple(rows[0]['add'])))
+    # [review] production view: every mainnet request is a new block, so leaf classes and most fold classes miss and the
+    # host class build (plan_model miss_s) is on the critical path. The search above is warm (class hits), like plan rev 4.
+    out['production'] = {}
+    for n in P:
+        top_add = tuple(out['search'][n][0]['add'])
+        pb = {c: model(*blocks[c], P[n], production=True)['wall_s'] for c in cases}
+        row = dict(baseline=dict(p50_s=pb[cases[0]], p95_s=pb[cases[1]]))
+        for name, on in (('plan_best', best), ('plan_best_top', best + top_add)):
+            w = {c: model(*blocks[c], P[n], on=on, production=True) for c in cases}
+            row[name] = dict(add=list(on[len(best):]), p50_s=w[cases[0]]['wall_s'], p95_s=w[cases[1]]['wall_s'],
+                             p50_miss_s=w[cases[0]]['miss_s'], cut_p50=1 - w[cases[0]]['wall_s'] / pb[cases[0]],
+                             cut_p95=1 - w[cases[1]]['wall_s'] / pb[cases[1]])
+        out['production'][n] = row
+    # [review] GRIND26 break-even grind rate (central, p50, on top of the top set without it): bisection on G/s
+    n = 'central'; c50 = cases[0]; base_set = best + tuple(a for a in out['search'][n][0]['add'] if a != 'GRIND26')
+    lo, hi = 0.1e9, 200e9
+    for _ in range(60):
+        mid = (lo * hi) ** 0.5; q = dict(P[n], grind_rate=mid)
+        if model(*blocks[c50], q, on=base_set + ('GRIND26',))['wall_s'] < model(*blocks[c50], q, on=base_set)['wall_s']:
+            hi = mid
+        else:
+            lo = mid
+    out['grind26_break_even_rate'] = hi
     # what x0.67 asks for: the factor on all kernel GPU-s still needed after the best new set (central, p50)
     n = 'central'; top = out['search'][n][0]
     out['gap_to_60'] = dict(best_add=top['add'], min_cut=top['min_cut'], p50_gpu_s=top['p50_gpu_s'],
@@ -300,13 +347,22 @@ def main():
                   % ('+'.join(r['add']) or '(plan best)', r['p50_s'], 100 * r['cut_p50'], r['p50_gpu_s'], r['p50_native'], r['p50_rec'],
                      r['p95_s'], 100 * r['cut_p95'], r['basket_s'], 100 * r['cut_basket']))
         fg = out['on_best'][n]['four_gpu']
-        print('  4 GPUs + STACK+BLAKE3R+GRIND26: p50 %.2f (%.0f%%) p95 %.2f (%.0f%%) basket %.1f (%.0f%%)'
+        print('  4 GPUs + STACK+BLAKE3R: p50 %.2f (%.0f%%) p95 %.2f (%.0f%%) basket %.1f (%.0f%%)'
               % (fg['p50_s'], 100 * fg['cut_p50'], fg['p95_s'], 100 * fg['cut_p95'], fg['basket_s'], 100 * fg['cut_basket']))
         if 'mainnet' in out['on_best'][n]:
             m = out['on_best'][n]['mainnet']
-            print('  mainnet-weighted mean: baseline %.1f, plan best %.1f, + STACK+BLAKE3R+GRIND26 %.1f s, + top set %.1f s (p95 %.1f)'
+            print('  mainnet-weighted mean: baseline %.1f, plan best %.1f, + STACK+BLAKE3R %.1f s, + top set %.1f s (p95 %.1f)'
                   % (m['baseline']['mean'], m['plan_best']['mean'], m['plan_best_plus']['mean'], m['plan_best_top']['mean'], m['plan_best_top']['p95']))
+    for n, row in out['production'].items():
+        print('production (new block, class misses) %-7s baseline p50 %.2f p95 %.2f | plan best p50 %.2f (%.0f%%) | + top set p50 %.2f (%.0f%%, miss %.2f s) p95 %.2f (%.0f%%)'
+              % (n, row['baseline']['p50_s'], row['baseline']['p95_s'], row['plan_best']['p50_s'], 100 * row['plan_best']['cut_p50'],
+                 row['plan_best_top']['p50_s'], 100 * row['plan_best_top']['cut_p50'], row['plan_best_top']['p50_miss_s'],
+                 row['plan_best_top']['p95_s'], 100 * row['plan_best_top']['cut_p95']))
+        if 'mainnet_production' in out['on_best'][n]:
+            m = out['on_best'][n]['mainnet_production']
+            print('  mainnet-weighted mean, production: baseline %.1f, plan best %.1f, + top set %.1f s' % (m['baseline']['mean'], m['plan_best']['mean'], m['plan_best_top']['mean']))
     gp = out['gap_to_60']
+    print('GRIND26 break-even device grind rate (central p50, on the top set): %.1f G Blake2s/s per GPU' % (out['grind26_break_even_rate'] / 1e9))
     print('\ncentral best: +%s min cut %.0f%%; p50 kernel %.2f GPU-s = x%.2f of the plan best %.2f' %
           ('+'.join(gp['best_add']), 100 * gp['min_cut'], gp['p50_gpu_s'], gp['factor_vs_plan_best'], gp['plan_p50_gpu_s']))
 

@@ -62,6 +62,7 @@ def test_evidence_arithmetic():
     assert math.isclose(fg.LEAF_HASH_SHARE, 0.852, abs_tol=0.002)
     assert math.isclose(f['ours_native_lde_bits_per_instr_D2'], 193.1 * 31 * 4)
     assert 7.0 < f['ours_over_airbender_lde_bits_per_instr'] < 8.5
+    assert math.isclose(f['opened_width_ours_equal_height'], 80.5 + 46.1 + 8 + 16, abs_tol=0.2)  # comp stays 16 wide
 
 
 def test_levers_have_the_right_sign():
@@ -80,9 +81,35 @@ def test_levers_have_the_right_sign():
 def test_central_result_pinned():
     out = fg.run(dict(pm.GAS_PCT_EMBEDDED))
     top = out['search']['central'][0]
-    assert set(top['add']) == {'STACK', 'BLAKE3R', 'GRIND26', 'NGKRFULL', 'D2REV'}, top['add']
-    assert 0.55 < top['min_cut'] < 0.62, top['min_cut']
-    assert out['search']['pess'][0]['min_cut'] < 0.60  # pessimistic never reaches 60% on 2 GPUs
+    assert set(top['add']) == {'STACK', 'BLAKE3R', 'NGKRFULL', 'D2REV'}, top['add']
+    assert 0.55 < top['min_cut'] < 0.60, top['min_cut']  # [review] central does not reach 60% on 2 GPUs
+    assert out['search']['pess'][0]['min_cut'] < 0.50  # pessimistic stays below 50% on 2 GPUs
+    # production (new block per request): class-miss host build on the critical path lowers every cut
+    for n in P:
+        assert out['production'][n]['plan_best_top']['cut_p50'] < out['search'][n][0]['cut_p50'], n
+    assert out['grind26_break_even_rate'] > P['central']['grind_rate']
+
+
+def test_grind26_costs_at_as_built_rate():
+    """[review] at the measured ~1.1 G/s device grind, 26-bit grinding is a net loss, and its serial tail is on the wall."""
+    mi, sh = SHAPES[1]
+    p = P['central']
+    b = fg.model(mi, sh, p); g = fg.model(mi, sh, p, on=('GRIND26',))
+    assert g['kernel_gpu_s'] > b['kernel_gpu_s'] and g['wall_s'] > b['wall_s']
+    tail = fg.grind_tail_s(('GRIND26',), p, sh)
+    assert close(tail, (1 + sh['levels']) * (2 ** 26 - 2 ** 20) / p['grind_rate'])
+    free = fg.model(mi, sh, dict(p, grind_rate=1e30), on=('GRIND26',))  # same query cut, no grind
+    assert close(g['tail_s'] - free['tail_s'], tail)
+    fast = dict(p, grind_rate=200e9)  # with a near-free grind the query cut wins
+    assert fg.model(mi, sh, fast, on=('GRIND26',))['kernel_gpu_s'] < b['kernel_gpu_s']
+
+
+def test_ngkrfull_verifier_cost_with_stack():
+    """[review] with STACK on, NGKRFULL's leaf saving is gone but its in-circuit GKR verifier cost stays."""
+    for n in P:
+        _, fl_s, _, _ = fg.factors(('STACK',), P[n], SHAPES[0][1])
+        _, fl_sn, _, _ = fg.factors(('STACK', 'NGKRFULL'), P[n], SHAPES[0][1])
+        assert close(fl_sn - fl_s, P[n]['ngkrf_verify'])
 
 
 if __name__ == '__main__':
