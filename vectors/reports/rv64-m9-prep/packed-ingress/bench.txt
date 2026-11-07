@@ -1,0 +1,54 @@
+## corpus=real
+M9_BENCH device="NVIDIA GeForce RTX 5090" sms=170 corpus=/dev/shm/m9pk/real.m9pk values=46 lz4_values=46 non_lz4_skipped=0
+M9_BENCH parity skew=0 status=0 mismatched_words=0 logical_bytes=342501024 blocks=5230 PASS
+M9_BENCH parity skew=1 status=0 mismatched_words=0 logical_bytes=342501024 blocks=5230 PASS
+M9_BENCH census section=batch sequences=2886500 per_block_mean=552 p50=24 p99=5336 max=8079 max_block_bytes=28054 lz4_pass_ms=2.406 scan_pass_ms=0.448
+M9_BENCH decode section=batch values=46 blocks=5230 logical_bytes=342501024 physical_bytes=14215015 ratio=24.1 median_ms=2.853 best_ms=2.843 out_GBps=120.0 in_GBps=4.98 status=0 reps=20
+M9_BENCH h2d_packed section=batch bytes=14215015 ms=0.530 GBps=26.80
+M9_BENCH census section=fixed sequences=933533 per_block_mean=323 p50=8 p99=3762 max=8079 max_block_bytes=28054 lz4_pass_ms=2.307 scan_pass_ms=0.246
+M9_BENCH decode section=fixed values=45 blocks=2886 logical_bytes=188943360 physical_bytes=4954259 ratio=38.1 median_ms=2.536 best_ms=2.533 out_GBps=74.5 in_GBps=1.95 status=0 reps=20
+M9_BENCH h2d_packed section=fixed bytes=4954259 ms=0.185 GBps=26.80
+M9_BENCH census section=tasks sequences=1952967 per_block_mean=833 p50=299 p99=5710 max=6573 max_block_bytes=26693 lz4_pass_ms=2.077 scan_pass_ms=0.201
+M9_BENCH decode section=tasks values=1 blocks=2344 logical_bytes=153557664 physical_bytes=9260756 ratio=16.6 median_ms=2.268 best_ms=2.263 out_GBps=67.7 in_GBps=4.08 status=0 reps=20
+M9_BENCH h2d_packed section=tasks bytes=9260756 ms=0.338 GBps=27.36
+M9_BENCH negative case=chain status=2 mismatched_words=0 REFUSED
+M9_BENCH negative case=offset_zero status=8 mismatched_words=0 REFUSED
+M9_BENCH negative case=truncate status=4 mismatched_words=0 REFUSED
+M9_BENCH negative case=flip status=4 mismatched_words=0 REFUSED
+M9_BENCH negative case=shape status=1 mismatched_words=0 REFUSED
+M9_BENCH result=PASS failures=0
+## corpus=synth
+M9_BENCH device="NVIDIA GeForce RTX 5090" sms=170 corpus=/dev/shm/m9pk/synth.m9pk values=31 lz4_values=31 non_lz4_skipped=0
+M9_BENCH parity skew=0 status=0 mismatched_words=0 logical_bytes=932116480 blocks=14223 PASS
+M9_BENCH parity skew=1 status=0 mismatched_words=0 logical_bytes=932116480 blocks=14223 PASS
+M9_BENCH census section=batch sequences=8122302 per_block_mean=571 p50=719 p99=1467 max=1788 max_block_bytes=6587 lz4_pass_ms=1.559 scan_pass_ms=1.208
+M9_BENCH decode section=batch values=31 blocks=14223 logical_bytes=932116480 physical_bytes=34563673 ratio=27.0 median_ms=2.774 best_ms=2.752 out_GBps=336.0 in_GBps=12.46 status=0 reps=20
+M9_BENCH h2d_packed section=batch bytes=34563673 ms=1.232 GBps=28.05
+M9_BENCH census section=fixed sequences=2907653 per_block_mean=379 p50=8 p99=1512 max=1788 max_block_bytes=6587 lz4_pass_ms=0.985 scan_pass_ms=0.661
+M9_BENCH decode section=fixed values=30 blocks=7680 logical_bytes=503316480 physical_bytes=13139241 ratio=38.3 median_ms=1.631 best_ms=1.622 out_GBps=308.5 in_GBps=8.05 status=0 reps=20
+M9_BENCH h2d_packed section=fixed bytes=13139241 ms=0.475 GBps=27.66
+M9_BENCH census section=tasks sequences=5214649 per_block_mean=797 p50=794 p99=1181 max=1393 max_block_bytes=5313 lz4_pass_ms=0.789 scan_pass_ms=0.554
+M9_BENCH decode section=tasks values=1 blocks=6543 logical_bytes=428800000 physical_bytes=21424432 ratio=20.0 median_ms=1.346 best_ms=1.337 out_GBps=318.5 in_GBps=15.91 status=0 reps=20
+M9_BENCH h2d_packed section=tasks bytes=21424432 ms=0.770 GBps=27.83
+M9_BENCH negative case=chain status=2 mismatched_words=0 REFUSED
+M9_BENCH negative case=offset_zero status=8 mismatched_words=0 REFUSED
+M9_BENCH negative case=truncate status=4 mismatched_words=0 REFUSED
+M9_BENCH negative case=flip status=4 mismatched_words=0 REFUSED
+M9_BENCH negative case=shape status=1 mismatched_words=0 REFUSED
+M9_BENCH result=PASS failures=0
+## corpus=shapes
+M9_BENCH device="NVIDIA GeForce RTX 5090" sms=170 corpus=/dev/shm/m9pk/shapes.m9pk values=144 lz4_values=144 non_lz4_skipped=0
+M9_BENCH parity skew=0 status=0 mismatched_words=0 logical_bytes=18923328 blocks=384 PASS
+M9_BENCH parity skew=1 status=0 mismatched_words=0 logical_bytes=18923328 blocks=384 PASS
+M9_BENCH census section=batch sequences=695166 per_block_mean=1810 p50=7 p99=7401 max=7501 max_block_bytes=65536 lz4_pass_ms=2.086 scan_pass_ms=0.022
+M9_BENCH decode section=batch values=144 blocks=384 logical_bytes=18923328 physical_bytes=9294273 ratio=2.0 median_ms=2.109 best_ms=2.104 out_GBps=9.0 in_GBps=4.41 status=0 reps=20
+M9_BENCH h2d_packed section=batch bytes=9294273 ms=0.349 GBps=26.60
+M9_BENCH census section=fixed sequences=695166 per_block_mean=1810 p50=7 p99=7401 max=7501 max_block_bytes=65536 lz4_pass_ms=2.090 scan_pass_ms=0.021
+M9_BENCH decode section=fixed values=144 blocks=384 logical_bytes=18923328 physical_bytes=9294273 ratio=2.0 median_ms=2.108 best_ms=2.106 out_GBps=9.0 in_GBps=4.41 status=0 reps=20
+M9_BENCH h2d_packed section=fixed bytes=9294273 ms=0.345 GBps=26.96
+M9_BENCH negative case=chain status=2 mismatched_words=0 REFUSED
+M9_BENCH negative case=offset_zero status=8 mismatched_words=0 REFUSED
+M9_BENCH negative case=truncate status=4 mismatched_words=0 REFUSED
+M9_BENCH negative case=flip status=0 mismatched_words=7 REFUSED
+M9_BENCH negative case=shape status=1 mismatched_words=0 REFUSED
+M9_BENCH result=PASS failures=0

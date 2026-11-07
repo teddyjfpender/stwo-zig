@@ -1,0 +1,20 @@
+M9_CORPUS values=138 logical_bytes=1027503072 physical_bytes=42645045 ratio=24.1 task_logical=460672992 task_physical=27782268 blocks=15690 raw_blocks=0 non_lz4_values=0 host_unpack_1t_ns=736063470 host_unpack_1t_GBps=1.40 pack_ns=410384628
+## corpus=real3 (actual CPU leaf statics x3 = production-node size)
+M9_BENCH device="NVIDIA GeForce RTX 5090" sms=170 corpus=/dev/shm/m9pk/real3.m9pk values=138 lz4_values=138 non_lz4_skipped=0
+M9_BENCH parity skew=0 status=0 mismatched_words=0 logical_bytes=1027503072 blocks=15690 PASS
+M9_BENCH parity skew=1 status=0 mismatched_words=0 logical_bytes=1027503072 blocks=15690 PASS
+M9_BENCH census section=batch sequences=8659500 per_block_mean=552 p50=24 p99=5336 max=8079 max_block_bytes=28054 lz4_pass_ms=3.172 scan_pass_ms=1.330
+M9_BENCH decode section=batch values=138 blocks=15690 logical_bytes=1027503072 physical_bytes=42645045 ratio=24.1 median_ms=4.483 best_ms=4.390 out_GBps=229.2 in_GBps=9.51 status=0 reps=20
+M9_BENCH h2d_packed section=batch bytes=42645045 ms=1.515 GBps=28.15
+M9_BENCH census section=fixed sequences=2800599 per_block_mean=323 p50=8 p99=3762 max=8079 max_block_bytes=28054 lz4_pass_ms=2.626 scan_pass_ms=0.734
+M9_BENCH decode section=fixed values=135 blocks=8658 logical_bytes=566830080 physical_bytes=14862777 ratio=38.1 median_ms=3.361 best_ms=3.343 out_GBps=168.6 in_GBps=4.42 status=0 reps=20
+M9_BENCH h2d_packed section=fixed bytes=14862777 ms=0.537 GBps=27.70
+M9_BENCH census section=tasks sequences=5858901 per_block_mean=833 p50=299 p99=5710 max=6573 max_block_bytes=26693 lz4_pass_ms=2.348 scan_pass_ms=0.595
+M9_BENCH decode section=tasks values=3 blocks=7032 logical_bytes=460672992 physical_bytes=27782268 ratio=16.6 median_ms=2.952 best_ms=2.943 out_GBps=156.1 in_GBps=9.41 status=0 reps=20
+M9_BENCH h2d_packed section=tasks bytes=27782268 ms=0.994 GBps=27.95
+M9_BENCH negative case=chain status=2 mismatched_words=0 REFUSED
+M9_BENCH negative case=offset_zero status=8 mismatched_words=0 REFUSED
+M9_BENCH negative case=truncate status=4 mismatched_words=0 REFUSED
+M9_BENCH negative case=flip status=4 mismatched_words=0 REFUSED
+M9_BENCH negative case=shape status=1 mismatched_words=0 REFUSED
+M9_BENCH result=PASS failures=0

@@ -1,0 +1,7 @@
+57acc9969e2428e3
+880baf0d08572170
+NVIDIA GeForce RTX 5090, 570.195.03, 3105 MHz, 5, 8
+NVIDIA GeForce RTX 5090, 570.195.03, 3135 MHz, 5, 8
+M9_CORPUS values=46 logical_bytes=342501024 physical_bytes=14215015 ratio=24.1 task_logical=153557664 task_physical=9260756 blocks=5230 raw_blocks=0 non_lz4_values=0 host_unpack_1t_ns=252169039 host_unpack_1t_GBps=1.36 pack_ns=138697701
+M9_CORPUS values=31 logical_bytes=932116480 physical_bytes=34563673 ratio=27.0 task_logical=428800000 task_physical=21424432 blocks=14223 raw_blocks=0 non_lz4_values=0 host_unpack_1t_ns=699771363 host_unpack_1t_GBps=1.33 pack_ns=382702912
+M9_CORPUS values=144 logical_bytes=18923328 physical_bytes=9294273 ratio=2.0 task_logical=0 task_physical=0 blocks=384 raw_blocks=151 non_lz4_values=0 host_unpack_1t_ns=22946703 host_unpack_1t_GBps=0.82 pack_ns=39179443
