@@ -98,6 +98,23 @@ pub const ProjectionStage = struct {
     join_prestage: ?*const fn (*anyopaque) anyerror!void = null,
     cancel_prestage: ?*const fn (*anyopaque) void = null,
 };
+/// STWO_RV64_M8_CAPTURE_RECORDER=1 (M8 T10, default off): the narrow capture
+/// recorder route. Here: every record list is reserved ONCE to its per-step
+/// upper bound (at most one FUNCTION or memory record per step), so it never
+/// regrows (a recycled large block cannot grow in place: each regrowth was a
+/// full copy into fresh, unfaulted pages), and its capacity depends only on
+/// the step count, so the large-block recycler hands the next segment the
+/// previous segment's already-faulted block instead of fresh pages.
+/// [M T10 exp2, 24628607, serial 4.19M-step segment]: scan 357-389 ms
+/// unfaulted vs 180-199 ms prefaulted; reserving alone 281-327 ms.
+/// [M T10 exp3, 26235159 inflight 4]: MADV_HUGEPAGE on these buffers was
+/// tried and REJECTED: capture 8.50 -> 11.66 s (THP direct compaction under
+/// the pod's 93 GB cgroup; compact_stall 359k), vs 7.09 s without it.
+/// Same Source, same errors; producer scheduling only.
+pub fn recorderEnabled() bool {
+    const text = std.posix.getenv("STWO_RV64_M8_CAPTURE_RECORDER") orelse return false;
+    return std.mem.eql(u8, text, "1");
+}
 /// Upper bound on parallel capture ranges per tape.
 pub const MAX_CAPTURE_CHUNKS = 16;
 /// Steps per capture range below which a tape is not split further.
@@ -186,6 +203,9 @@ const Scan = struct {
     services: std.ArrayList(ServiceRecord) = .empty,
     err: ?anyerror = null,
     err_index: usize = 0,
+    /// STWO_RV64_M8_CAPTURE_RECORDER: reserve each record list once to its
+    /// per-step upper bound (see `recorderEnabled`).
+    recorder: bool = false,
     fn deinit(self: *Scan) void {
         self.functions.deinit(self.allocator);
         self.memory.deinit(self.allocator);
@@ -195,7 +215,11 @@ const Scan = struct {
         self.run(true);
     }
     fn run(self: *Scan, comptime stitched: bool) void {
-        if (stitched) {
+        if (self.recorder) {
+            const n = self.end - self.start;
+            self.functions.ensureTotalCapacityPrecise(self.allocator, n) catch {};
+            self.memory.ensureTotalCapacityPrecise(self.allocator, n) catch {};
+        } else if (stitched) {
             // Typical density (FUNCTION ~1/2, memory ~1/3 of steps): reserve
             // virtual capacity once instead of regrowing; growth still works.
             const n = self.end - self.start;
@@ -388,10 +412,13 @@ pub const Source = struct {
     /// Long tapes are scanned as up to `captureChunks` contiguous ranges on
     /// parallel threads and stitched in order (see `captureChunked`).
     pub fn capture(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape) !Source {
+        return captureRoute(a, program, public, epoch, log_size, tape, recorderEnabled());
+    }
+    pub fn captureRoute(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape, recorder: bool) !Source {
         const wanted = captureChunks(public.steps);
         const helpers = if (wanted > 1) reserveHelpers(wanted - 1) else 0;
         defer releaseHelpers(helpers);
-        return captureChunked(a, program, public, epoch, log_size, tape, helpers + 1);
+        return captureChunkedRoute(a, program, public, epoch, log_size, tape, helpers + 1, recorder);
     }
     /// Producer scheduling only: every `chunks` value returns the same Source
     /// (metadata, ROM counts, FUNCTION/memory/service records in step order)
@@ -408,6 +435,11 @@ pub const Source = struct {
     /// a chunk are the serial checks verbatim, so once the expectations hold
     /// they see the serial register file.
     pub fn captureChunked(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape, requested_chunks: usize) !Source {
+        return captureChunkedRoute(a, program, public, epoch, log_size, tape, requested_chunks, recorderEnabled());
+    }
+    /// `captureChunked` with the STWO_RV64_M8_CAPTURE_RECORDER route explicit
+    /// (tests run both routes in one process). Same Source either way.
+    pub fn captureChunkedRoute(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape, requested_chunks: usize, recorder: bool) !Source {
         _ = try X.types.inputs(public, epoch, log_size);
         if (tape.len != public.steps or tape.initial_pc != public.initial_pc) return error.InvalidExecutionAdvice;
         const metadata = try a.alloc(Metadata, public.steps);
@@ -431,7 +463,7 @@ pub const Source = struct {
         var services: std.ArrayList(ServiceRecord) = .empty;
         errdefer services.deinit(a);
         if (chunks == 1) {
-            var scan = Scan{ .allocator = a, .program = program, .tape = tape, .metadata = metadata, .epoch = epoch, .stride = stride, .start = 0, .end = steps, .pc = public.initial_pc, .registers = public.initial_registers, .rom_counts = rom_counts };
+            var scan = Scan{ .allocator = a, .program = program, .tape = tape, .metadata = metadata, .epoch = epoch, .stride = stride, .start = 0, .end = steps, .pc = public.initial_pc, .registers = public.initial_registers, .rom_counts = rom_counts, .recorder = recorder };
             errdefer scan.deinit();
             scan.run(false);
             if (scan.err) |err| return err;
@@ -453,7 +485,7 @@ pub const Source = struct {
                 errdefer a.free(counts);
                 @memset(counts, 0);
                 local_counts[c] = counts;
-                scans[c] = .{ .allocator = a, .program = program, .tape = tape, .metadata = metadata, .epoch = epoch, .stride = stride, .start = start, .end = steps * (c + 1) / chunks, .pc = if (start == 0) public.initial_pc else tape.storage[start - 1].next_pc, .registers = if (start == 0) public.initial_registers else @splat(0), .known = if (start == 0) ~@as(u32, 0) else 1, .touched = if (start == 0) ~@as(u32, 0) else 0, .rom_local = counts };
+                scans[c] = .{ .allocator = a, .program = program, .tape = tape, .metadata = metadata, .epoch = epoch, .stride = stride, .start = start, .end = steps * (c + 1) / chunks, .pc = if (start == 0) public.initial_pc else tape.storage[start - 1].next_pc, .registers = if (start == 0) public.initial_registers else @splat(0), .known = if (start == 0) ~@as(u32, 0) else 1, .touched = if (start == 0) ~@as(u32, 0) else 0, .rom_local = counts, .recorder = recorder };
                 made += 1;
             }
             parallel(Scan, scans[0..chunks], Scan.runStitched);
@@ -479,8 +511,9 @@ pub const Source = struct {
                 totals[1] += scan.memory.items.len;
                 totals[2] += scan.services.items.len;
             }
-            try functions.ensureTotalCapacityPrecise(a, totals[0]);
-            try memory.ensureTotalCapacityPrecise(a, totals[1]);
+            // Recorder: step-count size class (recycled across segments).
+            try functions.ensureTotalCapacityPrecise(a, if (recorder) steps else totals[0]);
+            try memory.ensureTotalCapacityPrecise(a, if (recorder) steps else totals[1]);
             try services.ensureTotalCapacityPrecise(a, totals[2]);
             functions.items.len = totals[0];
             memory.items.len = totals[1];
