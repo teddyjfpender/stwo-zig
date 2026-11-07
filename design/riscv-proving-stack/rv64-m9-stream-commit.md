@@ -8,7 +8,43 @@ it [E]" (`plan_model.py` `'stream': (0.80, 0.70, 0.60)`).
 Labels: **[M]** measured (CUDA events, RTX 5090, standalone, pod `rv64-resident-2x5090`), **[D]** derived
 from measured values or exact geometry, **[E]** estimate.
 
-## 0. Verdict
+## Review (2026-11-07, adversarial pass) — read this first
+
+Receipts: `vectors/reports/rv64-m9-prep/stream-commit/review/` (`parity.log`, `bench.log`, standalone, RTX 5090 GPU 0,
+`gpu.lock`, 16 s + 20 s holds). What survived, what did not:
+
+| claim | verdict | corrected |
+|---|---|---|
+| fused kernel byte-identical (22/22) | **holds**, extended | 43/43 cases, 0 mismatching words [M], adding: production non-final calls → fused final call (arm 1) and → new LDE-input final call (arm 2), 9 shapes each at log 16–24 (the integration-step-2 chains, never tested before); aligned production seeds (16 / 32 lower-height words, pending 0) into the fused kernel; production-root **chunk invariance** (chunks 1/4/7/9/16/32/all, logs 16/20/24, lifted and not: one root each) — the "aligned plan is byte-identical" claim was untested until now [M]. Negative control still fails |
+| fused tail ×1.03–1.61 at log 22–24, ×0.93–0.95 at log 20–21 | **holds** (re-run) | 24×304 c16 ×1.266, c16 offset 7 ×1.260, c32 ×1.321, 21×32 ×0.943 [M]. With openings (k = 10, 108 queries) and now-symmetric timing: log 21 ×0.993, log 20 ×0.960 [M] — production calls always open values, so the log ≤ 21 gain is ×0.96–0.99, not ×0.93–0.95 |
+| partial trees: −0.15 GPU-s | **refuted** | the plan routed the final call through the fused kernel, which loses at log ≥ 22. With production non-final calls: fused final ×1.017 at 24×304, ×1.09–1.24 at log 22–23 [M]; even with the hash-only LDE-input final call (added here) ×1.004 at log 24, ×1.05–1.10 at log 20–23, ×0.94 at log 18 [M]. Hashing 10 levels on chip with one CTA/SM costs about what the 1.03 ms of layers cost (0.87 ms). Partial trees are a **memory** lever (1 GiB → 1 MiB per log-24 tree [D]), ~0 GPU-s |
+| aligned chunks: −0.41 GPU-s (70% streamed share of `mixed_leaf`) | **overclaimed** | the opt-combined census measured T6 (`STWO_RV64_{PCS,TRACE}_STREAM_CHUNK_WORDS` 2^27 → 2^28) at only −0.10 GPU-s on `mixed_leaf` [M, `rv64-m8-20261106/opt-combined/README.md` T6]. The same change at 24×304 cuts the leaf pass 52.4 → 36.9 ms here, so calibrating the bench to the census gives aligned-32 at ≈ (36.9 − 19.5) × 0.10 / 15.5 = **−0.11 GPU-s** for PCS/trace streams [D/E]. The 70% share is unsupported |
+| "production 2^27" baseline | **wrong for recursion** | `outer_trace_commit.zig` `default_stream_chunk_words = 1 << 26` (4 columns at log 24; not covered by T6). 24×304 at chunk 4: REF 164.8 ms aligned / 185.1 ms with 7 lower-height columns (leaf 106.0 / 125.7) [M] vs 76.2 aligned chunk 32 (×0.41). The outer streamed share of `mixed_leaf` is unmeasured; it is the only route to the original −0.41 |
+| scratch 3.50 → 1.50 GiB "aligned, same chunk" | **wrong** [D] | a 2^27 chunk is 8 columns at log 24, so calls alternately end mid-block: banks 16 + 8 words → 0.5 + 1.0 + 0.5 = **2.0 GiB**; chunk 16 aligned also 2.0; chunk 32 aligned 3.0 ✓. Recursion today (2^26): 0.25 + 2 × 1.5 = 3.25 GiB, so chunk 32 aligned is also −0.25 GiB there |
+| single-CTA fused ×0.73 of W2 + leaf | **mixed chunk basis** [D] | 34.9 ms was measured at chunk 16, the 19.5 ms leaf at chunk 32. Same chunk 16: W2 28.1 + leaf 28.1 = 56.0 → ×0.62; vs chunk 32 leaf ×0.74. Either way it needs the 80.8 ms W1, so no change to the verdict |
+
+**Corrected model triple** (`plan_model.py` `'stream'`): **(0.975, 0.955, 0.90) [E]** on the 4.41 GPU-s FFT+Merkle share
+(was (0.92, 0.86, 0.75) in this doc, (0.80, 0.70, 0.60) in the plan):
+- pess −0.11 GPU-s: aligned 32-column chunks on PCS/trace streams only (T6-calibrated); partial trees 0; fused tail 0.
+- central −0.20: plus about a third of the original 70%-share case for the unmeasured outer 2^26 streams, plus fused log ≤ 21 (−0.01).
+- opt −0.44: the original 70%-share −0.41 holds (requires the outer streams to carry it) + fused log ≤ 21 −0.03.
+Streaming commit is now a ~2–5% lever on kernel GPU-s, not ~14%. Before any integration, measure the
+`mixed_leaf` GPU-s split by caller (outer streamed vs PCS/trace streamed vs single-call) with CUPTI; that number decides
+between pess and opt.
+
+**Fixes landed in this pass** (default off, nothing calls them):
+- `StreamCommitParams.lde_input` (+ `stream_commit_kernel<10, true>`): hash-only final call over the production LDE
+  chunk, so partial trees / on-chip openings no longer require the fused tail at log 22–24. Parity in arm 2.
+- Status bit 5: a query row ≥ 2^log_n now fails closed (before: no CTA owned it and its values / paths were silently
+  left unwritten). Host validation rejects `paths` with `path_log < log_n`.
+- Bench: openings timed in both arms (REF `gather_values`/`gather_paths` used to be untimed or after `stop`, while the
+  fused arm's in-kernel values were timed); `SC_ARM=1|2` chains; chunk-invariance check.
+
+Soundness/security: no change to what is committed or opened (same roots, values, paths, byte-identical). Integration
+must check `status` (bits 4/5) and fail the proof closed; an ignored status yields a proof the verifier rejects
+(liveness, not soundness).
+
+## 0. Verdict (original, see the review above for corrections)
 
 **The ×0.70 [E] factor is wrong for the fused design at the heights that matter.** The fused kernel is byte-identical (22/22 parity cases at logs 15–24, 0 mismatching words over every leaf/level-k node, root, opened value and path word; the negative control fails) [M]. But at log 22–24, where the recursion trees and native segments live, it is a **net loss of ×1.03–1.61 [M]**:
 
@@ -20,10 +56,11 @@ Two by-products of the same prototype are real and byte-identical:
 1. **Block-aligned, larger chunks** are a planner-only change with today's kernels. The eager prefix banks, not the LDE, dominate the leaf pass: 24 words/row when a call ends mid-block, 8 when it ends on a 16-column boundary.
    - Log-24 × 304-column tree commit [M]: chunk 8 (2^27 words) 108.8 ms; chunk 16 unaligned 92.9; chunk 16 aligned 83.8; chunk 32 aligned **75.4 ms**.
    - That is −31% against 2^27, and −19% against the fullstack 2^28 setting when unaligned.
-   - Streamed-commit scratch [D]: 3.50 GiB (chunk 2^27 + 2 × 24-word banks) → 1.50 GiB (aligned, same chunk), or 3.00 GiB with the 32-column chunk.
+   - Streamed-commit scratch [D]: 3.50 GiB (chunk 2^27 + 2 × 24-word banks) → ~~1.50~~ **2.0 GiB** (review: at log 24 a 2^27 chunk is 8 columns, banks 16 + 8 words), or 3.00 GiB with the 32-column chunk.
 2. **Partial (leafless) trees**: the CTA hashes its 1,024 leaves up to k = 10 levels on chip.
    - Merkle layers on a log-24 tree drop from 1.03 to 0.05 ms [M].
    - The persistent tree drops from 1 GiB to 1 MiB [D].
+   - Review: this is a memory win only. Net time with the final call included is ×1.00–1.24 at log 20–24 [M] (see review table).
    - Queried values and the bottom-10 siblings are emitted by the same pass, byte-identical to `open_values` + `open_paths` [M].
 
 **Recommended model change** (`plan_model.py` `'stream'`): replace (0.80, 0.70, 0.60) with **(0.92, 0.86, 0.75) [E]**, re-labelled "aligned stream chunks + partial trees (+ fused N2B tail at log ≤ 21)":
@@ -115,7 +152,8 @@ Where the time goes [D]:
    - In `trace_stream_plan.{zig,h}`, cut calls only where the absorbed word count ≡ 0 (mod 16), and size banks at 8 + (absorbed & 15) words per row (planes already supported by `stwo_blake2s_mixed_seeded_eager_compact_on`).
    - Raise the chunk to 32 full-height columns where the node budget allows: 3.0 GiB against 3.5 GiB today [D].
    - Flag `STWO_RV64_M9_STREAM_COMMIT=1` selects the aligned plan; the gate is node dump parity on roots.
-2. **Partial trees in the final call.**
+2. **Partial trees in the final call** (review: memory lever, ~0 GPU-s; use `lde_input = 1` above log 21 so the
+   final call keeps production W1 + W2 — arm 2 in the bench; check `status` bits 4/5 and fail closed).
    - Route the last call of each streamed tree through `stwo_m9_stream_commit_on` with `subtree_levels = 10`, `query_rows` = the lifted queries, `values` = `t.values` (same `[column][query]` layout as `open_values`) and `paths` = `t.paths`.
    - Upper levels come from `stwo_blake2s_layer_on` on the 2^(log−10) nodes, then `stwo_m9_stream_commit_upper_paths_on`.
    - Lower-height groups keep the existing native-height prefix chain; the fused call takes their eager prefix as a lifted seed (tested in parity).
