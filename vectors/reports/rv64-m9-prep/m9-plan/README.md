@@ -43,3 +43,13 @@ block (`FANIN_SAME`, codex/rv64-m9-fewer-leaves a056cee67), Poseidon2 scenarios 
 64a2cb991), packed-ingress exposure 0.46, residual x0.03, decode 0.004 GPU-s per leaf (codex/rv64-m9-packed-ingress 805d1a105).
 `truth_b16` and `occ_23` are removed; P2, D2REV and CANON are off the landing order (`levers.*.single` only) but in the search.
 Headline: best central 2-GPU set −58% (p50 −59.4, p95 −58.1, basket −58.8); no 2-GPU set reaches 60% centrally; 4 GPUs −73 to −75%.
+
+## Stream revision r4 (2026-11-07, wave 2)
+
+`model.json` regenerated with the reviewed wave-2 streams (design doc §3.2): outer GKR as built `ogkr_alone` (1.28, 1.07, 0.90)
+and `ogkr_fanin` (1.35, 1.13, 0.95) off the order, engineered `OGKR_ENG` (0.90, 0.81, 0.78) as #8 (codex/rv64-m9-outer-gkr
+a45530dc7); `stream` (0.975, 0.955, 0.90) (codex/rv64-m9-stream-commit 42ce18195); `wit` (0.80, 0.70, 0.55), class hits only in
+production (codex/rv64-m9-witness-rowpar 4459242f1); `GPUCAP` bounded by the per-block seeded first pass with services fixed
+(`FIRST_PASS`, copied from m9-gpu-replay/first_pass_basket.json) and `REPLAY` (prototype alone, net of tape read-back)
+(codex/rv64-m9-gpu-replay 7d9850bab). Headline: no 2-GPU set reaches 60% in any scenario (best central −43%: p50 −43.8,
+p95 −42.7, basket −43.2); 4 GPUs with #1–#10 −64.3 / −65.3 / −63.6%, −59.6% on the basket without OGKR_ENG.

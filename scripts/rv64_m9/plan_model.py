@@ -68,6 +68,19 @@ P2_AS_BUILT = (15.34 / 17.61, 4.12 / 103.3, 6.83 / 103.3)   # sponge node, x9.95
 P2_2TO1_K06 = (8.91 / 17.61, 1.90 / 103.3, 6.83 / 103.3)    # 2-to-1 node + P2 kernels x0.6, transcript as built [E]
 P2_ENGINEERED = (8.91 / 17.61, 1.90 / 103.3, 0.60 / 103.3)  # + parallel transcript at x3 Blake (protocol change) [E]
 
+# --- GPU capture replay (codex/rv64-m9-gpu-replay 7d9850bab, m9-gpu-replay/first_pass_basket.json) [M]:
+#     seeded serial first pass seconds, curve-service seconds and curve calls per basket block (2x5090 pod host) ---
+FIRST_PASS = {  # block: (seeded_s, curve_s, curve_calls)
+    26235156: (0.1241, 0.0, 0), 24647140: (0.1664, 0.0, 0), 24628607: (0.1693, 0.0, 0), 25229957: (0.1858, 0.0, 0),
+    24628608: (0.2427, 0.0, 0), 24626900: (0.3312, 0.0, 0), 24697070: (0.5347, 0.16, 14109), 24697073: (0.939, 0.5212, 14070),
+    26235168: (1.9483, 1.2612, 77790), 25229955: (1.1635, 0.4879, 38560), 24628590: (0.9693, 0.0, 0),
+    25229951: (1.154, 0.2438, 19279), 24628595: (1.2548, 0.1445, 13152), 24628611: (1.7132, 0.5352, 14070),
+    26235159: (2.6462, 1.5068, 60853)}
+
+
+def _fp_fixed(v):  # first pass with the curve arithmetic fixed (Montgomery limbs): 1 us per curve call [E]
+    return v[0] - v[1] + v[2] * 1e-6
+
 
 def fit(xs, ys):
     n = len(xs); mx = sum(xs) / n; my = sum(ys) / n
@@ -95,8 +108,14 @@ def folds(L, k=4):
     return f, lv
 
 
+def _fp_fit():
+    _bm = {r['block']: r['mi'] for r in basket()}
+    return fit([_bm[b] for b in FIRST_PASS], [_fp_fixed(v) for v in FIRST_PASS.values()])
+
+
 KFIT = fit([v[0] for v in BENCH15.values()], [v[6] for v in BENCH15.values()])
 WFIT = fit([v[0] for v in BENCH15.values()], [v[2] for v in BENCH15.values()])
+FP_FIT = _fp_fit()  # services-fixed first pass s vs Minstr over the basket (synthetic p50/p95) [D]
 N_PER_MI = K607 * NATIVE_FRAC_607 / 26.894777  # native kernel GPU-s per M instr [D]
 
 
@@ -138,17 +157,33 @@ SC = {
     # levers
     'p2': (P2_AS_BUILT, P2_2TO1_K06, P2_ENGINEERED),  # Poseidon2 (rec factor, native/Minstr, transcript/Minstr) [M/D/E]
     'fanin_d': (0.04, 0.0, -0.03),    # k-leaf cell ratio offset: pess ~ k2 policy (0.79-0.80), opt ~ any-family (0.72-0.75) [D]
-    'stream': (0.80, 0.70, 0.60),     # streaming commit + partial/leafless trees on FFT+Merkle share [E]
-    'wit': (0.40, 0.20, 0.10),        # recursion witness without DAG: residual of the chain share [E]
+    # streaming commit, reviewed (codex/rv64-m9-stream-commit 42ce18195): fused LDE->leaf loses x1.03-1.61 at log 22-24 [M];
+    # aligned c32 chunks -0.11 GPU-s calibrated to T6 [D/E]; partial trees save memory, not time [M]; opt = recursion 2^26
+    # chunk fix pays its -0.41 and fused tail at log <= 21 [E]
+    'stream': (0.975, 0.955, 0.90),
+    # witness rowpar, reviewed (codex/rv64-m9-witness-rowpar 4459242f1): leaf x0.513 / fold x0.760 measured on recorded nodes;
+    # production whole assignment x0.70 (x0.60..0.80) [E]; opt = hybrid (tail on chain_run, not prototyped) x0.55 [E].
+    # Class hits only: a new block runs the DAG (planner 0.4-1.0 s/node off the critical path) [E].
+    'wit': (0.80, 0.70, 0.55),
     'io_cut': (0.10, 0.03, 0.02),     # packed ingress: residual link bytes 0.455 / 15.86 GB = 0.029 [D]; pess keeps fold/geometry copies [E]
     'd2d': (0.5, 0.7, 0.9),           # in-place coset/D2D: fraction of D2D copy time removed [E]
     'occ': (0.80, 0.85, 0.90),        # busy after graphs per class + 2 jobs/GPU (needs memory cuts) [E]
-    'cap_mips': (120, 160, 250),      # GPU capture replay: fast pass + GPU replay aggregate [E; fast pass 168 MIPS M]
+    # GPU capture, reviewed (codex/rv64-m9-gpu-replay 7d9850bab): full = replay + narrow capture + ledger on GPU + service fix;
+    # the serial seeded first pass (per block [M], services fixed [E]) is the floor, times the pod-load spread [E]
+    'cap_fp_spread': (1.15, 1.0, 0.90),
+    # replay only (the prototype), net of the 48 B/step tape read-back: share of capture CPU removed [D/E]
+    # (walk share 0.15/0.23/0.30 minus read-back 0.039/0.026/0.013; the stream's script had pess/opt swapped)
+    'replay_net': (0.111, 0.204, 0.287),
     'four_gpu_eff': (0.85, 0.92, 0.96),
     'ngkr_nat': (0.90, 0.826, 0.80),  # native GKR v2-gkr: native cells x0.826, leaf x0.936 (levers.py, model.json) [D/E]
     'ngkr_rec': (0.96, 0.936, 0.92),
-    'ogkr_p2': (0.90, 0.80, 0.70),    # outer GKR on top of Poseidon2 (overlaps the hash cut; x0.57 alone) [E]
-    'ogkr_alone': (0.65, 0.57, 0.50),
+    # outer GKR, reviewed (codex/rv64-m9-outer-gkr a45530dc7): factor on recursion GPU-s, not cells (cells x0.56-0.63 [D]).
+    # As built: post-M8 tree x1.07 central (LOO 1.04-1.17), pess = +v2 binding pass x1.28, opt x0.90 [D/E];
+    # fan-in tree x1.13 (x1.10-1.25 LOO) [D/E]; engineered 0.25 ns/fact kernel with fused binding pass x0.78-0.84 [E]
+    'ogkr_alone': (1.28, 1.07, 0.90),
+    'ogkr_fanin': (1.35, 1.13, 0.95),
+    'ogkr_eng': (0.90, 0.81, 0.78),
+    'ogkr_p2': (1.28, 1.07, 0.90),    # on top of Poseidon2: no better basis than alone (the x0.57 cell basis is gone) [E]
     'd2_nat': (1.30, 1.40, 1.50),     # D2 (native b4) native cost factor; reverting divides by it (levers.py) [E]
     'd2_leaf': (0.60, 0.55, 0.50),    # D2 leaf cost factor; reverting divides by it (levers.py; M4.0 item 6: 0.60-0.73) [E]
     'miss_cpu_s': (1.2, 0.84, 0.5),   # host class build per leaf on a class miss: (13.2 plan + 2.72 pack) CPU-s / 19 nodes [D]
@@ -165,8 +200,10 @@ D2D_PER_MI = 0.11 / 26.894777  # s/GPU per M instr (IO doc L5: <=0.11 s/GPU 607,
 # Recommended landing order after the stream results (doc s4). Off the order, evaluated alone and in the search:
 #  P2 (reviewed: net loss once recursion is cut; transcript x23.9), D2REV (only pays after a large recursion cut, which
 #  P2 no longer delivers), CANON (catalog R=4: held-out padding tax x1.55 native, fold classes still miss).
-LEVER_ORDER = ['IO', 'INPLACE', 'STREAM', 'WITNESS', 'OCC', 'LEAVES', 'NGKR', 'OGKR', 'GPUCAP', 'GPU4']
-EXTRA_LEVERS = ['P2', 'D2REV', 'CANON']
+# r4 (wave-2 streams): outer GKR as built is a recursion GPU-s loss -> off the order; OGKR_ENG (gated on a standalone
+# fused-kernel bench <= 0.3 ns/fact) takes its slot in the search. REPLAY = the replay prototype alone (no narrow-capture port).
+LEVER_ORDER = ['IO', 'INPLACE', 'STREAM', 'WITNESS', 'OCC', 'LEAVES', 'NGKR', 'OGKR_ENG', 'GPUCAP', 'GPU4']
+EXTRA_LEVERS = ['P2', 'D2REV', 'CANON', 'OGKR', 'REPLAY']
 LEVER_NAME = {
     'P2': 'Poseidon2-M31-W24 leaves (S2-S4)',
     'LEAVES': 'k-leaf fan-in: one leaf verifies 2-4 same-family natives (blake_g <= 2^23, <= 2.2 G cells)',
@@ -179,7 +216,9 @@ LEVER_NAME = {
     'GPUCAP': 'GPU capture replay (M10)',
     'GPU4': '4-GPU placement (M10)',
     'NGKR': 'native GKR v2-gkr in production (128-oracle cap)',
-    'OGKR': 'outer GKR (DW-R1) in recursion nodes',
+    'OGKR': 'outer GKR (DW-R1) in recursion nodes, as built (0.82 ns/fact)',
+    'OGKR_ENG': 'outer GKR with an engineered 0.25 ns/fact kernel + fused v2 binding pass',
+    'REPLAY': 'GPU capture replay only (narrow capture + ledger stay on CPU)',
     'D2REV': 'revert D2: native blowup b4 -> b2 once recursion is cheap',
 }
 
@@ -217,23 +256,37 @@ def model(mi, sh, p, on=(), gpus=2, production=False):
         f2, n2, t2 = p['p2']
         Rl *= f2; Rf *= f2; N += n2 * mi; tx = t2 * mi
         chain_frac *= 0.5   # the Blake-G DAG is most of the chain; Poseidon rows are row-parallel [E]
-    if 'OGKR' in on:
-        f = p['ogkr_p2'] if 'P2' in on else p['ogkr_alone']; Rl *= f; Rf *= f
+    if 'OGKR' in on or 'OGKR_ENG' in on:
+        if 'OGKR_ENG' in on:
+            f = p['ogkr_eng']
+        elif 'P2' in on:
+            f = p['ogkr_p2']
+        else:
+            f = p['ogkr_fanin'] if 'LEAVES' in on else p['ogkr_alone']
+        Rl *= f; Rf *= f
     if 'D2REV' in on:
         N /= p['d2_nat']; Rl /= p['d2_leaf']
     if 'STREAM' in on:
         cut = 1 - pcs_frac * (1 - p['stream'])
         N *= cut; Rl *= cut; Rf *= cut
-    if 'WITNESS' in on:
-        c = 1 - min(0.9, chain_frac) * (1 - p['wit']); Rl *= c; Rf *= c
+    if 'WITNESS' in on:  # rowpar runs on class hits only; on a new block leaves all miss and fold_miss of folds [E]
+        c = 1 - min(0.9, chain_frac) * (1 - p['wit'])
+        if production:
+            Rf *= 1 - (1 - c) * (1 - p['fold_miss'])
+        else:
+            Rl *= c; Rf *= c
     if 'IO' in on:
         io *= p['io_cut']; Rl += DECODE_PER_LEAF * L
     if 'INPLACE' in on:
         d2d *= 1 - p['d2d']
     if 'OCC' in on:
         busy = p['occ']  # k-leaf pair leaves are 12.4-13.4 GB post-P1: two fit per 32 GB GPU [E, fewer-leaves]
-    if 'GPUCAP' in on:
-        cap = p['head'] + mi / p['cap_mips'] + 0.2
+    if 'GPUCAP' in on:  # full GPU capture: serial seeded first pass (services fixed) is the floor [M/E]
+        blk = sh.get('block')
+        fp = _fp_fixed(FIRST_PASS[blk]) if blk in FIRST_PASS else FP_FIT[0] + FP_FIT[1] * mi
+        cap = p['head'] + fp * p['cap_fp_spread'] + 0.2
+    elif 'REPLAY' in on:
+        cap = CAP_A + CAP_B * mi * (1 - p['replay_net'])
     if 'GPU4' in on:
         G = 4; eff = p['four_gpu_eff']
     if 'OCC' in on:
@@ -315,14 +368,15 @@ def run(gas_pct, out=None, gas_list=None):
     res['basket_totals'] = tot
     # minimal 2-GPU lever sets reaching >=60% cut vs post-M8 baseline on p50, p95 and the basket (central)
     import itertools
-    cand = [l for l in LEVER_ORDER if l not in ('GPU4', 'INPLACE', 'IO')] + ['P2', 'D2REV']  # IO/INPLACE always on
+    cand = [l for l in LEVER_ORDER if l not in ('GPU4', 'INPLACE', 'IO')] + ['P2', 'D2REV', 'OGKR', 'OGKR_ENG', 'REPLAY']
+    excl = ({'OGKR', 'OGKR_ENG'}, {'GPUCAP', 'REPLAY'})  # variants of one lever
     base_on = ('IO', 'INPLACE')  # CANON excluded: as built it is a bench loss and keeps fold misses (canon-leaf review) [D/E]
     res['best_2gpu'] = {}
     for n in P:
         ok = []; best = (None, -1.0)
         for k in range(1, len(cand) + 1):
             for c in itertools.combinations(cand, k):
-                if any(set(o) <= set(c) for o, _ in ok):
+                if any(set(o) <= set(c) for o, _ in ok) or any(e <= set(c) for e in excl):
                     continue
                 cuts = []
                 for name in cases:
