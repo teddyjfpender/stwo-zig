@@ -21,10 +21,10 @@ inline int batch_par_mode() {
   }();
   return mode;
 }
-// One thread per oracle slot (max_oracles = 128) plus four helper warps
+// One thread per oracle slot (max_oracles = 128) plus the helper warp
 // (advance_batch_round_block).
 constexpr uint32_t batch_par_oracle_threads = max_oracles,
-                   batch_par_threads = batch_par_oracle_threads + 128;
+                   batch_par_threads = batch_par_oracle_threads + 32;
 __global__ void batch_init(uint32_t *words, const uint32_t *seed,
                            const uint32_t *claims, const uint32_t *alpha_words,
                            BatchJobs jobs) {
