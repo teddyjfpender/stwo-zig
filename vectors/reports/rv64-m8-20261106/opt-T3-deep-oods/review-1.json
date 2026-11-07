@@ -1,0 +1,34 @@
+{
+ "schema": "rv64-m8-opt-T3-review/v1",
+ "reviewed": ["61d78d0ea", "b83d1f243"],
+ "label": "[M] tests/cuda/rv64/deep_t3_parity_bench.cu (review build), RTX 5090 GPU1 under gpu.lock; orphan pid 3302210 held 30 GB/GPU at 0% util",
+ "binary_sha256": "f348aa537c59bd01680ae1ef492d263d7f18121596c2cf9725b96ab7bf576063",
+ "pod_run_dir": "/workspace/m3/runs/m8-opt-T3-review",
+ "parity": {"cases": 51, "mismatches": 0, "new_cases": [
+   "deep_combine[log=2,g=1] one group", "deep_combine[log=12,g=40] one class", "deep_combine[log=12,g=128] one class at cap",
+   "deep_combine[log=18,g=68] grid-stride (1024 CTAs > resident)", "deep_combine[log=18,g=68,fault=5]",
+   "sample_evaluate[log=2,count=1100,fault=6] basis from 2nd sample", "sample_evaluate[log=11,count=1030,fault=3] two tiles + reduce"]},
+ "compute_sanitizer_parity_mode": {"memcheck": "0 errors", "racecheck": "0 hazards", "synccheck": "0 errors", "initcheck": "0 errors"},
+ "registers": {"deep_combine_classes": 93, "deep_validate_parallel": 40, "sample_first_basis<16|32>": 128},
+ "bench_cuda_events_7reps_median_ms": {
+   "deep_combine 2^22 x 68 (20 shared)": {"legacy": 11.006, "m8": 4.454},
+   "deep_combine 2^22 x 68 (distinct)": {"legacy": 11.005, "m8": 5.693},
+   "deep_prepare 68 x 60": {"legacy": 1.651, "m8": 0.227},
+   "sample_evaluate 2^22 x 72": {"legacy": 3.086, "m8": 0.852},
+   "sample_evaluate 2^18 x 72": {"legacy": 0.222, "m8": 0.080},
+   "sample_evaluate 2^14 x 200": {"legacy": 0.060, "m8": 0.042}
+ },
+ "findings": [
+  {"id": 1, "verdict": "CONFIRMED", "fixed": true, "what": "dead code: STWO_RV64_DEEP_LAZY_FOLD=1 FMA-fold variant + fold_small (measured loser) compiled out by default; removed, A/B kept in the comment"},
+  {"id": 2, "verdict": "CONFIRMED", "fixed": true, "what": "DRY: legacy kill-switch env parse duplicated in deep.cu and samples.cu; one m8_env_is_one helper in deep_lazy.cuh"},
+  {"id": 3, "verdict": "CONFIRMED", "fixed": true, "what": "magic 10 (tile log) in sample_basis_bits and reduce start; named sample_tile_log with static_assert against sample_tile"},
+  {"id": 4, "verdict": "CONFIRMED", "fixed": true, "what": "parity coverage gaps: no single-class / single-group combine, no grid-stride combine in parity mode, no n=4 or two-tile basis cases; 7 cases added, all bit-identical"},
+  {"id": 5, "verdict": "PLAUSIBLE", "fixed": false, "what": "protocol: new kernels are default ON with LEGACY=1 kill switches, while PROTOCOL-M8 says changes land default-off; the stream brief asks for pick-up without edits. Needs the owner/integrator decision before landing"},
+  {"id": 6, "verdict": "PLAUSIBLE", "fixed": false, "what": "status-8 (zero class denominator) path is not exercised by any parity case (needs an OM31 circle point with sx.c1 = 0); logic reviewed by hand: equal points give equal d, so 8 is raised iff legacy raises it"},
+  {"id": 7, "verdict": "MINOR", "fixed": false, "what": "deep_combine_grid caches the resident CTA count from the first device that calls it (identical 5090s today)"},
+  {"id": 8, "verdict": "MINOR", "fixed": false, "what": "bench combine/prepare timing includes a 4-byte pageable H2D status reset in both arms (us-scale, same in both arms)"}
+ ],
+ "verified_correct": ["lazy qsums == QM31 mul over CM31[u]/(u^2-2-i), all products < 2^62, sums < 2^64", "reduce64/reduce64x2 bounds", "class denominator P - x sy.c1 + y sx.c1 == legacy (sx.c0-x)sy.c1-(sy.c0-y)sx.c1", "N/D accumulation exact (D nonzero: zero d replaced by 1)", "validate_parallel first-failure order via key 2*(t-begin)+check, CTA-uniform early returns, best reset after trailing sync", "sample_warp_sum8 butterfly coordinate mapping", "basis writes into scratch_b: custody forbids scratch_a/scratch_b overlap, reduce writes scratch_b only after sample_first_basis on the same stream"],
+ "landed": false,
+ "landing_blocker": "rv64_gate.sh cannot run: orphan pid 3302210 holds 30 GB on each GPU (GpuPcsInitializationFailed for every stream); T3 tmux t3-pipe1 still waiting"
+}

@@ -1,0 +1,47 @@
+{
+ "schema": "rv64-m8-t10-review-gates/v1",
+ "source_commit": "2c9fdcf04",
+ "gates": [
+  {
+   "path": "/workspace/m3/runs/m8-opt-T10-narrow-capture-recorder/gate-review-off/gate.json",
+   "sha256": "35a559d6e3e521b05e843c12dafbe64ade9ffc1fb34e65f55002dbcab353cfb3",
+   "status": "PASS",
+   "block": 26235156,
+   "env": {},
+   "byte_identical": [
+    true,
+    true
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "frozen_default_sha256": "5987d31c4253ba204e3b782790e0e5871e7b9787e9e26fbb70f65dbfab818d95"
+  },
+  {
+   "path": "/workspace/m3/runs/m8-opt-T10-narrow-capture-recorder/gate-review-on-24628607/gate.json",
+   "sha256": "214414e8a7b1dede68ea9c6808a8d052749944c92c7fc9116cf43cf51bb3787a",
+   "status": "PASS",
+   "block": 24628607,
+   "env": {
+    "STWO_RV64_M8_CAPTURE_RECORDER": "1"
+   },
+   "byte_identical": [
+    true,
+    true
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "frozen_default_sha256": "bd6bc79381f1c0c801d1db3814d2483b0a32295730bdb19a84360196d999dc29"
+  }
+ ],
+ "unit": {
+  "test-riscv64-word16-execution-prepared": {
+   "ReleaseSafe flag off": "success",
+   "ReleaseSafe STWO_RV64_M8_CAPTURE_RECORDER=1": "success",
+   "logs": "/workspace/m3/runs/m8-opt-T10-narrow-capture-recorder/review3/"
+  }
+ }
+}
