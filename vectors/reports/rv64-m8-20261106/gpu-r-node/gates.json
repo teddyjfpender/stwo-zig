@@ -102,5 +102,56 @@
   "check mode keeps the host decode/assemble/wire bytes as the published bytes; device bytes are compared, not yet published",
   "STWO_RV64_M8_NATIVE_JOBS=1 OOMs on 26235156 and STWO_RV64_M8_OUTER_CLASS_PLAN=1 fails OuterClassPlanAllocatorMismatch on 24628607 at this base (not this stream's code); arms run without them",
   "graph cache: 0 of 68 node bodies replayed as graphs over two requests per block: body launch counts differ between requests for the same node (data-dependent verifier topology)"
- ]
+ ],
+ "review1": {
+  "label": "[M]",
+  "source_commit": "c1ff3f2e4",
+  "addon": {
+   "path": "/workspace/m3/build/m8-gpu-r-node/jobs-addon-rev1/libstwo-rv64-jobs.so",
+   "sha256": "0fe8e3c1bca0b1c29337b7980f57f14277ea1e004ff9c0b4b20c5e2c55662f38"
+  },
+  "arms": [
+   {
+    "arm": "e-26235156",
+    "status": "PASS",
+    "run": "/workspace/m3/runs/m8-gpu-r-node/g4/gate-e-26235156",
+    "device_encode_identical": "30/30 (15 cold + 15 warm)",
+    "oods_identical": "30/30",
+    "producer_stderr_sha256": "6c5fa8045f184f5e1c48f55b85524ff8b4a755a7abc0d668d596b6c9449f7d1b"
+   },
+   {
+    "arm": "e-24628607",
+    "status": "PASS",
+    "run": "/workspace/m3/runs/m8-gpu-r-node/g4/gate-e-24628607",
+    "device_encode_identical": "38/38 (19 cold + 19 warm)",
+    "oods_identical": "38/38",
+    "producer_stderr_sha256": "8837181eae128612d7e0b167d57684c21969aa01e540cc41a80c58fb85673623"
+   },
+   {
+    "arm": "d-26235156",
+    "env": "default",
+    "status": "PASS",
+    "run": "/workspace/m3/runs/m8-gpu-r-node/g4/gate-d-26235156"
+   },
+   {
+    "arm": "p-26235156-4",
+    "env": "e + FAULT_INJECTION=1 OUTER_OODS_POINT_FAULT_ORDINAL=4",
+    "status": "FAIL (expected)",
+    "evidence": "node 4 node_oods_constraint=0x03030005 (point) -> OuterDeviceOodsRejected, reported by the device before the host check",
+    "producer_stderr_sha256": "86ab8db0b871bf082973bacb6e1d27ded49a21f18e2f90bd41559ef37cc59f93"
+   },
+   {
+    "arm": "o-26235156-4",
+    "status": "FAIL (expected)",
+    "evidence": "node 4 node_oods_constraint=0x03030004 -> OuterDeviceOodsRejected",
+    "producer_stderr_sha256": "cdf111337d4963c7d8cd31a6d28f99a7e6689130f28156f1b6a66176920f7e53"
+   },
+   {
+    "arm": "n-26235156-4",
+    "status": "FAIL (expected)",
+    "evidence": "node 4 node_pcs_status=0x03040008 encode_bounds=0x01040002 -> OuterDeviceEncodeRejected",
+    "producer_stderr_sha256": "2274515735cab1f5af38415ec433e6f35f9d316c73936fe5013136e59deba73a"
+   }
+  ]
+ }
 }

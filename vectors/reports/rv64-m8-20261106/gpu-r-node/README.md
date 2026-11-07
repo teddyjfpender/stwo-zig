@@ -45,3 +45,34 @@ OODS design: each component part's authenticated AIR bytecode with every mask re
 
 ## Not landed (remaining in this piece)
 See the stream's final report (remaining_host_work). In short: the GPU-native `RecursionFactory.node` job still fails closed — it needs the device seed fill from the children's encoded slab regions and the device statement/FIXED mix (H16, H17, H19), which nothing on this branch provides yet; `seed_tape`, `child_binding` and `channel_order` node checks depend on it. Whole-node graphs are still captured on the second sighting inside requests (outer_graph_cache threshold), not at warm.
+
+## Review 1 (r-node: byte identity, device gating, lifetimes, remaining host work)
+
+Every finding was checked against the code. Confirmed findings were fixed in `c1ff3f2e4`.
+
+| # | finding | disposition |
+|---|---|---|
+| R1 | Two host acceptance checks of an outer node had no device form. The first is `InvalidOm31DeviceFixedRoot`: the FIXED root the node commits and mixes into its transcript must equal the class root. The encoder compared only the image tree-0 root with the class root, so a GPU-native publication gated only on status words could ship a proof whose transcript mixed a different FIXED root. | **fixed**: descriptor `flag_fixed_root`. `node_pcs_status` requires expected root 0 == class root (detail `root`), and `EncodedNode` passes the section `fixed_root` when the node commits FIXED itself. Mirror and kernel apply the same rule; host test refuses the mismatch. |
+| R2 | The second host-only check is `InvalidOuterOodsPoint`: the native_pcs OODS point status word must be 0. `node_oods_constraint` read only x/y. | **fixed**: the kernel reads the 33-word field and refuses a nonzero status (detail `point`, 0x03030005). Custody range 16 → 33 words. New two-key negative `STWO_RV64_M8_OUTER_OODS_POINT_FAULT_ORDINAL`. |
+| R3 | `EncodedNode.finish` ran the host reference (`inner.finish`) before reading the device verdicts. A fault both sides catch (e.g. the point status) was reported as the host's refusal, and the device verdict was never shown. | **fixed**: device verdicts first (encode, then OODS), then `inner.finish`, as `outer_job.finish` does for `lookup_sum`. |
+| — | Class bounds (`bounds`): payload, ops and scratch are worst case for every walk (`levelBound`, `n_reps ≤ q`, `fn·slots ≤ q·slots`). Every kernel exit writes both status words and the length word last. The request-slab words start `unset` (driver memset), so a check that never runs fails closed. | verified, no change |
+| — | Stream order: encoder and OODS check run on the lane exec stream after the body, before the single slab D2H. Event timing resolves in finish (no added sync). The transcript is not touched (pure re-layout). The fault knobs are two-key. | verified, no change |
+| — | The OODS kernel does not re-check sample canonicity; it relies on `node_pcs_status` over the same image. | by design: publish must require both words (the slab layout already lists both) |
+| — | The kernel does not re-validate `logs[c] ≤ tree_log` in the descriptor. The descriptor is host-built at warm (`buildDescriptor` enforces it) and content-keyed. | accepted (trusted class product) |
+
+Remaining host work (not fixed here): in check mode `EncodeCheck.init` rebuilds the descriptor and `oodsProgram` (an `Outer.prove.bind` of every component) **per node**. On the GPU-native path both must be warm class products (`ClassInfo.encode_descriptor` + program), built once. The host mirror and `wire.encode` compare are check-mode diagnostics only. `RecursionFactory.node` still fails closed (seed fill / statement mix H16/H17/H19), and whole-node graphs need a class-fixed topology.
+
+Re-test at `c1ff3f2e4` (addon `jobs-addon-rev1`, sha256 0fe8e3c1…2f38; `gates.json` `review1`):
+- [M] Check-mode arms PASS. 26235156: 30/30 device-encoded node proofs byte-identical to the host bytes, and 30/30 OODS values identical. 24628607: 38/38 and 38/38. The default gate on 26235156 also PASSes.
+- [M] Negative arms fail closed with the device verdict:
+  - point-status fault → `node_oods_constraint` 0x03030005;
+  - sample fault → 0x03030004;
+  - PCS image fault → `node_pcs_status` 0x03040008 / `encode_bounds` 0x01040002.
+- The FIXED-root rule is covered by the host mirror test. No gate arm exercises an in-node FIXED commit with a corrupted section root.
+
+Recursion-stream gates `rec-gates2` (`/workspace/m3/runs/m8-gpu-recursion/g2`, read only; not restarted):
+- the default arm d-26235156 PASSes;
+- c-*, j-* and f-26235156-4 fail with `OuterClassPlanAllocatorMismatch` (STWO_RV64_M8_OUTER_CLASS_PLAN=1);
+- b-24628607 fails with `CudaAllocationFailed` in native hybrid truth stage two (STWO_RV64_M8_NATIVE_JOBS=1).
+
+These are the same two open issues listed above.
