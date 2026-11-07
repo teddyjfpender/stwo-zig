@@ -1,6 +1,6 @@
 # RV64 M9 lever #9: GPU capture replay from first-pass checkpoints (prep stream `m9-gpu-replay`)
 
-Status: prototype + evidence, 2026-11-07. Branch `codex/rv64-m9-gpu-replay`, cut from `codex/rv64-m7-integrate` @ `786429aca`.
+Status: prototype + evidence, 2026-11-07; adversarial review the same day (§9: guards widened, op corpus added, numbers corrected). Branch `codex/rv64-m9-gpu-replay`, cut from `codex/rv64-m7-integrate` @ `786429aca`.
 Flag `STWO_RV64_M9_GPU_REPLAY` (default off; nothing in the request path reads it yet).
 Plan of record: `design/riscv-proving-stack/rv64-m9-plan.md` rev 3 (`origin/codex/rv64-m9-plan`), §4.1 row 9, §5 wave 3b.
 Receipts: `vectors/reports/rv64-m9-prep/m9-gpu-replay/` (README there). Labels: [M] measured, [D] derived, [E] estimate.
@@ -10,23 +10,23 @@ Receipts: `vectors/reports/rv64-m9-prep/m9-gpu-replay/` (README there). Labels: 
 1. **GPU replay works and is exact.** A GPU RV64 interpreter replays every chunk of a segment independently from first-pass seeds. Its output is the compact tape (`compact_tape.Step`, 48 B per step), and it is **byte-identical to the CPU recorder** (`Walk.nextTaking`, the production traced walk):
    - 24628607: 7/7 segments (26.9 M steps) at chunk sizes 64, 256, 1024 and 4096. Segment 2 was also compared byte by byte (201 MB).
    - 26235159: 49/49 segments (204.8 M steps) [M].
-   - It covers the whole fast ISA: 70 engine ops, RV64IM plus the Zbb subset. Precompiles and traps stay host-retired steps.
+   - The kernel implements the whole fast ISA (69 engine ops plus `slow`: RV64IM and the Zbb subset). **The two real blocks execute only 50 of the 69**; the other 19 (nop, slt, sra, sraw, sraiw, mulh, mulhsu, rem, divw, divuw, remw, remuw and all 7 Zbb ops) are covered by the synthetic op corpus against the reference interpreter (§9.2). Precompiles and traps stay host-retired steps.
 2. **GPU throughput is not a constraint.** On one RTX 5090 [M]:
    - one 4.19 M-step segment replays in **0.46–0.48 ms (8.7–9.1 GIPS)** at chunk 64–256;
    - whole blocks: 3.7 ms for 24628607 (7.3 GIPS) and 37 ms for 26235159 (5.5 GIPS).
-   - That is 50–100× the serial first pass.
+   - That is 46–83× the serial seeded first pass (whole block: 46× on 24628607, 71× on 26235159; one segment: 83× at 105 MIPS) [D].
    - The transport in is **4.3–4.7 B/step**, against 16 B/step for the existing MinimalRecord route and 48 B/step for the tape itself.
 3. **The plan's factor is wrong in its basis but about right in its effect.**
    - The basis: "fast pass 168 MIPS [M]" holds for 2024 blocks only. Over the 15-block basket the serial first pass runs at **114 MIPS (plain) / 105 MIPS (seeded)** [M].
    - On 2026 curve-heavy blocks it runs at 58–82 MIPS: **26235168, the p50 block, is at 62.8 MIPS**, and 26235159 at 81.9.
    - Precompile services take **64% of first-pass time** (8.02 s of 12.47 s over the basket) [M]. The curve services alone take 4.86 s, at 11–54 µs per call, because they use `u768 %` and compute a modular inverse on every call (`candidate_curves.zig`). Ordinary instructions run at 320 MIPS.
-   - The effect: in the plan model the lever's wall effect survives (p50 9.58 → 7.99 s, p95 15.66 → 13.75 s, cut 59%/58%). After the other cuts, pre-seal is bounded by Stage 1, not by the capture rate. The only block that pays is a curve-heavy p50-like one: 26235168 at 9.84 s instead of 9.49 s (+0.35 s). Fixing the service arithmetic recovers it (§5).
+   - The effect: in the plan model the lever's wall effect survives (p50 9.58 → 7.99 s, p95 15.66 → 13.75 s, cut 59%/58%) **only if the whole capture moves to the GPU** (full_now, §5). After the other cuts, pre-seal is bounded by Stage 1, not by the capture rate. The only block that pays is a curve-heavy p50-like one: 26235168 at 9.84 s instead of 9.49 s (+0.35 s). Fixing the service arithmetic recovers it (§5). The full_now variant also leaves out ~1.6 ms/segment of checkpoint capture and assumes recycled pre-faulted tape buffers (§9.4).
 4. **What actually decides the factor is not the replay.**
    - The traced walk this prototype moves to the GPU is about 23% of per-step capture CPU [D]. The other ~77% stays on CPU workers: narrow capture (`Prepared`), local ledger, boundary capture and event prefault.
-   - **Replay alone is worth about a third of the lever**: p50 9.58 → 9.14 s instead of → 7.99 s, and the basket cut stays at 53% instead of 59% [E, §5].
+   - **Replay alone is worth about a quarter of the lever**: p50 9.58 → 9.19 s (9.14 s before charging the tape read-back, §9.3) instead of → 7.99 s, and the basket cut stays at 53% instead of 59% [E, §5].
    - The 8 points need **the narrow capture and the ledger on the GPU as well**. That is the main M9 3b work item (§7, step 5).
-5. **The precompile boundary stays on the host.** Services are serial, write memory and are about 0.4% of steps (559 k of 205 M on 26235159). The first pass must execute them anyway. So they are retired by the reference session, recorded as finished host steps, and followed by a fresh seed. The GPU never models them.
-   - Moving them to the GPU would put a launch or round trip on the serial path for every call (about 1.4 M calls per basket pass). Not worth it.
+5. **The precompile boundary stays on the host.** Services are serial, write memory and are about 0.2% of steps (440 k service calls, plus 119 k ordinary traps/absent pages, in 559 k host steps of 204.8 M on 26235159: 0.27% all told) [M]. The first pass must execute them anyway. So they are retired by the reference session, recorded as finished host steps, and followed by a fresh seed. The GPU never models them.
+   - Moving them to the GPU would put a launch or round trip on the serial path for every call (3.28 M service calls, 4.31 M host steps per basket pass [M]). Not worth it.
    - Making them fast on the CPU (Montgomery 6×64-bit limbs, constants precomputed once) is worth up to 4.8 s of serial time over the basket and 1.26 s on the p50 block [M/E].
 
 ## 1. The lever in the plan
@@ -69,8 +69,9 @@ first pass (1 CPU thread, serial; unchanged control flow)            GPU (per se
 | file | what |
 |---|---|
 | `src/integrations/riscv_cpu/rv64_m9_gpu_replay.zig` | `runSeeded` (the `Engine.run` loop plus seeds and memory tape), `SegmentTape`, `Seed`/`SlowStep`/`GpuSlot` ABI, ROM export, `enabled()` for `STWO_RV64_M9_GPU_REPLAY` |
-| `src/integrations/riscv_cpu/rv64_m9_gpu_replay_dump_main.zig` | `rv64-m9-gpu-replay-dump CONFIG OUT CHUNK REF_SEG [MAX_SEG]`: plain pass (timed, host steps by service), seeded pass (timed), CPU recorder per segment (parity of memory tape and host steps; SHA-256 of the reference tape), GPU inputs. Env: `STWO_RV64_M9_PREFAULT=1`, `STWO_RV64_M9_SKIP_REF=1` |
-| `src/backends/cuda/native/rv64/m9_gpu_replay.cu` | `replay` kernel (1 thread per chunk), `scatter_slow`, `stwo_rv64_m9_gpu_replay_on(stream, job, ...)`; `-DM9_STANDALONE` harness: CUDA-event timing, SHA-256 per segment, byte comparison against `seg<k>.ref` |
+| `src/integrations/riscv_cpu/rv64_m9_gpu_replay_dump_main.zig` | `rv64-m9-gpu-replay-dump CONFIG OUT CHUNK REF_SEG [MAX_SEG]`: plain pass (timed, host steps by service), seeded pass (timed), CPU recorder per segment (parity of memory tape and host steps; SHA-256 of the reference tape), GPU inputs. Env: `STWO_RV64_M9_PREFAULT=1`, `STWO_RV64_M9_SKIP_REF=1`. `--op-corpus OUT`: the synthetic per-op corpus (§9.2) |
+| `src/integrations/riscv_cpu/rv64_m9_gpu_replay_opcorpus.zig` | the op corpus: every fast op on edge/random operands, expected tape from `machine.Cpu.stepCached` (Zbb decode set) |
+| `src/backends/cuda/native/rv64/m9_gpu_replay.cu` | `replay` kernel (1 thread per chunk), `scatter_slow`, `stwo_rv64_m9_gpu_replay_on(stream, job, ...)`; `-DM9_STANDALONE` harness: CUDA-event timing, SHA-256 per segment, byte comparison against `seg<k>.ref`, chunk-end census, `M9_INJECT=pc|mem|end|reg` fault injection |
 | `scripts/rv64_m9/gpu_replay_bench.sh` | nvcc build under `build.3.lock`; run under `gpu.lock` with `timeout 300` |
 | `scripts/rv64_m9/gpu_replay_model.py` | re-runs `plan_model.py` (rev 3) with the measured capture variants |
 | `build_support/products/{riscv_cpu,catalog}.zig` | +1 line each: the `rv64-m9-gpu-replay-dump` tool |
@@ -89,6 +90,8 @@ All on pod `rv64-resident-2x5090` (shared; 1-minute load 15–26 during the runs
 | host steps == CPU recorder steps at their positions | 72,936/72,936 | 559,074/559,074 |
 | GPU compact tape SHA-256 == CPU recorder | 7/7 at all 4 chunk sizes | 49/49 (204.8 M steps) |
 | GPU vs CPU byte comparison | segment 2: 201,326,544 B identical | — (SHA only) |
+| review re-run (2026-11-07), widened guards: GPU SHA == CPU recorder, status 0 | 7/7, chunk 256 (same 7 digests) | not re-run |
+| synthetic op corpus vs `machine.Cpu.stepCached` (§9.2) | 106,496 cases, all 69 GPU ops, byte-identical | |
 | kernel status (slow slot, misalignment, pc range, continuity) | 0 | 0 |
 
 ### 4.2 GPU replay throughput [M] (RTX 5090, thread per chunk, 128 threads per block)
@@ -179,7 +182,8 @@ Four variants of row 9, applied after levers #1–#8 in the plan's order, centra
 | **plan** | `cap_mips` 160 [E] | 7.99 (59%) | 13.75 (58%) | 9.49 | 121.1 (59%) |
 | **full_now**: replay + narrow capture + ledger on GPU, seeded first pass as measured | first pass per block [M]; fit 103 MIPS marginal for synthetic blocks [D] | 7.99 (59%; 53/65) | 13.75 (58%) | **9.84** (cap 2.55 s) | 121.8 (59%) |
 | **full_fixed**: as full_now with the service arithmetic fixed | curve calls at 1 µs [E]; fit 169 MIPS marginal [D] | 7.99 (59%) | 13.75 (58%) | 9.49 (cap 1.36 s) | 121.2 (59%) |
-| **replay_only**: this prototype; narrow capture and ledger stay on CPU workers | walk share of per-step capture CPU 0.23 (0.30/0.15) [D/E] | **9.14 (54%)** | **14.81 (55%)** | 10.62 | **138.0 (53%)** |
+| **replay_only**: this prototype; narrow capture and ledger stay on CPU workers | walk share of per-step capture CPU 0.23 (0.30/0.15) [D/E] | 9.14 (54%) | 14.81 (55%) | 10.62 | 138.0 (53%) |
+| **replay_only_net** (review): replay_only, charging the CPU read-back of the 48 B/step GPU tape | walk share − 0.026 (0.039/0.013) [E, §9.3] | **9.19 (53%)** | **14.91 (55%)** | 10.68 | **138.8 (53%)** |
 
 How to read it:
 
@@ -195,9 +199,9 @@ How to read it:
 
 ## 6. Feasibility: full ISA and precompiles
 
-- **ISA: done.** All 70 fast-engine ops (RV64I, M, the Zbb subset; FENCE as nop) are in the kernel and byte-identical on 231.7 M real steps (24628607 + 26235159).
+- **ISA: done.** All 69 fast-engine ops (RV64I, M, the Zbb subset; FENCE as nop) are in the kernel. Byte identity rests on two corpora: 231.7 M real steps (24628607 + 26235159), which execute 50 of the 69 ops, and the synthetic op corpus against the reference interpreter, which executes all 69 in 106,496 cases (§9.2) [M].
   - Everything the first pass cannot retire fast is a host step: illegal words, misalignment, absent pages, out-of-table targets, watched pages, the step budget. Their share is 0.06–0.08% of ordinary steps (21 k of 26.9 M on 607).
-  - The GPU never sees a step the first pass did not retire fast. Divergence is impossible by construction, and the continuity check catches a corrupted seed.
+  - The GPU never sees a step the first pass did not retire fast. That does **not** make divergence impossible: the kernel is a second implementation of the engine's semantics, and its evidence is parity (231.7 M real steps plus the op corpus, §9.2). At run time every chunk end is now checked (§9.1); a wrong value that never reaches a register, the pc or the memory cursor at the chunk end (for example a wrong `lhs`/`previous_rd`/`flags` field, or a register written wrongly and overwritten before the end) is not caught on the GPU. The tape is untrusted advice (`compact_tape.restore` plus the AIR), so such a bug costs a rejected proof (liveness), never soundness.
 - **Precompiles: host, by design.** keccak, sponge, secp, sha256, arith256_mod, bulk and the 7 curve ops are state transitions on guest memory. The first pass must run them anyway, because control flow depends on their results.
   - The GPU replay treats each one as a finished host step plus a reseed. Their witness families (call lists) come from the same `Event` the first pass already holds; today the walk's session re-creates them.
   - So the first pass must also append the per-family call records. That is cheap: about 560 k events on 26235159.
@@ -236,6 +240,79 @@ How to read it:
    - the replay-only walk share measured with `rv64-capture-bench` (§5);
    - **pre-seal ≤ 2 s at p50** (plan §5 3b).
 
+## 9. Adversarial review (2026-11-07)
+
+Receipts: `vectors/reports/rv64-m9-prep/m9-gpu-replay/review/`. Everything [M] re-run on the pod on 24628607 at chunk 256 (one GPU hold under 1 min per batch; dumps, caches and binaries deleted afterwards).
+
+### 9.1 Runtime guards: half the chunks were unchecked (fixed)
+
+- **Finding.** The kernel compared a chunk's end state only when the next kept seed started exactly where the chunk ended (`check_next`). On 24628607, 64,864 of 145,859 chunks (44%) end at a host step and 1 at a segment end [M, `g607-all.json` `chunk_ends`]. On segment 6, 17,560 of 20,297 do. None of those chunk ends were checked. Nothing bounded the seed's step range or the memory-tape cursor either: a bad seed read and wrote device memory out of range.
+- **Fix** (`m9_gpu_replay.cu`, `rv64_m9_gpu_replay.zig`):
+  - `SlowStep` grows from 56 to 64 B. It now carries `pc_slot` (the host step's own ROM slot) and `rd`. `Segment` gains steps, tape length, the host-step range and `end_slot`.
+  - A chunk that ends at a host step must stop at `pc_slot`, with its memory cursor at the step's memory index. It must also hold `r[rd] == previous_rd`. When the seed after the host step survives (it does unless another host step follows at once), every other register, the pc and the memory cursor must equal that seed's.
+  - A chunk that ends at the segment end must stop at `end_slot` with the cursor at the tape length.
+  - New status `ST_BOUNDS`; out-of-table fallthrough sets `ST_PC_RANGE`.
+  - `SegmentTape.verifyPartition` (called by the dump tool) proves that chunks and host steps tile each segment.
+- **Evidence** [M]:
+  - 7/7 SHA match with status 0.
+  - Fault injection (`M9_INJECT`) fires status 4 on each class: `pc`, `mem`, `end`, `reg` (a register at a seed boundary) and `regh` (a register across a host step).
+  - In an intermediate build that had only the pc and memory end checks, a register corrupted across a host step went undetected: status 0 with 6/7 SHA [M]. The original kernel had no check at all on these chunk ends (by inspection).
+  - Kernel time is unchanged within noise: 3.68 ms for the whole block; 0.50–0.52 ms for segment 2.
+  - Input grows to 4.63 B/step (from 4.61).
+- **What is still not caught on the GPU:**
+  - a wrong `lhs`/`rhs`/`previous_rd`/`flags` field that never feeds a register;
+  - a register written wrongly and overwritten before the chunk end;
+  - registers at a segment end.
+  
+  Such a bug costs a rejected proof, not soundness. The tape is untrusted advice: `compact_tape.restore` re-checks each step against the admitted ROM, and the AIR proves it. The soundness claim stands: "prover-side only, no new proof authority". The claim "divergence is impossible by construction" did not, and §6 now says so.
+
+### 9.2 Parity coverage: 19 of 69 ops were never executed (fixed)
+
+- **Finding.** The op census of both parity blocks (`cpu/cpu607-c256-p-r1.json`, `cpu/cpu159-c256-p.json`) has zero executions of nop, slt, sra, sraw, sraiw, mulh, mulhsu, rem, divw, divuw, remw, remuw, andn, orn, xnor, rev8, sext_b, sext_h and zext_h. `mulw` runs twice and `div` 598 times. "Byte-identical on the whole fast ISA" was therefore unproven for 28% of the kernel's opcodes. Those include every signed 32-bit division edge (INT32_MIN/−1, /0) and `mulhsu`, the classic hand-written-intrinsic bug.
+- **Fix.** `rv64-m9-gpu-replay-dump --op-corpus OUT` (`rv64_m9_gpu_replay_opcorpus.zig`):
+  - 77 instruction variants: every op, with immediates and shift amounts at their edges, `rd = x0` forms, branches both ways, jal/jalr forwards and backwards, and loads/stores at every width and offset.
+  - Operands: 24 edge values squared, plus 256 random pairs for ALU ops and branches; random aligned addresses for memory ops.
+  - The expected tape comes from the **reference interpreter** (`machine.Cpu.stepCached` with the Zbb decode set). It does not come from the fast engine or the M9 code. The ROM comes from the production `Engine.init`.
+  - Every case is followed by a host step whose `pc_slot` is the reference next pc, so each case also exercises the new end check.
+- **Evidence** [M]:
+  - 106,496 cases (319,488 steps). All 69 GPU opcodes appear in the ROM slots executed (checked from `rom.bin`).
+  - **Byte-identical**, status 0 (`review/g-corpus.json`, `review/corpus.json`).
+  - Injection `pc` gives status 4.
+
+### 9.3 Numbers corrected
+
+| claim | was | is | basis |
+|---|---|---|---|
+| services' share of steps (26235159) | about 0.4% (559 k of 205 M) | 0.21% service calls (440 k); 0.27% host steps (559 k, incl. 119 k traps/absent pages) | [M] `first_pass_basket.json` |
+| service calls per basket pass | about 1.4 M | 3.28 M service calls, 4.31 M host steps | [M] same |
+| GPU replay vs serial first pass | 50–100× | 46–83× | [D] §0 |
+| replay alone's share of the lever at p50 | about a third (9.58 → 9.14 s) | about a quarter (→ 9.19 s, replay_only_net) | [E] `model.json` |
+| plain vs seeded first pass, basket | +8.6% (12.47 → 13.54 s) | about +10.5% | [D]: the plain pass timed each host step with 2 clock reads (24–25 ns each [M] on the pod, TSC), about 0.21 s over 4.31 M host steps, so plain is about 12.25 s / 116 MIPS. Per-call service costs carry the same ~25–50 ns (it matters only for "ordinary" at 0.12 µs) |
+| seeded overhead on 24628607 | −9% | −9% in the original 2-rep runs, but **±0** in the review re-run (plain 159.3–159.6, seeded 160.2–160.8 MIPS, pod load 10–22) | [M] `review/cpu607.json`. The overhead is inside pod-load noise; a quiet-host A/B is needed before quoting it |
+
+`replay_only` was optimistic. A replay-only deployment leaves the narrow capture on CPU workers, which then need the tape back from the GPU:
+
+- D2H of 48 B/step: 5.4 GB on 26235168, 9.8 GB on 26235159 [D];
+- then DRAM reads instead of an in-cache walk.
+
+`replay_only_net` charges the read at 4.8 ns/step [E] (48 B at about 10 GB/s per worker), against 184.5 ns/step of capture CPU [D]. Result: p50 9.19 s (53%), p95 14.91 s (55%), basket 138.8 s (53%).
+
+The PCIe time (1.95 ns/step on one link [D]) overlaps the CPU-bound capture, so it is not charged. It does compete with proving H2D. **Conclusion:** replay without the narrow-capture port is not worth integrating on its own.
+
+### 9.4 Integration costs the plan did not carry
+
+- **Serial first-pass extras left out of `seeded_s`.**
+  - Checkpoint capture: plain `total_ns − exec_ns` = 12.7 ms / 7 segments on 24628607, 45 ms / 28 on 26235168 and 82 ms / 49 on 26235159 (about 1.6–1.8 ms per segment) [M].
+  - First touch of fresh tape buffers: 0.79 s on 26235168 (seeded `total_ns − exec_ns` with the prefault memset); +34% exec time without prefault on 24628607 [M].
+  - The large-block recycler with pre-faulted per-segment buffers is therefore **mandatory**, not an optimisation: about 38 MB per in-flight segment, about 0.6 GB at inflight 16 [D].
+- **Device memory.**
+  - The tape is 201 MB per in-flight segment (48 B × 4.19 M), plus about 18 MB of inputs, plus the narrow-capture sort scratch [E: about 0.2–0.3 GB].
+  - The OCC lever runs two jobs per 32 GB GPU at 12.4–13.4 GB each. Earlier in this review the resident services held 30.3 GB of each GPU [M, nvidia-smi].
+  - The capture region has to come out of the memory plan, and 2 in-flight segments cost about 0.9 GB [D].
+  - Better: fuse the narrow-capture producers into the replay kernel. Each thread already holds the step it would write, so it can emit narrow records directly and never materialise the 48 B/step tape: about 5× less device traffic and memory than tape-then-capture [E].
+- **GPU-s.** Replay is 0.48 ms per segment. The narrow-capture kernels (sorts/scans over about 4 M records per segment) are estimated at about 5 ms per segment, about 0.25 GPU-s on 26235159, against about 59 GPU-s of proving [E]. That is off the critical path except for the first segment (head).
+- **The full_now factor depends on work not built.** −59% at p50 requires narrow capture, ROM counts, dedup, memory/boundary records, `Batch` aggregates and ledger phase 1 on the GPU, with every other per-step CPU cost hidden behind Stage 1. None of that exists. The prototype proves only the first stage (the replay) and its parity.
+
 ## 8. Reproduce
 
 ```sh
@@ -246,6 +323,8 @@ STWO_RV64_M9_PREFAULT=1 rv64-m9-gpu-replay-dump cfg-24628607.json d607-c256 256 
 scripts/rv64_m9/gpu_replay_bench.sh build
 scripts/rv64_m9/gpu_replay_bench.sh run d607-c256 10 -1 0     # all segments; '2' for one segment
 STWO_RV64_M9_SKIP_REF=1 STWO_RV64_M9_PREFAULT=1 rv64-m9-gpu-replay-dump cfg-<block>.json tmp 256 -1   # first pass only
+rv64-m9-gpu-replay-dump --op-corpus corpus && scripts/rv64_m9/gpu_replay_bench.sh run corpus 5 -1   # op corpus (§9.2)
+M9_INJECT=pc|mem|end|reg|regh scripts/rv64_m9/gpu_replay_bench.sh run d607-c256 1 -1             # guards fire: status 4
 python3 -I scripts/rv64_m9/gpu_replay_model.py --plan-root <checkout of codex/rv64-m9-plan> --first-pass first_pass_basket.json
 ```
 
