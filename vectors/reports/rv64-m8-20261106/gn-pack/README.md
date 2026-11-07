@@ -63,3 +63,25 @@ bridges + bulk/sponge 5–28 ms; Zbb/LS-D64/tables 10–24 ms. Data per segment 
 ## Pod paths (raw, not in git)
 Logs `/workspace/m3/runs/m8-gn-pack/{p3-f,p3-e,p3-c,p2,p4}/`, gates `/workspace/m3/runs/m8-gn-pack/gate-rec-*`, `gate-rec2-24628607`,
 recordings kept for re-runs in RAM: `/dev/shm/m8-gn-pack/{rec-26235156,rec2-24628607}` (2.2 GB tmpfs, not pod disk; harness: `STWO_RV64_M8_GN_PACK_RECORDS=<dir>[:<dir>]`).
+
+## Review 1 (ded04d1c2)
+Findings confirmed against the code and fixed (`native_pack.zig`, `native_device_stage1.zig`):
+1. **Unchecked status word**: parse accepted a launch whose `status` ref was not a listed status word, so a kernel's failure verdict could
+   go unchecked and the proof would publish. Now every kernel status ref must be a listed status word (`GnPackStatusUnchecked`), and each
+   status word must sit in a `.zero` buffer (`GnPackStatusNotZeroed`). Before, an upload or scratch word could hold a host or stale value.
+2. **CheckSpec overflow**: `max_status` was 8, but `witness_status` holds 8 zero words and uses 1 for ingress, so an 8-word program failed
+   at enqueue rather than at parse. Now `max_status` = 7.
+3. **MAIN log vs class**: no check tied a launch's `log` to its columns' class logs, and a mismatch writes past the column span in the image.
+   New `Program.checkMainLogs`, plus a bridge `main_words` check. Stage 1 runs it at init and so does the GPU harness: all real launches pass.
+4. **Arena double count**: `Spec.compact_words` goes into `jobWords()`, and the footprint added the program arena on top, so once a binder
+   sets the bound each job asks for up to ~506 MB/segment more than the plan. Now a planned class does not add the arena again; a program
+   above the bound is refused at init (`GnPackArenaExceedsPlan`). With an unplanned class (0) the behaviour is the same as before.
+5. `Roms.put` leaked the words when the map insert failed (non-pinned).
+
+Re-test [M], `/workspace/m3/runs/m8-gn-pack/rv1/`: `zig build test-rv64-jobs` with GPU 532/533 (1 skipped), plus new host tests (status
+unchecked / not zeroed, MAIN log mismatch). GPU parity is unchanged: `GN_PACK_PARITY_TOTAL columns=34788 equal=34788`, with checkMainLogs
+on both blocks. Glue root and channel are equal on both blocks, and all 4 negatives fire on both.
+
+Measurement notes: "capture-thread pack" [M] was timed inside the legacy source build (the recorder), not on the GPU-native capture
+thread. The ring is plain pageable memory that is pre-faulted after segment 0. Treat it as an estimate of the capture-thread cost until
+Packer.hook runs in a driver request.
