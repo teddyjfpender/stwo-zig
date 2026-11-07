@@ -345,18 +345,18 @@ pub const Driver = struct {
         // measured 0.82G words on a 30 GB carve.
         var pooled: u64 = 0;
         if (self.config.pool_current) |pc| {
-            const P = struct {
+            const PoolQ = struct {
                 f: *const fn (*anyopaque, *usize, *usize) callconv(.c) c_int,
                 used: usize = 0,
                 reserved: usize = 0,
                 fn run(raw: *anyopaque, wk: *W.Worker) anyerror!void {
-                    const p: *@This() = @ptrCast(@alignCast(raw));
-                    try O.check(p.f(wk.context, &p.used, &p.reserved));
+                    const pq: *@This() = @ptrCast(@alignCast(raw));
+                    try O.check(pq.f(wk.context, &pq.used, &pq.reserved));
                 }
             };
-            var p = P{ .f = pc };
-            try w.call(.{ .ctx = &p, .run = P.run });
-            if (p.reserved > p.used) pooled = (p.reserved - p.used) / 4;
+            var pq = PoolQ{ .f = pc };
+            try w.call(.{ .ctx = &pq, .run = PoolQ.run });
+            if (pq.reserved > pq.used) pooled = (pq.reserved - pq.used) / 4;
         }
         const measured = q.free / 4 + pooled + class_words + w.arenaWords();
         if (measured < cap_words) std.log.info("M8 GPU-native device {d}: plan capacity {d} words measured (cap {d})", .{ w.device_ordinal, measured, cap_words });
