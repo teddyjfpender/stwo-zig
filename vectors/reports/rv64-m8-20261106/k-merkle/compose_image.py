@@ -9,7 +9,6 @@ scripts/rv64_m8_native_relink.py. Every other object must keep its recorded SHA-
 usage: compose_image.py <src-root> <out-dir> <tu> [<tu> ...]
 """
 import ctypes
-import fcntl
 import json
 import os
 from pathlib import Path
@@ -50,12 +49,13 @@ def main():
         argv[argv.index(old)] = str(obj)
     library = out / 'native/libstwo-rv64-native.so'
     argv[argv.index('-o') + 1] = str(library)
-    with open('/workspace/m3/locks/build.1.lock', 'a') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        with (out / 'link.log').open('w') as log:
-            t = time.monotonic()
-            code = subprocess.run(argv, env=dict(os.environ, TMPDIR='/workspace/m3/tmp'), stdout=log, stderr=subprocess.STDOUT).returncode
-            link_seconds = round(time.monotonic() - t, 1)
+    # The caller already holds one build lock (img1.sh: flock build.2) for the
+    # compiles; the link runs under that same lock. Taking build.1 here as
+    # well queued the link behind other streams' Zig builds for > 1 h.
+    with (out / 'link.log').open('w') as log:
+        t = time.monotonic()
+        code = subprocess.run(argv, env=dict(os.environ, TMPDIR='/workspace/m3/tmp'), stdout=log, stderr=subprocess.STDOUT).returncode
+        link_seconds = round(time.monotonic() - t, 1)
     assert code == 0, 'link failed; see ' + str(out / 'link.log')
     lib = ctypes.CDLL(str(library))
     required = json.loads((src / 'rv64/required_symbols.json').read_text())['symbols'] + ['stwo_blake2s_merkle_layers_on']
