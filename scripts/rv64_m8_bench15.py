@@ -218,6 +218,21 @@ def distribution(values):
     return {'n': len(values), 'p50': round(rank(0.5), 4), 'p90': round(rank(0.9), 4), 'max': round(values[-1], 4)}
 
 
+def producer_tail(run, limit=200_000):
+    """Last bytes of a service's producer.stderr (plain or gzipped): the fail-closed reason lives there, not in the harness log."""
+    run = Path(run)
+    try:
+        if (run / 'producer.stderr').is_file():
+            data = (run / 'producer.stderr').read_bytes()
+        elif (run / 'producer.stderr.gz').is_file():
+            data = gzip.decompress((run / 'producer.stderr.gz').read_bytes())
+        else:
+            return ''
+    except OSError:
+        return ''
+    return data[-limit:].decode(errors='replace')
+
+
 def arm_failure_reason(text):
     """The most specific error line of a failed service log (fail-closed install, OOM, ...)."""
     lines = [l.strip() for l in text.splitlines() if l.strip()]
@@ -695,7 +710,7 @@ class Bench:
                 continue
             entry = self.attempt(block, row, arm, role, round_index, state, save)
             if entry['status'] != 'ok':  # only a tolerated arm gets here: record it, skip its other services on this block
-                text = entry.get('error') or Path(entry['log']).read_text(errors='replace')
+                text = entry.get('error') or (Path(entry['log']).read_text(errors='replace') + '\n' + producer_tail(entry['run']))
                 failures[arm] = {'kind': 'parity' if entry['status'] == 'parity_failed' else 'service', 'run': entry['run'],
                                  'log': entry['log'], 'exit_code': entry.get('exit_code'),
                                  'reason': entry.get('error') or arm_failure_reason(text)}

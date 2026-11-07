@@ -178,6 +178,14 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(bench.arm_failure_reason('a\nservice never READY: M8RequestProviderNotLanded\n'),
                          'service never READY: M8RequestProviderNotLanded')
 
+    def test_producer_tail_reads_plain_and_gzipped_stderr(self):
+        import gzip, tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(bench.producer_tail(tmp), '')
+            (Path(tmp) / 'producer.stderr.gz').write_bytes(gzip.compress(b'x\nerror: GpuNativeNativeShapeHookMissing\n'))
+            text = 'service exited before READY (1)\n' + bench.producer_tail(tmp)
+            self.assertEqual(bench.arm_failure_reason(text), 'error: GpuNativeNativeShapeHookMissing')
+
     def test_arm_failures_are_reported_and_excluded_from_totals(self):
         rows = bench.basket()
         small = rows[0]
