@@ -270,6 +270,10 @@ pub const Prover = struct {
         // handoff region): in the hybrid window a second class-persistent
         // FIXED copy does not fit next to the legacy pipeline's live memory.
         w.made.job.fixed_handoff = handoff;
+        // Class regions follow the Prover's policy: the hybrid window stages
+        // them per job (its workers park between requests; persistent class
+        // regions would sit next to the legacy pipeline's live memory).
+        w.made.job.persistent_classes = self.persistent_classes;
         defer w.deinit(a);
         var done = Done{};
         try self.submitWait(w.job(), &done);
