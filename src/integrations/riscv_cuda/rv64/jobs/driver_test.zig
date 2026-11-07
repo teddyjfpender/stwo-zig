@@ -934,6 +934,49 @@ test "D1: a stage-one region the seal never filled refuses publication; a failed
     ok.deinit();
 }
 
+test "D1: a capture that fails after its last seal (no end-gated job) refuses publication" {
+    var world = World{ .a = testing.allocator, .stage_one = true };
+    var rig = try Rig.init(&world);
+    defer rig.deinit();
+    const ring = try C.Ring.init(testing.allocator, &F.ops.wait, 4, 16);
+    defer ring.deinit();
+    const cap = try C.Stream.create(testing.allocator, world.nativeFactory(), ring, 8);
+    defer cap.destroy();
+    cap.recursion = world.recursionFactory();
+    world.capture = cap;
+    var tmp = testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var r = request(621);
+    r.capture = cap;
+    r.out = tmp.dir;
+    const Late = struct {
+        /// Every segment sealed and the end handed over; then GE's final
+        /// checks fail (terminal state / collector equivalence).
+        fn run(s: *C.Stream, rows: []const u64, skip_end: bool) void {
+            var f = s.feed();
+            for (rows, 0..) |*n, seg| f.segment(.{ .segment = @intCast(seg), .native = n, .events = n }) catch return f.finish(null);
+            if (!skip_end) f.end(captureEnd(@intCast(rows.len))) catch {};
+            f.finish(if (skip_end) null else error.EthereumTerminalMismatch);
+        }
+    };
+    for ([_]bool{ false, true }) |skip_end| {
+        world.reset();
+        try cap.prepare(r.segment_rows);
+        const t = try std.Thread.spawn(.{}, Late.run, .{ cap, r.segment_rows, skip_end });
+        try testing.expectError(error.GpuNativeCaptureFailed, rig.driver.serve(&r));
+        t.join();
+        try testing.expectEqual([2]usize{ 0, 0 }, world.published);
+        try testing.expectEqual(@as(usize, 4), ring.free_count);
+    }
+    // The next request through the same stream proves.
+    world.reset();
+    try cap.prepare(r.segment_rows);
+    const t2 = try std.Thread.spawn(.{}, feedCapture, .{ cap, r.segment_rows });
+    var ok = try rig.driver.serve(&r);
+    t2.join();
+    ok.deinit();
+}
+
 test "DAG: two-stage truths frame the seal (stage 1 before, stage 2 after, same GPU); leaves read stage 2" {
     const segs = [_]D.Segment{ .{}, .{} };
     const rec = [_]D.RecursionNode{ .{ .segments = &.{0} }, .{ .segments = &.{1}, .truths = &.{ 0, 1 } }, .{ .children = &.{ 0, 1 } } };

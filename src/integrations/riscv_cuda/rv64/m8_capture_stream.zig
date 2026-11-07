@@ -444,6 +444,18 @@ pub const Stream = struct {
     pub fn endGate(self: *Stream) *W.BatchDep {
         return &self.end_gate;
     }
+    /// Driver, after the request's device wait and BEFORE publication: the
+    /// capture must have ended cleanly. Its final checks (GE terminal state,
+    /// collector equivalence, segment count, the factories' `captured`
+    /// hooks) run after the last segment sealed, so a late capture failure
+    /// fails no Stage1 gate; without this check a request whose capture
+    /// failed at its end would publish. Pure host sync with the capture
+    /// thread (no device wait); it is normally already done (capture ends
+    /// long before the recursion root).
+    pub fn awaitCaptured(self: *Stream) !void {
+        self.ended.timedWait(detach_timeout_ns) catch return error.GpuNativeCaptureNeverEnded;
+        if (self.failure.load(.acquire) or !self.end_gate.recorded.isSet() or self.end_gate.failed.load(.acquire)) return error.GpuNativeCaptureFailed;
+    }
 
     /// Capture-thread side of one request: the bridge from the capture's
     /// per-segment readiness hook to the sink. `segment` packs a captured
@@ -466,6 +478,8 @@ pub const Feed = struct {
     buffer: ?[]u32 = null,
     sealed: u32 = 0,
     finished: bool = false,
+    /// `end` ran both factories' `captured` hooks (a clean `finish` requires it).
+    ended: bool = false,
     /// First failure (the capture keeps running to its end; every
     /// unreleased gate already failed closed).
     failure: ?anyerror = null,
@@ -493,6 +507,10 @@ pub const Feed = struct {
         const sink = s.sink();
         try sink.chunk(sink.ctx, .{ .segment = self.current, .sequence = self.sequence, .first_row = s.cursor[self.current], .rows = rows, .last = last, .words = b[0..words] });
         self.sequence += 1;
+    }
+    /// Fail this request's capture from the capture thread (hook adapters).
+    pub fn abort(self: *Feed, err: anyerror) void {
+        self.note(err);
     }
     fn note(self: *Feed, err: anyerror) void {
         if (self.failure == null) self.failure = err;
@@ -532,6 +550,7 @@ pub const Feed = struct {
         const ctx = s.ctx orelse return self.failWith(error.GpuNativeCaptureNotPrepared);
         if (s.native.vtable.captured) |hook| hook(s.native.ctx, ctx, ce) catch |err| return self.failWith(err);
         if (s.recursion) |r| if (r.vtable.captured) |hook| hook(r.ctx, ctx, ce) catch |err| return self.failWith(err);
+        self.ended = true;
     }
     /// The capture thread is done with every ring buffer: report `done`
     /// exactly once (also on every error path; idempotent).
@@ -539,6 +558,9 @@ pub const Feed = struct {
         if (self.finished) return;
         self.finished = true;
         if (capture_err) |err| self.note(err);
+        // A capture that "succeeded" without handing its end to the factories
+        // (truth inputs, native finals) must not open the end gate.
+        if (self.failure == null and !self.ended) self.note(error.GpuNativeCaptureEndMissing);
         const sink = self.stream.sink();
         sink.done(sink.ctx, self.sealed) catch |err| {
             if (self.failure == null) self.failure = err;
@@ -853,4 +875,48 @@ test "capture feed: out-of-order, wrong rows, an unemitted buffer and a capture 
     try testing.expectError(error.GpuNativeCaptureNoPacker, g.segment(.{ .segment = 0, .native = &tag, .events = &tag }));
     g.finish(null);
     bare.detach();
+}
+
+test "capture feed: a clean finish without end, or a capture error after the last seal, fails awaitCaptured" {
+    var p = Packer{};
+    defer p.words.deinit(testing.allocator);
+    const ring = try Ring.init(testing.allocator, &F.ops.wait, 8, 16);
+    defer ring.deinit();
+    const s = try Stream.create(testing.allocator, .{ .ctx = &p, .vtable = &Packer.nvt }, ring, 4);
+    defer s.destroy();
+    var layout: G.RequestLayout = undefined;
+    const ctx = testCtx(&layout);
+    const rows = [_]u64{ 8, 8 };
+    const tag: u32 = 7;
+    // (a) every segment sealed, `end` never ran: the end gate fails closed.
+    try s.prepare(&rows);
+    try s.bind(&rows, &ctx);
+    var f = s.feed();
+    for (0..2) |i| try f.segment(.{ .segment = @intCast(i), .native = &tag, .events = &tag });
+    f.finish(null);
+    try testing.expectEqual(error.GpuNativeCaptureEndMissing, f.failure.?);
+    try testing.expect(s.endGate().failed.load(.acquire));
+    try testing.expectError(error.GpuNativeCaptureFailed, s.awaitCaptured());
+    s.detach();
+    // (b) every segment sealed and ended, then the capture's final checks
+    // failed: no Stage1 gate fails, but publication must not happen.
+    try s.prepare(&rows);
+    try s.bind(&rows, &ctx);
+    f = s.feed();
+    for (0..2) |i| try f.segment(.{ .segment = @intCast(i), .native = &tag, .events = &tag });
+    try f.end(captureEnd(2));
+    f.finish(error.EthereumTerminalMismatch);
+    try testing.expect(!s.gate(0).failed.load(.acquire) and !s.gate(1).failed.load(.acquire));
+    try testing.expectError(error.GpuNativeCaptureFailed, s.awaitCaptured());
+    s.detach();
+    // (c) the clean path passes.
+    try s.prepare(&rows);
+    try s.bind(&rows, &ctx);
+    f = s.feed();
+    for (0..2) |i| try f.segment(.{ .segment = @intCast(i), .native = &tag, .events = &tag });
+    try f.end(captureEnd(2));
+    f.finish(null);
+    try s.awaitCaptured();
+    s.detach();
+    try testing.expectEqual(@as(usize, 8), ring.free_count);
 }

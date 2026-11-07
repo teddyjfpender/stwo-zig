@@ -220,7 +220,7 @@ pub const Source = struct {
         fn readySegment(ctx: *anyopaque, index: usize, native: *const Native, shard: Shard, at_ns: u64) void {
             const run: *Run = @ptrCast(@alignCast(ctx));
             if (run.events == null or run.events_index != index) {
-                run.stream.fail();
+                run.feed.abort(error.GpuNativeCaptureEventsMissing);
                 return;
             }
             const events = run.events.?;
@@ -232,7 +232,7 @@ pub const Source = struct {
         }
         fn readyCancel(ctx: *anyopaque) void {
             const run: *Run = @ptrCast(@alignCast(ctx));
-            run.stream.fail();
+            run.feed.abort(error.GpuNativeCaptureCancelled);
         }
         fn main(run: *Run) void {
             const src = run.src;

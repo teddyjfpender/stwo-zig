@@ -126,6 +126,9 @@ pub const Receipt = struct {
     stage_one_bytes: u64 = 0,
     /// Truth jobs gated on the capture's end (needs_capture_end).
     capture_end_gated: u32 = 0,
+    /// Host time spent after the device wait confirming the capture ended
+    /// cleanly (Stream.awaitCaptured; normally ~0: capture ends first) [M].
+    capture_wait_ns: u64 = 0,
     peer_publishes: u64 = 0,
     peer_copies: u64 = 0,
     slab_words: [G.max_devices]u64 = @splat(0),
@@ -889,6 +892,14 @@ pub const InFlight = struct {
         if (call_err) |err| return err;
         if (!device_ok) return error.CudaDeviceFault;
         for (self.batches) |b| for (b.jobs) |bj| try bj.result;
+        // A capture that failed after its last seal (GE terminal/collector
+        // checks, a `captured` hook) fails no device job: refuse it here,
+        // before anything is published.
+        if (self.req.capture) |cap| {
+            timer.reset();
+            try cap.awaitCaptured();
+            self.receipt.capture_wait_ns = timer.read();
+        }
         for (drv.lanes, 0..) |l, d| {
             var us: u64 = 0;
             if (drv.peer_ops.event_elapsed_us(l.start_event[self.parity].?, l.end_event[self.parity].?, &us) == 0) self.receipt.device_gpu_us[d] = us;
