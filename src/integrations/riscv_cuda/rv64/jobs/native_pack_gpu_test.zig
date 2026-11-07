@@ -15,6 +15,8 @@ const api = @import("api.zig");
 const W = @import("worker.zig");
 const G = @import("gpu_native.zig");
 const P = @import("native_pack.zig");
+const S1 = @import("native_device_stage1.zig");
+const C = @import("native_commit.zig");
 
 const EventApi = struct {
     create: *const fn (*?*anyopaque, u32) callconv(.c) c_int,
@@ -123,6 +125,143 @@ fn run(w: *W.Worker, probe: *Probe) !void {
         std.debug.print("GN_PACK_GPU_ERROR step=job seg={} error={s}\n", .{ probe.seg.ordinal, @errorName(err) });
         return err;
     }
+}
+
+/// Stage-1 glue: `S1.enqueuePrologue` with the v2 witness (`.compact`) versus
+/// `.device` columns of the byte-verified image: same MAIN root, same
+/// post-MAIN channel, witness status words accept. Also the [M] GPU span of
+/// witness + MAIN commit through the real prologue.
+const GlueProbe = struct {
+    cls: *const S1.Class,
+    sym: *const S1.Symbols,
+    events: *const EventApi,
+    compact: bool,
+    chunks: []const G.TraceChunk,
+    p: *const P.Program,
+    roms: *P.Roms,
+    host_image: []const u32,
+    copy: P.H2dFn,
+    main: C.CommitPlan,
+    inputs: []C.Input,
+    bound: P.Bound = .{},
+    region: ?api.DeviceBuffer = null,
+    seed: ?api.DeviceBuffer = null,
+    ev: [2]?*anyopaque = .{ null, null },
+    result: [32]u32 = @splat(0xffffffff),
+    gpu_ms: f32 = -1,
+    pub fn classKey(self: *GlueProbe) [32]u8 {
+        return self.cls.fixed_key;
+    }
+    pub fn footprint(self: *GlueProbe) api.Footprint {
+        const c = self.cls;
+        const img = std.mem.alignForward(usize, c.image_words, 64);
+        const commit = @max(c.main.deviceWords(), c.main.coefficient_cells + c.main.eval_cells);
+        return .{ .device_words = 2 * img + commit + c.main.coefficient_cells + self.p.arenaWords() + c.main.stagedWords(0) + (1 << 20), .staged_words = self.p.arenaWords() + c.main.stagedWords(0) + 4096, .slab_words = 64, .pinned_words = c.main.tw.twiddles.len + c.main.tw.itwiddles.len + (1 << 16) };
+    }
+    pub fn stage(self: *GlueProbe, s: *api.Stager) !void {
+        const c = self.cls;
+        const r = try s.persistent(c.fixed_key, c.fixedRegionWords());
+        if (r.fresh) {
+            const zeros = [_]u32{0} ** 64;
+            var at: usize = 0;
+            while (at < r.buffer.words) : (at += 64) try s.upload(try r.buffer.slice(at, @min(64, r.buffer.words - at)), zeros[0..@min(64, r.buffer.words - at)]);
+        }
+        self.region = r.buffer;
+        const sb = try s.alloc(9);
+        try s.upload(sb, &([_]u32{0x5eed} ** 9));
+        self.seed = sb;
+        for (self.inputs) |*i| i.* = .{ .device = @ptrFromInt(@alignOf(u32)) };
+        try self.main.stage(s, self.inputs);
+        if (self.compact) try self.bound.stage(self.p, s, self.roms);
+        for (&self.ev) |*e| if (self.events.create(e, 0) != 0 or e.* == null) return error.CudaTimingFailed;
+    }
+    pub fn enqueue(self: *GlueProbe, e: *api.Enqueue) !void {
+        const c = self.cls;
+        const stream = e.stream();
+        const main_view = try e.alloc(c.main.coefficient_cells);
+        const root_out = try e.slab.device.slice(0, 8);
+        var cols: []const [*]const u32 = &.{};
+        var legacy: ?api.DeviceBuffer = null;
+        const col_buf = try std.heap.page_allocator.alloc([*]const u32, c.image_offsets.len);
+        defer std.heap.page_allocator.free(col_buf);
+        if (!self.compact) {
+            const img = try e.alloc(c.image_words);
+            legacy = img;
+            if (self.copy(@ptrCast(img.ptr), @ptrCast(self.host_image.ptr), c.image_words * 4, 1, stream) != 0) return error.CudaEnqueueFailed;
+            for (col_buf, c.image_offsets) |*cp, off| cp.* = img.ptr + off;
+            cols = col_buf;
+        }
+        if (self.events.record(self.ev[0].?, stream) != 0) return error.CudaTimingFailed;
+        const witness: S1.Witness = if (self.compact) .{ .compact = .{ .chunks = self.chunks, .roms = self.roms, .program = self.p, .bound = &self.bound } } else .{ .device = cols };
+        const pro = try S1.enqueuePrologue(c, self.sym, e, self.seed.?, self.region.?, witness, &.{}, &self.main, self.inputs, main_view, root_out);
+        if (self.events.record(self.ev[1].?, stream) != 0) return error.CudaTimingFailed;
+        try e.channel.snapshot(e.slab, 8);
+        var spec = S1.CheckSpec{ .check = @intFromEnum(G.Check.witness_status) };
+        try spec.mustBeZero(pro.witness_status);
+        for (pro.compact_status[0..pro.compact_status_len]) |st| try spec.mustBeZero(st);
+        if (self.sym.check(e.ctx(), 0, &spec, e.slab.device.ptr + 24) != 0) return error.CudaEnqueueFailed;
+        self.result[25] = @intCast(pro.compact_status_len);
+        if (legacy) |img| e.free(img);
+        e.free(main_view);
+    }
+    pub fn finish(self: *GlueProbe, v: api.SlabView) !void {
+        const n = self.result[25];
+        @memcpy(self.result[0..25], v.words[0..25]);
+        self.result[25] = n;
+        var ms: f32 = -1;
+        if (self.events.elapsed(&ms, self.ev[0].?, self.ev[1].?) == 0) self.gpu_ms = ms;
+        for (self.ev) |e| if (e) |x| {
+            _ = self.events.destroy(x);
+        };
+    }
+    pub fn abort(self: *GlueProbe) void {
+        for (self.ev) |e| if (e) |x| {
+            _ = self.events.destroy(x);
+        };
+    }
+};
+
+fn runGlue(w: *W.Worker, probe: *GlueProbe) !void {
+    var done: Done = .{};
+    try w.submit(api.Job.from(GlueProbe, probe), .{ .ctx = &done, .done = Done.onDone });
+    while (done.n.load(.seq_cst) == 0) std.Thread.yield() catch {};
+    if (done.err) |err| {
+        std.debug.print("GN_PACK_GPU_ERROR step=glue compact={} error={s}\n", .{ probe.compact, @errorName(err) });
+        return err;
+    }
+}
+
+fn glue(a: std.mem.Allocator, w: *W.Worker, libs: anytype, seg: *const Segment, p: *const P.Program, roms: *P.Roms, events: *const EventApi, host_image: []const u32, copy: P.H2dFn) !void {
+    const sym = try S1.Symbols.load(&libs.base, &libs.addon, null);
+    const fixed_shapes = [_]C.Shape{.{ .log_size = 5, .encoding = .coefficients }};
+    const shapes = try a.alloc(C.Shape, seg.logs.len);
+    defer a.free(shapes);
+    for (shapes, seg.logs) |*sh, l| sh.* = .{ .log_size = l, .encoding = .evaluations };
+    var cls: S1.Class = undefined;
+    cls.a = a;
+    cls.fixed = try C.CommitPlan.init(a, &fixed_shapes, 1);
+    defer cls.fixed.deinit();
+    cls.main = try C.CommitPlan.init(a, shapes, 1);
+    defer cls.main.deinit();
+    cls.fixed_key = @splat(0x70 + @as(u8, @intCast(seg.ordinal)));
+    cls.image_offsets = seg.offsets;
+    cls.image_words = seg.image_words;
+    const inputs = try a.alloc(C.Input, shapes.len);
+    defer a.free(inputs);
+    var out: [2][32]u32 = undefined;
+    var ms: [2]f32 = undefined;
+    var counts: [2]u32 = undefined;
+    for ([_]bool{ true, false }, 0..) |compact, k| {
+        var probe = GlueProbe{ .cls = &cls, .sym = &sym, .events = events, .compact = compact, .chunks = seg.chunks, .p = p, .roms = roms, .host_image = host_image, .copy = copy, .main = cls.main, .inputs = inputs };
+        try runGlue(w, &probe);
+        out[k] = probe.result;
+        ms[k] = probe.gpu_ms;
+        counts[k] = probe.result[25];
+    }
+    const root_equal = std.mem.eql(u32, out[0][0..8], out[1][0..8]);
+    const channel_equal = std.mem.eql(u32, out[0][8..24], out[1][8..24]);
+    std.debug.print("GN_PACK_STAGE1_GLUE seg={} root_equal={} channel_equal={} witness_status_compact=0x{x} witness_status_device=0x{x} compact_status_words={} gpu_ms_witness_plus_commit={d:.3} gpu_ms_commit_only={d:.3}\n", .{ seg.ordinal, root_equal, channel_equal, out[0][24], out[1][24], counts[0], ms[0], ms[1] });
+    try std.testing.expect(root_equal and channel_equal and out[0][24] == 0 and out[1][24] == 0 and counts[0] == p.status_len);
 }
 
 fn readU64(lo: u32, hi: u32) u64 {
@@ -241,10 +380,12 @@ fn gpuParity() !void {
             max_words = @max(max_words, std.mem.alignForward(usize, s.image_words, 64) + p.arenaWords() + (1 << 16));
             std.debug.print("GN_PACK_PROGRAM dir={s} seg={} chunks={} chunk_bytes={} data_bytes={} launches={} arena_bytes={} image_bytes={} parse_ns={} capture_pack_ns={} capture_compact_ns={}\n", .{ path, s.ordinal, s.chunks.len, p.chunk_words * 4, p.data_words * 4, p.launches.items.len, p.arenaWords() * 4, s.image_words * 4, parse_ns, s.pack_ns, s.compact_ns });
         }
-        const w = try W.Worker.create(a, &gpu.libs.ops, .{ .device = 0, .arena_words = 2 * max_words + (1 << 24), .pinned_slot_words = 1 << 16, .max_outstanding = 2 });
-        defer w.destroy();
         var max_image: usize = 0;
         for (segs.items) |s| max_image = @max(max_image, s.image_words);
+        // parity: 2 jobs in flight of (image + program); glue: image x2 +
+        // MAIN coefficients + commit workspace (beta 1) + program.
+        const w = try W.Worker.create(a, &gpu.libs.ops, .{ .device = 0, .arena_words = @max(2 * max_words, 6 * max_image + max_words) + (1 << 24), .pinned_slot_words = 1 << 25, .max_outstanding = 2 });
+        defer w.destroy();
         var hp: ?*anyopaque = null;
         if (gpu.libs.ops.wait.host_alloc(max_image * 4, &hp) != 0 or hp == null) return error.PinnedAllocationFailed;
         defer _ = gpu.libs.ops.wait.host_free(hp.?);
@@ -273,6 +414,11 @@ fn gpuParity() !void {
             total_columns += s.logs.len;
             total_equal += equal;
             try std.testing.expect(status_ok);
+        }
+        // Stage-1 glue on the last segment (host_image holds its verified MAIN).
+        {
+            const li = segs.items.len - 1;
+            try glue(a, w, &gpu.libs, &segs.items[li], &programs[li], &roms, &events, host_image[0..segs.items[li].image_words], copy);
         }
         // Negatives on segment 0.
         {
