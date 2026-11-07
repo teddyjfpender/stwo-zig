@@ -67,6 +67,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         .{ .name = "test-riscv64-division-product-circuit", .source = "src/integrations/riscv_cpu/rv64_division_product_circuit_test_root.zig" },
         .{ .name = "test-riscv64-word16-execution-circuit", .source = "src/integrations/riscv_cpu/rv64_word16_execution_circuit_test_root.zig" },
         .{ .name = "test-riscv64-v3-services-recursion", .source = "src/integrations/riscv_cpu/rv64_v3_services_recursion_test_root.zig" },
+        .{ .name = "test-riscv64-m9-class-corpus", .source = "src/integrations/riscv_cpu/rv64_m9_class_corpus_test_root.zig" },
     }) |spec| {
         const tests = context.b.addTest(.{ .root_module = createRoot(context, product, spec.source), .filters = if (std.mem.eql(u8, spec.name, "test-riscv64-om31-native-pcs")) &.{ "OM31 native PCS", "OM31 frame", "OM31 V3" } else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-full-leaf-census")) &.{"actual complete CPU P2 mixed recursive leaf"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-pure-leaf-census")) &.{"source-exact complete CPU pure P2 candidate"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-matched-blake-census")) &.{"matched all-Blake complete CPU b4 q54 P20"} else &.{} });
         const run = context.b.addRunArtifact(tests);

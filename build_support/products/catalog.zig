@@ -97,6 +97,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-global-execution", .description = "Actual multi-shard CPU and global RAM prefix", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-memory", .description = "Check CPU-owned scalable LS and RAM boundary sources", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-v3-services-recursion", .description = "v3 services (SHA-256, arith256_mod, bulk memory) circuit point parity and in-circuit truth leaves", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-m9-class-corpus", .description = "M9 L1a: dump actual CPU leaf class statics (FIXED columns, assignment records) when STWO_RV64_M9_CORPUS_DIR is set", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-keccak-pair2n-circuit", .description = "Qualify strict-pair native2n K CircuitLane point authority", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-division-degree3-circuit", .description = "Qualify degree3 DIV external CircuitLane point authority", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-shift-merged-circuit", .description = "Qualify shared SHIFT range prefix in external arithmetic lanes", .scope = .riscv_cpu },
