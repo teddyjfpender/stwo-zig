@@ -38,6 +38,7 @@ See `gates-summary.json`.
 | gate-3 | 24628607 | img2 9175bcb0 | f7d22ccc8 | default | PASS |
 | gate-4 | 26235156 | img2 9175bcb0 | f7d22ccc8 | MERKLE_FUSED=1, chunk 2^28, OUTER_ASSIGNMENT_GRAPH=1 | PASS |
 | gate-5 | 24628607 | img2 9175bcb0 | ba9757375 (rebased on integrate 786429aca) | default | PASS |
+| gate-6 | 24628607 | img2 9175bcb0 | f35b604a1 (rebased on integrate 1088a894d) | default | PASS |
 
 On the default runtime (25d0e62f, which already exports the T6 entry) only the Zig streamRoot change is live: with the flag unset it runs the same loop.
 The CUDA call-site changes reach a runtime once an image includes them. img2 (`/workspace/m3/build/m8-k-merkle/img2/runtime.json`) is ready to adopt.

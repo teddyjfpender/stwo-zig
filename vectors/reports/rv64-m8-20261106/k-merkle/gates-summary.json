@@ -25,7 +25,8 @@
   }
  },
  "notes": {
-  "gate-5-def-24628607": "after rebase onto integrate 786429aca (harness/runtime-only changes); source ba9757375 = this branch minus receipts"
+  "gate-5-def-24628607": "after rebase onto integrate 786429aca (harness/runtime-only changes); source ba9757375 = this branch minus receipts",
+  "gate-6-def-24628607": "after the second rebase onto integrate 1088a894d (p-truth-split plan.zig, flag-off); source f35b604a1 = landed tree minus this receipt edit"
  },
  "gates": [
   {
@@ -127,6 +128,24 @@
    ],
    "library_sha256": "9175bcb076e47b53deb38e862f6f083346a15eaccaa405f5ff188dcff9a4998f",
    "gate_json_sha256": "111cb68c8c9e68e27626490c30d1a95039c24aa45b1158f0dc0fb44e569ad415"
+  },
+  {
+   "gate": "gate-6-def-24628607",
+   "status": "PASS",
+   "block": 24628607,
+   "source_commit": "f35b604a1",
+   "extra_env": {},
+   "assignment_dump": false,
+   "byte_identical": [
+    true,
+    true
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "library_sha256": "9175bcb076e47b53deb38e862f6f083346a15eaccaa405f5ff188dcff9a4998f",
+   "gate_json_sha256": "4a575b00a6074bdf785c6f13ba5321935a734ba38cfce4d98c9739e8d565422d"
   }
  ]
 }
