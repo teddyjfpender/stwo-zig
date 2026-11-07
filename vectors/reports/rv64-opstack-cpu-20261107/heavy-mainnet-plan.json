@@ -1,6 +1,6 @@
 {
   "schema": "stwo.opstack.heavy-mainnet-source-plan.v1",
-  "scope": "complete execution capture and source-derived trace geometry; no whole-block STARK",
+  "scope": "Complete execution capture and source-derived trace geometry",
   "block": 121065789,
   "source_commit": "117942bdc558d13552f29763faee43ad8863858b",
   "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",

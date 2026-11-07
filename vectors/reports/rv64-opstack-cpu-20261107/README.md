@@ -116,3 +116,17 @@ Both exact corruption checks passed. The producer now exits successfully
 after syncing its durable batch index. The merged GPU recorder also
 matched the prior block 121057303 census with the flag off and on.
 [Resident and recorder receipts](cpu-resident-fixed.json)
+
+## Pairing-bearing mainnet prefix
+
+The 13,631,475-step prefix of block 121065789 crossed the first Fp2
+service and proved 841 calls with 13 CPU and 12 service proofs. It took
+338.259 s to produce at 4.913 GiB peak RSS. The independent prefix
+receiver took 47.587 s, including 0.829 s checking proofs. It rejected
+both proof mutations. Whole-block admission separately rejected this
+prefix with `EthereumTerminalPcMismatch`.
+
+The run uses 13 batches of 1,048,575 steps, one eight-worker lane,
+scratch-backed capture and deferred lookup binding. The earlier
+14-batch trial with immediate binding was killed at 5.632 GiB.
+[Pairing-prefix proof and failure receipts](pairing-prefix-proof.json)

@@ -1,7 +1,7 @@
 {
   "schema": "stwo.opstack.pairing-factors.v1",
   "control_commit": "9acf38b1d3745d0aada5fa0d2818cf122ee91367",
-  "scope": "OP Mainnet execution and independent Unicorn oracle; no whole-block STARK",
+  "scope": "OP Mainnet execution and independent Unicorn oracle",
   "compiler_inputs_count": 7417,
   "compiler_inputs_sha256": "b247130c42d1db781d72f1b1288975e7de3d74359d248d43a9c71c99042aef31",
   "rows": [

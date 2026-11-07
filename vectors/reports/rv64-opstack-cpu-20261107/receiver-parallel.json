@@ -2,7 +2,7 @@
   "schema": "stwo.opstack.resident-receiver-comparison.v1",
   "scope": "same OP Mainnet block 121057303, two independently received durable bundle copies each loaded twice",
   "profile": "conjectured128_b2_q108_p20_fold4",
-  "timing_note": "one process per run; the parallel measurement overlapped compilation, so cold setup wall is not a controlled comparison",
+  "timing_note": "Each arm ran in one process. The parallel arm overlapped compilation during cold setup.",
   "runs": {
     "serial": {
       "runner_sha256": "c84c43810004ed1260b86a1ae79c1a76a5aacd92f17dcbe29185911498025dff",

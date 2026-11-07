@@ -1,7 +1,7 @@
 {
   "schema": "stwo.opstack.pairing-hints.v1",
   "control_commit": "aa467d7049471cfd531632d0229597c92754ed7e",
-  "scope": "mainnet execution and independent oracle; no whole-block STARK",
+  "scope": "OP Mainnet execution and independent oracle",
   "compiler_inputs_sha256": "f4673d8bebeb4af6cee9e62cc174a210a0f97d3cfcfe3b928fe1c848669ef85b",
   "rows": [
     {

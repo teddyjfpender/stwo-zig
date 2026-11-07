@@ -1,7 +1,7 @@
 {
   "schema": "stwo.opstack.capture-census.v1",
   "block": 121057303,
-  "scope": "exact source planning; no STARK proof",
+  "scope": "Exact native source planning",
   "compared_fields": [
     "cpu",
     "truths",
