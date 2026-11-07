@@ -2,7 +2,7 @@
 # T10 pipeline 2 (after pipe1's three gate PASSes): canonical 3+3 A/B on 24628607 with the same-memory-model preset
 # (both arms = canonical baseline env; only STWO_RV64_M8_CAPTURE_RECORDER differs). Drivers = the gate build (code unchanged).
 # The runner's quiet gate refuses a service while other streams compile (nvcc/cicc/ptxas/zig) or the pod is loaded, so each
-# attempt first waits for no compilers and 1-min load < 8, then runs into a fresh out dir; up to ATTEMPTS attempts.
+# attempt first waits for no compilers, then runs into a fresh out dir; up to ATTEMPTS attempts.
 # Usage (pod, tmux): C=<commit> [ATTEMPTS=12] bash pipe2.sh
 S=m8-opt-T10-narrow-capture-recorder; R=/workspace/m3/runs/$S; SRC=/workspace/m3/src/$S; B=/workspace/m3/build/$S
 C=${C:?commit}; ST=$R/pipe2.status; RT=$SRC/design/riscv-proving-stack/m7-handoff/p0-runtime.json; ATTEMPTS=${ATTEMPTS:-12}
@@ -16,7 +16,8 @@ python3 scripts/rv64_m7_integration_stack.py prepare --source-root $SRC --source
   --native-hooks-commit c72b51646 --device-hooks-commit c72b51646 \
   --preset $SRC/vectors/reports/rv64-m8-20261106/opt-T10-narrow-capture-recorder/ab-preset.json --block 24628607 \
   --out $R/ab2-manifest.json > $R/ab2-prepare.log 2>&1; log prepare rc=$?
-quiet() { ! pgrep -x 'nvcc|cicc|ptxas|zig|nsys' > /dev/null && awk '{exit !($1 < 8)}' /proc/loadavg; }
+# Host load is informational for the runner (quiet_resource=cgroup); only wait out compilers it lists as blocking.
+quiet() { ! pgrep -x 'nvcc|cicc|ptxas|zig|nsys' > /dev/null; }
 for k in $(seq 1 $ATTEMPTS); do
   n=0; until quiet; do sleep 20; n=$((n+1)); done
   log attempt-$k quiet-after=$((n*20))s
