@@ -13,14 +13,17 @@ const MW = @import("../../word16_global_execution/services/gkr_local/manifest_wi
 const Graph = @import("leaf_graph.zig");
 const Census = @import("geometry_census.zig");
 
-/// cap_log 5 fails host cap derivation on the native FIXED tree (height 18, 140 mixed-size preprocessed
-/// columns; merkle.hostCap / FRI positions -> ShapeMismatch, measured 2026-11-07), so this census stops at 3.
-const CAPS = [_]u32{ 0, 3 };
+/// Caps above 3 can fail host cap derivation from the proof's own query paths (`merkle.hostCap`): with 54 native
+/// queries a level-c pair is uncovered with probability 2^(c-1) (1 - 2^-(c-1))^54 per tree (c = 4: 5.9e-3, c = 5: 0.49),
+/// so each cap is attempted and its error recorded instead of aborting the census.
+const CAPS = [_]u32{ 0, 2, 3, 4, 5 };
 const FULL_CAP: u32 = 3;
 
 const Capture = struct {
     var cells: [CAPS.len]u64 = .{0} ** CAPS.len;
     var blake: [CAPS.len]u64 = .{0} ** CAPS.len;
+    var qm31: [CAPS.len]u64 = .{0} ** CAPS.len;
+    var failed: [CAPS.len]?anyerror = .{null} ** CAPS.len;
     var valid_full = false;
     pub fn run(a: std.mem.Allocator, setups: anytype, bundle: anytype, expected: anytype, config: anytype, authority: anytype) !void {
         var inventory = try Execution.Inventory.initWithAuthority(a, setups, &.{}, bundle.requests, expected, config, authority);
@@ -33,12 +36,16 @@ const Capture = struct {
         for (CAPS, 0..) |cap, i| {
             var input = base;
             input.cap_log = cap;
-            var graph = try Graph.cpuTraceOnly(a, input);
+            var graph = Graph.cpuTraceOnly(a, input) catch |err| {
+                failed[i] = err;
+                continue;
+            };
             defer graph.deinit();
             var label: [64]u8 = undefined;
             const measured = try Census.report(a, graph.ctx, try std.fmt.bufPrint(&label, "m9_leaf_cap{d}_d2_native_b4_q54_p20_fold4", .{cap}));
             cells[i] = measured.total_cells;
             blake[i] = measured.raw_rows.blake_g_gate;
+            qm31[i] = measured.raw_rows.qm31_ops;
         }
         // Witness-evaluated graph at FULL_CAP: cpuMode checks isCircuitValid() and fails with CurrentOm31LeafRejects otherwise.
         var input = base;
@@ -52,9 +59,14 @@ const Capture = struct {
 test "D2 actual native CPU recursive verifier M9 leaf Merkle cap census" {
     try Fixture.exercise(.d2_native_b4_q54_p20_fold4, Capture);
     try std.testing.expect(Capture.valid_full);
-    for (CAPS, Capture.cells, Capture.blake) |cap, c, b| {
-        std.debug.print("M9_LEAF_CAP_CENSUS cap_log={} total_cells={} raw_blake_g_rows={} cells_vs_cap0={d:.4} blake_vs_cap0={d:.4}\n", .{ cap, c, b, @as(f64, @floatFromInt(c)) / @as(f64, @floatFromInt(Capture.cells[0])), @as(f64, @floatFromInt(b)) / @as(f64, @floatFromInt(Capture.blake[0])) });
+    try std.testing.expect(Capture.failed[0] == null and Capture.failed[2] == null);
+    for (CAPS, Capture.cells, Capture.blake, Capture.qm31, Capture.failed) |cap, c, b, q, f| {
+        if (f) |err| {
+            std.debug.print("M9_LEAF_CAP_CENSUS cap_log={} failed={s}\n", .{ cap, @errorName(err) });
+            continue;
+        }
+        std.debug.print("M9_LEAF_CAP_CENSUS cap_log={} total_cells={} raw_blake_g_rows={} raw_qm31_rows={} cells_vs_cap0={d:.4} blake_vs_cap0={d:.4}\n", .{ cap, c, b, q, @as(f64, @floatFromInt(c)) / @as(f64, @floatFromInt(Capture.cells[0])), @as(f64, @floatFromInt(b)) / @as(f64, @floatFromInt(Capture.blake[0])) });
     }
-    try std.testing.expect(Capture.blake[1] < Capture.blake[0]);
+    try std.testing.expect(Capture.blake[2] < Capture.blake[0]);
     std.debug.print("M9_LEAF_CAP_VALID cap_log={} circuit_valid=true native_proof_unchanged=true\n", .{FULL_CAP});
 }

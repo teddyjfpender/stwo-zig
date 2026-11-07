@@ -108,11 +108,11 @@ pub const CpuInput = struct {
     config: W.PcsConfig,
     encoded: *const CpuWorker.CpuEncoded,
     fixed: ?*const Fixed.Binding = null,
-    /// M9 proof-params prototype (default 0 = full paths, byte-identical; 0 defers to STWO_RV64_M9_PCS_PARAMS leaf_cap,
-    /// unset = 0): Merkle cap log of
-    /// the in-circuit native-proof verifier. Every native tree taller than the cap is checked
+    /// M9 proof-params prototype: Merkle cap log of the in-circuit native-proof verifier. null (default)
+    /// defers to STWO_RV64_M9_PCS_PARAMS leaf_cap (unset = 0 = full paths, byte-identical); an explicit
+    /// value (including 0) overrides the environment. Every native tree taller than the cap is checked
     /// against a guessed, root-checked 2^cap_log cap (`fromNativeCapped`, rv64-m6-diet-wire s5).
-    cap_log: u32 = 0,
+    cap_log: ?u32 = null,
 };
 pub fn cpu(a: std.mem.Allocator, input: CpuInput) !Graph {
     return cpuMode(a, input, false, null);
@@ -137,7 +137,9 @@ fn cpuMode(a: std.mem.Allocator, input: CpuInput, trace_only: bool, factory: ?Ou
     var arena = std.heap.ArenaAllocator.init(a);
     defer arena.deinit();
     const shape = try Capture.geometry(arena.allocator(), input.setup, input.config);
-    const cap_log = if (input.cap_log != 0) input.cap_log else try @import("../m9_pcs_params.zig").leafCapFromEnv();
+    const cap_log = input.cap_log orelse try @import("../m9_pcs_params.zig").leafCapFromEnv();
+    // The tape class key (Tape.cpuClass) does not carry the cap: a capped leaf must never replay or record a tape.
+    if (cap_log != 0 and factory != null and Tape.mode() != .off) return error.M9LeafCapTapeUnsupported;
     const values = try V.proof.fromNativeCapped(arena.allocator(), &admitted.proof, &admitted.capture, &shape, cap_log);
     const local = input.manifest.entries[input.index].local orelse return error.WideCpuLocalRequired;
     const words = try Cpu.expectedWords(arena.allocator(), input.setup, input.request, input.first, input.expected, input.manifest.digest, admitted.proof.commitment_scheme_proof.commitments.items[1], local.digest, input.encoded.claims);

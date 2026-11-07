@@ -97,11 +97,40 @@ def tree_depths(trace_log, lb, fold_step=4, n_pcs=4, last_log=0):
     return pcs + fri
 
 
+# Merkle-cap circuit cost per capped tree and query, measured on the D2 mini fixture (m9_leaf_cap_census_test, caps 0/2/3/4,
+# vectors/reports/rv64-m9-prep/m9-proof-params/leaf-cap-census.log) [M, exact fit on 7 capped trees x 54 queries]:
+#   blake_g  -80 (c q - (2^c - 1)) per tree (c fewer node compressions per query, 2^c - 1 once to hash the cap to the root)
+#   qm31_ops +32 (2^c - 1) - 48 c per query (selectHash: 2^c - 1 hash muxes x 8 condFlipU32; minus c merkleNode levels)
+#   m31_to_u32 -15.2 c per query
+# The qm31 term is exponential in c: it is what bounds the useful cap (the pre-review model had no qm31 term).
+SEL_QM31_PER_MUX = 32.0
+SEL_QM31_PER_LEVEL = 48.0
+M31_PER_LEVEL = 15.2
+
+
+def capped(depths, cap):
+    """Trees the in-circuit verifier caps (`merkle.capLogFor`: only trees strictly taller than the cap)."""
+    return [d for d in depths if cap and d > cap]
+
+
 def path_rows(depths, cap):
     """blake rows saved per query by a cap of 2^cap nodes per tree, and the one-off rows to hash each cap to its root."""
-    save = sum(min(cap, d) for d in depths) * G_PER_COMPRESSION
-    once = sum((1 << min(cap, d)) - 1 for d in depths) * G_PER_COMPRESSION
-    return save, once
+    t = len(capped(depths, cap))
+    return t * cap * G_PER_COMPRESSION, t * ((1 << cap) - 1) * G_PER_COMPRESSION
+
+
+def cap_side_rows(depths, cap):
+    """(qm31_ops, m31_to_u32) rows added per query by the cap (qm31 > 0 is cost, m31 < 0 is a saving) [M fit]."""
+    t = len(capped(depths, cap))
+    return t * (SEL_QM31_PER_MUX * ((1 << cap) - 1) - SEL_QM31_PER_LEVEL * cap), -t * M31_PER_LEVEL * cap
+
+
+def cap_uncovered(cap, q):
+    """P[the host cannot derive a tree's cap from the proof's own query paths] (`merkle.hostCap` MerkleCapUncovered):
+    some level-cap sibling pair has no query under it. Union bound 2^(c-1) (1 - 2^-(c-1))^q [rv64-m6-diet-wire s5]."""
+    if cap == 0:
+        return 0.0
+    return min(1.0, 2.0 ** (cap - 1) * (1 - 2.0 ** -(cap - 1)) ** q)
 
 
 # --- leaf model: fixed + per-query rows per component, fitted on M6/D2 pairs ---
@@ -116,16 +145,21 @@ class Leaf:
         self.F = [a - 108 * r for a, r in zip(y1, self.r)]
 
     def rows(self, lb, q, cap=0):
-        save, once = path_rows(tree_depths(self.trace_log, lb), cap) if cap else (0, 0)
+        dep = tree_depths(self.trace_log, lb)
+        save, once = path_rows(dep, cap)
+        sel_q, m31_q = cap_side_rows(dep, cap)
         out = []
         for i in range(5):
             per_q = self.r[i] + (lb - 1) * self.delta[i]
+            extra = 0
             if i == 4:
                 per_q -= save; extra = once
             elif i == 2:
                 per_q -= save * TRIPLE_PER_BLAKE; extra = once * TRIPLE_PER_BLAKE
-            else:
-                extra = 0
+            elif i == 1:
+                per_q += sel_q
+            elif i == 3:
+                per_q += m31_q
             out.append(max(0.0, self.F[i] + extra + q * per_q))
         return out
 
@@ -174,7 +208,13 @@ def fold_rows(y_now, lb_child, q_child, cap, n_children=None):
         elif i == 0:
             out.append(y_now[i])
         else:
-            out.append(fixed + child * q_child / 108.0 * n_children)
+            # qm31 / m31: per-query rows at today's cap 3 scale with the child queries; the cap's side rows move with the cap
+            j = 0 if i == 1 else 1
+            now_side = cap_side_rows(dep1, CUR_FOLD_CAP)[j]
+            new_side = cap_side_rows(tree_depths(FOLD_CHILD_TRACE_LOG, lb_child), cap)[j]
+            per_q = (child / 108.0 - now_side) if i in (1, 3) else child / 108.0
+            side = new_side if i in (1, 3) else 0.0
+            out.append(fixed + n_children * q_child * max(0.0, per_q + side))
     return out
 
 
@@ -195,21 +235,18 @@ SCN = {  # (pess, central, opt)
 }
 
 
-# Measured grind cost per proof [M dev-5090], m9_pow_bench (vectors/reports/rv64-m9-prep/m9-proof-params/pow-bench-dev5090.jsonl):
-# mean ms per grind over 4 seeds. 'as_built' = search.cu today; 'check64' = engineered (best nonce read once per 64 candidates,
-# same minimal nonce on 28/28 grinds). Above 28 bits: x4 per 2 bits [D].
-POW_MS = {'as_built': {16: 0.3035, 18: 0.3371, 20: 0.7439, 22: 1.9237, 24: 4.6317, 26: 27.8883, 28: 144.2073},
-          'check64': {16: 0.4692, 18: 0.4597, 20: 0.4754, 22: 0.5634, 24: 0.7552, 26: 2.6793, 28: 15.8809}}
+# Grind cost per proof [M dev-5090], m9_pow_bench (vectors/reports/rv64-m9-prep/m9-proof-params/pow-bench-dev5090.jsonl).
+# The work of one grind is geometric (mean 2^p candidates, CV 1), so a 4-seed mean ms is not the expected cost (the p24 seeds
+# needed 0.54x the mean work). Expected cost = t0 + (2^p + one 2^18 grid of overshoot) / R, with t0 the p<=18 launch floor
+# and R = sum(candidates actually hashed) / sum(ms - t0) over p >= 24 [D on M]. 'as_built' = search.cu today (one atomic
+# read of the best nonce per candidate); 'check64' = engineered (best nonce read once per 64 candidates, same minimal
+# nonce on 28/28 grinds).
+POW_FIT = {'as_built': (0.3035e-3, 2.16e9), 'check64': (0.4597e-3, 21.15e9)}   # (t0 s, candidates/s)
 
 
 def pow_gpu_s(p, kernel):
-    t = POW_MS[kernel]
-    if p in t:
-        return t[p] * 1e-3
-    if p > 28:
-        return t[28] * 1e-3 * 2.0 ** (p - 28)
-    lo = max(k for k in t if k < p); hi = min(k for k in t if k > p)
-    return (t[lo] + (t[hi] - t[lo]) * (p - lo) / (hi - lo)) * 1e-3
+    t0, rate = POW_FIT[kernel]
+    return t0 + (2.0 ** p + 2.0 ** 18) / rate
 
 
 def native_factor(lb, phi_n):
@@ -222,11 +259,13 @@ CURRENT = dict(native=(2, 54, 20), leaf=(1, 108, 20), fold=(1, 108, 20), leaf_ca
 
 
 SETS = {
-    # recommended
-    'A_caps5': dict(CURRENT, leaf_cap=5, fold_cap=5),                       # inside today's verifier guard (cap_log <= 5); no child proof changes
-    'A_caps67': dict(CURRENT, leaf_cap=6, fold_cap=7),                      # model optimum; raise the guard to 7
-    'B_caps67_pow24': dict(native=(2, 52, 24), leaf=(1, 104, 24), fold=(1, 104, 24), leaf_cap=6, fold_cap=7),   # + PoW 24 everywhere
+    # recommended (review r1: caps re-priced with the measured selectHash qm31 cost and capLogFor; see cap_uncovered)
+    'A_cap2': dict(CURRENT, leaf_cap=2),                                     # derivable from the native proof's own paths (1e-16/tree)
+    'A_caps44': dict(CURRENT, leaf_cap=4, fold_cap=4),                      # model optimum; needs producer-exported caps
+    'B_caps44_pow24': dict(native=(2, 52, 24), leaf=(1, 104, 24), fold=(1, 104, 24), leaf_cap=4, fold_cap=4),   # + PoW 24 everywhere
     # rejected (for the record)
+    'X_caps5': dict(CURRENT, leaf_cap=5, fold_cap=5),
+    'X_caps67_pre_review': dict(CURRENT, leaf_cap=6, fold_cap=7),           # the pre-review recommendation: fold cap 7 is a loss
     'X_native_b8_q36_p20': dict(CURRENT, native=(3, 36, 20)),
     'X_native_b8_q32_p32': dict(CURRENT, native=(3, 32, 32)),
     'X_native_b4_q48_p32': dict(CURRENT, native=(2, 48, 32)),
@@ -235,6 +274,19 @@ SETS = {
     'X_outer_b4_folds_only': dict(CURRENT, fold=(2, 51, 26)),
     'X_outer_b2_q96_p32': dict(CURRENT, leaf=(1, 96, 32), fold=(1, 96, 32)),
 }
+LEAF_CAPS = (0, 2, 3, 4, 5)
+FOLD_CAPS = (3, 4, 5)
+TREES_NATIVE = len(tree_depths(22, 2))          # trees per native proof the leaf verifies (4 PCS + FRI layers) [D]
+TREES_OUTER = len(tree_depths(FOLD_CHILD_TRACE_LOG, 1))
+
+
+def cap_failure(cfg, n_native, n_outer):
+    """P[some cap of one block cannot be derived from the proofs] (union bound) and whether a producer-exported cap is needed
+    (threshold 1e-9 per block; today's fold cap 3 at q108 is 3e-11). Leaf caps cover native trees at the native queries, fold caps outer trees at outer queries."""
+    pn = n_native * len(capped(tree_depths(22, cfg['native'][0]), cfg['leaf_cap'])) * cap_uncovered(cfg['leaf_cap'], cfg['native'][1])
+    po = n_outer * len(capped(tree_depths(FOLD_CHILD_TRACE_LOG, cfg['leaf'][0]), cfg['fold_cap'])) * cap_uncovered(cfg['fold_cap'], min(cfg['leaf'][1], cfg['fold'][1]))
+    p = min(1.0, pn + po)
+    return dict(per_block=p, native_part=min(1.0, pn), outer_part=min(1.0, po), needs_producer_cap=p > 1e-9)
 
 
 def native_candidates():
@@ -372,8 +424,8 @@ def main():
         for nat_c in native_candidates():
             for leaf_c in outer_candidates():
                 for fold_c in outer_candidates():
-                    for lc in (0, 6):
-                        for fc in (3, 7):
+                    for lc in LEAF_CAPS:
+                        for fc in FOLD_CAPS:
                             cfg = dict(native=nat_c, leaf=leaf_c, fold=fold_c, leaf_cap=lc, fold_cap=fc)
                             fac = evaluate(cfg, leaves, folds, sc, pad=False)   # #1-#9 includes k-leaf fan-in: packed leaves
                             k = gpu_s_at(shp, fac, (N, Rl, Rf))
@@ -381,12 +433,15 @@ def main():
         best.sort(key=lambda x: x[0])
         cur = [b for b in best if b[1] == dict(CURRENT, leaf_cap=0, fold_cap=3)][0]
         search[n] = dict(p50_kernel_gpu_s_after_1_9=k0, current_factor=cur[0],
-                         top=[dict(factor=f, cfg=c, fac=x) for f, c, x in best[:12]])
+                         top=[dict(factor=f, cfg=c, fac=x) for f, c, x in best[:12]],
+                         top_proof_derivable=[dict(factor=f, cfg=c, fac=x) for f, c, x in best
+                                              if not cap_failure(c, shp['seg'] + shp['truths'], shp['leaves'] + shp['folds'])['needs_producer_cap']][:6])
     res['search_p50_after_1_9'] = search
     # 3) named sets: factors for plan_model (lever PARAMS), packed (with k-leaf fan-in) and padded (exact pow2 rows)
     named = {}
     for name, cfg in SETS.items():
         row = dict(cfg=cfg, bits={k: dict(conjectured=conj_bits(*cfg[k]), johnson=johnson_bits(*cfg[k])) for k in ('native', 'leaf', 'fold')},
+                   cap_completeness_p50=cap_failure(cfg, sh['seg'] + sh['truths'], base['central'][3]['nodes']),
                    root_bytes=root_bytes(cfg['fold'][1]), root_bytes_now=root_bytes(108))
         for pad in (True, False):
             for n, sc in P.items():
@@ -409,7 +464,7 @@ def main():
                 lv, fo = fit_leaves(nt)
                 for lf in lv:
                     if lf.trace_log >= 21: lf.trace_log = tl
-                for name in ('A_caps5', 'A_caps67', 'B_caps67_pow24'):
+                for name in ('A_cap2', 'A_caps44', 'B_caps44_pow24'):
                     for pad in (True, False):
                         f = evaluate(SETS[name], lv, fo, P['central'], pad)
                         sens.setdefault(name + ('_padded' if pad else '_packed'), []).append((f['leaf'], f['fold'], nt, ff, tl))
@@ -437,14 +492,19 @@ def main():
                   % (r['params'], bits, c['native'], c['leaf'], c['fold'], c['dpow_native_proof'], c['dpow_leaf_proof'], c['dpow_fold_proof'], d['leaf'], d['fold']))
     print('\n== named sets: packed factors native / leaf / fold (pess | central | opt), p50 after #1-#9 kernel GPU-s factor')
     for name, r in named.items():
+        cc = r['cap_completeness_p50']
         print('  %-32s ' % name + ' | '.join('%.3f/%.3f/%.3f' % (r['packed_' + n]['native'], r['packed_' + n]['leaf'], r['packed_' + n]['fold']) for n in P)
-              + '   p50 x' + '/'.join('%.4f' % r['p50_after_1_9_' + n]['factor'] for n in P) + '  root %.0f kB' % (r['root_bytes'] / 1e3))
+              + '   p50 x' + '/'.join('%.4f' % r['p50_after_1_9_' + n]['factor'] for n in P) + '  root %.0f kB' % (r['root_bytes'] / 1e3)
+              + '  cap-underivable/block %.1e%s' % (cc['per_block'], ' NEEDS PRODUCER CAP' if cc['needs_producer_cap'] else ''))
     print('\n== sensitivity (central, n_trees 8-12, fold fixed 3-10%, segment trace log 21-23): leaf / fold factor ranges')
     for k, v in res['sensitivity'].items():
         print('  %-28s leaf %.3f..%.3f  fold %.3f..%.3f' % (k, v['leaf_min'], v['leaf_max'], v['fold_min'], v['fold_max']))
     for n, s in search.items():
         print('\n== joint search %s: p50 kernel GPU-s after #1-#9 = %.2f; current params factor %.4f' % (n, s['p50_kernel_gpu_s_after_1_9'], s['current_factor']))
         for t in s['top'][:6]:
+            print('   x%.4f  %s' % (t['factor'], t['cfg']))
+        print('  best whose caps the host derives from the proofs (no producer-exported cap):')
+        for t in s['top_proof_derivable'][:3]:
             print('   x%.4f  %s' % (t['factor'], t['cfg']))
 
 
