@@ -1,0 +1,13 @@
+{
+ "label": "adversarial review 2026-11-07; [M] CUDA events RTX 5090 GPU0 gpu.lock standalone (parity.log, bench.log); [D] arithmetic; [E] estimate",
+ "parity": "[M] PASS 43/43 cases, 0 mismatching words (22 original + 18 production-chain arms 1/2 + 3 aligned lifted seeds) + chunk invariance 20 roots, 0 diff words; negative control FAIL",
+ "rerun_headlines_M": {"24x304_c16_aligned": 1.266, "24x304_c16_offset7": 1.260, "24x304_c32": 1.321, "21x32": 0.943,
+                       "ref_24x304_c32_ms": 76.24, "ref_24x304_c16_ms": 84.46, "ref_24x304_c16_offset7_ms": 93.73},
+ "recursion_default_chunk_2pow26_M": {"ref_24x304_c4_ms": 164.81, "ref_24x304_c4_offset7_ms": 185.07, "leaf_ms": [106.04, 125.66]},
+ "partial_trees_final_call_M": {"arm1_fused_final": {"24x304": 1.017, "23x64": 1.241, "22x64": 1.093, "21x64": 0.987, "20x64": 0.995, "18x64": 0.933},
+                                "arm2_lde_input_final": {"24x304": 1.004, "23x64": 1.053, "22x64": 1.065, "21x64": 1.079, "20x64": 1.099, "18x64": 0.941}},
+ "fused_with_openings_symmetric_M": {"21x32_k10_q108": 0.993, "20x32_k10_q108": 0.960},
+ "aligned_chunks_saving_GPU_s": {"builder_E": 0.41, "t6_calibrated_DE": 0.11, "basis": "opt-combined T6 2^27->2^28 mixed_leaf -0.10 GPU-s [M] vs bench leaf 52.4->36.9 ms"},
+ "scratch_GiB_D": {"today_native_2pow27": 3.5, "today_recursion_2pow26": 3.25, "aligned_2pow27_corrected": 2.0, "aligned_c16": 2.0, "aligned_c32": 3.0},
+ "stream_triple_E": {"plan": [0.80, 0.70, 0.60], "builder": [0.92, 0.86, 0.75], "review": [0.975, 0.955, 0.90]}
+}
