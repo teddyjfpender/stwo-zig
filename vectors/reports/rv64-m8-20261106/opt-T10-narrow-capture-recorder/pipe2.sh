@@ -27,7 +27,7 @@ quiet() {
 for k in $(seq 1 $ATTEMPTS); do
   n=0; until quiet; do sleep 20; n=$((n+1)); done
   log attempt-$k quiet-after=$((n*20))s
-  OUT=$R/ab2-24628607-a$k
+  OUT=$R/ab2-24628607-$(date -u +%H%M%S)-a$k
   python3 scripts/rv64_m7_integration_stack.py run --manifest $R/ab2-manifest.json --out $OUT > $OUT.log 2>&1
   rc=$?; log ab2-24628607-a$k rc=$rc
   [ $rc -eq 0 ] && break
