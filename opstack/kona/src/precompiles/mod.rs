@@ -54,3 +54,24 @@ pub fn install() -> bool {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "pairing-hints")]
+pub fn install_hinted(input: &'static [u8]) -> Option<&'static [u8]> {
+    let base = pairing::install_hints(input)?;
+    install().then_some(base)
+}
+
+#[cfg(all(feature = "pairing-hints", feature = "host"))]
+pub fn collect_hints(input: Vec<u8>) -> Result<Vec<u8>, alloc::string::String> {
+    use crate::{
+        execution::execute,
+        witness::{Validation, Witness},
+    };
+    if !install() {
+        return Err("cannot install pairing hint collector".into());
+    }
+    pairing::start_hint_collection();
+    let witness = Witness::parse(&input, Validation::Eager).map_err(|e| alloc::format!("{e}"))?;
+    execute(&witness)?;
+    pairing::finish_hint_collection(input).ok_or_else(|| "pairing hint size limit".into())
+}

@@ -65,3 +65,26 @@ plain-Fp2 calls. It retires 625,046,890 instructions and uses 40,326,924 service
 RAM words. This is execution evidence; physical proving and recursive-root
 qualification must be reported separately. All precompile fork rules remain in
 Revm, and unsupported acceleration widths still execute the pinned software.
+
+## Optional positive pairing advice
+
+Build `canonical-glv-hinted` and run `benchmark.py --pairing-hints`. The host
+generates a bounded trailer after replaying the original OPX input. The benchmark
+records the original and extended input hashes, added bytes and host generation
+wall time. The ordinary host reference still runs on the original input.
+
+The guest validates the points and subgroup as usual. For a positive result it
+can check the residue identity from [ePrint 2024/640](https://eprint.iacr.org/2024/640).
+Let `L = p³ − p² + p + 6x + 2`, where `p` is the base modulus, `r` the scalar
+order and `x` the BN seed. The guest checks a nonzero seed and its inverse and
+requires `f · c · w^L = 1` for the Miller value `f` and `c` in Fq6. Since `r`
+divides `L` and is coprime to `p⁶ − 1`, the identity implies
+`f^((p¹² − 1)/r) = 1`. Seeding the signed Miller loop absorbs the `6x + 2`
+part without another exponentiation. Missing or unsuccessful advice uses the
+ordinary final exponentiation.
+
+The host projects the 27-primary component of the pairing kernel into Fq6 and
+extracts the negative L-th root in the remaining subgroup. The checked exponent
+derivation is in `opstack/tools/derive_pairing_residue.py`. Advice ordinals only
+select which field elements to try. The EVM result always comes from guest
+arithmetic, and the RV64 proof binds the exact extended input.

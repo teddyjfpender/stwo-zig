@@ -64,6 +64,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Witness::parse(&bytes, Validation::Eager).map_err(|e| e.to_string())?;
             fs::write(&args[2], bytes)?;
         }
+        #[cfg(feature = "pairing-hints")]
+        Some("pairing-hints") => {
+            use std::io::Write;
+            if args.len() != 4 {
+                return Err("pairing-hints INPUT OUT".into());
+            }
+            let output = stwo_kona_execution::precompiles::collect_hints(fs::read(&args[2])?)?;
+            fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&args[3])?
+                .write_all(&output)?;
+        }
         Some("run") => {
             if args.len() != 4 {
                 return Err("run INPUT eager|lazy".into());

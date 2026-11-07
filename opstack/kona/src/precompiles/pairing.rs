@@ -3,10 +3,16 @@
 //! digest-only equality can create an admitted result. VM RAM binds reuse.
 use alloc::{sync::Arc, vec::Vec};
 use alloy_primitives::U256;
-use ark_bn254::{Bn254, Fq, Fq2, G1Affine, G1Projective, G2Affine};
+use ark_bn254::{Bn254, Fq, Fq2, G1Affine, G2Affine};
 type PreparedG2 = <Bn254 as Pairing>::G2Prepared;
+#[cfg(feature = "pairing-hints")]
+#[path = "pairing_hint_stream.rs"]
+mod hints;
 #[path = "pairing_miller.rs"]
 mod miller;
+#[cfg(feature = "pairing-hints")]
+#[path = "pairing_residue.rs"]
+mod residue;
 use ark_ec::{AffineRepr, pairing::Pairing};
 use ark_ff::{BigInt, PrimeField, Zero};
 use revm_precompile::{Crypto, DefaultCrypto, PrecompileHalt};
@@ -27,6 +33,8 @@ struct Cache {
     results: Vec<ResultEntry>,
     points: Vec<PointEntry>,
     next_result: usize,
+    #[cfg(feature = "pairing-hints")]
+    hints: hints::Stream,
     next_point: usize,
     hits: usize,
     point_hits: usize,
@@ -39,6 +47,8 @@ impl Cache {
             results: Vec::new(),
             points: Vec::new(),
             next_result: 0,
+            #[cfg(feature = "pairing-hints")]
+            hints: hints::Stream::new(),
             next_point: 0,
             hits: 0,
             point_hits: 0,
@@ -95,6 +105,8 @@ impl Cache {
     }
 
     fn check(&mut self, pairs: &[(&[u8], &[u8])]) -> Result<bool, PrecompileHalt> {
+        #[cfg(feature = "pairing-hints")]
+        let hint = self.hints.next();
         // Keep large requests on the pinned implementation with bounded cache
         // work. Wrong-width direct trait calls retain its original behavior.
         if pairs.len() > MAX_PAIRS || pairs.iter().any(|(a, b)| a.len() != 64 || b.len() != 128) {
@@ -112,8 +124,7 @@ impl Cache {
                 return Ok(entry.result);
             }
         }
-        let mut groups: Vec<(G1Affine, Option<G1Projective>, Arc<PreparedG2>)> =
-            Vec::with_capacity(pairs.len());
+        let mut groups: Vec<miller::Group> = Vec::with_capacity(pairs.len());
         for (a, b) in pairs {
             let x = field(&a[..32])?;
             let y = field(&a[32..])?;
@@ -141,7 +152,18 @@ impl Cache {
                 }
             }
         }
-        let result = miller::check(&mut groups);
+        let result = if !miller::normalize(&mut groups) {
+            true
+        } else {
+            #[cfg(feature = "pairing-hints")]
+            {
+                self.hints.check(&groups, hint)
+            }
+            #[cfg(not(feature = "pairing-hints"))]
+            {
+                miller::check(&groups)
+            }
+        };
         let mut bytes = Vec::with_capacity(pairs.len() * 192);
         for (a, b) in pairs {
             bytes.extend_from_slice(a);
@@ -169,3 +191,18 @@ pub(super) fn check(pairs: &[(&[u8], &[u8])]) -> Result<bool, PrecompileHalt> {
 #[cfg(test)]
 #[path = "pairing_tests.rs"]
 mod tests;
+
+#[cfg(feature = "pairing-hints")]
+pub(super) fn install_hints(input: &'static [u8]) -> Option<&'static [u8]> {
+    CACHE.lock().hints.install(input)
+}
+
+#[cfg(all(feature = "pairing-hints", feature = "host"))]
+pub(super) fn start_hint_collection() {
+    CACHE.lock().hints.collect = Some(Vec::new());
+}
+
+#[cfg(all(feature = "pairing-hints", feature = "host"))]
+pub(super) fn finish_hint_collection(input: Vec<u8>) -> Option<Vec<u8>> {
+    CACHE.lock().hints.finish(input)
+}

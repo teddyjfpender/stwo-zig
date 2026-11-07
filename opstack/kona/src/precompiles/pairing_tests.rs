@@ -136,3 +136,45 @@ fn borrowed_miller_checks_multi_chunk_cancellation_and_pins_evicted_lines() {
         DefaultCrypto.bn254_pairing_check(&pairs)
     );
 }
+
+#[cfg(feature = "pairing-hints")]
+#[test]
+fn residue_witness_checks_true_pairing_and_rejects_replay_for_false_pairing() {
+    use ark_bn254::Fq12;
+    use ark_ff::{AdditiveGroup, Field, One};
+    let p = G1Affine::generator();
+    let q = G2Affine::generator();
+    let q2 = (G2Projective::generator() * Fr::from(2)).into_affine();
+    let p2 = (G1Projective::generator() * Fr::from(2)).into_affine();
+    let groups = [
+        (p2, None, Arc::new(PreparedG2::from(q))),
+        (-p, None, Arc::new(PreparedG2::from(q2))),
+    ];
+    assert!(miller::check(&groups));
+    let value = miller::run(&groups, None);
+    assert!(!value.is_one(), "test needs a nontrivial Miller residue");
+    let hint = residue::Hint::from_positive_miller(value).unwrap();
+    let decoded = residue::Hint::decode(&hint.encode()).unwrap();
+    assert!(decoded.valid_seed());
+    let fused = miller::run(&groups, Some((&decoded.seed, &decoded.inverse)));
+    assert_eq!(
+        fused,
+        value * decoded.seed.pow([29793968203157093288u128 as u64, 1])
+    );
+    assert!(decoded.check_tail(fused));
+    assert!(!miller::check(&groups[..1]));
+    assert!(!decoded.check_tail(miller::run(
+        &groups[..1],
+        Some((&decoded.seed, &decoded.inverse))
+    )));
+    assert!(
+        !residue::Hint {
+            seed: Fq12::ZERO,
+            ..decoded
+        }
+        .valid_seed()
+    );
+    let mut malformed = hint.encode();
+    malformed[..32].fill(255);
+    assert!(residue::Hint::decode(&malformed).is_none());
+}

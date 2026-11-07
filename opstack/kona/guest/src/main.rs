@@ -76,8 +76,11 @@ extern "C" fn guest_main() -> ! {
     } else {
         Validation::Lazy
     };
-    #[cfg(feature = "precompile-services")]
+    #[cfg(all(feature = "precompile-services", not(feature = "pairing-hints")))]
     assert!(stwo_kona_execution::precompiles::install());
+    #[cfg(feature = "pairing-hints")]
+    let input = stwo_kona_execution::precompiles::install_hinted(input)
+        .expect("invalid pairing hint stream");
     let witness = Witness::parse(input, mode).expect("invalid OP witness");
     let result = execute(&witness).expect("OP execution rejected");
     let output = result.public_output();

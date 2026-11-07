@@ -75,6 +75,11 @@ LEAN_VARIANTS["canonical-glv"] = (
     [*LEAN_VARIANTS["canonical"][1], "bn254-glv"],
 )
 
+LEAN_VARIANTS["canonical-glv-hinted"] = (
+    "frontier",
+    [*LEAN_VARIANTS["canonical-glv"][1], "pairing-hints"],
+)
+
 BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
 
 
@@ -178,7 +183,9 @@ def main():
                 "--locked",
                 "--release",
                 "--features",
-                "host",
+                "host,pairing-hints"
+                if args.variant == "canonical-glv-hinted"
+                else "host",
                 "-j",
                 args.jobs,
             ],

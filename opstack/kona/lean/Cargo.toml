@@ -26,6 +26,7 @@ bn254-service = ["dep:ark-bn254", "ark-bn254/stwo-montgomery-service"]
 arithmetic-service = ["dep:revm-interpreter", "revm-interpreter/stwo-arith256-service"]
 precompile-services = ["stwo-kona-execution/precompile-services"]
 pairing-cache = ["precompile-services", "stwo-kona-execution/pairing-cache"]
+pairing-hints = ["pairing-cache", "stwo-kona-execution/pairing-hints"]
 jumpdest-service = ["dep:revm-bytecode", "revm-bytecode/stwo-jumpdest-service"]
 
 [dependencies]

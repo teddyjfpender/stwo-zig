@@ -9,6 +9,7 @@ import platform
 import statistics
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +50,11 @@ def main():
         default=None,
     )
     parser.add_argument("--oracle", action="store_true")
+    parser.add_argument(
+        "--pairing-hints",
+        action="store_true",
+        help="generate advice with the canonical-glv-hinted build's host",
+    )
     parser.add_argument("--isolated-only", action="store_true")
     parser.add_argument(
         "--profile", choices=("software", "ethereum_services_v3"), default="software"
@@ -73,6 +79,8 @@ def main():
         args.isolated_only = True  # Historical archive blocks are nonadjacent.
     if not 1 <= args.samples <= 9 or not 1 <= len(args.blocks) <= 32:
         parser.error("samples 1..9; blocks 1..32")
+    if args.pairing_hints and not args.guest:
+        parser.error("--pairing-hints requires the hinted guest and runner")
     if bool(args.guest) != bool(args.runner):
         parser.error("guest and runner are required together")
     args.artifacts.mkdir(parents=True, exist_ok=False)
@@ -102,6 +110,21 @@ def main():
         eager, lazy = rows[-2:]
         if eager["samples"][0]["digest"] != lazy["samples"][0]["digest"]:
             raise ValueError("eager/lazy mismatch")
+        if args.pairing_hints:
+            hinted = path.with_suffix(".hinted.opx")
+            start = time.monotonic_ns()
+            run([args.host, "pairing-hints", path, hinted])
+            rows.append(
+                {
+                    "case": name,
+                    "mode": "pairing-hint-generation",
+                    "wall_ns": time.monotonic_ns() - start,
+                    "base_sha256": sha(path),
+                    "hinted_sha256": sha(hinted),
+                    "added_bytes": hinted.stat().st_size - path.stat().st_size,
+                }
+            )
+            path = hinted
         if args.guest:
             _, symbols, _ = elf_info(args.guest)
             names = (

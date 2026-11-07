@@ -31,3 +31,15 @@ Its complete CPU proof is still open.
 
 The exact ELF and input hashes are in [checkpoint.json](checkpoint.json).
 The CPU execution bundles use native STARKs without SNARK wrapping.
+
+## Checked pairing advice
+
+The optional `canonical-glv-hinted` guest independently matched the execution
+oracle on all six cases. Block 121065789 used 458,997,937 instructions with
+747,798 Fp2 calls and 32,252,287 service RAM word transitions. Against the
+borrowed-loop guest, this saves 26.11% of instructions and 19.44% of Fp2 calls.
+The 84 hints add 80,988 bytes to the pinned block input. Host generation has a
+separate wall receipt and the guest checks the residue identity itself.
+
+[Hint generation and execution receipts](pairing-hints.json) ·
+[Field identity and reproduction](../../../opstack/PRECOMPILES.md#optional-positive-pairing-advice)

@@ -11,16 +11,24 @@ use ark_ec::{
 };
 use ark_ff::{Field, One};
 
-pub(super) fn check(groups: &mut [(G1Affine, Option<G1Projective>, Arc<PreparedG2>)]) -> bool {
+pub(super) type Group = (G1Affine, Option<G1Projective>, Arc<PreparedG2>);
+
+pub(super) fn normalize(groups: &mut [Group]) -> bool {
     for (point, sum, _) in groups.iter_mut() {
         if let Some(sum) = sum.take() {
             *point = sum.into_affine();
         }
     }
-    if groups.iter().all(|(point, _, _)| point.is_zero()) {
-        return true;
-    }
-    let mut value = Fq12::ONE;
+    groups.iter().any(|(point, _, _)| !point.is_zero())
+}
+
+pub(super) fn check(groups: &[Group]) -> bool {
+    Bn254::final_exponentiation(MillerLoopOutput(run(groups, None))).is_some_and(|o| o.0.is_one())
+}
+
+/// With a checked inverse, the same signed loop computes f * seed^(6x+2).
+pub(super) fn run(groups: &[Group], seed: Option<(&Fq12, &Fq12)>) -> Fq12 {
+    let mut value = seed.map_or(Fq12::ONE, |(w, _)| *w);
     let mut line = 0;
     let mut evaluate = |value: &mut Fq12| {
         for (point, _, prepared) in groups.iter() {
@@ -37,11 +45,15 @@ pub(super) fn check(groups: &mut [(G1Affine, Option<G1Projective>, Arc<PreparedG
     };
     let count = Config::ATE_LOOP_COUNT;
     for i in (1..count.len()).rev() {
-        if i != count.len() - 1 {
+        if seed.is_some() || i != count.len() - 1 {
             value.square_in_place();
         }
         evaluate(&mut value);
-        if count[i - 1] != 0 {
+        let digit = count[i - 1];
+        if digit != 0 {
+            if let Some((w, inverse)) = seed {
+                value *= if digit == 1 { w } else { inverse };
+            }
             evaluate(&mut value);
         }
     }
@@ -50,7 +62,7 @@ pub(super) fn check(groups: &mut [(G1Affine, Option<G1Projective>, Arc<PreparedG
     comptime_bn254_parameters();
     evaluate(&mut value);
     evaluate(&mut value);
-    Bn254::final_exponentiation(MillerLoopOutput(value)).is_some_and(|output| output.0.is_one())
+    value
 }
 
 const fn comptime_bn254_parameters() {
