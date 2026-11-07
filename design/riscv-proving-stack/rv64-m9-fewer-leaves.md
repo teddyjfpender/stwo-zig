@@ -15,14 +15,16 @@ It answers 4-GPU doc §6.2 options (b)/(c)/(g) and engineering scope P4.
 
 **Recommendation:** one leaf verifies up to k adjacent native proofs of the *same class*. In practice that means CPU pairs and Keccak-class (t_a) truth triples. The cap is blake_g_gate ≤ 2^23 (today's fold envelope) and ≤ 2.2 G cells per node. Folds stay 4-ary and unchanged.
 
-| block (gas) | plan | natives | leaves | folds | nodes | depth | cells G | rec. kernel GPU-s | after-native window, 2 GPU / 4 GPU s | streaming tail, 2 GPU / 4 GPU s | max node |
+> **Revised by adversarial review r1 (§7).** The pre-review "streaming tail" column double-booked the GPUs (natives and recursion nodes ran on the same cards at once) and is **retracted**. It is replaced by the joint request schedule, where natives and nodes share the GPUs. Node walls now include a log-24 composition/FRI sensitivity term. The "3 new VKs" claim is also retracted (§4.4).
+
+| block (gas) | plan | natives | leaves | folds | nodes | depth | cells G | rec. kernel GPU-s | after-native window, 2 GPU / 4 GPU s | native+recursion request, 2 GPU / 4 GPU s | max node |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 24628607 (7.4 M, smallest ~4%) | today | 14 | 14 | 5 | 19 | 2 | **21.66** [D] | 5.66 | 5.47 / 3.19 (measured 5.69 on 2 GPU) | 2.19 / 1.88 | 1.87 G |
-| | **fan-in** | 14 | **9** | 3 | **12** | 2 | **17.80** (−18%) | 4.66 | 4.49 / 3.09 | 2.20 / 2.09 | 2.11 G |
-| 26235168 (29.1 M, ~p50) | today | 46 | 46 | 16 | 62 | 3 | 75.57 | 19.77 | 17.89 / 9.59 | 7.02 / 4.47 | 1.87 G |
-| | **fan-in** | 46 | **24** | 9 | **33** | 3 | **57.50** (−24%) | 15.04 | 13.47 / 7.37 | 2.84 / 2.45 | 2.11 G |
-| 26235159 (57.7 M, ~top 5%) | today | 72 | 72 | 25 | 97 | 4 | 119.21 | 31.18 | 27.46 / 14.41 | 7.58 / 4.50 | 1.87 G |
-| | **fan-in** | 72 | **36** | 12 | **48** | 3 | **90.29** (−24%) | 23.62 | 21.31 / 11.27 | 2.51 / 2.81 | 2.11 G |
+| 24628607 (7.4 M, smallest ~4%) | today | 14 | 14 | 5 | 19 | 2 | **21.66** [D] | 5.66 | 5.47 / 3.19 (measured 5.69 on 2 GPU) | 9.28 / 5.19 | 1.87 G |
+| | **fan-in** | 14 | **9** | 3 | **12** | 2 | **17.80** (−18%) | 4.66 | 4.61 / 3.15 | 8.42 (−9%) / 5.21 (+0.4%) | 2.11 G |
+| 26235168 (29.1 M, ~p50) | today | 46 | 46 | 16 | 62 | 3 | 75.57 | 19.77 | 17.89 / 9.59 | 29.23 / 15.30 | 1.87 G |
+| | **fan-in** | 46 | **24** | 9 | **33** | 3 | **57.50** (−24%) | 15.04 | 14.02 / 7.62 | 25.36 (−13%) / 13.28 (−13%) | 2.11 G |
+| 26235159 (57.7 M, ~top 5%) | today | 72 | 72 | 25 | 97 | 4 | 119.21 | 31.18 | 27.46 / 14.41 | 47.94 / 24.65 | 1.87 G |
+| | **fan-in** | 72 | **36** | 12 | **48** | 3 | **90.29** (−24%) | 23.62 | 22.22 / 11.69 | 42.71 (−11%) / 21.94 (−11%) | 2.11 G |
 
 How to read the table:
 - Cells and nodes are [D] where the receipts exist (24628607 and 26235156 reproduce exactly) and [E] elsewhere: the truth rosters are reconstructed, and so is the k-leaf additivity (§2).
@@ -30,10 +32,11 @@ How to read the table:
 - On all 15 basket blocks the fan-in plan cuts nodes by 29–51% and cells by 14–25% (`model.json`).
   - The largest five blocks: 71–97 nodes → 38–48.
   - Recursion after native is about 48% of the 24628607 warm request today (5.69 of 11.77 s, bench15 [M]), so −18% cells ≈ −1.0 GPU-s on that block.
-- **Streaming tail.** Here natives finish uniformly across the native window and each leaf starts when its last native lands [E].
-  - On 2 GPUs, today's plan cannot keep up with native arrival on big blocks, giving a 7.0–7.6 s tail. Fan-in brings that to 2.5–2.8 s.
-  - On 4 GPUs the tail falls from 4.5 s to 2.5–2.8 s on the two large blocks.
-  - On the small block it is flat to slightly worse (+0.2 s): a pair leaf waits for its second native. If that matters, set k = 1 for the last CPU group. This is a planner knob, not a format change.
+- **Request time (native + recursion, capture excluded) [E].** Natives and nodes are list-scheduled on the same g GPUs, one job per GPU at a time. A node peaks at 22–28 GB, so it cannot share a 32 GB card with a native. The scheduler takes the better of two orders: natives first (today), or eager, where a ready node jumps the native queue.
+  - Natives-first wins or ties on every fan-in plan, and on every baseline except one: 24647140 on 2 GPUs, where eager is 0.02 s better. With shared GPUs, streaming hides almost nothing, because the after-native window is work-bound.
+  - Basket-wide, fan-in cuts the 2-GPU request by 4.5–15.8%. On 4 GPUs the change is −14.8% to +0.4%. 24628607 on 4 GPUs is flat: the tree is too shallow to gain from fewer nodes.
+  - On 24628607 (2 GPUs) the request goes 11.64 → about 10.8 s (−0.86 s, −7%). This is on today's rates, and GPU-native work will shrink both terms.
+  - The kernel GPU-s cut (−1.0 on 24628607) is **not** wall time. Only the window and request columns are on the critical path.
 
 ### Options compared [E]
 
@@ -45,7 +48,7 @@ All columns are for 26235159.
 | **(g′) wider folds, 8-ary** | 83 | 111.8 | 13.99 | 3.64 G (blake 2^24) | **no**: 36–43 GB | reject: −6% cells, 2× node, worse tail on small blocks |
 | (c) truth batching only, today's envelope (all components ≤ 2^23) | 93 | 116.9 | 14.37 | 1.87 G | yes | −2%: the qm31_ops cap of 2^23 cannot even pair CPU proofs |
 | truth batching only, blake ≤ 2^23 | 76 | 104.5 | 12.99 | 2.10 G | marginal (§3) | −12% |
-| **k-leaf, same class (recommended)** | **48** | **90.3** | **11.27** | 2.11 G | marginal (§3); fits post-P1 | −24%, VK set bounded by classes × k |
+| **k-leaf, same family (recommended)** | **48** | **90.3** | **11.69** | 2.11 G | marginal (§3); fits post-P1 | −24%; VK set is per request under exact shapes (§4.4) |
 | k-leaf, same kind (mixed truth families) | 44 | 87.5 | 11.06 | 2.11 G | marginal; fits post-P1 | −27%, but 10+ leaf classes that vary by block |
 | k-leaf (same class) + 8-ary folds | 42 | 87.9 | 11.76 | 3.64 G | no | reject: −3% cells over k-leaf alone, 2× node |
 
@@ -124,6 +127,12 @@ Every node records `RECURSION_NODE_SHAPE raw=[eq, qm31_ops, triple_xor, m31_to_u
 - **After P1** (≤ 11 GB per node), a pair leaf is 12.4 GB, so 2 lanes per GPU fit.
 - The blake ≤ 2^23 cap is what keeps the leaf inside today's largest column length (2^23 rows × b2). The node grows only in the cheap qm31/eq columns.
 - 8-ary folds do not fit until P1.
+- **Review r1: the log-24 domain is not in the per-cell rates.** A pair or triple leaf is the first node with a 2^24 column (qm31_ops 11.1 M rows). Its composition polynomial, FRI first layers and OODS domain double compared with every node the 0.455 ns/cell fit saw.
+  - The model now charges +134 M cells-equivalent of wall per log-24 node (8 OM31 coordinates × 2 split pieces × 2^23 extra rows) [E, unvalidated].
+  - Memory gets roughly +1 GB, which leaves the 29.8 GB staged case about 0.7 GB over the 30.06 GB gate. Treat a pair leaf as **not fitting today** until step 3 measures it.
+- **Fold headroom is thin.** A fold over 4 pair leaves needs 8.08 M blake rows against a 2^23 cap, using the *extrapolated* log-24 child cost. With the 3% margin that is 8.32 M of 8.39 M.
+  - If the real per-log increment is more than about 1.9× the measured 22→23 step, `FaninPlan.init` fails closed, which fails the whole block.
+  - Before wiring, add a fallback: a 3-ary fold over log-24 children.
 
 ## 4. Soundness and transcript
 
@@ -146,13 +155,19 @@ Every node records `RECURSION_NODE_SHAPE raw=[eq, qm31_ops, triple_xor, m31_to_u
      - depth = 1.
    - The root's depth bound gets looser, not tighter.
    - `combineSpans` is the planner-side precondition.
-4. **Class binding.**
-   - The leaf circuit class is `StatementShape.classDigest` = Blake2s("rv64-m9-leaf-fanin/class/v1", version, k, ordered child class tags). It is position-independent, so one VK serves every pair of CPU segments.
-   - It must be a T_rec / vk_table member (set-v2 VKs).
-   - Same-class grouping bounds the new classes to (native classes) × (k − 1). That is 3 new leaf VKs on the basket: cpu×2, t_a×2, t_a×3.
+4. **Class binding (corrected in review r1).**
+   - The leaf circuit class is `StatementShape.classDigest` = Blake2s("rv64-m9-leaf-fanin/class/v1", version, k, the ordered (family tag, **exact child verifier class key**) pairs). The child key is today's `leaf_tape.cpuClass` / `truthClass`.
+     - The pre-review digest bound family tags only. Two pair leaves over CPU segments with different exact native shapes are different circuits, but they would have collided on one class digest. The digest now binds the child keys, and a test pins this.
+   - It must be a T_rec / vk_table member.
+   - **Retracted:** "one VK serves every pair" and "3 new leaf VKs on the basket".
+     - Under today's exact native shapes every CPU segment is its own verifier circuit: 11 distinct CPU leaf row vectors in 11 segments, and the 3 t_a leaves differ too (D2 receipts).
+     - So k-leaf classes are per request, as today's CPU leaves already are. Each first occurrence pays cold host prep, and the leaf-seed tape or plan cache cannot reuse it across blocks.
+     - A bounded VK set needs canonical native shapes per (f, r) (`rv64-m5-binding.md` S^nat). The model's cells already assume the class-max CPU rows, so they are close to that canonical case.
+   - `same` grouping therefore keys on **family** (cpu, cpu_tail, t_a, ...), not on circuit identity. Keying on circuit identity would pair almost nothing.
 5. **The receiver derives the same plan, and the prover cannot choose its grouping.**
    - The planner's inputs are the public inventory's native class tags plus per-class row *constants*, never the proof bytes.
-   - The policy words (`Policy.words()`: "M9LF", version, k, grouping, caps, arity) join the topology fingerprint, exactly as `STWO_RV64_FOLD_ARITY` does.
+   - The policy words (`Policy.words()`: "M9LF", version, k, grouping, caps, arity, **cell cap, margin**) join the topology fingerprint, exactly as `STWO_RV64_FOLD_ARITY` does.
+     - Review r1: the cell cap and margin change the grouping but were not bound. They are bound now, and a test pins it.
    - Producer and receiver must read the same env, or a receiver mismatch fails closed.
 6. **No silent padding.** A planned node outside the policy envelope is `LeafFaninNodeOverCapacity` at plan time. The producer must also fail, not re-pad, if a node's actual rows exceed its class shape, because the VK set is fixed.
 
@@ -204,7 +219,28 @@ Every node records `RECURSION_NODE_SHAPE raw=[eq, qm31_ops, triple_xor, m31_to_u
 5. **Measure** with paired A/B on 24628607 and 26235156 (cells exact against the model), then one large block once p-truth-split lands.
    - Expected: −18% recursion cells on 24628607 and −24% on large blocks.
    - Default-on only after a fresh receiver, the corpus, and a measured request-time win.
-6. **Interplay:**
+6. **Integration costs the pre-review plan left out (review r1):**
+   - **Leaf-seed tape and producer plan cache.** `leaf_tape.cpuClass`/`truthClass` and `Outer.Device.class_hint` key per single native. A k-leaf needs a new class-key function over k children and a new seed emitter, and its cold-prep cost per request is unmeasured.
+   - **GPU trace-only DAG** (`gpu_original_circuit_dag`, `execution_wrap.zig` ~1105–1190). The leaf job assumes one `job.leaf`, so it must carry k native inputs. This is GPU-native code the gn-* streams own, so wire it only after they land.
+   - **Resume and publication** (`publication.requireExisting`, `restored_leaves`). Node identities change, so persisted runs under one policy cannot resume under another.
+   - **Receiver cold classes.** A fresh receiver rebuilds every k-leaf class. The receiver time (30–76 s today) must be re-measured.
+   - **Liveness.** The planner uses class-max row constants plus a 3% margin. A CPU segment heavier than every observed one fails the block at prove time ("producer must fail"), where today it would succeed. The constants must be upper bounds derived from the native shape envelope, not observed maxima.
+7. **Interplay:**
    - **Poseidon2 leaves (P2):** these shrink per-native rows about ×0.19. Swap the class row constants and the same DP packs more natives per node. The planner is hash-agnostic.
    - **2^23 CPU rungs (P4):** these halve CPU natives. Grouping and bigger rungs compose: fewer, bigger natives still pair under the blake cap only if their rows fit, and the planner decides from the constants.
    - **D2 truth coalescing:** orthogonal. Grouping acts on whatever native roster the profile produces.
+
+## 7. Adversarial review r1 (2026-11-07)
+
+Re-run [M]: Zig planner tests 20/20 pass. Python tests pass, 4/4 including the new one. The self-check reproduces 24628607 at 21,658,004,224 cells exactly, and 26235156 within 49 k. The calibration rows match bench15 `SUMMARY.md` (native window, recursion after native, kernel GPU-s) for all 6 proved blocks.
+
+| # | finding | verdict | fix |
+|---|---|---|---|
+| 1 | The "streaming tail" let recursion run on GPUs that were busy proving natives. That produced 2-GPU tails of 7.58 → 2.51 s on 26235159; the real figures are 27.46 → 22.22 s. | **confirmed, overclaim** | Joint native+recursion list schedule (`schedule(native_s=…)`), with a test bounding makespan by work/g. The old numbers stay only as `retracted_stream_tail_*` in `model.json`. |
+| 2 | `classDigest` bound family tags, not the exact child verifier circuits, so distinct circuits collided on one class. "3 new VKs" is false under exact shapes. | **confirmed, binding** | The digest binds the child class keys, with a test. §4.4 is rewritten. |
+| 3 | `Policy.words()` omitted `cell_cap` and `margin_permille`, which both change the tree. | **confirmed** | Bound, with a test. |
+| 4 | The wall and memory rates were fitted only on nodes of max log ≤ 23. Pair leaves are log 24. | **confirmed, unmodelled** | +134 M cells-equivalent sensitivity term. Memory now says "does not fit until measured". |
+| 5 | GPU-s cuts were quoted beside wall cuts. | **partly**: they were labelled, but the headline led with them | Request and window columns lead. GPU-s is marked not critical-path. |
+| 6 | The 4-GPU gain on 24628607 is −1% in the window and +0.4% in the request. | **confirmed** | Stated. |
+| 7 | Integration costs were missing: seed tape, plan cache, GPU DAG, resume, receiver cold classes, liveness. | **confirmed** | §6 step 6. |
+| 8 | Soundness: independent channels per native, and fewer recursive proofs in the union bound. | **holds**, conjectured-128 per proof (b2 q108 p20) | The per-proof bits do not depend on trace size under the ethSTARK conjecture. A bigger trace adds only the DEEP/OODS term ~ deg/|OM31| ≈ 2^25/2^248, which is negligible. |
