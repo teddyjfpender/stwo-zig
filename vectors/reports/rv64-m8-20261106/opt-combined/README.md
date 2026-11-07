@@ -76,7 +76,7 @@ The kernel sum matches the CUPTI union exactly: 10.609 / 8.478 GPU-s.
 
 ## Gates [M] (`gates-summary.json`; image lib `b181cdd9…`)
 
-All 8 gates PASS: build, Zig + Python unit tests, small-block cold and warm proofs **byte-identical to the frozen D2 golden** (39 artifacts),
+All 11 gates PASS: build, Zig + Python unit tests, small-block cold and warm proofs **byte-identical to the frozen D2 golden** (39 artifacts),
 2 fresh CPU receivers, and 19/19 negative-corpus cases.
 
 | gate | runtime | env | block | result |
@@ -95,6 +95,9 @@ The runtime JSON is `runtime-25d0e62f.json` (the pod copy is `/workspace/m3/buil
 | gate4-def-24628607 | 25d0e62f | default: T3/T4/T5/T7/T8/T9 on, T1/T2/T6 off | 24628607 | PASS |
 | gate4-def-26235156 | 25d0e62f | default | 26235156 | PASS |
 | gate4-on-24628607 | 25d0e62f | recommended on-set: every flag on except T2 (`ASSIGNMENT_FLOW=0`); T1 pair and T6 knobs on | 24628607 | PASS |
+
+After merging the integrate head 093d738ab (T10 narrow-capture recorder; Zig only, so the image is unchanged), the tree was re-gated at **23908f67e** on 25d0e62f [M]:
+gate5-def-24628607 PASS, gate5-def-26235156 PASS, gate5-on-24628607 (recommended on-set, T10 flag off) PASS. That is 11/11 gates.
 
 The 3+3 above was measured on lib `b181cdd9…`. It has the same kernels as `25d0e62f`; only the defaults differ, and both arms set every flag explicitly.
 
