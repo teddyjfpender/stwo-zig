@@ -2,10 +2,14 @@
 //! piece n-stage2; rv64-m8-gpu-native.md §3.2, §3.5, §3.6; inventory H8-H13).
 //! native_device.zig's `stage2` / `seal` vtable entries come here.
 //!
-//! Seal (one job on the seal GPU, after every segment's MAIN root slot has
-//! landed in its exchange replica): the manifest chi chain over the roster
+//! Seal (one job on the seal GPU, after every segment's MAIN root slot and
+//! every two-stage truth's stage-1 MAIN root slot (Exchange.truthRoot, r-truth)
+//! has landed in its exchange replica): the manifest chi chain over the roster
 //! (native_seal_chi.cu: MAIN-only rho, chain step, chi) -> the 16-word seal
-//! slot (chi, then 0) peer-published to the other GPUs; Check.global_seal.
+//! slot (chi = the manifest digest, then 0; Exchange.seal_digest_words)
+//! peer-published to the other GPUs; Check.global_seal. A truth entry's root is
+//! read from its truthRoot slot exactly like a segment's root slot (same flag
+//! tag test), so the seal frames truths without a host-known root.
 //! The host never reads a root, a digest or a challenge.
 //!
 //! Stage 2 (per segment, on the segment's GPU, after the seal slot landed):
@@ -23,9 +27,13 @@
 //! with the class framing (globals/INTER/composition plans, PcsJob framing,
 //! encode program, patch tables) from the class cache only (`Classes`).
 //!
-//! NOT on device yet (fails closed: the status word stays `unset`, so
-//! publication refuses): Check.oods_constraint (the point-eval instance of
-//! the AOT composition codegen). See remaining host work in the receipt.
+//! Check.oods_constraint (gn-s2): native_encode_oods.zig, the point
+//! evaluation of every role's composition program at the device OODS point
+//! from the PCS image samples and the patched composition table, compared
+//! with the composition samples' reconstruction. It runs when the class
+//! carries an OODS program (ClassFraming.oods, built at warm by
+//! native_encode_oods.fromPlan) and the addon kernel is loaded
+//! (Symbols.oods); otherwise its status word stays `unset` (fails closed).
 const std = @import("std");
 const api = @import("api.zig");
 const G = @import("gpu_native.zig");
@@ -38,6 +46,7 @@ const Gl = @import("native_global.zig");
 const HJ = @import("native_hybrid_jobs.zig");
 const B = @import("native_binding.zig");
 const JP = @import("../joined_parameters.zig");
+pub const NO = @import("native_encode_oods.zig");
 
 // ---------------------------------------------------------------------------
 // Seal: constants and roster
@@ -126,9 +135,12 @@ pub fn sealConstants(identity: [32]u8, execution: [32]u8, entries: u32, tag: u32
 }
 
 /// One roster entry (Manifest.ExpectedWorker chain fields, in roster order).
-/// `segment`: the native segment whose MAIN root slot carries this entry's
-/// root; null: `root` is a constant known before the request (a truth whose
-/// root is not exchanged yet; see INTERFACES m8-gpu-n-stage2).
+/// The entry's MAIN root comes from exactly one place:
+///   `segment`  the native segment's MAIN root slot (Exchange.root);
+///   `truth`    two-stage truth t's stage-1 MAIN root slot
+///              (Exchange.truthRoot(t), r-truth; manifest ordinal = cpu
+///              count + t), produced on GPU `truth_device`;
+///   neither    `root`, a constant known before the request.
 pub const RosterEntry = struct {
     family: u32,
     rung: u32,
@@ -137,6 +149,9 @@ pub const RosterEntry = struct {
     s_in: [32]u8,
     s_out: [32]u8,
     segment: ?u32 = null,
+    truth: ?u32 = null,
+    /// GPU whose truth stage 1 publishes the truthRoot slot (seal awaitSlot).
+    truth_device: u32 = 0,
     root: [32]u8 = @splat(0),
 };
 pub fn sealEntries(a: std.mem.Allocator, roster: []const RosterEntry, exchange: G.Exchange) ![]SealEntry {
@@ -144,12 +159,28 @@ pub fn sealEntries(a: std.mem.Allocator, roster: []const RosterEntry, exchange: 
     errdefer a.free(out);
     for (roster, out, 0..) |r, *e, k| {
         e.* = .{ .k = @intCast(k), .family = r.family, .rung = r.rung, .vkhash = words8(r.vkhash), .stmt = words8(r.stmt), .s_in = words8(r.s_in), .s_out = words8(r.s_out), .main_const = words8(r.root) };
-        if (r.segment) |s| {
-            const slot = try exchange.root(s);
-            e.root_offset = @intCast(slot.offset);
-            e.flag_offset = @intCast(slot.flag);
+        if (r.segment != null and r.truth != null) return error.NativeSealRosterRootAmbiguous;
+        const slot: ?G.Exchange.Slot = if (r.segment) |s| try exchange.root(s) else if (r.truth) |t| try exchange.truthRoot(t) else null;
+        if (slot) |sl| {
+            e.root_offset = @intCast(sl.offset);
+            e.flag_offset = @intCast(sl.flag);
         }
     }
+    return out;
+}
+/// The truth root slots the seal awaits (slot + producing GPU), roster order.
+pub const TruthAwait = struct { slot: G.Exchange.Slot, device: u32 };
+pub fn truthAwaits(a: std.mem.Allocator, roster: []const RosterEntry, exchange: G.Exchange, devices: usize) ![]TruthAwait {
+    var n: usize = 0;
+    for (roster) |r| n += @intFromBool(r.truth != null);
+    const out = try a.alloc(TruthAwait, n);
+    errdefer a.free(out);
+    var i: usize = 0;
+    for (roster) |r| if (r.truth) |t| {
+        if (r.truth_device >= devices) return error.GpuNativeSealDeviceOutOfRange;
+        out[i] = .{ .slot = try exchange.truthRoot(t), .device = r.truth_device };
+        i += 1;
+    };
     return out;
 }
 
@@ -158,11 +189,17 @@ pub const SharedFn = *const fn (*anyopaque, u32, [*]const u32, *const SealConsta
 pub const SealSymbols = struct {
     seal: SealFn,
     shared: SharedFn,
+    /// Flat (v1-flat) manifest digest; null on an addon without it.
+    flat: ?*const anyopaque = null,
     pub fn load(addon: *std.DynLib) !SealSymbols {
         return .{
             .seal = addon.lookup(SealFn, "stwo_rv64_native_seal_chi_v1_on") orelse return error.MissingNativeSealSymbol,
             .shared = addon.lookup(SharedFn, "stwo_rv64_native_seal_shared_v1_on") orelse return error.MissingNativeSealSymbol,
+            .flat = addon.lookup(*const anyopaque, "stwo_rv64_native_seal_flat_v1_on"),
         };
+    }
+    pub fn flatFn(self: *const SealSymbols) !FlatFn {
+        return @ptrCast(@alignCast(self.flat orelse return error.MissingNativeSealFlatSymbol));
     }
 };
 
@@ -178,6 +215,155 @@ pub fn replica(ctx: *const G.RequestContext, device: u32) !api.DeviceBuffer {
     return ctx.layout.segments[device].exchangeBuffer(ctx.segments[device]);
 }
 
+// ---------------------------------------------------------------------------
+// Flat manifest digest (STWO_RV64_NATIVE_VERSION=v1-flat: the D2 profile)
+// ---------------------------------------------------------------------------
+
+/// Under the flat policy the manifest digest is NOT the chi chain above but
+/// manifest.emitCanonical hashed with one Blake2s-256 (manifest.zig Writer):
+///   PROFILE || execution || u64 8 || u64 n || per entry:
+///     u64 kind, u64 relation bits, u64 mass ram/kio/wire, u64 ordinal,
+///     statement, fixed, MAIN root, u64 local?;
+///     local: receipt digest, u64 instances, per instance u64 2 + 2 felts
+///            (claims_to_verify_by_instance, canonical coordinates)
+/// Everything but the MAIN roots, the local receipt digests and the terminal
+/// marginals is request public data known before proving; those three are
+/// device values in the exchange replica (root / truthRoot, receipt, claims
+/// slots). The host turns the roster into a "digest script" once per request
+/// (`FlatScript.build`): byte runs from a constant pool and exchange reads,
+/// plus the flag-tag tests of every slot read; the device streams it into
+/// one Blake2s (native_seal_chi.cu stwo_rv64_native_seal_flat_v1_on) and
+/// writes the seal slot (digest, then 0) and Check.global_seal.
+pub const FlatOp = enum(u32) { bytes = 0, words = 1, felts = 2, flag = 3 };
+pub const FlatEntry = struct {
+    kind: u32,
+    relations: u32,
+    mass: [3]u64,
+    ordinal: u32,
+    statement: [32]u8,
+    fixed: [32]u8,
+    /// Root source as RosterEntry (segment / truth slot, or `main`).
+    segment: ?u32 = null,
+    truth: ?u32 = null,
+    truth_device: u32 = 0,
+    main: [32]u8 = @splat(0),
+    /// Local child present: number of GKR instances (marginals: 2 felts each,
+    /// the segment's claims slot) and the receipt digest from the segment's
+    /// receipt slot (Exchange.receipts). null: u64 0, no local block.
+    local_instances: ?u32 = null,
+};
+pub const FlatScript = struct {
+    a: std.mem.Allocator,
+    /// [op, a, b] triples: bytes (pool byte offset, length), words (exchange
+    /// word offset, count), felts (exchange word offset, felts), flag
+    /// (exchange word offset of a slot flag; must equal the request tag).
+    ops: []u32,
+    /// Constant bytes (little-endian words; `pool_bytes` valid).
+    pool: []u32,
+    pool_bytes: u32,
+    pub fn deinit(self: *FlatScript) void {
+        self.a.free(self.ops);
+        self.a.free(self.pool);
+    }
+    pub fn build(a: std.mem.Allocator, profile: []const u8, execution: [32]u8, entries: []const FlatEntry, exchange: G.Exchange) !FlatScript {
+        var ops: std.ArrayListUnmanaged(u32) = .empty;
+        errdefer ops.deinit(a);
+        var pool: std.ArrayListUnmanaged(u8) = .empty;
+        defer pool.deinit(a);
+        var run_at: ?usize = null; // pool offset of the open bytes run
+        const Emit = struct {
+            fn bytes(al: std.mem.Allocator, o: *std.ArrayListUnmanaged(u32), p: *std.ArrayListUnmanaged(u8), open: *?usize, v: []const u8) !void {
+                _ = o;
+                if (open.* == null) open.* = p.items.len;
+                try p.appendSlice(al, v);
+            }
+            fn int(al: std.mem.Allocator, o: *std.ArrayListUnmanaged(u32), p: *std.ArrayListUnmanaged(u8), open: *?usize, v: u64) !void {
+                var e: [8]u8 = undefined;
+                std.mem.writeInt(u64, &e, v, .little);
+                try bytes(al, o, p, open, &e);
+            }
+            fn close(al: std.mem.Allocator, o: *std.ArrayListUnmanaged(u32), p: *std.ArrayListUnmanaged(u8), open: *?usize) !void {
+                const at = open.* orelse return;
+                try o.appendSlice(al, &.{ @intFromEnum(FlatOp.bytes), @intCast(at), @intCast(p.items.len - at) });
+                open.* = null;
+            }
+            fn read(al: std.mem.Allocator, o: *std.ArrayListUnmanaged(u32), p: *std.ArrayListUnmanaged(u8), open: *?usize, op: FlatOp, slot: G.Exchange.Slot, n: usize) !void {
+                try close(al, o, p, open);
+                try o.appendSlice(al, &.{ @intFromEnum(FlatOp.flag), @intCast(slot.flag), 0, @intFromEnum(op), @intCast(slot.offset), @intCast(n) });
+            }
+        };
+        if (entries.len == 0) return error.NativeSealFlatRoster;
+        try Emit.bytes(a, &ops, &pool, &run_at, profile);
+        try Emit.bytes(a, &ops, &pool, &run_at, &execution);
+        try Emit.int(a, &ops, &pool, &run_at, 8);
+        try Emit.int(a, &ops, &pool, &run_at, entries.len);
+        for (entries) |e| {
+            for ([_]u64{ e.kind, e.relations, e.mass[0], e.mass[1], e.mass[2], e.ordinal }) |v| try Emit.int(a, &ops, &pool, &run_at, v);
+            try Emit.bytes(a, &ops, &pool, &run_at, &e.statement);
+            try Emit.bytes(a, &ops, &pool, &run_at, &e.fixed);
+            if (e.segment != null and e.truth != null) return error.NativeSealRosterRootAmbiguous;
+            if (e.segment) |sg| try Emit.read(a, &ops, &pool, &run_at, .words, try exchange.root(sg), 8) else if (e.truth) |t| try Emit.read(a, &ops, &pool, &run_at, .words, try exchange.truthRoot(t), 8) else try Emit.bytes(a, &ops, &pool, &run_at, &e.main);
+            try Emit.int(a, &ops, &pool, &run_at, @intFromBool(e.local_instances != null));
+            if (e.local_instances) |n| {
+                const sg = e.segment orelse return error.NativeSealFlatLocalWithoutSegment;
+                try Emit.read(a, &ops, &pool, &run_at, .words, try exchange.receipt(sg), 8);
+                try Emit.int(a, &ops, &pool, &run_at, n);
+                const claims = try exchange.claims(sg);
+                if (claims.words < 16 * @as(usize, n)) return error.NativeSealFlatClaimsShape;
+                for (0..n) |i| {
+                    try Emit.int(a, &ops, &pool, &run_at, 2);
+                    // One flag test per slot is enough; repeat it per read (cheap, uniform).
+                    try Emit.read(a, &ops, &pool, &run_at, .felts, .{ .offset = claims.offset + 16 * i, .words = 16, .flag = claims.flag }, 2);
+                }
+            }
+        }
+        try Emit.close(a, &ops, &pool, &run_at);
+        const words = try a.alloc(u32, (pool.items.len + 3) / 4);
+        errdefer a.free(words);
+        @memset(words, 0);
+        @memcpy(std.mem.sliceAsBytes(words)[0..pool.items.len], pool.items);
+        return .{ .a = a, .ops = try ops.toOwnedSlice(a), .pool = words, .pool_bytes = @intCast(pool.items.len) };
+    }
+    /// Host mirror of the kernel over a host copy of the exchange replica:
+    /// the digest, or the global_seal detail it refuses with.
+    pub fn hostDigest(self: *const FlatScript, exchange: []const u32, tag: u32) union(enum) { digest: [32]u8, refuse: u16 } {
+        var h = Blake.init(.{});
+        const pool = std.mem.sliceAsBytes(self.pool)[0..self.pool_bytes];
+        var i: usize = 0;
+        var detail: u16 = 0;
+        while (i + 3 <= self.ops.len) : (i += 3) {
+            const op: FlatOp = @enumFromInt(self.ops[i]);
+            const x = self.ops[i + 1];
+            const n = self.ops[i + 2];
+            switch (op) {
+                .bytes => h.update(pool[x..][0..n]),
+                .words => h.update(std.mem.sliceAsBytes(exchange[x..][0..n])),
+                .felts => {
+                    for (exchange[x..][0 .. 8 * n]) |w| if (w >= m31_modulus and detail == 0) {
+                        detail = flat_noncanonical;
+                    };
+                    h.update(std.mem.sliceAsBytes(exchange[x..][0 .. 8 * n]));
+                },
+                .flag => if (exchange[x] != tag and detail == 0) {
+                    detail = 1; // kRootNotLanded
+                },
+            }
+        }
+        if (detail != 0) return .{ .refuse = detail };
+        var out: [32]u8 = undefined;
+        h.final(&out);
+        return .{ .digest = out };
+    }
+};
+/// global_seal detail of a non-canonical marginal coordinate (flat mode).
+pub const flat_noncanonical: u16 = 3;
+
+pub const FlatFn = *const fn (*anyopaque, u32, [*]const u32, u64, [*]const u32, u64, u32, [*]const u32, u64, u32, [*]u32, [*]u32, [*]const u32) callconv(.c) c_int;
+pub fn sealFlat(f: FlatFn, ctx: *anyopaque, ops: api.DeviceBuffer, pool: api.DeviceBuffer, pool_bytes: u32, exchange: api.DeviceBuffer, tag: u32, slot: api.DeviceBuffer, verdict: api.DeviceBuffer, ops_host: []const u32) !void {
+    if (ops.words != ops_host.len or pool.words * 4 < pool_bytes or slot.words < 16) return error.NativeSealFlatShape;
+    return rc(f(ctx, 0, ops.ptr, ops.words, pool.ptr, pool.words, pool_bytes, exchange.ptr, exchange.words, tag, slot.ptr, verdict.ptr, ops_host.ptr));
+}
+
 /// The seal job (NativeFactory.seal). Footprint: the entries (staged) only.
 pub const SealJob = struct {
     a: std.mem.Allocator,
@@ -186,30 +372,68 @@ pub const SealJob = struct {
     device: u32,
     entries: []const SealEntry,
     constants: SealConstants,
+    /// Two-stage truth roots the chain reads (Exchange.truthRoot slots).
+    truth_awaits: []const TruthAwait = &.{},
+    /// Flat policy (v1-flat, D2): the digest script replaces the chi chain;
+    /// `entries` is then unused (may be empty).
+    flat: ?*const FlatScript = null,
     staged: ?api.DeviceBuffer = null,
+    staged_ops: ?api.DeviceBuffer = null,
+    staged_pool: ?api.DeviceBuffer = null,
 
     pub fn classKey(_: *SealJob) [32]u8 {
         return tagDigest("rv64-m8-gpu-native-seal/v1");
     }
     pub fn footprint(self: *SealJob) api.Footprint {
-        const w = std.mem.alignForward(usize, self.entries.len * 48, 64);
+        var w = std.mem.alignForward(usize, self.entries.len * 48, 64);
+        if (self.flat) |f| w += std.mem.alignForward(usize, f.ops.len, 64) + std.mem.alignForward(usize, f.pool.len, 64);
         return .{ .device_words = w, .staged_words = w, .pinned_words = w };
     }
     pub fn stage(self: *SealJob, s: *api.Stager) !void {
+        if (self.flat) |f| {
+            const o = try s.alloc(f.ops.len);
+            try s.upload(o, f.ops);
+            self.staged_ops = o;
+            const p = try s.alloc(@max(1, f.pool.len));
+            try s.upload(try p.slice(0, f.pool.len), f.pool);
+            self.staged_pool = p;
+            return;
+        }
         const b = try s.alloc(self.entries.len * 48);
         try s.upload(b, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(self.entries)));
         self.staged = b;
     }
     pub fn enqueue(self: *SealJob, e: *api.Enqueue) !void {
+        if (self.flat != null) return self.enqueueFlat(e);
         const ctx = self.ctx;
         const staged = self.staged orelse return error.NativeSealNotStaged;
         // Every segment's MAIN root slot, from whichever GPU produced it.
         for (ctx.segment_device, 0..) |src, s| try ctx.peer.awaitSlot(self.device, src, try ctx.exchange.root(@intCast(s)));
+        // Every two-stage truth's stage-1 MAIN root, from its truth GPU.
+        for (self.truth_awaits) |t| try ctx.peer.awaitSlot(self.device, t.device, t.slot);
         const x = try replica(ctx, self.device);
         const seal = ctx.exchange.seal();
         const slot = try x.slice(seal.offset, seal.words);
         const verdict = try ctx.layout.segments[self.device].statusBuffer(ctx.segments[self.device], .{ .kind = .request, .ordinal = 0 }, .global_seal);
         try rc(self.sym.seal(e.ctx(), 0, @ptrCast(staged.ptr), x.ptr, x.words, &self.constants, slot.ptr, verdict.ptr, self.entries.ptr));
+        try ctx.peer.publish(self.device, seal);
+    }
+    /// Flat digest: every root, receipt and claims slot of every segment and
+    /// every truth root, then the script.
+    fn enqueueFlat(self: *SealJob, e: *api.Enqueue) !void {
+        const ctx = self.ctx;
+        const f = self.flat.?;
+        for (ctx.segment_device, 0..) |src, sg| {
+            const seg: u32 = @intCast(sg);
+            try ctx.peer.awaitSlot(self.device, src, try ctx.exchange.root(seg));
+            try ctx.peer.awaitSlot(self.device, src, try ctx.exchange.claims(seg));
+            if (ctx.exchange.receipts) try ctx.peer.awaitSlot(self.device, src, try ctx.exchange.receipt(seg));
+        }
+        for (self.truth_awaits) |t| try ctx.peer.awaitSlot(self.device, t.device, t.slot);
+        const x = try replica(ctx, self.device);
+        const seal = ctx.exchange.seal();
+        const verdict = try ctx.layout.segments[self.device].statusBuffer(ctx.segments[self.device], .{ .kind = .request, .ordinal = 0 }, .global_seal);
+        try sealFlat(try self.sym.flatFn(), e.ctx(), self.staged_ops orelse return error.NativeSealNotStaged, try self.staged_pool.?.slice(0, f.pool.len), f.pool_bytes, x, self.constants.tag, try x.slice(seal.offset, seal.words), verdict, f.ops);
         try ctx.peer.publish(self.device, seal);
     }
     pub fn finish(_: *SealJob, _: api.SlabView) !void {}
@@ -360,6 +584,10 @@ pub const ClassFraming = struct {
     /// RAM boundary claim slots (core initial / terminal), or null.
     initial_claim: ?u32 = null,
     terminal_claim: ?u32 = null,
+    /// Check.oods_constraint program of the class (native_encode_oods.fromPlan
+    /// over `composition` and the PCS shape, at warm); null: the check does
+    /// not run and its word stays unset (publication refuses).
+    oods: ?[]const u32 = null,
     /// Class-cache device tables (per GPU) holding program + patch tables;
     /// see `deviceWords` / `writeDevice`.
     destroy_fn: ?*const fn (*ClassFraming) void = null,
@@ -375,6 +603,7 @@ pub const ClassFraming = struct {
         };
         if (k != self.global_patches.len) return error.NativeStage2PatchTable;
         try self.comp_patches.check(self.semantic_words, self.composition.table.len);
+        if (self.oods) |d| try checkOods(d, &self.program, self.composition.table.len);
     }
     pub fn uses(self: *const ClassFraming, source: Source) bool {
         if (self.comp_patches.get(source).len() != 0) return true;
@@ -384,7 +613,7 @@ pub const ClassFraming = struct {
     pub fn deviceWords(self: *const ClassFraming) usize {
         var n = self.program.words.len;
         for (self.global_patches) |p| n += p.words();
-        return n + self.comp_patches.words();
+        return n + self.comp_patches.words() + if (self.oods) |d| d.len else 0;
     }
     /// The class-cache image: program, then per patch set (globals in order,
     /// then the composition) per source (`sources` order) the dst and index
@@ -402,6 +631,10 @@ pub const ClassFraming = struct {
             @memcpy(out[at..][0..p.len()], p.index);
             at += p.len();
         };
+        if (self.oods) |d| {
+            @memcpy(out[at..][0..d.len], d);
+            at += d.len;
+        }
         std.debug.assert(at == out.len);
         return out;
     }
@@ -411,6 +644,7 @@ pub const ClassFraming = struct {
         program: api.DeviceBuffer,
         globals: []SetView,
         composition: SetView,
+        oods: ?api.DeviceBuffer = null,
     };
     pub fn views(self: *const ClassFraming, a: std.mem.Allocator, device: api.DeviceBuffer) !Views {
         if (device.words < self.deviceWords()) return error.NativeStage2ClassImage;
@@ -430,9 +664,17 @@ pub const ClassFraming = struct {
         }.f;
         for (self.global_patches, g) |p, *v| v.* = try take(device, &at, p);
         const comp = try take(device, &at, self.comp_patches);
-        return .{ .program = try device.slice(0, self.program.words.len), .globals = g, .composition = comp };
+        const oods: ?api.DeviceBuffer = if (self.oods) |d| try device.slice(at, d.len) else null;
+        return .{ .program = try device.slice(0, self.program.words.len), .globals = g, .composition = comp, .oods = oods };
     }
 };
+
+/// A class OODS program fits its PCS image (sample count of the encode
+/// program) and its composition table (warm, once).
+pub fn checkOods(d: []const u32, program: *const NE.Program, table_words: usize) !void {
+    try NO.validate(d);
+    if (d[NO.H.samples] != program.get(.sample_count) or d[NO.H.table_words] > table_words) return error.NativeStage2OodsProgram;
+}
 
 /// Per-request inputs Stage 2 reads that are request public data (known on
 /// the host before proving, uploaded with the job): the RAM boundary tuples
@@ -453,6 +695,8 @@ pub const Symbols = struct {
     pcs: N.Symbols,
     composition: NComp.Symbols,
     global: Gl.Symbols,
+    /// Check.oods_constraint kernel (addon); null leaves the word unset.
+    oods: ?NO.Symbols = null,
 };
 
 /// Stage 2 of one segment (NativeFactory.stage2), fully enqueued: no host
@@ -518,7 +762,8 @@ pub const Stage2Job = struct {
         // public_claims scratch grows with the boundary cells (8 + 8 per
         // 256-cell block, up to 4104 words): sized here, not in the slack.
         const pscratch = std.mem.alignForward(usize, @intCast(self.sym.encode.public_scratch(@intCast(self.inputs.initial_tuples.len / 14), @intCast(self.inputs.terminal_tuples.len / 14))), g);
-        const fields = 8 * g + @as(usize, c.claim_count) * 8 + @as(usize, @intCast(c.pcs.outputWords())) + NE.scratch_words + 8 * shared_felts + 8 * (1 + self.globalCount()) + pscratch + 4096;
+        const oods_scratch: usize = if (c.oods) |d| std.mem.alignForward(usize, NO.scratchWords(d), g) else 0;
+        const fields = 8 * g + @as(usize, c.claim_count) * 8 + @as(usize, @intCast(c.pcs.outputWords())) + NE.scratch_words + 8 * shared_felts + 8 * (1 + self.globalCount()) + pscratch + oods_scratch + 4096;
         const work = globals + c.inter.deviceWords() + c.composition.coefficientWords() + c.composition.enqueueWords() + pcs + fields;
         const fresh = c.fixed_words + c.composition.persistentWords();
         return .{ .device_words = staged + work + 16 * g, .staged_words = staged, .slab_words = 0, .pinned_words = @as(usize, @intCast(c.pcs.ingressWords())) + c.composition.pinnedWords() + fresh + 64 * g + self.inputs.initial_tuples.len + self.inputs.terminal_tuples.len + self.inputs.public.len };
@@ -716,11 +961,23 @@ pub const Stage2Job = struct {
         const bt: ?NE.BoundaryInput = if (c.terminal_claim) |cl| .{ .claim = cl, .tuples = self.tuples[1] orelse return error.NativeStage2NoBoundary, .cells = @intCast(self.inputs.terminal_tuples.len / 14) } else null;
         const pscratch = try e.alloc(NE.publicClaimsScratch(&sym.encode, bi, bt));
         try NE.publicClaims(&sym.encode, e.ctx(), mixed, c.claim_count, try shared.slice(0, 15 * 8), bi, bt, pscratch, try self.status(.public_claims));
+        // oods_constraint: the composition programs at the device OODS point
+        // from the PCS image samples and the patched composition table
+        // (after the claim slots: the composition enqueue copied them in).
+        var oods_scratch: ?api.DeviceBuffer = null;
+        if (views.oods) |od| if (sym.oods) |*osym| {
+            const d = c.oods.?;
+            const samples = try pcs_out.slice(c.program.get(.off_samples), 8 * @as(usize, c.program.get(.sample_count)));
+            const os = try e.alloc(NO.scratchWords(d));
+            oods_scratch = os;
+            try NO.enqueue(osym, e.ctx(), od, samples, table, alpha, oods, os, try self.status(.oods_constraint), null);
+        };
         // ---- device encoding into the slab region (+ pcs_status, encode_bounds)
         const scratch = try e.alloc(NE.scratch_words);
         var enc = NE.Encoder{ .sym = &sym.encode, .program = views.program, .host = &c.program, .pcs = pcs_out, .scratch = scratch, .pcs_status = try self.status(.pcs_status) };
         try enc.encoder().run(e, &ctx.layout.segments[self.device], ctx.segments[self.device], self.id());
         // Stream-ordered frees after the last readers.
+        if (oods_scratch) |b| e.free(b);
         for ([_]api.DeviceBuffer{ scratch, pscratch, pcs_out, oods, comp_status, alpha, roots, gstatus, claims, shared }) |b| e.free(b);
     }
 
@@ -795,6 +1052,11 @@ pub const Factory = struct {
         roster: []const RosterEntry,
         execution: [32]u8,
         inputs: []const RequestInputs, // per segment
+        /// Flat policy (v1-flat, the D2 profile): the manifest entries the
+        /// flat digest frames (roster order) and the manifest PROFILE; the
+        /// seal then runs the digest script instead of the chi chain.
+        flat: ?[]const FlatEntry = null,
+        profile: []const u8 = CPU.rv64_gkr_manifest.PROFILE,
     };
 
     pub fn deinit(self: *Factory) void {
@@ -908,7 +1170,17 @@ pub const Factory = struct {
         const job = try self.a.create(SealOwned);
         errdefer self.a.destroy(job);
         const entries = try sealEntries(self.a, r.roster, ctx.exchange);
-        job.* = .{ .factory = self, .job = .{ .a = self.a, .sym = &self.sym.seal, .ctx = ctx, .device = device, .entries = entries, .constants = sealConstants(self.identity, r.execution, @intCast(entries.len), G.Exchange.flagTag(ctx.generation)) } };
+        errdefer self.a.free(entries);
+        const awaits = try truthAwaits(self.a, r.roster, ctx.exchange, ctx.segments.len);
+        errdefer self.a.free(awaits);
+        var flat: ?*FlatScript = null;
+        if (r.flat) |fe| {
+            const fs = try self.a.create(FlatScript);
+            errdefer self.a.destroy(fs);
+            fs.* = try FlatScript.build(self.a, r.profile, r.execution, fe, ctx.exchange);
+            flat = fs;
+        }
+        job.* = .{ .factory = self, .job = .{ .a = self.a, .sym = &self.sym.seal, .ctx = ctx, .device = device, .entries = entries, .truth_awaits = awaits, .flat = flat, .constants = sealConstants(self.identity, r.execution, @intCast(entries.len), G.Exchange.flagTag(ctx.generation)) } };
         return api.Job.from(SealOwned, job);
     }
     pub fn stage2(self: *Factory, ctx: *const G.RequestContext, segment: u32, device: u32) !api.Job {
@@ -963,6 +1235,11 @@ const SealOwned = struct {
     fn release(self: *SealOwned) void {
         const a = self.factory.a;
         a.free(self.job.entries);
+        a.free(self.job.truth_awaits);
+        if (self.job.flat) |f| {
+            @constCast(f).deinit();
+            a.destroy(@constCast(f));
+        }
         a.destroy(self);
     }
 };
@@ -1107,6 +1384,7 @@ test "factory framing pool: exclusive leases per instance, exhaustion fails clos
         x.program = .{ .a = a, .words = &.{}, .max_encoded_bytes = 0, .pcs_words = 0 };
         x.global_patches = &.{};
         x.comp_patches = .{};
+        x.oods = null;
     }
     try f.registerUnchecked(&inst[0]);
     try f.registerUnchecked(&inst[1]);
@@ -1136,6 +1414,7 @@ test "class image and views agree on the per-set, per-source table layout" {
     fr.program = .{ .a = a, .words = &prog, .max_encoded_bytes = 0, .pcs_words = 0 };
     fr.global_patches = &globals;
     fr.comp_patches = .{ .semantic = .{ .dst = &d2, .index = &x2 } };
+    fr.oods = null;
     const img = try fr.image(a);
     defer a.free(img);
     try std.testing.expectEqual(fr.deviceWords(), img.len);
@@ -1168,4 +1447,214 @@ test "stage2 / seal jobs and the factory seam type-check against the api" {
     _ = &Factory.register;
     _ = &ClassFraming.views;
     _ = &ClassFraming.image;
+}
+
+test "seal frames two-stage truth roots from Exchange.truthRoot (after the seal slot) like segment roots" {
+    const a = std.testing.allocator;
+    const Chain = CPU.rv64_gkr_chain;
+    const identity = try Chain.versionIdentity(.m6_v2_gkr);
+    const execution: [32]u8 = @splat(0x24);
+    var roster: [6]RosterEntry = undefined;
+    var workers: [6]Manifest.ExpectedWorker = undefined;
+    var stages: [6]Manifest.StageOne = undefined;
+    testRoster(5, 6, &roster, &workers, &stages);
+    // Entries 4 and 5 are truths 0 and 1 (manifest ordinal = cpu count + t),
+    // produced on GPU 1 and 0.
+    roster[4].segment = null;
+    roster[4].truth = 0;
+    roster[4].truth_device = 1;
+    roster[5].segment = null;
+    roster[5].truth = 1;
+    var pending = try Manifest.verifyAndSealFor(.m6_v2_gkr, a, execution, &workers, &stages);
+    defer pending.deinit(a);
+    const ex = G.Exchange{ .segments = 4, .claims_per_segment = 2, .devices = 2, .truths = 2 };
+    try ex.validate();
+    const entries = try sealEntries(a, &roster, ex);
+    defer a.free(entries);
+    const seal = ex.seal();
+    for (entries[4..], 0..) |e, t| {
+        const slot = try ex.truthRoot(@intCast(t));
+        try std.testing.expectEqual(@as(u32, @intCast(slot.offset)), e.root_offset);
+        try std.testing.expectEqual(@as(u32, @intCast(slot.flag)), e.flag_offset);
+        // Laid out after the seal slot: the kernel's tail custody range.
+        try std.testing.expect(e.root_offset >= seal.offset + seal.words and e.root_offset + 8 <= ex.words());
+        try std.testing.expect(e.flag_offset < seal.offset);
+    }
+    var roots: [6][8]u32 = undefined;
+    for (&roots, roster) |*r, e| r.* = words8(e.root);
+    const k = sealConstants(identity, execution, 6, 3);
+    try std.testing.expectEqualSlices(u32, &words8(pending.digest), &hostChi(k, entries, &roots));
+    // The seal awaits each truth slot from its producer.
+    const awaits = try truthAwaits(a, &roster, ex, 2);
+    defer a.free(awaits);
+    try std.testing.expectEqual(@as(usize, 2), awaits.len);
+    try std.testing.expectEqual(@as(u32, 1), awaits[0].device);
+    try std.testing.expectEqual((try ex.truthRoot(1)).offset, awaits[1].slot.offset);
+    try std.testing.expectError(error.GpuNativeSealDeviceOutOfRange, truthAwaits(a, &roster, ex, 1));
+    // A truth slot the exchange has no capacity for, or a doubly-rooted entry, fails closed.
+    const ex1 = G.Exchange{ .segments = 4, .claims_per_segment = 2, .devices = 2, .truths = 1 };
+    try std.testing.expectError(error.GpuNativeExchangeSlot, sealEntries(a, &roster, ex1));
+    var both = roster;
+    both[4].segment = 0;
+    try std.testing.expectError(error.NativeSealRosterRootAmbiguous, sealEntries(a, &both, ex));
+}
+
+test "class image carries the OODS program after the patch tables" {
+    const a = std.testing.allocator;
+    var prog = [_]u32{ 1, 2 };
+    var d0 = [_]u32{8};
+    var x0 = [_]u32{4};
+    const od = [_]u32{ 9, 8, 7, 6 };
+    var fr: ClassFraming = undefined;
+    fr.program = .{ .a = a, .words = &prog, .max_encoded_bytes = 0, .pcs_words = 0 };
+    fr.global_patches = &.{};
+    fr.comp_patches = .{ .shared = .{ .dst = &d0, .index = &x0 } };
+    fr.oods = &od;
+    const img = try fr.image(a);
+    defer a.free(img);
+    try std.testing.expectEqual(fr.deviceWords(), img.len);
+    const v = try fr.views(a, .{ .ptr = img.ptr, .words = img.len });
+    defer a.free(v.globals);
+    try std.testing.expectEqualSlices(u32, &od, v.oods.?.ptr[0..v.oods.?.words]);
+    fr.oods = null;
+    try std.testing.expectEqual(img.len - od.len, fr.deviceWords());
+}
+
+test {
+    _ = NO;
+}
+
+test "flat seal script reproduces manifest.emitCanonical (v1-flat digest) from exchange slots; faults refuse" {
+    const a = std.testing.allocator;
+    const OM = @import("stwo_core").fields.om31.OM31;
+    const Mm = @import("stwo_core").fields.m31.M31;
+    const ex = G.Exchange{ .segments = 3, .claims_per_segment = 4, .devices = 2, .truths = 1, .receipts = true };
+    try ex.validate();
+    // Slots stay disjoint with receipts (after the truth roots); flags distinct.
+    {
+        const used = try a.alloc(bool, ex.words());
+        defer a.free(used);
+        @memset(used, false);
+        var slots: std.ArrayListUnmanaged(G.Exchange.Slot) = .empty;
+        defer slots.deinit(a);
+        for (0..3) |sg| {
+            try slots.append(a, try ex.root(@intCast(sg)));
+            try slots.append(a, try ex.claims(@intCast(sg)));
+            try slots.append(a, try ex.receipt(@intCast(sg)));
+        }
+        try slots.append(a, try ex.truthRoot(0));
+        for (0..2) |dv| try slots.append(a, try ex.partial(@intCast(dv)));
+        try slots.append(a, ex.seal());
+        for (slots.items) |sl| {
+            for (used[sl.offset..][0..sl.words]) |*u| {
+                try std.testing.expect(!u.*);
+                u.* = true;
+            }
+            try std.testing.expect(!used[sl.flag] and sl.flag < ex.flagWords());
+            used[sl.flag] = true;
+        }
+        try std.testing.expectEqual(slots.items.len, ex.flagWords());
+        try std.testing.expectError(error.GpuNativeExchangeSlot, (G.Exchange{ .segments = 3, .claims_per_segment = 4, .devices = 2 }).receipt(0));
+    }
+    const tag: u32 = 77;
+    var x = try a.alloc(u32, ex.words());
+    defer a.free(x);
+    @memset(x, 0);
+    var prng = std.Random.DefaultPrng.init(42);
+    const rng = prng.random();
+    var mains: [5][32]u8 = undefined;
+    var receipts: [3][32]u8 = undefined;
+    var marg: [3][2][2]OM = undefined;
+    for (&mains) |*m| rng.bytes(m);
+    for (&receipts) |*r| rng.bytes(r);
+    for (0..3) |sg| {
+        const root = try ex.root(@intCast(sg));
+        x[root.flag] = tag;
+        @memcpy(x[root.offset..][0..8], &words8(mains[sg]));
+        const rc_ = try ex.receipt(@intCast(sg));
+        x[rc_.flag] = tag;
+        @memcpy(x[rc_.offset..][0..8], &words8(receipts[sg]));
+        const cl = try ex.claims(@intCast(sg));
+        x[cl.flag] = tag;
+        for (0..2) |i| for (0..2) |j| {
+            var limbs: [8]Mm = undefined;
+            for (&limbs) |*l| l.* = Mm.fromCanonical(rng.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus));
+            marg[sg][i][j] = OM.fromM31Array(limbs);
+            for (limbs, 0..) |l, k| x[cl.offset + 16 * i + 8 * j + k] = l.toU32();
+        };
+    }
+    const tr = try ex.truthRoot(0);
+    x[tr.flag] = tag;
+    @memcpy(x[tr.offset..][0..8], &words8(mains[3]));
+    var stmts: [5][32]u8 = undefined;
+    var fixeds: [5][32]u8 = undefined;
+    for (&stmts) |*v| rng.bytes(v);
+    for (&fixeds) |*v| rng.bytes(v);
+    const kinds = [5]Manifest.Kind{ .cpu, .cpu, .cpu, .keccak, .secp_add };
+    var flat: [5]FlatEntry = undefined;
+    for (&flat, 0..) |*e, k| e.* = .{ .kind = @intFromEnum(kinds[k]), .relations = @intCast(k % 8), .mass = .{ k, 2 * k, 3 * k + 1 }, .ordinal = @intCast(k), .statement = stmts[k], .fixed = fixeds[k] };
+    flat[0].segment = 0;
+    flat[0].local_instances = 2;
+    flat[1].segment = 1;
+    flat[1].local_instances = 2;
+    flat[2].segment = 2;
+    flat[3].truth = 0;
+    flat[4].main = mains[4];
+    const execution: [32]u8 = @splat(0x5a);
+    var script = try FlatScript.build(a, Manifest.PROFILE, execution, &flat, ex);
+    defer script.deinit();
+    // Reference: manifest.emitCanonical over equivalent entries.
+    const L = struct { digest: [32]u8, claims_to_verify_by_instance: []const []const OM };
+    const E = struct { kind: Manifest.Kind, global_relations: Manifest.Relations, mass: Manifest.Mass, scope: struct { ordinal: u32, statement: [32]u8, fixed: [32]u8, main: [32]u8 }, local: ?L };
+    var slices: [3][2][]const OM = undefined;
+    for (0..3) |sg| for (0..2) |i| {
+        slices[sg][i] = &marg[sg][i];
+    };
+    var ref: [5]E = undefined;
+    for (&ref, 0..) |*e, k| {
+        const bits: u32 = @intCast(k % 8);
+        e.* = .{ .kind = kinds[k], .global_relations = .{ .ram = bits & 1 != 0, .kio = bits & 2 != 0, .wire = bits & 4 != 0 }, .mass = .{ .ram = k, .kio = 2 * k, .wire = 3 * k + 1 }, .scope = .{ .ordinal = @intCast(k), .statement = stmts[k], .fixed = fixeds[k], .main = mains[k] }, .local = null };
+    }
+    ref[0].local = .{ .digest = receipts[0], .claims_to_verify_by_instance = &slices[0] };
+    ref[1].local = .{ .digest = receipts[1], .claims_to_verify_by_instance = &slices[1] };
+    const Wr = struct {
+        hash: Blake = .init(.{}),
+        pub fn bytes(self: *@This(), v: []const u8) void {
+            self.hash.update(v);
+        }
+        pub fn integer(self: *@This(), v: anytype) void {
+            var e: [8]u8 = undefined;
+            std.mem.writeInt(u64, &e, @intCast(v), .little);
+            self.hash.update(&e);
+        }
+        pub fn field(self: *@This(), v: OM) !void {
+            for (v.toM31Array()) |c| {
+                var e: [4]u8 = undefined;
+                std.mem.writeInt(u32, &e, c.v, .little);
+                self.hash.update(&e);
+            }
+        }
+    };
+    var w = Wr{};
+    try Manifest.emitCanonical(execution, &ref, &w);
+    var expected: [32]u8 = undefined;
+    w.hash.final(&expected);
+    switch (script.hostDigest(x, tag)) {
+        .digest => |d| try std.testing.expectEqualSlices(u8, &expected, &d),
+        .refuse => return error.TestUnexpectedResult,
+    }
+    // An unlanded receipt slot and a non-canonical marginal refuse.
+    const rf = (try ex.receipt(1)).flag;
+    x[rf] = tag + 1;
+    try std.testing.expectEqual(@as(u16, 1), script.hostDigest(x, tag).refuse);
+    x[rf] = tag;
+    const cl = try ex.claims(2);
+    _ = cl;
+    const c0 = try ex.claims(0);
+    x[c0.offset + 5] = @import("stwo_core").fields.m31.Modulus;
+    try std.testing.expectEqual(flat_noncanonical, script.hostDigest(x, tag).refuse);
+    // Local without a segment root is refused at build.
+    var bad = flat;
+    bad[3].local_instances = 1;
+    try std.testing.expectError(error.NativeSealFlatLocalWithoutSegment, FlatScript.build(a, Manifest.PROFILE, execution, &bad, ex));
 }

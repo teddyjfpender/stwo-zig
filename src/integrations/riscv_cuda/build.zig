@@ -472,6 +472,15 @@ pub fn build(b: *std.Build) void {
     const class_build = b.addExecutable(.{ .name = "rv64-m8-class-build-parity", .root_module = class_build_root });
     class_build.linkLibC();
     b.step("build-rv64-m8-class-build-parity", "Build the M8 GPU-native install-time class builder real-block parity harness (legacy classes recorded, install-built classes compared field by field, device warm)").dependOn(&b.addInstallArtifact(class_build, .{}).step);
+    // gn-s2 (native): Stage-2 tail (seal, oods_constraint, encoder) real-block parity harness.
+    const gn_s2_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_m8_gn_s2_parity_main.zig"), .target = target, .optimize = optimize });
+    for ([_][]const u8{ "stwo_core", "stwo_prover_api", "stwo_prover_engine", "stwo_riscv_cpu_integration", "stwo_riscv_frontend", "stwo_cuda_backend", "stwo_circuit_cpu_integration", "stwo_circuit_frontend" }) |name| gn_s2_parity_root.addImport(name, combined_root.import_table.get(name) orelse @panic("missing gn-s2 parity dependency"));
+    const gn_s2_parity = b.addExecutable(.{ .name = "rv64-m8-gn-s2-parity", .root_module = gn_s2_parity_root });
+    gn_s2_parity.linkLibC();
+    b.step("build-rv64-m8-gn-s2-parity", "Build the M8 GPU-native Stage-2 tail real-block parity harness (legacy recorded; seal, oods_constraint, encoder post hoc)").dependOn(&b.addInstallArtifact(gn_s2_parity, .{}).step);
+    const gn_s2_check = b.addExecutable(.{ .name = "rv64-m8-gn-s2-parity-check", .root_module = gn_s2_parity_root });
+    gn_s2_check.linkLibC();
+    b.step("check-rv64-m8-gn-s2-parity", "Type-check the gn-s2 parity harness without emitting a binary").dependOn(&gn_s2_check.step);
     const combined_check = b.addExecutable(.{ .name = "rv64-combined-gpu-check", .root_module = combined_root });
     combined_check.linkLibC();
     b.step("check-rv64-ethereum-gpu-combined", "Type-check combined GPU proving and recursion without emitting a binary").dependOn(&combined_check.step);
