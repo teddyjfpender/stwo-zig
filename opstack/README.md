@@ -82,7 +82,10 @@ Scratch backing can cost more time and is intended for workloads whose
 retained witness would exhaust RAM. The receiver independently checks the
 published candidate bundle.
 
-For consecutive blocks with bounded process-local setup reuse:
+Use the batch harness for bounded process-local setup reuse. The repeated
+benchmark for block 120794432 uses
+`opstack/presets/cpu-8workers-resident-small.json` and
+`--cases 120794432 --workers 8 --setup-workers 2 --receiver-setup resident`.
 
 ```sh
 python3 opstack/cpu_batch.py --benchmark /workspace/kona-mainnet-bench \

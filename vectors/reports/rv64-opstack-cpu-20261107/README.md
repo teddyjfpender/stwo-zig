@@ -103,3 +103,16 @@ took 22.828 s, of which 0.410 s checked proofs. The bundle contains three
 CPU and seven service proofs. Both exact corruption checks passed.
 The two-lane trial at this geometry was killed at 5.633 GiB peak RSS.
 [Larger-batch receipts](cpu-large-batch.json)
+
+## Resident production on the integrated GPU base
+
+Block 120794432 completed three times in one native producer with stage
+profiling disabled. Request wall times were 31.590, 27.788 and 29.557 s.
+Producer setup was 5.000 s on the first request and under 0.017 s on
+each warm request. A separate resident receiver accepted all three bundles
+in 9.858, 0.145 and 0.133 s per request, including setup and loading.
+Every bundle matched the five scratch-control artifacts byte for byte.
+Both exact corruption checks passed. The producer now exits successfully
+after syncing its durable batch index. The merged GPU recorder also
+matched the prior block 121057303 census with the flag off and on.
+[Resident and recorder receipts](cpu-resident-fixed.json)
