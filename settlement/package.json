@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test test/settlement.test.mjs"
+    "test": "node --test test/settlement.test.mjs",
+    "test:osaka": "ANVIL_HARDFORK=osaka node --test --test-name-pattern=\"binds both native\" test/settlement.test.mjs"
   },
   "dependencies": {
     "@foundry-rs/anvil": "1.7.1",

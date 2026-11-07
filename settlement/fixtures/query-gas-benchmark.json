@@ -113,5 +113,66 @@
       "separateRootGas": 16143948,
       "runtimeBytes": 7465
     }
-  ]
+  ],
+  "packedByteOrder": {
+    "baselineCommit": "fa588215e507d4c11b0ec4095192ca62fc8923c1",
+    "shanghaiSolc": [
+      {
+        "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+        "compileMs": 13607
+      },
+      {
+        "nodeHashGas": 35546
+      },
+      {
+        "checkpointMockGas": 39768
+      },
+      {
+        "block": 121057303,
+        "worker": "truth-3",
+        "depth": 10,
+        "queries": 102,
+        "witnessHashes": 276,
+        "separateWitnessHashes": 1020,
+        "packedGas": 6998420,
+        "separateGas": 16879869,
+        "singleGas": 186151,
+        "runtimeBytes": 7110
+      },
+      {
+        "block": 121057303,
+        "worker": "truth-4",
+        "depth": 10,
+        "queries": 99,
+        "witnessHashes": 262,
+        "separateWitnessHashes": 990,
+        "packedGas": 6707063,
+        "separateGas": 16384893,
+        "singleGas": 186176,
+        "runtimeBytes": 7110
+      },
+      {
+        "sharedRootQueries": 194,
+        "sharedRootSiblingHashes": 367,
+        "separateSiblingHashes": 538,
+        "sharedRootGas": 12176569,
+        "separateRootGas": 14838285,
+        "runtimeBytes": 10214
+      }
+    ],
+    "osakaSolcTransactionCap": [
+      {
+        "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+        "compileMs": 10339
+      },
+      {
+        "sharedRootQueries": 194,
+        "sharedRootSiblingHashes": 367,
+        "separateSiblingHashes": 538,
+        "sharedRootGas": 12176569,
+        "separateRootGas": 14838285,
+        "runtimeBytes": 10214
+      }
+    ]
+  }
 }

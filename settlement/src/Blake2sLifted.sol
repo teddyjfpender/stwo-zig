@@ -62,10 +62,6 @@ library Blake2sLifted {
         returns (uint256 out0, uint256 out1)
     {
         assembly ("memory-safe") {
-            function swap32(x) -> y {
-                let pairs := or(shl(8, and(x, 0x00ff00ff)), and(shr(8, x), 0x00ff00ff))
-                y := or(and(shl(16, pairs), 0xffffffff), shr(16, pairs))
-            }
             function rot(x, n) -> y {
                 let mask := 0x00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff
                 y := and(or(shr(n, x), shl(sub(32, n), x)), mask)
@@ -104,14 +100,19 @@ library Blake2sLifted {
 
             let words := mload(0x40)
             function loadMessage(ptr, blockWord) {
-                mstore(ptr, swap32(shr(224, blockWord)))
-                mstore(add(ptr, 32), swap32(and(shr(192, blockWord), 0xffffffff)))
-                mstore(add(ptr, 64), swap32(and(shr(160, blockWord), 0xffffffff)))
-                mstore(add(ptr, 96), swap32(and(shr(128, blockWord), 0xffffffff)))
-                mstore(add(ptr, 128), swap32(and(shr(96, blockWord), 0xffffffff)))
-                mstore(add(ptr, 160), swap32(and(shr(64, blockWord), 0xffffffff)))
-                mstore(add(ptr, 192), swap32(and(shr(32, blockWord), 0xffffffff)))
-                mstore(add(ptr, 224), swap32(and(blockWord, 0xffffffff)))
+                // Reverse bytes independently in all eight 32-bit words.
+                let bytesMask := 0x00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff
+                let halfMask := 0x0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff
+                let pairs := or(shl(8, and(blockWord, bytesMask)), and(shr(8, blockWord), bytesMask))
+                let wordsLE := or(shl(16, and(pairs, halfMask)), and(shr(16, pairs), halfMask))
+                mstore(ptr, shr(224, wordsLE))
+                mstore(add(ptr, 32), and(shr(192, wordsLE), 0xffffffff))
+                mstore(add(ptr, 64), and(shr(160, wordsLE), 0xffffffff))
+                mstore(add(ptr, 96), and(shr(128, wordsLE), 0xffffffff))
+                mstore(add(ptr, 128), and(shr(96, wordsLE), 0xffffffff))
+                mstore(add(ptr, 160), and(shr(64, wordsLE), 0xffffffff))
+                mstore(add(ptr, 192), and(shr(32, wordsLE), 0xffffffff))
+                mstore(add(ptr, 224), and(wordsLE, 0xffffffff))
             }
             loadMessage(words, left)
             loadMessage(add(words, 256), right)
@@ -140,16 +141,15 @@ library Blake2sLifted {
 
     function digest(uint256 lo, uint256 hi) private pure returns (bytes32 result) {
         assembly ("memory-safe") {
-            function encodeWord(x) -> y {
-                let pairs := or(shl(8, and(x, 0x00ff00ff)), and(shr(8, x), 0x00ff00ff))
-                y := or(and(shl(16, pairs), 0xffffffff), shr(16, pairs))
-            }
             function encodeRow(row) -> encoded {
+                // The 32-bit words occupy the low halves of four 64-bit lanes.
+                let bytesMask := 0x0000000000ff00ff0000000000ff00ff0000000000ff00ff0000000000ff00ff
+                let halfMask := 0x000000000000ffff000000000000ffff000000000000ffff000000000000ffff
+                let pairs := or(shl(8, and(row, bytesMask)), and(shr(8, row), bytesMask))
+                let wordsBE := or(shl(16, and(pairs, halfMask)), and(shr(16, pairs), halfMask))
                 encoded := or(
-                    or(shl(96, encodeWord(and(row, 0xffffffff))),
-                       shl(64, encodeWord(and(shr(64, row), 0xffffffff)))),
-                    or(shl(32, encodeWord(and(shr(128, row), 0xffffffff))),
-                       encodeWord(shr(192, row)))
+                    or(shl(96, and(wordsBE, 0xffffffff)), and(wordsBE, shl(64, 0xffffffff))),
+                    or(shl(32, and(shr(128, wordsBE), 0xffffffff)), shr(192, wordsBE))
                 )
             }
             result := or(shl(128, encodeRow(lo)), encodeRow(hi))

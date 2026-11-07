@@ -95,11 +95,19 @@ initial measurements. Solar's shared call uses 17,340,129 gas. It
 passes with the elevated local limit and exceeds the EIP-7825 cap.
 See the [query benchmark receipt](fixtures/query-gas-benchmark.json).
 
-To reproduce the solc shared-root check under Osaka's transaction cap:
+The next BLAKE2s optimization swaps byte order across whole EVM words
+before loading the message schedule and when encoding the digest. It
+preserves the native BLAKE2s digests and opening wire format. On the
+same 194-row OP Mainnet fixture, solc shared-root gas drops from
+13,234,957 to **12,176,569** (8.0% less), while runtime bytecode grows
+from 7,465 to 10,214 bytes. The opening-only calls now cost 6,998,420
+and 6,707,063 gas. The receipt keeps the earlier measurements for
+comparison.
+
+Run the shared-root check under Osaka's transaction cap with:
 
 ```sh
-ANVIL=./node_modules/.bin/anvil ANVIL_HARDFORK=osaka \
-  node --test --test-name-pattern='binds both native' test/settlement.test.mjs
+npm run test:osaka
 ```
 
 The SMT checks cover the packed 32-bit additions and rotations, query
