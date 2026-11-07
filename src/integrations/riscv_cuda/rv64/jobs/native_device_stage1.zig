@@ -312,10 +312,18 @@ pub const Class = struct {
         return self.fixedRegionWords() + twiddleWords(&self.main) + twiddleWords(&self.fixed) + self.spec.gkr.twiddle_words + self.bind.persistentWords();
     }
     /// Static arena peak of one request job (stream-ordered allocations).
+    /// The MAIN commit's work (evaluations + tree, freed LIFO inside
+    /// CommitPlan.enqueueInto) is dead before the local GKR + binding
+    /// allocate, so the two phases share one window: max, not sum. The
+    /// witness image and compact program stay counted for the whole job (the
+    /// image free after the commit is not LIFO when the v2 program allocated
+    /// status words above it). gn-bind [M] 26235156: 8519d3b3 6.365G -> ~4.15G
+    /// words [D]; the sum overflowed phase A (GpuNativeMemoryPlanPhaseA, r7).
     pub fn jobWords(self: *const Class) usize {
         const commit = @max(self.main.deviceWords(), self.main.coefficient_cells + self.main.eval_cells) + 8 * granule;
         const witness = up(self.image_words) + up(max_chunk_runs * 6) + granule;
-        return up(9) + self.spec.gkr.stagedWords(true) + up(self.main.stagedWords(0)) + witness + @as(usize, @intCast(self.spec.compact_words)) + commit + self.spec.gkr.enqueueWords() + self.bind.enqueueWords() + 8 * granule;
+        const tail = self.spec.gkr.enqueueWords() + self.bind.enqueueWords() + granule;
+        return up(9) + self.spec.gkr.stagedWords(true) + up(self.main.stagedWords(0)) + witness + @as(usize, @intCast(self.spec.compact_words)) + @max(commit, tail) + 8 * granule;
     }
     /// Stage-1 fields of the class's ClassEntry (Stage 2 adds its own).
     pub fn fill(self: *const Class, entry: *G.ClassEntry, devices: u32) void {
