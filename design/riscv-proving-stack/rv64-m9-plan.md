@@ -1,33 +1,35 @@
 # RV64 M9 plan: gas-weighted targets and the >60% cut budget (2×RTX 5090, then 4×)
 
-Status: plan of record, revision 3, 2026-11-07. It folds in the four reviewed M9 prep streams (§3) and re-runs the budget; every number is regenerated from `scripts/rv64_m9/plan_model.py`. Written **in parallel with** the GPU-native landing (workflow round 3, `codex/rv64-m8-gpu`, `codex/rv64-m8-gn-*`); it touches no code those streams own.
-Branch `codex/rv64-m9-plan`, cut from `codex/rv64-m7-integrate @ 95e3d7e15` (integrate has since moved to 786429aca; this branch only adds files).
+Status: plan of record, revision 4, 2026-11-07. It folds in the four reviewed wave-2 prep streams (outer GKR, streaming commit, witness without the DAG, GPU capture replay; §3.2) on top of the wave-1 streams (§3.1) and re-runs the budget. Every number is regenerated from `scripts/rv64_m9/plan_model.py`. Written **in parallel with** the GPU-native landing (workflow round 3, `codex/rv64-m8-gpu`, `codex/rv64-m8-gn-*`); it touches no code those streams own.
+Branch `codex/rv64-m9-plan`, cut from `codex/rv64-m7-integrate @ 95e3d7e15` (this branch only adds files).
 
 Labels: **[M]** measured, with a receipt; **[D]** arithmetic on measured numbers; **[E]** estimate.
 
-Model: `python3 -I scripts/rv64_m9/plan_model.py --gas-sample <gas_sample.json> --json vectors/reports/rv64-m9-prep/m9-plan/model.json` (tests: `python3 -I scripts/tests/test_rv64_m9_plan_model.py`, 12/12). Receipt: `vectors/reports/rv64-m9-prep/m9-plan/model.json`. The raw gas sample stays out of git (sha256 in the receipt README).
+Model: `python3 -I scripts/rv64_m9/plan_model.py --gas-sample <gas_sample.json> --json vectors/reports/rv64-m9-prep/m9-plan/model.json` (tests: `python3 -I scripts/tests/test_rv64_m9_plan_model.py`, 16/16). Receipt: `vectors/reports/rv64-m9-prep/m9-plan/model.json`. The raw gas sample stays out of git (sha256 in the receipt README).
 
 ---
 
 ## 0. TL;DR
 
-1. **Targets are gas-weighted, not 24628607.** Mainnet p50 = 29.1 M gas, p95 = 55.8 M [M, 2,897 blocks]; 24628607 is p4. Targets on 2×5090, ≥ 60% below the post-M8 baseline [E]: **p50 ≤ 7.9 s** (from 19.7), **p95 ≤ 13.2 s** (from 32.9), **15-block basket ≤ 118 s** (from 294). M10 on 4×5090: p50 ≤ 5 s, p95 ≤ 8 s.
-2. **The streams shrank two of the three big recursion levers.**
-   - k-leaf fan-in (fewer-leaves) gives recursion cells ×0.76–0.86 [D], so −2.3 s at p50, not the −5.4 s the truth-batch/2²³ estimate gave.
-   - Poseidon2 leaves (reviewed) are a **net loss as built** (+8.7 GPU-s at p50 [E]). Even at the engineered target they lose once outer GKR and fan-in have cut recursion (+0.5 to +2.0 s at p50).
-   - Canonical leaf classes (catalog R=4) carry a **held-out native padding tax of ×1.55** [D] and leave 79% of fold classes missing on a new block [D/E]. That makes them a bench loss (+3.4 s at p50) and only a small production gain.
-   - Packed ingress works (4.48 ms decode per 1.03 GB node [M]) but is worth only about 1% of wall [E].
-3. **No 2-GPU combination reaches 60% in the central case; the best gets to −58%.** The best set is {IO, D2D, streaming commit, witness without the DAG, occupancy, k-leaf fan-in, native GKR v2, outer GKR, GPU capture replay}: **p50 8.0 s (−59%), p95 13.8 s (−58%), basket 121 s (−59%)** [E]. Poseidon2 and the D2 revert are both *worse* on top of that set.
-   - The 60% bar is reached on all three metrics only if **one** unmeasured lever beats its central factor by a notch [E]: occupancy busy 0.90 (instead of 0.85), streaming commit ×0.60 (instead of ×0.70), or outer GKR ×0.50 (instead of ×0.57; this one misses p95 by 0.2 points).
-   - The optimistic case has 3 minimal sets (−61 to −63%). The pessimistic case peaks at −53%.
-   - **4×5090 (M10) on the same set: p50 5.1 s (−74%), p95 8.3 s (−75%), basket 78 s (−73%)** [E].
-4. **Order after GPU-native and the post-M8 cleanup:**
-   - wave 1, byte-identical: IO, D2D, streaming commit, witness, occupancy (needs P1 ≤ 11–13 GB per node);
-   - wave 2, new profiles: k-leaf fan-in (needs P1 too), native GKR v2;
-   - wave 3: **outer GKR, not Poseidon2**, plus **GPU capture replay (pulled from M10; worth 8 points)**;
-   - M10: 4 GPUs, then Poseidon2 only as a node-memory/compression lever.
-   - Shelved for M9: the D2 revert and canonical leaves as built.
-5. **Production is the real gap.** Every production request is a new block. Charging the class-build miss serially (an upper bound), the best 2-GPU set gives p50 **13.6 s** (11.7 s with canonical leaves) against a bench 8.0 s [E]. GPU-native fails closed on a miss (`GpuNativeClassNotWarmed`). M9 needs a miss path that overlaps capture, or class-stable outer shapes. E8 has to measure it.
+1. **Targets are unchanged** (gas-weighted, ≥ 60% below the post-M8 baseline [E]): **p50 ≤ 7.9 s** (from 19.7), **p95 ≤ 13.2 s** (from 32.9), **15-block basket ≤ 118 s** (from 294) on 2×5090.
+2. **All four wave-2 levers came in far below their rev-3 factors.** Each one is now measured or derived:
+   - **Outer GKR as built is a loss**: recursion GPU-s ×1.07 on the post-M8 tree and ×1.13 on the fan-in tree [D/E]. At p50 that is +1.0 GPU-s, against the −6.0 assumed. The ×0.57 was a cell factor. Only an engineered 0.25 ns/fact kernel with a fused binding pass gains (×0.81, −2.7 GPU-s) [E]. It is gated on a standalone microbenchmark and on GKR memory (16.6 GB per 2²³ fold [M]).
+   - **Streaming commit is worth ×0.955 on FFT + Merkle, not ×0.70.** The fused LDE → leaf kernel loses ×1.03–1.61 at log 22–24 [M]. Aligned 32-column chunks save −0.11 GPU-s [D/E]. Partial trees save memory, not time [M]. At p50 that is −0.6 GPU-s, against −3.9.
+   - **Witness without the DAG is ×0.70, not ×0.2**, and only on class hits. Measured: leaf ×0.513, fold ×0.760 [M]. At p50 that is −0.8 GPU-s, against −2.2, and about 0 in production.
+   - **For GPU capture the floor is the serial first pass, not 160 MIPS.** On 26235168 the first pass runs at 62.8 MIPS because curve services take 64% of it [M]. Fixing the service arithmetic and porting narrow capture recovers the lever (−0.6 s at p50). Replay alone, the prototype that exists, gives −0.4 s at p50 and 0 at p95.
+3. **No 2-GPU combination reaches 60%, in any scenario.** The best set is #1–#9 (§4.1), with engineered outer GKR: **p50 11.0 s (−44%), p95 18.8 s (−43%), basket 167 s (−43%)** central [E]. The pessimistic case reaches −39% and the optimistic −55%. Closing to 60% on 2 GPUs needs a further **×0.67 on all remaining kernel GPU-s** (p50 16.1 → 10.8 GPU-s) at busy 0.85 [D on E]. No lever on the table provides that. Busy 0.95 alone only reaches −48%.
+4. **60% needs 4×5090 (M10).**
+   - With #1–#10, central: **p50 7.0 s (−64%), p95 11.4 s (−65%), basket 107 s (−64%)** [E]. Pessimistic: −59 / −61 / −59%.
+   - Without engineered outer GKR, 4 GPUs reach −60.2 / −61.6 / −59.6%: the basket misses.
+   - So the 4-GPU 60% case rests on the outer-GKR microbenchmark.
+5. **Order after GPU-native and the cleanup** (§5):
+   - wave 0, CPU: service-arithmetic fix;
+   - wave 1, byte-identical: IO, D2D, aligned stream plan, witness rowpar on class hits, P1 → occupancy (the largest at −2.1 s);
+   - wave 2, profiles: k-leaf fan-in with a fold-arity guard, native GKR v2, production miss path;
+   - wave 3: GPU narrow-capture port, then outer GKR only if the kernel bench shows ≤ 0.3 ns/fact;
+   - M10: 4 GPUs.
+   - **Decision for the owner:** either take 60% as an M10 (4-GPU) target, or fund a new 2-GPU kernel-efficiency lever worth ×0.67.
+6. **Production is still the gap.** With the best 2-GPU set, a new block per request costs p50 **17.0 s** against the bench 11.0 s (miss +5.6 s serial upper bound [E]). Rowpar gives nothing on a class miss. E8 and a miss path remain prerequisites.
 
 ---
 
@@ -48,16 +50,16 @@ Source: `gas_sample.json` (2,897 distinct blocks, 26,019,159–26,236,159, 2026-
 
 ### 1.2 Targets (warm proving, Ethproofs boundary; request = proving + about 0.01 s [M])
 
-| metric | post-M8 baseline [E, central (pess–opt)] | **M9, 2×5090** | best 2-GPU set [E] | M10, 4×5090 |
+| metric | post-M8 baseline [E, central (pess–opt)] | **M9 target, 2×5090** | best 2-GPU set #1–#9 [E] | 4×5090 #1–#10 [E] |
 |---|---:|---:|---:|---:|
-| **p50** (29.1 M gas, 93 M instr, 23 seg) | 19.7 s (23.8–17.4) | **≤ 7.9 s** | 8.0 s | ≤ 5 s (5.1) |
-| p50 proxy **26235168** (113 M instr, 28 seg) | 23.3 s | ≤ 9.3 s | 9.5 s | ≤ 5.5 s (5.9) |
-| **p95** (55.8 M gas, 178 M instr, 43 seg) | 32.9 s (41.1–28.9) | **≤ 13.2 s** | 13.8 s | ≤ 8 s (8.3) |
-| p95 proxy 26235159 (205 M instr, 49 seg) | 37.9 s | ≤ 15.2 s | 15.7 s | ≤ 9 s (9.4) |
-| **15-block total** | 294 s (361–259) | **≤ 118 s** | 121 s | ≤ 70 s (78) |
-| mainnet-weighted mean | 20.1 s | ≤ 8.0 s | 8.2 s | ≤ 5 s (5.3) |
-| production p50 (new block per request) | 29.7 s | ≤ 8.7 s | 13.6 s (11.7 with canonical leaves) | ≤ 5.5 s |
-| 24628607 (continuity) | 8.5 s | ≤ 3.4 s | 3.4 s | ≤ 2.4 s (2.7) |
+| **p50** (29.1 M gas, 93 M instr, 23 seg) | 19.7 s (23.8–17.4) | **≤ 7.9 s** | 11.0 s (−44%) | 7.0 s (−64%) |
+| p50 proxy **26235168** (113 M instr, 28 seg) | 23.3 s | ≤ 9.3 s | 13.1 s | 8.2 s |
+| **p95** (55.8 M gas, 178 M instr, 43 seg) | 32.9 s (41.1–28.9) | **≤ 13.2 s** | 18.8 s (−43%) | 11.4 s (−65%) |
+| p95 proxy 26235159 (205 M instr, 49 seg) | 37.9 s | ≤ 15.2 s | 21.5 s | 12.9 s |
+| **15-block total** | 294 s (361–259) | **≤ 118 s** | 167 s (−43%) | 107 s (−64%) |
+| mainnet-weighted mean | 20.1 s | ≤ 8.0 s | 11.3 s | 7.2 s |
+| production p50 (new block per request) | 29.7 s | ≤ 8.7 s | 17.0 s (15.4 with canonical leaves) | — |
+| 24628607 (continuity) | 8.5 s | ≤ 3.4 s | 4.7 s | 3.6 s |
 
 ### 1.3 Benchmark set
 
@@ -90,109 +92,114 @@ Source: `gas_sample.json` (2,897 distinct blocks, 26,019,159–26,236,159, 2026-
 
 ## 3. What the prep streams changed
 
-| lever | revision 2 assumption | stream result (reviewed) | now in the model | branch @ head |
-|---|---|---|---|---|
-| packed ingress (L1a) | residual IO ×0.10, IO 0.30 s/GPU × 50% exposed | decoder parity on real leaf data, 2 GPUs; **4.48 ms per 1.03 GB node** [M]; 2.85 ms per 0.34 GB; 0.455 vs 15.86 GB per request [D]; link 24.6 GB/s in-request, 46% exposed [D]; wall about 0.10 s on 607, 0.42 s at p50 [E] | link 0.31 s/GPU × 0.46 exposed, residual ×0.03 [D], +0.004 GPU-s decode per leaf [M/E] | `codex/rv64-m9-packed-ingress` @ 805d1a105 |
-| fewer/bigger leaves | truth batches b16 + 2²³ CPU rungs: CPU leaves ÷2, truth leaves → 2, truth native ×1.5 | **k-leaf fan-in** (2–4 same-family natives per leaf; blake_g ≤ 2²³, ≤ 2.2 G cells). Recursion cells: 607 ×0.822, 26235168 ×0.761, 26235159 ×0.757 [D/E, cell model exact on 607]; nodes 19→12 / 62→33 / 97→48. Truth batching inside the envelope is only about 2%; 8-ary folds don't fit (36–43 GB). Pair leaf about 30.7 GB against the 30.06 GB gate today: **no fit until P1** (12.4–13.4 GB) [E]. Natives unchanged | per-block receipt ratios and tree shapes; synthetic p50/p95 ×0.76; pess ×0.80 (k2), opt ×0.73 (any family) | `codex/rv64-m9-fewer-leaves` @ a056cee67 |
-| canonical leaf classes (L4) | bench padding tax ×1.04; production removes the leaf miss | catalog R=4: 72 classes, 0 in-sample misses [M]. **Held-out CPU cells tax +61%**, truth rows +2.5% [D]; per block 607 +22%, 26235168 +107%. 1 of 15 held-out blocks refused (26235159, bn254_g1_add). Folds still 79% new [D/E]. Net per new 607-like block about 0 to +8 s [E] | native ×1.55 (pess ×2.07, opt ×1.22); leaf miss removed, fold miss ×0.79 | `codex/rv64-m9-canon-leaf` @ 64a2cb991 |
-| Poseidon2-M31 leaves | recursion ×0.30 (0.55–0.22), native +0.037 GPU-s/Minstr | kernel parity 336/336 incl. 46 roots [M]; **P2/Blake GPU cost ×9.95** [M] against break-even ×11.8 [D]; recursion Merkle share 0.29 [D]; **serial transcript ×23.9** [M]. Net GPU-s at p50: **as built +8.7**, 2-to-1 + kernels ×0.6 about 0, engineered target (plus a parallel transcript, which is a protocol change) −6.2 [E] | pess = as built (rec ×0.87, native +0.040/Minstr, transcript +0.066/Minstr); central = 2-to-1 + ×0.6 (rec ×0.51, +0.018, +0.066); opt = engineered (transcript +0.006). Transcript is half hidden with 2 jobs per GPU [E] | `codex/rv64-m9-poseidon2-leaves` @ 37e581cfc |
+### 3.1 Wave 1 (rev 3, unchanged)
 
-Not touched by any stream and still [E]: streaming commit, witness without the DAG, occupancy, native GKR v2, outer GKR, D2 revert, GPU capture, 4 GPUs.
+| lever | stream result (reviewed) | in the model |
+|---|---|---|
+| packed ingress | 4.48 ms decode per 1.03 GB node [M]; 0.455 vs 15.86 GB per request [D]; 46% of the link exposed [D] | link 0.31 s/GPU × 0.46, residual ×0.03, +0.004 GPU-s per leaf |
+| k-leaf fan-in | recursion cells ×0.76–0.86 [D/E]; pair leaf 30.7 GB against the 30.06 GB gate: needs P1 [E] | per-block ratios and tree shapes (`FANIN_SAME`) |
+| canonical leaves R=4 | held-out native padding tax ×1.55 [D]; 79% of folds still miss [D/E] | ×1.55 (2.07…1.22); off the order |
+| Poseidon2 leaves | P2/Blake GPU cost ×9.95 [M], serial transcript ×23.9 [M] | three scenarios; off the order |
+
+### 3.2 Wave 2 (this revision)
+
+| lever | rev 3 assumption | stream result (reviewed) | now in the model (pess, central, opt) |
+|---|---|---|---|
+| **outer GKR** (DW-R1) | recursion ×0.57 (0.65…0.50) [E] | ×0.57 is the **cell** factor: cells ×0.562–0.568 on the post-M8 tree and ×0.575–0.630 on the fan-in tree [D]. In GPU-s: committed cells cost 0.262 ± 0.053 ns [D], while the GKR prover costs 0.82 ns/fact with the MAIN projection [D] (0.575 on precomputed inputs [M]). Break-even is 0.55–0.68 ns/fact [D]. **Recursion GPU-s ×1.07 on the post-M8 tree** (LOO ×1.04–1.17, 95% CI ×0.92–1.63), **×1.13 on the fan-in tree** [D/E]. A free GKR still leaves ×0.65 [D], so ×0.57 is unreachable. The v2 binding pass is not priced in the 0.82 ns; with it, ×1.19–1.28 [E]. Workspace 64.25 B/fact = 16.6 GB at a 2²³ fold [M]. Soundness 206–209 bits against 151 [D]. | `ogkr_alone` (1.28, 1.07, 0.90), `ogkr_fanin` (1.35, 1.13, 0.95): **off the order**. **`OGKR_ENG`** (0.90, 0.81, 0.78) [E], with a 0.25 ns/fact kernel and a fused binding pass, takes its slot as #8. It is gated (§5). |
+| **streaming commit** | ×0.70 (0.80…0.60) on FFT + Merkle [E] | Parity 43/43, 0 mismatching words; chunk invariance 20 roots [M]. **Fused LDE → leaf loses at log 22–24** (×1.03–1.61; 24×304 ×1.27) and wins ×0.93–0.95 at log 20–21 [M]. Aligned 32-column chunks: 76.2 vs 83.8 ms at 24×304 [M], −0.11 GPU-s calibrated to the T6 census [D/E]. Partial trees: layers 1.03 → 0.06 ms per log-24 tree but net ×1.00–1.24 with the final call, so memory only (1 GiB → 1 MiB) [M/D]. Recursion `outer_trace_commit` runs at 2²⁶ words, 164.8 vs 76.2 ms aligned c32 [M]; its share is unmeasured. | `stream` (0.975, 0.955, 0.90) [E]: opt = recursion chunk fix pays −0.41 GPU-s plus the fused tail at log ≤ 21 |
+| **witness without the DAG** (rowpar) | chain share residual ×0.2 (0.4…0.1) [E] | Exact (0 mismatched vars) on 2 recorded real nodes [M]. **Leaf ×0.513** (41.13 → 21.08 ms), **fold ×0.760** (strands off) [M]. The Blake family is ×0.21 [D]; a serial QM31 accumulation tail is 54–62% of what remains [M]. Production whole assignment ×0.70 (×0.60–0.80) [E, calibrated on the M6 census]. Planner 0.36–0.87 s CPU per node [M]: **class hits only** (on a miss, run the DAG and plan off the critical path). `srec` costs about 0.38 GB per production leaf [D/E]. | `wit` (0.80, 0.70, 0.55) [E]: opt = tail on `chain_run` hybrid (×0.55, not prototyped). In production only fold hits (1 − `fold_miss`) get it. |
+| **GPU capture replay** | `cap = head + Minstr/160 MIPS + 0.2` [E] | Replay kernel byte-identical: 24628607 7/7, 26235159 49/49 segments; op corpus 106,496 cases, all 69 ops; 5 fault classes caught [M]. 7.3 GIPS for the whole 607 block, **46–83× the serial first pass** [M/D]. But **the floor is the serial seeded first pass**: basket 105 MIPS, **26235168 at 62.8 MIPS (curve services 1.26 of 1.95 s)** [M]. The walk is 23% of capture CPU [D/E]; replay alone, net of the 48 B/step tape read-back, is worth about a quarter of the lever [E]. | `GPUCAP` = full (replay + narrow capture + ledger on GPU + service fix): `cap = head + first_pass_fixed(block) × (1.15, 1.0, 0.90) + 0.2`, per-block [M] with curve calls at 1 µs [E]; synthetic blocks 0.033 + 5.93 ms/Minstr = 169 MIPS marginal [D]. **`REPLAY`** (prototype only): capture CPU × (1 − (0.111, 0.204, 0.287)) [D/E]. The stream script had the pess/opt walk shares swapped; corrected here. |
 
 ---
 
-## 4. The budget (2×5090)
+## 4. The budget (2×5090, then 4×)
 
-"Alone" means applied to the post-M8 baseline. "Cumulative" applies the levers in the §5 landing order. Central values, with (pess…opt) ranges.
+"Alone" applies one lever to the post-M8 baseline; "cumulative" applies them in the §5 order. Central values with (pess…opt).
 
 ### 4.1 Lever table: p50 (29.1 M gas) and p95 (55.8 M gas) [E]
 
 | # | lever (flag) | basis | p50 ΔGPU-s alone | p50 Δwall alone | p50 cumulative (cut) | p95 ΔGPU-s alone | p95 Δwall alone | p95 cumulative (cut) |
 |---|---|---|---:|---:|---:|---:|---:|---:|
 | — | **post-M8 baseline** | §2 | 24.5 GPU-s | 19.7 s | 19.7 (23.8…17.4) | 43.5 GPU-s | 32.9 s | 32.9 (41.1…28.9) |
-| 1 | packed class ingress + copy stream (`STWO_RV64_M9_CLASS_PACKED_INGRESS`) | 4.48 ms/node decode [M]; 0.455/15.86 GB [D]; 46% exposed [D] | +0.1 | −0.2 | 19.4 (1%) | +0.2 | −0.4 | 32.4 (1%) |
-| 2 | in-place coset / D2D (`_D2D_INPLACE`) | ≤ 0.11 s/GPU on 607 [D], 70% removed [E] | 0 | −0.3 | 19.1 (3%) | 0 | −0.5 | 31.9 (3%) |
-| 3 | **streaming commit** (fused LDE → leaf hash) (`_STREAM_COMMIT`) | FFT + Merkle 53% of GPU-s [M]; ×0.70 on it [E] | −3.9 | −2.4 | 16.7 (15%) | −6.9 | −4.2 | 27.7 (16%) |
-| 4 | **witness without the DAG** (`_WITNESS_ROWPAR`) | `chain_run` 19% of recursion [D]; ×0.2 residual [E] | −2.2 | −1.6 | 15.4 (22%) | −3.6 | −2.6 | 25.5 (22%) |
-| 5 | **occupancy**: class graphs, 2 jobs/GPU (`_CLASS_GRAPHS`; needs P1) | busy 0.72 → 0.85 [E] | 0 | −2.1 (−4.5…−1.3) | 13.8 (30%) | 0 | −3.9 (−9.3…−2.3) | 22.6 (31%) |
-| 6 | **k-leaf fan-in** (`STWO_RV64_M9_LEAF_FANIN=4`, `_POLICY=same`; needs P1) | recursion cells ×0.76–0.86 [D, fewer-leaves receipt] | −3.4 | −2.3 | 12.5 (36%) | −5.6 | −3.8 | 20.5 (38%) |
-| 7 | native GKR v2-gkr (`_NATIVE_GKR_V2`) | native ×0.826, leaf ×0.936 [D] | −2.5 | −1.3 | 11.7 (40%) | −4.7 | −2.5 | 19.0 (42%) |
-| 8 | **outer GKR** (DW-R1) in nodes (`_OUTER_GKR`) | recursion ×0.57 [E] | −6.0 | −4.4 | 9.6 (51%) | −10.0 | −7.2 | 15.7 (52%) |
-| 9 | **GPU capture replay** (M10 → M9; `_GPU_REPLAY`) | fast pass 168 MIPS [M], replay 160 MIPS [E] | 0 | −0.6 (bites late) | **8.0 (59%)** (11.1…6.0) | 0 | 0 (bites late) | **13.8 (58%)** (19.0…10.4) |
-| 10 | 4-GPU placement (M10) | 92% scaling [E] | 0 | −6.2 | 5.1 (74%) | 0 | −11.2 | 8.3 (75%) |
-| — | *off the order:* Poseidon2 leaves (`_POSEIDON2_LEAVES`) | §3 | +1.0 (as built +8.7) | 0.0 (pess +6.6, opt −3.3) | **+2.0 on top of #9** | +3.6 | +2.2 | **+4.1 on top of #9** |
-| — | *off the order:* revert D2 (b4 → b2 native) | native ÷1.4, leaf ÷0.55 [E] | +5.6 | +4.7 | +0.25 on top of #9 | +8.9 | +7.6 | +0.05 on top of #9 |
-| — | *off the order:* canonical leaves R=4 (`_CANON_LEAF`) | held-out tax ×1.55 [D] | +5.8 | +3.4 | +2.4 on top of #9 (prod −1.9) | +11.1 | +7.7 | +4.5 on top of #9 (prod −2.4) |
+| 1 | packed ingress + copy stream (`STWO_RV64_M9_CLASS_PACKED_INGRESS`) | 4.48 ms/node [M]; 46% exposed [D] | +0.1 | −0.2 | 19.4 (1%) | +0.2 | −0.4 | 32.4 (1%) |
+| 2 | in-place coset / D2D (`_D2D_INPLACE`) | ≤ 0.11 s/GPU on 607 [D] | 0 | −0.3 | 19.1 (3%) | 0 | −0.5 | 31.9 (3%) |
+| 3 | streaming commit, aligned plan (`_STREAM_COMMIT`) | ×0.955 on FFT + Merkle [E from M] | −0.6 | −0.4 | 18.8 (4%) | −1.0 | −0.7 | 31.2 (5%) |
+| 4 | witness rowpar, class hits (`_WITNESS_ROWPAR`) | ×0.70 of the chain share [E from M] | −0.8 | −0.6 | 18.2 (7%) | −1.4 | −1.0 | 30.2 (8%) |
+| 5 | **occupancy**: class graphs, 2 jobs/GPU (`_CLASS_GRAPHS`; needs P1) | busy 0.72 → 0.85 [E] | 0 | −2.1 | 16.2 (18%) | 0 | −3.9 | 26.7 (19%) |
+| 6 | **k-leaf fan-in** (`_LEAF_FANIN=4`, `_POLICY=same`; needs P1) | cells ×0.76–0.86 [D] | −3.4 | −2.3 | 14.6 (26%) | −5.6 | −3.8 | 24.0 (27%) |
+| 7 | native GKR v2 (`_NATIVE_GKR_V2`) | native ×0.826, leaf ×0.936 [D] | −2.5 | −1.3 | 13.6 (31%) | −4.7 | −2.5 | 22.2 (32%) |
+| 8 | **outer GKR, engineered** (`_OUTER_GKR`; gated on ≤ 0.3 ns/fact bench + GKR memory) | ×0.81 recursion GPU-s [E] | −2.7 | −2.0 | 12.4 (37%) | −4.4 | −3.2 | 20.3 (38%) |
+| 9 | **GPU capture, full** (`_GPU_REPLAY` + narrow-capture port + service fix) | first pass floor, services fixed [M/E] | 0 | −0.6 (bites late) | **11.0 (44%)** (14.6…8.8) | 0 | 0 (bites late) | **18.8 (43%)** (24.7…15.1) |
+| 10 | 4-GPU placement (M10) | 92% scaling [E] | 0 | −6.2 | **7.0 (64%)** (9.9…5.4) | 0 | −11.2 | **11.4 (65%)** (16.0…8.7) |
+| — | *off the order:* outer GKR **as built** | ×1.07 / ×1.13 fan-in [D/E] | +1.0 | +0.7 | +2.1 instead of #8 | +1.6 | +1.2 | +3.3 instead of #8 |
+| — | *off the order:* replay only (the prototype) | capture CPU × (1 − 0.204) [D/E] | 0 | −0.4 | +1.0 instead of #9 | 0 | 0 | +0.7 instead of #9 |
+| — | *off the order:* Poseidon2 leaves (2-to-1 + ×0.6) | rev 3 §3 | +1.0 | 0.0 | +0.3 on top of #9 | +3.6 | +2.2 | +1.4 on top of #9 |
+| — | *off the order:* revert D2 | native ÷1.4, leaf ÷0.55 [E] | +5.6 | +4.7 | loses | +8.9 | +7.6 | loses |
+| — | *off the order:* canonical leaves R=4 | held-out tax ×1.55 [D] | +5.8 | +3.4 | loses (prod −1.5) | +11.1 | +7.7 | loses (prod −1.7) |
 
-After #1–#9, kernel GPU-s falls 24.5 → 11.5 at p50 (−53%) and 43.5 → 21.0 at p95 (−52%). At p95 the wall of 13.8 s splits into 3.5 s pre-seal, 9.1 s post-seal, 0.9 s tail and 0.3 s fixed [E].
+After #1–#9, kernel GPU-s falls 24.5 → 16.1 at p50 (−34%) and 43.5 → 29.0 at p95 (−33%). The p50 wall of 11.0 s splits into 2.2 s pre-seal, 7.1 s post-seal, 1.4 s tail and 0.3 s fixed. Post-seal kernel work at busy 0.85 is now the whole problem [E].
 
 ### 4.2 Basket total and proxies [E]
 
-| step (cumulative, 2 GPUs) | 15-block total, central (pess…opt) | cut | 26235168 | 26235159 | 24628607 |
+| step (cumulative) | 15-block total, central (pess…opt) | cut | 26235168 | 26235159 | 24628607 |
 |---|---:|---:|---:|---:|---:|
 | post-M8 baseline | 294 (361…259) | — | 23.3 | 37.9 | 8.5 |
 | + IO, D2D | 286 | 3% | 22.6 | 36.8 | 8.3 |
-| + streaming commit | 250 | 15% | 19.8 | 31.7 | 7.4 |
-| + witness | 230 | 22% | 18.1 | 29.2 | 6.8 |
-| + occupancy | 206 | 30% | 16.2 | 25.9 | 6.3 |
-| + k-leaf fan-in | 189 | 36% | 14.7 | 23.3 | 6.0 |
-| + native GKR v2 | 176 | 40% | 13.7 | 21.6 | 5.7 |
-| + outer GKR | 145 | 51% | 11.2 | 17.7 | 4.7 |
-| + GPU capture replay | **121 (168…91)** | **59%** | **9.5** | **15.7** | **3.4** |
-| + 4 GPUs (M10) | 78 (114…56) | 73% | 5.9 | 9.4 | 2.7 |
+| + streaming commit | 280 | 5% | 22.2 | 36.0 | 8.2 |
+| + witness rowpar | 272 | 7% | 21.5 | 34.9 | 7.9 |
+| + occupancy | 242 | 18% | 19.1 | 30.6 | 7.2 |
+| + k-leaf fan-in | 220 | 25% | 17.1 | 27.2 | 6.9 |
+| + native GKR v2 | 205 | 30% | 16.0 | 25.2 | 6.6 |
+| + outer GKR, engineered | 187 | 36% | 14.5 | 23.0 | 6.0 |
+| + GPU capture, full | **167 (219…133)** | **43%** | **13.1** | **21.5** | **4.7** |
+| + 4 GPUs (M10) | **107 (149…82)** | **64%** | 8.2 | 12.9 | 3.6 |
 
 ### 4.3 Which combination reaches >60% [E]
 
-Exhaustive search over {streaming, witness, occupancy, k-leaf, native GKR, outer GKR, GPU capture, Poseidon2, D2 revert}, with IO and D2D always on, requiring ≥ 60% on the p50 block, the p95 block **and** the basket at once:
+The search is exhaustive over {streaming, witness, occupancy, k-leaf, native GKR, outer GKR as built or engineered, GPU capture full or replay only, Poseidon2, D2 revert}, with IO and D2D always on. A set passes only if it reaches ≥ 60% on the p50 block, the p95 block **and** the basket at once.
 
-| case | sets that reach 60% on all three | best set (min of p50 / p95 / basket) |
-|---|---|---|
-| **central** | **none** | all of #1–#9: p50 −59.4%, p95 −58.1%, basket −58.8% |
-| pessimistic | none | the same set, −53% |
-| optimistic | {streaming, occupancy, k-leaf, native GKR, outer GKR, GPU capture}: −63/−62/−62%; {streaming, witness, occupancy, native GKR, outer GKR, GPU capture}: −62/−61/−62%; {streaming, witness, k-leaf, native GKR, outer GKR, GPU capture, D2 revert}: −62/−61/−61% | — |
-| 4×5090, central | all of #1–#10 | −74 / −75 / −73% |
+| case | 2×5090: sets reaching 60% | best 2-GPU set: p50 / p95 / basket | 4×5090: sets reaching 60% |
+|---|---|---|---|
+| **central** | **none** | #1–#9: −43.8 / −42.7 / −43.2% | **9 minimal sets**. All contain occupancy and full GPU capture; 7 contain engineered outer GKR and the other 2 Poseidon2 2-to-1 (also unbuilt). Best: {occupancy, k-leaf, native GKR, outer GKR eng, GPU capture} at −62.5 / −63.5 / −61.8%. The full #1–#10 reaches −64.3 / −65.3 / −63.6%. |
+| pessimistic | none | #1–#9: −38.9 / −39.9 / −39.3% | none (#1–#10: −58.6 / −61.0 / −58.8%) |
+| optimistic | none | #1–#9 + Poseidon2 + D2 revert: −55% | 28 minimal sets |
 
-Per metric, central: **the p50 block reaches −59.4%** (8.0 s against the 7.9 s target), **the p95 block −58.1%** (13.8 against 13.2), **the basket −58.8%** (121 against 118). All three miss by 0.6–1.9 points.
+Per metric, central on 2 GPUs: the p50 block reaches −44% (11.0 s against the 7.9 s target), the p95 block −43% (18.8 against 13.2), and the basket −43% (167 against 118).
 
-**What closes the gap, with one lever beating its central factor** (cuts for p50 / p95 / basket):
-- occupancy busy 0.90: −61.2 / −60.2 / −60.6%;
-- streaming commit ×0.60: −61.6 / −60.6 / −61.0%;
-- outer GKR ×0.50: −61.1 / −59.8 / −60.5%, which still misses p95;
-- k-leaf with the any-family policy: −59.9 / −58.7 / −59.3%, which is not enough.
+**What would close the 2-GPU gap** [D on E]:
+- Every remaining kernel GPU-s (native and recursion) would have to fall a further **×0.67**: p50 16.1 → 10.8 GPU-s, about −5.3 GPU-s. Without engineered outer GKR the factor is ×0.60.
+- Occupancy cannot do it: busy 0.90 gives −46%, busy 0.95 gives −48%.
+- No lever reviewed so far is that size. FFT (35%) and Merkle (18%, near the HBM bound for the Blake2s leaves) are what is left to attack.
 
-So the plan of record is the #1–#9 set, with streaming commit and occupancy as the levers to push. A 2-GPU M9 exit at −58% is the honest central expectation.
-
-What the search says:
-1. **Every 60% set has streaming, native GKR, outer GKR and GPU capture.** GPU capture is worth 8 points at the end (−51% → −59%): after the cuts, capture is the pre-seal critical path on large blocks.
-2. **Outer GKR is the recursion-cell lever, not Poseidon2.** P2's transcript (one thread, ×23.9) and native hashing (×9.95 per cell) are fixed costs. The recursion it saves is already small after fan-in and outer GKR. Even at the engineered target P2 adds +0.5 s at p50 on top of #9.
-3. **The D2 revert no longer flips sign** (+0.25 s at p50, +0.05 s at p95 on top of #9): revision 2's gain needed P2's recursion cut. Shelve it until recursion is about 2× cheaper again.
-4. **Canonical leaves as built are not an M9 lever.** The padding tax is too high; the envelope design is the real lever (canon-leaf review §9).
+**What the search says:**
+1. **The rev-3 −58% came from the optimistic factors of the four unmeasured levers.** Measured, the four alone are worth −0.9 s at p50 as built (streaming −0.4, witness −0.6, GPU capture −0.6, outer GKR +0.7), against −9.0 s in rev 3 (−2.4, −1.6, −0.6, −4.4).
+2. **Occupancy, k-leaf fan-in and native GKR v2 now carry M9.** Together they cut −4.6 s cumulative at p50 (18.2 → 13.6), more than half of the set's −8.6 s. All three need P1 node memory or new profiles.
+3. **Outer GKR is the 4-GPU swing lever.** As built it costs +0.7 s. Engineered it gains −2.0 s, and only with it does the 4-GPU basket clear 60% (−63.6% against −59.6%).
+4. **Poseidon2 no longer loses alone, but it loses on top of the best set.** The central 2-to-1 + ×0.6 scenario is −0.3 s at p50 on #1–#7 + GPU capture (no outer GKR) and +0.3 s on #1–#9. It stays off the order.
 
 ---
 
 ## 5. Ordering after GPU-native lands and the cleanup pass
 
-Rules:
-- Nothing lands on `codex/rv64-m7-integrate` before GPU-native is the default and the post-M8 cleanup (productionisation, repeatable benchmark set) is done.
-- Every flag is new, default-off `STWO_RV64_M9_*`.
-- Wave 1 is byte-identical to the frozen D2 golden (32/32, 39/39).
+Rules (unchanged):
+- Nothing lands on `codex/rv64-m7-integrate` before GPU-native is the default and the post-M8 cleanup is done.
+- Every flag is new and default-off (`STWO_RV64_M9_*`).
+- Wave 1 is byte-identical to the frozen D2 golden.
 - Waves 2–3 are named profiles with fresh receivers and corpora.
 
 | step | content | depends on | gate |
 |---|---|---|---|
-| 0 (cleanup) | promote T1 capture to default; p-truth-split so all 15 blocks prove; landed-default bench15 → refit `plan_model.py` (baseline [E] → [M]); 3+3 = 607 + 26235168; **E8 different-blocks warm run** (production miss) | GPU-native default | refit within 5 points of §4.2 or re-plan |
-| 1a | packed ingress (prototype ready) → D2D in place | `ClassCache`, `MemoryPlan`, M8 streams | byte identity; host-to-device bytes −14 GB on 607 |
-| 1b | **streaming commit** | native Stage 1/2 on device, PCS enqueue-only | standalone fused kernel against n2b + `mixed_leaf_kernel`, then A/B |
-| 1c | witness without the DAG | recursion jobs, node plans in `ClassCache` | node dump parity |
-| 1d | **P1 node memory ≤ 11–13 GB → occupancy** (2 jobs/GPU, class graphs) | all of GPU-native | busy ≥ 0.85 measured |
-| 2a | **k-leaf fan-in** (planner prototype ready) → k-leaf circuit, receiver, VK registration | P1 (pair leaf does not fit today) | standalone memory probe ≤ 28 GiB / ≤ 13 GB post-P1; −18% cells on 607 exactly |
+| 0 (cleanup) | T1 capture default; p-truth-split so all 15 blocks prove; landed bench15 → refit `plan_model.py`; 3+3 = 607 + 26235168; **E8 different-blocks run**; **CPU service-arithmetic fix** (Montgomery 6×64 limbs in `candidate_curves.zig`; 26235168 first pass 1.95 → about 0.8 s [E]) | GPU-native default | refit within 5 points of §4.2; service fix: `captured_values_sha256`/`advice_all_sha256` identical on the basket |
+| 1a | packed ingress → D2D in place | `ClassCache`, `MemoryPlan` | byte identity |
+| 1b | **aligned stream plan** (no new kernel): calls cut at absorbed % 16, banks 8 + (absorbed & 15), chunk 32 columns; **recursion `outer_trace_commit` 2²⁶ → aligned c32** first (its share is the unmeasured upside). Fused tail only at log ≤ 21. | PCS enqueue | node-dump root parity; kernel census `mixed_leaf` −0.1 GPU-s or more |
+| 1c | **witness rowpar on class hits** (`ClassCache.Template` holds plan + `srec`; DAG on a miss; planner off the critical path) | node plans in `ClassCache` | assignment dump 0 mismatches; `chain_run` GPU-s ≤ 0.75× flag-off on 24628607 |
+| 1d | **P1 node memory ≤ 11–13 GB → occupancy** (count `srec` 0.38 GB/leaf and GKR scratch) | all of GPU-native | busy ≥ 0.85 measured |
+| 2a | **k-leaf fan-in** + fold-arity guard (3 children where 4 cross 2²³ blake) | P1 | ≤ 13 GB per node post-P1; −18% cells on 607 |
 | 2b | native GKR v2 in production | native Stage 1 device channel | fresh receivers |
-| 2c | **production miss path**: overlap leaf class builds with capture; class-stable outer shapes (set-v2 / uniform-v1) | E8 number | production p50 ≤ bench p50 + 10% |
-| 3a | **outer GKR** (DW-R1) | recursion jobs | soundness note, census |
-| 3b | **GPU capture replay** | GPU-native `Feed`, T1 promoted | pre-seal ≤ 2 s at p50 |
-| M10 | 4-GPU placement; Poseidon2 for node memory / compression only if S0 + parallel transcript land; canonical-leaf envelope redesign; D2 revert re-check | — | p50 ≤ 5 s, p95 ≤ 8 s |
-
-Waves 1–2 are where the levers that close the gap live (streaming, occupancy). Their prep is CPU or standalone-kernel work and can run now, in parallel with the GPU-native landing.
+| 2c | **production miss path**: overlap class builds with capture; class-stable outer shapes; rowpar plans built off the critical path | E8 | production p50 ≤ bench p50 + 10% |
+| 3a | **GPU narrow-capture port** (`Prepared`, ROM counts, dedup, ledger phase 1, `Batch` aggregates) on top of the replay kernel. Replay alone is not integrated. | T1, GPU-native `Feed`, service fix | T10DIGEST parity; pre-seal ≤ 2 s at p50 |
+| 3b | **outer GKR**, three gates in order: (i) standalone 5090 bench of the fused MAIN-projection GKR on a D2 leaf class (137.4 M facts) and a 2²³ fold (257.9 M), killed above 0.45 ns/fact and scheduled at ≤ 0.3 including the binding pass; (ii) chunked GKR memory under global admission; (iii) a time-based hybrid rule (only blake_g_gate and xor12 go to GKR) | recursion jobs, P1 | paired request time, never cells |
+| M10 | 4-GPU placement, now **required** for 60%; Poseidon2 only for node memory and compression; canonical-leaf envelope redesign | — | p50 ≤ 7.9 s, p95 ≤ 13.2 s, basket ≤ 118 s on 4×5090 |
 
 ---
 
@@ -200,36 +207,41 @@ Waves 1–2 are where the levers that close the gap live (streaming, occupancy).
 
 | prototype | branch @ head | key files (new) | state |
 |---|---|---|---|
-| plan + model | `codex/rv64-m9-plan` | `design/riscv-proving-stack/rv64-m9-plan.md`, `scripts/rv64_m9/plan_model.py`, `scripts/tests/test_rv64_m9_plan_model.py` | 12/12 tests |
-| packed ingress | `codex/rv64-m9-packed-ingress` @ 805d1a105 | `src/backends/cuda/native/rv64/m9_class_unpack.{h,cu}`, `src/integrations/riscv_cuda/rv64/m9_class_packed_ingress.zig`, `tools/rv64-m9-packed-ingress/{corpus.zig,bench.cu}`; doc `rv64-m9-packed-ingress.md` | parity on dev0/dev1, memcheck/racecheck clean [M]; not linked into the native lib |
-| k-leaf fan-in | `codex/rv64-m9-fewer-leaves` @ a056cee67 | `om31_native/leaf_fanin.zig`, `scripts/rv64_m9_leaf_fanin_model.py`; doc `rv64-m9-fewer-leaves.md` | planner only (flag off is identity on 15 shapes); k-leaf circuit not built |
-| canonical leaf catalog | `codex/rv64-m9-canon-leaf` @ 64a2cb991 | `rv64_recursion/canon_leaf{,_catalog,_test,_bounds_test}.zig`, `scripts/rv64_m9_canon_leaf_{catalog,fold_classes}.py`; doc `rv64-m9-canon-leaf.md` | 10 tests; nothing reads the flag |
-| Poseidon2 leaves | `codex/rv64-m9-poseidon2-leaves` @ 37e581cfc | `src/core/vcs_lifted/poseidon2_m31_mixed_leaf.zig`, `tests/cuda/rv64/m9_poseidon2/*.cu`, `scripts/rv64_m9/poseidon2_leaves_model.py`; doc `rv64-m9-poseidon2-leaves.md` | 336/336 GPU parity, 90/90 Zig; staged outside `native/`; conditional no-go for M9 |
+| plan + model | `codex/rv64-m9-plan` | this doc, `scripts/rv64_m9/plan_model.py`, `scripts/tests/test_rv64_m9_plan_model.py` | 16/16 tests |
+| outer GKR | `codex/rv64-m9-outer-gkr` @ a45530dc7 | `riscv_cpu/outer_gkr/m9_node{,_test}.zig`, `rv64_m9_outer_gkr_tool_main.zig`, `scripts/rv64_m9/outer_gkr_{factor,review}.py`; doc `rv64-m9-outer-gkr.md` | CPU node round on the real D2 roster up to 1/8 scale [M]; Zig 6/6, Python 4/4; no GPU kernel bench yet |
+| streaming commit | `codex/rv64-m9-stream-commit` @ 42ce18195 | `native/commitment/stream_commit.{cuh,cu}`, `commitment/bench/stream_commit_bench.cu`; doc `rv64-m9-stream-commit.md` | 43/43 parity [M]; not called by the prover |
+| witness rowpar | `codex/rv64-m9-witness-rowpar` @ 4459242f1 | `native/rv64/m9_witness_rowpar.cuh`, `riscv_cuda/rv64/m9_witness_rowpar/plan{,_main,_test}.zig`, `tools/rv64-m9-witness-rowpar/*`; README in receipts | exact on 2 recorded nodes [M]; production leaf dump not yet run |
+| GPU capture replay | `codex/rv64-m9-gpu-replay` @ 7d9850bab | `native/rv64/m9_gpu_replay.cu`, `riscv_cpu/rv64_m9_gpu_replay{,_dump_main,_opcorpus}.zig`, `scripts/rv64_m9/gpu_replay_model.py`; doc `rv64-m9-gpu-replay.md` | byte-identical on 2 blocks + op corpus [M]; narrow capture not ported |
+| packed ingress | `codex/rv64-m9-packed-ingress` @ 805d1a105 | `native/rv64/m9_class_unpack.{h,cu}`, `rv64/m9_class_packed_ingress.zig` | parity on 2 GPUs [M] |
+| k-leaf fan-in | `codex/rv64-m9-fewer-leaves` @ a056cee67 | `om31_native/leaf_fanin.zig`, `scripts/rv64_m9_leaf_fanin_model.py` | planner only |
+| canonical leaf catalog | `codex/rv64-m9-canon-leaf` @ 64a2cb991 | `rv64_recursion/canon_leaf*.zig` | 10 tests; shelved as built |
+| Poseidon2 leaves | `codex/rv64-m9-poseidon2-leaves` @ 37e581cfc | `vcs_lifted/poseidon2_m31_mixed_leaf.zig`, `tests/cuda/rv64/m9_poseidon2/*.cu` | 336/336 GPU parity; off the order |
 | IO streaming design | `codex/rv64-m9-io-design` | `rv64-m9-io-streaming.md` | design (E8 defined there) |
 
-Not prototyped yet (the levers that decide 60%): streaming commit, witness without the DAG, occupancy/P1, outer GKR, GPU capture replay.
+Still not prototyped: occupancy/P1 (now the largest single 2-GPU lever), GPU narrow capture, the engineered outer-GKR kernel, and 4-GPU placement.
 
 ---
 
 ## 7. Open risks
 
-1. **The baseline is [E].** Every cut is relative to a modelled post-M8 baseline calibrated on 6 small blocks (≤ 58 M instr). p95 extrapolates. If GPU-native lands near M8 §5's 6–7 s on 607, fixed costs weigh more and the percentages fall.
-2. **The 60% levers are the unmeasured ones.** Streaming commit (×0.70), occupancy (0.85), outer GKR (×0.57) and GPU capture (160 MIPS) are all [E] with no prototype. The measured streams all came in below their revision-2 estimates, and the remaining ones may do the same.
-3. **P1 memory gates two levers.** Occupancy and k-leaf both need nodes ≤ 11–13 GB. A pair leaf is about 30.7 GB against the 30.06 GB gate today [E].
-4. **Production miss.** The serial upper bound costs +5.6 s at p50 even after fan-in. GPU-native refuses on a miss. Fold classes miss too under the exact outer shape. Without E8 and a miss path, the production p50 target (≤ 8.7 s) is not reachable: 13.6 s [E].
-5. **k-leaf VK set is per request** under exact native shapes (11 distinct CPU leaf row vectors in 11 segments [M]). A bounded VK set needs canonical native shapes, and canonical shapes as built cost ×1.55.
-6. **Soundness work per profile.** k-leaf (per-native Fiat–Shamir; union bound shrinks), native GKR v2, outer GKR and GPU capture all need conjectured-128 notes, fresh receivers and tamper corpora. Canonical leaves cost up to 1.53 bits of lookup slack [M].
-7. **Model simplifications.** The Poseidon2 transcript is treated as GPU capacity (fully exposed at 1 job/GPU, half hidden at 2), which is between the latency-only bound and the upper bound. The leaf/fold split after fan-in uses 26235168's 0.72 leaf share for every block. Truth jobs do not fill the seal barrier.
-8. **Packed ingress has no checksum.** A bit flip that leaves the LZ4 stream valid decodes to wrong words with status 0. The host path behaves the same; a wrong word only makes the proof fail.
+1. **2×5090 at 60% is out of reach on the identified levers.** The best central case is −43% and the optimistic −55%. The owner must either move the 60% bar to M10 (4 GPUs) or fund a new ×0.67 kernel-efficiency lever.
+2. **The baseline is [E].** Every cut is relative to a modelled post-M8 baseline calibrated on 6 small blocks; p95 extrapolates. The outer-GKR verdict itself sits inside this fit's error (r_k ±20%).
+3. **The 4-GPU 60% case hangs on engineered outer GKR.** Without it the basket reaches −59.6%. The kernel does not exist; 0.25 ns/fact is 3.3× faster than today's 0.82. Its memory (16.6 GB per 2²³ fold, 30.6 GB where fan-in pushes blake_g to 2²⁴) breaks P1 unless GKR is chunked.
+4. **P1 memory gates occupancy, k-leaf and outer GKR.** Rowpar's `srec` (about 0.38 GB per leaf) and GKR scratch now also count against the 11–13 GB per-node budget.
+5. **Production miss.** It adds +5.6 s at p50 even on the best set, and rowpar gives nothing on a miss. Without E8 and a miss path, production p50 is 17.0 s [E].
+6. **Unmeasured upsides.** The recursion streams' 2²⁶ commit chunk (−0.41 GPU-s if their share is large) and the rowpar tail hybrid (×0.55) are opt-case only.
+7. **GPU capture needs the narrow-capture port and the service fix.** Replay alone is −0.4 s at p50 and 0 at p95. The replay kernel is a second engine implementation; it is protected only by parity tests and runtime chunk-end checks (fails closed to the CPU walk).
+8. **Soundness work per profile** (unchanged): k-leaf, native GKR v2, outer GKR (206–209 bits [D]) and GPU capture all need notes, fresh receivers and tamper corpora. Rowpar and the stream plan are proof-neutral: a wrong witness only causes a rejected proof.
 
 ---
 
 ## 8. Integration steps after GPU-native lands
 
 1. Rebase `codex/rv64-m9-plan` on integrate (adds files only).
-2. Cleanup step 0 (§5): T1 default, p-truth-split, landed bench15 on all 15 blocks. Refit `RFIT`, `KFIT`, `k_m8`, `busy`, `head`, `STAGE1_FRAC`, `IO_LINK_607_POST_M8` and `FANIN_SAME` (re-run `rv64_m9_leaf_fanin_model.py` on the D2 shapes after p-truth-split); regenerate `model.json` and §4.
-3. Run E8; set `fold_miss`, `miss_par`, and choose between the overlap miss path and class-stable outer shapes.
-4. Land waves 1–3 one flag at a time. Run an A/B 3+3 on 607 + 26235168 and bench15 after each wave. Re-score §4.3 on measured numbers and re-plan if the cumulative cut trails §4.2 by more than 5 points.
+2. Cleanup step 0 (§5): refit `RFIT`, `KFIT`, `k_m8`, `busy`, `head`, `STAGE1_FRAC`, `IO_LINK_607_POST_M8`, `FANIN_SAME` and `FIRST_PASS` (after the service fix); regenerate `model.json` and §4.
+3. Run E8; set `fold_miss` and `miss_par`.
+4. Land waves 1–3 one flag at a time. After each wave, run a 3+3 A/B on 607 + 26235168 and bench15, and replace each [E] triple with the measured factor: `stream` from the bench15 kernel census, `wit` from a production leaf dump, `ogkr_eng` from the standalone GKR bench, `cap_fp_spread` from a quiet-host A/B.
+5. Re-score §4.3 and take the 2-GPU-vs-M10 decision (§7.1) on measured numbers.
 
 ---
 
@@ -237,11 +249,17 @@ Not prototyped yet (the levers that decide 60%): streaming commit, witness witho
 
 - Gas sample `gas_sample.json` (out of git); basket `vectors/reports/rv64-cuda-real-segment-20261103/basket-input-readiness.json`, `vectors/reports/rv64-m3-20261104/summary.json`.
 - bench15-1 and kernel census: `codex/rv64-m8-gpu:vectors/reports/rv64-m8-20261106/{bench15,opt-combined}/`.
-- Stream receipts: `vectors/reports/rv64-m9-prep/{packed-ingress,m9-fewer-leaves,canon-leaf,m9-poseidon2-leaves}/` on their branches (§6).
-- `rv64-4gpu-realtime.md`, `rv64-frontier-gpu-delta.md`, `scripts/rv64_4gpu/levers.py` (`codex/rv64-4gpu-realtime-design`); `rv64-m8-gpu-native.md` (`codex/rv64-m8-gpu`); `rv64-m9-io-streaming.md` (`codex/rv64-m9-io-design`); `rv64-m8-engineering-scope.md` (integrate).
+- Wave-2 receipts under `vectors/reports/rv64-m9-prep/` on their branches (§6):
+  - `m9-outer-gkr/{factor,review,gates,verifier-cost}.json`;
+  - `stream-commit/{summary.json,review/}`;
+  - `witness-rowpar/README.md` and `review-residual-model.jsonl`;
+  - `m9-gpu-replay/{first_pass_basket,model}.json` (`FIRST_PASS` in the model is copied from it).
+- Wave-1 receipts: `vectors/reports/rv64-m9-prep/{packed-ingress,m9-fewer-leaves,canon-leaf,m9-poseidon2-leaves}/`.
+- `rv64-4gpu-realtime.md`, `rv64-frontier-gpu-delta.md` (`codex/rv64-4gpu-realtime-design`); `rv64-m8-gpu-native.md` (`codex/rv64-m8-gpu`); `rv64-m9-io-streaming.md` (`codex/rv64-m9-io-design`).
 
 ## 10. Revision history
 
-- **r1** (06ec8ec25, 6064251e6): first budget; claimed M9 levers reach −61%.
-- **r2** (fba033dfe, adversarial review): recursion fit on nodes, D2 and native-GKR factors on leaves only, K607 with T2 off, seal waits for the last Stage 1, and integration costs added. Result: M9 alone −56%; GPU capture needed for −62 to −64%.
-- **r3** (this revision, stream results): fan-in ×0.76–0.86 replaces the truth-batch/2²³ lever. Poseidon2 is a loss on top of outer GKR. Canonical leaves carry a held-out tax of ×1.55 and fold classes still miss. Packed ingress is measured. The production miss now includes folds. Result: **best central 2-GPU set −58/−59%, no set reaches 60%; 4 GPUs −73 to −75%.**
+- **r1** (6064251e6): first budget; claimed −61%.
+- **r2** (fba033dfe, review): per-node recursion fit, leaf-only D2/GKR factors, integration costs. M9 −56%, −62 to −64% with GPU capture.
+- **r3** (4caa4dc29, wave 1): fan-in replaces truth batching; Poseidon2 and canonical leaves off the order. Best 2-GPU set −58/−59%; 4 GPUs −73 to −75%.
+- **r4** (this revision, wave 2): outer GKR as built ×1.07/×1.13 (off the order; the engineered variant is gated); streaming ×0.955; witness ×0.70 on class hits; GPU capture bounded by the serial first pass, with replay alone as a separate lever. Result: **no 2-GPU set reaches 60% in any scenario (best −43% central); 4 GPUs −64/−65/−64% central, and only with engineered outer GKR.**
