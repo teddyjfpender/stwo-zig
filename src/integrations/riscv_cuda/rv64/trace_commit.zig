@@ -22,6 +22,11 @@ const N2bColumns = *const @TypeOf(@import("stwo_cuda_backend").abi.stages.transf
 const MixedSeeded = *const fn (u32, u32, [*]const A.MixedSegment, u32, u32, ?*const anyopaque, ?*anyopaque, ?*anyopaque, *anyopaque) callconv(.c) c_int;
 const MixedCompact = *const fn (u32, u32, [*]const A.MixedSegment, u32, u32, ?*const anyopaque, u64, ?*anyopaque, u64, ?*anyopaque, u64, *anyopaque) callconv(.c) c_int;
 const Layer = *const fn (*const anyopaque, u32, *anyopaque, *anyopaque) callconv(.c) c_int;
+/// stwo_blake2s_merkle_layers_on (T6, commitment/merkle.cu): every layer above
+/// `leaves` contiguous hashes in place. STWO_RV64_M8_MERKLE_FUSED unset/0 runs
+/// exactly the per-layer loop of streamRoot; =1 the fused subtree schedule,
+/// bit-identical. Optional: images without it keep the loop.
+const Layers = *const fn (*anyopaque, u32, u64, *anyopaque) callconv(.c) c_int;
 const PoolCurrent = *const fn (*anyopaque, *usize, *usize) callconv(.c) c_int;
 const LiveLeases = *const fn (*anyopaque, *[5]u64, *u64) callconv(.c) c_int;
 /// Streaming is the default whenever the loaded image exports the primitives.
@@ -68,6 +73,7 @@ pub const Context = struct {
     mixed_seeded: ?MixedSeeded = null,
     mixed_compact: ?MixedCompact = null,
     layer: ?Layer = null,
+    layers: ?Layers = null,
     pool_current: ?PoolCurrent = null,
     live_leases: ?LiveLeases = null,
     returned: std.ArrayList([]D.Column) = .empty,
@@ -86,7 +92,7 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(N2bColumns, "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .prefix_workspace = service.library.lookup(*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int, "stwo_rv64_trace_prefix_workspace_words"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind"), .mixed_seeded = service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_eager_on") orelse service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_on"), .layer = service.library.lookup(Layer, "stwo_blake2s_layer_on"), .pool_current = service.library.lookup(PoolCurrent, "stwo_exec_context_pool_current"), .live_leases = service.library.lookup(LiveLeases, "stwo_rv64_gpu_session_live_leases") };
+        }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(N2bColumns, "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .prefix_workspace = service.library.lookup(*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int, "stwo_rv64_trace_prefix_workspace_words"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind"), .mixed_seeded = service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_eager_on") orelse service.library.lookup(MixedSeeded, "stwo_blake2s_mixed_seeded_on"), .layer = service.library.lookup(Layer, "stwo_blake2s_layer_on"), .layers = service.library.lookup(Layers, "stwo_blake2s_merkle_layers_on"), .pool_current = service.library.lookup(PoolCurrent, "stwo_exec_context_pool_current"), .live_leases = service.library.lookup(LiveLeases, "stwo_rv64_gpu_session_live_leases") };
     }
     pub fn deinit(self: *Context) void {
         for (self.returned.items) |columns| self.host_allocator.free(columns);
@@ -423,14 +429,18 @@ const Job = struct {
             if (c.final) hashes = banks[c.out_bank];
         }
         // Merkle layers above the leaves, in the same dead bank. Identical to
-        // stwo_rv64_trace_tree_on's layer loop.
-        var offset: usize = 0;
-        var next_offset: usize = p.leaves;
-        var nodes: usize = p.leaves;
-        while (nodes > 1) : (nodes >>= 1) {
-            try check(layer(@ptrCast(hashes + offset * 8), @intCast(nodes / 2), @ptrCast(hashes + next_offset * 8), lane));
-            offset = next_offset;
-            next_offset += nodes / 2;
+        // stwo_rv64_trace_tree_on's layer loop (or its T6 entry).
+        if (b.layers != null and p.leaves >= 2) {
+            try check(b.layers.?(@ptrCast(hashes), p.leaves, 2 * @as(u64, p.leaves) - 1, lane));
+        } else {
+            var offset: usize = 0;
+            var next_offset: usize = p.leaves;
+            var nodes: usize = p.leaves;
+            while (nodes > 1) : (nodes >>= 1) {
+                try check(layer(@ptrCast(hashes + offset * 8), @intCast(nodes / 2), @ptrCast(hashes + next_offset * 8), lane));
+                offset = next_offset;
+                next_offset += nodes / 2;
+            }
         }
         const legacy = StreamPlan.legacyScratchWords(rows, tw.twiddles.len + tw.itwiddles.len + 7 * order.len);
         self.samplePeak(ctx, if (self.owned_inputs != null) "stream_owned_input" else "stream", total * 4, legacy * 4, coefficient_cells * 4, p.calls.len);
