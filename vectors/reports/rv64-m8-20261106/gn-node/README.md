@@ -42,3 +42,14 @@ Every node of both recorded blocks, children from their recorded regions; compar
 
 ### Host tests (laptop, memguard 6 GB)
 - [M] `zig build test-rv64-jobs-outer` and `test-rv64-jobs` PASS. `outer_seed_device.zig`: synthetic children with real Merkle trees (trace + FRI), caps and full-path roots verified, five negative classes. `outer_device.zig`: the GPU-native node job end to end on the fake device (2 GPUs, the fold's second child on the peer GPU: one peer copy; seeds/outputs/checkpoint == mirror; seed_tape / child_binding / lookup_sum / channel_order words accepted in the request slab), and its negatives (corrupted peer child path → seed_tape reject, bad channel latch → channel_order reject, publish refuses; unknown child / wrong child count / unplanned class fail at plan time).
+
+## Remaining host work on the GPU-native node path (per node unless noted)
+
+| item | where | state |
+|---|---|---|
+| Template seeds/checkpoint/outputs still PACKED and uploaded by `OuterNodeJob.stage` (zeros the device overwrites: up to 24 MB for a fold) | `jobs/outer_job.zig` stage / `jobs/outer_staged.zig` pack (not this stream's files) | fix: a `device_inputs` flag that skips the seeds/channel_seed/expected sections and keeps the seed variables in the class region; request filed in M8-INTERFACES |
+| Leaf statement tail + outputs (ordinal, statement/manifest digests, GKR transcript values, encoded claims, request words) | native Stage 2 / TruthJob producers | supplied from the legacy host values in check mode and the harness; request filed (child seed-source convention) |
+| Leaf Blake sample prefill tape (`blake_sample_inputs`, STWO_RV64_BLAKE_SAMPLE_PREFILL=1) | leaf_graph (om31_native, read-only) | still host-derived per leaf; proof-neutral (producer-only shadow inputs): drop it or derive on device |
+| `OuterNodeJob.finish`: outer section decode (status latches, claims) + a 1.5 MB copy of the PCS image (`defer_decode`) | `jobs/outer_job.zig` | small; publish-only path should skip both (the device words carry the verdicts) |
+| Class products need one warm legacy request (`NodeClasses` harvest under GN_NODE=check) + authority registration by the binder | gn-bind / driver install | API in place (`NodeClasses.get`, `Entry.programFor`, `Recursion.register(.node)`) |
+| Children found by MAIN-root search in the host seeds (check mode only) | `GnCheck` | production gets children from the driver DAG (`RecursionFactory.node(children)`) |
