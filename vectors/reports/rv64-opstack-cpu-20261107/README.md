@@ -1,7 +1,7 @@
 # OP Mainnet CPU critical path
 
 The comparison uses the same canonical GLV guest, block 121057303 input and
-1,048,575-step geometry across the first three producers. The selected profile is
+1,048,575-step geometry across the four producers in the table. The selected profile is
 `conjectured128_b2_q108_p20_fold4`. All 15 binary proof and sidecar hashes
 match. Both bundles passed independent reception and exact corruption
 rejections. The earlier overlapping build trial was killed and is excluded.
@@ -11,13 +11,16 @@ rejections. The earlier overlapping build trial was killed and is excluded.
 | d366924 control | 256.543 s | 224.119 s | 77.258 s | 4.00 GiB |
 | Wide GKR source tiles | 243.124 s | 209.945 s | 58.543 s | 3.99 GiB |
 | Wide tiles, two four-worker lanes | 208.376 s | 181.974 s | — | 4.80 GiB |
+| Tuned CPU kernels, same two lanes | 172.102 s | 149.793 s | — | 4.88 GiB |
 
 Cold committed receiver wall was 52.156 s in the control, including 34.020 s
 of native source keys and 11.041 s of FIXED authority. The wide-tile run
 selected the existing identity-only receiver and took 28.215 s. These cold
 runs measure different setup policies, with one sample per policy. The
 two-lane run selected identity-only setup and took 24.735 s cold. Its proof
-verification took 1.373 s. [Two-lane run](cpu-two-lane.json)
+verification took 1.373 s. The matched tuned run took 23.593 s cold,
+including 0.429 s of proof checks. Both corruption trials passed again.
+[Two-lane run](cpu-two-lane.json) · [Matched tuned run](cpu-matched-final.json)
 
 The verifier-only resident process received the two durable copies twice in
 30.597 s total, peaking at 2.43 GiB. The first request spent 25.125 s in setup
