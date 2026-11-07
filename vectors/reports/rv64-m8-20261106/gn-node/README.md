@@ -68,6 +68,9 @@ Cold request of each block (driver b9, addon b6; `job-cold-<block>.txt` = the GN
 - [M] Body GPU wait 77–422 ms (leaves) / 243–533 ms (folds) per node: the whole-node prove itself.
 - Warm request of the same services failed in job mode (`InvalidDevicePcsColumn`): the class template borrowed its node's Authority-owned FIXED log table, freed after the cold request. Fixed in 131005f81 (templates own it; the Blake sample tape is handed over per node). Re-run below.
 
+### Default gate
+- [M] `rv64_gate.sh --stream m8-gn-node` default (26235156) at 131005f81: **PASS** — build, unit (Zig + Python), cold + warm small-block proofs 32/32 + 32/32 byte-identical to the frozen D2 golden, 2/2 fresh CPU receivers, 19-case negative corpus (`gate-default-26235156.json`; run `/workspace/m3/runs/m8-gn-node/gate5`). ad0eba90f after it changes job-mode check code only (default off).
+
 ### Host tests (laptop, memguard 6 GB)
 - [M] `zig build test-rv64-jobs-outer` and `test-rv64-jobs` PASS. `outer_seed_device.zig`: synthetic children with real Merkle trees (trace + FRI), caps and full-path roots verified, five negative classes. `outer_device.zig`: the GPU-native node job end to end on the fake device (2 GPUs, the fold's second child on the peer GPU: one peer copy; seeds/outputs/checkpoint == mirror; seed_tape / child_binding / lookup_sum / channel_order words accepted in the request slab), and its negatives (corrupted peer child path → seed_tape reject, bad channel latch → channel_order reject, publish refuses; unknown child / wrong child count / unplanned class fail at plan time).
 
