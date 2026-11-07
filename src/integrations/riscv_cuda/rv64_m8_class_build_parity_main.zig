@@ -375,6 +375,11 @@ const SegmentRow = struct {
 };
 const ClassRow = struct {
     class_key: [64]u8,
+    build_ns: u64,
+    /// Cold WarmJob on a fresh persistent region (full device FIXED commit +
+    /// root copy), CUDA events [M]; then the steady (region already filled).
+    cold_gpu_ms: f32,
+    cold_host_ns: u64,
     warm_gpu_ms: f32,
     warm_host_ns: u64,
     warm_arena_peak_words: u64,
@@ -524,7 +529,7 @@ pub fn main() !void {
     const rows = try nf.vtable.shape.?(nf.ctx, a, wb);
     defer a.free(rows);
     const shape_ns = timer.lap();
-    std.debug.print("GPU_M8_GN_SHAPE event=shape block={} segments={} classes={} shape_ns={}\n", .{ block, rows.len, builder.classes.count(), shape_ns });
+    std.debug.print("GPU_M8_GN_SHAPE event=shape block={} segments={} classes={} shape_ns={} inventory_ns={} classes_ns={} threads={}\n", .{ block, rows.len, builder.classes.count(), shape_ns, builder.blocks.items[0].inventory_ns, builder.blocks.items[0].classes_ns, builder.blocks.items[0].threads });
     if (rows.len != item.expected_cpu_segments) return error.ParitySegmentCountDiffers;
     const rec = builder.blocks.items[0];
 
@@ -589,6 +594,19 @@ pub fn main() !void {
     for (builder.classes.values()) |cl| {
         const s1c = try registry.class(cl.key);
         const entry = try cache.get(cl.key);
+        // Cold: the same spec under a fresh persistent key (true root).
+        var cold_spec = cl.spec();
+        cold_spec.key[31] ^= 0x3c;
+        const cold_class = try S1.Class.init(a, cold_spec);
+        defer cold_class.deinit();
+        var cold_job = S1.WarmJob{ .a = a, .class = cold_class, .sym = &s1sym };
+        try cold_job.init();
+        defer cold_job.deinit();
+        var cold = TimedWarm{ .inner = &cold_job, .timing = &timer_api.timing };
+        var ct = try std.time.Timer.start();
+        _ = try run(worker, api.Job.from(TimedWarm, &cold));
+        const cold_host_ns = ct.read();
+        cold.span.close(&timer_api.timing);
         var job = S1.WarmJob{ .a = a, .class = s1c, .sym = &s1sym };
         try job.init();
         defer job.deinit();
@@ -597,11 +615,12 @@ pub fn main() !void {
         const receipt = try run(worker, api.Job.from(TimedWarm, &timed));
         const host_ns = t.read();
         timed.span.close(&timer_api.timing);
-        try classes.append(a, .{ .class_key = hex(cl.key), .warm_gpu_ms = timed.span.gpu_ms, .warm_host_ns = host_ns, .warm_arena_peak_words = receipt.arena_peak_words, .held_words = entry.held_words[0], .main_resident_words = entry.main_resident_words, .arena_peak_words = entry.arena_peak_words });
+        try classes.append(a, .{ .class_key = hex(cl.key), .build_ns = cl.build_ns, .cold_gpu_ms = cold.span.gpu_ms, .cold_host_ns = cold_host_ns, .warm_gpu_ms = timed.span.gpu_ms, .warm_host_ns = host_ns, .warm_arena_peak_words = receipt.arena_peak_words, .held_words = entry.held_words[0], .main_resident_words = entry.main_resident_words, .arena_peak_words = entry.arena_peak_words });
     }
 
     // ---- 5. negatives (fail closed) ----
     var negs: std.ArrayListUnmanaged(Negative) = .empty;
+    var miss_wall_ns: u64 = 0;
     {
         // a. device FIXED root vs a tampered class authority root (GPU).
         const cl = builder.classes.values()[0];
@@ -649,6 +668,7 @@ pub fn main() !void {
         const got: []const u8 = if (miss) |_| "ok" else |err| @errorName(err);
         try negs.append(a, .{ .name = "class_miss_new_block_builds", .expected = "ok", .got = got, .fired = if (miss) |m| m.miss else |_| false });
         std.debug.print("GPU_M8_GN_SHAPE event=miss_block result={s} misses={} miss_ns={}\n", .{ got, builder.misses, miss_ns });
+        miss_wall_ns = miss_ns;
         const k_miss = try nf.vtable.class_of_block.?(nf.ctx, block + 1, 0, rows[0]);
         try expectError(a, &negs, "miss_block_class_equals_warm", error.GnShapeFieldMismatch, if (std.mem.eql(u8, &k_miss, &rec.keys[0])) @as(anyerror!void, error.GnShapeFieldMismatch) else @as(anyerror!void, {}));
         // g. the row-only class_of is ambiguous now that two blocks share every
@@ -675,8 +695,12 @@ pub fn main() !void {
         .legacy_full_record_ns = recorder.full_ns,
         .warm_capture_ns = warm.capture_ns,
         .install_shape_ns = shape_ns,
+        .install_inventory_ns = rec.inventory_ns,
+        .install_classes_ns = rec.classes_ns,
+        .install_build_threads = rec.threads,
         .install_warm_ns = warm_ns,
         .install_installed_ns = installed_ns,
+        .miss_block_wall_ns = miss_wall_ns,
         .segments = segs.items,
         .unique_classes = builder.classes.count(),
         .stage1_all_equal = all_stage1,

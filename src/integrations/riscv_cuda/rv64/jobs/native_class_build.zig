@@ -164,8 +164,8 @@ pub fn stubSource(setup: *const Setup, request: Request) NativeSources {
     return s;
 }
 
-/// Placeholder local-GKR artifact of the instance shapes (zero claims/point,
-/// zero challenges): the framing builders read only its shape (claims per
+/// Placeholder local-GKR artifact of the instance shapes (zero claims, a fixed
+/// non-degenerate point, zero challenges): the framing builders read only its shape (claims per
 /// instance, variable counts); the values are per request (semantic patch).
 pub fn placeholderPending(a: std.mem.Allocator, instances: []const NG.Instance) !Pending {
     const n = instances.len;
@@ -178,7 +178,8 @@ pub fn placeholderPending(a: std.mem.Allocator, instances: []const NG.Instance) 
     }
     const point = try a.alloc(O, max);
     errdefer a.free(point);
-    @memset(point, O.zero());
+    // Never 0 or 1 (MleEvalPoint refuses a degenerate coordinate).
+    for (point, 0..) |*p, i| p.* = O.fromBase(M.fromCanonical(@intCast(2 + i)));
     const claims = try a.alloc([]O, n);
     errdefer a.free(claims);
     var made: usize = 0;
@@ -188,11 +189,34 @@ pub fn placeholderPending(a: std.mem.Allocator, instances: []const NG.Instance) 
         @memset(c.*, O.zero());
         made += 1;
     }
-    return .{ .artifact = .{ .ood_point = point, .claims_to_verify_by_instance = claims, .n_variables_by_instance = vars }, .challenges = std.mem.zeroes(@FieldType(Pending, "challenges")), .eta = O.zero(), .digest = @splat(0) };
+    var challenges = std.mem.zeroes(@FieldType(Pending, "challenges"));
+    var next: u32 = 1000;
+    fillFelts(@TypeOf(challenges), &challenges, &next);
+    return .{ .artifact = .{ .ood_point = point, .claims_to_verify_by_instance = claims, .n_variables_by_instance = vars }, .challenges = challenges, .eta = O.fromBase(M.fromCanonical(999)), .digest = @splat(0) };
 }
 
+/// Placeholder shared challenges: distinct nonzero felts (a zero challenge
+/// could hit an inverse in the role metadata; values are per request).
 pub fn placeholderShared() Shared {
-    return std.mem.zeroes(Shared);
+    var s = std.mem.zeroes(Shared);
+    var next: u32 = 2000;
+    fillFelts(Shared, &s, &next);
+    return s;
+}
+
+/// Every OM31 felt reachable through struct fields / arrays of `v` gets a
+/// distinct nonzero base value (next, next+1, ...).
+fn fillFelts(comptime T: type, v: *T, next: *u32) void {
+    if (T == O) {
+        v.* = O.fromBase(M.fromCanonical(next.*));
+        next.* += 1;
+        return;
+    }
+    switch (@typeInfo(T)) {
+        .@"struct" => |st| inline for (st.fields) |f| fillFelts(f.type, &@field(v.*, f.name), next),
+        .array => |arr| for (v) |*x| fillFelts(arr.child, x, next),
+        else => {},
+    }
 }
 
 fn coefficientWords(values: []const M) []const u32 {
@@ -207,6 +231,8 @@ pub const Class = struct {
     a: std.mem.Allocator,
     key: G.ClassKey = @splat(0),
     rows: u64 = 0,
+    /// Host wall of this class's build at install [M].
+    build_ns: u64 = 0,
     // ---- Stage 1 ----
     gkr: NG.Plan,
     instances: []NG.Instance,
@@ -386,6 +412,7 @@ pub fn build(env: *const Env, in: Inputs) !*Class {
     cl.comp_patches = .{};
     cl.framing = null;
     cl.key = @splat(0);
+    cl.build_ns = 0;
     errdefer {
         // Stage-1 parts are released by the errdefers above.
         for (cl.global_patches) |*p| p.deinit(a);
@@ -1072,6 +1099,12 @@ pub const BlockRecord = struct {
     rows: []u64,
     /// Host wall of the block's class build at install [M].
     build_ns: u64,
+    /// Of which: the inventory (declarations, setup keys, FIXED authority
+    /// incl. the CPU FIXED commits, request views) [M].
+    inventory_ns: u64 = 0,
+    /// Of which: the per-segment class builds, `threads` in parallel [M].
+    classes_ns: u64 = 0,
+    threads: u32 = 1,
     miss: bool,
 };
 
@@ -1085,6 +1118,8 @@ pub const Builder = struct {
     factory: ?*S2.Factory = null,
     /// Stage-2 instances per class (Factory.instances_per_device * GPUs).
     framing_instances: usize = 2,
+    /// Parallel segment class builds (0 = one thread per segment, max 64).
+    build_threads: usize = 0,
     fixed_setup_bytes: usize = 4 << 30,
     mutex: std.Thread.Mutex = .{},
     classes: std.AutoArrayHashMapUnmanaged(G.ClassKey, *Class) = .empty,
@@ -1133,18 +1168,56 @@ pub const Builder = struct {
         return self.buildBlock(wb, true);
     }
 
+    const BuildSlot = struct {
+        cl: ?*Class = null,
+        err: ?anyerror = null,
+        fn run(env: *const Env, inv: *const Inventory, i: usize, slot: *BuildSlot) void {
+            var t = std.time.Timer.start() catch unreachable;
+            slot.cl = buildFromInventory(env, inv, i) catch |err| {
+                slot.err = err;
+                return;
+            };
+            slot.cl.?.build_ns = t.read();
+        }
+    };
+
     fn buildBlock(self: *Builder, wb: G.WarmBlock, miss: bool) !BlockRecord {
         var timer = try std.time.Timer.start();
         for (self.blocks.items) |b| if (b.block == wb.block) return b;
         const inv = try Inventory.init(self.a, wb.capture, self.env.config, self.fixed_setup_bytes);
         defer inv.deinit();
+        const inventory_ns = timer.read();
         const n = inv.count();
         const keys = try self.a.alloc(G.ClassKey, n);
         errdefer self.a.free(keys);
         const rows = try self.a.alloc(u64, n);
         errdefer self.a.free(rows);
+        // Segment classes are independent: build them in parallel (the
+        // allocator must be thread safe; gcatalogue is guarded by gmutex).
+        const slots = try self.a.alloc(BuildSlot, n);
+        defer self.a.free(slots);
+        @memset(slots, .{});
+        const threads: usize = @min(64, if (self.build_threads == 0) n else @min(n, self.build_threads));
+        var next: usize = 0;
+        while (next < n) {
+            const batch = @min(threads, n - next);
+            var pool: [64]?std.Thread = @splat(null);
+            for (0..batch) |k| {
+                const i = next + k;
+                pool[k] = std.Thread.spawn(.{ .stack_size = 64 << 20 }, BuildSlot.run, .{ &self.env, inv, i, &slots[i] }) catch blk: {
+                    BuildSlot.run(&self.env, inv, i, &slots[i]);
+                    break :blk null;
+                };
+            }
+            for (pool[0..batch]) |t| if (t) |th| th.join();
+            next += batch;
+        }
+        const classes_ns = timer.read() - inventory_ns;
+        errdefer for (slots) |sl| if (sl.cl) |c| c.deinit();
+        for (slots) |sl| if (sl.err) |err| return err;
         for (0..n) |i| {
-            const cl = try buildFromInventory(&self.env, inv, i);
+            const cl = slots[i].cl.?;
+            slots[i].cl = null;
             var owned = true;
             errdefer if (owned) cl.deinit();
             keys[i] = cl.key;
@@ -1160,7 +1233,7 @@ pub const Builder = struct {
             owned = false;
             try self.registerClass(cl, miss);
         }
-        const rec = BlockRecord{ .block = wb.block, .keys = keys, .rows = rows, .build_ns = timer.read(), .miss = miss };
+        const rec = BlockRecord{ .block = wb.block, .keys = keys, .rows = rows, .build_ns = timer.read(), .inventory_ns = inventory_ns, .classes_ns = classes_ns, .threads = @intCast(threads), .miss = miss };
         self.mutex.lock();
         defer self.mutex.unlock();
         try self.blocks.append(self.a, rec);
