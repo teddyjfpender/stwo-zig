@@ -281,8 +281,49 @@ test "parent compression matches the experimental Merkle hasher and pinned finge
     }
     const expected = try S.decode(H.hashChildren(.{ .left = S.encode(toM31(left)), .right = S.encode(toM31(right)) }));
     try std.testing.expectEqualSlices(u32, &decodeWords(expected), &hashParent(left, right));
-    // Generator fingerprint pinned for the CUDA harness.
-    try std.testing.expectEqual(@as(u32, columnWord(1, 2, 3)), columnWord(1, 2, 3));
+    // Pinned fingerprints (review fix: the earlier check compared the
+    // generator with itself). The CUDA harness pins the same generator value.
+    try std.testing.expectEqual(@as(u32, 1026837563), columnWord(1, 2, 3));
+    const pinned_parent = [DIGEST_WORDS]u32{ 468161559, 111668925, 2011667219, 1887212100, 1892570565, 637627979, 252851805, 1207744858, 831434602 };
+    try std.testing.expectEqualSlices(u32, &pinned_parent, &hashParent(left, right));
+}
+
+test "seeded chaining at exact rate boundaries (absorbed % 12 == 0)" {
+    // Review fix: the split test above never lands on a multiple of RATE, where
+    // the eager permutation has already consumed the block and at == 0.
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const shapes = [_]TestShape{
+        .{ .logs = &.{ 3, 5 }, .widths = &.{ 12, 7 } },
+        .{ .logs = &.{ 2, 4, 6 }, .widths = &.{ 5, 19, 12 } },
+        .{ .logs = &.{ 4, 4, 5 }, .widths = &.{ 24, 12, 0 } },
+        .{ .logs = &.{ 1, 6 }, .widths = &.{ 36, 11 } },
+    };
+    for (shapes, 0..) |shape, i| {
+        const segments = try buildColumns(a, shape, 4242 + i, 2);
+        const log_size = shape.logs[shape.logs.len - 1];
+        const rows = @as(usize, 1) << log_size;
+        const indices = try a.alloc(usize, rows);
+        for (indices, 0..) |*x, r| x.* = r;
+        const whole = try a.alloc([DIGEST_WORDS]u32, rows);
+        try hashRows(log_size, segments, 0, null, 0, indices, whole);
+        var boundary_splits: usize = 0;
+        for (1..segments.len) |split| {
+            var absorbed: u32 = 0;
+            for (segments[0..split]) |s| absorbed += s.n_columns;
+            if (absorbed % RATE != 0 or absorbed == 0) continue;
+            boundary_splits += 1;
+            const seed_log = segments[split - 1].source_log_size;
+            const seed_rows = @as(usize, 1) << seed_log;
+            const seed = try a.alloc([STATE_WORDS]u32, seed_rows);
+            try prefixRows(seed_log, segments[0..split], 0, null, 0, indices[0..seed_rows], seed);
+            const chained = try a.alloc([DIGEST_WORDS]u32, rows);
+            try hashRows(log_size, segments[split..], absorbed, seed, seed_log, indices, chained);
+            for (whole, chained) |w, c| try std.testing.expectEqualSlices(u32, &w, &c);
+        }
+        try std.testing.expect(boundary_splits >= 1);
+    }
 }
 
 fn toM31(words: [DIGEST_WORDS]u32) [DIGEST_WORDS]M31 {
