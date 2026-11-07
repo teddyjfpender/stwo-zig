@@ -138,6 +138,12 @@ pub const EncodedNode = struct {
     /// region (a parent's seed fill reads it there; publish slices only the
     /// length-word bytes). Needs `target` and `copy` (d2d).
     image_tail: bool = false,
+    /// GPU-native publication (gn-node NodeJob): the request slab's device
+    /// verdict words are the authority, so finish runs no host decode at all
+    /// (no section decode / host lookupSum / PCS image copy): publish() checks
+    /// node_pcs_status, encode_bounds, node_oods_constraint, lookup_sum,
+    /// seed_tape, child_binding and channel_order on the mirror.
+    device_publish: bool = false,
     pub const Target = struct { region: api.DeviceBuffer, pcs_status: api.DeviceBuffer, encode_status: api.DeviceBuffer, layout_status_oods: ?api.DeviceBuffer = null };
     /// The request-slab target of proof `id` (layout of its GPU's segment).
     pub fn targetOf(layout: *const G.SegmentLayout, segment: api.DeviceBuffer, id: G.ProofId) !Target {
@@ -351,7 +357,13 @@ pub const EncodedNode = struct {
         if (self.timing) |t| t.resolve(t.ctx);
         if (self.oods_timing) |t| t.resolve(t.ctx);
         // GPU-native: gpu_native.publish reads the request slab mirror.
-        if (self.target != null) return self.inner.finish(view);
+        if (self.target != null) {
+            if (!self.device_publish) return self.inner.finish(view);
+            self.inner.finished = true;
+            self.inner.report.receipt = view.receipt;
+            if (self.inner.timing) |t| t.resolve(t.ctx);
+            return;
+        }
         // Device verdicts first (the authority on the GPU-native path), then
         // the host reference in inner.finish: a device refusal is reported
         // as the device's, even where a host check would also refuse.

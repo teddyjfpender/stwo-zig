@@ -1066,6 +1066,9 @@ pub const NodeClasses = struct {
         if (e.shared.oods) |sym| try m.enc.withOods(sym, e.oods_program);
         m.enc.image_tail = true;
         m.enc.outputs_on_device = true;
+        // No host decode in finish: the template's host outputs are erased
+        // (the device wrote this node's), and the slab words are the verdicts.
+        m.enc.device_publish = true;
         return .{ .job = m.enc.job(), .ctx = m, .inputs = inputs, .destroy = destroyMade };
     }
     fn inputs(raw: *anyopaque) anyerror!OuterDevice.Inputs {
