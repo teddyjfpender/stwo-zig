@@ -91,6 +91,12 @@ class GateTests(unittest.TestCase):
                                      preset=dict(preset, coalesce_truth_families=False)), 'baseline', 0, 'r', False)
         self.assertNotIn('--allow-block', argv)
         self.assertNotIn('--coalesce-truth-families', argv)
+        argv, _ = stack.command(manifest, 'fullstack', 1, 'r', False)
+        self.assertIn('--process-budget-guard', argv)
+        unguarded = dict(preset, measurement=dict(preset['measurement'], physical_guard_arms=[]))
+        argv, _ = stack.command(dict(manifest, preset=unguarded), 'fullstack', 1, 'r', False)
+        self.assertNotIn('--process-budget-guard', argv)
+        self.assertEqual(stack.guard_verdict({}, 'fullstack', False)['status'], 'ORIGINAL_BASELINE_AUTO_UNGUARDED')
 
     def test_large_block_prune_keeps_reports(self):
         with tempfile.TemporaryDirectory() as tmp:

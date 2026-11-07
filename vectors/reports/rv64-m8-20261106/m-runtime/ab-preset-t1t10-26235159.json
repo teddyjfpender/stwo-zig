@@ -38,7 +38,7 @@
  },
  "arms": {
   "baseline": {
-   "STWO_RV64_DEVICE_ARENA": "22G",
+   "STWO_RV64_DEVICE_ARENA": "auto",
    "STWO_RV64_TRUTH_SPARSE_RC": "0",
    "STWO_RV64_GLOBAL_ADMISSION": "0",
    "STWO_RV64_RECURSION_SESSIONS": "0",
@@ -47,7 +47,7 @@
    "STWO_RV64_FIRST_PASS_RAM": "0"
   },
   "fullstack": {
-   "STWO_RV64_DEVICE_ARENA": "22G",
+   "STWO_RV64_DEVICE_ARENA": "auto",
    "STWO_RV64_TRUTH_SPARSE_RC": "0",
    "STWO_RV64_GLOBAL_ADMISSION": "0",
    "STWO_RV64_RECURSION_SESSIONS": "0",
@@ -77,9 +77,7 @@
   "fresh_receivers_after_all_timing_services": true,
   "gpu_seconds": "CUPTI interval union; node-level graph tracing required; profiled walls include profiler overhead",
   "memory_claim": "Onlyfullstack holds physical canary throughout service, enforcing <=28e9physicalbytes perGPU. Baselineoriginalautounguarded. Enforcedupperbound, notobservedexactpeak.",
-  "physical_guard_arms": [
-   "fullstack"
-  ],
+  "physical_guard_arms": [],
   "baseline_memory_scope": "Original auto arena without physical canary; no28GBclaim forbaseline.",
   "quiet_resource": "cgroup",
   "quiet_scope": "Five one-second idle samples with pod cgroup PSI some/full <=0.5% of measured idle duration; zero throttling during idle and inventory; steal<=1%; no foreign GPU or owned compiler. Background memory sampling paused during admission and resumed before request. Inventory-probe PSI recorded separately; host load informational. Previous zero-PSI and 0.1% admission failures are retained.",
@@ -91,7 +89,7 @@
   "pending_authority_floor": "SourcePlan max_leaves256 arity4 carryBound12; minimumLimit=max(9+2lanes,12+2lanes+1):17 for2logical lanes,21 for4logical lanes.",
   "timed_scope": "R1PARKED: timedfullstackdiffonlySparse22G+globalGPUadmission+siblingrecursionsessions+2lanes/device+earlyleafcapability+sourcependingbound21. BaselineoriginalD2+coalescingauto/global0/sessions0/lanes1/pending17. AllR1flags0botharms.",
   "quiet_pressure_max": 0.005,
-  "m_runtime_scope": "Stream m-runtime T1+T10 default-flip A/B. ONE image (default-runtime.json, lib 25d0e62f), integrate-head defaults (T3/T4/T5/T7/T8/T9 on, T2/T6 off; no T* key set), default env + fixed 22G arena both arms, pending 17. 'baseline' = integrate head. 'fullstack' = + T1 pair (STWO_RV64_M8_CAPTURE_LOCAL_LEDGER=1, STWO_RV64_M8_CAPTURE_INFLIGHT=16) + T10 recorder (STWO_RV64_M8_CAPTURE_RECORDER=1). Block 26235159 (49 segments): STWO_RV64_PCS_IDLE_CACHE_BYTES=0 both arms (proof-neutral M3 fix for >=40 segments, as bench15); coalesce_truth_families=false because the D2 coalesced-truth plan refuses 26235159 (V3TruthShapeExceeded, bench15-1) - native per-segment truth, D2 security profile."
+  "m_runtime_scope": "Stream m-runtime T1+T10 default-flip A/B. ONE image (default-runtime.json, lib 25d0e62f), integrate-head defaults (T3/T4/T5/T7/T8/T9 on, T2/T6 off; no T* key set), default env + fixed 22G arena both arms, pending 17. 'baseline' = integrate head. 'fullstack' = + T1 pair (STWO_RV64_M8_CAPTURE_LOCAL_LEDGER=1, STWO_RV64_M8_CAPTURE_INFLIGHT=16) + T10 recorder (STWO_RV64_M8_CAPTURE_RECORDER=1). Block 26235159 (49 segments): STWO_RV64_PCS_IDLE_CACHE_BYTES=0 both arms (proof-neutral M3 fix for >=40 segments, as bench15); coalesce_truth_families=false because the D2 coalesced-truth plan refuses 26235159 (V3TruthShapeExceeded, bench15-1) - native per-segment truth, D2 security profile. Arena 'auto' both arms and NO physical canary (physical_guard_arms=[]): attempt 4 with the fixed 22G arena failed CudaAllocationFailed in native stage one of segment 0 (GPU_TRACE_ALLOCATION_FAILURE columns=2705 requested_words=635472768). No memory claim either arm."
  },
  "operational": {
   "baseline": {
