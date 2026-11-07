@@ -363,38 +363,37 @@ namespace stwo::cuda::blake2s {
 //   kSubtreeBlock (threads per subtree_levels_kernel CTA = its launch bound)
 //     [M tune-2] 64: 0.0139 / 0.0292 / 0.0724 / 0.8356; 128: 0.0134 / 0.0301 /
 //                0.0724 / 0.8294; 256: 0.0140 / 0.0322 / 0.0847 / 0.8373 -> 128.
-#ifndef STWO_T6_TAIL_NODES
-#define STWO_T6_TAIL_NODES 2048
-#endif
+//   kFusedTailBlock (threads of the tail CTA = its launch bound)
+//     [M review-r2, 3 rounds x 9 reps] 256: 0.0136 / 0.0305 / 0.0725 / 0.8300;
+//                512: 0.0137 / 0.0305 / 0.0725 / 0.8292; 1024: 0.0134 / 0.0305 /
+//                0.0725 / 0.8282 -> 1024 (all three within noise).
+//   fused_tail_kernel is kept beside upper_tail_kernel (same layers): the
+//     frozen kernel indexes the global arrays directly, which [M review-r1]
+//     makes it ~2 us slower as the tail (2^10 / 2^12 / 2^14: 0.0156 / 0.0203 /
+//     0.0337 vs 0.0134 / 0.0178 / 0.0303), at 256 and 1024 threads alike.
 constexpr uint32_t kFusedTailNodes = STWO_T6_TAIL_NODES;
 constexpr uint32_t kSubtreeBlock = STWO_T6_SUBTREE_BLOCK;
-constexpr uint32_t kFusedTailBlock = 1024;
+constexpr uint32_t kFusedTailBlock = STWO_T6_TAIL_BLOCK;
+// Layers above the tail are power-of-two sized, so a power-of-two tail makes
+// every pass 3 levels except at most one 2-level pass (nodes == 2 * tail).
+static_assert(is_power_of_two(kFusedTailNodes) && kFusedTailNodes >= 2, "tail nodes");
 
 template <bool Prefixed>
 static int fused_tree_layers(Hash *tree, uint32_t leaves, cudaStream_t stream) {
     uint64_t offset = 0;
     uint32_t nodes = leaves;
     while (nodes > kFusedTailNodes) {
-        uint32_t levels = 3;
-        while ((nodes >> levels) < kFusedTailNodes / 2 && levels > 1) --levels;
+        const uint32_t levels = (nodes >> 3) >= kFusedTailNodes / 2 ? 3 : 2;
         const uint32_t top = nodes >> levels;
         Hash *layer1 = tree + offset + nodes;
         Hash *layer2 = layer1 + nodes / 2;
-        Hash *layer3 = layer2 + nodes / 4;
         const uint32_t blocks = (top + kSubtreeBlock - 1) / kSubtreeBlock;
-        switch (levels) {
-            case 3:
-                subtree_levels_kernel<Prefixed, 3><<<blocks, kSubtreeBlock, 0, stream>>>(
-                    tree + offset, top, layer1, layer2, layer3);
-                break;
-            case 2:
-                subtree_levels_kernel<Prefixed, 2><<<blocks, kSubtreeBlock, 0, stream>>>(
-                    tree + offset, top, layer1, layer2, nullptr);
-                break;
-            default:
-                subtree_levels_kernel<Prefixed, 1><<<blocks, kSubtreeBlock, 0, stream>>>(
-                    tree + offset, top, layer1, nullptr, nullptr);
-                break;
+        if (levels == 3) {
+            subtree_levels_kernel<Prefixed, 3><<<blocks, kSubtreeBlock, 0, stream>>>(
+                tree + offset, top, layer1, layer2, layer2 + nodes / 4);
+        } else {
+            subtree_levels_kernel<Prefixed, 2><<<blocks, kSubtreeBlock, 0, stream>>>(
+                tree + offset, top, layer1, layer2, nullptr);
         }
         for (uint32_t l = 0; l < levels; ++l) {
             offset += nodes;
@@ -444,12 +443,12 @@ static int stwo_blake2s_merkle_layers_on_impl(
     if (mode == 1) return fused_tree_layers<Prefixed>(tree, leaves, s);
     if (mode != 0) return static_cast<int>(cudaErrorInvalidValue);
     uint64_t offset = 0;
-    for (uint32_t nodes = leaves; nodes > 1; nodes >>= 1) {
-        child_layer_kernel<Prefixed><<<blocks_for(nodes / 2), kBlockSize, 0, s>>>(
-            tree + offset, nodes / 2, tree + offset + nodes);
-        offset += nodes;
+    for (uint32_t nodes = leaves; nodes > 1; offset += nodes, nodes >>= 1) {
+        const int status = stwo_blake2s_layer_on_impl<Prefixed>(
+            tree + offset, nodes / 2, tree + offset + nodes, stream);
+        if (status != 0) return status;
     }
-    return static_cast<int>(cudaPeekAtLastError());
+    return 0;
 }
 
 extern "C" int stwo_blake2s_merkle_layers_on(
