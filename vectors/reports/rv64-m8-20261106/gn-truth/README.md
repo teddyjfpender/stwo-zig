@@ -52,7 +52,8 @@ Branch `codex/rv64-m8-gn-truth` (from `origin/codex/rv64-m8-gpu` @ b289b021f). L
       makes the statement itself wrong, so truth_oods correctly rejects too.
 - [M] `rv64_gate.sh --stream m8-gn-truth` (default env) **PASS** at c53885fd9. It covers build, unit tests,
   small-block cold + warm proofs byte-identical to the frozen D2 golden, fresh CPU receivers and the negative
-  corpus. Summary: `gate-1.json` (`runs/m8-gn-truth/gate-1`).
+  corpus. Summary: `gate-1.json` (`runs/m8-gn-truth/gate-1`). It PASSES again at bc9820a06 (the parallel
+  OODS fold): `gate-2.json`.
 - [M] after the parallel root Horner (bc9820a06), `parity-10.json` (26235156) and `parity-9.json`
   (24628607): again **14/14 byte-identical** and **40/40 negatives**. The OODS check now takes
   0.18–0.79 ms GPU per truth (separate CUDA-event span), down from up to about 7 ms with a sequential root
