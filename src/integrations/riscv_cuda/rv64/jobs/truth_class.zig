@@ -32,6 +32,8 @@ const I = @import("truth_interaction.zig");
 const T = @import("../truth_codegen.zig");
 const Raw = @import("../truth_interaction_codegen.zig");
 const Fixtures = @import("../truth_domain_fixtures.zig");
+const TO = @import("truth_oods.zig");
+const NE = @import("native_encode.zig");
 
 const D = CPU.rv64_device_pcs;
 const S = CPU.rv64_gkr_truth_device_source;
@@ -101,6 +103,11 @@ pub const Class = struct {
     mask_log: u32,
     pcs: NP.PcsJob,
     pristine: []PcsColumn,
+    /// Device OODS constraint program (gn-truth; truth_oods.zig), built from
+    /// class geometry at warm.
+    oods: TO.Descriptor,
+    /// Device WP.encodePhysical program (native_encode.zig) of the class PCS shape.
+    encode: NE.Program,
     owned: std.ArrayListUnmanaged([]u32) = .empty,
     owned_entries: std.ArrayListUnmanaged([]P.Entry) = .empty,
 
@@ -110,6 +117,8 @@ pub const Class = struct {
         self.main_plan.deinit();
         self.inter_plan.deinit();
         self.composition.deinit();
+        self.oods.deinit();
+        self.encode.deinit();
         self.pcs.deinit(a);
         a.free(self.pristine);
         for (self.owned.items) |w| a.free(w);
@@ -129,7 +138,7 @@ pub const Class = struct {
         return self.truth.keccak.setup.policy;
     }
     /// Extra status words of a truth proof beyond gpu_native.requiredChecks.
-    pub const extra_checks = [_]@import("gpu_native.zig").Check{ .truth_root, .root_match };
+    pub const extra_checks = [_]@import("gpu_native.zig").Check{ .truth_root, .root_match, .truth_oods };
     pub fn localScript(self: *const Class) X.Script {
         return X.local(self.kind);
     }
@@ -489,7 +498,11 @@ pub fn build(a: std.mem.Allocator, in: Init) !*Class {
     errdefer pcs.deinit(a);
     const pristine = try a.dupe(PcsColumn, pcs.prepared.coefficients);
     errdefer a.free(pristine);
-    self.* = .{ .a = a, .key = try classKey(truth, in.config, in.fixed_root), .kind = kind, .truth = truth, .truth_tag = @intFromEnum(std.meta.activeTag(truth)), .witness = try witnessOf(truth), .log = log, .main_width = main_width, .compact_words_per_call = try compactWordsPerCall(truth), .config = in.config, .beta = beta, .fixed_plan = fixed_plan, .fixed_host = fixed_host, .fixed_offsets = fixed_offsets, .fixed_words = fixed_words, .fixed_key = fixed_key, .fixed_root = in.fixed_root, .fixed_logs = fixed_logs, .main_plan = main_plan, .main_logs = main_logs, .inter_plan = inter_plan, .inter_logs = inter_logs, .roles = roles, .claim_count = claim_count, .zero_count = zero_count, .composition = composition, .comp_log = comp_log, .split = split, .total = total, .mask_log = mask_log, .pcs = pcs, .pristine = pristine, .owned = owned, .owned_entries = owned_entries };
+    var oods = try TO.fromGeometry(a, .{ .kind = kind, .truth = truth, .log = log, .roles = roles, .mask_log = mask_log, .split = split, .shape = pcs.prepared.metadata.shape });
+    errdefer oods.deinit();
+    var encode = try NE.Program.build(a, pcs.prepared.metadata.shape);
+    errdefer encode.deinit();
+    self.* = .{ .a = a, .key = try classKey(truth, in.config, in.fixed_root), .kind = kind, .truth = truth, .truth_tag = @intFromEnum(std.meta.activeTag(truth)), .witness = try witnessOf(truth), .log = log, .main_width = main_width, .compact_words_per_call = try compactWordsPerCall(truth), .config = in.config, .beta = beta, .fixed_plan = fixed_plan, .fixed_host = fixed_host, .fixed_offsets = fixed_offsets, .fixed_words = fixed_words, .fixed_key = fixed_key, .fixed_root = in.fixed_root, .fixed_logs = fixed_logs, .main_plan = main_plan, .main_logs = main_logs, .inter_plan = inter_plan, .inter_logs = inter_logs, .roles = roles, .claim_count = claim_count, .zero_count = zero_count, .composition = composition, .comp_log = comp_log, .split = split, .total = total, .mask_log = mask_log, .pcs = pcs, .pristine = pristine, .oods = oods, .encode = encode, .owned = owned, .owned_entries = owned_entries };
     return self;
 }
 

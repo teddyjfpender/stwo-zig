@@ -18,10 +18,15 @@
 //!            every verdict lands in the request slab (gpu_native.publish).
 //!            `end(request)` frees the request's jobs after publication.
 //!
+//! gn-truth: stage 2 runs in `encode = .device` (default): the OODS
+//! constraint check (Check.truth_oods) and the WP.encodePhysical bytes are
+//! produced on device into the truth's request-slab entry (encoded region,
+//! encode_bounds, pcs_status); finish reads nothing the publication needs.
+//!
 //! Remaining host work per truth (listed in the receipt): compact packing
-//! from the capture advice, the seed (worker_protocol.begin over the
-//! request's statement: a few Blake2s), and finish's assembly (PCS decode,
-//! OODS constraint check, encodePhysical) until the shared device encoder.
+//! from the capture advice and the seed (worker_protocol.begin over the
+//! request's statement: a few Blake2s), the per-job host table and the
+//! stage-2 enqueue (launch-bound).
 const std = @import("std");
 const api = @import("api.zig");
 const G = @import("gpu_native.zig");
@@ -46,6 +51,9 @@ pub const Factory = struct {
     truths: []const Request = &.{},
     stage1_jobs: std.ArrayListUnmanaged(*TJ.Stage1) = .empty,
     stage2_jobs: std.ArrayListUnmanaged(*TJ.Stage2) = .empty,
+    /// Stage-2 proof production: `.device` (GPU-native publication) or the
+    /// r-truth host assembly (`.host`, bytes via `bytes()`).
+    encode: TJ.Encode = .device,
 
     pub const Entry = struct {
         class: *K.Class,
@@ -86,14 +94,16 @@ pub const Factory = struct {
         words += class.composition.persistentWords();
         for ([_]*const @import("native_commit.zig").CommitPlan{ &class.fixed_plan, &class.main_plan, &class.inter_plan }) |p| words += p.tw.twiddles.len + p.tw.itwiddles.len;
         for (class.roles) |r| words += r.interaction.twiddleWords();
+        // gn-truth: the device OODS descriptor and encode program.
+        words += class.oods.words.len + class.encode.words.len;
         return words;
     }
 
+    /// The encoded-bytes capacity of a class: the device encoder's worst
+    /// case (native_encode.Program, from the PCS shape), so the request-slab
+    /// region is exactly the encoder's region.
     pub fn encodedBound(class: *const K.Class) usize {
-        // PCS output words (4 bytes each) plus the wire framing of the proof
-        // config and the per-tree length prefixes (16 KiB covers the framing
-        // of every class by >10x [E]).
-        return @as(usize, @intCast(class.pcs.outputWords())) * 4 + (16 << 10);
+        return class.encode.max_encoded_bytes;
     }
 
     /// RecursionFactory.warm for the truth classes.
@@ -167,6 +177,7 @@ pub const Factory = struct {
         for (self.stage2_jobs.items) |j| {
             if (j.bytes.len != 0) self.a.free(j.bytes);
             if (j.out_claims.len != 0) self.a.free(j.out_claims);
+            if (j.device_bytes.len != 0) self.a.free(j.device_bytes);
             j.deinit();
             self.a.destroy(j);
         }
@@ -187,6 +198,8 @@ pub const Factory = struct {
         seal_digest: api.DeviceBuffer,
         truth_root_slot: G.Exchange.Slot,
         verdicts: TJ.Verdicts,
+        /// The truth's encoded region (length word + bytes).
+        encoded: api.DeviceBuffer,
     };
     pub fn views(rc: *const G.RequestContext, ordinal: u32, device: u32) !Views {
         if (device >= rc.segments.len or device >= rc.layout.segments.len) return error.GpuNativeProofDeviceOutOfRange;
@@ -206,7 +219,10 @@ pub const Factory = struct {
                 .root_match = try layout.statusBuffer(segment, id, .root_match),
                 .channel_order = try layout.statusBuffer(segment, id, .channel_order),
                 .pcs_status = try layout.statusBuffer(segment, id, .pcs_status),
+                .truth_oods = try layout.statusBuffer(segment, id, .truth_oods),
+                .encode_bounds = try layout.statusBuffer(segment, id, .encode_bounds),
             },
+            .encoded = try layout.encodedBuffer(segment, id),
         };
     }
 
@@ -235,9 +251,14 @@ pub const Factory = struct {
         const v = try views(rc, ordinal, device);
         var verdicts = v.verdicts;
         verdicts.truth_root = null; // stage 1's word
+        if (self.encode == .host) {
+            // r-truth host path: no device OODS / encoder words are written.
+            verdicts.truth_oods = null;
+            verdicts.encode_bounds = null;
+        }
         const job = try self.a.create(TJ.Stage2);
         errdefer self.a.destroy(job);
-        job.* = .{ .a = self.a, .class = found.class, .sym = self.sym, .ordinal = ordinal, .calls = found.req.calls, .first_id = found.req.first_id, .compact = found.req.compact, .seed = found.req.seed, .digest = v.seal_digest, .stage1_root = v.root, .verdicts = verdicts };
+        job.* = .{ .a = self.a, .class = found.class, .sym = self.sym, .ordinal = ordinal, .calls = found.req.calls, .first_id = found.req.first_id, .compact = found.req.compact, .seed = found.req.seed, .digest = v.seal_digest, .stage1_root = v.root, .verdicts = verdicts, .encode = self.encode, .encoded = if (self.encode == .host) null else v.encoded };
         try job.init();
         errdefer job.deinit();
         try self.stage2_jobs.append(self.a, job);
@@ -278,9 +299,12 @@ test "truth views address this GPU's exchange replica and the request-slab verdi
     const ex = layout.segments[1].exchange_offset;
     try testing.expectEqual(@intFromPtr(mem[1].ptr + ex + (try exchange.truthRoot(2)).offset), @intFromPtr(v.root.ptr));
     try testing.expectEqual(@intFromPtr(mem[1].ptr + ex + exchange.seal().offset), @intFromPtr(v.seal_digest.ptr));
+    // The encoded region is truth 2's directory region: length word + capacity.
+    try testing.expectEqual(@as(usize, 1 + 4096 / 4), v.encoded.words);
+    try testing.expect(@intFromPtr(v.encoded.ptr) >= @intFromPtr(mem[1].ptr + layout.segments[1].encoded_offset));
     try testing.expectEqual(@as(usize, 8), v.seal_digest.words);
     // Every verdict is a distinct status word of truth 2's directory entry.
-    const words = [_]api.DeviceBuffer{ v.verdicts.truth_root.?, v.verdicts.truth_status.?, v.verdicts.root_match.?, v.verdicts.channel_order.?, v.verdicts.pcs_status.? };
+    const words = [_]api.DeviceBuffer{ v.verdicts.truth_root.?, v.verdicts.truth_status.?, v.verdicts.root_match.?, v.verdicts.channel_order.?, v.verdicts.pcs_status.?, v.verdicts.truth_oods.?, v.verdicts.encode_bounds.? };
     for (words, 0..) |w, i| {
         try testing.expectEqual(@as(usize, 1), w.words);
         for (words[0..i]) |x| try testing.expect(x.ptr != w.ptr);
