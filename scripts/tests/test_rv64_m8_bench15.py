@@ -268,8 +268,9 @@ class ToleratedArmTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'blocks').mkdir()
             b, _ = self.bench(tmp, lambda arm, role: 'failed' if arm == 'default' else 'ok')
-            with self.assertRaises(bench.Stop):
+            with self.assertRaises(bench.Stop) as stop:
                 b.block({'block': 26235156})
+        self.assertIn('GpuNativeNativeShapeHookMissing', str(stop.exception))
 
 
 if __name__ == '__main__':

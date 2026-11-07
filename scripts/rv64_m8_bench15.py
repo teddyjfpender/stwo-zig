@@ -359,9 +359,14 @@ def markdown(result):
         q = lambda d: '-' if not d else f"{d['p50']:.2f} / {d['p90']:.2f} / {d['max']:.2f}"
         for a, t in result['totals'].items():
             lines.append(f"| {a} | {q(t.get('warm_proving_s'))} | {q(t.get('cold_proving_s'))} | {q(t.get('warm_request_s'))} |")
+    failures = []
     for b in result['blocks']:
+        if b['status'] == 'failed':
+            failures.append(f"- {b['block']} FAILED: `{b.get('error')}`")
         for a, failure in (b.get('arm_failures') or {}).items():
-            lines.append(f"\n- {b['block']} {a} FAILED ({failure.get('kind')}): `{failure.get('reason')}`")
+            failures.append(f"- {b['block']} {a} FAILED ({failure.get('kind')}): `{failure.get('reason')}`")
+    if failures:
+        lines += ['', '## Failures', ''] + failures
     lines += ['', '## Warm critical path per arm', '',
               '| block | arm | warm request s | capture | setup | native window | recursion after native | tail [D] | kernel GPU-s | GPU busy [D] | device peak GB | per-node peak GB | launches/node | syncs/node |',
               '|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
@@ -710,7 +715,7 @@ class Bench:
                 continue
             entry = self.attempt(block, row, arm, role, round_index, state, save)
             if entry['status'] != 'ok':  # only a tolerated arm gets here: record it, skip its other services on this block
-                text = entry.get('error') or (Path(entry['log']).read_text(errors='replace') + '\n' + producer_tail(entry['run']))
+                text = entry.get('error') or entry.get('reason') or Path(entry['log']).read_text(errors='replace')
                 failures[arm] = {'kind': 'parity' if entry['status'] == 'parity_failed' else 'service', 'run': entry['run'],
                                  'log': entry['log'], 'exit_code': entry.get('exit_code'),
                                  'reason': entry.get('error') or arm_failure_reason(text)}
@@ -736,7 +741,7 @@ class Bench:
                 entry = self.attempt(block, row, arm, 'profile', 0, state, save)
                 if entry['status'] != 'ok':
                     failures[arm] = {'kind': 'profile', 'run': entry['run'], 'log': entry['log'],
-                                     'reason': entry.get('error') or arm_failure_reason(Path(entry['log']).read_text(errors='replace'))}
+                                     'reason': entry.get('error') or entry.get('reason') or arm_failure_reason(Path(entry['log']).read_text(errors='replace'))}
                     if Path(entry['run']).is_dir():
                         self.prune(entry['run'])
                     save()
@@ -769,9 +774,11 @@ class Bench:
                 save()
                 return entry
             if entry['status'] != 'quiet_timeout':
+                entry['reason'] = arm_failure_reason(Path(entry['log']).read_text(errors='replace') + '\n' + producer_tail(entry['run']))
+                save()
                 if arm in self.args.tolerate_arm_failure:
                     return entry
-                raise Stop(f'{block} {arm} {role}: service failed ({entry["log"]})')
+                raise Stop(f'{block} {arm} {role}: service failed: {entry["reason"]} ({entry["log"]})')
         raise Stop(f'{block} {arm}: quiet gate refused {self.args.quiet_retries + 1} attempts (busy pod)')
 
     def run(self):
