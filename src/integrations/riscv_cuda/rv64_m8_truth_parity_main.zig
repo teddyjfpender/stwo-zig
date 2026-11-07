@@ -318,6 +318,7 @@ pub fn main() !void {
     const arena_bytes = try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 24 << 30);
     const worker = try W.Worker.create(a, &libs.ops, .{ .device = device, .arena_words = std.mem.alignBackward(usize, arena_bytes / 4, W.Arena.granule), .pinned_slot_words = try envBytes("STWO_RV64_M8_JOBS_PINNED_BYTES", 1 << 30) / 4 });
     defer worker.destroy();
+    std.debug.print("GPU_M8_TRUTH_PARITY phase=worker_ready device={}\n", .{device});
     const sym = try TJ.Symbols.load(&libs.base, &libs.addon);
     const events = try Events.Api.load(&libs.base);
     const Version = *const fn () callconv(.c) u32;
@@ -333,6 +334,7 @@ pub fn main() !void {
     const pool = try Pool.createWithBinding(a, library, config, item.expected_cpu_segments, true);
     defer pool.deinit();
     try pool.stages().requireFullyResident();
+    std.debug.print("GPU_M8_TRUTH_PARITY phase=pool_ready\n", .{});
     var stages = pool.stages();
     var source = SourceDecorator{ .a = a, .inner = stages.truth_source orelse return error.ParityRequiresTruthSource };
     SourceDecorator.self_ptr = &source;
@@ -353,6 +355,7 @@ pub fn main() !void {
     std.crypto.hash.sha2.Sha256.hash("rv64-m8-truth-parity", &identity, .{});
     for (pool.devices, config.caps) |*d, cap| try d.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
     var timer = try std.time.Timer.start();
+    std.debug.print("GPU_M8_TRUTH_PARITY phase=legacy_start\n", .{});
     try Main.runWithResidentArgs(&recycler, &args, stages, &session);
     const legacy_ns = timer.read();
     for (pool.devices) |*d| try d.native.endBlock(identity);
