@@ -31,6 +31,7 @@ const k_leaf = key(3);
 const k_fold = key(4);
 const k_root = key(5);
 const encoded_bytes = 96;
+const stage_one_written = 300;
 const main_words = 256;
 
 fn noopDestroy(_: *anyopaque) void {}
@@ -106,6 +107,14 @@ const FakeJob = struct {
                 @memcpy(replica[slot.offset..][0..8], &acc);
                 try self.ctx.peer.publish(self.device, slot);
                 try self.verdict(.{ .kind = .request, .ordinal = 0 }, .global_seal, G.Verdict.accepted);
+                // Stage-one bytes into the request pseudo-proof's region.
+                if (w.stage_one) {
+                    const rid = G.ProofId{ .kind = .request, .ordinal = 0 };
+                    const region = try layout.encodedBuffer(seg, rid);
+                    const bytes = std.mem.sliceAsBytes(region.ptr[1..region.words]);
+                    for (bytes[0..stage_one_written], 0..) |*b, i| b.* = @truncate(i ^ 0x5a);
+                    if (!w.stage_one_empty) region.ptr[0] = stage_one_written;
+                }
                 w.seal_ran = true;
             },
             .stage2 => {
@@ -125,6 +134,7 @@ const FakeJob = struct {
                 try self.encode(id);
             },
             .truth => {
+                if (w.truth_end) if (w.capture) |cap| if (!cap.endGate().recorded.isSet()) return error.TruthBeforeCaptureEnd;
                 const id = G.ProofId{ .kind = .truth, .ordinal = self.ordinal };
                 for ([_]G.Check{ .channel_order, .truth_status, .pcs_status }) |c| try self.verdict(id, c, G.Verdict.accepted);
                 try self.encode(id);
@@ -213,6 +223,17 @@ const World = struct {
     installed_info: ?G.Installed = null,
     installed_sealed: ?bool = null,
     capture: ?*C.Stream = null,
+    /// Native classes declare a stage-one share; the seal encodes it.
+    stage_one: bool = false,
+    stage_one_empty: bool = false,
+    /// Truth classes need the capture's end (gated on Stream.endGate).
+    truth_end: bool = false,
+    packs: usize = 0,
+    captured_native: usize = 0,
+    captured_recursion: usize = 0,
+    published: [2]usize = .{ 0, 0 },
+    publish_order: [2]u8 = .{ 0, 0 },
+    publish_at: u8 = 0,
 
     fn reset(self: *World) void {
         self.stage1_done.store(0, .release);
@@ -230,12 +251,42 @@ const World = struct {
     fn nativeFactory(self: *World) G.NativeFactory {
         return .{ .ctx = self, .vtable = &native_vt };
     }
-    const native_vt = G.NativeFactory.VTable{ .warm = nWarm, .class_of = nClass, .stage1 = nStage1, .stage2 = nStage2, .seal = nSeal, .chunk = nChunk };
+    const native_vt = G.NativeFactory.VTable{ .warm = nWarm, .class_of = nClass, .stage1 = nStage1, .stage2 = nStage2, .seal = nSeal, .chunk = nChunk, .pack = nPack, .captured = nCaptured, .publish = nPublish };
     fn of(raw: *anyopaque) *World {
         return @ptrCast(@alignCast(raw));
     }
-    fn build(_: *anyopaque, _: std.mem.Allocator, k: G.ClassKey) anyerror!G.ClassEntry {
-        return .{ .key = k, .plan = @ptrFromInt(8), .destroy = noopDestroy, .max_encoded_bytes = encoded_bytes, .main_resident_words = if (k[0] == 1) main_words else 0, .claims_per_segment = if (k[0] == 1) 2 else 0, .cost_us = if (k[0] == 1) 10 else 3 };
+    fn build(raw: *anyopaque, _: std.mem.Allocator, k: G.ClassKey) anyerror!G.ClassEntry {
+        const w = of(raw);
+        return .{ .key = k, .plan = @ptrFromInt(8), .destroy = noopDestroy, .max_encoded_bytes = encoded_bytes, .main_resident_words = if (k[0] == 1) main_words else 0, .claims_per_segment = if (k[0] == 1) 2 else 0, .cost_us = if (k[0] == 1) 10 else 3, .stage_one_bytes = if (k[0] == 1 and w.stage_one) 100 else 0, .needs_capture_end = k[0] == 2 and w.truth_end };
+    }
+    /// One chunk per segment through the ring writer; the native tag is the rows.
+    fn nPack(raw: *anyopaque, _: *const G.RequestContext, cs: G.CapturedSegment, wr: G.ChunkWriter) anyerror!u64 {
+        const rows: *const u64 = @ptrCast(@alignCast(cs.native));
+        const b = try wr.next();
+        b[0] = cs.segment;
+        try wr.put(1, @intCast(rows.*), true);
+        of(raw).packs += 1;
+        return rows.*;
+    }
+    fn nCaptured(raw: *anyopaque, _: *const G.RequestContext, _: G.CaptureEnd) anyerror!void {
+        of(raw).captured_native += 1;
+    }
+    fn nPublish(raw: *anyopaque, ctx: *const G.RequestContext, p: G.Publication) anyerror!void {
+        const w = of(raw);
+        w.published[0] += 1;
+        w.publish_at += 1;
+        w.publish_order[0] = w.publish_at;
+        var buf: [32]u8 = undefined;
+        for (p.proofs) |v| switch (v.id.kind) {
+            .native_segment => try p.dir.writeFile(.{ .sub_path = try std.fmt.bufPrint(&buf, "cpu-{d}.bin", .{v.id.ordinal}), .data = v.bytes }),
+            .request => try p.dir.writeFile(.{ .sub_path = "stage-one.bin", .data = v.bytes }),
+            else => {},
+        };
+        // The final replica holds every segment's claims slot.
+        for (0..ctx.exchange.segments) |seg| {
+            const slot = try ctx.exchange.claims(@intCast(seg));
+            if (p.exchange[slot.offset] != seg * 1000) return error.ClaimsNotInExchange;
+        }
     }
     fn nWarm(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {
         _ = try cache.warm(k_native, .{ .ctx = raw, .build = build });
@@ -260,7 +311,24 @@ const World = struct {
     fn recursionFactory(self: *World) G.RecursionFactory {
         return .{ .ctx = self, .vtable = &rec_vt };
     }
-    const rec_vt = G.RecursionFactory.VTable{ .warm = rWarm, .class_of = rClass, .truth = rTruth, .node = rNode };
+    const rec_vt = G.RecursionFactory.VTable{ .warm = rWarm, .class_of = rClass, .truth = rTruth, .node = rNode, .captured = rCaptured, .publish = rPublish };
+    fn rCaptured(raw: *anyopaque, _: *const G.RequestContext, _: G.CaptureEnd) anyerror!void {
+        of(raw).captured_recursion += 1;
+    }
+    fn rPublish(raw: *anyopaque, _: *const G.RequestContext, p: G.Publication) anyerror!void {
+        const w = of(raw);
+        w.published[1] += 1;
+        w.publish_at += 1;
+        w.publish_order[1] = w.publish_at;
+        var buf: [32]u8 = undefined;
+        try p.dir.makePath("recursion-om31");
+        for (p.proofs) |v| switch (v.id.kind) {
+            .truth => try p.dir.writeFile(.{ .sub_path = try std.fmt.bufPrint(&buf, "truth-{d}.bin", .{v.id.ordinal}), .data = v.bytes }),
+            .leaf, .fold => try p.dir.writeFile(.{ .sub_path = try std.fmt.bufPrint(&buf, "recursion-om31/node-{d:0>6}.proof", .{v.id.ordinal}), .data = v.bytes }),
+            .root => try p.dir.writeFile(.{ .sub_path = "recursion-om31/root.proof", .data = v.bytes }),
+            else => {},
+        };
+    }
     fn rWarm(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {
         for ([_]G.ClassKey{ k_truth, k_leaf, k_fold, k_root }) |k| _ = try cache.warm(k, .{ .ctx = raw, .build = build });
     }
@@ -292,7 +360,7 @@ const Rig = struct {
         errdefer ws[0].destroy();
         ws[1] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
         errdefer ws[1].destroy();
-        const drv = try R.Driver.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15 });
+        const drv = try R.Driver.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15, .stage_one_base_bytes = 512 });
         return .{ .workers = ws, .world = world, .driver = drv };
     }
     fn deinit(self: *Rig) void {
@@ -705,4 +773,115 @@ test "D1: a capture stream is refused while the other in-flight request holds it
     // although request 93 began before request 91 finished.
     try testing.expectEqual(@as(u64, 9), o1.receipt.peer_publishes);
     try testing.expectEqual(@as(u64, 9), o2.receipt.peer_publishes);
+}
+
+fn captureEnd(segments: u32) G.CaptureEnd {
+    const dummy = struct {
+        var x: u8 = 0;
+    };
+    return .{ .segments = segments, .owner = &dummy.x, .image = &dummy.x, .program = &dummy.x, .config = &dummy.x };
+}
+
+/// A capture thread driving the Feed the way the GE adapter does: packed
+/// segments in order (Stage1 released per segment), then the capture end
+/// (factories' captured hooks), then done.
+fn feedCapture(s: *C.Stream, rows: []const u64) void {
+    var f = s.feed();
+    defer f.finish(null);
+    for (rows, 0..) |*n, seg| {
+        std.Thread.sleep(std.time.ns_per_ms);
+        f.segment(.{ .segment = @intCast(seg), .native = n, .events = n }) catch return;
+    }
+    f.end(captureEnd(@intCast(rows.len))) catch return;
+}
+
+test "D1: streamed capture (Feed) + end-gated truth + stage-one region + publish hooks write the artifacts" {
+    var world = World{ .a = testing.allocator, .stage_one = true, .truth_end = true };
+    var rig = try Rig.init(&world);
+    defer rig.deinit();
+    const ring = try C.Ring.init(testing.allocator, &F.ops.wait, 4, 16);
+    defer ring.deinit();
+    const cap = try C.Stream.create(testing.allocator, world.nativeFactory(), ring, 8);
+    defer cap.destroy();
+    cap.recursion = world.recursionFactory();
+    world.capture = cap;
+    var tmp = testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var r = request(601);
+    r.capture = cap;
+    r.out = tmp.dir;
+    r.block = 26235156;
+    const before = F.counters;
+    try cap.prepare(r.segment_rows);
+    var out = blk: {
+        const t = try std.Thread.spawn(.{}, feedCapture, .{ cap, r.segment_rows });
+        defer t.join();
+        break :blk try rig.driver.serve(&r);
+    };
+    defer out.deinit();
+    try testing.expectEqual(@as(usize, 1), F.counters.host_waits - before.host_waits);
+    try testing.expectEqual(@as(usize, 2), F.counters.d2h - before.d2h);
+    try testing.expectEqual(@as(usize, 3), world.packs);
+    try testing.expectEqual(@as(usize, 3), world.chunks);
+    try testing.expectEqual(@as(usize, 1), world.captured_native);
+    try testing.expectEqual(@as(usize, 1), world.captured_recursion);
+    try testing.expectEqual(@as(u32, 1), out.receipt.capture_end_gated);
+    try testing.expectEqual(@as(u64, stage_one_written), out.receipt.stage_one_bytes);
+    // Native publishes before recursion; each exactly once.
+    try testing.expectEqual([2]usize{ 1, 1 }, world.published);
+    try testing.expect(world.publish_order[0] < world.publish_order[1]);
+    const stage = try tmp.dir.readFileAlloc(testing.allocator, "stage-one.bin", 1 << 16);
+    defer testing.allocator.free(stage);
+    try testing.expectEqual(@as(usize, stage_one_written), stage.len);
+    for (stage, 0..) |b, i| try testing.expectEqual(@as(u8, @truncate(i ^ 0x5a)), b);
+    for (out.proofs) |p| if (p.id.kind == .native_segment) {
+        var buf: [32]u8 = undefined;
+        const bytes = try tmp.dir.readFileAlloc(testing.allocator, try std.fmt.bufPrint(&buf, "cpu-{d}.bin", .{p.id.ordinal}), 1 << 16);
+        defer testing.allocator.free(bytes);
+        try testing.expectEqualSlices(u8, p.bytes, bytes);
+    };
+    const root = try tmp.dir.readFileAlloc(testing.allocator, "recursion-om31/root.proof", 1 << 16);
+    defer testing.allocator.free(root);
+    try testing.expectEqual(@as(usize, 32), root.len);
+    try testing.expectEqual(@as(usize, 4), ring.free_count);
+}
+
+test "D1: a stage-one region the seal never filled refuses publication; a failed capture fails the gated truth" {
+    var world = World{ .a = testing.allocator, .stage_one = true, .truth_end = true, .stage_one_empty = true };
+    var rig = try Rig.init(&world);
+    defer rig.deinit();
+    try testing.expectError(error.GpuNativeEncodedEmpty, rig.driver.serve(&request(611)));
+    try testing.expectEqual([2]usize{ 0, 0 }, world.published);
+    // The capture dies after segment 0: Stage1(1..2) and the truth fail closed.
+    world.reset();
+    world.stage_one_empty = false;
+    const cap = try C.Stream.create(testing.allocator, world.nativeFactory(), null, 8);
+    defer cap.destroy();
+    world.capture = cap;
+    var r = request(612);
+    r.capture = cap;
+    const Dies = struct {
+        fn run(s: *C.Stream, rows: []const u64) void {
+            var f = s.feed();
+            f.segment(.{ .segment = 0, .native = &rows[0], .events = &rows[0] }) catch {};
+            f.finish(error.CaptureCrashed);
+        }
+    };
+    // The no-ring stream cannot hand out buffers: give the packer one.
+    const ring = try C.Ring.init(testing.allocator, &F.ops.wait, 2, 16);
+    defer ring.deinit();
+    cap.ring = ring;
+    try cap.prepare(r.segment_rows);
+    const t = try std.Thread.spawn(.{}, Dies.run, .{ cap, r.segment_rows });
+    try testing.expectError(error.BatchDependencyFailed, rig.driver.serve(&r));
+    t.join();
+    try testing.expect(cap.endGate().failed.load(.acquire));
+    try testing.expectEqual([2]usize{ 0, 0 }, world.published);
+    // The next request through the same stream proves.
+    world.reset();
+    try cap.prepare(r.segment_rows);
+    const t2 = try std.Thread.spawn(.{}, feedCapture, .{ cap, r.segment_rows });
+    var ok = try rig.driver.serve(&r);
+    t2.join();
+    ok.deinit();
 }

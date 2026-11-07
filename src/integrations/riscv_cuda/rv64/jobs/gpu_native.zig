@@ -43,6 +43,19 @@ pub const contract_version: u32 = 2;
 //   capture_words; RecursionFactory.class_of takes the node's authority
 //   (children's class keys), never a topology ordinal; publish refuses an
 //   empty proof.
+// API additions (d-wire, M8-INTERFACES "m8-gpu-d-wire"; no slab layout
+//   change, version stays 2, every hook optional and defaulted):
+//   ClassEntry.stage_one_bytes (the request pseudo-proof's encoded region
+//   carries the stage-one bytes the native seal job encodes);
+//   ClassEntry.needs_capture_end (truth classes whose inputs are final only
+//   when capture ends: the driver gates the job on the capture's end);
+//   CapturedSegment / CaptureEnd / ChunkWriter + NativeFactory.pack /
+//   .captured and RecursionFactory.captured (streaming capture hand-off);
+//   WarmBlock / BlockShape + NativeFactory.shape / RecursionFactory.shape
+//   (install-time class mix per block, from one warm capture);
+//   Publication + NativeFactory.publish / RecursionFactory.publish (each
+//   stream writes its own legacy-format artifacts from the published bytes
+//   after the single wait).
 pub const slab_magic: u32 = 0x4e475652; // "RVGN" little-endian
 
 // ---------------------------------------------------------------------------
@@ -515,7 +528,20 @@ pub const ClassEntry = struct {
     /// refuses a request whose ring cannot hold one segment of the class
     /// (a segment larger than the ring would deadlock its own capture).
     capture_words: u64 = 0,
+    /// Native segment classes: upper bound of this segment's share of the
+    /// stage-one bytes (`stage-one.bin`) that the native seal job encodes
+    /// into the request pseudo-proof's encoded region. The driver sizes that
+    /// region as `stage_one_base_bytes` + the sum over the request's segments
+    /// (D2 golden stage-one.bin: 487,244 B for 4 segments, 823,416 B for 7 [M]).
+    stage_one_bytes: usize = 0,
+    /// Truth classes whose inputs (capture advice) are final only once the
+    /// capture ends: the driver gates the job on the capture's `done`.
+    needs_capture_end: bool = false,
 };
+
+/// Fixed part of the stage-one region capacity, added to the per-segment
+/// `ClassEntry.stage_one_bytes` sum [default, a bound, not a measurement].
+pub const stage_one_base_bytes: usize = 64 << 10;
 
 pub const max_devices = 4;
 
@@ -695,6 +721,90 @@ pub const CaptureSink = struct {
     done: *const fn (*anyopaque, segments: u32) anyerror!void,
 };
 
+/// One captured segment as the capture's per-segment readiness hook sees it
+/// (GE `ethereum/capture.zig Ready.native_segment`, on the ordered owner's
+/// thread, strictly in index order). Opaque on purpose: this contract never
+/// imports the CPU integration. Types (stwo_riscv_cpu_integration):
+///   native  *const word16_execution/prepared.zig Prepared
+///   events  *const []const load_store_v2.native.Event (ledger shard events)
+///   shard   *const services/collector.zig Shard (null if the capture has none)
+/// All stay owned by the capture and immutable until the request detaches.
+pub const CapturedSegment = struct {
+    segment: u32,
+    native: *const anyopaque,
+    events: *const anyopaque,
+    shard: ?*const anyopaque = null,
+    /// Capture clock (ns since the ordered owner started); report only.
+    at_ns: u64 = 0,
+};
+
+/// The finished capture (after the last segment, before `done`). Types:
+///   owner    *const ethereum/capture.zig Owner (advice, totals, terminal)
+///   image    *const word16_execution/expected_image.zig Owner
+///   program  *const word16_execution/program.zig Program
+///   config   *const rv64_ethereum_request.zig Config
+/// Valid until the request detaches its capture stream (after publication).
+pub const CaptureEnd = struct {
+    segments: u32,
+    owner: *const anyopaque,
+    image: *const anyopaque,
+    program: *const anyopaque,
+    config: *const anyopaque,
+};
+
+/// What `NativeFactory.pack` writes a captured segment through: pinned ring
+/// buffers of the capture stream. `buffer` hands out the next free buffer
+/// (blocks only on ring backpressure); `emit` publishes the first `words` of
+/// the buffer last handed out as the segment's next TraceChunk of `rows`
+/// rows (forwarded to `NativeFactory.chunk` on the same thread).
+pub const ChunkWriter = struct {
+    ctx: *anyopaque,
+    buffer: *const fn (*anyopaque) anyerror![]u32,
+    emit: *const fn (*anyopaque, words: usize, rows: u32, last: bool) anyerror!void,
+    pub fn next(self: ChunkWriter) ![]u32 {
+        return self.buffer(self.ctx);
+    }
+    pub fn put(self: ChunkWriter, words: usize, rows: u32, last: bool) !void {
+        return self.emit(self.ctx, words, rows, last);
+    }
+};
+
+/// A block's install-time warm capture, handed to the factories' `shape`
+/// hooks so they derive (and warm) the block's class mix from real data.
+pub const WarmBlock = struct {
+    block: u64,
+    capture: CaptureEnd,
+};
+
+/// The per-block geometry a request is planned from (fixed for the
+/// service's life; a request whose capture differs fails closed).
+pub const BlockShape = struct {
+    block: u64,
+    /// Rows per native segment (NativeFactory.shape).
+    segment_rows: []const u64,
+    /// Truth/service proofs (RecursionFactory.shape).
+    truths: u32 = 0,
+    /// Fold arity of the recursion tree (ready_dag policy; 2..4).
+    fold_arity: u32 = 2,
+};
+
+/// Recursion's answer for one block (`RecursionFactory.shape`).
+pub const RecursionShape = struct { truths: u32, fold_arity: u32 };
+
+/// After the single wait: what each factory's `publish` hook writes from.
+/// `proofs` are the request's published views INCLUDING the request
+/// pseudo-proof (`.request`, ordinal 0) whose bytes are the stage-one bytes;
+/// `exchange` is the final GPU's exchange replica (every root/claims slot,
+/// laid out by `RequestContext.exchange`); `dir` is the request's output
+/// directory (new and empty; the native stream writes its bundle files, the
+/// recursion stream `recursion-om31/`).
+pub const Publication = struct {
+    block: u64,
+    proofs: []const Published,
+    exchange: []const u32,
+    dir: std.fs.Dir,
+};
+
 // ---------------------------------------------------------------------------
 // What the driver asks of the native and recursion streams
 // ---------------------------------------------------------------------------
@@ -753,6 +863,18 @@ pub const NativeFactory = struct {
         seal: *const fn (*anyopaque, *const RequestContext, device: u32) anyerror!api.Job,
         /// Hand-off of captured trace chunks (driver calls it from the sink).
         chunk: *const fn (*anyopaque, *const RequestContext, TraceChunk, device: u32) anyerror!void,
+        /// Install, before `warm`: the segment rows of `block` from its warm
+        /// capture; the factory registers the block's classes for `warm`.
+        shape: ?*const fn (*anyopaque, std.mem.Allocator, WarmBlock) anyerror![]u64 = null,
+        /// Capture thread: pack one captured segment into trace chunks
+        /// through `writer` (pinned ring); returns the segment's rows (must
+        /// equal the planned rows; the driver then seals the segment).
+        pack: ?*const fn (*anyopaque, *const RequestContext, CapturedSegment, ChunkWriter) anyerror!u64 = null,
+        /// Capture thread, after the last segment and before `done`.
+        captured: ?*const fn (*anyopaque, *const RequestContext, CaptureEnd) anyerror!void = null,
+        /// Host, after the request's single wait: write the native artifacts
+        /// (cpu-N.bin, stage-one.bin, cells.bin, bundle.json, ...).
+        publish: ?*const fn (*anyopaque, *const RequestContext, Publication) anyerror!void = null,
     };
 };
 
@@ -775,6 +897,16 @@ pub const RecursionFactory = struct {
         /// Leaf/fold/root node: reads its children's encoded regions (device,
         /// own segment or peer replica) and writes its own.
         node: *const fn (*anyopaque, *const RequestContext, id: ProofId, children: []const ProofId, device: u32) anyerror!api.Job,
+        /// Install, after NativeFactory.shape: the block's truth count and
+        /// fold arity; the factory registers the block's recursion classes
+        /// (authorities over `native_keys`, the segments' class keys).
+        shape: ?*const fn (*anyopaque, WarmBlock, native_keys: []const ClassKey) anyerror!RecursionShape = null,
+        /// Capture thread, after the last segment and before `done` (truth
+        /// inputs are final here; `needs_capture_end` truths are gated on it).
+        captured: ?*const fn (*anyopaque, *const RequestContext, CaptureEnd) anyerror!void = null,
+        /// Host, after the request's single wait and native's publish: write
+        /// truth-N.bin and recursion-om31/ (leaf/fold/root proofs, tree.json).
+        publish: ?*const fn (*anyopaque, *const RequestContext, Publication) anyerror!void = null,
     };
 };
 
@@ -813,9 +945,10 @@ pub fn publish(a: std.mem.Allocator, layout: *const RequestLayout, request: u64,
             }
             const len = m[e.encoded_offset];
             if (len > @as(usize, e.encoded_capacity_words) * 4) return error.GpuNativeEncodedOverrun;
-            // Only the request pseudo-proof carries no bytes: an encoder that
-            // accepted its bounds but wrote no length published nothing.
-            if (len == 0 and e.kind != @intFromEnum(ProofKind.request)) {
+            // Only a request pseudo-proof without a stage-one region carries
+            // no bytes: an encoder that accepted its bounds but wrote no
+            // length published nothing.
+            if (len == 0 and (e.kind != @intFromEnum(ProofKind.request) or e.encoded_capacity_words != 0)) {
                 if (first) |f| f.* = .{ .id = s.ids[i], .check = .encode_bounds, .word = 0 };
                 return error.GpuNativeEncodedEmpty;
             }

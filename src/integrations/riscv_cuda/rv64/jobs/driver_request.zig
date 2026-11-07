@@ -69,6 +69,9 @@ pub const Config = struct {
     /// main_resident capacity per GPU (0 = ceil(max_segments / devices) x
     /// the largest native class: what placement can put on one GPU).
     main_resident_words: u64 = 0,
+    /// Fixed part of the request pseudo-proof's stage-one region (bytes),
+    /// added when any native class declares `stage_one_bytes`.
+    stage_one_base_bytes: usize = G.stage_one_base_bytes,
 };
 
 /// One request as the service hands it over (host shape; class keys come
@@ -85,6 +88,11 @@ pub const Request = struct {
     recursion: []const D.RecursionNode = &.{},
     root: u32 = 0,
     capture: ?*C.Stream = null,
+    /// Service block number (handed to the publish hooks).
+    block: u64 = 0,
+    /// Output directory: when set, after the single wait the factories'
+    /// `publish` hooks write their artifacts there (native, then recursion).
+    out: ?std.fs.Dir = null,
 };
 
 pub const Published = struct { id: G.ProofId, bytes: []u8 };
@@ -110,6 +118,12 @@ pub const Receipt = struct {
     wait_ns: u64 = 0,
     finish_ns: u64 = 0,
     publish_ns: u64 = 0,
+    /// Host time of the factories' publish hooks (artifact files) [M].
+    publish_files_ns: u64 = 0,
+    /// Stage-one bytes the seal job encoded (request pseudo-proof region).
+    stage_one_bytes: u64 = 0,
+    /// Truth jobs gated on the capture's end (needs_capture_end).
+    capture_end_gated: u32 = 0,
     peer_publishes: u64 = 0,
     peer_copies: u64 = 0,
     slab_words: [G.max_devices]u64 = @splat(0),
@@ -471,6 +485,7 @@ pub const InFlight = struct {
     where: []Where = &.{},
     batches: []W.Batch = &.{},
     hooks: []Hook = &.{},
+    truth_classes: []*const G.ClassEntry = &.{},
     receipt: Receipt = .{},
     ran: bool = false,
     /// `release` detaches the capture (set once begin owns it).
@@ -565,6 +580,11 @@ pub const InFlight = struct {
         // slab layout from class constants
         const placed = try dag.proofIds(a);
         const specs = try a.alloc(G.ProofSpec, placed.len);
+        // The request pseudo-proof carries the stage-one bytes (native seal
+        // job): fixed base + each segment class's share, when any is declared.
+        var stage_one: usize = 0;
+        for (native_cls) |e| stage_one += e.stage_one_bytes;
+        if (stage_one != 0) stage_one += drv.config.stage_one_base_bytes;
         for (placed, specs) |p, *spec| {
             const entry: ?*const G.ClassEntry = switch (p.id.kind) {
                 .native_segment => native_cls[p.id.ordinal],
@@ -572,7 +592,7 @@ pub const InFlight = struct {
                 .leaf, .fold, .root => node_cls[p.id.ordinal],
                 .request => null,
             };
-            spec.* = .{ .id = p.id, .device = p.device, .max_encoded_bytes = if (entry) |e| e.max_encoded_bytes else 0, .extra_checks = if (entry) |e| e.extra_checks else &.{} };
+            spec.* = .{ .id = p.id, .device = p.device, .max_encoded_bytes = if (entry) |e| e.max_encoded_bytes else stage_one, .extra_checks = if (entry) |e| e.extra_checks else &.{} };
         }
         // Install capacities fix every exchange offset; only GPUs that host a
         // segment own a partial slot (a GPU without one could never publish it).
@@ -605,6 +625,7 @@ pub const InFlight = struct {
         }
         try drv.peer.begin(self.generation, self.exchange, replicas);
         self.ctx = .{ .request = self.req.id, .layout = layout, .exchange = self.exchange, .peer = drv.peer.exchangeOf(), .classes = &drv.classes, .segments = self.segment_buffers, .main_resident = self.main_views, .segment_device = self.segment_device, .generation = self.generation };
+        self.truth_classes = truth_cls;
         self.receipt.root_device = if (rec.len != 0) dag.nodes[dag.recursion[req.root]].device else dag.final_device;
         self.receipt.final_device = dag.final_device;
         self.receipt.peer_direct = drv.peer_direct;
@@ -661,6 +682,16 @@ pub const InFlight = struct {
                 bj.gates = gates;
                 bj.after = cap.releaseFn(nd.ordinal);
                 bj.on_fail = cap.failFn();
+            };
+            // A truth whose inputs are final only at the capture's end is
+            // staged after it (Stage1s are ordered first on every GPU, so this
+            // gate never holds a segment's release back).
+            if (nd.kind == .truth and self.truth_classes[nd.ordinal].needs_capture_end) if (self.req.capture) |cap| {
+                const gates = try a.alloc(*W.BatchDep, 1);
+                gates[0] = cap.endGate();
+                bj.gates = gates;
+                bj.on_fail = cap.failFn();
+                self.receipt.capture_end_gated += 1;
             };
             self.batches[w.device].jobs[w.pos] = bj;
             made += 1;
@@ -871,6 +902,8 @@ pub const InFlight = struct {
         var n: usize = 0;
         for (views) |v| if (v.id.kind != .request) {
             n += 1;
+        } else {
+            self.receipt.stage_one_bytes = v.bytes.len;
         };
         const out = try drv.a.alloc(Published, n);
         var i: usize = 0;
@@ -883,6 +916,17 @@ pub const InFlight = struct {
             i += 1;
         };
         self.receipt.publish_ns = timer.read();
+        // Artifact files: each stream writes its own legacy formats from the
+        // views (the mirrors stay valid until this request's parity is reused,
+        // which is after `finish` returns).
+        if (self.req.out) |dir| {
+            timer.reset();
+            const sl = &self.layout.?.segments[final];
+            const pub_view = G.Publication{ .block = self.req.block, .proofs = views, .exchange = drv.lanes[final].mirror[self.parity][sl.exchange_offset..][0..sl.exchange_words], .dir = dir };
+            if (drv.native.vtable.publish) |hook| try hook(drv.native.ctx, &self.ctx, pub_view);
+            if (drv.recursion.vtable.publish) |hook| try hook(drv.recursion.ctx, &self.ctx, pub_view);
+            self.receipt.publish_files_ns = timer.read();
+        }
         return .{ .a = drv.a, .proofs = out, .receipt = self.receipt };
     }
 };

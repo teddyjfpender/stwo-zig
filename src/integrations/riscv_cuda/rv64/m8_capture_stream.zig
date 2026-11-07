@@ -194,6 +194,13 @@ pub const Stream = struct {
     a: std.mem.Allocator,
     native: G.NativeFactory,
     ring: ?*Ring,
+    /// Recursion factory whose `captured` hook sees the finished capture
+    /// (truth inputs); set by the service (null: native only).
+    recursion: ?G.RecursionFactory = null,
+    /// Host gate of jobs whose inputs are final only when capture ends
+    /// (`ClassEntry.needs_capture_end` truths): signalled by `done`, failed
+    /// by `fail`.
+    end_gate: W.BatchDep = .{},
     /// Ring ownership identity (unique per process, never 0).
     token: u32 = 0,
     /// Per segment (capacity fixed at install).
@@ -261,6 +268,7 @@ pub const Stream = struct {
         if (segment_rows.len == 0 or segment_rows.len > self.gates.len) return error.GpuNativeCaptureCapacity;
         self.expected = @intCast(segment_rows.len);
         for (self.gates[0..segment_rows.len]) |*g| g.* = .{};
+        self.end_gate = .{};
         @memset(self.sealed_rows, 0);
         @memset(self.cursor, 0);
         @memcpy(self.planned_rows[0..segment_rows.len], segment_rows);
@@ -361,7 +369,10 @@ pub const Stream = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         self.failure.store(true, .release);
-        if (self.state != .idle) for (self.gates[0..self.expected]) |*g| if (!g.recorded.isSet()) g.signal(null, true);
+        if (self.state != .idle) {
+            for (self.gates[0..self.expected]) |*g| if (!g.recorded.isSet()) g.signal(null, true);
+            if (!self.end_gate.recorded.isSet()) self.end_gate.signal(null, true);
+        }
         self.attached.set();
         // Cancel this stream's blocked acquire only; the ring stays open for
         // the next request (closing it here failed every later capture).
@@ -424,6 +435,113 @@ pub const Stream = struct {
         for (self.gates[0..segments]) |*g| if (!g.recorded.isSet()) {
             self.fail();
             return error.GpuNativeCaptureSegmentNotSealed;
+        };
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (!self.end_gate.recorded.isSet()) self.end_gate.signal(null, false);
+    }
+    /// The gate of `needs_capture_end` jobs (released by a clean `done`).
+    pub fn endGate(self: *Stream) *W.BatchDep {
+        return &self.end_gate;
+    }
+
+    /// Capture-thread side of one request: the bridge from the capture's
+    /// per-segment readiness hook to the sink. `segment` packs a captured
+    /// segment through the native factory into ring chunks and seals it;
+    /// `end` hands the finished capture to both factories; `finish` reports
+    /// `done` (exactly once per request, also after a failure).
+    pub fn feed(self: *Stream) Feed {
+        return .{ .stream = self };
+    }
+};
+
+/// One request's capture-thread state (lives on the capture thread's stack
+/// or in the capture adapter; never shared between threads).
+pub const Feed = struct {
+    stream: *Stream,
+    /// Segment being packed, its next chunk sequence, and the buffer last
+    /// handed out by `writer().next()` (null: none outstanding).
+    current: u32 = 0,
+    sequence: u32 = 0,
+    buffer: ?[]u32 = null,
+    sealed: u32 = 0,
+    finished: bool = false,
+    /// First failure (the capture keeps running to its end; every
+    /// unreleased gate already failed closed).
+    failure: ?anyerror = null,
+    pack_ns: u64 = 0,
+
+    fn of(raw: *anyopaque) *Feed {
+        return @ptrCast(@alignCast(raw));
+    }
+    pub fn writer(self: *Feed) G.ChunkWriter {
+        return .{ .ctx = self, .buffer = bufferFn, .emit = emitFn };
+    }
+    fn bufferFn(raw: *anyopaque) anyerror![]u32 {
+        const self = of(raw);
+        if (self.buffer != null) return error.GpuNativeCaptureChunkOutstanding;
+        const b = try self.stream.acquire(self.current);
+        self.buffer = b;
+        return b;
+    }
+    fn emitFn(raw: *anyopaque, words: usize, rows: u32, last: bool) anyerror!void {
+        const self = of(raw);
+        const b = self.buffer orelse return error.GpuNativeCaptureNoChunkBuffer;
+        if (words > b.len) return error.GpuNativeCaptureChunkOverrun;
+        self.buffer = null;
+        const s = self.stream;
+        const sink = s.sink();
+        try sink.chunk(sink.ctx, .{ .segment = self.current, .sequence = self.sequence, .first_row = s.cursor[self.current], .rows = rows, .last = last, .words = b[0..words] });
+        self.sequence += 1;
+    }
+    fn note(self: *Feed, err: anyerror) void {
+        if (self.failure == null) self.failure = err;
+        self.stream.fail();
+    }
+    fn failWith(self: *Feed, err: anyerror) anyerror {
+        self.note(err);
+        return err;
+    }
+    /// The next captured segment (strictly in index order): native packs it
+    /// into chunks, then the segment is sealed (Stage1 may run).
+    pub fn segment(self: *Feed, cs: G.CapturedSegment) !void {
+        if (self.failure) |err| return err;
+        if (cs.segment != self.sealed) return self.failWith(error.GpuNativeCaptureOutOfOrder);
+        const s = self.stream;
+        const pack = s.native.vtable.pack orelse return self.failWith(error.GpuNativeCaptureNoPacker);
+        s.awaitAttach() catch |err| return self.failWith(err);
+        const ctx = s.ctx orelse return self.failWith(error.GpuNativeCaptureNotPrepared);
+        self.current = cs.segment;
+        self.sequence = 0;
+        self.buffer = null;
+        var t = std.time.Timer.start() catch unreachable;
+        const rows = pack(s.native.ctx, ctx, cs, self.writer()) catch |err| return self.failWith(err);
+        self.pack_ns += t.read();
+        // A buffer handed out but never emitted returns with the request
+        // (detach); it never reaches a Stage1.
+        if (self.buffer != null) return self.failWith(error.GpuNativeCaptureChunkNotEmitted);
+        const sink = s.sink();
+        sink.sealed_segment(sink.ctx, cs.segment, rows) catch |err| return self.failWith(err);
+        self.sealed += 1;
+    }
+    /// The finished capture (after the last segment): both factories see it.
+    pub fn end(self: *Feed, ce: G.CaptureEnd) !void {
+        if (self.failure) |err| return err;
+        const s = self.stream;
+        if (ce.segments != self.sealed) return self.failWith(error.GpuNativeCaptureSegmentCountChanged);
+        const ctx = s.ctx orelse return self.failWith(error.GpuNativeCaptureNotPrepared);
+        if (s.native.vtable.captured) |hook| hook(s.native.ctx, ctx, ce) catch |err| return self.failWith(err);
+        if (s.recursion) |r| if (r.vtable.captured) |hook| hook(r.ctx, ctx, ce) catch |err| return self.failWith(err);
+    }
+    /// The capture thread is done with every ring buffer: report `done`
+    /// exactly once (also on every error path; idempotent).
+    pub fn finish(self: *Feed, capture_err: ?anyerror) void {
+        if (self.finished) return;
+        self.finished = true;
+        if (capture_err) |err| self.note(err);
+        const sink = self.stream.sink();
+        sink.done(sink.ctx, self.sealed) catch |err| {
+            if (self.failure == null) self.failure = err;
         };
     }
 };
@@ -594,4 +712,145 @@ test "capture stream: two in-flight streams on one ring never free each other's 
     b.fail();
     try testing.expectError(error.GpuNativeCaptureFailed, b.acquire(1));
     _ = try a.acquire(1);
+}
+
+/// A packer that splits each segment into two chunks of `rows/2` rows whose
+/// words carry (segment, chunk) tags; records what the captured hooks saw.
+const Packer = struct {
+    rows: u64 = 8,
+    leave_outstanding: bool = false,
+    chunks: u32 = 0,
+    words: std.ArrayListUnmanaged(u32) = .empty,
+    ends: u32 = 0,
+    rec_ends: u32 = 0,
+    fn packFn(raw: *anyopaque, _: *const G.RequestContext, cs: G.CapturedSegment, w: G.ChunkWriter) anyerror!u64 {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        const tag: *const u32 = @ptrCast(@alignCast(cs.native));
+        const half: u32 = @intCast(self.rows / 2);
+        for (0..2) |k| {
+            const b = try w.next();
+            b[0] = tag.* * 16 + @as(u32, @intCast(k));
+            try w.put(1, half, k == 1);
+        }
+        if (self.leave_outstanding) _ = try w.next();
+        return self.rows;
+    }
+    fn chunkFn(raw: *anyopaque, _: *const G.RequestContext, c: G.TraceChunk, _: u32) anyerror!void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        self.chunks += 1;
+        try self.words.append(testing.allocator, c.words[0]);
+    }
+    fn capturedFn(raw: *anyopaque, _: *const G.RequestContext, ce: G.CaptureEnd) anyerror!void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        self.ends += ce.segments;
+    }
+    fn recCapturedFn(raw: *anyopaque, _: *const G.RequestContext, _: G.CaptureEnd) anyerror!void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        self.rec_ends += 1;
+    }
+    const nvt = G.NativeFactory.VTable{ .warm = undefined, .class_of = undefined, .stage1 = undefined, .stage2 = undefined, .seal = undefined, .chunk = chunkFn, .pack = packFn, .captured = capturedFn };
+    const rvt = G.RecursionFactory.VTable{ .warm = undefined, .class_of = undefined, .truth = undefined, .node = undefined, .captured = recCapturedFn };
+};
+
+fn captureEnd(segments: u32) G.CaptureEnd {
+    const dummy = struct {
+        var x: u8 = 0;
+    };
+    return .{ .segments = segments, .owner = &dummy.x, .image = &dummy.x, .program = &dummy.x, .config = &dummy.x };
+}
+
+test "capture feed: packed segments stream as chunks, seal in order, end hooks run, end gate opens" {
+    var p = Packer{};
+    defer p.words.deinit(testing.allocator);
+    const ring = try Ring.init(testing.allocator, &F.ops.wait, 4, 16);
+    defer ring.deinit();
+    const s = try Stream.create(testing.allocator, .{ .ctx = &p, .vtable = &Packer.nvt }, ring, 4);
+    defer s.destroy();
+    s.recursion = .{ .ctx = &p, .vtable = &Packer.rvt };
+    const rows = [_]u64{ 8, 8, 8 };
+    try s.prepare(&rows);
+    var layout: G.RequestLayout = undefined;
+    const ctx = testCtx(&layout);
+    try s.bind(&rows, &ctx);
+    var f = s.feed();
+    const tags = [_]u32{ 1, 2, 3 };
+    for (0..3) |i| {
+        try f.segment(.{ .segment = @intCast(i), .native = &tags[i], .events = &tags[i] });
+        try testing.expect(s.gate(@intCast(i)).recorded.isSet() and !s.gate(@intCast(i)).failed.load(.acquire));
+        // Stage1(i) ran: its buffers return (else the ring of 4 runs dry).
+        const r = s.releaseFn(@intCast(i)).?;
+        r.call(r.user);
+    }
+    try testing.expect(!s.endGate().recorded.isSet());
+    try f.end(captureEnd(3));
+    f.finish(null);
+    f.finish(null); // idempotent
+    try testing.expect(f.failure == null);
+    try testing.expect(s.endGate().recorded.isSet() and !s.endGate().failed.load(.acquire));
+    try testing.expectEqual(@as(u32, 6), p.chunks);
+    try testing.expectEqualSlices(u32, &.{ 16, 17, 32, 33, 48, 49 }, p.words.items);
+    try testing.expectEqual(@as(u32, 3), p.ends);
+    try testing.expectEqual(@as(u32, 1), p.rec_ends);
+    s.detach();
+    try testing.expectEqual(@as(usize, 4), ring.free_count);
+}
+
+test "capture feed: out-of-order, wrong rows, an unemitted buffer and a capture error fail closed" {
+    var p = Packer{};
+    defer p.words.deinit(testing.allocator);
+    const ring = try Ring.init(testing.allocator, &F.ops.wait, 8, 16);
+    defer ring.deinit();
+    const s = try Stream.create(testing.allocator, .{ .ctx = &p, .vtable = &Packer.nvt }, ring, 4);
+    defer s.destroy();
+    var layout: G.RequestLayout = undefined;
+    const ctx = testCtx(&layout);
+    const rows = [_]u64{ 8, 8 };
+    const tag: u32 = 7;
+    // (a) segment 1 before segment 0
+    try s.prepare(&rows);
+    try s.bind(&rows, &ctx);
+    var f = s.feed();
+    try testing.expectError(error.GpuNativeCaptureOutOfOrder, f.segment(.{ .segment = 1, .native = &tag, .events = &tag }));
+    try testing.expect(s.gate(0).failed.load(.acquire) and s.endGate().failed.load(.acquire));
+    f.finish(null);
+    s.detach();
+    // (b) the packer reports rows that differ from the plan
+    p.rows = 6;
+    try s.prepare(&rows);
+    try s.bind(&rows, &ctx);
+    f = s.feed();
+    try testing.expectError(error.GpuNativeCaptureGeometryMismatch, f.segment(.{ .segment = 0, .native = &tag, .events = &tag }));
+    f.finish(null);
+    s.detach();
+    // (c) a buffer handed out and never emitted
+    p.rows = 8;
+    p.leave_outstanding = true;
+    try s.prepare(&rows);
+    try s.bind(&rows, &ctx);
+    f = s.feed();
+    try testing.expectError(error.GpuNativeCaptureChunkNotEmitted, f.segment(.{ .segment = 0, .native = &tag, .events = &tag }));
+    try testing.expect(s.gate(0).failed.load(.acquire));
+    f.finish(null);
+    s.detach();
+    // (d) the capture itself failed after one sealed segment
+    p.leave_outstanding = false;
+    try s.prepare(&rows);
+    try s.bind(&rows, &ctx);
+    f = s.feed();
+    try f.segment(.{ .segment = 0, .native = &tag, .events = &tag });
+    f.finish(error.EthereumStepBudgetExceeded);
+    try testing.expectEqual(error.EthereumStepBudgetExceeded, f.failure.?);
+    try testing.expect(!s.gate(0).failed.load(.acquire) and s.gate(1).failed.load(.acquire) and s.endGate().failed.load(.acquire));
+    s.detach();
+    try testing.expectEqual(@as(usize, 8), ring.free_count);
+    // (e) a factory without a packer cannot stream
+    var n = NativeCount{};
+    const bare = try Stream.create(testing.allocator, .{ .ctx = &n, .vtable = &NativeCount.vt }, ring, 4);
+    defer bare.destroy();
+    try bare.prepare(&rows);
+    try bare.bind(&rows, &ctx);
+    var g = bare.feed();
+    try testing.expectError(error.GpuNativeCaptureNoPacker, g.segment(.{ .segment = 0, .native = &tag, .events = &tag }));
+    g.finish(null);
+    bare.detach();
 }
