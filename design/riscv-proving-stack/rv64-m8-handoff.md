@@ -100,6 +100,14 @@ The contract is `src/integrations/riscv_cuda/rv64/jobs/gpu_native.zig`.
   - or use a measured peak, as `truth_factory`'s `measured_peak_words` does;
   - then pin the plan in a layout unit test.
 
+### Gate 10 result (after handoff, 18:20Z) [M]
+
+`/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-10-00-baseline/producer.stderr`:
+- **The memory-plan fix works.** Per-class Stage-1 `arena_peak_words` are 3.03G to 3.28G (`phase_b=false`), with `main_resident_words` 0.28G to 0.43G, so `GpuNativeMemoryPlanPhaseA` is gone.
+- **The next failure is `GPU_RESIDENT_SERVICE install_stage=driver error=CudaEnqueueFailed`.** At terminal, `GPU_PROCESS_MEMORY` shows 2.17 GB free per device.
+- **Likely cause:** the plan regions or driver allocations come from the CUDA default pool instead of inside the `STWO_RV64_DEVICE_ARENA=auto` carve, which has already taken the device.
+- **Next:** carve the `MemoryPlan` regions *out of* the exec-context pool (`stwo_exec_context_pool_current`), or size the arena carve to leave the plan's non-arena regions. Then rerun `int-gates.sh` (gate 10 GPU-native, then default gates 11 and 12).
+
 ### Still unbound after the memory plan, in this order
 
 From the REVIEW.md list:
