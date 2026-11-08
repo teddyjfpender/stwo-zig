@@ -1052,7 +1052,7 @@
       "test_only_support_owners": 4,
       "authority_contracts": "PASS_DEBUG_EXECUTION_FLOOR_12",
       "services_truth_contracts": "PASS_DEBUG_CPU_EXECUTION_FLOOR_22",
-      "division_contracts": "PASS_SEMANTIC_CHECK_ONLY; execution build stopped at local 4 GiB process-group RSS guard",
+      "division_contracts": "PASS_RELEASEFAST_EXECUTION_VIA_UNCHANGED_IMAGE_PROGRAM_ROOT; standalone compilation stopped at local 4 GiB process-group RSS guard",
       "core_fields_fri_pcs": "PASS_DEBUG_AND_RELEASEFAST",
       "routing_python": "PASS_31",
       "p003_and_r006_python": "PASS_37",
@@ -1063,7 +1063,27 @@
       "scripts_removed": 0,
       "moves_counted_as_deletions": false,
       "local_log_directory": "/Users/theodorepender/Coding/stwo-zig-evidence/local/delivery-20261108",
-      "gpu_scope": "EXCLUDED_BY_USER; no hardware qualification claimed"
+      "gpu_scope": "EXCLUDED_BY_USER; no hardware qualification claimed",
+      "runtime_followup": {
+        "status": "PASS_RELEASEFAST_RESTORED_CPU_RUNTIME",
+        "tested_commit": "8b918a7935bdaf9a79df258ffc381c54149bd731",
+        "tested_tree": "85fb0ced83da2418d233e03ebfa3f79a2c7e8c1f",
+        "suite_cases": {
+          "image_program_including_division": 76,
+          "gkr_services_truth": 90
+        },
+        "counts_may_overlap": true,
+        "retained_floors": {
+          "image_program": 23,
+          "division": 7,
+          "gkr_services_truth": 22
+        },
+        "scope": "Native macOS ReleaseFast execution of restored CPU contract cases and dependency tests. Standalone division compilation remains memory-guard-stopped; the unchanged division root is included in the successful image/program execution. No complete block, full product, security, GPU or performance qualification.",
+        "standalone_division_attempt": {
+          "status": "STOPPED_MEMORY_GUARD",
+          "observed_peak_rss_bytes": 4297687040
+        }
+      }
     },
     "delivery_cpu_continuation_20261109": {
       "baseline_commit": "c022b903bf876bdbaa6dddebf831b399055b1531",
