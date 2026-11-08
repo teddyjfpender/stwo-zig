@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { after, test } from "node:test";
 
-import { JsonRpcProvider, ContractFactory, id, keccak256 } from "ethers";
+import { AbiCoder, JsonRpcProvider, ContractFactory, id, keccak256 } from "ethers";
 import solc from "solc";
 import { registerFriTests } from "./fri-cases.mjs";
 
@@ -803,4 +803,28 @@ test("reconstructs the V3 truth worker prefix from the pinned native profile and
   await assert.rejects(contract.derive(authority, roots, noncanonical), /NonCanonicalField/);
   const [other] = await contract.derive({ ...authority, manifest: id("another manifest") }, roots, claim);
   assert.notEqual(other, preComposition);
+});
+
+test("binds the checkpoint digest to the exact Rust and Python Kona guest outputs", async () => {
+  const contract = await deploy("test/KonaStatementHarness.sol", "KonaStatementHarness");
+  const scope = [1, await contract.getAddress(), 10, id("OP Mainnet config")];
+  const checkpoint = [200, "0x" + "b2".repeat(32), 201, "0x" + "c3".repeat(32),
+    "0x" + "d4".repeat(32), 100, "0x" + "a1".repeat(32)];
+  const payload = "0x" + "e5".repeat(32);
+  const blockHash = "0x" + "f6".repeat(32);
+  const statement = [checkpoint, 99, payload, blockHash];
+  const typeHash = id("KonaTransition(uint256 settlementChainId,address checkpoint,uint256 rollupChainId,bytes32 rollupConfig,uint64 previousNumber,bytes32 previousRoot,uint64 nextNumber,bytes32 nextRoot,bytes32 l1Origin,uint64 l1AnchorNumber,bytes32 l1AnchorHash)");
+  const types = ["bytes32", "uint256", "address", "uint256", "bytes32", "uint64", "bytes32", "uint64", "bytes32", "bytes32", "uint64", "bytes32"];
+  const digest = keccak256(AbiCoder.defaultAbiCoder().encode(types, [typeHash, ...scope, ...checkpoint]));
+  const [derivation, execution] = await contract.outputs(digest, scope, statement);
+  assert.equal(derivation, "0x79dc71b2ef04d3b09ab72857909758cc2d94b77d82907b8568d187e7b529ba72010a000000000000004f44");
+  assert.equal(execution, "0xa1070315845855c79cb5c43f2782fa954672205424a5b42a47d1962a0ca2a9ca010a000000000000004f50");
+  await assert.rejects(contract.outputs(digest, [1, await signer.getAddress(), ...scope.slice(2)], statement), /InvalidStatement/);
+  await assert.rejects(contract.outputs(digest, scope, [checkpoint, 101, payload, blockHash]), /InvalidStatement/);
+  const otherCheckpoint = [...checkpoint];
+  otherCheckpoint[3] = id("wrong output root");
+  await assert.rejects(contract.outputs(digest, scope, [otherCheckpoint, ...statement.slice(1)]), /InvalidStatement/);
+  const other = await contract.outputs(digest, scope, [checkpoint, 99, id("wrong payload"), blockHash]);
+  assert.notEqual(other[0], derivation);
+  assert.notEqual(other[1], execution);
 });

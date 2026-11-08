@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.26;
 
+import {KonaTransitionStatement} from "./KonaTransitionStatement.sol";
+
 /// @notice A verifier for the complete Kona transition relation. Implementations
 /// must authenticate the L1 origin and derivation data from the canonical L1
 /// anchor, and bind every field of the statement digest
@@ -23,9 +25,7 @@ contract KonaCheckpoint {
         bytes32 hash;
     }
 
-    bytes32 public constant STATEMENT_TYPEHASH = keccak256(
-        "KonaTransition(uint256 settlementChainId,address checkpoint,uint256 rollupChainId,bytes32 rollupConfig,uint64 previousNumber,bytes32 previousRoot,uint64 nextNumber,bytes32 nextRoot,bytes32 l1Origin,uint64 l1AnchorNumber,bytes32 l1AnchorHash)"
-    );
+    bytes32 public constant STATEMENT_TYPEHASH = KonaTransitionStatement.TYPEHASH;
 
     uint256 public immutable rollupChainId;
     bytes32 public immutable rollupConfig;
@@ -63,20 +63,10 @@ contract KonaCheckpoint {
         view
         returns (bytes32)
     {
-        return keccak256(
-            abi.encode(
-                STATEMENT_TYPEHASH,
-                block.chainid,
-                address(this),
-                rollupChainId,
-                rollupConfig,
-                blockNumber,
-                outputRoot,
-                nextNumber,
-                nextRoot,
-                l1Origin,
-                anchor.number,
-                anchor.hash
+        return KonaTransitionStatement.digest(
+            KonaTransitionStatement.Scope(block.chainid, address(this), rollupChainId, rollupConfig),
+            KonaTransitionStatement.Checkpoint(
+                blockNumber, outputRoot, nextNumber, nextRoot, l1Origin, anchor.number, anchor.hash
             )
         );
     }
