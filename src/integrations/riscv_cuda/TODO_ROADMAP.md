@@ -458,3 +458,20 @@ The following machine-local receipts help reconstruct this snapshot; none is req
 Use the published archive refs and source commit IDs above for portable history.
 For backup-only implementation, compare the complete committed batch against the merge prefix before applying it.
 On every revision, refresh status fields from actual receipts and keep older measurements explicitly historical.
+
+## Wrap-up handoff: post-merge hygiene branch
+
+The user requested stopping after this wrap-up. The full phase remains open.
+Current work is on `codex/rv64-post-merge-hygiene`, backed up separately from main.
+The later experimental GPU candidate remains on its original backup branch.
+
+- Class/protocol/resource owners preserve wire fields/defaults and canonical types.
+- Cache insertion OOM now releases the built plan exactly once.
+- All 28 current driver test bodies remain preserved under real scenario/fixture owners.
+- X0 runtime adapters now belong to extraction; generic definitions retain no prover dependency.
+- Host evidence: 60 fake-device consumer entries, four pure-leaf tests and 15 targeted closure tests pass.
+- Broader closure scope still has one known detached CPU-fixture dependency error; no full-suite PASS is claimed.
+- Package target compilation hit the local resource cap; that execution remains pending.
+- Static inventory is 121 findings across 120 paths on this branch; live flags remain 260.
+- GPU-native remains default-off. No GPU benchmark or promotion was performed in this wrap-up.
+- Resume with the recorded failures, remaining ownership work and original ordered qualification gates.

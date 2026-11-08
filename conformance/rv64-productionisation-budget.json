@@ -330,6 +330,41 @@
       "positive_growth_justification": "Delete only five archive-byte-verified compile-body wrappers with no live build/import/symbol/shader consumer. Real runtime and budget owners and all eighty-four package tests/exporter remain live and hash-preserved. Literal file list only, no source scan exclusions or replacements.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_native_class_protocol_owners",
+      "net_code_budget": 60,
+      "positive_growth_justification": "Give the complete immutable proof/wire protocol and sealed class/cache lifetime real leaf owners, keeping exact public aliases and field/default/layout identity. Move the existing DeviceBuffer declaration to the pure resource owner to remove class/API dependency cycles. Fix the concrete builder-plan leak on map insertion OOM with destructor-once failure coverage. Include package-owned focused leaf tests and type identity checks. No GPU algorithm/flag/default change; moves receive zero deletion credit.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_driver_test_fixture_owners",
+      "net_code_budget": 35,
+      "positive_growth_justification": "Preserve all current request and installation/service tests under actual scenario owners sharing one canonical fake-world fixture. Retain allocator-failure and cache-address assertions, normalized body/name preservation and mandatory root/focused discovery. No future GPU candidate cases or runtime changes are imported; moves receive zero deletion credit.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_x0_runtime_adapter_ownership",
+      "net_code_budget": 25,
+      "positive_growth_justification": "Move three prover-returning X0 adapters from the generic envelope into the existing runtime extraction owner; migrate six real callers and runtime geometry assertions together. Preserve pure envelope assertions and add a source dependency mutation regression. No allowlist/baseline/format/default changes; moves receive zero deletion credit.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_closure_definition_refresh",
+      "net_code_budget": 15,
+      "positive_growth_justification": "Repair two reproduced stale source-closure definitions: inspect the actual CPU build owner and name the already-used std-only identity-digest module explicitly. Keep the same core/statement-only dependency boundary, with an injected backend import required to fail. No wildcard/prefix expansion, source exclusion, runtime change or baseline update.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_recursion_contract_test_owner",
+      "net_code_budget": 10,
+      "positive_growth_justification": "Separate the complete recursion dependency-contract test family into its real test owner after added regressions exposed the existing aggregate test-file ceiling. Preserve every class body/assertion and old module discovery through one concrete TestCase import; the helper is not independently glob-discovered, preventing duplicate execution. Existing source/linkage/CLI tests remain in their actual owner. No runtime or policy boundary changes; moves receive zero deletion credit. Allow the exact imported dependency set and ordinary module spacing; source assertions remain byte-identical.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

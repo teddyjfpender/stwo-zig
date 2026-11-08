@@ -40,10 +40,17 @@ class DevTestPlanTests(unittest.TestCase):
         with self.assertRaisesRegex(dev_test.DevTestError, "requires hosted validation"):
             dev_test.commands_for_paths(ROOT, ["build_support/products/riscv_cpu.zig"])
 
-    def test_installation_owner_uses_focused_runtime_contract(self):
-        (command,) = dev_test.commands_for_paths(ROOT, ["src/integrations/riscv_cuda/rv64/jobs/driver_install.zig"], check_only=True)
-        self.assertEqual(command[2], "test-rv64-jobs-runtime")
-        self.assertIn("-Dcheck-only=true", command)
+    def test_resource_and_fixture_owners_use_focused_contracts(self):
+        for filename, step in (
+            ("driver_install.zig", "test-rv64-jobs-runtime"),
+            ("driver_fixture_test.zig", "test-rv64-jobs-runtime"),
+            ("driver_service_test.zig", "test-rv64-jobs-runtime"),
+            ("gpu_native_classes.zig", "test-rv64-class-cache"),
+            ("gpu_native_protocol.zig", "test-rv64-class-cache"),
+        ):
+            (command,) = dev_test.commands_for_paths(ROOT, ["src/integrations/riscv_cuda/rv64/jobs/" + filename], check_only=True)
+            self.assertEqual(command[2], step)
+            self.assertIn("-Dcheck-only=true", command)
 
     def test_native_polynomial_aot_has_owned_exporter_and_mandatory_authority_tests(self):
         directory = ROOT / "src/integrations/riscv_metal"

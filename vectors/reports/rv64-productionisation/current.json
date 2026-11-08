@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-08T16:29:52Z",
+  "updated_utc": "2026-11-08T17:04:18Z",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -102,7 +102,7 @@
     "default_flip": "NOT_ELIGIBLE",
     "legacy_sweep": "WAITING_FOR_PROMOTION",
     "live_flag_registry_under_60": "REGISTRY_PASS_TARGET_NOT_MET_260_LIVE",
-    "static_gate": "FAIL_123_DIAGNOSTICS_122_PATHS_NO_NEW_BASELINES",
+    "static_gate": "FAIL_121_DIAGNOSTICS_120_PATHS_NO_NEW_BASELINES",
     "old_receipt_retirement": "PENDING_DEPENDENCY_AUDIT",
     "remote_branch_archive_retirement": "PASS_72_LITERAL_REFS_AFTER_PUBLISHED_TAGS_AND_OFFHOST_RECOVERY"
   },
@@ -563,9 +563,9 @@
   "running_subtraction_total": {
     "baseline": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
     "delivered_code_net": -68160,
-    "pending_code_net": 105,
-    "combined_code_net": -68055,
-    "production_code_net": -42399,
+    "pending_code_net": 234,
+    "combined_code_net": -67926,
+    "production_code_net": -42270,
     "historical_research_code_net": -25656,
     "top_level_scripts_removed": 150,
     "runtime_flags_removed": 2,
@@ -576,7 +576,7 @@
   },
   "latest_goal_turn": {
     "classification": "PROGRESS",
-    "evidence": "Main-derived hygienebranch:139\u2192123static findings without baseline/ceiling changes;7004archived reports retired;209fixture pins+28edgesverify;53sourcechecks,143developer/CIchecks,31conformancechecks,51fixture/toolchecks and combined227PASS;42fake-device entriesPASS. RawCItemplating/hostpolicy/typo/checkonly gaps fixed after independentreview. Hardware and completephase not claimed."
+    "evidence": "Factored class/protocol/resource contracts without wire/default changes, fixed cache-mapOOM plan destruction, preserved28driver tests, separatedX0runtime adapters and retained strictsource boundaries.60fakeconsumer entries+4leaf tests+15targetedclosurePASS. Static123to121, no newbaseline/ceiling. User requests stop after committed backup."
   },
   "budget_results": {
     "worktree_consolidation": {
@@ -935,19 +935,108 @@
       "static_before": 128,
       "static_after": 123,
       "new_findings": 0
+    },
+    "post_merge_native_class_protocol_owners": {
+      "net": 57,
+      "status": "HOST_LEAF_AND_FAKE_CONSUMERS_PASS_PACKAGE_BUILD_CAP_STOPPED",
+      "owners": {
+        "facade_lines": 790,
+        "class_lines": 186,
+        "protocol_lines": 127
+      },
+      "preserved": "wire/status declarations, field defaults, canonical buffer/public aliases",
+      "fix": "built plan destroyed once on map insertion OOM or forged key",
+      "host_leaf": "PASS4 tests4.263s308656KiB",
+      "fake_consumers": "PASS60entries11.075s611584KiB",
+      "package_target": "NOT_COMPLETED_RSS_CAP789760KiB",
+      "independent_review": "CLEAR",
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "hardware": "PENDING_NOT_CLAIMED"
+    },
+    "post_merge_driver_test_fixture_owners": {
+      "net": 30,
+      "status": "PRESERVATION_AND_HOST_CASES_PASS",
+      "owners": {
+        "request_lines": 599,
+        "fixture_lines": 521,
+        "service_lines": 227
+      },
+      "original_named_tests_preserved": 28,
+      "test_bodies": "identical after fixture namespace qualification only",
+      "mandatory_discovery": true,
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "hardware": "PENDING_NOT_CLAIMED"
+    },
+    "post_merge_x0_runtime_adapter_ownership": {
+      "net": 20,
+      "status": "SOURCE_CLOSURE_PASS_RUNTIME_COMPILE_PENDING",
+      "adapters_moved": 3,
+      "callers_migrated": 6,
+      "runtime_assertions": "preserved in existing extraction inventory owner",
+      "pure_assertions": "preserved",
+      "source_closure_tests": "PASS12",
+      "independent_review": "CLEAR",
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "hardware": "PENDING_NOT_CLAIMED"
+    },
+    "post_merge_closure_definition_refresh": {
+      "net": 14,
+      "status": "TARGETED_CONTRACTS_PASS",
+      "actual_build_owner": "build.zig",
+      "literal_new_dependency": "std-only blake3_identity_digest.zig",
+      "mutation_rejection": [
+        "CPU backend import",
+        "prover engine import"
+      ],
+      "prefix_named_generated_boundaries": "unchanged",
+      "full_original_module": "40PASS/41 tests; one held detached CPU-fixture error",
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "hardware": "PENDING_NOT_CLAIMED"
+    },
+    "post_merge_recursion_contract_test_owner": {
+      "net": 8,
+      "status": "BODY_AND_DISCOVERY_PRESERVED",
+      "case_class_byte_identical": true,
+      "aggregate_owner_lines": 267,
+      "recursion_owner_lines": 619,
+      "original_module_discovery": "retained through concrete imported TestCase; helper not glob-discovered twice",
+      "targeted_tests": "PASS15",
+      "combined_python_check": "144PASS/145tests; one pre-existing CPU-fixture dependency error",
+      "flags_added": 0,
+      "flags_removed": 0,
+      "scripts_added": 0,
+      "scripts_removed": 0,
+      "moves_counted_as_deletions": false,
+      "hardware": "PENDING_NOT_CLAIMED"
     }
   },
   "post_merge_hygiene": {
     "base_merge_commit": "4e260db9605d16fef5d405cc3c280e3042b22e35",
     "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
-    "worktrees": 3,
+    "worktrees": 7,
     "gpu_native_default": false,
     "experimental_candidate_retained_separately": "origin/codex/rv64-gpu-hygiene-local@4892bffa6f77dce3dda68aea0053dfff71e7f0cd",
     "source_contract_commit": "2b89ae3ec13033ed94ac330c7cabfdb525c8f903",
-    "code_added": 809,
-    "code_removed": 704,
-    "code_net": 105,
-    "code_inventory_net_from_original_baseline": -68055,
+    "code_added": 2728,
+    "code_removed": 2494,
+    "code_net": 234,
+    "code_inventory_net_from_original_baseline": -67926,
     "flags_added": 0,
     "flags_removed_this_batch": 0,
     "live_flags": 260,
@@ -955,11 +1044,11 @@
     "scripts_removed_this_batch": 0,
     "top_level_scripts_removed_cumulative": 150,
     "static_diagnostics_before": 139,
-    "static_diagnostics_after": 123,
-    "static_paths_after": 122,
+    "static_diagnostics_after": 121,
+    "static_paths_after": 120,
     "new_baselines_or_ceiling_increases": 0,
     "final_host_command": "227testsPASS",
-    "host_fake_device_command": "42entriesPASS",
+    "host_fake_device_command": "PASS60entries11.075s611584KiB",
     "default_gpu_gate": "PENDING_NO_CREDIT",
     "full_suite_status": "NOT_CLAIMED_GREEN",
     "phase_complete": false,
@@ -982,6 +1071,38 @@
         "retirement": "HELD_ACTIVE_EXTERNAL_WORK_NO_REMOVAL"
       }
     ],
-    "single_checkout_consolidation": "OPEN_TWO_EXTERNAL_ACTIVE_WORKTREES_DISCOVERED_AT_FINAL_CENSUS"
+    "single_checkout_consolidation": "OPEN_EXTERNAL_WORKTREE_PRESERVED",
+    "second_owner_batch_net": 129,
+    "class_leaf_command": "PASS4tests4.263s308656KiB",
+    "package_class_target": "RSS_CAP_STOPPED_NOT_PASSED",
+    "source_closure_scope": "targeted15PASS; combined145tests144PASS/1heldCPUfixtureerror",
+    "test_support_modules_added": 1,
+    "external_registered_worktrees": [
+      "/Users/theodorepender/Coding/stwo-zig-wt/deadcode",
+      "/Users/theodorepender/Coding/stwo-zig-wt/evidence",
+      "/Users/theodorepender/Coding/stwo-zig-wt/legacy-gpu",
+      "/Users/theodorepender/Coding/stwo-zig-wt/repo-standards",
+      "/Users/theodorepender/Coding/stwo-zig-wt/scripts",
+      "/Users/theodorepender/Coding/stwo-zig-wt/src-layout"
+    ],
+    "last_wrap_code_added": 1919,
+    "last_wrap_code_removed": 1790,
+    "last_wrap_code_net": 129
+  },
+  "wrap_handoff": {
+    "user_instruction": "Stop after completing wrap-up",
+    "scope": "Current changes checked, committed and backed up; full hygiene objective remains incomplete",
+    "remaining": [
+      "121 static findings",
+      "260 live flags versus fewer than60",
+      "one detached CPU-fixture closure dependency error and broader CI",
+      "package semantic compile and full GPU gates",
+      "native default promotion and coherent legacy sweep",
+      "raw pod evidence retrieval on next funded start",
+      "external worktree consolidation after its active work is preserved"
+    ],
+    "gpu_native_default": false,
+    "gpu_work_started": false,
+    "goal_complete": false
   }
 }

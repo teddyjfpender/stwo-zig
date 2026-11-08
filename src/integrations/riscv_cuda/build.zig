@@ -146,6 +146,10 @@ pub fn build(b: *std.Build) void {
     batch_tests.linkLibC();
     b.step("test-rv64-batch-plan", "Test mixed-height batch enqueue control without CUDA or a full prover build").dependOn(&b.addRunArtifact(batch_tests).step);
     const tests = b.addTest(.{ .root_module = integration });
+    const class_root = b.createModule(.{ .root_source_file = b.path("rv64/jobs/gpu_native_classes.zig"), .target = target, .optimize = optimize });
+    const class_tests = b.addTest(.{ .root_module = class_root });
+    const class_step = b.step("test-rv64-class-cache", "Test sealed class ownership and failure cleanup without CUDA or a prover");
+    class_step.dependOn(jobTestStep(b, class_tests, check_only));
     const prestage_root = b.createModule(.{ .root_source_file = b.path("rv64_cpu_prestage_test_root.zig"), .target = target, .optimize = optimize, .strip = true });
     for ([_][]const u8{ "stwo_core", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_prover_api", "stwo_prover_engine" }) |name| prestage_root.addImport(name, integration.import_table.get(name) orelse @panic("missing CPU prestage dependency"));
     const prestage_tests = b.addTest(.{ .root_module = prestage_root });
@@ -156,6 +160,7 @@ pub fn build(b: *std.Build) void {
         "Run host-independent RISC-V CUDA integration contract tests",
     );
     test_step.dependOn(jobTestStep(b, tests, check_only));
+    test_step.dependOn(class_step);
     const prefix_tests = b.addExecutable(.{
         .name = "rv64-prefix-bank-tests",
         .root_module = b.createModule(.{ .target = b.graph.host, .optimize = optimize }),
