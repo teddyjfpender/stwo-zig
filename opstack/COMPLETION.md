@@ -29,8 +29,10 @@ The [CPU continuation receipt](../vectors/reports/rv64-opstack-cpu-20261108/READ
 reproduces complete execution bundles for 120794432 and 121057303 with fresh
 receivers and both corruption controls. The synthetic OD/OP child/parent fold
 also completes with physical STARK verification. These close the local execution
-reproduction and synthetic-fold checks, not anchored transition or real-root
-acceptance.
+reproduction and synthetic-fold checks. The follow-up [real recursion receipt](../vectors/reports/rv64-opstack-cpu-20261108/real-recursion.json)
+also closes an execution-only Mainnet root: three wrapped leaves and two folds,
+accepted in a separate receiver process. Anchored transition, joined checkpoint,
+accumulation and settlement acceptance remain open.
 
 - Replay is not a proof. A native bundle is not a recursive root. A receiver-side
   join is not an in-circuit join. A PCS replay is not a complete checkpoint verifier.

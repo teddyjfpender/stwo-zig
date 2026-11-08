@@ -32,6 +32,23 @@ roles. It completed with 22,544,384 circuit variables and a 706,584-byte root
 under a 32 GiB requested-live budget. This qualifies the fixture's physical
 folding path, not Kona derivation, a real OP recursive root or settlement.
 
+## Real Mainnet execution root
+
+The subsequent [physical recursion receipt](real-recursion.json) closes the
+execution-only root for block 120794432: three native children wrapped into
+three OM31 circuit STARKs and two binary folds, then accepted by a separately
+started, assignment-free receiver. Production took 191.121 s at 30.118 GiB
+peak RSS; fresh reception took 6.403 s at 6.714 GiB. The root is 746,584 bytes.
+The outer profile is `r1_b2_q108_p20_fold4`, with 40 GiB requested-live
+production admission and 24 GiB receiver admission. No GPU was used.
+
+This is an exact-shape execution root, not a portable constant-key checkpoint,
+an anchored derivation root, an OD/OP in-circuit join or complete settlement.
+The 24 GiB baseline production attempt failed with `OutOfMemory`; it is retained
+alongside the successful trial. A subsequent ownership-only experiment also
+failed at that cap. Bounded commit preparation is being qualified separately;
+no memory or performance improvement is claimed from that source change yet.
+
 Validation: 38 OP Python tests; 93 CI planner/selection tests; 36 pinned Rust
 execution/derivation/precompile tests. The actual new `opstack_python` CI lane
 also passes from a fresh virtual environment. Explicit OP lanes prevent tooling
@@ -41,7 +58,7 @@ push hit that unrelated Metal AOT gate; the pre-commit source-layout failures
 are also outside the changed files. Both exceptions are recorded in the receipt.
 
 The [delivery checklist](../../../opstack/COMPLETION.md) remains open for a
-physical anchored transition proof, real recursive closure, an accumulating
+physical anchored transition proof and its recursive closure, an accumulating
 checkpoint and practical complete STARK settlement. The 3.07-billion-instruction
 anchored transition still exceeds the admitted 256-proof roster. Its retained
 witness archive has not been located locally; execution-only fixtures are not a
