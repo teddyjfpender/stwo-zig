@@ -78,6 +78,20 @@ fn buildFixture(a: std.mem.Allocator, children: *const [2]Bridge.Child, trace_on
     return graph;
 }
 
+test "public fold admission rejects substituted digest and transport roles" {
+    const od = try packet(derivation);
+    const op = try packet(execution);
+    const digest = [_]u8{0x42} ** 32;
+    const digest_word = B.wrappers.u32Value(Q, 0x42424242).get();
+    const outputs = [_]Q{digest_word} ** 8 ++ od ++ op;
+    try Bridge.requirePublicBinaryOutputs(&outputs, digest, .{ &od, &op });
+    try std.testing.expectError(error.ApplicationFoldOutputMismatch, Bridge.requirePublicBinaryOutputs(&outputs, digest, .{ &op, &od }));
+    try std.testing.expectError(error.ApplicationFoldOutputMismatch, Bridge.requirePublicBinaryOutputs(outputs[0 .. outputs.len - 1], digest, .{ &od, &op }));
+    var other_digest = digest;
+    other_digest[31] ^= 1;
+    try std.testing.expectError(error.ApplicationFoldDigestMismatch, Bridge.requirePublicBinaryOutputs(&outputs, other_digest, .{ &od, &op }));
+}
+
 test "public binary fold proves synthetic ordered OD and OP outputs" {
     const base = std.heap.smp_allocator;
     const max_bytes = if (std.posix.getenv("STWO_OP_FOLD_MAX_BYTES")) |raw|
