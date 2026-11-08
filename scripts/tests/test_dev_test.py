@@ -12,6 +12,28 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_metal_resource_contracts_preserve_all_cases_and_mandatory_discovery(self):
+        build = (ROOT / "src/backends/metal/build.zig").read_text()
+        for filename, count in (
+            ("composition_pool_test_root.zig", 4), ("external_allocation_admission_test_root.zig", 7),
+            ("fri_budget_test_root.zig", 23), ("fri_inverse_lease_test_root.zig", 18),
+            ("quotient_allocation_budget_test_root.zig", 10), ("quotient_result_ownership_test_root.zig", 6),
+            ("resident_budget_test_root.zig", 3), ("sampled_budget_test_root.zig", 9),
+        ):
+            path = "src/backends/metal/" + filename
+            with self.subTest(path=path):
+                (command,) = dev_test.commands_for_paths(ROOT, [path], check_only=True)
+                self.assertEqual(command[2], "test-resource-contracts")
+                self.assertIn("-Dcheck-only=true", command)
+                self.assertLess(build.index(f'b.path("{filename}")'), build.index("if (target.result.os.tag != .macos)"))
+                self.assertEqual(count, sum(line.startswith('test "') for line in (ROOT / path).read_text().splitlines()))
+        self.assertIn("test_step.dependOn(resource_step);", build)
+        self.assertIn("else &b.addRunArtifact(resource_tests).step", build)
+        (command,) = dev_test.commands_for_paths(ROOT, ["src/backends/metal/runtime/fri_inverse_cache_budget_v1.zig"])
+        self.assertEqual(command[2], "test-resource-contracts")
+        (command,) = dev_test.commands_for_paths(ROOT, ["src/backends/metal/runtime.zig"])
+        self.assertEqual(command[2], "test")
+
     def test_shared_resource_contracts_have_focused_and_mandatory_package_owners(self):
         cases = (
             ("src/prover/shared_resources_test_root.zig", "test-shared-resources", "shared_resources_step", 13),

@@ -1,7 +1,7 @@
 //! Device-free contracts for actual sampled dispatch receipts and wave bounds.
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
-const sampled = @import("backends/metal/runtime/sampled_dispatch_budget_v1.zig");
+const sampled = @import("runtime/sampled_dispatch_budget_v1.zig");
 const Budget = engine.host_budget_allocator.SharedHostBudget;
 const Scope = sampled.Scope;
 

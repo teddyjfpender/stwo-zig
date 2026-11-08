@@ -23,6 +23,14 @@ from scripts.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_metal_backend", "src/backends/metal/composition_pool_test_root.zig", "test-resource-contracts"),
+    ("stwo_metal_backend", "src/backends/metal/external_allocation_admission_test_root.zig", "test-resource-contracts"),
+    ("stwo_metal_backend", "src/backends/metal/fri_budget_test_root.zig", "test-resource-contracts"),
+    ("stwo_metal_backend", "src/backends/metal/fri_inverse_lease_test_root.zig", "test-resource-contracts"),
+    ("stwo_metal_backend", "src/backends/metal/quotient_allocation_budget_test_root.zig", "test-resource-contracts"),
+    ("stwo_metal_backend", "src/backends/metal/quotient_result_ownership_test_root.zig", "test-resource-contracts"),
+    ("stwo_metal_backend", "src/backends/metal/resident_budget_test_root.zig", "test-resource-contracts"),
+    ("stwo_metal_backend", "src/backends/metal/sampled_budget_test_root.zig", "test-resource-contracts"),
     ("stwo_prover_engine", "src/prover/shared_resources_test_root.zig", "test-shared-resources"),
     ("stwo_prover_engine", "src/prover/shared_external_memory_v1.zig", "test-shared-resources"),
     ("stwo_prover_engine", "src/prover/host_budget_allocator.zig", "test-shared-resources"),
@@ -122,6 +130,13 @@ def worktree_paths(root: Path) -> list[str]:
 
 
 def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
+    if package == "stwo_metal_backend":
+        for owner, filename, step in FOCUSED_RULES:
+            if owner == package:
+                source = root / filename
+                imports = re.findall(r'@import\("([^"\n]+)"\)', source.read_text())
+                if path == filename or path in {(source.parent / name).relative_to(root).as_posix() for name in imports if name.endswith(".zig")}:
+                    return step
     if package == "stwo_riscv_cuda_integration":
         directory = "src/integrations/riscv_cuda/"
         resource_root = "rv64_resources_test_root.zig"

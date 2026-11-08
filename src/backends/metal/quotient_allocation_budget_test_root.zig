@@ -1,6 +1,6 @@
 const std = @import("std");
 const budget = @import("stwo_prover_engine").host_budget_allocator;
-const impl = @import("backends/metal/runtime/quotient_allocation_budget_v1.zig");
+const impl = @import("runtime/quotient_allocation_budget_v1.zig");
 const Scope = impl.Scope;
 
 test "quotient allocation: callback admits before factory and a failed growth is sticky" {
@@ -120,7 +120,7 @@ test "quotient allocation: concurrent dispatches compete for one supplied cap" {
 }
 
 test "quotient allocation: canonical BLAKE3 is admitted by the direct quotient framing" {
-    const protocol = @import("backends/metal/runtime/protocol_mode.zig");
+    const protocol = @import("runtime/protocol_mode.zig");
     try std.testing.expect(protocol.validDirectCommitmentParameters(3, 0, @splat(0), @splat(0)));
     try std.testing.expect(protocol.validDirectCommitmentParameters(1, 64, @splat(123), @splat(456)));
     try std.testing.expect(protocol.validDirectCommitmentParameters(2, 0, @splat(0), @splat(0)));
@@ -135,7 +135,7 @@ test "quotient allocation: canonical BLAKE3 is admitted by the direct quotient f
 }
 
 test "quotient allocation: typed direct BLAKE3 selection does not admit unsupported staged state" {
-    const domain = @import("backends/metal/hash_domain.zig");
+    const domain = @import("hash_domain.zig");
     const Blake3 = @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher;
     const selected = comptime domain.directParameters(Blake3).?;
     try std.testing.expectEqual(domain.FamilyV1.blake3, selected.family);

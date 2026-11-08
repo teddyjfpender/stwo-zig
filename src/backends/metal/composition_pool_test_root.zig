@@ -24,7 +24,7 @@ const Factory = struct {
         return .{ .byte_length = bytes + @intFromBool(self.wrong_extent), .destroyed = self.destroyed };
     }
 };
-const Pool = @import("backends/metal/runtime/composition_resident_pool_v1.zig").Pool(Resource, 2, 128);
+const Pool = @import("runtime/composition_resident_pool_v1.zig").Pool(Resource, 2, 128);
 
 test "composition pool: active and idle buffers retain exact charges and reuse only their owner" {
     const first = try Budget.create(std.testing.allocator, 256);

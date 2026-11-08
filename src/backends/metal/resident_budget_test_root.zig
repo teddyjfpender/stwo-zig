@@ -1,6 +1,6 @@
 //! Pure extent/alias parity for the actual Metal uniform commitment ABI.
 const std = @import("std");
-const geometry = @import("backends/metal/runtime/resident_budget_v1.zig");
+const geometry = @import("runtime/resident_budget_v1.zig");
 
 test "resident budget: private Merkle extent matches every padded layer" {
     for ([_]u32{ 12, 13, 17, 22, 25 }) |log| {

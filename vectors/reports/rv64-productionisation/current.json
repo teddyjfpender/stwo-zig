@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS",
-  "updated_utc": "2026-11-08T14:31:17.503238+00:00",
+  "updated_utc": "2026-11-08T14:51:06Z",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-gpu-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -84,7 +84,7 @@
     "tracked_receipt_files": 14945,
     "local_m8_m9_branches": 69
   },
-  "current_followup_scope": "GPU-native production default remains unpromoted. Source5b97 passes full build, full Zig gate and194Python gate tests but guardedstartupfailsnative truth prewarm; no native request completed. Latestlocal installation phase/prefix fix passes targetedhost checks and needs fullpodbuild/hardware. Podstoppedforcredit exhaustion; sourceandterminalreceipts preserved.",
+  "current_followup_scope": "GPU-native default remains unpromoted. Latest committed installation/prefix fix needs full pod compilation and hardware gates; credit exhausted. Offline test ownership and source-reader repairs pass bounded host checks; Metal focused execution stopped at laptop resource cap. Complete installation resource owner decomposition, then resume ordered canonical/setup/full15 gates when funded.",
   "host_ci_repair": {
     "native_cuda": "PASS 281/281 ReleaseFast after invalid-free test cleanup",
     "component_geometry": "PASS exact 2/2 named tests after test-owner discovery fix",
@@ -570,7 +570,7 @@
     "baseline": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
     "delivered_code_net": -68160,
     "pending_code_net": 322,
-    "combined_code_net": -67838,
+    "combined_code_net": -67296,
     "production_code_net": -42182,
     "historical_research_code_net": -25656,
     "top_level_scripts_removed": 150,
@@ -578,11 +578,14 @@
     "runtime_flags_added": 0,
     "live_flag_registry": "IMPLEMENTED: 260 live controls; <60 target and M7/M8 retirement remain open",
     "historical_tool_python_utilities_removed": 4,
-    "historical_non_stwo_flags_removed": 3
+    "historical_non_stwo_flags_removed": 3,
+    "local_code_net_since_published": 864,
+    "local_includes_unqualified_changes": true,
+    "moves_counted_as_deletions": false
   },
   "latest_goal_turn": {
     "classification": "PROGRESS",
-    "evidence": "Published51897 afterbothcorrectnessgates; committed+backedup integratedcandidatea4c96 locally. Allfour focusedcomponentcommands pass onpod; completeCUDApackage/build/guardednative verificationrunning. Userlowbalance steersremainingGPUworktooneleanfull15casepasswithoutoptionalprofiling; defaultnotflipped."
+    "evidence": "GPU credit exhausted and pod stopped with terminal receipts preserved. Offline source-contract failures repaired,80 Metal tests preserved and given package/focused owners; static diagnostics130 to122. Installation owner decomposition in progress; GPU default remains unpromoted."
   },
   "budget_results": {
     "worktree_consolidation": {
@@ -921,6 +924,43 @@
       "shared_ci_policy": true,
       "unknown_sources_fail": true,
       "fixture_and_conformance_triggers_preserved": true
+    },
+    "metal_resource_test_owner_discovery": {
+      "status": "HOST_ROUTING_PASS_PRESERVATION_VERIFIED_ZIG_EXECUTION_RESOURCE_CAP_STOPPED",
+      "actual": {
+        "added": 76,
+        "removed": 21,
+        "net": 55,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "roots_moved": 8,
+      "lines_moved_zero_deletion_credit": 1917,
+      "named_tests_preserved": 80,
+      "host_routing_tests_passed": 27,
+      "static_diagnostics_before": 130,
+      "static_diagnostics_after": 122,
+      "focused_zig_execution": "NOT_COMPLETED: laptop 768MiB process-group cap reached; no tests executed",
+      "preservation_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/metal-resource-roots-ownership-v1-preservation.json",
+      "hardware": "PENDING"
+    },
+    "source_contract_definition_owner_refresh": {
+      "status": "PASS_BOUNDED_HOST_CONTRACTS_FULL_SUITE_PENDING",
+      "actual": {
+        "added": 58,
+        "removed": 11,
+        "net": 47,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "bounded_repro": "44 tests passed, four z3-unavailable skips",
+      "developer_focused": "53 tests passed, four z3-unavailable skips",
+      "source_contracts": "Inspect actual definitions and exact facade reexports; preserve existing mutations and add missing/duplicate schema reexport mutations. Merkle claims scoped to sparse_merkle_v1.",
+      "hardware": "NOT_APPLICABLE_SOURCE_READERS_ONLY"
     }
   },
   "latest_completed_hardware_timings": {

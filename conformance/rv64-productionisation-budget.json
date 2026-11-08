@@ -398,6 +398,27 @@
       "positive_growth_justification": "Separate immutable resource warming, actual persistent census, physically bounded probe workspace and final request admission. Preserve empirical request allowances until existing both-placement probes succeed. Place truth MAIN/INTER coefficients in an owned prefix so transient commit and RC work reuses a contiguous suffix; source phase bounds charge all new overlap and real Arena tests cover both placements. Read the existing checked large-arena snapshot without adding CUDA free bytes, reducing reserves or changing physical/proof checks.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "metal_resource_test_owner_discovery",
+      "net_code_budget": 65,
+      "positive_growth_justification": "Give eighty preserved orphan resource-contract tests their actual Metal package owner and mandatory execution in existing hosted macOS CI. One focused resource target and existing developer routing make the live tests discoverable; literal build paths retain static reachability. File moves receive zero deletion credit. No new launcher, runtime flag, baseline or ceiling.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "source_contract_definition_owner_refresh",
+      "net_code_budget": 50,
+      "positive_growth_justification": "Repair stale source-contract readers to inspect current definition owners while authenticating exact facade reexports and memory-helper delegation. Preserve mutation and duplicate-binding checks, and explicitly scope sparse Merkle claims to the selected profile. This restores executable invariants without changing runtime behavior or weakening validation.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "driver_installation_resource_owner",
+      "net_code_budget": 120,
+      "positive_growth_justification": "Transfer complete sealed installation ownership, warm/probe transaction, lane planning, slabs, mirrors, peer and event teardown into a stable embedded owner. Request controller keeps generation, parity, in-flight and poison state and drains requests before owner teardown. No generic wrapper or private cycle; source moves receive zero deletion credit. Preserve all allocation checks and failure rollback.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
