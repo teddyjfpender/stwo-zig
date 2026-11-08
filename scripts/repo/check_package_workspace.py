@@ -13,6 +13,7 @@ from typing import Any
 if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
     __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.repo import ci_package_graph  # type: ignore[no-redef]
+from scripts.repo.ci_scope_plan import owns as _owns
 
 
 SCHEMA = "stwo-zig-package-contract-v2"
@@ -283,11 +284,7 @@ def path_dependencies(text: str) -> dict[str, str]:
 
 
 def _inside(path: Path, directory: Path) -> bool:
-    try:
-        path.relative_to(directory)
-    except ValueError:
-        return False
-    return True
+    return path.is_relative_to(directory)
 
 
 def _validate_manifest(contract: Contract, failures: list[str]) -> None:
@@ -580,11 +577,6 @@ def _validate_layers(
                     f"{contract.package}: {contract.layer} layer cannot depend on "
                     f"{target.layer} package {dependency}"
                 )
-
-
-def _owns(path: str, prefix: str) -> bool:
-    prefix = prefix.rstrip("/")
-    return path == prefix or path.startswith(prefix + "/")
 
 
 def _validate_ci_contracts(

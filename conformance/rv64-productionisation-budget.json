@@ -477,6 +477,20 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Route existing package-owned small proof fixtures through the established developer entrypoint instead of the broad integration fallback. Strengthen the typed-adapter target from one selected leaf case to all three retained cases with a minimum-three discovery gate; wire its already-declared prover API dependency that the newly compiled mixed case requires. Preserve all assertions and original test bodies. No new runtime algorithm, launcher, flag or API ledger. The attempted secp256k1 hash-family split did not pass the local memory guard and was fully reverted; no growth credit is taken for it. Rollback removes routing and restores the prior filtered target, but does not justify claiming the unrun cases as validated."
+    },
+    {
+      "id": "delivery_restore_secondary_live_contracts",
+      "net_code_budget": 1900,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Recover twenty-four original live regression cases for function-activation LogUp, SHA memory caller, BLAKE3 draw witnesses and distributed functional/projection contracts. Keep two archived fixtures under explicit test ownership; do not restore retired production subjects. All live assertions and named cases remain; only the mixed activation source test leaves two import assertions and three token checks on the retired inline-lowering source archived with that source, with mandatory inventories and focused floors increased from twelve/seven to thirty/thirteen. No runtime API, flag, launcher, golden byte, ceiling or proof-check change. Rollback archives the restored tests and support together, retaining an explicit unqualified coverage status. Focused runs explicitly execute on every invocation, matching the default package lane and preserving executable discovery metadata rather than relying on cached execution."
+    },
+    {
+      "id": "delivery_workspace_path_helper_dedup",
+      "net_code_budget": -8,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Subtract duplicate lexical path helpers by using pathlib.is_relative_to and the existing qualified CI owns matcher. Preserve the private helper entrypoints where used and require byte-equivalent ordered checker findings before/after, plus the existing negative-fixture tests. No policy, allowed dependency, API ledger, classification, baseline, gate or ceiling change. Rollback restores the prior duplicate helper bodies."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

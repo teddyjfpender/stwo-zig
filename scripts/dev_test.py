@@ -23,6 +23,13 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_frontend", "src/frontends/riscv/air/lang/function_activation_logup_test_support.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/air/lang/tests/function_activation_logup_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/air/guest_precompile/tests/sha256_memory_caller_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/blake3_draw_witness_test.zig", "test-retained-authority-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed_v1/functional_test.zig", "test-distributed-binary-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed_v1/unified_v2_test.zig", "test-distributed-binary-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/blake3_rejection_fixture_test_support.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_poseidon2_native_fixture_main.zig", "poseidon2-native-fixture"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig", "test-keccakf-precompile-proof"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/secp256k1_precompile_proof_test.zig", "test-secp256k1-precompile-proof"),

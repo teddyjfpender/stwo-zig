@@ -8,6 +8,9 @@
 //! listed to make coverage explicit.
 
 test {
+    _ = @import("air/lang/tests/function_activation_logup_test.zig");
+    _ = @import("air/guest_precompile/tests/sha256_memory_caller_test.zig");
+    _ = @import("recursion/air/tests/blake3_draw_witness_test.zig");
     _ = @import("rv64_test_inventory.zig");
     _ = @import("prover/tests/compact_range_set_test.zig");
     _ = @import("recursion/air/tests/compact_range_provider_test.zig");
