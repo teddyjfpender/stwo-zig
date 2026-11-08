@@ -91,8 +91,13 @@ from 621,480,160 to 425,537,671 (31.53%); Fp2 calls fall from 928,200 to 678,888
 The first whole-block CPU attempt retained its failure: the 102-CPU / 24-service
 roster requires a represented retained inventory of 51,853,871,529 bytes and was
 refused under a 48 GiB component admission. Source planning took 124.693 s and
-the refused producer 163.659 s. The 52 GiB retry remains a separate open proof
-gate; no successful heavy proof is claimed by this checkpoint.
+the refused producer 163.659 s. The [52 GiB retry](heavy-native.json) now
+completes all 102 CPU and 24 service proofs. Production took 1,723.236 s
+(28.72 minutes) at 46.932 GiB peak RSS; separate reception took 38.325 s.
+Both corrupted-proof controls reject, including a changed proof with a
+recomputed transport hash. This is complete native execution/service closure,
+not derivation or recursion. Builds, tests and a small recursive proof overlapped
+part of production; it is a qualification timing, not a quiet benchmark.
 
 The Python producer no longer runs that extra standalone plan by default. Native
 production already performs its source/geometry/resource admissions. `--plan-first`
