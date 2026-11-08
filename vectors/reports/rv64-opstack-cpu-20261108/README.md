@@ -64,6 +64,24 @@ evidence and an indicative timing, not a controlled speedup measurement. The
 focused AIR, physical mutation and serial/2-worker/3-worker proof parity suites
 also pass. The full timing remains too high to call this route optimized.
 
+The subsequent [D2/M6 qualification](recursion-d2-m6.json) uses the existing
+native `d2_native_b4_q54_p20_fold4` construction and outer
+`m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1` profile. It wraps the same
+complete OP execution into three leaves and one three-child fold, taking
+62.614 s at 31.623 GiB peak RSS, with 4.616 s fresh reception. Its internal
+report attributes 37.953 s to wrappers and 22.422 s to folding. The strict
+receiver pins both profiles independently and accepts; corrupted leaf, coherent
+root/fold corruption, and swapped child order reject. This changes the proof
+construction, so expected-output/closure parity replaces proof-byte parity
+against r1. Native D2 proving took 8.674 s, fresh native reception 2.083 s.
+
+These are single-run qualification timings, not quiet medians. The D2-only
+binary-fold trial used four proof workers and took 133.952 s; the M6 trial uses
+eight workers. The original baseline also used eight. Combined improvements
+are not independently attributed. The ~3x reduction from the original 191 s
+recursion still falls well short of the requested 10x improvement; defaults
+and the security qualification flag remain unchanged.
+
 This is an exact-shape execution root, not a portable constant-key checkpoint,
 an anchored derivation root, an OD/OP in-circuit join or complete settlement.
 The 24 GiB baseline production attempt failed with `OutOfMemory`; it is retained
