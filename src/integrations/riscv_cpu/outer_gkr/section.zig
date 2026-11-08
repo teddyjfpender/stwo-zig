@@ -18,6 +18,7 @@ pub const RawChannel = Raw.Om31Channel;
 const L = engine.lookups;
 pub const G = L.gkr_verifier.ForField(O);
 pub const GP = L.gkr_prover.ForField(O);
+const Fast = L.gkr_prover_fast.ForField(O);
 const Poly = L.utils.UnivariatePoly(O);
 const MleBase = L.mle.MleFor(O, M31);
 const MleSecure = L.mle.MleFor(O, O);
@@ -238,20 +239,34 @@ pub fn terminalExpected(a: std.mem.Allocator, inputs: *const Inputs, verified: *
     return out;
 }
 
-/// CPU reference prover (tests, fixtures, corpus). Production proving is the CUDA traversal
-/// (`tests/cuda/rv64/outer_gkr_bench.cu` today; `riscv_cuda/rv64/gkr.zig` enqueue in the hook).
+/// CPU producer: clone-free packed traversal on the caller's bounded pool.
+/// The independent reference remains available to differential tests. Neither
+/// path mutates borrowed facts or changes the verifier/transcript construction.
 pub fn proveCpu(a: std.mem.Allocator, channel: *const RawChannel, class: *const P.Class, inputs: *const Inputs) !Section {
+    return proveCpuImpl(true, a, channel, class, inputs);
+}
+pub fn proveCpuReferenceForTesting(a: std.mem.Allocator, channel: *const RawChannel, class: *const P.Class, inputs: *const Inputs) !Section {
+    if (!@import("builtin").is_test) return error.TestOnly;
+    return proveCpuImpl(false, a, channel, class, inputs);
+}
+fn proveCpuImpl(comptime optimized: bool, a: std.mem.Allocator, channel: *const RawChannel, class: *const P.Class, inputs: *const Inputs) !Section {
     try class.validate();
-    const layers = try a.alloc(GP.Layer, class.instances.len);
+    if (inputs.numerators.len != class.instances.len or inputs.denominators.len != class.instances.len) return error.OuterGkrShapeMismatch;
+    const Layer = if (optimized) Fast.Input else GP.Layer;
+    const layers = try a.alloc(Layer, class.instances.len);
     defer a.free(layers);
-    for (layers, inputs.numerators, inputs.denominators) |*l, n, d|
-        l.* = .{ .LogUpMultiplicities = .{ .numerators = try MleBase.initBorrowed(n), .denominators = try MleSecure.initBorrowed(d) } };
+    for (layers, class.instances, inputs.numerators, inputs.denominators) |*l, inst, n, d| {
+        const count = @as(usize, 1) << @intCast(inst.variables());
+        if (n.len != count or d.len != count) return error.OuterGkrShapeMismatch;
+        l.* = if (optimized) .{ .num = .{ .base = n }, .den = d, .owned = false } else .{ .LogUpMultiplicities = .{ .numerators = try MleBase.initBorrowed(n), .denominators = try MleSecure.initBorrowed(d) } };
+    }
+    const workers = if (engine.work_pool.currentScopedPool()) |pool| @min(engine.lookups.row_work.MAX_SHARDS, pool.availableWorkers()) else 1;
     var salt_value: u32 = 0;
     while (salt_value < MAX_SALT_ATTEMPTS) : (salt_value += 1) {
         const salt = O.fromBase(M31.fromCanonical(salt_value));
         var prover_channel = channel.*;
         try mixHeader(&prover_channel, class, salt);
-        var result = try GP.proveBatch(a, &prover_channel, layers);
+        var result = if (optimized) try Fast.proveBatch(a, &prover_channel, layers, .{ .threads = @max(1, workers), .use_scoped_pool = true }, null) else try GP.proveBatch(a, &prover_channel, layers);
         result.artifact.deinit(a);
         var section = Section{ .class = class, .salt = salt, .proof = result.proof };
         // Admission replay: strict draws and constant shape, exactly what the receiver runs.

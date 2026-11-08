@@ -8,7 +8,6 @@ const Outer = @import("stwo_circuit_cpu_integration").om31;
 const P = @import("profile.zig");
 const S = @import("section.zig");
 const H = @import("hybrid_air.zig");
-const B = @import("binding_v2.zig");
 const Legacy = @import("binding.zig");
 const O = core.fields.om31.OM31;
 const M = core.fields.m31.M31;
@@ -140,7 +139,7 @@ pub fn interaction(a: std.mem.Allocator, class: *const P.Class, source: *const S
             const pair = verified.artifact.claims_to_verify_by_instance[g];
             target = target.add(ch.rho[g].mul(pair[0].add(ch.gamma.mul(pair[1]))));
         };
-        var columns = try B.columns(a, point[point.len - log ..], projection, target);
+        var columns = try @import("cpu_binding.zig").columns(a, point[point.len - log ..], projection, target);
         defer columns.deinit(a);
         for (0..16) |coordinate| {
             const values = try a.alloc(M, projection.len);

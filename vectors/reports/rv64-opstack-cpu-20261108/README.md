@@ -1,5 +1,22 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The [joined CPU-wave comparison](recursion-m7-joined.json) reduces M7's
+cyclic binding construction from 6.083 to 1.613 s and composition from
+11.782 to 9.097 s summed over four outer proofs. Four cold interleaved trials
+give complete recursion medians of 47.989 and 42.194 s. Every physical proof
+file remains identical and every separately started strict receiver accepts.
+Native proving is additional. There are only two trials per variant; M7
+remains opt-in and does not beat the best M6 result.
+
+Binding workers write logical scan chunks and then contiguous physical rows,
+avoiding bit-reversed scatter false sharing. Public auxiliary columns share
+one forward twiddle tower and the existing pooled FFT. The packed GKR route
+also reuses the caller's bounded pool without private helper pools. It is
+transcript-identical, but its GKR stage itself regresses from 8.800 to 9.579 s
+here; this is an open optimization, not a claimed GKR speedup. Allocation
+injection found two nested-owner cleanup leaks in the existing fast prover;
+both are fixed and the complete allocation-failure sweep now passes.
+
 The [M7 packed-polynomial comparison](recursion-m7-polynomial.json) separates
 base-field nodes from full octic nodes, precomputes parameter-only expressions,
 and binds validated reads once per component. All five real execution-root

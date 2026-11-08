@@ -443,8 +443,20 @@ fn gkrFastParity(comptime S: type, comptime Channel: type, seed: u32) !void {
     ch_ref.mixU32s(&.{seed});
     var reference = try GP.proveBatch(a, &ch_ref, &layers);
     defer reference.deinit(a);
-    for ([_][3]usize{ .{ 1, 1 << 13, 0 }, .{ 1, 1 << 13, 1 }, .{ 3, 8, 0 }, .{ 4, 16, 1 }, .{ 7, 4, 1 } }) |config| {
+    for ([_][4]usize{ .{ 1, 1 << 13, 0, 0 }, .{ 1, 1 << 13, 1, 0 }, .{ 3, 8, 0, 0 }, .{ 4, 16, 1, 0 }, .{ 7, 4, 1, 0 }, .{ 3, 8, 0, 1 }, .{ 4, 16, 1, 1 } }) |config| {
         const owned = config[2] == 1;
+        const scoped = config[3] == 1;
+        const Work = @import("stwo_prover_engine").work_pool;
+        var pool: Work.WorkPool = undefined;
+        var binding: ?Work.ScopedPoolBinding = null;
+        if (scoped) {
+            try pool.initInPlaceWithOptions(.{ .worker_count = config[0] });
+            binding = try Work.ScopedPoolBinding.init(&pool);
+        }
+        defer if (binding) |*bound| {
+            bound.deinit();
+            pool.deinit();
+        };
         var inputs: [5]Fast.Input = undefined;
         for (&inputs, 0..) |*input, i| input.* = .{
             .num = switch (kinds[i]) {
@@ -457,7 +469,7 @@ fn gkrFastParity(comptime S: type, comptime Channel: type, seed: u32) !void {
         };
         var ch_fast = Channel.init();
         ch_fast.mixU32s(&.{seed});
-        var fast = try Fast.proveBatch(a, &ch_fast, &inputs, .{ .threads = config[0], .min_parallel = config[1] }, null);
+        var fast = try Fast.proveBatch(a, &ch_fast, &inputs, .{ .threads = config[0], .min_parallel = config[1], .use_scoped_pool = scoped }, null);
         defer fast.deinit(a);
         try expectSameGkr(S, a, &reference, &fast, &ch_ref, &ch_fast);
         if (!owned) {

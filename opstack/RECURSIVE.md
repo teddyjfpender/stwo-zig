@@ -61,6 +61,22 @@ stages, including whole-process counters. Each proof owns its recorder; no
 profile enters the transcript or receiver authority. Nested or overlapping
 counter intervals must not be added. Profiling is off by default.
 
+The explicitly selected outer profile
+`m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1` also has a complete CPU
+producer. Its hybrid lookup section, MAIN binding and fresh native/in-circuit
+receivers use the same pinned construction as the device path. It remains an
+experiment: M6 still has the best measured complete-root CPU result. M7 stage
+profiles separate lookup projection, GKR, native admission and binding witness;
+`components/hybrid-*.json` additionally splits public auxiliary construction,
+row preparation and constraint evaluation. These files are observations only.
+
+Use `zig build test-riscv64-outer-gkr-cpu-polynomial -Doptimize=ReleaseFast`
+for the fast scalar/packed, cyclic binding, pool and auxiliary FFT checks.
+The full `test-riscv64-outer-gkr` suite additionally checks physical proofs,
+in-circuit child verification and adversarial transcripts. Changes to a CPU
+implementation must retain exact same-profile proof bytes and independent
+fresh reception; a new proof construction needs separate qualification.
+
 The receiver operator supplies the canonical L1 anchor, previously admitted L2
 checkpoint and next claim, the trusted runner and the request files with the
 independent ELF and input hashes. Choose the outer profile used by both proof

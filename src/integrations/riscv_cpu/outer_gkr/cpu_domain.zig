@@ -63,7 +63,8 @@ pub fn evaluate(c: *const HC.Component, trace: *const PA.Trace, acc: *DA.DomainE
         const row_point = try MP.MleEvalPointFor(O).init(point[point.len - log ..]);
         var coefficients = try Aux.initWithLogBound(a, &row_point, log, P.MAX_VARIABLES, engine.work_pool.currentScopedPool());
         defer for (&coefficients) |*coefficient| coefficient.deinit(a);
-        for (coefficients, &aux) |coefficient, *evaluation| evaluation.* = try coefficient.evaluate(a, core.poly.circle.canonic.CanonicCoset.new(log + 1).circleDomain());
+        const evaluations = try @import("cpu_aux.zig").evaluate(a, &coefficients, log);
+        for (evaluations, &aux) |evaluation, *slot| slot.* = evaluation;
     }
     const aux_ns = if (timer) |*clock| clock.lap() else 0;
     const program = &c.artifact.program;
