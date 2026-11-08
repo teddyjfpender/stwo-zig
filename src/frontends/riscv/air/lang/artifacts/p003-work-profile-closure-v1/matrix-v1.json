@@ -3,8 +3,8 @@
   "families": [
     {
       "authority_paths": [
-        "src/prover/poly/twiddle_source.zig",
-        "src/prover/poly/twiddles.zig"
+        "src/engine/prover/poly/twiddle_source.zig",
+        "src/engine/prover/poly/twiddles.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -22,9 +22,9 @@
     {
       "authority_paths": [
         "src/backends/metal/commit_backend.zig",
-        "src/prover/pcs/columns/circle_transforms.zig",
-        "src/prover/pcs/columns/preparation.zig",
-        "src/prover/poly/circle/transforms.zig"
+        "src/engine/prover/pcs/columns/circle_transforms.zig",
+        "src/engine/prover/pcs/columns/preparation.zig",
+        "src/engine/prover/poly/circle/transforms.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -44,9 +44,9 @@
       "authority_paths": [
         "src/backends/metal/commit_backend.zig",
         "src/backends/metal/runtime/polynomial_operations.zig",
-        "src/prover/pcs/columns/circle_transforms.zig",
-        "src/prover/pcs/columns/preparation.zig",
-        "src/prover/pcs/commit_polys.zig"
+        "src/engine/prover/pcs/columns/circle_transforms.zig",
+        "src/engine/prover/pcs/columns/preparation.zig",
+        "src/engine/prover/pcs/commit_polys.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -68,7 +68,7 @@
       "authority_paths": [
         "src/backends/cpu_scalar/mod.zig",
         "src/backends/metal/runtime/secure_composition.zig",
-        "src/prover/poly/circle/secure_poly.zig"
+        "src/engine/prover/poly/circle/secure_poly.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -85,20 +85,20 @@
     },
     {
       "authority_paths": [
-      "src/frontends/riscv/prover/main_trace.zig",
-      "src/frontends/riscv/prover/main_trace_plan_execution_production.zig",
-      "src/frontends/riscv/prover/main_trace_plan_execution_production_generators.zig",
-      "src/frontends/riscv/prover/main_witness_work.zig",
-      "src/frontends/riscv/prover/opcode_trace.zig"
-    ],
-    "cpu": {
-      "blockers": [],
-      "status": "complete"
+        "src/frontends/riscv/prover/main_trace.zig",
+        "src/frontends/riscv/prover/main_trace_plan_execution_production.zig",
+        "src/frontends/riscv/prover/main_trace_plan_execution_production_generators.zig",
+        "src/frontends/riscv/prover/main_witness_work.zig",
+        "src/frontends/riscv/prover/opcode_trace.zig"
+      ],
+      "cpu": {
+        "blockers": [],
+        "status": "complete"
       },
       "id": "main_witness_field_work",
-    "metal": {
-      "blockers": [],
-      "status": "complete"
+      "metal": {
+        "blockers": [],
+        "status": "complete"
       },
       "typed_sites": [
         "main_witness_field"
@@ -164,6 +164,12 @@
         "src/backends/cpu_scalar/riscv_composition_lanes.zig",
         "src/backends/metal/runtime/backend_composition.zig",
         "src/backends/metal/runtime/base_polynomial_composition.zig",
+        "src/engine/prover/air/accumulation.zig",
+        "src/engine/prover/air/component_prover.zig",
+        "src/engine/prover/air/composition_execution.zig",
+        "src/engine/prover/air/composition_work.zig",
+        "src/engine/prover/air/lookup_polynomial_v2.zig",
+        "src/engine/prover/prove.zig",
         "src/frontends/riscv/air/clock_update_component.zig",
         "src/frontends/riscv/air/component.zig",
         "src/frontends/riscv/air/composition_work_support.zig",
@@ -175,13 +181,7 @@
         "src/frontends/riscv/air/lookups/tables/component.zig",
         "src/frontends/riscv/air/memory_commitment/hash_component.zig",
         "src/frontends/riscv/air/semantic_component.zig",
-        "src/prover/air/accumulation.zig",
-        "src/prover/air/component_prover.zig",
-        "src/prover/air/composition_execution.zig",
-        "src/prover/air/composition_work.zig",
-        "src/prover/air/lookup_polynomial_v2.zig",
-        "src/prover/prove.zig",
-        "src/prover_api/work_profile.zig"
+        "src/waist/prover_api/work_profile.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -198,8 +198,9 @@
     },
     {
       "authority_paths": [
-        "src/core/air/components.zig",
-        "src/core/circle.zig",
+        "src/engine/prover/air/component_prover.zig",
+        "src/engine/prover/air/oods_work.zig",
+        "src/engine/prover/prove.zig",
         "src/frontends/riscv/air/clock_update_component.zig",
         "src/frontends/riscv/air/component.zig",
         "src/frontends/riscv/air/composition_work_support.zig",
@@ -209,9 +210,8 @@
         "src/frontends/riscv/air/lookups/tables/component.zig",
         "src/frontends/riscv/air/memory_commitment/hash_component.zig",
         "src/frontends/riscv/air/semantic_component.zig",
-        "src/prover/air/component_prover.zig",
-        "src/prover/air/oods_work.zig",
-        "src/prover/prove.zig"
+        "src/waist/core/air/components.zig",
+        "src/waist/core/circle.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -234,10 +234,10 @@
         "src/backends/metal/runtime/polynomial_evaluation.m",
         "src/backends/metal/runtime/polynomial_operations.zig",
         "src/backends/metal/shaders/core/polynomial_eval.metal",
-        "src/prover/pcs/sampled_value_work.zig",
-        "src/prover/pcs/sampled_values.zig",
-        "src/prover/poly/circle/evaluation.zig",
-        "src/prover/poly/circle/point_evaluation.zig"
+        "src/engine/prover/pcs/sampled_value_work.zig",
+        "src/engine/prover/pcs/sampled_values.zig",
+        "src/engine/prover/poly/circle/evaluation.zig",
+        "src/engine/prover/poly/circle/point_evaluation.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -255,12 +255,12 @@
     },
     {
       "authority_paths": [
-        "src/core/pcs/quotients/row_evaluation.zig",
-        "src/core/pcs/quotients/samples.zig",
-        "src/prover/pcs/quotient_work_profile.zig",
-        "src/prover/pcs/quotients/lazy_provider.zig",
-        "src/prover/pcs/scheme.zig",
-        "src/prover_api/work_profile.zig"
+        "src/engine/prover/pcs/quotient_work_profile.zig",
+        "src/engine/prover/pcs/quotients/lazy_provider.zig",
+        "src/engine/prover/pcs/scheme.zig",
+        "src/waist/core/pcs/quotients/row_evaluation.zig",
+        "src/waist/core/pcs/quotients/samples.zig",
+        "src/waist/prover_api/work_profile.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -280,15 +280,15 @@
         "src/backends/metal/commit_backend.zig",
         "src/backends/metal/runtime/polynomial_operations.zig",
         "src/backends/metal/runtime/quotients.m",
-        "src/core/pcs/quotients/row_evaluation.zig",
-        "src/prover/pcs/quotient_domain_walk.zig",
-        "src/prover/pcs/quotient_row_executor.zig",
-        "src/prover/pcs/quotient_scalar_executor.zig",
-        "src/prover/pcs/quotient_tile_executor.zig",
-        "src/prover/pcs/quotient_work_profile.zig",
-        "src/prover/pcs/quotients/lazy_provider.zig",
-        "src/prover/pcs/scheme.zig",
-        "src/prover_api/work_profile.zig"
+        "src/engine/prover/pcs/quotient_domain_walk.zig",
+        "src/engine/prover/pcs/quotient_row_executor.zig",
+        "src/engine/prover/pcs/quotient_scalar_executor.zig",
+        "src/engine/prover/pcs/quotient_tile_executor.zig",
+        "src/engine/prover/pcs/quotient_work_profile.zig",
+        "src/engine/prover/pcs/quotients/lazy_provider.zig",
+        "src/engine/prover/pcs/scheme.zig",
+        "src/waist/core/pcs/quotients/row_evaluation.zig",
+        "src/waist/prover_api/work_profile.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -311,9 +311,9 @@
         "src/backends/metal/runtime/opening_operations.zig",
         "src/backends/metal/runtime/resident_fri_transaction.zig",
         "src/backends/metal/runtime/runtime_queries.m",
-        "src/core/fri/folding.zig",
-        "src/prover/fri.zig",
-        "src/prover_api/work_profile.zig"
+        "src/engine/prover/fri.zig",
+        "src/waist/core/fri/folding.zig",
+        "src/waist/prover_api/work_profile.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -335,9 +335,9 @@
         "src/backends/metal/runtime/fri_cascade_operations.zig",
         "src/backends/metal/runtime/fri_fold_commit.m",
         "src/backends/metal/runtime/resident_fri_transaction.zig",
-        "src/core/fri/folding.zig",
-        "src/prover/fri.zig",
-        "src/prover_api/work_profile.zig"
+        "src/engine/prover/fri.zig",
+        "src/waist/core/fri/folding.zig",
+        "src/waist/prover_api/work_profile.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -354,9 +354,9 @@
     },
     {
       "authority_paths": [
-        "src/backend/line_evaluation.zig",
-        "src/prover/fri.zig",
-        "src/prover_api/work_profile.zig"
+        "src/engine/prover/fri.zig",
+        "src/waist/backend/line_evaluation.zig",
+        "src/waist/prover_api/work_profile.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -375,19 +375,19 @@
       "authority_paths": [
         "src/backends/metal/commit_backend.zig",
         "src/backends/metal/runtime/resident_fri_transaction.zig",
-        "src/core/channel/blake2s.zig",
-        "src/core/queries.zig",
-        "src/core/vcs_lifted/blake2_merkle.zig",
-        "src/prover/fri.zig",
-        "src/prover/pcs/commitment_tree.zig",
-        "src/prover/pcs/deferred_commit.zig",
-        "src/prover/pcs/fri_lazy_commit.zig",
-        "src/prover/pcs/proof_of_work.zig",
-        "src/prover/pcs/sampled_value_transcript.zig",
-        "src/prover/pcs/scheme.zig",
-        "src/prover/pcs/scheme_decommit.zig",
-        "src/prover/pcs/shell_work_profile.zig",
-        "src/prover/pcs/tree_builders.zig"
+        "src/engine/prover/fri.zig",
+        "src/engine/prover/pcs/commitment_tree.zig",
+        "src/engine/prover/pcs/deferred_commit.zig",
+        "src/engine/prover/pcs/fri_lazy_commit.zig",
+        "src/engine/prover/pcs/proof_of_work.zig",
+        "src/engine/prover/pcs/sampled_value_transcript.zig",
+        "src/engine/prover/pcs/scheme.zig",
+        "src/engine/prover/pcs/scheme_decommit.zig",
+        "src/engine/prover/pcs/shell_work_profile.zig",
+        "src/engine/prover/pcs/tree_builders.zig",
+        "src/waist/core/channel/blake2s.zig",
+        "src/waist/core/queries.zig",
+        "src/waist/core/vcs_lifted/blake2_merkle.zig"
       ],
       "cpu": {
         "blockers": [],
@@ -407,7 +407,7 @@
     }
   ],
   "inventory": {
-    "path": "src/prover_api/work_profile_inventory.zig",
+    "path": "src/waist/prover_api/work_profile_inventory.zig",
     "schema_version": 9,
     "site_count": 23
   },

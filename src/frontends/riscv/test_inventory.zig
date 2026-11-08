@@ -875,3 +875,10 @@ test {
     _ = @import("rv64_word16_shift_test_root.zig");
     _ = @import("rv64_word16_shift_word_test_root.zig");
 }
+
+// Restored live authority, division and services regressions.
+test {
+    _ = @import("air/guest_precompile/tests/relation_test.zig");
+    _ = @import("recursion/tests/segment_range_authority_test.zig");
+    _ = @import("retained_authority_contract_test_root.zig");
+}

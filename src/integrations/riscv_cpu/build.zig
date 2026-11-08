@@ -51,6 +51,23 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_riscv_frontend", frontend);
     integration.addImport("interop_postcard", postcard);
 
+    for ([_]struct { step: []const u8, root: []const u8, minimum: usize }{
+        .{ .step = "test-division-contracts", .root = "division_contract_test_root.zig", .minimum = 7 },
+        .{ .step = "test-services-truth-contracts", .root = "services_truth_contract_test_root.zig", .minimum = 22 },
+    }) |spec| {
+        const root = b.createModule(.{ .root_source_file = b.path(spec.root), .target = target, .optimize = optimize });
+        var imports = integration.import_table.iterator();
+        while (imports.next()) |entry| root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+        const tests = b.addTest(.{ .root_module = root });
+        if (check_only) {
+            b.step(spec.step, "Compile retained live regression contracts").dependOn(&tests.step);
+        } else {
+            const run = b.addRunArtifact(tests);
+            run.has_side_effects = true;
+            b.step(spec.step, "Run retained live regression contracts with mandatory discovery").dependOn(TestCountFloor.add(b, run, spec.minimum));
+        }
+    }
+
     const device_projection_root = b.createModule(.{ .root_source_file = b.path("device_cpu_projection_test_root.zig"), .target = target, .optimize = optimize });
     device_projection_root.addImport("stwo_core", core);
     device_projection_root.addImport("stwo_prover_api", prover_api);
@@ -266,3 +283,41 @@ pub fn build(b: *std.Build) void {
     b.step("build-recursive-segment-v2-detached-parent-producer", "Build the detached SegmentV2 parent producer")
         .dependOn(&b.addInstallArtifact(parent_producer, .{}).step);
 }
+
+// Standalone package builds cannot import the repository build support.
+const TestCountFloor = struct {
+    step: std.Build.Step,
+    run: *std.Build.Step.Run,
+    minimum: usize,
+
+    fn add(b: *std.Build, run: *std.Build.Step.Run, minimum: usize) *std.Build.Step {
+        const floor = b.allocator.create(TestCountFloor) catch @panic("out of memory");
+        floor.* = .{
+            .step = std.Build.Step.init(.{
+                .id = .custom,
+                .name = "stwo_riscv_cpu_integration test count floor",
+                .owner = b,
+                .makeFn = make,
+            }),
+            .run = run,
+            .minimum = minimum,
+        };
+        floor.step.dependOn(&run.step);
+        return &floor.step;
+    }
+
+    fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) anyerror!void {
+        const floor: *TestCountFloor = @fieldParentPtr("step", step);
+        const metadata = floor.run.cached_test_metadata orelse return step.fail(
+            "the run reported no test names, so the package's test count could not be verified",
+            .{},
+        );
+        if (metadata.names.len >= floor.minimum) return;
+        return step.fail(
+            \\this package compiled {d} tests; its own step requires at least {d}.
+            \\  Zig collects a test only from a file it analysed, so a file that fell out of
+            \\  test_inventory.zig is compiled by nothing and still reports green. Restore the
+            \\  import, or move `test_floor` in this build file deliberately.
+        , .{ metadata.names.len, floor.minimum });
+    }
+};
