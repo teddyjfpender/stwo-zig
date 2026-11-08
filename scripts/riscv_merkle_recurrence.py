@@ -353,7 +353,8 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         raise AssertionError("production Merkle row admission guard changed")
     admission_call = (
         "try validateMerkleCoefficientLift( "
-        "program.n_rows, memory_shards, merkle_desc.n_rows, public_merkle_terms, );"
+        "if (circuit_profile.programPolicy() == .sparse_merkle_v1) program.n_rows else 0, "
+        "memory_shards, merkle_desc.n_rows, public_merkle_terms, );"
     )
     if admission_call not in admission_source:
         raise AssertionError("Merkle descriptors are not checked by the lift guard")
@@ -388,11 +389,13 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
         child_recurrence="child = 2 * parent + bit",
         depth_recurrence="parent_depth = child_depth - 1 (mod p)",
         admission_rule=(
+            "sparse_merkle_v1 program policy: "
             "2 * merkle n_rows < M31 modulus and "
             "2 * merkle + program + memory n_rows + 3 < M31 modulus"
         ),
         node_coefficient_rule="2 * merkle n_rows < M31 modulus",
         all_source_rule=(
+            "sparse_merkle_v1 program policy: "
             "2 * merkle + program + memory n_rows + 3 < M31 modulus"
         ),
     )

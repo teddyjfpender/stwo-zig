@@ -150,7 +150,7 @@ class MerkleProductionContractTests(unittest.TestCase):
         )
         self.assertEqual(
             (
-                "2 * merkle n_rows < M31 modulus and "
+                "sparse_merkle_v1 program policy: 2 * merkle n_rows < M31 modulus and "
                 "2 * merkle + program + memory n_rows + 3 < M31 modulus"
             ),
             contract.admission_rule,
@@ -160,7 +160,7 @@ class MerkleProductionContractTests(unittest.TestCase):
             contract.node_coefficient_rule,
         )
         self.assertEqual(
-            "2 * merkle + program + memory n_rows + 3 < M31 modulus",
+            "sparse_merkle_v1 program policy: 2 * merkle + program + memory n_rows + 3 < M31 modulus",
             contract.all_source_rule,
         )
 
