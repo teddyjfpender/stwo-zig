@@ -33,7 +33,6 @@ pub const Context = struct {
     prestage_serial: u64 = 0,
     pub fn init(service: *Service.Context) !Context {
         return .{ .service = service, .api = .{
-            .allocation_guard = &service.early_allocations,
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -91,7 +90,7 @@ pub const Context = struct {
             self.prestage_error = error.CpuPrestageRequiresFirstResidentCpu;
             return;
         }
-        if (self.service.active_block == null or self.service.admission != null) {
+        if (self.service.active_block == null) {
             self.prestage_error = error.CpuPrestageAdmissionUnavailable;
             return;
         }
@@ -120,7 +119,7 @@ pub const Context = struct {
     fn startFirstPass(self: *Context, first: *const CPU.FirstPass, input_policy: [32]u8) !void {
         if (self.pending != null or self.prestage_error != null) return error.DuplicateCpuPrestage;
         if (!self.retain_ledgers or first.epoch != 1 or self.unpack == null) return error.CpuPrestageRequiresFirstResidentCpu;
-        if (self.service.active_block == null or self.service.admission != null) return error.CpuPrestageAdmissionUnavailable;
+        if (self.service.active_block == null) return error.CpuPrestageAdmissionUnavailable;
         self.prestage_serial = try std.math.add(u64, self.prestage_serial, 1);
         // Own compact advice before returning: Segments may destroy its records
         // as soon as direct capture finishes. No asynchronous borrow survives.
@@ -431,7 +430,6 @@ const Job = struct {
         defer if (rebuilt) |words| b.host_allocator.free(words);
         const words: []const u32 = if (rebuilt) |data| data else std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(p.fixed));
         if (words.len != count) return error.InvalidCpuRomGeometry;
-        if (b.api.allocation_guard) |guard| try guard.allocate(scope, count, 4);
         return b.service.immutableWords(raw, scope, identity, words);
     }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {

@@ -6,7 +6,7 @@ const S = @import("outer_source.zig");
 const Prefix = @import("prefix_plan.zig");
 const Abi = @import("abi.zig");
 pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
-    var range = try @import("nvtx_stage.zig").Range.beginUnlessAdmitted(&owner.backend.service.library, raw, "rv64/recursion/INTER-witness", owner.permit != null);
+    var range = try @import("nvtx_stage.zig").Range.begin(&owner.backend.service.library, raw, "rv64/recursion/INTER-witness");
     defer range.deinit();
     var ctx = owner.context(raw, token, owner.scope);
     defer ctx.active = false;

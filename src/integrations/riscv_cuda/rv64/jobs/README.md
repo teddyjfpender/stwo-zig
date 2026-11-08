@@ -42,10 +42,12 @@ Installation warms the known classes and reserves the capture ring, request
 slabs, worker arena, pinned pools and events. `serveSpool` then routes each
 request through `Service.begin` (capture plus driver batches) and `Service.finish`
 (completion, checked publication and capture join). Class misses refuse.
-Without GPU_NATIVE, `resident_batch.runServe` owns the reference/feeder path.
-The unused `jobs.serve` placeholder and its untyped hooks have been removed;
-they never implemented a request. Existing hybrid class construction still
-has an owner and remains until a fully qualified replacement exists.
+Without GPU_NATIVE, `resident_batch.runServe` owns the single-lane reference
+path; `JOBS=1` without `GPU_NATIVE=1` fails closed. The feeder, the native
+hybrid, the `OUTER_JOBS` request mode and the admission/two-lane ledger are
+deleted. The outer node-job hybrid survives only as the class-installation
+harvest (`STWO_RV64_M8_GN_INSTALL=1`, set by `native_recursion_install.zig`)
+until a fully qualified native installer replaces it.
 
 | file | role |
 |---|---|

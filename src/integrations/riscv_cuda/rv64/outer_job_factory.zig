@@ -1435,7 +1435,6 @@ pub const Lane = struct {
             .requires_native_complete = l.requires_native_complete,
             .context = self,
             .prepare_host = prepareHost,
-            .memory_admission_enabled = if (l.memory_admission_enabled != null) memoryAdmission else null,
             .tape_ready = if (l.tape_ready != null) tapeReady else null,
             .stage_host = stageHost,
             .unstage_host = unstageHost,
@@ -1446,10 +1445,6 @@ pub const Lane = struct {
     }
     fn of(raw: *anyopaque) *Lane {
         return @ptrCast(@alignCast(raw));
-    }
-    fn memoryAdmission(raw: *anyopaque) bool {
-        const self = of(raw);
-        return self.legacy.memory_admission_enabled.?(self.legacy.context);
     }
     fn tapeReady(raw: *anyopaque, class: [32]u8) bool {
         const self = of(raw);

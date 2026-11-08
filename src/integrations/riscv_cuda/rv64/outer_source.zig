@@ -19,8 +19,6 @@ const Assignment = @import("outer_assignment.zig");
 const Aot = @import("outer_aot.zig");
 const Code = @import("composition_codegen.zig");
 const Abi = @import("abi.zig");
-const Cost = @import("outer_source_cost.zig");
-const Admission = @import("admission_runtime.zig");
 const Base = @import("stwo_cuda_backend").abi.stages.circuit_base;
 pub const BaseFn = *const @TypeOf(Base.stwo_circuit_base_witness_on);
 pub const Memset = *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int;
@@ -66,7 +64,7 @@ pub const Context = struct {
     metadata_cap_bytes: usize = 4 << 20,
     active: ?*Owner = null,
     hybrid: ?*@import("outer_hybrid_source.zig").Runtime = null,
-    /// Receiver-neutral workspace policy, selected by the global admission planner.
+    /// Receiver-neutral workspace policy.
     gkr_mode: @import("gkr.zig").Mode = .retained_tree,
     fixed_pending: ?*@import("outer_fixed.zig").Owner = null,
     fixed_nonce: u64 = 0,
@@ -78,15 +76,6 @@ pub const Context = struct {
     staged_graph: ?*const anyopaque = null,
     mutex: std.Thread.Mutex = .{},
     pub fn init(a: std.mem.Allocator, service: *Service.Context, trace_commit: *TC.Context, composition: *RC.Context) !Context {
-        if (service.admission) |endpoint| {
-            // The deployed Blake profile has no outer GKR allocation. A
-            // hybrid profile needs its own workspace plan before overlap.
-            if (@import("stwo_riscv_cpu_integration").rv64_om31_outer_wrap.hybridProfileActive()) return error.UnmodeledAdmissionOuterGkr;
-            if (std.posix.getenv("STWO_RV64_OUTER_DEVICE_FS")) |value| if (!std.mem.eql(u8, value, "0")) return error.UnmodeledAdmissionDeviceFsObserver;
-            try endpoint.planner.registerCoverage(endpoint.physical, .recursion_source);
-            try endpoint.planner.registerCoverage(endpoint.physical, .recursion_interaction);
-            try endpoint.planner.registerCoverage(endpoint.physical, .outer_gkr);
-        }
         const fused = if (std.posix.getenv("STWO_RV64_RC_INTER_CONTRIBUTIONS")) |v| std.mem.eql(u8, v, "1") else false;
         if (fused and @import("stwo_riscv_cpu_integration").rv64_om31_outer_wrap.hybridProfileActive()) return error.UnqualifiedHybridInterContributions;
         const kernels: ?ContributionKernels = if (fused) .{
@@ -107,14 +96,7 @@ pub const Context = struct {
         self.* = undefined;
     }
     pub fn factory(self: *Context) Dev.Factory {
-        return .{ .context = self, .controller = self.controller(), .requires_native_complete = self.controller() != null, .memory_admission_enabled = globalAdmissionEnabled, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .stage_host = stageHost, .unstage_host = unstageHost };
-    }
-    fn globalAdmissionEnabled(raw: *anyopaque) bool {
-        const self: *Context = @ptrCast(@alignCast(raw));
-        // Controller holds the service call lock across the proof. Native
-        // workers must finish before it can acquire TC/RC host mutexes.
-        if (self.controller() != null) return false;
-        return if (self.service.admission) |endpoint| endpoint.enabled() else false;
+        return .{ .context = self, .controller = self.controller(), .requires_native_complete = self.controller() != null, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .stage_host = stageHost, .unstage_host = unstageHost };
     }
     pub fn controller(self: *Context) ?Dev.Controller {
         const enabled = std.posix.getenv("STWO_RV64_OUTER_OWNER_CONTROLLER") orelse return null;
@@ -139,9 +121,6 @@ pub const Context = struct {
     };
     fn runController(raw: *anyopaque, operation: *const fn (*anyopaque) anyerror!void, data: *anyopaque) !void {
         const self: *Context = @ptrCast(@alignCast(raw));
-        if (comptime @hasField(Service.Context, "admission")) {
-            if (self.service.admission) |endpoint| if (endpoint.enabled()) return error.OwnerControllerRequiresNativeCompletion;
-        }
         const submit = self.service.library.lookup(Native.Submit, "stwo_rv64_gpu_session_controller") orelse return error.MissingOwnerControllerApi;
         const Job = struct {
             operation: *const fn (*anyopaque) anyerror!void,
@@ -368,12 +347,7 @@ pub const Context = struct {
         errdefer Owner.release(owner);
         owner.main_columns = try a.alloc(D.TraceColumn, 114);
         owner.inter_columns = try a.alloc(D.TraceColumn, 304);
-        if (self.service.admission != null) {
-            try @import("outer_progress.zig").register(owner);
-            var plan = try owner.mainAllocationPlan();
-            defer plan.deinit(a);
-            try owner.runAdmitted(@import("outer_source_main.zig").generate, &plan, .witness);
-        } else try owner.run(@import("outer_source_main.zig").generate);
+        try owner.run(@import("outer_source_main.zig").generate);
         // MAIN generation joined every metadata upload and witness kernel.
         // INTER/PCS retain device columns only; no CPU plan escapes its budget.
         owner.retireAssignment();
@@ -386,7 +360,6 @@ pub const Context = struct {
     }
 };
 pub const Owner = struct {
-    admission_retention: @import("admission_retention.zig").Registry = .{},
     allocator: std.mem.Allocator,
     backend: *Context,
     key: *const Outer.prove.Authority,
@@ -410,115 +383,16 @@ pub const Owner = struct {
     pcs: D.Stage,
     composition_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage,
     failure: ?anyerror = null,
-    permit: ?*Admission.Permit = null,
     operation: *const fn (*Owner, *anyopaque, u64) anyerror!void = undefined,
-    pub fn completeAdmission(self: *Owner, permit: *@import("admission_runtime.zig").Permit, scope: D.Scope, successor: @import("global_admission.zig").Footprint) !void {
-        const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
-        if (permit.endpoint.session != self.backend.service.session or permit.endpoint.planner != endpoint.planner or permit.endpoint.physical != endpoint.physical) return error.ForeignAdmissionOwner;
-        switch (permit.demand.stage) {
-            .witness => if (!std.meta.eql(scope, self.initial_scope) or self.main_evaluations.words == null) return error.MissingPhysicalRetentionOwner,
-            .interaction => if (!std.meta.eql(scope, self.scope) or std.mem.allEqual(u8, &scope.main, 0)) return error.MissingPhysicalRetentionOwner,
-            else => return error.UnsupportedSourceAdmissionStage,
-        }
-        if ((successor.large != 0 or successor.small != 0) and self.leases.items.len == 0) return error.MissingPhysicalRetentionOwner;
-        try self.admission_retention.complete(self.allocator, permit, @import("pcs_scope.zig").identity(scope), successor);
-    }
-    fn retireAdmissionScope(self: *Owner, scope: D.Scope) !void {
-        if (self.backend.service.admission) |endpoint| self.admission_retention.retireAfterDestruction(endpoint.planner, @import("pcs_scope.zig").identity(scope)) catch |err| {
-            endpoint.planner.poisonPhysical(endpoint.physical);
-            return err;
-        };
-    }
     pub fn run(self: *Owner, operation: *const fn (*Owner, *anyopaque, u64) anyerror!void) !void {
         self.operation = operation;
         self.failure = null;
         const status = self.backend.service.submit(self.backend.service.session, callback, self);
-        if (self.failure) |err| {
-            if (self.backend.service.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
-            return err;
-        }
-        if (status != 0) if (self.backend.service.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
+        if (self.failure) |err| return err;
         try checked(status);
-    }
-    pub fn mainAllocationPlan(self: *Owner) !Cost.Plan {
-        const a = self.allocator;
-        var words: u64 = 0;
-        for (self.key.logs.toArray(), circuit.witness.trace.traceWidths()) |log, width| words = try std.math.add(u64, words, try std.math.mul(u64, @as(u64, 1) << @intCast(log), width));
-        const fixed = try a.alloc(u64, self.key.pp.columns.len);
-        defer a.free(fixed);
-        for (fixed, self.key.pp.columns) |*out, column| out.* = column.values.len;
-        var assignment: ?Cost.Assignment = null;
-        var sample_count: u64 = 0;
-        if (self.backend.assignment) |*prepared| {
-            const records = if (prepared.blake_sample_inputs) |inputs| inputs.len else 0;
-            const map = if (prepared.blake_sample_outputs) |outputs| outputs.len else 0;
-            var ends: usize = 0;
-            if (prepared.narrow_plan) |narrow| {
-                var needed = try @import("assignment_graphs.zig").enabled();
-                for (narrow.runs) |narrow_run| if (narrow_run.kind == .chain) {
-                    needed = true;
-                    break;
-                };
-                if (needed) ends = narrow.ends.len;
-            }
-            assignment = .{ .seeds = prepared.seeds.len, .tasks = prepared.tasks.len, .indices = prepared.indices.len, .chain_ends = ends, .prefill_records = if (map != 0) records else 0, .prefill_map_words = map, .reusable = prepared.reusable };
-            sample_count = records;
-        }
-        const shadow = if (std.posix.getenv("STWO_RV64_FUSED_BLAKE")) |value| std.mem.eql(u8, value, "shadow") or std.mem.eql(u8, value, "check") else false;
-        // All immutable inputs are charged cold. A cache hit can only reduce
-        // allocation, and no unpinned warm-cache prediction opens this gate.
-        return Cost.main(a, .{ .main_words = words, .value_count = self.value_count, .assignment = assignment, .fixed_miss_words = fixed, .sample_check_records = sample_count, .fused_shadow = shadow });
-    }
-    pub fn interactionAllocationPlan(self: *Owner) !Cost.Plan {
-        var components: [11]Cost.Component = undefined;
-        const kinds = std.enums.values(circuit.common.component_list.ComponentList);
-        for (&components, self.key.logs.toArray(), kinds, 0..) |*component, log, kind, index| {
-            const indices = try lookupIndices(self.allocator, self.key, index);
-            defer self.allocator.free(indices);
-            component.* = .{ .log = log, .pairs = (circuit.witness.trace.RawLookupRows.count(kind) + 1) / 2, .fixed_columns = indices.len };
-        }
-        return Cost.interaction(self.allocator, .{ .components = &components, .packed_inter = self.backend.trace_commit.reusesInterInputs((try Outer.protocol.targetConfig()).fri_config.log_blowup_factor), .fused_contributions = self.backend.inter_contributions != null });
-    }
-    fn runAdmitted(self: *Owner, operation: *const fn (*Owner, *anyopaque, u64) anyerror!void, plan: *const Cost.Plan, stage: @import("global_admission.zig").Stage) !void {
-        const endpoint = self.backend.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
-        const scope = if (stage == .witness) self.initial_scope else self.scope;
-        const successor = try self.backend.service.admissionSuccessor(scope, if (stage == .witness) .source else .interaction);
-        const demand = @import("global_admission.zig").Demand{ .progress_key = @import("global_admission.zig").progressKey(scope), .owner = .{ .request = std.mem.readInt(u64, scope.statement[0..8], .little), .domain = .recursion_node, .ordinal = scope.ordinal }, .stage = stage, .stage_retained_upper = plan.retained_after, .temporary = plan.additional_peak, .successor = successor, .retirement_successor = try self.backend.service.admissionRetirementSuccessor(scope, if (stage == .witness) .source else .interaction), .known = true, .host_known = plan.host_cost_known };
-        @import("allocation_observer.zig").model(scope, 1, if (stage == .witness) .main_witness else .inter_witness, demand.temporary, demand.stage_retained_upper, demand.successor);
-        var precommitted = false;
-        if (stage == .witness) if (self.backend.fixed_pending) |fixed| if (fixed.handoff != null) {
-            try fixed.requireSourceFits(demand);
-            precommitted = true;
-        };
-        const Reclaim = struct {
-            fn run(raw: *anyopaque) !u64 {
-                const service: *Service.Context = @ptrCast(@alignCast(raw));
-                return service.trimSourcePressure();
-            }
-        };
-        var permit = if (precommitted) try endpoint.reserveDrainWithReclaim(demand, .{ .context = self.backend.service, .run = Reclaim.run }) else try endpoint.reserve(demand);
-        defer if (!permit.closed) {
-            endpoint.planner.poisonPhysical(endpoint.physical);
-            permit.finish(.{}) catch {};
-        };
-        self.permit = &permit;
-        defer self.permit = null;
-        try self.run(operation);
-        try self.completeAdmission(&permit, scope, permit.demand.successor);
     }
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(data.?));
-        if (self.permit) |permit| {
-            permit.enterOwner(raw) catch |err| {
-                self.failure = err;
-                return 1;
-            };
-            if (permit.demand.stage == .witness) if (self.backend.fixed_pending) |fixed| fixed.sourceEntered(permit) catch |err| {
-                self.failure = err;
-                self.backend.service.admission.?.planner.poisonPhysical(permit.endpoint.physical);
-                return 1;
-            };
-        }
         const Observer = @import("allocation_observer.zig");
         const observed_stage: Observer.Stage = if (self.operation == @import("outer_source_main.zig").generate) .main_witness else if (self.operation == @import("outer_source_interaction.zig").generate) .inter_witness else .retirement;
         var observed = Observer.Range.begin(&self.backend.service.library, raw, self.initial_scope, 1, observed_stage, 0) catch |err| {
@@ -529,25 +403,6 @@ pub const Owner = struct {
         self.operation(self, raw, token) catch |err| {
             self.failure = err;
         };
-        if (self.permit) |permit| {
-            // Publish the full post-retirement future BEFORE freeing MAIN.
-            // A peer sees either the old live lease plus larger protection or
-            // the joined smaller base plus that protection, never a gap.
-            if (self.failure == null and permit.demand.retirement_successor != null) {
-                if (permit.demand.stage != .interaction) self.failure = error.InvalidOuterRetirementStage else {
-                    permit.raiseBeforeRetirement() catch |err| {
-                        self.failure = err;
-                    };
-                    if (self.failure == null) self.dropMainEvaluations(raw, token) catch |err| {
-                        self.failure = err;
-                    };
-                }
-            }
-            if (self.backend.api.sync(raw) != 0 and self.failure == null) self.failure = error.CudaOuterStageJoinFailed;
-            permit.leaveOwner(raw) catch |err| {
-                if (self.failure == null) self.failure = err;
-            };
-        }
         return if (self.failure == null) 0 else 1;
     }
     pub fn context(self: *Owner, raw: *anyopaque, token: u64, scope: D.Scope) SC.Context {
@@ -568,11 +423,7 @@ pub const Owner = struct {
         self.z = z;
         self.alpha = alpha;
         self.device_fs_parameters = try @import("device_fs_check.zig").interactionParameters(self.backend.service, scope);
-        if (self.backend.service.admission != null) {
-            var plan = try self.interactionAllocationPlan();
-            defer plan.deinit(a);
-            try self.runAdmitted(@import("outer_source_interaction.zig").generate, &plan, .interaction);
-        } else try self.run(@import("outer_source_interaction.zig").generate);
+        try self.run(@import("outer_source_interaction.zig").generate);
         // INTER generation has joined all readers. Its commitment consumes only
         // INTER evaluations; MAIN coefficients already have independent custody.
         try self.run(dropMainEvaluations);
@@ -583,7 +434,7 @@ pub const Owner = struct {
         var request: D.TraceCommitRequest = .{ .scope = scope, .config = config, .tree_index = 2, .columns = self.inter_columns };
         const reuse_inter = self.backend.trace_commit.reusesInterInputs(config.fri_config.log_blowup_factor);
         if (!reuse_inter and config.fri_config.log_blowup_factor == 1) request.retire_input = .{ .context = self, .scope = scope, .retire = retireInteractionInputs };
-        const tree = if (reuse_inter) try self.backend.trace_commit.commitOwnedInter(a, request, &self.leases, &self.admission_retention) else try commit.commit(commit.context, a, request);
+        const tree = if (reuse_inter) try self.backend.trace_commit.commitOwnedInter(a, request, &self.leases) else try commit.commit(commit.context, a, request);
         self.inter_ready = true;
         try self.run(dropEvaluations);
         self.backend.service.finishProofScope(self.initial_scope);
@@ -622,7 +473,6 @@ pub const Owner = struct {
             try checked(self.backend.service.lease_release(self.backend.service.session, lease));
             _ = self.leases.swapRemove(i);
             self.main_evaluations = .{};
-            try self.retireAdmissionScope(self.initial_scope);
             std.log.info("GPU_OUTER released_main_evaluation_bytes={d} before_INTER_commit", .{bytes});
             return;
         }
@@ -632,8 +482,6 @@ pub const Owner = struct {
         for (self.leases.items) |*lease| if (lease.words != null) try checked(self.backend.service.lease_release(self.backend.service.session, lease));
         self.leases.clearRetainingCapacity();
         self.main_evaluations = .{};
-        try self.retireAdmissionScope(self.initial_scope);
-        if (!std.meta.eql(self.scope, self.initial_scope)) try self.retireAdmissionScope(self.scope);
     }
     fn retireAssignment(self: *Owner) void {
         self.backend.mutex.lock();
@@ -653,20 +501,10 @@ pub const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(raw));
         const b = self.backend;
         const a = self.allocator;
-        const released = b.service.submit(b.service.session, releaseDevice, self) == 0;
-        if (released) {
-            self.retireAdmissionScope(self.initial_scope) catch {};
-            if (!std.meta.eql(self.scope, self.initial_scope)) self.retireAdmissionScope(self.scope) catch {};
-        } else if (b.service.admission) |endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
-        if (b.service.admission) |endpoint| self.admission_retention.abandonToPoisonedPool(endpoint.planner) catch @panic("live source admission claims survived cleanup");
-        self.admission_retention.deinit(a);
+        // A failed device release leaves the leases to session teardown.
+        _ = b.service.submit(b.service.session, releaseDevice, self);
         b.service.finishProofScope(self.scope);
         if (!std.meta.eql(self.scope, self.initial_scope)) b.service.finishProofScope(self.initial_scope);
-        if (released and b.service.admission != null) {
-            // A lane with no next ready node must not strand an idle old PP
-            // forest while another sibling needs room for its cold Source.
-            _ = b.service.trimUnborrowedJoined("source_release") catch 0;
-        }
         self.leases.deinit(a);
         a.free(self.main_columns);
         a.free(self.inter_columns);
@@ -757,7 +595,6 @@ test "failed atomic owner releases bounded plan before allowing another proof" {
     service.cache_mutex = .{};
     service.cache = .empty;
     service.immutable_setup = null;
-    service.admission = null;
     var backend: Context = undefined;
     backend.service = &service;
     backend.mutex = .{};
@@ -765,7 +602,6 @@ test "failed atomic owner releases bounded plan before allowing another proof" {
     const owner = try a.create(Owner);
     owner.* = undefined;
     owner.allocator = a;
-    owner.admission_retention = .{};
     owner.backend = &backend;
     owner.owns_assignment = true;
     owner.previous_assignment = null;
@@ -797,7 +633,6 @@ test "outer INTER retirement preserves headers and failure cleanup retains remai
     var service: Service.Context = undefined;
     service.session = &fake;
     service.lease_release = Fake.release;
-    service.admission = null;
     var backend: Context = undefined;
     backend.service = &service;
     var owner: Owner = undefined;

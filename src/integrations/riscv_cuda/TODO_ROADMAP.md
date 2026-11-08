@@ -191,7 +191,7 @@ Hybrid helper controls still required by the complete legacy sweep must not be f
 
 Four narrow pre-promotion candidates were identified:
 
-- `STWO_RV64_GLOBAL_ADMISSION` and its host-policy/runtime selectors, after isolating frozen wiring.
+- ~~`STWO_RV64_GLOBAL_ADMISSION` and its host-policy/runtime selectors~~ (deleted with the admission ledger; Footprint lives in `rv64/footprint_types.zig`).
 - `STWO_RV64_HARNESS_ALLOW_BLOCKS`, which duplicates existing `--allow-block`.
 
 Preserve generic Footprint, capacity, ticket, cancellation, physical guard and runtime-observation APIs.
@@ -205,7 +205,7 @@ The current native installer still builds recursion templates through legacy exe
 See [native_recursion_install.zig](rv64/native_recursion_install.zig)
 and [outer_job_factory.zig](rv64/outer_job_factory.zig).
 `Owner.prepare` calls `resident_batch.runCombined`, then harvests `Outer.NodeClasses` templates.
-Its installation environment deliberately selects legacy JOBS/GN_NODE/OUTER paths.
+Its installation environment deliberately selects legacy GN_NODE/OUTER paths; `STWO_RV64_M8_GN_INSTALL=1` is now the only selector of outer node jobs.
 Native request-only reachability is therefore insufficient to prove the old stack dead.
 
 - [ ] Build immutable class geometry from admitted source/capture authorities directly.
@@ -215,7 +215,8 @@ Native request-only reachability is therefore insufficient to prove the old stac
 - [ ] Preserve unknown-block rejection and explicit new-block setup accounting.
 - [ ] Replace environment-selected internal transitions with typed owner calls, not new aliases.
 - [ ] Keep library/runtime paths bound to the existing pinned asset manifest.
-- [ ] Inventory every consumer before removing feeder/provider/owner-callback symbols.
+- [x] Inventory every consumer before removing feeder/provider symbols (feeder, provider and both hybrid request modes deleted).
+- [ ] Inventory every consumer before removing owner-callback symbols.
 - [ ] Delete retired code and its retired tests together; retain all live lifecycle tests.
 
 The later installation Owner is backup-only:
