@@ -4,14 +4,14 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const dependency_options = .{ .target = target, .optimize = optimize };
-    const check_only = b.option(bool, "check-only", "Compile focused publication tests without running them") orelse false;
+    const check_only = b.option(bool, "check-only", "Type-check focused tests and the fixture receiver without code generation or execution") orelse false;
 
     const publication_root = b.createModule(.{ .root_source_file = b.path("rv64_recursion/om31_native/publication.zig"), .target = target, .optimize = optimize });
     const publication_tests = b.addTest(.{ .root_module = publication_root });
-    b.step("test-recursion-publication", "Test bounded root/tree binding and durable publication without prover imports").dependOn(if (check_only) &publication_tests.step else &b.addRunArtifact(publication_tests).step);
+    b.step("test-recursion-publication", "Test bounded root/tree binding and durable publication without prover imports").dependOn(testDependency(b, publication_tests, check_only, 0));
     const dag_root = b.createModule(.{ .root_source_file = b.path("rv64_recursion/om31_native/ready_dag.zig"), .target = target, .optimize = optimize });
     const dag_tests = b.addTest(.{ .root_module = dag_root });
-    b.step("test-recursion-dag", "Test recursion device ownership, worker budgets and ready dispatch without prover imports").dependOn(if (check_only) &dag_tests.step else &b.addRunArtifact(dag_tests).step);
+    b.step("test-recursion-dag", "Test recursion device ownership, worker budgets and ready dispatch without prover imports").dependOn(testDependency(b, dag_tests, check_only, 0));
 
     const artifact_store = b.dependency(
         "stwo_artifact_store",
@@ -61,13 +61,7 @@ pub fn build(b: *std.Build) void {
         var imports = integration.import_table.iterator();
         while (imports.next()) |entry| root.addImport(entry.key_ptr.*, entry.value_ptr.*);
         const tests = b.addTest(.{ .root_module = root });
-        if (check_only) {
-            b.step(spec.step, "Compile retained live regression contracts").dependOn(&tests.step);
-        } else {
-            const run = b.addRunArtifact(tests);
-            run.has_side_effects = true;
-            b.step(spec.step, "Run retained live regression contracts with mandatory discovery").dependOn(TestCountFloor.add(b, run, spec.minimum));
-        }
+        b.step(spec.step, "Check retained live regression contracts").dependOn(testDependency(b, tests, check_only, spec.minimum));
     }
 
     const device_projection_root = b.createModule(.{ .root_source_file = b.path("device_cpu_projection_test_root.zig"), .target = target, .optimize = optimize });
@@ -78,7 +72,7 @@ pub fn build(b: *std.Build) void {
     device_projection_root.addImport("stwo_riscv_frontend", frontend);
     device_projection_root.addImport("interop_postcard", postcard);
     const projection_tests = b.addTest(.{ .root_module = device_projection_root, .filters = &.{"device CPU projection"} });
-    b.step("test-device-cpu-projection", "Verify narrow CPU capture/device geometry ownership without materializing MAIN").dependOn(&b.addRunArtifact(projection_tests).step);
+    b.step("test-device-cpu-projection", "Verify narrow CPU capture/device geometry ownership without materializing MAIN").dependOn(testDependency(b, projection_tests, check_only, 0));
 
     const native_gkr_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_test_root.zig"), .target = target, .optimize = optimize });
     native_gkr_root.addImport("stwo_core", core);
@@ -90,34 +84,34 @@ pub fn build(b: *std.Build) void {
     native_gkr_root.addImport("stwo_riscv_frontend", frontend);
     const native_gkr_filter = b.option([]const u8, "native-gkr-test-filter", "Run matching native GKR tests only");
     const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root, .filters = if (native_gkr_filter) |filter| &.{filter} else &.{} });
-    b.step("test-native-gkr", "Test native GKR v1 and v2 bounded roster, codec, transcript and tamper corpus").dependOn(&b.addRunArtifact(native_gkr_tests).step);
+    b.step("test-native-gkr", "Test native GKR v1 and v2 bounded roster, codec, transcript and tamper corpus").dependOn(testDependency(b, native_gkr_tests, check_only, 0));
     const p2_native_root = b.createModule(.{ .root_source_file = b.path("rv64_poseidon2_native_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
     var p2_native_imports = native_gkr_root.import_table.iterator();
     while (p2_native_imports.next()) |entry| p2_native_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
     const p2_native_tests = b.addTest(.{ .root_module = p2_native_root, .filters = &.{"P2 native complete CPU fixture"} });
-    b.step("test-poseidon2-native-cpu", "Prove and fresh-verify full RV64 CPU with explicit mixed P2 PCS/local-Blake GKR fixture profile").dependOn(&b.addRunArtifact(p2_native_tests).step);
+    b.step("test-poseidon2-native-cpu", "Prove and fresh-verify full RV64 CPU with explicit mixed P2 PCS/local-Blake GKR fixture profile").dependOn(testDependency(b, p2_native_tests, check_only, 0));
     const p2_receiver_root = b.createModule(.{ .root_source_file = b.path("rv64_poseidon2_native_fixture_main.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
     var p2_receiver_imports = native_gkr_root.import_table.iterator();
     while (p2_receiver_imports.next()) |entry| p2_receiver_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
     const p2_receiver = b.addExecutable(.{ .name = "rv64-p2-native-fixture", .root_module = p2_receiver_root });
-    b.step("poseidon2-native-fixture", "Build independent full RV64 P2 native fixture receiver").dependOn(&b.addInstallArtifact(p2_receiver, .{}).step);
+    b.step("poseidon2-native-fixture", "Build independent full RV64 P2 native fixture receiver").dependOn(if (check_only) &p2_receiver.step else &b.addInstallArtifact(p2_receiver, .{}).step);
     const d2_root = b.createModule(.{ .root_source_file = b.path("rv64_d2_profile_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
     var d2_imports = native_gkr_root.import_table.iterator();
     while (d2_imports.next()) |entry| d2_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
     const d2_filter = b.option([]const u8, "d2-test-filter", "Run matching D2 runtime profile and actual CPU proof gates");
     const d2_tests = b.addTest(.{ .root_module = d2_root, .filters = if (d2_filter) |filter| &.{filter} else &.{} });
-    b.step("test-d2-native", "Check explicit D2 runtime profile and fresh-receiver CPU proof without a GPU").dependOn(&b.addRunArtifact(d2_tests).step);
+    b.step("test-d2-native", "Check explicit D2 runtime profile and fresh-receiver CPU proof without a GPU").dependOn(testDependency(b, d2_tests, check_only, 0));
     const truth_plan_root = b.createModule(.{ .root_source_file = b.path("rv64_truth_family_plan_test_root.zig"), .target = target, .optimize = optimize });
     var truth_plan_imports = native_gkr_root.import_table.iterator();
     while (truth_plan_imports.next()) |entry| truth_plan_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
     const truth_plan_tests = b.addTest(.{ .root_module = truth_plan_root, .filters = &.{"one truth per family"} });
-    b.step("test-truth-family-plan", "Check opt-in one-truth-per-family source geometry and fail-closed capacity").dependOn(&b.addRunArtifact(truth_plan_tests).step);
+    b.step("test-truth-family-plan", "Check opt-in one-truth-per-family source geometry and fail-closed capacity").dependOn(testDependency(b, truth_plan_tests, check_only, 0));
     const d2_circuit_root = b.createModule(.{ .root_source_file = b.path("rv64_d2_circuit_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
     var d2_circuit_imports = native_gkr_root.import_table.iterator();
     while (d2_circuit_imports.next()) |entry| d2_circuit_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
     d2_circuit_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend"));
     const d2_circuit_tests = b.addTest(.{ .root_module = d2_circuit_root, .filters = &.{"D2 actual native CPU recursive"} });
-    b.step("test-d2-circuit-census", "Construct and census actual native default/D2 CPU recursive verifier graphs").dependOn(&b.addRunArtifact(d2_circuit_tests).step);
+    b.step("test-d2-circuit-census", "Construct and census actual native default/D2 CPU recursive verifier graphs").dependOn(testDependency(b, d2_circuit_tests, check_only, 0));
     const census_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_census_main.zig"), .target = target, .optimize = optimize });
     var census_imports = native_gkr_root.import_table.iterator();
     while (census_imports.next()) |entry| census_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
@@ -128,12 +122,12 @@ pub fn build(b: *std.Build) void {
     while (native_gkr_imports.next()) |entry| native_gkr_circuit_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
     native_gkr_circuit_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend"));
     const native_gkr_circuit_tests = b.addTest(.{ .root_module = native_gkr_circuit_root, .filters = if (native_gkr_filter) |filter| &.{filter} else &.{} });
-    b.step("test-native-gkr-circuit", "Test recursion-owned native GKR circuit and PCS statement adapters").dependOn(&b.addRunArtifact(native_gkr_circuit_tests).step);
+    b.step("test-native-gkr-circuit", "Test recursion-owned native GKR circuit and PCS statement adapters").dependOn(testDependency(b, native_gkr_circuit_tests, check_only, 0));
 
     const test_filter = b.option([]const u8, "test-filter", "Run only tests whose names contain this text");
     const tests = b.addTest(.{ .root_module = integration, .filters = if (test_filter) |filter| &.{filter} else &.{} });
     b.step("test", "Test the focused RISC-V CPU integration")
-        .dependOn(&b.addRunArtifact(tests).step);
+        .dependOn(testDependency(b, tests, check_only, 0));
 
     const secp_root = b.createModule(.{
         .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),
@@ -147,7 +141,7 @@ pub fn build(b: *std.Build) void {
     secp_root.addImport("secp256k1_proof_harness", frontend_dependency.module("secp256k1_proof_harness"));
     const secp_tests = b.addTest(.{ .root_module = secp_root });
     b.step("test-secp256k1-precompile-proof", "Prove and independently verify typed and canonical CSP ECDSA on CPU")
-        .dependOn(&b.addRunArtifact(secp_tests).step);
+        .dependOn(testDependency(b, secp_tests, check_only, 0));
 
     const keccak_root = b.createModule(.{
         .root_source_file = b.path("keccakf_precompile_proof_test.zig"),
@@ -164,7 +158,7 @@ pub fn build(b: *std.Build) void {
         .filters = &.{"Keccak-f typed shard and lookup tables prove and independently verify"},
     });
     b.step("test-keccakf-precompile-proof", "Prove and independently verify typed Keccak-f on CPU")
-        .dependOn(&b.addRunArtifact(keccak_tests).step);
+        .dependOn(testDependency(b, keccak_tests, check_only, 0));
 
     const segment_root = b.createModule(.{
         .root_source_file = b.path("segment_v2_native_proof_test.zig"),
@@ -183,7 +177,7 @@ pub fn build(b: *std.Build) void {
         .filters = &.{"native V2 proves and independently verifies real nonfinal and final segments"},
     });
     b.step("test-segment-v2-native-proof", "Prove and independently verify real nonfinal and final SegmentV2 shards")
-        .dependOn(&b.addRunArtifact(segment_tests).step);
+        .dependOn(testDependency(b, segment_tests, check_only, 0));
 
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),
@@ -196,10 +190,8 @@ pub fn build(b: *std.Build) void {
     universal_root.addImport("stwo_riscv_frontend", frontend);
     universal_root.addImport("stwo_prover_engine", prover);
     const universal_tests = b.addTest(.{ .root_module = universal_root });
-    const universal_run = b.addRunArtifact(universal_tests);
-    universal_run.has_side_effects = true;
     b.step("test-universal-typed-proof", "Prove and independently verify the generic typed FRI adapter")
-        .dependOn(TestCountFloor.add(b, universal_run, 3));
+        .dependOn(testDependency(b, universal_tests, check_only, 3));
 
     // Generic SegmentV2 detached tools remain available for the qualified
     // continuation path. Ethereum block assembly is an archived experiment.
@@ -284,6 +276,15 @@ pub fn build(b: *std.Build) void {
     });
     b.step("build-recursive-segment-v2-detached-parent-producer", "Build the detached SegmentV2 parent producer")
         .dependOn(&b.addInstallArtifact(parent_producer, .{}).step);
+}
+
+// Keep semantic checks independent of emitted binaries and test processes.
+// Requesting a Run artifact requests code generation in Zig 0.15.2.
+fn testDependency(b: *std.Build, tests: *std.Build.Step.Compile, check_only: bool, minimum: usize) *std.Build.Step {
+    if (check_only) return &tests.step;
+    const run = b.addRunArtifact(tests);
+    run.has_side_effects = true;
+    return if (minimum == 0) &run.step else TestCountFloor.add(b, run, minimum);
 }
 
 // Standalone package builds cannot import the repository build support.
