@@ -82,6 +82,34 @@ are not independently attributed. The ~3x reduction from the original 191 s
 recursion still falls well short of the requested 10x improvement; defaults
 and the security qualification flag remain unchanged.
 
+The [field-shape and worker qualification](recursion-field-shapes.json)
+further reduces the same D2/M6 root from 65.643 s (instrumented packed control)
+to 58.268 s with field-shape specialization at eight workers, and 38.015 s at
+16 workers. Every trial preserves all five recursive proof files byte-for-byte;
+fresh strict receivers accept. The 16-worker native harness also produces all
+three native proof files byte-identically and rejects both corruptions. The
+Python tools now allow the native engine's existing 1..32 proof-worker range;
+setup concurrency retains its separate 1..8 bound. Defaults are unchanged.
+
+| Summed outer proving stage | Packed, 8 workers | Field shapes, 8 workers | Field shapes, 16 workers |
+| --- | ---: | ---: | ---: |
+| MAIN commit | 5.52 s | 5.43 s | 3.39 s |
+| Interaction witness | 12.63 s | 12.22 s | 8.84 s |
+| Interaction commit | 12.28 s | 12.04 s | 7.31 s |
+| Composition | 18.99 s | 12.23 s | 7.89 s |
+| FRI quotient | 4.63 s | 4.61 s | 2.87 s |
+
+These are single-run engineering qualifications. A compiler overlapped the
+packed control and focused tests overlapped part of the 16-worker trial; they
+are not quiet benchmark medians. CPU recursion is still about 38 s, not the
+requested ~19 s (10x below the original 191 s). The remaining structural target
+is interaction volume: the existing M7 hybrid path reduces classic interaction
+columns from 304 to 128, but CPU production currently refuses it with
+`HybridFactoryRequired` and its CPU domain component returns
+`HybridResidentCompositionRequired`. Its CPU port requires authenticated GKR
+inputs, late cyclic binding, a CPU domain evaluator, fresh recursive reception
+and a measured end-to-end win; exposing the enum alone does not deliver it.
+
 This is an exact-shape execution root, not a portable constant-key checkpoint,
 an anchored derivation root, an OD/OP in-circuit join or complete settlement.
 The 24 GiB baseline production attempt failed with `OutOfMemory`; it is retained

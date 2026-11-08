@@ -8,6 +8,7 @@ const P = @import("protocol.zig");
 const Air = @import("../air.zig");
 const W = @import("witness.zig");
 const C = @import("component.zig").Component;
+const StageCapture = @import("stage_capture.zig");
 const O = P.O;
 const Q = P.Q;
 const List = circuit.common.component_list;
@@ -249,7 +250,13 @@ pub fn bind(a: std.mem.Allocator, key: *const Authority, z: O, alpha: O, claims:
 pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Produced {
     try key.requireProverData();
     if (key.fixed == null) return error.Om31CircuitDeviceFixedRequiresDeviceProver;
+    var capture = try StageCapture.Capture.init(a);
+    defer if (capture) |*active| active.deinit();
+    const recorder = if (capture) |*active| &active.recorder else null;
+    var witness_scope = try StageCapture.Scope.begin(recorder, "outer_witness", "Circuit MAIN witness");
+    defer witness_scope.end();
     var base = try circuit.witness.trace.writeTrace(a, values, key.pp);
+    witness_scope.end();
     defer base.deinit();
     if (!std.meta.eql(base.log_sizes, key.logs)) return error.InvalidOm31CircuitGeometry;
     const outputs = try a.dupe(Q, base.output_values);
@@ -263,19 +270,30 @@ pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Pr
     P.MC.mixRoot(&channel, key.fixedRoot());
     // MAIN is generated and committed exactly once. Lookup arithmetic does not
     // rebuild the builder assignment or its table multiplicities.
+    var main_scope = try StageCapture.Scope.begin(recorder, "outer_main_commit", "Circuit MAIN preparation and commitment");
+    defer main_scope.end();
     try scheme.commit(a, base.columns, &channel);
+    main_scope.end();
     const elements = draw(&channel);
+    var interaction_scope = try StageCapture.Scope.begin(recorder, "outer_interaction_witness", "Circuit lookup interaction witness");
+    defer interaction_scope.end();
     var interaction = try W.writeReleasing(a, &base, key.pp, elements.z, elements.alpha);
+    interaction_scope.end();
     defer interaction.deinit();
     channel.mixFelts(&interaction.claimed_sums.toArray());
+    var inter_commit_scope = try StageCapture.Scope.begin(recorder, "outer_interaction_commit", "Circuit INTER preparation and commitment");
+    defer inter_commit_scope.end();
     try scheme.commit(a, interaction.columns, &channel);
+    inter_commit_scope.end();
     const bound = try bind(a, key, elements.z, elements.alpha, interaction.claimed_sums);
     defer a.free(bound);
     const components = try a.alloc(Components.ComponentProver, bound.len);
     defer a.free(components);
     for (components, bound) |*out, *c| out.* = c.asProverComponent();
     owns = false;
-    const proof = try P.Engine.prove(a, components, &channel, scheme, .{});
+    var proof = try P.Engine.prove(a, components, &channel, scheme, .{ .recorder = recorder });
+    errdefer proof.deinit(a);
+    if (capture) |*active| try active.save(key.identity);
     return .{ .allocator = a, .outputs = outputs, .claims = interaction.claimed_sums, .proof = proof };
 }
 /// Independent fresh verifier state; published capture exists only on complete

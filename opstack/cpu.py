@@ -180,7 +180,9 @@ def main():
         type=int,
         help="explicit geometry override; otherwise preserve request (fallback 1048575)",
     )
-    p.add_argument("--workers", type=int, default=1)
+    p.add_argument(
+        "--workers", type=int, default=1, help="native proof pool budget, 1..32"
+    )
     p.add_argument("--native-profile", choices=NATIVE_PROFILES, default=PROFILE)
     p.add_argument(
         "--plan-first",
@@ -228,12 +230,14 @@ def main():
     )
     args = p.parse_args()
     if (
-        not 1 <= args.workers <= 8
+        not 1 <= args.workers <= 32
         or not 1 <= args.setup_workers <= 8
         or not 1 <= args.timeout <= 21600
         or not 1 <= args.receiver_bytes <= 64 << 30
     ):
-        p.error("proof/setup workers 1..8, timeout 1..21600, receiver bytes 1..64 GiB")
+        p.error(
+            "proof workers 1..32, setup workers 1..8, timeout 1..21600, receiver bytes 1..64 GiB"
+        )
     if args.receiver_setup_workers > 1 and args.receiver_setup == "committed":
         p.error("parallel receiver setup requires --receiver-setup identity-only")
     config = json.loads(args.request.read_text())

@@ -36,6 +36,31 @@ python3 opstack/recursive_transition.py \
   --fixed-setup-bytes 1073741824 --receiver-bytes 6442450944
 ```
 
+For CPU performance qualification on the retained execution fixture, the
+existing D2 native profile and M6 outer profile reduce openings and use one
+three-child fold instead of two binary folds:
+
+```sh
+export STWO_RV64_OUTER_PROFILE=m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1
+zig-out/bin/rv64-word16-ethereum-gkr-recursion \
+  --security-profile d2_native_b4_q54_p20_fold4 \
+  recurse-candidate REQUEST_JSON D2_NATIVE_PROOF_DIRECTORY 2147483648 42949672960
+```
+
+The directory must contain a complete native D2 bundle. Its independently
+pinned request may select `workers: 16`; this changes scheduling, not the
+statement or transcript. Use `verify-recursion-candidate` with the same explicit
+native/outer profiles and independent request for fresh reception. The actual
+measured fixture needs 40 GiB requested-live production admission; this is not
+a universal RSS bound or a recommended budget for arbitrary transitions.
+
+Set `STWO_CIRCUIT_OM31_PROFILE_DIR` to an external artifact directory for
+per-proof CPU stage JSON. It records MAIN witness/commit, interaction
+generation/commit, and the engine's composition, quotient, FRI and opening
+stages, including whole-process counters. Each proof owns its recorder; no
+profile enters the transcript or receiver authority. Nested or overlapping
+counter intervals must not be added. Profiling is off by default.
+
 The receiver operator supplies the canonical L1 anchor, previously admitted L2
 checkpoint and next claim, the trusted runner and the request files with the
 independent ELF and input hashes. Choose the outer profile used by both proof

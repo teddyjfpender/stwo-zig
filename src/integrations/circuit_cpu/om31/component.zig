@@ -342,7 +342,15 @@ pub const Component = struct {
                 for (self.scratch, component.captured.parts) |*item, part| {
                     const values = self.roots[0..part.program.constraint_roots.len];
                     try item.evaluateInto(part.program, .{ .context = &read, .get = DomainRead.getPacked }, self.parameters, values);
-                    for (values, 0..) |root, i| value = value.add(PackedDomain.Packed.mul(root, PackedDomain.Packed.splat(self.column.random_coeff_powers[component.captured.n_constraints - 1 - part.rc_base - i])));
+                    for (values, item.root_kinds, 0..) |root, kind, i| {
+                        const coefficient = PackedDomain.Packed.splat(self.column.random_coeff_powers[component.captured.n_constraints - 1 - part.rc_base - i]);
+                        value = value.add(switch (kind) {
+                            .zero => continue,
+                            .one => coefficient,
+                            .base => coefficient.mulBase(root.c0.c0.a),
+                            .secure => PackedDomain.Packed.mul(root, coefficient),
+                        });
+                    }
                 }
                 const inv = M.fromCanonical(component.captured.denominator_inverses[r >> @intCast(component.captured.trace_log_size)]);
                 value = value.mulBase(core.fields.m31.splatPacked(inv));

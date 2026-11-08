@@ -92,14 +92,14 @@ def main():
     ):
         p.error("repeat 1..4, distinct cases 1..32")
     if (
-        not 1 <= args.workers <= 8
+        not 1 <= args.workers <= 32
         or not 1 <= args.setup_workers <= 8
         or not 1 <= args.key_bytes <= 4 << 30
         or not 1 <= args.timeout <= 21600
         or not 1 <= args.receiver_bytes <= 64 << 30
     ):
         p.error(
-            "workers 1..8, key bytes 1..4 GiB, timeout 1..21600, receiver bytes 1..64 GiB"
+            "proof workers 1..32, setup workers 1..8, key bytes 1..4 GiB, timeout 1..21600, receiver bytes 1..64 GiB"
         )
     if args.receiver_setup == "resident" and (
         args.repeat * len(args.cases) > 32

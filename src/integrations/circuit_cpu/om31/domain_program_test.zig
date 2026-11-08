@@ -52,7 +52,15 @@ test "OM31 SIMD domain preserves every pinned AIR root and both interaction halv
                     read.first = tile * D.WIDTH + lane;
                     const scalar = try E.evaluate(a, part.program, .{ .context = &read, .get = Rows.scalar }, parameters);
                     defer a.free(scalar);
-                    for (roots, scalar) |pack_value, want| try std.testing.expect(D.Packed.lane(pack_value, lane).eql(want));
+                    for (roots, scalar, scratch.root_kinds) |pack_value, want, kind| {
+                        try std.testing.expect(D.Packed.lane(pack_value, lane).eql(want));
+                        switch (kind) {
+                            .zero => try std.testing.expect(want.isZero()),
+                            .one => try std.testing.expect(want.eql(P.O.one())),
+                            .base => for (want.toM31Array()[1..]) |coordinate| try std.testing.expectEqual(@as(u32, 0), coordinate.v),
+                            .secure => {},
+                        }
+                    }
                 }
             }
             parts += 1;

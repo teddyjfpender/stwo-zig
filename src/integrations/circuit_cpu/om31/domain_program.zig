@@ -5,6 +5,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const E = @import("program.zig");
+const Shapes = @import("stwo_cairo_frontend").codegen.field_shapes;
 const P = @import("protocol.zig");
 const M = core.fields.m31;
 pub const Packed = core.fields.packed_om31;
@@ -15,12 +16,15 @@ pub const Reader = struct {
     get: *const fn (*const anyopaque, u8, u32, i32) anyerror!M.PackedM31,
 };
 const Inter = struct { column: u32, offset: i32 };
+const ExtensionOp = enum { ordinary, zero, copy_a, copy_b, scale_a, scale_b };
 
 pub const Scratch = struct {
     allocator: std.mem.Allocator,
     base: []M.PackedM31,
     extension: []F,
     inter: []?Inter,
+    operations: []ExtensionOp,
+    root_kinds: []Shapes.Kind,
 
     pub fn init(a: std.mem.Allocator, p: E.Program) !Scratch {
         try E.validateLens(a, p);
@@ -30,6 +34,10 @@ pub const Scratch = struct {
         errdefer a.free(extension);
         const inter = try a.alloc(?Inter, p.ext_insts.len);
         errdefer a.free(inter);
+        const operations = try a.alloc(ExtensionOp, p.ext_insts.len);
+        errdefer a.free(operations);
+        const root_kinds = try a.alloc(Shapes.Kind, p.constraint_roots.len);
+        errdefer a.free(root_kinds);
         @memset(inter, null);
         const direct = try a.alloc(?Inter, base.len);
         defer a.free(direct);
@@ -45,13 +53,30 @@ pub const Scratch = struct {
                 .offset = source.offset,
             };
         }
-        return .{ .allocator = a, .base = base, .extension = extension, .inter = inter };
+        // These facts depend only on authenticated instructions, never on a
+        // witness or a random challenge. INTER packs remain full octic values.
+        var facts = try Shapes.Facts.init(a, p);
+        defer facts.deinit(a);
+        for (p.base_insts) |i| facts.base[i.dst] = facts.baseValue(i);
+        for (p.ext_insts, operations) |i, *operation| {
+            const kind = facts.extensionKind(i);
+            operation.* = if (kind == .zero) .zero else switch (i.op) {
+                .add, .sub => if (facts.extended[i.b] == .zero) .copy_a else if (i.op == .add and facts.extended[i.a] == .zero) .copy_b else .ordinary,
+                .mul => if (facts.extended[i.a] == .one) .copy_b else if (facts.extended[i.b] == .one) .copy_a else if (facts.extended[i.a] != .secure) .scale_a else if (facts.extended[i.b] != .secure) .scale_b else .ordinary,
+                else => .ordinary,
+            };
+            facts.extended[i.dst] = kind;
+        }
+        for (root_kinds, p.constraint_roots) |*kind, index| kind.* = facts.extended[index];
+        return .{ .allocator = a, .base = base, .extension = extension, .inter = inter, .operations = operations, .root_kinds = root_kinds };
     }
 
     pub fn deinit(self: *Scratch) void {
         self.allocator.free(self.base);
         self.allocator.free(self.extension);
         self.allocator.free(self.inter);
+        self.allocator.free(self.operations);
+        self.allocator.free(self.root_kinds);
         self.* = undefined;
     }
 
@@ -77,22 +102,29 @@ pub const Scratch = struct {
             .neg => M.subPacked(@splat(0), base[i.a]),
             .inv => try inverse(base[i.a]),
         };
-        for (p.ext_insts, self.inter) |i, inter| ext[i.dst] = switch (i.op) {
-            .secure_col => blk: {
-                var coordinates: [8]M.PackedM31 = undefined;
-                if (inter) |input| {
-                    inline for (0..8) |j| coordinates[j] = try reader.get(reader.context, 2, input.column + @as(u32, j), input.offset);
-                } else {
-                    coordinates = .{ base[i.a], base[i.b], base[i.c], base[i.d], @splat(0), @splat(0), @splat(0), @splat(0) };
-                }
-                break :blk Packed.fromCoordinates(coordinates);
+        for (p.ext_insts, self.inter, self.operations) |i, inter, operation| ext[i.dst] = switch (operation) {
+            .zero => Packed.splat(P.O.zero()),
+            .copy_a => ext[i.a],
+            .copy_b => ext[i.b],
+            .scale_a => ext[i.b].mulBase(ext[i.a].c0.c0.a),
+            .scale_b => ext[i.a].mulBase(ext[i.b].c0.c0.a),
+            .ordinary => switch (i.op) {
+                .secure_col => blk: {
+                    var coordinates: [8]M.PackedM31 = undefined;
+                    if (inter) |input| {
+                        inline for (0..8) |j| coordinates[j] = try reader.get(reader.context, 2, input.column + @as(u32, j), input.offset);
+                    } else {
+                        coordinates = .{ base[i.a], base[i.b], base[i.c], base[i.d], @splat(0), @splat(0), @splat(0), @splat(0) };
+                    }
+                    break :blk Packed.fromCoordinates(coordinates);
+                },
+                .param => parameters[i.a],
+                .constant => Packed.splat(E.embed(P.Q.fromU32Unchecked(i.a, i.b, i.c, i.d))),
+                .add => ext[i.a].add(ext[i.b]),
+                .sub => ext[i.a].sub(ext[i.b]),
+                .mul => Packed.mul(ext[i.a], ext[i.b]),
+                .neg => ext[i.a].neg(),
             },
-            .param => parameters[i.a],
-            .constant => Packed.splat(E.embed(P.Q.fromU32Unchecked(i.a, i.b, i.c, i.d))),
-            .add => ext[i.a].add(ext[i.b]),
-            .sub => ext[i.a].sub(ext[i.b]),
-            .mul => Packed.mul(ext[i.a], ext[i.b]),
-            .neg => ext[i.a].neg(),
         };
         for (roots, p.constraint_roots) |*out, index| out.* = ext[index];
     }
