@@ -202,6 +202,7 @@ def aggregate_arm(services):
     out = {'cold': median_row(cold), 'warm': median_row(warm)}
     peaks = [s.get('device_peak_bytes') for s in headline if s.get('device_peak_bytes')]
     out['device_peak_bytes_sampled'] = max(peaks) if peaks else None
+    out['per_gpu_sampled_max_used_bytes'] = {d: max(values) for d in ('0', '1') if (values := [s['per_gpu_sampled_max_used_bytes'][d] for s in headline if d in s.get('per_gpu_sampled_max_used_bytes', {})])}
     active = [s['nvml_kernel_active_percent'] for s in headline if s.get('nvml_kernel_active_percent') is not None]
     out['nvml_kernel_active_percent'] = round(statistics.median(active), 1) if active else None
     jobs = [r['jobs'] for r in warm if r.get('jobs')]

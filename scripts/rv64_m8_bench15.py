@@ -53,7 +53,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 import rv64_m7_integration_stack as stack  # noqa: E402
-from rv64_validation import frozen_parity, validate_assets, validate_receivers, validate_library_environment, FROZEN_D2_PACKAGE as GOLDEN, native_selected  # noqa: E402
+from rv64_validation import frozen_parity, validate_assets, validate_receivers, validate_library_environment, FROZEN_D2_PACKAGE as GOLDEN, native_selected, sampled_memory_observation  # noqa: E402
 from rv64_m8_bench15_lib.metrics import (
     fields,
     split_requests,
@@ -244,7 +244,7 @@ def markdown(result):
     if failures:
         lines += ['', '## Failures', ''] + failures
     lines += ['', '## Warm critical path per arm', '',
-              '| block | arm | warm request s | capture | setup | native window | recursion after native | tail [D] | kernel GPU-s | GPU busy [D] | device peak GB | per-node peak GB | launches/node | syncs/node |',
+              '| block | arm | warm request s | capture | setup | native window | recursion after native | tail [D] | kernel GPU-s | GPU busy [D] | GPU0 / GPU1 sampled GB | per-node peak GB | launches/node | syncs/node |',
               '|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
     for b in result['blocks']:
         for a in arms:
@@ -255,14 +255,14 @@ def markdown(result):
             launches = arm.get('job_launches_per_node', p.get('launches_per_node'))
             syncs = arm.get('job_syncs_per_node', p.get('syncs_per_node'))
             peak = arm.get('per_node_peak_bytes')
-            device = arm.get('device_peak_bytes_sampled')
+            device = arm.get('per_gpu_sampled_max_used_bytes') or {}
             lines.append(f"| {b['block']} | {a} | {fmt(w['request_s'], 2)} | {fmt(w['capture_s'], 2)} | {fmt(w['setup_s'], 2)} | {fmt(w['native_window_s'], 2)} | "
                          f"{fmt(w['recursion_after_native_s'], 2)} | {fmt(w['tail_s'], 2)} | {fmt(p.get('kernel_gpu_s'), 2)} | "
                          f"{fmt(p.get('gpu_busy') and p['gpu_busy'] * 100, 0)}{'%' if p.get('gpu_busy') else ''} | "
-                         f"{fmt(device and device / 1e9, 1)} | {fmt(peak and peak / 1e9, 1)} | {fmt(launches, 0)} | {fmt(syncs, 1)} |")
+                         f"{' / '.join(fmt(device[d] / 1e9, 1) if d in device else 'n/a' for d in ('0', '1'))} | {fmt(peak and peak / 1e9, 1)} | {fmt(launches, 0)} | {fmt(syncs, 1)} |")
     lines += ['', 'launches/syncs per node: job receipts (`GPU_M8_OUTER_NODE launches/host_waits`) where the arm runs OuterNodeJobs [M], '
               'else Nsight `cudaLaunchKernel`/`cudaStreamSynchronize` in the profiled warm window / nodes [D]. '
-              'device peak: NVML-sampled max used bytes over both GPUs in the headline services [M]. '
+              'device peak: GPU0 / GPU1 whole-device sampled observed maxima INCLUDING guard in headline services [M]; not exact/process peaks. '
               'per-node peak: job arena peak words x 4 B [D]. GPU busy: CUPTI kernel union / (2 GPUs x profiled window) [D].', '']
     return '\n'.join(lines)
 
@@ -495,6 +495,7 @@ class Bench:
         if is_native:
             try:
                 entry['physical_budget'] = stack.guard_verdict(receipt, 'fullstack', self.assets['asset_sha256']['process_budget_guard'])
+                entry['physical_memory_observation'] = sampled_memory_observation(run, receipt, required=True)
             except RuntimeError as error:
                 entry.update(status='failed', reason=str(error))
                 return entry
@@ -518,6 +519,8 @@ class Bench:
         except ValueError as error:
             entry.update(status='failed', reason=str(error))
             return entry
+        observation = entry.get('physical_memory_observation') or {}
+        entry['per_gpu_sampled_max_used_bytes'] = {d: row['sampled_max_used_bytes'] for d, row in observation.get('per_gpu', {}).items()}
         memory = receipt.get('physical_gpu_memory') or {}
         peaks = [v for v in (memory.get('peak_used_bytes') or {}).values() if v]
         entry['device_peak_bytes'] = max(peaks) if peaks else None

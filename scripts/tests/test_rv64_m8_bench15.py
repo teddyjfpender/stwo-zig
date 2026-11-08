@@ -244,11 +244,14 @@ class AggregationTests(unittest.TestCase):
                     service('outer', 'headline', 99.0, status='failed'),
                     service('outer', 'profile', 40.0, profile={'kernel_gpu_s': 9.0})]
         services[2]['requests'][1]['jobs'] = bench.job_metrics([NODE, NODE2])
+        services[0]['per_gpu_sampled_max_used_bytes'] = {'0': 30e9, '1': 29e9}
+        services[1]['per_gpu_sampled_max_used_bytes'] = {'0': 31e9, '1': 28e9}
         arm = bench.aggregate_arm(services)
         self.assertEqual(arm['warm']['n'], 3)
         self.assertEqual(arm['warm']['proving_s'], 21.0)
         self.assertEqual(arm['cold']['proving_s'], 42.0)
         self.assertEqual(arm['device_peak_bytes_sampled'], 31e9)
+        self.assertEqual(arm['per_gpu_sampled_max_used_bytes'], {'0': 31e9, '1': 29e9})
         self.assertEqual(arm['nvml_kernel_active_percent'], 15.0)
         self.assertEqual(arm['profile_warm'], {'kernel_gpu_s': 9.0})
         self.assertEqual(arm['per_node_peak_bytes'], 4553800832 * 4)

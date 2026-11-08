@@ -16,6 +16,40 @@ import rv64_m5_negative_corpus as corpus
 
 
 class ValidationTests(unittest.TestCase):
+    def test_sampled_memory_requires_immutable_both_gpu_proof_window_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp)
+            guard = {'status': 'RELEASED', 'exit_code': 0, 'held_from_monotonic_ns': 5, 'release_start_monotonic_ns': 95,
+                     'ready': {'devices': [{'device': d, 'held_physical_bytes': 100 + d} for d in (0, 1)]}}
+            timeline = [{'name': f'{i:04d}-7', 'block': 7, 'monotonic_window_ns': bounds} for i, bounds in enumerate(([20, 40], [50, 80]))]
+            receipt = {'physical_budget_guard': guard, 'requests': [{'ordinal': i, 'block': 7, 'proof': str(run / 'spool/out' / row['name'] / '7/proof'), 'client_latency_ns': row['monotonic_window_ns'][1] - row['monotonic_window_ns'][0]} for i, row in enumerate(timeline)]}
+            data = {'physical_budget_guard': guard, 'physical_gpu_memory': {'errors': []}, 'service_window_monotonic_ns': [10, 90], 'request_timeline': timeline,
+                    'raw_device_samples': [{'device': d, 'uuid': f'GPU-{d}', 'monotonic_ns': t, 'memory_used_bytes': value + d} for d in (0, 1) for t, value in ((0, 99999), (30, 10), (60, 20), (100, 99999))]}
+            def write(value):
+                (run / 'resource-final.json').write_text(json.dumps(value))
+                receipt['physical_gpu_memory_evidence'] = {'file': 'resource-final.json', 'sha256': validation.sha(run / 'resource-final.json')}
+            write(data)
+            observed = validation.sampled_memory_observation(run, receipt, required=True)
+            self.assertEqual([observed['per_gpu'][str(d)]['sampled_max_used_bytes'] for d in (0, 1)], [20, 21])
+            self.assertEqual(observed['per_gpu']['0']['max_gap_ns'], 30)
+            self.assertEqual(len(observed['requests']), 2)
+            self.assertEqual(observed['guard_held_bytes'], {'0': 100, '1': 101})
+            for mutate in (lambda v: v['raw_device_samples'].pop(2), lambda v: v['physical_gpu_memory']['errors'].append('query failed'),
+                           lambda v: v.update(cleanup_error='release failed'), lambda v: v['request_timeline'][0].update(monotonic_window_ns=[0, 40]),
+                           lambda v: v['request_timeline'][0].update(name='wrong-proof'), lambda v: v['raw_device_samples'][1].update(uuid='GPU-1')):
+                invalid = copy.deepcopy(data)
+                mutate(invalid)
+                write(invalid)
+                with self.assertRaises(RuntimeError):
+                    validation.sampled_memory_observation(run, receipt, required=True)
+            write(data)
+            (run / 'resource-final.json').write_text(json.dumps(data) + ' ')
+            with self.assertRaisesRegex(RuntimeError, 'hash differs'):
+                validation.sampled_memory_observation(run, receipt, required=True)
+            self.assertEqual([validation.sampled_memory_observation(run, row)['status'] for row in ({}, {'physical_gpu_memory_evidence': {'file': 'resource-final.json'}})], ['UNAVAILABLE', 'UNAVAILABLE'])
+            with self.assertRaisesRegex(RuntimeError, 'unavailable'):
+                validation.sampled_memory_observation(run, {}, required=True)
+
     def test_native_comparison_freezes_addons_and_rejects_missing_or_changed_inputs(self):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

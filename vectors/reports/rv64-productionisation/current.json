@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS",
-  "updated_utc": "2026-11-08T15:03:01Z",
+  "updated_utc": "2026-11-08T15:12:55Z",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-gpu-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -84,7 +84,7 @@
     "tracked_receipt_files": 14945,
     "local_m8_m9_branches": 69
   },
-  "current_followup_scope": "GPU-native default remains unpromoted. Latest committed installation/prefix fix needs full pod compilation and hardware gates; credit exhausted. Offline test ownership and source-reader repairs pass bounded host checks; Metal focused execution stopped at laptop resource cap. Complete installation resource owner decomposition, then resume ordered canonical/setup/full15 gates when funded.",
+  "current_followup_scope": "Freeze and preserve one source candidate for the ordered GPU acceptance chain. Remaining: full pod build, guarded default correctness, strict3+3 on24628607 and26235168, setup miss4\u21927 with repeat hits and freshCPU, native full15 then publish default; coherent legacy retirement and remaining static/flag targets thereafter. GPU credit exhausted. Known detached CPU fixture publication boundary remains audited and unmodified.",
   "host_ci_repair": {
     "native_cuda": "PASS 281/281 ReleaseFast after invalid-free test cleanup",
     "component_geometry": "PASS exact 2/2 named tests after test-owner discovery fix",
@@ -569,9 +569,9 @@
   "running_subtraction_total": {
     "baseline": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
     "delivered_code_net": -68160,
-    "pending_code_net": 961,
-    "combined_code_net": -67199,
-    "production_code_net": -41543,
+    "pending_code_net": 1112,
+    "combined_code_net": -67048,
+    "production_code_net": -41392,
     "historical_research_code_net": -25656,
     "top_level_scripts_removed": 150,
     "runtime_flags_removed": 2,
@@ -579,13 +579,13 @@
     "live_flag_registry": "IMPLEMENTED: 260 live controls; <60 target and M7/M8 retirement remain open",
     "historical_tool_python_utilities_removed": 4,
     "historical_non_stwo_flags_removed": 3,
-    "local_code_net_since_published": 961,
+    "local_code_net_since_published": 1112,
     "local_includes_unqualified_changes": true,
     "moves_counted_as_deletions": false
   },
   "latest_goal_turn": {
     "classification": "PROGRESS",
-    "evidence": "Committed test/definition ownership repairs and real installation Owner separation; twenty bounded host/fake-device test entries pass, including allocator fault injection and drain-before-teardown. Static diagnostics130 to120 without baseline changes. GPU remains stopped after credit exhaustion, final GPU qualification pending."
+    "evidence": "Installation Owner committed with20 bounded host/fake-device entries and independent review; exact mandatory gate host set218PASS; static diagnostics130 to120 and registry declarations pass. Existing GPU memory sampler now bound to proof/guard intervals with immutable per-GPU evidence. No new GPU proof or qualified benchmark; account still negative and compute stopped."
   },
   "budget_results": {
     "worktree_consolidation": {
@@ -1046,6 +1046,34 @@
       "hardware": "PENDING_CREDIT",
       "receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/install-owner-bounded-runtime-review.json",
       "post_run_changes": "Only test name precision and owner header wording; executable logic unchanged"
+    },
+    "guarded_sampled_device_memory_evidence": {
+      "status": "HOST_CONTRACTS_PASS_REAL_GPU_OBSERVATIONS_PENDING",
+      "actual": {
+        "added": 174,
+        "removed": 23,
+        "net": 151,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "resident_controller_net": -2,
+      "collector": "EXISTING_200MS_DEVICE_MONITOR_NO_NEW_SAMPLER",
+      "scope": "Whole-device sampled observed maxima INCLUDING guard; not exact or process-exclusive peaks",
+      "binding": [
+        "guard held/release monotonic interval",
+        "service and exact proof request windows",
+        "per-GPU UUID and sample count/first/last/max-gap",
+        "immutable resource-final.json hash"
+      ],
+      "failure_policy": "Historical/unguarded unavailable; new native acceptance requires linked both-GPU observations",
+      "cleanup": "Freeze samples before guard close; preserve measurement/cleanup errors; release GPU lease independently",
+      "host_tests": "PASS218 exact mandatory GPU gate host test set including collector cleanup owner",
+      "hardware": "NOT_RUN_CREDIT_EXHAUSTED",
+      "flags_scripts_changes": 0,
+      "physical_ceiling_or_reserve_changes": 0,
+      "independent_review": "PASS_READ_ONLY_NO_MATERIAL_ISSUES"
     }
   },
   "latest_completed_hardware_timings": {
@@ -1505,5 +1533,21 @@
     "publish default promotion",
     "post-promotion legacy sweep, fewer than60liveflags, staticgate green",
     "post-promotion late-feeding architectural work; physicalpeak evidence remains separate"
-  ]
+  ],
+  "validation_controller_followup": {
+    "source": "EXTERNAL_ACCEPTANCE_CANDIDATE27",
+    "setup_order": [
+      26235156,
+      24628607,
+      26235156,
+      24628607
+    ],
+    "setup_segment_growth": [
+      4,
+      7
+    ],
+    "binary_continuity": "Freeze successful gate driver/receiver and all canonical/basket assets across subsequent stages",
+    "optional_profiles": false,
+    "no_speedup_claim": true
+  }
 }

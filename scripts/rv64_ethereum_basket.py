@@ -250,6 +250,35 @@ class DeviceMonitor:
                 "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
                 "peak_used_bytes": {str(device): max((s["memory_used_bytes"] for s in self.samples if s["device"] == device), default=None) for device in sorted(self.devices)}}
 
+    def finish_guarded(self, guard, destination, service_window, timeline):
+        """Freeze service samples before guard release; preserve both failure classes."""
+        memory = measurement_error = cleanup_error = None
+        try:
+            try:
+                memory = self.finish()
+            except Exception as error:
+                measurement_error = f"{type(error).__name__}: {error}"
+                self.stop.set()
+                if self.thread.is_alive():
+                    self.thread.join()
+            if guard and memory:
+                memory.update(includes_external_guard_reservation=True, guard_held_bytes={str(d["device"]): d["held_physical_bytes"] for d in guard.record["ready"]["devices"]})
+            samples = list(self.samples)
+        finally:
+            try:
+                if guard:
+                    guard.close()
+            except Exception as error:
+                cleanup_error = f"{type(error).__name__}: {error}"
+        atomic_json(destination, {"physical_gpu_memory": memory, "raw_device_samples": samples,
+                    "physical_budget_guard": guard.record if guard else None,
+                    "service_window_monotonic_ns": service_window, "request_timeline": timeline,
+                    "measurement_error": measurement_error, "cleanup_error": cleanup_error,
+                    "scope": "Sampled whole-device observed maxima including guard; not exact or process-exclusive peaks"})
+        if measurement_error or cleanup_error:
+            raise RuntimeError(f"resource finalization failed: measurement={measurement_error}; cleanup={cleanup_error}")
+        return memory, {"file": destination.name, "sha256": sha(destination)}
+
 
 def worker_environment(worker, environment):
     visible = str(worker["device"])

@@ -167,6 +167,33 @@ class BasketTests(unittest.TestCase):
         self.assertEqual(result["kernel_activity"]["1"], {"samples": 0, "mean_percent": None, "min_percent": None, "max_percent": None})
         self.assertIn("not SM occupancy", result["kernel_activity_scope"])
 
+    def test_guarded_monitor_freezes_before_release_and_releases_on_every_failure(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        for failure in (None, 'measurement', 'cleanup', 'write'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as tmp:
+                events = []
+                monitor = B.DeviceMonitor('0,1')
+                def finish():
+                    events.append('freeze')
+                    if failure == 'measurement': raise RuntimeError('measurement failed')
+                    return {'errors': []}
+                def close():
+                    events.append('release')
+                    if failure == 'cleanup': raise RuntimeError('cleanup failed')
+                def write(path, data):
+                    events.append('write')
+                    if failure == 'write': raise OSError('write failed')
+                    path.write_text(json.dumps(data))
+                monitor.finish = finish
+                guard = SimpleNamespace(close=Mock(side_effect=close), record={'ready': {'devices': []}})
+                with patch.object(B, 'atomic_json', side_effect=write):
+                    if failure:
+                        with self.assertRaises((RuntimeError, OSError)): monitor.finish_guarded(guard, Path(tmp) / 'resource-final.json', [1, 2], [])
+                    else: monitor.finish_guarded(guard, Path(tmp) / 'resource-final.json', [1, 2], [])
+                self.assertEqual(events, ['freeze', 'release', 'write'])
+                guard.close.assert_called_once()
+
     def job(self, gpu):
         target = self.root / "run"
         request = self.root / "request.json"

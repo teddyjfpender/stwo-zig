@@ -97,6 +97,59 @@ def sha(path):
         return hashlib.file_digest(handle, 'sha256').hexdigest()
 
 
+def sampled_memory_observation(run, receipt, *, required=False):
+    """Validate immutable whole-device samples; never infer an exact/process peak."""
+    link = receipt.get('physical_gpu_memory_evidence')
+    if not link or not receipt.get('physical_budget_guard'):
+        if required:
+            raise RuntimeError('sampled GPU memory evidence unavailable')
+        return {'status': 'UNAVAILABLE', 'scope': 'historical or unguarded memory evidence is not qualified'}
+    raw = (Path(run) / 'resource-final.json').read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    if link != {'file': 'resource-final.json', 'sha256': digest}:
+        raise RuntimeError('sampled GPU memory evidence hash differs')
+    data = json.loads(raw)
+    guard = data.get('physical_budget_guard') or {}
+    memory = data.get('physical_gpu_memory') or {}
+    if data.get('measurement_error') or data.get('cleanup_error') or memory.get('errors') or guard != receipt.get('physical_budget_guard') or guard.get('status') != 'RELEASED' or guard.get('failure') or guard.get('exit_code') != 0:
+        raise RuntimeError('sampled GPU memory measurement/guard cleanup failed')
+    def window(value, enclosing):
+        if not isinstance(value, list) or len(value) != 2 or any(type(v) is not int for v in value) or not enclosing[0] <= value[0] < value[1] <= enclosing[1]:
+            raise RuntimeError('sampled GPU memory interval is invalid or outside guard')
+        return value
+    held = window([guard.get('held_from_monotonic_ns'), guard.get('release_start_monotonic_ns')], [0, 2**63 - 1])
+    service = window(data.get('service_window_monotonic_ns'), held)
+    rows = data.get('raw_device_samples') or []
+    if not rows or any(type(r.get('device')) is not int or r['device'] not in (0, 1) or type(r.get('monotonic_ns')) is not int or type(r.get('memory_used_bytes')) is not int or r['memory_used_bytes'] < 0 or not isinstance(r.get('uuid'), str) or not r['uuid'].startswith('GPU-') for r in rows):
+        raise RuntimeError('sampled GPU memory device identity/data invalid')
+    def per_gpu(bounds):
+        result = {}
+        for device in (0, 1):
+            selected = sorted((r for r in rows if r['device'] == device and bounds[0] <= r['monotonic_ns'] <= bounds[1]), key=lambda r: r['monotonic_ns'])
+            if not selected or len({r['uuid'] for r in rows if r['device'] == device}) != 1:
+                raise RuntimeError('sampled GPU memory request/device coverage missing')
+            times = [bounds[0], *(r['monotonic_ns'] for r in selected), bounds[1]]
+            result[str(device)] = {'uuid': selected[0]['uuid'], 'sampled_max_used_bytes': max(r['memory_used_bytes'] for r in selected), 'samples': len(selected), 'first_monotonic_ns': times[1], 'last_monotonic_ns': times[-2], 'max_gap_ns': max(b - a for a, b in zip(times, times[1:]))}
+        if result['0']['uuid'] == result['1']['uuid']:
+            raise RuntimeError('sampled GPU memory UUIDs are not distinct')
+        return result
+    requests = receipt.get('requests') or []
+    timeline = data.get('request_timeline') or []
+    if not requests or len(requests) != len(timeline):
+        raise RuntimeError('sampled GPU memory proof coverage differs')
+    observed = []
+    for ordinal, (request, item) in enumerate(zip(requests, timeline)):
+        bounds = window(item.get('monotonic_window_ns'), service)
+        proof = Path(run) / 'spool/out' / item['name'] / str(item['block']) / 'proof'
+        if type(request.get('ordinal')) is not int or type(item['block']) is not int or request.get('ordinal') != ordinal or request.get('block') != item['block'] or Path(request['proof']) != proof or request.get('client_latency_ns') != bounds[1] - bounds[0]:
+            raise RuntimeError('sampled GPU memory proof/window identity differs')
+        observed.append({'ordinal': ordinal, 'block': item['block'], 'proof': str(proof), 'monotonic_window_ns': bounds, 'per_gpu': per_gpu(bounds)})
+    devices = (guard.get('ready') or {}).get('devices') or []
+    if len(devices) != 2 or {d.get('device') for d in devices} != {0, 1}:
+        raise RuntimeError('sampled GPU memory guard identities differ')
+    return {'status': 'OBSERVED_SAMPLED', 'scope': 'Whole-device sampled observed maximum INCLUDING guard; not exact or process-exclusive peak. Target interval 200ms; timestamps mark nvidia-smi result observation, not exact hardware instants.', 'evidence': dict(link), 'guard_held_monotonic_ns': held, 'guard_held_bytes': {str(d['device']): d['held_physical_bytes'] for d in devices}, 'service_monotonic_ns': service, 'per_gpu': per_gpu(service), 'requests': observed}
+
+
 def validate_assets(assets, pins):
     if not assets:
         raise RuntimeError('no pinned assets supplied')

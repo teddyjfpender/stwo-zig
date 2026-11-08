@@ -429,7 +429,7 @@ class PhysicalBudgetGuard:
                     raise RuntimeError("physical budget ceiling not enforced")
                 environment[f'STWO_RV64_BUDGET_GUARD_BYTES_{device["device"]}'] = str(held)
             environment['STWO_RV64_BUDGET_GUARD_PID'] = str(self.process.pid)
-            self.record.update(pid=self.process.pid, ready=ready, status="HOLDING", claim="enforced physical ceiling, not a measured peak")
+            self.record.update(pid=self.process.pid, ready=ready, status="HOLDING", held_from_monotonic_ns=time.monotonic_ns(), claim="enforced physical ceiling, not a measured peak")
             B.atomic_json(self.path, self.record)
             self.check()
         except BaseException:
@@ -459,6 +459,7 @@ class PhysicalBudgetGuard:
             self.watcher.join(timeout=5)
         if self.process:
             if self.process.poll() is None:
+                self.record["release_start_monotonic_ns"] = time.monotonic_ns()
                 try:
                     self.process.stdin.write(b"\n")
                     self.process.stdin.flush()
@@ -689,8 +690,8 @@ def daemon(args):
             plan["environment"].update({k:v for k,v in environment.items() if k.startswith("STWO_RV64_BUDGET_GUARD_")})
             B.atomic_json(run / "plan.json", plan)
         monitor = B.DeviceMonitor("0,1")
-        monitor.thread.start()
         started = time.monotonic_ns()
+        monitor.thread.start()
         with (run / "producer.stdout").open("wb") as out, (run / "producer.stderr").open("wb") as err:
             launch_environment = dict(environment)
             if args.nsys:
@@ -739,6 +740,7 @@ def daemon(args):
                         time.sleep(0.005)
                     latency = time.monotonic_ns() - submitted
                     timeline.append({"name": name, "block": block, "client_latency_ns": latency, "service": B.load(done),
+                                     "monotonic_window_ns": [submitted, submitted + latency],
                                      "utc_window_ns": [submitted_utc, time.time_ns()], "cpu_resource_before": resource_before, "cpu_resource_after": cgroup_cpu_snapshot()})
                     # Preserve completed windows even if a later request fails.
                     B.atomic_json(run / "request-timeline.json", timeline)
@@ -769,20 +771,15 @@ def daemon(args):
                 raise
         wall_ns = time.monotonic_ns() - started
     finally:
-        if guard:
-            guard.close()
-        memory = monitor.finish() if monitor else None
-        if guard and memory:
-            memory["includes_external_guard_reservation"] = True
-            memory["guard_held_bytes"] = {str(d["device"]):d["held_physical_bytes"] for d in guard.record["ready"]["devices"]}
-        # Completion receipts do not exist after fatal producer errors or a
-        # watchdog. Preserve sampled GPU activity and the guard lifecycle anyway.
-        B.atomic_json(run / "resource-final.json", {"physical_gpu_memory": memory,
-                      "raw_device_samples": monitor.samples if monitor else [],
-                      "physical_budget_guard": guard.record if guard else None,
-                      "scope": "Sampled device activity, not process-exclusive GPU time or exact peak; preserved on success/failure"})
-        fcntl.flock(lock, fcntl.LOCK_UN)
-        lock.close()
+        try:
+            memory, memory_evidence = monitor.finish_guarded(guard, run / "resource-final.json", [started, time.monotonic_ns()], timeline) if monitor else (None, None)
+        finally:
+            try:
+                if guard and not monitor:
+                    guard.close()
+            finally:
+                fcntl.flock(lock, fcntl.LOCK_UN)
+                lock.close()
     process_usage = {"argv": argv, "exit_code": code, "wall_ns": wall_ns, "user_seconds": usage.ru_utime,
                      "system_seconds": usage.ru_stime, "peak_rss_bytes": usage.ru_maxrss * 1024,
                      "minor_faults": usage.ru_minflt, "major_faults": usage.ru_majflt}
@@ -820,6 +817,7 @@ def daemon(args):
                "service_start_s": round(ready_ns / 1e9, 3), "service_stop_s": round(stop_ns / 1e9, 3),
                "service_ready_record": B.load(spool / "READY"),
                "producer_process": process_usage, "physical_gpu_memory": memory, "cuda_api": api,
+               "physical_gpu_memory_evidence": memory_evidence,
                "quiet_before_requests": quiet_records,
                "physical_budget_guard": guard.record if guard else None,
                "service_overhead_s": round(wall_ns / 1e9 - sum(r["marker"]["request_wall_ns"] for r in requests) / 1e9, 3),

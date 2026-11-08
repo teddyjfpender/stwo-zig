@@ -16,7 +16,7 @@ import sys
 import time
 
 import rv64_m7_integration_stack as stack
-from rv64_validation import CASES, check_corpus, frozen_parity, payload_name, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, FROZEN_D2_PACKAGE as GOLDEN, native_selected
+from rv64_validation import CASES, check_corpus, frozen_parity, payload_name, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, FROZEN_D2_PACKAGE as GOLDEN, native_selected, sampled_memory_observation
 
 ROOT = Path(__file__).resolve().parents[1]
 # Canonical default runtime: the source-built opt-combined image (owner decision
@@ -105,6 +105,7 @@ def main():
                             'scripts.tests.test_rv64_gate', 'scripts.tests.test_rv64_m7_composed_cells',
                             'scripts.tests.test_rv64_quiet_checkpoint',
                             'scripts.tests.test_rv64_validation',
+                            'scripts.tests.test_rv64_ethereum_basket',
                             'scripts.tests.test_rv64_gpu_activity',
                             'scripts.tests.test_rv64_m8_bench15',
                             'scripts.tests.test_dev_test',
@@ -141,6 +142,7 @@ def main():
         receipt['service'] = str(service)
         produced = json.loads((service / 'receipt.json').read_text())
         receipt['physical_budget'] = stack.guard_verdict(produced, 'fullstack' if native else 'baseline', receipt['asset_sha256']['process_budget_guard'])
+        receipt['physical_memory_observation'] = sampled_memory_observation(service, produced, required=native)
         if len(produced['requests']) != 2:
             raise RuntimeError('expected cold and warm proofs')
         golden_path = GOLDEN / f'{args.block}-combined-d2-coalesce-v1/trial-1/artifact-fingerprints.json'

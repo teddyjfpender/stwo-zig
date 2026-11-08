@@ -14,7 +14,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, JOBS_FLAGS, native_selected
+from rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, JOBS_FLAGS, native_selected, sampled_memory_observation
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_PRESET = HERE.parent / 'design/riscv-proving-stack/m7-handoff/integration-stack-preset.json'
@@ -249,6 +249,7 @@ def run(args):
         if len(receipt.get('quiet_before_requests', [])) != 2:
             raise RuntimeError('both requests require explicit quiet receipts')
         entry['physical_budget'] = guard_verdict(receipt, arm, manifest['asset_sha256']['process_budget_guard'])
+        entry['physical_memory_observation'] = sampled_memory_observation(service, receipt, required=arm == 'fullstack')
         entry['service_assets'] = receipt['assets']
         for request in receipt['requests']:
             actual = fingerprints(request)

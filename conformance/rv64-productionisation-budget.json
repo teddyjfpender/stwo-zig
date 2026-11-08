@@ -436,8 +436,8 @@
     },
     {
       "id": "guarded_sampled_device_memory_evidence",
-      "net_code_budget": 150,
-      "positive_growth_justification": "Bind the existing whole-device GPU sampler to verified guard-held service/request intervals and immutable receipts. Preserve separate GPU identities, sampled maxima and coverage through validation and bench aggregation; fail closed for missing new acceptance evidence without treating old receipts as measured. Preserve guard cleanup on sampler failures and all existing proof/CPU/quiet checks. No new collector, CUDA rebuild, flags or launcher.",
+      "net_code_budget": 151,
+      "positive_growth_justification": "Bind the existing whole-device GPU sampler to verified guard-held service/request intervals and immutable receipts. Preserve separate GPU identities, sampled maxima and coverage through validation and bench aggregation; fail closed for missing new acceptance evidence without treating old receipts as measured. Preserve guard cleanup on sampler failures and all existing proof/CPU/quiet checks. No new collector, CUDA rebuild, flags or launcher. Include the actual collector cleanup-test owner in every GPU gate (+1 line) so guard-release regressions cannot evade mandatory host validation.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
     }
