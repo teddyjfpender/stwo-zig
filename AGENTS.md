@@ -5,6 +5,7 @@ in [the delivery contract](design/riscv-proving-stack/rv64-gpu-hygiene.md).
 That contract includes the ordered GPU-native promotion and legacy deletion
 gates. Do not declare this phase complete from component tests or warm timings.
 
+- [ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md) is binding on every change.
 - Use the canonical checkout `/Users/theodorepender/Coding/stwo-zig`.
   Do not create component worktrees. Inspect historical work through its
   archive refs; preserve unique work before retiring a working copy.

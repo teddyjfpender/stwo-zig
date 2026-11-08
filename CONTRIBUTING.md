@@ -1,5 +1,14 @@
 # Contributing
 
+> **Normative reference: [ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md).**
+> It is the repository's contribution specification and MUST be followed by
+> every contributor, human or agent. Pull requests that violate it are
+> rejected. It defines the collaboration model, package contracts, repository
+> structure, the API change protocol, the complexity budget and its reporting
+> format, the review checklist, and which rules are enforced by which gate.
+> This guide is the domain practice that implements it; where they disagree,
+> the standard wins and this guide is corrected.
+
 This repository treats engineering taste as an enforceable correctness and performance constraint.
 It is a parity-driven cryptographic prover, a high-performance Zig system, and a Metal compute
 runtime. A change is not complete merely because it produces the right output once. It must make
@@ -146,7 +155,8 @@ docs                           architecture, protocols, performance claims, oper
 7. A convenience import must not create a dependency cycle or make a private representation part
    of the effective API.
 
-If a change violates this direction, stop and write a design note. Do not solve the problem with a
+If a change violates this direction, stop and open a contract-change RFC issue
+([API change protocol](ENGINEERING_STANDARDS.md#6-api-change-protocol)). Do not solve the problem with a
 re-export, an `anyopaque` escape hatch, a global callback, or a backend-name conditional.
 
 ---
@@ -230,8 +240,9 @@ Before non-trivial code, write down:
 - scalar/reference behavior used to prove parity;
 - the benchmark that can falsify the performance hypothesis.
 
-Record substantial designs as dated notes in the `stwo-zig-og-docs` archive, or extend an existing normative
-architecture document when the concern already has one. The document should be as short as the
+Record substantial designs as dated notes under `design/`, or extend an existing normative
+architecture document when the concern already has one. Historical prose lives in the
+`stwo-zig-og-docs` archive. The document should be as short as the
 problem permits, but long enough to remove ambiguity. Large architecture changes need a dataflow
 diagram and an ownership/lifetime diagram.
 
@@ -1293,7 +1304,7 @@ references over large frameworks.
   reduce repository size. Follow the immutable replacement and clean-room
   gates in `conformance/repository-production-scope.md`.
 - Published Zig package closures must pass `zig build package-dist`; they may
-  not acquire autoresearch, Rust, Lean, vector, or deferred CUDA inputs.
+  not acquire guest, Rust, Lean, vector, or deferred CUDA inputs.
 
 ---
 
@@ -1347,23 +1358,23 @@ For the RISC-V lane, `scripts/riscv_formal_tools.py`,
 `scripts/riscv_trace_vectors.py`, and `scripts/riscv_arch_tests.py` own formal
 correctness evidence. They fail closed on the exact Sail compiler/model, Spike,
 and architectural-test revisions.
-`autoresearch/benchmarks/riscv_stark_v_benchmark.py` remains
-only a legacy performance/layout comparison; it is not an ISA correctness
+The retired [`riscv_stark_v_benchmark.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/riscv_stark_v_benchmark.py) (archived)
+was only a legacy performance/layout comparison; it is not an ISA correctness
 authority or release substitute.
 
 Both RISC-V harnesses embed a `host_environment` block (chip, cores, memory, OS,
 toolchain) so every report says what machine produced it, and their committed
 baselines live under `vectors/reports/riscv_baselines/` (the per-run
 `vectors/reports/*.json` outputs are gitignored). Those baselines are the
-reference the autoresearch harness measures against; see that directory's
+reference historical comparison harnesses measured against; see that directory's
 README for the anchor-freeze linkage. The native board's tracked history is
 `vectors/reports/benchmark_history/`.
 
-`autoresearch/benchmarks/build_crypto_guests.py` vendors the compiled cryptographic guests
+The archived [`build_crypto_guests.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/build_crypto_guests.py) vendored the compiled cryptographic guests
 (SHA-256, Keccak, ECDSA from Stark-V's guest-lib as source provenance, plus the repo-owned
 `vectors/riscv_guests/poseidon2_m31` guest) into `vectors/riscv_elfs/crypto/`
 with a provenance record, and
-`autoresearch/benchmarks/riscv_crypto_benchmark.py` benches them
+the archived [`riscv_crypto_benchmark.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/riscv_crypto_benchmark.py) benched them
 on both lanes. Rows are either `proof` (SHA-256 all sizes, single-block Keccak)
 or `execution` (ECDSA, Poseidon2-M31, multi-block Keccak — neither lane proves
 these at the pinned config, so both only execute them). The legacy matched
@@ -1397,8 +1408,9 @@ before requesting review, and record any gate that remains unavailable. Run `pyt
 for an explicit full release rehearsal. Hosted CI is authoritative and must not contain a
 corresponding bypass path.
 
-1. **Identify the contract.** Name the bug, feature, parity gap, architectural debt, or measured
-   bottleneck.
+1. **Identify the contract.** Start from an issue that names the bug, feature, parity gap,
+   architectural debt, or measured bottleneck and its executable specification. A contract change
+   needs an approved RFC issue first.
 2. **Inspect the existing path.** Trace real call sites, ownership, protocol order, and reports.
 3. **Write the design/hypothesis.** Do this before a cross-layer or performance-heavy change.
 4. **Build the oracle.** Add scalar, Rust, component, or verifier evidence first.
@@ -1409,7 +1421,8 @@ corresponding bypass path.
 9. **Update architecture and evidence.** Distinguish diagnostic from authoritative results.
 10. **Run relevant repository gates.** Record anything unavailable and why.
 11. **Review the diff for complexity.** Remove flags, exports, indirection, duplication, and stale
-    comments introduced during exploration.
+    comments introduced during exploration, then report the complexity budget in the
+    [standard format](ENGINEERING_STANDARDS.md#7-complexity-budget).
 
 For a large change, prefer a sequence such as:
 
@@ -1445,8 +1458,12 @@ review rather than an arbitrary diff count.
 
 ### PR description
 
-Include:
+Use the [pull request template](.github/pull_request_template.md). Include:
 
+- **Contract impact:** packages and contracts touched; the approved RFC issue for any contract
+  change.
+- **Complexity budget:** code lines added/removed/net, flags added/removed/live, scripts
+  added/removed; docs, configuration and receipts reported separately; justification for growth.
 - **Contract:** behavior, invariants, and failure modes.
 - **Why:** bug, parity gap, architecture need, or profiler evidence.
 - **Design:** module/ownership/dataflow changes.
@@ -1599,6 +1616,8 @@ boundaries.
 - [ ] Docs, designs, and benchmark interpretation are current.
 - [ ] The diff contains no cache, profiler, build, secret, or unrelated artifacts.
 - [ ] The PR explains unavailable gates and residual risks.
+- [ ] The complexity budget is reported and growth is justified.
+- [ ] The no-complexity-leaks checklist in ENGINEERING_STANDARDS.md section 9 is answered.
 
 ---
 
