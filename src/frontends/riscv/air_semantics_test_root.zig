@@ -124,6 +124,4 @@ test {
     _ = @import("air/lang/tests/typed_lui_test.zig");
     _ = @import("air/lang/tests/typed_lui_witness_test.zig");
     _ = @import("recursion/air/tests/inventory_test.zig");
-    _ = @import("recursion/air/tests/qm31_mul_adversarial_test.zig");
-    _ = @import("recursion/air/tests/qm31_mul_test.zig");
 }

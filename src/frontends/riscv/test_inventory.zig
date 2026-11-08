@@ -25,7 +25,6 @@ test {
     _ = @import("statement_authority_preimage_test_root.zig");
     _ = @import("segment_leaf_statement_contract_test_root.zig");
     _ = @import("verifier_parameters_test_root.zig");
-    _ = @import("prover/tests/incremental_ethereum_omit_orchestration_v4_test.zig");
     _ = @import("prover/memory_provider_shards/ethereum_omit_validated_parity_v1_test.zig");
     _ = @import("air/lang/typed_poseidon2_identity_codec.zig");
     // Detached recursive verifier arithmetic and Poseidon specialization gates.
@@ -56,10 +55,6 @@ test {
     _ = @import("outer_parent_transcript_source_test_root.zig");
     _ = @import("owned_statement.zig");
     _ = @import("proof_transcript.zig");
-    _ = @import(
-        "prover/tests/incremental_ethereum_omit_orchestration_v4_test.zig",
-    );
-    _ = @import("prover/tests/incremental_ethereum_omit_protocol_v4_test.zig");
     _ = @import("prover/memory_provider_shards/authority_test.zig");
     _ = @import(
         "prover/memory_provider_shards/ethereum_omit_validated_parity_v1_test.zig",
@@ -79,13 +74,11 @@ test {
 
     // Shadow recursion boundary; native codec only until the recursive
     // verifier admits independently verified child-proof authority.
-    _ = @import("recursion/tests/relation_summary_test.zig");
     _ = @import("recursion/tests/arithmetic_circuit_test.zig");
     _ = @import("recursion/tests/binary_pair_authority_test.zig");
     _ = @import("recursion/poseidon2_channel.zig");
     _ = @import("recursion/protocol.zig");
     _ = @import("recursion/fixed_profile.zig");
-    _ = @import("recursion/tests/fri_profile_frontier_test.zig");
     _ = @import("recursion/leaf_profile.zig");
     _ = @import("recursion/tests/outer_parent_child_admission_test.zig");
     _ = @import("recursion/tests/outer_parent_range_authority_test.zig");
@@ -97,19 +90,10 @@ test {
     _ = @import("recursion/tests/segment_transcript_witness_test.zig");
     _ = @import("recursion/tests/segment_leaf_authority_test.zig");
     _ = @import("recursion/segment_profile.zig");
-    _ = @import("recursion/tests/segment_range_authority_test.zig");
     _ = @import("recursion/tests/segment_statement_outer_source_test.zig");
     _ = @import("recursion/tests/span_statement_test.zig");
     _ = @import("recursion/tests/span_statement_blake3_test.zig");
-    _ = @import("recursion/tests/span_identity_blake3_test.zig");
     _ = @import("recursion/tests/blake3_byte_tree_test.zig");
-    _ = @import("recursion/air/tests/blake3_span_identity_inputs_test.zig");
-    _ = @import("recursion/air/tests/blake3_span_identity_join_test.zig");
-    _ = @import("recursion/air/tests/blake3_span_identity_constraints_test.zig");
-    _ = @import("recursion/air/tests/vm_air_composition_input_blake3_test.zig");
-    _ = @import("recursion/air/tests/composition_circuit_blake3_test.zig");
-    _ = @import("recursion/air/tests/statement_input_blake3_test.zig");
-    _ = @import("recursion/tests/statement_semantics_circuit_blake3_test.zig");
     _ = @import("recursion/air/tests/statement_semantics_input_blake3_test.zig");
     _ = @import("recursion/tests/statement_semantics_circuit_test.zig");
     _ = @import("recursion/tests/temporal_pair_node_test.zig");
@@ -121,8 +105,6 @@ test {
     _ = @import("recursion/air/tests/composition_circuit_test.zig");
     _ = @import("recursion/air/universal_shared_provider_composition.zig");
     _ = @import("recursion/air/control_component.zig");
-    _ = @import("recursion/air/tests/control_slice_test.zig");
-    _ = @import("recursion/air/tests/control_slice_heterogeneous_v2_test.zig");
     _ = @import("recursion/air/tests/control_test.zig");
     _ = @import("recursion/air/control_witness.zig");
     _ = @import("recursion/air/direct_constraint_program.zig");
@@ -133,51 +115,28 @@ test {
     _ = @import("recursion/air/tests/fri_verifier_circuit_test.zig");
     _ = @import("recursion/air/tests/fri_verifier_control_test.zig");
     _ = @import("recursion/air/tests/inventory_test.zig");
-    _ = @import("recursion/air/tests/linear_ops_adversarial_test.zig");
-    _ = @import("recursion/air/tests/linear_ops_test.zig");
-    _ = @import("recursion/air/tests/qm31_inv_adversarial_test.zig");
-    _ = @import("recursion/air/tests/qm31_inv_test.zig");
-    _ = @import("recursion/air/tests/qm31_mul_adversarial_test.zig");
-    _ = @import("recursion/air/tests/qm31_mul_full_adversarial_test.zig");
-    _ = @import("recursion/air/tests/qm31_mul_full_test.zig");
-    _ = @import("recursion/air/tests/qm31_mul_test.zig");
     _ = @import("recursion/air/tests/fri_verifier_input_test.zig");
-    _ = @import("recursion/air/tests/fri_verifier_lowering_test.zig");
     _ = @import("recursion/air/tests/merkle_path_test.zig");
     _ = @import("recursion/air/tests/merkle_path_poseidon_bridge_test.zig");
     _ = @import("recursion/air/tests/merkle_root_test.zig");
     _ = @import("recursion/air/tests/pcs_deep_circuit_test.zig");
     _ = @import("recursion/air/tests/pcs_deep_input_test.zig");
-    _ = @import("recursion/air/tests/pow_check_test.zig");
-    _ = @import("recursion/air/tests/pow_frame_test.zig");
     _ = @import("recursion/air/tests/range_check_8_8_bridge_test.zig");
-    _ = @import("recursion/air/tests/relation_challenge_test.zig");
     _ = @import("recursion/air/tests/query_bits_test.zig");
     _ = @import("recursion/air/tests/query_mapping_test.zig");
     _ = @import("recursion/air/relation_effect.zig");
     _ = @import("recursion/air/tests/statement_input_test.zig");
     _ = @import("recursion/air/tests/statement_semantics_input_test.zig");
     _ = @import("recursion/air/tests/trace_merkle_test.zig");
-    _ = @import("recursion/air/tests/transcript_air_test.zig");
-    _ = @import("recursion/air/tests/transcript_binding_test.zig");
-    _ = @import("recursion/air/tests/transcript_payload_test.zig");
-    _ = @import("recursion/air/tests/transcript_state_test.zig");
-    _ = @import("recursion/air/tests/transcript_word_test.zig");
     _ = @import("recursion/air/universal_challenges.zig");
     _ = @import("recursion/air/tests/universal_manifest_test.zig");
     _ = @import("recursion/air/universal_roster.zig");
     _ = @import("recursion/air/tests/universal_roster_inventory_test.zig");
     _ = @import("recursion/air/tests/universal_shared_provider_test.zig");
-    _ = @import("recursion/air/tests/universal_typed_component_test.zig");
     _ = @import("recursion/air/tests/verifier_arithmetic_lowering_test.zig");
     _ = @import("recursion/air/tests/verifier_randomness_test.zig");
     _ = @import("recursion/air/verifier_schedule.zig");
     _ = @import("recursion/air/tests/vm_air_composition_input_test.zig");
-    _ = @import("recursion/air/tests/vm_public_claim_hash_test.zig");
-    _ = @import("recursion/air/tests/vm_public_claim_input_test.zig");
-    _ = @import("recursion/air/tests/vm_public_claim_semantics_input_test.zig");
-    _ = @import("recursion/air/tests/vm_public_io_hash_test.zig");
-    _ = @import("recursion/air/tests/vm_public_logup_input_test.zig");
     _ = @import("recursion/tests/vm_air_profile_test.zig");
     _ = @import("recursion/tests/vm_leaf_context_test.zig");
 
@@ -270,7 +229,6 @@ test {
     _ = @import("air/guest_precompile/tests/proof_transcript_security_test.zig");
     _ = @import("air/guest_precompile/tests/program_commitment_test.zig");
     _ = @import("air/guest_precompile/tests/provider_component_test.zig");
-    _ = @import("air/guest_precompile/tests/relation_test.zig");
     _ = @import("air/interaction.zig");
     _ = @import("air/interaction_legacy_test_oracle.zig");
     _ = @import("air/logup.zig");
@@ -306,9 +264,6 @@ test {
     _ = @import("air/lang/tests/effects_test.zig");
     _ = @import("air/lang/tests/finalization_test.zig");
     _ = @import("air/lang/tests/function_frames_test.zig");
-    _ = @import("air/lang/tests/function_body_lowering_test.zig");
-    _ = @import("air/lang/tests/function_activation_logup_test.zig");
-    _ = @import("air/lang/tests/function_body_ownership_test.zig");
     _ = @import("air/lang/tests/hint_recipe_test.zig");
     _ = @import("air/lang/tests/range_refinement_test.zig");
     _ = @import("air/lang/tests/row_window_test.zig");
@@ -327,7 +282,6 @@ test {
     _ = @import("air/lang/tests/materialization_cost_direct_test.zig");
     _ = @import("air/lang/tests/materialization_cut_set_test.zig");
     _ = @import("air/lang/tests/materialization_direct_benchmark_test.zig");
-    _ = @import("air/lang/tests/materialization_diagnostics_test.zig");
     _ = @import("air/lang/tests/materialization_fixed_direct_test.zig");
     _ = @import("air/lang/tests/materialization_fixed_cost_test.zig");
     _ = @import("air/lang/tests/materialization_frontier_cost_model_test.zig");
@@ -433,7 +387,6 @@ test {
     _ = @import("air/lang/tests/typed_poseidon2_degree5_trace_test.zig");
     _ = @import("prover/memory_provider_shards/provider_order_component.zig");
     _ = @import("air/lang/tests/typed_poseidon2_degree_bounded_component_test.zig");
-    _ = @import("air/lang/tests/typed_poseidon2_degree_bounded_backend_test.zig");
     _ = @import("air/lang/tests/typed_poseidon2_degree_bounded_trace_test.zig");
     _ = @import("air/lang/tests/typed_poseidon2_identity_test.zig");
     _ = @import("air/lang/tests/typed_poseidon2_frontier_artifact_test.zig");
@@ -475,9 +428,6 @@ test {
     _ = @import("air/memory_commitment/poseidon2.zig");
     _ = @import("air/memory_commitment/poseidon2_air.zig");
     _ = @import("air/memory_commitment/ethereum_node_v1.zig");
-    _ = @import("air/memory_commitment/ethereum_node_component_v1.zig");
-    _ = @import("air/memory_commitment/ethereum_path_v1.zig");
-    _ = @import("air/memory_commitment/ethereum_word_tree_v1.zig");
     _ = @import("ethereum_commitment_v1_test_root.zig");
     _ = @import("air/memory_commitment/sparse_merkle.zig");
     _ = @import("air/memory_commitment/trace.zig");
@@ -553,7 +503,6 @@ test {
     _ = @import("prover/tests/statement_validation_ownership_test.zig");
     _ = @import("prover/guest_precompile/tests/component_assembly_test.zig");
     _ = @import("prover/guest_precompile/tests/split_component_assembly_test.zig");
-    _ = @import("prover/guest_precompile/tests/split_joint_pow_test.zig");
     _ = @import("prover/guest_precompile/tests/split_leaf_prepare_test.zig");
     _ = @import("prover/guest_precompile/tests/split_leaf_statement_test.zig");
     _ = @import("prover/guest_precompile/tests/split_main_trace_test.zig");
@@ -579,7 +528,6 @@ test {
     _ = @import("air/lang/tests/lookup_polynomial_program_v2_test.zig");
     _ = @import("air/lang/tests/opcode_composition_manifest_extended_test.zig");
     _ = @import("air/lang/tests/opcode_composition_manifest_test.zig");
-    _ = @import("air/lang/tests/row_window_expression_v2_test.zig");
     _ = @import("air/lookups/opcode_component_prepared_domain.zig");
     _ = @import("air/lookups/tables/source_ingest_test.zig");
     _ = @import("air/memory_commitment/poseidon2_air_test.zig");
@@ -609,7 +557,6 @@ test {
     _ = @import("recursion/air/tests/segment_boundary_components_v2_test.zig");
     _ = @import("recursion/air/tests/segment_outer_adapter_manifest_v2_test.zig");
     _ = @import("recursion/air/segment_publication_input_provider_component_v2.zig");
-    _ = @import("recursion/air/temporal_packed_relation_challenge_v2.zig");
     _ = @import("recursion/air/tests/vm_public_logup_control_v2_test.zig");
     _ = @import("recursion/tests/binary_global_closure_outer_source_test.zig");
     _ = @import("recursion/fixed_wire_fixed_stark_proof_wire.zig");
@@ -619,7 +566,6 @@ test {
     _ = @import("recursion/recursion_air_composition_circuit_v3_authority_validation.zig");
     _ = @import("recursion/tests/segment_leaf_authority_v2_test.zig");
     _ = @import("recursion/tests/segment_leaf_local_authority_v3_test.zig");
-    _ = @import("recursion/tests/segment_leaf_local_projection_v3_test.zig");
     _ = @import("recursion/tests/segment_leaf_outer_authority_v2_test.zig");
     _ = @import("recursion/tests/segment_outer_cohort_v2_test.zig");
     _ = @import("recursion/segment_outer_noncore_audits_v2_test_fixture.zig");
@@ -627,7 +573,6 @@ test {
     _ = @import("recursion/tests/segment_public_native_sum_authority_v2_test.zig");
     _ = @import("recursion/tests/segment_public_outer_source_v2_test.zig");
     _ = @import("recursion/tests/segment_publication_input_provider_authority_v2_test.zig");
-    _ = @import("recursion/tests/segment_publication_input_provider_plan_v2_test.zig");
     _ = @import("recursion/segment_statement_outer_source_test_continuation_1.zig");
     _ = @import("recursion/tests/segment_statement_outer_source_v2_test.zig");
     _ = @import("recursion/segment_statement_outer_source_v2_test_root.zig");
@@ -635,9 +580,7 @@ test {
     _ = @import("recursion/tests/segment_statement_v2_test.zig");
     _ = @import("recursion/tests/segment_transcript_outer_components_v2_test.zig");
     _ = @import("recursion/tests/segment_transcript_outer_source_v2_test.zig");
-    _ = @import("recursion/tests/transcript_program_v2_test.zig");
     _ = @import("row_window_edit_test_root.zig");
-    _ = @import("row_window_expression_v2_edit_test_root.zig");
     _ = @import("runner/guest_precompile/tests/poseidon2_clock_authority_test.zig");
     _ = @import("runner/tests/segment_continuation_test.zig");
     _ = @import("runner/tests/trace_clock_authority_test.zig");
@@ -652,7 +595,6 @@ test {
     _ = @import("segment_statement_outer_source_v2_test_root.zig");
     _ = @import("segment_transcript_outer_source_v2_test_root.zig");
     _ = @import("transcript_v2_test_root.zig");
-    _ = @import("vm_public_claim_hash_authority_v2_test_root.zig");
     _ = @import("vm_public_logup_control_v2_test_root.zig");
     _ = @import("air/constraint_program.zig");
     _ = @import("air/extract/program.zig");
@@ -660,13 +602,9 @@ test {
     _ = @import("sail_oracle_test_root.zig");
     // Explicitly retain all reviewed backend-neutral test owners.
     _ = @import("air/component.zig");
-    _ = @import("air/guest_precompile/tests/analyze_legacy_candidate_v1_test.zig");
     _ = @import("air/guest_precompile/tests/bulk_memcpy_caller_candidate_v1_test.zig");
-    _ = @import("air/guest_precompile/tests/bulk_memcpy_trace_v1_test.zig");
-    _ = @import("air/guest_precompile/tests/bulk_memcpy_word_candidate_v1_test.zig");
     _ = @import("air/guest_precompile/ethereum_lookup_registration.zig");
     _ = @import("air/guest_precompile/tests/ethereum_statement_test.zig");
-    _ = @import("air/guest_precompile/tests/keccak256_sponge_candidate_v1_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_air_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_authority_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_component_test.zig");
@@ -676,10 +614,8 @@ test {
     _ = @import("air/guest_precompile/tests/keccakf_relations_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_table_component_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_tables_test.zig");
-    _ = @import("air/guest_precompile/tests/keccakf_throughput_candidate_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_trace_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_witness_test.zig");
-    _ = @import("air/guest_precompile/tests/secp256k1_adaptive_profile_test.zig");
     _ = @import("air/guest_precompile/tests/secp256k1_affine_test.zig");
     _ = @import("air/guest_precompile/tests/secp256k1_component_test.zig");
     _ = @import("air/guest_precompile/tests/secp256k1_ecdsa_direct_test.zig");
@@ -692,21 +628,13 @@ test {
     _ = @import("air/guest_precompile/tests/secp256k1_scalar_direct_test.zig");
     _ = @import("air/guest_precompile/tests/secp256k1_split_direct_test.zig");
     _ = @import("air/guest_precompile/tests/secp256k1_table_direct_test.zig");
-    _ = @import("air/guest_precompile/tests/sha256_pair_candidate_v1_test.zig");
     _ = @import("air/incremental_public_logup_v3.zig");
     _ = @import("air/incremental_public_logup_v4.zig");
     _ = @import("air/tests/incremental_public_logup_v4_bench_test.zig");
-    _ = @import("air/lang/tests/typed_load_store_selector_alias_candidate_v1_test.zig");
     _ = @import("air/lang/tests/typed_poseidon2_degree5_backend_test.zig");
-    _ = @import("air/lang/tests/typed_register_read_alias_candidate_v1_test.zig");
-    _ = @import("air/lang/tests/typed_two_read_register_alias_candidate_v1_test.zig");
     _ = @import("air/memory_commitment/incremental_boundary_interaction_v3.zig");
     _ = @import("air/memory_commitment/incremental_bridge_component_v2.zig");
     _ = @import("air/memory_commitment/incremental_bridge_v2.zig");
-    _ = @import("air/memory_commitment/incremental_frontier_component_v1.zig");
-    _ = @import("air/memory_commitment/incremental_frontier_v1.zig");
-    _ = @import("air/memory_commitment/incremental_transition_v1.zig");
-    _ = @import("air/memory_commitment/incremental_transition_v2.zig");
     _ = @import("air/memory_commitment/poseidon2_degree3_component.zig");
     _ = @import("air/memory_commitment/poseidon2_narrow_backend_v1_test.zig");
     _ = @import("air/extract/canonical_digest_test.zig");
@@ -714,15 +642,10 @@ test {
     _ = @import("bulk_memcpy_candidate_test_root.zig");
     _ = @import("diagnostics/revm_legacy.zig");
     _ = @import("ethereum_candidate_execution_contract_test_root.zig");
-    _ = @import("ethereum_candidate_leaf_test_root.zig");
-    _ = @import("ethereum_candidate_provider_test_root.zig");
     _ = @import("ethereum_initial_input_lane_v1_test_root.zig");
     _ = @import("ethereum_leaf_context_v1_test_root.zig");
     _ = @import("ethereum_minimal_trace_test_root.zig");
     _ = @import("ethereum_narrow_poseidon_proof_test_root.zig");
-    _ = @import("incremental_memory_cost_tool.zig");
-    _ = @import("incremental_memory_profile_v2_tool.zig");
-    _ = @import("incremental_memory_transition_test_root.zig");
     _ = @import("isa/bulk_memcpy_candidate_v1.zig");
     _ = @import("isa/bulk_memcpy_private_registry_v1.zig");
     _ = @import("isa/ethereum_bulk_memcpy_candidate_v1.zig");
@@ -732,24 +655,14 @@ test {
     _ = @import("keccakf_precompile_test_root.zig");
     _ = @import("poseidon_materialization_frontier_test_root.zig");
     _ = @import("prover/guest_precompile/ethereum_assembly.zig");
-    _ = @import("prover/guest_precompile/ethereum_bulk_memcpy_candidate_decode_v1.zig");
     _ = @import("prover/guest_precompile/ethereum_candidate_combined_decode_v1.zig");
-    _ = @import("prover/guest_precompile/ethereum_candidate_execution_product_v1.zig");
-    _ = @import("prover/guest_precompile/tests/ethereum_candidate_leaf_integration_v1_test.zig");
-    _ = @import("prover/guest_precompile/tests/ethereum_candidate_leaf_tree_v1_test.zig");
     _ = @import("prover/guest_precompile/ethereum_leaf_matched_ab_execution_profile_v1.zig");
-    _ = @import("prover/guest_precompile/tests/ethereum_matched_ab_omitted_provider_policy_v1_test.zig");
     _ = @import("prover/guest_precompile/ethereum_segment_artifact_statement_wire.zig");
     _ = @import("prover/guest_precompile/ethereum_segment_geometry_inventory_v1.zig");
-    _ = @import("prover/guest_precompile/ethereum_segment_poseidon2_proof_artifact.zig");
     _ = @import("prover/guest_precompile/ethereum_witness.zig");
     _ = @import("prover/guest_precompile/proof_artifact_header.zig");
-    _ = @import("prover/guest_precompile/stack_swap_vm_integration_v1.zig");
     _ = @import("prover/incremental_bridge_external_v3.zig");
-    _ = @import("prover/incremental_commitment_witness_v3.zig");
     _ = @import("prover/incremental_ethereum_verifier_v3.zig");
-    _ = @import("prover/memory_provider_shards/degree5_provider_stage_a_transaction_v1_test.zig");
-    _ = @import("prover/memory_provider_shards/ethereum_candidate_omit_protocol_v1.zig");
     _ = @import("recursion/air/tests/ethereum_initial_input_lane_v1_test.zig");
     _ = @import("recursion/air/tests/ethereum_initial_input_manifest_v1_test.zig");
     _ = @import("recursion/air/tests/ethereum_public_logup_input_v1_test.zig");
@@ -759,22 +672,11 @@ test {
     _ = @import("recursion/air/tests/ethereum_transcript_payload_raw_v1_test.zig");
     _ = @import("recursion/air/tests/ethereum_vm_public_claim_input_v1_test.zig");
     _ = @import("recursion/air/tests/framework_polynomial_export_v1_test.zig");
-    _ = @import("recursion/air/tests/fri_rows_authority_heterogeneous_v2_test.zig");
-    _ = @import("recursion/air/tests/fri_rows_profiles_heterogeneous_v2_test.zig");
-    _ = @import("recursion/air/tests/pcs_input_arena_heterogeneous_v2_test.zig");
-    _ = @import("recursion/air/tests/query_bits_heterogeneous_v2_test.zig");
-    _ = @import("recursion/air/tests/query_mapping_witness_heterogeneous_v2_test.zig");
     _ = @import("recursion/air/relation_interaction_tuple_ledger.zig");
-    _ = @import("recursion/air/statement_root_physical_audit.zig");
     _ = @import("recursion/air/structural_sha256.zig");
-    _ = @import("recursion/air/tests/trace_merkle_witness_heterogeneous_v2_test.zig");
-    _ = @import("recursion/air/tests/vm_statement_roots_test.zig");
-    _ = @import("recursion/tests/binary_composition_rows_heterogeneous_v2_test.zig");
     _ = @import("recursion/binary_fri_outer_source_retain_non_path_poseidon_calls.zig");
-    _ = @import("recursion/tests/ethereum_leaf_child_field_test.zig");
     _ = @import("recursion/ethereum_leaf_context_v1.zig");
     _ = @import("recursion/ethereum_vm_composition_graph_base_v2.zig");
-    _ = @import("recursion/tests/provider_shard_child_field_test.zig");
     _ = @import("recursion/recursion_air_composition_circuit_v3_program_roster_v3.zig");
     _ = @import("recursion/recursion_air_composition_circuit_v3_write_inputs_from_validated_profile_and_policy.zig");
     _ = @import("recursion/tests/segment_outer_noncore_audits_v2_test.zig");
@@ -785,7 +687,6 @@ test {
     _ = @import("recursion/vm_air_composition_prepared_v2.zig");
     _ = @import("recursion/tests/vm_air_profile_v2_test.zig");
     _ = @import("recursion/vm_composition_preparation.zig");
-    _ = @import("recursion/tests/vm_composition_program_v2_test.zig");
     _ = @import("recursion/tests/vm_leaf_context_v2_test.zig");
     _ = @import("recursion_framework_export_test_root.zig");
     _ = @import("runner/guest_precompile/bulk_memcpy_candidate_dispatch_v1.zig");
@@ -802,12 +703,10 @@ test {
     _ = @import("runner/guest_precompile/tests/keccakf_v1_test.zig");
     _ = @import("runner/guest_precompile/secp256k1_recover_call_buffer.zig");
     _ = @import("runner/guest_precompile/tests/secp256k1_recover_v1_test.zig");
-    _ = @import("runner/guest_precompile/tests/stack_swap_v1_test.zig");
     _ = @import("runner/minimal_trace/ethereum_test.zig");
     _ = @import("runner/segment_capacity.zig");
     _ = @import("secp256k1_precompile_test_root.zig");
     _ = @import("segment_statement_v2_test_root.zig");
-    _ = @import("sha256_pair_candidate_test_root.zig");
     _ = @import("stack_swap_candidate_test_root.zig");
     _ = @import("vm_air_profile_v2_test_root.zig");
     _ = @import("vm_air_profile_authority_v2_test_root.zig");

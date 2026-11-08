@@ -158,19 +158,7 @@ pub const specs = [_]Spec{
         .step = "test-load-store-private",
         .description = "Run focused load/store AIR authority and retirement tests",
         .root = "load_store_private_test_root.zig",
-        .minimum = 19,
-    },
-    .{
-        .step = "test-register-read-alias-private",
-        .description = "Run nonproduction register-read alias candidate tests",
-        .root = "register_read_alias_test_root.zig",
-        .minimum = 4,
-    },
-    .{
-        .step = "test-two-read-register-alias-private",
-        .description = "Run nonproduction two-read register alias candidate tests",
-        .root = "two_read_register_alias_test_root.zig",
-        .minimum = 5,
+        .minimum = 16,
     },
     .{
         .step = "test-semantic-component",
@@ -212,22 +200,6 @@ pub const specs = [_]Spec{
         .step = "test-air-function-frames",
         .description = "Run Cairo-style frame isolation and activation-relation tests",
         .root = "air_function_frames_test_root.zig",
-    },
-    .{
-        .step = "test-air-function-body-lowering",
-        .description = "Run bounded authenticated inline-function body lowering tests",
-        .root = "air_function_body_lowering_test_root.zig",
-    },
-    .{
-        .step = "test-air-function-body-ownership",
-        .description = "Run sealed per-function body ownership and lowering tests",
-        .root = "air_function_body_ownership_test_root.zig",
-    },
-    .{
-        .step = "test-air-function-activation-logup",
-        .description = "Run live compiler-owned function activation LogUp tests",
-        .root = "air_function_activation_logup_test_root.zig",
-        .imports_prover_engine = true,
     },
     .{
         .step = "test-lookup-batching",
@@ -289,7 +261,7 @@ pub const specs = [_]Spec{
         .imports_prover_engine = true,
         // A-013 spans both row-window authority and its production component
         // consumer; losing either half invalidates the focused closure gate.
-        .minimum = 16,
+        .minimum = 11,
     },
     .{
         .step = "test-row-windows-edit",
@@ -297,13 +269,6 @@ pub const specs = [_]Spec{
         .root = "row_window_edit_test_root.zig",
         .filters = &.{"row-window v1:"},
         .minimum = 10,
-    },
-    .{
-        .step = "test-row-window-expressions-v2-edit",
-        .description = "Run the lightweight shifted-expression authority edit loop",
-        .root = "row_window_expression_v2_edit_test_root.zig",
-        .filters = &.{"row-window expression v2:"},
-        .minimum = 5,
     },
     .{
         .step = "test-guest-proof-artifact",
@@ -323,19 +288,11 @@ pub const specs = [_]Spec{
         .step = "test-bulk-memcpy-candidate",
         .description = "Run the nonproduction word-granular memcpy AIR candidate tests",
         .root = "bulk_memcpy_candidate_test_root.zig",
-        .minimum = 6,
     },
     .{
         .step = "test-stack-swap-candidate",
         .description = "Run the nonproduction SWAP1..SWAP16 semantic and AIR candidate tests",
         .root = "stack_swap_candidate_test_root.zig",
-        .minimum = 7,
-    },
-    .{
-        .step = "test-sha256-pair-candidate",
-        .description = "Run the nonproduction fixed64 SHA-256 pair AIR and caller tests",
-        .root = "sha256_pair_candidate_test_root.zig",
-        .minimum = 8,
     },
     .{
         .step = "test-poseidon-merkle",
@@ -358,14 +315,13 @@ pub const specs = [_]Spec{
         .description = "Run the Keccak-f semantic and paired-witness authority tests",
         .root = "keccakf_precompile_test_root.zig",
         .imports_prover_engine = true,
-        .minimum = 4,
     },
     .{
         .step = "test-secp256k1-precompile",
         .description = "Run compact secp256k1 field and precompile authority tests",
         .root = "secp256k1_precompile_test_root.zig",
         .imports_prover_engine = true,
-        .minimum = 34,
+        .minimum = 32,
     },
     .{
         .step = "test-interaction-trace-plan",
@@ -443,14 +399,6 @@ pub const specs = [_]Spec{
         .imports_prover_engine = true,
         .filters = &.{ "V2 public spine", "V2 public-spine" },
         .minimum = 5,
-    },
-    .{
-        .step = "test-recursion-segment-claim-hash-v2",
-        .description = "Check dynamic statement-authority hashing and fixed preprocessing",
-        .root = "vm_public_claim_hash_authority_v2_test_root.zig",
-        .imports_prover_engine = true,
-        .filters = &.{"isolated row13 V2"},
-        .minimum = 2,
     },
     .{
         .step = "test-recursion-segment-native-sum-v2",

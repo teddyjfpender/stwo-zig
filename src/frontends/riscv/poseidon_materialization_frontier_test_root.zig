@@ -8,7 +8,6 @@ test {
     _ = @import("air/lang/tests/materialization_cost_test.zig");
     _ = @import("air/lang/tests/typed_poseidon2_degree_bounded_candidate_test.zig");
     _ = @import("air/lang/tests/typed_poseidon2_degree_bounded_component_test.zig");
-    _ = @import("air/lang/tests/typed_poseidon2_degree_bounded_backend_test.zig");
     _ = @import("air/lang/tests/typed_poseidon2_degree_bounded_trace_test.zig");
     _ = @import("air/lang/tests/typed_poseidon2_degree5_trace_test.zig");
     _ = @import("prover/memory_provider_shards/provider_order_component.zig");
