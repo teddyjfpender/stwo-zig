@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One canonical stack, six alternating isolated services; no feature benchmarks.
+"""GPU-native against default, six alternating isolated services.
 
 prepare freezes existing artifacts/source without touching a GPU. run is reserved
 for Root AFTER native/device coverage hooks and exact process-budget guard are
@@ -12,8 +12,9 @@ from pathlib import Path
 import statistics
 import subprocess
 import sys
+import tempfile
 import time
-from rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment
+from rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, JOBS_FLAGS
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_PRESET = HERE.parent / 'design/riscv-proving-stack/m7-handoff/integration-stack-preset.json'
@@ -25,11 +26,18 @@ DEV_BLOCKS = (26235156, 24628607)
 RUNTIME_ASSETS = ('library', 'sparse', 'observer', 'process_budget_guard')
 
 
-def write(path, value):
+def write(path, value, *, exclusive=False):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(value, indent=2) + '\n'
+    if exclusive:
+        with tempfile.TemporaryDirectory(dir=path.parent) as raw:
+            temporary = Path(raw) / 'manifest.json'
+            temporary.write_text(payload)
+            path.hardlink_to(temporary)
+        return
     temporary = path.with_suffix(path.suffix + '.pending')
-    temporary.write_text(json.dumps(value, indent=2) + '\n')
+    temporary.write_text(payload)
     temporary.replace(path)
 
 
@@ -47,7 +55,7 @@ def arm_environment(preset, arm, assets):
 def source_hashes(root):
     result = {}
     for relative in ('src', 'build_support', 'scripts', 'design/typed-air/artifacts',
-                     'conformance', '.github', '.githooks'):
+                     'conformance', 'vectors/fixtures', '.github', '.githooks'):
         for path in sorted((root / relative).rglob('*')):
             if path.is_file() and not path.is_symlink() and not set(path.parts).intersection({'.zig-cache', 'zig-cache', 'zig-out', '__pycache__', '.git'}):
                 result[str(path.relative_to(root))] = sha(path)
@@ -76,7 +84,21 @@ def check_block(block, allow_blocks):
     return True
 
 
+def native_comparison_environment(preset, assets):
+    if preset['measurement']['order'] != ['baseline', 'fullstack'] * 3:
+        raise RuntimeError('exact six-service order is required')
+    candidate = arm_environment(preset, 'fullstack', assets)
+    baseline = arm_environment(preset, 'baseline', assets)
+    if any(candidate.get(key) != '1' for key in ('STWO_RV64_M8_JOBS', 'STWO_RV64_M8_GPU_NATIVE')):
+        raise RuntimeError('canonical candidate must select GPU-native jobs')
+    if any(baseline.get(key) == '1' for key in (*JOBS_FLAGS, 'STWO_RV64_M8_GPU_NATIVE')):
+        raise RuntimeError('canonical baseline must use the default request path')
+    return candidate
+
+
 def prepare(args):
+    if args.out.exists():
+        raise FileExistsError('canonical manifest already exists: ' + str(args.out))
     root = args.source_root.resolve()
     runtime, runtime_assets = load_runtime(args.runtime)
     for name in RUNTIME_ASSETS:
@@ -84,28 +106,41 @@ def prepare(args):
             setattr(args, name, Path(runtime_assets[name]))
     assets = {name: str(getattr(args, name).resolve()) for name in ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard')}
     preset = json.loads(args.preset.read_text())
-    if preset['measurement']['order'] != ['baseline', 'fullstack'] * 3:
-        raise RuntimeError('exact six-service order is required')
+    candidate = native_comparison_environment(preset, assets)
+    shipped = jobs_environment(runtime, candidate)
+    preset['arms']['fullstack'] = {**shipped, **preset['arms']['fullstack']}
+    job_assets = {key: path for key, path in shipped.items() if key.endswith('_LIBRARY')}
+    assets.update(job_assets)
+    pins = {name: sha(path) for name, path in assets.items()}
+    pins.update({key: runtime['jobs_env_sha256'][key] for key in job_assets})
+    validate_assets(assets, pins)
     allowed_block = check_block(args.block, args.allow_block)
-    manifest = {'schema': 'rv64-m7-canonical-stack-artifact/v1', 'source_root': str(root),
+    manifest = {'schema': 'rv64-native-canonical-artifact/v1', 'source_root': str(root),
                 'source_commit': args.source_commit, 'source_sha256': source_hashes(root),
-                'assets': assets, 'asset_sha256': {name: sha(path) for name, path in assets.items()},
-                'preset': preset, 'preset_sha256': sha(args.preset), 'block': args.block,
-                'allowed_block': allowed_block, 'runtime': str(args.runtime.resolve()),
+                'assets': assets, 'asset_sha256': pins,
+                'preset': preset, 'preset_path': str(args.preset.resolve()), 'preset_sha256': sha(args.preset), 'block': args.block,
+                'allowed_block': allowed_block, 'runtime': str(args.runtime.resolve()), 'runtime_sha256': sha(args.runtime),
                 'runtime_matches_assets': all(assets[n] == str(Path(runtime_assets[n]).resolve()) for n in RUNTIME_ASSETS),
                 'native_hooks_commit': args.native_hooks_commit, 'device_hooks_commit': args.device_hooks_commit,
                 'process_budget_guard': assets['process_budget_guard'],
                 'ready': bool(args.native_hooks_commit and args.device_hooks_commit and args.process_budget_guard),
-                'scope': 'GPU-only global admission; host/RSS observed, not bounded. Baseline original auto arena without canary; full22GiB under enforced28e9physicalceiling. No proof format changes.',
+                'scope': 'GPU-native against default. Baseline auto arena without canary; native auto arena under the physical guard. No observed exact peak or proof format change claimed.',
                 'created_utc_ns': time.time_ns()}
-    write(args.out, manifest)
+    write(args.out, manifest, exclusive=True)
     print(json.dumps({'manifest': str(args.out), 'ready': manifest['ready'], 'asset_sha256': manifest['asset_sha256']}))
 
 
 def validate_manifest(manifest):
+    if manifest.get('schema') != 'rv64-native-canonical-artifact/v1':
+        raise RuntimeError('re-prepare the versioned GPU-native comparison manifest')
     if not manifest.get('ready'):
         raise RuntimeError('Root native/device readiness and exact process-budget guard are required before GPU execution')
     validate_assets(manifest['assets'], manifest['asset_sha256'])
+    native_comparison_environment(manifest['preset'], manifest['assets'])
+    if sha(manifest['runtime']) != manifest['runtime_sha256']:
+        raise RuntimeError('canonical runtime changed after freeze')
+    if sha(manifest['preset_path']) != manifest['preset_sha256']:
+        raise RuntimeError('canonical preset changed after freeze')
     root = Path(manifest['source_root'])
     if source_hashes(root) != manifest['source_sha256']:
         raise RuntimeError('canonical source changed after freeze')
@@ -155,22 +190,11 @@ def guard_verdict(receipt, arm):
             'scope': 'successful proof under physical availability ceiling; not an observed peak'}
 
 
-def prune_verified_payload(proof):
-    """Delete proof payload files (*.bin, *.proof) of a request already verified byte-identical
-    to the retained reference; report/stage JSON stays. Large-block disk mode only."""
-    removed = 0
-    for path in sorted(Path(proof).rglob('*')):
-        if path.is_file() and path.name.endswith(('.bin', '.proof')):
-            removed += path.stat().st_size
-            path.unlink()
-    return removed
 
 
 def run(args):
     manifest = json.loads(args.manifest.read_text())
     validate_manifest(manifest)
-    if args.smoke and manifest['block'] != 26235156:
-        raise RuntimeError('first whole-stack correctness smoke is restricted to small development block26235156')
     output = args.out.resolve()
     output.mkdir(parents=True, exist_ok=False)
     write(output / 'artifact.json', manifest)
@@ -179,37 +203,20 @@ def run(args):
     # service names/output dirs remain unique below /workspace/m3/runs/STREAM.
     stream = root.name
     environment = clean_environment(os.environ)
-    result = {'schema': 'rv64-m7-one-stack-experiment/v1', 'manifest_sha256': sha(args.manifest),
-              'profiled': False, 'timing_scope': 'UNQUALIFIED_CORRECTNESS_WALLS' if args.smoke else 'six primary services unprofiled; optional ownership pair instrumented separately',
-              'order': ((['fullstack'] * len(args.smoke_seeds)) if args.reference_run else ['baseline'] + ['fullstack'] * len(args.smoke_seeds)) if args.smoke else manifest['preset']['measurement']['order'] + (['baseline', 'fullstack'] if args.ownership_profile_pair else []), 'services': [], 'receivers_deferred': True, 'instrumentation': manifest['preset']['measurement'].get('instrumentation'),
-              'smoke_only': args.smoke, 'global_admission_off_diagnostic': args.global_admission_off_diagnostic,
+    result = {'schema': 'rv64-native-canonical-experiment/v1', 'manifest_sha256': sha(args.manifest),
+              'profiled': False, 'timing_scope': 'six primary services unprofiled; optional ownership pair instrumented separately',
+              'order': manifest['preset']['measurement']['order'] + (['baseline', 'fullstack'] if args.ownership_profile_pair else []), 'services': [], 'receivers_deferred': True, 'instrumentation': manifest['preset']['measurement'].get('instrumentation'),
               'gpu_seconds_status': 'pending separate ownership pair' if args.ownership_profile_pair else 'unavailable without CUPTI; no surrogate claim',
               'exact_process_peak_gate': 'Root-owned guard required; observer/NVML samples alone are insufficient'}
     write(output / 'experiment.json', result)
     reference = None
-    if args.reference_run:
-        reference_receipt = json.loads((args.reference_run / 'receipt.json').read_text())
-        matches = [r for r in reference_receipt['requests'] if r['block'] == manifest['block']]
-        if not matches:
-            raise RuntimeError('reference block missing')
-        reference = fingerprints(matches[0], require_capture=args.smoke)
     for index, arm in enumerate(result['order']):
         validate_manifest(manifest)
         validate_library_environment(arm_environment(manifest['preset'], arm, manifest['assets']), manifest['assets'], manifest['asset_sha256'])
-        profile = not args.smoke and index >= 6
-        argv, tag = command(manifest, arm, index, stream, profile, output.name + '-' + (('one-stack-v5-global0-smoke' if args.global_admission_off_diagnostic else 'one-stack-v5-smoke') if args.smoke else 'one-stack-v4'))
-        seed = None
-        if args.smoke:
-            argv += ['--quiet-mode', 'diagnostic', '--request-timeout', str(args.smoke_request_timeout), '--env', 'STWO_RV64_CAPTURE_DIGEST=1']
-        if args.global_admission_off_diagnostic:
-            if not args.smoke or arm != 'fullstack':
-                raise RuntimeError('GLOBAL0fallback is a fullstack correctness diagnostic only')
-            argv += ['--env', 'STWO_RV64_GLOBAL_ADMISSION=0']
-        if args.smoke and arm == 'fullstack':
-            seed = args.smoke_seeds[index if args.reference_run else index - 1]
-            argv += ['--env', f'STWO_RV64_RECURSION_SCRAMBLE_SEED={seed}']
+        profile = index >= 6
+        argv, tag = command(manifest, arm, index, stream, profile, service_label(output, prefix='canonical'))
         service = Path('/workspace/m3/runs') / stream / f'daemon-{manifest["block"]}-r2-{tag}'
-        entry = {'arm': arm, 'order_index': index, 'run': str(service), 'argv': argv, 'profiled': profile, 'measurement_role': 'smoke' if args.smoke else ('ownership_profile' if profile else 'headline')}
+        entry = {'arm': arm, 'order_index': index, 'run': str(service), 'argv': argv, 'profiled': profile, 'measurement_role': 'ownership_profile' if profile else 'headline'}
         result['services'].append(entry)
         write(output / 'experiment.json', result)
         with (output / f'{index:02d}-{arm}.log').open('w') as log:
@@ -221,20 +228,14 @@ def run(args):
             raise RuntimeError(f'integration service failed; stop, preserve logs: {service}')
         receipt = json.loads((service / 'receipt.json').read_text())
         quiet = receipt.get('quiet_before_requests', [])
-        if len(receipt['requests']) != 2 or any(not q or (q.get('mode') != 'diagnostic' if args.smoke else not q['accepted']) for q in quiet):
-            raise RuntimeError('quiet admission/diagnostic receipt missing or failed')
+        if len(receipt['requests']) != 2 or any(not q or not q['accepted'] for q in quiet):
+            raise RuntimeError('quiet admission receipt missing or failed')
         if len(receipt.get('quiet_before_requests', [])) != 2:
             raise RuntimeError('both requests require explicit quiet receipts')
         entry['physical_budget'] = guard_verdict(receipt, arm)
-        if seed is not None:
-            logged = f'RECURSION_ADMISSION_ORDER policy=seeded_scramble seed={seed}'
-            if logged not in (service / 'producer.stderr').read_text(errors='replace'):
-                raise RuntimeError('seeded scheduling proof gate did not activate')
-            entry['scramble_seed'] = seed
-            entry['scramble_activation_log'] = logged
         entry['service_assets'] = receipt['assets']
         for request in receipt['requests']:
-            actual = fingerprints(request, require_capture=args.smoke)
+            actual = fingerprints(request)
             if reference is None:
                 reference = actual
                 result['payload_reference'] = {'run': str(service), 'ordinal': request['ordinal'], 'proof': request['proof'], 'fingerprints': reference}
@@ -242,43 +243,26 @@ def run(args):
                 write(output / 'parity-failure.json', {'run': str(service), 'ordinal': request['ordinal'], 'expected': reference, 'actual': actual})
                 raise RuntimeError('proof payload or captured-input SHA256 mismatch across arms/cold/warm')
         entry['payload_byte_parity'] = True
-        if args.fresh_receivers == 'reference':
-            entry['pruned_payload_bytes'] = sum(prune_verified_payload(request['proof']) for request in receipt['requests']
-                                                if request['proof'] != result['payload_reference']['proof'])
-        entry['captured_sha_parity_required'] = args.smoke
+        entry['captured_sha_parity_required'] = False
         warm = receipt['requests'][1]
         entry['warm'] = warm
         entry['quiet'] = receipt['quiet_before_requests'][1]
         write(output / 'experiment.json', result)
     # Do not contaminate interleaved timings/quiet state with CPU receivers.
-    verification = list(result['services'])
-    which = 'all'
-    if args.fresh_receivers == 'reference':
-        # Every request is byte-identical to the retained reference proof (checked above),
-        # so one fresh receiver on that proof covers every request's bytes.
-        if args.reference_run or result['payload_reference']['ordinal'] != 0:
-            raise RuntimeError('--fresh-receivers reference needs the first service cold request as reference')
-        verification = [entry for entry in result['services'] if entry['run'] == result['payload_reference']['run']]
-        which = 'first'
-        result['fresh_receiver_scope'] = 'reference proof only; all other requests byte-identical to it, payloads pruned'
-    if args.reference_run:
-        verification.append({'order_index':'reference','arm':'reference','run':str(args.reference_run)})
-    for entry in verification:
+    for entry in result['services']:
         argv = [sys.executable, str(root / 'scripts/rv64_m4_resident.py'), 'receive', '--run', entry['run'],
-                '--which', which, '--receiver-workers', str(args.receiver_workers)]
+                '--which', 'all', '--receiver-workers', str(args.receiver_workers)]
         with (output / f'{entry["order_index"]}-{entry["arm"]}-receiver.log').open('w') as log:
             code = subprocess.run(argv, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT).returncode
         receipt = json.loads((Path(entry['run']) / 'receipt.json').read_text())
         if code:
             raise RuntimeError('fresh isolated receiver rejected: ' + entry['run'])
         entry['receiver_acceptance'] = validate_receivers(
-            receipt.get('receivers'), [r['proof'] for r in receipt['requests'] if which == 'all' or r['trial'] == 0],
+            receipt.get('receivers'), [r['proof'] for r in receipt['requests']],
             manifest['asset_sha256']['receiver'])
         entry['fresh_receivers'] = receipt['receivers']
-        if entry['arm'] == 'reference':
-            result['reference_fresh_receivers'] = receipt['receivers']
         write(output / 'experiment.json', result)
-    if args.ownership_profile_pair and not args.smoke:
+    if args.ownership_profile_pair:
         for entry in result['services']:
             if not entry['profiled']:
                 continue
@@ -288,9 +272,8 @@ def run(args):
             entry['gpu_seconds'] = json.loads((Path(entry['run']) / 'gpu-seconds.json').read_text())
         result['gpu_seconds_status'] = 'separate instrumented ownership pair; exact clipped per-device CUPTI interval union'
     result['warm_median_s'] = {arm: statistics.median(s['warm']['marker']['request_wall_ns'] / 1e9 for s in result['services'] if s['arm'] == arm and not s['profiled']) for arm in set(s['arm'] for s in result['services'])}
-    if not args.smoke:
-        result['measured_fullstack_over_baseline'] = result['warm_median_s']['fullstack'] / result['warm_median_s']['baseline']
-    result['status'] = 'SMOKE_BYTE_PARITY_AND_FRESH_ACCEPTED' if args.smoke else 'TIMED_BYTE_PARITY_AND_FRESH_ACCEPTED_METRICS_AUDIT_PENDING'
+    result['measured_fullstack_over_baseline'] = result['warm_median_s']['fullstack'] / result['warm_median_s']['baseline']
+    result['status'] = 'TIMED_BYTE_PARITY_AND_FRESH_ACCEPTED_METRICS_AUDIT_PENDING'
     write(output / 'experiment.json', result)
     print(json.dumps(result['warm_median_s']))
 
@@ -310,7 +293,7 @@ def main():
     p.add_argument('--preset', type=Path, default=DEFAULT_PRESET)
     p.add_argument('--block', type=int, default=24628607)
     p.add_argument('--allow-block', type=int, action='append', default=[],
-                   help='explicit owner opt-in for one non-development block (e.g. 26235159); one block per service, repeat 2')
+                   help='explicit owner opt-in for one non-development block (e.g. 26235168); one block per service, repeat 2')
     p.add_argument('--native-hooks-commit')
     p.add_argument('--device-hooks-commit')
     p.add_argument('--out', required=True, type=Path)
@@ -318,15 +301,7 @@ def main():
     p.add_argument('--manifest', required=True, type=Path)
     p.add_argument('--out', required=True, type=Path)
     p.add_argument('--receiver-workers', type=int, default=16)
-    p.add_argument('--fresh-receivers', choices=('all', 'reference'), default='all',
-                   help='reference: large-block disk mode - one fresh receiver on the retained reference proof; payloads of '
-                        'every other request are pruned once verified byte-identical to it')
     p.add_argument('--ownership-profile-pair', action='store_true', help='after six unprofiled services, one baseline/fullstack CUPTI pair; never included in headline medians')
-    p.add_argument('--smoke', action='store_true', help='small-block lane1 control then lane2 seeds17/29 cold/warm correctness services before headline experiment')
-    p.add_argument('--global-admission-off-diagnostic', action='store_true', help='required same-day fallback diagnosis; allotherfullstackflags/guard unchanged, no performance qualification')
-    p.add_argument('--smoke-seeds', nargs='+', type=int, choices=(17,29), default=[17,29], help='explicit seeded admission correctness cases; first activation may select17 only')
-    p.add_argument('--smoke-request-timeout', type=float, default=120, help='terminate blocked correctness request with all producer/guard resources drained')
-    p.add_argument('--reference-run', type=Path, help='proof-neutral accepted reference payload comparison, including capture SHA256')
     args = parser.parse_args()
     (prepare if args.mode == 'prepare' else run)(args)
 

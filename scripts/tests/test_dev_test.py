@@ -10,6 +10,25 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_recursion_dag_uses_its_standalone_cpu_owner(self):
+        commands = dev_test.commands_for_paths(ROOT, ["src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"], optimize="ReleaseFast")
+        self.assertEqual(1, len(commands))
+        self.assertIn("test-recursion-dag", commands[0])
+        self.assertIn("src/integrations/riscv_cpu/build.zig", commands[0])
+
+    def test_optimized_ci_reproduction_covers_focused_and_broad_routes(self) -> None:
+        for path, step in (
+            ("src/core/fri/folding_family.zig", "test-fri"),
+            ("src/core/future_module.zig", "test"),
+            ("src/integrations/riscv_cuda/rv64/projection_codegen.zig", "test-native-gkr-codegen"),
+        ):
+            with self.subTest(path=path):
+                (command,) = dev_test.commands_for_paths(ROOT, [path], optimize="ReleaseFast")
+                self.assertEqual(command[2], step)
+                self.assertIn("-Doptimize=ReleaseFast", command)
+                self.assertNotIn("-Doptimize=ReleaseSafe", command)
+                self.assertNotIn("-Doptimize=Debug", command)
+
     def test_python_owner_uses_its_surviving_contract_tests(self) -> None:
         (command,) = dev_test.commands_for_paths(ROOT, ["scripts/dev_test.py"])
         self.assertEqual(command[1:], ["-m", "unittest", "scripts.tests.test_dev_test"])

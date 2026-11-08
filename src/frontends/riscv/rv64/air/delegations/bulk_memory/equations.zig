@@ -170,7 +170,7 @@ pub fn shiftedLimb(comptime F: type, prev: []const F, cur: []const F, r: usize, 
 /// Token source address of an unaligned run: aligned word + shift.
 pub fn ucopySource(comptime F: type, m: []const F) [4]F {
     var out = limbs(F, m, L.ucopy.src);
-    for (0..7) |k| out[0] = out[0].add(m[L.ucopy.sel + k].mul(E.qFor(F, @intCast(k + 1))));
+    out[0] = E.addByteShiftFor(F, out[0], m[L.ucopy.sel..][0..7]);
     return out;
 }
 /// The memcmp result word: -1 (neg), 1 (pos) or 0 as four u16 limbs.

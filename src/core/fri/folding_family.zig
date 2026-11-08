@@ -373,6 +373,11 @@ pub fn ForField(comptime Secure: type) type {
             return foldLineWithWorkspace(allocator, eval, domain, alpha, &workspace);
         }
 
+        // Shared arithmetic for allocating and in-place output.
+        fn foldLinePair(first: QM31, second: QM31, inverse_x: M31, alpha: QM31) QM31 {
+            return first.add(second).add(alpha.mul(first.sub(second).mulM31(inverse_x)));
+        }
+
         /// Performs a single butterfly fold (halving), independent of FOLD_STEP.
         /// This is the building block used by the multi-step fold functions.
         pub fn foldLineSingleStep(
@@ -395,11 +400,7 @@ pub fn ForField(comptime Secure: type) type {
 
             var i: usize = 0;
             while (i < folded_values.len) : (i += 1) {
-                const inv_x = inv_x_values[i];
-                var f0 = eval[i * 2];
-                var f1 = eval[i * 2 + 1];
-                fft.ibutterfly(QM31, &f0, &f1, inv_x);
-                folded_values[i] = f0.add(alpha.mul(f1));
+                folded_values[i] = foldLinePair(eval[i * 2], eval[i * 2 + 1], inv_x_values[i], alpha);
             }
 
             return .{
@@ -463,10 +464,7 @@ pub fn ForField(comptime Secure: type) type {
             fillBitReversedCosetCoordinate(x_values, domain.coset(), .x);
             try fields.batchInverseInPlace(M31, x_values, inv_x_values);
             for (0..folded_len) |i| {
-                var f0 = eval[i * 2];
-                var f1 = eval[i * 2 + 1];
-                fft.ibutterfly(QM31, &f0, &f1, inv_x_values[i]);
-                eval[i] = f0.add(alpha.mul(f1));
+                eval[i] = foldLinePair(eval[i * 2], eval[i * 2 + 1], inv_x_values[i], alpha);
             }
         }
 

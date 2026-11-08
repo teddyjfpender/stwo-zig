@@ -1588,11 +1588,7 @@ pub const Lane = struct {
     }
 };
 
-/// The recursion window's devices: booted workers, resolved symbols and one
-/// Prover (graph cache) per physical device, shared by every lane on it.
-/// With STWO_RV64_RECURSION_LANES_PER_DEVICE=2 two lane threads prestage and
-/// assemble concurrently against one worker, so the worker's 3-stage loop
-/// stages node k+1 while node k runs (the pair serializes if it does not fit).
+/// Window resources and graph caches, owned per physical device.
 const Window = struct {
     set: *Jobs.WorkerSet,
     shared: Shared,

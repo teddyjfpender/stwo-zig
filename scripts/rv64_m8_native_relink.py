@@ -86,7 +86,7 @@ def main():
         S.write(out / 'relink.json', receipt)
         raise SystemExit('link failed; see ' + str(out / 'link.log'))
     lib = C.CDLL(str(library))
-    required = json.loads((src / 'rv64/required_symbols.json').read_text())['symbols'] + OBSERVER_SYMBOLS
+    required = json.loads((src.parent / 'contracts/rv64-required-symbols.json').read_text())['symbols'] + OBSERVER_SYMBOLS
     missing = [n for n in required if not hasattr(lib, n)]
     assert not missing, missing
     assert lib.stwo_exec_context_allocation_observer_capability_v1() == 1

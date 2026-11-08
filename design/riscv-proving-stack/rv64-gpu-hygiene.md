@@ -18,6 +18,10 @@ positive code budget must identify the new owner or invariant, explain why
 existing code cannot provide it, and include its tests in the reported cost.
 Moving code into another production directory does not count as deletion.
 
+The budget policy is source-pinned. Measured costs, validation results and
+delivery status live in the current productionisation receipt's `budget_results`.
+Recording evidence must not rewrite the policy that evidence validates.
+
 The starting commit census is `4a4d01bd5`: 2,158,099 code lines in the
 source/script/build/tool inventory, 14,945 tracked receipt files and 69 local
 M8/M9 branches. There are 294 distinct `STWO_RV64_*` literal names in code,

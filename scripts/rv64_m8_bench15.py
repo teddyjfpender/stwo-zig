@@ -53,7 +53,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 import rv64_m7_integration_stack as stack  # noqa: E402
-from rv64_validation import frozen_parity, validate_assets, validate_receivers, validate_library_environment  # noqa: E402
+from rv64_validation import frozen_parity, validate_assets, validate_receivers, validate_library_environment, FROZEN_D2_PACKAGE as GOLDEN  # noqa: E402
 from rv64_m8_bench15_lib.metrics import (
     fields,
     split_requests,
@@ -77,8 +77,7 @@ from rv64_m8_bench15_lib.metrics import (
 M3 = Path(os.environ.get('RV64_M3_ROOT', '/workspace/m3'))
 GPU_LOCK = M3 / 'locks/gpu.lock'
 M3_SUMMARY = ROOT / 'vectors/reports/rv64-m3-20261104/summary.json'
-GOLDEN = ROOT / 'vectors/reports/rv64-m7-20261105/d2-composed/combined-d2-package'
-RUNTIME = ROOT / 'design/riscv-proving-stack/m7-handoff/p0-runtime.json'
+RUNTIME = stack.DEFAULT_RUNTIME
 DEV_BLOCKS = (26235156, 24628607)
 SMOKE_BLOCK = 26235156
 SCHEMA = 'rv64-m8-bench15/v1'
@@ -414,7 +413,7 @@ def check(args):
         if not entry['plan_template_job']:
             problems.append('plan-template job: python3 scripts/rv64_m3_pod.py inputs')
         if isinstance(entry['golden'], dict) and not entry['golden']['exists']:
-            problems.append('golden: git checkout vectors/reports/rv64-m7-20261105/d2-composed (frozen D2 package)')
+            problems.append(f'golden: restore the maintained frozen D2 fixture at {GOLDEN}')
         if not entry['m3_parity_receipt']['exists']:
             entry['m3_parity_note'] = 'informational only (M3 used another profile); the harness records parity_vs_m3 = unavailable'
         entry['problems'] = problems

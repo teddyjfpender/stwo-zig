@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 import re
 
+FROZEN_D2_PACKAGE = Path(__file__).resolve().parents[1] / 'vectors/fixtures/rv64-d2-composed-v1'
 
 CASES = (
     'C00-control', 'S08-coherent-permute-native', 'S09-coherent-drop-native',
@@ -27,6 +28,46 @@ MISSING_ERRORS = ("FileNotFound", "MissingRecursiveNodeProof")
 CORPUS_ISOLATION = {'CUDA_VISIBLE_DEVICES': '', 'STWO_RV64_GPU_PCS_HELPER': '/bin/false',
                     'STWO_ZIG_RV64_SETUP_CACHE': 'unset', 'STWO_RV64_FOLD_CLASS_CACHE': '0',
                     'STWO_RV64_OUTER_PLAN_CLASS_STORE': 'unset'}
+
+
+JOBS_FLAGS = ('STWO_RV64_M8_JOBS', 'STWO_RV64_M8_NATIVE_JOBS', 'STWO_RV64_M8_OUTER_JOBS')
+NATIVE_LIBRARIES = ('STWO_RV64_M8_JOBS_LIBRARY', 'STWO_RV64_M8_OUTER_FS_LIBRARY')
+
+
+def service_label(out, prefix='gate'):
+    """Preserve independent receipts whose output directories share a name."""
+    identity = hashlib.sha256(str(out.resolve()).encode()).hexdigest()[:16]
+    return prefix + '-' + out.name + '-' + identity
+
+
+
+def jobs_environment(runtime, extra_env):
+    """Job-path environment a runtime JSON ships (`jobs_env`: STWO_* key -> path
+    or value, `jobs_env_sha256`: key -> sha256 for every path entry).
+
+    Applied only when --env selects a job path (one of JOBS_FLAGS = 1), so the
+    default gate is unchanged; an explicit --env of the same key wins. Every
+    shipped library is pinned by SHA-256 like the runtime assets (gate-14
+    MissingM8OuterFsLibrary was a JOBS=1 gate without the outer-fs addon).
+    """
+    selected = any(extra_env.get(flag) == '1' for flag in JOBS_FLAGS)
+    shipped = dict(runtime.get('jobs_env', {})) if selected else {}
+    pins = runtime.get('jobs_env_sha256', {})
+    for key, value in shipped.items():
+        if not key.startswith('STWO_'):
+            raise RuntimeError('runtime jobs_env key must be STWO_*: ' + key)
+        if key.endswith('_LIBRARY') and key not in pins:
+            raise RuntimeError('runtime jobs_env library without sha256: ' + key)
+    if extra_env.get('STWO_RV64_M8_GPU_NATIVE') == '1' and not all(k in {**shipped, **extra_env} for k in NATIVE_LIBRARIES):
+        raise RuntimeError('GPU-native requires pinned jobs and outer-FS libraries')
+    pinned_jobs = {key: value for key, value in shipped.items() if key in pins}
+    if pinned_jobs:
+        validate_assets(pinned_jobs, pins)
+    validate_library_environment({**shipped, **extra_env},
+                                 {**runtime.get('assets', {}), **pinned_jobs},
+                                 {**runtime.get('asset_sha256', {}), **pins})
+    return {k: v for k, v in shipped.items() if k not in extra_env}
+
 
 
 def reject_class(first_error):

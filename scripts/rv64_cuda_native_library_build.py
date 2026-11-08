@@ -199,7 +199,7 @@ def main():
         parser.error("jobs must be 1..96 and compiler/link deadlines must be positive")
     root, build = args.source_root.resolve(), args.build.resolve()
     native = root / "src/backends/cuda/native"
-    symbol_path = args.required_symbols or native / "rv64/required_symbols.json"
+    symbol_path = args.required_symbols or native.parent / "contracts/rv64-required-symbols.json"
     required = json.loads(symbol_path.read_text())["symbols"]
     if not required or len(set(required)) != len(required) or any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", s) for s in required):
         parser.error("invalid required native export manifest")

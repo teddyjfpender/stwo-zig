@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-budgets/v1",
   "baseline_commit": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
-  "policy": "Default net code growth, new flags and new top-level scripts are zero. Positive code exceptions below include tests and require a concrete invariant. Code, configuration, documentation, receipts and working-copy storage are separate counters. Moves are not deletions.",
+  "policy": "Default net code growth, new flags and new top-level scripts are zero. Positive code exceptions below include tests and require a concrete invariant. Code, configuration, documentation, receipts and working-copy storage are separate counters. Moves are not deletions. This file owns source-pinned budget decisions and scope only. Observed statuses, costs and validation results belong to results_owner; recording a gate result must not mutate its pinned policy.",
   "baseline": {
     "code_files": 8717,
     "code_lines": 2158099,
@@ -17,48 +17,21 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "worktree_target": 1,
-      "actual_worktrees_before": 163,
-      "actual_worktrees_after": 1,
-      "retired_working_copies": 162,
-      "status": "VERIFIED_LOCAL",
       "archive_inventory_tag": "archive/consolidation-20261108/inventory"
     },
     {
       "id": "recursion_custody",
       "net_code_budget": 126,
-      "actual": {
-        "added": 390,
-        "removed": 264,
-        "net": 126,
-        "flags_added": 0,
-        "scripts_added": 0
-      },
-      "positive_growth_justification": "Phase-entry follow-up fixes two demonstrated bugs: class pins were released before request-body destruction and failed registration exposed a partial authority. Includes owning request custody, fault-injection and lifetime regressions; not cosmetic file splitting.",
-      "validation": "105 focused and 305 broader host tests pass; counts overlap; full-proof follow-up remains pending"
+      "positive_growth_justification": "Phase-entry follow-up fixes two demonstrated bugs: class pins were released before request-body destruction and failed registration exposed a partial authority. Includes owning request custody, fault-injection and lifetime regressions; not cosmetic file splitting."
     },
     {
       "id": "ci_failure_repair",
       "net_code_budget": 5,
-      "actual": {
-        "added": 10,
-        "removed": 5,
-        "net": 5,
-        "flags_added": 0,
-        "scripts_added": 0
-      },
-      "positive_growth_justification": "Restore exact test-owner discovery and correct invalid-free cleanup, with diagnostics for an unresolved optimized FRI mismatch. No assertion or test count is weakened.",
-      "status": "PARTIAL_281_NATIVE_AND_2_GEOMETRY_PASS_FRI_OPEN"
+      "positive_growth_justification": "Restore exact test-owner discovery and correct invalid-free cleanup, with diagnostics for an unresolved optimized FRI mismatch. No assertion or test count is weakened."
     },
     {
       "id": "policy_identity",
       "net_code_budget": 4,
-      "actual": {
-        "added": 6,
-        "removed": 2,
-        "net": 4,
-        "flags_added": 0,
-        "scripts_added": 0
-      },
       "positive_growth_justification": "Include the canonical project execution policy in frozen source identity; regression test checks drift."
     },
     {
@@ -67,7 +40,6 @@
       "scripts_removed_target": 150,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "status": "DELETED_PENDING_BATCH_GATES",
       "ownership_rule": "Retire tests only with the code they exclusively cover; preserve all live gate and regression assertions."
     },
     {
@@ -76,16 +48,14 @@
       "positive_growth_justification": "One owner/default/status/date authority and a tested CI invariant rejecting undeclared flags. Generated metadata is counted separately.",
       "live_flags_max": 59,
       "m7_m8_policy": "Every M7/M8 switch is promoted or removed",
-      "scripts_added_budget": 0,
-      "status": "NOT_IMPLEMENTED"
+      "scripts_added_budget": 0
     },
     {
       "id": "new_block_setup_miss",
       "net_code_budget": 0,
       "positive_exception_policy": "Amend with a bounded ownership/test justification before any positive implementation growth. Reuse installed class builders.",
       "flags_added_budget": 0,
-      "scripts_added_budget": 0,
-      "status": "NOT_LANDED"
+      "scripts_added_budget": 0
     },
     {
       "id": "legacy_retirement_after_default_flip",
@@ -103,15 +73,13 @@
         "legacy owner-callback",
         "their flags and active receipts"
       ],
-      "gate": "Only after canonical comparison, setup-miss, full GPU-native basket and default promotion",
-      "status": "NOT_ELIGIBLE_YET"
+      "gate": "Only after canonical comparison, setup-miss, full GPU-native basket and default promotion"
     },
     {
       "id": "historical_receipt_archive",
       "net_code_budget": 0,
       "baseline_receipt_files": 14945,
-      "retained_receipt_policy": "Current receipts only; move any genuinely live fixture out of historical report folders without changing its bytes or pins.",
-      "status": "TAGGED_BASELINE_ACTIVE_TREE_RETIREMENT_PENDING"
+      "retained_receipt_policy": "Current receipts only; move any genuinely live fixture out of historical report folders without changing its bytes or pins."
     },
     {
       "id": "retired_script_closure_batch_1",
@@ -122,16 +90,14 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "archive": "archive/consolidation-20261108/worktrees/rv64-m8-gn-bind",
-      "scope": "Only unreachable tools and their exclusively historical consumers; retain live Cairo benchmark/suite tests; no hybrid, feeder/provider or owner-callback source retirement.",
-      "status": "DELETED_PENDING_BATCH_GATES"
+      "scope": "Only unreachable tools and their exclusively historical consumers; retain live Cairo benchmark/suite tests; no hybrid, feeder/provider or owner-callback source retirement."
     },
     {
       "id": "python_inner_loop_ownership",
       "net_code_budget": 60,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "The existing dev_test.py rejects all Python paths. Give known script owners a bounded unit route and deleted/unknown script owners the complete surviving Python contract suite. No new launcher or empty-success route.",
-      "status": "PASS_FOCUSED_FULL_SUITE_REVEALED_OPEN_FAILURES"
+      "positive_growth_justification": "The existing dev_test.py rejects all Python paths. Give known script owners a bounded unit route and deleted/unknown script owners the complete surviving Python contract suite. No new launcher or empty-success route."
     },
     {
       "id": "retired_script_support_closure_1",
@@ -147,24 +113,182 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "scope": "Only frozen admission and two-lane paths with no remaining live consumer; retain shared resource footprint contracts",
-      "gate": "dev_test.py and one default rv64_gate.sh per deletion batch",
-      "status": "DEPENDENCY_AUDIT_REQUIRED"
+      "gate": "dev_test.py and one default rv64_gate.sh per deletion batch"
     },
     {
       "id": "retired_dynamic_import_test_closure_1",
       "net_code_budget": -506,
       "exclusive_test_files_removed": 3,
       "mixed_test_lines_removed": 21,
-      "ownership": "Only retired comparison/normalization/census subjects; all surviving corpus checks retained",
-      "status": "PASS_44_FOCUSED_TESTS_AND_ZERO_DISCOVERY_IMPORT_ERRORS"
+      "ownership": "Only retired comparison/normalization/census subjects; all surviving corpus checks retained"
     },
     {
       "id": "gate_service_namespace_collision",
       "net_code_budget": 15,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "A real default gate passed build/units then collided with an older service because only output basename entered its tag. Derive deterministic service identity from the absolute receipt path and test distinct parents with equal basenames; never delete old receipts to make a run pass.",
-      "status": "BUDGETED_AFTER_DEMONSTRATED_COLLISION_BEFORE_EDIT"
+      "positive_growth_justification": "A real default gate passed build/units then collided with an older service because only output basename entered its tag. Derive deterministic service identity from the absolute receipt path and test distinct parents with equal basenames; never delete old receipts to make a run pass."
+    },
+    {
+      "id": "fri_in_place_correctness_and_shared_pair_arithmetic",
+      "net_code_budget": 10,
+      "net_code_target": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "An independent integer oracle proves the current optimized in-place fold wrong. Replace duplicated mutating pair arithmetic with one functional authority and strengthen the existing regression with the independently derived value. Small growth permitted only for that new correctness invariant, including tests.",
+      "baseline_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713"
+    },
+    {
+      "id": "developer_optimized_reproduction",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "The FRI regression is invisible in non-optimized tests. Allow an explicit optimization mode through the existing dev_test.py route, including package fallback, so developers can reproduce CI without another launcher. Preserve existing Debug-focused and ReleaseSafe-broad defaults. Includes a routing regression.",
+      "baseline_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713"
+    },
+    {
+      "id": "frozen_two_lane_retirement",
+      "net_code_budget": -75,
+      "flags_removed_target": 2,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "baseline_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+      "scope": "Remove two-lane recursion and its exclusively owned sibling-session lifecycle. Keep one lane per physical device and the shared budget/resource contracts. Remove no hybrid, feeder/provider or legacy owner-callback implementation.",
+      "dependency_audit": "createSibling has one caller, guarded by RECURSION_SESSIONS; lanesPerDevice has one caller in resident_ready. Default and current native preset use sessions=0/lanes=1. Ready begin/end only manage sibling services, so their two callers can retire with them. Follow-up audit found the CPU DAG still read LANES_PER_DEVICE; that remaining reader is retired and charged separately below. Only SESSIONS is globally removed by the CUDA-only portion.",
+      "gates": [
+        "dev_test.py relevant package coverage",
+        "one default rv64_gate.sh"
+      ]
+    },
+    {
+      "id": "native_canonical_comparison_authority",
+      "net_code_budget": 40,
+      "net_code_target": -25,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Replace the retired admission/two-lane smoke experiment with the required native/default six-service comparison. Share pinned native-addon environment validation and deterministic service identity with the gate; test missing/drifting addons and reject a non-native candidate before GPU work. Retiring the old smoke/reference modes pays for the new invariant where possible. Includes a versioned native manifest and runtime-file pin; missing, drifting and non-native inputs must fail before GPU work.",
+      "cli_flags_removed_target": [
+        "smoke",
+        "global-admission-off-diagnostic",
+        "smoke-seeds",
+        "smoke-request-timeout",
+        "reference-run",
+        "fresh-receivers"
+      ]
+    },
+    {
+      "id": "optimized_projection_failure",
+      "net_code_budget": 25,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "The complete optimized CUDA package now exposes a projection denominator mismatch. Reuse the existing native-GKR target for the existing projection tests and route it through dev_test.py, preserving complete package coverage. Temporary diagnostics and any repair must stay within this bound; no assertion relaxation or new launcher."
+    },
+    {
+      "id": "two_lane_remaining_cpu_reader",
+      "net_code_budget": -8,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "scope": "Remove the remaining CPU DAG two-lane opt-in; retain distinct device/factory/pool and worker-budget rejection tests. This closes the same frozen two-lane retirement, not a third flag removal."
+    },
+    {
+      "id": "native_source_closure_metadata_ownership",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "scope": "Relocate three byte-identical export contracts and the admission owner document outside the strict native source-only closure; update both live manifest readers without adding wrappers or relaxing closure discovery. Moves are not deletions."
+    },
+    {
+      "id": "recursion_dag_inner_loop_owner",
+      "net_code_budget": 20,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "The retired two-lane reader belongs to a standalone CPU DAG module. Give its existing device/factory/pool and worker-budget tests a package-owned focused target through dev_test.py rather than compiling the entire prover for this std-only change. Preserve the existing broad CI target and all assertions."
+    },
+    {
+      "id": "live_validation_fixture_ownership",
+      "net_code_budget": -4,
+      "runtime_flags_added_budget": 0,
+      "top_level_scripts_added_budget": 0,
+      "scope": "Move the complete frozen D2 package and the committed jobs memory policy byte-for-byte into vectors/fixtures before historical-report retirement. Update all active readers. Remove the committed-policy test missing-file skip so losing a required fixture fails. Moves do not count as code or evidence deletion."
+    },
+    {
+      "id": "retired_rv64_probe_tool_roots",
+      "net_code_budget": -801,
+      "runtime_stwo_flags_added_budget": 0,
+      "runtime_stwo_flags_removed": 0,
+      "historical_non_stwo_flags_removed": [
+        "RV64_SYNC_TRACE_OUT",
+        "RV64_SYNC_TRACE_DEPTH",
+        "RV64_SYNC_TRACE_LAUNCH_STACKS"
+      ],
+      "top_level_scripts_added_budget": 0,
+      "top_level_scripts_removed": 0,
+      "tool_python_utilities_removed": 4,
+      "native_probe_sources_removed": 3,
+      "scope": "Retire the unregistered M4 kernel probes and M6 sync-trace tool as complete historical units. Exhaustive repository literal-name and source-symbol searches show no external active consumer; only the historical M6 document refers to the tracer. Retain the live rv64-cuda-counters and rv64-cuda-callsites tools used by current measurement.",
+      "archive_tag": "archive/consolidation-20261108/worktrees/rv64-m8-gn-bind",
+      "files": [
+        {
+          "path": "tools/rv64-sync-trace/progress_rows.py",
+          "lines": 71,
+          "sha256": "ea231841db6d7d6e455850e3b4bf3beb72f5aec164a43d341d8d1027e9425f41",
+          "git_blob": "1fe16afe457051b8a4f51e9bddf45a07476eb747"
+        },
+        {
+          "path": "tools/rv64-sync-trace/rv64_sync_trace.c",
+          "lines": 281,
+          "sha256": "70a56439c2373418b8bce29ca3aa77b93ade1082e9a7c86d39a24c9039dd1c2d",
+          "git_blob": "559c65bcd5aebb780ac75dbcb244876ad3270fb8"
+        },
+        {
+          "path": "tools/rv64-sync-trace/symbolize.py",
+          "lines": 118,
+          "sha256": "648ea5b211e125c9b1e745d8afad97a7528fec40456fb654258bd94bc02901aa",
+          "git_blob": "628190ca8d54a220caa171a5e73c83bfa99d53e7"
+        },
+        {
+          "path": "tools/rv64-sync-trace/window.py",
+          "lines": 85,
+          "sha256": "2c9457d3e8eca08d985d2df6dfefbc1834ee9038f2b57f3e979a1624bc2726b7",
+          "git_blob": "2b58688da0058ccd736edabf27eb3790fcdb8d8d"
+        },
+        {
+          "path": "tools/rv64-m4-kernels-adv/blake_eager.cu",
+          "lines": 111,
+          "sha256": "f9e3f17c32f3ae0a00dac53d3d7f769d20777115489688e2ee02067a22477416",
+          "git_blob": "f26f4e2be9b39232243003319dcd20424baee12b"
+        },
+        {
+          "path": "tools/rv64-m4-kernels-adv/proof_file_parity.py",
+          "lines": 32,
+          "sha256": "b1000b5883af7b4f442c369a4ea45a23f00b755f1077bed1b4b4e8009fd95021",
+          "git_blob": "849391c1402b6e7a5218035882fd0cc4efa1fcb2"
+        },
+        {
+          "path": "tools/rv64-m4-kernels-adv/xform_diff.cu",
+          "lines": 103,
+          "sha256": "4cba4bb72641bff940a58fc550a4dd4e23c8d168b2200cb397a7c13cbcf033da",
+          "git_blob": "d9ab3edf1111d43214a6144cf0d5b99de30c15d3"
+        }
+      ]
+    },
+    {
+      "id": "budget_policy_and_evidence_ownership",
+      "net_code_budget": 12,
+      "runtime_flags_added_budget": 0,
+      "top_level_scripts_added_budget": 0,
+      "positive_growth_justification": "Separate immutable source-pinned budget decisions from changing validation results. Existing source hashing continues to include the budget policy; the existing evidence receipt remains outside source identity. Extend the existing validation regression to prove policy changes invalidate source while recording evidence does not.",
+      "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results",
+      "scope": "Pin budget policy and maintained validation fixtures while keeping observed results in the evidence receipt. Consolidate the existing source-freeze regression across each immutable owner; do not exclude any policy or fixture from hashing."
+    },
+    {
+      "id": "package_test_fixture_working_directory",
+      "net_code_budget": 0,
+      "runtime_flags_added_budget": 0,
+      "top_level_scripts_added_budget": 0,
+      "scope": "The full optimized package exposed that its committed policy test previously skipped from the wrong working directory. Route the full package test through the existing jobTestStep owner so broad and focused tests use the same package cwd and check-only policy. Keep the missing-fixture failure and all tests.",
+      "validation_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
     }
-  ]
+  ],
+  "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
 }

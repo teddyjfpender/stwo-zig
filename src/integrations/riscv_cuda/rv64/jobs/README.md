@@ -9,6 +9,19 @@ These are the three developer entrypoints:
 | Before every push | `bash scripts/rv64_gate.sh --stream m8-gn-bind --out <new-receipt-dir> --source-commit <sha> --runtime <pinned-runtime.json>` |
 | GPU-native regression set | `python3 scripts/rv64_m8_bench15.py run --assets <pinned-assets.json> --out <regression-dir> --arms gpu-native` |
 
+Use `dev_test.py --optimize ReleaseFast <changed-paths>` to reproduce optimized
+CI failures. Without an override, focused tests use Debug and package fallbacks
+use ReleaseSafe.
+
+CI checks the [RV64 flag registry](../../../../../conformance/rv64-flags.json)
+before source-layout baselines are considered. Every declaration names its
+source owner, unset default, lifecycle status and review date; references are
+generated. New names and changed default expressions require review. The strict
+release gate also rejects 60 or more live controls and remaining M7/M8 switches.
+Qualification controls count as live; C/CUDA constants do not. Current counts
+and outstanding gates are in the
+[productionisation receipt](../../../../../vectors/reports/rv64-productionisation/current.json).
+
 Compiles and proof gates currently run in the corresponding frozen pod source
 snapshot. Transport must preserve the canonical source identity; do not select
 another laptop worktree to build a different component. The gate owns its GPU

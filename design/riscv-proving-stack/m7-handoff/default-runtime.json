@@ -1,6 +1,6 @@
 {
   "schema": "rv64-pinned-cuda-runtime/v1",
-  "scope": "CANONICAL DEFAULT runtime (owner decision 2026-11-07, stream m-runtime): the source-built M8 opt-combined image, lib 25d0e62f (recipe vectors/reports/rv64-m8-20261106/opt-combined/compose_image.py = scripts/rv64_m8_native_relink.py + T5 relink of integrate 95e3d7e15), so the landed default flips (T3/T4/T5/T7/T8/T9) act in default gates and runs. Frozen sparse/observer/guard addons. The image directory /workspace/m3/build/m8-opt-combined/img is shared and read-only. Frozen a25 control: p0-runtime.json.",
+  "scope": "CANONICAL DEFAULT runtime (owner decision 2026-11-07, stream m-runtime): the source-built M8 opt-combined image, lib 25d0e62f (recipe vectors/reports/rv64-m8-20261106/opt-combined/compose_image.py = scripts/rv64_m8_native_relink.py + T5 relink of integrate 95e3d7e15), so the landed default flips (T3/T4/T5/T7/T8/T9) act in default gates and runs. Frozen sparse/observer/guard addons. The image directory /workspace/m3/build/m8-opt-combined/img is shared and read-only. Frozen a25 control: p0-runtime.json. Optional pinned jobs environment is applied only when a job path is selected; this does not promote the GPU-native request default.",
   "supersedes": "design/riscv-proving-stack/m7-handoff/p0-runtime.json",
   "assets": {
     "library": "/workspace/m3/build/m8-opt-combined/img/native/libstwo-rv64-native.so",
@@ -13,5 +13,15 @@
     "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
     "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
     "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139"
+  },
+  "jobs_env": {
+    "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-gn-codec/addon-5/libstwo-rv64-jobs.so",
+    "STWO_RV64_M8_OUTER_FS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-4/libstwo-rv64-outer-fs-ops.so",
+    "STWO_RV64_M8_JOBS_PINNED_BYTES": "2365587456",
+    "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": "2147483648"
+  },
+  "jobs_env_sha256": {
+    "STWO_RV64_M8_JOBS_LIBRARY": "a8691a96b4192036147e9810e0ab4a5ada929cb55726d2d876a047774c9cfebb",
+    "STWO_RV64_M8_OUTER_FS_LIBRARY": "ba6ffb21ab246b72ab3d23950d20c24f14039cc9d3f54d07ed6e3129cc5f4677"
   }
 }

@@ -45,7 +45,7 @@ pub fn build(b: *std.Build) void {
     for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_frontend" }) |name| native_gkr_root.addImport(name, integration.import_table.get(name) orelse @panic("missing native GKR codegen dependency"));
     const native_gkr_tests = b.addTest(.{ .root_module = native_gkr_root });
     native_gkr_tests.linkLibC();
-    b.step("test-native-gkr-codegen", "Check native raw source and reduced AIR against source authority").dependOn(&b.addRunArtifact(native_gkr_tests).step);
+    b.step("test-native-gkr-codegen", "Check native raw source and reduced AIR against source authority").dependOn(jobTestStep(b, native_gkr_tests, check_only));
 
     const router_root = b.createModule(.{ .root_source_file = b.path("rv64_router_test_root.zig"), .target = target, .optimize = optimize });
     router_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
@@ -145,7 +145,7 @@ pub fn build(b: *std.Build) void {
     const batch_tests = b.addTest(.{ .root_module = batch_test_root });
     batch_tests.linkLibC();
     b.step("test-rv64-batch-plan", "Test mixed-height batch enqueue control without CUDA or a full prover build").dependOn(&b.addRunArtifact(batch_tests).step);
-    const tests = b.addRunArtifact(b.addTest(.{ .root_module = integration }));
+    const tests = b.addTest(.{ .root_module = integration });
     const prestage_root = b.createModule(.{ .root_source_file = b.path("rv64_cpu_prestage_test_root.zig"), .target = target, .optimize = optimize, .strip = true });
     for ([_][]const u8{ "stwo_core", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_prover_api", "stwo_prover_engine" }) |name| prestage_root.addImport(name, integration.import_table.get(name) orelse @panic("missing CPU prestage dependency"));
     const prestage_tests = b.addTest(.{ .root_module = prestage_root });
@@ -155,7 +155,7 @@ pub fn build(b: *std.Build) void {
         "test",
         "Run host-independent RISC-V CUDA integration contract tests",
     );
-    test_step.dependOn(&tests.step);
+    test_step.dependOn(jobTestStep(b, tests, check_only));
     const prefix_tests = b.addExecutable(.{
         .name = "rv64-prefix-bank-tests",
         .root_module = b.createModule(.{ .target = b.graph.host, .optimize = optimize }),

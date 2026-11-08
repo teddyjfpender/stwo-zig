@@ -14,6 +14,7 @@ from typing import Iterable
 
 
 ROOT = Path(__file__).resolve().parents[1]
+OPTIMIZE_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -22,6 +23,7 @@ from scripts.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig", "test-recursion-dag"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion/om31_native/publication.zig", "test-recursion-publication"),
     ("stwo_core", "src/core/fields", "test-fields"),
     ("stwo_core", "src/core/fields_test_root.zig", "test-fields"),
@@ -138,6 +140,7 @@ def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
         # those imports instead of maintaining a second native/truth/outer
         # file inventory; unknown files still take the package fallback.
         for filename, step in (
+            ("rv64_native_gkr_codegen_test_root.zig", "test-native-gkr-codegen"),
             ("rv64_jobs_recursion_test_root.zig", "test-rv64-jobs-recursion"),
             ("rv64_jobs_native_test_root.zig", "test-rv64-jobs-native"),
             ("rv64_jobs_truth_test_root.zig", "test-rv64-jobs-truth"),
@@ -159,13 +162,13 @@ def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
     return None
 
 
-def local_command(command: list[str]) -> list[str]:
+def local_command(command: list[str], optimize: str = "ReleaseSafe") -> list[str]:
     localized: list[str] = []
     saw_optimize = False
     saw_jobs = False
     for argument in command:
         if argument.startswith("-Doptimize="):
-            localized.append("-Doptimize=ReleaseSafe")
+            localized.append(f"-Doptimize={optimize}")
             saw_optimize = True
         elif argument.startswith("-j"):
             localized.append("-j1")
@@ -173,13 +176,13 @@ def local_command(command: list[str]) -> list[str]:
         else:
             localized.append(argument)
     if not saw_optimize:
-        localized.append("-Doptimize=ReleaseSafe")
+        localized.append(f"-Doptimize={optimize}")
     if not saw_jobs:
         localized.append("-j1")
     return localized
 
 
-def broad_command(root: Path, package: ci_package_graph.Package) -> list[str]:
+def broad_command(root: Path, package: ci_package_graph.Package, optimize: str) -> list[str]:
     contract_path = root / package.directory / ci_package_graph.CONTRACT_NAME
     payload = json.loads(contract_path.read_text(encoding="utf-8"))
     command = payload.get("ci", {}).get("command")
@@ -187,7 +190,7 @@ def broad_command(root: Path, package: ci_package_graph.Package) -> list[str]:
         isinstance(argument, str) and argument for argument in command
     ):
         raise DevTestError(f"package {package.name} has no valid CI command")
-    return local_command(command)
+    return local_command(command, optimize)
 
 
 def commands_for_paths(
@@ -195,7 +198,10 @@ def commands_for_paths(
     raw_paths: Iterable[str],
     *,
     check_only: bool = False,
+    optimize: str | None = None,
 ) -> list[list[str]]:
+    if optimize is not None and optimize not in OPTIMIZE_MODES:
+        raise DevTestError(f"unknown optimization mode: {optimize}")
     paths = sorted({normalize_path(path) for path in raw_paths})
     python_paths = [path for path in paths if path.startswith("scripts/") and path.endswith(".py")]
     commands: list[list[str]] = []
@@ -234,7 +240,7 @@ def commands_for_paths(
         package = packages[package_name]
         steps = {focus_step(package_name, path, root) for path in package_paths}
         if None in steps:
-            commands.append(broad_command(root, package))
+            commands.append(broad_command(root, package, optimize or "ReleaseSafe"))
             continue
         selected_steps = sorted(value for value in steps if value is not None)
         if selected_steps:
@@ -244,7 +250,7 @@ def commands_for_paths(
                 *selected_steps,
                 "--build-file",
                 f"{package.directory}/build.zig",
-                "-Doptimize=Debug",
+                f"-Doptimize={optimize or 'Debug'}",
                 "-j1",
             ]
             if check_only:
@@ -258,6 +264,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("paths", nargs="*", help="changed paths; defaults to the worktree diff")
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--optimize", choices=OPTIMIZE_MODES,
+                        help="reproduce an explicit build mode, such as optimized CI")
     parser.add_argument(
         "--check",
         action="store_true",
@@ -279,6 +287,7 @@ def main(argv: list[str] | None = None) -> int:
             root,
             paths,
             check_only=args.check or args.watch,
+            optimize=args.optimize,
         )
         if args.watch:
             if len(commands) != 1 or "-Dcheck-only=true" not in commands[0]:

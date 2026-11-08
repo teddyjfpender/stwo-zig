@@ -2,15 +2,6 @@
 const std = @import("std");
 pub const Mode = enum { serial, ready_candidate };
 pub const helper_stack_bytes: usize = 1 << 20;
-/// sched M6: concurrent outer proofs per physical device (1 = M5). Each lane
-/// has its own outer context and helper pool; the device and its native
-/// session are shared. Scheduling only.
-pub fn lanesPerDevice() !usize {
-    const text = std.posix.getenv("STWO_RV64_RECURSION_LANES_PER_DEVICE") orelse return 1;
-    const value = std.fmt.parseUnsigned(usize, text, 10) catch return error.InvalidResidentReadyAdmission;
-    if (value == 0 or value > 2) return error.InvalidResidentReadyAdmission;
-    return value;
-}
 pub fn workers(mode: Mode, ids: []const u32, total: usize, pending: usize) ![4]usize {
     if (mode == .serial) {
         if (ids.len != 1) return error.MultiGpuCombinedRecursionNotImplemented;

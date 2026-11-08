@@ -38,7 +38,7 @@ pub fn addGates(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     const strict = [_][]const []const u8{
         &.{ "zig", "fmt", "--check", "build.zig", "build_support", "src", "tools" },
         &.{ "python3", "scripts/check_upstream_pins.py" },
-        &.{ "python3", "scripts/check_source_conformance.py" },
+        &.{ "python3", "scripts/check_source_conformance.py", "--strict-rv64-flags" },
         &.{ "python3", "scripts/check_package_workspace.py" },
         &.{ "python3", "scripts/check_registry_parity.py" },
         &.{ "zig", "build", "test", build_optimize },

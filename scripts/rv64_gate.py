@@ -8,7 +8,6 @@ The CUDA image is an explicit pinned build input, never an implicit stale
 output of a host rebuild. A CUDA change must supply a newly built manifest.
 """
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -17,10 +16,9 @@ import sys
 import time
 
 import rv64_m7_integration_stack as stack
-from rv64_validation import CASES, check_corpus, frozen_parity, payload_name, validate_assets, validate_receivers, validate_library_environment
+from rv64_validation import CASES, check_corpus, frozen_parity, payload_name, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, FROZEN_D2_PACKAGE as GOLDEN
 
 ROOT = Path(__file__).resolve().parents[1]
-GOLDEN = ROOT / 'vectors/reports/rv64-m7-20261105/d2-composed/combined-d2-package'
 # Canonical default runtime: the source-built opt-combined image (owner decision
 # 2026-11-07). Pass --runtime design/riscv-proving-stack/m7-handoff/p0-runtime.json
 # for the frozen a25 control.
@@ -41,41 +39,6 @@ def extra_environment(items):
             raise ValueError(f'--env {key} given twice')
         result[key] = value
     return result
-
-
-JOBS_FLAGS = ('STWO_RV64_M8_JOBS', 'STWO_RV64_M8_NATIVE_JOBS', 'STWO_RV64_M8_OUTER_JOBS')
-
-
-def service_label(out):
-    """Preserve independent receipts whose output directories share a name."""
-    identity = hashlib.sha256(str(out.resolve()).encode()).hexdigest()[:16]
-    return 'gate-' + out.name + '-' + identity
-
-
-def jobs_environment(runtime, extra_env):
-    """Job-path environment a runtime JSON ships (`jobs_env`: STWO_* key -> path
-    or value, `jobs_env_sha256`: key -> sha256 for every path entry).
-
-    Applied only when --env selects a job path (one of JOBS_FLAGS = 1), so the
-    default gate is unchanged; an explicit --env of the same key wins. Every
-    shipped library is pinned by SHA-256 like the runtime assets (gate-14
-    MissingM8OuterFsLibrary was a JOBS=1 gate without the outer-fs addon).
-    """
-    selected = any(extra_env.get(flag) == '1' for flag in JOBS_FLAGS)
-    shipped = dict(runtime.get('jobs_env', {})) if selected else {}
-    pins = runtime.get('jobs_env_sha256', {})
-    for key, value in shipped.items():
-        if not key.startswith('STWO_'):
-            raise RuntimeError('runtime jobs_env key must be STWO_*: ' + key)
-        if key.endswith('_LIBRARY') and key not in pins:
-            raise RuntimeError('runtime jobs_env library without sha256: ' + key)
-    pinned_jobs = {key: value for key, value in shipped.items() if key in pins}
-    if pinned_jobs:
-        validate_assets(pinned_jobs, pins)
-    validate_library_environment({**shipped, **extra_env},
-                                 {**runtime.get('assets', {}), **pinned_jobs},
-                                 {**runtime.get('asset_sha256', {}), **pins})
-    return {k: v for k, v in shipped.items() if k not in extra_env}
 
 
 def main():

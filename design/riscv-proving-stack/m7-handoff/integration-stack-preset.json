@@ -7,7 +7,6 @@
     "CUDA_MODULE_LOADING": "EAGER",
     "LD_PRELOAD": "{library}:{observer}:{sparse}",
     "LD_LIBRARY_PATH": "{library_dir}:/usr/local/cuda/lib64",
-    "STWO_RV64_GLOBAL_ADMISSION_RUNTIME": "v2",
     "STWO_RV64_TRUTH_SPARSE_LIBRARY": "{sparse}",
     "STWO_RV64_PROCESS_MEMORY_LIBRARY": "{observer}",
     "STWO_RV64_PROCESS_MEMORY_OBSERVE": "1",
@@ -39,22 +38,18 @@
     "baseline": {
       "STWO_RV64_DEVICE_ARENA": "auto",
       "STWO_RV64_TRUTH_SPARSE_RC": "0",
-      "STWO_RV64_GLOBAL_ADMISSION": "0",
-      "STWO_RV64_RECURSION_SESSIONS": "0",
-      "STWO_RV64_RECURSION_LANES_PER_DEVICE": "1",
       "STWO_RV64_EARLY_NATIVE_SEGMENTS": "0",
       "STWO_RV64_FIRST_PASS_RAM": "0"
     },
     "fullstack": {
-      "STWO_RV64_DEVICE_ARENA": "22G",
-      "STWO_RV64_TRUTH_SPARSE_RC": "1",
-      "STWO_RV64_GLOBAL_ADMISSION": "1",
-      "STWO_RV64_GLOBAL_ADMISSION_HOST_POLICY": "observe_only",
-      "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0",
-      "STWO_RV64_RECURSION_SESSIONS": "1",
-      "STWO_RV64_RECURSION_LANES_PER_DEVICE": "2",
+      "STWO_RV64_DEVICE_ARENA": "auto",
+      "STWO_RV64_TRUTH_SPARSE_RC": "0",
       "STWO_RV64_EARLY_NATIVE_SEGMENTS": "0",
-      "STWO_RV64_FIRST_PASS_RAM": "0"
+      "STWO_RV64_FIRST_PASS_RAM": "0",
+      "STWO_RV64_M8_JOBS": "1",
+      "STWO_RV64_M8_GPU_NATIVE": "1",
+      "STWO_RV64_M8_GPU_NATIVE_REUSE": "1",
+      "STWO_RV64_M9_CLASS_PACKED_INGRESS": "1"
     }
   },
   "measurement": {
@@ -74,7 +69,7 @@
     "quiet_timeout_s": 300,
     "fresh_receivers_after_all_timing_services": true,
     "gpu_seconds": "CUPTI interval union; node-level graph tracing required; profiled walls include profiler overhead",
-    "memory_claim": "Onlyfullstack holds physical canary throughout service, enforcing <=28e9physicalbytes perGPU. Baselineoriginalautounguarded. Enforcedupperbound, notobservedexactpeak.",
+    "memory_claim": "Only GPU-native holds the pinned physical guard throughout the service, enforcing <=28e9 physical bytes per GPU. Both arms use auto arenas. This is an enforced ceiling, not an observed exact peak.",
     "physical_guard_arms": [
       "fullstack"
     ],
@@ -83,11 +78,11 @@
     "quiet_scope": "Five one-second idle samples with pod cgroup PSI some/full <=0.5% of measured idle duration; zero throttling during idle and inventory; steal<=1%; no foreign GPU or owned compiler. Background memory sampling paused during admission and resumed before request. Inventory-probe PSI recorded separately; host load informational. Previous zero-PSI and 0.1% admission failures are retained.",
     "instrumentation": {
       "headline": "unprofiled; independentfullcapture diagnosticSHA256OFFbotharms; R1flagsOFFbotharms (noR1privateCaptureSeal pathselected)",
-      "smoke": "independentfullcaptured-valueSHA256 ON botharms andrequiredforparity; allwallsunqualified",
-      "ownership_profile_pair": "Nsight node trace; independentfullcaptureSHA OFF botharms; excludedheadline medians"
+      "ownership_profile_pair": "Nsight node trace; independentfullcaptureSHA OFF botharms; excludedheadline medians",
+      "correctness": "Use rv64_gate.sh for bounded cold/warm correctness; the canonical runner accepts strict quiet six-service comparisons only."
     },
-    "pending_authority_floor": "SourcePlan max_leaves256 arity4 carryBound12; minimumLimit=max(9+2lanes,12+2lanes+1):17 for2logical lanes,21 for4logical lanes.",
-    "timed_scope": "R1PARKED: timedfullstackdiffonlySparse22G+globalGPUadmission+siblingrecursionsessions+2lanes/device+earlyleafcapability+sourcependingbound21. BaselineoriginalD2+coalescingauto/global0/sessions0/lanes1/pending17. AllR1flags0botharms.",
+    "pending_authority_floor": "One recursion lane per physical device; two logical lanes use the default pending-authority floor 17.",
+    "timed_scope": "The default environment versus GPU-native jobs with installed reuse and packed ingress. Physical guard applies only to the native candidate. Admission and sibling-session experiments are retired from this preset.",
     "quiet_pressure_max": 0.005
   },
   "operational": {
@@ -95,7 +90,16 @@
       "recursion_max_pending_authorities": 17
     },
     "fullstack": {
-      "recursion_max_pending_authorities": 21
+      "recursion_max_pending_authorities": 17
     }
+  },
+  "comparison": {
+    "baseline": "current default request path",
+    "fullstack": "opt-in GPU-native request path",
+    "required_blocks": [
+      24628607,
+      26235168
+    ],
+    "status": "CONFIGURED_NOT_MEASURED"
   }
 }

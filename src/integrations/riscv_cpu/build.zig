@@ -9,6 +9,9 @@ pub fn build(b: *std.Build) void {
     const publication_root = b.createModule(.{ .root_source_file = b.path("rv64_recursion/om31_native/publication.zig"), .target = target, .optimize = optimize });
     const publication_tests = b.addTest(.{ .root_module = publication_root });
     b.step("test-recursion-publication", "Test bounded root/tree binding and durable publication without prover imports").dependOn(if (check_only) &publication_tests.step else &b.addRunArtifact(publication_tests).step);
+    const dag_root = b.createModule(.{ .root_source_file = b.path("rv64_recursion/om31_native/ready_dag.zig"), .target = target, .optimize = optimize });
+    const dag_tests = b.addTest(.{ .root_module = dag_root });
+    b.step("test-recursion-dag", "Test recursion device ownership, worker budgets and ready dispatch without prover imports").dependOn(if (check_only) &dag_tests.step else &b.addRunArtifact(dag_tests).step);
 
     const artifact_store = b.dependency(
         "stwo_artifact_store",

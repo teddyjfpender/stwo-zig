@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS",
-  "updated_utc": "2026-11-08T07:56:02.426366+00:00",
+  "updated_utc": "2026-11-08T10:06:36.295228+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-gpu-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -84,11 +84,11 @@
     "tracked_receipt_files": 14945,
     "local_m8_m9_branches": 69
   },
-  "current_followup_scope": "First subtractive batch and custody/CI/dev-workflow follow-up accepted on default and native 24628607; no controlled timing, second required comparison block, full native basket or default promotion qualification",
+  "current_followup_scope": "Uncommitted second batch: zero-growth FRI arithmetic correction, optimized developer route, frozen two-lane retirement and versioned GPU-native/default comparison preparation. Host-only qualification so far; 7c0686ae7 remains the last accepted hardware source.",
   "host_ci_repair": {
     "native_cuda": "PASS 281/281 ReleaseFast after invalid-free test cleanup",
     "component_geometry": "PASS exact 2/2 named tests after test-owner discovery fix",
-    "fri": "OPEN: ReleaseSafe passes, ReleaseFast still has a demonstrated field-coordinate mismatch; assertions retained",
+    "fri": "WORKING_TREE HOST PASS: shared functional pair arithmetic matches independent first-pair oracle; ReleaseFast and ReleaseSafe focused tests and complete optimized core target pass. Hardware follow-up pending.",
     "full_python_suite": "OPEN: initial 2135-test run has 47 failures/49 errors/61 skipped; four retired-subject discovery errors repaired. 43 selected current source-contract tests also reproduce 11 failures with real Git metadata, so pod prerequisites are not the whole explanation.",
     "native_source_closure": "OPEN: strict code-only closure encounters three tracked symbol JSON manifests and ADMISSION-V2.md; checker and files are unchanged from baseline; no check suppression",
     "tooling_inventory": "OPEN: six existing tools roots absent from closed inventory; audit consumers before repair/retirement",
@@ -158,20 +158,6 @@
       "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-source-conformance-final.log",
       "sha256": "a47aa6d4fc8f78a357c77641c0fab94118d1eb019e6d3ef01fee91888182c5e1"
     },
-    "running_cost_including_all_pending_code": {
-      "production_code": {
-        "added": 453,
-        "removed": 42415,
-        "net": -41962
-      },
-      "historical_research_code": {
-        "added": 0,
-        "removed": 25656,
-        "net": -25656
-      },
-      "combined_net": -67618,
-      "scope": "Code extensions in src/scripts/build_support/tools plus separately counted autoresearch; includes untracked code and previous positive custody/CI repairs; excludes documentation/configuration/evidence"
-    },
     "full_python_initial_log": {
       "local": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-full-python-initial.log",
       "sha256": "67b3985e44230b572023d7ed82c07fbcc2ab0a00a7fd151816cb52e0e68cb6d0"
@@ -203,6 +189,21 @@
     "residual_contract_repro_log": {
       "local": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch1-residual-contract-repro.log",
       "sha256": "02764951c54bfebda8ecb8b8d36e6273a241882bac87753e8c305a301e80f648"
+    },
+    "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+    "delivered_code_cost": {
+      "production_code": {
+        "added": 453,
+        "removed": 42415,
+        "net": -41962
+      },
+      "historical_research_code": {
+        "added": 0,
+        "removed": 25656,
+        "net": -25656
+      },
+      "combined_net": -67618,
+      "scope": "Code extensions in src/scripts/build_support/tools plus separately counted autoresearch; includes untracked code and previous positive custody/CI repairs; excludes documentation/configuration/evidence"
     }
   },
   "hardware_followup": {
@@ -213,7 +214,6 @@
       "status": "PASS",
       "source_manifest_sha256": "98c7eb343ff8756e181b560704660354c94a384b13e3b8303c74d2128740ae3c",
       "source_files": 8590,
-      "source_matches_canonical": true,
       "asset_sha256": {
         "library": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
         "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
@@ -272,7 +272,8 @@
           "name": "negative-corpus",
           "exit_code": 0
         }
-      ]
+      ],
+      "source_matches_delivery_commit": true
     },
     "native_24628607": {
       "path": "/workspace/m3/runs/m8-gn-bind/subtract-batch1-17/native-24628607/gate.json",
@@ -280,7 +281,6 @@
       "status": "PASS",
       "source_manifest_sha256": "98c7eb343ff8756e181b560704660354c94a384b13e3b8303c74d2128740ae3c",
       "source_files": 8590,
-      "source_matches_canonical": true,
       "asset_sha256": {
         "library": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
         "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
@@ -356,7 +356,8 @@
           "name": "negative-corpus",
           "exit_code": 0
         }
-      ]
+      ],
+      "source_matches_delivery_commit": true
     },
     "status": "PASS_DEFAULT_AND_NATIVE_24628607_ONLY",
     "runtime": {
@@ -369,7 +370,7 @@
       "python_passed": 184,
       "counts_repeat_between_gates": true
     },
-    "delivery_commit": "The commit containing this receipt; source manifest matches both accepted gate snapshots"
+    "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713"
   },
   "initial_four_gate_qualified_commit": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
   "initial_four_gate_receipt": "vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-7.json",
@@ -379,7 +380,432 @@
       "design/riscv-proving-stack/rv64-m8-handoff.md",
       "scripts/dev_test.py"
     ],
-    "status": "INCLUDED_IN_THIS_DELIVERY_COMMIT",
-    "preservation": "Pre-deletion snapshot in verified off-laptop recovery bundle; subsequent work in canonical checkout"
+    "status": "COMMITTED_AND_PUSHED",
+    "preservation": "Pre-deletion snapshot in verified off-laptop recovery bundle; subsequent work in canonical checkout",
+    "commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713"
+  },
+  "working_tree_followup": {
+    "status": "CANDIDATE_COMPONENTS_PASS_FULL_PROOF_GATES_PENDING",
+    "base_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+    "measured_code": {
+      "added": 559,
+      "removed": 1101,
+      "net": -542
+    },
+    "per_change": {
+      "fri": {
+        "net": 0,
+        "focused_optimized": "PASS 20/20 after independently demonstrated 19/20 baseline failure",
+        "focused_safe": "PASS",
+        "complete_optimized_core_target": "PASS via dev_test.py"
+      },
+      "optimized_developer_route": {
+        "net": 28
+      },
+      "two_lane": {
+        "net": -85,
+        "runtime_flags_removed": [
+          "STWO_RV64_RECURSION_SESSIONS",
+          "STWO_RV64_RECURSION_LANES_PER_DEVICE"
+        ],
+        "remaining_runtime_readers": 0,
+        "component": "PASS: package-owned std-only CPU DAG tests via dev_test.py --optimize ReleaseFast on pod",
+        "default_gate": "PENDING"
+      },
+      "native_comparison_authority": {
+        "net": 37,
+        "retired_cli_modes": 6,
+        "host_contracts": "PASS 72 selected tests; counts overlap with other suites"
+      },
+      "projection_investigation": {
+        "status": "PASS_SHARED_BYTE_SHIFT_OWNER_FOCUSED_AND_COMPLETE_OPTIMIZED_PACKAGE",
+        "complete_optimized_cuda_package": "PASS via dev_test.py after mandatory fixture cwd correction",
+        "focused_native_gkr_target": "PASS all descriptor/parameter modes plus independent integer byte-shift regression",
+        "failure": "ucopy descriptor 37 random-challenge denominator disagrees between scalar source and recorded projection IR",
+        "focused_log": "/workspace/m3/runs/m8-gn-bind/production-18/projection-focused-fast.log",
+        "oracle_probe": "/workspace/m3/runs/m8-gn-bind/production-18/projection-oracle-fast.log",
+        "oracle_probe_status": "FAIL_REPRODUCED_SCALAR_SOURCE_LOW_LIMB_MATCHES_INDEPENDENT_INTEGER_ORACLE",
+        "baseline_attribution": "NOT_YET_ESTABLISHED",
+        "ucopy_low_limb_oracle": 971785791,
+        "ucopy_low_limb_scalar": 971785791,
+        "projection_program_identity": "42da75cc7c3db6ae87c93c0f617b906fa0e42411efef6a029515010fcdc6331e",
+        "code_net": 24,
+        "initial_fault": "Scalar emitted byte-shift tuple differs from independent integer polynomial; recorder and interpreter agree with their inputs",
+        "independent_oracles": [
+          "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/projection-independent-denominator-oracle.json",
+          "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/projection-sponge-independent-oracle.json"
+        ],
+        "post_repair_hardware": "NOT_YET_RUN"
+      },
+      "recursion_dag_build_owner": {
+        "net": 3,
+        "status": "PASS_VIA_DEV_TEST_RELEASEFAST",
+        "log": "/workspace/m3/runs/m8-gn-bind/production-18/recursion-dag-focused-fast.log",
+        "log_sha256": "619887d4192b4011e59eda18f8bd7aa1b8c4a5c8886bd90ac917f4a6c9365117",
+        "source_files_sha256": {
+          "src/integrations/riscv_cpu/build.zig": "5adab57910bbb04598befe236256f0fddc31a0ada33c4f179fb42d2ceea72123",
+          "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig": "fb1269eae4d04b4d36be313d4ff2f7e30a5e221d0aec5487718d8554631beaa1",
+          "scripts/dev_test.py": "46c6ed008d58663b72e072784c895bb4c4a702d8bb4e278f566ec56ea1e6be2e"
+        }
+      },
+      "flag_registry": {
+        "code": {
+          "added": 259,
+          "removed": 1,
+          "net": 258
+        },
+        "path": "conformance/rv64-flags.json",
+        "status": "PASS_DECLARATIONS_REFERENCES_AND_HOST_TESTS",
+        "live_controls": 260,
+        "counts_include_qualification_controls": true,
+        "declared_names": 297,
+        "constants": 34,
+        "reference_only_names": 3,
+        "strict_release_target": "FAIL_EXPECTED: live target and remaining M7/M8 switches",
+        "new_runtime_flags": 0,
+        "new_cli_modes": 3,
+        "new_top_level_scripts": 0,
+        "new_library_files": 1,
+        "new_test_files": 1,
+        "generated_metadata_lines": 4042,
+        "baseline_or_ceiling_changes": 0
+      },
+      "native_closure_metadata": {
+        "net_code": 0,
+        "status": "PASS_STRICT_CLOSURE",
+        "files": 224,
+        "implementation_files": 112,
+        "closure_sha256": "9f291ec9c9db1bf0d14f2d5bc90cb66d8fb18d418cbd0424f120a199ff27283c",
+        "moves_byte_identical": 4,
+        "moves_counted_as_deletions": false,
+        "required_exports": {
+          "rv64": 124,
+          "circuit_om31": 37,
+          "circuit_om31_trace": 40
+        },
+        "move_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/native-closure-metadata-moves.json"
+      },
+      "live_validation_fixtures": {
+        "status": "BYTE_IDENTICAL_MIGRATION_AND_HOST_AND_OPTIMIZED_RUNTIME_TESTS_PASS",
+        "files_moved": 175,
+        "bytes": 13094934,
+        "manifest": "vectors/fixtures/rv64-validation-fixtures.json",
+        "code_net": -4,
+        "moves_counted_as_deletions": false,
+        "missing_committed_policy_fixture_skips_removed": 1,
+        "fixture_inputs_are_source_pinned": true
+      },
+      "retired_probe_tools": {
+        "status": "ARCHIVE_PRESERVED_AND_DELETED_FULL_PROOF_GATE_PENDING",
+        "files_removed": 7,
+        "code_net": -801,
+        "python_utilities_removed": 4,
+        "native_probe_sources_removed": 3,
+        "top_level_scripts_removed": 0,
+        "runtime_stwo_flags_removed": 0,
+        "historical_non_stwo_flags_removed": 3,
+        "active_measurement_counters_and_callsites_preserved": true
+      },
+      "policy_evidence_ownership": {
+        "status": "PASS_SOURCE_FREEZE_REGRESSION",
+        "code_net": -2,
+        "immutable_owners": [
+          "budget policy",
+          "maintained validation fixtures",
+          "workflow and project policy"
+        ],
+        "observed_results_owner": "current.json#budget_results",
+        "new_source_hash_exclusions": 0
+      },
+      "package_fixture_cwd": {
+        "status": "PASS_COMPLETE_OPTIMIZED_CUDA_PACKAGE",
+        "code_net": 0,
+        "shared_runner": "jobTestStep",
+        "initial_full_package_failure_preserved": "/workspace/m3/runs/m8-gn-bind/production-18/full-cuda-after-byte-shift-fast.log"
+      }
+    },
+    "scripts_added": 0,
+    "scripts_removed": 0,
+    "runtime_flags_added": 0,
+    "runtime_flags_removed": 2,
+    "hardware_gate": "PENDING_FOR_CURRENT_SOURCE",
+    "component_session": "rv64-production-18-components",
+    "component_run_root": "/workspace/m3/runs/m8-gn-bind/production-18",
+    "comparison_scope": "Six strict quiet services alternating default/native; all cold/warm proofs freshly verified after timing. Physical guard remains mandatory on native. No timing run or speedup is claimed.",
+    "source_conformance": {
+      "status": "FAIL",
+      "distinct_paths": 138,
+      "diagnostics": 139,
+      "sha256": "7efebd1148a06c8b69b5e7b08b070486fab1daaa8c3119da9200014c363b08c3",
+      "baseline_or_ceiling_changes": 0
+    },
+    "measurement_note": "Complete pending code diff against 7c0686ae7 including both new Python library/test files. Every line is charged once; four non-code moves are not deletions. Registry +258 code lines is within its predeclared +350 invariant budget.",
+    "host_contracts": {
+      "status": "PASS",
+      "tests": 118,
+      "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch3-host-contracts-final.log",
+      "sha256": "ac096924ac114c8fa5613072df0c2d32db154c1b1b61cfa5000831bdcaced417",
+      "scope": "No hardware or full proof qualification; distinct focused Python tests, not the complete surviving Python suite"
+    },
+    "cli_modes_added": 4,
+    "cli_modes_removed": 6,
+    "code_cost_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch3-code-costs.json",
+    "intentionally_pending": "The candidate is component-tested. Its exact local commit and subsequent full-proof results will be recorded in the evidence receipt; push remains pending those proof regressions.",
+    "complete_optimized_cuda_package": {
+      "status": "PASS",
+      "log": "/workspace/m3/runs/m8-gn-bind/production-18/full-cuda-fixture-cwd-fast.log",
+      "local_log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/full-cuda-fixture-cwd-fast.log",
+      "sha256": "e4a44888f377d306b755afb8dd91ec6d23e1379946e2b2ff0734e726cf7fb619",
+      "scope": "Host integration tests; no hardware or speedup qualification"
+    },
+    "qualification_not_inherited_from_previous_commit": true
+  },
+  "running_subtraction_total": {
+    "baseline": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
+    "delivered_code_net": -67618,
+    "pending_code_net": -542,
+    "combined_code_net": -68160,
+    "production_code_net": -42504,
+    "historical_research_code_net": -25656,
+    "top_level_scripts_removed": 150,
+    "runtime_flags_removed": 2,
+    "runtime_flags_added": 0,
+    "live_flag_registry": "IMPLEMENTED: 260 live controls; <60 target and M7/M8 retirement remain open",
+    "historical_tool_python_utilities_removed": 4,
+    "historical_non_stwo_flags_removed": 3
+  },
+  "latest_goal_turn": {
+    "classification": "PROGRESS",
+    "evidence": "Closed optimized projection failures and mandatory fixture cwd bug; complete optimized CUDA package and 118 focused host tests pass. Retired 801 probe lines, moved 175 immutable fixture files, and separated source-pinned policy from observed evidence. Full-proof gates and the remaining phase requirements are still outstanding."
+  },
+  "budget_results": {
+    "worktree_consolidation": {
+      "actual_worktrees_before": 163,
+      "actual_worktrees_after": 1,
+      "retired_working_copies": 162,
+      "status": "VERIFIED_LOCAL"
+    },
+    "recursion_custody": {
+      "actual": {
+        "added": 390,
+        "removed": 264,
+        "net": 126,
+        "flags_added": 0,
+        "scripts_added": 0
+      },
+      "validation": "105 focused and 305 broader host tests pass; counts overlap; full-proof follow-up remains pending"
+    },
+    "ci_failure_repair": {
+      "actual": {
+        "added": 10,
+        "removed": 5,
+        "net": 5,
+        "flags_added": 0,
+        "scripts_added": 0
+      },
+      "status": "PARTIAL_281_NATIVE_AND_2_GEOMETRY_PASS_FRI_OPEN"
+    },
+    "policy_identity": {
+      "actual": {
+        "added": 6,
+        "removed": 2,
+        "net": 4,
+        "flags_added": 0,
+        "scripts_added": 0
+      }
+    },
+    "unreachable_script_retirement": {
+      "status": "DELIVERED_DEFAULT_AND_NATIVE_24628607_GATES_PASS",
+      "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+      "evidence": "vectors/reports/rv64-productionisation/current.json#hardware_followup",
+      "scope_note": "Delivered first batch only; subsequent working-tree changes have no full-proof gate result yet."
+    },
+    "flag_registry": {
+      "status": "DECLARATION_AND_CI_AUTHORITY_PASS_LIVE_TARGET_OPEN",
+      "scope_note": "The initial registry must expose all remaining flags and source-defined defaults; it must not claim the under-60 target before ordered native promotion and legacy retirement. Existing source-conformance entrypoint owns checking and reference regeneration; no new top-level launcher.",
+      "actual": {
+        "added": 259,
+        "removed": 1,
+        "net": 258,
+        "runtime_flags_added": 0,
+        "top_level_scripts_added": 0,
+        "cli_modes_added": 3
+      },
+      "live_controls": 260,
+      "declared_names": 297,
+      "constants": 34,
+      "reference_only_names": 3,
+      "generated_metadata": {
+        "path": "conformance/rv64-flags.json",
+        "lines": 4042,
+        "counted_as_code": false
+      },
+      "strict_release_enforced": true,
+      "validation": "116 distinct focused host tests pass across registry, CI, routing, source conformance and shared validators; strict promotion check correctly fails 260 >= 60 and pending M7/M8 switches. No baseline or ceiling change."
+    },
+    "new_block_setup_miss": {
+      "status": "NOT_LANDED"
+    },
+    "legacy_retirement_after_default_flip": {
+      "status": "NOT_ELIGIBLE_YET"
+    },
+    "historical_receipt_archive": {
+      "status": "TAGGED_BASELINE_ACTIVE_TREE_RETIREMENT_PENDING"
+    },
+    "retired_script_closure_batch_1": {
+      "status": "DELIVERED_DEFAULT_AND_NATIVE_24628607_GATES_PASS",
+      "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+      "evidence": "vectors/reports/rv64-productionisation/current.json#hardware_followup",
+      "scope_note": "Delivered first batch only; subsequent working-tree changes have no full-proof gate result yet."
+    },
+    "python_inner_loop_ownership": {
+      "status": "PASS_FOCUSED_FULL_SUITE_REVEALED_OPEN_FAILURES"
+    },
+    "retired_script_support_closure_1": {
+      "status": "DELIVERED_DEFAULT_AND_NATIVE_24628607_GATES_PASS",
+      "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+      "evidence": "vectors/reports/rv64-productionisation/current.json#hardware_followup",
+      "scope_note": "Delivered first batch only; subsequent working-tree changes have no full-proof gate result yet."
+    },
+    "frozen_admission_two_lane_retirement": {
+      "status": "TWO_LANE_IMPLEMENTED_DEFAULT_GATE_PENDING_ADMISSION_DEPENDENCY_AUDIT_OPEN"
+    },
+    "retired_dynamic_import_test_closure_1": {
+      "status": "PASS_44_FOCUSED_TESTS_AND_ZERO_DISCOVERY_IMPORT_ERRORS"
+    },
+    "gate_service_namespace_collision": {
+      "status": "DELIVERED_DEFAULT_AND_NATIVE_24628607_GATES_PASS",
+      "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+      "evidence": "vectors/reports/rv64-productionisation/current.json#hardware_followup",
+      "scope_note": "Delivered first batch only; subsequent working-tree changes have no full-proof gate result yet."
+    },
+    "fri_in_place_correctness_and_shared_pair_arithmetic": {
+      "status": "IMPLEMENTED_VALIDATION_IN_CURRENT_RECEIPT",
+      "actual": {
+        "added": 13,
+        "removed": 13,
+        "net": 0,
+        "flags_added": 0,
+        "scripts_added": 0
+      }
+    },
+    "developer_optimized_reproduction": {
+      "status": "IMPLEMENTED_VALIDATION_IN_CURRENT_RECEIPT",
+      "actual": {
+        "added": 35,
+        "removed": 7,
+        "net": 28,
+        "runtime_flags_added": 0,
+        "top_level_scripts_added": 0,
+        "cli_modes_added": 1
+      },
+      "scope_note": "All dev_test.py and test_dev_test.py changes in this wave are charged here, including optimized mode and projection/DAG routing; those lines are not charged again to their component entries."
+    },
+    "frozen_two_lane_retirement": {
+      "status": "IMPLEMENTED_PENDING_COMPONENT_AND_DEFAULT_GATES",
+      "actual": {
+        "added": 15,
+        "removed": 90,
+        "net": -75,
+        "runtime_flags_removed": 1,
+        "top_level_scripts_removed": 0
+      }
+    },
+    "native_canonical_comparison_authority": {
+      "status": "IMPLEMENTED_HOST_CONTRACT_TESTS_PASS_HARDWARE_PENDING",
+      "scope_note": "Canonical comparisons freshly verify every cold/warm proof after all timing services. Retire its reference-only pruning mode and exclusively owned test; the independent basket workflow is preserved.",
+      "actual": {
+        "added": 173,
+        "removed": 136,
+        "net": 37,
+        "runtime_flags_added": 0,
+        "scripts_added": 0,
+        "cli_flags_removed": 6,
+        "flags_added": 0
+      }
+    },
+    "optimized_projection_failure": {
+      "status": "PASS_OPTIMIZED_SOURCE_AND_PACKAGE_TESTS_HARDWARE_PENDING",
+      "actual": {
+        "added": 35,
+        "removed": 11,
+        "net": 24
+      },
+      "scope_note": "One shared byte-shift polynomial owner replaces context-sensitive scalar sums in bulk and sponge source emitters. The complete property test and independent modular-reference regression remain; temporary dumps removed."
+    },
+    "two_lane_remaining_cpu_reader": {
+      "status": "IMPLEMENTED_FOCUSED_RELEASEFAST_PASS_DEFAULT_GATE_PENDING",
+      "actual": {
+        "added": 1,
+        "removed": 11,
+        "net": -10,
+        "runtime_flags_removed": 1,
+        "top_level_scripts_removed": 0
+      }
+    },
+    "native_source_closure_metadata_ownership": {
+      "status": "PASS_STRICT_NATIVE_CLOSURE_AND_BYTE_PRESERVATION",
+      "actual": {
+        "added": 2,
+        "removed": 2,
+        "net": 0,
+        "runtime_flags_added": 0,
+        "top_level_scripts_added": 0
+      },
+      "moves": 4,
+      "moves_counted_as_deletions": false,
+      "closure_files": 224,
+      "implementation_files": 112,
+      "closure_sha256": "9f291ec9c9db1bf0d14f2d5bc90cb66d8fb18d418cbd0424f120a199ff27283c",
+      "move_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/native-closure-metadata-moves.json"
+    },
+    "recursion_dag_inner_loop_owner": {
+      "status": "PASS_VIA_DEV_TEST_RELEASEFAST_ON_POD",
+      "actual": {
+        "added": 3,
+        "removed": 0,
+        "net": 3,
+        "runtime_flags_added": 0,
+        "top_level_scripts_added": 0
+      },
+      "scope_note": "Package build target only; route and its host regression are charged to developer_optimized_reproduction. Existing broad CI coverage is unchanged."
+    },
+    "live_validation_fixture_ownership": {
+      "status": "PASS_PRESERVATION_HOST_AND_OPTIMIZED_RUNTIME_CHECKS",
+      "actual": {
+        "added": 6,
+        "removed": 10,
+        "net": -4
+      },
+      "files_moved": 175,
+      "bytes": 13094934,
+      "moves_counted_as_deletions": false
+    },
+    "retired_rv64_probe_tool_roots": {
+      "status": "PRESERVED_THEN_DELETED_FULL_PROOF_GATES_PENDING",
+      "actual": {
+        "added": 0,
+        "removed": 801,
+        "net": -801
+      },
+      "files_removed": 7
+    },
+    "budget_policy_and_evidence_ownership": {
+      "status": "PASS_IMMUTABLE_POLICY_FIXTURE_AND_MUTABLE_RESULT_BOUNDARY",
+      "actual": {
+        "added": 15,
+        "removed": 17,
+        "net": -2
+      },
+      "new_source_hash_exclusions": 0
+    },
+    "package_test_fixture_working_directory": {
+      "status": "PASS_COMPLETE_OPTIMIZED_PACKAGE",
+      "actual": {
+        "added": 2,
+        "removed": 2,
+        "net": 0
+      }
+    }
   }
 }

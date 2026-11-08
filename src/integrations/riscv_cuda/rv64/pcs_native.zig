@@ -61,11 +61,6 @@ pub fn allocationOptions() !AllocationCost.Options {
 pub const Context = struct {
     early_allocations: @import("native_stage1_allocations.zig").Guard = .{},
     admission_progress: @import("admission_progress.zig").Registry = .{},
-    /// Sibling lane sessions share the loaded module and physical arena, but
-    /// own their service lock, streams, scope registry and retained cache.
-    library_owner: bool = true,
-    parent: ?*Context = null,
-    siblings: std.atomic.Value(u32) = std.atomic.Value(u32).init(0),
     admission: ?@import("admission_runtime.zig").Endpoint = null,
     admission_retention: @import("admission_retention.zig").Registry = .{},
     pcs_options: AllocationCost.Options = .{},
@@ -134,10 +129,6 @@ pub const Context = struct {
         try planner.registerCoverage(physical, .immutable);
         try planner.registerCoverage(physical, .retirement);
     }
-    pub fn inheritGlobalAdmission(self: *Context, parent: *const Context) !void {
-        if (parent.admission) |endpoint| try self.attachGlobalAdmission(endpoint.planner, endpoint.physical);
-    }
-
     /// Host caller completes an admitted stage and transfers future headroom
     /// to the final allocation scope (after any MAIN-root rebind).
     pub fn completeAdmission(self: *Context, permit: *@import("admission_runtime.zig").Permit, scope: D.Scope, successor: @import("global_admission.zig").Footprint) !void {
@@ -283,14 +274,8 @@ pub const Context = struct {
         if (job.freed != 0) endpoint.planner.notifyResourceRelease();
         return job.freed;
     }
-    /// Current sibling executes inline under its controller. The native parent
-    /// has no recursion controller waiting on this child's handoff condition.
-    /// Do not synchronously submit to other sibling controllers: they can be
-    /// asleep on admission/handoff and unable to run a queued trim callback.
     pub fn trimSourcePressure(self: *Context) !u64 {
-        var freed = try self.trimUnborrowedJoined("source_pressure_self");
-        if (self.parent) |parent| freed = try std.math.add(u64, freed, try parent.trimUnborrowedJoined("source_pressure_native_parent"));
-        return freed;
+        return self.trimUnborrowedJoined("source_pressure_self");
     }
     pub fn beginBlock(self: *Context, identity: [32]u8, budget: BlockBudget) !void {
         var gate: ?*std.Thread.Mutex = null;
@@ -657,18 +642,7 @@ pub const Context = struct {
         const wide = if (library.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
         return .{ .pcs_options = pcs_options, .byte_cap = capacity, .wide_pcs_framing = wide, .host_geometry = Export.GeometryCache.init(std.heap.page_allocator, hostGeometryBytes()), .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
     }
-    pub fn createSibling(self: *Context, a: std.mem.Allocator, device: u32) !Context {
-        const create = self.library.lookup(Abi.Create, "stwo_rv64_pcs_native_create") orelse return error.MissingGpuPcsSymbol;
-        var session: ?*anyopaque = null;
-        if (create(device, self.byte_cap, &session) != 0 or session == null) return error.GpuPcsInitializationFailed;
-        var sibling = Context{ .pcs_options = self.pcs_options, .byte_cap = self.byte_cap, .wide_pcs_framing = self.wide_pcs_framing, .library_owner = false, .parent = self, .host_geometry = Export.GeometryCache.init(a, hostGeometryBytes()), .library = self.library, .session = session.?, .native_prove = self.native_prove, .release = self.release, .destroy = self.destroy, .last_error = self.last_error, .submit = self.submit, .lease_allocate = self.lease_allocate, .lease_validate = self.lease_validate, .lease_validate_range = self.lease_validate_range, .lease_release = self.lease_release };
-        _ = self.siblings.fetchAdd(1, .monotonic);
-        errdefer sibling.deinit();
-        try sibling.inheritGlobalAdmission(self);
-        return sibling;
-    }
     pub fn deinit(self: *Context) void {
-        std.debug.assert(self.siblings.load(.acquire) == 0);
         self.host_geometry.deinit();
         self.admission_progress.deinit(std.heap.page_allocator);
         while (self.cache.items.len != 0) self.releaseScope(self.cache.items[self.cache.items.len - 1].scope);
@@ -682,11 +656,7 @@ pub const Context = struct {
         if (self.destroy(self.session) != 0) @panic("GPU context failed to join before library close");
         self.admission_retention.contextDestroyed(if (self.admission) |endpoint| endpoint.planner else null) catch @panic("GPU retention claims failed to retire after context destruction");
         self.admission_retention.deinit(std.heap.page_allocator);
-        if (self.library_owner) self.library.close();
-        if (self.parent) |parent| {
-            const previous = parent.siblings.fetchSub(1, .release);
-            std.debug.assert(previous != 0);
-        }
+        self.library.close();
         self.* = undefined;
     }
     const SetupCleanup = struct {
@@ -834,7 +804,7 @@ pub const Context = struct {
             const successor = try self.admissionSuccessor(own_scope, .pcs);
             if (successor.large != 0 or successor.small != 0) return error.UnexpectedPcsSuccessor;
             @import("allocation_observer.zig").model(own_scope, @intFromEnum(request.allocation_observer_domain), .pcs_metadata, envelope, retained_upper, successor);
-            permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, own_scope.statement[0..8], .little), .domain = if (self.parent != null) .recursion_node else .native_packet, .ordinal = own_scope.ordinal }, .progress_key = Admission.progressKey(own_scope), .stage = .pcs, .stage_retained_upper = retained_upper, .temporary = envelope, .successor = successor, .known = true, .host_known = false });
+            permit = try endpoint.reserve(.{ .owner = .{ .request = std.mem.readInt(u64, own_scope.statement[0..8], .little), .domain = .native_packet, .ordinal = own_scope.ordinal }, .progress_key = Admission.progressKey(own_scope), .stage = .pcs, .stage_retained_upper = retained_upper, .temporary = envelope, .successor = successor, .known = true, .host_known = false });
             // The C admission guard deliberately spans several synchronous
             // owner jobs, including FIXED misses and the complete native PCS.
             // Host geometry work takes its locks only AFTER this reservation.

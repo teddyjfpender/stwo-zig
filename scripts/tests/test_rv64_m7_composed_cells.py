@@ -5,9 +5,9 @@ import re
 import subprocess
 import tempfile
 import unittest
+from scripts.rv64_validation import FROZEN_D2_PACKAGE as PACKAGE
 
 ROOT = Path(__file__).resolve().parents[2]
-PACKAGE = ROOT / 'vectors/reports/rv64-m7-20261105/d2-composed/combined-d2-package'
 SCRIPT = ROOT / 'scripts/rv64_m7_composed_cells.py'
 
 

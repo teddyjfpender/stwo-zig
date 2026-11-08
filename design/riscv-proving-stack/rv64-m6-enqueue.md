@@ -1,5 +1,10 @@
 # RV64 M6 stream enqueue: where a recursion node's time goes, and the enqueue-only contract
 
+Historical M6 evidence. The standalone tracer was retired during productionisation;
+its complete source is preserved at
+`archive/consolidation-20261108/worktrees/rv64-m8-gn-bind:tools/rv64-sync-trace`.
+Current validation uses the maintained measurement tools and native stage ranges.
+
 Branch `codex/rv64-m6-enqueue` (from `95d40063d`). Proof format: **unchanged**. Every change in this stream is
 scheduling-only and must stay byte-identical to the M5 default receipts on 26235156 and 24628607.
 
