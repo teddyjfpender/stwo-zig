@@ -1459,13 +1459,6 @@
       "bytes": 19861,
       "sha256": "3d724044839c7caca66935d879354f21be0dda2828fb92c4d815061e8d0b1845",
       "git_blob": "c4f4defe3b39b266b2ef78d53bb62b7cd13e9f92"
-    },
-    {
-      "path": "vectors/riscv/rv64/qualification-csp-full-parallel.json",
-      "historical_path": "vectors/reports/rv64-qualification-20261030/csp-full-parallel.json",
-      "bytes": 35664,
-      "sha256": "c357daf368a0eb56a30368adf50887558676375ccd29bd7c2e7f96b54f1700d0",
-      "git_blob": "afaa3d79ea3d79381aba2416a1109bb0fa903beb"
     }
   ]
 }

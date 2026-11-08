@@ -29,8 +29,8 @@ SRC = ROOT / "src"
 GATE = ROOT / "src" / "frontends" / "riscv" / "prover.zig"
 CALLERS = {
     "production ELF adapter": (
-        ROOT / "src" / "integrations" / "riscv_cpu" / "proof_adapter.zig",
-        "prover.admitRunForProving(&run_result)",
+        ROOT / "src" / "integrations" / "riscv_cpu" / "proof_adapter" / "blake3_execution_request.zig",
+        "prover.admitRunForProving(base_run)",
     ),
     "benchmark runner": (
         ROOT / "src" / "products" / "riscv" / "tools" / "bench" / "runner.zig",
@@ -154,6 +154,12 @@ class RunAdmissionGateTest(unittest.TestCase):
         for label, (path, call) in CALLERS.items():
             with self.subTest(label):
                 self.assertIn(call, read(path), f"{path} must route through the gate")
+
+    def test_production_adapter_reaches_the_request_owner(self) -> None:
+        owner = ROOT / "src/integrations/riscv_cpu"
+        self.assertIn('profile_router.run(Engine, backend,', read(owner / "proof_adapter.zig"))
+        self.assertIn('"blake3_execution_product.zig").runForProfile(', read(owner / "proof_adapter/profile_router.zig"))
+        self.assertIn('request.execute(Engine,', read(owner / "proof_adapter/blake3_execution_product.zig"))
 
     def test_no_sibling_keeps_a_private_completion_test(self) -> None:
         for label, (path, _) in CALLERS.items():
