@@ -124,14 +124,23 @@ pub fn decode(bytes: &[u8]) -> Result<RangeInput, String> {
 /// Derivation must bind this value. Expected execution hashes are excluded so
 /// derivation need not execute the EVM to compute the payload commitment.
 pub fn input_commitment(input: &RangeInput) -> Result<[u8; 32], String> {
+    payload_commitment(&input.rollup_config, &input.parent_header, &input.payloads)
+}
+
+/// Shared encoding for the execution guest and independently derived payloads.
+pub(crate) fn payload_commitment(
+    config: &kona_genesis::RollupConfig,
+    parent: &alloy_consensus::Header,
+    payloads: &[OpPayloadAttributes],
+) -> Result<[u8; 32], String> {
     let mut hash = Sha256::new();
     hash.update(b"stwo/opstack/payload-range/v1\0");
     hash.update(Sha256::digest(
-        serde_json::to_vec(&input.rollup_config).map_err(|_| "config encode")?,
+        serde_json::to_vec(config).map_err(|_| "config encode")?,
     ));
-    hash.update(alloy_primitives::Sealable::hash_slow(&input.parent_header));
-    hash.update((input.payloads.len() as u32).to_le_bytes());
-    for a in &input.payloads {
+    hash.update(alloy_primitives::Sealable::hash_slow(parent));
+    hash.update((payloads.len() as u32).to_le_bytes());
+    for a in payloads {
         let view = stream::PayloadView::new(a);
         let size = postcard::experimental::serialized_size(&view).map_err(|_| "payload encode")?;
         let length = u32::try_from(size).map_err(|_| "payload size")?;

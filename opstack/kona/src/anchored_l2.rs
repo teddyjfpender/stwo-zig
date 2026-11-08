@@ -76,6 +76,17 @@ impl<'a> AnchoredL2<'a> {
         next_number: u64,
         next_root: B256,
     ) -> Result<L2BlockInfo, AnchorError> {
+        Ok(self
+            .execute_prepared_with_commitment(prepared, next_number, next_root)?
+            .0)
+    }
+
+    pub(crate) fn execute_prepared_with_commitment(
+        &self,
+        prepared: OpAttributesWithParent,
+        next_number: u64,
+        next_root: B256,
+    ) -> Result<(L2BlockInfo, [u8; 32]), AnchorError> {
         let (parent_hash, parent) = self.chain.head();
         if prepared.parent.block_info != block_info(*parent_hash, parent)
             || parent.number.checked_add(1) != Some(next_number)
@@ -83,6 +94,12 @@ impl<'a> AnchoredL2<'a> {
             return Err(AnchorError::Ancestry);
         }
         let attributes = prepared.take_inner();
+        let payload_commitment = crate::metadata::payload_commitment(
+            &self.config,
+            parent,
+            core::slice::from_ref(&attributes),
+        )
+        .map_err(AnchorError::Execution)?;
         let first_tx = attributes
             .transactions
             .as_ref()
@@ -109,11 +126,14 @@ impl<'a> AnchoredL2<'a> {
         if output != next_root {
             return Err(AnchorError::OutputRoot);
         }
-        Ok(L2BlockInfo::from_header_and_first_tx(
-            &outcome.header,
-            first_tx.as_ref(),
-            &self.config.genesis,
-        )?)
+        Ok((
+            L2BlockInfo::from_header_and_first_tx(
+                &outcome.header,
+                first_tx.as_ref(),
+                &self.config.genesis,
+            )?,
+            payload_commitment,
+        ))
     }
 
     fn block(&self, header: Header) -> Result<OpBlock, AnchorError> {

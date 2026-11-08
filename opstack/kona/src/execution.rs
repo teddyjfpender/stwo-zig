@@ -66,6 +66,32 @@ pub struct ResultSummary {
     pub preimages: Stats,
 }
 
+fn execution_digest(input_commitment: [u8; 32]) -> Sha256 {
+    let mut digest = Sha256::new();
+    digest.update(b"stwo/opstack/execution-range/v1\0");
+    digest.update(input_commitment);
+    digest
+}
+
+pub(crate) fn single_block_output(
+    chain_id: u64,
+    input_commitment: [u8; 32],
+    block_hash: B256,
+) -> [u8; 43] {
+    let mut digest = execution_digest(input_commitment);
+    digest.update(block_hash);
+    public_output(chain_id, digest.finalize().into(), b"OP")
+}
+
+pub(crate) fn public_output(chain_id: u64, digest: [u8; 32], schema: &[u8; 2]) -> [u8; 43] {
+    let mut bytes = [0; 43];
+    bytes[..32].copy_from_slice(&digest);
+    bytes[32] = 1;
+    bytes[33..41].copy_from_slice(&chain_id.to_le_bytes());
+    bytes[41..43].copy_from_slice(schema);
+    bytes
+}
+
 pub fn execute(witness: &Witness<'_>) -> Result<ResultSummary, String> {
     let input = crate::metadata::decode(witness.metadata())?;
     let count = input.payloads.len();
@@ -82,9 +108,7 @@ pub fn execute(witness: &Witness<'_>) -> Result<ResultSummary, String> {
     }
     let chain_id: u64 = input.rollup_config.l2_chain_id.into();
     let input_commitment = crate::metadata::input_commitment(&input)?;
-    let mut digest = Sha256::new();
-    digest.update(b"stwo/opstack/execution-range/v1\0");
-    digest.update(input_commitment);
+    let mut digest = execution_digest(input_commitment);
     #[cfg(feature = "host")]
     let last_hint = core::cell::Cell::new(None);
     #[cfg(feature = "host")]
@@ -140,11 +164,6 @@ impl ResultSummary {
     /// Existing machine transport, new OP-specific schema 0x504f (bytes "OP").
     /// The digest binds execution only, not L1 derivation or data availability.
     pub fn public_output(&self) -> [u8; 43] {
-        let mut bytes = [0; 43];
-        bytes[..32].copy_from_slice(&self.digest);
-        bytes[32] = 1;
-        bytes[33..41].copy_from_slice(&self.chain_id.to_le_bytes());
-        bytes[41..43].copy_from_slice(b"OP");
-        bytes
+        public_output(self.chain_id, self.digest, b"OP")
     }
 }
