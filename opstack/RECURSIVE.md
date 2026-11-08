@@ -22,12 +22,16 @@ python3 opstack/recursive_transition.py \
   --statement statement.json \
   --derivation-request derivation-config.json --derivation-proof derivation-proof \
   --execution-request execution-config.json --execution-proof execution-proof \
+  --outer-profile r1_b2_q108_p20_fold4 \
   --fixed-setup-bytes 1073741824 --receiver-bytes 6442450944
 ```
 
 The receiver operator supplies the canonical L1 anchor, previously admitted L2
 checkpoint and next claim, the trusted runner and the request files with the
-independent ELF and input hashes. Keep this authority outside the producer's
+independent ELF and input hashes. Choose the outer profile used by both proof
+trees with `--outer-profile` (default `r1_b2_q108_p20_fold4`). The receiver
+requires the exact domain for that selection on both branches.
+Keep this authority outside the producer's
 proof directories, and use absolute `elf` and `input` paths in the request files.
 In particular, check the derivation ELF against the guest
 build which pins both Mainnet chain configurations; do not accept program

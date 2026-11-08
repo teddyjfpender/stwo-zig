@@ -36,7 +36,7 @@ def receipt(output):
         "existing_recursive_proofs_only": True,
         "trace_only_recursive_graphs": True,
         "security_qualified": False,
-        "outer_profile": "stwo/circuit/native-om31/r1-b2-q108-p20-fold4/lens-v1",
+        "outer_profile": "stwo/circuit/native-om31/q108-p20-fold4/lens-v1",
         "output": list(output),
         "native": {
             "accepted": True,
@@ -107,6 +107,13 @@ class RecursiveTransitionTests(unittest.TestCase):
         missing_truth["recursive"]["restored_leaves"] -= 1
         with self.assertRaises(ValueError):
             transition.admit_receipt(missing_truth, output)
+        different_profile = {
+            **receipt(output),
+            "outer_profile": "stwo/circuit/native-om31/m3-b4-q51-p26-fold4/lens-v1",
+        }
+        with self.assertRaisesRegex(ValueError, "pinned statement and profile"):
+            transition.admit_receipt(different_profile, output)
+        transition.admit_receipt(different_profile, output, "m3_b4_q51_p26_fold4")
 
     def test_join_needs_both_fresh_receivers_and_rejects_swapped_requests(self):
         outputs = transition.statement_outputs(STATEMENT)
@@ -122,6 +129,7 @@ class RecursiveTransitionTests(unittest.TestCase):
                 fixed_setup_bytes=10,
                 receiver_bytes=20,
                 timeout=30,
+                outer_profile=transition.DEFAULT_OUTER_PROFILE,
             )
             args.runner.touch()
             args.statement.write_text(json.dumps(STATEMENT))
@@ -152,6 +160,11 @@ class RecursiveTransitionTests(unittest.TestCase):
                     [call.args[0][3] for call in run.call_args_list],
                     ["verify-recursion-candidate"] * 2,
                 )
+                for call in run.call_args_list:
+                    self.assertEqual(
+                        call.kwargs["env"][transition.OUTER_PROFILE_ENV],
+                        args.outer_profile,
+                    )
             corrupt = subprocess.CalledProcessError(1, "verify-recursion-candidate")
             with (
                 patch.object(

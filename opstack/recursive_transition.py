@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import tempfile
@@ -11,6 +12,20 @@ from pathlib import Path
 
 STATEMENT = "stwo.opstack.anchored-transition.v1"
 NATIVE_PROFILE = "conjectured128_b2_q108_p20_fold4"
+DEFAULT_OUTER_PROFILE = "r1_b2_q108_p20_fold4"
+OUTER_PROFILE_ENV = "STWO_RV64_OUTER_PROFILE"
+# These are the runner's protocol.zig names and transcript domains. Select
+# one as receiver policy for both calls, without inheriting a profile choice.
+OUTER_DOMAINS = {
+    DEFAULT_OUTER_PROFILE: "q108-p20-fold4",
+    "m3_b4_q51_p26_fold4": "m3-b4-q51-p26-fold4",
+    "m3_b8_q34_p26_fold4": "m3-b8-q34-p26-fold4",
+    "m5_outer_canonical_r1_b2_q108_p20_fold4_v1": "m5-canonical-q108-p20-fold4",
+    "m5_outer_canonical_m3_b4_q51_p26_fold4_v1": "m5-canonical-m3-b4-q51-p26-fold4",
+    "m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1": "m6-diet-k3-q108-p20-fold4",
+    "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1": "m6-diet-k4-cap3-q108-p20-fold4",
+    "m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1": "m7-outer-gkr-k4-cap3-q108-p20-fold4",
+}
 FIELDS = (
     "chain_id",
     "l1_chain_id",
@@ -91,7 +106,9 @@ def wire_bytes(value, length):
     return value
 
 
-def admit_receipt(report, expected_output):
+def admit_receipt(
+    report, expected_output, expected_outer_profile=DEFAULT_OUTER_PROFILE
+):
     for flag in (
         "accepted",
         "completed_ethereum_block",
@@ -105,13 +122,13 @@ def admit_receipt(report, expected_output):
     native = report["native"]
     tree = report["recursive"]
     outer_profile = report.get("outer_profile")
+    domain = OUTER_DOMAINS[expected_outer_profile]
     if (
         report.get("security_qualified") is not False
         or native.get("accepted") is not True
         or native.get("completed_ethereum_block") is not True
         or native.get("security_profile") != NATIVE_PROFILE
-        or not isinstance(outer_profile, str)
-        or not outer_profile.startswith("stwo/circuit/native-om31/")
+        or outer_profile != f"stwo/circuit/native-om31/{domain}/lens-v1"
         or wire_bytes(report["output"], 43) != expected_output
         or wire_bytes(native["output"], 43) != expected_output
         or tree.get("outer_backend") != "cpu_trace_only_receiver"
@@ -183,6 +200,7 @@ def verify(args):
         raise ValueError("derivation and execution must use distinct pinned programs")
 
     receipts = {}
+    env = {**os.environ, OUTER_PROFILE_ENV: args.outer_profile}
     with tempfile.TemporaryDirectory(prefix="stwo-op-transition-") as work:
         for name, proof, (raw, request), output in zip(
             ("derivation", "execution"), proof_dirs, requests, outputs, strict=True
@@ -202,10 +220,14 @@ def verify(args):
                 str(args.receiver_bytes),
             ]
             result = subprocess.run(
-                command, stdout=subprocess.PIPE, check=True, timeout=args.timeout
+                command,
+                stdout=subprocess.PIPE,
+                check=True,
+                timeout=args.timeout,
+                env=env,
             )
             receipts[name] = {
-                **admit_receipt(json.loads(result.stdout), output),
+                **admit_receipt(json.loads(result.stdout), output, args.outer_profile),
                 "elf_sha256": request["elf_sha256"],
                 "input_sha256": request["input_sha256"],
             }
@@ -233,6 +255,9 @@ def main():
         parser.add_argument("--" + option, required=True, type=Path)
     parser.add_argument("--fixed-setup-bytes", required=True, type=int)
     parser.add_argument("--receiver-bytes", required=True, type=int)
+    parser.add_argument(
+        "--outer-profile", choices=OUTER_DOMAINS, default=DEFAULT_OUTER_PROFILE
+    )
     parser.add_argument("--timeout", type=int, default=1800)
     args = parser.parse_args()
     if not 0 < args.fixed_setup_bytes <= args.receiver_bytes or args.timeout <= 0:
