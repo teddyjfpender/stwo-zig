@@ -277,6 +277,17 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const strict_recursion_verify = std.mem.eql(u8, args[1], "verify-recursion-candidate");
     const resume_recursion = std.mem.eql(u8, args[1], "resume-recursion-candidate");
     const recurse = strict_recursion_verify or resume_recursion or std.mem.eql(u8, args[1], "recurse-candidate");
+    // Standalone CPU wrapping changes allocation sizes between native
+    // setup and circuit construction. Retaining the native recycler's
+    // full cache here can exhaust RSS before the live budget refuses.
+    if (comptime enable_recursion) {
+        if (recurse and recursion_factory == null) {
+            try @import("stwo_circuit_cpu_integration").om31.prove.requirePinnedAir(base);
+            if (!strict_recursion_verify) {
+                _ = recycler.setCap(ReceiverBudget.CPU_WRAP_RECYCLER_CACHE_BYTES);
+            }
+        }
+    }
     const combined = isCombinedProducer(args[1]);
     if (combined) {
         if (args.len != 7) return error.ExpectedModeConfigJobsOutputPrefixAndResources;

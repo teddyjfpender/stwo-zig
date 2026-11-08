@@ -462,7 +462,10 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
         var current: ?Pending = blk: {
             const proof = try a.create(Outer.Wrapped);
             errdefer a.destroy(proof);
-            proof.* = try Outer.wrapGraphOrLoadWithFactory(a, graph.ctx, graph.digest, encoded, @intCast(nodes.items.len), factory);
+            proof.* = if (encoded == null and factory == null)
+                try Outer.wrapDisposableCpuGraph(a, graph.ctx, graph.digest, @intCast(nodes.items.len))
+            else
+                try Outer.wrapGraphOrLoadWithFactory(a, graph.ctx, graph.digest, encoded, @intCast(nodes.items.len), factory);
             std.log.info("rv64 OM31 recursion leaf {d}/{d} accepted: preprocess_ns={d} prove_ns={d} restore_ns={d} verify_ns={d}", .{ ordinal + 1, n, proof.timings.preprocess_ns, proof.timings.prove_ns, proof.timings.restore_ns, proof.timings.verify_ns });
             errdefer proof.deinit();
             // rootverify derive hook (no-op unless derive-vk-tables runs).

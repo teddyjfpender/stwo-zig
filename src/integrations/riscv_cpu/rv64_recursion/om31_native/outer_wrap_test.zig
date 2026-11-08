@@ -80,4 +80,11 @@ test "OM31 native PCS outer wrapper produces actual proof fresh receiver bounded
     const retired_bytes = try wrapped.serialize(a);
     defer a.free(retired_bytes);
     try std.testing.expectEqualSlices(u8, bytes, retired_bytes);
+
+    var disposable = try Wrap.wrapDisposableCpuGraph(a, &ctx, digest, 0);
+    defer disposable.deinit();
+    const disposable_bytes = try disposable.serialize(a);
+    defer a.free(disposable_bytes);
+    try std.testing.expectEqualSlices(u8, bytes, disposable_bytes);
+    try std.testing.expectEqual(@as(usize, 0), ctx.circuit.output.items.len);
 }

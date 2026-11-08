@@ -359,6 +359,17 @@ pub fn wrapGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, en
 /// Explicit device selection is terminal on refusal; cached bytes still use
 /// independent native reception and never invoke a proving backend.
 pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory) !Wrapped {
+    return wrapGraphInternal(a, ctx, digest, encoded, ordinal, factory, false);
+}
+
+/// The caller owns a disposable CPU graph. Keep its assignments for witness
+/// generation but retire the gate arrays once preprocessed columns own the
+/// topology. The context remains valid for deinit on both success and error.
+pub fn wrapDisposableCpuGraph(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, ordinal: u32) !Wrapped {
+    return wrapGraphInternal(a, ctx, digest, null, ordinal, null, true);
+}
+
+fn wrapGraphInternal(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory, retire_topology: bool) !Wrapped {
     if (hybridProfileActive()) return wrapHybridGraphOrLoad(a, ctx, digest, encoded, ordinal, factory);
     if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
     if (ctx.trace_only and encoded == null and (factory == null or factory.?.prepare_from_circuit == null)) return error.TraceOnlySourceRequired;
@@ -385,6 +396,11 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
         std.debug.print("GPU_OUTER_PP_CLASS check_ok class={x}\n", .{key[0..8]});
     };
     if (cached_pp != null) std.debug.print("GPU_OUTER_PP_CLASS hit=true class={x}\n", .{class.?[0..8]});
+    if (retire_topology and !@import("topology_fingerprint.zig").enabled()) {
+        ctx.circuit.deinit(ctx.gpa);
+        ctx.circuit = .{};
+        _ = ctx.scratch_arena.reset(.free_all);
+    }
     const columns_end_ns = timer.read();
     const authority = try a.create(Outer.Authority);
     errdefer a.destroy(authority);

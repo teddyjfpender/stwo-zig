@@ -2,6 +2,7 @@
 const std = @import("std");
 pub const DEFAULT_BYTES: usize = 32 << 30;
 pub const RECYCLER_CACHE_BYTES: usize = 4 << 30;
+pub const CPU_WRAP_RECYCLER_CACHE_BYTES: usize = 64 << 20;
 /// Native physical verification evaluates CPU and delegation AIR on helpers.
 /// Keep their stack reservation explicit in the receiver budget.
 pub const WORKER_STACK_BYTES: usize = 8 << 20;

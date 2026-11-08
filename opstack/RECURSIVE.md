@@ -13,6 +13,16 @@ Use the CPU linked recursion product to wrap a complete native bundle with
 For GPU production, keep the established `produce-and-recurse-candidate`
 configuration and use the same native and outer profile when receiving. The
 native-only binary does not build or verify the recursive tree.
+Run the linked product from the repository root so it can read its
+pinned AIR recording under `vectors/circuit/official`. It checks this
+recording before preparing native keys or constructing the graph.
+Standalone CPU wrapping caps its freed-block recycler at 64 MiB. The
+requested live allocation limit is separate. The native OM31 CPU leaf
+path also releases the builder gate arrays and scratch arena once the
+preprocessed columns own the topology. It keeps the assignments for trace
+generation. Topology diagnostics keep the graph available for inspection.
+GPU production and the strict receiver retain their existing recycler
+policies.
 
 ```sh
 zig build rv64-word16-ethereum-gkr-recursion -Doptimize=ReleaseFast -j1

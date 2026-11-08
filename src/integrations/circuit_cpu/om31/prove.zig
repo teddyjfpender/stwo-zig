@@ -39,6 +39,18 @@ pub fn parsePinnedAir(a: std.mem.Allocator, bytes: []const u8) !Air.Bundle {
     if (!std.mem.eql(u8, &actual, Air.bundle_sha256)) return error.InvalidOm31CircuitAirAuthority;
     return Air.parse(a, bytes);
 }
+/// Fail before constructing a recursion graph if its pinned recording is
+/// missing or unreadable from the current working directory.
+pub fn requirePinnedAir(a: std.mem.Allocator) !void {
+    const bytes = std.fs.cwd().readFileAlloc(a, Air.bundle_path, 64 << 20) catch |err| {
+        std.log.err("cannot read pinned circuit AIR at {s}: {s}", .{ Air.bundle_path, @errorName(err) });
+        return err;
+    };
+    defer a.free(bytes);
+    var template = try parsePinnedAir(a, bytes);
+    defer template.deinit();
+}
+
 pub const Authority = struct {
     allocator: std.mem.Allocator,
     pp: *const Preprocessed,
