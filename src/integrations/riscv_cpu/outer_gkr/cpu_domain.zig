@@ -12,23 +12,18 @@ const Aux = @import("../word16_global_execution/services/gkr_local/public_aux.zi
 const O = core.fields.om31.OM31;
 const M = core.fields.m31;
 const Pack = core.fields.packed_om31;
-const F = Pack.PackedOM31;
 const PA = engine.air.component_prover.ForField(O);
 const DA = engine.air.accumulation.ForField(O);
-const IR = engine.air.secure_polynomial_program_v2;
+const Polynomial = @import("cpu_polynomial.zig");
 pub var test_failure: ?P.Component = null;
 const Col = struct { polynomial: PA.Poly = undefined, offset: i8 = 0, carry: ?[8][]const M.M31 = null, zero: bool = false };
 const Work = struct {
     component: *const HC.Component,
-    reads: []const Col,
-    sorts: []const IR.Sort,
-    constants: []const F,
-    parameters: []const F,
-    scratch: [][]F,
+    plan: *const Polynomial.Plan,
+    scratch: []Polynomial.Workspace,
     accumulator: DA.ColumnAccumulator,
     mutex: std.Thread.Mutex = .{},
     failure: ?anyerror = null,
-
     pub fn runRange(self: *@This(), shard: usize, first: usize, end: usize) void {
         self.run(shard, first, end) catch |err| {
             self.mutex.lock();
@@ -39,36 +34,15 @@ const Work = struct {
     fn run(self: *@This(), shard: usize, first: usize, end: usize) !void {
         const c = self.component;
         const log = c.source.trace_log_size;
-        const values = self.scratch[shard];
+        const values = &self.scratch[shard];
         const program = &c.artifact.program;
         for (first..end) |tile| {
             const row = tile * M.PACK_WIDTH;
-            for (program.nodes, values) |node, *value| value.* = switch (node.op) {
-                .constant => self.constants[node.value],
-                .parameter => self.parameters[node.value],
-                .input => blk: {
-                    const read = self.reads[node.value];
-                    var coordinates: [8]M.PackedM31 = @splat(@splat(0));
-                    if (read.carry) |carry| {
-                        inline for (0..8) |coordinate| coordinates[coordinate] = M.loadPacked(carry[coordinate][row..].ptr);
-                    } else if (!read.zero) {
-                        inline for (0..M.PACK_WIDTH) |lane| {
-                            const at = core.utils.offsetBitReversedCircleDomainIndex(row + lane, log, log + 1, read.offset);
-                            coordinates[0][lane] = (try read.polynomial.valueAtLiftingPosition(log + 1, at)).v;
-                        }
-                    }
-                    break :blk Pack.fromCoordinates(coordinates);
-                },
-                .add => values[node.lhs].add(values[node.rhs]),
-                .sub => values[node.lhs].sub(values[node.rhs]),
-                .neg => values[node.lhs].neg(),
-                .mul => if (self.sorts[node.lhs] == .base) values[node.rhs].mulBase(values[node.lhs].c0.c0.a) else if (self.sorts[node.rhs] == .base) values[node.lhs].mulBase(values[node.rhs].c0.c0.a) else Pack.mul(values[node.lhs], values[node.rhs]),
-                .fraction, .range_fraction => unreachable,
-            };
+            try values.evaluate(self.plan, row);
             var total = Pack.splat(O.zero());
             for (program.roots, 0..) |root, i| {
                 const coefficient = Pack.splat(self.accumulator.random_coeff_powers[program.roots.len - 1 - i]);
-                total = total.add(if (self.sorts[root] == .base) coefficient.mulBase(values[root].c0.c0.a) else Pack.mul(coefficient, values[root]));
+                total = total.add(if (self.plan.sorts[root] == .base) coefficient.mulBase(values.baseValue(self.plan, root)) else Pack.mul(coefficient, values.value(self.plan, root)));
             }
             const inverse = c.source.denominator_inverses[row >> @intCast(log)];
             total = total.mulBase(@as(M.PackedM31, @splat(inverse)));
@@ -81,6 +55,7 @@ pub fn evaluate(c: *const HC.Component, trace: *const PA.Trace, acc: *DA.DomainE
     const a = acc.allocator;
     const log = c.source.trace_log_size;
     if (log < 4 or c.source.evaluation_log_size != log + 1) return error.InvalidHybridMaskGeometry;
+    var timer: ?std.time.Timer = if (c.cpu_metrics != null) try std.time.Timer.start() else null;
     var aux: [10]?engine.poly.circle.CircleEvaluation = @splat(null);
     defer for (aux) |maybe| if (maybe) |evaluation| a.free(evaluation.values);
     if (P.gkrBound(c.artifact.component)) {
@@ -90,6 +65,7 @@ pub fn evaluate(c: *const HC.Component, trace: *const PA.Trace, acc: *DA.DomainE
         defer for (&coefficients) |*coefficient| coefficient.deinit(a);
         for (coefficients, &aux) |coefficient, *evaluation| evaluation.* = try coefficient.evaluate(a, core.poly.circle.canonic.CanonicCoset.new(log + 1).circleDomain());
     }
+    const aux_ns = if (timer) |*clock| clock.lap() else 0;
     const program = &c.artifact.program;
     const reads = try a.alloc(Col, program.inputs.len);
     defer a.free(reads);
@@ -118,34 +94,47 @@ pub fn evaluate(c: *const HC.Component, trace: *const PA.Trace, acc: *DA.DomainE
             read.* = .{ .polynomial = polynomial, .offset = input.offset };
         }
     }
-    const sorts = try program.sorts(a);
-    defer a.free(sorts);
-    // The IR's ordinary inputs are physical M31 coordinates. Public carry
-    // input18 is instead one receiver-derived OM31 polynomial; propagate that
-    // distinction through its users rather than treating it as a base value.
-    for (program.nodes, sorts) |node, *sort| switch (node.op) {
-        .input => sort.* = if (reads[node.value].carry != null) .secure else .base,
-        .add, .sub, .mul => sort.* = if (sorts[node.lhs] == .secure or sorts[node.rhs] == .secure) .secure else .base,
-        .neg => sort.* = sorts[node.lhs],
-        else => {},
-    };
-    const constants = try a.alloc(F, program.constants.len);
-    defer a.free(constants);
-    for (constants, 0..) |*constant, i| constant.* = Pack.splat(program.constantValue(@intCast(i)));
-    const parameters = try a.alloc(F, c.parameters.len);
-    defer a.free(parameters);
-    for (parameters, c.parameters) |*out, value| out.* = Pack.splat(value);
-    var scratch: [engine.lookups.row_work.MAX_SHARDS][]F = undefined;
+    const inputs = try a.alloc(Polynomial.Input, reads.len);
+    defer a.free(inputs);
+    for (reads, inputs) |read, *input| {
+        if (read.zero) {
+            input.* = .zero;
+        } else if (read.carry) |carry| {
+            input.* = .{ .secure = .{ .values = carry, .offset = read.offset } };
+        } else {
+            try read.polynomial.validate();
+            input.* = .{ .base = .{ .values = read.polynomial.values, .log = read.polynomial.log_size, .offset = read.offset } };
+        }
+    }
+    var plan = try Polynomial.Plan.init(a, program, inputs, c.parameters, log);
+    defer plan.deinit();
+    const tiles = (@as(usize, 1) << @intCast(log + 1)) / M.PACK_WIDTH;
+    const pool_limit = if (engine.work_pool.cooperative.current() != null) 1 else if (engine.work_pool.currentScopedPool()) |pool| @min(engine.lookups.row_work.MAX_SHARDS, pool.availableWorkers()) else 1;
+    const shards = @max(1, @min(pool_limit, tiles / 256));
+    var scratch: [engine.lookups.row_work.MAX_SHARDS]Polynomial.Workspace = undefined;
     var made: usize = 0;
-    defer for (scratch[0..made]) |values| a.free(values);
-    for (&scratch) |*values| {
-        values.* = try a.alloc(F, program.nodes.len);
+    defer for (scratch[0..made]) |*values| values.deinit();
+    for (scratch[0..shards]) |*values| {
+        values.* = try Polynomial.Workspace.init(a, &plan);
         made += 1;
     }
     const columns = try acc.columns(a, &.{.{ .log_size = log + 1, .n_cols = program.roots.len }});
     defer a.free(columns);
     columns[0].next_fresh_index = null;
-    var work = Work{ .component = c, .reads = reads, .sorts = sorts, .constants = constants, .parameters = parameters, .scratch = &scratch, .accumulator = columns[0] };
-    _ = engine.lookups.row_work.forEachRange((@as(usize, 1) << @intCast(log + 1)) / M.PACK_WIDTH, &work, .{ .min_rows_per_shard = 256 });
+    const prepare_ns = if (timer) |*clock| clock.lap() else 0;
+    var work = Work{ .component = c, .plan = &plan, .scratch = scratch[0..shards], .accumulator = columns[0] };
+    const actual = engine.lookups.row_work.forEachRange(tiles, &work, .{ .max_shards = shards, .min_rows_per_shard = 256 });
     if (work.failure) |err| return err;
+    if (c.cpu_metrics) |metrics| {
+        _ = metrics.calls.fetchAdd(1, .monotonic);
+        _ = metrics.aux_ns.fetchAdd(aux_ns, .monotonic);
+        _ = metrics.prepare_ns.fetchAdd(prepare_ns, .monotonic);
+        _ = metrics.rows_ns.fetchAdd(timer.?.read(), .monotonic);
+        metrics.base_nodes.store(plan.initial.base.len, .monotonic);
+        metrics.secure_nodes.store(plan.initial.secure.len, .monotonic);
+        metrics.invariant_nodes.store(program.nodes.len - plan.steps.len, .monotonic);
+        metrics.workspace_bytes.store((shards + 1) * (plan.initial.base.len * @sizeOf(M.PackedM31) + plan.initial.secure.len * @sizeOf(Pack.PackedOM31)), .monotonic);
+        metrics.allocated_slots.store(shards, .monotonic);
+        metrics.actual_shards.store(actual, .monotonic);
+    }
 }

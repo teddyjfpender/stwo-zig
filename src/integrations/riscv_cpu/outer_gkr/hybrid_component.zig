@@ -23,6 +23,7 @@ pub const Component = struct {
     class: *const P.Class,
     verified: *const S.Verified,
     parameters: []const O,
+    cpu_metrics: ?*@import("cpu_metrics.zig").Counters = null,
     const ProverAir = @import("stwo_prover_engine").air.component_prover.ForField(O);
     const Domain = @import("stwo_prover_engine").air.accumulation.ForField(O);
     const Adapter = core.air.derive.ForField(O).ComponentAdapter(@This(), ProverAir.ComponentProver, ProverAir.Trace, Domain.DomainEvaluationAccumulator);

@@ -1,5 +1,20 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The [M7 packed-polynomial comparison](recursion-m7-polynomial.json) separates
+base-field nodes from full octic nodes, precomputes parameter-only expressions,
+and binds validated reads once per component. All five real execution-root
+proof files remain identical and every fresh receiver accepts. Four interleaved
+cold trials show a modest composition reduction, but less than one percent
+change in median complete-root wall time. This is not a major speedup and M7
+remains opt-in. Per-component counters now distinguish public auxiliary FFTs,
+metadata preparation and row evaluation without changing receiver authority.
+The focused test target is `test-riscv64-outer-gkr-cpu-polynomial`.
+
+The [default R1 regression](recursion-r1-aot-parity.json) also reproduces all
+six original recursive proof files byte-for-byte, with fresh strict reception.
+Its 56.960 s production is a qualification run with build activity and a changed
+worker count, rather than a controlled comparison with the original 191 s.
+
 The [compiled OM31 evaluator A/B](recursion-aot.json) replaces domain bytecode
 dispatch with eight-coordinate C kernels generated from the same hash-pinned
 AIR. Four cold real-root trials preserve all physical proof bytes and pass
