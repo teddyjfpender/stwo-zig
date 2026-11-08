@@ -191,15 +191,15 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     universal_root.addImport("stwo_core", core);
+    universal_root.addImport("stwo_prover_api", prover_api);
     universal_root.addImport("stwo_cpu_backend", cpu_backend);
     universal_root.addImport("stwo_riscv_frontend", frontend);
     universal_root.addImport("stwo_prover_engine", prover);
-    const universal_tests = b.addTest(.{
-        .root_module = universal_root,
-        .filters = &.{"R-012 active FRI Merkle leaf adapter proves and independently verifies"},
-    });
+    const universal_tests = b.addTest(.{ .root_module = universal_root });
+    const universal_run = b.addRunArtifact(universal_tests);
+    universal_run.has_side_effects = true;
     b.step("test-universal-typed-proof", "Prove and independently verify the generic typed FRI adapter")
-        .dependOn(&b.addRunArtifact(universal_tests).step);
+        .dependOn(TestCountFloor.add(b, universal_run, 3));
 
     // Generic SegmentV2 detached tools remain available for the qualified
     // continuation path. Ethereum block assembly is an archived experiment.
