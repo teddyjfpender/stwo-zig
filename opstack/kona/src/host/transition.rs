@@ -104,9 +104,22 @@ pub fn pack(
     Ok(())
 }
 
-pub fn run(path: &str) -> Result<(), Box<dyn Error>> {
+pub fn run(path: &str, trace_path: Option<&str>) -> Result<(), Box<dyn Error>> {
     let input = fs::read(path)?;
-    let verified = TransitionInput::parse(&input)?.verify()?;
+    let input = TransitionInput::parse(&input)?;
+    let verified = if let Some(trace_path) = trace_path {
+        let (verified, trace) = stwo_kona_execution::transition_trace::record(|| input.verify());
+        let verified = verified?;
+        let mut out = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(trace_path)?;
+        out.write_all(&serde_json::to_vec(&trace)?)?;
+        out.write_all(b"\n")?;
+        verified
+    } else {
+        input.verify()?
+    };
     let statement = verified.statement;
     println!(
         "{}",

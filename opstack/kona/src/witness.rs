@@ -163,7 +163,12 @@ impl<'a> Witness<'a> {
             match key.cmp(hash.as_slice()) {
                 core::cmp::Ordering::Less => low = mid + 1,
                 core::cmp::Ordering::Greater => high = mid,
-                core::cmp::Ordering::Equal => return self.authenticate(mid),
+                core::cmp::Ordering::Equal => {
+                    let bytes = self.authenticate(mid)?;
+                    #[cfg(all(feature = "host", feature = "transition-program"))]
+                    crate::transition_trace::preimage(hash);
+                    return Ok(bytes);
+                }
             }
         }
         Err(Error::Missing(hash))

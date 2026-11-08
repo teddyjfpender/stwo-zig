@@ -117,6 +117,8 @@ impl<'a> AnchoredL2<'a> {
             .as_ref()
             .and_then(|txs| txs.first())
             .cloned();
+        #[cfg(all(feature = "host", feature = "transition-program"))]
+        let captured = crate::transition_trace::start_execution().then(|| attributes.clone());
         let witness = self.chain.witness();
         let mut builder = StatelessL2Builder::new(
             &self.config,
@@ -137,6 +139,15 @@ impl<'a> AnchoredL2<'a> {
             .map_err(|error| AnchorError::OutputRootComputation(error.to_string()))?;
         if output != next_root {
             return Err(AnchorError::OutputRoot);
+        }
+        #[cfg(all(feature = "host", feature = "transition-program"))]
+        if let Some(executing_payload) = captured {
+            crate::transition_trace::finish_execution(crate::execution::Fixture {
+                rollup_config: (*self.config).clone(),
+                parent_header: parent.clone(),
+                executing_payload,
+                expected_block_hash: outcome.header.hash(),
+            });
         }
         Ok((
             L2BlockInfo::from_header_and_first_tx(

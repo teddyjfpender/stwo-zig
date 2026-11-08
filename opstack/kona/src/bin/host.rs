@@ -18,8 +18,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             transition::pack(&args[2], &args[3], &args[4], &args[5])?;
         }
         #[cfg(feature = "transition-program")]
-        Some("run-transition") if args.len() == 3 => {
-            transition::run(&args[2])?;
+        Some("run-transition") if (3..=4).contains(&args.len()) => {
+            transition::run(&args[2], args.get(3).map(String::as_str))?;
         }
         Some("import-mainnet") => {
             if args.len() != 4 {
@@ -115,7 +115,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => {
             return Err(concat!(
                 "usage: stwo-kona-host pack OUT FIXTURE_DIR... | run INPUT eager|lazy",
-                " | pack-transition CLAIM RECORDS SIDECARS_OR_DASH OUT | run-transition INPUT"
+                " | pack-transition CLAIM RECORDS SIDECARS_OR_DASH OUT | run-transition INPUT [READ_TRACE_JSON]"
             )
             .into());
         }

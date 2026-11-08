@@ -21,4 +21,6 @@ pub mod precompiles;
 pub mod transition;
 #[cfg(feature = "transition-program")]
 pub mod transition_input;
+#[cfg(all(feature = "host", feature = "transition-program"))]
+pub mod transition_trace;
 pub mod witness;

@@ -2591,6 +2591,7 @@ dependencies = [
  "ark-bn254",
  "ark-ec",
  "ark-ff",
+ "ark-serialize",
  "async-trait",
  "ecdsa",
  "k256",
