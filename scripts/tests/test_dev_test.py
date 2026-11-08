@@ -20,7 +20,7 @@ class DevTestPlanTests(unittest.TestCase):
             self.assertEqual(command[2], "test-native-polynomial-aot")
             self.assertIn("-Dcheck-only=true", command)
             self.assertLess(build.index(f'b.path("{name}")'), build.index("if (target.result.os.tag != .macos)"))
-        for edge in ("aot_step.dependOn(&exporter.step);", "test_step.dependOn(aot_step);", "else &b.addRunArtifact(aot_tests).step", "linkMetalFrameworks(exporter);", "linkMetalFrameworks(aot_tests);"):
+        for edge in ("native_aot_step.dependOn(&exporter.step);", "test_step.dependOn(native_aot_step);", "else &b.addRunArtifact(aot_tests).step", "linkMetalFrameworks(exporter);", "linkMetalFrameworks(aot_tests);"):
             self.assertIn(edge, build)
         self.assertIn("RISC-V Metal integration requires macOS and the Metal SDK", build)
         self.assertEqual(4, sum(line.startswith('test "') for line in (directory / "native_polynomial_aot_test_root.zig").read_text().splitlines()))
@@ -66,6 +66,14 @@ class DevTestPlanTests(unittest.TestCase):
         capture = (ROOT / cases[1][0]).read_text()
         for name in ("borrowed_proof_capture_test.zig", "borrowed_pcs_capture_success_test.zig"):
             self.assertIn(f'@import("tests/{name}")', capture)
+
+    def test_capture_fixture_edits_use_the_mandatory_cpu_package_owner(self):
+        for filename in ("rv64_capture_prefetch_test_root.zig", "word16_global_execution/ethereum/capture_prefetch_test.zig", "word16_global_execution/ethereum/capture_test_fixture.zig"):
+            (command,) = dev_test.commands_for_paths(ROOT, ["src/integrations/riscv_cpu/" + filename], check_only=True)
+            self.assertEqual(command[2], "test-capture-prefetch")
+            self.assertIn("src/integrations/riscv_cpu/build.zig", command)
+            self.assertIn("-Dcheck-only=true", command)
+        self.assertIn("test_step.dependOn(capture_step);", (ROOT / "src/integrations/riscv_cpu/build.zig").read_text())
 
     def test_recursion_dag_uses_its_standalone_cpu_owner(self):
         commands = dev_test.commands_for_paths(ROOT, ["src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"], optimize="ReleaseFast")
@@ -118,6 +126,9 @@ class DevTestPlanTests(unittest.TestCase):
             "src/integrations/riscv_cuda/rv64/jobs/resources.zig",
             "src/integrations/riscv_cuda/rv64/jobs/arena_test.zig",
             "src/integrations/riscv_cuda/rv64/jobs/worker.zig",
+            "src/integrations/riscv_cuda/rv64/jobs/driver_install.zig",
+            "src/integrations/riscv_cuda/rv64/jobs/driver_fixture_test.zig",
+            "src/integrations/riscv_cuda/rv64/jobs/driver_service_test.zig",
         ])
         self.assertEqual(command[2:4], ["test-rv64-jobs-runtime", "test-rv64-resources"])
         self.assertIn("src/integrations/riscv_cuda/build.zig", command)

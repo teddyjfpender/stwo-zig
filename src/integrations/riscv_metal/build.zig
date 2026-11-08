@@ -39,10 +39,10 @@ pub fn build(b: *std.Build) void {
         linkMetalFrameworks(exporter);
         linkMetalFrameworks(aot_tests);
     }
-    const aot_step = b.step("test-native-polynomial-aot", "Check native polynomial source authority and compile its offline exporter");
-    aot_step.dependOn(&exporter.step);
-    aot_step.dependOn(if (check_only) &aot_tests.step else &b.addRunArtifact(aot_tests).step);
-    test_step.dependOn(aot_step);
+    const native_aot_step = b.step("test-native-polynomial-aot", "Check native polynomial source authority and compile its offline exporter");
+    native_aot_step.dependOn(&exporter.step);
+    native_aot_step.dependOn(if (check_only) &aot_tests.step else &b.addRunArtifact(aot_tests).step);
+    test_step.dependOn(native_aot_step);
     b.step("build-native-polynomial-aot-export", "Install the offline native AIR catalog exporter")
         .dependOn(&b.addInstallArtifact(exporter, .{}).step);
     if (target.result.os.tag != .macos) {

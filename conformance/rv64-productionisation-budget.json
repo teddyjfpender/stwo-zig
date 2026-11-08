@@ -440,6 +440,20 @@
       "positive_growth_justification": "Bind the existing whole-device GPU sampler to verified guard-held service/request intervals and immutable receipts. Preserve separate GPU identities, sampled maxima and coverage through validation and bench aggregation; fail closed for missing new acceptance evidence without treating old receipts as measured. Preserve guard cleanup on sampler failures and all existing proof/CPU/quiet checks. No new collector, CUDA rebuild, flags or launcher. Include the actual collector cleanup-test owner in every GPU gate (+1 line) so guard-release regressions cannot evade mandatory host validation.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "driver_request_service_test_ownership",
+      "net_code_budget": 35,
+      "positive_growth_justification": "Give request behavior, service/setup lifecycle and their shared canonical fake-world fixture separate actual owners. Preserve all thirty named tests/assertions and every mandatory discovery path, including allocator rollback. Namespace-only normalized body checks and bounded host execution enforce preservation. All resulting owners stay below the unchanged ceiling; moves receive zero deletion credit.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "capture_fixture_lifetime_ownership",
+      "net_code_budget": 40,
+      "positive_growth_justification": "Extract the complete tiny ELF fixture lifecycle and capture-equivalence oracle as one test-only owner, preserving all twenty existing test bodies and mandatory discovery. Reuse canonical request/capture/image types and existing focused developer route. Existing test owner drops below unchanged ceiling; no runtime semantics change and moves receive zero deletion credit. Existing capture target only has a legacy root build owner; give the existing CPU integration package the same canonical root as a mandatory focused target, so dev_test can run/check it through its existing package path without an exception launcher.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

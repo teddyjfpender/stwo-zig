@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS",
-  "updated_utc": "2026-11-08T15:18:55Z",
+  "updated_utc": "2026-11-08T15:37:07Z",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-gpu-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -569,9 +569,9 @@
   "running_subtraction_total": {
     "baseline": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
     "delivered_code_net": -68160,
-    "pending_code_net": 1112,
-    "combined_code_net": -67048,
-    "production_code_net": -41392,
+    "pending_code_net": 1169,
+    "combined_code_net": -66991,
+    "production_code_net": -41335,
     "historical_research_code_net": -25656,
     "top_level_scripts_removed": 150,
     "runtime_flags_removed": 2,
@@ -579,7 +579,7 @@
     "live_flag_registry": "IMPLEMENTED: 260 live controls; <60 target and M7/M8 retirement remain open",
     "historical_tool_python_utilities_removed": 4,
     "historical_non_stwo_flags_removed": 3,
-    "local_code_net_since_published": 1112,
+    "local_code_net_since_published": 1169,
     "local_includes_unqualified_changes": true,
     "moves_counted_as_deletions": false
   },
@@ -981,7 +981,8 @@
       "macos_framework_linkage_and_product_rejection": "PRESERVED",
       "preservation_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/native-polynomial-aot-owner-v1-preservation.json",
       "zig_execution": "NOT_RUN_LOCAL_RESOURCE_LIMIT",
-      "gpu_gate": "NOT_RUN_CREDIT_EXHAUSTED"
+      "gpu_gate": "NOT_RUN_CREDIT_EXHAUSTED",
+      "followup": "Fixed duplicated local build variable name found by hosted backup CI; native_aot_step preserves both unrelated step owners. Code+5/-5 net0; routing/AST pass, hosted rerun pending."
     },
     "typed_opcode_program_adapter_owner": {
       "status": "FOCUSED_SOURCE_BOUNDARY_CHECKS_PASS_FULL_PRODUCT_CLOSURE_STILL_FAILS_DETACHED_CPU_FIXTURE",
@@ -1074,6 +1075,48 @@
       "flags_scripts_changes": 0,
       "physical_ceiling_or_reserve_changes": 0,
       "independent_review": "PASS_READ_ONLY_NO_MATERIAL_ISSUES"
+    },
+    "driver_request_service_test_ownership": {
+      "status": "PASS_BODY_PRESERVATION_BOUNDED_FAKE_DRIVER_AND_ROUTING",
+      "actual": {
+        "added": 993,
+        "removed": 965,
+        "net": 28,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "original_named_tests_preserved": 30,
+      "request_owner_lines": 597,
+      "service_owner_lines": 377,
+      "canonical_fixture_owner_lines": 521,
+      "test_preservation": "Original bodies identical after stripping fixture namespace qualification only",
+      "bounded_host_run": "PASS42entries:29original driver tests,1allocationlint,12unnamed roots; DAG-named original case preserved but not selected",
+      "bounded_elapsed_s": 9.88015575002646,
+      "bounded_peak_group_rss_kib": 571920,
+      "moves_counted_as_deletions": false,
+      "routing_tests": "PASS29",
+      "hardware": "NOT_APPLICABLE_TEST_OWNER_CHANGE"
+    },
+    "capture_fixture_lifetime_ownership": {
+      "status": "PASS_BODY_PRESERVATION_ROUTING_AST_EXECUTION_CAP_STOPPED",
+      "actual": {
+        "added": 108,
+        "removed": 79,
+        "net": 29,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "test_owner_lines": 844,
+      "fixture_owner_lines": 85,
+      "original_named_tests_preserved_byte_identical": 20,
+      "mandatory_cpu_package_target": "test-capture-prefetch",
+      "bounded_host_run": "NOT_COMPLETED:768MiB process-group cap stopped compilation after3.60s, peak observed872272KiB",
+      "routing_tests": "PASS29",
+      "moves_counted_as_deletions": false
     }
   },
   "latest_completed_hardware_timings": {
@@ -1565,6 +1608,29 @@
     "public_recovery_payload_upload": false,
     "raw_pod_evidence": "NOT_ALL_CONFIRMED_LOCAL; retrieve and hash-verify before any new GPU work on next funded restart",
     "pod_volume": "PRESERVED_STOPPED_80GB_POD_VOLUME_NOT_NETWORK_VOLUME",
-    "hardware_promotion": false
+    "hardware_promotion": false,
+    "local_evidence_audit": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/local-recovery-evidence-audit-v1.json",
+    "proof_payloads_not_confirmed_local": {
+      "files": 36,
+      "bytes": 83973536,
+      "logs_captures": "Additional service paths not all local"
+    }
+  },
+  "merge_wrap_scope": {
+    "user_direction": "Merge PR314 first with detailed roadmap, then resume hygiene/repository structure",
+    "merge_source_prefix": "51897dc265593df7580c4abf0b232909fc105e34",
+    "unqualified_later_source": "BACKUP_ONLY_NOT_IN_THIS_MERGE",
+    "gpu_native_default_in_merge_prefix": false,
+    "excluded_pr": 322,
+    "included_ancestor_prs": [
+      316,
+      320
+    ],
+    "separate_related_prs": [
+      299,
+      270,
+      306
+    ],
+    "hygiene_phase_complete": false
   }
 }

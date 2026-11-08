@@ -122,6 +122,14 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&b.addRunArtifact(tests).step);
     test_step.dependOn(budget_step);
 
+    const capture_root = b.createModule(.{ .root_source_file = b.path("rv64_capture_prefetch_test_root.zig"), .target = target, .optimize = optimize });
+    var capture_imports = native_gkr_root.import_table.iterator();
+    while (capture_imports.next()) |entry| capture_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const capture_tests = b.addTest(.{ .root_module = capture_root, .filters = if (test_filter) |filter| &.{filter} else &.{} });
+    const capture_step = b.step("test-capture-prefetch", "Test tiny ELF capture parity, handoff ownership and failure cleanup without a GPU");
+    capture_step.dependOn(if (check_only) &capture_tests.step else &b.addRunArtifact(capture_tests).step);
+    test_step.dependOn(capture_step);
+
     const secp_root = b.createModule(.{
         .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),
         .target = target,
