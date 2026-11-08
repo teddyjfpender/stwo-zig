@@ -5,6 +5,10 @@ executes historical OP Mainnet and OP Sepolia blocks with pinned Kona, checks ev
 hash against an independent upstream fixture, and emits requests for the existing
 native/recursive GPU pipeline. It uses no SP1 SDK or SNARK wrapper.
 
+The current CPU-first [delivery gates](COMPLETION.md) distinguish execution,
+anchored transition proofs, recursive closure and complete settlement. Historical
+replay measurements do not close those later gates.
+
 ## Build and measure
 
 Requirements: Rust `nightly-2026-08-08` with `rust-src`, Zig 0.15.2, Python 3.12+.
@@ -158,7 +162,12 @@ measures source-derived planning, proof production and fresh reception separatel
 and requires rejection after corrupting actual persisted CPU proof bytes. It
 uses fresh subprocesses, one lane, explicit worker
 counts and resource admissions. Linux `wait4` reports peak RSS, which is measured
-rather than an enforced process cap. The source-derived plan reports exact
+rather than an enforced process cap. macOS reports RSS in bytes; Linux reports
+KiB, converted to bytes in new receipts. The CPU harnesses accept
+`--receiver-bytes` (default 6 GiB, maximum 64 GiB) for an explicit requested-live
+receiver admission, separate from fixed setup and measured RSS. Changing this
+operational budget changes no proof or security parameter. Older receipts keep
+their original measurements and platform context. The source-derived plan reports exact
 FIXED/MAIN/INTERACTION cells and MAIN+INTERACTION payload bits; it excludes PCS,
 composition and recursion, and is never called a proof or proof-size estimate.
 No compilation enters the proof wall time. A prefix cannot pass this harness.

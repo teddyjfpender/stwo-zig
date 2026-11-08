@@ -65,6 +65,10 @@ def main():
     p.add_argument("--key-bytes", type=int, default=1 << 30)
     p.add_argument("--timeout", type=int, default=7200)
     p.add_argument(
+        "--receiver-bytes", type=int, default=6 << 30,
+        help="requested-live admission per receiver request; not an RSS cap",
+    )
+    p.add_argument(
         "--receiver-setup",
         choices=("committed", "identity-only", "resident"),
         default="committed",
@@ -87,8 +91,9 @@ def main():
         or not 1 <= args.setup_workers <= 8
         or not 1 <= args.key_bytes <= 4 << 30
         or not 1 <= args.timeout <= 21600
+        or not 1 <= args.receiver_bytes <= 64 << 30
     ):
-        p.error("workers 1..8, positive key budget up to 4 GiB, timeout 1..21600")
+        p.error("workers 1..8, key bytes 1..4 GiB, timeout 1..21600, receiver bytes 1..64 GiB")
     if args.receiver_setup == "resident" and (
         args.repeat * len(args.cases) > 32
         or not 1 <= args.receiver_key_bytes <= 4 << 30
@@ -152,6 +157,7 @@ def main():
         "native_pool_workers": args.workers,
         "receiver_source_keys": args.receiver_setup,
         "receiver_setup_workers": args.receiver_setup_workers,
+        "receiver_requested_live_bytes": args.receiver_bytes,
         "runner_sha256": sha(args.runner),
         "harness_sha256": sha(__file__),
         "manifest": manifest,
@@ -202,7 +208,7 @@ def main():
                     "schema": "rv64-cpu-receiver-inputs/v1",
                     "setup_bytes": args.receiver_key_bytes,
                     "fixed_setup_bytes": resources["fixed_setup_bytes"],
-                    "request_bytes": 6 << 30,
+                    "request_bytes": args.receiver_bytes,
                     "requests": [
                         {"request": str(path), "proof": str(proof)}
                         for path, proof, _ in jobs
@@ -237,7 +243,7 @@ def main():
                 request_path,
                 proof,
                 resources["fixed_setup_bytes"],
-                6 << 30,
+                args.receiver_bytes,
             ]
             prefix = root / f"receive-{ordinal:06d}"
             row = measured(verifier, prefix, args.timeout, receiver_env, True)

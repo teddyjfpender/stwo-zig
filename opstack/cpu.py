@@ -15,6 +15,10 @@ import sys
 import time
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from opstack.process_metrics import peak_rss_bytes
+
 PROFILE = "conjectured128_b2_q108_p20_fold4"
 
 
@@ -91,7 +95,8 @@ def measured(command, prefix, timeout, env, allow_failure=False):
     receipt = {
         "command": [str(x) for x in command],
         "wall_ns": time.monotonic_ns() - start,
-        "peak_rss_bytes": usage.ru_maxrss * 1024,
+        "peak_rss_bytes": peak_rss_bytes(usage),
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
         "user_cpu_s": usage.ru_utime,
         "system_cpu_s": usage.ru_stime,
         "returncode": process.returncode,
@@ -191,6 +196,12 @@ def main():
     )
     p.add_argument("--receiver-setup-workers", type=int, choices=range(1, 9), default=1)
     p.add_argument(
+        "--receiver-bytes",
+        type=int,
+        default=6 << 30,
+        help="requested-live receiver admission in bytes; not an RSS cap",
+    )
+    p.add_argument(
         "--setup",
         choices=("ephemeral", "uncached"),
         default="ephemeral",
@@ -209,8 +220,9 @@ def main():
         not 1 <= args.workers <= 8
         or not 1 <= args.setup_workers <= 8
         or not 1 <= args.timeout <= 21600
+        or not 1 <= args.receiver_bytes <= 64 << 30
     ):
-        p.error("batch steps 1..2^23-1, proof/setup workers 1..8, timeout 1..21600")
+        p.error("proof/setup workers 1..8, timeout 1..21600, receiver bytes 1..64 GiB")
     if args.receiver_setup_workers > 1 and args.receiver_setup == "committed":
         p.error("parallel receiver setup requires --receiver-setup identity-only")
     config = json.loads(args.request.read_text())
@@ -234,7 +246,7 @@ def main():
     public = bytes.fromhex(config["expected_output"])
     transition_preflight = None
     if args.transition_statement is not None:
-        from recursive_transition import read_object, statement_outputs
+        from opstack.recursive_transition import read_object, statement_outputs
 
         raw, statement = read_object(args.transition_statement, 16384)
         derivation, _ = statement_outputs(statement)
@@ -333,6 +345,7 @@ def main():
         "receiver_setup": "independently rebuilt; no producer cache",
         "receiver_source_keys": args.receiver_setup,
         "receiver_setup_workers": args.receiver_setup_workers,
+        "receiver_requested_live_bytes": args.receiver_bytes,
         "runner_sha256": sha(args.runner),
         "harness_sha256": sha(__file__),
         "platform": platform.platform(),
@@ -378,7 +391,7 @@ def main():
                 request,
                 root / "proof",
                 resources["fixed_setup_bytes"],
-                6 << 30,
+                args.receiver_bytes,
             ],
         ),
     ):
@@ -411,7 +424,7 @@ def main():
         request,
         root / "proof",
         resources["fixed_setup_bytes"],
-        6 << 30,
+        args.receiver_bytes,
     ]
 
     def record_rejection(name, row):

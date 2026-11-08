@@ -11,8 +11,12 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from opstack.process_metrics import peak_rss_bytes
 
 
 def sha(path):
@@ -127,7 +131,7 @@ def main():
             {
                 "execution_workers": workers,
                 "process_wall_ns": wall,
-                "peak_rss_bytes": usage.ru_maxrss * 1024,
+                "peak_rss_bytes": peak_rss_bytes(usage),
                 "report": report,
             }
         )
@@ -140,7 +144,7 @@ def main():
             "elf_sha256": config["elf_sha256"],
             "input_sha256": config["input_sha256"],
             "source_sha256": sha(__file__),
-            "peak_rss_scope": "Linux wait4 per child; measured, not a cap",
+            "peak_rss_scope": "wait4 per child; measured high-water RSS, not a cap",
             "environment": {
                 k: v for k, v in environment.items() if k.startswith("STWO_")
             },
@@ -150,7 +154,7 @@ def main():
             json.dumps(receipt, indent=2) + "\n"
         )
         print(
-            f"workers={workers} complete capture matched; peak={usage.ru_maxrss * 1024}",
+            f"workers={workers} complete capture matched; peak={peak_rss_bytes(usage)}",
             flush=True,
         )
 
