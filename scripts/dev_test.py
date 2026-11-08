@@ -23,6 +23,8 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_frontend", "src/frontends/riscv/test_inventory_test.zig", "test-inventory"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/test_inventory.zig", "test-inventory"),
     ("stwo_riscv_cuda_integration", "src/integrations/riscv_cuda/rv64/jobs/gpu_native_classes.zig", "test-rv64-class-cache"),
     ("stwo_riscv_cuda_integration", "src/integrations/riscv_cuda/rv64/jobs/gpu_native_protocol.zig", "test-rv64-class-cache"),
     ('stwo_riscv_metal_integration', 'src/integrations/riscv_metal/native_polynomial_aot_export.zig', 'test-native-polynomial-aot'),

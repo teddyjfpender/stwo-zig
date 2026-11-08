@@ -365,6 +365,13 @@
       "positive_growth_justification": "Separate the complete recursion dependency-contract test family into its real test owner after added regressions exposed the existing aggregate test-file ceiling. Preserve every class body/assertion and old module discovery through one concrete TestCase import; the helper is not independently glob-discovered, preventing duplicate execution. Existing source/linkage/CLI tests remain in their actual owner. No runtime or policy boundary changes; moves receive zero deletion credit. Allow the exact imported dependency set and ordinary module spacing; source assertions remain byte-identical.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_live_test_coverage",
+      "net_code_budget": 6000,
+      "positive_growth_justification": "Restore archived tests whose subject modules and relative import closure remain live. Preserve package ownership and mandatory discovery via existing inventories. Expose the existing inventory invariant as a focused package step through dev_test.py; no retired production implementations, new launcher, flags, ceilings or proof-policy changes. Benefit: 94 restored lexical regression blocks and independently executable completeness checks. Rollback restores the archived test batch together with its inventory entries; it must never silently lower coverage floors.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

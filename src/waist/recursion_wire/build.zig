@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) void {
     // frontend; it is injected as a single-file module because a file cannot
     // belong to two modules.
     const felt_json = b.createModule(.{
-        .root_source_file = b.path("../felt_json.zig"),
+        .root_source_file = b.path("../../frontends/cairo/interop/felt_json.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -19,7 +19,7 @@ pub fn build(b: *std.Build) void {
     // `ProverParameters` is shared with the Cairo frontend's leaf lane the
     // same way.
     const prover_parameters = b.createModule(.{
-        .root_source_file = b.path("../cairo_prover_parameters.zig"),
+        .root_source_file = b.path("../../frontends/cairo/interop/cairo_prover_parameters.zig"),
         .target = target,
         .optimize = optimize,
     });

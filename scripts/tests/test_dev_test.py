@@ -126,6 +126,8 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_optimized_ci_reproduction_covers_focused_and_broad_routes(self) -> None:
         for path, step in (
+            ("src/frontends/riscv/test_inventory_test.zig", "test-inventory"),
+            ("src/frontends/riscv/test_inventory.zig", "test-inventory"),
             ("src/waist/core/fri/folding_family.zig", "test-fri"),
             ("src/waist/core/mod.zig", "test"),
             ("src/integrations/riscv_cuda/rv64/projection_codegen.zig", "test-native-gkr-codegen"),
