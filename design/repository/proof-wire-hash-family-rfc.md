@@ -85,6 +85,28 @@ resource guards. Record actual execution separately from semantic compilation.
 These provider tests do not substitute for the planned registered consumer-driven
 contract framework or a complete RISC-V product proof.
 
+## Candidate evidence before approval
+
+The existing implementation and the candidate provider tests execute successfully
+through `scripts/dev_test.py` in Debug and ReleaseFast. The candidate adds three
+named tests in `src/waist/proof_wire/hash_family_test.zig`, reached from the public
+module, without changing codec code, bytes, error tags, the API ledger or version.
+
+The six field/family combinations preserve every seeded digest byte, all secure
+coordinates and nested empty siblings. Their binary decoders reject each of the
+other five headers; Poseidon JSON rejects the other family version. Across four
+Poseidon field/version combinations, all nine digest words in all six digest
+positions reject a noncanonical word before any allocation, leaving borrowed
+input unchanged. JSON/binary decode and re-encode exercise every allocation
+failure; caller-selected plain-Blake2s reconstruction also balances every failed
+allocation and returns an independently owned target proof.
+
+These are CPU provider-fixture results, not cryptographic proof acceptance or
+product qualification. Existing default/OM31 golden and malformed-count tests
+remain in the mandatory suite. The candidate code budget is +132/-0/net +132,
+including its mandatory import, against the +150 allowance. Flags +0/-0;
+scripts +0/-0. Documentation is measured separately.
+
 ## Implementation, release and rollback
 
 After the invariant owner records an approved RFC decision, land tests first,

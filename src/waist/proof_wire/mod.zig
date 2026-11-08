@@ -54,6 +54,7 @@ test "proof wire binary decoder rejects truncation and wrong versions" {
 test {
     _ = @import("bounded_count_test.zig");
     _ = @import("wide_test.zig");
+    _ = @import("hash_family_test.zig");
 }
 
 pub const ForHasher = @import("family.zig").ForHasher;
