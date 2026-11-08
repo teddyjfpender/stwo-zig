@@ -172,6 +172,25 @@ coefficient of `truth-4.bin` from the accepted block 121057303 bundle. The
 reconstructed digest matches the native PoW/query fixture. This case uses
 an elevated local gas limit and a prefix captured from the native receiver.
 
+The PCS suffix now checks all eight little-endian M31 residues in one
+calldata word. The FRI butterfly reuses its result allocation for the odd
+coefficients before writing the final sums. Boundary tests accept
+`M31 - 1` and reject `M31` and `2^31` in every lane of the samples and
+final coefficient.
+
+| Transaction on Anvil Shanghai | Baseline gas | Current gas | Reduction |
+|---|---:|---:|---:|
+| Mainnet truth-4 PCS suffix, 5,532 samples | 48,220,921 | 40,728,807 | 15.5% |
+| 16-value FRI fold | 253,861 | 198,034 | 22.0% |
+| 16-value canonical circle fold | 285,015 | 229,142 | 19.6% |
+| 16-value canonical line fold | 285,388 | 229,510 | 19.6% |
+| Shared-root Mainnet opening | 12,191,701 | 12,191,701 | 0% |
+
+The baseline is `10cca717` with the same test transactions and compiler
+settings. The suite prints the gas counters, including intrinsic and
+calldata gas. The PCS suffix alone still exceeds Osaka's transaction
+cap. The shared-root opening fits under the cap in the Osaka test.
+
 To reproduce, apply `tools/native-pcs-capture.patch` in a disposable worktree,
 use `STWO_EXPORT_PCS_SUFFIX=1` in the native receive command below and set the
 request's proof workers to one for contiguous capture records. Run:

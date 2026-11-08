@@ -413,7 +413,17 @@ test("reconstructs the native DEEP and FRI commitment transcript", async () => {
     assert.deepEqual(result.folding.map((alpha) => Array.from(alpha)), folding);
     assert.equal(result.prePowDigest, "0x" + rawHash(digest, last).toString("hex"));
   }
-  await assert.rejects(harness.derivePcs(prefix, 11, 1, Buffer.alloc(32, 255), roots, last));
+  const boundary = Buffer.alloc(32);
+  for (let lane = 0; lane < 8; ++lane) boundary.writeUInt32LE(0x7ffffffe, 4 * lane);
+  await harness.derivePcs(prefix, 11, 1, boundary, roots, boundary);
+  for (let lane = 0; lane < 8; ++lane) {
+    for (const residue of [0x7fffffff, 0x80000000]) {
+      const malformed = Buffer.from(boundary);
+      malformed.writeUInt32LE(residue, 4 * lane);
+      await assert.rejects(harness.derivePcs(prefix, 11, 2, Buffer.concat([boundary, malformed]), roots, last));
+      await assert.rejects(harness.derivePcs(prefix, 11, 0, "0x", roots, malformed));
+    }
+  }
   await assert.rejects(harness.derivePcs(prefix, 11, 2, Buffer.alloc(32), roots, last));
   await assert.rejects(harness.derivePcs(prefix, 11, 0, "0x", roots.slice(1), last));
   await assert.rejects(harness.derivePcs(prefix, 11, 0, "0x", roots, Buffer.alloc(64)));
@@ -541,11 +551,15 @@ test("replays the DEEP/FRI commitment suffix from a native OP Mainnet proof", as
   const native = JSON.parse(readFileSync(new URL("../fixtures/native-queries-121057303.json", import.meta.url)))[fixture.worker];
   assert.equal(native.workerSha256, fixture.workerSha256);
   assert.equal(native.domainLog, fixture.domainLog);
-  const result = await harness.derivePcs(
+  const args = [
     fixture.prefix, fixture.domainLog, fixture.sampleCount, fixture.samples,
-    fixture.friRoots, fixture.lastCoefficient, { gasLimit: 100_000_000 },
-  );
+    fixture.friRoots, fixture.lastCoefficient,
+  ];
+  const limits = { gasLimit: 100_000_000 };
+  const result = await harness.derivePcs(...args, limits);
   assert.equal(result.prePowDigest, native.prePowDigest);
+  const receipt = await (await harness.derivePcs.send(...args, limits)).wait();
+  console.log(JSON.stringify({ nativePcsSuffixGas: Number(receipt.gasUsed) }));
   const opening = loadOpening("truth-4");
   const queryVerifier = await deploy("src/NativeQueryOpening.sol", "NativeQueryOpening");
   assert.equal(await queryVerifier.verifyQueriedOpening(

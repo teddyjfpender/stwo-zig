@@ -128,16 +128,23 @@ library NativeFriFold {
     function butterfly(uint32[8] memory left, uint32[8] memory right, uint32[8] memory alpha, uint32 inverse)
         private pure returns (uint32[8] memory result)
     {
-        uint32[8] memory odd;
-        // The inputs and inverse are canonical. Differences offset by P
-        // are nonnegative, and the sum of three coefficients fits uint256.
-        unchecked {
-            for (uint256 i; i < 8; ++i) {
-                odd[i] = uint32(mulmod(uint256(left[i]) + P - right[i], inverse, P));
+        // Reuse the result allocation for the odd coefficients. The
+        // multiplier reads it before the final butterfly sum overwrites it.
+        assembly ("memory-safe") {
+            let inverseWord := and(inverse, 0xffffffff)
+            for { let offset := 0 } lt(offset, 256) { offset := add(offset, 32) } {
+                let lhs := and(mload(add(left, offset)), 0xffffffff)
+                let rhs := and(mload(add(right, offset)), 0xffffffff)
+                mstore(add(result, offset), mulmod(sub(add(lhs, 0x7fffffff), rhs), inverseWord, 0x7fffffff))
             }
-            uint32[8] memory scaled = multiply(alpha, odd);
-            for (uint256 i; i < 8; ++i) {
-                result[i] = uint32((uint256(left[i]) + right[i] + scaled[i]) % P);
+        }
+        uint32[8] memory scaled = multiply(alpha, result);
+        assembly ("memory-safe") {
+            for { let offset := 0 } lt(offset, 256) { offset := add(offset, 32) } {
+                let lhs := and(mload(add(left, offset)), 0xffffffff)
+                let rhs := and(mload(add(right, offset)), 0xffffffff)
+                let even := add(lhs, rhs)
+                mstore(add(result, offset), mod(add(even, mload(add(scaled, offset))), 0x7fffffff))
             }
         }
     }

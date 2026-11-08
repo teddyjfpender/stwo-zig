@@ -56,11 +56,26 @@ library NativePcsTranscript {
     }
 
     function requireCanonical(bytes calldata fields) private pure {
-        for (uint256 i; i < fields.length; i += 4) {
-            uint32 word;
-            assembly ("memory-safe") { word := shr(224, calldataload(add(fields.offset, i))) }
-            if (reverse32(word) >= M31) revert NonCanonicalField();
+        bool malformed;
+        // Each field occupies exactly eight little-endian words. Rotate the
+        // most significant byte of each word into the high byte of its lane.
+        // Adding one to each low 31-bit lane sets its high bit exactly for
+        // P. The masked addition cannot carry into a neighboring lane.
+        assembly ("memory-safe") {
+            let byteMask := 0x000000ff000000ff000000ff000000ff000000ff000000ff000000ff000000ff
+            let highBits := 0x8000000080000000800000008000000080000000800000008000000080000000
+            let ones := 0x0000000100000001000000010000000100000001000000010000000100000001
+            let end := add(fields.offset, fields.length)
+            for { let offset := fields.offset } lt(offset, end) { offset := add(offset, 32) } {
+                let word := calldataload(offset)
+                let lane := or(shr(8, and(word, not(byteMask))), shl(24, and(word, byteMask)))
+                if and(or(lane, add(and(lane, not(highBits)), ones)), highBits) {
+                    malformed := 1
+                    break
+                }
+            }
         }
+        if (malformed) revert NonCanonicalField();
     }
 
     function wordLE(bytes32 value, uint256 lane) internal pure returns (uint32) {
