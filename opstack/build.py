@@ -22,6 +22,7 @@ VARIANTS = {
     "services": "services-v3",
     "sponge": "sponge-service",
     "transition": "transition-program,services-v3",
+    "transition-sha": "transition-program,services-v3,sha-service",
 }
 
 LEAN_VARIANTS = {
@@ -134,7 +135,7 @@ def main():
     )
     parser.add_argument("--jobs", type=int, default=2)
     args = parser.parse_args()
-    if args.variant == "transition" and args.eager:
+    if args.variant in ("transition", "transition-sha") and args.eager:
         parser.error("the transition program authenticates preimages on demand")
     if not 1 <= args.jobs <= 8:
         parser.error("jobs 1..8")
@@ -189,7 +190,7 @@ def main():
                 "host,pairing-hints"
                 if args.variant == "canonical-glv-hinted"
                 else "host,transition-program"
-                if args.variant == "transition"
+                if args.variant in ("transition", "transition-sha")
                 else "host",
                 "-j",
                 args.jobs,

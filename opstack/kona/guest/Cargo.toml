@@ -14,6 +14,7 @@ pairing-hints = ["precompile-services", "stwo-kona-execution/pairing-hints"]
 keccak-service = ["stwo-kona-execution/keccak-service"]
 services-v3 = ["keccak-service", "stwo-kona-execution/secp-lean"]
 sponge-service = ["services-v3"]
+sha-service = ["stwo-kona-execution/sha-service"]
 
 [dependencies]
 stwo-kona-execution = { path = ".." }

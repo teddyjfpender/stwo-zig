@@ -190,8 +190,11 @@ pub fn encode(
         body.extend_from_slice(&sidecar.proof);
         body.extend_from_slice(sidecar.blob.as_slice());
     }
-    let compressed = if HEADER + size > MAX_INPUT {
-        Some(miniz_oxide::deflate::compress_to_vec_zlib(&body, 6))
+    // Large historical witnesses benefit from compression even when the raw
+    // body just fits the transport cap. Prefer raw data for smaller inputs.
+    let compressed = if HEADER + size > 16 * 1024 * 1024 {
+        let compressed = miniz_oxide::deflate::compress_to_vec_zlib(&body, 6);
+        (compressed.len() < body.len()).then_some(compressed)
     } else {
         None
     };
