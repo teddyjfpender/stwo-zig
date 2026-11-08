@@ -22,7 +22,8 @@
           "scripts.tests.test_ci_package_graph",
           "scripts.tests.test_ci_scope_push",
           "scripts.tests.test_ci_touchpoint_prefixes",
-          "scripts.tests.test_tooling_surface"
+          "scripts.tests.test_tooling_surface",
+          "scripts.tests.test_opstack_ci_contract"
         ],
         [
           "python3",
@@ -754,6 +755,61 @@
           "{output_dir}/metal-aot"
         ]
       ]
+    },
+    "opstack_python": {
+      "host": "linux",
+      "description": "OP Stack CPU tooling, independent receiver framing and benchmark contracts",
+      "commands": [
+        [
+          "python3",
+          "-m",
+          "venv",
+          "{output_dir}/opstack-python"
+        ],
+        [
+          "{output_dir}/opstack-python/bin/python",
+          "-m",
+          "pip",
+          "install",
+          "--disable-pip-version-check",
+          "pycryptodome==4.3.0"
+        ],
+        [
+          "{output_dir}/opstack-python/bin/python",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "opstack/tests",
+          "-q"
+        ]
+      ]
+    },
+    "opstack_kona": {
+      "host": "linux",
+      "local": "hosted",
+      "description": "Pinned Kona execution, anchored derivation, blob admission and precompile semantics",
+      "commands": [
+        [
+          "rustup",
+          "toolchain",
+          "install",
+          "nightly-2026-08-08",
+          "--profile",
+          "minimal"
+        ],
+        [
+          "cargo",
+          "+nightly-2026-08-08",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "opstack/kona/Cargo.toml",
+          "--features",
+          "host,transition-program,pairing-hints,bn254-glv",
+          "-j2"
+        ]
+      ]
     }
   },
   "product_scope_lanes": {
@@ -1445,6 +1501,25 @@
       "lanes": [
         "script_contracts",
         "build_graph"
+      ]
+    },
+    {
+      "prefixes": [
+        "opstack"
+      ],
+      "lanes": [
+        "opstack_python"
+      ]
+    },
+    {
+      "prefixes": [
+        "opstack/kona",
+        "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256",
+        "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa",
+        "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64"
+      ],
+      "lanes": [
+        "opstack_kona"
       ]
     }
   ],
