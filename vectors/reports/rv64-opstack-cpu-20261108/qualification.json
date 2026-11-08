@@ -1,0 +1,776 @@
+{
+  "schema": "stwo.opstack.cpu-continuation-qualification.v1",
+  "date_utc": "2026-11-08",
+  "source_head": "c2d93574b2710354460df9ed10d67d8e164aac62",
+  "starting_head": "5b7d3ffbd5603c3fabc98934859b655c69f8b63d",
+  "hardware": "Apple M5 Max",
+  "host_memory_bytes": 68719476736,
+  "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+  "timing_scope": "qualification runs while compilation or other tests may be active; not a controlled speedup comparison",
+  "security_qualified": false,
+  "scope": "complete native OP execution bundles; no anchored transition STARK or recursive root claimed here",
+  "guest_build": {
+    "variant": "canonical-glv",
+    "source_head": "5b7d3ffbd5603c3fabc98934859b655c69f8b63d",
+    "tracked_diff_sha256": "c2b36851b29e820e0eab97a65621b3375a188c8397b794d92b39da37438f43a2",
+    "compiler": "rustc 1.99.0-nightly (1a98b1e13 2026-08-07)",
+    "zig_version": "0.15.2",
+    "guest": {
+      "bytes": 3232984,
+      "sha256": "2fc1eb93bc9d5bc7b34c64ade9cd814a0e1eaa18719350f0aec697dd94585eea"
+    },
+    "host": {
+      "bytes": 3117360,
+      "sha256": "61a88fda4b59892e6f426beacf3ed114a2bafdeaea3e2095b8b01a494a92dd1f"
+    },
+    "runner": {
+      "bytes": 697040,
+      "sha256": "2738aff5dfac380c36f6c54fd5d7be42417baac5915373a0cd55d7b76f08ba3e"
+    },
+    "compile_sources_unchanged": true
+  },
+  "cases": [
+    {
+      "block": 120794432,
+      "instructions": 796520,
+      "native_profile": "conjectured128_b2_q108_p20_fold4",
+      "batch_steps": 1048575,
+      "workers": 8,
+      "setup_workers": 2,
+      "receiver_setup_workers": 4,
+      "receiver_requested_live_bytes": 12884901888,
+      "resources": {
+        "lanes": 2,
+        "workers_per_lane": 4,
+        "memory_cap_bytes": 4294967296,
+        "heaviest_first": true
+      },
+      "elf_sha256": "2fc1eb93bc9d5bc7b34c64ade9cd814a0e1eaa18719350f0aec697dd94585eea",
+      "input_sha256": "b64e99bcb8561a2278c4cd6a6e97b9017ed410441153939af3354ee791fe6e5d",
+      "runner_sha256": "4855cbdff1c52f43a84b8021b0cb39a72532a6988b29e5df556d8338c7714ff6",
+      "proof_verified": true,
+      "tampered_proof_rejected": true,
+      "cpu_proofs": 1,
+      "truth_proofs": 2,
+      "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+      "stages": {
+        "plan": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "plan-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+            "-",
+            "0",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/resources.json"
+          ],
+          "wall_ns": 533718209,
+          "peak_rss_bytes": 1357430784,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 0.789866,
+          "system_cpu_s": 0.100669,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "produce": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "produce-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+            "-",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/proof",
+            "0",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/resources.json"
+          ],
+          "wall_ns": 6995181708,
+          "peak_rss_bytes": 3931717632,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 29.746375,
+          "system_cpu_s": 1.7446869999999999,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/proof",
+            "2147483648",
+            "12884901888"
+          ],
+          "wall_ns": 1311731625,
+          "peak_rss_bytes": 2201960448,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 3.669367,
+          "system_cpu_s": 0.18009699999999998,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "tamper": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/proof",
+            "2147483648",
+            "12884901888"
+          ],
+          "wall_ns": 422080250,
+          "peak_rss_bytes": 601686016,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 0.367429,
+          "system_cpu_s": 0.037873,
+          "returncode": 1,
+          "timed_out": false
+        },
+        "tamper-rehashed": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/proof",
+            "2147483648",
+            "12884901888"
+          ],
+          "wall_ns": 1303093625,
+          "peak_rss_bytes": 2202386432,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 3.654026,
+          "system_cpu_s": 0.17607399999999998,
+          "returncode": 1,
+          "timed_out": false
+        }
+      },
+      "receiver": {
+        "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+        "security_qualified": false,
+        "security_target": {
+          "label": "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
+          "target_bits": 128,
+          "profile": "conjectured128_b2_q108_p20_fold4",
+          "assumption_set": "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v2-boundary23",
+          "conjectured_fri_bits": 128,
+          "scope": "native proof bundle; recursion excluded",
+          "proven_bound": false,
+          "independent_security_audit_complete": false,
+          "whole_protocol_128_certified": false
+        },
+        "security_profile": "conjectured128_b2_q108_p20_fold4",
+        "accepted": true,
+        "completed_ethereum_block": true,
+        "output": [
+          102,
+          249,
+          209,
+          65,
+          38,
+          76,
+          222,
+          71,
+          157,
+          168,
+          232,
+          174,
+          248,
+          118,
+          213,
+          76,
+          241,
+          24,
+          25,
+          53,
+          116,
+          44,
+          40,
+          84,
+          62,
+          217,
+          102,
+          186,
+          141,
+          131,
+          182,
+          203,
+          1,
+          10,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          79,
+          80
+        ],
+        "cpu_proofs": 1,
+        "truth_proofs": 2,
+        "load_and_setup_ns": 1233145125,
+        "setup_breakdown": {
+          "image_ns": 345381750,
+          "program_ns": 45697375,
+          "native_keys_ns": 379265542,
+          "fixed_authority_ns": 457465958,
+          "other_ns": 5333333
+        },
+        "verify_ns": 35213500,
+        "physical_verify_workers": 8,
+        "receiver_session_setup": null,
+        "receiver_session_budget": null,
+        "receiver_source_keys": "identity-only",
+        "fixed_setup": {
+          "limit_bytes": 2147483648,
+          "live_bytes": 199407712,
+          "peak_bytes": 632464128,
+          "keys": 3,
+          "hits": 0,
+          "seals": 3,
+          "loads": 0,
+          "refused": false,
+          "native_coefficients": {
+            "limit_bytes": 2147483648,
+            "retained_bytes": 174216192,
+            "native_backing_bytes": 174196096,
+            "groups": 156,
+            "hits": 73,
+            "duplicate_native_bytes_released": 49995904,
+            "observed_individual_owners": 229,
+            "observed_backing_owners": 0,
+            "observed_spans": 229,
+            "owner_leases": 4
+          }
+        },
+        "source_validations": 3,
+        "source_coefficient_cells": 56048000,
+        "source_accounting_profile": "rv64-source-derived-services-v3-lookup/v1",
+        "source_shape": {
+          "native_proofs": 3,
+          "max_trace_log": 21,
+          "max_public_boundary_log": 15,
+          "max_columns": 7444,
+          "max_constraints": 7751,
+          "max_samples_per_column": 5,
+          "max_air_degree": 5,
+          "max_local_instances": 30,
+          "max_tuple_arity": 35,
+          "max_gkr_variables": 24,
+          "native_trace_cells": [
+            56048000,
+            87143904,
+            102725120
+          ]
+        },
+        "source_lookup_only_conditional_degrees": {
+          "tuple_collision": 973106237776656,
+          "rational_identity": 41990624,
+          "local_rational_identity": 40510624,
+          "global_rational_identity": 1480000,
+          "poles": 41990624
+        },
+        "receiver_budget": {
+          "live_bytes": 1071894552,
+          "peak_live_bytes": 1519769836,
+          "host_live_bytes": 1071894552,
+          "external_live_bytes": 0,
+          "peak_host_bytes": 1504951216,
+          "peak_external_bytes": 134217728,
+          "limit": 12884901888,
+          "exceeded": false
+        },
+        "receiver_recycler_cache_cap_bytes": 4294967296,
+        "receiver_worker_stack_upper_bound_bytes": 67108864
+      },
+      "proof_files": {
+        "proof/bundle.json": {
+          "bytes": 11494,
+          "sha256": "1eb71e5027218304030a80fef928950d19ecbefdadb0778dba7e5834bd4ae07e"
+        },
+        "proof/candidate-fixed-setup.json": {
+          "bytes": 960,
+          "sha256": "65d0143494f1f2dfe2ef064fff7368f68756103837a496dcbdf6884d707eddb8"
+        },
+        "proof/candidate-source-bounds.json": {
+          "bytes": 6855,
+          "sha256": "6cf60db486292813646f049c2b59e309ed0f94813cf410585a1ce77cc07cf27c"
+        },
+        "proof/cells.bin": {
+          "bytes": 1375002,
+          "sha256": "483132c89d831f5795bb30d8430204252f4a3f7b8846a2c051bdd4066c474f71"
+        },
+        "proof/cpu-0.bin": {
+          "bytes": 2743096,
+          "sha256": "92e7e611ff99be98050d53bde531081dc3a731d9a12cfd3c777e25e32d9e0bd8"
+        },
+        "proof/physical-0000.stages.json": {
+          "bytes": 216900,
+          "sha256": "1335a6370814013862491526f7787b0891512b63bb3da3f76ba9b240771e5518"
+        },
+        "proof/physical-0001.stages.json": {
+          "bytes": 164228,
+          "sha256": "6a47191ee0a5f7b68c2a31dd6e52c88a7d47183d609f830c6ceeaf4347f37bee"
+        },
+        "proof/physical-0002.stages.json": {
+          "bytes": 322609,
+          "sha256": "f26ad25cad0d57e171aad337de0d3549b9d827029e1560bb33df2020e918412f"
+        },
+        "proof/report.json": {
+          "bytes": 9934,
+          "sha256": "77e17dbceabdb4745e570b0b6c5fd3aa3cd258650797957fb36c9c0b6ce56ba3"
+        },
+        "proof/schedule.json": {
+          "bytes": 1535,
+          "sha256": "07984d614a6ca5a09cec0df0be3a70ec8613f5f85c29447f59f73d727d4680e2"
+        },
+        "proof/stage-one.bin": {
+          "bytes": 100740,
+          "sha256": "79b88f862a87ef920e0559b78e9b82bd63bac9ed504e41f4b77736c55ce758bd"
+        },
+        "proof/truth-0.bin": {
+          "bytes": 2348264,
+          "sha256": "36a863fbb6fb333051ce8a6545054e62e79c5f5ab95de8d788409fdf7310d4b8"
+        },
+        "proof/truth-1.bin": {
+          "bytes": 2449952,
+          "sha256": "6dfade00a050549843b63d61195cec6e82f1875cc7fa4670a46dd7f1ee1f7943"
+        }
+      },
+      "oracle_report_sha256": "82e81df6f7779e3586511903e608d52f1ff3b8791dfb676fbe0b9663d9eba019"
+    },
+    {
+      "block": 121057303,
+      "instructions": 5928533,
+      "native_profile": "conjectured128_b2_q108_p20_fold4",
+      "batch_steps": 1048575,
+      "workers": 8,
+      "setup_workers": 2,
+      "receiver_setup_workers": 4,
+      "receiver_requested_live_bytes": 12884901888,
+      "resources": {
+        "lanes": 2,
+        "workers_per_lane": 4,
+        "memory_cap_bytes": 4294967296,
+        "heaviest_first": true
+      },
+      "elf_sha256": "2fc1eb93bc9d5bc7b34c64ade9cd814a0e1eaa18719350f0aec697dd94585eea",
+      "input_sha256": "87ac02ac032049cd005303f28eda6694ebf79d3808c519371b410d01e09ff174",
+      "runner_sha256": "4855cbdff1c52f43a84b8021b0cb39a72532a6988b29e5df556d8338c7714ff6",
+      "proof_verified": true,
+      "tampered_proof_rejected": true,
+      "cpu_proofs": 6,
+      "truth_proofs": 7,
+      "output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+      "stages": {
+        "plan": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "plan-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/request.json",
+            "-",
+            "0",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/resources.json"
+          ],
+          "wall_ns": 1005246416,
+          "peak_rss_bytes": 1447395328,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 1.279178,
+          "system_cpu_s": 0.19596999999999998,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "produce": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "produce-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/request.json",
+            "-",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/proof",
+            "0",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/resources.json"
+          ],
+          "wall_ns": 34605559375,
+          "peak_rss_bytes": 5295636480,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 160.703193,
+          "system_cpu_s": 6.729678,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/proof",
+            "2147483648",
+            "12884901888"
+          ],
+          "wall_ns": 3664522333,
+          "peak_rss_bytes": 3769466880,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 15.232967,
+          "system_cpu_s": 0.296,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "tamper": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/proof",
+            "2147483648",
+            "12884901888"
+          ],
+          "wall_ns": 422242083,
+          "peak_rss_bytes": 611467264,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 0.35734299999999997,
+          "system_cpu_s": 0.027925,
+          "returncode": 1,
+          "timed_out": false
+        },
+        "tamper-rehashed": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-native",
+            "--security-profile",
+            "conjectured128_b2_q108_p20_fold4",
+            "verify-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/request.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/user-native/proof",
+            "2147483648",
+            "12884901888"
+          ],
+          "wall_ns": 3561938750,
+          "peak_rss_bytes": 3767500800,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 15.045839,
+          "system_cpu_s": 0.298338,
+          "returncode": 1,
+          "timed_out": false
+        }
+      },
+      "receiver": {
+        "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+        "security_qualified": false,
+        "security_target": {
+          "label": "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
+          "target_bits": 128,
+          "profile": "conjectured128_b2_q108_p20_fold4",
+          "assumption_set": "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v2-boundary23",
+          "conjectured_fri_bits": 128,
+          "scope": "native proof bundle; recursion excluded",
+          "proven_bound": false,
+          "independent_security_audit_complete": false,
+          "whole_protocol_128_certified": false
+        },
+        "security_profile": "conjectured128_b2_q108_p20_fold4",
+        "accepted": true,
+        "completed_ethereum_block": true,
+        "output": [
+          170,
+          184,
+          43,
+          190,
+          44,
+          200,
+          243,
+          95,
+          145,
+          135,
+          6,
+          31,
+          210,
+          100,
+          93,
+          159,
+          185,
+          106,
+          11,
+          232,
+          218,
+          235,
+          206,
+          192,
+          57,
+          119,
+          171,
+          113,
+          14,
+          205,
+          162,
+          137,
+          1,
+          10,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          79,
+          80
+        ],
+        "cpu_proofs": 6,
+        "truth_proofs": 7,
+        "load_and_setup_ns": 3440068667,
+        "setup_breakdown": {
+          "image_ns": 345903125,
+          "program_ns": 46081959,
+          "native_keys_ns": 905109583,
+          "fixed_authority_ns": 2121899209,
+          "other_ns": 21072750
+        },
+        "verify_ns": 123959250,
+        "physical_verify_workers": 8,
+        "receiver_session_setup": null,
+        "receiver_session_budget": null,
+        "receiver_source_keys": "identity-only",
+        "fixed_setup": {
+          "limit_bytes": 2147483648,
+          "live_bytes": 267335328,
+          "peak_bytes": 794026512,
+          "keys": 12,
+          "hits": 0,
+          "seals": 12,
+          "loads": 0,
+          "refused": false,
+          "native_coefficients": {
+            "limit_bytes": 2147483648,
+            "retained_bytes": 182205056,
+            "native_backing_bytes": 182171264,
+            "groups": 263,
+            "hits": 964,
+            "duplicate_native_bytes_released": 926427136,
+            "observed_individual_owners": 1227,
+            "observed_backing_owners": 0,
+            "observed_spans": 1227,
+            "owner_leases": 13
+          }
+        },
+        "source_validations": 12,
+        "source_coefficient_cells": 277149600,
+        "source_accounting_profile": "rv64-source-derived-services-v3-lookup/v1",
+        "source_shape": {
+          "native_proofs": 13,
+          "max_trace_log": 21,
+          "max_public_boundary_log": 18,
+          "max_columns": 7444,
+          "max_constraints": 7751,
+          "max_samples_per_column": 5,
+          "max_air_degree": 5,
+          "max_local_instances": 32,
+          "max_tuple_arity": 35,
+          "max_gkr_variables": 24,
+          "native_trace_cells": [
+            277151648,
+            533655392,
+            506202368
+          ]
+        },
+        "source_lookup_only_conditional_degrees": {
+          "tuple_collision": 12046803707807696,
+          "rational_identity": 248676960,
+          "local_rational_identity": 239141024,
+          "global_rational_identity": 9535936,
+          "poles": 248676960
+        },
+        "receiver_budget": {
+          "live_bytes": 1417698024,
+          "peak_live_bytes": 2475056216,
+          "host_live_bytes": 1417698024,
+          "external_live_bytes": 0,
+          "peak_host_bytes": 2273729624,
+          "peak_external_bytes": 201326592,
+          "limit": 12884901888,
+          "exceeded": false
+        },
+        "receiver_recycler_cache_cap_bytes": 4294967296,
+        "receiver_worker_stack_upper_bound_bytes": 67108864
+      },
+      "proof_files": {
+        "proof/bundle.json": {
+          "bytes": 58099,
+          "sha256": "b9def0934700f3e641d23209b56d7554c42c3e05c81b2d1da00afa07bca47931"
+        },
+        "proof/candidate-fixed-setup.json": {
+          "bytes": 969,
+          "sha256": "3cb4baa257da6cb5a1eb003e110fc65f59089caeca51c9cefe668d16c4332325"
+        },
+        "proof/candidate-source-bounds.json": {
+          "bytes": 29994,
+          "sha256": "23fe4c726aaa04cc3fa4b3baa6688282185aec2f032208e6b8b0863fdabbcbbc"
+        },
+        "proof/cells.bin": {
+          "bytes": 7056692,
+          "sha256": "1f15fedbbba605b7a51f5e62815154599a05e351fed2ee8939b2d1345124a1bd"
+        },
+        "proof/cpu-0.bin": {
+          "bytes": 2944280,
+          "sha256": "de263cee1436904b7743c03ddb2287fddac9e4fb87782d2d21fcfd1043e15e3e"
+        },
+        "proof/cpu-1.bin": {
+          "bytes": 2673400,
+          "sha256": "9391616288c121fbd895db8b87328af8ed60aecd065d186d548f63f78f72aec3"
+        },
+        "proof/cpu-2.bin": {
+          "bytes": 2780872,
+          "sha256": "2f92b2ecebcabbcc4b9a9a3e032c2c89fcf3c1587e7e6849cb1807c2a74c4684"
+        },
+        "proof/cpu-3.bin": {
+          "bytes": 2830592,
+          "sha256": "2910ef96f2f5270f8ab76a62166b940bba38b7dfd93e214a5026d677b7d9a42e"
+        },
+        "proof/cpu-4.bin": {
+          "bytes": 2650368,
+          "sha256": "fb29a0e79686970f78f95115ca0ef2b316bd81528f0dd67b7503bc773e493f10"
+        },
+        "proof/cpu-5.bin": {
+          "bytes": 2543160,
+          "sha256": "885f91f4bf6e881cb6168d71732318d7e8b83dda9a1883e56dae45509f936fc4"
+        },
+        "proof/physical-0000.stages.json": {
+          "bytes": 235384,
+          "sha256": "901d45e02532e5e4eb11f8c398a035d83217c957ba4596ff2033405f5498eb67"
+        },
+        "proof/physical-0001.stages.json": {
+          "bytes": 214275,
+          "sha256": "0c86b31eaa0e76fde3b8367430227ac7f88422ed4c6bc614320364ed70a61107"
+        },
+        "proof/physical-0002.stages.json": {
+          "bytes": 222144,
+          "sha256": "2e118f6450b47b7b4f55fe9ca914ff7c70915b3b516caab135aa7ca3a8c68fbc"
+        },
+        "proof/physical-0003.stages.json": {
+          "bytes": 224744,
+          "sha256": "001dec2263cb049ec66d57b783d09c6f967235a914ca9782189d16771a08fa22"
+        },
+        "proof/physical-0004.stages.json": {
+          "bytes": 211508,
+          "sha256": "34997282d8c78f682c3f5853e9c7076614be9f0bbc8d6cac1165c70b104b6cd4"
+        },
+        "proof/physical-0005.stages.json": {
+          "bytes": 200924,
+          "sha256": "c8accbc72e06f7f55a7fda8ae07ea6eea5df076509f2a3358f5410e4cd1efa56"
+        },
+        "proof/physical-0006.stages.json": {
+          "bytes": 164059,
+          "sha256": "ba0a2b3a5b21a6850c258b3052f76daa5f201c4ab0c2d7847e34a22aa409d459"
+        },
+        "proof/physical-0007.stages.json": {
+          "bytes": 164284,
+          "sha256": "8c31c12740979c3f6974e4685bb9dab1e47c5c66a4fe25e02c7a5024a8b1c6f7"
+        },
+        "proof/physical-0008.stages.json": {
+          "bytes": 317683,
+          "sha256": "08cf4c15bcd76b75941a1298ce0f7fb303ca7aaa603380db3bde1ed0680c3875"
+        },
+        "proof/physical-0009.stages.json": {
+          "bytes": 306734,
+          "sha256": "9093c626766a6ea01c5a4075c3f05bf7c66a49566a38e357c85e9173cbd8ec19"
+        },
+        "proof/physical-0010.stages.json": {
+          "bytes": 240581,
+          "sha256": "db0f7c8d22e0c7b4c408910ff5da6008828e197a5ffb4dc95556c91252313363"
+        },
+        "proof/physical-0011.stages.json": {
+          "bytes": 321868,
+          "sha256": "fefa05b96bf8b82cad708f07b1d7dc2f2a5729969e045c07f8972a2916caf469"
+        },
+        "proof/physical-0012.stages.json": {
+          "bytes": 73909,
+          "sha256": "32e088c86c2fbb5cfb6d72c3fe4009a9872daa128707a65a721354c0b7365b2c"
+        },
+        "proof/report.json": {
+          "bytes": 25724,
+          "sha256": "25d8d5a13db2dfe403646956a49a0dd9aca952e6cf0fa20a09da1d5b8b42bf03"
+        },
+        "proof/schedule.json": {
+          "bytes": 6151,
+          "sha256": "fc4bc5589ad6f2efcd6aa882cfd3a3b1993fdbdf78de9a0af861097edfbe5c49"
+        },
+        "proof/stage-one.bin": {
+          "bytes": 612988,
+          "sha256": "bca50dfa37175833184a3d416a80cd4c8664333484bc6bd682d401f87875fac5"
+        },
+        "proof/truth-0.bin": {
+          "bytes": 2347080,
+          "sha256": "8fd396a1098dccd974d836895f27cadd8520524d68891cf9f2d70ef86cec7f45"
+        },
+        "proof/truth-1.bin": {
+          "bytes": 2341960,
+          "sha256": "c763ba48e75aa540b1e5f73336cd1143d3281f5d171ff490d3d453bdc36a5d32"
+        },
+        "proof/truth-2.bin": {
+          "bytes": 3855480,
+          "sha256": "e208cb98c32ea8de9ee2fb4a42feeddb1fedd4f6c750263f62dd3842e95a269b"
+        },
+        "proof/truth-3.bin": {
+          "bytes": 3178788,
+          "sha256": "e3245495df87c553eba30e59b06c6cc8855c56410569acdddbb9122a25c6a988"
+        },
+        "proof/truth-4.bin": {
+          "bytes": 2353928,
+          "sha256": "6b2365bebaf8b8adb01fc60ba925c4f7fb5458db70fd5a9144fb639db733c2c7"
+        },
+        "proof/truth-5.bin": {
+          "bytes": 2538800,
+          "sha256": "4f7a178eea9cb16e2e65483016406e5a77d819aec93d6b2ff300ed80d23c8a8e"
+        },
+        "proof/truth-6.bin": {
+          "bytes": 659404,
+          "sha256": "08d05d36243eb86e0f04d5ee1ccdfb1654af7f81684bff89767b02e774db4255"
+        }
+      },
+      "oracle_report_sha256": "d10f90460ca22c2d0d9cc0fde1a6601217458cda8dd4c371322fbbc617362912"
+    }
+  ],
+  "synthetic_public_fold": {
+    "command": [
+      "zig",
+      "build",
+      "test-riscv64-op-public-fold",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ],
+    "environment": {
+      "STWO_OP_FOLD_MAX_BYTES": "34359738368"
+    },
+    "exit_code": 0,
+    "variables": 22544384,
+    "blake_g_rows": 4194304,
+    "qm31_rows": 4194304,
+    "root_wire_bytes": 706584,
+    "accepted": true,
+    "scope": "real child and parent STARKs over synthetic OD/OP values, fresh trace-only authority and output mutation rejection; no Kona semantics"
+  },
+  "tests": {
+    "python_opstack": 38,
+    "ci_scope": 93,
+    "rust_transition_and_precompiles": 36
+  },
+  "hook_exceptions": {
+    "pre_commit": "pre-existing source conformance violations outside opstack",
+    "first_pre_push": "OP unknown-path fallback selected unrelated Metal AOT gate; that gate failed for missing authenticated Metal AOT bundle",
+    "focused_replacement": "explicit opstack_python and hosted opstack_kona lanes; broad shared-engine selection retained"
+  },
+  "retention": "Full generated ELF/input/proof bundles and logs are outside the checkout under rv64-proof-artifacts/20261108/opstack-cpu."
+}

@@ -1,5 +1,10 @@
 # Mainnet CPU continuation
 
+This document describes the execution lane and records intermediate provider
+milestones. The current anchored `OD` guest, including authenticated blob/KZG
+admission, is documented in [TRANSITION.md](TRANSITION.md). The CPU-first
+[delivery gates](COMPLETION.md) track what is actually proved and what remains.
+
 Use genuine historical OP Mainnet inputs and actual chain 10 configuration.
 The host must reproduce the complete expected block hash before RV64 execution,
 and RV64/Unicorn must match all registers, output bytes, terminal PC and service
@@ -8,7 +13,7 @@ A CPU proof succeeds only after a fresh durable receiver accepts the complete
 statement. Corruption is tested both with the original transport digest and
 with a recomputed digest, so the proof verifier is also exercised.
 
-The statement proves supplied OP execution, not authenticated L1 derivation,
+The execution lane's `OP` statement proves supplied OP execution, not authenticated L1 derivation,
 KZG, chain-head anchoring, recursion or settlement. The selected conjectured-128
 native profile keeps `security_qualified=false`; no protocol parameters are
 weakened to make CPU runs fit. No SNARK wrapper is introduced.
@@ -129,7 +134,7 @@ cover block execution but lack account-trie nodes needed to open
 missing node `55b88d8d3ce0ca3c4073bc95277af8960db21669a01ebe48ca3a1fc5615776b1`.
 Supply authenticated archive account proofs when collecting a transition fixture.
 
-`transition::verify_calldata_transition` connects these providers to the pinned
+The initial `transition::verify_calldata_transition` entry connects these providers to the pinned
 Kona pipeline. The caller supplies the trusted anchor, pinned chain configs and
 transition claim separately from the witness. The pipeline resets from the
 checkpoint, authenticates L1 origins during its L2 history walk, and executes
@@ -137,9 +142,11 @@ only the attributes it derives. It checks the executed output root and L1
 origin against the claim. It bounds pipeline steps and rejects blob-backed DA,
 Alt-DA and interop until those inputs can be authenticated.
 
-The mainnet provider test exercises this entry point against OP 121057303 and
+The historical mainnet provider test exercises this entry point against OP 121057303 and
 Ethereum anchor 20035800. It rejects a substituted origin and reaches the
 missing safe history during Kona's reset with the correct origin. A positive
 mainnet transition needs that history, the L1 DA and the execution/output-root
-witnesses in one fixture. Guest statement encoding and recursive admission of
-the transition remain separate work.
+witnesses in one fixture. That initial fixture limitation is superseded by the
+anchored 159257841 → 159257842 native/RV64 replay in `TRANSITION.md`, which also
+has a distinct blob-enabled entry and the encoded `OD` statement. A complete
+physical transition STARK and recursive admission remain open.

@@ -25,6 +25,13 @@ latency figures are not CPU acceptance criteria.
 
 ## Working rules
 
+The [CPU continuation receipt](../vectors/reports/rv64-opstack-cpu-20261108/README.md)
+reproduces complete execution bundles for 120794432 and 121057303 with fresh
+receivers and both corruption controls. The synthetic OD/OP child/parent fold
+also completes with physical STARK verification. These close the local execution
+reproduction and synthetic-fold checks, not anchored transition or real-root
+acceptance.
+
 - Replay is not a proof. A native bundle is not a recursive root. A receiver-side
   join is not an in-circuit join. A PCS replay is not a complete checkpoint verifier.
 - Do not raise the 256-proof, trace-log or characteristic limits to bypass
