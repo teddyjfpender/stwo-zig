@@ -4,6 +4,7 @@ const std = @import("std");
 const A = std.atomic.Value(u64);
 pub const Counters = struct {
     calls: A = .init(0),
+    compiled_calls: A = .init(0),
     aux_ns: A = .init(0),
     prepare_ns: A = .init(0),
     rows_ns: A = .init(0),
@@ -21,6 +22,7 @@ pub const Counters = struct {
 };
 pub const Snapshot = struct {
     calls: u64,
+    compiled_calls: u64,
     aux_ns: u64,
     prepare_ns: u64,
     rows_ns: u64,

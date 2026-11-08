@@ -70,6 +70,16 @@ profiles separate lookup projection, GKR, native admission and binding witness;
 `components/hybrid-*.json` additionally splits public auxiliary construction,
 row preparation and constraint evaluation. These files are observations only.
 
+On AArch64, `STWO_RV64_OUTER_GKR_NATIVE=1` opts into M7's generated
+coordinate kernels; `STWO_RV64_OUTER_GKR_INTERPRETER=1` forces the control.
+Build-time lowering verifies the original bundle hash and keys the registry by
+full program identity. Scalar OODS and receiver authority are unchanged. The
+focused `test-riscv64-outer-gkr-cpu-lowering` and
+`test-riscv64-outer-gkr-cpu-native` targets exercise independent scalar parity,
+all eleven kernels, input/output validation and allocation failure cleanup.
+Current evidence establishes composition savings, with only a modest and noisy
+whole-root change; this route is not enabled by default.
+
 Use `zig build test-riscv64-outer-gkr-cpu-polynomial -Doptimize=ReleaseFast`
 for the fast scalar/packed, cyclic binding, pool and auxiliary FFT checks.
 The full `test-riscv64-outer-gkr` suite additionally checks physical proofs,

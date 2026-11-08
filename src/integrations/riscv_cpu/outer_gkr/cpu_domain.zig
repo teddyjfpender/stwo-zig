@@ -15,12 +15,14 @@ const Pack = core.fields.packed_om31;
 const PA = engine.air.component_prover.ForField(O);
 const DA = engine.air.accumulation.ForField(O);
 const Polynomial = @import("cpu_polynomial.zig");
+const Native = @import("cpu_native.zig");
 pub var test_failure: ?P.Component = null;
 const Col = struct { polynomial: PA.Poly = undefined, offset: i8 = 0, carry: ?[8][]const M.M31 = null, zero: bool = false };
 const Work = struct {
     component: *const HC.Component,
     plan: *const Polynomial.Plan,
     scratch: []Polynomial.Workspace,
+    native: ?*const Native.Prepared = null,
     accumulator: DA.ColumnAccumulator,
     mutex: std.Thread.Mutex = .{},
     failure: ?anyerror = null,
@@ -32,6 +34,7 @@ const Work = struct {
         };
     }
     fn run(self: *@This(), shard: usize, first: usize, end: usize) !void {
+        if (self.native) |native| return native.evaluateRange(first * M.PACK_WIDTH, end * M.PACK_WIDTH);
         const c = self.component;
         const log = c.source.trace_log_size;
         const values = &self.scratch[shard];
@@ -112,30 +115,33 @@ pub fn evaluate(c: *const HC.Component, trace: *const PA.Trace, acc: *DA.DomainE
     const tiles = (@as(usize, 1) << @intCast(log + 1)) / M.PACK_WIDTH;
     const pool_limit = if (engine.work_pool.cooperative.current() != null) 1 else if (engine.work_pool.currentScopedPool()) |pool| @min(engine.lookups.row_work.MAX_SHARDS, pool.availableWorkers()) else 1;
     const shards = @max(1, @min(pool_limit, tiles / 256));
-    var scratch: [engine.lookups.row_work.MAX_SHARDS]Polynomial.Workspace = undefined;
-    var made: usize = 0;
-    defer for (scratch[0..made]) |*values| values.deinit();
-    for (scratch[0..shards]) |*values| {
-        values.* = try Polynomial.Workspace.init(a, &plan);
-        made += 1;
-    }
     const columns = try acc.columns(a, &.{.{ .log_size = log + 1, .n_cols = program.roots.len }});
     defer a.free(columns);
     columns[0].next_fresh_index = null;
+    var native = if (Native.enabled()) try Native.Prepared.init(a, c.artifact, c.source, inputs, c.parameters, columns[0]) else null;
+    defer if (native) |*owner| owner.deinit();
+    var scratch: [engine.lookups.row_work.MAX_SHARDS]Polynomial.Workspace = undefined;
+    var made: usize = 0;
+    defer for (scratch[0..made]) |*values| values.deinit();
+    for (scratch[0..if (native == null) shards else 0]) |*values| {
+        values.* = try Polynomial.Workspace.init(a, &plan);
+        made += 1;
+    }
     const prepare_ns = if (timer) |*clock| clock.lap() else 0;
-    var work = Work{ .component = c, .plan = &plan, .scratch = scratch[0..shards], .accumulator = columns[0] };
+    var work = Work{ .component = c, .plan = &plan, .scratch = scratch[0..made], .accumulator = columns[0], .native = if (native) |*prepared| prepared else null };
     const actual = engine.lookups.row_work.forEachRange(tiles, &work, .{ .max_shards = shards, .min_rows_per_shard = 256 });
     if (work.failure) |err| return err;
     if (c.cpu_metrics) |metrics| {
         _ = metrics.calls.fetchAdd(1, .monotonic);
+        _ = metrics.compiled_calls.fetchAdd(@intFromBool(native != null), .monotonic);
         _ = metrics.aux_ns.fetchAdd(aux_ns, .monotonic);
         _ = metrics.prepare_ns.fetchAdd(prepare_ns, .monotonic);
         _ = metrics.rows_ns.fetchAdd(timer.?.read(), .monotonic);
         metrics.base_nodes.store(plan.initial.base.len, .monotonic);
         metrics.secure_nodes.store(plan.initial.secure.len, .monotonic);
         metrics.invariant_nodes.store(program.nodes.len - plan.steps.len, .monotonic);
-        metrics.workspace_bytes.store((shards + 1) * (plan.initial.base.len * @sizeOf(M.PackedM31) + plan.initial.secure.len * @sizeOf(Pack.PackedOM31)), .monotonic);
-        metrics.allocated_slots.store(shards, .monotonic);
+        metrics.workspace_bytes.store((made + 1) * (plan.initial.base.len * @sizeOf(M.PackedM31) + plan.initial.secure.len * @sizeOf(Pack.PackedOM31)), .monotonic);
+        metrics.allocated_slots.store(made, .monotonic);
         metrics.actual_shards.store(actual, .monotonic);
     }
 }

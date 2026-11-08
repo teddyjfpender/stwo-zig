@@ -55,6 +55,8 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         .{ .name = "test-riscv64-poseidon2-circuit", .source = "src/integrations/riscv_cpu/rv64_poseidon2_circuit_test_root.zig" },
         .{ .name = "test-riscv64-om31-outer", .source = "src/integrations/riscv_cpu/rv64_om31_outer_test_root.zig" },
         .{ .name = "test-riscv64-outer-gkr-cpu-polynomial", .source = "src/integrations/riscv_cpu/rv64_outer_gkr_cpu_polynomial_test_root.zig" },
+        .{ .name = "test-riscv64-outer-gkr-cpu-lowering", .source = "src/integrations/riscv_cpu/rv64_outer_gkr_cpu_lowering_test_root.zig" },
+        .{ .name = "test-riscv64-outer-gkr-cpu-native", .source = "src/integrations/riscv_cpu/rv64_outer_gkr_cpu_native_test_root.zig" },
         .{ .name = "test-riscv64-om31-m3-fold", .source = "src/integrations/riscv_cpu/rv64_om31_m3_fold_test_root.zig" },
         .{ .name = "test-riscv64-op-public-fold", .source = "src/integrations/riscv_cpu/rv64_op_public_fold_test_root.zig" },
         .{ .name = "test-riscv64-m5-vk-table", .source = "src/integrations/riscv_cpu/rv64_m5_vk_table_test_root.zig" },
@@ -79,6 +81,16 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
 }
 
 fn createRoot(context: circuit_product.Context, product: graph.Product, source: []const u8) *std.Build.Module {
+    const root = createRootBase(context, product, source);
+    // Pure arithmetic checks deliberately avoid a native compiler dependency.
+    if (!std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_lowering_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_polynomial_test_root.zig")) root.addImport("outer_gkr_cpu_aot", createHybridModule(context, product, root.import_table.get("stwo_cairo_frontend").?));
+    return root;
+}
+
+/// The generator uses this source stack without importing its own generated
+/// module. It depends on the original circuit kernels only, so there is no
+/// generated-kernel/bootstrap cycle.
+fn createRootBase(context: circuit_product.Context, product: graph.Product, source: []const u8) *std.Build.Module {
     const root = graph.create(context.b, .{
         .product = product,
         .root_source_file = source,
@@ -90,6 +102,25 @@ fn createRoot(context: circuit_product.Context, product: graph.Product, source: 
     integration_graph.addRiscVCpuStack(context.b, context.protocol, product, context.target, context.optimize, root);
     circuit_product.addCircuitStack(context, product, root);
     return root;
+}
+
+fn createHybridModule(context: circuit_product.Context, product: graph.Product, cairo: *std.Build.Module) *std.Build.Module {
+    const b = context.b;
+    var host = context;
+    host.target = b.graph.host;
+    host.optimize = .ReleaseFast;
+    const generator_root = createRootBase(host, product, "src/integrations/riscv_cpu/rv64_outer_gkr_cpu_codegen_main.zig");
+    generator_root.addImport("hybrid_cpu_emitter", b.createModule(.{ .root_source_file = b.path("src/tools/cairo_composition_cpu_codegen/hybrid_om31_writer.zig"), .target = b.graph.host, .optimize = .ReleaseFast }));
+    const generator = b.addExecutable(.{ .name = "rv64-hybrid-cpu-codegen", .root_module = generator_root });
+    const generate = b.addRunArtifact(generator);
+    generate.addFileArg(b.path("vectors/circuit/official/circuit_air.air_programs_v1.bin"));
+    const directory = generate.addOutputDirectoryArg("rv64-hybrid-cpu-aot");
+    const module = b.createModule(.{ .root_source_file = directory.path(b, "registry.zig"), .target = context.target, .optimize = context.optimize });
+    module.addImport("stwo_cairo_frontend", cairo);
+    const library = b.addLibrary(.{ .name = "rv64-hybrid-cpu-polynomial-kernels", .linkage = .static, .root_module = b.createModule(.{ .target = context.target, .optimize = context.optimize, .pic = true, .link_libc = true }) });
+    for (0..11) |index| library.root_module.addCSourceFile(.{ .file = directory.path(b, b.fmt("hybrid_{d}.c", .{index})), .flags = &.{ "-std=c11", "-O3", "-fstrict-aliasing", "-fno-vectorize", "-fno-slp-vectorize", "-gline-tables-only" } });
+    module.linkLibrary(library);
+    return module;
 }
 
 comptime {

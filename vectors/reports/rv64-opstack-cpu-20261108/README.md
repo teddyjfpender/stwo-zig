@@ -1,5 +1,21 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The [M7 compiled-coordinate qualification](recursion-m7-coordinate-native.json)
+lowers the receiver-derived hybrid program into scalar M31 expressions at build
+time, then emits packed C kernels for all eleven components. It preserves the
+original program identity, transcript and all five actual OP proof files. The
+final qualification takes 36.375 s plus 3.736 s fresh strict reception, at
+35.44 GiB peak RSS. All 44 domain calls use the compiled registry.
+
+Four cold interleaved trials give composition medians of 8.606 s interpreted
+and 7.209 s compiled (16% lower); complete-root medians are 39.737 and 39.132 s
+(1.5% lower). Two samples per variant and trial drift do not establish a strong
+whole-root gain. This remains opt-in with `STWO_RV64_OUTER_GKR_NATIVE=1`;
+`STWO_RV64_OUTER_GKR_INTERPRETER=1` selects the control. M6 remains the fastest
+measured complete-root CPU configuration. The original quartic Cairo and M6
+kernels are unchanged. Unknown programs fall back; malformed input geometry,
+secure carry and output coordinate planes reject before entering C.
+
 The [unit-weight/ownership qualification](recursion-m7-unit-owned.json)
 still reproduces all five M7 physical proofs and passes fresh strict reception.
 Each unit specialization checks the actual immutable numerator array before

@@ -232,6 +232,7 @@ pub fn inspectLeafSchedule(a: std.mem.Allocator, setups: []const *const R.CpuSet
     const native_capture_and_graph_ns = timer.lap();
     const Circuit = @import("stwo_circuit_frontend");
     const pre_padding_variables = graph.ctx.circuit.n_vars;
+    const primitive_rows = PrimitiveRows.from(&graph.ctx.circuit);
     const padding_targets = try Outer.paddingTargets(graph.ctx);
     // Match outer_wrap.wrapGraphOrLoadWithFactory BEFORE assignment planning.
     // No PP/Authority commitment or proof construction is needed for a census.
@@ -269,8 +270,18 @@ pub fn inspectLeafSchedule(a: std.mem.Allocator, setups: []const *const R.CpuSet
     var origin_kinds: [9]usize = @splat(0);
     for (graph.ctx.witness_metadata.?.origins.items) |origin| origin_kinds[@intFromEnum(origin.kind)] += 1;
     const census = try @import("schedule_census.zig").inspect(plan.level_ends, plan.tasks.len);
-    return .{ .ordinal = ordinal, .kind = if (ordinal < setups.len) "cpu" else @tagName(std.meta.activeTag(truths[ordinal - setups.len])), .manifest = manifest.digest, .statement = worker.statement, .graph_digest = graph.digest, .variables = graph.ctx.circuit.n_vars, .pre_padding_variables = pre_padding_variables, .padding_targets = padding_targets, .padding_ns = padding_ns, .public_words = graph.words.len, .seed_count = plan.seeds.len, .constant_seed_count = try std.math.sub(usize, plan.seeds.len, origin_kinds[0]), .packed_index_bytes = packed_index_bytes, .census = census, .task_kinds = task_kinds, .hint_kinds = hint_kinds, .original_gate_counts = original_gate_counts, .skipped_computational_definitions = skipped_definitions, .hint_origin_counts = origin_kinds, .equality_constraint_gates = circuit.eq.items.len, .output_constraint_gates = circuit.output.items.len, .qm31_operation_rows = circuit.nQm31OpsRows(), .permutation_count = permutation_count, .max_permutation_inputs = max_permutation_inputs, .permutation_pair_work = permutation_pair_work, .estimated_device_assignment_bytes = try std.math.mul(usize, graph.ctx.circuit.n_vars, 16), .packed_task_bytes = try std.math.mul(usize, plan.tasks.len, 32), .packed_seed_bytes = try std.math.mul(usize, plan.seeds.len, 20), .host_plan_task_bytes = try std.math.mul(usize, plan.tasks.len, @sizeOf(Schedule.Task)), .host_level_end_bytes = try std.math.mul(usize, plan.level_ends.len, @sizeOf(usize)), .build_metrics = metrics, .admission_ns = admission_ns, .native_capture_and_graph_ns = native_capture_and_graph_ns, .schedule_ns = schedule_ns, .census_ns = timer.lap() };
+    return .{ .ordinal = ordinal, .kind = if (ordinal < setups.len) "cpu" else @tagName(std.meta.activeTag(truths[ordinal - setups.len])), .manifest = manifest.digest, .statement = worker.statement, .graph_digest = graph.digest, .variables = graph.ctx.circuit.n_vars, .pre_padding_variables = pre_padding_variables, .pre_padding_primitive_rows = primitive_rows, .padding_targets = padding_targets, .padding_ns = padding_ns, .public_words = graph.words.len, .seed_count = plan.seeds.len, .constant_seed_count = try std.math.sub(usize, plan.seeds.len, origin_kinds[0]), .packed_index_bytes = packed_index_bytes, .census = census, .task_kinds = task_kinds, .hint_kinds = hint_kinds, .original_gate_counts = original_gate_counts, .skipped_computational_definitions = skipped_definitions, .hint_origin_counts = origin_kinds, .equality_constraint_gates = circuit.eq.items.len, .output_constraint_gates = circuit.output.items.len, .qm31_operation_rows = circuit.nQm31OpsRows(), .permutation_count = permutation_count, .max_permutation_inputs = max_permutation_inputs, .permutation_pair_work = permutation_pair_work, .estimated_device_assignment_bytes = try std.math.mul(usize, graph.ctx.circuit.n_vars, 16), .packed_task_bytes = try std.math.mul(usize, plan.tasks.len, 32), .packed_seed_bytes = try std.math.mul(usize, plan.seeds.len, 20), .host_plan_task_bytes = try std.math.mul(usize, plan.tasks.len, @sizeOf(Schedule.Task)), .host_level_end_bytes = try std.math.mul(usize, plan.level_ends.len, @sizeOf(usize)), .build_metrics = metrics, .admission_ns = admission_ns, .native_capture_and_graph_ns = native_capture_and_graph_ns, .schedule_ns = schedule_ns, .census_ns = timer.lap() };
 }
+pub const PrimitiveRows = struct {
+    eq: usize,
+    qm31_ops: usize,
+    triple_xor: usize,
+    m31_to_u32: usize,
+    blake_g_gate: usize,
+    fn from(c: *const @import("stwo_circuit_frontend").builder.Circuit) PrimitiveRows {
+        return .{ .eq = c.eq.items.len, .qm31_ops = c.nQm31OpsRows(), .triple_xor = c.triple_xor.items.len, .m31_to_u32 = c.m31_to_u32.items.len, .blake_g_gate = c.blake_g_gate.items.len };
+    }
+};
 pub const ScheduleInspection = struct {
     ordinal: usize,
     kind: []const u8,
@@ -280,6 +291,7 @@ pub const ScheduleInspection = struct {
     variables: usize,
     geometry_scope: []const u8 = "after exact original outer padding, before PP/Authority commitments",
     pre_padding_variables: usize,
+    pre_padding_primitive_rows: PrimitiveRows,
     padding_targets: @import("stwo_circuit_frontend").common.finalize.ComponentSizes,
     padding_ns: u64,
     public_words: usize,

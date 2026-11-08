@@ -17,10 +17,10 @@ fn secure(seed: usize) O {
     for (&coordinates, 0..) |*v, j| v.* = word(seed + 61 * j);
     return O.fromM31Array(coordinates);
 }
-const Inputs = struct {
+pub const Inputs = struct {
     values: []C.Input,
     buffers: std.ArrayList([]M.M31) = .empty,
-    fn init(artifact: *const H.Artifact) !Inputs {
+    pub fn init(artifact: *const H.Artifact) !Inputs {
         var self = Inputs{ .values = try a.alloc(C.Input, artifact.program.inputs.len) };
         errdefer self.deinit();
         for (artifact.program.inputs, self.values, 0..) |input, *out, i| {
@@ -37,19 +37,19 @@ const Inputs = struct {
         }
         return self;
     }
-    fn plane(self: *Inputs, count: usize, seed: usize) ![]M.M31 {
+    pub fn plane(self: *Inputs, count: usize, seed: usize) ![]M.M31 {
         const values = try a.alloc(M.M31, count);
         errdefer a.free(values);
         for (values, 0..) |*v, j| v.* = word(17 + seed * 177 + j * 61);
         try self.buffers.append(a, values);
         return values;
     }
-    fn deinit(self: *Inputs) void {
+    pub fn deinit(self: *Inputs) void {
         for (self.buffers.items) |buffer| a.free(buffer);
         self.buffers.deinit(a);
         a.free(self.values);
     }
-    fn scalar(self: *const Inputs, index: usize, row: usize) !O {
+    pub fn scalar(self: *const Inputs, index: usize, row: usize) !O {
         return switch (self.values[index]) {
             .zero => O.zero(),
             .base => |source| blk: {
