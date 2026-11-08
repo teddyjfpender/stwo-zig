@@ -328,6 +328,7 @@ fn addFocusedTests(
         &tests.step
     else blk: {
         const run = b.addRunArtifact(tests);
+        run.has_side_effects = true;
         break :blk if (spec.minimum == 0)
             &run.step
         else
