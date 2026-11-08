@@ -400,5 +400,67 @@
     "service_proofs": 2,
     "recursive_leaves": 3,
     "recursive_folds": 2
+  },
+  "negative_trials": {
+    "root-and-final-fold": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-borrowed-inter-baseline",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-negatives/root-and-final-fold",
+        "2147483648",
+        "25769803776"
+      ],
+      "wall_ns": 7318436166,
+      "peak_rss_bytes": 7207370752,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 25.22908,
+      "system_cpu_s": 0.698754,
+      "returncode": 1,
+      "timed_out": false,
+      "stderr": "info: RECURSION_SETUP image_ns=330404750 program_ns=45051417 native_keys_ns=367624125 fixed_authority_ns=446073833 other_ns=4879833\ninfo: rv64 OM31 recursion leaf 1/3: admitted graph\ninfo: rv64 OM31 recursion leaf 1/3: freshly verify cached outer (vars=28034346)\ninfo: rv64 OM31 recursion leaf 1/3 accepted: preprocess_ns=923880416 prove_ns=0 restore_ns=159625 verify_ns=7170167\ninfo: rv64 OM31 recursion leaf 2/3: admitted graph\ninfo: rv64 OM31 recursion leaf 2/3: freshly verify cached outer (vars=24455291)\ninfo: rv64 OM31 recursion leaf 2/3 accepted: preprocess_ns=718809208 prove_ns=0 restore_ns=150417 verify_ns=7122458\ninfo: rv64 OM31 recursion fold: [0,1) + [1,2)\ninfo: rv64 OM31 recursion fold accepted: preprocess_ns=810876750 prove_ns=0 restore_ns=163709 verify_ns=7127708\ninfo: rv64 OM31 recursion fold class adopted: class=e1a9af3d61c3304a identity=c39ea2d955956b7f\ninfo: rv64 OM31 recursion leaf 3/3: admitted graph\ninfo: rv64 OM31 recursion leaf 3/3: freshly verify cached outer (vars=25970601)\ninfo: rv64 OM31 recursion leaf 3/3 accepted: preprocess_ns=876260875 prove_ns=0 restore_ns=168208 verify_ns=7077500\ninfo: rv64 OM31 recursion fold: [0,2) + [2,3)\nFOLD_CLASS_CACHE hits=0 misses=1 checked=0 classes=1\nerror: RootMismatch\n"
+    },
+    "leaf-proof": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-borrowed-inter-baseline",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-negatives/leaf-proof",
+        "2147483648",
+        "25769803776"
+      ],
+      "wall_ns": 2444729750,
+      "peak_rss_bytes": 7207960576,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 8.342552,
+      "system_cpu_s": 0.39083599999999996,
+      "returncode": 1,
+      "timed_out": false,
+      "stderr": "info: RECURSION_SETUP image_ns=332004792 program_ns=44290917 native_keys_ns=368655458 fixed_authority_ns=447807042 other_ns=4877833\ninfo: rv64 OM31 recursion leaf 1/3: admitted graph\ninfo: rv64 OM31 recursion leaf 1/3: freshly verify cached outer (vars=28034346)\nerror: RootMismatch\n"
+    },
+    "swapped-tree-children": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-borrowed-inter-baseline",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-native/request.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/recursion-negatives/swapped-tree-children",
+        "2147483648",
+        "25769803776"
+      ],
+      "wall_ns": 6142600042,
+      "peak_rss_bytes": 7208501248,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 25.523017,
+      "system_cpu_s": 0.6952389999999999,
+      "returncode": 1,
+      "timed_out": false,
+      "stderr": "info: RECURSION_SETUP image_ns=334042959 program_ns=44941666 native_keys_ns=380879541 fixed_authority_ns=448165917 other_ns=4740167\ninfo: rv64 OM31 recursion leaf 1/3: admitted graph\ninfo: rv64 OM31 recursion leaf 1/3: freshly verify cached outer (vars=28034346)\ninfo: rv64 OM31 recursion leaf 1/3 accepted: preprocess_ns=927118792 prove_ns=0 restore_ns=158500 verify_ns=7117625\ninfo: rv64 OM31 recursion leaf 2/3: admitted graph\ninfo: rv64 OM31 recursion leaf 2/3: freshly verify cached outer (vars=24455291)\ninfo: rv64 OM31 recursion leaf 2/3 accepted: preprocess_ns=723168458 prove_ns=0 restore_ns=152584 verify_ns=7117625\ninfo: rv64 OM31 recursion fold: [0,1) + [1,2)\ninfo: rv64 OM31 recursion fold accepted: preprocess_ns=816660625 prove_ns=0 restore_ns=174000 verify_ns=7011416\ninfo: rv64 OM31 recursion fold class adopted: class=e1a9af3d61c3304a identity=c39ea2d955956b7f\ninfo: rv64 OM31 recursion leaf 3/3: admitted graph\ninfo: rv64 OM31 recursion leaf 3/3: freshly verify cached outer (vars=25970601)\ninfo: rv64 OM31 recursion leaf 3/3 accepted: preprocess_ns=886498833 prove_ns=0 restore_ns=166792 verify_ns=7110625\ninfo: rv64 OM31 recursion fold: [0,2) + [2,3)\ninfo: rv64 OM31 recursion fold accepted: preprocess_ns=828537292 prove_ns=0 restore_ns=176416 verify_ns=7092334\ninfo: rv64 OM31 recursion fold class adopted: class=e2f4fd1c87ea303c identity=83d7b2e473bce354\nFOLD_CLASS_CACHE hits=0 misses=2 checked=0 classes=2\nerror: RecursiveReceiverArtifactMismatch\n"
+    }
   }
 }

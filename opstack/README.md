@@ -158,7 +158,7 @@ four-block regression corpus use `prepare_fixtures.py` and explicitly select
 `benchmark.py --network sepolia`; adjacent range benchmarks remain available.
 
 `cpu.py` pins the current native conjectured-128 profile, uses all v3 services,
-measures source-derived planning, proof production and fresh reception separately,
+measures proof production and fresh reception separately,
 and requires rejection after corrupting actual persisted CPU proof bytes. It
 uses fresh subprocesses, one lane, explicit worker
 counts and resource admissions. Linux `wait4` reports peak RSS, which is measured
@@ -171,6 +171,10 @@ their original measurements and platform context. The source-derived plan report
 FIXED/MAIN/INTERACTION cells and MAIN+INTERACTION payload bits; it excludes PCS,
 composition and recursion, and is never called a proof or proof-size estimate.
 No compilation enters the proof wall time. A prefix cannot pass this harness.
+Production always performs its native source, geometry and resource admissions.
+Add `--plan-first` when a separate source-cost census is needed; it replays
+execution/capture before production and is recorded as an extra stage. The
+default avoids that duplicate work. This does not bypass native admission.
 Producer setup defaults to process-local identity-only sharing (`--setup ephemeral`),
 with no setup files loaded or persisted. `--setup uncached` supplies the older
 control. The receiver has a separate clean environment and always rebuilds its

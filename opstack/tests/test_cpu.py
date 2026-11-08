@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location(
     "cpu", Path(__file__).parents[1] / "cpu.py"
@@ -16,6 +17,72 @@ SPEC.loader.exec_module(cpu)
 
 
 class CPUReceiptTests(unittest.TestCase):
+    def test_full_native_production_does_not_require_a_duplicate_capture(self):
+        """Stop at the first native call; no mock proof is ever accepted."""
+
+        class FirstNativeCall(Exception):
+            pass
+
+        for plan_first in (False, True):
+            with (
+                self.subTest(plan_first=plan_first),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                root = Path(directory)
+                for name in ("elf", "input", "runner"):
+                    (root / name).write_bytes(name.encode())
+                output = (
+                    bytes(32) + b"\x01" + (10).to_bytes(8, "little") + b"OP"
+                ).hex()
+                request = {
+                    "elf": str(root / "elf"),
+                    "input": str(root / "input"),
+                    "elf_sha256": cpu.sha(root / "elf"),
+                    "input_sha256": cpu.sha(root / "input"),
+                    "expected_output": output,
+                    "terminal_pc": 4,
+                    "execution_profile": "ethereum_services_v3",
+                }
+                execution = {
+                    "status": "completed",
+                    "verified_output": True,
+                    "output": output,
+                    "pc": 4,
+                    "instructions": 32,
+                }
+                (root / "request.json").write_text(json.dumps(request))
+                (root / "execution.json").write_text(json.dumps(execution))
+                argv = [
+                    "cpu.py",
+                    "--request",
+                    str(root / "request.json"),
+                    "--execution",
+                    str(root / "execution.json"),
+                    "--runner",
+                    str(root / "runner"),
+                    "--artifacts",
+                    str(root / "out"),
+                ]
+                if plan_first:
+                    argv.append("--plan-first")
+                with (
+                    patch.object(sys, "argv", argv),
+                    patch.dict(os.environ, {}, clear=True),
+                    patch.object(
+                        cpu, "measured", side_effect=FirstNativeCall
+                    ) as native,
+                    self.assertRaises(FirstNativeCall),
+                ):
+                    cpu.main()
+                self.assertEqual(native.call_count, 1)
+                command = native.call_args.args[0]
+                self.assertEqual(
+                    command[3], "plan-candidate" if plan_first else "produce-candidate"
+                )
+                admitted = json.loads((root / "out/request.json").read_text())
+                self.assertEqual(admitted["max_batches"], 0)
+                self.assertEqual(admitted["expected_output"], output)
+
     def test_geometry_is_preserved_and_only_explicitly_overridden(self):
         self.assertEqual(cpu.batch_steps({"batch_steps": 1048575}), 1048575)
         self.assertEqual(cpu.batch_steps({"batch_steps": 131071}), 131071)

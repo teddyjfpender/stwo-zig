@@ -177,6 +177,11 @@ def main():
     )
     p.add_argument("--workers", type=int, default=1)
     p.add_argument(
+        "--plan-first",
+        action="store_true",
+        help="also replay a standalone source-cost plan before production (extra capture)",
+    )
+    p.add_argument(
         "--gkr-storage",
         choices=("default", "streamed-dense", "materialized-checkpointed"),
         default="default",
@@ -341,6 +346,7 @@ def main():
         if args.batch_steps is not None
         else "request or fallback",
         "guest_instructions": execution["instructions"],
+        "standalone_plan_requested": args.plan_first,
         "service_schedule": resources["schedule"],
         "receiver_setup": "independently rebuilt; no producer cache",
         "receiver_source_keys": args.receiver_setup,
@@ -369,8 +375,7 @@ def main():
         raise ValueError(
             f"anchored transition exceeds the native proof cap before services; see {summary}"
         )
-    for mode, command in (
-        ("plan", [*tool, "plan-candidate", request, "-", "0", resource_path]),
+    stages = [
         (
             "produce",
             [
@@ -394,7 +399,15 @@ def main():
                 args.receiver_bytes,
             ],
         ),
-    ):
+    ]
+    # Native production performs source/geometry/resource admission itself.
+    # A separate cost census repeats execution and capture; make that explicit
+    # rather than charging every complete proof request for it twice.
+    if args.plan_first:
+        stages.insert(
+            0, ("plan", [*tool, "plan-candidate", request, "-", "0", resource_path])
+        )
+    for mode, command in stages:
         receipt["stages"][mode] = measured(
             command,
             root / mode,

@@ -25,7 +25,9 @@ class ProcessMetricsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             row = measured(
                 [sys.executable, "-c", "buffer = bytearray(16 * 1024 * 1024)"],
-                Path(directory) / "allocate", 10, dict(os.environ),
+                Path(directory) / "allocate",
+                10,
+                dict(os.environ),
             )
         self.assertEqual(row["returncode"], 0)
         self.assertGreaterEqual(row["peak_rss_bytes"], 16 << 20)

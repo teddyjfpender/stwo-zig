@@ -65,7 +65,9 @@ def main():
     p.add_argument("--key-bytes", type=int, default=1 << 30)
     p.add_argument("--timeout", type=int, default=7200)
     p.add_argument(
-        "--receiver-bytes", type=int, default=6 << 30,
+        "--receiver-bytes",
+        type=int,
+        default=6 << 30,
         help="requested-live admission per receiver request; not an RSS cap",
     )
     p.add_argument(
@@ -93,7 +95,9 @@ def main():
         or not 1 <= args.timeout <= 21600
         or not 1 <= args.receiver_bytes <= 64 << 30
     ):
-        p.error("workers 1..8, key bytes 1..4 GiB, timeout 1..21600, receiver bytes 1..64 GiB")
+        p.error(
+            "workers 1..8, key bytes 1..4 GiB, timeout 1..21600, receiver bytes 1..64 GiB"
+        )
     if args.receiver_setup == "resident" and (
         args.repeat * len(args.cases) > 32
         or not 1 <= args.receiver_key_bytes <= 4 << 30

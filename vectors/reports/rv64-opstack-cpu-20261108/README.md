@@ -46,10 +46,38 @@ This is an exact-shape execution root, not a portable constant-key checkpoint,
 an anchored derivation root, an OD/OP in-circuit join or complete settlement.
 The 24 GiB baseline production attempt failed with `OutOfMemory`; it is retained
 alongside the successful trial. A subsequent ownership-only experiment also
-failed at that cap. Bounded commit preparation is being qualified separately;
-no memory or performance improvement is claimed from that source change yet.
+failed at that cap. The receiver rejects a corrupted leaf, corruption of both
+the root and its final-fold copy, and reordered tree children. The first two
+reach `RootMismatch`; the order mutation reaches `RecursiveReceiverArtifactMismatch`.
 
-Validation: 38 OP Python tests; 93 CI planner/selection tests; 36 pinned Rust
+The [bounded-commit experiment](rejected-commit-experiment.json) reproduced all
+six recursive proof files byte-for-byte, including the root, and passed the
+strict independent receiver. It used 26.934 GiB peak RSS versus 30.118 GiB, but
+took 224.141 s versus 191.121 s in these qualification runs. It also still
+failed at the 24 GiB admission. It is **not landed**: the shared CPU prover is
+unchanged. The small [experimental patch](rejected-bounded-commit.patch) is
+evidence, not an active implementation or a speedup claim.
+
+## Heavy block and redundant capture
+
+The [heavy guest receipt](heavy-guest.json) reproduces 121065789 with the
+canonical GLV guest and with its existing checked pairing-hint variant. Native
+Kona and the independent oracle agree on the complete result. Instructions fall
+from 621,480,160 to 425,537,671 (31.53%); Fp2 calls fall from 928,200 to 678,888
+(26.86%). This is a guest-work reduction, not a measured proving speedup.
+
+The first whole-block CPU attempt retained its failure: the 102-CPU / 24-service
+roster requires a represented retained inventory of 51,853,871,529 bytes and was
+refused under a 48 GiB component admission. Source planning took 124.693 s and
+the refused producer 163.659 s. The 52 GiB retry remains a separate open proof
+gate; no successful heavy proof is claimed by this checkpoint.
+
+The Python producer no longer runs that extra standalone plan by default. Native
+production already performs its source/geometry/resource admissions. `--plan-first`
+restores the diagnostic census explicitly; the standard path captures once.
+A first-native-command test pins both choices and complete-block request framing.
+
+Validation: 39 OP Python tests; 93 CI planner/selection tests; 36 pinned Rust
 execution/derivation/precompile tests. The actual new `opstack_python` CI lane
 also passes from a fresh virtual environment. Explicit OP lanes prevent tooling
 changes from triggering the unrelated Cairo/Metal fallback, while unknown files
