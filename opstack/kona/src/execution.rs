@@ -73,6 +73,7 @@ fn execution_digest(input_commitment: [u8; 32]) -> Sha256 {
     digest
 }
 
+#[cfg(feature = "derivation")]
 pub(crate) fn single_block_output(
     chain_id: u64,
     input_commitment: [u8; 32],

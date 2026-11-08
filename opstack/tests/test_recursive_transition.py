@@ -37,8 +37,11 @@ def receipt(output):
         "existing_recursive_proofs_only": True,
         "trace_only_recursive_graphs": True,
         "security_qualified": False,
+        "outer_profile": "stwo/circuit/native-om31/r1-b2-q108-p20-fold4/lens-v1",
         "output": list(output),
         "native": {
+            "accepted": True,
+            "completed_ethereum_block": True,
             "security_profile": transition.NATIVE_PROFILE,
             "output": list(output),
             "cpu_proofs": 1,
@@ -46,6 +49,7 @@ def receipt(output):
         },
         "recursive": {
             "outer_backend": "cpu_trace_only_receiver",
+            "assignment_source": "none_receiver_trace_only",
             "leaf_proofs": 3,
             "restored_leaves": 3,
             "fold_proofs": 2,

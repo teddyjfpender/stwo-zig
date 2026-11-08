@@ -98,12 +98,18 @@ def admit_receipt(report, expected_output):
             raise ValueError(f"strict recursive receiver did not attest {flag}")
     native = report["native"]
     tree = report["recursive"]
+    outer_profile = report.get("outer_profile")
     if (
         report.get("security_qualified") is not False
+        or native.get("accepted") is not True
+        or native.get("completed_ethereum_block") is not True
         or native.get("security_profile") != NATIVE_PROFILE
+        or not isinstance(outer_profile, str)
+        or not outer_profile.startswith("stwo/circuit/native-om31/")
         or wire_bytes(report["output"], 43) != expected_output
         or wire_bytes(native["output"], 43) != expected_output
         or tree.get("outer_backend") != "cpu_trace_only_receiver"
+        or tree.get("assignment_source") != "none_receiver_trace_only"
     ):
         raise ValueError("recursive receipt does not match the pinned statement and profile")
     cpu, truth = native["cpu_proofs"], native["truth_proofs"]
@@ -122,6 +128,8 @@ def admit_receipt(report, expected_output):
         raise ValueError("incomplete recursive proof coverage")
     return {
         "output": expected_output.hex(),
+        "native_profile": NATIVE_PROFILE,
+        "outer_profile": outer_profile,
         "root_digest": wire_bytes(tree["root_digest"], 32).hex(),
         "root_authority": wire_bytes(tree["root_authority"], 32).hex(),
         "manifest": wire_bytes(tree["manifest"], 32).hex(),
@@ -158,7 +166,7 @@ def verify(args):
 
     receipts = {}
     with tempfile.TemporaryDirectory(prefix="stwo-op-transition-") as work:
-        for name, proof, (raw, _), output in zip(
+        for name, proof, (raw, request), output in zip(
             ("derivation", "execution"), proof_dirs, requests, outputs, strict=True
         ):
             # Pass precisely the request bytes that were checked above. The Zig
@@ -171,7 +179,11 @@ def verify(args):
                 str(args.fixed_setup_bytes), str(args.receiver_bytes),
             ]
             result = subprocess.run(command, stdout=subprocess.PIPE, check=True, timeout=args.timeout)
-            receipts[name] = admit_receipt(json.loads(result.stdout), output)
+            receipts[name] = {
+                **admit_receipt(json.loads(result.stdout), output),
+                "elf_sha256": request["elf_sha256"],
+                "input_sha256": request["input_sha256"],
+            }
     return {
         "schema": "stwo.opstack.recursive-transition-receipt.v1",
         "accepted": True,
