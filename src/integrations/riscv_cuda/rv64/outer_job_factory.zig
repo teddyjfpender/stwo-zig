@@ -1353,7 +1353,6 @@ const Jobs = @import("jobs/mod.zig");
 const Circuit = @import("stwo_circuit_frontend");
 const Service = @import("pcs_native.zig");
 const Memory = @import("runtime_memory.zig");
-const NativeAbi = @import("pcs_native_abi.zig");
 
 /// STWO_RV64_M8_OUTER_JOBS: unset or "0" → legacy; "1" → hybrid; else fail closed.
 pub fn hybridSelected() !bool {

@@ -23,11 +23,9 @@ pub const xor_tables = @import("blake/xor_tables.zig");
 pub const exact_input = @import("blake/exact_input.zig");
 pub const exact_statement = @import("blake/statement.zig");
 pub const exact_interaction = @import("blake/interaction.zig");
-pub const interaction_builder = @import("blake/interaction_builder.zig");
 pub const logup_constraints = @import("blake/logup_constraints.zig");
 pub const component_support = @import("blake/component_support.zig");
 pub const scheduler_component = @import("blake/scheduler_component.zig");
-pub const round_constraints = @import("blake/round_constraints.zig");
 pub const round_component = @import("blake/round_component.zig");
 pub const xor_component = @import("blake/xor_component.zig");
 

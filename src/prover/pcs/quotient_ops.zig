@@ -10,7 +10,6 @@ const planning = @import("quotients/planning.zig");
 const secure_column = @import("../secure_column.zig");
 const work_profile = @import("stwo_prover_api").work_profile;
 
-pub const work_profile_geometry = @import("quotient_work_profile.zig");
 
 const circle_mod = @import("stwo_core").circle;
 const CirclePointQM31 = circle_mod.CirclePointQM31;

@@ -10,7 +10,6 @@
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const digest_mod = @import("digest.zig");
 const direct = @import("direct_polynomial_graph.zig");
 const direct_program_mod = @import("direct_polynomial_program.zig");
 const expr = @import("expr.zig");
@@ -711,6 +710,5 @@ comptime {
     {
         @compileError("degree-bounded candidate base geometry drifted");
     }
-    _ = digest_mod;
     _ = expr;
 }

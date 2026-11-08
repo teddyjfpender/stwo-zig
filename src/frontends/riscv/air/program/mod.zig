@@ -10,5 +10,3 @@ test {
     @import("std").testing.refAllDeclsRecursive(@This());
 }
 
-/// Explicit Ethereum fixed-program profile preparation; no default selection.
-pub const fixed_table_v1 = @import("fixed_table_v1.zig");

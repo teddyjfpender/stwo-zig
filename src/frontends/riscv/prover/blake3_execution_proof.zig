@@ -17,7 +17,6 @@ const Joined = @import("blake3_execution_components.zig").Owner;
 pub const Admission = @import("blake3_commitment_plan.zig").Admission;
 pub const commitment_witness = @import("blake3_commitment_witness.zig");
 pub const codec = @import("blake3_execution_codec.zig");
-pub const commitment_plan = @import("blake3_commitment_plan.zig");
 pub const Statement = statement_mod.Blake3ExecutionStatement;
 const N_HASHES = @import("blake3_commitment_components.zig").Airs.len;
 const Q = core.fields.qm31.QM31;
