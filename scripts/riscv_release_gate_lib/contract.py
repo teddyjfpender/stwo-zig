@@ -201,13 +201,13 @@ def repository_contract_errors(root: Path, phase: str) -> list[str]:
         "scripts/riscv_staged_smoke.py",
         "scripts/riscv_trace_vectors.py",
         "src/frontends/riscv/air/lang/typed_mulh_authority.zig",
-        "src/products/riscv_cpu/capabilities.zig",
+        "src/products/riscv/cpu/capabilities.zig",
     )
     errors = [f"missing required release artifact: {path}" for path in required if not (root / path).is_file()]
-    registry = (root / "src/tools/prove/registry.zig").read_text(encoding="utf-8")
-    capability = (root / "src/products/riscv_cpu/capabilities.zig").read_text(encoding="utf-8")
-    artifact = (root / "src/interop/riscv_artifact.zig").read_text(encoding="utf-8")
-    cli = (root / "src/tools/prove/cli.zig").read_text(encoding="utf-8")
+    registry = (root / "src/products/stwo/tools/prove/registry.zig").read_text(encoding="utf-8")
+    capability = (root / "src/products/riscv/cpu/capabilities.zig").read_text(encoding="utf-8")
+    artifact = (root / "src/products/riscv/artifact/mod.zig").read_text(encoding="utf-8")
+    cli = (root / "src/products/stwo/tools/prove/cli.zig").read_text(encoding="utf-8")
     errors.extend(phase_errors(phase, registry, capability, artifact, cli))
     errors.extend(divergence_errors(root))
     return errors

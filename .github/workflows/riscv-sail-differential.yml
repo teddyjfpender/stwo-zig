@@ -200,7 +200,7 @@ jobs:
       # Renaming the malicious-prover tests does NOT silently empty this step:
       # -Driscv-test-filter carries EmptySelectionGuard, which fails the build
       # when the filter matches no test name. Keep the filter aligned with
-      # src/tests/riscv/malicious_prover_*.zig anyway -- the guard reports a
+      # src/products/riscv/cpu/tests/malicious_prover_*.zig anyway -- the guard reports a
       # drifted filter, it does not repair one.
       - name: Require the Sail leg of the malicious-prover harness
         id: sail_leg

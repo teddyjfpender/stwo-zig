@@ -48,7 +48,7 @@ class RefinementAirTest(unittest.TestCase):
 
     def test_source_closure_is_version_controlled_and_cache_free(self) -> None:
         digests = render._source_digests(Paths(ROOT))
-        self.assertIn("src/core/fields/m31.zig", digests)
+        self.assertIn("src/waist/core/fields/m31.zig", digests)
         self.assertIn("src/frontends/riscv/air/extract/mod.zig", digests)
         self.assertFalse(
             any("/.zig-cache/" in relative for relative in digests),

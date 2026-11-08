@@ -4,11 +4,11 @@
     .version = "0.1.0",
     .paths = .{"."},
     .dependencies = .{
-        .stwo_backend_contracts = .{ .path = "../../backend" },
-        .stwo_core = .{ .path = "../../core" },
-        .stwo_prover_engine = .{ .path = "../../prover" },
+        .stwo_backend_contracts = .{ .path = "../../waist/backend" },
+        .stwo_core = .{ .path = "../../waist/core" },
+        .stwo_prover_engine = .{ .path = "../../engine/prover" },
         .stwo_metal_backend = .{ .path = "../../backends/metal" },
         .stwo_cairo_frontend = .{ .path = "../../frontends/cairo" },
-        .stwo_metal_session = .{ .path = "../../tools/metal_session" },
+        .stwo_metal_session = .{ .path = "../../backends/metal/session" },
     },
 }

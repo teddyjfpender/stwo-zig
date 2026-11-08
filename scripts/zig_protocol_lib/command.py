@@ -103,9 +103,24 @@ def _dependency_args(dependencies: tuple[str, ...]) -> list[str]:
 # used by every direct protocol command.
 POSTCARD_MODULE = PackageModule(
     "interop_postcard",
-    "src/interop/postcard.zig",
+    "src/waist/recursion_wire/postcard/mod.zig",
     ("stwo_core", "stwo_proof_wire"),
-    ROOT / "src/interop/proof_wire/package.contract.json",
+    ROOT / "src/waist/proof_wire/package.contract.json",
+)
+# Leaf support modules that the old `src/` roots reached by relative path.
+# Each file is one named module so no compilation sees it in two modules.
+SUPPORT_CONTRACT = ROOT / "src/products/stwo/root.zig"
+SUPPORT_MODULES = (
+    PackageModule("atomic_file", "src/support/io/atomic_file.zig", (), SUPPORT_CONTRACT),
+    PackageModule("output_transaction", "src/support/io/output_transaction.zig", (), SUPPORT_CONTRACT),
+    PackageModule("stwo_tracing", "src/support/tracing/mod.zig", (), SUPPORT_CONTRACT),
+    PackageModule("interop_riscv_artifact", "src/products/riscv/artifact/mod.zig",
+                  ("atomic_file",), SUPPORT_CONTRACT),
+    PackageModule("stwo_native_artifact", "src/products/native/artifact/mod.zig",
+                  ("atomic_file", "interop_postcard", "stwo_core", "stwo_native_examples",
+                   "stwo_proof_wire"), SUPPORT_CONTRACT),
+    PackageModule("stwo_std_shims", "src/support/shims/mod.zig",
+                  ("stwo_core", "stwo_native_examples", "stwo_proof_wire"), SUPPORT_CONTRACT),
 )
 CPU_PROTOCOL_PACKAGES = (
     "stwo_core", "stwo_backend_contracts", "stwo_prover_api",
@@ -144,7 +159,13 @@ def _modules(cpu_only: bool = False, extra_packages: tuple[str, ...] = ()) -> tu
     for module in (*selected, POSTCARD_MODULE):
         if not set(module.dependencies) <= names:
             raise ValueError(f"{module.name}: missing selected dependencies")
-    return (*selected, POSTCARD_MODULE)
+    names.add(POSTCARD_MODULE.name)
+    support = []
+    for module in SUPPORT_MODULES:
+        if set(module.dependencies) <= names:
+            support.append(module)
+            names.add(module.name)
+    return (*selected, POSTCARD_MODULE, *support)
 
 
 def _package_module_args(optimize: str | None = None, strip: bool | None = None,
@@ -247,7 +268,7 @@ def aggregate_run_command(root_source: str, *arguments: str) -> list[str]:
         *_dependency_args(("stwo", *package_names)),
         f"-Mroot={root_source}",
         *_dependency_args(package_names),
-        "-Mstwo=src/stwo.zig",
+        "-Mstwo=src/products/stwo/root.zig",
         *_package_module_args(),
         "--",
         *arguments,
@@ -258,7 +279,7 @@ def source_contract() -> tuple[Path, ...]:
     modules = protocol_package_modules()
     return (
         Path(__file__).resolve(),
-        ROOT / "src/stwo.zig",
+        ROOT / "src/products/stwo/root.zig",
         ROOT / POSTCARD_MODULE.source,
         *(module.contract for module in modules),
         *(ROOT / module.source for module in modules),

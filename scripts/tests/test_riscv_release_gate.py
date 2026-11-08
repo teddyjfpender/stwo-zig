@@ -97,17 +97,17 @@ class LayeringContractTests(unittest.TestCase):
             self.write(root, "src/frontends/riscv/air.zig", "pub const ok = true;\n")
             self.write(
                 root,
-                "src/core/protocol.zig",
+                "src/waist/core/protocol.zig",
                 'const air = @import("../frontends/riscv/air.zig");\n',
             )
             errors = core_purity_errors(root)
             self.assertEqual(1, len(errors))
-            self.assertIn("src/core/protocol.zig imports frontends/riscv/air.zig", errors[0])
+            self.assertIn("src/waist/core/protocol.zig imports frontends/riscv/air.zig", errors[0])
 
     def test_frontend_layering_rejects_cli_backend_placeholders_and_giant_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            self.write(root, "src/tools/prove/cli.zig", "pub const ok = true;\n")
+            self.write(root, "src/products/stwo/tools/prove/cli.zig", "pub const ok = true;\n")
             self.write(
                 root,
                 "src/frontends/riscv/prover.zig",

@@ -210,13 +210,13 @@
       },
       "evidence": {
         "exact_trace_semantics": [
-          "src/examples/xor/input.zig",
+          "src/products/native/examples/xor/input.zig",
           "src/integrations/native_cuda/xor/trace.zig",
           "src/integrations/native_cuda/xor/device_trace.zig"
         ],
         "exact_constraint_semantics": [
-          "src/examples/xor/component.zig",
-          "src/examples/xor/interaction.zig",
+          "src/products/native/examples/xor/component.zig",
+          "src/products/native/examples/xor/interaction.zig",
           "src/integrations/native_cuda/xor/constraint.zig",
           "src/integrations/native_cuda/xor/geometry.zig"
         ],

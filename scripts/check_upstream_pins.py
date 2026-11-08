@@ -534,7 +534,7 @@ def _text_pins(ledger: PinLedger) -> tuple[TextPin, ...]:
             native,
         ),
         TextPin(
-            "src/interop/examples_artifact.zig",
+            "src/products/native/artifact/examples_artifact.zig",
             "Native UPSTREAM_COMMIT",
             rf'^pub const UPSTREAM_COMMIT: \[\]const u8 = "({REVISION_RE})";$',
             native,
@@ -642,13 +642,13 @@ def _text_pins(ledger: PinLedger) -> tuple[TextPin, ...]:
             ledger.official_cairo_stwo_revision,
         ),
         TextPin(
-            "src/tools/metal_prover_session/state.zig",
+            "src/backends/metal/tools/prover_session/state.zig",
             "resident session Stwo-Cairo revision",
             rf'^pub const rust_verifier_stwo_cairo_revision = "({REVISION_RE})";$',
             cairo,
         ),
         TextPin(
-            "src/tools/metal_prover_session/state.zig",
+            "src/backends/metal/tools/prover_session/state.zig",
             "resident session Stwo revision",
             rf'^pub const rust_verifier_stwo_revision = "({REVISION_RE})";$',
             cairo_stwo,

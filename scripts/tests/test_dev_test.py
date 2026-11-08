@@ -18,8 +18,8 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_optimized_ci_reproduction_covers_focused_and_broad_routes(self) -> None:
         for path, step in (
-            ("src/core/fri/folding_family.zig", "test-fri"),
-            ("src/core/future_module.zig", "test"),
+            ("src/waist/core/fri/folding_family.zig", "test-fri"),
+            ("src/waist/core/future_module.zig", "test"),
             ("src/integrations/riscv_cuda/rv64/projection_codegen.zig", "test-native-gkr-codegen"),
         ):
             with self.subTest(path=path):
@@ -117,7 +117,7 @@ class DevTestPlanTests(unittest.TestCase):
             dev_test.commands_for_paths(
                 ROOT,
                 [
-                    "src/core/fields/m31.zig",
+                    "src/waist/core/fields/m31.zig",
                     "src/frontends/riscv/isa/decode.zig",
                     "src/frontends/sm83/runner/cpu.zig",
                 ],
@@ -128,7 +128,7 @@ class DevTestPlanTests(unittest.TestCase):
                     "build",
                     "test-fields",
                     "--build-file",
-                    "src/core/build.zig",
+                    "src/waist/core/build.zig",
                     "-Doptimize=Debug",
                     "-j1",
                 ],
@@ -156,7 +156,7 @@ class DevTestPlanTests(unittest.TestCase):
     def test_multiple_leaves_in_one_slice_deduplicate_the_step(self) -> None:
         commands = dev_test.commands_for_paths(
             ROOT,
-            ["src/core/fri/folding.zig", "src/core/pcs/verifier.zig"],
+            ["src/waist/core/fri/folding.zig", "src/waist/core/pcs/verifier.zig"],
         )
         self.assertEqual(commands[0][2:4], ["test-fri", "test-pcs"])
 
@@ -164,9 +164,9 @@ class DevTestPlanTests(unittest.TestCase):
         commands = dev_test.commands_for_paths(
             ROOT,
             [
-                "src/prover/pcs/quotient_ops.zig",
-                "src/prover/pcs/quotients/planning.zig",
-                "src/prover/pcs/sampled_values.zig",
+                "src/engine/prover/pcs/quotient_ops.zig",
+                "src/engine/prover/pcs/quotients/planning.zig",
+                "src/engine/prover/pcs/sampled_values.zig",
             ],
         )
         self.assertEqual(
@@ -179,9 +179,9 @@ class DevTestPlanTests(unittest.TestCase):
         )
 
     def test_unfocused_package_change_uses_its_declared_ci_command(self) -> None:
-        (command,) = dev_test.commands_for_paths(ROOT, ["src/core/mod.zig"])
+        (command,) = dev_test.commands_for_paths(ROOT, ["src/waist/core/mod.zig"])
         self.assertEqual(command[:3], ["zig", "build", "test"])
-        self.assertIn("src/core/build.zig", command)
+        self.assertIn("src/waist/core/build.zig", command)
         self.assertIn("-Doptimize=ReleaseSafe", command)
         self.assertIn("-j1", command)
         self.assertNotIn("-Doptimize=ReleaseFast", command)
@@ -190,14 +190,14 @@ class DevTestPlanTests(unittest.TestCase):
     def test_new_quotient_file_falls_back_to_the_complete_package(self) -> None:
         (command,) = dev_test.commands_for_paths(
             ROOT,
-            ["src/prover/pcs/quotient_future.zig"],
+            ["src/engine/prover/pcs/quotient_future.zig"],
         )
         self.assertEqual(command[2], "test")
 
     def test_unfocused_change_supersedes_a_narrow_step_in_the_same_package(self) -> None:
         commands = dev_test.commands_for_paths(
             ROOT,
-            ["src/prover/mod.zig", "src/prover/poly/twiddles.zig"],
+            ["src/engine/prover/mod.zig", "src/engine/prover/poly/twiddles.zig"],
         )
         self.assertEqual(len(commands), 1)
         self.assertEqual(commands[0][2], "test")

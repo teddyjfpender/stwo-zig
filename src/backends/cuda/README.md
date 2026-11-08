@@ -269,7 +269,7 @@ proofs, and independent verification.
 
 ## Related documentation
 
-- [Backend contracts](../../backend/README.md)
+- [Backend contracts](../../waist/backend/README.md)
 - [Native CUDA integration](../../integrations/native_cuda/README.md)
 - [Cairo CUDA integration](../../integrations/cairo_cuda/README.md)
 - [CUDA system architecture goal](../../../conformance/2026-07-24-cuda-system-architecture-goal.md)

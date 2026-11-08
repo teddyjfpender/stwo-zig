@@ -1,7 +1,7 @@
 """M31, CM31 and QM31 arithmetic, and the committed-row placement permutation.
 
-Written from the algebraic definitions in `src/core/fields/{m31,cm31,qm31}.zig`
-and `src/core/utils.zig`, not ported from them: the point of this package is to
+Written from the algebraic definitions in `src/waist/core/fields/{m31,cm31,qm31}.zig`
+and `src/waist/core/utils.zig`, not ported from them: the point of this package is to
 recompute what Zig computed without sharing the code that computes it, so a
 transcription would defeat it.  The definitions are short enough that a reviewer
 can check them against the Zig by reading both:

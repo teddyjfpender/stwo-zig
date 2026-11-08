@@ -9,14 +9,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OWNED = (
     ROOT / "build_support/products/native_metal.zig",
-    ROOT / "src/stwo_native_metal.zig",
-    *(ROOT / "src/products/native_metal").glob("*.zig"),
+    ROOT / "src/products/native/metal/root.zig",
+    *(ROOT / "src/products/native/metal").glob("*.zig"),
 )
 FORBIDDEN = (
     "frontends/cairo",
     "frontends/riscv",
     "backends/cuda",
-    "src/stwo.zig",
+    "src/products/stwo/root.zig",
 )
 REQUIRED_OWNER_MARKERS = (
     '"stwo-native-metal"',

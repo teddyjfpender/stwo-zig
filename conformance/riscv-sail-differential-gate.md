@@ -71,12 +71,12 @@ legs:
 - `build_support/products/riscv_{cpu,sail_oracle_tests,test_filter}.zig`, which
   constructs, registers, and guards the two required test steps
 - `scripts/riscv_sail_oracle.py`, the bridge both required suites spawn
-- `src/tests.zig` and `src/tests/riscv/trace_test.zig`, the aggregation roots
+- `src/products/riscv/cpu/test_root.zig` and `src/products/riscv/cpu/tests/trace_test.zig`, the aggregation roots
   whose exhaustive branch must keep the malicious-prover suite reachable
-- `src/tests/riscv/malicious_prover_{harness,completion_test,forged_output_test,skipped_test,stale_read_test}.zig`
-- `src/tests/riscv/committed_forgery_harness.zig`, which owns
+- `src/products/riscv/cpu/tests/malicious_prover_{harness,completion_test,forged_output_test,skipped_test,stale_read_test}.zig`
+- `src/products/riscv/cpu/tests/committed_forgery_harness.zig`, which owns
   `requireSailAgreement`
-- `src/tests/riscv/{guest_elf_fixture,committed_row_layout,row_admissibility}.zig`,
+- `src/products/riscv/cpu/tests/{guest_elf_fixture,committed_row_layout,row_admissibility}.zig`,
   the local fixture and row-contract dependencies of that harness
 - `src/frontends/riscv/sail_oracle_test_root.zig`, the test root that decides
   what `test-riscv-sail-oracle` executes
@@ -85,7 +85,7 @@ Those are the *only* things this job proves that no other job can, so a change
 to them that did not re-run it left the criterion unproven for exactly the
 edit most likely to break it — the trigger list previously contained no
 `src/tests/` path at all. They are listed as individual files rather than as
-`src/tests/riscv`: that directory holds dozens of suites with no Sail
+`src/products/riscv/cpu/tests`: that directory holds dozens of suites with no Sail
 relationship, and this job spends a pinned-toolchain build plus a full corpus
 differential against a 60-minute budget. Listing files also makes a rename
 loud — `scripts/tests/test_riscv_sail_gate.py` asserts every prefix still
@@ -209,7 +209,7 @@ matching no test name.
   which is why the flag carries `EmptySelectionGuard`
   (`build_support/products/riscv_test_filter.zig`): it compares the executed
   test names against the filter text and fails the build when none match.
-  Renaming `src/tests/riscv/malicious_prover_*.zig` therefore turns this step
+  Renaming `src/products/riscv/cpu/tests/malicious_prover_*.zig` therefore turns this step
   red instead of hollowing it out. The guard reports the drift; it does not
   repair it, so the filter still has to be updated with the rename.
   `test-riscv-sail-oracle` sidesteps the question entirely by carrying no

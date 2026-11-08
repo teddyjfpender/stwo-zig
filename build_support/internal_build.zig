@@ -237,7 +237,7 @@ fn addMetalTools(
     };
     const stwo = graph.create(b, .{
         .product = tool_product,
-        .root_source_file = "src/stwo.zig",
+        .root_source_file = "src/products/stwo/root.zig",
         .target = target,
         .optimize = optimize,
     });
@@ -360,6 +360,15 @@ fn addMetalTools(
         cairo_frontend,
         metal_session,
         stwo,
+    );
+    graph.addFacadeSupportImports(
+        b,
+        protocol,
+        tool_product,
+        target,
+        optimize,
+        stwo,
+        graph.FacadeSupport.root,
     );
     const shader_manifest = graph.create(b, .{
         .product = tool_product,

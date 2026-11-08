@@ -11,7 +11,7 @@ A change inside a package must exercise that package's own focused lane and
 every lane whose package transitively depends on it — the reverse-dependency
 closure. Deriving that closure here replaces a hand-maintained per-prefix lane
 list, which had drifted: it under-selected transitive consumers (for example a
-``src/backend`` change did not select ``riscv_cpu_integration``, which reaches
+``src/waist/backend`` change did not select ``riscv_cpu_integration``, which reaches
 the backend contracts through ``cpu_backend``).
 
 Lane-to-package binding is derived, not declared: a focused lane that builds a

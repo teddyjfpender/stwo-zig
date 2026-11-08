@@ -93,9 +93,9 @@ def gate_steps(gate_mode: str) -> list[dict[str, str]]:
     )
     steps = [
         {"name": "fmt", "command": "zig fmt --check build.zig src tools"},
-        {"name": "test", "command": "python3 scripts/zig_protocol_test.py src/stwo.zig"},
+        {"name": "test", "command": "python3 scripts/zig_protocol_test.py src/products/stwo/root.zig"},
         {"name": "api_parity", "command": "python3 scripts/check_api_parity.py"},
-        {"name": "deep_gate", "command": "python3 scripts/zig_protocol_test.py src/stwo_deep.zig"},
+        {"name": "deep_gate", "command": "python3 scripts/zig_protocol_test.py src/products/native/tests/deep_root.zig"},
         {"name": "vectors_fields", "command": "python3 scripts/parity_fields.py --skip-zig"},
         {"name": "vectors_constraint", "command": "python3 scripts/parity_constraint_expr.py --skip-zig"},
         {"name": "vectors_air_derive", "command": "python3 scripts/parity_air_derive.py --skip-zig"},
@@ -114,7 +114,7 @@ def gate_steps(gate_mode: str) -> list[dict[str, str]]:
         steps.append(
             {
                 "name": "std_shims",
-                "command": "zig build-lib src/std_shims_freestanding.zig -target wasm32-freestanding -O ReleaseSmall -femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm",
+                "command": "zig build-lib src/support/shims/freestanding.zig -target wasm32-freestanding -O ReleaseSmall -femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm",
             }
         )
         steps.append(

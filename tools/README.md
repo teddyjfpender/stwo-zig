@@ -10,7 +10,7 @@ Its production test rejects an unknown root, a missing caller, or an unbounded
 CI mapping. The one exception to the oracle rule is `perf/`: the retained
 `stwo-prof` profiling CLI and the frozen paired-ratio statistics
 (`stwo_perf.stats`) that the Native CUDA benchmark runner imports. Product-native
-Zig CLIs live under `src/tools/`.
+Zig CLIs live with their owners under `src/products/<line>/tools/` and `src/backends/metal/tools/`.
 
 These Rust tools remain implementation-independent on purpose. Rewriting a
 proof oracle in Zig would remove the independence that gives it soundness

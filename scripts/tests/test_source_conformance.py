@@ -337,7 +337,7 @@ class SourceConformanceTests(unittest.TestCase):
     def test_zig_entrypoint_measurement_ignores_braces_inside_comments(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            zig_root = repo / "src/bench/sample.zig"
+            zig_root = repo / "src/products/stwo/bench/sample.zig"
             zig_root.parent.mkdir(parents=True)
             zig_root.write_text(
                 "pub fn main() void {\n"
@@ -346,7 +346,7 @@ class SourceConformanceTests(unittest.TestCase):
                 + "}\n",
                 encoding="utf-8",
             )
-            self.assertIn("thin-owner:bench/sample.zig", {finding.key for finding in scan(repo)})
+            self.assertIn("thin-owner:products/stwo/bench/sample.zig", {finding.key for finding in scan(repo)})
 
     def test_native_rust_edges_reject_cross_tool_paths_missing_modules_and_cycles(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -390,13 +390,13 @@ class SourceConformanceTests(unittest.TestCase):
             controller = repo / "scripts/benchmark_delta.py"
             controller.parent.mkdir(parents=True)
             controller.write_text("def main():\n" + "    pass\n" * 300, encoding="utf-8")
-            zig_root = repo / "src/bench/sample.zig"
+            zig_root = repo / "src/products/stwo/bench/sample.zig"
             zig_root.parent.mkdir(parents=True)
             zig_root.write_text(
                 "pub fn main() void {\n" + "    _ = 1;\n" * 199 + "}\n",
                 encoding="utf-8",
             )
-            test_root = repo / "src/tests/native/mod.zig"
+            test_root = repo / "src/products/native/tests/mod.zig"
             test_root.parent.mkdir(parents=True)
             test_root.write_text("\n" * 301, encoding="utf-8")
             support = repo / "build_support/products.zig"
@@ -405,8 +405,8 @@ class SourceConformanceTests(unittest.TestCase):
 
             keys = {finding.key for finding in scan(repo)}
             self.assertIn("thin-owner:scripts/benchmark_delta.py", keys)
-            self.assertIn("thin-owner:bench/sample.zig", keys)
-            self.assertIn("thin-owner:tests/native/mod.zig", keys)
+            self.assertIn("thin-owner:products/stwo/bench/sample.zig", keys)
+            self.assertIn("thin-owner:products/native/tests/mod.zig", keys)
             self.assertIn("thin-owner:build_support/products.zig", keys)
 
     def test_size_ceilings_warn_at_ninety_percent_without_failing(self) -> None:
@@ -460,7 +460,7 @@ class SourceConformanceTests(unittest.TestCase):
             oversized = repo / "src/core/legacy.zig"
             oversized.parent.mkdir(parents=True)
             oversized.write_text("\n" * 765, encoding="utf-8")
-            owner = repo / "src/tests/native/mod.zig"
+            owner = repo / "src/products/native/tests/mod.zig"
             owner.parent.mkdir(parents=True)
             owner.write_text("\n" * 270, encoding="utf-8")
             evidence_root = repo / "scripts/benchmark_delta.py"
@@ -484,7 +484,7 @@ class SourceConformanceTests(unittest.TestCase):
             # builds its own. A scope spelling a notice the display way must match
             # nothing, which is what fails when display is plumbed through.
             for key, display in (("file-size", "core/legacy.zig"),
-                                 ("thin-owner", "tests/native/mod.zig")):
+                                 ("thin-owner", "products/native/tests/mod.zig")):
                 notice = measured[f"headroom:{key}:{display}"]
                 self.assertTrue(notice.message.startswith(f"{display}: "), notice.message)
                 self.assertEqual(f"src/{display}", notice.path)

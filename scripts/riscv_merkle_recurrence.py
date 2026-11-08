@@ -289,7 +289,7 @@ def _compact(source: str) -> str:
 def check_production_contract(repo_root: Path) -> ProductionContract:
     """Bind the arithmetic certificate to the exact shipped Zig recurrences."""
 
-    m31_path = repo_root / "src/core/fields/m31.zig"
+    m31_path = repo_root / "src/waist/core/fields/m31.zig"
     merkle_path = (
         repo_root
         / "src/frontends/riscv/air/memory_commitment/merkle_node.zig"

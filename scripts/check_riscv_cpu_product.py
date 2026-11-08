@@ -16,11 +16,11 @@ OWNED = (
     # entry, moving a line out of riscv_cpu.zig into the shared sibling would
     # silently move it out of marker coverage.
     ROOT / "build_support/products/riscv_shared_shell.zig",
-    ROOT / "src/products/riscv_cpu/main.zig",
-    ROOT / "src/stwo_riscv_cpu.zig",
-    ROOT / "src/riscv_trace_cli.zig",
-    *(ROOT / "src/products/riscv_cpu").glob("*.zig"),
-    *(ROOT / "src/products/riscv_shared").glob("*.zig"),
+    ROOT / "src/products/riscv/cpu/main.zig",
+    ROOT / "src/products/riscv/cpu/root.zig",
+    ROOT / "src/products/riscv/cpu/trace/main.zig",
+    *(ROOT / "src/products/riscv/cpu").glob("*.zig"),
+    *(ROOT / "src/products/riscv/shared").glob("*.zig"),
 )
 FORBIDDEN = (
     '@import("stwo.zig")',

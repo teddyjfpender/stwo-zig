@@ -178,14 +178,14 @@ class RepositoryGraphTest(unittest.TestCase):
         self.assertEqual(bound, sorted(self.packages))
 
     def test_core_change_selects_every_dependent_package_lane(self) -> None:
-        lanes, _ = graph.selection(["src/core/fields/m31.zig"], self.packages, self.bindings)
+        lanes, _ = graph.selection(["src/waist/core/fields/m31.zig"], self.packages, self.bindings)
         # Every package except the two with no path to stwo_core.
         detached = {"metal_session", "artifact_store"}
         self.assertEqual(lanes, frozenset(set(self.bindings) - detached))
 
     def test_artifact_store_change_reaches_its_consuming_integrations(self) -> None:
         lanes, unowned = graph.selection(
-            ["src/artifact_store/mod.zig"], self.packages, self.bindings
+            ["src/engine/artifact_store/mod.zig"], self.packages, self.bindings
         )
         self.assertEqual(lanes, frozenset({
             "artifact_store", "metal_session", "cairo_metal_integration",
@@ -240,10 +240,10 @@ class RepositoryGraphTest(unittest.TestCase):
         )
 
     def test_backend_contracts_reach_transitive_integration_lanes(self) -> None:
-        """The drift this resolver removes: these three reach src/backend only
+        """The drift this resolver removes: these three reach src/waist/backend only
         through cpu_backend or metal_backend, and the superseded hand-written
         rule omitted them."""
-        lanes, _ = graph.selection(["src/backend/mod.zig"], self.packages, self.bindings)
+        lanes, _ = graph.selection(["src/waist/backend/mod.zig"], self.packages, self.bindings)
         for expected in ("riscv_cpu_integration", "cairo_cpu_integration", "riscv_metal_integration"):
             self.assertIn(expected, lanes)
 
@@ -351,7 +351,7 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_core_change_selects_more_lanes_than_a_leaf_change(self) -> None:
         self.assertGreater(
-            len(self.select("src/core/fields/m31.zig")),
+            len(self.select("src/waist/core/fields/m31.zig")),
             len(self.select("src/integrations/cairo_cpu/mod.zig")),
         )
 
@@ -434,10 +434,10 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_plan_is_deterministic(self) -> None:
         first = ci_scope_plan.select_lanes(
-            ["src/core/a.zig", "README.md"], self.catalog, POLICY, self.packages
+            ["src/waist/core/a.zig", "README.md"], self.catalog, POLICY, self.packages
         )
         second = ci_scope_plan.select_lanes(
-            ["README.md", "src/core/a.zig"], self.catalog, POLICY, self.packages
+            ["README.md", "src/waist/core/a.zig"], self.catalog, POLICY, self.packages
         )
         self.assertEqual(first, second)
 

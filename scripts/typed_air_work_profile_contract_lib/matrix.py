@@ -22,7 +22,7 @@ COUNTER_PARTITION = (
     "guest_execution_serialization_and_native_verification_excluded__"
     "blake2s_shell_included_as_zero_v1"
 )
-INVENTORY_PATH = "src/prover_api/work_profile_inventory.zig"
+INVENTORY_PATH = "src/waist/prover_api/work_profile_inventory.zig"
 INVENTORY_SCHEMA_VERSION = 9
 
 FAMILY_IDS = (

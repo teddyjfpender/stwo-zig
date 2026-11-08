@@ -109,9 +109,9 @@ UNSIGNED_TOP_LEVEL_KEYS = TOP_LEVEL_KEYS - {"content_digest", "source_identity"}
 
 SOURCE_IDENTITY_BUILDER = "src/frontends/riscv/air/constraint_program.zig"
 COMMON_SOURCE_PATHS = (
-    "src/core/fields/cm31.zig",
-    "src/core/fields/m31.zig",
-    "src/core/fields/qm31.zig",
+    "src/waist/core/fields/cm31.zig",
+    "src/waist/core/fields/m31.zig",
+    "src/waist/core/fields/qm31.zig",
     "src/frontends/riscv/access_clock.zig",
     "src/frontends/riscv/air/constraint_program.zig",
     "src/frontends/riscv/air/extract/model.zig",

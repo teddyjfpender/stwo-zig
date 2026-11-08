@@ -4,7 +4,7 @@ pub fn addGates(b: *std.Build, prove_checkpoints: *std.Build.Step) void {
     const compile = b.addSystemCommand(&.{
         "zig",
         "build-lib",
-        "src/std_shims_freestanding.zig",
+        "src/support/shims/freestanding.zig",
         "-target",
         "wasm32-freestanding",
         "-O",

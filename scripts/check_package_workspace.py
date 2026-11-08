@@ -100,6 +100,9 @@ class Contract:
     ci_lane: str
     ci_host: str
     ci_command: tuple[str, ...]
+    # Sub-directories that live beside the package but are not part of it
+    # (product tools, benchmarks, system tests that consume the package).
+    consumer_subdirs: tuple[str, ...] = ()
 
 
 def _object(value: Any, label: str) -> dict[str, Any]:
@@ -121,6 +124,18 @@ def _string_list(value: Any, label: str) -> list[str]:
     return value
 
 
+def owned_by(contract: Contract, source: Path) -> bool:
+    """False for files in a nested package or a declared consumer sub-directory."""
+    relative = source.relative_to(contract.directory)
+    for depth in range(1, len(relative.parts)):
+        prefix = Path(*relative.parts[:depth])
+        if prefix.as_posix() in contract.consumer_subdirs:
+            return False
+        if (contract.directory / prefix / CONTRACT_NAME).is_file():
+            return False
+    return True
+
+
 def load_contract(path: Path) -> Contract:
     payload = _object(json.loads(path.read_text(encoding="utf-8")), str(path))
     expected_fields = {
@@ -136,11 +151,12 @@ def load_contract(path: Path) -> Contract:
         "api_contract",
         "ci",
     }
-    if set(payload) != expected_fields:
+    optional_fields = {"consumer_subdirs"}
+    if not expected_fields <= set(payload) or set(payload) - expected_fields - optional_fields:
         raise ValueError(
             f"{path}: contract fields differ: "
             f"missing={sorted(expected_fields - set(payload))}, "
-            f"extra={sorted(set(payload) - expected_fields)}"
+            f"extra={sorted(set(payload) - expected_fields - optional_fields)}"
         )
     if payload["schema"] != SCHEMA:
         raise ValueError(f"{path}: unknown schema {payload['schema']!r}")
@@ -162,6 +178,9 @@ def load_contract(path: Path) -> Contract:
     public_modules = _string_map(payload["public_modules"], f"{path}: public_modules")
     dependencies = _string_map(payload["dependencies"], f"{path}: dependencies")
     injected = _string_list(payload["injected_modules"], f"{path}: injected_modules")
+    consumer_subdirs = _string_list(
+        payload.get("consumer_subdirs", []), f"{path}: consumer_subdirs"
+    )
     api_surface = _string_list(payload["api_surface"], f"{path}: api_surface")
     if api_surface != sorted(set(api_surface)):
         raise ValueError(f"{path}: api_surface must be sorted and unique")
@@ -218,6 +237,7 @@ def load_contract(path: Path) -> Contract:
             signature_tests=tuple(signature_tests),
             invariant_tests=tuple(invariant_tests),
         ),
+        consumer_subdirs=tuple(consumer_subdirs),
         ci_lane=ci["lane"],
         ci_host=ci["host"],
         ci_command=tuple(command),
@@ -322,6 +342,7 @@ def _validate_imports(
         source
         for source in contract.directory.rglob("*.zig")
         if not any(part.startswith(".") or part == "zig-out" for part in source.relative_to(contract.directory).parts)
+        and owned_by(contract, source)
     )
     for source in sorted(sources):
         text = strip_comments(source.read_text(encoding="utf-8"))

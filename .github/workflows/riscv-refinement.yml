@@ -62,7 +62,7 @@ on:
       - "build.zig"
       - "build.zig.zon"
       - "build_support/**"
-      - "src/core/**"
+      - "src/waist/core/**"
       - "src/frontends/riscv/**"
       - "design/soundness/AIR_IR_V2_CONTRACT.md"
       - "design/soundness/SAIL_AIR_COMPOSITION.md"

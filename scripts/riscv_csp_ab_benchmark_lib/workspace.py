@@ -19,7 +19,7 @@ SNAPSHOT_AUTHOR_DATE = "2000-01-01T00:00:00+00:00"
 SNAPSHOT_MESSAGE_PREFIX = "benchmark: ephemeral typed-air source snapshot"
 RECURSIVE_PATHS = (
     "src/frontends/riscv/recursion",
-    "src/tools/riscv/recursive_csp_producer",
+    "src/products/riscv/tools/recursive_csp_producer",
     "src/integrations/riscv_cpu/recursive_fri_outer.zig",
 )
 IGNORED_INPUT_SCOPES = (

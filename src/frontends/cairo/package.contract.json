@@ -8,10 +8,10 @@
     "stwo_cairo_frontend": "mod.zig"
   },
   "dependencies": {
-    "stwo_backend_contracts": "../../backend",
-    "stwo_core": "../../core",
-    "stwo_prover_api": "../../prover_api",
-    "stwo_prover_engine": "../../prover"
+    "stwo_backend_contracts": "../../waist/backend",
+    "stwo_core": "../../waist/core",
+    "stwo_prover_api": "../../waist/prover_api",
+    "stwo_prover_engine": "../../engine/prover"
   },
   "injected_modules": [
     "cairo_frontend",

@@ -47,14 +47,14 @@ class FocusedPushTests(unittest.TestCase):
             mock.patch.object(
                 ci_scope_push,
                 "git_changed_paths",
-                side_effect=[["src/core/a.zig"], ["src/prover/b.zig"]],
+                side_effect=[["src/waist/core/a.zig"], ["src/engine/prover/b.zig"]],
             ),
         ):
             head, paths = ci_scope_push.changed_paths(
                 Path("."), [(OID_B, OID_A), ("c" * 40, OID_A)]
             )
         self.assertEqual(OID_A, head)
-        self.assertEqual(["src/core/a.zig", "src/prover/b.zig"], paths)
+        self.assertEqual(["src/waist/core/a.zig", "src/engine/prover/b.zig"], paths)
 
     def test_new_ref_uses_main_merge_base_then_parent(self) -> None:
         with mock.patch.object(

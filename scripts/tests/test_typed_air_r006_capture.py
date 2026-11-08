@@ -187,7 +187,7 @@ class R006Fixture(unittest.TestCase):
                 "sha256": "9" * 64,
             },
             "inventory": {
-                "path": "src/prover_api/work_profile_inventory.zig",
+                "path": "src/waist/prover_api/work_profile_inventory.zig",
                 "schema_version": 9,
                 "site_count": 23,
                 "source_bytes": 5_398,

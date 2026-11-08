@@ -25,22 +25,22 @@ from scripts.ci_scope_plan import normalize_path, owns
 FOCUSED_RULES = (
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig", "test-recursion-dag"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion/om31_native/publication.zig", "test-recursion-publication"),
-    ("stwo_core", "src/core/fields", "test-fields"),
-    ("stwo_core", "src/core/fields_test_root.zig", "test-fields"),
-    ("stwo_core", "src/core/crypto", "test-crypto"),
-    ("stwo_core", "src/core/crypto_test_root.zig", "test-crypto"),
-    ("stwo_core", "src/core/fri", "test-fri"),
-    ("stwo_core", "src/core/fri_test_root.zig", "test-fri"),
-    ("stwo_core", "src/core/pcs", "test-pcs"),
-    ("stwo_core", "src/core/pcs_test_root.zig", "test-pcs"),
-    ("stwo_prover_engine", "src/prover/air", "test-air"),
-    ("stwo_prover_engine", "src/prover/air_test_root.zig", "test-air"),
-    ("stwo_prover_engine", "src/prover/poly", "test-poly"),
-    ("stwo_prover_engine", "src/prover/poly_test_root.zig", "test-poly"),
-    ("stwo_prover_engine", "src/prover/pcs", "test-pcs-commitments"),
+    ("stwo_core", "src/waist/core/fields", "test-fields"),
+    ("stwo_core", "src/waist/core/fields_test_root.zig", "test-fields"),
+    ("stwo_core", "src/waist/core/crypto", "test-crypto"),
+    ("stwo_core", "src/waist/core/crypto_test_root.zig", "test-crypto"),
+    ("stwo_core", "src/waist/core/fri", "test-fri"),
+    ("stwo_core", "src/waist/core/fri_test_root.zig", "test-fri"),
+    ("stwo_core", "src/waist/core/pcs", "test-pcs"),
+    ("stwo_core", "src/waist/core/pcs_test_root.zig", "test-pcs"),
+    ("stwo_prover_engine", "src/engine/prover/air", "test-air"),
+    ("stwo_prover_engine", "src/engine/prover/air_test_root.zig", "test-air"),
+    ("stwo_prover_engine", "src/engine/prover/poly", "test-poly"),
+    ("stwo_prover_engine", "src/engine/prover/poly_test_root.zig", "test-poly"),
+    ("stwo_prover_engine", "src/engine/prover/pcs", "test-pcs-commitments"),
     (
         "stwo_prover_engine",
-        "src/prover/pcs_commitments_test_root.zig",
+        "src/engine/prover/pcs_commitments_test_root.zig",
         "test-pcs-commitments",
     ),
     ("stwo_riscv_frontend", "src/frontends/riscv/isa", "test-isa"),
@@ -67,24 +67,24 @@ FOCUSED_RULES = (
 )
 
 PROVER_QUOTIENT_STEPS = {
-    "src/prover/pcs/quotient_column_geometry.zig": "test-pcs-quotient-geometry",
-    "src/prover/pcs/quotient_domain_walk.zig": "test-pcs-quotient-geometry",
-    "src/prover/pcs_quotient_geometry_test_root.zig": "test-pcs-quotient-geometry",
-    "src/prover/pcs/quotient_compact_groups.zig": "test-pcs-quotient-planning",
-    "src/prover/pcs/quotient_direct_groups.zig": "test-pcs-quotient-planning",
-    "src/prover/pcs/quotient_direct_plan.zig": "test-pcs-quotient-planning",
-    "src/prover/pcs/quotients/planning.zig": "test-pcs-quotient-planning",
-    "src/prover/pcs_quotient_planning_test_root.zig": "test-pcs-quotient-planning",
-    "src/prover/pcs/quotient_ops.zig": "test-pcs-quotient-ops",
-    "src/prover/pcs_quotient_ops_test_root.zig": "test-pcs-quotient-ops",
-    "src/prover/pcs/quotient_row_executor.zig": "test-pcs-quotient-rows",
-    "src/prover/pcs/quotient_scalar_executor.zig": "test-pcs-quotient-rows",
-    "src/prover/pcs/quotients/execution.zig": "test-pcs-quotient-rows",
-    "src/prover/pcs/quotients/lazy_provider.zig": "test-pcs-quotient-rows",
-    "src/prover/pcs_quotient_rows_test_root.zig": "test-pcs-quotient-rows",
-    "src/prover/pcs/quotient_tile_executor.zig": "test-pcs-quotient-tiles",
-    "src/prover/pcs/quotient_tile_sink.zig": "test-pcs-quotient-tiles",
-    "src/prover/pcs_quotient_tiles_test_root.zig": "test-pcs-quotient-tiles",
+    "src/engine/prover/pcs/quotient_column_geometry.zig": "test-pcs-quotient-geometry",
+    "src/engine/prover/pcs/quotient_domain_walk.zig": "test-pcs-quotient-geometry",
+    "src/engine/prover/pcs_quotient_geometry_test_root.zig": "test-pcs-quotient-geometry",
+    "src/engine/prover/pcs/quotient_compact_groups.zig": "test-pcs-quotient-planning",
+    "src/engine/prover/pcs/quotient_direct_groups.zig": "test-pcs-quotient-planning",
+    "src/engine/prover/pcs/quotient_direct_plan.zig": "test-pcs-quotient-planning",
+    "src/engine/prover/pcs/quotients/planning.zig": "test-pcs-quotient-planning",
+    "src/engine/prover/pcs_quotient_planning_test_root.zig": "test-pcs-quotient-planning",
+    "src/engine/prover/pcs/quotient_ops.zig": "test-pcs-quotient-ops",
+    "src/engine/prover/pcs_quotient_ops_test_root.zig": "test-pcs-quotient-ops",
+    "src/engine/prover/pcs/quotient_row_executor.zig": "test-pcs-quotient-rows",
+    "src/engine/prover/pcs/quotient_scalar_executor.zig": "test-pcs-quotient-rows",
+    "src/engine/prover/pcs/quotients/execution.zig": "test-pcs-quotient-rows",
+    "src/engine/prover/pcs/quotients/lazy_provider.zig": "test-pcs-quotient-rows",
+    "src/engine/prover/pcs_quotient_rows_test_root.zig": "test-pcs-quotient-rows",
+    "src/engine/prover/pcs/quotient_tile_executor.zig": "test-pcs-quotient-tiles",
+    "src/engine/prover/pcs/quotient_tile_sink.zig": "test-pcs-quotient-tiles",
+    "src/engine/prover/pcs_quotient_tiles_test_root.zig": "test-pcs-quotient-tiles",
 }
 
 
@@ -152,8 +152,8 @@ def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
     if package == "stwo_prover_engine" and path in PROVER_QUOTIENT_STEPS:
         return PROVER_QUOTIENT_STEPS[path]
     if package == "stwo_prover_engine" and (
-        path.startswith("src/prover/pcs/quotient")
-        or path.startswith("src/prover/pcs_quotient")
+        path.startswith("src/engine/prover/pcs/quotient")
+        or path.startswith("src/engine/prover/pcs_quotient")
     ):
         return None
     for owner, prefix, step in FOCUSED_RULES:

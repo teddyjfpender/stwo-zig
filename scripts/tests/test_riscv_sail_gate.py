@@ -188,17 +188,17 @@ class ScopeTest(unittest.TestCase):
             "build_support/products/riscv_sail_oracle_tests.zig",
             "build_support/products/riscv_test_filter.zig",
             "scripts/riscv_sail_oracle.py",
-            "src/tests.zig",
-            "src/tests/riscv/trace_test.zig",
-            "src/tests/riscv/committed_forgery_harness.zig",
-            "src/tests/riscv/committed_row_layout.zig",
-            "src/tests/riscv/guest_elf_fixture.zig",
-            "src/tests/riscv/row_admissibility.zig",
-            "src/tests/riscv/malicious_prover_harness.zig",
-            "src/tests/riscv/malicious_prover_completion_test.zig",
-            "src/tests/riscv/malicious_prover_forged_output_test.zig",
-            "src/tests/riscv/malicious_prover_skipped_test.zig",
-            "src/tests/riscv/malicious_prover_stale_read_test.zig",
+            "src/products/riscv/cpu/test_root.zig",
+            "src/products/riscv/cpu/tests/trace_test.zig",
+            "src/products/riscv/cpu/tests/committed_forgery_harness.zig",
+            "src/products/riscv/cpu/tests/committed_row_layout.zig",
+            "src/products/riscv/cpu/tests/guest_elf_fixture.zig",
+            "src/products/riscv/cpu/tests/row_admissibility.zig",
+            "src/products/riscv/cpu/tests/malicious_prover_harness.zig",
+            "src/products/riscv/cpu/tests/malicious_prover_completion_test.zig",
+            "src/products/riscv/cpu/tests/malicious_prover_forged_output_test.zig",
+            "src/products/riscv/cpu/tests/malicious_prover_skipped_test.zig",
+            "src/products/riscv/cpu/tests/malicious_prover_stale_read_test.zig",
             "src/frontends/riscv/sail_oracle_test_root.zig",
         ):
             required, matched = gate.live_scope([path])
@@ -209,7 +209,7 @@ class ScopeTest(unittest.TestCase):
         required, matched = gate.live_scope(
             [
                 "README.md",
-                "src/core/fields/m31.zig",
+                "src/waist/core/fields/m31.zig",
                 "src/frontends/riscv/air/component.zig",
             ]
         )
@@ -217,15 +217,15 @@ class ScopeTest(unittest.TestCase):
         self.assertEqual(matched, {})
 
     def test_unrelated_riscv_test_edits_do_not_buy_the_60_minute_job(self) -> None:
-        # The narrow file list is the whole point: `src/tests/riscv` wholesale
+        # The narrow file list is the whole point: `src/products/riscv/cpu/tests` wholesale
         # would fire a pinned-toolchain build plus corpus differential on every
         # RISC-V test edit, most of which cannot change what Sail would say.
         required, matched = gate.live_scope(
             [
-                "src/tests/riscv/metal_backend_test.zig",
-                "src/tests/riscv/witness_rigidity_test.zig",
-                "src/tests/riscv/uniqueness_ir_test.zig",
-                "src/tests/riscv/prover_test.zig",
+                "src/products/riscv/cpu/tests/metal_backend_test.zig",
+                "src/products/riscv/cpu/tests/witness_rigidity_test.zig",
+                "src/products/riscv/cpu/tests/uniqueness_ir_test.zig",
+                "src/products/riscv/cpu/tests/prover_test.zig",
             ]
         )
         self.assertFalse(required)

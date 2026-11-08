@@ -730,12 +730,12 @@ def main() -> int:
 
         run_step(
             name="zig_interop_proof_wire_test",
-            cmd=test_command("src/stwo.zig", "--test-filter", "interop proof wire:"),
+            cmd=test_command("src/products/stwo/root.zig", "--test-filter", "interop proof wire:"),
             steps=steps,
         )
         run_step(
             name="zig_interop_artifact_test",
-            cmd=test_command("src/stwo.zig", "--test-filter", "interop artifact:"),
+            cmd=test_command("src/products/stwo/root.zig", "--test-filter", "interop artifact:"),
             steps=steps,
         )
 
@@ -743,14 +743,14 @@ def main() -> int:
             Path(__file__).resolve(),
             ROOT / "scripts/e2e_interop_lib/evidence.py",
             ROOT / "scripts/e2e_interop_lib/mutations.py",
-            ROOT / "src/interop/examples_artifact.zig",
-            ROOT / "src/interop/examples_artifact_verifier.zig",
-            ROOT / "src/interop/proof_wire/mod.zig",
-            ROOT / "src/examples/plonk_logup.zig",
-            *list((ROOT / "src/examples/plonk_logup").glob("*.zig")),
-            ROOT / "src/products/native_cpu/app.zig",
-            ROOT / "src/products/native_cpu/cli.zig",
-            ROOT / "src/tools/interop/artifact.zig",
+            ROOT / "src/products/native/artifact/examples_artifact.zig",
+            ROOT / "src/products/native/artifact/examples_artifact_verifier.zig",
+            ROOT / "src/waist/proof_wire/mod.zig",
+            ROOT / "src/products/native/examples/plonk_logup.zig",
+            *list((ROOT / "src/products/native/examples/plonk_logup").glob("*.zig")),
+            ROOT / "src/products/native/cpu/app.zig",
+            ROOT / "src/products/native/cpu/cli.zig",
+            ROOT / "src/products/native/tools/interop/artifact.zig",
             ROOT / "tools/stwo-interop-rs/Cargo.toml",
             ROOT / "tools/stwo-interop-rs/Cargo.lock",
             *list((ROOT / "tools/stwo-interop-rs/src").rglob("*.rs")),

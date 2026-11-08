@@ -28,7 +28,7 @@ except ModuleNotFoundError:  # Imported as scripts.riscv_operand_classes_lib.
 from . import classes, encoding, session
 
 # The trace-vector guests the repository commits, mirrored from
-# `src/tests/riscv/rigidity_corpus.zig` CORPUS: the honest-row corpus every
+# `src/products/riscv/cpu/tests/rigidity_corpus.zig` CORPUS: the honest-row corpus every
 # rigidity property samples, which makes it the corpus whose operand
 # coverage decides what the witness audits can ever see. `crypto/ecdsa.elf`
 # is excluded there for not terminating; excluded here for the same reason.

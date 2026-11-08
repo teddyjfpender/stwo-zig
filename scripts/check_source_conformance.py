@@ -85,31 +85,26 @@ EXCLUDED_DIRECTORY_NAMES = frozenset({
 })
 MANUAL_SOURCE_CEILING = 850
 OWNER_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-ROOT_ALLOWLIST = frozenset({
-    "cairo_cuda.zig",
-    "metal_arena_plan_cli.zig",
-    "riscv_bench_cli.zig",
-    "riscv_metal_bench_cli.zig",
-    "riscv_trace_cli.zig",
-    "std_shims_freestanding.zig",
-    "stwo.zig",
-    "stwo_aggregate_cpu.zig",
-    "stwo_aggregate_metal.zig",
-    "stwo_cairo_cpu.zig",
-    "stwo_cairo_metal.zig",
-    "stwo_deep.zig",
-    "stwo_native_cpu.zig",
-    "stwo_native_metal.zig",
-    "stwo_riscv_cpu.zig",
-    "tests.zig",
-})
+# RS-1: `src/` holds only layer directories and README.md.
+ROOT_ALLOWLIST: frozenset[str] = frozenset()
+# Two-level layers (`src/waist/core`, `src/engine/prover`) are keyed by the
+# package directory; every other layer by its first component.
+NESTED_LAYERS = frozenset({"waist", "engine", "support"})
 FORBIDDEN_TARGETS = {
-    "core": frozenset({"backend", "backends", "prover", "frontends", "integrations", "examples", "bench", "tools"}),
-    "backend": frozenset({"backends", "frontends", "integrations", "examples", "tools"}),
-    "prover": frozenset({"backends", "frontends", "integrations", "examples", "tools"}),
-    "backends": frozenset({"frontends", "integrations", "examples", "tools"}),
-    "frontends": frozenset({"backends", "integrations", "tools"}),
+    "core": frozenset({"backend", "backends", "prover", "frontends", "integrations", "products"}),
+    "backend": frozenset({"backends", "frontends", "integrations", "products"}),
+    "prover": frozenset({"backends", "frontends", "integrations", "products"}),
+    "backends": frozenset({"frontends", "integrations", "products"}),
+    "frontends": frozenset({"backends", "integrations", "products"}),
 }
+
+
+def layer_of(directories: tuple[str, ...]) -> str | None:
+    if not directories:
+        return None
+    if directories[0] in NESTED_LAYERS and len(directories) > 1:
+        return directories[1]
+    return directories[0]
 
 
 @dataclass(frozen=True, order=True)
@@ -239,7 +234,7 @@ def measure(repo: Path) -> list[Finding]:
         if owned_source.category != "src" or source.suffix != ".zig":
             continue
         findings.extend(owners.scan_zig(relative, text))
-        source_layer = relative.parts[0] if len(relative.parts) > 1 else None
+        source_layer = layer_of(relative.parts[:-1])
         forbidden = FORBIDDEN_TARGETS.get(source_layer, frozenset())
         if not forbidden:
             continue
@@ -247,7 +242,7 @@ def measure(repo: Path) -> list[Finding]:
             target = relative_import(source, imported, src_root)
             if target is None or len(target.parts) < 2:
                 continue
-            target_layer = target.parts[0]
+            target_layer = layer_of(target.parts[:-1])
             if target_layer in forbidden:
                 findings.append(Finding(
                     f"dependency:{relative.as_posix()}->{target.as_posix()}",

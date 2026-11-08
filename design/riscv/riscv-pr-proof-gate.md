@@ -22,9 +22,9 @@ universal refinement proof or an independent proof-system verifier.
 The gate is blocking whenever the product-scope planner selects `riscv_cpu`.
 That includes changes owned by:
 
-- `src/core/`;
-- `src/backend/` and the CPU backend;
-- `src/prover/`;
+- `src/waist/core/`;
+- `src/waist/backend/` and the CPU backend;
+- `src/engine/prover/`;
 - `src/frontends/riscv/`;
 - `src/integrations/riscv_cpu/`;
 - the RISC-V product/build graph; and

@@ -7,14 +7,14 @@ must vanish; and the lookup requests the row emits.  Nothing else -- no field
 tower, no evaluation domain, no interaction index -- because per-row witness
 uniqueness needs nothing else.
 
-Why not reuse `src/core/constraint_framework/expr.zig` (`ExprArena`,
+Why not reuse `src/waist/core/constraint_framework/expr.zig` (`ExprArena`,
 `BaseExpr`, `ConstraintProgram`)
 -------------------------------------------------------------------------
 That IR is a lowering target for a Zig evaluator, not a wire format, and the
 mismatch is structural rather than cosmetic:
 
   * it has no serialiser, and giving it one means editing soundness-critical
-    `src/core/` to revive a type whose only consumers were deleted;
+    `src/waist/core/` to revive a type whose only consumers were deleted;
   * it splits `BaseExpr`/`ExtExpr` and carries `secure_col`, an artefact of the
     QM31 tower.  Every polynomial in `air/semantics/` is base-field-valued with
     base-field constants, so both halves are noise here;
@@ -40,7 +40,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
 
-# p = 2^31 - 1.  The prover's field modulus; see `src/core/fields/m31.zig`.
+# p = 2^31 - 1.  The prover's field modulus; see `src/waist/core/fields/m31.zig`.
 MODULUS = (1 << 31) - 1
 
 ROLES = ("input", "output", "witness")

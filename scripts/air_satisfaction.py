@@ -49,7 +49,7 @@ scope, and a green result says nothing about any of it:
     row-locally, because a per-row query cannot decide them;
   * whether the extracted IR is the shipped AIR. That is established separately,
     by the fixed-seed extraction differential in
-    `src/tests/riscv/uniqueness_ir_test.zig`. Without it, this checker would be
+    `src/products/riscv/cpu/tests/uniqueness_ir_test.zig`. Without it, this checker would be
     comparing a trace against a model of unknown provenance.
 
 Usage
@@ -60,8 +60,8 @@ Usage
 
 `check` exits 0 when every row is satisfied and the ledger closes, and 1
 otherwise. Inputs are produced by
-`src/tests/riscv/committed_trace_export_test.zig` (`zig-out/committed-trace/`)
-and `src/tests/riscv/uniqueness_ir_test.zig` (`zig-out/uniqueness-ir/`).
+`src/products/riscv/cpu/tests/committed_trace_export_test.zig` (`zig-out/committed-trace/`)
+and `src/products/riscv/cpu/tests/uniqueness_ir_test.zig` (`zig-out/uniqueness-ir/`).
 """
 
 from __future__ import annotations

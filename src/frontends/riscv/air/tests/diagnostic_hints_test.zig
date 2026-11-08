@@ -12,7 +12,7 @@
 //!
 //! ## Why this file lives here now
 //!
-//! It used to live in `src/tests/riscv/`, reaching back into this package with
+//! It used to live in `src/products/riscv/cpu/tests/`, reaching back into this package with
 //! `@embedFile("../../frontends/riscv/air/opcode_memory.zig")`, because no gate
 //! compiled a `test` written inside this package (issue #152 item 11). That
 //! reasoning was right -- a pin that does not run is not a pin -- but the
@@ -22,9 +22,9 @@
 //! With the package's tests now compiled by `test-riscv-cpu-product` and by the
 //! `riscv_frontend` lane, the pins that are about *this package's* sources come
 //! home and the cross-package embed is gone. What stayed behind in
-//! `src/tests/riscv/diagnostic_hints_test.zig` is the part that is genuinely not
+//! `src/products/riscv/cpu/tests/diagnostic_hints_test.zig` is the part that is genuinely not
 //! this package's business: whether the invocations these hints publish are ones
-//! `src/tools/riscv/trace`'s argument parser actually accepts. The product owns
+//! `src/products/riscv/cpu/trace`'s argument parser actually accepts. The product owns
 //! both sides of that agreement; the frontend owns neither.
 //!
 //! ## What is pinned
@@ -118,7 +118,7 @@ test "diagnostic hints: the host and cross-target dumper names stay distinct" {
     // binary and the next native run died with `Exec format error`. A message
     // naming the wrong one sends its reader to a binary that cannot execute.
     // That these are the names the build actually installs is checked by
-    // `src/tests/riscv/diagnostic_hints_test.zig`, which can read the build file.
+    // `src/products/riscv/cpu/tests/diagnostic_hints_test.zig`, which can read the build file.
     try std.testing.expect(!std.mem.eql(u8, hints.TRACE_DUMP, hints.TRACE_DUMP_STATIC));
     try std.testing.expect(std.mem.startsWith(u8, hints.TRACE_DUMP_STATIC, hints.TRACE_DUMP));
     // Only the host binary is runnable where a hint is read, so no hint may hand

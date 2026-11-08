@@ -97,7 +97,7 @@ def main() -> int:
             return 1
 
     if not args.skip_zig:
-        run(test_command("src/stwo.zig", "--test-filter", "air derive: vector parity"))
+        run(test_command("src/products/stwo/root.zig", "--test-filter", "air derive: vector parity"))
 
     return 0
 

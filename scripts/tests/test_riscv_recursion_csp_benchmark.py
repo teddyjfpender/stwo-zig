@@ -99,7 +99,7 @@ def _active_outer_output(workers: int = 4) -> bytes:
 
 def _initialize_probe_repository(root: Path) -> None:
     for relative in (
-        "src/tests/riscv/recursion_poseidon_leaf_test.zig",
+        "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test.zig",
         "src/integrations/riscv_cpu/recursive_fri_outer.zig",
         "build_support/products/riscv_cpu.zig",
     ):

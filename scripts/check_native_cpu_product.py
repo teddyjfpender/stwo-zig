@@ -9,15 +9,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OWNED = (
     ROOT / "build_support/products/native_cpu.zig",
-    ROOT / "src/products/native_cpu/main.zig",
-    ROOT / "src/stwo_native_cpu.zig",
-    *(ROOT / "src/products/native_cpu").glob("*.zig"),
+    ROOT / "src/products/native/cpu/main.zig",
+    ROOT / "src/products/native/cpu/root.zig",
+    *(ROOT / "src/products/native/cpu").glob("*.zig"),
 )
 FORBIDDEN = (
     "metal_products",
     "linkFramework",
     "linkSystemLibrary",
-    "src/stwo.zig",
+    "src/products/stwo/root.zig",
     "frontends/cairo",
     "frontends/riscv",
     "backends/metal",

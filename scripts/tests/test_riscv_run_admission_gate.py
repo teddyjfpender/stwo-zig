@@ -1,7 +1,7 @@
 """The run-admission gate has one definition and every sibling path calls it.
 
 `src/integrations/riscv_cpu/proof_adapter.zig` fail-closed on a non-provable
-completion reason; `src/tools/riscv/bench/runner.zig` had no equivalent, accepted
+completion reason; `src/products/riscv/tools/bench/runner.zig` had no equivalent, accepted
 an ECALL-terminated trace, and died deep inside the prover (issue #152 item 5).
 The fix hoists the rule into `src/frontends/riscv/prover.zig`. This gate is what
 stops the copies coming back: a behavioural test can prove the shared function
@@ -33,7 +33,7 @@ CALLERS = {
         "prover.admitRunForProving(&run_result)",
     ),
     "benchmark runner": (
-        ROOT / "src" / "tools" / "riscv" / "bench" / "runner.zig",
+        ROOT / "src" / "products" / "riscv" / "tools" / "bench" / "runner.zig",
         "riscv_prover.classifyRunAdmission(&run_result)",
     ),
     # The third path, missed when the rule was hoisted for the first two: it runs

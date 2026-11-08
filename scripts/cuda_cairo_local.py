@@ -184,7 +184,7 @@ def execute(harness: str, kernel: str, marker: str, args: argparse.Namespace, in
         kernel = generated['kernel']
         fixtures = args.out/'row_fixtures.cuh'
         row_fixtures(fixtures)
-        dependencies = [kernel_source,fixtures,ROOT/'src/tools/cairo_cuda_witness_aot/row_parity.zig',ROOT/'src/tools/cairo_cuda_witness_aot/row_chunks.zig']
+        dependencies = [kernel_source,fixtures,ROOT/'src/products/cairo/tools/cuda_witness_aot/row_parity.zig',ROOT/'src/products/cairo/tools/cuda_witness_aot/row_chunks.zig']
         extra = [f'-DSTWO_ROW_PARITY_SOURCE="{kernel_source}"',f'-DSTWO_ROW_PARITY_FIXTURES="{fixtures}"',f'-DSTWO_ROW_PARITY_KERNEL={kernel}']
     code, output = run([str(args.compiler), "--cuda-clang", str(args.clang), "-DSTWO_CUMETAL=1", *extra,
                         str(source), "-o", str(target)], args.timeout)

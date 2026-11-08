@@ -8,7 +8,7 @@
     "stwo_sm83_metal_integration": "mod.zig"
   },
   "dependencies": {
-    "stwo_core": "../../core",
+    "stwo_core": "../../waist/core",
     "stwo_cpu_backend": "../../backends/cpu_scalar",
     "stwo_metal_backend": "../../backends/metal",
     "stwo_sm83_frontend": "../../frontends/sm83"

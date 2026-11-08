@@ -544,7 +544,7 @@ class CiTests(unittest.TestCase):
         self.assertIn("options.languageVersion = MTLLanguageVersion3_1;", policy)
 
         sources = (
-            ROOT / "src/tools/metal_core_aot/probe.m",
+            ROOT / "src/backends/metal/tools/core_aot/probe.m",
             ROOT / "src/backends/metal/runtime/initialization.m",
             ROOT / "src/backends/metal/runtime/dynamic_evaluation.m",
         )

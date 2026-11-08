@@ -91,12 +91,12 @@ pub const verifyCspPath = @import("proof_adapter/blake3_execution_verifier.zig")
 /// Metal product `stwo.integrations.riscv_cpu` does not exist to be resolved.
 ///
 /// Each focused facade declares exactly one RISC-V integration --
-/// `src/stwo_riscv_cpu.zig` declares only `riscv_cpu` and
-/// `src/products/riscv_metal/root.zig` declares only `riscv_metal` -- so
+/// `src/products/riscv/cpu/root.zig` declares only `riscv_cpu` and
+/// `src/products/riscv/metal/root.zig` declares only `riscv_metal` -- so
 /// `@hasDecl` is a total discriminator here rather than a feature probe. The
 /// condition is comptime-known, so only the branch that resolves is analysed and
 /// the absent facade member is never named in the compiled product. The
-/// aggregate `src/stwo.zig` facade routes through `integrations/mod.zig`, which
+/// aggregate `src/products/stwo/root.zig` facade routes through `integrations/mod.zig`, which
 /// declares `riscv_cpu`, and so takes the same branch as the CPU product.
 const LegacyTestEngine = if (@hasDecl(stwo.integrations, "riscv_cpu"))
     stwo.integrations.riscv_cpu.CpuProverEngine

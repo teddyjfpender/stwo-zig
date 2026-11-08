@@ -20,7 +20,7 @@ checkers.
 
 Proof-of-work nonce order: every BLAKE2s grinder follows Stwo `7b211ed` SimdBackend order,
 the smallest `(hi << 32) | lo` with `lo < 2^20`, searched hi-major
-(`src/core/channel/blake2s_pow_order.zig`). That is the order the official stwo-cairo prover
+(`src/waist/core/channel/blake2s_pow_order.zig`). That is the order the official stwo-cairo prover
 uses. The Native pin above grinds in natural order (`nonce = (hi << 20) + low`), so Native proofs
 match it only when the smallest valid nonce is below `2^20`. Committed Native vectors use
 `pow_bits <= 10`, where the two orders coincide.
