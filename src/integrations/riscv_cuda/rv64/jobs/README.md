@@ -142,7 +142,6 @@ anything else fails `Hybrid.create` with `InvalidM8OuterEnvironment`. None of th
 
 | variable | default | effect |
 |---|---|---|
-| `STWO_RV64_M8_OUTER_JOBS` | `0` | `1` = hybrid recursion (every node an OuterNodeJob); else fails closed |
 | `STWO_RV64_M8_OUTER_PERSIST_WINDOW` | `1` | `0` = start/stop the workers per request instead of park/unpark |
 | `STWO_RV64_M8_OUTER_FIXED_JOB` | `1` | `0` = legacy owner FIXED precommit (node recommits FIXED) |
 | `STWO_RV64_M8_OUTER_FIXED_HANDOFF` | `1` | `0` = node recommits FIXED even after a FixedJob precommit |

@@ -2010,7 +2010,7 @@
       }
     },
     "STWO_RV64_M8_JOBS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
+      "owner": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
       "default": "false",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
@@ -2024,12 +2024,11 @@
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-        "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
         "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
-        "text": "        const jobs = try flag(env, \"STWO_RV64_M8_JOBS\") orelse false;\n        const native = try flag(env, \"STWO_RV64_M8_NATIVE_JOBS\");\n        const outer = try flag(env, \"STWO_RV64_M8_OUTER_JOBS\");\n        if (jobs) {\n            if (native == false or outer == false) return error.InvalidM8JobsSelection;\n            return .{ .feeder = true, .native = true, .outer = true };\n        }\n        return .{ .native = native orelse false, .outer = outer orelse false };\n    }\n    pub fn fromProcess() !Selection {"
+        "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
+        "text": "    const value = std.posix.getenv(\"STWO_RV64_M8_JOBS\") orelse return false;\n    if (std.mem.eql(u8, value, \"0\")) return false;\n    if (std.mem.eql(u8, value, \"1\")) return true;\n    return error.InvalidM8JobsSelection;"
       }
     },
     "STWO_RV64_M8_JOBS_ARENA_BYTES": {
@@ -2040,7 +2039,6 @@
       "references": [
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
         "src/integrations/riscv_cuda/rv64/jobs/worker.zig",
-        "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
         "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
         "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
         "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
@@ -2100,9 +2098,9 @@
       "references": [
         "design/riscv-proving-stack/m7-handoff/default-runtime.json",
         "scripts/rv64_m8_bench15.py",
+        "scripts/tests/test_rv64_gate.py",
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
         "src/integrations/riscv_cuda/rv64/jobs/worker.zig",
-        "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
         "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
         "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
         "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
@@ -2231,79 +2229,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/native_framing_cache.zig",
         "text": "    const v = std.posix.getenv(\"STWO_RV64_M8_NATIVE_FRAMING_CACHE\") orelse return .off;\n    return parsePolicy(v);\n}\npub fn parsePolicy(v: []const u8) !Policy {\n    if (v.len == 0 or std.mem.eql(u8, v, \"0\")) return .off;\n    if (std.mem.eql(u8, v, \"1\")) return .on;\n    if (std.mem.eql(u8, v, \"check\")) return .check;\n    return error.InvalidM8NativeFramingCacheEnvironment;"
-      }
-    },
-    "STWO_RV64_M8_NATIVE_FRAMING_CACHE_MAX": {
-      "owner": "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
-      "default": "32",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/native_hybrid.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
-        "text": "        const framing_max = try envBytes(\"STWO_RV64_M8_NATIVE_FRAMING_CACHE_MAX\", 32);\n        const self = try a.create(Hybrid);\n        errdefer a.destroy(self);\n        const Version = *const fn () callconv(.c) u32;\n        self.* = .{\n            .a = a,\n            .set = set,\n            .router = undefined,"
-      }
-    },
-    "STWO_RV64_M8_NATIVE_JOBS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
-      "default": "false; JOBS=1 forces true and rejects explicit 0",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64_m8_bench15.py",
-        "scripts/rv64_validation.py",
-        "scripts/tests/test_rv64_m8_bench15.py",
-        "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
-        "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
-        "text": "        const jobs = try flag(env, \"STWO_RV64_M8_JOBS\") orelse false;\n        const native = try flag(env, \"STWO_RV64_M8_NATIVE_JOBS\");\n        const outer = try flag(env, \"STWO_RV64_M8_OUTER_JOBS\");\n        if (jobs) {\n            if (native == false or outer == false) return error.InvalidM8JobsSelection;\n            return .{ .feeder = true, .native = true, .outer = true };\n        }\n        return .{ .native = native orelse false, .outer = outer orelse false };\n    }\n    pub fn fromProcess() !Selection {"
-      }
-    },
-    "STWO_RV64_M8_NATIVE_JOBS_DUMP": {
-      "owner": "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
-      "default": "disabled (no directory)",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/native_hybrid.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
-        "text": "        if (std.posix.getenv(\"STWO_RV64_M8_NATIVE_JOBS_DUMP\")) |dir| {\n            var name_buf: [64]u8 = undefined;\n            const name = try std.fmt.bufPrint(&name_buf, \"hybrid-cpu-{d}.bin\", .{ordinal});\n            var d = try std.fs.cwd().makeOpenPath(dir, .{});\n            defer d.close();\n            try d.writeFile(.{ .sub_path = name, .data = bytes });\n        }\n        // The worker's scheme/channel are consumed exactly as complete() would."
-      }
-    },
-    "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": {
-      "owner": "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
-      "default": "1 << 30",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "design/riscv-proving-stack/m7-handoff/default-runtime.json",
-        "scripts/rv64_m8_bench15.py",
-        "scripts/tests/test_rv64_gate.py",
-        "src/integrations/riscv_cuda/rv64/native_hybrid.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
-        "text": "    const scratch = std.mem.alignForward(usize, try envBytes(\"STWO_RV64_M8_NATIVE_JOBS_HEADROOM\", 1 << 30) / 4, g);\n    const extra = std.mem.alignForward(usize, value.outsideWords(), g) + scratch;\n    const floor = std.mem.alignForward(usize, @min(fp.device_words, want) / 2, g);\n    var probe = win_words + extra;\n    var size = win_words;\n    while (true) {\n        if (w.unpark(probe)) |_| {\n            _ = try w.park(.{});"
-      }
-    },
-    "STWO_RV64_M8_NATIVE_JOBS_REPLAY": {
-      "owner": "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
-      "default": "false (variable absent)",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/native_hybrid.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
-        "text": "        if (std.posix.getenv(\"STWO_RV64_M8_NATIVE_JOBS_REPLAY\")) |_| {\n            // Diagnostic: the legacy host transcript from the same checkpoint.\n            var ch = worker.channel;\n            WP.mixManifestAndClaims(&ch, pending.digest, claims);\n            WP.MC.mixRoot(&ch, roots[2]);\n            const alpha_host = ch.drawSecureFelt();\n            WP.MC.mixRoot(&ch, roots[3]);\n            const oods_host = try core.circle.randomSecureFieldPointFor(O, &ch);"
       }
     },
     "STWO_RV64_M8_NATIVE_REJECT_DUMP": {
@@ -2522,25 +2447,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_graph_cache.zig",
         "text": "        p.threshold = @max(1, try Env.unsigned(u32, \"STWO_RV64_M8_OUTER_GRAPH_THRESHOLD\", p.threshold));\n        p.budget_bytes = (try Env.unsigned(u64, \"STWO_RV64_M8_OUTER_GRAPH_BUDGET_MB\", p.budget_bytes >> 20)) << 20;\n        p.idle_requests = try Env.unsigned(u32, \"STWO_RV64_M8_OUTER_GRAPH_IDLE_REQUESTS\", p.idle_requests);\n        return p;\n    }\n};\n\npub const Key = struct {"
-      }
-    },
-    "STWO_RV64_M8_OUTER_JOBS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
-      "default": "false; JOBS=1 forces true and rejects explicit 0",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64_m8_bench15.py",
-        "scripts/rv64_validation.py",
-        "scripts/tests/test_rv64_gate.py",
-        "scripts/tests/test_rv64_m8_bench15.py",
-        "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
-        "text": "        const jobs = try flag(env, \"STWO_RV64_M8_JOBS\") orelse false;\n        const native = try flag(env, \"STWO_RV64_M8_NATIVE_JOBS\");\n        const outer = try flag(env, \"STWO_RV64_M8_OUTER_JOBS\");\n        if (jobs) {\n            if (native == false or outer == false) return error.InvalidM8JobsSelection;\n            return .{ .feeder = true, .native = true, .outer = true };\n        }\n        return .{ .native = native orelse false, .outer = outer orelse false };\n    }\n    pub fn fromProcess() !Selection {"
       }
     },
     "STWO_RV64_M8_OUTER_LEAF_PERSISTENT": {

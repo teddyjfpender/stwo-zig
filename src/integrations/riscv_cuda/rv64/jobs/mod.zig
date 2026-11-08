@@ -1,6 +1,6 @@
 //! Shared M8 worker runtime and explicit JOBS selection. `combined-serve`
 //! dispatches in rv64_combined_ethereum_main.zig: GPU_NATIVE selects
-//! driver_ge.serve; otherwise resident_batch.runServe owns the feeder path.
+//! driver_ge.serve; otherwise resident_batch.runServe owns the reference path.
 //!
 //! Environment (job path only):
 //!   STWO_RV64_M8_JOBS_LIBRARY        libstwo-rv64-jobs.so (addon, required)
@@ -20,7 +20,8 @@ pub const scheduler = @import("scheduler.zig");
 pub const request = @import("request.zig");
 pub const channel_parity = @import("channel_parity.zig");
 
-/// STWO_RV64_M8_JOBS: unset or "0" → legacy path; "1" → job runtime; else fail closed.
+/// STWO_RV64_M8_JOBS: unset or "0" → legacy path; "1" → job runtime (only
+/// with STWO_RV64_M8_GPU_NATIVE=1, see driver.zig); else fail closed.
 pub fn selected() !bool {
     const value = std.posix.getenv("STWO_RV64_M8_JOBS") orelse return false;
     if (std.mem.eql(u8, value, "0")) return false;
@@ -65,8 +66,6 @@ pub const Config = struct {
         return c;
     }
 };
-
-pub const feeder = @import("provider.zig");
 
 const Boot = struct {
     result: ?anyerror!void = null,

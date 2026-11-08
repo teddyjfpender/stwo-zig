@@ -862,7 +862,7 @@ pub const Stage2Job = struct {
             global_scratch = @max(global_scratch, gs.plan.enqueueWords());
         };
         // PCS peak: measured segment-scale class 2.14e9 words [M]
-        // (memory-plan-p2) + 7%, as native_hybrid_jobs.Stage2Job.
+        // (memory-plan-p2) + 7%, as the retired native-hybrid Stage2Job.
         const pcs: usize = 2_300_000_000;
         // public_claims scratch grows with the boundary cells (8 + 8 per
         // 256-cell block, up to 4104 words): sized here, not in the slack.

@@ -2,7 +2,7 @@
 //! rv64-m8-gpu-native.md §3.1, §3.2, inventory H4/H9; contract gpu_native.zig
 //! NativeFactory.shape).
 //!
-//! The legacy hybrid path (native_hybrid.zig) built, PER SEGMENT OF EVERY
+//! The retired native hybrid path built, PER SEGMENT OF EVERY
 //! REQUEST, from a CpuWorker:
 //!   Stage 1  NG.Plan.init(scope, instances, native source, FIXED host
 //!            coefficients, MAIN columns, byte_cap) + NB.Plan (prove, l.589)
@@ -1050,7 +1050,7 @@ pub fn compare(x: *const Fingerprint, y: *const Fingerprint, out: []Mismatch) !u
 // ---------------------------------------------------------------------------
 
 /// The legacy Stage-1 class of one segment, from exactly the request the
-/// hybrid prove() received (native_hybrid.zig l.589: NG.Plan.init on the
+/// hybrid prove() received (retired native hybrid, l.589: NG.Plan.init on the
 /// request's scope, instances, native source, FIXED host and MAIN device
 /// columns, byte cap; NB.Plan on its instances and traversal layers). Only
 /// the Stage-1 fields are set; fingerprint it with `Fingerprint.ofStage1`.

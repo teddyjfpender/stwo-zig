@@ -75,7 +75,7 @@ pub const Stream = struct {
     truth_done: *const fn (context: *anyopaque, ordinal: usize, encoded: *const Truth.TruthEncoded) void,
     abort: *const fn (context: *anyopaque) void,
 };
-/// M8 native-hybrid seam (STWO_RV64_M8_NATIVE_JOBS=1; default null = the
+/// M8 native-hybrid seam (retired with rv64/native_hybrid.zig; default null = the
 /// legacy path, byte for byte). After the global-chi barrier, a CPU ordinal's
 /// whole stage two (the replay restore and `CpuWorker.complete`) is replaced
 /// by `stage_two`, which proves the segment from the worker's sealed state

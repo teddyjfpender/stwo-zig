@@ -53,12 +53,10 @@ class BasketTests(unittest.TestCase):
     def test_arm_environment_substitutes_assets_and_refuses_unknown_arms(self):
         assets = {'addon': '/a/libjobs.so', 'outer_fs': '/a/libfs.so'}
         self.assertEqual(bench.arm_environment('default', assets), {})
-        hybrid = bench.arm_environment('hybrid', assets)
-        self.assertEqual(hybrid['STWO_RV64_M8_OUTER_JOBS'], '1')
-        self.assertEqual(hybrid['STWO_RV64_M8_NATIVE_JOBS'], '1')
-        self.assertEqual(hybrid['STWO_RV64_M8_JOBS_LIBRARY'], '/a/libjobs.so')
+        self.assertEqual(set(bench.ARMS), {'default', 'gpu-native'})
         self.assertTrue(all(k.startswith(('STWO_RV64_M8_', 'STWO_RV64_M9_')) for arm in bench.ARMS for k in bench.ARMS[arm]))
         native = bench.arm_environment('gpu-native', assets)
+        self.assertEqual(native['STWO_RV64_M8_JOBS_LIBRARY'], '/a/libjobs.so')
         self.assertEqual(native['STWO_RV64_M8_OUTER_FS_LIBRARY'], '/a/libfs.so')
         self.assertEqual(native['STWO_RV64_M8_GPU_NATIVE_REUSE'], '1')
         self.assertEqual(native['STWO_RV64_M9_CLASS_PACKED_INGRESS'], '1')
@@ -66,7 +64,7 @@ class BasketTests(unittest.TestCase):
             bench.arm_environment('fullstack', assets)
 
     def test_arms_option_validation(self):
-        self.assertEqual(bench.arms_type('default,outer'), ['default', 'outer'])
+        self.assertEqual(bench.arms_type('default,gpu-native'), ['default', 'gpu-native'])
         for bad in ('', 'default,default', 'nope'):
             with self.assertRaises(argparse.ArgumentTypeError):
                 bench.arms_type(bad)

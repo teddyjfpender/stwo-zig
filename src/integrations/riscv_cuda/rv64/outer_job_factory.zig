@@ -1072,7 +1072,7 @@ pub const NodeClasses = struct {
         }
         entries.shrinkRetainingCapacity(keep);
     }
-    fn installing() bool {
+    pub fn installing() bool {
         const v = std.posix.getenv("STWO_RV64_M8_GN_INSTALL") orelse return false;
         return std.mem.eql(u8, v, "1");
     }
@@ -1326,8 +1326,9 @@ const GnJob = struct {
 };
 
 // ---------------------------------------------------------------------------
-// Hybrid mode (M8 Stage A, STWO_RV64_M8_OUTER_JOBS=1): the legacy request
-// orchestration and native proving stay as they are; every leaf/fold/root
+// Class-installation mode (GPU-native install only, STWO_RV64_M8_GN_INSTALL=1
+// set by native_recursion_install.zig): the legacy request orchestration and
+// native proving stay as they are; every leaf/fold/root
 // node prove reaches device_prove.zig's default-null WholeNode hook and runs
 // as an OuterNodeJob on the DeviceWorker of its lane's physical device.
 //
@@ -1355,12 +1356,10 @@ const Service = @import("pcs_native.zig");
 const Memory = @import("runtime_memory.zig");
 const NativeAbi = @import("pcs_native_abi.zig");
 
-/// STWO_RV64_M8_OUTER_JOBS: unset or "0" → legacy; "1" → hybrid; else fail closed.
+/// Node jobs run only while the GPU-native service installs its recursion
+/// classes; every ordinary request keeps the legacy owner path.
 pub fn hybridSelected() !bool {
-    const value = std.posix.getenv("STWO_RV64_M8_OUTER_JOBS") orelse return false;
-    if (std.mem.eql(u8, value, "0")) return false;
-    if (std.mem.eql(u8, value, "1")) return true;
-    return error.InvalidM8OuterJobsSelection;
+    return NodeClasses.installing();
 }
 
 /// The FIXED precommit's coefficients for the node of `ordinal` on this
@@ -1622,11 +1621,6 @@ pub const Hybrid = struct {
     /// A FIXED handoff region was acquired in the open window: park releases
     /// worker-persistent regions so the native window gets the memory back.
     handoff_live: std.atomic.Value(bool) = .init(false),
-    /// M8 feeder (STWO_RV64_M8_JOBS=1): an already-booted, parked WorkerSet
-    /// shared with the native hybrid (one context per GPU for the request).
-    /// The window unparks/parks it like its own persistent set but never
-    /// stops it (its owner does).
-    shared_set: ?*Jobs.WorkerSet = null,
 
     /// Every hybrid knob, parsed strictly once at create (outer_env.zig;
     /// jobs/README.md "Outer job environment").
@@ -1676,13 +1670,6 @@ pub const Hybrid = struct {
         }
     };
 
-    /// Use `set` (parked, owned by the caller, outliving this Hybrid) for
-    /// every window instead of booting one. Before the first window only.
-    pub fn adoptSet(self: *Hybrid, set: *Jobs.WorkerSet) !void {
-        if (self.window != null or !self.persist) return error.M8OuterSharedSetRequiresPersistentWindow;
-        if (!set.parked()) return error.M8OuterSharedSetNotParked;
-        self.shared_set = set;
-    }
     pub fn create(a: std.mem.Allocator, library: []const u8) !*Hybrid {
         const fs_path = std.posix.getenv("STWO_RV64_M8_OUTER_FS_LIBRARY") orelse return error.MissingM8OuterFsLibrary;
         _ = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingM8JobsLibrary;
@@ -1709,7 +1696,7 @@ pub const Hybrid = struct {
         self.services = try self.allocator.dupe(*Service.Context, services);
         self.lanes = made;
         for (lanes, made) |*lane, *out| lane.factory = out.factory();
-        std.debug.print("GPU_M8_OUTER_JOBS hybrid lanes={d} devices={d}\n", .{ made.len, services.len });
+        std.debug.print("GPU_M8_OUTER_INSTALL lanes={d} devices={d}\n", .{ made.len, services.len });
     }
 
     fn prover(self: *Hybrid, lane: usize) !*Prover {
@@ -1804,10 +1791,8 @@ pub const Hybrid = struct {
         // Persistent: boot on a small arena, park, then unpark at the
         // request's size (the same path every later request takes).
         config.arena_words = if (self.persist) @min(words, boot_arena_words) else words;
-        const set = if (self.shared_set) |shared| shared else if (self.persist) try Jobs.WorkerSet.startParked(self.allocator, self.library, config) else try Jobs.WorkerSet.startWith(self.allocator, self.library, config);
-        errdefer if (self.shared_set == null) set.stop(self.allocator) else {
-            _ = set.park(.{}) catch {};
-        };
+        const set = if (self.persist) try Jobs.WorkerSet.startParked(self.allocator, self.library, config) else try Jobs.WorkerSet.startWith(self.allocator, self.library, config);
+        errdefer set.stop(self.allocator);
         const unpark_ns: u64 = if (self.persist) (try set.unpark(words)).ns else 0;
         var shared = try Shared.init(&set.libs.base, &set.libs.addon, self.fs_path);
         errdefer shared.deinit();
@@ -1877,7 +1862,7 @@ pub const Hybrid = struct {
         for (w.provers) |*p| p.deinit();
         self.allocator.free(w.provers);
         w.shared.deinit();
-        if (self.shared_set == null) w.set.stop(self.allocator) else _ = w.set.park(.{}) catch |err| std.debug.print("GPU_M8_OUTER_WINDOW shared_park_failed error={s}\n", .{@errorName(err)});
+        w.set.stop(self.allocator);
         std.debug.print("GPU_M8_OUTER_WINDOW close window={d} nodes={d} close_ns={d} stopped=true\n", .{ self.windows, nodes, timer.read() });
     }
 
