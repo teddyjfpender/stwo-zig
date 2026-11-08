@@ -1,0 +1,51 @@
+diff --git a/src/core/pcs/verifier_family.zig b/src/core/pcs/verifier_family.zig
+index 3d07868d6..26242d0ba 100644
+--- a/src/core/pcs/verifier_family.zig
++++ b/src/core/pcs/verifier_family.zig
+@@ -304,6 +304,11 @@ pub fn ForField(comptime Secure: type) type {
+                     if (!channel.verifyPowNonce(self.config.pow_bits, proof.proof_of_work)) {
+                         return verifier_types.VerificationError.ProofOfWork;
+                     }
++                    const fri_export_digest: ?[32]u8 =
++                        if (comptime H.Hash == [32]u8 and @sizeOf(QM31) == 32)
++                            if (std.process.hasEnvVarConstant("STWO_EXPORT_FRI_LAYERS")) channel.digestBytes() else null
++                        else
++                            null;
+                     channel.mixU64(proof.proof_of_work);
+
+                     var query_capture = try fri_verifier.sampleQueryPositionsWithRaw(
+@@ -414,7 +419,7 @@ pub fn ForField(comptime Secure: type) type {
+                     var fri_capture: fri.FriQueryCapture(H) = undefined;
+                     var fri_capture_owned = false;
+                     defer if (fri_capture_owned) fri_capture.deinit(allocator);
+-                    if (proof_capture_out != null) {
++                    if (proof_capture_out != null or fri_export_digest != null) {
+                         fri_verifier.decommitWithQueryCapture(
+                             allocator,
+                             fri_answers,
+@@ -434,6 +439,25 @@ pub fn ForField(comptime Secure: type) type {
+                         };
+                     }
+
++                    if (comptime H.Hash == [32]u8 and @sizeOf(QM31) == 32) {
++                        if (fri_export_digest) |digest| {
++                            std.debug.print("FRI_BEGIN {x} {d} {d}\nFRI_DEEP ", .{
++                                &digest, lifting_log_size, proof.proof_of_work,
++                            });
++                            for (fri_answers) |value| std.debug.print("{x}", .{&value.toBytesLe()});
++                            std.debug.print("\n", .{});
++                            for (fri_capture.layers, 0..) |layer, i| {
++                                std.debug.print("FRI_LAYER {x} {d}\nFRI_ROWS ", .{ &layer.commitment, layer.fold_step });
++                                for (layer.values) |value| std.debug.print("{x}", .{&value.toBytesLe()});
++                                std.debug.print("\nFRI_SIBLINGS ", .{});
++                                const layer_proof = if (i == 0) proof.fri_proof.first_layer else proof.fri_proof.inner_layers[i - 1];
++                                for (layer_proof.decommitment.hash_witness) |sibling| std.debug.print("{x}", .{&sibling});
++                                std.debug.print("\n", .{});
++                            }
++                            std.debug.print("FRI_END\n", .{});
++                        }
++                    }
++
+                     if (capture_out) |capture| {
+                         capture.* = query_capture;
+                         query_capture_owned = false;

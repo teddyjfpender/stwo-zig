@@ -17,21 +17,33 @@ contract LiftedOpeningVerifier {
         uint32 rowBytes,
         bytes32[] calldata witness
     ) public pure returns (bool) {
-        uint256 count = positions.length;
+        if (positions.length > 256) revert InvalidOpening();
+        return verifyOpeningInPlace(root, depth, positions, rows, rowBytes, witness);
+    }
+
+    /// @dev Destroys indices. A native FRI layer can open four leaves for
+    ///      each of 108 queries; the public opening interface keeps its own cap.
+    function verifyOpeningInPlace(
+        bytes32 root,
+        uint8 depth,
+        uint32[] memory indices,
+        bytes calldata rows,
+        uint32 rowBytes,
+        bytes32[] calldata witness
+    ) internal pure returns (bool) {
+        uint256 count = indices.length;
         if (
-            depth > 30 || count == 0 || count > 256 || rowBytes == 0 || rowBytes > 65_536
+            depth > 30 || count == 0 || count > 432 || rowBytes == 0 || rowBytes > 65_536
                 || rowBytes % 4 != 0 || rows.length != count * rowBytes
                 || witness.length > count * depth
         ) revert InvalidOpening();
 
-        uint32[] memory indices = new uint32[](count);
         bytes32[] memory hashes = new bytes32[](count);
         for (uint256 i; i < count; ++i) {
-            uint32 index = positions[i];
+            uint32 index = indices[i];
             if (index >= (uint256(1) << depth) || (i != 0 && index <= indices[i - 1])) {
                 revert InvalidOpening();
             }
-            indices[i] = index;
             uint256 start = i * rowBytes;
             hashes[i] = Blake2sLifted.leaf(rows[start:start + rowBytes]);
         }

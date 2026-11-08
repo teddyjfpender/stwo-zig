@@ -6,6 +6,7 @@ import { after, test } from "node:test";
 
 import { JsonRpcProvider, ContractFactory, id, keccak256 } from "ethers";
 import solc from "solc";
+import { registerFriTests } from "./fri-cases.mjs";
 
 const sources = {};
 for (const directory of ["src", "test"]) {
@@ -82,6 +83,7 @@ async function deploy(path, name, ...args) {
 
 const verifier = await deploy("src/LiftedOpeningVerifier.sol", "LiftedOpeningVerifier");
 const harness = await deploy("test/Harness.sol", "Harness");
+registerFriTests(deploy);
 
 function hash(tag, ...payload) {
   const prefix = Buffer.alloc(64);
