@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-08T22:38:06.359330+00:00",
+  "updated_utc": "2026-11-08T23:11:34.034571+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv/rv64-gpu-hygiene.md",
@@ -2105,6 +2105,334 @@
         }
       ],
       "claim_boundary": "Semantic checks do not execute tests, emit a binary or qualify proof acceptance. Default typed and Keccak fixture execution is separately verified; secp256k1 runtime, complete product, GPU, Linux and qualified timing remain unverified."
+    },
+    "delivery_blake_arithmetic_consolidation": {
+      "baseline_commit": "e79c85d815ee9903cdcc44fc946d2a324181ff84",
+      "status": "PASS_NATIVE_CRYPTO_BYTE_IDENTITY_FRESH_FIXTURE_ACCEPTANCE",
+      "code": {
+        "added": 35,
+        "removed": 54,
+        "net": -19,
+        "allowance": 0
+      },
+      "raw_code": {
+        "added": 78,
+        "removed": 97,
+        "net": -19
+      },
+      "moves_excluded": 43,
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "validation": {
+        "status": "PASS_CRYPTO_ORACLES_BYTE_IDENTITY_AND_FRESH_RECEIVER",
+        "source_base_commit": "e79c85d815ee9903cdcc44fc946d2a324181ff84",
+        "native_crypto_cases_before": 22,
+        "native_crypto_cases_after": 23,
+        "modes": [
+          "Debug",
+          "ReleaseFast"
+        ],
+        "cross_compilation": [
+          "x86_64-linux semantic-only",
+          "powerpc64-linux semantic-only"
+        ],
+        "literal_byte_equality": {
+          "status": "PASS_EXACT_BEFORE_AFTER_FILE_SET_AND_BYTES",
+          "files": {
+            "cpu-0.p2v2.binary": {
+              "sha256": "1cfd865dfe1b62c7bfe278024874c69f255d428dad7cff2f4e45bae1f60662e3",
+              "bytes": 551776
+            },
+            "cpu-1.worker.binary": {
+              "sha256": "3d024bcced3c4fd16d81648d77973b35e5bc83af5cd37c9c7a7ea3fffba4a302",
+              "bytes": 549424
+            },
+            "cpu-1.p2v2.binary": {
+              "sha256": "fd2d5733330892372b7cc93932971d3ce6e047a851190dc1e2709231898661da",
+              "bytes": 549208
+            },
+            "manifest.raw-blake.binary": {
+              "sha256": "c3e27126329fceb6f0dba6fb39224209a97b19e44b5a65e31f1c1708c5749858",
+              "bytes": 103692
+            },
+            "source-publics.json": {
+              "sha256": "0c9edb77d00f6c086b8303520c05ceb5aa81d0a9b73dd810237fcdfd5996a825",
+              "bytes": 11973
+            },
+            "cpu-0.worker.binary": {
+              "sha256": "76aac560edcf360dbdc13c8dd2696db442524f159f1502f16d26a878d9d88f28",
+              "bytes": 551992
+            }
+          },
+          "prior_fresh_receiver_corpus_matches_baseline": true,
+          "scope": "Small mixed-suite CPU fixture; no complete block, 128-bit-security or performance claim.",
+          "literal_byte_comparison_performed": true
+        },
+        "source_structure": {
+          "baseline": "e79c85d815ee9903cdcc44fc946d2a324181ff84",
+          "moved_bodies": [
+            {
+              "owner": "scalar rotate",
+              "lines": 4,
+              "sha256": "c6b0e911e4bc1b78e8c72a4a461a5ec0858237c4fedc6020560fe8964260ced7"
+            },
+            {
+              "owner": "four-lane rotate",
+              "lines": 24,
+              "sha256": "d55ef77acb38e8b465e2df580450b42960896095c94a52b07a5a44495dc0c770"
+            },
+            {
+              "owner": "eight-lane rotate",
+              "lines": 4,
+              "sha256": "80940004b56f8119905837c67313c1e98ed5915c44d1bdf722e6dc69b5db7a73"
+            },
+            {
+              "owner": "G operation body",
+              "lines": 8,
+              "sha256": "e64516416a7bc392a1b0e69c19e96a4468b5c3ea76b77b54ba2fc0d1d8480879"
+            }
+          ],
+          "interleaved_schedule_preserved_exact": true,
+          "compression_schedule_and_constants_changed": false,
+          "runtime_flags_changed": false,
+          "public_facade_changed": false,
+          "compression_and_terminal_schedules_byte_identical": true,
+          "G_operation_body_preserved_in_order": true,
+          "support_lines_relocated": 3,
+          "total_moved_lines_excluded": 43
+        },
+        "receiver_results": [
+          {
+            "label": "new-crypto-fresh-receiver-build",
+            "argv": [
+              "python3",
+              "scripts/dev_test.py",
+              "--optimize",
+              "ReleaseFast",
+              "src/integrations/riscv_cpu/rv64_poseidon2_native_fixture_main.zig"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 1255079936,
+            "wall_seconds": 23.81510295800399
+          },
+          {
+            "label": "valid",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/valid"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 155549696,
+            "wall_seconds": 2.7137279579765163
+          },
+          {
+            "label": "queries",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/queries"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 154746880,
+            "wall_seconds": 2.024748374999035
+          },
+          {
+            "label": "ninth-limb",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/ninth-limb"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 154288128,
+            "wall_seconds": 1.993814832996577
+          },
+          {
+            "label": "nonce",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/nonce"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 155140096,
+            "wall_seconds": 2.041843709012028
+          },
+          {
+            "label": "wrong-family",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/wrong-family"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 154075136,
+            "wall_seconds": 2.0067004159791395
+          }
+        ],
+        "exact_rejection_classes": {
+          "queries": "PoseidonNativeProofShape",
+          "ninth-limb": "GlobalGkrPhysicalRootMismatch",
+          "nonce": "ProofOfWork",
+          "wrong-family": "UnsupportedBinaryVersion"
+        },
+        "source_conformance_errors_before": 105,
+        "source_conformance_errors_after": 104,
+        "source_sizes": {
+          "backend_before": 885,
+          "backend_after": 838,
+          "terminal_before": 363,
+          "terminal_after": 319,
+          "shared_before": 39,
+          "shared_after": 110
+        },
+        "receiver_binary_sha256": "1b4c465105c4819c7a660edff743c1a30cc39925db21118cbfa2368adc255ee6",
+        "qualification": "CPU/macOS correctness and exact captured fixture bytes only. Cross-target semantic checks are not runtime evidence. No 128-bit-security, full product, GPU or performance claim."
+      },
+      "native_validation_runs": [
+        {
+          "label": "crypto-after-Debug",
+          "argv": [
+            "zig",
+            "build",
+            "test-crypto",
+            "--build-file",
+            "src/waist/core/build.zig",
+            "-Doptimize=Debug",
+            "-j1",
+            "--verbose",
+            "--summary",
+            "all"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 278626304,
+          "wall_seconds": 2.0227920829784125
+        },
+        {
+          "label": "crypto-after-ReleaseFast",
+          "argv": [
+            "zig",
+            "build",
+            "test-crypto",
+            "--build-file",
+            "src/waist/core/build.zig",
+            "-Doptimize=ReleaseFast",
+            "-j1",
+            "--verbose",
+            "--summary",
+            "all"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 420610048,
+          "wall_seconds": 4.9124089580145665
+        },
+        {
+          "label": "semantic-only-x86_64-linux",
+          "argv": [
+            "zig",
+            "build",
+            "test-crypto",
+            "--build-file",
+            "src/waist/core/build.zig",
+            "-Doptimize=Debug",
+            "-Dtarget=x86_64-linux",
+            "-Dcheck-only=true",
+            "-j1",
+            "--verbose"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 2686976,
+          "wall_seconds": 0.4497313750325702
+        },
+        {
+          "label": "semantic-only-powerpc64-linux",
+          "argv": [
+            "zig",
+            "build",
+            "test-crypto",
+            "--build-file",
+            "src/waist/core/build.zig",
+            "-Doptimize=Debug",
+            "-Dtarget=powerpc64-linux",
+            "-Dcheck-only=true",
+            "-j1",
+            "--verbose"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 133840896,
+          "wall_seconds": 0.4502703750040382
+        },
+        {
+          "label": "proof-fixture-bytes-after",
+          "argv": [
+            "env",
+            "STWO_RV64_P2_NATIVE_OUT_DIR=/tmp/stwo-delivery-blake-dedup/after",
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "ReleaseFast",
+            "src/integrations/riscv_cpu/rv64_poseidon2_native_test_root.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 2414624768,
+          "wall_seconds": 56.97077937499853
+        }
+      ],
+      "runtime_identities": {
+        "crypto_test_images": [
+          {
+            "phase": "before",
+            "mode": "Debug",
+            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/a875db3bbc68d2474a20a1a39a8cb607/test",
+            "bytes": 1844728,
+            "sha256": "0397ffc8c29013cad2f91b1c9414b5f61dcb5ee485d0b09aaec28ba9b9cd6a68"
+          },
+          {
+            "phase": "before",
+            "mode": "ReleaseFast",
+            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/3b676816523bb5511177d98efd5acec2/test",
+            "bytes": 413832,
+            "sha256": "2de8eafbc74ec93f44d24a3f43f874c941a981357e88870b427a7fc943b59eb4"
+          },
+          {
+            "phase": "after",
+            "mode": "Debug",
+            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/a5e15914b823ae7bb7ca7cdf76389e64/test",
+            "bytes": 1900264,
+            "sha256": "ed70d80bf46e2db42bdab55fb7bf9745f9674b3dec92d5ee38330afd6ad84142"
+          },
+          {
+            "phase": "after",
+            "mode": "ReleaseFast",
+            "path": "/Users/theodorepender/Coding/stwo-zig/src/waist/core/.zig-cache/o/44ca216e00b0b462207a02d054a2d928/test",
+            "bytes": 414184,
+            "sha256": "c53115581b6f697fba98c490cb18b6df9f5ea995b82a5f01ae7bb1baab021ab2"
+          }
+        ],
+        "host": "macOS-15.3.1-arm64-arm-64bit-Mach-O",
+        "zig_version": "0.15.2",
+        "baseline_commit": "e79c85d815ee9903cdcc44fc946d2a324181ff84"
+      },
+      "claim_boundary": "Host correctness and exact deterministic fixture bytes. Cross-target checks are semantic-only; no Linux/big-endian runtime, complete-product, 128-bit-security, GPU or performance qualification."
     }
   },
   "post_merge_hygiene": {
