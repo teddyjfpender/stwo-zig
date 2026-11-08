@@ -370,6 +370,13 @@
       "positive_growth_justification": "Replace an empirical eleven-tree PCS allowance with a source-derived retained-block upper bound using the existing C++ allocation roster. Charge aligned initial/FRI blocks, keep retired cache blocks charged, match late scratch by raw-size best fit and charge misses; prove canonical contiguous borrowing. Includes anti-underbound/reuse tests and outer integration. The retained heuristic override may only increase the derived bound. No physical-peak or timing claim.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "hermetic_deleted_source_git_fixture",
+      "net_code_budget": 5,
+      "positive_growth_justification": "Make the existing deletion-routing regression independent of checkout Git metadata while preserving explicit Git-confirmed deletion and unconfirmed-path rejection. Production routing remains fail closed.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

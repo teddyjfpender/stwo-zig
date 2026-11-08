@@ -1266,7 +1266,7 @@
     "policy": "Stop optional cleanup/profiling. Keep required two-block canonical3+3, genuine setupmiss and all15nativeblocks. Basket rounds1/profile none; no guard/parity/receiver weakening. No authorized top-up or additional GPU purchase."
   },
   "batched_native_default_candidate": {
-    "status": "UNPUBLISHED_HARDWARE_PENDING",
+    "status": "PRODUCTION22_BUILD_AND_ZIG_PASS_PYTHON_FIXTURE_FAILURE",
     "native_selected_when_unset": true,
     "production_promoted": false,
     "resource_bound": "source-derived retained-block upper; physical_peak=false",
@@ -1281,6 +1281,10 @@
     "new_code_net_expected": 215,
     "flags_added": 0,
     "scripts_added": 0,
-    "growth_justification": "explicit phase lifetimes, allocation-derived admission, actual default selection and independent fresh CPU concurrency; all within declared per-change budgets"
+    "growth_justification": "explicit phase lifetimes, allocation-derived admission, actual default selection and independent fresh CPU concurrency; all within declared per-change budgets",
+    "failed_python_case": "test_only_git_confirmed_unowned_deletions_select_static_checks: non-Git pod lacks local .git existence assumed by fixture",
+    "gpu_execution": "NOT_STARTED_FOR_216f39d",
+    "driver_sha256": "3c32e576c1dc55f0a0bd1327d34ca7aac7e56482923aa3b4ddefc2861b4e9c56",
+    "receiver_sha256": "43a7858ad952b5e1e8186a7396b2a26c63ab9910b08b58981016c72b5b392b76"
   }
 }

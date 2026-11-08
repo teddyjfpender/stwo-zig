@@ -263,12 +263,14 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_only_git_confirmed_unowned_deletions_select_static_checks(self):
         path = "src/retired_unowned_root.zig"
-        with mock.patch("scripts.dev_test.subprocess.check_output", return_value=path + "\n"):
-            commands = dev_test.commands_for_paths(ROOT, [path])
-        self.assertTrue(any("scripts/ci.py" in command and "--fast" in command for command in commands))
-        with mock.patch("scripts.dev_test.subprocess.check_output", return_value=""):
-            with self.assertRaises(dev_test.DevTestError):
-                dev_test.commands_for_paths(ROOT, [path])
+        actual_exists = Path.exists
+        with mock.patch.object(Path, "exists", lambda candidate: candidate == ROOT / ".git" or actual_exists(candidate)):
+            with mock.patch("scripts.dev_test.subprocess.check_output", return_value=path + "\n"):
+                commands = dev_test.commands_for_paths(ROOT, [path])
+            self.assertTrue(any("scripts/ci.py" in command and "--fast" in command for command in commands))
+            with mock.patch("scripts.dev_test.subprocess.check_output", return_value=""):
+                with self.assertRaises(dev_test.DevTestError):
+                    dev_test.commands_for_paths(ROOT, [path])
 
 
 if __name__ == "__main__":
