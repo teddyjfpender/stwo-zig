@@ -18,9 +18,9 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-ADMISSION = ROOT / "vectors/reports/recursive-product-20260917/canonical-admission-v2/admission.json"
+ADMISSION = ROOT / "vectors/fixtures/recursive/recursive-product-20260917/canonical-admission-v2/admission.json"
 ADMISSION_SHA256 = "1fe20e6c7ee8daec966ccf2aa601e9e417d1aa37e9e96e8d9290c8ae18d90a89"
-OTHER_ADMISSION = ROOT / "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/tree-admissions/air-fusion-q193-4-seed14.json"
+OTHER_ADMISSION = ROOT / "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/tree-admissions/air-fusion-q193-4-seed14.json"
 OTHER_ADMISSION_SHA256 = "c7b278867cee07a660be4e2ec16f71db78f1bb7dd51ed74cf26e2c683dea4b07"
 
 

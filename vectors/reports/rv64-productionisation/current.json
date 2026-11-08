@@ -1,9 +1,9 @@
 {
   "schema": "rv64-productionisation-current/v1",
-  "status": "IN_PROGRESS",
-  "updated_utc": "2026-11-08T10:06:36.295228+00:00",
+  "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
+  "updated_utc": "2026-11-08T16:26:21Z",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
-  "branch": "codex/rv64-gpu-hygiene",
+  "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
   "budgets": "conformance/rv64-productionisation-budget.json",
   "consolidation": {
@@ -84,7 +84,7 @@
     "tracked_receipt_files": 14945,
     "local_m8_m9_branches": 69
   },
-  "current_followup_scope": "Uncommitted second batch: zero-growth FRI arithmetic correction, optimized developer route, frozen two-lane retirement and versioned GPU-native/default comparison preparation. Host-only qualification so far; 7c0686ae7 remains the last accepted hardware source.",
+  "current_followup_scope": "Post-merge repository hygiene on main-derived branch: explicit installation lifetime owner, package-owned Metal tests, authoritative CI/developer routing, source-bound readers and archived-evidence retirement. No later experimental GPU algorithms/default candidate applied. Remaining static, flag, full-suite, promotion, physical-memory and legacy-sweep gates stay open.",
   "host_ci_repair": {
     "native_cuda": "PASS 281/281 ReleaseFast after invalid-free test cleanup",
     "component_geometry": "PASS exact 2/2 named tests after test-owner discovery fix",
@@ -101,8 +101,8 @@
     "gpu_native_full_15_basket": "NOT_RUN_FOR_FINAL_SOURCE",
     "default_flip": "NOT_ELIGIBLE",
     "legacy_sweep": "WAITING_FOR_PROMOTION",
-    "live_flag_registry_under_60": "NOT_IMPLEMENTED",
-    "static_gate": "FAIL_138_PATHS_NO_BASELINES_OR_CEILING_CHANGES",
+    "live_flag_registry_under_60": "REGISTRY_PASS_TARGET_NOT_MET_260_LIVE",
+    "static_gate": "FAIL_123_DIAGNOSTICS_122_PATHS_NO_NEW_BASELINES",
     "old_receipt_retirement": "PENDING_DEPENDENCY_AUDIT",
     "remote_branch_archive_retirement": "PASS_72_LITERAL_REFS_AFTER_PUBLISHED_TAGS_AND_OFFHOST_RECOVERY"
   },
@@ -562,21 +562,21 @@
   },
   "running_subtraction_total": {
     "baseline": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
-    "delivered_code_net": -67618,
-    "pending_code_net": -542,
-    "combined_code_net": -68160,
-    "production_code_net": -42504,
+    "delivered_code_net": -68160,
+    "pending_code_net": 105,
+    "combined_code_net": -68055,
+    "production_code_net": -42399,
     "historical_research_code_net": -25656,
     "top_level_scripts_removed": 150,
     "runtime_flags_removed": 2,
     "runtime_flags_added": 0,
-    "live_flag_registry": "IMPLEMENTED: 260 live controls; <60 target and M7/M8 retirement remain open",
+    "live_flag_registry": "IMPLEMENTED260live; strictunder60andM7/M8retirement OPEN",
     "historical_tool_python_utilities_removed": 4,
     "historical_non_stwo_flags_removed": 3
   },
   "latest_goal_turn": {
     "classification": "PROGRESS",
-    "evidence": "Closed optimized projection failures and mandatory fixture cwd bug; complete optimized CUDA package and 118 focused host tests pass. Retired 801 probe lines, moved 175 immutable fixture files, and separated source-pinned policy from observed evidence. Full-proof gates and the remaining phase requirements are still outstanding."
+    "evidence": "Main-derived hygienebranch:139\u2192123static findings without baseline/ceiling changes;7004archived reports retired;209fixture pins+28edgesverify;53sourcechecks,143developer/CIchecks,31conformancechecks,51fixture/toolchecks and combined227PASS;42fake-device entriesPASS. RawCItemplating/hostpolicy/typo/checkonly gaps fixed after independentreview. Hardware and completephase not claimed."
   },
   "budget_results": {
     "worktree_consolidation": {
@@ -806,6 +806,162 @@
         "removed": 2,
         "net": 0
       }
+    },
+    "post_merge_source_contract_definition_owners": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 58,
+        "removed": 11,
+        "net": 47,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "before": "52tests13failures",
+      "after": "53testsPASS",
+      "claim_scope": "source-reader/canonical-definition binding; no runtime behavior changes"
+    },
+    "post_merge_metal_test_package_owners": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 121,
+        "removed": 34,
+        "net": 87,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "original_named_test_bodies_preserved": 84,
+      "exporter_cli_preserved": true,
+      "lines_moved_zero_deletion_credit": 2093,
+      "mandatory_package_targets": true,
+      "semantic_zig_compile": "PENDING_NOT_CLAIMED"
+    },
+    "post_merge_installation_lifetime_owner": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 434,
+        "removed": 381,
+        "net": 53,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "owner_lines": 372,
+      "request_driver_lines": 747,
+      "bounded_fake_device_entries": 42,
+      "bounded_seconds": 9.730255791975651,
+      "bounded_peak_group_rss_kib": 554928,
+      "warm_census_size_default_algorithms": "PRESERVED",
+      "fix": "partial peer-table allocator rollback",
+      "cache_callback_address_stability": "PASS",
+      "independent_review": "NO_MATERIAL_BLOCKERS"
+    },
+    "post_merge_developer_policy_routing": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 188,
+        "removed": 23,
+        "net": 165,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "host_tests": 143,
+      "existing_owner_reuse": [
+        "ci_scope_push.locally_runnable",
+        "ci_scope_run CLI expansion/receipts"
+      ],
+      "review_findings_closed": [
+        "all input typos fail before planning",
+        "hosted lanes defer explicitly",
+        "raw CI output placeholders delegate to existing runner",
+        "check-only never launches unfocused/full CI build"
+      ],
+      "noarg_plan": "PASS6commands with explicit CI deferrals; not execution/pass of those lanes",
+      "independent_review": "NO_FURTHER_MATERIAL_BLOCKERS"
+    },
+    "post_merge_historical_receipt_retirement": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 8,
+        "removed": 9,
+        "net": -1,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "report_files_retired": 7004,
+      "evidence_bytes_removed": 1570076423,
+      "fixtures_moved_byte_identical": 34,
+      "moved_fixture_bytes": 11551802,
+      "maintained_fixture_pins_verified": 209,
+      "recursive_fixture_edges_verified": 28,
+      "source_snapshots_counted_as_code_removal": 0,
+      "existing_host_tests": 51
+    },
+    "post_merge_unreachable_metal_compile_wrappers": {
+      "status": "HOST_CHECKS_PASS_COMPLETE_PHASE_PENDING",
+      "actual": {
+        "added": 0,
+        "removed": 246,
+        "net": -246,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "moves_counted_as_deletions": false,
+      "hardware_gate": "NOT_RUN_GPU_CREDIT_UNAVAILABLE",
+      "files_removed": 5,
+      "bytes_removed": 15064,
+      "archive_blob_bytes_verified": true,
+      "host_conformance_tests": 31,
+      "static_before": 128,
+      "static_after": 123,
+      "new_findings": 0
     }
+  },
+  "post_merge_hygiene": {
+    "base_merge_commit": "4e260db9605d16fef5d405cc3c280e3042b22e35",
+    "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
+    "worktrees": 1,
+    "gpu_native_default": false,
+    "experimental_candidate_retained_separately": "origin/codex/rv64-gpu-hygiene-local@4892bffa6f77dce3dda68aea0053dfff71e7f0cd",
+    "source_contract_commit": "2b89ae3ec13033ed94ac330c7cabfdb525c8f903",
+    "code_added": 809,
+    "code_removed": 704,
+    "code_net": 105,
+    "code_inventory_net_from_original_baseline": -68055,
+    "flags_added": 0,
+    "flags_removed_this_batch": 0,
+    "live_flags": 260,
+    "scripts_added": 0,
+    "scripts_removed_this_batch": 0,
+    "top_level_scripts_removed_cumulative": 150,
+    "static_diagnostics_before": 139,
+    "static_diagnostics_after": 123,
+    "static_paths_after": 122,
+    "new_baselines_or_ceiling_increases": 0,
+    "final_host_command": "227testsPASS",
+    "host_fake_device_command": "42entriesPASS",
+    "default_gpu_gate": "PENDING_NO_CREDIT",
+    "full_suite_status": "NOT_CLAIMED_GREEN",
+    "phase_complete": false
   }
 }

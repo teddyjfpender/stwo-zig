@@ -97,6 +97,7 @@ def validate_policy(policy: dict[str, Any]) -> None:
         and all(isinstance(prefix, str) and prefix for prefix in rule["prefixes"])
         and isinstance(rule.get("lanes"), list) and rule["lanes"]
         and all(isinstance(value, str) and value for value in rule["lanes"])
+        and isinstance(rule.get("validate_documentation", False), bool)
         for rule in rules
     ):
         raise PlanError("CI policy rules are malformed")
@@ -109,6 +110,9 @@ def validate_policy(policy: dict[str, Any]) -> None:
         isinstance(prefix, str) and prefix for prefix in documentation
     ):
         raise PlanError("CI policy documentation prefixes are malformed")
+    suffixes = policy.get("documentation_suffixes", [])
+    if not isinstance(suffixes, list) or not all(isinstance(s, str) and s.startswith(".") for s in suffixes):
+        raise PlanError("CI policy documentation suffixes are malformed")
     referenced: set[str] = set(always_lanes)
     for values in scope_lanes.values():
         referenced.update(values)
@@ -176,7 +180,14 @@ def catalog_lanes(path: str, catalog: dict[str, Any], policy: dict[str, Any]) ->
 
 
 def is_documentation(path: str, policy: dict[str, Any]) -> bool:
-    return any(owns(path, prefix) for prefix in policy["documentation_prefixes"])
+    return any(owns(path, prefix) for prefix in policy["documentation_prefixes"]) or PurePosixPath(path).suffix in policy.get("documentation_suffixes", [])
+
+
+def rule_lanes(path: str, policy: dict[str, Any], *, documentation_only: bool = False) -> set[str]:
+    return {lane for rule in policy["rules"]
+            if (not documentation_only or rule.get("validate_documentation", False))
+            and any(owns(path, prefix) for prefix in rule["prefixes"])
+            for lane in rule["lanes"]}
 
 
 def is_externally_validated(path: str, policy: dict[str, Any]) -> bool:
@@ -244,9 +255,7 @@ def select_lanes(
     for path in paths:
         path_lanes = catalog_lanes(path, catalog, policy)
         path_lanes.update(graph_lanes(path, packages, bindings))
-        for rule in policy["rules"]:
-            if any(owns(path, prefix) for prefix in rule["prefixes"]):
-                path_lanes.update(rule["lanes"])
+        path_lanes.update(rule_lanes(path, policy))
         if (
             not path_lanes
             and not is_documentation(path, policy)

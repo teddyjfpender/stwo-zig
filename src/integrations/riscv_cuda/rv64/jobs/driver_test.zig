@@ -247,6 +247,7 @@ const World = struct {
     seal_enqueued: bool = false,
     installed_info: ?G.Installed = null,
     installed_sealed: ?bool = null,
+    installed_cache: ?*G.ClassCache = null,
     capture: ?*C.Stream = null,
     /// Native classes declare a stage-one share; the seal encodes it.
     stage_one: bool = false,
@@ -676,7 +677,7 @@ test "D1: install sizes main_resident per GPU from placement, and plans against 
     var world = World{ .a = testing.allocator };
     var rig = try Rig.init(&world);
     // max_segments 8 on 2 GPUs: at most 4 segments' MAIN per GPU.
-    for (rig.driver.lanes) |l| try testing.expectEqual(@as(usize, 4 * main_words), l.main.words);
+    for (rig.driver.resources.lanes) |l| try testing.expectEqual(@as(usize, 4 * main_words), l.main.words);
     rig.deinit();
     // A GPU another tenant holds: the plan refuses at install with the numbers.
     const saved = F.memory_free_bytes;
@@ -790,6 +791,7 @@ test "D1: the installed hook sees the plan (main_resident, phase epochs) before 
             const w: *World = @ptrCast(@alignCast(raw));
             w.installed_info = info.*;
             w.installed_sealed = cache.phase == .request;
+            w.installed_cache = cache;
         }
     };
     var vt = World.native_vt;
@@ -805,8 +807,9 @@ test "D1: the installed hook sees the plan (main_resident, phase epochs) before 
     const info = world.installed_info.?;
     try testing.expectEqual(@as(u32, 2), info.devices);
     try testing.expectEqual(false, world.installed_sealed.?);
-    try testing.expect(drv.classes.phase == .request);
-    for (drv.lanes, 0..) |l, d| {
+    try testing.expectEqual(&drv.resources.classes, world.installed_cache.?);
+    try testing.expect(drv.resources.classes.phase == .request);
+    for (drv.resources.lanes, 0..) |l, d| {
         try testing.expectEqual(l.main.ptr, info.main_resident[d].ptr);
         try testing.expectEqual(ws[d].planPhaseEpochs(), info.arena_epochs[d]);
     }
@@ -1102,6 +1105,27 @@ fn serviceConfig() R.Config {
     return .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15, .stage_one_base_bytes = 512 };
 }
 
+test "driver: installation rolls back every owner allocator failure" {
+    const Attempt = struct {
+        fn run(a: std.mem.Allocator, worker: *W.Worker, world: *World) !void {
+            // Each attempt borrows the same worker; completed installations
+            // retire their plan before the next bootstrap arena is created.
+            if (worker.isParked()) _ = try worker.unpark(1 << 10);
+            var config = serviceConfig();
+            config.capacity_words = &.{1 << 20};
+            const driver = try R.Driver.install(a, &F.ops, &F.peer, &.{worker}, world.nativeFactory(), world.recursionFactory(), config);
+            defer driver.deinit();
+            try testing.expect(driver.resources.installed);
+            try testing.expect(driver.resources.classes.phase == .request);
+        }
+    };
+    const a = testing.allocator;
+    var world = World{ .a = a };
+    const worker = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer worker.destroy();
+    try testing.checkAllAllocationFailures(a, Attempt.run, .{ worker, &world });
+}
+
 test "driver: malformed class reservations refuse before request resources allocate" {
     const Malformed = struct {
         var main = false;
@@ -1158,8 +1182,8 @@ test "driver: final admission uses class peaks updated by resource measurement" 
     config.prewarm_resources = true;
     const driver = try R.Driver.install(a, &F.ops, &F.peer, &.{worker}, .{ .ctx = &world, .vtable = &native_vt }, .{ .ctx = &world, .vtable = &recursion_vt }, config);
     defer driver.deinit();
-    try testing.expectEqual(@as(usize, 256), (try driver.classes.get(k_native)).arena_peak_words);
-    try testing.expect(driver.lanes[0].plan.phase_a_words < 1 << 19);
+    try testing.expectEqual(@as(usize, 256), (try driver.resources.classes.get(k_native)).arena_peak_words);
+    try testing.expect(driver.resources.lanes[0].plan.phase_a_words < 1 << 19);
 }
 
 test "serve: install shapes every block from its warm capture; streamed requests pipeline two deep, one wait each" {

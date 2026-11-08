@@ -76,7 +76,7 @@ from rv64_m8_bench15_lib.metrics import (
 
 M3 = Path(os.environ.get('RV64_M3_ROOT', '/workspace/m3'))
 GPU_LOCK = M3 / 'locks/gpu.lock'
-M3_SUMMARY = ROOT / 'vectors/reports/rv64-m3-20261104/summary.json'
+M3_SUMMARY = ROOT / 'vectors/fixtures/rv64-m3-basket-v1.json'
 RUNTIME = stack.DEFAULT_RUNTIME
 DEV_BLOCKS = (26235156, 24628607)
 SMOKE_BLOCK = 26235156

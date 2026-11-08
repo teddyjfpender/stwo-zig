@@ -13,6 +13,12 @@ Use `dev_test.py --optimize ReleaseFast <changed-paths>` to reproduce optimized
 CI failures. Without an override, focused tests use Debug and package fallbacks
 use ReleaseSafe.
 
+`--dry-run` plans the actual worktree changes. Explicit paths must exist or be
+Git-confirmed deletions. CI lanes use their shared host policy and runner;
+`DEFER`/`PASS_LOCAL` leaves hosted work pending. `--check` never substitutes a
+full package or CI build when a focused type-check is unavailable.
+The [roadmap](../../TODO_ROADMAP.md) records the remaining phase gates.
+
 CI checks the [RV64 flag registry](../../../../../conformance/rv64-flags.json)
 before source-layout baselines are considered. Every declaration names its
 source owner, unset default, lifecycle status and review date; references are
@@ -22,7 +28,7 @@ Qualification controls count as live; C/CUDA constants do not. Current counts
 and outstanding gates are in the
 [productionisation receipt](../../../../../vectors/reports/rv64-productionisation/current.json).
 
-Compiles and proof gates currently run in the corresponding frozen pod source
+Large compiles and proof gates run in the corresponding frozen pod source
 snapshot. Transport must preserve the canonical source identity; do not select
 another laptop worktree to build a different component. The gate owns its GPU
 lock. The regression command covers the complete basket unless a diagnostic
@@ -202,8 +208,8 @@ through forwarding wrappers. `outer_job.zig` now separates result decoding and
 the heap's execution adapters, and uses one held-buffer schedule for budgeting
 and allocation.
 
-Other inherited oversized owners remain explicit decomposition work: `driver_request.zig` should separate installed
-lane resources from in-flight request state and publication; `gpu_native.zig` should separate class/cache ownership
+`driver_install.zig` now owns the installed cache, peer tables, lanes, slabs and events; `driver_request.zig` drains
+requests before retiring that stable owner. Remaining inherited decomposition work includes `gpu_native.zig` class/cache ownership
 from request slab/layout contracts; native Stage 1 and 2 should separate installed class construction from request
 jobs; `truth_job.zig` has the same class/job boundary. Recursion now separates installed
 registry ownership (`outer_device.zig`) from the node construction/custody/execution

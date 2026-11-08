@@ -8,7 +8,7 @@ const contract = @import("recursion/air/segment_outer_manifest_contract_v2.zig")
 
 test "pure leaf manifest admits the independently pinned q193 key" {
     const allocator = std.testing.allocator;
-    const bytes = try std.fs.cwd().readFileAlloc(allocator, "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-key.json", 64 * 1024 * 1024);
+    const bytes = try std.fs.cwd().readFileAlloc(allocator, "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-key.json", 64 * 1024 * 1024);
     defer allocator.free(bytes);
     var actual: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(bytes, &actual, .{});
