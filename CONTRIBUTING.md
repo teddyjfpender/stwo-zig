@@ -1136,7 +1136,7 @@ python3 scripts/riscv_trace_vectors.py
 
 This gate must produce and independently verify the branch, memory,
 cross-shard, and crypto proof corpus defined in
-[`conformance/riscv-pr-proof-gate.md`](conformance/riscv-pr-proof-gate.md).
+[`design/riscv/riscv-pr-proof-gate.md`](design/riscv/riscv-pr-proof-gate.md).
 Unit tests and compilation do not waive it. Live comparison against the exact
 pinned Sail and Spike executables, plus the applicable architectural-test
 execute → prove → independent-verify audit, remains mandatory in the exhaustive
@@ -1302,7 +1302,7 @@ references over large frameworks.
 - Large binary fixtures need a documented reason, hash, provenance, and retention policy.
 - Do not delete working Rust, Lean, CUDA, or generated authority code merely to
   reduce repository size. Follow the immutable replacement and clean-room
-  gates in `conformance/repository-production-scope.md`.
+  gates in `design/repository/repository-production-scope.md`.
 - Published Zig package closures must pass `zig build package-dist`; they may
   not acquire guest, Rust, Lean, vector, or deferred CUDA inputs.
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROTOCOL = (
-    REPOSITORY_ROOT / "design/typed-air/performance/m5-m9-protocol-v1.json"
+    REPOSITORY_ROOT / "conformance/typed-air/m5-m9-protocol-v1.json"
 )
 MAX_PROTOCOL_BYTES = 1 << 20
 SCHEMA = "stwo-typed-air-m5-m9-performance-protocol-v1"

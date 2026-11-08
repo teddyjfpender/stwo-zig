@@ -1,6 +1,6 @@
 //! Native2n DIV/REM truth, using existing MUL/MULHU as unsigned product truths.
 //!
-//! Trims (see design/riscv-proving-stack/rv64-div-canonical-input-trims.md):
+//! Trims (see design/riscv/rv64-div-canonical-input-trims.md):
 //! * PRODUCT_HIGH is no longer committed. The MULHU support tuple carries the
 //!   constant zero word in its result coordinates; the MUL provider's byte
 //!   ranged RESULT must therefore be zero, exactly as the former four

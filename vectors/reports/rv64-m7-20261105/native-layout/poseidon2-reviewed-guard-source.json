@@ -1,8 +1,0 @@
-{
-  "reviewed_base_commit": "cbc689434",
-  "guard_inspection": "integration worktree, source only; no test rerun",
-  "sha256": {
-    "src/core/channel/poseidon2_m31.zig": "fdce0125952a4936da68df2e8e405adc2d2262134e24de85b93f0142cd892612",
-    "src/core/vcs_lifted/poseidon2_profile.zig": "719f0ed9a3555bc95f558b06b6134c3790efa82754076a91436b3df0363effe3"
-  }
-}

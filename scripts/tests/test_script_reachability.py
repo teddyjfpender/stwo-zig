@@ -58,7 +58,7 @@ ENTRY_POINT_GLOBS = (
     "README.md",
     "SECURITY.md",
     ".githooks/*",
-    "soundness/**/*.md",
+    "design/soundness/**/*.md",
     "src/**/README.md",
     "vectors/**/README.md",
     "formal/**/*.md",

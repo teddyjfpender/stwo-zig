@@ -62,7 +62,7 @@ mod candidate {
 }
 
 /// ADMITTED bulk-memory services (profile `ethereum_services_v3`,
-/// design/riscv-proving-stack/rv64-bulk-memory-service.md). The prover admits
+/// design/riscv/rv64-bulk-memory-service.md). The prover admits
 /// packet `dst, src|byte, len` (memcpy/memset) or `a, b, len, result` (memcmp)
 /// at an 8-aligned pointer with `dst` (and `a`, `b`) 8-aligned, `len` a
 /// nonzero multiple of 8 and at most 1 MiB, a memcpy source of any alignment,

@@ -154,6 +154,6 @@ When changing this package:
 ## Related documentation
 
 - [Repository architecture and product usage](../../README.md)
-- [Package-workspace release audit](../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
-- [Package release and versioning policy](../../conformance/zig-package-release-policy.md)
+- [Package-workspace release audit](../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
+- [Package release and versioning policy](../../design/repository/zig-package-release-policy.md)
 - [API parity policy](../../conformance/api-parity.md)

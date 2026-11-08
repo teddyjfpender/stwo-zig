@@ -187,7 +187,7 @@ implemented and tested. The task remains `ready`, not `done`: the shared
 checkout is not a clean immutable capture source, and the required secure CPU
 cohort, Metal cohort, cross-lane evidence, and normative promotion receipt do
 not yet exist. See the
-[CPU capture readiness audit](notes/2026-08-12-c013-cpu-capture-readiness.md).
+[CPU capture readiness audit](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/notes/2026-08-12-c013-cpu-capture-readiness.md).
 
 ## Parallelism and recursion
 

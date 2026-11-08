@@ -4,7 +4,7 @@
   "updated_utc": "2026-11-08T10:06:36.295228+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-gpu-hygiene",
-  "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
+  "contract": "design/riscv/rv64-gpu-hygiene.md",
   "budgets": "conformance/rv64-productionisation-budget.json",
   "consolidation": {
     "status": "ONE_CANONICAL_WORKTREE_PUBLISHED_ARCHIVE_AND_REMOTE_RETIREMENT_VERIFIED",
@@ -121,7 +121,7 @@
     "Correct the canonical native comparison preset/addon pin surface, then execute the exact promotion order before held legacy deletion",
     "After default promotion, measure late feeding and pursue handoff section 5 architectural steps"
   ],
-  "archive_index": "design/riscv-proving-stack/rv64-archive-index.md",
+  "archive_index": "design/riscv/rv64-archive-index.md",
   "first_subtractive_batch": {
     "status": "PASS_REQUIRED_BATCH_GATES_INCLUDED_IN_THIS_DELIVERY_COMMIT",
     "top_level_scripts_removed": 150,
@@ -376,8 +376,8 @@
   "initial_four_gate_receipt": "vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-7.json",
   "named_edits_delivery": {
     "paths": [
-      "design/riscv-proving-stack/rv64-gpu-hygiene.md",
-      "design/riscv-proving-stack/rv64-m8-handoff.md",
+      "design/riscv/rv64-gpu-hygiene.md",
+      "design/riscv/rv64-m8-handoff.md",
       "scripts/dev_test.py"
     ],
     "status": "COMMITTED_AND_PUSHED",
@@ -489,7 +489,7 @@
         "status": "BYTE_IDENTICAL_MIGRATION_AND_HOST_AND_OPTIMIZED_RUNTIME_TESTS_PASS",
         "files_moved": 175,
         "bytes": 13094934,
-        "manifest": "vectors/fixtures/rv64-validation-fixtures.json",
+        "manifest": "vectors/riscv/fixtures/rv64-validation-fixtures.json",
         "code_net": -4,
         "moves_counted_as_deletions": false,
         "missing_committed_policy_fixture_skips_removed": 1,

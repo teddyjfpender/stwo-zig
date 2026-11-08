@@ -14,7 +14,7 @@
 //! and r are inherited from the Word16 bridge (its BEFORE/AFTER U8 queries)
 //! through Wire35; q, d and the carry bytes are range-checked here against a
 //! local 256-entry BYTE table (fixed column BYTE = row mod 256, MAIN MULT).
-//! See design/riscv-proving-stack/rv64-arith256-service.md for the bounds.
+//! See design/riscv/rv64-arith256-service.md for the bounds.
 const std = @import("std");
 const core = @import("stwo_core");
 

@@ -48,7 +48,7 @@
     "src/frontends/riscv/rv64/word.zig": "ecb5a0cd4710aa593ce916a7956feb97a5eb45cad0329dd3e4d9793922c99a05"
   },
   "evidence_sha256": {
-    "vectors/reports/rv64-foundations-20261030/baseline-source.json": "74c54928aab20ce55612cbe7c4f262fca258cce8bf4c696ebf9c67936928b42b",
+    "vectors/riscv/rv64/foundations-baseline-source.json": "74c54928aab20ce55612cbe7c4f262fca258cce8bf4c696ebf9c67936928b42b",
     "vectors/reports/rv64-foundations-20261030/csp-execution.json": "5b0e5ed882c9809251578810f0cb1ecff146eb3b68ecb629a062e66f837356ee",
     "vectors/reports/rv64-foundations-20261030/oracle.json": "d04bf76ba69e473dbdc21b9786a25283bfd9831738b694fe16101ff2346e9b05",
     "vectors/reports/rv64-foundations-20261030/paired-execution.json": "2c51b600d0a561c3e1b1a8d14f508d2ba3f3833972203035e32f5498c405bac7"

@@ -1,7 +1,7 @@
 //! `stwo_circuit_frontend`: the call-order-exact Zig port of StarkWare's
 //! circuit recursion stage (https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230). See README.md for the map and
-//! `design/starknet-proving-pipeline/recursion/02-design.md` §2.2.
+//! `design/starknet/recursion/02-design.md` §2.2.
 //!
 //! This package must not depend on `stwo_cairo_frontend`; Cairo facts come
 //! from the committed compiled-AIR projection and `stwo_core.cairo_air_layout`.

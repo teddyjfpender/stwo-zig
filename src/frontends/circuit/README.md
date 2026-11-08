@@ -19,9 +19,9 @@ hashes, gate lists and proofs.
 
 The [package contract](package.contract.json) and [public facade](mod.zig) are
 the authoritative API records. The design is
-[02-design.md](../../../design/starknet-proving-pipeline/recursion/02-design.md)
+[02-design.md](../../../design/starknet/recursion/02-design.md)
 §2.2, §3, §5 and §8; the Rust-to-Zig map is
-[01-rust-map.md](../../../design/starknet-proving-pipeline/recursion/01-rust-map.md).
+[01-rust-map.md](../../../design/starknet/recursion/01-rust-map.md).
 
 ## Purpose and architecture
 
@@ -343,6 +343,6 @@ Tests that read `vectors/circuit` run from the repository root.
 
 ## Related documentation
 
-- [Porting map](../../../design/starknet-proving-pipeline/recursion/01-rust-map.md)
-- [Design](../../../design/starknet-proving-pipeline/recursion/02-design.md)
+- [Porting map](../../../design/starknet/recursion/01-rust-map.md)
+- [Design](../../../design/starknet/recursion/02-design.md)
 - [Circuit fixtures](../../../vectors/circuit/README.md)

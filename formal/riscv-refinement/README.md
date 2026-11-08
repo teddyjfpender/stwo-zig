@@ -5,9 +5,9 @@ generated Sail model. The public claim is organized by verification layer and
 opcode family; contributor-team assignments have no semantic meaning.
 
 The concise claim ledger and remaining roadmap are in
-[`soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
+[`design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
 The detailed theorem contract is
-[`soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
+[`design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../../design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
 The temporary review exception and behavior-preserving split sequence for
 oversized promotion proofs is recorded in
 [`DECOMPOSITION_PLAN.md`](DECOMPOSITION_PLAN.md).

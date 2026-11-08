@@ -1,5 +1,0 @@
-Named Keccak early/late producer+receiver policy [CPU fixture]
-
-`STWO_RV64_KECCAK_FAMILY_PROFILE=m7_keccak_early_late_b16_q27_p20_fold4_v1` selects TWO contiguous compact-Keccak physical spans (ceilhalf, rest) and beta16/q27/P20 for Keccak only. Other families keep their receiver-selected config. The policy/config is hashed into execution scope; receiver Set admission reconstructs and validates exact partition, AIR policy and minimal source logs. Both native coordinator and recursive captures use the same per-truth config. Flat legacy defaults emit no extra framing. Native-GKR mixed policy explicitly refuses.
-
-Six CPU tests pass including TWO genuine native Keccak physical proofs, fresh fixed-key caches, config/claim/root mutations, partition coverage/holes and typed actual coordinator body. This is not an Ethereum or GPU proof gate. Large beta16 production remains blocked on compact-source TC+PCS streaming, developed separately. Initial guard failures and discarded uncommitted R27 draft are retained as negatives. No whole-protocol128 certificate or latency claim.

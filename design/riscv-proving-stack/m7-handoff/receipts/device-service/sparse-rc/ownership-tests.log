@@ -1,3 +1,0 @@
-1/2 composition_sparse_ownership.test.sparse bucket clear failure preserves exactly one caller owner...OK
-2/2 composition_sparse_ownership.test.sparse bucket append failure releases untransferred owner once...OK
-All 2 tests passed.

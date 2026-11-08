@@ -123,5 +123,5 @@ behavior. Do not silently reinterpret a prior binary version.
 
 - [Protocol core](../../core/README.md)
 - [Repository artifact and CLI overview](../../../README.md)
-- [Package-workspace audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
-- [Package release policy](../../../conformance/zig-package-release-policy.md)
+- [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
+- [Package release policy](../../../design/repository/zig-package-release-policy.md)

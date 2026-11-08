@@ -17,11 +17,11 @@ import time
 from rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, JOBS_FLAGS
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_PRESET = HERE.parent / 'design/riscv-proving-stack/m7-handoff/integration-stack-preset.json'
+DEFAULT_PRESET = HERE.parent / 'conformance/rv64/presets/integration-stack-preset.json'
 # Canonical default CUDA runtime (owner decision 2026-11-07): the source-built
 # opt-combined image. p0-runtime.json (frozen a25) stays as an explicit control.
-DEFAULT_RUNTIME = HERE.parent / 'design/riscv-proving-stack/m7-handoff/default-runtime.json'
-FROZEN_P0_RUNTIME = HERE.parent / 'design/riscv-proving-stack/m7-handoff/p0-runtime.json'
+DEFAULT_RUNTIME = HERE.parent / 'conformance/rv64/presets/default-runtime.json'
+FROZEN_P0_RUNTIME = HERE.parent / 'conformance/rv64/presets/p0-runtime.json'
 DEV_BLOCKS = (26235156, 24628607)
 RUNTIME_ASSETS = ('library', 'sparse', 'observer', 'process_budget_guard')
 
@@ -54,8 +54,8 @@ def arm_environment(preset, arm, assets):
 
 def source_hashes(root):
     result = {}
-    for relative in ('src', 'build_support', 'scripts', 'design/typed-air/artifacts',
-                     'conformance', 'vectors/fixtures', '.github', '.githooks'):
+    for relative in ('src', 'build_support', 'scripts', 'src/frontends/riscv/air/lang/artifacts',
+                     'conformance', 'vectors/riscv/fixtures', '.github', '.githooks'):
         for path in sorted((root / relative).rglob('*')):
             if path.is_file() and not path.is_symlink() and not set(path.parts).intersection({'.zig-cache', 'zig-cache', 'zig-out', '__pycache__', '.git'}):
                 result[str(path.relative_to(root))] = sha(path)

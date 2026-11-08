@@ -34,16 +34,16 @@ PR306 remains draft/outside this merge; PR322 is explicitly excluded.
 
 ## 2. Binding contracts and evidence vocabulary
 
-The [delivery contract](../../../design/riscv-proving-stack/rv64-gpu-hygiene.md)
+The [delivery contract](../../../design/riscv/rv64-gpu-hygiene.md)
 defines promotion order, subtraction budgets, ownership and completion requirements.
-The [handoff](../../../design/riscv-proving-stack/rv64-m8-handoff.md)
+The [handoff](../../../design/riscv/rv64-m8-handoff.md)
 contains historical results and the architectural work queue; its estimates are not promises.
 The [current receipt](../../../vectors/reports/rv64-productionisation/current.json)
 records the evidence belonging to its own source revision.
 Its 51897-prefix version has stale last-qualified metadata; use the compact
 [51897 merge validation](../../../vectors/reports/rv64-productionisation/merge-validation-51897.json)
 for the separately preserved gate receipts and their retention limitations.
-The [archive index](../../../design/riscv-proving-stack/rv64-archive-index.md)
+The [archive index](../../../design/riscv/rv64-archive-index.md)
 records recoverable history and the custody process.
 
 Use these labels in every follow-up receipt:
@@ -404,7 +404,7 @@ They are attribution clues, not qualified latency measurements for the current c
 - [ ] Measure per-request uploads and enforce the intended resident-class boundary.
 - [ ] Charge cold/new-block class construction, rather than hiding it before the timing window.
 
-Then follow [handoff section 5](../../../design/riscv-proving-stack/rv64-m8-handoff.md#5-take-large-architectural-steps-not-small-kernel-tweaks):
+Then follow [handoff section 5](../../../design/riscv/rv64-m8-handoff.md#5-take-large-architectural-steps-not-small-kernel-tweaks):
 
 1. Complete GPU-native ownership and retire hybrids/legacy callbacks.
 2. Finish packed residency, device geometry, copy-lane ownership and P1 memory work.

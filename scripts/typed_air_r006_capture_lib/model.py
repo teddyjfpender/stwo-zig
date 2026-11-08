@@ -9,7 +9,7 @@ PLAN_SCHEMA = "stwo.typed-air.r006-capture-plan.v4"
 PLAN_VERSION = 4
 BUNDLE_SCHEMA = "stwo.typed-air.r006-raw-bundle.v1"
 PROTOCOL_SCHEMA = "stwo-typed-air-m5-m9-performance-protocol-v1"
-PROTOCOL_PATH = "design/typed-air/performance/m5-m9-protocol-v1.json"
+PROTOCOL_PATH = "conformance/typed-air/m5-m9-protocol-v1.json"
 PROTOCOL_SHA256 = (
     "7c213ae7c35ac8f60f204fba8fa96357195186a29a6a626c0a67fd47984cf985"
 )

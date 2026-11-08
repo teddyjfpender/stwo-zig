@@ -3,13 +3,13 @@
 > **Historical rollout record — non-normative.** This contributor allocation
 > is superseded by the manifest-wide publication inventory. See
 > [`README.md`](README.md) and
-> [`../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
+> [`../../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
 
 Team B of the original Universal AIR → Sail refinement plan (issue #137) owned 22 of the
 46 admitted RV32IM opcodes, across six AIR families, plus the generated-Sail
 normalization obligation.
 
-Historical contract: [`../../soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md`](../../soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md).
+Historical contract: [`../../design/soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md`](../../design/soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md).
 Historical machine-readable snapshot: [`team-b-coverage.json`](team-b-coverage.json).
 
 ## What is claimed
@@ -40,7 +40,7 @@ composition with generated Sail step-monad execution.
 
 Hosted Sail provisioning now exists —
 `.github/workflows/riscv-sail-formal.yml`, normative in
-[`../../soundness/SAIL_PROVISIONING.md`](../../soundness/SAIL_PROVISIONING.md) —
+[`../../design/soundness/SAIL_PROVISIONING.md`](../../design/soundness/SAIL_PROVISIONING.md) —
 so "no Sail compiler is available" is a retired excuse, not a standing one.
 It upgrades nothing here: per that document, no file stops saying "reviewed
 capsule" because the provisioning job is green. The capsules stay reviewed

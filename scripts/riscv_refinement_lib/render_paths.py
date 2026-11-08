@@ -89,10 +89,10 @@ PROOF_PATHS = (
     "formal/riscv-refinement/lakefile.toml",
     "formal/riscv-refinement/RiscvRefinement.lean",
     "conformance/riscv/sail-lean-riscv-extras.patch",
-    "soundness/AIR_IR_V2_CONTRACT.md",
-    "soundness/SAIL_AIR_COMPOSITION.md",
-    "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md",
-    "soundness/air-ir-v2.schema.json",
+    "design/soundness/AIR_IR_V2_CONTRACT.md",
+    "design/soundness/SAIL_AIR_COMPOSITION.md",
+    "design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md",
+    "conformance/schemas/air-ir-v2.schema.json",
 )
 PROOF_TREES = (
     "formal/riscv-refinement/RiscvRefinement",

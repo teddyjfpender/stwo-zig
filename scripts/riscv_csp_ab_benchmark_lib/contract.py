@@ -20,7 +20,7 @@ from scripts.riscv_csp_benchmark_lib import contract as csp_contract
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_AUDIT = ROOT / "vectors" / "riscv_csp" / "recursion-shape-audit-v2.json"
-HISTORICAL_REPORT = ROOT / "vectors" / "reports" / "riscv_csp_benchmark_report.json"
+HISTORICAL_REPORT = ROOT / "vectors" / "riscv" / "csp" / "historical-benchmark-report.json"
 PLAN_SCHEMA = "stwo_riscv_csp_native_ab_plan_v1"
 REPORT_SCHEMA = "stwo_riscv_csp_native_ab_report_v1"
 PLAN_VERSION = 1

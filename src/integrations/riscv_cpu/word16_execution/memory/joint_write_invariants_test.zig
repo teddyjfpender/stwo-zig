@@ -203,7 +203,7 @@ fn expectNames(comptime T: type, names: []const []const u8) !void {
 }
 test "services RAM writer inventory matches the joint write induction cases" {
     // Every RAM writer below has a case (W1-W5) in
-    // design/riscv-proving-stack/rv64-ls-joint-write-induction.md section 11.
+    // design/riscv/rv64-ls-joint-write-induction.md section 11.
     // Adding a roster source, a bridge kind, a bulk kind or a sponge kind
     // requires adding its case there first, then updating this inventory.
     const Roster = @import("../../word16_global_execution/services/roster.zig");
@@ -252,7 +252,7 @@ test "LS-D64 writer case: unit OWNER/RAM coupling, CPU tick, LD after = before a
 const M = core.fields.m31.M31;
 
 test "LS32 curve/field producers (kinds 5..11) retain byte anchors zero register C and continuation clock equality" {
-    // Case C7 of design/riscv-proving-stack/rv64-curve-services.md: every
+    // Case C7 of design/riscv/rv64-curve-services.md: every
     // curve after-limb is recomposed from 32 U8-ranged AFTER bytes of the
     // shared Word16 bridge (independent anchor), ECALL C stays zero and the
     // tick is the OWNER-bound continuation tick.

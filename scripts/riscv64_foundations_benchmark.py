@@ -19,7 +19,7 @@ def sha(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--baseline', type=Path, default=ROOT / 'vectors/reports/rv64-foundations-20261030/baseline-source.json')
+    parser.add_argument('--baseline', type=Path, default=ROOT / 'vectors/riscv/rv64/foundations-baseline-source.json')
     parser.add_argument('--report', type=Path, required=True)
     parser.add_argument('--samples', type=int, default=7, choices=range(3, 32))
     args = parser.parse_args()

@@ -3493,10 +3493,10 @@
         "formal/riscv-refinement/opcode-coverage.json": "1c2db5837e9a5b93c01dca9a98acdbf44741d45219f7d24fc7c350e35bbdf547",
         "formal/riscv-refinement/team-a-coverage.json": "e8829816bed0472b0e30b838ca4a2515a5bc02ee2f021de34a48fc3d8cc22f30",
         "formal/riscv-refinement/team-b-coverage.json": "90be3838fdb44355f050fffbdfe6bad54ba08f4e16de0333437ac6d07950d2b0",
-        "soundness/AIR_IR_V2_CONTRACT.md": "f57d8154185145bb29838927fcb676e2ccbf50c5813186ca2143d7673c843ee1",
-        "soundness/SAIL_AIR_COMPOSITION.md": "ac0c9450ce60b4b2bf04d57035b55a9ce10691c234c5215f930aa8c6cfa735c7",
-        "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md": "f46d619af972467d2c09cc244e69f6afb7e829eaeadf4c869007d085e25fc62d",
-        "soundness/air-ir-v2.schema.json": "8f2585c486a3eac979c971e8c1a974f756d40c13844680d50aa6020cc6c8ac0f"
+        "design/soundness/AIR_IR_V2_CONTRACT.md": "f57d8154185145bb29838927fcb676e2ccbf50c5813186ca2143d7673c843ee1",
+        "design/soundness/SAIL_AIR_COMPOSITION.md": "ac0c9450ce60b4b2bf04d57035b55a9ce10691c234c5215f930aa8c6cfa735c7",
+        "design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md": "f46d619af972467d2c09cc244e69f6afb7e829eaeadf4c869007d085e25fc62d",
+        "conformance/schemas/air-ir-v2.schema.json": "8f2585c486a3eac979c971e8c1a974f756d40c13844680d50aa6020cc6c8ac0f"
       },
       "sail": {
         "architectural_profile": "rv32im-zkvm-v1",

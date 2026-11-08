@@ -180,7 +180,7 @@ class P003CompletionTests(unittest.TestCase):
 
     def test_tracked_legacy_blocker_replays_without_admitting_v1_capture(self) -> None:
         path = Path(
-            "design/typed-air/artifacts/p003-work-profile-closure-v1/"
+            "src/frontends/riscv/air/lang/artifacts/p003-work-profile-closure-v1/"
             "scaling-blocker-v1.json"
         )
         receipt = validate_blocker_receipt(DEFAULT_MATRIX, path)

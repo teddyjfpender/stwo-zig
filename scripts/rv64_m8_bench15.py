@@ -76,7 +76,7 @@ from rv64_m8_bench15_lib.metrics import (
 
 M3 = Path(os.environ.get('RV64_M3_ROOT', '/workspace/m3'))
 GPU_LOCK = M3 / 'locks/gpu.lock'
-M3_SUMMARY = ROOT / 'vectors/reports/rv64-m3-20261104/summary.json'
+M3_SUMMARY = ROOT / 'vectors/riscv/rv64/m3-basket/summary.json'
 RUNTIME = stack.DEFAULT_RUNTIME
 DEV_BLOCKS = (26235156, 24628607)
 SMOKE_BLOCK = 26235156
@@ -85,9 +85,9 @@ SCHEMA = 'rv64-m8-bench15/v1'
 # M7 headline baselines; only these blocks were measured on the M7 default.
 M7_BASELINE = {
     24628607: {'warm_proving_s': 12.9, 'label': 'M', 'note': 'M7 default warm, single profiled run',
-               'source': 'design/riscv-proving-stack/rv64-m8-engineering-scope.md §1'},
+               'source': 'design/riscv/rv64-m8-engineering-scope.md §1'},
     26235156: {'warm_proving_s': 10.5, 'label': 'M', 'note': 'M7 default warm',
-               'source': 'design/riscv-proving-stack/rv64-m8-engineering-scope.md §1'},
+               'source': 'design/riscv/rv64-m8-engineering-scope.md §1'},
     24697070: {'cold_proving_s': 69.871, 'label': 'M', 'note': 'M7 cold scale probe, one request',
                'source': 'vectors/reports/rv64-m7-20261105/callback-residency/README.md'},
 }

@@ -6,7 +6,7 @@ opcode IDs, proof statements and release capabilities retain their meanings.
 
 The execution milestone supplies semantics and diagnostic records. A separate
 [`riscv.rv64_air`](air/mod.zig) now proves bounded partial execution with independently
-expected program, register and memory state. The [AIR contract](../../../../design/riscv-proving-stack/rv64-air.md)
+expected program, register and memory state. The [AIR contract](../../../../design/riscv/rv64-air.md)
 defines its 256-step/128-memory-word limits, authenticated state relations,
 verifier-derived physical layout and reusable immutable setup. Native CPU proof
 and verification live in [`riscv_cpu.rv64`](../../../integrations/riscv_cpu/rv64.zig).
@@ -136,7 +136,7 @@ limb algorithm; this comparison does not redesign it for RV64.
 Instruction counts and validated outputs compare the same work. RV32's public
 value diagnostic also builds witnesses and committed trees; its wall time must
 not be divided by RV64's execution-only time to claim a speedup. Small bounded
-AIR proofs now verify; paired CSP proving remains open. [Retained comparison and measurements](../../../../vectors/reports/rv64-foundations-20261030/README.md).
+AIR proofs now verify; paired CSP proving remains open. [Retained comparison and measurements](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-foundations-20261030/README.md).
 
 ## Next milestones
 

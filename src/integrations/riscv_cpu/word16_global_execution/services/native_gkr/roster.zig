@@ -1,5 +1,5 @@
 //! Native LogUp-GKR v1 (`rv64-m5-native-gkr/v1`) instance roster. Stream native-gkr, M5.
-//! Soundness/binding argument: design/riscv-proving-stack/rv64-native-gkr.md.
+//! Soundness/binding argument: design/riscv/rv64-native-gkr.md.
 //!
 //! One batched LogUp-GKR per native proof, run in stage two (after chi fixes the shared RAM/KIO/Wire
 //! challenges), carries EVERY LogUp fraction of the proof: the proof-local relations that M4 already

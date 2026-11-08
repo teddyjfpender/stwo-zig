@@ -3,7 +3,7 @@
 `sail.py` binds the pinned Sail model to Lean by slicing definitions out of the
 generated theorem-backend file. Issue #137 states plainly that hashes and
 substring checks alone are not sufficient evidence for the translation
-obligation. Section 7.2 of `soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`
+obligation. Section 7.2 of `design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`
 sanctions exactly one fallback: a generated normalized semantics capsule plus a
 *checked translation receipt from the Sail AST*.
 

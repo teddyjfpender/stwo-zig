@@ -1,3 +1,0 @@
-========= COMPUTE-SANITIZER
-error: FileNotFound
-========= Error: Target application terminated before first instrumented API call

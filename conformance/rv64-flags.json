@@ -99,7 +99,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig",
         "src/integrations/riscv_cuda/rv64/blake_sample_plan.zig",
         "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
@@ -157,7 +157,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig"
       ],
       "default_evidence": {
@@ -305,7 +305,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/resident_composition.zig"
       ],
       "default_evidence": {
@@ -332,7 +332,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_m3_pod.py",
         "scripts/rv64_m4_arena_job.sh",
         "src/integrations/riscv_cuda/rv64/core_witness.zig"
@@ -361,7 +361,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
         "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig",
         "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig"
@@ -403,7 +403,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/cpu_projection.zig"
       ],
       "default_evidence": {
@@ -489,7 +489,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_m3_pod.py",
         "scripts/rv64_m4_arena_sweep.py",
         "scripts/rv64_m7_outer_fs_ops_fixture.py",
@@ -655,7 +655,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_cpu0.zig",
         "src/integrations/riscv_cuda/rv64/trace_commit.zig"
       ],
@@ -670,7 +670,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_segments.zig"
       ],
       "default_evidence": {
@@ -758,7 +758,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cpu/rv64_ethereum_segments.zig"
       ],
       "default_evidence": {
@@ -1026,7 +1026,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_m3_pod.py",
         "scripts/rv64_m4_arena_job.sh",
         "scripts/tests/test_rv64_resident_basket.py",
@@ -1407,7 +1407,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_tape.zig"
       ],
       "default_evidence": {
@@ -1844,7 +1844,7 @@
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_m7_integration_stack.py",
         "scripts/rv64_m8_bench15.py",
         "scripts/rv64_validation.py",
@@ -1875,7 +1875,7 @@
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_m8_bench15.py",
         "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig"
@@ -1943,7 +1943,7 @@
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_gate.py",
         "scripts/rv64_m7_integration_stack.py",
         "scripts/rv64_m8_bench15.py",
@@ -1997,7 +1997,7 @@
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/default-runtime.json",
+        "conformance/rv64/presets/default-runtime.json",
         "scripts/rv64_m8_bench15.py",
         "scripts/rv64_validation.py",
         "scripts/tests/test_rv64_gate.py",
@@ -2024,7 +2024,7 @@
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/default-runtime.json",
+        "conformance/rv64/presets/default-runtime.json",
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_gate.py",
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
@@ -2313,7 +2313,7 @@
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/default-runtime.json",
+        "conformance/rv64/presets/default-runtime.json",
         "scripts/rv64_m8_bench15.py",
         "scripts/rv64_validation.py",
         "scripts/tests/test_rv64_m8_bench15.py",
@@ -2770,7 +2770,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_m8_bench15.py",
         "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
@@ -2912,7 +2912,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_gate.py",
         "scripts/rv64_m3_pod.py",
         "scripts/rv64_m5_negative_corpus.py",
@@ -2930,7 +2930,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
         "src/integrations/riscv_cuda/rv64/nvtx_stage.zig"
       ],
@@ -2971,7 +2971,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/assignment_graphs.zig"
       ],
       "default_evidence": {
@@ -2998,7 +2998,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_m3_pod.py",
         "scripts/rv64_m4_arena_job.sh",
         "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
@@ -3014,7 +3014,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/device_fs_check.zig"
       ],
       "default_evidence": {
@@ -3054,7 +3054,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/outer_source.zig"
       ],
       "default_evidence": {
@@ -3138,7 +3138,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "scripts/rv64_gate.py",
         "scripts/rv64_m3_pod.py",
         "scripts/rv64_m5_canon_vk_tamper.py",
@@ -3196,7 +3196,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/circuit_cpu/om31/cache_pack.zig"
       ],
       "default_evidence": {
@@ -3298,7 +3298,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu",
         "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
         "src/integrations/riscv_cuda/rv64/pcs_native.zig"
@@ -3352,7 +3352,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/pcs_native.zig"
       ],
       "default_evidence": {
@@ -3408,7 +3408,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig"
       ],
       "default_evidence": {
@@ -3422,7 +3422,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/backends/cuda/native/rv64/process_memory_observer.cu"
       ],
       "default_evidence": {
@@ -3436,7 +3436,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/resident_composition.zig"
       ],
       "default_evidence": {
@@ -3463,7 +3463,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/trace_input_reuse.zig"
       ],
       "default_evidence": {
@@ -3503,7 +3503,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/resident_composition.zig"
       ],
       "default_evidence": {
@@ -3838,7 +3838,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig"
       ],
       "default_evidence": {
@@ -3852,7 +3852,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+        "conformance/rv64/presets/integration-stack-preset.json",
         "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig"
       ],
       "default_evidence": {

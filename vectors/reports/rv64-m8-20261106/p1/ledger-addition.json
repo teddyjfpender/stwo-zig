@@ -1,7 +1,0 @@
-{
-  "schema": "rv64-ledger-addition/v1",
-  "rows": 41,
-  "prior_rows": 2,
-  "ledger": "vectors/reports/progress/m8-integrate.jsonl",
-  "validation": "All new rows pass scripts.rv64_progress.validate and resolve receipt paths. Historical global checker failure is tracked separately; no global PASS claim."
-}

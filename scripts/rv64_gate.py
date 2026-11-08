@@ -20,7 +20,7 @@ from rv64_validation import CASES, check_corpus, frozen_parity, payload_name, va
 
 ROOT = Path(__file__).resolve().parents[1]
 # Canonical default runtime: the source-built opt-combined image (owner decision
-# 2026-11-07). Pass --runtime design/riscv-proving-stack/m7-handoff/p0-runtime.json
+# 2026-11-07). Pass --runtime conformance/rv64/presets/p0-runtime.json
 # for the frozen a25 control.
 RUNTIME = stack.DEFAULT_RUNTIME
 

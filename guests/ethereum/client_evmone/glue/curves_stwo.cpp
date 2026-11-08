@@ -3,7 +3,7 @@
 // only candidates (build.py --candidate-set ...,bn / ...,bls; pointer packets)
 // or the ADMITTED ethereum_services_v3 services (build.py --profile v3
 // --v3-set ...,bn / ...,bls; inline 32-byte aligned packets, outputs over the
-// leading operands, design/riscv-proving-stack/rv64-curve-services.md). The
+// leading operands, design/riscv/rv64-curve-services.md). The
 // same algorithms run on either backend; only the packet transport differs.
 //
 // BN254 (CANDIDATE_BN): evmone's ecAdd/ecMul call stwo_bn254_g1_add/_mul

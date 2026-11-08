@@ -12,7 +12,7 @@ pub const INTERACTION = LOCAL_PREFIX + 4;
 // unique, aligned addresses are NOT re-proved in-chip: every accepting
 // receiver validates them natively on the public cell list and compares the
 // chip's RAM debt exactly against expectedClaim (see
-// design/riscv-proving-stack/rv64-boundary-public-sortedness-v1.md).
+// design/riscv/rv64-boundary-public-sortedness-v1.md).
 pub const BOUND_MAIN = 14;
 pub const BOUND_INTERACTION = 8;
 // A/I/B come from the closed CPU REG/ROM/OWNER relations. RAM before

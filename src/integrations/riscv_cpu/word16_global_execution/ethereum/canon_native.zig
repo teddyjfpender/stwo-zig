@@ -2,7 +2,7 @@
 //! `rv64-m5-native-chi-chain/v1` (stream canon-native).
 //!
 //! Executable spec: scripts/rv64_m5_canon_native_ref.py; interface section
-//! design/riscv-proving-stack/rv64-m5-canon-native.md (= /workspace/m3/M5-INTERFACES.md
+//! design/riscv/rv64-m5-canon-native.md (= /workspace/m3/M5-INTERFACES.md
 //! "canon-native"); golden vectors vectors/rv64-m5/canon-native-v1-vectors.json,
 //! pinned byte for byte by the tests below. Binding argument:
 //! rv64-m5-binding.md sec. 3.3 (chi chain), 5.1 (mb family), 9.3(4).

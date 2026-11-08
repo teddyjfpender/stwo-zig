@@ -20,7 +20,7 @@ The [package contract](package.contract.json) is the API/dependency authority;
 The [composition preparation boundary](recursion/COMPOSITION_PREPARATION.md)
 documents immutable recursive preparation, explicit admission and audit checks,
 and its focused development commands.
-The [proving-stack development plan](../../../design/riscv-proving-stack/plan.md)
+The [proving-stack development plan](../../../design/riscv/plan.md)
 tracks small complete proofs, shared protocol ownership and measured scaling.
 
 ## Architecture and semantic authority
@@ -75,7 +75,7 @@ const Claim = riscv.RiscVClaim;
 | Host boundary | `host`, `HostInterface`, `HostRuntime` |
 | AIR, recursion, and witness | `air`, `recursion`, `access_clock`, `infra_trace`, `witness_layout`, `opcode_manifest`, `statement_shape_inspection` |
 | ISA and diagnostics | `isa`, `diagnostics`, `testing` |
-| Bounded RV64 AIR | `rv64_air` — [statement, soundness and qualification boundary](../../../design/riscv-proving-stack/rv64-air.md) |
+| Bounded RV64 AIR | `rv64_air` — [statement, soundness and qualification boundary](../../../design/riscv/rv64-air.md) |
 | Experimental RV64IM execution | `rv64` — [scope, validation and remaining proof work](rv64/README.md) |
 | Statement ownership | `RiscVClaim`, `owned_statement` |
 | Engine-generic proving | `prover_mod`, `proveRiscVWithEngineAndPublicData`, `proveRiscVWithEngineAndPublicDataWithExecution`, `verifyRiscVWithEngine`, `provePoseidon2WithEngineAndPublicData`, `verifyPoseidon2WithEngine`, `proveAndVerifyElfWithEngine` |
@@ -154,7 +154,7 @@ The retained detached SegmentV2 leaf/parent tools are built by the CPU package;
 Metal supplies explicit backend-bound producers. See the
 [CPU integration](../../integrations/riscv_cpu/README.md),
 [Metal integration](../../integrations/riscv_metal/README.md), and
-[canonical recursion contract](../../../design/riscv-proving-stack/canonical-typed-recursion.md).
+[canonical recursion contract](../../../design/riscv/canonical-typed-recursion.md).
 This protocol proves bounded execution spans. It does not by itself establish
 all global memory, lookup, ROM, and caller relations required for a complete
 Ethereum block statement.
@@ -190,7 +190,7 @@ the aggregate 46-opcode receipt has not yet been promoted. Even after that
 promotion, FV-1/FV-2 do not establish arbitrary frontend-trace composition,
 the complete Word32/M31 invariant, or proof-system soundness. The authoritative
 boundary and remaining gates are in
-[`RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md);
+[`RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md);
 the reproducible proof entry point is documented in
 [`formal/riscv-refinement/README.md`](../../../formal/riscv-refinement/README.md).
 
@@ -208,8 +208,8 @@ the reproducible proof entry point is documented in
 
 - [RISC-V Sail contract](../../../conformance/2026-07-26-riscv-sail-contract.md)
 - [RISC-V Sail differential gate](../../../conformance/riscv-sail-differential-gate.md)
-- [RISC-V verification status](../../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md)
-- [Universal AIR to Sail refinement plan](../../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)
+- [RISC-V verification status](../../../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md)
+- [Universal AIR to Sail refinement plan](../../../design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)
 - [CPU integration](../../integrations/riscv_cpu/README.md)
 - [Metal integration](../../integrations/riscv_metal/README.md)
 
@@ -218,4 +218,4 @@ immutable ROM, independent lookup providers and private control frame used by
 the separate integration [`rv64_full`](../../integrations/riscv_cpu/rv64_full.zig).
 That route makes one native proof for a complete admitted execution; it does
 not assemble bounded execution proofs. `rv64` execution remains usable without
-loading the proof integration. See the [full AIR contract](../../../design/riscv-proving-stack/rv64-air.md).
+loading the proof integration. See the [full AIR contract](../../../design/riscv/rv64-air.md).

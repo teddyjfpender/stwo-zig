@@ -12,7 +12,7 @@ each result in place.
 `origin/main` is `4e260db96`, which merges PR #314 and contains `51897dc26`.
 Figures marked *reported* come from the hygiene receipts or the team and were
 not re-measured here. Figures marked *census@4a4d01bd5* come from
-[rv64-gpu-hygiene.md](../riscv-proving-stack/rv64-gpu-hygiene.md).
+[rv64-gpu-hygiene.md](../riscv/rv64-gpu-hygiene.md).
 `autoresearch/` is excluded from source counts unless named, because this PR
 retires it.
 

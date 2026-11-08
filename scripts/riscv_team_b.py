@@ -576,7 +576,7 @@ def check_theorems() -> str:
 PROFILE_PATH = REPOSITORY_ROOT / "conformance/riscv/rv32im-sail-profile.json"
 OVERRIDE_PATH = REPOSITORY_ROOT / "conformance/riscv/sail-rv32im-override.json"
 CONTRACT_PATH = (
-    REPOSITORY_ROOT / "soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md"
+    REPOSITORY_ROOT / "design/soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md"
 )
 
 FENCE_I_WORD = 0x0000100F

@@ -1,5 +1,0 @@
-
-Build Summary: 2/2 steps succeeded
-rv64-poseidon-graph-fixture success
-+- run /workspace/zig/zig success 327ms MaxRSS:37M
-

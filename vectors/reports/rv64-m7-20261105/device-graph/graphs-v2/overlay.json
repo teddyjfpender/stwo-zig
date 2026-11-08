@@ -1,7 +1,0 @@
-{
-  "base": "/workspace/m3/src/m7-integrate",
-  "base_marker": "136e0ba60+leaf-tape-v3-uncommitted",
-  "base_assignment_sha256": "55a5dc494b5d51eb4a21f078a36b8ce6918751649ec768175a5cd27ac358a2e7",
-  "base_hc_capacity": "22 (frozen controlled rootv3, not latest27 git)",
-  "note": "Preserve root leaf codec and source; overlay only graph module, native context, numerical dispatch hunk and test hooks"
-}

@@ -17,7 +17,7 @@ Every request in the service gets: request wall (driver marker), stage breakdown
 (native bins, bundle, every recursive proof, tree), and (optionally) the verdict of a fresh,
 separate, CPU-only receiver run while the ArtifactStore directory does not exist.
 
-Store keying (see design/riscv-proving-stack/rv64-m4-artifact-store.md):
+Store keying (see design/riscv/rv64-m4-artifact-store.md):
   key = SHA-256("rv64-m4-artifact-store/v1" || canonical JSON of
         {driver_sha256 (code identity), library_sha256, catalogue_sha256 (generator output),
          elf_sha256 (image), profile, field_hash, store_format})

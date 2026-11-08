@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """RV64 M5/M7 negative corpus: spec + CPU harness against a fresh receiver.
 
-Spec: design/riscv-proving-stack/rv64-m5-binding.md section 7 (case ids are stable).
+Spec: design/riscv/rv64-m5-binding.md section 7 (case ids are stable).
 Runs ON the pod. Each case copies an accepted proof directory, applies ONE
 mutation, and runs a fresh, separate, cache-disabled, GPU-disabled receiver
 process exactly as `rv64_m3_pod.py receive` does (same argv shape and env).

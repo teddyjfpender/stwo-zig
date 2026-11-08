@@ -254,7 +254,7 @@ wrong-statement/mutation corpora, stable telemetry, and zero fallback.
 - [CUDA backend](../../backends/cuda/README.md)
 - [Native CUDA integration](../native_cuda/README.md)
 - [CUDA system architecture goal](../../../conformance/2026-07-24-cuda-system-architecture-goal.md)
-- [Cairo production-port goal](../../../conformance/2026-07-26-stwo-cairo-production-port-goal.md)
+- [Cairo production-port goal](../../../design/decisions/2026-07-26-stwo-cairo-production-port-goal.md)
 
 
 Canonical AIR codegen v3 classifies dynamic base constants using the authenticated
