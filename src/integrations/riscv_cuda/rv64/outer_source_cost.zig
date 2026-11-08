@@ -2,7 +2,7 @@
 //! Cold immutable allocation lists and assignment mode must be frozen by the
 //! caller. Host allocation coverage and the production adapter remain open.
 const std = @import("std");
-const A = @import("global_admission.zig");
+const A = @import("footprint_types.zig");
 const Prefix = @import("prefix_plan.zig");
 pub const Format = enum { legacy_blake32_m31, poseidon2_w24_v1 };
 pub const Kind = enum { main, values, assignment_status, seeds, prefill_tape, prefill_map, tasks, indices, chain_ends, main_status, fixed, sample_check, parameters, results, gather_fixed, inter, numerators, prefix };

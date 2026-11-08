@@ -3,7 +3,7 @@
 //! Every optional immutable miss is conservatively charged as a separate cold
 //! allocation. This is a GPU bound and does not certify host preparation/RSS.
 const std = @import("std");
-const A = @import("global_admission.zig");
+const A = @import("footprint_types.zig");
 const Prefix = @import("prefix_plan.zig");
 pub const Input = struct {
     log: u32,

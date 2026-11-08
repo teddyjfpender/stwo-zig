@@ -3,12 +3,13 @@
 //! A future-workspace claim preserves progress headroom while its source lives.
 //! This module never grows the arena, chooses a proof profile or waits on a GPU.
 const std = @import("std");
-pub const chunk_bytes: u64 = 32 << 20;
-pub const small_slab_bytes: u64 = 512 << 20;
-pub const small_threshold: u64 = 4 << 20;
-pub const small_alignment: u64 = 512;
-pub const external_budget: u64 = 4 << 30;
-pub const physical_limit: u64 = 28_000_000_000;
+const T = @import("footprint_types.zig");
+pub const chunk_bytes = T.chunk_bytes;
+pub const small_slab_bytes = T.small_slab_bytes;
+pub const small_threshold = T.small_threshold;
+pub const small_alignment = T.small_alignment;
+pub const external_budget = T.external_budget;
+pub const physical_limit = T.physical_limit;
 pub const Preset = enum(u8) {
     g16 = 16,
     g18 = 18,
@@ -25,45 +26,18 @@ pub const Preset = enum(u8) {
         return error.StaticArenaPresetRequired;
     }
 };
-/// Separate small-slab occupancy and physical large chunks. Inputs are allocation
-/// sizes, never aggregate cell masses: each large allocation rounds separately.
-pub const Footprint = struct {
-    large: u64 = 0,
-    small: u64 = 0,
-    pub fn allocation(bytes: u64) !Footprint {
-        if (bytes == 0) return .{};
-        const unit = if (bytes < small_threshold) small_alignment else chunk_bytes;
-        const aligned = (try std.math.add(u64, bytes, unit - 1)) & ~(unit - 1);
-        return if (bytes < small_threshold) .{ .small = aligned } else .{ .large = aligned };
-    }
-    pub fn allocations(sizes: anytype) !Footprint {
-        var out: Footprint = .{};
-        for (sizes) |bytes| out = try out.add(try allocation(bytes));
-        return out;
-    }
-    pub fn add(a: Footprint, b: Footprint) !Footprint {
-        return .{ .large = try std.math.add(u64, a.large, b.large), .small = try std.math.add(u64, a.small, b.small) };
-    }
-    pub fn max(a: Footprint, b: Footprint) Footprint {
-        return .{ .large = @max(a.large, b.large), .small = @max(a.small, b.small) };
-    }
-    pub fn contains(a: Footprint, b: Footprint) bool {
-        return a.large >= b.large and a.small >= b.small;
-    }
-};
+pub const Footprint = T.Footprint;
 pub const Coverage = enum { native_source, native_trace, native_interaction, native_composition, native_pcs, native_gkr, recursion_source, recursion_trace, recursion_interaction, recursion_composition, recursion_pcs, outer_gkr, immutable, retirement, host_preparation };
 pub const coverage_all: u64 = (1 << std.meta.fields(Coverage).len) - 1;
 pub const coverage_gpu: u64 = coverage_all & ~(@as(u64, 1) << @intFromEnum(Coverage.host_preparation));
 /// GPU overlap needs complete GPU envelopes. Host/RSS qualification is a
 /// separate capability; observe_only never relabels an unknown host estimate.
 pub const HostPolicy = enum { require_bounds, observe_only };
-pub const Domain = enum { immutable_setup, native_packet, recursion_node, gkr_packet };
-pub const Stage = enum { setup, witness, trace_commit, interaction, composition, pcs, gkr, retire };
+pub const Domain = T.Domain;
+pub const Stage = T.Stage;
 pub const Owner = struct { request: u64, domain: Domain, ordinal: u32 };
-pub const ProgressKey = struct { statement: [32]u8, fixed: [32]u8, ordinal: u32 };
-pub fn progressKey(scope: anytype) ProgressKey {
-    return .{ .statement = scope.statement, .fixed = scope.fixed, .ordinal = scope.ordinal };
-}
+pub const ProgressKey = T.ProgressKey;
+pub const progressKey = T.progressKey;
 pub const Demand = struct {
     owner: Owner,
     /// Stable logical proof identity; MAIN-root rebind does not change it.

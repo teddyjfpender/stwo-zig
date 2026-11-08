@@ -2,7 +2,7 @@
 //! the original fraction planes kept by device_binding_runtime. This does not
 //! describe the distinct, experimental native_gkr_stage implementation.
 const std = @import("std");
-const A = @import("global_admission.zig");
+const A = @import("footprint_types.zig");
 const Prefix = @import("prefix_plan.zig");
 pub const Item = struct { facts: u64, offsets: u64, public: u64, parameters: u64 };
 pub const Input = struct {

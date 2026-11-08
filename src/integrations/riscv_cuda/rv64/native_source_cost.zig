@@ -6,7 +6,7 @@
 const std = @import("std");
 const C = @import("native_cpu_projection_cost.zig");
 const T = @import("trace_commit_cost.zig");
-const A = @import("global_admission.zig");
+const A = @import("footprint_types.zig");
 pub const Role = enum { cpu, fact, memory, boundary, multiplication, division, table };
 pub const Shape = struct { role: Role, log: u32, width: u32, count: u64 = 0 };
 pub const ExtraKind = enum { bridge, bulk, sponge, zbb, dword };

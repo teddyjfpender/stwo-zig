@@ -4,7 +4,7 @@
 //! before its old evaluations are physically released. No coefficient or
 //! immutable cache owner is credited here.
 const std = @import("std");
-const F = @import("global_admission.zig").Footprint;
+const F = @import("footprint_types.zig").Footprint;
 
 pub const Input = struct {
     reuse_inter_inputs: bool = false,

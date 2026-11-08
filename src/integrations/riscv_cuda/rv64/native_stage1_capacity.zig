@@ -2,7 +2,7 @@
 //! deferred until the early helper joins. This is not whole-request admission
 //! and does not establish the 28 GB driver-inclusive process peak.
 const std = @import("std");
-const A = @import("global_admission.zig");
+const A = @import("footprint_types.zig");
 const S = @import("admission_runtime.zig").Snapshot;
 const Cost = @import("native_source_cost.zig");
 pub const Envelope = struct {
