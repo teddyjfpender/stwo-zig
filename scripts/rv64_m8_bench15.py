@@ -95,23 +95,15 @@ M7_BASELINE = {
 # Arm overlays on the preset's baseline environment. {addon}/{outer_fs} are
 # assets.json paths. PINNED_BYTES is the outer-fold gate value (c72b51646,
 # outer-fold-review/gates.json: PASS on both dev blocks).
-OUTER = {'STWO_RV64_M8_OUTER_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}',
-         'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'}
-NATIVE = {'STWO_RV64_M8_NATIVE_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}'}
+# The outer/native hybrid and feeder arms are retired with their code.
 ARMS = {
     'default': {},
-    'outer': OUTER,
-    'native': NATIVE,
-    'hybrid': dict(OUTER, **NATIVE),
-    'jobs': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}',
-             'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'},
     # Full GPU-native path, matching gn-bind's current correctness gates.
     # Keep it explicit: none of these flags promotes the product default.
     'gpu-native': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_GPU_NATIVE': '1',
                    'STWO_RV64_M8_GPU_NATIVE_REUSE': '1', 'STWO_RV64_M9_CLASS_PACKED_INGRESS': '1',
                    'STWO_RV64_M8_JOBS_LIBRARY': '{addon}', 'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}',
-                   'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456',
-                   'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '2147483648'},
+                   'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'},
 }
 ASSET_NAMES = ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard', 'addon', 'outer_fs')
 # M3 found blocks with >= 40 CPU segments OOM in resident composition unless the
@@ -756,7 +748,7 @@ def main():
     r = sub.add_parser('run', help='the benchmark (resumable per block)')
     r.add_argument('--assets', required=True, type=Path)
     r.add_argument('--out', required=True, type=Path, help='bench directory; rerun the same command to resume')
-    r.add_argument('--arms', type=arms_type, default=['default', 'outer'], help='comma list of ' + ','.join(ARMS))
+    r.add_argument('--arms', type=arms_type, default=['default', 'gpu-native'], help='comma list of ' + ','.join(ARMS))
     r.add_argument('--rounds', type=int, default=3, help='headline services per arm per block (interleaved)')
     r.add_argument('--blocks', type=int, nargs='+', help='subset of the basket (still ascending, still stop-on-failure)')
     r.add_argument('--profile', choices=('warm', 'none'), default='warm', help='one Nsight service per arm per block for GPU-s/launches/syncs')

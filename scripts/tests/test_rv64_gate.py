@@ -83,13 +83,13 @@ class GateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             lib = Path(tmp) / 'libjobs.so'
             lib.write_bytes(b'addon')
-            runtime = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib), 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '1'},
+            runtime = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib), 'STWO_RV64_M8_JOBS_PINNED_BYTES': '1'},
                        'jobs_env_sha256': {'STWO_RV64_M8_JOBS_LIBRARY': gate.stack.sha(lib)}}
             self.assertEqual(gate.jobs_environment(runtime, {}), {})
             self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '0'}), {})
             self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1'}), runtime['jobs_env'])
             # An explicit --env wins over the shipped value.
-            got = gate.jobs_environment(runtime, {'STWO_RV64_M8_OUTER_JOBS': '1', 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '2'})
+            got = gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2'})
             self.assertEqual(got, {'STWO_RV64_M8_JOBS_LIBRARY': str(lib)})
             self.assertEqual(gate.jobs_environment({}, {'STWO_RV64_M8_JOBS': '1'}), {})
             other = Path(tmp) / 'unrecorded.so'

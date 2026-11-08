@@ -425,8 +425,6 @@ class PhysicalBudgetGuard:
                 ceiling = device["prover_physical_ceiling_bytes"]
                 if held <= 0 or ceiling != device["total_bytes"] - held or not 0 < ceiling <= 28000000000:
                     raise RuntimeError("physical budget ceiling not enforced")
-                environment[f'STWO_RV64_BUDGET_GUARD_BYTES_{device["device"]}'] = str(held)
-            environment['STWO_RV64_BUDGET_GUARD_PID'] = str(self.process.pid)
             self.record.update(pid=self.process.pid, ready=ready, status="HOLDING", claim="enforced physical ceiling, not a measured peak")
             B.atomic_json(self.path, self.record)
             self.check()
@@ -684,7 +682,6 @@ def daemon(args):
         if args.process_budget_guard:
             guard = PhysicalBudgetGuard(args.process_budget_guard, run, environment)
             plan["physical_budget_guard"] = guard.record
-            plan["environment"].update({k:v for k,v in environment.items() if k.startswith("STWO_RV64_BUDGET_GUARD_")})
             B.atomic_json(run / "plan.json", plan)
         monitor = B.DeviceMonitor("0,1")
         monitor.thread.start()

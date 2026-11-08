@@ -17,8 +17,7 @@
   "jobs_env": {
     "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-gn-codec/addon-5/libstwo-rv64-jobs.so",
     "STWO_RV64_M8_OUTER_FS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-4/libstwo-rv64-outer-fs-ops.so",
-    "STWO_RV64_M8_JOBS_PINNED_BYTES": "2365587456",
-    "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": "2147483648"
+    "STWO_RV64_M8_JOBS_PINNED_BYTES": "2365587456"
   },
   "jobs_env_sha256": {
     "STWO_RV64_M8_JOBS_LIBRARY": "a8691a96b4192036147e9810e0ab4a5ada929cb55726d2d876a047774c9cfebb",

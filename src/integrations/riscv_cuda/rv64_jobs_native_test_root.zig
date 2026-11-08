@@ -12,7 +12,6 @@ test {
     _ = @import("rv64/jobs/native_gkr_wire.zig");
     _ = @import("rv64/jobs/native_leaf_wire.zig");
     _ = @import("rv64/native_publication.zig");
-    _ = @import("rv64/jobs/native_hybrid_jobs.zig");
     _ = @import("rv64/jobs/native_global.zig");
     _ = @import("rv64/jobs/native_gpu_support_test.zig");
     _ = @import("rv64/jobs/native_pcs.zig");

@@ -46,7 +46,6 @@ const N = @import("native_pcs.zig");
 const S2 = @import("native_stage2.zig");
 const NComp = @import("native_composition.zig");
 const Gl = @import("native_global.zig");
-const HJ = @import("native_hybrid_jobs.zig");
 const B = @import("native_binding.zig");
 const JP = @import("../joined_parameters.zig");
 pub const NO = @import("native_encode_oods.zig");
@@ -595,7 +594,7 @@ pub const ClassFraming = struct {
     a: std.mem.Allocator,
     key: G.ClassKey,
     claim_count: u32,
-    slots: []const HJ.Slot,
+    slots: []const Gl.Slot,
     inter: *C.CommitPlan,
     composition: *NComp.Plan,
     pcs: *N.PcsJob,
@@ -863,7 +862,7 @@ pub const Stage2Job = struct {
             global_scratch = @max(global_scratch, gs.plan.enqueueWords());
         };
         // PCS peak: measured segment-scale class 2.14e9 words [M]
-        // (memory-plan-p2) + 7%, as native_hybrid_jobs.Stage2Job.
+        // (memory-plan-p2) + 7%, as the retired native-hybrid Stage2Job.
         const pcs: usize = 2_300_000_000;
         // public_claims scratch grows with the boundary cells (8 + 8 per
         // 256-cell block, up to 4104 words): sized here, not in the slack.

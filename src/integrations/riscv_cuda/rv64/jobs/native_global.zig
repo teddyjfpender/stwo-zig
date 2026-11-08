@@ -105,6 +105,23 @@ pub const Catalogue = struct {
 
 /// Static plan of one slot's global witness (host, challenge-free except the
 /// shared global challenges, which are known after the seal barrier).
+/// One cpu_components.Plan slot as Stage2 consumes it.
+pub const Slot = struct {
+    log: u32,
+    inter_offset: usize,
+    /// Binding instance whose 16 coefficient columns open the slot's INTER range.
+    binding_index: ?usize = null,
+    /// The slot's global interaction (claims), or null (claimCount == 0).
+    global: ?SlotGlobal = null,
+    pub const SlotGlobal = struct {
+        plan: *const Plan,
+        claim_offset: u32,
+        /// First FIXED / MAIN column of the slot (original order).
+        fixed_first: usize,
+        main_first: usize,
+    };
+};
+
 pub const Plan = struct {
     entry: *const Catalogue.Entry,
     log: u32,
