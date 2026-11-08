@@ -224,17 +224,22 @@ library NativeDeep {
         conjugate[2] = neg(conjugate[2]);
         conjugate[3] = neg(conjugate[3]);
         uint32[8] memory norm = NativeFriFold.multiply(value, conjugate);
-        uint256 re = norm[0];
-        uint256 im = norm[1];
-        uint256 baseNorm = addmod(mulmod(re, re, P), mulmod(im, im, P), P);
-        if (baseNorm == 0) revert ZeroDeepDenominator();
-        uint256 inverse = 1;
-        for (uint256 e = P - 2; e != 0; e >>= 1) {
-            if ((e & 1) != 0) inverse = mulmod(inverse, baseNorm, P);
-            baseNorm = mulmod(baseNorm, baseNorm, P);
+        if (pack(value) == 0) revert ZeroDeepDenominator();
+        assembly ("memory-safe") {
+            let p := 0x7fffffff
+            let re := mload(norm)
+            let im := mload(add(norm, 32))
+            let baseNorm := addmod(mulmod(re, re, p), mulmod(im, im, p), p)
+            // p - 2 has 29 leading one bits, then a zero, then one.
+            let inverse := baseNorm
+            for { let i := 0 } lt(i, 28) { i := add(i, 1) } {
+                inverse := mulmod(mulmod(inverse, inverse, p), baseNorm, p)
+            }
+            inverse := mulmod(inverse, inverse, p)
+            inverse := mulmod(mulmod(inverse, inverse, p), baseNorm, p)
+            mstore(norm, mulmod(re, inverse, p))
+            mstore(add(norm, 32), mulmod(sub(p, im), inverse, p))
         }
-        norm[0] = uint32(mulmod(re, inverse, P));
-        norm[1] = uint32(mulmod(P - im, inverse, P));
         return NativeFriFold.multiply(conjugate, norm);
     }
 

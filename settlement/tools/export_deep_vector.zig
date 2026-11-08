@@ -51,6 +51,9 @@ pub fn main() !void {
         try core.circle.secureFieldPointFromRandomSeedCheckedFor(O, element(7)),
         try core.circle.secureFieldPointFromRandomSeedCheckedFor(O, element(101)),
     };
+    var all_queries: [1 << log]usize = undefined;
+    for (&all_queries, 0..) |*query, i| query.* = i;
+
     var sample_values: [columns.len][]O = undefined;
     var sample_points: [columns.len][]Point = undefined;
     var queried_values: [columns.len][]M = undefined;
@@ -60,7 +63,7 @@ pub fn main() !void {
         column_logs[i] = column.logSize;
         sample_values[i] = try a.alloc(O, column.samplePoints.len);
         sample_points[i] = try a.alloc(Point, column.samplePoints.len);
-        queried_values[i] = try a.alloc(M, queries.len);
+        queried_values[i] = try a.alloc(M, all_queries.len);
         for (column.samplePoints, 0..) |point_index, j| {
             sample_points[i][j] = points[point_index];
             sample_values[i][j] = polynomial(points[point_index], i);
@@ -88,7 +91,7 @@ pub fn main() !void {
                 tree_rows[position * width + col] = value.toU32();
             }
         }
-        const positions = try core.pcs.utils.prepareTreeQueryPositions(a, &queries, log, tree_log);
+        const positions = try core.pcs.utils.prepareTreeQueryPositions(a, &all_queries, log, tree_log);
         for (positions, 0..) |position, j| {
             for (0..width) |col| queried_values[offset + col][j] = M.fromCanonical(tree_rows[position * width + col]);
         }
@@ -111,7 +114,7 @@ pub fn main() !void {
         Pcs.TreeVec([][]Point).initOwned(&tree_points),
         Pcs.TreeVec([][]O).initOwned(&tree_samples),
         alpha,
-        &queries,
+        &all_queries,
         Pcs.TreeVec([][]M).initOwned(&tree_values),
         log,
     );
@@ -122,7 +125,9 @@ pub fn main() !void {
     const sample_words = try a.alloc([8]u32, flat_samples.items.len);
     for (flat_samples.items, 0..) |sample, i| sample_words[i] = words(sample);
     var wire_answers: [queries.len][8]u32 = undefined;
-    for (answers, 0..) |answer, i| wire_answers[i] = words(answer);
+    for (queries, 0..) |query, i| wire_answers[i] = words(answers[query]);
+    var all_answers: [all_queries.len][8]u32 = undefined;
+    for (answers, 0..) |answer, i| all_answers[i] = words(answer);
     const json = try std.json.Stringify.valueAlloc(a, .{
         .domainLog = log,
         .prefixBytes = prefix,
@@ -135,6 +140,7 @@ pub fn main() !void {
         .rows = all_rows,
         .queries = queries,
         .answers = wire_answers,
+        .allAnswers = all_answers,
     }, .{ .whitespace = .indent_2, .emit_strings_as_arrays = true });
     var buffer: [4096]u8 = undefined;
     var stdout = std.fs.File.stdout().writer(&buffer);

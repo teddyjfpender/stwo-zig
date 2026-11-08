@@ -102,10 +102,10 @@ function fold(values, alpha, log, step, circle) {
   return values;
 }
 
-function tree(values, leafWidth) {
+function tree(values, leafWidth, encode = pack) {
   const rows = [];
   for (let i = 0; i < values.length; i += leafWidth) {
-    rows.push(Buffer.concat(values.slice(i, i + leafWidth).map(pack)));
+    rows.push(Buffer.concat(values.slice(i, i + leafWidth).map(encode)));
   }
   const levels = [rows.map(row => tagged("leaf", row))];
   while (levels.at(-1).length !== 1) {
@@ -149,15 +149,16 @@ const nonces = {
   "10-false-false": 544017,
   "10-true-false": 193894,
   "10-false-true": 2745198,
+  "native-deep": 120618,
 };
 
-function makeProof({ domainLog = 10, badLayer = false, badLast = false } = {}) {
-  const prefix = hash(Buffer.from("Independent native FRI chain fixture v1"));
-  const samples = pack([5n, 7n, 13n, 17n, 23n, 29n, 31n, 37n]);
+function makeProof({ domainLog = 10, badLayer = false, badLast = false, nativeDeep } = {}) {
+  const prefix = nativeDeep ? Buffer.from(nativeDeep.prefixBytes) : hash(Buffer.from("Independent native FRI chain fixture v1"));
+  const samples = nativeDeep ? Buffer.concat(nativeDeep.samples.map(pack)) : pack([5n, 7n, 13n, 17n, 23n, 29n, 31n, 37n]);
   let digest = hash(prefix, samples);
   // A nonconstant low-degree circle polynomial, with nonzero odd and even
   // terms in the extension basis. FRI folds it into a constant.
-  const initial = Array.from({ length: 2 ** domainLog }, (_, position) => {
+  const initial = nativeDeep?.allAnswers.map(value => value.map(BigInt)) ?? Array.from({ length: 2 ** domainLog }, (_, position) => {
     const [x, y] = point(position, domainLog, true);
     return add(add(vector(samples), scale([3n, 0n, 5n, 0n, 0n, 7n, 0n, 0n], x ** 3n)),
       scale([0n, 11n, 0n, 13n, 0n, 0n, 17n, 19n], y * (1n + x ** 5n)));
@@ -179,10 +180,10 @@ function makeProof({ domainLog = 10, badLayer = false, badLast = false } = {}) {
   assert.deepEqual(values[0], values[1], "final polynomial must be constant");
   const last = pack(badLast ? add(values[0], [1n, ...ZERO.slice(1)]) : values[0]);
   const prePow = hash(digest, last);
-  const key = `${domainLog}-${badLayer}-${badLast}`;
+  const key = nativeDeep ? "native-deep" : `${domainLog}-${badLayer}-${badLast}`;
   const nonce = nonces[key];
   assert.notEqual(nonce, undefined);
-  assert.ok(validNonce(prePow, nonce));
+  assert.ok(validNonce(prePow, nonce), `invalid nonce for ${hex(prePow)}`);
   const queries = queryPositions(prePow, nonce, domainLog);
   const deepValues = queries.map(position => hex(pack(initial[position])));
   let positions = queries;
@@ -198,7 +199,7 @@ function makeProof({ domainLog = 10, badLayer = false, badLast = false } = {}) {
     };
   });
   return {
-    input: { prefix: hex(prefix), domainLog, sampleCount: 1, samples: hex(samples),
+    input: { prefix: hex(prefix), domainLog, sampleCount: samples.length / 32, samples: hex(samples),
       roots: stages.map(stage => hex(stage.committed.root)), lastCoefficient: hex(last), nonce },
     queries, deepValues, layers,
   };
@@ -241,6 +242,39 @@ export function registerFriTests(deploy) {
       assert.deepEqual((await fri.positions(bad.input)).map(Number), bad.queries);
       assert.equal(await fri.check(bad.input, bad.deepValues, bad.layers, gas), false);
     }
+  });
+
+  test("feeds native DEEP quotients into the transcript-bound FRI chain", async () => {
+    const nativeDeep = readFixture("native-deep-vector.json");
+    const { domainLog, columns, points } = nativeDeep;
+    const { input, queries, layers } = makeProof({ domainLog, nativeDeep });
+    const { prefix, samples, roots: friRoots, lastCoefficient, nonce, sampleCount } = input;
+    const pcs = await deploy("test/DeepFriHarness.sol", "DeepFriHarness");
+    function tracesAt(changeRow = false) {
+      return nativeDeep.treeWidths.map((columnCount, i) => {
+        const logSize = nativeDeep.treeLogs[i];
+        const positions = sortedUnique(queries.map(q => ((q >> (1 + domainLog - logSize)) << 1) | (q & 1)));
+        const rowValues = [...nativeDeep.rows[i]];
+        if (changeRow && i === 0) rowValues[positions[0] * columnCount] ^= 1;
+        const committed = tree(rowValues, columnCount, value => word(value));
+        return [
+          { root: hex(committed.root), logSize, columnCount },
+          { positions, rows: hex(Buffer.concat(positions.map(pos => committed.rows[pos]))), witness: openTree(committed, positions) },
+        ];
+      });
+    }
+    const gas = { gasLimit: 16_777_216 };
+    const check = (opened, send) => {
+      const layout = { domainLog, sampleCount, columns, points, trees: opened.map(([tree]) => tree) };
+      const proof = { friRoots, lastCoefficient, nonce, traces: opened.map(([, trace]) => trace), layers };
+      return (send ? pcs.check.send : pcs.check)(prefix, samples, layout, proof, gas);
+    };
+    assert.equal(await check(tracesAt()), true);
+    // Even a valid Merkle opening under a recomputed trace root is rejected
+    // when its recomputed DEEP quotient does not match the committed FRI row.
+    assert.equal(await check(tracesAt(true)), false);
+    const receipt = await (await check(tracesAt(), true)).wait();
+    console.log(JSON.stringify({ nativeDeepFriGas: Number(receipt.gasUsed), queries: queries.length }));
   });
 
   const pcs = readFixture("native-pcs-121057303-truth-4.json");

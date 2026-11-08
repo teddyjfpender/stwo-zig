@@ -256,13 +256,25 @@ FRI layer; callers still need to derive the query set and enforce that FRI
 authenticates these exact answers. These components do not check an AIR
 or authorize a checkpoint.
 
+`NativePcsVerifier` joins the stages behind an internal verifier entry
+point. It verifies PoW and derives the queries and DEEP challenge from the
+PCS transcript, computes every DEEP answer from the trace openings, then
+verifies all FRI layers and the last polynomial. The verifier deploys and
+pins its own stateless FRI module; that module accepts calls only from the
+PCS verifier that created it. The surrounding verifier still owns the OODS
+prefix, AIR check and trace commitment layout.
+
 The bounded fixture is exported by Zig's native `friAnswers` implementation.
 It covers seven queries across three trace commitments, columns with
 zero, one and two samples, and several periodic rotations. Tests use
 independent BLAKE2s to build the compressed openings and check every
-output coefficient. On Anvil Shanghai with solc 0.8.30, the fixture
-uses 2,892,979 gas including calldata and all three openings. This
-measurement is for the bounded vector, not the full Mainnet proof.
+output coefficient. The same fixture supplies all 32 domain evaluations
+to an independent FRI proof builder. The joint test checks the full query
+set and rejects an authenticated trace row with a mismatching quotient.
+On Anvil Shanghai with solc 0.8.30, the seven-query fixture
+uses 2,881,939 gas including calldata and all three openings. The joint
+PCS test uses 10,527,089 gas for 30 distinct queries. These are bounded
+vectors; they do not measure verification of a full Mainnet proof.
 
 Regenerate the fixture from the repository root with Zig 0.15.2:
 
