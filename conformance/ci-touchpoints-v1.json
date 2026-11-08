@@ -26,11 +26,11 @@
         ],
         [
           "python3",
-          "scripts/check_build_monorepo_baseline.py"
+          "scripts/repo/check_build_monorepo_baseline.py"
         ],
         [
           "python3",
-          "scripts/check_package_workspace.py"
+          "scripts/repo/check_package_workspace.py"
         ]
       ]
     },
@@ -57,7 +57,7 @@
       "commands": [
         [
           "python3",
-          "scripts/check_build_configure_closure.py"
+          "scripts/repo/check_build_configure_closure.py"
         ],
         [
           "zig",
@@ -169,9 +169,9 @@
       "description": "Independent ROM-agnostic SM83 frontend package",
       "commands": [
         ["zig", "build", "test", "--build-file", "src/frontends/sm83/build.zig", "-Doptimize=ReleaseFast", "-j2"],
-        ["python3", "scripts/sm83_frontend_gate.py"],
-        ["python3", "scripts/sm83_frontend_gate.py", "--mooneye-ppu-live"],
-        ["python3", "scripts/sm83_frontend_gate.py", "--mooneye-dma-live"]
+        ["python3", "scripts/sm83/sm83_frontend_gate.py"],
+        ["python3", "scripts/sm83/sm83_frontend_gate.py", "--mooneye-ppu-live"],
+        ["python3", "scripts/sm83/sm83_frontend_gate.py", "--mooneye-dma-live"]
       ]
     },
     "riscv_cpu_integration": {
@@ -482,7 +482,7 @@
       "commands": [
         [
           "python3",
-          "scripts/check_package_workspace.py"
+          "scripts/repo/check_package_workspace.py"
         ],
         [
           "zig",
@@ -513,7 +513,7 @@
       "commands": [
         [
           "python3",
-          "scripts/e2e_interop.py",
+          "scripts/interop/e2e_interop.py",
           "--report-out",
           "{output_dir}/native-oracle.json",
           "--artifact-dir",
@@ -537,7 +537,7 @@
         ],
         [
           "python3",
-          "scripts/riscv_pr_proof_smoke.py",
+          "scripts/riscv/riscv_pr_proof_smoke.py",
           "--cli",
           "zig-out/bin/stwo-zig-riscv-cpu",
           "--artifact-dir",
@@ -547,7 +547,7 @@
         ],
         [
           "python3",
-          "scripts/riscv_trace_vectors.py"
+          "scripts/riscv/riscv_trace_vectors.py"
         ]
       ]
     },
@@ -625,7 +625,7 @@
         ],
         [
           "python3",
-          "scripts/check_registry_parity.py"
+          "scripts/repo/check_registry_parity.py"
         ]
       ]
     },
@@ -667,7 +667,7 @@
         [
           "bash",
           "-ceu",
-          ": \"${STWO_CUDA_NVCC:?explicit STWO_CUDA_NVCC is required}\"\n: \"${STWO_CUDA_HOST_CXX:?explicit STWO_CUDA_HOST_CXX is required}\"\n: \"${STWO_CUDA_HOST_RUNTIME:?explicit STWO_CUDA_HOST_RUNTIME is required}\"\n: \"${STWO_CUDA_HOST_UNWIND_RUNTIME:?explicit STWO_CUDA_HOST_UNWIND_RUNTIME is required}\"\n: \"${STWO_CUDA_AR:?explicit STWO_CUDA_AR is required}\"\n: \"${STWO_CUDA_HOME:?explicit STWO_CUDA_HOME is required}\"\n: \"${STWO_CUDA_LIBRARY_DIR:?explicit STWO_CUDA_LIBRARY_DIR is required}\"\n: \"${STWO_CUDA_ARCH:?explicit STWO_CUDA_ARCH is required}\"\ntest -x \"$STWO_CUDA_NVCC\"\ntest -x \"$STWO_CUDA_HOST_CXX\"\ntest -x \"$STWO_CUDA_AR\"\ntest -f \"$STWO_CUDA_HOST_RUNTIME\"\ntest -f \"$STWO_CUDA_HOST_UNWIND_RUNTIME\"\ntest -d \"$STWO_CUDA_HOME\"\ntest -d \"$STWO_CUDA_LIBRARY_DIR\"\ntest \"$(nvidia-smi --query-gpu=uuid --format=csv,noheader | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')\" = 1\nnvidia-smi --query-gpu=name,uuid,compute_cap,driver_version --format=csv,noheader | tee /dev/stderr\nzig build stwo-native-cuda -Doptimize=ReleaseFast -j2 \"-Dcuda-nvcc=$STWO_CUDA_NVCC\" \"-Dcuda-host-cxx=$STWO_CUDA_HOST_CXX\" \"-Dcuda-host-runtime=$STWO_CUDA_HOST_RUNTIME\" \"-Dcuda-host-unwind-runtime=$STWO_CUDA_HOST_UNWIND_RUNTIME\" \"-Dcuda-ar=$STWO_CUDA_AR\" \"-Dcuda-home=$STWO_CUDA_HOME\" \"-Dcuda-library-dir=$STWO_CUDA_LIBRARY_DIR\" \"-Dcuda-arch=$STWO_CUDA_ARCH\"\npython3 scripts/cuda_device_smoke.py --archive zig-out/lib/libstwo_cuda_kernels.a --cuda-home \"$STWO_CUDA_HOME\" --compiler \"$STWO_CUDA_HOST_CXX\" --out-dir \"{output_dir}/native-cuda-device-smoke\"\npython3 -c 'import json,sys; receipt=json.load(open(sys.argv[1], encoding=\"utf-8\")); assert receipt[\"schema\"] == \"stwo-zig-cuda-device-smoke-v1\" and len(receipt[\"tests\"]) == 12' \"{output_dir}/native-cuda-device-smoke/cuda_device_smoke_receipt.json\"\nzig build stwo-native-cpu -Doptimize=ReleaseFast -j2\ncargo +nightly-2025-07-14 build --release --locked --manifest-path tools/stwo-interop-rs/Cargo.toml\nrust_target=\"${CARGO_TARGET_DIR:-tools/stwo-interop-rs/target}\"\nrust_verifier=\"$rust_target/release/stwo-interop-rs\"\ntest -x \"$rust_verifier\"\n# Source, Cargo.lock, and the named Rust toolchain are the oracle pin. This digest binds that built executable into the parity receipt.\nrust_sha256=\"$(sha256sum \"$rust_verifier\" | awk '{print $1}')\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --log-n-rows 5 --sequence-len 8 --repeat 3 --out-dir \"{output_dir}/native-cuda-parity\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode graphs --out-dir \"{output_dir}/native-cuda-poseidon-graphs\"\npython3 scripts/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode direct --out-dir \"{output_dir}/native-cuda-poseidon-direct\"\npython3 -c 'import json,sys; a=json.load(open(sys.argv[1], encoding=\"utf-8\")); b=json.load(open(sys.argv[2], encoding=\"utf-8\")); assert a[\"proofs\"][\"cuda\"][\"proof_sha256\"] == b[\"proofs\"][\"cuda\"][\"proof_sha256\"] and a[\"cuda_residency\"][\"aot_build_sha256\"] == b[\"cuda_residency\"][\"aot_build_sha256\"]' \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\" \"{output_dir}/native-cuda-poseidon-direct/receipt.json\"\ntest -s \"{output_dir}/native-cuda-parity/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-direct/receipt.json\""
+          ": \"${STWO_CUDA_NVCC:?explicit STWO_CUDA_NVCC is required}\"\n: \"${STWO_CUDA_HOST_CXX:?explicit STWO_CUDA_HOST_CXX is required}\"\n: \"${STWO_CUDA_HOST_RUNTIME:?explicit STWO_CUDA_HOST_RUNTIME is required}\"\n: \"${STWO_CUDA_HOST_UNWIND_RUNTIME:?explicit STWO_CUDA_HOST_UNWIND_RUNTIME is required}\"\n: \"${STWO_CUDA_AR:?explicit STWO_CUDA_AR is required}\"\n: \"${STWO_CUDA_HOME:?explicit STWO_CUDA_HOME is required}\"\n: \"${STWO_CUDA_LIBRARY_DIR:?explicit STWO_CUDA_LIBRARY_DIR is required}\"\n: \"${STWO_CUDA_ARCH:?explicit STWO_CUDA_ARCH is required}\"\ntest -x \"$STWO_CUDA_NVCC\"\ntest -x \"$STWO_CUDA_HOST_CXX\"\ntest -x \"$STWO_CUDA_AR\"\ntest -f \"$STWO_CUDA_HOST_RUNTIME\"\ntest -f \"$STWO_CUDA_HOST_UNWIND_RUNTIME\"\ntest -d \"$STWO_CUDA_HOME\"\ntest -d \"$STWO_CUDA_LIBRARY_DIR\"\ntest \"$(nvidia-smi --query-gpu=uuid --format=csv,noheader | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')\" = 1\nnvidia-smi --query-gpu=name,uuid,compute_cap,driver_version --format=csv,noheader | tee /dev/stderr\nzig build stwo-native-cuda -Doptimize=ReleaseFast -j2 \"-Dcuda-nvcc=$STWO_CUDA_NVCC\" \"-Dcuda-host-cxx=$STWO_CUDA_HOST_CXX\" \"-Dcuda-host-runtime=$STWO_CUDA_HOST_RUNTIME\" \"-Dcuda-host-unwind-runtime=$STWO_CUDA_HOST_UNWIND_RUNTIME\" \"-Dcuda-ar=$STWO_CUDA_AR\" \"-Dcuda-home=$STWO_CUDA_HOME\" \"-Dcuda-library-dir=$STWO_CUDA_LIBRARY_DIR\" \"-Dcuda-arch=$STWO_CUDA_ARCH\"\npython3 scripts/cuda/cuda_device_smoke.py --archive zig-out/lib/libstwo_cuda_kernels.a --cuda-home \"$STWO_CUDA_HOME\" --compiler \"$STWO_CUDA_HOST_CXX\" --out-dir \"{output_dir}/native-cuda-device-smoke\"\npython3 -c 'import json,sys; receipt=json.load(open(sys.argv[1], encoding=\"utf-8\")); assert receipt[\"schema\"] == \"stwo-zig-cuda-device-smoke-v1\" and len(receipt[\"tests\"]) == 12' \"{output_dir}/native-cuda-device-smoke/cuda_device_smoke_receipt.json\"\nzig build stwo-native-cpu -Doptimize=ReleaseFast -j2\ncargo +nightly-2025-07-14 build --release --locked --manifest-path tools/stwo-interop-rs/Cargo.toml\nrust_target=\"${CARGO_TARGET_DIR:-tools/stwo-interop-rs/target}\"\nrust_verifier=\"$rust_target/release/stwo-interop-rs\"\ntest -x \"$rust_verifier\"\n# Source, Cargo.lock, and the named Rust toolchain are the oracle pin. This digest binds that built executable into the parity receipt.\nrust_sha256=\"$(sha256sum \"$rust_verifier\" | awk '{print $1}')\"\npython3 scripts/cuda/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --log-n-rows 5 --sequence-len 8 --repeat 3 --out-dir \"{output_dir}/native-cuda-parity\"\npython3 scripts/cuda/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode graphs --out-dir \"{output_dir}/native-cuda-poseidon-graphs\"\npython3 scripts/cuda/cuda_proof_parity_gate.py --cuda-product zig-out/bin/stwo-zig-native-cuda --native-cpu-product zig-out/bin/stwo-zig-native-cpu --rust-verifier \"$rust_verifier\" --rust-verifier-sha256 \"$rust_sha256\" --air poseidon --log-n-instances 10 --repeat 3 --execution-mode direct --out-dir \"{output_dir}/native-cuda-poseidon-direct\"\npython3 -c 'import json,sys; a=json.load(open(sys.argv[1], encoding=\"utf-8\")); b=json.load(open(sys.argv[2], encoding=\"utf-8\")); assert a[\"proofs\"][\"cuda\"][\"proof_sha256\"] == b[\"proofs\"][\"cuda\"][\"proof_sha256\"] and a[\"cuda_residency\"][\"aot_build_sha256\"] == b[\"cuda_residency\"][\"aot_build_sha256\"]' \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\" \"{output_dir}/native-cuda-poseidon-direct/receipt.json\"\ntest -s \"{output_dir}/native-cuda-parity/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-graphs/receipt.json\"\ntest -s \"{output_dir}/native-cuda-poseidon-direct/receipt.json\""
         ]
       ]
     },
@@ -746,7 +746,7 @@
         ],
         [
           "python3",
-          "scripts/metal_core_aot_receipt.py",
+          "scripts/metal/metal_core_aot_receipt.py",
           "reproduce",
           "--builder",
           "zig-out/bin/metal-core-aot",
@@ -934,7 +934,7 @@
     },
     {
       "prefixes": [
-        "scripts/sm83_frontend_gate.py"
+        "scripts/sm83/sm83_frontend_gate.py"
       ],
       "lanes": [
         "script_contracts",
@@ -967,8 +967,8 @@
       "prefixes": [
         "src/tools/metal_core_aot",
         "build_support/backends/metal_aot.zig",
-        "scripts/metal_core_aot_receipt.py",
-        "scripts/metal_core_aot_receipt_lib"
+        "scripts/metal/metal_core_aot_receipt.py",
+        "scripts/metal/metal_core_aot_receipt_lib"
       ],
       "lanes": [
         "script_contracts",
@@ -1321,14 +1321,14 @@
         "build_support/backends/cuda.zig",
         "build_support/backends/cuda_tools.zig",
         "src/products/native_cuda",
-        "scripts/cuda_activation.py",
-        "scripts/cuda_build.py",
-        "scripts/cuda_build_lib",
-        "scripts/cuda_device_smoke.py",
-        "scripts/cuda_product_closure.py",
-        "scripts/cuda_proof_parity_gate.py",
-        "scripts/cuda_recorded_witness_product.py",
-        "scripts/cuda_source_closure.py",
+        "scripts/cuda/cuda_activation.py",
+        "scripts/cuda/cuda_build.py",
+        "scripts/cuda/cuda_build_lib",
+        "scripts/cuda/cuda_device_smoke.py",
+        "scripts/cuda/cuda_product_closure.py",
+        "scripts/cuda/cuda_proof_parity_gate.py",
+        "scripts/cuda/cuda_recorded_witness_product.py",
+        "scripts/cuda/cuda_source_closure.py",
         "tests/cuda"
       ],
       "lanes": [
@@ -1379,6 +1379,41 @@
       "lanes": [
         "package",
         "native_cuda_static"
+      ]
+    },
+    {
+      "prefixes": [
+        "guests"
+      ],
+      "lanes": [
+        "script_contracts",
+        "riscv_cuda_integration"
+      ]
+    },
+    {
+      "prefixes": [
+        "tests/fixtures/ethereum"
+      ],
+      "lanes": [
+        "script_contracts",
+        "riscv_cuda_integration"
+      ]
+    },
+    {
+      "prefixes": [
+        "bench/cairo"
+      ],
+      "lanes": [
+        "script_contracts",
+        "cairo_cpu"
+      ]
+    },
+    {
+      "prefixes": [
+        "tools/perf"
+      ],
+      "lanes": [
+        "script_contracts"
       ]
     },
     {
@@ -1437,9 +1472,9 @@
     {
       "prefixes": [
         ".github/workflows/ci.yml",
-        "scripts/ci_scope_plan.py",
-        "scripts/ci_scope_run.py",
-        "scripts/ci_scope_push.py",
+        "scripts/repo/ci_scope_plan.py",
+        "scripts/repo/ci_scope_run.py",
+        "scripts/repo/ci_scope_push.py",
         "conformance/ci-touchpoints-v1.json"
       ],
       "lanes": [
@@ -1454,6 +1489,11 @@
     "LICENSE",
     "docs",
     "archive",
-    "conformance"
+    "conformance",
+    "ENGINEERING_STANDARDS.md",
+    ".github/ISSUE_TEMPLATE",
+    ".github/pull_request_template.md",
+    ".github/gitleaks.toml",
+    ".claude"
   ]
 }

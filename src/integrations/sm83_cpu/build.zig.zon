@@ -2,6 +2,7 @@
     .fingerprint = 0xee3b9ecde7486b82,
     .name = .stwo_sm83_cpu_integration,
     .version = "0.1.0",
+    .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{
         .stwo_core = .{ .path = "../../core" },
