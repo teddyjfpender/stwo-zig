@@ -39,6 +39,24 @@ opens 105 distinct queries. A Shanghai Anvil transaction used
 transcript, proof of work, calldata and all layer checks. This exceeds
 the Osaka transaction cap and is not a deployment benchmark.
 
+The checked-in OP Mainnet block 120794432 fixture replays `truth-1.bin`
+from a bundle accepted by a fresh native receiver. It verifies all 7,453
+transcript samples, the PoW, 74 distinct queries, both authenticated FRI
+layers and the terminal coefficient. It uses the OODS prefix and first-layer
+DEEP answers captured by the native receiver. The Shanghai Anvil transaction
+used 59,593,990 gas at the package compiler settings.
+
+To reproduce the fixture, apply both `tools/native-pcs-capture.patch`
+and `tools/native-fri-capture.patch` in a disposable receiver checkout.
+Enable `STWO_EXPORT_PCS_SUFFIX=1` and `STWO_EXPORT_FRI_LAYERS=1` with one
+proof worker and run the fresh receiver against the accepted bundle.
+Then run the exporter from this directory.
+
+```sh
+python3 tools/export_fri_bundle.py fri.log receive.json "$BUNDLE/truth-1.bin" \
+  fixtures/native-fri-120794432-truth-1.json --block 120794432
+```
+
 The checked-in OP Mainnet block 121057303 `truth-4.bin` fixtures verify
 that the Solidity transcript derives all 99 expected distinct queries.
 They do not include its FRI opening rows. To replay those openings if

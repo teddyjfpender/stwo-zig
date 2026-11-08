@@ -289,6 +289,18 @@ export function registerFriTests(deploy) {
     assert.deepEqual((await fri.positions(input, { gasLimit: 60_000_000 })).map(Number), opening.positions);
   });
 
+  test("replays all authenticated FRI layers for OP Mainnet block 120794432", async () => {
+    const fri = await deploy("test/NativeFriHarness.sol", "NativeFriHarness");
+    const exported = readFixture("native-fri-120794432-truth-1.json");
+    const { input, deepValues, layers } = exported;
+    const gas = { gasLimit: 95_000_000 };
+    assert.equal(await fri.check(input, deepValues, layers, gas), true);
+    const receipt = await (await fri.check.send(input, deepValues, layers, gas)).wait();
+    console.log(JSON.stringify({ nativeFriReplayGas: Number(receipt.gasUsed), worker: exported.worker,
+      block: exported.blockNumber, domainLog: input.domainLog, sampleCount: input.sampleCount,
+      queries: deepValues.length }));
+  });
+
   const filename = "native-fri-121057303-truth-4.json";
   test("replays exported mainnet FRI openings", { skip: !existsSync(fixture(filename)) }, async () => {
     const fri = await deploy("test/NativeFriHarness.sol", "NativeFriHarness");
