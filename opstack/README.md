@@ -190,6 +190,54 @@ checks completion at exactly N instructions (N-1 then 1), all 32 registers, PC,
 43 output bytes and service counters. The production RV64 diagnostic is reused;
 there is no OP-specific implementation of the VM or crypto executor.
 
+## Full block CUDA benchmark
+
+Run the build, fixture import and execution benchmark above with
+`--profile ethereum_services_v3 --oracle`. On a Linux CUDA host with a matching
+[resident native CUDA runtime](../design/riscv-proving-stack/rv64-gpu-handoff-20261104.md),
+build the producer and independent CPU receiver from the same checkout:
+
+```sh
+zig build --build-file src/integrations/riscv_cuda/build.zig \
+  build-rv64-ethereum-gpu -Doptimize=ReleaseFast -Dtarget=x86_64-linux-gnu \
+  -p "$PWD/zig-out" -j1
+zig build rv64-word16-ethereum-native -Doptimize=ReleaseFast -j1
+python3 opstack/gpu.py --block 121057303 \
+  --benchmark /workspace/kona-mainnet-bench \
+  --receiver zig-out/bin/rv64-word16-ethereum-native \
+  --driver zig-out/bin/rv64-word16-ethereum-gpu \
+  --runtime "$RV64_NATIVE_LIBRARY" --runtime-sha256 "$RV64_NATIVE_LIBRARY_SHA256" \
+  --resources opstack/presets/cuda-resident-8workers.json \
+  --batch-steps 1048575 --devices 0 --artifacts /workspace/op-cuda-121057303
+```
+
+Set the runtime path and SHA-256 from the matching native image's build
+receipt. The [image builder](../scripts/rv64_cuda_resident_image_build.py)
+links the generated CUDA kernels; the driver loads that image at runtime. The run keeps the exact
+input, program and tool hashes, source-derived CPU scope count, measured CUDA
+launch and event evidence, producer wall and RSS, sampled whole-device memory,
+and separate CPU receiver result. It reports success only after the receiver
+checks the complete block and exact pinned output with CUDA disabled. GPU
+event spans can overlap, and sampled device memory includes other processes.
+This path measures native proofs, without recursion or L1 derivation.
+
+For block **121065789**, use a separate `canonical-glv-hinted` build and
+`benchmark.py --pairing-hints --blocks 121065789 --oracle --profile
+ethereum_services_v3` to reproduce the 425,529,933-instruction input. Start
+with `gpu.py --prepare-only --block 121065789 --devices 0 1 --batch-steps
+4194303`; this uses the same receiver, benchmark, resource and artifact
+arguments, with no driver or runtime needed. The existing census at this
+geometry counted **102 CPU scopes** and **122.5 GiB** of raw padded MAIN at
+four bytes per field cell. The scope table allows 64 CPU scopes per device.
+Passing the scope count check on two devices does not establish device memory
+fit: compact replay, device representations, live buffers and allocator
+overhead are accounted for by the runtime. Set explicit budgets for the
+available host and device memory, using a fresh artifact directory for the
+attempt. If using capture spill, add it after the no-spill census and give it
+a separate, adequately sized filesystem; the previous 40 GiB backing cap
+was exhausted. This preset is a starting point for the smaller block, with
+no heavy-block memory or latency claim.
+
 ## Validation and dependency ownership
 
 ```sh

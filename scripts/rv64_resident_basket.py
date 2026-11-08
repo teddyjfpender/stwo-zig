@@ -171,15 +171,15 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
             "measurement_scope": (f"One process/block/config, {repeat} fresh complete native plus recursive request(s) with bounded immutable setup. Request wall excludes initial pool creation; process wall includes it. Only requested trials are measured; no resumed proofs or projected timings." if combined else f"One process/block/config, {repeat} fresh native request(s) with bounded immutable setup. Request wall excludes initial pool creation; process wall includes it. Only requested trials are measured; no recursion or projected timings.")}
 
 
-def gpu_inventory(devices):
+def gpu_inventory(devices, *, require_name="5090"):
     raw = subprocess.check_output(["nvidia-smi", "--query-gpu=index,uuid,name,memory.total", "--format=csv,noheader,nounits"], text=True)
     inventory = {}
     for line in raw.splitlines():
         index, uuid, name, memory = [p.strip() for p in line.split(",")]
         inventory[int(index)] = {"uuid": uuid, "name": name, "memory_bytes": int(memory) << 20}
     for device in devices:
-        if device not in inventory or "5090" not in inventory[device]["name"]:
-            raise ValueError("requested physical RTX 5090 absent: " + str(device))
+        if device not in inventory or (require_name is not None and require_name not in inventory[device]["name"]):
+            raise ValueError(f"requested physical CUDA device absent or wrong model: {device}")
     return {str(d): inventory[d] for d in devices}
 
 

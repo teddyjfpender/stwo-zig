@@ -88,12 +88,16 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     // workers boot before the pool (their arenas are carved first).
     // M8 request feeder (STWO_RV64_M8_JOBS=1, combined only): both hybrids,
     // every job seam through the feeder's publication ledger (m8_feeder.zig).
-    const Feeder = @import("m8_feeder.zig").Feeder;
-    const feeder: ?*Feeder = if (combined) try Feeder.create(std.heap.smp_allocator) else null;
-    defer if (feeder) |f| f.destroy();
-    if (feeder) |f| f.activate();
+    const feeder: if (combined) ?*@import("m8_feeder.zig").Feeder else void =
+        if (combined) try @import("m8_feeder.zig").Feeder.create(std.heap.smp_allocator) else {};
+    defer if (combined) {
+        if (feeder) |f| f.destroy();
+    };
+    if (combined) {
+        if (feeder) |f| f.activate();
+    }
     const NativeJobs = @import("native_hybrid.zig");
-    const native_jobs: ?*NativeJobs.Hybrid = if ((try NativeJobs.selected()) or feeder != null) try NativeJobs.Hybrid.create(std.heap.smp_allocator, library) else null;
+    const native_jobs: ?*NativeJobs.Hybrid = if ((try NativeJobs.selected()) or (combined and feeder != null)) try NativeJobs.Hybrid.create(std.heap.smp_allocator, library) else null;
     defer if (native_jobs) |h| h.destroy();
     const pool = try Pool.createWithBinding(if (combined) base else a, library, config, cpuCount(first), true);
     defer pool.deinit();
@@ -268,9 +272,11 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
         h.install(&stages);
         try h.beginRequest(item.expected_cpu_segments);
     }
-    if (svc.feeder) |f| {
-        f.beginRequest();
-        try f.wrapNative(&stages);
+    if (combined) {
+        if (svc.feeder) |f| {
+            f.beginRequest();
+            try f.wrapNative(&stages);
+        }
     }
     defer if (svc.native_jobs) |h| h.endRequest(directory);
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
