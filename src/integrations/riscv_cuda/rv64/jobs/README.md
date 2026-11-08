@@ -1,5 +1,20 @@
 # rv64/jobs — M8 job runtime (as built)
 
+Work in the single canonical checkout, `/Users/theodorepender/Coding/stwo-zig`.
+These are the three developer entrypoints:
+
+| Purpose | Command |
+|---|---|
+| Inner loop | `python3 scripts/dev_test.py <changed-paths>` |
+| Before every push | `bash scripts/rv64_gate.sh --stream m8-gn-bind --out <new-receipt-dir> --source-commit <sha> --runtime <pinned-runtime.json>` |
+| GPU-native regression set | `python3 scripts/rv64_m8_bench15.py run --assets <pinned-assets.json> --out <regression-dir> --arms gpu-native` |
+
+Compiles and proof gates currently run in the corresponding frozen pod source
+snapshot. Transport must preserve the canonical source identity; do not select
+another laptop worktree to build a different component. The gate owns its GPU
+lock. The regression command covers the complete basket unless a diagnostic
+subset is explicitly selected; subset evidence is not a basket pass.
+
 Spec: `design/riscv-proving-stack/rv64-m8-job-architecture.md`. The current
 [resource and development contract](../../../../../design/riscv-proving-stack/rv64-gpu-hygiene.md)
 defines ownership, validation and cleanup acceptance. The native request path
@@ -37,7 +52,9 @@ has an owner and remains until a fully qualified replacement exists.
 | `lint.zig` | sync lint: no sync/D2H/lease symbol reachable (file level, transitive) from job sources |
 | `fake.zig` | host device model for GPU-free tests (`zig build test-rv64-jobs`) |
 | `gpu_native.zig` | GPU-native request contract (`design/riscv-proving-stack/rv64-m8-gpu-native.md`): status words, request slab, peer exchange, class cache, device checks/encoders, memory plan, capture hand-off, factories, `publish` |
-| `driver.zig` / `native_device.zig` / `outer_device.zig` / `truth_job.zig` | installed GPU-native driver, native segments, device-published recursion and truth jobs |
+| `driver.zig` / `native_device.zig` / `truth_job.zig` | installed GPU-native driver, native segments and truth jobs |
+| `outer_device.zig` | installed recursion authority registry and counted class-plan pins |
+| `outer_node_job.zig` | per-request node construction, custody, execution and settlement |
 
 CUDA addon: `NAT/rv64/jobs/*.cu` → `libstwo-rv64-jobs.so` (`scripts/rv64_m8_jobs_addon_build.py --base <frozen image>
 --out <dir>`), loaded with `STWO_RV64_M8_JOBS_LIBRARY`. ABI version in `ops.zig` = `runtime.cu`.
@@ -141,7 +158,10 @@ Every `STWO_RV64_M8_OUTER_*` knob is read and parsed once per process (outer_env
 Use `scripts/dev_test.py --dry-run <changed-path>` to see the selected
 package-owned test. Resource/arena edits select `test-rv64-resources`; worker,
 driver and channel edits select `test-rv64-jobs-runtime`; node result/lifetime
-edits select `test-rv64-jobs-node`. These host tests do not require a GPU.
+edits select `test-rv64-jobs-node`. Recursion registry and request-custody edits
+select `test-rv64-jobs-recursion`, which exercises the two in-flight parities,
+peer-child seed construction, request verdicts and pin ordering. These host
+tests do not require a GPU.
 `--check` selects the same roots without executing their tests. Native, truth
 and outer routing follows the imports of their owned component test roots. Unknown
 paths retain the complete package fallback rather than reporting empty success.
@@ -172,7 +192,10 @@ and allocation.
 Other inherited oversized owners remain explicit decomposition work: `driver_request.zig` should separate installed
 lane resources from in-flight request state and publication; `gpu_native.zig` should separate class/cache ownership
 from request slab/layout contracts; native Stage 1 and 2 should separate installed class construction from request
-jobs; `truth_job.zig` has the same class/job boundary; `outer_device.zig` should separate installed factory/cache
-ownership from the device node adapter. This change adds only parity/trace/receipt wiring to those owners, except
+jobs; `truth_job.zig` has the same class/job boundary. Recursion now separates installed
+registry ownership (`outer_device.zig`) from the node construction/custody/execution
+owner (`outer_node_job.zig`). Registration reserves both registry maps before
+publishing either entry, and quiescent teardown destroys request bodies before
+releasing class pins. This change adds only parity/trace/receipt wiring to those owners, except
 for extracting Stage-1 timing ownership. Their small net growth keeps those invariants at the existing owner until
 a complete boundary can move with tests. No source ceiling or conformance baseline is increased.

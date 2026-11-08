@@ -10,7 +10,6 @@ from pathlib import Path
 
 from scripts import benchmark_cairo as benchmark
 from scripts import benchmark_cairo_suite as suite
-from scripts import benchmark_cairo_pair as pair
 
 
 class BenchmarkEvidenceTests(unittest.TestCase):
@@ -27,17 +26,6 @@ class BenchmarkEvidenceTests(unittest.TestCase):
         for trials in ([], [{}], [trial(None)], [trial(-1)], [trial(True)]):
             self.assertIsNone(benchmark.physical_footprint_summary(trials)["peak_product_physical_footprint_bytes"])
 
-    def test_pair_environment_isolates_variants_and_retains_common_controls(self):
-        base = {"PATH": "/bin", "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"}
-        before = pair.variant_environment(base, ["STWO_CAIRO_METAL_RESIDENT_LOGUP=0"])
-        after = pair.variant_environment(base, ["STWO_CAIRO_METAL_RESIDENT_LOGUP=1"])
-        self.assertNotIn("STWO_CAIRO_METAL_RESIDENT_LOGUP", base)
-        self.assertEqual(before["STWO_CAIRO_METAL_RESIDENT_LOGUP"], "0")
-        self.assertEqual(after["STWO_CAIRO_METAL_RESIDENT_LOGUP"], "1")
-        self.assertEqual(after["STWO_CAIRO_PREPROCESSED_CACHE_BUDGET"], "6442450944")
-        for overrides in (["PATH=/tmp"], ["STWO_ZIG_WORKERS"], ["STWO_ZIG_WORKERS=4", "STWO_ZIG_WORKERS=8"]):
-            with self.assertRaises(ValueError):
-                pair.variant_environment(base, overrides)
 
     def test_nonzero_process_retains_time_memory_and_exit_code(self):
         with tempfile.TemporaryDirectory() as directory:

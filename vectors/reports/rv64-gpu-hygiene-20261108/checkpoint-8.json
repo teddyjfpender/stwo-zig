@@ -1,0 +1,176 @@
+{
+  "schema": "rv64-gpu-hygiene-checkpoint/v1",
+  "status": "IN_PROGRESS_HOST_VALIDATED_UNCOMMITTED",
+  "updated_utc": "2026-11-08T06:11:06.627608+00:00",
+  "branch": "codex/rv64-gpu-hygiene",
+  "base_commit": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
+  "source_snapshot_digest": "b621bda17d5f6630f0f03520ac74dfb04a151d31eacfa2a257b96cafbccdf5fc",
+  "last_landed_hardware_qualification": "checkpoint-7.json",
+  "scope": "Separate installed recursion class ownership from request node construction, custody, execution and settlement; correct teardown and failed-registration invariants. This checkpoint is host evidence only.",
+  "ownership": {
+    "installed_registry": "src/integrations/riscv_cuda/rv64/jobs/outer_device.zig",
+    "request_owner": "src/integrations/riscv_cuda/rv64/jobs/outer_node_job.zig",
+    "registry_lines": 693,
+    "request_owner_lines": 289,
+    "custody": "Request bodies are destroyed after worker quiescence and before installed class pins are released. Two slab parities remain held until publication or observed settlement.",
+    "registration": "Reserve capacity in both class and authority maps before publishing either logical entry. An allocation failure returns the incoming pin and leaves no partial authority."
+  },
+  "regression_evidence": {
+    "schema": "rv64-recursion-custody-host-evidence/v1",
+    "status": "PASS_HOST_ONLY",
+    "source_snapshot_digest": "b621bda17d5f6630f0f03520ac74dfb04a151d31eacfa2a257b96cafbccdf5fc",
+    "observed_utc": "2026-11-08T06:09:42.622158+00:00",
+    "logs": {
+      "before": {
+        "path": "/workspace/m3/runs/m8-gn-bind/hygiene-15-recursion/before.log",
+        "sha256": "86dc0f579819a8331c49b90865cedb61a7c8e862b32b66b4294ae85b30847e2f",
+        "exit_code": 1,
+        "summary": [
+          "error: 'rv64.jobs.outer_device.test.recursion teardown keeps class pins alive while request jobs are destroyed' failed: expected 1, found 0",
+          "Build Summary: 1/3 steps succeeded; 1 failed; 102/103 tests passed; 1 failed"
+        ]
+      },
+      "after": {
+        "path": "/workspace/m3/runs/m8-gn-bind/hygiene-15-recursion/after.log",
+        "sha256": "ed468f0f3cbafb12f1e58471b79a6e547359b8b999aaeb3f733ed3ac11439bf9",
+        "exit_code": 0,
+        "summary": [
+          "dev test: PASS (1 focused command(s))"
+        ]
+      },
+      "register-before": {
+        "path": "/workspace/m3/runs/m8-gn-bind/hygiene-15-recursion/register-before.log",
+        "sha256": "530b9ffecdd69abc240e89a6f9b4782cef87b36e1d862cac0f1075d9c2dc8eda",
+        "exit_code": 1,
+        "summary": [
+          "error: 'rv64.jobs.outer_device.test.failed recursion registration leaves no authority and returns its pin' failed: expected 0, found 1",
+          "Build Summary: 1/3 steps succeeded; 1 failed; 104/105 tests passed; 1 failed"
+        ]
+      },
+      "final": {
+        "path": "/workspace/m3/runs/m8-gn-bind/hygiene-15-recursion/final.log",
+        "sha256": "269208af9ae500ad48109455e2995c47b73feee3c5441d9c322120009eea77de",
+        "exit_code": 0,
+        "summary": [
+          "Build Summary: 3/3 steps succeeded; 105/105 tests passed"
+        ]
+      },
+      "check": {
+        "path": "/workspace/m3/runs/m8-gn-bind/hygiene-15-recursion/check.log",
+        "sha256": "e0d03f29526b59174940e2b3980f8e6ae98ae390118c42a0a4a922023158b707",
+        "exit_code": 0,
+        "summary": [
+          "dev test: PASS (1 focused command(s))"
+        ]
+      },
+      "python": {
+        "path": "/workspace/m3/runs/m8-gn-bind/hygiene-15-recursion/python.log",
+        "sha256": "bab006129038679c0c01493f74b7e236e19c0389607312b7b51d58025c5f3fa8",
+        "exit_code": 0,
+        "summary": [
+          "Ran 16 tests in 0.433s"
+        ]
+      },
+      "broader": {
+        "path": "/workspace/m3/runs/m8-gn-bind/hygiene-15-recursion/broader.log",
+        "sha256": "faca8f4a03a8f97cf3262e0d437466c3fcd7ee2f3f200abe9e6ac9983ecad031",
+        "exit_code": 0,
+        "summary": [
+          "Build Summary: 6/6 steps succeeded; 305/306 tests passed; 1 skipped"
+        ]
+      }
+    },
+    "counts": {
+      "focused_zig_passed": 105,
+      "broader_zig_passed": 305,
+      "broader_zig_skipped": 1,
+      "python_routing_passed": 16,
+      "scope": "Counts overlap; do not sum focused and broader roots"
+    },
+    "limitations": [
+      "Host fake-device and allocation/lifetime evidence only; no new production driver build or GPU proof gate",
+      "The last landed full-proof qualification remains commit 4a4d01bd5 and checkpoint-7.json"
+    ]
+  },
+  "external_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/hygiene-15-recursion/receipt.json",
+  "external_receipt_sha256": "3b80b9e61d96a8556a02f8147d1b79347917b2b1e891270d8fe976998a675574",
+  "developer_workflow": {
+    "entrypoint": "scripts/dev_test.py",
+    "target": "test-rv64-jobs-recursion",
+    "root": "src/integrations/riscv_cuda/rv64_jobs_recursion_test_root.zig",
+    "routing": "Derived from direct imports of the owned root, with the same actual check-only target",
+    "normal_execution": "PASS",
+    "check_only_execution": "PASS",
+    "python_routing_tests": 16
+  },
+  "source_conformance": {
+    "status": "INCOMPLETE_INHERITED_DEBT",
+    "error_paths_before": 139,
+    "error_paths_now": 138,
+    "new_error_paths": [],
+    "removed_error_paths": [
+      "integrations/riscv_cuda/rv64/jobs/outer_device.zig"
+    ],
+    "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/static-audit/phase2-recursion-conformance.log",
+    "log_sha256": "6fe08347dbf865eec12a1b7e088f3f63d1365c8ad5c82760df77e486f50c827b"
+  },
+  "hosted_ci_on_landed_checkpoint": {
+    "commit": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
+    "run_url": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42452680101",
+    "status": "NON_GREEN",
+    "selected_failures": [
+      {
+        "job_id": 128645211723,
+        "lane": "build_graph",
+        "status": "FAIL",
+        "job_url": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42452680101/job/128645211723",
+        "issue": "Cairo CUDA configure closure mismatch",
+        "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/hygiene-15-recursion/ci-job-128645211723.log",
+        "log_sha256": "b18e134da6d88fa1782d81a28ff20fc05ab786edb10699ec3ba29cca89d5d21c",
+        "baseline_classification": "Not yet replayed against the starting checkout; do not infer causality from this observation"
+      },
+      {
+        "job_id": 128645211812,
+        "lane": "native_cuda_integration",
+        "status": "FAIL",
+        "job_url": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42452680101/job/128645211812",
+        "issue": "Invalid free in common.proof_decode four-fold FRI query expansion test",
+        "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/hygiene-15-recursion/ci-job-128645211812.log",
+        "log_sha256": "b8d42c9a53d1c7b5f03a41a492b3d7c3352ef6c691017ccf98300e1f7a67435a",
+        "baseline_classification": "Not yet replayed against the starting checkout; do not infer causality from this observation"
+      },
+      {
+        "job_id": 128645211785,
+        "lane": "core",
+        "status": "FAIL",
+        "job_url": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42452680101/job/128645211785",
+        "issue": "FRI fold-line workspace comparison fails; component geometry test identity guard finds zero tests",
+        "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/hygiene-15-recursion/ci-job-128645211785.log",
+        "log_sha256": "27e67687dbd125aad1c2611bbdf6169fde27c390a8ace995beb59ab4b6b03ca5",
+        "baseline_classification": "Not yet replayed against the starting checkout; do not infer causality from this observation"
+      },
+      {
+        "job_id": 128645211829,
+        "lane": "package",
+        "status": "FAIL",
+        "job_url": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42452680101/job/128645211829",
+        "issue": "proof_wire api_surface is not sorted and unique",
+        "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/hygiene-15-recursion/ci-job-128645211829.log",
+        "log_sha256": "a7b1bca6e8d7247bcbb947bc442d5c5d58e23d4f25f344ff09c953c2e5b1131b",
+        "baseline_classification": "Not yet replayed against the starting checkout; do not infer causality from this observation"
+      }
+    ],
+    "scope": "First-page job inventory only; these selected logs do not establish the full matrix state."
+  },
+  "remaining": [
+    "Continue complete owner-boundary cleanup and resolve the full static gate without raising ceilings or blessing provenance drift",
+    "Investigate hosted CI failure causes and compare against the starting checkout before classifying inherited versus introduced failures",
+    "Run the required full-proof gates on the eventual final code snapshot before landing further job-path changes",
+    "Commit and land the completed follow-up with bounded evidence"
+  ],
+  "limitations": [
+    "No GPU proof or latency qualification exists for this uncommitted follow-up. The last four-gate hardware evidence remains at commit 4a4d01bd5.",
+    "Focused and broader host test counts overlap and must not be added.",
+    "Global static checks and hosted CI remain non-green; the full objective is not complete."
+  ]
+}

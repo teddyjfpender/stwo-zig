@@ -1,8 +1,72 @@
 # RV64 GPU resource and development contract
 
-This is the delivery contract for the GPU hygiene and developer-experience
-work started on 2026-11-08. It replaces the performance campaign as the active
-work item. It does not change the proof protocol or promote GPU-native defaults.
+This is the delivery contract for the consolidation and productionisation
+phase directed on 2026-11-08. The canonical checkout is
+`/Users/theodorepender/Coding/stwo-zig`, on `codex/rv64-gpu-hygiene`.
+The initial resource/validation checkpoint is `4a4d01bd5`; it is an input to
+this phase, not its completion. The ordered promotion, deletion and developer
+requirements below extend the original hygiene gates. Proof protocol and
+security requirements remain binding throughout.
+
+## Productionisation acceptance and subtraction budgets
+
+Every change records code lines added/removed/net, flags added/removed/live,
+scripts added/removed and receipt files added/archived. Code, documentation
+and evidence totals are separate. The default cleanup budget is net code
+growth at most zero and no additional live flag or top-level script. A
+positive code budget must identify the new owner or invariant, explain why
+existing code cannot provide it, and include its tests in the reported cost.
+Moving code into another production directory does not count as deletion.
+
+The starting commit census is `4a4d01bd5`: 2,158,099 code lines in the
+source/script/build/tool inventory, 14,945 tracked receipt files and 69 local
+M8/M9 branches. There are 294 distinct `STWO_RV64_*` literal names in code,
+including 103 M7/M8 names; these are reference counts, not a resolved live
+flag registry. The initial checkout inventory contains 163 worktrees.
+
+| Change | Budget / exit condition |
+|---|---|
+| Consolidate working copies | 163 to 1 registered worktree; preserve every head, local change and non-cache ignored artifact before retirement; net production code growth 0 |
+| Flag authority | One generated registry and CI rejection of undeclared flags; fewer than 60 live RV64 flags; each M7/M8 switch is promoted or removed; initial positive implementation budget at most 350 code/test lines, justified by the new CI invariant |
+| Static retirement | Delete the 150 unreachable scripts after preservation; resolve all starting non-conforming paths by fixing or deleting owners, with zero new baselines or ceiling increases |
+| New-block setup | Reuse the installed class builders in one explicit setup-miss path; budget 0 net code lines unless a bounded positive exception names its ownership invariant and tests; no extra feature switch |
+| Legacy sweep | Inventory and remove the complete retired paths after promotion; planning estimate 20–30k code lines removed, with actual measured totals and no retained forwarding implementations |
+| Evidence and branches | Archive old receipt folders and stale M8/M9 branches under tagged history; retain only current receipts in the active tree; report exact file and branch reductions |
+| Developer interface | Three documented entrypoints at the top of jobs/README.md; no additional top-level launcher |
+
+Promotion and deletion occur in this order:
+
+1. Run the canonical quiet interleaved 3+3 comparison of GPU-native and the
+   current default on **24628607 and 26235168**. Pin the final binaries,
+   runtime, inputs and environment; require parity, fresh CPU acceptance,
+   deferred verification and the physical process-budget guard.
+2. Land the new-block setup-miss path. Charge setup and report new-block
+   latency separately; same-block warm results are insufficient.
+3. Pass the complete 15-block GPU-native basket using the regression entrypoint.
+4. Promote GPU-native to the default only with the required accepted evidence.
+5. Delete both hybrids, feeder/provider, the legacy owner-callback path and
+   their flags and active receipts in one coherent sweep. Archived history
+   stays recoverable. Admission and two-lane are already frozen by the plan
+   of record and may be retired earlier where a dependency audit establishes
+   no live consumer; each deletion batch requires `dev_test.py` and one
+   default `rv64_gate.sh` result.
+
+Archive publication must precede remote branch retirement. The
+[recovery index](rv64-archive-index.md) records the published refs, literal
+branch list and independently verified off-laptop recovery location.
+
+After default promotion, the first performance work addresses late feeding:
+the user-reported diagnostic counters are approximately 9.65 seconds of host
+enqueue and 5 seconds gated per GPU, not a new qualified latency measurement.
+Use native ranges to establish actual waits in capture streaming, per-job
+host prestage and whole-node graph replay. Then pursue the architectural
+steps in handoff section 5. Kernel tweaks are outside this sequence.
+
+V04's old resource-only rejection is closed by the semantic rejection gates
+in checkpoint 7. Physical memory peaks, production new-block latency,
+the new GPU-native basket, whole-node graph replay and a qualified speedup
+remain open until separately demonstrated. Do not infer them from the
+initial bounded proof gates or the CUDA-call census.
 
 ## Ownership and lifetime
 
@@ -39,8 +103,9 @@ different evidence and must retain distinct names.
 Installation constructs authorities, warms immutable resources and reserves
 bounded storage. The request path captures block-derived inputs, stages,
 enqueues, waits at the request boundary and publishes checked device outputs.
-Class misses and insufficient capacity fail explicitly. No unreported CPU or
-legacy fallback is permitted.
+Until the setup-miss path passes, class misses fail explicitly. Its replacement
+must own admission and setup before dependent enqueues, expose that cost and
+refuse insufficient capacity. No unreported CPU or legacy fallback is permitted.
 
 Host callbacks, ordinary job readbacks, final request readbacks and peer-copy
 transport are separate operations. CUDA can stage a peer copy through host
@@ -89,8 +154,8 @@ Delivery requires all of the following:
    API calls, device activities, peer fallback, host waits and unavailable data.
 6. Focused resource, driver, native, truth and outer tests are discoverable
    through the existing developer workflow; changed tools are routed into CI.
-7. Static checks, relevant host tests and the bounded full-proof regression
-   gates pass. No repeated performance-tuning campaign is part of this task.
+7. Static checks, relevant host tests, bounded full-proof regressions and the
+   ordered canonical/basket promotion gates above pass.
 8. Owner documentation, a compact evidence receipt and a reviewable committed
    change describe actual validation and any remaining limitations.
 

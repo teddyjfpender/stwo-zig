@@ -8,6 +8,7 @@ The CUDA image is an explicit pinned build input, never an implicit stale
 output of a host rebuild. A CUDA change must supply a newly built manifest.
 """
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -43,6 +44,12 @@ def extra_environment(items):
 
 
 JOBS_FLAGS = ('STWO_RV64_M8_JOBS', 'STWO_RV64_M8_NATIVE_JOBS', 'STWO_RV64_M8_OUTER_JOBS')
+
+
+def service_label(out):
+    """Preserve independent receipts whose output directories share a name."""
+    identity = hashlib.sha256(str(out.resolve()).encode()).hexdigest()[:16]
+    return 'gate-' + out.name + '-' + identity
 
 
 def jobs_environment(runtime, extra_env):
@@ -138,6 +145,7 @@ def main():
                             'scripts.tests.test_rv64_gpu_activity',
                             'scripts.tests.test_rv64_m8_bench15',
                             'scripts.tests.test_dev_test',
+                            'scripts.tests.test_script_reachability',
                             'scripts.tests.test_ci', 'scripts.tests.test_ci_package_graph',
                             'scripts.tests.test_focused_ci_contract'])
         bins = Path('/workspace/m3/build') / args.stream / 'zig-out/bin'
@@ -150,7 +158,7 @@ def main():
         receipt['preset'] = manifest['preset']
         receipt['preset_sha256'] = stack.sha(stack.DEFAULT_PRESET)
         receipt['asset_sha256'] = {name: stack.sha(path) for name, path in assets.items()}
-        label = 'gate-' + out.name
+        label = service_label(out)
         argv, tag = stack.command(manifest, 'baseline', 0, args.stream, False, label)
         # Keep quiet observations but do not call correctness walls matched timings.
         argv += ['--quiet-mode', 'diagnostic', '--request-timeout', '240']

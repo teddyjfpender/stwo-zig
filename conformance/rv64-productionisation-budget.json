@@ -1,0 +1,170 @@
+{
+  "schema": "rv64-productionisation-budgets/v1",
+  "baseline_commit": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
+  "policy": "Default net code growth, new flags and new top-level scripts are zero. Positive code exceptions below include tests and require a concrete invariant. Code, configuration, documentation, receipts and working-copy storage are separate counters. Moves are not deletions.",
+  "baseline": {
+    "code_files": 8717,
+    "code_lines": 2158099,
+    "unique_rv64_flag_tokens_in_code": 294,
+    "m7_m8_flag_tokens": 103,
+    "tracked_receipt_files": 14945,
+    "local_m8_m9_branches": 69
+  },
+  "entries": [
+    {
+      "id": "worktree_consolidation",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "worktree_target": 1,
+      "actual_worktrees_before": 163,
+      "actual_worktrees_after": 1,
+      "retired_working_copies": 162,
+      "status": "VERIFIED_LOCAL",
+      "archive_inventory_tag": "archive/consolidation-20261108/inventory"
+    },
+    {
+      "id": "recursion_custody",
+      "net_code_budget": 126,
+      "actual": {
+        "added": 390,
+        "removed": 264,
+        "net": 126,
+        "flags_added": 0,
+        "scripts_added": 0
+      },
+      "positive_growth_justification": "Phase-entry follow-up fixes two demonstrated bugs: class pins were released before request-body destruction and failed registration exposed a partial authority. Includes owning request custody, fault-injection and lifetime regressions; not cosmetic file splitting.",
+      "validation": "105 focused and 305 broader host tests pass; counts overlap; full-proof follow-up remains pending"
+    },
+    {
+      "id": "ci_failure_repair",
+      "net_code_budget": 5,
+      "actual": {
+        "added": 10,
+        "removed": 5,
+        "net": 5,
+        "flags_added": 0,
+        "scripts_added": 0
+      },
+      "positive_growth_justification": "Restore exact test-owner discovery and correct invalid-free cleanup, with diagnostics for an unresolved optimized FRI mismatch. No assertion or test count is weakened.",
+      "status": "PARTIAL_281_NATIVE_AND_2_GEOMETRY_PASS_FRI_OPEN"
+    },
+    {
+      "id": "policy_identity",
+      "net_code_budget": 4,
+      "actual": {
+        "added": 6,
+        "removed": 2,
+        "net": 4,
+        "flags_added": 0,
+        "scripts_added": 0
+      },
+      "positive_growth_justification": "Include the canonical project execution policy in frozen source identity; regression test checks drift."
+    },
+    {
+      "id": "unreachable_script_retirement",
+      "net_code_budget": -26041,
+      "scripts_removed_target": 150,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "status": "DELETED_PENDING_BATCH_GATES",
+      "ownership_rule": "Retire tests only with the code they exclusively cover; preserve all live gate and regression assertions."
+    },
+    {
+      "id": "flag_registry",
+      "net_code_budget": 350,
+      "positive_growth_justification": "One owner/default/status/date authority and a tested CI invariant rejecting undeclared flags. Generated metadata is counted separately.",
+      "live_flags_max": 59,
+      "m7_m8_policy": "Every M7/M8 switch is promoted or removed",
+      "scripts_added_budget": 0,
+      "status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "new_block_setup_miss",
+      "net_code_budget": 0,
+      "positive_exception_policy": "Amend with a bounded ownership/test justification before any positive implementation growth. Reuse installed class builders.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "status": "NOT_LANDED"
+    },
+    {
+      "id": "legacy_retirement_after_default_flip",
+      "net_code_budget_estimate": [
+        -30000,
+        -20000
+      ],
+      "estimate_is_not_measured_deletion": true,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "scope": [
+        "both hybrids",
+        "feeder",
+        "provider",
+        "legacy owner-callback",
+        "their flags and active receipts"
+      ],
+      "gate": "Only after canonical comparison, setup-miss, full GPU-native basket and default promotion",
+      "status": "NOT_ELIGIBLE_YET"
+    },
+    {
+      "id": "historical_receipt_archive",
+      "net_code_budget": 0,
+      "baseline_receipt_files": 14945,
+      "retained_receipt_policy": "Current receipts only; move any genuinely live fixture out of historical report folders without changing its bytes or pins.",
+      "status": "TAGGED_BASELINE_ACTIVE_TREE_RETIREMENT_PENDING"
+    },
+    {
+      "id": "retired_script_closure_batch_1",
+      "net_code_budget": -66265,
+      "top_level_scripts_removed_target": 150,
+      "historical_research_consumers_removed_target": 63,
+      "retired_test_or_fixture_files_removed_target": 55,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "archive": "archive/consolidation-20261108/worktrees/rv64-m8-gn-bind",
+      "scope": "Only unreachable tools and their exclusively historical consumers; retain live Cairo benchmark/suite tests; no hybrid, feeder/provider or owner-callback source retirement.",
+      "status": "DELETED_PENDING_BATCH_GATES"
+    },
+    {
+      "id": "python_inner_loop_ownership",
+      "net_code_budget": 60,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "The existing dev_test.py rejects all Python paths. Give known script owners a bounded unit route and deleted/unknown script owners the complete surviving Python contract suite. No new launcher or empty-success route.",
+      "status": "PASS_FOCUSED_FULL_SUITE_REVEALED_OPEN_FAILURES"
+    },
+    {
+      "id": "retired_script_support_closure_1",
+      "net_code_budget": -1027,
+      "support_packages_removed_target": 4,
+      "justification": "No remaining production consumers; retire the one exclusively owned historical plan-model test with its support package.",
+      "scripts_added_budget": 0,
+      "flags_added_budget": 0
+    },
+    {
+      "id": "frozen_admission_two_lane_retirement",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "scope": "Only frozen admission and two-lane paths with no remaining live consumer; retain shared resource footprint contracts",
+      "gate": "dev_test.py and one default rv64_gate.sh per deletion batch",
+      "status": "DEPENDENCY_AUDIT_REQUIRED"
+    },
+    {
+      "id": "retired_dynamic_import_test_closure_1",
+      "net_code_budget": -506,
+      "exclusive_test_files_removed": 3,
+      "mixed_test_lines_removed": 21,
+      "ownership": "Only retired comparison/normalization/census subjects; all surviving corpus checks retained",
+      "status": "PASS_44_FOCUSED_TESTS_AND_ZERO_DISCOVERY_IMPORT_ERRORS"
+    },
+    {
+      "id": "gate_service_namespace_collision",
+      "net_code_budget": 15,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "A real default gate passed build/units then collided with an older service because only output basename entered its tag. Derive deterministic service identity from the absolute receipt path and test distinct parents with equal basenames; never delete old receipts to make a run pass.",
+      "status": "BUDGETED_AFTER_DEMONSTRATED_COLLISION_BEFORE_EDIT"
+    }
+  ]
+}

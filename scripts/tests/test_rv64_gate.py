@@ -12,6 +12,13 @@ from types import SimpleNamespace
 
 
 class GateTests(unittest.TestCase):
+    def test_equal_output_basenames_keep_independent_service_receipts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / 'batch-1' / 'default'
+            second = Path(tmp) / 'batch-2' / 'default'
+            self.assertNotEqual(gate.service_label(first), gate.service_label(second))
+            self.assertEqual(gate.service_label(first), gate.service_label(first.resolve()))
+
     def test_nsys_storage_keeps_run_paths_and_refuses_existing_trace_directories(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)

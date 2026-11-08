@@ -138,6 +138,7 @@ def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
         # those imports instead of maintaining a second native/truth/outer
         # file inventory; unknown files still take the package fallback.
         for filename, step in (
+            ("rv64_jobs_recursion_test_root.zig", "test-rv64-jobs-recursion"),
             ("rv64_jobs_native_test_root.zig", "test-rv64-jobs-native"),
             ("rv64_jobs_truth_test_root.zig", "test-rv64-jobs-truth"),
             ("rv64_jobs_outer_test_root.zig", "test-rv64-jobs-outer"),
@@ -196,6 +197,25 @@ def commands_for_paths(
     check_only: bool = False,
 ) -> list[list[str]]:
     paths = sorted({normalize_path(path) for path in raw_paths})
+    python_paths = [path for path in paths if path.startswith("scripts/") and path.endswith(".py")]
+    commands: list[list[str]] = []
+    if python_paths:
+        if check_only:
+            commands.append([sys.executable, "-m", "compileall", "-q", "scripts"])
+        else:
+            modules: set[str] = set()
+            for path in python_paths:
+                source = Path(path)
+                test = source if source.parent.as_posix() == "scripts/tests" and source.name.startswith("test_") else Path("scripts/tests") / ("test_" + source.stem + ".py")
+                if not (root / test).is_file():
+                    commands.append([sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-p", "test_*.py"])
+                    break
+                modules.add(test.with_suffix("").as_posix().replace("/", "."))
+            else:
+                commands.append([sys.executable, "-m", "unittest", *sorted(modules)])
+        paths = [path for path in paths if path not in python_paths]
+        if not paths:
+            return commands
     packages = ci_package_graph.load_packages(root)
     selected: dict[str, list[str]] = {}
     unowned: list[str] = []
@@ -210,7 +230,6 @@ def commands_for_paths(
             "no Zig package owns changed path(s): " + ", ".join(unowned)
         )
 
-    commands: list[list[str]] = []
     for package_name, package_paths in sorted(selected.items()):
         package = packages[package_name]
         steps = {focus_step(package_name, path, root) for path in package_paths}

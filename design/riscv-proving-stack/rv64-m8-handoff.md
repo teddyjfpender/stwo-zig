@@ -5,15 +5,21 @@ historical context and acceptance requirements for future performance claims.
 
 ## Active work — GPU hygiene (2026-11-08, in progress)
 
-The user replaced the performance campaign with the
-[resource and development contract](rv64-gpu-hygiene.md): explicit resource
-lifetimes, one documented GPU request path, shared validation, visible host
-callbacks/readbacks, native trace ranges and focused developer tests. Do not
-resume the older performance campaign merely because this handoff retains it.
-Its unfinished M8/M9/M10 gates still constrain any future production or speed
-claim; they are not completed by this cleanup.
+The active phase is consolidation and productionisation under the
+[resource and development contract](rv64-gpu-hygiene.md). It includes measured
+subtractive cleanup and the ordered GPU-native promotion gates: canonical
+3+3 against default on 24628607 and 26235168, new-block setup-miss, the native
+15-block basket, then the default flip and held legacy deletion. Subsequent
+performance work starts with late feeding and section 5 below. Historical
+estimates do not establish a qualified speedup.
 
-The candidate is `codex/rv64-gpu-hygiene`. Current evidence is in
+The [current receipt](../../vectors/reports/rv64-productionisation/current.json)
+is the status authority. There is one canonical checkout at
+`/Users/theodorepender/Coding/stwo-zig`; the
+[archive index](rv64-archive-index.md) records published historical refs,
+off-laptop recovery and the completed literal-list branch retirement.
+
+The candidate is `codex/rv64-gpu-hygiene`. Initial four-gate evidence is in
 [checkpoint-7.json](../../vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-7.json)
 and the linked pod receipts. All four bounded gates now pass: default and
 native paths on 24628607 and 26235156, each with frozen cold/warm parity, two
@@ -27,15 +33,32 @@ Python formatting fixes, AST equivalence and the repeated 178-test Python
 gate. These are correctness and ownership observations,
 not a controlled latency comparison.
 
-The broader hygiene goal remains incomplete: the static tier is not green,
-and inherited oversized owners and unreachable scripts remain explicit work.
+The broader productionisation goal remains incomplete: the static tier is not
+green. The 150 unreachable scripts and their exclusively historical consumers
+are deleted in the pending first subtraction batch; its validation status is
+in the current receipt. Inherited oversized owners remain explicit work.
 The [delivery audit](../../vectors/reports/rv64-gpu-hygiene-20261108/delivery-audit.md)
 records the open completion gates.
 
-No default promotion or new speed/physical-peak claim is part of this work.
-Global formatting and targeted CI contract tests now pass, while inherited
-repository-wide provenance, source-layout and script-reachability debt remains
-explicit in [static-audit.json](../../vectors/reports/rv64-gpu-hygiene-20261108/static-audit.json).
+The historical host-only owner-boundary follow-up is in
+[checkpoint-8.json](../../vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-8.json).
+It separates the installed recursion registry from request-job custody and fixes
+pin teardown order and failed-registration state. The regressions failed before
+the fixes and pass afterwards: 105 focused tests and 305 broader host tests
+(with one skipped), plus actual check-only execution and 16 routing tests.
+These counts overlap. The current delivery subsequently passed default and
+native gates on 24628607: 39 frozen artifacts per cold/warm proof, two fresh
+CPU accepts and the complete selected 19-case semantic corpus per gate. The
+current receipt pins the shared source manifest, runtime and binaries. This
+extends bounded correctness evidence to this follow-up; it does not qualify
+the canonical comparison or basket. The source audit still has 138 failing
+paths, with no new baselines or ceiling changes. Hosted CI and the broader
+Python suite retain unresolved failures, recorded in the current receipt.
+
+No default promotion or new speed/physical-peak result has been established.
+Global formatting and targeted CI contract tests passed at the initial
+checkpoint, while repository-wide provenance and source-layout debt remains
+explicit in the current productionisation receipt.
 Do not suppress those checks or call the repository-wide static tier green.
 
 ## Continuation checkpoint — 2026-11-08 02:35 UTC

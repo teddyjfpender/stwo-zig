@@ -276,8 +276,10 @@ test "fri: fold line in-place workspace matches default implementation" {
 
     try std.testing.expectEqual(default_fold.domain.logSize(), in_place_fold.domain.logSize());
     try std.testing.expectEqual(default_fold.values.len, in_place_fold.values.len);
-    for (default_fold.values, in_place_fold.values) |lhs, rhs| {
-        try std.testing.expect(lhs.eql(rhs));
+    for (default_fold.values, in_place_fold.values, 0..) |lhs, rhs, index| {
+        const equal = lhs.eql(rhs);
+        if (!equal) std.debug.print("FRI in-place mismatch at {d}: expected {any}, actual {any}\n", .{ index, lhs.toM31Array(), rhs.toM31Array() });
+        try std.testing.expect(equal);
     }
 }
 

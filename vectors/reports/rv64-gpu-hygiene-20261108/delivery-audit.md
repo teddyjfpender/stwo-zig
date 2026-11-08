@@ -1,5 +1,12 @@
 # GPU hygiene delivery audit
 
+This is the historical audit for the initial `4a4d01bd5` checkpoint and its
+owner-boundary follow-up. The consolidation and productionisation phase now
+has an expanded acceptance contract. Read
+[`../rv64-productionisation/current.json`](../rv64-productionisation/current.json)
+for current deletion, archive, test and promotion status. The checkpoint
+results below do not certify later edits.
+
 This audit applies to the user brief and the eight completion gates in
 `design/riscv-proving-stack/rv64-gpu-hygiene.md`. It is a progress audit, not
 a completion certificate. The hardware gate snapshot is
@@ -34,3 +41,17 @@ static recheck is recorded in [static-audit.json](static-audit.json). Raw
 proofs, traces and logs remain outside the repository and are referenced by
 path and SHA-256. The full objective remains active while these completion
 items are unresolved.
+
+
+## Owner-boundary follow-up
+
+[Checkpoint 8](checkpoint-8.json) records the historical host-only follow-up to the
+landed `4a4d01bd5` checkpoint. The installed recursion registry and request-job
+owner now fit the existing ceiling, and two demonstrated lifetime/failure
+regressions have fixes with focused and broader host evidence. This does not
+itself extend checkpoint 7's hardware qualification to the new code. The current
+productionisation receipt subsequently records accepted default and native
+24628607 gates on the same source snapshot, with frozen parity, fresh CPU
+acceptance and the selected semantic corpus. The full static gate remains
+open (138 failing paths), and hosted CI and the broader Python suite retain
+unresolved failures. Promotion and complete productionisation remain pending.

@@ -38,7 +38,7 @@ class ValidationTests(unittest.TestCase):
     def test_source_freeze_covers_validation_policy_and_workflow_inputs(self):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
-            for name in ('build.zig', 'build.zig.zon', '.gitignore', 'CONTRIBUTING.md',
+            for name in ('build.zig', 'build.zig.zon', '.gitignore', 'CONTRIBUTING.md', 'AGENTS.md',
                          'conformance/ci-touchpoints-v1.json', '.github/workflows/ci.yml',
                          '.githooks/pre-push', 'src/probe.zig'):
                 path = root / name
@@ -54,6 +54,10 @@ class ValidationTests(unittest.TestCase):
             self.assertIn('.githooks/pre-push', frozen)
             self.assertIn('.gitignore', frozen)
             self.assertIn('CONTRIBUTING.md', frozen)
+            policy.write_text('original')
+            (root / 'AGENTS.md').write_text('changed')
+            current = stack.source_hashes(root)
+            self.assertEqual({name for name in frozen if frozen[name] != current[name]}, {'AGENTS.md'})
 
     def test_optional_capture_guard_preserves_scope_and_rejects_malformed_hashes(self):
         with tempfile.TemporaryDirectory() as tmp:

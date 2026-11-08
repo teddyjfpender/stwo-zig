@@ -53,7 +53,7 @@ def source_hashes(root):
                 result[str(path.relative_to(root))] = sha(path)
     for name in ('build.zig', 'build.zig.zon'):
         result[name] = sha(root / name)
-    for name in ('.gitignore', 'CONTRIBUTING.md'):
+    for name in ('.gitignore', 'CONTRIBUTING.md', 'AGENTS.md'):
         if (root / name).is_file():
             result[name] = sha(root / name)
     return result
