@@ -30,6 +30,30 @@ The [raw replay receipt](raw-replay.json) pins both raw-input runs, and the
 retained `OP-Mainnet-159257842-Optimized-Replay.zip` carries the fastest
 run's exact witness, ELF and receipt.
 
+### Single-fraction KZG evaluation
+
+The follow-up [receipt](kzg-fraction-replay.json) compares the archived
+direct-scalar guest and the single-fraction guest on the same pinned
+uncompressed witness and RV64 runner. Native Kona and both guests produce
+the identical anchored output. The single-fraction guest retires
+**3,071,915,334** instructions, down **5.50%** from 3,250,596,756. Both
+runs have 9,672,285 service RAM word transitions.
+
+The evaluator accumulates the barycentric terms as one field fraction
+and skips zero terms while still decoding and validating every scalar.
+The KZG transcript, subgroup checks, and batch pairing equation stay
+the same. The c-kzg vectors pass, and native replay rejects changes to
+the anchor, next root, consumed blob data, and KZG proof.
+
+The new native CPU entry point checks the exact pinned `OD` statement.
+It records a blocked attempt before capture: the replay needs at least
+733 CPU proofs at the current trace limit, with service proofs still
+to account for. The maximum even with all 256 slots assigned to CPU
+work is 1,073,741,568 instructions. A segmented solution needs an
+authenticated continuity relation across PC, registers, clocks, RAM
+and service boundaries, plus a composed soundness analysis. The
+current candidate caps remain in force.
+
 The [batch profile](rv64-batch-hotspots.json) attributes the exact
 5.185B-instruction run to ELF symbols. Brotli accounts for about 1.07B
 instructions across its two largest symbols. Software SHA compression

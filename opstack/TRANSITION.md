@@ -44,6 +44,28 @@ PY
 
 Check `status: completed`, `verified_output: true`, and the exact output in the receipt. Elapsed time and ELF identity can vary with the build environment. Use `--variant transition-sha` for the separately measured guest that calls the existing SHA-256 service. On the retained input it completed in 4,515,634,562 instructions; pruning to the authenticated read set reduced the input to 18,871,913 bytes and the execution to 4,317,643,221 instructions, with identical native and RV64 outputs. The proof gate is deterministic: `conjectured128_b2_q108_p20_fold4` admits at most 256 native proofs and CPU traces of at most `2^22` rows. A [subsequent replay](../vectors/reports/rv64-opstack-transition-20261108/) used an uncompressed form of the pruned witness and direct canonical BLS scalar decoding. It completed in 3,250,596,756 instructions, requiring at least 776 CPU proofs before any Keccak, RAM, or other service proofs. The separately permitted 23-bit public boundary does not raise the CPU trace limit. No complete proof or recursive receipt is claimed for this transition.
 
+## Attempt a native transition proof
+
+Use the same native CPU producer and fresh receiver as for `OP` execution.
+Provide the independently pinned `statement` object from the fixture receipt
+and pin the derivation ELF and input identities in the request. Set
+`terminal_pc` in the request to the accepted RV64 replay's `pc`.
+
+```sh
+python3 opstack/cpu.py \
+  --runner zig-out/bin/rv64-word16-ethereum-native \
+  --request "$BUILD/rv64-config.json" --execution "$BUILD/rv64.json" \
+  --transition-statement "$BUILD/native.json" \
+  --batch-steps 4194303 --artifacts /tmp/anchored-transition-proof
+```
+
+Use `native.json` only after comparing it with the pinned statement as in
+the replay above. The harness derives the expected `OD` bytes from that
+statement. It records a lower bound on CPU shards before launching capture.
+A blocked attempt retains a summary with `proof_verified: false` and no
+executed proof stages. Passing this preflight still requires source, service,
+and memory admission in the native planner.
+
 ## Reconstruct the witness from chain data
 
 The retained witness makes replay independent of archive endpoint availability. For a fresh capture, the input boundary is `host pack-transition CLAIM.json RECORDS.json SIDECARS.json INPUT.opd`. `CLAIM.json` takes `anchor` and `next_origin` objects with `number` and `hash`, plus `previous_number`, `previous_root`, `next_number`, and `next_root`. `RECORDS.json` consists of `[keccak256_digest, hex_bytes]` pairs, where the first member is the Keccak-256 hash of the decoded second member. `SIDECARS.json` contains `blob`, `kzg_commitment`, and `kzg_proof` hex fields; the packer sorts the sidecars by commitment. The exact archive capture used these steps:

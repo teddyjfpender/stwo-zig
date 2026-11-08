@@ -7,7 +7,7 @@ use alloy_primitives::B256;
 use alloy_primitives::hex;
 use ark_bls12_381::{Fr, G1Affine, G1Projective};
 use ark_ec::{AdditiveGroup, AffineRepr, CurveGroup, VariableBaseMSM};
-use ark_ff::{BigInt, BigInteger, FftField, Field, PrimeField, batch_inversion};
+use ark_ff::{BigInt, BigInteger, FftField, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use async_trait::async_trait;
 use kona_derive::{BlobProvider, PipelineError, PipelineErrorKind};
@@ -224,8 +224,8 @@ fn evaluation_roots() -> Vec<Fr> {
 }
 
 fn evaluate_blob(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
-    let mut numerators = Vec::with_capacity(FIELD_ELEMENTS);
-    let mut denominators = Vec::with_capacity(FIELD_ELEMENTS);
+    let mut numerator = Fr::ZERO;
+    let mut denominator = Fr::ONE;
     let mut on_domain = None;
     for (index, bytes) in blob.as_slice().chunks_exact(32).enumerate() {
         // Blob limbs are canonical big-endian scalars. Convert the four
@@ -239,22 +239,22 @@ fn evaluate_blob(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
         let root = roots[index.reverse_bits() >> (usize::BITS - FIELD_ELEMENTS.ilog2())];
         if z == root {
             on_domain = Some(value);
+        } else if value != Fr::ZERO && on_domain.is_none() {
+            // Maintain the barycentric sum as a single fraction. This avoids
+            // storing and batch-inverting every denominator. Zero evaluations
+            // need no term, but all blob scalars are still decoded and checked.
+            let difference = z - root;
+            numerator = numerator * difference + (root * value) * denominator;
+            denominator *= difference;
         }
-        numerators.push(root * value);
-        denominators.push(z - root);
     }
     if let Some(value) = on_domain {
         return Some(value);
     }
-    batch_inversion(&mut denominators);
-    let sum = numerators
-        .into_iter()
-        .zip(denominators)
-        .map(|(n, d)| n * d)
-        .sum::<Fr>();
     Some(
-        sum * (z.pow([FIELD_ELEMENTS as u64]) - Fr::ONE)
-            * Fr::from(FIELD_ELEMENTS as u64).inverse()?,
+        numerator
+            * (z.pow([FIELD_ELEMENTS as u64]) - Fr::ONE)
+            * (denominator * Fr::from(FIELD_ELEMENTS as u64)).inverse()?,
     )
 }
 

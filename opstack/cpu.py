@@ -159,6 +159,11 @@ def main():
     p.add_argument("--request", type=Path, required=True)
     p.add_argument("--execution", type=Path, required=True)
     p.add_argument("--runner", type=Path, required=True)
+    p.add_argument(
+        "--transition-statement",
+        type=Path,
+        help="independently pinned anchored OP Mainnet statement for an OD guest",
+    )
     p.add_argument("--artifacts", type=Path, required=True)
     p.add_argument(
         "--batch-steps",
@@ -227,7 +232,29 @@ def main():
     if config["execution_profile"] != "ethereum_services_v3":
         raise ValueError("requires current admitted v3 services")
     public = bytes.fromhex(config["expected_output"])
-    if (
+    transition_preflight = None
+    if args.transition_statement is not None:
+        from recursive_transition import read_object, statement_outputs
+
+        raw, statement = read_object(args.transition_statement, 16384)
+        derivation, _ = statement_outputs(statement)
+        if public != derivation:
+            raise ValueError("request does not bind the pinned anchored transition")
+        instructions = execution["instructions"]
+        if type(instructions) is not int or instructions <= 0:
+            raise ValueError("expected a positive retired instruction count")
+        # The current native candidate requires a padding row and admits at
+        # most 2^22 CPU trace rows and 256 proofs including service workers.
+        max_steps_per_shard = min(selected_batch_steps, (1 << 22) - 1)
+        cpu_shards = (instructions + max_steps_per_shard - 1) // max_steps_per_shard
+        transition_preflight = {
+            "statement_sha256": hashlib.sha256(raw).hexdigest(),
+            "max_steps_per_shard": max_steps_per_shard,
+            "minimum_cpu_shards": cpu_shards,
+            "native_proof_cap": 256,
+            "blocked": cpu_shards > 256,
+        }
+    elif (
         len(public) != 43
         or public[32] != 1
         or int.from_bytes(public[33:41], "little") != 10
@@ -316,12 +343,19 @@ def main():
         "proof_verified": False,
         "stages": {},
     }
+    if transition_preflight is not None:
+        receipt["scope"] = "native anchored derivation and execution STARK bundle"
+        receipt["transition_preflight"] = transition_preflight
     summary = root / "summary.json"
 
     def checkpoint():
         summary.write_text(json.dumps(receipt, indent=2) + "\n")
 
     checkpoint()
+    if transition_preflight is not None and transition_preflight["blocked"]:
+        raise ValueError(
+            f"anchored transition exceeds the native proof cap before services; see {summary}"
+        )
     for mode, command in (
         ("plan", [*tool, "plan-candidate", request, "-", "0", resource_path]),
         (
