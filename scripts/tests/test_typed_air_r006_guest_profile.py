@@ -7,8 +7,8 @@ import json
 import struct
 from pathlib import Path
 
-from scripts.typed_air_r006_capture_lib.codec import canonical_bytes, content_digest, sha256_bytes
-from scripts.typed_air_r006_capture_lib.controller import (
+from scripts.typed_air.typed_air_r006_capture_lib.codec import canonical_bytes, content_digest, sha256_bytes
+from scripts.typed_air.typed_air_r006_capture_lib.controller import (
     FileInventory,
     Journal,
     ProcessResult,
@@ -17,10 +17,10 @@ from scripts.typed_air_r006_capture_lib.controller import (
     run_attempt,
     verify_command,
 )
-from scripts.typed_air_r006_capture_lib.model import CaptureError
-from scripts.typed_air_r006_capture_lib.model import GENERATED_WORKLOAD_PARAMETERS
-from scripts.typed_air_r006_capture_lib.receipt import validate_receipt
-from scripts.typed_air_r006_capture_lib.report import validate_report
+from scripts.typed_air.typed_air_r006_capture_lib.model import CaptureError
+from scripts.typed_air.typed_air_r006_capture_lib.model import GENERATED_WORKLOAD_PARAMETERS
+from scripts.typed_air.typed_air_r006_capture_lib.receipt import validate_receipt
+from scripts.typed_air.typed_air_r006_capture_lib.report import validate_report
 from scripts.tests.test_typed_air_r006_capture import R006Fixture
 from scripts.tests.typed_air_r006_guest_fixture import (
     guest_artifact,

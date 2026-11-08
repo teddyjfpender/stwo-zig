@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.metal_core_aot_receipt_lib import (
+from scripts.metal.metal_core_aot_receipt_lib import (
     ANCHOR,
     BUILD_CHECKS,
     BUILD_SCHEMA,
@@ -199,11 +199,11 @@ class MetalCoreAotReceiptTests(unittest.TestCase):
 
             with (
                 mock.patch(
-                    "scripts.metal_core_aot_receipt_lib.controller.run",
+                    "scripts.metal.metal_core_aot_receipt_lib.controller.run",
                     side_effect=fake_run,
                 ),
                 mock.patch(
-                    "scripts.metal_core_aot_receipt_lib.environment.command_output",
+                    "scripts.metal.metal_core_aot_receipt_lib.environment.command_output",
                     return_value="host",
                 ),
                 mock.patch.dict(
@@ -284,11 +284,11 @@ class MetalCoreAotReceiptTests(unittest.TestCase):
 
             with (
                 mock.patch(
-                    "scripts.metal_core_aot_receipt_lib.controller.run",
+                    "scripts.metal.metal_core_aot_receipt_lib.controller.run",
                     side_effect=fake_run,
                 ),
                 mock.patch(
-                    "scripts.metal_core_aot_receipt_lib.environment.command_output",
+                    "scripts.metal.metal_core_aot_receipt_lib.environment.command_output",
                     return_value="device",
                 ),
             ):
@@ -391,7 +391,7 @@ class MetalCoreAotReceiptTests(unittest.TestCase):
             output = root / "failed-probe.json"
             successful = command_evidence(["probe-a"])
             with mock.patch(
-                "scripts.metal_core_aot_receipt_lib.controller.run",
+                "scripts.metal.metal_core_aot_receipt_lib.controller.run",
                 side_effect=[successful, ReceiptError("second probe failed")],
             ) as run_probe:
                 with self.assertRaisesRegex(ReceiptError, "second probe failed"):

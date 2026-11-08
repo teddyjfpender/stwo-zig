@@ -92,7 +92,7 @@ zig build check-cairo-cuda-local -Doptimize=ReleaseFast
 zig build check-cairo-cuda-local -Doptimize=ReleaseFast -Dtarget=x86_64-linux-gnu
 ```
 
-On NVIDIA, `scripts/benchmark_cairo_cuda.py` qualifies all four SN PIEs with
+On NVIDIA, `scripts/cairo/benchmark_cairo_cuda.py` qualifies all four SN PIEs with
 an isolated pinned Rust verifier and records proof digests, ingress, proving,
 adapted-input wall time, host RSS and sampled whole-device memory. Inputs are
 already adapted: these measurements exclude PIE execution and queueing.

@@ -5,15 +5,15 @@ import struct
 import tempfile
 import unittest
 from pathlib import Path
-from scripts import check_product_closure as command
-from scripts.product_closure.graph import ClosureError, inspect_sources
-from scripts.product_closure.linkage import (
+from scripts.repo import check_product_closure as command
+from scripts.repo.product_closure.graph import ClosureError, inspect_sources
+from scripts.repo.product_closure.linkage import (
     DynamicLinkage,
     check_dynamic,
     check_static_elf,
     inspect_elf,
 )
-from scripts.product_closure.model import Manifest, NamedImport
+from scripts.repo.product_closure.model import Manifest, NamedImport
 
 
 class SourceClosureTest(unittest.TestCase):

@@ -443,8 +443,8 @@ The final focused audit ran:
 
 ```text
 zig fmt --check build.zig build_support src tools
-python3 scripts/check_upstream_pins.py
-python3 scripts/check_source_conformance.py
+python3 scripts/repo/check_upstream_pins.py
+python3 scripts/repo/check_source_conformance.py
 zig test build_support/product_policy_test.zig -OReleaseFast
 zig test src/backends/metal/shader_manifest.zig -OReleaseFast
 zig build test-cairo-frontend -Doptimize=ReleaseFast

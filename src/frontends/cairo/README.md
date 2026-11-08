@@ -158,7 +158,7 @@ pipeline compilation; subsequent processes reuse the bounded archive cache.
 
 ### Performance qualification (retained measurements)
 
-Use [benchmark_cairo.py](../../../scripts/benchmark_cairo.py) to record complete
+Use [benchmark_cairo.py](../../../scripts/cairo/benchmark_cairo.py) to record complete
 process wall time, proving time, peak process RSS, Darwin product physical
 footprint (including Metal allocations), proof hashes, stage reports,
 and acceptance by the official Rust verifier. All recorded proofs must use
@@ -170,7 +170,7 @@ excludes the adapter child; missing platform measurements remain null.
 Every trial is recorded, including cold-start costs.
 
 ```sh
-python3 scripts/benchmark_cairo.py \
+python3 scripts/cairo/benchmark_cairo.py \
   --product zig-out/bin/stwo-cairo-cpu \
   --oracle tools/stwo-cairo-official-verifier-rs/target/debug/stwo-cairo-official-verifier \
   --program tools/stwo-cairo-vm-adapter-rs/resources/fibonacci_pie.zip \
@@ -234,7 +234,7 @@ zig build test --build-file src/frontends/cairo/build.zig \
 The pinned diverse benchmark suite is available with:
 
 ```sh
-python3 scripts/benchmark_cairo_suite.py --cpu zig-out/bin/stwo-cairo-cpu \
+python3 scripts/cairo/benchmark_cairo_suite.py --cpu zig-out/bin/stwo-cairo-cpu \
   --metal zig-out/bin/stwo-cairo-metal \
   --oracle tools/stwo-cairo-official-verifier-rs/target/debug/stwo-cairo-official-verifier \
   --tier all --pie-dir /path/to/pie-archives --trials 3 --out /path/to/new-results

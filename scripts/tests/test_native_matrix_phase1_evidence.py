@@ -9,13 +9,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import benchmark_delta
-from scripts import native_proof_matrix
-from scripts.benchmark_delta_lib.common import IncompatibleReports
-from scripts.benchmark_delta_lib.native_oracle import classify_transition
-from scripts.native_proof_matrix_lib.artifacts import parse_process_resources
-from scripts.native_proof_matrix_lib.evidence import validate_rust_oracle_receipt
-from scripts.native_proof_matrix_lib.model import (
+from scripts.bench import benchmark_delta
+from scripts.native import native_proof_matrix
+from scripts.bench.benchmark_delta_lib.common import IncompatibleReports
+from scripts.bench.benchmark_delta_lib.native_oracle import classify_transition
+from scripts.native.native_proof_matrix_lib.artifacts import parse_process_resources
+from scripts.native.native_proof_matrix_lib.evidence import validate_rust_oracle_receipt
+from scripts.native.native_proof_matrix_lib.model import (
     INTEROP_UPSTREAM_COMMIT,
     RUST_ORACLE_SHA256,
     RUST_ORACLE_TOOLCHAIN,

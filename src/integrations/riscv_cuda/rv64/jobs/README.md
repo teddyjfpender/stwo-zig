@@ -71,7 +71,7 @@ until a fully qualified native installer replaces it.
 | `outer_device.zig` | installed recursion authority registry and counted class-plan pins |
 | `outer_node_job.zig` | per-request node construction, custody, execution and settlement |
 
-CUDA addon: `NAT/rv64/jobs/*.cu` → `libstwo-rv64-jobs.so` (`scripts/rv64_m8_jobs_addon_build.py --base <frozen image>
+CUDA addon: `NAT/rv64/jobs/*.cu` → `libstwo-rv64-jobs.so` (`scripts/rv64/rv64_m8_jobs_addon_build.py --base <frozen image>
 --out <dir>`), loaded with `STWO_RV64_M8_JOBS_LIBRARY`. ABI version in `ops.zig` = `runtime.cu`.
 
 ## Rules a job must follow
@@ -181,9 +181,9 @@ and outer routing follows the imports of their owned component test roots. Unkno
 paths retain the complete package fallback rather than reporting empty success.
 
 Run compiles in the synced pod tree under a build lock. Full-proof regressions
-use `scripts/rv64_gate.py`; matched timing uses
-`scripts/rv64_m7_integration_stack.py`. Both and the basket share
-`scripts/rv64_validation.py` for artifact pins and fresh CPU acceptance.
+use `scripts/rv64/rv64_gate.py`; matched timing uses
+`scripts/rv64/rv64_m7_integration_stack.py`. Both and the basket share
+`scripts/rv64/rv64_validation.py` for artifact pins and fresh CPU acceptance.
 `PASS_WITH_LIMITATIONS` records nonsemantic negative-test rejections explicitly;
 it exits with code 3 and is not a green semantic gate. `PASS` exits with code 0.
 Corpus acceptance requires the exact receiver pin, CPU/cache isolation, complete executable cases, a matching

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.check_registry_parity import native_applications
+from scripts.repo.check_registry_parity import native_applications
 
 
 class RegistryParityTests(unittest.TestCase):

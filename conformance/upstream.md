@@ -4,7 +4,7 @@ This file is the single source-pin ledger for the repository's independent corre
 authorities. A revision applies only to the compatibility lane that names it. Native Stwo
 acceptance does not establish Cairo acceptance, and neither establishes RISC-V ISA conformance.
 No one of those lanes establishes SM83 ISA conformance.
-`python3 scripts/check_upstream_pins.py` rejects drift in manifests, lockfiles, source constants,
+`python3 scripts/repo/check_upstream_pins.py` rejects drift in manifests, lockfiles, source constants,
 formal-profile metadata, generated registries, persistent sessions, prover boundaries, and hosted
 CI checkout metadata.
 
@@ -242,7 +242,7 @@ circuit AIR's evaluation-program bundle live under `vectors/circuit/`,
 authenticated by `vectors/circuit/provenance.json` (fixture bytes, SHA-256,
 generating command, the oracle's `Cargo.lock` digest, and the digest of every
 oracle and shared ABI source; nothing host-specific) and regenerated only by
-`scripts/generate_circuit_oracle_vectors.py`. These
+`scripts/interop/generate_circuit_oracle_vectors.py`. These
 checkpoints are parity oracles for the Zig port, not proof acceptance; the Rust
 `circuit_verifier` and the Cairo `stwo_circuit_verifier` remain the acceptance
 authorities once circuit proofs exist.

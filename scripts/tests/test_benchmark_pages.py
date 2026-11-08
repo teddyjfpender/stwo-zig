@@ -10,8 +10,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.benchmark_pages_lib.catalog import CatalogError, build_catalog
-from scripts.benchmark_pages_lib.controller import encoded_json, run
+from scripts.bench.benchmark_pages_lib.catalog import CatalogError, build_catalog
+from scripts.bench.benchmark_pages_lib.controller import encoded_json, run
 
 
 ROOT = Path(__file__).resolve().parents[2]

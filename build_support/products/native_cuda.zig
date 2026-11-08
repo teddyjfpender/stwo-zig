@@ -193,7 +193,7 @@ pub fn addProduct(context: Context) void {
 
     const benchmark = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/native_cuda_benchmark.py",
+        "scripts/native/native_cuda_benchmark.py",
         "--candidate-bin",
     });
     benchmark.addFileArg(installed.executable.getEmittedBin());

@@ -21,7 +21,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import ci_scope_plan
+from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import ROOT, catalog_fixture
 
 
@@ -70,10 +70,10 @@ class TouchpointPrefixTests(unittest.TestCase):
         for path, lane in (
             ("build_support/products/catalog.zig", "build_graph"),
             ("build_support/products/catalog_manifest.zig", "build_graph"),
-            ("scripts/metal_core_aot_receipt.py", "metal_aot"),
-            ("scripts/metal_core_aot_receipt_lib/receipt.py", "metal_aot"),
-            ("scripts/cuda_build.py", "native_cuda_static"),
-            ("scripts/cuda_device_smoke.py", "native_cuda_device"),
+            ("scripts/metal/metal_core_aot_receipt.py", "metal_aot"),
+            ("scripts/metal/metal_core_aot_receipt_lib/receipt.py", "metal_aot"),
+            ("scripts/cuda/cuda_build.py", "native_cuda_static"),
+            ("scripts/cuda/cuda_device_smoke.py", "native_cuda_device"),
         ):
             with self.subTest(path=path):
                 matching = [
@@ -92,7 +92,7 @@ class TouchpointPrefixTests(unittest.TestCase):
     def test_metal_aot_and_cuda_script_touchpoints_stay_narrowly_scoped(self) -> None:
         self.assertEqual(
             {"static", "script_contracts", "metal_aot"},
-            self.lanes_for("scripts/metal_core_aot_receipt.py"),
+            self.lanes_for("scripts/metal/metal_core_aot_receipt.py"),
         )
         self.assertEqual(
             {
@@ -104,7 +104,7 @@ class TouchpointPrefixTests(unittest.TestCase):
                 "native_cuda_integration",
                 "cairo_cuda_integration",
             },
-            self.lanes_for("scripts/cuda_build.py"),
+            self.lanes_for("scripts/cuda/cuda_build.py"),
         )
 
     def test_soundness_documents_run_contracts_without_product_fanout(self) -> None:

@@ -112,7 +112,7 @@ fn validate(document: Document) !void {
     if (!std.mem.eql(
         u8,
         document.generator.path,
-        "scripts/generate_cairo_witness_topology.py",
+        "scripts/cairo/generate_cairo_witness_topology.py",
     )) return error.TopologyGeneratorMismatch;
     if (document.components.len != expected_component_count)
         return error.TopologyComponentCountMismatch;

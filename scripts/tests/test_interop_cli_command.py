@@ -1,19 +1,19 @@
 import unittest
 from pathlib import Path
 
-from scripts.interop_cli_command import build_command, installed_binary, run_command
+from scripts.interop.interop_cli_command import build_command, installed_binary, run_command
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_CALLERS = (
-    "benchmark_full_lib/controller.py",
-    "benchmark_smoke_lib/controller.py",
-    "e2e_interop_lib/controller.py",
-    "profile_smoke_lib/controller.py",
+    "bench/benchmark_full_lib/controller.py",
+    "bench/benchmark_smoke_lib/controller.py",
+    "interop/e2e_interop_lib/controller.py",
+    "bench/profile_smoke_lib/controller.py",
 )
 COMPATIBILITY_CALLERS = (
-    "merkle_worker_stress.py",
-    "prove_checkpoints.py",
-    "std_shims_behavior.py",
+    "interop/merkle_worker_stress.py",
+    "interop/prove_checkpoints.py",
+    "interop/std_shims_behavior.py",
 )
 
 

@@ -102,7 +102,7 @@ incorrectly typed implementations fail at compile time.
 2. Keep optional operations absent when their capability bit is false.
 3. Test positive and negative compile-time shapes.
 4. Update every affected backend contract and its package API ledger.
-5. Run this package test plus `python3 scripts/check_package_workspace.py`.
+5. Run this package test plus `python3 scripts/repo/check_package_workspace.py`.
 
 ## Related documentation
 

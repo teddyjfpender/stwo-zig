@@ -7,10 +7,47 @@ one-off benchmark exploration, peer comparison, and diagnostics are not kept in
 the repository (the retired research tree is preserved on the
 `archive/pre-restructure-20261108` branch).
 
+## Layout
+
+The top level holds only the developer entry points:
+
+| Entry point | Purpose |
+|---|---|
+| `dev_test.py` | local developer test runner |
+| `ci.py` | CI driver (`--fast` is the static lane) |
+| `rv64_gate.sh` | RV64 / CUDA gate on the pod (implementation in `rv64/rv64_gate.py`) |
+| `rv64_m8_bench15.py` | 15-block RV64 benchmark |
+
+Everything else lives in one area package, each a Python package
+(`__init__.py`) importable as `scripts.<area>.<module>`:
+
+| Area | Contents |
+|---|---|
+| `architecture/` | architecture host gate, authority and receipt tooling |
+| `bench/` | benchmark, profiling and performance-epoch tooling |
+| `cairo/` | Cairo / Starknet proving, fixture and report tooling |
+| `cuda/` | CUDA build, AOT, device smoke and product closure |
+| `interop/` | Rust/Zig interop, parity and circuit-frontend harnesses |
+| `metal/` | Metal AOT receipt and profile tooling |
+| `native/` | Native-example proof matrix, profiling and product checks |
+| `release/` | release packaging and release evidence |
+| `repo/` | repository-wide CI scope, package workspace, conformance, hooks, Zig lock |
+| `riscv/` | RV32IM AIR, refinement, Sail and product tooling |
+| `rv64/` | RV64 / Ethereum proving, CUDA-native and measurement tooling |
+| `sm83/` | SM83 frontend gates and benchmarks |
+| `typed_air/` | typed-AIR performance protocol, captures and Zig lane |
+| `tests/` | the Python test suite (`python3 -m pytest -q scripts/tests`) |
+
+Imports are always fully qualified (`from scripts.riscv import riscv_refinement`,
+`from scripts.cuda.cuda_build_lib import ...`); never put an area directory on
+`sys.path`. A script that is executed directly (`python3 scripts/<area>/x.py`)
+puts the repository root on `sys.path` in its preamble; `python3 -m
+scripts.<area>.x` works without it. Script basenames stay unique across areas.
+
 The boundary is enforced rather than maintained by convention:
 
 - `scripts/tests/test_script_reachability.py` rejects every unreachable
-  top-level script. Historical prose is deliberately not a
+  script and any new file at the top level of `scripts/`. Historical prose is deliberately not a
   root, so a stale mention cannot keep dead automation alive.
 - `scripts/tests/test_source_conformance.py` checks entrypoint size, package
   ownership, and declared dependency direction.

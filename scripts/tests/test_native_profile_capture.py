@@ -9,24 +9,24 @@ import unittest
 from pathlib import Path
 
 
-from scripts.metal_profile_report_lib import build_report
-from scripts.native_profile_capture import parse_args
-from scripts.native_profile_capture_lib.contract import (
+from scripts.metal.metal_profile_report_lib import build_report
+from scripts.native.native_profile_capture import parse_args
+from scripts.native.native_profile_capture_lib.contract import (
     validate_metal_profile,
     validate_profile_report,
 )
-from scripts.native_profile_capture_lib.controller import _product_receipts
-from scripts.native_profile_capture_lib.evidence import (
+from scripts.native.native_profile_capture_lib.controller import _product_receipts
+from scripts.native.native_profile_capture_lib.evidence import (
     publish_manifest,
     verify_manifest,
     write_bytes_exclusive,
 )
-from scripts.native_profile_capture_lib.model import (
+from scripts.native.native_profile_capture_lib.model import (
     METAL_MAX_ENCODERS_PER_COMMAND_BUFFER,
     PROFILE_WORKLOADS,
     CaptureError,
 )
-from scripts.native_profile_capture_lib.sample_profile import build_sample_summary
+from scripts.native.native_profile_capture_lib.sample_profile import build_sample_summary
 from scripts.tests import native_proof_matrix_support as support
 
 

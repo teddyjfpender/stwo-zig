@@ -2,6 +2,7 @@
     .fingerprint = 0xff7eb6a027b1f6ad,
     .name = .stwo_zig,
     .version = "0.1.0",
+    .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{
         .stwo_core = .{ .path = "src/waist/core" },

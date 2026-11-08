@@ -1,4 +1,4 @@
-//! Test-only bridge to the pinned Sail oracle (`scripts/riscv_sail_oracle.py`).
+//! Test-only bridge to the pinned Sail oracle (`scripts/riscv/riscv_sail_oracle.py`).
 //!
 //! Hands a guest ELF and the runner's canonical retirement trace to the
 //! oracle process, which replays the retired instruction words through the
@@ -27,9 +27,9 @@ const trace_mod = @import("trace.zig");
 const cpu_mod = @import("cpu.zig");
 const trace_dump = @import("trace_dump.zig");
 
-const ORACLE_SCRIPT_RELATIVE = "scripts/riscv_sail_oracle.py";
+const ORACLE_SCRIPT_RELATIVE = "scripts/riscv/riscv_sail_oracle.py";
 
-/// Must match `INITIAL_MEMORY_SCHEMA` in `scripts/riscv_sail_oracle.py`; a
+/// Must match `INITIAL_MEMORY_SCHEMA` in `scripts/riscv/riscv_sail_oracle.py`; a
 /// drift is a loud ERROR verdict, never a silently unseeded comparison.
 const INITIAL_MEMORY_SCHEMA = "stwo-riscv-initial-memory-v1";
 
@@ -46,7 +46,7 @@ pub const MemoryWord = struct {
     value: u32,
 };
 
-/// Exit-code contract shared with `scripts/riscv_sail_oracle.py`:
+/// Exit-code contract shared with `scripts/riscv/riscv_sail_oracle.py`:
 /// 0 EQUIVALENT, 1 DIVERGENT, 2 ERROR, 3 UNAVAILABLE.
 pub const Verdict = enum {
     /// Sail retired the identical sequence on every compared field.

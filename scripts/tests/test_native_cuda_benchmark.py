@@ -15,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.native_cuda_benchmark_lib import (  # noqa: E402
+from scripts.native.native_cuda_benchmark_lib import (  # noqa: E402
     BenchmarkError,
     COVERAGE_MATRIX,
     Settings,
@@ -23,9 +23,9 @@ from scripts.native_cuda_benchmark_lib import (  # noqa: E402
     Workload,
     run_benchmark,
 )
-from scripts.native_cuda_benchmark_lib import runner as benchmark_runner  # noqa: E402
-from scripts.native_cuda_benchmark_lib import sustained  # noqa: E402
-from scripts.native_cuda_diagnostic_lib.model import (  # noqa: E402
+from scripts.native.native_cuda_benchmark_lib import runner as benchmark_runner  # noqa: E402
+from scripts.native.native_cuda_benchmark_lib import sustained  # noqa: E402
+from scripts.native.native_cuda_diagnostic_lib.model import (  # noqa: E402
     BlakeShape,
     DiagnosticError,
     PlonkShape,

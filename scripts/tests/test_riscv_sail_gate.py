@@ -30,8 +30,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_sail_gate as gate
-
+from scripts.riscv import riscv_sail_gate as gate
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW_PATH = Path(".github/workflows/riscv-sail-differential.yml")
 CONTRACT_PATH = Path("conformance/riscv-sail-differential-gate.md")
@@ -167,8 +166,8 @@ class ScopeTest(unittest.TestCase):
             "vectors/riscv_elfs/alu_test.elf",
             "conformance/riscv/rv32im-sail-profile.json",
             "conformance/upstream.md",
-            "scripts/riscv_equivalence.py",
-            "scripts/riscv_trace_vectors_lib/corpus.py",
+            "scripts/riscv/riscv_equivalence.py",
+            "scripts/riscv/riscv_trace_vectors_lib/corpus.py",
             "src/frontends/riscv/isa/authority.zig",
             "src/frontends/riscv/runner/trace_dump.zig",
             ".github/workflows/riscv-sail-differential.yml",
@@ -187,7 +186,7 @@ class ScopeTest(unittest.TestCase):
             "build_support/products/riscv_cpu.zig",
             "build_support/products/riscv_sail_oracle_tests.zig",
             "build_support/products/riscv_test_filter.zig",
-            "scripts/riscv_sail_oracle.py",
+            "scripts/riscv/riscv_sail_oracle.py",
             "src/products/riscv/cpu/test_root.zig",
             "src/products/riscv/cpu/tests/trace_test.zig",
             "src/products/riscv/cpu/tests/committed_forgery_harness.zig",
@@ -239,7 +238,7 @@ class ScopeTest(unittest.TestCase):
 
     def test_sail_oracle_build_owner_is_inside_the_cpu_marker_gate(self) -> None:
         marker_gate = (
-            ROOT / "scripts/check_riscv_cpu_product.py"
+            ROOT / "scripts/riscv/check_riscv_cpu_product.py"
         ).read_text(encoding="utf-8")
         self.assertIn(
             'ROOT / "build_support/products/riscv_sail_oracle_tests.zig"',
@@ -570,7 +569,7 @@ class WorkflowContractTest(unittest.TestCase):
             "conformance/riscv/sail-rvfi-zkvm-entry.patch",
             "conformance/riscv/sail-rv32im-override.json",
             "conformance/riscv/sail-rv32im-tagged-options.json",
-            "scripts/riscv_formal_tools.py",
+            "scripts/riscv/riscv_formal_tools.py",
         ):
             with self.subTest(ingredient=ingredient):
                 self.assertIn(ingredient, keys[0])

@@ -5,8 +5,8 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from scripts.air_uniqueness_lib import analysis, smtlib
-from scripts.riscv_air_ir_lib import ir
+from scripts.riscv.air_uniqueness_lib import analysis, smtlib
+from scripts.riscv.riscv_air_ir_lib import ir
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "air_uniqueness"
 ADDER = FIXTURES / "byte_carry_adder.json"

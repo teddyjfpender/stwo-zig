@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-from scripts.native_cuda_benchmark_lib.activation import (  # noqa: E402
+from scripts.native.native_cuda_benchmark_lib.activation import (  # noqa: E402
     ActivationError,
     DEFAULT_BOARD_PATH,
     DEFAULT_STATE_PATH,

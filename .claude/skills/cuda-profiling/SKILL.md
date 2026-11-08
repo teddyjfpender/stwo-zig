@@ -26,7 +26,7 @@ stwo-prof cuda compute --output commitment.ncu-rep \
 For production-shaped evidence:
 
 ```bash
-python3 scripts/native_cuda_benchmark.py \
+python3 scripts/native/native_cuda_benchmark.py \
   --candidate-bin zig-out/bin/stwo-zig-native-cuda \
   --profile screen --output cuda-screen.json
 ```

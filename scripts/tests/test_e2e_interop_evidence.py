@@ -9,8 +9,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.e2e_interop_lib import evidence
-from scripts.e2e_interop_lib.evidence import (
+from scripts.interop.e2e_interop_lib import evidence
+from scripts.interop.e2e_interop_lib.evidence import (
     EvidenceError,
     archive_receipt,
     register_artifact,

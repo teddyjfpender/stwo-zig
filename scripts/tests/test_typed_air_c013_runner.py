@@ -5,13 +5,13 @@ import json
 import unittest
 from pathlib import Path
 
-from scripts.typed_air_c013_capture_lib.child_report import (
+from scripts.typed_air.typed_air_c013_capture_lib.child_report import (
     CALIBRATION_SCHEMA,
     RESOURCE_SCOPE,
     SECURE_PCS,
 )
-from scripts.typed_air_c013_capture_lib.model import SCHEDULE_SHA256
-from scripts.typed_air_c013_capture_lib.runner import ProcessResult, run_attempt
+from scripts.typed_air.typed_air_c013_capture_lib.model import SCHEDULE_SHA256
+from scripts.typed_air.typed_air_c013_capture_lib.runner import ProcessResult, run_attempt
 
 
 class AttemptRunnerTests(unittest.TestCase):

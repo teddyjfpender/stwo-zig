@@ -9,10 +9,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.riscv_csp_ab_benchmark_lib import runner as ab_runner
-from scripts.riscv_csp_benchmark_lib.host import power_conditions_admissible
-from scripts.typed_air_r006_capture_lib.codec import content_digest
-from scripts.typed_air_r006_capture_lib.contract import (
+from scripts.riscv.riscv_csp_ab_benchmark_lib import runner as ab_runner
+from scripts.riscv.riscv_csp_benchmark_lib.host import power_conditions_admissible
+from scripts.typed_air.typed_air_r006_capture_lib.codec import content_digest
+from scripts.typed_air.typed_air_r006_capture_lib.contract import (
     PlanSettings,
     WorkloadPaths,
     _require_binary_markers,
@@ -20,17 +20,17 @@ from scripts.typed_air_r006_capture_lib.contract import (
     materialized_poseidon_input,
     validate_plan,
 )
-from scripts.typed_air_r006_capture_lib.controller import (
+from scripts.typed_air.typed_air_r006_capture_lib.controller import (
     proof_command,
 )
-from scripts.typed_air_r006_capture_lib.model import (
+from scripts.typed_air.typed_air_r006_capture_lib.model import (
     GENERATED_WORKLOAD_PARAMETERS,
     PLAN_ATTEMPTS,
     PROTOCOL_SHA256,
     CaptureError,
 )
-from scripts.typed_air_r006_capture_lib.report import validate_report
-from scripts.typed_air_r006_capture_lib.workload_profile import task_profile_example
+from scripts.typed_air.typed_air_r006_capture_lib.report import validate_report
+from scripts.typed_air.typed_air_r006_capture_lib.workload_profile import task_profile_example
 from scripts.tests.typed_air_r006_base_fixture import (
     base_artifact,
     base_artifact_payload,

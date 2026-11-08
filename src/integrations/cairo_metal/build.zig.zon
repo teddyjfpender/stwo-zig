@@ -2,6 +2,7 @@
     .fingerprint = 0xc82f06924b0f9366,
     .name = .stwo_cairo_metal_integration,
     .version = "0.1.0",
+    .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{
         .stwo_backend_contracts = .{ .path = "../../waist/backend" },

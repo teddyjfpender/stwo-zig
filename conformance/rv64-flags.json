@@ -1,6 +1,6 @@
 {
   "schema": "rv64-flag-registry/v1",
-  "policy": "Metadata is reviewed; references are generated with scripts/check_source_conformance.py --update-rv64-flag-references. Regeneration cannot declare flags or change defaults. Default expressions describe the variable being absent, not preset overrides. Runtime, qualification, frozen and retire-after-native-default count toward the live target; constants and reference-only names do not. The strict promotion check requires <60 live names and no M7/M8 switch.",
+  "policy": "Metadata is reviewed; references are generated with scripts/repo/check_source_conformance.py --update-rv64-flag-references. Regeneration cannot declare flags or change defaults. Default expressions describe the variable being absent, not preset overrides. Runtime, qualification, frozen and retire-after-native-default count toward the live target; constants and reference-only names do not. The strict promotion check requires <60 live names and no M7/M8 switch.",
   "flags": {
     "STWO_RV64_ALLOCATION_OBSERVER": {
       "owner": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
@@ -31,12 +31,12 @@
       }
     },
     "STWO_RV64_ARTIFACT_STORE": {
-      "owner": "scripts/rv64_m5_negative_corpus.py",
+      "owner": "scripts/rv64/rv64_m5_negative_corpus.py",
       "default": "not applicable: reference only; no runtime reader found",
       "status": "reference-only",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m5_negative_corpus.py"
+        "scripts/rv64/rv64_m5_negative_corpus.py"
       ]
     },
     "STWO_RV64_ASSIGNMENT_CRITICAL_CENSUS": {
@@ -278,7 +278,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m4_arena_sweep.py",
+        "scripts/rv64/rv64_m4_arena_sweep.py",
         "src/integrations/riscv_cuda/rv64/resident_composition.zig"
       ],
       "default_evidence": {
@@ -333,8 +333,8 @@
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_arena_job.sh",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_arena_job.sh",
         "src/integrations/riscv_cuda/rv64/core_witness.zig"
       ],
       "default_evidence": {
@@ -444,9 +444,9 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_resident.py",
-        "scripts/rv64_resident_basket.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_resident.py",
+        "scripts/rv64/rv64_resident_basket.py",
         "src/backends/cuda/native/rv64/deep.cu"
       ],
       "default_evidence": {
@@ -460,9 +460,9 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_resident.py",
-        "scripts/rv64_resident_basket.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_resident.py",
+        "scripts/rv64/rv64_resident_basket.py",
         "src/backends/cuda/native/rv64/deep.cu"
       ],
       "default_evidence": {
@@ -490,9 +490,9 @@
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_arena_sweep.py",
-        "scripts/rv64_m7_outer_fs_ops_fixture.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_arena_sweep.py",
+        "scripts/rv64/rv64_m7_outer_fs_ops_fixture.py",
         "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
         "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
         "tests/cuda/rv64/inter_contributions_numerical.py",
@@ -551,7 +551,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m4_arena_sweep.py",
+        "scripts/rv64/rv64_m4_arena_sweep.py",
         "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
       ],
       "default_evidence": {
@@ -579,7 +579,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m4_arena_sweep.py",
+        "scripts/rv64/rv64_m4_arena_sweep.py",
         "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
       ],
       "default_evidence": {
@@ -781,8 +781,8 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m5_canon_vk_tamper.py",
-        "scripts/rv64_m5_negative_corpus.py",
+        "scripts/rv64/rv64_m5_canon_vk_tamper.py",
+        "scripts/rv64/rv64_m5_negative_corpus.py",
         "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"
       ],
       "default_evidence": {
@@ -796,13 +796,13 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_resident.py",
-        "scripts/rv64_m5_canon_vk_tamper.py",
-        "scripts/rv64_m5_negative_corpus.py",
-        "scripts/rv64_m5_receiver_class_ab.py",
-        "scripts/rv64_m7_coalesced_tamper.py",
-        "scripts/rv64_validation.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_resident.py",
+        "scripts/rv64/rv64_m5_canon_vk_tamper.py",
+        "scripts/rv64/rv64_m5_negative_corpus.py",
+        "scripts/rv64/rv64_m5_receiver_class_ab.py",
+        "scripts/rv64/rv64_m7_coalesced_tamper.py",
+        "scripts/rv64/rv64_validation.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
       ],
@@ -997,7 +997,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_ethereum_basket.py",
+        "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
         "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
         "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig"
@@ -1027,8 +1027,8 @@
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_arena_job.sh",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_arena_job.sh",
         "scripts/tests/test_rv64_resident_basket.py",
         "src/integrations/riscv_cuda/rv64/resident_pool.zig",
         "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
@@ -1057,7 +1057,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_ethereum_basket.py",
+        "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_resident_basket.py",
         "src/integrations/riscv_cuda/rv64/cpu_replay.zig",
@@ -1077,7 +1077,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_ethereum_basket.py",
+        "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
         "src/integrations/riscv_cuda/rv64/resident_batch.zig",
         "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
@@ -1093,7 +1093,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_ethereum_basket.py",
+        "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
         "src/integrations/riscv_cuda/rv64/resident_batch.zig",
         "src/integrations/riscv_cuda/rv64/resident_router.zig",
@@ -1110,7 +1110,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_ethereum_basket.py",
+        "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_resident_basket.py",
         "src/integrations/riscv_cuda/rv64/resident_batch.zig",
@@ -1127,10 +1127,10 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_ethereum_basket.py",
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_resident.py",
-        "scripts/rv64_resident_basket.py",
+        "scripts/rv64/rv64_ethereum_basket.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_resident.py",
+        "scripts/rv64/rv64_resident_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
         "src/integrations/riscv_cuda/rv64/resident_batch.zig",
         "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
@@ -1160,9 +1160,9 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_resident.py",
-        "scripts/rv64_resident_basket.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_resident.py",
+        "scripts/rv64/rv64_resident_basket.py",
         "scripts/tests/test_rv64_resident_basket.py",
         "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
         "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
@@ -1184,13 +1184,13 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_resident.py",
-        "scripts/rv64_m5_negative_corpus.py",
-        "scripts/rv64_m5_rootverify_corpus.py",
-        "scripts/rv64_m7_coalesced_tamper.py",
-        "scripts/rv64_resident_basket.py",
-        "scripts/rv64_validation.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_resident.py",
+        "scripts/rv64/rv64_m5_negative_corpus.py",
+        "scripts/rv64/rv64_m5_rootverify_corpus.py",
+        "scripts/rv64/rv64_m7_coalesced_tamper.py",
+        "scripts/rv64/rv64_resident_basket.py",
+        "scripts/rv64/rv64_validation.py",
         "scripts/tests/test_rv64_resident_basket.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
@@ -1206,7 +1206,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_ethereum_basket.py",
+        "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
         "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
         "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
@@ -1235,7 +1235,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_ethereum_basket.py",
+        "scripts/rv64/rv64_ethereum_basket.py",
         "scripts/tests/test_rv64_ethereum_basket.py",
         "src/integrations/riscv_cuda/rv64/resident_router.zig",
         "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
@@ -1251,9 +1251,9 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m5_negative_corpus.py",
-        "scripts/rv64_m5_rootverify_corpus.py",
-        "scripts/rv64_resident_basket.py",
+        "scripts/rv64/rv64_m5_negative_corpus.py",
+        "scripts/rv64/rv64_m5_rootverify_corpus.py",
+        "scripts/rv64/rv64_resident_basket.py",
         "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
       ],
       "default_evidence": {
@@ -1262,15 +1262,15 @@
       }
     },
     "STWO_RV64_HARNESS_ALLOW_BLOCKS": {
-      "owner": "scripts/rv64_m4_resident.py",
+      "owner": "scripts/rv64/rv64_m4_resident.py",
       "default": "empty additional block allowlist",
       "status": "qualification",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m4_resident.py"
+        "scripts/rv64/rv64_m4_resident.py"
       ],
       "default_evidence": {
-        "path": "scripts/rv64_m4_resident.py",
+        "path": "scripts/rv64/rv64_m4_resident.py",
         "text": "ALLOW_BLOCKS_ENV = \"STWO_RV64_HARNESS_ALLOW_BLOCKS\"\n\n\ndef allowed_blocks(args, environ=None):\n    \"\"\"Explicit owner opt-in for non-development blocks: --allow-block N (repeatable) or\n    STWO_RV64_HARNESS_ALLOW_BLOCKS=N[,M]. Harness-only: STWO_RV64_* keys never reach the producer.\"\"\"\n    environ = os.environ if environ is None else environ\n    result = set(getattr(args, \"allow_block\", None) or [])\n    for item in environ.get(ALLOW_BLOCKS_ENV, \"\").replace(\",\", \" \").split():\n        result.add(int(item))"
       }
     },
@@ -1442,16 +1442,16 @@
       }
     },
     "STWO_RV64_M8_AOT_REGISTER_SCHEDULE": {
-      "owner": "scripts/rv64_m8_aot_register_relink.py",
+      "owner": "scripts/rv64/rv64_m8_aot_register_relink.py",
       "default": "true in generated dual-catalogue dispatcher (unset or empty selects schedule)",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m8_aot_register_relink.py",
+        "scripts/rv64/rv64_m8_aot_register_relink.py",
         "scripts/tests/test_rv64_m8_aot_register_relink.py"
       ],
       "default_evidence": {
-        "path": "scripts/rv64_m8_aot_register_relink.py",
+        "path": "scripts/rv64/rv64_m8_aot_register_relink.py",
         "text": "FLAG = \"STWO_RV64_M8_AOT_REGISTER_SCHEDULE\"\nADMITTED_TRUTH_TU = \"tests/cuda/rv64/truth_composition_native.cu\"\nADMITTED_CORE_TU = \"core_composition_dispatch.cu\"  # generated by rv64_cuda_resident_image_build.py"
       }
     },
@@ -1845,9 +1845,9 @@
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
-        "scripts/rv64_m7_integration_stack.py",
+        "scripts/rv64/rv64_m7_integration_stack.py",
+        "scripts/rv64/rv64_validation.py",
         "scripts/rv64_m8_bench15.py",
-        "scripts/rv64_validation.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64/jobs/driver.zig"
       ],
@@ -1944,10 +1944,10 @@
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
-        "scripts/rv64_gate.py",
-        "scripts/rv64_m7_integration_stack.py",
+        "scripts/rv64/rv64_gate.py",
+        "scripts/rv64/rv64_m7_integration_stack.py",
+        "scripts/rv64/rv64_validation.py",
         "scripts/rv64_m8_bench15.py",
-        "scripts/rv64_validation.py",
         "scripts/tests/test_rv64_gate.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
@@ -1998,8 +1998,8 @@
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/default-runtime.json",
+        "scripts/rv64/rv64_validation.py",
         "scripts/rv64_m8_bench15.py",
-        "scripts/rv64_validation.py",
         "scripts/tests/test_rv64_gate.py",
         "scripts/tests/test_rv64_m8_bench15.py",
         "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
@@ -2058,7 +2058,7 @@
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m8_plan_sweep.py",
+        "scripts/rv64/rv64_m8_plan_sweep.py",
         "src/integrations/riscv_cuda/rv64/jobs/plan.zig"
       ],
       "default_evidence": {
@@ -2072,7 +2072,7 @@
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m8_plan_sweep.py",
+        "scripts/rv64/rv64_m8_plan_sweep.py",
         "src/integrations/riscv_cuda/rv64/jobs/plan.zig",
         "src/integrations/riscv_cuda/rv64/jobs/plan_test.zig"
       ],
@@ -2314,8 +2314,8 @@
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/default-runtime.json",
+        "scripts/rv64/rv64_validation.py",
         "scripts/rv64_m8_bench15.py",
-        "scripts/rv64_validation.py",
         "scripts/tests/test_rv64_m8_bench15.py",
         "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
         "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
@@ -2913,9 +2913,9 @@
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
-        "scripts/rv64_gate.py",
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m5_negative_corpus.py",
+        "scripts/rv64/rv64_gate.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m5_negative_corpus.py",
         "src/integrations/riscv_cpu/word16_execution/native_policy.zig",
         "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig"
       ],
@@ -2999,8 +2999,8 @@
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_arena_job.sh",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_arena_job.sh",
         "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
       ],
       "default_evidence": {
@@ -3094,10 +3094,10 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m4_resident.py",
-        "scripts/rv64_m5_negative_corpus.py",
-        "scripts/rv64_m7_coalesced_tamper.py",
-        "scripts/rv64_validation.py",
+        "scripts/rv64/rv64_m4_resident.py",
+        "scripts/rv64/rv64_m5_negative_corpus.py",
+        "scripts/rv64/rv64_m7_coalesced_tamper.py",
+        "scripts/rv64/rv64_validation.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
       ],
@@ -3139,10 +3139,10 @@
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
-        "scripts/rv64_gate.py",
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m5_canon_vk_tamper.py",
-        "scripts/rv64_m5_negative_corpus.py",
+        "scripts/rv64/rv64_gate.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m5_canon_vk_tamper.py",
+        "scripts/rv64/rv64_m5_negative_corpus.py",
         "src/integrations/circuit_cpu/om31/protocol.zig"
       ],
       "default_evidence": {
@@ -3156,7 +3156,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m5_canon_vk_tamper.py",
+        "scripts/rv64/rv64_m5_canon_vk_tamper.py",
         "src/integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig"
       ],
       "default_evidence": {
@@ -3232,7 +3232,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m4_arena_sweep.py",
+        "scripts/rv64/rv64_m4_arena_sweep.py",
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_m8_bench15.py",
         "src/backends/cuda/native/rv64/pcs_idle_cache.h",
@@ -3282,9 +3282,9 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_resident.py",
-        "scripts/rv64_resident_basket.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_resident.py",
+        "scripts/rv64/rv64_resident_basket.py",
         "src/backends/cuda/native/rv64/pcs_pipeline.cuh"
       ],
       "default_evidence": {
@@ -3337,7 +3337,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m4_arena_sweep.py",
+        "scripts/rv64/rv64_m4_arena_sweep.py",
         "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
         "src/integrations/riscv_cuda/rv64/pcs_native.zig"
       ],
@@ -3366,7 +3366,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m4_arena_sweep.py",
+        "scripts/rv64/rv64_m4_arena_sweep.py",
         "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
         "tests/cuda/rv64/node_observer_smoke.py"
       ],
@@ -3381,7 +3381,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m4_arena_sweep.py",
+        "scripts/rv64/rv64_m4_arena_sweep.py",
         "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
       ],
       "default_evidence": {
@@ -3719,12 +3719,12 @@
       }
     },
     "STWO_RV64_STORE": {
-      "owner": "scripts/rv64_m5_negative_corpus.py",
+      "owner": "scripts/rv64/rv64_m5_negative_corpus.py",
       "default": "not applicable: reference only; no runtime reader found",
       "status": "reference-only",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m5_negative_corpus.py"
+        "scripts/rv64/rv64_m5_negative_corpus.py"
       ]
     },
     "STWO_RV64_TAPE_POPULATE": {
@@ -3824,7 +3824,7 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m4_arena_sweep.py",
+        "scripts/rv64/rv64_m4_arena_sweep.py",
         "src/integrations/riscv_cuda/rv64/trace_commit.zig"
       ],
       "default_evidence": {
@@ -3861,12 +3861,12 @@
       }
     },
     "STWO_RV64_VK_CACHE": {
-      "owner": "scripts/rv64_m5_negative_corpus.py",
+      "owner": "scripts/rv64/rv64_m5_negative_corpus.py",
       "default": "not applicable: reference only; no runtime reader found",
       "status": "reference-only",
       "date": "2026-11-08",
       "references": [
-        "scripts/rv64_m5_negative_corpus.py"
+        "scripts/rv64/rv64_m5_negative_corpus.py"
       ]
     }
   }

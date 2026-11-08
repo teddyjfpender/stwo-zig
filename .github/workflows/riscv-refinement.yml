@@ -36,13 +36,13 @@ on:
       # fail-closed trigger contract.
       - "scripts/riscv_team_a*.py"
       - "scripts/riscv_team_b*.py"
-      - "scripts/riscv_team_b_witnesses_lib/**"
-      - "scripts/riscv_team_b.py"
-      - "scripts/riscv_team_b_witnesses.py"
-      - "scripts/riscv_team_a.py"
-      - "scripts/riscv_opcode_coverage.py"
+      - "scripts/riscv/riscv_team_b_witnesses_lib/**"
+      - "scripts/riscv/riscv_team_b.py"
+      - "scripts/riscv/riscv_team_b_witnesses.py"
+      - "scripts/riscv/riscv_team_a.py"
+      - "scripts/riscv/riscv_opcode_coverage.py"
       - "scripts/riscv_refinement*.py"
-      - "scripts/riscv_refinement_lib/**"
+      - "scripts/riscv/riscv_refinement_lib/**"
       - "scripts/tests/test_riscv_team_b*.py"
       - "scripts/tests/_riscv_team_b_witnesses_*.py"
       - "scripts/tests/test_riscv_team_b.py"
@@ -180,11 +180,11 @@ jobs:
           test -s zig-out/fresh-family-air/div.json
 
       - name: Legacy family compatibility and AIR-binding gate
-        run: python3 scripts/riscv_team_b.py check --air-ir-dir zig-out/fresh-family-air
+        run: python3 scripts/riscv/riscv_team_b.py check --air-ir-dir zig-out/fresh-family-air
 
       - name: Non-vacuity witnesses are reachable in the shipped AIR
         run: |
-          python3 scripts/riscv_team_b_witnesses.py --air-ir-dir zig-out/fresh-family-air
+          python3 scripts/riscv/riscv_team_b_witnesses.py --air-ir-dir zig-out/fresh-family-air
 
       - name: Build the concrete opcode theorem families
         run: |
@@ -457,15 +457,15 @@ jobs:
         if: matrix.shard == 'source-binding'
         run: |
           set -euo pipefail
-          python3 scripts/riscv_team_a.py check \
+          python3 scripts/riscv/riscv_team_a.py check \
             --air-program-ir-dir zig-out/fresh-opcode-air
 
       - name: Check exact certificate coverage
         if: matrix.shard == 'coverage'
         run: |
           set -euo pipefail
-          python3 scripts/riscv_team_a.py coverage
-          python3 scripts/riscv_opcode_coverage.py check
+          python3 scripts/riscv/riscv_team_a.py coverage
+          python3 scripts/riscv/riscv_opcode_coverage.py check
 
       - name: Audit the complete imported theorem closure
         if: matrix.shard == 'axiom-closure'
@@ -487,7 +487,7 @@ jobs:
             echo "unapproved axiom in a refinement theorem" >&2
             exit 1
           fi
-          python3 scripts/riscv_team_a.py axioms \
+          python3 scripts/riscv/riscv_team_a.py axioms \
             --audit-output /tmp/a5-axioms.txt
 
   aggregate:
@@ -533,13 +533,13 @@ jobs:
       - name: Bind the exact 46-opcode aggregate to fresh production AIR
         run: |
           set -euo pipefail
-          python3 scripts/riscv_team_b.py check \
+          python3 scripts/riscv/riscv_team_b.py check \
             --air-ir-dir zig-out/fresh-family-air
-          python3 scripts/riscv_team_b_witnesses.py \
+          python3 scripts/riscv/riscv_team_b_witnesses.py \
             --air-ir-dir zig-out/fresh-family-air
-          python3 scripts/riscv_team_a.py check \
+          python3 scripts/riscv/riscv_team_a.py check \
             --air-program-ir-dir zig-out/fresh-opcode-air
-          python3 scripts/riscv_opcode_coverage.py check
+          python3 scripts/riscv/riscv_opcode_coverage.py check
 
       - name: Aggregate Python regression gates
         run: |
@@ -604,11 +604,11 @@ jobs:
       - name: Repository-wide gates on the clean-room inputs
         run: |
           set -euo pipefail
-          python3 scripts/riscv_team_b.py check --air-ir-dir zig-out/family-air
-          python3 scripts/riscv_team_b_witnesses.py --air-ir-dir zig-out/family-air
-          python3 scripts/riscv_team_a.py check \
+          python3 scripts/riscv/riscv_team_b.py check --air-ir-dir zig-out/family-air
+          python3 scripts/riscv/riscv_team_b_witnesses.py --air-ir-dir zig-out/family-air
+          python3 scripts/riscv/riscv_team_a.py check \
             --air-program-ir-dir zig-out/opcode-air
-          python3 scripts/riscv_opcode_coverage.py check
+          python3 scripts/riscv/riscv_opcode_coverage.py check
           (
             cd formal/riscv-refinement
             lake env lean RiscvRefinement/AxiomAudit.lean \
@@ -619,7 +619,7 @@ jobs:
             echo "unapproved axiom in clean-room theorem build" >&2
             exit 1
           fi
-          python3 scripts/riscv_team_a.py axioms \
+          python3 scripts/riscv/riscv_team_a.py axioms \
             --audit-output /tmp/clean-room-axioms.txt
 
       # The receipt binds what a clean room actually reproduced. It is not

@@ -46,7 +46,7 @@ const common_allowed_prefixes = [_][]const u8{
 // `src/backends/metal/shaders` stands directly above the deferred
 // `src/backends/metal/shaders/cairo` shader tree, so it is enumerated leaf by
 // leaf too. Every entry below is measured against the real closure, not
-// guessed: `scripts/check_product_closure.py` run with a candidate grant
+// guessed: `scripts/repo/check_product_closure.py` run with a candidate grant
 // withheld reports exactly the files that grant must restore.
 const metal_allowed_files = common_allowed_files ++ .{
     metal_facade,

@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-from scripts.cuda_build_lib.product_selection import validate_aot_manifest  # noqa: E402
+from scripts.cuda.cuda_build_lib.product_selection import validate_aot_manifest  # noqa: E402
 
 
 def main() -> int:

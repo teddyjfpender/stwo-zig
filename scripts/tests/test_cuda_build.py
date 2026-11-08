@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from cuda_build_lib.builder import (  # noqa: E402
+from scripts.cuda.cuda_build_lib.builder import (  # noqa: E402
     BuildConfig,
     BuildError,
     Toolchain,
@@ -28,8 +28,8 @@ from cuda_build_lib.builder import (  # noqa: E402
     validate_aot_manifest,
     write_aot_carriers,
 )
-from cuda_device_smoke import compile_command, run_command  # noqa: E402
-from cuda_build import parser as build_parser  # noqa: E402
+from scripts.cuda.cuda_device_smoke import compile_command, run_command  # noqa: E402
+from scripts.cuda.cuda_build import parser as build_parser  # noqa: E402
 from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
 
 

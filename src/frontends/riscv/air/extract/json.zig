@@ -1,5 +1,5 @@
 //! Serialise an extracted `model.System` into the flat IR encoding that
-//! `scripts/air_uniqueness_lib/ir.py` accepts (`from_dict`, `nodes` form).
+//! `scripts/riscv/air_uniqueness_lib/ir.py` accepts (`from_dict`, `nodes` form).
 //!
 //! The wire shape is owned by that module; this writer only has to keep node
 //! references as arena indices, which are already a topological order.

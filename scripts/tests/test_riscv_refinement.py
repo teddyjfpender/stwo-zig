@@ -111,15 +111,15 @@ class RefinementAirTest(unittest.TestCase):
         for relative in (
             ".github/workflows/riscv-sail-formal.yml",
             ".github/workflows/riscv-refinement.yml",
-            "scripts/riscv_air_ir_equivalence.py",
-            "scripts/riscv_air_program_layout.py",
-            "scripts/riscv_opcode_coverage.py",
-            "scripts/riscv_team_a.py",
-            "scripts/riscv_team_b.py",
-            "scripts/riscv_team_b_inventory.py",
-            "scripts/riscv_team_b_refresh.py",
-            "scripts/riscv_team_b_witnesses.py",
-            "scripts/riscv_refinement_lib/air_program_layout.py",
+            "scripts/riscv/riscv_air_ir_equivalence.py",
+            "scripts/riscv/riscv_air_program_layout.py",
+            "scripts/riscv/riscv_opcode_coverage.py",
+            "scripts/riscv/riscv_team_a.py",
+            "scripts/riscv/riscv_team_b.py",
+            "scripts/riscv/riscv_team_b_inventory.py",
+            "scripts/riscv/riscv_team_b_refresh.py",
+            "scripts/riscv/riscv_team_b_witnesses.py",
+            "scripts/riscv/riscv_refinement_lib/air_program_layout.py",
             "scripts/tests/test_riscv_air_ir_equivalence.py",
             "scripts/tests/test_riscv_air_program_layout.py",
             "formal/riscv-refinement/air-program-node-layout-v1.json",
@@ -518,14 +518,14 @@ class RefinementAirTest(unittest.TestCase):
         import sys
 
         root = sys.argv[1]
-        # Exactly what `python3 scripts/riscv_refinement.py` puts on sys.path:
+        # Exactly what `python3 scripts/riscv/riscv_refinement.py` puts on sys.path:
         # the scripts directory, and no repository root.
         sys.path.insert(0, root + "/scripts")
-        module = importlib.import_module("riscv_refinement")
+        module = importlib.import_module("scripts.riscv.riscv_refinement")
 
         # Now reach the library the way every test and sibling script reaches it.
         sys.path.insert(0, root)
-        from scripts.riscv_refinement_lib.model import RefinementError
+        from scripts.riscv.riscv_refinement_lib.model import RefinementError
 
         assert module.RefinementError is RefinementError, (
             "two identities: "
@@ -574,7 +574,7 @@ class RefinementAirTest(unittest.TestCase):
     def test_direct_execution_still_works_without_a_second_spelling(self) -> None:
         """The fallback's purpose is kept; only its second module name is gone.
 
-        The bare spelling existed so ``python3 scripts/riscv_refinement.py`` would
+        The bare spelling existed so ``python3 scripts/riscv/riscv_refinement.py`` would
         run at all. Removing it without this would trade a silent-vacuity bug for a
         broken entry point, so both halves are asserted: the script runs from a
         working directory that makes the repository root unimportable, and its
@@ -582,7 +582,7 @@ class RefinementAirTest(unittest.TestCase):
         """
         with tempfile.TemporaryDirectory() as neutral:
             completed = subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "riscv_refinement.py"), "--help"],
+                [sys.executable, str(ROOT / "scripts" / "riscv/riscv_refinement.py"), "--help"],
                 cwd=neutral,
                 check=False,
                 capture_output=True,
@@ -591,13 +591,13 @@ class RefinementAirTest(unittest.TestCase):
         self.assertEqual(0, completed.returncode, completed.stderr)
         self.assertIn("usage: riscv_refinement.py", completed.stdout)
 
-        source = (ROOT / "scripts" / "riscv_refinement.py").read_text(encoding="utf-8")
+        source = (ROOT / "scripts" / "riscv/riscv_refinement.py").read_text(encoding="utf-8")
         bare = re.compile(r"^\s*(?:from|import)\s+riscv_refinement_lib\b", re.MULTILINE)
         self.assertIsNone(
             bare.search(source),
             "the bare spelling is back; it gives the library a second identity",
         )
-        self.assertIn("from scripts.riscv_refinement_lib import", source)
+        self.assertIn("from scripts.riscv.riscv_refinement_lib import", source)
 
     @staticmethod
     def _lean_tree(root: Path, sources: dict[str, str]) -> Paths:

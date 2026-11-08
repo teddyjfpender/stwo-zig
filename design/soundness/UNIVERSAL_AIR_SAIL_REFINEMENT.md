@@ -716,8 +716,8 @@ objects rather than as empty package ceremony.
 Repository tooling should be owned under:
 
 ```text
-scripts/riscv_refinement.py
-scripts/riscv_refinement_lib/
+scripts/riscv/riscv_refinement.py
+scripts/riscv/riscv_refinement_lib/
 ```
 
 The tool owns generation, digest checking, coverage reporting, and clean-room
@@ -735,9 +735,9 @@ publication:
 
 ```sh
 # One-time pinned formal-tool workspace and generated backend:
-python3 scripts/riscv_formal_tools.py prepare \
+python3 scripts/riscv/riscv_formal_tools.py prepare \
   --workspace /tmp/stwo-riscv-formal
-python3 scripts/riscv_refinement.py prepare-sail \
+python3 scripts/riscv/riscv_refinement.py prepare-sail \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 
 # Validate the current proof source without claiming a fresh receipt:
@@ -751,11 +751,11 @@ python3 -m unittest scripts.tests.test_riscv_refinement_publication -v
 # The default standalone export is freshly replaced;
 # -Driscv-refinement-ir-dir=... must name an absent or empty directory:
 zig build riscv-refinement-ir
-python3 scripts/riscv_refinement.py generate \
+python3 scripts/riscv/riscv_refinement.py generate \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
-python3 scripts/riscv_refinement.py check-generated \
+python3 scripts/riscv/riscv_refinement.py check-generated \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
-python3 scripts/riscv_refinement.py coverage
+python3 scripts/riscv/riscv_refinement.py coverage
 
 # Complete live row-local publication gate (legacy target name retained):
 STWO_SAIL_RISCV_DIR=/tmp/stwo-riscv-formal/source/sail-riscv \
@@ -763,15 +763,15 @@ STWO_SAIL_RISCV_DIR=/tmp/stwo-riscv-formal/source/sail-riscv \
 
 # Clean-tree live evidence:
 # Commit the regenerated inputs before this step.
-python3 scripts/riscv_refinement.py receipt \
+python3 scripts/riscv/riscv_refinement.py receipt \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
-python3 scripts/riscv_refinement.py verify-receipt \
+python3 scripts/riscv/riscv_refinement.py verify-receipt \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 ```
 
 `prepare-sail` writes the merged exact-profile configuration and generates the
 external theorem backend. The repository's existing
-`scripts/riscv_formal_tools.py` owns pinned checkout/compiler/simulator
+`scripts/riscv/riscv_formal_tools.py` owns pinned checkout/compiler/simulator
 preparation. `riscv-refinement-pilot` first runs the dedicated production IR
 export and then checks byte-identical generation, 46/46 normalized retirements,
 46/46 constructive row-local publication implications, negative controls,
@@ -1126,7 +1126,7 @@ The stable FV-1 kernel surface is:
   interrupt, trap, and fetch failure while preserving the generated
   counter/tick postlude; and
 - the ordered bridge source closure declared by
-  `scripts.riscv_refinement_lib.sail_lean_bridge.BRIDGE_SOURCES`, beginning
+  `scripts.riscv.riscv_refinement_lib.sail_lean_bridge.BRIDGE_SOURCES`, beginning
   with `Pilot.lean`, `Composition.lean`, and `ExecutionClosure.lean`, followed
   by the split decoder and family-publication modules and the final
   `Publication.lean` entrypoint. Each module is compiled to the same fresh

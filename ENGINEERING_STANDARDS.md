@@ -74,7 +74,7 @@ Rules:
 - **TW-2.** Package dependencies MUST follow the declared layer graph
   (`protocol` depends on nothing; `contract`/`api`/`interchange` on `protocol`;
   `engine` on the waist; `frontend` and `backend` on the waist and `engine`;
-  `integration` composes). Checked by `scripts/check_package_workspace.py`
+  `integration` composes). Checked by `scripts/repo/check_package_workspace.py`
   (`zig build package-workspace`). *Phase 0*: the checker exists but reports
   830 findings at `51897dc26` (374 undeclared imports, 215 stale contract
   entries, 50 loose `src/` roots reaching into packages) and runs only in the
@@ -208,7 +208,7 @@ new flags and zero new top-level scripts; each entry records a change's
 in `conformance/rv64-flags.json` with owner, default and status; an undeclared
 flag fails the source conformance check. Other flag families are not yet
 registered (*Phase 2*). *Enforced* (`zig build source-conformance`,
-`scripts/check_source_conformance.py`); per-PR budget comparison *Phase 0*.
+`scripts/repo/check_source_conformance.py`); per-PR budget comparison *Phase 0*.
 
 **Module budget.** Each package tracks: public surface (`api_surface` size),
 dependency count and allowed dependency layers, file size and control-flow

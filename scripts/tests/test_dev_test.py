@@ -4,8 +4,6 @@ import unittest
 from pathlib import Path
 
 from scripts import dev_test
-
-
 ROOT = Path(__file__).resolve().parents[2]
 
 

@@ -7,9 +7,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import cuda_external_authority as external
-
-from scripts.cuda_source_closure import (
+from scripts.cuda import cuda_external_authority as external
+from scripts.cuda.cuda_source_closure import (
     AUTHORITIES,
     build_manifest,
     validate_expected_closure,

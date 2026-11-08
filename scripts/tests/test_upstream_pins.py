@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.check_upstream_pins import PinLedgerError, parse_ledger, validate_repository
-from scripts.upstream_pins_lib import (
+from scripts.repo.check_upstream_pins import PinLedgerError, parse_ledger, validate_repository
+from scripts.repo.upstream_pins_lib import (
     cairo_vm_adapter,
     official_cairo_air,
     official_cairo_air_templates,
@@ -127,7 +127,7 @@ class UpstreamPinTests(unittest.TestCase):
             errors = validate_repository(ROOT, path)
 
         joined = "\n".join(errors)
-        self.assertIn("scripts/generate_cairo_claim_registry.py", joined)
+        self.assertIn("scripts/cairo/generate_cairo_claim_registry.py", joined)
         self.assertIn(
             "src/frontends/cairo/air/official_claim_registry.zig",
             joined,
@@ -193,8 +193,8 @@ class UpstreamPinTests(unittest.TestCase):
 
         joined = "\n".join(errors)
         self.assertIn("src/products/native/artifact/examples_artifact.zig", joined)
-        self.assertIn("scripts/e2e_interop_lib/controller.py", joined)
-        self.assertIn("scripts/prove_checkpoints.py", joined)
+        self.assertIn("scripts/interop/e2e_interop_lib/controller.py", joined)
+        self.assertIn("scripts/interop/prove_checkpoints.py", joined)
         self.assertIn("tools/stwo-interop-rs/Cargo.toml", joined)
         self.assertIn("tools/stwo-interop-rs/upstream_blake_provenance.json", joined)
         self.assertIn("Blake oracle provenance commit", joined)
@@ -212,7 +212,7 @@ class UpstreamPinTests(unittest.TestCase):
             errors = validate_repository(ROOT, path)
 
         joined = "\n".join(errors)
-        self.assertIn("scripts/riscv_equivalence.py", joined)
+        self.assertIn("scripts/riscv/riscv_equivalence.py", joined)
         self.assertIn("src/frontends/riscv/isa/authority.zig", joined)
         self.assertIn("conformance/riscv/rv32im-sail-profile.json", joined)
 
@@ -244,7 +244,7 @@ class UpstreamPinTests(unittest.TestCase):
 
         joined = "\n".join(errors)
         self.assertIn("src/frontends/sm83/isa/authority.zig", joined)
-        self.assertIn("scripts/sm83_frontend_gate.py", joined)
+        self.assertIn("scripts/sm83/sm83_frontend_gate.py", joined)
 
     def test_riscv_legacy_layout_drift_does_not_masquerade_as_isa_authority(self) -> None:
         drifted = LEDGER.read_text(encoding="utf-8").replace(
@@ -261,7 +261,7 @@ class UpstreamPinTests(unittest.TestCase):
         self.assertIn("src/frontends/riscv/opcode_manifest.zig", joined)
         self.assertIn("vectors/riscv_elfs/trace_vectors.json", joined)
         self.assertIn("conformance/riscv/rv32im-sail-profile.json", joined)
-        self.assertNotIn("scripts/riscv_equivalence.py", joined)
+        self.assertNotIn("scripts/riscv/riscv_equivalence.py", joined)
 
     def test_cairo_repository_drift_reaches_manifest_lock_source_and_ci(self) -> None:
         drifted = LEDGER.read_text(encoding="utf-8").replace(
@@ -282,12 +282,12 @@ class UpstreamPinTests(unittest.TestCase):
     def test_standard_and_strict_release_gates_enforce_pin_ledger(self) -> None:
         internal = (ROOT / "build_support/internal_build.zig").read_text(encoding="utf-8")
         release = (ROOT / "build_support/gates/release.zig").read_text(encoding="utf-8")
-        command = '"python3", "scripts/check_upstream_pins.py"'
+        command = '"python3", "scripts/repo/check_upstream_pins.py"'
         self.assertEqual(3, internal.count(command) + release.count(command))
         self.assertEqual(2, release.count(command))
         self.assertLess(
-            release.index('"scripts/check_upstream_pins.py"'),
-            release.index('"scripts/check_source_conformance.py"'),
+            release.index('"scripts/repo/check_upstream_pins.py"'),
+            release.index('"scripts/repo/check_source_conformance.py"'),
         )
 
     def test_official_witness_bundle_parser_rejects_instruction_mutation(self) -> None:

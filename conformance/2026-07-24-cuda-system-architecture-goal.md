@@ -56,7 +56,7 @@ The first architecture slice has landed on
 - `CudaPlan` compiles program identity, arena requirements, schedule order,
   barriers, work estimates, and a device/toolchain/kernel-pack-bound cache key.
 - A prepared shape is compiled once and retained across process repetitions.
-- `scripts/native_cuda_benchmark.py` separates cold process, runtime
+- `scripts/native/native_cuda_benchmark.py` separates cold process, runtime
   initialization, shape preparation, first request, warmups, steady verified
   requests, independent verification, and teardown.
 

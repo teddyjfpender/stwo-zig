@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import riscv_team_b_witnesses as witnesses
+from scripts.riscv import riscv_team_b_witnesses as witnesses
 from scripts.tests._riscv_team_b_witnesses_support import export_air
 
 

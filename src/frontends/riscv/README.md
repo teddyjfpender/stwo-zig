@@ -201,7 +201,7 @@ the reproducible proof entry point is documented in
 3. Extend positive, negative, and adversarial coverage for every affected
    opcode family.
 4. Preserve backend neutrality and deterministic host behavior.
-5. Run the package suite, `python3 scripts/riscv_refinement.py verify`, and the
+5. Run the package suite, `python3 scripts/riscv/riscv_refinement.py verify`, and the
    complete RISC-V release gate.
 
 ## Related documentation

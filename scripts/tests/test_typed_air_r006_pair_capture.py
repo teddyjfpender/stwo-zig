@@ -7,25 +7,25 @@ import json
 from pathlib import Path
 from unittest import mock
 
-from scripts.typed_air_r006_capture_lib import reduction
-from scripts.typed_air_r006_capture_lib import pair as pair_module
-from scripts.typed_air_r006_capture_lib import pair_identity
-from scripts.typed_air_r006_capture_lib import pair_validation
-from scripts.typed_air_r006_capture_lib.codec import content_digest
-from scripts.typed_air_r006_capture_lib.controller import ProcessResult
-from scripts.typed_air_r006_capture_lib.model import PLAN_ATTEMPTS, CaptureError
-from scripts.typed_air_r006_capture_lib.orchestration import (
+from scripts.typed_air.typed_air_r006_capture_lib import reduction
+from scripts.typed_air.typed_air_r006_capture_lib import pair as pair_module
+from scripts.typed_air.typed_air_r006_capture_lib import pair_identity
+from scripts.typed_air.typed_air_r006_capture_lib import pair_validation
+from scripts.typed_air.typed_air_r006_capture_lib.codec import content_digest
+from scripts.typed_air.typed_air_r006_capture_lib.controller import ProcessResult
+from scripts.typed_air.typed_air_r006_capture_lib.model import PLAN_ATTEMPTS, CaptureError
+from scripts.typed_air.typed_air_r006_capture_lib.orchestration import (
     SNAPSHOT_CLASSIFICATION,
     host_preflight,
 )
-from scripts.typed_air_r006_capture_lib.workload_profile import (
+from scripts.typed_air.typed_air_r006_capture_lib.workload_profile import (
     GUEST_ARTIFACT_FORMAT_VERSION,
     GUEST_ARTIFACT_KIND,
     GUEST_PROFILE_MANIFEST_SHA256,
     GUEST_PROFILE_VERSION,
     GUEST_TASK_PROFILE_EXAMPLE,
 )
-from scripts.typed_air_r006_capture_lib.pair import (
+from scripts.typed_air.typed_air_r006_capture_lib.pair import (
     PAIR_ATTEMPTS,
     PairCaptureSettings,
     PairPlanSettings,

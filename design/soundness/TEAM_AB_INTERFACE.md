@@ -26,7 +26,7 @@ File-overlap intersection (4 files):
 ```
 formal/riscv-refinement/RiscvRefinement.lean
 formal/riscv-refinement/generated-manifest.json
-scripts/riscv_refinement.py
+scripts/riscv/riscv_refinement.py
 scripts/tests/test_riscv_refinement.py
 ```
 
@@ -35,7 +35,7 @@ scripts/tests/test_riscv_refinement.py
 
 | File | Result |
 | --- | --- |
-| `scripts/riscv_refinement.py` | CONFLICT, 2 hunks |
+| `scripts/riscv/riscv_refinement.py` | CONFLICT, 2 hunks |
 | `formal/riscv-refinement/generated-manifest.json` | CONFLICT, 4 hunks |
 | `formal/riscv-refinement/RiscvRefinement.lean` | auto-merges, but see 1.3 — the textual merge is semantically incomplete |
 | `scripts/tests/test_riscv_refinement.py` | auto-merges cleanly; the 13 B-added and 4 A-added test names are disjoint |
@@ -48,7 +48,7 @@ Team B touches `RiscvRefinement/{Air/Family,Opcodes,Sail,Bridge,Arith}/**`,
 `lakefile.toml`, `riscv_team_b*.py`, `riscv_refinement_lib/sail*.py`, and the
 Team B workflow. Neither branch edits a file in the other list.
 
-### 1.1 `scripts/riscv_refinement.py` — 2 hunks
+### 1.1 `scripts/riscv/riscv_refinement.py` — 2 hunks
 
 **Hunk 1 — the `AUDITED_THEOREMS` pinned tuple** (base lines 35–61, 26 names;
 Team B lines 35–898, 862 names; Team A lines 35–70, 34 names).
@@ -66,7 +66,7 @@ side contains the other: B's 862 lack A's 8 new names; A's 34 share only the
 property), then regenerate on the merged, rebuilt Lean environment:
 
 ```sh
-python3 scripts/riscv_refinement.py audited-theorems --write
+python3 scripts/riscv/riscv_refinement.py audited-theorems --write
 ```
 
 The regenerated tuple will be strictly larger than 862 + 8: under B's wide
@@ -99,15 +99,15 @@ DRI updates aggregate generated manifests and the final receipt."
 | Hunk | Content | Winner |
 | --- | --- | --- |
 | ~line 11 | `canonical_digest` (three-way distinct) | regenerate |
-| ~line 23 | `generators["scripts/riscv_refinement.py"]` sha | regenerate — the merged script differs from both parents |
+| ~line 23 | `generators["scripts/riscv/riscv_refinement.py"]` sha | regenerate — the merged script differs from both parents |
 | ~line 35 | `generators` shas for `render.py` (A changed), `sail.py` (B changed), `test_riscv_refinement.py` (both changed; merged file differs from both) | regenerate — no hand-merge can be right for the test file |
 | ~line 266 | `proof_sources` shas: `RiscvRefinement.lean` (both changed), `AxiomAudit.lean` (B), `README.md` (A), plus A's new `Air/*.lean` entries | regenerate |
 
 **Winner: neither.** Resolve by running the generator on the merged tree:
 
 ```sh
-python3 scripts/riscv_refinement.py generate --reuse-committed-sail-evidence
-python3 scripts/riscv_refinement.py check-generated --reuse-committed-sail-evidence
+python3 scripts/riscv/riscv_refinement.py generate --reuse-committed-sail-evidence
+python3 scripts/riscv/riscv_refinement.py check-generated --reuse-committed-sail-evidence
 ```
 
 (or with a live pinned Sail toolchain; B's flag exists precisely so this
@@ -171,7 +171,7 @@ of A's newly visible theorems), never shrink; a count at or below 862 after
 adding A's modules means the audit is reading a stale or under-imported
 environment.
 
-### 2.3 `scripts/riscv_refinement.py` — B's flags and the pinned tuple
+### 2.3 `scripts/riscv/riscv_refinement.py` — B's flags and the pinned tuple
 
 Covered in 1.1. Both of B's additions (`--reuse-committed-sail-evidence`,
 `audited-theorems` subcommand at line 1619 with its `--write`/check modes and
@@ -323,7 +323,7 @@ from the export rather than conflicting with it.
 >
 > The section's closing point still stands and is the reason this was caught:
 > the confirming gate is mechanical, and a digest change is a loud failure
-> rather than silent drift. Run `scripts/riscv_team_b.py check` on the merged
+> rather than silent drift. Run `scripts/riscv/riscv_team_b.py check` on the merged
 > tree regardless of what any analysis predicts.
 
 The original provenance analysis follows. Evidence, not inference:
@@ -333,7 +333,7 @@ The original provenance analysis follows. Evidence, not inference:
    values per file: `canonical_digest` and
    `production_binding.source_closure_sha256`. The third provenance field,
    `source_ir_sha256`, is **unchanged** (lui `044c5b95…`, addi `231d6e6b…`).
-   Per `scripts/riscv_refinement_lib/air.py:650`, `source_ir_sha256` is
+   Per `scripts/riscv/riscv_refinement_lib/air.py:650`, `source_ir_sha256` is
    `sha256_file(source_path)` — the hash of the **raw exported family JSON**
    consumed from the export directory. Identical hash = byte-identical raw
    export under A's refactored extractor, for both committed families.
@@ -375,7 +375,7 @@ Residual risk, stated honestly: byte-identity is *committed* evidence only for
 the `lui` and `base_alu_imm` families. For B's six digests
 (`loadStoreIrDigest`, `shiftsImmIrDigest`, `shiftsRegIrDigest`, `mulIrDigest`,
 `mulhIrDigest`, `divIrDigest` in `Air/Family/*.lean`) the confirming gate is
-mechanical and already in CI: `scripts/riscv_team_b.py check` re-exports and
+mechanical and already in CI: `scripts/riscv/riscv_team_b.py check` re-exports and
 compares (`riscv_team_b.py:326 check_ir_digests`). If the refactor had altered
 any of those six families, the failure mode is a **loud digest mismatch or a
 fail-closed `UnpairedBusRequest`**, never a silent semantic drift. Run it once
@@ -422,7 +422,7 @@ manifest without a live Sail toolchain.
 Checklist for the #141 rebase/integration (integration DRI):
 
 1. Merge #139 into `main` unchanged.
-2. Rebase #141. In `scripts/riscv_refinement.py`:
+2. Rebase #141. In `scripts/riscv/riscv_refinement.py`:
    - hunk 1: take B's 862-name `AUDITED_THEOREMS` block verbatim as the
      transient state (regenerated in step 6);
    - hunk 2: keep **both** B's `--reuse-committed-sail-evidence` + helper and
@@ -439,7 +439,7 @@ Checklist for the #141 rebase/integration (integration DRI):
    explicitly recompile `RiscvRefinement/Opcodes/{Lui,Addi}.lean` to confirm
    A's `Retirement` equality proofs close over B's extended type (2.4).
 6. Regenerate the audited-theorem pin:
-   `python3 scripts/riscv_refinement.py audited-theorems --write`. Sanity:
+   `python3 scripts/riscv/riscv_refinement.py audited-theorems --write`. Sanity:
    count strictly greater than 862; every name in both parents' tuples present.
 7. Regenerate `generated-manifest.json`
    (`generate` / `check-generated`, with `--reuse-committed-sail-evidence` or a
@@ -449,8 +449,8 @@ Checklist for the #141 rebase/integration (integration DRI):
    section 4):
    ```sh
    zig build riscv-refinement-ir -Driscv-refinement-ir-dir=zig-out/team-b-ir
-   python3 scripts/riscv_team_b.py check --air-ir-dir zig-out/team-b-ir
-   python3 scripts/riscv_team_b_witnesses.py --air-ir-dir zig-out/team-b-ir
+   python3 scripts/riscv/riscv_team_b.py check --air-ir-dir zig-out/team-b-ir
+   python3 scripts/riscv/riscv_team_b_witnesses.py --air-ir-dir zig-out/team-b-ir
    ```
    If any of the six digests mismatches, the AIR bytes changed after all: stop,
    diff the fresh export against the capsule's recorded family, and re-pin only

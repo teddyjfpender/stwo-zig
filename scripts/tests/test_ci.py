@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 
 from scripts.ci import FAST_PLAN, command_plan
-from scripts.check_build_configure_closure import validate_actual_construction
-from scripts.release_evidence import gate_steps
+from scripts.repo.check_build_configure_closure import validate_actual_construction
+from scripts.release.release_evidence import gate_steps
 
 ROOT = Path(__file__).resolve().parents[2]
 PINNED_ACTION_RE = re.compile(r"^\s*uses:\s*[^@\s]+@[0-9a-f]{40}(?:\s+#.*)?$")
@@ -269,8 +269,8 @@ class CiTests(unittest.TestCase):
         self.assertIn("focused-macos:", workflow)
         self.assertIn("focused-cuda:", workflow)
         self.assertIn("focused-verdict:", workflow)
-        self.assertIn("python3 scripts/ci_scope_plan.py", workflow)
-        self.assertIn("python3 scripts/ci_scope_run.py", workflow)
+        self.assertIn("python3 scripts/repo/ci_scope_plan.py", workflow)
+        self.assertIn("python3 scripts/repo/ci_scope_run.py", workflow)
         self.assertIn("architecture-diagnostic:", workflow)
 
     def test_hosted_ci_requires_fail_closed_cuda_device_evidence(self) -> None:
@@ -375,16 +375,16 @@ class CiTests(unittest.TestCase):
         build_graph = build + verification_products
         full_test_command = '&.{ "zig", "build", "test", build_optimize }'
         self.assertEqual(2, build_graph.count(full_test_command))
-        self.assertEqual(3, build_graph.count('"scripts/zig_protocol_test.py"'))
+        self.assertEqual(3, build_graph.count('"scripts/repo/zig_protocol_test.py"'))
         gate_archive = "zig-out/release-evidence/native/interop-history"
         self.assertEqual(2, build_graph.count(gate_archive))
         self.assertEqual(2, build_graph.count('"--archive-dir"'))
         transitive_commands = {
             '&.{ "zig", "build", "test-riscv", build_optimize }': 2,
             '&.{ "zig", "build", "test-riscv-prover", build_optimize }': 2,
-            '&.{ "python3", "scripts/riscv_trace_vectors.py" }': 3,
+            '&.{ "python3", "scripts/riscv/riscv_trace_vectors.py" }': 3,
             # One additional standalone public API-parity build target is expected.
-            '&.{ "python3", "scripts/check_api_parity.py" }': 2,
+            '&.{ "python3", "scripts/repo/check_api_parity.py" }': 2,
         }
         for command, expected_count in transitive_commands.items():
             self.assertEqual(expected_count, build_graph.count(command))
@@ -406,7 +406,7 @@ class CiTests(unittest.TestCase):
 
     def test_pre_push_and_hosted_main_are_focused(self) -> None:
         pre_push = (ROOT / ".githooks/pre-push").read_text(encoding="utf-8")
-        self.assertIn("exec python3 scripts/ci_scope_push.py", pre_push)
+        self.assertIn("exec python3 scripts/repo/ci_scope_push.py", pre_push)
         self.assertNotIn("zig build", pre_push)
 
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -473,7 +473,7 @@ class CiTests(unittest.TestCase):
         )
         self.assertIn("run: zig build metal-check -Doptimize=ReleaseSafe", workflow)
         self.assertNotIn("run: zig build metal-test", workflow)
-        self.assertIn("python3 scripts/metal_core_aot_receipt.py build", workflow)
+        self.assertIn("python3 scripts/metal/metal_core_aot_receipt.py build", workflow)
         self.assertIn("--builder zig-out/bin/metal-core-aot", workflow)
         self.assertIn("--output-dir \"$RUNNER_TEMP/native-metal-core-aot-acceptance\"", workflow)
         self.assertIn(

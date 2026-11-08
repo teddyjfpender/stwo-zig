@@ -6,7 +6,7 @@ from __future__ import annotations
 import unittest
 from unittest import mock
 
-from scripts.zig_protocol_lib.command import (
+from scripts.repo.zig_protocol_lib.command import (
     PROTOCOL_PACKAGES,
     CPU_PROTOCOL_PACKAGES,
     protocol_module_args,
@@ -168,7 +168,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
             self.assertTrue(set(modules[name].dependencies) <= set(names))
 
     def test_unknown_additional_package_rejected_before_compiler_resolution(self) -> None:
-        with mock.patch("scripts.zig_protocol_lib.command.standard_runner_source") as resolver:
+        with mock.patch("scripts.repo.zig_protocol_lib.command.standard_runner_source") as resolver:
             with self.assertRaisesRegex(ValueError, "unknown additional protocol packages"):
                 test_command("focused.zig", cpu_only=True,
                              extra_packages=("missing_backend",))
@@ -189,7 +189,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
             test_command("focused.zig", "-Owrong")
 
     def test_standard_runner_is_from_selected_compiler_without_invoking_it(self) -> None:
-        with mock.patch("scripts.zig_protocol_lib.command.standard_runner_source", return_value="selected/compiler/test_runner.zig") as resolver:
+        with mock.patch("scripts.repo.zig_protocol_lib.command.standard_runner_source", return_value="selected/compiler/test_runner.zig") as resolver:
             command = test_command("focused.zig", "--test-runner", "policy.zig", zig="selected-zig", cpu_only=True)
         resolver.assert_called_once_with("selected-zig")
         self.assertIn("-Mblock_v5_standard_test_runner=selected/compiler/test_runner.zig", command)

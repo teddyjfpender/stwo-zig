@@ -3,9 +3,7 @@ from __future__ import annotations
 import struct
 import unittest
 
-from scripts import riscv_equivalence as equivalence
-
-
+from scripts.riscv import riscv_equivalence as equivalence
 def retirement(
     *,
     pc: int = 0x1000,

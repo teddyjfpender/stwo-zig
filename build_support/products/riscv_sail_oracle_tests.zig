@@ -44,7 +44,7 @@
 //! opcode-coverage, AIR-extract and semantic-eval suites (317 tests total),
 //! none of which this fix is about.
 //!
-//! Both tests spawn `scripts/riscv_sail_oracle.py`. Without the pinned Sail
+//! Both tests spawn `scripts/riscv/riscv_sail_oracle.py`. Without the pinned Sail
 //! workspace each spawn takes the visible-skip path in ~0.08 s (measured),
 //! so the step is affordable in the PR-blocking `test-riscv-cpu-product`
 //! lane, which is what makes a compile break in these tests a PR failure

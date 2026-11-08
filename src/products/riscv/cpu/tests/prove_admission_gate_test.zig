@@ -302,7 +302,7 @@ test "hosted block proving still serves the syscall-free guest it was correct fo
 
 test "the secure PCS profile has exactly one definition" {
     // The numbers upstream CSP publishes through `secure_pcs_config()`. The
-    // Python mirror in `scripts/riscv_csp_benchmark_lib/contract.py` parses this
+    // Python mirror in `scripts/riscv/riscv_csp_benchmark_lib/contract.py` parses this
     // same constant and refuses to validate a manifest when it disagrees, so a
     // benchmark cannot be reported from a profile that merely sounds secure.
     try std.testing.expectEqual(@as(u32, 26), prover.SECURE_PCS_CONFIG.pow_bits);

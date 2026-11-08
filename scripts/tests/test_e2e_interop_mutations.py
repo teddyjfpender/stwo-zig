@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from typing import Any
 
-from scripts.e2e_interop_lib.mutations import (
+from scripts.interop.e2e_interop_lib.mutations import (
     ACTIVE_MUTATIONS,
     M31_MODULUS,
     PLONK_LOGUP_ORACLE_MUTATIONS,

@@ -6,7 +6,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from scripts.check_source_conformance import (
+from scripts.repo.check_source_conformance import (
     BASELINE_TRACKS,
     BASELINE_VERSION,
     DEFAULT_BASELINE_TRACK,
@@ -19,10 +19,10 @@ from scripts.check_source_conformance import (
     scan,
     write_baseline,
 )
-from scripts.source_conformance_lib.policy import ACTIVE_FORMAL_EVIDENCE_ROOTS
-from scripts.source_conformance_lib import change_scope, comments, policy, report
-from scripts.source_conformance_lib.change_scope import ChangeScope
-from scripts.source_conformance_lib.model import is_headroom
+from scripts.repo.source_conformance_lib.policy import ACTIVE_FORMAL_EVIDENCE_ROOTS
+from scripts.repo.source_conformance_lib import change_scope, comments, policy, report
+from scripts.repo.source_conformance_lib.change_scope import ChangeScope
+from scripts.repo.source_conformance_lib.model import is_headroom
 
 
 class SourceConformanceTests(unittest.TestCase):
@@ -184,21 +184,21 @@ class SourceConformanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
             files = {
-                "scripts/active_command.py": "VALUE = 1\n",
-                "scripts/active_runner.py": "import active_command\n",
-                "scripts/sn_pie_worker.py": "VALUE = 2\n",
-                "scripts/consumer.py": "import sn_pie_worker\n",
-                "scripts/feature_lib/__init__.py": "from .model import VALUE\n",
-                "scripts/feature_lib/model.py": "from active_command import VALUE\n",
-                "scripts/native_proof_matrix_lib/model.py": "VALUE = 3\n",
-                "scripts/native_profile_capture_lib/evidence.py": (
+                "scripts/bench/active_command.py": "VALUE = 1\n",
+                "scripts/bench/active_runner.py": "import scripts.bench.active_command\n",
+                "scripts/cairo/sn_pie_worker.py": "VALUE = 2\n",
+                "scripts/bench/consumer.py": "import scripts.cairo.sn_pie_worker\n",
+                "scripts/bench/feature_lib/__init__.py": "from .model import VALUE\n",
+                "scripts/bench/feature_lib/model.py": "from scripts.bench.active_command import VALUE\n",
+                "scripts/native/native_proof_matrix_lib/model.py": "VALUE = 3\n",
+                "scripts/native/native_profile_capture_lib/evidence.py": (
                     "from native_proof_matrix_lib.model import VALUE\n"
                 ),
-                "scripts/metal_profile_report_lib/__init__.py": "VALUE = 4\n",
-                "scripts/native_profile_capture_lib/contract.py": (
+                "scripts/metal/metal_profile_report_lib/__init__.py": "VALUE = 4\n",
+                "scripts/native/native_profile_capture_lib/contract.py": (
                     "from metal_profile_report_lib import VALUE\n"
                 ),
-                "scripts/tests/test_consumer.py": "import active_command\n",
+                "scripts/tests/test_consumer.py": "import scripts.bench.active_command\n",
             }
             for relative, text in files.items():
                 path = repo / relative
@@ -207,33 +207,33 @@ class SourceConformanceTests(unittest.TestCase):
 
             keys = {finding.key for finding in scan(repo)}
             self.assertIn(
-                "python-dependency:scripts/consumer.py->scripts/sn_pie_worker.py",
+                "python-dependency:scripts/bench/consumer.py->scripts/cairo/sn_pie_worker.py",
                 keys,
             )
             self.assertIn(
-                "python-dependency:scripts/feature_lib/model.py->scripts/active_command.py",
+                "python-dependency:scripts/bench/feature_lib/model.py->scripts/bench/active_command.py",
                 keys,
             )
             self.assertNotIn(
-                "python-dependency:scripts/tests/test_consumer.py->scripts/active_command.py",
+                "python-dependency:scripts/tests/test_consumer.py->scripts/bench/active_command.py",
                 keys,
             )
             self.assertNotIn(
-                "python-dependency:scripts/active_runner.py->scripts/active_command.py",
+                "python-dependency:scripts/bench/active_runner.py->scripts/bench/active_command.py",
                 keys,
             )
             self.assertNotIn(
-                "python-dependency:scripts/feature_lib/__init__.py->scripts/feature_lib/model.py",
+                "python-dependency:scripts/bench/feature_lib/__init__.py->scripts/bench/feature_lib/model.py",
                 keys,
             )
             self.assertNotIn(
-                "python-dependency:scripts/native_profile_capture_lib/evidence.py"
-                "->scripts/native_proof_matrix_lib/model.py",
+                "python-dependency:scripts/native/native_profile_capture_lib/evidence.py"
+                "->scripts/native/native_proof_matrix_lib/model.py",
                 keys,
             )
             self.assertNotIn(
-                "python-dependency:scripts/native_profile_capture_lib/contract.py"
-                "->scripts/metal_profile_report_lib/__init__.py",
+                "python-dependency:scripts/native/native_profile_capture_lib/contract.py"
+                "->scripts/metal/metal_profile_report_lib/__init__.py",
                 keys,
             )
 
@@ -387,7 +387,7 @@ class SourceConformanceTests(unittest.TestCase):
     def test_thin_owner_caps_cover_active_performance_and_build_support_entrypoints(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            controller = repo / "scripts/benchmark_delta.py"
+            controller = repo / "scripts/bench/benchmark_delta.py"
             controller.parent.mkdir(parents=True)
             controller.write_text("def main():\n" + "    pass\n" * 300, encoding="utf-8")
             zig_root = repo / "src/products/stwo/bench/sample.zig"
@@ -404,7 +404,7 @@ class SourceConformanceTests(unittest.TestCase):
             support.write_text("\n" * 501, encoding="utf-8")
 
             keys = {finding.key for finding in scan(repo)}
-            self.assertIn("thin-owner:scripts/benchmark_delta.py", keys)
+            self.assertIn("thin-owner:scripts/bench/benchmark_delta.py", keys)
             self.assertIn("thin-owner:products/stwo/bench/sample.zig", keys)
             self.assertIn("thin-owner:products/native/tests/mod.zig", keys)
             self.assertIn("thin-owner:build_support/products.zig", keys)
@@ -463,7 +463,7 @@ class SourceConformanceTests(unittest.TestCase):
             owner = repo / "src/products/native/tests/mod.zig"
             owner.parent.mkdir(parents=True)
             owner.write_text("\n" * 270, encoding="utf-8")
-            evidence_root = repo / "scripts/benchmark_delta.py"
+            evidence_root = repo / "scripts/bench/benchmark_delta.py"
             evidence_root.parent.mkdir(parents=True)
             evidence_root.write_text("def main():\n" + "    pass\n" * 89, encoding="utf-8")
 
@@ -474,7 +474,7 @@ class SourceConformanceTests(unittest.TestCase):
             )
             self.assertIn(
                 "90 lines approaches the 100-line entrypoint ceiling (10 line(s) of headroom)",
-                measured["headroom:thin-owner:scripts/benchmark_delta.py"].message,
+                measured["headroom:thin-owner:scripts/bench/benchmark_delta.py"].message,
             )
             # A `src` notice is the only one whose display path (relative to `src`)
             # differs from what `git diff --name-only` prints, so it is the only
@@ -522,24 +522,24 @@ class SourceConformanceTests(unittest.TestCase):
     def test_one_measurement_reports_one_line_however_many_ceilings_apply(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            controller = repo / "scripts/example_lib/controller.py"
+            controller = repo / "scripts/bench/example_lib/controller.py"
             controller.parent.mkdir(parents=True)
             controller.write_text("pass\n" * 800, encoding="utf-8")
-            (repo / "scripts/example.py").write_text(
-                "from example_lib.controller import main\n",
+            (repo / "scripts/bench/example.py").write_text(
+                "from scripts.bench.example_lib.controller import main\n",
                 encoding="utf-8",
             )
             notices = [notice for notice in measure(repo) if is_headroom(notice)]
             self.assertEqual(
                 {
-                    "headroom:deep-controller:scripts/example_lib/controller.py",
-                    "headroom:file-size:scripts/example_lib/controller.py",
+                    "headroom:deep-controller:scripts/bench/example_lib/controller.py",
+                    "headroom:file-size:scripts/bench/example_lib/controller.py",
                 },
                 {notice.key for notice in notices},
                 "both ceilings must still be measured",
             )
             self.assertEqual(
-                ["scripts/example_lib/controller.py: 800 lines approaches "
+                ["scripts/bench/example_lib/controller.py: 800 lines approaches "
                  "the 850-line evidence controller soft ceiling (50 line(s) of headroom) "
                  "and the 850-line manual-source ceiling (50 line(s) of headroom)"],
                 [notice.message for notice in report.merge(notices)],
@@ -629,21 +629,21 @@ class SourceConformanceTests(unittest.TestCase):
 
     def test_formal_evidence_root_registry_is_explicit_and_checked_in(self) -> None:
         expected = {
-            "scripts/archive_native_matrix.py",
-            "scripts/benchmark_delta.py",
-            "scripts/benchmark_full.py",
-            "scripts/benchmark_smoke.py",
-            "scripts/architecture_host_gate.py",
-            "scripts/build_architecture_receipt.py",
-            "scripts/compare_optimization.py",
-            "scripts/e2e_interop.py",
-            "scripts/metal_core_aot_receipt.py",
-            "scripts/metal_profile_report.py",
-            "scripts/native_profile_capture.py",
-            "scripts/native_proof_matrix.py",
-            "scripts/profile_smoke.py",
-            "scripts/check_riscv_release_contract.py",
-            "scripts/riscv_release_gate.py",
+            "scripts/native/archive_native_matrix.py",
+            "scripts/bench/benchmark_delta.py",
+            "scripts/bench/benchmark_full.py",
+            "scripts/bench/benchmark_smoke.py",
+            "scripts/architecture/architecture_host_gate.py",
+            "scripts/architecture/build_architecture_receipt.py",
+            "scripts/bench/compare_optimization.py",
+            "scripts/interop/e2e_interop.py",
+            "scripts/metal/metal_core_aot_receipt.py",
+            "scripts/metal/metal_profile_report.py",
+            "scripts/native/native_profile_capture.py",
+            "scripts/native/native_proof_matrix.py",
+            "scripts/bench/profile_smoke.py",
+            "scripts/riscv/check_riscv_release_contract.py",
+            "scripts/riscv/riscv_release_gate.py",
         }
         self.assertEqual(expected, set(ACTIVE_FORMAL_EVIDENCE_ROOTS))
         root = Path(__file__).resolve().parents[2]
@@ -654,20 +654,20 @@ class SourceConformanceTests(unittest.TestCase):
     def test_deep_controller_cap_and_stable_facade_are_mechanical(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            controller = repo / "scripts/example_lib/controller.py"
+            controller = repo / "scripts/bench/example_lib/controller.py"
             controller.parent.mkdir(parents=True)
             controller.write_text("pass\n" * 851, encoding="utf-8")
 
             keys = {finding.key for finding in scan(repo)}
-            self.assertIn("deep-controller:scripts/example_lib/controller.py", keys)
+            self.assertIn("deep-controller:scripts/bench/example_lib/controller.py", keys)
 
             controller.write_text("pass\n" * 850, encoding="utf-8")
-            (repo / "scripts/example.py").write_text(
-                "from example_lib.controller import main\n",
+            (repo / "scripts/bench/example.py").write_text(
+                "from scripts.bench.example_lib.controller import main\n",
                 encoding="utf-8",
             )
             keys = {finding.key for finding in scan(repo)}
-            self.assertNotIn("deep-controller:scripts/example_lib/controller.py", keys)
+            self.assertNotIn("deep-controller:scripts/bench/example_lib/controller.py", keys)
 
     def test_baseline_round_trip_requires_explanations(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

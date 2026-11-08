@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts import ci_scope_plan
+from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import ROOT, catalog_fixture
 
 

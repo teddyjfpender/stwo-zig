@@ -2,14 +2,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.source_conformance_lib import typed_air_proposals
-from scripts.product_closure.graph import inspect_sources
-from scripts.product_closure.model import Manifest, NamedImport
+from scripts.repo.source_conformance_lib import typed_air_proposals
+from scripts.repo.product_closure.graph import inspect_sources
+from scripts.repo.product_closure.model import Manifest, NamedImport
 
 
 class TypedAirProposalIsolationTests(unittest.TestCase):
     def test_shared_polynomial_compiler_excludes_proposal_and_witness_authority(self) -> None:
-        from scripts.source_conformance_lib.typed_air_proposals import AUTHORING_FILES
+        from scripts.repo.source_conformance_lib.typed_air_proposals import AUTHORING_FILES
         root = Path(__file__).resolve().parents[2]
         owners = ("direct_polynomial_graph.zig", "direct_polynomial_program.zig",
                   "fixed_polynomial_program.zig", "typed_poseidon2_fixed_polynomials.zig")

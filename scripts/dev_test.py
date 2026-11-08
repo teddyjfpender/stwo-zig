@@ -18,8 +18,8 @@ OPTIMIZE_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts import ci_package_graph
-from scripts.ci_scope_plan import normalize_path, owns
+from scripts.repo import ci_package_graph
+from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (

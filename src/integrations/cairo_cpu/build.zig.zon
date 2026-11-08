@@ -2,6 +2,7 @@
     .fingerprint = 0x52bfcc8f97c75f64,
     .name = .stwo_cairo_cpu_integration,
     .version = "0.1.0",
+    .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{
         .stwo_core = .{ .path = "../../waist/core" },

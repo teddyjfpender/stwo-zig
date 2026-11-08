@@ -1,0 +1,4 @@
+[toolchain]
+# Pinned in /toolchain.json (rust.crates); CI installs the same channel.
+channel = "nightly-2025-07-14"
+profile = "minimal"

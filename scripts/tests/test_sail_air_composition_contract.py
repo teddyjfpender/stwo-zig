@@ -92,7 +92,7 @@ class SailAirCompositionContractTest(unittest.TestCase):
             "max\\_bridges}(0,2^{26}-1) &= 64",
             "current_access_clock - previous_clock - 1",
             "G = 2^{20}",
-            "scripts/riscv_state_chain_recurrence.py",
+            "scripts/riscv/riscv_state_chain_recurrence.py",
             "same-clock alias counterexample",
         )
         for marker in required:
@@ -139,7 +139,7 @@ class SailAirCompositionContractTest(unittest.TestCase):
 
     def test_poseidon_reproduction_uses_the_required_subcommand(self) -> None:
         self.assertIn(
-            "python3 -m scripts.riscv_poseidon_table_uniqueness check",
+            "python3 -m scripts.riscv.riscv_poseidon_table_uniqueness check",
             self.document,
         )
 

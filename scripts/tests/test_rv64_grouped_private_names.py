@@ -3,8 +3,8 @@ import sys
 import tempfile
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import rv64_cuda_partition_grouped as G
-import rv64_cuda_partition_instruction_slices as I
+from scripts.rv64 import rv64_cuda_partition_grouped as G
+from scripts.rv64 import rv64_cuda_partition_instruction_slices as I
 
 
 class PrivateNames(unittest.TestCase):

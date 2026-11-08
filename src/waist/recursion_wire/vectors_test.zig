@@ -2,7 +2,7 @@
 //!
 //! Every fixture is an upstream file copied verbatim into `vectors/circuit/`
 //! (provenance: `vectors/circuit/provenance.json`, checked by
-//! `scripts/check_upstream_pins.py`). The tests run from the repository root.
+//! `scripts/repo/check_upstream_pins.py`). The tests run from the repository root.
 //!
 //! Proof configs come from upstream data, not from this package: the
 //! per-component column counts from the oracle's `r3/components.json`

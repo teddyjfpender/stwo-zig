@@ -250,10 +250,10 @@
     },
     "evidence": {
       "complete_structural_coverage": [
-        "scripts/native_cuda_benchmark_lib/model.py"
+        "scripts/native/native_cuda_benchmark_lib/model.py"
       ],
       "sustained_headline_calibrated": [
-        "scripts/native_cuda_benchmark_lib/model.py"
+        "scripts/native/native_cuda_benchmark_lib/model.py"
       ],
       "locked_cuda_judge_host": [
         "conformance/evidence/cuda/system-architecture-sm89/receipt.json"

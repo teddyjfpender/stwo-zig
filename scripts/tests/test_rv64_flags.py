@@ -4,17 +4,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.source_conformance_lib import rv64_flags as F
-from scripts.check_source_conformance import main
+from scripts.repo.source_conformance_lib import rv64_flags as F
+from scripts.repo.check_source_conformance import main
 
 
 class Rv64FlagsTests(unittest.TestCase):
     def test_shipped_ci_enforces_declarations_and_strict_promotion(self):
         from scripts.ci import FAST_PLAN
-        self.assertTrue(any("scripts/check_source_conformance.py" in command for command in FAST_PLAN))
+        self.assertTrue(any("scripts/repo/check_source_conformance.py" in command for command in FAST_PLAN))
         root = Path(__file__).resolve().parents[2]
         strict = (root / "build_support/gates/release.zig").read_text().split("const strict =", 1)[1]
-        self.assertIn('"scripts/check_source_conformance.py", "--strict-rv64-flags"', strict)
+        self.assertIn('"scripts/repo/check_source_conformance.py", "--strict-rv64-flags"', strict)
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

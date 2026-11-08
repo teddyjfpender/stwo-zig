@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import cairo_four_pie_source_coverage_lib as MODULE
-from scripts.cairo_four_pie_source_coverage_lib import report as REPORT
-from scripts.cairo_four_pie_source_coverage_lib import source as SOURCE
+from scripts.cairo import cairo_four_pie_source_coverage_lib as MODULE
+from scripts.cairo.cairo_four_pie_source_coverage_lib import report as REPORT
+from scripts.cairo.cairo_four_pie_source_coverage_lib import source as SOURCE
 
 ROOT = Path(__file__).resolve().parents[2]
 

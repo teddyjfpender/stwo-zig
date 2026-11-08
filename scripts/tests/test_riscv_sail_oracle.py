@@ -9,10 +9,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_equivalence as equivalence
-from scripts import riscv_sail_oracle as oracle
-
-
+from scripts.riscv import riscv_equivalence as equivalence
+from scripts.riscv import riscv_sail_oracle as oracle
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -461,7 +459,7 @@ class VerdictContractTests(unittest.TestCase):
     pinned_workspace_binary().is_file(),
     f"pinned Sail binary absent at {pinned_workspace_binary()}; "
     "Sail agreement was NOT checked live "
-    "(python3 scripts/riscv_formal_tools.py prepare "
+    "(python3 scripts/riscv/riscv_formal_tools.py prepare "
     f"--workspace {oracle.DEFAULT_WORKSPACE})",
 )
 class LivePinnedSailTests(unittest.TestCase):

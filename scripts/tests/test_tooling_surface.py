@@ -5,8 +5,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from scripts import ci_scope_plan
-
+from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import catalog_fixture
 
 

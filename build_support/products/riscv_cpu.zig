@@ -516,14 +516,14 @@ pub fn addProduct(context: Context) void {
     riscv_refinement.addPilot(context.b, context.target, context.optimize, context.protocol);
     const refinement_contract = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/riscv_opcode_coverage.py",
+        "scripts/riscv/riscv_opcode_coverage.py",
         "check",
     });
     test_step.dependOn(&refinement_contract.step);
 
     const csp_benchmark = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/riscv_csp_benchmark.py",
+        "scripts/riscv/riscv_csp_benchmark.py",
     });
     csp_benchmark.step.dependOn(&install_host.step);
     csp_benchmark.step.dependOn(&install_host_trace.step);
@@ -541,7 +541,7 @@ pub fn addProduct(context: Context) void {
     test_step.dependOn(&closure_check.step);
     const marker_check = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_riscv_cpu_product.py",
+        "scripts/riscv/check_riscv_cpu_product.py",
     });
     test_step.dependOn(&marker_check.step);
 }

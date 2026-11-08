@@ -4,8 +4,8 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from rv64_m7_gpu_seconds_lib.census import request_census
-from rv64_m7_gpu_seconds_lib.ranges import native_ranges
+from scripts.rv64.rv64_m7_gpu_seconds_lib.census import request_census
+from scripts.rv64.rv64_m7_gpu_seconds_lib.ranges import native_ranges
 
 
 class ActivityTests(unittest.TestCase):

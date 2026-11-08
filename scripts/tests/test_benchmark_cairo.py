@@ -8,10 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import benchmark_cairo as benchmark
-from scripts import benchmark_cairo_suite as suite
-
-
+from scripts.cairo import benchmark_cairo as benchmark
+from scripts.cairo import benchmark_cairo_suite as suite
 class BenchmarkEvidenceTests(unittest.TestCase):
     def test_physical_memory_is_separate_from_rss_and_requires_complete_evidence(self):
         def trial(peak):

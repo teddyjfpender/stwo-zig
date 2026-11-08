@@ -243,7 +243,7 @@ zig build circuit-parity-r6-fold --build-file src/frontends/circuit/build.zig -D
 zig build circuit-air-projection-check --build-file src/frontends/circuit/build.zig -j2
 zig build circuit-parity-r1 --build-file src/frontends/circuit/build.zig
 zig build circuit-parity-r2 --build-file src/frontends/circuit/build.zig
-python3 scripts/lint_circuit_frontend.py
+python3 scripts/interop/lint_circuit_frontend.py
 ```
 
 Tests that read `vectors/circuit` run from the repository root.
@@ -332,14 +332,14 @@ Tests that read `vectors/circuit` run from the repository root.
 - Add or update a parity test against upstream output or a committed fixture.
 - Keep new shared rules in one place and import them.
 - Regenerate fixtures only with
-  `python3 scripts/generate_circuit_oracle_vectors.py`.
+  `python3 scripts/interop/generate_circuit_oracle_vectors.py`.
 - A new hand-written upstream evaluator needs a `manual/` port and an entry in
   `cairo_components.zig` or `circuit_components.zig`.
 - Keep each file's builder calls in upstream order; `eval!` expressions expand
   left subtree, right subtree, operation.
 - Run the focused CI commands above, the rungs your change touches
   (`circuit-parity-r3` to `circuit-parity-r6-fold`) and
-  `python3 scripts/lint_circuit_frontend.py`.
+  `python3 scripts/interop/lint_circuit_frontend.py`.
 
 ## Related documentation
 

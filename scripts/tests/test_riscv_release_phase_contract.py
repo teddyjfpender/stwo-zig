@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.riscv_release_gate_lib.contract import phase_errors
+from scripts.riscv.riscv_release_gate_lib.contract import phase_errors
 
 
 class PhaseContractTests(unittest.TestCase):

@@ -9,7 +9,7 @@ pub const Authority = struct {
 
 pub fn addAuthority(b: *std.Build) Authority {
     const command = b.addSystemCommand(&.{"python3"});
-    command.addFileArg(b.path("scripts/cuda_external_authority.py"));
+    command.addFileArg(b.path("scripts/cuda/cuda_external_authority.py"));
     command.addArg("materialize");
     command.addArg("--output");
     const directory = command.addOutputDirectoryArg("cuda-host-authority");
@@ -26,8 +26,8 @@ pub fn addAdapter(
     authority: std.Build.LazyPath,
 ) *std.Build.Step.Run {
     const command = b.addSystemCommand(&.{"python3"});
-    command.addFileArg(b.path("scripts/cuda_adapter_external.py"));
-    command.addFileInput(b.path("scripts/cuda_external_authority.py"));
+    command.addFileArg(b.path("scripts/cuda/cuda_adapter_external.py"));
+    command.addFileInput(b.path("scripts/cuda/cuda_external_authority.py"));
     command.addArg(subcommand);
     command.addArg("--authority-root");
     command.addDirectoryArg(authority);

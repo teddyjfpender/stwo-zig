@@ -4,7 +4,7 @@
 //! profile" said 26, and numbers were published from a profile nobody had
 //! reviewed. The repair was to stop *restating* the profile: the adapter's
 //! `.secure` arm is `prover.SECURE_PCS_CONFIG` itself, the single source of truth
-//! that `scripts/riscv_csp_benchmark_lib/contract.py` mirrors.
+//! that `scripts/riscv/riscv_csp_benchmark_lib/contract.py` mirrors.
 //!
 //! Two obligations, and only one of them is about numbers.
 //!

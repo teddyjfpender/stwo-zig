@@ -5,9 +5,9 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import rv64_gate as gate
-import rv64_m5_negative_corpus as corpus
-import rv64_m4_resident as resident
+from scripts.rv64 import rv64_gate as gate
+from scripts.rv64 import rv64_m5_negative_corpus as corpus
+from scripts.rv64 import rv64_m4_resident as resident
 from types import SimpleNamespace
 
 

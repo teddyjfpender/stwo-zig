@@ -8,7 +8,7 @@
 //! `@embedFile("../../../../frontends/riscv/air/opcode_memory.zig")`, because no gate
 //! compiled a `test` written inside the frontend module (issue #152 item 11).
 //! The reasoning was sound -- a pin that does not run is not a pin -- but the
-//! embed crossed a package boundary and `scripts/check_package_workspace.py`
+//! embed crossed a package boundary and `scripts/repo/check_package_workspace.py`
 //! rejected it. The frontend's tests now run under `test-riscv-cpu-product`, so
 //! those pins went home and this file kept only what it is uniquely placed to
 //! check.

@@ -36,6 +36,7 @@ published); it excludes fetch and submit. `request_s` is the client latency
 through the spool (adds queueing). Labels: [M] measured, [D] derived from
 measured values, [E] estimate.
 """
+
 import argparse
 import fcntl
 import gzip
@@ -51,10 +52,10 @@ import time
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path.insert(0, str(HERE))
-import rv64_m7_integration_stack as stack  # noqa: E402
-from rv64_validation import frozen_parity, validate_assets, validate_receivers, validate_library_environment, FROZEN_D2_PACKAGE as GOLDEN  # noqa: E402
-from rv64_m8_bench15_lib.metrics import (
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.rv64 import rv64_m7_integration_stack as stack  # noqa: E402
+from scripts.rv64.rv64_validation import frozen_parity, validate_assets, validate_receivers, validate_library_environment, FROZEN_D2_PACKAGE as GOLDEN  # noqa: E402
+from scripts.rv64.rv64_m8_bench15_lib.metrics import (
     fields,
     split_requests,
     spread,
@@ -146,7 +147,6 @@ def extra_environment(items):
 
 
 # ----------------------------------------------------------------------------- parsing (pure)
-
 
 
 def aggregate(blocks, arms, rows):
@@ -399,11 +399,11 @@ def check(args):
         entry['m3_parity_receipt'] = item(M3 / f'runs/integrate/{block}-2gpu-scale/receipt.json')
         problems = []
         if not entry['request']['exists'] or not entry['input'].get('sha256_ok'):
-            problems.append('input/request: python3 scripts/rv64_m3_pod.py inputs (copies the read-only full15 originals)')
+            problems.append('input/request: python3 scripts/rv64/rv64_m3_pod.py inputs (copies the read-only full15 originals)')
         if not entry['elf_sha256_ok']:
-            problems.append('guest.elf: python3 scripts/rv64_m3_pod.py inputs')
+            problems.append('guest.elf: python3 scripts/rv64/rv64_m3_pod.py inputs')
         if not entry['plan_template_job']:
-            problems.append('plan-template job: python3 scripts/rv64_m3_pod.py inputs')
+            problems.append('plan-template job: python3 scripts/rv64/rv64_m3_pod.py inputs')
         if isinstance(entry['golden'], dict) and not entry['golden']['exists']:
             problems.append(f'golden: restore the maintained frozen D2 fixture at {GOLDEN}')
         if not entry['m3_parity_receipt']['exists']:
@@ -528,7 +528,7 @@ class Bench:
 
     def receive(self, block, run):
         log = self.out / 'logs' / f'{Path(run).name}-receiver.log'
-        argv = [sys.executable, str(self.root / 'scripts/rv64_m4_resident.py'), 'receive', '--run', run,
+        argv = [sys.executable, str(self.root / 'scripts/rv64/rv64_m4_resident.py'), 'receive', '--run', run,
                 '--which', 'all', '--receiver-workers', str(self.args.receiver_workers)]
         with log.open('w') as handle:
             code = subprocess.run(argv, cwd=self.root, env=self.environment, stdout=handle, stderr=subprocess.STDOUT).returncode
@@ -545,7 +545,7 @@ class Bench:
     def gpu_seconds(self, entry, reference_run):
         run = Path(entry['run'])
         log = self.out / 'logs' / f'{run.name}-gpu-seconds.log'
-        argv = [sys.executable, str(self.root / 'scripts/rv64_m7_gpu_seconds.py'), str(run), '--accepted-run', reference_run]
+        argv = [sys.executable, str(self.root / 'scripts/rv64/rv64_m7_gpu_seconds.py'), str(run), '--accepted-run', reference_run]
         with log.open('w') as handle:
             code = subprocess.run(argv, cwd=self.root, env=self.environment, stdout=handle, stderr=subprocess.STDOUT).returncode
         receipt = json.loads((run / 'receipt.json').read_text())

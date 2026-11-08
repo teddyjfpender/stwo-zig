@@ -13,7 +13,7 @@ the pinned Sail 0.20.2 toolchain actually runs against this repository. The
 original rollout could run only on one developer machine. That made the
 Sail-present gate
 (`zig build riscv-refinement-pilot` with live evidence, and
-`scripts/riscv_refinement.py receipt`) a laptop prerequisite: unverifiable by
+`scripts/riscv/riscv_refinement.py receipt`) a laptop prerequisite: unverifiable by
 reviewers, unrepeatable by CI, and hostage to one machine's opam switch.
 
 The supported path is now hosted CI:
@@ -39,10 +39,10 @@ reproducible infrastructure".
 | Command | Claim it upgrades |
 | --- | --- |
 | hash-pinned install of `sail-Linux-x86_64.tar.gz` from release `0.20.2-binary` (sha256 `26b59bca...`) | "Sail compiler 0.20.2 (pinned)" stops being a version string in `conformance/riscv/rv32im-sail-profile.json` and becomes an executed binary with a pinned digest. Both refinement scripts reject any other version. |
-| `python3 scripts/riscv_formal_tools.py prepare --workspace <dir> --sail-compiler <sail>` | The pinned `sail-riscv` revision `8c7f2da5` (tag `2026-07-20-8c7f2da`) actually builds with that compiler; the simulator's `--build-info` reports the pinned model tag and compiler; the RVFI transport patch is the only working-tree change; Spike and riscv-arch-test are materialized at their pinned revisions. The verified provisioning receipt is uploaded with the run. |
-| `python3 scripts/riscv_refinement.py prepare-sail --sail-riscv-dir <dir>/source/sail-riscv --sail-bin <sail>` | The merged exact `rv32im-zkvm-v1` configuration passes the pinned simulator's `--validate-config` and reports ISA string `rv32im`, and the Sail **Lean theorem backend is regenerated from that exact configuration** by the pinned compiler -- in CI, not on somebody's laptop. |
-| `zig build riscv-refinement-pilot` (with `STWO_SAIL_RISCV_DIR`/`SAIL` set) | The digest pins in `scripts/riscv_refinement_lib/sail.py` (`GENERATED_DEFINITION_HASHES`, `SOURCE_SLICE_HASHES`) and the committed generated artifacts are checked against the **freshly generated** backend, not re-asserted from committed hashes; plus the full pilot gate: fresh symbolic AIR export, byte-identical artifacts, coverage, negative controls, Lean build, proof-escape scan, axiom audit. |
-| `python3 scripts/riscv_refinement.py receipt --sail-riscv-dir ... --sail-bin ...` | A release receipt signed with **live** Sail evidence (`semantic_toolchain` binds the compiler and simulator binary sha256s) can be minted on hosted CI. The receipt command refuses `--reuse-committed-sail-evidence` and `--no-export-air`, so a green receipt step is by construction a live-toolchain run. |
+| `python3 scripts/riscv/riscv_formal_tools.py prepare --workspace <dir> --sail-compiler <sail>` | The pinned `sail-riscv` revision `8c7f2da5` (tag `2026-07-20-8c7f2da`) actually builds with that compiler; the simulator's `--build-info` reports the pinned model tag and compiler; the RVFI transport patch is the only working-tree change; Spike and riscv-arch-test are materialized at their pinned revisions. The verified provisioning receipt is uploaded with the run. |
+| `python3 scripts/riscv/riscv_refinement.py prepare-sail --sail-riscv-dir <dir>/source/sail-riscv --sail-bin <sail>` | The merged exact `rv32im-zkvm-v1` configuration passes the pinned simulator's `--validate-config` and reports ISA string `rv32im`, and the Sail **Lean theorem backend is regenerated from that exact configuration** by the pinned compiler -- in CI, not on somebody's laptop. |
+| `zig build riscv-refinement-pilot` (with `STWO_SAIL_RISCV_DIR`/`SAIL` set) | The digest pins in `scripts/riscv/riscv_refinement_lib/sail.py` (`GENERATED_DEFINITION_HASHES`, `SOURCE_SLICE_HASHES`) and the committed generated artifacts are checked against the **freshly generated** backend, not re-asserted from committed hashes; plus the full pilot gate: fresh symbolic AIR export, byte-identical artifacts, coverage, negative controls, Lean build, proof-escape scan, axiom audit. |
+| `python3 scripts/riscv/riscv_refinement.py receipt --sail-riscv-dir ... --sail-bin ...` | A release receipt signed with **live** Sail evidence (`semantic_toolchain` binds the compiler and simulator binary sha256s) can be minted on hosted CI. The receipt command refuses `--reuse-committed-sail-evidence` and `--no-export-air`, so a green receipt step is by construction a live-toolchain run. |
 
 ## 3. Historical effect of the original provisioning rollout
 
@@ -121,7 +121,7 @@ upgrades carried:
   byte agrees. That is this workflow's first-run RED.
 - Symmetrically, once live-grade artifacts are committed, every
   carried-evidence run -- `--reuse-committed-sail-evidence`, which is what
-  `scripts/riscv_team_b_refresh.py` passes and what every no-Sail machine
+  `scripts/riscv/riscv_team_b_refresh.py` passes and what every no-Sail machine
   must use -- fails the same byte check in the other direction.
 - `verify-receipt` has the same defect at a third site: it compares the
   committed manifest's `sail` block against `sail.provenance(<this run's
@@ -137,12 +137,12 @@ So the committed tree can be green for exactly one of the two evidence modes
 at a time, and each mode's regeneration step revokes the other's green. The
 durable fix -- excluding the grade marker from byte identity while keeping it
 visible in the artifact -- is specified precisely in section 7. It belongs in
-`scripts/riscv_refinement_lib/`, which this document's owners do not edit.
+`scripts/riscv/riscv_refinement_lib/`, which this document's owners do not edit.
 
 Until that fix lands, the interim procedure is unchanged:
 
 ```sh
-python3 scripts/riscv_refinement.py generate \
+python3 scripts/riscv/riscv_refinement.py generate \
   --sail-riscv-dir <workspace>/source/sail-riscv --sail-bin <sail>
 # commit the regenerated artifacts, then re-run the workflow; its receipt
 # step re-mints formal/riscv-refinement/refinement-receipt.json from live
@@ -180,10 +180,10 @@ sail --version                                  # must report: Sail 0.20.2
 Then the same commands the workflow runs:
 
 ```sh
-python3 scripts/riscv_formal_tools.py prepare \
+python3 scripts/riscv/riscv_formal_tools.py prepare \
   --workspace /tmp/stwo-riscv-formal \
   --sail-compiler "$(opam var bin)/sail"
-python3 scripts/riscv_refinement.py prepare-sail \
+python3 scripts/riscv/riscv_refinement.py prepare-sail \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv \
   --sail-bin "$(opam var bin)/sail"
 STWO_SAIL_RISCV_DIR=/tmp/stwo-riscv-formal/source/sail-riscv \
@@ -217,8 +217,8 @@ that counts is the hosted workflow's.
 ## 7. Specified fix: grade-blind manifest identity
 
 This section is the precise change list for the owners of
-`scripts/riscv_refinement_lib/` (`render.py`, plus one site in
-`scripts/riscv_refinement.py`). It resolves the section 4 flaw. Target
+`scripts/riscv/riscv_refinement_lib/` (`render.py`, plus one site in
+`scripts/riscv/riscv_refinement.py`). It resolves the section 4 flaw. Target
 invariant: **two rendered manifests whose only difference is
 `sail.evidence_source` have equal `canonical_digest` and verify against each
 other's bytes; any other byte difference stays RED.** The grade stays in the

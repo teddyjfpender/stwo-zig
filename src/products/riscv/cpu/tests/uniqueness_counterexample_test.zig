@@ -1,6 +1,6 @@
 //! Replays the uniqueness board's `sat` counterexamples against the AIR itself.
 //!
-//! A `sat` from `scripts/air_uniqueness_board.py` is a claim about a *model* of
+//! A `sat` from `scripts/riscv/air_uniqueness_board.py` is a claim about a *model* of
 //! the AIR: two witness assignments satisfying the modelled constraints and
 //! table memberships that agree on the architectural inputs and disagree on an
 //! output. Before such a pair is treated as a real under-constraint it must be

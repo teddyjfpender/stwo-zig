@@ -11,7 +11,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from scripts import ci_scope_plan, ci_scope_push, ci_scope_run
+from scripts.repo import ci_scope_plan, ci_scope_push, ci_scope_run
 from scripts.tests.focused_ci_fixtures import catalog_fixture, product
 
 
@@ -43,7 +43,7 @@ class PlannerContractTests(unittest.TestCase):
         expected = {"static", "script_contracts", "build_graph"}
         for path in (
             "conformance/ci-touchpoints-v1.json",
-            "scripts/ci_scope_plan.py",
+            "scripts/repo/ci_scope_plan.py",
         ):
             with self.subTest(path=path):
                 self.assertEqual(expected, self.lanes_for(path))
@@ -205,7 +205,7 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("stwo-zig-riscv-cpu", commands[0])
         proof_commands = [
             command for command in commands
-            if "scripts/riscv_pr_proof_smoke.py" in command
+            if "scripts/riscv/riscv_pr_proof_smoke.py" in command
         ]
         self.assertEqual(1, len(proof_commands))
         self.assertIn("--artifact-dir", proof_commands[0])
@@ -224,7 +224,7 @@ class PlannerContractTests(unittest.TestCase):
                          "build_support/gates/riscv.zig"):
             with self.subTest(relative=relative):
                 source = (ROOT / relative).read_text(encoding="utf-8")
-                self.assertIn("scripts/riscv_opcode_coverage.py", source)
+                self.assertIn("scripts/riscv/riscv_opcode_coverage.py", source)
                 self.assertIn('"check"', source)
 
     def test_leaf_native_cpu_change_does_not_select_unrelated_products(self) -> None:
@@ -256,11 +256,11 @@ class PlannerContractTests(unittest.TestCase):
         command = "\n".join(device["commands"][0])
         self.assertIn("STWO_CUDA_NVCC", command)
         self.assertIn("zig build stwo-native-cuda", command)
-        self.assertIn("scripts/cuda_device_smoke.py", command)
+        self.assertIn("scripts/cuda/cuda_device_smoke.py", command)
         self.assertIn("cuda_device_smoke_receipt.json", command)
         self.assertIn('len(receipt["tests"]) == 12', command)
         self.assertIn("zig build stwo-native-cpu", command)
-        self.assertIn("scripts/cuda_proof_parity_gate.py", command)
+        self.assertIn("scripts/cuda/cuda_proof_parity_gate.py", command)
         self.assertIn("--rust-verifier-sha256", command)
         self.assertIn("--repeat 3", command)
         self.assertIn("--air poseidon", command)

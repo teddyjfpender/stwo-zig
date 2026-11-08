@@ -199,7 +199,7 @@ pub fn addProduct(context: Context) void {
     test_step.dependOn(&closure_check.step);
     const marker_check = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_native_cpu_product.py",
+        "scripts/native/check_native_cpu_product.py",
     });
     test_step.dependOn(&marker_check.step);
 }

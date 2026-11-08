@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.native_cuda_diagnostic_lib import (  # noqa: E402
+from scripts.native.native_cuda_diagnostic_lib import (  # noqa: E402
     DEFAULT_SHAPES,
     DiagnosticError,
     Settings,

@@ -7,7 +7,7 @@
 //!     opcode reached the prover" -- a witness name for an admission defect.
 //!   - `LogupSumNonZero`, raised ~1.2 s into proving, with no indication of
 //!     *which* relation was unbalanced, while `riscv-trace-dump --relation-sums`
-//!     and `scripts/air_satisfaction.py` sat installed beside the binary that
+//!     and `scripts/riscv/air_satisfaction.py` sat installed beside the binary that
 //!     produced it.
 //!
 //! ## Why this file lives here now
@@ -17,7 +17,7 @@
 //! compiled a `test` written inside this package (issue #152 item 11). That
 //! reasoning was right -- a pin that does not run is not a pin -- but the
 //! workaround crossed a package boundary, which
-//! `scripts/check_package_workspace.py` correctly rejected.
+//! `scripts/repo/check_package_workspace.py` correctly rejected.
 //!
 //! With the package's tests now compiled by `test-riscv-cpu-product` and by the
 //! `riscv_frontend` lane, the pins that are about *this package's* sources come

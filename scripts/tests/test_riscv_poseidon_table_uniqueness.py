@@ -11,8 +11,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_poseidon_table_uniqueness as checker
-from scripts.air_satisfaction_lib import field as field_transcription
+from scripts.riscv import riscv_poseidon_table_uniqueness as checker
+from scripts.riscv.air_satisfaction_lib import field as field_transcription
 
 
 ROOT = Path(__file__).resolve().parents[2]

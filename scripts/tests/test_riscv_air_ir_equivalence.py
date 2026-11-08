@@ -9,9 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_air_ir_equivalence as equivalence
-
-
+from scripts.riscv import riscv_air_ir_equivalence as equivalence
 def _air(family: str = "div") -> dict:
     return {
         "family": family,

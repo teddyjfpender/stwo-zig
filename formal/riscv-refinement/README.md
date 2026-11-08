@@ -94,9 +94,9 @@ whole frontend trace or an accepted cryptographic proof is sound.
   certificates and the 46-opcode public theorem surface.
 - `checkpoints/issue-136/` — historical, non-gating continuation snapshots;
   checkpoint files never contribute to the current proof count.
-- `scripts/riscv_refinement.py` — primary generation, verification, and
+- `scripts/riscv/riscv_refinement.py` — primary generation, verification, and
   receipt entry point.
-- `scripts/riscv_refinement_publication.py` — exact FV-1/FV-2 publication
+- `scripts/riscv/riscv_refinement_publication.py` — exact FV-1/FV-2 publication
   evidence validator.
 
 Historical work-allocation documents and compatibility scripts are not
@@ -108,17 +108,17 @@ must expose one neutral 46-opcode inventory.
 Select the pinned tools and prepare the Sail workspace:
 
 ```sh
-python3 scripts/riscv_formal_tools.py prepare \
+python3 scripts/riscv/riscv_formal_tools.py prepare \
   --workspace /tmp/stwo-riscv-formal
 
-python3 scripts/riscv_refinement.py prepare-sail \
+python3 scripts/riscv/riscv_refinement.py prepare-sail \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 ```
 
 Generate the exact production and Sail inputs with live Sail evidence:
 
 ```sh
-python3 scripts/riscv_refinement.py generate \
+python3 scripts/riscv/riscv_refinement.py generate \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 ```
 
@@ -158,9 +158,9 @@ After committing every input and generated artifact, create and replay the
 receipt:
 
 ```sh
-python3 scripts/riscv_refinement.py receipt \
+python3 scripts/riscv/riscv_refinement.py receipt \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
-python3 scripts/riscv_refinement.py verify-receipt \
+python3 scripts/riscv/riscv_refinement.py verify-receipt \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 ```
 
@@ -191,7 +191,7 @@ generated proof artifact. It permits only structural node renumbering: the
 normalizer must recover the exact reviewed unsigned AIR object, including its
 ordered constraints, lookups, tuples, projections, columns, and fixed tables,
 before current source identity is attached. Check it independently with
-`scripts/riscv_air_program_layout.py check` against the fresh
+`scripts/riscv/riscv_air_program_layout.py check` against the fresh
 `zig-out/refinement-air-ir-v2` export.
 
 A semantic source change must flow through regeneration and invalidate the

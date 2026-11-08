@@ -16,7 +16,7 @@ pub fn addGates(b: *std.Build, prove_checkpoints: *std.Build.Step) void {
         "Build freestanding verifier profile shim (wasm32-freestanding)",
     ).dependOn(&compile.step);
 
-    const behavior = b.addSystemCommand(&.{ "python3", "scripts/std_shims_behavior.py" });
+    const behavior = b.addSystemCommand(&.{ "python3", "scripts/interop/std_shims_behavior.py" });
     behavior.step.dependOn(prove_checkpoints);
     b.step(
         "std-shims-behavior",
@@ -24,7 +24,7 @@ pub fn addGates(b: *std.Build, prove_checkpoints: *std.Build.Step) void {
     ).dependOn(&behavior.step);
 
     const evidence = b.addSystemCommand(&.{
-        "python3", "scripts/release_evidence.py", "--gate-mode", "strict",
+        "python3", "scripts/release/release_evidence.py", "--gate-mode", "strict",
     });
     b.step(
         "release-evidence",

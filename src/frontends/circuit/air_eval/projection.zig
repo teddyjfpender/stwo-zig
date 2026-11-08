@@ -3,7 +3,7 @@
 //!
 //! The format is written by `tools/stwo-circuit-oracle-rs/src/project_air.rs`
 //! (its module doc is the grammar) and independently decoded by
-//! `scripts/upstream_pins_lib/circuit_recursion.py`; this reader follows the
+//! `scripts/repo/upstream_pins_lib/circuit_recursion.py`; this reader follows the
 //! Python `_Reader` step for step. Every function record is authenticated by
 //! the SHA-256 of its canonical form (format version 2: the record with every
 //! string written inline as `u32:len utf8` instead of as a string-table

@@ -140,6 +140,9 @@ docs                           architecture, protocols, performance claims, oper
 - `src/products/<line>/<target>/`: user-facing CLIs, product facades, product tools and benchmarks.
 - `scripts/`: orchestration and report tooling. Scripts must call stable program boundaries rather
   than duplicate proof semantics.
+  Only the entry points (`dev_test.py`, `ci.py`, `rv64_gate.sh`, `rv64_m8_bench15.py`) sit at the
+  top; everything else lives in a `scripts/<area>/` package (see `scripts/README.md`).
+  The RV64 pod-image recipe additionally calls `scripts/rv64/rv64_m8_native_relink.py`.
 - `tools/`: independently buildable adapters and developer utilities.
 - `vectors/`: committed conformance inputs, outputs, and machine-readable evidence.
 - `conformance/`: machine-read pins, parity ledger, and the source baseline. Prose design history lives in the sibling `stwo-zig-og-docs` archive.
@@ -1128,11 +1131,11 @@ production proof smoke:
 
 ```bash
 zig build test-riscv-cpu-product stwo-zig-riscv-cpu -Doptimize=ReleaseFast -j2
-python3 scripts/riscv_pr_proof_smoke.py \
+python3 scripts/riscv/riscv_pr_proof_smoke.py \
   --cli zig-out/bin/stwo-zig-riscv-cpu \
   --artifact-dir zig-out/riscv-pr-proof-smoke \
   --report-out zig-out/riscv-pr-proof-smoke.json
-python3 scripts/riscv_trace_vectors.py
+python3 scripts/riscv/riscv_trace_vectors.py
 ```
 
 This gate must produce and independently verify the branch, memory,
@@ -1144,7 +1147,7 @@ execute → prove → independent-verify audit, remains mandatory in the exhaust
 release gate. Changes that can alter what the committed Sail attestation means
 additionally trigger the blocking hosted live differential defined in
 [`conformance/riscv-sail-differential-gate.md`](conformance/riscv-sail-differential-gate.md);
-run it locally with `python3 scripts/riscv_sail_gate.py run`.
+run it locally with `python3 scripts/riscv/riscv_sail_gate.py run`.
 
 For Metal work on a supported Mac:
 
@@ -1324,7 +1327,7 @@ git config --local user.email "<id>+<login>@users.noreply.github.com"
 Use the repository entrypoints rather than reconstructing CI commands locally:
 
 ```sh
-python3 scripts/install_hooks.py  # once per checkout
+python3 scripts/repo/install_hooks.py  # once per checkout
 python3 scripts/dev_test.py       # narrowest package-owned tests for worktree changes
 python3 scripts/dev_test.py --check path/to/file.zig  # incremental type-check, no codegen
 python3 scripts/dev_test.py --watch path/to/file.zig  # persistent edit/save diagnostics
@@ -1355,8 +1358,8 @@ command entering the fast plan fails `scripts/tests/test_ci.py`. Only after fast
 passes is the standard gate, including the complete script-contract suite, worth
 its minutes.
 
-For the RISC-V lane, `scripts/riscv_formal_tools.py`,
-`scripts/riscv_trace_vectors.py`, and `scripts/riscv_arch_tests.py` own formal
+For the RISC-V lane, `scripts/riscv/riscv_formal_tools.py`,
+`scripts/riscv/riscv_trace_vectors.py`, and `scripts/riscv/riscv_arch_tests.py` own formal
 correctness evidence. They fail closed on the exact Sail compiler/model, Spike,
 and architectural-test revisions.
 The retired [`riscv_stark_v_benchmark.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/riscv_stark_v_benchmark.py) (archived)

@@ -123,7 +123,7 @@ The checked-in source populations have different migration rules:
 
 The earlier `vendor/upstream` and `vendor/host_authority` trees contained no
 unique repository-owned source. Both full closure identities remain checked,
-and `scripts/cuda_external_authority.py` reproduced them from the immutable
+and `scripts/cuda/cuda_external_authority.py` reproduced them from the immutable
 upstream revision before the tracked workspace was removed.
 
 ## Release surface

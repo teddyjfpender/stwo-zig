@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.air_satisfaction_lib import infrastructure, logup, poseidon2
-from scripts.air_satisfaction_lib.dump import Component, Relation
-from scripts.air_satisfaction_lib.field import P, QM31
+from scripts.riscv.air_satisfaction_lib import infrastructure, logup, poseidon2
+from scripts.riscv.air_satisfaction_lib.dump import Component, Relation
+from scripts.riscv.air_satisfaction_lib.field import P, QM31
 
 
 def dense_component(

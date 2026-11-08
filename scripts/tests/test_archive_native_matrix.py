@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.archive_native_matrix import ArchiveError, build_manifest, publish_bundle
+from scripts.native.archive_native_matrix import ArchiveError, build_manifest, publish_bundle
 
 
 def digest(value: bytes) -> str:

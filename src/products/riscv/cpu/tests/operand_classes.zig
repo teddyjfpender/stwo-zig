@@ -5,7 +5,7 @@
 //! boundaries, carry chains, zero divisors, shift decomposition edges,
 //! alignment lanes, x0 patterns, backward control flow -- each as a
 //! self-contained instruction body plus the architectural result the
-//! pinned Sail model produced for it. `scripts/riscv_operand_classes.py`
+//! pinned Sail model produced for it. `scripts/riscv/riscv_operand_classes.py`
 //! documents the derivation, generates the data, and `check`s committed
 //! data against regeneration; nothing here re-derives semantics.
 //!

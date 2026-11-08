@@ -1,8 +1,8 @@
 """The retired opcode generator is an oracle, never a production AIR route."""
 from pathlib import Path
 import unittest
-from scripts.product_closure.graph import inspect_sources, literal_imports
-from scripts.product_closure.model import Manifest, NamedImport
+from scripts.repo.product_closure.graph import inspect_sources, literal_imports
+from scripts.repo.product_closure.model import Manifest, NamedImport
 
 ROOT = Path(__file__).resolve().parents[2]
 

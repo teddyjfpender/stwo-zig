@@ -8,9 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import prove_checkpoints
-
-
+from scripts.interop import prove_checkpoints
 def artifact_for(proof_wire: dict[str, object]) -> dict[str, object]:
     encoded = json.dumps(proof_wire, separators=(",", ":")).encode("utf-8")
     return {"proof_bytes_hex": encoded.hex()}

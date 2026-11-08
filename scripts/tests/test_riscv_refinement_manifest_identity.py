@@ -8,12 +8,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import (
-    riscv_refinement,
-    riscv_refinement_receipt_identity as receipt_identity,
-)
-from scripts.riscv_refinement_lib import codec, render, sail
-from scripts.riscv_refinement_lib.model import (
+from scripts.riscv import riscv_refinement, riscv_refinement_receipt_identity as receipt_identity
+from scripts.riscv.riscv_refinement_lib import codec, render, sail
+from scripts.riscv.riscv_refinement_lib.model import (
     SCHEMA_VERSION,
     Paths,
     RefinementError,

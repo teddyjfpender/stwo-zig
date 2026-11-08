@@ -326,7 +326,7 @@ Request execution remains [driver_request.zig](rv64/jobs/driver_request.zig).
 
 ## 14. Physical memory: the ceiling is not the observed peak
 
-The guard [rv64_m7_gpu_budget_guard.cpp](../../../scripts/rv64_m7_gpu_budget_guard.cpp)
+The guard [rv64_m7_gpu_budget_guard.cpp](../../../scripts/rv64/rv64_m7_gpu_budget_guard.cpp)
 constrains physical availability; its successful lifecycle does not measure a process peak.
 Allocator high-water logs cover their allocator scope, not all CUDA modules, stacks and contexts.
 The process observer's default-pool high-water is also not total process residency.

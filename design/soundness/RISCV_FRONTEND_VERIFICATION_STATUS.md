@@ -28,7 +28,7 @@ Canonical entry points are:
   for proof layout and reproduction;
 - `RiscvRefinement.Publication.Opcodes` for the neutral Lean publication
   inventory; and
-- `scripts/riscv_refinement.py` plus `.github/workflows/riscv-refinement.yml`
+- `scripts/riscv/riscv_refinement.py` plus `.github/workflows/riscv-refinement.yml`
   for repository verification and receipts.
 
 Historical team-named scripts, indexes, or theorem-building namespaces are
@@ -142,19 +142,19 @@ is still FV-3, not something the local memory theorem may silently assume.
 Local source validation and live publication use:
 
 ```sh
-python3 scripts/riscv_formal_tools.py prepare \
+python3 scripts/riscv/riscv_formal_tools.py prepare \
   --workspace /tmp/stwo-riscv-formal
-python3 scripts/riscv_refinement.py prepare-sail \
+python3 scripts/riscv/riscv_refinement.py prepare-sail \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 python3 -m unittest scripts.tests.test_riscv_refinement_sail_policy -v
 python3 -m unittest scripts.tests.test_riscv_refinement_publication -v
 (cd formal/riscv-refinement && lake build)
-python3 scripts/riscv_refinement.py generate \
+python3 scripts/riscv/riscv_refinement.py generate \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 # Commit the regenerated inputs before minting the clean-tree receipt.
-python3 scripts/riscv_refinement.py receipt \
+python3 scripts/riscv/riscv_refinement.py receipt \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
-python3 scripts/riscv_refinement.py verify-receipt \
+python3 scripts/riscv/riscv_refinement.py verify-receipt \
   --sail-riscv-dir /tmp/stwo-riscv-formal/source/sail-riscv
 ```
 
