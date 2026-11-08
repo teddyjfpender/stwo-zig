@@ -1,5 +1,10 @@
 fn main() {
     let manifest = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    println!("cargo:rerun-if-changed=linker.ld");
-    println!("cargo:rustc-link-arg=-T{manifest}/linker.ld");
+    let linker = if std::env::var_os("CARGO_FEATURE_TRANSITION_PROGRAM").is_some() {
+        "linker-transition.ld"
+    } else {
+        "linker.ld"
+    };
+    println!("cargo:rerun-if-changed={linker}");
+    println!("cargo:rustc-link-arg=-T{manifest}/{linker}");
 }

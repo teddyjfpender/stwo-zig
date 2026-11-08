@@ -1,5 +1,4 @@
-/* 16 MiB input window variant of linker.ld (same sections; input, output,
-   stack and DATA shifted). Selected by build.py --input-window-mib 16. */
+/* OP execution guest: 16 MiB input window. */
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
 

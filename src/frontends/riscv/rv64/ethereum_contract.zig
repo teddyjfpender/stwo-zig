@@ -20,7 +20,7 @@ pub const INPUT_CAPACITY = 4 * 1024 * 1024;
 /// `__input_start`/`__input_end` symbols; the window must be a power of two in
 /// [INPUT_CAPACITY, INPUT_CAPACITY_MAX]. Guests linked with the legacy window
 /// load exactly as before.
-pub const INPUT_CAPACITY_MAX = 16 * 1024 * 1024;
+pub const INPUT_CAPACITY_MAX = 32 * 1024 * 1024;
 pub fn inputWindow(s: Symbols) ?u64 {
     if (s.input_end <= s.input_start) return null;
     const window = s.input_end - s.input_start;
@@ -57,13 +57,16 @@ test "input window admits legacy and wide power-of-two windows only" {
     try std.testing.expectEqual(@as(?u64, INPUT_CAPACITY), inputWindow(base));
     var wide = base;
     wide.input_end = 0x01800000;
-    try std.testing.expectEqual(@as(?u64, INPUT_CAPACITY_MAX), inputWindow(wide));
+    try std.testing.expectEqual(@as(?u64, 16 * 1024 * 1024), inputWindow(wide));
     var odd = base;
     odd.input_end = 0x00800000 + 6 * 1024 * 1024;
     try std.testing.expectEqual(@as(?u64, null), inputWindow(odd));
     var big = base;
     big.input_end = 0x00800000 + 32 * 1024 * 1024;
-    try std.testing.expectEqual(@as(?u64, null), inputWindow(big));
+    try std.testing.expectEqual(@as(?u64, INPUT_CAPACITY_MAX), inputWindow(big));
+    var oversized = base;
+    oversized.input_end = 0x00800000 + 64 * 1024 * 1024;
+    try std.testing.expectEqual(@as(?u64, null), inputWindow(oversized));
     var small = base;
     small.input_end = 0x00800000 + 2 * 1024 * 1024;
     try std.testing.expectEqual(@as(?u64, null), inputWindow(small));

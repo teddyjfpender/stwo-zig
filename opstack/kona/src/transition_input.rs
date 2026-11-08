@@ -4,7 +4,7 @@ use crate::{
     transition::{
         Transition, TransitionError, VerifiedTransition, verify_blob_transition_statement,
     },
-    witness::{HEADER as WITNESS_HEADER, MAX_INPUT, MAX_TRANSITION_WITNESS, Validation, Witness},
+    witness::{HEADER as WITNESS_HEADER, MAX_TRANSITION_WITNESS, Validation, Witness},
 };
 use alloc::{borrow::Cow, boxed::Box, sync::Arc, vec, vec::Vec};
 use alloy_eips::{BlockNumHash, eip4844::BYTES_PER_BLOB};
@@ -19,6 +19,7 @@ const MAGIC_ZLIB: &[u8; 8] = b"STWOPDZ1";
 const HEADER: usize = 8 + 4 * 40 + 8;
 const SIDECAR_BYTES: usize = 2 * 48 + BYTES_PER_BLOB;
 const MAX_SIDECARS: usize = 256;
+const MAX_INPUT: usize = 32 * 1024 * 1024 - 4;
 
 #[derive(Debug, thiserror::Error)]
 pub enum InputError {
