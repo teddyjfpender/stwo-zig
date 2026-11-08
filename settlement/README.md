@@ -213,7 +213,24 @@ same samples must be authenticated by the subsequent DEEP/FRI verifier.
 Tests exercise a fixed evaluator with independent tower arithmetic and
 transcript hashes, including changes to the commitment, trace samples,
 composition samples, and inverse. OODS point derivation also uses the recorded
-`truth-4.bin` PCS prefix. The test evaluator does not implement the RV64 AIR.
+`truth-4.bin` PCS prefix. The fixed OODS test evaluator checks the composition interface. A separate
+native parity test exercises the RV64 initial AIR through `NativeAirProgram`.
+
+The receiver pins a compact arithmetic program by hash. The test uses the
+initial component's 177-node native DAG and 23 constraints, canonical lifted
+vanishing, and the native residual accumulation order. The evaluator matches
+the independent native OODS result and rejects changed code and malformed
+inputs. This isolated call uses 1,221,972 gas on Shanghai. The native recorder
+and direct AIR emitter must agree on every residual before export:
+
+```sh
+zig build --build-file src/integrations/riscv_cuda/build.zig \
+  rv64-settlement-air-fixture -Doptimize=ReleaseSafe -j1 -- /tmp/native-air-initial.json
+```
+
+Each production role still needs a receiver-selected program and sample and
+parameter mapping. The fixture supplies its own synthetic point and row, so it
+establishes native equation parity for one role.
 
 ## Mainnet provenance
 

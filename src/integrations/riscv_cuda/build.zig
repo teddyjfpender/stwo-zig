@@ -260,6 +260,12 @@ pub fn build(b: *std.Build) void {
     const run_joined = b.addRunArtifact(joined_fixture);
     if (b.args) |args| run_joined.addArgs(args);
     b.step("rv64-joined-fixtures", "Export complete joined native AIR fixtures and cold CUDA kernels").dependOn(&run_joined.step);
+    const settlement_air_root = b.createModule(.{ .root_source_file = b.path("rv64_settlement_air_fixture_main.zig"), .target = target, .optimize = optimize });
+    for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend" }) |name| settlement_air_root.addImport(name, integration.import_table.get(name) orelse @panic("missing settlement AIR fixture dependency"));
+    const settlement_air = b.addExecutable(.{ .name = "rv64-settlement-air-fixture", .root_module = settlement_air_root });
+    const run_settlement_air = b.addRunArtifact(settlement_air);
+    if (b.args) |args| run_settlement_air.addArgs(args);
+    b.step("rv64-settlement-air-fixture", "Export and check the native RV64 AIR settlement fixture").dependOn(&run_settlement_air.step);
     const deep_root = b.createModule(.{ .root_source_file = b.path("rv64_deep_fixture_main.zig"), .target = target, .optimize = optimize });
     deep_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     deep_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));

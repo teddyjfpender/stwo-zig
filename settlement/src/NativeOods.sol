@@ -91,7 +91,7 @@ library NativeOods {
         return chunks[0];
     }
 
-    function doubleX(uint32[8] memory x) private pure returns (uint32[8] memory) {
+    function doubleX(uint32[8] memory x) internal pure returns (uint32[8] memory) {
         uint32[8] memory square = NativeFriFold.multiply(x, x);
         uint32[8] memory one;
         one[0] = 1;
@@ -110,11 +110,11 @@ library NativeOods {
         for (uint256 i; i < DEGREE; ++i) result[i] = uint32(addmod(a[i], b[i], P));
     }
 
-    function sub(uint32[8] memory a, uint32[8] memory b) private pure returns (uint32[8] memory result) {
+    function sub(uint32[8] memory a, uint32[8] memory b) internal pure returns (uint32[8] memory result) {
         for (uint256 i; i < DEGREE; ++i) result[i] = uint32(addmod(a[i], P - b[i], P));
     }
 
-    function equal(uint32[8] memory a, uint32[8] memory b) private pure returns (bool) {
+    function equal(uint32[8] memory a, uint32[8] memory b) internal pure returns (bool) {
         for (uint256 i; i < DEGREE; ++i) if (a[i] != b[i]) return false;
         return true;
     }

@@ -649,3 +649,31 @@ test("checks transcript-derived OODS against a verifier-owned split composition 
   noncanonical.writeUInt32LE(Number(p), 0);
   await assert.rejects(contract.check(pre, root, noncanonical, encode(inverse)), /NonCanonicalField/);
 });
+
+test("evaluates the receiver-pinned native RV64 initial AIR at OODS", async () => {
+  const fixture = JSON.parse(readFileSync(new URL("../fixtures/native-air-initial.json", import.meta.url)));
+  const wire = binary(fixture.wire);
+  const code = wire.subarray(0, fixture.codeBytes);
+  const inputEnd = fixture.codeBytes + 32 * code.readUInt32LE(16);
+  const parameterEnd = inputEnd + 32 * code.readUInt32LE(20);
+  const inputs = wire.subarray(fixture.codeBytes, inputEnd);
+  const parameters = wire.subarray(inputEnd, parameterEnd);
+  const decode = (field) => Array.from({ length: 8 }, (_, i) => BigInt(field.readUInt32LE(4 * i)));
+  const field = (i) => wire.subarray(parameterEnd + i * 32, parameterEnd + (i + 1) * 32);
+  const alpha = decode(field(0));
+  const point = [decode(field(1)), decode(field(2))];
+  const inverse = field(3);
+  const expected = decode(field(4));
+  const authority = "0x9ee12bcc9933ee1e098f64c5dff9d066c9189d7656b82a25fa9e6846bce806a7";
+  assert.equal(keccak256(code), authority);
+  const contract = await deploy("test/AirProgramHarness.sol", "AirProgramHarness", authority, fixture.maskLog);
+  assert.deepEqual(Array.from(await contract.quotient(code, inputs, parameters, point, alpha, inverse)), expected);
+
+  const mutated = Buffer.from(code);
+  mutated[mutated.length - 1] ^= 1;
+  await assert.rejects(contract.quotient(mutated, inputs, parameters, point, alpha, inverse), /ProgramIdentityMismatch/);
+  await assert.rejects(contract.quotient(code, inputs.subarray(32), parameters, point, alpha, inverse), /InvalidProgram/);
+  await assert.rejects(contract.quotient(code, inputs, parameters, point, alpha, Buffer.alloc(32)), /InvalidVanishingInverse/);
+  const receipt = await (await contract.quotient.send(code, inputs, parameters, point, alpha, inverse)).wait();
+  console.log(JSON.stringify({ nativeInitialAirGas: Number(receipt.gasUsed), nodes: code.readUInt32LE(4), residuals: code.readUInt32LE(8) }));
+});
