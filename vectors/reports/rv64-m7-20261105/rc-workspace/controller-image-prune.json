@@ -1,9 +1,0 @@
-{
-  "schema": "rv64-m7-prune/v1",
-  "time": 1793870562.4413936,
-  "path": "/workspace/m3/build/m7-device-controller/cuda/native/libstwo-rv64-native.so",
-  "sha256": "116a3658ed4aecb1dff18d56e4a3be62d651411dc845da018a8362830a7590aa",
-  "bytes": 1975275408,
-  "reason": "Both isolatedON/OFFcaptures+receivers+attribution completed, 116image reconstructible from preserved manifest949 rootobjects+148fused+877PCS. Parent explicitly permits prune for composition.",
-  "maps_fd_guard": "no references"
-}

@@ -1,9 +1,0 @@
-truth-gkr rc=0 189s
-services-gkr-local rc=0 220s
-keccak-throughput rc=0 282s
-word16-v3-services rc=137 180s
-word16-combined-services rc=137 172s
-DONE
-word16-v3-services (--gb 12 rerun) rc=0 219s
-word16-combined-services (--gb 12 rerun) rc=0 282s
-DONE2

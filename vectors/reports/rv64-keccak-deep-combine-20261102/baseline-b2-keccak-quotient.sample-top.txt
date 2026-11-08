@@ -1,7 +1,0 @@
-Sort by top of stack, same collapsed (when >= 5):
-        __ulock_wait2  (in libsystem_kernel.dylib)        47298
-        pcs.quotients.combined_setup_family.ForCoordinates(8,pcs.quotients.coefficient_groups.ForField(fields.om31.OM31).Group).CombineContext.run  (in rv64-word16-ethereum-gkr)        14668
-        pcs.sampled_values_field.ForField(fields.om31.OM31).Context.runRange  (in rv64-word16-ethereum-gkr)        3437
-        __ulock_wait  (in libsystem_kernel.dylib)        2946
-        poly.circle.fft_radix8.forward  (in rv64-word16-ethereum-gkr)        454
-        crypto.blake2s_backend.compressParallel4  (in rv64-word16-ethereum-gkr)        290

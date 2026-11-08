@@ -38807,7 +38807,7 @@
   ],
   "schema": "stwo_benchmark_catalog_v1",
   "source": {
-    "index_path": "vectors/reports/benchmark_history/index.json",
+    "index_path": "bench/history/index.json",
     "index_schema_version": 2,
     "index_sha256": "f8ef3c4aff34a2bedc21899c017521695d28f2fbb327b5fb2d09fb1dc5acd7b2"
   }

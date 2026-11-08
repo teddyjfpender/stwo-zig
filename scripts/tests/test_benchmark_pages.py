@@ -15,7 +15,7 @@ from scripts.benchmark_pages_lib.controller import encoded_json, run
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HISTORY = ROOT / "vectors" / "reports" / "benchmark_history"
+HISTORY = ROOT / "bench" / "history"
 LATEST = (
     HISTORY
     / "runs"

@@ -14,5 +14,5 @@ cd $SRC && python3 scripts/rv64_m3_pod.py $MODE $BLOCK --gpus 2 --stream m4-aren
 RC=$?
 RUN=/workspace/m3/runs/m4-arena/$BLOCK-2gpu-$TAG
 python3 scripts/rv64_m4_arena_report.py $RUN --block $BLOCK --label $TAG --out $OUT/$TAG.json \
-  --baseline $SRC/vectors/reports/rv64-m3-20261104/integrate/scale/$BLOCK.json --load1 $LOAD --notes "$*"
+  --baseline $SRC/vectors/riscv/rv64/m3-basket/scale/$BLOCK.json --load1 $LOAD --notes "$*"
 echo "END $(date +%T) rc=$RC"

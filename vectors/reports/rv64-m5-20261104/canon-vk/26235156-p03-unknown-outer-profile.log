@@ -1,9 +1,0 @@
-# P03: STWO_RV64_OUTER_PROFILE=m5_outer_canonical_bogus, receiver of build C4 (b833f4e3e), E1 26235156 proofs
-exit: see harness line (clean non-zero exit, not a signal)
-error: UnknownOm31OuterProfile
-panic lines: 0
-gpu-disabled
-receiver-request.json
-strict-receiver.stderr
-strict-receiver.stdout
-harness: strict-receiver failed (1)

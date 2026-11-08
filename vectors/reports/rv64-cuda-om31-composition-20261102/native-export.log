@@ -1,9 +1,0 @@
-role=cpu roots=41 nodes=135 inputs=39 rows=128 identity=fda01cc79880a358de90ff2941900b21fffec53b4f0d8fed24b7d8330f18a379
-role=alu roots=49 nodes=186 inputs=47 rows=128 identity=3cacafb8446a13cd6cc812e028e15a254f2752f8a60d5b3f6da8a617d41685d9
-role=binary roots=30 nodes=67 inputs=29 rows=128 identity=19a5579302a3eb6bb048625af8af7171ead90ec2e55e1fc39b1b85696daf204f
-role=shift roots=27 nodes=195 inputs=41 rows=128 identity=e7168bb4204c4341d226e134ce08611a09ff7c939e4fb210faf0058e6088aac3
-role=ls roots=247 nodes=584 inputs=74 rows=128 identity=ab3dd8a317b887973aa1a9bfcc1c08cedf0a6940fe9260de5a601c58b0359606
-role=jalr roots=1 nodes=4 inputs=1 rows=128 identity=1cb9cef00d4ccf6840b30e72594e32080b5afcf103adf1e6427bc87b86255558
-role=mul roots=141 nodes=522 inputs=90 rows=128 identity=bc4f80147ba5219bfe74777d0e85fcf7f1ce71d4abd1cfbc1e0195cdf8ac1ee2
-role=div roots=164 nodes=449 inputs=81 rows=128 identity=77ce36cb27cb230d84d3ab6f440dcdc233a062673c5ada6ade07076099619b3c
-role=mixed_secure_masks roots=4 nodes=16 inputs=6 rows=128 identity=f10447c3b7f90205890416b9ce4d8f535ac2cbbc101c03020b78734a14b22e44

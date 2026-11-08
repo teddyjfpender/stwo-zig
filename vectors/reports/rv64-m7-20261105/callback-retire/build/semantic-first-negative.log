@@ -1,6 +1,0 @@
-src/integrations/riscv_cuda/rv64/outer_source.zig:505:27: error: capture shadows declaration of 'owned'
-        if (assignment) |*owned| {
-                          ^~~~~
-src/integrations/riscv_cuda/rv64/outer_source.zig:426:9: note: declared here
-    pub fn owned(self: *Owner, ctx: *SC.Context, words: usize) !Native.Lease {
-    ~~~~^~

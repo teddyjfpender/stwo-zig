@@ -10,7 +10,7 @@ from .catalog import CatalogError, build_catalog
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HISTORY_DEFAULT = ROOT / "vectors" / "reports" / "benchmark_history"
+HISTORY_DEFAULT = ROOT / "bench" / "history"
 SITE_DEFAULT = ROOT / "bench" / "site"
 REQUIRED_ASSETS = (
     "index.html",

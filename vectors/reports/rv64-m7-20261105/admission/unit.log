@@ -1,4 +1,0 @@
-1/3 global_admission.test.native retention cannot consume the GKR successor headroom...OK
-2/3 global_admission.test.physical devices independent; active and stale tickets fail closed...OK
-3/3 global_admission.test.unknown costs, physical rounding, small slab and untracked owners...OK
-All 3 tests passed.

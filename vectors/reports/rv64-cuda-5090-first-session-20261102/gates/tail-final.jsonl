@@ -1,4 +1,0 @@
-{"schema":"rv64-tail-batch-v1","device":0,"jobs":1,"sequential_ms":0.276480,"batch_ms":0.277504,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
-{"schema":"rv64-tail-batch-v1","device":0,"jobs":2,"sequential_ms":0.314784,"batch_ms":0.278912,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
-{"schema":"rv64-tail-batch-v1","device":0,"jobs":4,"sequential_ms":0.505344,"batch_ms":0.280576,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}
-{"schema":"rv64-tail-batch-v1","device":0,"jobs":8,"sequential_ms":1.353728,"batch_ms":0.294528,"all_records_verified":true,"canaries_verified":true,"failure_isolation_verified":true,"full_block_verified":false}

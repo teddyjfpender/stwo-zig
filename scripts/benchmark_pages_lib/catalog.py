@@ -652,7 +652,7 @@ def build_catalog(history_dir: Path) -> dict[str, Any]:
     return {
         "schema": CATALOG_SCHEMA,
         "source": {
-            "index_path": "vectors/reports/benchmark_history/index.json",
+            "index_path": "bench/history/index.json",
             "index_sha256": _sha256(index_raw),
             "index_schema_version": INDEX_SCHEMA_VERSION,
         },

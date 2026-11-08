@@ -14,7 +14,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-REFERENCE = (ROOT / "vectors/reports/recursive-product-20260918/"
+REFERENCE = (ROOT / "vectors/circuit/"
              "cuda-resident-pipeline-h100-20261001/pinned-cairo-reference.json")
 ACCEPTED = re.compile(r"RUST_CAIRO_VERIFIER=accepted binary_bytes=(\d+) binary_sha256=([0-9a-f]{64})")
 

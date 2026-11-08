@@ -1,9 +1,0 @@
-PASS masked GPU PCS proof native_verified=true native_proof_byte_parity=true trees=4
-REJECT masked native PCS mutation=sample error=InvalidQueryShape
-REJECT masked native PCS mutation=sample_order error=InvalidQueryShape
-REJECT masked native PCS mutation=trace_value error=RootMismatch
-REJECT masked native PCS mutation=fri_root error=InvalidQueryShape
-REJECT masked native PCS mutation=terminal error=InvalidQueryShape
-REJECT masked native PCS mutation=nonce error=InvalidQueryShape
-REJECT masked native PCS mutation=trace_root error=InvalidQueryShape
-REJECT masked native PCS mutation=tree_order error=InvalidQueryShape
