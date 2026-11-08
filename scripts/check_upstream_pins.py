@@ -666,18 +666,6 @@ def _text_pins(ledger: PinLedger) -> tuple[TextPin, ...]:
             cairo_stwo,
         ),
         TextPin(
-            "archive/cairo/legacy_claim_registry.zig",
-            "generated claim-registry Stwo-Cairo revision",
-            rf'^    \.stwo_cairo = "({REVISION_RE})",$',
-            cairo,
-        ),
-        TextPin(
-            "archive/cairo/legacy_claim_registry.zig",
-            "generated claim-registry Stwo revision",
-            rf'^    \.stwo = "({REVISION_RE})",$',
-            cairo_stwo,
-        ),
-        TextPin(
             ".github/workflows/ci.yml",
             "hosted Cairo checkout revision",
             rf'^          STWO_CAIRO_REVISION: ({REVISION_RE})$',

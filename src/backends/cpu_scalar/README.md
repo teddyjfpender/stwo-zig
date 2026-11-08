@@ -108,4 +108,4 @@ commitment order, or ownership.
 - [Prover engine](../../prover/README.md)
 - [Native examples](../../examples/README.md)
 - [Repository product guide](../../../README.md)
-- [Package-workspace audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
+- [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)

@@ -1,5 +1,5 @@
 // M8 GPU-native driver: peer exchange, slab fills, device flag checks and
-// timing events (design/riscv-proving-stack/rv64-m8-gpu-native.md §3.4-§3.6).
+// timing events (design/riscv/rv64-m8-gpu-native.md §3.4-§3.6).
 //
 // Additive to libstwo-rv64-jobs.so: the Zig side looks these symbols up only
 // when the GPU-native driver is installed (ops.zig Peer.open), so the ABI

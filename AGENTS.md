@@ -1,7 +1,7 @@
 # Project execution rules
 
 This repository is in the consolidation and productionisation phase described
-in [the delivery contract](design/riscv-proving-stack/rv64-gpu-hygiene.md).
+in [the delivery contract](design/riscv/rv64-gpu-hygiene.md).
 That contract includes the ordered GPU-native promotion and legacy deletion
 gates. Do not declare this phase complete from component tests or warm timings.
 

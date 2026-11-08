@@ -37,4 +37,4 @@ messages, receiver statement/variant mismatches, mixed-size generic/singles
 transcript parity and worker/input admission cleanup. Exhaustive allocation
 failure qualification, production integration, independent protocol review and
 recursive-verifier integration remain future work. The design is in
-`design/riscv-proving-stack/rv64-logup-gkr-prototype.md`.
+`design/riscv/rv64-logup-gkr-prototype.md`.

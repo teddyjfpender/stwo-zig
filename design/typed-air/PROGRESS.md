@@ -27,7 +27,7 @@ formal result does not set `whole_frontend_verified` or
 | M0 — engineering dossier | complete | This directory and initial ADRs |
 | M1 — validated logical IR | complete | F-001 through F-015 complete and green; live activation lowering carries compiler-owned degree/provenance and verifier-owned public-root claims, while programs with no owned relation-backed function remain a zero-cost compatibility no-op |
 | M2 — shadow compiler | complete | A-001 through A-005 complete and green |
-| M3 — compatibility lowering | ready | Current checkout gates are green and ready for a clean immutable receipt. [V-008](receipts/m3-compatibility-v1.json) remains the immutable historical red snapshot; it is not the receipt for this tree. This milestone does not claim a full proof or whole-frontend verification |
+| M3 — compatibility lowering | ready | Current checkout gates are green and ready for a clean immutable receipt. [V-008](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/m3-compatibility-v1.json) remains the immutable historical red snapshot; it is not the receipt for this tree. This milestone does not claim a full proof or whole-frontend verification |
 | M4 — Poseidon compiler pilot | complete | H-001 through H-010 and V-006 complete; no layout selected |
 | M5 — effect and witness pilot | ready | E-001 through E-015 complete. All seventeen opcode families use authenticated typed production witnesses with exact legacy proof parity and per-family non-regression gates. The frozen M5 performance receipt remains open |
 | M6 — guest precompile | ready | C-001 through C-012 complete: one CPU proof closes caller/provider components in the same STARK and verifies in a fresh process; the semantic pair and mutation fleet pass; the authenticated-AOT Metal product route proves on-device and verifies device-independently with zero backend CPU fallback. C-013 now has a fail-closed CPU controller and reducer; its clean secure CPU/Metal crossover receipt remains open |
@@ -624,7 +624,7 @@ normative performance receipts remain explicitly open.
   claim mutations. Full ReleaseFast CPU and authenticated-AOT Metal product
   gates pass; Metal reports resident RISC polynomial execution and zero known
   CPU composition declines. The immutable
-  [H-007 receipt](receipts/h007-poseidon-proof-equivalence-v1.json) binds commit
+  [H-007 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h007-poseidon-proof-equivalence-v1.json) binds commit
   `f204eb4617330e755598bdc3ef67c0be7441c879`, both reproducible product-closure
   identities, and the 118-export Metal bundle identity while preserving the
   test-security, same-process, narrow-only, and V-006 identity limits.
@@ -647,12 +647,12 @@ normative performance receipts remain explicitly open.
   executor, and relation plan under five reviewed SHA-256 digests. The CPU and
   Metal product paths reconstruct and return the same combined identity after
   honest proofs verify through the unchanged production verifier. The clean
-  [V-006 receipt](receipts/v006-poseidon-program-identity-v1.json) records both
+  [V-006 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/v006-poseidon-program-identity-v1.json) records both
   product closures and the authenticated 118-export Metal AOT bundle. This is
   local proof-path co-attestation only: the identity is not in the transcript,
   public statement, proof bytes, or production verifier contract.
 - Completed V-008: the machine-readable
-  [M3 receipt](receipts/m3-compatibility-v1.json) names the clean detached
+  [M3 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/m3-compatibility-v1.json) names the clean detached
   `7cdf41d5b246baf845adeb99d02444d9a6090514` snapshot, exact toolchain,
   M2/M3 and formal identities, 657-test package results, all 17 manifest
   checks, workspace and AIR-satisfaction results, and a focused real proof. It
@@ -677,7 +677,7 @@ normative performance receipts remain explicitly open.
   Candidate-versus-seed movement is not meaningful or repeatable across the
   two cohorts, so no layout is selected and all proof, Metal-candidate,
   production, and promotion exclusions remain in force. The
-  [H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+  [H-010 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
   names the exact evidence and bounded conclusion.
 
 ## Current implementation evidence
@@ -727,7 +727,7 @@ normative performance receipts remain explicitly open.
   proof bytes across current `N = 1/2/4` and against an instrumented predecessor
   at `N = 1` for `multi_shard_addi` and Poseidon field16. The exact identities
   and the separate controlled timing checkpoint are recorded in
-  [the M7 development note](performance/m7-composition-checkpoint-2026-08-09.md).
+  [the M7 development note](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/performance/m7-composition-checkpoint-2026-08-09.md).
 - Commits `dc8617f3`, `0d5c4a26`, and `5f4dc56c` define and render a stable flat
   task-profile schema that distinguishes exact outer-task activity from
   physical-worker activity that is unobservable inside pool-exclusive child
@@ -933,7 +933,7 @@ Pending:
 
 ## Baseline metrics
 
-The [M2 machine report](artifacts/m2-production-shadow-report-v1.tsv) now pins
+The [M2 machine report](../../src/frontends/riscv/air/lang/artifacts/m2-production-shadow-report-v1.tsv) now pins
 the current all-family logical node, direct-constraint, lookup, batch,
 dependency, interaction-column, and final-degree counts. In aggregate across
 independently compiled families it records 3,051 source nodes canonicalized to
@@ -985,10 +985,10 @@ field16 proving improved 13.22% and composition 46.11%. One-worker performance
 was near-flat, four-worker proving improved about 5%, and median RSS was flat;
 one Poseidon four-worker RSS spike did not reproduce in three extra pairs.
 Exact binary identities, ranges, and proof hashes appear in
-[the checkpoint note](performance/m7-composition-checkpoint-2026-08-09.md).
+[the checkpoint note](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/performance/m7-composition-checkpoint-2026-08-09.md).
 This is not a digest-bound M7 attempt bundle or receipt and makes no
 full-security verdict. R-005/R-006 must use the frozen
-[M5--M9 protocol](performance/m5-m9-protocol-v1.json); H-010 diagnostic cohorts
+[M5--M9 protocol](../../conformance/typed-air/m5-m9-protocol-v1.json); H-010 diagnostic cohorts
 cannot be reused as M7 evidence.
 
 The following measurements remain assigned to their later owning milestones;
@@ -1446,7 +1446,7 @@ The evidence is deliberately bounded: the PCS configuration is test-security,
 verification is fresh-state but same-process, claims are transcript/AIR-bound
 rather than separate Merkle columns, and V-006 has not yet attested canonical
 logical/layout identities across backends. No production authority changed.
-The [machine receipt](receipts/h007-poseidon-proof-equivalence-v1.json) records
+The [machine receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h007-poseidon-proof-equivalence-v1.json) records
 those facts and exclusions; the later H-009 record below supersedes its task
 queue statement without changing that H-007 evidence.
 
@@ -1482,7 +1482,7 @@ now compiles 763 tests (762 pass, one intentionally skipped). H-009 is complete
 as a prototype and negative structural result. Exact proposal-consumer
 isolation is enforced by source conformance. It makes no global-optimality,
 proving-speed, proof-size, or production-activation claim. The clean immutable
-[H-009 receipt](receipts/h009-poseidon2-cost-frontier-v1.json) pins commit
+[H-009 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h009-poseidon2-cost-frontier-v1.json) pins commit
 `ee14cc8b9bed1a20dfd8dfce7f6c7f112ccee850`, the complete search and artifact
 identities, the calibrated evaluator boundary, and the unchanged CPU/Metal
 product gates. The calibration leaves the canonical binary and TSV unchanged;
@@ -1512,7 +1512,7 @@ intentional skip. Package-workspace, artifact, proposal-isolation, and product
 closure gates pass; source conformance adds no H-009 or V-006 finding and
 retains only the recorded unrelated repository baseline.
 
-The [V-006 receipt](receipts/v006-poseidon-program-identity-v1.json) is final
+The [V-006 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/v006-poseidon-program-identity-v1.json) is final
 for this test-only scope. It does not place the identity in the Fiat-Shamir
 transcript, public statement, proof commitment, or production verifier, and
 therefore makes no cryptographic inseparability or production-activation
@@ -1565,7 +1565,7 @@ source-conformance unit tests pass 35 of 35. The repository conformance scan
 retains the exact inherited three warnings and eight errors with no H-010
 finding.
 
-The [H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+The [H-010 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
 records the immutable implementation, both report identities, clean gates, and
 exclusions. Proof, verification, Metal-candidate, production-layout, and
 promotion claims remain false. M4 and H-010 are complete; C-001 is now the sole
@@ -2136,7 +2136,7 @@ cross-lane checks, and final receipt renderer remain absent. The frozen CPU
 schedule alone requires 25 minutes 19 seconds of cooldown; proof time and the
 intentionally expensive core-dominated 4,096-call arm are additional and are
 not extrapolated from the diagnostic. The exact runbook and gap are in the
-[C-013 CPU capture readiness note](notes/2026-08-12-c013-cpu-capture-readiness.md).
+[C-013 CPU capture readiness note](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/notes/2026-08-12-c013-cpu-capture-readiness.md).
 
 ### 2026-08-12 — generated geometry, batching, runtime profiling, and LUI SSOT advance
 
@@ -2389,7 +2389,7 @@ ReleaseFast. This remains deliberately non-promotional: the shadow cannot prove
 that its expected outputs came from a successful child verifier and neither
 verifies child proof bytes nor builds, proves, or verifies the 36-row outer
 circuit. R-009 remains active. See the
-[authenticated pair-node note](notes/2026-08-12-r009-authenticated-pair-node.md).
+[authenticated pair-node note](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/notes/2026-08-12-r009-authenticated-pair-node.md).
 
 ### 2026-08-13 — current gates green; immutable capture remains open
 

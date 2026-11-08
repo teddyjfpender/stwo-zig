@@ -82,7 +82,7 @@ This phase should immediately identify the exact degree of every current root
 without changing one committed column.
 
 The accepted result is pinned in the machine and human views under
-[`artifacts/`](artifacts/README.md). It records 17 independently compiled
+[`artifacts/`](../../src/frontends/riscv/air/lang/artifacts/README.md). It records 17 independently compiled
 families and independently checks the shipped direct and lookup backend bounds.
 
 **Exit gate:**
@@ -98,7 +98,7 @@ families and independently checks the shipped direct and lookup backend bounds.
 **Status:** implementation complete; A-006 through A-012 are green and V-008
 records the clean-snapshot evidence. Release promotion remains blocked by the
 broad witness-rigidity and formal generated-artifact gates named in the
-[M3 receipt](receipts/m3-compatibility-v1.json).
+[M3 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/m3-compatibility-v1.json).
 
 Lower a logical program back into the current `ConstraintProgram` and runtime
 polynomial formats.
@@ -152,7 +152,7 @@ allocator separation makes every new encoding allocation exhaustively
 failure-testable without changing the legacy symbolic builder's panic-on-OOM
 contract. See
 [ADR-0017](decisions/0017-sectioned-compatibility-manifests.md) and the
-[M3 artifact index](artifacts/m3-compat-v1/index-v1.tsv).
+[M3 artifact index](../../src/frontends/riscv/air/lang/artifacts/m3-compat-v1/index-v1.tsv).
 
 The field-aware review pass validates both complete v1 manifests without
 allocation, then compares detailed records before their duplicate identity
@@ -227,7 +227,7 @@ The identity is deliberately absent from the Fiat-Shamir transcript, public
 statement, proof bytes, and production verifier, so this is co-attestation and
 not a new protocol binding. See
 [ADR-0021](decisions/0021-backend-neutral-poseidon-program-identity.md) and the
-[V-006 receipt](receipts/v006-poseidon-program-identity-v1.json).
+[V-006 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/v006-poseidon-program-identity-v1.json).
 
 H-009 keeps optimization authority separate. A bounded canonical edit search
 rebuilds every candidate cut, lowers authenticated fixed prefix/equality/suffix
@@ -237,9 +237,9 @@ retains 126 cuts, all equal to the compatibility seed on every structural and
 scenario coordinate. The artifact therefore selects no production layout; it
 is reproducible negative evidence and an H-010 benchmark input. See
 [ADR-0020](decisions/0020-cost-frontier-materialization-proposals.md) and the
-[artifact index](artifacts/README.md). The immutable search and regression
+[artifact index](../../src/frontends/riscv/air/lang/artifacts/README.md). The immutable search and regression
 evidence is recorded in the
-[H-009 receipt](receipts/h009-poseidon2-cost-frontier-v1.json).
+[H-009 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h009-poseidon2-cost-frontier-v1.json).
 
 The proposal modules are deliberately absent from `air/lang/mod.zig`; only the
 reviewed authoring files, package tests, and dedicated artifact tool import
@@ -260,7 +260,7 @@ and perform no per-row allocation.
 
 The correctness vectors are separate protocol artifacts. Logs 10 and 14 decode
 the checked `STWAIRB\0` files under
-[`artifacts/h010-poseidon-layout-v1/`](artifacts/h010-poseidon-layout-v1/);
+[`artifacts/h010-poseidon-layout-v1/`](../../src/frontends/riscv/air/lang/artifacts/h010-poseidon-layout-v1);
 the generated TSV index byte-compares their identities plus rows 0, 1, and the
 final row. Expected outputs are produced by the unchanged static Poseidon
 reference, independently of the candidate layout executor and direct
@@ -286,7 +286,7 @@ valid reports retain all 112 required sample children without failure, retry,
 or drop. Their candidate-versus-seed directions are small, remain within
 MAD/noise, and are not repeatable across runs, so the pilot closes without
 selecting or activating a layout. The
-[H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+[H-010 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
 records the exact report identities and exclusions.
 
 **Exit gate:**

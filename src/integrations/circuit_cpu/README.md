@@ -4,7 +4,7 @@
 stage on the CPU backend: the Zig port of `crates/circuit_prover` of
 [starkware-libs/proving](https://github.com/starkware-libs/proving) at
 commit `5a7c5ede4299c91a61df19a07cba4f7502c14230` (milestone M7 of the
-[recursion design](../../../design/starknet-proving-pipeline/recursion/02-design.md),
+[recursion design](../../../design/starknet/recursion/02-design.md),
 §4). Given a finalized circuit's value table and its preprocessed circuit, it
 produces the same proof bytes as upstream `prove_circuit_assignment`, on
 either channel profile, and converts the proof into the in-circuit verifier's
@@ -298,7 +298,7 @@ milestone M11 work (design §9), not parity issues.
 
 ## Related documentation
 
-- [Recursion design](../../../design/starknet-proving-pipeline/recursion/02-design.md)
-- [Rust porting map](../../../design/starknet-proving-pipeline/recursion/01-rust-map.md)
+- [Recursion design](../../../design/starknet/recursion/02-design.md)
+- [Rust porting map](../../../design/starknet/recursion/01-rust-map.md)
 - [Circuit frontend](../../frontends/circuit/README.md)
 - [Circuit oracle](../../../tools/stwo-circuit-oracle-rs/README.md)

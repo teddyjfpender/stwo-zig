@@ -41,7 +41,7 @@ accepted production policy and cannot activate a layout.
 ### Authenticated source and fixed identities
 
 Every run must decode and authenticate the checked H-009 binary
-[`frontier.stwairm`](../artifacts/h009-poseidon2-cost-v1/frontier.stwairm).
+[`frontier.stwairm`](../../../src/frontends/riscv/air/lang/artifacts/h009-poseidon2-cost-v1/frontier.stwairm).
 The benchmark fails closed unless its bytes and decoded fields match all of the
 following:
 
@@ -186,8 +186,8 @@ default log size. The benchmark reads and authenticates the checked bytes for
 logs 10 and 14; random generation is never in a timed region.
 
 The deterministic log-10 and log-14 vectors are checked repository artifacts
-under [`h010-poseidon-layout-v1`](../artifacts/h010-poseidon-layout-v1/).
-The readable [`index-v1.tsv`](../artifacts/h010-poseidon-layout-v1/index-v1.tsv)
+under [`h010-poseidon-layout-v1`](../../../src/frontends/riscv/air/lang/artifacts/h010-poseidon-layout-v1).
+The readable [`index-v1.tsv`](../../../src/frontends/riscv/air/lang/artifacts/h010-poseidon-layout-v1/index-v1.tsv)
 pins the complete vector metadata plus rows 0, 1, and the final row for each
 checked vector; its file SHA-256 is
 `1c881a3a944794943f872ea85678a4809db68a96021b06abbc15ef42d878fd19`.

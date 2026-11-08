@@ -20,7 +20,7 @@ See [package.contract.json](package.contract.json) and the
 The strict `native/` build closure contains only C/C++ and CUDA source files.
 Export requirements live in `contracts/*required-symbols.json`; the RV64 library
 builder and relinker consume `contracts/rv64-required-symbols.json`.
-The [arena admission owner contract](../../../design/riscv-proving-stack/rv64-arena-admission-v2.md)
+The [arena admission owner contract](../../../design/riscv/rv64-arena-admission-v2.md)
 is maintained with the proving-stack design documents.
 
 ## Architecture and status
@@ -273,6 +273,6 @@ proofs, and independent verification.
 - [Native CUDA integration](../../integrations/native_cuda/README.md)
 - [Cairo CUDA integration](../../integrations/cairo_cuda/README.md)
 - [CUDA system architecture goal](../../../conformance/2026-07-24-cuda-system-architecture-goal.md)
-- [CUDA production qualification](../../../conformance/cuda-production-qualification-v1.md)
+- [CUDA production qualification](../../../design/decisions/cuda-production-qualification-v1.md)
 - [CUDA source authority](UPSTREAM.md)
 - [Repository product status](../../../README.md#product-support)

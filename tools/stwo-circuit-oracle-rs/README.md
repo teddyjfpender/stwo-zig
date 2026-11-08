@@ -4,7 +4,7 @@ This isolated development tool runs StarkWare's circuit recursion crates from
 `https://github.com/starkware-libs/proving` at
 `5a7c5ede4299c91a61df19a07cba4f7502c14230` and emits the checkpoints the Zig
 port's parity ladder compares against (design:
-`design/starknet-proving-pipeline/recursion/02-design.md` §8). Released Zig
+`design/starknet/recursion/02-design.md` §8). Released Zig
 products never build, invoke, or distribute it.
 
 Every subcommand but `fold-tree` runs in seconds. Most only build circuits or hash data;

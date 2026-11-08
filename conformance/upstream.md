@@ -159,7 +159,7 @@ and supports official JSON plus `compact-v1` transport.
 These revisions govern the production AIR registry, isolated base/interaction
 trace oracle, and final Rust `verify_cairo` adapter. The completion
 requirements are recorded in
-`conformance/2026-07-26-stwo-cairo-production-port-goal.md`.
+`design/decisions/2026-07-26-stwo-cairo-production-port-goal.md`.
 
 The official-source witness checkpoint is
 `vectors/cairo/official/witness_programs_v1.bin`, authenticated by its adjacent
@@ -198,8 +198,8 @@ authoritative only for their explicitly labelled legacy comparison and only
 when generated from the fork Stwo-Cairo and prover-Stwo pair, without path
 dependencies or dirty source.
 
-The corresponding historical generated claim registry is retained at
-`archive/cairo/legacy_claim_registry.zig`. Production code must not import it;
+The corresponding historical generated claim registry is archived at
+[`archive/cairo/legacy_claim_registry.zig`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/archive/cairo/legacy_claim_registry.zig). Production code must not import it;
 the active registry is the official generated registry under
 `src/frontends/cairo/air/`.
 

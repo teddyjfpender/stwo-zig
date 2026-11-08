@@ -1,5 +1,5 @@
 //! M8 GPU-native request driver (stream: driver). Contract: gpu_native.zig;
-//! design: design/riscv-proving-stack/rv64-m8-gpu-native.md §3, §6.
+//! design: design/riscv/rv64-m8-gpu-native.md §3, §6.
 //!
 //! Selection (`STWO_RV64_M8_GPU_NATIVE=1`, requires `STWO_RV64_M8_JOBS=1`)
 //! and the pieces of the JOBS=1 GPU-native request driver:

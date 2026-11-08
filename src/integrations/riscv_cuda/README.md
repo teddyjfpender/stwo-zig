@@ -147,7 +147,7 @@ python3 tests/cuda/rv64/independent_field.py
 Real-driver compile, multi-GPU parity, sanitizer and timing instructions live in
 [`tests/cuda/rv64/README.md`](../../../tests/cuda/rv64/README.md). The numerical
 harness is deliberately labelled separately from a verified complete block.
-Review [`rv64-cuda-resident.md`](../../../design/riscv-proving-stack/rv64-cuda-resident.md)
+Review [`rv64-cuda-resident.md`](../../../design/riscv/rv64-cuda-resident.md)
 for the ownership contract, cost hypothesis and remaining proof integration.
 
 The resident single-oracle sumcheck controller now connects reductions to cubic

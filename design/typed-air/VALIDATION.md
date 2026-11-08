@@ -316,7 +316,7 @@ Lean source build:
 ```
 
 Live Sail and receipt commands remain those in
-[`RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
+[`RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
 They are required when architectural semantics, source binding, or published
 formal artifacts change.
 
@@ -345,8 +345,8 @@ the first named generated-versus-on-disk difference together with file lengths
 and SHA-256 identities before failing.
 
 M2 established the report check half of this contract: the package test renders
-[`m2-production-shadow-report-v1.tsv`](artifacts/m2-production-shadow-report-v1.tsv)
-and its [readable view](artifacts/m2-production-shadow-report-v1.md) in memory
+[`m2-production-shadow-report-v1.tsv`](../../src/frontends/riscv/air/lang/artifacts/m2-production-shadow-report-v1.tsv)
+and its [readable view](../../src/frontends/riscv/air/lang/artifacts/m2-production-shadow-report-v1.md) in memory
 and requires byte identity. A-011 adds the explicit family-manifest check/update
 command. A-012 parses that sectioned `compat-v1` object without allocation and
 compares detailed layout, runtime, relation, degree, hint, and formal records
@@ -445,14 +445,14 @@ Focused CPU proof and corruption tests pass; the full CPU and authenticated-AOT
 Metal product gates pass with resident Metal polynomial execution and no known
 CPU fallback. A fresh unchanged production verifier specialization verifies the
 honest proof. The immutable evidence and exact limits are recorded in the
-[H-007 receipt](receipts/h007-poseidon-proof-equivalence-v1.json).
+[H-007 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h007-poseidon-proof-equivalence-v1.json).
 
 This is proof-path integration evidence, not production activation or a broad
 soundness claim. The full-proof fixture is narrow-only, uses test-security PCS
 parameters, and verifies in a fresh same-process verifier state. Claims are
 transcript/AIR-bound rather than separate committed columns, and canonical
 logical/layout/executor/relation identity is now co-attested by the final
-[V-006 receipt](receipts/v006-poseidon-program-identity-v1.json). That identity
+[V-006 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/v006-poseidon-program-identity-v1.json). That identity
 is returned beside the verified proof by the test-only authority; it is not
 mixed into the transcript, public statement, proof commitment, or production
 verifier contract.
@@ -479,7 +479,7 @@ unreviewed production sources; only an explicit authoring/test/tool allowlist
 is accepted.
 
 The immutable
-[H-009 receipt](receipts/h009-poseidon2-cost-frontier-v1.json) records exact
+[H-009 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h009-poseidon2-cost-frontier-v1.json) records exact
 artifact, search, cost-model, product-closure, and regression-gate identities.
 Its structural plateau is negative optimization evidence, not a timing,
 memory, proof-size, global-optimality, or production-activation result. H-010
@@ -548,7 +548,7 @@ three warnings and eight errors and adds no H-010 finding.
 The two reports show no meaningful repeatable layout regression and select no
 layout. Proof, verification, Metal-candidate, production-layout, and promotion
 claims remain false. The
-[H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+[H-010 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
 names this bounded evidence; it does not alter the V3 or production boundary.
 
 ## Differential design
@@ -638,11 +638,11 @@ At M3 and later milestones, record:
 
 The receipt describes evidence. It does not promote the claim ledger by itself.
 The first concrete instance is the
-[M3 compatibility receipt](receipts/m3-compatibility-v1.json), which records
+[M3 compatibility receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/m3-compatibility-v1.json), which records
 green compatibility and focused proof evidence together with the broad
 prover-core and formal-artifact gates that remain red.
 
-The [H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+The [H-010 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
 records the clean H-010 implementation tree, both exact locally retained
 report identities, the independently rerun gates, and the no-selection
 conclusion. It does not convert the microbenchmark into proof-path or

@@ -4,7 +4,7 @@
 The circuit frontend (``src/frontends/circuit``) is a call-order-exact port of
 StarkWare's circuit recursion stage: variable numbering, constant interning and
 gate order are the byte-parity contract (design §3.3 of
-``design/starknet-proving-pipeline/recursion/02-design.md``). Any construct
+``design/starknet/recursion/02-design.md``). Any construct
 whose output order depends on hashing or on an unstable sort can silently
 renumber wires. This lint rejects, outside comments:
 

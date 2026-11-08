@@ -1,4 +1,4 @@
-//! M8 job contract (design/riscv-proving-stack/rv64-m8-job-architecture.md §3.1).
+//! M8 job contract (design/riscv/rv64-m8-job-architecture.md §3.1).
 //!
 //! A proof is a `Job`. A per-GPU `DeviceWorker` runs it in three phases:
 //!   1. `stage`   — preflight and inputs for job k+1 on the h2d stream (`Stager`);

@@ -130,7 +130,7 @@ workload. Each backend also proved and independently verified the bad-signature
 fixture's software rejection. ECDSA is 1,828 guest instructions, with a 3,748,143-byte
 proof; the timings include caller/memory composition and guest checks.
 
-[Detailed results, memory, proof sizes, raw evidence and reproduction](../reports/recursive-product-20260921/csp-accelerated-suite-v1/README.md).
+[Detailed results, memory, proof sizes, raw evidence and reproduction](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/README.md).
 Use `--execution-mode precompile` for these results; software remains an explicit
 comparison mode and the default for historical runner consumers.
 
@@ -139,7 +139,7 @@ comparison mode and the default for historical runner consumers.
 Measured on Apple M5 Max, ReleaseFast, 70 queries / 26 PoW bits, one warmup
 and ten measured verified samples per row. Values are mean execution + witness
 + proving seconds; verification is separate. This table is the software baseline,
-not the accelerated ECDSA result. [Raw CPU/Metal reports and provenance](../reports/recursive-product-20260921/csp-current-suite-v1/README.md).
+not the accelerated ECDSA result. [Raw CPU/Metal reports and provenance](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/recursive-product-20260921/csp-current-suite-v1/README.md).
 
 | Workload | Size | CPU prove (s) | Metal prove (s) |
 | :--- | ---: | ---: | ---: |
@@ -178,7 +178,7 @@ Omit `--targets` and `--sizes` to run the complete mixed suite. This mode proves
 the RISC-V caller, memory bindings, recovery computation, low-S/key checks and
 public output. Host parity selection is not a trusted verdict. Unsupported inputs
 receive full software proofs. See the [guest contract](../riscv_guests/ecdsa_secp256k1_precompile/README.md)
-and [runner documentation](../../design/riscv-proving-stack/csp-benchmarks.md).
+and [runner documentation](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/riscv-proving-stack/csp-benchmarks.md).
 The earlier 228/165 ms figures measured an isolated provider and are not full
 CSP guest results.
 

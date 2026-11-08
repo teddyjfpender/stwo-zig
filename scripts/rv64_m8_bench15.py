@@ -85,9 +85,9 @@ SCHEMA = 'rv64-m8-bench15/v1'
 # M7 headline baselines; only these blocks were measured on the M7 default.
 M7_BASELINE = {
     24628607: {'warm_proving_s': 12.9, 'label': 'M', 'note': 'M7 default warm, single profiled run',
-               'source': 'design/riscv-proving-stack/rv64-m8-engineering-scope.md §1'},
+               'source': 'design/riscv/rv64-m8-engineering-scope.md §1'},
     26235156: {'warm_proving_s': 10.5, 'label': 'M', 'note': 'M7 default warm',
-               'source': 'design/riscv-proving-stack/rv64-m8-engineering-scope.md §1'},
+               'source': 'design/riscv/rv64-m8-engineering-scope.md §1'},
     24697070: {'cold_proving_s': 69.871, 'label': 'M', 'note': 'M7 cold scale probe, one request',
                'source': 'vectors/reports/rv64-m7-20261105/callback-residency/README.md'},
 }

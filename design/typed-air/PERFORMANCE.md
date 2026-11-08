@@ -135,9 +135,9 @@ proof-path evidence under the full procedure above.
 ## Normative M5--M9 promotion contract
 
 The machine-readable
-[`performance/m5-m9-protocol-v1.json`](performance/m5-m9-protocol-v1.json)
+[`performance/m5-m9-protocol-v1.json`](../../conformance/typed-air/m5-m9-protocol-v1.json)
 is the numerical and procedural authority for M5 through M9 performance
-promotion. The [protocol README](performance/README.md) describes its evidence
+promotion. The [protocol README](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/performance/README.md) describes its evidence
 boundary. A milestone does not close its performance scope on an informal
 benchmark, a best sample, or correctness evidence alone.
 
@@ -241,7 +241,7 @@ bytes, fresh-child wall time, CPU/counter work, RSS, and its environment
 binding. It is a CPU-lane reduction only. It leaves the M6 outcome null until
 the required Metal cohort and complete promotion receipt validate. The exact
 runbook and current measurement gap are recorded in the
-[C-013 CPU capture readiness note](notes/2026-08-12-c013-cpu-capture-readiness.md).
+[C-013 CPU capture readiness note](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/notes/2026-08-12-c013-cpu-capture-readiness.md).
 
 ## Compiler cost report
 

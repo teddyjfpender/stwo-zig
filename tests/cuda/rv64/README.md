@@ -271,8 +271,8 @@ nvcc -O2 -std=c++17 -Isrc/backends/cuda/native \
 
 ASan/UBSan host replay now also compares five tail thresholds for every size;
 this validates shared-table arithmetic helpers, not GPU barriers or races.
-See the [design](../../../design/riscv-proving-stack/rv64-cuda-tail.md) and
-[pinned ZisK review](../../../design/riscv-proving-stack/rv64-cuda-zisk-review.md).
+See the [design](../../../design/riscv/rv64-cuda-tail.md) and
+[pinned ZisK review](../../../design/riscv/rv64-cuda-zisk-review.md).
 
 
 The harness `Owner` copies setup ingress into owned staging retained until

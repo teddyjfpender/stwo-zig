@@ -232,7 +232,7 @@ matching no test name.
 
 ## Relationship to the other gates
 
-`conformance/riscv-pr-proof-gate.md` proves the proof path still produces
+`design/riscv/riscv-pr-proof-gate.md` proves the proof path still produces
 and independently verifies artifacts; it deliberately uses the pinned
 trace-vector digests so PRs stay fast. This gate is the live half of that
 bargain: the digests those lanes trust are themselves re-derived against

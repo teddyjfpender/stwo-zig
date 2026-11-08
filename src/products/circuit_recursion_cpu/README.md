@@ -4,7 +4,7 @@
 StarkWare's proving pipeline
 ([starkware-libs/proving](https://github.com/starkware-libs/proving) at
 commit `5a7c5ede4299c91a61df19a07cba4f7502c14230`) on the CPU, design §7.4
-of the [recursion design](../../../design/starknet-proving-pipeline/recursion/02-design.md).
+of the [recursion design](../../../design/starknet/recursion/02-design.md).
 For the qualified inputs and registry, its output files are byte-compatible
 with the pinned upstream implementation.
 

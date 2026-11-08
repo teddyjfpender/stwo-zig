@@ -125,7 +125,7 @@ U256 fe_reduce_wide(const u64 t[8]) {
 #if defined(ADMITTED_ARITH)
 // Admitted v3 arith256_mod service (0x0003_0021): one ECALL returns the canonical
 // r = (a*b + c) mod m for ANY 256-bit a, b, c and m != 0 (the truth AIR proves
-// a*b + c = q*m + r with q < 2^512 and r < m; design/riscv-proving-stack/rv64-arith256-service.md).
+// a*b + c = q*m + r with q < 2^512 and r < m; design/riscv/rv64-arith256-service.md).
 // The software reductions below also return the canonical residue of a*b for any 256-bit
 // inputs, so both paths give identical results (tests/secp_differential.cpp runs the
 // recover differential with this path on the host service emulation).

@@ -86,7 +86,7 @@ of these owners before all borrowers join is a use-after-free, not a graceful
 abort.
 
 Finally, M7 is governed by the normative
-[`m5-m9-protocol-v1.json`](../performance/m5-m9-protocol-v1.json), not by an
+[`m5-m9-protocol-v1.json`](../../../conformance/typed-air/m5-m9-protocol-v1.json), not by an
 informal throughput result. It requires byte-identical protocol artifacts,
 bounded task accounting, joined cancellation, no nested oversubscription, and
 verified worker-scaling and resource evidence on both required lanes.

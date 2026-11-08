@@ -9,7 +9,7 @@
 # theorem backend, runs the Sail-bound 46-opcode FV-1/FV-2 publication gate
 # (`zig build riscv-refinement-pilot`), and mints the live-evidence
 # refinement receipt. Command-to-claim mapping and the macOS story:
-# soundness/SAIL_PROVISIONING.md.
+# design/soundness/SAIL_PROVISIONING.md.
 #
 # Trigger policy: schedule + workflow_dispatch + push to main ONLY, never on
 # every pull request. A cold run builds the Sail simulator, Spike, the Sail

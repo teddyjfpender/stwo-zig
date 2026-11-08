@@ -267,12 +267,12 @@ acceptance by the pinned official Rust verifier.
 
 ## Related documentation
 
-- [Cairo production-port goal](../../../conformance/2026-07-26-stwo-cairo-production-port-goal.md)
+- [Cairo production-port goal](../../../design/decisions/2026-07-26-stwo-cairo-production-port-goal.md)
 - [CPU integration](../../integrations/cairo_cpu/README.md)
 - [Metal integration](../../integrations/cairo_metal/README.md)
 - [CUDA integration and H200 qualification](../../integrations/cairo_cuda/README.md)
 - [Repository Cairo guide](../../../README.md#cairo-frontend)
-- [Package-workspace audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
+- [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 
 ## Retained optimization history (September 2026)
 

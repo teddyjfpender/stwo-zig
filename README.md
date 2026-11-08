@@ -121,7 +121,7 @@ The archives, `index.json`, and `SHA256SUMS` are written to
 `zig-out/packages/`. They exclude guest sources, Rust tools, Lean workspaces,
 vectors, and deferred CUDA payloads while retaining every source and device
 asset required by the selected package closure. See the
-[package release policy](conformance/zig-package-release-policy.md).
+[package release policy](design/repository/zig-package-release-policy.md).
 
 The root build is a compatibility dispatcher. Product construction lives under
 `build_support/products/`, backend integration under `build_support/backends/`,
@@ -149,7 +149,7 @@ from this quick list:
 | CUDA integrations | [`stwo_native_cuda_integration`](src/integrations/native_cuda/README.md), [`stwo_cairo_cuda_integration`](src/integrations/cairo_cuda/README.md) |
 
 The workspace checker rejects a missing or contract-stale package README. The
-[two-pass documentation review](conformance/2026-07-28-package-readme-review.md)
+[two-pass documentation review](design/decisions/2026-07-28-package-readme-review.md)
 records the technical and editorial acceptance criteria.
 
 ## Prove
@@ -301,13 +301,13 @@ python3 scripts/install_hooks.py
 | :--- | :--- |
 | **[Conformance](conformance/upstream.md)** | Pinned oracle revisions, API parity ledger, and the source-conformance baseline |
 | **[RISC-V Sail contract](conformance/2026-07-26-riscv-sail-contract.md)** | Normative executable ISA authority and fail-closed evidence contract |
-| **[RISC-V verification status](soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md)** | Normative theorem boundary, claim ledger, and remaining FV roadmap |
-| **[Soundness evidence log](soundness/ROADMAP.md)** | Dated adversarial findings, fixes, and supporting engineering evidence |
-| **[Independent proof validation](soundness/INDEPENDENT_PROOF_SYSTEM_VALIDATION.md)** | Second-verifier, mutation-corpus, and external PCS/FRI/Fiat–Shamir review scope |
-| **[Production repository scope](conformance/repository-production-scope.md)** | Published Zig boundary and staged Rust, Lean, CUDA, and research extraction policy |
-| **[Package publishing](conformance/zig-package-release-policy.md)** | Deterministic source archives, clean-room gates, checksums, and release workflow |
+| **[RISC-V verification status](design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md)** | Normative theorem boundary, claim ledger, and remaining FV roadmap |
+| **[Soundness evidence log](design/soundness/ROADMAP.md)** | Dated adversarial findings, fixes, and supporting engineering evidence |
+| **[Independent proof validation](design/soundness/INDEPENDENT_PROOF_SYSTEM_VALIDATION.md)** | Second-verifier, mutation-corpus, and external PCS/FRI/Fiat–Shamir review scope |
+| **[Production repository scope](design/repository/repository-production-scope.md)** | Published Zig boundary and staged Rust, Lean, CUDA, and research extraction policy |
+| **[Package publishing](design/repository/zig-package-release-policy.md)** | Deterministic source archives, clean-room gates, checksums, and release workflow |
 | **[Benchmark dashboard](bench/README.md)** | Formal CPU/SIMD and Metal results with commit, machine, capture time, and oracle provenance |
-| **[Benchmark history](vectors/reports/benchmark_history/index.json)** | Immutable judged runs, deltas, and bundles under human-readable run ids |
+| **[Benchmark history](bench/history/index.json)** | Immutable judged runs, deltas, and bundles under human-readable run ids |
 | **[Performance tooling](tools/perf/stwo-prof)** | `stwo-prof` Zig/Metal/CUDA isolation and profiling CLI plus frozen paired statistics; not installed in production CI |
 | **Design archive** | Prose architecture and history live in the sibling `stwo-zig-og-docs` directory |
 | **[Contributing](CONTRIBUTING.md)** | Zig, SIMD, Metal, correctness, and engineering standards |

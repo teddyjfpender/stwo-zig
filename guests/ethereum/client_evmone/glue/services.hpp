@@ -14,7 +14,7 @@
 //   0x0003_0021 arith256_mod on a 32-byte aligned 20-word packet a, b, c, m, r
 //   0x0003_0001 memcpy / 0x0003_0002 memset on an 8-aligned packet dst, src|byte, len with
 //   dst/src 8-aligned, len a nonzero multiple of 8 up to 1 MiB, packet/src/dst disjoint
-//   (design/riscv-proving-stack/rv64-{sha256,arith256,bulk-memory}-service.md).
+//   (design/riscv/rv64-{sha256,arith256,bulk-memory}-service.md).
 // All registers are preserved; only the packet changes.
 //
 // Host builds (STWO_HOST) emulate every service in software so the same glue

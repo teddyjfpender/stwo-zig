@@ -28,8 +28,8 @@ another laptop worktree to build a different component. The gate owns its GPU
 lock. The regression command covers the complete basket unless a diagnostic
 subset is explicitly selected; subset evidence is not a basket pass.
 
-Spec: `design/riscv-proving-stack/rv64-m8-job-architecture.md`. The current
-[resource and development contract](../../../../../design/riscv-proving-stack/rv64-gpu-hygiene.md)
+Spec: `design/riscv/rv64-m8-job-architecture.md`. The current
+[resource and development contract](../../../../../design/riscv/rv64-gpu-hygiene.md)
 defines ownership, validation and cleanup acceptance. The native request path
 is selected explicitly with `STWO_RV64_M8_GPU_NATIVE=1`; it remains default-off.
 Legacy construction is still used during installation, and the default path
@@ -64,7 +64,7 @@ has an owner and remains until a fully qualified replacement exists.
 | `mod.zig` | `combined-serve` entry: selection, workers, boot self-test and provider |
 | `lint.zig` | sync lint: no sync/D2H/lease symbol reachable (file level, transitive) from job sources |
 | `fake.zig` | host device model for GPU-free tests (`zig build test-rv64-jobs`) |
-| `gpu_native.zig` | GPU-native request contract (`design/riscv-proving-stack/rv64-m8-gpu-native.md`): status words, request slab, peer exchange, class cache, device checks/encoders, memory plan, capture hand-off, factories, `publish` |
+| `gpu_native.zig` | GPU-native request contract (`design/riscv/rv64-m8-gpu-native.md`): status words, request slab, peer exchange, class cache, device checks/encoders, memory plan, capture hand-off, factories, `publish` |
 | `driver.zig` / `native_device.zig` / `truth_job.zig` | installed GPU-native driver, native segments and truth jobs |
 | `outer_device.zig` | installed recursion authority registry and counted class-plan pins |
 | `outer_node_job.zig` | per-request node construction, custody, execution and settlement |

@@ -112,7 +112,7 @@ shadow/profile evidence only. Production activation is explicitly
   degrees.
 - `m3-compat-v1/*.stwairc` are the 17 canonical section-framed binary
   identities described by
-  [ADR-0017](../decisions/0017-sectioned-compatibility-manifests.md).
+  [ADR-0017](../../../../../../design/typed-air/decisions/0017-sectioned-compatibility-manifests.md).
 
 Each `STWAIRC\0` version-1 binary has seven ordered, length-framed sections:
 identity, physical layout, direct runtime program and roots, lookup runtime
@@ -148,7 +148,7 @@ protocol object.
 
 The exact clean-snapshot commands, tool versions, aggregate identities, proof
 results, and deliberately open release gates are recorded separately in the
-[M3 milestone receipt](../receipts/m3-compatibility-v1.json). The receipt does
+[M3 milestone receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/m3-compatibility-v1.json). The receipt does
 not change or supersede these compatibility artifacts.
 
 ### Current M3 receipt readiness

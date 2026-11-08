@@ -1,4 +1,4 @@
-//! M8 GPU-native request contract (design/riscv-proving-stack/rv64-m8-gpu-native.md).
+//! M8 GPU-native request contract (design/riscv/rv64-m8-gpu-native.md).
 //!
 //! Under STWO_RV64_M8_JOBS=1 the end-state request is: capture streams trace
 //! chunks (the only CPU compute on the request path, overlapping proving) ->

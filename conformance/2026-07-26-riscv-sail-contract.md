@@ -147,7 +147,7 @@ to operand bit 31 and constrains the complete eight-byte two's-complement
 product recurrence.
 
 The machine-proof implementation plan for this universal implication is
-[`soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
+[`design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
 It closes only the local AIR-to-Sail premise; the accepted-proof reduction and
 independent proof-system validation remain separate obligations.
 

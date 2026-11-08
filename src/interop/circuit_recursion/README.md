@@ -20,7 +20,7 @@ bytes the Rust would write for it.
 
 The [package contract](package.contract.json) and [public facade](mod.zig) are
 the authoritative API records. The port's design is
-[`02-design.md`](../../../design/starknet-proving-pipeline/recursion/02-design.md)
+[`02-design.md`](../../../design/starknet/recursion/02-design.md)
 (section 2.3).
 
 ## Purpose and boundaries
@@ -160,7 +160,7 @@ from the repository root and round-trips the upstream goldens copied into
 
 ## Related documentation
 
-- [Circuit recursion design](../../../design/starknet-proving-pipeline/recursion/02-design.md)
-- [Rust porting map](../../../design/starknet-proving-pipeline/recursion/01-rust-map.md)
+- [Circuit recursion design](../../../design/starknet/recursion/02-design.md)
+- [Rust porting map](../../../design/starknet/recursion/01-rust-map.md)
 - [Circuit recursion fixtures](../../../vectors/circuit/README.md)
 - [Proof interchange package](../proof_wire/README.md)

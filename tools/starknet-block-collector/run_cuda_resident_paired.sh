@@ -19,7 +19,7 @@ adapted=$(cd "$1" && pwd)
 mkdir -p "$2"
 output=$(cd "$2" && pwd)
 prover=${STWO_CIRCUIT_CUDA_PROVER:-$root/zig-out/bin/stwo-circuit-recursion-cuda}
-reference="$root/vectors/circuit/cuda-resident-pipeline-h100-20261001/receipt.json"
+reference="$root/vectors/starknet/cuda-resident-pipeline-h100-20261001/receipt.json"
 if [[ ! -x "$prover" ]]; then
   echo "resident CUDA prover is missing: $prover" >&2
   exit 2

@@ -114,5 +114,5 @@ session safety, bounded residency, allocation rollback, and zero fallback.
 - [Cairo frontend](../../frontends/cairo/README.md)
 - [Metal backend](../../backends/metal/README.md)
 - [Metal session service](../../tools/metal_session/README.md)
-- [Cairo production-port goal](../../../conformance/2026-07-26-stwo-cairo-production-port-goal.md)
+- [Cairo production-port goal](../../../design/decisions/2026-07-26-stwo-cairo-production-port-goal.md)
 - [Repository AOT instructions](../../../README.md#cairo-frontend)

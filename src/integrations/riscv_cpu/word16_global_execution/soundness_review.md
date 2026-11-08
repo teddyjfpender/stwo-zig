@@ -96,7 +96,7 @@ addition and final carry0 prohibit wraparound accesses.
 The LS48 interaction encoding removes only ranges implied by independent write anchors, REG/ROM binding
 and the closed RAM DAG. The precise noncircular induction, retained query list,
 caller assumptions and counterexamples are in
-`design/riscv-proving-stack/rv64-ls-canonical-range-induction.md`. All gap ranges,
+`design/riscv/rv64-ls-canonical-range-induction.md`. All gap ranges,
 after-clock limbs and load-result/write-value anchors remain. A bare LS proof
 without OWNER/RAM closure does not establish those inherited facts. The later
 LS79-to-LS71 MAIN projection removes eight affine copies by exact substitution;
@@ -139,13 +139,13 @@ m = 0 forgeries, non-canonical limbs, carry forgery, forged Wire35/RAM/OWNER
 data in real proofs, and absent/foreign bridges at a fresh receiver; the v2
 fixture bundle is byte-identical to the pre-v3 base. Not established: a
 block-scale proof with a guest using the tag, and recursion support. Details:
-`design/riscv-proving-stack/rv64-arith256-service.md`.
+`design/riscv/rv64-arith256-service.md`.
 ## Admitted bulk memory (ethereum_services_v3)
 
 Tags 0x30001 (memcpy) and 0x30002 (memset) are admitted by three bridge
 components inside the issuing CPU proof (`desc`, `copy`, `set`;
 `src/frontends/riscv/rv64/air/delegations/bulk_memory`). Full argument, layout,
-masses and tests: `design/riscv-proving-stack/rv64-bulk-memory-service.md`.
+masses and tests: `design/riscv/rv64-bulk-memory-service.md`.
 Obligations this receiver relies on:
 
 - The desc row consumes the CPU OWNER19 ECALL tuple (Boolean `active`), binding
@@ -241,7 +241,7 @@ finite limits, not unbounded-execution claims.
 
 ## SHA-256 compression (`ethereum_services_v3`)
 
-Design and evidence: `design/riscv-proving-stack/rv64-sha256-service.md`.
+Design and evidence: `design/riscv/rv64-sha256-service.md`.
 
 SHA-256 is Wire35 program kind 3 and services `Family.sha256 = 3`, appended
 after the v2 roster. A v2 bundle is byte-identical with or without this code.
@@ -291,7 +291,7 @@ after the v2 roster. A v2 bundle is byte-identical with or without this code.
 
 ## Keccak-256 sponge (`ethereum_services_v3`, tag 0x30130)
 
-Full argument: `design/riscv-proving-stack/rv64-keccak-sponge-service.md` §4.
+Full argument: `design/riscv/rv64-keccak-sponge-service.md` §4.
 
 - **Shape.** Two bridge components in the issuing CPU proof (`call`: one row
   per ECALL; `perm`: one row per permutation, a contiguous run per call). The

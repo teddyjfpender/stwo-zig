@@ -22,7 +22,7 @@
 # fresh Sail regeneration and the cross-project Lean build run in the separate
 # hosted `riscv-sail-formal.yml` workflow. Full fetch/interrupt/trap/counter and
 # later-step framing remains open (see
-# soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
+# design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
 
 name: RISC-V formal refinement
 
@@ -64,11 +64,11 @@ on:
       - "build_support/**"
       - "src/core/**"
       - "src/frontends/riscv/**"
-      - "soundness/AIR_IR_V2_CONTRACT.md"
-      - "soundness/SAIL_AIR_COMPOSITION.md"
-      - "soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md"
-      - "soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md"
-      - "soundness/air-ir-v2.schema.json"
+      - "design/soundness/AIR_IR_V2_CONTRACT.md"
+      - "design/soundness/SAIL_AIR_COMPOSITION.md"
+      - "design/soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md"
+      - "design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md"
+      - "conformance/schemas/air-ir-v2.schema.json"
       - ".github/workflows/riscv-refinement.yml"
   push:
     branches: ["main"]

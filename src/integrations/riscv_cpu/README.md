@@ -28,7 +28,7 @@ For repeated verification, retain `PreparedSetup`, independently derived from
 expected program/path/final-PC bytes; request state and transcript stay fresh.
 Run `zig build test-riscv64-air test-riscv64-proof -Doptimize=ReleaseSafe` from
 the repository root. This separate bounded profile is not the released ELF/CSP
-or OP guest proof route. See [the AIR contract](../../../design/riscv-proving-stack/rv64-air.md).
+or OP guest proof route. See [the AIR contract](../../../design/riscv/rv64-air.md).
 
 The experimental [`rv64_full`](rv64_full.zig) API admits one complete execution
 in one shared PCS/composition/FRI proof. Its immutable program ROM and byte/AND/
@@ -48,7 +48,7 @@ Build `rv64-csp-full` and `rv64-full-verify` with
 and `--report`; `--prover` and `--verifier` allow immutable measured binaries.
 `--profile-only` explicitly does not establish a proof. The driver independently
 checks expected ELF/input/output authority and runs the receiver in a new process.
-The [17-case comparison CSV](../../../vectors/reports/rv64-qualification-20261030/csp-full-comparison.csv)
+The [17-case comparison CSV](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-qualification-20261030/csp-full-comparison.csv)
 records serial/parallel measurements; all 17 statement, claim and proof byte
 streams match exactly. Focused tests are `test-riscv64-air`,
 `test-riscv64-program`, `test-riscv64-program-proof`, `test-riscv64-providers`,
@@ -58,13 +58,13 @@ streams match exactly. Focused tests are `test-riscv64-air`,
 
 Whole-prover profiling is enabled with `--profile-stages` in the CSP driver.
 It uses the shared stage recorder without task/work capture and preserves the
-exact transcript and proof. The [performance comparison](../../../vectors/reports/rv64-performance-20261030/comparison.csv)
+exact transcript and proof. The [performance comparison](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-20261030/comparison.csv)
 records all 17 cases, checked against equal input, geometry, security, worker
 count and serialized proof bytes. Full ECDSA now takes approximately 21 seconds
-end to end on the measured host. See the [study](../../../vectors/reports/rv64-performance-20261030/README.md)
+end to end on the measured host. See the [study](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-20261030/README.md)
 for attribution, repeat ranges and the remaining constraint-row cost.
 
-The [second performance round](../../../vectors/reports/rv64-performance-round2-20261030/README.md)
+The [second performance round](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/vectors/reports/rv64-performance-round2-20261030/README.md)
 retains universal memory-polynomial factoring and an owned main-witness handoff
 to PCS. All 17 statements, claims and proofs remain byte-identical. ECDSA takes
 about 19.6 seconds in the matched suite; composition still sets the 12.78 GiB
