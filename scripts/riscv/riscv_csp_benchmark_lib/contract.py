@@ -13,7 +13,7 @@ from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = ROOT / "vectors" / "riscv_csp" / "manifest-v2.json"
-DEFAULT_REPORT = ROOT / "vectors/riscv/csp/riscv_csp_benchmark_report.json"
+DEFAULT_REPORT = ROOT / "vectors/riscv/csp/historical-benchmark-report.json"
 DEFAULT_CLI = ROOT / "zig-out" / "bin" / "stwo-zig-riscv-cpu"
 DEFAULT_TRACE_CLI = ROOT / "zig-out" / "bin" / "riscv-trace-dump"
 

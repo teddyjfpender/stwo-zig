@@ -12,7 +12,7 @@
       ]
     },
     "vectors/cairo": {
-      "files": 11,
+      "files": 122,
       "consumers": [
         ".github/workflows/ci.yml",
         "build_support/backends/cuda_aot.zig",
@@ -262,7 +262,7 @@
       ]
     },
     "vectors/circuit": {
-      "files": 2,
+      "files": 83,
       "consumers": [
         "build_support/products/cairo_cuda.zig",
         "build_support/products/circuit_recursion_cpu.zig",
@@ -539,7 +539,7 @@
       ]
     },
     "vectors/riscv/csp": {
-      "files": 1,
+      "files": 2,
       "consumers": []
     },
     "vectors/riscv/fixtures": {
@@ -559,7 +559,7 @@
       ]
     },
     "vectors/riscv/rv64": {
-      "files": 21,
+      "files": 23,
       "consumers": [
         "conformance/rv64im-foundations-v1.json",
         "scripts/rv64/riscv64_foundations_benchmark.py",
