@@ -69,8 +69,12 @@ def statement_outputs(statement):
     if statement["next_origin_number"] > statement["anchor_number"]:
         raise ValueError("next origin exceeds the L1 anchor")
     suffix = b"\x01" + encoded[0]
-    derivation = hashlib.sha256(b"stwo/opstack/anchored-transition/v1\0" + b"".join(encoded))
-    execution = hashlib.sha256(b"stwo/opstack/execution-range/v1\0" + b"".join(encoded[-2:]))
+    derivation = hashlib.sha256(
+        b"stwo/opstack/anchored-transition/v1\0" + b"".join(encoded)
+    )
+    execution = hashlib.sha256(
+        b"stwo/opstack/execution-range/v1\0" + b"".join(encoded[-2:])
+    )
     return derivation.digest() + suffix + b"OD", execution.digest() + suffix + b"OP"
 
 
@@ -78,7 +82,9 @@ def wire_bytes(value, length):
     # Zig JSON encodes [N]u8 as a string when the bytes are valid UTF-8.
     if isinstance(value, str):
         value = value.encode()
-    elif isinstance(value, list) and all(type(x) is int and 0 <= x < 256 for x in value):
+    elif isinstance(value, list) and all(
+        type(x) is int and 0 <= x < 256 for x in value
+    ):
         value = bytes(value)
     if not isinstance(value, bytes) or len(value) != length:
         raise ValueError("invalid receiver byte string")
@@ -111,7 +117,9 @@ def admit_receipt(report, expected_output):
         or tree.get("outer_backend") != "cpu_trace_only_receiver"
         or tree.get("assignment_source") != "none_receiver_trace_only"
     ):
-        raise ValueError("recursive receipt does not match the pinned statement and profile")
+        raise ValueError(
+            "recursive receipt does not match the pinned statement and profile"
+        )
     cpu, truth = native["cpu_proofs"], native["truth_proofs"]
     leaves, folds = tree["leaf_proofs"], tree["fold_proofs"]
     for count in (cpu, truth, leaves, folds, tree["root_proof_bytes"]):
@@ -142,7 +150,9 @@ def admit_receipt(report, expected_output):
 
 
 def verify(args):
-    proof_dirs = [p.resolve(strict=True) for p in (args.derivation_proof, args.execution_proof)]
+    proof_dirs = [
+        p.resolve(strict=True) for p in (args.derivation_proof, args.execution_proof)
+    ]
     if any(not p.is_dir() for p in proof_dirs) or proof_dirs[0] == proof_dirs[1]:
         raise ValueError("derivation and execution must use distinct proof directories")
     runner = args.runner.resolve(strict=True)
@@ -151,14 +161,18 @@ def verify(args):
         for p in (args.statement, args.derivation_request, args.execution_request)
     ]
     if any(p.is_relative_to(d) for p in [runner, *authority_paths] for d in proof_dirs):
-        raise ValueError("receiver authority must be separate from the proof directories")
+        raise ValueError(
+            "receiver authority must be separate from the proof directories"
+        )
     _, statement = read_object(authority_paths[0], 16_384)
     outputs = statement_outputs(statement)
     requests = [read_object(p, 16_384) for p in authority_paths[1:]]
     program_ids = []
     for (_, request), output in zip(requests, outputs, strict=True):
         if request.get("expected_output") != output.hex():
-            raise ValueError("request output does not match the anchored transition statement")
+            raise ValueError(
+                "request output does not match the anchored transition statement"
+            )
         for field in ("elf", "input"):
             path = request.get(field)
             if not isinstance(path, str) or not Path(path).is_absolute():
@@ -178,11 +192,18 @@ def verify(args):
             request_path = Path(work) / f"{name}.json"
             request_path.write_bytes(raw)
             command = [
-                str(runner), "--security-profile", NATIVE_PROFILE,
-                "verify-recursion-candidate", str(request_path), str(proof),
-                str(args.fixed_setup_bytes), str(args.receiver_bytes),
+                str(runner),
+                "--security-profile",
+                NATIVE_PROFILE,
+                "verify-recursion-candidate",
+                str(request_path),
+                str(proof),
+                str(args.fixed_setup_bytes),
+                str(args.receiver_bytes),
             ]
-            result = subprocess.run(command, stdout=subprocess.PIPE, check=True, timeout=args.timeout)
+            result = subprocess.run(
+                command, stdout=subprocess.PIPE, check=True, timeout=args.timeout
+            )
             receipts[name] = {
                 **admit_receipt(json.loads(result.stdout), output),
                 "elf_sha256": request["elf_sha256"],
@@ -201,7 +222,14 @@ def verify(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for option in ("runner", "statement", "derivation-request", "derivation-proof", "execution-request", "execution-proof"):
+    for option in (
+        "runner",
+        "statement",
+        "derivation-request",
+        "derivation-proof",
+        "execution-request",
+        "execution-proof",
+    ):
         parser.add_argument("--" + option, required=True, type=Path)
     parser.add_argument("--fixed-setup-bytes", required=True, type=int)
     parser.add_argument("--receiver-bytes", required=True, type=int)
@@ -211,7 +239,13 @@ def main():
         parser.error("invalid receiver budgets or timeout")
     try:
         print(json.dumps(verify(args), indent=2))
-    except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as error:
+    except (
+        ValueError,
+        OSError,
+        KeyError,
+        TypeError,
+        subprocess.SubprocessError,
+    ) as error:
         parser.exit(1, f"recursive transition rejected: {error}\n")
 
 

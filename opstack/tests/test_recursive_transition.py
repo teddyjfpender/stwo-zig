@@ -10,7 +10,6 @@ from unittest.mock import patch
 
 from opstack import recursive_transition as transition
 
-
 STATEMENT = {
     "schema": transition.STATEMENT,
     "chain_id": 10,
@@ -65,19 +64,41 @@ def receipt(output):
 class RecursiveTransitionTests(unittest.TestCase):
     def test_cross_language_encoding_and_shared_fields(self):
         derivation, execution = transition.statement_outputs(STATEMENT)
-        self.assertEqual(derivation.hex(), "79dc71b2ef04d3b09ab72857909758cc2d94b77d82907b8568d187e7b529ba72010a000000000000004f44")
-        self.assertEqual(execution.hex(), "a1070315845855c79cb5c43f2782fa954672205424a5b42a47d1962a0ca2a9ca010a000000000000004f50")
-        for field in ("anchor_hash", "previous_root", "next_root", "next_origin_hash", "payload_commitment", "block_hash"):
+        self.assertEqual(
+            derivation.hex(),
+            "79dc71b2ef04d3b09ab72857909758cc2d94b77d82907b8568d187e7b529ba72010a000000000000004f44",
+        )
+        self.assertEqual(
+            execution.hex(),
+            "a1070315845855c79cb5c43f2782fa954672205424a5b42a47d1962a0ca2a9ca010a000000000000004f50",
+        )
+        for field in (
+            "anchor_hash",
+            "previous_root",
+            "next_root",
+            "next_origin_hash",
+            "payload_commitment",
+            "block_hash",
+        ):
             changed = transition.statement_outputs({**STATEMENT, field: "08" * 32})
             self.assertNotEqual(changed[0], derivation)
-            self.assertEqual(changed[1] != execution, field in {"payload_commitment", "block_hash"})
-        for changes in ({"chain_id": 8453}, {"l1_chain_id": True}, {"next_number": 202}, {"anchor_number": 98}):
+            self.assertEqual(
+                changed[1] != execution, field in {"payload_commitment", "block_hash"}
+            )
+        for changes in (
+            {"chain_id": 8453},
+            {"l1_chain_id": True},
+            {"next_number": 202},
+            {"anchor_number": 98},
+        ):
             with self.assertRaises(ValueError):
                 transition.statement_outputs({**STATEMENT, **changes})
 
     def test_native_only_or_incomplete_tree_is_not_admitted(self):
         output = transition.statement_outputs(STATEMENT)[1]
-        self.assertEqual(transition.admit_receipt(receipt(output), output)["service_proofs"], 2)
+        self.assertEqual(
+            transition.admit_receipt(receipt(output), output)["service_proofs"], 2
+        )
         native_only = receipt(output)
         del native_only["existing_recursive_proofs_only"]
         with self.assertRaises(ValueError):
@@ -92,34 +113,64 @@ class RecursiveTransitionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
             args = argparse.Namespace(
-                runner=base / "runner", statement=base / "statement.json",
-                derivation_request=base / "derivation.json", execution_request=base / "execution.json",
-                derivation_proof=base / "derivation", execution_proof=base / "execution",
-                fixed_setup_bytes=10, receiver_bytes=20, timeout=30,
+                runner=base / "runner",
+                statement=base / "statement.json",
+                derivation_request=base / "derivation.json",
+                execution_request=base / "execution.json",
+                derivation_proof=base / "derivation",
+                execution_proof=base / "execution",
+                fixed_setup_bytes=10,
+                receiver_bytes=20,
+                timeout=30,
             )
             args.runner.touch()
             args.statement.write_text(json.dumps(STATEMENT))
-            for name, output, program in zip(("derivation", "execution"), outputs, ("ab", "cd"), strict=True):
+            for name, output, program in zip(
+                ("derivation", "execution"), outputs, ("ab", "cd"), strict=True
+            ):
                 getattr(args, name + "_proof").mkdir()
-                getattr(args, name + "_request").write_text(json.dumps({
-                    "elf": str(base / f"{name}.elf"), "input": str(base / f"{name}.opx"),
-                    "expected_output": output.hex(), "elf_sha256": program * 32,
-                    "input_sha256": "ef" * 32,
-                }))
-            received = [subprocess.CompletedProcess([], 0, json.dumps(receipt(o))) for o in outputs]
-            with patch.object(transition.subprocess, "run", side_effect=received) as run:
+                getattr(args, name + "_request").write_text(
+                    json.dumps(
+                        {
+                            "elf": str(base / f"{name}.elf"),
+                            "input": str(base / f"{name}.opx"),
+                            "expected_output": output.hex(),
+                            "elf_sha256": program * 32,
+                            "input_sha256": "ef" * 32,
+                        }
+                    )
+                )
+            received = [
+                subprocess.CompletedProcess([], 0, json.dumps(receipt(o)))
+                for o in outputs
+            ]
+            with patch.object(
+                transition.subprocess, "run", side_effect=received
+            ) as run:
                 self.assertTrue(transition.verify(args)["accepted"])
-                self.assertEqual([call.args[0][3] for call in run.call_args_list], ["verify-recursion-candidate"] * 2)
+                self.assertEqual(
+                    [call.args[0][3] for call in run.call_args_list],
+                    ["verify-recursion-candidate"] * 2,
+                )
             corrupt = subprocess.CalledProcessError(1, "verify-recursion-candidate")
-            with patch.object(transition.subprocess, "run", side_effect=[received[0], corrupt]):
-                with self.assertRaises(subprocess.CalledProcessError):
-                    transition.verify(args)
+            with (
+                patch.object(
+                    transition.subprocess, "run", side_effect=[received[0], corrupt]
+                ),
+                self.assertRaises(subprocess.CalledProcessError),
+            ):
+                transition.verify(args)
             raw_request = args.execution_request.read_text()
-            args.execution_request.write_text(json.dumps({**json.loads(raw_request), "input": "relative.opx"}))
+            args.execution_request.write_text(
+                json.dumps({**json.loads(raw_request), "input": "relative.opx"})
+            )
             with self.assertRaisesRegex(ValueError, "path must be absolute"):
                 transition.verify(args)
             args.execution_request.write_text(raw_request)
-            args.derivation_request, args.execution_request = args.execution_request, args.derivation_request
+            args.derivation_request, args.execution_request = (
+                args.execution_request,
+                args.derivation_request,
+            )
             with patch.object(transition.subprocess, "run") as run:
                 with self.assertRaisesRegex(ValueError, "request output"):
                     transition.verify(args)

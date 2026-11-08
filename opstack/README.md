@@ -221,6 +221,11 @@ checks the complete block and exact pinned output with CUDA disabled. GPU
 event spans can overlap, and sampled device memory includes other processes.
 This path measures native proofs, without recursion or L1 derivation.
 
+Use `--repeat 2` to measure cold and warm requests in one resident process.
+The warm trial must reproduce the independently accepted cold bundle byte for
+byte. Reported producer throughput includes process startup and teardown.
+The independent receiver's wall time is recorded separately.
+
 For block **121065789**, use a separate `canonical-glv-hinted` build and
 `benchmark.py --pairing-hints --blocks 121065789 --oracle --profile
 ethereum_services_v3` to reproduce the 425,529,933-instruction input. Start

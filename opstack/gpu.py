@@ -109,6 +109,13 @@ def main():
     parser.add_argument("--device-cap-bytes", type=int, default=28 << 30)
     parser.add_argument("--workers", type=int, choices=range(1, 33), default=8)
     parser.add_argument("--batch-steps", type=int)
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        choices=(1, 2),
+        default=1,
+        help="run a second warm request in the same process and require exact bundle parity",
+    )
     parser.add_argument("--plan-timeout", type=int, default=3600)
     parser.add_argument(
         "--prepare-only",
@@ -184,6 +191,7 @@ def main():
         "devices": args.devices,
         "device_cap_bytes": args.device_cap_bytes,
         "batch_steps": config["batch_steps"],
+        "repeat": args.repeat,
         "status": "planning",
     }
     summary = root / "summary.json"
@@ -245,7 +253,7 @@ def main():
         plan = {
             "schema": resident.SCHEMA,
             "profile": PROFILE,
-            "repeat": 1,
+            "repeat": args.repeat,
             "assets": assets,
             "asset_sha256": pins,
             "device_cap_bytes": args.device_cap_bytes,
@@ -263,11 +271,16 @@ def main():
         result = resident.qualify_job(plan, job, pending)
         report = basket.load(root / "case" / "receiver-0.stdout")
         accept(report, config["expected_output"])
-        trial = result["trials"][0]
+        trials = result["trials"]
         if (
-            trial["instructions"] != instructions
+            len(trials) != args.repeat
             or report["cpu_proofs"] != segments
-            or report["truth_proofs"] != trial["truths"]
+            or any(
+                trial["instructions"] != instructions
+                or trial["segments"] != segments
+                or trial["truths"] != report["truth_proofs"]
+                for trial in trials
+            )
         ):
             raise ValueError(
                 "CUDA producer and fresh receiver coverage disagree with the complete execution"
@@ -276,6 +289,10 @@ def main():
         receipt.update(
             status="accepted",
             proof_verified=True,
+            accepted_trials=len(trials),
+            producer_blocks_per_second=(
+                len(trials) * 1e9 / result["producer_process"]["wall_ns"]
+            ),
             result_sha256=basket.sha(root / "case" / "result.json"),
         )
     except (OSError, RuntimeError, ValueError) as error:
