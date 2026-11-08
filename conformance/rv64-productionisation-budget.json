@@ -433,6 +433,13 @@
       "positive_growth_justification": "Move prover-returning X0 program adapters from the generic envelope into existing runtime_program extraction owner and migrate actual callers and assertions together. Repair exact std-only identity and retired build-owner references, while preserving product-closure exclusions and boundary mutations. No blanket allowlist expansion; moves receive zero deletion credit. Detached CPU fixture publication remains a separate ownership fix.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "guarded_sampled_device_memory_evidence",
+      "net_code_budget": 150,
+      "positive_growth_justification": "Bind the existing whole-device GPU sampler to verified guard-held service/request intervals and immutable receipts. Preserve separate GPU identities, sampled maxima and coverage through validation and bench aggregation; fail closed for missing new acceptance evidence without treating old receipts as measured. Preserve guard cleanup on sampler failures and all existing proof/CPU/quiet checks. No new collector, CUDA rebuild, flags or launcher.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

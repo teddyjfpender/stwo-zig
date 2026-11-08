@@ -200,7 +200,7 @@ pub const Service = struct {
             // A whole segment must fit before it can release its Stage1.
             // Reserve one such segment per in-flight capture (two parities).
             var largest: u64 = 0;
-            var classes = driver.classes.map.valueIterator();
+            var classes = driver.resources.classes.map.valueIterator();
             while (classes.next()) |cl| largest = @max(largest, cl.*.capture_words);
             const slots = try std.math.divCeil(u64, largest, ring_config.words);
             ring_buffers = @max(ring_buffers, std.math.cast(usize, try std.math.mul(u64, slots, 2)) orelse return error.InvalidCaptureRing);

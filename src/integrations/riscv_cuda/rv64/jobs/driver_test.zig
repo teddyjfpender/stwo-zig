@@ -677,7 +677,7 @@ test "D1: install sizes main_resident per GPU from placement, and plans against 
     var world = World{ .a = testing.allocator };
     var rig = try Rig.init(&world);
     // max_segments 8 on 2 GPUs: at most 4 segments' MAIN per GPU.
-    for (rig.driver.lanes) |l| try testing.expectEqual(@as(usize, 4 * main_words), l.main.words);
+    for (rig.driver.resources.lanes) |l| try testing.expectEqual(@as(usize, 4 * main_words), l.main.words);
     rig.deinit();
     // A GPU another tenant holds: the plan refuses at install with the numbers.
     const saved = F.memory_free_bytes;
@@ -806,8 +806,8 @@ test "D1: the installed hook sees the plan (main_resident, phase epochs) before 
     const info = world.installed_info.?;
     try testing.expectEqual(@as(u32, 2), info.devices);
     try testing.expectEqual(false, world.installed_sealed.?);
-    try testing.expect(drv.classes.phase == .request);
-    for (drv.lanes, 0..) |l, d| {
+    try testing.expect(drv.resources.classes.phase == .request);
+    for (drv.resources.lanes, 0..) |l, d| {
         try testing.expectEqual(l.main.ptr, info.main_resident[d].ptr);
         try testing.expectEqual(ws[d].planPhaseEpochs(), info.arena_epochs[d]);
     }
@@ -1104,6 +1104,27 @@ fn serviceConfig() R.Config {
     return .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15, .stage_one_base_bytes = 512 };
 }
 
+test "driver: installation ownership rolls back every installation allocator failure" {
+    const Attempt = struct {
+        fn run(a: std.mem.Allocator, worker: *W.Worker, world: *World) !void {
+            // A completed install retires its arena; each attempt starts with
+            // the same borrowed worker rather than transferring its lifetime.
+            if (worker.isParked()) _ = try worker.unpark(1 << 10);
+            var config = serviceConfig();
+            config.capacity_words = &.{1 << 20};
+            const driver = try R.Driver.install(a, &F.ops, &F.peer, &.{worker}, world.nativeFactory(), world.recursionFactory(), config);
+            defer driver.deinit();
+            try testing.expect(driver.resources.ready);
+            try testing.expect(driver.resources.classes.phase == .request);
+        }
+    };
+    const a = testing.allocator;
+    var world = World{ .a = a };
+    const worker = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer worker.destroy();
+    try testing.checkAllAllocationFailures(a, Attempt.run, .{ worker, &world });
+}
+
 test "driver: malformed class reservations refuse before request resources allocate" {
     const Malformed = struct {
         var main = false;
@@ -1219,8 +1240,8 @@ test "driver: resource probe respects physical and configured capacity after all
         } else {
             const driver = try installed;
             defer driver.deinit();
-            try testing.expectEqual(@as(usize, 256), (try driver.classes.get(k_native)).arena_peak_words);
-            try testing.expect(driver.lanes[0].plan.phase_a_words < 1 << 19);
+            try testing.expectEqual(@as(usize, 256), (try driver.resources.classes.get(k_native)).arena_peak_words);
+            try testing.expect(driver.resources.lanes[0].plan.phase_a_words < 1 << 19);
         }
         try testing.expectEqual(mode != .exhausted and mode != .future_held, Hooks.warmed);
         try testing.expectEqual(mode != .no_probe and mode != .exhausted and mode != .future_held, Hooks.probed);
@@ -1400,8 +1421,8 @@ test "serve: explicit setup waits for quiescence, replans larger geometry and fa
     const setup_ns = try svc.setup(2);
     try testing.expect(setup_ns > 0);
     try testing.expectEqual(previous_generation, svc.driver.generation);
-    try testing.expectEqual(@as(u32, 5), svc.driver.config.max_segments);
-    for (svc.driver.lanes) |lane| try testing.expectEqual(@as(usize, 3 * main_words), lane.main.words);
+    try testing.expectEqual(@as(u32, 5), svc.driver.resources.config.max_segments);
+    for (svc.driver.resources.lanes) |lane| try testing.expectEqual(@as(usize, 3 * main_words), lane.main.words);
     const before = F.counters;
     try testing.expectEqual(@as(u64, 0), try svc.setup(2));
     try testing.expectEqual(before.allocations, F.counters.allocations);

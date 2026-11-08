@@ -3,8 +3,8 @@
 //!
 //! GPU-native is the default; `STWO_RV64_M8_GPU_NATIVE=0` is the temporary reference control.
 //! and the pieces of the JOBS=1 GPU-native request driver:
-//!   driver_request.zig  install (class cache, memory plan, slabs, events) and
-//!                       the request: DAG batches per GPU, ONE host wait, one
+//!   driver_install.zig  installed class cache, memory plans, slabs and events
+//!   driver_request.zig  request: DAG batches per GPU, ONE host wait, one
 //!                       slab D2H per GPU, publication from status words
 //!   driver_dag.zig      request DAG + static placement (+ two-phase marks)
 //!   driver_memory.zig   one two-phase memory plan per GPU
