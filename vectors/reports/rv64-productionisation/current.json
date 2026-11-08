@@ -2500,6 +2500,40 @@
       ],
       "evidence": "external local archive keyed by final commit tree; stwo-delivery-cpu-telemetry-acceptance.json",
       "qualification": "Native macOS CPU component correctness and telemetry regression. No full CPU product, GPU, complete-block, security or timing qualification."
+    },
+    "delivery_poseidon_table_source_owners": {
+      "baseline_commit": "23785b8dd3f4495b149f1810783855c8ed3e4c59",
+      "status": "PASS_EXHAUSTIVE_ROW_LOCAL_CERTIFICATE_AND_NEGATIVES",
+      "code": {
+        "added": 164,
+        "removed": 49,
+        "net": 115,
+        "allowance": 150
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "retained_source_bindings": 20,
+      "added_source_bindings": 8,
+      "refreshed_source_digests": 12,
+      "enumerated_table_rows": 2981888,
+      "unit_tests": {
+        "before": 10,
+        "after": 12,
+        "removed": 0
+      },
+      "all_constructive_audit_bodies_byte_identical": true,
+      "semantic_mutation_cases": 6,
+      "source_conformance_errors": 103,
+      "tooling_surface_check": "FAIL_5_PREEXISTING_SUBTEST_FINDINGS; separate planning/inventory repair needed",
+      "qualification": "Current-source CPU row-local constructive certificate only. No proof-wire verification, bus closure, cross-row or global LogUp soundness, full product, GPU, security or timing qualification.",
+      "evidence": "External local archive keyed by final commit tree; stwo-delivery-poseidon-acceptance.json and row-local-report.json"
     }
   },
   "post_merge_hygiene": {

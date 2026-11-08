@@ -204,6 +204,54 @@ class RiscVPoseidonTableUniquenessTest(unittest.TestCase):
                         checker.verify_source_bindings(copied_root)
                     destination.write_bytes(original)
 
+    def test_extracted_equations_and_forwarders_reject_semantic_mutations(self) -> None:
+        mutations = {
+            "src/frontends/riscv/air/memory_commitment/poseidon2_layout.zig": (
+                'N_TEMPORARIES: usize = 426',
+                'N_TEMPORARIES: usize = 425',
+            ),
+            "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig": (
+                '@import("poseidon2_wide_equations.zig").evaluateGeneric',
+                '@import("unused.zig").evaluateGeneric',
+            ),
+            "src/frontends/riscv/air/lookups/tables/schema_definition.zig": (
+                'if (row == size(kind) - 1)',
+                'if (row == size(kind) - 2)',
+            ),
+            "src/frontends/riscv/air/lookups/tables/verifier.zig": (
+                'return N_CONSTRAINTS;',
+                'return N_CONSTRAINTS + 1;',
+            ),
+            "src/frontends/riscv/air/logup_equations.zig": (
+                's.sub(s_prev).add(is_first.mul(claimed))',
+                's.sub(s_prev).sub(is_first.mul(claimed))',
+            ),
+            "src/frontends/riscv/air/lookups/entry.zig": (
+                'relations.bitwise, self.values[0..4].*',
+                'relations.bitwise, self.values[0..3].*',
+            ),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            copied_root = Path(directory)
+            for relative in checker.SOURCE_BINDINGS:
+                destination = copied_root / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / relative, destination)
+            checker._production_semantic_anchors(copied_root)
+            for relative, (before, after) in mutations.items():
+                with self.subTest(source=relative):
+                    destination = copied_root / relative
+                    original = destination.read_text()
+                    self.assertIn(before, original)
+                    destination.write_text(original.replace(before, after, 1))
+                    with self.assertRaises(checker.AuditError):
+                        checker._production_semantic_anchors(copied_root)
+                    destination.write_text(original)
+
+    def test_semantic_anchor_sources_require_an_exact_digest_binding(self) -> None:
+        with self.assertRaisesRegex(checker.AuditError, "no exact digest binding"):
+            checker._bound_compact(ROOT, "unbound-helper.zig")
+
     def test_expected_counterexamples_are_executable_not_just_documented(self) -> None:
         self.assertTrue(checker._poseidon_inactive_counterexample())
         self.assertTrue(checker._zero_denominator_counterexample())

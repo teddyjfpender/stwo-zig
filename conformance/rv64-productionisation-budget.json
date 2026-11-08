@@ -519,6 +519,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Replace duplicated snapshot/load and delta field lists with the existing snapshot type as internal field authority. Preserve the exact field declaration order, monotonic load ordering, saturating counters and two absolute process-lifetime high-water fields. Require the unchanged native composition suites plus a counter-reset/high-water regression in Debug and ReleaseFast. No API, layout, scheduler, allocation, error, proof, policy ceiling or runtime flag changes; rollback restores both explicit field lists."
+    },
+    {
+      "id": "delivery_poseidon_table_source_owners",
+      "net_code_budget": 150,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Restore the existing CPU row-local Poseidon/table constructive certificate after equation and schema ownership extraction and earlier reviewed generic relation refactors. Retain all prior source paths, every semantic anchor obligation, full table enumeration, negative controls and exclusions. Add exact digest bindings for the active layout/equation/verifier helpers and explicit forwarding/instantiation checks; update source identities only with complete rerun acceptance. Extra code owns current-source admission and mutation regressions, not a broader theorem or waived pin. No production algorithm, public API, golden data, wire, source ceiling or launcher changes."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

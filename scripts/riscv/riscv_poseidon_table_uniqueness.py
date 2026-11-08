@@ -64,37 +64,37 @@ ROOT = Path(__file__).resolve().parents[2]
 # by the constructive proof.
 SOURCE_BINDINGS: dict[str, str] = {
     "src/waist/core/fields/m31.zig":
-        "6f6393f878cdf4e5474163dc3ddc8e8f758180f603482f1e275185fac5e8b4cd",
+        "a5d47cc1a8c57a858b943c25e63eb1561b9f994fdff36ea38517bc166ea66d73",
     "src/waist/core/fields/cm31.zig":
         "4b7a14c91fba7c467f92e924ce90c7230a22d08329591e3d5b8874d862b31288",
     "src/waist/core/fields/qm31.zig":
-        "a60c2a5a6f10bf91b1bfab41a526e41b589d0d1d83275e0516cf68b7228be931",
+        "916275ccc46e2b9d13c1d591a405dfa071018634ef652b053ee8e5414ba3c71e",
     "src/waist/core/utils.zig":
         "e6a4427e8cca5a83e0d2accd5c05cc08d9ac167238833fc225155dfd36f2fd18",
     "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig":
-        "17e09f482788b6c4ddfa81d0a830e683ba9a171e81a8641826c08841c353f0c3",
+        "7c462d05324a01597f08cbf5c1b42baea1e7cb07df33176dd94ed380d26769c3",
     "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig":
         "d02b32f2f5302d21a440fbace2112d3232603e759cd0b24691c32e81d2bd4cfd",
     "src/frontends/riscv/air/memory_commitment/hash_component.zig":
         "f10bf62978d6310f4af0c4fccf0445273fd451c8695868c08c375ce53d71ba35",
     "src/frontends/riscv/air/lookups/tables/schema.zig":
-        "8ab73ea534acd89deb9ceb8fad83b1d9e775bf96aeb5a1e7344a0e1551bc3cef",
+        "788273e0c240763e24423fa141c6218ef40aa6495bab8c5dc1182e747e1f197a",
     "src/frontends/riscv/air/lookups/tables/interaction.zig":
-        "7f3c8afba846d83f72ba36e8d469b17018906fea18f2e1d029a5d6857b85ba56",
+        "987837845fb8aba423896a69e899bbfbc9e71a07a4fb11c3cf967a654e8e73aa",
     "src/frontends/riscv/air/lookups/tables/component.zig":
-        "7ae2e5b6952c6b03158e12c23c84d7ebd2eedc4e7834e37e3734842e83e4170d",
+        "89f0f1d77f827085ad8f2ace072265f75a08173e22599ae9d07b819764234f61",
     "src/frontends/riscv/air/lookups/tables/counter.zig":
-        "d833a2e5599de6265ec98c06e83f419a7b7da86af87098a0dd3bedaddb75a7ee",
+        "689536aefa2a65e1f4c858e5bfc25f362793c3f0d9301f9f9808276748fecf29",
     "src/frontends/riscv/air/lookups/entry.zig":
-        "158f7e3fcf7666f800e97c0e394355d0261d6c813a333dfcdeec6d796f8c7db9",
+        "925623683f3b962b429aebcc172ba9b11e1f6b0528135652afc2ee80ec7265a8",
     "src/frontends/riscv/air/logup.zig":
-        "c2264e61781e94a4080b977c2d5e045bcf1e6caad0b0290693dcf59bd338ed06",
+        "cf748de1f764155e9d5cb6d4e55b3553ab62f0eb3464cecdc2d3e84a7e5edc12",
     "src/frontends/riscv/air/relation_challenges.zig":
-        "6c56083bc2467de1d2de73b74da4b20adc6422eec5ddfc8385a397719f9a36cf",
+        "4b9d027cb18013c8a5434fc7c5f4b6f4fe870db547db52432d991894f2303dd3",
     "src/frontends/riscv/prover/preprocessed.zig":
         "005473b815ca576773bf7aac28deaaa03b6b671beb2e9787a59db2d730ccdd7c",
     "src/frontends/riscv/prover/opcode_trace.zig":
-        "d648017174f8f122562617b0d823843900ad0b7eb8ba5db2ac3d91f20e86335b",
+        "186eafc961fc0745aa80a032277d7c8397b5e861596ed86c064a4d01fde5d2be",
     "src/frontends/riscv/infra_trace/permutation.zig":
         "2e6551f2c758b18f4a620d166b908a269297e9f1a74308c2ebd769dd8a474b98",
     "scripts/riscv/air_satisfaction_lib/poseidon2.py":
@@ -102,7 +102,23 @@ SOURCE_BINDINGS: dict[str, str] = {
     "scripts/riscv/air_satisfaction_lib/infrastructure.py":
         "dc2df08d61cc4d5e9b2e9c995d55df20e8489edd0b6b5b45246455033a0791f7",
     "scripts/riscv/air_satisfaction_lib/field.py":
-        "84402a223ddb4622fdeab073186ba9e3614dd5d9887d8b4c8e339e866571daf9",
+        "84dfc43c22e083065dc64b45d700a8d7ba11f889a675ee6b6df3362193f9de64",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_layout.zig":
+        "f51c0964fcfb04f393f0bb747a968c9e267bd08ca393fc35a2b4053cfc106c3b",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_wide_equations.zig":
+        "462fff23439ad1563481842fc8e15aae9b28ce6b5849342fcb6f100b6b7fdec0",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_wide_equation_kernel.zig":
+        "4a1d1d5cb670b08c208e15628be76f59959bcee1af3f9cee439df67e68a73930",
+    "src/frontends/riscv/air/lookups/tables/schema_definition.zig":
+        "849f56ef92e42a579537bd39651871fe02424068beaf1a65d4a7cc4e4e2e9bb9",
+    "src/frontends/riscv/air/lookups/tables/equations.zig":
+        "d1a1b3ebfd21ee8ec6e05845372da1dc3d8a9da957a79db07cadafe42ebd147f",
+    "src/frontends/riscv/air/lookups/tables/verifier.zig":
+        "f2168a09543586f75e93ab95ea15c05ad409b2586d9df0cf84b05d99e8b3a0e4",
+    "src/frontends/riscv/air/lookups/tables/layout.zig":
+        "f9d870043d47dc548dd94be873b18b3ade73e02b8a670aefe455816d4be667b6",
+    "src/frontends/riscv/air/logup_equations.zig":
+        "d8524316007e5e0b842616210d064cc4dfd76d485d0bfa010672229d805fcefd",
 }
 
 EXPLANATION = """\
@@ -187,6 +203,15 @@ def _compact_zig(text: str) -> str:
     return re.sub(r"\s+", "", text)
 
 
+def _bound_compact(root: Path, *sources: str) -> str:
+    if any(source not in SOURCE_BINDINGS for source in sources):
+        raise AuditError("semantic anchor source has no exact digest binding")
+    return "\n".join(
+        _compact_zig((root / source).read_text(encoding="utf-8"))
+        for source in sources
+    )
+
+
 def _require_anchor(compact: str, anchor: str, source: str) -> None:
     if anchor not in compact:
         raise AuditError(f"reviewed semantic anchor disappeared from {source}: {anchor}")
@@ -194,11 +219,11 @@ def _require_anchor(compact: str, anchor: str, source: str) -> None:
 
 def _production_semantic_anchors(root: Path) -> None:
     m31_source = "src/waist/core/fields/m31.zig"
-    m31 = _compact_zig((root / m31_source).read_text(encoding="utf-8"))
+    m31 = _bound_compact(root, m31_source)
     _require_anchor(m31, "pubconstModulus:u32=0x7fffffff;", m31_source)
 
     qm31_source = "src/waist/core/fields/qm31.zig"
-    qm31 = _compact_zig((root / qm31_source).read_text(encoding="utf-8"))
+    qm31 = _bound_compact(root, qm31_source)
     for anchor in (
         "pubconstR:CM31=CM31.fromU32Unchecked(2,1);",
         "return.{self.c0.a,self.c0.b,self.c1.a,self.c1.b};",
@@ -206,7 +231,7 @@ def _production_semantic_anchors(root: Path) -> None:
         _require_anchor(qm31, anchor, qm31_source)
 
     utils_source = "src/waist/core/utils.zig"
-    utils = _compact_zig((root / utils_source).read_text(encoding="utf-8"))
+    utils = _bound_compact(root, utils_source)
     _require_anchor(
         utils,
         "pubfncosetIndexToCircleDomainIndex(coset_index:usize,"
@@ -217,7 +242,13 @@ def _production_semantic_anchors(root: Path) -> None:
     )
 
     poseidon_source = "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig"
-    poseidon = _compact_zig((root / poseidon_source).read_text(encoding="utf-8"))
+    poseidon = _bound_compact(
+        root,
+        poseidon_source,
+        "src/frontends/riscv/air/memory_commitment/poseidon2_layout.zig",
+        "src/frontends/riscv/air/memory_commitment/poseidon2_wide_equations.zig",
+        "src/frontends/riscv/air/memory_commitment/poseidon2_wide_equation_kernel.zig",
+    )
     for anchor in (
         "pubconstN_TEMPORARIES:usize=426;",
         "pubconstN_MAIN_COLUMNS:usize=1+WIDTH+N_TEMPORARIES+2;",
@@ -230,7 +261,7 @@ def _production_semantic_anchors(root: Path) -> None:
         _require_anchor(poseidon, anchor, poseidon_source)
 
     shell_source = "src/frontends/riscv/air/memory_commitment/hash_component.zig"
-    shell = _compact_zig((root / shell_source).read_text(encoding="utf-8"))
+    shell = _bound_compact(root, shell_source)
     for anchor in (
         "constraints[poseidon2_air.N_CONSTRAINTS]=main[0].sub(is_active);",
         "constnarrow_mode=poseidon2_air.narrowModeConstraintsGeneric(S,main);",
@@ -239,7 +270,11 @@ def _production_semantic_anchors(root: Path) -> None:
         _require_anchor(shell, anchor, shell_source)
 
     schema_source = "src/frontends/riscv/air/lookups/tables/schema.zig"
-    schema = _compact_zig((root / schema_source).read_text(encoding="utf-8"))
+    schema = _bound_compact(
+        root,
+        schema_source,
+        "src/frontends/riscv/air/lookups/tables/schema_definition.zig",
+    )
     for anchor in (
         "pubconstKind=enum(u8){bitwise,range_check_20,range_check_8_11,"
         "range_check_8_8_4,range_check_8_8,range_check_m31,};",
@@ -249,8 +284,10 @@ def _production_semantic_anchors(root: Path) -> None:
         _require_anchor(schema, anchor, schema_source)
 
     table_interaction_source = "src/frontends/riscv/air/lookups/tables/interaction.zig"
-    table_interaction = _compact_zig(
-        (root / table_interaction_source).read_text(encoding="utf-8")
+    table_interaction = _bound_compact(
+        root,
+        table_interaction_source,
+        "src/frontends/riscv/air/lookups/tables/equations.zig",
     )
     for anchor in (
         "returntableEntryGeneric(QM31,kind,values[0..tuple.len],QM31.fromBase(signed_multiplicity));",
@@ -268,40 +305,37 @@ def _production_semantic_anchors(root: Path) -> None:
         _require_anchor(table_interaction, anchor, table_interaction_source)
 
     entry_source = "src/frontends/riscv/air/lookups/entry.zig"
-    entry = _compact_zig((root / entry_source).read_text(encoding="utf-8"))
+    entry = _bound_compact(root, entry_source)
     for anchor in (
-        ".bitwise=>relations.bitwise.combine(self.values[0..4].*),",
-        ".range_check_20=>relations.range_check_20.combine("
-        "self.values[0..1].*),",
-        ".range_check_8_11=>relations.range_check_8_11.combine("
-        "self.values[0..2].*),",
-        ".range_check_8_8_4=>relations.range_check_8_8_4.combine("
-        "self.values[0..3].*),",
-        ".range_check_8_8=>relations.range_check_8_8.combine("
-        "self.values[0..2].*),",
-        ".range_check_m31=>relations.range_check_m31.combine("
-        "self.values[0..2].*),",
+        ".bitwise=>Self.combineRelation(relations.bitwise,self.values[0..4].*),",
+        ".range_check_20=>Self.combineRelation(relations.range_check_20,self.values[0..1].*),",
+        ".range_check_8_11=>Self.combineRelation(relations.range_check_8_11,self.values[0..2].*),",
+        ".range_check_8_8_4=>Self.combineRelation(relations.range_check_8_8_4,self.values[0..3].*),",
+        ".range_check_8_8=>Self.combineRelation(relations.range_check_8_8,self.values[0..2].*),",
+        ".range_check_m31=>Self.combineRelation(relations.range_check_m31,self.values[0..2].*),",
     ):
         _require_anchor(entry, anchor, entry_source)
 
     relations_source = "src/frontends/riscv/air/relation_challenges.zig"
-    relations = _compact_zig((root / relations_source).read_text(encoding="utf-8"))
+    relations = _bound_compact(root, relations_source)
     for anchor in (
         "returninit(QM31.fromU32Unchecked(1,2,3,4),"
         "QM31.fromU32Unchecked(4,3,2,1),);",
-        "for(values,self.alpha_powers)|value,power|{"
-        "result=result.add(power.mul(value));}returnresult.sub(self.z);",
+        "for(values,powers)|value,power|{result=result.add(power.mul(value));}returnresult.sub(z);",
         ".bitwise=pair(4,values,6),",
         ".range_check_m31=pair(2,values,11),",
     ):
         _require_anchor(relations, anchor, relations_source)
 
     table_component_source = "src/frontends/riscv/air/lookups/tables/component.zig"
-    table_component = _compact_zig(
-        (root / table_component_source).read_text(encoding="utf-8")
+    table_component = _bound_compact(
+        root,
+        table_component_source,
+        "src/frontends/riscv/air/lookups/tables/verifier.zig",
+        "src/frontends/riscv/air/lookups/tables/layout.zig",
     )
     for anchor in (
-        "pubfnnConstraints(_:*const@This())usize{returnN_CONSTRAINTS;}",
+        "pubfnnConstraints(_:*constSelf)usize{returnN_CONSTRAINTS;}",
         "result[0]=self.is_first_col_idx;",
         "@memcpy(result[1..],self.tuple_col_indices[0..schema.arity(self.kind)]);",
         "returninteraction.evaluate(self.kind,tuple,signed_multiplicity,current,"
@@ -310,7 +344,7 @@ def _production_semantic_anchors(root: Path) -> None:
         _require_anchor(table_component, anchor, table_component_source)
 
     counter_source = "src/frontends/riscv/air/lookups/tables/counter.zig"
-    counter = _compact_zig((root / counter_source).read_text(encoding="utf-8"))
+    counter = _bound_compact(root, counter_source)
     for anchor in (
         "self.values[row]=self.values[row].add(numerator);",
         "for(self.values,0..)|value,row|result[table.map(row)]=value;",
@@ -318,7 +352,7 @@ def _production_semantic_anchors(root: Path) -> None:
         _require_anchor(counter, anchor, counter_source)
 
     logup_source = "src/frontends/riscv/air/logup.zig"
-    logup = _compact_zig((root / logup_source).read_text(encoding="utf-8"))
+    logup = _bound_compact(root, logup_source, "src/frontends/riscv/air/logup_equations.zig")
     for anchor in (
         "constdelta=s.sub(s_prev).add(is_first.mul(claimed));",
         "returndelta.mul(pair.d1).mul(pair.d2)"
@@ -327,9 +361,7 @@ def _production_semantic_anchors(root: Path) -> None:
         _require_anchor(logup, anchor, logup_source)
 
     preprocessed_source = "src/frontends/riscv/prover/preprocessed.zig"
-    preprocessed = _compact_zig(
-        (root / preprocessed_source).read_text(encoding="utf-8")
-    )
+    preprocessed = _bound_compact(root, preprocessed_source)
     _require_anchor(
         preprocessed,
         "vartuples=trytable_schema.generatePreprocessed(allocator,kind);",
@@ -337,9 +369,7 @@ def _production_semantic_anchors(root: Path) -> None:
     )
 
     selectors_source = "src/frontends/riscv/prover/opcode_trace.zig"
-    selectors = _compact_zig(
-        (root / selectors_source).read_text(encoding="utf-8")
-    )
+    selectors = _bound_compact(root, selectors_source)
     for anchor in (
         "@memset(values,M31.zero());",
         "values[placement.map(0)]=M31.one();",
@@ -348,15 +378,52 @@ def _production_semantic_anchors(root: Path) -> None:
         _require_anchor(selectors, anchor, selectors_source)
 
     permutation_source = "src/frontends/riscv/infra_trace/permutation.zig"
-    permutation = _compact_zig(
-        (root / permutation_source).read_text(encoding="utf-8")
-    )
+    permutation = _bound_compact(root, permutation_source)
     _require_anchor(
         permutation,
         "destination.*=utils.bitReverseIndex("
         "utils.cosetIndexToCircleDomainIndex(row,log_size),log_size,);",
         permutation_source,
     )
+
+
+    for source, anchors in {
+        poseidon_source: (
+            'constlayout=@import("poseidon2_layout.zig");',
+            'pubconstN_MAIN_COLUMNS=layout.N_MAIN_COLUMNS;',
+            'pubconstevaluateGeneric=@import("poseidon2_wide_equations.zig").evaluateGeneric;',
+            'pubconstnarrowModeConstraintsGeneric=@import("poseidon2_wide_equations.zig").narrowModeConstraintsGeneric;',
+        ),
+        schema_source: (
+            'constdefinition=@import("schema_definition.zig");',
+            'pubconstKind=definition.Kind;',
+            'pubconsttupleAt=definition.tupleAt;',
+        ),
+        table_interaction_source: (
+            'pubconsttableEntry=@import("equations.zig").tableEntry;',
+            'pubconstevaluateGeneric=@import("equations.zig").evaluateGeneric;',
+        ),
+        table_component_source: (
+            'constverifier=@import("verifier.zig");',
+            'constVerifierMethods=verifier.Methods(@This());',
+            'pubconstnConstraints=VerifierMethods.nConstraints;',
+        ),
+        logup_source: (
+            'pubconstpairConstraintGeneric=@import("logup_equations.zig").pairConstraintGeneric;',
+        ),
+        entry_source: (
+            'constshipped=Builder(QM31);',
+            'pubconstEntry=shipped.Entry;',
+            'returnself.denominatorWith(relations);',
+            'returnrelation.combine(values);',
+        ),
+        relations_source: (
+            'returncombineGeneric(QM31,self.z,self.alpha_powers,values);',
+        ),
+    }.items():
+        compact = _bound_compact(root, source)
+        for anchor in anchors:
+            _require_anchor(compact, anchor, source)
 
 
 def _zig_array(text: str, name: str) -> tuple[int, ...]:
