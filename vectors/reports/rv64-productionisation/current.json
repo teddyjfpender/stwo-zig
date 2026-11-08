@@ -489,7 +489,7 @@
         "status": "BYTE_IDENTICAL_MIGRATION_AND_HOST_AND_OPTIMIZED_RUNTIME_TESTS_PASS",
         "files_moved": 175,
         "bytes": 13094934,
-        "manifest": "vectors/fixtures/rv64-validation-fixtures.json",
+        "manifest": "vectors/riscv/fixtures/rv64-validation-fixtures.json",
         "code_net": -4,
         "moves_counted_as_deletions": false,
         "missing_committed_policy_fixture_skips_removed": 1,

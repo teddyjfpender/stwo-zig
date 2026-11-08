@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 import re
 
-FROZEN_D2_PACKAGE = Path(__file__).resolve().parents[1] / 'vectors/fixtures/rv64-d2-composed-v1'
+FROZEN_D2_PACKAGE = Path(__file__).resolve().parents[1] / 'vectors/riscv/fixtures/rv64-d2-composed-v1'
 
 CASES = (
     'C00-control', 'S08-coherent-permute-native', 'S09-coherent-drop-native',

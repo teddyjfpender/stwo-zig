@@ -55,7 +55,7 @@ def arm_environment(preset, arm, assets):
 def source_hashes(root):
     result = {}
     for relative in ('src', 'build_support', 'scripts', 'src/frontends/riscv/air/lang/artifacts',
-                     'conformance', 'vectors/fixtures', '.github', '.githooks'):
+                     'conformance', 'vectors/riscv/fixtures', '.github', '.githooks'):
         for path in sorted((root / relative).rglob('*')):
             if path.is_file() and not path.is_symlink() and not set(path.parts).intersection({'.zig-cache', 'zig-cache', 'zig-out', '__pycache__', '.git'}):
                 result[str(path.relative_to(root))] = sha(path)

@@ -106,7 +106,7 @@ class ValidationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             immutable = ('conformance/ci-touchpoints-v1.json', 'conformance/rv64-productionisation-budget.json',
-                         'vectors/fixtures/frozen.json', 'AGENTS.md')
+                         'vectors/riscv/fixtures/frozen.json', 'AGENTS.md')
             workflow = ('.github/workflows/ci.yml', '.githooks/pre-push', '.gitignore', 'CONTRIBUTING.md')
             for name in (*immutable, *workflow, 'build.zig', 'build.zig.zon', 'src/probe.zig',
                          'vectors/reports/rv64-productionisation/current.json'):
