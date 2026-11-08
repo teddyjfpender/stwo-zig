@@ -39,6 +39,7 @@ serde_derive.workspace = true
 hex.workspace = true
 
 [features]
+stwo-montgomery-services = []
 default = []
 std = [ "ark-std/std", "ark-serialize/std" ]
 parallel = [ "std", "rayon", "ark-std/parallel", "ark-serialize/parallel" ]

@@ -48,6 +48,7 @@ workspace = true
 workspace = true
 
 [features]
+stwo-montgomery-services = []
 asm = []
 default = []
 parallel = [

@@ -8,6 +8,7 @@ publish = false
 default = []
 transition-program = ["stwo-kona-execution/transition-program"]
 blob-eval-probe = ["stwo-kona-execution/blob-eval-probe"]
+montgomery-services = ["stwo-kona-execution/montgomery-services"]
 eager-preimages = []
 allocator-check = []
 precompile-services = ["stwo-kona-execution/precompile-services"]

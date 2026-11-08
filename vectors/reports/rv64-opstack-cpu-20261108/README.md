@@ -1,5 +1,13 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The optional [Arkworks Montgomery client](arkworks-montgomery-service.json)
+reduces full one-/two-blob KZG verification from 51.37M/73.33M to
+28.49M/40.54M retired instructions. All fourteen positive probes agree with
+native software and Unicorn; seven malformed KZG inputs reject. Shifted scalar
+inputs also pass physical services-lane proofs and fresh receivers. These are
+execution savings, **not measured complete proving speedups**. The retained
+anchored transition proof remains open. See [client design and reproduction](../../../opstack/MONTGOMERY.md).
+
 The optional [GROUP2 arithmetic qualification](recursion-group-structural.json)
 uses symbolic zero identities and a seven-row full OM31 product. Every add and
 multiply costs one QM31 arithmetic row here; native Karatsuba's three products

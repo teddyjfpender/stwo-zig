@@ -16,6 +16,7 @@ transition-program = ["blob-derivation", "dep:kona-registry", "dep:miniz_oxide"]
 derivation = ["dep:alloy-eips", "dep:async-trait", "dep:kona-derive", "dep:kona-protocol", "dep:op-alloy-consensus", "dep:thiserror", "dep:spin"]
 blob-derivation = ["derivation", "dep:ark-bls12-381", "dep:ark-ec", "dep:ark-ff", "dep:ark-serialize", "dep:revm-precompile"]
 blob-eval-probe = ["blob-derivation"]
+montgomery-services = ["blob-derivation", "ark-ff/stwo-montgomery-services"]
 keccak-service = ["alloy-primitives/native-keccak"]
 secp-lean = ["k256/stwo-projective-word-service", "k256/stwo-vartime", "ecdsa/stwo-skip-redundant-recovery-verify"]
 sha-service = ["dep:sha2-rv64", "sha2-rv64/stwo-sha256-service"]
@@ -58,6 +59,7 @@ sha2 = { version = "=0.10.9", default-features = false }
 sha2-rv64 = { package = "sha2", path = "../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64", default-features = false, optional = true }
 
 [dev-dependencies]
+num-bigint = "=0.4.8"
 keccak = "=0.2.2"
 sha3 = "=0.11.0"
 
@@ -76,6 +78,7 @@ codegen-units = 1
 panic = "abort"
 
 [patch.crates-io]
+ark-ff = { path = "vendor/ark-ff" }
 k256 = { path = "../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256" }
 ecdsa = { path = "../../autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa" }
 

@@ -89,7 +89,7 @@ def jumpdest_bitmap(code):
     return bytes(bitmap)
 
 
-def execute(config, expected_steps, timeout=600):
+def execute(config, expected_steps, timeout=600, *, output_kind="op"):
     import unicorn as U
     from unicorn import riscv_const as R
 
@@ -134,8 +134,17 @@ def execute(config, expected_steps, timeout=600):
     ):
         raise ValueError("invalid OP guest ABI")
     expected = bytes.fromhex(config["expected_output"])
-    if len(expected) != 43 or expected[32] != 1 or expected[41:43] != b"OP":
+    if len(expected) != 43:
         raise ValueError("expected output length")
+    if output_kind == "op":
+        if expected[32] != 1 or expected[41:43] != b"OP":
+            raise ValueError("expected OP output framing")
+    elif output_kind == "blob-probe":
+        # Explicit diagnostic scope; this cannot be admitted as OP validity.
+        if payload[:4] not in (b"BEV1", b"BKV1") or expected[32:36] != payload[:4] or expected[41:43] != b"BP":
+            raise ValueError("expected blob probe framing")
+    else:
+        raise ValueError("unknown output kind")
     reserved = [
         (s[a], s[b])
         for a, b in (
@@ -448,6 +457,7 @@ def execute(config, expected_steps, timeout=600):
     return {
         "schema": "stwo.opstack.unicorn.v1",
         "oracle": "Unicorn2.1.4",
+        "output_kind": output_kind,
         "completed": True,
         "proof_verified": False,
         "services": service_counts,

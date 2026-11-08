@@ -499,8 +499,6 @@ dependencies = [
 [[package]]
 name = "ark-ff"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7a806ac6c8307b929df4645776290a50ee2aac754ad09d8bdf73391309e43af"
 dependencies = [
  "ark-ff-asm",
  "ark-ff-macros",
@@ -2603,6 +2601,7 @@ dependencies = [
  "kona-protocol",
  "kona-registry",
  "miniz_oxide",
+ "num-bigint",
  "op-alloy-consensus",
  "op-alloy-rpc-types-engine",
  "postcard",

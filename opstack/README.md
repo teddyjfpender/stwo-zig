@@ -143,6 +143,12 @@ uses joint-window GLV for G1 multiplication. `canonical-glv-hinted` adds the
 optional checked pairing residue path. All are explicit experimental choices;
 see [precompile boundaries](PRECOMPILES.md) for validation and software fallbacks.
 
+The optional [Arkworks Montgomery client](MONTGOMERY.md) uses existing v3 field
+services for blob interpolation and KZG arithmetic. Its instruction reductions
+are execution measurements; complete prover savings remain to be measured.
+`blob-eval-services`, `transition-montgomery` and `transition-sha-montgomery`
+select it explicitly.
+
 The mainnet corpus contains six nonadjacent Ecotone-era blocks (120794432,
 121003241, 121049889, 121057303, 121065789, 121135704), including a deposit-only
 block and blocks with user transactions. Its source and preimage archives are

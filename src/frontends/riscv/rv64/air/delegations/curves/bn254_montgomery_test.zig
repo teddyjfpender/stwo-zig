@@ -19,3 +19,21 @@ test "BN254 shifted Montgomery packets bind exact outputs in the existing AIR" {
         try std.testing.expect(!H.accepted(&main));
     };
 }
+
+test "OP Arkworks scalar Montgomery packets admit shifted noncanonical inputs and reject forged outputs" {
+    const moduli = [_]u256{ C.BLS12_381_SCALAR_P, C.BN254_SCALAR_P };
+    for (moduli) |p| {
+        const values = [_]u256{ 0, 1, p - 1, @as(u256, 1) << 192 };
+        for (values) |a| for (values) |b| {
+            const shifted = @as(u384, a) << 128;
+            const packet = H.packetOf(&.{ shifted, b, p });
+            var main: [H.L.MAIN]Q = undefined;
+            const witness = try H.rowOf(&packet, &main);
+            try std.testing.expectEqual(@as(@import("spec.zig").Big, C.mont384(shifted, b, p)), witness.out[0]);
+            try std.testing.expect(witness.out[0] < p);
+            try std.testing.expect(H.accepted(&main));
+            H.forge(&packet, &.{H.bytesOf(witness.out[0] ^ 1)}, &.{}, &main);
+            try std.testing.expect(!H.accepted(&main));
+        };
+    }
+}

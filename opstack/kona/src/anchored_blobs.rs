@@ -353,6 +353,9 @@ fn evaluate_blob_fraction(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
 /// Modes compare the retained reference, production selection, and forced fold.
 #[cfg(feature = "blob-eval-probe")]
 pub fn evaluation_probe(input: &[u8]) -> Option<[u8; 43]> {
+    if input.get(..4) == Some(b"BKV1") {
+        return kzg_probe(input);
+    }
     if input.len() != 4 + 1 + 32 + 131072 || &input[..4] != b"BEV1" {
         return None;
     }
@@ -388,6 +391,44 @@ pub fn evaluation_probe(input: &[u8]) -> Option<[u8; 43]> {
     let mut output = [0; 43];
     output[..32].copy_from_slice(&scalar_bytes(result));
     output[32..36].copy_from_slice(b"BEV1");
+    output[41..].copy_from_slice(b"BP");
+    Some(output)
+}
+
+/// Bounded diagnostic only: BKV1 || count:u32-le ||
+/// (commitment:48 || proof:48 || blob:131072)*count. The blob views borrow
+/// input bytes. Verify the same canonical, sorted batch as anchored derivation.
+/// Output remains BP-tagged and cannot authorize OP/OD execution or derivation.
+#[cfg(feature = "blob-eval-probe")]
+fn kzg_probe(input: &[u8]) -> Option<[u8; 43]> {
+    const STRIDE: usize = 96 + 131072;
+    let count = u32::from_le_bytes(input.get(4..8)?.try_into().ok()?) as usize;
+    if count == 0 || count > MAX_SIDECARS || input.len() != 8 + count * STRIDE {
+        return None;
+    }
+    let sidecars: Vec<_> = input[8..]
+        .chunks_exact(STRIDE)
+        .map(|bytes| BlobSidecar {
+            commitment: bytes[..48].try_into().unwrap(),
+            proof: bytes[48..96].try_into().unwrap(),
+            blob: bytes[96..].try_into().unwrap(),
+        })
+        .collect();
+    let indexed = AnchoredBlobs::new(&sidecars).ok()?;
+    if !verify_sidecar_batch(indexed.sidecars.values().copied()) {
+        return None;
+    }
+    let mut digest = Sha256::new();
+    digest.update(b"STWO/BLOB/KZG/PROBE1");
+    digest.update((count as u32).to_le_bytes());
+    for sidecar in &sidecars {
+        digest.update(sidecar.commitment);
+        digest.update(sidecar.proof);
+    }
+    let mut output = [0; 43];
+    output[..32].copy_from_slice(&digest.finalize());
+    output[32..36].copy_from_slice(b"BKV1");
+    output[36..40].copy_from_slice(&(count as u32).to_le_bytes());
     output[41..].copy_from_slice(b"BP");
     Some(output)
 }
@@ -510,6 +551,40 @@ mod tests {
             ]
             .into_iter()
         ));
+    }
+
+    #[cfg(feature = "blob-eval-probe")]
+    #[test]
+    fn kzg_probe_admits_known_vector_and_rejects_invalid_and_duplicate_sidecars() {
+        let blob = example_blob();
+        let mut input = Vec::with_capacity(8 + 96 + 131072);
+        input.extend_from_slice(b"BKV1");
+        input.extend_from_slice(&1u32.to_le_bytes());
+        input.extend_from_slice(&COMMITMENT);
+        input.extend_from_slice(&PROOF);
+        input.extend_from_slice(blob.as_slice());
+        let result = evaluation_probe(&input).unwrap();
+        assert_eq!(&result[32..36], b"BKV1");
+        assert_eq!(&result[36..40], &1u32.to_le_bytes());
+        assert_eq!(&result[41..], b"BP");
+        input[8 + 48 + 7] ^= 1;
+        assert!(evaluation_probe(&input).is_none());
+        input[8 + 48 + 7] ^= 1;
+        input[8 + 96 + 31] ^= 1;
+        assert!(evaluation_probe(&input).is_none());
+        input[8 + 96 + 31] ^= 1;
+        input[8 + 96 + 32 * 4095..].copy_from_slice(&SCALAR_MODULUS);
+        assert!(evaluation_probe(&input).is_none());
+        input[8 + 96..].copy_from_slice(blob.as_slice());
+        let second = input[8..].to_vec();
+        input.extend_from_slice(&second);
+        input[4..8].copy_from_slice(&2u32.to_le_bytes());
+        assert!(evaluation_probe(&input).is_none());
+        assert!(evaluation_probe(&input[..input.len() - 1]).is_none());
+        input[4..8].copy_from_slice(&0u32.to_le_bytes());
+        assert!(evaluation_probe(&input).is_none());
+        input[4..8].copy_from_slice(&257u32.to_le_bytes());
+        assert!(evaluation_probe(&input).is_none());
     }
 
     #[test]

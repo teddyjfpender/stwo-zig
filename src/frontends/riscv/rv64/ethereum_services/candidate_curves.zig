@@ -62,6 +62,8 @@ pub fn kindOf(tag: u64) ?Kind {
 
 pub const BN254_P: u256 = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47;
 pub const BLS12_381_P: u384 = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab;
+pub const BLS12_381_SCALAR_P: u256 = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001;
+pub const BN254_SCALAR_P: u256 = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
 
 /// Prime-field arithmetic on canonical values (< p).
 pub fn Field(comptime T: type, comptime p: T) type {
@@ -165,6 +167,8 @@ fn inverseRadix(comptime modulus: u384) u384 {
 }
 const BN254_RADIX_INVERSE = inverseRadix(BN254_P);
 const BLS12_RADIX_INVERSE = inverseRadix(BLS12_381_P);
+const BLS12_SCALAR_RADIX_INVERSE = inverseRadix(BLS12_381_SCALAR_P);
+const BN254_SCALAR_RADIX_INVERSE = inverseRadix(BN254_SCALAR_P);
 
 /// a * b * 2^-384 mod m for odd m (m = 1 gives 0). Any a, b < 2^384.
 pub fn mont384(a: u384, b: u384, m: u384) u384 {
@@ -178,7 +182,7 @@ pub fn mont384(a: u384, b: u384, m: u384) u384 {
     const t: u384 = @intCast(@as(u768, a) * b % m);
     // Public fixed-field specializations avoid a repeated binary-GCD inverse
     // on every admitted call. Arbitrary odd moduli retain the generic path.
-    const r_inv = if (m == BN254_P) BN254_RADIX_INVERSE else if (m == BLS12_381_P) BLS12_RADIX_INVERSE else invMod(u384, @intCast((@as(u768, 1) << 384) % m), m);
+    const r_inv = if (m == BN254_P) BN254_RADIX_INVERSE else if (m == BLS12_381_P) BLS12_RADIX_INVERSE else if (m == BLS12_381_SCALAR_P) BLS12_SCALAR_RADIX_INVERSE else if (m == BN254_SCALAR_P) BN254_SCALAR_RADIX_INVERSE else invMod(u384, @intCast((@as(u768, 1) << 384) % m), m);
     return @intCast(@as(u768, t) * r_inv % m);
 }
 
@@ -562,8 +566,8 @@ test "candidate keccak_sponge equals Keccak-256 for every length and alignment" 
 }
 
 test "Montgomery fixed-field inverses preserve arbitrary operand residues" {
-    const moduli = [_]u384{ 1, 3, BN254_P, BLS12_381_P };
-    const values = [_]u384{ 0, 1, BN254_P - 1, BLS12_381_P - 1, std.math.maxInt(u384) };
+    const moduli = [_]u384{ 1, 3, BN254_P, BLS12_381_P, BLS12_381_SCALAR_P, BN254_SCALAR_P };
+    const values = [_]u384{ 0, 1, BN254_P - 1, BLS12_381_P - 1, BLS12_381_SCALAR_P - 1, BN254_SCALAR_P - 1, (@as(u384, BLS12_381_SCALAR_P) - 1) << 128, std.math.maxInt(u384) };
     for (moduli) |m| for (values) |a| for (values) |b| {
         const reference: u384 = if (m == 1) 0 else blk: {
             const radix: u384 = @intCast((@as(u768, 1) << 384) % m);

@@ -24,6 +24,9 @@ VARIANTS = {
     "transition": "transition-program,services-v3",
     "transition-sha": "transition-program,services-v3,sha-service",
     "blob-eval-probe": "blob-eval-probe",
+    "blob-eval-services": "blob-eval-probe,services-v3,montgomery-services",
+    "transition-montgomery": "transition-program,services-v3,montgomery-services",
+    "transition-sha-montgomery": "transition-program,services-v3,sha-service,montgomery-services",
 }
 
 LEAN_VARIANTS = {
@@ -136,7 +139,7 @@ def main():
     )
     parser.add_argument("--jobs", type=int, default=2)
     args = parser.parse_args()
-    if args.variant in ("transition", "transition-sha", "blob-eval-probe") and args.eager:
+    if (args.variant.startswith("transition") or args.variant.startswith("blob-eval")) and args.eager:
         parser.error("the transition program authenticates preimages on demand")
     if not 1 <= args.jobs <= 8:
         parser.error("jobs 1..8")
@@ -191,9 +194,9 @@ def main():
                 "host,pairing-hints"
                 if args.variant == "canonical-glv-hinted"
                 else "host,blob-eval-probe"
-                if args.variant == "blob-eval-probe"
+                if args.variant.startswith("blob-eval")
                 else "host,transition-program"
-                if args.variant in ("transition", "transition-sha")
+                if args.variant.startswith("transition")
                 else "host",
                 "-j",
                 args.jobs,

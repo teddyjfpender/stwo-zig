@@ -5,6 +5,21 @@ use crate::{
 use ark_ff_macros::unroll_for_loops;
 use ark_std::marker::PhantomData;
 
+#[cfg(feature = "stwo-montgomery-services")]
+#[path = "montgomery_service.rs"]
+mod service;
+
+/// Pure encoder for auditing the admitted inline packet; it performs no ECALL.
+#[cfg(feature = "stwo-montgomery-services")]
+#[doc(hidden)]
+pub fn stwo_montgomery_service_packet<const N: usize>(
+    a: &[u64; N],
+    b: &[u64; N],
+    modulus: &[u64; N],
+) -> [u64; 20] {
+    service::packet(a, b, modulus).0
+}
+
 /// A trait that specifies the constants and arithmetic procedures
 /// for Montgomery arithmetic over the prime field defined by `MODULUS`.
 ///
@@ -694,15 +709,49 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// zero bit in the rest of the modulus.
     #[inline]
     fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+        #[cfg(all(feature = "stwo-montgomery-services", target_arch = "riscv64"))]
+        if (N == 4 || N == 6) && !T::CANONICAL_REPRESENTATION && T::MODULUS.0[0] & 1 == 1 {
+            if service::equal(&a.0 .0, &[0; N]) || service::equal(&b.0 .0, &[0; N]) {
+                a.0 = BigInt([0; N]);
+                return;
+            }
+            if service::equal(&a.0 .0, &T::R.0) {
+                *a = *b;
+                return;
+            }
+            if service::equal(&b.0 .0, &T::R.0) {
+                return;
+            }
+            a.0 .0 = service::product(&a.0 .0, &b.0 .0, &T::MODULUS.0);
+            return;
+        }
         T::mul_assign(a, b)
     }
 
     fn sum_of_products<const M: usize>(a: &[Fp<Self, N>; M], b: &[Fp<Self, N>; M]) -> Fp<Self, N> {
+        #[cfg(all(feature = "stwo-montgomery-services", target_arch = "riscv64"))]
+        if (N == 4 || N == 6) && !T::CANONICAL_REPRESENTATION && T::MODULUS.0[0] & 1 == 1 {
+            let mut result = Fp::<Self, N>::zero();
+            for (lhs, rhs) in a.iter().zip(b) {
+                let mut term = *lhs;
+                Self::mul_assign(&mut term, rhs);
+                Self::add_assign(&mut result, &term);
+            }
+            return result;
+        }
         T::sum_of_products(a, b)
     }
 
     #[inline]
     fn square_in_place(a: &mut Fp<Self, N>) {
+        #[cfg(all(feature = "stwo-montgomery-services", target_arch = "riscv64"))]
+        if (N == 4 || N == 6) && !T::CANONICAL_REPRESENTATION && T::MODULUS.0[0] & 1 == 1 {
+            if service::equal(&a.0 .0, &[0; N]) || service::equal(&a.0 .0, &T::R.0) {
+                return;
+            }
+            a.0 .0 = service::product(&a.0 .0, &a.0 .0, &T::MODULUS.0);
+            return;
+        }
         T::square_in_place(a)
     }
 
@@ -711,6 +760,21 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     }
 
     fn from_bigint(r: BigInt<N>) -> Option<Fp<Self, N>> {
+        #[cfg(all(feature = "stwo-montgomery-services", target_arch = "riscv64"))]
+        if (N == 4 || N == 6) && !T::CANONICAL_REPRESENTATION && T::MODULUS.0[0] & 1 == 1 {
+            if r >= T::MODULUS {
+                return None;
+            }
+            if r.is_zero() {
+                return Some(Fp::zero());
+            }
+            // Canonical r -> rR: the same admitted Montgomery product with R2.
+            return Some(Fp::new_unchecked(BigInt(service::product(
+                &r.0,
+                &T::R2.0,
+                &T::MODULUS.0,
+            ))));
+        }
         T::from_bigint(r)
     }
 
