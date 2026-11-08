@@ -2433,6 +2433,53 @@
         "baseline_commit": "e79c85d815ee9903cdcc44fc946d2a324181ff84"
       },
       "claim_boundary": "Host correctness and exact deterministic fixture bytes. Cross-target checks are semantic-only; no Linux/big-endian runtime, complete-product, 128-bit-security, GPU or performance qualification."
+    },
+    "delivery_cpu_telemetry_field_authority": {
+      "baseline_commit": "70d995c64334281e606332470e69981fbebd13e4",
+      "status": "PASS_NATIVE_CPU_COMPOSITION",
+      "code": {
+        "added": 23,
+        "removed": 40,
+        "net": -17,
+        "allowance": 0
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "tests": {
+        "before_Debug": 13,
+        "after_Debug": 14,
+        "after_ReleaseFast": 14,
+        "existing_tests_removed": 0
+      },
+      "source_lines": {
+        "before": 872,
+        "after": 843
+      },
+      "source_conformance": {
+        "before": 104,
+        "after": 103,
+        "ceiling_unchanged": 850
+      },
+      "preserved": [
+        "evaluate",
+        "evaluateWithExecution",
+        "evaluatePlan",
+        "helperResidentBytes",
+        "recordMax",
+        "field layout",
+        "monotonic atomic load order",
+        "absolute high-water marks",
+        "saturating counters"
+      ],
+      "evidence": "external local archive keyed by final commit tree; stwo-delivery-cpu-telemetry-acceptance.json",
+      "qualification": "Native macOS CPU component correctness and telemetry regression. No full CPU product, GPU, complete-block, security or timing qualification."
     }
   },
   "post_merge_hygiene": {
