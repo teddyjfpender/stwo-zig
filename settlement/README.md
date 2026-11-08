@@ -203,6 +203,13 @@ python3 tools/export_pcs_suffix.py pcs.log receive.json \
 
 ## Native OODS composition check
 
+`NativeTruthV3Transcript` reconstructs the pre-composition digest and local
+BYTE challenge for a V3 classic truth worker under the fixed-authority
+b2/q108/p20/fold4 profile. It checks FIXED and MAIN against receiver authority.
+The parent still derives the worker statement, authenticates the manifest and
+checks global lookup closure. The profile framing is tested against an
+independent BLAKE2s and SHA-256 implementation.
+
 `NativeOods` derives the composition challenge and OODS point from the
 worker transcript and composition commitment. It checks the supplied point
 inverse, reconstructs the native split composition from canonical OM31

@@ -754,3 +754,53 @@ test("evaluates the receiver-pinned native RV64 initial AIR at OODS", async () =
   const receipt = await (await contract.quotient.send(code, inputs, parameters, point, alpha, inverse)).wait();
   console.log(JSON.stringify({ nativeInitialAirGas: Number(receipt.gasUsed), nodes: code.readUInt32LE(4), residuals: code.readUInt32LE(8) }));
 });
+
+test("reconstructs the V3 truth worker prefix from the pinned native profile and authority", async () => {
+  const contract = await deploy("test/TruthV3TranscriptHarness.sol", "TruthV3TranscriptHarness");
+  const hash = (...pieces) => createHash("blake2s256").update(Buffer.concat(pieces)).digest();
+  const words = (...fields) => {
+    const encoded = Buffer.alloc(4 * fields.length);
+    fields.forEach((word, index) => encoded.writeUInt32LE(word, index * 4));
+    return encoded;
+  };
+  const sha = (...pieces) => createHash("sha256").update(Buffer.concat(pieces)).digest();
+  const tag = words(0x5354574f, 0x524d3331, 1, 0x7fffffff, 32, 8, 8, 1);
+  const channelIdentity = sha(Buffer.from("stwo-native-raw-u32-mod-m31/v1\0"), tag);
+  const caps = [8, 108, 1, 4, 20, 0, 128, 256, 22, 23, 16384, 65536, 8, 5, 128, 128, 9, 3, 30, 1 << 20, 128];
+  const capBytes = Buffer.alloc(caps.length * 8);
+  caps.forEach((word, i) => capBytes.writeBigUInt64LE(BigInt(word), i * 8));
+  const profile = sha(Buffer.from("rv64-om31-rawblake-native-localgkr-128-CONJECTURED-ethstark/v2\0"),
+    Buffer.from("conjectured128_b2_q108_p20_fold4"), channelIdentity, capBytes);
+  const authority = {
+    ordinal: 0xfedcba98,
+    statement: id("worker statement"),
+    fixedIdentity: id("fixed identity"),
+    fixedRoot: id("fixed root"),
+    mainRoot: id("MAIN root"),
+    manifest: id("manifest"),
+  };
+  const interaction = id("interaction root");
+  const roots = [authority.fixedRoot, authority.mainRoot, interaction];
+  const claim = words(1, 2, 3, 4, 5, 6, 7, 8);
+  let digest = hash(hash(Buffer.alloc(32), tag), words(20, 1, 108, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0));
+  const early = [words(0x57474b4f, 1, 8, 4, authority.ordinal),
+    hash(Buffer.from("RV64-SERVICES-CPU-GKR-TRUTH-CLASSIC-OM31-V1")), binary(authority.statement),
+    hash(Buffer.from("rv64-OM-localGKR-classicTruth-beta2-engineering/v1\0")), binary(authority.fixedIdentity),
+    binary(authority.fixedRoot), profile, binary(authority.fixedRoot), binary(authority.mainRoot),
+    words(0x56334259, 1, 8)];
+  for (const part of early) digest = hash(digest, part);
+  const byteDraw = hash(digest, Buffer.alloc(5));
+  const byteChallenge = Array.from({ length: 8 }, (_, i) => BigInt(byteDraw.readUInt32LE(i * 4) % 0x7fffffff));
+  for (const part of [words(0x57474b32, 1, 1), binary(authority.manifest), claim, binary(interaction)]) {
+    digest = hash(digest, part);
+  }
+  const [preComposition, challenge] = await contract.derive(authority, roots, claim);
+  assert.equal(preComposition, "0x" + digest.toString("hex"));
+  assert.deepEqual(Array.from(challenge), byteChallenge);
+  await assert.rejects(contract.derive(authority, [roots[1], roots[0], roots[2]], claim), /WorkerRootMismatch/);
+  const noncanonical = Buffer.from(claim);
+  noncanonical.writeUInt32LE(0x7fffffff, 8);
+  await assert.rejects(contract.derive(authority, roots, noncanonical), /NonCanonicalField/);
+  const [other] = await contract.derive({ ...authority, manifest: id("another manifest") }, roots, claim);
+  assert.notEqual(other, preComposition);
+});
