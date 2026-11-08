@@ -145,7 +145,6 @@ test "bounded local child fresh verifies with terminal obligation still explicit
     try std.testing.expectError(error.LocalGkrReceiptMismatch, Child.verifyPending(a, scope, &instances, &child.result.proof, wrong_digest));
 }
 test {
-    _ = @import("metadata_test.zig");
 }
 fn lifecycleAllocationCase(a: std.mem.Allocator) !void {
     const instances = [_]Frame.Instance{

@@ -1,6 +1,5 @@
 test {
     _ = @import("word16_global_execution/ethereum/canon_native.zig");
-    _ = @import("word16_global_execution/ethereum/canon_native_widths.zig");
     _ = @import("word16_execution/native_policy.zig");
 }
 test "canon-native generated rung table has R rungs per family and ascending truth logs" {

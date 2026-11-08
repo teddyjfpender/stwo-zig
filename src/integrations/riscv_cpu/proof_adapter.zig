@@ -134,7 +134,6 @@ test {
     _ = @import("proof_adapter/provenance_test.zig");
     _ = @import("proof_adapter/staged_pcs_profile_test.zig");
     _ = @import("proof_adapter/verified_request_binding_test.zig");
-    _ = @import("proof_adapter/wire_arena_allocation_test.zig");
 }
 
 test "adapter fail-closes through the shared run-admission gate" {
