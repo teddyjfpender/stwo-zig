@@ -39,6 +39,10 @@ pub fn batchInverseInPlace(comptime F: type, column: []const F, dst: []F) !void 
         if (n >= 16 and (n & 15) == 0) return batchInverseQM31Packed(column, dst, 16);
         if (n >= 8 and (n & 7) == 0) return batchInverseQM31Packed(column, dst, 8);
     }
+    if (comptime F == om31.OM31 and builtin.cpu.arch == .aarch64 and builtin.zig_backend != .stage2_c) {
+        const stride = 2 * m31.PACK_WIDTH;
+        if (n >= stride and n % stride == 0) return @import("om31_batch.zig").invert(column, dst);
+    }
     if (n > 8 and (n & 7) == 0) return batchInverseStriped(F, column, dst, 8);
     if (n > 4 and (n & 3) == 0) return batchInverseStriped(F, column, dst, 4);
     return batchInverseClassic(F, column, dst);

@@ -6,6 +6,9 @@ const M = m31.M31;
 const Q = @import("qm31.zig").QM31;
 const O = field.OM31;
 const a = std.testing.allocator;
+test {
+    _ = @import("om31_batch.zig");
+}
 fn random(random_source: std.Random) O {
     var coordinates: [8]M = undefined;
     for (&coordinates) |*v| v.* = M.fromCanonical(random_source.int(u32) % m31.Modulus);
