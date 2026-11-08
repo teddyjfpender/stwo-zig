@@ -262,7 +262,7 @@ Every request second that isn't proving should be removed:
 
 ## 4. How we measure
 
-- **One canonical runner,** `scripts/rv64_m7_integration_stack.py`:
+- **One canonical runner,** `scripts/rv64/rv64_m7_integration_stack.py`:
   - interleaved arms (baseline/candidate ×3), with medians and spread;
   - a quiet-pod gate;
   - byte parity and fresh receivers checked *after* timing.

@@ -141,7 +141,7 @@ promotion. The [protocol README](https://github.com/teddyjfpender/stwo-zig/tree/
 boundary. A milestone does not close its performance scope on an informal
 benchmark, a best sample, or correctness evidence alone.
 
-`python3 scripts/typed_air_performance_protocol.py` validates the frozen
+`python3 scripts/typed_air/typed_air_performance_protocol.py` validates the frozen
 contract and its digest-bound local authorities before a capture begins. Its
 mutation suite is
 `python3 -m unittest scripts.tests.test_typed_air_performance_protocol`.
@@ -228,7 +228,7 @@ promotion.
 ### C-013 CPU capture boundary
 
 The repository-owned C-013 CPU controller is
-`scripts/typed_air_c013_capture.py`. Before planning, install the current
+`scripts/typed_air/typed_air_c013_capture.py`. Before planning, install the current
 ReleaseFast `riscv-poseidon2-proof-child`, `riscv-c013-aa-proof-child`, and
 `riscv-c013-corpus-manifest` artifacts; plan admission checks their embedded
 protocol versions so a stale `zig-out/bin` executable cannot consume a cohort.

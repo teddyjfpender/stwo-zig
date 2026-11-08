@@ -10,7 +10,7 @@ baseline (receipts in `vectors/reports/rv64-m4-20261104/resident/`).*
 | artifact | producer | stored where | read by |
 |---|---|---|---|
 | native setup components (CPU/truth source keys: VK section + candidate FIXED tree bulk) | `setup_cache.zig` (`RV64SUC1` v1) | `<store>/setup/<component-key>.rv64-setup` | the **prover only** |
-| store manifest (`store.json`) | `scripts/rv64_m4_resident.py` | `<store>/store.json` | the harness, before the service starts |
+| store manifest (`store.json`) | `scripts/rv64/rv64_m4_resident.py` | `<store>/store.json` | the harness, before the service starts |
 | fold-class assignment templates (`RV64CLS1`: tasks, permutation indices, level ends, seed layout) | `outer_assignment.zig ClassCache.Store` | `<store>/classes/<class-key>.rv64-class` | the **prover only**; preloaded at service boot |
 | in-process only: fixed-authority validations of resident components, native/metadata caches, CUDA modules | the service process | RAM | the same service process |
 
@@ -100,7 +100,7 @@ statement, witnesses) never enters any key or artifact.
 
 ## 6. Catalogue drift gate
 
-`scripts/rv64_m4_resident.py catalogue-gate` regenerates every AOT family from the current tree and
+`scripts/rv64/rv64_m4_resident.py catalogue-gate` regenerates every AOT family from the current tree and
 byte-compares each catalogue file (`core` = `--domain` ∪ `--grouped-domain`, `truth` = `--truth-domain`,
 `rational` = `--truth-interactions`, `outer` = `--outer-native-om31`, `global` =
 `rv64-global-fixtures --catalog`, `projection` = `rv64-projection-fixtures`). `truth-parts` is a

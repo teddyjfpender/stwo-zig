@@ -202,7 +202,7 @@ weaker authority when the pinned binary is absent (exit 3, UNAVAILABLE):
 - `scripts/riscv/riscv_operand_classes.py` derives the operand classes the ISA
   admits and the AIR's limb structure distinguishes, executes one case per
   class on pinned Sail over RVFI-DII, and commits Sail's architectural
-  results to `src/tests/riscv/operand_class_corpus/` for guest-building
+  results to `src/products/riscv/cpu/tests/operand_class_corpus/` for guest-building
   tests (`operand_classes.zig`, the class sweep, the rigidity corpus). Its
   `check` mode regenerates and requires byte identity with the committed
   data; its `audit` mode measures which enumerated classes an existing

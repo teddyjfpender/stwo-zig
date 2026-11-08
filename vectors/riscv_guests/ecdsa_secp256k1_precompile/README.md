@@ -23,7 +23,7 @@ must produce and independently verify a software rejection proof.
 Rebuild and check source/ELF identity:
 
 ```sh
-python3 scripts/build_csp_ecdsa_precompile.py
+python3 scripts/riscv/build_csp_ecdsa_precompile.py
 ```
 
 After intentional source changes, `--write` updates both ELFs and

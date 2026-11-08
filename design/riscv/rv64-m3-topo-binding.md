@@ -92,11 +92,11 @@ level ends, seed-variable layout; seed values are re-read from each graph and th
 PP (`outer_wrap.zig` `PPCache`; authority and device FIXED precommit stay per proof). Neither enters a proof or the
 receiver. A wrong reuse could only produce a proof that the independent receiver rejects. On 24628607/26235156 the
 `=check` modes rebuilt every reused plan/PP and found them byte-equal (15/15 each), and proofs are byte-identical with the
-caches on and off (`vectors/reports/rv64-m3-20261104/topo/warm-two-block.json`).
+caches on and off (`vectors/riscv/rv64/m3-basket/topo/warm-two-block.json`).
 
 ## Independent check (2026-11-04)
 
-Adversarial receiver runs on v2 26235156 proofs (receipt `vectors/reports/rv64-m3-20261104/topo/check/`): cross-block
+Adversarial receiver runs on v2 26235156 proofs (receipt `vectors/riscv/rv64/m3-basket/topo/check/`): cross-block
 same-class fold substitution, cross-class fold substitution, same-class swap at cache-hit positions and a leaf swap are
 all rejected. Two fixes came out of it: (1) `restoreWithAuthority` double-freed the decoded proof on any rejection, so a
 bad proof at a class-cache-hit position crashed the receiver (SIGSEGV, still non-accepting) instead of returning an

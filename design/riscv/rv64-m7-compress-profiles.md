@@ -214,7 +214,7 @@ The model reproduces any (rows, b, q, cols, trees) point in under a second.
   - binary Blake2s-256 Merkle;
   - classic interaction in C2, with no outer GKR section;
   - no fused Blake2s gadget in C2.
-- **Corpus:** CP01–CP04, M03 and M04 (`scripts/rv64_m5_negative_corpus.py` v4, owner compress). CP01 can be hooked
+- **Corpus:** CP01–CP04, M03 and M04 (`scripts/rv64/rv64_m5_negative_corpus.py` v4, owner compress). CP01 can be hooked
   against today's vcs_lifted verifier immediately.
 - **Corrections to plan §5 (M7 row "two-stage compress"):**
   - "multiproof dedup" is already in today's 706 KB;

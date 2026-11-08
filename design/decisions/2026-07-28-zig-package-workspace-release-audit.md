@@ -209,7 +209,7 @@ There is one rename in `6ae02bf7..HEAD`:
 
 ```text
 src/interop/proof_wire.zig
-  -> src/interop/proof_wire/mod.zig
+  -> src/waist/proof_wire/mod.zig
 ```
 
 Commit `f141dc4d` performs a 100% Git rename plus path-only reference updates:
@@ -260,7 +260,7 @@ The following commands passed on the audited macOS host with Zig 0.15.2:
 | `python3 scripts/repo/check_source_conformance.py` | 0 explained legacy findings, 0 new |
 | `python3 scripts/repo/check_api_parity.py` | PASS |
 | `python3 scripts/ci.py --fast` | 1,064 tests, 2 intentional skips |
-| `python3 scripts/repo/zig_protocol_test.py src/stwo_deep.zig -OReleaseFast` | 112/112 tests |
+| `python3 scripts/repo/zig_protocol_test.py src/products/native/tests/deep_root.zig -OReleaseFast` | 112/112 tests |
 | `zig build test-downstream-modules -Doptimize=ReleaseFast -j2` | PASS |
 | `zig build test -Daggregate-metal=false -Doptimize=ReleaseFast -j2` | 422-source closure PASS |
 | `zig build riscv-release-gate -Driscv-release-phase=promoted -Doptimize=ReleaseFast -j2` | promoted smoke and committed Sail evidence PASS |

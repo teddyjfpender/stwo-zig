@@ -330,7 +330,7 @@ cairo-verifier reader).
   - The root uses `Blake2sMerkleChannel` with the `<false>` variant.
   - (VERIFIED `crates/stwo/src/core/vcs_lifted/blake2_merkle.rs:55-82`)
   - In stwo-zig, `Blake2sM31MerkleChannel.mixRoot` already uses the M31
-    `concatAndHash` (`src/core/vcs_lifted/blake2_merkle.zig:238-253`). The Merkle
+    `concatAndHash` (`src/waist/core/vcs_lifted/blake2_merkle.zig:238-253`). The Merkle
     hasher must be `Blake2sPlainMerkleHasher`, **not** the domain-prefixed
     `Blake2sM31MerkleHasher` alias (`blake2_merkle.zig:19-25`).
 - **Grind.** The smallest valid nonce, with both u32 halves < P. The prefix is
@@ -410,18 +410,18 @@ transcript digest after each §1.3 step, and per-component trace SHA-256s
 
 | Need | stwo-zig | Notes |
 |---|---|---|
-| M31/CM31/QM31, packed, batch inverse | `src/core/fields/` | Add circuit-local `pointwiseMul`, `pointwiseInvOrZero` and `pointwiseLsb`. The u32→M31 conversion must be a **full** reduction. |
-| Blake2s, SIGMA | `src/core/crypto/blake2s_backend.zig`, `blake2s_parallel4`/`stream4` | `BLAKE_SIGMA` is duplicated in `src/frontends/cairo/preprocessed/columns.zig`; keep one copy. |
-| Blake2s / Blake2s-M31 channel, grind | `src/core/channel/blake2s.zig` (`Blake2sChannelGeneric`, `grind` returns the lowest nonce) | Needs 2.4 vectors at 20/24/26 bits. |
-| Lifted Merkle, plain hasher, Merkle channels | `src/core/vcs_lifted/blake2_merkle.zig` (`Blake2sPlainMerkleHasher`, `Blake2sM31MerkleChannel.mixRoot`), `verifier.zig`, `src/prover/vcs_lifted/{prover,streaming_committer,blake2_stream4}.zig` | Add `hashU32s` and `hashU32sFollowedByDigest`. |
-| FRI with fold_step > 1, packed leaves | `src/core/fri/{config,folding}.zig`, `src/prover/fri.zig` | Annotated "stark-v". Needs a `fold_step=4` vector from `5a7c5ed`. |
-| Prover engine | `src/prover/prove.zig` `proveEx(…, include_all_preprocessed_columns)`, `pcs/scheme.zig` `setStorePolynomialsCoefficients`, `ComponentProverVTable` (`air/component_prover.zig:81`) | Circuit components become ComponentProvers. |
-| ExtendedStarkProof aux | `src/core/proof.zig:170`, `pcs/mod.zig:89` (unsorted_query_locations), `vcs_lifted/verifier.zig:35` (all_node_values) | Feeds the `proof_from_stark_proof` port. |
-| LogUp semantics | `src/core/constraint_framework/evaluator.zig` `FormalLogupAtRow` | Has Cairo parity already. |
+| M31/CM31/QM31, packed, batch inverse | `src/waist/core/fields/` | Add circuit-local `pointwiseMul`, `pointwiseInvOrZero` and `pointwiseLsb`. The u32→M31 conversion must be a **full** reduction. |
+| Blake2s, SIGMA | `src/waist/core/crypto/blake2s_backend.zig`, `blake2s_parallel4`/`stream4` | `BLAKE_SIGMA` is duplicated in `src/frontends/cairo/preprocessed/columns.zig`; keep one copy. |
+| Blake2s / Blake2s-M31 channel, grind | `src/waist/core/channel/blake2s.zig` (`Blake2sChannelGeneric`, `grind` returns the lowest nonce) | Needs 2.4 vectors at 20/24/26 bits. |
+| Lifted Merkle, plain hasher, Merkle channels | `src/waist/core/vcs_lifted/blake2_merkle.zig` (`Blake2sPlainMerkleHasher`, `Blake2sM31MerkleChannel.mixRoot`), `verifier.zig`, `src/engine/prover/vcs_lifted/{prover,streaming_committer,blake2_stream4}.zig` | Add `hashU32s` and `hashU32sFollowedByDigest`. |
+| FRI with fold_step > 1, packed leaves | `src/waist/core/fri/{config,folding}.zig`, `src/engine/prover/fri.zig` | Annotated "stark-v". Needs a `fold_step=4` vector from `5a7c5ed`. |
+| Prover engine | `src/engine/prover/prove.zig` `proveEx(…, include_all_preprocessed_columns)`, `pcs/scheme.zig` `setStorePolynomialsCoefficients`, `ComponentProverVTable` (`air/component_prover.zig:81`) | Circuit components become ComponentProvers. |
+| ExtendedStarkProof aux | `src/waist/core/proof.zig:170`, `pcs/mod.zig:89` (unsorted_query_locations), `vcs_lifted/verifier.zig:35` (all_node_values) | Feeds the `proof_from_stark_proof` port. |
+| LogUp semantics | `src/waist/core/constraint_framework/evaluator.zig` `FormalLogupAtRow` | Has Cairo parity already. |
 | Constraint codegen / AOT kernels | `src/frontends/cairo/codegen/eval_program.zig`, `src/tools/cairo_composition_cpu_codegen`, `build_support/products/cairo_composition_cpu_aot.zig` | Candidate path for the prover-side composition of the 11 circuit components. |
 | Cairo AIR, witness, canonical_small, n_id_to_big=16 | `src/frontends/cairo/` (`preprocessed/variant.zig`, `claim_generator.zig`) | The vendored AIR is byte-identical to `82f2125`. |
 | Felt JSON writer, query transpose | `src/frontends/cairo/proof/cairo_serde/{felt_json,queries,pcs}.zig` | `felt_json` matches the serde pretty array. `pcs.zig` rejects lifting ≠ 0, and `queries.zig` is tied to the Cairo composition bundle; both need circuit variants. |
-| Blake AIR precedent | `src/examples/blake/*` | Style template for blake_g_gate and the xor tables. |
+| Blake AIR precedent | `src/products/native/examples/blake/*` | Style template for blake_g_gate and the xor tables. |
 | Graph-builder engineering | `src/frontends/riscv/recursion/arithmetic_circuit.zig` | Take the patterns only (flat nodes, u32 ids, scoped scratch). Its hash-consing **must not** be used because it reorders gates. Do not import from `riscv/`. |
 
 **Not reusable as generators:**
@@ -476,7 +476,7 @@ transcript digest after each §1.3 step, and per-component trace SHA-256s
      `build_support/products/` and a Scope in `catalog.zig`;
    - leaf and fold CLIs;
    - a "Circuit Recursion Lane" in `conformance/upstream.md`, checked by
-     `scripts/check_upstream_pins.py`.
+     `scripts/repo/check_upstream_pins.py`.
 
    (INFERRED layout, following the infra reader and `README.md` conventions)
 
@@ -504,7 +504,7 @@ transcript digest after each §1.3 step, and per-component trace SHA-256s
   | New `Hasher` trait (`hash_u32s`, `hash_u32s_followed_by_digest`) | `core/vcs_lifted/hasher.rs` |
   | `mix_root` renamed to `mix_hash`, same bytes. Batch inverse, barycentric pooling and blake2s_lifted changes are byte-neutral | — |
 
-- **stwo-zig today.** `src/core/pcs/mod.zig:23` has `PcsConfig{pow_bits, fri_config,
+- **stwo-zig today.** `src/waist/core/pcs/mod.zig:23` has `PcsConfig{pow_bits, fri_config,
   lifting_log_size: ?u32}`.
   - `mixInto` sends **one** felt when `fold_step == 1 && lifting == null`.
     Otherwise it sends `[(pow, blowup, nq, last), (fold_step, lifting orelse 0, 0, 0)]`.

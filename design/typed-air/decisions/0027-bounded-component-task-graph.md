@@ -46,22 +46,22 @@ There are nevertheless substantial independent regions between the barriers:
   generators take the whole global pool in turn. Results are appended through
   one mutable cursor even though each result has a statement-derived final
   range and claim slot.
-- [`component_parallel.zig`](../../../src/prover/air/component_parallel.zig)
+- [`component_parallel.zig`](../../../src/engine/prover/air/component_parallel.zig)
   already contains the right algebraic seed for parallel composition: each
   component receives a disjoint coefficient-power range and accumulator, and
   accumulators merge in protocol order. Its ordinary and
   `pool_exclusive_domain` paths prevent some nested waits, but there is no
   cancellation, task accounting, per-request budget, or shared scheduler with
   trace construction.
-- [`task_graph.zig`](../../../src/prover/task_graph.zig) is currently a serial
+- [`task_graph.zig`](../../../src/engine/prover/task_graph.zig) is currently a serial
   executor with 32 slots. It erases a task's cause as `error.TaskFailed`, has no
   cancellation or ownership state, and is smaller than the admitted 256 opcode
   shards, 512 infrastructure descriptors, or 1,024 component handles.
-- [`work_pool.zig`](../../../src/prover/work_pool.zig) is a lazily initialized
+- [`work_pool.zig`](../../../src/engine/prover/work_pool.zig) is a lazily initialized
   process-global pool. `STWO_ZIG_WORKERS` fixes its size only at first use; it
   does not lease a per-request budget or prevent a pool worker from waiting on
   nested work in the same pool.
-- [`deferred_commit.zig`](../../../src/prover/pcs/deferred_commit.zig) may spawn
+- [`deferred_commit.zig`](../../../src/engine/prover/pcs/deferred_commit.zig) may spawn
   a dedicated thread for the first tree. This correctly delays the root mix
   until the canonical publication point, but that thread is outside the global
   pool and therefore outside an M7 worker count. Some Merkle paths have similar
@@ -71,7 +71,7 @@ There are nevertheless substantial independent regions between the barriers:
   component handles stable addresses. Its ownership notes and fixed-capacity
   tests are the starting point; concurrent work must not reintroduce large
   stack values or movable borrowed storage.
-- [`stage_profile.zig`](../../../src/prover_api/stage_profile.zig) is a
+- [`stage_profile.zig`](../../../src/waist/prover_api/stage_profile.zig) is a
   single-stack hierarchical recorder. Concurrent tasks cannot push and pop
   that stack without inventing false parent/child relationships, and it is not
   a thread-safe task recorder.
@@ -570,10 +570,10 @@ as specified by the protocol.
 
 The first code slice is deliberately below the transcript and frontend layers:
 
-1. replace the serial 32-slot executor in `src/prover/task_graph.zig` with the
+1. replace the serial 32-slot executor in `src/engine/prover/task_graph.zig` with the
    exact-size bounded state machine, explicit `WorkerBudget`, cancellation,
    deterministic error scan, byte reservations, and flat task telemetry;
-2. add budgeted submission to `src/prover/work_pool.zig` without changing its
+2. add budgeted submission to `src/engine/prover/work_pool.zig` without changing its
    process-global ownership;
 3. add an optional prepared-domain capability to `ComponentProver`: its
    coordinator `prepare` owns every fallible allocation and its leaf `run`

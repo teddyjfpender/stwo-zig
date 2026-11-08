@@ -93,7 +93,7 @@ The following documents are normative, in descending order:
 4. [the performance baseline epoch 2 amendment](2026-07-19-build-monorepo-baseline-epoch-2-amendment.md),
    retained as the future autoresearch epoch contract but non-operative for
    this architecture release decision.
-5. [the RISC-V verification status](../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md),
+5. [the RISC-V verification status](../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md),
    for the current theorem boundary, soundness evidence, and remaining work.
 6. the accepted architecture (archived in `stwo-zig-og-docs/design/`).
 7. [decomposition-plan.md](../../conformance/decomposition-plan.md) and
@@ -1044,7 +1044,7 @@ a new upstream pin and its own oracle-conformance evidence.
 At creation of this goal:
 
 - the accepted architecture document exists;
-- the repository still has a broad root build and broad `src/stwo.zig` facade;
+- the repository still has a broad root build and broad `src/products/stwo/root.zig` facade;
 - the focused RISC-V CPU product and bounded challenge have diagnostic green
   evidence on implementation branches but are not sufficient to complete the
   full architecture;

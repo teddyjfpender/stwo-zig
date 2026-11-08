@@ -190,8 +190,8 @@ The effects below are relative to the post-M8 baseline at p50 (29.1 M gas, 93 M 
 - After STACK it shrinks to about −1.1, because hashes become a smaller share of the leaf.
 
 **[R1] Prior art to reuse; it is not a green field.** `codex/rv64-m7-integrate` already has:
-- an experimental BLAKE3 channel and lifted Merkle hasher (`src/core/channel/blake3.zig`, `src/core/vcs/blake3_hash.zig`);
-- the 7-round compression (`src/core/crypto/blake3_compression*.zig`);
+- an experimental BLAKE3 channel and lifted Merkle hasher (`src/waist/core/channel/blake3.zig`, `src/waist/core/vcs/blake3_hash.zig`);
+- the 7-round compression (`src/waist/core/crypto/blake3_compression*.zig`);
 - Metal kernels;
 - in the pre-RV64 product line, a typed in-circuit BLAKE3 G component: 124 columns, 80 degree-2 equations and 56 lookup requests per G, 72 rows per compression (`design/riscv/blake3-migration.md`, 2026-09-21–23 entries).
 
@@ -340,7 +340,7 @@ All fixes are on this branch; the tests went from 6/6 to 8/8.
 4. **Ideal stacked width.** It was 136; it is 151, because composition is 16 full-height columns. Ideal STACK factor 0.026; the central 0.15 is unchanged.
 5. **Airbender ×7.8 is opcode-circuits only.** It excludes delegation (Keccak/bigint/Blake), init/teardown and multiplicities, while ours and ZisK's include Keccak. Now stated as an upper bound, about ×4 like-for-like [E].
 6. **"Today 38 s"** is extrapolated beyond the largest measured block (57.8 M instr) and is labelled [E].
-7. **BLAKE3 prior art** in `src/core/{channel,vcs,crypto}/blake3*` and `blake3-migration.md` is now cited for gate 3.
+7. **BLAKE3 prior art** in `src/waist/core/{channel,vcs,crypto}/blake3*` and `blake3-migration.md` is now cited for gate 3.
 
 Re-checked and left unchanged:
 - the [M] census reproduces byte-identically from the producer log (sha256 `c4bb809a…`);

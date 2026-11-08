@@ -96,6 +96,6 @@ Malformed geometry, checked overflow and hard-cap error classification are also
 covered. Synthetic microtests do not establish a production RSS or GPU target.
 
 ```
-zig test -OReleaseSafe --dep stwo_core -Mroot=src/prover/gkr_resource_test_root.zig -Mstwo_core=src/core/mod.zig
-zig test -OReleaseFast --dep stwo_core -Mroot=src/prover/gkr_resource_test_root.zig -Mstwo_core=src/core/mod.zig
+zig test -OReleaseSafe --dep stwo_core -Mroot=src/engine/prover/gkr_resource_test_root.zig -Mstwo_core=src/waist/core/mod.zig
+zig test -OReleaseFast --dep stwo_core -Mroot=src/engine/prover/gkr_resource_test_root.zig -Mstwo_core=src/waist/core/mod.zig
 ```

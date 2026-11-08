@@ -247,7 +247,7 @@ Still not prototyped: occupancy/P1 (now the largest single 2-GPU lever), GPU nar
 
 ## 9. Sources
 
-- Gas sample `gas_sample.json` (out of git); basket `vectors/reports/rv64-cuda-real-segment-20261103/basket-input-readiness.json`, `vectors/reports/rv64-m3-20261104/summary.json`.
+- Gas sample `gas_sample.json` (out of git); basket `vectors/reports/rv64-cuda-real-segment-20261103/basket-input-readiness.json`, `vectors/riscv/rv64/m3-basket/summary.json`.
 - bench15-1 and kernel census: `codex/rv64-m8-gpu:vectors/reports/rv64-m8-20261106/{bench15,opt-combined}/`.
 - Wave-2 receipts under `vectors/reports/rv64-m9-prep/` on their branches (§6):
   - `m9-outer-gkr/{factor,review,gates,verifier-cost}.json`;

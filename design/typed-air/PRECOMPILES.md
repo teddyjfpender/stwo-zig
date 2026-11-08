@@ -37,7 +37,7 @@ The sparse-Merkle path already demonstrates most internal mechanics:
   constructs its relation columns, with parallel paths;
 - [`component_order.zig`](../../src/frontends/riscv/air/component_order.zig)
   fixes component placement; and
-- [`component_parallel.zig`](../../src/prover/air/component_parallel.zig)
+- [`component_parallel.zig`](../../src/engine/prover/air/component_parallel.zig)
   evaluates heterogeneous component quotients concurrently.
 
 The first guest precompile should reuse and generalize this seam. It should not

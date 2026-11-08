@@ -151,7 +151,7 @@ before editing):
      R0-R7, registry generation, R10b/R10c, R11) is the product's release
      gate; `circuit-parity-large` runs R8, R8b, R9 and the R7 multiverifier;
      `circuit-parity` runs both (§8.2).
-   - **One CairoSerde transport**: `src/interop/felt_json.zig` (injected
+   - **One CairoSerde transport**: `src/frontends/cairo/interop/felt_json.zig` (injected
      as `interop_felt_json` into the Cairo frontend and the wire package)
      owns the felt JSON text, the `stwo-cairo-serialize` primitives and
      `sort_and_transpose_queried_values`; the Cairo proof's CairoSerde
@@ -301,7 +301,7 @@ prover → core) and §Module and directory design: `mod.zig` is a map, files ar
 
 ### 2.1 Core (protocol laws only; additive)
 
-- `src/core/protocol_revision.zig` (new). It defines
+- `src/waist/core/protocol_revision.zig` (new). It defines
   `pub const Revision = enum { stwo_7b211ed, proving_5a7c5ed }` and three
   comptime rules:
   - `configMix(rev)`: under 5a7c5ed it always mixes 2 felts,
@@ -312,28 +312,28 @@ prover → core) and §Module and directory design: `mod.zig` is a map, files ar
     when its configured height is already 0 (upstream asserts
     `lifting_log_size == 0`, it does not substitute 0), else an error;
   - `finalLiftingCheck`.
-- `src/core/pcs/config_v2.zig` (new) with `PcsConfigV2 { fri: FriConfigV2
+- `src/waist/core/pcs/config_v2.zig` (new) with `PcsConfigV2 { fri: FriConfigV2
   {pow_bits, log_blowup, log_last_layer, n_queries, fold_step},
   trace_lifting_log_size, preprocessed_lifting_log_size }`. The existing
-  `PcsConfig` (`src/core/pcs/mod.zig:23`) and its `mixInto`
-  (`src/core/pcs/mod.zig:34`) are untouched.
-- `src/core/vcs_lifted/blake2_merkle.zig`: add `hashU32s` and
+  `PcsConfig` (`src/waist/core/pcs/mod.zig:23`) and its `mixInto`
+  (`src/waist/core/pcs/mod.zig:34`) are untouched.
+- `src/waist/core/vcs_lifted/blake2_merkle.zig`: add `hashU32s` and
   `hashU32sFollowedByDigest`. Each is a single Blake2s over LE(words)‖root
   (`crates/stwo/src/core/vcs_lifted/hasher.rs:19-21`).
-- `src/core/crypto/chacha20_rng.zig` (new): rand_chacha 0.3 `ChaCha20Rng`
+- `src/waist/core/crypto/chacha20_rng.zig` (new): rand_chacha 0.3 `ChaCha20Rng`
   (`from_seed`, `next_u32`, and rand_core `BlockRng` buffering and index
   semantics).
-- `src/core/fields/qm31_pointwise.zig` (new): `pointwiseMul`,
+- `src/waist/core/fields/qm31_pointwise.zig` (new): `pointwiseMul`,
   `pointwiseInvOrZero`, `pointwiseLsb`, and a fully reducing u32→M31.
 - Shared primitives move down one layer. This is a preparatory milestone (M1)
   that resolves the frontend-to-frontend dependency:
-  - `BLAKE_SIGMA` moves to `src/core/crypto/blake_sigma.zig` (done in M1b).
+  - `BLAKE_SIGMA` moves to `src/waist/core/crypto/blake_sigma.zig` (done in M1b).
     It was copied in the Cairo Blake deductions
     (`src/frontends/cairo/witness/deductions/blake.zig`, read by
     `preprocessed/columns.zig`) and in `core/crypto/blake2s_terminal_parallel.zig`;
     both now use the core table.
   - The pure `seq` and `bitwise_xor_{n}_{k}` column formulas move to
-    `src/core/preprocessed_tables.zig` (done in M1b). The Cairo frontend's
+    `src/waist/core/preprocessed_tables.zig` (done in M1b). The Cairo frontend's
     `preprocessed/columns.zig` delegates to them, so its bytes are unchanged.
 
 ### 2.2 Frontend `src/frontends/circuit/` (package `stwo_circuit_frontend`)
@@ -420,7 +420,7 @@ src/frontends/circuit/
   only transposed.
 - `felt_json.zig`: streaming pretty `0x…` felt JSON. The former
   `src/frontends/cairo/proof/cairo_serde/felt_json.zig` moved in M1b to
-  `src/interop/felt_json.zig`, one level above this directory: Zig rejects a
+  `src/frontends/cairo/interop/felt_json.zig`, one level above this directory: Zig rejects a
   file that belongs to two modules, so the writer is its own single-file
   module (`interop_felt_json`, injected into the Cairo frontend like the RISC-V
   frontend's `interop_postcard`) that this package imports rather than owns.
@@ -442,7 +442,7 @@ src/frontends/circuit/
   `proof/binary/writer.zig`, including the `ExtendedStarkProof` aux fields.
 
 **As built (M3).** The package is `stwo_circuit_recursion_wire`
-(`src/interop/circuit_recursion/README.md`). It adds `json_text.zig`, the
+(`src/waist/recursion_wire/README.md`). It adds `json_text.zig`, the
 serde_json pretty and compact text surface the JSON formats share. The
 `ProofConfig` of `circuit_serialize.zig` takes the per-component column counts
 as data, so the package holds no circuit AIR facts. Where Rust is lenient in a
@@ -457,7 +457,7 @@ built; the ExtendedBinary round-trip criterion of M3 remains open.
   binds the frontend to the cpu_scalar/SIMD backends and the AOT composition
   kernels, and owns the topology and preprocessed caches. It contains no
   protocol logic. `circuit_metal/` and `circuit_cuda/` follow later.
-- `src/products/circuit_recursion_cpu/{main,app,identity,capabilities}.zig`,
+- `src/products/cairo/recursion/cpu/{main,app,identity,capabilities}.zig`,
   modelled on `src/products/cairo_cpu`. Subcommands (§7.4): `leaf-wrap`,
   `fold-tree`, `circuit-params`, `verify`.
 - `build_support/products/circuit_recursion_cpu.zig` and a `circuit_cpu` Scope in
@@ -474,7 +474,7 @@ built; the ExtendedBinary round-trip criterion of M3 remains open.
   keeps its own thin `EvalAtRow` recorder.
 - `conformance/upstream.md` gains a "Circuit Recursion Lane" entry that names
   `proving@5a7c5ed`, the vendored stwo `7b211ed` plus its deltas, and
-  stwo-cairo `82f2125`. `scripts/check_upstream_pins.py` is extended to check
+  stwo-cairo `82f2125`. `scripts/repo/check_upstream_pins.py` is extended to check
   it.
 - Fixtures go under `vectors/circuit/`: `official/` (projection, air_programs
   bundle and provenance), `registries/`, `r0/`…`r10/` and `goldens/`. Each has
@@ -537,7 +537,7 @@ The rule: mirror Rust semantics and change only the representation.
     either is var 1;
   - `sub` and `pointwise_mul` never elide.
   There is no value folding and no hash-consing. A lint
-  (`scripts/lint_circuit_frontend.py`, run by `zig build lint`) bans
+  (`scripts/interop/lint_circuit_frontend.py`, run by `zig build lint`) bans
   `std.sort.pdq`/`std.mem.sort` (unstable), `AutoHashMap` iteration and
   `HashMap.keyIterator` inside `src/frontends/circuit`.
 - **Constants** live in `std.AutoArrayHashMapUnmanaged(QM31, Var)` in
@@ -583,7 +583,7 @@ The rule: mirror Rust semantics and change only the representation.
   is taken from `out_a` and asserted equal for b, c and d. Permutations lower to
   qm31_ops rows at `n_vars + g`. Columns are stable-sorted by length.
 - The fixed tables (`seq_16`, `bitwise_xor_{4,7,8,9,10}_{0,1,2}`) come from
-  `src/core/preprocessed_tables.zig` (§2.1), not from a copy.
+  `src/waist/core/preprocessed_tables.zig` (§2.1), not from a copy.
 - `circuit_hash = hashU32sFollowedByDigest(config_words, preprocessed_root)`,
   where `config_words` are 12 B read as 3 LE u32
   (`circuit_prover/src/circuit_hash.rs`). R0 checks the in-tree `expect!`
@@ -681,8 +681,8 @@ The Zig side reuses:
 
 - `src/frontends/cairo/codegen/eval_program.zig`-style validation, moved into
   core or the prover engine if the circuit package needs it;
-- `src/prover/air/component_programs.zig`;
-- `ComponentProverVTable` (`src/prover/air/component_prover.zig:81`);
+- `src/engine/prover/air/component_programs.zig`;
+- `ComponentProverVTable` (`src/engine/prover/air/component_prover.zig:81`);
 - the generalised CPU AOT C step, and later `cairo_metal_codegen` and
   `cairo_cuda_eval_aot` over the same bundle.
 
@@ -754,7 +754,7 @@ instances:
 
 - `.internal` (leaves and internal folds): `Blake2sM31Channel` plus
   `Blake2sM31MerkleChannel.mixRoot`, which uses M31 `concatAndHash`
-  (`src/core/vcs_lifted/blake2_merkle.zig:238-253`);
+  (`src/waist/core/vcs_lifted/blake2_merkle.zig:238-253`);
 - `.root`: `Blake2sChannel` plus `Blake2sMerkleChannel`
   (`stwo_run_and_prove_recursive_tree/src/fold.rs:144`, VERIFIED). Both root
   grinds therefore run on the **plain** `Blake2sChannel`
@@ -767,7 +767,7 @@ Blake2sMerkleHasher = Blake2sHasherGeneric<false>`
 (`crates/stwo/src/core/vcs_lifted/blake2_merkle.rs:9,54,75`). So **one cached
 preprocessed tree serves both the internal and the root channel**. The
 domain-prefixed `Blake2sM31MerkleHasher` alias
-(`src/core/vcs_lifted/blake2_merkle.zig:20`) cannot be named inside the
+(`src/waist/core/vcs_lifted/blake2_merkle.zig:20`) cannot be named inside the
 profile.
 
 ### 4.5 Converting a circuit proof for the in-circuit verifier
@@ -782,15 +782,15 @@ profile.
 - nonces become `QM31(lo, hi, 0, 0)`.
 
 Its inputs are the existing `ExtendedStarkProof` aux
-(`src/core/proof.zig:170`, `src/core/pcs/mod.zig:89`,
-`src/core/vcs_lifted/verifier.zig:35`). Internal folds pass the structured
+(`src/waist/core/proof.zig:170`, `src/waist/core/pcs/mod.zig:89`,
+`src/waist/core/vcs_lifted/verifier.zig:35`). Internal folds pass the structured
 proof in memory; a CircuitSerialize round trip is only a test.
 
 ### 4.6 Backend plan
 
 1. **CPU scalar reference.** It is the parity oracle for every other backend.
 2. **CPU SIMD.** Packed M31/QM31 from `src/backends/cpu_*`, 4-way Blake2s
-   (`blake2s_parallel4`, `stream4`), `src/prover/vcs_lifted/streaming_committer.zig`,
+   (`blake2s_parallel4`, `stream4`), `src/engine/prover/vcs_lifted/streaming_committer.zig`,
    and the AOT C composition.
 3. **Metal, then CUDA** (after R9). They reuse the resident LDE, Merkle and FRI
    kernels and the generated composition from the same bundle. New work:
@@ -850,8 +850,8 @@ Zig obligations:
   disagree.
 
 **Consequence for the existing Cairo lane (VERIFIED by reading, not by
-running).** `src/prover/pcs/proof_of_work.zig` (`grind`, and its pool and
-backend paths) and `src/core/channel/blake2s.zig` (`grind`) return the
+running).** `src/engine/prover/pcs/proof_of_work.zig` (`grind`, and its pool and
+backend paths) and `src/waist/core/channel/blake2s.zig` (`grind`) return the
 smallest nonce over all u64. So stwo-zig's current Cairo proofs are valid,
 and the official verifier accepts them, because it accepts any nonce that
 passes. They are **not** byte-identical to Rust at the PoW nonces: the 24-bit
@@ -1003,7 +1003,7 @@ registry's `cairo_prover_params`:
 - The oracle's `dump-leaf-cairo-proof` runs the `leaf-prover` code path, steps
   1–3 (`prove_leaf.rs`), on a large host. It writes the ExtendedBinary
   `CairoProof<H>` next to its `SerializedLeafProof`.
-- `src/interop/circuit_recursion/cairo_proof_binary.zig` reads it. Gate:
+- `src/waist/recursion_wire/cairo_proof_binary.zig` reads it. Gate:
   read → write round-trips byte-identically on
   `test_data/test_prove_verify_*/proof.bin` and
   `test_data/all_opcode_components/proof.bin`.
@@ -1455,8 +1455,8 @@ work can be started earlier against committed fixtures.
 
 | M | Name | Scope (files) | Exit criteria | Deps | Est. |
 |---|---|---|---|---|---|
-| **M0** | Oracle, lane pin, in-tree fixtures | `tools/stwo-circuit-oracle-rs` (primitives, gadgets, components, statement-trace, verifier-stages, finalize, topology, project-air, air-programs); `tools/stwo-eval-program-abi`; `conformance/upstream.md`, `tooling-surface-v1.json`, `scripts/check_upstream_pins.py`; `vectors/circuit/` layout; import of in-tree goldens | Oracle builds from its lockfile on the big host; R0–R6 checkpoint JSONs (including §4.7 grind vectors with `hi > 0` and the canonical_small Cairo preprocessed-root fixtures for leaf R6) and the projection and air_programs bundle committed with provenance; `zig build upstream-pins` green; ABI byte-compare green | — | 2 wk |
-| **M1** | Core revision and shared primitives | `src/core/protocol_revision.zig`, `pcs/config_v2.zig`, explicit heights in `vcs_lifted` (verifier and prover), `hashU32s*`, `chacha20_rng.zig`, `qm31_pointwise.zig`; move `BLAKE_SIGMA`, seq/xor formulas and `felt_json.zig` down with re-exports; `channel_profile.zig` | R0 green; every existing Native and Cairo vector byte-identical (`zig build vectors`, interop, prove-checkpoints) | — (parallel to M0) | 1.5 wk |
+| **M0** | Oracle, lane pin, in-tree fixtures | `tools/stwo-circuit-oracle-rs` (primitives, gadgets, components, statement-trace, verifier-stages, finalize, topology, project-air, air-programs); `tools/stwo-eval-program-abi`; `conformance/upstream.md`, `tooling-surface-v1.json`, `scripts/repo/check_upstream_pins.py`; `vectors/circuit/` layout; import of in-tree goldens | Oracle builds from its lockfile on the big host; R0–R6 checkpoint JSONs (including §4.7 grind vectors with `hi > 0` and the canonical_small Cairo preprocessed-root fixtures for leaf R6) and the projection and air_programs bundle committed with provenance; `zig build upstream-pins` green; ABI byte-compare green | — | 2 wk |
+| **M1** | Core revision and shared primitives | `src/waist/core/protocol_revision.zig`, `pcs/config_v2.zig`, explicit heights in `vcs_lifted` (verifier and prover), `hashU32s*`, `chacha20_rng.zig`, `qm31_pointwise.zig`; move `BLAKE_SIGMA`, seq/xor formulas and `felt_json.zig` down with re-exports; `channel_profile.zig` | R0 green; every existing Native and Cairo vector byte-identical (`zig build vectors`, interop, prove-checkpoints) | — (parallel to M0) | 1.5 wk |
 | **M2** | Builder | `src/frontends/circuit/builder/*`, package skeleton, contract, lint | R1 text-identical (starts without oracle); R2 matches oracle; QM31 ≡ NoValue gate lists | M1 | 2.5 wk |
 | **M3** | Interop formats | `src/interop/circuit_recursion/*` | three multiverifier `.bin` round-trip; `four_leaves/root.proof` parse → re-emit byte-identical; registry re-emit byte-identical; Cairo ExtendedBinary round trip on all `test_data` proofs | M1 | 1.5 wk |
 | **M4** | Projection reader and interpreter | `air_eval/*`, the 6 manual components, component tables, slot-order test root | R3 green: all 83 + 11 evaluator gate-list and value hashes, statement traces, 68 sample evaluations | M0 (projection), M2 | 3 wk |
@@ -1573,5 +1573,5 @@ alongside M1–M2. M3 and M10 run off the critical path.
    (`verify.rs:66-109`). The fold TopologyKey is therefore registry config
    only (§3.5).
 6. Should the root `felt_json` writer stream to an atomic file
-   (`src/interop/atomic_file.zig`) or to stdout-compatible output? This is a
+   (`src/support/io/atomic_file.zig`) or to stdout-compatible output? This is a
    product decision and does not affect bytes.

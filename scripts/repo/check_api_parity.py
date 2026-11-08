@@ -42,6 +42,13 @@ EXPORT_FILES: dict[str, str] = {
     "src/engine/prover/vcs_lifted/mod.zig": "stwo.prover.vcs_lifted",
 }
 
+# Namespaces declared as `pub const <name> = struct { ... };` inside an export
+# file whose members are ledgered individually (the former `src/interop`
+# aggregate now lives as a struct in the stwo product root).
+NESTED_EXPORTS: dict[str, dict[str, str]] = {
+    "src/products/stwo/root.zig": {"interop": "stwo.interop"},
+}
+
 
 def parse_upstream_commit() -> str:
     text = UPSTREAM_PATH.read_text(encoding="utf-8")
@@ -64,6 +71,20 @@ def parse_exports() -> dict[str, dict[str, str]]:
             kind, name = match.group(1), match.group(2)
             symbol = f"{prefix}.{name}"
             out[symbol] = {"kind": kind, "source": rel_path}
+        nested = NESTED_EXPORTS.get(rel_path, {})
+        current: str | None = None
+        for line in text.splitlines():
+            if current is None:
+                head = re.match(r"^pub\s+const\s+([A-Za-z0-9_]+)\s*=\s*struct\s*\{", line)
+                if head and head.group(1) in nested:
+                    current = nested[head.group(1)]
+                continue
+            if line.startswith("};"):
+                current = None
+                continue
+            member = re.match(r"^    pub\s+(const|fn)\s+([A-Za-z0-9_]+)", line)
+            if member:
+                out[f"{current}.{member.group(2)}"] = {"kind": member.group(1), "source": rel_path}
     return out
 
 

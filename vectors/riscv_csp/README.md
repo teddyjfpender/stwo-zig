@@ -64,7 +64,7 @@ To audit fixture derivation, first build the locked CSP utility in a clean
 checkout at the pinned commit, then pass that checkout to:
 
 ```sh
-python3 scripts/riscv_csp_benchmark.py \
+python3 scripts/riscv/riscv_csp_benchmark.py \
   --audit-csp-source /path/to/csp-benchmarks \
   --targets ecdsa_secp256k1 --sizes 32 --warmups 0 --samples 1
 ```
@@ -168,9 +168,9 @@ unchanged.
 ## Accelerated ECDSA execution
 
 ```sh
-python3 scripts/riscv_csp_benchmark.py --backend cpu --execution-mode precompile \
+python3 scripts/riscv/riscv_csp_benchmark.py --backend cpu --execution-mode precompile \
   --targets ecdsa_secp256k1 --sizes 32 --workers 16 --report-out /tmp/csp/cpu.json
-python3 scripts/riscv_csp_benchmark.py --backend metal --execution-mode precompile \
+python3 scripts/riscv/riscv_csp_benchmark.py --backend metal --execution-mode precompile \
   --targets ecdsa_secp256k1 --sizes 32 --workers 16 --report-out /tmp/csp/metal.json
 ```
 

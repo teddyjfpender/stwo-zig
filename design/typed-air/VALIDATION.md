@@ -148,7 +148,7 @@ local cache for the exact command or named cache group. Related narrow and
 broad gates share a cache group without using it concurrently:
 
 ```sh
-python3 scripts/typed_air_zig_lane.py \
+python3 scripts/typed_air/typed_air_zig_lane.py \
   --label <short-owner> --stage narrow --cache-group <owner> -- \
   zig build --build-file src/frontends/riscv/build.zig \
   <focused-step> -Doptimize=Debug
@@ -301,7 +301,7 @@ A timing cohort is collected only from that executable on a clean snapshot,
 with a new output path and an explicit operator power-state declaration:
 
 ```sh
-python3 scripts/typed_air_poseidon_benchmark.py \
+python3 scripts/typed_air/typed_air_poseidon_benchmark.py \
   --output zig-out/h010/<new-run-id>.json \
   --power-state '<operator declaration>'
 ```
@@ -671,10 +671,10 @@ and terminal transcript digest is
 `3690d6814dbdf9ec02a85c3a59cb16d2ed87036291fed3e531c740b546c08293`.
 
 ```text
-python3 scripts/typed_air_zig_lane.py --label a013-final-drift-guarded-debug -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=Debug -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a013-final-drift-guarded-debug -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=Debug -j1 --summary all
 Build Summary: 4/4 steps succeeded; 1/1 tests passed
 
-python3 scripts/typed_air_zig_lane.py --label a013-generated-composition-releasefast-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=ReleaseFast -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a013-generated-composition-releasefast-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=ReleaseFast -j1 --summary all
 Build Summary: 4/4 steps succeeded; 1/1 tests passed
 ```
 
@@ -697,13 +697,13 @@ identities are:
 - `d5771e0a86bb81a25f4e6d0a3b52e6a88766c3be3c1115d39f9846443a50fd51`.
 
 ```text
-python3 scripts/typed_air_zig_lane.py --label a014-full-cohort-real-proof-final -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=Debug -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a014-full-cohort-real-proof-final -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=Debug -j1 --summary all
 Build Summary: 1/1 steps succeeded
 
-python3 scripts/typed_air_zig_lane.py --label a014-releasefast-real-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=ReleaseFast -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a014-releasefast-real-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=ReleaseFast -j1 --summary all
 Build Summary: 1/1 steps succeeded
 
-python3 scripts/typed_air_zig_lane.py --label a014-full-lookup-debug -- /usr/bin/time -l zig build --build-file src/frontends/riscv/build.zig test-lookup-batching -Doptimize=Debug -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a014-full-lookup-debug -- /usr/bin/time -l zig build --build-file src/frontends/riscv/build.zig test-lookup-batching -Doptimize=Debug -j1 --summary all
 Build Summary: 3/3 steps succeeded; 326/326 tests passed
 ```
 

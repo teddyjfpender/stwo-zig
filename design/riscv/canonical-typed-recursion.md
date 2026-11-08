@@ -9,8 +9,8 @@ serialized root. CPU and Metal select backend engines for this shared route.
 From the repository root, using Zig 0.15.2 and a new output directory:
 
 ```sh
-python3 scripts/riscv_recursive_product.py --backend cpu --output /tmp/typed-cpu-new
-python3 scripts/riscv_recursive_product.py --backend metal --output /tmp/typed-metal-new
+python3 scripts/riscv/riscv_recursive_product.py --backend cpu --output /tmp/typed-cpu-new
+python3 scripts/riscv/riscv_recursive_product.py --backend metal --output /tmp/typed-metal-new
 ```
 
 Metal requires a physical Mac and the Xcode Metal toolchain. The command builds

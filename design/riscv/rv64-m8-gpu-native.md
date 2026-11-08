@@ -162,7 +162,7 @@ Each check is an enqueued kernel that reads device inputs and writes exactly one
 
 - Class 3.1 + graphs 0.25 + MAIN 4.15 + slab + reserve 1.0 ≈ 8.5 GB leaves ≈ 23 GB arena [D]. That holds a fold peak (21.8 GB [M]) but not a fold plus a staged next input. So the plan is **two-phase** (ZisK phase A/B re-split, delta §4.2): in phase A (native window) `main_resident` is live and the arena runs Stage1/2, truths and leaves that fit (leaf peaks 3.1–18.2 GB [M]); in phase B, once a GPU's last Stage 2 freed its MAIN, the arena grows over `main_resident` for folds and the root. The region boundary moves only at a phase change, stream-ordered on the device.
 - Invariant: no `cudaMalloc` on the request path outside these regions. Today's outside-window allocations (retained regions, persistent regions, leases) all map into a region. The driver enforces this with the allocation observer (`allocation_observer.zig`) in the acceptance test.
-- Per-class peaks come from the existing sweep (`plan.zig`, `scripts/rv64_m8_plan_sweep.py`); the plan is a pinned unit test (layout arithmetic, delta §4.3).
+- Per-class peaks come from the existing sweep (`plan.zig`, `scripts/rv64/rv64_m8_plan_sweep.py`); the plan is a pinned unit test (layout arithmetic, delta §4.3).
 
 ### 3.8 Scheduling
 

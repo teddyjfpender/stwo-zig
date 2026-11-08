@@ -43,7 +43,7 @@
       ],
       "scope": "reference sources only (not compiled): M7 Poseidon2-M31 width24 parameter and matrix reference; new profile only",
       "consumers": [
-        "src/core/crypto/poseidon2_m31_w24_constants.zig",
+        "src/waist/core/crypto/poseidon2_m31_w24_constants.zig",
         "src/backends/cuda/native/rv64/poseidon2_m31.cuh"
       ],
       "tree_sha256": "00b66f940033bcf20917847581b859f5736049f0928a5b8e29e1e3493fb1b0e6",

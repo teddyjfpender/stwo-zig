@@ -19,7 +19,7 @@
       "activation_contract": {
         "schema": "stwo_zig_native_cuda_activation_state_v1",
         "state_path": "conformance/cuda-native-activation-state-v1.json",
-        "state_sha256": "968418e56d3a0e42e4cc99ece90b17a8f26a2e461e1a58b9d696da8d3ee0ecd1",
+        "state_sha256": "79c82dce38091947d002ee9adfb2bb0f28610a07c0e1cf81b399b42346c8e19d",
         "required_families": [
           "wide_fibonacci",
           "blake",

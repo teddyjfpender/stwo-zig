@@ -11,7 +11,7 @@ Related material:
 - the recsize note (`rv64-m3-recursion-profile.md` @ `5d68d0f01`, 4-ary folds and the `m3_b4_q51_p26` outer profile);
 - the M7 profile note (`rv64-m7-profiles.md`).
 
-Corpus harness: `scripts/rv64_m5_negative_corpus.py`. Today's results are in `vectors/reports/rv64-m4-20261104/profiles/`.
+Corpus harness: `scripts/rv64/rv64_m5_negative_corpus.py`. Today's results are in `vectors/reports/rv64-m4-20261104/profiles/`.
 
 ---
 
@@ -340,7 +340,7 @@ There is one **caveat**, and it is the standard one for PCD. A knowledge-soundne
 
 ## 7. Negative corpus specification
 
-Ids are stable, and `scripts/rv64_m5_negative_corpus.py spec` prints the machine-readable list.
+Ids are stable, and `scripts/rv64/rv64_m5_negative_corpus.py spec` prints the machine-readable list.
 
 - "today" says whether the case runs against the M3 receiver: `m3` means runnable now, `m5` or `m7` means pending its format.
 - **M5 rejecting check** names the constraint of this note that must reject it.
@@ -578,4 +578,4 @@ Touched-set completeness needs no counter: an address the CPU touches without an
 
 1. The §9.3 conditions, with F13–F16 added to §9.2's "M5 home" table and implemented with tests named after their cases (`L03`, `MB04`, `MB02`).
 2. canon-native's χ-chain version defines `λ_k` byte-exactly and tests that native and in-circuit chains agree, including a leaf without a local child.
-3. The negative corpus v3 (§7) cases with owner canon-vk, canon-native or rootverify each have a hook (`scripts/rv64_m5_negative_corpus.py coverage --src src`) before the M5 merge.
+3. The negative corpus v3 (§7) cases with owner canon-vk, canon-native or rootverify each have a hook (`scripts/rv64/rv64_m5_negative_corpus.py coverage --src src`) before the M5 merge.

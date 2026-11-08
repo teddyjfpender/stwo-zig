@@ -79,7 +79,7 @@ Native baseline source evidence:
 `../../autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/progress.md` and the pinned local campaign
 `.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/leaf-000019-0000/`.
 Wrapper acceptance is committed under the existing plan's
-`../../vectors/reports/riscv-proving-stack-reset-20260908/2026-09-08-wrapper3-complete-lifecycle/`.
+`../../vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/2026-09-08-wrapper3-complete-lifecycle/`.
 
 ## Ordered gates
 
@@ -180,7 +180,7 @@ RV64 remains a separate future frontend/profile; CSP's RV32 path stays intact.
   assertions now live in the existing dedicated route gate:6/6 passed in30.264s;
   affected general zero-family full proof1/1 passed in86.111s. This reduces
   duplicate compilation ownership; no controlled build-speed A/B is claimed.
-  Evidence: `../../vectors/reports/riscv-proving-stack-reset-20260908/omitted-route-consolidation-v1/`.
+  Evidence: `../../vectors/riscv/recursion-admissions/riscv-proving-stack-reset-20260908/omitted-route-consolidation-v1/`.
 - `frontend-authority.md` identifies remaining active overlap in relation schemas,
   Ethereum challenge projections, infrastructure geometry and Keccak mask
   projection. Native and recursive Keccak row order now has one shared evaluator. These are consolidation work, not a claim of completed repository-wide

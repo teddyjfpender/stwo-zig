@@ -113,12 +113,6 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": null,
       "source": "src/waist/core/mod.zig"
     },
-    "stwo.core.circuit_proof_shape": {
-      "kind": "const",
-      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; the one shape and size model of a circuit STARK proof (ProofConfig column counts, compute_all_fold_steps and ProofInfo::total_bytes of crates/stark_verifier/src/proof.rs), shared by the circuit frontend's in-circuit verifier and the CircuitSerialize wire format (crates/circuit_serialize).",
-      "rust_path": null,
-      "source": "src/waist/core/mod.zig"
-    },
     "stwo.core.channel": {
       "kind": "const",
       "rationale": null,
@@ -147,6 +141,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "kind": "const",
       "rationale": null,
       "rust_path": "crates/stwo/src/lib.rs",
+      "source": "src/waist/core/mod.zig"
+    },
+    "stwo.core.circuit_proof_shape": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; the one shape and size model of a circuit STARK proof (ProofConfig column counts, compute_all_fold_steps and ProofInfo::total_bytes of crates/stark_verifier/src/proof.rs), shared by the circuit frontend's in-circuit verifier and the CircuitSerialize wire format (crates/circuit_serialize).",
+      "rust_path": null,
       "source": "src/waist/core/mod.zig"
     },
     "stwo.core.constraint_framework": {
@@ -299,12 +299,6 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/stwo/src/lib.rs",
       "source": "src/waist/core/fields/mod.zig"
     },
-    "stwo.core.fields.stark_prime": {
-      "kind": "const",
-      "rationale": "The Stark (felt252) prime, one definition shared by the Cairo frontend's felt252 arithmetic and the circuit-recursion wire package's Felt::from_dec_str port (starknet-types-core 0.2.4); not a Native a8fcf4b export.",
-      "rust_path": null,
-      "source": "src/waist/core/fields/mod.zig"
-    },
     "stwo.core.fields.m31": {
       "kind": "const",
       "rationale": null,
@@ -320,6 +314,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
     "stwo.core.fields.qm31_pointwise": {
       "kind": "const",
       "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; coordinate-wise QM31 helpers of crates/circuits/src/ivalue.rs there.",
+      "rust_path": null,
+      "source": "src/waist/core/fields/mod.zig"
+    },
+    "stwo.core.fields.stark_prime": {
+      "kind": "const",
+      "rationale": "The Stark (felt252) prime, one definition shared by the Cairo frontend's felt252 arithmetic and the circuit-recursion wire package's Felt::from_dec_str port (starknet-types-core 0.2.4); not a Native a8fcf4b export.",
       "rust_path": null,
       "source": "src/waist/core/fields/mod.zig"
     },
@@ -675,49 +675,49 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "kind": "const",
       "rationale": "Zig-only atomic artifact publication helper; no direct upstream crate export symbol.",
       "rust_path": null,
-      "source": "src/interop/mod.zig"
+      "source": "src/products/stwo/root.zig"
     },
     "stwo.interop.examples_artifact": {
       "kind": "const",
       "rationale": "Zig/Rust interoperability wire helper for conformance harness; no direct upstream crate export symbol.",
       "rust_path": null,
-      "source": "src/interop/mod.zig"
+      "source": "src/products/stwo/root.zig"
     },
     "stwo.interop.examples_artifact_verifier": {
       "kind": "const",
       "rationale": "Zig verification boundary for the pinned Zig/Rust proof-exchange artifact; no direct upstream crate export symbol.",
       "rust_path": null,
-      "source": "src/interop/mod.zig"
+      "source": "src/products/stwo/root.zig"
     },
     "stwo.interop.output_transaction": {
       "kind": "const",
       "rationale": "Zig-only atomic CLI publication transaction that prevents partial proof/report outputs; it does not change the proof protocol.",
       "rust_path": null,
-      "source": "src/interop/mod.zig"
-    },
-    "stwo.interop.proof_wire": {
-      "kind": "const",
-      "rationale": "Zig/Rust interoperability wire helper for conformance harness; no direct upstream crate export symbol.",
-      "rust_path": null,
-      "source": "src/interop/mod.zig"
+      "source": "src/products/stwo/root.zig"
     },
     "stwo.interop.postcard": {
       "kind": "const",
       "rationale": "Zig postcard-compatible interchange helper used by conformance tooling; no direct upstream public export.",
       "rust_path": null,
-      "source": "src/interop/mod.zig"
+      "source": "src/products/stwo/root.zig"
+    },
+    "stwo.interop.proof_wire": {
+      "kind": "const",
+      "rationale": "Zig/Rust interoperability wire helper for conformance harness; no direct upstream crate export symbol.",
+      "rust_path": null,
+      "source": "src/products/stwo/root.zig"
     },
     "stwo.interop.riscv_artifact": {
       "kind": "const",
       "rationale": "Zig-only RISC-V proof artifact envelope pinned to Sail semantic-authority provenance.",
       "rust_path": null,
-      "source": "src/interop/mod.zig"
+      "source": "src/products/stwo/root.zig"
     },
     "stwo.interop.stwo_json": {
       "kind": "const",
       "rationale": "Zig interoperability alias for the package-owned proof JSON codec; upstream uses serde rather than an equivalent public namespace.",
       "rust_path": null,
-      "source": "src/interop/mod.zig"
+      "source": "src/products/stwo/root.zig"
     },
     "stwo.metal_session": {
       "kind": "const",
@@ -725,16 +725,16 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": null,
       "source": "src/products/stwo/root.zig"
     },
+    "stwo.proof_wire": {
+      "kind": "const",
+      "rationale": "Zig/Rust proof-exchange wire codec, re-exported at the stwo root after the src/interop split; no direct upstream crate export symbol.",
+      "rust_path": null,
+      "source": "src/products/stwo/root.zig"
+    },
     "stwo.prover": {
       "kind": "const",
       "rationale": null,
       "rust_path": "crates/stwo/src/lib.rs",
-      "source": "src/products/stwo/root.zig"
-    },
-    "stwo.prover_api": {
-      "kind": "const",
-      "rationale": "Zig package boundary for stable prover transaction types, signature-checked engine contracts, and stage telemetry; upstream Rust expresses these across traits and concrete prover modules rather than one exported namespace.",
-      "rust_path": "crates/stwo/src/prover/mod.rs",
       "source": "src/products/stwo/root.zig"
     },
     "stwo.prover.air": {
@@ -1042,6 +1042,18 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rationale": "Zig-specific bounded prover worker pool; no direct upstream public export.",
       "rust_path": null,
       "source": "src/engine/prover/mod.zig"
+    },
+    "stwo.prover_api": {
+      "kind": "const",
+      "rationale": "Zig package boundary for stable prover transaction types, signature-checked engine contracts, and stage telemetry; upstream Rust expresses these across traits and concrete prover modules rather than one exported namespace.",
+      "rust_path": "crates/stwo/src/prover/mod.rs",
+      "source": "src/products/stwo/root.zig"
+    },
+    "stwo.recursion_wire": {
+      "kind": "const",
+      "rationale": "Zig circuit-recursion wire codec (formerly src/interop/circuit_recursion), re-exported at the stwo root; no direct upstream crate export symbol.",
+      "rust_path": null,
+      "source": "src/products/stwo/root.zig"
     },
     "stwo.std_shims": {
       "kind": "const",

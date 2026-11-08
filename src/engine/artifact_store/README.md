@@ -137,4 +137,4 @@ algorithm.
 ## Related documentation
 
 - [Metal session adapter](../../backends/metal/session/README.md)
-- [Package release policy](../../../conformance/zig-package-release-policy.md)
+- [Package release policy](../../../design/repository/zig-package-release-policy.md)

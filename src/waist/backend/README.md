@@ -106,8 +106,8 @@ incorrectly typed implementations fail at compile time.
 
 ## Related documentation
 
-- [Backend capability implementation audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
+- [Backend capability implementation audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 - [Protocol core package](../core/README.md)
 - [Stable prover API](../prover_api/README.md)
 - [Prover engine](../../engine/prover/README.md)
-- [Package release policy](../../../conformance/zig-package-release-policy.md)
+- [Package release policy](../../../design/repository/zig-package-release-policy.md)

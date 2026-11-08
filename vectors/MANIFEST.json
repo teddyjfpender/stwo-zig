@@ -6,8 +6,8 @@
     "vectors/air_derive.json": {
       "files": 1,
       "consumers": [
-        "scripts/parity_air_derive.py",
-        "src/core/air/derive.zig",
+        "scripts/repo/parity_air_derive.py",
+        "src/waist/core/air/derive.zig",
         "tools/stwo-air-derive-vector-gen/src/main.rs"
       ]
     },
@@ -26,28 +26,35 @@
         "build_support/products/cairo_support.zig",
         "build_support/products/cairo_witness_cpu_aot.zig",
         "conformance/upstream.md",
-        "scripts/cairo_csp_fixtures.py",
-        "scripts/cairo_four_pie_source_coverage_lib/identity.py",
-        "scripts/cuda_device_smoke.py",
-        "scripts/cuda_recorded_witness_product.py",
+        "scripts/cairo/cairo_csp_fixtures.py",
+        "scripts/cairo/cairo_four_pie_source_coverage_lib/identity.py",
+        "scripts/cuda/cuda_device_smoke.py",
+        "scripts/cuda/cuda_recorded_witness_product.py",
+        "scripts/repo/upstream_pins_lib/cairo_vm_adapter.py",
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_air_templates.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_topology.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_vectors.py",
         "scripts/tests/cuda_native_aot_fixture.py",
         "scripts/tests/test_cairo_csp_fixtures.py",
         "scripts/tests/test_cuda_build.py",
         "scripts/tests/test_cuda_build_cache.py",
         "scripts/tests/test_sn_pie_composition_bundle.py",
         "scripts/tests/test_upstream_pins.py",
-        "scripts/upstream_pins_lib/cairo_vm_adapter.py",
-        "scripts/upstream_pins_lib/circuit_recursion.py",
-        "scripts/upstream_pins_lib/official_cairo_air_templates.py",
-        "scripts/upstream_pins_lib/official_cairo_topology.py",
-        "scripts/upstream_pins_lib/official_cairo_vectors.py",
         "src/backends/cuda/README.md",
         "src/backends/cuda/UPSTREAM.md",
+        "src/backends/metal/tests/system/arena_plan_test.zig",
+        "src/backends/metal/tests/system/backend/resident_data_test.zig",
+        "src/backends/metal/tests/system/composition_binding_test.zig",
+        "src/backends/metal/tests/system/composition_fusion_test.zig",
+        "src/backends/metal/tests/system/composition_library_parity_test.zig",
+        "src/backends/metal/tests/system/composition_lift_bridge_test.zig",
+        "src/backends/metal/tests/system/composition_option_b_test.zig",
+        "src/backends/metal/tools/prover_session/verification.zig",
         "src/frontends/cairo/adapter/compact_input_v1.md",
         "src/frontends/cairo/adapter/compact_writer.zig",
         "src/frontends/cairo/air/template_binding.zig",
         "src/frontends/cairo/air/template_library.zig",
-        "src/frontends/cairo/conformance/base_trace_layout.zig",
         "src/frontends/cairo/conformance/interaction_receipt.zig",
         "src/frontends/cairo/proof_plan/semantic_authority.zig",
         "src/frontends/cairo/prove_trace.zig",
@@ -114,30 +121,22 @@
         "src/integrations/cairo_metal/resident/relations/claims.zig",
         "src/integrations/cairo_metal/resident/witness/prepare.zig",
         "src/integrations/cairo_metal/witness_aot.zig",
+        "src/products/cairo/cpu/app.zig",
+        "src/products/cairo/cpu/native_composition_test.zig",
+        "src/products/cairo/cpu/tests/claim_generator_test.zig",
+        "src/products/cairo/cpu/tests/cpu_air_test.zig",
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/products/cairo/cpu/tests/cpu_proof_test.zig",
+        "src/products/cairo/cpu/tests/prove_trace_test.zig",
+        "src/products/cairo/cpu/tests/statement_bootstrap_test.zig",
+        "src/products/cairo/cuda/canonical_paths.zig",
+        "src/products/cairo/metal/app.zig",
+        "src/products/cairo/recursion/cpu/README.md",
+        "src/products/cairo/recursion/cpu/app.zig",
         "src/products/cairo/shared/profile.zig",
-        "src/products/cairo_cpu/app.zig",
-        "src/products/cairo_cpu/native_composition_test.zig",
-        "src/products/cairo_cuda/canonical_paths.zig",
-        "src/products/cairo_metal/app.zig",
-        "src/products/circuit_recursion_cpu/README.md",
-        "src/products/circuit_recursion_cpu/app.zig",
-        "src/tests/cairo/claim_generator_test.zig",
-        "src/tests/cairo/cpu_air_test.zig",
-        "src/tests/cairo/cpu_leaf_proof_test.zig",
-        "src/tests/cairo/cpu_proof_test.zig",
-        "src/tests/cairo/prove_trace_test.zig",
-        "src/tests/cairo/statement_bootstrap_test.zig",
-        "src/tests/metal/arena_plan_test.zig",
-        "src/tests/metal/backend/resident_data_test.zig",
-        "src/tests/metal/composition_binding_test.zig",
-        "src/tests/metal/composition_fusion_test.zig",
-        "src/tests/metal/composition_library_parity_test.zig",
-        "src/tests/metal/composition_lift_bridge_test.zig",
-        "src/tests/metal/composition_option_b_test.zig",
-        "src/tests/metal/eval_codegen_test.zig",
-        "src/tools/cairo_metal_codegen/eval_prepare.zig",
-        "src/tools/cuda_native_ec_composite_oracle/oracle.zig",
-        "src/tools/metal_prover_session/verification.zig",
+        "src/products/cairo/tools/metal_codegen/eval_codegen_test.zig",
+        "src/products/cairo/tools/metal_codegen/eval_prepare.zig",
+        "src/products/native/tools/cuda_ec_composite_oracle/oracle.zig",
         "tools/cairo-witness-compiler/README.md",
         "tools/cairo-witness-compiler/tests/test_orchestrator.py",
         "tools/stwo-cairo-air-compiler/README.md",
@@ -161,7 +160,7 @@
       "files": 6,
       "consumers": [
         "build_support/products/cairo_cpu/csp_fixtures.zig",
-        "scripts/cairo_csp_fixtures.py",
+        "scripts/cairo/cairo_csp_fixtures.py",
         "scripts/tests/test_cairo_csp_fixtures.py"
       ]
     },
@@ -177,12 +176,12 @@
         "build_support/products/cairo_support.zig",
         "build_support/products/cairo_witness_cpu_aot.zig",
         "conformance/upstream.md",
+        "scripts/repo/upstream_pins_lib/cairo_vm_adapter.py",
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_air_templates.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_topology.py",
+        "scripts/repo/upstream_pins_lib/official_cairo_vectors.py",
         "scripts/tests/test_upstream_pins.py",
-        "scripts/upstream_pins_lib/cairo_vm_adapter.py",
-        "scripts/upstream_pins_lib/circuit_recursion.py",
-        "scripts/upstream_pins_lib/official_cairo_air_templates.py",
-        "scripts/upstream_pins_lib/official_cairo_topology.py",
-        "scripts/upstream_pins_lib/official_cairo_vectors.py",
         "src/frontends/cairo/adapter/compact_input_v1.md",
         "src/frontends/cairo/adapter/compact_writer.zig",
         "src/frontends/cairo/air/template_binding.zig",
@@ -211,14 +210,14 @@
         "src/integrations/cairo_cuda/tests/relation_adapter_test.zig",
         "src/integrations/cairo_metal/composition_aot.zig",
         "src/integrations/cairo_metal/composition_stage.zig",
+        "src/products/cairo/cpu/app.zig",
+        "src/products/cairo/cpu/native_composition_test.zig",
+        "src/products/cairo/cpu/tests/cpu_air_test.zig",
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/products/cairo/cpu/tests/cpu_proof_test.zig",
+        "src/products/cairo/metal/app.zig",
+        "src/products/cairo/recursion/cpu/app.zig",
         "src/products/cairo/shared/profile.zig",
-        "src/products/cairo_cpu/app.zig",
-        "src/products/cairo_cpu/native_composition_test.zig",
-        "src/products/cairo_metal/app.zig",
-        "src/products/circuit_recursion_cpu/app.zig",
-        "src/tests/cairo/cpu_air_test.zig",
-        "src/tests/cairo/cpu_leaf_proof_test.zig",
-        "src/tests/cairo/cpu_proof_test.zig",
         "tools/cairo-witness-compiler/README.md",
         "tools/cairo-witness-compiler/tests/test_orchestrator.py",
         "tools/stwo-cairo-air-compiler/README.md",
@@ -235,15 +234,15 @@
       "files": 13,
       "consumers": [
         "build_support/products/cairo/oracle_corpus.zig",
+        "scripts/repo/upstream_pins_lib/cairo_vm_adapter.py",
         "scripts/tests/test_upstream_pins.py",
-        "scripts/upstream_pins_lib/cairo_vm_adapter.py",
         "tools/stwo-cairo-vm-adapter-rs/tests/cli.rs"
       ]
     },
     "vectors/cairo/source_semantics": {
       "files": 38,
       "consumers": [
-        "scripts/cairo_four_pie_source_coverage_lib/identity.py",
+        "scripts/cairo/cairo_four_pie_source_coverage_lib/identity.py",
         "src/frontends/cairo/witness/source_semantic_pack.zig",
         "src/integrations/cairo_cuda/tests/program_test.zig"
       ]
@@ -259,7 +258,7 @@
       "files": 6,
       "consumers": [
         "src/frontends/cairo/prove_trace.zig",
-        "src/tests/cairo/prove_trace_test.zig"
+        "src/products/cairo/cpu/tests/prove_trace_test.zig"
       ]
     },
     "vectors/circuit": {
@@ -271,11 +270,10 @@
         "conformance/ci-touchpoints-v1.json",
         "conformance/circuit_slot_order/circuit_cairo_slot_order_test_root.zig",
         "conformance/upstream.md",
-        "scripts/generate_circuit_oracle_vectors.py",
+        "scripts/interop/generate_circuit_oracle_vectors.py",
+        "scripts/repo/upstream_pins_lib/circuit_projection.py",
+        "scripts/repo/upstream_pins_lib/circuit_recursion.py",
         "scripts/tests/test_upstream_pins_circuit_recursion.py",
-        "scripts/upstream_pins_lib/circuit_projection.py",
-        "scripts/upstream_pins_lib/circuit_recursion.py",
-        "src/core/cairo_air_layout.zig",
         "src/frontends/cairo/README.md",
         "src/frontends/cairo/applicative/README.md",
         "src/frontends/cairo/applicative/registry.cairo",
@@ -325,13 +323,14 @@
         "src/integrations/circuit_metal/README.md",
         "src/integrations/circuit_metal/build.zig",
         "src/integrations/riscv_cpu/rv64_recursion/fold_root.zig",
-        "src/interop/circuit_recursion/README.md",
-        "src/interop/circuit_recursion/build.zig",
-        "src/interop/circuit_recursion/vectors_test.zig",
-        "src/products/circuit_recursion_cpu/README.md",
-        "src/products/circuit_recursion_cpu/tests/r8_leaf_wrap_test.zig",
-        "src/products/circuit_recursion_cpu/tests/r8b_leaf_chain_test.zig",
-        "src/tests/cairo/cpu_leaf_proof_test.zig",
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/products/cairo/recursion/cpu/README.md",
+        "src/products/cairo/recursion/cpu/tests/r8_leaf_wrap_test.zig",
+        "src/products/cairo/recursion/cpu/tests/r8b_leaf_chain_test.zig",
+        "src/waist/core/cairo_air_layout.zig",
+        "src/waist/recursion_wire/README.md",
+        "src/waist/recursion_wire/build.zig",
+        "src/waist/recursion_wire/vectors_test.zig",
         "tools/starknet-block-collector/benchmark_circuit_cuda_hybrid.py",
         "tools/starknet-block-collector/circuit_pipeline.py",
         "tools/stwo-circuit-oracle-rs/README.md",
@@ -345,7 +344,7 @@
         "build_support/products/circuit_recursion_cpu.zig",
         "build_support/products/product_specs.zig",
         "conformance/circuit_slot_order/circuit_cairo_slot_order_test_root.zig",
-        "scripts/upstream_pins_lib/circuit_projection.py",
+        "scripts/repo/upstream_pins_lib/circuit_projection.py",
         "src/frontends/cairo/applicative/README.md",
         "src/frontends/cairo/applicative/registry.cairo",
         "src/frontends/cairo/tests/circuit_leaf_statement.zig",
@@ -378,11 +377,11 @@
         "src/integrations/circuit_metal/README.md",
         "src/integrations/circuit_metal/build.zig",
         "src/integrations/riscv_cpu/rv64_recursion/fold_root.zig",
-        "src/interop/circuit_recursion/README.md",
-        "src/products/circuit_recursion_cpu/README.md",
-        "src/products/circuit_recursion_cpu/tests/r8_leaf_wrap_test.zig",
-        "src/products/circuit_recursion_cpu/tests/r8b_leaf_chain_test.zig",
-        "src/tests/cairo/cpu_leaf_proof_test.zig",
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/products/cairo/recursion/cpu/README.md",
+        "src/products/cairo/recursion/cpu/tests/r8_leaf_wrap_test.zig",
+        "src/products/cairo/recursion/cpu/tests/r8b_leaf_chain_test.zig",
+        "src/waist/recursion_wire/README.md",
         "tools/starknet-block-collector/benchmark_circuit_cuda_hybrid.py",
         "tools/starknet-block-collector/circuit_pipeline.py",
         "tools/stwo-eval-program-abi/README.md"
@@ -399,10 +398,10 @@
     "vectors/circuit/r10": {
       "files": 7,
       "consumers": [
-        "src/products/circuit_recursion_cpu/README.md",
-        "src/products/circuit_recursion_cpu/tests/r8_leaf_wrap_test.zig",
-        "src/products/circuit_recursion_cpu/tests/r8b_leaf_chain_test.zig",
-        "src/tests/cairo/cpu_leaf_proof_test.zig"
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/products/cairo/recursion/cpu/README.md",
+        "src/products/cairo/recursion/cpu/tests/r8_leaf_wrap_test.zig",
+        "src/products/cairo/recursion/cpu/tests/r8b_leaf_chain_test.zig"
       ]
     },
     "vectors/circuit/r11": {
@@ -450,7 +449,6 @@
     "vectors/circuit/r6": {
       "files": 2,
       "consumers": [
-        "src/core/cairo_air_layout.zig",
         "src/frontends/cairo/README.md",
         "src/frontends/cairo/statement/circuit_leaf.zig",
         "src/frontends/cairo/tests/circuit_leaf_statement.zig",
@@ -460,7 +458,8 @@
         "src/frontends/circuit/statements/cairo_statement_test.zig",
         "src/integrations/circuit_cpu/README.md",
         "src/integrations/circuit_cpu/tests/r6_leaf_topology_test.zig",
-        "src/tests/cairo/cpu_leaf_proof_test.zig"
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
+        "src/waist/core/cairo_air_layout.zig"
       ]
     },
     "vectors/circuit/r7": {
@@ -488,17 +487,17 @@
     "vectors/constraint_expr.json": {
       "files": 1,
       "consumers": [
-        "scripts/parity_constraint_expr.py",
-        "src/core/constraint_framework/evaluator.zig",
-        "src/core/constraint_framework/expr.zig",
+        "scripts/repo/parity_constraint_expr.py",
+        "src/waist/core/constraint_framework/evaluator.zig",
+        "src/waist/core/constraint_framework/expr.zig",
         "tools/stwo-cf-vector-gen/src/main.rs"
       ]
     },
     "vectors/fields.json": {
       "files": 1,
       "consumers": [
-        "scripts/parity_fields.py",
-        "src/interop/parity/vectors/fixtures.zig",
+        "scripts/repo/parity_fields.py",
+        "src/products/native/tests/parity/vectors/fixtures.zig",
         "tools/stwo-vector-gen/src/main.rs"
       ]
     },
@@ -514,23 +513,12 @@
         "conformance/rv64im-foundations-v1.json",
         "guests/ethereum/client_evmone/README.md",
         "guests/ethereum/rv64/README.md",
-        "scripts/benchmark_full_lib/controller.py",
-        "scripts/benchmark_kernels.py",
-        "scripts/benchmark_smoke_lib/controller.py",
-        "scripts/e2e_interop_lib/controller.py",
-        "scripts/merkle_worker_stress.py",
-        "scripts/optimization_compare_lib/controller.py",
-        "scripts/profile_smoke_lib/controller.py",
-        "scripts/prove_checkpoints.py",
-        "scripts/release_evidence.py",
-        "scripts/riscv_csp_benchmark_lib/contract.py",
-        "scripts/rv64_m3_pod.py",
-        "scripts/rv64_m4_resident.py",
-        "scripts/rv64_m5_outer_gkr_census.py",
-        "scripts/rv64_m6_hint_tape_prep.py",
+        "scripts/interop/e2e_interop_lib/controller.py",
+        "scripts/interop/prove_checkpoints.py",
+        "scripts/rv64/rv64_m3_pod.py",
+        "scripts/rv64/rv64_m4_resident.py",
+        "scripts/rv64/rv64_m8_jobs_addon_build.py",
         "scripts/rv64_m8_bench15.py",
-        "scripts/rv64_m8_jobs_addon_build.py",
-        "scripts/std_shims_behavior.py",
         "scripts/tests/test_rv64_validation.py",
         "src/backends/cuda/native/commitment/merkle.cu",
         "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
@@ -552,15 +540,13 @@
     },
     "vectors/riscv/csp": {
       "files": 1,
-      "consumers": [
-        "scripts/riscv_csp_ab_benchmark_lib/contract.py"
-      ]
+      "consumers": []
     },
     "vectors/riscv/fixtures": {
       "files": 177,
       "consumers": [
-        "scripts/rv64_m7_integration_stack.py",
-        "scripts/rv64_validation.py",
+        "scripts/rv64/rv64_m7_integration_stack.py",
+        "scripts/rv64/rv64_validation.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64/jobs/plan_test.zig"
       ]
@@ -568,7 +554,7 @@
     "vectors/riscv/recursion-admissions": {
       "files": 26,
       "consumers": [
-        "scripts/riscv_recursive_product.py",
+        "scripts/riscv/riscv_recursive_product.py",
         "src/frontends/riscv/leaf_manifest_contract_test_root.zig"
       ]
     },
@@ -576,36 +562,30 @@
       "files": 21,
       "consumers": [
         "conformance/rv64im-foundations-v1.json",
-        "scripts/riscv64_foundations_benchmark.py",
-        "scripts/rv64_m4_arena_job.sh",
-        "scripts/rv64_m8_bench15.py",
-        "scripts/tests/test_riscv64_prover_profile_compare.py"
+        "scripts/rv64/riscv64_foundations_benchmark.py",
+        "scripts/rv64/rv64_m4_arena_job.sh",
+        "scripts/rv64_m8_bench15.py"
       ]
     },
     "vectors/riscv_csp": {
       "files": 25,
       "consumers": [
-        "scripts/build_csp_ecdsa_precompile.py",
-        "scripts/riscv64_csp_compare.py",
-        "scripts/riscv64_csp_full_proofs.py",
-        "scripts/riscv_csp_ab_benchmark_lib/contract.py",
-        "scripts/riscv_csp_ab_benchmark_lib/runner.py",
-        "scripts/riscv_csp_ab_benchmark_lib/workspace.py",
-        "scripts/riscv_csp_benchmark.py",
-        "scripts/riscv_csp_benchmark_lib/contract.py",
-        "scripts/riscv_csp_benchmark_lib/precompile.py",
-        "scripts/riscv_recursion_csp_benchmark.py",
-        "scripts/riscv_recursion_csp_benchmark_lib/shape_coverage.py",
+        "scripts/riscv/build_csp_ecdsa_precompile.py",
+        "scripts/riscv/riscv_csp_ab_benchmark_lib/workspace.py",
+        "scripts/riscv/riscv_csp_benchmark.py",
+        "scripts/riscv/riscv_csp_benchmark_lib/precompile.py",
+        "scripts/riscv/riscv_recursion_csp_benchmark.py",
+        "scripts/riscv/riscv_recursion_csp_benchmark_lib/shape_coverage.py",
+        "scripts/rv64/riscv64_csp_compare.py",
+        "scripts/rv64/riscv64_csp_full_proofs.py",
         "scripts/tests/test_cairo_csp_fixtures.py",
         "scripts/tests/test_riscv64_csp_full_proofs.py",
         "scripts/tests/test_riscv64_tools.py",
-        "scripts/tests/test_riscv_csp_ab_benchmark.py",
-        "scripts/tests/test_riscv_csp_benchmark.py",
         "scripts/tests/test_riscv_recursion_csp_benchmark.py",
         "src/frontends/riscv/runner/guest_precompile/tests/c011_semantic_equivalence_test.zig",
         "src/integrations/riscv_cpu/README.md",
         "src/integrations/riscv_metal/README.md",
-        "src/tools/riscv/recursive_csp_producer/contract.zig"
+        "src/products/riscv/tools/recursive_csp_producer/contract.zig"
       ]
     },
     "vectors/riscv_elfs": {
@@ -615,25 +595,24 @@
         "conformance/build-monorepo-baseline-v1.json",
         "conformance/performance-authority/epoch-3/MANIFEST.json",
         "conformance/typed-air/m5-m9-protocol-v1.json",
-        "scripts/check_upstream_pins.py",
-        "scripts/riscv_csp_ab_benchmark_lib/workspace.py",
-        "scripts/riscv_operand_classes_lib/audit.py",
-        "scripts/riscv_pr_proof_smoke.py",
-        "scripts/riscv_sail_gate.py",
-        "scripts/riscv_staged_smoke.py",
-        "scripts/riscv_trace_vectors.py",
+        "scripts/repo/check_upstream_pins.py",
+        "scripts/riscv/riscv_csp_ab_benchmark_lib/workspace.py",
+        "scripts/riscv/riscv_operand_classes_lib/audit.py",
+        "scripts/riscv/riscv_pr_proof_smoke.py",
+        "scripts/riscv/riscv_sail_gate.py",
+        "scripts/riscv/riscv_staged_smoke.py",
+        "scripts/riscv/riscv_trace_vectors.py",
         "scripts/tests/test_independent_proof_system_validation_contract.py",
         "scripts/tests/test_riscv_sail_gate.py",
         "scripts/tests/test_riscv_sail_oracle.py",
         "scripts/tests/test_riscv_staged_smoke.py",
-        "scripts/tests/test_riscv_trace_vectors.py",
         "scripts/tests/test_upstream_pins.py",
-        "scripts/typed_air_c013_capture_lib/plan.py",
-        "scripts/typed_air_performance_protocol_lib/contract.py",
-        "scripts/typed_air_r006_capture.py",
+        "scripts/typed_air/typed_air_c013_capture_lib/plan.py",
+        "scripts/typed_air/typed_air_performance_protocol_lib/contract.py",
+        "scripts/typed_air/typed_air_r006_capture.py",
         "src/frontends/riscv/README.md",
-        "src/tests/riscv/mulh_soundness_test.zig",
-        "src/tests/riscv/rigidity_corpus.zig"
+        "src/products/riscv/cpu/tests/mulh_soundness_test.zig",
+        "src/products/riscv/cpu/tests/rigidity_corpus.zig"
       ]
     },
     "vectors/riscv_guests": {
@@ -641,11 +620,11 @@
       "consumers": [
         "build_support/products/riscv_metal_tests.zig",
         "build_support/products/riscv_poseidon2_pair.zig",
-        "scripts/build_csp_ecdsa_precompile.py",
-        "scripts/riscv64_csp_compare.py",
-        "scripts/riscv_csp_ab_benchmark_lib/workspace.py",
-        "scripts/typed_air_c013_capture_lib/plan.py",
-        "scripts/typed_air_r006_capture.py"
+        "scripts/riscv/build_csp_ecdsa_precompile.py",
+        "scripts/riscv/riscv_csp_ab_benchmark_lib/workspace.py",
+        "scripts/rv64/riscv64_csp_compare.py",
+        "scripts/typed_air/typed_air_c013_capture_lib/plan.py",
+        "scripts/typed_air/typed_air_r006_capture.py"
       ]
     },
     "vectors/starknet/cuda-resident-pipeline-h100-20261001": {
@@ -757,8 +736,8 @@
     },
     {
       "path": "vectors/cairo/csp/README.md",
-      "sha256": "98184b50682241cfffc53626e7f6c393865fefdd52ed20282b6a9767bcd7390d",
-      "bytes": 4666,
+      "sha256": "be368bc0aa45b7cc14cee2da5da7ade71838984120d51648b104926446d99edc",
+      "bytes": 4678,
       "group": "vectors/cairo/csp"
     },
     {
@@ -1441,8 +1420,8 @@
     },
     {
       "path": "vectors/circuit/README.md",
-      "sha256": "984c7d285438bee1363f1c358ed4ec8f2384f8f4ef97ae74b0c77688533d935f",
-      "bytes": 20129,
+      "sha256": "cf1715ebb7e918d54446d2fdf40556fbd57d95cfeff9c200233f9376073b373b",
+      "bytes": 20147,
       "group": "vectors/circuit"
     },
     {
@@ -1969,8 +1948,8 @@
     },
     {
       "path": "vectors/riscv/fixtures/README.md",
-      "sha256": "f197f40102b8b46671e5df7bff3f4d5a401d08c4a2014fc69d4737d13d0edb22",
-      "bytes": 1003,
+      "sha256": "2f8f4068ef04be458b70432a09893819937edc230532da6a8c44140ff452624d",
+      "bytes": 1008,
       "group": "vectors/riscv/fixtures"
     },
     {
@@ -3313,8 +3292,8 @@
     },
     {
       "path": "vectors/riscv_csp/README.md",
-      "sha256": "bbc9f1c4e5b47f0e5c25697f18539b9cc4d313c306ae5c977d5cdbb40b4d23af",
-      "bytes": 73826,
+      "sha256": "43890904843a7bf65f4488a92e1c92144ecea0bf821cb14cf51b4f6d5c3dc63b",
+      "bytes": 73844,
       "group": "vectors/riscv_csp"
     },
     {
@@ -3763,8 +3742,8 @@
     },
     {
       "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/README.md",
-      "sha256": "ed4159bf06158e946ae31115a2d01dc9443756122ada3c95332eb2a50bbd8152",
-      "bytes": 1588,
+      "sha256": "5dda49007336e1d1cb95dda2dea6470710a7d10f131f1226ae694ceb904bc052",
+      "bytes": 1594,
       "group": "vectors/riscv_guests"
     },
     {
@@ -3889,8 +3868,8 @@
     },
     {
       "path": "vectors/starknet/mainnet/README.md",
-      "sha256": "7e01f0bd9c5288e683c99cf2ffe9a59ae82bc66d3ad4a04e9b16c11311d0d8e5",
-      "bytes": 2867,
+      "sha256": "cb7c6d33ce229072b3f8cdd98cf333e3a0f6a5f7b9f08ce1f8e8b283f405610b",
+      "bytes": 2850,
       "group": "vectors/starknet/mainnet"
     },
     {

@@ -4,7 +4,7 @@ These are test inputs, not current performance receipts.
 
 - `rv64-d2-composed-v1/` is the complete frozen D2 parity and composed-cell
   package. The proof gate, basket and composed-cell regressions share its
-  location through `scripts/rv64_validation.py`.
+  location through `scripts/rv64/rv64_validation.py`.
 - `rv64-jobs-memory-policy-v1.json` is the committed allocation-policy fixture.
   Its package-owned layout test fails if it is missing.
 

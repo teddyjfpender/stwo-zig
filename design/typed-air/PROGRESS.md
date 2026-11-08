@@ -2680,7 +2680,7 @@ global parent closure were next; the 2026-08-20 section above supersedes that
 boundary with `temporal_parent_verified = true`.
 
 Finally, compiler concurrency is bounded and cache-isolated rather than
-coordinated by chat. `scripts/typed_air_zig_lane.py` owns three nonblocking
+coordinated by chat. `scripts/typed_air/typed_air_zig_lane.py` owns three nonblocking
 Git-private slots, injects a distinct local Zig cache per occupied slot, shares
 only the immutable global cache, publishes owner/PID/argv metadata, and exits
 75 only when all slots are busy. Locks survive a killed controller through
@@ -2727,19 +2727,19 @@ V2 execution and a no-CPU-fallback receipt remain open.
 Exact gates:
 
 ```text
-python3 scripts/typed_air_zig_lane.py --label a013-final-drift-guarded-debug -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=Debug -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a013-final-drift-guarded-debug -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=Debug -j1 --summary all
 Build Summary: 4/4 steps succeeded; 1/1 tests passed
 
-python3 scripts/typed_air_zig_lane.py --label a013-generated-composition-releasefast-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=ReleaseFast -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a013-generated-composition-releasefast-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=ReleaseFast -j1 --summary all
 Build Summary: 4/4 steps succeeded; 1/1 tests passed
 
-python3 scripts/typed_air_zig_lane.py --label a014-full-cohort-real-proof-final -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=Debug -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a014-full-cohort-real-proof-final -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=Debug -j1 --summary all
 Build Summary: 1/1 steps succeeded
 
-python3 scripts/typed_air_zig_lane.py --label a014-releasefast-real-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=ReleaseFast -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a014-releasefast-real-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=ReleaseFast -j1 --summary all
 Build Summary: 1/1 steps succeeded
 
-python3 scripts/typed_air_zig_lane.py --label a014-full-lookup-debug -- /usr/bin/time -l zig build --build-file src/frontends/riscv/build.zig test-lookup-batching -Doptimize=Debug -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a014-full-lookup-debug -- /usr/bin/time -l zig build --build-file src/frontends/riscv/build.zig test-lookup-batching -Doptimize=Debug -j1 --summary all
 Build Summary: 3/3 steps succeeded; 326/326 tests passed
 ```
 

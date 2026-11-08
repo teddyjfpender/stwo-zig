@@ -147,7 +147,7 @@ historical performance/production objective described there.
   - T10 (narrow capture recorder, `STWO_RV64_M8_CAPTURE_RECORDER`, default off): 12.914 → 12.600 s [M].
 - **Source-built default runtime** (lib `25d0e62f`), so the default flips actually run in gates.
   - Receipt: `.../m-runtime/`.
-  - Build recipe: `.../opt-combined/compose_image.py` plus `scripts/rv64_m8_native_relink.py`.
+  - Build recipe: `.../opt-combined/compose_image.py` plus `scripts/rv64/rv64_m8_native_relink.py`.
   - The old frozen-line relink no longer reproduces: 4 objects are gone, 6 have been overwritten.
 - **`STWO_RV64_M8_TRUTH_SPLIT` (default off).**
   - The D2 coalesced-truth profile refused 9 of the 15 basket blocks (`OneTruthPerFamilySourceCapacity` ×5, `V3TruthShapeExceeded` ×4).
@@ -362,7 +362,7 @@ In order of value; flags are default-off, per rv64-m9-io-streaming.md §5.
 
 ### Measurement
 
-- **Request claims:** only from `scripts/rv64_m7_integration_stack.py` 3+3 runs with the quiet gate.
+- **Request claims:** only from `scripts/rv64/rv64_m7_integration_stack.py` 3+3 runs with the quiet gate.
 - **Kernel timings:** only from CUDA events or nsys NVTX GPU projection.
 - **No hardware counters on RunPod:** `ncu` returns `ERR_NVGPUCTRPERM`.
 - **Grinding:** the as-built PoW grind runs at about 1.1–2 G Blake2s/s. An engineered check-every-64 variant measured 19–25 G/s on the dev 5090 [M] and isn't landed.

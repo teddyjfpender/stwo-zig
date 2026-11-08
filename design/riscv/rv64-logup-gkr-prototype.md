@@ -21,7 +21,7 @@ the method. We do not port the upstream code line for line.
 
 ## 1. The gap this closes
 
-`src/prover/lookups/gkr_verifier.zig:partiallyVerifyBatch` returns
+`src/engine/prover/lookups/gkr_verifier.zig:partiallyVerifyBatch` returns
 `GkrArtifact{ood_point, claims_to_verify_by_instance, n_variables_by_instance}`.
 These are multilinear evaluation claims about the GKR *input layer* at a random
 point. Today's tests check them against arrays they hold in memory. A receiver
