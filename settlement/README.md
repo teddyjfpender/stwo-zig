@@ -341,6 +341,14 @@ ID, contract, rollup configuration, previous and next checkpoints, L2
 origin, and L1 anchor. The transition verifier must prove that the
 origin and derivation data are authenticated by that anchor. The L2
 origin can precede the anchor. Writes occur after proof verification.
+`KonaTransitionStatement` opens the checkpoint digest into the exact 43-byte
+`OD` and `OP` guest outputs. It binds the deployment scope to the previous
+and next checkpoints, then includes the L1 origin number, payload commitment
+and computed block hash in the derivation transport. Solidity reproduces the
+Rust and Python encodings for both the golden vector and the accepted OP
+Mainnet 159257842 native and RV64 transition statement. The same fields and
+outputs must be checked by the proof backend before the checkpoint advances.
+
 Deployments require a standalone,
 non-upgradeable backend with the intended verification key and a trusted
 initial checkpoint. Pinning a proxy's runtime hash would not pin its

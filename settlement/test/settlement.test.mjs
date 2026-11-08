@@ -805,6 +805,12 @@ test("reconstructs the V3 truth worker prefix from the pinned native profile and
   assert.notEqual(other, preComposition);
 });
 
+function checkpointDigest(scope, checkpoint) {
+  const typeHash = id("KonaTransition(uint256 settlementChainId,address checkpoint,uint256 rollupChainId,bytes32 rollupConfig,uint64 previousNumber,bytes32 previousRoot,uint64 nextNumber,bytes32 nextRoot,bytes32 l1Origin,uint64 l1AnchorNumber,bytes32 l1AnchorHash)");
+  const types = ["bytes32", "uint256", "address", "uint256", "bytes32", "uint64", "bytes32", "uint64", "bytes32", "bytes32", "uint64", "bytes32"];
+  return keccak256(AbiCoder.defaultAbiCoder().encode(types, [typeHash, ...scope, ...checkpoint]));
+}
+
 test("binds the checkpoint digest to the exact Rust and Python Kona guest outputs", async () => {
   const contract = await deploy("test/KonaStatementHarness.sol", "KonaStatementHarness");
   const scope = [1, await contract.getAddress(), 10, id("OP Mainnet config")];
@@ -813,9 +819,7 @@ test("binds the checkpoint digest to the exact Rust and Python Kona guest output
   const payload = "0x" + "e5".repeat(32);
   const blockHash = "0x" + "f6".repeat(32);
   const statement = [checkpoint, 99, payload, blockHash];
-  const typeHash = id("KonaTransition(uint256 settlementChainId,address checkpoint,uint256 rollupChainId,bytes32 rollupConfig,uint64 previousNumber,bytes32 previousRoot,uint64 nextNumber,bytes32 nextRoot,bytes32 l1Origin,uint64 l1AnchorNumber,bytes32 l1AnchorHash)");
-  const types = ["bytes32", "uint256", "address", "uint256", "bytes32", "uint64", "bytes32", "uint64", "bytes32", "bytes32", "uint64", "bytes32"];
-  const digest = keccak256(AbiCoder.defaultAbiCoder().encode(types, [typeHash, ...scope, ...checkpoint]));
+  const digest = checkpointDigest(scope, checkpoint);
   const [derivation, execution] = await contract.outputs(digest, scope, statement);
   assert.equal(derivation, "0x79dc71b2ef04d3b09ab72857909758cc2d94b77d82907b8568d187e7b529ba72010a000000000000004f44");
   assert.equal(execution, "0xa1070315845855c79cb5c43f2782fa954672205424a5b42a47d1962a0ca2a9ca010a000000000000004f50");
@@ -827,4 +831,18 @@ test("binds the checkpoint digest to the exact Rust and Python Kona guest output
   const other = await contract.outputs(digest, scope, [checkpoint, 99, id("wrong payload"), blockHash]);
   assert.notEqual(other[0], derivation);
   assert.notEqual(other[1], execution);
+});
+
+test("opens the actual OP Mainnet 159257842 checkpoint into the accepted RV64 statement", async () => {
+  const contract = await deploy("test/KonaStatementHarness.sol", "KonaStatementHarness");
+  const fixture = JSON.parse(readFileSync(new URL("../fixtures/kona-transition-159257842.json", import.meta.url)));
+  const s = fixture.statement;
+  const hex = (value) => "0x" + value;
+  const scope = [s.l1_chain_id, await contract.getAddress(), s.chain_id, id("OP Mainnet config")];
+  const checkpoint = [s.previous_number, hex(s.previous_root), s.next_number, hex(s.next_root),
+    hex(s.next_origin_hash), s.anchor_number, hex(s.anchor_hash)];
+  const opened = [checkpoint, s.next_origin_number, hex(s.payload_commitment), hex(s.block_hash)];
+  const [od, op] = await contract.outputs(checkpointDigest(scope, checkpoint), scope, opened);
+  assert.equal(od, hex(fixture.native_and_rv64_output));
+  assert.equal(op, hex(fixture.execution_transport));
 });
