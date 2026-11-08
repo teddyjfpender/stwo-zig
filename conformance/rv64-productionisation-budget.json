@@ -379,6 +379,90 @@
       "positive_growth_justification": "Restore seven named live regression families and rehome four retired helper adapters under explicit test-only ownership. Preserve the exact live authority, hostile mutation, OOM, division closure and GKR services checks. Existing developer entrypoint selects focused roots, with executable test-count floors to reject missing discovery. Runtime defaults, proof checks, public contracts and production algorithms remain unchanged. Benefit: recovered live semantic rejection coverage; rollback archives test and support owners together, never lowers a floor to pass.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_cairo_generator_toolchain_selection",
+      "net_code_budget": 20,
+      "positive_growth_justification": "Ensure Rustup selects the rewriter crate toolchain by executing Cargo in its owning crate directory, with a focused regression protecting that directory and binary destination. Regenerate provenance through authenticated pinned-source generators; preserve layouts, artifact bytes, proof pins and validators. Runtime proof algorithms are unchanged. Benefit: deterministic tool selection. Rollback reverts generator and regenerated provenance together. Unsuccessful compiler-schedule experiments are retired with their tests.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_core_borrowed_proof_capture_tests",
+      "net_code_budget": 400,
+      "positive_growth_justification": "Restore two deleted tests protecting live borrowed proof capture and transactional publication after rejection or allocation failure. Share the existing exact-test-identity guard with the component geometry suite; run all five recovered cases through a focused owner and the default core package step. No runtime implementation, public API, test identity, proof check, flag or launcher changes. Benefit: executable immutability and failure-lifetime coverage. Rollback archives the recovered test owner and its wiring together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_bounded_lt_comparator_kernel_proof",
+      "net_code_budget": 100,
+      "positive_growth_justification": "Replace exhaustive byte-pair decision proofs with bounded canonical arithmetic, a small kernel-checked coprimality table and a quotient/remainder proof of the exact inverse-of-32 shift-mask encoding. Share the established comparator normalization in LtReg. Preserve public theorem statements, assumptions, downstream proofs and the existing axiom audit. No native evaluation, new axiom, sorry, pin bypass, runtime code, flag or launcher. Benefit: bounded CPU proof checks under the diagnostic guards. Full build and live axiom audit remain required before formal pin refresh. Rollback restores the prior proof bodies and helper imports together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_transcript_parity_contracts",
+      "net_code_budget": 1000,
+      "positive_growth_justification": "Restore the named transcript-program parity and hostile-mutation tests, with their scheduled-channel reference under an explicit test-only owner. Preserve all four original checks and mandatory discovery in the package inventory and focused catalog. Production transcript implementation, proof bytes, public APIs, pins and runtime flags are unchanged. Benefit: recovered canonical challenge/transcript equivalence and rejection coverage. Rollback archives the tests and test-only reference together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_typed_component_contracts",
+      "net_code_budget": 1900,
+      "positive_growth_justification": "Recover all fourteen named typed component regression checks with their original assertions. Split the oversized test owner by adapter authority and quotient lifecycle; keep shared fixtures and the retained lowering oracle under test ownership. Benefit: explicit manifest, transcript, polynomial, allocator rollback and cancellation checks. No public API, production proof, flag, pin or test-floor changes. Rollback archives the restored tests and test-only support together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_preserve_carried_sail_artifact_identity",
+      "net_code_budget": 10,
+      "positive_growth_justification": "Restore the authentic sealed pre-restructure manifest and original Sail capsule header before normal regeneration. Retain the historical header in the renderer because carried Sail evidence may only reproduce byte-identical artifacts. No integrity validator, pin, theorem or receipt is relaxed or fabricated. Benefit: recover existing validated Sail evidence without claiming a live Sail build. Rollback restores the prior files together and returns the gate to its explicit invalid-seal failure.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_bounded_shift_publication_owners",
+      "net_code_budget": 300,
+      "positive_growth_justification": "Split the time-guarded shift publication proof into bounded model, constraints, lookup, arithmetic, movement, acceptance and publication owners. Existing public theorem statements and proof bodies are preserved exactly; moves receive zero deletion credit. Only helpers needed across files become named proof dependencies and enter the unchanged full axiom inventory. No runtime API, native evaluator, axiom or guard relaxation. Benefit: independently checkable incremental proof modules. Rollback concatenates the recorded moved bodies and restores private helper visibility together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_source_metadata_formal_guard_rebind",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Zero-growth reference repair: validate every old and newly generated AIR content seal, current source closures and exact equality of all ordered semantic payload fields outside source_identity/content_digest. Rebind only the corresponding quoted canonical digests in ordinary formal guards; reversing that map must recover the exact prior file. Preserve every guard, assumption, proof body and negative check. Do not modify the historical generated-Sail bridge or receipt; a fresh kernel rebuild remains mandatory. Repoint the exact twenty-path Lean LUI decoder allowlist by relocating only its three existing field owners to src/waist/core/fields and sorting; preserve cardinality, exact matching, normalized paths and digest checks."
+    },
+    {
+      "id": "delivery_restore_image_program_and_binary_tests",
+      "net_code_budget": 1000,
+      "positive_growth_justification": "Recover twenty-three live CPU test cases across image, program, distributed manifest and binary worker owners. Diagnostic and false-prover helpers remain test-only; the larger root includes the existing division contracts so its shared measurement helper routes to every consumer. Retire only root-only receipt assertions alongside their already-retired receipt_wire subject; retain the live complete-manifest wire assertions. Preserve immutable authority, fresh verification, polynomial rejection, allocation failure and open-debt checks. Keep mandatory default discovery and focused floors of twenty-three and seven. No production implementation, flag, launcher or proof-check changes. Benefit: recovered rejection/lifetime coverage. Rollback archives restored tests, support and build wiring together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_live_fri_frontier_contracts",
+      "net_code_budget": 100,
+      "positive_growth_justification": "Restore the two live FRI-frontier configured-security ledger and fail-closed/non-domination checks with unchanged assertions and comparison digest. Keep the opt-in arithmetic measurement archived with its retired lowering implementation; do not reintroduce its environment flag or runtime authority. Use mandatory inventory discovery and a focused floor of two. Benefit: recovered ledger and rejection coverage without a new launcher or production path. Rollback archives the retained tests and their focused wiring together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_pruned_discovery_floors",
+      "net_code_budget": 10,
+      "positive_growth_justification": "Restore the six pre-restructure minimum-test discovery gates, including three silently reduced to the default zero. Retained coverage may not claim green by lowering its discovery backstop. Keep unmet floors or resource stops explicit until their owner is validated; no floor or assertion is relaxed. Benefit: make missing live coverage a hard failure. Rollback requires an owner decision on the retired subject and executable discovery evidence, not an empty-suite pass.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_refinement_entrypoint_identity_probe_path",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Zero-growth correction to the direct-entrypoint subprocess test after the scripts move: put the actual scripts/riscv directory on sys.path and load the entrypoint under its bare name, as the test originally specified. Preserve exception-class identity, catching behavior, neutral working directory and the prohibition on bare library imports. No production module alias or assertion is added or removed."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

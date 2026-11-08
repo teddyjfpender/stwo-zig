@@ -519,9 +519,9 @@ class RefinementAirTest(unittest.TestCase):
 
         root = sys.argv[1]
         # Exactly what `python3 scripts/riscv/riscv_refinement.py` puts on sys.path:
-        # the scripts directory, and no repository root.
-        sys.path.insert(0, root + "/scripts")
-        module = importlib.import_module("scripts.riscv.riscv_refinement")
+        # the entrypoint directory, and no repository root.
+        sys.path.insert(0, root + "/scripts/riscv")
+        module = importlib.import_module("riscv_refinement")
 
         # Now reach the library the way every test and sibling script reaches it.
         sys.path.insert(0, root)

@@ -1,6 +1,6 @@
 -- GENERATED FILE. DO NOT EDIT.
--- Generator: scripts/riscv/riscv_refinement.py
--- Regenerate: python3 scripts/riscv/riscv_refinement.py generate
+-- Generator: scripts/riscv_refinement.py
+-- Regenerate: python3 scripts/riscv_refinement.py generate
 -- Source: exact-profile Sail 0.20.2 theorem-backend definition slices.
 -- Binding: fail-closed generated-definition AST translation receipt.
 -- Boundary: checked execute-clause translation/input binding. Normalized

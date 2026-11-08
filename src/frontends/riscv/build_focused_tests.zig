@@ -14,6 +14,26 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-retained-fri-frontier",
+        .description = "Check configured FRI frontier ledger and fail-closed tradeoff validation",
+        .root = "retained_fri_frontier_test_root.zig",
+        .minimum = 2,
+    },
+    .{
+        .step = "test-retained-typed-components",
+        .description = "Check retained typed adapter authority and quotient lifecycle regressions",
+        .root = "retained_typed_component_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 14,
+    },
+    .{
+        .step = "test-retained-transcript-contracts",
+        .description = "Check canonical transcript parity and reject hostile transcript programs",
+        .root = "retained_transcript_contract_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 4,
+    },
+    .{
         .step = "test-retained-authority-contracts",
         .description = "Check retained guest relation and segment range authority regressions",
         .root = "retained_authority_contract_test_root.zig",
@@ -171,7 +191,7 @@ pub const specs = [_]Spec{
         .step = "test-load-store-private",
         .description = "Run focused load/store AIR authority and retirement tests",
         .root = "load_store_private_test_root.zig",
-        .minimum = 16,
+        .minimum = 19,
     },
     .{
         .step = "test-semantic-component",
@@ -274,7 +294,7 @@ pub const specs = [_]Spec{
         .imports_prover_engine = true,
         // A-013 spans both row-window authority and its production component
         // consumer; losing either half invalidates the focused closure gate.
-        .minimum = 11,
+        .minimum = 16,
     },
     .{
         .step = "test-row-windows-edit",
@@ -301,11 +321,13 @@ pub const specs = [_]Spec{
         .step = "test-bulk-memcpy-candidate",
         .description = "Run the nonproduction word-granular memcpy AIR candidate tests",
         .root = "bulk_memcpy_candidate_test_root.zig",
+        .minimum = 6,
     },
     .{
         .step = "test-stack-swap-candidate",
         .description = "Run the nonproduction SWAP1..SWAP16 semantic and AIR candidate tests",
         .root = "stack_swap_candidate_test_root.zig",
+        .minimum = 7,
     },
     .{
         .step = "test-poseidon-merkle",
@@ -328,13 +350,14 @@ pub const specs = [_]Spec{
         .description = "Run the Keccak-f semantic and paired-witness authority tests",
         .root = "keccakf_precompile_test_root.zig",
         .imports_prover_engine = true,
+        .minimum = 4,
     },
     .{
         .step = "test-secp256k1-precompile",
         .description = "Run compact secp256k1 field and precompile authority tests",
         .root = "secp256k1_precompile_test_root.zig",
         .imports_prover_engine = true,
-        .minimum = 32,
+        .minimum = 34,
     },
     .{
         .step = "test-interaction-trace-plan",

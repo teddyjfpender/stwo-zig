@@ -302,10 +302,13 @@ def addiRelations (row : AddiRow) : AddiRelations where
 end RiscvRefinement.Air.Generated
 """
 
+# The Sail capsule is immutable carried evidence. Preserve its historical
+# generator header; the current regeneration command is scripts/riscv/riscv_refinement.py.
+# Updating even comments requires a fresh generated-Sail bridge receipt.
 SAIL_LEAN_TEMPLATE = """\
 -- GENERATED FILE. DO NOT EDIT.
--- Generator: scripts/riscv/riscv_refinement.py
--- Regenerate: python3 scripts/riscv/riscv_refinement.py generate
+-- Generator: scripts/riscv_refinement.py
+-- Regenerate: python3 scripts/riscv_refinement.py generate
 -- Source: exact-profile Sail 0.20.2 theorem-backend definition slices.
 -- Binding: fail-closed generated-definition AST translation receipt.
 -- Boundary: checked execute-clause translation/input binding. Normalized

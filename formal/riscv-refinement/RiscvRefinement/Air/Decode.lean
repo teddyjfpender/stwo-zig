@@ -109,9 +109,6 @@ def productionBuilder : String :=
 
 def luiSourcePaths : Array String :=
   #[
-    "src/core/fields/cm31.zig",
-    "src/core/fields/m31.zig",
-    "src/core/fields/qm31.zig",
     "src/frontends/riscv/access_clock.zig",
     "src/frontends/riscv/air/constraint_program.zig",
     "src/frontends/riscv/air/extract/model.zig",
@@ -128,7 +125,10 @@ def luiSourcePaths : Array String :=
     "src/frontends/riscv/air/semantics/common.zig",
     "src/frontends/riscv/air/semantics/mod.zig",
     "src/frontends/riscv/opcode_manifest.zig",
-    "src/frontends/riscv/runner/trace.zig"
+    "src/frontends/riscv/runner/trace.zig",
+    "src/waist/core/fields/cm31.zig",
+    "src/waist/core/fields/m31.zig",
+    "src/waist/core/fields/qm31.zig",
   ]
 
 private def decodeColumn (index : Nat) (json : Json) : Except String Column := do
