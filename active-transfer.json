@@ -1,0 +1,24 @@
+{
+  "observed_utc": "2026-11-08T06:25:32.327846+00:00",
+  "source": "/Users/theodorepender/Coding/ge-wt/rv64-m8-gn-bind",
+  "canonical": "/Users/theodorepender/Coding/stwo-zig",
+  "source_head": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
+  "canonical_original_head": "6692d40639c88becff2a203c45727f31cbe23ad3",
+  "source_snapshot_digest": "37bf854937161fd00197b62bd704c6573da862a1abcd4f04c918b201708be40b",
+  "tracked_patch_sha256": "1ca87ae6ff2a3ab2663d183fbee4216cb67da40bb85818fecc37bcbe9a6f68f4",
+  "untracked_source_files": {
+    "src/integrations/riscv_cuda/rv64/jobs/outer_node_job.zig": "ce35fba3b31ef7a008436acb97abb4e8af8aac3d68f5bf203f19e8537a54e234",
+    "src/integrations/riscv_cuda/rv64_jobs_recursion_test_root.zig": "f7013cdd329ee8e89581fb8fad844384ba56a58870d01ec1541fc80a8c4fe484",
+    "vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-8.json": "1c16be01eb506326450789a3fde7502ca7bd286e4a6858eb158f12d1d089fd5f"
+  },
+  "untracked_archive_sha256": "75c1053aa8c26649ab31955197b5bdab86e54f23d88c265d9309524e451e8c12",
+  "canonical_untracked_x_sha256": "6ed3da33d4e24a0ff28f153a49a2007b9ae4ded9290a060424a9ceaed5a5f8b3",
+  "canonical_untracked_x_bytes": 2037,
+  "status": "ACTIVE_WORK_TRANSFERRED_VERIFIED",
+  "archive_tag": "archive/consolidation-20261108/active-hygiene-wip",
+  "stash_commit": "8f99b041fe3ee7ff3bd52a1f02b50510a3a40ef5",
+  "canonical_branch": "codex/rv64-gpu-hygiene",
+  "final_source_digest": "37bf854937161fd00197b62bd704c6573da862a1abcd4f04c918b201708be40b",
+  "old_worktree": "DETACHED_CLEAN_PENDING_RETIREMENT",
+  "canonical_untracked_x_archived_to": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/canonical-x.original"
+}

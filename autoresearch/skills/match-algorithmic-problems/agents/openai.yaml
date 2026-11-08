@@ -1,4 +1,0 @@
-interface:
-  display_name: "Complexity-First Algorithm Selection"
-  short_description: "Match problems before hand-rolling algorithms"
-  default_prompt: "Use $match-algorithmic-problems to formalize this task, research canonical matches and prior algorithms, and recommend a sourced, falsifiable implementation choice."

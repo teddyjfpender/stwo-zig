@@ -1,9 +1,0 @@
-1/8 crypto.poseidon2_m31_sponge.test.Poseidon sponge encoding, framing and raw words are injective...OK
-2/8 channel.poseidon2_m31.test.Poseidon transcripts separate domains, replay draws and grind canonically...OK
-3/8 channel.poseidon2_m31.test.Poseidon OM31 transcript matches independent Python framing...OK
-4/8 vcs.poseidon2_m31_merkle.test.Poseidon Merkle hasher satisfies both VCS interfaces...OK
-5/8 vcs.poseidon2_m31_merkle.test.Poseidon leaf and node match independent dense matrix sponge...OK
-6/8 vcs_lifted.poseidon2_profile.test.Poseidon suite identity and transcript bind secure field degree...OK
-7/8 crypto.poseidon2_m31_w24.test.Poseidon2 M31 width24 matches pinned Plonky3 known answer...OK
-8/8 crypto.poseidon2_m31_w24.test.Poseidon2 width24 independent dense-matrix vectors and parameter identity...OK
-All 8 tests passed.

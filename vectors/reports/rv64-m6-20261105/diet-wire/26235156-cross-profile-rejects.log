@@ -1,8 +1,0 @@
-CTRL run=26235156-2gpu-k4c-p1 profile=m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1  exit=0 :: "accepted": true
-DW07a run=26235156-2gpu-k4c-p1 profile=r1_b2_q108_p20_fold4  exit=1 :: error: MissingRecursiveNodeProof
-DW07b run=26235156-2gpu-k4c-p1 profile=m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1  exit=1 :: error: MissingRecursiveNodeProof
-DW07c run=26235156-2gpu-k3-p1 profile=m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1  exit=1 :: error: MissingRecursiveNodeProof
-DW07d run=26235156-2gpu-k3-ab1 profile=m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1  exit=1 :: error: Om31CircuitWireProfile
-DW07e run=26235156-2gpu-k3-p1 profile=r1_b2_q108_p20_fold4 STWO_RV64_FOLD_ARITY=3 exit=1 :: error: Om31CircuitWireProfile
-DWA1 run=26235156-2gpu-k4c-p1 profile=m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 STWO_RV64_FOLD_ARITY=2 exit=1 :: error: Om31ProfileFoldArityMismatch
-CROSS_DONE

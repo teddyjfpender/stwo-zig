@@ -1,0 +1,1345 @@
+{
+  "observed_utc": "2026-11-08T06:27:46.221642+00:00",
+  "code_files": 8717,
+  "code_lines": 2158099,
+  "unique_rv64_flag_tokens_in_code": 294,
+  "m7_m8_flag_tokens": 103,
+  "flag_token_scope": "Literal code references, not yet a resolved live flag registry; dynamic construction requires separate audit",
+  "tracked_receipt_files": 14945,
+  "receipt_folders": 2154,
+  "local_m8_m9_branches": 69,
+  "branches": [
+    "codex/rv64-m8-bench15",
+    "codex/rv64-m8-capture-window",
+    "codex/rv64-m8-census1",
+    "codex/rv64-m8-census2",
+    "codex/rv64-m8-feeder",
+    "codex/rv64-m8-gn-bind",
+    "codex/rv64-m8-gn-node",
+    "codex/rv64-m8-gn-pack",
+    "codex/rv64-m8-gn-s2",
+    "codex/rv64-m8-gn-shape",
+    "codex/rv64-m8-gn-truth",
+    "codex/rv64-m8-gpu",
+    "codex/rv64-m8-gpu-d-wire",
+    "codex/rv64-m8-gpu-driver",
+    "codex/rv64-m8-gpu-n-stage1",
+    "codex/rv64-m8-gpu-n-stage2",
+    "codex/rv64-m8-gpu-native",
+    "codex/rv64-m8-gpu-r-node",
+    "codex/rv64-m8-gpu-r-truth",
+    "codex/rv64-m8-gpu-recursion",
+    "codex/rv64-m8-handoff",
+    "codex/rv64-m8-k-merkle",
+    "codex/rv64-m8-m-runtime",
+    "codex/rv64-m8-memory",
+    "codex/rv64-m8-memory-plan-p2",
+    "codex/rv64-m8-native-enqueue",
+    "codex/rv64-m8-native-finish-p3",
+    "codex/rv64-m8-native-hybrid",
+    "codex/rv64-m8-native-job",
+    "codex/rv64-m8-native-producers-p2",
+    "codex/rv64-m8-native-review-fixes",
+    "codex/rv64-m8-opt-T1-capture-parallel",
+    "codex/rv64-m8-opt-T10-narrow-capture-recorder",
+    "codex/rv64-m8-opt-T2-assignment-chain",
+    "codex/rv64-m8-opt-T3-deep-oods",
+    "codex/rv64-m8-opt-T4-fft-passes",
+    "codex/rv64-m8-opt-T5-aot-constraint-regs",
+    "codex/rv64-m8-opt-T5-aot-constraint-regs-r2",
+    "codex/rv64-m8-opt-T6-merkle-leaf-tree",
+    "codex/rv64-m8-opt-T7-gkr-batch-sumcheck",
+    "codex/rv64-m8-opt-T8-logup-batch-inverse",
+    "codex/rv64-m8-opt-T9-witness-coalesce",
+    "codex/rv64-m8-opt-combined",
+    "codex/rv64-m8-outer-enqueue",
+    "codex/rv64-m8-outer-fold-p3",
+    "codex/rv64-m8-outer-fold-review",
+    "codex/rv64-m8-outer-hybrid",
+    "codex/rv64-m8-outer-job",
+    "codex/rv64-m8-p-truth-split",
+    "codex/rv64-m8-poseidon-witness",
+    "codex/rv64-m8-runtime",
+    "codex/rv64-m8-runtime-persist-p3",
+    "codex/rv64-m8-wire-outer-p2",
+    "codex/rv64-m9-canon-leaf",
+    "codex/rv64-m9-fewer-leaves",
+    "codex/rv64-m9-frontier-gap",
+    "codex/rv64-m9-gkr-bench",
+    "codex/rv64-m9-gpu-replay",
+    "codex/rv64-m9-io-design",
+    "codex/rv64-m9-native-cells",
+    "codex/rv64-m9-outer-gkr",
+    "codex/rv64-m9-packed-ingress",
+    "codex/rv64-m9-plan",
+    "codex/rv64-m9-poseidon2-leaves",
+    "codex/rv64-m9-proof-params",
+    "codex/rv64-m9-recursion-arch",
+    "codex/rv64-m9-segment-shape",
+    "codex/rv64-m9-stream-commit",
+    "codex/rv64-m9-witness-rowpar"
+  ],
+  "flags": {
+    "STWO_RV64_FUSED_BLAKE": [
+      "scripts/blake_gadget/fused_census.py",
+      "src/backends/cuda/native/rv64/fused_blake2s.cu",
+      "src/integrations/riscv_cuda/rv64/outer_source.zig",
+      "src/integrations/riscv_cuda/rv64/outer_source_main.zig"
+    ],
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": [
+      "scripts/rv64_ethereum_basket.py",
+      "scripts/tests/test_rv64_ethereum_basket.py",
+      "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+    ],
+    "STWO_RV64_GPU_DEVICE_TRACE": [
+      "scripts/rv64_ethereum_basket.py",
+      "scripts/tests/test_rv64_ethereum_basket.py",
+      "scripts/tests/test_rv64_resident_basket.py",
+      "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+    ],
+    "STWO_RV64_GPU_DEVICE_CAPS": [
+      "scripts/rv64_ethereum_basket.py",
+      "scripts/tests/test_rv64_ethereum_basket.py",
+      "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+      "src/integrations/riscv_cuda/rv64/resident_router.zig",
+      "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig"
+    ],
+    "STWO_RV64_GPU_DEVICES": [
+      "scripts/rv64_ethereum_basket.py",
+      "scripts/tests/test_rv64_ethereum_basket.py",
+      "scripts/tests/test_rv64_resident_basket.py",
+      "src/integrations/riscv_cuda/rv64/cpu_replay.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
+      "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
+      "src/integrations/riscv_cuda/rv64/resident_router.zig",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig"
+    ],
+    "STWO_RV64_GPU_HOST_RETAINED": [
+      "scripts/rv64_ethereum_basket.py",
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_resident.py",
+      "scripts/rv64_resident_basket.py",
+      "scripts/tests/test_rv64_ethereum_basket.py",
+      "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+      "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+    ],
+    "STWO_RV64_GPU_RETAINED_SCOPES": [
+      "scripts/rv64_ethereum_basket.py",
+      "scripts/tests/test_rv64_ethereum_basket.py",
+      "src/integrations/riscv_cuda/rv64/resident_router.zig",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+    ],
+    "STWO_RV64_GPU_BYTE_CAP": [
+      "scripts/rv64_ethereum_basket.py",
+      "scripts/tests/test_rv64_ethereum_basket.py",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+      "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig"
+    ],
+    "STWO_RV64_GPU_DEVICE_BINDING": [
+      "scripts/rv64_ethereum_basket.py",
+      "scripts/tests/test_rv64_ethereum_basket.py",
+      "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+    ],
+    "STWO_RV64_OUTER_PROFILE": [
+      "scripts/rv64_gate.py",
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m5_canon_vk_tamper.py",
+      "scripts/rv64_m5_negative_corpus.py",
+      "scripts/rv64_m7_hybrid_fixture_run.py",
+      "scripts/rv64_m7_hybrid_typed_pair_run.py",
+      "src/integrations/circuit_cpu/om31/protocol.zig"
+    ],
+    "STWO_RV64_M8_NATIVE_JOBS": [
+      "scripts/rv64_gate.py",
+      "scripts/rv64_m8_bench15.py",
+      "scripts/tests/test_rv64_m8_bench15.py",
+      "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_hybrid_jobs.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
+      "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+      "src/integrations/riscv_cuda/rv64/resident_batch.zig"
+    ],
+    "STWO_RV64_NATIVE_VERSION": [
+      "scripts/rv64_gate.py",
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m5_negative_corpus.py",
+      "scripts/rv64_m6_native_v2_tamper.py",
+      "src/backends/cuda/native/rv64/jobs/native_seal_chi.cu",
+      "src/integrations/riscv_cpu/word16_execution/native_policy.zig",
+      "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/chain.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_device_stage2.zig",
+      "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig"
+    ],
+    "STWO_RV64_M8_JOBS": [
+      "scripts/rv64_gate.py",
+      "scripts/rv64_m8_bench15.py",
+      "scripts/tests/test_rv64_gate.py",
+      "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_serve.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/gpu_native.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/request.zig",
+      "src/integrations/riscv_cuda/rv64/m8_feeder.zig",
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "src/integrations/riscv_cuda/rv64/resident_batch.zig",
+      "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig"
+    ],
+    "STWO_RV64_M8_OUTER_JOBS": [
+      "scripts/rv64_gate.py",
+      "scripts/rv64_m8_bench15.py",
+      "scripts/tests/test_rv64_gate.py",
+      "scripts/tests/test_rv64_m8_bench15.py",
+      "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "src/integrations/riscv_cuda/rv64/outer_seed_record.zig",
+      "src/integrations/riscv_cuda/rv64/resident_batch.zig"
+    ],
+    "STWO_RV64_PCS_PHASE_TIMING": [
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_resident.py",
+      "scripts/rv64_resident_basket.py",
+      "src/backends/cuda/native/rv64/pcs_pipeline.cuh"
+    ],
+    "STWO_RV64_DEVICE_ARENA": [
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_arena_sweep.py",
+      "scripts/rv64_m7_leaf_gate.py",
+      "scripts/rv64_m7_outer_fs_ops_fixture.py",
+      "scripts/rv64_m8_native_job_pcs_parity.py",
+      "scripts/rv64_rc_sparse_lde_fixture.py",
+      "scripts/rv64_rc_sparse_production_gate.py",
+      "scripts/rv64_rc_sparse_role_fixture.py",
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_request.zig",
+      "src/integrations/riscv_cuda/rv64/resident_pool.zig"
+    ],
+    "STWO_RV64_CORE_SINGLE_STREAM": [
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_arena_job.sh",
+      "src/integrations/riscv_cuda/rv64/core_witness.zig"
+    ],
+    "STWO_RV64_FOLD_CLASS_CACHE": [
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_resident.py",
+      "scripts/rv64_m5_canon_vk_tamper.py",
+      "scripts/rv64_m5_negative_corpus.py",
+      "scripts/rv64_m5_receiver_class_ab.py",
+      "scripts/rv64_m6_native_v2_tamper.py",
+      "scripts/rv64_m7_coalesced_tamper.py",
+      "scripts/rv64_validation.py",
+      "scripts/tests/test_rv64_validation.py",
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
+    ],
+    "STWO_RV64_GPU_PCS_HELPER": [
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_resident.py",
+      "scripts/rv64_m5_negative_corpus.py",
+      "scripts/rv64_m5_rootverify_corpus.py",
+      "scripts/rv64_m6_native_v2_tamper.py",
+      "scripts/rv64_m7_coalesced_tamper.py",
+      "scripts/rv64_m7_outer_binding_gate.py",
+      "scripts/rv64_m7_poseidon_graph_gate.py",
+      "scripts/rv64_m7_poseidon_row_gate.py",
+      "scripts/rv64_resident_basket.py",
+      "scripts/rv64_resident_offhost.py",
+      "scripts/rv64_validation.py",
+      "scripts/tests/test_rv64_resident_basket.py",
+      "scripts/tests/test_rv64_resident_offhost.py",
+      "scripts/tests/test_rv64_validation.py",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+    ],
+    "STWO_RV64_GPU_LIBRARY": [
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_resident.py",
+      "scripts/rv64_resident_basket.py",
+      "scripts/tests/test_rv64_resident_basket.py",
+      "scripts/tests/test_rv64_resident_offhost.py",
+      "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig",
+      "src/integrations/riscv_cuda/rv64_jobs_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig"
+    ],
+    "STWO_RV64_GPU_CPU_REPLAY": [
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_arena_job.sh",
+      "scripts/tests/test_rv64_resident_basket.py",
+      "src/integrations/riscv_cuda/rv64/resident_pool.zig",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+    ],
+    "STWO_RV64_DEEP_COORDINATES": [
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_resident.py",
+      "scripts/rv64_resident_basket.py",
+      "src/backends/cuda/native/rv64/deep.cu"
+    ],
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": [
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_arena_job.sh",
+      "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
+    ],
+    "STWO_RV64_DEEP_TIMING": [
+      "scripts/rv64_m3_pod.py",
+      "scripts/rv64_m4_resident.py",
+      "scripts/rv64_resident_basket.py",
+      "src/backends/cuda/native/rv64/deep.cu"
+    ],
+    "STWO_RV64_COMPOSITION_DIRECT": [
+      "scripts/rv64_m4_arena_sweep.py",
+      "src/integrations/riscv_cuda/rv64/resident_composition.zig"
+    ],
+    "STWO_RV64_PINNED_STAGING": [
+      "scripts/rv64_m4_arena_sweep.py",
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
+    ],
+    "STWO_RV64_PCS_STREAM_CHUNK_WORDS": [
+      "scripts/rv64_m4_arena_sweep.py",
+      "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
+      "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+    ],
+    "STWO_RV64_TRACE_STREAM_CHUNK_WORDS": [
+      "scripts/rv64_m4_arena_sweep.py",
+      "src/integrations/riscv_cuda/rv64/trace_commit.zig"
+    ],
+    "STWO_RV64_DEVICE_ARENA_RESERVE": [
+      "scripts/rv64_m4_arena_sweep.py",
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
+    ],
+    "STWO_RV64_PCS_IDLE_CACHE_BYTES": [
+      "scripts/rv64_m4_arena_sweep.py",
+      "scripts/rv64_m8_bench15.py",
+      "scripts/rv64_rc_sparse_lde_fixture.py",
+      "scripts/rv64_rc_sparse_role_fixture.py",
+      "scripts/tests/test_rv64_m8_bench15.py",
+      "src/backends/cuda/native/rv64/pcs_idle_cache.h",
+      "src/backends/cuda/native/rv64/pcs_native.cu",
+      "src/integrations/riscv_cuda/rv64/pcs_native.zig",
+      "src/integrations/riscv_cuda/rv64/resident_pool.zig"
+    ],
+    "STWO_RV64_PINNED_STAGING_SLOT": [
+      "scripts/rv64_m4_arena_sweep.py",
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
+    ],
+    "STWO_RV64_DEVICE_ARENA_STACK": [
+      "scripts/rv64_m4_arena_sweep.py",
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
+    ],
+    "STWO_RV64_BUDGET_GUARD_BYTES_": [
+      "scripts/rv64_m4_resident.py",
+      "src/integrations/riscv_cuda/rv64/admission_runtime.zig"
+    ],
+    "STWO_RV64_BUDGET_GUARD_PID": [
+      "scripts/rv64_m4_resident.py",
+      "src/integrations/riscv_cuda/rv64/admission_runtime.zig"
+    ],
+    "STWO_RV64_BUDGET_GUARD_": [
+      "scripts/rv64_m4_resident.py"
+    ],
+    "STWO_RV64_OUTER_PLAN_CLASS_STORE": [
+      "scripts/rv64_m4_resident.py",
+      "scripts/rv64_m5_negative_corpus.py",
+      "scripts/rv64_m7_coalesced_tamper.py",
+      "scripts/rv64_validation.py",
+      "scripts/tests/test_rv64_validation.py",
+      "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
+    ],
+    "STWO_RV64_HARNESS_ALLOW_BLOCKS": [
+      "scripts/rv64_m4_resident.py"
+    ],
+    "STWO_RV64_FOLD_ARITY": [
+      "scripts/rv64_m5_canon_vk_tamper.py",
+      "scripts/rv64_m5_negative_corpus.py",
+      "src/integrations/circuit_cpu/om31/protocol.zig",
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig",
+      "src/integrations/riscv_cpu/word16_execution/om31_security_candidate.zig"
+    ],
+    "STWO_RV64_OUTER_SHAPE": [
+      "scripts/rv64_m5_canon_vk_tamper.py",
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig"
+    ],
+    "STWO_RV64_GPU_WORKDIR": [
+      "scripts/rv64_m5_negative_corpus.py",
+      "scripts/rv64_m5_rootverify_corpus.py",
+      "scripts/rv64_resident_basket.py",
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+    ],
+    "STWO_RV64_GPU_": [
+      "scripts/rv64_m5_negative_corpus.py",
+      "scripts/rv64_resident_basket.py"
+    ],
+    "STWO_RV64_STORE": [
+      "scripts/rv64_m5_negative_corpus.py"
+    ],
+    "STWO_RV64_VK_CACHE": [
+      "scripts/rv64_m5_negative_corpus.py"
+    ],
+    "STWO_RV64_ARTIFACT_STORE": [
+      "scripts/rv64_m5_negative_corpus.py"
+    ],
+    "STWO_RV64_CANON_RUNGS": [
+      "scripts/rv64_m6_native_v2_tamper.py",
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_class_build.zig",
+      "src/integrations/riscv_cuda/rv64/native_request_inputs.zig"
+    ],
+    "STWO_RV64_NVTX": [
+      "scripts/rv64_m7_existing_setup_request_gate.py",
+      "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
+      "src/integrations/riscv_cuda/rv64/jobs/ops.zig",
+      "src/integrations/riscv_cuda/rv64/nvtx_stage.zig"
+    ],
+    "STWO_RV64_COMPOSITION_ENQUEUE": [
+      "scripts/rv64_m7_existing_setup_request_gate.py",
+      "scripts/rv64_m7_leaf_gate.py",
+      "src/integrations/riscv_cuda/rv64/jobs/native_composition.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/outer_composition.zig",
+      "src/integrations/riscv_cuda/rv64/resident_composition.zig"
+    ],
+    "STWO_RV64_BLAKE_SAMPLE_PREFILL": [
+      "scripts/rv64_m7_existing_setup_request_gate.py",
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig",
+      "src/integrations/riscv_cuda/rv64/blake_sample_plan.zig",
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
+    ],
+    "STWO_RV64_OUTER_ASSIGNMENT_GRAPH": [
+      "scripts/rv64_m7_existing_setup_request_gate.py",
+      "src/integrations/riscv_cuda/rv64/assignment_graphs.zig"
+    ],
+    "STWO_RV64_RC_ROLE_WORKSPACE": [
+      "scripts/rv64_m7_existing_setup_request_gate.py",
+      "src/integrations/riscv_cuda/rv64/outer_progress.zig",
+      "src/integrations/riscv_cuda/rv64/resident_composition.zig"
+    ],
+    "STWO_RV64_PACK_FOLD_CACHE": [
+      "scripts/rv64_m7_existing_setup_request_gate.py",
+      "scripts/rv64_m7_leaf_gate.py",
+      "src/integrations/circuit_cpu/om31/cache_pack.zig"
+    ],
+    "STWO_RV64_CPU_COMPACT_INGRESS": [
+      "scripts/rv64_m7_existing_setup_request_gate.py",
+      "scripts/rv64_m7_leaf_gate.py",
+      "src/integrations/riscv_cuda/rv64/cpu_projection.zig",
+      "src/integrations/riscv_cuda/rv64/native_progress.zig",
+      "src/integrations/riscv_cuda/rv64/native_stage1_admission.zig"
+    ],
+    "STWO_RV64_OUTER_OWNER_CONTROLLER": [
+      "scripts/rv64_m7_existing_setup_request_gate.py",
+      "src/integrations/riscv_cuda/rv64/outer_source.zig"
+    ],
+    "STWO_RV64_LEAF_SEED_TAPE": [
+      "scripts/rv64_m7_existing_setup_request_gate.py",
+      "scripts/rv64_m7_leaf_gate.py",
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_tape.zig"
+    ],
+    "STWO_RV64_GPU": [
+      "scripts/rv64_m7_hybrid_fixture_run.py",
+      "scripts/rv64_m7_hybrid_typed_pair_run.py"
+    ],
+    "STWO_RV64_GLOBAL_ADMISSION": [
+      "scripts/rv64_m7_integration_stack.py",
+      "scripts/rv64_rc_sparse_production_gate.py",
+      "src/integrations/riscv_cuda/rv64/resident_pool.zig"
+    ],
+    "STWO_RV64_RECURSION_SCRAMBLE_SEED": [
+      "scripts/rv64_m7_integration_stack.py",
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"
+    ],
+    "STWO_RV64_CAPTURE_DIGEST": [
+      "scripts/rv64_m7_integration_stack.py",
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig"
+    ],
+    "STWO_RV64_OUTER_PP_CLASS_CACHE": [
+      "scripts/rv64_m7_leaf_gate.py",
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig"
+    ],
+    "STWO_RV64_OUTER_PLAN_CLASS_CACHE": [
+      "scripts/rv64_m7_leaf_gate.py",
+      "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
+    ],
+    "STWO_RV64_M8_AOT_REGISTER_SCHEDULE": [
+      "scripts/rv64_m8_aot_register_relink.py",
+      "scripts/tests/test_rv64_m8_aot_register_relink.py"
+    ],
+    "STWO_RV64_M8_GPU_NATIVE_REUSE": [
+      "scripts/rv64_m8_bench15.py",
+      "scripts/tests/test_rv64_m8_bench15.py",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig"
+    ],
+    "STWO_RV64_M8_GPU_NATIVE": [
+      "scripts/rv64_m8_bench15.py",
+      "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_serve.zig",
+      "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig"
+    ],
+    "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": [
+      "scripts/rv64_m8_bench15.py",
+      "scripts/tests/test_rv64_gate.py",
+      "src/integrations/riscv_cuda/rv64/native_hybrid.zig"
+    ],
+    "STWO_RV64_M9_CLASS_PACKED_INGRESS": [
+      "scripts/rv64_m8_bench15.py",
+      "scripts/tests/test_rv64_m8_bench15.py",
+      "src/backends/cuda/native/rv64/m9_class_unpack.h",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
+    ],
+    "STWO_RV64_M8_OUTER_FS_LIBRARY": [
+      "scripts/rv64_m8_bench15.py",
+      "scripts/tests/test_rv64_m8_bench15.py",
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_JOBS_LIBRARY": [
+      "scripts/rv64_m8_bench15.py",
+      "scripts/tests/test_rv64_gate.py",
+      "scripts/tests/test_rv64_m8_bench15.py",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_commit_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_device_stage1_gpu_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_encode_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_pack_gpu_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_tail_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "src/integrations/riscv_cuda/rv64_jobs_native_test_root.zig",
+      "src/integrations/riscv_cuda/rv64_jobs_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+    ],
+    "STWO_RV64_M8_TRUTH_SPLIT": [
+      "scripts/rv64_m8_bench15.py",
+      "scripts/tests/test_rv64_m8_bench15.py",
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig"
+    ],
+    "STWO_RV64_M8_": [
+      "scripts/rv64_m8_bench15.py",
+      "scripts/tests/test_rv64_m8_bench15.py"
+    ],
+    "STWO_RV64_M8_JOBS_PINNED_BYTES": [
+      "scripts/rv64_m8_bench15.py",
+      "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/worker.zig",
+      "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
+      "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+    ],
+    "STWO_RV64_PCS_ROLLING_BETA2": [
+      "scripts/rv64_m8_native_job_pcs_parity.py",
+      "src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu",
+      "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
+      "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+    ],
+    "STWO_RV64_PCS_STREAM": [
+      "scripts/rv64_m8_native_job_pcs_parity.py",
+      "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
+      "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+    ],
+    "STWO_RV64_M8_JOBS_PLAN_DIR": [
+      "scripts/rv64_m8_plan_sweep.py",
+      "src/integrations/riscv_cuda/rv64/jobs/plan.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/plan_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/worker.zig"
+    ],
+    "STWO_RV64_M8_JOBS_PLAN": [
+      "scripts/rv64_m8_plan_sweep.py",
+      "src/integrations/riscv_cuda/rv64/jobs/plan.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/worker.zig"
+    ],
+    "STWO_RV64_RECURSION_LANES_PER_DEVICE": [
+      "scripts/rv64_rc_sparse_production_gate.py",
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "src/integrations/riscv_cuda/rv64/resident_ready.zig",
+      "src/integrations/riscv_cuda/rv64/resident_ready_policy.zig"
+    ],
+    "STWO_RV64_PROCESS_MEMORY_OBSERVE": [
+      "scripts/rv64_rc_sparse_production_gate.py",
+      "src/backends/cuda/native/rv64/process_memory_observer.cu"
+    ],
+    "STWO_RV64_TRUTH_SPARSE_LIBRARY": [
+      "scripts/rv64_rc_sparse_production_gate.py",
+      "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig"
+    ],
+    "STWO_RV64_TRUTH_SPARSE_RC": [
+      "scripts/rv64_rc_sparse_production_gate.py",
+      "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig"
+    ],
+    "STWO_RV64_OUTER_DEVICE_FS": [
+      "scripts/rv64_rc_sparse_production_gate.py",
+      "src/integrations/riscv_cuda/rv64/device_fs_check.zig",
+      "src/integrations/riscv_cuda/rv64/outer_source.zig"
+    ],
+    "STWO_RV64_M9_": [
+      "scripts/tests/test_rv64_m8_bench15.py"
+    ],
+    "STWO_RV64_M8_WITNESS_COALESCE": [
+      "src/backends/cuda/native/circuit/base_witness.cu",
+      "src/backends/cuda/native/rv64/bridge_witness.cu",
+      "src/backends/cuda/native/rv64/keccak_witness.cu"
+    ],
+    "STWO_RV64_M8_MERKLE_FUSED": [
+      "src/backends/cuda/native/commitment/merkle.cu",
+      "src/backends/cuda/native/commitment/merkle_fused.cuh"
+    ],
+    "STWO_RV64_EXEC_SYNC": [
+      "src/backends/cuda/native/runtime/context.cu",
+      "src/backends/cuda/native/rv64/events.cu"
+    ],
+    "STWO_RV64_DEVICE_ARENA_PREMAP": [
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
+    ],
+    "STWO_RV64_ALLOCATION_OBSERVER": [
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
+      "src/integrations/riscv_cuda/rv64/allocation_observer.zig"
+    ],
+    "STWO_RV64_DEVICE_ARENA_POISON": [
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
+    ],
+    "STWO_RV64_PINNED_STAGING_THREADS": [
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
+    ],
+    "STWO_RV64_DEVICE_ARENA_CHUNK": [
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
+    ],
+    "STWO_RV64_DEVICE_ARENA_SMALL_CHUNKS": [
+      "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
+    ],
+    "STWO_RV64_M8_GKR_BATCH_PAR": [
+      "src/backends/cuda/native/rv64/batch.cu",
+      "src/backends/cuda/native/rv64/batch_transition.cuh",
+      "src/backends/cuda/native/rv64/round.cuh"
+    ],
+    "STWO_RV64_BATCH_STATE_WORDS": [
+      "src/backends/cuda/native/rv64/batch.cu",
+      "src/backends/cuda/native/rv64/batch.h",
+      "src/backends/cuda/native/rv64/batch_state.cuh",
+      "src/backends/cuda/native/rv64/gkr_loop.cu"
+    ],
+    "STWO_RV64_BATCH_MAX_ORACLES": [
+      "src/backends/cuda/native/rv64/batch.h",
+      "src/backends/cuda/native/rv64/batch_state.cuh"
+    ],
+    "STWO_RV64_M8_LOGUP_BLOCK_INVERSE": [
+      "src/backends/cuda/native/rv64/binding.cu",
+      "src/backends/cuda/native/rv64/global.cu",
+      "src/backends/cuda/native/rv64/logup_t8.h"
+    ],
+    "STWO_RV64_M8_ASSIGNMENT_FLOW": [
+      "src/backends/cuda/native/rv64/circuit_fill_chain.cu"
+    ],
+    "STWO_RV64_M8_ASSIGNMENT_DUMP": [
+      "src/backends/cuda/native/rv64/circuit_fill_chain.cu"
+    ],
+    "STWO_RV64_M8_ASSIGNMENT_DUMP_MIN_LEVELS": [
+      "src/backends/cuda/native/rv64/circuit_fill_chain.cu"
+    ],
+    "STWO_RV64_DEEP_COMBINE_MIN_BLOCKS": [
+      "src/backends/cuda/native/rv64/deep.cu"
+    ],
+    "STWO_RV64_M8_DEEP_LEGACY": [
+      "src/backends/cuda/native/rv64/deep.cu"
+    ],
+    "STWO_RV64_GKR_POINT_WORD": [
+      "src/backends/cuda/native/rv64/gkr_loop.cu",
+      "src/backends/cuda/native/rv64/gkr_loop.h"
+    ],
+    "STWO_RV64_GKR_ALPHA_WORD": [
+      "src/backends/cuda/native/rv64/gkr_loop.cu",
+      "src/backends/cuda/native/rv64/gkr_loop.h"
+    ],
+    "STWO_RV64_GKR_SEED_WORD": [
+      "src/backends/cuda/native/rv64/gkr_loop.cu",
+      "src/backends/cuda/native/rv64/gkr_loop.h"
+    ],
+    "STWO_RV64_GKR_LAMBDA_WORD": [
+      "src/backends/cuda/native/rv64/gkr_loop.cu",
+      "src/backends/cuda/native/rv64/gkr_loop.h"
+    ],
+    "STWO_RV64_GKR_STATE_WORDS": [
+      "src/backends/cuda/native/rv64/gkr_loop.cu",
+      "src/backends/cuda/native/rv64/gkr_loop.h"
+    ],
+    "STWO_RV64_GKR_CLAIMS_WORD": [
+      "src/backends/cuda/native/rv64/gkr_loop.cu",
+      "src/backends/cuda/native/rv64/gkr_loop.h"
+    ],
+    "STWO_RV64_M9_UNPACK_SHAPE": [
+      "src/backends/cuda/native/rv64/jobs/outer_packed_class.cu",
+      "src/backends/cuda/native/rv64/m9_class_unpack.cu",
+      "src/backends/cuda/native/rv64/m9_class_unpack.h"
+    ],
+    "STWO_RV64_M9_STANDALONE": [
+      "src/backends/cuda/native/rv64/jobs/outer_packed_class.cu",
+      "src/backends/cuda/native/rv64/m9_class_unpack.cu"
+    ],
+    "STWO_RV64_PCS_JOB_VERSION": [
+      "src/backends/cuda/native/rv64/jobs/pcs_enqueue.h"
+    ],
+    "STWO_RV64_JOBS_ABI_VERSION": [
+      "src/backends/cuda/native/rv64/jobs/runtime.cu",
+      "src/integrations/riscv_cuda/rv64/jobs/ops.zig"
+    ],
+    "STWO_RV64_M9_UNPACK_LZ4": [
+      "src/backends/cuda/native/rv64/m9_class_unpack.cu",
+      "src/backends/cuda/native/rv64/m9_class_unpack.h"
+    ],
+    "STWO_RV64_M9_UNPACK_LENGTH": [
+      "src/backends/cuda/native/rv64/m9_class_unpack.cu",
+      "src/backends/cuda/native/rv64/m9_class_unpack.h"
+    ],
+    "STWO_RV64_M9_BLOCK_WORDS": [
+      "src/backends/cuda/native/rv64/m9_class_unpack.cu",
+      "src/backends/cuda/native/rv64/m9_class_unpack.h"
+    ],
+    "STWO_RV64_M9_UNPACK_OFFSET": [
+      "src/backends/cuda/native/rv64/m9_class_unpack.cu",
+      "src/backends/cuda/native/rv64/m9_class_unpack.h"
+    ],
+    "STWO_RV64_RELATION_SLOT_STRIDE": [
+      "src/backends/cuda/native/rv64/parameters.cu",
+      "src/backends/cuda/native/rv64/parameters.h"
+    ],
+    "STWO_RV64_JOINED_NAMESPACE_COUNTS": [
+      "src/backends/cuda/native/rv64/parameters.cu",
+      "src/backends/cuda/native/rv64/parameters.h"
+    ],
+    "STWO_RV64_RELATION_COUNT": [
+      "src/backends/cuda/native/rv64/parameters.cu",
+      "src/backends/cuda/native/rv64/parameters.h"
+    ],
+    "STWO_RV64_JOINED_PARAMETER_COUNT": [
+      "src/backends/cuda/native/rv64/parameters.cu",
+      "src/backends/cuda/native/rv64/parameters.h"
+    ],
+    "STWO_RV64_JOINED_NAMESPACE_COUNT": [
+      "src/backends/cuda/native/rv64/parameters.h"
+    ],
+    "STWO_RV64_PCS_PHASE_BOUND": [
+      "src/backends/cuda/native/rv64/pcs_native.cu",
+      "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+    ],
+    "STWO_RV64_PCS_NATIVE_VERSION": [
+      "src/backends/cuda/native/rv64/pcs_native.h"
+    ],
+    "STWO_RV64_PCS_SECTIONS": [
+      "src/backends/cuda/native/rv64/pcs_native.h"
+    ],
+    "STWO_RV64_COMPACT_EAGER_STATE": [
+      "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
+      "src/integrations/riscv_cuda/rv64/jobs/outer_kernels.zig",
+      "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+    ],
+    "STWO_RV64_SAMPLE_MIN_BLOCKS": [
+      "src/backends/cuda/native/rv64/samples.cu"
+    ],
+    "STWO_RV64_M8_SAMPLE_LEGACY": [
+      "src/backends/cuda/native/rv64/samples.cu"
+    ],
+    "STWO_RV64_M8_B2N_WIDE": [
+      "src/backends/cuda/native/transform/b2n_fused.cuh",
+      "src/backends/cuda/native/transform/bench/fft_passes_bench.cu"
+    ],
+    "STWO_RV64_M8_FFT_SMALL": [
+      "src/backends/cuda/native/transform/bench/fft_passes_bench.cu",
+      "src/backends/cuda/native/transform/fft_small.cuh"
+    ],
+    "STWO_RV64_M8_N2B_WIDE_ROWS": [
+      "src/backends/cuda/native/transform/n2b_smem.cuh"
+    ],
+    "STWO_RV64_N2B_WIDE": [
+      "src/backends/cuda/native/transform/n2b_smem.cuh"
+    ],
+    "STWO_RV64_M8_N2B_WIDE_MIN_LOG": [
+      "src/backends/cuda/native/transform/n2b_smem.cuh"
+    ],
+    "STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION": [
+      "src/frontends/riscv/rv64/air/native_output_pages.zig",
+      "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig"
+    ],
+    "STWO_RV64_CAPTURE_REPLAY_AHEAD": [
+      "src/integrations/riscv_cpu/rv64_capture_replay_window.zig"
+    ],
+    "STWO_RV64_TAPE_POPULATE": [
+      "src/integrations/riscv_cpu/rv64_ethereum_native_prepare.zig"
+    ],
+    "STWO_RV64_TRACED_ENGINE": [
+      "src/integrations/riscv_cpu/rv64_ethereum_segments.zig"
+    ],
+    "STWO_RV64_FIRST_PASS_RAM": [
+      "src/integrations/riscv_cpu/rv64_ethereum_segments.zig"
+    ],
+    "STWO_RV64_FIRST_PASS_CPU0_RECORDS": [
+      "src/integrations/riscv_cpu/rv64_ethereum_segments.zig"
+    ],
+    "STWO_RV64_BLAKE_SAMPLE_CHECK": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig",
+      "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
+    ],
+    "STWO_RV64_ASSIGNMENT_CRITICAL_CENSUS": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig",
+      "src/integrations/riscv_cuda/rv64/blake_sample_plan.zig"
+    ],
+    "STWO_RV64_RECURSION_PREP_AHEAD": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
+    ],
+    "STWO_RV64_RECURSION_STREAM": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig"
+    ],
+    "STWO_RV64_RECURSION_LEAVES_PER_DEVICE": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
+    ],
+    "STWO_RV64_RECURSION_PIPELINE": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
+    ],
+    "STWO_RV64_RECURSION_PREP_POOL_WORKERS": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
+    ],
+    "STWO_RV64_RECURSION_STREAM_PREP": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
+    ],
+    "STWO_RV64_RECURSION_HOST_WORKERS": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
+    ],
+    "STWO_RV64_FOLD_SEED_TAPE": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/fold_tape.zig"
+    ],
+    "STWO_RV64_OUTER_PP_CLASS_CACHE_BYTES": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig"
+    ],
+    "STWO_RV64_RECURSION_SCHED": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"
+    ],
+    "STWO_RV64_TOPOLOGY_DUMP_DIR": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/topology_fingerprint.zig"
+    ],
+    "STWO_RV64_TOPOLOGY_CENSUS": [
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/topology_fingerprint.zig"
+    ],
+    "STWO_RV64_DERIVE_LANES": [
+      "src/integrations/riscv_cpu/rv64_recursion/root_verify_main.zig"
+    ],
+    "STWO_RV64_ARITH_NONE_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_arithmetic_roster_test.zig"
+    ],
+    "STWO_RV64_DIVISION_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig"
+    ],
+    "STWO_RV64_DIVISION_REFERENCE": [
+      "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig"
+    ],
+    "STWO_RV64_DIVISION_WORKERS": [
+      "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig"
+    ],
+    "STWO_RV64_ETH_CPU_V1_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_ethereum_cpu_proof_test.zig"
+    ],
+    "STWO_RV64_ETH_CPU_V2_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_ethereum_cpu_proof_test.zig"
+    ],
+    "STWO_RV64_KECCAK_CPU_CYCLIC_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig"
+    ],
+    "STWO_RV64_KECCAK_CPU_WORKERS": [
+      "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig"
+    ],
+    "STWO_RV64_KECCAK_CPU_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig"
+    ],
+    "STWO_RV64_MUL_CPU_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig"
+    ],
+    "STWO_RV64_KECCAK_CPU_NONE_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_keccak_roster_test.zig"
+    ],
+    "STWO_RV64_LEAN_WORKERS": [
+      "src/integrations/riscv_cpu/tests/rv64_lean_proof_test.zig"
+    ],
+    "STWO_RV64_LEAN_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_lean_proof_test.zig"
+    ],
+    "STWO_RV64_MULTIPLICATION_REFERENCE": [
+      "src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig"
+    ],
+    "STWO_RV64_MULTIPLICATION_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig"
+    ],
+    "STWO_RV64_PACKED_FULL_ARTIFACT_DIR": [
+      "src/integrations/riscv_cpu/tests/rv64_packed_full_proof_test.zig"
+    ],
+    "STWO_RV64_SERVICE_GEOMETRY_OUTPUT": [
+      "src/integrations/riscv_cpu/tests/rv64_service_geometry_test.zig"
+    ],
+    "STWO_RV64_SERVICE_GEOMETRY_ELF": [
+      "src/integrations/riscv_cpu/tests/rv64_service_geometry_test.zig"
+    ],
+    "STWO_RV64_CPU_CAPTURE_THREADS": [
+      "src/integrations/riscv_cpu/word16_execution/cpu_source.zig"
+    ],
+    "STWO_RV64_CPU_CAPTURE_CHUNKS": [
+      "src/integrations/riscv_cpu/word16_execution/cpu_source.zig"
+    ],
+    "STWO_RV64_M8_CAPTURE_RECORDER": [
+      "src/integrations/riscv_cpu/word16_execution/cpu_source.zig",
+      "src/integrations/riscv_cpu/word16_execution/prepared.zig",
+      "src/integrations/riscv_cpu/word16_execution/prepared_recorder_test.zig",
+      "src/integrations/riscv_cpu/word16_execution/stable_dedup.zig"
+    ],
+    "STWO_RV64_IMAGE_PROGRAM_CACHE": [
+      "src/integrations/riscv_cpu/word16_execution/expected_image.zig"
+    ],
+    "STWO_RV64_M8_CAPTURE_RECORDER_DIGEST": [
+      "src/integrations/riscv_cpu/word16_execution/prepared.zig"
+    ],
+    "STWO_RV64_CAPTURE_PARALLEL_BOUNDARIES": [
+      "src/integrations/riscv_cpu/word16_global_execution/collector.zig"
+    ],
+    "STWO_RV64_CAPTURE_PROGRAM_VIEW": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/capture_bench.zig",
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig"
+    ],
+    "STWO_RV64_M8_CAPTURE_LOCAL_LEDGER": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig",
+      "src/integrations/riscv_cpu/word16_global_execution/services/collector.zig"
+    ],
+    "STWO_RV64_M8_CAPTURE_WORKERS": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig"
+    ],
+    "STWO_RV64_CAPTURE_ASYNC_START": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig"
+    ],
+    "STWO_RV64_CAPTURE_JOB_NICE": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig"
+    ],
+    "STWO_RV64_CAPTURE_CRITICAL": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig"
+    ],
+    "STWO_RV64_M8_CAPTURE_INFLIGHT": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig"
+    ],
+    "STWO_RV64_EARLY_NATIVE_MAIN": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_cpu0.zig",
+      "src/integrations/riscv_cuda/rv64/trace_commit.zig"
+    ],
+    "STWO_RV64_EARLY_NATIVE_SEGMENTS": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_segments.zig"
+    ],
+    "STWO_RV64_EARLY_SEGMENT_PARALLEL_SETUP": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_segments.zig"
+    ],
+    "STWO_RV64_CPU0_FIRST_PASS_PRESTAGE": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig"
+    ],
+    "STWO_RV64_CPU0_PRESTAGE": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
+      "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig",
+      "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig"
+    ],
+    "STWO_RV64_CAPTURE_SHARED_AUTHORITY": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig"
+    ],
+    "STWO_RV64_SERIAL_NATIVE_VERIFY": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig"
+    ],
+    "STWO_RV64_NATIVE_VERIFY_WORKERS": [
+      "src/integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig"
+    ],
+    "STWO_RV64_CAPTURE_THP": [
+      "src/integrations/riscv_cpu/word16_global_execution/services/collector.zig"
+    ],
+    "STWO_RV64_CAPTURE_LEDGER_PROFILE": [
+      "src/integrations/riscv_cpu/word16_global_execution/services/collector.zig"
+    ],
+    "STWO_RV64_KECCAK_FAMILY_PROFILE": [
+      "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/keccak_family_profile.zig"
+    ],
+    "STWO_RV64_P2_NATIVE_OUT_DIR": [
+      "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/fixture.zig"
+    ],
+    "STWO_RV64_GLOBAL_ADMISSION_RUNTIME": [
+      "src/integrations/riscv_cuda/rv64/admission_runtime.zig"
+    ],
+    "STWO_RV64_PROCESS_MEMORY_LIBRARY": [
+      "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig"
+    ],
+    "STWO_RV64_GPU_REPLAY_RETAIN_PER_DEVICE": [
+      "src/integrations/riscv_cuda/rv64/cpu_replay.zig"
+    ],
+    "STWO_RV64_OUTER_FS_OPS_LIBRARY": [
+      "src/integrations/riscv_cuda/rv64/device_fs_check.zig"
+    ],
+    "STWO_RV64_M8_GN_PACK_RECORD": [
+      "src/integrations/riscv_cuda/rv64/device_source.zig",
+      "src/integrations/riscv_cuda/rv64/gn_pack_record.zig"
+    ],
+    "STWO_RV64_GKR_BATCH_TAIL": [
+      "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_gkr.zig"
+    ],
+    "STWO_RV64_GKR_BATCH_ORACLES": [
+      "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_gkr.zig"
+    ],
+    "STWO_RV64_GKR_BATCH_FOLD_SUM": [
+      "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_gkr.zig"
+    ],
+    "STWO_RV64_GKR_SERIAL_ORACLES": [
+      "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_gkr.zig"
+    ],
+    "STWO_RV64_GKR_BATCH_TREES": [
+      "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_gkr.zig"
+    ],
+    "STWO_RV64_GLOBAL_PROFILE": [
+      "src/integrations/riscv_cuda/rv64/global_stage.zig"
+    ],
+    "STWO_RV64_M8_GN_PACK_RECORD_MAIN": [
+      "src/integrations/riscv_cuda/rv64/gn_pack_record.zig"
+    ],
+    "STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS": [
+      "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig"
+    ],
+    "STWO_RV64_M8_GPU_NATIVE_TRUTHS": [
+      "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig"
+    ],
+    "STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES": [
+      "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig"
+    ],
+    "STWO_RV64_M8_GPU_NATIVE_RING_BYTES": [
+      "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig"
+    ],
+    "STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES": [
+      "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig"
+    ],
+    "STWO_RV64_M8_NATIVE_REJECT_DUMP": [
+      "src/integrations/riscv_cuda/rv64/jobs/driver_request.zig",
+      "src/integrations/riscv_cuda/rv64/native_request_inputs.zig"
+    ],
+    "STWO_RV64_M8_JOBS_ARENA_BYTES": [
+      "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/worker.zig",
+      "src/integrations/riscv_cuda/rv64/native_hybrid.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+    ],
+    "STWO_RV64_M8_JOBS_PLAN_OUT": [
+      "src/integrations/riscv_cuda/rv64/jobs/mod.zig"
+    ],
+    "STWO_RV64_M8_JOBS_PINNED_LAZY": [
+      "src/integrations/riscv_cuda/rv64/jobs/mod.zig"
+    ],
+    "STWO_RV64_M8_GPU_BASE": [
+      "src/integrations/riscv_cuda/rv64/jobs/native_commit_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_device_stage1_gpu_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_encode_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_pack_gpu_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/native_tail_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig",
+      "src/integrations/riscv_cuda/rv64_jobs_native_test_root.zig"
+    ],
+    "STWO_RV64_M8_NATIVE_FRAMING_CACHE": [
+      "src/integrations/riscv_cuda/rv64/jobs/native_framing_cache.zig",
+      "src/integrations/riscv_cuda/rv64/native_hybrid.zig"
+    ],
+    "STWO_RV64_M8_REQUIRE_GPU": [
+      "src/integrations/riscv_cuda/rv64/jobs/native_gpu_support_test.zig"
+    ],
+    "STWO_RV64_M8_GN_PACK_RECORDS": [
+      "src/integrations/riscv_cuda/rv64/jobs/native_pack_gpu_test.zig"
+    ],
+    "STWO_RV64_M8_PCS_SCALE": [
+      "src/integrations/riscv_cuda/rv64/jobs/native_pcs_scale_test.zig"
+    ],
+    "STWO_RV64_M8_TAIL_POW_BITS": [
+      "src/integrations/riscv_cuda/rv64/jobs/native_tail_test.zig"
+    ],
+    "STWO_RV64_M8_FAULT_INJECTION": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_DEVICE_CHECKS": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/outer_staged.zig",
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_CHECK_FAULT_ORDINAL": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_checks.zig"
+    ],
+    "STWO_RV64_M8_OUTER_CLASS_PLAN": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_class_plan.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/outer_staged.zig",
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_prestage.zig"
+    ],
+    "STWO_RV64_M8_OUTER_CLASS_PLAN_HOST_MB": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_class_plan.zig"
+    ],
+    "STWO_RV64_M8_OUTER_ENCODE_FAULT_ORDINAL": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig"
+    ],
+    "STWO_RV64_M8_OUTER_OODS_POINT_FAULT_ORDINAL": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig"
+    ],
+    "STWO_RV64_M8_OUTER_DEVICE_ENCODE": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/outer_encode_job.zig",
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_OODS_FAULT_ORDINAL": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig"
+    ],
+    "STWO_RV64_M8_OUTER_": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_env.zig"
+    ],
+    "STWO_RV64_M8_OUTER_GRAPH": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_graph_cache.zig"
+    ],
+    "STWO_RV64_M8_OUTER_GRAPH_THRESHOLD": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_graph_cache.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_GRAPH_IDLE_REQUESTS": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_graph_cache.zig"
+    ],
+    "STWO_RV64_M8_OUTER_GRAPH_BUDGET_MB": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_graph_cache.zig"
+    ],
+    "STWO_RV64_M8_OUTER_LEAF_PERSISTENT": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_STREAM": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/outer_trace_commit.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_PCS_RESERVE_TREES": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_PERSISTENT_CLASSES": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_DECLARE_WORDS": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_GN_NODE_RECORDS": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig"
+    ],
+    "STWO_RV64_M8_GN_NODE_TREE": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_seed_harness_test.zig"
+    ],
+    "STWO_RV64_M8_OUTER_STREAM_CHUNK_WORDS": [
+      "src/integrations/riscv_cuda/rv64/jobs/outer_trace_commit.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_TRUTH_TRACE": [
+      "src/integrations/riscv_cuda/rv64/jobs/truth_job.zig"
+    ],
+    "STWO_RV64_M8_JOBS_ARENA_REUSE": [
+      "src/integrations/riscv_cuda/rv64/jobs/worker.zig"
+    ],
+    "STWO_RV64_M8_NATIVE_FRAMING_CACHE_MAX": [
+      "src/integrations/riscv_cuda/rv64/native_hybrid.zig"
+    ],
+    "STWO_RV64_M8_NATIVE_JOBS_REPLAY": [
+      "src/integrations/riscv_cuda/rv64/native_hybrid.zig"
+    ],
+    "STWO_RV64_M8_NATIVE_JOBS_DUMP": [
+      "src/integrations/riscv_cuda/rv64/native_hybrid.zig"
+    ],
+    "STWO_RV64_M8_GN_NODE": [
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "src/integrations/riscv_cuda/rv64/outer_seed_record.zig"
+    ],
+    "STWO_RV64_M8_GN_INSTALL": [
+      "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_OUTER_ASSIGNMENT_LEAF_IMMUTABLE": [
+      "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
+    ],
+    "STWO_RV64_OUTER_ASSIGNMENT_CENSUS": [
+      "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
+    ],
+    "STWO_RV64_OUTER_PLAN_CLASS_CACHE_BYTES": [
+      "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
+    ],
+    "STWO_RV64_OUTER_ASSIGNMENT_CHAIN": [
+      "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
+    ],
+    "STWO_RV64_RC_OUTER_CHUNKS_LIBRARY": [
+      "src/integrations/riscv_cuda/rv64/outer_chunks_runtime.zig"
+    ],
+    "STWO_RV64_RC_OUTER_CHUNKS": [
+      "src/integrations/riscv_cuda/rv64/outer_chunks_runtime.zig"
+    ],
+    "STWO_RV64_OUTER_FIXED_ADOPT_OFF": [
+      "src/integrations/riscv_cuda/rv64/outer_fixed.zig"
+    ],
+    "STWO_RV64_M8_OUTER_FIXED_JOB": [
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_RESERVE_BYTES": [
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_PERSIST_WINDOW": [
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_OUTER_FIXED_HANDOFF": [
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_GN_NODE_RECORD": [
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig",
+      "src/integrations/riscv_cuda/rv64/outer_seed_record.zig"
+    ],
+    "STWO_RV64_M8_OUTER_FAULT_ORDINAL": [
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_M8_GN_NODE_FAULT_ORDINAL": [
+      "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
+    ],
+    "STWO_RV64_RC_INTER_CONTRIBUTIONS": [
+      "src/integrations/riscv_cuda/rv64/outer_source.zig"
+    ],
+    "STWO_RV64_PCS_HOST_GEOMETRY_BYTES": [
+      "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+    ],
+    "STWO_RV64_PHASE_CACHE_TRIM": [
+      "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+    ],
+    "STWO_RV64_COMPOSITION_POOL_TRIM": [
+      "src/integrations/riscv_cuda/rv64/phase_pool_trim.zig"
+    ],
+    "STWO_RV64_COMPOSITION_DIRECT_EL2": [
+      "src/integrations/riscv_cuda/rv64/resident_composition.zig"
+    ],
+    "STWO_RV64_RC_COMPOSITION_COLUMNS": [
+      "src/integrations/riscv_cuda/rv64/resident_composition.zig"
+    ],
+    "STWO_RV64_GLOBAL_ADMISSION_HOST_POLICY": [
+      "src/integrations/riscv_cuda/rv64/resident_pool.zig"
+    ],
+    "STWO_RV64_RECURSION_SESSIONS": [
+      "src/integrations/riscv_cuda/rv64/resident_ready.zig"
+    ],
+    "STWO_RV64_TRACE_STREAM": [
+      "src/integrations/riscv_cuda/rv64/trace_commit.zig"
+    ],
+    "STWO_RV64_RC_INTER_REUSE": [
+      "src/integrations/riscv_cuda/rv64/trace_input_reuse.zig"
+    ],
+    "STWO_RV64_RECURSION_HOST_BYTES": [
+      "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig"
+    ],
+    "STWO_RV64_GPU_COMPOSITION_HELPER": [
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+    ],
+    "STWO_RV64_GPU_KEEP_JOBS": [
+      "src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig"
+    ],
+    "STWO_RV64_M8_PARITY_DEVICE": [
+      "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+    ],
+    "STWO_RV64_M8_GN_SHAPE_LEGACY": [
+      "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig"
+    ],
+    "STWO_RV64_M8_GN_SHAPE_MISS_REQUEST": [
+      "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig"
+    ],
+    "STWO_RV64_M8_GN_SHAPE_MISS_BLOCK": [
+      "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig"
+    ],
+    "STWO_RV64_M8_GN_SHAPE_FRAMING_INSTANCES": [
+      "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig"
+    ],
+    "STWO_RV64_M8_GN_S2_REPEAT": [
+      "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig"
+    ],
+    "STWO_RV64_M8_PARITY_SOURCE_DEVICE": [
+      "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+    ],
+    "STWO_RV64_M8_GN_S2_NEGATIVES": [
+      "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig"
+    ],
+    "STWO_RV64_M8_PARITY_BINDING": [
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+    ],
+    "STWO_RV64_M8_PARITY_DEVICE_CLAIMS": [
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+    ],
+    "STWO_RV64_M8_PARITY_TRUTH": [
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+    ],
+    "STWO_RV64_M8_PARITY_ONLY": [
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+    ],
+    "STWO_RV64_M8_PARITY_COMPOSITION": [
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+    ],
+    "STWO_RV64_M8_PARITY_STAGE1": [
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+    ],
+    "STWO_RV64_M8_PARITY_PCS": [
+      "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
+    ],
+    "STWO_RV64_M8_TRUTH_REPEAT": [
+      "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+    ],
+    "STWO_RV64_M8_TRUTH_CLASS_SKEW": [
+      "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+    ],
+    "STWO_RV64_M8_TRUTH_NEGATIVES": [
+      "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
+    ],
+    "STWO_RV64_GPU_DEVICE": [
+      "src/integrations/riscv_cuda/rv64_outer_recursion_main.zig"
+    ]
+  },
+  "baseline_commit": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
+  "code_line_scope": "Exact Git blobs at the baseline commit, including blank lines; source/script/build/tool code only, excluding reports and documentation"
+}

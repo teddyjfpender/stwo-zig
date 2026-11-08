@@ -1,7 +1,0 @@
-PASS complete GPU PCS proof native_verified=true native_proof_byte_parity=true
-REJECT complete native PCS mutation=sample error=InvalidQueryShape
-REJECT complete native PCS mutation=trace_value error=RootMismatch
-REJECT complete native PCS mutation=fri_root error=InvalidQueryShape
-REJECT complete native PCS mutation=terminal error=InvalidQueryShape
-REJECT complete native PCS mutation=nonce error=InvalidQueryShape
-REJECT complete native PCS mutation=trace_root error=InvalidQueryShape

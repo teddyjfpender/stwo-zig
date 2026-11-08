@@ -1,2 +1,0 @@
-"""Optimization evidence comparison models."""
-

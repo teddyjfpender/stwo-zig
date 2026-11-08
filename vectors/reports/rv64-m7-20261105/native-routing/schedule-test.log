@@ -1,7 +1,0 @@
-
-Build Summary: 3/3 steps succeeded; 2/2 tests passed
-test-native-routing success
-+- run test 2 passed 1ms MaxRSS:3M
-   +- compile test ReleaseFast x86_64-linux-gnu success 6s MaxRSS:200M
-
-EXIT:0

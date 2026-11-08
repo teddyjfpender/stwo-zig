@@ -1,9 +1,0 @@
-========= COMPUTE-SANITIZER
-TRACE case=0 columns=4 tree_log=5 lifting_log=7 hot_readbacks=0 native_exact=true
-TRACE case=1 columns=5 tree_log=8 lifting_log=6 hot_readbacks=0 native_exact=true
-TRACE case=2 columns=1 tree_log=1 lifting_log=1 hot_readbacks=0 native_exact=true
-TRACE case=3 columns=4 tree_log=14 lifting_log=14 hot_readbacks=0 native_exact=true
-TRACE case=4 columns=512 tree_log=8 lifting_log=8 hot_readbacks=0 native_exact=true
-TRACE case=5 columns=3 tree_log=10 lifting_log=6 hot_readbacks=0 native_exact=true
-PASS native trace cases=6 mutants=3
-========= ERROR SUMMARY: 0 errors

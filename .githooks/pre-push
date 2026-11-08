@@ -1,7 +1,0 @@
-#!/bin/sh
-set -eu
-
-root=$(git rev-parse --show-toplevel)
-cd "$root"
-
-exec python3 scripts/ci_scope_push.py

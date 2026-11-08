@@ -1,3 +1,0 @@
-comptime {
-    _ = @import("air/guest_precompile/tests/sha256_compression_graph_test.zig");
-}

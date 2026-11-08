@@ -1,8 +1,0 @@
-{
-  "status": "NEW_ROWS_PASS_GLOBAL_CHECK_PREEXISTING_FAILURE",
-  "new_rows_validated": 2,
-  "global_error": "device-fs.jsonl:1: missing commit",
-  "preexisting_unchanged_file": "vectors/reports/progress/device-fs.jsonl",
-  "sha256": "29d7e44af797876cc20f6c5fc56fb81a371913e419654038aef3163b2ee118a7",
-  "action": "historical rows left unchanged; generated PROGRESS.md not rerendered because legacy check failed"
-}

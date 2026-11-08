@@ -1,6 +1,0 @@
-{
-  "architecture_checkpoint": "BG-14",
-  "performance_promotion_enabled": false,
-  "reason": "Performance promotion is owned by a separate autoresearch goal and is not an architecture completion gate.",
-  "schema": "build-architecture-performance-state-v1"
-}

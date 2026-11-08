@@ -1,9 +1,0 @@
-# The CP-11 oracle test lane left a placeholder identity in this checkout's
-# local git config; 91 pushed commits carry it. History stays immutable (the
-# hosted evidence chain binds those SHAs) — this maps the display identity.
-Teddy Pender <teddyjfpender@gmail.com> CP11 Test <cp11@example.invalid>
-
-# Canonical GitHub identity for attribution surfaces (the autoresearch feed
-# derives solver logins from mailmapped noreply addresses — committed source
-# of truth, no network lookups).
-teddyjfpender <teddyjfpender@users.noreply.github.com> Teddy Pender <teddyjfpender@gmail.com>

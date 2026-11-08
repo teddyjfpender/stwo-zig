@@ -1,4 +1,0 @@
-interface:
-  display_name: "Metal Performance Design"
-  short_description: "Design Apple GPU compute and render pipelines"
-  default_prompt: "Use $metal-performance-design to audit this Metal workload, rank its bottlenecks, and produce a feature-gated design with explicit ownership and before/after evidence."

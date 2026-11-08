@@ -1,8 +1,0 @@
-OM31_FOLD_ROOT fresh_accepted=true child_count=2 native_wire_roundtrip=true output_tamper_rejected=true bytes=702968
-FOLD_SEED_TAPE check_mismatch at=0 of=586508
-
-Build Summary: 2/2 steps succeeded
-test-riscv64-om31-outer success
-+- run /workspace/zig/zig success 14m MaxRSS:17G
-
-EXIT=0
