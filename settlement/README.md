@@ -393,6 +393,7 @@ ID, contract, rollup configuration, previous and next checkpoints, L2
 origin, and L1 anchor. The transition verifier must prove that the
 origin and derivation data are authenticated by that anchor. The L2
 origin can precede the anchor. Writes occur after proof verification.
+
 `KonaTransitionStatement` opens the checkpoint digest into the exact 43-byte
 `OD` and `OP` guest outputs. It binds the deployment scope to the previous
 and next checkpoints, then includes the L1 origin number, payload commitment

@@ -1,0 +1,37 @@
+{
+  "schema": "stwo.opstack.transition-raw-replay.v1",
+  "block": 159257842,
+  "anchor": 26367973,
+  "proof_generated": false,
+  "profile_native_proof_cap": 256,
+  "build_source": "0eb57acc08f9b1152a4b23825a2e8ea7f7babf0f",
+  "build_receipt_sha256": "a3ea7e5d289c16713c8478a603bfefe4a3c84fc6220168409cdbffff799e49e6",
+  "cargo_lock_sha256": "c094dd03cffadcfae8bd3bd12cbd38aba653cfa0a5c765305198f574bff43fc5",
+  "guest_rustflags": "-C passes=lower-atomic -C opt-level=3",
+  "trials": [
+    {
+      "variant": "pruned-uncompressed",
+      "input_bytes": 33312954,
+      "input_sha256": "c6a7eaf7e8c052f8a227d739ddbb84b5d3e2907002f83879a76f9d37740fc698",
+      "elf_sha256": "ad36f495a586e7e030b5c262d0f84b7b8f7361318d903550384146d8380401d3",
+      "instructions": 3754949463,
+      "minimum_cpu_shards_at_log22": 896,
+      "terminal_pc": 3154492,
+      "admitted_sha256_calls": 174641,
+      "native_and_rv64_output": "3c68ba4f99670164c5660cf8b46df57b4c70c5d1335dabdf539f887e0f991040010a000000000000004f44",
+      "rv64_receipt_sha256": "9fe628ef567d1a84529fac2b3c00f326c1790b969d676d9c19bbdd4952d18917"
+    },
+    {
+      "variant": "direct-canonical-scalar-uncompressed",
+      "input_bytes": 33312954,
+      "input_sha256": "c6a7eaf7e8c052f8a227d739ddbb84b5d3e2907002f83879a76f9d37740fc698",
+      "elf_sha256": "879e62c09df435253ec6130ce223640d9a99710e9a33298c475ea1a77d1ed9f7",
+      "instructions": 3250596756,
+      "minimum_cpu_shards_at_log22": 776,
+      "terminal_pc": 3154416,
+      "admitted_sha256_calls": 174641,
+      "native_and_rv64_output": "3c68ba4f99670164c5660cf8b46df57b4c70c5d1335dabdf539f887e0f991040010a000000000000004f44",
+      "rv64_receipt_sha256": "efa877e8c82c26965f36d5f0b308efd0dfbc14cb5748fabea41ed849bab004ff"
+    }
+  ]
+}
