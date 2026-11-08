@@ -42,12 +42,7 @@ pub const Job = struct {
         return self.class.fixed_key;
     }
     pub fn footprint(self: *Job) api.Footprint {
-        const c = self.class;
-        const staged = self.fixed.stagedWords(c.fixed_words) + self.main.stagedWords(0) + self.inter.stagedWords(0) + self.composition.stagedWords() + 1024;
-        var pinned = c.fixed_words + self.composition.pinnedWords() + c.oods.words.len + c.encode.words.len + 1024;
-        for ([_]*const C.CommitPlan{ &self.fixed, &self.main, &self.inter }) |p| pinned += p.twiddleWords() + 8 * p.logs.len;
-        for (c.roles) |r| pinned += r.interaction.twiddleWords();
-        return .{ .device_words = staged + self.fixed.deviceWords() + 1024, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = pinned };
+        return classFootprint(self.class, self.layout.words);
     }
     pub fn stage(self: *Job, s: *api.Stager) !void {
         const c = self.class;
@@ -78,6 +73,21 @@ pub const Job = struct {
     }
     pub fn abort(_: *Job) void {}
 };
+
+/// Immutable warming has its own allocation schedule, independent of request padding.
+pub fn resourceWords(c: *const K.Class) !usize {
+    var layout = Slab.ProofLayout{};
+    _ = try layout.add(.root, 0, 8);
+    return classFootprint(c, layout.words).peakWords();
+}
+
+fn classFootprint(c: *const K.Class, slab_words: usize) api.Footprint {
+    const staged = c.fixed_plan.stagedWords(c.fixed_words) + c.main_plan.stagedWords(0) + c.inter_plan.stagedWords(0) + c.composition.stagedWords() + 1024;
+    var pinned = c.fixed_words + c.composition.pinnedWords() + c.oods.words.len + c.encode.words.len + 1024;
+    for ([_]*const C.CommitPlan{ &c.fixed_plan, &c.main_plan, &c.inter_plan }) |p| pinned += p.twiddleWords() + 8 * p.logs.len;
+    for (c.roles) |r| pinned += r.interaction.twiddleWords();
+    return .{ .device_words = staged + c.fixed_plan.deviceWords() + 1024, .staged_words = staged, .slab_words = slab_words, .pinned_words = pinned };
+}
 
 test "truth warm job type checks all worker phases" {
     _ = api.Job.from(Job, undefined);

@@ -391,6 +391,13 @@
       "positive_growth_justification": "Share the allocation-derived retained-block PCS bound across outer and truth jobs. Rebase authenticated truth placeholders using the same coefficient offsets actually bound at enqueue, prove four-tree contiguity and retain existing non-PCS calibration margins. Replace the empirical doubled-full-LDE term so installation prewarm does not request a buffer larger than the fixed pool. No reserve, allocator cap, physical ceiling or proof-check relaxation.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "native_install_resource_phase_boundary",
+      "net_code_budget": 200,
+      "positive_growth_justification": "Separate immutable resource warming, actual persistent census, physically bounded probe workspace and final request admission. Preserve empirical request allowances until existing both-placement probes succeed. Place truth MAIN/INTER coefficients in an owned prefix so transient commit and RC work reuses a contiguous suffix; source phase bounds charge all new overlap and real Arena tests cover both placements. Read the existing checked large-arena snapshot without adding CUDA free bytes, reducing reserves or changing physical/proof checks.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

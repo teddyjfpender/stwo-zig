@@ -152,7 +152,7 @@ pub const Factory = struct {
                     const reuse_bound = declared + @max(c.mainEvalWords(), 8 * c.composition.coefficientWords());
                     const budget = if (e.measured_peak_words != 0) e.measured_peak_words else if (e.planned_reuse) reuse_bound else declared / 2 * 3;
                     std.debug.print("GPU_M8_TRUTH_CLASS_BOUND class={s} pcs_workspace_words={d} declared_words={d} reuse_padding_words={d} budget_words={d} physical_peak=false\n", .{ std.fmt.bytesToHex(key[0..6], .lower), c.pcs_workspace_words, declared, reuse_bound - declared, budget });
-                    return .{ .key = key, .plan = c, .destroy = noDestroy, .max_encoded_bytes = e.max_encoded_bytes, .extra_checks = &K.Class.extra_checks, .arena_peak_words = budget, .phase_a_peak_words = TJ.stage1Footprint(c, maxCalls(c), 0).device_words + 1024, .phase_b = true, .held_words = held, .cost_us = 1, .needs_capture_end = true };
+                    return .{ .key = key, .plan = c, .destroy = noDestroy, .max_encoded_bytes = e.max_encoded_bytes, .extra_checks = &K.Class.extra_checks, .arena_peak_words = budget, .resource_words = try Warm.resourceWords(c), .phase_a_peak_words = TJ.stage1Footprint(c, maxCalls(c), 0).device_words + 1024, .phase_b = true, .held_words = held, .cost_us = 1, .needs_capture_end = true };
                 }
             };
             _ = try cache.warm(kv.key_ptr.*, .{ .ctx = kv.value_ptr, .build = Builder.build });

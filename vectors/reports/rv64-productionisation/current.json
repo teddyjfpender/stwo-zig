@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS",
-  "updated_utc": "2026-11-08T11:34:08.163146+00:00",
+  "updated_utc": "2026-11-08T14:31:17.503238+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-gpu-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -84,7 +84,7 @@
     "tracked_receipt_files": 14945,
     "local_m8_m9_branches": 69
   },
-  "current_followup_scope": "Unpublished batched candidate includes native-by-default selection, quiescent setup miss, retained-block resource bound and parallel fresh CPU acceptance. Promotion remains gated on both canonical3+3 comparisons, real setup miss and full15 native basket. No production flip or speedup claim.",
+  "current_followup_scope": "GPU-native production default remains unpromoted. Source5b97 passes full build, full Zig gate and194Python gate tests but guardedstartupfailsnative truth prewarm; no native request completed. Latestlocal installation phase/prefix fix passes targetedhost checks and needs fullpodbuild/hardware. Podstoppedforcredit exhaustion; sourceandterminalreceipts preserved.",
   "host_ci_repair": {
     "native_cuda": "PASS 281/281 ReleaseFast after invalid-free test cleanup",
     "component_geometry": "PASS exact 2/2 named tests after test-owner discovery fix",
@@ -1320,5 +1320,65 @@
     "new_code_net": 29,
     "flags_added": 0,
     "scripts_added": 0
-  }
+  },
+  "offline_installation_resource_fix": {
+    "code_added": 229,
+    "code_removed": 49,
+    "code_net": 180,
+    "cumulative_code_net": -67398,
+    "flags_added": 0,
+    "flags_removed": 0,
+    "scripts_added": 0,
+    "scripts_removed": 0,
+    "source_files": [
+      "src/integrations/riscv_cuda/rv64/jobs/arena_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_bind.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_request.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/driver_test.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/gpu_native.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/ops.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/truth_factory.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/truth_job.zig",
+      "src/integrations/riscv_cuda/rv64/jobs/truth_warm.zig"
+    ],
+    "full_runtime_root": "NOT_COMPLETED_LOCAL768MiB_CAP_STOPPED",
+    "filtered_runtime_driver": "PASS seven scenarios, thirteen test entries including unnamed roots",
+    "arena_root": "PASS eight tests including both placements",
+    "python_gate_units": "PASS194",
+    "hardware": "PENDING_GPU_CREDIT",
+    "promotion": false,
+    "parent_source_commit": "5b97f7b41b27dd92177a979fa057c15d166b664a",
+    "status": "LOCAL_CHECKPOINT_HOST_CHECKS_PASS_HARDWARE_PENDING",
+    "validation_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/install-phase-final-cost-and-validation.json",
+    "host_driver_log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/install-phase-resource-probe-host-test-savepoint.log",
+    "physical_ceiling_or_reserve_changes": 0,
+    "source_models": [
+      "actual immutable-warm job footprint",
+      "configured and observed large-pool probe capacities",
+      "kept coefficient prefix before phase transients",
+      "measured class peaks only after both placement probes"
+    ]
+  },
+  "gpu_runtime_state": {
+    "pod": "cps13bvat3xhdo",
+    "desiredStatus": "EXITED",
+    "stopped_by_agent_utc": "2026-11-08T13:58:30Z",
+    "reason": "prepaid credit exhausted; no new purchase or top-up authorized",
+    "account_balance_usd_at_last_check": -0.0425346725,
+    "account_spend_per_hour_after_compute_stop": 0.022,
+    "volume_preserved_gb": 80,
+    "latest_terminal_receipts": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/production26-terminal-receipts.tar.gz",
+    "latest_terminal_receipts_sha256": "19ab38fbf5a38d4d16e57d6fc579be589e44971198749842110c6959f96f8e50",
+    "gpu_validation_resume": "Requires positive credit; discover current pod SSH endpoint and verify all preserved assets/source before resuming"
+  },
+  "promotion_remaining": [
+    "guarded default-native correctness, frozen parity, fresh CPU and semantic corpus on current source",
+    "strict3+3 reference/native24628607",
+    "strict3+3 reference/native26235168",
+    "same-service new-block setup miss",
+    "all15nativeblocks",
+    "publish default promotion",
+    "post-promotion legacy sweep, fewer than60liveflags, staticgate green",
+    "post-promotion late-feeding architectural work; physicalpeak evidence remains separate"
+  ]
 }

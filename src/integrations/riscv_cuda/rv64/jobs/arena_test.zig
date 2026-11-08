@@ -1,6 +1,30 @@
 const std = @import("std");
 const Arena = @import("arena.zig").Arena;
 
+test "kept truth coefficients precede transient regions on both placements" {
+    for ([_]@import("resources.zig").Placement{ .bottom, .top }) |side| {
+        var arena = Arena{ .base = 0x10000, .words = 64 * 32, .reuse = true };
+        arena.beginWork(side, false);
+        _ = try arena.workAlloc(64 * 4); // kept MAIN
+        _ = try arena.workAlloc(64 * 3); // kept INTER
+        const prefix = arena.bump;
+        for (0..2) |_| { // MAIN witness and INTER outputs, then enqueueInto scratch
+            const inputs = try arena.workAlloc(64 * 5);
+            const region = try arena.workAlloc(64 * 10);
+            const tree = try arena.workAlloc(64 * 4);
+            arena.workFree(tree, 64 * 4);
+            // enqueueInto copies its result to the kept prefix, then releases
+            // the complete addressed region before its input witnesses die.
+            arena.workFree(region, 64 * 10);
+            arena.workFree(inputs, 64 * 5);
+            try std.testing.expectEqual(prefix, arena.bump);
+            try std.testing.expectEqual(@as(usize, 0), arena.hole_count);
+        }
+        _ = try arena.workAlloc(arena.words - prefix); // one contiguous RC arena
+        try std.testing.expectEqual(arena.words, arena.bump);
+    }
+}
+
 test "arena refuses overflowing sizes without changing allocation state" {
     var arena = Arena{ .base = 0x10000, .words = 1024 };
     try std.testing.expectError(error.ResourceSizeOverflow, arena.stageAlloc(.bottom, std.math.maxInt(usize)));

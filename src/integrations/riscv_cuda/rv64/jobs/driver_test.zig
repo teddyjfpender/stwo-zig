@@ -14,6 +14,7 @@ const api = @import("api.zig");
 const G = @import("gpu_native.zig");
 const W = @import("worker.zig");
 const F = @import("fake.zig");
+const O = @import("ops.zig");
 const R = @import("driver_request.zig");
 const D = @import("driver_dag.zig");
 const C = @import("../m8_capture_stream.zig");
@@ -1133,15 +1134,52 @@ test "driver: malformed class reservations refuse before request resources alloc
     }
 }
 
-test "driver: final admission uses class peaks updated by resource measurement" {
+test "driver: resource probe respects physical and configured capacity after all arenas retire" {
     const Hooks = struct {
+        const Mode = enum { physical, configured, growing, failure, no_probe, exhausted, future_held };
+        var workers: [2]*W.Worker = undefined;
+        var mode: Mode = .physical;
+        var queries: usize = 0;
+        var probed = false;
+        var warmed = false;
+        fn alloc(raw: *anyopaque, words: usize, out: *?[*]u32) callconv(.c) c_int {
+            if (words > 1 << 19) return 2; // the padded request estimate cannot allocate
+            return F.ops.exec.alloc_u32(raw, words, out);
+        }
+        fn snapshot(raw: *anyopaque, out: *O.RuntimeMemory.Snapshot) callconv(.c) c_int {
+            for (workers) |worker| if (worker.arena_buffer != null) return 1;
+            queries += 1;
+            const A = @import("../global_admission.zig");
+            const limited = mode == .physical or mode == .failure;
+            out.* = .{ .device = @intCast((@intFromPtr(raw) - 0x1000) / 0x100), .capacity = A.small_slab_bytes + 2 * A.chunk_bytes, .chunk = A.chunk_bytes, .small_slab = A.small_slab_bytes, .live_large = if (limited) A.chunk_bytes - 4096 else 0, .largest_virtual_free = if (limited) A.chunk_bytes + 4096 else 2 * A.chunk_bytes };
+            return 0;
+        }
+        fn info(_: *anyopaque, free: *usize, total: *usize) callconv(.c) c_int {
+            for (workers) |worker| if (mode == .growing and !probed and worker.arena_buffer != null) return 1;
+            free.* = if (mode == .growing) 4096 else 1 << 30;
+            total.* = 2 << 30;
+            return 0;
+        }
+        fn pool(_: *anyopaque, used: *usize, reserved: *usize) callconv(.c) c_int {
+            used.* = 256;
+            reserved.* = (1 << 16) + 256;
+            return 0;
+        }
         fn warm(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {
             try World.nWarm(raw, cache);
-            cache.map.get(k_native).?.arena_peak_words = 1 << 19;
+            cache.map.get(k_native).?.arena_peak_words = if (mode == .no_probe) 256 else 1 << 30;
+            cache.map.get(k_native).?.resource_words = 256;
+            if (mode == .future_held) cache.map.get(k_native).?.held_words[0] = 1 << 16;
         }
-        fn nativeResources(_: *anyopaque, _: *G.ClassCache, _: u32) anyerror!void {}
-        fn recursionResources(_: *anyopaque, cache: *G.ClassCache, _: u32) anyerror!void {
-            // Installation measured a smaller class than its initial estimate.
+        fn resources(_: *anyopaque, _: *G.ClassCache, _: u32) anyerror!void {
+            warmed = true;
+            for (workers) |worker| try testing.expectEqual(@as(usize, 256), worker.config.arena_words);
+        }
+        fn probe(_: *anyopaque, cache: *G.ClassCache) anyerror!void {
+            const expected: usize = if (mode == .physical or mode == .failure) 1024 else if (mode == .growing) 15360 else (1 << 16) - 2048;
+            for (workers) |worker| try testing.expectEqual(expected, worker.config.arena_words);
+            probed = true;
+            if (mode == .failure) return error.ResourceProbeFailed;
             cache.map.get(k_native).?.arena_peak_words = 256;
         }
     };
@@ -1149,18 +1187,46 @@ test "driver: final admission uses class peaks updated by resource measurement" 
     var world = World{ .a = a };
     var native_vt = World.native_vt;
     native_vt.warm = Hooks.warm;
-    native_vt.resources = Hooks.nativeResources;
+    native_vt.resources = Hooks.resources;
     var recursion_vt = World.rec_vt;
-    recursion_vt.resources = Hooks.recursionResources;
-    const worker = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
-    defer worker.destroy();
-    var config = serviceConfig();
-    config.capacity_words = &.{1 << 20};
-    config.prewarm_resources = true;
-    const driver = try R.Driver.install(a, &F.ops, &F.peer, &.{worker}, .{ .ctx = &world, .vtable = &native_vt }, .{ .ctx = &world, .vtable = &recursion_vt }, config);
-    defer driver.deinit();
-    try testing.expectEqual(@as(usize, 256), (try driver.classes.get(k_native)).arena_peak_words);
-    try testing.expect(driver.lanes[0].plan.phase_a_words < 1 << 19);
+    recursion_vt.resources = Hooks.resources;
+    var ops = F.ops;
+    ops.exec.alloc_u32 = Hooks.alloc;
+    for (std.enums.values(Hooks.Mode)) |mode| {
+        Hooks.mode = mode;
+        Hooks.probed = false;
+        Hooks.warmed = false;
+        Hooks.queries = 0;
+        recursion_vt.resource_probe = if (mode == .no_probe) null else Hooks.probe;
+        ops.exec.arena_snapshot = if (mode == .growing or mode == .no_probe) null else Hooks.snapshot;
+        ops.exec.memory_info = if (mode == .no_probe) null else Hooks.info;
+        const worker_config = W.Config{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 };
+        Hooks.workers[0] = try W.Worker.create(a, &ops, worker_config);
+        defer Hooks.workers[0].destroy();
+        var second = worker_config;
+        second.device = 1;
+        Hooks.workers[1] = try W.Worker.create(a, &ops, second);
+        defer Hooks.workers[1].destroy();
+        var config = serviceConfig();
+        config.capacity_words = if (mode == .exhausted) &.{ 2240, 2240 } else &.{ 1 << 16, 1 << 16 };
+        config.fixed_pool = mode != .growing and mode != .no_probe;
+        config.pool_current = if (mode == .no_probe) null else Hooks.pool;
+        config.prewarm_resources = true;
+        const installed = R.Driver.install(a, &ops, &F.peer, &Hooks.workers, .{ .ctx = &world, .vtable = &native_vt }, .{ .ctx = &world, .vtable = &recursion_vt }, config);
+        if (mode == .failure or mode == .exhausted or mode == .future_held) {
+            try testing.expectError(if (mode == .failure) error.ResourceProbeFailed else error.GpuNativeResourceWarmNoWorkspace, installed);
+            for (Hooks.workers) |worker| try testing.expect(worker.arena_buffer == null);
+        } else {
+            const driver = try installed;
+            defer driver.deinit();
+            try testing.expectEqual(@as(usize, 256), (try driver.classes.get(k_native)).arena_peak_words);
+            try testing.expect(driver.lanes[0].plan.phase_a_words < 1 << 19);
+        }
+        try testing.expectEqual(mode != .exhausted and mode != .future_held, Hooks.warmed);
+        try testing.expectEqual(mode != .no_probe and mode != .exhausted and mode != .future_held, Hooks.probed);
+        if (mode == .physical or mode == .configured or mode == .failure) try testing.expectEqual(@as(usize, 2), Hooks.queries);
+        if (mode == .no_probe or mode == .growing) try testing.expectEqual(@as(usize, 0), Hooks.queries);
+    }
 }
 
 test "serve: install shapes every block from its warm capture; streamed requests pipeline two deep, one wait each" {

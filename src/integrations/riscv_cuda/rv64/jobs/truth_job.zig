@@ -718,12 +718,16 @@ pub const Stage2 = struct {
         for (fixed_inputs, c.fixed_host) |*i, h| i.* = .{ .host = h };
         const fixed = try self.fixed_tree.enqueue(sym.commit, e, fixed_inputs, try roots.slice(0, 8));
         trace("s2.fixed", self.ordinal);
+        // Kept coefficients precede every phase transient. Freed witness and
+        // commit scratch then coalesce into one suffix on either placement.
+        const main_storage = try e.alloc(c.main_plan.coefficient_cells);
+        const inter_storage = try e.alloc(c.inter_plan.coefficient_cells);
         const main_eval = try e.alloc(c.mainEvalWords());
         const bytes = try enqueueWitness(c, sym, e, compact, main_eval, status.ptr + StatusIndex.witness, self.calls, self.first_id);
         const main_inputs = try self.a.alloc(C.Input, c.main_logs.len);
         defer self.a.free(main_inputs);
         try mainInputs(c, main_eval, main_inputs);
-        const main = try self.main_plan.enqueue(sym.commit, e, main_inputs, try roots.slice(8, 8), true);
+        const main = try self.main_plan.enqueueInto(sym.commit, e, main_inputs, main_storage, try roots.slice(8, 8), true);
         trace("s2.main", self.ordinal);
         if (bytes) |b| e.free(b);
         e.free(main_eval);
@@ -776,7 +780,7 @@ pub const Stage2 = struct {
                 at += 1;
             };
         }
-        const inter = try self.inter_plan.enqueue(sym.commit, e, inter_inputs, try roots.slice(16, 8), true);
+        const inter = try self.inter_plan.enqueueInto(sym.commit, e, inter_inputs, inter_storage, try roots.slice(16, 8), true);
         trace("s2.inter", self.ordinal);
         var k = c.roles.len;
         while (k > 0) {
@@ -1101,9 +1105,10 @@ pub fn stage2Footprint(c: *const K.Class, calls: u32, slab_words: usize, pcs_out
         role_peak = @max(role_peak, r.interaction.enqueueWords() + al(r.interaction.program.len * 8));
     }
     const main_coeffs = al(c.main_plan.coefficient_cells);
-    const phase_witness = al(c.mainEvalWords()) + c.main_plan.deviceWords() + 256 + g;
-    const phase_interactions = main_coeffs + outputs + role_peak;
-    const phase_inter = main_coeffs + outputs + c.inter_plan.deviceWords();
+    const kept = main_coeffs + al(c.inter_plan.coefficient_cells);
+    const phase_witness = kept + al(c.mainEvalWords()) + c.main_plan.deviceWords() + 256 + g;
+    const phase_interactions = kept + outputs + role_peak;
+    const phase_inter = kept + outputs + c.inter_plan.deviceWords();
     const phase_comp = main_coeffs + al(c.inter_plan.coefficient_cells) + c.composition.enqueueWords();
     const phase_pcs = main_coeffs + al(c.inter_plan.coefficient_cells) + al(c.composition.coefficientWords()) + c.pcs_workspace_words + al(pcs_output);
     const small = 4 * al(feltWords(X.shared_felts)) + @import("channel.zig").state_words + 16 * g;

@@ -243,6 +243,7 @@ pub const Binding = struct {
         }
         self.recursion_vt = .{ .warm = rWarm, .resources = rResources, .installed = rInstalled, .class_of = rClassOf, .truth = rTruth, .node = rNode };
         if (self.truth != null) {
+            self.recursion_vt.resource_probe = rProbe;
             self.recursion_vt.truth_stage2 = rTruth2;
             r.truth = .stream;
         } else if (rv.truth_stage2 != null) {
@@ -455,6 +456,8 @@ pub const Binding = struct {
         // Node graphs remain unqualified; this hook stages immutable
         // programs, FIXED roots and geometry without capturing an arena.
         try rInstalled(raw, cache, &.{ .devices = devices });
+    }
+    fn rProbe(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {
         if (of(raw).truth) |*truth| try truth.measureWarmPeaks(cache);
     }
     fn rClassOf(raw: *anyopaque, id: G.ProofId, children: []const G.ClassKey) anyerror!G.ClassKey {

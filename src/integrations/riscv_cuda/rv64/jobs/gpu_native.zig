@@ -578,6 +578,8 @@ pub const ClassEntry = struct {
     main_resident_words: usize = 0,
     /// Measured arena peak of one job of this class (plan.zig sweep).
     arena_peak_words: usize = 0,
+    /// Unpadded immutable-resource installation window; request admission keeps its own peak.
+    resource_words: ?u64 = null,
     /// Smaller pre-seal producer when a two-stage class completes in phase B.
     phase_a_peak_words: usize = 0,
     /// Native segment classes: secure-felt claim blocks this segment publishes.
@@ -935,6 +937,8 @@ pub const RecursionFactory = struct {
     pub const VTable = struct {
         warm: *const fn (*anyopaque, *ClassCache) anyerror!void,
         resources: ?*const fn (*anyopaque, *ClassCache, u32) anyerror!void = null,
+        /// Memory measurement after immutable resources are resident and their arenas retired.
+        resource_probe: ?*const fn (*anyopaque, *ClassCache) anyerror!void = null,
         /// See NativeFactory.VTable.installed.
         installed: ?*const fn (*anyopaque, *ClassCache, *const Installed) anyerror!void = null,
         /// Class of a recursion proof from its AUTHORITY, never from its

@@ -8,6 +8,7 @@
 //! worker loop holds them (lint.zig enforces the split at source level).
 const std = @import("std");
 pub const Trace = @import("../nvtx_stage.zig");
+pub const RuntimeMemory = @import("../runtime_memory.zig");
 
 pub const c_int_t = c_int;
 pub const ContextOptions = extern struct { version: u32 = 1, device_ordinal: u32, lane_count: u32 = 1, dependency_capacity: u32 = 0 };
@@ -39,6 +40,7 @@ pub const Exec = struct {
     /// total bytes). Install-time only: the GPU-native memory plan is laid
     /// out against measured free memory, not a constant.
     memory_info: ?*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int = null,
+    arena_snapshot: ?*const fn (*anyopaque, *RuntimeMemory.Snapshot) callconv(.c) c_int = null,
 };
 
 pub const Wait = struct {
@@ -92,6 +94,7 @@ pub const Libraries = struct {
             .stream_wait = try sym(&out.addon, @FieldType(Exec, "stream_wait"), "stwo_rv64_jobs_stream_wait"),
             .host_fn = try sym(&out.addon, @FieldType(Exec, "host_fn"), "stwo_rv64_jobs_host_fn"),
             .memory_info = out.base.lookup(*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int, "stwo_exec_context_memory_info"),
+            .arena_snapshot = out.base.lookup(*const fn (*anyopaque, *RuntimeMemory.Snapshot) callconv(.c) c_int, "stwo_exec_context_arena_snapshot_v1"),
         };
         out.ops.wait = .{
             .context_create = try sym(&out.base, @FieldType(Wait, "context_create"), "stwo_exec_context_create_options"),

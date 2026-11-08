@@ -232,35 +232,100 @@ pub const Driver = struct {
         if (native.vtable.batch_pinned_words) |h| self.config.batch_pinned_words = @max(self.config.batch_pinned_words, try h(native.ctx));
         var peaks = self.classPeaks();
         if (config.prewarm_resources) {
+            errdefer for (workers) |w| {
+                _ = w.park(.{}) catch {};
+            };
             const nr = native.vtable.resources orelse return error.GpuNativeResourceWarmHookMissing;
             const rr = recursion.vtable.resources orelse return error.GpuNativeResourceWarmHookMissing;
-            // The largest declared request job is a conservative installation
-            // window. It is released before the one final plan is allocated.
-            // No request exists here, and persistent regions survive both
-            // control operations. Nothing on the request path parks a worker.
-            // Class footprints need not end on a worker allocation granule.
-            const temporary = try Memory.alignedWords(@max(peaks[0], peaks[1]));
-            for (workers) |w| {
-                _ = try w.park(.{});
-                _ = try w.unpark(@intCast(@max(temporary, w.config.arena_words)));
+            // Immutable warming owns a source-derived window, not an old
+            // request arena. Its resources survive both control operations.
+            const Census = struct {
+                words: u64 = 0,
+                fn run(raw: *anyopaque, worker: *W.Worker) anyerror!void {
+                    const census: *@This() = @ptrCast(@alignCast(raw));
+                    census.words = worker.persistentWords();
+                }
+                fn read(worker: *W.Worker) !u64 {
+                    var census = @This(){};
+                    try worker.call(.{ .ctx = &census, .run = run });
+                    return census.words;
+                }
+            };
+            var resource_words: u64 = 0;
+            var entries = self.classes.map.valueIterator();
+            while (entries.next()) |entry| resource_words = @max(resource_words, entry.*.resource_words orelse entry.*.arena_peak_words);
+            const temporary = try Memory.alignedWords(@max(resource_words, 64));
+            for (workers) |w| _ = try w.park(.{});
+            for (workers, 0..) |w, d| {
+                const resident = try Census.read(w);
+                // Future class reservations may overlap existing resources;
+                // count both conservatively until the final census deduplicates.
+                const classes = try Memory.addWords(resident, try self.classCacheWords(@intCast(d)));
+                const owned = try Memory.addWords(classes, try Memory.addWords(config.reserve_words, config.graph_exec_words));
+                if (owned >= config.capacity_words[d] or temporary > config.capacity_words[d] - owned) return error.GpuNativeResourceWarmNoWorkspace;
             }
+            for (workers) |w| _ = try w.unpark(@intCast(temporary));
             try nr(native.ctx, &self.classes, @intCast(workers.len));
             try rr(recursion.ctx, &self.classes, @intCast(workers.len));
             for (workers, 0..) |w, d| {
-                const Census = struct {
-                    words: u64 = 0,
-                    fn run(raw: *anyopaque, worker: *W.Worker) anyerror!void {
-                        const census: *@This() = @ptrCast(@alignCast(raw));
-                        census.words = worker.persistentWords();
-                    }
-                };
-                var census = Census{};
-                try w.call(.{ .ctx = &census, .run = Census.run });
-                self.resident_words[d] = census.words;
+                self.resident_words[d] = try Census.read(w);
                 _ = try w.park(.{});
-                _ = try w.unpark(1 << 16);
-                std.debug.print("GPU_M9_RESIDENT_CENSUS device={d} persistent_words={d} allocations_materialized=1\n", .{ d, census.words });
+                std.debug.print("GPU_M9_RESIDENT_CENSUS device={d} persistent_words={d} allocations_materialized=1\n", .{ d, self.resident_words[d] });
             }
+            // Every temporary arena is retired before observing the shared
+            // fixed pool. Resident class allocations are already charged.
+            if (recursion.vtable.resource_probe) |probe| {
+                var windows: [G.max_devices]usize = undefined;
+                for (workers, 0..) |w, d| {
+                    const Window = struct {
+                        fixed: bool,
+                        pool: @FieldType(Config, "pool_current"),
+                        words: u64 = 0,
+                        fn run(raw: *anyopaque, worker: *W.Worker) anyerror!void {
+                            const out: *@This() = @ptrCast(@alignCast(raw));
+                            if (!out.fixed) {
+                                const info = worker.ops.exec.memory_info orelse return error.GpuNativePoolCapacityUnavailable;
+                                var free: usize = 0;
+                                var total: usize = 0;
+                                try O.check(info(worker.context, &free, &total));
+                                if (free > total) return error.InvalidPhysicalArenaSnapshot;
+                                var used: usize = 0;
+                                var reserved: usize = 0;
+                                if (out.pool) |pool| try O.check(pool(worker.context, &used, &reserved));
+                                if (used > reserved) return error.InvalidPhysicalArenaSnapshot;
+                                out.words = try M.allocationCapacity(free / 4, (reserved - used) / 4, 0, false);
+                                return;
+                            }
+                            const query = worker.ops.exec.arena_snapshot orelse return error.MissingWorkspaceArenaObservation;
+                            var snapshot: O.RuntimeMemory.Snapshot = .{};
+                            try O.check(query(worker.context, &snapshot));
+                            if (snapshot.device != worker.device_ordinal) return error.InvalidPhysicalArenaSnapshot;
+                            const available = try snapshot.available();
+                            const bytes = @min(available.large, snapshot.largest_virtual_free);
+                            if (bytes <= snapshot.chunk) return error.GpuNativeResourceProbeNoWorkspace;
+                            // One physical chunk remains outside the probe;
+                            // small-slab and cudaMemGetInfo are never credited.
+                            out.words = (bytes - snapshot.chunk) / 4;
+                            if (out.words == 0) return error.GpuNativeResourceProbeNoWorkspace;
+                        }
+                    };
+                    var window = Window{ .fixed = config.fixed_pool, .pool = config.pool_current };
+                    try w.call(.{ .ctx = &window, .run = Window.run });
+                    const reserve = try Memory.addWords(config.reserve_words, config.graph_exec_words);
+                    if (!config.fixed_pool) window.words = std.math.sub(u64, window.words, reserve) catch return error.GpuNativeResourceProbeNoWorkspace;
+                    const owned = try Memory.addWords(self.resident_words[d], reserve);
+                    if (owned >= config.capacity_words[d]) return error.GpuNativeResourceProbeNoWorkspace;
+                    windows[d] = @intCast(std.mem.alignBackward(u64, @min(window.words, config.capacity_words[d] - owned), 64));
+                    if (windows[d] == 0) return error.GpuNativeResourceProbeNoWorkspace;
+                }
+                for (workers, 0..) |w, d| {
+                    _ = try w.unpark(windows[d]);
+                    std.debug.print("GPU_M9_RESOURCE_PROBE device={d} arena_words={d} fixed_pool={}\n", .{ w.device_ordinal, windows[d], config.fixed_pool });
+                }
+                try probe(recursion.ctx, &self.classes);
+                for (workers) |w| _ = try w.park(.{});
+            }
+            for (workers) |w| _ = try w.unpark(1 << 16);
             self.resources_warmed = true;
             // Resource hooks may replace estimated class bounds with install
             // measurements. Admission must use those updated cache entries.
