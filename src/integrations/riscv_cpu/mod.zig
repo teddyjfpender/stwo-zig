@@ -384,3 +384,9 @@ test {
     _ = @import("division_contract_test_root.zig");
     _ = @import("services_truth_contract_test_root.zig");
 }
+
+// Retained image/program authority and distributed barrier proof regressions.
+test {
+    _ = @import("word16_image_program_contract_test_root.zig");
+    _ = @import("distributed_binary_contract_test_root.zig");
+}

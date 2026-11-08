@@ -1,4 +1,5 @@
 import RiscvRefinement.Air.Bridge.TeamACommon
+import RiscvRefinement.Air.Bridge.LtComparator
 import RiscvRefinement.Air.Generated.Programs
 
 /-!
@@ -36,9 +37,9 @@ def program : Kind → LocalProgram
 
 def contentDigest : Kind → String
   | .signed =>
-      "234461efb48727cdb845ac3c002ba55f944764b5e1bb419f101b59e3b857e280"
+      "d78a80b687219818e82dcd0438b5daf3e42eaa10192b293cfee6c09afd7ef1c1"
   | .unsigned =>
-      "54aab4f496221b93588858d2eee08b8b15dc8752b6c689ac32daf1f5bf58b83a"
+      "f00e0c2b42a71d6f212003f2543d61213ed1512d928e853e698d62e9f7a53926"
 
 theorem programContentDigest (kind : Kind) :
     (program kind).source.contentDigest = contentDigest kind := by
@@ -1099,34 +1100,6 @@ private theorem m31SubEqOfEqAdd
     rw [M31.sub_val_of_lt left offset reverse]
     omega
 
-private def keyMslField (signed : Bool) (key : Byte) : M31 :=
-  bitVecM31 key - boolM31 signed * M31.reduce 128
-
-private def keyByte (value : M31) : Byte :=
-  BitVec.ofNat 8 value.val
-
-private theorem keyByteField
-    (value : M31)
-    (bound : value.val < 256) :
-    bitVecM31 (keyByte value) = value := by
-  change M31.reduce (BitVec.ofNat 8 value.val).toNat = value
-  have toNat : (BitVec.ofNat 8 value.val).toNat = value.val := by
-    simp [Nat.mod_eq_of_lt bound]
-  rw [toNat]
-  exact M31.reduce_toNat value
-
-set_option maxHeartbeats 0 in
-set_option maxRecDepth 100000 in
-private theorem keyPolynomialUnique
-    (signed : Bool)
-    (byte key : Byte)
-    (polynomial :
-      let difference := bitVecM31 byte - keyMslField signed key
-      difference * (M31.reduce 256 - difference) = 0) :
-    key.toNat =
-      if signed then (byte.toNat + 128) % 256 else byte.toNat := by
-  cases signed <;> revert byte key <;> decide
-
 private theorem signedKeyModulo (byte : Byte) :
     (byte.toNat + 128) % 256 = byteKey .signed byte := by
   have byteBound := byte.isLt
@@ -1151,31 +1124,10 @@ private theorem normalizedKey
     (rawMsl +
       boolM31 (isSigned kind) * M31.reduce 128).val =
         byteKey kind byte := by
-  let key :=
-    rawMsl + boolM31 (isSigned kind) * M31.reduce 128
-  let encodedKey := keyByte key
-  have encodedKeyField : bitVecM31 encodedKey = key :=
-    keyByteField key keyBound
-  have rawFromKey :
-      rawMsl =
-        key - boolM31 (isSigned kind) * M31.reduce 128 := by
-    symm
-    apply m31SubEqOfEqAdd
-    rfl
-  have normalizedPolynomial :
-      let difference :=
-        bitVecM31 byte - keyMslField (isSigned kind) encodedKey
-      difference * (M31.reduce 256 - difference) = 0 := by
-    simpa [keyMslField, encodedKeyField, rawFromKey] using polynomial
-  have finite :=
-    keyPolynomialUnique
-      (isSigned kind) byte encodedKey normalizedPolynomial
-  have encodedKeyValue : encodedKey.toNat = key.val := by
-    simp [encodedKey, keyByte]
-    exact keyBound
+  have normalized := LtComparator.normalizedKey (isSigned kind) byte rawMsl keyBound polynomial
   cases kind
-  · simpa [key, isSigned, encodedKeyValue, signedKeyModulo] using finite
-  · simpa [key, isSigned, encodedKeyValue, byteKey] using finite
+  · simpa [isSigned, LtComparator.byteKey, signedKeyModulo] using normalized
+  · simpa [isSigned, LtComparator.byteKey, byteKey] using normalized
 
 private theorem reduceCongr {left right : Nat}
     (congruent : left % M31.modulus = right % M31.modulus) :

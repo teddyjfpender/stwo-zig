@@ -23,6 +23,30 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/fri_profile_frontier_test.zig", "test-retained-fri-frontier"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/retained_fri_frontier_test_root.zig", "test-retained-fri-frontier"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_image_program_contract_test_root.zig", "test-word16-image-program-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/tests/rv64_word16_execution_image_test.zig", "test-word16-image-program-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/tests/rv64_word16_execution_program_test.zig", "test-word16-image-program-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/tests/rv64_word16_execution_false_prover_test_support.zig", "test-word16-image-program-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_execution/native_diagnostic_test_support.zig", "test-word16-image-program-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed_v1/manifest_test.zig", "test-distributed-binary-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed_execution_v1/binary_worker_test.zig", "test-distributed-binary-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/retained_typed_component_test_root.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_component_test.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_quotient_test.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_component_test_support.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/qm31_mul_full_relation_test_support.zig", "test-retained-typed-components"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/scheduled_channel_test_support.zig", "test-retained-transcript-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/transcript_program_v2_test.zig", "test-retained-transcript-contracts"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/retained_transcript_contract_test_root.zig", "test-retained-transcript-contracts"),
+
+    ("stwo_core", "src/waist/core/air_components_test_root.zig", "test-air-components"),
+    ("stwo_core", "src/waist/core/tests/borrowed_proof_capture_root.zig", "test-proof-capture"),
+    ("stwo_core", "src/waist/core/tests/borrowed_proof_capture_test.zig", "test-proof-capture"),
+    ("stwo_core", "src/waist/core/tests/borrowed_pcs_capture_success_test.zig", "test-proof-capture"),
+
     ("stwo_riscv_frontend", "src/frontends/riscv/air/guest_precompile/tests/relation_test.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/segment_range_authority_test.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_execution/division_product_integration_test.zig", "test-division-contracts"),
@@ -31,7 +55,7 @@ FOCUSED_RULES = (
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_test.zig", "test-services-truth-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig", "test-services-truth-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/claim_relation_test_support.zig", "test-retained-authority-contracts"),
-    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_execution/measurement_test_support.zig", "test-division-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_execution/measurement_test_support.zig", "test-word16-image-program-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/dispatch_test_support.zig", "test-services-truth-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_inputs_test_support.zig", "test-services-truth-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/retained_authority_contract_test_root.zig", "test-retained-authority-contracts"),
@@ -40,6 +64,7 @@ FOCUSED_RULES = (
 
     ("stwo_riscv_frontend", "src/frontends/riscv/test_inventory_test.zig", "test-inventory"),
     ("stwo_riscv_frontend", "src/frontends/riscv/test_inventory.zig", "test-inventory"),
+    ("stwo_riscv_frontend", "src/frontends/riscv/rv64_test_inventory.zig", "test-inventory"),
     ("stwo_riscv_cuda_integration", "src/integrations/riscv_cuda/rv64/jobs/gpu_native_classes.zig", "test-rv64-class-cache"),
     ("stwo_riscv_cuda_integration", "src/integrations/riscv_cuda/rv64/jobs/gpu_native_protocol.zig", "test-rv64-class-cache"),
     ('stwo_riscv_metal_integration', 'src/integrations/riscv_metal/native_polynomial_aot_export.zig', 'test-native-polynomial-aot'),

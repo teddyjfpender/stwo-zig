@@ -1,9 +1,19 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+from unittest import mock
 
 from scripts.cairo import generate_cairo_witness_topology as topology
 class CairoWitnessTopologyTests(unittest.TestCase):
+    def test_rewriter_build_uses_the_crates_pinned_toolchain_directory(self) -> None:
+        compiler = topology.witness_compiler
+        with mock.patch.object(compiler, "_run") as run, mock.patch.object(Path, "is_file", return_value=True):
+            binary = compiler._build_rewriter()
+        self.assertEqual(compiler.REWRITER, run.call_args.kwargs["cwd"])
+        self.assertTrue((compiler.REWRITER / "rust-toolchain.toml").is_file())
+        self.assertEqual(compiler.REWRITER / "target/release/cairo-witness-rewriter", binary)
+
     def test_parses_feed_layout_and_flattened_geometry(self) -> None:
         source = """\
 pub(crate) const N_SUB_INPUT_WORDS: usize = 7;

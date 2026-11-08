@@ -272,7 +272,7 @@ def _build_rewriter() -> Path:
             "--manifest-path",
             REWRITER / "Cargo.toml",
         ],
-        cwd=ROOT,
+        cwd=REWRITER,
     )
     binary = REWRITER / "target" / "release" / "cairo-witness-rewriter"
     if not binary.is_file():

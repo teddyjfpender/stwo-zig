@@ -26,6 +26,22 @@ pub fn build(b: *std.Build) void {
         .root = "raw_mod_channel_test_root.zig",
     });
 
+    const capture_root = b.createModule(.{ .root_source_file = b.path("tests/borrowed_proof_capture_root.zig"), .target = target, .optimize = optimize });
+    capture_root.addImport("stwo_core", core);
+    const capture_tests = b.addTest(.{ .root_module = capture_root, .filters = CaptureTestGuard.expected_names });
+    const capture_step = b.step("test-proof-capture", "Check immutable borrowed proof capture, rejection publication and every allocation failure");
+    if (check_only) {
+        capture_step.dependOn(&capture_tests.step);
+    } else {
+        const run = b.addRunArtifact(capture_tests);
+        run.has_side_effects = true;
+        const guard = b.allocator.create(CaptureTestGuard) catch @panic("out of memory");
+        guard.* = .{ .step = std.Build.Step.init(.{ .id = .custom, .name = "core proof capture test identity guard", .owner = b, .makeFn = CaptureTestGuard.make }), .run = run };
+        guard.step.dependOn(&run.step);
+        capture_step.dependOn(&guard.step);
+    }
+    test_step.dependOn(capture_step);
+
     const fields_step = addFocusedTests(b, target, optimize, check_only, .{
         .step = "test-fields",
         .description = "Run only core field arithmetic tests",
@@ -83,7 +99,7 @@ pub fn build(b: *std.Build) void {
     });
     const geometry_tests = b.addTest(.{
         .root_module = geometry_root,
-        .filters = &GeometryTestGuard.expected_names,
+        .filters = GeometryTestGuard.expected_names,
     });
     const geometry_step = b.step("test-air-components", "Run component geometry and allocation rollback with exact test discovery");
     if (check_only) {
@@ -113,26 +129,38 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(geometry_step);
 }
 
-const GeometryTestGuard = struct {
-    const expected_names = [_][]const u8{ "air components: orchestration", "pcs utils: concat cols" };
-    step: std.Build.Step,
-    run: *std.Build.Step.Run,
+const GeometryTestGuard = TestIdentityGuard(&.{ "air components: orchestration", "pcs utils: concat cols" });
+const CaptureTestGuard = TestIdentityGuard(&.{
+    "borrowed proof capture root collects retained fixtures",
+    "borrowed proof capture preserves original PCS vectors on late rejection and every allocation failure",
+    "borrowed proof capture preserves STARK input and publication on early rejection",
+    "borrowed proof capture successful constant PCS remains immutable through every allocation failure",
+    "borrowed proof capture matches owned verification and outlives poisoned original vectors",
+    "borrowed proof capture FRI multi-fold scratch releases every allocation failure",
+});
 
-    fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) anyerror!void {
-        const self: *GeometryTestGuard = @fieldParentPtr("step", step);
-        const metadata = self.run.cached_test_metadata orelse
-            return step.fail("component geometry run reported no test metadata", .{});
-        if (metadata.names.len != expected_names.len)
-            return step.fail("component geometry gate requires exactly {d} tests; found {d}", .{ expected_names.len, metadata.names.len });
-        for (expected_names) |expected_name| {
-            var found: usize = 0;
-            for (0..metadata.names.len) |index| {
-                if (std.mem.endsWith(u8, metadata.testName(@intCast(index)), expected_name)) found += 1;
+fn TestIdentityGuard(comptime names: []const []const u8) type {
+    return struct {
+        pub const expected_names = names;
+        step: std.Build.Step,
+        run: *std.Build.Step.Run,
+
+        fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) anyerror!void {
+            const self: *@This() = @fieldParentPtr("step", step);
+            const metadata = self.run.cached_test_metadata orelse
+                return step.fail("core contract run reported no test metadata", .{});
+            if (metadata.names.len != expected_names.len)
+                return step.fail("core contract gate requires exactly {d} tests; found {d}", .{ expected_names.len, metadata.names.len });
+            for (expected_names) |expected_name| {
+                var found: usize = 0;
+                for (0..metadata.names.len) |index| {
+                    if (std.mem.endsWith(u8, metadata.testName(@intCast(index)), expected_name)) found += 1;
+                }
+                if (found != 1) return step.fail("core contract gate requires exactly one '{s}' test; found {d}", .{ expected_name, found });
             }
-            if (found != 1) return step.fail("component geometry gate requires exactly one '{s}' test; found {d}", .{ expected_name, found });
         }
-    }
-};
+    };
+}
 
 const FocusedTest = struct {
     step: []const u8,

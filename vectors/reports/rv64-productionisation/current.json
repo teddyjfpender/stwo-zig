@@ -1064,6 +1064,116 @@
       "moves_counted_as_deletions": false,
       "local_log_directory": "/Users/theodorepender/Coding/stwo-zig-evidence/local/delivery-20261108",
       "gpu_scope": "EXCLUDED_BY_USER; no hardware qualification claimed"
+    },
+    "delivery_cpu_continuation_20261109": {
+      "baseline_commit": "c022b903bf876bdbaa6dddebf831b399055b1531",
+      "policy_entries": [
+        "delivery_cairo_generator_toolchain_selection",
+        "delivery_core_borrowed_proof_capture_tests",
+        "delivery_bounded_lt_comparator_kernel_proof",
+        "delivery_restore_transcript_parity_contracts",
+        "delivery_restore_typed_component_contracts",
+        "delivery_preserve_carried_sail_artifact_identity",
+        "delivery_bounded_shift_publication_owners",
+        "delivery_source_metadata_formal_guard_rebind",
+        "delivery_restore_image_program_and_binary_tests",
+        "delivery_restore_live_fri_frontier_contracts",
+        "delivery_restore_pruned_discovery_floors",
+        "delivery_refinement_entrypoint_identity_probe_path"
+      ],
+      "net_code_budget_sum": 4840,
+      "metrics": {
+        "code": {
+          "added": 4359,
+          "removed": 241,
+          "net": 4118
+        },
+        "generated_source": {
+          "added": 167,
+          "removed": 160,
+          "net": 7
+        },
+        "documentation": {
+          "added": 455,
+          "removed": 1,
+          "net": 454
+        },
+        "configuration_other": {
+          "added": 299,
+          "removed": 215,
+          "net": 84
+        },
+        "receipts_vectors": {
+          "added": 718,
+          "removed": 932,
+          "net": -214
+        }
+      },
+      "moves_excluded": {
+        "rv64_inventory_imports": 70,
+        "shift_proof_body_lines_before_split": 5113
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "declared": 286,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "positive_growth_owner": "Restored live regression checks and test-only reference owners; bounded kernel proof ownership and strict discovery gates. No production runtime algorithm is added.",
+      "status": "CPU_CONTRACTS_AND_CARRIED_REFINEMENT_VALIDATED; PRODUCTIONISATION_INCOMPLETE",
+      "retained_contracts": {
+        "borrowed_capture": "PASS_DEBUG_AND_RELEASEFAST_EXACT_SIX_IDENTITIES",
+        "typed_components_and_transcript": "PASS_DEBUG_AND_RELEASEFAST",
+        "inventory": "PASS_DEBUG_CURRENT; earlier ReleaseFast checker execution passed",
+        "image_program_division": "PASS_SEMANTIC_ONLY; execution pending",
+        "distributed_binary_manifest": "PASS_DEBUG_PROVIDER_SCOPE; not CPU acceptance",
+        "fri_frontier": "PASS_DEBUG_TWO_LIVE_CASES",
+        "six_restored_original_floors": "PASS_DEBUG"
+      },
+      "formal_kernel": {
+        "serial_modules": 134,
+        "pinned_theorems": 4681,
+        "newly_audited_helper_theorems": 39,
+        "prior_theorems_removed": 0,
+        "exact_axiom_inventory": "PASS",
+        "approved_axioms": [
+          "Classical.choice",
+          "Quot.sound",
+          "propext"
+        ],
+        "forbidden_escape_scan": "PASS",
+        "final_owner_cycle": "PASS_REPIN_REGEN_REPRODUCE_TEAM_B_GATES; kernel-checked Lean source epoch unchanged",
+        "whole_frontend_verified": false,
+        "proof_system_soundness": false,
+        "fresh_live_sail": false,
+        "scope": "RiscvRefinement development; historical generated-Sail bridge is carried and not freshly rebuilt",
+        "team_a": "PASS_24_CURRENT_SOURCE_BOUND_CERTIFICATES_AND_FRESH_DIAGNOSTICS",
+        "aggregate_opcode_index": "PASS_46_WITH_EXISTING_EVIDENCE_GRADES",
+        "aggregate_grade": "24/46 generated-Sail clause bindings and normalized retirements; 0/46 publication-level"
+      },
+      "targeted_python": {
+        "tests": 435,
+        "passed": 433,
+        "failures": 2,
+        "errors": 0,
+        "remaining_failure": "same historical generated-Sail pilot-composition test collected twice"
+      },
+      "open_gates": {
+        "package_workspace_findings": 393,
+        "source_layout_findings": 106,
+        "strict_live_flag_target": "249 live; required <60",
+        "upstream_pin_findings": 6,
+        "native_cpu_product": "UNVERIFIED",
+        "complete_acceptance_and_release": "UNVERIFIED"
+      },
+      "gpu_scope": "EXCLUDED_BY_USER",
+      "phase_complete": false,
+      "pushed": false,
+      "evidence_root": "/Users/theodorepender/Coding/stwo-zig-evidence/local/delivery-20261108"
     }
   },
   "post_merge_hygiene": {

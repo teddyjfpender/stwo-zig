@@ -1,4 +1,5 @@
 import RiscvRefinement.Air.Bridge.TeamACommon
+import Init.Data.Nat.Coprime
 
 /-!
 # Pure production less-than comparator contract
@@ -72,9 +73,24 @@ private theorem keyByteField
   rw [toNat]
   exact M31.reduce_toNat value
 
- /-
-Finite uniqueness of the MSL normalization polynomial over byte inputs.
--/
+private theorem subValue (left right : M31) :
+    (left - right).val = (left.val + M31.modulus - right.val) % M31.modulus := rfl
+private theorem zeroValue : (0 : M31).val = 0 := rfl
+
+/-- Small nonzero factors are coprime to the canonical field modulus. -/
+private theorem smallCoprime :
+    ∀ value : Fin 512, 0 < value.val → Nat.Coprime M31.modulus value.val := by
+  decide +kernel
+
+private theorem cancelSmallFactor
+    (left right : Nat) (leftBound : left < M31.modulus)
+    (rightPositive : 0 < right) (rightBound : right < 512)
+    (zero : (left * right) % M31.modulus = 0) : left = 0 := by
+  exact Nat.eq_zero_of_dvd_of_lt
+    ((smallCoprime ⟨right, rightBound⟩ rightPositive).dvd_of_dvd_mul_right
+      (Nat.dvd_of_mod_eq_zero zero)) leftBound
+
+/- The byte bounds make one polynomial factor small enough to cancel. -/
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 100000 in
 theorem keyPolynomialUnique
@@ -85,7 +101,69 @@ theorem keyPolynomialUnique
       difference * (M31.reduce 256 - difference) = 0) :
     key.toNat =
       if signed then (byte.toNat + 128) % 256 else byte.toNat := by
-  cases signed <;> revert byte key <;> decide
+  let difference := bitVecM31 byte - keyMslField signed key
+  let complement := M31.reduce 256 - difference
+  have byteBound : byte.toNat < 256 := byte.isLt
+  have keyBound : key.toNat < 256 := key.isLt
+  have window : difference.val < 384 ∨ M31.modulus - 256 < difference.val := by
+    clear polynomial
+    cases signed <;>
+      simp [difference, keyMslField, bitVecM31, TeamACommon.bitVecM31,
+        Lui.bitVecM31, boolM31, TeamACommon.boolM31, Lui.boolM31,
+        subValue, M31.reduce_val, M31.modulus_eq] <;> omega
+  have product := congrArg M31.val polynomial
+  change (difference.val * complement.val) % M31.modulus = 0 at product
+  have roots : difference = 0 ∨ difference = M31.reduce 256 := by
+    by_cases zeroDifference : difference = 0
+    · exact Or.inl zeroDifference
+    by_cases zeroComplement : complement = 0
+    · exact Or.inr ((M31.sub_eq_zero_iff _ _).mp zeroComplement).symm
+    have differencePositive : 0 < difference.val := by
+      apply Nat.pos_of_ne_zero
+      intro value
+      apply zeroDifference
+      apply M31.ext
+      simpa using value
+    have complementPositive : 0 < complement.val := by
+      apply Nat.pos_of_ne_zero
+      intro value
+      apply zeroComplement
+      apply M31.ext
+      simpa using value
+    apply False.elim
+    rcases window with small | large
+    · have zero := cancelSmallFactor complement.val difference.val complement.isLt
+        differencePositive (by omega) (by simpa [Nat.mul_comm] using product)
+      apply zeroComplement
+      apply M31.ext
+      simpa using zero
+    · have order : (M31.reduce 256).val < difference.val := by
+        change 256 < difference.val
+        simp only [M31.modulus_eq] at large
+        omega
+      have value := M31.sub_val_of_lt (M31.reduce 256) difference order
+      have bound : complement.val < 512 := by
+        change (M31.reduce 256 - difference).val < 512
+        rw [value]
+        change M31.modulus + 256 - difference.val < 512
+        simp only [M31.modulus_eq] at large ⊢
+        omega
+      have zero := cancelSmallFactor difference.val complement.val difference.isLt
+        complementPositive bound product
+      apply zeroDifference
+      apply M31.ext
+      simpa using zero
+  rcases roots with zero | full
+  · have value := congrArg M31.val zero
+    cases signed <;>
+      simp [difference, keyMslField, bitVecM31, TeamACommon.bitVecM31,
+        Lui.bitVecM31, boolM31, TeamACommon.boolM31, Lui.boolM31,
+        subValue, zeroValue, M31.reduce_val, M31.modulus_eq] at value ⊢ <;> omega
+  · have value := congrArg M31.val full
+    cases signed <;>
+      simp [difference, keyMslField, bitVecM31, TeamACommon.bitVecM31,
+        Lui.bitVecM31, boolM31, TeamACommon.boolM31, Lui.boolM31,
+        subValue, M31.reduce_val, M31.modulus_eq] at value ⊢ <;> omega
 
 /-- The unsigned byte order, rotated by 128 for signed comparison. -/
 def byteKey (signed : Bool) (byte : Byte) : Nat :=

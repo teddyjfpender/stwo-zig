@@ -126,11 +126,19 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_optimized_ci_reproduction_covers_focused_and_broad_routes(self) -> None:
         for path, step in (
+            ("src/frontends/riscv/retained_fri_frontier_test_root.zig", "test-retained-fri-frontier"),
+            ("src/integrations/riscv_cpu/word16_image_program_contract_test_root.zig", "test-word16-image-program-contracts"),
+            ("src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
+            ("src/frontends/riscv/retained_typed_component_test_root.zig", "test-retained-typed-components"),
+            ("src/frontends/riscv/retained_transcript_contract_test_root.zig", "test-retained-transcript-contracts"),
+            ("src/waist/core/air_components_test_root.zig", "test-air-components"),
+            ("src/waist/core/tests/borrowed_proof_capture_root.zig", "test-proof-capture"),
             ("src/frontends/riscv/retained_authority_contract_test_root.zig", "test-retained-authority-contracts"),
             ("src/integrations/riscv_cpu/division_contract_test_root.zig", "test-division-contracts"),
             ("src/integrations/riscv_cpu/services_truth_contract_test_root.zig", "test-services-truth-contracts"),
             ("src/frontends/riscv/test_inventory_test.zig", "test-inventory"),
             ("src/frontends/riscv/test_inventory.zig", "test-inventory"),
+            ("src/frontends/riscv/rv64_test_inventory.zig", "test-inventory"),
             ("src/waist/core/fri/folding_family.zig", "test-fri"),
             ("src/waist/core/mod.zig", "test"),
             ("src/integrations/riscv_cuda/rv64/projection_codegen.zig", "test-native-gkr-codegen"),
