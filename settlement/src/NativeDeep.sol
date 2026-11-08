@@ -7,7 +7,8 @@ import {NativePcsTranscript} from "./NativePcsTranscript.sol";
 /// @notice Computes native OM31 DEEP quotient answers on the lifted circle.
 /// @dev The surrounding verifier owns the column layout and sample points and
 /// derives alpha from the transcript that absorbed these same samples. Rows
-/// are M31 commitment leaves concatenated in native tree/column order.
+/// are M31 values in the original tree and column order. The opening checker
+/// restores that order after authenticating each tree's sorted leaves.
 library NativeDeep {
     error InvalidDeepShape();
     error DegenerateDeepLine();
@@ -15,7 +16,7 @@ library NativeDeep {
 
     uint256 private constant P = 0x7fffffff;
     uint256 private constant MAX_COLUMNS = 8192;
-    uint256 private constant MAX_SAMPLES = 8192;
+    uint256 private constant MAX_SAMPLES = 16384;
     uint256 private constant MAX_BATCHES = 256;
 
     struct Point {
@@ -42,6 +43,7 @@ library NativeDeep {
         uint8 domainLog;
         uint16 columnCount;
         uint16 batchCount;
+        bytes columnLogs;
         Batch[] batches;
         uint256[] powers;
         uint32[] locations;
@@ -63,6 +65,9 @@ library NativeDeep {
         uint32[8][] slopes;
         uint32[8] power;
         uint32[8] alpha;
+        uint32[8] sample;
+        uint32[8] difference;
+        uint32[8] product;
         uint256 nextTerm;
     }
 
@@ -98,6 +103,7 @@ library NativeDeep {
 
         plan.domainLog = domainLog;
         plan.columnCount = uint16(columns.length);
+        plan.columnLogs = new bytes(columns.length);
         uint256 batchCapacity = termCount < MAX_BATCHES ? termCount : MAX_BATCHES;
         plan.batches = new Batch[](batchCapacity);
         plan.powers = new uint256[](termCount);
@@ -113,16 +119,19 @@ library NativeDeep {
         uint256 at;
         for (uint256 i; i < columns.length; ++i) {
             Column memory column = columns[i];
+            plan.columnLogs[i] = bytes1(column.logSize);
             // A two-sample column prepends a copy of its second sample at
             // that point rotated by the lifted coset step raised to 2^logSize.
             if (column.samplePoints.length == 2) {
                 uint256 tag = uint256(column.logSize) + 1;
                 // Logs at or above the lifting size give the identity step.
                 if (column.logSize >= domainLog) tag = 0;
-                append(plan, scratch, i, column.samplePoints[1], tag, readField(samples, at + 32));
+                readField(samples, at + 32, scratch.sample);
+                append(plan, scratch, i, column.samplePoints[1], tag);
             }
             for (uint256 j; j < column.samplePoints.length; ++j) {
-                append(plan, scratch, i, column.samplePoints[j], 0, readField(samples, at));
+                readField(samples, at, scratch.sample);
+                append(plan, scratch, i, column.samplePoints[j], 0);
                 at += 32;
             }
         }
@@ -142,8 +151,7 @@ library NativeDeep {
         Preparation memory scratch,
         uint256 column,
         uint256 pointIndex,
-        uint256 tag,
-        uint32[8] memory sample
+        uint256 tag
     ) private pure {
         if (pointIndex >= scratch.points.length) revert InvalidDeepShape();
         uint256 key = pointIndex * 32 + tag;
@@ -173,13 +181,12 @@ library NativeDeep {
         }
         plan.locations[scratch.nextTerm] = uint32((column << 16) | index);
         plan.powers[scratch.nextTerm++] = pack(scratch.power);
-        scratch.weightedSamples[index] = add(
-            scratch.weightedSamples[index], NativeFriFold.multiply(scratch.power, sample)
-        );
-        scratch.slopes[index] = add(
-            scratch.slopes[index], NativeFriFold.multiply(scratch.power, conjugateDifference(sample))
-        );
-        scratch.power = NativeFriFold.multiply(scratch.power, scratch.alpha);
+        NativeFriFold.multiplyInto(scratch.power, scratch.sample, scratch.product);
+        addInto(scratch.weightedSamples[index], scratch.product);
+        setConjugateDifference(scratch.sample, scratch.difference);
+        NativeFriFold.multiplyInto(scratch.power, scratch.difference, scratch.product);
+        addInto(scratch.slopes[index], scratch.product);
+        NativeFriFold.multiplyInto(scratch.power, scratch.alpha, scratch.power);
     }
 
     /// @param query Canonical bit-reversed position in the lifting domain.
@@ -276,13 +283,20 @@ library NativeDeep {
     }
 
     function conjugateDifference(uint32[8] memory value) private pure returns (uint32[8] memory result) {
+        setConjugateDifference(value, result);
+    }
+
+    function setConjugateDifference(uint32[8] memory value, uint32[8] memory result) private pure {
         for (uint256 i = 4; i < 8; ++i) result[i] = neg(uint32(addmod(value[i], value[i], P)));
     }
 
-    function readField(bytes calldata data, uint256 offset) private pure returns (uint32[8] memory field) {
+    function readField(bytes calldata data, uint256 offset, uint32[8] memory field) private pure {
         bytes32 word = bytes32(data[offset:offset + 32]);
-        for (uint256 i; i < 8; ++i) field[i] = NativePcsTranscript.wordLE(word, i);
-        canonical(field);
+        for (uint256 i; i < 8; ++i) {
+            uint32 value = NativePcsTranscript.wordLE(word, i);
+            if (value >= P) revert NativePcsTranscript.NonCanonicalField();
+            field[i] = value;
+        }
     }
 
     function canonical(uint32[8] memory value) private pure {
@@ -297,6 +311,15 @@ library NativeDeep {
 
     function neg(uint32 value) private pure returns (uint32) {
         return value == 0 ? 0 : uint32(P - value);
+    }
+
+    function addInto(uint32[8] memory accumulator, uint32[8] memory value) private pure {
+        assembly ("memory-safe") {
+            for { let i := 0 } lt(i, 256) { i := add(i, 32) } {
+                let at := add(accumulator, i)
+                mstore(at, addmod(mload(at), mload(add(value, i)), 0x7fffffff))
+            }
+        }
     }
 
     function add(uint32[8] memory a, uint32[8] memory b) private pure returns (uint32[8] memory result) {

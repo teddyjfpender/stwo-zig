@@ -208,6 +208,15 @@ function makeProof({ domainLog = 10, badLayer = false, badLast = false, nativeDe
 const fixture = name => new URL(`../fixtures/${name}`, import.meta.url);
 const readFixture = name => JSON.parse(readFileSync(fixture(name)));
 
+export function traceRowsInLeafOrder(fixture, treeIndex, rows = fixture.rows[treeIndex]) {
+  const width = fixture.treeWidths[treeIndex];
+  const offset = fixture.treeWidths.slice(0, treeIndex).reduce((sum, n) => sum + n, 0);
+  const order = Array.from({ length: width }, (_, i) => i).sort((a, b) =>
+    fixture.columns[offset + a].logSize - fixture.columns[offset + b].logSize || a - b
+  );
+  return Array.from({ length: rows.length / width }, (_, row) => order.map(i => rows[row * width + i])).flat();
+}
+
 export function registerFriTests(deploy) {
   test("authenticates all native FRI layers and rejects disconnected commitments", async () => {
     const fri = await deploy("test/NativeFriHarness.sol", "NativeFriHarness");
@@ -256,7 +265,7 @@ export function registerFriTests(deploy) {
         const positions = sortedUnique(queries.map(q => ((q >> (1 + domainLog - logSize)) << 1) | (q & 1)));
         const rowValues = [...nativeDeep.rows[i]];
         if (changeRow && i === 0) rowValues[positions[0] * columnCount] ^= 1;
-        const committed = tree(rowValues, columnCount, value => word(value));
+        const committed = tree(traceRowsInLeafOrder(nativeDeep, i, rowValues), columnCount, value => word(value));
         return [
           { root: hex(committed.root), logSize, columnCount },
           { positions, rows: hex(Buffer.concat(positions.map(pos => committed.rows[pos]))), witness: openTree(committed, positions) },

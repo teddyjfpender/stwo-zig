@@ -249,8 +249,9 @@ denominator. It consumes the same little-endian samples as the PCS
 transcript. The column layout and secure sample points are verifier-owned.
 
 `NativeDeepOpening` authenticates each trace tree against its supplied
-root at exactly the projected query positions, then evaluates the quotient
-on the joined row. Repeated projections reuse the authenticated row and
+root at exactly the projected query positions. It restores the original
+column order from the leaf order, which sorts by column log size with the
+original index as a tie breaker. Repeated projections reuse the authenticated row and
 preserve the even/odd conjugate bit. The answers are suitable for the first
 FRI layer; callers still need to derive the query set and enforce that FRI
 authenticates these exact answers. These components do not check an AIR
@@ -271,12 +272,10 @@ independent BLAKE2s to build the compressed openings and check every
 output coefficient. The same fixture supplies all 32 domain evaluations
 to an independent FRI proof builder. The joint test checks the full query
 set and rejects an authenticated trace row with a mismatching quotient.
-On Anvil Osaka with solc 0.8.30, the seven-query fixture uses
-2,755,814 gas including calldata and all three openings. The joint PCS
-test uses 9,917,184 gas for 30 distinct queries. Reusing one joined row
-and evaluation workspace and accumulating packed challenge coefficients
-reduced those gas measurements by 4.4% and 5.8%, respectively. These are
-bounded vectors; they do not measure verification of a full Mainnet proof.
+On Anvil Shanghai with solc 0.8.30, the seven-query fixture uses
+2,710,124 gas including calldata and all three openings. The joint PCS
+test uses 9,981,690 gas for 30 distinct queries. Both paths reuse sample
+and row workspace and accumulate packed challenge coefficients.
 
 Regenerate the fixture from the repository root with Zig 0.15.2:
 
@@ -284,6 +283,44 @@ Regenerate the fixture from the repository root with Zig 0.15.2:
 zig run --dep core -Mroot=settlement/tools/export_deep_vector.zig \
   -Mcore=src/core/mod.zig > settlement/fixtures/native-deep-vector.json
 ```
+
+### Mainnet block 120794432
+
+The accepted native bundle contains one CPU and two truth workers. For one
+query per worker, Solidity authenticated all projected trace leaves,
+recomputed the DEEP quotient, and matched all eight coefficients against
+the authenticated first FRI leaf. The DEEP transactions include calldata
+and trace openings. They ran on Shanghai Anvil with an elevated limit.
+
+| Worker | Query | Columns | Samples | DEEP gas |
+|---|---:|---:|---:|---:|
+| `cpu-0.bin` | 996 | 4,908 | 5,681 | 206,732,982 |
+| `truth-1.bin` | 0 | 7,444 | 7,453 | 245,668,989 |
+| `truth-0.bin` | 2732 | 3,595 | 10,030 | 303,806,494 |
+
+The [receipt](fixtures/native-deep-120794432-receipt.json) identifies the
+accepted bundle and workers. Replay the checked-in CPU query from this directory.
+
+```sh
+STWO_NATIVE_DEEP_FIXTURE=fixtures/native-deep-120794432-cpu-0.json.gz \
+  ANVIL_GAS_LIMIT=550000000 npm test
+```
+
+To regenerate inputs from the accepted bundle, apply
+`tools/native-pcs-fri-trace-capture.patch` to a disposable native receiver
+checkout. Set `STWO_EXPORT_PCS_SUFFIX=1`, `STWO_EXPORT_FRI_LAYERS=1`
+and `STWO_EXPORT_FRI_TRACE=1`, and configure one proof worker so its
+capture stays contiguous. Save the accepted receiver JSON and diagnostic
+log, then run the exporter.
+
+```sh
+python3 tools/export_native_deep.py capture.log receive.json \
+  cpu-0.bin fixtures/native-deep-120794432-cpu-0.json.gz --block 120794432
+```
+
+The captured replay checks one DEEP-to-FRI opening per worker. The bounded
+vector above checks the complete composed PCS call. See [FRI.md](FRI.md)
+for the separate full layer replays using captured native DEEP answers.
 
 ## Mainnet provenance
 

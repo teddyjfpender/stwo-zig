@@ -155,6 +155,12 @@ library NativeFriFold {
     // magnitude: the inputs are M31 residues and each level only adds
     // bounded multiples of products or doubles the inputs to a subproduct.
     function multiply(uint32[8] memory a, uint32[8] memory b) internal pure returns (uint32[8] memory result) {
+        multiplyInto(a, b, result);
+    }
+
+    /// @dev The output may alias either input. The products and sums are
+    /// fully computed in scratch space before any output limb is written.
+    function multiplyInto(uint32[8] memory a, uint32[8] memory b, uint32[8] memory result) internal pure {
         assembly ("memory-safe") {
             function complexMul(ar, ai, br, bi) -> re, im {
                 let rr := mul(ar, br)
@@ -189,7 +195,7 @@ library NativeFriFold {
             }
 
             // Scratch space lives beyond the free-memory pointer and does
-            // not escape. The named result already owns eight memory words.
+            // not escape. The caller supplies eight allocated result words.
             let low := mload(0x40)
             let high := add(low, 128)
             let sum := add(high, 128)

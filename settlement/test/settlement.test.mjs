@@ -3,10 +3,11 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { after, test } from "node:test";
+import { gunzipSync } from "node:zlib";
 
 import { AbiCoder, JsonRpcProvider, ContractFactory, id, keccak256 } from "ethers";
 import solc from "solc";
-import { registerFriTests } from "./fri-cases.mjs";
+import { registerFriTests, traceRowsInLeafOrder } from "./fri-cases.mjs";
 
 const sources = {};
 for (const directory of ["src", "test"]) {
@@ -48,8 +49,10 @@ const fatalDiagnostics = (compiled.errors ?? []).filter(
 assert.deepEqual(fatalDiagnostics, []);
 console.log(JSON.stringify({ compiler: compiler || solc.version(), compileMs: Math.round(performance.now() - started) }));
 
+const blockGasLimit = Number(process.env.ANVIL_GAS_LIMIT ?? 100_000_000);
 const chain = spawn(process.env.ANVIL ?? "anvil", [
-  "--port", "0", "--hardfork", process.env.ANVIL_HARDFORK ?? "shanghai", "--gas-limit", "100000000",
+  "--port", "0", "--hardfork", process.env.ANVIL_HARDFORK ?? "shanghai", "--gas-limit", String(blockGasLimit),
+  ...(process.env.STWO_NATIVE_DEEP_FIXTURE ? ["--no-request-size-limit"] : []),
 ]);
 after(() => chain.kill());
 const rpc = await new Promise((resolve, reject) => {
@@ -112,7 +115,7 @@ test("computes native OM31 DEEP answers from exact projected trace openings", as
   function opening(i, { extra = false, invalidResidue = false } = {}) {
     const logSize = fixture.treeLogs[i];
     const columnCount = fixture.treeWidths[i];
-    const allRows = words(fixture.rows[i]);
+    const allRows = words(traceRowsInLeafOrder(fixture, i));
     const positions = [...new Set(fixture.queries.map((q) =>
       ((q >> (1 + fixture.domainLog - logSize)) << 1) | (q & 1)
     ))].sort((a, b) => a - b);
@@ -168,6 +171,49 @@ test("computes native OM31 DEEP answers from exact projected trace openings", as
 
   const receipt = await (await deep.deep.send(...args)).wait();
   console.log(JSON.stringify({ deepOpenedRows: got.length, deepOpenedRowsGas: Number(receipt.gasUsed) }));
+});
+
+const mainnetDeepFixtures = (process.env.STWO_NATIVE_DEEP_FIXTURE ?? "").split(",").filter(Boolean);
+test("replays native OP Mainnet worker DEEP queries", { skip: mainnetDeepFixtures.length === 0 }, async () => {
+  const deep = await deploy("test/DeepHarness.sol", "DeepHarness");
+  for (const path of mainnetDeepFixtures) {
+    let fixtureData = readFileSync(path);
+    if (path.endsWith(".gz")) fixtureData = gunzipSync(fixtureData);
+    const fixture = JSON.parse(fixtureData);
+    const args = [
+      fixture.domainLog, fixture.columns, fixture.points, fixture.prefix, fixture.samples,
+      fixture.trees, fixture.openings, fixture.queries, { gasLimit: blockGasLimit },
+    ];
+    let result;
+    try {
+      result = await deep.deep(...args);
+    } catch (error) {
+      // Ethers otherwise renders the entire multi-megabyte calldata in its error.
+      const detail = error.info?.error?.message ?? error.shortMessage ?? error.message;
+      throw new Error(`${fixture.worker} DEEP replay failed. ${detail}`);
+    }
+    assert.deepEqual(result.map(answer => answer.map(Number)), fixture.answers);
+    const layer = fixture.firstFri;
+    assert.equal(await verifier.verifyOpening(
+      layer.root, layer.depth, layer.positions, layer.rows, layer.rowBytes, layer.witness,
+    ), true);
+    const valuesPerLeaf = layer.rowBytes / 32;
+    const opened = binary(layer.rows);
+    for (let i = 0; i < fixture.queries.length; i++) {
+      const query = fixture.queries[i];
+      const leaf = layer.positions.indexOf(Math.floor(query / valuesPerLeaf));
+      assert.ok(leaf >= 0);
+      const offset = leaf * layer.rowBytes + (query % valuesPerLeaf) * 32;
+      const value = Array.from({ length: 8 }, (_, j) => opened.readUInt32LE(offset + j * 4));
+      assert.deepEqual(result[i].map(Number), value);
+    }
+    const receipt = await (await deep.deep.send(...args)).wait();
+    console.log(JSON.stringify({
+      block: fixture.blockNumber, worker: fixture.worker, workerSha256: fixture.workerSha256,
+      queries: fixture.queries, columns: fixture.columns.length,
+      samples: (fixture.samples.length - 2) / 64, nativeMainnetDeepGas: Number(receipt.gasUsed),
+    }));
+  }
 });
 
 test("matches the independent BLAKE2s implementation across block boundaries", async () => {

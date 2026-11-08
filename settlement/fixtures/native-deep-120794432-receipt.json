@@ -1,0 +1,48 @@
+{
+  "blockNumber": 120794432,
+  "nativeBundleSha256": "968aacfe3a9c74f573a121e0f0ecdcd9c9f52df419903b4dba1b4cb8b19a8c84",
+  "nativeReceiverAccepted": true,
+  "nativeCompletedEthereumBlock": true,
+  "anvil": "1.7.1",
+  "hardfork": "shanghai",
+  "solc": "0.8.30",
+  "blockGasLimit": 550000000,
+  "proofScope": "one authenticated trace and first FRI query for each native worker",
+  "replayFixture": "native-deep-120794432-cpu-0.json.gz",
+  "replayFixtureSha256": "cf66363eb996d5d29493a1859371bf42a5f641f0513c2960e8fef2fb666103a8",
+  "workers": [
+    {
+      "block": 120794432,
+      "worker": "cpu-0.bin",
+      "workerSha256": "b354fa6d6b388edb74b6cac0b546ac750427837d4a7e6a5dfe09af8b2d0888c0",
+      "queries": [
+        996
+      ],
+      "columns": 4908,
+      "samples": 5681,
+      "nativeMainnetDeepGas": 206732982
+    },
+    {
+      "block": 120794432,
+      "worker": "truth-1.bin",
+      "workerSha256": "2a58da564f49126e62954fd05c11e268620219e655cf63bdcc47376952e1a274",
+      "queries": [
+        0
+      ],
+      "columns": 7444,
+      "samples": 7453,
+      "nativeMainnetDeepGas": 245668989
+    },
+    {
+      "block": 120794432,
+      "worker": "truth-0.bin",
+      "workerSha256": "b90842827cb9b953adc33d37bddfe2ae934733b13d6db8bd82f7de8a62812ede",
+      "queries": [
+        2732
+      ],
+      "columns": 3595,
+      "samples": 10030,
+      "nativeMainnetDeepGas": 303806494
+    }
+  ]
+}

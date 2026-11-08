@@ -38,6 +38,8 @@ abstract contract NativeDeepOpening is LiftedOpeningVerifier {
         }
 
         uint32[] memory rowOffsets = new uint32[](queries.length * trees.length);
+        uint16[] memory leafColumns = new uint16[](plan.columnCount);
+        bool[] memory inLeafOrder = new bool[](trees.length);
         uint256 totalColumns;
         for (uint256 i; i < trees.length; ++i) {
             TraceTree memory tree = trees[i];
@@ -50,6 +52,7 @@ abstract contract NativeDeepOpening is LiftedOpeningVerifier {
             }
             totalColumns += tree.columnCount;
             if (totalColumns > plan.columnCount) revert InvalidDeepOpening();
+            inLeafOrder[i] = mapLeafColumns(plan.columnLogs, leafColumns, totalColumns - tree.columnCount, tree.columnCount);
             uint32 rowBytes = uint32(tree.columnCount) * 4;
             if (!verifyOpening(tree.root, tree.logSize, opening.positions, opening.rows, rowBytes, opening.witness)) {
                 revert InvalidDeepOpening();
@@ -71,20 +74,68 @@ abstract contract NativeDeepOpening is LiftedOpeningVerifier {
         NativeDeep.RowWorkspace memory workspace = NativeDeep.rowWorkspace(plan);
         bytes memory row = new bytes(totalColumns * 4);
         for (uint256 i; i < queries.length; ++i) {
-            uint256 at;
+            uint256 column;
             for (uint256 j; j < trees.length; ++j) {
-                uint256 rowBytes = uint256(trees[j].columnCount) * 4;
-                if (rowBytes == 0) continue;
-                bytes calldata source = openings[j].rows;
-                uint256 offset = rowOffsets[i * trees.length + j];
-                // The opening check bounds each source slice, and row is
-                // exactly the sum of the checked tree widths.
-                assembly ("memory-safe") {
-                    calldatacopy(add(add(row, 32), at), add(source.offset, offset), rowBytes)
-                }
-                at += rowBytes;
+                uint256 width = trees[j].columnCount;
+                if (width == 0) continue;
+                copyTraceRow(row, column, width, openings[j].rows, rowOffsets[i * trees.length + j], leafColumns, inLeafOrder[j]);
+                column += width;
             }
             answers[i] = NativeDeep.evaluate(plan, queries[i], row, workspace);
+        }
+    }
+
+    // The Merkle verifier sorts a tree's columns by (log size, original
+    // index); the DEEP sample stream keeps the original column order.
+    function mapLeafColumns(bytes memory logs, uint16[] memory leafColumns, uint256 start, uint256 width)
+        private pure returns (bool ordered)
+    {
+        ordered = true;
+        uint8 previous;
+        for (uint256 i; i < width; ++i) {
+            uint8 log = uint8(logs[start + i]);
+            if (log < previous) {
+                ordered = false;
+                break;
+            }
+            previous = log;
+        }
+        if (ordered) return true;
+
+        uint16[31] memory next;
+        for (uint256 i; i < width; ++i) ++next[uint8(logs[start + i])];
+        uint16 offset;
+        for (uint256 log; log < next.length; ++log) {
+            uint16 count = next[log];
+            next[log] = offset;
+            offset += count;
+        }
+        for (uint256 i; i < width; ++i) leafColumns[start + i] = next[uint8(logs[start + i])]++;
+    }
+
+    function copyTraceRow(
+        bytes memory row,
+        uint256 column,
+        uint256 width,
+        bytes calldata source,
+        uint256 offset,
+        uint16[] memory leafColumns,
+        bool ordered
+    ) private pure {
+        // The opening check bounds source. Both the output range and every
+        // permutation entry are bounded by the authenticated tree width.
+        assembly ("memory-safe") {
+            let dst := add(add(row, 32), shl(2, column))
+            let src := add(source.offset, offset)
+            switch ordered
+            case 1 { calldatacopy(dst, src, shl(2, width)) }
+            default {
+                let mappingAt := add(add(leafColumns, 32), shl(5, column))
+                for { let i := 0 } lt(i, width) { i := add(i, 1) } {
+                    let leafColumn := mload(add(mappingAt, shl(5, i)))
+                    calldatacopy(add(dst, shl(2, i)), add(src, shl(2, leafColumn)), 4)
+                }
+            }
         }
     }
 
