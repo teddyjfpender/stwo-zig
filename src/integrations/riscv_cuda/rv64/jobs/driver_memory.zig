@@ -24,6 +24,13 @@ pub const granule: u64 = 64; // worker.Arena.granule
 pub const default_reserve_words: u64 = (1 << 30) / 4;
 pub const default_graph_exec_words: u64 = (256 << 20) / 4;
 
+/// Known allocations already owned by this plan are counted once. A fixed
+/// arena has no access to physical free memory outside its carve; a CUDA
+/// pool can grow into those bytes. The plan reserve covers allocator overhead.
+pub fn allocationCapacity(free_words: u64, unused_pool_words: u64, owned_words: u64, fixed_pool: bool) u64 {
+    return (if (fixed_pool) 0 else free_words) + unused_pool_words + owned_words;
+}
+
 pub const Inputs = struct {
     device: u32,
     capacity_words: u64,
@@ -86,6 +93,16 @@ pub fn mainViews(region_words: u64, segment_main_words: []const u64, out_offsets
 
 const testing = std.testing;
 const GiB: u64 = (1 << 30) / 4;
+
+test "plan: fixed carve excludes CUDA free bytes; growing pool includes them" {
+    // Gate 10: a 27.28 GB carve plus 2.17 GB outside it was treated as one
+    // allocatable pool, producing a 27.47 GB plan allocation [M].
+    const unused = 25 * GiB;
+    try testing.expectEqual(unused + 64, allocationCapacity(2 * GiB, unused, 64, true));
+    try testing.expectEqual(unused + 2 * GiB + 64, allocationCapacity(2 * GiB, unused, 64, false));
+    const p = try plan(.{ .device = 0, .capacity_words = allocationCapacity(2 * GiB, unused, 64, true), .main_resident_words = 3 * GiB, .slab_words = (64 << 20) / 4 });
+    try testing.expect(p.phase_b_words + 2 * p.slab_words + default_graph_exec_words + default_reserve_words <= unused + 64);
+}
 
 test "plan: 24628607-shaped dev0: a fold plus a staged leaf fits only in phase B" {
     // [M] sizes from the inventory: class cache ~3.1 GB, MAIN 4.15 GB on dev0,

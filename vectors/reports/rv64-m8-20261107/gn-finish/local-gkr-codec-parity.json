@@ -1,0 +1,21 @@
+{
+  "schema": "rv64-local-gkr-device-codec-parity/v1",
+  "status": "M",
+  "result": "PASS",
+  "scope": "Serialization parity only; synthetic V1/V3 local-GKR fixtures, including zero/short polynomial coefficients. Does not establish proof soundness or end-to-end completion.",
+  "gpu": "2 x RTX 5090",
+  "assertions": [
+    "GPU_M8_LOCAL_GKR_WIRE_PARITY device=0 wire_bytes=3884 digest_equal=1 invalid_length_rejected=1 noncanonical_rejected=1",
+    "GPU_M8_LOCAL_GKR_WIRE_PARITY device=1 wire_bytes=3884 digest_equal=1 invalid_length_rejected=1 noncanonical_rejected=1",
+    "GPU_M8_LOCAL_GKR_WIRE_PARITY device=0 wire_bytes=3884 digest_equal=1 invalid_length_rejected=1 noncanonical_rejected=1",
+    "GPU_M8_LOCAL_GKR_WIRE_PARITY device=1 wire_bytes=3884 digest_equal=1 invalid_length_rejected=1 noncanonical_rejected=1"
+  ],
+  "log": {
+    "path": "/workspace/m3/runs/m8-gn-codec/gpu-1.log",
+    "sha256": "25e5a0668a290a763422dfc065ac532c17968e8e1f4c5649a5498ebbbdc7e0a8"
+  },
+  "addon_build": {
+    "path": "/workspace/m3/build/m8-gn-codec/addon-1/build.json",
+    "sha256": "9dd6cb4ca966360786cf865d7dc068c288cd4e701b815a5e2367ff822207b87b"
+  }
+}

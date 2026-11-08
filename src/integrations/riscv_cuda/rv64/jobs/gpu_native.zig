@@ -110,6 +110,7 @@ pub const Check = enum(u16) {
     public_claims = 0x0206, // device publicClaims reduction (was CW.publicClaims)
     pcs_status = 0x0207, // enqueue-only PCS pipeline status plane
     root_match = 0x0208, // FIXED/MAIN roots equal the class/statement roots
+    local_receipt = 0x0209, // canonical local-GKR receipt and child wire
     // recursion (0x03xx): truth proofs and outer nodes
     truth_status = 0x0301, // truth_source / truth_composition / truth_pcs
     lookup_sum = 0x0302, // outer node LogUp sum == 0 (was host lookup status)
@@ -126,6 +127,7 @@ pub const Check = enum(u16) {
     // the value its composition samples reconstruct (was the host
     // evalCompositionPolynomialAtPoint in truth finish). Truth extra check.
     truth_oods = 0x0308,
+    class_unpack = 0x0309,
 };
 
 /// Status checks every proof of a kind must carry (the driver reserves these
@@ -408,6 +410,10 @@ pub const Exchange = struct {
     capacity_claims: u32 = 0,
     /// GPUs that host segments, bit d = device d (0 = every device).
     partial_mask: u8 = 0,
+    /// The flat-manifest protocol consumes roots, receipts and marginals
+    /// directly and has no per-GPU partial producer or consumer. Chained
+    /// protocols retain their partial slots and completion requirements.
+    partials_enabled: bool = true,
     /// Two-stage truths (r-truth): each truth's stage-1 MAIN root (8 words +
     /// flag), framed by the seal. Appended after every other slot, so layouts
     /// without truths are unchanged.
@@ -416,6 +422,9 @@ pub const Exchange = struct {
     /// Per-segment local-GKR receipt digest slots (gn-s2): 8 words + flag per
     /// segment, after the truth roots. false: no slot, layout unchanged.
     receipts: bool = false,
+    /// Capacity of each segment's length-prefixed local child wire. Zero
+    /// preserves the previous exchange layout.
+    child_wire_words: usize = 0,
 
     fn capS(self: Exchange) usize {
         return if (self.capacity_segments == 0) self.segments else self.capacity_segments;
@@ -427,6 +436,7 @@ pub const Exchange = struct {
         return if (self.capacity_claims == 0) self.claims_per_segment else self.capacity_claims;
     }
     pub fn mask(self: Exchange) u8 {
+        if (!self.partials_enabled) return 0;
         if (self.partial_mask != 0) return self.partial_mask;
         return @truncate((@as(u16, 1) << @intCast(@min(self.devices, 8))) - 1);
     }
@@ -444,11 +454,11 @@ pub const Exchange = struct {
     }
     /// Flag words reserved at install (slot events are indexed by flag).
     pub fn flagCapacity(self: Exchange) usize {
-        return 1 + @as(usize, self.devices) + 2 * self.capS() + self.capT() + self.capR();
+        return 1 + @as(usize, self.devices) + 2 * self.capS() + self.capT() + self.capR() + (if (self.child_wire_words != 0) self.capS() else 0);
     }
     /// This request's flags: the contiguous prefix [flagOffset, +flagWords).
     pub fn flagWords(self: Exchange) usize {
-        return 1 + self.partials() + 2 * @as(usize, self.segments) + self.truths + (if (self.receipts) @as(usize, self.segments) else 0);
+        return 1 + self.partials() + 2 * @as(usize, self.segments) + self.truths + (if (self.receipts) @as(usize, self.segments) else 0) + (if (self.child_wire_words != 0) @as(usize, self.segments) else 0);
     }
     fn capR(self: Exchange) usize {
         return if (self.receipts) self.capS() else 0;
@@ -474,7 +484,7 @@ pub const Exchange = struct {
         return self.capT() * 8;
     }
     pub fn words(self: Exchange) usize {
-        return std.mem.alignForward(usize, self.flagCapacity(), 8) + self.rootWords() + self.claimWords() + self.partialWords() + seal_words + self.capT() * 8 + self.capR() * 8;
+        return std.mem.alignForward(usize, self.flagCapacity(), 8) + self.rootWords() + self.claimWords() + self.partialWords() + seal_words + self.capT() * 8 + self.capR() * 8 + self.capS() * self.child_wire_words;
     }
     fn dataBase(self: Exchange) usize {
         return std.mem.alignForward(usize, self.flagCapacity(), 8);
@@ -508,6 +518,10 @@ pub const Exchange = struct {
     pub fn receipt(self: Exchange, segment: u32) !Slot {
         if (!self.receipts or segment >= self.segments) return error.GpuNativeExchangeSlot;
         return .{ .offset = self.seal().offset + seal_words + self.capT() * 8 + @as(usize, segment) * 8, .words = 8, .flag = 1 + self.partials() + 2 * @as(usize, self.segments) + self.truths + segment };
+    }
+    pub fn childWire(self: Exchange, segment: u32) !Slot {
+        if (self.child_wire_words == 0 or segment >= self.segments) return error.GpuNativeExchangeSlot;
+        return .{ .offset = self.seal().offset + seal_words + self.capT() * 8 + self.capR() * 8 + @as(usize, segment) * self.child_wire_words, .words = self.child_wire_words, .flag = 1 + self.partials() + 2 * @as(usize, self.segments) + self.truths + (if (self.receipts) self.segments else 0) + segment };
     }
 };
 
@@ -564,6 +578,8 @@ pub const ClassEntry = struct {
     main_resident_words: usize = 0,
     /// Measured arena peak of one job of this class (plan.zig sweep).
     arena_peak_words: usize = 0,
+    /// Smaller pre-seal producer when a two-stage class completes in phase B.
+    phase_a_peak_words: usize = 0,
     /// Native segment classes: secure-felt claim blocks this segment publishes.
     claims_per_segment: u32 = 0,
     /// Estimated device time of one job of this class (placement weight only).
@@ -587,6 +603,8 @@ pub const ClassEntry = struct {
     /// region as `stage_one_base_bytes` + the sum over the request's segments
     /// (D2 golden stage-one.bin: 487,244 B for 4 segments, 823,416 B for 7 [M]).
     stage_one_bytes: usize = 0,
+    /// Install bound of the length-prefixed local-GKR child encoding.
+    local_gkr_wire_words: usize = 0,
     /// Truth classes whose inputs (capture advice) are final only once the
     /// capture ends: the driver gates the job on the capture's `done`.
     needs_capture_end: bool = false,
@@ -867,6 +885,10 @@ pub const Publication = struct {
 /// Request-scoped context every factory call receives.
 pub const RequestContext = struct {
     request: u64,
+    block: u64 = 0,
+    /// Native class keys resolved during planning; immutable for this request.
+    native_classes: []const ClassKey = &.{},
+    truth_devices: []const u32 = &.{},
     layout: *const RequestLayout,
     exchange: Exchange,
     peer: PeerExchange,
@@ -900,8 +922,15 @@ pub const NativeFactory = struct {
     ctx: *anyopaque,
     vtable: *const VTable,
     pub const VTable = struct {
+        /// Request metadata before class selection, and device placement
+        /// after planning but before any jobs are constructed.
+        begin_request: ?*const fn (*anyopaque, block: u64, request: u64, generation: u64) anyerror!void = null,
+        planned: ?*const fn (*anyopaque, *const RequestContext) anyerror!void = null,
+        batch_pinned_words: ?*const fn (*anyopaque) anyerror!usize = null,
         /// Install time: warm every class of the manifest's class mix.
         warm: *const fn (*anyopaque, *ClassCache) anyerror!void,
+        /// Address-independent immutable resources, before the final arena.
+        resources: ?*const fn (*anyopaque, *ClassCache, u32) anyerror!void = null,
         /// Install time, after the memory plan is installed (see `Installed`):
         /// capture every graph that bakes arena / main_resident addresses.
         installed: ?*const fn (*anyopaque, *ClassCache, *const Installed) anyerror!void = null,
@@ -944,6 +973,7 @@ pub const RecursionFactory = struct {
     vtable: *const VTable,
     pub const VTable = struct {
         warm: *const fn (*anyopaque, *ClassCache) anyerror!void,
+        resources: ?*const fn (*anyopaque, *ClassCache, u32) anyerror!void = null,
         /// See NativeFactory.VTable.installed.
         installed: ?*const fn (*anyopaque, *ClassCache, *const Installed) anyerror!void = null,
         /// Class of a recursion proof from its AUTHORITY, never from its
@@ -984,6 +1014,8 @@ pub const Rejection = struct { id: ProofId, check: Check, word: u32 };
 pub const Published = struct {
     id: ProofId,
     bytes: []const u8, // view into the pinned mirror: copy before the slot is reused
+    /// Full encoded region, including device-only child image/frame suffixes.
+    region: []const u32 = &.{},
 };
 
 /// Check every status word of every segment and slice the encoded proofs.
@@ -1024,7 +1056,7 @@ pub fn publish(a: std.mem.Allocator, layout: *const RequestLayout, request: u64,
     var i: usize = 0;
     for (layout.segments, mirrors) |s, m| for (s.entries, s.ids) |e, id| {
         const len = m[e.encoded_offset];
-        out[i] = .{ .id = id, .bytes = std.mem.sliceAsBytes(m[e.encoded_offset + 1 ..][0..e.encoded_capacity_words])[0..len] };
+        out[i] = .{ .id = id, .bytes = std.mem.sliceAsBytes(m[e.encoded_offset + 1 ..][0..e.encoded_capacity_words])[0..len], .region = m[e.encoded_offset..][0 .. 1 + e.encoded_capacity_words] };
         i += 1;
     };
     return out;

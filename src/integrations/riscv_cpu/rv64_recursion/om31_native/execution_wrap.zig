@@ -766,7 +766,7 @@ const SchedulerInfo = struct { options: ParallelOptions, budget: *SharedBudget }
 /// tree.json for every planned route. Binary trees keep schema 2 byte for
 /// byte; k-ary trees publish schema 3 with ordered child lists, the arity and
 /// the outer profile name.
-fn treeJson(a: std.mem.Allocator, plan: *const Dag.Plan, nodes: []const Node, frames: Root.Frames) ![]u8 {
+pub fn treeJson(a: std.mem.Allocator, plan: *const Dag.Plan, nodes: []const Node, frames: Root.Frames) ![]u8 {
     if (plan.arity == 2) return std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes, .root = plan.root, .cpu_frames = frames.cpus, .truth_frames = frames.truths }, .{ .whitespace = .indent_2 });
     const wide = try a.alloc(WideNode, plan.count);
     defer a.free(wide);

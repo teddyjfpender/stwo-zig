@@ -1,0 +1,44 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "observed_utc": "2026-11-07T23:44:54.416311+00:00",
+  "scope": "Native4 reached Stage2 enqueue, fails empty boundary sentinel; corrected kernel contract tested; build21/native5 pending",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/native-live-4/receipt.json",
+      "sha256": "ae90d0bb1f17567ec1609399008d5a4a0b47ec6ae27590dc2ea23496f01fe717",
+      "result": "FAIL exit1 wall_ns138565781856; four native Stage2 jobs on both devices fail NativeStage2NoBoundary; no truth pinned declaration failure remains. No completed native proof."
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/boundary-1.log",
+      "sha256": "3048d2aab0e484450ed85477c0608d01fc886c58313cfb4d10bafd7f12a3172f",
+      "result": "PASS13 filtered tests; required real GPU0 public-claims check accepts declared empty initial/terminal zero claims, rejects nonzero empty claim. Marker empty_boundaries=1, negatives4, boundary_cells1077. No CUDA source/runtime change."
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/jobs-15.log",
+      "sha256": "bf15ec2111641d40d3598b56641fb0801a3c281ecf1fa4d76e2887a292d12e12",
+      "result": "PASS719/735 tests,16 skipped; includes strict warm-only request guard, private staging-header copies and real wide truth pinned-budget regression."
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/gpu-6.log",
+      "sha256": "eb3dd67f2de798fd79b9960bf9fdf88d1de304a4cf3fb994dff329cbc45137a6",
+      "result": "PASS87/87 local GKR/leaf/packed-codec tests; packed parity/negative markers bothGPU,1/8 channels. This root does not include the new empty-boundary GPU test; boundary1 is its actual test."
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/typecheck-15.log",
+      "result": "PASS full-driver semantic compile of current runtime changes"
+    }
+  ],
+  "changes": [
+    "Zero-length staged tuple views are valid boundary relations; retain the declared claim index and mandatory zero-claim verification instead of omitting the check. No extra arena/pinned allocation. Non-multiple-of14 tuple lists reject.",
+    "Shared CommitPlan jobCopy/freeJobCopy helper owns mutable host_offsets and clears staged pointers; Stage1 now uses it, truth plan-copy helper delegates; immutable class geometry remains shared.",
+    "Request batches fail cold persistent keys before allocation, pool placement or eviction; standalone/install jobs may fill keys normally. Worker regression passes both map/pool modes.",
+    "Graph reports include host calls spent recording and fallback; current cache still re-records, so H24 remains unqualified."
+  ],
+  "pending": {
+    "main": "build21 then native-live5; auto native retry requires boundary1 done0; main source frozen until chain terminal",
+    "scratch": "FREE: jobs15, GPU6 and boundary1 all terminal; no sync is needed now",
+    "runtime": "/workspace/m3/build/m8-gn-codec/addon-5/runtime.json"
+  },
+  "claim_boundary": "No native proof completion or qualified end-to-end speedup. Stage2 budgets are declarations; no full-request or physical-node-peak qualification. Latest current-runtime default/native gates, independent receivers, corpus, canonical3+3, basket, remaining architecture and gated landing remain open."
+}

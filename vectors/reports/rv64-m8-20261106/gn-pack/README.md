@@ -85,3 +85,5 @@ on both blocks. Glue root and channel are equal on both blocks, and all 4 negati
 Measurement notes: "capture-thread pack" [M] was timed inside the legacy source build (the recorder), not on the GPU-native capture
 thread. The ring is plain pageable memory that is pre-faulted after segment 0. Treat it as an estimate of the capture-thread cost until
 Packer.hook runs in a driver request.
+
+Gate [M]: `rv64_gate.sh` default (no env), 26235156, source ded04d1c2: **PASS** (`/workspace/m3/runs/m8-gn-pack/gate-rv1-26235156`): build, unit zig + python, small-block cold and warm byte-identical to the frozen D2 golden, fresh CPU receivers, negative corpus.

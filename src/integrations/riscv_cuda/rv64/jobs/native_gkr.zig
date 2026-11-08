@@ -220,7 +220,7 @@ fn rootWords(bytes: [32]u8) [8]u32 {
     return words;
 }
 // Restated from gkr_local/frame.zig (not exported by the CPU module).
-fn originWords(origin: anytype) [2]u32 {
+pub fn originWords(origin: anytype) [2]u32 {
     return switch (origin) {
         .core => |v| .{ 0, @intFromEnum(v) },
         .bridge => |v| .{ 1, @intFromEnum(v) },
@@ -230,7 +230,7 @@ fn originWords(origin: anytype) [2]u32 {
     };
 }
 // Restated from gkr_local/frame.zig v3Instances.
-fn v3Instances(instances: []const Instance) bool {
+pub fn v3Instances(instances: []const Instance) bool {
     for (instances) |instance| switch (instance.origin) {
         .bulk, .dword, .sponge => return true,
         .bridge => |family| if (@intFromEnum(family) >= CPU.rv64_services_types.V2_FAMILIES) return true,
@@ -238,7 +238,7 @@ fn v3Instances(instances: []const Instance) bool {
     };
     return false;
 }
-fn seedWords(ch: HostChannel) [9]u32 {
+pub fn seedWords(ch: HostChannel) [9]u32 {
     var seed: [9]u32 = undefined;
     for (seed[0..8], 0..) |*w, i| w.* = std.mem.readInt(u32, ch.inner.digest[i * 4 ..][0..4], .little);
     seed[8] = ch.inner.n_draws;
@@ -431,7 +431,6 @@ pub const Plan = struct {
     }
 };
 
-
 /// One segment's local GKR inside a job: `stage`, then `enqueue`; after the
 /// worker's wait, `Section.read` decodes and verifies the slab fields.
 pub const Gkr = struct {
@@ -456,6 +455,7 @@ pub const Gkr = struct {
     child_steps: u32 = 0,
     child_chain: u64 = 0,
     traversal: ?G.ClosureEnqueued = null,
+    reservoir: ?api.DeviceBuffer = null,
     launches: u64 = 0,
 
     pub fn init(a: std.mem.Allocator, plan: *const Plan, sym: *const Symbols) !Gkr {
@@ -569,6 +569,7 @@ pub const Gkr = struct {
             try child.mixWords(try staged.slice(instance_base + span[0], span[1]));
         }
         const reservoir = try e.alloc(reservoir_felts * 8);
+        self.reservoir = reservoir;
         try check(sym.memset(ctx, reservoir.ptr, 0, reservoir.bytes()));
         const status = try e.alloc(1);
         try check(sym.memset(ctx, status.ptr, 0, 4));

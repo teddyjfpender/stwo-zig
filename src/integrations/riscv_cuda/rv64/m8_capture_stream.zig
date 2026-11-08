@@ -513,7 +513,12 @@ pub const Feed = struct {
         self.note(err);
     }
     fn note(self: *Feed, err: anyerror) void {
-        if (self.failure == null) self.failure = err;
+        if (self.failure == null) {
+            self.failure = err;
+            // Dependency gates carry only a failed bit. Preserve the
+            // originating capture error before dependents report it.
+            std.debug.print("GPU_M8_GN_CAPTURE_FAILED segment={d} sealed={d} chunks={d} error={s}\n", .{ self.current, self.sealed, self.sequence, @errorName(err) });
+        }
         self.stream.fail();
     }
     fn failWith(self: *Feed, err: anyerror) anyerror {
@@ -563,7 +568,7 @@ pub const Feed = struct {
         if (self.failure == null and !self.ended) self.note(error.GpuNativeCaptureEndMissing);
         const sink = self.stream.sink();
         sink.done(sink.ctx, self.sealed) catch |err| {
-            if (self.failure == null) self.failure = err;
+            self.note(err);
         };
     }
 };

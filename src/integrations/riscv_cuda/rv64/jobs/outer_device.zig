@@ -68,10 +68,14 @@ pub const ClassInfo = struct {
     /// reported to the memory plan through ClassEntry.held_words.
     held_words: [G.max_devices]u64 = @splat(0),
     arena_peak_words: usize = 0,
+    /// Install may require every use to follow native MAIN retirement.
+    /// The request planner rejects a DAG that places this class in phase A.
+    phase_b: bool = false,
     cost_us: u64 = 1,
     /// GPU-native node products of this class (null: not warmed for the
     /// GPU-native path; `node` fails closed with GpuNativeNodeClassMissing).
     node: ?*const NodeClass = null,
+    extra_checks: []const G.Check = &.{},
 };
 
 /// Device products of one warmed recursion node class (built once at warm).
@@ -83,6 +87,8 @@ pub const NodeClass = struct {
     n_children: u32,
     /// Output words of the node (4 per output).
     output_words: u32,
+    require_warm: bool = false,
+    compressed: bool = false,
     ctx: *anyopaque,
     /// The whole-node job of this class, its encoder targeting `target`
     /// (image tail on, outputs from device memory). Type-erased: the
@@ -96,6 +102,7 @@ pub const Target = struct {
     pcs_status: api.DeviceBuffer,
     encode_status: api.DeviceBuffer,
     oods_status: api.DeviceBuffer,
+    class_unpack_status: ?api.DeviceBuffer = null,
 };
 pub const Made = struct {
     job: api.Job,
@@ -131,6 +138,9 @@ pub const Recursion = struct {
     classes: std.AutoHashMapUnmanaged(G.ClassKey, Registered) = .empty,
     /// Authority digest -> class key.
     authorities: std.AutoHashMapUnmanaged([32]u8, G.ClassKey) = .empty,
+    /// Install/request planning scope. Different blocks can have the same
+    /// physical child class and different exact leaf circuit authorities.
+    scope: u64 = 0,
     /// GPU-native node job entry points (null: `node` fails closed).
     device: ?DeviceOps = null,
     /// The class `class_of` resolved for each recursion proof id of the
@@ -146,6 +156,19 @@ pub const Recursion = struct {
     jobs: std.ArrayListUnmanaged(*NodeJob) = .empty,
 
     const Registered = struct { info: ClassInfo, phase_b: bool };
+
+    pub fn selectScope(self: *Recursion, scope: u64) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.scope = scope;
+    }
+    fn scopedAuthority(self: *const Recursion, id: G.ProofId, children: []const G.ClassKey) [32]u8 {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update("rv64/m8/recursion-block-authority/v1");
+        hash.update(std.mem.asBytes(&self.scope));
+        hash.update(&authority(id, children));
+        return hash.finalResult();
+    }
 
     pub fn deinit(self: *Recursion) void {
         var it = self.classes.valueIterator();
@@ -202,15 +225,15 @@ pub const Recursion = struct {
             info.max_encoded_bytes = @max(info.max_encoded_bytes, Enc.maxEncodedBytes(d));
         }
         if (id.kind == .request or id.kind == .native_segment) return error.GpuNativeNotARecursionProof;
-        const auth = authority(id, children);
         self.mutex.lock();
         defer self.mutex.unlock();
+        const auth = self.scopedAuthority(id, children);
         if (self.classes.get(key)) |known| if (known.info.plan != info.plan) return error.GpuNativeClassPlanConflict;
         if (self.authorities.get(auth)) |known| if (!std.mem.eql(u8, &known, &key)) return error.GpuNativeProofClassChanged;
         try self.authorities.put(self.a, auth, key);
         const c = try self.classes.getOrPut(self.a, key);
         if (!c.found_existing) {
-            c.value_ptr.* = .{ .info = info, .phase_b = id.kind == .fold or id.kind == .root };
+            c.value_ptr.* = .{ .info = info, .phase_b = info.phase_b or id.kind == .fold or id.kind == .root };
             return;
         }
         const v = &c.value_ptr.info;
@@ -220,7 +243,7 @@ pub const Recursion = struct {
         for (&v.held_words, info.held_words) |*x, y| x.* = @max(x.*, y);
         v.devices |= info.devices;
         // A class that also runs as a fold/root is budgeted in phase B.
-        c.value_ptr.phase_b = c.value_ptr.phase_b or id.kind == .fold or id.kind == .root;
+        c.value_ptr.phase_b = c.value_ptr.phase_b or info.phase_b or id.kind == .fold or id.kind == .root;
         // The registry already holds this class's reference.
         if (info.pin) |p| p.release(p.ctx);
     }
@@ -255,7 +278,7 @@ pub const Recursion = struct {
             // The entry's own reference (the registry keeps its own).
             if (info.pin) |p| p.retain(p.ctx);
             held.node = info.node;
-            return .{ .key = key, .plan = held, .destroy = destroyHeld, .max_encoded_bytes = info.max_encoded_bytes, .arena_peak_words = info.arena_peak_words, .cost_us = info.cost_us, .phase_b = self.reg.phase_b, .held_words = info.held_words };
+            return .{ .key = key, .plan = held, .destroy = destroyHeld, .max_encoded_bytes = info.max_encoded_bytes, .extra_checks = info.extra_checks, .arena_peak_words = info.arena_peak_words, .cost_us = info.cost_us, .phase_b = self.reg.phase_b, .held_words = info.held_words };
         }
     };
     fn destroyHeld(raw: *anyopaque) void {
@@ -282,9 +305,9 @@ pub const Recursion = struct {
     fn classOf(raw: *anyopaque, id: G.ProofId, children: []const G.ClassKey) anyerror!G.ClassKey {
         const self = of(raw);
         if (id.kind == .request or id.kind == .native_segment) return error.GpuNativeNotARecursionProof;
-        const auth = authority(id, children);
         self.mutex.lock();
         defer self.mutex.unlock();
+        const auth = self.scopedAuthority(id, children);
         const key = self.authorities.get(auth) orelse return error.GpuNativeClassNotWarmed;
         if (id.kind != .truth) try self.planned.put(self.a, idKey(id), key);
         return key;
@@ -308,7 +331,7 @@ pub const Recursion = struct {
         if (device >= rc.segments.len or device >= rc.layout.segments.len) return error.GpuNativeProofDeviceOutOfRange;
         const seg = &rc.layout.segments[device];
         const buf = rc.segments[device];
-        const target = Target{ .device = device, .region = try seg.encodedBuffer(buf, id), .pcs_status = try seg.statusBuffer(buf, id, .node_pcs_status), .encode_status = try seg.statusBuffer(buf, id, .encode_bounds), .oods_status = try seg.statusBuffer(buf, id, .node_oods_constraint) };
+        const target = Target{ .device = device, .region = try seg.encodedBuffer(buf, id), .pcs_status = try seg.statusBuffer(buf, id, .node_pcs_status), .encode_status = try seg.statusBuffer(buf, id, .encode_bounds), .oods_status = try seg.statusBuffer(buf, id, .node_oods_constraint), .class_unpack_status = if (nc.compressed) try seg.statusBuffer(buf, id, .class_unpack) else null };
         const job = try self.a.create(NodeJob);
         errdefer self.a.destroy(job);
         job.* = .{ .a = self.a, .request = rc.request, .ops = ops, .class = nc, .device = device, .verdicts = .{
@@ -391,6 +414,7 @@ pub const NodeJob = struct {
         defer self.host_ns += t.read();
         const p = try s.persistent(self.class.prog_key, self.class.program.len);
         self.d_prog = p.buffer;
+        if (self.class.require_warm and p.fresh) return error.GpuNativeRecursionSeedProgramCold;
         if (p.fresh) {
             const pinned = try s.pinned(self.class.program.len);
             @memcpy(pinned, self.class.program);
@@ -481,6 +505,28 @@ test "recursion factory: unregistered authorities and non-recursion proofs fail 
     const f = r.factory();
     try std.testing.expectError(error.GpuNativeClassNotWarmed, f.vtable.class_of(f.ctx, .{ .kind = .leaf, .ordinal = 0 }, &.{@splat(1)}));
     try std.testing.expectError(error.GpuNativeNotARecursionProof, r.register(.{ .kind = .native_segment, .ordinal = 0 }, &.{}, @splat(1), .{ .plan = @ptrCast(&r) }));
+}
+
+test "recursion planning selects the block authority for shared physical child classes" {
+    const t = std.testing;
+    var r = Recursion{ .a = t.allocator };
+    defer r.deinit();
+    var p0: u32 = 1;
+    var p1: u32 = 2;
+    const child: G.ClassKey = @splat(3);
+    const k0: G.ClassKey = @splat(4);
+    const k1: G.ClassKey = @splat(5);
+    const id = G.ProofId{ .kind = .leaf, .ordinal = 0 };
+    r.selectScope(10);
+    try r.register(id, &.{child}, k0, .{ .plan = &p0 });
+    r.selectScope(20);
+    try r.register(id, &.{child}, k1, .{ .plan = &p1 });
+    const f = r.factory();
+    try t.expectEqualSlices(u8, &k1, &try f.vtable.class_of(f.ctx, id, &.{child}));
+    r.selectScope(10);
+    try t.expectEqualSlices(u8, &k0, &try f.vtable.class_of(f.ctx, id, &.{child}));
+    r.selectScope(30);
+    try t.expectError(error.GpuNativeClassNotWarmed, f.vtable.class_of(f.ctx, id, &.{child}));
 }
 
 test "recursion factory: classes are keyed by authority, not by topology ordinal" {

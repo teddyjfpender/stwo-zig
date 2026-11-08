@@ -53,6 +53,9 @@ pub const Config = struct {
     max_segments: u32,
     /// Largest truth count per request (two-stage truths' exchange slots).
     max_truths: u32 = 16,
+    /// False only for a protocol whose seal consumes the full manifest
+    /// directly. Every root/claim/receipt/truth/child/seal flag stays required.
+    exchange_partials: bool = true,
     max_jobs_per_device: usize = 256,
     /// Pinned pool per parity for jobs that stage from pinned memory (GPU-native jobs: 0).
     batch_pinned_words: usize = 0,
@@ -74,6 +77,12 @@ pub const Config = struct {
     /// stwo_exec_context_pool_current (used, reserved bytes of the device
     /// arena / pool): its free part counts toward the plan capacity.
     pool_current: ?*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int = null,
+    /// A fixed device arena cannot grow into cudaMemGetInfo's free bytes.
+    /// The plan's reserve also covers its small slab and chunk rounding.
+    fixed_pool: bool = false,
+    /// Materialize address-independent resources before planning, so shared
+    /// persistent keys are charged once from their actual allocation census.
+    prewarm_resources: bool = false,
     /// Fixed part of the request pseudo-proof's stage-one region (bytes),
     /// added when any native class declares `stage_one_bytes`.
     stage_one_base_bytes: usize = G.stage_one_base_bytes,
@@ -118,6 +127,7 @@ pub const Receipt = struct {
     /// Per device: worker-thread enqueue time and time on host latches.
     device_enqueue_ns: [G.max_devices]u64 = @splat(0),
     device_gate_ns: [G.max_devices]u64 = @splat(0),
+    device_memory_serializations: [G.max_devices]u64 = @splat(0),
     /// CUDA-event GPU span per device: preamble start -> slab D2H end [M].
     device_gpu_us: [G.max_devices]u64 = @splat(0),
     wait_ns: u64 = 0,
@@ -177,6 +187,8 @@ pub const Driver = struct {
     /// Next parity tried first (alternates; a failed begin never wastes one).
     next_parity: u1 = 0,
     installed: bool = false,
+    resources_warmed: bool = false,
+    resident_words: [G.max_devices]u64 = @splat(0),
     /// A device fault (sticky CUDA error) or a teardown: no request begins again.
     poisoned: bool = false,
     /// Install capacities of the exchange (fixed offsets for every request).
@@ -209,6 +221,43 @@ pub const Driver = struct {
         // installPlanArena frees).
         try native.vtable.warm(native.ctx, &self.classes);
         try recursion.vtable.warm(recursion.ctx, &self.classes);
+        if (native.vtable.batch_pinned_words) |h| self.config.batch_pinned_words = @max(self.config.batch_pinned_words, try h(native.ctx));
+        var peaks = self.classPeaks();
+        if (config.prewarm_resources) {
+            const nr = native.vtable.resources orelse return error.GpuNativeResourceWarmHookMissing;
+            const rr = recursion.vtable.resources orelse return error.GpuNativeResourceWarmHookMissing;
+            // The largest declared request job is a conservative installation
+            // window. It is released before the one final plan is allocated.
+            // No request exists here, and persistent regions survive both
+            // control operations. Nothing on the request path parks a worker.
+            // Class footprints need not end on a worker allocation granule.
+            const temporary = std.mem.alignForward(u64, @max(peaks[0], peaks[1]), M.granule);
+            for (workers) |w| {
+                _ = try w.park(.{});
+                _ = try w.unpark(@intCast(@max(temporary, w.config.arena_words)));
+            }
+            try nr(native.ctx, &self.classes, @intCast(workers.len));
+            try rr(recursion.ctx, &self.classes, @intCast(workers.len));
+            for (workers, 0..) |w, d| {
+                const Census = struct {
+                    words: u64 = 0,
+                    fn run(raw: *anyopaque, worker: *W.Worker) anyerror!void {
+                        const census: *@This() = @ptrCast(@alignCast(raw));
+                        census.words = worker.persistentWords();
+                    }
+                };
+                var census = Census{};
+                try w.call(.{ .ctx = &census, .run = Census.run });
+                self.resident_words[d] = census.words;
+                _ = try w.park(.{});
+                _ = try w.unpark(1 << 16);
+                std.debug.print("GPU_M9_RESIDENT_CENSUS device={d} persistent_words={d} allocations_materialized=1\n", .{ d, census.words });
+            }
+            self.resources_warmed = true;
+            // Resource hooks may replace estimated class bounds with install
+            // measurements. Admission must use those updated cache entries.
+            peaks = self.classPeaks();
+        }
         // 2. peer access + per-GPU resources on each worker thread
         var ordinals: [G.max_devices]u32 = undefined;
         for (workers, 0..) |w, d| {
@@ -220,14 +269,14 @@ pub const Driver = struct {
         self.peer_direct = direct == 1;
         const claims_cap = @max(1, self.maxClaims());
         const truth_cap: u32 = if (recursion.vtable.truth_stage2 != null) config.max_truths else 0;
-        self.exchange_cap = .{ .segments = config.max_segments, .claims_per_segment = claims_cap, .devices = @intCast(workers.len), .capacity_segments = config.max_segments, .capacity_claims = claims_cap, .truths = truth_cap, .capacity_truths = truth_cap };
+        const wire_cap = self.maxLocalWire();
+        self.exchange_cap = .{ .segments = config.max_segments, .claims_per_segment = claims_cap, .devices = @intCast(workers.len), .capacity_segments = config.max_segments, .capacity_claims = claims_cap, .partials_enabled = config.exchange_partials, .truths = truth_cap, .capacity_truths = truth_cap, .receipts = wire_cap != 0, .child_wire_words = wire_cap };
         try self.peer.reserve(a, self.exchange_cap.flagCapacity());
         errdefer self.peer.deinitHost(a);
         const largest_main = std.mem.alignForward(u64, self.largestNativeMain(), M.granule);
         // Placement puts at most ceil(S / devices) segments' MAIN on one GPU
         // when every GPU's region holds that many (LPT, capacity-bounded).
         const per_gpu_segments = std.math.divCeil(u64, config.max_segments, workers.len) catch unreachable;
-        const peaks = self.classPeaks();
         // Lanes whose Setup started (a failed Setup is released too: Release
         // frees exactly what was allocated).
         var attempted: usize = 0;
@@ -235,7 +284,7 @@ pub const Driver = struct {
         for (self.lanes, 0..) |*l, d| {
             const main_words = if (config.main_resident_words != 0) config.main_resident_words else largest_main * per_gpu_segments;
             const class_words = self.classCacheWords(@intCast(d));
-            const capacity = try self.measuredCapacity(l.worker, config.capacity_words[d], class_words);
+            const capacity = try self.measuredCapacity(l.worker, config.capacity_words[d], d);
             const inputs = M.Inputs{ .device = @intCast(d), .capacity_words = capacity, .class_cache_words = class_words, .graph_exec_words = config.graph_exec_words, .main_resident_words = main_words, .phase_a_peak_words = @max(config.phase_a_peak_words, peaks[0]), .phase_b_peak_words = @max(config.phase_b_peak_words, peaks[1]), .slab_words = config.slab_words, .reserve_words = config.reserve_words, .arena_cap_words = config.arena_cap_words };
             l.plan = M.plan(inputs) catch |err| {
                 std.log.warn("M8 GPU-native memory plan device {d}: {s} (capacity {d} words; class cache {d}, main_resident {d}, phase A/B peaks {d}/{d}, slab 2x{d}, graph {d}, reserve {d})", .{ d, @errorName(err), capacity, class_words, main_words, inputs.phase_a_peak_words, inputs.phase_b_peak_words, config.slab_words, config.graph_exec_words, config.reserve_words });
@@ -285,6 +334,14 @@ pub const Driver = struct {
         while (it.next()) |e| best = @max(best, e.*.main_resident_words);
         return best;
     }
+    fn maxLocalWire(self: *Driver) usize {
+        var words: usize = 0;
+        self.classes.mutex.lock();
+        defer self.classes.mutex.unlock();
+        var it = self.classes.map.valueIterator();
+        while (it.next()) |entry| words = @max(words, entry.*.local_gkr_wire_words);
+        return words;
+    }
     fn maxClaims(self: *Driver) u32 {
         var best: u32 = 0;
         self.classes.mutex.lock();
@@ -301,6 +358,7 @@ pub const Driver = struct {
         defer self.classes.mutex.unlock();
         var it = self.classes.map.valueIterator();
         while (it.next()) |e| {
+            out[0] = @max(out[0], e.*.phase_a_peak_words);
             if (!e.*.phase_b) out[0] = @max(out[0], e.*.arena_peak_words);
             out[1] = @max(out[1], e.*.arena_peak_words);
             // Install receipt: which class sets the plan's arena peaks.
@@ -312,6 +370,7 @@ pub const Driver = struct {
     /// `device` buffers, what the factories report holding outside them,
     /// and the worker's persistent pool.
     fn classCacheWords(self: *Driver, device: u32) u64 {
+        if (self.resources_warmed) return self.resident_words[device];
         var n: u64 = 0;
         self.classes.mutex.lock();
         defer self.classes.mutex.unlock();
@@ -322,10 +381,11 @@ pub const Driver = struct {
         }
         return n + self.lanes[device].worker.config.persistent_budget_words;
     }
-    /// min(cap, measured): free device memory now plus what this plan
-    /// re-counts although it is already allocated (class cache, persistent
-    /// pool) or about to be freed (the worker's pre-plan arena).
-    fn measuredCapacity(self: *Driver, w: *W.Worker, cap_words: u64, class_words: u64) !u64 {
+    /// Only the pre-plan arena is known to be reclaimable. held_words is a
+    /// class's future reservation, not evidence of a live device allocation:
+    /// installed() uploads those classes AFTER this plan is allocated.
+    fn measuredCapacity(self: *Driver, w: *W.Worker, cap_words: u64, device_index: usize) !u64 {
+        if (self.config.fixed_pool and (self.config.pool_current == null or self.ops.exec.memory_info == null)) return error.GpuNativePoolCapacityUnavailable;
         const info = self.ops.exec.memory_info orelse return cap_words;
         const Q = struct {
             info: *const fn (*anyopaque, *usize, *usize) callconv(.c) c_int,
@@ -358,7 +418,11 @@ pub const Driver = struct {
             try w.call(.{ .ctx = &pq, .run = PoolQ.run });
             if (pq.reserved > pq.used) pooled = (pq.reserved - pq.used) / 4;
         }
-        const measured = q.free / 4 + pooled + class_words + w.arenaWords();
+        // Already-live persistent allocations belong to the class_cache
+        // region. Add them back to capacity once, then plan() charges that
+        // same census once; they are not reclaimable workspace.
+        const resident = if (self.resources_warmed) self.resident_words[device_index] else 0;
+        const measured = M.allocationCapacity(q.free / 4, pooled, w.arenaWords() + resident, self.config.fixed_pool);
         if (measured < cap_words) std.log.info("M8 GPU-native device {d}: plan capacity {d} words measured (cap {d})", .{ w.device_ordinal, measured, cap_words });
         return @min(cap_words, measured);
     }
@@ -471,7 +535,9 @@ pub const Driver = struct {
         // From here the capture belongs to `f`: release detaches it.
         f.owns_capture = true;
         errdefer f.release();
+        if (self.native.vtable.begin_request) |h| try h(self.native.ctx, req.block, req.id, self.generation);
         try f.plan();
+        if (self.native.vtable.planned) |h| try h(self.native.ctx, &f.ctx);
         try f.make();
         f.run() catch |err| {
             // Error path only: whatever this request enqueued (job kernels,
@@ -610,13 +676,16 @@ pub const InFlight = struct {
         if (two_stage and req.truths > drv.exchange_cap.capacity_truths) return error.GpuNativeTruthsExceedPlan;
         self.dag = try D.build(drv.a, .{ .devices = devices, .seal_device = drv.config.seal_device, .segments = segs, .truths = truths, .truth_after_seal = req.truth_after_seal, .truth_two_stage = two_stage, .recursion = rec, .root = req.root, .main_capacity = main_cap });
         const dag = &self.dag.?;
+        for (dag.recursion, node_cls) |id, class| {
+            if (class.phase_b and !dag.nodes[id].phase_b) return error.GpuNativeClassRequiresPhaseB;
+        }
         // slab layout from class constants
         const placed = try dag.proofIds(a);
         const specs = try a.alloc(G.ProofSpec, placed.len);
         // The request pseudo-proof carries the stage-one bytes (native seal
         // job): fixed base + each segment class's share, when any is declared.
         var stage_one: usize = 0;
-        for (native_cls) |e| stage_one += e.stage_one_bytes;
+        for (native_cls) |e| stage_one += @max(e.stage_one_bytes, if (drv.exchange_cap.child_wire_words != 0) 76 + 4 * drv.exchange_cap.child_wire_words else 0);
         if (stage_one != 0) stage_one += drv.config.stage_one_base_bytes;
         for (placed, specs) |p, *spec| {
             const entry: ?*const G.ClassEntry = switch (p.id.kind) {
@@ -631,7 +700,7 @@ pub const InFlight = struct {
         // segment own a partial slot (a GPU without one could never publish it).
         var partial_mask: u8 = 0;
         for (0..S) |s| partial_mask |= @as(u8, 1) << @intCast(dag.nodes[dag.stage1[s]].device);
-        self.exchange = .{ .segments = @intCast(S), .claims_per_segment = claims, .devices = devices, .capacity_segments = drv.exchange_cap.capacity_segments, .capacity_claims = drv.exchange_cap.capacity_claims, .partial_mask = partial_mask, .truths = if (two_stage) req.truths else 0, .capacity_truths = drv.exchange_cap.capacity_truths };
+        self.exchange = .{ .segments = @intCast(S), .claims_per_segment = claims, .devices = devices, .capacity_segments = drv.exchange_cap.capacity_segments, .capacity_claims = drv.exchange_cap.capacity_claims, .partial_mask = partial_mask, .partials_enabled = drv.exchange_cap.partials_enabled, .truths = if (two_stage) req.truths else 0, .capacity_truths = drv.exchange_cap.capacity_truths, .receipts = drv.exchange_cap.receipts, .child_wire_words = drv.exchange_cap.child_wire_words };
         self.exchange.validate() catch |err| return if (err == error.GpuNativeExchangeExceedsCapacity) error.GpuNativeClaimsExceedPlan else err;
         self.layout = try G.RequestLayout.build(drv.a, devices, specs, self.exchange);
         const layout = &self.layout.?;
@@ -657,7 +726,9 @@ pub const InFlight = struct {
             at[d] += words;
         }
         try drv.peer.begin(self.generation, self.exchange, replicas);
-        self.ctx = .{ .request = self.req.id, .layout = layout, .exchange = self.exchange, .peer = drv.peer.exchangeOf(), .classes = &drv.classes, .segments = self.segment_buffers, .main_resident = self.main_views, .segment_device = self.segment_device, .generation = self.generation };
+        const truth_devices = try a.alloc(u32, req.truths);
+        for (truth_devices, 0..) |*d, t| d.* = dag.nodes[dag.truth[t]].device;
+        self.ctx = .{ .request = self.req.id, .block = self.req.block, .native_classes = native_keys, .truth_devices = truth_devices, .layout = layout, .exchange = self.exchange, .peer = drv.peer.exchangeOf(), .classes = &drv.classes, .segments = self.segment_buffers, .main_resident = self.main_views, .segment_device = self.segment_device, .generation = self.generation };
         self.truth_classes = truth_cls;
         self.receipt.root_device = if (rec.len != 0) dag.nodes[dag.recursion[req.root]].device else dag.final_device;
         self.receipt.final_device = dag.final_device;
@@ -676,7 +747,7 @@ pub const InFlight = struct {
         self.hooks = try a.alloc(Hook, devices);
         for (dag.device_order, 0..) |order, d| {
             if (order.len > drv.config.max_jobs_per_device) return error.GpuNativeJobsExceedPlan;
-            self.batches[d] = .{ .jobs = try a.alloc(W.BatchJob, order.len), .parity = self.parity };
+            self.batches[d] = .{ .jobs = try a.alloc(W.BatchJob, order.len), .parity = self.parity, .require_warm_persistent = true };
             self.hooks[d] = .{ .f = self, .device = @intCast(d) };
             self.batches[d].preamble = .{ .ctx = &self.hooks[d], .run = preamble };
             self.batches[d].tail = .{ .ctx = &self.hooks[d], .run = tail };
@@ -769,6 +840,7 @@ pub const InFlight = struct {
         for (self.batches, 0..) |b, d| {
             self.receipt.device_enqueue_ns[d] = b.enqueue_ns;
             self.receipt.device_gate_ns[d] = b.gate_wait_ns;
+            self.receipt.device_memory_serializations[d] = b.memory_serializations;
         }
         // Snapshot now: the next request's begin resets the peer counters
         // before this request's finish runs.
@@ -877,6 +949,24 @@ pub const InFlight = struct {
         }
     }
 
+    /// Failed runs only. Copies already-landed mirrors without a device read
+    /// or a publication hook; the filename and metadata retain rejection.
+    fn dumpRejected(self: *InFlight, mirrors: []const []const u32) !void {
+        const path = std.posix.getenv("STWO_RV64_M8_NATIVE_REJECT_DUMP") orelse return;
+        try std.fs.cwd().makePath(path);
+        var dir = try std.fs.cwd().openDir(path, .{});
+        defer dir.close();
+        for (self.layout.?.segments, mirrors) |segment, mirror| {
+            var name_buf: [128]u8 = undefined;
+            const name = try std.fmt.bufPrint(&name_buf, "rejected-{d}-{d}-{d}.bin", .{ self.req.block, self.req.id, segment.device });
+            try dir.writeFile(.{ .sub_path = name, .data = std.mem.sliceAsBytes(mirror) });
+            const metadata = try std.json.Stringify.valueAlloc(self.alloc(), .{ .accepted = false, .block = self.req.block, .request = self.req.id, .device = segment.device, .words = segment.words, .entries = segment.entries, .ids = segment.ids, .checks = segment.checks }, .{});
+            defer self.alloc().free(metadata);
+            const meta_name = try std.fmt.bufPrint(&name_buf, "rejected-{d}-{d}-{d}.json", .{ self.req.block, self.req.id, segment.device });
+            try dir.writeFile(.{ .sub_path = meta_name, .data = metadata });
+        }
+    }
+
     fn complete(self: *InFlight) !Outcome {
         const drv = self.driver;
         const final = self.dag.?.final_device;
@@ -939,6 +1029,14 @@ pub const InFlight = struct {
         var rejection: G.Rejection = undefined;
         const views = G.publish(self.alloc(), &self.layout.?, self.req.id, G.Exchange.flagTag(self.generation), mirrors, &rejection) catch |err| {
             if (err == error.GpuNativeProofRejected) std.log.warn("M8 GPU-native request {d} rejected: {s} {d} check {s} word 0x{x:0>8}", .{ self.req.id, @tagName(rejection.id.kind), rejection.id.ordinal, @tagName(rejection.check), rejection.word });
+            for (self.layout.?.segments, mirrors) |segment, mirror| {
+                if (mirror.len < segment.words) continue;
+                for (segment.entries, segment.ids) |entry, id| for (0..entry.status_count) |k| {
+                    const word = mirror[entry.status_first + k];
+                    if (word != G.Verdict.accepted) std.log.warn("M8 GPU-native verdict request={d} device={d} kind={s} ordinal={d} check={s} word=0x{x:0>8}", .{ self.req.id, segment.device, @tagName(id.kind), id.ordinal, @tagName(segment.checks[entry.first_check + k]), word });
+                };
+            }
+            self.dumpRejected(mirrors) catch |dump_err| std.log.err("M8 rejected mirror dump failed: {s}", .{@errorName(dump_err)});
             return err;
         };
         var n: usize = 0;

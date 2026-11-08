@@ -12,6 +12,37 @@ from types import SimpleNamespace
 
 
 class GateTests(unittest.TestCase):
+    def test_nsys_storage_keeps_run_paths_and_refuses_existing_trace_directories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            run = base / 'runs' / 'stream-a' / 'run-1'
+            run.mkdir(parents=True)
+            link = resident.nsys_directory(run, base / 'raw')
+            target = (base / 'raw' / 'stream-a' / 'run-1').resolve()
+            self.assertTrue(link.is_symlink())
+            self.assertEqual(link.resolve(), target)
+            (link / 'timeline.nsys-rep').write_bytes(b'preserved')
+            with self.assertRaises(FileExistsError):
+                resident.nsys_directory(run, base / 'other')
+            self.assertEqual((target / 'timeline.nsys-rep').read_bytes(), b'preserved')
+            other = base / 'runs' / 'stream-b' / 'run-1'
+            other.mkdir(parents=True)
+            self.assertNotEqual(resident.nsys_directory(other, base / 'raw').resolve(), target)
+            regular = base / 'regular'
+            regular.mkdir()
+            self.assertFalse(resident.nsys_directory(regular).is_symlink())
+
+    def test_service_rejection_preserves_the_producer_error(self):
+        for service in ({'ok': False, 'error': 'GpuNativeClassNotWarmed'},
+                        {'accepted': False, 'error': 'GpuNativeClassNotWarmed', 'request_wall_ns': 1}):
+            with self.assertRaisesRegex(RuntimeError, '0000.*GpuNativeClassNotWarmed'):
+                resident.service_wall_ns('0000', service)
+        for wall in (None, 0, -1, True, 1.5):
+            with self.assertRaisesRegex(RuntimeError, 'no valid request_wall_ns'):
+                resident.service_wall_ns('0000', {'request_wall_ns': wall})
+        self.assertEqual(resident.service_wall_ns('0000', {'ok': True, 'request_wall_ns': 12}), 12)
+        self.assertEqual(resident.service_wall_ns('0000', {'accepted': True, 'request_wall_ns': 15}), 15)
+
     def test_parity_refuses_missing_extra_and_changed_proofs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

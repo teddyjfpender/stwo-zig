@@ -1,0 +1,38 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "observed_utc": "2026-11-08T01:08:14.878671+00:00",
+  "scope": "24628607 native admission fails PhaseB; verified shared canonical twiddle tower prototype under isolated LLVM build",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/native-live-11-246/receipt.json",
+      "sha256": "d4c1707e903ece1d615a1f4a420170c2629acd52d7f01872eb4b5405e7e55640",
+      "result": "FAIL exit1 beforeREADY,GpuNativeMemoryPlanPhaseB. Both actual logical persistent censuses857509485 words. Device0 declared capacity6615911661 words,class_cache857509485,main_resident1845842432,phaseA3390470403,phaseB5617560953,slab2x16777216,graph67108864,reserve268435456. No246 native proof yet. Pinned snapshot is accepted build25 code before report metadata correction."
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/twiddle-tower-1/host.log",
+      "sha256": "662d6da71967a355b74a10e124d1d3da0bee8281cd5979f560966ceb54e5b07f",
+      "result": "PASS2/2 filtered tests,including real canonical NTT suffix regression at logs3,5,7,8,9,10. Exact forward/inverse suffix equality,256-byte range alignment,shared layout/key across different large-height subsets,and corrupt-table refusal before mutation."
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/twiddle-tower-1/snapshot.json",
+      "sha256": "4a8e02309bce2c62b58bdd52dbf9735e421180d10561b821277c6bb581a6a2be",
+      "result": "Full copied CUDA integration source snapshot for isolated tower driver; named CPU/core/prover modules and pinned AOT library remain current main-source inputs. Host test and optimized build use own cache under owned run directory."
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/prune-0054-scratch.json",
+      "result": "Unlinked4 explicitly enumerated owned superseded driver cache files,467248760 bytes; latest cache/installed executables,sources,logs,proof data,frozen assets retained. Initial build1-lock attempt timed out without deleting anything; actual prune used free build3 lock while scratch gate was in CPU corpus."
+    }
+  ],
+  "changes": [
+    "Outer Staged image can share one canonical twiddle tower: actual arrays are checked for suffix equality before ranges overlap; small arrays retain separate256-byte-aligned ranges. v3 tower transport key shares identical maximum-height towers across differing large-height subsets; v2 default layout remains unchanged.",
+    "GPU-native packed-class install opts into tower layout before WholePlan construction/packing; install prints before/after logical twiddle words. This is pending GPU validation and residency measurement; no declared arena bound or safety cap is reduced."
+  ],
+  "pending": {
+    "main": "FROZEN: native gates28/29 use metadata-corrected pre-tower source. Gate28 unit phase,gate29 follows onlyPASS and is expected to encounter same observed246PhaseB issue. Do not sync tower edits to main yet.",
+    "scratch": "FROZEN: default26PASS,default27unit phase; no tower changes synced.",
+    "tower": "FROZEN independent source at /workspace/m3/runs/m8-gn-bind/twiddle-tower-1/module. Host2PASS; LLVM compiler904523 live at01:05:44UTC. Binary /workspace/m3/build/m8-gn-bind/twiddle-tower-1/driver. Native-live12-246-tower supervisor waits buildPASS,then runs2 full diagnostic requests,then frozen parity+2fresh receivers on success; failures retain all verdicts/inputs. Supervisor timeout2400s,GPU harness timeout850s.",
+    "runtime": "addon5 unchanged"
+  },
+  "claim_boundary": "26235156 native10 cold/warm proof artifacts match frozen32/32 and2 raw fresh CPU processes accept; strict wrapper report metadata correction is being gated.246 refuses admission. Shared-tower change is host-validated only,no measured GPU savings or qualified speedup. Full original requirements remain open."
+}

@@ -11,6 +11,24 @@ const ND = @import("native_device.zig");
 const G = @import("gpu_native.zig");
 const JP = @import("../joined_parameters.zig");
 
+test "class build: each binding gets its own target, weights and HC rows" {
+    const a = testing.allocator;
+    const Sem = @import("native_semantic.zig");
+    const logs = [_]u32{ 6, 8 };
+    const first: u32 = @intCast((try Sem.instanceOffset(&logs, 0)) / 8);
+    const second: u32 = @intCast((try Sem.instanceOffset(&logs, 1)) / 8);
+    var p = try NCB.patchSet(a, &.{
+        .{ .slots = &.{ JP.local, JP.weights, JP.target }, .base = 0, .binding_base = first },
+        .{ .slots = &.{ JP.local, JP.weights, JP.target }, .base = 24, .binding_base = second },
+    }, &.{ .{ .dst = 48, .first = first + 260, .felts = 12 }, .{ .dst = 144, .first = second + 260, .felts = 16 } });
+    defer p.deinit(a);
+    try testing.expectEqualSlices(u32, &.{ 0, first, first + 257, 0, second, second + 257 }, p.semantic.index[0..6]);
+    try testing.expect(second >= first + 260 + 12);
+    try p.check(Sem.words(&logs), 272);
+    try testing.expectEqual(first + 260, p.semantic.index[6]);
+    try testing.expectEqual(second + 260, p.semantic.index[18]);
+}
+
 test "class build: patch tables route every parameter slot to its device source" {
     const a = testing.allocator;
     // Role 0 at table offset 40: public (cpu_steps), shared (ram+2), semantic
@@ -34,6 +52,24 @@ test "class build: patch tables route every parameter slot to its device source"
     const mask = try NCB.maskOf(a, set);
     defer a.free(mask);
     try testing.expectEqualSlices(u32, &.{ 40, 48, 56, 200, 500, 508, 516 }, mask);
+}
+
+test "class build: role-local public slots with different values never alias" {
+    const a = testing.allocator;
+    var dst = [_]u32{ 0, 8 };
+    var index = [_]u32{ JP.calls, JP.calls };
+    var p = S2.Patch{ .dst = &dst, .index = &index };
+    var table: [16]u32 = @splat(0);
+    table[0] = 3;
+    table[8] = 19;
+    var values: std.ArrayListUnmanaged(u32) = .empty;
+    defer values.deinit(a);
+    try NCB.flattenPublic(a, &p, &table, &values);
+    try testing.expectEqualSlices(u32, &.{ 0, 1 }, &index);
+    try testing.expectEqual(@as(u32, 3), values.items[8 * index[0]]);
+    try testing.expectEqual(@as(u32, 19), values.items[8 * index[1]]);
+    try p.check(2, table.len);
+    try testing.expectError(error.NativeStage2PatchTable, p.check(1, table.len));
 }
 
 fn field(name: []const u8, class: bool, byte: u8) NCB.Field {

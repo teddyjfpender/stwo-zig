@@ -8,6 +8,22 @@ const S1 = @import("native_device_stage1.zig");
 const ND = @import("native_device.zig");
 const api = @import("api.zig");
 
+test "claim payload: heterogeneous segment classes share a capacity stride without padding their receipt" {
+    const exchange = G.Exchange{ .segments = 3, .claims_per_segment = 10, .capacity_claims = 16, .devices = 2 };
+    const first = try S1.claimPayloadSlot(exchange, 0, 4);
+    const second = try S1.claimPayloadSlot(exchange, 1, 10);
+    const full = try exchange.claims(0);
+    try testing.expectEqual(full.offset, first.offset);
+    try testing.expectEqual(full.flag, first.flag);
+    try testing.expectEqual(@as(usize, 32), first.words);
+    try testing.expectEqual(@as(usize, 80), second.words);
+    try testing.expectEqual(@as(usize, 128), second.offset - first.offset);
+    try testing.expect(first.offset + first.words <= second.offset);
+    try testing.expectError(error.GpuNativeExchangeClaimsShape, S1.claimPayloadSlot(exchange, 0, 11));
+    try testing.expectError(error.GpuNativeExchangeClaimsShape, S1.claimPayloadSlot(exchange, 0, 0));
+    try testing.expectError(error.GpuNativeExchangeSlot, S1.claimPayloadSlot(exchange, 3, 4));
+}
+
 test "resident layout: 64-word aligned regions in order, views bounded" {
     const l = S1.ResidentLayout.of(1000, 130, 65, 9 + 32 + 16);
     try testing.expectEqual(@as(usize, 0), l.main);
@@ -110,7 +126,7 @@ test "check spec: at most 8 zero words and 4 equal pairs of equal nonzero length
     var d = S1.CheckSpec{ .check = @intFromEnum(G.Check.binding_authority) };
     try testing.expectError(error.NativeStage1CheckShape, d.mustMatch(eight, &.{1})); // length mismatch
     const seventeen = [_]u32{0} ** 17;
-    try testing.expectError(error.NativeStage1CheckShape, d.mustMatch(.{ .ptr = &words, .words = 16 }, seventeen[0..16 + 1]));
+    try testing.expectError(error.NativeStage1CheckShape, d.mustMatch(.{ .ptr = &words, .words = 16 }, seventeen[0 .. 16 + 1]));
     try testing.expectError(error.NativeStage1CheckShape, d.mustEqual(eight, one));
     try testing.expectError(error.NativeStage1CheckShape, d.mustEqual(.{ .ptr = &words, .words = 0 }, .{ .ptr = &words, .words = 0 }));
     try testing.expectError(error.NativeStage1CheckShape, d.mustBeZero(.{ .ptr = &words, .words = 0 }));
@@ -157,6 +173,33 @@ test "registry protocol: misses fail closed, request words once, chunks in order
     r.seal();
     var plan: @import("native_gkr.zig").Plan = undefined;
     try testing.expectError(error.GpuNativeClassBuildOnRequestPath, r.register(.{ .key = key, .gkr = &plan, .instances = &.{}, .fixed_shapes = &.{}, .fixed_host = &.{}, .fixed_root = @splat(0), .main_shapes = &.{}, .beta = 2 }, 1));
+}
+
+test "registry: deferred stage1 construction precedes capture; request class is immutable" {
+    const a = testing.allocator;
+    var r = S1.Registry.init(a);
+    defer r.deinit();
+    const key: G.ClassKey = @splat(7);
+    const other: G.ClassKey = @splat(8);
+    var fake: S1.Class = undefined;
+    fake.spec.key = key;
+    try r.classes.put(a, key, &fake);
+    defer _ = r.classes.swapRemove(key);
+    try r.classes.put(a, other, &fake);
+    defer _ = r.classes.swapRemove(other);
+    var ctx: G.RequestContext = undefined;
+    ctx.native_classes = &.{key};
+    ctx.generation = 9;
+    const j = try r.deferred(&ctx, 0, 0);
+    try testing.expectError(error.NativeStage1JobTwice, r.deferred(&ctx, 0, 0));
+    try testing.expectError(error.GpuNativeSegmentOutOfRange, r.deferred(&ctx, 1, 0));
+    try testing.expect(r.requests.get(9 << 16).?.words == null);
+    const words = S1.RequestWords{ .seed = @splat(1), .prefix = @splat(2), .publics = &.{} };
+    try testing.expectError(error.GpuNativeClassKeyMismatch, r.setRequest(9, 0, other, words));
+    try r.setRequest(9, 0, key, words);
+    j.vtable.abort(j.ctx);
+    r.release(9);
+    try testing.expectEqual(@as(usize, 0), r.requests.count());
 }
 
 test "registry: one rows value maps to one class" {

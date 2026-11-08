@@ -538,17 +538,10 @@ pub fn clonePcs(a: std.mem.Allocator, self: *const Class) !NP.PcsJob {
 /// A per-job copy of a class commit plan: `stage` writes the staged buffers
 /// and the host-offset table, so concurrent jobs never share them.
 pub fn jobPlan(a: std.mem.Allocator, plan: *const C.CommitPlan) !C.CommitPlan {
-    var copy = plan.*;
-    copy.host_offsets = try a.dupe(usize, plan.host_offsets);
-    copy.twiddles = null;
-    copy.logs_device = null;
-    copy.host_staged = null;
-    copy.descriptors_device = null;
-    return copy;
+    return C.jobCopy(a, plan);
 }
 pub fn freeJobPlan(a: std.mem.Allocator, plan: *C.CommitPlan) void {
-    a.free(plan.host_offsets);
-    plan.* = undefined;
+    C.freeJobCopy(a, plan);
 }
 
 /// The stage-2 channel seed of a truth (host, per request, a few Blake2s):

@@ -57,7 +57,11 @@ class BasketTests(unittest.TestCase):
         self.assertEqual(hybrid['STWO_RV64_M8_OUTER_JOBS'], '1')
         self.assertEqual(hybrid['STWO_RV64_M8_NATIVE_JOBS'], '1')
         self.assertEqual(hybrid['STWO_RV64_M8_JOBS_LIBRARY'], '/a/libjobs.so')
-        self.assertTrue(all(k.startswith('STWO_RV64_M8_') for arm in bench.ARMS for k in bench.ARMS[arm]))
+        self.assertTrue(all(k.startswith(('STWO_RV64_M8_', 'STWO_RV64_M9_')) for arm in bench.ARMS for k in bench.ARMS[arm]))
+        native = bench.arm_environment('gpu-native', assets)
+        self.assertEqual(native['STWO_RV64_M8_OUTER_FS_LIBRARY'], '/a/libfs.so')
+        self.assertEqual(native['STWO_RV64_M8_GPU_NATIVE_REUSE'], '1')
+        self.assertEqual(native['STWO_RV64_M9_CLASS_PACKED_INGRESS'], '1')
         with self.assertRaises(ValueError):
             bench.arm_environment('fullstack', assets)
 
@@ -66,6 +70,13 @@ class BasketTests(unittest.TestCase):
         for bad in ('', 'default,default', 'nope'):
             with self.assertRaises(argparse.ArgumentTypeError):
                 bench.arms_type(bad)
+
+    def test_common_environment_is_explicit_and_conflicts_fail_closed(self):
+        flag = 'STWO_RV64_M8_TRUTH_SPLIT=1'
+        self.assertEqual(bench.extra_environment([flag, flag]), {'STWO_RV64_M8_TRUTH_SPLIT': '1'})
+        for bad in (['PATH=/tmp'], ['STWO_FLAG'], ['STWO_bad=1'], [flag, flag[:-1] + '0']):
+            with self.assertRaises(ValueError):
+                bench.extra_environment(bad)
 
 
 class ParsingTests(unittest.TestCase):
@@ -80,6 +91,18 @@ class ParsingTests(unittest.TestCase):
         self.assertEqual(len(parts), 2)
         self.assertIn(NODE, parts[0])
         self.assertEqual(parts[1][0], NODE2)
+
+    def test_nested_install_proofs_do_not_become_request_metrics(self):
+        text = '\n'.join(['GPU_RESIDENT_SERVICE ready init_ns=1 runtime=inner', NODE,
+                          'GPU_RESIDENT_BLOCK block=1 iteration=0 request_wall_ns=900',
+                          'GPU_RESIDENT_SERVICE ready init_ns=1000 runtime=m8-gpu-native',
+                          'actual-first', 'GPU_RESIDENT_BLOCK block=1 iteration=0 request_wall_ns=5',
+                          'actual-second', 'GPU_RESIDENT_BLOCK block=1 iteration=1 request_wall_ns=4'])
+        parts = bench.split_requests(text)
+        self.assertEqual(len(parts), 2)
+        self.assertEqual(parts[0][0], 'actual-first')
+        self.assertEqual(parts[1][0], 'actual-second')
+        self.assertNotIn(NODE, [line for part in parts for line in part])
 
     def test_job_metrics_count_only_job_lines(self):
         jobs = bench.job_metrics([NODE, NODE2, HOST, MEM, FIXED, NATIVE, EVENT])
@@ -109,6 +132,22 @@ class ParsingTests(unittest.TestCase):
         partial = bench.request_metrics(request(0, 30.0, 31.0), {'capture_ns': 1}, [])
         self.assertIsNone(partial['tail_s'])
         self.assertIsNone(partial['nodes'])
+
+    def test_native_receipt_keeps_driver_spans_separate_from_unknown_stage_partitions(self):
+        native = {'schema': 'rv64-m8-gpu-native-request/v1', 'receipt': {
+            'host_waits': 1, 'd2h': 2, 'd2h_bytes': 1234,
+            'device_gpu_us': [8_000_000, 9_000_000, 0, 0],
+            'device_enqueue_ns': [7_000_000_000, 8_000_000_000, 0, 0],
+            'device_gate_ns': [10_000_000, 20_000_000, 0, 0],
+            'device_memory_serializations': [3, 4, 0, 0]}}
+        row = bench.request_metrics(request(1, 10.0, 10.1), {'native_prove_ns': None}, [], native)
+        self.assertEqual(row['driver']['device_span_s'], [8.0, 9.0])
+        self.assertEqual(row['driver']['device_enqueue_s'], [7.0, 8.0])
+        self.assertEqual(row['driver']['memory_serializations'], [3, 4])
+        self.assertEqual(row['driver']['host_waits'], 1)
+        self.assertIsNone(row['native_window_s'])
+        self.assertIsNone(row['tail_s'])
+        self.assertEqual(row['jobs'], {})
 
     def test_profile_metrics_busy_and_per_node_counts(self):
         out = bench.profile_metrics({'kernel_busy_gpu_seconds': 10.0, 'any_busy_gpu_seconds': 12.0},

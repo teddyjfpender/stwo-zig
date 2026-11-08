@@ -85,7 +85,7 @@ const FakeJob = struct {
                 for (replica[claims.offset..][0..claims.words], 0..) |*x, i| x.* = @intCast(self.ordinal * 1000 + i);
                 try self.ctx.peer.publish(self.device, claims);
                 // The device's chi/LogUp partial, once per GPU per request.
-                if (!w.partial_done[self.ctx.generation % gens][self.device].swap(true, .acq_rel) and !(w.withhold_partial != null and w.withhold_partial.? == self.device)) {
+                if (ex.hasPartial(self.device) and !w.partial_done[self.ctx.generation % gens][self.device].swap(true, .acq_rel) and !(w.withhold_partial != null and w.withhold_partial.? == self.device)) {
                     const part = try ex.partial(self.device);
                     @memset(replica[part.offset..][0..8], 0x9a + self.device);
                     try self.ctx.peer.publish(self.device, part);
@@ -402,13 +402,16 @@ const Rig = struct {
     world: *World,
     driver: *R.Driver,
     fn init(world: *World) !Rig {
+        return initWithPartials(world, true);
+    }
+    fn initWithPartials(world: *World, partials: bool) !Rig {
         const a = testing.allocator;
         var ws: [2]*W.Worker = undefined;
         ws[0] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
         errdefer ws[0].destroy();
         ws[1] = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
         errdefer ws[1].destroy();
-        const drv = try R.Driver.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15, .stage_one_base_bytes = 512 });
+        const drv = try R.Driver.install(a, &F.ops, &F.peer, &ws, world.nativeFactory(), world.recursionFactory(), .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .exchange_partials = partials, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15, .stage_one_base_bytes = 512 });
         return .{ .workers = ws, .world = world, .driver = drv };
     }
     fn deinit(self: *Rig) void {
@@ -419,6 +422,19 @@ const Rig = struct {
 
 // 3 segments, 1 truth; leaves: {s0}, {s1}, {s2, t0}; folds (0,1) -> 3; root (3,2) -> 4.
 const topology = [_]D.RecursionNode{ .{ .segments = &.{0} }, .{ .segments = &.{1} }, .{ .segments = &.{2}, .truths = &.{0} }, .{ .children = &.{ 0, 1 } }, .{ .children = &.{ 3, 2 } } };
+
+test "D1: flat manifest needs no partials and still refuses an unset proof check" {
+    var world = World{ .a = testing.allocator };
+    var rig = try Rig.initWithPartials(&world, false);
+    defer rig.deinit();
+    var out = try rig.driver.serve(&request(801));
+    // Seal + root/claims per segment; no unproduced partial flags.
+    try testing.expectEqual(@as(u64, 7), out.receipt.peer_publishes);
+    out.deinit();
+    world.reset();
+    world.skip_check = .public_claims;
+    try testing.expectError(error.GpuNativeProofRejected, rig.driver.serve(&request(802)));
+}
 
 fn request(id: u64) R.Request {
     return .{ .id = id, .segment_rows = &.{ 1 << 10, 1 << 10, 1 << 9 }, .truths = 1, .recursion = &topology, .root = 4 };
@@ -1084,6 +1100,36 @@ const FakeSource = struct {
 
 fn serviceConfig() R.Config {
     return .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15, .stage_one_base_bytes = 512 };
+}
+
+test "driver: final admission uses class peaks updated by resource measurement" {
+    const Hooks = struct {
+        fn warm(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {
+            try World.nWarm(raw, cache);
+            cache.map.get(k_native).?.arena_peak_words = 1 << 19;
+        }
+        fn nativeResources(_: *anyopaque, _: *G.ClassCache, _: u32) anyerror!void {}
+        fn recursionResources(_: *anyopaque, cache: *G.ClassCache, _: u32) anyerror!void {
+            // Installation measured a smaller class than its initial estimate.
+            cache.map.get(k_native).?.arena_peak_words = 256;
+        }
+    };
+    const a = testing.allocator;
+    var world = World{ .a = a };
+    var native_vt = World.native_vt;
+    native_vt.warm = Hooks.warm;
+    native_vt.resources = Hooks.nativeResources;
+    var recursion_vt = World.rec_vt;
+    recursion_vt.resources = Hooks.recursionResources;
+    const worker = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer worker.destroy();
+    var config = serviceConfig();
+    config.capacity_words = &.{1 << 20};
+    config.prewarm_resources = true;
+    const driver = try R.Driver.install(a, &F.ops, &F.peer, &.{worker}, .{ .ctx = &world, .vtable = &native_vt }, .{ .ctx = &world, .vtable = &recursion_vt }, config);
+    defer driver.deinit();
+    try testing.expectEqual(@as(usize, 256), (try driver.classes.get(k_native)).arena_peak_words);
+    try testing.expect(driver.lanes[0].plan.phase_a_words < 1 << 19);
 }
 
 test "serve: install shapes every block from its warm capture; streamed requests pipeline two deep, one wait each" {

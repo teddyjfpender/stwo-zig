@@ -1,0 +1,74 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "observed_utc": "2026-11-07T21:31:44Z",
+  "scope": "Constructor and component progress; no completed GPU-native request or new end-to-end performance claim",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-21/gate.json",
+      "sha256": "cfabb862611d95832460503e33f6533e77aea14445c7acf3adf1b4a3a4c3071e",
+      "result": {
+        "status": "FAIL",
+        "source_commit": "7bbe1c5c0-bringup8",
+        "error": "unit-zig failed (1); see /workspace/m3/runs/m8-gn-bind/gate-21/unit-zig.log"
+      }
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/install-3/receipt.json",
+      "sha256": "5b76428d2309ef6745cf3d8109defaba0e7cfebb7d784c741eef93fde7bc6ee0",
+      "result": {
+        "schema": "rv64-native-install-probe/v1",
+        "scope": "Install only; STOP preposted, no GPU-native request or performance claim",
+        "exit_code": 1,
+        "wall_ns": 28230936412,
+        "ready": false,
+        "argv": [
+          "/workspace/m3/build/m8-gn-bind/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "combined-serve",
+          "/workspace/m3/runs/m8-gn-bind/install-3/manifest.json",
+          "/workspace/m3/runs/m8-gn-bind/install-3/spool"
+        ]
+      }
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/install-4/receipt.json",
+      "sha256": "0c4bdf032f516a5e63a3222201d4501eebe26cf3e791e22b18bc1133b51322e9",
+      "result": {
+        "schema": "rv64-native-install-probe/v1",
+        "scope": "Install only; STOP preposted, no GPU-native request or performance claim",
+        "exit_code": 1,
+        "wall_ns": 26778322977,
+        "ready": false,
+        "argv": [
+          "/workspace/m3/build/m8-gn-bind/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+          "combined-serve",
+          "/workspace/m3/runs/m8-gn-bind/install-4/manifest.json",
+          "/workspace/m3/runs/m8-gn-bind/install-4/spool"
+        ]
+      }
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/typecheck-6.done",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "result": "0\n"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/jobs-6.done",
+      "result": "0; full host jobs target PASS"
+    }
+  ],
+  "interpretation": {
+    "gate21": "Optimized driver/receiver builds passed; 1109 passed,15 skipped,1 sync-lint failure; proof gate was not run",
+    "lint_fix": "Install construction isolated behind executable-root interface; narrow runtime node adapter remains scanned; standalone lint passed all three tests without changing lint exemptions",
+    "install3": "GnNodeChildrenNotFound and diagnostic OuterDeviceEncodeMismatch; warm constructor now uses legacy native PCS recorder and device-derived outputs",
+    "install4": "OuterEncodeOutputsUnbound; fixed after observation by connecting GnCheck's output DeviceBuffer to the encoder before its enqueue",
+    "publication": "Canonical native bundle/tree/source-bounds/report metadata implemented; full semantic typecheck6 passed; live full-request validation pending",
+    "review_updates": "Applied receipt-only updates gn-node cb410ff73..03cb0a6a7 and gn-pack 533226abe..5823e729d; no runtime source delta",
+    "jobs6": "Full test-rv64-jobs target passed (exit 0), including publication metadata decoder and sync-lint regression; GPU-specific tests env-skipped"
+  },
+  "running_at_observation": {
+    "build": "/workspace/m3/runs/m8-gn-bind/build-13.log",
+    "next_if_build_pass": "/workspace/m3/runs/m8-gn-bind/install-5"
+  },
+  "claim_boundary": "All new code default-off, uncommitted and unqualified. Full objective remains incomplete."
+}

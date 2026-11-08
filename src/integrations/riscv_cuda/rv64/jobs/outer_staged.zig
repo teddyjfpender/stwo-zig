@@ -54,6 +54,39 @@ pub const Image = struct {
         at.* = std.mem.alignForward(u64, at.* + words, 64);
         return r;
     }
+
+    /// Canonical NTT trees at smaller heights are suffixes of one tower.
+    /// Verify the actual tables before sharing any storage. Small tables
+    /// keep separate aligned ranges; every range retains 256-byte alignment.
+    /// Commit the new layout only after every suffix comparison succeeds.
+    pub fn shareTwiddleTower(self: *Image, tables: [29]?Twiddles) !?u32 {
+        var maximum: ?u32 = null;
+        for (tables, 0..) |table, log| if (table != null) {
+            maximum = @intCast(log);
+        };
+        const log_max = maximum orelse return null;
+        const top = tables[log_max].?;
+        if (top.twiddles.len == 0 or top.itwiddles.len != top.twiddles.len) return error.InvalidOuterTwiddleTower;
+        var out = self.*;
+        out.words[@intFromEnum(Region.twiddles)] = 0;
+        const forward = out.take(.twiddles, top.twiddles.len);
+        const inverse = out.take(.twiddles, top.itwiddles.len);
+        for (tables, 0..) |table, log| if (table) |t| {
+            const n = t.twiddles.len;
+            if (n == 0 or n > top.twiddles.len or t.itwiddles.len != n) return error.InvalidOuterTwiddleTower;
+            if (n >= 64 or log == log_max) {
+                const start = top.twiddles.len - n;
+                if (start % 64 != 0 or !std.mem.eql(u32, t.twiddles, top.twiddles[start..]) or !std.mem.eql(u32, t.itwiddles, top.itwiddles[start..])) return error.InvalidOuterTwiddleTower;
+                out.twiddles[log] = .{ .region = .twiddles, .offset = forward.offset + start, .words = n };
+                out.itwiddles[log] = .{ .region = .twiddles, .offset = inverse.offset + start, .words = n };
+            } else {
+                out.twiddles[log] = out.take(.twiddles, n);
+                out.itwiddles[log] = out.take(.twiddles, n);
+            }
+        };
+        self.* = out;
+        return maximum;
+    }
 };
 
 pub const RunKind = enum { ordinary, narrow, chain };
@@ -129,7 +162,24 @@ pub const Statics = struct {
 /// free through the other. Ownership that moves from a job into a caller
 /// container (the decoded PCS proof -> om31 Produced) requires it.
 pub fn sameAllocator(x: std.mem.Allocator, y: std.mem.Allocator) bool {
-    return x.vtable == y.vtable and x.ptr == y.ptr;
+    if (x.vtable != y.vtable) return false;
+    // c_allocator is stateless and explicitly leaves its context undefined.
+    // Comparing that undefined pointer made real class-plan builds refuse.
+    if (x.vtable == std.heap.c_allocator.vtable) return true;
+    return x.ptr == y.ptr;
+}
+
+test "stateless C allocator identity does not inspect its undefined context" {
+    var x = std.heap.c_allocator;
+    var y = std.heap.c_allocator;
+    x.ptr = @ptrFromInt(1);
+    y.ptr = @ptrFromInt(2);
+    try std.testing.expect(sameAllocator(x, y));
+    x = std.testing.allocator;
+    y = std.testing.allocator;
+    x.ptr = @ptrFromInt(1);
+    y.ptr = @ptrFromInt(2);
+    try std.testing.expect(!sameAllocator(x, y));
 }
 
 pub const Staged = struct {
@@ -146,6 +196,8 @@ pub const Staged = struct {
     graph_key: [32]u8 = @splat(0),
     ordinal: u32,
     image: Image,
+    /// Install-only transport layout; circuit/proof authority is unchanged.
+    shared_twiddle_log: ?u32 = null,
     /// FIXED tree root (host authority) and the PCS sample points of this
     /// class at native_pcs.placeholderPoint() (`*const core.pcs.TreeVec([][]D.Point)`),
     /// for whole-node jobs; null for prefix-only staging.
@@ -165,8 +217,10 @@ pub const Staged = struct {
         return &self.statics.plan;
     }
     pub fn deinit(self: *Staged) void {
-        self.release(self.owner);
+        const release = self.release;
+        const owner = self.owner;
         self.* = undefined;
+        release(owner);
     }
     /// Persistent keys of the class and twiddle regions.
     pub fn classRegionKey(self: *const Staged) [32]u8 {
@@ -185,9 +239,23 @@ pub const Staged = struct {
         }
     }
     pub fn twiddleRegionKey(self: *const Staged) [32]u8 {
+        if (self.shared_twiddle_log) |maximum| {
+            var id: [30]u8 = @splat(0);
+            id[0] = @intCast(maximum + 1);
+            // Large-height subsets share identical tower bytes. Only the
+            // separately aligned small tables affect the remaining layout.
+            for (self.statics.tables, 0..) |table, log| if (table) |t| {
+                if (t.twiddles.len < 64) id[1 + log] = 1;
+            };
+            return regionKey("rv64/m8/outer-job/twiddles/v3-tower", &id, self.image.words[@intFromEnum(Region.twiddles)]);
+        }
         var logs: [29]u8 = undefined;
         for (&logs, self.statics.tables) |*l, t| l.* = @intFromBool(t != null);
         return regionKey("rv64/m8/outer-job/twiddles/v2", &logs, self.image.words[@intFromEnum(Region.twiddles)]);
+    }
+    pub fn shareTwiddleTower(self: *Staged) !void {
+        if (self.shared_twiddle_log != null) return;
+        self.shared_twiddle_log = try self.image.shareTwiddleTower(self.statics.tables);
     }
     fn regionKey(tag: []const u8, id: []const u8, words: u64) [32]u8 {
         var h = std.crypto.hash.sha2.Sha256.init(.{});

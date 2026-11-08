@@ -343,6 +343,13 @@ test "GPU: Stage-2 device checks equal the host checks (root_match, words_zero, 
             try NE.publicClaims(s, e.ctx(), try input.slice(self.claims_at, 32), 4, ramb, bi, bt, scratch, try out.slice(4, 1));
             const scratch2 = try e.alloc(NE.publicClaimsScratch(s, bi, bt));
             try NE.publicClaims(s, e.ctx(), try input.slice(self.bad_at, 32), 4, ramb, bi, bt, scratch2, try out.slice(5, 1));
+            // Empty boundary relations retain their declared claim index;
+            // zero cells imply a zero claim, rather than skipping the check.
+            const empty = NE.BoundaryInput{ .claim = 3, .tuples = try input.slice(self.tuples_at, 0), .cells = 0 };
+            const forged_empty = NE.BoundaryInput{ .claim = 1, .tuples = empty.tuples, .cells = 0 };
+            try NE.publicClaims(s, e.ctx(), try input.slice(self.claims_at, 32), 4, ramb, empty, null, scratch, try out.slice(6, 1));
+            try NE.publicClaims(s, e.ctx(), try input.slice(self.claims_at, 32), 4, ramb, null, empty, scratch, try out.slice(7, 1));
+            try NE.publicClaims(s, e.ctx(), try input.slice(self.claims_at, 32), 4, ramb, forged_empty, null, scratch, try out.slice(8, 1));
             try NE.patchFelts(s, e.ctx(), ramb, try input.slice(self.patch_at, 3), try input.slice(self.patch_at + 3, 3), try out.slice(16, 32));
             e.free(scratch2);
             e.free(scratch);
@@ -359,11 +366,14 @@ test "GPU: Stage-2 device checks equal the host checks (root_match, words_zero, 
     try std.testing.expectEqual(G.Verdict.reject(.composition_accept, 4), result[3]);
     try std.testing.expectEqual(@as(u32, 0), result[4]);
     try std.testing.expectEqual(G.Verdict.reject(.public_claims, 4), result[5]);
+    try std.testing.expectEqual(@as(u32, 0), result[6]);
+    try std.testing.expectEqual(@as(u32, 0), result[7]);
+    try std.testing.expectEqual(G.Verdict.reject(.public_claims, 4), result[8]);
     // patch: out[16..24) = ram[2] -> slot 16 - 16 = 0; out[16+0..] ... (dst relative to out slice at 16)
     try std.testing.expectEqualSlices(u32, &feltWords(ram[2]), result[32..40]);
     try std.testing.expectEqualSlices(u32, &feltWords(ram[0]), result[16..24]);
     try std.testing.expectEqualSlices(u32, &feltWords(ram[14]), result[24..32]);
-    std.debug.print("GPU_M8_NATIVE_CHECKS_PARITY root_match=1 words_zero=1 public_claims=1 patch=1 negatives=3 boundary_cells={}\n", .{n_init + n_term});
+    std.debug.print("GPU_M8_NATIVE_CHECKS_PARITY root_match=1 words_zero=1 public_claims=1 patch=1 negatives=4 empty_boundaries=1 boundary_cells={}\n", .{n_init + n_term});
 }
 
 /// Seal probe: staged [entries | replica copy 0 | replica copy 1]; the seal

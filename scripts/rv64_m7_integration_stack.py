@@ -138,6 +138,8 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
         argv += ['--process-budget-guard', assets['process_budget_guard']]
     if profile:
         argv.append('--nsys')
+        if preset['measurement'].get('nsys_root'):
+            argv += ['--nsys-root', preset['measurement']['nsys_root']]
     for key, value in sorted(arm_environment(preset, arm, assets).items()):
         argv += ['--env', f'{key}={value}']
     return argv, tag

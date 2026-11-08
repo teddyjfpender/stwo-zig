@@ -52,6 +52,7 @@ const K = @import("truth_class.zig");
 const T = @import("../truth_codegen.zig");
 const TO = @import("truth_oods.zig");
 const NE = @import("native_encode.zig");
+const LF = @import("native_leaf_wire.zig");
 
 const D = CPU.rv64_device_pcs;
 const WP = CPU.rv64_gkr_worker_protocol;
@@ -110,6 +111,7 @@ pub const Symbols = struct {
     oods: ?TO.Symbols = null,
     encode: ?NE.Symbols = null,
     merge: ?MergeFn = null,
+    leaf: ?LF.EncodeFn = null,
     pub fn load(base: *std.DynLib, addon: *std.DynLib) !Symbols {
         return .{
             .keccak = base.lookup(KeccakFn, "stwo_rv64_keccak_witness_on"),
@@ -131,6 +133,7 @@ pub const Symbols = struct {
             .oods = TO.Symbols.load(addon) catch null,
             .encode = NE.Symbols.load(addon) catch null,
             .merge = addon.lookup(MergeFn, "stwo_rv64_truth_verdict_merge_v1_on"),
+            .leaf = LF.load(addon) catch null,
         };
     }
 };
@@ -326,10 +329,15 @@ pub const Stage1 = struct {
     /// finish: the job-slab copies.
     root: [8]u32 = undefined,
     verdict: u32 = G.Verdict.unset,
+    /// GPU-native request: scratch stays on device; publication reads only
+    /// the external request slab. Piece harnesses retain their diagnostics.
+    request_slab_only: bool = false,
 
     pub fn init(self: *Stage1) !void {
+        if (self.request_slab_only and (self.root_out == null or self.publish == null or self.verdicts.truth_root == null)) return error.TruthRequestVerdictsMissing;
         if (self.compact.len != self.class.compactWords(self.calls) or self.calls == 0) return error.TruthCompactShape;
         self.main_plan = try K.jobPlan(self.a, &self.class.main_plan);
+        self.main_plan.require_warm = self.request_slab_only;
         self.plan_live = true;
         _ = try self.layout.add(.root, 0, 8);
         _ = try self.layout.add(.status, 0, 2); // [0] witness status, [1] own verdict
@@ -346,7 +354,9 @@ pub const Stage1 = struct {
         return h.finalResult();
     }
     pub fn footprint(self: *Stage1) api.Footprint {
-        return stage1Footprint(self.class, self.calls, self.layout.words);
+        var fp = stage1Footprint(self.class, self.calls, if (self.request_slab_only) 0 else self.layout.words);
+        if (self.request_slab_only) fp.device_words += self.layout.words;
+        return fp;
     }
     pub fn stage(self: *Stage1, s: *api.Stager) !void {
         const b = try s.alloc(self.compact.len);
@@ -358,6 +368,9 @@ pub const Stage1 = struct {
         try self.span.open(self.timing);
     }
     pub fn enqueue(self: *Stage1, e: *api.Enqueue) !void {
+        const saved = e.slab.*;
+        defer e.slab.* = saved;
+        if (self.request_slab_only) e.slab.* = .{ .device = try e.alloc(self.layout.words) };
         try e.slab.bind(&self.layout);
         try self.span.mark(self.timing, false, e.stream());
         const compact = self.staged_compact orelse return error.TruthJobNotStaged;
@@ -383,6 +396,7 @@ pub const Stage1 = struct {
     }
     pub fn finish(self: *Stage1, view: api.SlabView) !void {
         self.span.read(self.timing);
+        if (self.request_slab_only) return;
         @memcpy(&self.root, try Slab.read(view, .root, 0));
         const st = try Slab.read(view, .status, 0);
         if (self.verdicts.truth_root == null) {
@@ -402,7 +416,9 @@ pub fn stage1Footprint(class: *const K.Class, calls: u32, slab_words: usize) api
     const compact = class.compactWords(calls);
     const staged = std.mem.alignForward(usize, compact, g) + class.main_plan.stagedWords(0) + 4 * g;
     const work = std.mem.alignForward(usize, class.mainEvalWords(), g) + class.main_plan.deviceWords() + 2 * g + 256;
-    return .{ .device_words = staged + work, .staged_words = staged, .slab_words = slab_words, .pinned_words = compact + 64 * g };
+    // MAIN logs and addressed LDE descriptors scale with the column count;
+    // wide truth classes exceed the fixed small-metadata allowance alone.
+    return .{ .device_words = staged + work, .staged_words = staged, .slab_words = slab_words, .pinned_words = compact + class.main_plan.stagedWords(0) + 64 * g };
 }
 
 // ---------------------------------------------------------------------------
@@ -431,6 +447,8 @@ const Table = struct {
 };
 
 pub const Stage2 = struct {
+    leaf_program: ?*const LF.Program = null,
+    leaf_device: ?api.DeviceBuffer = null,
     a: std.mem.Allocator,
     class: *const K.Class,
     sym: *const Symbols,
@@ -463,6 +481,7 @@ pub const Stage2 = struct {
     /// Request-slab encoded region of this truth (length word + bytes);
     /// null = a job-slab field (finish copies the bytes: harnesses).
     encoded: ?api.DeviceBuffer = null,
+    request_slab_only: bool = false,
     // per-job plan copies
     fixed_plan: C.CommitPlan = undefined,
     main_plan: C.CommitPlan = undefined,
@@ -517,6 +536,10 @@ pub const Stage2 = struct {
     assemble_ns: u64 = 0,
 
     pub fn init(self: *Stage2) !void {
+        if (self.request_slab_only) {
+            if (self.encode != .device or self.encoded == null) return error.TruthRequestVerdictsMissing;
+            inline for (verdict_names) |name| if (@field(self.verdicts, name) == null) return error.TruthRequestVerdictsMissing;
+        }
         const c = self.class;
         if (self.compact.len != c.compactWords(self.calls) or self.calls == 0) return error.TruthCompactShape;
         // `.check` compares the device bytes it copies out of the job slab;
@@ -537,6 +560,8 @@ pub const Stage2 = struct {
         errdefer K.freeJobPlan(self.a, &self.main_plan);
         self.inter_plan = try K.jobPlan(self.a, &c.inter_plan);
         errdefer K.freeJobPlan(self.a, &self.inter_plan);
+        self.main_plan.require_warm = self.request_slab_only;
+        self.inter_plan.require_warm = self.request_slab_only;
         self.composition = c.composition;
         self.composition.table_device = null;
         self.composition.tw_device = null;
@@ -586,11 +611,18 @@ pub const Stage2 = struct {
         return h.finalResult();
     }
     pub fn footprint(self: *Stage2) api.Footprint {
-        return stage2Footprint(self.class, self.calls, self.layout.words, @intCast(self.pcs.outputWords()), @intCast(self.pcs.ingressWords()));
+        var fp = if (self.request_slab_only) stage2RequestFootprint(self.class, self.calls, @intCast(self.pcs.outputWords()), @intCast(self.pcs.ingressWords())) else stage2Footprint(self.class, self.calls, self.layout.words, @intCast(self.pcs.outputWords()), @intCast(self.pcs.ingressWords()));
+        if (self.request_slab_only) fp.device_words += self.layout.words;
+        return fp;
     }
 
     pub fn stage(self: *Stage2, s: *api.Stager) !void {
         const c = self.class;
+        if (self.leaf_program) |program| {
+            const p = try s.persistent(program.key(), program.words.len);
+            if (p.fresh) return error.NativeLeafProgramNotWarmed;
+            self.leaf_device = p.buffer;
+        }
         const t = self.table;
         const table = try s.pinned(t.words);
         try fillTable(c, &self.pcs, t, self.calls, self.first_id, table);
@@ -621,7 +653,11 @@ pub const Stage2 = struct {
         const fixed_inputs = try self.a.alloc(C.Input, c.fixed_host.len);
         defer self.a.free(fixed_inputs);
         for (fixed_inputs, c.fixed_host) |*i, h| i.* = .{ .host = h };
-        try self.fixed_tree.stage(s, fixed_inputs);
+        if (self.request_slab_only) {
+            const region = try s.persistent(c.fixed_key, self.fixed_tree.words());
+            if (region.fresh) return error.TruthClassNotWarmed;
+            self.fixed_tree.persistent = region;
+        } else try self.fixed_tree.stage(s, fixed_inputs);
         const inputs = try placeholders(self.a, @max(c.main_logs.len, c.inter_logs.len));
         defer self.a.free(inputs);
         try self.main_plan.stage(s, inputs[0..c.main_logs.len]);
@@ -632,9 +668,11 @@ pub const Stage2 = struct {
         if (self.encode != .host) {
             // Class-persistent per worker: uploaded by the first job of the class.
             const od = try s.persistent(c.oods.key(c.key), c.oods.words.len);
+            if (od.fresh and self.request_slab_only) return error.TruthClassNotWarmed;
             if (od.fresh) try s.upload(od.buffer, c.oods.words);
             self.oods_program = od.buffer;
             const ep = try s.persistent(encodeKey(c), c.encode.words.len);
+            if (ep.fresh and self.request_slab_only) return error.TruthClassNotWarmed;
             if (ep.fresh) try s.upload(ep.buffer, c.encode.words);
             self.encode_program = ep.buffer;
             try self.device_span.open(self.timing);
@@ -643,6 +681,9 @@ pub const Stage2 = struct {
     }
 
     pub fn enqueue(self: *Stage2, e: *api.Enqueue) !void {
+        const saved = e.slab.*;
+        defer e.slab.* = saved;
+        if (self.request_slab_only) e.slab.* = .{ .device = try e.alloc(self.layout.words) };
         const c = self.class;
         const sym = self.sym;
         const ctx = e.ctx();
@@ -786,6 +827,13 @@ pub const Stage2 = struct {
         try check(sym.pcs_status(ctx, 0, pcs_out.ptr, pcs_out.words, roots.ptr, &self.expect, pcs_verdict.ptr));
         trace("s2.checks", self.ordinal);
         if (self.encode != .host) try self.enqueueDevice(e, pcs_out, own);
+        if (self.leaf_program) |program| {
+            const region = self.encoded orelse return error.NativeLeafRegionBounds;
+            const leaf_device = self.leaf_device orelse return error.NativeLeafProgramNotWarmed;
+            const sources_: [6]?LF.Buffer = .{ null, null, .{ .ptr = digest.ptr, .words = digest.words }, null, .{ .ptr = claims.ptr, .words = claims.words }, .{ .ptr = pcs_out.ptr, .words = pcs_out.words } };
+            const verdict = self.verdicts.encode_bounds orelse return error.NativeLeafRegionBounds;
+            try LF.enqueue(sym.leaf orelse return error.MissingNativeLeafEncoder, sym.copy_d2d, ctx, program, .{ .ptr = leaf_device.ptr, .words = leaf_device.words }, sources_, .{ .ptr = region.ptr, .words = region.words }, verdict.ptr, @as(u32, @intFromEnum(G.Check.encode_bounds)) << 16);
+        }
         trace("s2.device_encode", self.ordinal);
         if (self.encode == .device) e.free(pcs_out);
         try self.span.mark(self.timing, true, e.stream());
@@ -868,6 +916,7 @@ pub const Stage2 = struct {
         self.span.read(self.timing);
         self.device_span.read(self.timing);
         self.oods_span.read(self.timing);
+        if (self.request_slab_only) return;
         @memcpy(&self.roots, try Slab.read(view, .root, 0));
         @memcpy(&self.alpha, try Slab.read(view, .opaque_words, 0));
         const st = try Slab.read(view, .status, 0);
@@ -1062,6 +1111,13 @@ pub fn stage2Footprint(c: *const K.Class, calls: u32, slab_words: usize, pcs_out
     const peak = @max(@max(@max(phase_witness, phase_interactions), phase_device), @max(@max(phase_inter, phase_comp), phase_pcs));
     return .{ .device_words = staged + peak + small, .staged_words = staged, .slab_words = slab_words, .pinned_words = pcs_ingress + c.composition.pinnedWords() + t.words + c.compactWords(calls) + c.fixed_words + 2 * (@as(usize, 1) << @intCast(c.inter_plan.eval_log)) + 64 * g };
 }
+/// Compact request inputs, tables, descriptors and PCS ingress only. FIXED,
+/// twiddles and the OODS/encode descriptors were uploaded by truth_warm.
+pub fn stage2RequestFootprint(c: *const K.Class, calls: u32, pcs_output: usize, pcs_ingress: usize) api.Footprint {
+    var fp = stage2Footprint(c, calls, 0, pcs_output, pcs_ingress);
+    fp.pinned_words = pcs_ingress + c.composition.table.len + tableOf(c).words + c.compactWords(calls) + 8 * (c.main_logs.len + c.inter_logs.len) + 2048;
+    return fp;
+}
 
 fn felt(words: []const u32) !O {
     if (words.len < 8) return error.InvalidFelt;
@@ -1093,6 +1149,58 @@ pub fn pcsExpect(pcs: *const NP.PcsJob) PcsExpect {
 // ---------------------------------------------------------------------------
 // Tests (host): contract additions and job wiring.
 // ---------------------------------------------------------------------------
+
+test "truth stage1: wide MAIN staging fits its declared pinned budget and rejects the old fixed allowance" {
+    const W = @import("worker.zig");
+    const Fake = @import("fake.zig");
+    const a = std.testing.allocator;
+    const shapes = [_]C.Shape{.{ .log_size = 3, .encoding = .evaluations }} ** 700;
+    var plan = try C.CommitPlan.init(a, &shapes, 2);
+    defer plan.deinit();
+    // This probe runs the real Stage1.stage path without witness/proof
+    // kernels. Only the class fields read by staging/footprint are needed.
+    var class: K.Class = undefined;
+    class.compact_words_per_call = 4;
+    class.main_plan = plan;
+    class.main_logs = plan.logs;
+    const compact = [_]u32{ 1, 2, 3, 4 };
+    const Probe = struct {
+        truth: Stage1,
+        budget: api.Footprint,
+        pub fn classKey(_: *@This()) [32]u8 {
+            return @splat(19);
+        }
+        pub fn footprint(self: *@This()) api.Footprint {
+            return self.budget;
+        }
+        pub fn stage(self: *@This(), s: *api.Stager) !void {
+            try self.truth.stage(s);
+        }
+        pub fn enqueue(_: *@This(), _: *api.Enqueue) !void {}
+        pub fn finish(_: *@This(), _: api.SlabView) !void {}
+        pub fn abort(_: *@This()) void {}
+    };
+    const Done = struct {
+        event: std.Thread.ResetEvent = .{},
+        result: anyerror!void = {},
+        fn call(raw: *anyopaque, c: api.Completion) void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.result = c.result;
+            self.event.set();
+        }
+    };
+    for ([_]bool{ true, false }) |old_budget| {
+        var fp = stage1Footprint(&class, 1, 0);
+        if (old_budget) fp.pinned_words = compact.len + 4096;
+        const worker = try W.Worker.create(a, &Fake.ops, .{ .device = 0, .arena_words = 1 << 18, .pinned_slot_words = fp.pinned_words, .plan_from_env = false });
+        defer worker.destroy();
+        var probe = Probe{ .truth = .{ .a = a, .class = &class, .sym = undefined, .ordinal = 0, .calls = 1, .first_id = 1, .compact = &compact, .main_plan = plan }, .budget = fp };
+        var done = Done{};
+        try worker.submit(api.Job.from(Probe, &probe), .{ .ctx = &done, .done = Done.call });
+        done.event.wait();
+        if (old_budget) try std.testing.expectError(error.JobFootprintExceedsPinned, done.result) else try done.result;
+    }
+}
 
 test "truth jobs type-check against the api" {
     _ = api.Job.from(Stage1, undefined);

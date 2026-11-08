@@ -163,7 +163,18 @@ pub const Service = struct {
             return err;
         };
         errdefer driver.deinit();
-        const ring: ?*C.Ring = if (ring_config.buffers != 0) try C.Ring.init(a, &ops.wait, ring_config.buffers, ring_config.words) else null;
+        var ring_buffers = ring_config.buffers;
+        if (ring_buffers != 0) {
+            if (ring_config.words == 0) return error.InvalidCaptureRing;
+            // A whole segment must fit before it can release its Stage1.
+            // Reserve one such segment per in-flight capture (two parities).
+            var largest: u64 = 0;
+            var classes = driver.classes.map.valueIterator();
+            while (classes.next()) |cl| largest = @max(largest, cl.*.capture_words);
+            const slots = try std.math.divCeil(u64, largest, ring_config.words);
+            ring_buffers = @max(ring_buffers, std.math.cast(usize, try std.math.mul(u64, slots, 2)) orelse return error.InvalidCaptureRing);
+        }
+        const ring: ?*C.Ring = if (ring_buffers != 0) try C.Ring.init(a, &ops.wait, ring_buffers, ring_config.words) else null;
         errdefer if (ring) |r| r.deinit();
         const s0 = try C.Stream.create(a, native, ring, sized.max_segments);
         errdefer s0.destroy();

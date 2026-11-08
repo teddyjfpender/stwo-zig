@@ -16,6 +16,12 @@ const CompRoles = @import("m8_native_composition_roles.zig");
 const NCB = @import("jobs/native_class_build.zig");
 const Items = CPU.rv64_gkr_cpu_components;
 
+/// Executable-root install hook. Legacy class construction never enters the
+/// job module dependency closure; native_node_class.zig is its runtime adapter.
+pub fn installRecursion(a: std.mem.Allocator, libs: *@import("jobs/ops.zig").Libraries, library: []const u8, manifest: []const u8, spool: []const u8) !@import("jobs/recursion_classes.zig").Classes {
+    return (try @import("native_recursion_install.zig").Owner.init(a, libs, library, manifest, spool)).interface();
+}
+
 /// Host composition artifacts (the resident composition context's
 /// `artifacts` table, which CompRoles.fromItemsWith reads) WITHOUT a GPU
 /// service: the same `joined_codegen.record` of every oracle descriptor that
@@ -48,9 +54,40 @@ pub const HostArtifacts = struct {
     }
 };
 
-
 pub fn of(context: *const RC.Context) NCB.Composition {
-    return .{ .ctx = context, .roles = roles, .parameter_slots = slots };
+    return .{ .ctx = context, .roles = roles, .parameter_slots = slots, .oods = buildOods };
+}
+fn buildOods(raw: *const anyopaque, a: std.mem.Allocator, plan: *const @import("jobs/native_composition.zig").Plan, sample_counts: []const []const u32, global_log: u32) anyerror![]u32 {
+    const NO = @import("jobs/native_encode_oods.zig");
+    const Gen = @import("joined_codegen.zig");
+    const Oracle = @import("joined_fixture_support.zig");
+    const context: *const RC.Context = @ptrCast(@alignCast(raw));
+    const artifacts = try a.alloc(Gen.Artifact, plan.roles.len);
+    defer a.free(artifacts);
+    var count: usize = 0;
+    defer for (artifacts[0..count]) |*artifact| artifact.deinit();
+    const ids = try a.alloc(u32, plan.roles.len);
+    defer a.free(ids);
+    const programs = try a.alloc(*const NO.Program, plan.roles.len);
+    defer a.free(programs);
+    for (plan.roles, programs) |role, *program| {
+        const id = role.spec.id;
+        if (id >= Oracle.count or id >= context.artifact_count) return error.NativeStage2OodsProgramMissing;
+        const index = for (ids[0..count], 0..) |known, i| {
+            if (known == id) break i;
+        } else blk: {
+            artifacts[count] = try Gen.record(a, Oracle.descriptors()[id]);
+            ids[count] = id;
+            count += 1;
+            break :blk count - 1;
+        };
+        const recorded = &artifacts[index].program;
+        if (!std.mem.eql(u8, &recorded.identity, &context.artifacts[id].program.identity)) return error.NativeStage2OodsAuthorityMismatch;
+        program.* = recorded;
+    }
+    // Cold symbolic recording is install-only. The returned descriptor owns
+    // its encoded nodes/constants; no temporary DAG enters request execution.
+    return NO.fromPlan(a, plan, programs, sample_counts, global_log);
 }
 fn roles(raw: *const anyopaque, a: std.mem.Allocator, items: []const Items.Item) anyerror!NCB.RolesOut {
     const context: *const RC.Context = @ptrCast(@alignCast(raw));

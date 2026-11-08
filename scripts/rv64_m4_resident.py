@@ -197,6 +197,20 @@ def service_manifest(plan):
             **({"recursion_device_fixed_candidate": True} if plan.get("recursion_device_fixed_candidate") else {})}
 
 
+def nsys_directory(run, root=None):
+    """Unique trace storage; keep the standard run/nsys path for consumers."""
+    link = run / "nsys"
+    if root is None:
+        link.mkdir()
+    else:
+        if link.exists() or link.is_symlink():
+            raise FileExistsError(link)
+        target = Path(root).expanduser().resolve() / run.parent.name / run.name
+        target.mkdir(parents=True, exist_ok=False)
+        link.symlink_to(target, target_is_directory=True)
+    return link
+
+
 def nsys_api_census(sqlite):
     """cuLibraryLoadData / cuLibraryUnload / cudaMallocFromPoolAsync / sync counts from an nsys sqlite."""
     import sqlite3
@@ -312,7 +326,7 @@ def serve(args):
     B.atomic_json(run / "plan.json", plan)
     argv = [plan["assets"]["driver"], "combined-batch", str(target / "manifest.json"), str(target / "batch")]
     if args.nsys:
-        (run / "nsys").mkdir()
+        nsys_directory(run, getattr(args, "nsys_root", None))
         # The eager GPU observer belongs in the prover, not in Nsight's
         # launcher/probe helpers. Nsight injects this environment into the app.
         preload = ["--env-var", "LD_PRELOAD=" + environment["LD_PRELOAD"]] if environment.get("LD_PRELOAD") else []
@@ -598,6 +612,16 @@ def loaded_native_runtime(pid, expected):
             'exactly_one_selected_native_runtime': True, 'checked_utc_ns': time.time_ns()}
 
 
+def service_wall_ns(name, service):
+    """Refuse failed/incomplete requests before interpreting timing markers."""
+    if service.get("ok") is False or service.get("accepted") is False or service.get("error"):
+        raise RuntimeError(f"service request {name} failed: {service.get('error') or service!r}")
+    wall = service.get("request_wall_ns")
+    if type(wall) is not int or wall <= 0:
+        raise RuntimeError(f"service request {name} has no valid request_wall_ns: {service!r}")
+    return wall
+
+
 def daemon(args):
     """True resident service: start `combined-serve`, wait READY, submit requests one at a time
     through the spool, then STOP.  Service start (process + CUDA contexts + 686-library load +
@@ -642,7 +666,7 @@ def daemon(args):
     B.atomic_json(run / "plan.json", plan)
     argv = [plan["assets"]["driver"], "combined-serve", str(run / "manifest.json"), str(spool)]
     if args.nsys:
-        (run / "nsys").mkdir()
+        nsys_directory(run, getattr(args, "nsys_root", None))
         # The eager GPU observer belongs in the prover, not in Nsight's
         # launcher/probe helpers. Nsight injects this environment into the app.
         preload = ["--env-var", "LD_PRELOAD=" + environment["LD_PRELOAD"]] if environment.get("LD_PRELOAD") else []
@@ -770,13 +794,14 @@ def daemon(args):
     requests = []
     for ordinal, item in enumerate(timeline):
         block = item["block"]
+        request_wall_ns = service_wall_ns(item["name"], item["service"])
         proof = spool / "out" / item["name"] / str(block) / "proof"
         entry = {"block": block, "trial": ordinal // len(args.blocks), "ordinal": ordinal, "proof": str(proof),
-                 "client_latency_ns": item["client_latency_ns"], "utc_window_ns": item["utc_window_ns"], "marker": {"request_wall_ns": item["service"]["request_wall_ns"]},
+                 "client_latency_ns": item["client_latency_ns"], "utc_window_ns": item["utc_window_ns"], "marker": {"request_wall_ns": request_wall_ns},
                  "queue_ns": item["service"].get("queue_ns"),
                  "cpu_resource_before": item.get("cpu_resource_before"), "cpu_resource_after": item.get("cpu_resource_after"),
                  "cpu_resource_delta": cgroup_cpu_delta(item["cpu_resource_before"], item["cpu_resource_after"]) if item.get("cpu_resource_before") else None}
-        stages, report, combined = P.stage_breakdown(proof, {0: item["service"]["request_wall_ns"]})
+        stages, report, combined = P.stage_breakdown(proof, {0: request_wall_ns})
         entry["stages"] = stages
         entry["setup_breakdown"] = combined.get("setup_breakdown")
         entry["output_matches_pin"] = bytes(report.get("output", [])).hex() == next(j for j in plan["jobs"] if j["block"] == block)["expected_output"]
@@ -1041,6 +1066,7 @@ def main():
     s.add_argument("--library")
     s.add_argument("--receiver")
     s.add_argument("--nsys", action="store_true")
+    s.add_argument("--nsys-root", type=Path, help="raw trace filesystem; run/nsys links to a unique stream/run directory there")
     s.add_argument("--receive", choices=("all", "first", "none"), default="first")
     s.add_argument("--receiver-workers", type=int, default=16)
     s.add_argument("--no-class-store", action="store_true", help="do not persist fold-class templates in the store")

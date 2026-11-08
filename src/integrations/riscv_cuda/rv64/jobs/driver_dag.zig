@@ -242,7 +242,9 @@ pub fn build(a: std.mem.Allocator, shape: Shape) !Dag {
         truth2[t] = at;
         edges[e] = seal;
         edges[e + 1] = truth[t];
-        nodes[at] = .{ .kind = .truth2, .ordinal = @intCast(t), .proof = .{ .kind = .truth, .ordinal = @intCast(t) }, .deps = edges[e..][0..2], .cost = shape.truths[t].cost, .rank = 3 };
+        // Native Stage2s are ready after the seal. Run them first so truth
+        // completion can reclaim this GPU's resident MAIN region.
+        nodes[at] = .{ .kind = .truth2, .ordinal = @intCast(t), .proof = .{ .kind = .truth, .ordinal = @intCast(t) }, .deps = edges[e..][0..2], .cost = shape.truths[t].cost, .rank = 4 };
         e += 2;
         at += 1;
     }
@@ -535,7 +537,6 @@ pub const CarryPlan = struct {
         }
         return self.append(node);
     }
-
 };
 
 const testing = std.testing;
@@ -697,4 +698,23 @@ test "carry topology reproduces the D2 golden recursion names (26235156: 4+7 lea
     try testing.expectEqual(@as(usize, 21), two.nodes.len);
     try testing.expectEqual(two.root + 1, @as(u32, @intCast(two.nodes.len)));
     try testing.expectError(error.InvalidRecursiveFoldArity, Topology.carry(testing.allocator, 4, 7, 5));
+}
+
+test "recursion including native leaves runs after every Stage2 in all truth modes" {
+    const a = testing.allocator;
+    var topology = try Topology.carry(a, 7, 2, 4);
+    defer topology.deinit();
+    for (0..3) |mode| {
+        var dag = try build(a, .{ .devices = 2, .segments = &(.{Segment{}} ** 7), .truths = &(.{Truth{}} ** 2), .truth_after_seal = mode == 1, .truth_two_stage = mode == 2, .recursion = topology.nodes, .root = topology.root });
+        defer dag.deinit();
+        var n_stage2: usize = 0;
+        for (dag.order) |id| {
+            const node = dag.nodes[id];
+            if (node.kind == .stage2) n_stage2 += 1;
+            if (node.kind == .node) {
+                try testing.expectEqual(@as(usize, 7), n_stage2);
+                try testing.expect(node.phase_b);
+            }
+        }
+    }
 }

@@ -41,6 +41,7 @@ const NP = @import("native_pcs.zig");
 const NComp = @import("native_composition.zig");
 const NO = @import("native_encode_oods.zig");
 const Seed = @import("outer_seed_device.zig");
+const LF = @import("native_leaf_wire.zig");
 const Gl = @import("native_global.zig");
 const HJ = @import("native_hybrid_jobs.zig");
 const TF = @import("truth_factory.zig");
@@ -59,6 +60,17 @@ pub const Fallback = struct {
     /// Artifact writers (default: `writeNative` / `writeRecursion` below).
     native_publish: bool = true,
     recursion_publish: bool = true,
+};
+pub const InputsHooks = struct {
+    ctx: *anyopaque,
+    begin: *const fn (*anyopaque, u64, u64, u64) anyerror!void,
+    planned: *const fn (*anyopaque, *const G.RequestContext) anyerror!void,
+    captured: *const fn (*anyopaque, *const G.RequestContext, G.CaptureEnd) anyerror!void,
+    ended: *const fn (*anyopaque, u64) void,
+    pinned: ?*const fn (*anyopaque) anyerror!usize = null,
+    installed: ?*const fn (*anyopaque) anyerror!void = null,
+    warm: ?*const fn (*anyopaque, *G.ClassCache) anyerror!void = null,
+    publish: ?*const fn (*anyopaque, *const G.RequestContext, G.Publication) anyerror!void = null,
 };
 
 pub const Options = struct {
@@ -96,6 +108,9 @@ pub const Binding = struct {
     native: ND.Native = .{},
     recursion: OD.Recursion,
     fallback: Fallback = .{},
+    inputs_hooks: ?InputsHooks = null,
+    native_resources_ready: bool = false,
+    recursion_resources_ready: bool = false,
     resolution: Resolution = .{},
     /// The composed vtables (copies of the streams' entries + fallbacks).
     native_vt: G.NativeFactory.VTable = undefined,
@@ -126,6 +141,7 @@ pub const Binding = struct {
                 .global = try Gl.Symbols.load(&libs.base),
                 // gn-s2: Check.oods_constraint kernel (an older addon leaves the word unset).
                 .oods = NO.Symbols.load(&libs.addon) catch null,
+                .leaf = LF.load(&libs.addon) catch null,
             },
             .truth_sym = if (options.truths) try TJ.Symbols.load(&libs.base, &libs.addon) else null,
             .events = try Events.load(&libs.base),
@@ -142,7 +158,7 @@ pub const Binding = struct {
         self.registry.devices = @intCast(workers.len);
         self.registry.timing = &self.timing;
         self.stage2 = .{ .a = a, .sym = &self.s2_sym, .identity = options.identity, .seal_device = options.seal_device };
-        if (self.truth_sym) |*ts| self.truth = .{ .a = a, .sym = ts };
+        if (self.truth_sym) |*ts| self.truth = .{ .a = a, .sym = ts, .workers = workers };
         self.native = .{ .stage1_hooks = self.registry.hooks(), .stage2_hooks = self.stage2.hooks() };
         self.compose();
         return self;
@@ -170,6 +186,15 @@ pub const Binding = struct {
         self.compose();
     }
 
+    pub fn bindCapture(self: *Binding, hooks: ND.CaptureHooks) void {
+        self.native.capture_hooks = hooks;
+        self.compose();
+    }
+    pub fn bindInputs(self: *Binding, hooks: InputsHooks) void {
+        self.inputs_hooks = hooks;
+        self.compose();
+    }
+
     pub fn deinit(self: *Binding) void {
         if (self.truth) |*t| t.deinit();
         self.stage2.deinit();
@@ -184,7 +209,12 @@ pub const Binding = struct {
         const nv = self.inner_native.vtable;
         const rv = self.inner_recursion.vtable;
         var r = Resolution{};
-        self.native_vt = .{ .warm = nWarm, .installed = nInstalled, .class_of = nClassOf, .stage1 = nStage1, .stage2 = nStage2, .seal = nSeal, .chunk = nChunk };
+        self.native_vt = .{ .warm = nWarm, .resources = nResources, .installed = nInstalled, .class_of = nClassOf, .stage1 = nStage1, .stage2 = nStage2, .seal = nSeal, .chunk = nChunk };
+        if (self.inputs_hooks != null) {
+            self.native_vt.begin_request = nBegin;
+            self.native_vt.planned = nPlanned;
+            self.native_vt.batch_pinned_words = nPinned;
+        }
         if (nv.class_of_block != null) self.native_vt.class_of_block = nClassOfBlock;
         // native_device.Native always exposes `shape` (unbound it fails with
         // GpuNativeNativeShapeHookMissing): the stream's hook counts only
@@ -200,7 +230,7 @@ pub const Binding = struct {
             self.native_vt.pack = nPack;
             r.native_pack = .stream;
         }
-        if (nv.captured != null) {
+        if (nv.captured != null or self.inputs_hooks != null) {
             self.native_vt.captured = nCaptured;
             r.native_captured = .stream;
         }
@@ -211,7 +241,7 @@ pub const Binding = struct {
             self.native_vt.publish = nPublish;
             r.native_publish = .fallback;
         }
-        self.recursion_vt = .{ .warm = rWarm, .installed = rInstalled, .class_of = rClassOf, .truth = rTruth, .node = rNode };
+        self.recursion_vt = .{ .warm = rWarm, .resources = rResources, .installed = rInstalled, .class_of = rClassOf, .truth = rTruth, .node = rNode };
         if (self.truth != null) {
             self.recursion_vt.truth_stage2 = rTruth2;
             r.truth = .stream;
@@ -255,6 +285,7 @@ pub const Binding = struct {
         self.recursion.end(request);
         self.stage2.endRequest(request);
         if (self.truth) |*t| t.end(request) catch {};
+        if (self.inputs_hooks) |h| h.ended(h.ctx, request);
     }
 
     /// Install receipt: the Stage-1 arena footprint terms of every
@@ -292,15 +323,40 @@ pub const Binding = struct {
     }
 
     fn nWarm(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {
-        const n = of(raw).inner_native;
+        const self = of(raw);
+        const n = self.inner_native;
         try n.vtable.warm(n.ctx, cache);
         // Stage-2 classes (ClassFraming per segment class) registered by the
         // shape hook; an empty registry warms nothing.
-        try of(raw).stage2.warm(cache);
+        try self.stage2.warm(cache);
+        var reuse_frees = self.registry.workers.len != 0;
+        for (self.registry.workers) |worker| reuse_frees = reuse_frees and worker.config.reuse_frees;
+        for (self.registry.classes.values()) |cl| {
+            const pool = self.stage2.classes.get(S2.framingKey(cl.spec.key)) orelse return error.GpuNativeClassNotWarmed;
+            for (pool.instances.items) |f| {
+                f.reuse_frees = reuse_frees;
+                if (f.semantic_words != cl.resident.semantic_words or f.fixed_words != cl.fixed.coefficient_cells) return error.NativeStage2ClassConflict;
+                try f.adoptResidentColumns(&cl.fixed, &cl.main);
+                f.fixed_region_words = cl.fixedRegionWords();
+                f.resident_handoff = .{ .checkpoint = cl.resident.checkpoint, .binding = cl.resident.binding, .semantic = cl.resident.semantic, .section = cl.resident.section, .section_words = cl.resident.section_words };
+            }
+            const entry = cache.map.get(cl.spec.key) orelse return error.GpuNativeClassNotWarmed;
+            const f = pool.instances.items[0];
+            entry.max_encoded_bytes = @max(entry.max_encoded_bytes, f.program.max_encoded_bytes + 4 * f.leaf_suffix_words);
+        }
     }
     fn nInstalled(raw: *anyopaque, cache: *G.ClassCache, info: *const G.Installed) anyerror!void {
-        const n = of(raw).inner_native;
+        const self = of(raw);
+        if (self.native_resources_ready) return;
+        const n = self.inner_native;
         if (n.vtable.installed) |h| try h(n.ctx, cache, info);
+        try self.stage2.warmDevices(self.registry.workers);
+        self.native_resources_ready = true;
+    }
+    fn nResources(raw: *anyopaque, cache: *G.ClassCache, devices: u32) anyerror!void {
+        // Current native installed hook only warms constants; no graph or
+        // resource here contains final arena / main_resident addresses.
+        return nInstalled(raw, cache, &.{ .devices = devices });
     }
     fn nClassOf(raw: *anyopaque, segment: u32, rows: u64) anyerror!G.ClassKey {
         const n = of(raw).inner_native;
@@ -340,10 +396,25 @@ pub const Binding = struct {
         return n.vtable.pack.?(n.ctx, ctx, cs, w);
     }
     fn nCaptured(raw: *anyopaque, ctx: *const G.RequestContext, ce: G.CaptureEnd) anyerror!void {
-        const n = of(raw).inner_native;
-        return n.vtable.captured.?(n.ctx, ctx, ce);
+        const self = of(raw);
+        const n = self.inner_native;
+        if (n.vtable.captured) |h| try h(n.ctx, ctx, ce);
+        if (self.inputs_hooks) |h| try h.captured(h.ctx, ctx, ce);
+    }
+    fn nBegin(raw: *anyopaque, block: u64, request: u64, generation: u64) anyerror!void {
+        const h = of(raw).inputs_hooks.?;
+        return h.begin(h.ctx, block, request, generation);
+    }
+    fn nPlanned(raw: *anyopaque, ctx: *const G.RequestContext) anyerror!void {
+        const h = of(raw).inputs_hooks.?;
+        return h.planned(h.ctx, ctx);
+    }
+    fn nPinned(raw: *anyopaque) anyerror!usize {
+        const h = of(raw).inputs_hooks.?;
+        return if (h.pinned) |p| p(h.ctx) else 0;
     }
     fn nPublish(raw: *anyopaque, ctx: *const G.RequestContext, p: G.Publication) anyerror!void {
+        if (of(raw).inputs_hooks) |h| if (h.publish) |f| return f(h.ctx, ctx, p);
         const n = of(raw).inner_native;
         if (n.vtable.publish) |h| return h(n.ctx, ctx, p);
         return writeNative(p);
@@ -354,10 +425,22 @@ pub const Binding = struct {
         const r = self.inner_recursion;
         try r.vtable.warm(r.ctx, cache);
         if (self.truth) |*t| try t.warm(cache);
+        if (self.inputs_hooks) |h| if (h.warm) |f| try f(h.ctx, cache);
     }
     fn rInstalled(raw: *anyopaque, cache: *G.ClassCache, info: *const G.Installed) anyerror!void {
-        const r = of(raw).inner_recursion;
+        const self = of(raw);
+        if (self.recursion_resources_ready) return;
+        const r = self.inner_recursion;
+        if (self.truth) |*t| try t.installed();
+        if (self.inputs_hooks) |h| if (h.installed) |f| try f(h.ctx);
         if (r.vtable.installed) |h| try h(r.ctx, cache, info);
+        self.recursion_resources_ready = true;
+    }
+    fn rResources(raw: *anyopaque, cache: *G.ClassCache, devices: u32) anyerror!void {
+        // Node graphs remain unqualified; this hook stages immutable
+        // programs, FIXED roots and geometry without capturing an arena.
+        try rInstalled(raw, cache, &.{ .devices = devices });
+        if (of(raw).truth) |*truth| try truth.measureWarmPeaks(cache);
     }
     fn rClassOf(raw: *anyopaque, id: G.ProofId, children: []const G.ClassKey) anyerror!G.ClassKey {
         const self = of(raw);
@@ -397,9 +480,9 @@ pub const Binding = struct {
         const self = of(raw);
         const r = self.inner_recursion;
         if (r.vtable.publish) |h| return h(r.ctx, ctx, p);
+        if (self.inputs_hooks) |h| if (h.publish != null) return writeRecursionParts(p, self.topology, false);
         return writeRecursion(p, self.topology);
     }
-
 };
 
 // ---------------------------------------------------------------------------
@@ -439,10 +522,13 @@ pub fn leafName(buf: []u8, topology: *const D.Topology, id: u32) ![]const u8 {
 }
 
 pub fn writeRecursion(p: G.Publication, topology: ?*const D.Topology) !void {
+    return writeRecursionParts(p, topology, true);
+}
+fn writeRecursionParts(p: G.Publication, topology: ?*const D.Topology, write_truths: bool) !void {
     var buf: [96]u8 = undefined;
     var made = false;
     for (p.proofs) |pp| switch (pp.id.kind) {
-        .truth => try writeFile(p.dir, try std.fmt.bufPrint(&buf, "truth-{d}.bin", .{pp.id.ordinal}), pp.bytes),
+        .truth => if (write_truths) try writeFile(p.dir, try std.fmt.bufPrint(&buf, "truth-{d}.bin", .{pp.id.ordinal}), pp.bytes),
         .leaf, .fold, .root => {
             if (!made) {
                 try p.dir.makePath("recursion-om31");

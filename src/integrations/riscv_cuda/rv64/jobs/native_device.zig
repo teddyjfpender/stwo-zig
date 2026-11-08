@@ -48,6 +48,12 @@ pub const ShapeHooks = struct {
     class_of: *const fn (*anyopaque, block: ?u64, segment: u32, rows: u64) anyerror!G.ClassKey,
 };
 
+pub const CaptureHooks = struct {
+    ctx: *anyopaque,
+    pack: *const fn (*anyopaque, *const G.RequestContext, G.CapturedSegment, G.ChunkWriter) anyerror!u64,
+    captured: *const fn (*anyopaque, *const G.RequestContext, G.CaptureEnd) anyerror!void,
+};
+
 pub const Native = struct {
     /// Stage-1 registry hooks; null = not bound (fails closed).
     stage1_hooks: ?Stage1Hooks = null,
@@ -58,8 +64,15 @@ pub const Native = struct {
 
     /// Stage-2 / seal factory (n-stage2); null = those entries fail closed.
     stage2_hooks: ?Stage2Hooks = null,
+    capture_hooks: ?CaptureHooks = null,
+    resolved: G.NativeFactory.VTable = undefined,
     pub fn factory(self: *Native) G.NativeFactory {
-        return .{ .ctx = self, .vtable = &vtable };
+        self.resolved = vtable;
+        if (self.capture_hooks != null) {
+            self.resolved.pack = pack;
+            self.resolved.captured = captured;
+        }
+        return .{ .ctx = self, .vtable = &self.resolved };
     }
     const vtable = G.NativeFactory.VTable{ .warm = warm, .installed = installed, .class_of = classOf, .stage1 = stage1, .stage2 = stage2, .seal = seal, .chunk = chunk, .shape = shape, .class_of_block = classOfBlock };
     fn hooks(raw: *anyopaque) !Stage1Hooks {
@@ -107,6 +120,16 @@ pub const Native = struct {
     fn chunk(raw: *anyopaque, ctx: *const G.RequestContext, c: G.TraceChunk, _: u32) anyerror!void {
         const h = try hooks(raw);
         return h.chunk(h.ctx, ctx, c);
+    }
+    fn pack(raw: *anyopaque, ctx: *const G.RequestContext, cs: G.CapturedSegment, writer: G.ChunkWriter) anyerror!u64 {
+        const self: *Native = @ptrCast(@alignCast(raw));
+        const h = self.capture_hooks orelse return error.GpuNativeCaptureNoPacker;
+        return h.pack(h.ctx, ctx, cs, writer);
+    }
+    fn captured(raw: *anyopaque, ctx: *const G.RequestContext, ce: G.CaptureEnd) anyerror!void {
+        const self: *Native = @ptrCast(@alignCast(raw));
+        const h = self.capture_hooks orelse return error.GpuNativeCaptureNoPacker;
+        return h.captured(h.ctx, ctx, ce);
     }
 };
 

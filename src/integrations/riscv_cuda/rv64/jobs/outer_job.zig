@@ -26,6 +26,7 @@ const TC = @import("outer_trace_commit.zig");
 const Env = @import("outer_env.zig");
 const CP = @import("outer_class_plan.zig");
 const Checks = @import("outer_checks.zig");
+const Packed = @import("outer_packed_class.zig");
 
 /// Slab field indices (`Slab.Kind.opaque_words`): the outer section, the
 /// native PCS result image and the OODS points (native_pcs.zig).
@@ -67,8 +68,9 @@ pub const Timing = K.Timing;
 
 pub const Report = struct {
     outcome: Graphs.Outcome = .direct,
-    /// Host-API launches of this node (1 when replayed as a graph).
+    /// Host launch calls, including graph recording and fallback attempts.
     launches: u32 = 0,
+    recording_launches: u32 = 0,
     /// Launches the body issued when recorded (graph kernel nodes, if captured).
     body_launches: u32 = 0,
     kernel_nodes: u64 = 0,
@@ -153,6 +155,14 @@ pub const OuterNodeJob = struct {
     /// every fold class the service sees; each node stages its class region
     /// inside its own arena window instead.
     persistent_classes: bool = true,
+    /// Native service requests may only bind class resources warmed at install.
+    require_warm: bool = false,
+    packed_class: ?*const Packed.Class = null,
+    packed_launch: ?Packed.Launch = null,
+    packed_program: api.DeviceBuffer = undefined,
+    packed_output: api.DeviceBuffer = undefined,
+    packed_scratch: api.DeviceBuffer = undefined,
+    packed_verdict: ?api.DeviceBuffer = null,
     /// See FixedHandoff (whole nodes only).
     fixed_handoff: ?FixedHandoff = null,
     /// PCS proof decode left to the caller (decodeProof after the completion),
@@ -250,6 +260,12 @@ pub const OuterNodeJob = struct {
     /// the expected outputs and circuit constants).
     fn initChecks(self: *OuterNodeJob) !void {
         if (!try Checks.selected()) return;
+        return self.requireDeviceChecks();
+    }
+    /// Native node jobs always validate the device-derived outputs and lookup
+    /// relation, independently of the legacy diagnostic environment switch.
+    pub fn requireDeviceChecks(self: *OuterNodeJob) !void {
+        if (self.device_checks) return;
         if (self.whole.?.checks == null) return error.MissingOuterCheckKernel;
         if (self.staged.lookup == null or self.staged.image.expected.words != self.staged.expected.len) return error.OuterCheckInputsNotStaged;
         self.device_checks = true;
@@ -375,7 +391,9 @@ pub const OuterNodeJob = struct {
         const node = self.staged.image.words[@intFromEnum(St.Region.node)];
         const class = self.staged.image.words[@intFromEnum(St.Region.class)];
         var staged: u64 = g(node);
-        if (!self.persistentClass()) staged += g(class);
+        if (self.packed_class) |compressed| {
+            staged += g(compressed.outputWords()) + g(12);
+        } else if (!self.persistentClass()) staged += g(class);
         var pinned_extra: u64 = 0;
         if (self.staged.statics.composition) |*cs| if (self.whole != null) {
             held += g(cs.coefficientWords()) + g(@as(u64, cs.param_total) * 8);
@@ -398,10 +416,10 @@ pub const OuterNodeJob = struct {
                 // place) unless worker-persistent (class region or the FIXED
                 // precommit handoff); commit scratch as a phase either way (a
                 // fresh persistent region is still committed in the node).
-                if (!self.persistentClass() and self.fixed_handoff == null) staged += g(fp.coefficient_words);
+                if (self.packed_class == null and !self.persistentClass() and self.fixed_handoff == null) staged += g(fp.coefficient_words);
                 const fixed_commit: u64 = if (self.streams) |*st| (if (st.fixed) |*f| f.scratchWords() else 0) else g(fp.evaluation_words) + g(fp.tree_words + fp.prefix_words);
                 phase = @max(phase, fixed_commit);
-                pinned_extra += fp.coefficient_words;
+                if (!self.require_warm and self.packed_class == null) pinned_extra += fp.coefficient_words;
             };
         };
         // Diagnostic (measurement sweeps only): STWO_RV64_M8_OUTER_DECLARE_WORDS
@@ -414,7 +432,7 @@ pub const OuterNodeJob = struct {
             .device_words = @intCast(device),
             .staged_words = @intCast(staged),
             .slab_words = self.layout.words,
-            .pinned_words = @intCast(node + class + self.staged.image.words[@intFromEnum(St.Region.twiddles)] + pinned_extra),
+            .pinned_words = @intCast(node + (if (self.require_warm) 0 else (if (self.packed_class) |compressed| compressed.words.len else class) + self.staged.image.words[@intFromEnum(St.Region.twiddles)]) + pinned_extra),
         };
     }
 
@@ -436,11 +454,25 @@ pub const OuterNodeJob = struct {
         const words = self.staged.image.words;
         var regions: [4][*]const u32 = undefined;
         regions[@intFromEnum(St.Region.fixed)] = undefined;
+        if (self.packed_class) |compressed| {
+            const program = try s.persistent(compressed.key, compressed.words.len);
+            if (self.require_warm and program.fresh) return error.GpuNativeRecursionClassCold;
+            self.packed_program = program.buffer;
+            if (program.fresh) {
+                const pinned = try s.pinned(compressed.words.len);
+                @memcpy(pinned, compressed.words);
+                try s.upload(program.buffer, pinned);
+            }
+            self.packed_output = try s.alloc(compressed.outputWords());
+            self.packed_scratch = try s.alloc(12);
+            regions[@intFromEnum(St.Region.fixed)] = self.packed_output.ptr + compressed.class_words;
+        }
         for (St.uploaded) |region| {
             const n = words[@intFromEnum(region)];
             const buffer: api.DeviceBuffer, const fresh = switch (region) {
                 .node => .{ try s.alloc(@intCast(@max(n, 1))), true },
                 .class => blk: {
+                    if (self.packed_class) |compressed| break :blk .{ try self.packed_output.slice(0, compressed.class_words), false };
                     if (!self.persistentClass()) break :blk .{ try s.alloc(@intCast(@max(n, 1))), true };
                     const p = try s.persistent(self.staged.classRegionKey(), @intCast(@max(n, 1)));
                     break :blk .{ p.buffer, p.fresh };
@@ -452,6 +484,7 @@ pub const OuterNodeJob = struct {
                 .fixed => unreachable,
             };
             regions[@intFromEnum(region)] = buffer.ptr;
+            if (self.require_warm and fresh and region != .node) return error.GpuNativeRecursionClassCold;
             if (fresh and n != 0) {
                 const pinned = try s.pinned(@intCast(n));
                 try self.staged.pack(region, pinned);
@@ -459,7 +492,7 @@ pub const OuterNodeJob = struct {
                 self.report.staged_words[@intFromEnum(region)] = n;
             }
         }
-        if (self.nodeFixed()) {
+        if (self.nodeFixed() and self.packed_class == null) {
             // FIXED coefficients: the lane's precommit handoff, else
             // worker-persistent per FIXED root (persistent classes), else in
             // the node's own staging. A fresh region is committed on device
@@ -471,6 +504,7 @@ pub const OuterNodeJob = struct {
             } else if (self.persistentClass()) try s.persistent(self.staged.fixedRegionKey(), @intCast(fp.coefficient_words)) else .{ .buffer = try s.alloc(@intCast(fp.coefficient_words)), .fresh = true };
             regions[@intFromEnum(St.Region.fixed)] = fixed.buffer.ptr;
             self.report.fixed_handoff = self.fixed_handoff != null and !fixed.fresh;
+            if (self.require_warm and fixed.fresh) return error.GpuNativeRecursionFixedCold;
             if (fixed.fresh) {
                 // Raw evaluations are uploaded straight into the coefficient
                 // buffer and interpolated in place (B2N with exactly aliased
@@ -604,6 +638,19 @@ pub const OuterNodeJob = struct {
         const section = try e.slab.field(.opaque_words, section_index);
         var view = EnqueueView{ .e = e, .heap = &heap };
         var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &EnqueueView.vtable, .kernels = self.kernels, .phase_hook = EnqueueView.phase };
+        var materialize_launches: u32 = 0;
+        if (self.packed_class) |compressed| {
+            const before = device.counters.total();
+            const status = self.packed_verdict orelse try e.slab.field(.opaque_words, Packed.field_index);
+            try Packed.enqueue(self.packed_launch orelse return error.PackedClassDecoderMissing, e.ctx(), compressed, self.packed_program, self.packed_output, self.packed_scratch, status, api.gpu_native.Verdict.reject(.class_unpack, 0) & 0xffff0000);
+            const plan = &(self.staged.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing);
+            const raw = @constCast(self.bases.regions[@intFromEnum(St.Region.fixed)]);
+            const tw = self.staged.image.twiddles[plan.eval_log];
+            const itw = self.staged.image.itwiddles[plan.eval_log];
+            try TC.interpolate(&device, plan, raw, raw, .{ .sorted_logs = self.bases.at(self.staged.image.fixed_logs), .twiddles = self.bases.at(tw), .twiddle_words = @intCast(tw.words), .itwiddles = self.bases.at(itw), .itwiddle_words = @intCast(itw.words) });
+            // Four decoder kernels plus the interpolation wrappers' counts.
+            materialize_launches = 4 + device.counters.total() - before;
+        }
         self.report.streamed = self.streams != null;
         if (self.timing) |t| t.mark(t.ctx, false, e.stream());
         defer if (self.timing) |t| t.mark(t.ctx, true, e.stream());
@@ -629,13 +676,15 @@ pub const OuterNodeJob = struct {
             const r = try cache.run(.{ .class = self.staged.graph_key, .placement = @intFromEnum(e.placement) | (@as(u8, @intFromBool(self.whole != null)) << 1) | (@as(u8, @intFromBool(self.fixed_commit != null)) << 2) | (@as(u8, @intFromBool(self.streams != null)) << 3) }, e.stream(), &body);
             self.report.outcome = r.outcome;
             self.report.launches = r.launches;
+            self.report.recording_launches = r.recording_launches;
             self.report.kernel_nodes = r.kernel_nodes;
         } else {
             self.report.launches = try body.enqueue();
         }
-        // The last enqueue only: a discarded recording plus its direct re-run
-        // must not count twice (device.counters accumulate across both).
-        self.report.body_launches = body.last;
+        // body_launches describes one body's shape. launches above counts
+        // every host attempt, including a discarded recording and fallback.
+        self.report.launches += materialize_launches;
+        self.report.body_launches = body.last + materialize_launches;
     }
 
     /// Device checks after the body (inside the captured graph): lookup_sum

@@ -35,9 +35,12 @@
 //! native_encode_oods.fromPlan) and the addon kernel is loaded
 //! (Symbols.oods); otherwise its status word stays `unset` (fails closed).
 const std = @import("std");
+const LF = @import("native_leaf_wire.zig");
 const api = @import("api.zig");
 const G = @import("gpu_native.zig");
 const NE = @import("native_encode.zig");
+const MW = @import("native_manifest_wire.zig");
+const Worker = @import("worker.zig").Worker;
 const C = @import("native_commit.zig");
 const N = @import("native_pcs.zig");
 const S2 = @import("native_stage2.zig");
@@ -191,11 +194,13 @@ pub const SealSymbols = struct {
     shared: SharedFn,
     /// Flat (v1-flat) manifest digest; null on an addon without it.
     flat: ?*const anyopaque = null,
+    manifest: ?MW.EncodeFn = null,
     pub fn load(addon: *std.DynLib) !SealSymbols {
         return .{
             .seal = addon.lookup(SealFn, "stwo_rv64_native_seal_chi_v1_on") orelse return error.MissingNativeSealSymbol,
             .shared = addon.lookup(SharedFn, "stwo_rv64_native_seal_shared_v1_on") orelse return error.MissingNativeSealSymbol,
             .flat = addon.lookup(*const anyopaque, "stwo_rv64_native_seal_flat_v1_on"),
+            .manifest = MW.load(addon) catch null,
         };
     }
     pub fn flatFn(self: *const SealSymbols) !FlatFn {
@@ -377,9 +382,11 @@ pub const SealJob = struct {
     /// Flat policy (v1-flat, D2): the digest script replaces the chi chain;
     /// `entries` is then unused (may be empty).
     flat: ?*const FlatScript = null,
+    manifest: ?*MW.Program = null,
     staged: ?api.DeviceBuffer = null,
     staged_ops: ?api.DeviceBuffer = null,
     staged_pool: ?api.DeviceBuffer = null,
+    staged_manifest: ?api.DeviceBuffer = null,
 
     pub fn classKey(_: *SealJob) [32]u8 {
         return tagDigest("rv64-m8-gpu-native-seal/v1");
@@ -387,9 +394,15 @@ pub const SealJob = struct {
     pub fn footprint(self: *SealJob) api.Footprint {
         var w = std.mem.alignForward(usize, self.entries.len * 48, 64);
         if (self.flat) |f| w += std.mem.alignForward(usize, f.ops.len, 64) + std.mem.alignForward(usize, f.pool.len, 64);
+        if (self.manifest) |m| w += std.mem.alignForward(usize, m.words.len, 64);
         return .{ .device_words = w, .staged_words = w, .pinned_words = w };
     }
     pub fn stage(self: *SealJob, s: *api.Stager) !void {
+        if (self.manifest) |m| {
+            const b = try s.alloc(m.words.len);
+            try s.upload(b, m.words);
+            self.staged_manifest = b;
+        }
         if (self.flat) |f| {
             const o = try s.alloc(f.ops.len);
             try s.upload(o, f.ops);
@@ -404,7 +417,11 @@ pub const SealJob = struct {
         self.staged = b;
     }
     pub fn enqueue(self: *SealJob, e: *api.Enqueue) !void {
-        if (self.flat != null) return self.enqueueFlat(e);
+        if (self.flat != null) {
+            try self.enqueueFlat(e);
+            try self.encodeManifest(e);
+            return;
+        }
         const ctx = self.ctx;
         const staged = self.staged orelse return error.NativeSealNotStaged;
         // Every segment's MAIN root slot, from whichever GPU produced it.
@@ -417,6 +434,19 @@ pub const SealJob = struct {
         const verdict = try ctx.layout.segments[self.device].statusBuffer(ctx.segments[self.device], .{ .kind = .request, .ordinal = 0 }, .global_seal);
         try rc(self.sym.seal(e.ctx(), 0, @ptrCast(staged.ptr), x.ptr, x.words, &self.constants, slot.ptr, verdict.ptr, self.entries.ptr));
         try ctx.peer.publish(self.device, seal);
+        try self.encodeManifest(e);
+    }
+    fn encodeManifest(self: *SealJob, e: *api.Enqueue) !void {
+        const m = self.manifest orelse return;
+        const ctx = self.ctx;
+        for (ctx.segment_device, 0..) |src, segment| try ctx.peer.awaitSlot(self.device, src, try ctx.exchange.childWire(@intCast(segment)));
+        const sl = &ctx.layout.segments[self.device];
+        const out = try sl.encodedBuffer(ctx.segments[self.device], .{ .kind = .request, .ordinal = 0 });
+        if ((out.words - 1) * 4 < m.max_bytes) return error.GlobalGkrManifestLimit;
+        const program = self.staged_manifest orelse return error.NativeSealNotStaged;
+        const exchange = try replica(ctx, self.device);
+        const args = MW.Run{ .program = program.ptr, .program_words = program.words, .exchange = exchange.ptr, .exchange_words = exchange.words, .tag = G.Exchange.flagTag(ctx.generation), .encoded = out.ptr, .encoded_words = out.words, .verdict = (try sl.statusBuffer(ctx.segments[self.device], .{ .kind = .request, .ordinal = 0 }, .global_seal)).ptr, .reject_code = @as(u32, @intFromEnum(G.Check.global_seal)) << 16 };
+        try rc((self.sym.manifest orelse return error.MissingManifestEncoder)(e.ctx(), 0, &args));
     }
     /// Flat digest: every root, receipt and claims slot of every segment and
     /// every truth root, then the script.
@@ -530,9 +560,12 @@ pub const PatchSet = struct {
         self.public.deinit(a);
     }
     pub fn check(self: PatchSet, semantic_words: usize, target_words: usize) !void {
+        return self.checkWithPublic(semantic_words, target_words, public_felts);
+    }
+    pub fn checkWithPublic(self: PatchSet, semantic_words: usize, target_words: usize, count: usize) !void {
         try self.shared.check(shared_felts, target_words);
         try self.semantic.check(semantic_words / 8, target_words);
-        try self.public.check(public_felts, target_words);
+        try self.public.check(count, target_words);
     }
 };
 /// Patches of one packed parameter vector (`slots` = artifact parameter
@@ -569,6 +602,16 @@ pub const ClassFraming = struct {
     fixed_host: []const []const u32,
     fixed_offsets: []const usize,
     fixed_words: usize,
+    /// Complete Stage-1 persistent allocation, including its root/authority.
+    fixed_region_words: usize = 0,
+    resident_handoff: ?struct { checkpoint: usize, binding: usize, semantic: usize, section: usize = 0, section_words: usize = 0 } = null,
+    resources_warmed: bool = false,
+    /// Installed only when every worker reclaims stream-ordered non-LIFO
+    /// frees. Otherwise footprint retains the conservative sum of phases.
+    reuse_frees: bool = false,
+    /// PCS image, leaf statement seed tape and public outputs following the
+    /// physical proof bytes in its request-slab child region.
+    leaf_suffix_words: usize = 0,
     main_offsets: []const usize,
     main_words: usize,
     bind_plan: *const B.Plan,
@@ -581,6 +624,9 @@ pub const ClassFraming = struct {
     /// Words of the Stage-1 semantic handoff region of this class: the
     /// `semantic_felts` namespace felts, then every hc role's rows.
     semantic_words: usize = 8 * @as(usize, semantic_felts),
+    /// Flattened role-local public values, avoiding collisions between e.g.
+    /// two roles' different call counts. Default preserves the old namespace.
+    public_input_felts: u32 = public_felts,
     /// RAM boundary claim slots (core initial / terminal), or null.
     initial_claim: ?u32 = null,
     terminal_claim: ?u32 = null,
@@ -592,17 +638,27 @@ pub const ClassFraming = struct {
     /// see `deviceWords` / `writeDevice`.
     destroy_fn: ?*const fn (*ClassFraming) void = null,
 
+    /// The resident Stage-1 commits store columns in log-sorted order.
+    /// Install framing also supports legacy original-order images, so adopt
+    /// the actual producer's original-index -> physical-offset views when
+    /// the binding shares its resident buffers. Borrowed for class lifetime.
+    pub fn adoptResidentColumns(self: *ClassFraming, fixed: *const C.CommitPlan, main: *const C.CommitPlan) !void {
+        if (self.fixed_offsets.len != fixed.offsets.len or self.main_offsets.len != main.offsets.len or self.fixed_words != fixed.coefficient_cells or self.main_words != main.coefficient_cells) return error.NativeStage2ResidentColumnsShape;
+        self.fixed_offsets = fixed.offsets;
+        self.main_offsets = main.offsets;
+    }
+
     /// Every patch table in bounds of its source and target (warm, once).
     pub fn validate(self: *const ClassFraming) !void {
         if (self.semantic_words < 8 * @as(usize, semantic_felts) or self.semantic_words % 8 != 0) return error.NativeStage2PatchTable;
         var k: usize = 0;
         for (self.slots) |s| if (s.global) |g| {
             if (k >= self.global_patches.len) return error.NativeStage2PatchTable;
-            try self.global_patches[k].check(self.semantic_words, g.plan.parameters.len);
+            try self.global_patches[k].checkWithPublic(self.semantic_words, g.plan.parameters.len, self.public_input_felts);
             k += 1;
         };
         if (k != self.global_patches.len) return error.NativeStage2PatchTable;
-        try self.comp_patches.check(self.semantic_words, self.composition.table.len);
+        try self.comp_patches.checkWithPublic(self.semantic_words, self.composition.table.len, self.public_input_felts);
         if (self.oods) |d| try checkOods(d, &self.program, self.composition.table.len);
     }
     pub fn uses(self: *const ClassFraming, source: Source) bool {
@@ -680,6 +736,10 @@ pub fn checkOods(d: []const u32, program: *const NE.Program, table_words: usize)
 /// the host before proving, uploaded with the job): the RAM boundary tuples
 /// (capture output: 14 canonical words per cell).
 pub const RequestInputs = struct {
+    leaf_program: ?*const LF.Program = null,
+    /// Explicit diagnostic run only: append the OODS inputs to the existing
+    /// request readback. Never changes proof bytes or any acceptance check.
+    oods_diagnostic: bool = false,
     initial_tuples: []const u32 = &.{},
     terminal_tuples: []const u32 = &.{},
     /// The segment's public parameter namespace (`public_felts` x 8 canonical
@@ -687,6 +747,43 @@ pub const RequestInputs = struct {
     /// when the class patches any public slot (ClassFraming.uses(.public)).
     public: []const u32 = &.{},
 };
+
+pub fn oodsDiagnosticWords(c: *const ClassFraming) usize {
+    return 57 + c.composition.table.len + 8 * @as(usize, c.program.get(.sample_count));
+}
+
+test "resident Stage2 columns follow the producer's sorted coefficient layout" {
+    const a = std.testing.allocator;
+    var fixed = try C.CommitPlan.init(a, &.{ .{ .log_size = 5, .encoding = .coefficients }, .{ .log_size = 3, .encoding = .coefficients }, .{ .log_size = 4, .encoding = .coefficients }, .{ .log_size = 3, .encoding = .coefficients } }, 1);
+    defer fixed.deinit();
+    var main = try C.CommitPlan.init(a, &.{ .{ .log_size = 4, .encoding = .evaluations }, .{ .log_size = 5, .encoding = .evaluations }, .{ .log_size = 3, .encoding = .evaluations } }, 1);
+    defer main.deinit();
+    const legacy_fixed = [_]usize{ 0, 32, 40, 56 };
+    const legacy_main = [_]usize{ 0, 16, 48 };
+    var framing: ClassFraming = undefined;
+    framing.fixed_offsets = &legacy_fixed;
+    framing.main_offsets = &legacy_main;
+    framing.fixed_words = 64;
+    framing.main_words = 56;
+    try framing.adoptResidentColumns(&fixed, &main);
+    try std.testing.expectEqualSlices(usize, &.{ 32, 0, 16, 8 }, framing.fixed_offsets);
+    try std.testing.expectEqualSlices(usize, &.{ 8, 24, 0 }, framing.main_offsets);
+    var image: [64]u32 = undefined;
+    for (fixed.shapes, fixed.offsets, 0..) |shape, at, i| @memset(image[at..][0 .. @as(usize, 1) << @intCast(shape.log_size)], @intCast(i + 1));
+    // Reading by the old framing aliases a different original column.
+    try std.testing.expect(image[legacy_fixed[0]] != 1);
+    for (framing.fixed_offsets, 0..) |at, i| try std.testing.expectEqual(@as(u32, @intCast(i + 1)), image[at]);
+    framing.main_words += 1;
+    try std.testing.expectError(error.NativeStage2ResidentColumnsShape, framing.adoptResidentColumns(&fixed, &main));
+}
+
+pub fn requestPinnedWords(c: *const ClassFraming, inputs: RequestInputs) usize {
+    var words = @as(usize, @intCast(c.pcs.ingressWords())) + c.composition.table.len + 8 * c.inter.logs.len + inputs.initial_tuples.len + inputs.terminal_tuples.len + inputs.public.len + 64 * 64;
+    for (c.slots) |slot| if (slot.global) |g| {
+        words += g.plan.parameters.len;
+    };
+    return words;
+}
 
 pub const Symbols = struct {
     encode: NE.Symbols,
@@ -697,6 +794,7 @@ pub const Symbols = struct {
     global: Gl.Symbols,
     /// Check.oods_constraint kernel (addon); null leaves the word unset.
     oods: ?NO.Symbols = null,
+    leaf: ?LF.EncodeFn = null,
 };
 
 /// Stage 2 of one segment (NativeFactory.stage2), fully enqueued: no host
@@ -730,6 +828,7 @@ pub const Stage2Job = struct {
     bind: ?api.DeviceBuffer = null,
     semantic: ?api.DeviceBuffer = null,
     fixed: ?api.DeviceBuffer = null,
+    leaf_device: ?api.DeviceBuffer = null,
     tuples: [2]?api.DeviceBuffer = .{ null, null },
     public: ?api.DeviceBuffer = null,
     globals: []Gl.Global = &.{},
@@ -752,9 +851,13 @@ pub const Stage2Job = struct {
         const c = self.class;
         var staged: usize = 4 * g + c.inter.stagedWords(0) + c.composition.stagedWords() + std.mem.alignForward(usize, self.inputs.initial_tuples.len, g) + std.mem.alignForward(usize, self.inputs.terminal_tuples.len, g) + std.mem.alignForward(usize, self.inputs.public.len, g);
         var globals: usize = 0;
+        var global_outputs: usize = 0;
+        var global_scratch: usize = 0;
         for (c.slots) |s| if (s.global) |gs| {
             staged += gs.plan.stagedWords(false) + g;
             globals += std.mem.alignForward(usize, gs.plan.outputWords(), g) + gs.plan.enqueueWords();
+            global_outputs += std.mem.alignForward(usize, gs.plan.outputWords(), g);
+            global_scratch = @max(global_scratch, gs.plan.enqueueWords());
         };
         // PCS peak: measured segment-scale class 2.14e9 words [M]
         // (memory-plan-p2) + 7%, as native_hybrid_jobs.Stage2Job.
@@ -764,9 +867,20 @@ pub const Stage2Job = struct {
         const pscratch = std.mem.alignForward(usize, @intCast(self.sym.encode.public_scratch(@intCast(self.inputs.initial_tuples.len / 14), @intCast(self.inputs.terminal_tuples.len / 14))), g);
         const oods_scratch: usize = if (c.oods) |d| std.mem.alignForward(usize, NO.scratchWords(d), g) else 0;
         const fields = 8 * g + @as(usize, c.claim_count) * 8 + @as(usize, @intCast(c.pcs.outputWords())) + NE.scratch_words + 8 * shared_felts + 8 * (1 + self.globalCount()) + pscratch + oods_scratch + 4096;
-        const work = globals + c.inter.deviceWords() + c.composition.coefficientWords() + c.composition.enqueueWords() + pcs + fields;
+        const work = if (c.reuse_frees) blk: {
+            // Each global's scratch is freed in reverse allocation order
+            // before the next global. INTER consumes all global outputs;
+            // they retire before composition/PCS. Retain their entire size
+            // in later bounds as a conservative fragmentation allowance.
+            // composition.enqueueWords already includes its kept output.
+            const inter_peak = global_outputs + global_scratch + c.inter.deviceWords();
+            const kept = global_outputs + c.inter.coefficient_cells;
+            const composition_peak = kept + c.composition.enqueueWords();
+            const pcs_peak = kept + c.composition.coefficientWords() + pcs;
+            break :blk @max(inter_peak, @max(composition_peak, pcs_peak)) + fields;
+        } else globals + c.inter.deviceWords() + c.composition.coefficientWords() + c.composition.enqueueWords() + pcs + fields;
         const fresh = c.fixed_words + c.composition.persistentWords();
-        return .{ .device_words = staged + work + 16 * g, .staged_words = staged, .slab_words = 0, .pinned_words = @as(usize, @intCast(c.pcs.ingressWords())) + c.composition.pinnedWords() + fresh + 64 * g + self.inputs.initial_tuples.len + self.inputs.terminal_tuples.len + self.inputs.public.len };
+        return .{ .device_words = staged + work + 16 * g, .staged_words = staged, .slab_words = 0, .pinned_words = if (c.resources_warmed) requestPinnedWords(c, self.inputs) else @as(usize, @intCast(c.pcs.ingressWords())) + c.composition.pinnedWords() + fresh + 64 * g + self.inputs.initial_tuples.len + self.inputs.terminal_tuples.len + self.inputs.public.len };
     }
 
     fn acquire(self: *Stage2Job) !*ClassFraming {
@@ -785,24 +899,38 @@ pub const Stage2Job = struct {
         const c = try self.acquire();
         const ctx = self.ctx;
         const req = ctx.request;
-        self.checkpoint = try s.retained(req, handoffName(.checkpoint, self.segment), checkpoint_words);
-        self.bind = try s.retained(req, handoffName(.binding, self.segment), c.bind_plan.output_words);
-        if (c.uses(.semantic)) self.semantic = try s.retained(req, handoffName(.semantic, self.segment), c.semantic_words);
+        if (c.resident_handoff) |h| {
+            const resident = ctx.main_resident[self.segment];
+            self.checkpoint = try resident.slice(h.checkpoint, checkpoint_words);
+            self.bind = try resident.slice(h.binding, c.bind_plan.output_words);
+            if (c.uses(.semantic)) self.semantic = try resident.slice(h.semantic, c.semantic_words);
+        } else {
+            self.checkpoint = try s.retained(req, handoffName(.checkpoint, self.segment), checkpoint_words);
+            self.bind = try s.retained(req, handoffName(.binding, self.segment), c.bind_plan.output_words);
+            if (c.uses(.semantic)) self.semantic = try s.retained(req, handoffName(.semantic, self.segment), c.semantic_words);
+        }
         if (c.uses(.public)) {
-            if (self.inputs.public.len != 8 * @as(usize, public_felts)) return error.NativeStage2NoPublic;
+            if (self.inputs.public.len != 8 * @as(usize, c.public_input_felts)) return error.NativeStage2NoPublic;
             for (self.inputs.public) |w| if (w >= m31_modulus) return error.NativeStage2NoncanonicalPublic;
             const b = try s.alloc(self.inputs.public.len);
             try s.upload(b, self.inputs.public);
             self.public = b;
         }
         const image = try s.persistent(imageKey(c.key), c.deviceWords());
+        if (image.fresh and c.resources_warmed) return error.GpuNativeStage2NotWarmed;
         if (image.fresh) {
             const words = try c.image(self.a);
             defer self.a.free(words);
             try s.upload(image.buffer, words);
         }
         self.class_device = image.buffer;
-        const fixed = try s.persistent(c.fixed_key, c.fixed_words);
+        if (self.inputs.leaf_program) |program| {
+            const p = try s.persistent(program.key(), program.words.len);
+            if (p.fresh) return error.NativeLeafProgramNotWarmed;
+            self.leaf_device = p.buffer;
+        }
+        const fixed = try s.persistent(c.fixed_key, if (c.fixed_region_words != 0) c.fixed_region_words else c.fixed_words);
+        if (fixed.fresh and c.resident_handoff != null) return error.GpuNativeFixedNotWarmed;
         if (fixed.fresh) for (c.fixed_host, c.fixed_offsets) |h, off| try s.upload(try fixed.buffer.slice(off, h.len), h);
         self.fixed = fixed.buffer;
         // [0,3) mixManifestAndClaims header (the digest comes from the seal
@@ -814,11 +942,19 @@ pub const Stage2Job = struct {
         words[11] = 0;
         try s.upload(hdr, &words);
         self.staged_header = hdr;
-        for ([2][]const u32{ self.inputs.initial_tuples, self.inputs.terminal_tuples }, &self.tuples) |t, *out| if (t.len != 0) {
-            const b = try s.alloc(t.len);
-            try s.upload(b, t);
-            out.* = b;
-        };
+        for ([2][]const u32{ self.inputs.initial_tuples, self.inputs.terminal_tuples }, &self.tuples) |t, *out| {
+            if (t.len % 14 != 0) return error.NativeStage2BoundaryShape;
+            if (t.len == 0) {
+                // A declared boundary relation over an empty cell list still
+                // has a claim: public_claims must check that it is zero.
+                // The kernel does not read tuples when cells == 0.
+                out.* = try hdr.slice(0, 0);
+            } else {
+                const b = try s.alloc(t.len);
+                try s.upload(b, t);
+                out.* = b;
+            }
+        }
         self.globals = try self.a.alloc(Gl.Global, self.globalCount());
         var k: usize = 0;
         for (c.slots) |slot| if (slot.global) |gs| {
@@ -970,12 +1106,37 @@ pub const Stage2Job = struct {
             const samples = try pcs_out.slice(c.program.get(.off_samples), 8 * @as(usize, c.program.get(.sample_count)));
             const os = try e.alloc(NO.scratchWords(d));
             oods_scratch = os;
-            try NO.enqueue(osym, e.ctx(), od, samples, table, alpha, oods, os, try self.status(.oods_constraint), null);
+            const diagnostic: ?api.DeviceBuffer = if (self.inputs.oods_diagnostic) blk: {
+                const program = self.inputs.leaf_program orelse return error.NativeLeafProgramNotWarmed;
+                const region = try ctx.layout.segments[self.device].encodedBuffer(ctx.segments[self.device], self.id());
+                // Relayout leaves all extra capacity in wire padding, ahead
+                // of the PCS/leaf suffix. Never extend past that suffix.
+                const count = oodsDiagnosticWords(c);
+                if (program.words[10] < count) return error.NativeStage2OodsProgram;
+                const out = try region.slice(program.words[10] - count, count);
+                var at: usize = 16;
+                for ([_]api.DeviceBuffer{ alpha, oods, table, samples }) |src| {
+                    try rc(sym.commit.copy_d2d(e.ctx(), (try out.slice(at, src.words)).ptr, src.ptr, src.bytes()));
+                    at += src.words;
+                }
+                if (at != out.words) return error.NativeStage2OodsProgram;
+                break :blk try out.slice(0, 16);
+            } else null;
+            try NO.enqueue(osym, e.ctx(), od, samples, table, alpha, oods, os, try self.status(.oods_constraint), diagnostic);
         };
         // ---- device encoding into the slab region (+ pcs_status, encode_bounds)
         const scratch = try e.alloc(NE.scratch_words);
         var enc = NE.Encoder{ .sym = &sym.encode, .program = views.program, .host = &c.program, .pcs = pcs_out, .scratch = scratch, .pcs_status = try self.status(.pcs_status) };
         try enc.encoder().run(e, &ctx.layout.segments[self.device], ctx.segments[self.device], self.id());
+        if (self.inputs.leaf_program) |program| {
+            const handoff = c.resident_handoff orelse return error.NativeStage2NoSemantic;
+            const section = try main.slice(handoff.section, handoff.section_words);
+            const receipt = try x.slice((try ctx.exchange.receipt(self.segment)).offset, 8);
+            const region = try ctx.layout.segments[self.device].encodedBuffer(ctx.segments[self.device], self.id());
+            const leaf_device = self.leaf_device orelse return error.NativeLeafProgramNotWarmed;
+            const sources_: [6]?LF.Buffer = .{ null, .{ .ptr = section.ptr, .words = section.words }, .{ .ptr = chi.ptr, .words = chi.words }, .{ .ptr = receipt.ptr, .words = receipt.words }, .{ .ptr = claims.ptr, .words = claims.words }, .{ .ptr = pcs_out.ptr, .words = pcs_out.words } };
+            try LF.enqueue(sym.leaf orelse return error.MissingNativeLeafEncoder, sym.commit.copy_d2d, e.ctx(), program, .{ .ptr = leaf_device.ptr, .words = leaf_device.words }, sources_, .{ .ptr = region.ptr, .words = region.words }, (try self.status(.encode_bounds)).ptr, @as(u32, @intFromEnum(G.Check.encode_bounds)) << 16);
+        }
         // Stream-ordered frees after the last readers.
         if (oods_scratch) |b| e.free(b);
         for ([_]api.DeviceBuffer{ scratch, pscratch, pcs_out, oods, comp_status, alpha, roots, gstatus, claims, shared }) |b| e.free(b);
@@ -1020,6 +1181,15 @@ pub fn imageKey(class: G.ClassKey) [32]u8 {
 /// ClassCache; after `ClassCache.seal` an unknown class fails closed
 /// (GpuNativeClassNotWarmed). Per request, the driver hands the roster and
 /// the request public inputs (`beginRequest`) before submitting jobs.
+/// Domain-separated Stage-2 cache key of a native class. Shared by the
+/// install builder and request-local resolver (never keyed by ordinal alone).
+pub fn framingKey(key: G.ClassKey) G.ClassKey {
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    h.update("rv64-m8-gn-shape-framing/v1");
+    h.update(&key);
+    return h.finalResult();
+}
+
 pub const Factory = struct {
     a: std.mem.Allocator,
     sym: *const Symbols,
@@ -1133,11 +1303,32 @@ pub const Factory = struct {
             const Builder = struct {
                 fn build(raw: *anyopaque, _: std.mem.Allocator, key: G.ClassKey) anyerror!G.ClassEntry {
                     const fr: *ClassFraming = @ptrCast(@alignCast(raw));
-                    return .{ .key = key, .plan = fr, .destroy = noop, .max_encoded_bytes = fr.program.max_encoded_bytes, .main_resident_words = fr.main_words, .claims_per_segment = fr.claim_count };
+                    var words = std.mem.alignForward(usize, fr.deviceWords(), 64) + fr.composition.persistentWords() + fr.inter.twiddleWords();
+                    for (fr.slots) |slot| if (slot.global) |g| {
+                        words += g.plan.rows;
+                    };
+                    return .{ .key = key, .plan = fr, .destroy = noop, .max_encoded_bytes = fr.program.max_encoded_bytes + 4 * fr.leaf_suffix_words, .main_resident_words = fr.main_words, .claims_per_segment = fr.claim_count, .held_words = @splat(words) };
                 }
                 fn noop(_: *anyopaque) void {}
             };
             _ = try cache.warm(f.key, .{ .ctx = f, .build = Builder.build });
+        }
+    }
+    pub fn warmDevices(self: *Factory, workers: []const *Worker) !void {
+        var it = self.classes.valueIterator();
+        while (it.next()) |pool| {
+            const c = pool.*.instances.items[0];
+            for (workers) |worker| {
+                var job = WarmClass{ .a = self.a, .class = c, .sym = self.sym };
+                var done = WarmDone{};
+                try worker.submit(api.Job.from(WarmClass, &job), .{ .ctx = &done, .done = WarmDone.call });
+                done.event.wait();
+                try done.result;
+            }
+            for (pool.*.instances.items) |f| {
+                f.resources_warmed = true;
+                f.inter.require_warm = true;
+            }
         }
     }
     pub fn beginRequest(self: *Factory, request: u64, r: *Request) !void {
@@ -1157,7 +1348,13 @@ pub const Factory = struct {
     }
     fn classFor(self: *Factory, ctx: *const G.RequestContext, segment: u32) !*ClassFraming {
         self.mutex.lock();
-        const key = self.segment_class.get(segment);
+        const key = if (ctx.native_classes.len != 0) blk: {
+            if (segment >= ctx.native_classes.len) {
+                self.mutex.unlock();
+                return error.GpuNativeSegmentOutOfRange;
+            }
+            break :blk framingKey(ctx.native_classes[segment]);
+        } else self.segment_class.get(segment);
         self.mutex.unlock();
         const k = key orelse return error.GpuNativeClassNotWarmed;
         const entry = try ctx.classes.get(k);
@@ -1180,7 +1377,18 @@ pub const Factory = struct {
             fs.* = try FlatScript.build(self.a, r.profile, r.execution, fe, ctx.exchange);
             flat = fs;
         }
-        job.* = .{ .factory = self, .job = .{ .a = self.a, .sym = &self.sym.seal, .ctx = ctx, .device = device, .entries = entries, .truth_awaits = awaits, .flat = flat, .constants = sealConstants(self.identity, r.execution, @intCast(entries.len), G.Exchange.flagTag(ctx.generation)) } };
+        errdefer if (flat) |f| {
+            f.deinit();
+            self.a.destroy(f);
+        };
+        var manifest: ?*MW.Program = null;
+        if (ctx.exchange.child_wire_words != 0) {
+            const m = try self.a.create(MW.Program);
+            errdefer self.a.destroy(m);
+            m.* = try MW.build(self.a, r.execution, r.flat orelse return error.GlobalGkrManifestProfile, ctx.exchange);
+            manifest = m;
+        }
+        job.* = .{ .factory = self, .job = .{ .a = self.a, .sym = &self.sym.seal, .ctx = ctx, .device = device, .entries = entries, .truth_awaits = awaits, .flat = flat, .manifest = manifest, .constants = sealConstants(self.identity, r.execution, @intCast(entries.len), G.Exchange.flagTag(ctx.generation)) } };
         return api.Job.from(SealOwned, job);
     }
     pub fn stage2(self: *Factory, ctx: *const G.RequestContext, segment: u32, device: u32) !api.Job {
@@ -1208,6 +1416,59 @@ pub const Factory = struct {
     fn releaseStage2(self: *Factory, job: *Stage2Job) void {
         self.a.destroy(job);
     }
+};
+
+const WarmDone = struct {
+    event: std.Thread.ResetEvent = .{},
+    result: anyerror!void = {},
+    fn call(raw: *anyopaque, c: api.Completion) void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        self.result = c.result;
+        self.event.set();
+    }
+};
+const WarmClass = struct {
+    a: std.mem.Allocator,
+    class: *ClassFraming,
+    sym: *const Symbols,
+    pub fn classKey(self: *WarmClass) [32]u8 {
+        var key = self.class.key;
+        key[0] ^= 0x57;
+        return key;
+    }
+    pub fn footprint(self: *WarmClass) api.Footprint {
+        const c = self.class;
+        var staged = c.inter.stagedWords(0) + c.composition.stagedWords() + 1024;
+        var pinned = c.deviceWords() + c.inter.twiddleWords() + 8 * c.inter.logs.len + c.composition.pinnedWords() + 1024;
+        for (c.slots) |slot| if (slot.global) |g| {
+            staged += g.plan.stagedWords(false);
+            pinned += g.plan.pinnedWords(false);
+        };
+        return .{ .device_words = staged, .staged_words = staged, .pinned_words = pinned };
+    }
+    pub fn stage(self: *WarmClass, s: *api.Stager) !void {
+        const c = self.class;
+        const image = try s.persistent(imageKey(c.key), c.deviceWords());
+        if (image.fresh) {
+            const words = try c.image(self.a);
+            defer self.a.free(words);
+            try s.upload(image.buffer, words);
+        }
+        const fixed = try s.persistent(c.fixed_key, if (c.fixed_region_words != 0) c.fixed_region_words else c.fixed_words);
+        if (fixed.fresh) return error.GpuNativeFixedNotWarmed;
+        for (c.slots) |slot| if (slot.global) |g| {
+            var global = Gl.Global{ .plan = g.plan, .sym = &self.sym.global };
+            try global.stage(self.a, s, &.{});
+        };
+        try c.composition.stage(s);
+        const inputs = try self.a.alloc(C.Input, c.inter.shapes.len);
+        defer self.a.free(inputs);
+        @memset(inputs, .{ .device = @ptrFromInt(@alignOf(u32)) });
+        try c.inter.stage(s, inputs);
+    }
+    pub fn enqueue(_: *WarmClass, _: *api.Enqueue) !void {}
+    pub fn finish(_: *WarmClass, _: api.SlabView) !void {}
+    pub fn abort(_: *WarmClass) void {}
 };
 
 /// A factory-owned seal job (freed after finish/abort).
@@ -1239,6 +1500,10 @@ const SealOwned = struct {
         if (self.job.flat) |f| {
             @constCast(f).deinit();
             a.destroy(@constCast(f));
+        }
+        if (self.job.manifest) |m| {
+            m.deinit();
+            a.destroy(m);
         }
         a.destroy(self);
     }
@@ -1372,6 +1637,37 @@ test "patch tables fail closed on an out-of-range source felt or target word" {
     const set = PatchSet{ .semantic = .{ .dst = &hdst, .index = &hidx } };
     try std.testing.expectError(error.NativeStage2PatchTable, set.check(8 * @as(usize, semantic_felts), 8));
     try set.check(8 * (@as(usize, semantic_felts) + 4), 8);
+}
+
+test "factory: concurrent blocks resolve segment zero from their own native classes" {
+    const a = std.testing.allocator;
+    var f = Factory{ .a = a, .sym = undefined, .identity = @splat(0) };
+    defer f.deinit();
+    var cache = G.ClassCache.init(a);
+    defer cache.deinit();
+    var x: ClassFraming = undefined;
+    var y: ClassFraming = undefined;
+    const kx: G.ClassKey = @splat(11);
+    const ky: G.ClassKey = @splat(12);
+    const CacheBuilder = struct {
+        fn build(raw: *anyopaque, _: std.mem.Allocator, key: G.ClassKey) anyerror!G.ClassEntry {
+            return .{ .key = key, .plan = raw, .destroy = noop };
+        }
+        fn noop(_: *anyopaque) void {}
+    };
+    _ = try cache.warm(framingKey(kx), .{ .ctx = &x, .build = CacheBuilder.build });
+    _ = try cache.warm(framingKey(ky), .{ .ctx = &y, .build = CacheBuilder.build });
+    cache.seal();
+    var cx: G.RequestContext = undefined;
+    cx.classes = &cache;
+    cx.native_classes = &.{kx};
+    var cy = cx;
+    cy.native_classes = &.{ky};
+    // A legacy/global binding for ordinal 0 must not redirect either request.
+    try f.bindSegment(0, framingKey(ky));
+    try std.testing.expectEqual(&x, try f.classFor(&cx, 0));
+    try std.testing.expectEqual(&y, try f.classFor(&cy, 0));
+    try std.testing.expectError(error.GpuNativeSegmentOutOfRange, f.classFor(&cx, 1));
 }
 
 test "factory framing pool: exclusive leases per instance, exhaustion fails closed" {

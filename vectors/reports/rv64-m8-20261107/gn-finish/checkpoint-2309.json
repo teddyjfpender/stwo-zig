@@ -1,0 +1,44 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "observed_utc": "2026-11-07T23:08:33.854483+00:00",
+  "scope": "Both default gates PASS on packed-census-v2 snapshot before latest native request fixes; full native proof still unqualified",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/gate-22/gate.json",
+      "sha256": "1ea60834e672ab8658975024a7b32a92c7e07a30343a0075dc62e5856118591e",
+      "result": "PASS block26235156: cold/warm32 artifacts each byte-identical; two fresh CPU receivers;19 corpus cases pass harness, V04 resource nonsemantic rejection"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/gate-23/gate.json",
+      "sha256": "26b362cdbb4a0ec5d0c2a5c5baa40ba112a4e3f200486e7625bebbb9ab88abf4",
+      "result": "PASS block24628607: cold/warm39 artifacts each byte-identical; two fresh CPU receivers;19 corpus cases semantic rejection, no crashes/accepts"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/native-live-2/receipt.json",
+      "sha256": "eb153e9c7031ce03a81751db6b0b1300b321c841a30356693562de60c7611872",
+      "result": "FAIL exit1; first Stage1 enqueue GpuNativeExchangeClaimsShape, then omitted Stage2 memory budget surfaced"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/typecheck-13.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": "PASS driver semantic compile with claim-prefix fix, Stage2 admission and reuse-dependent phase footprint"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/jobs-12.log",
+      "result": "PASS exit0 broad host jobs and outer suite with current changes"
+    }
+  ],
+  "local_changes_pending_full_validation": [
+    "Stage1 publishes exact class terminal-claim prefix in request-max exchange slot, zeros suffix before peer publish; heterogeneous-size and overflow host regression passes",
+    "Stage2 actual per-segment request footprint plus channel participates in warm admission on native and framing entries",
+    "Stage2 reuse-mode footprint uses maximum of sequential INTER/composition/PCS phases, keeps global outputs as fragmentation allowance; enabled only when every worker reclaims frees; ordinary mode keeps summed bound",
+    "First failure logging preserves original capture/stage/enqueue error, avoiding sole BatchDependencyFailed diagnosis"
+  ],
+  "pending": {
+    "main": "build19 then native-live3 full cold/warm diagnostic request attempt",
+    "scratch": "FREE: gate22/gate23 both terminal; do not confuse their pre-latest-fix source hashes with current main snapshot",
+    "freeze": "Main frozen until build19/native-live3 terminal. Do not sync main during its build/probe."
+  },
+  "claim_boundary": "No GPU-native proof completion or new qualified end-to-end speedup. Earlier install-only planner PASS omitted Stage2 footprint and cannot qualify complete memory feasibility. New code stays default-off; full architecture and performance objective remains active/incomplete."
+}

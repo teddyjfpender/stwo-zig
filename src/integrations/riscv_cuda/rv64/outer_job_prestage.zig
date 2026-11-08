@@ -691,6 +691,8 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
     errdefer owner.prepared.deinit();
     const prepared = &owner.prepared;
     if (prepared.reference != null or prepared.count == 0 or prepared.count > std.math.maxInt(u32) / 4) return error.TraceOnlySourceRequired;
+    // The statics cache already uses the process allocator; retained native
+    // templates take a counted pin rather than borrowing request custody.
     const acquired = try StaticsCache.acquire(key, !input.is_leaf and input.class != null, input.library, input.composition);
     errdefer if (acquired.owned) acquired.statics.destroy() else if (acquired.counted) StaticsCache.unref(acquired.statics);
     owner.statics = acquired.statics;
@@ -802,6 +804,89 @@ pub fn prestageHook(_: ?*anyopaque, a: std.mem.Allocator, input: *const anyopaqu
     const typed: *const Input = @ptrCast(@alignCast(input));
     return prestage(a, typed.*);
 }
+
+/// Own the class schedule and statics after a real install-time proof. The
+/// retained template has no seed values, public outputs, channel checkpoint,
+/// sample tape or pointer into the warm request's authority/allocator.
+pub fn packTemplate(a: std.mem.Allocator, source: *const St.Staged) !@import("jobs/outer_packed_class.zig").Class {
+    const class_words: usize = @intCast(source.image.words[@intFromEnum(St.Region.class)]);
+    const fixed_words: usize = @intCast((source.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing).coefficient_words);
+    const raw = try a.alloc(u32, class_words + fixed_words);
+    defer a.free(raw);
+    @memset(raw, 0);
+    try source.pack(.class, raw[0..class_words]);
+    try source.packFixed(raw[class_words..]);
+    // Assignment tasks have eight fields. Preserve those predictors instead
+    // of delta-coding adjacent fields against each other. All class ranges
+    // are granule-aligned; scalar-only odd images retain one channel.
+    var compressed = try Outer.cache_pack.pack(a, raw, if (raw.len % 8 == 0) 8 else 1);
+    defer compressed.deinit(a);
+    return @import("jobs/outer_packed_class.zig").build(a, compressed, class_words, fixed_words);
+}
+
+pub fn retainTemplate(a: std.mem.Allocator, input: Input, source: *const St.Staged) !*St.Staged {
+    if (source.assignment.sample_tape != null or source.assignment.sample_map != null) return error.GnTemplateContainsSampleWitness;
+    const owner = try a.create(TemplateOwner);
+    errdefer a.destroy(owner);
+    owner.* = .{ .a = a, .arena = std.heap.ArenaAllocator.init(a) };
+    errdefer owner.arena.deinit();
+    const ar = owner.arena.allocator();
+    const statics = if (ClassPin.take(@ptrCast(@constCast(source.statics)))) |pin| blk: {
+        owner.pin = pin;
+        break :blk source.statics;
+    } else |_| blk: {
+        const s = try Statics.init(a, input.key, input.library, true);
+        s.public.class_plan = @ptrCast(&s.slot);
+        owner.statics = s;
+        break :blk &s.public;
+    };
+    errdefer {
+        if (owner.pin) |pin| ClassPin.release(pin.statics);
+        if (owner.statics) |s| s.destroy();
+    }
+    var assignment = source.assignment;
+    const seeds = try ar.dupe(u32, assignment.seeds);
+    if (seeds.len % 5 != 0) return error.InvalidOuterSeedLayout;
+    for (0..seeds.len / 5) |i| @memset(seeds[5 * i + 1 ..][0..4], 0);
+    assignment.seeds = seeds;
+    assignment.tasks = try ar.dupe(u32, assignment.tasks);
+    assignment.indices = try ar.dupe(u32, assignment.indices);
+    assignment.runs = try ar.dupe(St.Run, assignment.runs);
+    assignment.level_ends = try ar.dupe(usize, assignment.level_ends);
+    assignment.ends = try ar.dupe(u32, assignment.ends);
+    assignment.reusable = true;
+    const expected = try ar.alloc(u32, source.expected.len);
+    @memset(expected, 0);
+    const fixed = try ar.alloc([]const u32, source.fixed_raw.len);
+    for (fixed, source.fixed_raw) |*out, column| out.* = try ar.dupe(u32, column);
+    owner.staged = source.*;
+    owner.staged.assignment = assignment;
+    owner.staged.statics = statics;
+    owner.staged.checkpoint = @splat(0);
+    owner.staged.expected = expected;
+    owner.staged.fixed_logs = try ar.dupe(u32, source.fixed_logs);
+    owner.staged.fixed_raw = fixed;
+    owner.staged.pcs_points = if (owner.statics) |s| if (s.rc) |*rc| @ptrCast(rc.points) else null else source.pcs_points;
+    owner.staged.image = St.Staged.layoutWith(&assignment, statics, expected.len);
+    owner.staged.owner = owner;
+    owner.staged.release = TemplateOwner.release;
+    return &owner.staged;
+}
+const TemplateOwner = struct {
+    a: std.mem.Allocator,
+    arena: std.heap.ArenaAllocator,
+    pin: ?ClassPin = null,
+    statics: ?*Statics = null,
+    staged: St.Staged = undefined,
+    fn release(raw: *anyopaque) void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        const a = self.a;
+        self.arena.deinit();
+        if (self.pin) |pin| ClassPin.release(pin.statics);
+        if (self.statics) |s| s.destroy();
+        a.destroy(self);
+    }
+};
 /// Hooks.outer_assemble: heap Outer.prove.Produced (caller deinit + destroy).
 /// `key` is a *const Authority.
 pub fn assembleHook(_: ?*anyopaque, a: std.mem.Allocator, key: *const anyopaque, staged: *const St.Staged, job: *Job.OuterNodeJob) anyerror!*anyopaque {

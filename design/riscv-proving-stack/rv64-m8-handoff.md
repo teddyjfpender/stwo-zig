@@ -2,6 +2,65 @@
 
 This is the starting point for whoever takes over. Read §0, then §2 (GPU residency) and §5 (architectural steps) before writing code.
 
+## Continuation checkpoint — 2026-11-08 02:35 UTC
+
+The original handoff below records the state at 2026-11-07. This checkpoint
+supersedes its GPU-native completion and install-failure statements; its
+remaining acceptance and architectural requirements still apply in full.
+
+- **[M] GPU-native now completes cold and warm requests on block 26235156.**
+  `gn-bind/gate-28/gate.json` is PASS: build and host units, frozen artifact
+  parity (32/32 twice), and two strict fresh CPU receiver harnesses accepted.
+  The rejection harness reports 19/19, with an explicit limitation:
+  `V04-cross-block-root` rejects with resource `FileTooBig`, not a semantic
+  proof rejection. Source and receipt hashes are in
+  [checkpoint-0130.json](../../vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0130.json).
+- **[M] Current default gates pass on both development blocks.** Gates 26
+  and 27 preserve frozen parity (32 and 39 artifacts respectively, twice
+  each) and two fresh receiver checks each. Gate 26 has the same V04
+  resource limitation; gate 27 has no nonsemantic rejection.
+- **[M] Block 24628607 now completes both native requests.** Gate 35 is PASS:
+  frozen parity (39/39 artifacts twice), two strict fresh CPU receiver
+  harness accepts and the 19-case corpus (no nonsemantic rejection). Correctness-run request walls are 10.458 and 10.710 s
+  [M], excluding 145.197 s initialization [M]. These are not canonical
+  performance results or production new-block latency.
+- **Memory changes:** shared canonical twiddle suffixes reduce logical
+  persistent words by 273,821,696 bytes per GPU [D]. Install-only truth
+  probes replace the estimated guard with measured allocation high-water
+  plus the maximum compact span. The batch pipeline now applies the ordinary
+  pipeline's pair-fit check before staging a neighbour. Both completed
+  requests defer one neighbour on GPU 1 [M], through device-event ordering,
+  with one driver host wait and two D2H transfers per request [M]. These
+  counters are not a CUDA API census or physical per-node peak measurements.
+- **Current native gate 36 on 26235156 is also PASS [M]:** 32/32 frozen
+  artifacts twice, two fresh CPU receivers, and the 19-case harness, with
+  V04's resource rejection limitation. Gates 35/36 use the same pinned driver
+  SHA-256 `72cf8b9cd3435c20ce812d231fac8de049ec91523f736528b3b82b9f7e95efd3`.
+  Default gates 37/38 also passed. Host run 21 passes 744
+  tests, with 16 skipped [M].
+  [Checkpoint 0235](../../vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0235.json)
+  records receipts and source freezes.
+- **Benchmark hygiene [M]:** 42 Python tests pass on Python 3.12. Offline
+  replay of the completed native run discards its nested legacy install
+  marker and produces exactly two request rows. Driver counters and event
+  spans stay separate from unavailable stage partitions. Profiling may use
+  a separate raw-trace filesystem through `--nsys-root`, preserving the
+  standard per-run `nsys` link. These latest harness changes still require
+  the exact-commit pod gate before pushing.
+- **PCS retirement falsifier [M]:** the source-built experimental addon and
+  control each pass 99 tests (1 skipped), PCS image parity, and a candidate
+  memcheck run with zero errors. Both allocation-side high-waters are
+  identical between arms. The prototype is set aside as a saved patch;
+  P1 and end-to-end performance remain open. See
+  [the negative receipt](../../vectors/reports/rv64-m8-20261107/gn-finish/pcs-retire-1/result.json).
+- **No new performance qualification or landing claim.** These changes are
+  local on `codex/rv64-m8-gn-bind`, default-off and not pushed. Canonical
+  interleaved timing, warm-request Nsight, the basket, new-block setup cost,
+  whole-node graph replay and the larger architectural steps remain open.
+  Same-block setup-excluded request times do not establish production
+  new-block latency. Keep the full scope in
+  [progress.json](../../vectors/reports/rv64-m8-20261107/gn-finish/progress.json).
+
 **Labels:** [M] measured, [D] derived from measured numbers, [E] estimate.
 **Hardware:** one RunPod pod `rv64-resident-2x5090` (id `cps13bvat3xhdo`; 2× RTX 5090 32 GB, sm_120, PCIe Gen5 **x8** ≈ 24.6 GB/s per GPU; 48 vCPU; 80 GB disk).
 **Branches named below are on origin.**

@@ -88,8 +88,13 @@ ARMS = {
     'hybrid': dict(OUTER, **NATIVE),
     'jobs': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}',
              'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'},
-    # The GPU-native request path (m8-gpu gate-10 env): fails closed at install today (GpuNativeNativeShapeHookMissing).
-    'gpu-native': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_GPU_NATIVE': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}'},
+    # Full GPU-native path, matching gn-bind's current correctness gates.
+    # Keep it explicit: none of these flags promotes the product default.
+    'gpu-native': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_GPU_NATIVE': '1',
+                   'STWO_RV64_M8_GPU_NATIVE_REUSE': '1', 'STWO_RV64_M9_CLASS_PACKED_INGRESS': '1',
+                   'STWO_RV64_M8_JOBS_LIBRARY': '{addon}', 'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}',
+                   'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456',
+                   'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '2147483648'},
 }
 ASSET_NAMES = ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard', 'addon', 'outer_fs')
 # M3 found blocks with >= 40 CPU segments OOM in resident composition unless the
@@ -118,6 +123,19 @@ def arm_environment(name, assets):
     return {key: value.format(**assets) for key, value in ARMS[name].items()}
 
 
+def extra_environment(items):
+    """Explicit common arm overrides, retained in the resume configuration."""
+    result = {}
+    for item in items:
+        key, separator, value = item.partition('=')
+        if not separator or not key.startswith('STWO_') or not re.fullmatch(r'[A-Z0-9_]+', key):
+            raise ValueError('expected --env STWO_NAME=value: ' + item)
+        if key in result and result[key] != value:
+            raise ValueError('conflicting --env values: ' + key)
+        result[key] = value
+    return result
+
+
 # ----------------------------------------------------------------------------- parsing (pure)
 
 FIELD = re.compile(r'(\w+)=(\{[^}]*\}|\S+)')
@@ -137,9 +155,15 @@ def fields(body):
 
 
 def split_requests(text):
-    """Producer stderr lines per request: each request ends at its GPU_RESIDENT_BLOCK marker."""
+    """Request lines after service readiness, excluding nested install proofs."""
     out, current = [], []
     for line in text.splitlines():
+        if line.startswith('GPU_RESIDENT_SERVICE ready '):
+            # Native installation runs a legacy proof to construct classes;
+            # it emits the same block marker. Only the final outer READY
+            # boundary starts the measured service's request sequence.
+            out, current = [], []
+            continue
         current.append(line)
         if REQUEST_MARK in line:
             out.append(current)
@@ -178,7 +202,7 @@ def job_metrics(lines):
     return out
 
 
-def request_metrics(request, combined, lines):
+def request_metrics(request, combined, lines, native=None):
     """One served request: walls [M], critical-path stages [M], tail [D], job receipts [M]."""
     ns = lambda key: combined.get(key)
     s = lambda value: None if value is None else round(value / 1e9, 4)
@@ -186,12 +210,22 @@ def request_metrics(request, combined, lines):
     parts = [ns('capture_ns'), ns('native_setup_ns'), ns('native_prove_ns'), ns('recursion_after_native_ns')]
     recursive = combined.get('recursive') or {}
     nodes = (recursive.get('leaf_proofs') or 0) + (recursive.get('fold_proofs') or 0)
-    return {'ordinal': request['ordinal'], 'proving_s': s(proving), 'request_s': s(request['client_latency_ns']),
+    result = {'ordinal': request['ordinal'], 'proving_s': s(proving), 'request_s': s(request['client_latency_ns']),
             'capture_s': s(parts[0]), 'setup_s': s(parts[1]), 'native_window_s': s(parts[2]),
             'recursion_after_native_s': s(parts[3]),
             'tail_s': s(proving - sum(parts)) if None not in parts else None,
             'nodes': nodes or None, 'root_proof_bytes': recursive.get('root_proof_bytes'),
             'jobs': job_metrics(lines)}
+    if native:
+        receipt = native['receipt']
+        result['driver'] = {key: receipt.get(key) for key in ('host_waits', 'd2h', 'd2h_bytes')}
+        result['driver'].update(
+            device_span_s=[round(v / 1e6, 4) for v in receipt.get('device_gpu_us', [])[:DEVICES]],
+            device_enqueue_s=[s(v) for v in receipt.get('device_enqueue_ns', [])[:DEVICES]],
+            device_gate_s=[s(v) for v in receipt.get('device_gate_ns', [])[:DEVICES]],
+            memory_serializations=receipt.get('device_memory_serializations', [])[:DEVICES],
+            scope='Driver counters and CUDA-event spans; not a CUDA API census or a physical peak')
+    return result
 
 
 def profile_metrics(gpu_row, api_row, nodes, proving_s):
@@ -582,6 +616,7 @@ class Bench:
             raise SystemExit('run only from the synced pod source tree /workspace/m3/src/<stream>')
         self.preset = json.loads(stack.DEFAULT_PRESET.read_text())
         self.environment = dict(stack.clean_environment(os.environ), TMPDIR=str(M3 / 'tmp'))
+        self.extra_env = extra_environment(args.env)
 
     # -- one service ---------------------------------------------------------
     def service(self, block, row, arm, role, round_index, attempt):
@@ -592,7 +627,11 @@ class Bench:
             argv.append('--bench-basket-block')
         if self.args.smoke:
             argv += ['--quiet-mode', 'diagnostic', '--request-timeout', str(self.args.request_timeout)]
-        for key, value in sorted(dict(block_environment(row), **arm_environment(arm, self.assets['assets'])).items()):
+        if role == 'profile' and getattr(self.args, 'nsys_root', None):
+            argv += ['--nsys-root', str(self.args.nsys_root.resolve())]
+        overlay = dict(block_environment(row), **arm_environment(arm, self.assets['assets']))
+        overlay.update(self.extra_env)
+        for key, value in sorted(overlay.items()):
             argv += ['--env', f'{key}={value}']
         run = M3 / 'runs' / self.stream / f'daemon-{block}-r2-{tag}'
         log = self.out / 'logs' / f'{label}.log'
@@ -616,7 +655,11 @@ class Bench:
         entry['requests'] = []
         for index, request in enumerate(receipt['requests']):
             combined = load(Path(request['proof']) / 'combined-report.json', {})
-            entry['requests'].append(request_metrics(request, combined, per_request[index] if index < len(per_request) else []))
+            native = load(Path(request['proof']).parents[1] / 'm8-jobs.json')
+            if arm == 'gpu-native' and (not native or native.get('schema') != 'rv64-m8-gpu-native-request/v1'):
+                entry.update(status='failed', reason='GPU-native driver receipt missing or schema changed')
+                return entry
+            entry['requests'].append(request_metrics(request, combined, per_request[index] if index < len(per_request) else [], native))
         memory = receipt.get('physical_gpu_memory') or {}
         peaks = [v for v in (memory.get('peak_used_bytes') or {}).values() if v]
         entry['device_peak_bytes'] = max(peaks) if peaks else None
@@ -799,8 +842,11 @@ class Bench:
         config = {'schema': SCHEMA, 'arms': self.args.arms, 'rounds': self.args.rounds, 'profile': self.args.profile,
                   'receivers': self.args.receivers, 'tolerate_arm_failure': self.args.tolerate_arm_failure, 'smoke': self.args.smoke, 'blocks': [r['block'] for r in rows],
                   'assets': self.assets, 'preset_sha256': stack.sha(stack.DEFAULT_PRESET), 'stream': self.stream,
-                  'source_commit': self.args.source_commit}
+                  'source_commit': self.args.source_commit, 'extra_env': self.extra_env,
+                  'nsys_root': str(self.args.nsys_root.resolve()) if self.args.nsys_root else None}
         previous = load(self.out / 'config.json')
+        if previous and previous.get('extra_env', {}) != config['extra_env']:
+            raise SystemExit('resume refused: common arm environment changed')
         if previous and {k: previous.get(k) for k in ('arms', 'rounds', 'profile', 'receivers', 'assets')} != \
                 {k: config.get(k) for k in ('arms', 'rounds', 'profile', 'receivers', 'assets')}:
             raise SystemExit('resume refused: this output directory was started with another configuration')
@@ -878,6 +924,9 @@ def main():
     r.add_argument('--min-free-gb', type=float, default=3.0)
     r.add_argument('--wait-for-gpu', action='store_true', help='start even if gpu.lock is held now (the harness waits for it)')
     r.add_argument('--source-commit')
+    r.add_argument('--nsys-root', type=Path, help='raw profile trace filesystem; standard per-run nsys link remains available')
+    r.add_argument('--env', action='append', default=[], metavar='STWO_NAME=value',
+                   help='explicit common arm override, e.g. STWO_RV64_M8_TRUTH_SPLIT=1; pinned for resume')
     r.add_argument('--smoke', action='store_true', help=f'one round on {SMOKE_BLOCK}, diagnostic quiet mode; walls unqualified')
     r.add_argument('--request-timeout', type=float, default=240)
     t = sub.add_parser('report', help='rebuild bench15.json/.md')

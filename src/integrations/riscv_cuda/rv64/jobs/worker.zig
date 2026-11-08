@@ -476,6 +476,7 @@ pub const Worker = struct {
     // loop state (worker thread only)
     staging: ?*Slot = null,
     enqueuing: ?*Slot = null,
+    warm_persistent_only: bool = false,
     last_enqueued: ?*Slot = null,
     next_seq: u64 = 0,
     // submission (any thread)
@@ -926,6 +927,15 @@ pub const Worker = struct {
     /// Best effort: every buffer is freed once and dropped from its container
     /// whatever the outcome (a failed free is never retried, so shutdown
     /// cannot free it twice); the first failure is reported.
+    /// Worker thread, or quiesced install: exact live allocation words.
+    /// Unlike class declarations this counts shared keys only once.
+    pub fn persistentWords(self: *Worker) u64 {
+        var words: u64 = if (self.regions_buffer != null) self.regions.words else 0;
+        var it = self.persistent_map.valueIterator();
+        while (it.next()) |buffer| words += buffer.words;
+        return words;
+    }
+
     fn releasePersistent(self: *Worker) !usize {
         var words: usize = 0;
         var first: ?anyerror = null;
@@ -1213,6 +1223,7 @@ pub const Worker = struct {
     pub fn persistent(self: *Worker, key: [32]u8, words: usize) !api.Persistent {
         const slot = self.staging orelse return error.StagerOutsidePhaseOne;
         if (self.regions_buffer) |pool| {
+            if (self.warm_persistent_only and self.regions.find(key) == null) return error.PersistentClassNotWarmed;
             if (slot.pinned_count == slot.pinned_keys.len) return error.TooManyPersistentRegions;
             if (slot.fresh_count == slot.fresh_keys.len and self.regions.find(key) == null) return error.TooManyPersistentFills;
             const got = try self.regions.acquire(self.a, key, words);
@@ -1230,6 +1241,7 @@ pub const Worker = struct {
             if (b.words != words) return error.PersistentGeometryMismatch;
             return .{ .buffer = b, .fresh = false };
         }
+        if (self.warm_persistent_only) return error.PersistentClassNotWarmed;
         if (slot.fresh_count == slot.fresh_keys.len) return error.TooManyPersistentFills;
         try self.persistent_map.ensureUnusedCapacity(self.a, 1);
         var ptr: ?[*]u32 = null;
@@ -1780,9 +1792,12 @@ pub const Worker = struct {
         var timer = std.time.Timer.start() catch unreachable;
         defer b.enqueue_ns = timer.read();
         self.onWorkerThread() catch |err| return failBatch(b, err, 0);
+        self.warm_persistent_only = b.require_warm_persistent;
+        defer self.warm_persistent_only = false;
         const slots = self.batch_slots[b.parity];
         if (b.jobs.len > slots.len) return failBatch(b, error.BatchExceedsReservedSlots, 0);
         b.pinned_used = 0;
+        b.memory_serializations = 0;
         b.slots = slots[0..b.jobs.len];
         self.setPhase(false);
         if (b.preamble) |h| h.run(h.ctx, self) catch |err| return failBatch(b, err, 0);
@@ -1802,12 +1817,26 @@ pub const Worker = struct {
                 if (staged) |s| self.batchEnqueue(b, s, null);
                 staged = null;
             }
+            if (staged) |s| {
+                const next = self.resolveFootprint(bj.job, bj.job.footprint());
+                if (!MP.pairFits(self.arena.words, s.resolved.peak_words, next.staged_words)) {
+                    // The ordinary mailbox pipeline applies this same test.
+                    // A batch must also enqueue the current job before staging
+                    // a neighbour whose inputs would shrink its work window.
+                    // The next upload is ordered by the done event on-device;
+                    // this introduces no host/device join.
+                    self.batchEnqueue(b, s, null);
+                    staged = null;
+                    b.memory_serializations += 1;
+                }
+            }
             const slot = self.batchStage(b, i);
             if (staged) |s| self.batchEnqueue(b, s, slot);
             staged = slot;
         }
         if (staged) |s| self.batchEnqueue(b, s, null);
         if (b.tail) |h| h.run(h.ctx, self) catch |err| {
+            std.debug.print("GPU_M8_GN_BATCH_FAILED device={d} phase=tail error={s}\n", .{ self.device_ordinal, @errorName(err) });
             b.result = err;
         };
         b.slots_used = b.jobs.len;
@@ -1828,6 +1857,7 @@ pub const Worker = struct {
     }
 
     pub fn failBatch(b: *Batch, err: anyerror, first: usize) void {
+        std.debug.print("GPU_M8_GN_BATCH_FAILED first={d} jobs={d} error={s}\n", .{ first, b.jobs.len, @errorName(err) });
         b.result = err;
         for (b.jobs[first..]) |*bj| {
             notifyFailed(bj);
@@ -1878,6 +1908,7 @@ pub const Worker = struct {
         };
         b.pinned_used += pinned.len;
         if (refused) |err| {
+            if (err != error.BatchDependencyFailed) std.debug.print("GPU_M8_GN_JOB_FAILED device={d} job={d} phase=stage error={s}\n", .{ self.device_ordinal, i, @errorName(err) });
             // Uploads the stage already issued (h2d, from the parity's pinned
             // pool) must be dominated by the exec stream: no done event of
             // this slot exists, so order them before every later job here.
@@ -1917,6 +1948,9 @@ pub const Worker = struct {
         }
         b.gate_wait_ns += gate_timer.read();
         _ = self.enqueue(slot, next);
+        if (slot.failed) |err| {
+            if (err != error.BatchDependencyFailed) std.debug.print("GPU_M8_GN_JOB_FAILED device={d} job={d} phase=enqueue error={s} arena_words={d} declared_peak_words={d} staged_words={any} high_words={d}\n", .{ self.device_ordinal, i, @errorName(err), self.arena.words, slot.resolved.peak_words, self.arena.staged, self.arena.peak });
+        }
         // `after` (capture ring release) runs whatever the body's outcome,
         // after this slot's done record, as long as every gate succeeded (a
         // failed gate means the capture may still own its buffers; the
@@ -2047,6 +2081,9 @@ pub const BatchHook = struct {
 pub const Batch = struct {
     jobs: []BatchJob,
     parity: u1 = 0,
+    /// Request batches may only adopt class resources warmed at install.
+    /// Refuse a miss before allocation, placement, eviction or host fill.
+    require_warm_persistent: bool = false,
     /// Before the first job (slab prefix upload, unset memset, start event).
     preamble: ?BatchHook = null,
     /// After the last job (slab D2H, cross-GPU completion, final event).
@@ -2055,6 +2092,9 @@ pub const Batch = struct {
     enqueue_ns: u64 = 0,
     /// Time the worker thread spent on host latches (capture/peer records).
     gate_wait_ns: u64 = 0,
+    /// Neighbour staging deferred because its inputs do not fit beside the
+    /// current class peak. Ordering is by device event, never a host wait.
+    memory_serializations: u64 = 0,
     pinned_used: usize = 0,
     slots_used: usize = 0,
     slots: []Slot = &.{},

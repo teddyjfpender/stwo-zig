@@ -39,6 +39,7 @@
 //! reseals, receipted (`misses`, `missed_classes`, BlockRecord) - a new
 //! block never fails closed for lack of a warmed class.
 const std = @import("std");
+const Semantic = @import("native_semantic.zig");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const CPU = @import("stwo_riscv_cpu_integration");
@@ -97,6 +98,7 @@ pub const Composition = struct {
     ctx: *const anyopaque,
     roles: *const fn (*const anyopaque, std.mem.Allocator, []const Components.Item) anyerror!RolesOut,
     parameter_slots: *const fn (*const anyopaque, id: u32) []const u32,
+    oods: ?*const fn (*const anyopaque, std.mem.Allocator, *const NComp.Plan, []const []const u32, u32) anyerror![]u32 = null,
 };
 
 pub const Env = struct {
@@ -270,6 +272,7 @@ pub const Class = struct {
     pcs: ?NP.PcsJob = null,
     pristine_columns: []PcsColumn = &.{},
     program: ?NE.Program = null,
+    oods_program: []u32 = &.{},
     bind_plan: NB.Plan,
     fixed_offsets: []usize = &.{},
     fixed_words: usize = 0,
@@ -296,6 +299,8 @@ pub const Class = struct {
     /// whose registration or miss-path warm failed can be retried).
     s1_registered: bool = false,
     s2_registered: usize = 0,
+    /// Request values in flattened role-local patch order, excluded from key.
+    public_values: []u32 = &.{},
 
     pub fn deinit(self: *Class) void {
         const a = self.a;
@@ -318,10 +323,12 @@ pub const Class = struct {
     /// Releases the Stage-2 fields (each empty / null when unbuilt).
     fn deinitStage2(self: *Class) void {
         const a = self.a;
+        a.free(self.public_values);
         for (self.global_patches) |*p| p.deinit(a);
         a.free(self.global_patches);
         self.comp_patches.deinit(a);
         if (self.program) |*p| p.deinit();
+        a.free(self.oods_program);
         a.free(self.pristine_columns);
         if (self.pcs) |*p| p.deinit(a);
         a.free(self.role_slots);
@@ -336,6 +343,7 @@ pub const Class = struct {
     }
     /// Every Stage-2 field empty (deinitStage2-safe), before buildStage2.
     fn resetStage2(self: *Class) void {
+        self.public_values = &.{};
         self.slots = &.{};
         self.gplans = .empty;
         self.gslots = &.{};
@@ -347,6 +355,7 @@ pub const Class = struct {
         self.pcs = null;
         self.pristine_columns = &.{};
         self.program = null;
+        self.oods_program = &.{};
         self.global_patches = &.{};
         self.comp_patches = .{};
         self.semantic_words = 0;
@@ -377,10 +386,7 @@ pub const Class = struct {
     /// key: one ClassCache entry per key, and the two stages own different
     /// plan types). Factory.bindSegment(segment, framingKey(class key)).
     pub fn framingKey(key: G.ClassKey) G.ClassKey {
-        var h = std.crypto.hash.sha2.Sha256.init(.{});
-        h.update("rv64-m8-gn-shape-framing/v1");
-        h.update(&key);
-        return h.finalResult();
+        return S2.framingKey(key);
     }
 };
 
@@ -615,6 +621,11 @@ fn buildStage2(env: *const Env, in: Inputs, cl: *Class) !void {
 
     // ---- n-stage2 extras: encode program + device patch tables ----
     cl.program = try NE.Program.build(a, cl.pcs.?.prepared.metadata.shape);
+    var sample_counts: [4][]const u32 = undefined;
+    for (cl.pcs.?.prepared.metadata.shape.trees, &sample_counts) |tree, *counts| counts.* = tree.sample_counts;
+    const build_oods = env.composition.oods orelse return error.NativeStage2OodsProgramMissing;
+    cl.oods_program = try build_oods(env.composition.ctx, a, comp_plan, &sample_counts, cl.mask_log);
+    try S2.NO.validate(cl.oods_program);
     cl.global_patches = try a.alloc(S2.PatchSet, n_globals);
     for (cl.global_patches) |*p| p.* = .{};
     for (cl.gslots, cl.global_patches) |slots, *ps| ps.* = try patchSet(a, &.{.{ .slots = slots, .base = 0 }}, &.{});
@@ -624,20 +635,35 @@ fn buildStage2(env: *const Env, in: Inputs, cl: *Class) !void {
     defer groups.deinit(a);
     var hc: std.ArrayListUnmanaged(HcRun) = .empty;
     defer hc.deinit(a);
-    var semantic_felts: u32 = S2.semantic_felts;
-    for (comp_plan.roles, cl.role_slots) |r, slots| {
-        try groups.append(a, .{ .slots = slots, .base = @intCast(r.t_params) });
+    for (comp_plan.roles, cl.role_slots, plan.slots) |r, slots, slot| {
+        const binding_base: ?u32 = if (slot.binding_index) |i| @intCast((try Semantic.instanceOffset(cl.bind_plan.row_logs, i)) / 8) else null;
+        try groups.append(a, .{ .slots = slots, .base = @intCast(r.t_params), .binding_base = binding_base });
         if (r.spec.aux == .hc) {
             const felts: u32 = @intCast(r.spec.hc.len / 8);
-            try hc.append(a, .{ .dst = @intCast(r.t_hc), .first = semantic_felts, .felts = felts });
-            semantic_felts += felts;
+            try hc.append(a, .{ .dst = @intCast(r.t_hc), .first = (binding_base orelse return error.NativeSemanticInstance) + 260, .felts = felts });
         }
     }
     cl.comp_patches = try patchSet(a, groups.items, hc.items);
-    cl.semantic_words = 8 * @as(usize, semantic_felts);
+    cl.semantic_words = Semantic.words(cl.bind_plan.row_logs);
+    var public_values: std.ArrayListUnmanaged(u32) = .empty;
+    defer public_values.deinit(a);
+    for (cl.global_patches, cl.gplans.items) |*p, gp| try flattenPublic(a, &p.public, gp.parameters, &public_values);
+    try flattenPublic(a, &cl.comp_patches.public, cl.comp_plan.?.table, &public_values);
+    cl.public_values = try public_values.toOwnedSlice(a);
 }
 
-pub const SlotGroup = struct { slots: []const u32, base: u32 };
+/// Preserve each role's public parameter value even when slots share the
+/// same JP name. Device patch indices address the concatenated request plane.
+pub fn flattenPublic(a: std.mem.Allocator, patch: *S2.Patch, table: []const u32, values: *std.ArrayListUnmanaged(u32)) !void {
+    if (patch.dst.len != patch.index.len) return error.NativeStage2PatchTable;
+    for (patch.dst, patch.index) |d, *index| {
+        if (@as(usize, d) + 8 > table.len) return error.NativeStage2PatchTable;
+        index.* = std.math.cast(u32, values.items.len / 8) orelse return error.NativeStage2PatchTable;
+        try values.appendSlice(a, table[d..][0..8]);
+    }
+}
+
+pub const SlotGroup = struct { slots: []const u32, base: u32, binding_base: ?u32 = null };
 pub const HcRun = struct { dst: u32, first: u32, felts: u32 };
 
 pub fn patchSet(a: std.mem.Allocator, groups: []const SlotGroup, hc: []const HcRun) !S2.PatchSet {
@@ -648,7 +674,15 @@ pub fn patchSet(a: std.mem.Allocator, groups: []const SlotGroup, hc: []const HcR
         defer dst.deinit(a);
         var index: std.ArrayListUnmanaged(u32) = .empty;
         defer index.deinit(a);
-        for (groups) |g| try S2.appendSlots(a, &dst, &index, g.slots, g.base, source);
+        for (groups) |g| {
+            const first = index.items.len;
+            try S2.appendSlots(a, &dst, &index, g.slots, g.base, source);
+            if (source == .semantic) if (g.binding_base) |base| {
+                for (index.items[first..]) |*i| if (i.* >= JP.local_count) {
+                    i.* = base + i.* - JP.local_count;
+                };
+            };
+        }
         if (source == .semantic) for (hc) |run| for (0..run.felts) |k| {
             try dst.append(a, run.dst + 8 * @as(u32, @intCast(k)));
             try index.append(a, run.first + @as(u32, @intCast(k)));
@@ -679,8 +713,10 @@ pub fn classFraming(self: *Class) S2.ClassFraming {
         .global_patches = self.global_patches,
         .comp_patches = self.comp_patches,
         .semantic_words = self.semantic_words,
+        .public_input_felts = @intCast(self.public_values.len / 8),
         .initial_claim = self.initial_claim,
         .terminal_claim = self.terminal_claim,
+        .oods = self.oods_program,
     };
 }
 
@@ -881,8 +917,11 @@ pub const Fingerprint = struct {
         const a = fp.a;
         // ---- Stage 2: framing ----
         try fp.value("s2.geometry", true, [_]u32{ cl.comp_log, cl.split, cl.total, cl.mask_log, cl.claim_count });
+        try fp.value("s2.public_input_felts", true, cl.public_values.len / 8);
+        try fp.words("s2.request.public_values", false, cl.public_values);
         const none = std.math.maxInt(u32);
         try fp.value("s2.boundary_claims", true, [2]u32{ cl.initial_claim orelse none, cl.terminal_claim orelse none });
+        try fp.words("s2.oods_program", true, cl.oods_program);
         {
             var k = FC.Key.init("s2.slots");
             for (cl.slots) |s| {
@@ -1257,6 +1296,7 @@ pub const BlockRecord = struct {
     block: u64,
     keys: []G.ClassKey,
     rows: []u64,
+    public_inputs: [][]u32 = &.{},
     /// Host wall of the block's class build at install [M].
     build_ns: u64,
     /// Of which: the sequential inventory (declarations, request views) [M].
@@ -1299,9 +1339,18 @@ pub const Builder = struct {
     /// closed with GnShapeMissWarmNotBound (the build is still receipted).
     miss_cache: ?*G.ClassCache = null,
     miss_devices: u32 = 0,
+    /// GPU-native capture binding borrows setup/public views between
+    /// requests. The corresponding warm Capture.Owner must outlive Builder.
+    retain_inventories: bool = false,
+    inventories: std.AutoHashMapUnmanaged(u64, *Inventory) = .empty,
 
     pub fn deinit(self: *Builder) void {
+        var inventories = self.inventories.valueIterator();
+        while (inventories.next()) |inv| inv.*.deinit();
+        self.inventories.deinit(self.a);
         for (self.blocks.items) |b| {
+            for (b.public_inputs) |values| self.a.free(values);
+            self.a.free(b.public_inputs);
             self.a.free(b.keys);
             self.a.free(b.rows);
         }
@@ -1367,13 +1416,20 @@ pub const Builder = struct {
         if (self.knownBlock(wb.block)) |b| return b;
         self.env.framing_instances = @max(1, if (self.factory != null) self.framing_instances else 1);
         const inv = try Inventory.init(self.a, wb.capture, self.env.config, self.fixed_setup_bytes);
-        defer inv.deinit();
+        var keep_inventory = false;
+        defer if (!keep_inventory) inv.deinit();
         const inventory_ns = timer.read();
         const n = inv.count();
         const keys = try self.a.alloc(G.ClassKey, n);
         errdefer self.a.free(keys);
         const rows = try self.a.alloc(u64, n);
         errdefer self.a.free(rows);
+        const public_inputs = try self.a.alloc([]u32, n);
+        @memset(public_inputs, &.{});
+        errdefer {
+            for (public_inputs) |values| self.a.free(values);
+            self.a.free(public_inputs);
+        }
         // Segment classes are independent: build them in parallel (the
         // allocator must be thread safe; gcatalogue is guarded by gmutex).
         const slots = try self.a.alloc(BuildSlot, n);
@@ -1406,6 +1462,7 @@ pub const Builder = struct {
             errdefer if (owned) cl.deinit();
             keys[i] = cl.key;
             rows[i] = cl.rows;
+            public_inputs[i] = try self.a.dupe(u32, cl.public_values);
             self.mutex.lock();
             defer self.mutex.unlock();
             if (self.classes.get(cl.key)) |old| {
@@ -1426,9 +1483,13 @@ pub const Builder = struct {
             try self.registerFresh(fresh.items);
             warm_ns = wt.read();
         }
-        const rec = BlockRecord{ .block = wb.block, .keys = keys, .rows = rows, .build_ns = timer.read(), .inventory_ns = inventory_ns, .classes_ns = classes_ns, .threads = @intCast(threads), .miss = miss, .new_classes = @intCast(fresh.items.len), .register_ns = warm_ns };
+        const rec = BlockRecord{ .block = wb.block, .keys = keys, .rows = rows, .public_inputs = public_inputs, .build_ns = timer.read(), .inventory_ns = inventory_ns, .classes_ns = classes_ns, .threads = @intCast(threads), .miss = miss, .new_classes = @intCast(fresh.items.len), .register_ns = warm_ns };
         self.mutex.lock();
         defer self.mutex.unlock();
+        if (self.retain_inventories) {
+            try self.inventories.put(self.a, wb.block, inv);
+            keep_inventory = true;
+        }
         try self.blocks.append(self.a, rec);
         if (miss) {
             self.misses += 1;

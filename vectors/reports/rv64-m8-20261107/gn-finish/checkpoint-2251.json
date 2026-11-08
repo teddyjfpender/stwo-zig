@@ -1,0 +1,28 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "observed_utc": "2026-11-07T22:48:00.285680+00:00",
+  "scope": "Install passes; first real native cold/warm request attempt fails; no completed native proof",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/native-live-1/receipt.json",
+      "result": "exit1, wall_ns132857581846; both requests fail BatchDependencyFailed",
+      "sha256": "ec43fbeefc9eb65e1f0abd980857608bcc7dd191058ef77e83aabda6b4c95630"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-native-live-1-00-baseline/spool/done/0000-26235156.json",
+      "result": "ok=false, BatchDependencyFailed, sequence0"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-native-live-1-00-baseline/producer.stderr",
+      "result": "READY init_ns115184276811; no new request uploads or arena overruns; originating error not logged",
+      "sha256": "e211820980ff49ded6229fc87e27faf00277efacc3616c3f14e20850a4304880"
+    }
+  ],
+  "pending": {
+    "main": "build18 then native-live2 with first capture/job failure diagnostics",
+    "scratch": "gate22 still building receiver at observation",
+    "freeze": "Main frozen until build18/native-live2 terminal; scratch frozen until gate22 terminal"
+  },
+  "claim_boundary": "No completed native proof or qualified native end-to-end performance result. Install9 success and codec/host test receipts remain scoped component evidence."
+}

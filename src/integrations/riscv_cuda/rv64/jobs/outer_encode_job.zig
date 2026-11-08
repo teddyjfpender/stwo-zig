@@ -215,6 +215,7 @@ pub const EncodedNode = struct {
         try self.inner.stage(s);
         const p = try s.persistent(self.desc_key, self.desc.len);
         self.desc_buf = p.buffer;
+        if (self.inner.require_warm and p.fresh) return error.GpuNativeRecursionEncoderCold;
         if (p.fresh) {
             const pinned = try s.pinned(self.desc.len);
             @memcpy(pinned, self.desc);
@@ -232,6 +233,7 @@ pub const EncodedNode = struct {
         if (self.oods) |*o| {
             const q = try s.persistent(o.key, o.program.len);
             o.buf = q.buffer;
+            if (self.inner.require_warm and q.fresh) return error.GpuNativeRecursionEncoderCold;
             if (q.fresh) {
                 const pinned = try s.pinned(o.program.len);
                 @memcpy(pinned, o.program);

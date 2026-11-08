@@ -38,6 +38,8 @@ const NCB = @import("native_class_build.zig");
 const NGl = @import("native_global.zig");
 const NP = @import("native_pcs.zig");
 const Sources = @import("../gkr_sources.zig");
+const CaptureBinding = @import("../native_capture_bind.zig");
+const RequestInputs = @import("../native_request_inputs.zig");
 
 const Request = CPU.rv64_ethereum_request;
 const Image = CPU.rv64_expected_image;
@@ -77,6 +79,7 @@ pub const Source = struct {
     profile: CPU.rv64_om31_security_candidate.Profile,
     gkr_bytes: usize,
     fixed_setup_bytes: usize,
+    inputs_options: RequestInputs.Options = .{},
     /// One capture work pool per in-flight request (TLS-bound on its capture
     /// thread) plus one for install-time warm captures.
     pools: [3]*engine.work_pool.WorkPool,
@@ -109,6 +112,7 @@ pub const Source = struct {
         errdefer a.destroy(self);
         self.* = .{ .a = a, .blocks = &.{}, .metadata = try Metadata.Cache.init(a, 64 << 20), .options = options, .pools = undefined, .profile = try CPU.rv64_om31_security_candidate.Profile.parse(m.profile), .gkr_bytes = resourceUsize(m.resources, "gkr_bytes") orelse return error.GpuNativeManifestNoGkrBytes, .fixed_setup_bytes = resourceUsize(m.resources, "fixed_setup_bytes") orelse (4 << 30) };
         errdefer self.metadata.deinit();
+        self.inputs_options = try RequestInputs.Options.fromResources(m.resources);
         var unique: std.ArrayListUnmanaged(u64) = .empty;
         defer unique.deinit(a);
         for (m.execution_order) |b| if (std.mem.indexOfScalar(u64, unique.items, b) == null) try unique.append(a, b);
@@ -227,10 +231,10 @@ pub const Source = struct {
         return endOf(b, &b.warm.?);
     }
     fn releaseWarm(raw: *anyopaque, number: u64) void {
-        const self = of(raw);
-        const b = self.find(number) catch return;
-        if (b.warm) |*w| w.deinit();
-        b.warm = null;
+        // CaptureBinding's install inventory borrows boundary RAM and setup
+        // views. Source owns the warm capture until service teardown.
+        _ = raw;
+        _ = number;
     }
 
     /// One request's capture thread and its streaming hook state.
@@ -273,7 +277,7 @@ pub const Source = struct {
             const src = run.src;
             var binding = engine.work_pool.ScopedPoolBinding.init(src.pools[run.pool]) catch |err| return run.feed.finish(err);
             defer binding.deinit();
-            const ready = Capture.Ready{ .context = run, .call = readyCall, .native_segment = readySegment, .cancel = readyCancel };
+            const ready = Capture.Ready{ .context = run, .call = readyCall, .native_segment = readySegment, .cancel = readyCancel, .seal_native = true };
             run.owner = src.captureBlock(run.block, ready) catch |err| return run.feed.finish(err);
             run.feed.end(endOf(run.block, &run.owner.?)) catch {};
             run.feed.finish(null);
@@ -349,12 +353,22 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     defer libs.close();
     const peer = try O.Peer.open(&libs.addon);
     const config = try mod.Config.fromEnv();
+    // Build real immutable recursion classes before native workers carve the
+    // device pool. Its cold proof construction is counted in init_ns.
+    const recursion_classes = try Host.installRecursion(a, &libs, library, manifest_path, spool);
+    defer recursion_classes.deinit();
+    // [M component] truth-reuse-1 preserves all seven real-block truth
+    // proofs with a lower scratch high-water. Keep opt-in for request gates.
+    const reuse = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_REUSE", 0);
+    if (reuse > 1) return error.InvalidM8GpuNativeEnvironment;
     var workers: [G.max_devices]*W.Worker = undefined;
     var made: usize = 0;
     defer for (workers[0..made]) |w| w.destroy();
     if (config.device_count > G.max_devices) return error.GpuNativeTooManyDevices;
     for (config.devices[0..config.device_count]) |d| {
-        workers[made] = try W.Worker.create(a, &libs.ops, .{ .device = d, .arena_words = 1 << 16, .pinned_slot_words = 1 << 12, .pinned_lazy = true, .plan_from_env = false });
+        // WarmJob uploads FIXED coefficients at install. Lazy slots allocate
+        // nothing initially; allow the class's actual upload footprint.
+        workers[made] = try W.Worker.create(a, &libs.ops, .{ .device = d, .arena_words = 1 << 16, .pinned_slot_words = (8 << 30) / 4, .pinned_lazy = true, .plan_from_env = false, .reuse_frees = reuse == 1 });
         made += 1;
     }
     const source = try Source.init(a, manifest_path);
@@ -389,7 +403,18 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
         .fixed_setup_bytes = source.fixed_setup_bytes,
     };
     defer builder.deinit();
-    binding.bindShape(builder.hooks());
+    var capture_binding = CaptureBinding.Binding.init(a, &builder, &binding.registry);
+    defer capture_binding.deinit();
+    // lint:install-begin — bind the install-time pinned ROM allocator.
+    capture_binding.roms.pinned = .{ .alloc = libs.ops.wait.host_alloc, .free = libs.ops.wait.host_free };
+    // lint:install-end
+    var request_inputs = RequestInputs.Binding{ .a = a, .native = &builder, .binding = binding, .base = &libs.base, .options = source.inputs_options, .recursion_classes = recursion_classes, .profile = source.profile };
+    defer request_inputs.deinit();
+    binding.fallback.ctx = &request_inputs;
+    binding.fallback.recursion_shape = RequestInputs.Binding.shape;
+    binding.bindShape(capture_binding.shapeHooks());
+    binding.bindCapture(capture_binding.captureHooks());
+    binding.bindInputs(request_inputs.hooks());
     binding.bindNodeOps(&libs, peer);
     {
         var text: std.Io.Writer.Allocating = .init(a);
@@ -403,7 +428,10 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     const rc = R.Config{
         .capacity_words = caps[0..made],
         .max_segments = 64,
+        .exchange_partials = (try Chain.version()) != .flat,
         .pool_current = libs.base.lookup(*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int, "stwo_exec_context_pool_current"),
+        .fixed_pool = if (std.posix.getenv("STWO_RV64_DEVICE_ARENA")) |v| !std.mem.eql(u8, v, "0") else true,
+        .prewarm_resources = (try envUnsigned("STWO_RV64_M9_CLASS_PACKED_INGRESS", 0)) == 1,
         .slab_words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES", default_slab_bytes) / 4,
         .batch_pinned_words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES", default_batch_pinned_bytes) / 4,
     };

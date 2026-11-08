@@ -255,7 +255,7 @@ pub fn enqueueStreamed(device: *K.Device, plan: *const Plan.TreePlan, stream: *c
     try device.copy(commit.root_out, hashes + (p.tree_words - 8), 8);
 }
 
-fn interpolate(device: *K.Device, plan: *const Plan.TreePlan, evaluations: [*]const u32, coefficients: [*]u32, s: Statics) !void {
+pub fn interpolate(device: *K.Device, plan: *const Plan.TreePlan, evaluations: [*]const u32, coefficients: [*]u32, s: Statics) !void {
     for (plan.groups) |group| {
         const rows: u64 = @as(u64, 1) << @intCast(group.log);
         if (rows / 2 > s.itwiddle_words) return error.InvalidOuterTwiddles;

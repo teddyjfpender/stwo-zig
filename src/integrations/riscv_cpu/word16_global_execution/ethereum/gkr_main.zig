@@ -142,7 +142,7 @@ fn since(origin: std.time.Instant) u64 {
 const CANDIDATE_PROFILE = "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering";
 const CONJECTURED_PROFILE = "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering";
 /// Report label of a receiver-selected candidate profile (historical label for proven).
-fn candidateLabel(profile: Candidate.Profile) []const u8 {
+pub fn candidateLabel(profile: Candidate.Profile) []const u8 {
     return switch (profile) {
         .proven_beta2_q256_p0_fold4 => CANDIDATE_PROFILE,
         .conjectured128_b2_q108_p20_fold4 => CONJECTURED_PROFILE,

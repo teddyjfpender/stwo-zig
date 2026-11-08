@@ -1,0 +1,360 @@
+{
+  "schema": "rv64-gpu-native-delivery-progress/v1",
+  "status": "IN_PROGRESS",
+  "started_utc": "2026-11-07T18:23:05Z",
+  "deadline_utc": "2026-11-08T06:23:05Z",
+  "brief": "/Users/theodorepender/.codex/attachments/998177a6-5029-45df-afeb-7ea919d08bba/pasted-text-1.txt",
+  "design": "design/riscv-proving-stack/rv64-m8-handoff.md on origin/codex/rv64-cuda-ethereum",
+  "working_branch": "codex/rv64-m8-gn-bind",
+  "base_commit": "7bbe1c5c0b98a70de128581e744d7ca56beb1669",
+  "observed_remote_pr_head": "95f9825d0ce135c629e3d8439ff899bf3be86d1b",
+  "hardware": "Existing rv64-resident-2x5090 pod; no new pod created",
+  "evidence": [
+    {
+      "status": "M",
+      "gate": "inherited gate-10",
+      "result": "FAIL",
+      "reason": "27,468,160,768-byte plan allocation exceeds 27,279,753,216-byte fixed arena",
+      "path": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-10-00-baseline/producer.stderr"
+    },
+    {
+      "status": "M",
+      "gate": "inherited gate-11",
+      "result": "PASS",
+      "block": 26235156,
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-11/gate.json"
+    },
+    {
+      "status": "M",
+      "gate": "inherited gate-12",
+      "result": "PASS",
+      "block": 24628607,
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-12/gate.json"
+    },
+    {
+      "status": "M",
+      "gate": "capacity host regression",
+      "result": "69 passed, 1 skipped, 0 failed",
+      "path": "/workspace/m3/runs/m8-gn-bind/capacity-probe/jobs/driver_memory.zig"
+    },
+    {
+      "status": "M",
+      "gate": "gate-13",
+      "result": "BUILD_FAIL",
+      "reason": "Test helper B shadowed existing import; corrected locally",
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-13"
+    },
+    {
+      "status": "M",
+      "gate": "gate-14",
+      "result": "BUILD_AND_HOST_TESTS_PASS_REQUEST_FAIL",
+      "reason": "Install advances past allocation; WarmJob refused with JobFootprintExceedsPinned",
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-14"
+    },
+    {
+      "status": "M",
+      "gate": "gate-15",
+      "result": "BUILD_PASS_ONE_LINT_FAILURE",
+      "tests": "1102 passed, 15 skipped, 1 failed",
+      "reason": "Pinned allocator binding lacked install fence; corrected locally",
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-15"
+    },
+    {
+      "status": "M",
+      "gate": "gates-16-17",
+      "source_label": "7bbe1c5c0-bringup4",
+      "path": "/workspace/m3/runs/m8-gn-bind",
+      "note": "Default gate then GPU-native gate. Check tmux gnfinish-g16-17 and authoritative receipts before changing synced source.",
+      "result": "gate-16 PASS; gate-17 memory-plan refusal after new truth classes were installed"
+    },
+    {
+      "status": "M",
+      "gate": "local GKR device codec parity",
+      "result": "PASS, 65/65 tests",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/local-gkr-codec-parity.json",
+      "boundary": "Synthetic serialization fixtures, V1/V3 on both 5090s; not end-to-end acceptance"
+    },
+    {
+      "status": "M",
+      "gate": "gate-16 partial",
+      "result": "build, host units, default cold/warm block proofs and both fresh receivers passed; negative corpus still running",
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-16"
+    },
+    {
+      "status": "M",
+      "gate": "gate-18",
+      "result": "build and host units PASS; install fails at truth memory bound",
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-18"
+    },
+    {
+      "status": "M",
+      "gate": "codec, host regressions, reuse component",
+      "result": "81/81 codec GPU tests; 583/598 host tests passed, 15 skipped; seven older-harness truth proofs byte-identical with reuse",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-1957.json"
+    },
+    {
+      "status": "RUNNING_AT_LAST_OBSERVATION",
+      "gate": "gate-19, jobs-4",
+      "source_label": "7bbe1c5c0-bringup6; GPU_NATIVE_REUSE=1",
+      "paths": [
+        "/workspace/m3/runs/m8-gn-bind/gate-19.log",
+        "/workspace/m3/runs/m8-gn-codec/jobs-4.log"
+      ],
+      "note": "Synced stream source frozen. Gate19 includes latest local semantic/direct-handoff, phase-A/B, install-warm changes and Stage2 held accounting. Jobs4 scratch is just before last held accounting edit."
+    },
+    {
+      "status": "M",
+      "gate": "jobs-5 and GPU codec-3",
+      "result": "697 host tests passed, 16 skipped; 83 codec tests passed, with leaf suffix parity and rejection checks on both GPUs",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2054.json"
+    },
+    {
+      "status": "M",
+      "gate": "gate-20 native",
+      "result": "build and units PASS; service reaches READY, requests reject GpuNativeClassNotWarmed; no completed request",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2011.json"
+    },
+    {
+      "status": "M",
+      "gate": "install-2",
+      "result": "FAIL OuterClassPlanAllocatorMismatch during recursion construction; corrected allocator identity in later source, GPU retest pending",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2054.json"
+    },
+    {
+      "status": "RUNNING_AT_LAST_OBSERVATION",
+      "gate": "gate-21 default then install-3",
+      "source_label": "7bbe1c5c0-bringup8",
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-21.log",
+      "note": "Main pod source frozen; compiler pid 790892 observed live. Install-3 starts only after gate PASS."
+    },
+    {
+      "status": "M",
+      "gate": "gate21, install3/4, typecheck6 and branch review updates",
+      "result": "No completed request; gate21 units failed on lint, lint architecture fixed and standalone pass; constructor advanced to unbound diagnostic device outputs, corrected in build13",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2132.json"
+    },
+    {
+      "status": "M",
+      "gate": "install5, GPU codec4, typecheck7",
+      "result": "Constructor validates 15 nodes then memory plan refuses uncompressed class residency; 84/84 codec tests pass, resident packed decoder parity and malformed-input rejection on both GPUs; full driver typecheck pass",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2150.json"
+    },
+    {
+      "status": "M",
+      "gate": "install6, worker9, typecheck9, phase8, codec4 memcheck",
+      "result": "Packed class declarations fall 23.7 to 4.6 GB, still fail admission; current source adds actual persistent census and guarded phase-B classification; semantic and host checks pass; full native unqualified",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2206.json"
+    },
+    {
+      "status": "M",
+      "gate": "install7/8, codec5, memcheck2, jobs10",
+      "result": "Resource census succeeds, final memory plan still refuses phase B; version2 codec tests both record predictors on both GPUs,85 tests and sanitizer pass; current build17/install9 tests smaller eight-field images",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2234.json"
+    },
+    {
+      "status": "M",
+      "gate": "install9",
+      "result": "PASS install-only: READY true, all FIXED roots equal, both persistent allocation censuses627933789 words; full native cold/warm probe started, no proof completed at last observation",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2241.json"
+    },
+    {
+      "status": "M",
+      "gate": "native-live1",
+      "result": "FAIL: both full native requests fail BatchDependencyFailed after successful install; first-failure diagnostics added for retry",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2251.json"
+    },
+    {
+      "status": "STATIC",
+      "gate": "Wave3 targeted WIP review",
+      "result": "Not accepted: CPU parity result does not affect GKR benchmark exit; verification was skipped in sole timing receipt; cap census masks non-coverage errors",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/wave3-static-review.json"
+    },
+    {
+      "status": "M",
+      "gate": "default gate22 / native-live2",
+      "result": "Default gate PASS on26235156; native-live2 FAIL first error exchange claims shape; secondary Stage2 footprint exposed omitted admission budget",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2303.json"
+    },
+    {
+      "status": "M",
+      "gate": "default gates22/23, host12, semantic13",
+      "result": "Both default gates PASS before latest native-only fixes; latest host suite and semantic driver PASS. Main optimized build19/native-live3 pending. No completed native request.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2309.json"
+    },
+    {
+      "status": "HOST_MODEL",
+      "gate": "graph recording launch accounting",
+      "result": "3/3 cache tests PASS with capture/rebind/fallback call accounting; exact-binding graph replay remains absent",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/graph-launch-accounting.json"
+    },
+    {
+      "status": "M",
+      "gate": "native-live3, host13, semantic14",
+      "result": "Full native fails truth Stage1 pinned budget; scaled declaration and actual staging regression PASS in712-test host run. Build20/native-live4 pending; strict no-cold-allocation worker guard under isolated test.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2329.json"
+    },
+    {
+      "status": "HOST_MODEL",
+      "gate": "worker11 warm persistent policy",
+      "result": "56 passed,1 skipped,0 failed; cold miss refused before allocations in pooled and per-key modes, installation fill and warm reuse succeed",
+      "path": "/workspace/m3/runs/m8-gn-codec/worker-11.log",
+      "sha256": "268a1e631503f8c510905e291400fe33b2fcaefcf38b0313c5a7c20e7a95c0be",
+      "boundary": "New guard not in frozen main build20/native-live4; scratch composed host14 running"
+    },
+    {
+      "status": "M",
+      "gate": "native4, boundary1, host15, GPU6",
+      "result": "Native4 fails empty-boundary pointer; correction preserves zero claim and passes required real-GPU regression. Current host719 tests and codec87 tests pass. Build21/native5 pending.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-2340.json"
+    },
+    {
+      "status": "M",
+      "gate": "native5, fast6, host16, LLVM22",
+      "result": "Native5 publication fails unset OODS verdict; missing descriptor hookup added. Host719 tests and LLVM22 build PASS; native7 running; current default gates24/25 running. No native proof accepted.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0012.json"
+    },
+    {
+      "status": "M",
+      "gate": "native7 / diagnostic typecheck18",
+      "result": "Native7 executes OODS check and rejects a composition mismatch in both requests. Diagnostic slab tail and all-verdict logging typecheckPASS, offline host replay built. Build23/native8 and default24/25 pending.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0021.json"
+    },
+    {
+      "status": "M",
+      "gate": "diagnostic layout/typecheck19/default24 progress",
+      "result": "Corrected debug-tail placement before GPU execution; typecheck19PASS. Main build24/native9 pending, default24 corpus running then default25. No native proof accepted.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0024.json"
+    },
+    {
+      "status": "M",
+      "gate": "default gate24",
+      "result": "PASS OODS-hook snapshot on26235156: cold/warm32 byte-identical artifacts,2 fresh receivers,19 harness cases; V04 resource rejection. Later diagnostic changes not covered. Native build24 live.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0029.json"
+    },
+    {
+      "status": "M",
+      "gate": "native9 data replay / default25 / addressing fix",
+      "result": "Native9 rejected, but stage-one+7truth artifacts match default; host OODS mirrors GPU mismatch. Confirmed prefix-vs-sorted resident address bug corrected, unused flat partial mode corrected; typecheck20PASS,host17 thenbuild25/native10 pending. Default25PASS earlier source.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0039.json"
+    },
+    {
+      "status": "M",
+      "gate": "host17/current full-driver typecheck20",
+      "result": "PASS726 tests,16 skipped,16/16 build steps. Corrected sorted-resident views and flat-only exchange slot mode; LLVMbuild25/native10 and current default26/27 running. No native accepted proof.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0041.json"
+    },
+    {
+      "status": "M",
+      "gate": "native10 producer/frozen parity/fresh CPU processes",
+      "result": "Native26235156 cold/warm publish successfully;32/32 frozen artifacts identical for each;2 raw fresh CPU receivers accept complete proofs. Wrapper refuses missing capture metadata, correction is in full native28/29 gates. Larger246 probe running. No performance claim.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0055.json"
+    },
+    {
+      "status": "M",
+      "gate": "native11-246 / twiddle-tower host2",
+      "result": "246native fails beforeREADY atPhaseB; actual logical census857509485 words/GPU. Shared canonical tower prototype passes exact-array/alignment/key/corruption host regression; isolated LLVM build then native12-246 GPU retry pending.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0108.json"
+    },
+    {
+      "status": "M",
+      "gate": "native28 strict receiver/parity steps / tower build",
+      "result": "Native28 passes262cold/warm,frozen32artifacts twice and2strictfreshreceiver harness checks; corpus pending. Isolated sharedtower LLVMbuildPASS,native12-246GPU install active.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0113.json"
+    },
+    {
+      "status": "M",
+      "gate": "gates26-29 andnative12",
+      "result": "262native28PASS;default26/27PASS;246native29/tower12FAILPhaseB.19case262harness hasV04resource rejection. Typecheck21PASS; jobs18outercompilefailsmissingtestmodule; movedrealcanonicalregression tofullnative root forjobs19. Gate30newtruthmeasurement live.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0130.json"
+    },
+    {
+      "status": "M",
+      "gate": "host19/typecheck21/native30",
+      "result": "Host19PASS739tests/16skips. Native30build/unitsPASS thenProbeJobFootprintExceedsArena: full temporary window omittedchannelprefix. Corrected locally;native31/34 andhost20live;defaults32/33live.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0140.json"
+    },
+    {
+      "status": "M",
+      "gate": "PCSretirementcomponentfalsifier",
+      "result": "Prototype/control99testsPASS1skip each; fullPCSimagesbyteidenticaltwice,NativeStage2transcriptequal;memcheck0errors. Arena high-water identical on bothplacements; no memorygain. Setaside and removedproductpatch, P1notclosed.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/pcs-retire-1/result.json"
+    },
+    {
+      "status": "M",
+      "gate": "native31/default32/worker-pair1",
+      "result": "Native246 reachesREADY after measuredtruthadmission; bothrequestsfailGPU1job12JobWorkExceedsArena. Missingbatchpairadmissionfixed,focused6testsPASS. Default32PASS32artifacts2freshreceivers19caseharness(V04resource). Native35/36,default33,host21live.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0200.json"
+    },
+    {
+      "status": "M",
+      "gate": "native35 producer/frozen39/freshCPU2",
+      "result": "246native completes2requests10.458445148/10.709946228s,init145.197276819s;39/39frozenartifactsidenticaltwice,2strictfreshreceiverharnessesaccepted.1GPU1memorydeferralperrequest,hostwait1/D2H2. Corpuspending; nofullgate35PASSorperformanceclaim.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0215.json"
+    },
+    {
+      "status": "M",
+      "gate": "native35/36 full;default37",
+      "result": "NativebothdevblocksfullgatesPASSwithmainbinary72cf8b9c,39/32frozenartifactsx2,2freshCPUreceiverseach,19caseharnesseach.262V04resourcerejectioncaveat. Default37PASS38corpuslive. Python42PASS+offlineparserreplaycorrect.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0233.json"
+    },
+    {
+      "status": "M",
+      "gate": "native35/36+default37/38",
+      "result": "All4gatesPASS;39/32frozenartifactstwiceeach,2freshreceiverspergate,19caseharnesspergate(262V04resourcecaveat). Nativebinary72cf8b9c/defaultscratch5d7f9f03. Corecheckpointcommitplanned,exact-commitgate39beforepush.",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0235.json"
+    }
+  ],
+  "implementation_pending_validation": [
+    "Fixed arena capacity excludes CUDA free memory outside the carve and future class reservations",
+    "Deferred Stage1 consumes witness only after capture readiness",
+    "Per-request native class keys select Stage2 framing without shared ordinal collisions",
+    "Live compact capture serializer, per-request seed/prefix/publics, retained install inventory",
+    "Compact witness budgets replace the v1 expanded image term",
+    "Install-time ROM upload and ring sizing from measured compact segment capacity",
+    "Role-local public parameters use distinct flattened patch indices; per-segment values survive class deduplication",
+    "Truth factory keeps separate state per in-flight request",
+    "Truth request mode removes individual job readback slabs; device checks stay mandatory",
+    "Install-time truth declarations, FIXED authority, receiver execution admission and native boundary/public inputs",
+    "Local GKR receipt/child codec wired into Stage1 persistent class and request exchange slots; full jobs suite running on isolated m8-gn-codec snapshot",
+    "Device stage-one manifest encoder; CPU/GPU serialization parity passed, full request pending",
+    "Request begin/planned/capture lifecycle; delayed truth Stage1 and Stage2 construction",
+    "Truth class FIXED, twiddle, OODS and encode install warm; request paths refuse cold FIXED/program resources",
+    "Instance-specific semantic plane for local draws, binding metadata and HC rows; Stage2 reads actual resident handoffs",
+    "Stage2 proof capacity copied to native class; FIXED persistent geometry reconciled",
+    "Phase-A/B split for truth producer/completion, rank truth completion after native Stage2, opt-in allocator reuse",
+    "Owned recursion class installation, exact topology authorities and warm-only device resources",
+    "Per-request leaf tape/public-frame programs and live device PCS image suffix",
+    "Per-block recursion authority selection, class-capacity suffix relayout, C allocator identity and Staged teardown fixes"
+  ],
+  "remaining_requirements": [
+    "Native35/36devblockgatesPASS(frozen39/32twice,2freshreceiverseach,19caseharness;262V04resourcecaveat). Continue broaderprofiles,negativedevicechecks,scalingandproductionrequirements below.",
+    "Complete live GPU-native requests: validate native Stage1/2, truth classes, leaf suffixes, manifest/roster/public planes, recursion, all device verdicts and canonical publication end to end",
+    "Default and GPU-native rv64_gate.sh PASS on 26235156 and 24628607: frozen cold/warm byte identity, two fresh CPU receivers per gate and the complete 19-case corpus",
+    "Qualify current D1-D5, N1-N6 and R1-R6 acceptance scopes, including peer-slot ordering, all named negative device checks and fresh complete proof validation",
+    "Warm full-request nsys on 24628607: one host wait, one D2H per GPU, host critical path excluding capture, GPU busy, kernel GPU-seconds, launches/syncs and idle causes; physical per-node peaks need separately qualified observer evidence",
+    "Canonical quiet interleaved 3+3 default versus GPU-native on 24628607 and 26235159, plus median 26235168 per handoff; parity and receivers after timing",
+    "Fifteen-block GPU-native basket with TRUTH_SPLIT=1; fill missing current-runtime default arms; preserve failed arms as failures",
+    "Enforce zero request allocations outside plan regions, compact-v2-only ingress, no legacy MAIN replay/owner callbacks or request-side CPU verification; only block-derived ingress on requests",
+    "Install whole-node graphs and qualify H24/R3: at most 50 host launches per node, zero per-node host waits and no per-node FIXED recommit; current graphs remain absent",
+    "Qualify real new-block class-miss behavior and E8 cross-block warm experiment; include all setup cost and do not treat install-only legacy warm construction as a production latency result",
+    "Residency: qualify packed resident images, dedicated copy stream without host joins, measure geometry residual before building it, in-place D2D work, P1 chunk-bounded GKR/PCS retirement/streamed commitments and p95 MAIN spill policy",
+    "Equal-height column stacking paired with Blake3 for every tree a leaf opens and native b2; named profile, soundness and proof-format note, fresh receivers/corpus, canonical 3+3 and bench15",
+    "Native GKR for all lookup columns, beyond only v2 strict classes; independently qualify the semantic and soundness boundary",
+    "Segments of 2^23 with fan-in-4 leaves after P1 memory; gate and measure on the required basket",
+    "Recursion diet: parent caps, q102/p26 with qualified fast grind, coset FRI leaves, last layer 2^4 and fold arity6; explicit profile and soundness qualification",
+    "Class-stable shapes so genuinely new blocks avoid setup on the critical path; current per-block warm classes do not establish this",
+    "M10 MLE/GKR+WHIR direction and four-GPU placement remain unimplemented and unqualified; no new pod is authorized by the active pod protocol",
+    "Review unreviewed Wave3 proof-parameters and GKR-benchmark work; preserve source and evidence attribution",
+    "Land gated work on integration and fast-forward PR branch, never force-push; promote only with every-block wins; clean up feeder/hybrids/admission/two-lane code only after replacement qualification",
+    "Targets remain unproven: 24628607 at most5s on two GPUs; 26235159 at most10s on four GPUs"
+  ],
+  "claim_boundary": "BothdevelopmentblocksdefaultandnativegatesPASSwith262V04resourcecaveat. FlagsOFF; sourcecheckpointnotyetpushed. Fullobjectiveinclcanonicalperformance,productionclassstability,P1,H24,STACK,GKR,M10,basketandlandingnotcomplete.",
+  "latest_checkpoint": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0235.json",
+  "milestones": {
+    "native_development_correctness": {
+      "status": "PASS_WITH_262_V04_RESOURCE_LIMITATION",
+      "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0233.json",
+      "scope": "BothdevblockrequestscompleteandfreshCPUreceiversaccept;notfullgoalorproductionreadiness"
+    }
+  }
+}

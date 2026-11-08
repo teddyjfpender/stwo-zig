@@ -65,6 +65,8 @@ const api = @import("api.zig");
 const G = @import("gpu_native.zig");
 const C = @import("native_commit.zig");
 const NG = @import("native_gkr.zig");
+const Wire = @import("native_gkr_wire.zig");
+const Semantic = @import("native_semantic.zig");
 const NB = @import("native_binding.zig");
 const HJ = @import("native_hybrid_jobs.zig");
 const Slab = @import("slab.zig");
@@ -150,9 +152,11 @@ pub const Symbols = struct {
     binding: NB.Symbols,
     /// v2 compact ingress kernels (base-library *_witness_on; null = v2 refused).
     pack: ?NP.Symbols = null,
+    receipt_encode: ?Wire.EncodeFn = null,
     pub fn load(base: *std.DynLib, addon: *std.DynLib, gkr: ?*const NG.Symbols) !Symbols {
         return .{
             .pack = NP.Symbols.load(base, addon) catch null,
+            .receipt_encode = Wire.load(addon) catch null,
             .check = addon.lookup(CheckFn, "stwo_rv64_n1_check_v2_on") orelse return error.MissingNativeStage1Kernel,
             .scatter = addon.lookup(ScatterFn, "stwo_rv64_n1_scatter_v1_on") orelse return error.MissingNativeStage1Kernel,
             .copy = addon.lookup(HJ.CopyAsync, "stwo_rv64_jobs_copy_async") orelse return error.MissingNativeStage1Kernel,
@@ -195,6 +199,8 @@ pub const Spec = struct {
     /// gn-pack: arena words of the class's largest v2 witness program (its
     /// compact inputs, CPU scratch and ledgers), planned on top of jobWords.
     compact_words: u64 = 0,
+    /// Compact witness ROM, uploaded at install so request jobs only adopt it.
+    compact_rom: ?struct { key: [8]u32, words: []const u32 } = null,
 };
 
 pub const ResidentLayout = struct {
@@ -208,9 +214,31 @@ pub const ResidentLayout = struct {
     authority_words: usize,
     /// Post-MAIN main-channel snapshot (16 words; Stage 2 seeds from [0, 9)).
     checkpoint: usize,
+    receipt: usize = 0,
+    local_wire: usize = 0,
+    scope: usize = 0,
+    wire_words: usize = 0,
+    semantic: usize = 0,
+    semantic_words: usize = 0,
     words: usize,
 
     pub const checkpoint_words: usize = 16;
+    pub fn withSemantic(self: ResidentLayout, n: usize) ResidentLayout {
+        var out = self;
+        out.semantic = self.words;
+        out.semantic_words = n;
+        out.words += up(n);
+        return out;
+    }
+    pub fn withWire(self: ResidentLayout, wire_words: usize) ResidentLayout {
+        var out = self;
+        out.receipt = self.words;
+        out.local_wire = out.receipt + granule;
+        out.scope = out.local_wire + up(wire_words);
+        out.wire_words = wire_words;
+        out.words = out.scope + granule;
+        return out;
+    }
     pub fn of(main_words: usize, binding_words: usize, section_words: usize, authority_words: usize) ResidentLayout {
         const binding = up(main_words);
         const section = binding + up(binding_words);
@@ -258,6 +286,8 @@ pub const Class = struct {
     /// Draw counter of the GKR child channel at its snapshot (data
     /// independent: the op sequence is class geometry; host replay once).
     child_draws: u32 = 0,
+    wire: ?Wire.Program = null,
+    wire_key: [32]u8 = @splat(0),
 
     pub fn init(a: std.mem.Allocator, spec: Spec) !*Class {
         if (spec.gkr.fixed_count != spec.fixed_shapes.len or spec.gkr.logs.len != spec.fixed_shapes.len + spec.main_shapes.len) return error.NativeStage1ClassShape;
@@ -274,6 +304,8 @@ pub const Class = struct {
         errdefer bind.deinit();
         var section: Slab.ProofLayout = .{};
         try spec.gkr.addFields(&section);
+        var wire = try Wire.build(a, spec.instances, spec.gkr.variables, spec.gkr.fields, &section);
+        errdefer wire.deinit();
         const image_offsets = try a.alloc(usize, spec.main_shapes.len);
         errdefer a.free(image_offsets);
         var at: usize = 0;
@@ -284,10 +316,15 @@ pub const Class = struct {
         var h = std.crypto.hash.sha2.Sha256.init(.{});
         h.update("rv64-m8-n1-fixed-v1");
         h.update(&spec.key);
-        self.* = .{ .a = a, .spec = spec, .fixed = fixed, .main = main, .bind = bind, .section = section, .resident = ResidentLayout.of(main.coefficient_cells, bind.output_words, section.words, bind.authorityWords()), .fixed_key = h.finalResult(), .image_offsets = image_offsets, .image_words = at, .child_draws = NG.expectedChild(spec.gkr, @splat(0))[8] };
+        const fixed_key = h.finalResult();
+        h = std.crypto.hash.sha2.Sha256.init(.{});
+        h.update("rv64-m8-local-gkr-wire-v1");
+        h.update(&spec.key);
+        self.* = .{ .a = a, .spec = spec, .fixed = fixed, .main = main, .bind = bind, .section = section, .resident = ResidentLayout.of(main.coefficient_cells, bind.output_words, section.words, bind.authorityWords()).withWire(wire.wireWords()).withSemantic(Semantic.words(bind.row_logs)), .fixed_key = fixed_key, .image_offsets = image_offsets, .image_words = at, .child_draws = NG.expectedChild(spec.gkr, @splat(0))[8], .wire = wire, .wire_key = h.finalResult() };
         return self;
     }
     pub fn deinit(self: *Class) void {
+        if (self.wire) |*wire| wire.deinit();
         self.a.free(self.image_offsets);
         self.bind.deinit();
         self.main.deinit();
@@ -302,6 +339,10 @@ pub const Class = struct {
     pub fn claimsPerSegment(self: *const Class) u32 {
         return 2 * self.instances();
     }
+    pub fn requestPinnedWords(self: *const Class) usize {
+        // Committed device inputs; ROM and twiddles were installed.
+        return self.spec.gkr.staged_words + 8 * self.main.logs.len + 9 + 25 + 4 * granule;
+    }
     pub fn fixedRegionWords(self: *const Class) usize {
         return self.fixed.coefficient_cells + 16;
     }
@@ -309,7 +350,7 @@ pub const Class = struct {
     /// the MAIN/GKR/binding twiddle towers; shared across classes of equal
     /// logs, counted per class: an over-estimate the plan can absorb).
     pub fn heldWords(self: *const Class) u64 {
-        return self.fixedRegionWords() + twiddleWords(&self.main) + twiddleWords(&self.fixed) + self.spec.gkr.twiddle_words + self.bind.persistentWords();
+        return self.fixedRegionWords() + twiddleWords(&self.main) + twiddleWords(&self.fixed) + self.spec.gkr.twiddle_words + self.bind.persistentWords() + (if (self.spec.compact_rom) |rom| up(rom.words.len) else 0) + (if (self.wire) |wire| up(wire.words.len) else 0);
     }
     /// Static arena peak of one request job (stream-ordered allocations).
     /// The MAIN commit's work (evaluations + tree, freed LIFO inside
@@ -321,9 +362,11 @@ pub const Class = struct {
     /// words [D]; the sum overflowed phase A (GpuNativeMemoryPlanPhaseA, r7).
     pub fn jobWords(self: *const Class) usize {
         const commit = @max(self.main.deviceWords(), self.main.coefficient_cells + self.main.eval_cells) + 8 * granule;
-        const witness = up(self.image_words) + up(max_chunk_runs * 6) + granule;
+        // v2 writes MAIN directly into main_resident. It has compact input
+        // buffers instead of a second v1 expanded MAIN/scatter image.
+        const witness = if (self.spec.compact_words == 0 or self.spec.beta == 1) up(self.image_words) + up(max_chunk_runs * 6) + granule else 0;
         const tail = self.spec.gkr.enqueueWords() + self.bind.enqueueWords() + granule;
-        return up(9) + self.spec.gkr.stagedWords(true) + up(self.main.stagedWords(0)) + witness + @as(usize, @intCast(self.spec.compact_words)) + @max(commit, tail) + 8 * granule;
+        return up(9) + granule + self.spec.gkr.stagedWords(true) + up(self.main.stagedWords(0)) + witness + @as(usize, @intCast(self.spec.compact_words)) + @max(commit, tail) + 8 * granule;
     }
     /// Stage-1 fields of the class's ClassEntry (Stage 2 adds its own).
     pub fn fill(self: *const Class, entry: *G.ClassEntry, devices: u32) void {
@@ -331,6 +374,11 @@ pub const Class = struct {
         entry.claims_per_segment = self.claimsPerSegment();
         entry.arena_peak_words = @max(entry.arena_peak_words, self.jobWords());
         entry.capture_words = self.spec.capture_words;
+        if (self.wire) |wire| {
+            entry.stage_one_bytes = @max(entry.stage_one_bytes, 76 + wire.max_wire_bytes);
+            entry.local_gkr_wire_words = wire.wireWords();
+            entry.extra_checks = &.{.local_receipt};
+        }
         entry.cost_us = @max(entry.cost_us, self.spec.cost_us);
         for (0..@min(devices, G.max_devices)) |d| entry.held_words[d] += self.heldWords();
     }
@@ -351,6 +399,7 @@ pub const max_chunk_runs: usize = 4096;
 pub const PublicWords = @FieldType(Sources.Item, "public");
 
 pub const RequestWords = struct {
+    statement: [32]u8 = @splat(0),
     /// worker_protocol.begin(config, expected) checkpoint (digest 8, draws 1).
     seed: [9]u32,
     /// native_gkr.childPrefix(scope, instances) checkpoint.
@@ -358,6 +407,16 @@ pub const RequestWords = struct {
     /// Per GKR source item: its public words (epoch, pc, registers, clocks).
     publics: []const PublicWords,
 };
+
+/// The exchange stride covers the largest class in the request. A smaller
+/// segment publishes its own terminal claims in that slot's prefix; only
+/// those claims enter its receipt and the manifest's instance roster.
+pub fn claimPayloadSlot(exchange: G.Exchange, segment: u32, claims: u32) !G.Exchange.Slot {
+    const slot = try exchange.claims(segment);
+    const words = 8 * @as(usize, claims);
+    if (claims == 0 or words > slot.words) return error.GpuNativeExchangeClaimsShape;
+    return .{ .offset = slot.offset, .words = words, .flag = slot.flag };
+}
 
 // ---------------------------------------------------------------------------
 // Witness ingress
@@ -484,7 +543,7 @@ pub const WarmJob = struct {
     pub fn footprint(self: *WarmJob) api.Footprint {
         const c = self.class;
         const staged = c.fixed.stagedWords(c.fixed.coefficient_cells) + c.main.stagedWords(0) + c.spec.gkr.stagedWords(true) + 8 * granule;
-        const pinned = c.fixed.coefficient_cells + twiddleWords(&c.fixed) + twiddleWords(&c.main) + c.spec.gkr.pinnedWords() + c.bind.pinnedWords() + 16 + 8 * granule;
+        const pinned = c.fixed.coefficient_cells + twiddleWords(&c.fixed) + twiddleWords(&c.main) + c.spec.gkr.pinnedWords() + c.bind.pinnedWords() + 16 + 8 * granule + (if (c.spec.compact_rom) |rom| rom.words.len else 0) + (if (c.wire) |wire| wire.words.len else 0);
         return .{ .device_words = staged + @max(c.fixed.deviceWords(), c.fixed.coefficient_cells + c.fixed.eval_cells) + 8 * granule, .staged_words = staged, .slab_words = self.layout.words, .pinned_words = pinned };
     }
     pub fn stage(self: *WarmJob, s: *api.Stager) !void {
@@ -492,6 +551,14 @@ pub const WarmJob = struct {
         const p = try s.persistent(c.fixed_key, c.fixedRegionWords());
         self.region = p.buffer;
         self.fresh = p.fresh;
+        if (c.wire) |wire| {
+            const region = try s.persistent(c.wire_key, wire.words.len);
+            if (region.fresh) try s.upload(region.buffer, wire.words);
+        }
+        if (c.spec.compact_rom) |rom| {
+            const region = try s.persistent(NP.persistentKey(rom.key), rom.words.len);
+            if (region.fresh) try s.upload(region.buffer, rom.words);
+        }
         if (p.fresh) {
             try self.fixed.stage(s, self.inputs);
             try s.upload(try p.buffer.slice(c.fixed.coefficient_cells + 8, 8), &c.spec.fixed_root);
@@ -572,6 +639,8 @@ pub const Stage1Job = struct {
     // staged
     seed: ?api.DeviceBuffer = null,
     fixed: ?api.DeviceBuffer = null,
+    wire_program: ?api.DeviceBuffer = null,
+    wire_scope: ?api.DeviceBuffer = null,
     runs: []?api.DeviceBuffer = &.{},
     /// gn-pack v2 witness program (parsed at init) and its device buffers.
     program: ?NP.Program = null,
@@ -605,7 +674,8 @@ pub const Stage1Job = struct {
             // The plan bound (arena_peak_words via jobWords) must hold the program.
             if (c.spec.compact_words != 0 and p.arenaWords() > c.spec.compact_words) return error.GnPackArenaExceedsPlan;
         }
-        self.main = c.main;
+        self.main = try C.jobCopy(self.a, &c.main);
+        errdefer C.freeJobCopy(self.a, &self.main);
         self.gplan = c.spec.gkr.*;
         self.gplan.prefix = self.words.prefix;
         self.items = try self.a.dupe(Sources.Item, c.spec.gkr.source.items);
@@ -633,6 +703,7 @@ pub const Stage1Job = struct {
         self.a.free(self.inputs);
         self.gkr.deinit();
         self.a.free(self.items);
+        C.freeJobCopy(self.a, &self.main);
         self.initialized = false;
     }
     pub fn id(self: *const Stage1Job) G.ProofId {
@@ -659,8 +730,8 @@ pub const Stage1Job = struct {
         // v2 program bound, checked >= this program's arena at init): only an
         // unplanned program (compact_words 0) adds its arena on top.
         const planned: usize = if (self.witness == .compact and c.spec.compact_words != 0) chunk_words else 0;
-        const staged = up(9) + c.spec.gkr.stagedWords(true) + up(c.main.stagedWords(0)) + chunk_words;
-        return .{ .device_words = c.jobWords() + chunk_words - planned, .staged_words = staged, .slab_words = 0, .pinned_words = c.spec.gkr.pinnedWords() - c.spec.gkr.twiddle_words + c.main.logs.len + 9 + 4 * granule };
+        const staged = up(9) + granule + c.spec.gkr.stagedWords(true) + up(c.main.stagedWords(0)) + chunk_words;
+        return .{ .device_words = c.jobWords() + chunk_words - planned, .staged_words = staged, .slab_words = 0, .pinned_words = c.requestPinnedWords() };
     }
     pub fn stage(self: *Stage1Job, s: *api.Stager) !void {
         const c = self.class;
@@ -668,6 +739,17 @@ pub const Stage1Job = struct {
         const p = try s.persistent(c.fixed_key, c.fixedRegionWords());
         if (p.fresh) return error.GpuNativeFixedNotWarmed;
         self.fixed = p.buffer;
+        if (c.wire) |wire| {
+            const region = try s.persistent(c.wire_key, wire.words.len);
+            if (region.fresh) return error.GpuNativeReceiptNotWarmed;
+            self.wire_program = region.buffer;
+            var scope: [25]u32 = @splat(0);
+            for (scope[0..8], 0..) |*word, i| word.* = std.mem.readInt(u32, self.words.statement[4 * i ..][0..4], .little);
+            @memcpy(scope[8..16], &c.spec.fixed_root);
+            scope[24] = self.segment;
+            self.wire_scope = try s.alloc(25);
+            try s.upload(self.wire_scope.?, &scope);
+        }
         const seed = try s.alloc(9);
         try s.upload(seed, &self.words.seed);
         self.seed = seed;
@@ -717,9 +799,9 @@ pub const Stage1Job = struct {
         const checkpoint_view = try c.resident.checkpointView(resident);
         const root_slot = try self.ctx.exchange.root(self.segment);
         const claims_slot = try self.ctx.exchange.claims(self.segment);
-        if (claims_slot.words != 8 * @as(usize, c.claimsPerSegment())) return error.GpuNativeExchangeClaimsShape;
+        const claims_payload = try claimPayloadSlot(self.ctx.exchange, self.segment, c.claimsPerSegment());
         const root_out = try self.exchangeSlot(root_slot);
-        const claims_out = try self.exchangeSlot(claims_slot);
+        const claims_out = try self.exchangeSlot(claims_payload);
         const st_witness = try self.statusWord(.witness_status);
         const st_binding = try self.statusWord(.binding_authority);
         const st_root = try self.statusWord(.root_match);
@@ -749,11 +831,38 @@ pub const Stage1Job = struct {
         try self.gkr.enqueueCommitted(e, &c.fixed, fixed, &self.main, main, root_out);
         const bverdict = try e.alloc(1);
         try cuda(sym.memset(ectx, bverdict.ptr, 0, 4));
-        try self.binding.enqueueWithAuthority(e, &self.gkr, bind_view, bverdict, authority_view);
+        const semantic = try resident.slice(c.resident.semantic, c.resident.semantic_words);
+        const draws = self.gkr.reservoir orelse return error.NativeGkrNotEnqueued;
+        if (draws.words != Semantic.local_words) return error.NativeSemanticShape;
+        try cuda(sym.commit.copy_d2d(ectx, semantic.ptr, draws.ptr, draws.bytes()));
+        try self.binding.enqueueComplete(e, &self.gkr, bind_view, bverdict, authority_view, semantic);
         // Terminal claims (authority words [9, 9 + 16n)) -> exchange claims slot.
         const claims = try authority_view.slice(9, claims_out.words);
+        // The full slot is peer-published. Clear its unused suffix so it
+        // never transports stale words from another class/request.
+        if (claims_payload.words < claims_slot.words) {
+            const full = try self.exchangeSlot(claims_slot);
+            try cuda(sym.memset(ectx, full.ptr + claims_payload.words, 0, (claims_slot.words - claims_payload.words) * 4));
+        }
         try cuda(sym.commit.copy_d2d(ectx, claims_out.ptr, claims.ptr, claims_out.words * 4));
         try self.ctx.peer.publish(self.device, claims_slot);
+        if (c.wire) |wire| {
+            const encode = sym.receipt_encode orelse return error.MissingLocalGkrReceiptEncoder;
+            const program = self.wire_program orelse return error.NativeStage1NotStaged;
+            const scope = self.wire_scope orelse return error.NativeStage1NotStaged;
+            const receipt = try resident.slice(c.resident.receipt, 16);
+            const child_wire = try resident.slice(c.resident.local_wire, wire.wireWords());
+            try cuda(sym.commit.copy_d2d(ectx, scope.ptr + 16, root_out.ptr, 32));
+            const args = Wire.Run{ .program = program.ptr, .program_words = program.words, .section = section_view.ptr, .section_words = section_view.words, .scope = scope.ptr, .marginals = claims.ptr, .marginal_words = claims.words, .receipt = receipt.ptr, .wire = child_wire.ptr, .wire_words = child_wire.words, .verdict = (try self.statusWord(.local_receipt)).ptr, .reject_code = @as(u32, @intFromEnum(G.Check.local_receipt)) << 16 };
+            try cuda(encode(ectx, 0, &args));
+            const rs = try self.ctx.exchange.receipt(self.segment);
+            const ws = try self.ctx.exchange.childWire(self.segment);
+            if (ws.words < child_wire.words) return error.GpuNativeExchangeSlot;
+            try cuda(sym.commit.copy_d2d(ectx, (try self.exchangeSlot(rs)).ptr, receipt.ptr, 32));
+            try cuda(sym.commit.copy_d2d(ectx, (try self.exchangeSlot(ws)).ptr, child_wire.ptr, child_wire.bytes()));
+            try self.ctx.peer.publish(self.device, rs);
+            try self.ctx.peer.publish(self.device, ws);
+        }
 
         // Device acceptance checks (one Verdict word each).
         const traversal = (self.gkr.traversal orelse return error.NativeGkrNotEnqueued).traversal;
@@ -835,8 +944,16 @@ pub fn enqueuePrologue(c: *const Class, sym: *const Symbols, e: *api.Enqueue, se
             const psym = &(sym.pack orelse return error.MissingGnPackKernel);
             const program = cw.program orelse return error.NativeStage1NotStaged;
             const bound = cw.bound orelse return error.NativeStage1NotStaged;
-            const img = try e.alloc(c.image_words);
-            image = img;
+            // Witness evaluations live in the eventual coefficient region.
+            // The beta >= 2 CommitPlan stages them into its private commit
+            // scratch before writing coefficients back, so they may alias
+            // the output. This removes the v1 expanded-image arena term.
+            if (main_view.words < c.image_words) return error.NativeStage1PrologueShape;
+            const img = if (c.spec.beta != 1) try main_view.slice(0, c.image_words) else blk: {
+                const allocated = try e.alloc(c.image_words);
+                image = allocated;
+                break :blk allocated;
+            };
             // Zero first: a kernel that leaves padding rows untouched commits
             // zeros exactly as the legacy fresh MAIN leases did.
             try cuda(sym.memset(ectx, @ptrCast(img.ptr), 0, img.words * 4));
@@ -927,6 +1044,7 @@ pub const Registry = struct {
         return reg(raw).classOf(rows);
     }
     fn hStage1(raw: *anyopaque, ctx: *const G.RequestContext, segment: u32, device: u32) anyerror!api.Job {
+        if (ctx.native_classes.len != 0) return reg(raw).deferred(ctx, segment, device);
         return reg(raw).stage1(ctx, segment, device);
     }
     fn hChunk(raw: *anyopaque, ctx: *const G.RequestContext, c: G.TraceChunk) anyerror!void {
@@ -940,6 +1058,7 @@ pub const Registry = struct {
         chunks: std.ArrayListUnmanaged(G.TraceChunk) = .empty,
         device: ?[]const [*]const u32 = null,
         job: ?*Stage1Job = null,
+        deferred_job: ?*Deferred = null,
     };
 
     pub fn init(a: std.mem.Allocator) Registry {
@@ -955,6 +1074,7 @@ pub const Registry = struct {
         self.by_rows.deinit(self.a);
     }
     fn dropPending(self: *Registry, p: *Pending) void {
+        if (p.deferred_job) |j| self.a.destroy(j);
         if (p.job) |j| {
             j.deinit();
             self.a.destroy(j);
@@ -1049,10 +1169,11 @@ pub const Registry = struct {
         defer self.mutex.unlock();
         if (!self.classes.contains(key)) return error.GpuNativeClassNotWarmed;
         const p = try self.pending(generation, segment);
+        if (p.key) |expected| if (!std.mem.eql(u8, &expected, &key)) return error.GpuNativeClassKeyMismatch;
         if (p.words != null) return error.NativeStage1RequestWordsTwice;
         p.key = key;
         p.publics = try self.a.dupe(PublicWords, words.publics);
-        p.words = .{ .seed = words.seed, .prefix = words.prefix, .publics = p.publics };
+        p.words = .{ .statement = words.statement, .seed = words.seed, .prefix = words.prefix, .publics = p.publics };
     }
     /// Parity/upstream producers: MAIN columns already on device.
     pub fn setDeviceWitness(self: *Registry, generation: u64, segment: u32, columns: []const [*]const u32) !void {
@@ -1076,6 +1197,61 @@ pub const Registry = struct {
         try p.chunks.append(self.a, c);
     }
     /// NativeFactory.stage1: the job (owned by the registry until `release`).
+    /// Construction precedes capture. The worker's segment-ready gate fires
+    /// before `stage`, so only then may the job consume chunks/public words.
+    pub fn deferred(self: *Registry, ctx: *const G.RequestContext, segment: u32, device: u32) !api.Job {
+        if (segment >= ctx.native_classes.len) return error.GpuNativeSegmentOutOfRange;
+        const key = ctx.native_classes[segment];
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const cl = self.classes.get(key) orelse return error.GpuNativeClassNotWarmed;
+        const p = try self.pending(ctx.generation, segment);
+        if (p.deferred_job != null or p.job != null) return error.NativeStage1JobTwice;
+        if (p.key) |expected| if (!std.mem.eql(u8, &expected, &key)) return error.GpuNativeClassKeyMismatch;
+        const j = try self.a.create(Deferred);
+        j.* = .{ .registry = self, .ctx = ctx, .segment = segment, .device = device, .class = cl };
+        p.key = key;
+        p.deferred_job = j;
+        return api.Job.from(Deferred, j);
+    }
+
+    pub const Deferred = struct {
+        registry: *Registry,
+        ctx: *const G.RequestContext,
+        segment: u32,
+        device: u32,
+        class: *const Class,
+        inner: ?api.Job = null,
+        pub fn classKey(self: *Deferred) [32]u8 {
+            var k = self.class.spec.key;
+            k[0] ^= 0x51;
+            return k;
+        }
+        pub fn footprint(self: *Deferred) api.Footprint {
+            const c = self.class;
+            return .{ .device_words = c.jobWords(), .staged_words = up(9) + granule + c.spec.gkr.stagedWords(true) + up(c.main.stagedWords(0)) + @as(usize, @intCast(c.spec.compact_words)), .pinned_words = c.requestPinnedWords() };
+        }
+        pub fn stage(self: *Deferred, s: *api.Stager) !void {
+            const job = try self.registry.stage1(self.ctx, self.segment, self.device);
+            self.inner = job;
+            // The class budget is fixed before capture, never enlarged on a
+            // request. An unexpectedly large witness fails before upload.
+            if (job.footprint().device_words > self.footprint().device_words) return error.NativeStage1CompactExceedsPlan;
+            try job.vtable.stage(job.ctx, s);
+        }
+        pub fn enqueue(self: *Deferred, e: *api.Enqueue) !void {
+            const j = self.inner orelse return error.NativeStage1WitnessMissing;
+            try j.vtable.enqueue(j.ctx, e);
+        }
+        pub fn finish(self: *Deferred, v: api.SlabView) !void {
+            const j = self.inner orelse return error.NativeStage1WitnessMissing;
+            try j.vtable.finish(j.ctx, v);
+        }
+        pub fn abort(self: *Deferred) void {
+            if (self.inner) |j| j.vtable.abort(j.ctx);
+        }
+    };
+
     pub fn stage1(self: *Registry, ctx: *const G.RequestContext, segment: u32, device: u32) !api.Job {
         const sym = self.sym orelse return error.NativeStage1SymbolsNotBound;
         self.mutex.lock();

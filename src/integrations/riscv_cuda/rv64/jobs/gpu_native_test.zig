@@ -208,6 +208,23 @@ test "exchange: a GPU without segments owns no partial; the request's flags stay
     try testing.expectError(error.GpuNativeExchangeDevices, (G.Exchange{ .segments = 1, .claims_per_segment = 1, .devices = 2, .partial_mask = 0b100 }).validate());
 }
 
+test "flat exchange keeps every produced flag contiguous without partial slots" {
+    const x = G.Exchange{ .segments = 2, .claims_per_segment = 4, .devices = 2, .partials_enabled = false, .truths = 1, .receipts = true, .child_wire_words = 16 };
+    try x.validate();
+    try testing.expectEqual(@as(usize, 0), x.partials());
+    try testing.expectError(error.GpuNativeExchangeNoPartial, x.partial(0));
+    const slots = [_]G.Exchange.Slot{ x.seal(), try x.root(0), try x.claims(0), try x.root(1), try x.claims(1), try x.truthRoot(0), try x.receipt(0), try x.receipt(1), try x.childWire(0), try x.childWire(1) };
+    try testing.expectEqual(slots.len, x.flagWords());
+    var seen: [slots.len]bool = @splat(false);
+    for (slots) |s| {
+        try testing.expect(s.flag < seen.len);
+        try testing.expect(!seen[s.flag]);
+        try testing.expect(s.offset + s.words <= x.words());
+        seen[s.flag] = true;
+    }
+    for (seen) |flag| try testing.expect(flag);
+}
+
 const Built = struct {
     var destroyed: u32 = 0;
     fn destroy(_: *anyopaque) void {

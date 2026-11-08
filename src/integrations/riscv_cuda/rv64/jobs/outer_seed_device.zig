@@ -326,6 +326,34 @@ pub const ChildClass = struct {
     fixed_root: Hash,
 };
 
+/// Slab framing of one child. Leaf producers append a statement tape and
+/// public outputs after the PCS image; folds append only the image.
+pub const ChildRegion = struct {
+    wire_words: u32,
+    outputs_at: u32,
+    pub fn of(region_words: u32, image_words: usize, tail_seeds: u32, output_words: u32) !ChildRegion {
+        const suffix = @as(u64, image_words) + 4 * @as(u64, tail_seeds) + output_words;
+        if (suffix >= region_words) return error.GnNodeChildRegion;
+        const wire_words: u32 = @intCast(region_words - suffix);
+        return .{ .wire_words = wire_words, .outputs_at = region_words - output_words };
+    }
+};
+
+test "child region leaves room for the leaf tape and outputs after the PCS image" {
+    const t = std.testing;
+    // [length + 99 wire words][80 image words][7 QM31 seeds][12 output words]
+    const leaf = try ChildRegion.of(220, 80, 7, 12);
+    try t.expectEqual(@as(u32, 100), leaf.wire_words);
+    try t.expectEqual(@as(u32, 208), leaf.outputs_at);
+    const fold = try ChildRegion.of(180, 80, 0, 0);
+    try t.expectEqual(@as(u32, 100), fold.wire_words);
+    try t.expectEqual(@as(u32, 180), fold.outputs_at);
+    try t.expectError(error.GnNodeChildRegion, ChildRegion.of(120, 80, 7, 12));
+    try t.expectError(error.GnNodeChildRegion, ChildRegion.of(119, 80, 7, 12));
+    // Widen arithmetic before multiplying the untrusted tape count.
+    try t.expectError(error.GnNodeChildRegion, ChildRegion.of(220, 80, std.math.maxInt(u32), 12));
+}
+
 pub const Program = struct {
     words: []u32,
     pub fn deinit(self: Program, a: std.mem.Allocator) void {

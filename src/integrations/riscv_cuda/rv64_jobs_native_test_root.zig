@@ -5,9 +5,13 @@ test {
     _ = @import("rv64/jobs/native_binding.zig");
     _ = @import("rv64/jobs/native_claims.zig");
     _ = @import("rv64/jobs/native_commit.zig");
+    _ = @import("rv64/jobs/outer_staged_tower_test.zig");
     _ = @import("rv64/jobs/native_composition.zig");
     _ = @import("rv64/jobs/native_commit_test.zig");
     _ = @import("rv64/jobs/native_gkr.zig");
+    _ = @import("rv64/jobs/native_gkr_wire.zig");
+    _ = @import("rv64/jobs/native_leaf_wire.zig");
+    _ = @import("rv64/native_publication.zig");
     _ = @import("rv64/jobs/native_hybrid_jobs.zig");
     _ = @import("rv64/jobs/native_global.zig");
     _ = @import("rv64/jobs/native_gpu_support_test.zig");

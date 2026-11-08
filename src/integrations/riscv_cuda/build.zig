@@ -87,6 +87,16 @@ pub fn build(b: *std.Build) void {
     const jobs_native_run = b.addRunArtifact(b.addTest(.{ .root_module = jobs_native_root }));
     jobs_native_run.setCwd(b.path("."));
     jobs_step.dependOn(&jobs_native_run.step);
+    const gkr_wire_root = b.createModule(.{ .root_source_file = b.path("rv64_gkr_wire_test_root.zig"), .target = target, .optimize = optimize });
+    gkr_wire_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    gkr_wire_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    gkr_wire_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    gkr_wire_root.addImport("stwo_cuda_backend", backend);
+    gkr_wire_root.addImport("stwo_riscv_frontend", frontend);
+    gkr_wire_root.addImport("stwo_circuit_cpu_integration", b.dependency("stwo_circuit_cpu_integration", options).module("stwo_circuit_cpu_integration"));
+    const gkr_wire_run = b.addRunArtifact(b.addTest(.{ .root_module = gkr_wire_root }));
+    gkr_wire_run.setCwd(b.path("."));
+    b.step("test-rv64-local-gkr-wire", "Compare the canonical local-GKR receipt and wire codecs (optional two-GPU parity)").dependOn(&gkr_wire_run.step);
     // r-truth (recursion): GPU-native TruthJob + device seed fill host tests
     // (rv64/jobs/truth_*.zig, outer_seed_*.zig); same imports as the native root.
     const jobs_truth_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_truth_test_root.zig"), .target = target, .optimize = optimize });

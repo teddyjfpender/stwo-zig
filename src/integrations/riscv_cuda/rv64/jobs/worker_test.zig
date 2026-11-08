@@ -296,3 +296,130 @@ test "a failed fill never leaves a persistent entry that later jobs see as warm"
     try std.testing.expectEqual(@as(usize, 3), fake.counters.allocations);
     try std.testing.expectEqual(fake.counters.allocations + 3, fake.counters.frees);
 }
+
+test "persistent census counts a shared key once and survives install arena replacement" {
+    fake.reset();
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 12, .pinned_slot_words = 64 });
+    defer w.destroy();
+    var c = Collector{};
+    var first = Filler{ .fail = false };
+    var second = Filler{ .fail = false };
+    submit(w, api.Job.from(Filler, &first), c.sink());
+    c.wait(1);
+    _ = try w.park(.{});
+    _ = try w.unpark(1 << 14);
+    submit(w, api.Job.from(Filler, &second), c.sink());
+    c.wait(2);
+    const Census = struct {
+        words: u64 = 0,
+        fn run(raw: *anyopaque, worker: *W.Worker) anyerror!void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.words = worker.persistentWords();
+        }
+    };
+    var census = Census{};
+    try w.call(.{ .ctx = &census, .run = Census.run });
+    try std.testing.expect(first.fresh.? and !second.fresh.?);
+    try std.testing.expectEqual(@as(u64, 64), census.words);
+    try std.testing.expectEqual(@as(usize, 0), c.errors);
+}
+
+test "warm-only batches reject a cold persistent key before allocating and reuse an installed key" {
+    const Run = struct {
+        batch: *W.Batch,
+        fn reserve(_: *anyopaque, worker: *W.Worker) anyerror!void {
+            try worker.reserveBatches(1, 64);
+        }
+        fn call(raw: *anyopaque, worker: *W.Worker) anyerror!void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            worker.runBatch(self.batch);
+            // Fake copies execute eagerly; no device work remains to wait.
+            worker.finishBatch(self.batch, true);
+        }
+    };
+    for ([_]usize{ 0, 256 }) |pool_words| {
+        fake.reset();
+        const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 12, .pinned_slot_words = 64, .persistent_budget_words = pool_words });
+        defer w.destroy();
+        var reserve_context: u8 = 0;
+        try w.call(.{ .ctx = &reserve_context, .run = Run.reserve });
+        for (0..3) |step| {
+            var filler = Filler{ .fail = false };
+            var jobs = [_]W.BatchJob{.{ .job = api.Job.from(Filler, &filler) }};
+            var batch = W.Batch{ .jobs = &jobs, .require_warm_persistent = step != 1 };
+            var run = Run{ .batch = &batch };
+            const before = fake.counters.allocations;
+            try w.call(.{ .ctx = &run, .run = Run.call });
+            try batch.result;
+            if (step == 0) {
+                try std.testing.expectError(error.PersistentClassNotWarmed, jobs[0].result);
+                try std.testing.expect(filler.fresh == null);
+                try std.testing.expectEqual(before, fake.counters.allocations);
+            } else {
+                try jobs[0].result;
+                try std.testing.expectEqual(step == 1, filler.fresh.?);
+                if (step == 2) try std.testing.expectEqual(before, fake.counters.allocations);
+            }
+        }
+    }
+}
+
+test "batch pipeline defers neighbour staging only when the class pair cannot fit" {
+    const MemoryJob = struct {
+        id: usize,
+        log: *Log,
+        staged_words: usize,
+        work_words: usize,
+        input: api.DeviceBuffer = undefined,
+        pub fn classKey(_: *@This()) [32]u8 {
+            return @splat(0x67);
+        }
+        pub fn footprint(self: *@This()) api.Footprint {
+            return .{ .device_words = self.staged_words + self.work_words, .staged_words = self.staged_words };
+        }
+        pub fn stage(self: *@This(), s: *api.Stager) !void {
+            self.log.add("stage", self.id);
+            self.input = try s.alloc(self.staged_words);
+            @memset(self.input.ptr[0..self.input.words], @intCast(self.id + 1));
+        }
+        pub fn enqueue(self: *@This(), e: *api.Enqueue) !void {
+            self.log.add("enqueue", self.id);
+            for (self.input.ptr[0..self.input.words]) |word| try std.testing.expectEqual(@as(u32, @intCast(self.id + 1)), word);
+            const work = try e.alloc(self.work_words);
+            @memset(work.ptr[0..work.words], 0x67);
+            e.free(work);
+        }
+        pub fn finish(_: *@This(), _: api.SlabView) !void {}
+        pub fn abort(_: *@This()) void {}
+    };
+    const Run = struct {
+        batch: *W.Batch,
+        fn reserve(_: *anyopaque, worker: *W.Worker) anyerror!void {
+            try worker.reserveBatches(2, 64);
+        }
+        fn call(raw: *anyopaque, worker: *W.Worker) anyerror!void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            worker.runBatch(self.batch);
+            worker.finishBatch(self.batch, true); // fake operations execute eagerly
+        }
+    };
+    for ([_]usize{ 896, 512 }) |first_work| {
+        fake.reset();
+        const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1024, .pinned_slot_words = 64 });
+        defer w.destroy();
+        var log = Log{};
+        var first = MemoryJob{ .id = 0, .log = &log, .staged_words = 64, .work_words = first_work };
+        var second = MemoryJob{ .id = 1, .log = &log, .staged_words = 128, .work_words = 128 };
+        var jobs = [_]W.BatchJob{ .{ .job = api.Job.from(MemoryJob, &first) }, .{ .job = api.Job.from(MemoryJob, &second) } };
+        var batch = W.Batch{ .jobs = &jobs };
+        var run = Run{ .batch = &batch };
+        var reserve_context: u8 = 0;
+        try w.call(.{ .ctx = &reserve_context, .run = Run.reserve });
+        try w.call(.{ .ctx = &run, .run = Run.call });
+        try batch.result;
+        for (jobs) |job| try job.result;
+        const deferred = first_work == 896;
+        try std.testing.expectEqual(deferred, log.index("enqueue", 0) < log.index("stage", 1));
+        try std.testing.expectEqual(@as(u64, @intFromBool(deferred)), batch.memory_serializations);
+    }
+}
