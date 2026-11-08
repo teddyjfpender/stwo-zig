@@ -12,7 +12,19 @@ from scripts.zig_protocol_lib.command import (
     protocol_module_args,
     protocol_package_modules,
     test_command,
+    SUPPORT_MODULES,
 )
+
+
+def support_names(selected: set[str]) -> list[str]:
+    """Support leaves that `_modules` appends for a selected package set."""
+    names = set(selected) | {"interop_postcard"}
+    chosen = []
+    for module in SUPPORT_MODULES:
+        if set(module.dependencies) <= names:
+            chosen.append(module.name)
+            names.add(module.name)
+    return chosen
 
 
 class ZigProtocolCommandTests(unittest.TestCase):
@@ -72,7 +84,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
             command = test_command("src/products/stwo/root.zig", *flags, "--test-filter", "proof wire")
             mode = flags[-1].removeprefix("-O")
             module_positions = [i for i, arg in enumerate(command) if arg.startswith("-M")]
-            self.assertEqual(len(PROTOCOL_PACKAGES) + 2, len(module_positions))
+            self.assertEqual(len(PROTOCOL_PACKAGES) + 2 + len(support_names(set(PROTOCOL_PACKAGES))), len(module_positions))
             for position in module_positions:
                 self.assertEqual("-O" + mode, command[position - 1])
             self.assertFalse(any(arg.startswith("-O") for arg in command[module_positions[-1] + 1:]))
@@ -88,7 +100,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
             positions = [i for i, arg in enumerate(command) if arg.startswith("-M")]
             for position in positions:
                 self.assertEqual(["-OReleaseSafe", flags[-1]], command[position - 2:position])
-            self.assertEqual(len(PROTOCOL_PACKAGES) + 2, command.count(flags[-1]))
+            self.assertEqual(len(PROTOCOL_PACKAGES) + 2 + len(support_names(set(PROTOCOL_PACKAGES))), command.count(flags[-1]))
 
     def test_strip_filter_text_and_arguments_after_separator_are_preserved(self) -> None:
         command = test_command("src/products/stwo/root.zig", "--test-filter", "-fstrip", "--", "-fno-strip")
@@ -109,7 +121,8 @@ class ZigProtocolCommandTests(unittest.TestCase):
     def test_cpu_graph_is_contract_derived_closed_and_has_no_duplicate_modules(self) -> None:
         arguments = protocol_module_args("focused.zig", cpu_only=True, optimize="ReleaseFast", cpu="native")
         names = [item.split("=", 1)[0][2:] for item in arguments if item.startswith("-M")]
-        self.assertEqual(["root", *CPU_PROTOCOL_PACKAGES, "interop_postcard"], names)
+        self.assertEqual(["root", *CPU_PROTOCOL_PACKAGES, "interop_postcard",
+                          *support_names(set(CPU_PROTOCOL_PACKAGES))], names)
         self.assertEqual(len(names), len(set(names)))
         cursor = 0
         for position, arg in enumerate(arguments):
@@ -149,7 +162,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
             if name not in expected:
                 expected.add(name)
                 pending.extend(modules[name].dependencies)
-        self.assertEqual(expected | {"root", "interop_postcard"}, set(names))
+        self.assertEqual(expected | {"root", "interop_postcard"} | set(support_names(expected)), set(names))
         self.assertNotIn("stwo_riscv_frontend", names)
         for name in expected:
             self.assertTrue(set(modules[name].dependencies) <= set(names))

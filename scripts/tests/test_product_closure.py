@@ -111,7 +111,7 @@ class SourceClosureTest(unittest.TestCase):
     def test_aggregate_manifest_rejects_unrelated_product_owner(self) -> None:
         self.write(
             "src/products/stwo/tools/prove/main.zig",
-            'const unrelated = @import("../../products/unrelated/main.zig");\n',
+            'const unrelated = @import("../../../unrelated/main.zig");\n',
         )
         self.write("src/products/unrelated/main.zig", "pub const value = 1;\n")
         self.write("src/waist/core/mod.zig", "")
@@ -404,7 +404,7 @@ class RecursionOwnershipTest(unittest.TestCase):
             ),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset({"src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier_runner.zig"}),
-            allowed_prefixes=("src/waist/core", "src/frontends/riscv", "src/interop"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv", "src/waist/recursion_wire", "src/waist/proof_wire"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         for source in sources:
@@ -431,7 +431,7 @@ class RecursionOwnershipTest(unittest.TestCase):
             ),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset({"src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier_runner.zig"}),
-            allowed_prefixes=("src/waist/core", "src/frontends/riscv", "src/interop"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv", "src/waist/recursion_wire", "src/waist/proof_wire"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         for source in sources:
@@ -706,7 +706,7 @@ class RecursionOwnershipTest(unittest.TestCase):
             # Preparation owns witnesses and may use generic proving contracts.
             # Concrete backend and integration directories are deliberately absent.
             allowed_prefixes=("src/waist/core", "src/frontends/riscv", "src/engine/prover",
-                              "src/waist/prover_api", "src/waist/backend", "src/interop",
+                              "src/waist/prover_api", "src/waist/backend", "src/waist/recursion_wire", "src/support/io",
                               "design/typed-air/artifacts"),
         )
         sources = inspect_sources(root, manifest).relative_sources()

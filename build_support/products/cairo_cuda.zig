@@ -49,6 +49,7 @@ const source_closure = policy.SourceClosure{
         "src/integrations/cairo_cuda",
         "src/integrations/native_cuda",
         "src/support/io",
+        "src/waist/proof_wire",
         "src/waist/recursion_wire",
         "src/products/native/artifact",
         "src/products/riscv/artifact",

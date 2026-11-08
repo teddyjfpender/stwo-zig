@@ -46,10 +46,10 @@ class SourceConformanceTests(unittest.TestCase):
     def test_detects_dependency_size_and_root_violations(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            (repo / "src/waist/core").mkdir(parents=True)
+            (repo / "src/core").mkdir(parents=True)
             (repo / "src/backends/metal").mkdir(parents=True)
             (repo / "src/tool_cli.zig").write_text("pub fn main() void {}\n", encoding="utf-8")
-            (repo / "src/waist/core/bad.zig").write_text(
+            (repo / "src/core/bad.zig").write_text(
                 'const metal = @import("../backends/metal/mod.zig");\n' + "\n" * 850,
                 encoding="utf-8",
             )
@@ -62,8 +62,8 @@ class SourceConformanceTests(unittest.TestCase):
     def test_generated_file_requires_generator_marker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            (repo / "src/waist/core").mkdir(parents=True)
-            (repo / "src/waist/core/generated.zig").write_text(
+            (repo / "src/core").mkdir(parents=True)
+            (repo / "src/core/generated.zig").write_text(
                 "// Generated file. Generator: tools/example.zig\n"
                 "// Regenerate: zig build generate-example\n"
                 + "\n" * 900,
@@ -71,7 +71,7 @@ class SourceConformanceTests(unittest.TestCase):
             )
             self.assertEqual([], scan(repo))
 
-            (repo / "src/waist/core/generated.zig").write_text(
+            (repo / "src/core/generated.zig").write_text(
                 "// Generated file. Generator: tools/example.zig\n" + "\n" * 900,
                 encoding="utf-8",
             )
@@ -116,14 +116,14 @@ class SourceConformanceTests(unittest.TestCase):
     def test_dependency_enforcement_is_limited_to_src(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            (repo / "src/waist/core").mkdir(parents=True)
+            (repo / "src/core").mkdir(parents=True)
             (repo / "src/backends/metal").mkdir(parents=True)
             (repo / "src/backends/metal/mod.zig").write_text("", encoding="utf-8")
             (repo / "build.zig").write_text(
                 'const metal = @import("src/backends/metal/mod.zig");\n',
                 encoding="utf-8",
             )
-            (repo / "src/waist/core/bad.zig").write_text(
+            (repo / "src/core/bad.zig").write_text(
                 'const metal = @import("../backends/metal/mod.zig");\n',
                 encoding="utf-8",
             )
@@ -268,7 +268,7 @@ class SourceConformanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
             (repo / "build_support").mkdir(parents=True)
-            (repo / "src/waist/core").mkdir(parents=True)
+            (repo / "src/core").mkdir(parents=True)
             (repo / "src/backends/metal").mkdir(parents=True)
             (repo / "src/backends/metal/mod.zig").write_text("", encoding="utf-8")
             (repo / "build_support/helper.zig").write_text("pub const marker = true;\n", encoding="utf-8")
@@ -278,7 +278,7 @@ class SourceConformanceTests(unittest.TestCase):
                 'const helper = @import("build_support/helper.zig");\n',
                 encoding="utf-8",
             )
-            (repo / "src/waist/core/documented.zig").write_text(
+            (repo / "src/core/documented.zig").write_text(
                 '//! Compare with `@import("../backends/metal/mod.zig")`, which this\n'
                 "//! layer must never do.\n"
                 "pub const marker = true;\n",
@@ -291,7 +291,7 @@ class SourceConformanceTests(unittest.TestCase):
                 'pub fn build(b: anytype) void { _ = b.path("src/missing.zig"); }\n',
                 encoding="utf-8",
             )
-            (repo / "src/waist/core/documented.zig").write_text(
+            (repo / "src/core/documented.zig").write_text(
                 'const metal = @import("../backends/metal/mod.zig");\n',
                 encoding="utf-8",
             )
@@ -337,7 +337,7 @@ class SourceConformanceTests(unittest.TestCase):
     def test_zig_entrypoint_measurement_ignores_braces_inside_comments(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            zig_root = repo / "src/bench/sample.zig"
+            zig_root = repo / "src/products/stwo/bench/sample.zig"
             zig_root.parent.mkdir(parents=True)
             zig_root.write_text(
                 "pub fn main() void {\n"
@@ -346,7 +346,7 @@ class SourceConformanceTests(unittest.TestCase):
                 + "}\n",
                 encoding="utf-8",
             )
-            self.assertIn("thin-owner:bench/sample.zig", {finding.key for finding in scan(repo)})
+            self.assertIn("thin-owner:products/stwo/bench/sample.zig", {finding.key for finding in scan(repo)})
 
     def test_native_rust_edges_reject_cross_tool_paths_missing_modules_and_cycles(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -390,7 +390,7 @@ class SourceConformanceTests(unittest.TestCase):
             controller = repo / "scripts/benchmark_delta.py"
             controller.parent.mkdir(parents=True)
             controller.write_text("def main():\n" + "    pass\n" * 300, encoding="utf-8")
-            zig_root = repo / "src/bench/sample.zig"
+            zig_root = repo / "src/products/stwo/bench/sample.zig"
             zig_root.parent.mkdir(parents=True)
             zig_root.write_text(
                 "pub fn main() void {\n" + "    _ = 1;\n" * 199 + "}\n",
@@ -405,8 +405,8 @@ class SourceConformanceTests(unittest.TestCase):
 
             keys = {finding.key for finding in scan(repo)}
             self.assertIn("thin-owner:scripts/benchmark_delta.py", keys)
-            self.assertIn("thin-owner:bench/sample.zig", keys)
-            self.assertIn("thin-owner:tests/native/mod.zig", keys)
+            self.assertIn("thin-owner:products/stwo/bench/sample.zig", keys)
+            self.assertIn("thin-owner:products/native/tests/mod.zig", keys)
             self.assertIn("thin-owner:build_support/products.zig", keys)
 
     def test_size_ceilings_warn_at_ninety_percent_without_failing(self) -> None:
@@ -457,7 +457,7 @@ class SourceConformanceTests(unittest.TestCase):
     def test_headroom_warnings_cover_manual_sources_and_python_entry_points(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            oversized = repo / "src/waist/core/legacy.zig"
+            oversized = repo / "src/core/legacy.zig"
             oversized.parent.mkdir(parents=True)
             oversized.write_text("\n" * 765, encoding="utf-8")
             owner = repo / "src/products/native/tests/mod.zig"
@@ -484,7 +484,7 @@ class SourceConformanceTests(unittest.TestCase):
             # builds its own. A scope spelling a notice the display way must match
             # nothing, which is what fails when display is plumbed through.
             for key, display in (("file-size", "core/legacy.zig"),
-                                 ("thin-owner", "tests/native/mod.zig")):
+                                 ("thin-owner", "products/native/tests/mod.zig")):
                 notice = measured[f"headroom:{key}:{display}"]
                 self.assertTrue(notice.message.startswith(f"{display}: "), notice.message)
                 self.assertEqual(f"src/{display}", notice.path)
@@ -498,8 +498,8 @@ class SourceConformanceTests(unittest.TestCase):
     IN_SCOPE = ChangeScope(frozenset({"build_support/products.zig"}))
     GIT_REPLIES = {
         ("merge-base", "HEAD", "origin/main"): "abc123\n",
-        ("diff", "--name-only", "abc123", "--"): "src/waist/core/a.zig\nscripts/b.py\n",
-        ("ls-files", "--others", "--exclude-standard"): "src/waist/core/new.zig\n",
+        ("diff", "--name-only", "abc123", "--"): "src/core/a.zig\nscripts/b.py\n",
+        ("ls-files", "--others", "--exclude-standard"): "src/core/new.zig\n",
     }
 
     def scoped_notices(self, repo: Path) -> list[Finding]:
@@ -584,7 +584,7 @@ class SourceConformanceTests(unittest.TestCase):
             scope = change_scope.resolve(repo, runner)
             self.assertEqual("abc123", scope.base)
             self.assertEqual(
-                frozenset({"src/waist/core/a.zig", "scripts/b.py", "src/waist/core/new.zig"}),
+                frozenset({"src/core/a.zig", "scripts/b.py", "src/core/new.zig"}),
                 scope.paths,
             )
             self.assertTrue(scope.covers("scripts/b.py"))
@@ -781,7 +781,7 @@ class SourceConformanceTests(unittest.TestCase):
     def test_ratchet_rejects_oversized_file_growth_and_missing_plan(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            source = repo / "src/waist/core/legacy.zig"
+            source = repo / "src/core/legacy.zig"
             source.parent.mkdir(parents=True)
             source.write_text("\n" * 900, encoding="utf-8")
             baseline = repo / "baseline.json"
@@ -803,7 +803,7 @@ class SourceConformanceTests(unittest.TestCase):
     def test_strict_track_rejects_only_the_selected_legacy_track(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            source = repo / "src/waist/core/legacy.zig"
+            source = repo / "src/core/legacy.zig"
             source.parent.mkdir(parents=True)
             source.write_text("\n" * 900, encoding="utf-8")
             plan = repo / "conformance/decomposition-plan.md"
