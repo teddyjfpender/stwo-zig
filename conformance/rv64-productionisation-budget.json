@@ -491,6 +491,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Subtract duplicate lexical path helpers by using pathlib.is_relative_to and the existing qualified CI owns matcher. Preserve the private helper entrypoints where used and require byte-equivalent ordered checker findings before/after, plus the existing negative-fixture tests. No policy, allowed dependency, API ledger, classification, baseline, gate or ceiling change. Rollback restores the prior duplicate helper bodies."
+    },
+    {
+      "id": "delivery_root_recursion_wire_binding",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair an existing documented thin-waist export that currently has no named-module binding. Use the existing circuit-recursion constructor with the same Cairo injected felt/parameter modules in both SDK construction paths. Reuse one canonical consumer fixture for the external dependency and SDK product checks, pin protocol/type authority identity, exercise actual canonical parsing and preserve malformed-input rejection. Fixture moves receive zero deletion credit. No API ledger, version, wire bytes, runtime algorithm, runtime flag or launcher changes; rollback restores the prior missing-binding failure without claiming qualification."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

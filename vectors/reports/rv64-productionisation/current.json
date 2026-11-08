@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-08T22:05:49.747698+00:00",
+  "updated_utc": "2026-11-08T22:27:06.351705+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv/rv64-gpu-hygiene.md",
@@ -1680,6 +1680,215 @@
         "remaining_failure": "test_repository_contracts_pass retains its assertion against all 393 findings"
       },
       "discarded_invocation": "The first test invocation also named nonexistent scripts.tests.test_ci_scope_plan; its import error was an invocation mistake. The corrected invocation uses the existing test_ci_touchpoint_prefixes suite and preserves the repository assertion."
+    },
+    "delivery_root_recursion_wire_binding": {
+      "baseline_commit": "b3968790ae0d9adbb2fe2602bfc282908f218a77",
+      "status": "PASS_CPU_SDK_CONSUMERS_PACKAGE_CONFIGURE_AUDIT_OPEN",
+      "code": {
+        "added": 69,
+        "removed": 8,
+        "net": 61,
+        "allowance": 100
+      },
+      "moves_excluded": {
+        "consumer_fixture_body_lines": 15
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "validation": {
+        "status": "PASS_CANONICAL_SDK_AND_EXTERNAL_CONSUMERS_CONFIGURATION_AUDIT_OPEN",
+        "baseline_reproduced_missing_named_module": true,
+        "source_base_commit": "b3968790ae0d9adbb2fe2602bfc282908f218a77",
+        "source_files": {
+          "build_support/products/libraries.zig": "7690cb081eaca7fa39ebde57346b08ab68b8576f688af2f9420046ab0e7a277e",
+          "build_support/products/catalog.zig": "fe937c560bc16d92a2321b3b6d3cda561fdd33f15400fbe2c83ae12eab59794e",
+          "src/products/stwo/root.zig": "8f38c528493de44179ceb74c15c65e7380a538f58295aed4a1c7493bfea73b81",
+          "scripts/repo/check_downstream_package.py": "60adc4127bee35f694d166c34e103b3ae330dc26d5e2b52a46eaf77c819bd075",
+          "src/products/stwo/tests/public_modules.zig": "55f3e9f885fbc2b4c97647c861d0ac7f4c436c43e85c68577757760cfc6b53d4"
+        },
+        "runtime": {
+          "sdk_binaries": [
+            {
+              "path": "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/8476f9f140455de5a3019689a2bc3774/sdk-consumer-smoke",
+              "bytes": 115936,
+              "sha256": "f16cb6853396bffc34b6d79176d2a9b801fb63e5b27235f09bf83cabda22f00e"
+            },
+            {
+              "path": "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/9494433fa90052cd1d2a7b965c8eaebc/sdk-consumer-smoke",
+              "bytes": 1374624,
+              "sha256": "9625c277d678cc1f3f8d47a37ab775bbcade943763f7c419947f6f17648b57ce"
+            }
+          ],
+          "fixture_sha256": "55f3e9f885fbc2b4c97647c861d0ac7f4c436c43e85c68577757760cfc6b53d4",
+          "source_base_commit": "b3968790ae0d9adbb2fe2602bfc282908f218a77",
+          "host": "macOS-15.3.1-arm64-arm-64bit-Mach-O",
+          "zig_version": "0.15.2",
+          "optimize_coverage": "SDK builds Debug and ReleaseFast; external dependency smoke ReleaseFast only",
+          "zig_binary_sha256": "bf5faec4444029ddde590f1434255aec6edd8cfef3222707951be495cdb1d2d9"
+        },
+        "external_binary": {
+          "binary_bytes": 115920,
+          "external_consumer_binary_sha256": "61b2370343b676feec1f9b823beb36fb3340f37977df1117dbdbf3d12b96859e",
+          "fixture_sha256": "55f3e9f885fbc2b4c97647c861d0ac7f4c436c43e85c68577757760cfc6b53d4",
+          "optimize": "ReleaseFast"
+        },
+        "old_fixture_body_preserved_exact": true,
+        "fixture_move_lines": 15,
+        "releasefast_build": [
+          {
+            "label": "sdk-and-external-consumers-ReleaseFast",
+            "argv": [
+              "zig",
+              "build",
+              "test-downstream-modules",
+              "-Doptimize=ReleaseFast",
+              "-j1"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 1426423808,
+            "wall_seconds": 6.686135749972891
+          }
+        ],
+        "sdk_debug_build": [
+          {
+            "label": "sdk-Debug-and-external-ReleaseFast",
+            "argv": [
+              "zig",
+              "build",
+              "test-downstream-modules",
+              "-Doptimize=Debug",
+              "-j1"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 1485504512,
+            "wall_seconds": 8.234824042010587
+          }
+        ],
+        "pinned_sdk_execution": [
+          {
+            "label": "sdk-binary-f16cb6853396",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/8476f9f140455de5a3019689a2bc3774/sdk-consumer-smoke"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 32768,
+            "wall_seconds": 0.2233013329678215
+          },
+          {
+            "label": "sdk-binary-9625c277d678",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/.zig-cache/products/package/o/9494433fa90052cd1d2a7b965c8eaebc/sdk-consumer-smoke"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 245760,
+            "wall_seconds": 0.23648012499324977
+          }
+        ],
+        "remaining_package_configure": {
+          "status": "FAIL_EXACT_DEPENDENCY_MODULE_ROOTS_MISMATCH",
+          "declared": [
+            "dependency:../src/engine/prover:coefficient_storage_test_root.zig",
+            "dependency:../src/engine/prover:focused_test_root.zig",
+            "dependency:../src/engine/prover:merkle_test_root.zig",
+            "dependency:../src/engine/prover:mod.zig",
+            "dependency:../src/engine/prover:work_pool_test.zig",
+            "dependency:../src/waist/backend:mod.zig",
+            "dependency:../src/waist/core:focused_test_root.zig",
+            "dependency:../src/waist/core:mod.zig",
+            "dependency:../src/waist/core:vcs_lifted/testdata/lifted_height_vectors.zig",
+            "dependency:../src/waist/prover_api:mod.zig"
+          ],
+          "observed": [
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/backends/cuda:mod.zig",
+            "dependency:../src/backends/metal/session:mod.zig",
+            "dependency:../src/backends/metal:mod.zig",
+            "dependency:../src/engine/artifact_store:mod.zig",
+            "dependency:../src/engine/prover:coefficient_storage_test_root.zig",
+            "dependency:../src/engine/prover:focused_test_root.zig",
+            "dependency:../src/engine/prover:gkr_resource_test_root.zig",
+            "dependency:../src/engine/prover:merkle_test_root.zig",
+            "dependency:../src/engine/prover:mod.zig",
+            "dependency:../src/engine/prover:tests/work_pool_test.zig",
+            "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
+            "dependency:../src/frontends/cairo:interop/felt_json.zig",
+            "dependency:../src/frontends/cairo:mod.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/integrations/cairo_cpu:mod.zig",
+            "dependency:../src/integrations/cairo_cuda:mod.zig",
+            "dependency:../src/integrations/cairo_metal:mod.zig",
+            "dependency:../src/integrations/native_cuda:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:mod.zig",
+            "dependency:../src/products/native/examples:mod.zig",
+            "dependency:../src/waist/backend:mod.zig",
+            "dependency:../src/waist/core:fields/om31_test.zig",
+            "dependency:../src/waist/core:focused_test_root.zig",
+            "dependency:../src/waist/core:mod.zig",
+            "dependency:../src/waist/core:om31_deep_test.zig",
+            "dependency:../src/waist/core:om31_fri_test.zig",
+            "dependency:../src/waist/core:om31_pcs_test.zig",
+            "dependency:../src/waist/core:vcs_lifted/testdata/lifted_height_vectors.zig",
+            "dependency:../src/waist/proof_wire:mod.zig",
+            "dependency:../src/waist/prover_api:mod.zig",
+            "dependency:../src/waist/recursion_wire:mod.zig",
+            "dependency:../src/waist/recursion_wire:postcard/mod.zig"
+          ],
+          "undeclared": [
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/backends/cuda:mod.zig",
+            "dependency:../src/backends/metal/session:mod.zig",
+            "dependency:../src/backends/metal:mod.zig",
+            "dependency:../src/engine/artifact_store:mod.zig",
+            "dependency:../src/engine/prover:gkr_resource_test_root.zig",
+            "dependency:../src/engine/prover:tests/work_pool_test.zig",
+            "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
+            "dependency:../src/frontends/cairo:interop/felt_json.zig",
+            "dependency:../src/frontends/cairo:mod.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/integrations/cairo_cpu:mod.zig",
+            "dependency:../src/integrations/cairo_cuda:mod.zig",
+            "dependency:../src/integrations/cairo_metal:mod.zig",
+            "dependency:../src/integrations/native_cuda:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:mod.zig",
+            "dependency:../src/products/native/examples:mod.zig",
+            "dependency:../src/waist/core:fields/om31_test.zig",
+            "dependency:../src/waist/core:om31_deep_test.zig",
+            "dependency:../src/waist/core:om31_fri_test.zig",
+            "dependency:../src/waist/core:om31_pcs_test.zig",
+            "dependency:../src/waist/proof_wire:mod.zig",
+            "dependency:../src/waist/recursion_wire:mod.zig",
+            "dependency:../src/waist/recursion_wire:postcard/mod.zig"
+          ],
+          "unobserved": [
+            "dependency:../src/engine/prover:work_pool_test.zig"
+          ]
+        },
+        "scope": "CPU/macOS consumer behavior only; external build ReleaseFast, SDK Debug and ReleaseFast. Not full product, Linux, GPU, soundness, 128-bit security or performance qualification."
+      },
+      "source_conformance": {
+        "status": "FAIL_REMAINING_105",
+        "errors": 105
+      },
+      "repository_python": {
+        "tests": 45,
+        "passed": 44,
+        "failures": 1,
+        "errors": 0,
+        "remaining_failure": "clean repository assertion retains 393 workspace findings"
+      },
+      "artifact_retention": "SDK binaries retained in external checkpoint; the external temporary consumer image is hash-pinned in its execution log and then removed by its existing temporary-directory lifecycle.",
+      "claim_boundary": "Documented facade binding repaired and CPU consumer executions observed. No ledger/version change, package-configuration green claim, Linux qualification, full proof product, GPU, live Sail or performance qualification."
     }
   },
   "post_merge_hygiene": {
