@@ -15,6 +15,10 @@ use kona_protocol::BlockInfo;
 use spin::Mutex;
 
 const FIELD_ELEMENTS: usize = 4096;
+// 4096^-1 in the EIP-4844 scalar field; checked by qualification below.
+const INV_DOMAIN: Fr = ark_ff::MontFp!(
+    "52423073447788513186850219087163459498374710080483563692275874603576291491841"
+);
 const MAX_SIDECARS: usize = 256;
 #[cfg(test)]
 const SCALAR_MODULUS: [u8; 32] =
@@ -224,6 +228,91 @@ fn evaluation_roots() -> Vec<Fr> {
 }
 
 fn evaluate_blob(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
+    // EIP-4844 evaluations are in bit-reversed order, so each adjacent pair
+    // lives at (w, -w). Fold the even and odd interpolation polynomials:
+    //   2 f_z(w^2) = a + b + (z / w) (a - b).
+    // Recurse at z^2. Twelve unscaled folds introduce a factor of 4096,
+    // removed once at the end. All divisors w are public roots of unity;
+    // roots[N-k] supplies their inverses without a witness-dependent inverse.
+    // Dense blobs take 2(N-1) multiplications plus twelve squares, versus
+    // roughly 4N multiplications in the streaming single-fraction formula.
+    let mut values = Vec::with_capacity(FIELD_ELEMENTS);
+    for bytes in blob.as_slice().chunks_exact(32) {
+        let limbs = core::array::from_fn(|i| {
+            let start = 24 - 8 * i;
+            u64::from_be_bytes(bytes[start..start + 8].try_into().expect("scalar limb"))
+        });
+        // Decode every field element before folding, including if z is a
+        // domain point. No on-domain shortcut may bypass canonical admission.
+        values.push(Fr::from_bigint(BigInt(limbs))?);
+    }
+    // Sparse or heavily padded blobs can make the streaming recurrence cheaper.
+    // It needs four multiplies per nonzero value; folding needs at most 2N.
+    // Choose conservatively by authenticated values, never an external hint.
+    let nonzero = values.iter().filter(|v| **v != Fr::ZERO).count();
+    if nonzero == 0 {
+        return Some(Fr::ZERO);
+    }
+    let z_to_n = z.pow([FIELD_ELEMENTS as u64]);
+    if z_to_n == Fr::ONE {
+        let index = roots.iter().position(|root| *root == z)?;
+        return Some(values[index.reverse_bits() >> (usize::BITS - FIELD_ELEMENTS.ilog2())]);
+    }
+    if nonzero <= FIELD_ELEMENTS / 2 {
+        return evaluate_blob_sparse(&values, z, z_to_n, roots);
+    }
+    evaluate_blob_folded(&mut values, z, roots)
+}
+
+fn evaluate_blob_folded(values: &mut [Fr], z: Fr, roots: &[Fr]) -> Option<Fr> {
+    let mut count = FIELD_ELEMENTS;
+    let mut point = z;
+    while count > 1 {
+        for j in 0..count / 2 {
+            let a = values[2 * j];
+            let b = values[2 * j + 1];
+            let difference = a - b;
+            let mut folded = a + b;
+            if difference != Fr::ZERO {
+                // rev_logN(2j) already includes the 2^stage factor; the
+                // same public root prefix serves every fold depth.
+                let index = (2 * j).reverse_bits() >> (usize::BITS - FIELD_ELEMENTS.ilog2());
+                let inverse_root = roots[(FIELD_ELEMENTS - index) & (FIELD_ELEMENTS - 1)];
+                folded += difference * inverse_root * point;
+            }
+            values[j] = folded;
+        }
+        point.square_in_place();
+        count /= 2;
+    }
+    Some(values[0] * INV_DOMAIN)
+}
+
+fn evaluate_blob_sparse(values: &[Fr], z: Fr, z_to_n: Fr, roots: &[Fr]) -> Option<Fr> {
+    let mut numerator = Fr::ZERO;
+    let mut denominator = Fr::ONE;
+    for (i, value) in values.iter().copied().enumerate() {
+        if value == Fr::ZERO {
+            continue;
+        }
+        // The caller has already handled z^N == 1 after canonical decoding.
+        // Skip zero values before root lookup and bit reversal; their absence
+        // contributes no fraction and cannot hide an on-domain value.
+        let root = roots[i.reverse_bits() >> (usize::BITS - FIELD_ELEMENTS.ilog2())];
+        let difference = z - root;
+        numerator = numerator * difference + (root * value) * denominator;
+        denominator *= difference;
+    }
+    Some(
+        numerator
+            * (z_to_n - Fr::ONE)
+            * (denominator * Fr::from(FIELD_ELEMENTS as u64)).inverse()?,
+    )
+}
+
+/// Independent streaming barycentric reference retained for qualification.
+#[cfg(any(test, feature = "blob-eval-probe"))]
+fn evaluate_blob_fraction(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
     let mut numerator = Fr::ZERO;
     let mut denominator = Fr::ONE;
     let mut on_domain = None;
@@ -256,6 +345,51 @@ fn evaluate_blob(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
             * (z.pow([FIELD_ELEMENTS as u64]) - Fr::ONE)
             * (denominator * Fr::from(FIELD_ELEMENTS as u64)).inverse()?,
     )
+}
+
+/// Diagnostic program only: BEV1 || mode:u8 || canonical z:32 || blob:131072.
+/// The 43-byte output has a BEV1 marker and BP suffix, which cannot be admitted
+/// as OP/OD. Reuses the execution runner without relaxing its output contract.
+/// Modes compare the retained reference, production selection, and forced fold.
+#[cfg(feature = "blob-eval-probe")]
+pub fn evaluation_probe(input: &[u8]) -> Option<[u8; 43]> {
+    if input.len() != 4 + 1 + 32 + 131072 || &input[..4] != b"BEV1" {
+        return None;
+    }
+    let point_bytes: &[u8; 32] = input[5..37].try_into().ok()?;
+    let limbs = core::array::from_fn(|i| {
+        let start = 24 - 8 * i;
+        u64::from_be_bytes(
+            point_bytes[start..start + 8]
+                .try_into()
+                .expect("scalar limb"),
+        )
+    });
+    let point = Fr::from_bigint(BigInt(limbs))?;
+    let mut blob = Box::<Blob>::default();
+    blob.as_mut_slice().copy_from_slice(&input[37..]);
+    let roots = evaluation_roots();
+    let result = match input[4] {
+        0 => evaluate_blob_fraction(&blob, point, &roots),
+        1 => evaluate_blob(&blob, point, &roots),
+        2 => {
+            let mut values = Vec::with_capacity(FIELD_ELEMENTS);
+            for bytes in blob.as_slice().chunks_exact(32) {
+                let value = Fr::from_be_bytes_mod_order(bytes);
+                if scalar_bytes(value).as_slice() != bytes {
+                    return None;
+                }
+                values.push(value);
+            }
+            evaluate_blob_folded(&mut values, point, &roots)
+        }
+        _ => None,
+    }?;
+    let mut output = [0; 43];
+    output[..32].copy_from_slice(&scalar_bytes(result));
+    output[32..36].copy_from_slice(b"BEV1");
+    output[41..].copy_from_slice(b"BP");
+    Some(output)
 }
 
 #[cfg(test)]
@@ -387,5 +521,91 @@ mod tests {
         );
         blob.as_mut_slice()[32..64].copy_from_slice(&SCALAR_MODULUS);
         assert_eq!(evaluate_blob(&blob, Fr::ONE, &evaluation_roots()), None);
+    }
+
+    #[cfg(feature = "blob-eval-probe")]
+    #[test]
+    fn diagnostic_framing_is_distinct_and_does_not_bypass_scalar_admission() {
+        let mut input = alloc::vec![0; 37 + 131072];
+        input[..4].copy_from_slice(b"BEV1");
+        input[36] = 1; // on-domain point 1, not permission to skip later scalars
+        for mode in 0..=2 {
+            input[4] = mode;
+            let result = evaluation_probe(&input).unwrap();
+            assert_eq!(&result[..32], &[0; 32]);
+            assert_eq!(&result[32..36], b"BEV1");
+            assert_eq!(&result[41..], b"BP");
+        }
+        input[4] = 3;
+        assert!(evaluation_probe(&input).is_none());
+        input[4] = 1;
+        input[5..37].copy_from_slice(&SCALAR_MODULUS);
+        assert!(evaluation_probe(&input).is_none());
+        input[5..37].fill(0);
+        input[36] = 1;
+        input[37 + 32 * 4095..].copy_from_slice(&SCALAR_MODULUS);
+        for mode in 0..=2 {
+            input[4] = mode;
+            assert!(evaluation_probe(&input).is_none());
+        }
+        assert!(evaluation_probe(&input[..input.len() - 1]).is_none());
+        input[0] ^= 1;
+        assert!(evaluation_probe(&input).is_none());
+    }
+
+    #[test]
+    fn folded_interpolation_matches_fraction_for_dense_sparse_and_domain_points() {
+        assert_eq!(INV_DOMAIN * Fr::from(FIELD_ELEMENTS as u64), Fr::ONE);
+        let roots = evaluation_roots();
+        let mut dense = Box::<Blob>::default();
+        let mut sparse = Box::<Blob>::default();
+        // Deterministic full-width canonical values. The reference follows a
+        // rational barycentric recurrence, not the folding identity above.
+        for (i, bytes) in dense.as_mut_slice().chunks_exact_mut(32).enumerate() {
+            let value = Fr::from_be_bytes_mod_order(&Sha256::digest((i as u64).to_be_bytes()));
+            bytes.copy_from_slice(&scalar_bytes(value));
+            if i % 31 == 0 {
+                sparse.as_mut_slice()[32 * i..32 * (i + 1)].copy_from_slice(bytes);
+            }
+        }
+        for blob in [&dense, &sparse, &Box::<Blob>::default(), &example_blob()] {
+            for point in [
+                Fr::ZERO,
+                Fr::from(17),
+                Fr::from(1729),
+                roots[0],
+                roots[1],
+                roots[29],
+                roots[2048],
+                roots[4095],
+            ] {
+                assert_eq!(
+                    evaluate_blob(blob, point, &roots),
+                    evaluate_blob_fraction(blob, point, &roots)
+                );
+                let mut values: Vec<_> = blob
+                    .as_slice()
+                    .chunks_exact(32)
+                    .map(Fr::from_be_bytes_mod_order)
+                    .collect();
+                assert_eq!(
+                    evaluate_blob_folded(&mut values, point, &roots),
+                    evaluate_blob_fraction(blob, point, &roots)
+                );
+            }
+        }
+        // Domain points must select the corresponding bit-reversed input,
+        // including both halves and the last adjacent pair.
+        for i in [0usize, 1, 2, 3, 17, 255, 2048, 4094, 4095] {
+            let index = i.reverse_bits() >> (usize::BITS - FIELD_ELEMENTS.ilog2());
+            let expected = Fr::from_be_bytes_mod_order(&dense.as_slice()[32 * i..32 * (i + 1)]);
+            assert_eq!(evaluate_blob(&dense, roots[index], &roots), Some(expected));
+        }
+        for index in [0usize, 1, 2048, 4095] {
+            let mut malformed = dense.clone();
+            malformed.as_mut_slice()[32 * index..32 * (index + 1)].copy_from_slice(&SCALAR_MODULUS);
+            assert_eq!(evaluate_blob(&malformed, roots[0], &roots), None);
+            assert_eq!(evaluate_blob(&malformed, Fr::from(17), &roots), None);
+        }
     }
 }

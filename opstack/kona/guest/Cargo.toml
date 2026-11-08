@@ -7,6 +7,7 @@ publish = false
 [features]
 default = []
 transition-program = ["stwo-kona-execution/transition-program"]
+blob-eval-probe = ["stwo-kona-execution/blob-eval-probe"]
 eager-preimages = []
 allocator-check = []
 precompile-services = ["stwo-kona-execution/precompile-services"]

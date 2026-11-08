@@ -2,6 +2,8 @@
 #![no_std]
 #![no_main]
 extern crate alloc;
+#[cfg(all(feature = "blob-eval-probe", feature = "transition-program"))]
+compile_error!("blob evaluation diagnostic and transition are distinct programs");
 #[rustfmt::skip]
 #[path = "../../../../autoresearch/benchmarks/guest_runtime/exact_layout_allocator_v2.rs"]
 mod allocator;
@@ -21,7 +23,7 @@ use core::{
     arch::{asm, global_asm},
     ptr,
 };
-#[cfg(not(feature = "transition-program"))]
+#[cfg(not(any(feature = "transition-program", feature = "blob-eval-probe")))]
 use stwo_kona_execution::{
     execution::execute,
     witness::{Validation, Witness},
@@ -72,7 +74,7 @@ extern "C" fn guest_main() -> ! {
         assert!(len <= ptr::addr_of!(__input_end) as usize - start as usize - 4);
         core::slice::from_raw_parts(start.add(4), len)
     };
-    #[cfg(not(feature = "transition-program"))]
+    #[cfg(not(any(feature = "transition-program", feature = "blob-eval-probe")))]
     let mode = if cfg!(feature = "eager-preimages") {
         Validation::Eager
     } else {
@@ -83,10 +85,13 @@ extern "C" fn guest_main() -> ! {
     #[cfg(feature = "pairing-hints")]
     let input = stwo_kona_execution::precompiles::install_hinted(input)
         .expect("invalid pairing hint stream");
-    #[cfg(not(feature = "transition-program"))]
+    #[cfg(not(any(feature = "transition-program", feature = "blob-eval-probe")))]
     let output = execute(&Witness::parse(input, mode).expect("invalid OP witness"))
         .expect("OP execution rejected")
         .public_output();
+    #[cfg(feature = "blob-eval-probe")]
+    let output = stwo_kona_execution::anchored_blobs::evaluation_probe(input)
+        .expect("blob evaluation diagnostic rejected");
     #[cfg(feature = "transition-program")]
     let output = stwo_kona_execution::transition_input::TransitionInput::parse(input)
         .expect("invalid OP transition witness")

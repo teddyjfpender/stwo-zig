@@ -13,6 +13,13 @@ mod transition;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     match args.get(1).map(String::as_str) {
+        #[cfg(feature = "blob-eval-probe")]
+        Some("blob-eval-probe") if args.len() == 3 => {
+            let output =
+                stwo_kona_execution::anchored_blobs::evaluation_probe(&fs::read(&args[2])?)
+                    .ok_or("blob evaluation diagnostic rejected")?;
+            println!("{}", alloy_primitives::hex::encode(output));
+        }
         #[cfg(feature = "transition-program")]
         Some("pack-transition") if args.len() == 6 => {
             transition::pack(&args[2], &args[3], &args[4], &args[5])?;
