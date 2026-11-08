@@ -1306,5 +1306,19 @@
       "not_physical_peak": true,
       "new_flags_or_kernels": 0
     }
+  },
+  "guarded_startup_after_rc_projection": {
+    "source_commit": "edb5755221720218c7a6910eff7d913e35a71b9a",
+    "status": "NODE4_COMPLETED_LATER_NATIVE_PREWARM_FAILED",
+    "unit_zig": "PASS full gate suite",
+    "unit_python": "PASS 194",
+    "node4_declared_device_words": 4538730688,
+    "node4_arena_peak_words": 4539519616,
+    "node4_memory_status": "worker arena counters, not physical peak",
+    "later_failure": "CudaEnqueueFailed: empirical truth prewarm budget requests22470243840bytes through21609054208byte fixed pool",
+    "new_truth_bound": "Shared source-derived retained-block bound prepared; existing reuse allowance preserved; numeric constructor bound and hardware pending",
+    "new_code_net": 29,
+    "flags_added": 0,
+    "scripts_added": 0
   }
 }

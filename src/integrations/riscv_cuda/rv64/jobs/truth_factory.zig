@@ -139,7 +139,7 @@ pub const Factory = struct {
                     for (&held, 0..) |*h, d| {
                         if (d < 8 and (e.devices >> @intCast(d)) & 1 == 1) h.* = heldWords(c);
                     }
-                    // The declared PCS term undershoots: measured/declared stage-2
+                    // The previous empirical PCS term undershot: measured/declared stage-2
                     // peak 0.68..1.48 over the 7 classes of 26235156 [M]
                     // (runs/m8-gpu-r-truth/parity-4, keccak log13 0.998e9 vs
                     // 0.676e9 words). Unmeasured classes budget 3/2 declared.
@@ -151,6 +151,7 @@ pub const Factory = struct {
                     // full request gate; allocations remain arena-bounded.
                     const reuse_bound = declared + @max(c.mainEvalWords(), 8 * c.composition.coefficientWords());
                     const budget = if (e.measured_peak_words != 0) e.measured_peak_words else if (e.planned_reuse) reuse_bound else declared / 2 * 3;
+                    std.debug.print("GPU_M8_TRUTH_CLASS_BOUND class={s} pcs_workspace_words={d} declared_words={d} reuse_padding_words={d} budget_words={d} physical_peak=false\n", .{ std.fmt.bytesToHex(key[0..6], .lower), c.pcs_workspace_words, declared, reuse_bound - declared, budget });
                     return .{ .key = key, .plan = c, .destroy = noDestroy, .max_encoded_bytes = e.max_encoded_bytes, .extra_checks = &K.Class.extra_checks, .arena_peak_words = budget, .phase_a_peak_words = TJ.stage1Footprint(c, maxCalls(c), 0).device_words + 1024, .phase_b = true, .held_words = held, .cost_us = 1, .needs_capture_end = true };
                 }
             };

@@ -102,6 +102,7 @@ pub const Class = struct {
     total: u32,
     mask_log: u32,
     pcs: NP.PcsJob,
+    pcs_workspace_words: usize,
     pristine: []PcsColumn,
     /// Device OODS constraint program (gn-truth; truth_oods.zig), built from
     /// class geometry at warm.
@@ -479,11 +480,16 @@ pub fn build(a: std.mem.Allocator, in: Init) !*Class {
     var made_trees: usize = 0;
     defer for (tree_columns[0..made_trees]) |t| a.free(t);
     const tree_logs = [4][]const u32{ fixed_logs, main_logs, inter_logs, &.{} };
+    const tree_offsets = [4][]const usize{ fixed_offsets, main_plan.offsets, inter_plan.offsets, composition.offsets };
     for (0..4) |t| {
         const count = if (t == 3) n_comp else tree_logs[t].len;
         tree_columns[t] = try a.alloc(D.Column, count);
         made_trees += 1;
-        for (tree_columns[t], 0..) |*c, i| c.* = NP.placeholderColumn(if (t == 3) composition.chunkLog() else tree_logs[t][i]);
+        for (tree_columns[t], 0..) |*c, i| {
+            c.* = NP.placeholderColumn(if (t == 3) composition.chunkLog() else tree_logs[t][i]);
+            // Same sorted physical offsets Stage2 binds to the real arena.
+            c.device.?.words += tree_offsets[t][i];
+        }
     }
     // Roots are never compared by the imported-OODS PCS (pcs_enqueue.cu: the
     // transcript authenticates them); the class framing carries zeros.
@@ -496,13 +502,15 @@ pub fn build(a: std.mem.Allocator, in: Init) !*Class {
     const request = D.Request{ .scope = null, .config = in.config, .lifting_log_size = composition.chunkLog() + beta, .trees = &trees, .points = .{ .items = &tree_points } };
     var pcs = try NP.PcsJob.prepare(a, in.psym, request, placeholder, in.wide_framing);
     errdefer pcs.deinit(a);
+    const pcs_bound = try pcs.borrowedWorkBound(a);
+    std.debug.print("GPU_M8_TRUTH_PCS_BOUND source_derived_words={d} requested_sum_words={d} retained_blocks=true physical_peak=false\n", .{ pcs_bound.words, pcs_bound.requested_words });
     const pristine = try a.dupe(PcsColumn, pcs.prepared.coefficients);
     errdefer a.free(pristine);
     var oods = try TO.fromGeometry(a, .{ .kind = kind, .truth = truth, .log = log, .roles = roles, .mask_log = mask_log, .split = split, .shape = pcs.prepared.metadata.shape });
     errdefer oods.deinit();
     var encode = try NE.Program.build(a, pcs.prepared.metadata.shape);
     errdefer encode.deinit();
-    self.* = .{ .a = a, .key = try classKey(truth, in.config, in.fixed_root), .kind = kind, .truth = truth, .truth_tag = @intFromEnum(std.meta.activeTag(truth)), .witness = try witnessOf(truth), .log = log, .main_width = main_width, .compact_words_per_call = try compactWordsPerCall(truth), .config = in.config, .beta = beta, .fixed_plan = fixed_plan, .fixed_host = fixed_host, .fixed_offsets = fixed_offsets, .fixed_words = fixed_words, .fixed_key = fixed_key, .fixed_root = in.fixed_root, .fixed_logs = fixed_logs, .main_plan = main_plan, .main_logs = main_logs, .inter_plan = inter_plan, .inter_logs = inter_logs, .roles = roles, .claim_count = claim_count, .zero_count = zero_count, .composition = composition, .comp_log = comp_log, .split = split, .total = total, .mask_log = mask_log, .pcs = pcs, .pristine = pristine, .oods = oods, .encode = encode, .owned = owned, .owned_entries = owned_entries };
+    self.* = .{ .a = a, .key = try classKey(truth, in.config, in.fixed_root), .kind = kind, .truth = truth, .truth_tag = @intFromEnum(std.meta.activeTag(truth)), .witness = try witnessOf(truth), .log = log, .main_width = main_width, .compact_words_per_call = try compactWordsPerCall(truth), .config = in.config, .beta = beta, .fixed_plan = fixed_plan, .fixed_host = fixed_host, .fixed_offsets = fixed_offsets, .fixed_words = fixed_words, .fixed_key = fixed_key, .fixed_root = in.fixed_root, .fixed_logs = fixed_logs, .main_plan = main_plan, .main_logs = main_logs, .inter_plan = inter_plan, .inter_logs = inter_logs, .roles = roles, .claim_count = claim_count, .zero_count = zero_count, .composition = composition, .comp_log = comp_log, .split = split, .total = total, .mask_log = mask_log, .pcs = pcs, .pcs_workspace_words = @intCast(pcs_bound.words), .pristine = pristine, .oods = oods, .encode = encode, .owned = owned, .owned_entries = owned_entries };
     return self;
 }
 

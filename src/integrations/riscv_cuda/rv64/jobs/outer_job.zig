@@ -247,19 +247,13 @@ pub const OuterNodeJob = struct {
         // only binds the real coefficient addresses (native_pcs.bindColumn).
         out.pcs = try Pcs.PcsJob.prepare(out.allocator, whole.pcs, placeholder, try Pcs.placeholderPoint(), whole.wide);
         out.pcs_plan = out.pcs.?.plan;
-        const Cost = @import("../pcs_allocation_cost.zig");
-        var options = try Cost.optionsFromEnv();
-        options.phase_retirement = false;
-        options.domain_cached = false;
-        options.borrowed_trees = @splat(true);
         // Geometry promise: placeholders follow each class's contiguous
         // offsets. Runtime holdBuffers/bindColumn binds the actual arena views.
         // All four trees merge into one span each; JobOwner validates the
         // actual CUDA allocation before borrowing and throws on bad custody.
-        var allocation = try Cost.init(out.allocator, &out.pcs.?.descriptor, options);
-        defer allocation.deinit(out.allocator);
-        out.pcs_workspace_words = try allocation.jobWords(out.allocator);
-        std.debug.print("GPU_M8_OUTER_PCS_BOUND ordinal={d} source_derived_words={d} requested_sum_words={d} retained_blocks=true physical_peak=false\n", .{ staged.ordinal, out.pcs_workspace_words, allocation.requested_upper_bytes / 4 });
+        const allocation = try out.pcs.?.borrowedWorkBound(out.allocator);
+        out.pcs_workspace_words = allocation.words;
+        std.debug.print("GPU_M8_OUTER_PCS_BOUND ordinal={d} source_derived_words={d} requested_sum_words={d} retained_blocks=true physical_peak=false\n", .{ staged.ordinal, out.pcs_workspace_words, allocation.requested_words });
         _ = try out.layout.add(.opaque_words, pcs_index, @intCast(out.pcs.?.outputWords()));
         _ = try out.layout.add(.opaque_words, oods_index, Pcs.oods_field_words);
         try out.initChecks();

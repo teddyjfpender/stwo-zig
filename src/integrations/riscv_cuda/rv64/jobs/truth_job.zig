@@ -1083,9 +1083,8 @@ fn fillTable(c: *const K.Class, pcs: *const NP.PcsJob, t: Table, calls: u32, fir
 
 /// Stage-2 arena words of a class: staged table + plans, then the largest of
 /// the five phases (witness+MAIN commit, interactions, INTER commit,
-/// composition, PCS). The PCS peak is not declared by its producer; this
-/// estimate [E] is replaced by the measured class peak through the memory
-/// policy (Enqueue.footprint) once a receipt exists.
+/// composition, PCS). PCS uses its source-derived retained-block upper bound;
+/// the memory policy also retains measured class peaks (Enqueue.footprint).
 pub fn stage2Footprint(c: *const K.Class, calls: u32, slab_words: usize, pcs_output: usize, pcs_ingress: usize) api.Footprint {
     const g = 64;
     const al = struct {
@@ -1106,8 +1105,7 @@ pub fn stage2Footprint(c: *const K.Class, calls: u32, slab_words: usize, pcs_out
     const phase_interactions = main_coeffs + outputs + role_peak;
     const phase_inter = main_coeffs + outputs + c.inter_plan.deviceWords();
     const phase_comp = main_coeffs + al(c.inter_plan.coefficient_cells) + c.composition.enqueueWords();
-    const pcs_estimate = 2 * @max(c.main_plan.eval_cells, @max(c.inter_plan.eval_cells, c.fixed_plan.eval_cells)) + pcs_output;
-    const phase_pcs = main_coeffs + al(c.inter_plan.coefficient_cells) + al(c.composition.coefficientWords()) + pcs_estimate;
+    const phase_pcs = main_coeffs + al(c.inter_plan.coefficient_cells) + al(c.composition.coefficientWords()) + c.pcs_workspace_words + al(pcs_output);
     const small = 4 * al(feltWords(X.shared_felts)) + @import("channel.zig").state_words + 16 * g;
     // gn-truth device encode. The arena is LIFO by default (worker
     // reuse_frees off): the tree coefficients are freed before the device

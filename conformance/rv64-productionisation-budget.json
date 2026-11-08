@@ -384,6 +384,13 @@
       "positive_growth_justification": "Reduce actual composition evaluation storage using the existing authenticated unique-column selector. Preserve tree identities, input-slot order and shifted aliases; use the same projected source roster for LDE allocations and resource declaration. A source-derived node4 preflight fits the unchanged arena before hardware. No new kernel, flag, ceiling or reserve change.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "truth_pcs_retained_block_bound",
+      "net_code_budget": 100,
+      "positive_growth_justification": "Share the allocation-derived retained-block PCS bound across outer and truth jobs. Rebase authenticated truth placeholders using the same coefficient offsets actually bound at enqueue, prove four-tree contiguity and retain existing non-PCS calibration margins. Replace the empirical doubled-full-LDE term so installation prewarm does not request a buffer larger than the fixed pool. No reserve, allocator cap, physical ceiling or proof-check relaxation.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

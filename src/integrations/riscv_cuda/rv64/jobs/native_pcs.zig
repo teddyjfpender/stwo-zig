@@ -152,6 +152,19 @@ pub const PcsJob = struct {
     pub fn ingressWords(self: *const PcsJob) u64 {
         return self.plan.ingress_words;
     }
+    /// Constructors must model each tree's planned contiguous arena view.
+    /// init checks that geometry promise; C++ checks actual CUDA custody when
+    /// binding and borrowing. Retired blocks remain charged in this upper bound.
+    pub fn borrowedWorkBound(self: *const PcsJob, a: std.mem.Allocator) !struct { words: u64, requested_words: u64 } {
+        const Cost = @import("../pcs_allocation_cost.zig");
+        var options = try Cost.optionsFromEnv();
+        options.phase_retirement = false;
+        options.domain_cached = false;
+        options.borrowed_trees = @splat(true);
+        var allocation = try Cost.init(a, &self.descriptor, options);
+        defer allocation.deinit(a);
+        return .{ .words = try allocation.jobWords(a), .requested_words = allocation.requested_upper_bytes / 4 };
+    }
     /// `e` is the job's api.Enqueue: only ctx(), alloc(words) and free(buffer)
     /// are used. `pinned` is job-lifetime pinned memory from Stager.pinned.
     pub fn enqueue(self: *PcsJob, symbols: Symbols, e: anytype, pinned: []u32, io: Io) !void {
@@ -248,6 +261,21 @@ test "PCS framing is challenge independent except seed, imported point and roots
         const request = testRequest(&trees, &forest, 1);
         out.* = try Export.prepareRequestWithFraming(a, request, D.Channel.init(), null, true);
         base_shift.* = try baseShift(request, oods);
+        var offset: usize = 0;
+        for (out.coefficients) |*col| {
+            col.kind = 1;
+            col.words = @as([*]const u32, @ptrFromInt(0x1000)) + offset;
+            col.context_token = 1;
+            col.generation = 1;
+            offset += @intCast(col.count);
+        }
+        const before = try a.dupe(Native.Column, out.coefficients);
+        defer a.free(before);
+        const probe = PcsJob{ .prepared = undefined, .descriptor = out.descriptor(), .plan = .{}, .base_shift = base_shift.* };
+        try std.testing.expect((try probe.borrowedWorkBound(a)).words > 0);
+        try std.testing.expectEqualSlices(Native.Column, before, out.coefficients);
+        out.coefficients[out.coefficients.len - 1].words = out.coefficients[out.coefficients.len - 1].words.? + 1;
+        try std.testing.expectError(error.InvalidPcsBorrowPromise, probe.borrowedWorkBound(a));
     }
     defer for (&prepared) |*p| p.deinit(a);
     try std.testing.expect(shifts[0].eql(shifts[1]));
