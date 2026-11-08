@@ -505,6 +505,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Fix the existing developer --check contract: focused CPU proof targets ignored the accepted check-only option and constructed real proof executions. Centralize test scheduling so semantic mode never requests a Run artifact or emitted binary; default mode still runs the same roots, filters and count floors freshly. The already-routed fixture receiver also honors semantic-only mode without installation. Preserve all imports, workload bodies and verifier rejection logic. No new flag, API ledger, version or launcher. Rollback restores the documented unsafe execution reproduction, which must not be reported as a semantic-only check. Successful developer output explicitly labels semantic checks separately from test execution."
+    },
+    {
+      "id": "delivery_blake_arithmetic_consolidation",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Zero-growth-or-negative consolidation of duplicate scalar/SIMD BLAKE2s rotates and G arithmetic into the existing internal parallel arithmetic owner. Preserve message/round schedules, constants, counters, dispatch, nonce policy, codec bytes and public facade; the interleaved four-G schedule stays exact. A small all-shift differential rotation test is mandatory. Moved bodies receive no deletion credit. Require native Debug/ReleaseFast independent-oracle tests and exact deterministic CPU fixture byte equality; no backend, security, gate or timing qualification is inferred. Rollback restores the original arithmetic bodies together."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

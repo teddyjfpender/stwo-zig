@@ -1,13 +1,10 @@
 //! Fixed-terminal BLAKE2s batching wider than one scalar message.
 
 const std = @import("std");
-const builtin = @import("builtin");
 const parallel4 = @import("blake2s_parallel4.zig");
 
 const V4 = @Vector(4, u32);
 const V8 = @Vector(8, u32);
-const Shift4 = @Vector(4, u5);
-const V16u8 = @Vector(16, u8);
 
 pub const iv = [_]u32{
     0x6A09E667,
@@ -52,14 +49,7 @@ fn gScalar(
     x: u32,
     y: u32,
 ) void {
-    state[a] +%= state[b] +% x;
-    state[d] = std.math.rotr(u32, state[d] ^ state[a], 16);
-    state[c] +%= state[d];
-    state[b] = std.math.rotr(u32, state[b] ^ state[c], 12);
-    state[a] +%= state[b] +% y;
-    state[d] = std.math.rotr(u32, state[d] ^ state[a], 8);
-    state[c] +%= state[d];
-    state[b] = std.math.rotr(u32, state[b] ^ state[c], 7);
+    parallel4.Lane(u32).mix(&state[a], &state[b], &state[c], &state[d], x, y);
 }
 
 pub fn prepareFixed40NoncePrefix(
@@ -239,34 +229,7 @@ fn statesToDigests8(
     return out;
 }
 
-fn rotr4(x: V4, comptime bits: u5) V4 {
-    if (comptime builtin.cpu.arch.endian() == .little) {
-        const bytes: V16u8 = @bitCast(x);
-        switch (bits) {
-            8 => return @bitCast(@shuffle(u8, bytes, bytes, @Vector(16, i32){
-                1,  2,  3,  0,
-                5,  6,  7,  4,
-                9,  10, 11, 8,
-                13, 14, 15, 12,
-            })),
-            16 => return @bitCast(@shuffle(u8, bytes, bytes, @Vector(16, i32){
-                2,  3,  0,  1,
-                6,  7,  4,  5,
-                10, 11, 8,  9,
-                14, 15, 12, 13,
-            })),
-            else => {},
-        }
-    }
-    const left_bits: u5 = @intCast((@as(u6, 32) - @as(u6, bits)) & 31);
-    return (x >> @as(Shift4, @splat(bits))) |
-        (x << @as(Shift4, @splat(left_bits)));
-}
-
-fn rotr8(x: V8, comptime bits: u5) V8 {
-    const halves: [2]V4 = @bitCast(x);
-    return @bitCast([2]V4{ rotr4(halves[0], bits), rotr4(halves[1], bits) });
-}
+const rotr8 = parallel4.rotate8;
 
 inline fn gOne8(
     v: *[16]V8,
@@ -277,14 +240,7 @@ inline fn gOne8(
     x: V8,
     y: V8,
 ) void {
-    v[a] = v[a] +% v[b] +% x;
-    v[d] = rotr8(v[d] ^ v[a], 16);
-    v[c] +%= v[d];
-    v[b] = rotr8(v[b] ^ v[c], 12);
-    v[a] = v[a] +% v[b] +% y;
-    v[d] = rotr8(v[d] ^ v[a], 8);
-    v[c] +%= v[d];
-    v[b] = rotr8(v[b] ^ v[c], 7);
+    parallel4.Lane(V8).mix(&v[a], &v[b], &v[c], &v[d], x, y);
 }
 
 inline fn round8(v: *[16]V8, m: *const [16]V8, comptime s: [16]u8) void {

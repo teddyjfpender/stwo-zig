@@ -681,20 +681,8 @@ fn parallelStatesToDigests(states: *const [8]V4) [4]Blake2sHash {
     return block_io.parallelStatesToDigests(Blake2sHash, states);
 }
 
-fn rotr32(x: u32, bits: u5) u32 {
-    const left_bits: u5 = @intCast((@as(u6, 32) - @as(u6, bits)) & 31);
-    return (x >> bits) | (x << left_bits);
-}
-
 fn gScalar(v: *[16]u32, a: usize, b: usize, c: usize, d: usize, x: u32, y: u32) void {
-    v[a] = v[a] +% v[b] +% x;
-    v[d] = rotr32(v[d] ^ v[a], 16);
-    v[c] = v[c] +% v[d];
-    v[b] = rotr32(v[b] ^ v[c], 12);
-    v[a] = v[a] +% v[b] +% y;
-    v[d] = rotr32(v[d] ^ v[a], 8);
-    v[c] = v[c] +% v[d];
-    v[b] = rotr32(v[b] ^ v[c], 7);
+    parallel4.Lane(u32).mix(&v[a], &v[b], &v[c], &v[d], x, y);
 }
 
 fn compressScalar(h: *[8]u32, m: *const [16]u32, t0: u32, t1: u32, f0: u32) void {
@@ -728,33 +716,7 @@ fn compressScalar(h: *[8]u32, m: *const [16]u32, t0: u32, t1: u32, f0: u32) void
     }
 }
 
-const Shift4 = @Vector(4, u5);
-const V16u8 = @Vector(16, u8);
-
-fn rotr32x4(x: V4, comptime bits: u5) V4 {
-    if (comptime builtin.cpu.arch.endian() == .little) {
-        const bytes: V16u8 = @bitCast(x);
-        switch (bits) {
-            8 => return @bitCast(@shuffle(u8, bytes, bytes, @Vector(16, i32){
-                1,  2,  3,  0,
-                5,  6,  7,  4,
-                9,  10, 11, 8,
-                13, 14, 15, 12,
-            })),
-            16 => return @bitCast(@shuffle(u8, bytes, bytes, @Vector(16, i32){
-                2,  3,  0,  1,
-                6,  7,  4,  5,
-                10, 11, 8,  9,
-                14, 15, 12, 13,
-            })),
-            else => {},
-        }
-    }
-    const left_bits: u5 = @intCast((@as(u6, 32) - @as(u6, bits)) & 31);
-    const r: Shift4 = @splat(bits);
-    const l: Shift4 = @splat(left_bits);
-    return (x >> r) | (x << l);
-}
+const rotr32x4 = parallel4.rotate4;
 
 fn gather4(values: *const [16]u32, idx: [4]u8) V4 {
     return .{
@@ -772,16 +734,7 @@ fn scatter4(values: *[16]u32, idx: [4]u8, vec: V4) void {
     values[idx[3]] = vec[3];
 }
 
-fn g4(a: *V4, b: *V4, c: *V4, d: *V4, x: V4, y: V4) void {
-    a.* = a.* +% b.* +% x;
-    d.* = rotr32x4(d.* ^ a.*, 16);
-    c.* = c.* +% d.*;
-    b.* = rotr32x4(b.* ^ c.*, 12);
-    a.* = a.* +% b.* +% y;
-    d.* = rotr32x4(d.* ^ a.*, 8);
-    c.* = c.* +% d.*;
-    b.* = rotr32x4(b.* ^ c.*, 7);
-}
+const g4 = parallel4.Lane(V4).mix;
 
 fn compressSimd(h: *[8]u32, m: *const [16]u32, t0: u32, t1: u32, f0: u32) void {
     if (comptime builtin.is_test) _ = test_simd_compressions.fetchAdd(1, .monotonic);
