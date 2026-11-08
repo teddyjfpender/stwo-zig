@@ -271,10 +271,12 @@ independent BLAKE2s to build the compressed openings and check every
 output coefficient. The same fixture supplies all 32 domain evaluations
 to an independent FRI proof builder. The joint test checks the full query
 set and rejects an authenticated trace row with a mismatching quotient.
-On Anvil Shanghai with solc 0.8.30, the seven-query fixture
-uses 2,881,939 gas including calldata and all three openings. The joint
-PCS test uses 10,527,089 gas for 30 distinct queries. These are bounded
-vectors; they do not measure verification of a full Mainnet proof.
+On Anvil Osaka with solc 0.8.30, the seven-query fixture uses
+2,755,814 gas including calldata and all three openings. The joint PCS
+test uses 9,917,184 gas for 30 distinct queries. Reusing one joined row
+and evaluation workspace and accumulating packed challenge coefficients
+reduced those gas measurements by 4.4% and 5.8%, respectively. These are
+bounded vectors; they do not measure verification of a full Mainnet proof.
 
 Regenerate the fixture from the repository root with Zig 0.15.2:
 

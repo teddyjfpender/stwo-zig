@@ -47,6 +47,15 @@ library NativeDeep {
         uint32[] locations;
     }
 
+    struct RowWorkspace {
+        uint32[] base;
+        uint32[8][] weightedRows;
+    }
+
+    function rowWorkspace(Plan memory plan) internal pure returns (RowWorkspace memory) {
+        return RowWorkspace(new uint32[](plan.columnCount), new uint32[8][](plan.batchCount));
+    }
+
     struct Preparation {
         Point[] points;
         uint16[] batchForKey;
@@ -175,7 +184,7 @@ library NativeDeep {
 
     /// @param query Canonical bit-reversed position in the lifting domain.
     /// @param row Exactly one authenticated base value for each layout column.
-    function evaluate(Plan memory plan, uint32 query, bytes memory row)
+    function evaluate(Plan memory plan, uint32 query, bytes memory row, RowWorkspace memory workspace)
         internal pure returns (uint32[8] memory result)
     {
         if (query >= (uint256(1) << plan.domainLog) || row.length != uint256(plan.columnCount) * 4) {
@@ -185,7 +194,7 @@ library NativeDeep {
         NativeFriFold.Point memory domain = NativeFriFold.circlePoint((1 + 4 * reverse) << (30 - plan.domainLog));
         if ((query & 1) != 0) domain.y = P - domain.y;
 
-        uint32[] memory base = new uint32[](plan.columnCount);
+        uint32[] memory base = workspace.base;
         for (uint256 i; i < base.length; ++i) {
             bytes32 chunk;
             assembly ("memory-safe") {
@@ -195,14 +204,26 @@ library NativeDeep {
             if (word >= P) revert NativePcsTranscript.NonCanonicalField();
             base[i] = word;
         }
-        uint32[8][] memory weightedRows = new uint32[8][](plan.batchCount);
+        uint32[8][] memory weightedRows = workspace.weightedRows;
+        for (uint256 i; i < weightedRows.length; ++i) {
+            uint32[8] memory sum = weightedRows[i];
+            assembly ("memory-safe") {
+                for { let at := sum } lt(at, add(sum, 256)) { at := add(at, 32) } {
+                    mstore(at, 0)
+                }
+            }
+        }
         for (uint256 i; i < plan.locations.length; ++i) {
             uint256 location = plan.locations[i];
             uint256 value = base[location >> 16];
             uint32[8] memory sum = weightedRows[location & 0xffff];
             uint256 power = plan.powers[i];
-            for (uint256 j; j < 8; ++j) {
-                sum[j] = uint32(addmod(sum[j], mulmod(value, uint32(power >> (j * 32)), P), P));
+            assembly ("memory-safe") {
+                for { let at := sum } lt(at, add(sum, 256)) { at := add(at, 32) } {
+                    let scaled := mulmod(value, and(power, 0xffffffff), 0x7fffffff)
+                    mstore(at, addmod(mload(at), scaled, 0x7fffffff))
+                    power := shr(32, power)
+                }
             }
         }
         for (uint256 i; i < plan.batchCount; ++i) {

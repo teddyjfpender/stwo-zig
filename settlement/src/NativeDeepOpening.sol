@@ -37,7 +37,7 @@ abstract contract NativeDeepOpening is LiftedOpeningVerifier {
             }
         }
 
-        bytes[] memory rows = new bytes[](queries.length);
+        uint32[] memory rowOffsets = new uint32[](queries.length * trees.length);
         uint256 totalColumns;
         for (uint256 i; i < trees.length; ++i) {
             TraceTree memory tree = trees[i];
@@ -61,14 +61,31 @@ abstract contract NativeDeepOpening is LiftedOpeningVerifier {
                 uint256 index = find(opening.positions, position);
                 if (index == opening.positions.length) revert InvalidDeepOpening();
                 seen |= uint256(1) << index;
-                rows[j] = bytes.concat(rows[j], opening.rows[index * rowBytes:(index + 1) * rowBytes]);
+                rowOffsets[j * trees.length + i] = uint32(index * rowBytes);
             }
             if (seen != type(uint256).max >> (256 - opening.positions.length)) revert InvalidDeepOpening();
         }
 
         if (totalColumns != plan.columnCount) revert InvalidDeepOpening();
         answers = new uint32[8][](queries.length);
-        for (uint256 i; i < queries.length; ++i) answers[i] = NativeDeep.evaluate(plan, queries[i], rows[i]);
+        NativeDeep.RowWorkspace memory workspace = NativeDeep.rowWorkspace(plan);
+        bytes memory row = new bytes(totalColumns * 4);
+        for (uint256 i; i < queries.length; ++i) {
+            uint256 at;
+            for (uint256 j; j < trees.length; ++j) {
+                uint256 rowBytes = uint256(trees[j].columnCount) * 4;
+                if (rowBytes == 0) continue;
+                bytes calldata source = openings[j].rows;
+                uint256 offset = rowOffsets[i * trees.length + j];
+                // The opening check bounds each source slice, and row is
+                // exactly the sum of the checked tree widths.
+                assembly ("memory-safe") {
+                    calldatacopy(add(add(row, 32), at), add(source.offset, offset), rowBytes)
+                }
+                at += rowBytes;
+            }
+            answers[i] = NativeDeep.evaluate(plan, queries[i], row, workspace);
+        }
     }
 
     // Mirrors Zig prepareTreeQueryPositions and preserves the conjugate bit.
