@@ -23,6 +23,13 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_poseidon2_native_fixture_main.zig", "poseidon2-native-fixture"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig", "test-keccakf-precompile-proof"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/secp256k1_precompile_proof_test.zig", "test-secp256k1-precompile-proof"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/universal_typed_component_proof_test.zig", "test-universal-typed-proof"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/universal_typed_component_proof_test_support.zig", "test-universal-typed-proof"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_poseidon2_native_test_root.zig", "test-poseidon2-native-cpu"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native", "test-poseidon2-native-cpu"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/fri_profile_frontier_test.zig", "test-retained-fri-frontier"),
     ("stwo_riscv_frontend", "src/frontends/riscv/retained_fri_frontier_test_root.zig", "test-retained-fri-frontier"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_image_program_contract_test_root.zig", "test-word16-image-program-contracts"),

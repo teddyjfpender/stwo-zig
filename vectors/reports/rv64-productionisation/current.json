@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-08T17:04:18Z",
+  "updated_utc": "2026-11-08T21:46:41.294033+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv/rv64-gpu-hygiene.md",
@@ -1224,6 +1224,193 @@
         }
       ],
       "claim_boundary": "Provider fixture execution only. No ledger or version change, fresh product acceptance, live Sail, GPU operation or publication."
+    },
+    "delivery_cpu_fixture_entrypoint_routing": {
+      "baseline_commit": "b708fddf7a093060dba05aaf5167bad78206b0b8",
+      "status": "PASS_SMALL_CPU_PROOFS_AND_FRESH_FIXTURE_RECEIVER_SECP_RESOURCE_BLOCKED",
+      "code": {
+        "added": 12,
+        "removed": 5,
+        "net": 7,
+        "allowance": 20
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "typed_adapter": {
+        "cases": 3,
+        "modes": [
+          "Debug",
+          "ReleaseFast"
+        ],
+        "status": "PASS_ACTUAL_EXECUTION",
+        "repair": "remove prior one-case filter, require minimum three, wire already-declared prover API dependency"
+      },
+      "native_fixture": {
+        "status": "PASS_FRESH_PROCESS_FIXTURE_AND_FOUR_EXACT_NEGATIVE_CLASSES",
+        "checks": [
+          {
+            "case": "valid",
+            "expected_error": null,
+            "observed_errors": [],
+            "passed": true
+          },
+          {
+            "case": "queries",
+            "expected_error": "PoseidonNativeProofShape",
+            "observed_errors": [
+              "PoseidonNativeProofShape"
+            ],
+            "passed": true
+          },
+          {
+            "case": "ninth-limb",
+            "expected_error": "GlobalGkrPhysicalRootMismatch",
+            "observed_errors": [
+              "GlobalGkrPhysicalRootMismatch"
+            ],
+            "passed": true
+          },
+          {
+            "case": "nonce",
+            "expected_error": "ProofOfWork",
+            "observed_errors": [
+              "ProofOfWork"
+            ],
+            "passed": true
+          },
+          {
+            "case": "wrong-family",
+            "expected_error": "UnsupportedBinaryVersion",
+            "observed_errors": [
+              "UnsupportedBinaryVersion"
+            ],
+            "passed": true
+          }
+        ],
+        "producer": {
+          "test_binary": "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/22951a1ff0920aab754fd3d504c49dca/test",
+          "bytes": 3689032,
+          "sha256": "f612a17a0210a12bb1bd29c30c9213d722fd73a74d7c60f1d1d693d85f3a0475",
+          "source_commit": "b708fddf7a093060dba05aaf5167bad78206b0b8",
+          "source_diff_sha256": "0d7783d4710dce84eb9553a7a1883ea04a631d5ae1fb3b766146ff0cdf8340de",
+          "fixture_profile": "two physical CPU workers, five steps, P2v2 PCS and raw Blake local GKR/manifest, beta=2 q=54 pow=0, certified=false"
+        },
+        "corpus": {
+          "receiver_binary": {
+            "path": "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+            "bytes": 1720120,
+            "sha256": "39343b77a0d9d470d6f93318feef7bd1f7c6b49c892be42bb99671909420e6ae"
+          },
+          "pow_offset": 461136,
+          "proof_offset_in_container": 216,
+          "cases": [
+            {
+              "name": "queries",
+              "expected_error": "PoseidonNativeProofShape",
+              "proof_offset": 20,
+              "input_sha256": "9b8776cd24f862f684eafba0ab6bfad3a84cc819e625b51c27de08f73f0d419a"
+            },
+            {
+              "name": "ninth-limb",
+              "expected_error": "GlobalGkrPhysicalRootMismatch",
+              "proof_offset": 104,
+              "input_sha256": "847134f01b465583e940522053acfc22a377cca498422ac616f7c7f7659f7efc"
+            },
+            {
+              "name": "nonce",
+              "expected_error": "ProofOfWork",
+              "proof_offset": 461136,
+              "input_sha256": "734105b4c4bd54d4b39c71361e6052b3751771323a0c4991bdb7b5741fde592c"
+            },
+            {
+              "name": "wrong-family",
+              "expected_error": "UnsupportedBinaryVersion",
+              "proof_offset": 0,
+              "input_sha256": "10cf6378a125cd7c2c2d8f1ef785dadac9bcc07585d1707d5b1fa2948bc0945c"
+            }
+          ],
+          "scope": "Selected small fixture cases only; not full product semantic corpus or production security qualification"
+        },
+        "run_results": [
+          {
+            "label": "valid",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/valid"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 161398784,
+            "wall_seconds": 2.6985165419755504
+          },
+          {
+            "label": "queries",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/queries"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 156532736,
+            "wall_seconds": 2.0098201250075363
+          },
+          {
+            "label": "ninth-limb",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/ninth-limb"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 156483584,
+            "wall_seconds": 2.0060020420351066
+          },
+          {
+            "label": "nonce",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/nonce"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 156532736,
+            "wall_seconds": 2.0212115420144983
+          },
+          {
+            "label": "wrong-family",
+            "argv": [
+              "/Users/theodorepender/Coding/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/rv64-p2-native-fixture",
+              "verify",
+              "/tmp/stwo-delivery-native-fresh/wrong-family"
+            ],
+            "exit_code": 1,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 156434432,
+            "wall_seconds": 2.020110166980885
+          }
+        ],
+        "qualification": "small mixed-suite fixture with zero PoW; no complete-block, 128-bit security, GPU or qualified timing claim"
+      },
+      "local_checks": {
+        "keccakf_proof": "PASS_DEBUG",
+        "secp256k1_proofs": "UNVERIFIED_MEMORY_GUARD",
+        "native_cpu_debug": "TIME_GUARD_180_SECONDS",
+        "dev_test_python": "PASS_31_TESTS",
+        "repository_python": "110_PASS_1_FAILURE_EXISTING_393_WORKSPACE_FINDINGS"
+      },
+      "negative_experiment": "Hash-family compilation split did not fit the unchanged memory guard and was completely reverted; all original secp256k1 test bodies and build remain unchanged.",
+      "claim_boundary": "Small CPU fixtures only, no 128-bit security claim, complete block, full product corpus, GPU operation, promotion, fresh live Sail or publication."
     }
   },
   "post_merge_hygiene": {
