@@ -42,6 +42,28 @@ peak RSS; fresh reception took 6.403 s at 6.714 GiB. The root is 746,584 bytes.
 The outer profile is `r1_b2_q108_p20_fold4`, with 40 GiB requested-live
 production admission and 24 GiB receiver admission. No GPU was used.
 
+The recursion timing is additional to the roughly 7 s native proof. The saved
+root report attributes 111.718 s to wrapping three children and 76.842 s to
+two binary folds. Those wrappers have 28,034,346, 24,455,291 and 25,970,601
+variables. This is the CPU `r1_b2_q108_p20_fold4` correctness path; it is not
+timing parity with the newer Ethereum device recursion configuration.
+
+Inspection found that the CPU domain interpreter evaluated base-field AIR
+arithmetic with scalar octic values. Its replacement keeps base arithmetic in
+native-width packed M31 and extension arithmetic in packed OM31, with the
+scalar OODS verifier unchanged. Qualification must preserve the physical
+8-coordinate interaction lens and every saved proof byte. The existing native
+D2 construction is also exposed for explicit operator-selected qualification;
+its fewer openings are a separate experiment, not an established OP speedup.
+
+The [SIMD qualification receipt](recursion-simd.json) reproduces all six saved
+proof files byte-for-byte and passes a separately started strict receiver.
+Production took 136.427 s with 846.785 user CPU seconds; fresh reception took
+7.715 s. A heavy OP proof was running concurrently, so this is qualification
+evidence and an indicative timing, not a controlled speedup measurement. The
+focused AIR, physical mutation and serial/2-worker/3-worker proof parity suites
+also pass. The full timing remains too high to call this route optimized.
+
 This is an exact-shape execution root, not a portable constant-key checkpoint,
 an anchored derivation root, an OD/OP in-circuit join or complete settlement.
 The 24 GiB baseline production attempt failed with `OutOfMemory`; it is retained

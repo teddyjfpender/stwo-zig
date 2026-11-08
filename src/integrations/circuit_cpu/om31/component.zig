@@ -5,6 +5,7 @@ const prover = @import("stwo_prover_engine");
 const C = @import("stwo_cairo_frontend").witness;
 const P = @import("protocol.zig");
 const E = @import("program.zig");
+const PackedDomain = @import("domain_program.zig");
 const G = @import("geometry.zig");
 const O = P.O;
 const M = P.M;
@@ -217,6 +218,30 @@ pub const Component = struct {
             const index = core.utils.offsetBitReversedCircleDomainIndex(self.row, self.component.captured.trace_log_size, self.component.captured.evaluation_log_size, offset);
             return O.fromBase(try poly.valueAtLiftingPosition(self.component.captured.evaluation_log_size, index));
         }
+        fn getPacked(raw: *const anyopaque, tree: u8, column: u32, offset: i32) !core.fields.m31.PackedM31 {
+            const self: *const DomainRead = @ptrCast(@alignCast(raw));
+            if (tree >= self.trace.polys.items.len) return error.MissingOm31Trace;
+            const global = if (tree == 0) blk: {
+                if (column >= self.component.captured.preprocessed_indices.len) return error.MissingOm31Trace;
+                break :blk self.component.captured.preprocessed_indices[column];
+            } else (try G.span(self.component.captured.*, tree)).start + column;
+            if (global >= self.trace.polys.items[tree].len) return error.MissingOm31Trace;
+            var poly = self.trace.polys.items[tree][global];
+            if (self.shadow) |shadow| if (shadow.values[tree][global]) |values| {
+                poly = .{ .log_size = std.math.log2_int(usize, values.len), .values = values };
+            };
+            if (poly.device != null or poly.values.len == 0) return error.Om31CircuitRequiresHostLde;
+            if (offset == 0 and poly.log_size == self.component.captured.evaluation_log_size) {
+                if (self.row > poly.values.len or PackedDomain.WIDTH > poly.values.len - self.row) return error.MissingOm31Trace;
+                return core.fields.m31.loadPacked(poly.values[self.row..].ptr);
+            }
+            var out: core.fields.m31.PackedM31 = undefined;
+            inline for (0..PackedDomain.WIDTH) |lane| {
+                const index = core.utils.offsetBitReversedCircleDomainIndex(self.row + lane, self.component.captured.trace_log_size, self.component.captured.evaluation_log_size, offset);
+                out[lane] = (try poly.valueAtLiftingPosition(self.component.captured.evaluation_log_size, index)).v;
+            }
+            return out;
+        }
     };
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const ProverAir.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
         return self.evaluateDomainWithPool(trace, acc, prover.work_pool.getGlobalPool());
@@ -252,7 +277,8 @@ pub const Component = struct {
         var prepared: usize = 0;
         defer for (jobs[0..prepared]) |*job| job.deinit(a);
         for (jobs[0..workers], 0..) |*job, i| {
-            job.* = try Rows.init(a, self, trace, params, column.*, n * i / workers, n * (i + 1) / workers);
+            const packs = n / PackedDomain.WIDTH;
+            job.* = try Rows.init(a, self, trace, params, column.*, packs * i / workers * PackedDomain.WIDTH, packs * (i + 1) / workers * PackedDomain.WIDTH);
             job.shadow = shadow;
             prepared += 1;
         }
@@ -271,31 +297,35 @@ pub const Component = struct {
     const Rows = struct {
         component: *const Component,
         trace: *const ProverAir.Trace,
-        parameters: []const O,
+        parameters: []PackedDomain.F,
         column: Domain.ColumnAccumulator,
-        scratch: []E.Scratch,
-        roots: []O,
+        scratch: []PackedDomain.Scratch,
+        roots: []PackedDomain.F,
         first: usize,
         end: usize,
         failure: ?anyerror = null,
         shadow: ?*const Shadow = null,
         fn init(a: std.mem.Allocator, component: *const Component, trace: *const ProverAir.Trace, parameters: []const O, column: Domain.ColumnAccumulator, first: usize, end: usize) !Rows {
-            const scratch = try a.alloc(E.Scratch, component.captured.parts.len);
+            const scratch = try a.alloc(PackedDomain.Scratch, component.captured.parts.len);
             errdefer a.free(scratch);
             var made: usize = 0;
             errdefer for (scratch[0..made]) |*item| item.deinit();
             var max_roots: usize = 0;
             for (scratch, component.captured.parts) |*item, part| {
-                item.* = try E.Scratch.init(a, part.program);
+                item.* = try PackedDomain.Scratch.init(a, part.program);
                 made += 1;
                 max_roots = @max(max_roots, part.program.constraint_roots.len);
             }
-            return .{ .component = component, .trace = trace, .parameters = parameters, .column = column, .scratch = scratch, .roots = try a.alloc(O, max_roots), .first = first, .end = end };
+            const packed_parameters = try a.alloc(PackedDomain.F, parameters.len);
+            errdefer a.free(packed_parameters);
+            for (packed_parameters, parameters) |*out, value| out.* = PackedDomain.Packed.splat(value);
+            return .{ .component = component, .trace = trace, .parameters = packed_parameters, .column = column, .scratch = scratch, .roots = try a.alloc(PackedDomain.F, max_roots), .first = first, .end = end };
         }
         fn deinit(self: *Rows, a: std.mem.Allocator) void {
             for (self.scratch) |*item| item.deinit();
             a.free(self.scratch);
             a.free(self.roots);
+            a.free(self.parameters);
         }
         fn run(self: *Rows) void {
             self.evaluate() catch |err| {
@@ -305,16 +335,18 @@ pub const Component = struct {
         fn evaluate(self: *Rows) !void {
             const component = self.component;
             var read = DomainRead{ .component = component, .trace = self.trace, .row = self.first, .shadow = self.shadow };
-            for (self.first..self.end) |r| {
+            var r = self.first;
+            while (r < self.end) : (r += PackedDomain.WIDTH) {
                 read.row = r;
-                var value = O.zero();
+                var value = PackedDomain.Packed.splat(O.zero());
                 for (self.scratch, component.captured.parts) |*item, part| {
                     const values = self.roots[0..part.program.constraint_roots.len];
-                    try item.evaluateInto(part.program, .{ .context = &read, .get = DomainRead.get }, self.parameters, values);
-                    for (values, 0..) |root, i| value = value.add(root.mul(self.column.random_coeff_powers[component.captured.n_constraints - 1 - part.rc_base - i]));
+                    try item.evaluateInto(part.program, .{ .context = &read, .get = DomainRead.getPacked }, self.parameters, values);
+                    for (values, 0..) |root, i| value = value.add(PackedDomain.Packed.mul(root, PackedDomain.Packed.splat(self.column.random_coeff_powers[component.captured.n_constraints - 1 - part.rc_base - i])));
                 }
                 const inv = M.fromCanonical(component.captured.denominator_inverses[r >> @intCast(component.captured.trace_log_size)]);
-                self.column.accumulate(r, value.mulM31(inv));
+                value = value.mulBase(core.fields.m31.splatPacked(inv));
+                inline for (0..PackedDomain.WIDTH) |lane| self.column.accumulate(r + lane, PackedDomain.Packed.lane(value, lane));
             }
         }
     };

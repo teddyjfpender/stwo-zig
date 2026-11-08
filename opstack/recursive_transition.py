@@ -8,10 +8,14 @@ import os
 import re
 import subprocess
 import tempfile
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from opstack.native_profiles import DEFAULT_NATIVE_PROFILE, NATIVE_PROFILES
+
 STATEMENT = "stwo.opstack.anchored-transition.v1"
-NATIVE_PROFILE = "conjectured128_b2_q108_p20_fold4"
+NATIVE_PROFILE = DEFAULT_NATIVE_PROFILE
 DEFAULT_OUTER_PROFILE = "r1_b2_q108_p20_fold4"
 OUTER_PROFILE_ENV = "STWO_RV64_OUTER_PROFILE"
 # These are the runner's protocol.zig names and transcript domains. Select
@@ -107,8 +111,13 @@ def wire_bytes(value, length):
 
 
 def admit_receipt(
-    report, expected_output, expected_outer_profile=DEFAULT_OUTER_PROFILE
+    report,
+    expected_output,
+    expected_outer_profile=DEFAULT_OUTER_PROFILE,
+    expected_native_profile=NATIVE_PROFILE,
 ):
+    if expected_native_profile not in NATIVE_PROFILES:
+        raise ValueError("unsupported receiver native profile")
     for flag in (
         "accepted",
         "completed_ethereum_block",
@@ -127,7 +136,7 @@ def admit_receipt(
         report.get("security_qualified") is not False
         or native.get("accepted") is not True
         or native.get("completed_ethereum_block") is not True
-        or native.get("security_profile") != NATIVE_PROFILE
+        or native.get("security_profile") != expected_native_profile
         or outer_profile != f"stwo/circuit/native-om31/{domain}/lens-v1"
         or wire_bytes(report["output"], 43) != expected_output
         or wire_bytes(native["output"], 43) != expected_output
@@ -153,7 +162,7 @@ def admit_receipt(
         raise ValueError("incomplete recursive proof coverage")
     return {
         "output": expected_output.hex(),
-        "native_profile": NATIVE_PROFILE,
+        "native_profile": expected_native_profile,
         "outer_profile": outer_profile,
         "root_digest": wire_bytes(tree["root_digest"], 32).hex(),
         "root_authority": wire_bytes(tree["root_authority"], 32).hex(),
@@ -167,6 +176,9 @@ def admit_receipt(
 
 
 def verify(args):
+    native_profile = getattr(args, "native_profile", NATIVE_PROFILE)
+    if native_profile not in NATIVE_PROFILES:
+        raise ValueError("unsupported receiver native profile")
     proof_dirs = [
         p.resolve(strict=True) for p in (args.derivation_proof, args.execution_proof)
     ]
@@ -212,7 +224,7 @@ def verify(args):
             command = [
                 str(runner),
                 "--security-profile",
-                NATIVE_PROFILE,
+                native_profile,
                 "verify-recursion-candidate",
                 str(request_path),
                 str(proof),
@@ -227,7 +239,12 @@ def verify(args):
                 env=env,
             )
             receipts[name] = {
-                **admit_receipt(json.loads(result.stdout), output, args.outer_profile),
+                **admit_receipt(
+                    json.loads(result.stdout),
+                    output,
+                    args.outer_profile,
+                    native_profile,
+                ),
                 "elf_sha256": request["elf_sha256"],
                 "input_sha256": request["input_sha256"],
             }
@@ -255,6 +272,9 @@ def main():
         parser.add_argument("--" + option, required=True, type=Path)
     parser.add_argument("--fixed-setup-bytes", required=True, type=int)
     parser.add_argument("--receiver-bytes", required=True, type=int)
+    parser.add_argument(
+        "--native-profile", choices=NATIVE_PROFILES, default=NATIVE_PROFILE
+    )
     parser.add_argument(
         "--outer-profile", choices=OUTER_DOMAINS, default=DEFAULT_OUTER_PROFILE
     )

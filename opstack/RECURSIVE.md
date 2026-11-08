@@ -41,6 +41,14 @@ checkpoint and next claim, the trusted runner and the request files with the
 independent ELF and input hashes. Choose the outer profile used by both proof
 trees with `--outer-profile` (default `r1_b2_q108_p20_fold4`). The receiver
 requires the exact domain for that selection on both branches.
+The native construction is independently selected with `--native-profile`.
+The default remains `conjectured128_b2_q108_p20_fold4`; the existing
+`d2_native_b4_q54_p20_fold4` construction is available for qualification. It
+trades a larger native commitment domain for fewer openings in each recursive
+leaf. The receiver requires its explicit selection on both branches; a
+producer's profile declaration cannot select the receiver's policy. Exposing
+this option does not establish an OP performance improvement or change the
+documented security assumptions.
 Keep this authority outside the producer's
 proof directories, and use absolute `elf` and `input` paths in the request files.
 In particular, check the derivation ELF against the guest

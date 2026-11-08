@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from opstack import recursive_transition as transition
+from opstack.native_profiles import D2_NATIVE_PROFILE
 
 STATEMENT = {
     "schema": transition.STATEMENT,
@@ -62,6 +63,19 @@ def receipt(output):
 
 
 class RecursiveTransitionTests(unittest.TestCase):
+    def test_native_profile_is_selected_by_receiver_not_receipt(self):
+        output = transition.statement_outputs(STATEMENT)[1]
+        report = receipt(output)
+        report["native"]["security_profile"] = D2_NATIVE_PROFILE
+        with self.assertRaisesRegex(ValueError, "pinned statement and profile"):
+            transition.admit_receipt(report, output)
+        admitted = transition.admit_receipt(
+            report, output, expected_native_profile=D2_NATIVE_PROFILE
+        )
+        self.assertEqual(admitted["native_profile"], D2_NATIVE_PROFILE)
+        with self.assertRaisesRegex(ValueError, "unsupported receiver native profile"):
+            transition.admit_receipt(report, output, expected_native_profile="unknown")
+
     def test_cross_language_encoding_and_shared_fields(self):
         derivation, execution = transition.statement_outputs(STATEMENT)
         self.assertEqual(

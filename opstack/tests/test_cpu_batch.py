@@ -5,6 +5,7 @@ import unittest
 
 from opstack.cpu import PROFILE
 from opstack.cpu_batch import reports_from_stream, validate_index
+from opstack.native_profiles import D2_NATIVE_PROFILE
 
 
 class CpuResidentIndex(unittest.TestCase):
@@ -21,6 +22,10 @@ class CpuResidentIndex(unittest.TestCase):
             ],
         }
         validate_index(index, names, 2)
+        d2_index = {**index, "security_profile": D2_NATIVE_PROFILE}
+        with self.assertRaises(ValueError):
+            validate_index(d2_index, names, 2)
+        validate_index(d2_index, names, 2, profile=D2_NATIVE_PROFILE)
         for key, value in [
             ("security_profile", "other"),
             ("security_qualified", True),

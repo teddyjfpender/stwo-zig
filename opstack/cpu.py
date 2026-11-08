@@ -18,8 +18,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from opstack.process_metrics import peak_rss_bytes
+from opstack.native_profiles import DEFAULT_NATIVE_PROFILE, NATIVE_PROFILES
 
-PROFILE = "conjectured128_b2_q108_p20_fold4"
+PROFILE = DEFAULT_NATIVE_PROFILE
 
 
 def sha(path):
@@ -108,7 +109,7 @@ def measured(command, prefix, timeout, env, allow_failure=False):
     return receipt
 
 
-def accept(report, expected):
+def accept(report, expected, profile=None):
     if (
         report.get("accepted") is not True
         or report.get("completed_ethereum_block") is not True
@@ -116,6 +117,10 @@ def accept(report, expected):
         raise ValueError("fresh receiver did not accept complete execution")
     if report.get("security_qualified") is not False:
         raise ValueError("unexpected security qualification")
+    if profile is not None and (
+        profile not in NATIVE_PROFILES or report.get("security_profile") != profile
+    ):
+        raise ValueError("fresh receiver native profile mismatch")
     output = report.get("output")
     if isinstance(output, str):
         output = list(output.encode("utf-8"))
@@ -176,6 +181,7 @@ def main():
         help="explicit geometry override; otherwise preserve request (fallback 1048575)",
     )
     p.add_argument("--workers", type=int, default=1)
+    p.add_argument("--native-profile", choices=NATIVE_PROFILES, default=PROFILE)
     p.add_argument(
         "--plan-first",
         action="store_true",
@@ -331,12 +337,12 @@ def main():
         # path without loading or persisting any setup files. Receiver env is
         # deliberately separate and the cache owner dies with this process.
         producer_env["STWO_ZIG_RV64_SETUP_CACHE"] = ""
-    tool = [args.runner.resolve(), "--security-profile", PROFILE]
+    tool = [args.runner.resolve(), "--security-profile", args.native_profile]
     receipt = {
         "schema": "stwo.opstack.cpu-proof.v1",
         "security_qualified": False,
         "scope": "native execution/service STARK bundle; no recursive root or L1 derivation",
-        "profile": PROFILE,
+        "profile": args.native_profile,
         "producer_setup": args.setup,
         "gkr_storage": args.gkr_storage,
         "setup_build_workers": args.setup_workers,
@@ -423,7 +429,7 @@ def main():
         if receipt["stages"][mode]["returncode"]:
             raise RuntimeError(f"CPU {mode} failed; see {root / mode}.stderr")
     received = json.loads((root / "receive.stdout").read_text())
-    accept(received, config["expected_output"])
+    accept(received, config["expected_output"], args.native_profile)
     receipt["receiver"] = received
     files = sorted((root / "proof").rglob("*"))
     receipt["artifacts"] = {

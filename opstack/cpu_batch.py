@@ -11,14 +11,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from opstack.cpu import PROFILE, accept, batch_steps, corruption_trials, measured, sha
+from opstack.native_profiles import NATIVE_PROFILES
 from opstack.resident import validate_case
 
 
-def validate_index(index, names, repeat):
+def validate_index(index, names, repeat, profile=PROFILE):
     rows = index.get("requests")
     if (
         index.get("schema") != "rv64-cpu-resident-batch/v1"
-        or index.get("security_profile") != PROFILE
+        or profile not in NATIVE_PROFILES
+        or index.get("security_profile") != profile
         or index.get("security_qualified") is not False
         or index.get("independent_reception") is not False
         or not isinstance(rows, list)
@@ -59,6 +61,7 @@ def main():
     p.add_argument("--cases", nargs="+", default=["120794432", "121057303"])
     p.add_argument("--repeat", type=int, default=2)
     p.add_argument("--workers", type=int, default=4)
+    p.add_argument("--native-profile", choices=NATIVE_PROFILES, default=PROFILE)
     p.add_argument("--setup-workers", type=int, default=1)
     p.add_argument("--receiver-setup-workers", type=int, choices=range(1, 9), default=1)
     p.add_argument("--batch-steps", type=int)
@@ -154,7 +157,7 @@ def main():
         "schema": "stwo.opstack.cpu-resident.v1",
         "scope": "complete native STARK production and separate durable reception; no recursive root or L1 derivation",
         "security_qualified": False,
-        "profile": PROFILE,
+        "profile": args.native_profile,
         "platform": platform.platform(),
         "logical_cpus": os.cpu_count(),
         "setup_build_workers": args.setup_workers,
@@ -173,7 +176,7 @@ def main():
         (root / "summary.json").write_text(json.dumps(receipt, indent=2) + "\n")
 
     checkpoint()
-    tool = [args.runner.resolve(), "--security-profile", PROFILE]
+    tool = [args.runner.resolve(), "--security-profile", args.native_profile]
     env = dict(os.environ, STWO_ZIG_RV64_SETUP_BUILD_THREADS=str(args.setup_workers))
     producer_env = dict(env, STWO_ZIG_RV64_SETUP_CACHE="")
     receiver_env = dict(env)
@@ -195,7 +198,7 @@ def main():
     if receipt["produce"]["returncode"]:
         raise RuntimeError("resident producer failed; see produce.stderr")
     index = json.loads((output / "index.json").read_text())
-    validate_index(index, args.cases, args.repeat)
+    validate_index(index, args.cases, args.repeat, args.native_profile)
     receipt["production_index"] = index
     jobs = []
     for ordinal in range(args.repeat * len(cases)):
@@ -234,7 +237,7 @@ def main():
             prefix.with_suffix(".stdout").read_text(), len(jobs)
         )
         for report, (_, _, expected) in zip(reports, jobs, strict=True):
-            accept(report, expected)
+            accept(report, expected, args.native_profile)
             if report.get("receiver_session_setup") is None:
                 raise ValueError("missing resident receiver setup receipt")
             receipt["receivers"].append({"report": report})
@@ -256,7 +259,7 @@ def main():
             if row["returncode"]:
                 raise RuntimeError("fresh resident-bundle reception failed")
             report = json.loads(prefix.with_suffix(".stdout").read_text())
-            accept(report, expected)
+            accept(report, expected, args.native_profile)
             row["report"] = report
     receipt["corruption"] = corruption_trials(
         proof, verifier, root, args.timeout, receiver_env
