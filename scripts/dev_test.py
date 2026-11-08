@@ -445,7 +445,8 @@ def main(argv: list[str] | None = None) -> int:
             if result.returncode != 0:
                 return result.returncode
         verb = "PLAN" if args.dry_run else ("PASS_LOCAL" if deferred else "PASS")
-        print(f"dev test: {verb} ({len(commands)} focused command(s))")
+        label = "dev check" if args.check or args.watch else "dev test"
+        print(f"{label}: {verb} ({len(commands)} focused command(s))")
         return 0
     except (
         DevTestError,

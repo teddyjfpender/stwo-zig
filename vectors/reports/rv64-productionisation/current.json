@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-08T22:27:06.351705+00:00",
+  "updated_utc": "2026-11-08T22:38:06.359330+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv/rv64-gpu-hygiene.md",
@@ -1889,6 +1889,222 @@
       },
       "artifact_retention": "SDK binaries retained in external checkpoint; the external temporary consumer image is hash-pinned in its execution log and then removed by its existing temporary-directory lifecycle.",
       "claim_boundary": "Documented facade binding repaired and CPU consumer executions observed. No ledger/version change, package-configuration green claim, Linux qualification, full proof product, GPU, live Sail or performance qualification."
+    },
+    "delivery_cpu_check_mode_execution_owner": {
+      "baseline_commit": "d903d8d2a91a090ce74b1fce07eff34c2148ea81",
+      "status": "PASS_SEMANTIC_MODE_AND_DEFAULT_PROOF_EXECUTION_SECP_RUNTIME_UNVERIFIED",
+      "code": {
+        "added": 28,
+        "removed": 26,
+        "net": 2,
+        "allowance": 30
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "validation": {
+        "status": "PASS_SEMANTIC_ONLY_AND_DEFAULT_RUNTIME_REGRESSIONS",
+        "baseline_check_mode_executed_proofs": true,
+        "compiler_no_emit_verified_for": [
+          "secp256k1",
+          "typed_adapter",
+          "fixture_receiver"
+        ],
+        "semantic_mode_observed_proof_runs": 0,
+        "default_runtime_typed_floor": 3,
+        "default_runtime_typed_executed": true,
+        "default_runtime_keccak_executed": true,
+        "existing_step_names_preserved": [
+          "build-recursive-segment-v2-detached-leaf-producer",
+          "build-recursive-segment-v2-detached-parent-producer",
+          "build-recursive-segment-v2-detached-parent-verifier",
+          "build-recursive-segment-v2-detached-verifier",
+          "install",
+          "native-layout-census",
+          "poseidon2-native-fixture",
+          "test",
+          "test-d2-circuit-census",
+          "test-d2-native",
+          "test-device-cpu-projection",
+          "test-distributed-binary-contracts",
+          "test-division-contracts",
+          "test-keccakf-precompile-proof",
+          "test-native-gkr",
+          "test-native-gkr-circuit",
+          "test-poseidon2-native-cpu",
+          "test-recursion-dag",
+          "test-recursion-publication",
+          "test-secp256k1-precompile-proof",
+          "test-segment-v2-native-proof",
+          "test-services-truth-contracts",
+          "test-truth-family-plan",
+          "test-universal-typed-proof",
+          "test-word16-image-program-contracts",
+          "uninstall"
+        ],
+        "source_structure": {
+          "module_roots_preserved": true,
+          "filters_preserved": true,
+          "retained_floors_preserved": true,
+          "named_imports_preserved": true,
+          "only_test_run_constructor_is_guarded_helper": true,
+          "old_lines": 325,
+          "new_lines": 326,
+          "runtime_floor_typed_adapter": 3,
+          "retained_runtime_floors": [
+            23,
+            13,
+            7,
+            22
+          ]
+        },
+        "results": [
+          {
+            "label": "secp256k1-semantic-only",
+            "argv": [
+              "zig",
+              "build",
+              "test-secp256k1-precompile-proof",
+              "--build-file",
+              "src/integrations/riscv_cpu/build.zig",
+              "-Doptimize=Debug",
+              "-j1",
+              "-Dcheck-only=true",
+              "-fincremental",
+              "--verbose"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 2170683392,
+            "wall_seconds": 15.078518374997657
+          },
+          {
+            "label": "typed-adapter-semantic-only",
+            "argv": [
+              "zig",
+              "build",
+              "test-universal-typed-proof",
+              "--build-file",
+              "src/integrations/riscv_cpu/build.zig",
+              "-Doptimize=Debug",
+              "-j1",
+              "-Dcheck-only=true",
+              "-fincremental",
+              "--verbose"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 434044928,
+            "wall_seconds": 2.0248450830113143
+          },
+          {
+            "label": "receiver-semantic-only",
+            "argv": [
+              "zig",
+              "build",
+              "poseidon2-native-fixture",
+              "--build-file",
+              "src/integrations/riscv_cpu/build.zig",
+              "-Doptimize=Debug",
+              "-j1",
+              "-Dcheck-only=true",
+              "-fincremental",
+              "--verbose"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 412254208,
+            "wall_seconds": 2.8970921249710955
+          },
+          {
+            "label": "developer-semantic-status",
+            "argv": [
+              "python3",
+              "scripts/dev_test.py",
+              "--check",
+              "--optimize",
+              "Debug",
+              "src/integrations/riscv_cpu/universal_typed_component_proof_test.zig"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 423936000,
+            "wall_seconds": 2.2565246670274064
+          },
+          {
+            "label": "cpu-owner-step-inventory-after",
+            "argv": [
+              "zig",
+              "build",
+              "--help",
+              "--build-file",
+              "src/integrations/riscv_cpu/build.zig",
+              "-j1"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 2998272,
+            "wall_seconds": 0.22727249999297783
+          },
+          {
+            "label": "typed-adapter-runtime-ReleaseFast",
+            "argv": [
+              "python3",
+              "scripts/dev_test.py",
+              "--optimize",
+              "ReleaseFast",
+              "src/integrations/riscv_cpu/universal_typed_component_proof_test.zig"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 1963196416,
+            "wall_seconds": 33.473122583003715
+          },
+          {
+            "label": "keccak-runtime-Debug",
+            "argv": [
+              "python3",
+              "scripts/dev_test.py",
+              "--optimize",
+              "Debug",
+              "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig"
+            ],
+            "exit_code": 0,
+            "stopped_for": null,
+            "observed_group_peak_rss_bytes": 1247035392,
+            "wall_seconds": 7.808797000034247
+          }
+        ],
+        "python_tests": {
+          "tests": 31,
+          "exit_code": 0
+        },
+        "claim_boundary": "Semantic-only accepts type checking, not proof acceptance. secp256k1 runtime and broader product qualification remain unverified. No new GPU or full-block work."
+      },
+      "baseline": [
+        {
+          "label": "typed-proof-check-mode-reproduction",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--check",
+            "--optimize",
+            "Debug",
+            "src/integrations/riscv_cpu/universal_typed_component_proof_test.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 2171781120,
+          "wall_seconds": 10.441928583022673
+        }
+      ],
+      "claim_boundary": "Semantic checks do not execute tests, emit a binary or qualify proof acceptance. Default typed and Keccak fixture execution is separately verified; secp256k1 runtime, complete product, GPU, Linux and qualified timing remain unverified."
     }
   },
   "post_merge_hygiene": {

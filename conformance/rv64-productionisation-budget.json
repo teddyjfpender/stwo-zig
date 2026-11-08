@@ -498,6 +498,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Repair an existing documented thin-waist export that currently has no named-module binding. Use the existing circuit-recursion constructor with the same Cairo injected felt/parameter modules in both SDK construction paths. Reuse one canonical consumer fixture for the external dependency and SDK product checks, pin protocol/type authority identity, exercise actual canonical parsing and preserve malformed-input rejection. Fixture moves receive zero deletion credit. No API ledger, version, wire bytes, runtime algorithm, runtime flag or launcher changes; rollback restores the prior missing-binding failure without claiming qualification."
+    },
+    {
+      "id": "delivery_cpu_check_mode_execution_owner",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Fix the existing developer --check contract: focused CPU proof targets ignored the accepted check-only option and constructed real proof executions. Centralize test scheduling so semantic mode never requests a Run artifact or emitted binary; default mode still runs the same roots, filters and count floors freshly. The already-routed fixture receiver also honors semantic-only mode without installation. Preserve all imports, workload bodies and verifier rejection logic. No new flag, API ledger, version or launcher. Rollback restores the documented unsafe execution reproduction, which must not be reported as a semantic-only check. Successful developer output explicitly labels semantic checks separately from test execution."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
