@@ -729,7 +729,10 @@ fn runPreparedSequential(input: PreparedExecution, arity: usize) !Report {
     defer for (shared.proofs[0..plan.count]) |proof| if (proof) |p| p.deinit(a);
     for (0..plan.count) |id| {
         std.log.info("rv64 OM31 recursion m3 node {d}/{d}: arity={d}", .{ id + 1, plan.count, plan.nodes[id].arity });
-        const outcome = try shared.prove(id, input.factory);
+        const outcome = shared.prove(id, input.factory) catch |err| {
+            if (!@import("builtin").is_test) std.log.err("RV64_OUTER_NODE_FAILED node={} arity={} error={s}", .{ id, plan.nodes[id].arity, @errorName(err) });
+            return err;
+        };
         var publication = ParallelExecution.Publication{ .execution = &shared, .outcome = outcome };
         ParallelExecution.Publication.apply(&publication, id);
         shared.dispatch.queue.status[id] = .done;

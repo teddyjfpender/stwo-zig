@@ -239,6 +239,9 @@ test "corpus OG07 outer GKR binding v2 section has a distinct transcript and rej
         if (!P.gkrBound(component)) continue;
         const projection = try B.projectFromInputs(a, &v2, component, verified.artifact.ood_point, &inputs, &late);
         defer a.free(projection);
+        const packed_projection = try @import("cpu_projection.zig").project(a, &v2, component, verified.artifact.ood_point, &inputs, &late);
+        defer a.free(packed_projection);
+        for (projection, packed_projection) |want, actual| try std.testing.expect(want.eql(actual));
         const target = Legacy.expectedBoundary(&v2, component, verified.artifact.claims_to_verify_by_instance, &late);
         const z = verified.artifact.ood_point[verified.artifact.ood_point.len - v2.row_logs[ci] ..];
         var cols = try B.columns(a, z, projection, target);

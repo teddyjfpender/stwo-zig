@@ -4,4 +4,5 @@ test {
     _ = @import("outer_gkr/binding_v2_test.zig");
     _ = @import("outer_gkr/hybrid_air_test.zig");
     _ = @import("outer_gkr/hybrid_wire_test.zig");
+    _ = @import("outer_gkr/hybrid_cpu_test.zig");
 }

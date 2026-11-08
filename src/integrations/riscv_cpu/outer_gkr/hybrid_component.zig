@@ -29,8 +29,8 @@ pub const Component = struct {
     pub fn asProverComponent(self: *const @This()) ProverAir.ComponentProver {
         return Adapter.asProverComponent(self);
     }
-    pub fn evaluateConstraintQuotientsOnDomain(_: *const @This(), _: *const ProverAir.Trace, _: *Domain.DomainEvaluationAccumulator) !void {
-        return error.HybridResidentCompositionRequired;
+    pub fn evaluateConstraintQuotientsOnDomain(self: *const @This(), trace: *const ProverAir.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
+        return @import("cpu_domain.zig").evaluate(self, trace, acc);
     }
     pub fn asVerifierComponent(self: *const @This()) Air.Component {
         return Adapter.asVerifierComponent(self);

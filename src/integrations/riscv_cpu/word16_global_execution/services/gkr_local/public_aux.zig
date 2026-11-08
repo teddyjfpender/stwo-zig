@@ -21,7 +21,10 @@ pub const Plan = struct {
     peak_requested_heap_bytes: usize,
 };
 pub fn plan(log: u32) !Plan {
-    if (log == 0 or log > 22) return error.InvalidPublicAuxGeometry;
+    return planWithLogBound(log, 22);
+}
+fn planWithLogBound(log: u32, maximum_log: u32) !Plan {
+    if (maximum_log > MP.MAX_VARIABLES or log == 0 or log > maximum_log) return error.InvalidPublicAuxGeometry;
     const rows = @as(usize, 1) << @intCast(log);
     const one = try std.math.mul(usize, rows, @sizeOf(M));
     const coefficients = try std.math.mul(usize, COLUMNS, one);
@@ -54,7 +57,12 @@ const Fill = struct {
 /// rejects coordinates0/1; no new inverse or exception masking is introduced.
 /// Returned polynomials independently own their coefficient allocations.
 pub fn init(a: std.mem.Allocator, point: *const Point, log: u32, pool: ?*Pool.WorkPool) ![COLUMNS]Poly {
-    const geometry = try plan(log);
+    return initWithLogBound(a, point, log, 22, pool);
+}
+/// Mathematical Eq construction shared with outer recursion. The caller's
+/// independently admitted geometry fixes this bound; native execution keeps22.
+pub fn initWithLogBound(a: std.mem.Allocator, point: *const Point, log: u32, maximum_log: u32, pool: ?*Pool.WorkPool) ![COLUMNS]Poly {
+    const geometry = try planWithLogBound(log, maximum_log);
     if (point.n != log) return error.InvalidPublicAuxGeometry;
     const active_pool = pool orelse Pool.currentScopedPool();
     var binding: ?Pool.ScopedPoolBinding = null;

@@ -13,6 +13,7 @@ const CacheUnpack = @import("stwo_circuit_cpu_integration").om31.cache_unpack;
 const HybridKey = @import("../../outer_gkr/hybrid_receiver.zig").Key;
 const HybridSection = @import("../../outer_gkr/section.zig").Section;
 const HybridDevice = @import("../../outer_gkr/hybrid_device.zig");
+const HybridCpu = @import("../../outer_gkr/hybrid_cpu.zig");
 const HybridWire = @import("../../outer_gkr/hybrid_wire.zig");
 pub const HybridPayload = struct {
     key: *HybridKey,
@@ -803,7 +804,7 @@ fn digestOutputs(digest: [32]u8) [8]C.Q {
     return expected;
 }
 fn wrapHybridGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory) !Wrapped {
-    if (!ctx.trace_only or ctx.circuit.output.items.len != 9) return error.TraceOnlySourceRequired;
+    if (ctx.circuit.output.items.len != 9 or (factory != null and !ctx.trace_only)) return error.TraceOnlySourceRequired;
     const expected = digestOutputs(digest);
     if (encoded) |bytes| {
         try Finalize.padToTargets(C.Q, ctx, try paddingTargets(ctx));
@@ -819,7 +820,22 @@ fn wrapHybridGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, 
         result.borrowed = false;
         return result;
     }
-    const gpu = factory orelse return error.HybridFactoryRequired;
+    if (factory == null) {
+        if (ctx.trace_only) return error.HybridCpuRequiresAssignment;
+        var produced = proveHybridCpu(a, ctx, &expected) catch |err| {
+            if (!@import("builtin").is_test) std.log.err("CPU_HYBRID_NODE_FAILED ordinal={} error={s}", .{ ordinal, @errorName(err) });
+            return err;
+        };
+        var owns = true;
+        defer if (owns) produced.deinit(a);
+        const result = finishProvedForOutputs(a, &produced, &expected, digest) catch |err| {
+            if (!@import("builtin").is_test) std.log.err("CPU_HYBRID_FINISH_FAILED ordinal={} error={s}", .{ ordinal, @errorName(err) });
+            return err;
+        };
+        owns = false;
+        return result;
+    }
+    const gpu = factory.?;
     _ = try HybridDevice.extension(gpu);
     var prep = try prepareHost(a, ctx, gpu);
     defer prep.deinit(a);
@@ -829,6 +845,25 @@ fn wrapHybridGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, 
     const result = try finishProvedForOutputs(a, &produced, &expected, digest);
     owns = false;
     return result;
+}
+fn proveHybridCpu(a: std.mem.Allocator, ctx: *C.Context, expected: []const C.Q) !Proved {
+    var timer = try std.time.Timer.start();
+    try Finalize.padToTargets(C.Q, ctx, try paddingTargets(ctx));
+    const pp = try a.create(PP);
+    errdefer a.destroy(pp);
+    pp.* = try PP.fromBuilderCircuit(a, &ctx.circuit);
+    errdefer pp.deinit(a);
+    const authority = try a.create(Outer.Authority);
+    errdefer a.destroy(authority);
+    authority.* = try Outer.Authority.init(a, pp);
+    errdefer authority.deinit();
+    const key = try a.create(HybridKey);
+    errdefer a.destroy(key);
+    key.* = try HybridKey.init(a, authority, 256);
+    errdefer key.deinit();
+    const preprocess_ns = timer.lap();
+    const produced = try HybridCpu.prove(a, key, ctx.values(), expected);
+    return .{ .pp = pp, .authority = authority, .produced = produced.base, .hybrid = .{ .key = key, .section = produced.section }, .timings = .{ .preprocess_ns = preprocess_ns, .prove_ns = timer.read(), .verify_ns = 0 } };
 }
 /// Output values must be canonical encoded raw-u32 words, not arbitrary QM31s
 /// that happen to reduce to the same field value.

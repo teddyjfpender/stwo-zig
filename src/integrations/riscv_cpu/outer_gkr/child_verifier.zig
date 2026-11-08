@@ -41,7 +41,8 @@ pub fn checkFixture(a: std.mem.Allocator, key: *const R.Key, outputs: []const Q,
     const output_words = try circuit.builder.blake.unpackQm31sToU32Words(Q, &ctx, output_vars);
     var claim_vars: [P.N_COMPONENTS]F = undefined;
     for (&claim_vars, claims.toArray()) |*out, value| out.* = try F.guess(&ctx, value);
-    var state: State = undefined;
+    var state: State = .{};
+    defer state.deinit(ctx.gpa);
     const wired = try CG.wireSection(&ctx, section);
     _ = try V.verify(&ctx, &geometry, &guessed, Statement{ .key = key, .identity = identity, .outputs = output_vars, .output_words = output_words, .claims = claim_vars, .section = wired, .state = &state });
     active = false;
@@ -51,7 +52,19 @@ pub fn checkFixture(a: std.mem.Allocator, key: *const R.Key, outputs: []const Q,
     std.debug.print("HYBRID_CHILD_CIRCUIT_OK vars={} outputs={}\n", .{ ctx.circuit.n_vars, outputs.len });
 }
 pub const Late = struct { gamma: F, rho: [P.MAX_INSTANCES]F };
-pub const State = struct { z: F, alpha: F, verified: CG.Result, late: Late };
+pub const State = struct {
+    z: F = undefined,
+    alpha: F = undefined,
+    verified: CG.Result = undefined,
+    late: Late = undefined,
+    verified_ready: bool = false,
+    /// The verifier artifact owns host arrays of wire IDs, not circuit gates.
+    /// Release them after the complete child verifier, including error paths.
+    pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
+        if (self.verified_ready) self.verified.deinit(a);
+        self.verified_ready = false;
+    }
+};
 pub fn shape(a: std.mem.Allocator, key: *const R.Key) !V.Shape {
     const logs = try a.alloc([]const u32, 4);
     logs[0] = try key.source.treeLogs(a, 0);
@@ -146,6 +159,7 @@ pub const Statement = struct {
         try channel.mixFelts(ctx, &self.claims);
         var strict = CG.Channel{ .context = ctx, .inner = channel.raw };
         self.state.verified = try CG.verify(ctx, &strict, &self.key.class, &self.section);
+        self.state.verified_ready = true;
         self.state.late.gamma = strict.drawSecureFelt();
         for (self.state.late.rho[0..self.key.class.instances.len]) |*rho| rho.* = strict.drawSecureFelt();
         try strict.finish();

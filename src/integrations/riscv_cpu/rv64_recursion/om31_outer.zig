@@ -77,7 +77,8 @@ pub fn verifyChild(ctx: *C.Context, child: Child) !Authenticated {
     if (child.hybrid) |extra| {
         const own_section = HybridSection{ .class = &extra.key.class, .salt = extra.section.salt, .proof = extra.section.proof };
         const wired = try @import("../outer_gkr/circuit.zig").wireSection(ctx, &own_section);
-        var state: Hybrid.State = undefined;
+        var state: Hybrid.State = .{};
+        defer state.deinit(ctx.gpa);
         _ = try V.verify(ctx, &geometry, &guessed, Hybrid.Statement{ .key = extra.key, .identity = identity, .outputs = outputs, .output_words = output_words, .claims = claims, .section = wired, .state = &state });
     } else {
         var challenges: Statement.Challenges = undefined;

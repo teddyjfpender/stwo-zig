@@ -1,5 +1,34 @@
 # CPU-first OP continuation on Apple M5 Max
 
+## Controlled CPU M6 versus M7 qualification
+
+The [six cold trials](recursion-m7-cpu.json) compare the same complete native
+D2 execution of block 120794432, with 16 proof workers and independently pinned
+receiver policies. Native proving is excluded from these recursion timings.
+
+| Outer construction | Production median, three trials | Fresh receive median | Root bytes |
+| --- | ---: | ---: | ---: |
+| M6 classic LogUp | 41.716 s | 3.860 s | 745,400 |
+| M7 hybrid LogUp/GKR | 50.943 s | 3.743 s | 731,620 |
+
+M7 now has a complete CPU producer for the existing M7 wire and receiver; it
+remains explicit opt-in because it is slower here. Each trial builds all three
+leaves and one fold from scratch, with no restored proofs. Every independent
+receiver accepts the pinned OP output, and proof bytes match across all three
+trials of each profile. A corrupted leaf, coherently corrupted root/final fold,
+and swapped child order reject in fresh M7 receivers. This remains an execution
+root, with `security_qualified=false`, rather than anchored OP validity.
+
+The new producer uses bounded SIMD late projection and composition, retains the
+same GKR authority and transcript, and requires host setup. A balanced false-fact
+test preserves the rational lookup sum but fails MAIN binding. The lifecycle
+tests cover callback failure, wrapper failure, serialization, restoration and
+retirement under an explicit live-allocation budget. They found and fixed a
+528-byte per-child verifier-metadata leak at both callers. The native public
+auxiliary bound remains 22; the outer uses its independently admitted bound 28.
+Earlier geometry failures and shutdown-aborted runs are recorded as failures,
+not included in the successful cold-run medians. No production default changes.
+
 The [qualification receipt](qualification.json) records two complete native OP
 Mainnet execution proofs from a rebuilt canonical GLV guest, plus the first
 successful full synthetic ordered application fold on this machine. These are
