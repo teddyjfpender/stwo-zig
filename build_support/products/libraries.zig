@@ -142,6 +142,14 @@ pub fn addPublicModules(context: Context) Result {
         context.optimize,
         stwo,
     );
+    stwo.addImport("stwo_circuit_recursion_wire", graph.createCircuitRecursionWire(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cairo_frontend,
+    ));
     _ = integration_graph.addCairoCudaImport(
         context.b,
         protocol,
@@ -303,6 +311,14 @@ pub fn addProducts(context: Context) Result {
         context.optimize,
         stwo,
     );
+    stwo.addImport("stwo_circuit_recursion_wire", graph.createCircuitRecursionWire(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        cairo_frontend,
+    ));
     _ = integration_graph.addCairoCudaImport(
         context.b,
         prover.protocol,
@@ -345,12 +361,25 @@ pub fn addProducts(context: Context) Result {
         graph.FacadeSupport.root,
     );
 
+    const consumer_root = consumer(context.b, prover.protocol, .{
+        .root_source_file = context.b.path("src/products/stwo/tests/public_modules.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    consumer_root.addImport("stwo_prover", prover.module);
+    consumer_root.addImport("stwo", stwo);
+    const sdk_consumer = context.b.addExecutable(.{ .name = "sdk-consumer-smoke", .root_module = consumer_root });
+    const sdk_run = context.b.addRunArtifact(sdk_consumer);
+    sdk_run.has_side_effects = true;
+
     const downstream = context.b.addSystemCommand(&.{
         "python3",
         "scripts/repo/check_downstream_package.py",
         "--repo",
         context.b.build_root.path.?,
     });
+    downstream.has_side_effects = true;
+    downstream.step.dependOn(&sdk_run.step);
     const downstream_step = context.b.step(
         "test-downstream-modules",
         "Compile and run a clean external consumer of stwo_core, stwo_prover, and stwo",

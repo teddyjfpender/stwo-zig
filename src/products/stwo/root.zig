@@ -12,7 +12,7 @@ pub const core = @import("stwo_core");
 pub const backend = @import("stwo_backend_contracts");
 pub const prover_api = @import("stwo_prover_api");
 pub const proof_wire = @import("stwo_proof_wire");
-/// Resolves only where the build wires `stwo_circuit_recursion_wire`.
+/// Shared circuit-recursion codecs with the Cairo frontend's injected authorities.
 pub const recursion_wire = @import("stwo_circuit_recursion_wire");
 pub const prover = @import("stwo_prover_engine");
 
@@ -77,12 +77,12 @@ pub const std_shims = @import("stwo_std_shims");
 pub const tracing = @import("stwo_tracing");
 
 test {
-    // The old root ran refAllDecls; keep that eager set minus recursion_wire,
-    // which only some builds wire.
+    // Every documented thin-waist export must resolve in the assembled SDK.
     _ = core;
     _ = backend;
     _ = prover_api;
     _ = proof_wire;
+    _ = recursion_wire;
     _ = prover;
     _ = backends;
     _ = frontends;

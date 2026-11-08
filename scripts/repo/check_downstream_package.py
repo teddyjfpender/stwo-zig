@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -28,27 +29,11 @@ pub fn build(b: *std.Build) void {
     root.addImport("stwo", stwo_zig.module("stwo"));
     const smoke = b.addExecutable(.{ .name = "consumer-smoke", .root_module = root });
     const run = b.addRunArtifact(smoke);
+    run.has_side_effects = true;
     b.getInstallStep().dependOn(&run.step);
 }
 '''
 
-MAIN_ZIG = r'''
-const std = @import("std");
-const core = @import("stwo_core");
-const generic = @import("stwo_prover");
-const compatibility = @import("stwo");
-
-pub fn main() !void {
-    const M31 = core.fields.m31.M31;
-    const sum = M31.fromCanonical(13).add(M31.fromCanonical(29));
-    if (!sum.eql(M31.fromCanonical(42))) return error.CoreSmokeFailed;
-    if (!@hasDecl(generic, "prover") or !@hasDecl(generic, "backend"))
-        return error.ProverSurfaceMissing;
-    if (!@hasDecl(compatibility, "core") or !@hasDecl(compatibility, "prover"))
-        return error.CompatibilitySurfaceMissing;
-    try std.fs.File.stdout().writeAll("downstream package smoke: PASS\n");
-}
-'''
 
 
 def run(command: list[str], cwd: Path) -> None:
@@ -73,7 +58,9 @@ def main() -> int:
         package = Path(directory).resolve()
         (package / "src").mkdir()
         (package / "build.zig").write_text(BUILD_ZIG, encoding="utf-8")
-        (package / "src/main.zig").write_text(MAIN_ZIG, encoding="utf-8")
+        (package / "src/main.zig").write_bytes(
+            (repository / "src/products/stwo/tests/public_modules.zig").read_bytes()
+        )
         package_path = json.dumps(os.path.relpath(repository, package))
         (package / "build.zig.zon").write_text(
             ".{\n"
@@ -85,7 +72,16 @@ def main() -> int:
             "}\n",
             encoding="utf-8",
         )
-        run(["zig", "build", "-Doptimize=ReleaseFast"], package)
+        run(["zig", "build", "-Doptimize=ReleaseFast", "-j1"], package)
+        images = list((package / ".zig-cache" / "o").glob("*/consumer-smoke"))
+        if len(images) != 1:
+            raise RuntimeError("external consumer did not produce exactly one binary")
+        print(json.dumps({
+            "external_consumer_binary_sha256": hashlib.sha256(images[0].read_bytes()).hexdigest(),
+            "binary_bytes": images[0].stat().st_size,
+            "fixture_sha256": hashlib.sha256((package / "src/main.zig").read_bytes()).hexdigest(),
+            "optimize": "ReleaseFast",
+        }, sort_keys=True))
     return 0
 
 
