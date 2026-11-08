@@ -28,7 +28,8 @@ python3 opstack/recursive_transition.py \
 The receiver operator supplies the canonical L1 anchor, previously admitted L2
 checkpoint and next claim, the trusted runner and the request files with the
 independent ELF and input hashes. Keep this authority outside the producer's
-proof directories. In particular, check the derivation ELF against the guest
+proof directories, and use absolute `elf` and `input` paths in the request files.
+In particular, check the derivation ELF against the guest
 build which pins both Mainnet chain configurations; do not accept program
 identities selected by the producer. Both request files carry the exact
 independently expected 43-byte terminal output in `expected_output`.

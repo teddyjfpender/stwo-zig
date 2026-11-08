@@ -159,6 +159,10 @@ def verify(args):
     for (_, request), output in zip(requests, outputs, strict=True):
         if request.get("expected_output") != output.hex():
             raise ValueError("request output does not match the anchored transition statement")
+        for field in ("elf", "input"):
+            path = request.get(field)
+            if not isinstance(path, str) or not Path(path).is_absolute():
+                raise ValueError(f"receiver request {field} path must be absolute")
         program_ids.append(hash_bytes(request.get("elf_sha256")))
         hash_bytes(request.get("input_sha256"))
     if program_ids[0] == program_ids[1]:

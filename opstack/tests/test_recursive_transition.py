@@ -102,6 +102,7 @@ class RecursiveTransitionTests(unittest.TestCase):
             for name, output, program in zip(("derivation", "execution"), outputs, ("ab", "cd"), strict=True):
                 getattr(args, name + "_proof").mkdir()
                 getattr(args, name + "_request").write_text(json.dumps({
+                    "elf": str(base / f"{name}.elf"), "input": str(base / f"{name}.opx"),
                     "expected_output": output.hex(), "elf_sha256": program * 32,
                     "input_sha256": "ef" * 32,
                 }))
@@ -113,6 +114,11 @@ class RecursiveTransitionTests(unittest.TestCase):
             with patch.object(transition.subprocess, "run", side_effect=[received[0], corrupt]):
                 with self.assertRaises(subprocess.CalledProcessError):
                     transition.verify(args)
+            raw_request = args.execution_request.read_text()
+            args.execution_request.write_text(json.dumps({**json.loads(raw_request), "input": "relative.opx"}))
+            with self.assertRaisesRegex(ValueError, "path must be absolute"):
+                transition.verify(args)
+            args.execution_request.write_text(raw_request)
             args.derivation_request, args.execution_request = args.execution_request, args.derivation_request
             with patch.object(transition.subprocess, "run") as run:
                 with self.assertRaisesRegex(ValueError, "request output"):
