@@ -512,6 +512,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Zero-growth-or-negative consolidation of duplicate scalar/SIMD BLAKE2s rotates and G arithmetic into the existing internal parallel arithmetic owner. Preserve message/round schedules, constants, counters, dispatch, nonce policy, codec bytes and public facade; the interleaved four-G schedule stays exact. A small all-shift differential rotation test is mandatory. Moved bodies receive no deletion credit. Require native Debug/ReleaseFast independent-oracle tests and exact deterministic CPU fixture byte equality; no backend, security, gate or timing qualification is inferred. Rollback restores the original arithmetic bodies together."
+    },
+    {
+      "id": "delivery_cpu_telemetry_field_authority",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Replace duplicated snapshot/load and delta field lists with the existing snapshot type as internal field authority. Preserve the exact field declaration order, monotonic load ordering, saturating counters and two absolute process-lifetime high-water fields. Require the unchanged native composition suites plus a counter-reset/high-water regression in Debug and ReleaseFast. No API, layout, scheduler, allocation, error, proof, policy ceiling or runtime flag changes; rollback restores both explicit field lists."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
