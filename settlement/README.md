@@ -232,6 +232,38 @@ Each production role still needs a receiver-selected program and sample and
 parameter mapping. The fixture supplies its own synthetic point and row, so it
 establishes native equation parity for one role.
 
+## Native DEEP quotient answers
+
+`NativeDeep` computes the native OM31 quotient for a bit-reversed position
+in the lifted circle domain. It assigns challenge powers in transcript
+order, prepends the native periodic sample for every two-sample column,
+and divides each conjugate line numerator by its computed QM31
+denominator. It consumes the same little-endian samples as the PCS
+transcript. The column layout and secure sample points are verifier-owned.
+
+`NativeDeepOpening` authenticates each trace tree against its supplied
+root at exactly the projected query positions, then evaluates the quotient
+on the joined row. Repeated projections reuse the authenticated row and
+preserve the even/odd conjugate bit. The answers are suitable for the first
+FRI layer; callers still need to derive the query set and enforce that FRI
+authenticates these exact answers. These components do not check an AIR
+or authorize a checkpoint.
+
+The bounded fixture is exported by Zig's native `friAnswers` implementation.
+It covers seven queries across three trace commitments, columns with
+zero, one and two samples, and several periodic rotations. Tests use
+independent BLAKE2s to build the compressed openings and check every
+output coefficient. On Anvil Shanghai with solc 0.8.30, the fixture
+uses 2,892,979 gas including calldata and all three openings. This
+measurement is for the bounded vector, not the full Mainnet proof.
+
+Regenerate the fixture from the repository root with Zig 0.15.2:
+
+```sh
+zig run --dep core -Mroot=settlement/tools/export_deep_vector.zig \
+  -Mcore=src/core/mod.zig > settlement/fixtures/native-deep-vector.json
+```
+
 ## Mainnet provenance
 
 The fixtures come from `truth-3.bin` and `truth-4.bin` of the complete

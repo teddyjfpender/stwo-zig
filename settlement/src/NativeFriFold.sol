@@ -63,14 +63,14 @@ library NativeFriFold {
         return fold(values, alpha, inverses);
     }
 
-    function reverseBits(uint256 index, uint256 bits) private pure returns (uint256 reversed) {
+    function reverseBits(uint256 index, uint256 bits) internal pure returns (uint256 reversed) {
         for (uint256 i; i < bits; ++i) {
             reversed = (reversed << 1) | (index & 1);
             index >>= 1;
         }
     }
 
-    function circlePoint(uint256 exponent) private pure returns (Point memory point) {
+    function circlePoint(uint256 exponent) internal pure returns (Point memory point) {
         uint256 x = 1;
         uint256 y;
         uint256 powerX = 2;

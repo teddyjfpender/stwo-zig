@@ -95,6 +95,81 @@ function binary(hex) {
   return Buffer.from(hex.slice(2), "hex");
 }
 
+test("computes native OM31 DEEP answers from exact projected trace openings", async () => {
+  const fixture = JSON.parse(readFileSync(new URL("../fixtures/native-deep-vector.json", import.meta.url)));
+  const deep = await deploy("test/DeepHarness.sol", "DeepHarness");
+  function words(values) {
+    const bytes = Buffer.alloc(values.length * 4);
+    values.forEach((value, i) => bytes.writeUInt32LE(value, i * 4));
+    return bytes;
+  }
+  const prefix = Buffer.from(fixture.prefixBytes);
+  const samples = words(fixture.samples.flat());
+  const digest = createHash("blake2s256").update(prefix).update(samples).digest();
+  const challenge = createHash("blake2s256").update(digest).update(Buffer.alloc(5)).digest();
+  assert.deepEqual(fixture.alpha, Array.from({ length: 8 }, (_, i) => challenge.readUInt32LE(i * 4) % 0x7fffffff));
+
+  function opening(i, { extra = false, invalidResidue = false } = {}) {
+    const logSize = fixture.treeLogs[i];
+    const columnCount = fixture.treeWidths[i];
+    const allRows = words(fixture.rows[i]);
+    const positions = [...new Set(fixture.queries.map((q) =>
+      ((q >> (1 + fixture.domainLog - logSize)) << 1) | (q & 1)
+    ))].sort((a, b) => a - b);
+    if (extra) {
+      const missing = Array.from({ length: 1 << logSize }, (_, j) => j).find((j) => !positions.includes(j));
+      positions.push(missing);
+      positions.sort((a, b) => a - b);
+    }
+    if (invalidResidue) allRows.writeUInt32LE(0x7fffffff, positions[0] * columnCount * 4);
+    const row = (j) => allRows.subarray(j * columnCount * 4, (j + 1) * columnCount * 4);
+    let level = Array.from({ length: 1 << logSize }, (_, j) => hash("leaf", row(j)));
+    let active = positions;
+    const witness = [];
+    while (level.length > 1) {
+      const siblings = new Set(active);
+      for (const j of active) if (!siblings.has(j ^ 1)) witness.push(level[j ^ 1]);
+      active = [...new Set(active.map((j) => j >> 1))];
+      level = Array.from({ length: level.length >> 1 }, (_, j) =>
+        hash("node", binary(level[2 * j]), binary(level[2 * j + 1]))
+      );
+    }
+    return [{ root: level[0], logSize, columnCount }, { positions, rows: Buffer.concat(positions.map(row)), witness }];
+  }
+  const cases = fixture.treeLogs.map((_, i) => opening(i));
+  const args = [
+    fixture.domainLog, fixture.columns, fixture.points, prefix, samples,
+    cases.map(([tree]) => tree), cases.map(([, proof]) => proof), fixture.queries,
+  ];
+  const got = await deep.deep(...args);
+  const normalized = (values) => values.map((value) => value.map(Number));
+  assert.deepEqual(normalized(got), fixture.answers);
+
+  const wrongOpening = (tree, proof) => [
+    ...args.slice(0, 5), [tree, ...args[5].slice(1)], [proof, ...args[6].slice(1)], args[7],
+  ];
+  const badRow = Buffer.from(cases[0][1].rows);
+  badRow[0] ^= 1;
+  await assert.rejects(deep.deep(...wrongOpening(cases[0][0], { ...cases[0][1], rows: badRow })));
+  await assert.rejects(deep.deep(...wrongOpening(...opening(0, { extra: true }))));
+  await assert.rejects(deep.deep(...wrongOpening(...opening(0, { invalidResidue: true }))));
+  const otherQueries = [...fixture.queries.slice(0, -1), 30];
+  await assert.rejects(deep.deep(...args.slice(0, -1), otherQueries));
+
+  const modifiedSample = Buffer.from(samples);
+  modifiedSample[0] ^= 1;
+  const changed = normalized(await deep.deep(...args.slice(0, 4), modifiedSample, ...args.slice(5)));
+  assert.notDeepEqual(changed, fixture.answers);
+  modifiedSample.writeUInt32LE(0x7fffffff, 28);
+  await assert.rejects(deep.deep(...args.slice(0, 4), modifiedSample, ...args.slice(5)));
+  await assert.rejects(deep.deep(...args.slice(0, 4), samples.subarray(0, -32), ...args.slice(5)));
+  const fixedPoint = { x: [1, 0, 0, 0, 0, 0, 0, 0], y: Array(8).fill(0) };
+  await assert.rejects(deep.deep(...args.slice(0, 2), [fixedPoint, fixture.points[1]], ...args.slice(3)));
+
+  const receipt = await (await deep.deep.send(...args)).wait();
+  console.log(JSON.stringify({ deepOpenedRows: got.length, deepOpenedRowsGas: Number(receipt.gasUsed) }));
+});
+
 test("matches the independent BLAKE2s implementation across block boundaries", async () => {
   for (const size of [4, 16, 28, 32, 36, 60, 64, 68, 96, 128, 132, 260]) {
     const row = Buffer.from(Array.from({ length: size }, (_, i) => (37 * i + size) % 256));
