@@ -50,12 +50,12 @@ library NativePcsTranscript {
         return Blake2sLifted.shortDigest(digest, bytes32(bytes4(reverse32(counter))), 37);
     }
 
-    function secureDraw(bytes32 digest) private pure returns (uint32[8] memory words) {
+    function secureDraw(bytes32 digest) internal pure returns (uint32[8] memory words) {
         bytes32 blockHash = drawBlock(digest, 0);
         for (uint256 i; i < 8; ++i) words[i] = wordLE(blockHash, i) % M31;
     }
 
-    function requireCanonical(bytes calldata fields) private pure {
+    function requireCanonical(bytes calldata fields) internal pure {
         bool malformed;
         // Each field occupies exactly eight little-endian words. Rotate the
         // most significant byte of each word into the high byte of its lane.

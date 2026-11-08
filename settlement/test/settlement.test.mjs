@@ -568,3 +568,84 @@ test("replays the DEEP/FRI commitment suffix from a native OP Mainnet proof", as
     opening.positions, opening.rows, opening.rowBytes, opening.witness,
   ), true);
 });
+
+test("checks transcript-derived OODS against a verifier-owned split composition evaluator", async () => {
+  const contract = await deploy("test/OodsHarness.sol", "OodsHarness");
+  const p = 0x7fffffffn;
+  const mod = (x) => (x % p + p) % p;
+  const add = (a, b) => a.map((x, i) => mod(x + b[i]));
+  const sub = (a, b) => a.map((x, i) => mod(x - b[i]));
+  const basis = (i) => Array.from({ length: 8 }, (_, j) => BigInt(i === j));
+  const one = basis(0);
+  const zero = Array(8).fill(0n);
+  const complex = ([ar, ai], [br, bi]) => [mod(ar * br - ai * bi), mod(ar * bi + ai * br)];
+  const tower = (multiply, nonresidue) => (a, b) => {
+    const n = a.length / 2;
+    const [a0, a1, b0, b1] = [a.slice(0, n), a.slice(n), b.slice(0, n), b.slice(n)];
+    return add(multiply(a0, b0), multiply(nonresidue, multiply(a1, b1)))
+      .concat(add(multiply(a0, b1), multiply(a1, b0)));
+  };
+  const mul = tower(tower(complex, [2n, 1n]), [0n, 0n, 1n, 0n]);
+  const pow = (base, exponent) => {
+    let result = one;
+    while (exponent > 0n) {
+      if (exponent & 1n) result = mul(result, base);
+      base = mul(base, base);
+      exponent >>= 1n;
+    }
+    return result;
+  };
+  const rawHash = (...parts) => createHash("blake2s256").update(Buffer.concat(parts)).digest();
+  const toField = (bytes) => Array.from({ length: 8 }, (_, i) => BigInt(bytes.readUInt32LE(4 * i)) % p);
+  const draw = (digest) => toField(rawHash(digest, Buffer.alloc(5)));
+  const encode = (field) => {
+    const bytes = Buffer.alloc(32);
+    field.forEach((x, i) => bytes.writeUInt32LE(Number(x), 4 * i));
+    return bytes;
+  };
+  const getPoint = (prefix) => {
+    const t = draw(prefix);
+    const t2 = mul(t, t);
+    const inverse = pow(add(one, t2), p ** 8n - 2n);
+    return { x: mul(sub(one, t2), inverse), y: mul(add(t, t), inverse), inverse };
+  };
+  const pre = id("authority through interaction commitment");
+  const root = id("composition commitment");
+  const prefix = rawHash(binary(pre), binary(root));
+  const alpha = draw(binary(pre));
+  const { x, y, inverse } = getPoint(prefix);
+  const trace = toField(rawHash(Buffer.from("trace sample")));
+  const expected = add(mul(alpha, trace), mul(x, y));
+  const partials = Array.from({ length: 32 }, (_, i) =>
+    i === 0 ? zero : toField(rawHash(Buffer.from(`partial-${i}`))));
+  const chunks = Array.from({ length: 4 }, (_, i) => partials.slice(i * 8, (i + 1) * 8)
+    .reduce((sum, sample, lane) => add(sum, mul(basis(lane), sample)), zero));
+  const doubleX = (v) => sub(mul([2n, ...zero.slice(1)], mul(v, v)), one);
+  let factor = x;
+  for (let i = 0; i < 8; ++i) factor = doubleX(factor);
+  const even = add(chunks[0], mul(factor, chunks[1]));
+  const odd = add(chunks[2], mul(factor, chunks[3]));
+  partials[0] = sub(expected, add(even, mul(doubleX(factor), odd)));
+  const samples = Buffer.concat([trace, ...partials].map(encode));
+  assert.equal(await contract.check(pre, root, samples, encode(inverse)), "0x" + prefix.toString("hex"));
+
+  const mainnet = JSON.parse(readFileSync(new URL("../fixtures/native-pcs-121057303-truth-4.json", import.meta.url)));
+  const mainnetPoint = getPoint(binary(mainnet.prefix));
+  const nativePoint = await contract.point(mainnet.prefix, encode(mainnetPoint.inverse));
+  assert.deepEqual(Array.from(nativePoint.x), mainnetPoint.x);
+  assert.deepEqual(Array.from(nativePoint.y), mainnetPoint.y);
+
+  const differentRoot = id("different composition commitment");
+  const differentPoint = getPoint(rawHash(binary(pre), binary(differentRoot)));
+  await assert.rejects(contract.check(pre, differentRoot, samples, encode(differentPoint.inverse)), /CompositionMismatch/);
+  await assert.rejects(contract.check(pre, root, samples, encode(zero)), /InvalidPointInverse/);
+  await assert.rejects(contract.check(pre, root, samples.subarray(32), encode(inverse)), /InvalidSampleShape/);
+  for (const index of [0, 32, samples.length - 1]) {
+    const mutated = Buffer.from(samples);
+    mutated[index] ^= 1;
+    await assert.rejects(contract.check(pre, root, mutated, encode(inverse)), /CompositionMismatch/);
+  }
+  const noncanonical = Buffer.from(samples);
+  noncanonical.writeUInt32LE(Number(p), 0);
+  await assert.rejects(contract.check(pre, root, noncanonical, encode(inverse)), /NonCanonicalField/);
+});

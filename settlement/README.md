@@ -201,6 +201,20 @@ python3 tools/export_pcs_suffix.py pcs.log receive.json \
   fixtures/native-pcs-121057303-truth-4.json
 ```
 
+## Native OODS composition check
+
+`NativeOods` derives the composition challenge and OODS point from the
+worker transcript and composition commitment. It checks the supplied point
+inverse, reconstructs the native split composition from canonical OM31
+samples, and compares it to a verifier-selected evaluator. The caller owns
+sample count, mask log, split depth and the earlier worker transcript. The
+same samples must be authenticated by the subsequent DEEP/FRI verifier.
+
+Tests exercise a fixed evaluator with independent tower arithmetic and
+transcript hashes, including changes to the commitment, trace samples,
+composition samples, and inverse. OODS point derivation also uses the recorded
+`truth-4.bin` PCS prefix. The test evaluator does not implement the RV64 AIR.
+
 ## Mainnet provenance
 
 The fixtures come from `truth-3.bin` and `truth-4.bin` of the complete

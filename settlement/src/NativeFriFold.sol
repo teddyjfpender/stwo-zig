@@ -154,7 +154,7 @@ library NativeFriFold {
     // final coefficients. All signed intermediates are below 2^80 in
     // magnitude: the inputs are M31 residues and each level only adds
     // bounded multiples of products or doubles the inputs to a subproduct.
-    function multiply(uint32[8] memory a, uint32[8] memory b) private pure returns (uint32[8] memory result) {
+    function multiply(uint32[8] memory a, uint32[8] memory b) internal pure returns (uint32[8] memory result) {
         assembly ("memory-safe") {
             function complexMul(ar, ai, br, bi) -> re, im {
                 let rr := mul(ar, br)
