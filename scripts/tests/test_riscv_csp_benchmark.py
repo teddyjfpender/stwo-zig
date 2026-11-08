@@ -8,10 +8,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_cli_admission
-from scripts import riscv_csp_benchmark as csp
-from scripts.riscv_csp_benchmark_lib import contract as csp_contract
-from scripts.riscv_csp_benchmark_lib import host as csp_host
+from scripts.riscv import riscv_cli_admission
+from scripts.riscv import riscv_csp_benchmark as csp
+from scripts.riscv.riscv_csp_benchmark_lib import contract as csp_contract
+from scripts.riscv.riscv_csp_benchmark_lib import host as csp_host
 
 
 class ReportPathTests(unittest.TestCase):

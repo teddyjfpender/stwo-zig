@@ -10,4 +10,3 @@ vectors/riscv_csp/inputs/*.bin binary
 vectors/starknet/**/*.zip binary
 vectors/starknet/**/*.proof binary
 # Exact unified diffs retain blank context lines as a single space.
-vectors/reports/rv64-m7-20261105/leaf-tape/*-tested.patch whitespace=-trailing-space,-blank-at-eof

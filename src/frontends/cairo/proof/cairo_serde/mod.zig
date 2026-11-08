@@ -7,7 +7,7 @@ const pcs = @import("pcs.zig");
 const statement = @import("statement.zig");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
-/// The streaming felt JSON writer, owned by interop (`src/interop/felt_json.zig`).
+/// The streaming felt JSON writer, owned by interop (`src/frontends/cairo/interop/felt_json.zig`).
 pub const felt_json = @import("interop_felt_json");
 pub const validateInput = statement.validateInput;
 

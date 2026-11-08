@@ -12,10 +12,9 @@ const Service = @import("pcs_native.zig");
 const SC = @import("session_context.zig");
 const StreamPlan = @import("trace_stream_plan.zig");
 const InputReuse = @import("trace_input_reuse.zig");
-const OwnedInputs = struct { leases: *std.ArrayList(Native.Lease), claims: *@import("admission_retention.zig").Registry };
+const OwnedInputs = struct { leases: *std.ArrayList(Native.Lease) };
 pub const AdmissionPlan = @import("trace_commit_cost.zig");
-const Global = @import("global_admission.zig");
-const Admission = @import("admission_runtime.zig");
+const Global = @import("footprint_types.zig");
 const M = D.M;
 const N2b = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
 const N2bColumns = *const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on);
@@ -74,11 +73,9 @@ pub const Context = struct {
     twiddles: [29]?engine.poly.twiddles.TwiddleTree([]M) = @splat(null),
     mutex: std.Thread.Mutex = .{},
     pub fn init(service: *Service.Context) !Context {
-        if (service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical, .native_trace);
         const compact = (try Service.allocationOptions()).compact_eager;
         const compact_call = if (compact) try sym(MixedCompact, &service.library, "stwo_blake2s_mixed_seeded_eager_compact_on") else null;
         return .{ .mixed_compact = compact_call, .freeze_allocation_plan = if (std.posix.getenv("STWO_RV64_EARLY_NATIVE_MAIN")) |value| std.mem.eql(u8, value, "1") else false, .service = service, .api = .{
-            .allocation_guard = &service.early_allocations,
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -101,33 +98,22 @@ pub const Context = struct {
     pub fn stage(self: *Context) D.TraceCommitStage {
         return .{ .context = self, .commit = commit };
     }
-    pub fn registerAdmissionCoverage(self: *Context) !void {
-        if (self.service.admission) |endpoint| try endpoint.planner.registerCoverage(endpoint.physical, if (self.admission_domain == .recursion_node) .recursion_trace else .native_trace);
-    }
     fn commit(raw: *anyopaque, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
         const self: *Context = @ptrCast(@alignCast(raw));
-        return self.commitImpl(a, request, false, null, null);
+        return self.commitImpl(a, request, false, null);
     }
     /// Explicit fixed-prover setup; ordinary MAIN/INTER admission is unchanged.
     pub fn commitFixed(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
-        return self.commitImpl(a, request, true, null, null);
-    }
-    /// FIXED-only composition inside the explicit PP upload/commit ticket.
-    /// The enclosing owner already entered the C allocation guard; this call
-    /// must not reserve or begin another ticket on the same physical GPU.
-    pub fn commitFixedAdmitted(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, enclosing: *Admission.Permit) !D.Tree {
-        const endpoint = self.service.admission orelse return error.MissingGlobalAdmissionEndpoint;
-        if (!enclosing.entered or enclosing.closed or enclosing.after != null or enclosing.endpoint.session != self.service.session or enclosing.endpoint.planner != endpoint.planner or enclosing.endpoint.physical != endpoint.physical or enclosing.demand.stage != .trace_commit or enclosing.demand.owner.ordinal != request.scope.ordinal or enclosing.demand.owner.domain != .recursion_node) return error.ForeignAdmissionOwner;
-        return self.commitImpl(a, request, true, enclosing, null);
+        return self.commitImpl(a, request, true, null);
     }
     pub fn reusesInterInputs(self: *const Context, beta: u32) bool {
         return InputReuse.enabled() and beta == 1 and self.n2b_columns != null and
             self.mixed_seeded != null and self.layer != null and streamBudget() != null;
     }
-    pub fn commitOwnedInter(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, leases: *std.ArrayList(Native.Lease), claims: *@import("admission_retention.zig").Registry) !D.Tree {
+    pub fn commitOwnedInter(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, leases: *std.ArrayList(Native.Lease)) !D.Tree {
         if (request.tree_index != 2 or request.retire_input != null or !self.reusesInterInputs(request.config.fri_config.log_blowup_factor)) return error.InvalidOwnedInterInputs;
         try InputReuse.validate(a, leases.items, request.columns);
-        return self.commitImpl(a, request, false, null, .{ .leases = leases, .claims = claims });
+        return self.commitImpl(a, request, false, .{ .leases = leases });
     }
     /// Host-only allocation plan. An admitted execution freezes this stream
     /// schedule; owner-thread per-session pressure cannot silently change it.
@@ -147,7 +133,7 @@ pub const Context = struct {
         input.reuse_owned_inputs = reuse;
         return AdmissionPlan.init(a, input);
     }
-    fn commitImpl(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, fixed: bool, enclosing: ?*Admission.Permit, owned_inputs: ?OwnedInputs) !D.Tree {
+    fn commitImpl(self: *Context, a: std.mem.Allocator, request: D.TraceCommitRequest, fixed: bool, owned_inputs: ?OwnedInputs) !D.Tree {
         if ((fixed and request.tree_index != 0) or (!fixed and request.tree_index < 1) or request.tree_index > 2 or request.columns.len == 0 or request.columns.len > 65535) return error.InvalidTraceCommitRequest;
         if (request.expected_main_root) |expected| {
             if (request.tree_index != 1 or std.mem.allEqual(u8, &expected, 0) or (!std.mem.allEqual(u8, &request.scope.main, 0) and !std.mem.eql(u8, &request.scope.main, &expected))) return error.InvalidTraceReplayScope;
@@ -162,37 +148,15 @@ pub const Context = struct {
             if (self.require_device_input and column.device == null) return error.HostWitnessDisallowedInResidentProof;
             if (column.log_size + beta > 28) return error.InvalidTraceCommitRequest;
         }
-        const allocation_plan = if (owned_inputs != null or self.freeze_allocation_plan or self.service.admission != null) try self.allocationPlanImpl(a, request, owned_inputs != null) else null;
-        var permit: ?Admission.Permit = null;
-        var successor: Global.Footprint = .{};
-        if (if (enclosing == null) self.service.admission else null) |endpoint| {
-            if (request.tree_index == 0) return error.GlobalFixedTracePlanUnavailable;
-            successor = try self.service.admissionSuccessor(request.scope, if (request.tree_index == 1) .main_commit else .inter_commit);
-            const plan = &allocation_plan.?;
-            @import("allocation_observer.zig").model(request.scope, if (self.admission_domain == .recursion_node) 1 else 2, if (request.tree_index == 1) .main_commit else .inter_commit, try plan.footprint(), if (owned_inputs != null) Global.Footprint{} else try Global.Footprint.allocation(try std.math.mul(u64, plan.coefficient_words, 4)), successor);
-            permit = try endpoint.reserve(.{ .progress_key = Global.progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = self.admission_domain, .ordinal = request.scope.ordinal }, .stage = .trace_commit, .stage_retained_upper = if (owned_inputs != null) .{} else try Global.Footprint.allocation(try std.math.mul(u64, plan.coefficient_words, 4)), .temporary = try plan.footprint(), .successor = successor, .retirement_successor = if (request.retire_input != null) try self.service.admissionRetirementSuccessor(request.scope, .inter_commit) else null, .known = true, .host_known = plan.host_cost_known, .host_peak_bytes = plan.host_peak_bytes });
-        }
-        defer if (permit) |*active| if (!active.closed) {
-            active.endpoint.planner.poisonPhysical(active.endpoint.physical);
-            active.finish(.{}) catch {};
-        };
+        const allocation_plan = if (owned_inputs != null or self.freeze_allocation_plan) try self.allocationPlanImpl(a, request, owned_inputs != null) else null;
         self.mutex.lock();
         defer self.mutex.unlock();
-        if (request.tree_index == 1) try self.service.early_allocations.advance(@import("pcs_scope.zig").identity(request.scope), .commit);
         try self.returned.ensureUnusedCapacity(self.host_allocator, 1);
-        var job = Job{ .owned_inputs = owned_inputs, .backend = self, .a = a, .request = request, .admission_plan = allocation_plan, .permit = if (permit) |*active| active else null, .externally_admitted = enclosing != null };
+        var job = Job{ .owned_inputs = owned_inputs, .backend = self, .a = a, .request = request, .admission_plan = allocation_plan };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try check(status);
         const result = job.result orelse return error.CudaTraceCommitFailed;
-        if (permit) |*active| {
-            var final_scope = request.scope;
-            if (request.tree_index == 1) final_scope.main = result.root;
-            self.service.completeAdmission(active, final_scope, active.demand.successor) catch |err| {
-                self.service.finishProofScope(final_scope);
-                return err;
-            };
-        }
         self.returned.appendAssumeCapacity(@constCast(result.columns));
         return result;
     }
@@ -206,14 +170,8 @@ const Job = struct {
     failure: ?anyerror = null,
     admission_plan: ?AdmissionPlan.Plan = null,
     allocation_index: usize = 0,
-    permit: ?*Admission.Permit = null,
-    externally_admitted: bool = false,
     fn callback(raw: *anyopaque, token: u64, user: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(user orelse return 1));
-        if (self.permit) |permit| permit.enterOwner(raw) catch |err| {
-            self.failure = err;
-            return 1;
-        };
         const Observer = @import("allocation_observer.zig");
         var observed = Observer.Range.begin(&self.backend.service.library, raw, self.request.scope, if (self.backend.admission_domain == .recursion_node) 1 else 2, switch (self.request.tree_index) {
             0 => .fixed_commit,
@@ -229,9 +187,6 @@ const Job = struct {
         };
         if (self.admission_plan) |plan| if (self.allocation_index != plan.allocation_count) {
             if (self.failure == null) self.failure = error.TraceAllocationPlanMismatch;
-        };
-        if (self.permit) |permit| permit.leaveOwner(raw) catch |err| {
-            if (self.failure == null) self.failure = err;
         };
         return if (self.failure == null) 0 else 1;
     }
@@ -464,7 +419,7 @@ const Job = struct {
             0 => "rv64/TC/FIXED",
             1 => "rv64/TC/MAIN",
             else => "rv64/TC/INTER",
-        }, self.permit != null or self.externally_admitted);
+        }, false);
         defer range.deinit();
         const b = self.backend;
         const a = self.a;
@@ -511,7 +466,7 @@ const Job = struct {
             const lease_count = owned.leases.items.len;
             // Batch adoption reserves metadata first, then moves the future
             // claims and all leases without a fallible step in between.
-            try b.service.adoptInterLeases(scope, owned.leases.items, owned.claims);
+            try b.service.adoptInterLeases(scope, owned.leases.items);
             owned.leases.clearRetainingCapacity();
             self.result = .{ .root = root, .columns = columns };
             std.debug.print("GPU_TRACE_INTER_REUSE ordinal={} leases={} coefficient_words={} retained_input_bytes={} padding_bytes={} coefficient_copy_words=0 new_coefficient_bytes=0\n", .{ r.scope.ordinal, lease_count, coefficient_cells, retained_bytes, retained_bytes - coefficient_cells * 4 });
@@ -532,9 +487,6 @@ const Job = struct {
         // ingress. Retire them before the much larger LDE/tree scratch exists.
         if (r.retire_input) |retirement| {
             try self.copyInputs(&ctx, try ctx.borrow(coefficients), coefficients.words.?, order, offsets);
-            // This raise grants no allocation. It closes the future-protection
-            // gap BEFORE the registered input lease leaves the stable base.
-            if (self.permit) |permit| if (permit.demand.retirement_successor != null) try permit.raiseBeforeRetirement();
             try retireJoinedInput(&ctx, retirement, r.scope);
         }
         const stream_budget: ?usize = if (separate_coefficients and b.mixed_seeded != null and b.layer != null) streamBudget() else null;

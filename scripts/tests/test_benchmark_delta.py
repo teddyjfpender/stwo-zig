@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "benchmark_delta.py"
+MODULE_PATH = Path(__file__).resolve().parents[1] / "bench/benchmark_delta.py"
 SPEC = importlib.util.spec_from_file_location("benchmark_delta", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

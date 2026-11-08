@@ -41,12 +41,12 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
     capabilities.addOption([]const u8, "native_metal_product", native_metal_product.descriptor(.cli).product.name);
     capabilities.addOption([]const u8, "native_metal_state", @tagName(native_metal_product.descriptor(.cli).state));
     const native_capabilities = b.createModule(.{
-        .root_source_file = b.path("src/products/native_cpu/capabilities.zig"),
+        .root_source_file = b.path("src/products/native/cpu/capabilities.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
     const riscv_capabilities = b.createModule(.{
-        .root_source_file = b.path("src/products/riscv_cpu/capabilities.zig"),
+        .root_source_file = b.path("src/products/riscv/cpu/capabilities.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -68,7 +68,7 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
     riscv_adapter.addImport("riscv_cpu_capabilities", riscv_capabilities);
     riscv_adapter.addOptions("build_identity", identity_options);
     const module = b.createModule(.{
-        .root_source_file = b.path("src/tools/prove/main.zig"),
+        .root_source_file = b.path("src/products/stwo/tools/prove/main.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -81,7 +81,7 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
         .optimize = context.optimize,
     });
     const output_transaction = b.createModule(.{
-        .root_source_file = b.path("src/interop/output_transaction.zig"),
+        .root_source_file = b.path("src/support/io/output_transaction.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -111,7 +111,7 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
     build_step.dependOn(&install.step);
 
     const parser_module = b.createModule(.{
-        .root_source_file = b.path("src/tools/prove/cli.zig"),
+        .root_source_file = b.path("src/products/stwo/tools/prove/cli.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -119,7 +119,7 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
     const parser_tests = b.addTest(.{ .root_module = parser_module });
     context.test_step.dependOn(&b.addRunArtifact(parser_tests).step);
     const resource_parser_module = b.createModule(.{
-        .root_source_file = b.path("src/tools/prove/cli_resource_test.zig"),
+        .root_source_file = b.path("src/products/stwo/tools/prove/cli_resource_test.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -131,7 +131,7 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
     ).step);
 
     const registry_test_module = b.createModule(.{
-        .root_source_file = b.path("src/tools/prove/registry.zig"),
+        .root_source_file = b.path("src/products/stwo/tools/prove/registry.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -141,15 +141,21 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
     const registry_tests = b.addTest(.{ .root_module = registry_test_module });
     context.test_step.dependOn(&b.addRunArtifact(registry_tests).step);
 
-    const riscv_artifact_tests = b.addTest(.{ .root_module = b.createModule(.{
-        .root_source_file = b.path("src/interop/riscv_artifact.zig"),
+    const riscv_artifact_module = b.createModule(.{
+        .root_source_file = b.path("src/products/riscv/artifact/mod.zig"),
         .target = context.target,
         .optimize = context.optimize,
-    }) });
+    });
+    riscv_artifact_module.addImport("atomic_file", b.createModule(.{
+        .root_source_file = b.path("src/support/io/atomic_file.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    }));
+    const riscv_artifact_tests = b.addTest(.{ .root_module = riscv_artifact_module });
     context.test_step.dependOn(&b.addRunArtifact(riscv_artifact_tests).step);
 
     const dispatch_module = b.createModule(.{
-        .root_source_file = b.path("src/tools/prove/native_dispatch.zig"),
+        .root_source_file = b.path("src/products/stwo/tools/prove/native_dispatch.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -163,7 +169,7 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
     context.test_step.dependOn(&b.addRunArtifact(dispatch_tests).step);
 
     const app_module = b.createModule(.{
-        .root_source_file = b.path("src/tools/prove/app.zig"),
+        .root_source_file = b.path("src/products/stwo/tools/prove/app.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });

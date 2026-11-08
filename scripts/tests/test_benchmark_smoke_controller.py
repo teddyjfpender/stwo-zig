@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.benchmark_smoke_lib import controller
+from scripts.bench.benchmark_smoke_lib import controller
 
 
 class BenchmarkSmokeControllerTests(unittest.TestCase):

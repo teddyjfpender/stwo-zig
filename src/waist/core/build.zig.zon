@@ -1,0 +1,8 @@
+.{
+    .fingerprint = 0x27da25b7963e0efc,
+    .name = .stwo_core,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.15.2",
+    .paths = .{"."},
+    .dependencies = .{},
+}

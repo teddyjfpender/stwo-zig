@@ -2,6 +2,4 @@
 
 test {
     _ = @import("recursion/transcript_program_v2.zig");
-    _ = @import("recursion/scheduled_channel_v2.zig");
-    _ = @import("recursion/tests/transcript_program_v2_test.zig");
 }

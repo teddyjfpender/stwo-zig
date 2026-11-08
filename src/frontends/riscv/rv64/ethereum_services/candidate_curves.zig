@@ -3,7 +3,7 @@
 //!
 //! Like every candidate service these exist only in the execution tool; the
 //! prover does not admit them and results that use them are never promotable.
-//! ABI: autoresearch/guest_efficiency/notes/candidate-curves-abi.md. Granularity
+//! ABI: guests/ethereum/abi/candidate-curves-abi.md. Granularity
 //! mirrors ZisK's precompiles (Bn254CurveAdd/Dbl, Bn254ComplexMul,
 //! Bls12_381CurveAdd/Dbl, Bls12_381ComplexMul, Arith384Mod) plus a Montgomery
 //! variant of Arith384Mod and a Keccak-256 sponge.

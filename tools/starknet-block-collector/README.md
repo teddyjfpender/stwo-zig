@@ -12,7 +12,7 @@
 
 It records every RPC response [SNOS](https://github.com/keep-starknet-strange/snos)
 needs to build Starknet OS input, so leaf PIEs can be rebuilt offline and
-byte-for-byte. See `design/starknet-proving-pipeline/README.md` for the pipeline
+byte-for-byte. See `design/starknet/README.md` for the pipeline
 context.
 
 ## Recommended path: an archive node

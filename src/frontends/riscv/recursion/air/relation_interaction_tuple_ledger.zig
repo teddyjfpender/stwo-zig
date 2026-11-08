@@ -16,7 +16,6 @@ pub const types = @import("../../air/lang/types.zig");
 pub const validate = @import("../../air/lang/validate.zig");
 pub const universal = @import("universal_challenges.zig");
 pub const domain_audit = @import("relation_interaction_domain_audit.zig");
-pub const tuple_audit = @import("relation_interaction_tuple_audit.zig");
 pub const entry_validation = @import("relation_interaction_entry_validation.zig");
 pub const claims_derivation = @import("relation_interaction_claims.zig");
 

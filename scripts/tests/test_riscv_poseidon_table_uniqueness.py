@@ -11,8 +11,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_poseidon_table_uniqueness as checker
-from scripts.air_satisfaction_lib import field as field_transcription
+from scripts.riscv import riscv_poseidon_table_uniqueness as checker
+from scripts.riscv.air_satisfaction_lib import field as field_transcription
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -169,10 +169,10 @@ class RiscVPoseidonTableUniquenessTest(unittest.TestCase):
     def test_field_relation_and_placement_dependencies_are_bound(self) -> None:
         self.assertLessEqual(
             {
-                "src/core/fields/m31.zig",
-                "src/core/fields/cm31.zig",
-                "src/core/fields/qm31.zig",
-                "src/core/utils.zig",
+                "src/waist/core/fields/m31.zig",
+                "src/waist/core/fields/cm31.zig",
+                "src/waist/core/fields/qm31.zig",
+                "src/waist/core/utils.zig",
                 "src/frontends/riscv/air/lookups/entry.zig",
                 "src/frontends/riscv/air/relation_challenges.zig",
             },

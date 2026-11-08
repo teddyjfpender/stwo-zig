@@ -3,7 +3,7 @@
 //! Before this module the composition metallib was the only Metal artifact on
 //! any Cairo path loaded with no integrity check at all: the runner derived its
 //! filesystem path by string substitution on the `.bin` companion
-//! (`src/tools/metal_arena_plan/main.zig`) and handed it straight to
+//! (`src/backends/metal/tools/arena_plan/main.zig`) and handed it straight to
 //! `loadEvalLibrary`. The only in-repo binding between the AIR and the library
 //! was by-name kernel resolution in `composition_prewarm.zig`, which is a
 //! *completeness* check and not an *integrity* check: a library exporting

@@ -1,3 +1,0 @@
-index, memory.used [MiB], memory.total [MiB]
-0, 30236 MiB, 32607 MiB
-1, 30132 MiB, 32607 MiB

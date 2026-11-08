@@ -5,8 +5,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from scripts import ci_scope_plan
-
+from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import catalog_fixture
 
 
@@ -20,6 +19,7 @@ ROLES = {
     "independent-proof-oracle",
     "independent-vector-generator",
     "legacy-proof-oracle",
+    "performance-tooling",
     "qualification-adapter",
 }
 
@@ -47,7 +47,6 @@ class ToolingSurfaceTests(unittest.TestCase):
                 callers = item["live_callers"]
                 self.assertTrue(callers)
                 for caller in callers:
-                    self.assertFalse(caller.startswith("autoresearch/"))
                     self.assertTrue((ROOT / caller).is_file(), caller)
 
     def test_every_tool_change_has_one_bounded_pr_plan(self) -> None:

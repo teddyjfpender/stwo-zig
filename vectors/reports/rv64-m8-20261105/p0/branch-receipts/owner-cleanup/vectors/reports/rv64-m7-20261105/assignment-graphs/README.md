@@ -1,7 +1,0 @@
-# Assignment graph checkpoint [M: GPU fixture; full-proof qualification pending]
-
-Opt-in `STWO_RV64_OUTER_ASSIGNMENT_GRAPH=1` replaces a chain/wide assignment plan's host kernel-launch loop with one CUDA graph launch. The existing arithmetic kernels and dependency order are unchanged. Each class caches only graph metadata; every replay validates live typed leases and rebinds all pointer arguments. The cache is bounded to32 classes per owner, and destruction runs on that owner. Default is OFF. Narrow plans are refused.
-
-Actual RTX5090 gate:12/12 checks passed on4099 tasks across three chain/wide graph nodes, including changed allocations/records/ends, shape and output-alias refusal, stale/foreign contexts and malformed task status. Compute Sanitizer reports0 errors. This fixture uses a separately linked addon alongside the accepted runtime; it does not qualify the production selected image, an Ethereum proof or a speedup. The C object SHA256 is `acab4135828b34effe4e6ec3e52238d3dec3ebb64d935ca6ccd71d597d299de3`.
-
-The first producer build passed before the additional typed binding/count checks. The subsequent build exposed a Zig pointer-type comparison error; that negative log is retained and the comparison is corrected to pointer addresses. Latest producer build and both-development-block full M6 byte/fresh-receiver gates remain pending at this checkpoint. No production promotion is claimed.

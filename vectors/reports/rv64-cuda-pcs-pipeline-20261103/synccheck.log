@@ -1,3 +1,0 @@
-========= COMPUTE-SANITIZER
-PCS columns=6 groups=3 log=11 q=256 resident_ms=45.945217 device_bytes=1287392 hot_d2h=0 hot_h2d=0
-========= ERROR SUMMARY: 0 errors

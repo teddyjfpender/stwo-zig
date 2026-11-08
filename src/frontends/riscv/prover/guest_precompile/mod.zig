@@ -5,18 +5,11 @@ pub const trace_geometry = @import("trace_geometry.zig");
 pub const component_assembly = @import("component_assembly.zig");
 pub const cancellation = @import("cancellation.zig");
 pub const proof_artifact = @import("proof_artifact.zig");
-pub const proof_artifact_wire = @import("proof_artifact_wire.zig");
-pub const ethereum_proof_artifact_wire =
-    @import("ethereum_proof_artifact_wire.zig");
 pub const ethereum_proof_artifact = @import("ethereum_proof_artifact.zig");
 pub const ethereum_segment_proof_artifact =
     @import("ethereum_segment_proof_artifact.zig");
-pub const ethereum_segment_poseidon2_proof_artifact =
-    @import("ethereum_segment_poseidon2_proof_artifact.zig");
 pub const ethereum_segment_source_wire =
     @import("ethereum_segment_source_wire.zig");
-pub const ethereum_segment_artifact_statement_wire =
-    @import("ethereum_segment_artifact_statement_wire.zig");
 pub const proof_finalize = @import("proof_finalize.zig");
 pub const ethereum_witness = @import("ethereum_witness.zig");
 pub const ethereum_types = @import("ethereum_types.zig");
@@ -32,41 +25,18 @@ pub const ethereum_segment_orchestration =
     @import("ethereum_segment_orchestration.zig");
 pub const ethereum_segment_transcript_extension =
     @import("ethereum_segment_transcript_extension.zig");
-pub const ethereum_omitted_provider_fresh_capture_v1 =
-    @import("ethereum_omitted_provider_fresh_capture_v1.zig");
-pub const native_provider_omit_v1 =
-    @import("../memory_provider_shards/native_provider_omit_v1.zig");
 pub const ethereum_native_provider_omit_protocol_v1 =
     @import("../memory_provider_shards/ethereum_omit_protocol_v1.zig");
 pub const ethereum_native_provider_omit_proof_v1 =
     @import("../memory_provider_shards/ethereum_omit_provider_proof_v1.zig");
-pub const incremental_ethereum_omit_protocol_v4 =
-    @import("../incremental_ethereum_omit_protocol_v4.zig");
 pub const ethereum_segment_verifier = @import("ethereum_segment_verifier.zig");
 pub const ethereum_leaf_matched_ab_execution_profile_v1 =
     @import("ethereum_leaf_matched_ab_execution_profile_v1.zig");
-pub const ethereum_matched_ab_omitted_provider_policy_v1 =
-    @import("ethereum_matched_ab_omitted_provider_policy_v1.zig");
-pub const ethereum_candidate_leaf_orchestration_v1 =
-    @import("ethereum_candidate_leaf_orchestration_v1.zig");
-pub const ethereum_candidate_leaf_verifier_v1 =
-    @import("ethereum_candidate_leaf_verifier_v1.zig");
-pub const ethereum_candidate_leaf_proof_artifact_v1 =
-    @import("ethereum_candidate_leaf_proof_artifact_v1.zig");
-pub const ethereum_candidate_leaf_artifact_wire_v1 =
-    @import("ethereum_candidate_leaf_artifact_wire_v1.zig");
-pub const ethereum_candidate_leaf_tree_v1 =
-    @import("ethereum_candidate_leaf_tree_v1.zig");
-pub const ethereum_candidate_leaf_profile_v1 =
-    @import("ethereum_candidate_leaf_profile_v1.zig");
 pub const orchestration = @import("orchestration.zig");
 pub const verifier = @import("verifier.zig");
 /// Research-only split PCS prepare/manifest boundary. This retains real
 /// commitment schemes but is not accepted by the production proof API.
 pub const split_pcs_prepare = @import("split_pcs_prepare.zig");
-/// Research-only session-wide PoW candidate. It changes neither the accepted
-/// V1 aggregation manifest nor either production proof transcript.
-pub const split_joint_pow = @import("split_joint_pow.zig");
 /// Research-only completion and independent verification of the base-plus-
 /// caller STARK after the split manifest barrier.
 pub const split_caller_finish = @import("split_caller_finish.zig");

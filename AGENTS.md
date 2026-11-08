@@ -1,10 +1,11 @@
 # Project execution rules
 
 This repository is in the consolidation and productionisation phase described
-in [the delivery contract](design/riscv-proving-stack/rv64-gpu-hygiene.md).
+in [the delivery contract](design/riscv/rv64-gpu-hygiene.md).
 That contract includes the ordered GPU-native promotion and legacy deletion
 gates. Do not declare this phase complete from component tests or warm timings.
 
+- [ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md) is binding on every change.
 - Use the canonical checkout `/Users/theodorepender/Coding/stwo-zig`.
   Do not create component worktrees. Inspect historical work through its
   archive refs; preserve unique work before retiring a working copy.
@@ -16,7 +17,8 @@ gates. Do not declare this phase complete from component tests or warm timings.
 - The developer entrypoints are `scripts/dev_test.py`,
   `scripts/rv64_gate.sh` before every push, and `scripts/rv64_m8_bench15.py`
   for the regression basket. Extend these entrypoints and their shared
-  libraries; do not add another top-level launcher.
+  libraries; do not add another top-level launcher. Everything else in
+  `scripts/` lives in a `scripts/<area>/` package (`scripts/README.md`).
 - Keep installation, new-block setup, request execution and publication
   ownership explicit. Derive budgets from the allocation schedule. Preserve
   cancellation, failure and teardown invariants with the owner being moved.

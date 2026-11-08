@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import rv64_m8_plan_sweep as sweep
+from scripts.rv64 import rv64_m8_plan_sweep as sweep
 
 G = sweep.GRANULE
 

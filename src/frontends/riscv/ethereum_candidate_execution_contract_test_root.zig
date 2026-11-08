@@ -11,7 +11,4 @@ test {
     _ = @import(
         "runner/guest_precompile/ethereum_candidate_observed_journal_v1.zig",
     );
-    _ = @import(
-        "prover/guest_precompile/ethereum_candidate_execution_product_v1.zig",
-    );
 }

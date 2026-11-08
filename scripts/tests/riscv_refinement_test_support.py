@@ -12,8 +12,8 @@ from argparse import Namespace
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_refinement
-from scripts.riscv_refinement_lib import (
+from scripts.riscv import riscv_refinement
+from scripts.riscv.riscv_refinement_lib import (
     air,
     air_program,
     air_program_contract,
@@ -24,7 +24,7 @@ from scripts.riscv_refinement_lib import (
     sail,
     sail_lean_bridge,
 )
-from scripts.riscv_refinement_lib.model import Paths, RefinementError
+from scripts.riscv.riscv_refinement_lib.model import Paths, RefinementError
 
 ROOT = Path(__file__).resolve().parents[2]
 GENERATED_AIR = ROOT / "formal" / "riscv-refinement" / "generated" / "air"

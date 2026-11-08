@@ -8,7 +8,7 @@ import threading
 import unittest
 from unittest.mock import patch
 
-SOURCE = Path(__file__).resolve().parents[1] / "rv64_ethereum_basket.py"
+SOURCE = Path(__file__).resolve().parents[1] / "rv64/rv64_ethereum_basket.py"
 SPEC = importlib.util.spec_from_file_location("basket", SOURCE)
 B = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(B)

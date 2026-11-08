@@ -27,8 +27,6 @@ pub fn create(a: std.mem.Allocator, service: *Service.Context, scope: D.Scope, c
     if (std.mem.eql(u8, option, "0")) return null;
     if (!std.mem.eql(u8, option, "check")) return error.OuterDeviceFsModeNotQualified;
     if (@import("stwo_riscv_cpu_integration").rv64_om31_outer_wrap.hybridProfileActive()) return error.UnsupportedHybridOuterDeviceFsCheck;
-    // These diagnostic allocations have no global admission model yet.
-    if (service.admission != null) return error.UnmodeledOuterDeviceFsCheck;
     const addon_path = std.posix.getenv("STWO_RV64_OUTER_FS_OPS_LIBRARY") orelse return error.MissingOuterDeviceFsAddon;
     var addon = try std.DynLib.open(addon_path);
     errdefer addon.close();

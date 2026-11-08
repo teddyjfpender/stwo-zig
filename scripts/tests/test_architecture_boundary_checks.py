@@ -9,9 +9,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.architecture_host_gate_lib import aggregate_parity as check_aggregate_parity
-from scripts.architecture_host_gate_lib import link_closure as check_architecture_link_closure
-from scripts.product_identity_lib import canonical_identity_sha256
+from scripts.architecture.architecture_host_gate_lib import aggregate_parity as check_aggregate_parity
+from scripts.architecture.architecture_host_gate_lib import link_closure as check_architecture_link_closure
+from scripts.repo.product_identity_lib import canonical_identity_sha256
 
 
 def proof() -> dict[str, object]:

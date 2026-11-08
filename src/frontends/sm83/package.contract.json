@@ -8,9 +8,9 @@
     "stwo_sm83_frontend": "mod.zig"
   },
   "dependencies": {
-    "stwo_core": "../../core",
-    "stwo_prover_api": "../../prover_api",
-    "stwo_prover_engine": "../../prover"
+    "stwo_core": "../../waist/core",
+    "stwo_prover_api": "../../waist/prover_api",
+    "stwo_prover_engine": "../../engine/prover"
   },
   "injected_modules": [],
   "api_surface": [

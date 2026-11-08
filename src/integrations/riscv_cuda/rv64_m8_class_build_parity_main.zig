@@ -56,7 +56,7 @@ const NP = @import("rv64/jobs/native_pcs.zig");
 const NE = @import("rv64/jobs/native_encode.zig");
 const NC = @import("rv64/jobs/native_commit.zig");
 const NComp = @import("rv64/jobs/native_composition.zig");
-const HJ = @import("rv64/jobs/native_hybrid_jobs.zig");
+const Timing = @import("rv64/jobs/job_timing.zig").Timing;
 const Sources = @import("rv64/gkr_sources.zig");
 const Events = @import("rv64/cuda_events.zig");
 const Child = CPU.rv64_gkr_child;
@@ -271,7 +271,7 @@ const Warm = struct {
 
 const Timer = struct {
     events: Events.Api,
-    timing: HJ.Timing = undefined,
+    timing: Timing = undefined,
     fn bind(self: *Timer) void {
         self.timing = .{ .ctx = self, .create = tCreate, .record = tRecord, .elapsed = tElapsed, .destroy = tDestroy };
     }
@@ -295,7 +295,7 @@ const Timer = struct {
 
 const TimedWarm = struct {
     inner: *S1.WarmJob,
-    timing: *const HJ.Timing,
+    timing: *const Timing,
     span: S1.Span = .{},
     pub fn classKey(self: *TimedWarm) [32]u8 {
         return self.inner.classKey();

@@ -8,9 +8,9 @@
     "stwo_sm83_cpu_integration": "mod.zig"
   },
   "dependencies": {
-    "stwo_core": "../../core",
+    "stwo_core": "../../waist/core",
     "stwo_cpu_backend": "../../backends/cpu_scalar",
-    "stwo_prover_engine": "../../prover",
+    "stwo_prover_engine": "../../engine/prover",
     "stwo_sm83_frontend": "../../frontends/sm83"
   },
   "injected_modules": [

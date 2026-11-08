@@ -8,7 +8,7 @@
 //! the global planner's PCS coverage bit by itself.
 const std = @import("std");
 const Abi = @import("pcs_native_abi.zig");
-const Admission = @import("global_admission.zig");
+const Admission = @import("footprint_types.zig");
 const Stream = @import("trace_stream_plan.zig");
 
 pub const Format = enum { m31_blake32 };

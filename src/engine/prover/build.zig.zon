@@ -1,0 +1,12 @@
+.{
+    .fingerprint = 0x2877591a748fc68d,
+    .name = .stwo_prover_engine,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.15.2",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../waist/core" },
+        .stwo_backend_contracts = .{ .path = "../../waist/backend" },
+        .stwo_prover_api = .{ .path = "../../waist/prover_api" },
+    },
+}

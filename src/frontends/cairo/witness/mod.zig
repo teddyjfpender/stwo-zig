@@ -34,13 +34,11 @@ pub const composition_bundle = @import("composition_bundle.zig");
 pub const quotient_geometry = @import("quotient_geometry.zig");
 pub const proof_bundle = @import("proof_bundle.zig");
 pub const resident_geometry = @import("resident_geometry.zig");
-pub const resident_proof = @import("resident_proof.zig");
 pub const resident_types = @import("resident_types.zig");
 pub const resident_verifier = @import("resident_verifier.zig");
 pub const proof_plan = @import("../proof_plan.zig");
 pub const witness_scheduler = @import("../witness_scheduler.zig");
 pub const checkpoint = @import("../conformance/checkpoint.zig");
-pub const checkpoint_receipt = @import("../conformance/receipt.zig");
 
 test {
     _ = @import("column_lowering.zig");
@@ -69,5 +67,4 @@ test {
     _ = proof_plan;
     _ = witness_scheduler;
     _ = checkpoint;
-    _ = checkpoint_receipt;
 }

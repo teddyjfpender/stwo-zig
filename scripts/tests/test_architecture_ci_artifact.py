@@ -6,7 +6,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from scripts.architecture_ci_artifact import ArtifactError, extract, select
+from scripts.architecture.architecture_ci_artifact import ArtifactError, extract, select
 
 
 NAME = "build-architecture-linux-" + "1" * 40 + "-123-2"

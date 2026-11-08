@@ -11,7 +11,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from scripts import ci_scope_plan, ci_scope_push, ci_scope_run
+from scripts.repo import ci_scope_plan, ci_scope_push, ci_scope_run
 from scripts.tests.focused_ci_fixtures import catalog_fixture, product
 
 
@@ -43,13 +43,13 @@ class PlannerContractTests(unittest.TestCase):
         expected = {"static", "script_contracts", "build_graph"}
         for path in (
             "conformance/ci-touchpoints-v1.json",
-            "scripts/ci_scope_plan.py",
+            "scripts/repo/ci_scope_plan.py",
         ):
             with self.subTest(path=path):
                 self.assertEqual(expected, self.lanes_for(path))
 
     def test_shared_core_change_fans_out_to_every_consumer_and_package(self) -> None:
-        selected = self.lanes_for("src/core/fields/m31.zig")
+        selected = self.lanes_for("src/waist/core/fields/m31.zig")
         self.assertTrue(
             {
                 "static",
@@ -78,7 +78,7 @@ class PlannerContractTests(unittest.TestCase):
         self.assertNotIn("metal_aot", selected)
 
     def test_backend_contract_change_runs_its_package_and_dependents(self) -> None:
-        selected = self.lanes_for("src/backend/merkle_ops.zig")
+        selected = self.lanes_for("src/waist/backend/merkle_ops.zig")
         self.assertTrue(
             {
                 "static",
@@ -205,7 +205,7 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("stwo-zig-riscv-cpu", commands[0])
         proof_commands = [
             command for command in commands
-            if "scripts/riscv_pr_proof_smoke.py" in command
+            if "scripts/riscv/riscv_pr_proof_smoke.py" in command
         ]
         self.assertEqual(1, len(proof_commands))
         self.assertIn("--artifact-dir", proof_commands[0])
@@ -224,13 +224,13 @@ class PlannerContractTests(unittest.TestCase):
                          "build_support/gates/riscv.zig"):
             with self.subTest(relative=relative):
                 source = (ROOT / relative).read_text(encoding="utf-8")
-                self.assertIn("scripts/riscv_opcode_coverage.py", source)
+                self.assertIn("scripts/riscv/riscv_opcode_coverage.py", source)
                 self.assertIn('"check"', source)
 
     def test_leaf_native_cpu_change_does_not_select_unrelated_products(self) -> None:
         self.assertEqual(
             {"static", "native_cpu"},
-            self.lanes_for("src/products/native_cpu/cli.zig"),
+            self.lanes_for("src/products/native/cpu/cli.zig"),
         )
 
     def test_cuda_change_requires_static_and_explicit_device_lanes(self) -> None:
@@ -256,11 +256,11 @@ class PlannerContractTests(unittest.TestCase):
         command = "\n".join(device["commands"][0])
         self.assertIn("STWO_CUDA_NVCC", command)
         self.assertIn("zig build stwo-native-cuda", command)
-        self.assertIn("scripts/cuda_device_smoke.py", command)
+        self.assertIn("scripts/cuda/cuda_device_smoke.py", command)
         self.assertIn("cuda_device_smoke_receipt.json", command)
         self.assertIn('len(receipt["tests"]) == 12', command)
         self.assertIn("zig build stwo-native-cpu", command)
-        self.assertIn("scripts/cuda_proof_parity_gate.py", command)
+        self.assertIn("scripts/cuda/cuda_proof_parity_gate.py", command)
         self.assertIn("--rust-verifier-sha256", command)
         self.assertIn("--repeat 3", command)
         self.assertIn("--air poseidon", command)
@@ -346,7 +346,7 @@ class PlannerContractTests(unittest.TestCase):
     def test_multiple_paths_take_the_conservative_union(self) -> None:
         selected = self.lanes_for(
             "docs/release.md",
-            "src/products/native_cpu/cli.zig",
+            "src/products/native/cpu/cli.zig",
             "src/backends/metal/runtime.m",
         )
         self.assertTrue(
@@ -389,26 +389,26 @@ class PlannerContractTests(unittest.TestCase):
     def test_empty_or_unsafe_changed_paths_are_rejected(self) -> None:
         with self.assertRaisesRegex(ci_scope_plan.PlanError, "no changed paths"):
             ci_scope_plan.select_lanes([], self.catalog, self.policy)
-        for path in ("../outside", "/absolute/path", "src/core/../../outside"):
+        for path in ("../outside", "/absolute/path", "src/waist/core/../../outside"):
             with self.subTest(path=path):
                 with self.assertRaisesRegex(ci_scope_plan.PlanError, "unsafe"):
                     ci_scope_plan.select_lanes([path], self.catalog, self.policy)
 
     def test_path_ownership_is_component_safe(self) -> None:
-        self.assertTrue(ci_scope_plan.owns("src/core/field.zig", "src/core"))
-        self.assertFalse(ci_scope_plan.owns("src/coreish/field.zig", "src/core"))
+        self.assertTrue(ci_scope_plan.owns("src/waist/core/field.zig", "src/waist/core"))
+        self.assertFalse(ci_scope_plan.owns("src/coreish/field.zig", "src/waist/core"))
 
     def test_git_rename_and_delete_classify_old_and_new_paths(self) -> None:
         result = subprocess.CompletedProcess(
             args=[],
             returncode=0,
-            stdout=b"R100\0src/core/old.zig\0src/core/new.zig\0D\0src/prover/gone.zig\0",
+            stdout=b"R100\0src/waist/core/old.zig\0src/waist/core/new.zig\0D\0src/engine/prover/gone.zig\0",
             stderr=b"",
         )
         with mock.patch.object(ci_scope_plan.subprocess, "run", return_value=result):
             paths = ci_scope_plan.git_changed_paths(ROOT, "base", "head")
         self.assertEqual(
-            ["src/core/old.zig", "src/core/new.zig", "src/prover/gone.zig"],
+            ["src/waist/core/old.zig", "src/waist/core/new.zig", "src/engine/prover/gone.zig"],
             paths,
         )
 
@@ -454,14 +454,6 @@ class PlannerContractTests(unittest.TestCase):
             lines,
         )
         self.assertIn("macos_count=2", lines)
-
-    def test_submission_only_diff_selects_always_lanes_only(self) -> None:
-        changed = [
-            "autoresearch/submissions/2026-07-20-x/note.md",
-            "autoresearch/notes/tile-sweep.md",
-        ]
-        lanes, _ = ci_scope_plan.select_lanes(changed, self.catalog, self.policy)
-        self.assertEqual(sorted(lanes), ["static"])
 
     def test_hosted_flag_must_be_boolean(self) -> None:
         policy = json.loads(json.dumps(self.policy))

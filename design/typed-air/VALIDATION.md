@@ -148,7 +148,7 @@ local cache for the exact command or named cache group. Related narrow and
 broad gates share a cache group without using it concurrently:
 
 ```sh
-python3 scripts/typed_air_zig_lane.py \
+python3 scripts/typed_air/typed_air_zig_lane.py \
   --label <short-owner> --stage narrow --cache-group <owner> -- \
   zig build --build-file src/frontends/riscv/build.zig \
   <focused-step> -Doptimize=Debug
@@ -301,7 +301,7 @@ A timing cohort is collected only from that executable on a clean snapshot,
 with a new output path and an explicit operator power-state declaration:
 
 ```sh
-python3 scripts/typed_air_poseidon_benchmark.py \
+python3 scripts/typed_air/typed_air_poseidon_benchmark.py \
   --output zig-out/h010/<new-run-id>.json \
   --power-state '<operator declaration>'
 ```
@@ -316,7 +316,7 @@ Lean source build:
 ```
 
 Live Sail and receipt commands remain those in
-[`RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
+[`RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
 They are required when architectural semantics, source binding, or published
 formal artifacts change.
 
@@ -345,8 +345,8 @@ the first named generated-versus-on-disk difference together with file lengths
 and SHA-256 identities before failing.
 
 M2 established the report check half of this contract: the package test renders
-[`m2-production-shadow-report-v1.tsv`](artifacts/m2-production-shadow-report-v1.tsv)
-and its [readable view](artifacts/m2-production-shadow-report-v1.md) in memory
+[`m2-production-shadow-report-v1.tsv`](../../src/frontends/riscv/air/lang/artifacts/m2-production-shadow-report-v1.tsv)
+and its [readable view](../../src/frontends/riscv/air/lang/artifacts/m2-production-shadow-report-v1.md) in memory
 and requires byte identity. A-011 adds the explicit family-manifest check/update
 command. A-012 parses that sectioned `compat-v1` object without allocation and
 compares detailed layout, runtime, relation, degree, hint, and formal records
@@ -445,14 +445,14 @@ Focused CPU proof and corruption tests pass; the full CPU and authenticated-AOT
 Metal product gates pass with resident Metal polynomial execution and no known
 CPU fallback. A fresh unchanged production verifier specialization verifies the
 honest proof. The immutable evidence and exact limits are recorded in the
-[H-007 receipt](receipts/h007-poseidon-proof-equivalence-v1.json).
+[H-007 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h007-poseidon-proof-equivalence-v1.json).
 
 This is proof-path integration evidence, not production activation or a broad
 soundness claim. The full-proof fixture is narrow-only, uses test-security PCS
 parameters, and verifies in a fresh same-process verifier state. Claims are
 transcript/AIR-bound rather than separate committed columns, and canonical
 logical/layout/executor/relation identity is now co-attested by the final
-[V-006 receipt](receipts/v006-poseidon-program-identity-v1.json). That identity
+[V-006 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/v006-poseidon-program-identity-v1.json). That identity
 is returned beside the verified proof by the test-only authority; it is not
 mixed into the transcript, public statement, proof commitment, or production
 verifier contract.
@@ -479,7 +479,7 @@ unreviewed production sources; only an explicit authoring/test/tool allowlist
 is accepted.
 
 The immutable
-[H-009 receipt](receipts/h009-poseidon2-cost-frontier-v1.json) records exact
+[H-009 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h009-poseidon2-cost-frontier-v1.json) records exact
 artifact, search, cost-model, product-closure, and regression-gate identities.
 Its structural plateau is negative optimization evidence, not a timing,
 memory, proof-size, global-optimality, or production-activation result. H-010
@@ -548,7 +548,7 @@ three warnings and eight errors and adds no H-010 finding.
 The two reports show no meaningful repeatable layout regression and select no
 layout. Proof, verification, Metal-candidate, production-layout, and promotion
 claims remain false. The
-[H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+[H-010 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
 names this bounded evidence; it does not alter the V3 or production boundary.
 
 ## Differential design
@@ -638,11 +638,11 @@ At M3 and later milestones, record:
 
 The receipt describes evidence. It does not promote the claim ledger by itself.
 The first concrete instance is the
-[M3 compatibility receipt](receipts/m3-compatibility-v1.json), which records
+[M3 compatibility receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/m3-compatibility-v1.json), which records
 green compatibility and focused proof evidence together with the broad
 prover-core and formal-artifact gates that remain red.
 
-The [H-010 receipt](receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
+The [H-010 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/design/typed-air/receipts/h010-authenticated-poseidon-layout-benchmark-v1.json)
 records the clean H-010 implementation tree, both exact locally retained
 report identities, the independently rerun gates, and the no-selection
 conclusion. It does not convert the microbenchmark into proof-path or
@@ -671,10 +671,10 @@ and terminal transcript digest is
 `3690d6814dbdf9ec02a85c3a59cb16d2ed87036291fed3e531c740b546c08293`.
 
 ```text
-python3 scripts/typed_air_zig_lane.py --label a013-final-drift-guarded-debug -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=Debug -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a013-final-drift-guarded-debug -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=Debug -j1 --summary all
 Build Summary: 4/4 steps succeeded; 1/1 tests passed
 
-python3 scripts/typed_air_zig_lane.py --label a013-generated-composition-releasefast-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=ReleaseFast -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a013-generated-composition-releasefast-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-generated-composition-native-proof -Doptimize=ReleaseFast -j1 --summary all
 Build Summary: 4/4 steps succeeded; 1/1 tests passed
 ```
 
@@ -697,13 +697,13 @@ identities are:
 - `d5771e0a86bb81a25f4e6d0a3b52e6a88766c3be3c1115d39f9846443a50fd51`.
 
 ```text
-python3 scripts/typed_air_zig_lane.py --label a014-full-cohort-real-proof-final -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=Debug -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a014-full-cohort-real-proof-final -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=Debug -j1 --summary all
 Build Summary: 1/1 steps succeeded
 
-python3 scripts/typed_air_zig_lane.py --label a014-releasefast-real-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=ReleaseFast -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a014-releasefast-real-proof -- /usr/bin/time -l zig build --build-file src/integrations/riscv_cpu/build.zig test-riscv-lookup-v2-native-proof -Doptimize=ReleaseFast -j1 --summary all
 Build Summary: 1/1 steps succeeded
 
-python3 scripts/typed_air_zig_lane.py --label a014-full-lookup-debug -- /usr/bin/time -l zig build --build-file src/frontends/riscv/build.zig test-lookup-batching -Doptimize=Debug -j1 --summary all
+python3 scripts/typed_air/typed_air_zig_lane.py --label a014-full-lookup-debug -- /usr/bin/time -l zig build --build-file src/frontends/riscv/build.zig test-lookup-batching -Doptimize=Debug -j1 --summary all
 Build Summary: 3/3 steps succeeded; 326/326 tests passed
 ```
 

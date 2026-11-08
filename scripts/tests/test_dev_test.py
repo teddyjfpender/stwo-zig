@@ -6,22 +6,20 @@ from unittest import mock
 from scripts.tests.focused_ci_fixtures import git_repository
 
 from scripts import dev_test
-
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
     def test_check_only_never_substitutes_a_full_package_or_ci_build(self):
         with self.assertRaisesRegex(dev_test.DevTestError, "focused owner"):
-            dev_test.commands_for_paths(ROOT, ["src/core/mod.zig"], check_only=True)
+            dev_test.commands_for_paths(ROOT, ["src/waist/core/mod.zig"], check_only=True)
         deferred = []
         commands = dev_test.commands_for_paths(ROOT, ["build_support/products/riscv_cpu.zig"], check_only=True, deferred=deferred)
         self.assertEqual([], commands)
         self.assertIn("riscv_cpu", deferred)
 
     def test_owned_and_policy_path_typos_fail_before_planning(self):
-        for path in ("src/integrations/riscv_cuda/rv64/jobs/driver_instal_typo.zig", "conformance/missing-review-typo.json", "vectors/fixtures/missing-review-typo.md"):
+        for path in ("src/integrations/riscv_cuda/rv64/jobs/driver_instal_typo.zig", "conformance/missing-review-typo.json", "vectors/riscv/fixtures/missing-review-typo.md"):
             with self.subTest(path=path), self.assertRaisesRegex(dev_test.DevTestError, "does not exist"):
                 dev_test.commands_for_paths(ROOT, [path])
 
@@ -32,7 +30,7 @@ class DevTestPlanTests(unittest.TestCase):
         self.assertIn("aggregate_metal", deferred)
         self.assertIn("build_graph", deferred)
         self.assertFalse(any("{output_dir}" in argument or "{commit}" in argument for command in commands for argument in command))
-        delegated = [command for command in commands if "scripts/ci_scope_run.py" in command]
+        delegated = [command for command in commands if "scripts/repo/ci_scope_run.py" in command]
         self.assertTrue(delegated)
         for command in delegated:
             self.assertIn("--local-compatible", command)
@@ -93,27 +91,27 @@ class DevTestPlanTests(unittest.TestCase):
         with mock.patch.object(Path, "exists", lambda candidate: candidate == ROOT / ".git" or actual_exists(candidate)):
             with mock.patch("scripts.dev_test.subprocess.check_output", return_value=path + "\n"):
                 commands = dev_test.commands_for_paths(ROOT, [path])
-            self.assertTrue(any("scripts/ci_scope_run.py" in command and command[command.index("--lane") + 1] == "static" for command in commands))
+            self.assertTrue(any("scripts/repo/ci_scope_run.py" in command and command[command.index("--lane") + 1] == "static" for command in commands))
             with mock.patch("scripts.dev_test.subprocess.check_output", return_value=""):
                 with self.assertRaises(dev_test.DevTestError):
                     dev_test.commands_for_paths(ROOT, [path])
 
     def test_live_fixtures_select_actual_package_and_script_validators(self):
-        for path in ("vectors/fixtures/rv64-m3-basket-v1.json", "vectors/fixtures/README.md"):
+        for path in ("vectors/riscv/rv64/m3-basket/summary.json", "vectors/riscv/fixtures/README.md"):
             with self.subTest(path=path):
                 commands = dev_test.commands_for_paths(ROOT, [path])
-                self.assertTrue(any("scripts/ci_scope_run.py" in command and command[command.index("--lane") + 1] == "script_contracts" for command in commands))
+                self.assertTrue(any("scripts/repo/ci_scope_run.py" in command and command[command.index("--lane") + 1] == "script_contracts" for command in commands))
                 for owner in ("src/frontends/riscv", "src/integrations/riscv_cuda"):
                     self.assertTrue(any(f"{owner}/build.zig" in command for command in commands))
         commands = dev_test.commands_for_paths(ROOT, ["conformance/rv64-flags.json"])
-        self.assertTrue(any("scripts/ci_scope_run.py" in command and command[command.index("--lane") + 1] == "static" for command in commands))
-        combined = dev_test.commands_for_paths(ROOT, ["scripts/tests/test_dev_test.py", "vectors/fixtures/README.md"])
-        self.assertEqual(1, sum("scripts/ci_scope_run.py" in command and command[command.index("--lane") + 1] == "script_contracts" for command in combined))
+        self.assertTrue(any("scripts/repo/ci_scope_run.py" in command and command[command.index("--lane") + 1] == "static" for command in commands))
+        combined = dev_test.commands_for_paths(ROOT, ["scripts/tests/test_dev_test.py", "vectors/riscv/fixtures/README.md"])
+        self.assertEqual(1, sum("scripts/repo/ci_scope_run.py" in command and command[command.index("--lane") + 1] == "script_contracts" for command in combined))
         self.assertFalse(any(command[1:3] == ["-m", "unittest"] for command in combined))
 
     def test_documentation_uses_ci_policy_without_runtime_builds(self):
         self.assertEqual([], dev_test.commands_for_paths(ROOT, [
-            "CONTRIBUTING.md", "src/prover/README.md", "design/riscv-proving-stack/rv64-gpu-hygiene.md",
+            "CONTRIBUTING.md", "src/engine/prover/README.md", "design/riscv/rv64-gpu-hygiene.md",
         ]))
 
     def test_nonexistent_python_typo_never_selects_the_contract_suite(self):
@@ -128,8 +126,8 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_optimized_ci_reproduction_covers_focused_and_broad_routes(self) -> None:
         for path, step in (
-            ("src/core/fri/folding_family.zig", "test-fri"),
-            ("src/core/mod.zig", "test"),
+            ("src/waist/core/fri/folding_family.zig", "test-fri"),
+            ("src/waist/core/mod.zig", "test"),
             ("src/integrations/riscv_cuda/rv64/projection_codegen.zig", "test-native-gkr-codegen"),
         ):
             with self.subTest(path=path):
@@ -231,7 +229,7 @@ class DevTestPlanTests(unittest.TestCase):
             dev_test.commands_for_paths(
                 ROOT,
                 [
-                    "src/core/fields/m31.zig",
+                    "src/waist/core/fields/m31.zig",
                     "src/frontends/riscv/isa/decode.zig",
                     "src/frontends/sm83/runner/cpu.zig",
                 ],
@@ -242,7 +240,7 @@ class DevTestPlanTests(unittest.TestCase):
                     "build",
                     "test-fields",
                     "--build-file",
-                    "src/core/build.zig",
+                    "src/waist/core/build.zig",
                     "-Doptimize=Debug",
                     "-j1",
                 ],
@@ -270,7 +268,7 @@ class DevTestPlanTests(unittest.TestCase):
     def test_multiple_leaves_in_one_slice_deduplicate_the_step(self) -> None:
         commands = dev_test.commands_for_paths(
             ROOT,
-            ["src/core/fri/folding.zig", "src/core/pcs/verifier.zig"],
+            ["src/waist/core/fri/folding.zig", "src/waist/core/pcs/verifier.zig"],
         )
         self.assertEqual(commands[0][2:4], ["test-fri", "test-pcs"])
 
@@ -278,9 +276,9 @@ class DevTestPlanTests(unittest.TestCase):
         commands = dev_test.commands_for_paths(
             ROOT,
             [
-                "src/prover/pcs/quotient_ops.zig",
-                "src/prover/pcs/quotients/planning.zig",
-                "src/prover/pcs/sampled_values.zig",
+                "src/engine/prover/pcs/quotient_ops.zig",
+                "src/engine/prover/pcs/quotients/planning.zig",
+                "src/engine/prover/pcs/sampled_values.zig",
             ],
         )
         self.assertEqual(
@@ -293,16 +291,16 @@ class DevTestPlanTests(unittest.TestCase):
         )
 
     def test_unfocused_package_change_uses_its_declared_ci_command(self) -> None:
-        (command,) = dev_test.commands_for_paths(ROOT, ["src/core/mod.zig"])
+        (command,) = dev_test.commands_for_paths(ROOT, ["src/waist/core/mod.zig"])
         self.assertEqual(command[:3], ["zig", "build", "test"])
-        self.assertIn("src/core/build.zig", command)
+        self.assertIn("src/waist/core/build.zig", command)
         self.assertIn("-Doptimize=ReleaseSafe", command)
         self.assertIn("-j1", command)
         self.assertNotIn("-Doptimize=ReleaseFast", command)
         self.assertNotIn("-j2", command)
 
     def test_new_quotient_file_falls_back_to_the_complete_package(self) -> None:
-        future = ROOT / "src/prover/pcs/quotient_future.zig"
+        future = ROOT / "src/engine/prover/pcs/quotient_future.zig"
         exists = Path.exists
         with mock.patch.object(Path, "exists", lambda path: path == future or exists(path)):
             (command,) = dev_test.commands_for_paths(ROOT, [future.relative_to(ROOT).as_posix()])
@@ -311,7 +309,7 @@ class DevTestPlanTests(unittest.TestCase):
     def test_unfocused_change_supersedes_a_narrow_step_in_the_same_package(self) -> None:
         commands = dev_test.commands_for_paths(
             ROOT,
-            ["src/prover/mod.zig", "src/prover/poly/twiddles.zig"],
+            ["src/engine/prover/mod.zig", "src/engine/prover/poly/twiddles.zig"],
         )
         self.assertEqual(len(commands), 1)
         self.assertEqual(commands[0][2], "test")

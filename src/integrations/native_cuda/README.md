@@ -124,8 +124,8 @@ independent verification.
 
 ## Related documentation
 
-- [Native examples](../../examples/README.md)
+- [Native examples](../../products/native/examples/README.md)
 - [CUDA backend](../../backends/cuda/README.md)
-- [Proof-wire codec](../../interop/proof_wire/README.md)
+- [Proof-wire codec](../../waist/proof_wire/README.md)
 - [CUDA system architecture goal](../../../conformance/2026-07-24-cuda-system-architecture-goal.md)
 - [Repository CUDA status](../../../README.md#product-support)

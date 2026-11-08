@@ -2,7 +2,7 @@ import json
 import unittest
 from unittest import mock
 
-from scripts.native_proof_matrix_lib.provenance import (
+from scripts.native.native_proof_matrix_lib.provenance import (
     CommandResult,
     collect_load,
     collect_static,

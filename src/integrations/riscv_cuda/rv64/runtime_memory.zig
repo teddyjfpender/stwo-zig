@@ -1,6 +1,6 @@
 //! Additive read-only physical arena observation, covering every context.
 const std = @import("std");
-const A = @import("global_admission.zig");
+const A = @import("footprint_types.zig");
 pub const Snapshot = extern struct {
     version: u32 = 1,
     device: u32 = 0,

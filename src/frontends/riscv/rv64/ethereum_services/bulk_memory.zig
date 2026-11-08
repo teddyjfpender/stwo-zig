@@ -1,7 +1,7 @@
 //! ADMITTED bulk-memory services for profile `ethereum_services_v3`.
 //!
 //! The executor admits exactly what the prover's bulk-memory bridges can
-//! prove (design/riscv-proving-stack/rv64-bulk-memory-service.md):
+//! prove (design/riscv/rv64-bulk-memory-service.md):
 //! - `a0` = 8-aligned packet, `a7` = tag; all registers preserved;
 //! - memcpy 0x30001: packet `dst, src, len`; memset 0x30002: `dst, byte, len`;
 //!   memcmp 0x30003: `a, b, len, result` (little-endian u64);

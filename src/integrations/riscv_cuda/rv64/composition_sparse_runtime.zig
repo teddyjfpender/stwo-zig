@@ -13,7 +13,7 @@ comptime {
     if (cache_words != Contract.cache_words or scratch_words != Contract.scratch_words) @compileError("sparse allocation contract drift");
 }
 const Memory = @import("runtime_memory.zig");
-const Admission = @import("global_admission.zig");
+const Admission = @import("footprint_types.zig");
 pub const rows: usize = 1 << 20;
 pub const source_rows: usize = 1 << 18;
 pub const cache_words: usize = 1024 * rows;

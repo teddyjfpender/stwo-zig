@@ -34,16 +34,16 @@ PR306 remains draft/outside this merge; PR322 is explicitly excluded.
 
 ## 2. Binding contracts and evidence vocabulary
 
-The [delivery contract](../../../design/riscv-proving-stack/rv64-gpu-hygiene.md)
+The [delivery contract](../../../design/riscv/rv64-gpu-hygiene.md)
 defines promotion order, subtraction budgets, ownership and completion requirements.
-The [handoff](../../../design/riscv-proving-stack/rv64-m8-handoff.md)
+The [handoff](../../../design/riscv/rv64-m8-handoff.md)
 contains historical results and the architectural work queue; its estimates are not promises.
 The [current receipt](../../../vectors/reports/rv64-productionisation/current.json)
 records the evidence belonging to its own source revision.
 Its 51897-prefix version has stale last-qualified metadata; use the compact
 [51897 merge validation](../../../vectors/reports/rv64-productionisation/merge-validation-51897.json)
 for the separately preserved gate receipts and their retention limitations.
-The [archive index](../../../design/riscv-proving-stack/rv64-archive-index.md)
+The [archive index](../../../design/riscv/rv64-archive-index.md)
 records recoverable history and the custody process.
 
 Use these labels in every follow-up receipt:
@@ -191,7 +191,7 @@ Hybrid helper controls still required by the complete legacy sweep must not be f
 
 Four narrow pre-promotion candidates were identified:
 
-- `STWO_RV64_GLOBAL_ADMISSION` and its host-policy/runtime selectors, after isolating frozen wiring.
+- ~~`STWO_RV64_GLOBAL_ADMISSION` and its host-policy/runtime selectors~~ (deleted with the admission ledger; Footprint lives in `rv64/footprint_types.zig`).
 - `STWO_RV64_HARNESS_ALLOW_BLOCKS`, which duplicates existing `--allow-block`.
 
 Preserve generic Footprint, capacity, ticket, cancellation, physical guard and runtime-observation APIs.
@@ -205,7 +205,7 @@ The current native installer still builds recursion templates through legacy exe
 See [native_recursion_install.zig](rv64/native_recursion_install.zig)
 and [outer_job_factory.zig](rv64/outer_job_factory.zig).
 `Owner.prepare` calls `resident_batch.runCombined`, then harvests `Outer.NodeClasses` templates.
-Its installation environment deliberately selects legacy JOBS/GN_NODE/OUTER paths.
+Its installation environment deliberately selects legacy GN_NODE/OUTER paths; `STWO_RV64_M8_GN_INSTALL=1` is now the only selector of outer node jobs.
 Native request-only reachability is therefore insufficient to prove the old stack dead.
 
 - [ ] Build immutable class geometry from admitted source/capture authorities directly.
@@ -215,7 +215,8 @@ Native request-only reachability is therefore insufficient to prove the old stac
 - [ ] Preserve unknown-block rejection and explicit new-block setup accounting.
 - [ ] Replace environment-selected internal transitions with typed owner calls, not new aliases.
 - [ ] Keep library/runtime paths bound to the existing pinned asset manifest.
-- [ ] Inventory every consumer before removing feeder/provider/owner-callback symbols.
+- [x] Inventory every consumer before removing feeder/provider symbols (feeder, provider and both hybrid request modes deleted).
+- [ ] Inventory every consumer before removing owner-callback symbols.
 - [ ] Delete retired code and its retired tests together; retain all live lifecycle tests.
 
 The later installation Owner is backup-only:
@@ -325,7 +326,7 @@ Request execution remains [driver_request.zig](rv64/jobs/driver_request.zig).
 
 ## 14. Physical memory: the ceiling is not the observed peak
 
-The guard [rv64_m7_gpu_budget_guard.cpp](../../../scripts/rv64_m7_gpu_budget_guard.cpp)
+The guard [rv64_m7_gpu_budget_guard.cpp](../../../scripts/rv64/rv64_m7_gpu_budget_guard.cpp)
 constrains physical availability; its successful lifecycle does not measure a process peak.
 Allocator high-water logs cover their allocator scope, not all CUDA modules, stacks and contexts.
 The process observer's default-pool high-water is also not total process residency.
@@ -403,7 +404,7 @@ They are attribution clues, not qualified latency measurements for the current c
 - [ ] Measure per-request uploads and enforce the intended resident-class boundary.
 - [ ] Charge cold/new-block class construction, rather than hiding it before the timing window.
 
-Then follow [handoff section 5](../../../design/riscv-proving-stack/rv64-m8-handoff.md#5-take-large-architectural-steps-not-small-kernel-tweaks):
+Then follow [handoff section 5](../../../design/riscv/rv64-m8-handoff.md#5-take-large-architectural-steps-not-small-kernel-tweaks):
 
 1. Complete GPU-native ownership and retire hybrids/legacy callbacks.
 2. Finish packed residency, device geometry, copy-lane ownership and P1 memory work.

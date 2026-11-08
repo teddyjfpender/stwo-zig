@@ -18,7 +18,7 @@ SCRIPTS_ROOT = REPO_ROOT / "scripts"
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
-from native_proof_matrix_lib.model import RUST_ORACLE_SHA256
+from scripts.native.native_proof_matrix_lib.model import RUST_ORACLE_SHA256
 from scripts.tests.native_proof_matrix_support import (
     MODULE,
     PROOF_WIRE_BYTES,
@@ -32,7 +32,7 @@ from scripts.tests.native_proof_matrix_support import (
 
 class NativeProofMatrixFormalTests(unittest.TestCase):
     def test_pinned_rust_oracle_records_binary_and_artifact_evidence(self) -> None:
-        from native_proof_matrix_lib.artifacts import run_rust_oracle
+        from scripts.native.native_proof_matrix_lib.artifacts import run_rust_oracle
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -45,7 +45,7 @@ class NativeProofMatrixFormalTests(unittest.TestCase):
             with self.assertRaisesRegex(MODULE.MatrixError, "pinned verifier"):
                 run_rust_oracle(oracle, artifact, 2.0)
             with mock.patch(
-                "native_proof_matrix_lib.artifacts.RUST_ORACLE_SHA256",
+                "scripts.native.native_proof_matrix_lib.artifacts.RUST_ORACLE_SHA256",
                 oracle_digest,
             ):
                 evidence = run_rust_oracle(oracle, artifact, 2.0)
@@ -60,7 +60,7 @@ class NativeProofMatrixFormalTests(unittest.TestCase):
             oracle.chmod(0o755)
             oracle_digest = hashlib.sha256(oracle.read_bytes()).hexdigest()
             with mock.patch(
-                "native_proof_matrix_lib.artifacts.RUST_ORACLE_SHA256",
+                "scripts.native.native_proof_matrix_lib.artifacts.RUST_ORACLE_SHA256",
                 oracle_digest,
             ), self.assertRaisesRegex(MODULE.MatrixError, "unexpected output"):
                 run_rust_oracle(oracle, artifact, 2.0)
@@ -68,7 +68,7 @@ class NativeProofMatrixFormalTests(unittest.TestCase):
             oracle.chmod(0o755)
             oracle_digest = hashlib.sha256(oracle.read_bytes()).hexdigest()
             with mock.patch(
-                "native_proof_matrix_lib.artifacts.RUST_ORACLE_SHA256",
+                "scripts.native.native_proof_matrix_lib.artifacts.RUST_ORACLE_SHA256",
                 oracle_digest,
             ), self.assertRaisesRegex(MODULE.MatrixError, "rejected"):
                 run_rust_oracle(oracle, artifact, 2.0)
@@ -78,7 +78,7 @@ class NativeProofMatrixFormalTests(unittest.TestCase):
             oracle_digest = hashlib.sha256(oracle.read_bytes()).hexdigest()
             artifact.write_text("{}\n")
             with mock.patch(
-                "native_proof_matrix_lib.artifacts.RUST_ORACLE_SHA256",
+                "scripts.native.native_proof_matrix_lib.artifacts.RUST_ORACLE_SHA256",
                 oracle_digest,
             ), self.assertRaisesRegex(MODULE.MatrixError, "artifact changed"):
                 run_rust_oracle(oracle, artifact, 2.0)
@@ -179,10 +179,10 @@ class NativeProofMatrixFormalTests(unittest.TestCase):
                     "stderr_sha256": hashlib.sha256(b"").hexdigest(),
                 }
             with mock.patch(
-                "native_proof_matrix_lib.controller.run_lane",
+                "scripts.native.native_proof_matrix_lib.controller.run_lane",
                 side_effect=fake_lane,
             ), mock.patch(
-                "native_proof_matrix_lib.controller.preflight_rust_oracle_adapter",
+                "scripts.native.native_proof_matrix_lib.controller.preflight_rust_oracle_adapter",
                 return_value={
                     "schema_version": 1,
                     "protocol": "stwo_interop_capabilities_v1",
@@ -194,10 +194,10 @@ class NativeProofMatrixFormalTests(unittest.TestCase):
                     },
                 },
             ) as oracle_preflight, mock.patch(
-                "native_proof_matrix_lib.controller.run_rust_oracle",
+                "scripts.native.native_proof_matrix_lib.controller.run_rust_oracle",
                 side_effect=oracle_evidence,
             ) as oracle, mock.patch(
-                "native_proof_matrix_lib.controller.collect_static",
+                "scripts.native.native_proof_matrix_lib.controller.collect_static",
                 return_value={
                     "schema": "native_matrix_host_environment_v1",
                     "toolchain": {},
@@ -205,7 +205,7 @@ class NativeProofMatrixFormalTests(unittest.TestCase):
                     "blockers": [],
                 },
             ), mock.patch(
-                "native_proof_matrix_lib.controller.collect_load",
+                "scripts.native.native_proof_matrix_lib.controller.collect_load",
                 return_value={
                     "schema": "native_matrix_host_load_v1",
                     "load_average": {

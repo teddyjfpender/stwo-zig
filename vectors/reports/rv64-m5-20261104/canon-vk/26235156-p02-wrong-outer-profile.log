@@ -1,5 +1,0 @@
-# P02 (receiver selects m3_b4_q51_p26 for r1 proofs), E1 26235156 proofs, receiver of build A. Second run: STWO_RV64_FOLD_ARITY=2 to isolate the profile check.
-== /workspace/m3/runs/m5-canon-vk/26235156-2gpu-e1-r1-port/receiver-20261104T162140
-error: Om31CircuitWireProfile
-== /workspace/m3/runs/m5-canon-vk/26235156-2gpu-e1-r1-port/receiver-20261104T162051
-error: MissingRecursiveNodeProof

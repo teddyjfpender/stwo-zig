@@ -8,8 +8,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DOCUMENT = ROOT / "soundness" / "INDEPENDENT_PROOF_SYSTEM_VALIDATION.md"
-ROADMAP = ROOT / "soundness" / "ROADMAP.md"
+DOCUMENT = ROOT / "design" / "soundness" / "INDEPENDENT_PROOF_SYSTEM_VALIDATION.md"
+ROADMAP = ROOT / "design" / "soundness" / "ROADMAP.md"
 README = ROOT / "README.md"
 
 

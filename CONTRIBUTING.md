@@ -1,5 +1,14 @@
 # Contributing
 
+> **Normative reference: [ENGINEERING_STANDARDS.md](ENGINEERING_STANDARDS.md).**
+> It is the repository's contribution specification and MUST be followed by
+> every contributor, human or agent. Pull requests that violate it are
+> rejected. It defines the collaboration model, package contracts, repository
+> structure, the API change protocol, the complexity budget and its reporting
+> format, the review checklist, and which rules are enforced by which gate.
+> This guide is the domain practice that implements it; where they disagree,
+> the standard wins and this guide is corrected.
+
 This repository treats engineering taste as an enforceable correctness and performance constraint.
 It is a parity-driven cryptographic prover, a high-performance Zig system, and a Metal compute
 runtime. A change is not complete merely because it produces the right output once. It must make
@@ -112,11 +121,11 @@ docs                           architecture, protocols, performance claims, oper
 
 ### Directory responsibilities
 
-- `src/core/`: backend-independent mathematics, protocol data, transcript logic, and verification.
+- `src/waist/core/`: backend-independent mathematics, protocol data, transcript logic, and verification.
   It must not depend on a frontend or concrete accelerator.
-- `src/backend/`: small capability contracts and backend-neutral operation interfaces. Do not put
+- `src/waist/backend/`: small capability contracts and backend-neutral operation interfaces. Do not put
   a concrete device policy here.
-- `src/prover/`: proof orchestration and backend-generic prover algorithms. It may consume backend
+- `src/engine/prover/`: proof orchestration and backend-generic prover algorithms. It may consume backend
   capabilities but must not smuggle Metal-specific policy into generic APIs.
 - `src/backends/cpu_scalar/`: portable scalar reference behavior and CPU-specific implementation.
 - `src/backends/metal/`: Metal runtime, memory, pipeline, kernel, and prover integration. Objective-C
@@ -126,10 +135,14 @@ docs                           architecture, protocols, performance claims, oper
   Frontends must not select a concrete backend or embed application-specific content.
 - `src/integrations/`: explicit frontend/backend composition. Integrations select concrete
   backends without duplicating frontend semantics or generic prover orchestration.
-- `src/interop/`: versioned external representations and cross-language conversion.
-- `src/bench/`: benchmark execution primitives, not production protocol logic.
+- `src/waist/proof_wire/`, `src/waist/recursion_wire/`: versioned external representations and cross-language conversion.
+- `src/support/`: std-only helpers (`io`, `shims`, `tracing`).
+- `src/products/<line>/<target>/`: user-facing CLIs, product facades, product tools and benchmarks.
 - `scripts/`: orchestration and report tooling. Scripts must call stable program boundaries rather
   than duplicate proof semantics.
+  Only the entry points (`dev_test.py`, `ci.py`, `rv64_gate.sh`, `rv64_m8_bench15.py`) sit at the
+  top; everything else lives in a `scripts/<area>/` package (see `scripts/README.md`).
+  The RV64 pod-image recipe additionally calls `scripts/rv64/rv64_m8_native_relink.py`.
 - `tools/`: independently buildable adapters and developer utilities.
 - `vectors/`: committed conformance inputs, outputs, and machine-readable evidence.
 - `conformance/`: machine-read pins, parity ledger, and the source baseline. Prose design history lives in the sibling `stwo-zig-og-docs` archive.
@@ -146,7 +159,8 @@ docs                           architecture, protocols, performance claims, oper
 7. A convenience import must not create a dependency cycle or make a private representation part
    of the effective API.
 
-If a change violates this direction, stop and write a design note. Do not solve the problem with a
+If a change violates this direction, stop and open a contract-change RFC issue
+([API change protocol](ENGINEERING_STANDARDS.md#6-api-change-protocol)). Do not solve the problem with a
 re-export, an `anyopaque` escape hatch, a global callback, or a backend-name conditional.
 
 ---
@@ -230,8 +244,9 @@ Before non-trivial code, write down:
 - scalar/reference behavior used to prove parity;
 - the benchmark that can falsify the performance hypothesis.
 
-Record substantial designs as dated notes in the `stwo-zig-og-docs` archive, or extend an existing normative
-architecture document when the concern already has one. The document should be as short as the
+Record substantial designs as dated notes under `design/`, or extend an existing normative
+architecture document when the concern already has one. Historical prose lives in the
+`stwo-zig-og-docs` archive. The document should be as short as the
 problem permits, but long enough to remove ambiguity. Large architecture changes need a dataflow
 diagram and an ownership/lifetime diagram.
 
@@ -354,7 +369,7 @@ Avoid wildcard namespace injection and broad re-export trees. Import the definin
 qualified name when it adds useful context.
 
 The `src/` root may also contain a minimal build entry point when Zig's module-root semantics
-require one. `src/std_shims_freestanding.zig` is the deliberate example: it establishes the
+require one. `src/support/shims/freestanding.zig` is the deliberate example: it establishes the
 freestanding verifier import boundary and must not accumulate reusable implementation code.
 
 ### Test layout
@@ -1116,23 +1131,23 @@ production proof smoke:
 
 ```bash
 zig build test-riscv-cpu-product stwo-zig-riscv-cpu -Doptimize=ReleaseFast -j2
-python3 scripts/riscv_pr_proof_smoke.py \
+python3 scripts/riscv/riscv_pr_proof_smoke.py \
   --cli zig-out/bin/stwo-zig-riscv-cpu \
   --artifact-dir zig-out/riscv-pr-proof-smoke \
   --report-out zig-out/riscv-pr-proof-smoke.json
-python3 scripts/riscv_trace_vectors.py
+python3 scripts/riscv/riscv_trace_vectors.py
 ```
 
 This gate must produce and independently verify the branch, memory,
 cross-shard, and crypto proof corpus defined in
-[`conformance/riscv-pr-proof-gate.md`](conformance/riscv-pr-proof-gate.md).
+[`design/riscv/riscv-pr-proof-gate.md`](design/riscv/riscv-pr-proof-gate.md).
 Unit tests and compilation do not waive it. Live comparison against the exact
 pinned Sail and Spike executables, plus the applicable architectural-test
 execute → prove → independent-verify audit, remains mandatory in the exhaustive
 release gate. Changes that can alter what the committed Sail attestation means
 additionally trigger the blocking hosted live differential defined in
 [`conformance/riscv-sail-differential-gate.md`](conformance/riscv-sail-differential-gate.md);
-run it locally with `python3 scripts/riscv_sail_gate.py run`.
+run it locally with `python3 scripts/riscv/riscv_sail_gate.py run`.
 
 For Metal work on a supported Mac:
 
@@ -1291,9 +1306,9 @@ references over large frameworks.
 - Large binary fixtures need a documented reason, hash, provenance, and retention policy.
 - Do not delete working Rust, Lean, CUDA, or generated authority code merely to
   reduce repository size. Follow the immutable replacement and clean-room
-  gates in `conformance/repository-production-scope.md`.
+  gates in `design/repository/repository-production-scope.md`.
 - Published Zig package closures must pass `zig build package-dist`; they may
-  not acquire autoresearch, Rust, Lean, vector, or deferred CUDA inputs.
+  not acquire guest, Rust, Lean, vector, or deferred CUDA inputs.
 
 ---
 
@@ -1312,7 +1327,7 @@ git config --local user.email "<id>+<login>@users.noreply.github.com"
 Use the repository entrypoints rather than reconstructing CI commands locally:
 
 ```sh
-python3 scripts/install_hooks.py  # once per checkout
+python3 scripts/repo/install_hooks.py  # once per checkout
 python3 scripts/dev_test.py       # narrowest package-owned tests for worktree changes
 python3 scripts/dev_test.py --check path/to/file.zig  # incremental type-check, no codegen
 python3 scripts/dev_test.py --watch path/to/file.zig  # persistent edit/save diagnostics
@@ -1343,27 +1358,27 @@ command entering the fast plan fails `scripts/tests/test_ci.py`. Only after fast
 passes is the standard gate, including the complete script-contract suite, worth
 its minutes.
 
-For the RISC-V lane, `scripts/riscv_formal_tools.py`,
-`scripts/riscv_trace_vectors.py`, and `scripts/riscv_arch_tests.py` own formal
+For the RISC-V lane, `scripts/riscv/riscv_formal_tools.py`,
+`scripts/riscv/riscv_trace_vectors.py`, and `scripts/riscv/riscv_arch_tests.py` own formal
 correctness evidence. They fail closed on the exact Sail compiler/model, Spike,
 and architectural-test revisions.
-`autoresearch/benchmarks/riscv_stark_v_benchmark.py` remains
-only a legacy performance/layout comparison; it is not an ISA correctness
+The retired [`riscv_stark_v_benchmark.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/riscv_stark_v_benchmark.py) (archived)
+was only a legacy performance/layout comparison; it is not an ISA correctness
 authority or release substitute.
 
 Both RISC-V harnesses embed a `host_environment` block (chip, cores, memory, OS,
 toolchain) so every report says what machine produced it, and their committed
 baselines live under `vectors/reports/riscv_baselines/` (the per-run
 `vectors/reports/*.json` outputs are gitignored). Those baselines are the
-reference the autoresearch harness measures against; see that directory's
+reference historical comparison harnesses measured against; see that directory's
 README for the anchor-freeze linkage. The native board's tracked history is
 `vectors/reports/benchmark_history/`.
 
-`autoresearch/benchmarks/build_crypto_guests.py` vendors the compiled cryptographic guests
+The archived [`build_crypto_guests.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/build_crypto_guests.py) vendored the compiled cryptographic guests
 (SHA-256, Keccak, ECDSA from Stark-V's guest-lib as source provenance, plus the repo-owned
 `vectors/riscv_guests/poseidon2_m31` guest) into `vectors/riscv_elfs/crypto/`
 with a provenance record, and
-`autoresearch/benchmarks/riscv_crypto_benchmark.py` benches them
+the archived [`riscv_crypto_benchmark.py`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/benchmarks/riscv_crypto_benchmark.py) benched them
 on both lanes. Rows are either `proof` (SHA-256 all sizes, single-block Keccak)
 or `execution` (ECDSA, Poseidon2-M31, multi-block Keccak — neither lane proves
 these at the pinned config, so both only execute them). The legacy matched
@@ -1397,8 +1412,9 @@ before requesting review, and record any gate that remains unavailable. Run `pyt
 for an explicit full release rehearsal. Hosted CI is authoritative and must not contain a
 corresponding bypass path.
 
-1. **Identify the contract.** Name the bug, feature, parity gap, architectural debt, or measured
-   bottleneck.
+1. **Identify the contract.** Start from an issue that names the bug, feature, parity gap,
+   architectural debt, or measured bottleneck and its executable specification. A contract change
+   needs an approved RFC issue first.
 2. **Inspect the existing path.** Trace real call sites, ownership, protocol order, and reports.
 3. **Write the design/hypothesis.** Do this before a cross-layer or performance-heavy change.
 4. **Build the oracle.** Add scalar, Rust, component, or verifier evidence first.
@@ -1409,7 +1425,8 @@ corresponding bypass path.
 9. **Update architecture and evidence.** Distinguish diagnostic from authoritative results.
 10. **Run relevant repository gates.** Record anything unavailable and why.
 11. **Review the diff for complexity.** Remove flags, exports, indirection, duplication, and stale
-    comments introduced during exploration.
+    comments introduced during exploration, then report the complexity budget in the
+    [standard format](ENGINEERING_STANDARDS.md#7-complexity-budget).
 
 For a large change, prefer a sequence such as:
 
@@ -1445,8 +1462,12 @@ review rather than an arbitrary diff count.
 
 ### PR description
 
-Include:
+Use the [pull request template](.github/pull_request_template.md). Include:
 
+- **Contract impact:** packages and contracts touched; the approved RFC issue for any contract
+  change.
+- **Complexity budget:** code lines added/removed/net, flags added/removed/live, scripts
+  added/removed; docs, configuration and receipts reported separately; justification for growth.
 - **Contract:** behavior, invariants, and failure modes.
 - **Why:** bug, parity gap, architecture need, or profiler evidence.
 - **Design:** module/ownership/dataflow changes.
@@ -1599,6 +1620,8 @@ boundaries.
 - [ ] Docs, designs, and benchmark interpretation are current.
 - [ ] The diff contains no cache, profiler, build, secret, or unrelated artifacts.
 - [ ] The PR explains unavailable gates and residual risks.
+- [ ] The complexity budget is reported and growth is justified.
+- [ ] The no-complexity-leaks checklist in ENGINEERING_STANDARDS.md section 9 is answered.
 
 ---
 

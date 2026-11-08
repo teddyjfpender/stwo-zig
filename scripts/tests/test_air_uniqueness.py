@@ -15,8 +15,8 @@ from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
-from scripts.air_uniqueness_lib import analysis, smtlib, solve
-from scripts.riscv_air_ir_lib import ir, tables
+from scripts.riscv.air_uniqueness_lib import analysis, smtlib, solve
+from scripts.riscv.riscv_air_ir_lib import ir, tables
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "air_uniqueness"

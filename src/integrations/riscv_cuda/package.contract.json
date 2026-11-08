@@ -8,11 +8,11 @@
     "stwo_riscv_cuda_integration": "mod.zig"
   },
   "dependencies": {
-    "stwo_backend_contracts": "../../backend",
+    "stwo_backend_contracts": "../../waist/backend",
     "stwo_cuda_backend": "../../backends/cuda",
     "stwo_riscv_frontend": "../../frontends/riscv",
-    "stwo_core": "../../core",
-    "stwo_prover_engine": "../../prover"
+    "stwo_core": "../../waist/core",
+    "stwo_prover_engine": "../../engine/prover"
   },
   "injected_modules": [],
   "api_surface": [

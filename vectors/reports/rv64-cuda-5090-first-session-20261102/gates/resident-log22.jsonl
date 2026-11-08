@@ -1,1 +1,0 @@
-{"schema":"rv64-cuda-resident-smoke-v1","device":0,"name":"NVIDIA GeForce RTX 5090","count":4194304,"allocated_bytes":605029508,"wave_median_ms":0.866528,"warmup":3,"repeats":11,"hot_h2d_bytes":0,"hot_d2h_bytes":0,"numerical_verified":true,"full_block_verified":false}

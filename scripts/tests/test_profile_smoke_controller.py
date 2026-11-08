@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.profile_smoke_lib import controller
+from scripts.bench.profile_smoke_lib import controller
 
 
 class ProfileSmokeControllerTests(unittest.TestCase):

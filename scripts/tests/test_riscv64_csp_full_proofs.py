@@ -6,9 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts import riscv64_csp_full_proofs as driver
-
-
+from scripts.rv64 import riscv64_csp_full_proofs as driver
 class FullProofDriverTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()

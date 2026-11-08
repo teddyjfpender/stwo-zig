@@ -5,19 +5,19 @@ import datetime as dt
 import json
 from pathlib import Path
 
-from scripts.typed_air_r006_capture_lib.codec import (
+from scripts.typed_air.typed_air_r006_capture_lib.codec import (
     canonical_bytes,
     content_digest,
     sha256_bytes,
 )
-from scripts.typed_air_r006_capture_lib.controller import (
+from scripts.typed_air.typed_air_r006_capture_lib.controller import (
     FileInventory,
     Journal,
     ProcessResult,
     _validate_record,
     run_attempt,
 )
-from scripts.typed_air_r006_capture_lib.model import CaptureError
+from scripts.typed_air.typed_air_r006_capture_lib.model import CaptureError
 from scripts.tests.test_typed_air_r006_capture import R006Fixture
 
 

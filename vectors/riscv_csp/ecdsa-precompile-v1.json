@@ -27,8 +27,8 @@
       "sha256": "60b5cb0ac4e64af4457283be94e2b487b3a7fbe63e105baf7c7ac538a84070b0"
     },
     {
-      "path": "scripts/build_csp_ecdsa_precompile.py",
-      "sha256": "6421bff539e953fb19cc251f67503328dbb891675409ad01194a05e0caf93985"
+      "path": "scripts/riscv/build_csp_ecdsa_precompile.py",
+      "sha256": "7ba78afa91ae40d4998a2b0ada8dfee0597a05ec711c1bc8467e0c3c3508e82a"
     }
   ],
   "guests": {

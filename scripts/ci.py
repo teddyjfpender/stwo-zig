@@ -35,8 +35,8 @@ SCRIPT_TESTS = [
 # belongs to the standard and strict tiers.
 FAST_PLAN: list[list[str]] = [
     ["zig", "fmt", "--check", "build.zig", "build_support", "src", "tools"],
-    [sys.executable, "scripts/check_upstream_pins.py"],
-    [sys.executable, "scripts/check_source_conformance.py"],
+    [sys.executable, "scripts/repo/check_upstream_pins.py"],
+    [sys.executable, "scripts/repo/check_source_conformance.py"],
 ]
 
 

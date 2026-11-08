@@ -106,5 +106,5 @@ and acceptance of the exact published bytes by the official Rust verifier.
 
 - [Cairo frontend](../../frontends/cairo/README.md)
 - [CPU backend](../../backends/cpu_scalar/README.md)
-- [Cairo production-port goal](../../../conformance/2026-07-26-stwo-cairo-production-port-goal.md)
+- [Cairo production-port goal](../../../design/decisions/2026-07-26-stwo-cairo-production-port-goal.md)
 - [Repository Cairo guide](../../../README.md#cairo-frontend)

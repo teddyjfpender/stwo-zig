@@ -3,14 +3,14 @@ from __future__ import annotations
 import copy
 import unittest
 
-from scripts.typed_air_r006_capture_lib.model import (
+from scripts.typed_air.typed_air_r006_capture_lib.model import (
     ATTEMPTS_PER_COMPARISON,
     WORKLOAD_IDS,
     CaptureError,
 )
-from scripts.typed_air_r006_capture_lib.pair import PAIR_LANE_ORDER
-from scripts.typed_air_r006_capture_lib.pair_prefix import select_complete_blocks
-from scripts.typed_air_r006_capture_lib.reduction import SCALING_COMPARISONS, _groups
+from scripts.typed_air.typed_air_r006_capture_lib.pair import PAIR_LANE_ORDER
+from scripts.typed_air.typed_air_r006_capture_lib.pair_prefix import select_complete_blocks
+from scripts.typed_air.typed_air_r006_capture_lib.reduction import SCALING_COMPARISONS, _groups
 
 
 def plan() -> dict[str, object]:

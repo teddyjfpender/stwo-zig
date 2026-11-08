@@ -5,7 +5,7 @@
   "plan_schema": "build-monorepo-performance-capture-plan-v1",
   "repository": "https://github.com/teddyjfpender/stwo-zig",
   "authority": {
-    "amendment_path": "conformance/2026-07-19-build-monorepo-baseline-epoch-2-amendment.md",
+    "amendment_path": "design/decisions/2026-07-19-build-monorepo-baseline-epoch-2-amendment.md",
     "amendment_sha256": "60c91e0d007169f82b9f9e3307962147c26071c8a9812789268441eec014c726",
     "baseline_receipt_path": "conformance/build-monorepo-baseline-v1.json",
     "baseline_receipt_sha256": "69a6fa54fb9263122fa7851e68343c4dd0fc2ade4426d0b2c72dff2f701be9f0",

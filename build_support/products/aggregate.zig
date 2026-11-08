@@ -4,39 +4,39 @@ const std = @import("std");
 const graph = @import("../graph/modules.zig");
 const policy = @import("../graph/product.zig");
 
-const cpu_facade = "src/stwo_aggregate_cpu.zig";
-const metal_facade = "src/stwo_aggregate_metal.zig";
+const cpu_facade = "src/products/cairo/aggregate/cpu.zig";
+const metal_facade = "src/products/cairo/aggregate/metal.zig";
 
 const common_allowed_files = [_][]const u8{
     cpu_facade,
-    "src/products/native_cpu/capabilities.zig",
-    "src/products/riscv_cpu/capabilities.zig",
-    "src/interop/atomic_file.zig",
-    "src/interop/examples_artifact.zig",
-    "src/interop/examples_artifact_verifier.zig",
-    "src/interop/output_transaction.zig",
-    "src/interop/postcard.zig",
-    "src/interop/proof_wire/mod.zig",
-    "src/interop/proof_wire/family.zig",
-    "src/interop/riscv_artifact.zig",
+    "src/products/native/cpu/capabilities.zig",
+    "src/products/riscv/cpu/capabilities.zig",
+    "src/support/io/atomic_file.zig",
+    "src/products/native/artifact/examples_artifact.zig",
+    "src/products/native/artifact/examples_artifact_verifier.zig",
+    "src/support/io/output_transaction.zig",
+    "src/waist/recursion_wire/postcard/mod.zig",
+    "src/waist/proof_wire/mod.zig",
+    "src/waist/proof_wire/family.zig",
+    "src/products/riscv/artifact/mod.zig",
     "src/integrations/native/product_identity.zig",
     "src/integrations/native/transaction.zig",
 };
 
 const common_allowed_prefixes = [_][]const u8{
-    "src/backend",
+    "src/waist/backend",
     "src/backends/cpu_scalar",
-    "src/core",
-    "src/examples",
+    "src/waist/core",
+    "src/products/native/examples",
     "src/frontends/riscv",
     "src/integrations/riscv_cpu",
-    "src/interop/postcard",
-    "src/interop/riscv_artifact",
-    "src/prover",
-    "src/prover_api",
-    "src/std_shims",
-    "src/tools/prove",
-    "src/tracing",
+    "src/waist/recursion_wire/postcard",
+    "src/products/riscv/artifact",
+    "src/engine/prover",
+    "src/waist/prover_api",
+    "src/support/shims",
+    "src/products/stwo/tools/prove",
+    "src/support/tracing",
 };
 
 // Metal ownership is enumerated leaf by leaf rather than granted with any
@@ -46,7 +46,7 @@ const common_allowed_prefixes = [_][]const u8{
 // `src/backends/metal/shaders` stands directly above the deferred
 // `src/backends/metal/shaders/cairo` shader tree, so it is enumerated leaf by
 // leaf too. Every entry below is measured against the real closure, not
-// guessed: `scripts/check_product_closure.py` run with a candidate grant
+// guessed: `scripts/repo/check_product_closure.py` run with a candidate grant
 // withheld reports exactly the files that grant must restore.
 const metal_allowed_files = common_allowed_files ++ .{
     metal_facade,
@@ -87,23 +87,23 @@ const metal_allowed_prefixes = common_allowed_prefixes ++ .{
 };
 
 const shared_named_imports = [_]policy.NamedImport{
-    .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
-    .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+    .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
+    .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },
     .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
-    .{ .name = "interop_postcard", .source = "src/interop/postcard.zig" },
-    .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
-    .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
-    .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
-    .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
+    .{ .name = "interop_postcard", .source = "src/waist/recursion_wire/postcard/mod.zig" },
+    .{ .name = "stwo_native_examples", .source = "src/products/native/examples/mod.zig" },
+    .{ .name = "stwo_proof_wire", .source = "src/waist/proof_wire/mod.zig" },
+    .{ .name = "stwo_prover_api", .source = "src/waist/prover_api/mod.zig" },
+    .{ .name = "stwo_prover_engine", .source = "src/engine/prover/mod.zig" },
     .{ .name = "stwo_riscv_frontend", .source = "src/frontends/riscv/mod.zig" },
     .{ .name = "stwo_riscv_cpu_integration", .source = "src/integrations/riscv_cpu/mod.zig" },
-    .{ .name = "native_proof_runner", .source = "src/prover/native/runner.zig" },
-    .{ .name = "native_resource_admission", .source = "src/prover/native/resource_admission.zig" },
+    .{ .name = "native_proof_runner", .source = "src/engine/prover/native/runner.zig" },
+    .{ .name = "native_resource_admission", .source = "src/engine/prover/native/resource_admission.zig" },
     .{ .name = "native_transaction", .source = "src/integrations/native/transaction.zig" },
-    .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
+    .{ .name = "output_transaction", .source = "src/support/io/output_transaction.zig" },
     .{ .name = "native_product_identity", .source = "src/integrations/native/product_identity.zig" },
-    .{ .name = "native_cpu_capabilities", .source = "src/products/native_cpu/capabilities.zig" },
-    .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv_cpu/capabilities.zig" },
+    .{ .name = "native_cpu_capabilities", .source = "src/products/native/cpu/capabilities.zig" },
+    .{ .name = "riscv_cpu_capabilities", .source = "src/products/riscv/cpu/capabilities.zig" },
     .{ .name = "riscv_adapter", .source = "src/integrations/riscv_cpu/proof_adapter.zig" },
 };
 
@@ -125,9 +125,9 @@ const metal_source_closure = sourceClosure(true);
 fn sourceClosure(comptime metal: bool) policy.SourceClosure {
     return .{
         .entry_roots = &.{
-            "src/tools/prove/main.zig",
+            "src/products/stwo/tools/prove/main.zig",
             if (metal) metal_facade else cpu_facade,
-            "src/prover/native/runner.zig",
+            "src/engine/prover/native/runner.zig",
         },
         .named_imports = if (metal) &metal_named_imports else &cpu_named_imports,
         // Lexical closure reaches the RISC-V package's compatibility and
@@ -235,7 +235,7 @@ fn owns(container: []const u8, member: []const u8) bool {
 }
 
 test "every deferred ownership direction is load-bearing" {
-    const base = policy.SourceClosure{ .entry_roots = &.{"src/tools/prove/main.zig"} };
+    const base = policy.SourceClosure{ .entry_roots = &.{"src/products/stwo/tools/prove/main.zig"} };
 
     // A prefix standing above a deferred tree.
     var above = base;
@@ -285,7 +285,7 @@ test "every deferred ownership direction is load-bearing" {
 
     // Sibling paths that merely share a textual prefix stay admissible.
     var clean = base;
-    clean.allowed_prefixes = &.{ "src/backend", "src/backends/cpu_scalar", "src/core" };
+    clean.allowed_prefixes = &.{ "src/waist/backend", "src/backends/cpu_scalar", "src/waist/core" };
     clean.allowed_files = &.{cpu_facade};
     clean.named_imports = &.{
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },

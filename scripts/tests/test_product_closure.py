@@ -6,15 +6,15 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
-from scripts import check_product_closure as command
-from scripts.product_closure.graph import ClosureError, inspect_sources
-from scripts.product_closure.linkage import (
+from scripts.repo import check_product_closure as command
+from scripts.repo.product_closure.graph import ClosureError, inspect_sources
+from scripts.repo.product_closure.linkage import (
     DynamicLinkage,
     check_dynamic,
     check_static_elf,
     inspect_elf,
 )
-from scripts.product_closure.model import Manifest, NamedImport
+from scripts.repo.product_closure.model import Manifest, NamedImport
 from scripts.tests.product_closure_recursion_cases import RecursionOwnershipTest
 
 
@@ -35,10 +35,10 @@ class SourceClosureTest(unittest.TestCase):
         values: dict[str, object] = {
             "product": "test-cpu",
             "entry_roots": ("src/product/main.zig",),
-            "named_imports": (NamedImport("core", "src/core/mod.zig"),),
+            "named_imports": (NamedImport("core", "src/waist/core/mod.zig"),),
             "generated_imports": frozenset({"std"}),
             "allowed_files": frozenset(),
-            "allowed_prefixes": ("src/product", "src/core"),
+            "allowed_prefixes": ("src/product", "src/waist/core"),
         }
         values.update(changes)
         return Manifest(**values)  # type: ignore[arg-type]
@@ -52,10 +52,10 @@ class SourceClosureTest(unittest.TestCase):
                 "src/frontends/riscv/air/constraint_program.zig",
                 "src/frontends/riscv/air/semantics/mod.zig",
             ),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
-            allowed_prefixes=("src/core", "src/frontends/riscv"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         self.assertIn("src/frontends/riscv/air/x0_native_envelope_v1.zig", sources)
@@ -88,7 +88,7 @@ class SourceClosureTest(unittest.TestCase):
             'const child = @import(\n    "child.zig",\n);\n',
         )
         self.write("src/product/child.zig", "pub const value = 1;\n")
-        self.write("src/core/mod.zig", "pub const value = 2;\n")
+        self.write("src/waist/core/mod.zig", "pub const value = 2;\n")
         graph = inspect_sources(self.root, self.manifest())
         self.assertEqual(3, len(graph.sources))
         self.assertEqual(64, len(graph.source_digest()))
@@ -96,14 +96,14 @@ class SourceClosureTest(unittest.TestCase):
     def test_manifest_digest_binds_policy(self) -> None:
         original = self.manifest()
         changed = self.manifest(
-            allowed_prefixes=("src/product", "src/core", "src/hidden")
+            allowed_prefixes=("src/product", "src/waist/core", "src/hidden")
         )
         self.assertNotEqual(original.digest(), changed.digest())
         self.assertEqual(original.digest(), self.manifest().digest())
 
     def test_rejects_undeclared_named_import(self) -> None:
         self.write("src/product/main.zig", 'const hidden = @import("hidden");\n')
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         with self.assertRaisesRegex(ClosureError, "undeclared named import"):
             inspect_sources(self.root, self.manifest())
 
@@ -112,40 +112,40 @@ class SourceClosureTest(unittest.TestCase):
         outside.write_text("", encoding="utf-8")
         self.addCleanup(outside.unlink)
         self.write("src/product/main.zig", 'const hidden = @import("../../../outside.zig");\n')
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         with self.assertRaisesRegex(ClosureError, "escapes repository"):
             inspect_sources(self.root, self.manifest())
 
     def test_rejects_source_outside_manifest(self) -> None:
         self.write("src/product/main.zig", 'const hidden = @import("../hidden.zig");\n')
         self.write("src/hidden.zig", "")
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         with self.assertRaisesRegex(ClosureError, "outside product manifest"):
             inspect_sources(self.root, self.manifest())
 
     def test_aggregate_manifest_rejects_unrelated_product_owner(self) -> None:
         self.write(
-            "src/tools/prove/main.zig",
-            'const unrelated = @import("../../products/unrelated/main.zig");\n',
+            "src/products/stwo/tools/prove/main.zig",
+            'const unrelated = @import("../../../unrelated/main.zig");\n',
         )
         self.write("src/products/unrelated/main.zig", "pub const value = 1;\n")
-        self.write("src/core/mod.zig", "")
-        self.write("src/prover/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
+        self.write("src/engine/prover/mod.zig", "")
         manifest = self.manifest(
             product="stwo-zig",
-            entry_roots=("src/tools/prove/main.zig",),
+            entry_roots=("src/products/stwo/tools/prove/main.zig",),
             named_imports=(),
-            allowed_prefixes=("src/tools/prove", "src/core", "src/prover"),
+            allowed_prefixes=("src/products/stwo/tools/prove", "src/waist/core", "src/engine/prover"),
         )
         with self.assertRaisesRegex(ClosureError, "outside product manifest"):
             inspect_sources(self.root, manifest)
 
     def test_rejects_named_module_cycle(self) -> None:
         self.write("src/product/main.zig", 'const core = @import("core");\n')
-        self.write("src/core/mod.zig", 'const product = @import("product");\n')
+        self.write("src/waist/core/mod.zig", 'const product = @import("product");\n')
         manifest = self.manifest(
             named_imports=(
-                NamedImport("core", "src/core/mod.zig"),
+                NamedImport("core", "src/waist/core/mod.zig"),
                 NamedImport("product", "src/product/main.zig"),
             )
         )
@@ -155,7 +155,7 @@ class SourceClosureTest(unittest.TestCase):
     def test_allows_internal_test_self_import_cycle(self) -> None:
         self.write("src/product/main.zig", 'const child = @import("child.zig");\n')
         self.write("src/product/child.zig", 'const main = @import("main.zig");\n')
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         graph = inspect_sources(self.root, self.manifest())
         self.assertEqual(2, len(graph.sources))
 
@@ -165,13 +165,13 @@ class SourceClosureTest(unittest.TestCase):
             '// @import("hidden.zig")\nconst text = \\\\@import("hidden.zig");\n'
             'const ordinary = "@import(\\\"hidden.zig\\\")";\n',
         )
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         graph = inspect_sources(self.root, self.manifest())
         self.assertEqual(("src/product/main.zig",), graph.relative_sources())
 
     def test_rejects_non_literal_import(self) -> None:
         self.write("src/product/main.zig", "const hidden = @import(path);\n")
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         with self.assertRaisesRegex(
             ClosureError,
             r"src/product/main\.zig: unsupported non-literal",
@@ -224,7 +224,7 @@ class CommandTest(unittest.TestCase):
         args = argparse.Namespace(
             repo=command.ROOT,
             product="test",
-            entry_root=["src/stwo.zig"],
+            entry_root=["src/products/stwo/root.zig"],
             named_import=["invalid"],
             generated_import=[],
             allow_file=[],
@@ -245,7 +245,7 @@ class CommandTest(unittest.TestCase):
         args = argparse.Namespace(
             repo=command.ROOT,
             product="test",
-            entry_root=["src/stwo.zig"],
+            entry_root=["src/products/stwo/root.zig"],
             named_import=[],
             generated_import=[],
             allow_file=[],

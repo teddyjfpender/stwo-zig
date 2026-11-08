@@ -12,7 +12,7 @@ from unittest import mock
 
 
 def load_module():
-    return importlib.import_module("scripts.e2e_interop_lib.controller")
+    return importlib.import_module("scripts.interop.e2e_interop_lib.controller")
 
 
 class ComputeSummaryTests(unittest.TestCase):

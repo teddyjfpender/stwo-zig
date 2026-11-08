@@ -26,7 +26,7 @@ pub const Result = struct {
 pub fn addPublicModules(context: Context) Result {
     const core = graph.addPublic(context.b, "stwo_core", .{
         .product = graph.coreProduct(.library),
-        .root_source_file = "src/core/mod.zig",
+        .root_source_file = "src/waist/core/mod.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -38,13 +38,13 @@ pub fn addPublicModules(context: Context) Result {
     );
     const prover = graph.addPublic(context.b, "stwo_prover", .{
         .product = graph.proverProduct(.library),
-        .root_source_file = "src/products/prover/root.zig",
+        .root_source_file = "src/products/stwo/prover/root.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
     protocol.addImports(prover);
     const stwo = context.b.addModule("stwo", .{
-        .root_source_file = context.b.path("src/stwo.zig"),
+        .root_source_file = context.b.path("src/products/stwo/root.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -174,6 +174,15 @@ pub fn addPublicModules(context: Context) Result {
         metal_session,
         stwo,
     );
+    graph.addFacadeSupportImports(
+        context.b,
+        protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+        graph.FacadeSupport.root,
+    );
     return .{ .stwo = stwo, .protocol = protocol };
 }
 
@@ -195,7 +204,7 @@ pub fn addProducts(context: Context) Result {
     });
     construction_observer.recordProduct(context.b, graph.proverProduct(.library));
     const stwo = context.b.addModule("stwo", .{
-        .root_source_file = context.b.path("src/stwo.zig"),
+        .root_source_file = context.b.path("src/products/stwo/root.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -326,10 +335,19 @@ pub fn addProducts(context: Context) Result {
         metal_session,
         stwo,
     );
+    graph.addFacadeSupportImports(
+        context.b,
+        prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+        graph.FacadeSupport.root,
+    );
 
     const downstream = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_downstream_package.py",
+        "scripts/repo/check_downstream_package.py",
         "--repo",
         context.b.build_root.path.?,
     });

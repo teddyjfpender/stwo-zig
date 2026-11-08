@@ -3,7 +3,7 @@
 Contiguous Starknet mainnet (0.14.3) block ranges run through the Starknet OS
 with SNOS (`full_output=1`, `use_kzg_da=0`, layout `all_cairo`). These are the
 leaf PIEs of the proving pipeline described in
-`design/starknet-proving-pipeline/README.md`. They were produced with
+`design/starknet/README.md`. They were produced with
 `tools/starknet-block-collector`. `manifest.json` lists every file with its
 sha256, block range, exact `n_steps`, memory holes, builtins and OS state roots.
 

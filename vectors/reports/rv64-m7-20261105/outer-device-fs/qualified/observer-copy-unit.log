@@ -1,5 +1,0 @@
-1/4 raw_mod_m31_observer_copy_test.test.observer PCS copy handoff requires the authoritative channel object...OK
-2/4 channel.raw_mod_m31.test_0...OK
-3/4 channel.raw_mod_m31.test.OM31 observer is object-scoped and secure draws are not double recorded...OK
-4/4 crypto.blake2s_backend.test_0...OK
-All 4 tests passed.

@@ -10,8 +10,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_staged_smoke as smoke
-from scripts.riscv_staged_smoke_lib import contracts, mutations, profiles
+from scripts.riscv import riscv_staged_smoke as smoke
+from scripts.riscv.riscv_staged_smoke_lib import contracts, mutations, profiles
 
 
 DIGEST = "ab" * 32
@@ -415,7 +415,7 @@ class MutationTests(unittest.TestCase):
 class ProcessBoundaryTests(unittest.TestCase):
     def test_command_has_a_finite_timeout_and_captures_both_streams(self) -> None:
         completed = subprocess.CompletedProcess(["cli"], 0, "{}\n", "")
-        with mock.patch("scripts.riscv_staged_smoke.subprocess.run", return_value=completed) as run:
+        with mock.patch("scripts.riscv.riscv_staged_smoke.subprocess.run", return_value=completed) as run:
             self.assertIs(completed, smoke.command(Path("cli"), "applications"))
         self.assertEqual(smoke.COMMAND_TIMEOUT_SECONDS, run.call_args.kwargs["timeout"])
         self.assertTrue(run.call_args.kwargs["capture_output"])
@@ -434,7 +434,7 @@ class ProcessBoundaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             cli = Path(directory) / "stwo-zig"
             cli.write_bytes(b"prebuilt")
-            with mock.patch("scripts.riscv_staged_smoke.subprocess.run") as run:
+            with mock.patch("scripts.riscv.riscv_staged_smoke.subprocess.run") as run:
                 resolved, origin, build_count, build_duration = smoke.prepare_cli(cli)
             self.assertEqual(cli.resolve(), resolved)
             self.assertEqual("prebuilt", origin)
@@ -446,7 +446,7 @@ class ProcessBoundaryTests(unittest.TestCase):
             {"ordinal": 0, "argv": ["applications"], "duration_ns": 7, "returncode": 0},
             {"ordinal": 1, "argv": ["verify"], "duration_ns": 11, "returncode": 1},
         ]
-        with mock.patch("scripts.riscv_staged_smoke.time.monotonic_ns", return_value=100):
+        with mock.patch("scripts.riscv.riscv_staged_smoke.time.monotonic_ns", return_value=100):
             timing = smoke.timing_evidence(
                 metrics, smoke_started=20, build_command_count=0, build_duration_ns=3,
             )

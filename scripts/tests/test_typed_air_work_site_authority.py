@@ -7,7 +7,7 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from scripts.typed_air_work_site_authority import (
+from scripts.typed_air.typed_air_work_site_authority import (
     AuthorityError,
     AuthoritySpec,
     CallSpec,

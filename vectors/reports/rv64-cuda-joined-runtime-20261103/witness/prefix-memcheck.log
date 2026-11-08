@@ -1,3 +1,0 @@
-========= COMPUTE-SANITIZER
-PREFIX_SCAN cases=17 max_log=22 native_sequential_parity=PASS
-========= ERROR SUMMARY: 0 errors

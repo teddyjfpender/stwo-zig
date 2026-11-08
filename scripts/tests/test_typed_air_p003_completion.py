@@ -8,9 +8,9 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from scripts.riscv_csp_ab_benchmark_lib import runner as ab_runner
-from scripts.riscv_csp_benchmark_lib.host import power_conditions_admissible
-from scripts.typed_air_p003_completion import (
+from scripts.riscv.riscv_csp_ab_benchmark_lib import runner as ab_runner
+from scripts.riscv.riscv_csp_benchmark_lib.host import power_conditions_admissible
+from scripts.typed_air.typed_air_p003_completion import (
     BLOCKER_SCHEMA,
     DEFAULT_MATRIX,
     FAMILY_IDS,
@@ -22,9 +22,9 @@ from scripts.typed_air_p003_completion import (
     validate_blocker_receipt,
     validate_matrix,
 )
-from scripts.typed_air_r006_capture_lib.codec import canonical_bytes, decode_strict
-from scripts.typed_air_r006_capture_lib.model import CaptureError
-from scripts.typed_air_r006_capture_lib.orchestration import host_preflight
+from scripts.typed_air.typed_air_r006_capture_lib.codec import canonical_bytes, decode_strict
+from scripts.typed_air.typed_air_r006_capture_lib.model import CaptureError
+from scripts.typed_air.typed_air_r006_capture_lib.orchestration import host_preflight
 
 
 class P003CompletionTests(unittest.TestCase):
@@ -138,7 +138,7 @@ class P003CompletionTests(unittest.TestCase):
 
     def test_inventory_parser_rejects_order_and_schema_drift(self) -> None:
         source = Path(
-            "src/prover_api/work_profile_inventory.zig"
+            "src/waist/prover_api/work_profile_inventory.zig"
         ).read_text(encoding="utf-8")
         for old, new in (
             ("SCHEMA_VERSION: u16 = 9", "SCHEMA_VERSION: u16 = 10"),
@@ -180,7 +180,7 @@ class P003CompletionTests(unittest.TestCase):
 
     def test_tracked_legacy_blocker_replays_without_admitting_v1_capture(self) -> None:
         path = Path(
-            "design/typed-air/artifacts/p003-work-profile-closure-v1/"
+            "src/frontends/riscv/air/lang/artifacts/p003-work-profile-closure-v1/"
             "scaling-blocker-v1.json"
         )
         receipt = validate_blocker_receipt(DEFAULT_MATRIX, path)

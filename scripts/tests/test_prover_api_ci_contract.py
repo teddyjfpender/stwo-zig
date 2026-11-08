@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts import ci_scope_plan
+from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import ROOT, catalog_fixture
 
 
@@ -16,7 +16,7 @@ class ProverApiCiContractTests(unittest.TestCase):
 
     def test_prover_api_has_an_independent_package_lane(self) -> None:
         selected, _ = ci_scope_plan.select_lanes(
-            ["src/prover_api/engine.zig"],
+            ["src/waist/prover_api/engine.zig"],
             self.catalog,
             self.policy,
         )
@@ -39,7 +39,7 @@ class ProverApiCiContractTests(unittest.TestCase):
         )
         commands = self.policy["lanes"]["prover_api"]["commands"]
         self.assertEqual(1, len(commands))
-        self.assertIn("src/prover_api/build.zig", commands[0])
+        self.assertIn("src/waist/prover_api/build.zig", commands[0])
 
 
 if __name__ == "__main__":

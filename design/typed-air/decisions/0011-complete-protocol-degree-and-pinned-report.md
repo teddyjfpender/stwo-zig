@@ -47,7 +47,7 @@ relation-schema order. The report includes production column and DAG counts,
 canonical merges, ordered direct and lookup counts, batch and interaction
 geometry, role and relation dependencies, maximum degrees, and quotient
 expansion bits. Its machine and human views are pinned under
-[`artifacts/`](../artifacts/README.md) and regenerated in memory by the package
+[`artifacts/`](../../../src/frontends/riscv/air/lang/artifacts/README.md) and regenerated in memory by the package
 test; tests never rewrite them.
 
 The current all-family result is:

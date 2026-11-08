@@ -9,9 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_team_b as team_b
-
-
+from scripts.riscv import riscv_team_b as team_b
 EXPECTED_TEAM_B_OPCODES = {
     "sll", "srl", "sra",
     "slli", "srli", "srai",

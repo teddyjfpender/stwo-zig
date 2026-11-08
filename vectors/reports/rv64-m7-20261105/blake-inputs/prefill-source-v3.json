@@ -1,8 +1,0 @@
-{
-  "base_commit": "a365d1eb3fbd644869daee8eae83e13503fe5f5b",
-  "status": "dirty-prefill-v3-asap-and-fold-ready",
-  "sources": {
-    "src/integrations/riscv_cuda/rv64/blake_sample_plan.zig": "57542025514f90a258bbaa76f9c15716d57716e1f9be9f94644465e7518e20a8",
-    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "9c132231479008ceb1bbabeaa622998623db5ca132917d27d26376264e160a1c"
-  }
-}

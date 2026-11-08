@@ -4,7 +4,7 @@ This file is the single source-pin ledger for the repository's independent corre
 authorities. A revision applies only to the compatibility lane that names it. Native Stwo
 acceptance does not establish Cairo acceptance, and neither establishes RISC-V ISA conformance.
 No one of those lanes establishes SM83 ISA conformance.
-`python3 scripts/check_upstream_pins.py` rejects drift in manifests, lockfiles, source constants,
+`python3 scripts/repo/check_upstream_pins.py` rejects drift in manifests, lockfiles, source constants,
 formal-profile metadata, generated registries, persistent sessions, prover boundaries, and hosted
 CI checkout metadata.
 
@@ -20,7 +20,7 @@ checkers.
 
 Proof-of-work nonce order: every BLAKE2s grinder follows Stwo `7b211ed` SimdBackend order,
 the smallest `(hi << 32) | lo` with `lo < 2^20`, searched hi-major
-(`src/core/channel/blake2s_pow_order.zig`). That is the order the official stwo-cairo prover
+(`src/waist/core/channel/blake2s_pow_order.zig`). That is the order the official stwo-cairo prover
 uses. The Native pin above grinds in natural order (`nonce = (hi << 20) + low`), so Native proofs
 match it only when the smallest valid nonce is below `2^20`. Committed Native vectors use
 `pow_bits <= 10`, where the two orders coincide.
@@ -159,7 +159,7 @@ and supports official JSON plus `compact-v1` transport.
 These revisions govern the production AIR registry, isolated base/interaction
 trace oracle, and final Rust `verify_cairo` adapter. The completion
 requirements are recorded in
-`conformance/2026-07-26-stwo-cairo-production-port-goal.md`.
+`design/decisions/2026-07-26-stwo-cairo-production-port-goal.md`.
 
 The official-source witness checkpoint is
 `vectors/cairo/official/witness_programs_v1.bin`, authenticated by its adjacent
@@ -198,8 +198,8 @@ authoritative only for their explicitly labelled legacy comparison and only
 when generated from the fork Stwo-Cairo and prover-Stwo pair, without path
 dependencies or dirty source.
 
-The corresponding historical generated claim registry is retained at
-`archive/cairo/legacy_claim_registry.zig`. Production code must not import it;
+The corresponding historical generated claim registry is archived at
+[`archive/cairo/legacy_claim_registry.zig`](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/archive/cairo/legacy_claim_registry.zig). Production code must not import it;
 the active registry is the official generated registry under
 `src/frontends/cairo/air/`.
 
@@ -242,7 +242,7 @@ circuit AIR's evaluation-program bundle live under `vectors/circuit/`,
 authenticated by `vectors/circuit/provenance.json` (fixture bytes, SHA-256,
 generating command, the oracle's `Cargo.lock` digest, and the digest of every
 oracle and shared ABI source; nothing host-specific) and regenerated only by
-`scripts/generate_circuit_oracle_vectors.py`. These
+`scripts/interop/generate_circuit_oracle_vectors.py`. These
 checkpoints are parity oracles for the Zig port, not proof acceptance; the Rust
 `circuit_verifier` and the Cairo `stwo_circuit_verifier` remain the acceptance
 authorities once circuit proofs exist.

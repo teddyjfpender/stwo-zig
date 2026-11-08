@@ -9,10 +9,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_equivalence as equivalence
-from scripts import riscv_sail_oracle as oracle
-
-
+from scripts.riscv import riscv_equivalence as equivalence
+from scripts.riscv import riscv_sail_oracle as oracle
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -117,37 +115,37 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
     SAMPLES = {
         # Landed reference: the other six modules follow this exact
         # `requireAgreement` verdict boundary and last-obligation convention.
-        "src/tests/riscv/mulh_soundness_test.zig": (
+        "src/products/riscv/cpu/tests/mulh_soundness_test.zig": (
             "mulh guest (vectors/riscv_elfs/mul_div.elf)",
             "try riscv_cpu.verifyRiscV(",
             "&.{}",
         ),
-        "src/tests/riscv/malicious_witness_test.zig": (
+        "src/products/riscv/cpu/tests/malicious_witness_test.zig": (
             "malicious-witness matrix public-I/O guest",
             "matrix.bound_pow_classified + matrix.bound_logup_classified > 0",
             "&sail_memory",
         ),
-        "src/tests/riscv/metal_backend_test.zig": (
+        "src/products/riscv/cpu/tests/metal_backend_test.zig": (
             "Metal backend eight-ADDI runner guest",
             "try std.testing.expect(output.statement.n_components > 0);",
             "&.{}",
         ),
-        "src/tests/riscv/proof_admission_test.zig": (
+        "src/products/riscv/cpu/tests/proof_admission_test.zig": (
             "proving-substitution four-ADDI runner guest",
             "CountingEngine.prove_calls",
             "&.{}",
         ),
-        "src/tests/riscv/prover_test.zig": (
+        "src/products/riscv/cpu/tests/prover_test.zig": (
             "CPU prover eight-ADDI runner guest",
             "try verifyRiscV(",
             "&.{}",
         ),
-        "src/tests/riscv/public_relation_binding_test.zig": (
+        "src/products/riscv/cpu/tests/public_relation_binding_test.zig": (
             "public-relation binding public-I/O guest",
             "mutated.initial_rw_root = initial_root.root ^ 1;",
             "&sail_memory",
         ),
-        "src/tests/riscv/transcript_path_test.zig": (
+        "src/products/riscv/cpu/tests/transcript_path_test.zig": (
             "transcript-path four-ADDI runner guest",
             "try expectEqualTrace(verifier_trace, reverted_trace);",
             "&.{}",
@@ -187,8 +185,8 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
                 )
 
         for relative in (
-            "src/tests/riscv/malicious_witness_test.zig",
-            "src/tests/riscv/public_relation_binding_test.zig",
+            "src/products/riscv/cpu/tests/malicious_witness_test.zig",
+            "src/products/riscv/cpu/tests/public_relation_binding_test.zig",
         ):
             self.assertIn(
                 "release_elf_fixture.initialMemory(&input)",
@@ -197,7 +195,7 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
 
     def test_proof_admission_keeps_its_narrow_scope_explicit(self) -> None:
         source = (
-            REPO_ROOT / "src/tests/riscv/proof_admission_test.zig"
+            REPO_ROOT / "src/products/riscv/cpu/tests/proof_admission_test.zig"
         ).read_text()
         module_doc = " ".join(
             line.removeprefix("//!").strip()
@@ -217,7 +215,7 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
     ) -> None:
         coverage_path = (
             REPO_ROOT
-            / "src/tests/riscv/opcode_family_committed_soundness_test.zig"
+            / "src/products/riscv/cpu/tests/opcode_family_committed_soundness_test.zig"
         )
         coverage_source = coverage_path.read_text()
         coverage_block = coverage_source.split(
@@ -239,7 +237,7 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
         self.assertEqual(len(covered_families), len(set(covered_families)))
         self.assertEqual(len(covered_families), len(owners))
 
-        registration = (REPO_ROOT / "src/tests/riscv/trace_test.zig").read_text()
+        registration = (REPO_ROOT / "src/products/riscv/cpu/tests/trace_test.zig").read_text()
         gated_registration = registration.split(
             "if (test_options.riscv_committed_mutations) {", 1
         )[1].split("\n    }", 1)[0]
@@ -272,7 +270,7 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
     ) -> None:
         source = (
             REPO_ROOT
-            / "src/tests/riscv/opcode_family_committed_soundness_test.zig"
+            / "src/products/riscv/cpu/tests/opcode_family_committed_soundness_test.zig"
         ).read_text()
         cases = re.findall(r'^test "committed family ([a-z_]+):', source, re.M)
         self.assertEqual(
@@ -312,7 +310,7 @@ class EndToEndAttributionCoverageTests(unittest.TestCase):
         )
 
         harness = (
-            REPO_ROOT / "src/tests/riscv/committed_forgery_harness.zig"
+            REPO_ROOT / "src/products/riscv/cpu/tests/committed_forgery_harness.zig"
         ).read_text()
         honest = harness.split(
             "pub fn proveAndVerify(self: *const Guest, guest_label: []const u8) !void {",
@@ -461,7 +459,7 @@ class VerdictContractTests(unittest.TestCase):
     pinned_workspace_binary().is_file(),
     f"pinned Sail binary absent at {pinned_workspace_binary()}; "
     "Sail agreement was NOT checked live "
-    "(python3 scripts/riscv_formal_tools.py prepare "
+    "(python3 scripts/riscv/riscv_formal_tools.py prepare "
     f"--workspace {oracle.DEFAULT_WORKSPACE})",
 )
 class LivePinnedSailTests(unittest.TestCase):

@@ -1,9 +1,0 @@
-#!/usr/bin/env python3
-"""Executable shim: `autoresearch/cli/stwo-prof ...` or add this dir to PATH."""
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from stwo_prof.__main__ import main  # noqa: E402
-
-raise SystemExit(main())

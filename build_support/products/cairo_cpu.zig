@@ -22,22 +22,22 @@ const protocol_features =
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
-        "src/products/cairo_cpu/main.zig",
-        "src/stwo_cairo_cpu.zig",
+        "src/products/cairo/cpu/main.zig",
+        "src/products/cairo/cpu/root.zig",
     },
     .named_imports = &.{
         .{ .name = "cairo_product", .source = "src/products/cairo/shared/mod.zig" },
-        .{ .name = "stwo_cairo", .source = "src/stwo_cairo_cpu.zig" },
-        .{ .name = "stwo_cairo_cpu", .source = "src/stwo_cairo_cpu.zig" },
-        .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
-        .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cairo", .source = "src/products/cairo/cpu/root.zig" },
+        .{ .name = "stwo_cairo_cpu", .source = "src/products/cairo/cpu/root.zig" },
+        .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
+        .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
-        .{ .name = "interop_felt_json", .source = "src/interop/felt_json.zig" },
-        .{ .name = "interop_cairo_prover_parameters", .source = "src/interop/cairo_prover_parameters.zig" },
+        .{ .name = "interop_felt_json", .source = "src/frontends/cairo/interop/felt_json.zig" },
+        .{ .name = "interop_cairo_prover_parameters", .source = "src/frontends/cairo/interop/cairo_prover_parameters.zig" },
         .{ .name = "stwo_cairo_cpu_integration", .source = "src/integrations/cairo_cpu/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
-        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
-        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/waist/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/engine/prover/mod.zig" },
     },
     .generated_imports = &.{
         "cairo_witness_cpu_aot",
@@ -45,23 +45,23 @@ const source_closure = policy.SourceClosure{
         "product_identity",
     },
     .allowed_files = &.{
-        "src/stwo_cairo_cpu.zig",
-        "src/interop/atomic_file.zig",
-        "src/interop/bzip2.zig",
-        "src/interop/felt_json.zig",
-        "src/interop/cairo_prover_parameters.zig",
-        "src/interop/output_transaction.zig",
+        "src/products/cairo/cpu/root.zig",
+        "src/support/io/atomic_file.zig",
+        "src/support/io/bzip2.zig",
+        "src/frontends/cairo/interop/felt_json.zig",
+        "src/frontends/cairo/interop/cairo_prover_parameters.zig",
+        "src/support/io/output_transaction.zig",
     },
     .allowed_prefixes = &.{
-        "src/backend",
+        "src/waist/backend",
         "src/backends/cpu_scalar",
-        "src/core",
+        "src/waist/core",
         "src/frontends/cairo",
         "src/integrations/cairo_cpu",
         "src/products/cairo",
-        "src/products/cairo_cpu",
-        "src/prover",
-        "src/prover_api",
+        "src/products/cairo/cpu",
+        "src/engine/prover",
+        "src/waist/prover_api",
     },
     .forbidden_dynamic_dependencies = &.{
         "Metal.framework",
@@ -107,7 +107,7 @@ pub fn addProduct(context: Context) void {
     );
     const stwo = createStwoModule(context, .library);
     const export_root = context.b.createModule(.{
-        .root_source_file = context.b.path("src/tools/cairo_preprocessed_export/main.zig"),
+        .root_source_file = context.b.path("src/products/cairo/tools/preprocessed_export/main.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -159,7 +159,7 @@ pub fn addProduct(context: Context) void {
     );
     const tests = context.b.addTest(.{ .root_module = test_root });
     const native_root = context.b.createModule(.{
-        .root_source_file = context.b.path("src/products/cairo_cpu/native_composition_test.zig"),
+        .root_source_file = context.b.path("src/products/cairo/cpu/native_composition_test.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -276,7 +276,7 @@ fn createStwoModule(
 ) *std.Build.Module {
     const module = graph.create(context.b, .{
         .product = product(role),
-        .root_source_file = "src/stwo_cairo_cpu.zig",
+        .root_source_file = "src/products/cairo/cpu/root.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -288,6 +288,15 @@ fn createStwoModule(
         context.target,
         context.optimize,
         module,
+    );
+    graph.addFacadeSupportImports(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+        .{ .atomic_file = true, .output_transaction = true, .bzip2 = true },
     );
     return module;
 }
@@ -301,7 +310,7 @@ fn createProductModule(
 ) *std.Build.Module {
     const root = graph.create(context.b, .{
         .product = product_descriptor,
-        .root_source_file = "src/products/cairo_cpu/main.zig",
+        .root_source_file = "src/products/cairo/cpu/main.zig",
         .target = context.target,
         .optimize = context.optimize,
     });

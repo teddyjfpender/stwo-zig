@@ -13,29 +13,13 @@ const types = @import("prover/types.zig");
 
 pub const proof_phase_meter = @import("prover/proof_phase_meter.zig");
 pub const guest_precompile = @import("prover/guest_precompile/mod.zig");
-pub const main_trace_plan_execution = @import("prover/main_trace_plan_execution.zig");
 pub const main_trace_plan_execution_production =
     @import("prover/main_trace_plan_execution_production.zig");
-pub const incremental_commitment_witness_v3 =
-    @import("prover/incremental_commitment_witness_v3.zig");
-pub const incremental_bridge_external_v3 =
-    @import("prover/incremental_bridge_external_v3.zig");
 /// Fixed joined Ethereum Tree0 derivation; accepts no candidate proof root.
 pub const deriveIncrementalEthereumPreprocessedRootWithFixedProgramV1 =
     @import("prover/incremental_ethereum_verifier_v3.zig").deriveExpectedPreprocessedRootWithFixedProgramV1;
 pub const deriveIncrementalEthereumPreprocessedRootV4 =
     @import("prover/incremental_ethereum_verifier_v3.zig").deriveExpectedPreprocessedRoot;
-pub const incremental_native_orchestration_v3 =
-    @import("prover/incremental_native_orchestration_v3.zig");
-pub const incremental_native_verifier_v3 =
-    @import("prover/incremental_native_verifier_v3.zig");
-/// Typed authority for independently proved narrow-memory Poseidon provider
-/// shards. Integration code must consume this facade so the frontend retains
-/// sole module ownership of the underlying AIR call and claim types.
-pub const memory_provider_shard_authority =
-    @import("prover/memory_provider_shards/authority.zig");
-pub const memory_provider_shard_joint_proof_authority =
-    @import("prover/memory_provider_shards/joint_proof_authority.zig");
 pub const ethereum_native_provider_omit_protocol_v1 =
     guest_precompile.ethereum_native_provider_omit_protocol_v1;
 pub const ethereum_native_provider_omit_proof_v1 =
@@ -163,10 +147,10 @@ pub const proveRiscVSegmentLookupV1CompatibilityWithEngineUsingChannel =
 /// The one secure PCS profile this repository publishes, and the single source
 /// of truth every "secure" selector resolves to: the staged adapter's `.secure`
 /// protocol (`src/integrations/riscv_cpu/proof_adapter.zig`) and the benchmark
-/// runner's `--secure` flag (`src/tools/riscv/bench/runner.zig`) both return
+/// runner's `--secure` flag (`src/products/riscv/tools/bench/runner.zig`) both return
 /// exactly this value rather than restating its numbers.
 ///
-/// Cross-language mirror: `scripts/riscv_csp_benchmark_lib/contract.py` parses
+/// Cross-language mirror: `scripts/riscv/riscv_csp_benchmark_lib/contract.py` parses
 /// *this literal* and refuses to validate a workload manifest when its own
 /// `SECURE_PCS_CONFIG` disagrees, so two profiles can no longer both connote
 /// "the secure one" while differing (issue #152 item 7). The parser is
@@ -187,7 +171,7 @@ pub const SECURE_PCS_CONFIG: pcs_core.PcsConfig = .{
 /// One definition, reached from every caller that proves a *run* rather than a
 /// hand-built trace: the production ELF adapter
 /// (`src/integrations/riscv_cpu/proof_adapter.zig`) and the benchmark runner
-/// (`src/tools/riscv/bench/runner.zig`). A fail-closed check present on one path
+/// (`src/products/riscv/tools/bench/runner.zig`). A fail-closed check present on one path
 /// and absent from its sibling is worse than one absent from both, because the
 /// passing path lends the other unearned confidence (issue #152 item 5).
 pub const RunAdmissionError = error{
@@ -566,25 +550,17 @@ pub const verifyRiscVSegmentLookupV2WithEngineUsingChannel =
     verifier.verifyRiscVSegmentLookupV2WithEngineUsingChannel;
 pub const proveAndVerifyElfWithEngine = @import("prover/elf.zig").proveAndVerifyElfWithEngine;
 
-/// Explicit Ethereum AIR policy; legacy/default proof identities remain unchanged.
-pub const ethereum_circuit_profile_v1 = @import("prover/ethereum_circuit_profile_v1.zig");
-
 /// Explicit BLAKE3 execution path; caller-admitted plans, no default promotion.
 pub const blake3_execution = @import("prover/blake3_execution_proof.zig");
-pub const blake3_commitment_plan_codec = @import("prover/blake3_commitment_plan_codec.zig");
 pub const blake3_commitment_components = @import("prover/blake3_commitment_components.zig");
-pub const blake3_execution_manifest = @import("prover/blake3_execution_manifest.zig");
-pub const blake3_execution_source = @import("prover/blake3_execution_source.zig");
 pub const blake3_execution_artifact = @import("prover/blake3_execution_artifact.zig");
 
 pub const blake3_verified_public = @import("prover/blake3_profile_artifact.zig").VerifiedPublic;
 pub const blake3_ethereum_artifact = @import("prover/blake3_profile_artifact.zig").ForProfile(true);
-pub const blake3_ethereum_manifest = @import("prover/blake3_ethereum_manifest.zig");
 pub const blake3_ethereum_proof = @import("prover/blake3_ethereum_proof.zig");
 pub const blake3_commitment_sharing = @import("prover/blake3_commitment_sharing.zig");
 pub const blake3_ethereum_witness = @import("prover/blake3_ethereum_witness.zig");
 pub const blake3_segment_execution = @import("prover/blake3_segment_execution.zig");
-pub const blake3_segment_statement = @import("prover/blake3_segment_statement.zig");
 
 pub const blake3_profile_artifact = @import("prover/blake3_profile_artifact.zig");
 pub const blake3_poseidon_proof = @import("prover/blake3_poseidon_proof.zig");
