@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-08T16:26:21Z",
+  "updated_utc": "2026-11-08T16:29:52Z",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -940,7 +940,7 @@
   "post_merge_hygiene": {
     "base_merge_commit": "4e260db9605d16fef5d405cc3c280e3042b22e35",
     "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
-    "worktrees": 1,
+    "worktrees": 3,
     "gpu_native_default": false,
     "experimental_candidate_retained_separately": "origin/codex/rv64-gpu-hygiene-local@4892bffa6f77dce3dda68aea0053dfff71e7f0cd",
     "source_contract_commit": "2b89ae3ec13033ed94ac330c7cabfdb525c8f903",
@@ -962,6 +962,26 @@
     "host_fake_device_command": "42entriesPASS",
     "default_gpu_gate": "PENDING_NO_CREDIT",
     "full_suite_status": "NOT_CLAIMED_GREEN",
-    "phase_complete": false
+    "phase_complete": false,
+    "task_worktrees_created": 0,
+    "external_active_worktrees": [
+      {
+        "path": "/private/tmp/claude-501/-Users-theodorepender-Coding-stwo-zig/3268cd4b-cf9c-479c-a67f-1c72486c40d2/scratchpad/autoresearch-retire-base",
+        "head": "51897dc265593df7580c4abf0b232909fc105e34",
+        "worktree_change_records": 0,
+        "dirty": false,
+        "activity": "CURRENT_WORKING_DIRECTORY_USERS_OBSERVED_WITH_LSOF",
+        "retirement": "HELD_ACTIVE_EXTERNAL_WORK_NO_REMOVAL"
+      },
+      {
+        "path": "/Users/theodorepender/Coding/stwo-zig-wt/repo-standards",
+        "head": "51897dc265593df7580c4abf0b232909fc105e34",
+        "worktree_change_records": 17865,
+        "dirty": true,
+        "activity": "CURRENT_WORKING_DIRECTORY_USERS_OBSERVED_WITH_LSOF",
+        "retirement": "HELD_ACTIVE_EXTERNAL_WORK_NO_REMOVAL"
+      }
+    ],
+    "single_checkout_consolidation": "OPEN_TWO_EXTERNAL_ACTIVE_WORKTREES_DISCOVERED_AT_FINAL_CENSUS"
   }
 }
