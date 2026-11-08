@@ -316,7 +316,7 @@ fn make(owner: *Budget, state: *State) !Tree {
     const values = try a.alloc(M, 4);
     errdefer a.free(values);
     @memset(values, M.zero());
-    const columns = try a.alloc(prover.pcs.ColumnEvaluation, 1);
+    const columns = try a.alloc(pcs.ColumnEvaluation, 1);
     errdefer a.free(columns);
     columns[0] = .{ .log_size = 2, .values = values };
     var reservation = try owner.reserveExternal(64);
