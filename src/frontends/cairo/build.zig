@@ -24,14 +24,14 @@ pub fn build(b: *std.Build) void {
     // queried-value layout) is an interop format shared with circuit
     // recursion; it is injected like the RISC-V frontend's `interop_postcard`.
     const felt_json = b.createModule(.{
-        .root_source_file = b.path("../../interop/felt_json.zig"),
+        .root_source_file = b.path("interop/felt_json.zig"),
         .target = target,
         .optimize = optimize,
     });
     felt_json.addImport("stwo_core", core);
     // `ProverParameters`, shared with the circuit-recursion registry reader.
     const prover_parameters = b.createModule(.{
-        .root_source_file = b.path("../../interop/cairo_prover_parameters.zig"),
+        .root_source_file = b.path("interop/cairo_prover_parameters.zig"),
         .target = target,
         .optimize = optimize,
     });

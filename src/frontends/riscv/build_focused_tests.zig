@@ -14,6 +14,12 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-inventory",
+        .description = "Check complete package test discovery and reject stale inventory paths",
+        .root = "test_inventory_test.zig",
+        .minimum = 2,
+    },
+    .{
         .step = "test-legacy-interaction-oracle",
         .description = "Check retired interaction generation and retained memory layouts",
         .root = "air_semantics_test_root.zig",

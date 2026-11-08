@@ -219,3 +219,14 @@ the separate integration [`rv64_full`](../../integrations/riscv_cpu/rv64_full.zi
 That route makes one native proof for a complete admitted execution; it does
 not assemble bounded execution proofs. `rv64` execution remains usable without
 loading the proof integration. See the [full AIR contract](../../../design/riscv/rv64-air.md).
+
+## CSP result classes
+
+The CSP benchmark classifier reports these publication states:
+
+- `power-condition-non-publishable`: the measured power conditions are invalid.
+  This outranks host identity, including runs on the publication host.
+- `official-host-comparable`: host identity matches and the full workload matrix
+  and memory measurements are available under admissible power conditions.
+- `host-qualified-non-comparable`: the host, matrix or memory evidence does not
+  meet the publication contract. Keep its results separate from comparable runs.

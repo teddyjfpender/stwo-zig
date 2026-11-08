@@ -35,13 +35,13 @@ pub fn build(b: *std.Build) void {
         dependency_options,
     ).module("stwo_prover_api");
     const proof_wire = b.createModule(.{
-        .root_source_file = b.path("../../interop/proof_wire/mod.zig"),
+        .root_source_file = b.path("../../waist/proof_wire/mod.zig"),
         .target = target,
         .optimize = optimize,
     });
     proof_wire.addImport("stwo_core", core);
     const postcard = b.createModule(.{
-        .root_source_file = b.path("../../interop/postcard.zig"),
+        .root_source_file = b.path("../../waist/recursion_wire/postcard/mod.zig"),
         .target = target,
         .optimize = optimize,
     });

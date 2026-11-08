@@ -363,3 +363,13 @@ pub const rv64_root_verify_main = @import("rv64_recursion/root_verify_main.zig")
 /// Exact production allocator adapter, also used by ready-lane budget admission.
 pub const rv64_large_block_recycler = @import("rv64_large_block_recycler.zig");
 pub const rv64_recursion_budget = @import("rv64_recursion_budget.zig");
+
+// Retained tests for live modules; restored from the pre-restructure source.
+test {
+    _ = @import("recursive_segment_v2_detached_leaf_options_test.zig");
+    _ = @import("recursive_segment_v2_detached_parent_prepared_test.zig");
+    _ = @import("recursive_segment_v2_detached_routing_test.zig");
+    _ = @import("recursive_segment_v2_leaf_outer_test.zig");
+    _ = @import("recursive_segment_v2_single_root_test.zig");
+    _ = @import("word16_execution/om31_compress_corpus_test.zig");
+}
