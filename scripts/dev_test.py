@@ -138,6 +138,7 @@ def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
         # those imports instead of maintaining a second native/truth/outer
         # file inventory; unknown files still take the package fallback.
         for filename, step in (
+            ("rv64_jobs_recursion_test_root.zig", "test-rv64-jobs-recursion"),
             ("rv64_jobs_native_test_root.zig", "test-rv64-jobs-native"),
             ("rv64_jobs_truth_test_root.zig", "test-rv64-jobs-truth"),
             ("rv64_jobs_outer_test_root.zig", "test-rv64-jobs-outer"),

@@ -32,6 +32,17 @@ and inherited oversized owners and unreachable scripts remain explicit work.
 The [delivery audit](../../vectors/reports/rv64-gpu-hygiene-20261108/delivery-audit.md)
 records the open completion gates.
 
+The current uncommitted owner-boundary follow-up is in
+[checkpoint-8.json](../../vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-8.json).
+It separates the installed recursion registry from request-job custody and fixes
+pin teardown order and failed-registration state. The regressions failed before
+the fixes and pass afterwards: 105 focused tests and 305 broader host tests
+(with one skipped), plus actual check-only execution and 16 routing tests.
+These counts overlap. This follow-up has host evidence only; checkpoint 7 and
+commit `4a4d01bd5` remain the last full-proof qualification. The source audit now
+has 138 failing paths, with no new paths. Hosted CI on the landed checkpoint
+also has unresolved failures; the selected job logs are pinned in checkpoint 8.
+
 No default promotion or new speed/physical-peak claim is part of this work.
 Global formatting and targeted CI contract tests now pass, while inherited
 repository-wide provenance, source-layout and script-reachability debt remains

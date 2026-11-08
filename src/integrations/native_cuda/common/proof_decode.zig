@@ -657,11 +657,10 @@ fn requireM31(value: u32) Error!void {
 test "four-fold FRI query expansion retains each canonical coset once" {
     const allocator = std.testing.allocator;
     const expanded = try expandedQueries(allocator, &.{ 0, 3, 15, 16, 18, 32 }, 4);
-    defer allocator.free(expanded.ptr[0 .. 6 * 16]);
+    defer allocator.free(expanded);
     try std.testing.expectEqual(@as(usize, 3 * 16), expanded.len);
     for (0..expanded.len) |index| {
-        const expected: u32 = if (index < 32) @intCast(index) else @intCast(index + 0);
-        try std.testing.expectEqual(expected, expanded[index]);
+        try std.testing.expectEqual(@as(u32, @intCast(index)), expanded[index]);
     }
 }
 

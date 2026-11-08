@@ -34,3 +34,14 @@ static recheck is recorded in [static-audit.json](static-audit.json). Raw
 proofs, traces and logs remain outside the repository and are referenced by
 path and SHA-256. The full objective remains active while these completion
 items are unresolved.
+
+
+## Owner-boundary follow-up
+
+[Checkpoint 8](checkpoint-8.json) records the uncommitted follow-up to the
+landed `4a4d01bd5` checkpoint. The installed recursion registry and request-job
+owner now fit the existing ceiling, and two demonstrated lifetime/failure
+regressions have fixes with focused and broader host evidence. This does not
+extend checkpoint 7's hardware qualification to the new code. The full static
+gate remains open (138 failing paths), hosted CI has unresolved failures, and
+full-proof acceptance plus committed delivery of the follow-up remain pending.

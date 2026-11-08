@@ -76,6 +76,9 @@ pub fn build(b: *std.Build) void {
     const jobs_step = b.step("test-rv64-jobs", "Test the M8 job runtime contract, worker pipeline, channel parity model, slab, scheduler and sync lint without a GPU");
     jobs_step.dependOn(jobs_run);
     b.step("test-rv64-jobs-runtime", "Test job resources, worker, driver and lifecycle without the native/truth binaries").dependOn(jobs_run);
+    const recursion_jobs_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_recursion_test_root.zig"), .target = target, .optimize = optimize });
+    recursion_jobs_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    b.step("test-rv64-jobs-recursion", "Test installed recursion classes and request job custody without a GPU").dependOn(jobTestStep(b, b.addTest(.{ .root_module = recursion_jobs_root }), check_only));
     const resource_root = b.createModule(.{ .root_source_file = b.path("rv64_resources_test_root.zig"), .target = target, .optimize = optimize });
     b.step("test-rv64-resources", "Test checked job resources and the two-sided arena without a prover or GPU").dependOn(jobTestStep(b, b.addTest(.{ .root_module = resource_root }), check_only));
     // native-job: rv64/jobs/native_*.zig tests in their own binary (they reuse the legacy PCS framing and

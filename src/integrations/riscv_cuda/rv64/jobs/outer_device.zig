@@ -1,43 +1,26 @@
-//! M8 GPU-native recursion (stream: recursion). Contract: gpu_native.zig
-//! RecursionFactory; design: rv64-m8-gpu-native.md §3.3, §6.
+//! Installed recursion authorities for the GPU-native request path.
 //!
-//! Landed: the class side. Every recursion class the request layer has
-//! planned (a leaf/fold/root authority whose statics and whole-node plan sit
-//! in an outer_class_plan.zig slot) is registered here under its AUTHORITY
-//! (proof kind + the class keys of what it verifies, the identity the
-//! statics cache keys on), never under a position in one request's topology:
-//! a second block shape served by the same install has different ordinals
-//! for the same classes. `warm` publishes one gpu_native.ClassEntry per class
-//! into the driver's ClassCache; each entry holds a counted pin on the class
-//! statics (outer_job_prestage.ClassPin), released when the entry is
-//! destroyed, so statics-cache eviction never frees a warmed class's plan.
-//! `class_of` answers from the registry, so after `ClassCache.seal` a node of
-//! an unplanned authority fails closed (GpuNativeClassNotWarmed) instead of
-//! planning on the request path.
+//! Registration keys classes by scoped authority, never request topology
+//! position. Warm ClassCache entries hold their own counted class-plan pins;
+//! sealed caches refuse construction during a request. Registration commits
+//! authority/class entries together only after both maps reserve capacity.
 //!
-//! gn-node: `node` builds the GPU-native node job (NodeJob): the class's
-//! whole-node job (NodeClass.make: OuterNodeJob + device encoder targeting
-//! the node's request-slab region, image tail on), preceded by the device
-//! seed fill + statement kernel (outer_seed_device.zig) reading the
-//! children's encoded regions (own segment, or a peer copy into node-local
-//! memory for a child on the other GPU), and followed by the lookup_sum /
-//! channel_order verdict words. No host value enters the node: the class
-//! template's seeds, checkpoint and outputs are written on the device.
-//! Not landed here: `truth` (gn-truth) and the warm builder that produces
-//! NodeClass entries (outer_job_factory.zig NodeClassBuilder from a warm
-//! request; the driver binds it).
+//! outer_node_job.zig owns construction, execution and custody of request
+//! jobs, including two in-flight slab parities. The registry resolves the
+//! installed class and delegates that ownership. After worker quiescence,
+//! request bodies are destroyed before the registry releases class pins.
+//! Truth production remains owned by truth_factory.zig.
 const std = @import("std");
 const api = @import("api.zig");
 const G = @import("gpu_native.zig");
 const Enc = @import("outer_encode.zig");
 const Seed = @import("outer_seed_device.zig");
-const O = @import("ops.zig");
+const Nodes = @import("outer_node_job.zig");
 /// outer_kernels.zig Copy / lane and outer_checks.zig field_index, restated
 /// (this file is in the driver's test root, which has no CUDA backend
 /// module; outer_seed_harness_test.zig pins the restatement).
-pub const Copy = *const fn (*anyopaque, *anyopaque, *const anyopaque, usize) callconv(.c) c_int;
-const lane: u32 = 0;
-pub const lookup_field_index: u32 = 0x4348_4b31; // outer_checks.field_index ("CHK1")
+pub const Copy = Nodes.Copy;
+pub const lookup_field_index = Nodes.lookup_field_index;
 
 /// A counted reference on a class plan (outer_job_prestage.ClassPin in the
 /// service; a counter in tests). `retain`/`release` are balanced.
@@ -78,47 +61,14 @@ pub const ClassInfo = struct {
     extra_checks: []const G.Check = &.{},
 };
 
-/// Device products of one warmed recursion node class (built once at warm).
-pub const NodeClass = struct {
-    /// Seed program words (outer_seed_device.buildFold / buildLeaf) with
-    /// each child's image at the END of its class's encoded region.
-    program: []const u32,
-    prog_key: [32]u8,
-    n_children: u32,
-    /// Output words of the node (4 per output).
-    output_words: u32,
-    require_warm: bool = false,
-    compressed: bool = false,
-    ctx: *anyopaque,
-    /// The whole-node job of this class, its encoder targeting `target`
-    /// (image tail on, outputs from device memory). Type-erased: the
-    /// builder lives outside rv64/jobs/ (legacy host types).
-    make: *const fn (ctx: *anyopaque, a: std.mem.Allocator, target: Target) anyerror!Made,
-};
-pub const Target = struct {
-    /// GPU the node runs on (its whole-node graph cache is per device).
-    device: u32 = 0,
-    region: api.DeviceBuffer,
-    pcs_status: api.DeviceBuffer,
-    encode_status: api.DeviceBuffer,
-    oods_status: api.DeviceBuffer,
-    class_unpack_status: ?api.DeviceBuffer = null,
-};
-pub const Made = struct {
-    job: api.Job,
-    ctx: *anyopaque,
-    /// After `job`'s stage: the node-region ranges the seed fill writes.
-    inputs: *const fn (*anyopaque) anyerror!Inputs,
-    destroy: *const fn (*anyopaque) void,
-};
-pub const max_graph_devices = G.max_devices;
-pub const Inputs = struct { seeds: api.DeviceBuffer, channel_seed: api.DeviceBuffer, outputs: api.DeviceBuffer };
-/// Device entry points the node job needs (bound by the service).
-pub const DeviceOps = struct {
-    seed: Seed.Symbols,
-    d2d: Copy,
-    peer: O.Peer,
-};
+// Public compatibility names refer to the request owner's contract.
+pub const NodeClass = Nodes.NodeClass;
+pub const Target = Nodes.Target;
+pub const Made = Nodes.Made;
+pub const Inputs = Nodes.Inputs;
+pub const DeviceOps = Nodes.DeviceOps;
+pub const NodeJob = Nodes.NodeJob;
+pub const max_graph_devices = Nodes.max_graph_devices;
 
 /// Authority digest of a recursion proof: kind + the class keys it verifies
 /// (+ the ordinal for a truth, which names the truth statement kind).
@@ -147,13 +97,9 @@ pub const Recursion = struct {
     /// request being planned (the driver plans, then makes, one request at
     /// a time: driver_request.zig plan -> make).
     planned: std.AutoHashMapUnmanaged(u64, G.ClassKey) = .empty,
-    /// Node jobs of the requests in flight. A job is freed only once it
-    /// settled (its `finish` or `abort` returned: the worker never touches a
-    /// job after that), at `end(request)` (publication) or at `deinit`. The
-    /// driver keeps two requests in flight (slab parities), so request N+1
-    /// makes its jobs while N's batches still run: freeing N's jobs on N+1's
-    /// first `node` (the pre-review rule) was a use-after-free.
-    jobs: std.ArrayListUnmanaged(*NodeJob) = .empty,
+    /// Per-request custody is separate from installed class registration.
+    /// The request owner retains both slab parities until jobs settle.
+    requests: Nodes.Requests = .{},
 
     const Registered = struct { info: ClassInfo, phase_b: bool };
 
@@ -171,42 +117,27 @@ pub const Recursion = struct {
     }
 
     pub fn deinit(self: *Recursion) void {
+        // Bodies may borrow class statics in their destructors. Release all
+        // quiescent request jobs before dropping the registry's class pins.
+        self.requests.deinit(self.a);
         var it = self.classes.valueIterator();
         while (it.next()) |r| if (r.info.pin) |p| p.release(p.ctx);
         self.classes.deinit(self.a);
         self.authorities.deinit(self.a);
-        self.releaseWhere(null, false);
-        self.jobs.deinit(self.a);
         self.planned.deinit(self.a);
-    }
-    /// Free the jobs of `request` (null: every job), or with `settled_only`
-    /// only the jobs that settled. Caller holds the mutex (or tears down).
-    fn releaseWhere(self: *Recursion, request: ?u64, settled_only: bool) void {
-        var keep: usize = 0;
-        for (self.jobs.items) |j| {
-            const mine = if (request) |r| j.request == r else true;
-            if (mine and (!settled_only or j.settled.load(.acquire))) {
-                j.deinit();
-                self.a.destroy(j);
-            } else {
-                self.jobs.items[keep] = j;
-                keep += 1;
-            }
-        }
-        self.jobs.shrinkRetainingCapacity(keep);
     }
     /// After publication of `request` (its single wait returned): free its
     /// node jobs.
     pub fn end(self: *Recursion, request: u64) void {
         self.mutex.lock();
         defer self.mutex.unlock();
-        self.releaseWhere(request, false);
+        self.requests.end(self.a, request);
     }
     /// Node jobs held (tests, receipts).
     pub fn heldJobs(self: *Recursion) usize {
         self.mutex.lock();
         defer self.mutex.unlock();
-        return self.jobs.items.len;
+        return self.requests.count();
     }
     fn idKey(id: G.ProofId) u64 {
         return (@as(u64, @intFromEnum(id.kind)) << 32) | id.ordinal;
@@ -230,8 +161,12 @@ pub const Recursion = struct {
         const auth = self.scopedAuthority(id, children);
         if (self.classes.get(key)) |known| if (known.info.plan != info.plan) return error.GpuNativeClassPlanConflict;
         if (self.authorities.get(auth)) |known| if (!std.mem.eql(u8, &known, &key)) return error.GpuNativeProofClassChanged;
-        try self.authorities.put(self.a, auth, key);
-        const c = try self.classes.getOrPut(self.a, key);
+        // Reserve both maps before publishing either logical entry. A class
+        // allocation failure must not leave an authority naming no class.
+        if (!self.classes.contains(key)) try self.classes.ensureUnusedCapacity(self.a, 1);
+        if (!self.authorities.contains(auth)) try self.authorities.ensureUnusedCapacity(self.a, 1);
+        self.authorities.putAssumeCapacity(auth, key);
+        const c = self.classes.getOrPutAssumeCapacity(key);
         if (!c.found_existing) {
             c.value_ptr.* = .{ .info = info, .phase_b = info.phase_b or id.kind == .fold or id.kind == .root };
             return;
@@ -323,173 +258,11 @@ pub const Recursion = struct {
         if (id.kind != .leaf and id.kind != .fold and id.kind != .root) return error.GpuNativeNotARecursionProof;
         // Reclaim settled jobs of earlier requests; a job of a request still
         // in flight (the other parity) stays until it settles or `end`.
-        self.releaseWhere(null, true);
+        self.requests.reclaimSettled(self.a);
         const key = self.planned.get(idKey(id)) orelse return error.GpuNativeClassNotWarmed;
         const entry = try rc.classes.get(key);
         const nc = (@as(*const Held, @ptrCast(@alignCast(entry.plan)))).node orelse return error.GpuNativeNodeClassMissing;
-        if (children.len != nc.n_children or children.len > Seed.max_children) return error.GpuNativeNodeChildCount;
-        if (device >= rc.segments.len or device >= rc.layout.segments.len) return error.GpuNativeProofDeviceOutOfRange;
-        const seg = &rc.layout.segments[device];
-        const buf = rc.segments[device];
-        const target = Target{ .device = device, .region = try seg.encodedBuffer(buf, id), .pcs_status = try seg.statusBuffer(buf, id, .node_pcs_status), .encode_status = try seg.statusBuffer(buf, id, .encode_bounds), .oods_status = try seg.statusBuffer(buf, id, .node_oods_constraint), .class_unpack_status = if (nc.compressed) try seg.statusBuffer(buf, id, .class_unpack) else null };
-        const job = try self.a.create(NodeJob);
-        errdefer self.a.destroy(job);
-        job.* = .{ .a = self.a, .request = rc.request, .proof_id = id, .ops = ops, .class = nc, .device = device, .verdicts = .{
-            .seed_tape = try seg.statusBuffer(buf, id, .seed_tape),
-            .child_binding = try seg.statusBuffer(buf, id, .child_binding),
-            .lookup_sum = try seg.statusBuffer(buf, id, .lookup_sum),
-            .channel_order = try seg.statusBuffer(buf, id, .channel_order),
-        }, .made = undefined };
-        for (children, 0..) |c, k| job.children[k] = try childRegion(rc, c);
-        job.n_children = @intCast(children.len);
-        job.made = try nc.make(nc.ctx, self.a, target);
-        errdefer job.made.destroy(job.made.ctx);
-        try self.jobs.append(self.a, job);
-        return job.job();
-    }
-    /// A child's encoded region: the segment of the GPU that produced it.
-    fn childRegion(rc: *const G.RequestContext, id: G.ProofId) !NodeJob.Child {
-        for (rc.layout.segments, 0..) |*s, d| if (s.find(id) != null) return .{ .device = @intCast(d), .region = try s.encodedBuffer(rc.segments[d], id) };
-        return error.GpuNativeUnknownProof;
-    }
-};
-
-/// The GPU-native node job: seed fill + statement (device), then the class's
-/// whole-node job, then the lookup_sum / channel_order words. Children on
-/// the other GPU are peer-copied into node-local memory first (the batch
-/// already waits on their producers' done events).
-pub const NodeJob = struct {
-    pub const Child = struct { device: u32, region: api.DeviceBuffer };
-    pub const Verdicts = struct { seed_tape: api.DeviceBuffer, child_binding: api.DeviceBuffer, lookup_sum: api.DeviceBuffer, channel_order: api.DeviceBuffer };
-    a: std.mem.Allocator,
-    /// Request that made the job (Recursion.node); 0 for a standalone job.
-    request: u64 = 0,
-    proof_id: G.ProofId = .{ .kind = .leaf, .ordinal = 0 },
-    /// Set (release) after `finish` / `abort` returned; Recursion frees the
-    /// job only then (or at `end` / `deinit`).
-    settled: std.atomic.Value(bool) = .init(false),
-    ops: DeviceOps,
-    class: *const NodeClass,
-    device: u32,
-    verdicts: Verdicts,
-    made: Made,
-    children: [Seed.max_children]Child = undefined,
-    n_children: u32 = 0,
-    local: [Seed.max_children]?api.DeviceBuffer = @splat(null),
-    d_prog: api.DeviceBuffer = undefined,
-    scratch: api.DeviceBuffer = undefined,
-    /// Host-side time of stage + enqueue of the seed fill and verdicts (ns).
-    host_ns: u64 = 0,
-    launches: u32 = 0,
-
-    pub fn deinit(self: *NodeJob) void {
-        self.made.destroy(self.made.ctx);
-    }
-    pub fn job(self: *NodeJob) api.Job {
-        return api.Job.from(NodeJob, self);
-    }
-    pub fn classKey(self: *NodeJob) [32]u8 {
-        return self.made.job.classKey();
-    }
-    fn g(words: u64) u64 {
-        return std.mem.alignForward(u64, @max(words, 1), 64);
-    }
-    fn extra(self: *const NodeJob) u64 {
-        var n = g(@as(u64, self.class.program[Seed.P.scratch_words]) + 8);
-        for (self.children[0..self.n_children]) |c| if (c.device != self.device) {
-            n += g(c.region.words);
-        };
-        return n;
-    }
-    pub fn footprint(self: *NodeJob) api.Footprint {
-        var fp = self.made.job.footprint();
-        const x = self.extra();
-        fp.device_words += @intCast(x);
-        fp.staged_words += @intCast(x);
-        fp.pinned_words += self.class.program.len;
-        return fp;
-    }
-    pub fn stage(self: *NodeJob, s: *api.Stager) !void {
-        try self.made.job.vtable.stage(self.made.job.ctx, s);
-        var t = try std.time.Timer.start();
-        defer self.host_ns += t.read();
-        const p = try s.persistent(self.class.prog_key, self.class.program.len);
-        self.d_prog = p.buffer;
-        if (self.class.require_warm and p.fresh) return error.GpuNativeRecursionSeedProgramCold;
-        if (p.fresh) {
-            const pinned = try s.pinned(self.class.program.len);
-            @memcpy(pinned, self.class.program);
-            try s.upload(p.buffer, pinned);
-        }
-        for (self.children[0..self.n_children], 0..) |c, k| if (c.device != self.device) {
-            self.local[k] = try s.alloc(c.region.words);
-        };
-        self.scratch = try s.alloc(@as(usize, self.class.program[Seed.P.scratch_words]) + 8);
-    }
-    pub fn enqueue(self: *NodeJob, e: *api.Enqueue) !void {
-        const trace_stage: O.Trace.Stage = switch (self.proof_id.kind) {
-            .leaf => .leaf,
-            .fold => .fold,
-            .root => .root,
-            else => return error.GpuNativeNotARecursionProof,
-        };
-        var trace_label: [80]u8 = undefined;
-        var trace_range = try e.trace(trace_stage, self.proof_id.ordinal, &trace_label);
-        defer trace_range.deinit();
-        var t = try std.time.Timer.start();
-        try e.waitStaged();
-        const in = try self.made.inputs(self.made.ctx);
-        var io = Seed.Io{
-            .program = self.d_prog.ptr,
-            .program_words = self.class.program.len,
-            .children = @splat(null),
-            .children_words = @splat(0),
-            .seeds = in.seeds.ptr,
-            .seeds_words = in.seeds.words,
-            .scratch = self.scratch.ptr,
-            .scratch_words = self.scratch.words,
-            .seed_status = &self.verdicts.seed_tape.ptr[0],
-            .bind_status = &self.verdicts.child_binding.ptr[0],
-            .outputs = in.outputs.ptr,
-            .checkpoint = in.channel_seed.ptr,
-            .outputs_words = @intCast(in.outputs.words),
-            .n_children = self.n_children,
-            .n_ops = self.class.program[Seed.P.n_ops],
-            .n_caps = self.class.program[Seed.P.n_caps],
-        };
-        self.launches = 0;
-        for (self.children[0..self.n_children], 0..) |c, k| {
-            var region = c.region;
-            if (self.local[k]) |l| {
-                try O.check(self.ops.peer.peer_copy_async(l.ptr, self.device, c.region.ptr, c.device, c.region.words * 4, e.stream()));
-                region = l;
-                self.launches += 1;
-            }
-            io.children[k] = region.ptr;
-            io.children_words[k] = region.words;
-        }
-        if (self.ops.seed.fill(e.ctx(), lane, &io) != 0) return error.GnNodeSeedFillEnqueueFailed;
-        self.launches += 3 + @as(u32, @intFromBool(io.n_caps != 0));
-        self.host_ns += t.lap();
-        try self.made.job.vtable.enqueue(self.made.job.ctx, e);
-        t.reset();
-        // lookup_sum: the body's device check word (job slab) -> request slab.
-        const chk = try e.slab.field(.opaque_words, lookup_field_index);
-        if (self.ops.d2d(e.ctx(), @ptrCast(self.verdicts.lookup_sum.ptr), @ptrCast(chk.ptr), 4) != 0) return error.GnNodeVerdictCopyFailed;
-        // channel_order: the device channel's status latch is 0.
-        const state = e.channel.stateBuffer();
-        if (self.ops.peer.flags_verdict(state.ptr + 10, 1, 0, self.verdicts.channel_order.ptr, G.Verdict.reject(.channel_order, 1), e.stream()) != 0) return error.GnNodeVerdictEnqueueFailed;
-        self.launches += 2;
-        self.host_ns += t.read();
-    }
-    pub fn finish(self: *NodeJob, view: api.SlabView) !void {
-        defer self.settled.store(true, .release);
-        // GPU-native: publish() reads the request slab's status words.
-        return self.made.job.vtable.finish(self.made.job.ctx, view);
-    }
-    pub fn abort(self: *NodeJob) void {
-        defer self.settled.store(true, .release);
-        self.made.job.vtable.abort(self.made.job.ctx);
+        return self.requests.make(self.a, ops, nc, rc, id, children, device);
     }
 };
 
@@ -508,6 +281,51 @@ const Counter = struct {
         return .{ .ctx = self, .retain = retain, .release = release };
     }
 };
+
+test "recursion teardown keeps class pins alive while request jobs are destroyed" {
+    const t = std.testing;
+    const Observe = struct {
+        class: *Counter,
+        refs_at_destroy: i32 = -1,
+        fn destroy(raw: *anyopaque) void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.refs_at_destroy = self.class.refs;
+        }
+    };
+    var counter = Counter{};
+    var observed = Observe{ .class = &counter };
+    var recursion = Recursion{ .a = t.allocator };
+    try recursion.register(.{ .kind = .leaf, .ordinal = 0 }, &.{}, @splat(9), .{ .plan = &counter, .pin = counter.pin() });
+    const job = try t.allocator.create(NodeJob);
+    // Teardown only invokes the body's destructor, after quiescence. No
+    // device state or fake staging is required to check class custody.
+    job.* = undefined;
+    job.made = .{ .ctx = &observed, .destroy = Observe.destroy, .job = undefined, .inputs = undefined };
+    _ = try recursion.requests.adopt(t.allocator, job);
+    recursion.deinit();
+    try t.expectEqual(@as(i32, 1), observed.refs_at_destroy);
+    try t.expectEqual(@as(i32, 0), counter.refs);
+}
+
+test "failed recursion registration leaves no authority and returns its pin" {
+    const Probe = struct {
+        fn run(a: std.mem.Allocator) !void {
+            var counter = Counter{};
+            var r = Recursion{ .a = a };
+            defer r.deinit();
+            r.register(.{ .kind = .leaf, .ordinal = 0 }, &.{}, @splat(1), .{ .plan = &counter, .pin = counter.pin() }) catch |err| {
+                try std.testing.expectEqual(@as(usize, 0), r.classCount());
+                try std.testing.expectEqual(@as(usize, 0), r.authorities.count());
+                try std.testing.expectEqual(@as(i32, 0), counter.refs);
+                return err;
+            };
+            try std.testing.expectEqual(@as(usize, 1), r.classCount());
+            try std.testing.expectEqual(@as(usize, 1), r.authorities.count());
+            try std.testing.expectEqual(@as(i32, 1), counter.refs);
+        }
+    };
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, Probe.run, .{});
+}
 
 test "recursion factory: unregistered authorities and non-recursion proofs fail closed" {
     var r = Recursion{ .a = std.testing.allocator };
