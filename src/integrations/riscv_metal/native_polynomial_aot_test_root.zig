@@ -1,12 +1,14 @@
 //! Bounded source-only admission of actual native GPU capability exports.
 const std = @import("std");
-const exporter = @import("riscv_native_polynomial_aot_export.zig");
+const exporter = @import("native_polynomial_aot_export.zig");
 const codegen = exporter.codegen;
-const trace = @import("frontends/riscv/runner/trace.zig");
-const semantic_eval = @import("frontends/riscv/air/semantic_eval.zig");
-const embedded = @embedFile("backends/metal/shaders/core/riscv_polynomials.metal");
-const runtime = @embedFile("backends/metal/runtime.m");
-const shader_manifest = @import("backends/metal/shaders/manifest.zig");
+const frontend = @import("stwo_riscv_frontend");
+const backend = @import("stwo_metal_backend");
+const trace = frontend.runner.trace;
+const semantic_eval = frontend.air.semantic_eval;
+const embedded = backend.riscv_polynomial_codegen.source;
+const runtime = backend.source_contract.runtime;
+const shader_manifest = backend.shaders.manifest;
 
 test "native GPU inventory: actual capability exports cover every legacy and local-zero family" {
     const a = std.testing.allocator;

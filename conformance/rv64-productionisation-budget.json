@@ -419,6 +419,20 @@
       "positive_growth_justification": "Transfer complete sealed installation ownership, warm/probe transaction, lane planning, slabs, mirrors, peer and event teardown into a stable embedded owner. Request controller keeps generation, parity, in-flight and poison state and drains requests before owner teardown. No generic wrapper or private cycle; source moves receive zero deletion credit. Preserve all allocation checks and failure rollback.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "metal_native_polynomial_aot_owner",
+      "net_code_budget": 55,
+      "positive_growth_justification": "Give four preserved native polynomial AOT source-contract tests and their exporter a concrete integration owner and mandatory package/focused developer discovery. Preserve all exporter callers and existing platform guards; reuse named backend/frontend modules and existing Objective-C framework linking on macOS. File moves receive zero deletion credit.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "typed_opcode_program_adapter_owner",
+      "net_code_budget": 40,
+      "positive_growth_justification": "Move prover-returning X0 program adapters from the generic envelope into existing runtime_program extraction owner and migrate actual callers and assertions together. Repair exact std-only identity and retired build-owner references, while preserving product-closure exclusions and boundary mutations. No blanket allowlist expansion; moves receive zero deletion credit. Detached CPU fixture publication remains a separate ownership fix.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

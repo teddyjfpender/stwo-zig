@@ -1,12 +1,7 @@
 //! Offline native AIR catalog export. No guest, STARK or device execution.
 const std = @import("std");
-pub const codegen = struct {
-    pub const base = @import("backends/metal/runtime/base_polynomial_codegen.zig");
-    pub const lookup = @import("backends/metal/runtime/lookup_polynomial_codegen.zig");
-    pub const lookup_v2 = @import("backends/metal/runtime/lookup_polynomial_v2_codegen.zig");
-    pub const aot = @import("backends/metal/runtime/riscv_polynomial_aot_codegen.zig");
-};
-pub const Inventory = @import("frontends/riscv/air/native_polynomial_inventory_v1.zig").Inventory(codegen);
+pub const codegen = @import("stwo_metal_backend").riscv_polynomial_codegen;
+pub const Inventory = @import("stwo_riscv_frontend").air.native_polynomial_inventory_v1.Inventory(codegen);
 
 pub fn main() !void {
     var gpa = std.heap.DebugAllocator(.{}).init;

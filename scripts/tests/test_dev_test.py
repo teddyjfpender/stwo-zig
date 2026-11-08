@@ -12,6 +12,19 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_native_polynomial_aot_has_owned_exporter_and_mandatory_authority_tests(self):
+        directory = ROOT / "src/integrations/riscv_metal"
+        build = (directory / "build.zig").read_text()
+        for name in ("native_polynomial_aot_export.zig", "native_polynomial_aot_test_root.zig"):
+            (command,) = dev_test.commands_for_paths(ROOT, [(directory / name).relative_to(ROOT).as_posix()], check_only=True)
+            self.assertEqual(command[2], "test-native-polynomial-aot")
+            self.assertIn("-Dcheck-only=true", command)
+            self.assertLess(build.index(f'b.path("{name}")'), build.index("if (target.result.os.tag != .macos)"))
+        for edge in ("aot_step.dependOn(&exporter.step);", "test_step.dependOn(aot_step);", "else &b.addRunArtifact(aot_tests).step", "linkMetalFrameworks(exporter);", "linkMetalFrameworks(aot_tests);"):
+            self.assertIn(edge, build)
+        self.assertIn("RISC-V Metal integration requires macOS and the Metal SDK", build)
+        self.assertEqual(4, sum(line.startswith('test "') for line in (directory / "native_polynomial_aot_test_root.zig").read_text().splitlines()))
+
     def test_metal_resource_contracts_preserve_all_cases_and_mandatory_discovery(self):
         build = (ROOT / "src/backends/metal/build.zig").read_text()
         for filename, count in (

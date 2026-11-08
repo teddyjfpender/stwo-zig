@@ -3,6 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const check_only = b.option(bool, "check-only", "Compile focused source contracts without running") orelse false;
     const options = .{ .target = target, .optimize = optimize };
 
     const core = b.dependency("stwo_core", options).module("stwo_core");
@@ -25,6 +26,25 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_riscv_frontend", frontend);
 
     const test_step = b.step("test", "Run device-free RISC-V Metal integration tests");
+    const export_root = b.createModule(.{ .root_source_file = b.path("native_polynomial_aot_export.zig"), .target = target, .optimize = optimize });
+    export_root.addImport("stwo_metal_backend", metal);
+    export_root.addImport("stwo_riscv_frontend", frontend);
+    const exporter = b.addExecutable(.{ .name = "riscv-native-polynomial-aot-export", .root_module = export_root });
+    const aot_root = b.createModule(.{ .root_source_file = b.path("native_polynomial_aot_test_root.zig"), .target = target, .optimize = optimize });
+    aot_root.addImport("stwo_core", core);
+    aot_root.addImport("stwo_metal_backend", metal);
+    aot_root.addImport("stwo_riscv_frontend", frontend);
+    const aot_tests = b.addTest(.{ .root_module = aot_root });
+    if (target.result.os.tag == .macos) {
+        linkMetalFrameworks(exporter);
+        linkMetalFrameworks(aot_tests);
+    }
+    const aot_step = b.step("test-native-polynomial-aot", "Check native polynomial source authority and compile its offline exporter");
+    aot_step.dependOn(&exporter.step);
+    aot_step.dependOn(if (check_only) &aot_tests.step else &b.addRunArtifact(aot_tests).step);
+    test_step.dependOn(aot_step);
+    b.step("build-native-polynomial-aot-export", "Install the offline native AIR catalog exporter")
+        .dependOn(&b.addInstallArtifact(exporter, .{}).step);
     if (target.result.os.tag != .macos) {
         test_step.dependOn(&b.addFail("RISC-V Metal integration requires macOS and the Metal SDK").step);
     } else {

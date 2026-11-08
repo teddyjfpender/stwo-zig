@@ -23,6 +23,8 @@ from scripts.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_metal_integration", "src/integrations/riscv_metal/native_polynomial_aot_export.zig", "test-native-polynomial-aot"),
+    ("stwo_riscv_metal_integration", "src/integrations/riscv_metal/native_polynomial_aot_test_root.zig", "test-native-polynomial-aot"),
     ("stwo_metal_backend", "src/backends/metal/composition_pool_test_root.zig", "test-resource-contracts"),
     ("stwo_metal_backend", "src/backends/metal/external_allocation_admission_test_root.zig", "test-resource-contracts"),
     ("stwo_metal_backend", "src/backends/metal/fri_budget_test_root.zig", "test-resource-contracts"),
