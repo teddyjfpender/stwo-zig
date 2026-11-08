@@ -50,8 +50,8 @@ an admitted protocol and complete security accounting.
 Focused qualification commands, run from the repository root:
 
 ```
-zig test -OReleaseSafe --dep stwo_core -Mroot=src/prover/lookups/om31_test.zig -Mstwo_core=src/core/mod.zig
-zig test -OReleaseFast --dep stwo_core -Mroot=src/prover/lookups/om31_test.zig -Mstwo_core=src/core/mod.zig
+zig test -OReleaseSafe --dep stwo_core -Mroot=src/engine/prover/lookups/om31_test.zig -Mstwo_core=src/waist/core/mod.zig
+zig test -OReleaseFast --dep stwo_core -Mroot=src/engine/prover/lookups/om31_test.zig -Mstwo_core=src/waist/core/mod.zig
 zig build test-riscv64-logup-gkr-prototype test-riscv64-gkr-circuit -Doptimize=ReleaseSafe -j2
 zig build test-riscv64-logup-gkr-prototype test-riscv64-gkr-circuit -Doptimize=ReleaseFast -j2
 ```
@@ -64,7 +64,7 @@ adapters and OM31 circuit-wire tests are separate integration gates.
 
 Ownership regressions, including exhaustive allocation failures and caller input
 immutability, run with `owner_memory_test.zig` using the same focused command
-above. The bounded standalone `src/prover/gkr_memory_probe_root.zig` reports
+above. The bounded standalone `src/engine/prover/gkr_memory_probe_root.zig` reports
 requested allocator-live bytes, proof/transcript hashes and fresh terminal
 binding; it does not measure RSS or a complete production batch.
 

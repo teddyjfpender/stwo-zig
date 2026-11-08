@@ -87,7 +87,7 @@ backend.
 Focused package suite:
 
 ```sh
-zig build test --build-file src/examples/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/products/native/examples/build.zig -Doptimize=ReleaseFast -j2
 ```
 
 Run examples through the released Native CPU product:

@@ -77,7 +77,7 @@ without Metal hardware or Apple frameworks.
 From the repository root:
 
 ```sh
-zig build test --build-file src/tools/metal_session/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/backends/metal/session/build.zig -Doptimize=ReleaseFast -j2
 ```
 
 This is a service library, not the persistent process executable. It is run by

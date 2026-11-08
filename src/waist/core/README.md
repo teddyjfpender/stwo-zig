@@ -115,7 +115,7 @@ Run commands from the repository root. The owner-local command both compiles
 the public module and runs its focused and deep tests:
 
 ```sh
-zig build test --build-file src/core/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/waist/core/build.zig -Doptimize=ReleaseFast -j2
 ```
 
 The root product build emits the focused library object:

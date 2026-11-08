@@ -110,7 +110,7 @@ on this implementation.
 Run the owner-local build and tests from the repository root:
 
 ```sh
-zig build test --build-file src/prover/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/engine/prover/build.zig -Doptimize=ReleaseFast -j2
 ```
 
 Build the focused aggregate library surface with:

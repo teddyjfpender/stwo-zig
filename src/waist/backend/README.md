@@ -78,7 +78,7 @@ The package must never depend on a concrete backend or the prover engine.
 From the repository root:
 
 ```sh
-zig build test --build-file src/backend/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/waist/backend/build.zig -Doptimize=ReleaseFast -j2
 ```
 
 This is a contract library and has no executable. To exercise it, compile a

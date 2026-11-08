@@ -102,7 +102,7 @@ their native kind and schema into `BlobRefV1` without renumbering them.
 From the repository root, run exactly:
 
 ```sh
-zig build test --build-file src/artifact_store/build.zig -Doptimize=Debug -j2
+zig build test --build-file src/engine/artifact_store/build.zig -Doptimize=Debug -j2
 ```
 
 The package is a library rather than a standalone pipeline worker. Future

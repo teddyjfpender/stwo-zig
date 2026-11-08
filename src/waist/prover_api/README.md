@@ -110,7 +110,7 @@ the contract alone.
 From the repository root:
 
 ```sh
-zig build test --build-file src/prover_api/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/waist/prover_api/build.zig -Doptimize=ReleaseFast -j2
 ```
 
 This is a library-only package. There is no standalone runtime; use it from a

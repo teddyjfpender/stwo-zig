@@ -87,7 +87,7 @@ interchange layer.
 From the repository root:
 
 ```sh
-zig build test --build-file src/interop/proof_wire/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/waist/proof_wire/build.zig -Doptimize=ReleaseFast -j2
 ```
 
 This is a codec library and has no standalone command. The repository
