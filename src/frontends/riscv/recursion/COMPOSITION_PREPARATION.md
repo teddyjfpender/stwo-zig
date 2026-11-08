@@ -326,7 +326,8 @@ result is a historical snapshot, before the latest clock, alias and cancellation
 changes. The focused 52/53 header mismatch has an implemented eight-limb fix
 awaiting rerun. The schema-4 public-sum endpoint and schema-6 row-16 canonical
 claim routing also await combined proof-level verification. The evidence receipt
-is `autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/recursive-segment-v2-io-progress.json`.
+is `autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/recursive-segment-v2-io-progress.json`
+on the `archive/pre-restructure-20261108` branch.
 
 ## Bounded admission and tagged native transcript checkpoint
 

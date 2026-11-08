@@ -15,7 +15,7 @@ else:
     import benchmark_cairo as benchmark
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MANIFEST = ROOT / "autoresearch/benchmarks/cairo/manifest.json"
+DEFAULT_MANIFEST = ROOT / "bench/cairo/manifest.json"
 SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 

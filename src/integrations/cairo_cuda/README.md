@@ -112,9 +112,9 @@ qualified proofs, rather than statistical medians:
 | SN PIE 3 | 1.030 s | 5.570 s | 99.268 GB |
 | SN PIE 4 | 0.798 s | 5.248 s | 79.740 GB |
 
-The [v18 official-verifier receipt](../../../autoresearch/notes/2026-09-29-cairo-cuda-subsecond/suite-v18.json)
+The [v18 official-verifier receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-29-cairo-cuda-subsecond/suite-v18.json)
 contains proof digests, source identity, security settings, and per-stage times.
-The [research record](../../../autoresearch/notes/2026-09-29-cairo-cuda-subsecond/README.md)
+The [research record](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-29-cairo-cuda-subsecond/README.md)
 contains the paired comparisons and rejected variants. Proof execution/decode
 starts **after** authenticated input ingress; publication includes ingress,
 proof execution, and local proof decoding. Both measurements exclude PIE

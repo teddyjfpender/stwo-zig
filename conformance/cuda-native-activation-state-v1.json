@@ -259,19 +259,19 @@
         "conformance/evidence/cuda/system-architecture-sm89/receipt.json"
       ],
       "locked_host_aa_calibration": [
-        "autoresearch/tasks/cuda/06-cuda-autoresearch-activation.md"
+        "conformance/2026-07-24-cuda-system-architecture-goal.md"
       ],
       "candidate_dry_run": [
         "conformance/evidence/cuda/system-architecture-sm89/receipt.json"
       ],
       "predecessor_abba_rehearsal": [
-        "autoresearch/notes/2026-07-24-cuda-system-architecture/verdict.json"
+        "conformance/evidence/cuda/system-architecture-sm89/predecessor-abba-verdict.json"
       ],
       "mutation_and_anti_forgery": [
-        "autoresearch/tasks/cuda/06-cuda-autoresearch-activation.md"
+        "conformance/2026-07-24-cuda-system-architecture-goal.md"
       ],
       "full_repository_gates": [
-        "autoresearch/tasks/cuda/06-cuda-autoresearch-activation.md"
+        "conformance/2026-07-24-cuda-system-architecture-goal.md"
       ]
     },
     "blockers": {

@@ -171,16 +171,11 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             self.policy["lanes"]["cairo_cuda_integration"]["host"],
         )
 
-    def test_submission_diff_selects_only_the_link_reach(self) -> None:
-        # Submission metadata is externally validated; only the prover edits
-        # should expand this diff beyond the always-on lane. The circuit
-        # frontend commits preprocessed roots through the prover's PCS path,
-        # and the circuit CPU integration proves through it, so prover edits
-        # reach both lanes too.
+    def test_prover_diff_selects_only_the_link_reach(self) -> None:
+        # The circuit frontend commits preprocessed roots through the
+        # prover's PCS path, and the circuit CPU integration proves through
+        # it, so prover edits reach both lanes too.
         changed = [
-            "autoresearch/submissions/2026-07-20-x/delta.json",
-            "autoresearch/submissions/2026-07-20-x/note.md",
-            "autoresearch/submissions/2026-07-20-x/verdict.json",
             "src/prover/pcs/quotient_tile_executor.zig",
             "src/prover/vcs_lifted/prover.zig",
         ]

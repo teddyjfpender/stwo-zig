@@ -1,7 +1,18 @@
 {
   "schema": "stwo-zig-tooling-surface-v1",
-  "policy": "Only correctness, soundness, interoperability, and reproducible fixture authorities may live under tools/. Research and profiling helpers belong under autoresearch/. Every retained root has a bounded PR lane and an extraction condition.",
+  "policy": "Only correctness, soundness, interoperability, and reproducible fixture authorities may live under tools/. Retained profiling and paired-statistics helpers live under tools/perf/; one-off research helpers are not retained. Every retained root has a bounded PR lane and an extraction condition.",
   "roots": {
+    "perf": {
+      "owner": "performance",
+      "role": "performance-tooling",
+      "required_for": "Frozen paired-ratio statistics for the Native CUDA benchmark runner and the stwo-prof Zig/Metal/CUDA isolation and profiling CLI",
+      "live_callers": [
+        "scripts/native_cuda_benchmark_lib/runner.py",
+        "scripts/tests/test_stwo_prof_cuda.py"
+      ],
+      "pr_lanes": ["static", "script_contracts"],
+      "extraction": "publish as a standalone Python package once no repository script imports stwo_perf.stats"
+    },
     "cairo-witness-compiler": {
       "owner": "cairo-frontend",
       "role": "fixture-generator",

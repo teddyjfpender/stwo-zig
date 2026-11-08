@@ -74,7 +74,7 @@ class PackageReleaseTests(unittest.TestCase):
             self.assertIn("stwo_core-0.1.0/PACKAGE-RELEASE.json", names)
             self.assertIn("stwo_core-0.1.0/src/core/build.zig.zon", names)
             self.assertFalse(any(name.endswith(".rs") for name in names))
-            self.assertFalse(any("/autoresearch/" in name for name in names))
+            self.assertFalse(any("/guests/" in name for name in names))
             self.assertFalse(any("/formal/" in name for name in names))
             self.assertFalse(any("/vectors/" in name for name in names))
 

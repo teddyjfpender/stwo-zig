@@ -118,7 +118,7 @@ zig build package-dist
 ```
 
 The archives, `index.json`, and `SHA256SUMS` are written to
-`zig-out/packages/`. They exclude autoresearch, Rust tools, Lean workspaces,
+`zig-out/packages/`. They exclude guest sources, Rust tools, Lean workspaces,
 vectors, and deferred CUDA payloads while retaining every source and device
 asset required by the selected package closure. See the
 [package release policy](conformance/zig-package-release-policy.md).
@@ -308,7 +308,7 @@ python3 scripts/install_hooks.py
 | **[Package publishing](conformance/zig-package-release-policy.md)** | Deterministic source archives, clean-room gates, checksums, and release workflow |
 | **[Benchmark dashboard](bench/README.md)** | Formal CPU/SIMD and Metal results with commit, machine, capture time, and oracle provenance |
 | **[Benchmark history](vectors/reports/benchmark_history/index.json)** | Immutable judged runs, deltas, and bundles under human-readable run ids |
-| **[Local autoresearch tooling](autoresearch/README.md)** | Optional owner-operated performance harness; not installed in production CI |
+| **[Performance tooling](tools/perf/stwo-prof)** | `stwo-prof` Zig/Metal/CUDA isolation and profiling CLI plus frozen paired statistics; not installed in production CI |
 | **Design archive** | Prose architecture and history live in the sibling `stwo-zig-og-docs` directory |
 | **[Contributing](CONTRIBUTING.md)** | Zig, SIMD, Metal, correctness, and engineering standards |
 | **[Security](SECURITY.md)** | Private reporting scope and supported product surfaces |

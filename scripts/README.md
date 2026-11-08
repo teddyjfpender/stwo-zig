@@ -2,14 +2,16 @@
 
 `scripts/` contains only automation that is reachable from a current build,
 installed workflow, correctness or soundness contract, release process, hook,
-or production owner guide. Benchmark exploration, profiling, peer comparison,
-and one-off diagnostics belong under `autoresearch/`.
+or production owner guide. Retained profiling helpers live under `tools/perf/`;
+one-off benchmark exploration, peer comparison, and diagnostics are not kept in
+the repository (the retired research tree is preserved on the
+`archive/pre-restructure-20261108` branch).
 
 The boundary is enforced rather than maintained by convention:
 
 - `scripts/tests/test_script_reachability.py` rejects every unreachable
-  top-level script. Historical prose and `autoresearch/` are deliberately not
-  roots, so a stale mention cannot keep dead automation alive.
+  top-level script. Historical prose is deliberately not a
+  root, so a stale mention cannot keep dead automation alive.
 - `scripts/tests/test_source_conformance.py` checks entrypoint size, package
   ownership, and declared dependency direction.
 - `scripts/tests/test_ci_package_graph.py` and

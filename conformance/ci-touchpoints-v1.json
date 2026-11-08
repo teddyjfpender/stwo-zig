@@ -1455,8 +1455,5 @@
     "docs",
     "archive",
     "conformance"
-  ],
-  "externally_validated_prefixes": [
-    "autoresearch"
   ]
 }

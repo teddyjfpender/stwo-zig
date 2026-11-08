@@ -23,7 +23,7 @@ test "RW typed AIR semantic digest" {
 
 test "RW provider real fixture census" {
     const a = std.testing.allocator;
-    const bytes = try std.fs.cwd().readFileAlloc(a, "autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-three-segment-v1/memory-first-touch.bin", 1 << 20);
+    const bytes = try std.fs.cwd().readFileAlloc(a, "tests/fixtures/ethereum/exact-three-segment-v1/memory-first-touch.bin", 1 << 20);
     defer a.free(bytes);
     try std.testing.expectEqual(@as(usize, 0), bytes.len % 10);
     var addresses: std.ArrayList(u32) = .empty;

@@ -7,8 +7,8 @@ of passing unit tests behind.  These tests therefore drive
 rev-parse, executables' published registries, host capture, and per-case
 prove/verify -- so every production gate runs its real implementation over the
 real committed fixtures and a deleted call turns a test red. Legacy Stark-V
-timing comparisons live under ``autoresearch/`` and have their own optional
-test suite.
+timing comparisons were retired with the research tree
+(``archive/pre-restructure-20261108``).
 """
 
 from __future__ import annotations

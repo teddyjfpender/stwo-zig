@@ -416,7 +416,6 @@ class CiTests(unittest.TestCase):
         self.assertEqual(1, focused.count("SCOPE_ARGS+=(--full-matrix)"))
         self.assertIn('elif [ "${{ github.event_name }}" = "schedule" ]', focused)
         self.assertNotIn("PR6 fail-closed correctness smoke", focused)
-        self.assertNotIn("autoresearch.tests.test_manifest", focused)
         self.assertIn("run: python3 scripts/ci.py\n", workflow)
 
     def test_hosted_ci_cancels_stale_runs_and_avoids_duplicate_caches(self) -> None:

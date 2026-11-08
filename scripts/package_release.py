@@ -26,7 +26,7 @@ POLICY_SCHEMA = "stwo-zig-package-release-policy-v1"
 MANIFEST_SCHEMA = "stwo-zig-source-package-v1"
 INDEX_SCHEMA = "stwo-zig-package-release-index-v1"
 FORBIDDEN_PUBLISHED_PREFIXES = (
-    "autoresearch/",
+    "guests/",
     "formal/",
     "tools/",
     "vectors/",

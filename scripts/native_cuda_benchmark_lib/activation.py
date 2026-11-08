@@ -14,6 +14,8 @@ from typing import Any
 SCHEMA = "stwo_zig_native_cuda_activation_state_v1"
 BOARD = "core_cuda"
 PINNED_RUST_COMMIT = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
+BOARD_SCHEMA = "stwo_zig_native_cuda_activation_board_v1"
+DEFAULT_BOARD_PATH = Path("conformance/cuda-native-activation-board-v1.json")
 DEFAULT_STATE_PATH = Path(
     "conformance/cuda-native-activation-state-v1.json"
 )
@@ -611,8 +613,10 @@ def load_state(
 
 def validate_manifest_activation(root: Path, manifest: dict[str, Any]) -> None:
     """Bind the staged board to the exact activation authority."""
+    if not isinstance(manifest, dict) or manifest.get("schema") != BOARD_SCHEMA:
+        raise ActivationError("CUDA activation board schema is unsupported")
     try:
-        group = manifest["workload_registry"]["groups"]["cuda"]
+        group = manifest["groups"]["cuda"]
     except (KeyError, TypeError) as error:
         raise ActivationError("manifest has no Native CUDA group") from error
     if group.get("board") != BOARD:
@@ -675,9 +679,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = args.repo_root.resolve()
     try:
-        manifest = json.loads(
-            (root / "autoresearch/MANIFEST.json").read_bytes()
-        )
+        manifest = json.loads((root / DEFAULT_BOARD_PATH).read_bytes())
         validate_manifest_activation(root, manifest)
         state, digest = load_state(root)
     except (ActivationError, OSError, json.JSONDecodeError) as error:

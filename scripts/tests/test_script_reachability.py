@@ -2,9 +2,8 @@
 
 A production script earns its place through an installed workflow, build edge,
 machine-readable policy, current owner guide, hook, or another reachable
-script. Historical conformance prose and ``autoresearch/`` are deliberately
-not roots: mentioning retired code must not keep it alive forever, and research
-utilities belong under their own tree. Human-only production/soundness tools
+script. Historical conformance prose is deliberately not a root: mentioning
+retired code must not keep it alive forever. Human-only production/soundness tools
 must be declared below with an owner and purpose.
 """
 

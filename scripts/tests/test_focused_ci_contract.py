@@ -455,14 +455,6 @@ class PlannerContractTests(unittest.TestCase):
         )
         self.assertIn("macos_count=2", lines)
 
-    def test_submission_only_diff_selects_always_lanes_only(self) -> None:
-        changed = [
-            "autoresearch/submissions/2026-07-20-x/note.md",
-            "autoresearch/notes/tile-sweep.md",
-        ]
-        lanes, _ = ci_scope_plan.select_lanes(changed, self.catalog, self.policy)
-        self.assertEqual(sorted(lanes), ["static"])
-
     def test_hosted_flag_must_be_boolean(self) -> None:
         policy = json.loads(json.dumps(self.policy))
         policy["lanes"]["native_metal"]["hosted"] = "never"

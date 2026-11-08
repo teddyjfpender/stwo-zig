@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from autoresearch.cli.stwo_perf import stats
+from tools.perf.stwo_perf import stats
 from scripts.native_cuda_diagnostic_lib.contract import (
     validate_artifact,
     validate_report,

@@ -720,7 +720,7 @@ def render(plan, results):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("mode", choices=("plan", "run", "produce", "qualify", "report"))
-    p.add_argument("--basket", type=Path, default=Path("autoresearch/guest_efficiency/basket.json"))
+    p.add_argument("--basket", type=Path, default=Path("tests/fixtures/ethereum/basket.json"))
     p.add_argument("--inputs", type=Path, required=True)
     p.add_argument("--driver", type=Path, required=True)
     p.add_argument("--receiver", type=Path, required=True)

@@ -8,7 +8,7 @@
 //! the admitted step reported `IllegalInstruction` (no architectural change
 //! happened), executes the instruction here and retires exactly one instruction.
 //! Results that use it are evidence for an ISA proposal, never promotable.
-//! Rules: autoresearch/guest_efficiency/CONTEXT.md ("Candidate instructions").
+//! Rules: guests/ethereum/abi/CONTEXT.md ("Candidate instructions").
 const std = @import("std");
 const machine = @import("machine.zig");
 

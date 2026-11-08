@@ -18,8 +18,17 @@ The repository currently retains three kinds of adjacent evidence:
 - Rust interoperability and oracle tools under `tools/`, plus immutable
   manifests and a fetch boundary for the external CUDA host authority;
 - Lean refinement work under `formal/`; and
-- autoresearch harnesses, ledgers, reports, and optional workflow templates
-  under `autoresearch/`.
+- guest program sources under `guests/` and performance tooling under
+  `tools/perf/`.
+
+The former `autoresearch/` research tree was retired on 2026-11-08 at the
+owner's direction. Its live consumers were extracted first (performance tools
+to `tools/perf/`, guest sources to `guests/`, fixtures to `tests/fixtures/`,
+benchmark manifests to `bench/`, agent skills to `.claude/skills/`) and every
+consumer was repointed and tested. The remaining research history (notes,
+ledgers, submissions, experiments) is preserved by the immutable tag and branch
+`archive/pre-restructure-20261108`; it was not working code, so the replacement
+rule below did not apply to it.
 
 None enters a published Zig package archive. None is linked into a portable
 core, prover, frontend, or CPU package merely because it lives in this
@@ -42,16 +51,11 @@ This rule intentionally keeps the current CUDA and Lean work intact.
 ## CI boundary
 
 Hosted CI owns product correctness, package boundaries, formal claim gates, and
-release evidence. It does not judge or publish autoresearch work. The optional
-research workflows remain versioned in `autoresearch/workflows/` so the owner
-can install and run them explicitly, but no autoresearch workflow is installed
-under `.github/workflows/` and production CI imports no autoresearch tests.
+release evidence. Research work does not live in this repository and no
+research workflow is installed under `.github/workflows/`, so research ledger
+or dashboard changes cannot become merge requirements for production code.
 
-This separation also prevents research ledger or dashboard changes from
-becoming merge requirements for production code.
-
-Branch protection requires the stable production `Select focused gates` check;
-autoresearch judge and validation checks are not merge requirements.
+Branch protection requires the stable production `Select focused gates` check.
 
 ## Rust extraction
 

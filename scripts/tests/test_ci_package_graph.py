@@ -290,10 +290,6 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_always_lanes_are_the_documentation_floor(self) -> None:
         self.assertEqual(self.select("README.md"), set(POLICY["always_lanes"]))
-        self.assertEqual(
-            self.select("autoresearch/notes/2026-07-28-x/note.md"),
-            set(POLICY["always_lanes"]),
-        )
         self.assertEqual(self.select("docs/deep/nested/page.md"), set(POLICY["always_lanes"]))
 
     def test_static_floor_is_fast_and_complete_script_tests_are_separate(self) -> None:
@@ -361,7 +357,7 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_scheduled_full_matrix_selects_every_hosted_lane(self) -> None:
         lanes, reasons = ci_scope_plan.select_lanes(
-            ["autoresearch/notes/x/note.md"],
+            ["docs/x/note.md"],
             self.catalog,
             POLICY,
             self.packages,
@@ -377,7 +373,7 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_scheduled_full_matrix_spares_unselected_self_hosted_lanes(self) -> None:
         lanes, reasons = ci_scope_plan.select_lanes(
-            ["autoresearch/notes/x/note.md"],
+            ["docs/x/note.md"],
             self.catalog,
             POLICY,
             self.packages,
