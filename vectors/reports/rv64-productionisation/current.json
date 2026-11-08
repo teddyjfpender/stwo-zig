@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS",
-  "updated_utc": "2026-11-08T15:12:55Z",
+  "updated_utc": "2026-11-08T15:18:55Z",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-gpu-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -1549,5 +1549,22 @@
     "binary_continuity": "Freeze successful gate driver/receiver and all canonical/basket assets across subsequent stages",
     "optional_profiles": false,
     "no_speedup_claim": true
+  },
+  "preservation_followup": {
+    "priority": "HYGIENE_AND_PRESERVATION_FIRST",
+    "user_storage_preference": "LOCAL_LAPTOP_ACCEPTED",
+    "source_backup_branch": "refs/heads/codex/rv64-gpu-hygiene-local",
+    "source_checkpoint_verified_on_origin": "0fd4c01b25b38be507165645366ba71a3d3b9b55",
+    "original_hygiene_remote_unchanged": "51897dc265593df7580c4abf0b232909fc105e34",
+    "local_worktree_at_checkpoint": "CLEAN_ALL_SOURCE_EDITS_COMMITTED",
+    "origin_archive_tags_verified": 242,
+    "tag_object_and_peeled_records_verified": 484,
+    "missing_or_different_archive_records": 0,
+    "local_recovery_payloads_verified": 338,
+    "local_recovery_payload_bytes": 21557449,
+    "public_recovery_payload_upload": false,
+    "raw_pod_evidence": "NOT_ALL_CONFIRMED_LOCAL; retrieve and hash-verify before any new GPU work on next funded restart",
+    "pod_volume": "PRESERVED_STOPPED_80GB_POD_VOLUME_NOT_NETWORK_VOLUME",
+    "hardware_promotion": false
   }
 }

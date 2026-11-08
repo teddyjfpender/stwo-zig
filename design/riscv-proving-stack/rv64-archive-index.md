@@ -27,6 +27,27 @@ none was an open PR head. An atomic push with an expected-head lease for each
 literal ref retired all 72. Their absence and preservation of the active
 hygiene and integration/PR heads were verified afterwards.
 
+## Current preservation status (2026-11-08)
+
+The user accepts local storage on this laptop for recovery archives and raw
+GPU evidence. No public upload of untracked recovery payloads is authorised.
+The local recovery bundle was rechecked: all 338 payload files match their
+recorded sizes and SHA-256 values (21,557,449 bytes), with no extra files.
+
+The unqualified source checkpoint `0fd4c01b25b38be507165645366ba71a3d3b9b55`
+is preserved on origin branch `codex/rv64-gpu-hygiene-local`. This is a backup,
+not a hardware-qualified integration or default promotion. At publication,
+origin `codex/rv64-gpu-hygiene` remained at `51897dc265593df7580c4abf0b232909fc105e34`.
+All 242 archive tags and their 484 object/peeled records were rechecked against
+local refs, with no missing or differing records.
+
+The RunPod copy below was verified when copied; it is not a durable-storage
+claim. Pod `cps13bvat3xhdo` is stopped with a negative account balance and an
+80 GB pod volume, not a network volume. Raw logs, traces and proofs referenced
+by pod paths are not all confirmed local. On the next funded restart, copy
+and independently hash-verify that evidence onto this laptop before any new
+benchmark, cleanup or volume retirement. Keep the pod and volume intact.
+
 ## Recovery data off the laptop
 
 The verified copy is on RunPod pod `cps13bvat3xhdo`, persistent path:
