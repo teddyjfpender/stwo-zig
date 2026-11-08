@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import json
 import struct
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 from scripts.repo import check_product_closure as command
+from scripts.native import check_native_cpu_product
 from scripts.repo.product_closure.graph import ClosureError, inspect_sources
 from scripts.repo.product_closure.linkage import (
     DynamicLinkage,
@@ -16,6 +19,34 @@ from scripts.repo.product_closure.linkage import (
 )
 from scripts.repo.product_closure.model import Manifest, NamedImport
 from scripts.tests.product_closure_recursion_cases import RecursionOwnershipTest
+
+
+class NativeCpuProductCheckTest(unittest.TestCase):
+    def check(self, payload: bytes, *, rewind: bool = False, exit_code: int = 0) -> list[str]:
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory) / "applications"
+            binary.write_text(
+                f"#!{sys.executable}\nimport os\n"
+                + ("os.lseek(1, 0, os.SEEK_SET)\n" if rewind else "")
+                + f"os.write(1, {payload!r})\nraise SystemExit({exit_code})\n"
+            )
+            binary.chmod(0o755)
+            return check_native_cpu_product.check_binary(binary)
+
+    def test_real_streaming_subprocess_preserves_prior_redirected_output(self) -> None:
+        registry = {"product": {"name": "stwo-native-cpu"}, "applications": [{"air": "xor"}]}
+        self.assertEqual([], self.check(json.dumps(registry).encode()))
+
+    def test_rewinding_subprocess_reproduces_overwrite_failure(self) -> None:
+        self.assertIn("overwrote prior", self.check(b"{}", rewind=True)[0])
+
+    def test_malformed_or_wrong_registry_is_rejected(self) -> None:
+        for raw in (b"invalid", b"[]", b"{}", b'{"product": {}, "applications": []}'):
+            with self.subTest(raw=raw):
+                self.assertTrue(self.check(raw))
+
+    def test_failed_command_cannot_pass_with_registry_bytes(self) -> None:
+        self.assertIn("exited 1", self.check(b"{}", exit_code=1)[0])
 
 
 class SourceClosureTest(unittest.TestCase):

@@ -92,7 +92,7 @@ fn verifyArtifact(allocator: std.mem.Allocator, request: cli.Verify) !void {
 
 fn writeApplications() !void {
     var buffer: [4096]u8 = undefined;
-    var output = std.fs.File.stdout().writer(&buffer);
+    var output = std.fs.File.stdout().writerStreaming(&buffer);
     try registry.write(&output.interface);
     try output.interface.writeByte('\n');
     try output.interface.flush();
