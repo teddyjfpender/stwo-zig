@@ -44,5 +44,16 @@
       "samples": 10030,
       "nativeMainnetDeepGas": 303806494
     }
-  ]
+  ],
+  "fullPcs": {
+    "worker": "truth-1.bin",
+    "workerSha256": "2a58da564f49126e62954fd05c11e268620219e655cf63bdcc47376952e1a274",
+    "domainLog": 7,
+    "queries": 74,
+    "samples": 7453,
+    "blockGasLimit": 5000000000,
+    "ethCallAccepted": true,
+    "ethEstimateGas": 1724143850,
+    "traceFixtureSha256": "75534ae4ed7f16df4c768faad1cd6dbf95e963f7c82490fa00ae254480570fdb"
+  }
 }

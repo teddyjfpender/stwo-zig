@@ -318,9 +318,24 @@ python3 tools/export_native_deep.py capture.log receive.json \
   cpu-0.bin fixtures/native-deep-120794432-cpu-0.json.gz --block 120794432
 ```
 
-The captured replay checks one DEEP-to-FRI opening per worker. The bounded
-vector above checks the complete composed PCS call. See [FRI.md](FRI.md)
-for the separate full layer replays using captured native DEEP answers.
+The composed PCS call also passed for the complete native `truth-1.bin`
+worker on Shanghai Anvil. It derived all 74 distinct queries, authenticated
+their trace openings, computed the DEEP quotients from 7,453 samples and
+verified the full FRI chain. `eth_estimateGas` reported 1,724,143,850 gas.
+The run used an elevated five billion gas limit for local conformance.
+
+Regenerate the all-query trace input from the same accepted capture, then
+run the opt-in test against the checked-in FRI layer fixture.
+
+```sh
+python3 tools/export_native_deep.py capture.log receive.json \
+  truth-1.bin /tmp/native-deep-truth-1-all.json.gz --block 120794432 --queries 108
+STWO_NATIVE_PCS_FIXTURE=/tmp/native-deep-truth-1-all.json.gz \
+  ANVIL_GAS_LIMIT=5000000000 npm test
+```
+
+See [FRI.md](FRI.md) for the separate full layer replays using captured
+native DEEP answers.
 
 ## Mainnet provenance
 

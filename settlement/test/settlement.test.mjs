@@ -52,7 +52,8 @@ console.log(JSON.stringify({ compiler: compiler || solc.version(), compileMs: Ma
 const blockGasLimit = Number(process.env.ANVIL_GAS_LIMIT ?? 100_000_000);
 const chain = spawn(process.env.ANVIL ?? "anvil", [
   "--port", "0", "--hardfork", process.env.ANVIL_HARDFORK ?? "shanghai", "--gas-limit", String(blockGasLimit),
-  ...(process.env.STWO_NATIVE_DEEP_FIXTURE ? ["--no-request-size-limit"] : []),
+  ...(process.env.STWO_NATIVE_DEEP_FIXTURE || process.env.STWO_NATIVE_PCS_FIXTURE
+    ? ["--no-request-size-limit"] : []),
 ]);
 after(() => chain.kill());
 const rpc = await new Promise((resolve, reject) => {
@@ -213,6 +214,36 @@ test("replays native OP Mainnet worker DEEP queries", { skip: mainnetDeepFixture
       queries: fixture.queries, columns: fixture.columns.length,
       samples: (fixture.samples.length - 2) / 64, nativeMainnetDeepGas: Number(receipt.gasUsed),
     }));
+  }
+});
+
+const mainnetPcsFixture = process.env.STWO_NATIVE_PCS_FIXTURE;
+test("joins all real Mainnet DEEP and FRI queries", { skip: !mainnetPcsFixture }, async () => {
+  const data = JSON.parse(gunzipSync(readFileSync(mainnetPcsFixture)));
+  const fri = JSON.parse(readFileSync(new URL("../fixtures/native-fri-120794432-truth-1.json", import.meta.url)));
+  assert.equal(data.workerSha256, fri.workerSha256);
+  assert.equal(data.prePowDigest, fri.prePowDigest);
+  assert.equal(data.samples, fri.input.samples);
+  assert.equal(data.prefix, fri.input.prefix);
+  const pcs = await deploy("test/DeepFriHarness.sol", "DeepFriHarness");
+  const layout = {
+    domainLog: data.domainLog, sampleCount: fri.input.sampleCount,
+    columns: data.columns, points: data.points, trees: data.trees,
+  };
+  const proof = {
+    friRoots: fri.input.roots, lastCoefficient: fri.input.lastCoefficient,
+    nonce: fri.input.nonce, traces: data.openings, layers: fri.layers,
+  };
+  const args = [data.prefix, data.samples, layout, proof, { gasLimit: blockGasLimit }];
+  try {
+    assert.equal(await pcs.check(...args), true);
+    const estimate = await pcs.check.estimateGas(...args);
+    console.log(JSON.stringify({
+      block: data.blockNumber, worker: data.worker, workerSha256: data.workerSha256,
+      queries: data.queries.length, samples: fri.input.sampleCount, fullPcsEstimatedGas: estimate.toString(),
+    }));
+  } catch (error) {
+    throw new Error(error.info?.error?.message ?? error.shortMessage ?? error.message);
   }
 });
 
