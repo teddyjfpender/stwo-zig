@@ -1174,6 +1174,56 @@
       "phase_complete": false,
       "pushed": false,
       "evidence_root": "/Users/theodorepender/Coding/stwo-zig-evidence/local/delivery-20261108"
+    },
+    "delivery_proof_wire_existing_family_checks": {
+      "baseline_commit": "47307c39c782059bfe13418d0b61c13d6a16aba3",
+      "status": "PASS_CPU_PROVIDER_DEBUG_RELEASEFAST_API_DECISION_PENDING",
+      "code": {
+        "added": 132,
+        "removed": 0,
+        "net": 132,
+        "allowance": 150
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "validation": [
+        {
+          "label": "proof-wire-Debug",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "Debug",
+            "src/waist/proof_wire/mod.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 406847488,
+          "wall_seconds": 2.6854497909662314
+        },
+        {
+          "label": "proof-wire-ReleaseFast",
+          "argv": [
+            "python3",
+            "scripts/dev_test.py",
+            "--optimize",
+            "ReleaseFast",
+            "src/waist/proof_wire/mod.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 597016576,
+          "wall_seconds": 10.474387917027343
+        }
+      ],
+      "claim_boundary": "Provider fixture execution only. No ledger or version change, fresh product acceptance, live Sail, GPU operation or publication."
     }
   },
   "post_merge_hygiene": {
