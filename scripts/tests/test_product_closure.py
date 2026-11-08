@@ -5,6 +5,7 @@ import struct
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 from scripts import check_product_closure as command
 from scripts.product_closure.graph import ClosureError, inspect_sources
 from scripts.product_closure.linkage import (
@@ -56,6 +57,7 @@ class SourceClosureTest(unittest.TestCase):
             allowed_prefixes=("src/core", "src/frontends/riscv"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
+        self.assertIn("src/frontends/riscv/air/x0_native_envelope_v1.zig", sources)
         for source in sources:
             self.assertNotIn("legacy_test_oracle", source)
             if source.startswith("src/frontends/riscv/"):
@@ -65,6 +67,18 @@ class SourceClosureTest(unittest.TestCase):
                     "mod.zig", "common.zig", "control_common.zig", "shift_common.zig",
                     "read_access.zig",
                 })
+
+    def test_typed_opcode_authority_rejects_a_prover_dependency(self) -> None:
+        owner = Path(__file__).resolve().parents[2] / "src/frontends/riscv/air/x0_native_envelope_v1.zig"
+        read_text = Path.read_text
+
+        def mutated_text(path: Path, *args: object, **kwargs: object) -> str:
+            text = read_text(path, *args, **kwargs)
+            return text + '\nconst forbidden = @import("stwo_prover_engine");\n' if path == owner else text
+
+        with mock.patch.object(Path, "read_text", mutated_text):
+            with self.assertRaisesRegex(ClosureError, "x0_native_envelope_v1.zig: undeclared named import 'stwo_prover_engine'"):
+                self.test_typed_opcode_production_excludes_retired_evaluators()
 
     def test_resolves_relative_and_named_imports(self) -> None:
         self.write(
@@ -280,7 +294,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         for line in public.splitlines():
             if line.startswith("pub const recursive_segment_v2_"):
                 self.assertTrue(line.startswith("pub const recursive_segment_v2_detached_"), line)
-        build = (integration / "build_segment_steps.zig").read_text()
+        build = (integration / "build.zig").read_text()
         for name in ("recursive_temporal_parent_real_proof_runner", "recursive_segment_v2_poseidon_ingress_runner"):
             self.assertFalse((integration / (name + ".zig")).exists())
             self.assertNotIn(name, build)
@@ -613,6 +627,7 @@ class RecursionOwnershipTest(unittest.TestCase):
                     "recursion/poseidon2_canonical_word_sponge.zig",
                     "recursion/vm_public_claim.zig",
                     "recursion/vm_public_claim_layout.zig",
+                    "recursion/blake3_identity_digest.zig",
                 )
             ),
             allowed_prefixes=("src/core",),

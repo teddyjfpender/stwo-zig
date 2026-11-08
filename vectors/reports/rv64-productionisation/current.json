@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS",
-  "updated_utc": "2026-11-08T14:54:47Z",
+  "updated_utc": "2026-11-08T14:57:24Z",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-gpu-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -570,7 +570,7 @@
     "baseline": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
     "delivered_code_net": -68160,
     "pending_code_net": 322,
-    "combined_code_net": -67264,
+    "combined_code_net": -67243,
     "production_code_net": -42182,
     "historical_research_code_net": -25656,
     "top_level_scripts_removed": 150,
@@ -579,7 +579,7 @@
     "live_flag_registry": "IMPLEMENTED: 260 live controls; <60 target and M7/M8 retirement remain open",
     "historical_tool_python_utilities_removed": 4,
     "historical_non_stwo_flags_removed": 3,
-    "local_code_net_since_published": 896,
+    "local_code_net_since_published": 917,
     "local_includes_unqualified_changes": true,
     "moves_counted_as_deletions": false
   },
@@ -982,6 +982,36 @@
       "preservation_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/native-polynomial-aot-owner-v1-preservation.json",
       "zig_execution": "NOT_RUN_LOCAL_RESOURCE_LIMIT",
       "gpu_gate": "NOT_RUN_CREDIT_EXHAUSTED"
+    },
+    "typed_opcode_program_adapter_owner": {
+      "status": "FOCUSED_SOURCE_BOUNDARY_CHECKS_PASS_FULL_PRODUCT_CLOSURE_STILL_FAILS_DETACHED_CPU_FIXTURE",
+      "actual": {
+        "added": 96,
+        "removed": 75,
+        "net": 21,
+        "runtime_flags_added": 0,
+        "runtime_flags_removed": 0,
+        "scripts_added": 0,
+        "scripts_removed": 0
+      },
+      "runtime_adapters_moved": 3,
+      "call_sites_migrated": 6,
+      "runtime_geometry_assertions": "PRESERVED_IN_EXISTING_RUNTIME_OWNER",
+      "pure_envelope_assertions": "PRESERVED",
+      "closure_mutation": "reject reintroduced prover dependency",
+      "focused_source_tests": {
+        "passed": 14,
+        "skipped": 0
+      },
+      "named_product_closure_tests": {
+        "passed": 39,
+        "errors": 1,
+        "skipped": 0
+      },
+      "remaining_error": "Detached preparation reaches CPU fixture through AIR facade",
+      "zig_ast_check": "PASS_TWO_OWNERS",
+      "full_zig_compile": "PENDING",
+      "moves_counted_as_deletions": false
     }
   },
   "latest_completed_hardware_timings": {
