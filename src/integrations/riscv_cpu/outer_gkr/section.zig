@@ -19,6 +19,13 @@ const L = engine.lookups;
 pub const G = L.gkr_verifier.ForField(O);
 pub const GP = L.gkr_prover.ForField(O);
 const Fast = L.gkr_prover_fast.ForField(O);
+pub const CpuStats = struct {
+    build_ns: u64 = 0,
+    sumcheck_ns: u64 = 0,
+    peak_layer_bytes: u64 = 0,
+    unit_instances: u64 = 0,
+    unit_facts: u64 = 0,
+};
 const Poly = L.utils.UnivariatePoly(O);
 const MleBase = L.mle.MleFor(O, M31);
 const MleSecure = L.mle.MleFor(O, O);
@@ -243,13 +250,23 @@ pub fn terminalExpected(a: std.mem.Allocator, inputs: *const Inputs, verified: *
 /// The independent reference remains available to differential tests. Neither
 /// path mutates borrowed facts or changes the verifier/transcript construction.
 pub fn proveCpu(a: std.mem.Allocator, channel: *const RawChannel, class: *const P.Class, inputs: *const Inputs) !Section {
-    return proveCpuImpl(true, a, channel, class, inputs);
+    return proveCpuWithStats(a, channel, class, inputs, null);
+}
+pub fn proveCpuWithStats(a: std.mem.Allocator, channel: *const RawChannel, class: *const P.Class, inputs: *const Inputs, stats: ?*CpuStats) !Section {
+    if (stats) |out| out.* = .{};
+    return proveCpuImpl(true, a, channel, class, inputs, stats);
 }
 pub fn proveCpuReferenceForTesting(a: std.mem.Allocator, channel: *const RawChannel, class: *const P.Class, inputs: *const Inputs) !Section {
     if (!@import("builtin").is_test) return error.TestOnly;
-    return proveCpuImpl(false, a, channel, class, inputs);
+    return proveCpuImpl(false, a, channel, class, inputs, null);
 }
-fn proveCpuImpl(comptime optimized: bool, a: std.mem.Allocator, channel: *const RawChannel, class: *const P.Class, inputs: *const Inputs) !Section {
+/// Checked property of the actual borrowed values, not a family declaration.
+pub fn unitNumerators(values: []const M31) bool {
+    comptime std.debug.assert(@sizeOf(M31) == @sizeOf(u32));
+    const words: [*]const u32 = @ptrCast(values.ptr);
+    return std.mem.allEqual(u32, words[0..values.len], 1);
+}
+fn proveCpuImpl(comptime optimized: bool, a: std.mem.Allocator, channel: *const RawChannel, class: *const P.Class, inputs: *const Inputs, stats: ?*CpuStats) !Section {
     try class.validate();
     if (inputs.numerators.len != class.instances.len or inputs.denominators.len != class.instances.len) return error.OuterGkrShapeMismatch;
     const Layer = if (optimized) Fast.Input else GP.Layer;
@@ -258,7 +275,16 @@ fn proveCpuImpl(comptime optimized: bool, a: std.mem.Allocator, channel: *const 
     for (layers, class.instances, inputs.numerators, inputs.denominators) |*l, inst, n, d| {
         const count = @as(usize, 1) << @intCast(inst.variables());
         if (n.len != count or d.len != count) return error.OuterGkrShapeMismatch;
-        l.* = if (optimized) .{ .num = .{ .base = n }, .den = d, .owned = false } else .{ .LogUpMultiplicities = .{ .numerators = try MleBase.initBorrowed(n), .denominators = try MleSecure.initBorrowed(d) } };
+        // This is a checked specialization of the actual immutable facts,
+        // never an assertion inferred from a producer tag or family name.
+        // A unit MLE remains exactly one under every sumcheck fold, so the
+        // existing singles kernel needs no numerator buffers or arithmetic.
+        const unit = optimized and unitNumerators(n);
+        l.* = if (optimized) .{ .num = if (unit) .ones else .{ .base = n }, .den = d, .owned = false } else .{ .LogUpMultiplicities = .{ .numerators = try MleBase.initBorrowed(n), .denominators = try MleSecure.initBorrowed(d) } };
+        if (unit) if (stats) |out| {
+            out.unit_instances += 1;
+            out.unit_facts += count;
+        };
     }
     const workers = if (engine.work_pool.currentScopedPool()) |pool| @min(engine.lookups.row_work.MAX_SHARDS, pool.availableWorkers()) else 1;
     var salt_value: u32 = 0;
@@ -266,7 +292,13 @@ fn proveCpuImpl(comptime optimized: bool, a: std.mem.Allocator, channel: *const 
         const salt = O.fromBase(M31.fromCanonical(salt_value));
         var prover_channel = channel.*;
         try mixHeader(&prover_channel, class, salt);
-        var result = if (optimized) try Fast.proveBatch(a, &prover_channel, layers, .{ .threads = @max(1, workers), .use_scoped_pool = true }, null) else try GP.proveBatch(a, &prover_channel, layers);
+        var attempt: Fast.Stats = .{};
+        var result = if (optimized) try Fast.proveBatch(a, &prover_channel, layers, .{ .threads = @max(1, workers), .use_scoped_pool = true }, if (stats != null) &attempt else null) else try GP.proveBatch(a, &prover_channel, layers);
+        if (stats) |out| {
+            out.build_ns += attempt.build_ns;
+            out.sumcheck_ns += attempt.sumcheck_ns;
+            out.peak_layer_bytes = @max(out.peak_layer_bytes, attempt.peak_layer_bytes);
+        }
         result.artifact.deinit(a);
         var section = Section{ .class = class, .salt = salt, .proof = result.proof };
         // Admission replay: strict draws and constant shape, exactly what the receiver runs.

@@ -31,14 +31,14 @@ pub const Snapshot = struct {
     allocated_slots: u64,
     actual_shards: u64,
 };
-pub fn save(a: std.mem.Allocator, directory: []const u8, authority: [32]u8, counters: []const Counters, labels: []const []const u8) !void {
+pub fn save(a: std.mem.Allocator, directory: []const u8, authority: [32]u8, counters: []const Counters, labels: []const []const u8, gkr: anytype) !void {
     if (counters.len != labels.len) return error.InvalidHybridMetrics;
     const Row = struct { component: []const u8, metrics: Snapshot };
     const rows = try a.alloc(Row, counters.len);
     defer a.free(rows);
     for (rows, counters, labels) |*out, *counter, label| out.* = .{ .component = label, .metrics = counter.snapshot() };
     const identity = std.fmt.bytesToHex(authority, .lower);
-    const encoded = try std.json.Stringify.valueAlloc(a, .{ .schema = "stwo.circuit.om31.hybrid-components.v1", .authority = identity[0..], .scope = "summed component wall intervals; may overlap, not block wall time", .components = rows }, .{ .whitespace = .indent_2 });
+    const encoded = try std.json.Stringify.valueAlloc(a, .{ .schema = "stwo.circuit.om31.hybrid-components.v1", .authority = identity[0..], .scope = "summed component wall intervals; may overlap, not block wall time; GKR peak_layer_bytes excludes inputs and other owners", .gkr = gkr, .components = rows }, .{ .whitespace = .indent_2 });
     defer a.free(encoded);
     const parent = try std.fmt.allocPrint(a, "{s}/components", .{directory});
     defer a.free(parent);

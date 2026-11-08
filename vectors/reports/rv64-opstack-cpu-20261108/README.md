@@ -1,5 +1,23 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The [unit-weight/ownership qualification](recursion-m7-unit-owned.json)
+still reproduces all five M7 physical proofs and passes fresh strict reception.
+Each unit specialization checks the actual immutable numerator array before
+using the existing singles kernel; changing one weight selects weighted work.
+Constant numerator contributions are hoisted from the binding projection.
+M7 also transfers INTER once through the explicit monolithic PCS API. The
+full wrapper failure/retirement and physical corruption suite passes.
+
+The single qualification takes 38.143 s with 3.710 s fresh reception. Repeated
+trials have substantial drift and do not establish another complete-root
+speedup or an RSS reduction; the final control tail also overlaps a short
+compiler/test. Per-proof GKR metrics now split tree construction and sumcheck
+and record specialized facts. Layer bytes exclude inputs and other owners and
+must not be summed into a peak RSS estimate.
+
+The [direct-load kernel probe](rejected-om31-direct-load.json) also preserves
+all transcripts but gives no useful gain. That source experiment is reverted.
+
 The [joined CPU-wave comparison](recursion-m7-joined.json) reduces M7's
 cyclic binding construction from 6.083 to 1.613 s and composition from
 11.782 to 9.097 s summed over four outer proofs. Four cold interleaved trials

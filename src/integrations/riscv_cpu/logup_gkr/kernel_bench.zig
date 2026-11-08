@@ -6,7 +6,7 @@
 //! kernel change can be checked byte-for-byte against the previous binary.
 //!
 //!   gkr <log> <singles|generic|mixed> <fast|reference> <threads> [reps]
-//!   om31 <log> [reference|fast] [threads] [reps]  OM31 LogUpMultiplicities (services shape)
+//!   om31 <log> [reference|fast|fast-scoped] [threads] [reps]  OM31 multiplicities
 //!   logup <log> <n_sums> <threads> [reps]  frontend generateParallelColumns
 //!   columns <log> <width> <threads> [reps] engine logup_columns.build
 //!   inverse <log> <threads> [reps]         chunked QM31 batch inversion (4096)
@@ -202,6 +202,8 @@ fn benchGkr(a: std.mem.Allocator, log: u32, kind_text: []const u8, impl: []const
 // ------------------------------------------------------- GKR generic (OM31)
 
 fn benchOm31(a: std.mem.Allocator, log: u32, impl: []const u8, threads: usize, reps: usize) !void {
+    if (threads == 0 or threads > lookups.gkr_prover_fast.MAX_THREADS) return error.InvalidGkrThreads;
+    if (reps == 0) return error.InvalidRepetitions;
     // `reference` is the production `gkr_prover.proveBatch` (PR #309 packed
     // numerical kernels); with threads > 1 it runs on a scoped work pool of
     // that many workers, which is how its row kernels parallelise.
@@ -214,7 +216,8 @@ fn om31PoolBody(_: *work.WorkPool, a: std.mem.Allocator, log: u32, impl: []const
 }
 
 fn benchOm31Run(a: std.mem.Allocator, log: u32, impl: []const u8, threads: usize, reps: usize) !void {
-    const fast = std.mem.eql(u8, impl, "fast");
+    const scoped = std.mem.eql(u8, impl, "fast-scoped");
+    const fast = std.mem.eql(u8, impl, "fast") or scoped;
     if (!fast and !std.mem.eql(u8, impl, "reference")) return error.InvalidGkrImpl;
     const Fast = lookups.gkr_prover_fast.ForField(OM31);
     const GP = lookups.gkr_prover.ForField(OM31);
@@ -231,6 +234,10 @@ fn benchOm31Run(a: std.mem.Allocator, log: u32, impl: []const u8, threads: usize
     for (den) |*d| d.* = .{ .c0 = randQ(r), .c1 = randQ(r) };
     const ns = try a.alloc(u64, reps);
     defer a.free(ns);
+    const builds = try a.alloc(u64, reps);
+    defer a.free(builds);
+    const sumchecks = try a.alloc(u64, reps);
+    defer a.free(sumchecks);
     var digest: [64]u8 = undefined;
     for (0..reps) |rep| {
         var layers = [_]GP.Layer{.{ .LogUpMultiplicities = .{ .numerators = try Mle(OM31, M31).initOwned(try a.dupe(M31, num)), .denominators = try Mle(OM31, OM31).initOwned(try a.dupe(OM31, den)) } }};
@@ -239,8 +246,11 @@ fn benchOm31Run(a: std.mem.Allocator, log: u32, impl: []const u8, threads: usize
         channel.mixU32s(&.{ 0x42454e43, log });
         var timer = try std.time.Timer.start();
         // Fast inputs are borrowed, exactly as the services child passes them.
-        var result = if (fast) try Fast.proveBatch(a, &channel, &.{.{ .num = .{ .base = num }, .den = den, .owned = false }}, .{ .threads = threads }, null) else try GP.proveBatch(a, &channel, &layers);
+        var stats: Fast.Stats = .{};
+        var result = if (fast) try Fast.proveBatch(a, &channel, &.{.{ .num = .{ .base = num }, .den = den, .owned = false }}, .{ .threads = threads, .use_scoped_pool = scoped }, &stats) else try GP.proveBatch(a, &channel, &layers);
         ns[rep] = timer.read();
+        builds[rep] = stats.build_ns;
+        sumchecks[rep] = stats.sumcheck_ns;
         defer result.deinit(a);
         var h = std.crypto.hash.sha2.Sha256.init(.{});
         h.update(&channel.digestBytes());
@@ -250,7 +260,7 @@ fn benchOm31Run(a: std.mem.Allocator, log: u32, impl: []const u8, threads: usize
         digest = hexDigest(&h);
     }
     const s = Sample.of(ns);
-    try emit(a, .{ .kernel = "om31", .impl = impl, .log = log, .threads = threads, .reps = reps, .leaves = n, .min_ns = s.min, .median_ns = s.median, .ns_per_leaf = @as(f64, @floatFromInt(s.median)) / @as(f64, @floatFromInt(n)), .sha256 = digest });
+    try emit(a, .{ .kernel = "om31", .impl = impl, .log = log, .threads = threads, .reps = reps, .leaves = n, .min_ns = s.min, .median_ns = s.median, .ns_per_leaf = @as(f64, @floatFromInt(s.median)) / @as(f64, @floatFromInt(n)), .build_median_ns = if (fast) Sample.of(builds).median else @as(?u64, null), .sumcheck_median_ns = if (fast) Sample.of(sumchecks).median else @as(?u64, null), .sha256 = digest });
 }
 
 // ------------------------------------------------------ LogUp interaction

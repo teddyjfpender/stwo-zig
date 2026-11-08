@@ -70,7 +70,8 @@ fn proveImpl(a: std.mem.Allocator, key: *const R.Key, values: []const Outer.prot
     if (mutate) |corrupt| try corrupt(&inputs);
     var gkr_scope = try Capture.Scope.begin(recorder, "outer_gkr_prove", "Hybrid lookup GKR section");
     defer gkr_scope.end();
-    var section = try S.proveCpu(a, &channel, &key.class, &inputs);
+    var gkr_stats: S.CpuStats = .{};
+    var section = try S.proveCpuWithStats(a, &channel, &key.class, &inputs, if (capture != null) &gkr_stats else null);
     gkr_scope.end();
     errdefer section.deinit(a);
     var verify_scope = try Capture.Scope.begin(recorder, "outer_gkr_verify", "Independent native GKR section check");
@@ -87,13 +88,17 @@ fn proveImpl(a: std.mem.Allocator, key: *const R.Key, values: []const Outer.prot
     defer binding_scope.end();
     const inter = try W.interaction(a, &key.class, &inputs, &verified, &late, &classic);
     binding_scope.end();
-    defer circuit.witness.trace.freeColumns(a, inter);
+    var inter_owned = true;
+    defer if (inter_owned) circuit.witness.trace.freeColumns(a, inter);
     inputs.deinit(a);
     inputs_owned = false;
     classic.deinit(a);
     var commit_scope = try Capture.Scope.begin(recorder, "outer_interaction_commit", "Hybrid circuit INTER preparation and commitment");
     defer commit_scope.end();
-    try scheme.commit(a, inter, &channel);
+    // No later raw reader exists. PCS consumes on success and failure; keep
+    // its parallel monolithic policy rather than selecting width streaming.
+    inter_owned = false;
+    try scheme.commitOwnedMonolithicWithRecorder(a, inter, recorder, &channel);
     commit_scope.end();
     var bound: [P.N_COMPONENTS]HC.Component = undefined;
     var components: [P.N_COMPONENTS]engine.air.component_prover.ForField(O).ComponentProver = undefined;
@@ -113,7 +118,7 @@ fn proveImpl(a: std.mem.Allocator, key: *const R.Key, values: []const Outer.prot
     errdefer proof.deinit(a);
     if (capture) |*active| {
         try active.save(key.identity);
-        try Metrics.save(a, active.directory, key.identity, &metrics, &labels);
+        try Metrics.save(a, active.directory, key.identity, &metrics, &labels, gkr_stats);
     }
     return .{ .base = .{ .allocator = a, .outputs = outputs, .claims = classic.claims, .proof = proof }, .section = section };
 }
