@@ -18,11 +18,21 @@ OPTIMIZE_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts import ci_package_graph
+from scripts import ci_package_graph, ci_scope_plan, ci_scope_push
 from scripts.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ('stwo_riscv_metal_integration', 'src/integrations/riscv_metal/native_polynomial_aot_export.zig', 'test-native-polynomial-aot'),
+    ('stwo_riscv_metal_integration', 'src/integrations/riscv_metal/native_polynomial_aot_test_root.zig', 'test-native-polynomial-aot'),
+    ('stwo_metal_backend', 'src/backends/metal/composition_pool_test_root.zig', 'test-resource-contracts'),
+    ('stwo_metal_backend', 'src/backends/metal/external_allocation_admission_test_root.zig', 'test-resource-contracts'),
+    ('stwo_metal_backend', 'src/backends/metal/fri_budget_test_root.zig', 'test-resource-contracts'),
+    ('stwo_metal_backend', 'src/backends/metal/fri_inverse_lease_test_root.zig', 'test-resource-contracts'),
+    ('stwo_metal_backend', 'src/backends/metal/quotient_allocation_budget_test_root.zig', 'test-resource-contracts'),
+    ('stwo_metal_backend', 'src/backends/metal/quotient_result_ownership_test_root.zig', 'test-resource-contracts'),
+    ('stwo_metal_backend', 'src/backends/metal/resident_budget_test_root.zig', 'test-resource-contracts'),
+    ('stwo_metal_backend', 'src/backends/metal/sampled_budget_test_root.zig', 'test-resource-contracts'),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig", "test-recursion-dag"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion/om31_native/publication.zig", "test-recursion-publication"),
     ("stwo_core", "src/core/fields", "test-fields"),
@@ -113,6 +123,13 @@ def worktree_paths(root: Path) -> list[str]:
 
 
 def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
+    if package == "stwo_metal_backend":
+        for owner, filename, step in FOCUSED_RULES:
+            if owner == package:
+                source = root / filename
+                imports = re.findall(r'@import\("([^"\n]+)"\)', source.read_text())
+                if path == filename or path in {(source.parent / name).relative_to(root).as_posix() for name in imports if name.endswith(".zig")}:
+                    return step
     if package == "stwo_riscv_cuda_integration":
         directory = "src/integrations/riscv_cuda/"
         resource_root = "rv64_resources_test_root.zig"
@@ -130,7 +147,7 @@ def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
         runtime = {"api.zig", "api_test.zig", "worker.zig", "worker_test.zig",
                    "channel.zig", "slab.zig", "plan.zig", "plan_test.zig", "lint.zig",
                    "fake.zig", "retained.zig", "retained_test.zig", "driver.zig",
-                   "driver_request.zig", "driver_dag.zig", "driver_memory.zig", "driver_test.zig"}
+                   "driver_request.zig", "driver_install.zig", "driver_dag.zig", "driver_memory.zig", "driver_test.zig"}
         prefix = "src/integrations/riscv_cuda/rv64/jobs/"
         if path.startswith(prefix) and path[len(prefix):] in node:
             return "test-rv64-jobs-node"
@@ -193,18 +210,29 @@ def broad_command(root: Path, package: ci_package_graph.Package, optimize: str) 
     return local_command(command, optimize)
 
 
+def tracked_deletions(root: Path) -> set[str]:
+    return set(subprocess.check_output(["git", "diff", "--diff-filter=D", "--name-only", "HEAD", "--"], cwd=root, text=True).splitlines()) if (root / ".git").exists() else set()
+
+
 def commands_for_paths(
     root: Path,
     raw_paths: Iterable[str],
     *,
     check_only: bool = False,
     optimize: str | None = None,
+    deferred: list[str] | None = None,
 ) -> list[list[str]]:
     if optimize is not None and optimize not in OPTIMIZE_MODES:
         raise DevTestError(f"unknown optimization mode: {optimize}")
     paths = sorted({normalize_path(path) for path in raw_paths})
     python_paths = [path for path in paths if path.startswith("scripts/") and path.endswith(".py")]
     commands: list[list[str]] = []
+    deleted: set[str] | None = None
+    missing = {path for path in paths if not (root / path).exists()}
+    if missing:
+        deleted = tracked_deletions(root)
+        if unknown := missing - deleted:
+            raise DevTestError("path does not exist and is not a tracked deletion: " + ", ".join(sorted(unknown)))
     if python_paths:
         if check_only:
             commands.append([sys.executable, "-m", "compileall", "-q", "scripts"])
@@ -213,7 +241,7 @@ def commands_for_paths(
             for path in python_paths:
                 source = Path(path)
                 test = source if source.parent.as_posix() == "scripts/tests" and source.name.startswith("test_") else Path("scripts/tests") / ("test_" + source.stem + ".py")
-                if not (root / test).is_file():
+                if not (root / source).is_file() or not (root / test).is_file():
                     commands.append([sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-p", "test_*.py"])
                     break
                 modules.add(test.with_suffix("").as_posix().replace("/", "."))
@@ -223,23 +251,67 @@ def commands_for_paths(
         if not paths:
             return commands
     packages = ci_package_graph.load_packages(root)
+    policy = ci_scope_plan.strict_json(root / "conformance/ci-touchpoints-v1.json")
+    ci_scope_plan.validate_policy(policy)
+    bindings = ci_package_graph.lane_packages(policy, packages)
     selected: dict[str, list[str]] = {}
+    extra_lanes: set[str] = set()
     unowned: list[str] = []
     for path in paths:
+        documentation = ci_scope_plan.is_documentation(path, policy)
+        lanes = ci_scope_plan.rule_lanes(path, policy, documentation_only=documentation)
+        if not lanes and (documentation or ci_scope_plan.is_externally_validated(path, policy)):
+            continue
         package = ci_package_graph.owning_package(path, packages)
-        if package is None:
-            unowned.append(path)
-        else:
+        if package is not None:
             selected.setdefault(package, []).append(path)
+            continue
+        if not lanes and not (root / path).exists() and (root / ".git").exists():
+            if deleted is None:
+                deleted = tracked_deletions(root)
+            if path in deleted:
+                lanes = set(policy["always_lanes"])
+        if lanes:
+            extra_lanes.update(lanes)
+        else:
+            unowned.append(path)
     if unowned:
         raise DevTestError(
             "no Zig package owns changed path(s): " + ", ".join(unowned)
         )
 
+    host = "macos" if sys.platform == "darwin" else "linux"
+    xcode = ci_scope_push.full_xcode_available() if "metal_aot" in extra_lanes else False
+    full_contracts = False
+    for lane in sorted(extra_lanes):
+        spec = policy["lanes"][lane]
+        full_lane = check_only and lane not in bindings and lane not in ("static", "script_contracts")
+        if full_lane or not ci_scope_push.locally_runnable(lane, spec["host"], spec.get("local", "run"), host, xcode):
+            if deferred is None:
+                reason = "full-lane validation" if full_lane else "hosted validation"
+                raise DevTestError(f"CI lane {lane} requires {reason}; use dev_test to report deferrals")
+            deferred.append(lane)
+            continue
+        if lane in bindings:
+            selected.setdefault(bindings[lane], []).append("")
+        elif lane == "script_contracts" and check_only:
+            commands.append([sys.executable, "-m", "compileall", "-q", "scripts"])
+        else:
+            commands.append([sys.executable, "scripts/ci_scope_run.py", "--root", str(root),
+                             "--policy", str(root / "conformance/ci-touchpoints-v1.json"),
+                             "--lane", lane, "--output", str(root / ".zig-cache/dev-test" / f"{lane}.json"),
+                             "--local-compatible"])
+            full_contracts |= lane == "script_contracts"
+
     for package_name, package_paths in sorted(selected.items()):
         package = packages[package_name]
         steps = {focus_step(package_name, path, root) for path in package_paths}
         if None in steps:
+            if check_only:
+                if deferred is None:
+                    raise DevTestError(f"check-only requires a focused owner; {package_name} needs full package validation")
+                deferred.append(package_name + " (full package validation)")
+                continue
             commands.append(broad_command(root, package, optimize or "ReleaseSafe"))
             continue
         selected_steps = sorted(value for value in steps if value is not None)
@@ -256,7 +328,13 @@ def commands_for_paths(
             if check_only:
                 command.extend(("-Dcheck-only=true", "-fincremental"))
             commands.append(command)
-    return commands
+    unique = {}
+    for command in commands:
+        if full_contracts and command[1:3] == ["-m", "unittest"] and (command[3:] == ["discover", "-s", "scripts/tests", "-p", "test_*.py"] or all(module.startswith("scripts.tests.") for module in command[3:])):
+            continue
+        command = [sys.executable if index == 0 and argument == "python3" else argument for index, argument in enumerate(command)]
+        unique.setdefault(tuple(command), command)
+    return list(unique.values())
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -283,12 +361,19 @@ def main(argv: list[str] | None = None) -> int:
         if not paths:
             print("dev test: no worktree changes")
             return 0
+        deferred: list[str] = []
         commands = commands_for_paths(
             root,
             paths,
             check_only=args.check or args.watch,
             optimize=args.optimize,
+            deferred=deferred,
         )
+        for lane in deferred:
+            print(f"dev test: DEFER {lane} to its CI execution policy")
+        if not commands:
+            print("dev test: DEFERRED" if deferred else "dev test: CI policy selects no local runtime tests for documentation/external validation")
+            return 0
         if args.watch:
             if len(commands) != 1 or "-Dcheck-only=true" not in commands[0]:
                 raise DevTestError("--watch requires one focused package")
@@ -300,11 +385,12 @@ def main(argv: list[str] | None = None) -> int:
             result = subprocess.run(command, cwd=root, check=False)
             if result.returncode != 0:
                 return result.returncode
-        verb = "PLAN" if args.dry_run else "PASS"
+        verb = "PLAN" if args.dry_run else ("PASS_LOCAL" if deferred else "PASS")
         print(f"dev test: {verb} ({len(commands)} focused command(s))")
         return 0
     except (
         DevTestError,
+        ci_scope_plan.PlanError,
         ci_package_graph.GraphError,
         json.JSONDecodeError,
         OSError,

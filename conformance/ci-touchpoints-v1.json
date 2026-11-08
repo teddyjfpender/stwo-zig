@@ -1446,6 +1446,34 @@
         "script_contracts",
         "build_graph"
       ]
+    },
+    {
+      "prefixes": [
+        "vectors/fixtures"
+      ],
+      "lanes": [
+        "script_contracts",
+        "riscv_frontend",
+        "riscv_cuda_integration"
+      ],
+      "validate_documentation": true
+    },
+    {
+      "prefixes": [
+        "vectors/reports"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
+        "conformance"
+      ],
+      "lanes": [
+        "static",
+        "script_contracts"
+      ]
     }
   ],
   "documentation_prefixes": [
@@ -1453,9 +1481,9 @@
     "CONTRIBUTING.md",
     "LICENSE",
     "docs",
-    "archive",
-    "conformance"
+    "archive"
   ],
+  "documentation_suffixes": [".md"],
   "externally_validated_prefixes": [
     "autoresearch"
   ]
