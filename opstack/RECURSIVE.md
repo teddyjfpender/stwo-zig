@@ -87,6 +87,20 @@ in-circuit child verification and adversarial transcripts. Changes to a CPU
 implementation must retain exact same-profile proof bytes and independent
 fresh reception; a new proof construction needs separate qualification.
 
+For complete native rosters of at most four workers, the explicit CPU modes
+`recurse-grouped-candidate REQUEST OUT FIXED_SETUP_BYTES [LIVE_BYTES]` and
+`verify-grouped-recursion-candidate REQUEST OUT FIXED_SETUP_BYTES [LIVE_BYTES]`
+compose the original native verifiers into one circuit before producing an
+outer proof. Select the same native/outer profiles independently on both sides.
+The transport is `OUT/recursion-group-v1/root.proof`; it is separate from the
+existing leaf/fold tree. The current qualified M7 fixture used 48 GiB requested
+live production admission and 24 GiB reception, with 39.16 GiB measured RSS.
+This is not a universal memory budget. Larger rosters fail explicitly, with no
+partial-execution acceptance. Run `zig build test-riscv64-native-group
+-Doptimize=ReleaseFast` for focused graph, physical proof and admission checks.
+The [bounded review](../design/riscv-proving-stack/rv64-native-verifier-groups.md)
+explains computed-wire digest binding, native closure and remaining limitations.
+
 The receiver operator supplies the canonical L1 anchor, previously admitted L2
 checkpoint and next claim, the trusted runner and the request files with the
 independent ELF and input hashes. Choose the outer profile used by both proof

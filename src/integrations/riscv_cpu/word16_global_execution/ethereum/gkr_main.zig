@@ -265,7 +265,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const security_profile = selection.profile;
     const args = selection.args;
     if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(base, .{ .profile = PROFILE, .security_qualified = false, .pcs = try config(), .usage = "produce-control CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON | verify-control CONFIG OUT [RECEIVER_BYTES] | verify-prefix-control CONFIG OUT [RECEIVER_BYTES] | plan CONFIG JOBS PREFIX_COUNT | capture CONFIG JOBS PREFIX_COUNT RESOURCE_JSON" });
-    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)|d2_native_b4_q54_p20_fold4] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes; JOBS=- executes in process) | plan-candidate CONFIG JOBS PREFIX_COUNT RESOURCE_JSON (CPU-only source-derived native column cost; no proof or acceptance) | inspect-recursion-schedule CONFIG OUT [ORDINAL] (CPU-only diagnostic; no acceptance,24GiB live/12GiB subset fixed cache) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-recursion-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] (CPU recursion receiver only; existing proofs, no proving fallback)" });
+    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)|d2_native_b4_q54_p20_fold4] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes; JOBS=- executes in process) | plan-candidate CONFIG JOBS PREFIX_COUNT RESOURCE_JSON (CPU-only source-derived native column cost; no proof or acceptance) | inspect-recursion-schedule CONFIG OUT [ORDINAL] (CPU-only diagnostic; no acceptance,24GiB live/12GiB subset fixed cache) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | recurse-grouped-candidate CONFIG OUT FIXED_SETUP_BYTES [LIVE_BYTES] (CPU complete roster <=4, one outer proof) | verify-grouped-recursion-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] (CPU existing-only grouped root) | verify-recursion-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] (CPU recursion receiver only; existing proofs, no proving fallback)" });
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
     const inspect_schedule = std.mem.eql(u8, args[1], "inspect-recursion-schedule");
     const inspection_ordinal = if (inspect_schedule) try @import("schedule_inspection.zig").ordinal(args) else 0;
@@ -274,9 +274,10 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             if (recursion_factory != null or recursion_execution.ready != null) return error.ScheduleInspectionRequiresCpuProduct;
         } else return error.RecursionProductRequired;
     }
-    const strict_recursion_verify = std.mem.eql(u8, args[1], "verify-recursion-candidate");
+    const grouped_recursion = std.mem.eql(u8, args[1], "recurse-grouped-candidate") or std.mem.eql(u8, args[1], "verify-grouped-recursion-candidate");
+    const strict_recursion_verify = std.mem.eql(u8, args[1], "verify-recursion-candidate") or std.mem.eql(u8, args[1], "verify-grouped-recursion-candidate");
     const resume_recursion = std.mem.eql(u8, args[1], "resume-recursion-candidate");
-    const recurse = strict_recursion_verify or resume_recursion or std.mem.eql(u8, args[1], "recurse-candidate");
+    const recurse = grouped_recursion or strict_recursion_verify or resume_recursion or std.mem.eql(u8, args[1], "recurse-candidate");
     // Standalone CPU wrapping changes allocation sizes between native
     // setup and circuit construction. Retaining the native recycler's
     // full cache here can exhaust RSS before the live budget refuses.
@@ -463,6 +464,21 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         if (recurse) {
             std.log.info("RECURSION_SETUP image_ns={d} program_ns={d} native_keys_ns={d} fixed_authority_ns={d} other_ns={d}", .{ setup_breakdown.image_ns, setup_breakdown.program_ns, setup_breakdown.native_keys_ns, setup_breakdown.fixed_authority_ns, setup_breakdown.other_ns });
             if (comptime !enable_recursion) return error.RecursionProductRequired;
+            if (grouped_recursion) {
+                if (recursion_factory != null or recursion_execution.ready != null) return error.NativeGroupRequiresCpuProduct;
+                const native_start_ns = timer.read();
+                // The fresh receiver performs complete native acceptance as
+                // well as restoring its own trace-derived group authority.
+                if (strict_recursion_verify) _ = try Receiver.verifyWithAuthorityAndProgram(a, &image, &program, keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, true, pcs, fixed_set);
+                const native_verify_ns = timer.read() - native_start_ns;
+                const last = loaded.bundle.requests[loaded.bundle.requests.len - 1].base;
+                const output = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
+                if (!strict_recursion_verify) try dir.makeDir("recursion-group-v1");
+                var grouped_dir = try dir.openDir("recursion-group-v1", .{});
+                defer grouped_dir.close();
+                const grouped = try @import("../../rv64_recursion/om31_native/group_execution.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, fixed_set, grouped_dir, strict_recursion_verify);
+                return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domainName(), .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .existing_recursive_proofs_only = strict_recursion_verify, .trace_only_recursive_graphs = strict_recursion_verify, .load_and_setup_ns = setup_ns, .native_verify_ns = native_verify_ns, .grouped = grouped });
+            }
             if (strict_recursion_verify) {
                 // One independent authority construction admits BOTH checks.
                 // The existing-only recursion path cannot generate a proof or

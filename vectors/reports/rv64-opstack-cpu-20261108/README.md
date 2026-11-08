@@ -1,5 +1,29 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The [native-verifier group comparison](recursion-native-groups.json) replaces
+three wrapped native verifiers and one fold with one outer proof of all three
+native verifiers. No native equations are removed. The complete execution-only
+root, independent trace-only receiver and corruption/missing/profile controls
+pass on real OP block 120794432.
+
+| Three cold trials per variant | Recursion wall median | Fresh receiver | Peak RSS median |
+| --- | ---: | ---: | ---: |
+| Existing M6 tree | 35.766 s | 3.994 s | 27.34 GiB |
+| Existing M7 tree, compiled | 40.944 s | 4.139 s | 35.44 GiB |
+| One M7 native group, compiled | 21.981 s | 2.942 s | 39.16 GiB |
+
+This is a 1.63x recursion gain over the M6 control and 1.86x over the M7 control,
+with a memory increase. Native production is additional. Balanced-order runs
+have observable drift; all same-variant proof files are identical and every
+fresh receiver accepts. Summed M7 GKR time falls from 9.367 to 3.592 s, and
+composition from 7.449 to 3.789 s. These are stage medians, not additive wall
+attribution. The ~19 s recursion target remains open.
+
+The explicit grouped route refuses rosters larger than four workers. It still
+requires the native bundle and receiver-derived statement-specific authority;
+it is not a portable checkpoint, anchored transition, accumulator or complete
+settlement. See the [composition review](../../../design/riscv-proving-stack/rv64-native-verifier-groups.md).
+
 The [M7 compiled-coordinate qualification](recursion-m7-coordinate-native.json)
 lowers the receiver-derived hybrid program into scalar M31 expressions at build
 time, then emits packed C kernels for all eleven components. It preserves the

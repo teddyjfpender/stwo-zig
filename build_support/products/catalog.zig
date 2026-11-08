@@ -65,6 +65,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-op-public-fold", .description = "Prove and verify an ordered OM31 fold with synthetic OP public outputs", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-m5-vk-table", .description = "Qualify the M5 recursion/native VK tables and in-circuit membership (canon-vk)", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-m5-rootverify", .description = "M5 rootverify: receiver VK table, root-only tree digest and refusals", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-native-group", .description = "Qualify bounded adjacent native-verifier composition and authenticated group frames", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-om31-native-pcs", .description = "Verify native OM31 proof captures in circuit with all eight coordinates", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-recursion-circuit", .description = "Test the RV64 recursion leaf statement against the circuit builder", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-recursion-shape", .description = "Inspect bounded native-verified Word16 shape and opening costs without recursive acceptance", .scope = .riscv_cpu },
