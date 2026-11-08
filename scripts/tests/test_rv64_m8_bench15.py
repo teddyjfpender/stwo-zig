@@ -145,6 +145,8 @@ class ParsingTests(unittest.TestCase):
         self.assertEqual(row['driver']['device_enqueue_s'], [7.0, 8.0])
         self.assertEqual(row['driver']['memory_serializations'], [3, 4])
         self.assertEqual(row['driver']['host_waits'], 1)
+        self.assertIsNone(row['driver']['job_slab_d2h'])
+        self.assertIsNone(row['driver']['host_callbacks'])
         self.assertIsNone(row['native_window_s'])
         self.assertIsNone(row['tail_s'])
         self.assertEqual(row['jobs'], {})

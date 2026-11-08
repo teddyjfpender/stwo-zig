@@ -203,6 +203,7 @@ pub const EncodedNode = struct {
     }
     pub fn footprint(self: *EncodedNode) api.Footprint {
         var fp = self.inner.footprint();
+        if (self.target != null and self.device_publish) fp.readback = .request_slab;
         const extra = self.extraStaged();
         fp.device_words += @intCast(extra);
         fp.staged_words += @intCast(extra);

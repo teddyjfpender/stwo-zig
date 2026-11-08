@@ -10,7 +10,10 @@ pub const Child = struct { proof: Bridge.Child, entry: Table.RecEntry, index: us
 pub const Graph = struct {
     ctx: C.Context,
     summary: Summary.Native,
-    pub fn deinit(self: *Graph) void { self.ctx.deinit(); self.* = undefined; }
+    pub fn deinit(self: *Graph) void {
+        self.ctx.deinit();
+        self.* = undefined;
+    }
 };
 
 /// Bind the table header to the public summary. The header carries source
@@ -96,8 +99,7 @@ test "typed fold admits the exact authenticated child identity and FIXED wires" 
         var fixed = entry.fixed_root;
         if (mutation == 1) identity[0] ^= 1;
         if (mutation == 2) fixed[0] ^= 1;
-        const authenticated = Bridge.Authenticated{ .identity = (try Table.guessHash(&ctx, identity)).words,
-            .fixed_root = try Table.guessHash(&ctx, fixed), .outputs = &.{}, .output_words = &.{} };
+        const authenticated = Bridge.Authenticated{ .identity = (try Table.guessHash(&ctx, identity)).words, .fixed_root = try Table.guessHash(&ctx, fixed), .outputs = &.{}, .output_words = &.{} };
         var relabel = entry;
         if (mutation == 4) relabel.arity = 4;
         try admit(&ctx, &table, root, relabel, 0, authenticated);

@@ -67,15 +67,18 @@ pub fn constrain(ctx: *C.Context, authority: Authority, node: Summary.Wires, exp
     payload[0] = try Table.constWord(ctx, authority.family);
     payload[1] = try Table.constWord(ctx, authority.rung);
     payload[2..10].* = try Public.constantDigest(ctx, authority.native_vk);
-    try Table.verifyMembership(ctx, .nat, authority.table.depth, &payload,
-        try Table.Witness.guessAtConstantIndex(ctx, authority.table, authority.index), root);
+    try Table.verifyMembership(ctx, .nat, authority.table.depth, &payload, try Table.Witness.guessAtConstantIndex(ctx, authority.table, authority.index), root);
 
     const rho = try Hash.mainOnlyRho(ctx, native.main.words);
     const next = try Hash.chainStep(ctx, node.raw[Summary.Index.m_in..][0..8].*, .{
-        .k = native.ordinal, .family = payload[0], .rung = payload[1],
-        .vkhash = payload[2..10].*, .stmt = native.statement,
+        .k = native.ordinal,
+        .family = payload[0],
+        .rung = payload[1],
+        .vkhash = payload[2..10].*,
+        .stmt = native.statement,
         .s_in = node.raw[Summary.Index.s_in..][0..8].*,
-        .s_out = node.raw[Summary.Index.s_out..][0..8].*, .rho = rho,
+        .s_out = node.raw[Summary.Index.s_out..][0..8].*,
+        .rho = rho,
     });
     try same(ctx, node.raw[Summary.Index.m_out..][0..8], &next);
     for (0..3) |relation| {
@@ -115,14 +118,8 @@ test "typed leaf binds source native table stage-one MAIN scope and globals" {
     const statement: [32]u8 = @splat(36);
     const base = Execution.executionIdentity(config, expected);
     const execution = try Fixed.gkrExecutionIdentity(base, config);
-    var node = Summary.Native{ .tnat = Table.natHeader(&table, expected.admission.image_identity, profile, rungs),
-        .trec = @splat(37), .image = expected.admission.image_identity, .statement = execution, .chi = @splat(38),
-        .lo = 0, .hi = 0, .count = 1, .m_in = @splat(39), .m_out = undefined,
-        .s_in = @splat(40), .s_out = @splat(41),
-        .bus = @splat(C.O.one()), .mass = .{7, 11, 13}, .ctr_in = @splat(0), .ctr_out = @splat(0),
-        .steps_in = 0, .steps_out = 1, .expected = base, .output = @splat(0), .output_seen = false, .depth = 0 };
-    node.m_out = Canon.chainStep(node.m_in, .{ .k = 0, .family = entry.family, .rung = entry.rung,
-        .vkhash = entry.vk_hash, .stmt = statement, .s_in = node.s_in, .s_out = node.s_out, .rho = Canon.mainOnlyRho(main) });
+    var node = Summary.Native{ .tnat = Table.natHeader(&table, expected.admission.image_identity, profile, rungs), .trec = @splat(37), .image = expected.admission.image_identity, .statement = execution, .chi = @splat(38), .lo = 0, .hi = 0, .count = 1, .m_in = @splat(39), .m_out = undefined, .s_in = @splat(40), .s_out = @splat(41), .bus = @splat(C.O.one()), .mass = .{ 7, 11, 13 }, .ctr_in = @splat(0), .ctr_out = @splat(0), .steps_in = 0, .steps_out = 1, .expected = base, .output = @splat(0), .output_seen = false, .depth = 0 };
+    node.m_out = Canon.chainStep(node.m_in, .{ .k = 0, .family = entry.family, .rung = entry.rung, .vkhash = entry.vk_hash, .stmt = statement, .s_in = node.s_in, .s_out = node.s_out, .rho = Canon.mainOnlyRho(main) });
     for (0..6) |mutation| {
         var ctx = try C.Context.init(a, 0);
         defer ctx.deinit();
@@ -134,17 +131,19 @@ test "typed leaf binds source native table stage-one MAIN scope and globals" {
         var changed_execution = execution;
         if (mutation == 1) changed_main[0] ^= 1;
         if (mutation == 2) changed_execution[0] ^= 1;
-        var authority = Authority{ .family = entry.family, .rung = entry.rung, .native_vk = entry.vk_hash,
-            .profile_identity = profile, .rung_table_identity = rungs, .config = config, .table = &table, .index = 0 };
+        var authority = Authority{ .family = entry.family, .rung = entry.rung, .native_vk = entry.vk_hash, .profile_identity = profile, .rung_table_identity = rungs, .config = config, .table = &table, .index = 0 };
         if (mutation == 3) authority.native_vk[0] ^= 1;
         if (mutation == 4) authority.family += 1;
         var mass: [3]Public.Word = undefined;
         for (&mass, node.mass, 0..) |*out, value, i| out.* = try Table.guessWord(&ctx, value + @as(u32, @intFromBool(mutation == 5 and i == 0)));
         try constrain(&ctx, authority, wires, try Hash.guessExpected(&ctx, expected), .{
-            .ordinal = try Table.guessWord(&ctx, 0), .execution = (try Table.guessHash(&ctx, changed_execution)).words,
-            .statement = (try Table.guessHash(&ctx, statement)).words, .main = try Table.guessHash(&ctx, changed_main),
+            .ordinal = try Table.guessWord(&ctx, 0),
+            .execution = (try Table.guessHash(&ctx, changed_execution)).words,
+            .statement = (try Table.guessHash(&ctx, statement)).words,
+            .main = try Table.guessHash(&ctx, changed_main),
             .chi = (try Table.guessHash(&ctx, node.chi)).words,
-            .globals = .{ C.F.one(), C.F.one(), C.F.one() }, .mass = mass,
+            .globals = .{ C.F.one(), C.F.one(), C.F.one() },
+            .mass = mass,
         });
         try std.testing.expectEqual(mutation == 0, try ctx.isCircuitValid());
     }

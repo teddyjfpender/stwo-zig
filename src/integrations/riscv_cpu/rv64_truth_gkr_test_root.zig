@@ -26,7 +26,9 @@ test {
 test {
     _ = @import("word16_global_execution/services/gkr_local/coordinator.zig");
 }
-test { _ = @import("word16_global_execution/services/gkr_local/truth_v3_test.zig"); }
+test {
+    _ = @import("word16_global_execution/services/gkr_local/truth_v3_test.zig");
+}
 test {
     _ = @import("word16_global_execution/services/gkr_local/conjectured_profile_test.zig");
 }

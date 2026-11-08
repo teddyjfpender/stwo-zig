@@ -469,7 +469,9 @@ pub const evaluateExtensionBuffersWithTwiddles = transforms.evaluateExtensionBuf
 pub const evaluateExtensionBuffersWithTwiddlesWithPool = transforms.evaluateExtensionBuffersWithTwiddlesWithPool;
 pub const evaluateDyadicExtensionBuffersWithTwiddlesWithPool = transforms.evaluateDyadicExtensionBuffersWithTwiddlesWithPool;
 
-test { _ = @import("dyadic_extension_test.zig"); }
+test {
+    _ = @import("dyadic_extension_test.zig");
+}
 
 fn checkedPow2(log_size: u32) PolyError!usize {
     if (log_size >= @bitSizeOf(usize)) return PolyError.InvalidLogSize;

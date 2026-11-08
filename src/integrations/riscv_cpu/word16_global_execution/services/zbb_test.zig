@@ -12,7 +12,6 @@ const G = @import("../protocol.zig");
 const Native = @import("../../word16_execution/prepared.zig").Prepared;
 const a = std.testing.allocator;
 
-
 test "v3_zbb: every Zbb BINARY instruction plus the v3 services verify in-process and with fresh keys over the wire" {
     try roundTrip(.historical, F.BRIDGES);
 }

@@ -14,9 +14,9 @@
 //! built; graph_exec and reserve are accounting only. Nothing on the request
 //! path allocates device memory (D1 asserts it on the host model).
 const std = @import("std");
-const G = @import("gpu_native.zig");
+const Regions = @import("memory_plan.zig");
 
-pub const granule: u64 = 64; // worker.Arena.granule
+pub const granule: u64 = @import("resources.zig").granule_words;
 
 /// Defaults [default, carried from today's code; not tuned in this pass]:
 /// reserve 1 GiB (worker CUDA/driver headroom), graph budget 256 MiB/worker
@@ -27,8 +27,8 @@ pub const default_graph_exec_words: u64 = (256 << 20) / 4;
 /// Known allocations already owned by this plan are counted once. A fixed
 /// arena has no access to physical free memory outside its carve; a CUDA
 /// pool can grow into those bytes. The plan reserve covers allocator overhead.
-pub fn allocationCapacity(free_words: u64, unused_pool_words: u64, owned_words: u64, fixed_pool: bool) u64 {
-    return (if (fixed_pool) 0 else free_words) + unused_pool_words + owned_words;
+pub fn allocationCapacity(free_words: u64, unused_pool_words: u64, owned_words: u64, fixed_pool: bool) !u64 {
+    return Regions.addWords(try Regions.addWords(if (fixed_pool) 0 else free_words, unused_pool_words), owned_words);
 }
 
 pub const Inputs = struct {
@@ -50,7 +50,7 @@ pub const Inputs = struct {
 };
 
 pub const Planned = struct {
-    memory: G.MemoryPlan,
+    memory: Regions.MemoryPlan,
     phase_a_words: u64,
     phase_b_words: u64,
     slab_words: u64,
@@ -60,34 +60,39 @@ pub const Planned = struct {
 };
 
 pub fn plan(in: Inputs) !Planned {
-    const main = std.mem.alignForward(u64, in.main_resident_words, granule);
-    const slab = std.mem.alignForward(u64, in.slab_words, granule);
-    const fixed = in.class_cache_words + in.graph_exec_words + main + 2 * slab + in.reserve_words;
+    const main = try Regions.alignedWords(in.main_resident_words);
+    const slab = try Regions.alignedWords(in.slab_words);
+    const slabs = try Regions.addWords(slab, slab);
+    var fixed: u64 = 0;
+    for ([_]u64{ in.class_cache_words, in.graph_exec_words, main, slabs, in.reserve_words }) |w| fixed = try Regions.addWords(fixed, w);
     if (fixed >= in.capacity_words) return error.GpuNativeMemoryPlanExceedsDevice;
     var arena = std.mem.alignBackward(u64, in.capacity_words - fixed, granule);
     if (in.arena_cap_words != 0) arena = @min(arena, std.mem.alignBackward(u64, in.arena_cap_words, granule));
     if (arena == 0) return error.GpuNativeMemoryPlanNoArena;
     if (in.phase_a_peak_words > arena) return error.GpuNativeMemoryPlanPhaseA;
-    if (in.phase_b_peak_words > arena + main) return error.GpuNativeMemoryPlanPhaseB;
-    var m = G.MemoryPlan{ .device = in.device, .capacity_words = in.capacity_words };
+    const phase_b = try Regions.addWords(arena, main);
+    if (in.phase_b_peak_words > phase_b) return error.GpuNativeMemoryPlanPhaseB;
+    var m = Regions.MemoryPlan{ .device = in.device, .capacity_words = in.capacity_words };
     m.set(.class_cache, in.class_cache_words);
     m.set(.graph_exec, in.graph_exec_words);
     m.set(.main_resident, main);
     m.set(.arena, arena);
     m.set(.truth, 0); // truth jobs are arena classes with measured peaks
-    m.set(.exchange_slab, 2 * slab);
+    m.set(.exchange_slab, slabs);
     m.set(.reserve, in.reserve_words);
     try m.validate();
-    return .{ .memory = m, .phase_a_words = arena, .phase_b_words = arena + main, .slab_words = slab };
+    return .{ .memory = m, .phase_a_words = arena, .phase_b_words = phase_b, .slab_words = slab };
 }
 
 /// Sequential main_resident views per segment on one GPU (segment order).
 pub fn mainViews(region_words: u64, segment_main_words: []const u64, out_offsets: []u64) !void {
-    var at: u64 = 0;
+    if (segment_main_words.len != out_offsets.len) return error.GpuNativeMainResidentShape;
+    // Preflight the whole layout before publishing any offsets.
+    var cursor = Regions.MainCursor{};
+    for (segment_main_words) |w| _ = try cursor.take(region_words, w);
+    cursor = .{};
     for (segment_main_words, out_offsets) |w, *o| {
-        o.* = at;
-        at += std.mem.alignForward(u64, w, granule);
-        if (at > region_words) return error.GpuNativeMainResidentOverflow;
+        o.* = (try cursor.take(region_words, w)).offset;
     }
 }
 
@@ -98,9 +103,9 @@ test "plan: fixed carve excludes CUDA free bytes; growing pool includes them" {
     // Gate 10: a 27.28 GB carve plus 2.17 GB outside it was treated as one
     // allocatable pool, producing a 27.47 GB plan allocation [M].
     const unused = 25 * GiB;
-    try testing.expectEqual(unused + 64, allocationCapacity(2 * GiB, unused, 64, true));
-    try testing.expectEqual(unused + 2 * GiB + 64, allocationCapacity(2 * GiB, unused, 64, false));
-    const p = try plan(.{ .device = 0, .capacity_words = allocationCapacity(2 * GiB, unused, 64, true), .main_resident_words = 3 * GiB, .slab_words = (64 << 20) / 4 });
+    try testing.expectEqual(unused + 64, try allocationCapacity(2 * GiB, unused, 64, true));
+    try testing.expectEqual(unused + 2 * GiB + 64, try allocationCapacity(2 * GiB, unused, 64, false));
+    const p = try plan(.{ .device = 0, .capacity_words = try allocationCapacity(2 * GiB, unused, 64, true), .main_resident_words = 3 * GiB, .slab_words = (64 << 20) / 4 });
     try testing.expect(p.phase_b_words + 2 * p.slab_words + default_graph_exec_words + default_reserve_words <= unused + 64);
 }
 
@@ -114,8 +119,23 @@ test "plan: 24628607-shaped dev0: a fold plus a staged leaf fits only in phase B
     try testing.expect(p.phase_a_words < pair);
     try testing.expect(p.phase_b_words >= pair);
     try testing.expectEqual(p.memory.get(.main_resident), p.mainResidentWords());
-    try testing.expectEqual(p.memory.offset(.arena), p.memory.get(.class_cache) + p.memory.get(.graph_exec) + p.memory.get(.main_resident));
-    try testing.expect(p.memory.total() <= p.memory.capacity_words);
+    try testing.expectEqual(try p.memory.offset(.arena), p.memory.get(.class_cache) + p.memory.get(.graph_exec) + p.memory.get(.main_resident));
+    try testing.expect(try p.memory.total() <= p.memory.capacity_words);
+}
+
+test "memory planning refuses overflow before admitting capacity or writing offsets" {
+    const max = std.math.maxInt(u64);
+    try testing.expectError(error.ResourceSizeOverflow, allocationCapacity(max, 1, 0, false));
+    try testing.expectError(error.ResourceSizeOverflow, allocationCapacity(0, max, 1, true));
+    try testing.expectError(error.ResourceSizeOverflow, plan(.{ .device = 0, .capacity_words = max, .main_resident_words = max, .slab_words = 64 }));
+    try testing.expectError(error.ResourceSizeOverflow, plan(.{ .device = 0, .capacity_words = max, .slab_words = max / 2 }));
+    try testing.expectError(error.ResourceSizeOverflow, plan(.{ .device = 0, .capacity_words = max, .class_cache_words = max, .slab_words = 64 }));
+    var offsets = [_]u64{ 77, 88 };
+    try testing.expectError(error.GpuNativeMainResidentOverflow, mainViews(64, &.{ 64, 64 }, &offsets));
+    try testing.expectEqual([_]u64{ 77, 88 }, offsets);
+    try testing.expectError(error.ResourceSizeOverflow, mainViews(max, &.{ 64, max }, &offsets));
+    try testing.expectEqual([_]u64{ 77, 88 }, offsets);
+    try testing.expectError(error.GpuNativeMainResidentShape, mainViews(128, &.{64}, &offsets));
 }
 
 test "plan: fails closed on each region" {

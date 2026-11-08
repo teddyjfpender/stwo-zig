@@ -3,6 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const check_only = b.option(bool, "check-only", "Check focused job roots without executing tests") orelse false;
     const options = .{ .target = target, .optimize = optimize };
     const contracts = b.dependency(
         "stwo_backend_contracts",
@@ -71,10 +72,12 @@ pub fn build(b: *std.Build) void {
     const jobs_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_test_root.zig"), .target = target, .optimize = optimize });
     jobs_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     const jobs_tests = b.addTest(.{ .root_module = jobs_root });
-    const jobs_run = b.addRunArtifact(jobs_tests);
-    jobs_run.setCwd(b.path("."));
+    const jobs_run = jobTestStep(b, jobs_tests, check_only);
     const jobs_step = b.step("test-rv64-jobs", "Test the M8 job runtime contract, worker pipeline, channel parity model, slab, scheduler and sync lint without a GPU");
-    jobs_step.dependOn(&jobs_run.step);
+    jobs_step.dependOn(jobs_run);
+    b.step("test-rv64-jobs-runtime", "Test job resources, worker, driver and lifecycle without the native/truth binaries").dependOn(jobs_run);
+    const resource_root = b.createModule(.{ .root_source_file = b.path("rv64_resources_test_root.zig"), .target = target, .optimize = optimize });
+    b.step("test-rv64-resources", "Test checked job resources and the two-sided arena without a prover or GPU").dependOn(jobTestStep(b, b.addTest(.{ .root_module = resource_root }), check_only));
     // native-job: rv64/jobs/native_*.zig tests in their own binary (they reuse the legacy PCS framing and
     // decoder through stwo_riscv_cpu_integration, which must not share a binary with rv64_ready_dag).
     const jobs_native_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_native_test_root.zig"), .target = target, .optimize = optimize });
@@ -84,9 +87,9 @@ pub fn build(b: *std.Build) void {
     // native-producers: the local GKR job reuses rv64/gkr*.zig (stwo_cuda_backend runtime slices, projection catalogue).
     jobs_native_root.addImport("stwo_cuda_backend", backend);
     jobs_native_root.addImport("stwo_riscv_frontend", frontend);
-    const jobs_native_run = b.addRunArtifact(b.addTest(.{ .root_module = jobs_native_root }));
-    jobs_native_run.setCwd(b.path("."));
-    jobs_step.dependOn(&jobs_native_run.step);
+    const jobs_native_run = jobTestStep(b, b.addTest(.{ .root_module = jobs_native_root }), check_only);
+    jobs_step.dependOn(jobs_native_run);
+    b.step("test-rv64-jobs-native", "Test native jobs and codecs without building the combined prover").dependOn(jobs_native_run);
     const gkr_wire_root = b.createModule(.{ .root_source_file = b.path("rv64_gkr_wire_test_root.zig"), .target = target, .optimize = optimize });
     gkr_wire_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     gkr_wire_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
@@ -105,14 +108,13 @@ pub fn build(b: *std.Build) void {
     jobs_truth_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     jobs_truth_root.addImport("stwo_cuda_backend", backend);
     jobs_truth_root.addImport("stwo_riscv_frontend", frontend);
-    const jobs_truth_run = b.addRunArtifact(b.addTest(.{ .root_module = jobs_truth_root }));
-    jobs_truth_run.setCwd(b.path("."));
-    jobs_step.dependOn(&jobs_truth_run.step);
-    b.step("test-rv64-jobs-truth", "Test the M8 GPU-native TruthJob plan, challenge scripts, parameter programs and seed programs without a GPU").dependOn(&jobs_truth_run.step);
+    const jobs_truth_run = jobTestStep(b, b.addTest(.{ .root_module = jobs_truth_root }), check_only);
+    jobs_step.dependOn(jobs_truth_run);
+    b.step("test-rv64-jobs-truth", "Test the M8 GPU-native TruthJob plan, challenge scripts, parameter programs and seed programs without a GPU").dependOn(jobs_truth_run);
     const jobs_sched_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_sched_test_root.zig"), .target = target, .optimize = optimize });
     jobs_sched_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     jobs_sched_root.addImport("rv64_ready_dag", b.createModule(.{ .root_source_file = b.path("../riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"), .target = target, .optimize = optimize }));
-    jobs_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = jobs_sched_root })).step);
+    jobs_step.dependOn(jobTestStep(b, b.addTest(.{ .root_module = jobs_sched_root }), check_only));
     const jobs_parity_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_parity_main.zig"), .target = target, .optimize = optimize });
     jobs_parity_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     jobs_parity_root.addImport("rv64_ready_dag", b.createModule(.{ .root_source_file = b.path("../riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"), .target = target, .optimize = optimize }));
@@ -125,7 +127,14 @@ pub fn build(b: *std.Build) void {
     jobs_outer_root.addImport("stwo_cuda_backend", backend);
     const jobs_outer_tests = b.addTest(.{ .root_module = jobs_outer_root });
     jobs_outer_tests.linkLibC();
-    b.step("test-rv64-jobs-outer", "Test the M8 OuterNodeJob class plan, enqueue-only trace commit, graph cache and staged image without a GPU").dependOn(&b.addRunArtifact(jobs_outer_tests).step);
+    b.step("test-rv64-jobs-outer", "Test the M8 OuterNodeJob class plan, enqueue-only trace commit, graph cache and staged image without a GPU").dependOn(jobTestStep(b, jobs_outer_tests, check_only));
+    const jobs_node_root = b.createModule(.{ .root_source_file = b.path("rv64_jobs_node_test_root.zig"), .target = target, .optimize = optimize });
+    for ([_][]const u8{ "stwo_core", "stwo_prover_engine", "stwo_riscv_frontend", "stwo_riscv_cpu_integration", "stwo_cuda_backend", "stwo_circuit_cpu_integration" }) |name| jobs_node_root.addImport(name, integration.import_table.get(name) orelse @panic("missing node contract dependency"));
+    const jobs_node_tests = b.addTest(.{ .root_module = jobs_node_root });
+    jobs_node_tests.linkLibC();
+    const jobs_node_step = jobTestStep(b, jobs_node_tests, check_only);
+    b.step("test-rv64-jobs-node", "Test host-observed node result contracts; no GPU or full block proof").dependOn(jobs_node_step);
+    jobs_step.dependOn(jobs_node_step);
     const batch_test_root = b.createModule(.{ .root_source_file = b.path("rv64_batch_test_root.zig"), .target = target, .optimize = optimize });
     batch_test_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     batch_test_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
@@ -502,4 +511,11 @@ pub fn build(b: *std.Build) void {
     const binding_step = b.step("check-rv64-native-bindings", "Compile real-context RV64 CUDA FFI without requiring a GPU");
     binding_step.dependOn(&binding_object.step);
     test_step.dependOn(&binding_object.step);
+}
+
+fn jobTestStep(b: *std.Build, tests: *std.Build.Step.Compile, check_only: bool) *std.Build.Step {
+    if (check_only) return &tests.step;
+    const run = b.addRunArtifact(tests);
+    run.setCwd(b.path("."));
+    return &run.step;
 }

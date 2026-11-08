@@ -30,8 +30,7 @@ pub fn inputWindow(s: Symbols) ?u64 {
 pub fn load(a: std.mem.Allocator, symbols: Symbols, bytes: []const u8, input: []const u8) !elf.LoadedImage {
     const s = symbols;
     const window = inputWindow(s) orelse return error.InvalidEthereumIoLayout;
-    if (
-        s.halt_flag != s.input_end or s.halt_flag > std.math.maxInt(u64) - 8 or
+    if (s.halt_flag != s.input_end or s.halt_flag > std.math.maxInt(u64) - 8 or
         s.output_len != s.halt_flag + 4 or s.output_data != s.halt_flag + 8 or
         s.output_end != s.stack_bottom or s.output_end < s.output_data or
         s.output_end - s.output_data < OUTPUT_BYTES or s.output_end - s.halt_flag > 4 * 1024 * 1024 or

@@ -334,7 +334,7 @@ pub const Recursion = struct {
         const target = Target{ .device = device, .region = try seg.encodedBuffer(buf, id), .pcs_status = try seg.statusBuffer(buf, id, .node_pcs_status), .encode_status = try seg.statusBuffer(buf, id, .encode_bounds), .oods_status = try seg.statusBuffer(buf, id, .node_oods_constraint), .class_unpack_status = if (nc.compressed) try seg.statusBuffer(buf, id, .class_unpack) else null };
         const job = try self.a.create(NodeJob);
         errdefer self.a.destroy(job);
-        job.* = .{ .a = self.a, .request = rc.request, .ops = ops, .class = nc, .device = device, .verdicts = .{
+        job.* = .{ .a = self.a, .request = rc.request, .proof_id = id, .ops = ops, .class = nc, .device = device, .verdicts = .{
             .seed_tape = try seg.statusBuffer(buf, id, .seed_tape),
             .child_binding = try seg.statusBuffer(buf, id, .child_binding),
             .lookup_sum = try seg.statusBuffer(buf, id, .lookup_sum),
@@ -364,6 +364,7 @@ pub const NodeJob = struct {
     a: std.mem.Allocator,
     /// Request that made the job (Recursion.node); 0 for a standalone job.
     request: u64 = 0,
+    proof_id: G.ProofId = .{ .kind = .leaf, .ordinal = 0 },
     /// Set (release) after `finish` / `abort` returned; Recursion frees the
     /// job only then (or at `end` / `deinit`).
     settled: std.atomic.Value(bool) = .init(false),
@@ -426,6 +427,15 @@ pub const NodeJob = struct {
         self.scratch = try s.alloc(@as(usize, self.class.program[Seed.P.scratch_words]) + 8);
     }
     pub fn enqueue(self: *NodeJob, e: *api.Enqueue) !void {
+        const trace_stage: O.Trace.Stage = switch (self.proof_id.kind) {
+            .leaf => .leaf,
+            .fold => .fold,
+            .root => .root,
+            else => return error.GpuNativeNotARecursionProof,
+        };
+        var trace_label: [80]u8 = undefined;
+        var trace_range = try e.trace(trace_stage, self.proof_id.ordinal, &trace_label);
+        defer trace_range.deinit();
         var t = try std.time.Timer.start();
         try e.waitStaged();
         const in = try self.made.inputs(self.made.ctx);

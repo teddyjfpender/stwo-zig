@@ -16,7 +16,9 @@ const Writer = struct {
     failure: ?anyerror = null,
     pub fn term(self: *@This(), relation: Mass.Relation, positive: bool, count: Count, coefficient: usize) void {
         if (self.failure != null or coefficient == 0) return;
-        self.apply(relation, positive, count, coefficient) catch |err| { self.failure = err; };
+        self.apply(relation, positive, count, coefficient) catch |err| {
+            self.failure = err;
+        };
     }
     fn apply(self: *@This(), relation: Mass.Relation, positive: bool, count: Count, coefficient: usize) !void {
         const r = @intFromEnum(relation);
@@ -55,8 +57,7 @@ fn finish(ctx: *C.Context, writer: *Writer, metadata: Globals) ![3]Public.Word {
 }
 test "typed CPU signed masses are source count sums with no free high halves" {
     const std = @import("std");
-    var native = Mass.CpuCountsFor(u32){ .ls = 7, .initial = 3, .terminal = 5, .calls = @splat(2),
-        .dword = 11, .sponge = .{13,17}, .bulk = @splat(19) };
+    var native = Mass.CpuCountsFor(u32){ .ls = 7, .initial = 3, .terminal = 5, .calls = @splat(2), .dword = 11, .sponge = .{ 13, 17 }, .bulk = @splat(19) };
     native.bulk[native.bulk.len - 1] = 8448;
     const expected = try Mass.evaluateCpuCounts(native);
     const total = try expected.absolute();
@@ -70,19 +71,19 @@ test "typed CPU signed masses are source count sums with no free high halves" {
                 for (@field(native, field.name), 0..) |value, i| @field(counts, field.name)[i] = .{ .word = try Table.guessWord(&ctx, value), .value = value };
             } else {
                 const value = @field(native, field.name);
-                @field(counts, field.name) = .{ .word = try Table.guessWord(&ctx, value + @as(u32,@intFromBool(mutation == 3 and comptime std.mem.eql(u8,field.name,"ls")))), .value = value };
+                @field(counts, field.name) = .{ .word = try Table.guessWord(&ctx, value + @as(u32, @intFromBool(mutation == 3 and comptime std.mem.eql(u8, field.name, "ls")))), .value = value };
             }
         }
         var metadata: Globals = undefined;
-        inline for (.{"ram","kio","wire"}) |name| {
+        inline for (.{ "ram", "kio", "wire" }) |name| {
             const signed = @field(expected, name);
             @field(metadata, name) = .{
-                .positive = .{try Table.guessWord(&ctx, @intCast(signed.positive + @as(u64,@intFromBool(mutation == 2 and comptime std.mem.eql(u8,name,"ram"))))),try Table.guessWord(&ctx, @intFromBool(mutation == 1 and comptime std.mem.eql(u8,name,"ram")))},
-                .negative = .{try Table.guessWord(&ctx, @intCast(signed.negative)),try Table.guessWord(&ctx, 0)},
+                .positive = .{ try Table.guessWord(&ctx, @intCast(signed.positive + @as(u64, @intFromBool(mutation == 2 and comptime std.mem.eql(u8, name, "ram"))))), try Table.guessWord(&ctx, @intFromBool(mutation == 1 and comptime std.mem.eql(u8, name, "ram"))) },
+                .negative = .{ try Table.guessWord(&ctx, @intCast(signed.negative)), try Table.guessWord(&ctx, 0) },
             };
         }
         const result = try cpu(&ctx, counts, metadata);
-        inline for (.{"ram","kio","wire"}, 0..) |name, i| try ctx.eq(result[i].get(), (try Table.constWord(&ctx, @intCast(@field(total,name)))).get());
+        inline for (.{ "ram", "kio", "wire" }, 0..) |name, i| try ctx.eq(result[i].get(), (try Table.constWord(&ctx, @intCast(@field(total, name)))).get());
         try std.testing.expectEqual(mutation == 0, try ctx.isCircuitValid());
     }
 }

@@ -207,17 +207,22 @@ pub const TruthDeclaration = struct {
     calls: u32,
     logs: [2]u32,
     pub fn from(t: R.Truth) @This() {
-        return .{ .family = t.family(), .first_id = t.first(), .calls = t.count(), .logs = switch (t) {
-            // logs[1] names the Keccak lookup profile: 0 compact (unchanged
-            // bytes), else the throughput chi-table log (21).
-            .keccak => |k| .{ k.setup.log, keccakProfileWord(k.setup.policy) },
-            .secp => |s| s.setup.logs,
-            .sha256 => |h| .{ h.setup.log, 0 },
-            .arith256_mod => |h| .{ h.setup.log, 0 },
-            .curve => |h| .{ h.setup.log, 0 },
-            // logs[1] = 0 names the secp row profile (never a valid RCB linear log).
-            .secp_row => |h| .{ h.setup.log, @import("../secp/row_roster.zig").PROFILE_WORD },
-        } };
+        return .{
+            .family = t.family(),
+            .first_id = t.first(),
+            .calls = t.count(),
+            .logs = switch (t) {
+                // logs[1] names the Keccak lookup profile: 0 compact (unchanged
+                // bytes), else the throughput chi-table log (21).
+                .keccak => |k| .{ k.setup.log, keccakProfileWord(k.setup.policy) },
+                .secp => |s| s.setup.logs,
+                .sha256 => |h| .{ h.setup.log, 0 },
+                .arith256_mod => |h| .{ h.setup.log, 0 },
+                .curve => |h| .{ h.setup.log, 0 },
+                // logs[1] = 0 names the secp row profile (never a valid RCB linear log).
+                .secp_row => |h| .{ h.setup.log, @import("../secp/row_roster.zig").PROFILE_WORD },
+            },
+        };
     }
 };
 const File = struct { bytes: u64, sha256: [32]u8 };

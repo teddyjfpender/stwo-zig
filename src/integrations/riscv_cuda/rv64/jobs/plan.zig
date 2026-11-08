@@ -85,7 +85,8 @@ pub const Document = struct {
 
 /// Arena words a job occupies when its footprint is all it states.
 pub fn peakOf(fp: api.Footprint) usize {
-    return fp.device_words + std.mem.alignForward(usize, fp.slab_words, W.Arena.granule) + state_granule;
+    // Invalid declarations must be refused, including optimized builds.
+    return fp.peakWords() catch std.math.maxInt(usize);
 }
 
 /// Job A (peak `resident_peak`, own staged inputs included) works on one side
@@ -105,7 +106,11 @@ pub const Resolved = struct {
 
 /// Resolution without a policy (or for an unplanned class): the declared footprint.
 pub fn declared(fp: api.Footprint) Resolved {
-    return .{ .footprint = fp, .peak_words = peakOf(fp), .staged_words = std.mem.alignForward(usize, fp.staged_words, W.Arena.granule), .planned = false };
+    const peak = blk: {
+        fp.validate() catch break :blk std.math.maxInt(usize);
+        break :blk peakOf(fp);
+    };
+    return .{ .footprint = fp, .peak_words = peak, .staged_words = @import("resources.zig").aligned(fp.staged_words) catch std.math.maxInt(usize), .planned = false };
 }
 
 pub const Policy = struct {
@@ -161,6 +166,7 @@ pub const Policy = struct {
     /// peak; slab_words and pinned_words always come from the job (the worker
     /// allocates the slab from it), staged words take the larger of the two.
     pub fn resolve(self: *const Policy, key: [32]u8, fp: api.Footprint) Resolved {
+        fp.validateSizes() catch return declared(fp);
         const c = self.class(key) orelse return declared(fp);
         const slab = std.mem.alignForward(usize, fp.slab_words, W.Arena.granule);
         const staged = @max(@as(usize, @intCast(c.staged_words)), std.mem.alignForward(usize, fp.staged_words, W.Arena.granule));

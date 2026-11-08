@@ -271,7 +271,6 @@ test "outer GKR circuit strict draw: raw words >= 2p make the graph unsatisfiabl
     }
 }
 
-
 // ---- negative corpus v3 hooks (scripts/rv64_m5_negative_corpus.py; owner outer-gkr). W = one witness value of the
 // in-circuit verifier mutated, the graph must be unsatisfiable; U = statement check refuses.
 test "corpus M01 outer GKR sumcheck round coefficient tamper makes the verifier circuit unsatisfiable" {

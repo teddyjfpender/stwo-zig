@@ -16,8 +16,8 @@ const api = @import("api.zig");
 const G = @import("gpu_native.zig");
 
 /// STWO_RV64_M8_GPU_NATIVE=1 (requires STWO_RV64_M8_JOBS=1) selects the GPU-native
-/// driver; unset = today's feeder path, unchanged. Until the driver lands,
-/// selecting it fails closed.
+/// driver; unset keeps the separately gated feeder/reference path. Missing
+/// installed classes and factory hooks fail closed on the selected path.
 pub const env_select = "STWO_RV64_M8_GPU_NATIVE";
 
 pub fn selected(env: *const fn ([]const u8) ?[]const u8) !bool {

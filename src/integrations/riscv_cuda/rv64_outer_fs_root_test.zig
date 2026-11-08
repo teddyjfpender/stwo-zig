@@ -4,7 +4,7 @@ const P = @import("stwo_circuit_cpu_integration").om31.protocol;
 test "outer FS observed root mix is byte identical to legacy root mix" {
     for (0..64) |seed| {
         var channel = P.Channel.init();
-        channel.mixU32s(&.{@intCast(seed), @intCast(seed * 1789)});
+        channel.mixU32s(&.{ @intCast(seed), @intCast(seed * 1789) });
         _ = channel.drawSecureFelt();
         var legacy = channel;
         var root: [32]u8 = undefined;

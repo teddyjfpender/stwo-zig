@@ -303,7 +303,6 @@ test "joined execution proofs are exact with serial and1 4 16worker multichunk L
     }
 }
 
-
 test "resident pinned image program cache rechecks inputs and ELF on every request" {
     var fixture = try Fixture.init();
     defer fixture.deinit();

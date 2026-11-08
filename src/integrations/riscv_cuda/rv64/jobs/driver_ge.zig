@@ -10,19 +10,16 @@
 //! Per block, the request config, expected image and capture program are
 //! built ONCE at install (they are immutable inputs of every capture).
 //!
-//! The legacy pipeline (gkr_main, coordinator, admission, owner callbacks)
-//! is not instantiated on this path.
+//! Requests use the GPU-native driver. Installation still constructs legacy
+//! authorities/classes through Host.installRecursion and the class builder;
+//! their construction cost and ownership are separate from served requests.
 //!
 //! Factories: driver_bind.Binding (S1 Registry + S2 Factory into
 //! native_device.Native, truth_factory as the two-stage truths, outer_device
-//! for nodes). Hooks a stream has not landed are filled here with fallbacks
-//! that FAIL CLOSED at the point the missing piece is needed:
-//!   native shape    rows from the warm capture (1 << cpu log per segment),
-//!                   no class registered -> class_of refuses at install
-//!                   (GpuNativeClassNotWarmed) until the class builder lands;
-//!   recursion shape the D2 profile's 4-ary tree over the coalesced truths
-//!                   (STWO_RV64_M8_GPU_NATIVE_TRUTHS, default 5 [D2 golden
-//!                   26235156: truth-0..4]).
+//! for nodes). The install sequence binds capture shape, request inputs,
+//! recursion shape and node ops before Service.install warms classes and
+//! reserves resources. Missing registrations fail explicitly; no served
+//! request falls back to legacy proving.
 const std = @import("std");
 const CPU = @import("stwo_riscv_cpu_integration");
 const engine = @import("stwo_prover_engine");

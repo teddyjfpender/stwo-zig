@@ -4,47 +4,72 @@ const api = @import("api.zig");
 const fake = @import("fake.zig");
 const Arena = W.Arena;
 
-test "arena: staged inputs sit at their side's end and bound the other side's work" {
-    var a = Arena{ .base = 0x10000, .words = 1024 };
-    a.beginStage(.bottom);
-    const b0 = try a.stageAlloc(.bottom, 10); // rounds to 64
-    try std.testing.expectEqual(@as(usize, 0x10000), b0);
-    a.beginStage(.top);
-    const t0 = try a.stageAlloc(.top, 64);
-    try std.testing.expectEqual(@as(usize, 0x10000 + 4 * (1024 - 64)), t0);
-    // bottom job works between its inputs and the staged top inputs
-    a.beginWork(.bottom, true);
-    const w0 = try a.workAlloc(128);
-    try std.testing.expectEqual(@as(usize, 0x10000 + 4 * 64), w0);
-    try std.testing.expectError(error.JobWorkExceedsArena, a.workAlloc(1024 - 64 - 128 - 64 + 1));
-    _ = try a.workAlloc(1024 - 64 - 128 - 64);
-    try std.testing.expectEqual(@as(usize, 1024 - 64), a.peak);
+test "batch event growth failure keeps old events and frees the partial new pair" {
+    fake.reset();
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1024, .pinned_slot_words = 64 });
+    const Check = struct {
+        fn run(_: *anyopaque, worker: *W.Worker) !void {
+            try worker.reserveBatches(1, 0);
+            const old = worker.batch_slots[0][0].staged_event;
+            const live = fake.liveEvents();
+            fake.counters.fail_event_create_after = fake.counters.event_creations + 1;
+            defer fake.counters.fail_event_create_after = null;
+            try std.testing.expectError(error.CudaEnqueueFailed, worker.reserveBatches(2, 0));
+            try std.testing.expectEqual(old, worker.batch_slots[0][0].staged_event);
+            try std.testing.expectEqual(live, fake.liveEvents());
+            try std.testing.expectEqual(@as(usize, 0), fake.counters.bad_event_destroys);
+        }
+    };
+    var token: u8 = 0;
+    const result = w.call(.{ .ctx = &token, .run = Check.run });
+    w.destroy();
+    try result;
+    try std.testing.expectEqual(@as(usize, 0), fake.counters.bad_event_destroys);
 }
 
-test "arena: top side grows down; LIFO free reclaims; no staged neighbour frees the window" {
-    var a = Arena{ .base = 0, .words = 640 };
-    a.beginStage(.top);
-    _ = try a.stageAlloc(.top, 64);
-    a.beginWork(.top, false); // nothing staged on the bottom: whole window
-    const x = try a.workAlloc(64);
-    try std.testing.expectEqual(@as(usize, 4 * (640 - 128)), x);
-    const y = try a.workAlloc(100);
-    a.workFree(y, 100);
-    const z = try a.workAlloc(128);
-    try std.testing.expectEqual(y, z);
-    a.workFree(x, 64); // not the most recent: kept until the window resets
-    try std.testing.expectEqual(z - 4 * 64, try a.workAlloc(1));
-}
-
-test "arena: staged inputs of both sides cannot exceed the arena" {
-    var a = Arena{ .base = 0, .words = 256 };
-    a.beginStage(.bottom);
-    _ = try a.stageAlloc(.bottom, 128);
-    a.beginStage(.top);
-    _ = try a.stageAlloc(.top, 128);
-    try std.testing.expectError(error.StagedInputsExceedArena, a.stageAlloc(.top, 1));
-    a.beginStage(.bottom); // the bottom job finished; its inputs are reusable
-    _ = try a.stageAlloc(.bottom, 64);
+test "request timing borrows only its active parity without creating events" {
+    fake.reset();
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1024, .pinned_slot_words = 64 });
+    defer w.destroy();
+    const Job = struct {
+        parity: u1,
+        begin: ?*anyopaque = null,
+        pub fn classKey(_: *@This()) [32]u8 {
+            return @splat(1);
+        }
+        pub fn footprint(_: *@This()) api.Footprint {
+            return .{ .device_words = 64 };
+        }
+        pub fn stage(self: *@This(), s: *api.Stager) !void {
+            try std.testing.expectError(error.JobTimingParityMismatch, s.timingPair(self.parity ^ 1, 0));
+            self.begin = (try s.timingPair(self.parity, 0)).begin;
+        }
+        pub fn enqueue(_: *@This(), _: *api.Enqueue) !void {}
+        pub fn finish(_: *@This(), _: api.SlabView) !void {}
+        pub fn abort(_: *@This()) void {}
+    };
+    const Check = struct {
+        fn run(_: *anyopaque, worker: *W.Worker) !void {
+            try worker.reserveTimingPairs(1, fake.peer.event_create_timed);
+            try worker.reserveBatches(1, 0);
+            const created = fake.counters.event_creations;
+            var first: ?*anyopaque = null;
+            for (0..2) |parity| {
+                var job = Job{ .parity = @intCast(parity) };
+                var jobs = [_]W.BatchJob{.{ .job = api.Job.from(Job, &job) }};
+                var batch = W.Batch{ .jobs = &jobs, .parity = @intCast(parity) };
+                worker.runBatch(&batch);
+                worker.finishBatch(&batch, true);
+                try batch.result;
+                try jobs[0].result;
+                try std.testing.expect(job.begin != null);
+                if (parity == 0) first = job.begin else try std.testing.expect(first != job.begin);
+            }
+            try std.testing.expectEqual(created, fake.counters.event_creations);
+        }
+    };
+    var token: u8 = 0;
+    try w.call(.{ .ctx = &token, .run = Check.run });
 }
 
 // ---------------- worker loop on the host model ----------------
@@ -75,6 +100,7 @@ const Probe = struct {
     id: usize,
     log: *Log,
     footprint_words: usize = 4096,
+    readback: api.Readback = .job_slab,
     gate: ?*Gate = null,
     placement: ?api.Placement = null,
     input: [5]u32 = .{ 1, 2, 3, 4, 5 },
@@ -90,7 +116,7 @@ const Probe = struct {
         return k;
     }
     pub fn footprint(self: *Probe) api.Footprint {
-        return .{ .device_words = self.footprint_words, .staged_words = 64, .slab_words = 4, .pinned_words = 64 };
+        return .{ .device_words = self.footprint_words, .staged_words = 64, .slab_words = 4, .pinned_words = 64, .readback = self.readback };
     }
     pub fn stage(self: *Probe, s: *api.Stager) !void {
         self.log.add("stage", self.id);
@@ -120,7 +146,11 @@ const Probe = struct {
     }
     pub fn finish(self: *Probe, v: api.SlabView) !void {
         self.log.add("finish", self.id);
-        self.result = v.words[0];
+        try std.testing.expectEqual(self.readback, v.readback);
+        if (self.readback == .request_slab) {
+            try std.testing.expectEqual(@as(usize, 0), v.words.len);
+            try std.testing.expectEqual(@as(u64, 0), v.receipt.d2h_bytes);
+        } else self.result = v.words[0];
         try std.testing.expectEqual(@as(u32, 1), v.receipt.host_waits);
     }
     pub fn abort(self: *Probe) void {
@@ -173,6 +203,39 @@ fn submit(w: *W.Worker, job: api.Job, sink: W.Sink) void {
     }
 }
 
+test "device-published jobs retain private device scratch without host mirrors or readbacks" {
+    fake.reset();
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1024, .pinned_slot_words = 64 });
+    defer w.destroy();
+    var log = Log{};
+    var c = Collector{};
+    var jobs: [3]Probe = undefined;
+    for (&jobs, 0..) |*p, i| {
+        p.* = .{ .id = i, .log = &log, .footprint_words = 512, .readback = .request_slab };
+        submit(w, api.Job.from(Probe, p), c.sink());
+    }
+    c.wait(jobs.len);
+    try std.testing.expectEqual(@as(usize, 0), c.errors);
+    try std.testing.expectEqual(@as(usize, 0), fake.counters.d2h);
+    for (jobs, c.receipts[0..jobs.len]) |p, r| {
+        try std.testing.expect(p.slab_at != 0 and p.slab_at != p.state_at);
+        try std.testing.expectEqual(api.Readback.request_slab, r.readback);
+        try std.testing.expectEqual(@as(u64, 0), r.d2h_bytes);
+    }
+}
+
+test "worker rejects invalid footprint before accepting or staging a job" {
+    fake.reset();
+    const w = try W.Worker.create(std.testing.allocator, &fake.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1024, .pinned_slot_words = 64 });
+    defer w.destroy();
+    var log = Log{};
+    var c = Collector{};
+    var p = Probe{ .id = 0, .log = &log, .footprint_words = 1 };
+    try std.testing.expectError(error.StagedFootprintExceedsDevice, w.submit(api.Job.from(Probe, &p), c.sink()));
+    try std.testing.expectEqual(@as(usize, 0), w.load());
+    try std.testing.expectEqual(@as(usize, 0), log.count);
+}
+
 test "worker runs the 3-stage pipeline: stage(k+1) before enqueue(k) before finish(k-1)" {
     fake.reset();
     // Depth 4 lets the test hold job k+2 in the mailbox while job k+1 stages.
@@ -215,6 +278,9 @@ test "worker runs the 3-stage pipeline: stage(k+1) before enqueue(k) before fini
     for (c.receipts[0..4]) |r| {
         try std.testing.expectEqual(@as(u32, 1), r.host_waits);
         try std.testing.expectEqual(@as(u64, 16), r.d2h_bytes);
+        try std.testing.expectEqual(@as(u32, 1), r.d2h_copies);
+        try std.testing.expectEqual(@as(u32, 1), r.host_callbacks);
+        try std.testing.expectEqual(@as(u32, 0), r.capture_release_callbacks);
     }
 }
 

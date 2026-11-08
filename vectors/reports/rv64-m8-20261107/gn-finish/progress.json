@@ -1,6 +1,6 @@
 {
   "schema": "rv64-gpu-native-delivery-progress/v1",
-  "status": "IN_PROGRESS",
+  "status": "SUPERSEDED_BY_USER",
   "started_utc": "2026-11-07T18:23:05Z",
   "deadline_utc": "2026-11-08T06:23:05Z",
   "brief": "/Users/theodorepender/.codex/attachments/998177a6-5029-45df-afeb-7ea919d08bba/pasted-text-1.txt",
@@ -348,7 +348,7 @@
     "Land gated work on integration and fast-forward PR branch, never force-push; promote only with every-block wins; clean up feeder/hybrids/admission/two-lane code only after replacement qualification",
     "Targets remain unproven: 24628607 at most5s on two GPUs; 26235159 at most10s on four GPUs"
   ],
-  "claim_boundary": "BothdevelopmentblocksdefaultandnativegatesPASSwith262V04resourcecaveat. FlagsOFF; sourcecheckpointnotyetpushed. Fullobjectiveinclcanonicalperformance,productionclassstability,P1,H24,STACK,GKR,M10,basketandlandingnotcomplete.",
+  "claim_boundary": "Previous full GPU/M9/M10 scope remains incomplete. User replaced the goal with GPU code hygiene and developer experience. Native/default dev-block correctness checkpoint 0941244f0 was pushed to integration and PR branch. Retained native profile completed with fresh CPU acceptance; guarded canonical comparison failed during construction at CudaAllocationFailed, so no controlled speedup is qualified. Do not resume the old campaign automatically.",
   "latest_checkpoint": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0235.json",
   "milestones": {
     "native_development_correctness": {
@@ -356,5 +356,7 @@
       "receipt": "vectors/reports/rv64-m8-20261107/gn-finish/checkpoint-0233.json",
       "scope": "BothdevblockrequestscompleteandfreshCPUreceiversaccept;notfullgoalorproductionreadiness"
     }
-  }
+  },
+  "replaced_by": "/Users/theodorepender/.codex/attachments/1b71be11-4011-4141-a6b3-78777f21cca1/pasted-text-1.txt",
+  "landed_core_commit": "0941244f0a0372c16a5188846cbf8cc77cdaf806"
 }

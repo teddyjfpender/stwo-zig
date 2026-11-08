@@ -254,7 +254,6 @@ test "SHA-256 truth shape: receiver derivation equals the actual component geome
     try std.testing.expectError(error.InvalidRecursiveTruthGeometry, Leaf.truthShape(arena, .arith256_mod, Ar.layout.MIN_LOG - 1, config));
 }
 
-
 /// One v3 fixture (2 CPU proofs with SHA/arith/bulk bridges, then the
 /// SHA-256 truth at ordinal 0 and the arith256_mod truth at ordinal 1).
 const Prepared = struct {

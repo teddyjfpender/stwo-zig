@@ -84,9 +84,9 @@ pub fn main() !void {
         var tw = try @import("stwo_prover_engine").poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(20).circleDomain().half_coset);
         defer @import("stwo_prover_engine").poly.twiddles.deinitM31(a, &tw);
         try directory.writeFile(.{ .sub_path = "twiddles-20.bin", .data = std.mem.sliceAsBytes(tw.twiddles[tw.twiddles.len - (1 << 19) ..]) });
-        const mapping = try std.json.Stringify.valueAlloc(a, .{ .plan=plan,.cache=cache,.inputs=p.inputs }, .{});
+        const mapping = try std.json.Stringify.valueAlloc(a, .{ .plan = plan, .cache = cache, .inputs = p.inputs }, .{});
         defer a.free(mapping);
-        try directory.writeFile(.{ .sub_path="mapping.json",.data=mapping });
+        try directory.writeFile(.{ .sub_path = "mapping.json", .data = mapping });
         for (plan.groups, 0..) |_, id| {
             var source: std.ArrayList(u8) = .empty;
             defer source.deinit(a);

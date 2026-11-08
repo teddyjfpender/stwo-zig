@@ -263,8 +263,8 @@ test "memory plan: regions tile the device, validation" {
     p.set(.exchange_slab, 50);
     p.set(.truth, 100);
     try p.validate();
-    try testing.expectEqual(@as(u64, 100), p.offset(.graph_exec));
-    try testing.expectEqual(@as(u64, 400), p.offset(.arena));
+    try testing.expectEqual(@as(u64, 100), try p.offset(.graph_exec));
+    try testing.expectEqual(@as(u64, 400), try p.offset(.arena));
     p.set(.reserve, 51);
     try testing.expectError(error.GpuNativeMemoryPlanExceedsDevice, p.validate());
 }

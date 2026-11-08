@@ -1,5 +1,6 @@
-//! M8 job runtime entry. `combined-serve` routes here when STWO_RV64_M8_JOBS=1
-//! (rv64_combined_ethereum_main.zig); unset or "0" keeps today's path unchanged.
+//! Shared M8 worker runtime and explicit JOBS selection. `combined-serve`
+//! dispatches in rv64_combined_ethereum_main.zig: GPU_NATIVE selects
+//! driver_ge.serve; otherwise resident_batch.runServe owns the feeder path.
 //!
 //! Environment (job path only):
 //!   STWO_RV64_M8_JOBS_LIBRARY        libstwo-rv64-jobs.so (addon, required)
@@ -67,17 +68,6 @@ pub const Config = struct {
 
 pub const feeder = @import("provider.zig");
 
-/// The scheduler-driven request provider (capture + job factories + seal +
-/// publication as one scheduler graph). STWO_RV64_M8_JOBS=1 today runs the
-/// request FEEDER instead (provider.zig + rv64/m8_feeder.zig: the resident
-/// service with every proof a job, legacy orchestration as the driver), and
-/// combined-serve no longer reaches `serve`. This DAG provider stays fail-
-/// closed until the coordinator's capture/seal move under the scheduler.
-fn provider(_: std.mem.Allocator, _: []const *worker.Worker) !request.Provider {
-    std.log.err("STWO_RV64_M8_JOBS=1 via jobs.serve: the scheduler-driven request DAG is not implemented; combined-serve runs the M8 feeder (rv64/m8_feeder.zig)", .{});
-    return error.M8RequestProviderNotLanded;
-}
-
 const Boot = struct {
     result: ?anyerror!void = null,
     receipt: api.Receipt = .{},
@@ -103,16 +93,6 @@ fn selfTest(a: std.mem.Allocator, workers: []const *worker.Worker) !void {
         std.debug.print("GPU_M8_JOBS boot_parity device={} ops={} wait_ns={} host_waits={}\n", .{ boot.receipt.device, job.checked_ops, boot.receipt.wait_ns, boot.receipt.host_waits });
     }
 }
-
-/// Host-side helpers composed OUTSIDE rv64/jobs/ (their import closures reach
-/// legacy owner-path files, which the sync lint forbids under jobs/). The
-/// combined-serve entry passes them in; jobs/ code only calls the pointers,
-/// in pre-stage/stage, never from enqueue. Typed as each provider lands.
-pub const Hooks = struct {
-    /// outer-job pre-stage (host graph/tape preparation ahead of phase 1).
-    outer_prestage: ?*const anyopaque = null,
-    outer_prestage_ctx: ?*anyopaque = null,
-};
 
 /// The job runtime's devices: libraries + one booted, self-tested worker per
 /// STWO_RV64_GPU_DEVICES entry. Usable by any entry (serve, or a legacy entry
@@ -245,16 +225,6 @@ pub const WorkerSet = struct {
     }
 };
 
-pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8, hooks: Hooks) !void {
-    _ = hooks;
-    _ = manifest_path; // the provider reads the manifest (blocks, profile) when it lands
-    var timer = try std.time.Timer.start();
-    const set = try WorkerSet.start(a, library);
-    defer set.stop(a);
-    const p = try provider(a, set.slice());
-    try request.serve(a, p, set.slice(), spool, timer.read());
-}
-
 /// Measured class plans of every worker (declared vs measured peak words).
 pub fn writePlans(a: std.mem.Allocator, workers: []const *worker.Worker, path: []const u8) !void {
     const Row = struct { device: u32, class_key: [64]u8, stat: worker.ClassStat };
@@ -276,8 +246,7 @@ test "selection is explicit and fails closed" {
     try std.testing.expect(!(try selected()));
 }
 
-test "service entry points are analyzed" {
-    _ = &serve;
+test "worker lifecycle entry points are analyzed" {
     _ = &WorkerSet.start;
     _ = &WorkerSet.startWith;
     _ = &WorkerSet.stop;

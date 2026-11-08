@@ -368,6 +368,9 @@ pub const Stage1 = struct {
         try self.span.open(self.timing);
     }
     pub fn enqueue(self: *Stage1, e: *api.Enqueue) !void {
+        var trace_label: [80]u8 = undefined;
+        var trace_range = try e.trace(.truth_stage1, self.ordinal, &trace_label);
+        defer trace_range.deinit();
         const saved = e.slab.*;
         defer e.slab.* = saved;
         if (self.request_slab_only) e.slab.* = .{ .device = try e.alloc(self.layout.words) };
@@ -681,6 +684,9 @@ pub const Stage2 = struct {
     }
 
     pub fn enqueue(self: *Stage2, e: *api.Enqueue) !void {
+        var trace_label: [80]u8 = undefined;
+        var trace_range = try e.trace(.truth_stage2, self.ordinal, &trace_label);
+        defer trace_range.deinit();
         const saved = e.slab.*;
         defer e.slab.* = saved;
         if (self.request_slab_only) e.slab.* = .{ .device = try e.alloc(self.layout.words) };

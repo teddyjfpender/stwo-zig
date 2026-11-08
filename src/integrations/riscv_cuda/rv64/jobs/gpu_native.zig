@@ -720,50 +720,9 @@ pub const ProofEncoder = struct {
 // Memory plan (one per GPU)
 // ---------------------------------------------------------------------------
 
-pub const RegionKind = enum(u8) {
-    class_cache, // per-class constants (twiddles, FIXED trees, tapes): install-time
-    graph_exec, // captured graph executables (driver budget)
-    main_resident, // MAIN coefficients/trees of every segment on this GPU, witness -> PCS
-    arena, // two-sided job arena (worker): one job in flight + one staged
-    truth, // truth-job working set (inside the plan, never a lease)
-    exchange_slab, // request slab segment + its pinned mirror size
-    reserve, // driver/CUDA headroom
-};
-
-pub const Region = struct { kind: RegionKind, words: u64 };
-
-/// Every request-path allocation comes from one of these regions; nothing on
-/// the request path calls cudaMalloc outside them (`outside_words` == 0 is a
-/// plan invariant the worker enforces).
-pub const MemoryPlan = struct {
-    device: u32,
-    capacity_words: u64,
-    regions: [std.meta.fields(RegionKind).len]u64 = @splat(0),
-
-    pub fn set(self: *MemoryPlan, kind: RegionKind, words: u64) void {
-        self.regions[@intFromEnum(kind)] = words;
-    }
-    pub fn get(self: *const MemoryPlan, kind: RegionKind) u64 {
-        return self.regions[@intFromEnum(kind)];
-    }
-    pub fn total(self: *const MemoryPlan) u64 {
-        var n: u64 = 0;
-        for (self.regions) |w| n += w;
-        return n;
-    }
-    pub fn validate(self: *const MemoryPlan) !void {
-        if (self.total() > self.capacity_words) return error.GpuNativeMemoryPlanExceedsDevice;
-        if (self.get(.arena) == 0) return error.GpuNativeMemoryPlanNoArena;
-        if (self.get(.exchange_slab) == 0) return error.GpuNativeMemoryPlanNoSlab;
-    }
-    /// Region base offsets in a fixed order (class cache lowest: it outlives
-    /// requests; arena last: it may grow into the reserve at install).
-    pub fn offset(self: *const MemoryPlan, kind: RegionKind) u64 {
-        var at: u64 = 0;
-        for (0..@intFromEnum(kind)) |k| at += self.regions[k];
-        return at;
-    }
-};
+pub const RegionKind = @import("memory_plan.zig").RegionKind;
+pub const Region = @import("memory_plan.zig").Region;
+pub const MemoryPlan = @import("memory_plan.zig").MemoryPlan;
 
 // ---------------------------------------------------------------------------
 // Streaming capture -> device witness hand-off
@@ -885,6 +844,8 @@ pub const Publication = struct {
 /// Request-scoped context every factory call receives.
 pub const RequestContext = struct {
     request: u64,
+    /// Actual driver slot, independent of generation and request id.
+    parity: u1 = 0,
     block: u64 = 0,
     /// Native class keys resolved during planning; immutable for this request.
     native_classes: []const ClassKey = &.{},

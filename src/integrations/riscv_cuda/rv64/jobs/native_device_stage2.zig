@@ -417,6 +417,9 @@ pub const SealJob = struct {
         self.staged = b;
     }
     pub fn enqueue(self: *SealJob, e: *api.Enqueue) !void {
+        var trace_label: [80]u8 = undefined;
+        var trace_range = try e.trace(.seal, 0, &trace_label);
+        defer trace_range.deinit();
         if (self.flat != null) {
             try self.enqueueFlat(e);
             try self.encodeManifest(e);
@@ -988,6 +991,9 @@ pub const Stage2Job = struct {
     }
 
     pub fn enqueue(self: *Stage2Job, e: *api.Enqueue) !void {
+        var trace_label: [80]u8 = undefined;
+        var trace_range = try e.trace(.native_stage2, self.segment, &trace_label);
+        defer trace_range.deinit();
         // The lease ends with the enqueue: everything below reads the
         // instance's host state at call time only (device work captured the
         // pointers it staged), so the next job may restage the instance.

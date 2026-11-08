@@ -34,38 +34,7 @@ pub const CopyAsync = *const fn (*anyopaque, *const anyopaque, usize, u32, *anyo
 /// Optional CUDA-event span around a job's enqueued work (glue supplies the
 /// base image's event entry points; events are created in `stage`, on the
 /// worker thread, and read in `finish` after the job's single wait).
-pub const Timing = struct {
-    ctx: ?*anyopaque = null,
-    create: *const fn (?*anyopaque, *?*anyopaque) c_int,
-    record: *const fn (?*anyopaque, *anyopaque, *anyopaque) c_int,
-    elapsed: *const fn (?*anyopaque, *f32, *anyopaque, *anyopaque) c_int,
-    destroy: *const fn (?*anyopaque, *anyopaque) void,
-    pub const Span = struct {
-        begin: ?*anyopaque = null,
-        end: ?*anyopaque = null,
-        gpu_ms: f32 = -1,
-        fn open(self: *Span, t: ?*const Timing) !void {
-            const tm = t orelse return;
-            if (tm.create(tm.ctx, &self.begin) != 0 or tm.create(tm.ctx, &self.end) != 0 or self.begin == null or self.end == null) return error.CudaTimingFailed;
-        }
-        fn mark(self: *Span, t: ?*const Timing, which: enum { begin, end }, stream: *anyopaque) !void {
-            const tm = t orelse return;
-            const ev = (if (which == .begin) self.begin else self.end) orelse return;
-            if (tm.record(tm.ctx, ev, stream) != 0) return error.CudaTimingFailed;
-        }
-        fn read(self: *Span, t: ?*const Timing) void {
-            const tm = t orelse return;
-            if (self.begin == null or self.end == null or tm.elapsed(tm.ctx, &self.gpu_ms, self.begin.?, self.end.?) != 0) self.gpu_ms = -1;
-        }
-        pub fn close(self: *Span, t: ?*const Timing) void {
-            const tm = t orelse return;
-            if (self.begin) |e| tm.destroy(tm.ctx, e);
-            if (self.end) |e| tm.destroy(tm.ctx, e);
-            self.begin = null;
-            self.end = null;
-        }
-    };
-};
+pub const Timing = @import("job_timing.zig").Timing;
 
 pub fn mainName(ordinal: u32) [32]u8 {
     return R.name("hy.s1.main", ordinal);

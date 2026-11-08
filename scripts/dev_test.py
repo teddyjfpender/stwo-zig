@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -21,6 +22,7 @@ from scripts.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion/om31_native/publication.zig", "test-recursion-publication"),
     ("stwo_core", "src/core/fields", "test-fields"),
     ("stwo_core", "src/core/fields_test_root.zig", "test-fields"),
     ("stwo_core", "src/core/crypto", "test-crypto"),
@@ -108,7 +110,41 @@ def worktree_paths(root: Path) -> list[str]:
     })
 
 
-def focus_step(package: str, path: str) -> str | None:
+def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
+    if package == "stwo_riscv_cuda_integration":
+        directory = "src/integrations/riscv_cuda/"
+        resource_root = "rv64_resources_test_root.zig"
+        imports = re.findall(r'@import\("([^"\n]+)"\)', (root / directory / resource_root).read_text())
+        resources = {directory + name for name in imports}
+        # Include only test files actually imported by an owned module;
+        # guessing sibling names could silently omit a newly added test.
+        for module in tuple(resources):
+            text = (root / module).read_text()
+            tests = re.findall(r'@import\("([^"\n]+_test\.zig)"\)', text)
+            resources.update((Path(module).parent / name).as_posix() for name in tests)
+        if path == directory + resource_root or path in resources:
+            return "test-rv64-resources"
+        node = {"outer_job.zig", "outer_encode_job.zig", "outer_result.zig"}
+        runtime = {"api.zig", "api_test.zig", "worker.zig", "worker_test.zig",
+                   "channel.zig", "slab.zig", "plan.zig", "plan_test.zig", "lint.zig",
+                   "fake.zig", "retained.zig", "retained_test.zig", "driver.zig",
+                   "driver_request.zig", "driver_dag.zig", "driver_memory.zig", "driver_test.zig"}
+        prefix = "src/integrations/riscv_cuda/rv64/jobs/"
+        if path.startswith(prefix) and path[len(prefix):] in node:
+            return "test-rv64-jobs-node"
+        if path.startswith(prefix) and path[len(prefix):] in runtime:
+            return "test-rv64-jobs-runtime"
+        # The roots own their direct source coverage. Derive routing from
+        # those imports instead of maintaining a second native/truth/outer
+        # file inventory; unknown files still take the package fallback.
+        for filename, step in (
+            ("rv64_jobs_native_test_root.zig", "test-rv64-jobs-native"),
+            ("rv64_jobs_truth_test_root.zig", "test-rv64-jobs-truth"),
+            ("rv64_jobs_outer_test_root.zig", "test-rv64-jobs-outer"),
+        ):
+            imports = re.findall(r'@import\("([^"\n]+)"\)', (root / directory / filename).read_text())
+            if path == directory + filename or path in {directory + name for name in imports}:
+                return step
     if package == "stwo_prover_engine" and path in PROVER_QUOTIENT_STEPS:
         return PROVER_QUOTIENT_STEPS[path]
     if package == "stwo_prover_engine" and (
@@ -177,7 +213,7 @@ def commands_for_paths(
     commands: list[list[str]] = []
     for package_name, package_paths in sorted(selected.items()):
         package = packages[package_name]
-        steps = {focus_step(package_name, path) for path in package_paths}
+        steps = {focus_step(package_name, path, root) for path in package_paths}
         if None in steps:
             commands.append(broad_command(root, package))
             continue

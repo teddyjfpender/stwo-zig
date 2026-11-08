@@ -591,32 +591,9 @@ pub const WarmJob = struct {
 // Request job
 // ---------------------------------------------------------------------------
 
-/// CUDA-event span over a job's enqueued work (events created in `stage` on
-/// the worker thread, read in `finish` after the request's single wait) [M].
-pub const Span = struct {
-    begin: ?*anyopaque = null,
-    end: ?*anyopaque = null,
-    gpu_ms: f32 = -1,
-    pub fn open(self: *Span, t: ?*const HJ.Timing) !void {
-        const tm = t orelse return;
-        if (tm.create(tm.ctx, &self.begin) != 0 or tm.create(tm.ctx, &self.end) != 0 or self.begin == null or self.end == null) return error.CudaTimingFailed;
-    }
-    pub fn mark(self: *Span, t: ?*const HJ.Timing, comptime which: enum { begin, end }, stream: *anyopaque) !void {
-        const tm = t orelse return;
-        const ev = (if (which == .begin) self.begin else self.end) orelse return;
-        if (tm.record(tm.ctx, ev, stream) != 0) return error.CudaTimingFailed;
-    }
-    pub fn read(self: *Span, t: ?*const HJ.Timing) void {
-        const tm = t orelse return;
-        if (self.begin == null or self.end == null or tm.elapsed(tm.ctx, &self.gpu_ms, self.begin.?, self.end.?) != 0) self.gpu_ms = -1;
-    }
-    pub fn close(self: *Span, t: ?*const HJ.Timing) void {
-        const tm = t orelse return;
-        if (self.begin) |e| tm.destroy(tm.ctx, e);
-        if (self.end) |e| tm.destroy(tm.ctx, e);
-        self.* = .{ .gpu_ms = self.gpu_ms };
-    }
-};
+/// CUDA-event span over a job's enqueued work. Production requests borrow
+/// installed worker events; component harnesses may own their diagnostics.
+pub const Span = @import("job_timing.zig").Timing.Span;
 
 pub const Stage1Job = struct {
     a: std.mem.Allocator,
@@ -628,6 +605,7 @@ pub const Stage1Job = struct {
     words: RequestWords,
     witness: Witness,
     timing: ?*const HJ.Timing = null,
+    timing_storage: enum { owned, installed } = .owned,
     // per-job shallow copies of the class plans (stage writes device views
     // into them; the class plans stay immutable and shareable across GPUs)
     main: C.CommitPlan = undefined,
@@ -734,6 +712,7 @@ pub const Stage1Job = struct {
         return .{ .device_words = c.jobWords() + chunk_words - planned, .staged_words = staged, .slab_words = 0, .pinned_words = c.requestPinnedWords() };
     }
     pub fn stage(self: *Stage1Job, s: *api.Stager) !void {
+        if (self.timing != null and self.timing_storage == .installed) self.span = Span.borrow(try s.timingPair(self.ctx.parity, self.segment));
         const c = self.class;
         // FIXED adoption: the class region must already be warm on this GPU.
         const p = try s.persistent(c.fixed_key, c.fixedRegionWords());
@@ -784,6 +763,9 @@ pub const Stage1Job = struct {
         return ex.slice(slot.offset, slot.words);
     }
     pub fn enqueue(self: *Stage1Job, e: *api.Enqueue) !void {
+        var trace_label: [80]u8 = undefined;
+        var trace_range = try e.trace(.native_stage1, self.segment, &trace_label);
+        defer trace_range.deinit();
         const c = self.class;
         const sym = self.sym;
         const ectx = e.ctx();
@@ -1266,7 +1248,7 @@ pub const Registry = struct {
             return error.NativeStage1WitnessMissing;
         const job = try self.a.create(Stage1Job);
         errdefer self.a.destroy(job);
-        job.* = .{ .a = self.a, .class = cl, .sym = sym, .ctx = ctx, .segment = segment, .device = device, .words = words, .witness = witness, .timing = self.timing };
+        job.* = .{ .a = self.a, .class = cl, .sym = sym, .ctx = ctx, .segment = segment, .device = device, .words = words, .witness = witness, .timing = self.timing, .timing_storage = .installed };
         try job.init();
         p.job = job;
         return api.Job.from(Stage1Job, job);

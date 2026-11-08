@@ -1,12 +1,49 @@
 # RV64 GPU prover: M8 handoff (2026-11-07)
 
-This is the starting point for whoever takes over. Read §0, then §2 (GPU residency) and §5 (architectural steps) before writing code.
+Read the active-work checkpoint first. The original M8 sections below remain
+historical context and acceptance requirements for future performance claims.
+
+## Active work — GPU hygiene (2026-11-08, in progress)
+
+The user replaced the performance campaign with the
+[resource and development contract](rv64-gpu-hygiene.md): explicit resource
+lifetimes, one documented GPU request path, shared validation, visible host
+callbacks/readbacks, native trace ranges and focused developer tests. Do not
+resume the older performance campaign merely because this handoff retains it.
+Its unfinished M8/M9/M10 gates still constrain any future production or speed
+claim; they are not completed by this cleanup.
+
+The candidate is `codex/rv64-gpu-hygiene`. Current evidence is in
+[checkpoint-7.json](../../vectors/reports/rv64-gpu-hygiene-20261108/checkpoint-7.json)
+and the linked pod receipts. All four bounded gates now pass: default and
+native paths on 24628607 and 26235156, each with frozen cold/warm parity, two
+fresh isolated CPU accepts and complete semantic coverage of the selected
+19-case corpus. Native 24628607's shared CUDA activity analysis is complete:
+two final ordinary readbacks, zero private job-slab readbacks, no request event
+creation, seven capture-release callbacks and 48 complete native enqueue ranges
+per request. Peer transport remains separately counted. The hardware source snapshot
+was unchanged throughout. Checkpoint 7 separately records two final EOF-only
+Python formatting fixes, AST equivalence and the repeated 178-test Python
+gate. These are correctness and ownership observations,
+not a controlled latency comparison.
+
+The broader hygiene goal remains incomplete: the static tier is not green,
+and inherited oversized owners and unreachable scripts remain explicit work.
+The [delivery audit](../../vectors/reports/rv64-gpu-hygiene-20261108/delivery-audit.md)
+records the open completion gates.
+
+No default promotion or new speed/physical-peak claim is part of this work.
+Global formatting and targeted CI contract tests now pass, while inherited
+repository-wide provenance, source-layout and script-reachability debt remains
+explicit in [static-audit.json](../../vectors/reports/rv64-gpu-hygiene-20261108/static-audit.json).
+Do not suppress those checks or call the repository-wide static tier green.
 
 ## Continuation checkpoint — 2026-11-08 02:35 UTC
 
 The original handoff below records the state at 2026-11-07. This checkpoint
 supersedes its GPU-native completion and install-failure statements; its
-remaining acceptance and architectural requirements still apply in full.
+remaining acceptance and architectural requirements still apply to the
+historical performance/production objective described there.
 
 - **[M] GPU-native now completes cold and warm requests on block 26235156.**
   `gn-bind/gate-28/gate.json` is PASS: build and host units, frozen artifact
@@ -45,20 +82,24 @@ remaining acceptance and architectural requirements still apply in full.
   marker and produces exactly two request rows. Driver counters and event
   spans stay separate from unavailable stage partitions. Profiling may use
   a separate raw-trace filesystem through `--nsys-root`, preserving the
-  standard per-run `nsys` link. These latest harness changes still require
-  the exact-commit pod gate before pushing.
+  standard per-run `nsys` link. Exact-commit gate 39 passed; core checkpoint
+  `0941244f0` is pushed to integration, the PR branch and the original stream branch.
 - **PCS retirement falsifier [M]:** the source-built experimental addon and
   control each pass 99 tests (1 skipped), PCS image parity, and a candidate
   memcheck run with zero errors. Both allocation-side high-waters are
   identical between arms. The prototype is set aside as a saved patch;
   P1 and end-to-end performance remain open. See
   [the negative receipt](../../vectors/reports/rv64-m8-20261107/gn-finish/pcs-retire-1/result.json).
-- **No new performance qualification or landing claim.** These changes are
-  local on `codex/rv64-m8-gn-bind`, default-off and not pushed. Canonical
+- **No new performance qualification.** Core checkpoint `0941244f0` is
+  pushed and default-off. The retained native profile has two fresh CPU
+  accepts [M]. The guarded canonical comparison failed during class
+  construction (`CudaAllocationFailed`); it produced no qualified ratio. Canonical
   interleaved timing, warm-request Nsight, the basket, new-block setup cost,
   whole-node graph replay and the larger architectural steps remain open.
   Same-block setup-excluded request times do not establish production
-  new-block latency. Keep the full scope in
+  new-block latency. The user replaced that campaign with the
+  [GPU hygiene and developer contract](rv64-gpu-hygiene.md); do not resume
+  the previous performance scope automatically. Keep the full scope in
   [progress.json](../../vectors/reports/rv64-m8-20261107/gn-finish/progress.json).
 
 **Labels:** [M] measured, [D] derived from measured numbers, [E] estimate.

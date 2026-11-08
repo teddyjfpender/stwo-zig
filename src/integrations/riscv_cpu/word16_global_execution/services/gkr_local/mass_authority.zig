@@ -31,30 +31,30 @@ pub const Relation = enum { ram, kio, wire };
 /// The same source-owned linear event formula can consume integer values or
 /// circuit handles. INITIAL/TERMINAL counts come from actual AIR public rows.
 pub fn CpuCountsFor(comptime Scalar: type) type {
-    return struct { ls: Scalar, initial: Scalar, terminal: Scalar, calls: [@import("../types.zig").FAMILIES]Scalar,
-        dword: Scalar, sponge: [2]Scalar, bulk: [@import("../types.zig").bulk_kinds.len]Scalar };
+    return struct { ls: Scalar, initial: Scalar, terminal: Scalar, calls: [@import("../types.zig").FAMILIES]Scalar, dword: Scalar, sponge: [2]Scalar, bulk: [@import("../types.zig").bulk_kinds.len]Scalar };
 }
 pub fn cpuCounts(request: Request) !CpuCountsFor(u32) {
-    var counts: CpuCountsFor(u32) = .{ .ls = request.base.memory.ls_count,
-        .initial = std.math.cast(u32, request.base.memory.initial.len) orelse return error.GlobalMassCounterRange,
-        .terminal = std.math.cast(u32, request.base.memory.terminal.len) orelse return error.GlobalMassCounterRange,
-        .calls = request.calls, .dword = request.ls_dword,
-        .sponge = .{ request.sponge.calls, request.sponge.perms }, .bulk = undefined };
+    var counts: CpuCountsFor(u32) = .{ .ls = request.base.memory.ls_count, .initial = std.math.cast(u32, request.base.memory.initial.len) orelse return error.GlobalMassCounterRange, .terminal = std.math.cast(u32, request.base.memory.terminal.len) orelse return error.GlobalMassCounterRange, .calls = request.calls, .dword = request.ls_dword, .sponge = .{ request.sponge.calls, request.sponge.perms }, .bulk = undefined };
     inline for (@import("../types.zig").bulk_kinds, 0..) |kind, i| counts.bulk[i] = request.bulk.rows(kind);
     return counts;
 }
 /// writer.term(relation, positive, count, coefficient) latches its own errors.
 /// No term is a net residual. Both signs of every memory access are retained.
 pub fn emitCpuTerms(counts: anytype, writer: anytype) void {
-    writer.term(.ram, true, counts.ls, 1); writer.term(.ram, true, counts.terminal, 1);
-    writer.term(.ram, false, counts.ls, 1); writer.term(.ram, false, counts.initial, 1);
+    writer.term(.ram, true, counts.ls, 1);
+    writer.term(.ram, true, counts.terminal, 1);
+    writer.term(.ram, false, counts.ls, 1);
+    writer.term(.ram, false, counts.initial, 1);
     const kwords = @typeInfo(@FieldType(A.crypto.keccak.word16_bridge.types.Call, "before")).array.len;
-    writer.term(.ram, true, counts.calls[0], kwords); writer.term(.ram, false, counts.calls[0], kwords);
+    writer.term(.ram, true, counts.calls[0], kwords);
+    writer.term(.ram, false, counts.calls[0], kwords);
     writer.term(.kio, false, counts.calls[0], 2 * A.crypto.keccak.layout.IO_LANES);
     inline for ([_]A.crypto.secp256k1.program.Kind{ .add, .double }, 1..) |kind, f| {
         const program = A.crypto.secp256k1.program.get(kind);
-        writer.term(.ram, true, counts.calls[f], program.inputs * 4); writer.term(.ram, false, counts.calls[f], program.inputs * 4);
-        writer.term(.wire, true, counts.calls[f], program.inputs); writer.term(.wire, false, counts.calls[f], program.outputs.len);
+        writer.term(.ram, true, counts.calls[f], program.inputs * 4);
+        writer.term(.ram, false, counts.calls[f], program.inputs * 4);
+        writer.term(.wire, true, counts.calls[f], program.inputs);
+        writer.term(.wire, false, counts.calls[f], program.outputs.len);
     }
     inline for (comptime std.enums.values(@import("../types.zig").Family)) |family| {
         if (@intFromEnum(family) >= 3) {
@@ -66,25 +66,40 @@ pub fn emitCpuTerms(counts: anytype, writer: anytype) void {
             writer.term(.wire, false, counts.calls[@intFromEnum(family)], A.crypto.secp256k1.word16_bridge.types.written(kind));
         }
     }
-    writer.term(.ram, true, counts.dword, 1); writer.term(.ram, false, counts.dword, 1);
-    inline for (.{29,18}, 0..) |coefficient, i| {
-        writer.term(.ram, true, counts.sponge[i], coefficient); writer.term(.ram, false, counts.sponge[i], coefficient);
-        writer.term(.kio, true, counts.sponge[i], 50); writer.term(.kio, false, counts.sponge[i], 50);
+    writer.term(.ram, true, counts.dword, 1);
+    writer.term(.ram, false, counts.dword, 1);
+    inline for (.{ 29, 18 }, 0..) |coefficient, i| {
+        writer.term(.ram, true, counts.sponge[i], coefficient);
+        writer.term(.ram, false, counts.sponge[i], coefficient);
+        writer.term(.kio, true, counts.sponge[i], 50);
+        writer.term(.kio, false, counts.sponge[i], 50);
     }
     inline for (@import("../types.zig").bulk_kinds, 0..) |kind, i| {
         const coefficient = A.crypto.bulk_memory.layout.ramCount(kind) / 2;
-        writer.term(.ram, true, counts.bulk[i], coefficient); writer.term(.ram, false, counts.bulk[i], coefficient);
+        writer.term(.ram, true, counts.bulk[i], coefficient);
+        writer.term(.ram, false, counts.bulk[i], coefficient);
     }
 }
 pub fn evaluateCpuCounts(counts: CpuCountsFor(u32)) !Globals {
     var writer = struct {
-        total: Globals = .{}, failure: ?anyerror = null,
+        total: Globals = .{},
+        failure: ?anyerror = null,
         pub fn term(s: *@This(), relation: Relation, positive: bool, count: u32, coefficient: usize) void {
             if (s.failure != null) return;
-            const value = std.math.mul(u64, count, coefficient) catch |err| { s.failure = err; return; };
-            const signed = switch (relation) { .ram => &s.total.ram, .kio => &s.total.kio, .wire => &s.total.wire };
+            const value = std.math.mul(u64, count, coefficient) catch |err| {
+                s.failure = err;
+                return;
+            };
+            const signed = switch (relation) {
+                .ram => &s.total.ram,
+                .kio => &s.total.kio,
+                .wire => &s.total.wire,
+            };
             const output = if (positive) &signed.positive else &signed.negative;
-            output.* = std.math.add(u64, output.*, value) catch |err| { s.failure = err; return; };
+            output.* = std.math.add(u64, output.*, value) catch |err| {
+                s.failure = err;
+                return;
+            };
         }
     }{};
     emitCpuTerms(counts, &writer);
@@ -102,9 +117,7 @@ test "shared CPU signed-event visitor agrees with legacy native mass authority" 
         request.ls_dword = @intCast(11 * case);
         for (&request.calls, 0..) |*calls, family| calls.* = @intCast((family + 1) * case);
         request.sponge = .{ .calls = @intCast(13 * case), .perms = @intCast(17 * case), .first_id = 1 };
-        request.bulk = .{ .calls = @intCast(2 * case), .copy_words = @intCast(3 * case), .set_words = @intCast(5 * case),
-            .ucopy_rows = @intCast(7 * case), .cmp_calls = @intCast(11 * case), .cmp_words = @intCast(13 * case),
-            .jump_calls = @intCast(17 * case), .jump_rows = @intCast(19 * case) };
+        request.bulk = .{ .calls = @intCast(2 * case), .copy_words = @intCast(3 * case), .set_words = @intCast(5 * case), .ucopy_rows = @intCast(7 * case), .cmp_calls = @intCast(11 * case), .cmp_words = @intCast(13 * case), .jump_calls = @intCast(17 * case), .jump_rows = @intCast(19 * case) };
         try std.testing.expectEqualDeep(try cpu(request), try evaluateCpuCounts(try cpuCounts(request)));
     }
 }

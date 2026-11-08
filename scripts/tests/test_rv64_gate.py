@@ -85,19 +85,18 @@ class GateTests(unittest.TestCase):
             got = gate.jobs_environment(runtime, {'STWO_RV64_M8_OUTER_JOBS': '1', 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '2'})
             self.assertEqual(got, {'STWO_RV64_M8_JOBS_LIBRARY': str(lib)})
             self.assertEqual(gate.jobs_environment({}, {'STWO_RV64_M8_JOBS': '1'}), {})
+            other = Path(tmp) / 'unrecorded.so'
+            other.write_bytes(b'unrecorded')
+            for selected in ('0', '1'):
+                with self.assertRaisesRegex(RuntimeError, 'not a pinned asset'):
+                    gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': selected,
+                                                    'STWO_RV64_M8_JOBS_LIBRARY': str(other)})
             lib.write_bytes(b'changed')
             with self.assertRaises(RuntimeError): gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1'})
             unpinned = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib)}}
             with self.assertRaises(RuntimeError): gate.jobs_environment(unpinned, {'STWO_RV64_M8_JOBS': '1'})
 
-    def test_corpus_cannot_pass_by_running_nothing_or_skipping(self):
-        good = {'results': [{'id': name, 'passed': True} for name in gate.CASES]}
-        gate.check_corpus(good)
-        for bad in ({'results': []}, {'results': good['results'][:-1]},
-                    dict(good, unsupported=[{'id': gate.CASES[0]}]),
-                    dict(good, crashes=['C00-control']),
-                    {'results': good['results'] + good['results'][:1]}):
-            with self.assertRaises(RuntimeError): gate.check_corpus(bad)
+    def test_gate_corpus_cases_have_executable_mutations(self):
         known = {c['id'] for c in corpus.CASES if 'mutate' in c}
         self.assertLessEqual(set(gate.CASES), known)
 

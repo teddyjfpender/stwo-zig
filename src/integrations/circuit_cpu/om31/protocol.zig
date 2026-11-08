@@ -11,7 +11,7 @@ pub const MC = struct {
     pub fn mixRoot(ch: *Channel, root: H.Hash) void {
         // Keep the exact Blake(digest || root) bytes visible to channel observers.
         var words: [8]u32 = undefined;
-        for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, root[4 * i..][0..4], .little);
+        for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, root[4 * i ..][0..4], .little);
         ch.mixU32s(&words);
     }
 };

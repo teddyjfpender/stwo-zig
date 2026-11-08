@@ -35,11 +35,10 @@ pub fn main() !void {
         if (arguments.len != 4) return error.ExpectedCombinedServeManifestAndSpool;
         // M8 request feeder (STWO_RV64_M8_JOBS=1): the resident service with
         // every proof a job (rv64/m8_feeder.zig). Unset keeps today's path.
-        // The scheduler-driven request DAG (jobs.serve) is not reachable yet.
         _ = try @import("rv64/jobs/mod.zig").selected();
         // M8 GPU-native (STWO_RV64_M8_GPU_NATIVE=1, requires JOBS=1): the
         // jobs/driver_ge.zig service (streamed GE capture -> driver, one host
-        // wait per request). Fails closed while a factory hook is missing;
+        // wait per request). Missing class/factory hooks fail closed;
         // unset keeps the feeder/legacy path.
         if (try @import("rv64/jobs/driver.zig").selected(posixEnv)) return @import("rv64/jobs/driver_ge.zig").serve(a, library, arguments[2], arguments[3], @import("rv64/m8_class_build_composition.zig"));
         return @import("rv64/resident_batch.zig").runServe(a, library, arguments[2], arguments[3]);

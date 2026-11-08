@@ -354,7 +354,6 @@ test "Program metadata hit fixed allocation failure drains lease and permits ret
     try same(&first, &retry);
 }
 
-
 test "capture program view preserves all ROM tuples without dense fixed columns" {
     var expected = try authority(a);
     defer expected.deinit();

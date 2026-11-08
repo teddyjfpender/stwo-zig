@@ -1102,6 +1102,36 @@ fn serviceConfig() R.Config {
     return .{ .capacity_words = &.{ 1 << 20, 1 << 20 }, .max_segments = 8, .max_jobs_per_device = 32, .slab_words = 1 << 13, .reserve_words = 1 << 10, .graph_exec_words = 1 << 10, .arena_cap_words = 1 << 15, .stage_one_base_bytes = 512 };
 }
 
+test "driver: malformed class reservations refuse before request resources allocate" {
+    const Malformed = struct {
+        var main = false;
+        fn warm(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {
+            try World.rWarm(raw, cache);
+            if (main) {
+                cache.map.get(k_native).?.main_resident_words = @as(u64, 1) << 63;
+            } else {
+                var it = cache.map.valueIterator();
+                while (it.next()) |entry| entry.*.held_words[0] = @as(u64, 1) << 63;
+            }
+        }
+    };
+    const a = testing.allocator;
+    var world = World{ .a = a };
+    var recursion_vt = World.rec_vt;
+    recursion_vt.warm = Malformed.warm;
+    const worker = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer worker.destroy();
+    var config = serviceConfig();
+    config.capacity_words = &.{1 << 20};
+    for ([_]bool{ false, true }) |main| {
+        Malformed.main = main;
+        F.reset();
+        try testing.expectError(error.ResourceSizeOverflow, R.Driver.install(a, &F.ops, &F.peer, &.{worker}, world.nativeFactory(), .{ .ctx = &world, .vtable = &recursion_vt }, config));
+        try testing.expectEqual(@as(usize, 0), F.counters.allocations);
+        try testing.expectEqual(@as(usize, 0), F.counters.event_creations);
+    }
+}
+
 test "driver: final admission uses class peaks updated by resource measurement" {
     const Hooks = struct {
         fn warm(raw: *anyopaque, cache: *G.ClassCache) anyerror!void {

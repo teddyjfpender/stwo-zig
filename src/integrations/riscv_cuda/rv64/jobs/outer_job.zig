@@ -55,14 +55,9 @@ const Held = struct {
     rc_parameters: K.Buffer,
 };
 
-pub const Decoded = struct {
-    claims: Outer.witness.Claims,
-    z: Outer.protocol.O,
-    alpha: Outer.protocol.O,
-    coefficient: Outer.protocol.O,
-    main_root: [32]u8,
-    inter_root: [32]u8,
-};
+pub const Decoded = @import("outer_result.zig").Decoded;
+pub const decode = @import("outer_result.zig").decode;
+const root = @import("outer_result.zig").root;
 
 pub const Timing = K.Timing;
 
@@ -367,6 +362,20 @@ pub const OuterNodeJob = struct {
     /// transient (FIXED recommit, MAIN, INTER, composition, PCS). With
     /// streamed commits no phase holds an LDE image or a tree: the commit
     /// transient is one chunk + two state banks.
+    /// One ordered schedule for both declaration and holdBuffers allocation.
+    /// Zero-sized tree slots are omitted on the streamed path.
+    fn heldBufferWords(self: *const OuterNodeJob) [9]usize {
+        const streamed = self.streams != null;
+        const w = N.Long.words(self.staged.plan(), streamed);
+        var sizes = [_]usize{ w[0], w[1], w[2], w[3], w[4], w[5], 0, 0, 0 };
+        if (self.whole != null) if (self.staged.statics.composition) |*cs| {
+            sizes[6] = @intCast(cs.coefficientWords());
+            sizes[7] = if (streamed) 0 else @intCast(cs.treeWords());
+            sizes[8] = @as(usize, cs.param_total) * 8;
+        };
+        return sizes;
+    }
+
     pub fn footprint(self: *OuterNodeJob) api.Footprint {
         const p = self.staged.plan();
         const g = struct {
@@ -374,9 +383,8 @@ pub const OuterNodeJob = struct {
                 return std.mem.alignForward(u64, @max(words, 1), 64);
             }
         }.r;
-        const streamed = self.streams != null;
         var held: u64 = 0;
-        for (N.Long.words(p, streamed)) |w| if (w != 0) {
+        for (self.heldBufferWords()) |w| if (w != 0) {
             held += g(w);
         };
         var widest_inter: u64 = 0;
@@ -396,8 +404,6 @@ pub const OuterNodeJob = struct {
         } else if (!self.persistentClass()) staged += g(class);
         var pinned_extra: u64 = 0;
         if (self.staged.statics.composition) |*cs| if (self.whole != null) {
-            held += g(cs.coefficientWords()) + g(@as(u64, cs.param_total) * 8);
-            if (!streamed) held += g(cs.treeWords());
             var widest: u64 = 0;
             var buckets: u64 = 0;
             var seen: [29]bool = @splat(false);
@@ -527,10 +533,8 @@ pub const OuterNodeJob = struct {
     fn holdBuffers(self: *OuterNodeJob, e: *Heap.Heap) !void {
         const p = self.staged.plan();
         const cs = &self.staged.statics.composition.?;
-        const streamed = self.streams != null;
-        const w = N.Long.words(p, streamed);
         var b: [9]?K.Buffer = @splat(null);
-        const sizes = [_]usize{ w[0], w[1], w[2], w[3], w[4], w[5], @intCast(cs.coefficientWords()), if (streamed) 0 else @intCast(cs.treeWords()), @as(usize, cs.param_total) * 8 };
+        const sizes = self.heldBufferWords();
         for (sizes) |n| try Plan.requireIndexable(&.{n});
         // Refuse before the body: every commit transient of this node. The
         // heap also checks each allocation (outer_heap.zig); this names the
@@ -636,8 +640,8 @@ pub const OuterNodeJob = struct {
         var heap = Heap.Heap.init(try e.alloc(@max(region_words, Heap.granule)));
         if (self.whole != null) try self.holdBuffers(&heap);
         const section = try e.slab.field(.opaque_words, section_index);
-        var view = EnqueueView{ .e = e, .heap = &heap };
-        var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &EnqueueView.vtable, .kernels = self.kernels, .phase_hook = EnqueueView.phase };
+        var view = Heap.DeviceEnqueue{ .e = e, .heap = &heap };
+        var device = K.Device{ .ctx = e.ctx(), .stream = e.stream(), .impl = &view, .vtable = &Heap.DeviceEnqueue.vtable, .kernels = self.kernels, .phase_hook = Heap.DeviceEnqueue.phase };
         var materialize_launches: u32 = 0;
         if (self.packed_class) |compressed| {
             const before = device.counters.total();
@@ -813,72 +817,4 @@ fn clonePcs(a: std.mem.Allocator, template: *const Pcs.PcsJob) !Pcs.PcsJob {
     job.prepared.geometry = null;
     job.descriptor = job.prepared.descriptor();
     return job;
-}
-
-/// Device view over api.Enqueue + its DeviceChannel.
-const EnqueueView = struct {
-    e: *api.Enqueue,
-    heap: *Heap.Heap,
-    const vtable = K.Device.VTable{ .alloc = alloc, .free = free, .mix = mix, .draw = draw };
-    fn of(raw: *anyopaque) *EnqueueView {
-        return @ptrCast(@alignCast(raw));
-    }
-    fn phase(raw: *anyopaque, which: K.Phase) void {
-        of(raw).heap.enter(which);
-    }
-    fn alloc(raw: *anyopaque, words: usize) anyerror!K.Buffer {
-        const b = try of(raw).heap.alloc(words);
-        return .{ .ptr = b.ptr, .words = b.words };
-    }
-    fn free(raw: *anyopaque, b: K.Buffer) void {
-        of(raw).heap.free(.{ .ptr = b.ptr, .words = b.words });
-    }
-    fn mix(raw: *anyopaque, words: [*]const u32, count: u32, field: bool) anyerror!void {
-        const b = api.DeviceBuffer{ .ptr = @constCast(words), .words = count };
-        const ch = of(raw).e.channel;
-        return if (field) ch.mixFelts(b) else ch.mixWords(b);
-    }
-    fn draw(raw: *anyopaque, felts: u32, out: [*]u32) anyerror!void {
-        return of(raw).e.channel.drawSecureFelts(felts, .{ .ptr = out, .words = @as(usize, felts) * 8 });
-    }
-};
-
-fn felt(words: []const u32) !Outer.protocol.O {
-    var limbs: [8]Outer.protocol.M = undefined;
-    for (&limbs, words[0..8]) |*out, w| {
-        if (w >= @import("stwo_core").fields.m31.Modulus) return error.NoncanonicalOuterClaim;
-        out.* = Outer.protocol.M.fromCanonical(w);
-    }
-    return Outer.protocol.O.fromM31Array(limbs);
-}
-fn root(words: []const u32) [32]u8 {
-    var out: [32]u8 = undefined;
-    for (words[0..8], 0..) |w, i| std.mem.writeInt(u32, out[4 * i ..][0..4], w, .little);
-    return out;
-}
-
-/// Status latches, canonicality and lookupSum == 0, then the typed fields.
-pub fn decode(section: []const u32, expected_words: []const u32) !Decoded {
-    const S = Plan.Section;
-    if (section.len < S.words or expected_words.len % 4 != 0) return error.OuterSlabSectionTooSmall;
-    if (section[S.status] != 0 or section[S.status + 3] != 0) return error.InvalidCircuitDeviceWitness;
-    if (section[S.status + 1] != 0) return error.InvalidCircuitDeviceInteraction;
-    if (section[S.status + 2] != 0) return error.InvalidOuterDeviceFsParameters;
-    var claims: [Plan.n_components]Outer.protocol.O = undefined;
-    for (&claims, 0..) |*c, i| c.* = try felt(section[S.claims + 8 * i ..]);
-    const d = Decoded{
-        .claims = Outer.witness.Claims.fromArray(claims),
-        .z = try felt(section[S.challenges..]),
-        .alpha = try felt(section[S.challenges + 8 ..]),
-        .coefficient = try felt(section[S.challenges + 16 ..]),
-        .main_root = root(section[S.main_root..]),
-        .inter_root = root(section[S.inter_root..]),
-    };
-    var outputs: [64]Outer.protocol.Q = undefined;
-    const n = expected_words.len / 4;
-    if (n > outputs.len) return error.InvalidOm31CircuitOutputCount;
-    for (outputs[0..n], 0..) |*q, i| q.* = Outer.protocol.Q.fromU32Unchecked(expected_words[4 * i], expected_words[4 * i + 1], expected_words[4 * i + 2], expected_words[4 * i + 3]);
-    const elements = Outer.witness.Elements.init(d.z, d.alpha);
-    if (!(try Outer.witness.lookupSum(outputs[0..n], d.claims, &elements)).isZero()) return error.InvalidOm31CircuitLookupSum;
-    return d;
 }

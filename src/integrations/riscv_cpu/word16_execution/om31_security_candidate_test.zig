@@ -546,7 +546,6 @@ test "reference DW-R6 m6 diet k4 cap3: 4-ary fold G rows fit 2^23 only with the 
     try std.testing.expect((rows * 1080 / 1000) * 895 / 1000 > 1 << 23);
 }
 
-
 test "m7 reserved format identities pin v2 binding and pure STARK compression parameters" {
     const outer = C.formatSpec(.m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1);
     try std.testing.expectEqualStrings(C.M7_OUTER_GKR_COMPONENT, outer.component);

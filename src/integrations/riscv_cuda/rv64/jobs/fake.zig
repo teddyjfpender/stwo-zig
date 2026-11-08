@@ -21,6 +21,10 @@ pub const Counters = struct {
     kernels: usize = 0,
     fail_alloc_after: ?usize = null,
     fail_event_sync: bool = false,
+    event_creations: usize = 0,
+    event_destroys: usize = 0,
+    bad_event_destroys: usize = 0,
+    fail_event_create_after: ?usize = null,
     /// Frees (device or host) after this many succeed fail with code 4 and
     /// leave the block allocated (a CUDA error: the state is unknown).
     fail_free_after: ?usize = null,
@@ -40,11 +44,22 @@ var mutex: std.Thread.Mutex = .{};
 const page = std.heap.page_allocator;
 const Block = struct { ptr: [*]align(256) u8, bytes: usize };
 var blocks: std.ArrayListUnmanaged(Block) = .empty;
+var live_events: std.AutoHashMapUnmanaged(usize, void) = .empty;
+
+pub fn liveEvents() usize {
+    mutex.lock();
+    defer mutex.unlock();
+    return live_events.count();
+}
 
 pub fn reset() void {
     mutex.lock();
     defer mutex.unlock();
     counters = .{};
+    if (live_events.count() == 0) {
+        live_events.deinit(page);
+        live_events = .empty;
+    }
 }
 
 const M31: u32 = 0x7fffffff;
@@ -107,11 +122,22 @@ var next_event: usize = 0x20000;
 fn eventCreate(out: *?*anyopaque) callconv(.c) c_int {
     mutex.lock();
     defer mutex.unlock();
+    out.* = null;
+    if (counters.fail_event_create_after) |n| if (counters.event_creations >= n) return 2;
     next_event += 16;
+    live_events.put(page, next_event, {}) catch return 2;
+    counters.event_creations += 1;
     out.* = @ptrFromInt(next_event);
     return 0;
 }
-fn eventDestroy(_: *anyopaque) callconv(.c) c_int {
+fn eventDestroy(event: *anyopaque) callconv(.c) c_int {
+    mutex.lock();
+    defer mutex.unlock();
+    if (!live_events.remove(@intFromPtr(event))) {
+        counters.bad_event_destroys += 1;
+        return 1;
+    }
+    counters.event_destroys += 1;
     return 0;
 }
 fn eventRecord(_: *anyopaque, _: *anyopaque) callconv(.c) c_int {

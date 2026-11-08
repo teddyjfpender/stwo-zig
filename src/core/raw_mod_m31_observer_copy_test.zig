@@ -15,7 +15,7 @@ test "observer PCS copy handoff requires the authoritative channel object" {
         fn destroy(_: *anyopaque) void {}
     };
     var channel = Raw.Om31Channel.init();
-    channel.mixU32s(&.{1, 2, 3});
+    channel.mixU32s(&.{ 1, 2, 3 });
     _ = channel.drawSecureFelt();
     var sink = Sink{};
     var observer = Raw.Om31Observer{ .context = &sink, .target = &channel, .start = Sink.start, .record = Sink.record, .before_pcs = Sink.before, .finish = Sink.finish, .destroy = Sink.destroy };

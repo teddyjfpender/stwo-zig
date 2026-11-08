@@ -13,6 +13,7 @@
 const std = @import("std");
 const api = @import("api.zig");
 const Plan = @import("outer_plan.zig");
+const K = @import("outer_kernels.zig");
 
 pub const granule: usize = 64;
 
@@ -157,6 +158,34 @@ pub const PcsEnqueue = struct {
     }
     pub fn stream(self: *PcsEnqueue) *anyopaque {
         return self.e.stream();
+    }
+};
+
+/// Execution adapters share the same heap and transcript owner.
+pub const DeviceEnqueue = struct {
+    e: *api.Enqueue,
+    heap: *Heap,
+    pub const vtable = K.Device.VTable{ .alloc = alloc, .free = free, .mix = mix, .draw = draw };
+    fn of(raw: *anyopaque) *DeviceEnqueue {
+        return @ptrCast(@alignCast(raw));
+    }
+    pub fn phase(raw: *anyopaque, which: K.Phase) void {
+        of(raw).heap.enter(which);
+    }
+    fn alloc(raw: *anyopaque, words: usize) anyerror!K.Buffer {
+        const b = try of(raw).heap.alloc(words);
+        return .{ .ptr = b.ptr, .words = b.words };
+    }
+    fn free(raw: *anyopaque, b: K.Buffer) void {
+        of(raw).heap.free(.{ .ptr = b.ptr, .words = b.words });
+    }
+    fn mix(raw: *anyopaque, words: [*]const u32, count: u32, field: bool) anyerror!void {
+        const b = api.DeviceBuffer{ .ptr = @constCast(words), .words = count };
+        const ch = of(raw).e.channel;
+        return if (field) ch.mixFelts(b) else ch.mixWords(b);
+    }
+    fn draw(raw: *anyopaque, felts: u32, out: [*]u32) anyerror!void {
+        return of(raw).e.channel.drawSecureFelts(felts, .{ .ptr = out, .words = @as(usize, felts) * 8 });
     }
 };
 

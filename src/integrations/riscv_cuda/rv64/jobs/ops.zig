@@ -7,6 +7,7 @@
 //! are reachable from `Job.enqueue`. `Wait` entries block the host; only the
 //! worker loop holds them (lint.zig enforces the split at source level).
 const std = @import("std");
+pub const Trace = @import("../nvtx_stage.zig");
 
 pub const c_int_t = c_int;
 pub const ContextOptions = extern struct { version: u32 = 1, device_ordinal: u32, lane_count: u32 = 1, dependency_capacity: u32 = 0 };
@@ -14,6 +15,8 @@ pub const HostCall = *const fn (?*anyopaque) callconv(.c) void;
 pub const CopyKind = enum(u32) { h2d = 1, d2h = 2, d2d = 3 };
 
 pub const Exec = struct {
+    /// Loaded once at install; empty when STWO_RV64_NVTX is disabled.
+    trace: Trace.Symbols = .{},
     // base image, exec context (lane 0 = exec stream)
     alloc_u32: *const fn (*anyopaque, usize, *?[*]u32) callconv(.c) c_int,
     alloc_u32_long: *const fn (*anyopaque, usize, *?[*]u32) callconv(.c) c_int,
@@ -74,6 +77,7 @@ pub const Libraries = struct {
         if (version() != abi_version) return error.JobsAddonAbiMismatch;
         var out: Libraries = .{ .base = base, .addon = addon, .ops = undefined };
         out.ops.exec = .{
+            .trace = try Trace.Symbols.fromEnv(&out.base),
             .alloc_u32 = try sym(&out.base, @FieldType(Exec, "alloc_u32"), "stwo_exec_context_alloc_u32"),
             .alloc_u32_long = try sym(&out.base, @FieldType(Exec, "alloc_u32_long"), "stwo_exec_context_alloc_u32_long"),
             .free_u32 = try sym(&out.base, @FieldType(Exec, "free_u32"), "stwo_exec_context_free_u32"),

@@ -348,7 +348,7 @@ pub const Stream = struct {
     /// Host step after Stage1(segment): return its ring buffers.
     pub fn releaseFn(self: *Stream, segment: u32) ?api.HostFn {
         if (self.ring == null) return null;
-        return .{ .call = releaseCall, .user = &self.releases[segment] };
+        return .{ .call = releaseCall, .user = &self.releases[segment], .purpose = .capture_release };
     }
     fn releaseCall(user: ?*anyopaque) callconv(.c) void {
         const r: *Release = @ptrCast(@alignCast(user.?));
@@ -356,7 +356,7 @@ pub const Stream = struct {
     }
     /// Host call for the driver's batch `on_fail` (a Stage1 failed): cancel
     /// the capture so blocked acquires and unreleased gates fail closed.
-    pub fn failFn(self: *Stream) api.HostFn {
+    pub fn failFn(self: *Stream) api.HostAction {
         return .{ .call = failCall, .user = &self.fail_hook };
     }
     fn failCall(user: ?*anyopaque) callconv(.c) void {

@@ -6,7 +6,6 @@ for Root AFTER native/device coverage hooks and exact process-budget guard are
 ready. Every arm uses one immutable driver, receiver, a25 and addon set.
 """
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -14,6 +13,7 @@ import statistics
 import subprocess
 import sys
 import time
+from rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_PRESET = HERE.parent / 'design/riscv-proving-stack/m7-handoff/integration-stack-preset.json'
@@ -23,11 +23,6 @@ DEFAULT_RUNTIME = HERE.parent / 'design/riscv-proving-stack/m7-handoff/default-r
 FROZEN_P0_RUNTIME = HERE.parent / 'design/riscv-proving-stack/m7-handoff/p0-runtime.json'
 DEV_BLOCKS = (26235156, 24628607)
 RUNTIME_ASSETS = ('library', 'sparse', 'observer', 'process_budget_guard')
-
-
-def sha(path):
-    with Path(path).open('rb') as handle:
-        return hashlib.file_digest(handle, 'sha256').hexdigest()
 
 
 def write(path, value):
@@ -51,12 +46,16 @@ def arm_environment(preset, arm, assets):
 
 def source_hashes(root):
     result = {}
-    for relative in ('src', 'build_support', 'scripts', 'design/typed-air/artifacts'):
+    for relative in ('src', 'build_support', 'scripts', 'design/typed-air/artifacts',
+                     'conformance', '.github', '.githooks'):
         for path in sorted((root / relative).rglob('*')):
             if path.is_file() and not path.is_symlink() and not set(path.parts).intersection({'.zig-cache', 'zig-cache', 'zig-out', '__pycache__', '.git'}):
                 result[str(path.relative_to(root))] = sha(path)
     for name in ('build.zig', 'build.zig.zon'):
         result[name] = sha(root / name)
+    for name in ('.gitignore', 'CONTRIBUTING.md'):
+        if (root / name).is_file():
+            result[name] = sha(root / name)
     return result
 
 
@@ -64,9 +63,7 @@ def load_runtime(path):
     """Pinned CUDA runtime JSON -> assets; every asset must match its pinned SHA-256."""
     runtime = json.loads(Path(path).read_text())
     assets = {name: runtime['assets'][name] for name in RUNTIME_ASSETS}
-    for name, value in assets.items():
-        if sha(value) != runtime['asset_sha256'][name]:
-            raise RuntimeError('pinned runtime changed: ' + name)
+    validate_assets(assets, runtime['asset_sha256'])
     return runtime, assets
 
 
@@ -108,9 +105,7 @@ def prepare(args):
 def validate_manifest(manifest):
     if not manifest.get('ready'):
         raise RuntimeError('Root native/device readiness and exact process-budget guard are required before GPU execution')
-    for name, path in manifest['assets'].items():
-        if sha(path) != manifest['asset_sha256'][name]:
-            raise RuntimeError('immutable asset changed: ' + name)
+    validate_assets(manifest['assets'], manifest['asset_sha256'])
     root = Path(manifest['source_root'])
     if source_hashes(root) != manifest['source_sha256']:
         raise RuntimeError('canonical source changed after freeze')
@@ -143,19 +138,6 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
     for key, value in sorted(arm_environment(preset, arm, assets).items()):
         argv += ['--env', f'{key}={value}']
     return argv, tag
-
-
-def fingerprints(row, require_capture=False):
-    import rv64_resident_basket as basket
-    directory = Path(row['proof'])
-    recursive = basket.recursive_snapshot(directory, row['leaves'])
-    report = json.loads((directory / 'report.json').read_text())
-    captured = report.get('captured_values_sha256')
-    if require_capture and (not captured or len(captured) != 64):
-        raise RuntimeError('required captured-input SHA256 guard missing')
-    return {'native': {p.name: sha(p) for p in sorted(directory.glob('*.bin'))},
-            'bundle': sha(directory / 'bundle.json'), 'tree': recursive['tree_sha256'],
-            'recursive': recursive['proof_sha256'], **({'captured_values_sha256': captured} if require_capture else {})}
 
 
 def guard_verdict(receipt, arm):
@@ -213,6 +195,7 @@ def run(args):
         reference = fingerprints(matches[0], require_capture=args.smoke)
     for index, arm in enumerate(result['order']):
         validate_manifest(manifest)
+        validate_library_environment(arm_environment(manifest['preset'], arm, manifest['assets']), manifest['assets'], manifest['asset_sha256'])
         profile = not args.smoke and index >= 6
         argv, tag = command(manifest, arm, index, stream, profile, output.name + '-' + (('one-stack-v5-global0-smoke' if args.global_admission_off_diagnostic else 'one-stack-v5-smoke') if args.smoke else 'one-stack-v4'))
         seed = None
@@ -231,6 +214,7 @@ def run(args):
         write(output / 'experiment.json', result)
         with (output / f'{index:02d}-{arm}.log').open('w') as log:
             code = subprocess.run(argv, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT).returncode
+        validate_manifest(manifest)
         entry['exit_code'] = code
         write(output / 'experiment.json', result)
         if code:
@@ -285,8 +269,11 @@ def run(args):
         with (output / f'{entry["order_index"]}-{entry["arm"]}-receiver.log').open('w') as log:
             code = subprocess.run(argv, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT).returncode
         receipt = json.loads((Path(entry['run']) / 'receipt.json').read_text())
-        if code or len(receipt['receivers']) != (1 if which == 'first' else len(receipt['requests'])) or not all(v.get('accepted') for v in receipt['receivers']):
+        if code:
             raise RuntimeError('fresh isolated receiver rejected: ' + entry['run'])
+        entry['receiver_acceptance'] = validate_receivers(
+            receipt.get('receivers'), [r['proof'] for r in receipt['requests'] if which == 'all' or r['trial'] == 0],
+            manifest['asset_sha256']['receiver'])
         entry['fresh_receivers'] = receipt['receivers']
         if entry['arm'] == 'reference':
             result['reference_fresh_receivers'] = receipt['receivers']
