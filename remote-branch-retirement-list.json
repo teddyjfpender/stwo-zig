@@ -1,0 +1,477 @@
+{
+  "status": "ALL_72_REMOTE_HEADS_MATCH_REMOTE_ARCHIVE_TAGS",
+  "branches": [
+    {
+      "ref": "refs/heads/codex/rv64-m8-bench15",
+      "head": "b22bdfa6e8c31b59f87c986053f49f181918555d",
+      "name": "codex/rv64-m8-bench15",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-bench15"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-capture-window",
+      "head": "397e14bd4850da22cc562aeedcb82f22310e87f7",
+      "name": "codex/rv64-m8-capture-window",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-capture-window"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-census1",
+      "head": "df08ddfb27bb143111cf272ee2531542ac0cbfe5",
+      "name": "codex/rv64-m8-census1",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-census1"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-census2",
+      "head": "6724cf2ce77fc38f15d2bb039aefba8cf2fd6394",
+      "name": "codex/rv64-m8-census2",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-census2"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gn-bind",
+      "head": "0941244f0a0372c16a5188846cbf8cc77cdaf806",
+      "name": "codex/rv64-m8-gn-bind",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gn-bind"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gn-node",
+      "head": "03cb0a6a79a069bdb31c871c37f62b1b30353f89",
+      "name": "codex/rv64-m8-gn-node",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gn-node"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gn-pack",
+      "head": "5823e729dee1b53e2160d2012b9bebcea381788a",
+      "name": "codex/rv64-m8-gn-pack",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gn-pack"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gn-s2",
+      "head": "8adc06362970bd6e56fd6f15c5ee454dd66c90f3",
+      "name": "codex/rv64-m8-gn-s2",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gn-s2"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gn-shape",
+      "head": "b638c65921886be8e4f2d56591bda228ffa9ff2c",
+      "name": "codex/rv64-m8-gn-shape",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gn-shape"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gn-truth",
+      "head": "dd3ac53db41ea5d10b477b8eaca7aacbb866aedc",
+      "name": "codex/rv64-m8-gn-truth",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gn-truth"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gpu",
+      "head": "b289b021f5ff2f5c486fc2fef6ac0b7bd68ff942",
+      "name": "codex/rv64-m8-gpu",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gpu"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gpu-d-wire",
+      "head": "9580a0fdabf8215545f5528226ceb80210832497",
+      "name": "codex/rv64-m8-gpu-d-wire",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gpu-d-wire"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gpu-driver",
+      "head": "28836c53aa743aff3cdde0adf8d2e6438a77127d",
+      "name": "codex/rv64-m8-gpu-driver",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gpu-driver"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gpu-n-stage1",
+      "head": "8ea1dd3681bb1e42d192ded0a2fc5f67b4ce1c68",
+      "name": "codex/rv64-m8-gpu-n-stage1",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gpu-n-stage1"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gpu-n-stage2",
+      "head": "2b52cf5079cbad69daeadd0eaae52075ceda4638",
+      "name": "codex/rv64-m8-gpu-n-stage2",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gpu-n-stage2"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gpu-native",
+      "head": "46606e695e94815c4dbccbc08eda2b8f68022cb8",
+      "name": "codex/rv64-m8-gpu-native",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gpu-native"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gpu-r-node",
+      "head": "b6f1964f37f05dd4f4eabdb89d04621be0eceee8",
+      "name": "codex/rv64-m8-gpu-r-node",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gpu-r-node"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gpu-r-truth",
+      "head": "762d3444d8b0a139ef0461604d34c1f8f094cb14",
+      "name": "codex/rv64-m8-gpu-r-truth",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gpu-r-truth"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-gpu-recursion",
+      "head": "8c9fdfd1c3a5e8e709f0ffc508d068d0eec29fff",
+      "name": "codex/rv64-m8-gpu-recursion",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-gpu-recursion"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-handoff",
+      "head": "95f9825d0ce135c629e3d8439ff899bf3be86d1b",
+      "name": "codex/rv64-m8-handoff",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-handoff"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-k-merkle",
+      "head": "e86105e09479e3f17658d949aacb348c6f182efe",
+      "name": "codex/rv64-m8-k-merkle",
+      "archive_tag": "archive/consolidation-20261108/remote-branches/rv64-m8-k-merkle"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-k-merkle-handoff",
+      "head": "6b16aa0eca0a1d85c82ea3cbcc81736756642263",
+      "name": "codex/rv64-m8-k-merkle-handoff",
+      "archive_tag": "archive/consolidation-20261108/remote-branches/rv64-m8-k-merkle-handoff"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-m-runtime",
+      "head": "f86ae2b837bef1cf709ece48399155e585292580",
+      "name": "codex/rv64-m8-m-runtime",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-m-runtime"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-memory",
+      "head": "06f2218ab3c3f9f070c4384b7f1509a0b8d386b7",
+      "name": "codex/rv64-m8-memory",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-memory"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-memory-plan-p2",
+      "head": "56d304dca36e502a05dd81c2cf9599d72917901e",
+      "name": "codex/rv64-m8-memory-plan-p2",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-memory-plan-p2"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-native-enqueue",
+      "head": "f9b7b693789ade048e1edeb19f7dfa21c5ad6251",
+      "name": "codex/rv64-m8-native-enqueue",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-native-enqueue"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-native-finish-p3",
+      "head": "2b7eceb8cf93c185637e91762742f91a3412ee82",
+      "name": "codex/rv64-m8-native-finish-p3",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-native-finish-p3"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-native-hybrid",
+      "head": "e7d8aa01a58d252957618ca64e7efc10e9cdaaae",
+      "name": "codex/rv64-m8-native-hybrid",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-native-hybrid"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-native-job",
+      "head": "095d095ca07f7505f4d40c25a47537f1e29a2acc",
+      "name": "codex/rv64-m8-native-job",
+      "archive_tag": "archive/consolidation-20261108/remote-branches/rv64-m8-native-job"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-native-job-handoff",
+      "head": "577433230cff23cc26d8e0337e7507dc44ed83af",
+      "name": "codex/rv64-m8-native-job-handoff",
+      "archive_tag": "archive/consolidation-20261108/remote-branches/rv64-m8-native-job-handoff"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-native-producers-p2",
+      "head": "98eb46061fb670c4ec7364d74d9fbead110b2abe",
+      "name": "codex/rv64-m8-native-producers-p2",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-native-producers-p2"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-native-review-fixes",
+      "head": "b51a235edf6d77a6d2759e5b9a12f75f5feaac68",
+      "name": "codex/rv64-m8-native-review-fixes",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-native-review-fixes"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T1-capture-parallel",
+      "head": "b78079b478fd07ee43b881844f55ac538df9c990",
+      "name": "codex/rv64-m8-opt-T1-capture-parallel",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T1-capture-parallel"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T10-narrow-capture-recorder",
+      "head": "093d738abea7c6dbdc6514f549ee2f1e7ff30427",
+      "name": "codex/rv64-m8-opt-T10-narrow-capture-recorder",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T10-narrow-capture-recorder"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T2-assignment-chain",
+      "head": "f23375f71f89fa07fc51db22bccf7a25fc3ea3ae",
+      "name": "codex/rv64-m8-opt-T2-assignment-chain",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T2-assignment-chain"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T3-deep-oods",
+      "head": "4ed7f178129a26e561d56c1c29e5190f02bd951a",
+      "name": "codex/rv64-m8-opt-T3-deep-oods",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T3-deep-oods"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T4-fft-passes",
+      "head": "72dfee211be4575183e8a630bce92bab26d1fb71",
+      "name": "codex/rv64-m8-opt-T4-fft-passes",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T4-fft-passes"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T5-aot-constraint-regs",
+      "head": "307da03307af9e069cbdbd572f4b1845d0519588",
+      "name": "codex/rv64-m8-opt-T5-aot-constraint-regs",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T5-aot-constraint-regs"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T5-aot-constraint-regs-r2",
+      "head": "c09a50f50ae2d5219272614855514c800875aa23",
+      "name": "codex/rv64-m8-opt-T5-aot-constraint-regs-r2",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T5-aot-constraint-regs-r2"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T6-merkle-leaf-tree",
+      "head": "5acd170c80a57ef8240e2756d2b6b9309b829624",
+      "name": "codex/rv64-m8-opt-T6-merkle-leaf-tree",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T6-merkle-leaf-tree"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T7-gkr-batch-sumcheck",
+      "head": "9c86b371ed8fd185e40a7d08f7048e244491ab59",
+      "name": "codex/rv64-m8-opt-T7-gkr-batch-sumcheck",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T7-gkr-batch-sumcheck"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T8-logup-batch-inverse",
+      "head": "de0394e5586f6877b7e7e310f12dba2bfebd9876",
+      "name": "codex/rv64-m8-opt-T8-logup-batch-inverse",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T8-logup-batch-inverse"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-T9-witness-coalesce",
+      "head": "c4d7e6c21fe685f4ee829a7505efe3ca04d99544",
+      "name": "codex/rv64-m8-opt-T9-witness-coalesce",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-T9-witness-coalesce"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-opt-combined",
+      "head": "95e3d7e157d0be87e56013797e413ee41004a9d5",
+      "name": "codex/rv64-m8-opt-combined",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-opt-combined"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-outer-enqueue",
+      "head": "0a0ea373643ca12d79d773b44d1f2d7fc45dd63d",
+      "name": "codex/rv64-m8-outer-enqueue",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-outer-enqueue"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-outer-fold-p3",
+      "head": "a82e423895eb936572a0deab63754572e10bb01c",
+      "name": "codex/rv64-m8-outer-fold-p3",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-outer-fold-p3"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-outer-fold-review",
+      "head": "c72b516468838c833f6697bfb0ac53be6222e08e",
+      "name": "codex/rv64-m8-outer-fold-review",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-outer-fold-review"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-outer-hybrid",
+      "head": "f718856a75e74661deb9d1dcfaf7e8ce7056721c",
+      "name": "codex/rv64-m8-outer-hybrid",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-outer-hybrid"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-outer-job",
+      "head": "e580913928b88a0c2006ed5305980b5a8516b796",
+      "name": "codex/rv64-m8-outer-job",
+      "archive_tag": "archive/consolidation-20261108/remote-branches/rv64-m8-outer-job"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-outer-job-handoff",
+      "head": "da93d0e76925c610bf943f4a3fb513e88fce190f",
+      "name": "codex/rv64-m8-outer-job-handoff",
+      "archive_tag": "archive/consolidation-20261108/remote-branches/rv64-m8-outer-job-handoff"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-outer-job-r2",
+      "head": "da93d0e76925c610bf943f4a3fb513e88fce190f",
+      "name": "codex/rv64-m8-outer-job-r2",
+      "archive_tag": "archive/consolidation-20261108/remote-branches/rv64-m8-outer-job-r2"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-p-truth-split",
+      "head": "1088a894d33e267d89426015dde2c69ba608d818",
+      "name": "codex/rv64-m8-p-truth-split",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-p-truth-split"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-poseidon-witness",
+      "head": "0f72724495b3ad7582d93be09a7cdda7c25b6551",
+      "name": "codex/rv64-m8-poseidon-witness",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-poseidon-witness"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-runtime",
+      "head": "929b54eea61a1b6c2048c827e15d5b05726ed9e6",
+      "name": "codex/rv64-m8-runtime",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-runtime"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-runtime-persist-p3",
+      "head": "08f4b7cc4ebedf1e260e08c77ce3a8860699d211",
+      "name": "codex/rv64-m8-runtime-persist-p3",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-runtime-persist-p3"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m8-wire-outer-p2",
+      "head": "18e52479517698c93da4c133965298895d7f8bdc",
+      "name": "codex/rv64-m8-wire-outer-p2",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m8-wire-outer-p2"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-canon-leaf",
+      "head": "64a2cb9911bbbd20076e31d553da04a2ce41673e",
+      "name": "codex/rv64-m9-canon-leaf",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-canon-leaf"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-fewer-leaves",
+      "head": "a056cee67847b33eded11c7e95d803c9abcb0aee",
+      "name": "codex/rv64-m9-fewer-leaves",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-fewer-leaves"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-frontier-gap",
+      "head": "06d8781d2ebb492bcb6d8d5d6aac10ac689959ff",
+      "name": "codex/rv64-m9-frontier-gap",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-frontier-gap"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-gkr-bench",
+      "head": "dced7ae3a5d5f4af1198520f74bec9ad7623a286",
+      "name": "codex/rv64-m9-gkr-bench",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-gkr-bench"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-gpu-replay",
+      "head": "7d9850babef858a5a9f4827161536f3051dd2ea7",
+      "name": "codex/rv64-m9-gpu-replay",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-gpu-replay"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-io-design",
+      "head": "57c269eeae4bba0bda418d24213d9434c39f3431",
+      "name": "codex/rv64-m9-io-design",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-io-design"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-native-cells",
+      "head": "9912c085204f997676467aac5a8248a3cad8c503",
+      "name": "codex/rv64-m9-native-cells",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-native-cells"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-outer-gkr",
+      "head": "a45530dc72785b4dae8c177024c74caa3f66e837",
+      "name": "codex/rv64-m9-outer-gkr",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-outer-gkr"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-packed-ingress",
+      "head": "805d1a105bb338511c529431ffb4677d143ce095",
+      "name": "codex/rv64-m9-packed-ingress",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-packed-ingress"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-plan",
+      "head": "5702d49e7626c2a8cce1d43a68039afe35331bf5",
+      "name": "codex/rv64-m9-plan",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-plan"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-poseidon2-leaves",
+      "head": "37e581cfc6d2903ee9729063314e248828489304",
+      "name": "codex/rv64-m9-poseidon2-leaves",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-poseidon2-leaves"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-proof-params",
+      "head": "ed3e22169f4149f58ccd6bf3f33f4b79cecf651a",
+      "name": "codex/rv64-m9-proof-params",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-proof-params"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-recursion-arch",
+      "head": "f132ff5e009ed15559987224c1aa553fc6284f33",
+      "name": "codex/rv64-m9-recursion-arch",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-recursion-arch"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-segment-shape",
+      "head": "2b0bd934fd506e0ce8e4317a80c9aad1f57dd3c2",
+      "name": "codex/rv64-m9-segment-shape",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-segment-shape"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-stream-commit",
+      "head": "42ce18195ce85d7fb25145dd73c3968e8e36d0ae",
+      "name": "codex/rv64-m9-stream-commit",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-stream-commit"
+    },
+    {
+      "ref": "refs/heads/codex/rv64-m9-witness-rowpar",
+      "head": "4459242f1a895d43d30e01e346e64cbee5a976ea",
+      "name": "codex/rv64-m9-witness-rowpar",
+      "archive_tag": "archive/consolidation-20261108/branches/rv64-m9-witness-rowpar"
+    }
+  ],
+  "additional_archive_tags": [
+    {
+      "branch": "codex/rv64-m8-k-merkle",
+      "head": "e86105e09479e3f17658d949aacb348c6f182efe",
+      "tag": "archive/consolidation-20261108/remote-branches/rv64-m8-k-merkle"
+    },
+    {
+      "branch": "codex/rv64-m8-k-merkle-handoff",
+      "head": "6b16aa0eca0a1d85c82ea3cbcc81736756642263",
+      "tag": "archive/consolidation-20261108/remote-branches/rv64-m8-k-merkle-handoff"
+    },
+    {
+      "branch": "codex/rv64-m8-native-job",
+      "head": "095d095ca07f7505f4d40c25a47537f1e29a2acc",
+      "tag": "archive/consolidation-20261108/remote-branches/rv64-m8-native-job"
+    },
+    {
+      "branch": "codex/rv64-m8-native-job-handoff",
+      "head": "577433230cff23cc26d8e0337e7507dc44ed83af",
+      "tag": "archive/consolidation-20261108/remote-branches/rv64-m8-native-job-handoff"
+    },
+    {
+      "branch": "codex/rv64-m8-outer-job",
+      "head": "e580913928b88a0c2006ed5305980b5a8516b796",
+      "tag": "archive/consolidation-20261108/remote-branches/rv64-m8-outer-job"
+    },
+    {
+      "branch": "codex/rv64-m8-outer-job-handoff",
+      "head": "da93d0e76925c610bf943f4a3fb513e88fce190f",
+      "tag": "archive/consolidation-20261108/remote-branches/rv64-m8-outer-job-handoff"
+    },
+    {
+      "branch": "codex/rv64-m8-outer-job-r2",
+      "head": "da93d0e76925c610bf943f4a3fb513e88fce190f",
+      "tag": "archive/consolidation-20261108/remote-branches/rv64-m8-outer-job-r2"
+    }
+  ],
+  "verified_utc": "2026-11-08T06:50:45.368079+00:00",
+  "distinct_archive_tags": 240,
+  "raw_ls_remote_records": 480
+}

@@ -1,0 +1,10 @@
+{
+  "status": "OFF_HOST_SHA256_VERIFIED",
+  "local": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/recovery-bundle-v1",
+  "off_host": "/workspace/m3/archives/rv64-consolidation-20261108/recovery-bundle-v1",
+  "pod": "cps13bvat3xhdo",
+  "manifest_sha256": "8e6a206805e9b9281663368a5c240e95cd5e109e9c0b6f2b0575e903ad4994d7",
+  "files": 338,
+  "bytes": 21557449,
+  "verified_utc": "2026-11-08T06:55:23.061219+00:00"
+}
