@@ -47,10 +47,10 @@ REQUIRED_WORKFLOWS = {
     "RISC-V Sail formal provisioning",
 }
 REQUIRED_ARTIFACTS = (
-    "design/typed-air/artifacts/m3-compat-v1/index-v1.tsv",
-    "design/typed-air/artifacts/p003-work-profile-closure-v1/matrix-v1.json",
-    "design/typed-air/artifacts/r006-csp-closeout-v1/receipt-v1.json",
-    "design/typed-air/artifacts/recursive-temporal-parent-v1/receipt-v1.json",
+    "src/frontends/riscv/air/lang/artifacts/m3-compat-v1/index-v1.tsv",
+    "src/frontends/riscv/air/lang/artifacts/p003-work-profile-closure-v1/matrix-v1.json",
+    "src/frontends/riscv/air/lang/artifacts/r006-csp-closeout-v1/receipt-v1.json",
+    "src/frontends/riscv/air/lang/artifacts/recursive-temporal-parent-v1/receipt-v1.json",
     "formal/riscv-refinement/generated-manifest.json",
     "formal/riscv-refinement/refinement-receipt.json",
 )

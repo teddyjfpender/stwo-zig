@@ -140,21 +140,21 @@ pub const Binding = struct {
         // module nor any production executable receives any of these imports.
         frontend.addImport("typed_air_artifacts", self.b.createModule(.{
             .root_source_file = self.b.path(
-                "design/typed-air/artifacts/embedded.zig",
+                "src/frontends/riscv/air/lang/artifacts/embedded.zig",
             ),
             .target = self.target,
             .optimize = self.optimize,
         }));
         frontend.addImport("typed_air_h009_artifacts", self.b.createModule(.{
             .root_source_file = self.b.path(
-                "design/typed-air/artifacts/h009_embedded.zig",
+                "src/frontends/riscv/air/lang/artifacts/h009_embedded.zig",
             ),
             .target = self.target,
             .optimize = self.optimize,
         }));
         frontend.addImport("typed_air_h010_artifacts", self.b.createModule(.{
             .root_source_file = self.b.path(
-                "design/typed-air/artifacts/h010_embedded.zig",
+                "src/frontends/riscv/air/lang/artifacts/h010_embedded.zig",
             ),
             .target = self.target,
             .optimize = self.optimize,

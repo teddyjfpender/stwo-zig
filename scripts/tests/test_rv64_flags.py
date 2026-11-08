@@ -88,7 +88,7 @@ class Rv64FlagsTests(unittest.TestCase):
 
     def test_native_cuda_shell_and_active_presets_are_scanned_caches_are_not(self):
         for relative in ("src/native/a.cu", "scripts/run.sh", ".github/workflows/gpu.yml",
-                         "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json"):
+                         "conformance/rv64/presets/integration-stack-preset.json"):
             path = self.repo / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text('"' + "STWO_RV64_" + 'NEW"')

@@ -40,7 +40,7 @@ CORPUS_DIGESTS = {
         "52d315c0e5c036e672f2462c4c35245b6f4eed5fa0e581ea3917e15fa83f7208",
     ),
 }
-PROTOCOL_PATH = "design/typed-air/performance/m5-m9-protocol-v1.json"
+PROTOCOL_PATH = "conformance/typed-air/m5-m9-protocol-v1.json"
 PROTOCOL_SHA256 = (
     "7c213ae7c35ac8f60f204fba8fa96357195186a29a6a626c0a67fd47984cf985"
 )

@@ -16,7 +16,7 @@ from typing import Any, Sequence
 
 MATRIX_SCHEMA = "stwo.typed-air.p003-work-profile-closure-matrix.v1"
 SCHEMA_VERSION = 1
-MATRIX_PATH = "design/typed-air/artifacts/p003-work-profile-closure-v1/matrix-v1.json"
+MATRIX_PATH = "src/frontends/riscv/air/lang/artifacts/p003-work-profile-closure-v1/matrix-v1.json"
 COUNTER_PARTITION = (
     "witness_materialization_and_native_prover_included__"
     "guest_execution_serialization_and_native_verification_excluded__"

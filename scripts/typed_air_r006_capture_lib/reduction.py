@@ -47,7 +47,7 @@ SCALING_COMPARISONS = (
 
 
 def _protocol(repository: Path) -> dict[str, Any]:
-    path = repository.resolve() / "design/typed-air/performance/m5-m9-protocol-v1.json"
+    path = repository.resolve() / "conformance/typed-air/m5-m9-protocol-v1.json"
     raw = path.read_bytes()
     try:
         value = json.loads(raw)

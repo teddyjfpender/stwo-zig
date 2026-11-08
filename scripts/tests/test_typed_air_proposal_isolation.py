@@ -157,7 +157,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
             source.write_text(
                 'const vectors = @import("typed_air_h010_artifacts");\n'
                 'const bypass = @embedFile('
-                '"../../../../design/typed-air/artifacts/'
+                '"../air/lang/artifacts/'
                 'h010-poseidon-layout-v1/vector-log10.stwairb");\n',
                 encoding="utf-8",
             )

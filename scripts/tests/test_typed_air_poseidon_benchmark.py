@@ -218,7 +218,7 @@ def fake_provenance(repository: Path, executable: Path, power_state: str):
             "sha256": hashlib.sha256(binary).hexdigest(),
         },
         "artifact": {
-            "path": "design/typed-air/artifacts/h009-poseidon2-cost-v1/frontier.stwairm",
+            "path": "src/frontends/riscv/air/lang/artifacts/h009-poseidon2-cost-v1/frontier.stwairm",
             "bytes": 275_153,
             "sha256": ARTIFACT_DIGEST,
         },

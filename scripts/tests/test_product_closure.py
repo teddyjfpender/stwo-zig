@@ -697,9 +697,9 @@ class RecursionOwnershipTest(unittest.TestCase):
                 ("stwo_backend_contracts", "src/backend/mod.zig"),
                 ("interop_postcard", "src/interop/postcard.zig"),
                 ("stwo_proof_wire", "src/interop/proof_wire/mod.zig"),
-                ("typed_air_artifacts", "design/typed-air/artifacts/embedded.zig"),
-                ("typed_air_h009_artifacts", "design/typed-air/artifacts/h009_embedded.zig"),
-                ("typed_air_h010_artifacts", "design/typed-air/artifacts/h010_embedded.zig"),
+                ("typed_air_artifacts", "src/frontends/riscv/air/lang/artifacts/embedded.zig"),
+                ("typed_air_h009_artifacts", "src/frontends/riscv/air/lang/artifacts/h009_embedded.zig"),
+                ("typed_air_h010_artifacts", "src/frontends/riscv/air/lang/artifacts/h010_embedded.zig"),
             )),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
@@ -707,7 +707,7 @@ class RecursionOwnershipTest(unittest.TestCase):
             # Concrete backend and integration directories are deliberately absent.
             allowed_prefixes=("src/core", "src/frontends/riscv", "src/prover",
                               "src/prover_api", "src/backend", "src/interop",
-                              "design/typed-air/artifacts"),
+                              "src/frontends/riscv/air/lang/artifacts"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         self.assertIn("src/frontends/riscv/runner/segment_session.zig", sources)

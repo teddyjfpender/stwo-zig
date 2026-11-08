@@ -60,9 +60,9 @@ pub const products = [_]Spec{
         .generated_module_roots = &.{"generated:options:"},
         .dependency_module_roots = catalog.package_dependencies.riscv_cpu_protocol_package_roots,
         .configure_allowed_files = &.{
-            "design/typed-air/artifacts/embedded.zig",
-            "design/typed-air/artifacts/h009_embedded.zig",
-            "design/typed-air/artifacts/h010_embedded.zig",
+            "src/frontends/riscv/air/lang/artifacts/embedded.zig",
+            "src/frontends/riscv/air/lang/artifacts/h009_embedded.zig",
+            "src/frontends/riscv/air/lang/artifacts/h010_embedded.zig",
             "src/tests.zig",
             "src/tests/riscv/main_trace_planned_proof_test.zig",
             "src/tests/riscv/recursion_ingress_real_guest_test.zig",

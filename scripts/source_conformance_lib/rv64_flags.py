@@ -32,7 +32,7 @@ def references(repo: Path) -> dict[str, list[str]]:
             dirs[:] = sorted(set(dirs) - EXCLUDED_DIRECTORY_NAMES)
             paths.extend(Path(base) / name for name in sorted(files)
                          if Path(name).suffix in SUFFIXES | {".yml", ".yaml"})
-    paths.extend(repo / "design/riscv-proving-stack/m7-handoff" / name for name in
+    paths.extend(repo / "conformance/rv64/presets" / name for name in
                  ("default-runtime.json", "integration-stack-preset.json"))
     for path in paths:
         if not path.is_file():
