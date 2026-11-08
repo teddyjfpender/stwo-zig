@@ -402,7 +402,7 @@ class PlannerContractTests(unittest.TestCase):
         result = subprocess.CompletedProcess(
             args=[],
             returncode=0,
-            stdout=b"R100\0src/core/old.zig\0src/core/new.zig\0D\0src/prover/gone.zig\0",
+            stdout=b"R100\0src/waist/core/old.zig\0src/waist/core/new.zig\0D\0src/engine/prover/gone.zig\0",
             stderr=b"",
         )
         with mock.patch.object(ci_scope_plan.subprocess, "run", return_value=result):

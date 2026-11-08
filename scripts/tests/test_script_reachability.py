@@ -78,7 +78,7 @@ FROM_SCRIPTS_GROUP_RE = re.compile(
     re.MULTILINE | re.DOTALL,
 )
 FROM_SCRIPTS_LINE_RE = re.compile(
-    r"^\s*from\s+scripts(?:\.[a-z_0-9]+)?\s+import\s+([^\n(]+)$",
+    r"^\s*from\s+scripts(?:\.[a-z_0-9]+)?\s+import\s+([^\n#(]+)(?:#.*)?$",
     re.MULTILINE,
 )
 

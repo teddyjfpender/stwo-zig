@@ -11,7 +11,7 @@ from scripts.repo.zig_protocol_lib.command import (
     CPU_PROTOCOL_PACKAGES,
     protocol_module_args,
     protocol_package_modules,
-    test_command,
+    test_command as build_test_command,
     SUPPORT_MODULES,
 )
 
@@ -65,7 +65,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
             cursor = end + 1
 
     def test_test_command_preserves_trailing_zig_arguments(self) -> None:
-        command = test_command(
+        command = build_test_command(
             "src/products/stwo/root.zig",
             "-OReleaseFast",
             "--test-filter",
@@ -81,7 +81,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
 
     def test_optimization_is_scoped_before_every_module(self) -> None:
         for flags in (("-OReleaseFast",), ("-O", "ReleaseSafe")):
-            command = test_command("src/products/stwo/root.zig", *flags, "--test-filter", "proof wire")
+            command = build_test_command("src/products/stwo/root.zig", *flags, "--test-filter", "proof wire")
             mode = flags[-1].removeprefix("-O")
             module_positions = [i for i, arg in enumerate(command) if arg.startswith("-M")]
             self.assertEqual(len(PROTOCOL_PACKAGES) + 2 + len(support_names(set(PROTOCOL_PACKAGES))), len(module_positions))
@@ -90,20 +90,20 @@ class ZigProtocolCommandTests(unittest.TestCase):
             self.assertFalse(any(arg.startswith("-O") for arg in command[module_positions[-1] + 1:]))
 
     def test_filter_text_is_not_an_optimization_option(self) -> None:
-        command = test_command("src/products/stwo/root.zig", "--test-filter", "-OReleaseFast")
+        command = build_test_command("src/products/stwo/root.zig", "--test-filter", "-OReleaseFast")
         self.assertEqual(["--test-filter", "-OReleaseFast"], command[-2:])
         self.assertFalse(any(arg.startswith("-O") for arg in command[:-2]))
 
     def test_debug_symbol_option_applies_to_every_module_and_last_choice_wins(self) -> None:
         for flags in (("-fstrip",), ("-fstrip", "-fno-strip")):
-            command = test_command("src/products/stwo/root.zig", "-OReleaseSafe", *flags)
+            command = build_test_command("src/products/stwo/root.zig", "-OReleaseSafe", *flags)
             positions = [i for i, arg in enumerate(command) if arg.startswith("-M")]
             for position in positions:
                 self.assertEqual(["-OReleaseSafe", flags[-1]], command[position - 2:position])
             self.assertEqual(len(PROTOCOL_PACKAGES) + 2 + len(support_names(set(PROTOCOL_PACKAGES))), command.count(flags[-1]))
 
     def test_strip_filter_text_and_arguments_after_separator_are_preserved(self) -> None:
-        command = test_command("src/products/stwo/root.zig", "--test-filter", "-fstrip", "--", "-fno-strip")
+        command = build_test_command("src/products/stwo/root.zig", "--test-filter", "-fstrip", "--", "-fno-strip")
         self.assertEqual(["--test-filter", "-fstrip", "--", "-fno-strip"], command[-4:])
         self.assertNotIn("-fstrip", command[:-4])
         self.assertNotIn("-fno-strip", command[:-4])
@@ -137,7 +137,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
             cursor = position + 1
 
     def test_cpu_flags_debug_and_custom_runner_apply_in_every_module_scope(self) -> None:
-        command = test_command("focused.zig", "-OReleaseFast", "-O", "Debug", "-mcpu=baseline", "-mcpu", "native", "--test-runner", "policy.zig", "--test-filter", "-mcpu=wrong", cpu_only=True, zig="chosen-zig", standard_test_runner="compiler/test_runner.zig")
+        command = build_test_command("focused.zig", "-OReleaseFast", "-O", "Debug", "-mcpu=baseline", "-mcpu", "native", "--test-runner", "policy.zig", "--test-filter", "-mcpu=wrong", cpu_only=True, zig="chosen-zig", standard_test_runner="compiler/test_runner.zig")
         positions = [i for i, arg in enumerate(command) if arg.startswith("-M")]
         self.assertEqual(["chosen-zig", "test"], command[:2])
         for position in positions:
@@ -170,27 +170,27 @@ class ZigProtocolCommandTests(unittest.TestCase):
     def test_unknown_additional_package_rejected_before_compiler_resolution(self) -> None:
         with mock.patch("scripts.repo.zig_protocol_lib.command.standard_runner_source") as resolver:
             with self.assertRaisesRegex(ValueError, "unknown additional protocol packages"):
-                test_command("focused.zig", cpu_only=True,
+                build_test_command("focused.zig", cpu_only=True,
                              extra_packages=("missing_backend",))
         resolver.assert_not_called()
 
     def test_cpu_flags_after_separator_and_filter_values_are_data(self) -> None:
-        command = test_command("focused.zig", "--test-filter", "-mcpu=native", "--", "-mcpu=baseline", "-ODebug", cpu_only=True)
+        command = build_test_command("focused.zig", "--test-filter", "-mcpu=native", "--", "-mcpu=baseline", "-ODebug", cpu_only=True)
         self.assertEqual(["--test-filter", "-mcpu=native", "--", "-mcpu=baseline", "-ODebug"], command[-5:])
         self.assertFalse(any(arg.startswith("-mcpu") for arg in command[:-5]))
 
     def test_missing_values_are_explicit_errors_without_compiler_execution(self) -> None:
         for flag in ("-O", "-mcpu", "--test-filter", "--test-runner"):
             with self.assertRaisesRegex(ValueError, "requires a value"):
-                test_command("focused.zig", flag)
+                build_test_command("focused.zig", flag)
         with self.assertRaisesRegex(ValueError, "requires a value"):
-            test_command("focused.zig", "-mcpu=")
+            build_test_command("focused.zig", "-mcpu=")
         with self.assertRaisesRegex(ValueError, "optimization mode"):
-            test_command("focused.zig", "-Owrong")
+            build_test_command("focused.zig", "-Owrong")
 
     def test_standard_runner_is_from_selected_compiler_without_invoking_it(self) -> None:
         with mock.patch("scripts.repo.zig_protocol_lib.command.standard_runner_source", return_value="selected/compiler/test_runner.zig") as resolver:
-            command = test_command("focused.zig", "--test-runner", "policy.zig", zig="selected-zig", cpu_only=True)
+            command = build_test_command("focused.zig", "--test-runner", "policy.zig", zig="selected-zig", cpu_only=True)
         resolver.assert_called_once_with("selected-zig")
         self.assertIn("-Mblock_v5_standard_test_runner=selected/compiler/test_runner.zig", command)
 

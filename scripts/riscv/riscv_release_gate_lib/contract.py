@@ -245,7 +245,7 @@ def core_purity_errors(root: Path) -> list[str]:
     src_root = root / "src"
     errors: list[str] = []
     forbidden = {"backends", "frontends", "integrations"}
-    for source in _zig_sources(src_root / "core"):
+    for source in _zig_sources(src_root / "waist" / "core"):
         text = source.read_text(encoding="utf-8")
         for imported in ZIG_IMPORT_RE.findall(text):
             target = _resolved_src_import(source, imported, src_root)
@@ -260,7 +260,7 @@ def frontend_layering_errors(root: Path) -> list[str]:
     src_root = root / "src"
     frontend_root = src_root / "frontends" / "riscv"
     errors: list[str] = []
-    forbidden_layers = {"backends", "bench", "examples", "integrations", "interop", "tools"}
+    forbidden_layers = {"backends", "integrations", "products"}
     for source in _zig_sources(frontend_root):
         text = source.read_text(encoding="utf-8")
         display = source.relative_to(root).as_posix()

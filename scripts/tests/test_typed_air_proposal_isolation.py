@@ -107,7 +107,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                     "typed-air-proposal-consumer:frontends/riscv/prover/layout.zig",
                     "typed-air-proposal-consumer:frontends/riscv/prover/layout_validate.zig",
                     "typed-air-proposal-consumer:frontends/riscv/prover/production.zig",
-                    "typed-air-proposal-consumer:tests/riscv/proposal_test.zig",
+                    "typed-air-proposal-consumer:products/riscv/cpu/tests/proposal_test.zig",
                 },
                 {finding.key for finding in findings},
             )

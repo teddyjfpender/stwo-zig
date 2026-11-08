@@ -98,7 +98,7 @@ class LayeringContractTests(unittest.TestCase):
             self.write(
                 root,
                 "src/waist/core/protocol.zig",
-                'const air = @import("../frontends/riscv/air.zig");\n',
+                'const air = @import("../../frontends/riscv/air.zig");\n',
             )
             errors = core_purity_errors(root)
             self.assertEqual(1, len(errors))
@@ -111,12 +111,12 @@ class LayeringContractTests(unittest.TestCase):
             self.write(
                 root,
                 "src/frontends/riscv/prover.zig",
-                'const cli = @import("../../tools/prove/cli.zig");\n'
+                'const cli = @import("../../products/stwo/tools/prove/cli.zig");\n'
                 "const Mode = enum { silent };\n"
                 + "const value = 0;\n" * 850,
             )
             errors = frontend_layering_errors(root)
-            self.assertTrue(any("imports tools/prove/cli.zig" in error for error in errors))
+            self.assertTrue(any("imports products/stwo/tools/prove/cli.zig" in error for error in errors))
             self.assertTrue(any("manual ceiling 850" in error for error in errors))
             self.assertTrue(any("active placeholder markers: silent" in error for error in errors))
 

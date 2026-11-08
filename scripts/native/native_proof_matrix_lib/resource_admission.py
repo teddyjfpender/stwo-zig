@@ -12,6 +12,7 @@ from typing import Mapping
 ZIG_RESOURCE_AUTHORITY = (
     Path(__file__).resolve().parents[3]
     / "src"
+    / "engine"
     / "prover"
     / "native"
     / "resource_admission.zig"

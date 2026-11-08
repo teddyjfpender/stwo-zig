@@ -200,13 +200,13 @@ class CudaBuildCacheTests(unittest.TestCase):
             ROOT / "src/backends/cuda/aot/native",
             target_is_directory=True,
         )
-        tools = project / "src/tools"
+        tools = project / "src/products/cairo/tools"
         tools.mkdir(parents=True)
-        (tools / "cairo_cuda_witness_aot").symlink_to(
+        (tools / "cuda_witness_aot").symlink_to(
             ROOT / "src/products/cairo/tools/cuda_witness_aot",
             target_is_directory=True,
         )
-        (tools / "cairo_witness_cpu_codegen").symlink_to(
+        (tools / "witness_cpu_codegen").symlink_to(
             ROOT / "src/products/cairo/tools/witness_cpu_codegen",
             target_is_directory=True,
         )

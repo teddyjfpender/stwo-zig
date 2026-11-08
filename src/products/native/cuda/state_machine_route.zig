@@ -33,8 +33,6 @@ pub fn admit(
     sealed: stwo.core.pcs.PcsConfig,
 ) !cuda.geometry.Geometry {
     if (!exact_protocol_available) {
-        _ = request;
-        _ = sealed;
         return error.StateMachineExactProtocolUnavailable;
     }
     return cuda.geometry.admit(

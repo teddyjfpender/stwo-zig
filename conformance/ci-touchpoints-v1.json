@@ -1035,7 +1035,6 @@
         "src/frontends/cairo/interop/felt_json.zig"
       ],
       "lanes": [
-        "cairo_frontend",
         "circuit_recursion_wire"
       ]
     },

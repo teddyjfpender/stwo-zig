@@ -93,7 +93,7 @@ The following documents are normative, in descending order:
 4. [the performance baseline epoch 2 amendment](2026-07-19-build-monorepo-baseline-epoch-2-amendment.md),
    retained as the future autoresearch epoch contract but non-operative for
    this architecture release decision.
-5. [the RISC-V verification status](../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md),
+5. [the RISC-V verification status](../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md),
    for the current theorem boundary, soundness evidence, and remaining work.
 6. the accepted architecture (archived in `stwo-zig-og-docs/design/`).
 7. [decomposition-plan.md](../../conformance/decomposition-plan.md) and

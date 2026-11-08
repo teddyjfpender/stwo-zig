@@ -134,7 +134,17 @@ def scan(repo: Path) -> list[Finding]:
     return findings
 
 
+# The test-only embed bridges that define the artifact names live with the
+# artifacts themselves (moved from design/typed-air/artifacts).
+ARTIFACT_BRIDGES = frozenset({
+    LANG_ROOT / "artifacts/h009_embedded.zig",
+    LANG_ROOT / "artifacts/h010_embedded.zig",
+})
+
+
 def _reference_is_allowed(relative: Path, reference: str) -> bool:
+    if relative in ARTIFACT_BRIDGES:
+        return True
     if reference == "typed_air_h009_artifacts":
         return relative in ARTIFACT_MODULE_CONSUMERS
     if reference == "typed_air_h010_artifacts":

@@ -3298,8 +3298,8 @@
     },
     {
       "path": "vectors/riscv_csp/ecdsa-precompile-v1.json",
-      "sha256": "341ca0942317a2c50783941003bc2c8f929188de39693dff1aae5b4b7412547d",
-      "bytes": 1705,
+      "sha256": "72b79c6aa5455542fcef9b2709d8a1d6682c9362a9b253d895c5cef46977cb67",
+      "bytes": 1711,
       "group": "vectors/riscv_csp"
     },
     {

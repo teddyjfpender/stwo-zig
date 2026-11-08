@@ -19,7 +19,7 @@ explicit assumptions or replaced by reviewed parameters and a protocol bump.
 
 **Protocol boundary:** the Sail-authoritative RISC-V artifact and security
 profiles fixed by
-[`conformance/2026-07-26-riscv-sail-contract.md`](../conformance/2026-07-26-riscv-sail-contract.md).
+[`conformance/2026-07-26-riscv-sail-contract.md`](../../conformance/2026-07-26-riscv-sail-contract.md).
 
 This document is the executable scope for the repository's independent
 proof-system assurance workstream. It specifies implementation independence,
@@ -106,7 +106,7 @@ The production RISC-V artifact is also easy to misidentify:
   required for verification.
 
 The package
-[`src/waist/proof_wire`](../src/waist/proof_wire/README.md) owns a generic
+[`src/waist/proof_wire`](../../src/waist/proof_wire/README.md) owns a generic
 Stwo JSON shape and an `STWOPRW1` binary codec. It explicitly does not own
 statement framing or verification policy. Implementing a second verifier only
 for that package would not satisfy this plan.

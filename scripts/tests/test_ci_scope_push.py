@@ -52,7 +52,7 @@ class FocusedPushTests(unittest.TestCase):
                 Path("."), [(OID_B, OID_A), ("c" * 40, OID_A)]
             )
         self.assertEqual(OID_A, head)
-        self.assertEqual(["src/waist/core/a.zig", "src/engine/prover/b.zig"], paths)
+        self.assertEqual(["src/engine/prover/b.zig", "src/waist/core/a.zig"], paths)
 
     def test_new_ref_uses_main_merge_base_then_parent(self) -> None:
         with mock.patch.object(
