@@ -161,8 +161,8 @@ pub const Input = struct {
 /// AIR bundle's root groups, as outer_source.zig ensureCatalogue builds them),
 /// authenticated against the base image's AOT kernel identities.
 const Catalogue = struct {
-    const Input = struct { tree: u8, column: u32 };
-    const Group = struct { component: u32, roots: u32, inputs: []Input, slots: []u32 };
+    const MaskInput = struct { tree: u8, column: u32 };
+    const Group = struct { component: u32, roots: u32, inputs: []MaskInput, slots: []u32 };
     var mutex: std.Thread.Mutex = .{};
     var groups: ?[]Group = null;
     var identity: [32]u8 = undefined;
@@ -196,7 +196,7 @@ const Catalogue = struct {
             var actual: [64]u8 = undefined;
             if (ident(@intCast(id), &actual) != 0) return error.Om31OuterAotIdentityMismatch;
             if (!std.mem.eql(u8, actual[0..32], &artifact.program.identity) or !std.mem.eql(u8, actual[32..], &(try Code.identity(&artifact.program)))) return error.Om31OuterAotIdentityMismatch;
-            const inputs = try a.alloc(Input, artifact.program.inputs.len);
+            const inputs = try a.alloc(MaskInput, artifact.program.inputs.len);
             for (inputs, artifact.program.inputs) |*dst_input, input| dst_input.* = .{ .tree = input.tree, .column = input.column };
             dst.* = .{ .component = group.component, .roots = @intCast(artifact.program.roots.len), .inputs = inputs, .slots = try a.dupe(u32, artifact.parameter_slots) };
         }
