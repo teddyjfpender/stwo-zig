@@ -71,13 +71,27 @@ library NativeFriFold {
     }
 
     function circlePoint(uint256 exponent) private pure returns (Point memory point) {
-        point = Point(1, 0);
-        Point memory power = Point(2, 1_268_011_823);
-        while (exponent != 0) {
-            if ((exponent & 1) != 0) point = circleMultiply(point, power);
-            power = circleMultiply(power, power);
-            exponent >>= 1;
+        uint256 x = 1;
+        uint256 y;
+        uint256 powerX = 2;
+        uint256 powerY = 1_268_011_823;
+        unchecked {
+            while (exponent != 0) {
+                if ((exponent & 1) != 0) {
+                    (x, y) = (
+                        addmod(mulmod(x, powerX, P), P - mulmod(y, powerY, P), P),
+                        addmod(mulmod(x, powerY, P), mulmod(y, powerX, P), P)
+                    );
+                }
+                exponent >>= 1;
+                if (exponent == 0) break;
+                (powerX, powerY) = (
+                    addmod(mulmod(powerX, powerX, P), P - mulmod(powerY, powerY, P), P),
+                    mulmod(2 * powerX, powerY, P)
+                );
+            }
         }
+        return Point(x, y);
     }
 
     function circleMultiply(Point memory a, Point memory b) private pure returns (Point memory) {
@@ -115,43 +129,84 @@ library NativeFriFold {
         private pure returns (uint32[8] memory result)
     {
         uint32[8] memory odd;
-        for (uint256 i; i < 8; ++i) {
-            odd[i] = uint32(((uint256(left[i]) + P - right[i]) * inverse) % P);
-        }
-        uint32[8] memory scaled = multiply(alpha, odd);
-        for (uint256 i; i < 8; ++i) result[i] = uint32((uint256(left[i]) + right[i] + scaled[i]) % P);
-    }
-
-    // View the tower as four CM31 coefficients in v with v^4 = 2+i.
-    // Accumulate signed products before reduction. Even the largest lane
-    // holds only a small multiple of P^2, well within int256.
-    function multiply(uint32[8] memory a, uint32[8] memory b) private pure returns (uint32[8] memory result) {
-        int256[8] memory accum;
-        for (uint256 i; i < 4; ++i) {
-            uint256 ai = coefficientOffset(i);
-            for (uint256 j; j < 4; ++j) {
-                uint256 bi = coefficientOffset(j);
-                int256 re = int256(uint256(a[ai]) * b[bi]) - int256(uint256(a[ai + 1]) * b[bi + 1]);
-                int256 im = int256(uint256(a[ai]) * b[bi + 1]) + int256(uint256(a[ai + 1]) * b[bi]);
-                uint256 degree = i + j;
-                uint256 k = coefficientOffset(degree & 3);
-                if (degree >= 4) {
-                    accum[k] += 2 * re - im;
-                    accum[k + 1] += re + 2 * im;
-                } else {
-                    accum[k] += re;
-                    accum[k + 1] += im;
-                }
+        // The inputs and inverse are canonical. Differences offset by P
+        // are nonnegative, and the sum of three coefficients fits uint256.
+        unchecked {
+            for (uint256 i; i < 8; ++i) {
+                odd[i] = uint32(mulmod(uint256(left[i]) + P - right[i], inverse, P));
+            }
+            uint32[8] memory scaled = multiply(alpha, odd);
+            for (uint256 i; i < 8; ++i) {
+                result[i] = uint32((uint256(left[i]) + right[i] + scaled[i]) % P);
             }
         }
-        for (uint256 i; i < 8; ++i) {
-            int256 residue = accum[i] % int256(uint256(P));
-            result[i] = uint32(uint256(residue < 0 ? residue + int256(uint256(P)) : residue));
-        }
     }
 
-    function coefficientOffset(uint256 degree) private pure returns (uint256) {
-        return ((degree & 1) << 2) | (degree & 2);
+    // Multiply in the native quadratic tower i² = -1, u² = 2+i, v² = u.
+    // Karatsuba at each level uses 27 base products. We reduce only the
+    // final coefficients. All signed intermediates are below 2^80 in
+    // magnitude: the inputs are M31 residues and each level only adds
+    // bounded multiples of products or doubles the inputs to a subproduct.
+    function multiply(uint32[8] memory a, uint32[8] memory b) private pure returns (uint32[8] memory result) {
+        assembly ("memory-safe") {
+            function complexMul(ar, ai, br, bi) -> re, im {
+                let rr := mul(ar, br)
+                let ii := mul(ai, bi)
+                re := sub(rr, ii)
+                im := sub(sub(mul(add(ar, ai), add(br, bi)), rr), ii)
+            }
+
+            // QM31 product of two four-word tuples [1,i,u,iu].
+            function quarticMul(x, y, out) {
+                let xr := mload(x)
+                let xi := mload(add(x, 32))
+                let yr := mload(y)
+                let yi := mload(add(y, 32))
+                let xu := mload(add(x, 64))
+                let xiu := mload(add(x, 96))
+                let yu := mload(add(y, 64))
+                let yiu := mload(add(y, 96))
+                let lowR, lowI := complexMul(xr, xi, yr, yi)
+                let highR, highI := complexMul(xu, xiu, yu, yiu)
+                let sumR, sumI := complexMul(add(xr, xu), add(xi, xiu), add(yr, yu), add(yi, yiu))
+                // Multiply the high product by the nonresidue 2+i.
+                mstore(out, add(lowR, sub(add(highR, highR), highI)))
+                mstore(add(out, 32), add(lowI, add(highR, add(highI, highI))))
+                mstore(add(out, 64), sub(sub(sumR, lowR), highR))
+                mstore(add(out, 96), sub(sub(sumI, lowI), highI))
+            }
+
+            function reduce(value) -> residue {
+                residue := smod(value, 0x7fffffff)
+                if slt(residue, 0) { residue := add(residue, 0x7fffffff) }
+            }
+
+            // Scratch space lives beyond the free-memory pointer and does
+            // not escape. The named result already owns eight memory words.
+            let low := mload(0x40)
+            let high := add(low, 128)
+            let sum := add(high, 128)
+            let xSum := add(sum, 128)
+            let ySum := add(xSum, 128)
+            quarticMul(a, b, low)
+            quarticMul(add(a, 128), add(b, 128), high)
+            for { let offset := 0 } lt(offset, 128) { offset := add(offset, 32) } {
+                mstore(add(xSum, offset), add(mload(add(a, offset)), mload(add(add(a, 128), offset))))
+                mstore(add(ySum, offset), add(mload(add(b, offset)), mload(add(add(b, 128), offset))))
+            }
+            quarticMul(xSum, ySum, sum)
+            // Multiplication by u maps [r,i,s,t] to [2s-t,s+2t,r,i].
+            let s := mload(add(high, 64))
+            let t := mload(add(high, 96))
+            mstore(result, reduce(add(mload(low), sub(add(s, s), t))))
+            mstore(add(result, 32), reduce(add(mload(add(low, 32)), add(s, add(t, t)))))
+            mstore(add(result, 64), reduce(add(mload(add(low, 64)), mload(high))))
+            mstore(add(result, 96), reduce(add(mload(add(low, 96)), mload(add(high, 32)))))
+            for { let offset := 0 } lt(offset, 128) { offset := add(offset, 32) } {
+                let cross := sub(sub(mload(add(sum, offset)), mload(add(low, offset))), mload(add(high, offset)))
+                mstore(add(add(result, 128), offset), reduce(cross))
+            }
+        }
     }
 
     function requireCanonical(uint32[8] memory value) private pure {

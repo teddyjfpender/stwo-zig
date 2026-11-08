@@ -452,8 +452,24 @@ test("folds native OM31 FRI subgroups in bit-reversed pair order", async () => {
       challenge = octicMul(challenge, challenge);
     }
     assert.deepEqual(Array.from(await harness.foldFri(values, alpha, inverses)), current[0]);
+    const receipt = await (await harness.foldFri.send(values, alpha, inverses)).wait();
+    console.log(JSON.stringify({ friFoldWidth: size, gas: Number(receipt.gasUsed) }));
   }
-  const zero = Array(8).fill(0);
+  const zero = Array(8).fill(0n);
+  const max = Array(8).fill(p - 1n);
+  const vector = (label) => {
+    const digest = createHash("sha256").update(label).digest();
+    return Array.from({ length: 8 }, (_, i) => BigInt(digest.readUInt32LE(i * 4)) % p);
+  };
+  const products = [[zero, max], [max, max], ...Array.from(
+    { length: 16 }, (_, i) => [vector(`left-${i}`), vector(`right-${i}`)],
+  )];
+  for (const [left, challenge] of products) {
+    const expected = add(left, octicMul(challenge, left));
+    assert.deepEqual(Array.from(await harness.foldFri([left, zero], challenge, [1])), expected);
+  }
+  await assert.rejects(harness.foldFri([[p, ...zero.slice(1)], zero], alpha, [1]));
+  await assert.rejects(harness.foldFri([zero, zero], alpha, [p]));
   await assert.rejects(harness.foldFri([zero, zero], alpha, [0]));
   await assert.rejects(harness.foldFri([zero, zero], alpha, []));
   await assert.rejects(harness.foldFri([zero, zero, zero], alpha, [1, 1]));
@@ -511,6 +527,8 @@ test("binds FRI inverse coordinates to the canonical circle and line subgroups",
     const expected = await harness.foldFri(values, challenge, inverses);
     const actual = await harness.foldCanonicalFri(values, challenge, inverses, log, query, circle);
     assert.deepEqual(Array.from(actual), Array.from(expected));
+    const receipt = await (await harness.foldCanonicalFri.send(values, challenge, inverses, log, query, circle)).wait();
+    console.log(JSON.stringify({ canonicalFriWidth: count, domainLog: log, circle, gas: Number(receipt.gasUsed) }));
     const modified = [mod(inverses[0] + 1n), ...inverses.slice(1)];
     await assert.rejects(harness.foldCanonicalFri(values, challenge, modified, log, query, circle));
     await assert.rejects(harness.foldCanonicalFri(values, challenge, inverses, log, 1 << log, circle));

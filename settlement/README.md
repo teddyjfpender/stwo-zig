@@ -145,6 +145,28 @@ modified inverses, out-of-range queries and a substituted layer kind. The
 surrounding verifier still needs to authenticate the query and opened subgroup,
 connect each fold to the next layer and check the final polynomial.
 
+The fold uses Karatsuba across the three quadratic extensions, reducing the
+octic multiplication from 64 to 27 base products. It reduces signed
+coefficients only at the output. Canonical circle exponentiation keeps its
+intermediate coordinates on the stack. The test suite checks seeded
+products, zero and maximum M31 residues against independent tower arithmetic.
+
+| FRI fold transaction | Previous gas | Current gas | Reduction |
+|---|---:|---:|---:|
+| 2 values | 81,610 | 45,899 | 43.8% |
+| 4 values | 218,141 | 77,506 | 64.5% |
+| 8 values | 454,400 | 137,323 | 69.8% |
+| 16 values | 890,544 | 253,861 | 71.5% |
+| 16 values, canonical circle coordinates | 945,934 | 285,015 | 69.9% |
+| 16 values, canonical line coordinates | 945,054 | 285,388 | 69.8% |
+
+These are standalone harness transactions on Anvil Shanghai with the solc
+settings above, against baseline `7615b9b8`. They include intrinsic and calldata
+gas. The canonical cases use challenges from OP Mainnet block 121057303
+and independently generated subgroup values and inverse coordinates.
+The two mainnet opening tests and the shared query-bound opening are also
+rerun as regression checks.
+
 The Solidity suite also replays the 5,532 samples, three FRI roots and final
 coefficient of `truth-4.bin` from the accepted block 121057303 bundle. The
 reconstructed digest matches the native PoW/query fixture. This case uses
