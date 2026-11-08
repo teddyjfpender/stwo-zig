@@ -5,9 +5,7 @@ import copy
 import io
 import unittest
 
-from scripts import typed_air_performance_protocol as protocol_validator
-
-
+from scripts.typed_air import typed_air_performance_protocol as protocol_validator
 class TypedAirPerformanceProtocolTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

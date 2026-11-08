@@ -18,7 +18,7 @@ def git_repository(files: dict[str, str]):
             subprocess.run(["git", *arguments], cwd=root, check=True, capture_output=True)
         yield root
 
-PROVER_PREFIXES = ("src/core", "src/backend", "src/prover", "src/prover_api")
+PROVER_PREFIXES = ("src/waist/core", "src/waist/backend", "src/engine/prover", "src/waist/prover_api")
 
 
 def product(scope: str, *prefixes: str, state: str = "released") -> dict[str, object]:
@@ -44,13 +44,13 @@ def catalog_fixture() -> dict[str, object]:
                 "src/frontends/riscv",
                 "src/integrations/riscv_cpu",
             ),
-            product("core", "src/core"),
+            product("core", "src/waist/core"),
             product("prover", *PROVER_PREFIXES),
             product(
                 "native_cpu",
                 *PROVER_PREFIXES,
                 "src/backends/cpu_scalar",
-                "src/products/native_cpu",
+                "src/products/native/cpu",
             ),
             product(
                 "riscv_cpu",
@@ -65,7 +65,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/backends/cpu_scalar",
                 "src/frontends/cairo",
                 "src/integrations/cairo_cpu",
-                "src/products/cairo_cpu",
+                "src/products/cairo/cpu",
             ),
             product(
                 "cairo_metal",
@@ -74,7 +74,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/backends/metal",
                 "src/frontends/cairo",
                 "src/integrations/cairo_metal",
-                "src/products/cairo_metal",
+                "src/products/cairo/metal",
             ),
             product(
                 "native_metal",
@@ -89,7 +89,7 @@ def catalog_fixture() -> dict[str, object]:
                 "src/backends/metal",
                 "src/frontends/riscv",
                 "src/integrations/riscv_metal",
-                "src/products/riscv_metal",
+                "src/products/riscv/metal",
             ),
             product(
                 "native_cuda",
@@ -100,16 +100,16 @@ def catalog_fixture() -> dict[str, object]:
                 "src/frontends/cairo",
                 "src/frontends/riscv",
                 "src/integrations/native_cuda",
-                "src/products/native_cuda",
+                "src/products/native/cuda",
                 state="staged",
             ),
             product(
                 "cairo_cuda",
                 "src/backends/cuda",
-                "src/prover_api",
+                "src/waist/prover_api",
                 "src/frontends/cairo",
                 "src/integrations/cairo_cuda",
-                "src/products/cairo_cuda",
+                "src/products/cairo/cuda",
                 state="staged",
             ),
         ],

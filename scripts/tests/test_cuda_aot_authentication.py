@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from cuda_build_lib.aot_pack import (  # noqa: E402
+from scripts.cuda.cuda_build_lib.aot_pack import (  # noqa: E402
     AotPackError,
     write_aot_carriers,
     write_aot_pack,

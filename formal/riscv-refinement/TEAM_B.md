@@ -3,13 +3,13 @@
 > **Historical rollout record — non-normative.** This contributor allocation
 > is superseded by the manifest-wide publication inventory. See
 > [`README.md`](README.md) and
-> [`../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
+> [`../../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](../../design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md).
 
 Team B of the original Universal AIR → Sail refinement plan (issue #137) owned 22 of the
 46 admitted RV32IM opcodes, across six AIR families, plus the generated-Sail
 normalization obligation.
 
-Historical contract: [`../../soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md`](../../soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md).
+Historical contract: [`../../design/soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md`](../../design/soundness/TEAM_B_SAIL_REFINEMENT_CONTRACT.md).
 Historical machine-readable snapshot: [`team-b-coverage.json`](team-b-coverage.json).
 
 ## What is claimed
@@ -40,7 +40,7 @@ composition with generated Sail step-monad execution.
 
 Hosted Sail provisioning now exists —
 `.github/workflows/riscv-sail-formal.yml`, normative in
-[`../../soundness/SAIL_PROVISIONING.md`](../../soundness/SAIL_PROVISIONING.md) —
+[`../../design/soundness/SAIL_PROVISIONING.md`](../../design/soundness/SAIL_PROVISIONING.md) —
 so "no Sail compiler is available" is a retired excuse, not a standing one.
 It upgrades nothing here: per that document, no file stops saying "reviewed
 capsule" because the provisioning job is green. The capsules stay reviewed
@@ -57,7 +57,7 @@ unchanged.
 | `refined` | refinement theorem and tuple projections | refinement, tuple |
 | `proved` | plus a witness and a named, load-bearing Lean mutation control | refinement, tuple, non-vacuity, mutation, mutation_theorem |
 
-A state cannot overstate what exists: `scripts/riscv_team_b.py coverage`
+A state cannot overstate what exists: `scripts/riscv/riscv_team_b.py coverage`
 refuses a certificate claiming a state without the fields that state requires,
 and `theorems` refuses a certificate naming a theorem that is not in the Lean
 sources.
@@ -149,7 +149,7 @@ Writing a new control, in order:
 | `div` | DIV, DIVU, REM, REMU | `Air/Family/Div.lean` | the Stage B3 stress gate |
 
 Each capsule records the SHA-256 of the exported production AIR it was
-transcribed from. `scripts/riscv_team_b.py ir-digests` recomputes those digests
+transcribed from. `scripts/riscv/riscv_team_b.py ir-digests` recomputes those digests
 from a fresh `zig build riscv-refinement-ir` export and fails closed on any
 difference, so a production AIR change invalidates the transcription rather than
 silently diverging from it.
@@ -171,7 +171,7 @@ computed in the M31 base field, so the old AIR admitted base `0x7FFFFFFB` with
 displacement `+8` as a read at `0x00000004`, even though the architectural
 address is `0x80000003`. The source fix pins the base's high limb to zero on
 active rows, bounding the base below `2^24`; the old counterexample now fails
-at constraint root C69. `scripts/riscv_team_b_witnesses.py` requires that exact
+at constraint root C69. `scripts/riscv/riscv_team_b_witnesses.py` requires that exact
 rejection and also checks that a zero-high-byte control row remains reachable.
 
 **Alignment is enforced by equality constraints together with the range check,
@@ -223,10 +223,10 @@ Run from the repository root.
 zig build riscv-refinement-ir -Driscv-refinement-ir-dir=zig-out/team-b-ir
 
 # Coverage, certificates, profile claims, and AIR bindings.
-python3 scripts/riscv_team_b.py check --air-ir-dir zig-out/team-b-ir
+python3 scripts/riscv/riscv_team_b.py check --air-ir-dir zig-out/team-b-ir
 
 # Non-vacuity witnesses checked against the production AIR, not the capsule.
-python3 scripts/riscv_team_b_witnesses.py --air-ir-dir zig-out/team-b-ir
+python3 scripts/riscv/riscv_team_b_witnesses.py --air-ir-dir zig-out/team-b-ir
 
 # Every theorem, and the axiom audit.
 cd formal/riscv-refinement && lake build
@@ -244,7 +244,7 @@ rebuilds everything from empty caches and re-checks the environment through
 A Lean non-vacuity theorem proves a row satisfies the *transcribed capsule*. If
 the transcription drifted, that row could be unreachable in production and the
 "honest witness" would be honest about the wrong system.
-`scripts/riscv_team_b_witnesses.py` evaluates the same witnesses against the
+`scripts/riscv/riscv_team_b_witnesses.py` evaluates the same witnesses against the
 *exported production* AIR — every constraint root over M31 and every active
 range request against the widths the production tables actually provide. A
 witness that passes both is reachable in the shipped AIR and satisfies the

@@ -3,7 +3,7 @@
 const std = @import("std");
 
 pub const archive_name = "stwo_cuda_kernels";
-const build_script = "scripts/cuda_cumetal_build.py";
+const build_script = "scripts/cuda/cuda_cumetal_build.py";
 
 pub const Toolchain = struct {
     clang: []const u8,
@@ -44,7 +44,7 @@ pub fn addNativeArchive(
     );
     const command = b.addSystemCommand(&.{"python3"});
     command.addFileArg(b.path(build_script));
-    addDirectoryInputs(b, command, "scripts/cuda_build_lib");
+    addDirectoryInputs(b, command, "scripts/cuda/cuda_build_lib");
     addDirectoryInputs(b, command, "src/backends/cuda/authority/active");
     addDirectoryInputs(b, command, "src/backends/cuda/native");
     addDirectoryInputs(b, command, "src/backends/cuda/aot/native");

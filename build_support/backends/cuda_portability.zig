@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const audit_script = "scripts/cuda_cumetal_audit.py";
+const audit_script = "scripts/cuda/cuda_cumetal_audit.py";
 const ledger = "conformance/cuda-cumetal-compatibility-v1.json";
 const native_root = "src/backends/cuda/native";
 const execution_harness = "tests/cuda/cumetal/powers_execution.cu";

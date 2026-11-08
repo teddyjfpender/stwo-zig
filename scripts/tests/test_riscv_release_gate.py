@@ -6,15 +6,15 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.riscv_release_gate_lib.contract import (
+from scripts.riscv.riscv_release_gate_lib.contract import (
     AIR_SOUNDNESS_LEDGER_ROW,
     core_purity_errors,
     divergence_errors,
     divergence_ledger_errors,
     frontend_layering_errors,
 )
-from scripts.riscv_release_gate_lib import controller
-from scripts.riscv_release_gate_lib.controller import command_plan
+from scripts.riscv.riscv_release_gate_lib import controller
+from scripts.riscv.riscv_release_gate_lib.controller import command_plan
 
 
 COMMIT = "a" * 40
@@ -97,26 +97,26 @@ class LayeringContractTests(unittest.TestCase):
             self.write(root, "src/frontends/riscv/air.zig", "pub const ok = true;\n")
             self.write(
                 root,
-                "src/core/protocol.zig",
-                'const air = @import("../frontends/riscv/air.zig");\n',
+                "src/waist/core/protocol.zig",
+                'const air = @import("../../frontends/riscv/air.zig");\n',
             )
             errors = core_purity_errors(root)
             self.assertEqual(1, len(errors))
-            self.assertIn("src/core/protocol.zig imports frontends/riscv/air.zig", errors[0])
+            self.assertIn("src/waist/core/protocol.zig imports frontends/riscv/air.zig", errors[0])
 
     def test_frontend_layering_rejects_cli_backend_placeholders_and_giant_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            self.write(root, "src/tools/prove/cli.zig", "pub const ok = true;\n")
+            self.write(root, "src/products/stwo/tools/prove/cli.zig", "pub const ok = true;\n")
             self.write(
                 root,
                 "src/frontends/riscv/prover.zig",
-                'const cli = @import("../../tools/prove/cli.zig");\n'
+                'const cli = @import("../../products/stwo/tools/prove/cli.zig");\n'
                 "const Mode = enum { silent };\n"
                 + "const value = 0;\n" * 850,
             )
             errors = frontend_layering_errors(root)
-            self.assertTrue(any("imports tools/prove/cli.zig" in error for error in errors))
+            self.assertTrue(any("imports products/stwo/tools/prove/cli.zig" in error for error in errors))
             self.assertTrue(any("manual ceiling 850" in error for error in errors))
             self.assertTrue(any("active placeholder markers: silent" in error for error in errors))
 

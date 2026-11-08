@@ -1,4 +1,0 @@
-test-rv64-cpu-prestage
-+- run test stderr
-GLOBAL_ADMISSION_STAGE physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 owner_queue_ns=63330 owner_callback_ns=180 total_host_ns=64320 retained_large=33554432 retained_small=0 successor_large=0 successor_small=0
-GLOBAL_ADMISSION_STAGE physical=0 ticket=2 domain=native_packet stage=witness ordinal=0 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=500 retained_large=0 retained_small=0 successor_large=0 successor_small=0

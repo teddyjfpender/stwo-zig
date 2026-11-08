@@ -1,0 +1,22 @@
+# Secret-scanning policy for .github/workflows/standards.yml.
+# Extends the upstream gitleaks rule set. The only exceptions are value shapes
+# this repository commits by design: cryptographic digests and commitments
+# (hex, optionally 0x- or sha256:-prefixed) and source/schema identifiers that
+# the generic-api-key rule mistakes for credentials because a nearby name
+# contains "key". Never add a path-wide exception for a real credential:
+# rotate it and remove it from history instead.
+
+title = "stwo-zig secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Digests, commitments and identifiers named *key in vectors, receipts and source"
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = [
+  '''^(?:0x|sha256:)?[0-9a-fA-F]{16,128}$''',
+  '''^[a-z][a-z0-9_]*$''',
+  '''^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$''',
+]

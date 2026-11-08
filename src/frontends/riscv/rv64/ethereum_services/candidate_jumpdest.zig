@@ -1,7 +1,7 @@
 //! Execution-only CANDIDATE service `jumpdest_bitmap` (tag 0x0003_0040) for
 //! profile `ethereum_services_v3_candidate`: EVM JUMPDEST analysis.
 //!
-//! ABI (autoresearch/guest_efficiency/CONTEXT.md, notes/jumpdest-service.md):
+//! ABI (guests/ethereum/abi/CONTEXT.md, design/riscv/rv64-jumpdest-service.md):
 //! `a0` = 8-byte aligned packet of three little-endian u64 `code, len, bitmap`;
 //! `a7` = tag; all registers preserved; the packet is unchanged.
 //! - `code` is 64-byte aligned, `bitmap` 8-byte aligned, `len` a nonzero

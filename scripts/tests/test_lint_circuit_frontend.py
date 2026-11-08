@@ -8,9 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import lint_circuit_frontend as lint
-
-
+from scripts.interop import lint_circuit_frontend as lint
 def rules(source: str) -> list[str]:
     return [v.rule for v in lint.lint_source(Path("x.zig"), source)]
 

@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts import riscv_pr_proof_smoke as smoke
-
-
+from scripts.riscv import riscv_pr_proof_smoke as smoke
 COMMIT = "1" * 40
 STATEMENT = "2" * 64
 TRANSCRIPT = "3" * 64

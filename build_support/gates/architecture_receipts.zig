@@ -5,7 +5,7 @@ const std = @import("std");
 pub fn addGates(b: *std.Build) void {
     const producer = b.addSystemCommand(&.{
         "python3",
-        "scripts/build_architecture_receipt.py",
+        "scripts/architecture/build_architecture_receipt.py",
         "produce",
     });
     if (b.args) |args| producer.addArgs(args);
@@ -17,7 +17,7 @@ pub fn addGates(b: *std.Build) void {
 
     const verifier = b.addSystemCommand(&.{
         "python3",
-        "scripts/build_architecture_receipt.py",
+        "scripts/architecture/build_architecture_receipt.py",
         "verify",
     });
     if (b.args) |args| verifier.addArgs(args);

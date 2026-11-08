@@ -9,9 +9,7 @@ import random
 import unittest
 from pathlib import Path
 
-from scripts import riscv_merkle_recurrence as recurrence
-
-
+from scripts.riscv import riscv_merkle_recurrence as recurrence
 ROOT = Path(__file__).resolve().parents[2]
 
 

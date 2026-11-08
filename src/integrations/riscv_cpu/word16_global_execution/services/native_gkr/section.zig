@@ -1,6 +1,6 @@
 //! Native LogUp-GKR v1 section (`rv64-m5-native-gkr/v1`): CPU reference prover, CPU reference verifier
 //! (the native receiver's authority), binding-column reference and strict wire codec. Stream native-gkr.
-//! Argument: design/riscv-proving-stack/rv64-native-gkr.md. Reuses the outer-gkr strict channel and the
+//! Argument: design/riscv/rv64-native-gkr.md. Reuses the outer-gkr strict channel and the
 //! shared engine GKR prover/verifier kernels unchanged (outer-gkr = recursion-side twin of this section).
 //!
 //! Transcript (continues the native proof's raw-Blake OM31 channel right after the MAIN commitment and

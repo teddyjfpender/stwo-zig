@@ -292,7 +292,7 @@ It converts final algebraic degree `d` into
 division. Every current lookup interaction is degree three, while seven direct
 families are degree two and ten are degree three. The complete result and its
 limitations are fixed by [ADR-0011](decisions/0011-complete-protocol-degree-and-pinned-report.md)
-and the [M2 report](artifacts/m2-production-shadow-report-v1.md).
+and the [M2 report](../../src/frontends/riscv/air/lang/artifacts/m2-production-shadow-report-v1.md).
 
 ## Static collections and pure functions
 
@@ -465,7 +465,7 @@ tags, and length-framed strings and sections make host representation irrelevant
 The family-ordered TSV index exposes whole-artifact and section identities,
 geometry, export counts, and maximum degrees for review. See
 [ADR-0017](decisions/0017-sectioned-compatibility-manifests.md) and the
-[checked M3 artifacts](artifacts/README.md).
+[checked M3 artifacts](../../src/frontends/riscv/air/lang/artifacts/README.md).
 
 Receipt generation deliberately separates result and scratch allocation. The
 legacy production symbolic builder retains its established panic-on-OOM

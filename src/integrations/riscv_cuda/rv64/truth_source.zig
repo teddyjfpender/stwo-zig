@@ -13,10 +13,6 @@ const Trace = @import("trace_commit.zig");
 const Rational = @import("global_stage.zig");
 const Raw = @import("truth_interaction_codegen.zig");
 const T = @import("truth_codegen.zig");
-const Admission = @import("admission_runtime.zig");
-const Retention = @import("admission_retention.zig");
-const Progress = @import("native_truth_progress.zig");
-const GA = @import("global_admission.zig");
 const O = D.O;
 const Truth = @FieldType(S.Prepare, "truth");
 const Launch = *const fn (*anyopaque, u32, [*]const u32, [*]const u32, [*]const u32, [*]u32, [*]u32, [*]u32, u32) callconv(.c) c_int;
@@ -158,17 +154,10 @@ const Owner = struct {
     main: ?D.Tree = null,
     raw_leases: [3]?N.Lease = @splat(null),
     raw_columns: []D.TraceColumn = &.{},
-    retention: Retention.Registry = .{},
-    progress: ?Progress.Plan = null,
     fn seal(raw: *anyopaque, a: std.mem.Allocator, request: S.Sealed) !D.Tree {
         const self: *Owner = @ptrCast(@alignCast(raw));
         if (self.main != null or !std.meta.eql(self.scope, request.scope)) return error.InvalidDeviceTruthSealPhase;
         self.fixed = try self.allocator.dupe(D.Column, request.fixed.columns);
-        if (self.backend.service.admission != null) {
-            var arena = std.heap.ArenaAllocator.init(self.allocator);
-            defer arena.deinit();
-            self.progress = try Progress.init(arena.allocator(), self.backend.service, self.backend.trace, self.backend.composition orelse return error.MissingNativeTruthClassProgress, self.truth, self.scope, request.config, self.compact_words, self.backend.replay_main);
-        }
         try self.runMain(request.fixed.columns);
         defer self.releaseRaw();
         const stage = self.backend.trace.stage();
@@ -177,16 +166,9 @@ const Owner = struct {
         const previous_scope = self.scope;
         self.scope.main = committed.root;
         var promotion = Promote{ .owner = self, .previous = previous_scope };
-        if (self.backend.service.submit(self.backend.service.session, Promote.callback, &promotion) != 0) {
-            self.poison();
-            return error.DeviceTruthCompactPromotionFailed;
-        }
-        self.retention.promoted(@import("pcs_scope.zig").identity(previous_scope), @import("pcs_scope.zig").identity(self.scope));
+        if (self.backend.service.submit(self.backend.service.session, Promote.callback, &promotion) != 0) return error.DeviceTruthCompactPromotionFailed;
         try self.releaseRawChecked();
         if (self.backend.replay_main) {
-            // Move the future claim to compact-input custody BEFORE destroying
-            // cached MAIN coefficients. Its physical bytes are never credited.
-            try self.rearmReplay();
             try self.backend.service.discardRetainedMain(self.scope);
         }
         self.allocator.free(self.inputs);
@@ -195,7 +177,6 @@ const Owner = struct {
     }
     fn generate(raw: *anyopaque, a: std.mem.Allocator, local: S.Local, shared: S.Shared) !S.Interactions {
         const self: *Owner = @ptrCast(@alignCast(raw));
-        _ = try self.backend.service.armGlobalAdmission(self.scope);
         var main = self.main orelse return error.InvalidDeviceTruthSealPhase;
         if (self.backend.replay_main) {
             try self.runMain(self.fixed);
@@ -257,72 +238,24 @@ const Owner = struct {
     fn config(self: *const Owner) @FieldType(S.Prepare, "config") {
         return self.pcs_config;
     }
-    fn poison(self: *Owner) void {
-        if (self.backend.service.admission) |*endpoint| endpoint.planner.poisonPhysical(endpoint.physical);
-    }
     fn runMain(self: *Owner, fixed: []const D.Column) !void {
-        var permit: ?Admission.Permit = null;
-        if (self.backend.service.admission) |*endpoint| {
-            const plan = self.progress orelse return error.MissingNativeTruthClassProgress;
-            const source = if (self.compact == null) plan.initial else plan.replay;
-            const successor = try self.backend.service.admissionSuccessor(self.scope, .source);
-            const demand = GA.Demand{ .progress_key = GA.progressKey(self.scope), .owner = .{ .request = std.mem.readInt(u64, self.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = self.scope.ordinal }, .stage = .witness, .temporary = source.peak, .stage_retained_upper = source.retained, .successor = successor, .known = true, .host_known = false };
-            permit = if (try self.backend.service.takeGlobalAdmissionDrain(self.scope)) try endpoint.reserveDrain(demand) else try endpoint.reserve(demand);
-        }
-        defer if (permit) |*p| if (!p.closed) p.finish(.{}) catch {
-            self.poison();
-        };
-        var job = MainJob{ .owner = self, .fixed = fixed, .permit = if (permit) |*p| p else null };
-        if (self.backend.service.submit(self.backend.service.session, MainJob.callback, &job) != 0) {
-            self.poison();
-            return job.failure orelse error.DeviceTruthKernelFailed;
-        }
-        if (permit) |*p| try self.retention.complete(self.allocator, p, @import("pcs_scope.zig").identity(self.scope), p.demand.successor);
-    }
-    fn rearmReplay(self: *Owner) !void {
-        const endpoint = if (self.backend.service.admission) |*value| value else return;
-        const successor = try self.backend.service.admissionSuccessor(self.scope, .main_commit);
-        var permit = try endpoint.reserve(.{ .progress_key = GA.progressKey(self.scope), .owner = .{ .request = std.mem.readInt(u64, self.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = self.scope.ordinal }, .stage = .retire, .successor = successor, .known = true, .host_known = false });
-        defer if (!permit.closed) permit.finish(.{}) catch {
-            self.poison();
-        };
-        var control = Control{ .permit = &permit };
-        if (self.backend.service.submit(self.backend.service.session, Control.callback, &control) != 0) {
-            self.poison();
-            return error.DeviceTruthReplayAdmissionFailed;
-        }
-        try self.retention.complete(self.allocator, &permit, @import("pcs_scope.zig").identity(self.scope), successor);
+        var job = MainJob{ .owner = self, .fixed = fixed };
+        if (self.backend.service.submit(self.backend.service.session, MainJob.callback, &job) != 0) return job.failure orelse error.DeviceTruthKernelFailed;
     }
     fn releaseRawChecked(self: *Owner) !void {
         var cleanup = Cleanup{ .owner = self };
-        if (self.backend.service.submit(self.backend.service.session, Cleanup.callback, &cleanup) != 0) {
-            self.poison();
-            return error.DeviceTruthReleaseFailed;
-        }
+        if (self.backend.service.submit(self.backend.service.session, Cleanup.callback, &cleanup) != 0) return error.DeviceTruthReleaseFailed;
         self.allocator.free(self.raw_columns);
         self.raw_columns = &.{};
     }
     fn releaseRaw(self: *Owner) void {
-        self.releaseRawChecked() catch {
-            self.poison();
-        };
+        self.releaseRawChecked() catch {};
     }
     fn destroy(raw: *anyopaque) void {
         const self: *Owner = @ptrCast(@alignCast(raw));
         self.releaseRaw();
         var cleanup = CompactCleanup{ .owner = self };
-        var success = self.backend.service.submit(self.backend.service.session, CompactCleanup.callback, &cleanup) == 0;
-        for (self.raw_leases) |lease| if (lease != null) {
-            success = false;
-        };
-        if (!success) self.poison();
-        if (self.backend.service.admission) |*endpoint| {
-            if (success and endpoint.planner.healthy(endpoint.physical)) self.retention.retireAfterDestruction(endpoint.planner, @import("pcs_scope.zig").identity(self.scope)) catch {
-                self.poison();
-            };
-            if (!endpoint.planner.healthy(endpoint.physical)) self.retention.abandonToPoisonedPool(endpoint.planner) catch {};
-        }
-        self.retention.deinit(self.allocator);
+        _ = self.backend.service.submit(self.backend.service.session, CompactCleanup.callback, &cleanup);
         self.allocator.free(self.inputs);
         self.allocator.free(self.fixed);
         const a = self.allocator;
@@ -361,20 +294,10 @@ const CompactCleanup = struct {
         return self.owner.backend.api.sync(raw);
     }
 };
-const Control = struct {
-    permit: *Admission.Permit,
-    fn callback(raw: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
-        const self: *Control = @ptrCast(@alignCast(data.?));
-        self.permit.enterOwner(raw) catch return 1;
-        self.permit.leaveOwner(raw) catch return 1;
-        return 0;
-    }
-};
 const MainJob = struct {
     owner: *Owner,
     fixed: []const D.Column,
     failure: ?anyerror = null,
-    permit: ?*Admission.Permit = null,
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *MainJob = @ptrCast(@alignCast(data.?));
         // Replay keeps the compact input live; only the initial witness opens
@@ -384,20 +307,8 @@ const MainJob = struct {
             return 1;
         };
         defer observed.deinit();
-        if (self.permit) |p| p.enterOwner(raw) catch |err| {
-            self.failure = err;
-            return 1;
-        };
         self.run(raw, token) catch |err| {
             self.failure = err;
-            if (self.permit) |p| p.leaveOwner(raw) catch {
-                self.owner.poison();
-            };
-            return 1;
-        };
-        if (self.permit) |p| p.leaveOwner(raw) catch |err| {
-            self.failure = err;
-            self.owner.poison();
             return 1;
         };
         return 0;
@@ -423,9 +334,7 @@ const MainJob = struct {
         const input = o.compact.?;
         var status = try context.allocate(1, 0);
         var status_live = true;
-        errdefer if (status_live) context.release(&status) catch {
-            o.poison();
-        };
+        errdefer if (status_live) context.release(&status) catch {};
         const zero_status: u32 = 0;
         try checked(b.api.upload(raw, @ptrCast(status.words.?), &zero_status, 4));
         o.raw_leases[0] = try context.allocate(width * n, 0);

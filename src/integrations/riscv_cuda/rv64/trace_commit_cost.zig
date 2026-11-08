@@ -2,7 +2,7 @@
 //! must use selected_stream_budget without owner-thread adaptive shrinking.
 const std = @import("std");
 const S = @import("trace_stream_plan.zig");
-const A = @import("global_admission.zig");
+const A = @import("footprint_types.zig");
 pub const Format = enum { legacy_blake32_m31, poseidon2_w24_v1 };
 pub const Input = struct {
     format: Format = .legacy_blake32_m31,

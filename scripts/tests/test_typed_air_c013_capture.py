@@ -10,13 +10,13 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import typed_air_c013_capture as capture_cli
-from scripts.typed_air_c013_capture_lib import schedule
-from scripts.typed_air_c013_capture_lib.bundle import BundleValidation
-from scripts.typed_air_c013_capture_lib.codec import content_digest
-from scripts.typed_air_c013_capture_lib.model import CaptureError
-from scripts.typed_air_c013_capture_lib.model import CORPUS_DIGESTS
-from scripts.typed_air_c013_capture_lib.plan import (
+from scripts.typed_air import typed_air_c013_capture as capture_cli
+from scripts.typed_air.typed_air_c013_capture_lib import schedule
+from scripts.typed_air.typed_air_c013_capture_lib.bundle import BundleValidation
+from scripts.typed_air.typed_air_c013_capture_lib.codec import content_digest
+from scripts.typed_air.typed_air_c013_capture_lib.model import CaptureError
+from scripts.typed_air.typed_air_c013_capture_lib.model import CORPUS_DIGESTS
+from scripts.typed_air.typed_air_c013_capture_lib.plan import (
     ARTIFACT_IDS,
     REQUIRED_EXECUTABLE_MARKERS,
     PlanSettings,

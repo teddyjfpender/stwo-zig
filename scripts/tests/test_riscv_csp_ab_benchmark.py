@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.riscv_csp_ab_benchmark_lib import contract, runner
+from scripts.riscv.riscv_csp_ab_benchmark_lib import contract, runner
 
 
 def git(root: Path, *arguments: str, input_bytes: bytes | None = None) -> bytes:
@@ -267,10 +267,10 @@ class SourceSnapshotTests(unittest.TestCase):
                 contract.ROOT / "vectors" / "riscv_csp" / "manifest-v2.json",
                 active / "vectors" / "riscv_csp" / "manifest-v2.json",
             )
-            (active / "scripts").mkdir()
+            (active / "scripts" / "riscv").mkdir(parents=True)
             shutil.copy2(
-                contract.ROOT / "scripts" / "riscv_csp_benchmark.py",
-                active / "scripts" / "riscv_csp_benchmark.py",
+                contract.ROOT / "scripts" / "riscv/riscv_csp_benchmark.py",
+                active / "scripts" / "riscv/riscv_csp_benchmark.py",
             )
             git(active, "add", "-A")
             git(active, "commit", "--quiet", "-m", "benchmark baseline")

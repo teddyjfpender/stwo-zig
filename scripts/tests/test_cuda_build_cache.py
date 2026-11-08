@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from cuda_build_lib.builder import (  # noqa: E402
+from scripts.cuda.cuda_build_lib.builder import (  # noqa: E402
     BuildConfig,
     BuildError,
     Toolchain,
@@ -165,10 +165,10 @@ class CudaBuildCacheTests(unittest.TestCase):
         )
 
         scripts = project / "scripts"
-        scripts.mkdir()
-        (scripts / "cuda_build.py").symlink_to(ROOT / "scripts/cuda_build.py")
-        (scripts / "cuda_build_lib").symlink_to(
-            ROOT / "scripts/cuda_build_lib",
+        (scripts / "cuda").mkdir(parents=True)
+        (scripts / "cuda/cuda_build.py").symlink_to(ROOT / "scripts/cuda/cuda_build.py")
+        (scripts / "cuda/cuda_build_lib").symlink_to(
+            ROOT / "scripts/cuda/cuda_build_lib",
             target_is_directory=True,
         )
 
@@ -200,14 +200,14 @@ class CudaBuildCacheTests(unittest.TestCase):
             ROOT / "src/backends/cuda/aot/native",
             target_is_directory=True,
         )
-        tools = project / "src/tools"
+        tools = project / "src/products/cairo/tools"
         tools.mkdir(parents=True)
-        (tools / "cairo_cuda_witness_aot").symlink_to(
-            ROOT / "src/tools/cairo_cuda_witness_aot",
+        (tools / "cuda_witness_aot").symlink_to(
+            ROOT / "src/products/cairo/tools/cuda_witness_aot",
             target_is_directory=True,
         )
-        (tools / "cairo_witness_cpu_codegen").symlink_to(
-            ROOT / "src/tools/cairo_witness_cpu_codegen",
+        (tools / "witness_cpu_codegen").symlink_to(
+            ROOT / "src/products/cairo/tools/witness_cpu_codegen",
             target_is_directory=True,
         )
         vectors = project / "vectors/cairo"

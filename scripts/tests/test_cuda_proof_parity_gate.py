@@ -8,9 +8,7 @@ import textwrap
 import unittest
 from unittest import mock
 
-from scripts import cuda_proof_parity_gate as gate
-
-
+from scripts.cuda import cuda_proof_parity_gate as gate
 FAKE_PRODUCT = textwrap.dedent(
     r"""#!/usr/bin/env python3
 import json

@@ -7,9 +7,9 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import riscv_trace_vectors as rtv
-from riscv_trace_vectors_lib import admission as admission_policy
-from riscv_trace_vectors_lib import corpus as corpus_contract
+from scripts.riscv import riscv_trace_vectors as rtv
+from scripts.riscv.riscv_trace_vectors_lib import admission as admission_policy
+from scripts.riscv.riscv_trace_vectors_lib import corpus as corpus_contract
 
 ROOT = Path(__file__).resolve().parents[2]
 

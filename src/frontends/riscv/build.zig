@@ -49,21 +49,21 @@ pub fn build(b: *std.Build) void {
     postcard.addImport("stwo_proof_wire", proof_wire);
     const typed_air_artifacts = b.createModule(.{
         .root_source_file = b.path(
-            "../../../design/typed-air/artifacts/embedded.zig",
+            "air/lang/artifacts/embedded.zig",
         ),
         .target = target,
         .optimize = optimize,
     });
     const typed_air_h009_artifacts = b.createModule(.{
         .root_source_file = b.path(
-            "../../../design/typed-air/artifacts/h009_embedded.zig",
+            "air/lang/artifacts/h009_embedded.zig",
         ),
         .target = target,
         .optimize = optimize,
     });
     const typed_air_h010_artifacts = b.createModule(.{
         .root_source_file = b.path(
-            "../../../design/typed-air/artifacts/h010_embedded.zig",
+            "air/lang/artifacts/h010_embedded.zig",
         ),
         .target = target,
         .optimize = optimize,
@@ -172,7 +172,7 @@ pub fn build(b: *std.Build) void {
     run_manifest_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     run_manifest_tool.addArgs(&.{
         manifest_mode,
-        "design/typed-air/artifacts/m3-compat-v1",
+        "src/frontends/riscv/air/lang/artifacts/m3-compat-v1",
     });
     b.step(
         "typed-air-manifest",
@@ -198,7 +198,7 @@ pub fn build(b: *std.Build) void {
     run_frontier_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     run_frontier_tool.addArgs(&.{
         frontier_mode,
-        "design/typed-air/artifacts/h009-poseidon2-cost-v1",
+        "src/frontends/riscv/air/lang/artifacts/h009-poseidon2-cost-v1",
     });
     b.step(
         "typed-air-frontier",
@@ -226,7 +226,7 @@ pub fn build(b: *std.Build) void {
     run_static_profile_tool.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     run_static_profile_tool.addArgs(&.{
         static_profile_mode,
-        "design/typed-air/artifacts/p002-native-family-static-profile-v1",
+        "src/frontends/riscv/air/lang/artifacts/p002-native-family-static-profile-v1",
     });
     b.step(
         "typed-air-static-profile",

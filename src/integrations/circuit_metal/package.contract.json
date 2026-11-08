@@ -13,10 +13,10 @@
     "stwo_cairo_metal_integration": "../cairo_metal",
     "stwo_circuit_cpu_integration": "../circuit_cpu",
     "stwo_circuit_frontend": "../../frontends/circuit",
-    "stwo_core": "../../core",
+    "stwo_core": "../../waist/core",
     "stwo_metal_backend": "../../backends/metal",
-    "stwo_prover_api": "../../prover_api",
-    "stwo_prover_engine": "../../prover"
+    "stwo_prover_api": "../../waist/prover_api",
+    "stwo_prover_engine": "../../engine/prover"
   },
   "injected_modules": [
     "app",

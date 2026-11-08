@@ -1,5 +1,5 @@
 //! Receiver-derived fields of native protocol `rv64-m5-native-chi-chain/v1`
-//! (stream canon-native; spec design/riscv-proving-stack/rv64-m5-canon-native.md
+//! (stream canon-native; spec design/riscv/rv64-m5-canon-native.md
 //! sec. 4, encodings ethereum/canon_native.zig). Every value comes from the
 //! trusted setup, the admitted requests and the receiver's own fixed
 //! authority, never from producer bytes. Selected by receiver/producer policy

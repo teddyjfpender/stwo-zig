@@ -32,7 +32,7 @@ pub fn addTests(context: Context) []const test_filter.Suite {
     const test_product = moduleProduct(context, .@"test");
     const root = graph.create(b, .{
         .product = test_product,
-        .root_source_file = "src/products/riscv_cpu/main.zig",
+        .root_source_file = "src/products/riscv/cpu/main.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -107,7 +107,7 @@ pub fn addProfilePartitionTests(context: Context) *std.Build.Step.Compile {
         .filters = test_filter.apply(b, profile_partition_test_names),
     });
 }
-/// Names which suites a `src/tests.zig` binary compiles and runs; positional
+/// Names which suites a `src/products/riscv/cpu/test_root.zig` binary compiles and runs; positional
 /// booleans would not reveal which sweep a call site pays for.
 const TestRoot = struct {
     exhaustive: bool = false,
@@ -150,7 +150,7 @@ pub fn addTestRoot(context: Context, options: TestRoot) *std.Build.Step.Compile 
     const test_product = moduleProduct(context, .@"test");
     const root = graph.create(b, .{
         .product = test_product,
-        .root_source_file = "src/tests.zig",
+        .root_source_file = "src/products/riscv/cpu/test_root.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -256,7 +256,7 @@ fn outputTransactionModule(context: Context) *std.Build.Module {
 fn createStwoModule(context: Context) *std.Build.Module {
     const module = graph.create(context.b, .{
         .product = moduleProduct(context, .library),
-        .root_source_file = "src/stwo_riscv_cpu.zig",
+        .root_source_file = "src/products/riscv/cpu/root.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -276,6 +276,15 @@ fn createStwoModule(context: Context) *std.Build.Module {
         context.target,
         context.optimize,
         module,
+    );
+    graph.addFacadeSupportImports(
+        context.b,
+        context.protocol,
+        moduleProduct(context, .library),
+        context.target,
+        context.optimize,
+        module,
+        .{ .atomic_file = true, .postcard = true, .riscv_artifact = true },
     );
     return module;
 }

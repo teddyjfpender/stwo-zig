@@ -1,8 +1,0 @@
-== 25229951-2gpu-scale-fail1
-GPU_COMPOSITION_FAILED ordinal=40 role=0 operation=role native_status=2
-GPU_MEMORY_FAILURE stage=role cap_bytes=30064771072 memory_status=0 free_bytes=3156410368 total_bytes=33679736832 pool_status=0 pool_used_bytes=29010353276 pool_reserved_bytes=29762781184 lease_status=0 tracked_bytes=23074225976 live_kinds={ 17, 0, 2, 0, 256 }
-error: CudaResidentCompositionFailed
-== 25229951-2gpu-diag-nodirect
-GPU_COMPOSITION_FAILED ordinal=40 role=0 operation=role native_status=2
-GPU_MEMORY_FAILURE stage=role cap_bytes=30064771072 memory_status=0 free_bytes=3120758784 total_bytes=33679736832 pool_status=0 pool_used_bytes=29010353276 pool_reserved_bytes=29796335616 lease_status=0 tracked_bytes=23074225976 live_kinds={ 17, 0, 2, 0, 256 }
-error: CudaResidentCompositionFailed

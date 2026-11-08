@@ -9,9 +9,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DOCUMENT = ROOT / "soundness" / "SAIL_AIR_COMPOSITION.md"
-REFINEMENT_DOCUMENT = ROOT / "soundness" / "UNIVERSAL_AIR_SAIL_REFINEMENT.md"
-REFINEMENT_STATUS = ROOT / "soundness" / "RISCV_FRONTEND_VERIFICATION_STATUS.md"
+DOCUMENT = ROOT / "design" / "soundness" / "SAIL_AIR_COMPOSITION.md"
+REFINEMENT_DOCUMENT = ROOT / "design" / "soundness" / "UNIVERSAL_AIR_SAIL_REFINEMENT.md"
+REFINEMENT_STATUS = ROOT / "design" / "soundness" / "RISCV_FRONTEND_VERIFICATION_STATUS.md"
 FORMAL_README = ROOT / "formal" / "riscv-refinement" / "README.md"
 FORMAL_EVIDENCE = ROOT / "conformance" / "riscv" / "formal-corpus-evidence.json"
 CLAIMS = ROOT / "src" / "frontends" / "riscv" / "air" / "transcript" / "claims.zig"
@@ -92,7 +92,7 @@ class SailAirCompositionContractTest(unittest.TestCase):
             "max\\_bridges}(0,2^{26}-1) &= 64",
             "current_access_clock - previous_clock - 1",
             "G = 2^{20}",
-            "scripts/riscv_state_chain_recurrence.py",
+            "scripts/riscv/riscv_state_chain_recurrence.py",
             "same-clock alias counterexample",
         )
         for marker in required:
@@ -139,7 +139,7 @@ class SailAirCompositionContractTest(unittest.TestCase):
 
     def test_poseidon_reproduction_uses_the_required_subcommand(self) -> None:
         self.assertIn(
-            "python3 -m scripts.riscv_poseidon_table_uniqueness check",
+            "python3 -m scripts.riscv.riscv_poseidon_table_uniqueness check",
             self.document,
         )
 
@@ -256,7 +256,7 @@ class SailAirCompositionContractTest(unittest.TestCase):
         self.assertEqual([], missing)
 
     def test_every_linked_in_repo_evidence_path_exists(self) -> None:
-        targets = re.findall(r"\]\(\.\./([^)#]+)", self.document)
+        targets = re.findall(r"\]\(\.\./\.\./([^)#]+)", self.document)
         self.assertGreaterEqual(len(targets), 20)
         missing = sorted(
             {

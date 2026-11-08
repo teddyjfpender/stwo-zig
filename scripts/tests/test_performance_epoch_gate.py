@@ -5,14 +5,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.performance_epoch_gate_lib import EvidenceError, validate_receipt
-from scripts.performance_epoch_gate_lib.capture import ExecutionResult, HostCaptureController
-from scripts.performance_epoch_gate_lib.builds import build_budget_pass
-from scripts.performance_epoch_gate_lib.codec import atomic_write, canonical_bytes, content_digest, sha256_bytes
-from scripts.performance_epoch_gate_lib.model import DEFAULT_PROTOCOL, ROOT
-from scripts.performance_epoch_gate_lib.plan import build_plan, validate_plan
-from scripts.performance_epoch_gate_lib.performance import performance_budget_pass
-from scripts.performance_epoch_gate_lib.policy import load_protocol
+from scripts.bench.performance_epoch_gate_lib import EvidenceError, validate_receipt
+from scripts.bench.performance_epoch_gate_lib.capture import ExecutionResult, HostCaptureController
+from scripts.bench.performance_epoch_gate_lib.builds import build_budget_pass
+from scripts.bench.performance_epoch_gate_lib.codec import atomic_write, canonical_bytes, content_digest, sha256_bytes
+from scripts.bench.performance_epoch_gate_lib.model import DEFAULT_PROTOCOL, ROOT
+from scripts.bench.performance_epoch_gate_lib.plan import build_plan, validate_plan
+from scripts.bench.performance_epoch_gate_lib.performance import performance_budget_pass
+from scripts.bench.performance_epoch_gate_lib.policy import load_protocol
 from scripts.tests.performance_epoch_fixture import Fixture
 
 
@@ -242,7 +242,7 @@ class PerformanceEpochReceiptTests(unittest.TestCase):
         duplicate.write_text(raw.replace('{"aot_checks"', '{"schema":"duplicate","aot_checks"', 1))
         nonfinite = self.root / "nonfinite.json"
         nonfinite.write_text(raw.replace('"created_at_unix":1800000000', '"created_at_unix":NaN'))
-        from scripts.performance_epoch_gate_lib.codec import strict_json
+        from scripts.bench.performance_epoch_gate_lib.codec import strict_json
         with self.assertRaises(EvidenceError):
             strict_json(duplicate, 20_000_000)
         with self.assertRaises(EvidenceError):

@@ -2,7 +2,7 @@
 //! rv64-m8-gpu-native.md §3.5, inventory H11; stream native, piece gn-s2).
 //! Kernel: NAT/rv64/jobs/native_encode_oods.cu (stwo_rv64_native_oods_check_v1_on).
 //!
-//! The hybrid host assembly's last proof-level check (native_hybrid.zig
+//! The hybrid host assembly's last proof-level check (retired native hybrid,
 //! stageTwoInner: a second Components.Set with the real claims, then
 //! evalCompositionPolynomialAtPointWithWorkCapture) evaluates the composition
 //! polynomial at the OODS point from the sampled mask values and requires it

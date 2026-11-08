@@ -1,6 +1,0 @@
-FRI case=0 degree_log=8 blowup_log=2 fold=4 queries=65 layers=2
-FRI case=1 degree_log=12 blowup_log=2 fold=4 queries=256 layers=3
-FRI case=2 degree_log=7 blowup_log=1 fold=4 queries=108 layers=2
-FRI case=3 degree_log=6 blowup_log=2 fold=2 queries=64 layers=3
-FRI case=4 degree_log=5 blowup_log=1 fold=1 queries=32 layers=5
-FRI case=5 degree_log=17 blowup_log=2 fold=4 queries=256 layers=5

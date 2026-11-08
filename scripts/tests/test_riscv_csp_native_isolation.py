@@ -5,10 +5,8 @@ import inspect
 import unittest
 from pathlib import Path
 
-from scripts import riscv_cli_admission
-from scripts import riscv_csp_benchmark as csp
-
-
+from scripts.riscv import riscv_cli_admission
+from scripts.riscv import riscv_csp_benchmark as csp
 class NativeRecursionIsolationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -107,7 +105,7 @@ class NativeRecursionIsolationTests(unittest.TestCase):
         start = product.index("    const csp_benchmark =")
         end = product.index("    const closure_check =", start)
         registration = product[start:end]
-        self.assertIn('"scripts/riscv_csp_benchmark.py"', registration)
+        self.assertIn('"scripts/riscv/riscv_csp_benchmark.py"', registration)
         self.assertIn("&install_host.step", registration)
         self.assertIn("&install_host_trace.step", registration)
         self.assertNotIn("recursive_csp", registration.casefold())

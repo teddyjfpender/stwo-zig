@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts import ci_scope_plan
+from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import ROOT, catalog_fixture
 
 
@@ -104,9 +104,9 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
 
     def test_metal_session_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(
-            path="src/tools/metal_session/mod.zig",
+            path="src/backends/metal/session/mod.zig",
             lane="metal_session",
-            build_file="src/tools/metal_session/build.zig",
+            build_file="src/backends/metal/session/build.zig",
             consumers={
                 "cairo_metal",
                 "metal_compile",
@@ -115,9 +115,9 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
 
     def test_proof_wire_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(
-            path="src/interop/proof_wire/mod.zig",
+            path="src/waist/proof_wire/mod.zig",
             lane="proof_wire",
-            build_file="src/interop/proof_wire/build.zig",
+            build_file="src/waist/proof_wire/build.zig",
             consumers={
                 "aggregate_cpu",
                 "aggregate_metal",
@@ -133,9 +133,9 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
 
     def test_native_examples_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(
-            path="src/examples/poseidon.zig",
+            path="src/products/native/examples/poseidon.zig",
             lane="native_examples",
-            build_file="src/examples/build.zig",
+            build_file="src/products/native/examples/build.zig",
             consumers={
                 "aggregate_cpu",
                 "aggregate_metal",
@@ -171,18 +171,13 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             self.policy["lanes"]["cairo_cuda_integration"]["host"],
         )
 
-    def test_submission_diff_selects_only_the_link_reach(self) -> None:
-        # Submission metadata is externally validated; only the prover edits
-        # should expand this diff beyond the always-on lane. The circuit
-        # frontend commits preprocessed roots through the prover's PCS path,
-        # and the circuit CPU integration proves through it, so prover edits
-        # reach both lanes too.
+    def test_prover_diff_selects_only_the_link_reach(self) -> None:
+        # The circuit frontend commits preprocessed roots through the
+        # prover's PCS path, and the circuit CPU integration proves through
+        # it, so prover edits reach both lanes too.
         changed = [
-            "autoresearch/submissions/2026-07-20-x/delta.json",
-            "autoresearch/submissions/2026-07-20-x/note.md",
-            "autoresearch/submissions/2026-07-20-x/verdict.json",
-            "src/prover/pcs/quotient_tile_executor.zig",
-            "src/prover/vcs_lifted/prover.zig",
+            "src/engine/prover/pcs/quotient_tile_executor.zig",
+            "src/engine/prover/vcs_lifted/prover.zig",
         ]
         lanes, _ = ci_scope_plan.select_lanes(
             changed,

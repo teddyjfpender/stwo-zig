@@ -36,6 +36,7 @@ published); it excludes fetch and submit. `request_s` is the client latency
 through the spool (adds queueing). Labels: [M] measured, [D] derived from
 measured values, [E] estimate.
 """
+
 import argparse
 import fcntl
 import gzip
@@ -51,10 +52,10 @@ import time
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path.insert(0, str(HERE))
-import rv64_m7_integration_stack as stack  # noqa: E402
-from rv64_validation import frozen_parity, validate_assets, validate_receivers, validate_library_environment, FROZEN_D2_PACKAGE as GOLDEN  # noqa: E402
-from rv64_m8_bench15_lib.metrics import (
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.rv64 import rv64_m7_integration_stack as stack  # noqa: E402
+from scripts.rv64.rv64_validation import frozen_parity, validate_assets, validate_receivers, validate_library_environment, FROZEN_D2_PACKAGE as GOLDEN  # noqa: E402
+from scripts.rv64.rv64_m8_bench15_lib.metrics import (
     fields,
     split_requests,
     spread,
@@ -76,7 +77,7 @@ from rv64_m8_bench15_lib.metrics import (
 
 M3 = Path(os.environ.get('RV64_M3_ROOT', '/workspace/m3'))
 GPU_LOCK = M3 / 'locks/gpu.lock'
-M3_SUMMARY = ROOT / 'vectors/fixtures/rv64-m3-basket-v1.json'
+M3_SUMMARY = ROOT / 'vectors/riscv/rv64/m3-basket/summary.json'
 RUNTIME = stack.DEFAULT_RUNTIME
 DEV_BLOCKS = (26235156, 24628607)
 SMOKE_BLOCK = 26235156
@@ -85,9 +86,9 @@ SCHEMA = 'rv64-m8-bench15/v1'
 # M7 headline baselines; only these blocks were measured on the M7 default.
 M7_BASELINE = {
     24628607: {'warm_proving_s': 12.9, 'label': 'M', 'note': 'M7 default warm, single profiled run',
-               'source': 'design/riscv-proving-stack/rv64-m8-engineering-scope.md §1'},
+               'source': 'design/riscv/rv64-m8-engineering-scope.md §1'},
     26235156: {'warm_proving_s': 10.5, 'label': 'M', 'note': 'M7 default warm',
-               'source': 'design/riscv-proving-stack/rv64-m8-engineering-scope.md §1'},
+               'source': 'design/riscv/rv64-m8-engineering-scope.md §1'},
     24697070: {'cold_proving_s': 69.871, 'label': 'M', 'note': 'M7 cold scale probe, one request',
                'source': 'vectors/reports/rv64-m7-20261105/callback-residency/README.md'},
 }
@@ -95,23 +96,15 @@ M7_BASELINE = {
 # Arm overlays on the preset's baseline environment. {addon}/{outer_fs} are
 # assets.json paths. PINNED_BYTES is the outer-fold gate value (c72b51646,
 # outer-fold-review/gates.json: PASS on both dev blocks).
-OUTER = {'STWO_RV64_M8_OUTER_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}',
-         'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'}
-NATIVE = {'STWO_RV64_M8_NATIVE_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}'}
+# The outer/native hybrid and feeder arms are retired with their code.
 ARMS = {
     'default': {},
-    'outer': OUTER,
-    'native': NATIVE,
-    'hybrid': dict(OUTER, **NATIVE),
-    'jobs': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}',
-             'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'},
     # Full GPU-native path, matching gn-bind's current correctness gates.
     # Keep it explicit: none of these flags promotes the product default.
     'gpu-native': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_GPU_NATIVE': '1',
                    'STWO_RV64_M8_GPU_NATIVE_REUSE': '1', 'STWO_RV64_M9_CLASS_PACKED_INGRESS': '1',
                    'STWO_RV64_M8_JOBS_LIBRARY': '{addon}', 'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}',
-                   'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456',
-                   'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '2147483648'},
+                   'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'},
 }
 ASSET_NAMES = ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard', 'addon', 'outer_fs')
 # M3 found blocks with >= 40 CPU segments OOM in resident composition unless the
@@ -154,7 +147,6 @@ def extra_environment(items):
 
 
 # ----------------------------------------------------------------------------- parsing (pure)
-
 
 
 def aggregate(blocks, arms, rows):
@@ -407,11 +399,11 @@ def check(args):
         entry['m3_parity_receipt'] = item(M3 / f'runs/integrate/{block}-2gpu-scale/receipt.json')
         problems = []
         if not entry['request']['exists'] or not entry['input'].get('sha256_ok'):
-            problems.append('input/request: python3 scripts/rv64_m3_pod.py inputs (copies the read-only full15 originals)')
+            problems.append('input/request: python3 scripts/rv64/rv64_m3_pod.py inputs (copies the read-only full15 originals)')
         if not entry['elf_sha256_ok']:
-            problems.append('guest.elf: python3 scripts/rv64_m3_pod.py inputs')
+            problems.append('guest.elf: python3 scripts/rv64/rv64_m3_pod.py inputs')
         if not entry['plan_template_job']:
-            problems.append('plan-template job: python3 scripts/rv64_m3_pod.py inputs')
+            problems.append('plan-template job: python3 scripts/rv64/rv64_m3_pod.py inputs')
         if isinstance(entry['golden'], dict) and not entry['golden']['exists']:
             problems.append(f'golden: restore the maintained frozen D2 fixture at {GOLDEN}')
         if not entry['m3_parity_receipt']['exists']:
@@ -536,7 +528,7 @@ class Bench:
 
     def receive(self, block, run):
         log = self.out / 'logs' / f'{Path(run).name}-receiver.log'
-        argv = [sys.executable, str(self.root / 'scripts/rv64_m4_resident.py'), 'receive', '--run', run,
+        argv = [sys.executable, str(self.root / 'scripts/rv64/rv64_m4_resident.py'), 'receive', '--run', run,
                 '--which', 'all', '--receiver-workers', str(self.args.receiver_workers)]
         with log.open('w') as handle:
             code = subprocess.run(argv, cwd=self.root, env=self.environment, stdout=handle, stderr=subprocess.STDOUT).returncode
@@ -553,7 +545,7 @@ class Bench:
     def gpu_seconds(self, entry, reference_run):
         run = Path(entry['run'])
         log = self.out / 'logs' / f'{run.name}-gpu-seconds.log'
-        argv = [sys.executable, str(self.root / 'scripts/rv64_m7_gpu_seconds.py'), str(run), '--accepted-run', reference_run]
+        argv = [sys.executable, str(self.root / 'scripts/rv64/rv64_m7_gpu_seconds.py'), str(run), '--accepted-run', reference_run]
         with log.open('w') as handle:
             code = subprocess.run(argv, cwd=self.root, env=self.environment, stdout=handle, stderr=subprocess.STDOUT).returncode
         receipt = json.loads((run / 'receipt.json').read_text())
@@ -756,7 +748,7 @@ def main():
     r = sub.add_parser('run', help='the benchmark (resumable per block)')
     r.add_argument('--assets', required=True, type=Path)
     r.add_argument('--out', required=True, type=Path, help='bench directory; rerun the same command to resume')
-    r.add_argument('--arms', type=arms_type, default=['default', 'outer'], help='comma list of ' + ','.join(ARMS))
+    r.add_argument('--arms', type=arms_type, default=['default', 'gpu-native'], help='comma list of ' + ','.join(ARMS))
     r.add_argument('--rounds', type=int, default=3, help='headline services per arm per block (interleaved)')
     r.add_argument('--blocks', type=int, nargs='+', help='subset of the basket (still ascending, still stop-on-failure)')
     r.add_argument('--profile', choices=('warm', 'none'), default='warm', help='one Nsight service per arm per block for GPU-s/launches/syncs')

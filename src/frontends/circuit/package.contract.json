@@ -8,8 +8,8 @@
     "stwo_circuit_frontend": "mod.zig"
   },
   "dependencies": {
-    "stwo_core": "../../core",
-    "stwo_prover_engine": "../../prover"
+    "stwo_core": "../../waist/core",
+    "stwo_prover_engine": "../../engine/prover"
   },
   "injected_modules": [
     "circuit_frontend",

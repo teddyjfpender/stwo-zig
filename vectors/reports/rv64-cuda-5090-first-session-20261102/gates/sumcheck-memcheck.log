@@ -1,4 +1,0 @@
-========= COMPUTE-SANITIZER
-{"schema":"rv64-cuda-resident-sumcheck-v1","device":0,"count":1024,"base_n":true,"combined_median_ms":5.175616,"split_median_ms":4.923456,"fused_eq_combined_ms":5.279456,"fused_eq_split_ms":5.178944,"fold_sum_ms":5.709632,"all_fused_ms":5.856928,"tail64_ms":3.677376,"tail256_ms":2.948928,"allocated_bytes":96852,"hot_h2d_bytes":0,"hot_d2h_bytes":0,"all_rounds_verified":true,"full_block_verified":false}
-{"schema":"rv64-cuda-resident-sumcheck-v1","device":0,"count":1024,"base_n":false,"combined_median_ms":5.069824,"split_median_ms":4.864992,"fused_eq_combined_ms":5.218432,"fused_eq_split_ms":5.016704,"fold_sum_ms":5.678048,"all_fused_ms":5.812544,"tail64_ms":3.751104,"tail256_ms":3.056576,"allocated_bytes":125524,"hot_h2d_bytes":0,"hot_d2h_bytes":0,"all_rounds_verified":true,"full_block_verified":false}
-========= ERROR SUMMARY: 0 errors

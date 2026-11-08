@@ -8,11 +8,11 @@ const graph = @import("../graph/modules.zig");
 const product_policy = @import("../graph/product.zig");
 
 const source_closure = product_policy.SourceClosure{
-    .entry_roots = &.{ "src/core/mod.zig", "src/products/core/surface.zig" },
+    .entry_roots = &.{ "src/waist/core/mod.zig", "src/products/stwo/core/surface.zig" },
     .named_imports = &.{
-        .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },
     },
-    .allowed_prefixes = &.{ "src/core", "src/products/core" },
+    .allowed_prefixes = &.{ "src/waist/core", "src/products/stwo/core" },
 };
 
 pub const descriptor = product_policy.Descriptor{
@@ -46,7 +46,7 @@ pub fn addProduct(context: Context) Result {
     );
     const module = graph.addPublic(context.b, "stwo_core", .{
         .product = graph.coreProduct(.library),
-        .root_source_file = "src/core/mod.zig",
+        .root_source_file = "src/waist/core/mod.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -80,17 +80,17 @@ pub fn addProduct(context: Context) Result {
     test_step.dependOn(&context.b.addRunArtifact(tests).step);
     test_step.dependOn(&closure.step);
     test_step.dependOn(&purity.step);
-    const focused = graph.create(context.b, .{ .product = graph.coreProduct(.@"test"), .root_source_file = "src/core/focused_test_root.zig", .target = context.target, .optimize = context.optimize });
+    const focused = graph.create(context.b, .{ .product = graph.coreProduct(.@"test"), .root_source_file = "src/waist/core/focused_test_root.zig", .target = context.target, .optimize = context.optimize });
     const field_tests = context.b.addTest(.{ .root_module = focused, .filters = &.{"m31:"} });
     context.b.step("test-stwo-core-m31", "Test scalar and packed M31 arithmetic and butterfly parity").dependOn(&context.b.addRunArtifact(field_tests).step);
 
-    const om_root = graph.create(context.b, .{ .product = graph.coreProduct(.@"test"), .root_source_file = "src/core/fields/om31_test.zig", .target = context.target, .optimize = context.optimize });
+    const om_root = graph.create(context.b, .{ .product = graph.coreProduct(.@"test"), .root_source_file = "src/waist/core/fields/om31_test.zig", .target = context.target, .optimize = context.optimize });
     const om_tests = context.b.addTest(.{ .root_module = om_root });
     context.b.step("test-stwo-core-om31", "Qualify additive degree8 field against independent polynomial oracle").dependOn(&context.b.addRunArtifact(om_tests).step);
     inline for (.{
-        .{ "deep", "src/core/om31_deep_test.zig" },
-        .{ "fri", "src/core/om31_fri_test.zig" },
-        .{ "pcs", "src/core/om31_pcs_test.zig" },
+        .{ "deep", "src/waist/core/om31_deep_test.zig" },
+        .{ "fri", "src/waist/core/om31_fri_test.zig" },
+        .{ "pcs", "src/waist/core/om31_pcs_test.zig" },
     }) |suite| {
         const wide_root = graph.create(context.b, .{ .product = graph.coreProduct(.@"test"), .root_source_file = suite[1], .target = context.target, .optimize = context.optimize });
         const wide_tests = context.b.addTest(.{ .root_module = wide_root });
@@ -106,7 +106,7 @@ pub fn addProduct(context: Context) Result {
 fn surfaceModule(context: Context, core: *std.Build.Module) *std.Build.Module {
     const root = graph.create(context.b, .{
         .product = graph.coreProduct(.@"test"),
-        .root_source_file = "src/products/core/surface.zig",
+        .root_source_file = "src/products/stwo/core/surface.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -117,7 +117,7 @@ fn surfaceModule(context: Context, core: *std.Build.Module) *std.Build.Module {
 fn purityCheck(context: Context, product: []const u8) *std.Build.Step.Run {
     const check = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_library_products.py",
+        "scripts/repo/check_library_products.py",
         "--product",
         product,
     });

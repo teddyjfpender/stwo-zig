@@ -1,5 +1,5 @@
 -- GENERATED FILE. DO NOT EDIT.
--- Generator: scripts/riscv_refinement.py
+-- Generator: scripts/riscv/riscv_refinement.py
 -- Source: generated/air/lb.air-ir-v2.json
 import RiscvRefinement.Air.Bridge.MulhProgram
 namespace RiscvRefinement.Air.Bridge

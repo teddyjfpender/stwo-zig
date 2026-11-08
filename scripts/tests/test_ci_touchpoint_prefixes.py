@@ -21,7 +21,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import ci_scope_plan
+from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import ROOT, catalog_fixture
 
 
@@ -52,7 +52,7 @@ class TouchpointPrefixTests(unittest.TestCase):
             ci_scope_plan.validate_rule_prefixes_exist(policy, ROOT)
 
     def test_rule_prefixes_must_stay_inside_the_repository(self) -> None:
-        for prefix in ("../outside", "/absolute/path", "src/core/../../outside"):
+        for prefix in ("../outside", "/absolute/path", "src/waist/core/../../outside"):
             with self.subTest(prefix=prefix):
                 policy = json.loads(json.dumps(self.policy))
                 policy["rules"].append({"prefixes": [prefix], "lanes": ["core"]})
@@ -70,10 +70,10 @@ class TouchpointPrefixTests(unittest.TestCase):
         for path, lane in (
             ("build_support/products/catalog.zig", "build_graph"),
             ("build_support/products/catalog_manifest.zig", "build_graph"),
-            ("scripts/metal_core_aot_receipt.py", "metal_aot"),
-            ("scripts/metal_core_aot_receipt_lib/receipt.py", "metal_aot"),
-            ("scripts/cuda_build.py", "native_cuda_static"),
-            ("scripts/cuda_device_smoke.py", "native_cuda_device"),
+            ("scripts/metal/metal_core_aot_receipt.py", "metal_aot"),
+            ("scripts/metal/metal_core_aot_receipt_lib/receipt.py", "metal_aot"),
+            ("scripts/cuda/cuda_build.py", "native_cuda_static"),
+            ("scripts/cuda/cuda_device_smoke.py", "native_cuda_device"),
         ):
             with self.subTest(path=path):
                 matching = [
@@ -92,7 +92,7 @@ class TouchpointPrefixTests(unittest.TestCase):
     def test_metal_aot_and_cuda_script_touchpoints_stay_narrowly_scoped(self) -> None:
         self.assertEqual(
             {"static", "script_contracts", "metal_aot"},
-            self.lanes_for("scripts/metal_core_aot_receipt.py"),
+            self.lanes_for("scripts/metal/metal_core_aot_receipt.py"),
         )
         self.assertEqual(
             {
@@ -104,13 +104,13 @@ class TouchpointPrefixTests(unittest.TestCase):
                 "native_cuda_integration",
                 "cairo_cuda_integration",
             },
-            self.lanes_for("scripts/cuda_build.py"),
+            self.lanes_for("scripts/cuda/cuda_build.py"),
         )
 
     def test_soundness_documents_run_contracts_without_product_fanout(self) -> None:
         self.assertEqual(
             {"static", "script_contracts"},
-            self.lanes_for("soundness/SAIL_AIR_COMPOSITION.md"),
+            self.lanes_for("design/soundness/SAIL_AIR_COMPOSITION.md"),
         )
 
     def test_plan_entrypoint_refuses_a_policy_with_a_dead_rule_prefix(self) -> None:
@@ -128,7 +128,7 @@ class TouchpointPrefixTests(unittest.TestCase):
                 "--root", str(ROOT),
                 "--policy", str(policy_path),
                 "--catalog", str(catalog_path),
-                "--changed-file", "src/core/fields/m31.zig",
+                "--changed-file", "src/waist/core/fields/m31.zig",
                 "--output", str(directory / "plan.json"),
             ]
             stderr = io.StringIO()

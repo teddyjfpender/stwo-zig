@@ -9,10 +9,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.riscv_csp_ab_benchmark_lib import runner as ab_runner
-from scripts.riscv_csp_benchmark_lib.host import power_conditions_admissible
-from scripts.typed_air_r006_capture_lib.codec import content_digest
-from scripts.typed_air_r006_capture_lib.contract import (
+from scripts.riscv.riscv_csp_ab_benchmark_lib import runner as ab_runner
+from scripts.riscv.riscv_csp_benchmark_lib.host import power_conditions_admissible
+from scripts.typed_air.typed_air_r006_capture_lib.codec import content_digest
+from scripts.typed_air.typed_air_r006_capture_lib.contract import (
     PlanSettings,
     WorkloadPaths,
     _require_binary_markers,
@@ -20,17 +20,17 @@ from scripts.typed_air_r006_capture_lib.contract import (
     materialized_poseidon_input,
     validate_plan,
 )
-from scripts.typed_air_r006_capture_lib.controller import (
+from scripts.typed_air.typed_air_r006_capture_lib.controller import (
     proof_command,
 )
-from scripts.typed_air_r006_capture_lib.model import (
+from scripts.typed_air.typed_air_r006_capture_lib.model import (
     GENERATED_WORKLOAD_PARAMETERS,
     PLAN_ATTEMPTS,
     PROTOCOL_SHA256,
     CaptureError,
 )
-from scripts.typed_air_r006_capture_lib.report import validate_report
-from scripts.typed_air_r006_capture_lib.workload_profile import task_profile_example
+from scripts.typed_air.typed_air_r006_capture_lib.report import validate_report
+from scripts.typed_air.typed_air_r006_capture_lib.workload_profile import task_profile_example
 from scripts.tests.typed_air_r006_base_fixture import (
     base_artifact,
     base_artifact_payload,
@@ -180,14 +180,14 @@ class R006Fixture(unittest.TestCase):
             "schema_version": 1,
             "matrix": {
                 "path": (
-                    "design/typed-air/artifacts/"
+                    "src/frontends/riscv/air/lang/artifacts/"
                     "p003-work-profile-closure-v1/matrix-v1.json"
                 ),
                 "schema": "stwo.typed-air.p003-work-profile-closure-matrix.v1",
                 "sha256": "9" * 64,
             },
             "inventory": {
-                "path": "src/prover_api/work_profile_inventory.zig",
+                "path": "src/waist/prover_api/work_profile_inventory.zig",
                 "schema_version": 9,
                 "site_count": 23,
                 "source_bytes": 5_398,

@@ -92,7 +92,7 @@ zig build check-cairo-cuda-local -Doptimize=ReleaseFast
 zig build check-cairo-cuda-local -Doptimize=ReleaseFast -Dtarget=x86_64-linux-gnu
 ```
 
-On NVIDIA, `scripts/benchmark_cairo_cuda.py` qualifies all four SN PIEs with
+On NVIDIA, `scripts/cairo/benchmark_cairo_cuda.py` qualifies all four SN PIEs with
 an isolated pinned Rust verifier and records proof digests, ingress, proving,
 adapted-input wall time, host RSS and sampled whole-device memory. Inputs are
 already adapted: these measurements exclude PIE execution and queueing.
@@ -112,9 +112,9 @@ qualified proofs, rather than statistical medians:
 | SN PIE 3 | 1.030 s | 5.570 s | 99.268 GB |
 | SN PIE 4 | 0.798 s | 5.248 s | 79.740 GB |
 
-The [v18 official-verifier receipt](../../../autoresearch/notes/2026-09-29-cairo-cuda-subsecond/suite-v18.json)
+The [v18 official-verifier receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-29-cairo-cuda-subsecond/suite-v18.json)
 contains proof digests, source identity, security settings, and per-stage times.
-The [research record](../../../autoresearch/notes/2026-09-29-cairo-cuda-subsecond/README.md)
+The [research record](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-29-cairo-cuda-subsecond/README.md)
 contains the paired comparisons and rejected variants. Proof execution/decode
 starts **after** authenticated input ingress; publication includes ingress,
 proof execution, and local proof decoding. Both measurements exclude PIE
@@ -254,7 +254,7 @@ wrong-statement/mutation corpora, stable telemetry, and zero fallback.
 - [CUDA backend](../../backends/cuda/README.md)
 - [Native CUDA integration](../native_cuda/README.md)
 - [CUDA system architecture goal](../../../conformance/2026-07-24-cuda-system-architecture-goal.md)
-- [Cairo production-port goal](../../../conformance/2026-07-26-stwo-cairo-production-port-goal.md)
+- [Cairo production-port goal](../../../design/decisions/2026-07-26-stwo-cairo-production-port-goal.md)
 
 
 Canonical AIR codegen v3 classifies dynamic base constants using the authenticated

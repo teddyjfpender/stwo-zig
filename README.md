@@ -60,7 +60,7 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 For large RISC-V builds on a laptop, use the serialized build wrapper:
 
 ```sh
-python3 scripts/zig_serial_build.py stwo-zig-riscv-cpu -Doptimize=ReleaseFast
+python3 scripts/repo/zig_serial_build.py stwo-zig-riscv-cpu -Doptimize=ReleaseFast
 ```
 
 It queues competing wrapper invocations, defaults to one job per build level,
@@ -87,10 +87,10 @@ These build settings do not change prover worker policy or proof identities.
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes
 select decoding and component coverage only, never component semantics or
 correctness authority. Validate its source reconciliation with
-`python3 scripts/cairo_four_pie_source_coverage.py check-record`; add
+`python3 scripts/cairo/cairo_four_pie_source_coverage.py check-record`; add
 `--require-coverage-ready` to fail on every recorded source-coverage blocker.
 Source-semantic packs themselves are generated separately with
-`scripts/generate_cairo_source_semantic_pack.py` from an authenticated checkout.
+`scripts/cairo/generate_cairo_source_semantic_pack.py` from an authenticated checkout.
 
 Library consumers can select the smallest public module they need:
 
@@ -118,10 +118,10 @@ zig build package-dist
 ```
 
 The archives, `index.json`, and `SHA256SUMS` are written to
-`zig-out/packages/`. They exclude autoresearch, Rust tools, Lean workspaces,
+`zig-out/packages/`. They exclude guest sources, Rust tools, Lean workspaces,
 vectors, and deferred CUDA payloads while retaining every source and device
 asset required by the selected package closure. See the
-[package release policy](conformance/zig-package-release-policy.md).
+[package release policy](design/repository/zig-package-release-policy.md).
 
 The root build is a compatibility dispatcher. Product construction lives under
 `build_support/products/`, backend integration under `build_support/backends/`,
@@ -141,15 +141,15 @@ from this quick list:
 
 | Layer | Package guides |
 | :--- | :--- |
-| Protocol and contracts | [`stwo_core`](src/core/README.md), [`stwo_backend_contracts`](src/backend/README.md), [`stwo_prover_api`](src/prover_api/README.md), [`stwo_prover_engine`](src/prover/README.md), [`stwo_proof_wire`](src/interop/proof_wire/README.md) |
+| Protocol and contracts | [`stwo_core`](src/waist/core/README.md), [`stwo_backend_contracts`](src/waist/backend/README.md), [`stwo_prover_api`](src/waist/prover_api/README.md), [`stwo_prover_engine`](src/engine/prover/README.md), [`stwo_proof_wire`](src/waist/proof_wire/README.md) |
 | Backends | [`stwo_cpu_backend`](src/backends/cpu_scalar/README.md), [`stwo_metal_backend`](src/backends/metal/README.md), [`stwo_cuda_backend`](src/backends/cuda/README.md) |
-| Frontends and services | [`stwo_riscv_frontend`](src/frontends/riscv/README.md), [`stwo_cairo_frontend`](src/frontends/cairo/README.md), [`stwo_sm83_frontend`](src/frontends/sm83/README.md), [`stwo_native_examples`](src/examples/README.md), [`stwo_metal_session`](src/tools/metal_session/README.md) |
+| Frontends and services | [`stwo_riscv_frontend`](src/frontends/riscv/README.md), [`stwo_cairo_frontend`](src/frontends/cairo/README.md), [`stwo_sm83_frontend`](src/frontends/sm83/README.md), [`stwo_native_examples`](src/products/native/examples/README.md), [`stwo_metal_session`](src/backends/metal/session/README.md) |
 | CPU integrations | [`stwo_riscv_cpu_integration`](src/integrations/riscv_cpu/README.md), [`stwo_cairo_cpu_integration`](src/integrations/cairo_cpu/README.md), [`stwo_circuit_cpu_integration`](src/integrations/circuit_cpu/README.md), [`stwo_sm83_cpu_integration`](src/integrations/sm83_cpu/README.md) |
 | Metal integrations | [`stwo_riscv_metal_integration`](src/integrations/riscv_metal/README.md), [`stwo_cairo_metal_integration`](src/integrations/cairo_metal/README.md), [`stwo_sm83_metal_integration`](src/integrations/sm83_metal/README.md) |
 | CUDA integrations | [`stwo_native_cuda_integration`](src/integrations/native_cuda/README.md), [`stwo_cairo_cuda_integration`](src/integrations/cairo_cuda/README.md) |
 
 The workspace checker rejects a missing or contract-stale package README. The
-[two-pass documentation review](conformance/2026-07-28-package-readme-review.md)
+[two-pass documentation review](design/decisions/2026-07-28-package-readme-review.md)
 records the technical and editorial acceptance criteria.
 
 ## Prove
@@ -273,11 +273,11 @@ zig build riscv-trace-dump -Doptimize=ReleaseFast   # trace dumper for equivalen
 zig build riscv-recursion-csp-producer -Doptimize=ReleaseFast # canonical verified outer-child producer
 zig build riscv-recursion-shape-inspector -Doptimize=ReleaseFast # proof-independent CSP profile audit
 
-python3 scripts/riscv_recursion_csp_benchmark.py --help # sealed native/recursive cohort workflow
+python3 scripts/riscv/riscv_recursion_csp_benchmark.py --help # sealed native/recursive cohort workflow
 
-python3 scripts/riscv_formal_tools.py verify \
+python3 scripts/riscv/riscv_formal_tools.py verify \
   --workspace /tmp/stwo-riscv-formal
-python3 scripts/riscv_trace_vectors.py \
+python3 scripts/riscv/riscv_trace_vectors.py \
   --sail-bin /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim \
   --spike-bin /tmp/stwo-riscv-formal/install/spike/bin/spike
 ```
@@ -292,7 +292,7 @@ For release evidence, use `python3 scripts/ci.py --strict`. Enable the versioned
 and product-scoped pre-push checks once per checkout with:
 
 ```sh
-python3 scripts/install_hooks.py
+python3 scripts/repo/install_hooks.py
 ```
 
 ## Explore
@@ -301,14 +301,14 @@ python3 scripts/install_hooks.py
 | :--- | :--- |
 | **[Conformance](conformance/upstream.md)** | Pinned oracle revisions, API parity ledger, and the source-conformance baseline |
 | **[RISC-V Sail contract](conformance/2026-07-26-riscv-sail-contract.md)** | Normative executable ISA authority and fail-closed evidence contract |
-| **[RISC-V verification status](soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md)** | Normative theorem boundary, claim ledger, and remaining FV roadmap |
-| **[Soundness evidence log](soundness/ROADMAP.md)** | Dated adversarial findings, fixes, and supporting engineering evidence |
-| **[Independent proof validation](soundness/INDEPENDENT_PROOF_SYSTEM_VALIDATION.md)** | Second-verifier, mutation-corpus, and external PCS/FRI/Fiat–Shamir review scope |
-| **[Production repository scope](conformance/repository-production-scope.md)** | Published Zig boundary and staged Rust, Lean, CUDA, and research extraction policy |
-| **[Package publishing](conformance/zig-package-release-policy.md)** | Deterministic source archives, clean-room gates, checksums, and release workflow |
+| **[RISC-V verification status](design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md)** | Normative theorem boundary, claim ledger, and remaining FV roadmap |
+| **[Soundness evidence log](design/soundness/ROADMAP.md)** | Dated adversarial findings, fixes, and supporting engineering evidence |
+| **[Independent proof validation](design/soundness/INDEPENDENT_PROOF_SYSTEM_VALIDATION.md)** | Second-verifier, mutation-corpus, and external PCS/FRI/Fiat–Shamir review scope |
+| **[Production repository scope](design/repository/repository-production-scope.md)** | Published Zig boundary and staged Rust, Lean, CUDA, and research extraction policy |
+| **[Package publishing](design/repository/zig-package-release-policy.md)** | Deterministic source archives, clean-room gates, checksums, and release workflow |
 | **[Benchmark dashboard](bench/README.md)** | Formal CPU/SIMD and Metal results with commit, machine, capture time, and oracle provenance |
-| **[Benchmark history](vectors/reports/benchmark_history/index.json)** | Immutable judged runs, deltas, and bundles under human-readable run ids |
-| **[Local autoresearch tooling](autoresearch/README.md)** | Optional owner-operated performance harness; not installed in production CI |
+| **[Benchmark history](bench/history/index.json)** | Immutable judged runs, deltas, and bundles under human-readable run ids |
+| **[Performance tooling](tools/perf/stwo-prof)** | `stwo-prof` Zig/Metal/CUDA isolation and profiling CLI plus frozen paired statistics; not installed in production CI |
 | **Design archive** | Prose architecture and history live in the sibling `stwo-zig-og-docs` directory |
 | **[Contributing](CONTRIBUTING.md)** | Zig, SIMD, Metal, correctness, and engineering standards |
 | **[Security](SECURITY.md)** | Private reporting scope and supported product surfaces |

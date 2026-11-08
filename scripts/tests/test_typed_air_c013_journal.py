@@ -5,9 +5,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.typed_air_c013_capture_lib.codec import canonical_bytes
-from scripts.typed_air_c013_capture_lib.journal import AttemptJournal
-from scripts.typed_air_c013_capture_lib.model import CaptureError
+from scripts.typed_air.typed_air_c013_capture_lib.codec import canonical_bytes
+from scripts.typed_air.typed_air_c013_capture_lib.journal import AttemptJournal
+from scripts.typed_air.typed_air_c013_capture_lib.model import CaptureError
 
 
 class AttemptJournalTests(unittest.TestCase):

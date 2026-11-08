@@ -37,7 +37,7 @@ content closures:
 zig build cuda-authority-materialize
 
 # Or choose an explicit audit directory.
-python3 scripts/cuda_external_authority.py materialize \
+python3 scripts/cuda/cuda_external_authority.py materialize \
   --output /absolute/path/to/cuda-host-authority \
   --receipt /absolute/path/to/authority-receipt.json
 ```
@@ -45,7 +45,7 @@ python3 scripts/cuda_external_authority.py materialize \
 An existing projection can be checked without network access:
 
 ```sh
-python3 scripts/cuda_external_authority.py verify \
+python3 scripts/cuda/cuda_external_authority.py verify \
   --output /absolute/path/to/cuda-host-authority
 ```
 

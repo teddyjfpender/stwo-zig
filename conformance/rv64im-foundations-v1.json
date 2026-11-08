@@ -21,9 +21,9 @@
     "both_frontends_and_unicorn_agree": true
   },
   "source_sha256": {
-    "scripts/riscv64_csp_compare.py": "f09d4558d889359fc0d5911c96ad2a2d3054343e49e3a5a944cd2083c78180e6",
-    "scripts/riscv64_differential.py": "973b2ddddec9dd57920652cb69301100c64c500356fc35cee9aeb8a3c63eaa9f",
-    "scripts/riscv64_foundations_benchmark.py": "b9cbc53189b3473a64e2861288f15928c363e9fd030b7095d0506733dbe86817",
+    "scripts/rv64/riscv64_csp_compare.py": "f09d4558d889359fc0d5911c96ad2a2d3054343e49e3a5a944cd2083c78180e6",
+    "scripts/rv64/riscv64_differential.py": "973b2ddddec9dd57920652cb69301100c64c500356fc35cee9aeb8a3c63eaa9f",
+    "scripts/rv64/riscv64_foundations_benchmark.py": "b9cbc53189b3473a64e2861288f15928c363e9fd030b7095d0506733dbe86817",
     "scripts/tests/test_riscv64_tools.py": "2f4eea392ae08fddabd4069386273f8a825a873717c21dce1a9acba6835de935",
     "src/frontends/riscv/rv64/benchmark.zig": "c901d901f8dc3662af7a15ca24b80111066a07a918c8d266cc9f2fdb0802bc5c",
     "src/frontends/riscv/rv64/build.zig": "f9bb1f9b405384fa84a5ba56cc2606fb94057941fafae0c223019ef62536c921",
@@ -48,10 +48,10 @@
     "src/frontends/riscv/rv64/word.zig": "ecb5a0cd4710aa593ce916a7956feb97a5eb45cad0329dd3e4d9793922c99a05"
   },
   "evidence_sha256": {
-    "vectors/fixtures/rv64-foundations-v1/baseline-source.json": "74c54928aab20ce55612cbe7c4f262fca258cce8bf4c696ebf9c67936928b42b",
-    "vectors/fixtures/rv64-foundations-v1/csp-execution.json": "5b0e5ed882c9809251578810f0cb1ecff146eb3b68ecb629a062e66f837356ee",
-    "vectors/fixtures/rv64-foundations-v1/oracle.json": "d04bf76ba69e473dbdc21b9786a25283bfd9831738b694fe16101ff2346e9b05",
-    "vectors/fixtures/rv64-foundations-v1/paired-execution.json": "2c51b600d0a561c3e1b1a8d14f508d2ba3f3833972203035e32f5498c405bac7"
+    "vectors/riscv/rv64/foundations-baseline-source.json": "74c54928aab20ce55612cbe7c4f262fca258cce8bf4c696ebf9c67936928b42b",
+    "vectors/riscv/rv64/foundations-csp-execution.json": "5b0e5ed882c9809251578810f0cb1ecff146eb3b68ecb629a062e66f837356ee",
+    "vectors/riscv/rv64/foundations-oracle.json": "d04bf76ba69e473dbdc21b9786a25283bfd9831738b694fe16101ff2346e9b05",
+    "vectors/riscv/rv64/foundations-paired-execution.json": "2c51b600d0a561c3e1b1a8d14f508d2ba3f3833972203035e32f5498c405bac7"
   },
   "limitations": [
     "No RV64 AIR or proof qualification",

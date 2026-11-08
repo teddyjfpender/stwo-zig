@@ -9,9 +9,7 @@ from collections.abc import Callable
 from pathlib import Path
 from unittest import mock
 
-from scripts import sm83_frontend_gate
-
-
+from scripts.sm83 import sm83_frontend_gate
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -174,7 +172,7 @@ class Sm83FrontendGateContractTests(unittest.TestCase):
         self.assertIn(
             [
                 "python3",
-                "scripts/sm83_frontend_gate.py",
+                "scripts/sm83/sm83_frontend_gate.py",
                 "--mooneye-ppu-live",
             ],
             policy["lanes"]["sm83_frontend"]["commands"],
@@ -199,7 +197,7 @@ class Sm83FrontendGateContractTests(unittest.TestCase):
         self.assertIn(
             [
                 "python3",
-                "scripts/sm83_frontend_gate.py",
+                "scripts/sm83/sm83_frontend_gate.py",
                 "--mooneye-dma-live",
             ],
             policy["lanes"]["sm83_frontend"]["commands"],

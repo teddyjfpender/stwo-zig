@@ -9,10 +9,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import riscv_infrastructure_uniqueness as uniqueness
-from scripts.air_satisfaction_lib import infrastructure
-from scripts.air_satisfaction_lib.dump import Component
-from scripts.air_satisfaction_lib.field import P
+from scripts.riscv import riscv_infrastructure_uniqueness as uniqueness
+from scripts.riscv.air_satisfaction_lib import infrastructure
+from scripts.riscv.air_satisfaction_lib.dump import Component
+from scripts.riscv.air_satisfaction_lib.field import P
 
 
 ROOT = Path(__file__).resolve().parents[2]

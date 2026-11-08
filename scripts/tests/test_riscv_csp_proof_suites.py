@@ -3,8 +3,8 @@ from __future__ import annotations
 import copy
 import unittest
 from types import SimpleNamespace
-from scripts.riscv_csp_benchmark_lib import validation as v
-from scripts.riscv_csp_benchmark_lib.contract import BenchmarkError, sha256_bytes
+from scripts.riscv.riscv_csp_benchmark_lib import validation as v
+from scripts.riscv.riscv_csp_benchmark_lib.contract import BenchmarkError, sha256_bytes
 
 class ProofSuiteTests(unittest.TestCase):
     def setUp(self):

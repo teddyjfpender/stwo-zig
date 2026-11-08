@@ -5,7 +5,7 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from scripts.metal_profile_report import ProfileError, build_report, load_events, main
+from scripts.metal.metal_profile_report import ProfileError, build_report, load_events, main
 
 
 def metadata(*, requested=True, enabled=True):

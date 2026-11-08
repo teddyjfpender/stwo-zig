@@ -16,7 +16,7 @@ pub fn createModule(
         .name = "cairo-witness-cpu-codegen",
         .root_module = b.createModule(.{
             .root_source_file = b.path(
-                "src/tools/cairo_witness_cpu_codegen/main.zig",
+                "src/products/cairo/tools/witness_cpu_codegen/main.zig",
             ),
             .target = b.graph.host,
             .optimize = .ReleaseFast,

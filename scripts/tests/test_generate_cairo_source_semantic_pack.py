@@ -4,9 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import generate_cairo_source_semantic_pack as MODULE
-
-
+from scripts.cairo import generate_cairo_source_semantic_pack as MODULE
 class SourceSemanticGeneratorTests(unittest.TestCase):
     def test_parses_only_immediately_rewritable_geometry(self):
         census = """\

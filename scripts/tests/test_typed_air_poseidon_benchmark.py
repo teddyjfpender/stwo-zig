@@ -9,7 +9,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Callable
 
-from scripts.typed_air_poseidon_benchmark_lib import (
+from scripts.typed_air.typed_air_poseidon_benchmark_lib import (
     ARMS,
     BenchmarkError,
     BenchmarkRunFailed,
@@ -26,7 +26,7 @@ from scripts.typed_air_poseidon_benchmark_lib import (
     validate_report,
     validate_sample,
 )
-from scripts.typed_air_poseidon_benchmark_lib.contract import (
+from scripts.typed_air.typed_air_poseidon_benchmark_lib.contract import (
     ARM_BY_ID,
     ARTIFACT_DIGEST,
     BACKEND,
@@ -50,7 +50,7 @@ from scripts.typed_air_poseidon_benchmark_lib.contract import (
     VECTOR_SEALS,
     VECTOR_TRACE_DIGESTS,
 )
-from scripts.typed_air_poseidon_benchmark_lib.environment import SOURCE_MANIFEST
+from scripts.typed_air.typed_air_poseidon_benchmark_lib.environment import SOURCE_MANIFEST
 
 
 Transform = Callable[[dict[str, object], int, int], None]
@@ -218,7 +218,7 @@ def fake_provenance(repository: Path, executable: Path, power_state: str):
             "sha256": hashlib.sha256(binary).hexdigest(),
         },
         "artifact": {
-            "path": "design/typed-air/artifacts/h009-poseidon2-cost-v1/frontier.stwairm",
+            "path": "src/frontends/riscv/air/lang/artifacts/h009-poseidon2-cost-v1/frontier.stwairm",
             "bytes": 275_153,
             "sha256": ARTIFACT_DIGEST,
         },

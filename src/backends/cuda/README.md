@@ -20,7 +20,7 @@ See [package.contract.json](package.contract.json) and the
 The strict `native/` build closure contains only C/C++ and CUDA source files.
 Export requirements live in `contracts/*required-symbols.json`; the RV64 library
 builder and relinker consume `contracts/rv64-required-symbols.json`.
-The [arena admission owner contract](../../../design/riscv-proving-stack/rv64-arena-admission-v2.md)
+The [arena admission owner contract](../../../design/riscv/rv64-arena-admission-v2.md)
 is maintained with the proving-stack design documents.
 
 ## Architecture and status
@@ -196,7 +196,7 @@ It is independent of the older Native portability pin and its 33-source floor.
 [The extension contract](../../../conformance/cuda-cumetal-cairo-local-v1.json)
 also authenticates the maintained active-feed kernel without changing that floor.
 
-`scripts/cuda_cairo_local.py` checks all 64 canonical witness and 68 canonical
+`scripts/cuda/cuda_cairo_local.py` checks all 64 canonical witness and 68 canonical
 AIR sources against their manifests before translating them. Numerical harnesses
 execute the actual QM31 powers, active feeds, felt252 cube/inversion helpers and
 generated parametric AIR on the Apple GPU against independent host/Python oracles.
@@ -209,7 +209,7 @@ Receipts record source, patch,
 compiler and runtime identities. Timeouts kill the complete compiler process
 group. Partial retries are explicitly recorded as partial coverage.
 
-`scripts/cuda_aot_local_native.py` can assemble NVIDIA cubins in a local ARM64
+`scripts/cuda/cuda_aot_local_native.py` can assemble NVIDIA cubins in a local ARM64
 Linux CPU container. `STWO_CUDA_AOT_CUBIN_IMPORT_ROOT` feeds its authenticated
 bundle into the regular archive builder. Exact source, ABI, SM, flags, toolchain
 and artifact identities are validated, and the producing compiler stays explicit
@@ -269,10 +269,10 @@ proofs, and independent verification.
 
 ## Related documentation
 
-- [Backend contracts](../../backend/README.md)
+- [Backend contracts](../../waist/backend/README.md)
 - [Native CUDA integration](../../integrations/native_cuda/README.md)
 - [Cairo CUDA integration](../../integrations/cairo_cuda/README.md)
 - [CUDA system architecture goal](../../../conformance/2026-07-24-cuda-system-architecture-goal.md)
-- [CUDA production qualification](../../../conformance/cuda-production-qualification-v1.md)
+- [CUDA production qualification](../../../design/decisions/cuda-production-qualification-v1.md)
 - [CUDA source authority](UPSTREAM.md)
 - [Repository product status](../../../README.md#product-support)

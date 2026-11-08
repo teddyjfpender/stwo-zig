@@ -9,9 +9,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_opcode_coverage as aggregate
-from scripts import riscv_team_a as team_a
-from scripts.riscv_refinement_lib import codec
+from scripts.riscv import riscv_opcode_coverage as aggregate
+from scripts.riscv import riscv_team_a as team_a
+from scripts.riscv.riscv_refinement_lib import codec
 
 
 EXPECTED_TEAM_A = {

@@ -10,7 +10,7 @@
 //! Word16 bridge through Wire35; witnesses, quotients and carries are checked
 //! against a local BYTE table). This file is the single authority for the
 //! relations and for the comptime bounds that make each carried identity an
-//! integer identity (see `derive` and design/riscv-proving-stack/rv64-curve-services.md).
+//! integer identity (see `derive` and design/riscv/rv64-curve-services.md).
 const std = @import("std");
 
 pub const BN254_P: u256 = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47;

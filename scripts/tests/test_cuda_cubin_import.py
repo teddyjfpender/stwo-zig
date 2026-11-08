@@ -6,8 +6,8 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from cuda_build_lib import aot_cache, cubin_import
-from cuda_build_lib.errors import BuildError
+from scripts.cuda.cuda_build_lib import aot_cache, cubin_import
+from scripts.cuda.cuda_build_lib.errors import BuildError
 
 
 class NativeCubinImportTests(unittest.TestCase):

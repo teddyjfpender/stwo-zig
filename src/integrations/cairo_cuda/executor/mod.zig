@@ -14,9 +14,6 @@ pub const preprocessed_cache = @import("preprocessed_cache.zig");
 pub const canonical_twiddles = @import("canonical_twiddles.zig");
 pub const eval = @import("eval/mod.zig");
 pub const pcs_hooks = @import("pcs_hooks.zig");
-pub const pcs_fri_controller = @import("pcs_fri_controller.zig");
-pub const pcs_oods_controller = @import("pcs_oods_controller.zig");
-pub const pcs_oods_topology = @import("pcs_oods_topology.zig");
 pub const pcs_decommit_controller = @import(
     "pcs_decommit_controller.zig",
 );
@@ -27,7 +24,6 @@ pub const terminal_decode = @import("terminal_decode.zig");
 pub const terminal_controller = @import("terminal_controller.zig");
 pub const trace_commit = @import("trace_commit.zig");
 pub const trace_schedule = @import("trace_schedule.zig");
-pub const base_writer_binding = @import("base_writer_binding.zig");
 pub const trace_writer_controller = @import("trace_writer_controller.zig");
 pub const proof_route = @import("proof_route.zig");
 pub const transcript = @import("transcript/mod.zig");

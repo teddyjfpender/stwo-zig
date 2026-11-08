@@ -147,7 +147,7 @@ python3 tests/cuda/rv64/independent_field.py
 Real-driver compile, multi-GPU parity, sanitizer and timing instructions live in
 [`tests/cuda/rv64/README.md`](../../../tests/cuda/rv64/README.md). The numerical
 harness is deliberately labelled separately from a verified complete block.
-Review [`rv64-cuda-resident.md`](../../../design/riscv-proving-stack/rv64-cuda-resident.md)
+Review [`rv64-cuda-resident.md`](../../../design/riscv/rv64-cuda-resident.md)
 for the ownership contract, cost hypothesis and remaining proof integration.
 
 The resident single-oracle sumcheck controller now connects reductions to cubic
@@ -180,7 +180,7 @@ counts are planning bounds; the scoped native allocator independently rejects
 excess live bytes. Increasing the count does not establish that the workload
 fits VRAM. Host resource-file budgets and device allocator caps are separate.
 
-Use `scripts/rv64_ethereum_basket.py` for the complete-block runs and fresh
+Use `scripts/rv64/rv64_ethereum_basket.py` for the complete-block runs and fresh
 receiver. A manifest `gpu_workers` entry can name a device group:
 
 ```json

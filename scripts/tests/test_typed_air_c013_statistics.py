@@ -4,14 +4,14 @@ import hashlib
 import unittest
 from pathlib import Path
 
-from scripts.typed_air_c013_capture_lib import schedule
-from scripts.typed_air_c013_capture_lib.codec import content_digest
-from scripts.typed_air_c013_capture_lib.model import (
+from scripts.typed_air.typed_air_c013_capture_lib import schedule
+from scripts.typed_air.typed_air_c013_capture_lib.codec import content_digest
+from scripts.typed_air.typed_air_c013_capture_lib.model import (
     CORPUS_DIGESTS,
     CaptureError,
     SCHEDULE_SHA256,
 )
-from scripts.typed_air_c013_capture_lib.statistics import (
+from scripts.typed_air.typed_air_c013_capture_lib.statistics import (
     calibration_gate,
     evaluate_calibration,
     evaluate_m6_cpu,

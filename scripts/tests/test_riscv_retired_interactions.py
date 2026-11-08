@@ -1,8 +1,8 @@
 """The retired opcode generator is an oracle, never a production AIR route."""
 from pathlib import Path
 import unittest
-from scripts.product_closure.graph import inspect_sources, literal_imports
-from scripts.product_closure.model import Manifest, NamedImport
+from scripts.repo.product_closure.graph import inspect_sources, literal_imports
+from scripts.repo.product_closure.model import Manifest, NamedImport
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -43,10 +43,10 @@ class RetiredInteractionTests(unittest.TestCase):
                 "src/frontends/riscv/runner/segment_session.zig",
                 "src/frontends/riscv/host/runtime.zig",
             ),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
-            allowed_prefixes=("src/core", "src/frontends/riscv"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv"),
         )
         sources = inspect_sources(ROOT, manifest).relative_sources()
         self.assertIn("src/frontends/riscv/runner/generated_retirement.zig", sources)

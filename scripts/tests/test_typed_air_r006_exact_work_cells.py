@@ -6,11 +6,11 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.typed_air_r006_capture_lib.codec import canonical_bytes
-from scripts.typed_air_r006_capture_lib import exact_work_cells as cells
-from scripts.typed_air_r006_capture_lib import reduction
-from scripts.typed_air_r006_capture_lib.model import CaptureError
-from scripts.typed_air_r006_capture_lib.report import U64_MAX
+from scripts.typed_air.typed_air_r006_capture_lib.codec import canonical_bytes
+from scripts.typed_air.typed_air_r006_capture_lib import exact_work_cells as cells
+from scripts.typed_air.typed_air_r006_capture_lib import reduction
+from scripts.typed_air.typed_air_r006_capture_lib.model import CaptureError
+from scripts.typed_air.typed_air_r006_capture_lib.report import U64_MAX
 
 
 LANES = ("cpu-native", "metal-hybrid")

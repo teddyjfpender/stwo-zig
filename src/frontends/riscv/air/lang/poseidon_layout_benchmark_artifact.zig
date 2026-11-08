@@ -7,7 +7,7 @@ const vector = @import("poseidon_layout_benchmark_vector.zig");
 
 pub const Mode = enum { check, update };
 pub const default_directory =
-    "design/typed-air/artifacts/h010-poseidon-layout-v1";
+    "src/frontends/riscv/air/lang/artifacts/h010-poseidon-layout-v1";
 pub const index_filename = "index-v1.tsv";
 
 const File = struct { log_size: u8, filename: []const u8 };

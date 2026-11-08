@@ -16,7 +16,7 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import rv64_cuda_aot_register_schedule as S
+from scripts.rv64 import rv64_cuda_aot_register_schedule as S
 
 P = 2147483647
 

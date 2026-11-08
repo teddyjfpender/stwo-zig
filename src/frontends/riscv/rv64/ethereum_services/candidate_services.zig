@@ -3,11 +3,11 @@
 //! These services exist only in the execution census tool. The prover does not
 //! admit them, no compact tape or proof witness ever records them, and results
 //! that use them are evidence for a service proposal, never promotable.
-//! ABI: autoresearch/guest_efficiency/CONTEXT.md ("Candidate services").
+//! ABI: guests/ethereum/abi/CONTEXT.md ("Candidate services").
 //! `a0` = 8-byte aligned packet of little-endian u64 fields, `a7` = tag, all
 //! registers preserved, packet updated in place, one retired instruction.
 //!
-//! Clarifications (also in autoresearch/guest_efficiency/notes/candidate-services-abi.md):
+//! Clarifications (also in guests/ethereum/abi/candidate-services-abi.md):
 //! - Bulk pointers (memcpy dst/src, memset dst, memcmp a/b) have no alignment
 //!   requirement. `len == 0` touches no memory and needs no mapping.
 //! - Reads require `read` permission over the whole source range; writes

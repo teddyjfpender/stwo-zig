@@ -22,7 +22,7 @@ production support promise.
 
 Formal frontend refinement and proof-system soundness are separate claims. The
 current RISC-V boundaries are recorded in
-[`soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md);
+[`design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md`](design/soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md);
 no frontend proof should be interpreted as an unconditional cryptographic
 soundness theorem.
 

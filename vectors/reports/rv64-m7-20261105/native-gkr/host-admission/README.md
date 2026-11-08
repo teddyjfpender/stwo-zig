@@ -1,3 +1,0 @@
-Status: UNQUALIFIED diagnostic sketch. Never use this as host_known=true. The previous arithmetic-only host test checked the implementation on one six-lease fixture; it did not establish a valid peak upper bound. No measured RSS, whole-lifetime allocator audit, runtime admission, or GPU invocation is qualified.
-
-HostCost.known defaults false. NativeSource Plan device_complete and host_complete remain false; that draft module has not been compiled. Exact device allocationBytes remains separately qualified in its earlier receipt. These files are a preservation checkpoint for deferred memory work, not production coverage.

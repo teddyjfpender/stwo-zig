@@ -13,7 +13,7 @@
 //! accepted fold binds both words to the trusted values except with a Blake2s
 //! collision. The fold circuit therefore depends only on the child GEOMETRY
 //! CLASS (bound AIR, row logs, FIXED column logs, output count), never on the
-//! child proof or key values; see design/riscv-proving-stack/rv64-m3-topo-binding.md.
+//! child proof or key values; see design/riscv/rv64-m3-topo-binding.md.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");

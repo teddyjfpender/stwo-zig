@@ -90,18 +90,6 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
         .why = "temporary focused row-2 development root",
     },
     .{
-        .path = "transcript_state_test_root.zig",
-        .why = "temporary focused row-3 development root",
-    },
-    .{
-        .path = "vm_public_claim_hash_test_root.zig",
-        .why = "focused row-13 development root; its tests are collected through the canonical root",
-    },
-    .{
-        .path = "vm_public_io_hash_test_root.zig",
-        .why = "focused row-14 development root; its tests are collected through the canonical root",
-    },
-    .{
         .path = "pair_node_test_root.zig",
         .why = "focused pair-node evidence root; its tests are collected through the canonical root",
     },

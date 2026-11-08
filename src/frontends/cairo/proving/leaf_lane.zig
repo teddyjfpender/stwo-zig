@@ -27,7 +27,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-/// The shared `ProverParameters` definition (`src/interop/cairo_prover_parameters.zig`),
+/// The shared `ProverParameters` definition (`src/frontends/cairo/interop/cairo_prover_parameters.zig`),
 /// read from a circuit registry by the circuit-recursion wire package's `registry.zig`.
 pub const parameters = @import("interop_cairo_prover_parameters");
 const preprocessed_variant = @import("../preprocessed/variant.zig");

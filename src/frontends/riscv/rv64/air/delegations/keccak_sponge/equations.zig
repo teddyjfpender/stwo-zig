@@ -4,7 +4,7 @@
 //! order; consecutive pairs share one inverse group `inv * d1 * d2 = 1`, and
 //! each relation (RAM14, OWNER19, IO11, AND3, U16, U8) keeps one centered
 //! prefix column. Soundness argument:
-//! design/riscv-proving-stack/rv64-keccak-sponge-service.md.
+//! design/riscv/rv64-keccak-sponge-service.md.
 const std = @import("std");
 const E = @import("../../evaluation.zig");
 const S = @import("../../providers/scalar_range.zig");

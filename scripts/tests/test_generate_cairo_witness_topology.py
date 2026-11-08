@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts import generate_cairo_witness_topology as topology
-
-
+from scripts.cairo import generate_cairo_witness_topology as topology
 class CairoWitnessTopologyTests(unittest.TestCase):
     def test_parses_feed_layout_and_flattened_geometry(self) -> None:
         source = """\

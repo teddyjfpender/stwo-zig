@@ -10,8 +10,8 @@ pub const product_manifest = "src/backends/cuda/product_manifest.json";
 pub const native_root = "src/backends/cuda/native";
 pub const native_aot_root = "src/backends/cuda/aot/native";
 pub const archive_name = "stwo_cuda_kernels";
-const build_script = "scripts/cuda_build.py";
-const build_script_root = "scripts/cuda_build_lib";
+const build_script = "scripts/cuda/cuda_build.py";
+const build_script_root = "scripts/cuda/cuda_build_lib";
 
 pub const AotProduct = enum {
     native,
@@ -135,11 +135,11 @@ pub fn addCircuitPlan(b: *std.Build, cairo_generated: cuda_aot.GeneratedSet, gen
 pub fn addSourceClosureGate(b: *std.Build) *std.Build.Step.Run {
     const command = b.addSystemCommand(&.{
         "python3",
-        "scripts/cuda_source_closure.py",
+        "scripts/cuda/cuda_source_closure.py",
     });
     const product = b.addSystemCommand(&.{
         "python3",
-        "scripts/cuda_product_closure.py",
+        "scripts/cuda/cuda_product_closure.py",
     });
     product.step.dependOn(&command.step);
     return product;

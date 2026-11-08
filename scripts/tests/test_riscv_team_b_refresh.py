@@ -16,9 +16,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_refinement
-from scripts import riscv_team_b_refresh as refresh
-
+from scripts.riscv import riscv_refinement
+from scripts.riscv import riscv_team_b_refresh as refresh
 WRITE_ORDER = (
     "staged-probe",
     "lake-build",
@@ -250,12 +249,12 @@ class RiscvTeamBRefreshTests(unittest.TestCase):
 
     def test_pin_path_and_artifact_watch_track_the_split_inventory(self) -> None:
         relative = Path(
-            "scripts/riscv_refinement_lib/audited_inventory.py"
+            "scripts/riscv/riscv_refinement_lib/audited_inventory.py"
         )
         self.assertEqual(refresh.ROOT / relative, refresh.PIN_FILE)
         self.assertIn(relative.as_posix(), refresh.WATCHED_ARTIFACTS)
         self.assertNotIn(
-            "scripts/riscv_refinement.py",
+            "scripts/riscv/riscv_refinement.py",
             refresh.WATCHED_ARTIFACTS,
         )
 

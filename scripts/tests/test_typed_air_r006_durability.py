@@ -7,14 +7,14 @@ from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
-from scripts.typed_air_r006_capture_lib.codec import canonical_bytes, content_digest
-from scripts.typed_air_r006_capture_lib.controller import ProcessResult
-from scripts.typed_air_r006_capture_lib.model import CaptureError
-from scripts.typed_air_r006_capture_lib.orchestration import host_preflight
-from scripts.typed_air_r006_capture_lib import pair as pair_module
-from scripts.typed_air_r006_capture_lib import pair_durability as durability
-from scripts.typed_air_r006_capture_lib import pair_publication as publication
-from scripts.typed_air_r006_capture_lib.pair import (
+from scripts.typed_air.typed_air_r006_capture_lib.codec import canonical_bytes, content_digest
+from scripts.typed_air.typed_air_r006_capture_lib.controller import ProcessResult
+from scripts.typed_air.typed_air_r006_capture_lib.model import CaptureError
+from scripts.typed_air.typed_air_r006_capture_lib.orchestration import host_preflight
+from scripts.typed_air.typed_air_r006_capture_lib import pair as pair_module
+from scripts.typed_air.typed_air_r006_capture_lib import pair_durability as durability
+from scripts.typed_air.typed_air_r006_capture_lib import pair_publication as publication
+from scripts.typed_air.typed_air_r006_capture_lib.pair import (
     PAIR_ATTEMPTS,
     PairCaptureSettings,
     PairPlanSettings,

@@ -1,6 +1,6 @@
 -- GENERATED FILE. DO NOT EDIT.
--- Generator: scripts/riscv_refinement.py
--- Regenerate: python3 scripts/riscv_refinement.py generate
+-- Generator: scripts/riscv/riscv_refinement.py
+-- Regenerate: python3 scripts/riscv/riscv_refinement.py generate
 -- Binding: exact canonical production AIR IR v2 for LUI.
 
 import RiscvRefinement.Air

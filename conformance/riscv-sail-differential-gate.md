@@ -2,7 +2,7 @@
 
 **Status:** NORMATIVE
 
-**Entrypoint:** `scripts/riscv_sail_gate.py`
+**Entrypoint:** `scripts/riscv/riscv_sail_gate.py`
 
 **Workflow:** `.github/workflows/riscv-sail-differential.yml`
 (required check: `Sail differential gates`)
@@ -54,14 +54,14 @@ Two mechanisms make the narrow trigger sound rather than optimistic:
   consistency, not truth — only the live run consults Sail.
 - **Digest parity (existing `riscv_cpu` lane).** Runner changes that alter
   behavior on the corpus move trace digests and fail
-  `scripts/riscv_trace_vectors.py` until the fixtures are regenerated, which
+  `scripts/riscv/riscv_trace_vectors.py` until the fixtures are regenerated, which
   itself is a live-trigger path. Runner refactors that keep every digest are
   proven behavior-preserving on the attested corpus, so a live re-run would
   compare the same traces to Sail again. `src/frontends/riscv/{runner,isa}`
   are nonetheless included in the live triggers as belt-and-braces: their
   churn is where semantics live, and a warm live run is cheap.
 
-Live-trigger paths (`LIVE_TRIGGER_PREFIXES` in `scripts/riscv_sail_gate.py`
+Live-trigger paths (`LIVE_TRIGGER_PREFIXES` in `scripts/riscv/riscv_sail_gate.py`
 is authoritative): the corpus fixtures, `conformance/riscv/`, the pin ledger,
 the equivalence comparator, the corpus/vector machinery, the toolchain
 builder, the gate itself, its workflow, the runner/ISA sources, and — added
@@ -70,13 +70,13 @@ legs:
 
 - `build_support/products/riscv_{cpu,sail_oracle_tests,test_filter}.zig`, which
   constructs, registers, and guards the two required test steps
-- `scripts/riscv_sail_oracle.py`, the bridge both required suites spawn
-- `src/tests.zig` and `src/tests/riscv/trace_test.zig`, the aggregation roots
+- `scripts/riscv/riscv_sail_oracle.py`, the bridge both required suites spawn
+- `src/products/riscv/cpu/test_root.zig` and `src/products/riscv/cpu/tests/trace_test.zig`, the aggregation roots
   whose exhaustive branch must keep the malicious-prover suite reachable
-- `src/tests/riscv/malicious_prover_{harness,completion_test,forged_output_test,skipped_test,stale_read_test}.zig`
-- `src/tests/riscv/committed_forgery_harness.zig`, which owns
+- `src/products/riscv/cpu/tests/malicious_prover_{harness,completion_test,forged_output_test,skipped_test,stale_read_test}.zig`
+- `src/products/riscv/cpu/tests/committed_forgery_harness.zig`, which owns
   `requireSailAgreement`
-- `src/tests/riscv/{guest_elf_fixture,committed_row_layout,row_admissibility}.zig`,
+- `src/products/riscv/cpu/tests/{guest_elf_fixture,committed_row_layout,row_admissibility}.zig`,
   the local fixture and row-contract dependencies of that harness
 - `src/frontends/riscv/sail_oracle_test_root.zig`, the test root that decides
   what `test-riscv-sail-oracle` executes
@@ -85,7 +85,7 @@ Those are the *only* things this job proves that no other job can, so a change
 to them that did not re-run it left the criterion unproven for exactly the
 edit most likely to break it — the trigger list previously contained no
 `src/tests/` path at all. They are listed as individual files rather than as
-`src/tests/riscv`: that directory holds dozens of suites with no Sail
+`src/products/riscv/cpu/tests`: that directory holds dozens of suites with no Sail
 relationship, and this job spends a pinned-toolchain build plus a full corpus
 differential against a 60-minute budget. Listing files also makes a rename
 loud — `scripts/tests/test_riscv_sail_gate.py` asserts every prefix still
@@ -209,7 +209,7 @@ matching no test name.
   which is why the flag carries `EmptySelectionGuard`
   (`build_support/products/riscv_test_filter.zig`): it compares the executed
   test names against the filter text and fails the build when none match.
-  Renaming `src/tests/riscv/malicious_prover_*.zig` therefore turns this step
+  Renaming `src/products/riscv/cpu/tests/malicious_prover_*.zig` therefore turns this step
   red instead of hollowing it out. The guard reports the drift; it does not
   repair it, so the filter still has to be updated with the rename.
   `test-riscv-sail-oracle` sidesteps the question entirely by carrying no
@@ -225,18 +225,18 @@ matching no test name.
   every path that could carry such a forgery (the evidence file itself lives
   under `conformance/riscv/`).
 - **Local full runs need the workspace.** `python3
-  scripts/riscv_formal_tools.py prepare --workspace /tmp/stwo-riscv-formal`
-  once, then `python3 scripts/riscv_sail_gate.py run` (optionally
+  scripts/riscv/riscv_formal_tools.py prepare --workspace /tmp/stwo-riscv-formal`
+  once, then `python3 scripts/riscv/riscv_sail_gate.py run` (optionally
   `--trace-dump-bin zig-out/bin/riscv-trace-dump` to reuse a built dumper;
   digest parity fails loudly if it is stale).
 
 ## Relationship to the other gates
 
-`conformance/riscv-pr-proof-gate.md` proves the proof path still produces
+`design/riscv/riscv-pr-proof-gate.md` proves the proof path still produces
 and independently verifies artifacts; it deliberately uses the pinned
 trace-vector digests so PRs stay fast. This gate is the live half of that
 bargain: the digests those lanes trust are themselves re-derived against
 Sail whenever their meaning could move, and daily. Strict release execution
 uses the same pinned Sail/Spike workspace through
-`scripts/riscv_release_gate.py --strict`. The older Stark-V bundle protocol is
+`scripts/riscv/riscv_release_gate.py --strict`. The older Stark-V bundle protocol is
 retired from the production tree and has no admission role.

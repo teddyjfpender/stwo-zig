@@ -14,7 +14,7 @@ import itertools
 import unittest
 from pathlib import Path
 
-from scripts.riscv_csp_benchmark_lib.host import classify_result
+from scripts.riscv.riscv_csp_benchmark_lib.host import classify_result
 
 
 ROOT = Path(__file__).resolve().parents[2]

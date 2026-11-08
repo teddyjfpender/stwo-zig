@@ -14,7 +14,7 @@ from scripts.tests.native_proof_matrix_support import (
 
 class NativeProofMatrixBlakeTests(unittest.TestCase):
     def test_oracle_identity_is_pinned(self) -> None:
-        from native_proof_matrix_lib import RUST_ORACLE_SHA256
+        from scripts.native.native_proof_matrix_lib import RUST_ORACLE_SHA256
 
         self.assertEqual(
             RUST_ORACLE_SHA256,

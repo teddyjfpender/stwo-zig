@@ -1,5 +1,0 @@
-26235156 0 True {'request_wall_s': 28.348, 'capture_s': 1.745, 'setup_s': 8.999, 'native_prove_s': 3.91, 'native_verify_s': 1.36, 'native_total_before_report_s': 14.778, 'recursion_s': 13.543}
-26235156 1 True {'request_wall_s': 12.349, 'capture_s': 1.822, 'setup_s': 0.13, 'native_prove_s': 3.133, 'native_verify_s': 1.763, 'native_total_before_report_s': 5.26, 'recursion_s': 7.072}
-26235156 0 True {'request_wall_s': 27.396, 'capture_s': 1.756, 'setup_s': 8.533, 'native_prove_s': 4.019, 'native_verify_s': 1.328, 'native_total_before_report_s': 14.463, 'recursion_s': 12.906}
-26235156 1 True {'request_wall_s': 12.137, 'capture_s': 1.658, 'setup_s': 0.133, 'native_prove_s': 3.324, 'native_verify_s': 1.692, 'native_total_before_report_s': 5.304, 'recursion_s': 6.803}
-ASSIGNMENT_GRAPH_BLOCK_FAILURE block=24628607 graph=1 exit=1

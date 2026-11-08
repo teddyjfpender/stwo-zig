@@ -123,8 +123,8 @@ independent verification.
 
 ## Related documentation
 
-- [Backend contracts](../../backend/README.md)
-- [Metal session service](../../tools/metal_session/README.md)
+- [Backend contracts](../../waist/backend/README.md)
+- [Metal session service](session/README.md)
 - [Cairo Metal integration](../../integrations/cairo_metal/README.md)
 - [RISC-V Metal integration](../../integrations/riscv_metal/README.md)
-- [Package-workspace audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
+- [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)

@@ -5,7 +5,6 @@ const std = @import("std");
 const witness = @import("blake3_commitment_witness.zig");
 const g = @import("../recursion/air/blake3_g_call.zig");
 const xor = @import("../recursion/air/blake3_xor_call.zig");
-const digest_boundary = @import("../recursion/air/blake3_boundary.zig");
 const route = @import("../recursion/air/blake3_byte_route.zig");
 const private_word = @import("../recursion/air/blake3_private_word.zig");
 const bridge = @import("../recursion/air/blake3_input_bridge.zig");

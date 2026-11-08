@@ -22,7 +22,7 @@ pub fn addProducts(context: Context) void {
     holistic_metal.step.dependOn(&holistic_cpu.step);
     const holistic_smoke = b.addSystemCommand(&.{
         "python3",
-        "scripts/native_proof_matrix.py",
+        "scripts/native/native_proof_matrix.py",
         "--suite",
         "holistic",
         "--protocol",
@@ -45,19 +45,19 @@ pub fn addProducts(context: Context) void {
     holistic_smoke_step.dependOn(&holistic_smoke.step);
 
     // Benchmark smoke gate with deterministic short workloads.
-    const bench_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_smoke.py" });
+    const bench_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/bench/benchmark_smoke.py" });
     const bench_smoke_step = b.step("bench-smoke", "Run benchmark smoke harness and emit report");
     bench_smoke_step.dependOn(&bench_smoke_cmd.step);
 
     // Targeted kernel benchmark gate for eval_at_point/folding/fft hotspots.
-    const bench_kernels_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_kernels.py" });
+    const bench_kernels_cmd = b.addSystemCommand(&.{ "python3", "scripts/bench/benchmark_kernels.py" });
     const bench_kernels_step = b.step("bench-kernels", "Run targeted kernel benchmark harness");
     bench_kernels_step.dependOn(&bench_kernels_cmd.step);
 
     // Benchmark strict gate with medium workloads enabled and stabilized sampling.
     const bench_strict_cmd = b.addSystemCommand(&.{
         "python3",
-        "scripts/benchmark_smoke.py",
+        "scripts/bench/benchmark_smoke.py",
         "--include-medium",
         "--warmups",
         "3",
@@ -70,7 +70,7 @@ pub fn addProducts(context: Context) void {
     // Optimization-track benchmark gate (native tuned, non-release-authoritative).
     const bench_opt_cmd = b.addSystemCommand(&.{
         "python3",
-        "scripts/benchmark_smoke.py",
+        "scripts/bench/benchmark_smoke.py",
         "--include-medium",
         "--warmups",
         "3",
@@ -94,7 +94,7 @@ pub fn addProducts(context: Context) void {
 
     const bench_opt_binary_codec_cmd = b.addSystemCommand(&.{
         "python3",
-        "scripts/benchmark_smoke.py",
+        "scripts/bench/benchmark_smoke.py",
         "--include-medium",
         "--warmups",
         "3",
@@ -124,7 +124,7 @@ pub fn addProducts(context: Context) void {
     // Large contrast benchmark (adds long-running workload slices).
     const bench_contrast_cmd = b.addSystemCommand(&.{
         "python3",
-        "scripts/benchmark_smoke.py",
+        "scripts/bench/benchmark_smoke.py",
         "--include-medium",
         "--include-large",
         "--warmups",
@@ -152,7 +152,7 @@ pub fn addProducts(context: Context) void {
 
     const bench_contrast_long_cmd = b.addSystemCommand(&.{
         "python3",
-        "scripts/benchmark_smoke.py",
+        "scripts/bench/benchmark_smoke.py",
         "--include-medium",
         "--include-large",
         "--include-long",
@@ -182,10 +182,10 @@ pub fn addProducts(context: Context) void {
     bench_contrast_long_step.dependOn(&bench_contrast_long_cmd.step);
 
     // Full benchmark matrix gate (11 upstream family labels).
-    const bench_full_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_full.py" });
+    const bench_full_cmd = b.addSystemCommand(&.{ "python3", "scripts/bench/benchmark_full.py" });
     const bench_targeted_compare_cmd = b.addSystemCommand(&.{
         "python3",
-        "scripts/compare_optimization.py",
+        "scripts/bench/compare_optimization.py",
         "--baseline",
         "vectors/reports/optimization_baseline_wave4.json",
         "--benchmark-report",
@@ -223,7 +223,7 @@ pub fn addProducts(context: Context) void {
         "Run full benchmark and block regressions on eval_at_point/eval_at_point_by_folding/fft",
     );
     bench_targeted_step.dependOn(&bench_targeted_compare_cmd.step);
-    const bench_pages_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_pages.py" });
+    const bench_pages_cmd = b.addSystemCommand(&.{ "python3", "scripts/bench/benchmark_pages.py" });
     const bench_pages_step = b.step(
         "bench-pages",
         "Build the formal benchmark site catalog from committed immutable history",
@@ -235,12 +235,12 @@ pub fn addProducts(context: Context) void {
     );
     bench_full_step.dependOn(&bench_full_cmd.step);
     bench_full_step.dependOn(&bench_contrast_long_cmd.step);
-    const bench_pages_validate_cmd = b.addSystemCommand(&.{ "python3", "scripts/benchmark_pages.py", "--validate" });
+    const bench_pages_validate_cmd = b.addSystemCommand(&.{ "python3", "scripts/bench/benchmark_pages.py", "--validate" });
     const bench_pages_validate_step = b.step("bench-pages-validate", "Validate static benchmark pages assets are current");
     bench_pages_validate_step.dependOn(&bench_pages_validate_cmd.step);
 
     // Profiling smoke gate with coarse wall-clock and peak-RSS collection.
-    const profile_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/profile_smoke.py" });
+    const profile_smoke_cmd = b.addSystemCommand(&.{ "python3", "scripts/bench/profile_smoke.py" });
     const profile_smoke_step = b.step("profile-smoke", "Run profiling smoke harness and emit report");
     profile_smoke_step.dependOn(&profile_smoke_cmd.step);
     bench_targeted_compare_cmd.step.dependOn(&profile_smoke_cmd.step);
@@ -248,7 +248,7 @@ pub fn addProducts(context: Context) void {
     // Optimization-track profiling gate (native tuned, non-release-authoritative).
     const profile_opt_cmd = b.addSystemCommand(&.{
         "python3",
-        "scripts/profile_smoke.py",
+        "scripts/bench/profile_smoke.py",
         "--zig-opt-mode",
         "ReleaseFast",
         "--zig-cpu",
@@ -265,7 +265,7 @@ pub fn addProducts(context: Context) void {
 
     const profile_contrast_cmd = b.addSystemCommand(&.{
         "python3",
-        "scripts/profile_smoke.py",
+        "scripts/bench/profile_smoke.py",
         "--include-large",
         "--repeats",
         "1",
@@ -290,7 +290,7 @@ pub fn addProducts(context: Context) void {
 
     const profile_contrast_long_cmd = b.addSystemCommand(&.{
         "python3",
-        "scripts/profile_smoke.py",
+        "scripts/bench/profile_smoke.py",
         "--include-large",
         "--include-long",
         "--repeats",
@@ -317,7 +317,7 @@ pub fn addProducts(context: Context) void {
     profile_contrast_long_step.dependOn(&profile_contrast_long_cmd.step);
 
     // Deterministic deep-workload soak for 2/4/8 Merkle workers with opt-in pool reuse.
-    const merkle_worker_stress_cmd = b.addSystemCommand(&.{ "python3", "scripts/merkle_worker_stress.py" });
+    const merkle_worker_stress_cmd = b.addSystemCommand(&.{ "python3", "scripts/interop/merkle_worker_stress.py" });
     const merkle_worker_stress_step = b.step(
         "merkle-worker-stress",
         "Run deterministic deep workload stress checks for opt-in Merkle pool reuse (2/4/8 workers)",
@@ -327,7 +327,7 @@ pub fn addProducts(context: Context) void {
     // Optimization acceptance gate against frozen baseline (additive to strict conformance gate).
     const opt_compare_cmd = b.addSystemCommand(&.{
         "python3",
-        "scripts/compare_optimization.py",
+        "scripts/bench/compare_optimization.py",
         "--baseline",
         "vectors/reports/optimization_baseline_wave4.json",
         "--benchmark-report",
