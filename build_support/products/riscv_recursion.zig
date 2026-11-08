@@ -55,6 +55,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         .{ .name = "test-riscv64-poseidon2-circuit", .source = "src/integrations/riscv_cpu/rv64_poseidon2_circuit_test_root.zig" },
         .{ .name = "test-riscv64-om31-outer", .source = "src/integrations/riscv_cpu/rv64_om31_outer_test_root.zig" },
         .{ .name = "test-riscv64-om31-m3-fold", .source = "src/integrations/riscv_cpu/rv64_om31_m3_fold_test_root.zig" },
+        .{ .name = "test-riscv64-op-public-fold", .source = "src/integrations/riscv_cpu/rv64_op_public_fold_test_root.zig" },
         .{ .name = "test-riscv64-m5-vk-table", .source = "src/integrations/riscv_cpu/rv64_m5_vk_table_test_root.zig" },
         .{ .name = "test-riscv64-m5-rootverify", .source = "src/integrations/riscv_cpu/rv64_m5_rootverify_test_root.zig" },
         .{ .name = "test-riscv64-om31-native-pcs", .source = "src/integrations/riscv_cpu/rv64_om31_native_pcs_test_root.zig" },

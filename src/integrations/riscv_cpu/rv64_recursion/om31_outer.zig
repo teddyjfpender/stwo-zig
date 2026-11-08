@@ -332,18 +332,50 @@ pub fn classKey(children: []const Child) ![32]u8 {
     return h.finalResult();
 }
 pub fn buildFold(a: std.mem.Allocator, children: []const Child) !Graph {
-    return buildFoldMode(a, children, false);
+    return buildFoldMode(a, children, false, false);
 }
 pub fn buildFoldTraceOnly(a: std.mem.Allocator, children: []const Child) !Graph {
-    return buildFoldMode(a, children, true);
+    return buildFoldMode(a, children, true, false);
 }
-fn buildFoldMode(a: std.mem.Allocator, children: []const Child, trace_only: bool) !Graph {
+
+/// Application fold: after the usual ordered fold digest, expose the exact
+/// authenticated public wires of each child, first child first. The expected
+/// application values are verifier inputs, so changing them does not generate
+/// a different circuit authority. Ordinary execution folds retain their wire.
+pub fn buildPublicBinaryFold(a: std.mem.Allocator, children: *const [2]Child, trace_only: bool) !Graph {
+    return buildFoldMode(a, children, trace_only, true);
+}
+
+pub fn requirePublicBinaryOutputs(outputs: []const Q, expected_digest: [32]u8, expected_children: [2][]const Q) !void {
+    const left_end = try std.math.add(usize, 8, expected_children[0].len);
+    const end = try std.math.add(usize, left_end, expected_children[1].len);
+    if (outputs.len != end) return error.ApplicationFoldOutputMismatch;
+    for (outputs[0..8], 0..) |actual, i| {
+        const value = std.mem.readInt(u32, expected_digest[4 * i ..][0..4], .little);
+        if (!std.meta.eql(actual, B.wrappers.u32Value(Q, value).get())) return error.ApplicationFoldDigestMismatch;
+    }
+    for (outputs[8..left_end], expected_children[0]) |actual, expected| {
+        if (!std.meta.eql(actual, expected)) return error.ApplicationFoldOutputMismatch;
+    }
+    for (outputs[left_end..], expected_children[1]) |actual, expected| {
+        if (!std.meta.eql(actual, expected)) return error.ApplicationFoldOutputMismatch;
+    }
+}
+
+fn buildFoldMode(a: std.mem.Allocator, children: []const Child, trace_only: bool, expose_children: bool) !Graph {
     const version_word = try versionWord(children.len);
-    var ctx = if (trace_only) try C.Context.initTraceOnly(a, 8) else try C.Context.init(a, 8);
+    var output_count: usize = 8;
+    if (expose_children) for (children) |child| {
+        if (child.produced.outputs.len != child.authority.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
+        output_count = try std.math.add(usize, output_count, child.produced.outputs.len);
+    };
+    var ctx = if (trace_only) try C.Context.initTraceOnly(a, output_count) else try C.Context.init(a, output_count);
     errdefer ctx.deinit();
     ctx.assert_eq_on_eval = !trace_only;
     C.lane.begin(&ctx);
     defer C.lane.finish() catch {};
+    const public = try ctx.scratch().alloc(C.Var, output_count);
+    var public_at: usize = 8;
     var message: std.ArrayList(Word) = .empty;
     defer message.deinit(a);
     try message.appendSlice(a, &.{ try word(&ctx, foldDomain(children)), try word(&ctx, version_word) });
@@ -354,6 +386,10 @@ fn buildFoldMode(a: std.mem.Allocator, children: []const Child, trace_only: bool
             try message.appendSlice(a, &authenticated.fixed_root.words);
             try message.append(a, try word(&ctx, @intCast(authenticated.outputs.len)));
             try message.appendSlice(a, authenticated.output_words);
+            if (expose_children) {
+                @memcpy(public[public_at..][0..authenticated.outputs.len], authenticated.outputs);
+                public_at += authenticated.outputs.len;
+            }
             continue;
         }
         try Outer.protocol.validateConfig(child.produced.proof.proof.commitment_scheme_proof.config);
@@ -379,12 +415,15 @@ fn buildFoldMode(a: std.mem.Allocator, children: []const Child, trace_only: bool
         try message.appendSlice(a, &guessed.commitments[0].words);
         try message.append(a, try word(&ctx, @intCast(outputs.len)));
         try message.appendSlice(a, output_words);
+        if (expose_children) {
+            @memcpy(public[public_at..][0..outputs.len], outputs);
+            public_at += outputs.len;
+        }
     }
     try C.lane.check();
     const digest = try B.blake.blake2sU32s(Q, &ctx, message.items, 4 * message.items.len);
-    var outputs: [8]C.Var = undefined;
-    for (&outputs, digest.words) |*out, w| out.* = w.get();
-    try ctx.setOutputs(&outputs);
+    for (public[0..8], digest.words) |*out, w| out.* = w.get();
+    try ctx.setOutputs(public);
     // Native PCS verifier emits terminal arithmetic/transcript intermediates
     // that are intentionally unused; all asserted verification equalities and
     // guessed-input yield gates are retained, as in the native PCS fixtures.

@@ -54,3 +54,14 @@ in-circuit proof of the join, certify the profile, select a canonical L1 anchor,
 or supply an on-chain verifier. A positive receipt needs real saved derivation
 and execution proof trees for the same transition; a native replay or unit test
 of the statement encoding does not supply those trees.
+
+The experimental public binary fold can expose both authenticated child
+outputs in order after its normal fold digest. Its receiver checks the digest
+against the pinned child authorities and expected output words, then checks
+the two public output sequences against the transition statement. Run
+`zig build test-riscv64-op-public-fold -Doptimize=ReleaseFast -j1` for the
+synthetic OD/OP proof fixture and fresh receiver. It can be bounded with
+`STWO_OP_FOLD_MAX_BYTES`. The fixture exercises actual OM31 proof generation
+and verification over fixed transport values. It does not prove Kona or EVM
+semantics. Existing execution roots expose a digest rather than those raw
+output words, so the public binary fold is not wired into Mainnet production.

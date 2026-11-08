@@ -59,6 +59,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-ls-circuit-lanes", .description = "Qualify typed LS boundary and selection point arithmetic", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-om31-outer", .description = "Qualify native OM31 outer circuit folding", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-om31-m3-fold", .description = "Qualify the M3 outer profile and 4-ary fold verifier on the CPU outer prover", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-op-public-fold", .description = "Prove and verify an ordered OM31 fold with synthetic OP public outputs", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-m5-vk-table", .description = "Qualify the M5 recursion/native VK tables and in-circuit membership (canon-vk)", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-m5-rootverify", .description = "M5 rootverify: receiver VK table, root-only tree digest and refusals", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-om31-native-pcs", .description = "Verify native OM31 proof captures in circuit with all eight coordinates", .scope = .riscv_cpu },
