@@ -106,6 +106,24 @@ pub fn CommitOps(
             );
         }
 
+        /// Explicit host ownership transfer without automatic width batching.
+        /// Retains the normal parallel transform/Merkle path. Compact and spill
+        /// storage require streaming, so reject those policies and consume the
+        /// source on failure just as every other owned commit does.
+        pub fn commitOwnedMonolithicWithRecorder(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            owned_columns: []ColumnEvaluation,
+            recorder: ?*stage_profile.Recorder,
+            channel: anytype,
+        ) !void {
+            if (self.retained_column_allocator != null or self.compact_polynomial_storage) {
+                column_storage.freeOwnedColumnEvaluations(allocator, owned_columns);
+                return error.MonolithicCommitRequiresMaterializedStorage;
+            }
+            return commitOwnedPreparedImpl(self, allocator, owned_columns, null, .materialized, recorder, channel, false);
+        }
+
         /// Ownership-preserving commit for columns that borrow one or more
         /// shared allocations. Backends may adopt those allocations; generic
         /// paths detach them into ordinary per-column ownership first.
@@ -139,6 +157,19 @@ pub fn CommitOps(
             input_source: ColumnSource,
             recorder: ?*stage_profile.Recorder,
             channel: anytype,
+        ) !void {
+            return commitOwnedPreparedImpl(self, allocator, input_columns, input_backing_buffers, input_source, recorder, channel, true);
+        }
+
+        fn commitOwnedPreparedImpl(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            input_columns: []ColumnEvaluation,
+            input_backing_buffers: ?[][]M31,
+            input_source: ColumnSource,
+            recorder: ?*stage_profile.Recorder,
+            channel: anytype,
+            allow_width_batching: bool,
         ) !void {
             var owned_columns = input_columns;
             var backing_buffers = input_backing_buffers;
@@ -180,7 +211,7 @@ pub fn CommitOps(
             }
             // Auto-dispatch to streaming for large column sets (bounds peak memory).
             const backend_prefers_monolithic = comptime @hasDecl(B, "preferMonolithicCommit") and B.preferMonolithicCommit;
-            if (source.isMaterialized() and owned_columns.len >= streaming_column_threshold and
+            if (allow_width_batching and source.isMaterialized() and owned_columns.len >= streaming_column_threshold and
                 !backend_prefers_monolithic)
             {
                 if (self.compact_polynomial_storage)

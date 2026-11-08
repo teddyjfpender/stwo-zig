@@ -46,6 +46,20 @@ test "om31 outer lookup denominator uses upper challenge coordinates" {
     try std.testing.expect(fractions[0].denominator.eql(expected));
     try std.testing.expect(!fractions[0].denominator.c1.isZero());
 }
+test "om31 sparse tuple combine matches dense reference for every tuple width" {
+    var random = std.Random.DefaultPrng.init(0x5350415253454f38);
+    const rng = random.random();
+    const elements = W.Elements.init(O.fromM31Array(.{ M.one(), M.fromCanonical(2), M.fromCanonical(3), M.fromCanonical(4), M.fromCanonical(5), M.fromCanonical(6), M.fromCanonical(7), M.fromCanonical(8) }), O.fromM31Array(.{ M.fromCanonical(11), M.fromCanonical(13), M.fromCanonical(17), M.fromCanonical(19), M.fromCanonical(23), M.fromCanonical(29), M.fromCanonical(31), M.fromCanonical(37) }));
+    for (0..128) |iteration| {
+        var tuple: [6]M = undefined;
+        for (&tuple, 0..) |*value, j| value.* = if ((iteration >> @intCast(j)) & 1 == 0) M.zero() else M.fromU64(rng.int(u32));
+        for (0..7) |width| {
+            var reference = O.zero();
+            for (tuple[0..width], elements.powers[0..width]) |value, power| reference = reference.add(power.mulM31(value));
+            try std.testing.expect(reference.sub(elements.z).eql(elements.combine(tuple[0..width])));
+        }
+    }
+}
 test "om31 outer witness instantiates full source path and rejects malformed MAIN" {
     var base = circuit.witness.trace.BaseTrace{ .allocator = std.testing.allocator, .columns = &.{}, .log_sizes = circuit.common.component_list.PerComponent(u32).fromArray(@splat(5)), .output_values = &.{} };
     defer base.deinit();

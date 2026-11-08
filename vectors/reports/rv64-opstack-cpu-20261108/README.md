@@ -1,5 +1,21 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The subsequent [OM31 SIMD inversion A/B](recursion-packed-inverse.json)
+preserves all recursive proof bytes. Interaction generation medians decrease
+from 9.155 s to 7.731 s; four cold trials do not establish an end-to-end wall
+speedup. No extra heap scratch is introduced and QM31 dispatch is unchanged.
+
+The [ownership qualification](recursion-owned-monolithic.json) transfers raw
+INTER columns to PCS while retaining its parallel monolithic commitment.
+Peak RSS is 27.344 GiB versus 31.640 GiB in the control, with identical proof
+bytes and a separately started strict receiver. Production takes 38.790 s with
+guest compilation active, so this is qualification, not a quiet benchmark.
+The new API is explicit; default PCS scheduling is unchanged. Mixed-height,
+129-column parity and injected allocation failures cover the ownership move.
+The [rejected automatic-streaming A/B](rejected-owned-streaming.json) records
+why ownership and batching must be independent: 64-column streaming doubled
+INTER commit time despite the same memory saving. That policy is not adopted.
+
 ## Controlled CPU M6 versus M7 qualification
 
 The [six cold trials](recursion-m7-cpu.json) compare the same complete native

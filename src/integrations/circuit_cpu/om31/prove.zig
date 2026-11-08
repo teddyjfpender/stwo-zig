@@ -283,7 +283,12 @@ pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Pr
     channel.mixFelts(&interaction.claimed_sums.toArray());
     var inter_commit_scope = try StageCapture.Scope.begin(recorder, "outer_interaction_commit", "Circuit INTER preparation and commitment");
     defer inter_commit_scope.end();
-    try scheme.commit(a, interaction.columns, &channel);
+    // MAIN is borrowed until lookup construction finishes. INTER has no later
+    // raw reader: transfer it once while retaining the parallel monolithic
+    // commitment. Automatic streaming saves memory but regresses this lane.
+    // The PCS consumes ownership on both success and error; takeColumns leaves
+    // the deferred witness cleanup safe and preserves the authenticated claims.
+    try scheme.commitOwnedMonolithicWithRecorder(a, interaction.takeColumns(), recorder, &channel);
     inter_commit_scope.end();
     const bound = try bind(a, key, elements.z, elements.alpha, interaction.claimed_sums);
     defer a.free(bound);

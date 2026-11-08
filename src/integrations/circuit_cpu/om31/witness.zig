@@ -26,8 +26,15 @@ pub const Elements = struct {
         return .{ .z = z, .powers = powers };
     }
     pub fn combine(self: *const Elements, tuple: []const M) O {
-        var result = O.zero();
-        for (tuple, self.powers[0..tuple.len]) |value, power| result = result.add(power.mulM31(value));
+        // The relation tag has coefficient alpha^0 = 1 by construction.
+        // Circuit tuples also contain many canonical zero coordinates (u16
+        // limbs, encoded u32s and base-field wires). Their products are zero
+        // in every extension coordinate; do not execute eight scalar products.
+        if (tuple.len == 0) return self.z.neg();
+        var result = O.fromBase(tuple[0]);
+        for (tuple[1..], self.powers[1..tuple.len]) |value, power| {
+            if (!value.isZero()) result = result.add(power.mulM31(value));
+        }
         return result.sub(self.z);
     }
 };

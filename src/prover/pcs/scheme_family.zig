@@ -283,6 +283,7 @@ pub fn ForField(comptime Secure: type) type {
                 pub const commit = CommitOps.commit;
                 pub const commitOwned = CommitOps.commitOwned;
                 pub const commitOwnedWithRecorder = CommitOps.commitOwnedWithRecorder;
+                pub const commitOwnedMonolithicWithRecorder = CommitOps.commitOwnedMonolithicWithRecorder;
                 pub const commitOwnedWithRecorderAndBacking = CommitOps.commitOwnedWithRecorderAndBacking;
                 pub const commitOwnedPreparedWithRecorderAndBacking = CommitOps.commitOwnedPreparedWithRecorderAndBacking;
                 pub const commitPolys = CommitOps.commitPolys;

@@ -76,9 +76,10 @@ fn ownedColumns(allocator: std.mem.Allocator) ![]Column {
 }
 
 fn commitFixture(allocator: std.mem.Allocator, use_packing: bool, retention: Retention) !Scheme {
-    return commitFixtureMode(allocator, use_packing, retention, false);
+    return commitFixtureMode(allocator, use_packing, retention, .automatic);
 }
-fn commitFixtureMode(allocator: std.mem.Allocator, use_packing: bool, retention: Retention, streaming: bool) !Scheme {
+const Mode = enum { automatic, streaming, monolithic };
+fn commitFixtureMode(allocator: std.mem.Allocator, use_packing: bool, retention: Retention, mode: Mode) !Scheme {
     var scheme = try Scheme.init(allocator, config);
     errdefer scheme.deinit(allocator);
     try std.testing.expect(!scheme.pack_owned_source_by_log);
@@ -105,16 +106,18 @@ fn commitFixtureMode(allocator: std.mem.Allocator, use_packing: bool, retention:
     const columns = try ownedColumns(allocator);
     // commitOwned consumes the input even if preparation, Merkle allocation,
     // or final tree-list append fails. Caller cleanup would be a double free.
-    if (streaming) {
-        try scheme.commitOwnedStreaming(allocator, columns, 2, &channel);
-    } else try scheme.commitOwned(allocator, columns, &channel);
+    switch (mode) {
+        .streaming => try scheme.commitOwnedStreaming(allocator, columns, 2, &channel),
+        .monolithic => try scheme.commitOwnedMonolithicWithRecorder(allocator, columns, null, &channel),
+        .automatic => try scheme.commitOwned(allocator, columns, &channel),
+    }
     try std.testing.expectEqual(@as(usize, 2), scheme.trees.items.len);
     try std.testing.expect(scheme.pending_commit == null);
     return scheme;
 }
 
 fn streamingAllocationCase(allocator: std.mem.Allocator, retention: Retention) !void {
-    var scheme = try commitFixtureMode(allocator, false, retention, true);
+    var scheme = try commitFixtureMode(allocator, false, retention, .streaming);
     defer scheme.deinit(allocator);
 }
 test "PCS owned source admission streaming retains preparation arenas and preserves roots" {
@@ -122,7 +125,7 @@ test "PCS owned source admission streaming retains preparation arenas and preser
     for ([_]Retention{ .always, .never }) |retention| {
         var control = try commitFixture(a, false, retention);
         defer control.deinit(a);
-        var streamed = try commitFixtureMode(a, false, retention, true);
+        var streamed = try commitFixtureMode(a, false, retention, .streaming);
         defer streamed.deinit(a);
         const expected = &control.trees.items[1];
         const actual = &streamed.trees.items[1];
@@ -143,6 +146,55 @@ test "PCS owned source admission streaming retains preparation arenas and preser
         try std.testing.expect(streamed.trees.items[1].coefficient_backing_buffers == null);
         try std.testing.checkAllAllocationFailures(a, streamingAllocationCase, .{retention});
     }
+}
+
+fn monolithicAllocationCase(allocator: std.mem.Allocator, retention: Retention) !void {
+    var scheme = try commitFixtureMode(allocator, false, retention, .monolithic);
+    defer scheme.deinit(allocator);
+}
+
+test "PCS explicit monolithic ownership preserves roots and consumes every failure" {
+    const a = std.testing.allocator;
+    for ([_]Retention{ .always, .never }) |retention| {
+        var control = try commitFixture(a, false, retention);
+        defer control.deinit(a);
+        var actual = try commitFixtureMode(a, false, retention, .monolithic);
+        defer actual.deinit(a);
+        try std.testing.expectEqualDeep(control.trees.items[1].root(), actual.trees.items[1].root());
+        for (control.trees.items[1].columns, actual.trees.items[1].columns) |left, right| try std.testing.expectEqualSlices(M31, left.values, right.values);
+        try std.testing.checkAllAllocationFailures(a, monolithicAllocationCase, .{retention});
+    }
+}
+
+test "PCS explicit monolithic ownership bypasses width batching and rejects compact policy" {
+    const a = std.testing.allocator;
+    var control = try commitFixture(a, false, .always);
+    defer control.deinit(a);
+    var actual = try commitFixture(a, false, .always);
+    defer actual.deinit(a);
+    const wide = try a.alloc(Column, 129);
+    var made: usize = 0;
+    var owned = true;
+    defer if (owned) {
+        for (wide[0..made]) |column| a.free(column.values);
+        a.free(wide);
+    };
+    for (wide, 0..) |*column, i| {
+        const values = try a.alloc(M31, 16);
+        column.* = .{ .log_size = 4, .values = values };
+        made += 1;
+        for (values, 0..) |*v, r| v.* = M31.fromU64(17 * i + r * r);
+    }
+    var control_channel = Channel{};
+    var actual_channel = Channel{};
+    try control.commit(a, wide, &control_channel);
+    owned = false;
+    try actual.commitOwnedMonolithicWithRecorder(a, wide, null, &actual_channel);
+    try std.testing.expectEqualDeep(control.trees.items[2].root(), actual.trees.items[2].root());
+    try std.testing.expect(actual.trees.items[2].streaming_column_backings == null);
+    for (control.trees.items[2].coefficients.?, actual.trees.items[2].coefficients.?) |left, right| try std.testing.expectEqualSlices(M31, left.coeffs, right.coeffs);
+    actual.compact_polynomial_storage = true;
+    try std.testing.expectError(error.MonolithicCommitRequiresMaterializedStorage, actual.commitOwnedMonolithicWithRecorder(a, try ownedColumns(a), null, &actual_channel));
 }
 
 fn allocationCase(allocator: std.mem.Allocator, use_packing: bool, retention: Retention) !void {
