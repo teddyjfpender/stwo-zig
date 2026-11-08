@@ -8,6 +8,9 @@
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
+const QM31 = @import("stwo_core").fields.qm31.QM31;
+const local_zero = @import("../x0_native_envelope_v1.zig");
+const opcode_entries = @import("../lookups/opcode_entries.zig");
 const constraint_program = @import("../constraint_program.zig");
 const entry = @import("../lookups/entry.zig");
 const semantic_eval = @import("../semantic_eval.zig");
@@ -218,6 +221,61 @@ fn copyNodes(
     return nodes;
 }
 
+/// Canonicalize only the predecessor clock of an authentic x0 access. Its
+/// semantic before/after values must already be zero. The old typed source
+/// owns the exact predecessor column; a compound expression is rejected.
+/// Used before the new root exists, never during OODS/quotient evaluation.
+pub fn normalizeX0Predecessors(family: trace.OpcodeFamily, physical: []M31, old_program: *const prover_component.OwnedLookupPolynomialProgram) !void {
+    const width = trace.nColumnsForFamily(family);
+    if (physical.len != width or old_program.column_count != width) return error.InvalidX0HintGeometry;
+    var lifted: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+    for (physical, lifted[0..width]) |value, *out| out.* = QM31.fromBase(value);
+    const list = try opcode_entries.fromMain(family, lifted[0..width]);
+    const layout = try local_zero.Schedule.fromList(&list);
+    for (layout.groups[0..layout.len]) |group| {
+        const before = list.entries[group.consume];
+        const after = list.entries[group.emit];
+        if (try local_zero.baseWitness(after.numerator) == 0 or try local_zero.baseWitness(before.values[0]) != 0 or try local_zero.baseWitness(before.values[1]) != 0) continue;
+        for (before.values[3..7], after.values[3..7]) |first, last| {
+            if (!first.isZero() or !last.isZero()) return error.NonzeroX0SemanticWitness;
+        }
+        const root = old_program.entries[group.consume].values[2];
+        if (root >= old_program.nodes.len) return error.InvalidX0PredecessorSource;
+        const node = old_program.nodes[root];
+        if (node.op != .column or node.value >= width) return error.InvalidX0PredecessorSource;
+        physical[node.value] = M31.zero();
+    }
+}
+fn declareLocalZero(arena: *symbolic.Arena, family: trace.OpcodeFamily, columns: []symbolic.Scalar) !void {
+    const old_width = trace.nColumnsForFamily(family);
+    try model.declareColumns(arena, family, columns[0..old_width]);
+    for (columns[old_width..], 0..) |*column, index| column.* = arena.column(if (index % 2 == 0) "x0_nonzero" else "x0_address_inverse");
+}
+pub fn buildLocalZero(a: std.mem.Allocator, family: trace.OpcodeFamily) !prover_component.OwnedBasePolynomialProgram {
+    var arena = symbolic.Arena.initRecoverable(a);
+    defer arena.deinit();
+    symbolic.begin(&arena);
+    defer symbolic.end();
+    const width = try local_zero.mainColumnCount(family);
+    var columns: [local_zero.MAX_MAIN_COLUMNS]symbolic.Scalar = undefined;
+    try declareLocalZero(&arena, family, columns[0..width]);
+    const direct = try local_zero.Builder(symbolic.Scalar).direct(family, columns[0..width], arena.column("is_active"));
+    try arena.checkAllocation();
+    return ownDirectProgram(a, &arena, direct.values[0..direct.len], width);
+}
+pub fn buildLocalZeroLookups(a: std.mem.Allocator, family: trace.OpcodeFamily) !prover_component.OwnedLookupPolynomialProgram {
+    var arena = symbolic.Arena.initRecoverable(a);
+    defer arena.deinit();
+    symbolic.begin(&arena);
+    defer symbolic.end();
+    const width = try local_zero.mainColumnCount(family);
+    var columns: [local_zero.MAX_MAIN_COLUMNS]symbolic.Scalar = undefined;
+    try declareLocalZero(&arena, family, columns[0..width]);
+    const lookups = try local_zero.Builder(symbolic.Scalar).lookups(family, columns[0..width]);
+    try arena.checkAllocation();
+    return ownLookupProgram(a, &arena, &lookups, width);
+}
+
 test "runtime polynomial export replays the production active selector" {
     var prng = std.Random.DefaultPrng.init(0x5256_4d45_5441_4c31);
     const random = prng.random();
@@ -271,5 +329,18 @@ test "runtime polynomial export replays the production active selector" {
             for (expected.values[0..expected.len], direct.values[0..direct.len]) |want, root|
                 try std.testing.expect(want.value.eql(replayed[root.id]));
         }
+    }
+}
+
+test "block-v5 x0 runtime export retains direct and lookup program geometry" {
+    for (0..trace.N_FAMILIES) |family_index| {
+        const family: trace.OpcodeFamily = @enumFromInt(family_index);
+        const width = try local_zero.mainColumnCount(family);
+        var direct_program = try buildLocalZero(std.testing.allocator, family);
+        defer direct_program.deinit();
+        var lookup_program = try buildLocalZeroLookups(std.testing.allocator, family);
+        defer lookup_program.deinit();
+        try std.testing.expectEqual(width + 1, direct_program.column_count);
+        try std.testing.expectEqual(width, lookup_program.column_count);
     }
 }

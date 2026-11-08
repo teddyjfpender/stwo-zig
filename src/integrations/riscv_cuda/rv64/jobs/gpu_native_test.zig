@@ -225,35 +225,6 @@ test "flat exchange keeps every produced flag contiguous without partial slots" 
     for (seen) |flag| try testing.expect(flag);
 }
 
-const Built = struct {
-    var destroyed: u32 = 0;
-    fn destroy(_: *anyopaque) void {
-        destroyed += 1;
-    }
-    fn build(_: *anyopaque, _: std.mem.Allocator, key: G.ClassKey) anyerror!G.ClassEntry {
-        return .{ .key = key, .plan = @ptrFromInt(0x1000), .destroy = destroy, .max_encoded_bytes = 77 };
-    }
-};
-
-test "class cache: built once at warm, a request-path miss fails closed" {
-    var c = G.ClassCache.init(testing.allocator);
-    Built.destroyed = 0;
-    var dummy: u8 = 0;
-    const b = G.ClassCache.Builder{ .ctx = &dummy, .build = Built.build };
-    const k1: G.ClassKey = @splat(1);
-    const k2: G.ClassKey = @splat(2);
-    const e1 = try c.warm(k1, b);
-    try testing.expectEqual(e1, try c.warm(k1, b));
-    try testing.expectEqual(@as(u64, 1), c.builds);
-    c.seal();
-    try testing.expectEqual(e1, try c.get(k1));
-    try testing.expectError(error.GpuNativeClassNotWarmed, c.get(k2));
-    try testing.expectError(error.GpuNativeClassBuildOnRequestPath, c.warm(k2, b));
-    try testing.expectEqual(@as(u64, 2), c.request_misses);
-    c.deinit();
-    try testing.expectEqual(@as(u32, 1), Built.destroyed);
-}
-
 test "memory plan: regions tile the device, validation" {
     var p = G.MemoryPlan{ .device = 0, .capacity_words = 1000 };
     try testing.expectError(error.GpuNativeMemoryPlanNoArena, p.validate());

@@ -415,7 +415,7 @@ pub const OpcodeLookupComponent = struct {
         const self: *const OpcodeLookupComponent = @ptrCast(@alignCast(ctx));
         return switch (self.batching) {
             .compatibility => blk: {
-                var program = if (self.mask_binding.local_zero) try local_zero.lookupProgram(allocator, self.family) else try runtime_program.buildLookups(allocator, self.family);
+                var program = if (self.mask_binding.local_zero) try runtime_program.buildLocalZeroLookups(allocator, self.family) else try runtime_program.buildLookups(allocator, self.family);
                 defer program.deinit();
                 break :blk try composition_work_support.lookupProgramProfile(
                     allocator,
@@ -452,7 +452,7 @@ pub const OpcodeLookupComponent = struct {
         allocator: std.mem.Allocator,
     ) !prover_component.OwnedLookupPolynomialProgram {
         const self: *const OpcodeLookupComponent = @ptrCast(@alignCast(ctx));
-        return if (self.mask_binding.local_zero) local_zero.lookupProgram(allocator, self.family) else runtime_program.buildLookups(allocator, self.family);
+        return if (self.mask_binding.local_zero) runtime_program.buildLocalZeroLookups(allocator, self.family) else runtime_program.buildLookups(allocator, self.family);
     }
 
     fn exportRuntimeProgramV2(

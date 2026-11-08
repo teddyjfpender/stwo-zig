@@ -54,7 +54,7 @@ pub const Plan = struct {
         return initForRecipe(allocator, family, false);
     }
     pub fn initForRecipe(allocator: std.mem.Allocator, family: trace.OpcodeFamily, local_zero: bool) !Plan {
-        var program = if (local_zero) try @import("../x0_native_envelope_v1.zig").lookupProgram(allocator, family) else try runtime_program.buildLookups(allocator, family);
+        var program = if (local_zero) try runtime_program.buildLocalZeroLookups(allocator, family) else try runtime_program.buildLookups(allocator, family);
         errdefer program.deinit();
         var evaluation = try validation.EvaluationPlan.init(allocator, program);
         errdefer evaluation.deinit();

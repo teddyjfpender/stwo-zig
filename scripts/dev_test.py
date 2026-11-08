@@ -23,6 +23,8 @@ from scripts.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_cuda_integration", "src/integrations/riscv_cuda/rv64/jobs/gpu_native_classes.zig", "test-rv64-class-cache"),
+    ("stwo_riscv_cuda_integration", "src/integrations/riscv_cuda/rv64/jobs/gpu_native_protocol.zig", "test-rv64-class-cache"),
     ('stwo_riscv_metal_integration', 'src/integrations/riscv_metal/native_polynomial_aot_export.zig', 'test-native-polynomial-aot'),
     ('stwo_riscv_metal_integration', 'src/integrations/riscv_metal/native_polynomial_aot_test_root.zig', 'test-native-polynomial-aot'),
     ('stwo_metal_backend', 'src/backends/metal/composition_pool_test_root.zig', 'test-resource-contracts'),
@@ -147,7 +149,8 @@ def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
         runtime = {"api.zig", "api_test.zig", "worker.zig", "worker_test.zig",
                    "channel.zig", "slab.zig", "plan.zig", "plan_test.zig", "lint.zig",
                    "fake.zig", "retained.zig", "retained_test.zig", "driver.zig",
-                   "driver_request.zig", "driver_install.zig", "driver_dag.zig", "driver_memory.zig", "driver_test.zig"}
+                   "driver_request.zig", "driver_install.zig", "driver_dag.zig", "driver_memory.zig", "driver_test.zig",
+                   "driver_fixture_test.zig", "driver_service_test.zig"}
         prefix = "src/integrations/riscv_cuda/rv64/jobs/"
         if path.startswith(prefix) and path[len(prefix):] in node:
             return "test-rv64-jobs-node"

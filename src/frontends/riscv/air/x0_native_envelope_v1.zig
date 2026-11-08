@@ -11,10 +11,6 @@ const canonical = @import("constraint_program.zig");
 const entries = @import("lookups/opcode_entries.zig");
 const entry = @import("lookups/entry.zig");
 const zero = @import("x0_local_custody_v1.zig");
-const symbolic = @import("extract/symbolic.zig");
-const model = @import("extract/model.zig");
-const runtime = @import("extract/runtime_program.zig");
-const prover = @import("stwo_prover_engine").air.component_prover;
 pub const VERSION: u32 = 1;
 pub const MAX_GROUPS: usize = 3;
 pub const MAX_HINT_COLUMNS = MAX_GROUPS * zero.HINT_COLUMNS;
@@ -137,72 +133,17 @@ pub fn fillHints(family: trace.OpcodeFamily, physical: []const M, hints: []M) !v
     if (hints.len != @as(usize, layout.len) * 2) return error.InvalidX0HintGeometry;
     for (layout.groups[0..layout.len], 0..) |group, index| {
         const event = list.entries[group.emit];
-        const active = try base(event.numerator);
+        const active = try baseWitness(event.numerator);
         if (active != 0 and active != 1) return error.InvalidX0ActiveWitness;
-        const hint = if (active == 0) zero.Hint{ .nonzero = M.zero(), .inverse = M.zero() } else try zero.Hint.forAddress(std.math.cast(u1, try base(event.values[0])) orelse return error.InvalidX0SpaceWitness, try base(event.values[1]));
+        const hint = if (active == 0) zero.Hint{ .nonzero = M.zero(), .inverse = M.zero() } else try zero.Hint.forAddress(std.math.cast(u1, try baseWitness(event.values[0])) orelse return error.InvalidX0SpaceWitness, try baseWitness(event.values[1]));
         hints[2 * index] = hint.nonzero;
         hints[2 * index + 1] = hint.inverse;
     }
 }
-/// Canonicalize only the predecessor clock of an authentic x0 access. Its
-/// semantic before/after values must already be zero. The old typed source
-/// owns the exact predecessor column; a compound expression is rejected.
-/// Used before the new root exists, never during OODS/quotient evaluation.
-pub fn normalizePredecessors(family: trace.OpcodeFamily, physical: []M, old_program: *const prover.OwnedLookupPolynomialProgram) !void {
-    const width = trace.nColumnsForFamily(family);
-    if (physical.len != width or old_program.column_count != width) return error.InvalidX0HintGeometry;
-    var lifted: [trace.MAX_FAMILY_COLUMNS]Q = undefined;
-    for (physical, lifted[0..width]) |value, *out| out.* = Q.fromBase(value);
-    const list = try entries.fromMain(family, lifted[0..width]);
-    const layout = try Schedule.fromList(&list);
-    for (layout.groups[0..layout.len]) |group| {
-        const before = list.entries[group.consume];
-        const after = list.entries[group.emit];
-        if (try base(after.numerator) == 0 or try base(before.values[0]) != 0 or try base(before.values[1]) != 0) continue;
-        for (before.values[3..7], after.values[3..7]) |first, last| {
-            if (!first.isZero() or !last.isZero()) return error.NonzeroX0SemanticWitness;
-        }
-        const root = old_program.entries[group.consume].values[2];
-        if (root >= old_program.nodes.len) return error.InvalidX0PredecessorSource;
-        const node = old_program.nodes[root];
-        if (node.op != .column or node.value >= width) return error.InvalidX0PredecessorSource;
-        physical[node.value] = M.zero();
-    }
-}
-fn base(value: Q) !u32 {
+pub fn baseWitness(value: Q) !u32 {
     const parts = value.toM31Array();
     for (parts[1..]) |part| if (!part.isZero()) return error.InvalidX0BaseWitness;
     return parts[0].toU32();
-}
-
-fn declare(arena: *symbolic.Arena, family: trace.OpcodeFamily, columns: []symbolic.Scalar) !void {
-    const old_width = trace.nColumnsForFamily(family);
-    try model.declareColumns(arena, family, columns[0..old_width]);
-    for (columns[old_width..], 0..) |*column, index| column.* = arena.column(if (index % 2 == 0) "x0_nonzero" else "x0_address_inverse");
-}
-pub fn directProgram(a: std.mem.Allocator, family: trace.OpcodeFamily) !prover.OwnedBasePolynomialProgram {
-    var arena = symbolic.Arena.initRecoverable(a);
-    defer arena.deinit();
-    symbolic.begin(&arena);
-    defer symbolic.end();
-    const width = try mainColumnCount(family);
-    var columns: [MAX_MAIN_COLUMNS]symbolic.Scalar = undefined;
-    try declare(&arena, family, columns[0..width]);
-    const direct = try Builder(symbolic.Scalar).direct(family, columns[0..width], arena.column("is_active"));
-    try arena.checkAllocation();
-    return runtime.ownDirectProgram(a, &arena, direct.values[0..direct.len], width);
-}
-pub fn lookupProgram(a: std.mem.Allocator, family: trace.OpcodeFamily) !prover.OwnedLookupPolynomialProgram {
-    var arena = symbolic.Arena.initRecoverable(a);
-    defer arena.deinit();
-    symbolic.begin(&arena);
-    defer symbolic.end();
-    const width = try mainColumnCount(family);
-    var columns: [MAX_MAIN_COLUMNS]symbolic.Scalar = undefined;
-    try declare(&arena, family, columns[0..width]);
-    const lookups = try Builder(symbolic.Scalar).lookups(family, columns[0..width]);
-    try arena.checkAllocation();
-    return runtime.ownLookupProgram(a, &arena, &lookups, width);
 }
 
 test "block-v5 x0 native envelope retains authentic schedules domains roles and ordinals" {
@@ -224,11 +165,5 @@ test "block-v5 x0 native envelope retains authentic schedules domains roles and 
         }
         const direct = try Builder(Q).direct(family, columns[0..width], Q.zero());
         try std.testing.expectEqual(try constraintCount(family), direct.len);
-        var direct_program = try directProgram(std.testing.allocator, family);
-        defer direct_program.deinit();
-        var lookup_program = try lookupProgram(std.testing.allocator, family);
-        defer lookup_program.deinit();
-        try std.testing.expectEqual(width + 1, direct_program.column_count);
-        try std.testing.expectEqual(width, lookup_program.column_count);
     }
 }
