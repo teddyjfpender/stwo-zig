@@ -44,7 +44,7 @@
       "build",
       "test",
       "--build-file",
-      "src/backend/build.zig",
+      "src/waist/backend/build.zig",
       "-Doptimize=ReleaseFast",
       "-j2"
     ]

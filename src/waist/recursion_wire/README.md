@@ -84,7 +84,7 @@ try wire.registry.writeRegistry(writer, registry.registry);
 | Area | Exports |
 | :--- | :--- |
 | Binary circuit proofs | `circuit_serialize` (`ProofConfig`, `ComponentShape`, `Proof`, `deserializeProof`, `serializeProof`, `serializeProofAlloc`) |
-| Felt primitives | `cairo_serialize`, the injected CairoSerde transport `src/interop/felt_json.zig` shared with the Cairo frontend (`FeltReader`, `FeltWriter`, `FeltList`, `FeltJsonWriter`, `parseFeltJson`, `sortAndTransposeQueriedValues`) |
+| Felt primitives | `cairo_serialize`, the injected CairoSerde transport `src/frontends/cairo/interop/felt_json.zig` shared with the Cairo frontend (`FeltReader`, `FeltWriter`, `FeltList`, `FeltJsonWriter`, `parseFeltJson`, `sortAndTransposeQueriedValues`) |
 | Root proof stream | `circuit_felt_stream` (`CairoCircuitProof`, `decode`, `encode`, `writeJson`) |
 | Leaf files | `leaf_proof_json` (`DigestHex`, `SerializedLeafProof`, `LeafInput`, parse and write functions, `decodeBase64`, `parseLeavesManifest`) |
 | Tree outputs | `packed_node` (`PackedNode`, `parsePackedNode`, `writePackedNode`, `writeRootOutputs`, `parseRootOutputs`) |
@@ -103,7 +103,7 @@ Decoders return a value together with the arena that owns its slices; call
 - `stwo_core` — M31 and QM31 field types and `FriConfigV2` of the
   `proving_5a7c5ed` protocol revision.
 - `interop_felt_json` — the single-file CairoSerde transport at
-  `src/interop/felt_json.zig` (felt JSON text, `stwo-cairo-serialize`
+  `src/frontends/cairo/interop/felt_json.zig` (felt JSON text, `stwo-cairo-serialize`
   primitives, the verifier's queried-value layout), injected as a module
   because the Cairo frontend shares it; this package re-exports it as
   `cairo_serialize`.
@@ -116,7 +116,7 @@ interchange layer.
 From the repository root:
 
 ```sh
-zig build test --build-file src/interop/circuit_recursion/build.zig -Doptimize=ReleaseFast -j2
+zig build test --build-file src/waist/recursion_wire/build.zig -Doptimize=ReleaseFast -j2
 ```
 
 The package test step runs two roots. The unit tests in each module cover

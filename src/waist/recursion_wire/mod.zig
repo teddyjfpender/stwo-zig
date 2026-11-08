@@ -9,7 +9,7 @@ const std = @import("std");
 pub const circuit_serialize = @import("circuit_serialize.zig");
 /// `stwo-cairo-serialize` felt primitives, the felt JSON text and the
 /// verifier's queried-value layout: the CairoSerde transport
-/// (`src/interop/felt_json.zig`) the Cairo frontend's `proof.cairo_serde`
+/// (`src/frontends/cairo/interop/felt_json.zig`) the Cairo frontend's `proof.cairo_serde`
 /// shares, injected as `interop_felt_json`.
 pub const cairo_serialize = @import("interop_felt_json");
 /// The root `CairoCircuitProof` felt stream and its query-value layout.

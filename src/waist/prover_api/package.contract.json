@@ -64,7 +64,7 @@
       "build",
       "test",
       "--build-file",
-      "src/prover_api/build.zig",
+      "src/waist/prover_api/build.zig",
       "-Doptimize=ReleaseFast",
       "-j2"
     ]

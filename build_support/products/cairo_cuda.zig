@@ -19,40 +19,43 @@ const toolchain_requirement =
     "-Dcuda-home, -Dcuda-library-dir, and -Dcuda-arch";
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
-        "src/products/cairo_cuda/main.zig",
-        "src/cairo_cuda.zig",
+        "src/products/cairo/cuda/main.zig",
+        "src/products/cairo/cuda/root.zig",
     },
     .named_imports = &.{
-        .{ .name = "stwo_cairo_cuda", .source = "src/cairo_cuda.zig" },
-        .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
-        .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cairo_cuda", .source = "src/products/cairo/cuda/root.zig" },
+        .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
+        .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
-        .{ .name = "interop_felt_json", .source = "src/interop/felt_json.zig" },
-        .{ .name = "interop_cairo_prover_parameters", .source = "src/interop/cairo_prover_parameters.zig" },
+        .{ .name = "interop_felt_json", .source = "src/frontends/cairo/interop/felt_json.zig" },
+        .{ .name = "interop_cairo_prover_parameters", .source = "src/frontends/cairo/interop/cairo_prover_parameters.zig" },
         .{ .name = "stwo_cairo_cuda_integration", .source = "src/integrations/cairo_cuda/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_cuda_backend", .source = "src/backends/cuda/mod.zig" },
         .{ .name = "stwo_native_cuda_integration", .source = "src/integrations/native_cuda/mod.zig" },
-        .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
-        .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
-        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
-        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_native_examples", .source = "src/products/native/examples/mod.zig" },
+        .{ .name = "stwo_proof_wire", .source = "src/waist/proof_wire/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/waist/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/engine/prover/mod.zig" },
     },
-    .allowed_files = &.{"src/cairo_cuda.zig"},
+    .allowed_files = &.{"src/products/cairo/cuda/root.zig"},
     .allowed_prefixes = &.{
-        "src/backend",
+        "src/waist/backend",
         "src/backends/cpu_scalar",
         "src/backends/cuda",
-        "src/core",
-        "src/examples",
+        "src/waist/core",
+        "src/products/native/examples",
         "src/frontends/cairo",
         "src/integrations/cairo_cuda",
         "src/integrations/native_cuda",
-        "src/interop",
-        "src/products/cairo_cuda",
-        "src/prover",
-        "src/prover_api",
-        "src/tools/cuda_native_ec_composite_oracle",
+        "src/support/io",
+        "src/waist/recursion_wire",
+        "src/products/native/artifact",
+        "src/products/riscv/artifact",
+        "src/products/cairo/cuda",
+        "src/engine/prover",
+        "src/waist/prover_api",
+        "src/products/native/tools/cuda_ec_composite_oracle",
     },
     .required_dynamic_dependencies = &.{ "cuda", "cudart", "libstdc++.so.6" },
     .forbidden_dynamic_dependencies = &.{
@@ -105,7 +108,7 @@ pub fn addProduct(context: Context) void {
     // CUDA runtime. This gate is useful on development hosts without NVIDIA.
     const local_stwo = createStwoModule(context, .library);
     const local_root = createProductModule(context, product(.library), local_stwo, "80,90");
-    local_root.root_source_file = context.b.path("src/products/cairo_cuda/compile_check.zig");
+    local_root.root_source_file = context.b.path("src/products/cairo/cuda/compile_check.zig");
     local_root.link_libc = true;
     const local_object = context.b.addObject(.{
         .name = "cairo-cuda-local-compile",
@@ -305,7 +308,7 @@ fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cair
     b.step("benchmark-circuit-cuda-resident", "Build the verified resident circuit-recursion CUDA benchmark").dependOn(&b.addInstallArtifact(exe, .{}).step);
 
     const cairo_app = b.createModule(.{
-        .root_source_file = b.path("src/products/cairo_cuda/app.zig"),
+        .root_source_file = b.path("src/products/cairo/cuda/app.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -325,7 +328,7 @@ fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cair
         circuit_cpu,
     );
     const circuit_app = b.createModule(.{
-        .root_source_file = b.path("src/products/circuit_recursion_cpu/app.zig"),
+        .root_source_file = b.path("src/products/cairo/recursion/cpu/app.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -338,7 +341,7 @@ fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cair
     circuit_app.addAnonymousImport("circuit_air_projection", .{ .root_source_file = b.path("vectors/circuit/official/compiled_air_constraints_v1.bin") });
     circuit_app.addAnonymousImport("circuit_air_programs", .{ .root_source_file = b.path("vectors/circuit/official/circuit_air.air_programs_v1.bin") });
     const pipeline_root = b.createModule(.{
-        .root_source_file = b.path("src/products/circuit_recursion_cuda/main.zig"),
+        .root_source_file = b.path("src/products/cairo/recursion/cuda/main.zig"),
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -360,7 +363,7 @@ fn createStwoModule(
 ) *std.Build.Module {
     const module = graph.create(context.b, .{
         .product = product(role),
-        .root_source_file = "src/cairo_cuda.zig",
+        .root_source_file = "src/products/cairo/cuda/root.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -437,7 +440,7 @@ fn createProductModule(
 ) *std.Build.Module {
     const root = graph.create(context.b, .{
         .product = product_descriptor,
-        .root_source_file = "src/products/cairo_cuda/main.zig",
+        .root_source_file = "src/products/cairo/cuda/main.zig",
         .target = context.target,
         .optimize = context.optimize,
     });

@@ -49,7 +49,7 @@ ZIG_BIN = installed_binary(ROOT)
 
 RUST_TOOLCHAIN_DEFAULT = "nightly-2025-07-14"
 SUPPORTED_BENCH_PROOF_CODECS = ("json", "binary")
-FAMILY_RUNNER = ROOT / "src" / "bench" / "full_runner.zig"
+FAMILY_RUNNER = ROOT / "src" / "products" / "stwo" / "bench" / "full_runner.zig"
 
 def merged_env(extra_env: dict[str, str] | None) -> dict[str, str] | None:
     if not extra_env:
@@ -245,7 +245,7 @@ def main() -> int:
     runner_families = list_runner_families()
     if runner_families != UPSTREAM_FAMILIES:
         raise RuntimeError(
-            "family registry mismatch between benchmark_full.py and src/bench/full_runner.zig\n"
+            "family registry mismatch between benchmark_full.py and src/products/stwo/bench/full_runner.zig\n"
             f"expected: {UPSTREAM_FAMILIES}\n"
             f"actual:   {runner_families}"
         )

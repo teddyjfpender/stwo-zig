@@ -117,7 +117,7 @@ pub fn addShellTests(
         context,
         product,
         identity_product,
-        "src/products/riscv_metal/app.zig",
+        "src/products/riscv/metal/app.zig",
         aot_bundle,
     );
     const app_tests = b.addTest(.{ .root_module = app });
@@ -130,19 +130,19 @@ pub fn addShellTests(
     test_step.dependOn(&run_app_tests.step);
 
     const cli = modules.binding(context, product).leafModule(
-        "src/products/riscv_metal/cli.zig",
+        "src/products/riscv/metal/cli.zig",
     );
     cli.addImport("riscv_shared_cli", modules.binding(context, product).leafModule(
-        "src/products/riscv_shared/cli.zig",
+        "src/products/riscv/shared/cli.zig",
     ));
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = cli })).step);
 
     const registry = modules.binding(context, product).leafModule(
-        "src/products/riscv_metal/registry.zig",
+        "src/products/riscv/metal/registry.zig",
     );
     registry.addImport("riscv_capabilities", modules.capabilitiesModule(context, product));
     registry.addImport("riscv_shared_registry", modules.binding(context, product).leafModule(
-        "src/products/riscv_shared/registry.zig",
+        "src/products/riscv/shared/registry.zig",
     ));
     registry.addOptions(
         "product_identity",

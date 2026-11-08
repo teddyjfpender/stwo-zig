@@ -90,7 +90,7 @@
           "build",
           "test",
           "--build-file",
-          "src/core/build.zig",
+          "src/waist/core/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -105,7 +105,7 @@
           "build",
           "test",
           "--build-file",
-          "src/backend/build.zig",
+          "src/waist/backend/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -128,7 +128,7 @@
           "build",
           "test",
           "--build-file",
-          "src/prover/build.zig",
+          "src/engine/prover/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -143,7 +143,7 @@
           "build",
           "test",
           "--build-file",
-          "src/prover_api/build.zig",
+          "src/waist/prover_api/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -380,7 +380,7 @@
           "build",
           "test",
           "--build-file",
-          "src/tools/metal_session/build.zig",
+          "src/backends/metal/session/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -395,7 +395,7 @@
           "build",
           "test",
           "--build-file",
-          "src/artifact_store/build.zig",
+          "src/engine/artifact_store/build.zig",
           "-Doptimize=Debug",
           "-j2"
         ]
@@ -410,7 +410,7 @@
           "build",
           "test",
           "--build-file",
-          "src/interop/proof_wire/build.zig",
+          "src/waist/proof_wire/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -425,7 +425,7 @@
           "build",
           "test",
           "--build-file",
-          "src/interop/circuit_recursion/build.zig",
+          "src/waist/recursion_wire/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -440,7 +440,7 @@
           "build",
           "test",
           "--build-file",
-          "src/examples/build.zig",
+          "src/products/native/examples/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]
@@ -965,7 +965,7 @@
     },
     {
       "prefixes": [
-        "src/tools/metal_core_aot",
+        "src/backends/metal/tools/core_aot",
         "build_support/backends/metal_aot.zig",
         "scripts/metal_core_aot_receipt.py",
         "scripts/metal_core_aot_receipt_lib"
@@ -1032,7 +1032,7 @@
     },
     {
       "prefixes": [
-        "src/interop/felt_json.zig"
+        "src/frontends/cairo/interop/felt_json.zig"
       ],
       "lanes": [
         "cairo_frontend",
@@ -1049,13 +1049,13 @@
     },
     {
       "prefixes": [
-        "src/core",
-        "src/prover",
-        "src/prover_api",
-        "src/backend",
+        "src/waist/core",
+        "src/engine/prover",
+        "src/waist/prover_api",
+        "src/waist/backend",
         "src/backends/cpu_scalar",
-        "src/examples",
-        "src/interop/proof_wire"
+        "src/products/native/examples",
+        "src/waist/proof_wire"
       ],
       "lanes": [
         "native_oracle"
@@ -1063,7 +1063,7 @@
     },
     {
       "prefixes": [
-        "src/core"
+        "src/waist/core"
       ],
       "lanes": [
         "package",
@@ -1072,7 +1072,7 @@
     },
     {
       "prefixes": [
-        "src/backend"
+        "src/waist/backend"
       ],
       "lanes": [
         "package",
@@ -1081,7 +1081,7 @@
     },
     {
       "prefixes": [
-        "src/prover"
+        "src/engine/prover"
       ],
       "lanes": [
         "package",
@@ -1090,7 +1090,7 @@
     },
     {
       "prefixes": [
-        "src/prover_api"
+        "src/waist/prover_api"
       ],
       "lanes": [
         "package",
@@ -1157,7 +1157,7 @@
     {
       "prefixes": [
         "build_support/products/circuit_recursion_cpu.zig",
-        "src/products/circuit_recursion_cpu"
+        "src/products/cairo/recursion/cpu"
       ],
       "lanes": [
         "circuit_recursion_cpu"
@@ -1174,8 +1174,8 @@
     {
       "prefixes": [
         "src/products/cairo",
-        "src/products/cairo_cpu",
-        "src/stwo_cairo_cpu.zig",
+        "src/products/cairo/cpu",
+        "src/products/cairo/cpu/root.zig",
         "build_support/products/cairo_cpu.zig",
         "build_support/products/cairo_cpu",
         "build_support/products/cairo_support.zig"
@@ -1197,8 +1197,8 @@
     },
     {
       "prefixes": [
-        "src/products/cairo_metal",
-        "src/stwo_cairo_metal.zig",
+        "src/products/cairo/metal",
+        "src/products/cairo/metal/root.zig",
         "build_support/products/cairo_metal.zig",
         "build_support/products/cairo_metal"
       ],
@@ -1246,7 +1246,7 @@
     },
     {
       "prefixes": [
-        "src/artifact_store"
+        "src/engine/artifact_store"
       ],
       "lanes": [
         "package",
@@ -1256,7 +1256,7 @@
     },
     {
       "prefixes": [
-        "src/tools/metal_session"
+        "src/backends/metal/session"
       ],
       "lanes": [
         "package",
@@ -1266,7 +1266,7 @@
     },
     {
       "prefixes": [
-        "src/interop/proof_wire"
+        "src/waist/proof_wire"
       ],
       "lanes": [
         "package",
@@ -1283,7 +1283,7 @@
     },
     {
       "prefixes": [
-        "src/examples"
+        "src/products/native/examples"
       ],
       "lanes": [
         "package",
@@ -1320,7 +1320,7 @@
         "build_support/products/native_cuda.zig",
         "build_support/backends/cuda.zig",
         "build_support/backends/cuda_tools.zig",
-        "src/products/native_cuda",
+        "src/products/native/cuda",
         "scripts/cuda_activation.py",
         "scripts/cuda_build.py",
         "scripts/cuda_build_lib",
@@ -1362,9 +1362,9 @@
     {
       "prefixes": [
         "build_support/products/cairo_cuda.zig",
-        "src/cairo_cuda.zig",
-        "src/products/cairo_cuda",
-        "src/tools/cuda_native_ec_composite_oracle"
+        "src/products/cairo/cuda/root.zig",
+        "src/products/cairo/cuda",
+        "src/products/native/tools/cuda_ec_composite_oracle"
       ],
       "lanes": [
         "cairo_cuda_integration",

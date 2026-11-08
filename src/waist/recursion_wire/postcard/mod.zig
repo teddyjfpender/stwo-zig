@@ -18,7 +18,7 @@ const proof_mod = @import("stwo_core").proof;
 const vcs_verifier = @import("stwo_core").vcs_lifted.verifier;
 const proof_wire = @import("stwo_proof_wire");
 
-pub const proof_preflight = @import("postcard/proof_preflight.zig");
+pub const proof_preflight = @import("proof_preflight.zig");
 
 const M31 = m31_mod.M31;
 const QM31 = qm31_mod.QM31;

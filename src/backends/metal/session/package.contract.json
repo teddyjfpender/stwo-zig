@@ -8,7 +8,7 @@
     "stwo_metal_session": "mod.zig"
   },
   "dependencies": {
-    "stwo_artifact_store": "../../artifact_store"
+    "stwo_artifact_store": "../../../engine/artifact_store"
   },
   "injected_modules": [],
   "api_surface": [
@@ -34,7 +34,7 @@
       "build",
       "test",
       "--build-file",
-      "src/tools/metal_session/build.zig",
+      "src/backends/metal/session/build.zig",
       "-Doptimize=ReleaseFast",
       "-j2"
     ]

@@ -122,7 +122,7 @@ PROBE_SUMMARY_KEYS = frozenset(
     }
 )
 PROBE_SOURCE_PATHS = (
-    Path("src/tests/riscv/recursion_poseidon_leaf_test.zig"),
+    Path("src/products/riscv/cpu/tests/recursion_poseidon_leaf_test.zig"),
     Path("src/integrations/riscv_cpu/recursive_fri_outer.zig"),
     Path("build_support/products/riscv_cpu.zig"),
 )

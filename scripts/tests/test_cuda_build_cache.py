@@ -203,11 +203,11 @@ class CudaBuildCacheTests(unittest.TestCase):
         tools = project / "src/tools"
         tools.mkdir(parents=True)
         (tools / "cairo_cuda_witness_aot").symlink_to(
-            ROOT / "src/tools/cairo_cuda_witness_aot",
+            ROOT / "src/products/cairo/tools/cuda_witness_aot",
             target_is_directory=True,
         )
         (tools / "cairo_witness_cpu_codegen").symlink_to(
-            ROOT / "src/tools/cairo_witness_cpu_codegen",
+            ROOT / "src/products/cairo/tools/witness_cpu_codegen",
             target_is_directory=True,
         )
         vectors = project / "vectors/cairo"

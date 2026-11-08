@@ -37,7 +37,7 @@ pub fn addTraceExecutable(
         graph.createPrivateProtocolModules(b, target, optimize);
     const root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/riscv_trace_cli.zig",
+        .root_source_file = "src/products/riscv/cpu/trace/main.zig",
         .target = target,
         .optimize = optimize,
     });
@@ -62,11 +62,11 @@ pub const Observer = enum {
 
     fn spec(self: Observer) struct { source: []const u8, binary: []const u8 } {
         return switch (self) {
-            .pc_hotspot => .{ .source = "src/tools/riscv/pc_hotspot/main.zig", .binary = "riscv-pc-hotspot-observer" },
-            .function_value => .{ .source = "src/tools/riscv/function_value/main.zig", .binary = "riscv-function-value-observer" },
-            .legacy_semantics => .{ .source = "src/tools/riscv/analyze_legacy_semantics/main.zig", .binary = "riscv-analyze-legacy-semantic-observer" },
-            .memcpy_hotspot => .{ .source = "src/tools/riscv/memcpy_hotspot/main.zig", .binary = "riscv-memcpy-hotspot-observer" },
-            .memcpy_admission => .{ .source = "src/tools/riscv/memcpy_admission/main.zig", .binary = "riscv-memcpy-admission-observer" },
+            .pc_hotspot => .{ .source = "src/products/riscv/tools/pc_hotspot/main.zig", .binary = "riscv-pc-hotspot-observer" },
+            .function_value => .{ .source = "src/products/riscv/tools/function_value/main.zig", .binary = "riscv-function-value-observer" },
+            .legacy_semantics => .{ .source = "src/products/riscv/tools/analyze_legacy_semantics/main.zig", .binary = "riscv-analyze-legacy-semantic-observer" },
+            .memcpy_hotspot => .{ .source = "src/products/riscv/tools/memcpy_hotspot/main.zig", .binary = "riscv-memcpy-hotspot-observer" },
+            .memcpy_admission => .{ .source = "src/products/riscv/tools/memcpy_admission/main.zig", .binary = "riscv-memcpy-admission-observer" },
         };
     }
 };
@@ -123,7 +123,7 @@ pub fn addExecutable(
     });
     const root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/products/riscv_cpu/main.zig",
+        .root_source_file = "src/products/riscv/cpu/main.zig",
         .target = target,
         .optimize = optimize,
     });
@@ -155,7 +155,7 @@ pub fn addRecursiveCspProducer(context: Context) *std.Build.Step.Compile {
     );
     const root = graph.create(b, .{
         .product = riscv_cpu_modules.roleProduct(product, .benchmark),
-        .root_source_file = "src/tools/riscv/recursive_csp_producer/main.zig",
+        .root_source_file = "src/products/riscv/tools/recursive_csp_producer/main.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -197,7 +197,7 @@ pub fn addRecursionShapeInspector(context: Context) *std.Build.Step.Compile {
     const b = context.b;
     const root = graph.create(b, .{
         .product = riscv_cpu_modules.roleProduct(product, .gate),
-        .root_source_file = "src/tools/riscv/recursive_csp_shape_inspector/main.zig",
+        .root_source_file = "src/products/riscv/tools/recursive_csp_shape_inspector/main.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -214,7 +214,7 @@ pub fn addRecursionShapeInspector(context: Context) *std.Build.Step.Compile {
         "atomic_file",
         graph.create(b, .{
             .product = riscv_cpu_modules.roleProduct(product, .gate),
-            .root_source_file = "src/interop/atomic_file.zig",
+            .root_source_file = "src/support/io/atomic_file.zig",
             .target = context.target,
             .optimize = context.optimize,
         }),
@@ -249,7 +249,7 @@ fn recursionProfileRegistryModule(
 ) *std.Build.Module {
     return graph.create(context.b, .{
         .product = riscv_cpu_modules.roleProduct(product, role),
-        .root_source_file = "src/tools/riscv/recursive_csp_producer/profile_registry.zig",
+        .root_source_file = "src/products/riscv/tools/recursive_csp_producer/profile_registry.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -262,7 +262,7 @@ fn createStwoModule(
 ) *std.Build.Module {
     const module = graph.create(b, .{
         .product = riscv_cpu_modules.roleProduct(product, .library),
-        .root_source_file = "src/stwo_riscv_cpu.zig",
+        .root_source_file = "src/products/riscv/cpu/root.zig",
         .target = target,
         .optimize = optimize,
     });
@@ -282,6 +282,15 @@ fn createStwoModule(
         target,
         optimize,
         module,
+    );
+    graph.addFacadeSupportImports(
+        b,
+        protocol,
+        riscv_cpu_modules.roleProduct(product, .library),
+        target,
+        optimize,
+        module,
+        .{ .atomic_file = true, .postcard = true, .riscv_artifact = true },
     );
     return module;
 }

@@ -6,9 +6,9 @@ pub fn addGates(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     const build_optimize = b.fmt("-Doptimize={s}", .{@tagName(optimize)});
     const zig_optimize = b.fmt("-O{s}", .{@tagName(optimize)});
     const deep_command: []const []const u8 = if (b.graph.env_map.get("STWO_ZIG_BUILD_HELD_LOCK") != null)
-        &.{ "python3", "scripts/zig_protocol_test.py", "--no-lock", "src/stwo_deep.zig", zig_optimize }
+        &.{ "python3", "scripts/zig_protocol_test.py", "--no-lock", "src/products/native/tests/deep_root.zig", zig_optimize }
     else
-        &.{ "python3", "scripts/zig_protocol_test.py", "src/stwo_deep.zig", zig_optimize };
+        &.{ "python3", "scripts/zig_protocol_test.py", "src/products/native/tests/deep_root.zig", zig_optimize };
     const normal = [_][]const []const u8{
         &.{ "zig", "fmt", "--check", "build.zig", "build_support", "src", "tools" },
         &.{ "python3", "scripts/check_upstream_pins.py" },
@@ -54,7 +54,7 @@ pub fn addGates(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
         &.{ "python3", "scripts/prove_checkpoints.py" },
         &.{ "python3", "scripts/benchmark_smoke.py", "--include-medium", "--warmups", "3", "--repeats", "11" },
         &.{ "python3", "scripts/profile_smoke.py" },
-        &.{ "zig", "build-lib", "src/std_shims_freestanding.zig", "-target", "wasm32-freestanding", "-O", "ReleaseSmall", "-femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm" },
+        &.{ "zig", "build-lib", "src/support/shims/freestanding.zig", "-target", "wasm32-freestanding", "-O", "ReleaseSmall", "-femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm" },
         &.{ "python3", "scripts/std_shims_behavior.py" },
         &.{ "python3", "scripts/release_evidence.py", "--gate-mode", "strict" },
     };

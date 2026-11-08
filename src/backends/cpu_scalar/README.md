@@ -104,8 +104,8 @@ commitment order, or ownership.
 
 ## Related documentation
 
-- [Backend capability contracts](../../backend/README.md)
-- [Prover engine](../../prover/README.md)
-- [Native examples](../../examples/README.md)
+- [Backend capability contracts](../../waist/backend/README.md)
+- [Prover engine](../../engine/prover/README.md)
+- [Native examples](../../products/native/examples/README.md)
 - [Repository product guide](../../../README.md)
 - [Package-workspace audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)

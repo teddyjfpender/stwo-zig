@@ -4,6 +4,6 @@
     .version = "0.1.0",
     .paths = .{"."},
     .dependencies = .{
-        .stwo_backend_contracts = .{ .path = "../../backend" },
+        .stwo_backend_contracts = .{ .path = "../../waist/backend" },
     },
 }

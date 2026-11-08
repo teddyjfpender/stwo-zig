@@ -4,7 +4,7 @@
 StarkWare's proving pipeline
 ([starkware-libs/proving](https://github.com/starkware-libs/proving) at
 commit `5a7c5ede4299c91a61df19a07cba4f7502c14230`) on the CPU, design §7.4
-of the [recursion design](../../../design/starknet-proving-pipeline/recursion/02-design.md).
+of the [recursion design](../../../../../design/starknet-proving-pipeline/recursion/02-design.md).
 For the qualified inputs and registry, its output files are byte-compatible
 with the pinned upstream implementation.
 
@@ -74,7 +74,7 @@ It is the direct proof entry point for the circuit-applicative program, whose
 public output is longer than a leaf's. The same command is available from the
 Metal product. The two-leaf applicative fixture's canonical binary proof SHA
 matches pinned Rust on both backends; see the
-[applicative qualification](../../frontends/cairo/applicative/README.md#pinned-rust-prover-comparison).
+[applicative qualification](../../../../frontends/cairo/applicative/README.md#pinned-rust-prover-comparison).
 `--report-out report.json` emits separate input/assets, proof, and
 request-to-publication timings for the Go finalizer.
 
@@ -229,7 +229,7 @@ reproduced that golden on this host on 2026-09-30.
 The measurements below are retained observations from the stated M4 Max run,
 not a current service latency target. For the continuous two-PIE CPU/Metal
 pipeline and its timing boundary, see the
-[Starknet block collector](../../../tools/starknet-block-collector/README.md#two-leaf-circuit-root-on-m5-max).
+[Starknet block collector](../../../../../tools/starknet-block-collector/README.md#two-leaf-circuit-root-on-m5-max).
 
 Apple M4 Max, AC power, `ReleaseFast`, compact storage from log 18, with
 other agents' jobs running and 8-14 GB of swap in use (an upper band, not a

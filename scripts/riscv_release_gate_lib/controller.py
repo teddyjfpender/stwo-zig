@@ -234,7 +234,7 @@ def _artifact_digests(root: Path, evidence_dir: Path) -> dict[str, str]:
         "conformance/riscv/formal-corpus-evidence.json",
         "conformance/divergence-log.md",
         "soundness/SAIL_AIR_COMPOSITION.md",
-        "src/tests/riscv/malicious_witness_test.zig",
+        "src/products/riscv/cpu/tests/malicious_witness_test.zig",
     )
     digests = {path: sha256_file(root / path) for path in paths if (root / path).is_file()}
     if evidence_dir.is_dir():

@@ -60,8 +60,8 @@ work on either side of it.
 - **The waist** (stable): protocol types and laws, backend capability
   contracts, the prover API and interchange formats. Today these are the
   packages with layer `protocol`, `contract`, `api` and `interchange`
-  (for example `src/core`, `src/backend`, `src/prover_api`,
-  `src/interop/proof_wire`).
+  (for example `src/waist/core`, `src/waist/backend`, `src/waist/prover_api`,
+  `src/waist/proof_wire`).
 - **Above the waist** (may churn): frontends, integrations and products —
   Cairo PIE proving, RISC-V Ethereum block proving, OP Stack, Tensor, SM83.
 - **Below the waist** (may churn): backends and performance work — CPU, Metal,

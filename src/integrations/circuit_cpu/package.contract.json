@@ -10,11 +10,11 @@
   "dependencies": {
     "stwo_cairo_frontend": "../../frontends/cairo",
     "stwo_circuit_frontend": "../../frontends/circuit",
-    "stwo_circuit_recursion_wire": "../../interop/circuit_recursion",
-    "stwo_core": "../../core",
+    "stwo_circuit_recursion_wire": "../../waist/recursion_wire",
+    "stwo_core": "../../waist/core",
     "stwo_cpu_backend": "../../backends/cpu_scalar",
-    "stwo_prover_api": "../../prover_api",
-    "stwo_prover_engine": "../../prover"
+    "stwo_prover_api": "../../waist/prover_api",
+    "stwo_prover_engine": "../../engine/prover"
   },
   "injected_modules": [
     "circuit_provers_under_test",

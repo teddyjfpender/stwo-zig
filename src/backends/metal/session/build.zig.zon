@@ -4,6 +4,6 @@
     .version = "0.1.0",
     .paths = .{"."},
     .dependencies = .{
-        .stwo_artifact_store = .{ .path = "../../artifact_store" },
+        .stwo_artifact_store = .{ .path = "../../../engine/artifact_store" },
     },
 }

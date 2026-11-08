@@ -138,7 +138,7 @@ transitive review.
 
 ## Related documentation
 
-- [Prover engine implementation](../prover/README.md)
+- [Prover engine implementation](../../engine/prover/README.md)
 - [Backend capability contracts](../backend/README.md)
-- [Package-workspace audit](../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
-- [Package release policy](../../conformance/zig-package-release-policy.md)
+- [Package-workspace audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
+- [Package release policy](../../../conformance/zig-package-release-policy.md)

@@ -111,7 +111,7 @@ class UpstreamPinTests(unittest.TestCase):
             "tools/stwo-cairo-verifier-rs/Cargo.toml",
             "tools/stwo-cairo-verifier-rs/Cargo.lock",
             ".github/workflows/ci.yml",
-            "src/tools/metal_prover_session/state.zig",
+            "src/backends/metal/tools/prover_session/state.zig",
             "src/frontends/cairo/prover.zig",
             "archive/cairo/legacy_claim_registry.zig",
         ):
@@ -193,7 +193,7 @@ class UpstreamPinTests(unittest.TestCase):
             errors = validate_repository(ROOT, path)
 
         joined = "\n".join(errors)
-        self.assertIn("src/interop/examples_artifact.zig", joined)
+        self.assertIn("src/products/native/artifact/examples_artifact.zig", joined)
         self.assertIn("scripts/e2e_interop_lib/controller.py", joined)
         self.assertIn("scripts/prove_checkpoints.py", joined)
         self.assertIn("tools/stwo-interop-rs/Cargo.toml", joined)

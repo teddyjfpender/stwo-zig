@@ -50,7 +50,7 @@ pub const Spec = struct {
 pub const products = [_]Spec{
     .{ .descriptor = aggregate.descriptor, .scope = .aggregate, .constructor = .aggregate, .identity_step = "identity-stwo-zig", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.native_riscv_cpu_protocol_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
     .{ .descriptor = core.descriptor, .scope = .core, .constructor = .core, .identity_step = "identity-stwo-core", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.core_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
-    .{ .descriptor = prover.descriptor, .scope = .prover, .constructor = .prover, .identity_step = "identity-stwo-prover", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.core_prover_products_package_roots, .configure_allowed_files = &.{ "build_support/graph/identity/emitter.zig", "src/products/core/surface.zig" } },
+    .{ .descriptor = prover.descriptor, .scope = .prover, .constructor = .prover, .identity_step = "identity-stwo-prover", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.core_prover_products_package_roots, .configure_allowed_files = &.{ "build_support/graph/identity/emitter.zig", "src/products/stwo/core/surface.zig" } },
     .{ .descriptor = native_cpu.descriptor(.cli), .scope = .native_cpu, .constructor = .native_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.native_cpu_protocol_package_roots },
     .{
         .descriptor = riscv_cpu.descriptor,
@@ -63,10 +63,10 @@ pub const products = [_]Spec{
             "design/typed-air/artifacts/embedded.zig",
             "design/typed-air/artifacts/h009_embedded.zig",
             "design/typed-air/artifacts/h010_embedded.zig",
-            "src/tests.zig",
-            "src/tests/riscv/main_trace_planned_proof_test.zig",
-            "src/tests/riscv/recursion_ingress_real_guest_test.zig",
-            "src/tests/riscv/recursion_poseidon_leaf_test.zig",
+            "src/products/riscv/cpu/test_root.zig",
+            "src/products/riscv/cpu/tests/main_trace_planned_proof_test.zig",
+            "src/products/riscv/cpu/tests/recursion_ingress_real_guest_test.zig",
+            "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test.zig",
         },
     },
     .{
@@ -100,12 +100,12 @@ pub const products = [_]Spec{
             "build_support/products/cairo_witness_cpu_aot.zig",
             // `cairo-preprocessed-export`, the bounded canonical coefficient
             // exporter built beside the product.
-            "src/tools/cairo_preprocessed_export/main.zig",
+            "src/products/cairo/tools/preprocessed_export/main.zig",
             "build_support/products/cairo_composition_cpu_aot.zig",
         },
         .configure_allowed_prefixes = &.{
-            "src/tools/cairo_witness_cpu_codegen",
-            "src/tools/cairo_composition_cpu_codegen",
+            "src/products/cairo/tools/witness_cpu_codegen",
+            "src/products/cairo/tools/composition_cpu_codegen",
             "third_party/bzip2",
         },
     },
@@ -134,7 +134,7 @@ pub const products = [_]Spec{
             "build_support/products/cairo_witness_cpu_aot.zig",
         },
         .configure_allowed_prefixes = &.{
-            "src/tools/cairo_witness_cpu_codegen",
+            "src/products/cairo/tools/witness_cpu_codegen",
             "third_party/bzip2",
         },
     },
@@ -165,9 +165,9 @@ pub const products = [_]Spec{
         // The CUDA AOT generators and the witness codegen model they share,
         // built beside the product.
         .configure_allowed_files = &.{
-            "src/tools/cairo_cuda_eval_aot/main.zig",
-            "src/tools/cairo_cuda_witness_aot/main.zig",
-            "src/tools/cairo_witness_cpu_codegen/model.zig",
+            "src/products/cairo/tools/cuda_eval_aot/main.zig",
+            "src/products/cairo/tools/cuda_witness_aot/main.zig",
+            "src/products/cairo/tools/witness_cpu_codegen/model.zig",
         },
     },
     .{
@@ -187,7 +187,7 @@ pub const products = [_]Spec{
             "src/integrations/circuit_cpu/composition_aot_build.zig",
             "src/frontends/cairo/codegen_surface.zig",
         },
-        .configure_allowed_prefixes = &.{"src/tools/cairo_composition_cpu_codegen"},
+        .configure_allowed_prefixes = &.{"src/products/cairo/tools/composition_cpu_codegen"},
         .dependency_module_roots = catalog.package_dependencies.circuit_recursion_cpu_protocol_package_roots,
     },
     .{ .descriptor = riscv_cuda.descriptor, .scope = .deferred, .constructor = .unavailable, .dependency_module_roots = catalog.package_dependencies.riscv_cuda_protocol_package_roots },

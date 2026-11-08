@@ -8,7 +8,7 @@
     "stwo_circuit_recursion_wire": "mod.zig"
   },
   "dependencies": {
-    "stwo_core": "../../core"
+    "stwo_core": "../core"
   },
   "injected_modules": [
     "interop_cairo_prover_parameters",
@@ -44,9 +44,12 @@
       "build",
       "test",
       "--build-file",
-      "src/interop/circuit_recursion/build.zig",
+      "src/waist/recursion_wire/build.zig",
       "-Doptimize=ReleaseFast",
       "-j2"
     ]
-  }
+  },
+  "consumer_subdirs": [
+    "postcard"
+  ]
 }

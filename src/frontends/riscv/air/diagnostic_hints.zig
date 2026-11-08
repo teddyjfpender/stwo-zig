@@ -53,14 +53,14 @@ pub const AIR_SATISFACTION = "scripts/air_satisfaction.py";
 /// Named once rather than spelled per message, because the dumper's argument
 /// grammar is not the obvious one and a hand-written invocation gets it wrong:
 /// `--relation-sums` and `--relation-tuples` are *modes* whose value is the ELF
-/// path, `--elf` is a third mode, and `src/tools/riscv/trace/main.zig` refuses
+/// path, `--elf` is a third mode, and `src/products/riscv/cpu/trace/main.zig` refuses
 /// any invocation naming more than one mode (`mode_count != 1` ->
 /// `error.ConflictingOptions`). The first draft of this module wrote
 /// `--elf <elf> ... --relation-sums <out.json>`, which is two modes and an
 /// output path the tool would not accept -- a hint that does not run is worse
 /// than none, because it reads as authoritative.
 ///
-/// `src/tests/riscv/diagnostic_hints_test.zig` re-derives the tool's flag and
+/// `src/products/riscv/cpu/tests/diagnostic_hints_test.zig` re-derives the tool's flag and
 /// mode sets from that source file and checks every constant here against them,
 /// so a flag rename or a new mode fails a test rather than silently invalidating
 /// advice. It lives outside this package because the dumper does too.
@@ -179,7 +179,7 @@ fn emit(comptime format: []const u8, args: anytype) void {
 }
 
 // The pins for this module live in `diagnostic_hints_test.zig`, beside it. They
-// used to live in `src/tests/riscv/`, reaching back across the package boundary
+// used to live in `src/products/riscv/cpu/tests/`, reaching back across the package boundary
 // with `@embedFile`, because no gate compiled a `test` written in this package.
 // That is fixed: `test-riscv-cpu-product` and the `riscv_frontend` lane both run
 // this package's tests now, so a pin belongs next to what it pins.

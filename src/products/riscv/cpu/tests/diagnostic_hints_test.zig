@@ -5,7 +5,7 @@
 //! that both raise sites emit them -- are pinned inside the package that owns
 //! them, in `src/frontends/riscv/air/tests/diagnostic_hints_test.zig`. Those pins used
 //! to live here, reaching into that package with
-//! `@embedFile("../../frontends/riscv/air/opcode_memory.zig")`, because no gate
+//! `@embedFile("../../../../frontends/riscv/air/opcode_memory.zig")`, because no gate
 //! compiled a `test` written inside the frontend module (issue #152 item 11).
 //! The reasoning was sound -- a pin that does not run is not a pin -- but the
 //! embed crossed a package boundary and `scripts/check_package_workspace.py`
@@ -15,7 +15,7 @@
 //!
 //! What is left is a *cross-package* agreement that neither side can verify
 //! alone: `air/diagnostic_hints.zig` publishes complete shell invocations, and
-//! `src/tools/riscv/trace/main.zig` decides which invocations exist. This module
+//! `src/products/riscv/cpu/trace/main.zig` decides which invocations exist. This module
 //! sees both, so it re-derives the dumper's flag and mode sets from the dumper's
 //! own source and checks every published invocation against them.
 //!
@@ -38,9 +38,9 @@ const hints = frontend.air.diagnostic_hints;
 
 /// The trace dumper's own source. Embedded rather than read from disk so the
 /// grammar check has no working-directory premise, and so a flag rename lands
-/// here at compile time. `src/tools/riscv/trace` is owned by no package, so this
+/// here at compile time. `src/products/riscv/cpu/trace` is owned by no package, so this
 /// embed stays inside the aggregate module that owns the root test suite.
-const DUMPER_SOURCE = @embedFile("../../tools/riscv/trace/main.zig");
+const DUMPER_SOURCE = @embedFile("../trace/main.zig");
 
 /// The build file that installs the dumper, read at run time because it sits
 /// outside this module's directory. Tests run from the repository root.

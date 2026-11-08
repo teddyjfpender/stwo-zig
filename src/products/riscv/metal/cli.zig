@@ -1,7 +1,7 @@
 //! Strict command contract for the focused RISC-V Metal product.
 //!
 //! The parser itself is the shared, spec-driven one in
-//! `src/products/riscv_shared/cli.zig`; this file is the binding that fixes the
+//! `src/products/riscv/shared/cli.zig`; this file is the binding that fixes the
 //! Metal product's vocabulary and re-exports the resulting surface. Because the
 //! parser is shared, this CLI accepts exactly the command and flag shape the CPU
 //! CLI accepts — that is what makes a CPU run and a Metal run comparable — while

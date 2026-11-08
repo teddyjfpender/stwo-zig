@@ -1,6 +1,6 @@
 //! Capability facade for the aggregate CPU + Metal CLI.
 
-const cpu = @import("stwo_aggregate_cpu.zig");
+const cpu = @import("cpu.zig");
 
 pub const core = cpu.core;
 pub const backend = cpu.backend;

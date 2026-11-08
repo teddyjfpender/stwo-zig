@@ -145,8 +145,8 @@ session reuse, and verifier round-trips.
 
 ## Related documentation
 
-- [Stable prover API](../prover_api/README.md)
-- [Backend contracts](../backend/README.md)
-- [Protocol core](../core/README.md)
-- [Package-workspace audit](../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
-- [Universal AIR to Sail refinement plan](../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)
+- [Stable prover API](../../waist/prover_api/README.md)
+- [Backend contracts](../../waist/backend/README.md)
+- [Protocol core](../../waist/core/README.md)
+- [Package-workspace audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
+- [Universal AIR to Sail refinement plan](../../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)

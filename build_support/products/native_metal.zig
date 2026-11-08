@@ -12,51 +12,51 @@ const product_policy = @import("../graph/product.zig");
 const protocol_features = "native-examples-v1+lifted-pcs-v1+metal-runtime-v1";
 const source_closure = product_policy.SourceClosure{
     .entry_roots = &.{
-        "src/products/native_metal/main.zig",
-        "src/stwo_native_metal.zig",
-        "src/prover/native/runner.zig",
+        "src/products/native/metal/main.zig",
+        "src/products/native/metal/root.zig",
+        "src/engine/prover/native/runner.zig",
     },
     .named_imports = &.{
-        .{ .name = "stwo", .source = "src/stwo_native_metal.zig" },
-        .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
-        .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo", .source = "src/products/native/metal/root.zig" },
+        .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
+        .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
-        .{ .name = "stwo_native_examples", .source = "src/examples/mod.zig" },
-        .{ .name = "stwo_native_metal", .source = "src/stwo_native_metal.zig" },
-        .{ .name = "stwo_proof_wire", .source = "src/interop/proof_wire/mod.zig" },
-        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
-        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
-        .{ .name = "native_proof_runner", .source = "src/prover/native/runner.zig" },
-        .{ .name = "native_resource_admission", .source = "src/prover/native/resource_admission.zig" },
+        .{ .name = "stwo_native_examples", .source = "src/products/native/examples/mod.zig" },
+        .{ .name = "stwo_native_metal", .source = "src/products/native/metal/root.zig" },
+        .{ .name = "stwo_proof_wire", .source = "src/waist/proof_wire/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/waist/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/engine/prover/mod.zig" },
+        .{ .name = "native_proof_runner", .source = "src/engine/prover/native/runner.zig" },
+        .{ .name = "native_resource_admission", .source = "src/engine/prover/native/resource_admission.zig" },
         .{ .name = "native_transaction", .source = "src/integrations/native/transaction.zig" },
-        .{ .name = "output_transaction", .source = "src/interop/output_transaction.zig" },
+        .{ .name = "output_transaction", .source = "src/support/io/output_transaction.zig" },
         .{ .name = "native_product_identity", .source = "src/integrations/native/product_identity.zig" },
-        .{ .name = "native_cpu_capabilities", .source = "src/products/native_cpu/capabilities.zig" },
+        .{ .name = "native_cpu_capabilities", .source = "src/products/native/cpu/capabilities.zig" },
     },
     .allowed_files = &.{
-        "src/stwo_native_metal.zig",
-        "src/interop/atomic_file.zig",
-        "src/interop/output_transaction.zig",
-        "src/interop/examples_artifact.zig",
-        "src/interop/examples_artifact_verifier.zig",
-        "src/interop/postcard.zig",
-        "src/interop/proof_wire/mod.zig",
-        "src/interop/proof_wire/family.zig",
+        "src/products/native/metal/root.zig",
+        "src/support/io/atomic_file.zig",
+        "src/support/io/output_transaction.zig",
+        "src/products/native/artifact/examples_artifact.zig",
+        "src/products/native/artifact/examples_artifact_verifier.zig",
+        "src/waist/recursion_wire/postcard/mod.zig",
+        "src/waist/proof_wire/mod.zig",
+        "src/waist/proof_wire/family.zig",
         "src/integrations/native/transaction.zig",
         "src/integrations/native/product_identity.zig",
-        "src/products/native_cpu/capabilities.zig",
+        "src/products/native/cpu/capabilities.zig",
     },
     .allowed_prefixes = &.{
-        "src/core",
-        "src/backend",
+        "src/waist/core",
+        "src/waist/backend",
         "src/backends/cpu_scalar",
         "src/backends/metal",
-        "src/prover",
-        "src/prover_api",
-        "src/examples",
-        "src/products/native_metal",
-        "src/interop/postcard",
+        "src/engine/prover",
+        "src/waist/prover_api",
+        "src/products/native/examples",
+        "src/products/native/metal",
+        "src/waist/recursion_wire/postcard",
     },
     .required_dynamic_dependencies = &.{
         "Metal.framework",
@@ -192,7 +192,7 @@ pub fn addProduct(context: Context) void {
 fn createStwoModule(context: Context, role: graph.Role) *std.Build.Module {
     const module = graph.create(context.b, .{
         .product = product(role),
-        .root_source_file = "src/stwo_native_metal.zig",
+        .root_source_file = "src/products/native/metal/root.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -231,6 +231,15 @@ fn createStwoModule(context: Context, role: graph.Role) *std.Build.Module {
         proof_wire,
         module,
     );
+    graph.addFacadeSupportImports(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+        .{ .atomic_file = true, .postcard = true, .native_artifact = true },
+    );
     return module;
 }
 
@@ -241,7 +250,7 @@ fn createRunnerModule(
 ) *std.Build.Module {
     const runner = graph.create(context.b, .{
         .product = product(role),
-        .root_source_file = "src/prover/native/runner.zig",
+        .root_source_file = "src/engine/prover/native/runner.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -249,7 +258,7 @@ fn createRunnerModule(
     runner.addImport("stwo", stwo);
     runner.addImport("native_resource_admission", graph.create(context.b, .{
         .product = product(role),
-        .root_source_file = "src/prover/native/resource_admission.zig",
+        .root_source_file = "src/engine/prover/native/resource_admission.zig",
         .target = context.target,
         .optimize = context.optimize,
     }));
@@ -264,7 +273,7 @@ fn createProductModule(
 ) *std.Build.Module {
     const root = graph.create(context.b, .{
         .product = logical_product,
-        .root_source_file = "src/products/native_metal/main.zig",
+        .root_source_file = "src/products/native/metal/main.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -280,14 +289,14 @@ fn createProductModule(
     });
     transaction.addImport("output_transaction", graph.create(context.b, .{
         .product = logical_product,
-        .root_source_file = "src/interop/output_transaction.zig",
+        .root_source_file = "src/support/io/output_transaction.zig",
         .target = context.target,
         .optimize = context.optimize,
     }));
     root.addImport("native_transaction", transaction);
     const capabilities = graph.create(context.b, .{
         .product = logical_product,
-        .root_source_file = "src/products/native_cpu/capabilities.zig",
+        .root_source_file = "src/products/native/cpu/capabilities.zig",
         .target = context.target,
         .optimize = context.optimize,
     });

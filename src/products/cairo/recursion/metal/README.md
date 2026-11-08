@@ -4,9 +4,9 @@
 with the Metal integrations. It shares the CPU product's `leaf-wrap`, `prove-cairo`,
 `fold-tree`, `fold-stage`, `fold-stage-campaign`, `fold-stage-root`,
 `circuit-params`, and `verify` commands and proof formats. The
-[CPU product guide](../circuit_recursion_cpu/README.md) documents the common
+[CPU product guide](../cpu/README.md) documents the common
 CLI, manifests, and output files; the
-[Metal integration guide](../../integrations/circuit_metal/README.md) documents
+[Metal integration guide](../../../../integrations/circuit_metal/README.md) documents
 device admission and focused tests.
 
 The Cairo input reader accepts official adapted JSON or lossless compact CPI.
@@ -27,12 +27,12 @@ zig build --build-file src/integrations/circuit_metal/build.zig \
 
 The package build installs
 `src/integrations/circuit_metal/zig-out/bin/stwo-circuit-recursion-metal`.
-Use the [Starknet block collector](../../../tools/starknet-block-collector/README.md)
+Use the [Starknet block collector](../../../../../tools/starknet-block-collector/README.md)
 with `circuit_pipeline.py --backend metal` for a continuous PIE sequence. The
 collector authenticates inputs, records adaptation and proving stages, and
 checks the resulting root against the pinned Rust reducer when requested.
 Run focused Metal parity checks through the
-[integration build](../../integrations/circuit_metal/README.md#build-test-and-run)
+[integration build](../../../../integrations/circuit_metal/README.md#build-test-and-run)
 before publishing a new result.
 
 ## Retained two-PIE qualification
@@ -50,6 +50,6 @@ confused with the smaller peak RSS.
 A fresh run on 1 October reused those adapted inputs and passed the retained
 digest gate. It took **72.828 s** from driver input handling to the root file.
 These are individual runs, not latency percentiles or whole-block proof
-measurements. The [collector receipt and phase breakdown](../../../tools/starknet-block-collector/README.md#two-leaf-circuit-root-on-m5-max)
+measurements. The [collector receipt and phase breakdown](../../../../../tools/starknet-block-collector/README.md#two-leaf-circuit-root-on-m5-max)
 provide the inputs, security settings, timing boundaries, and remaining
 aggregator limitation.

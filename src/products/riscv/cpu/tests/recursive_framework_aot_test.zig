@@ -193,7 +193,7 @@ fn generate() !Generated {
     const writer = source.writer(allocator);
     const table = inventory.writer(allocator);
     const report = coverage.writer(allocator);
-    try writer.writeAll("// Generated recursive framework profile v1. Shared field helpers come from core_v2.\n// Generator: src/tests/riscv/recursive_framework_aot_test.zig\n// Regenerate: STWO_RECURSIVE_FRAMEWORK_AOT_GENERATE=<directory> zig build test-riscv-metal-recursive-aot\n");
+    try writer.writeAll("// Generated recursive framework profile v1. Shared field helpers come from core_v2.\n// Generator: src/products/riscv/cpu/tests/recursive_framework_aot_test.zig\n// Regenerate: STWO_RECURSIVE_FRAMEWORK_AOT_GENERATE=<directory> zig build test-riscv-metal-recursive-aot\n");
     try table.writeAll("// Generated from the production leaf and parent typed AIR catalogs.\npub const entries = .{\n");
     try report.writeAll("{\n  \"format\": \"recursive-framework-aot-coverage-v1\",\n  \"composition_coverage_scope\": \"detached_recursive_leaf_and_parent\",\n  \"composition_coverage_complete\": true,\n  \"strict_coverage_complete\": false,\n  \"profiles\": [\n");
     inline for (.{ air.segment_leaf_catalog_v2.LOGICAL_ROWS, air.detached_parent_catalog_v1.LOGICAL_ROWS }, .{ "leaf", "parent" }, 0..) |catalog, profile, profile_index| {

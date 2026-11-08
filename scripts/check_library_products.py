@@ -10,15 +10,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTS = {
     "core": {
-        "source_owners": ("src/core", "src/products/core"),
+        "source_owners": ("src/waist/core", "src/products/stwo/core"),
         "build_owner": "build_support/products/core.zig",
     },
     "backend-contracts": {
-        "source_owners": ("src/backend",),
+        "source_owners": ("src/waist/backend",),
         "build_owner": None,
     },
     "prover": {
-        "source_owners": ("src/prover", "src/products/prover"),
+        "source_owners": ("src/engine/prover", "src/products/stwo/prover"),
         "build_owner": "build_support/products/prover.zig",
     },
 }

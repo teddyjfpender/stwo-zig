@@ -33,10 +33,10 @@ class SourceClosureTest(unittest.TestCase):
         values: dict[str, object] = {
             "product": "test-cpu",
             "entry_roots": ("src/product/main.zig",),
-            "named_imports": (NamedImport("core", "src/core/mod.zig"),),
+            "named_imports": (NamedImport("core", "src/waist/core/mod.zig"),),
             "generated_imports": frozenset({"std"}),
             "allowed_files": frozenset(),
-            "allowed_prefixes": ("src/product", "src/core"),
+            "allowed_prefixes": ("src/product", "src/waist/core"),
         }
         values.update(changes)
         return Manifest(**values)  # type: ignore[arg-type]
@@ -50,10 +50,10 @@ class SourceClosureTest(unittest.TestCase):
                 "src/frontends/riscv/air/constraint_program.zig",
                 "src/frontends/riscv/air/semantics/mod.zig",
             ),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
-            allowed_prefixes=("src/core", "src/frontends/riscv"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         for source in sources:
@@ -73,7 +73,7 @@ class SourceClosureTest(unittest.TestCase):
             'const child = @import(\n    "child.zig",\n);\n',
         )
         self.write("src/product/child.zig", "pub const value = 1;\n")
-        self.write("src/core/mod.zig", "pub const value = 2;\n")
+        self.write("src/waist/core/mod.zig", "pub const value = 2;\n")
         graph = inspect_sources(self.root, self.manifest())
         self.assertEqual(3, len(graph.sources))
         self.assertEqual(64, len(graph.source_digest()))
@@ -81,14 +81,14 @@ class SourceClosureTest(unittest.TestCase):
     def test_manifest_digest_binds_policy(self) -> None:
         original = self.manifest()
         changed = self.manifest(
-            allowed_prefixes=("src/product", "src/core", "src/hidden")
+            allowed_prefixes=("src/product", "src/waist/core", "src/hidden")
         )
         self.assertNotEqual(original.digest(), changed.digest())
         self.assertEqual(original.digest(), self.manifest().digest())
 
     def test_rejects_undeclared_named_import(self) -> None:
         self.write("src/product/main.zig", 'const hidden = @import("hidden");\n')
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         with self.assertRaisesRegex(ClosureError, "undeclared named import"):
             inspect_sources(self.root, self.manifest())
 
@@ -97,40 +97,40 @@ class SourceClosureTest(unittest.TestCase):
         outside.write_text("", encoding="utf-8")
         self.addCleanup(outside.unlink)
         self.write("src/product/main.zig", 'const hidden = @import("../../../outside.zig");\n')
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         with self.assertRaisesRegex(ClosureError, "escapes repository"):
             inspect_sources(self.root, self.manifest())
 
     def test_rejects_source_outside_manifest(self) -> None:
         self.write("src/product/main.zig", 'const hidden = @import("../hidden.zig");\n')
         self.write("src/hidden.zig", "")
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         with self.assertRaisesRegex(ClosureError, "outside product manifest"):
             inspect_sources(self.root, self.manifest())
 
     def test_aggregate_manifest_rejects_unrelated_product_owner(self) -> None:
         self.write(
-            "src/tools/prove/main.zig",
+            "src/products/stwo/tools/prove/main.zig",
             'const unrelated = @import("../../products/unrelated/main.zig");\n',
         )
         self.write("src/products/unrelated/main.zig", "pub const value = 1;\n")
-        self.write("src/core/mod.zig", "")
-        self.write("src/prover/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
+        self.write("src/engine/prover/mod.zig", "")
         manifest = self.manifest(
             product="stwo-zig",
-            entry_roots=("src/tools/prove/main.zig",),
+            entry_roots=("src/products/stwo/tools/prove/main.zig",),
             named_imports=(),
-            allowed_prefixes=("src/tools/prove", "src/core", "src/prover"),
+            allowed_prefixes=("src/products/stwo/tools/prove", "src/waist/core", "src/engine/prover"),
         )
         with self.assertRaisesRegex(ClosureError, "outside product manifest"):
             inspect_sources(self.root, manifest)
 
     def test_rejects_named_module_cycle(self) -> None:
         self.write("src/product/main.zig", 'const core = @import("core");\n')
-        self.write("src/core/mod.zig", 'const product = @import("product");\n')
+        self.write("src/waist/core/mod.zig", 'const product = @import("product");\n')
         manifest = self.manifest(
             named_imports=(
-                NamedImport("core", "src/core/mod.zig"),
+                NamedImport("core", "src/waist/core/mod.zig"),
                 NamedImport("product", "src/product/main.zig"),
             )
         )
@@ -140,7 +140,7 @@ class SourceClosureTest(unittest.TestCase):
     def test_allows_internal_test_self_import_cycle(self) -> None:
         self.write("src/product/main.zig", 'const child = @import("child.zig");\n')
         self.write("src/product/child.zig", 'const main = @import("main.zig");\n')
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         graph = inspect_sources(self.root, self.manifest())
         self.assertEqual(2, len(graph.sources))
 
@@ -150,13 +150,13 @@ class SourceClosureTest(unittest.TestCase):
             '// @import("hidden.zig")\nconst text = \\\\@import("hidden.zig");\n'
             'const ordinary = "@import(\\\"hidden.zig\\\")";\n',
         )
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         graph = inspect_sources(self.root, self.manifest())
         self.assertEqual(("src/product/main.zig",), graph.relative_sources())
 
     def test_rejects_non_literal_import(self) -> None:
         self.write("src/product/main.zig", "const hidden = @import(path);\n")
-        self.write("src/core/mod.zig", "")
+        self.write("src/waist/core/mod.zig", "")
         with self.assertRaisesRegex(
             ClosureError,
             r"src/product/main\.zig: unsupported non-literal",
@@ -170,10 +170,10 @@ class RecursionOwnershipTest(unittest.TestCase):
         manifest = Manifest(
             product="typed-wide-poseidon-definition",
             entry_roots=("src/frontends/riscv/air/lang/typed_poseidon2_wide.zig",),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset({"src/frontends/riscv/access_clock.zig"}),
-            allowed_prefixes=("src/core", "src/frontends/riscv/air"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv/air"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         for path in sources:
@@ -200,10 +200,10 @@ class RecursionOwnershipTest(unittest.TestCase):
         manifest = Manifest(
             product="typed-native-boundary-definition",
             entry_roots=("src/frontends/riscv/air/lang/typed_native_boundary.zig",),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
-            allowed_prefixes=("src/core", "src/frontends/riscv"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         for path in (
@@ -240,10 +240,10 @@ class RecursionOwnershipTest(unittest.TestCase):
                 "segment_verified_publication_v2", "segment_verified_artifact_v2",
                 "canonical_proof_identity_v1", "engine_protocol", "segment_outer_wire_geometry_v2",
             )),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
-            allowed_prefixes=("src/core", "src/frontends/riscv"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         for source in sources:
@@ -322,7 +322,7 @@ class RecursionOwnershipTest(unittest.TestCase):
 
     def test_producer_allocator_has_no_integration_dependencies(self) -> None:
         root = Path(__file__).resolve().parents[2]
-        source = "src/prover/tracked_smp_allocator.zig"
+        source = "src/engine/prover/tracked_smp_allocator.zig"
         manifest = Manifest(
             product="producer-allocation-accounting",
             entry_roots=(source,),
@@ -378,10 +378,10 @@ class RecursionOwnershipTest(unittest.TestCase):
                 "src/frontends/riscv/recursion/air/segment_outer_manifest_contract_v2.zig",
                 "src/frontends/riscv/recursion/detached_parent_verifier_components_v1.zig",
             ),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
-            allowed_prefixes=("src/core", "src/frontends/riscv"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         for source in sources:
@@ -397,14 +397,14 @@ class RecursionOwnershipTest(unittest.TestCase):
             product="detached-parent-verification",
             entry_roots=("src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier_runner.zig",),
             named_imports=(
-                NamedImport("stwo_core", "src/core/mod.zig"),
+                NamedImport("stwo_core", "src/waist/core/mod.zig"),
                 NamedImport("stwo_parent_verifier", "src/frontends/riscv/parent_verifier.zig"),
-                NamedImport("interop_postcard", "src/interop/postcard.zig"),
-                NamedImport("stwo_proof_wire", "src/interop/proof_wire/mod.zig"),
+                NamedImport("interop_postcard", "src/waist/recursion_wire/postcard/mod.zig"),
+                NamedImport("stwo_proof_wire", "src/waist/proof_wire/mod.zig"),
             ),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset({"src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier_runner.zig"}),
-            allowed_prefixes=("src/core", "src/frontends/riscv", "src/interop"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv", "src/interop"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         for source in sources:
@@ -424,14 +424,14 @@ class RecursionOwnershipTest(unittest.TestCase):
             product="detached-leaf-verification",
             entry_roots=("src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier_runner.zig",),
             named_imports=(
-                NamedImport("stwo_core", "src/core/mod.zig"),
+                NamedImport("stwo_core", "src/waist/core/mod.zig"),
                 NamedImport("stwo_leaf_verifier", "src/frontends/riscv/leaf_verifier.zig"),
-                NamedImport("interop_postcard", "src/interop/postcard.zig"),
-                NamedImport("stwo_proof_wire", "src/interop/proof_wire/mod.zig"),
+                NamedImport("interop_postcard", "src/waist/recursion_wire/postcard/mod.zig"),
+                NamedImport("stwo_proof_wire", "src/waist/proof_wire/mod.zig"),
             ),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset({"src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier_runner.zig"}),
-            allowed_prefixes=("src/core", "src/frontends/riscv", "src/interop"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv", "src/interop"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
         for source in sources:
@@ -470,10 +470,10 @@ class RecursionOwnershipTest(unittest.TestCase):
             "air/memory_commitment/poseidon2_universal_layout_v1.zig",
                 "air/memory_commitment/poseidon2_wide_equations.zig",
             )),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset("src/frontends/riscv/" + name for name in files),
-            allowed_prefixes=("src/core",),
+            allowed_prefixes=("src/waist/core",),
         )
         inspect_sources(root, manifest)
 
@@ -522,13 +522,13 @@ class RecursionOwnershipTest(unittest.TestCase):
                 "universal_provider_admission.zig",
                 "universal_provider_relations.zig",
             )),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=(
                 frozenset("src/frontends/riscv/" + name for name in files) |
                 frozenset(f"src/frontends/riscv/air/lang/{name}.zig" for name in self.DEFINITION_FILES)
             ),
-            allowed_prefixes=("src/core",),
+            allowed_prefixes=("src/waist/core",),
         )
         inspect_sources(root, manifest)
 
@@ -544,13 +544,13 @@ class RecursionOwnershipTest(unittest.TestCase):
         manifest = Manifest(
             product="range-table-contract",
             entry_roots=("src/frontends/riscv/recursion/air/range_check_8_8_contract.zig",),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=(
                 frozenset("src/frontends/riscv/" + name for name in files) |
                 frozenset(f"src/frontends/riscv/air/lang/{name}.zig" for name in self.DEFINITION_FILES)
             ),
-            allowed_prefixes=("src/core",),
+            allowed_prefixes=("src/waist/core",),
         )
         inspect_sources(root, manifest)
 
@@ -587,13 +587,13 @@ class RecursionOwnershipTest(unittest.TestCase):
         manifest = Manifest(
             product="canonical-poseidon-identity",
             entry_roots=("src/frontends/riscv/air/memory_commitment/poseidon2_universal_identity_v2.zig",),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=(
                 frozenset("src/frontends/riscv/" + name for name in files) |
                 frozenset(f"src/frontends/riscv/air/lang/{name}.zig" for name in self.DEFINITION_FILES)
             ),
-            allowed_prefixes=("src/core",),
+            allowed_prefixes=("src/waist/core",),
         )
         inspect_sources(root, manifest)
 
@@ -602,7 +602,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         manifest = Manifest(
             product="vm-public-claim",
             entry_roots=("src/frontends/riscv/recursion/vm_public_claim.zig",),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(
                 "src/frontends/riscv/" + path for path in (
@@ -615,7 +615,7 @@ class RecursionOwnershipTest(unittest.TestCase):
                     "recursion/vm_public_claim_layout.zig",
                 )
             ),
-            allowed_prefixes=("src/core",),
+            allowed_prefixes=("src/waist/core",),
         )
         inspect_sources(root, manifest)
 
@@ -627,7 +627,7 @@ class RecursionOwnershipTest(unittest.TestCase):
                 "src/frontends/riscv/air/lang/definition.zig",
                 "src/frontends/riscv/recursion/air/fixed_wire_v3.zig",
             ),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset({
                 "src/frontends/riscv/recursion/air/fixed_wire_v3.zig",
@@ -636,7 +636,7 @@ class RecursionOwnershipTest(unittest.TestCase):
             }) | frozenset(
                 f"src/frontends/riscv/air/lang/{name}.zig" for name in self.DEFINITION_FILES
             ),
-            allowed_prefixes=("src/core",),
+            allowed_prefixes=("src/waist/core",),
         )
         inspect_sources(root, manifest)
 
@@ -646,12 +646,12 @@ class RecursionOwnershipTest(unittest.TestCase):
             product="detached-parent-protocol",
             entry_roots=("src/frontends/riscv/recursion/detached_parent_protocol_v1.zig",),
             named_imports=(
-                NamedImport("stwo_core", "src/core/mod.zig"),
+                NamedImport("stwo_core", "src/waist/core/mod.zig"),
             ),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
             allowed_prefixes=(
-                "src/core", "src/frontends/riscv",
+                "src/waist/core", "src/frontends/riscv",
             ),
         )
         sources = inspect_sources(root, manifest).relative_sources()
@@ -691,12 +691,12 @@ class RecursionOwnershipTest(unittest.TestCase):
                          "src/frontends/riscv/recursion/segment_outer_transaction_v2.zig",
                          "src/frontends/riscv/recursion/binary_verified_publication.zig"),
             named_imports=tuple(NamedImport(name, path) for name, path in (
-                ("stwo_core", "src/core/mod.zig"),
-                ("stwo_prover_engine", "src/prover/mod.zig"),
-                ("stwo_prover_api", "src/prover_api/mod.zig"),
-                ("stwo_backend_contracts", "src/backend/mod.zig"),
-                ("interop_postcard", "src/interop/postcard.zig"),
-                ("stwo_proof_wire", "src/interop/proof_wire/mod.zig"),
+                ("stwo_core", "src/waist/core/mod.zig"),
+                ("stwo_prover_engine", "src/engine/prover/mod.zig"),
+                ("stwo_prover_api", "src/waist/prover_api/mod.zig"),
+                ("stwo_backend_contracts", "src/waist/backend/mod.zig"),
+                ("interop_postcard", "src/waist/recursion_wire/postcard/mod.zig"),
+                ("stwo_proof_wire", "src/waist/proof_wire/mod.zig"),
                 ("typed_air_artifacts", "design/typed-air/artifacts/embedded.zig"),
                 ("typed_air_h009_artifacts", "design/typed-air/artifacts/h009_embedded.zig"),
                 ("typed_air_h010_artifacts", "design/typed-air/artifacts/h010_embedded.zig"),
@@ -705,8 +705,8 @@ class RecursionOwnershipTest(unittest.TestCase):
             allowed_files=frozenset(),
             # Preparation owns witnesses and may use generic proving contracts.
             # Concrete backend and integration directories are deliberately absent.
-            allowed_prefixes=("src/core", "src/frontends/riscv", "src/prover",
-                              "src/prover_api", "src/backend", "src/interop",
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv", "src/engine/prover",
+                              "src/waist/prover_api", "src/waist/backend", "src/interop",
                               "design/typed-air/artifacts"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
@@ -724,16 +724,16 @@ class RecursionOwnershipTest(unittest.TestCase):
             product="recursion-compact-tuple-preparation",
             entry_roots=("src/frontends/riscv/recursion/compact_tuple_ledger_v1.zig",),
             named_imports=(
-                NamedImport("stwo_core", "src/core/mod.zig"),
-                NamedImport("stwo_prover_engine", "src/prover/mod.zig"),
-                NamedImport("stwo_prover_api", "src/prover_api/mod.zig"),
-                NamedImport("stwo_backend_contracts", "src/backend/mod.zig"),
+                NamedImport("stwo_core", "src/waist/core/mod.zig"),
+                NamedImport("stwo_prover_engine", "src/engine/prover/mod.zig"),
+                NamedImport("stwo_prover_api", "src/waist/prover_api/mod.zig"),
+                NamedImport("stwo_backend_contracts", "src/waist/backend/mod.zig"),
             ),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
             allowed_prefixes=(
-                "src/core", "src/frontends/riscv", "src/prover",
-                "src/prover_api", "src/backend",
+                "src/waist/core", "src/frontends/riscv", "src/engine/prover",
+                "src/waist/prover_api", "src/waist/backend",
             ),
         )
         graph = inspect_sources(root, manifest)
@@ -744,7 +744,7 @@ class RecursionOwnershipTest(unittest.TestCase):
         manifest = Manifest(
             product="recursion-verifier-tree",
             entry_roots=("src/frontends/riscv/recursion/verifier_tree.zig",),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset({
                 "src/frontends/riscv/recursion/verifier_tree.zig",
@@ -753,7 +753,7 @@ class RecursionOwnershipTest(unittest.TestCase):
                 "src/frontends/riscv/air/memory_commitment/poseidon2.zig",
                 "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig",
             }),
-            allowed_prefixes=("src/core",),
+            allowed_prefixes=("src/waist/core",),
         )
         # Follow real relative and named imports. A witness, backend, prover or
         # integration dependency must fail the closure, even when Zig would
@@ -807,7 +807,7 @@ class CommandTest(unittest.TestCase):
         args = argparse.Namespace(
             repo=command.ROOT,
             product="test",
-            entry_root=["src/stwo.zig"],
+            entry_root=["src/products/stwo/root.zig"],
             named_import=["invalid"],
             generated_import=[],
             allow_file=[],
@@ -828,7 +828,7 @@ class CommandTest(unittest.TestCase):
         args = argparse.Namespace(
             repo=command.ROOT,
             product="test",
-            entry_root=["src/stwo.zig"],
+            entry_root=["src/products/stwo/root.zig"],
             named_import=[],
             generated_import=[],
             allow_file=[],

@@ -28,7 +28,7 @@ const files = [_][]const u8{
     "src/integrations/circuit_cpu/verify.zig",
     "src/integrations/circuit_cpu/verifier_proof.zig",
     "src/integrations/circuit_cpu/air.zig",
-    "src/interop/circuit_recursion/circuit_serialize.zig",
+    "src/waist/recursion_wire/circuit_serialize.zig",
     "vectors/circuit/official/compiled_air_constraints_v1.bin",
     "vectors/circuit/official/circuit_air.air_programs_v1.bin",
 };

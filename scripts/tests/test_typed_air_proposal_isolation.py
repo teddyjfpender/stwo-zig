@@ -16,10 +16,10 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
         manifest = Manifest(
             product="shared-polynomial-compiler",
             entry_roots=tuple("src/frontends/riscv/air/lang/" + owner for owner in owners),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
-            allowed_prefixes=("src/core", "src/frontends/riscv/air"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv/air"),
         )
         for path in inspect_sources(root, manifest).relative_sources():
             self.assertNotIn(Path(path).name, AUTHORING_FILES)
@@ -63,7 +63,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                 "src/frontends/riscv/build.zig": (
                     'const artifact_name = "typed_air_h009_artifacts";\n'
                 ),
-                "src/tests/riscv/proposal_test.zig": (
+                "src/products/riscv/cpu/tests/proposal_test.zig": (
                     "const policy = frontend.air.lang.cost_aware_materializer;\n"
                 ),
                 "src/frontends/riscv/air/lang/tests/typed_poseidon2_frontier_artifact_test.zig": (

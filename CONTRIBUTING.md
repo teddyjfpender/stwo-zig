@@ -121,11 +121,11 @@ docs                           architecture, protocols, performance claims, oper
 
 ### Directory responsibilities
 
-- `src/core/`: backend-independent mathematics, protocol data, transcript logic, and verification.
+- `src/waist/core/`: backend-independent mathematics, protocol data, transcript logic, and verification.
   It must not depend on a frontend or concrete accelerator.
-- `src/backend/`: small capability contracts and backend-neutral operation interfaces. Do not put
+- `src/waist/backend/`: small capability contracts and backend-neutral operation interfaces. Do not put
   a concrete device policy here.
-- `src/prover/`: proof orchestration and backend-generic prover algorithms. It may consume backend
+- `src/engine/prover/`: proof orchestration and backend-generic prover algorithms. It may consume backend
   capabilities but must not smuggle Metal-specific policy into generic APIs.
 - `src/backends/cpu_scalar/`: portable scalar reference behavior and CPU-specific implementation.
 - `src/backends/metal/`: Metal runtime, memory, pipeline, kernel, and prover integration. Objective-C
@@ -135,8 +135,9 @@ docs                           architecture, protocols, performance claims, oper
   Frontends must not select a concrete backend or embed application-specific content.
 - `src/integrations/`: explicit frontend/backend composition. Integrations select concrete
   backends without duplicating frontend semantics or generic prover orchestration.
-- `src/interop/`: versioned external representations and cross-language conversion.
-- `src/bench/`: benchmark execution primitives, not production protocol logic.
+- `src/waist/proof_wire/`, `src/waist/recursion_wire/`: versioned external representations and cross-language conversion.
+- `src/support/`: std-only helpers (`io`, `shims`, `tracing`).
+- `src/products/<line>/<target>/`: user-facing CLIs, product facades, product tools and benchmarks.
 - `scripts/`: orchestration and report tooling. Scripts must call stable program boundaries rather
   than duplicate proof semantics.
 - `tools/`: independently buildable adapters and developer utilities.
@@ -365,7 +366,7 @@ Avoid wildcard namespace injection and broad re-export trees. Import the definin
 qualified name when it adds useful context.
 
 The `src/` root may also contain a minimal build entry point when Zig's module-root semantics
-require one. `src/std_shims_freestanding.zig` is the deliberate example: it establishes the
+require one. `src/support/shims/freestanding.zig` is the deliberate example: it establishes the
 freestanding verifier import boundary and must not accumulate reusable implementation code.
 
 ### Test layout

@@ -329,7 +329,7 @@ const runner = @import("mod.zig");
 //
 // Until 2026-07-29 they ran in NO build step. `zig test` collects tests only
 // from the files of its ROOT module; every RISC-V step roots at
-// `src/tests.zig` and reaches this file through the `stwo_riscv_frontend`
+// `src/products/riscv/cpu/test_root.zig` and reaches this file through the `stwo_riscv_frontend`
 // module dependency, and dependency modules contribute no tests. Measured:
 // `zig build test-riscv-release-exhaustive
 // -Driscv-test-filter="runner agrees with pinned Sail"` failed
@@ -355,7 +355,7 @@ const runner = @import("mod.zig");
 //    enough: nothing referenced it, so it was never analysed.
 //
 // The `AbsencePolicy` coverage additionally lives in
-// `src/tests/riscv/unit_test.zig`, which every exhaustive step collects.
+// `src/products/riscv/cpu/tests/unit_test.zig`, which every exhaustive step collects.
 
 test "sail_oracle: runner agrees with pinned Sail on a small guest (skips visibly when Sail absent; ~0.3s when present)" {
     const alloc = std.testing.allocator;

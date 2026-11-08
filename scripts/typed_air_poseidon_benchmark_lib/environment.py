@@ -26,10 +26,10 @@ SOURCE_MANIFEST = Manifest(
     product="h010-authenticated-poseidon-layout-runner-v1",
     entry_roots=("src/frontends/riscv/poseidon_layout_benchmark_tool.zig",),
     named_imports=(
-        NamedImport("stwo_backend_contracts", "src/backend/mod.zig"),
-        NamedImport("stwo_core", "src/core/mod.zig"),
-        NamedImport("stwo_prover_api", "src/prover_api/mod.zig"),
-        NamedImport("stwo_prover_engine", "src/prover/mod.zig"),
+        NamedImport("stwo_backend_contracts", "src/waist/backend/mod.zig"),
+        NamedImport("stwo_core", "src/waist/core/mod.zig"),
+        NamedImport("stwo_prover_api", "src/waist/prover_api/mod.zig"),
+        NamedImport("stwo_prover_engine", "src/engine/prover/mod.zig"),
         NamedImport(
             "typed_air_h009_artifacts",
             "design/typed-air/artifacts/h009_embedded.zig",

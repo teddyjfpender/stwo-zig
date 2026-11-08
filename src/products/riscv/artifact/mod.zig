@@ -9,13 +9,13 @@ const std = @import("std");
 /// at it either (a file belongs to exactly one module). Such a facade re-exports
 /// the atomic publication primitive from here, which is where this artifact
 /// writer already publishes through.
-pub const atomic_file = @import("atomic_file.zig");
-const schema = @import("riscv_artifact/schema.zig");
-const validation = @import("riscv_artifact/validation.zig");
-const digest = @import("riscv_artifact/digest.zig");
-const preflight = @import("riscv_artifact/preflight.zig");
+pub const atomic_file = @import("atomic_file");
+const schema = @import("schema.zig");
+const validation = @import("validation.zig");
+const digest = @import("digest.zig");
+const preflight = @import("preflight.zig");
 
-pub const wire_protocol = @import("riscv_artifact/protocol.zig");
+pub const wire_protocol = @import("protocol.zig");
 
 pub const SCHEMA_VERSION = schema.SCHEMA_VERSION;
 pub const BLAKE3_SCHEMA_VERSION = schema.BLAKE3_SCHEMA_VERSION;
@@ -217,7 +217,7 @@ test "artifact classification owns non-RISC-V fallback bytes across replacement"
 }
 
 test {
-    _ = @import("riscv_artifact/validation_test.zig");
+    _ = @import("validation_test.zig");
 }
 
 test "RISC-V artifact suite admission binds version and mode before decoding" {

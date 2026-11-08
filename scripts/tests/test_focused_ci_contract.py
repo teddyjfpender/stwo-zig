@@ -49,7 +49,7 @@ class PlannerContractTests(unittest.TestCase):
                 self.assertEqual(expected, self.lanes_for(path))
 
     def test_shared_core_change_fans_out_to_every_consumer_and_package(self) -> None:
-        selected = self.lanes_for("src/core/fields/m31.zig")
+        selected = self.lanes_for("src/waist/core/fields/m31.zig")
         self.assertTrue(
             {
                 "static",
@@ -78,7 +78,7 @@ class PlannerContractTests(unittest.TestCase):
         self.assertNotIn("metal_aot", selected)
 
     def test_backend_contract_change_runs_its_package_and_dependents(self) -> None:
-        selected = self.lanes_for("src/backend/merkle_ops.zig")
+        selected = self.lanes_for("src/waist/backend/merkle_ops.zig")
         self.assertTrue(
             {
                 "static",
@@ -230,7 +230,7 @@ class PlannerContractTests(unittest.TestCase):
     def test_leaf_native_cpu_change_does_not_select_unrelated_products(self) -> None:
         self.assertEqual(
             {"static", "native_cpu"},
-            self.lanes_for("src/products/native_cpu/cli.zig"),
+            self.lanes_for("src/products/native/cpu/cli.zig"),
         )
 
     def test_cuda_change_requires_static_and_explicit_device_lanes(self) -> None:
@@ -346,7 +346,7 @@ class PlannerContractTests(unittest.TestCase):
     def test_multiple_paths_take_the_conservative_union(self) -> None:
         selected = self.lanes_for(
             "docs/release.md",
-            "src/products/native_cpu/cli.zig",
+            "src/products/native/cpu/cli.zig",
             "src/backends/metal/runtime.m",
         )
         self.assertTrue(
@@ -389,14 +389,14 @@ class PlannerContractTests(unittest.TestCase):
     def test_empty_or_unsafe_changed_paths_are_rejected(self) -> None:
         with self.assertRaisesRegex(ci_scope_plan.PlanError, "no changed paths"):
             ci_scope_plan.select_lanes([], self.catalog, self.policy)
-        for path in ("../outside", "/absolute/path", "src/core/../../outside"):
+        for path in ("../outside", "/absolute/path", "src/waist/core/../../outside"):
             with self.subTest(path=path):
                 with self.assertRaisesRegex(ci_scope_plan.PlanError, "unsafe"):
                     ci_scope_plan.select_lanes([path], self.catalog, self.policy)
 
     def test_path_ownership_is_component_safe(self) -> None:
-        self.assertTrue(ci_scope_plan.owns("src/core/field.zig", "src/core"))
-        self.assertFalse(ci_scope_plan.owns("src/coreish/field.zig", "src/core"))
+        self.assertTrue(ci_scope_plan.owns("src/waist/core/field.zig", "src/waist/core"))
+        self.assertFalse(ci_scope_plan.owns("src/coreish/field.zig", "src/waist/core"))
 
     def test_git_rename_and_delete_classify_old_and_new_paths(self) -> None:
         result = subprocess.CompletedProcess(
@@ -408,7 +408,7 @@ class PlannerContractTests(unittest.TestCase):
         with mock.patch.object(ci_scope_plan.subprocess, "run", return_value=result):
             paths = ci_scope_plan.git_changed_paths(ROOT, "base", "head")
         self.assertEqual(
-            ["src/core/old.zig", "src/core/new.zig", "src/prover/gone.zig"],
+            ["src/waist/core/old.zig", "src/waist/core/new.zig", "src/engine/prover/gone.zig"],
             paths,
         )
 

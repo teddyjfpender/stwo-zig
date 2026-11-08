@@ -436,7 +436,7 @@ test "opcode family precondition: the trace-only prove entrypoint rejects an ECA
     // A real runner-produced trace, not a synthetic one. `runner.run` is the
     // non-strict entrypoint (`runWithHost` with no host), so an ECALL is
     // retired into the trace as an ordinary row and then halts the machine.
-    // `src/tools/riscv/bench/runner.zig` reaches the prover through exactly
+    // `src/products/riscv/tools/bench/runner.zig` reaches the prover through exactly
     // this shape, which is how the defect was hit in production.
     const allocator = std.testing.allocator;
     const elf = ecallElf();

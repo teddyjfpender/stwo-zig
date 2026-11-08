@@ -138,7 +138,7 @@ class P003CompletionTests(unittest.TestCase):
 
     def test_inventory_parser_rejects_order_and_schema_drift(self) -> None:
         source = Path(
-            "src/prover_api/work_profile_inventory.zig"
+            "src/waist/prover_api/work_profile_inventory.zig"
         ).read_text(encoding="utf-8")
         for old, new in (
             ("SCHEMA_VERSION: u16 = 9", "SCHEMA_VERSION: u16 = 10"),

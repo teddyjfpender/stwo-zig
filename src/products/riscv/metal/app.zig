@@ -1,9 +1,9 @@
 //! Lifecycle and publication boundary for the focused RISC-V Metal product.
 //!
-//! The generic body lives in `src/products/riscv_shared/app.zig`; this file is
+//! The generic body lives in `src/products/riscv/shared/app.zig`; this file is
 //! the Metal binding of it. It is the single place where the focused Metal
 //! product chooses its prover engine and its adapter backend tag, exactly
-//! mirroring `src/products/riscv_cpu/app.zig`. Nothing else about the run
+//! mirroring `src/products/riscv/cpu/app.zig`. Nothing else about the run
 //! differs: the output transaction, the atomic publication order, the adapter
 //! error mapping and the command dispatch are the shared ones, which is what
 //! makes a Metal run comparable with a CPU run.

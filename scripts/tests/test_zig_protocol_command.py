@@ -17,7 +17,7 @@ from scripts.zig_protocol_lib.command import (
 
 class ZigProtocolCommandTests(unittest.TestCase):
     def test_protocol_modules_are_wired_in_dependency_order(self) -> None:
-        arguments = protocol_module_args("src/stwo_deep.zig")
+        arguments = protocol_module_args("src/products/native/tests/deep_root.zig")
         modules = protocol_package_modules()
         selected = {module.name for module in modules}
         positions = {
@@ -25,7 +25,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
             for module in modules
         }
 
-        self.assertIn("-Mroot=src/stwo_deep.zig", arguments)
+        self.assertIn("-Mroot=src/products/native/tests/deep_root.zig", arguments)
         for module in modules:
             for dependency in module.dependencies:
                 self.assertIn(dependency, selected)
@@ -38,9 +38,9 @@ class ZigProtocolCommandTests(unittest.TestCase):
     def test_every_module_scope_uses_its_authoritative_contract_dependencies(self) -> None:
         modules = protocol_package_modules()
         self.assertEqual(PROTOCOL_PACKAGES, tuple(module.name for module in modules))
-        arguments = protocol_module_args("src/stwo_deep.zig")
+        arguments = protocol_module_args("src/products/native/tests/deep_root.zig")
 
-        cursor = arguments.index("-Mroot=src/stwo_deep.zig") + 1
+        cursor = arguments.index("-Mroot=src/products/native/tests/deep_root.zig") + 1
         for module in modules:
             module_flag = f"-M{module.name}={module.source}"
             end = arguments.index(module_flag, cursor)
@@ -54,7 +54,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
 
     def test_test_command_preserves_trailing_zig_arguments(self) -> None:
         command = test_command(
-            "src/stwo.zig",
+            "src/products/stwo/root.zig",
             "-OReleaseFast",
             "--test-filter",
             "proof wire",
@@ -69,7 +69,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
 
     def test_optimization_is_scoped_before_every_module(self) -> None:
         for flags in (("-OReleaseFast",), ("-O", "ReleaseSafe")):
-            command = test_command("src/stwo.zig", *flags, "--test-filter", "proof wire")
+            command = test_command("src/products/stwo/root.zig", *flags, "--test-filter", "proof wire")
             mode = flags[-1].removeprefix("-O")
             module_positions = [i for i, arg in enumerate(command) if arg.startswith("-M")]
             self.assertEqual(len(PROTOCOL_PACKAGES) + 2, len(module_positions))
@@ -78,20 +78,20 @@ class ZigProtocolCommandTests(unittest.TestCase):
             self.assertFalse(any(arg.startswith("-O") for arg in command[module_positions[-1] + 1:]))
 
     def test_filter_text_is_not_an_optimization_option(self) -> None:
-        command = test_command("src/stwo.zig", "--test-filter", "-OReleaseFast")
+        command = test_command("src/products/stwo/root.zig", "--test-filter", "-OReleaseFast")
         self.assertEqual(["--test-filter", "-OReleaseFast"], command[-2:])
         self.assertFalse(any(arg.startswith("-O") for arg in command[:-2]))
 
     def test_debug_symbol_option_applies_to_every_module_and_last_choice_wins(self) -> None:
         for flags in (("-fstrip",), ("-fstrip", "-fno-strip")):
-            command = test_command("src/stwo.zig", "-OReleaseSafe", *flags)
+            command = test_command("src/products/stwo/root.zig", "-OReleaseSafe", *flags)
             positions = [i for i, arg in enumerate(command) if arg.startswith("-M")]
             for position in positions:
                 self.assertEqual(["-OReleaseSafe", flags[-1]], command[position - 2:position])
             self.assertEqual(len(PROTOCOL_PACKAGES) + 2, command.count(flags[-1]))
 
     def test_strip_filter_text_and_arguments_after_separator_are_preserved(self) -> None:
-        command = test_command("src/stwo.zig", "--test-filter", "-fstrip", "--", "-fno-strip")
+        command = test_command("src/products/stwo/root.zig", "--test-filter", "-fstrip", "--", "-fno-strip")
         self.assertEqual(["--test-filter", "-fstrip", "--", "-fno-strip"], command[-4:])
         self.assertNotIn("-fstrip", command[:-4])
         self.assertNotIn("-fno-strip", command[:-4])
@@ -102,8 +102,8 @@ class ZigProtocolCommandTests(unittest.TestCase):
         self.assertEqual(len(names), len(set(names)))
         self.assertEqual(1, names.count("interop_postcard"))
         self.assertEqual(1, names.count("stwo_proof_wire"))
-        previous = max(i for i, arg in enumerate(arguments[:arguments.index("-Minterop_postcard=src/interop/postcard.zig")]) if arg.startswith("-M"))
-        scoped = arguments[previous + 1:arguments.index("-Minterop_postcard=src/interop/postcard.zig")]
+        previous = max(i for i, arg in enumerate(arguments[:arguments.index("-Minterop_postcard=src/waist/recursion_wire/postcard/mod.zig")]) if arg.startswith("-M"))
+        scoped = arguments[previous + 1:arguments.index("-Minterop_postcard=src/waist/recursion_wire/postcard/mod.zig")]
         self.assertEqual(["--dep", "stwo_core", "--dep", "stwo_proof_wire"], scoped)
 
     def test_cpu_graph_is_contract_derived_closed_and_has_no_duplicate_modules(self) -> None:

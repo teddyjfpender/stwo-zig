@@ -65,7 +65,7 @@ Every fix has a row-local rejection check. Five of the six have one in the
 owning AIR module. The DIV divisor byte range does not: `semantics/div.zig`
 covers only the quotient-sign and zero-divisor halves of that item, and the
 divisor byte-range check lives in
-`src/tests/riscv/divisor_byte_range_soundness_test.zig`. The committed-trace
+`src/products/riscv/cpu/tests/divisor_byte_range_soundness_test.zig`. The committed-trace
 coverage of all six, and what it does and does not establish, is the table
 below.
 
@@ -184,7 +184,7 @@ rejection is attributable to one preprocessed table.
 
 Several of those modules say in their own doc comments that nothing in the
 repository previously proved a row of their family end to end. Read that as
-"no test under `src/tests/riscv/` did", and not even that for `branch_eq` and
+"no test under `src/products/riscv/cpu/tests/` did", and not even that for `branch_eq` and
 `load_store`: `prover_test.zig` already proves and verifies BEQ, BNE, `LW`, and
 `SW` rows, and `scripts/riscv_arch_tests.py` already runs execute → prove →
 separate-process verify over the pinned architectural corpus, which exercises
@@ -206,7 +206,7 @@ the modelled system, identically on both sides of every verdict below.
 
 The instrument chain, each link executed rather than assumed:
 
-* `src/tests/riscv/uniqueness_ir_test.zig` emits each family's constraints and
+* `src/products/riscv/cpu/tests/uniqueness_ir_test.zig` emits each family's constraints and
   lookup requests by instantiating the production `Semantics(S)`/`Entries(S)`
   with a tracing scalar, and a fixed-seed differential (17 families x 32
   trials, seed 0x51501ce01dedbeef) checks the emitted DAG against
@@ -214,7 +214,7 @@ The instrument chain, each link executed rather than assumed:
 * `scripts/air_uniqueness_board.py` decides the two-copy query per family,
   sharded by opcode, with an honest-witness probe so an `unsat` cannot be
   vacuous silently.
-* `src/tests/riscv/uniqueness_counterexample_test.zig` replays every exported
+* `src/products/riscv/cpu/tests/uniqueness_counterexample_test.zig` replays every exported
   `sat` pair against `row_admissibility.verdict` — the AIR's own direct
   constraints plus real preprocessed-table membership — so a solver-model
   artifact cannot be reported as an AIR bug. All three pairs exported by the
@@ -426,7 +426,7 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
 - [x] Cover every opcode family with a pre-ingestion committed-row forgery and
       a paired honest prove → verify → pinned-Sail run. The canonical accounting
       is `FAMILY_COVERAGE` in
-      `src/tests/riscv/opcode_family_committed_soundness_test.zig`: it is in the
+      `src/products/riscv/cpu/tests/opcode_family_committed_soundness_test.zig`: it is in the
       exact order of all seventeen families in `air/component_order.zig`, names
       the executable forgery and honest case for each one, requires every owner
       module to be registered by `trace_test.zig`, and fails at compile time on
@@ -459,7 +459,7 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       its post-generation single-cell semantics and the two are documented apart
       at the hook. Seven end-to-end expectations moved from
       `.prover_constraints` to `.verification` as a result.
-- [x] Keep `src/tests/riscv/proof_admission_test.zig` scoped to what it actually
+- [x] Keep `src/products/riscv/cpu/tests/proof_admission_test.zig` scoped to what it actually
       tests and put family enumeration in the committed-mutation suite above.
       The admission file checks that the injected engine is the proving
       substitution point for two traces: a runner-produced four-row
@@ -488,7 +488,7 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       `semantics/div.zig` itself and no recorded adversarial self-check.
 - [x] Add a deliberately malicious prover harness for skipped instructions,
       stale reads, forged outputs, and altered completion.
-      `src/tests/riscv/malicious_prover_harness.zig` enters the real proving
+      `src/products/riscv/cpu/tests/malicious_prover_harness.zig` enters the real proving
       transaction — witness forgeries are installed before lookup ingestion, so
       Tree 1, the multiplicities and Tree 2 all derive from the forged witness;
       statement forgeries are the prover's original public statement, mixed
@@ -541,7 +541,7 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       `scripts/air_satisfaction.py` is an independent AIR **row-satisfaction and
       LogUp-closure checker**. It is not a verifier and must not be cited as
       one. It reads committed buffers exported from a real proving run
-      (`src/tests/riscv/committed_trace_export_test.zig`, via the test-only
+      (`src/products/riscv/cpu/tests/committed_trace_export_test.zig`, via the test-only
       `prover/test_trace_dump.zig`) together with the extracted per-family IR,
       and re-decides in Python, sharing no evaluator code with Zig:
 

@@ -2,14 +2,14 @@
 //! fail-closed Metal backend.
 //!
 //! Every string below except `backend` is deliberately byte-identical to
-//! `src/products/riscv_cpu/capabilities.zig`: the RISC-V *adapter* release gate
+//! `src/products/riscv/cpu/capabilities.zig`: the RISC-V *adapter* release gate
 //! is a property of the AIR, not of the commitment backend, so both product
 //! lanes must take the same admission path and report the same adapter, AIR and
 //! ISA identity. Only the backend token distinguishes them, and it is the single
 //! value that flows into this product's registry `backends` list.
 //!
 //! The two files are intentionally not shared: importing the CPU product's
-//! capabilities here would put `src/products/riscv_cpu` inside the Metal
+//! capabilities here would put `src/products/riscv/cpu` inside the Metal
 //! product's source closure, which the closure gate forbids.
 
 /// RF-01 flips this in the same commit as the artifact release status after

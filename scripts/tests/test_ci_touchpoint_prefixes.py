@@ -52,7 +52,7 @@ class TouchpointPrefixTests(unittest.TestCase):
             ci_scope_plan.validate_rule_prefixes_exist(policy, ROOT)
 
     def test_rule_prefixes_must_stay_inside_the_repository(self) -> None:
-        for prefix in ("../outside", "/absolute/path", "src/core/../../outside"):
+        for prefix in ("../outside", "/absolute/path", "src/waist/core/../../outside"):
             with self.subTest(prefix=prefix):
                 policy = json.loads(json.dumps(self.policy))
                 policy["rules"].append({"prefixes": [prefix], "lanes": ["core"]})
@@ -128,7 +128,7 @@ class TouchpointPrefixTests(unittest.TestCase):
                 "--root", str(ROOT),
                 "--policy", str(policy_path),
                 "--catalog", str(catalog_path),
-                "--changed-file", "src/core/fields/m31.zig",
+                "--changed-file", "src/waist/core/fields/m31.zig",
                 "--output", str(directory / "plan.json"),
             ]
             stderr = io.StringIO()

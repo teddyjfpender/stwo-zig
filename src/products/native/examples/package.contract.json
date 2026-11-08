@@ -8,11 +8,11 @@
     "stwo_native_examples": "mod.zig"
   },
   "dependencies": {
-    "stwo_core": "../core",
-    "stwo_cpu_backend": "../backends/cpu_scalar",
-    "stwo_proof_wire": "../interop/proof_wire",
-    "stwo_prover_api": "../prover_api",
-    "stwo_prover_engine": "../prover"
+    "stwo_core": "../../../waist/core",
+    "stwo_cpu_backend": "../../../backends/cpu_scalar",
+    "stwo_proof_wire": "../../../waist/proof_wire",
+    "stwo_prover_api": "../../../waist/prover_api",
+    "stwo_prover_engine": "../../../engine/prover"
   },
   "injected_modules": [],
   "api_surface": [
@@ -41,7 +41,7 @@
       "build",
       "test",
       "--build-file",
-      "src/examples/build.zig",
+      "src/products/native/examples/build.zig",
       "-Doptimize=ReleaseFast",
       "-j2"
     ]

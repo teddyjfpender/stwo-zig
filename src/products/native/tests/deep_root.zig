@@ -1,5 +1,13 @@
 const std = @import("std");
-const stwo = @import("stwo.zig");
+// Named modules only: this root lives under `src/products/native/tests/`.
+const interop = struct {
+    pub const proof_wire = @import("stwo_proof_wire");
+    pub const postcard = @import("interop_postcard");
+    pub const native_artifact = @import("stwo_native_artifact");
+    pub const riscv_artifact = @import("interop_riscv_artifact");
+    pub const atomic_file = @import("atomic_file");
+    pub const output_transaction = @import("output_transaction");
+};
 const native_cuda_poseidon = @import("stwo_native_cuda_integration").poseidon;
 const native_cuda_poseidon_geometry = native_cuda_poseidon.geometry;
 const native_cuda_poseidon_layout = native_cuda_poseidon.layout;
@@ -18,14 +26,13 @@ test {
     _ = @import("stwo_cairo_metal_integration").quotient_inputs;
     _ = @import("stwo_cairo_metal_integration").quotient_reference;
     _ = @import("stwo_cairo_metal_integration").schedule_bindings;
-    _ = @import("tests/native/prover/mod.zig");
-    _ = @import("interop/parity/mod.zig");
-    std.testing.refAllDecls(stwo);
-    std.testing.refAllDeclsRecursive(stwo.core);
-    std.testing.refAllDeclsRecursive(stwo.prover);
-    std.testing.refAllDeclsRecursive(stwo.examples);
-    std.testing.refAllDeclsRecursive(stwo.interop);
-    std.testing.refAllDeclsRecursive(stwo.tracing);
+    _ = @import("prover/mod.zig");
+    _ = @import("parity/mod.zig");
+    std.testing.refAllDeclsRecursive(@import("stwo_core"));
+    std.testing.refAllDeclsRecursive(@import("stwo_prover_engine"));
+    std.testing.refAllDeclsRecursive(@import("stwo_native_examples"));
+    std.testing.refAllDeclsRecursive(interop);
+    std.testing.refAllDeclsRecursive(@import("stwo_tracing"));
     std.testing.refAllDeclsRecursive(native_cuda_poseidon_geometry);
     std.testing.refAllDeclsRecursive(native_cuda_poseidon_layout);
     std.testing.refAllDeclsRecursive(native_cuda_poseidon_topology);

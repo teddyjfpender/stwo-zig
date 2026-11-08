@@ -38,16 +38,29 @@ def is_zig_root(relative: Path, text: str) -> bool:
     display = (Path("src") / relative).as_posix()
     if is_deferred(display):
         return False
+    parts = relative.parts
+    tool_dirs = (
+        parts[:3] in {("products", "cairo", "tools"), ("products", "native", "tools"),
+                      ("products", "riscv", "tools"), ("products", "stwo", "tools")}
+        or parts[:3] == ("backends", "metal", "tools")
+    )
     return (
-        relative in {Path("stwo.zig"), Path("stwo_deep.zig"), Path("tests.zig")}
-        or (relative.parts[0] == "tools" and relative.name == "main.zig")
-        or relative == Path("tools/metal_core_aot/probe.zig")
-        or relative.parts[:2] == ("tools", "native_proof_bench")
-        or (relative.parts[0] == "tests" and relative.name in {"mod.zig", "backend_test.zig"})
+        relative in {
+            Path("products/stwo/root.zig"),
+            Path("products/native/tests/deep_root.zig"),
+            Path("products/riscv/cpu/test_root.zig"),
+            Path("backends/metal/tests/system/root.zig"),
+            Path("products/riscv/cpu/trace/main.zig"),
+        }
+        or (tool_dirs and relative.name == "main.zig")
+        or relative == Path("backends/metal/tools/core_aot/probe.zig")
+        or parts[:4] == ("products", "native", "tools", "proof_bench")
+        or (parts[:3] == ("products", "native", "tests") and relative.name == "mod.zig")
+        or (parts[:4] == ("backends", "metal", "tests", "system") and relative.name == "backend_test.zig")
         or (
-            relative.parts[0] == "bench"
+            parts[:3] in {("backends", "metal", "bench"), ("products", "stwo", "bench"),
+                          ("integrations", "cairo_metal", "bench")}
             and "pub fn main" in text
-            and (len(relative.parts) == 2 or relative.parts[1] == "metal")
         )
     )
 

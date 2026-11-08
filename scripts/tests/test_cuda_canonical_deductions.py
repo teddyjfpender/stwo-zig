@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-HEADER = ROOT / "src/tools/cairo_cuda_witness_aot/deductions_integer.cuh"
+HEADER = ROOT / "src/products/cairo/tools/cuda_witness_aot/deductions_integer.cuh"
 
 
 def felt_words(value):

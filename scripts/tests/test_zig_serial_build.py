@@ -73,7 +73,7 @@ class SerializedSubprocessTests(unittest.TestCase):
         return [sys.executable, str(self.root / "scripts" / wrapper), *arguments]
 
     def test_both_wrappers_wait_for_shared_lock_and_propagate_child_exit(self):
-        for wrapper, target in (("zig_serial_build.py", "test"), ("zig_protocol_test.py", "src/stwo.zig")):
+        for wrapper, target in (("zig_serial_build.py", "test"), ("zig_protocol_test.py", "src/products/stwo/root.zig")):
             with self.subTest(wrapper=wrapper), open(self.lock_path, "a+") as lock:
                 self.marker.unlink(missing_ok=True)
                 fcntl.flock(lock, fcntl.LOCK_EX)
@@ -103,7 +103,7 @@ class SerializedSubprocessTests(unittest.TestCase):
         with open(self.lock_path, "a+") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             result = subprocess.run(self.command("zig_protocol_test.py", "--lock", str(self.lock_path),
-                                                "--no-lock", "src/stwo.zig", "--test-filter", "--no-lock",
+                                                "--no-lock", "src/products/stwo/root.zig", "--test-filter", "--no-lock",
                                                 "--", "--lock", "runtime-path", "--no-lock"),
                                     env=self.environment, capture_output=True, text=True, timeout=10)
         self.assertEqual(7, result.returncode, result.stderr)
@@ -119,7 +119,7 @@ class SerializedSubprocessTests(unittest.TestCase):
             "import fcntl, json, os, pathlib, subprocess, sys\n"
             "held = os.environ['STWO_ZIG_BUILD_HELD_LOCK']\n"
             "if sys.argv[1] == 'build':\n"
-            f"    raise SystemExit(subprocess.call([sys.executable, {wrapper!r}, '--no-lock', 'src/stwo.zig']))\n"
+            f"    raise SystemExit(subprocess.call([sys.executable, {wrapper!r}, '--no-lock', 'src/products/stwo/root.zig']))\n"
             "with open(held, 'a+') as lock:\n"
             "    try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)\n"
             "    except BlockingIOError: pass\n"

@@ -14,10 +14,10 @@ pub const backends = struct {
 pub const examples = @import("stwo_native_examples");
 
 pub const interop = struct {
-    pub const atomic_file = @import("interop/atomic_file.zig");
-    pub const examples_artifact = @import("interop/examples_artifact.zig");
-    pub const examples_artifact_verifier = @import("interop/examples_artifact_verifier.zig");
-    pub const postcard = @import("interop/postcard.zig");
+    pub const atomic_file = @import("atomic_file");
+    pub const examples_artifact = @import("stwo_native_artifact").examples_artifact;
+    pub const examples_artifact_verifier = @import("stwo_native_artifact").examples_artifact_verifier;
+    pub const postcard = @import("interop_postcard");
     pub const proof_wire = @import("stwo_proof_wire");
 };
 

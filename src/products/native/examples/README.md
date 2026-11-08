@@ -125,8 +125,8 @@ proof-equivalent results.
 
 ## Related documentation
 
-- [CPU backend](../backends/cpu_scalar/README.md)
-- [Proof-wire codec](../interop/proof_wire/README.md)
-- [Native CUDA integration](../integrations/native_cuda/README.md)
-- [Repository prove guide](../../README.md#prove)
-- [API parity policy](../../conformance/api-parity.md)
+- [CPU backend](../../../backends/cpu_scalar/README.md)
+- [Proof-wire codec](../../../waist/proof_wire/README.md)
+- [Native CUDA integration](../../../integrations/native_cuda/README.md)
+- [Repository prove guide](../../../../README.md#prove)
+- [API parity policy](../../../../conformance/api-parity.md)

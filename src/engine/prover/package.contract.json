@@ -8,9 +8,9 @@
     "stwo_prover_engine": "mod.zig"
   },
   "dependencies": {
-    "stwo_core": "../core",
-    "stwo_backend_contracts": "../backend",
-    "stwo_prover_api": "../prover_api"
+    "stwo_core": "../../waist/core",
+    "stwo_backend_contracts": "../../waist/backend",
+    "stwo_prover_api": "../../waist/prover_api"
   },
   "injected_modules": [
     "lifted_height_vectors",
@@ -61,7 +61,7 @@
       "build",
       "test",
       "--build-file",
-      "src/prover/build.zig",
+      "src/engine/prover/build.zig",
       "-Doptimize=ReleaseFast",
       "-j2"
     ]

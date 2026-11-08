@@ -15,7 +15,7 @@
 //! `shift_amt = evaluation_log_size - column.log_size + 1`. **The eval arena is
 //! therefore not placement — it is placement plus a lift**, and the lift is the
 //! staging pass: writing the lifted copy into the arena is the same bytes as
-//! `src/tests/metal/composition_lift_bridge_test.zig` verified byte-exact on a
+//! `src/backends/metal/tests/system/composition_lift_bridge_test.zig` verified byte-exact on a
 //! 1-part and a 5-part component of the authenticated bundle.
 //!
 //! The lifting map is `component_prover.Poly.at`'s own: evaluation position `p`

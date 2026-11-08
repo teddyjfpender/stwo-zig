@@ -33,19 +33,19 @@ class InteropCliCommandTests(unittest.TestCase):
         command = run_command("--mode", "verify", "--artifact", "proof.json")
         self.assertEqual("zig", command[0])
         self.assertIn("-lc", command)
-        self.assertIn("-Mroot=src/tools/interop/main.zig", command)
-        self.assertIn("-Mstwo=src/stwo.zig", command)
-        self.assertIn("-Mstwo_core=src/core/mod.zig", command)
+        self.assertIn("-Mroot=src/products/native/tools/interop/main.zig", command)
+        self.assertIn("-Mstwo=src/products/stwo/root.zig", command)
+        self.assertIn("-Mstwo_core=src/waist/core/mod.zig", command)
         self.assertIn(
-            "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+            "-Mstwo_proof_wire=src/waist/proof_wire/mod.zig",
             command,
         )
         self.assertIn(
-            "-Mstwo_native_examples=src/examples/mod.zig",
+            "-Mstwo_native_examples=src/products/native/examples/mod.zig",
             command,
         )
-        self.assertIn("-Mstwo_backend_contracts=src/backend/mod.zig", command)
-        self.assertIn("-Mstwo_prover_engine=src/prover/mod.zig", command)
+        self.assertIn("-Mstwo_backend_contracts=src/waist/backend/mod.zig", command)
+        self.assertIn("-Mstwo_prover_engine=src/engine/prover/mod.zig", command)
         self.assertIn(
             "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
             command,
@@ -75,10 +75,10 @@ class InteropCliCommandTests(unittest.TestCase):
             command,
         )
         self.assertIn(
-            "-Mstwo_metal_session=src/tools/metal_session/mod.zig",
+            "-Mstwo_metal_session=src/backends/metal/session/mod.zig",
             command,
         )
-        self.assertIn("-Mstwo_artifact_store=src/artifact_store/mod.zig", command)
+        self.assertIn("-Mstwo_artifact_store=src/engine/artifact_store/mod.zig", command)
         self.assertIn(
             "-Mstwo_cairo_metal_integration=src/integrations/cairo_metal/mod.zig",
             command,

@@ -88,7 +88,7 @@ pub fn addProducts(
         b.createModule(.{
             .root_source_file = graph.source(
                 b,
-                "src/backend/mod.zig",
+                "src/waist/backend/mod.zig",
                 target,
                 optimize,
             ),
@@ -118,7 +118,7 @@ pub fn addProducts(
         .role = .library,
     };
     const stwo = b.createModule(.{
-        .root_source_file = b.path("src/stwo.zig"),
+        .root_source_file = b.path("src/products/stwo/root.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -222,7 +222,7 @@ pub fn addProducts(
         stwo,
     );
     const eval_facade = b.createModule(.{
-        .root_source_file = b.path("src/tools/cairo_cuda_eval_aot/facade.zig"),
+        .root_source_file = b.path("src/products/cairo/tools/cuda_eval_aot/facade.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -252,7 +252,7 @@ pub fn addProducts(
     );
     const ec_oracle_root = b.createModule(.{
         .root_source_file = b.path(
-            "src/tools/cuda_native_ec_composite_oracle/main.zig",
+            "src/products/native/tools/cuda_ec_composite_oracle/main.zig",
         ),
         .target = target,
         .optimize = .ReleaseFast,
@@ -344,7 +344,7 @@ pub fn addProducts(
 
     const blake_route_root = b.createModule(.{
         .root_source_file = b.path(
-            "src/products/native_cuda/blake_route.zig",
+            "src/products/native/cuda/blake_route.zig",
         ),
         .target = target,
         .optimize = optimize,

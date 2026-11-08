@@ -82,13 +82,13 @@ ROOT = Path(__file__).resolve().parents[1]
 # the singleton LogUp identity, and the independent Python transcriptions used
 # by the constructive proof.
 SOURCE_BINDINGS: dict[str, str] = {
-    "src/core/fields/m31.zig":
+    "src/waist/core/fields/m31.zig":
         "6f6393f878cdf4e5474163dc3ddc8e8f758180f603482f1e275185fac5e8b4cd",
-    "src/core/fields/cm31.zig":
+    "src/waist/core/fields/cm31.zig":
         "4b7a14c91fba7c467f92e924ce90c7230a22d08329591e3d5b8874d862b31288",
-    "src/core/fields/qm31.zig":
+    "src/waist/core/fields/qm31.zig":
         "a60c2a5a6f10bf91b1bfab41a526e41b589d0d1d83275e0516cf68b7228be931",
-    "src/core/utils.zig":
+    "src/waist/core/utils.zig":
         "e6a4427e8cca5a83e0d2accd5c05cc08d9ac167238833fc225155dfd36f2fd18",
     "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig":
         "17e09f482788b6c4ddfa81d0a830e683ba9a171e81a8641826c08841c353f0c3",
@@ -212,11 +212,11 @@ def _require_anchor(compact: str, anchor: str, source: str) -> None:
 
 
 def _production_semantic_anchors(root: Path) -> None:
-    m31_source = "src/core/fields/m31.zig"
+    m31_source = "src/waist/core/fields/m31.zig"
     m31 = _compact_zig((root / m31_source).read_text(encoding="utf-8"))
     _require_anchor(m31, "pubconstModulus:u32=0x7fffffff;", m31_source)
 
-    qm31_source = "src/core/fields/qm31.zig"
+    qm31_source = "src/waist/core/fields/qm31.zig"
     qm31 = _compact_zig((root / qm31_source).read_text(encoding="utf-8"))
     for anchor in (
         "pubconstR:CM31=CM31.fromU32Unchecked(2,1);",
@@ -224,7 +224,7 @@ def _production_semantic_anchors(root: Path) -> None:
     ):
         _require_anchor(qm31, anchor, qm31_source)
 
-    utils_source = "src/core/utils.zig"
+    utils_source = "src/waist/core/utils.zig"
     utils = _compact_zig((root / utils_source).read_text(encoding="utf-8"))
     _require_anchor(
         utils,

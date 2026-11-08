@@ -68,7 +68,7 @@
       "build",
       "test",
       "--build-file",
-      "src/artifact_store/build.zig",
+      "src/engine/artifact_store/build.zig",
       "-Doptimize=Debug",
       "-j2"
     ]

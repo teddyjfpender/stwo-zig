@@ -163,7 +163,7 @@ pub const proveRiscVSegmentLookupV1CompatibilityWithEngineUsingChannel =
 /// The one secure PCS profile this repository publishes, and the single source
 /// of truth every "secure" selector resolves to: the staged adapter's `.secure`
 /// protocol (`src/integrations/riscv_cpu/proof_adapter.zig`) and the benchmark
-/// runner's `--secure` flag (`src/tools/riscv/bench/runner.zig`) both return
+/// runner's `--secure` flag (`src/products/riscv/tools/bench/runner.zig`) both return
 /// exactly this value rather than restating its numbers.
 ///
 /// Cross-language mirror: `scripts/riscv_csp_benchmark_lib/contract.py` parses
@@ -187,7 +187,7 @@ pub const SECURE_PCS_CONFIG: pcs_core.PcsConfig = .{
 /// One definition, reached from every caller that proves a *run* rather than a
 /// hand-built trace: the production ELF adapter
 /// (`src/integrations/riscv_cpu/proof_adapter.zig`) and the benchmark runner
-/// (`src/tools/riscv/bench/runner.zig`). A fail-closed check present on one path
+/// (`src/products/riscv/tools/bench/runner.zig`). A fail-closed check present on one path
 /// and absent from its sibling is worse than one absent from both, because the
 /// passing path lends the other unearned confidence (issue #152 item 5).
 pub const RunAdmissionError = error{

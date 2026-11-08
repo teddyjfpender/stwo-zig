@@ -37,24 +37,24 @@ const protocol_features =
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
-        "src/products/cairo_metal/main.zig",
-        "src/stwo_cairo_metal.zig",
+        "src/products/cairo/metal/main.zig",
+        "src/products/cairo/metal/root.zig",
     },
     .named_imports = &.{
         .{ .name = "cairo_product", .source = "src/products/cairo/shared/mod.zig" },
-        .{ .name = "stwo_cairo", .source = "src/stwo_cairo_metal.zig" },
-        .{ .name = "stwo_cairo_metal", .source = "src/stwo_cairo_metal.zig" },
-        .{ .name = "stwo_artifact_store", .source = "src/artifact_store/mod.zig" },
-        .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
-        .{ .name = "stwo_core", .source = "src/core/mod.zig" },
+        .{ .name = "stwo_cairo", .source = "src/products/cairo/metal/root.zig" },
+        .{ .name = "stwo_cairo_metal", .source = "src/products/cairo/metal/root.zig" },
+        .{ .name = "stwo_artifact_store", .source = "src/engine/artifact_store/mod.zig" },
+        .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },
+        .{ .name = "stwo_core", .source = "src/waist/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
-        .{ .name = "interop_felt_json", .source = "src/interop/felt_json.zig" },
-        .{ .name = "interop_cairo_prover_parameters", .source = "src/interop/cairo_prover_parameters.zig" },
+        .{ .name = "interop_felt_json", .source = "src/frontends/cairo/interop/felt_json.zig" },
+        .{ .name = "interop_cairo_prover_parameters", .source = "src/frontends/cairo/interop/cairo_prover_parameters.zig" },
         .{ .name = "stwo_cairo_metal_integration", .source = "src/integrations/cairo_metal/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
-        .{ .name = "stwo_metal_session", .source = "src/tools/metal_session/mod.zig" },
-        .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
-        .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
+        .{ .name = "stwo_metal_session", .source = "src/backends/metal/session/mod.zig" },
+        .{ .name = "stwo_prover_api", .source = "src/waist/prover_api/mod.zig" },
+        .{ .name = "stwo_prover_engine", .source = "src/engine/prover/mod.zig" },
     },
     .generated_imports = &.{
         "cairo_witness_cpu_aot",
@@ -62,23 +62,23 @@ const source_closure = policy.SourceClosure{
         "product_identity",
     },
     .allowed_files = &.{
-        "src/stwo_cairo_metal.zig",
-        "src/interop/atomic_file.zig",
-        "src/interop/bzip2.zig",
-        "src/interop/output_transaction.zig",
+        "src/products/cairo/metal/root.zig",
+        "src/support/io/atomic_file.zig",
+        "src/support/io/bzip2.zig",
+        "src/support/io/output_transaction.zig",
     },
     .allowed_prefixes = &.{
-        "src/artifact_store",
-        "src/backend",
+        "src/engine/artifact_store",
+        "src/waist/backend",
         "src/backends/metal",
-        "src/core",
+        "src/waist/core",
         "src/frontends/cairo",
         "src/integrations/cairo_metal",
         "src/products/cairo",
-        "src/products/cairo_metal",
-        "src/prover",
-        "src/prover_api",
-        "src/tools/metal_session",
+        "src/products/cairo/metal",
+        "src/engine/prover",
+        "src/waist/prover_api",
+        "src/backends/metal/session",
     },
     .required_dynamic_dependencies = &.{
         "Metal.framework",
@@ -327,7 +327,7 @@ fn createStwoModule(
 ) *std.Build.Module {
     const module = graph.create(context.b, .{
         .product = product(role),
-        .root_source_file = "src/stwo_cairo_metal.zig",
+        .root_source_file = "src/products/cairo/metal/root.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -373,6 +373,15 @@ fn createStwoModule(
         metal_session,
         module,
     );
+    graph.addFacadeSupportImports(
+        context.b,
+        context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+        .{ .atomic_file = true, .output_transaction = true, .bzip2 = true },
+    );
     return module;
 }
 
@@ -386,7 +395,7 @@ fn createProductModule(
 ) *std.Build.Module {
     const root = graph.create(context.b, .{
         .product = logical_product,
-        .root_source_file = "src/products/cairo_metal/main.zig",
+        .root_source_file = "src/products/cairo/metal/main.zig",
         .target = context.target,
         .optimize = context.optimize,
     });

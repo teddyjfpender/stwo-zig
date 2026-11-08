@@ -1,6 +1,6 @@
 //! Lifecycle and publication boundary for the focused RISC-V CPU product.
 //!
-//! The generic body lives in `src/products/riscv_shared/app.zig`; this file is
+//! The generic body lives in `src/products/riscv/shared/app.zig`; this file is
 //! the CPU binding of it. It is the single place where the focused CPU product
 //! chooses its prover engine and its adapter backend tag.
 

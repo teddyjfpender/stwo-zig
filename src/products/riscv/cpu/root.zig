@@ -1,6 +1,6 @@
 //! Focused Stwo facade for the Sail RV32IM + CPU/SIMD product.
 //!
-//! This is intentionally not `src/stwo.zig`: declarations outside this
+//! This is intentionally not `src/products/stwo/root.zig`: declarations outside this
 //! product's capability closure cannot enter the focused executable through a
 //! convenience re-export.
 
@@ -16,7 +16,7 @@ pub const integrations = struct {
 };
 
 pub const interop = struct {
-    pub const atomic_file = @import("interop/atomic_file.zig");
+    pub const atomic_file = @import("atomic_file");
     pub const postcard = @import("interop_postcard");
-    pub const riscv_artifact = @import("interop/riscv_artifact.zig");
+    pub const riscv_artifact = @import("interop_riscv_artifact");
 };

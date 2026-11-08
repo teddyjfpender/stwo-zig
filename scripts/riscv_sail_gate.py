@@ -144,20 +144,20 @@ LIVE_TRIGGER_PREFIXES = (
     "src/frontends/riscv/sail_oracle_test_root.zig",
     # Owns `requireSailAgreement`, the seam every committed-forgery guest uses
     # to ask the pinned model whether the honest trace is honest.
-    "src/tests.zig",
-    "src/tests/riscv/trace_test.zig",
-    "src/tests/riscv/committed_forgery_harness.zig",
-    "src/tests/riscv/committed_row_layout.zig",
-    "src/tests/riscv/guest_elf_fixture.zig",
-    "src/tests/riscv/row_admissibility.zig",
+    "src/products/riscv/cpu/test_root.zig",
+    "src/products/riscv/cpu/tests/trace_test.zig",
+    "src/products/riscv/cpu/tests/committed_forgery_harness.zig",
+    "src/products/riscv/cpu/tests/committed_row_layout.zig",
+    "src/products/riscv/cpu/tests/guest_elf_fixture.zig",
+    "src/products/riscv/cpu/tests/row_admissibility.zig",
     # The malicious-prover suite the required leg selects with
     # -Driscv-test-filter="malicious prover": the shared transaction harness
     # and its four attack classes.
-    "src/tests/riscv/malicious_prover_completion_test.zig",
-    "src/tests/riscv/malicious_prover_forged_output_test.zig",
-    "src/tests/riscv/malicious_prover_harness.zig",
-    "src/tests/riscv/malicious_prover_skipped_test.zig",
-    "src/tests/riscv/malicious_prover_stale_read_test.zig",
+    "src/products/riscv/cpu/tests/malicious_prover_completion_test.zig",
+    "src/products/riscv/cpu/tests/malicious_prover_forged_output_test.zig",
+    "src/products/riscv/cpu/tests/malicious_prover_harness.zig",
+    "src/products/riscv/cpu/tests/malicious_prover_skipped_test.zig",
+    "src/products/riscv/cpu/tests/malicious_prover_stale_read_test.zig",
     "vectors/riscv_elfs",
 )
 

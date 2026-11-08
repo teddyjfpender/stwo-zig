@@ -9,7 +9,7 @@ pub fn add(context: anytype, product: graph.Product) void {
     const b: *std.Build = context.b;
     const root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/tools/riscv/poseidon2_pair/main.zig",
+        .root_source_file = "src/products/riscv/tools/poseidon2_pair/main.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -40,7 +40,7 @@ pub fn add(context: anytype, product: graph.Product) void {
 
     const proof_root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/tools/riscv/poseidon2_pair/proof_main.zig",
+        .root_source_file = "src/products/riscv/tools/poseidon2_pair/proof_main.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -73,7 +73,7 @@ pub fn add(context: anytype, product: graph.Product) void {
 
     const child_root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/tools/riscv/poseidon2_pair/proof_child.zig",
+        .root_source_file = "src/products/riscv/tools/poseidon2_pair/proof_child.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -110,7 +110,7 @@ pub fn add(context: anytype, product: graph.Product) void {
 
     const calibration_root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/tools/riscv/poseidon2_pair/calibration_child.zig",
+        .root_source_file = "src/products/riscv/tools/poseidon2_pair/calibration_child.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -147,7 +147,7 @@ pub fn add(context: anytype, product: graph.Product) void {
 
     const corpus_manifest_root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/tools/riscv/poseidon2_pair/corpus_manifest.zig",
+        .root_source_file = "src/products/riscv/tools/poseidon2_pair/corpus_manifest.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -183,7 +183,7 @@ fn addPreflight(
     const guest_root = b.path("vectors/riscv_guests/poseidon2_m31_permute_v1");
     const corpus_tests = b.addTest(.{
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/tools/riscv/poseidon2_pair/test_root.zig"),
+            .root_source_file = b.path("src/products/riscv/tools/poseidon2_pair/test_root.zig"),
             .target = target,
             .optimize = optimize,
         }),

@@ -435,7 +435,7 @@ pub fn addProduct(context: Context) void {
         .{
             .tests = riscv_cpu_tests.addFocusedTestRoot(
                 test_context,
-                "src/tests/riscv/main_trace_planned_proof_test.zig",
+                "src/products/riscv/cpu/tests/main_trace_planned_proof_test.zig",
                 &.{
                     "one proof-scoped pool preserves exact N=1/2/4 proof identity",
                     "five-region phase meter covers one real independently verified proof",
@@ -454,7 +454,7 @@ pub fn addProduct(context: Context) void {
         "Prove and verify one RISC-V leaf under the recursion Poseidon2 protocol",
     ).dependOn(test_filter.addRun(context.b, riscv_cpu_tests.addFocusedTestRoot(
         test_context,
-        "src/tests/riscv/recursion_poseidon_leaf_test.zig",
+        "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test.zig",
         &.{"recursion Poseidon2 native leaf"},
     )));
     context.b.step(
@@ -493,7 +493,7 @@ pub fn addProduct(context: Context) void {
         "Validate production-derived recursive public ingress without proving",
     ).dependOn(test_filter.addRun(context.b, riscv_cpu_tests.addFocusedTestRoot(
         test_context,
-        "src/tests/riscv/recursion_ingress_real_guest_test.zig",
+        "src/products/riscv/cpu/tests/recursion_ingress_real_guest_test.zig",
         &.{"recursive public ingress accepts production-derived self-loop guest"},
     )));
     context.b.step(

@@ -25,7 +25,7 @@ const leaf_proof_json = @import("leaf_proof_json.zig");
 
 pub const DigestHex = leaf_proof_json.DigestHex;
 /// The `ProverParameters` types are the single definition in
-/// `src/interop/cairo_prover_parameters.zig`, injected as a module and shared
+/// `src/frontends/cairo/interop/cairo_prover_parameters.zig`, injected as a module and shared
 /// with the Cairo frontend's leaf lane; this file owns their serde JSON.
 const prover_parameters = @import("interop_cairo_prover_parameters");
 

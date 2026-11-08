@@ -105,7 +105,7 @@ class SecurePcsConfigAgreementTest(unittest.TestCase):
 class BenchFlagNamingTest(unittest.TestCase):
     """The benchmark CLI must not offer a flag that connotes unearned authority."""
 
-    RUNNER = contract.ROOT / "src" / "tools" / "riscv" / "bench" / "runner.zig"
+    RUNNER = contract.ROOT / "src" / "products" / "riscv" / "tools" / "bench" / "runner.zig"
 
     def test_secure_flag_reads_the_shared_constant(self) -> None:
         text = self.RUNNER.read_text(encoding="utf-8")

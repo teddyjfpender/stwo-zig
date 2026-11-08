@@ -1,7 +1,7 @@
 //! Build-graph wiring shared by the focused RV32IM product owners.
 //!
 //! Each RV32IM product owner that builds a proof CLI binds the *same* shell
-//! sources (`src/products/riscv_shared/*.zig`) and the *same* engine-generic
+//! sources (`src/products/riscv/shared/*.zig`) and the *same* engine-generic
 //! proof adapter (`src/integrations/riscv_cpu/proof_adapter.zig`) onto its own
 //! backend. What lives here is the part of that binding which is identical in
 //! every one of them; everything backend-specific stays in the product owner.
@@ -49,7 +49,7 @@ pub const frontend_generated_imports = [_][]const u8{
     "typed_air_h010_artifacts",
 };
 
-/// The shared focused-product shell (`src/products/riscv_shared/*.zig`) under
+/// The shared focused-product shell (`src/products/riscv/shared/*.zig`) under
 /// the module names the shell files themselves import.
 ///
 /// The shell files import only `std`, so they need no protocol or facade
@@ -58,9 +58,9 @@ pub const frontend_generated_imports = [_][]const u8{
 /// directory, so each shared file a product root names must be injected under
 /// its own module name rather than reached as `../riscv_shared/*.zig`.
 pub const shell_named_imports = [_]product_policy.NamedImport{
-    .{ .name = "riscv_shared_app", .source = "src/products/riscv_shared/app.zig" },
-    .{ .name = "riscv_shared_cli", .source = "src/products/riscv_shared/cli.zig" },
-    .{ .name = "riscv_shared_registry", .source = "src/products/riscv_shared/registry.zig" },
+    .{ .name = "riscv_shared_app", .source = "src/products/riscv/shared/app.zig" },
+    .{ .name = "riscv_shared_cli", .source = "src/products/riscv/shared/cli.zig" },
+    .{ .name = "riscv_shared_registry", .source = "src/products/riscv/shared/registry.zig" },
 };
 
 /// The engine-generic proof adapter, shared verbatim by every product.

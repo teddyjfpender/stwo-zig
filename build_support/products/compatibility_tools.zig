@@ -22,7 +22,7 @@ pub fn addProducts(context: Context) void {
     const protocol = graph.createPrivateProtocolModules(b, context.target, context.optimize);
     const stwo = graph.create(b, .{
         .product = compatibility_product,
-        .root_source_file = "src/stwo.zig",
+        .root_source_file = "src/products/stwo/root.zig",
         .target = context.target,
         .optimize = context.optimize,
     });
@@ -152,23 +152,32 @@ pub fn addProducts(context: Context) void {
         metal_session,
         stwo,
     );
-    const runner = consumer(context, protocol, "src/prover/native/runner.zig");
+    graph.addFacadeSupportImports(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+        graph.FacadeSupport.root,
+    );
+    const runner = consumer(context, protocol, "src/engine/prover/native/runner.zig");
     runner.addImport("stwo", stwo);
     runner.addImport("native_resource_admission", consumer(
         context,
         protocol,
-        "src/prover/native/resource_admission.zig",
+        "src/engine/prover/native/resource_admission.zig",
     ));
 
-    const interop = consumer(context, protocol, "src/tools/interop/main.zig");
+    const interop = consumer(context, protocol, "src/products/native/tools/interop/main.zig");
     interop.addImport("stwo", stwo);
     addExecutable(context, interop, "interop_cli", "interop-cli", "Build the proof interoperability CLI", true);
 
-    const cairo_input = consumer(context, protocol, "src/tools/cairo/input_inspector.zig");
+    const cairo_input = consumer(context, protocol, "src/products/cairo/tools/inspectors/input_inspector.zig");
     cairo_input.addImport("stwo", stwo);
     addExecutable(context, cairo_input, "cairo-input", "cairo-input", "Build adapted Cairo input inspector", false);
 
-    const cairo_trace_geometry = consumer(context, protocol, "src/tools/cairo/trace_geometry_inspector.zig");
+    const cairo_trace_geometry = consumer(context, protocol, "src/products/cairo/tools/inspectors/trace_geometry_inspector.zig");
     cairo_trace_geometry.addImport("stwo", stwo);
     addExecutable(context, cairo_trace_geometry, "cairo-trace-geometry", "cairo-trace-geometry", "Build Cairo CUDA trace geometry inspector", false);
 
@@ -178,7 +187,7 @@ pub fn addProducts(context: Context) void {
         "src/frontends/cairo/witness/composition_bundle.zig",
     );
     const cairo_air_bundle =
-        consumer(context, protocol, "src/tools/cairo/air_bundle_inspector.zig");
+        consumer(context, protocol, "src/products/cairo/tools/inspectors/air_bundle_inspector.zig");
     cairo_air_bundle.addImport("cairo_composition_bundle", cairo_composition);
     addExecutable(
         context,
@@ -212,7 +221,7 @@ pub fn addProducts(context: Context) void {
     const cairo_cpu_air_test_root = consumer(
         context,
         protocol,
-        "src/tests/cairo/cpu_air_test.zig",
+        "src/products/cairo/cpu/tests/cpu_air_test.zig",
     );
     cairo_cpu_air_test_root.addImport("stwo", stwo);
     const cairo_cpu_air_tests = context.b.addTest(.{
@@ -227,7 +236,7 @@ pub fn addProducts(context: Context) void {
     const cairo_cpu_proof_test_root = consumer(
         context,
         protocol,
-        "src/tests/cairo/cpu_proof_test.zig",
+        "src/products/cairo/cpu/tests/cpu_proof_test.zig",
     );
     cairo_cpu_proof_test_root.addImport("stwo", stwo);
     const cairo_cpu_proof_tests = context.b.addTest(.{
@@ -242,7 +251,7 @@ pub fn addProducts(context: Context) void {
     const cairo_leaf_proof_test_root = consumer(
         context,
         protocol,
-        "src/tests/cairo/cpu_leaf_proof_test.zig",
+        "src/products/cairo/cpu/tests/cpu_leaf_proof_test.zig",
     );
     // Only the Cairo packages: the leaf-lane gate must not depend on the
     // aggregate `stwo` root.
@@ -268,7 +277,7 @@ pub fn addProducts(context: Context) void {
         "R10b/R10c: the Cairo leaf lane against proving@5a7c5ed preprocessed roots and prove_cairo checkpoints",
     ).dependOn(&run_cairo_leaf_proof_tests.step);
 
-    const opcode = consumer(context, protocol, "src/tools/riscv_opcode_manifest/main.zig");
+    const opcode = consumer(context, protocol, "src/products/riscv/tools/opcode_manifest/main.zig");
     opcode.addImport("stwo", stwo);
     const opcode_cli = b.addExecutable(.{ .name = "riscv-opcode-manifest", .root_module = opcode });
     const dump = b.addRunArtifact(opcode_cli);
@@ -284,7 +293,7 @@ pub fn addProducts(context: Context) void {
         "Validate stable RV32IM protocol IDs and proof classifications",
     ).dependOn(&check.step);
 
-    const riscv_bench = consumer(context, protocol, "src/riscv_bench_cli.zig");
+    const riscv_bench = consumer(context, protocol, "src/products/riscv/tools/bench/main.zig");
     riscv_bench.addImport("stwo_cpu_backend", cpu_backend);
     riscv_bench.addImport("stwo_proof_wire", proof_wire);
     const bench_riscv_frontend = graph.addRiscVFrontendImport(
@@ -313,7 +322,7 @@ pub fn addProducts(context: Context) void {
         "Run focused RISC-V benchmark CLI contract tests",
     ).dependOn(&run_riscv_bench_tests.step);
 
-    const native_bench = consumer(context, protocol, "src/tools/native_proof_bench/cpu.zig");
+    const native_bench = consumer(context, protocol, "src/products/native/tools/proof_bench/cpu.zig");
     native_bench.addImport("stwo", stwo);
     native_bench.addImport("native_proof_runner", runner);
     addExecutable(

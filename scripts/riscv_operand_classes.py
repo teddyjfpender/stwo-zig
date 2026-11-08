@@ -6,7 +6,7 @@ a time. This tool derives the operand classes the ISA admits and the AIR's
 structure distinguishes (`riscv_operand_classes_lib/classes.py` documents
 the derivation), executes one concrete case per class on the pinned Sail
 model over RVFI-DII, and commits Sail's architectural results as Zig data
-under `src/tests/riscv/operand_class_corpus/` for guest-building tests to
+under `src/products/riscv/cpu/tests/operand_class_corpus/` for guest-building tests to
 consume. It also measures which of those classes an existing trace corpus
 ever touches -- the untouched list is the actionable finding.
 

@@ -1,7 +1,7 @@
 //! Machine-readable capability surface for the focused RISC-V Metal product.
 //!
 //! Thin binding of the shared focused-product registry
-//! (`src/products/riscv_shared/registry.zig`). The Metal product supplies its own
+//! (`src/products/riscv/shared/registry.zig`). The Metal product supplies its own
 //! capabilities and identity modules and the single-key `backend_availability`
 //! object, so the backend set below is the only backend this registry can ever
 //! report — this CLI cannot advertise the CPU product's lane.
@@ -10,7 +10,7 @@
 //! a sibling file because it is also the root of the capabilities module handed
 //! to the shared proof adapter, and a Zig file may belong to exactly one module.
 //! `build_support/products/riscv_metal.zig` therefore creates ONE module from
-//! `src/products/riscv_metal/capabilities.zig` and adds it to this product's root
+//! `src/products/riscv/metal/capabilities.zig` and adds it to this product's root
 //! module as `riscv_capabilities` (used here) and to the adapter module as
 //! `riscv_cpu_capabilities`, the name the shared adapter hard-codes. Pointing
 //! either name at the CPU product's capability file fails this file's test as

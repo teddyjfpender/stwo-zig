@@ -23,10 +23,10 @@ pub const integrations = struct {
 };
 
 pub const interop = struct {
-    pub const atomic_file = @import("interop/atomic_file.zig");
-    pub const examples_artifact = @import("interop/examples_artifact.zig");
-    pub const examples_artifact_verifier = @import("interop/examples_artifact_verifier.zig");
+    pub const atomic_file = @import("atomic_file");
+    pub const examples_artifact = @import("stwo_native_artifact").examples_artifact;
+    pub const examples_artifact_verifier = @import("stwo_native_artifact").examples_artifact_verifier;
     pub const postcard = @import("interop_postcard");
     pub const proof_wire = @import("stwo_proof_wire");
-    pub const riscv_artifact = @import("interop/riscv_artifact.zig");
+    pub const riscv_artifact = @import("interop_riscv_artifact");
 };

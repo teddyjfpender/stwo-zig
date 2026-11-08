@@ -126,7 +126,7 @@ zig build stwo-core -Doptimize=ReleaseFast
 
 This is a library package, so it has no standalone process to run. Import
 `stwo_core` into a consumer module, or use one of the assembled products
-described in the [repository README](../../README.md).
+described in the [repository README](../../../README.md).
 
 ## Contract and invariants
 
@@ -153,7 +153,7 @@ When changing this package:
 
 ## Related documentation
 
-- [Repository architecture and product usage](../../README.md)
-- [Package-workspace release audit](../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
-- [Package release and versioning policy](../../conformance/zig-package-release-policy.md)
-- [API parity policy](../../conformance/api-parity.md)
+- [Repository architecture and product usage](../../../README.md)
+- [Package-workspace release audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
+- [Package release and versioning policy](../../../conformance/zig-package-release-policy.md)
+- [API parity policy](../../../conformance/api-parity.md)

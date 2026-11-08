@@ -104,7 +104,7 @@ must be explicit; never reinterpret a prior protocol version.
 
 ## Related documentation
 
-- [Metal backend](../../backends/metal/README.md)
-- [Cairo Metal integration](../../integrations/cairo_metal/README.md)
-- [Package-workspace audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
-- [Package release policy](../../../conformance/zig-package-release-policy.md)
+- [Metal backend](../README.md)
+- [Cairo Metal integration](../../../integrations/cairo_metal/README.md)
+- [Package-workspace audit](../../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
+- [Package release policy](../../../../conformance/zig-package-release-policy.md)

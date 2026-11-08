@@ -1,5 +1,5 @@
 //! Freestanding std-shims entrypoint.
-const shims = @import("std_shims/mod.zig");
+const shims = @import("mod.zig");
 
 pub const verifier_profile = shims.verifier_profile;
 

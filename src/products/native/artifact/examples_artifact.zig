@@ -11,7 +11,7 @@ const state_machine = @import("stwo_native_examples").state_machine;
 const wide_fibonacci = @import("stwo_native_examples").wide_fibonacci;
 const xor = @import("stwo_native_examples").xor;
 const proof_wire = @import("stwo_proof_wire");
-const atomic_file = @import("atomic_file.zig");
+const atomic_file = @import("atomic_file");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;

@@ -31,8 +31,8 @@ PROFILE_REGISTRY_SCHEMA = "stwo.riscv.recursion-csp-profile-registry.v1"
 DEFAULT_AUDIT = MANIFEST.parent / "recursion-shape-audit-v2.json"
 
 AUDITED_SOURCES = (
-    "src/tools/riscv/recursive_csp_shape_inspector/main.zig",
-    "src/tools/riscv/recursive_csp_producer/profile_registry.zig",
+    "src/products/riscv/tools/recursive_csp_shape_inspector/main.zig",
+    "src/products/riscv/tools/recursive_csp_producer/profile_registry.zig",
     "src/frontends/riscv/prover/statement_shape_inspection.zig",
     "src/frontends/riscv/prover/commitment_witness.zig",
     "src/frontends/riscv/prover/statement_geometry.zig",

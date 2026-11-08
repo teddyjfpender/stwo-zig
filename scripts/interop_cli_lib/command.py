@@ -23,4 +23,4 @@ def build_command(optimize: str, cpu: str = "baseline") -> list[str]:
 
 
 def run_command(*arguments: str) -> list[str]:
-    return aggregate_run_command("src/tools/interop/main.zig", *arguments)
+    return aggregate_run_command("src/products/native/tools/interop/main.zig", *arguments)

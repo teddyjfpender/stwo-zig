@@ -259,7 +259,7 @@ test {
 }
 
 /// Backend-neutral authorities consumed by cross-backend component proof tests.
-/// Concrete engines and serialized proof transactions belong to src/tests/riscv.
+/// Concrete engines and serialized proof transactions belong to src/products/riscv/cpu/tests.
 pub const component_proof = struct {
     pub const narrow_air = @import("air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
     pub const universal_air = @import("air/memory_commitment/poseidon2_universal_degree3_v1.zig");

@@ -106,7 +106,7 @@ The production RISC-V artifact is also easy to misidentify:
   required for verification.
 
 The package
-[`src/interop/proof_wire`](../src/interop/proof_wire/README.md) owns a generic
+[`src/waist/proof_wire`](../src/waist/proof_wire/README.md) owns a generic
 Stwo JSON shape and an `STWOPRW1` binary codec. It explicitly does not own
 statement framing or verification policy. Implementing a second verifier only
 for that package would not satisfy this plan.
@@ -176,7 +176,7 @@ The package must:
 - use no path dependency;
 - import no Zig-generated source;
 - import no Stwo, Stwo-Cairo, constraint-framework, or repository AIR crate;
-- include no source file copied from `src/core`, `src/prover`,
+- include no source file copied from `src/waist/core`, `src/engine/prover`,
   `src/frontends/riscv`, `tools/stwo-interop-rs`, or a pinned upstream
   verifier;
 - build from an explicit, reviewed crate allowlist;

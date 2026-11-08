@@ -8,7 +8,7 @@
     "stwo_proof_wire": "mod.zig"
   },
   "dependencies": {
-    "stwo_core": "../../core"
+    "stwo_core": "../core"
   },
   "injected_modules": [],
   "api_surface": [
@@ -48,7 +48,7 @@
       "build",
       "test",
       "--build-file",
-      "src/interop/proof_wire/build.zig",
+      "src/waist/proof_wire/build.zig",
       "-Doptimize=ReleaseFast",
       "-j2"
     ]

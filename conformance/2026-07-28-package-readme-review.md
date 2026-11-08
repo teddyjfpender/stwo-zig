@@ -68,18 +68,18 @@ with no trailing whitespace or patch-format defects.
 
 | Package guide | Technical review | Editorial review | Package-specific focus |
 | :--- | :---: | :---: | :--- |
-| [`stwo_core`](../src/core/README.md) | PASS | PASS | Dependency-free protocol/verifier boundary |
-| [`stwo_backend_contracts`](../src/backend/README.md) | PASS | PASS | Truthful compile-time capabilities |
-| [`stwo_prover_api`](../src/prover_api/README.md) | PASS | PASS | Stable ownership and transaction signatures |
-| [`stwo_prover_engine`](../src/prover/README.md) | PASS | PASS | Generic proving implementation |
-| [`stwo_proof_wire`](../src/interop/proof_wire/README.md) | PASS | PASS | Codec versus statement/security boundary |
+| [`stwo_core`](../src/waist/core/README.md) | PASS | PASS | Dependency-free protocol/verifier boundary |
+| [`stwo_backend_contracts`](../src/waist/backend/README.md) | PASS | PASS | Truthful compile-time capabilities |
+| [`stwo_prover_api`](../src/waist/prover_api/README.md) | PASS | PASS | Stable ownership and transaction signatures |
+| [`stwo_prover_engine`](../src/engine/prover/README.md) | PASS | PASS | Generic proving implementation |
+| [`stwo_proof_wire`](../src/waist/proof_wire/README.md) | PASS | PASS | Codec versus statement/security boundary |
 | [`stwo_cpu_backend`](../src/backends/cpu_scalar/README.md) | PASS | PASS | Host slices, thread pool, no fallback role |
 | [`stwo_metal_backend`](../src/backends/metal/README.md) | PASS | PASS | Runtime identity and no CPU dependency |
 | [`stwo_cuda_backend`](../src/backends/cuda/README.md) | PASS | PASS | Resident, strict-AOT, staged status |
 | [`stwo_riscv_frontend`](../src/frontends/riscv/README.md) | PASS | PASS | Sail authority and backend neutrality |
 | [`stwo_cairo_frontend`](../src/frontends/cairo/README.md) | PASS | PASS | Authenticated semantics and official verification |
-| [`stwo_native_examples`](../src/examples/README.md) | PASS | PASS | Seven real prove/verify applications |
-| [`stwo_metal_session`](../src/tools/metal_session/README.md) | PASS | PASS | Host-neutral strict v4 service protocol |
+| [`stwo_native_examples`](../src/products/native/examples/README.md) | PASS | PASS | Seven real prove/verify applications |
+| [`stwo_metal_session`](../src/backends/metal/session/README.md) | PASS | PASS | Host-neutral strict v4 service protocol |
 | [`stwo_riscv_cpu_integration`](../src/integrations/riscv_cpu/README.md) | PASS | PASS | Released CPU engine binding |
 | [`stwo_riscv_metal_integration`](../src/integrations/riscv_metal/README.md) | PASS | PASS | Device-only, fail-closed binding |
 | [`stwo_cairo_cpu_integration`](../src/integrations/cairo_cpu/README.md) | PASS | PASS | Official plain-Blake2s CPU transaction |

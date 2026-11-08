@@ -1,6 +1,6 @@
 //! Device-free external ownership and shared heap/device admission tests.
 const std = @import("std");
-const external = @import("prover/shared_external_memory_v1.zig");
+const external = @import("../shared_external_memory_v1.zig");
 const Budget = external.SharedBudget;
 
 test "shared external: heap and external bytes compete at the exact boundary" {

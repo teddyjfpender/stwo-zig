@@ -15,7 +15,7 @@ const artifact_verifier = stwo.interop.examples_artifact_verifier;
 
 /// The aggregate CLI's RISC-V prover engine and the adapter backend tag that
 /// names it. `riscv_adapter` is engine-generic, so the engine is bound here at
-/// the product boundary exactly as `src/products/riscv_cpu/app.zig` binds it for
+/// the product boundary exactly as `src/products/riscv/cpu/app.zig` binds it for
 /// the focused product. This CLI links only the CPU commitment backend, so `.cpu`
 /// is the only tag it may ever pass; a request for any other device backend is
 /// still mapped to `.unavailable_device` below and fails closed inside `run`.
