@@ -20,6 +20,18 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Compile and test the stwo_core package");
     test_step.dependOn(&run_tests.step);
 
+    const capture_tests = addNamedCoreTests(
+        b,
+        core,
+        target,
+        optimize,
+        check_only,
+        "borrowed_proof_capture_test_root.zig",
+    );
+    b.step("test-borrowed-capture", "Test immutable borrowed proof/PCS capture and allocation-failure ownership")
+        .dependOn(capture_tests);
+    test_step.dependOn(capture_tests);
+
     _ = addFocusedTests(b, target, optimize, check_only, .{
         .step = "test-raw-mod-channel",
         .description = "Test additive experimental raw-mod M31 channel profiles",

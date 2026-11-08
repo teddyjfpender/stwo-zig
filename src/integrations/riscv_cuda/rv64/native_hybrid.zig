@@ -200,7 +200,7 @@ const Framing = struct {
     split: u32,
     total: u32,
     mask_log: u32,
-    slots: []HJ.Slot = &.{},
+    slots: []S2.Slot = &.{},
     gplans: std.ArrayListUnmanaged(NGl.Plan) = .empty,
     inter_shapes: []NC.Shape = &.{},
     inter_logs: []u32 = &.{},
@@ -401,9 +401,9 @@ pub const Hybrid = struct {
     glsym: NGl.Symbols,
     compsym: NComp.Symbols,
     psym: NP.Symbols,
-    copy: HJ.CopyAsync,
+    copy: @FieldType(jobs.ops.Exec, "copy_async"),
     events: Events.Api,
-    timing: HJ.Timing,
+    timing: @import("jobs/job_timing.zig").Timing,
     catalogue: Sources.Catalogue,
     gcatalogue: NGl.Catalogue,
     gmutex: std.Thread.Mutex = .{},
@@ -455,7 +455,7 @@ pub const Hybrid = struct {
             .glsym = try NGl.Symbols.load(&set.libs.base),
             .compsym = try NComp.Symbols.load(&set.libs.base, &set.libs.addon),
             .psym = try NP.Symbols.load(&set.libs.addon),
-            .copy = set.libs.addon.lookup(HJ.CopyAsync, "stwo_rv64_jobs_copy_async") orelse return error.MissingJobsRuntimeSymbol,
+            .copy = set.libs.addon.lookup(@FieldType(Hybrid, "copy"), "stwo_rv64_jobs_copy_async") orelse return error.MissingJobsRuntimeSymbol,
             .events = try Events.Api.load(&set.libs.base),
             .timing = undefined,
             .catalogue = try Sources.Catalogue.init(a),
@@ -828,7 +828,7 @@ pub const Hybrid = struct {
         fr.* = .{ .a = ha, .comp_log = in.comp_log, .split = in.split, .total = in.total, .mask_log = in.mask_log };
         errdefer fr.destroy();
         // Global interaction plans + INTER shapes, in slot order.
-        fr.slots = try ha.alloc(HJ.Slot, plan.slots.len);
+        fr.slots = try ha.alloc(S2.Slot, plan.slots.len);
         try fr.gplans.ensureTotalCapacity(ha, plan.slots.len);
         fr.inter_shapes = try ha.alloc(NC.Shape, plan.inter_columns);
         var item_fixed: std.ArrayListUnmanaged(DP.Column) = .empty;

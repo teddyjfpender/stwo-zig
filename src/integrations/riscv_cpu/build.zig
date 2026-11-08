@@ -22,6 +22,11 @@ pub fn build(b: *std.Build) void {
         "stwo_prover_engine",
         dependency_options,
     ).module("stwo_prover_engine");
+    const budget_root = b.createModule(.{ .root_source_file = b.path("rv64_recursion_budget_test_root.zig"), .target = target, .optimize = optimize });
+    budget_root.addImport("stwo_prover_engine", prover);
+    const budget_tests = b.addTest(.{ .root_module = budget_root, .filters = &.{ "ready budget", "ready recycler" } });
+    const budget_step = b.step("test-recursion-budget", "Test exact direct/recycler shared-budget ancestry and retained capacity");
+    budget_step.dependOn(if (check_only) &budget_tests.step else &b.addRunArtifact(budget_tests).step);
     const prover_api = b.dependency(
         "stwo_prover_api",
         dependency_options,
@@ -113,8 +118,9 @@ pub fn build(b: *std.Build) void {
 
     const test_filter = b.option([]const u8, "test-filter", "Run only tests whose names contain this text");
     const tests = b.addTest(.{ .root_module = integration, .filters = if (test_filter) |filter| &.{filter} else &.{} });
-    b.step("test", "Test the focused RISC-V CPU integration")
-        .dependOn(&b.addRunArtifact(tests).step);
+    const test_step = b.step("test", "Test the focused RISC-V CPU integration");
+    test_step.dependOn(&b.addRunArtifact(tests).step);
+    test_step.dependOn(budget_step);
 
     const secp_root = b.createModule(.{
         .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),

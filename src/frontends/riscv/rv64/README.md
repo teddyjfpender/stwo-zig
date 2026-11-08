@@ -136,7 +136,7 @@ limb algorithm; this comparison does not redesign it for RV64.
 Instruction counts and validated outputs compare the same work. RV32's public
 value diagnostic also builds witnesses and committed trees; its wall time must
 not be divided by RV64's execution-only time to claim a speedup. Small bounded
-AIR proofs now verify; paired CSP proving remains open. [Retained comparison and measurements](../../../../vectors/reports/rv64-foundations-20261030/README.md).
+AIR proofs now verify; paired CSP proving remains open. [Retained comparison and measurements](https://github.com/teddyjfpender/stwo-zig/blob/7c0686ae7c21be9bd5675f3d7b8f2b8439a07713/vectors/reports/rv64-foundations-20261030/README.md).
 
 ## Next milestones
 

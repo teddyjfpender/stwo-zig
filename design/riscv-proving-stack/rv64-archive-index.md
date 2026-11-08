@@ -6,8 +6,9 @@ removal. Archived code remains historical and unqualified.
 
 ## Published history and remote retirement
 
-Origin contains 241 distinct annotated `archive/*` tags: the original 233,
-seven additional exact remote-head archives and the recovery-index tag.
+Origin contains 242 distinct annotated `archive/*` tags: the original 233,
+seven additional exact remote-head archives, the recovery-index tag and the
+pre-retirement receipt snapshot below.
 Both tag objects and peeled commit targets were verified against origin.
 Annotated tags produce two `ls-remote --tags` records each; count tag refs
 without the `^{}` records when checking the distinct-tag total.
@@ -50,3 +51,40 @@ data hash. Verify the manifest and archive hashes before recovery. Inspect
 committed code with `git show <archive-tag>:<path>`; extract working-data
 archives into an artifact directory and review their patches before applying
 selected changes to the canonical checkout.
+
+## Historical receipt preservation
+
+`archive/receipts-20261108/pre-retirement-v1` preserves the complete published
+`7c0686ae7c21be9bd5675f3d7b8f2b8439a07713` report tree: 14,947 files,
+1,981,949,006 bytes. Its annotated tag object is
+`998e43fc209ae0e119cda002a8718882e56e22e4`. Both the tag object and peeled
+source commit were checked on origin before any report retirement.
+
+The manifest records each path, Git blob, byte count and SHA-256. Its SHA-256 is
+`afc46613fe84bd063826ea05a406e30cacc0d84e48d5e1ab5b802976ae2de7c1`.
+The manifest, summary and recursive-input dependency closure are also copied
+off the laptop, with hashes checked, to pod `cps13bvat3xhdo`:
+
+```
+/workspace/m3/archives/rv64-consolidation-20261108/receipt-retirement-v1
+```
+
+Receipt bytes remain recoverable from the published tag using
+`git show archive/receipts-20261108/pre-retirement-v1:<original-path>`.
+After preservation, 34 live inputs moved byte-identically to maintained
+fixtures, retaining their pins and recursive relative references. The fixture
+manifest records their original paths and archive blobs. A literal, rehashed
+list then retired 7,004 files (1,570,076,423 bytes) from these historical roots:
+
+- `riscv-proving-stack-reset-20260908`
+- `recursive-product-20260917`
+- `recursive-product-20260918`
+- `rv64-foundations-20261030`
+- `rv64-qualification-20261030`
+
+The retirement plan SHA-256 is
+`99d2f5cc1f811cb1fa7fdfd97b97cbe76f43dd05840088a400c78c57349e1293`.
+Its literal list and completion ledger are retained with the consolidation
+artifacts. File moves and 67 embedded historical code snapshots receive no
+production-code deletion credit. Current M7/M8/M9 receipts and live benchmark
+and interop history remain pending their owning workflow's migration.

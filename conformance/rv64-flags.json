@@ -1294,7 +1294,8 @@
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cuda/rv64/cpu_replay.zig"
+        "src/integrations/riscv_cuda/rv64/cpu_replay.zig",
+        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/cpu_replay.zig",
@@ -1938,7 +1939,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-        "text": "        .batch_pinned_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES\", default_batch_pinned_bytes) / 4,\n    };\n    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});\n        binding.reportStage1();\n        return err;\n    };"
+        "text": "        .batch_pinned_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES\", default_batch_pinned_bytes) / 4,\n    };\n    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    // Admit the manifest once, install its first scheduled block, then use\n    // the measured quiescent setup boundary for later allowed blocks.\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks[0..1], rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});\n        binding.reportStage1();"
       }
     },
     "STWO_RV64_M8_GPU_NATIVE_REUSE": {
@@ -1967,7 +1968,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-        "text": "    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});\n        binding.reportStage1();\n        return err;\n    };\n    binding.reportStage1();\n    svc.hooks = .{ .ctx = binding, .publishing = publishing, .ended = ended };"
+        "text": "    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    // Admit the manifest once, install its first scheduled block, then use\n    // the measured quiescent setup boundary for later allowed blocks.\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks[0..1], rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});\n        binding.reportStage1();\n        return err;\n    };"
       }
     },
     "STWO_RV64_M8_GPU_NATIVE_RING_BYTES": {
@@ -1980,7 +1981,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-        "text": "    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});\n        binding.reportStage1();\n        return err;\n    };\n    binding.reportStage1();\n    svc.hooks = .{ .ctx = binding, .publishing = publishing, .ended = ended };"
+        "text": "    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    // Admit the manifest once, install its first scheduled block, then use\n    // the measured quiescent setup boundary for later allowed blocks.\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks[0..1], rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});\n        binding.reportStage1();\n        return err;\n    };"
       }
     },
     "STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES": {
@@ -1993,7 +1994,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-        "text": "        .slab_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES\", default_slab_bytes) / 4,\n        .batch_pinned_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES\", default_batch_pinned_bytes) / 4,\n    };\n    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});\n        binding.reportStage1();\n        return err;"
+        "text": "        .slab_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES\", default_slab_bytes) / 4,\n        .batch_pinned_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES\", default_batch_pinned_bytes) / 4,\n    };\n    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    // Admit the manifest once, install its first scheduled block, then use\n    // the measured quiescent setup boundary for later allowed blocks.\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks[0..1], rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});"
       }
     },
     "STWO_RV64_M8_GPU_NATIVE_TRUTHS": {
@@ -2089,7 +2090,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-        "text": "    const addon = std.posix.getenv(\"STWO_RV64_M8_JOBS_LIBRARY\") orelse return error.MissingJobsAddon;\n    var libs = try O.Libraries.open(library, addon);\n    defer libs.close();\n    const peer = try O.Peer.open(&libs.addon);\n    const config = try mod.Config.fromEnv();\n    // Build real immutable recursion classes before native workers carve the\n    // device pool. Its cold proof construction is counted in init_ns.\n    const recursion_classes = try Host.installRecursion(a, &libs, library, manifest_path, spool);"
+        "text": "    const addon = std.posix.getenv(\"STWO_RV64_M8_JOBS_LIBRARY\") orelse return error.MissingJobsAddon;\n    var libs = try O.Libraries.open(library, addon);\n    defer libs.close();\n    const peer = try O.Peer.open(&libs.addon);\n    const config = try mod.Config.fromEnv();\n    // Own the recursion builder before workers. Actual class construction\n    // occurs in initial setup or the explicit new-block setup transaction.\n    const recursion_classes = try Host.installRecursion(a, &libs, library, manifest_path, spool);"
       }
     },
     "STWO_RV64_M8_JOBS_PINNED_BYTES": {
@@ -2469,7 +2470,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/native_recursion_install.zig",
-        "text": "        const fs_path = std.posix.getenv(\"STWO_RV64_M8_OUTER_FS_LIBRARY\") orelse return error.MissingOuterFsLibrary;\n        self.* = .{ .a = a, .shared = try Outer.Shared.init(&libs.base, &libs.addon, fs_path) };\n        errdefer self.deinitContents();\n        const raw = try std.fs.cwd().readFileAlloc(a, manifest_path, 1 << 20);\n        defer a.free(raw);\n        var manifest = try std.json.parseFromSlice(std.json.Value, a, raw, .{ .allocate = .alloc_always });\n        defer manifest.deinit();\n        const root = manifest.value;"
+        "text": "        const fs_path = std.posix.getenv(\"STWO_RV64_M8_OUTER_FS_LIBRARY\") orelse return error.MissingOuterFsLibrary;\n        self.* = .{ .a = a, .shared = try Outer.Shared.init(&libs.base, &libs.addon, fs_path) };\n        errdefer self.deinitContents();\n        self.library = try a.dupe(u8, library);\n        self.spool = try a.dupe(u8, spool);\n        self.manifest = try std.fs.cwd().readFileAlloc(a, manifest_path, 1 << 20);\n        return self;\n    }"
       }
     },
     "STWO_RV64_M8_OUTER_GRAPH": {
@@ -2944,7 +2945,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-        "text": "        .prewarm_resources = (try envUnsigned(\"STWO_RV64_M9_CLASS_PACKED_INGRESS\", 0)) == 1,\n        .slab_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES\", default_slab_bytes) / 4,\n        .batch_pinned_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES\", default_batch_pinned_bytes) / 4,\n    };\n    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {\n        std.debug.print(\"GPU_M8_GN_BIND install_failed error={s}\\n\", .{@errorName(err)});\n        binding.reportStage1();"
+        "text": "        .prewarm_resources = (try envUnsigned(\"STWO_RV64_M9_CLASS_PACKED_INGRESS\", 0)) == 1,\n        .slab_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES\", default_slab_bytes) / 4,\n        .batch_pinned_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES\", default_batch_pinned_bytes) / 4,\n    };\n    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    // Admit the manifest once, install its first scheduled block, then use\n    // the measured quiescent setup boundary for later allowed blocks.\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks[0..1], rc, ring) catch |err| {"
       }
     },
     "STWO_RV64_M9_STANDALONE": {

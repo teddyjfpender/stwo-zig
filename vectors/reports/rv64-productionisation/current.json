@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS",
-  "updated_utc": "2026-11-08T10:06:36.295228+00:00",
+  "updated_utc": "2026-11-08T11:17:18.568106+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-gpu-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -17,7 +17,7 @@
     "inventory_commit": "f062114ac634eb0f4a93c1a4f69c4366873c0203",
     "remote_archive_and_branch_retirement": "VERIFIED_72_LITERAL_BRANCHES_RETIRED",
     "raw_archive_bytes": 20871331,
-    "origin_distinct_archive_tags": 241,
+    "origin_distinct_archive_tags": 242,
     "origin_tag_objects_and_peeled_commits_verified": true,
     "remote_branches_retired": 72,
     "recovery_index_tag": "archive/consolidation-20261108/recovery-index-v1",
@@ -84,25 +84,25 @@
     "tracked_receipt_files": 14945,
     "local_m8_m9_branches": 69
   },
-  "current_followup_scope": "Uncommitted second batch: zero-growth FRI arithmetic correction, optimized developer route, frozen two-lane retirement and versioned GPU-native/default comparison preparation. Host-only qualification so far; 7c0686ae7 remains the last accepted hardware source.",
+  "current_followup_scope": "Published candidate 51897dc26 passes default and native full correctness gates on 24628607. Its first strict comparison stops on native installation allocation failure under the physical guard; no speedup verdict. Local prepared work includes setup-miss, basket guard, live fixtures/report retirement and shared utility/test ownership; these later changes are not hardware-qualified.",
   "host_ci_repair": {
     "native_cuda": "PASS 281/281 ReleaseFast after invalid-free test cleanup",
     "component_geometry": "PASS exact 2/2 named tests after test-owner discovery fix",
-    "fri": "WORKING_TREE HOST PASS: shared functional pair arithmetic matches independent first-pair oracle; ReleaseFast and ReleaseSafe focused tests and complete optimized core target pass. Hardware follow-up pending.",
+    "fri": "PASS: shared functional pair arithmetic and independent first-pair oracle; optimized focused tests and complete core package pass. Exact-source full-proof gate follow-up running.",
     "full_python_suite": "OPEN: initial 2135-test run has 47 failures/49 errors/61 skipped; four retired-subject discovery errors repaired. 43 selected current source-contract tests also reproduce 11 failures with real Git metadata, so pod prerequisites are not the whole explanation.",
-    "native_source_closure": "OPEN: strict code-only closure encounters three tracked symbol JSON manifests and ADMISSION-V2.md; checker and files are unchanged from baseline; no check suppression",
+    "native_source_closure": "PASS: metadata moved byte-identically to contracts/design owners; strict native closure 224 files / 112 implementation files. No checker suppression.",
     "tooling_inventory": "OPEN: six existing tools roots absent from closed inventory; audit consumers before repair/retirement",
-    "fri_independent_oracle": "First-pair integer modular arithmetic agrees with allocating result and disagrees with optimized in-place result; diagnostic only, production fix pending"
+    "fri_independent_oracle": "PASS: allocating and repaired in-place fold agree with independent modular oracle; no pin or assertion relaxation."
   },
   "production_gates": {
-    "canonical_3_plus_3_24628607": "NOT_RUN_FOR_FINAL_SOURCE",
-    "canonical_3_plus_3_26235168": "NOT_RUN",
+    "canonical_3_plus_3_24628607": "FAIL_BEFORE_NATIVE_READY_UNDER_28E9_GUARD",
+    "canonical_3_plus_3_26235168": "NOT_RUN_SEQUENCE_STOPPED_AFTER_246_INSTALL_FAILURE",
     "new_block_setup_miss": "NOT_LANDED",
     "gpu_native_full_15_basket": "NOT_RUN_FOR_FINAL_SOURCE",
-    "default_flip": "NOT_ELIGIBLE",
+    "default_flip": "NOT_ELIGIBLE_PHYSICAL_INSTALL_CAPACITY_AND_REMAINING_GATES",
     "legacy_sweep": "WAITING_FOR_PROMOTION",
-    "live_flag_registry_under_60": "NOT_IMPLEMENTED",
-    "static_gate": "FAIL_138_PATHS_NO_BASELINES_OR_CEILING_CHANGES",
+    "live_flag_registry_under_60": "REGISTRY_IMPLEMENTED_TARGET_OPEN_260_LIVE",
+    "static_gate": "FAIL_130_DIAGNOSTICS_129_PATHS_NO_BASELINES_OR_CEILING_CHANGES",
     "old_receipt_retirement": "PENDING_DEPENDENCY_AUDIT",
     "remote_branch_archive_retirement": "PASS_72_LITERAL_REFS_AFTER_PUBLISHED_TAGS_AND_OFFHOST_RECOVERY"
   },
@@ -114,7 +114,7 @@
     "qualified_speedup": "NOT_CLAIMED"
   },
   "next_required_work": [
-    "Resolve optimized FRI correctness and remaining CI/static failures without pin, ceiling or baseline suppression",
+    "Correct install-stage resource lifetimes exposed by mandatory physical guard: native cold class construction fails allocation before READY; preserve the 28e9 ceiling and rerun only after a causal fix",
     "Dependency-audit and retire frozen admission/two-lane in measured batches with dev_test.py and a default gate",
     "Archive historical report roots after preserving exact live fixtures; keep current receipts only",
     "Generate flag owner/default/status/date authority and reject undeclared flags in CI; reach fewer than 60 live flags",
@@ -385,7 +385,7 @@
     "commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713"
   },
   "working_tree_followup": {
-    "status": "CANDIDATE_COMPONENTS_PASS_FULL_PROOF_GATES_PENDING",
+    "status": "LOCAL_CANDIDATE_COMMITTED_DEFAULT_PROOF_GATE_RUNNING_PUSH_PENDING",
     "base_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
     "measured_code": {
       "added": 559,
@@ -528,7 +528,12 @@
     "scripts_removed": 0,
     "runtime_flags_added": 0,
     "runtime_flags_removed": 2,
-    "hardware_gate": "PENDING_FOR_CURRENT_SOURCE",
+    "hardware_gate": {
+      "status": "PASS_DEFAULT_AND_NATIVE_24628607_ONLY",
+      "out": "/workspace/m3/runs/m8-gn-bind/production-19/default-24628607",
+      "session": "rv64-production-19-default",
+      "manifest_sha256": "16023ea74a8e173fc6422ecc80564b1e24d5388c0d1a6eba968548d4736ed473"
+    },
     "component_session": "rv64-production-18-components",
     "component_run_root": "/workspace/m3/runs/m8-gn-bind/production-18",
     "comparison_scope": "Six strict quiet services alternating default/native; all cold/warm proofs freshly verified after timing. Physical guard remains mandatory on native. No timing run or speedup is claimed.",
@@ -550,7 +555,7 @@
     "cli_modes_added": 4,
     "cli_modes_removed": 6,
     "code_cost_receipt": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/batch3-code-costs.json",
-    "intentionally_pending": "The candidate is component-tested. Its exact local commit and subsequent full-proof results will be recorded in the evidence receipt; push remains pending those proof regressions.",
+    "intentionally_pending": "Published51897 after exact-source default and native full correctness gates passed. Later local integration snapshot remains unqualified and unpromoted.",
     "complete_optimized_cuda_package": {
       "status": "PASS",
       "log": "/workspace/m3/runs/m8-gn-bind/production-18/full-cuda-fixture-cwd-fast.log",
@@ -558,14 +563,15 @@
       "sha256": "e4a44888f377d306b755afb8dd91ec6d23e1379946e2b2ff0734e726cf7fb619",
       "scope": "Host integration tests; no hardware or speedup qualification"
     },
-    "qualification_not_inherited_from_previous_commit": true
+    "qualification_not_inherited_from_previous_commit": true,
+    "candidate_commit": "51897dc265593df7580c4abf0b232909fc105e34"
   },
   "running_subtraction_total": {
     "baseline": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
-    "delivered_code_net": -67618,
-    "pending_code_net": -542,
-    "combined_code_net": -68160,
-    "production_code_net": -42504,
+    "delivered_code_net": -68160,
+    "pending_code_net": 322,
+    "combined_code_net": -67838,
+    "production_code_net": -42182,
     "historical_research_code_net": -25656,
     "top_level_scripts_removed": 150,
     "runtime_flags_removed": 2,
@@ -576,7 +582,7 @@
   },
   "latest_goal_turn": {
     "classification": "PROGRESS",
-    "evidence": "Closed optimized projection failures and mandatory fixture cwd bug; complete optimized CUDA package and 118 focused host tests pass. Retired 801 probe lines, moved 175 immutable fixture files, and separated source-pinned policy from observed evidence. Full-proof gates and the remaining phase requirements are still outstanding."
+    "evidence": "Completed/published51897 afterbothfullcorrectnessgates; canonicalcomparison exposedcausalnativeinstallcapacityfailureunderrequiredphysicalguard andstoppedwithreceiptspreserved. Parallelimplementation advancesexplicitsetup,physicalguard parity,34fixturemoves,7004archivedreportretirements and5staticwrapperdeletions. Defaultnotflipped."
   },
   "budget_results": {
     "worktree_consolidation": {
@@ -618,7 +624,7 @@
       "status": "DELIVERED_DEFAULT_AND_NATIVE_24628607_GATES_PASS",
       "delivery_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
       "evidence": "vectors/reports/rv64-productionisation/current.json#hardware_followup",
-      "scope_note": "Delivered first batch only; subsequent working-tree changes have no full-proof gate result yet."
+      "scope_note": "Published first batch and follow-up51897 full correctness pass; later local setup/fixture/ownership/harness changes are not yet compiled or hardware-qualified."
     },
     "flag_registry": {
       "status": "DECLARATION_AND_CI_AUTHORITY_PASS_LIVE_TARGET_OPEN",
@@ -644,13 +650,28 @@
       "validation": "116 distinct focused host tests pass across registry, CI, routing, source conformance and shared validators; strict promotion check correctly fails 260 >= 60 and pending M7/M8 switches. No baseline or ceiling change."
     },
     "new_block_setup_miss": {
-      "status": "NOT_LANDED"
+      "status": "IMPLEMENTED_LOCALLY_COMPONENT_AND_HARDWARE_VALIDATION_PENDING",
+      "actual": {
+        "net": 266,
+        "root_owned_array_ownership_regression_net": 16,
+        "agent_runtime_net": 250,
+        "runtime_flags_added": 0,
+        "scripts_added": 0
+      },
+      "scope": "Quiescent setup and allocation-schedule replan; preflight preserves old runtime, post-retirement failure terminal; explicit setup_plus_request timing excludes queue/drain/client latency. Existing legacy class recorder remains explicit installation dependency. Service owns retained workers and capacity arrays; pointed-to workers/ops/peer remain caller-owned and must outlive service."
     },
     "legacy_retirement_after_default_flip": {
       "status": "NOT_ELIGIBLE_YET"
     },
     "historical_receipt_archive": {
-      "status": "TAGGED_BASELINE_ACTIVE_TREE_RETIREMENT_PENDING"
+      "status": "PUBLISHED_PRESERVED_7004_REPORTS_RETIRED_34_LIVE_FIXTURES_MOVED",
+      "evidence": "design/riscv-proving-stack/rv64-archive-index.md#historical-receipt-preservation",
+      "report_files_retired": 7004,
+      "bytes_retired": 1570076423,
+      "live_fixtures_moved": 34,
+      "moves_counted_as_deletions": false,
+      "remaining_tracked_report_files": 7734,
+      "host_validation": "52 focused dev_test.py tests pass; preserved bytes and references verified; no new full-proof qualification"
     },
     "retired_script_closure_batch_1": {
       "status": "DELIVERED_DEFAULT_AND_NATIVE_24628607_GATES_PASS",
@@ -806,6 +827,421 @@
         "removed": 2,
         "net": 0
       }
+    },
+    "historical_receipt_live_input_separation": {
+      "status": "PASS_34_INPUTS_MOVED_WITH_PINS_UNCHANGED",
+      "actual": {
+        "added": 8,
+        "removed": 9,
+        "net": -1,
+        "runtime_flags_added": 0,
+        "scripts_added": 0
+      },
+      "files_moved": 34,
+      "bytes_moved": 11551802,
+      "all_maintained_fixture_entries_verified": 209,
+      "moves_counted_as_deletions": false
+    },
+    "basket_native_physical_guard": {
+      "status": "PASS_46_FOCUSED_HOST_TESTS_HARDWARE_PENDING",
+      "actual": {
+        "added": 62,
+        "removed": 4,
+        "net": 58,
+        "runtime_flags_added": 0,
+        "scripts_added": 0
+      },
+      "scope": "Mandatory native basket guard and shared guard lifecycle/device/physical allocation/pin validation; not an observed physical peak"
+    },
+    "unreachable_metal_compile_body_wrappers": {
+      "status": "PASS_PRESERVATION_92_FOCUSED_HOST_TESTS_AND_STATIC_139_TO_134_HARDWARE_PENDING",
+      "actual": {
+        "added": 0,
+        "removed": 246,
+        "net": -246,
+        "runtime_flags_added": 0,
+        "scripts_added": 0
+      },
+      "files_removed": 5,
+      "static_diagnostics_before": 139,
+      "static_diagnostics_after": 134,
+      "baseline_or_ceiling_changes": 0
+    },
+    "native_shared_utility_ownership": {
+      "status": "IMPLEMENTED_LOCALLY_LINT_AND_FORMAT_PASS_COMPILE_PENDING",
+      "actual": {
+        "added": 41,
+        "removed": 40,
+        "net": 1,
+        "runtime_flags_added": 0,
+        "scripts_added": 0
+      },
+      "native_core_closure_files": 107,
+      "hybrid_adapter_imports_in_native_core": 0,
+      "shared_declaration_lines_moved": 17,
+      "moves_counted_as_deletions": false
+    },
+    "orphan_resource_test_ownership": {
+      "status": "PASS_PRESERVED_TEST_BODIES_88_HOST_CONTRACTS_AND_STATIC_134_TO_130_COMPILE_PENDING",
+      "actual": {
+        "added": 68,
+        "removed": 14,
+        "net": 54,
+        "runtime_flags_added": 0,
+        "scripts_added": 0
+      },
+      "original_root_files_rehomed": 4,
+      "named_test_bodies_preserved_exactly": 16,
+      "borrowed_capture_tests_imported": 5,
+      "mandatory_package_and_focused_routes": true,
+      "moves_counted_as_deletions": false
+    },
+    "setup_epoch_metric_ownership": {
+      "status": "PASS_46_FOCUSED_HOST_TESTS_COMPILE_AND_HARDWARE_PENDING",
+      "actual": {
+        "added": 100,
+        "removed": 16,
+        "net": 84,
+        "runtime_flags_added": 0,
+        "scripts_added": 0
+      },
+      "trace_net_charged_once": 7,
+      "historical_missing_setup_values": "unavailable, never zero"
+    },
+    "developer_worktree_policy_routing": {
+      "status": "PASS_107_HOST_CONTRACTS_ACTUAL_NO_ARGUMENT_PLAN_AND_TYPO_REFUSAL",
+      "actual": {
+        "added": 119,
+        "removed": 13,
+        "net": 106,
+        "runtime_flags_added": 0,
+        "scripts_added": 0
+      },
+      "actual_no_argument_plan_commands": 12,
+      "shared_ci_policy": true,
+      "unknown_sources_fail": true,
+      "fixture_and_conformance_triggers_preserved": true
+    }
+  },
+  "latest_completed_hardware_timings": {
+    "status": "DIAGNOSTIC_NOT_QUALIFIED_FOR_SPEEDUP",
+    "source_commit": "51897dc265593df7580c4abf0b232909fc105e34",
+    "block": 24628607,
+    "default": {
+      "service_init_s": 4.660182251,
+      "first_request_s": 29.112096726,
+      "warm_request_s": 11.704524331
+    },
+    "gpu_native": {
+      "service_init_s": 144.18857531,
+      "first_request_s": 10.586217417,
+      "warm_request_s": 10.464638069
+    },
+    "requests_quiet": false,
+    "samples": "one first/warm correctness pair per arm",
+    "native_setup_accounting": "class construction charged to service initialization",
+    "physical_guard": "not used in correctness pair; subsequent strict guarded native installation failed before READY",
+    "new_block_latency": "NOT_MEASURED",
+    "physical_memory_peaks": "NOT_MEASURED"
+  },
+  "historical_receipt_preservation": {
+    "status": "PUBLISHED_TAG_OBJECT_AND_SOURCE_COMMIT_VERIFIED",
+    "archive_tag": "archive/receipts-20261108/pre-retirement-v1",
+    "source_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+    "tag_object": "998e43fc209ae0e119cda002a8718882e56e22e4",
+    "file_count": 14947,
+    "bytes": 1981949006,
+    "manifest_sha256": "afc46613fe84bd063826ea05a406e30cacc0d84e48d5e1ab5b802976ae2de7c1",
+    "off_laptop_manifest": "runpod://cps13bvat3xhdo/workspace/m3/archives/rv64-consolidation-20261108/receipt-retirement-v1/historical-receipt-archive-v1.json",
+    "report_files_retired_in_this_step": 0
+  },
+  "candidate_hardware_followup": {
+    "candidate_commit": "51897dc265593df7580c4abf0b232909fc105e34",
+    "default_24628607": {
+      "status": "PASS",
+      "source_commit": "51897dc265593df7580c4abf0b232909fc105e34",
+      "asset_sha256": {
+        "library": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+        "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
+        "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
+        "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139",
+        "driver": "1bc508c8c2dccc60c9db9b6fe1d38a02b74c92278ced60371fa0bb422d303c0e",
+        "receiver": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a"
+      },
+      "receiver_acceptance": {
+        "status": "FRESH_ISOLATED_CPU_ACCEPTED",
+        "proofs": 2,
+        "receiver_sha256": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a"
+      },
+      "corpus_acceptance": {
+        "status": "PASS",
+        "receiver_sha256": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a",
+        "cpu_isolation_checked": true,
+        "required_cases": 19,
+        "completed_cases": 19,
+        "out_of_scope_pending_cases": 105,
+        "semantic_rejection_complete": true,
+        "nonsemantic_rejects": {}
+      },
+      "path": "/workspace/m3/runs/m8-gn-bind/production-19/default-24628607/gate.json",
+      "sha256": "a429ad3fbd89e678f57eea5b10724820ed7c7371d4834a1f0fc99bcecb787594",
+      "source_manifest_sha256": "16023ea74a8e173fc6422ecc80564b1e24d5388c0d1a6eba968548d4736ed473",
+      "source_files": 8769,
+      "parity": [
+        {
+          "byte_identical": true,
+          "artifact_count": 39
+        },
+        {
+          "byte_identical": true,
+          "artifact_count": 39
+        }
+      ],
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ]
+    },
+    "native_24628607": {
+      "status": "PASS",
+      "source_commit": "51897dc265593df7580c4abf0b232909fc105e34",
+      "asset_sha256": {
+        "library": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+        "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
+        "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
+        "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139",
+        "driver": "1bc508c8c2dccc60c9db9b6fe1d38a02b74c92278ced60371fa0bb422d303c0e",
+        "receiver": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a"
+      },
+      "receiver_acceptance": {
+        "status": "FRESH_ISOLATED_CPU_ACCEPTED",
+        "proofs": 2,
+        "receiver_sha256": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a"
+      },
+      "corpus_acceptance": {
+        "status": "PASS",
+        "receiver_sha256": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a",
+        "cpu_isolation_checked": true,
+        "required_cases": 19,
+        "completed_cases": 19,
+        "out_of_scope_pending_cases": 105,
+        "semantic_rejection_complete": true,
+        "nonsemantic_rejects": {}
+      },
+      "jobs_env": {
+        "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-gn-codec/addon-5/libstwo-rv64-jobs.so",
+        "STWO_RV64_M8_OUTER_FS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-4/libstwo-rv64-outer-fs-ops.so",
+        "STWO_RV64_M8_JOBS_PINNED_BYTES": "2365587456",
+        "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": "2147483648"
+      },
+      "path": "/workspace/m3/runs/m8-gn-bind/production-19/native-24628607/gate.json",
+      "sha256": "5825c7830fd13a6cf47dc18a7998e412f7e5e4a76d884cc33cc10cabd0adeefe",
+      "source_manifest_sha256": "16023ea74a8e173fc6422ecc80564b1e24d5388c0d1a6eba968548d4736ed473",
+      "parity": [
+        {
+          "byte_identical": true,
+          "artifact_count": 39
+        },
+        {
+          "byte_identical": true,
+          "artifact_count": 39
+        }
+      ],
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ]
+    },
+    "canonical_sequence": {
+      "status": "TERMINAL_FAIL_NATIVE_INSTALL_PHYSICAL_CAPACITY_BEFORE_READY",
+      "blocks": [
+        24628607,
+        26235168
+      ],
+      "session": "rv64-production-19-native-comparisons",
+      "path": "/workspace/m3/runs/m8-gn-bind/production-19/promotion-sequence.json",
+      "completed_blocks": [],
+      "failed_block": 24628607,
+      "failed_service_order": 1,
+      "error": "CudaAllocationFailed",
+      "baseline_service": "strict quiet accepted and proof byte parity passed; complete sequence not accepted",
+      "guard": "RELEASED exit 0; both enforced ceilings 27,998,552,064 bytes; no physical peak claim",
+      "next_block_26235168": "NOT_RUN_SEQUENCE_STOPPED_ON_FIRST_FAILURE"
+    },
+    "scope": "Exact frozen candidate source only; later local fixture/setup/harness work is not qualified by these gates.",
+    "status": "PASS_DEFAULT_AND_NATIVE_24628607_ONLY",
+    "published_commit": "51897dc265593df7580c4abf0b232909fc105e34",
+    "origin_head_verified": true
+  },
+  "historical_report_retirement": {
+    "schema": "rv64-historical-report-retirement/v1",
+    "status": "PRESERVED_PUBLISHED_REVERIFIED_AND_LITERAL_FILES_REMOVED",
+    "updated_utc": "2026-11-08T10:39:23.393994+00:00",
+    "archive_tag": "archive/receipts-20261108/pre-retirement-v1",
+    "archive_commit": "7c0686ae7c21be9bd5675f3d7b8f2b8439a07713",
+    "archive_tag_object": "998e43fc209ae0e119cda002a8718882e56e22e4",
+    "literal_plan_sha256": "99d2f5cc1f811cb1fa7fdfd97b97cbe76f43dd05840088a400c78c57349e1293",
+    "file_count_before": 14738,
+    "file_count_after": 7734,
+    "report_files_removed": 7004,
+    "bytes_removed": 1570076423,
+    "per_root": [
+      {
+        "root": "vectors/reports/riscv-proving-stack-reset-20260908/",
+        "files": 5767,
+        "bytes": 1406225887
+      },
+      {
+        "root": "vectors/reports/recursive-product-20260917/",
+        "files": 186,
+        "bytes": 18139627
+      },
+      {
+        "root": "vectors/reports/recursive-product-20260918/",
+        "files": 1036,
+        "bytes": 145331392
+      },
+      {
+        "root": "vectors/reports/rv64-foundations-20261030/",
+        "files": 1,
+        "bytes": 4982
+      },
+      {
+        "root": "vectors/reports/rv64-qualification-20261030/",
+        "files": 14,
+        "bytes": 374535
+      }
+    ],
+    "live_fixtures_moved": 34,
+    "moves_counted_as_deletions": false,
+    "embedded_code_snapshot_files": 67,
+    "production_code_lines_removed": 0,
+    "runtime_flags_added": 0,
+    "runtime_flags_removed": 0,
+    "top_level_scripts_added": 0,
+    "top_level_scripts_removed": 0,
+    "held_m7_m8_m9_receipts_untouched": true,
+    "live_benchmark_and_interop_history_untouched": true,
+    "full_proof_or_performance_qualification": false,
+    "host_validation": {
+      "status": "PASS",
+      "selected_python_tests": 52,
+      "command": [
+        "python3",
+        "scripts/dev_test.py",
+        "scripts/tests/test_riscv64_prover_profile_compare.py",
+        "scripts/tests/test_riscv64_tools.py",
+        "scripts/tests/test_rv64_validation.py",
+        "scripts/tests/test_rv64_m7_composed_cells.py",
+        "scripts/tests/test_rv64_m8_bench15.py"
+      ],
+      "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/fixture-migration-v2-host-tests.log",
+      "log_sha256": "feb24688fa0900f074b4d7bd1acc8b6323764234d8f61c260940e0d2029d30d7",
+      "all_209_fixtures_rehashed_after_retirement": true,
+      "shell_syntax": "PASS",
+      "diff_check": "PASS",
+      "concurrent_harness_fixture_error": {
+        "status": "RESOLVED_BY_HARNESS_OWNER_BEFORE_FINAL_PASS",
+        "initial_combined_run": "52 tests,1error",
+        "test": "test_native_service_refuses_missing_failed_or_invalid_physical_guard",
+        "error": "KeyError: library",
+        "scope": "Concurrent new bench15 test asset fixture omitted the required library; original29fixture-focused tests passed. No migration pin or validation guard was relaxed."
+      }
+    },
+    "off_laptop_ledger_directory": "/workspace/m3/archives/rv64-consolidation-20261108/receipt-retirement-v1"
+  },
+  "pod_capacity_cleanup": {
+    "status": "REMOVED_REPRODUCIBLE_INACTIVE_CACHE_PINNED_ASSETS_UNCHANGED",
+    "literal_path": "/workspace/m3/src/m8-gn-codec/.zig-cache",
+    "files": 4618,
+    "logical_bytes": 3956105156,
+    "free_before": 2304086016,
+    "free_after": 6257651712,
+    "runtime_and_binary_sha256": {
+      "/workspace/m3/build/m8-gn-codec/addon-5/runtime.json": "6552d5be19a07efc442e227610ce6010260dfd3b232dd55bdd7629c1e3ff9e47",
+      "/workspace/m3/build/m8-opt-combined/img/native/libstwo-rv64-native.so": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+      "/workspace/m3/build/m7-rc-sparse/libstwo-rc-sparse.so": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
+      "/workspace/m3/build/m7-rc-sparse/libstwo-process-memory-v3.so": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
+      "/workspace/m3/build/m7-rc-sparse/gpu-budget-guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139",
+      "/workspace/m3/build/m8-gn-codec/addon-5/libstwo-rv64-jobs.so": "a8691a96b4192036147e9810e0ab4a5ada929cb55726d2d876a047774c9cfebb",
+      "/workspace/m3/build/m8-gn-bind/addon-4/libstwo-rv64-outer-fs-ops.so": "ba6ffb21ab246b72ab3d23950d20c24f14039cc9d3f54d07ed6e3129cc5f4677",
+      "/workspace/m3/build/m8-gn-bind/zig-out/bin/rv64-word16-ethereum-gpu-combined": "1bc508c8c2dccc60c9db9b6fe1d38a02b74c92278ced60371fa0bb422d303c0e",
+      "/workspace/m3/build/m8-gn-bind/zig-out/bin/rv64-word16-ethereum-recursion-receiver": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a"
+    },
+    "live_users": [],
+    "time_ns": 1794134280913435422
+  },
+  "integration_candidate": {
+    "status": "LOCAL_UNQUALIFIED_SNAPSHOT_READY_FOR_POD_COMPONENTS",
+    "parent_commit": "51897dc265593df7580c4abf0b232909fc105e34",
+    "default_flip": false,
+    "prepared_features": [
+      "explicit quiescent setup miss with owned worker/capacity arrays",
+      "install-only checked MAIN replay and reclaim of reconstructible class regions",
+      "mandatory basket physical guard and strict shared closure/pins",
+      "setup/request metric identity and separate setup accounting",
+      "shared native utility ownership without hybrid-adapter import",
+      "live fixture migration and archived historical receipt retirement",
+      "mandatory package ownership for orphan resource tests",
+      "authoritative CI/dev_test path routing"
+    ],
+    "host_contracts": {
+      "status": "PASS",
+      "distinct_tests": 120,
+      "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/integration-host-contracts-final.log"
+    },
+    "hardware": "NOT_RUN_FOR_THIS_SOURCE",
+    "source_freeze": "All agents stopped repository edits; root completed retained-array ownership and registry review; source ready for exact integration snapshot",
+    "registry": "PASS: source-expression windows reviewed; default readers and four numeric defaults unchanged; generated reference update did not add declarations or change owners/status/defaults",
+    "code_cost": {
+      "added": 905,
+      "removed": 583,
+      "net": 322,
+      "note": "Git edit counts include relocated test/declaration lines on both sides; moves and archived code snapshots have no deletion credit. Net is measured after rename detection."
     }
   }
 }

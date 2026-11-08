@@ -36,12 +36,27 @@ Legacy construction is still used during installation, and the default path
 remains a separately gated reference.
 
 `rv64_combined_ethereum_main.zig` is the dispatch authority. With JOBS=1 and
-GPU_NATIVE=1 it calls `driver_ge.serve`, which constructs recursion authorities,
-binds native/capture/input factories, and calls `driver_serve.Service.install`.
-Installation warms the known classes and reserves the capture ring, request
-slabs, worker arena, pinned pools and events. `serveSpool` then routes each
-request through `Service.begin` (capture plus driver batches) and `Service.finish`
-(completion, checked publication and capture join). Class misses refuse.
+GPU_NATIVE=1 it calls `driver_ge.serve`, which owns the recursion class builder,
+binds native/capture/input factories, and installs the first scheduled block.
+Installation reserves its capture ring, request slabs, worker arena, pinned
+pools and events. For another manifest-admitted block, `serveSpool` drains both
+request parities before calling `Service.setup`. This boundary captures the
+block, builds its immutable native/truth/recursion authorities, and replans all
+request resources through the same allocation schedule. Reconstructible device
+class regions retire before the cold recorder; immutable authority templates
+stay owned and their resources warm again before a request. The installer
+parks native MAIN at the challenge barrier and authenticates its replay,
+avoiding overlap with the truth composition arena. Unknown blocks refuse;
+a failure after retiring the old runtime leaves a terminal service with owned
+partial classes, never a fallback or a dangling request runtime.
+
+Ordinary requests still use `Service.begin` (streamed capture plus driver
+batches) and `Service.finish` (completion, checked publication and capture
+join). Receipts expose `setup_ns` separately from `request_wall_ns`;
+`setup_plus_request_ns` excludes queue, drain and client latency. The recursion
+recorder remains a legacy implementation inside explicit setup and its full
+cost is charged there. Same-service setup-miss hardware qualification remains
+pending; component tests alone do not permit default promotion.
 Without GPU_NATIVE, `resident_batch.runServe` owns the reference/feeder path.
 The unused `jobs.serve` placeholder and its untyped hooks have been removed;
 they never implemented a request. Existing hybrid class construction still

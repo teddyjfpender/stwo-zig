@@ -1071,6 +1071,7 @@ const FakeSource = struct {
     fn warm(raw: *anyopaque, block: u64) anyerror!G.CaptureEnd {
         const self = of(raw);
         if (block == 13) return error.WarmCaptureFailed;
+        if (block == 7) return error.GpuNativeBlockNotWarmed;
         try self.warmed.append(testing.allocator, block);
         return captureEnd(self.segments);
     }
@@ -1269,18 +1270,20 @@ test "serve: the spool answers requests in order, refuses malformed and reused n
     try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/0002-bad.request", .data = "not-a-block\n" });
     try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/0003-26235156.request", .data = "26235156\n" });
     try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/0004-7.request", .data = "7\n" });
+    try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/0005-new.request", .data = "24628607\n" });
     try tmp.dir.writeFile(.{ .sub_path = "spool/inbox/STOP", .data = "" });
     const path = try tmp.dir.realpathAlloc(a, "spool");
     defer a.free(path);
     try S.serveSpool(svc, path, 1);
     try tmp.dir.access("spool/READY", .{});
-    const Expect = struct { name: []const u8, ok: bool, needle: []const u8 };
+    const Expect = struct { name: []const u8, ok: bool, needle: []const u8, block: u64 = 26235156 };
     for ([_]Expect{
         .{ .name = "0000-26235156", .ok = true, .needle = "\"sequence\":0" },
         .{ .name = "0001-26235156", .ok = true, .needle = "\"sequence\":1" },
         .{ .name = "0002-bad", .ok = false, .needle = "ResidentRequestMalformed" },
         .{ .name = "0003-26235156", .ok = false, .needle = "ResidentRequestNameReused" },
         .{ .name = "0004-7", .ok = false, .needle = "GpuNativeBlockNotWarmed" },
+        .{ .name = "0005-new", .ok = true, .needle = "\"sequence\":2", .block = 24628607 },
     }) |e| {
         var buf: [128]u8 = undefined;
         const done = try tmp.dir.readFileAlloc(a, try std.fmt.bufPrint(&buf, "spool/done/{s}.json", .{e.name}), 4096);
@@ -1292,9 +1295,91 @@ test "serve: the spool answers requests in order, refuses malformed and reused n
             const jobs = try tmp.dir.readFileAlloc(a, try std.fmt.bufPrint(&buf, "spool/out/{s}/m8-jobs.json", .{e.name}), 1 << 16);
             defer a.free(jobs);
             try testing.expect(std.mem.indexOf(u8, jobs, "rv64-m8-gpu-native-request/v1") != null);
-            try tmp.dir.access(try std.fmt.bufPrint(&buf, "spool/out/{s}/26235156/proof/stage-one.bin", .{e.name}), .{});
+            try tmp.dir.access(try std.fmt.bufPrint(&buf, "spool/out/{s}/{d}/proof/stage-one.bin", .{ e.name, e.block }), .{});
         }
         try testing.expectError(error.FileNotFound, tmp.dir.access(try std.fmt.bufPrint(&buf, "spool/inbox/{s}.request", .{e.name}), .{}));
     }
-    try testing.expectEqual(@as(usize, 2), src.joined);
+    try testing.expectEqual(@as(usize, 3), src.joined);
+    try testing.expectEqualSlices(u64, &.{ 26235156, 24628607 }, src.warmed.items);
+}
+
+test "serve: explicit setup waits for quiescence, replans larger geometry and fails closed on capacity" {
+    const a = testing.allocator;
+    var world = World{ .a = a };
+    var src = FakeSource{};
+    defer src.warmed.deinit(a);
+    const w0 = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer w0.destroy();
+    const w1 = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+    defer w1.destroy();
+    var supplied_config = serviceConfig();
+    var supplied_caps = [_]u64{ supplied_config.capacity_words[0], supplied_config.capacity_words[1] };
+    supplied_config.capacity_words = &supplied_caps;
+    var supplied_workers = [_]*W.Worker{ w0, w1 };
+    const svc = try S.Service.install(a, &F.ops, &F.peer, &supplied_workers, world.nativeFactory(), world.recursionFactory(), src.source(), &.{1}, supplied_config, .{ .buffers = 8, .words = 16 });
+    defer svc.deinit();
+    supplied_workers[0] = w1;
+    supplied_caps[0] = 0;
+    try testing.expectEqual(w0, svc.workers[0]);
+    try testing.expect(svc.config.capacity_words[0] > 0);
+    try testing.expectError(error.WarmCaptureFailed, svc.setup(13));
+    try testing.expect(!svc.poisoned());
+    const pending = try svc.begin(1, null);
+    try testing.expectError(error.GpuNativeSetupRequiresQuiescence, svc.setup(2));
+    try testing.expectEqual(@as(usize, 1), src.warmed.items.len);
+    var first = try svc.finish(pending);
+    first.outcome.deinit();
+    const previous_generation = svc.driver.generation;
+    src.segments = 5;
+    const setup_ns = try svc.setup(2);
+    try testing.expect(setup_ns > 0);
+    try testing.expectEqual(previous_generation, svc.driver.generation);
+    try testing.expectEqual(@as(u32, 5), svc.driver.config.max_segments);
+    for (svc.driver.lanes) |lane| try testing.expectEqual(@as(usize, 3 * main_words), lane.main.words);
+    const before = F.counters;
+    try testing.expectEqual(@as(u64, 0), try svc.setup(2));
+    try testing.expectEqual(before.allocations, F.counters.allocations);
+    world.reset();
+    var next = try svc.serve(2, null);
+    defer next.outcome.deinit();
+    next.setup_ns = setup_ns;
+    const receipt = try S.receiptJson(a, 2, 0, next);
+    defer a.free(receipt);
+    const parsed = try std.json.parseFromSlice(std.json.Value, a, receipt, .{});
+    defer parsed.deinit();
+    try testing.expectEqual(setup_ns, @as(u64, @intCast(parsed.value.object.get("setup_ns").?.integer)));
+    try testing.expectEqual(setup_ns + next.request_wall_ns, @as(u64, @intCast(parsed.value.object.get("setup_plus_request_ns").?.integer)));
+    svc.config.capacity_words = &.{ 1, 1 };
+    try testing.expectError(error.GpuNativeMemoryPlanExceedsDevice, svc.setup(3));
+    try testing.expect(svc.poisoned());
+    try testing.expectError(error.GpuNativeDriverPoisoned, svc.begin(1, null));
+    try testing.expectEqual(src.started, src.joined);
+}
+
+test "serve: setup allocation failure retires partial resources without invalidating request ownership" {
+    const a = testing.allocator;
+    var world = World{ .a = a };
+    var src = FakeSource{};
+    defer src.warmed.deinit(a);
+    const before_bad_frees = F.counters.bad_frees;
+    const before_bad_events = F.counters.bad_event_destroys;
+    {
+        const w0 = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 0, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+        defer w0.destroy();
+        const w1 = try W.Worker.create(a, &F.ops, .{ .plan_from_env = false, .device = 1, .arena_words = 1 << 10, .pinned_slot_words = 1 << 10 });
+        defer w1.destroy();
+        const svc = try S.Service.install(a, &F.ops, &F.peer, &.{ w0, w1 }, world.nativeFactory(), world.recursionFactory(), src.source(), &.{1}, serviceConfig(), .{});
+        defer svc.deinit();
+        // Fail after one event of the replacement runtime was installed.
+        F.counters.fail_event_create_after = F.counters.event_creations + 1;
+        defer F.counters.fail_event_create_after = null;
+        try testing.expectError(error.CudaEnqueueFailed, svc.setup(2));
+        try testing.expect(svc.last_setup_ns > 0);
+        try testing.expect(svc.poisoned());
+        try testing.expectError(error.GpuNativeDriverPoisoned, svc.setup(1));
+        try testing.expectError(error.GpuNativeDriverPoisoned, svc.begin(1, null));
+        try testing.expectEqual(@as(usize, 0), src.started);
+    }
+    try testing.expectEqual(before_bad_frees, F.counters.bad_frees);
+    try testing.expectEqual(before_bad_events, F.counters.bad_event_destroys);
 }

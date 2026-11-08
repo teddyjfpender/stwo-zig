@@ -18,11 +18,20 @@ OPTIMIZE_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts import ci_package_graph
+from scripts import ci_package_graph, ci_scope_plan
 from scripts.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_prover_engine", "src/prover/shared_resources_test_root.zig", "test-shared-resources"),
+    ("stwo_prover_engine", "src/prover/shared_external_memory_v1.zig", "test-shared-resources"),
+    ("stwo_prover_engine", "src/prover/host_budget_allocator.zig", "test-shared-resources"),
+    ("stwo_core", "src/core/borrowed_proof_capture_test_root.zig", "test-borrowed-capture"),
+    ("stwo_core", "src/core/tests/borrowed_proof_capture_test.zig", "test-borrowed-capture"),
+    ("stwo_core", "src/core/tests/borrowed_pcs_capture_success_test.zig", "test-borrowed-capture"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion_budget_test_root.zig", "test-recursion-budget"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion_budget.zig", "test-recursion-budget"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_large_block_recycler.zig", "test-recursion-budget"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig", "test-recursion-dag"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_recursion/om31_native/publication.zig", "test-recursion-publication"),
     ("stwo_core", "src/core/fields", "test-fields"),
@@ -193,6 +202,10 @@ def broad_command(root: Path, package: ci_package_graph.Package, optimize: str) 
     return local_command(command, optimize)
 
 
+def tracked_deletions(root: Path) -> set[str]:
+    return set(subprocess.check_output(["git", "diff", "--diff-filter=D", "--name-only", "HEAD", "--"], cwd=root, text=True).splitlines()) if (root / ".git").exists() else set()
+
+
 def commands_for_paths(
     root: Path,
     raw_paths: Iterable[str],
@@ -205,7 +218,13 @@ def commands_for_paths(
     paths = sorted({normalize_path(path) for path in raw_paths})
     python_paths = [path for path in paths if path.startswith("scripts/") and path.endswith(".py")]
     commands: list[list[str]] = []
+    deleted: set[str] | None = None
     if python_paths:
+        missing = {path for path in python_paths if not (root / path).is_file()}
+        if missing:
+            deleted = tracked_deletions(root)
+            if unknown := missing - deleted:
+                raise DevTestError("Python path does not exist and is not a tracked deletion: " + ", ".join(sorted(unknown)))
         if check_only:
             commands.append([sys.executable, "-m", "compileall", "-q", "scripts"])
         else:
@@ -213,7 +232,7 @@ def commands_for_paths(
             for path in python_paths:
                 source = Path(path)
                 test = source if source.parent.as_posix() == "scripts/tests" and source.name.startswith("test_") else Path("scripts/tests") / ("test_" + source.stem + ".py")
-                if not (root / test).is_file():
+                if not (root / source).is_file() or not (root / test).is_file():
                     commands.append([sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-p", "test_*.py"])
                     break
                 modules.add(test.with_suffix("").as_posix().replace("/", "."))
@@ -223,18 +242,42 @@ def commands_for_paths(
         if not paths:
             return commands
     packages = ci_package_graph.load_packages(root)
+    policy = ci_scope_plan.strict_json(root / "conformance/ci-touchpoints-v1.json")
+    ci_scope_plan.validate_policy(policy)
+    bindings = ci_package_graph.lane_packages(policy, packages)
     selected: dict[str, list[str]] = {}
+    extra_lanes: set[str] = set()
     unowned: list[str] = []
     for path in paths:
+        documentation = ci_scope_plan.is_documentation(path, policy)
+        lanes = ci_scope_plan.rule_lanes(path, policy, documentation_only=documentation)
+        if not lanes and (documentation or ci_scope_plan.is_externally_validated(path, policy)):
+            continue
         package = ci_package_graph.owning_package(path, packages)
-        if package is None:
-            unowned.append(path)
-        else:
+        if package is not None:
             selected.setdefault(package, []).append(path)
+            continue
+        if not lanes and not (root / path).exists() and (root / ".git").exists():
+            if deleted is None:
+                deleted = tracked_deletions(root)
+            if path in deleted:
+                lanes = set(policy["always_lanes"])
+        if lanes:
+            extra_lanes.update(lanes)
+        else:
+            unowned.append(path)
     if unowned:
         raise DevTestError(
             "no Zig package owns changed path(s): " + ", ".join(unowned)
         )
+
+    for lane in sorted(extra_lanes):
+        if lane in bindings:
+            selected.setdefault(bindings[lane], []).append("")
+        elif lane == "script_contracts" and check_only:
+            commands.append([sys.executable, "-m", "compileall", "-q", "scripts"])
+        else:
+            commands.extend(policy["lanes"][lane]["commands"])
 
     for package_name, package_paths in sorted(selected.items()):
         package = packages[package_name]
@@ -256,7 +299,14 @@ def commands_for_paths(
             if check_only:
                 command.extend(("-Dcheck-only=true", "-fincremental"))
             commands.append(command)
-    return commands
+    full_contracts = any(command[1:] in [item[1:] for item in policy["lanes"]["script_contracts"]["commands"]] for command in commands)
+    unique = {}
+    for command in commands:
+        if full_contracts and command[1:3] == ["-m", "unittest"] and all(module.startswith("scripts.tests.") for module in command[3:]):
+            continue
+        command = [sys.executable if index == 0 and argument == "python3" else argument for index, argument in enumerate(command)]
+        unique.setdefault(tuple(command), command)
+    return list(unique.values())
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -289,6 +339,9 @@ def main(argv: list[str] | None = None) -> int:
             check_only=args.check or args.watch,
             optimize=args.optimize,
         )
+        if not commands:
+            print("dev test: CI policy selects no local runtime tests for documentation/external validation")
+            return 0
         if args.watch:
             if len(commands) != 1 or "-Dcheck-only=true" not in commands[0]:
                 raise DevTestError("--watch requires one focused package")
@@ -305,6 +358,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     except (
         DevTestError,
+        ci_scope_plan.PlanError,
         ci_package_graph.GraphError,
         json.JSONDecodeError,
         OSError,

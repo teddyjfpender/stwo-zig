@@ -25,6 +25,23 @@ const C = @import("native_commit.zig");
 const N = @import("native_pcs.zig");
 const NC = @import("native_composition.zig");
 
+/// One cpu_components.Plan slot as Stage2 consumes it.
+pub const Slot = struct {
+    log: u32,
+    inter_offset: usize,
+    /// Binding instance whose 16 coefficient columns open the slot's INTER range.
+    binding_index: ?usize = null,
+    /// The slot's global interaction (claims), or null (claimCount == 0).
+    global: ?Global = null,
+    pub const Global = struct {
+        plan: *const @import("native_global.zig").Plan,
+        claim_offset: u32,
+        /// First FIXED / MAIN column of the slot (original order).
+        fixed_first: usize,
+        main_first: usize,
+    };
+};
+
 pub const manifest_header = [2]u32{ 0x57474b32, 1 };
 
 /// Composition producer seam: enqueue the composition from the device

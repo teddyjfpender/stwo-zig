@@ -1,9 +1,205 @@
 {
   "schema": "rv64-validation-fixtures/v1",
-  "purpose": "Maintained immutable proof-parity, composed-cell and allocation-policy fixtures. Historical locations are provenance only. Moves are not deletions.",
+  "purpose": "Maintained immutable parity, allocation-policy, recursive admission, benchmark and Rust-reference inputs. Historical locations are provenance only. Moves are not deletions.",
   "archive_tag": "archive/consolidation-20261108/worktrees/rv64-m8-gn-bind",
   "archive_commit": "4a4d01bd5999bd6489fe71062c9e46ccdbcd73bb",
   "files": [
+    {
+      "path": "vectors/fixtures/cairo-rust-reference-v1/pinned-cairo-reference.json",
+      "historical_path": "vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h100-20261001/pinned-cairo-reference.json",
+      "bytes": 1880,
+      "sha256": "8aa53c85a03bff8eec77f50d127d0e2a5c20c1caf50fe462d2f1fc6c25ce7d63",
+      "git_blob": "64fb8895b8f0d4c3f87c35aa8c14a46e7905fa97"
+    },
+    {
+      "path": "vectors/fixtures/cairo-rust-reference-v1/receipt.json",
+      "historical_path": "vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h100-20261001/receipt.json",
+      "bytes": 4161,
+      "sha256": "15a965e6768aa9f50b271dd60fa26ed302db7a3aa45f6c7f3732863a1c27a28a",
+      "git_blob": "0f4b43cfadb18d35b04b44c874fb12858d3cfc85"
+    },
+    {
+      "path": "vectors/fixtures/recursive/recursive-product-20260917/canonical-admission-v2/admission.json",
+      "historical_path": "vectors/reports/recursive-product-20260917/canonical-admission-v2/admission.json",
+      "bytes": 3449,
+      "sha256": "1fe20e6c7ee8daec966ccf2aa601e9e417d1aa37e9e96e8d9290c8ae18d90a89",
+      "git_blob": "3b37ee0a17c1e319518e9d27b6eda6e5d6026a97"
+    },
+    {
+      "path": "vectors/fixtures/recursive/recursive-product-20260917/canonical-admission-v2/parent-1-0-key.json",
+      "historical_path": "vectors/reports/recursive-product-20260917/canonical-admission-v2/parent-1-0-key.json",
+      "bytes": 16559,
+      "sha256": "2a3e57c7d8e2feb846aff4ace4bd89ba094b10bc2f2e49560c9ae3b13300af63",
+      "git_blob": "1d176997e3531b55decea228921f4c01c0d22cfc"
+    },
+    {
+      "path": "vectors/fixtures/recursive/recursive-product-20260917/canonical-admission-v2/parent-1-1-key.json",
+      "historical_path": "vectors/reports/recursive-product-20260917/canonical-admission-v2/parent-1-1-key.json",
+      "bytes": 16565,
+      "sha256": "f53e3cbbc813f1379f4a760210ab7b2a197d4721cc2f0e0409a6f06693b948df",
+      "git_blob": "c5bbd6aba7ca556a28b713b2e3c152643ecb77c4"
+    },
+    {
+      "path": "vectors/fixtures/recursive/recursive-product-20260917/canonical-admission-v2/parent-2-0-key.json",
+      "historical_path": "vectors/reports/recursive-product-20260917/canonical-admission-v2/parent-2-0-key.json",
+      "bytes": 16552,
+      "sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "git_blob": "4239421660eab72104dc1aad62939240c2700be8"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/pair-0-key.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/pair-0-key.json",
+      "bytes": 16544,
+      "sha256": "a6699c0eebc189ec372e8df780558a72761b2587404b9d345792d66cae19f603",
+      "git_blob": "f63f3a58550a6518fdf0cf8de302cc1b458931a7"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/pair-1-key.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/pair-1-key.json",
+      "bytes": 16550,
+      "sha256": "274fd7b2b8d9f55fedf272d17389dd86f333fb14875ffa7dc058d3fa29a65d54",
+      "git_blob": "0c517411f42d62b8f9cbbb46c7b23d610ad17af5"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/root-key.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/root-key.json",
+      "bytes": 16552,
+      "sha256": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+      "git_blob": "2d77b92d484e2736128d20589c7075fa32687382"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-expected-wire.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-expected-wire.json",
+      "bytes": 3016,
+      "sha256": "e01923264a3f39fd78a049e52365e26f7e4999a306703f67a4eda4f1403545f8",
+      "git_blob": "8366bc5014f40c5cf11f9011846518985fbb54ab"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-key.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-key.json",
+      "bytes": 2808542,
+      "sha256": "e5fb45e1b74c32219af17cda598e1fbd56ed61055be19dde260a03d2d0b015a2",
+      "git_blob": "15475956237c9ad4c86c83c9ed50612c0838328b"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-1-expected-wire.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-1-expected-wire.json",
+      "bytes": 2964,
+      "sha256": "d7bc8ae71ed948a1bd8ae193fcd5427baefa2ef074fb0da742ede1fcfcfc3ca1",
+      "git_blob": "1e397f9e14c1dc8d8ecb1e4159acee3316127f31"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-1-key.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-1-key.json",
+      "bytes": 2807948,
+      "sha256": "0723005d48d350f3719a61e384df4e3ad7b06550e1ffaa9a6a0f66da3a694fab",
+      "git_blob": "c5c2cef824bb9941f8fe645fef957f9a017c7240"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-2-expected-wire.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-2-expected-wire.json",
+      "bytes": 2968,
+      "sha256": "0b647a13c24bf4e4150e593b11c4615bb23317d86c1578daa696b29eb70cfdd0",
+      "git_blob": "5950668da5e0f0c73622f0ca529be764ad03f3d0"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-2-key.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-2-key.json",
+      "bytes": 2807955,
+      "sha256": "bf5cb7e0102a36053e53e20097ee12dc2f35cdcf23ee5105f1a7134594eb2dd2",
+      "git_blob": "3bfcafb70f820a3fe75c803c1b7acd858f1c01af"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-3-expected-wire.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-3-expected-wire.json",
+      "bytes": 3036,
+      "sha256": "41f7917bb78ee298b4f536d4f768073abe6a72e84e24438bb284cdd1a852d758",
+      "git_blob": "6847203b4310cd5b1b5fe32b612d516502cfe18b"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-3-key.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-3-key.json",
+      "bytes": 2807234,
+      "sha256": "45aec7e8e4757f900a72a2bbad40bfb68269f09c6899c163afb1240e8df4dfd3",
+      "git_blob": "38a97860f00f8cf0e0893745d464857c97a14d31"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/pair-0-expected-span.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/pair-0-expected-span.json",
+      "bytes": 1948,
+      "sha256": "cf7aaf183469c5e3b284dea942b9bd73a3b4e05e93fc71130972efa88697ebbd",
+      "git_blob": "2ba2bee71f8b1e9400deb0ae49cbdccfe896b447"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/pair-1-expected-span.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/pair-1-expected-span.json",
+      "bytes": 1956,
+      "sha256": "945567ac338e266c19d137d3e5dd16e3dc031955727737d79e117c8332f09cd9",
+      "git_blob": "f028591e9a5c8e8e4bafbeb01599340883a5bd74"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json",
+      "bytes": 2018,
+      "sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "git_blob": "f84f9968ee044133c0c21db92e980b05a4974eb1"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-0-expected-wire.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-0-expected-wire.json",
+      "bytes": 3024,
+      "sha256": "c3094ad30f7b676681e7e20dfde9fd776d6d35215b236bdce29683143acc281d",
+      "git_blob": "4c09854668f0f64a0d3272e66218fb5b777b5bd5"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-1-expected-wire.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-1-expected-wire.json",
+      "bytes": 2980,
+      "sha256": "9b0081c3b08b2e9726f07576fb609209276044b42bb8ad4bbe17c0e9f9d1044b",
+      "git_blob": "3ec65d9bb719167bd9f4a1378eb239c3687de7c4"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-2-expected-wire.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-2-expected-wire.json",
+      "bytes": 2976,
+      "sha256": "49715b12871d19586cac55e24549a22cedca495b8b227d10c0bf44885db9e536",
+      "git_blob": "f88647b35610ca4780a738e10fcd483a651fce69"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-3-expected-wire.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-3-expected-wire.json",
+      "bytes": 3042,
+      "sha256": "68613dd5e675da92e53145bac00ed0e3cc674ebe44f93e76df6746d5b955b4a9",
+      "git_blob": "d1ccc3088802626578890f4132828054396c13fa"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/pair-0-expected-span.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/pair-0-expected-span.json",
+      "bytes": 1969,
+      "sha256": "a1c189ba621fbb9f2ebc485a2f0efe399dba2638f4001f39204b3846e08f3538",
+      "git_blob": "1a214ff1f95d0e4d40294a3a74c332eea1f898e1"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/pair-1-expected-span.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/pair-1-expected-span.json",
+      "bytes": 1966,
+      "sha256": "1e58e5e61945316125c2c92d1003970e1bcaf09b80127c1c1696f9a7a4093dc5",
+      "git_blob": "6be3bd33ae399996baa6d7038ddcd03063f2f9ed"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/root-expected-span.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/root-expected-span.json",
+      "bytes": 2030,
+      "sha256": "92379368ba11a77b5db4677407281a68aa62896f1227fcdcc75e09e590d1b452",
+      "git_blob": "821a96f978c1dfe2483c5d50d3c5f46dbc634306"
+    },
+    {
+      "path": "vectors/fixtures/recursive/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/tree-admissions/air-fusion-q193-4-seed14.json",
+      "historical_path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/tree-admissions/air-fusion-q193-4-seed14.json",
+      "bytes": 2844,
+      "sha256": "c7b278867cee07a660be4e2ec16f71db78f1bb7dd51ed74cf26e2c683dea4b07",
+      "git_blob": "df6ffec75cde271bb9df23d4f82148ee2ec60183"
+    },
     {
       "path": "vectors/fixtures/rv64-d2-composed-v1/24628607-combined-d2-coalesce-v1/after-native.json",
       "historical_path": "vectors/reports/rv64-m7-20261105/d2-composed/combined-d2-package/24628607-combined-d2-coalesce-v1/after-native.json",
@@ -1223,11 +1419,53 @@
       "git_blob": "e50f69e23b0c53d182ad70279c47961bd4103697"
     },
     {
+      "path": "vectors/fixtures/rv64-foundations-v1/baseline-source.json",
+      "historical_path": "vectors/reports/rv64-foundations-20261030/baseline-source.json",
+      "bytes": 50686,
+      "sha256": "74c54928aab20ce55612cbe7c4f262fca258cce8bf4c696ebf9c67936928b42b",
+      "git_blob": "29f221a8eb452f4e65f83ffa8c451fba82afb46e"
+    },
+    {
+      "path": "vectors/fixtures/rv64-foundations-v1/csp-execution.json",
+      "historical_path": "vectors/reports/rv64-foundations-20261030/csp-execution.json",
+      "bytes": 61202,
+      "sha256": "5b0e5ed882c9809251578810f0cb1ecff146eb3b68ecb629a062e66f837356ee",
+      "git_blob": "a0a2744696159c82845eb623ee2e32678842362b"
+    },
+    {
+      "path": "vectors/fixtures/rv64-foundations-v1/oracle.json",
+      "historical_path": "vectors/reports/rv64-foundations-20261030/oracle.json",
+      "bytes": 769,
+      "sha256": "d04bf76ba69e473dbdc21b9786a25283bfd9831738b694fe16101ff2346e9b05",
+      "git_blob": "d9ee81c62b009c37288707583c773a144686fe3e"
+    },
+    {
+      "path": "vectors/fixtures/rv64-foundations-v1/paired-execution.json",
+      "historical_path": "vectors/reports/rv64-foundations-20261030/paired-execution.json",
+      "bytes": 4392,
+      "sha256": "2c51b600d0a561c3e1b1a8d14f508d2ba3f3833972203035e32f5498c405bac7",
+      "git_blob": "6c22077c704201c2a290fe11bc44a8beffc2196f"
+    },
+    {
       "path": "vectors/fixtures/rv64-jobs-memory-policy-v1.json",
       "historical_path": "vectors/reports/rv64-m8-20261106/memory-plan/policy.json",
       "bytes": 2663,
       "sha256": "ef6986ec09bb2af3d2785dbe89afe9137d36d26e7befe5f80a9493b7b8a646b1",
       "git_blob": "8a9729e1d17dafb207aec55bb286c0aa31b7433d"
+    },
+    {
+      "path": "vectors/fixtures/rv64-m3-basket-v1.json",
+      "historical_path": "vectors/reports/rv64-m3-20261104/summary.json",
+      "bytes": 19861,
+      "sha256": "3d724044839c7caca66935d879354f21be0dda2828fb92c4d815061e8d0b1845",
+      "git_blob": "c4f4defe3b39b266b2ef78d53bb62b7cd13e9f92"
+    },
+    {
+      "path": "vectors/fixtures/rv64-profile-comparison-v1.json",
+      "historical_path": "vectors/reports/rv64-qualification-20261030/csp-full-parallel.json",
+      "bytes": 35664,
+      "sha256": "c357daf368a0eb56a30368adf50887558676375ccd29bd7c2e7f96b54f1700d0",
+      "git_blob": "afaa3d79ea3d79381aba2416a1109bb0fa903beb"
     }
   ]
 }

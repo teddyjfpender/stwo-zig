@@ -52,6 +52,9 @@ pub const Leaf = RC.Leaf;
 pub const Owner = struct {
     a: std.mem.Allocator,
     shared: Outer.Shared,
+    library: []const u8 = &.{},
+    manifest: []const u8 = &.{},
+    spool: []const u8 = &.{},
     blocks: std.AutoHashMapUnmanaged(u64, Block) = .empty,
     classes: std.AutoHashMapUnmanaged(G.ClassKey, *Outer.NodeClasses.Entry) = .empty,
     twiddle_owner: std.AutoHashMapUnmanaged(G.ClassKey, G.ClassKey) = .empty,
@@ -60,8 +63,20 @@ pub const Owner = struct {
     pub fn init(a: std.mem.Allocator, libs: *O.Libraries, library: []const u8, manifest_path: []const u8, spool: []const u8) !*Owner {
         const self = try a.create(Owner);
         errdefer a.destroy(self);
-        var env = Env{ .a = a };
+        var env = try installEnvironment(a);
         defer env.deinit();
+        const fs_path = std.posix.getenv("STWO_RV64_M8_OUTER_FS_LIBRARY") orelse return error.MissingOuterFsLibrary;
+        self.* = .{ .a = a, .shared = try Outer.Shared.init(&libs.base, &libs.addon, fs_path) };
+        errdefer self.deinitContents();
+        self.library = try a.dupe(u8, library);
+        self.spool = try a.dupe(u8, spool);
+        self.manifest = try std.fs.cwd().readFileAlloc(a, manifest_path, 1 << 20);
+        return self;
+    }
+
+    fn installEnvironment(a: std.mem.Allocator) !Env {
+        var env = Env{ .a = a };
+        errdefer env.deinit();
         try env.put("STWO_RV64_M8_GN_INSTALL", "1");
         // The legacy native PCS path publishes its readback images to the
         // install recorder. The feeder/native hybrid deliberately does not.
@@ -75,89 +90,106 @@ pub const Owner = struct {
         // Sample prefill is a witness-dependent host tape. The class template
         // must use the ordinary device assignment path instead.
         try env.put("STWO_RV64_BLAKE_SAMPLE_PREFILL", "0");
-        const fs_path = std.posix.getenv("STWO_RV64_M8_OUTER_FS_LIBRARY") orelse return error.MissingOuterFsLibrary;
-        self.* = .{ .a = a, .shared = try Outer.Shared.init(&libs.base, &libs.addon, fs_path) };
-        errdefer self.deinitContents();
-        const raw = try std.fs.cwd().readFileAlloc(a, manifest_path, 1 << 20);
-        defer a.free(raw);
-        var manifest = try std.json.parseFromSlice(std.json.Value, a, raw, .{ .allocate = .alloc_always });
-        defer manifest.deinit();
-        const root = manifest.value;
-        if (root != .object) return error.InvalidResidentBatchManifest;
-        const order = root.object.get("execution_order") orelse return error.InvalidResidentBatchManifest;
-        if (order != .array or order.array.items.len == 0) return error.InvalidResidentBatchManifest;
-        for (order.array.items) |number| {
-            if (number != .integer or number.integer < 0) return error.InvalidResidentBatchManifest;
-            const block: u64 = @intCast(number.integer);
-            if (self.blocks.contains(block)) continue;
-            var sub = try std.json.parseFromSlice(std.json.Value, a, raw, .{ .allocate = .alloc_always });
-            defer sub.deinit();
-            const ar = sub.arena.allocator();
-            var one = std.array_list.Managed(std.json.Value).init(ar);
-            try one.append(number);
-            try sub.value.object.put("execution_order", .{ .array = one });
-            try sub.value.object.put("repeat", .{ .integer = 1 });
-            try sub.value.object.put("warm_order", .{ .array = std.array_list.Managed(std.json.Value).init(ar) });
-            try sub.value.object.put("recursion_mode", .{ .string = "ready_candidate" });
-            try sub.value.object.put("recursion_device_fixed_candidate", .{ .bool = true });
-            const path = try std.fmt.allocPrint(a, "{s}/install-classes/{d}/manifest.json", .{ spool, block });
-            defer a.free(path);
-            try std.fs.cwd().makePath(std.fs.path.dirname(path).?);
-            const text = try std.json.Stringify.valueAlloc(a, sub.value, .{});
-            defer a.free(text);
-            try std.fs.cwd().writeFile(.{ .sub_path = path, .data = text });
-            const output = try std.fmt.allocPrint(a, "{s}/install-classes/{d}/warm", .{ spool, block });
-            defer a.free(output);
-            Outer.NodeClasses.beginInstall();
-            var timer = try std.time.Timer.start();
-            try @import("resident_batch.zig").runCombined(a, library, path, output);
-            const nodes = try Outer.NodeClasses.installedNodes(a);
-            errdefer a.free(nodes);
-            if (nodes.len == 0) return error.GpuNativeNoRecursionClasses;
-            for (nodes) |entry| {
-                if (!entry.owns_template) return error.GpuNativeBorrowedRecursionTemplate;
-                const fresh = try self.classes.getOrPut(a, entry.class_key);
-                if (!fresh.found_existing) {
-                    fresh.value_ptr.* = entry;
-                    entry.shared = &self.shared;
-                    entry.runtime_symbols = .{ .kernels = &self.shared.kernels, .whole = self.shared.whole(), .encode = self.shared.encode, .oods = self.shared.oods, .compressed = self.shared.compressed };
-                    entry.graphs = @splat(null);
-                    if (std.posix.getenv("STWO_RV64_M9_CLASS_PACKED_INGRESS")) |flag| if (std.mem.eql(u8, flag, "1")) {
-                        const before = entry.staged.image.words[@intFromEnum(St.Region.twiddles)];
-                        try entry.staged.shareTwiddleTower();
-                        std.debug.print("GPU_M9_SHARED_TWIDDLE_TOWER class={s} before_words={d} after_words={d}\n", .{ std.fmt.bytesToHex(entry.class_key[0..6], .lower), before, entry.staged.image.words[@intFromEnum(St.Region.twiddles)] });
-                    };
-                    // All legacy jobs are drained. Drop its address-signature
-                    // plan before building the service's immutable WholePlan.
-                    if (entry.staged.statics.class_plan) |p| {
-                        const slot: *CP.Slot = @ptrCast(@alignCast(p));
-                        slot.deinit();
-                    }
-                    var job = try Job.OuterNodeJob.initWhole(entry.staged, &self.shared.kernels, self.shared.whole());
-                    job.deinit();
-                    if (std.posix.getenv("STWO_RV64_M9_CLASS_PACKED_INGRESS")) |flag| {
-                        if (std.mem.eql(u8, flag, "1")) {
-                            try Outer.NodeClasses.pack(entry);
-                            const compressed = entry.compressed.?;
-                            std.debug.print("GPU_M9_PACKED_CLASS class={s} logical_words={d} resident_words={d} class_words={d} fixed_words={d} twiddle_words={d} channels={d}\n", .{ std.fmt.bytesToHex(entry.class_key[0..6], .lower), compressed.outputWords(), compressed.words.len, compressed.class_words, compressed.fixed_words, entry.staged.image.words[@intFromEnum(St.Region.twiddles)], compressed.channel_count });
-                        } else if (!std.mem.eql(u8, flag, "0")) return error.InvalidPackedClassFlag;
-                    }
+        // Cold class construction needs no resident MAIN across the shared
+        // challenge barrier. Authenticated replay frees that overlap first.
+        try env.put("STWO_RV64_GPU_REPLAY_RETAIN_PER_DEVICE", "0");
+        return env;
+    }
+
+    /// Quiescent setup only: construct this block's immutable recursion
+    /// authorities with the existing recorder before registering request jobs.
+    pub fn prepare(self: *Owner, block: u64) !void {
+        if (self.blocks.contains(block)) return;
+        const a = self.a;
+        const library = self.library;
+        const spool = self.spool;
+        const raw = self.manifest;
+        var env = try installEnvironment(a);
+        defer env.deinit();
+        var previous = self.classes.valueIterator();
+        while (previous.next()) |entry| {
+            entry.*.resources_warmed = false;
+            entry.*.node.require_warm = false;
+            entry.*.graphs = @splat(null);
+        }
+        const number = std.json.Value{ .integer = std.math.cast(i64, block) orelse return error.InvalidResidentBatchManifest };
+        var sub = try std.json.parseFromSlice(std.json.Value, a, raw, .{ .allocate = .alloc_always });
+        defer sub.deinit();
+        if (sub.value != .object) return error.InvalidResidentBatchManifest;
+        const order = sub.value.object.get("execution_order") orelse return error.InvalidResidentBatchManifest;
+        if (order != .array) return error.InvalidResidentBatchManifest;
+        for (order.array.items) |value| {
+            if (value == .integer and value.integer == number.integer) break;
+        } else return error.MissingResidentBatchBlock;
+        const ar = sub.arena.allocator();
+        var one = std.array_list.Managed(std.json.Value).init(ar);
+        try one.append(number);
+        try sub.value.object.put("execution_order", .{ .array = one });
+        try sub.value.object.put("repeat", .{ .integer = 1 });
+        try sub.value.object.put("warm_order", .{ .array = std.array_list.Managed(std.json.Value).init(ar) });
+        try sub.value.object.put("recursion_mode", .{ .string = "ready_candidate" });
+        try sub.value.object.put("recursion_device_fixed_candidate", .{ .bool = true });
+        const path = try std.fmt.allocPrint(a, "{s}/install-classes/{d}/manifest.json", .{ spool, block });
+        defer a.free(path);
+        try std.fs.cwd().makePath(std.fs.path.dirname(path).?);
+        const text = try std.json.Stringify.valueAlloc(a, sub.value, .{});
+        defer a.free(text);
+        try std.fs.cwd().writeFile(.{ .sub_path = path, .data = text });
+        const output = try std.fmt.allocPrint(a, "{s}/install-classes/{d}/warm", .{ spool, block });
+        defer a.free(output);
+        Outer.NodeClasses.beginInstall();
+        var timer = try std.time.Timer.start();
+        try @import("resident_batch.zig").runCombined(a, library, path, output);
+        const nodes = try Outer.NodeClasses.installedNodes(a);
+        errdefer a.free(nodes);
+        if (nodes.len == 0) return error.GpuNativeNoRecursionClasses;
+        for (nodes) |entry| {
+            if (!entry.owns_template) return error.GpuNativeBorrowedRecursionTemplate;
+            const fresh = try self.classes.getOrPut(a, entry.class_key);
+            if (!fresh.found_existing) {
+                fresh.value_ptr.* = entry;
+                entry.shared = &self.shared;
+                entry.runtime_symbols = .{ .kernels = &self.shared.kernels, .whole = self.shared.whole(), .encode = self.shared.encode, .oods = self.shared.oods, .compressed = self.shared.compressed };
+                entry.graphs = @splat(null);
+                if (std.posix.getenv("STWO_RV64_M9_CLASS_PACKED_INGRESS")) |flag| if (std.mem.eql(u8, flag, "1")) {
+                    const before = entry.staged.image.words[@intFromEnum(St.Region.twiddles)];
+                    try entry.staged.shareTwiddleTower();
+                    std.debug.print("GPU_M9_SHARED_TWIDDLE_TOWER class={s} before_words={d} after_words={d}\n", .{ std.fmt.bytesToHex(entry.class_key[0..6], .lower), before, entry.staged.image.words[@intFromEnum(St.Region.twiddles)] });
+                };
+                // All legacy jobs are drained. Drop its address-signature
+                // plan before building the service's immutable WholePlan.
+                if (entry.staged.statics.class_plan) |p| {
+                    const slot: *CP.Slot = @ptrCast(@alignCast(p));
+                    slot.deinit();
+                }
+                var job = try Job.OuterNodeJob.initWhole(entry.staged, &self.shared.kernels, self.shared.whole());
+                job.deinit();
+                if (std.posix.getenv("STWO_RV64_M9_CLASS_PACKED_INGRESS")) |flag| {
+                    if (std.mem.eql(u8, flag, "1")) {
+                        try Outer.NodeClasses.pack(entry);
+                        const compressed = entry.compressed.?;
+                        std.debug.print("GPU_M9_PACKED_CLASS class={s} logical_words={d} resident_words={d} class_words={d} fixed_words={d} twiddle_words={d} channels={d}\n", .{ std.fmt.bytesToHex(entry.class_key[0..6], .lower), compressed.outputWords(), compressed.words.len, compressed.class_words, compressed.fixed_words, entry.staged.image.words[@intFromEnum(St.Region.twiddles)], compressed.channel_count });
+                    } else if (!std.mem.eql(u8, flag, "0")) return error.InvalidPackedClassFlag;
                 }
             }
-            const stage_one = try std.fmt.allocPrint(a, "{s}/trial-0/{d}/proof/stage-one.bin", .{ output, block });
-            errdefer a.free(stage_one);
-            try self.blocks.put(a, block, .{ .nodes = nodes, .stage_one = stage_one });
-            std.debug.print("GPU_M8_GN_RECURSION install_block={d} nodes={d} classes={d} construction_ns={d} witness_reused=0\n", .{ block, nodes.len, self.classes.count(), timer.read() });
         }
+        const stage_one = try std.fmt.allocPrint(a, "{s}/trial-0/{d}/proof/stage-one.bin", .{ output, block });
+        errdefer a.free(stage_one);
+        try self.blocks.put(a, block, .{ .nodes = nodes, .stage_one = stage_one });
+        std.debug.print("GPU_M8_GN_RECURSION install_block={d} nodes={d} classes={d} construction_ns={d} witness_reused=0\n", .{ block, nodes.len, self.classes.count(), timer.read() });
         var classes = self.classes.valueIterator();
         while (classes.next()) |item| {
+            item.*.graphs = @splat(null);
             const key = item.*.staged.twiddleRegionKey();
             const found = try self.twiddle_owner.getOrPut(a, key);
             if (!found.found_existing) found.value_ptr.* = item.*.class_key;
         }
-        return self;
     }
+
     fn deinitContents(self: *Owner) void {
+        self.a.free(self.library);
+        self.a.free(self.manifest);
+        self.a.free(self.spool);
         var it = self.blocks.valueIterator();
         while (it.next()) |b| {
             self.a.free(b.nodes);
@@ -186,6 +218,9 @@ pub const Owner = struct {
             fn destroy(raw: *anyopaque) void {
                 of(raw).deinit();
             }
+            fn prepare(raw: *anyopaque, block: u64) anyerror!void {
+                return of(raw).prepare(block);
+            }
             fn register(raw: *anyopaque, block: u64, registry: *OD.Recursion, native: []const G.ClassKey, stage2: *S2.Factory, truths: []const TF.Request, factory: *TF.Factory, inventory: *const CPU.rv64_gkr_execution.Inventory) anyerror!void {
                 return of(raw).register(block, registry, native, stage2, truths, factory, inventory);
             }
@@ -207,7 +242,7 @@ pub const Owner = struct {
             fn pinned(raw: *anyopaque, block: u64) anyerror!usize {
                 return of(raw).requestPinnedWords(block);
             }
-            const vtable = RC.Classes.VTable{ .deinit = @This().destroy, .register = @This().register, .relayout = @This().relayout, .warm = @This().warm, .leaf = @This().leaf, .coefficients = @This().coefficients, .identity = @This().identity, .pinned = @This().pinned };
+            const vtable = RC.Classes.VTable{ .deinit = @This().destroy, .prepare = @This().prepare, .register = @This().register, .relayout = @This().relayout, .warm = @This().warm, .leaf = @This().leaf, .coefficients = @This().coefficients, .identity = @This().identity, .pinned = @This().pinned };
         };
         return .{ .ctx = self, .vtable = &Hooks.vtable };
     }
@@ -280,6 +315,8 @@ pub const Owner = struct {
         var it = self.classes.valueIterator();
         while (it.next()) |item| {
             const entry = item.*;
+            entry.resources_warmed = false;
+            entry.node.require_warm = false;
             if (entry.program.len == 0) return error.GpuNativeRecursionInstallTopology;
             for (workers, 0..) |worker, device| {
                 var warm_job = try Warm.init(self, entry, @intCast(device));
@@ -461,3 +498,18 @@ const Warm = struct {
     }
     pub fn abort(_: *Warm) void {}
 };
+
+test "class setup owns the replay barrier policy and restores the caller environment" {
+    const a = std.testing.allocator;
+    const name = "STWO_RV64_GPU_REPLAY_RETAIN_PER_DEVICE";
+    const before = std.process.getEnvVarOwned(a, name) catch |err| if (err == error.EnvironmentVariableNotFound) null else return err;
+    defer if (before) |value| a.free(value);
+    {
+        var env = try Owner.installEnvironment(a);
+        defer env.deinit();
+        try std.testing.expectEqualStrings("0", std.posix.getenv(name).?);
+    }
+    const after = std.process.getEnvVarOwned(a, name) catch |err| if (err == error.EnvironmentVariableNotFound) null else return err;
+    defer if (after) |value| a.free(value);
+    try std.testing.expectEqualDeep(before, after);
+}

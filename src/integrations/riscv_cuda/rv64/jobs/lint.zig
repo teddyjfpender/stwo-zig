@@ -11,6 +11,7 @@
 const std = @import("std");
 
 pub const forbidden = [_][]const u8{
+    "native_hybrid_jobs.zig",
     "stwo_exec_context_sync",
     "stwo_exec_context_join_all_lanes",
     "cudaStreamSynchronize",
@@ -160,6 +161,7 @@ pub fn scanTree(a: std.mem.Allocator, root: std.fs.Dir) !?Finding {
 }
 
 test "lint rejects sync symbols and lease APIs outside the worker's fenced wait" {
+    try std.testing.expect((try scan("rv64/jobs/native_device_stage1.zig", "const legacy = @import(\"native_hybrid_jobs.zig\");")) != null);
     try std.testing.expect((try scan("rv64/jobs/native_stage1.zig", "fn enqueue() void {\n    _ = ops.cudaStreamSynchronize(s);\n}")) != null);
     try std.testing.expect((try scan("rv64/jobs/outer_node.zig", "x.lease_allocate(1);")) != null);
     try std.testing.expect((try scan("rv64/jobs/outer_node.zig", "// cudaStreamSynchronize in a comment\nconst y = 1;")) == null);

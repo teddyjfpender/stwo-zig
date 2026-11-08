@@ -168,10 +168,29 @@
       "host": "linux",
       "description": "Independent ROM-agnostic SM83 frontend package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/frontends/sm83/build.zig", "-Doptimize=ReleaseFast", "-j2"],
-        ["python3", "scripts/sm83_frontend_gate.py"],
-        ["python3", "scripts/sm83_frontend_gate.py", "--mooneye-ppu-live"],
-        ["python3", "scripts/sm83_frontend_gate.py", "--mooneye-dma-live"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/sm83/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "python3",
+          "scripts/sm83_frontend_gate.py"
+        ],
+        [
+          "python3",
+          "scripts/sm83_frontend_gate.py",
+          "--mooneye-ppu-live"
+        ],
+        [
+          "python3",
+          "scripts/sm83_frontend_gate.py",
+          "--mooneye-dma-live"
+        ]
       ]
     },
     "riscv_cpu_integration": {
@@ -193,8 +212,24 @@
       "host": "linux",
       "description": "Independent SM83 frontend and CPU backend proof composition package",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/integrations/sm83_cpu/build.zig", "-Doptimize=ReleaseFast", "-j2"],
-        ["zig", "build", "test-machine-environment", "--build-file", "src/integrations/sm83_cpu/build.zig", "-Doptimize=ReleaseFast", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/sm83_cpu/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-machine-environment",
+          "--build-file",
+          "src/integrations/sm83_cpu/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
       ]
     },
     "cairo_cpu_integration": {
@@ -352,8 +387,24 @@
       "hosted": false,
       "description": "Independent SM83 frontend and Metal backend composition package on a real Metal device",
       "commands": [
-        ["zig", "build", "test", "--build-file", "src/integrations/sm83_metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"],
-        ["zig", "build", "test-machine-environment", "--build-file", "src/integrations/sm83_metal/build.zig", "-Doptimize=ReleaseSafe", "-j2"]
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/sm83_metal/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-machine-environment",
+          "--build-file",
+          "src/integrations/sm83_metal/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
       ]
     },
     "cairo_metal_integration": {
@@ -916,8 +967,17 @@
       ]
     },
     {
-      "prefixes": ["build_support/products/riscv_cpu.zig", "build_support/products/riscv_refinement.zig", "build_support/products/riscv_sail_oracle_tests.zig"],
-      "lanes": ["build_graph", "riscv_cpu", "aggregate_cpu", "aggregate_metal"]
+      "prefixes": [
+        "build_support/products/riscv_cpu.zig",
+        "build_support/products/riscv_refinement.zig",
+        "build_support/products/riscv_sail_oracle_tests.zig"
+      ],
+      "lanes": [
+        "build_graph",
+        "riscv_cpu",
+        "aggregate_cpu",
+        "aggregate_metal"
+      ]
     },
     {
       "prefixes": [
@@ -1446,6 +1506,34 @@
         "script_contracts",
         "build_graph"
       ]
+    },
+    {
+      "prefixes": [
+        "vectors/fixtures"
+      ],
+      "lanes": [
+        "script_contracts",
+        "riscv_frontend",
+        "riscv_cuda_integration"
+      ],
+      "validate_documentation": true
+    },
+    {
+      "prefixes": [
+        "vectors/reports"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
+    },
+    {
+      "prefixes": [
+        "conformance"
+      ],
+      "lanes": [
+        "static",
+        "script_contracts"
+      ]
     }
   ],
   "documentation_prefixes": [
@@ -1453,10 +1541,12 @@
     "CONTRIBUTING.md",
     "LICENSE",
     "docs",
-    "archive",
-    "conformance"
+    "archive"
   ],
   "externally_validated_prefixes": [
     "autoresearch"
+  ],
+  "documentation_suffixes": [
+    ".md"
   ]
 }

@@ -8,7 +8,7 @@
 //! it through the native factory into pinned ring chunks and seals it, so
 //! that segment's Stage1 stages and enqueues while the capture continues.
 //! Per block, the request config, expected image and capture program are
-//! built ONCE at install (they are immutable inputs of every capture).
+//! built ONCE at explicit setup (immutable inputs of subsequent captures).
 //!
 //! Requests use the GPU-native driver. Installation still constructs legacy
 //! authorities/classes through Host.installRecursion and the class builder;
@@ -86,8 +86,8 @@ pub const Source = struct {
     const Block = struct {
         number: u64,
         config: std.json.Parsed(Request.Config),
-        image: Image.Owner,
-        program: Program,
+        image: ?Image.Owner = null,
+        program: ?Program = null,
         warm: ?Capture.Owner = null,
     };
 
@@ -135,14 +135,8 @@ pub const Source = struct {
             // The capture writes its artifacts under output_directory (the
             // legacy resident path creates it before its first request).
             if (config.value.output_directory.len != 0) try std.fs.cwd().makePath(config.value.output_directory);
-            var image = try Image.Owner.init(a, config.value);
-            errdefer image.deinit();
-            var program = try Program.initCaptureWithAuthorityAndMetadataCache(a, &image.authority, &self.metadata);
-            errdefer program.deinit();
-            // The capture's AUIPC/JAL FUNCTION facts depend on the decode layout.
-            if (Plan.CpuLayout.forGkrProfile(config.value.execution_profile).compact_decode) try program.makeCompact();
             workers = @max(workers, try Request.effectiveWorkers(config.value));
-            b.* = .{ .number = number, .config = config, .image = image, .program = program };
+            b.* = .{ .number = number, .config = config };
             made += 1;
         }
         self.blocks = blocks;
@@ -163,8 +157,8 @@ pub const Source = struct {
     }
     fn freeBlock(b: *Block) void {
         if (b.warm) |*w| w.deinit();
-        b.program.deinit();
-        b.image.deinit();
+        if (b.program) |*program| program.deinit();
+        if (b.image) |*image| image.deinit();
         b.config.deinit();
     }
     pub fn deinit(self: *Source) void {
@@ -204,18 +198,27 @@ pub const Source = struct {
         };
         defer started.deinit(&stats);
         started.ready = ready;
-        return started.capture(&b.image, &b.program, self.options.max_inflight_packets, &stats) catch |err| {
+        return started.capture(&b.image.?, &b.program.?, self.options.max_inflight_packets, &stats) catch |err| {
             std.debug.print("GPU_M8_GN_BIND capture_stage=capture block={d} error={s}\n", .{ b.number, @errorName(err) });
             return err;
         };
     }
     fn endOf(b: *Block, owner: *const Capture.Owner) G.CaptureEnd {
-        return .{ .segments = @intCast(owner.native.items.len), .owner = owner, .image = &b.image, .program = &b.program, .config = &b.config.value };
+        return .{ .segments = @intCast(owner.native.items.len), .owner = owner, .image = &b.image.?, .program = &b.program.?, .config = &b.config.value };
     }
 
     fn warm(raw: *anyopaque, number: u64) anyerror!G.CaptureEnd {
         const self = of(raw);
         const b = try self.find(number);
+        if (b.image == null) {
+            var image = try Image.Owner.init(self.a, b.config.value);
+            errdefer image.deinit();
+            var program = try Program.initCaptureWithAuthorityAndMetadataCache(self.a, &image.authority, &self.metadata);
+            errdefer program.deinit();
+            if (Plan.CpuLayout.forGkrProfile(b.config.value.execution_profile).compact_decode) try program.makeCompact();
+            b.image = image;
+            b.program = program;
+        }
         if (b.warm) |*w| w.deinit();
         b.warm = null;
         var binding = try engine.work_pool.ScopedPoolBinding.init(self.pools[2]);
@@ -284,6 +287,7 @@ pub const Source = struct {
     fn start(raw: *anyopaque, number: u64, stream: *C.Stream) anyerror!*anyopaque {
         const self = of(raw);
         const b = try self.find(number);
+        if (b.image == null or b.program == null or b.warm == null) return error.GpuNativeBlockNotWarmed;
         const pool: usize = blk: {
             self.mutex.lock();
             defer self.mutex.unlock();
@@ -350,8 +354,8 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     defer libs.close();
     const peer = try O.Peer.open(&libs.addon);
     const config = try mod.Config.fromEnv();
-    // Build real immutable recursion classes before native workers carve the
-    // device pool. Its cold proof construction is counted in init_ns.
+    // Own the recursion builder before workers. Actual class construction
+    // occurs in initial setup or the explicit new-block setup transaction.
     const recursion_classes = try Host.installRecursion(a, &libs, library, manifest_path, spool);
     defer recursion_classes.deinit();
     // [M component] truth-reuse-1 preserves all seven real-block truth
@@ -433,12 +437,15 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
         .batch_pinned_words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES", default_batch_pinned_bytes) / 4,
     };
     const ring = S.RingConfig{ .buffers = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS", default_ring_buffers), .words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_RING_BYTES", default_ring_bytes) / 4 };
-    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks, rc, ring) catch |err| {
+    // Admit the manifest once, install its first scheduled block, then use
+    // the measured quiescent setup boundary for later allowed blocks.
+    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks[0..1], rc, ring) catch |err| {
         std.debug.print("GPU_M8_GN_BIND install_failed error={s}\n", .{@errorName(err)});
         binding.reportStage1();
         return err;
     };
     binding.reportStage1();
+    svc.setup_hook = .{ .ctx = binding, .prepare = B.Binding.prepareSetup };
     svc.hooks = .{ .ctx = binding, .publishing = publishing, .ended = ended };
     defer svc.deinit();
     try S.serveSpool(svc, spool, timer.read());

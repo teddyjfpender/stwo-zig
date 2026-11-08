@@ -43,7 +43,7 @@ const NO = @import("native_encode_oods.zig");
 const Seed = @import("outer_seed_device.zig");
 const LF = @import("native_leaf_wire.zig");
 const Gl = @import("native_global.zig");
-const HJ = @import("native_hybrid_jobs.zig");
+const Timing = @import("job_timing.zig").Timing;
 const TF = @import("truth_factory.zig");
 const TJ = @import("truth_job.zig");
 
@@ -101,7 +101,7 @@ pub const Binding = struct {
     s2_sym: S2.Symbols,
     truth_sym: ?TJ.Symbols,
     events: Events,
-    timing: HJ.Timing = undefined,
+    timing: Timing = undefined,
     registry: S1.Registry,
     stage2: S2.Factory,
     truth: ?TF.Factory,
@@ -299,6 +299,21 @@ pub const Binding = struct {
             const c = kv.value_ptr.*;
             std.debug.print("GPU_M8_GN_BIND s1_class={x} job_words={d} image_words={d} gkr_staged={d} main_staged={d} compact_words={d} main_device={d} main_coeff_eval={d} gkr_enqueue={d} bind_enqueue={d} resident_words={d}\n", .{ kv.key_ptr.*[0..6].*, c.jobWords(), c.image_words, c.spec.gkr.stagedWords(true), c.main.stagedWords(0), c.spec.compact_words, c.main.deviceWords(), c.main.coefficient_cells + c.main.eval_cells, c.spec.gkr.enqueueWords(), c.bind.enqueueWords(), c.resident.words });
         }
+    }
+
+    /// Only Service.setup calls this, after retiring both request parities.
+    pub fn prepareSetup(raw: *anyopaque) void {
+        const self = of(raw);
+        self.registry.mutex.lock();
+        self.registry.sealed = false;
+        self.registry.mutex.unlock();
+        self.native_resources_ready = false;
+        self.recursion_resources_ready = false;
+        var pools = self.stage2.classes.valueIterator();
+        while (pools.next()) |pool| for (pool.*.instances.items) |framing| {
+            framing.resources_warmed = false;
+            framing.inter.require_warm = false;
+        };
     }
 
     pub fn report(self: *const Binding, w: *std.Io.Writer) !void {

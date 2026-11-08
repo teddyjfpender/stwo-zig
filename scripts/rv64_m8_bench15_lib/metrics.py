@@ -21,10 +21,33 @@ def fields(body):
     return out
 
 
-def split_requests(text):
+def split_requests(text, setups=None):
     """Request lines after service readiness, excluding nested install proofs."""
     out, current = [], []
+    setup = None
     for line in text.splitlines():
+        if line.startswith('GPU_RESIDENT_SETUP '):
+            _, phase, body = line.split(' ', 2)
+            info = fields(body)
+            if phase == 'reclaim' and setup is not None:
+                setup['lines'].append(line)
+                continue
+            if type(info.get('block')) is not int or info['block'] < 0:
+                raise ValueError('setup epoch has no valid block identity')
+            if phase == 'begin' and setup is None:
+                setup = {**info, 'lines': []}
+                continue
+            if (phase != 'end' or setup is None or setup['block'] != info['block']
+                    or type(info.get('setup_ns')) is not int or info['setup_ns'] < 0
+                    or info.get('status') not in ('accepted', 'failed')):
+                raise ValueError('setup epoch is unbalanced or has invalid completion')
+            if setups is not None:
+                setups.append({**setup, **info})
+            setup = None
+            continue
+        if setup is not None:
+            setup['lines'].append(line)
+            continue
         if line.startswith('GPU_RESIDENT_SERVICE ready '):
             # Native installation runs a legacy proof to construct classes;
             # it emits the same block marker. Only the final outer READY
@@ -35,6 +58,8 @@ def split_requests(text):
         if REQUEST_MARK in line:
             out.append(current)
             current = []
+    if setup is not None:
+        raise ValueError('setup epoch is missing its completion')
     return out
 
 
@@ -84,6 +109,18 @@ def request_metrics(request, combined, lines, native=None):
             'nodes': nodes or None, 'root_proof_bytes': recursive.get('root_proof_bytes'),
             'jobs': job_metrics(lines)}
     if native:
+        marker = fields(lines[-1][len(REQUEST_MARK):]) if lines and lines[-1].startswith(REQUEST_MARK) else {}
+        identity = tuple(native.get(k) for k in ('block', 'sequence', 'request_wall_ns'))
+        if (any(type(v) is not int or v < 0 for v in identity)
+                or identity != (request['block'], request['ordinal'], proving)
+                or identity != tuple(marker.get(k) for k in ('block', 'iteration', 'request_wall_ns'))):
+            raise ValueError('native request receipt and marker identity differ')
+        setup = [native.get(k) for k in ('setup_ns', 'setup_plus_request_ns')]
+        if (setup != [marker.get(k) for k in ('setup_ns', 'setup_plus_request_ns')]
+                or (any(v is not None for v in setup) and
+                    (any(type(v) is not int or v < 0 for v in setup) or setup[1] != setup[0] + proving))):
+            raise ValueError('native setup accounting is incomplete or inconsistent')
+        result.update(setup_miss_s=s(setup[0]), setup_plus_request_s=s(setup[1]))
         receipt = native['receipt']
         result['driver'] = {key: receipt.get(key) for key in (
             'host_waits', 'd2h', 'd2h_bytes', 'job_slab_d2h', 'job_slab_d2h_bytes',

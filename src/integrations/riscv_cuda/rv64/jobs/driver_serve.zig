@@ -1,7 +1,7 @@
 //! `combined-serve` under STWO_RV64_M8_GPU_NATIVE=1 (requires STWO_RV64_M8_JOBS=1):
 //! the GPU-native resident service (rv64-m8-gpu-native.md §1, §3.8; driver).
 //!
-//! Install (never per request):
+//! Initial installation, then explicit quiescent setup for a new allowed block:
 //!   1. one warm capture per manifest block (CaptureSource.warm): the native
 //!      factory's `shape` derives the block's segment rows and registers its
 //!      classes, the recursion factory's `shape` its truths and fold arity;
@@ -86,6 +86,8 @@ pub const Result = struct {
     request_wall_ns: u64,
     /// Host time of `begin` (plan, make, enqueue; overlaps capture) [M].
     begin_ns: u64,
+    /// Explicit quiescent setup, outside the ordinary proving interval.
+    setup_ns: u64 = 0,
 };
 
 /// Per-request service hooks of the binding (driver_bind.zig): `publishing`
@@ -111,11 +113,19 @@ pub const Service = struct {
     streams: [2]*C.Stream,
     busy: [2]bool = .{ false, false },
     next_id: u64 = 1,
+    ops: *const O.Ops,
+    peer: *const O.Peer,
+    workers: []const *W.Worker,
+    capacities: []u64,
+    config: R.Config,
+    ring_config: RingConfig,
+    runtime_live: bool = false,
+    last_setup_ns: u64 = 0,
+    /// The binding reopens registration only after all request resources retire.
+    setup_hook: ?struct { ctx: *anyopaque, prepare: *const fn (*anyopaque) void } = null,
 
     pub fn install(a: std.mem.Allocator, ops: *const O.Ops, peer: *const O.Peer, workers: []const *W.Worker, native: G.NativeFactory, recursion: G.RecursionFactory, source: CaptureSource, blocks: []const u64, config: R.Config, ring_config: RingConfig) !*Service {
         if (blocks.len == 0) return error.GpuNativeServiceNoBlocks;
-        const shape_hook = native.vtable.shape orelse return error.GpuNativeNativeShapeHookMissing;
-        const rshape_hook = recursion.vtable.shape orelse return error.GpuNativeRecursionShapeHookMissing;
         const shapes = try a.alloc(Shape, blocks.len);
         var made: usize = 0;
         errdefer {
@@ -126,24 +136,45 @@ pub const Service = struct {
             for (shapes[0..made]) |s| if (s.block == block) return error.GpuNativeServiceDuplicateBlock;
             const warm = try source.vtable.warm(source.ctx, block);
             defer source.vtable.release_warm(source.ctx, block);
-            const wb = G.WarmBlock{ .block = block, .capture = warm };
-            const rows = try shape_hook(native.ctx, a, wb);
-            errdefer a.free(rows);
-            if (rows.len == 0 or rows.len > config.max_segments) return error.GpuNativeSegmentsExceedPlan;
-            if (rows.len != warm.segments) return error.GpuNativeCaptureSegmentCountChanged;
-            const keys = try a.alloc(G.ClassKey, rows.len);
-            defer a.free(keys);
-            // gn-shape: the block-qualified class (rows alone are ambiguous).
-            for (rows, keys, 0..) |r, *k, s| k.* = if (native.vtable.class_of_block) |cob| try cob(native.ctx, block, @intCast(s), r) else try native.vtable.class_of(native.ctx, @intCast(s), r);
-            const rs = rshape_hook(recursion.ctx, wb, keys) catch |err| {
-                std.debug.print("GPU_RESIDENT_SERVICE install_stage=recursion_shape block={d} error={s}\n", .{ block, @errorName(err) });
-                return err;
-            };
-            var topo = try D.Topology.carry(a, @intCast(rows.len), rs.truths, rs.fold_arity);
-            errdefer topo.deinit();
-            shape.* = .{ .block = block, .rows = rows, .truths = rs.truths, .fold_arity = rs.fold_arity, .topology = topo };
+            shape.* = try shapeFromWarm(a, native, recursion, block, warm, config);
             made += 1;
         }
+        const owned_workers = try a.dupe(*W.Worker, workers);
+        errdefer a.free(owned_workers);
+        const capacities = try a.dupe(u64, config.capacity_words);
+        errdefer a.free(capacities);
+        const self = try a.create(Service);
+        errdefer a.destroy(self);
+        self.* = .{ .a = a, .driver = undefined, .native = native, .recursion = recursion, .source = source, .shapes = shapes, .streams = undefined, .ops = ops, .peer = peer, .workers = owned_workers, .capacities = capacities, .config = config, .ring_config = ring_config };
+        self.config.capacity_words = capacities;
+        try self.installRuntime();
+        return self;
+    }
+
+    fn shapeFromWarm(a: std.mem.Allocator, native: G.NativeFactory, recursion: G.RecursionFactory, block: u64, warm: G.CaptureEnd, config: R.Config) !Shape {
+        const shape_hook = native.vtable.shape orelse return error.GpuNativeNativeShapeHookMissing;
+        const rshape_hook = recursion.vtable.shape orelse return error.GpuNativeRecursionShapeHookMissing;
+        if (warm.segments == 0 or warm.segments > config.max_segments) return error.GpuNativeSegmentsExceedPlan;
+        const wb = G.WarmBlock{ .block = block, .capture = warm };
+        const rows = try shape_hook(native.ctx, a, wb);
+        errdefer a.free(rows);
+        if (rows.len != warm.segments) return error.GpuNativeCaptureSegmentCountChanged;
+        const keys = try a.alloc(G.ClassKey, rows.len);
+        defer a.free(keys);
+        for (rows, keys, 0..) |r, *k, index| k.* = if (native.vtable.class_of_block) |cob| try cob(native.ctx, block, @intCast(index), r) else try native.vtable.class_of(native.ctx, @intCast(index), r);
+        const rs = try rshape_hook(recursion.ctx, wb, keys);
+        if (rs.truths > config.max_truths) return error.GpuNativeTruthsExceedPlan;
+        const topology = try D.Topology.carry(a, @intCast(rows.len), rs.truths, rs.fold_arity);
+        return .{ .block = block, .rows = rows, .truths = rs.truths, .fold_arity = rs.fold_arity, .topology = topology };
+    }
+
+    fn installRuntime(self: *Service) !void {
+        const a = self.a;
+        const config = self.config;
+        const native = self.native;
+        const recursion = self.recursion;
+        const workers = self.workers;
+        const ring_config = self.ring_config;
         // The service serves exactly the installed blocks: size the driver
         // (exchange capacity, and main_resident = ceil(max_segments / GPUs) x
         // the largest native class) from their shapes, not from the config's
@@ -153,12 +184,12 @@ pub const Service = struct {
         var sized = config;
         sized.max_segments = 0;
         sized.max_truths = 0;
-        for (shapes) |sh| {
+        for (self.shapes) |sh| {
             sized.max_segments = @max(sized.max_segments, @as(u32, @intCast(sh.rows.len)));
             sized.max_truths = @max(sized.max_truths, sh.truths);
         }
         if (sized.max_truths > config.max_truths) return error.GpuNativeTruthsExceedPlan;
-        const driver = R.Driver.install(a, ops, peer, workers, native, recursion, sized) catch |err| {
+        const driver = R.Driver.install(a, self.ops, self.peer, workers, native, recursion, sized) catch |err| {
             std.debug.print("GPU_RESIDENT_SERVICE install_stage=driver error={s}\n", .{@errorName(err)});
             return err;
         };
@@ -174,7 +205,7 @@ pub const Service = struct {
             const slots = try std.math.divCeil(u64, largest, ring_config.words);
             ring_buffers = @max(ring_buffers, std.math.cast(usize, try std.math.mul(u64, slots, 2)) orelse return error.InvalidCaptureRing);
         }
-        const ring: ?*C.Ring = if (ring_buffers != 0) try C.Ring.init(a, &ops.wait, ring_buffers, ring_config.words) else null;
+        const ring: ?*C.Ring = if (ring_buffers != 0) try C.Ring.init(a, &self.ops.wait, ring_buffers, ring_config.words) else null;
         errdefer if (ring) |r| r.deinit();
         const s0 = try C.Stream.create(a, native, ring, sized.max_segments);
         errdefer s0.destroy();
@@ -182,19 +213,76 @@ pub const Service = struct {
         errdefer s1.destroy();
         s0.recursion = recursion;
         s1.recursion = recursion;
-        const self = try a.create(Service);
-        self.* = .{ .a = a, .driver = driver, .native = native, .recursion = recursion, .source = source, .shapes = shapes, .ring = ring, .streams = .{ s0, s1 } };
-        return self;
+        self.driver = driver;
+        self.ring = ring;
+        self.streams = .{ s0, s1 };
+        self.runtime_live = true;
+    }
+
+    fn releaseRuntime(self: *Service) void {
+        if (!self.runtime_live) return;
+        self.runtime_live = false;
+        self.driver.deinit();
+        if (self.ring) |r| r.close();
+        for (self.streams) |stream| stream.destroy();
+        if (self.ring) |r| r.deinit();
+        self.ring = null;
+    }
+
+    /// Setup is a separate quiescent transaction, never a request fallback.
+    /// A build/replan failure retires the runtime permanently; its partial
+    /// class owners remain owned until teardown and cannot serve a request.
+    pub fn setup(self: *Service, block: u64) !u64 {
+        self.last_setup_ns = 0;
+        if (!self.runtime_live or self.driver.poisoned) return error.GpuNativeDriverPoisoned;
+        if (self.shapeOf(block) != null) return 0;
+        if (self.busy[0] or self.busy[1]) return error.GpuNativeSetupRequiresQuiescence;
+        for (self.driver.in_flight) |flight| if (flight != null) return error.GpuNativeSetupRequiresQuiescence;
+        var timer = try std.time.Timer.start();
+        var accepted = false;
+        std.debug.print("GPU_RESIDENT_SETUP begin block={d}\n", .{block});
+        defer {
+            if (!accepted) self.last_setup_ns = timer.read();
+            std.debug.print("GPU_RESIDENT_SETUP end block={d} setup_ns={d} status={s}\n", .{ block, self.last_setup_ns, if (accepted) "accepted" else "failed" });
+        }
+        const warm = try self.source.vtable.warm(self.source.ctx, block);
+        defer self.source.vtable.release_warm(self.source.ctx, block);
+        if (warm.segments == 0 or warm.segments > self.config.max_segments) return error.GpuNativeSegmentsExceedPlan;
+        const generation = self.driver.generation;
+        self.releaseRuntime();
+        // Retire reconstructible device class regions before the cold
+        // recorder. Authority templates stay owned; installation rewarms them.
+        for (self.workers, 0..) |worker, device| {
+            _ = try worker.unpark(1 << 16);
+            const retired = try worker.park(.{ .release_persistent = true, .release_retained = true });
+            std.debug.print("GPU_RESIDENT_SETUP reclaim device={d} persistent_words={d} retained_words={d}\n", .{ device, retired.persistent_words, retired.retained_words });
+        }
+        if (self.setup_hook) |hook| hook.prepare(hook.ctx);
+        var shape = try shapeFromWarm(self.a, self.native, self.recursion, block, warm, self.config);
+        var owned = true;
+        errdefer if (owned) freeShape(self.a, &shape);
+        self.shapes = try self.a.realloc(self.shapes, self.shapes.len + 1);
+        self.shapes[self.shapes.len - 1] = shape;
+        owned = false;
+        for (self.workers) |worker| _ = try worker.unpark(1 << 16);
+        try self.installRuntime();
+        self.driver.generation = generation;
+        self.last_setup_ns = timer.read();
+        accepted = true;
+        return self.last_setup_ns;
+    }
+
+    pub fn poisoned(self: *const Service) bool {
+        return !self.runtime_live or self.driver.poisoned;
     }
 
     /// Teardown after every Pending was finished (serveSpool guarantees it).
     pub fn deinit(self: *Service) void {
-        self.driver.deinit();
-        if (self.ring) |r| r.close();
-        for (self.streams) |s| s.destroy();
-        if (self.ring) |r| r.deinit();
-        for (self.shapes) |*s| freeShape(self.a, s);
+        self.releaseRuntime();
+        for (self.shapes) |*shape| freeShape(self.a, shape);
         self.a.free(self.shapes);
+        self.a.free(self.workers);
+        self.a.free(self.capacities);
         self.a.destroy(self);
     }
     fn freeShape(a: std.mem.Allocator, s: *Shape) void {
@@ -210,6 +298,7 @@ pub const Service = struct {
     /// Start a request: capture thread + every job enqueued (returns while
     /// the capture still runs; Stage1s follow its sealed segments).
     pub fn begin(self: *Service, block: u64, out: ?std.fs.Dir) !*Pending {
+        if (self.poisoned()) return error.GpuNativeDriverPoisoned;
         const shape = self.shapeOf(block) orelse return error.GpuNativeBlockNotWarmed;
         const slot: usize = if (!self.busy[0]) 0 else if (!self.busy[1]) 1 else return error.GpuNativePipelineFull;
         const stream = self.streams[slot];
@@ -354,16 +443,16 @@ pub const Spool = struct {
         try self.dir.rename(tmp, done);
         if (self.taken.fetchRemove(stem)) |kv| self.a.free(kv.key);
     }
-    fn refuse(self: *Spool, stem: []const u8, err: anyerror, sequence: ?u64) !void {
-        var buf: [256]u8 = undefined;
-        const text = if (sequence) |s| try std.fmt.bufPrint(&buf, "{{\"ok\":false,\"error\":\"{s}\",\"sequence\":{d}}}\n", .{ @errorName(err), s }) else try std.fmt.bufPrint(&buf, "{{\"ok\":false,\"error\":\"{s}\",\"sequence\":null}}\n", .{@errorName(err)});
+    fn refuse(self: *Spool, stem: []const u8, err: anyerror, sequence: ?u64, setup_ns: u64) !void {
+        var buf: [320]u8 = undefined;
+        const text = if (sequence) |s| try std.fmt.bufPrint(&buf, "{{\"ok\":false,\"error\":\"{s}\",\"sequence\":{d},\"setup_ns\":{d}}}\n", .{ @errorName(err), s, setup_ns }) else try std.fmt.bufPrint(&buf, "{{\"ok\":false,\"error\":\"{s}\",\"sequence\":null,\"setup_ns\":{d}}}\n", .{ @errorName(err), setup_ns });
         try self.answer(stem, text);
     }
 };
 
 /// The driver receipt as published per request (m8-jobs.json; D4/D5).
 pub fn receiptJson(a: std.mem.Allocator, block: u64, sequence: u64, r: Result) ![]u8 {
-    return std.json.Stringify.valueAlloc(a, .{ .schema = "rv64-m8-gpu-native-request/v1", .block = block, .sequence = sequence, .request_wall_ns = r.request_wall_ns, .begin_ns = r.begin_ns, .proofs = r.outcome.proofs.len, .receipt = r.outcome.receipt, .scope = "host_waits/d2h counted by the driver; device_gpu_us = CUDA-event span per GPU (preamble start -> slab D2H end) [M]; host ns = CPU wall on the driver threads [M]" }, .{ .whitespace = .indent_1 });
+    return std.json.Stringify.valueAlloc(a, .{ .schema = "rv64-m8-gpu-native-request/v1", .block = block, .sequence = sequence, .request_wall_ns = r.request_wall_ns, .begin_ns = r.begin_ns, .setup_ns = r.setup_ns, .setup_plus_request_ns = r.setup_ns + r.request_wall_ns, .proofs = r.outcome.proofs.len, .receipt = r.outcome.receipt, .scope = "setup_plus_request_ns excludes queue/drain/client latency; host_waits/d2h counted by the driver; device_gpu_us = CUDA-event span per GPU (preamble start -> slab D2H end) [M]; host ns = CPU wall on the driver threads [M]" }, .{ .whitespace = .indent_1 });
 }
 
 /// Spool loop: up to two requests in flight (the next request's capture and
@@ -376,7 +465,7 @@ pub fn serveSpool(svc: *Service, spool_path: []const u8, init_ns: u64) !void {
     defer spool.close();
     try spool.ready(init_ns);
     std.debug.print("GPU_RESIDENT_SERVICE ready init_ns={} runtime=m8-gpu-native\n", .{init_ns});
-    const Item = struct { stem: []const u8, block: u64, pending: *Pending, queue_ns: u64, out: std.fs.Dir };
+    const Item = struct { stem: []const u8, block: u64, pending: *Pending, queue_ns: u64, setup_ns: u64, out: std.fs.Dir };
     var queue: [2]Item = undefined;
     var queued: usize = 0;
     // Never leave a request in flight behind (error exits included).
@@ -389,25 +478,38 @@ pub fn serveSpool(svc: *Service, spool_path: []const u8, init_ns: u64) !void {
     };
     var idle = try std.time.Timer.start();
     var stop = false;
+    var deferred: ?Spool.Next = null;
     while (true) {
-        if (queued < queue.len) if (try spool.next(&stop)) |n| {
-            const queue_ns = idle.read();
-            if (n.err) |err| {
-                try spool.refuse(n.stem, err, null);
+        const next: ?Spool.Next = if (queued < queue.len) (if (deferred != null) deferred else try spool.next(&stop)) else null;
+        if (next) |n| {
+            deferred = null;
+            // A miss must wait for both parities without losing its admitted stem.
+            if (svc.shapeOf(n.block) == null and queued != 0 and n.err == null) {
+                deferred = n;
+            } else {
+                const queue_ns = idle.read();
+                if (n.err) |err| {
+                    try spool.refuse(n.stem, err, null, 0);
+                    continue;
+                }
+                const setup_ns = svc.setup(n.block) catch |err| {
+                    try spool.refuse(n.stem, err, null, svc.last_setup_ns);
+                    if (svc.poisoned()) return err;
+                    continue;
+                };
+                var out = try spool.proofDir(n.stem, n.block);
+                const p = svc.begin(n.block, out) catch |err| {
+                    out.close();
+                    std.debug.print("GPU_RESIDENT_SERVICE reject request={s} error={s}\n", .{ n.stem, @errorName(err) });
+                    try spool.refuse(n.stem, err, null, setup_ns);
+                    if (svc.poisoned()) return err;
+                    continue;
+                };
+                queue[queued] = .{ .stem = n.stem, .block = n.block, .pending = p, .queue_ns = queue_ns, .setup_ns = setup_ns, .out = out };
+                queued += 1;
                 continue;
             }
-            var out = try spool.proofDir(n.stem, n.block);
-            const p = svc.begin(n.block, out) catch |err| {
-                out.close();
-                std.debug.print("GPU_RESIDENT_SERVICE reject request={s} error={s}\n", .{ n.stem, @errorName(err) });
-                try spool.refuse(n.stem, err, null);
-                if (svc.driver.poisoned) return err;
-                continue;
-            };
-            queue[queued] = .{ .stem = n.stem, .block = n.block, .pending = p, .queue_ns = queue_ns, .out = out };
-            queued += 1;
-            continue;
-        };
+        }
         if (queued != 0) {
             const it = queue[0];
             std.mem.copyForwards(Item, queue[0 .. queued - 1], queue[1..queued]);
@@ -419,19 +521,20 @@ pub fn serveSpool(svc: *Service, spool_path: []const u8, init_ns: u64) !void {
             idle.reset();
             const res = svc.finish(it.pending) catch |err| {
                 std.debug.print("GPU_RESIDENT_SERVICE failed request={s} error={s}\n", .{ it.stem, @errorName(err) });
-                try spool.refuse(it.stem, err, seq);
-                if (svc.driver.poisoned) return err;
+                try spool.refuse(it.stem, err, seq, it.setup_ns);
+                if (svc.poisoned()) return err;
                 continue;
             };
             var r = res;
+            r.setup_ns = it.setup_ns;
             defer r.outcome.deinit();
             const receipt = try receiptJson(a, it.block, seq, r);
             defer a.free(receipt);
             var buf: [300]u8 = undefined;
             try spool.dir.writeFile(.{ .sub_path = try std.fmt.bufPrint(&buf, "out/{s}/m8-jobs.json", .{it.stem}), .data = receipt });
-            std.debug.print("GPU_RESIDENT_BLOCK block={d} trial=0 iteration={d} request_wall_ns={d} host_waits={d} d2h={d}\n", .{ it.block, seq, r.request_wall_ns, r.outcome.receipt.host_waits, r.outcome.receipt.d2h });
-            var tb: [512]u8 = undefined;
-            const text = try std.fmt.bufPrint(&tb, "{{\"ok\":true,\"block\":{d},\"sequence\":{d},\"request_wall_ns\":{d},\"queue_ns\":{d},\"host_waits\":{d},\"d2h\":{d}}}\n", .{ it.block, seq, r.request_wall_ns, it.queue_ns, r.outcome.receipt.host_waits, r.outcome.receipt.d2h });
+            std.debug.print("GPU_RESIDENT_BLOCK block={d} trial=0 iteration={d} request_wall_ns={d} host_waits={d} d2h={d} setup_ns={d} setup_plus_request_ns={d}\n", .{ it.block, seq, r.request_wall_ns, r.outcome.receipt.host_waits, r.outcome.receipt.d2h, r.setup_ns, r.setup_ns + r.request_wall_ns });
+            var tb: [640]u8 = undefined;
+            const text = try std.fmt.bufPrint(&tb, "{{\"ok\":true,\"block\":{d},\"sequence\":{d},\"request_wall_ns\":{d},\"queue_ns\":{d},\"setup_ns\":{d},\"setup_plus_request_ns\":{d},\"host_waits\":{d},\"d2h\":{d}}}\n", .{ it.block, seq, r.request_wall_ns, it.queue_ns, r.setup_ns, r.setup_ns + r.request_wall_ns, r.outcome.receipt.host_waits, r.outcome.receipt.d2h });
             try spool.answer(it.stem, text);
             continue;
         }

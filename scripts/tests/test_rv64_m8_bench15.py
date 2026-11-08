@@ -18,7 +18,7 @@ EVENT = 'GPU_M8_NATIVE_HYBRID event=boot workers=2 arena_words=5 wide=true'
 
 
 def request(ordinal, wall_s, latency_s):
-    return {'ordinal': ordinal, 'marker': {'request_wall_ns': int(wall_s * 1e9)}, 'client_latency_ns': int(latency_s * 1e9)}
+    return {'block': 1, 'ordinal': ordinal, 'marker': {'request_wall_ns': int(wall_s * 1e9)}, 'client_latency_ns': int(latency_s * 1e9)}
 
 
 COMBINED = {'capture_ns': 2_000_000_000, 'native_setup_ns': 140_000_000, 'native_prove_ns': 4_750_000_000,
@@ -34,6 +34,43 @@ def service(arm, role, warm_s, cold_s=None, status='ok', **extra):
 
 
 class BasketTests(unittest.TestCase):
+    def test_native_service_refuses_missing_failed_or_invalid_physical_guard(self):
+        import json, tempfile
+        from unittest.mock import patch
+        closed = {'status': 'RELEASED', 'exit_code': 0, 'failure': [], 'sha256': 'a' * 64, 'ready': {
+            'schema': 'rv64-physical-budget-guard/v1', 'ready': True, 'requested_limit_bytes': 28000000000, 'devices': [
+            {'device': d, 'held_physical_bytes': 1, 'total_bytes': 28000000001, 'prover_physical_ceiling_bytes': 28000000000} for d in (0, 1)]}}
+        invalid = [{}, dict(closed, status='HOLDING'), dict(closed, exit_code=1), dict(closed, exit_code=False),
+                   dict(closed, failure=['early exit']), dict(closed, sha256='b' * 64), dict(closed, ready={}),
+                   dict(closed, ready=dict(closed['ready'], ready=False)),
+                   dict(closed, ready=dict(closed['ready'], devices=[dict(d, held_physical_bytes=0) for d in closed['ready']['devices']])),
+                   dict(closed, ready=dict(closed['ready'], devices=closed['ready']['devices'][:1] * 2)),
+                   dict(closed, ready=dict(closed['ready'], devices=[dict(d, prover_physical_ceiling_bytes=28000000001) for d in closed['ready']['devices']]))]
+        invalid += [dict(closed, ready=v) for v in ([], 1)]
+        invalid += [dict(closed, ready=dict(closed['ready'], devices=[dict(d, device=v) for d in closed['ready']['devices']])) for v in (False, [], '0')]
+        with tempfile.TemporaryDirectory() as tmp:
+            b = object.__new__(bench.Bench)
+            b.root = b.out = Path(tmp)
+            b.stream, b.preset, b.environment, b.extra_env = 'guard-test', {'common': {}, 'arms': {'baseline': {}}}, {}, {}
+            b.args = argparse.Namespace(smoke=False)
+            b.assets = {'assets': {'library': '/native', 'addon': '/jobs', 'outer_fs': '/fs', 'process_budget_guard': '/guard'}, 'asset_sha256': {'process_budget_guard': 'a' * 64}}
+            run = Path(tmp) / 'runs/guard-test/daemon-24628607-r2-audit'
+            run.mkdir(parents=True)
+            with patch.object(bench, 'M3', Path(tmp)), patch.object(bench.stack, 'command', return_value=([], 'audit')), \
+                    patch.object(bench, 'validate_assets'), patch.object(bench, 'validate_library_environment'), \
+                    patch.object(bench.subprocess, 'run', return_value=argparse.Namespace(returncode=0)):
+                for index, guard in enumerate([*invalid, closed]):
+                    (run / 'receipt.json').write_text(json.dumps({'physical_budget_guard': guard, 'requests': []}))
+                    entry = b.service(24628607, {'cpu_segments': 7}, 'gpu-native', 'headline', 0, 1)
+                    self.assertIn('--process-budget-guard', entry['argv'])
+                    self.assertEqual(entry['argv'][entry['argv'].index('--process-budget-guard') + 1], '/guard')
+                    if index < len(invalid):
+                        self.assertEqual(entry['status'], 'failed')
+                        self.assertIn('physical guard', entry['reason'])
+                    else:
+                        self.assertEqual(entry['physical_budget']['status'], 'ENFORCED_PHYSICAL_CEILING')
+                        self.assertIsNone(entry['physical_budget']['observed_exact_process_peak_bytes'])
+
     def test_basket_is_fifteen_blocks_ascending_and_matches_m3_sum(self):
         rows = bench.basket()
         self.assertEqual(len(rows), 15)
@@ -96,13 +133,32 @@ class ParsingTests(unittest.TestCase):
         text = '\n'.join(['GPU_RESIDENT_SERVICE ready init_ns=1 runtime=inner', NODE,
                           'GPU_RESIDENT_BLOCK block=1 iteration=0 request_wall_ns=900',
                           'GPU_RESIDENT_SERVICE ready init_ns=1000 runtime=m8-gpu-native',
+                          'GPU_RESIDENT_SETUP begin block=1', NODE,
+                          'GPU_RESIDENT_SETUP reclaim device=0 persistent_words=1024 retained_words=0',
+                          'GPU_RESIDENT_BLOCK block=1 iteration=0 request_wall_ns=900',
+                          'GPU_RESIDENT_SETUP end block=1 setup_ns=200 status=accepted',
                           'actual-first', 'GPU_RESIDENT_BLOCK block=1 iteration=0 request_wall_ns=5',
                           'actual-second', 'GPU_RESIDENT_BLOCK block=1 iteration=1 request_wall_ns=4'])
-        parts = bench.split_requests(text)
+        setups = []
+        parts = bench.split_requests(text, setups)
         self.assertEqual(len(parts), 2)
         self.assertEqual(parts[0][0], 'actual-first')
         self.assertEqual(parts[1][0], 'actual-second')
         self.assertNotIn(NODE, [line for part in parts for line in part])
+        self.assertEqual(setups[0]['setup_ns'], 200)
+        self.assertIn(NODE, setups[0]['lines'])
+        other = []
+        self.assertEqual(parts, bench.split_requests(text.replace('SETUP begin block=1', 'SETUP begin block=2').replace('SETUP end block=1', 'SETUP end block=2'), other))
+        self.assertEqual(other[0]['block'], 2)
+        failed = []
+        self.assertEqual([], bench.split_requests(text.split('actual-first')[0].replace('status=accepted', 'status=failed'), failed))
+        self.assertEqual(failed[0]['status'], 'failed')
+        for changed in (text.replace('end block=1', 'end block=2'), text.replace('end block=1', 'begin block=1'),
+                        text.replace('GPU_RESIDENT_SETUP end block=1 setup_ns=200 status=accepted', ''),
+                        text.replace('setup_ns=200', 'setup_ns=-1'), text.replace('status=accepted', 'status=unknown'),
+                        text.replace('SETUP begin block=1', 'SETUP begin block=-1')):
+            with self.assertRaises(ValueError):
+                bench.split_requests(changed)
 
     def test_job_metrics_count_only_job_lines(self):
         jobs = bench.job_metrics([NODE, NODE2, HOST, MEM, FIXED, NATIVE, EVENT])
@@ -134,13 +190,16 @@ class ParsingTests(unittest.TestCase):
         self.assertIsNone(partial['nodes'])
 
     def test_native_receipt_keeps_driver_spans_separate_from_unknown_stage_partitions(self):
-        native = {'schema': 'rv64-m8-gpu-native-request/v1', 'receipt': {
+        native = {'schema': 'rv64-m8-gpu-native-request/v1', 'block': 1, 'sequence': 1, 'request_wall_ns': 10_000_000_000,
+            'setup_ns': 2_000_000_000, 'setup_plus_request_ns': 12_000_000_000, 'receipt': {
             'host_waits': 1, 'd2h': 2, 'd2h_bytes': 1234,
             'device_gpu_us': [8_000_000, 9_000_000, 0, 0],
             'device_enqueue_ns': [7_000_000_000, 8_000_000_000, 0, 0],
             'device_gate_ns': [10_000_000, 20_000_000, 0, 0],
             'device_memory_serializations': [3, 4, 0, 0]}}
-        row = bench.request_metrics(request(1, 10.0, 10.1), {'native_prove_ns': None}, [], native)
+        lines = ['GPU_RESIDENT_BLOCK block=1 iteration=1 request_wall_ns=10000000000 setup_ns=2000000000 setup_plus_request_ns=12000000000']
+        row = bench.request_metrics(request(1, 10.0, 10.1), {'native_prove_ns': None}, lines, native)
+        self.assertEqual((row['setup_miss_s'], row['setup_plus_request_s']), (2.0, 12.0))
         self.assertEqual(row['driver']['device_span_s'], [8.0, 9.0])
         self.assertEqual(row['driver']['device_enqueue_s'], [7.0, 8.0])
         self.assertEqual(row['driver']['memory_serializations'], [3, 4])
@@ -150,6 +209,18 @@ class ParsingTests(unittest.TestCase):
         self.assertIsNone(row['native_window_s'])
         self.assertIsNone(row['tail_s'])
         self.assertEqual(row['jobs'], {})
+        for key, value in (('block', 2), ('sequence', 0), ('request_wall_ns', 9), ('setup_ns', -1),
+                           ('setup_ns', True), ('setup_plus_request_ns', 11_000_000_000)):
+            with self.assertRaises(ValueError):
+                bench.request_metrics(request(1, 10.0, 10.1), {}, lines, dict(native, **{key: value}))
+        with self.assertRaises(ValueError):
+            bench.request_metrics(request(1, 10.0, 10.1), {}, [lines[0].replace('iteration=1', 'iteration=2')], native)
+        with self.assertRaises(ValueError):
+            bench.request_metrics(request(1, 10.0, 10.1), {}, ['GPU_RESIDENT_BLOCK block=1 iteration=1 request_wall_ns=10000000000 setup_ns=-1 setup_plus_request_ns=9999999999'], dict(native, setup_ns=-1, setup_plus_request_ns=9999999999))
+        legacy = {k: v for k, v in native.items() if k not in ('setup_ns', 'setup_plus_request_ns')}
+        row = bench.request_metrics(request(1, 10.0, 10.1), {}, [lines[0].split(' setup_ns=')[0]], legacy)
+        self.assertIsNone(row['setup_miss_s'])
+        self.assertIsNone(row['setup_plus_request_s'])
 
     def test_profile_metrics_busy_and_per_node_counts(self):
         out = bench.profile_metrics({'kernel_busy_gpu_seconds': 10.0, 'any_busy_gpu_seconds': 12.0},

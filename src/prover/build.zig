@@ -65,6 +65,14 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_tests.step);
     test_step.dependOn(&run_deep_tests.step);
 
+    const shared_resources_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-shared-resources",
+        .description = "Test shared heap/external admission and actual PCS backing teardown without a device",
+        .root = "shared_resources_test_root.zig",
+        .filters = &.{"shared external"},
+    });
+    test_step.dependOn(shared_resources_step);
+
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-device-trace",
         .description = "Verify explicit resident MAIN/INTER logical trees and host-access rejection",

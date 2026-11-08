@@ -48,7 +48,7 @@ Build `rv64-csp-full` and `rv64-full-verify` with
 and `--report`; `--prover` and `--verifier` allow immutable measured binaries.
 `--profile-only` explicitly does not establish a proof. The driver independently
 checks expected ELF/input/output authority and runs the receiver in a new process.
-The [17-case comparison CSV](../../../vectors/reports/rv64-qualification-20261030/csp-full-comparison.csv)
+The [17-case comparison CSV](https://github.com/teddyjfpender/stwo-zig/blob/7c0686ae7c21be9bd5675f3d7b8f2b8439a07713/vectors/reports/rv64-qualification-20261030/csp-full-comparison.csv)
 records serial/parallel measurements; all 17 statement, claim and proof byte
 streams match exactly. Focused tests are `test-riscv64-air`,
 `test-riscv64-program`, `test-riscv64-program-proof`, `test-riscv64-providers`,

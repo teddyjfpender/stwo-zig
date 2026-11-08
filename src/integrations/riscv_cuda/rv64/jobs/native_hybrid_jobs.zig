@@ -29,12 +29,12 @@ const NComp = @import("native_composition.zig");
 
 /// addon stwo_rv64_jobs_copy_async(dst, src, bytes, kind, stream) (kind 3 = d2d):
 /// a raw stream copy; the legacy MAIN columns are not in the worker's ledger.
-pub const CopyAsync = *const fn (*anyopaque, *const anyopaque, usize, u32, *anyopaque) callconv(.c) c_int;
+const CopyAsync = @FieldType(@import("ops.zig").Exec, "copy_async");
 
 /// Optional CUDA-event span around a job's enqueued work (glue supplies the
 /// base image's event entry points; events are created in `stage`, on the
 /// worker thread, and read in `finish` after the job's single wait).
-pub const Timing = @import("job_timing.zig").Timing;
+const Timing = @import("job_timing.zig").Timing;
 
 pub fn mainName(ordinal: u32) [32]u8 {
     return R.name("hy.s1.main", ordinal);
@@ -169,23 +169,6 @@ pub const Stage1Job = struct {
     pub fn abort(_: *Stage1Job) void {}
 };
 
-/// One cpu_components.Plan slot as Stage2 consumes it.
-pub const Slot = struct {
-    log: u32,
-    inter_offset: usize,
-    /// Binding instance whose 16 coefficient columns open the slot's INTER range.
-    binding_index: ?usize = null,
-    /// The slot's global interaction (claims), or null (claimCount == 0).
-    global: ?Global = null,
-    pub const Global = struct {
-        plan: *const Gl.Plan,
-        claim_offset: u32,
-        /// First FIXED / MAIN column of the slot (original order).
-        fixed_first: usize,
-        main_first: usize,
-    };
-};
-
 pub const Stage2Job = struct {
     a: std.mem.Allocator,
     request: u64,
@@ -206,7 +189,7 @@ pub const Stage2Job = struct {
     legacy_main: []const [*]const u32 = &.{},
     main_logs: []const u32 = &.{},
     bind_plan: *const B.Plan,
-    slots: []const Slot,
+    slots: []const S2.Slot,
     stage2: S2.Stage2,
     composition: *NComp.Plan,
     comp_sym: NComp.Symbols,

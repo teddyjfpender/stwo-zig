@@ -76,7 +76,7 @@ from rv64_m8_bench15_lib.metrics import (
 
 M3 = Path(os.environ.get('RV64_M3_ROOT', '/workspace/m3'))
 GPU_LOCK = M3 / 'locks/gpu.lock'
-M3_SUMMARY = ROOT / 'vectors/reports/rv64-m3-20261104/summary.json'
+M3_SUMMARY = ROOT / 'vectors/fixtures/rv64-m3-basket-v1.json'
 RUNTIME = stack.DEFAULT_RUNTIME
 DEV_BLOCKS = (26235156, 24628607)
 SMOKE_BLOCK = 26235156
@@ -463,6 +463,8 @@ class Bench:
         label = f'{self.out.name}-{block}-{arm}-{role[0]}{round_index}-a{attempt}'
         manifest = {'source_root': str(self.root), 'assets': self.assets['assets'], 'block': block, 'preset': self.preset}
         argv, tag = stack.command(manifest, 'baseline', 0, self.stream, role == 'profile', label)
+        if arm == 'gpu-native':
+            argv += ['--process-budget-guard', self.assets['assets']['process_budget_guard']]
         if block not in DEV_BLOCKS:
             argv.append('--bench-basket-block')
         if self.args.smoke:
@@ -488,20 +490,32 @@ class Bench:
             entry['status'] = 'quiet_timeout' if 'quiet admission timed out' in text else 'failed'
             return entry
         receipt = json.loads((run / 'receipt.json').read_text())
+        if arm == 'gpu-native':
+            try:
+                entry['physical_budget'] = stack.guard_verdict(receipt, 'fullstack', self.assets['asset_sha256']['process_budget_guard'])
+            except RuntimeError as error:
+                entry.update(status='failed', reason=str(error))
+                return entry
         if len(receipt['requests']) != 2:
             entry['status'] = 'failed'
             entry['error'] = 'expected a cold and a warm request'
             return entry
         stderr = (run / 'producer.stderr').read_text(errors='replace')
-        per_request = split_requests(stderr)
-        entry['requests'] = []
-        for index, request in enumerate(receipt['requests']):
-            combined = load(Path(request['proof']) / 'combined-report.json', {})
-            native = load(Path(request['proof']).parents[1] / 'm8-jobs.json')
-            if arm == 'gpu-native' and (not native or native.get('schema') != 'rv64-m8-gpu-native-request/v1'):
-                entry.update(status='failed', reason='GPU-native driver receipt missing or schema changed')
-                return entry
-            entry['requests'].append(request_metrics(request, combined, per_request[index] if index < len(per_request) else [], native))
+        try:
+            entry['setup_epochs'] = []
+            per_request = split_requests(stderr, entry['setup_epochs'])
+            if arm == 'gpu-native' and len(per_request) != len(receipt['requests']):
+                raise ValueError('native request marker coverage differs from spool receipts')
+            entry['requests'] = []
+            for index, request in enumerate(receipt['requests']):
+                combined = load(Path(request['proof']) / 'combined-report.json', {})
+                native = load(Path(request['proof']).parents[1] / 'm8-jobs.json')
+                if arm == 'gpu-native' and (not isinstance(native, dict) or native.get('schema') != 'rv64-m8-gpu-native-request/v1'):
+                    raise ValueError('GPU-native driver receipt missing or schema changed')
+                entry['requests'].append(request_metrics(request, combined, per_request[index] if index < len(per_request) else [], native))
+        except ValueError as error:
+            entry.update(status='failed', reason=str(error))
+            return entry
         memory = receipt.get('physical_gpu_memory') or {}
         peaks = [v for v in (memory.get('peak_used_bytes') or {}).values() if v]
         entry['device_peak_bytes'] = max(peaks) if peaks else None

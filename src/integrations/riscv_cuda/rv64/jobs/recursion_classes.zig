@@ -25,6 +25,7 @@ pub const Classes = struct {
     vtable: *const VTable,
     pub const VTable = struct {
         deinit: *const fn (*anyopaque) void,
+        prepare: *const fn (*anyopaque, u64) anyerror!void,
         register: *const fn (*anyopaque, u64, *OD.Recursion, []const G.ClassKey, *S2.Factory, []const TF.Request, *TF.Factory, *const CPU.rv64_gkr_execution.Inventory) anyerror!void,
         relayout: *const fn (*anyopaque, *G.ClassCache) anyerror!void,
         warm: *const fn (*anyopaque, []const *W) anyerror!void,
@@ -35,6 +36,9 @@ pub const Classes = struct {
     };
     pub fn deinit(self: Classes) void {
         self.vtable.deinit(self.ctx);
+    }
+    pub fn prepare(self: Classes, block: u64) !void {
+        return self.vtable.prepare(self.ctx, block);
     }
     pub fn register(self: Classes, block: u64, registry: *OD.Recursion, native: []const G.ClassKey, stage2: *S2.Factory, truths: []const TF.Request, factory: *TF.Factory, inventory: *const CPU.rv64_gkr_execution.Inventory) !void {
         return self.vtable.register(self.ctx, block, registry, native, stage2, truths, factory, inventory);

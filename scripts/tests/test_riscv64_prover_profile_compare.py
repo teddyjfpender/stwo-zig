@@ -9,7 +9,7 @@ from scripts import riscv64_prover_profile_compare as compare
 class ProfileComparisonTests(unittest.TestCase):
     def setUp(self):
         root = Path(__file__).resolve().parents[2]
-        source = root / 'vectors/reports/rv64-qualification-20261030/csp-full-parallel.json'
+        source = root / 'vectors/fixtures/rv64-profile-comparison-v1.json'
         self.before = json.loads(source.read_text())
         self.before['cases'] = self.before['cases'][:1]
         self.after = copy.deepcopy(self.before)

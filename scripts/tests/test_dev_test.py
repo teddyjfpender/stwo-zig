@@ -2,14 +2,36 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from scripts import dev_test
+from scripts.tests.focused_ci_fixtures import git_repository
 
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_shared_resource_contracts_have_focused_and_mandatory_package_owners(self):
+        cases = (
+            ("src/prover/shared_resources_test_root.zig", "test-shared-resources", "shared_resources_step", 13),
+            ("src/core/borrowed_proof_capture_test_root.zig", "test-borrowed-capture", "capture_tests", 0),
+            ("src/integrations/riscv_cpu/rv64_recursion_budget_test_root.zig", "test-recursion-budget", "budget_step", 3),
+        )
+        for path, step, dependency, named_tests in cases:
+            with self.subTest(path=path):
+                (command,) = dev_test.commands_for_paths(ROOT, [path], check_only=True)
+                self.assertEqual(command[2], step)
+                self.assertIn("-Dcheck-only=true", command)
+                build = (ROOT / Path(path).parent / "build.zig").read_text()
+                self.assertIn(f'"{Path(path).name}"', build)
+                self.assertIn(f'test_step.dependOn({dependency});', build)
+                body = (ROOT / path).read_text()
+                self.assertEqual(sum(line.startswith('test "') for line in body.splitlines()), named_tests)
+        capture = (ROOT / cases[1][0]).read_text()
+        for name in ("borrowed_proof_capture_test.zig", "borrowed_pcs_capture_success_test.zig"):
+            self.assertIn(f'@import("tests/{name}")', capture)
+
     def test_recursion_dag_uses_its_standalone_cpu_owner(self):
         commands = dev_test.commands_for_paths(ROOT, ["src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"], optimize="ReleaseFast")
         self.assertEqual(1, len(commands))
@@ -34,8 +56,15 @@ class DevTestPlanTests(unittest.TestCase):
         self.assertEqual(command[1:], ["-m", "unittest", "scripts.tests.test_dev_test"])
 
     def test_deleted_python_owner_uses_complete_surviving_contract_suite(self) -> None:
-        (command,) = dev_test.commands_for_paths(ROOT, ["scripts/retired_owner.py"])
-        self.assertEqual(command[1:], ["-m", "unittest", "discover", "-s", "scripts/tests", "-p", "test_*.py"])
+        with git_repository({"scripts/retired_owner.py": "pass\n", "scripts/alive_owner.py": "pass\n"}) as root:
+            (root / "scripts/retired_owner.py").unlink()
+            for path in ("scripts/retired_owner.py", "scripts/alive_owner.py"):
+                (command,) = dev_test.commands_for_paths(root, [path])
+                self.assertEqual(command[1:], ["-m", "unittest", "discover", "-s", "scripts/tests", "-p", "test_*.py"])
+
+    def test_nonexistent_python_typo_never_selects_the_contract_suite(self):
+        with self.assertRaisesRegex(dev_test.DevTestError, "does not exist"):
+            dev_test.commands_for_paths(ROOT, ["scripts/tests/test_ci_scope_plan.py"])
 
     def test_python_check_is_explicitly_compile_only(self) -> None:
         (command,) = dev_test.commands_for_paths(ROOT, ["scripts/dev_test.py"], check_only=True)
@@ -213,7 +242,33 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_unowned_path_fails_closed(self) -> None:
         with self.assertRaisesRegex(dev_test.DevTestError, "no Zig package owns"):
-            dev_test.commands_for_paths(ROOT, ["CONTRIBUTING.md"])
+            dev_test.commands_for_paths(ROOT, ["src/unowned_new_source.zig"])
+
+    def test_documentation_uses_ci_policy_without_runtime_builds(self):
+        self.assertEqual([], dev_test.commands_for_paths(ROOT, [
+            "CONTRIBUTING.md", "src/prover/README.md", "design/riscv-proving-stack/rv64-gpu-hygiene.md",
+        ]))
+
+    def test_live_fixtures_select_actual_package_and_script_validators(self):
+        for path in ("vectors/fixtures/rv64-m3-basket-v1.json", "vectors/fixtures/README.md"):
+            with self.subTest(path=path):
+                commands = dev_test.commands_for_paths(ROOT, [path])
+                self.assertTrue(any(command[1:4] == ["-m", "unittest", "discover"] for command in commands))
+                for owner in ("src/frontends/riscv", "src/integrations/riscv_cuda"):
+                    self.assertTrue(any(f"{owner}/build.zig" in command for command in commands))
+        commands = dev_test.commands_for_paths(ROOT, ["conformance/rv64-flags.json"])
+        self.assertTrue(any("scripts/ci.py" in command and "--fast" in command for command in commands))
+        combined = dev_test.commands_for_paths(ROOT, ["scripts/tests/test_dev_test.py", "vectors/fixtures/README.md"])
+        self.assertEqual(1, sum(command[1:3] == ["-m", "unittest"] for command in combined))
+
+    def test_only_git_confirmed_unowned_deletions_select_static_checks(self):
+        path = "src/retired_unowned_root.zig"
+        with mock.patch("scripts.dev_test.subprocess.check_output", return_value=path + "\n"):
+            commands = dev_test.commands_for_paths(ROOT, [path])
+        self.assertTrue(any("scripts/ci.py" in command and "--fast" in command for command in commands))
+        with mock.patch("scripts.dev_test.subprocess.check_output", return_value=""):
+            with self.assertRaises(dev_test.DevTestError):
+                dev_test.commands_for_paths(ROOT, [path])
 
 
 if __name__ == "__main__":

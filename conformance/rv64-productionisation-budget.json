@@ -52,10 +52,10 @@
     },
     {
       "id": "new_block_setup_miss",
-      "net_code_budget": 0,
-      "positive_exception_policy": "Amend with a bounded ownership/test justification before any positive implementation growth. Reuse installed class builders.",
+      "net_code_budget": 270,
       "flags_added_budget": 0,
-      "scripts_added_budget": 0
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "One explicit quiescent setup transaction for an allowed block absent from initial installation: reuse existing native/truth/recursion class builders, rederive all dependent request resources from allocation geometry, charge setup separately, and test cancellation/failure/publication ownership. Native-only insertion cannot satisfy driver capture/slab/recursion lifetimes. Includes tests; no new feature switch or launcher. The service owns retained worker-pointer and capacity arrays rather than borrowing temporary caller arrays; allocation-failure cleanup and a caller-mutation regression are included."
     },
     {
       "id": "legacy_retirement_after_default_flip",
@@ -288,6 +288,60 @@
       "top_level_scripts_added_budget": 0,
       "scope": "The full optimized package exposed that its committed policy test previously skipped from the wrong working directory. Route the full package test through the existing jobTestStep owner so broad and focused tests use the same package cwd and check-only policy. Keep the missing-fixture failure and all tests.",
       "validation_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
+    },
+    {
+      "id": "historical_receipt_live_input_separation",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "scope": "Move the verified recursive admission closure and explicit live static report inputs to maintained fixtures without changing bytes, hashes or relative references; update existing consumers only. No bulk report deletion until the exact dependency closure is audited.",
+      "moves_counted_as_deletions": false
+    },
+    {
+      "id": "basket_native_physical_guard",
+      "net_code_budget": 60,
+      "positive_growth_justification": "Bring GPU-native basket under the same mandatory physical process-budget guard as the canonical comparison; require complete guard closure and test missing/failing guard rejection. Existing basket baseline command bypasses native guard selection. Includes tests in existing owners, no new launcher or feature switch.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "unreachable_metal_compile_body_wrappers",
+      "net_code_budget": -246,
+      "code_files_removed_target": 5,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "scope": "Five unowned and unreachable top-level Metal compile-body wrappers only; verify names and export-symbol consumers, published archive Git blobs and dynamic discovery before deletion. Preserve fourteen live root fixtures and all runtime code.",
+      "baseline_or_ceiling_changes": 0
+    },
+    {
+      "id": "orphan_resource_test_ownership",
+      "net_code_budget": 70,
+      "positive_growth_justification": "Rehome four orphaned live resource/authority test roots into existing core/prover/RV64 CPU owners, attach to mandatory package tests and focused dev_test routing, with discovery regression. Preserve all 16 named tests and anonymous borrowed-capture imports; existing test bodies are moves, not deletions. Includes build wiring and routing tests; no forwarding roots.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "moves_counted_as_deletions": false
+    },
+    {
+      "id": "native_shared_utility_ownership",
+      "net_code_budget": 5,
+      "positive_growth_justification": "Move shared native Slot to its stage owner, reuse Ops CopyAsync ABI and existing job_timing, and add an existing-lint invariant forbidding native enqueue closure imports of the hybrid adapter. Includes test/lint cost; shared declaration moves are not deletion. Hybrid implementation remains until promotion.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "moves_counted_as_deletions": false
+    },
+    {
+      "id": "setup_epoch_metric_ownership",
+      "net_code_budget": 85,
+      "positive_growth_justification": "Attribute balanced setup epochs separately from actual GPU-native requests. Nested legacy class-recorder block markers after READY otherwise become false requests and contaminate job metrics. Match native receipt/spool/stdout sequence/block/wall, validate integer nonnegative setup and additive setup-plus-request identity, and expose separate metrics with missing historical fields unavailable. Includes existing parser negative tests and owner trace cost; no new launcher or feature flag.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "developer_worktree_policy_routing",
+      "net_code_budget": 120,
+      "positive_growth_justification": "Make the documented no-argument inner-loop command consume authoritative CI path/lane policy. Current implementation treats documentation, maintained fixtures and 7004 archived report deletions as unowned Zig sources; CI policy also omits fixtures and mislabels conformance policy as documentation. Share classification/lane commands, add genuine live validation triggers, preserve new unknown-source rejection and require Git evidence for retired-source handling. Includes host routing regressions; no second path/ignore registry or launcher.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

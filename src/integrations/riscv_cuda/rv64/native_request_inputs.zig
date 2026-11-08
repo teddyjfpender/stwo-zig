@@ -279,6 +279,7 @@ pub const Binding = struct {
     }
     pub fn shape(raw: ?*anyopaque, wb: G.WarmBlock, native_keys: []const G.ClassKey) anyerror!G.RecursionShape {
         const self: *Binding = @ptrCast(@alignCast(raw.?));
+        try self.recursion_classes.prepare(wb.block);
         const b = try self.prepare(wb, native_keys);
         return .{ .truths = @intCast(b.truths.len), .fold_arity = 4 };
     }

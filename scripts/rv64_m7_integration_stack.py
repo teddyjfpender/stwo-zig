@@ -175,15 +175,28 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
     return argv, tag
 
 
-def guard_verdict(receipt, arm):
+def guard_verdict(receipt, arm, expected_sha256=None):
     guard = receipt.get('physical_budget_guard') or {}
     if arm == 'baseline':
         if guard:
             raise RuntimeError('baseline auto arena must not be altered by a physical canary')
         return {'status': 'ORIGINAL_BASELINE_AUTO_UNGUARDED', 'ceiling_bytes': None, 'observed_exact_process_peak_bytes': None}
-    if guard.get('status') != 'RELEASED' or guard.get('exit_code') != 0 or guard.get('failure'):
+    if guard.get('status') != 'RELEASED' or type(guard.get('exit_code')) is not int or guard.get('exit_code') != 0 or guard.get('failure'):
         raise RuntimeError('physical guard lifecycle did not close successfully')
-    devices = guard['ready']['devices']
+    if expected_sha256 is not None and guard.get('sha256') != expected_sha256:
+        raise RuntimeError('physical guard binary pin differs')
+    ready = guard.get('ready') or {}
+    devices = ready.get('devices') if isinstance(ready, dict) else None
+    if (not isinstance(devices, list) or len(devices) != 2
+            or ready.get('schema') != 'rv64-physical-budget-guard/v1' or ready.get('ready') is not True
+            or ready.get('requested_limit_bytes') != 28000000000
+            or any(not isinstance(d, dict) for d in devices)
+            or any(type(d.get('device')) is not int for d in devices) or {d.get('device') for d in devices} != {0, 1}
+            or any(type(d.get('prover_physical_ceiling_bytes')) is not int
+                   or not 0 < d['prover_physical_ceiling_bytes'] <= 28000000000 for d in devices)
+            or any(type(d.get('held_physical_bytes')) is not int or d['held_physical_bytes'] <= 0
+                   or d.get('total_bytes') != d['held_physical_bytes'] + d['prover_physical_ceiling_bytes'] for d in devices)):
+        raise RuntimeError('physical guard device ceilings are incomplete or invalid')
     return {'status': 'ENFORCED_PHYSICAL_CEILING',
             'ceiling_bytes': {str(d['device']): d['prover_physical_ceiling_bytes'] for d in devices},
             'observed_exact_process_peak_bytes': None,
@@ -232,7 +245,7 @@ def run(args):
             raise RuntimeError('quiet admission receipt missing or failed')
         if len(receipt.get('quiet_before_requests', [])) != 2:
             raise RuntimeError('both requests require explicit quiet receipts')
-        entry['physical_budget'] = guard_verdict(receipt, arm)
+        entry['physical_budget'] = guard_verdict(receipt, arm, manifest['asset_sha256']['process_budget_guard'])
         entry['service_assets'] = receipt['assets']
         for request in receipt['requests']:
             actual = fingerprints(request)
