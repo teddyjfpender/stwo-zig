@@ -68,7 +68,7 @@ pub const Layout = struct {
             .evaluation_log_size = layer.evaluation_log,
             .cumulative_fold = layer.cumulative_fold,
             .fold_step = layer.fold_step,
-            .log_rows_per_leaf = 2,
+            .log_rows_per_leaf = layer.rows_per_leaf_log,
         };
         const result = Layout{
             .allocator = allocator,
@@ -109,7 +109,8 @@ pub const Layout = struct {
         if (samples != self.sample_total) return error.InvalidCircuitProofLayout;
         for (self.fri_trees, 0..) |tree, index| {
             if (tree.tree_index != 4 + index or tree.fold_step == 0 or
-                tree.fold_step > 4 or tree.log_rows_per_leaf != 2)
+                tree.fold_step > 4 or
+                (tree.log_rows_per_leaf != 0 and tree.log_rows_per_leaf != core.fri.LOG_PACKED_LEAF_SIZE))
                 return error.InvalidCircuitProofLayout;
         }
     }

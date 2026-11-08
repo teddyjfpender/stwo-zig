@@ -25,8 +25,22 @@ pub const FriLayer = struct {
     evaluation_log: u32,
     fold_step: u32,
     cumulative_fold: u32,
+    /// Log of the evaluations hashed per Merkle leaf: `LOG_PACKED_LEAF_SIZE`
+    /// when the layer packs (`packsLeaves`), else 0.
+    rows_per_leaf_log: u32,
+    /// Log of the layer's Merkle leaf count.
     leaf_log: u32,
 };
+
+/// Whether FRI layer `ordinal` packs `2^LOG_PACKED_LEAF_SIZE` evaluations per
+/// Merkle leaf, as the CPU prover (`prover/fri.zig`, `shouldPack`) and the
+/// native verifier (`core/fri.zig`, `pack_leaves`) decide: the first layer by
+/// the configured fold step, every later layer by its own fold step. A last
+/// round that folds by one level is committed with one evaluation per leaf.
+pub fn packsLeaves(ordinal: usize, layer_fold_step: u32, config_fold_step: u32, evaluation_log: u32) bool {
+    const step = if (ordinal == 0) config_fold_step else layer_fold_step;
+    return step > 1 and evaluation_log >= core.fri.LOG_PACKED_LEAF_SIZE;
+}
 
 pub const Geometry = struct {
     allocator: std.mem.Allocator,
@@ -103,12 +117,21 @@ pub const Geometry = struct {
         }) catch return error.InvalidCircuitGeometry;
         const fri_layers = try allocator.alloc(FriLayer, fri.roundCount());
         errdefer allocator.free(fri_layers);
-        for (fri_layers, 0..) |*layer, index| layer.* = .{
-            .evaluation_log = try fri.evaluationLog(index),
-            .fold_step = try fri.roundFold(index),
-            .cumulative_fold = try fri.cumulativeFold(index),
-            .leaf_log = try fri.leafLog(index),
-        };
+        for (fri_layers, 0..) |*layer, index| {
+            const evaluation_log = try fri.evaluationLog(index);
+            const round_fold = try fri.roundFold(index);
+            const rows_per_leaf_log: u32 = if (packsLeaves(index, round_fold, fold_step, evaluation_log))
+                core.fri.LOG_PACKED_LEAF_SIZE
+            else
+                0;
+            layer.* = .{
+                .evaluation_log = evaluation_log,
+                .fold_step = round_fold,
+                .cumulative_fold = try fri.cumulativeFold(index),
+                .rows_per_leaf_log = rows_per_leaf_log,
+                .leaf_log = evaluation_log - rows_per_leaf_log,
+            };
+        }
 
         return .{
             .allocator = allocator,
