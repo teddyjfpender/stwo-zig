@@ -9,4 +9,5 @@ test {
     _ = @import("om31/witness_test.zig");
     _ = @import("om31/program_test.zig");
     _ = @import("om31/domain_program_test.zig");
+    _ = @import("om31/native_program_test.zig");
 }

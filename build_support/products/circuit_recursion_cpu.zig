@@ -331,8 +331,8 @@ fn createCompositionModule(
         .linkage = .static,
         .root_module = b.createModule(.{ .target = target, .optimize = optimize, .pic = true, .link_libc = true }),
     });
-    for (0..11) |index| kernels.root_module.addCSourceFile(.{
-        .file = directory.path(b, b.fmt("circuit_cpu_air_{d}.c", .{index})),
+    for (0..11) |index| inline for (.{ "", "_om31" }) |suffix| kernels.root_module.addCSourceFile(.{
+        .file = directory.path(b, b.fmt("circuit_cpu_air{s}_{d}.c", .{ suffix, index })),
         .flags = &.{ "-std=c11", "-O3", "-fstrict-aliasing", "-fno-vectorize", "-fno-slp-vectorize", "-gline-tables-only" },
     });
     module.linkLibrary(kernels);

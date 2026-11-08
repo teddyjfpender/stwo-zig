@@ -26,6 +26,30 @@ pub const Executor = struct {
     resolve: *const fn ([32]u8) ?Kernel,
 };
 
+/// Additive ABI for circuit consumers of the same pinned programs over OM31.
+/// The quartic ABI above is unchanged. Callers validate the physical octic
+/// interaction lens and every host read before invoking a registered kernel.
+pub const Om31 = struct {
+    pub const Range = extern struct {
+        sites: [*]const Column,
+        parameters: [*]const u32,
+        coefficients: [*]const u32,
+        denominators: [*]const u32,
+        output: [8][*]u32,
+        first: usize,
+        end: usize,
+        evaluation_log: u32,
+        trace_log: u32,
+        constraint_base: u32,
+        additive: u32,
+    };
+    pub const Kernel = *const fn (*const Om31.Range) callconv(.c) void;
+    pub const Executor = struct { resolve: *const fn ([32]u8) ?Om31.Kernel };
+    comptime {
+        if (@offsetOf(Om31.Range, "first") != 12 * @sizeOf(usize) or @offsetOf(Om31.Range, "evaluation_log") != 14 * @sizeOf(usize)) @compileError("OM31 native range ABI mismatch");
+    }
+};
+
 pub const identity = @import("../../witness/eval_program_identity.zig").identity;
 
 /// Validates and resolves one immutable program for a joined component phase.

@@ -11,6 +11,7 @@ const frontend = @import("stwo_cairo").frontends.cairo;
 const program_identity = frontend.witness.eval_program_identity;
 const composition = frontend.witness.composition_bundle;
 const c_writer = @import("c_writer.zig");
+const om31_writer = @import("om31_writer.zig");
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -39,6 +40,8 @@ pub fn main() !void {
     var seen = std.AutoHashMap([32]u8, void).init(allocator);
     defer seen.deinit();
     var count: usize = 0;
+    var identities: std.ArrayList([32]u8) = .empty;
+    defer identities.deinit(allocator);
     for (bundle.components) |component| for (component.parts) |part| {
         const identity = program_identity.identity(part.program);
         const entry = try seen.getOrPut(identity);
@@ -55,9 +58,20 @@ pub fn main() !void {
         const renamed = try std.mem.replaceOwned(u8, allocator, source.written(), "cairo_cpu_air_", try std.fmt.allocPrint(allocator, "{s}_", .{prefix}));
         try writer.interface.writeAll(renamed);
         try writer.interface.flush();
+        const wide_name = try std.fmt.allocPrint(allocator, "{s}_om31_{d}.c", .{ prefix, count });
+        var wide_file = try directory.createFile(wide_name, .{});
+        defer wide_file.close();
+        var wide_buffer: [65536]u8 = undefined;
+        var wide_file_writer = wide_file.writer(&wide_buffer);
+        var wide_source: std.Io.Writer.Allocating = .init(allocator);
+        try om31_writer.generate(allocator, part.program, count, &wide_source.writer);
+        const wide_renamed = try std.mem.replaceOwned(u8, allocator, wide_source.written(), "cairo_cpu_air_", try std.fmt.allocPrint(allocator, "{s}_", .{prefix}));
+        try wide_file_writer.interface.writeAll(wide_renamed);
+        try wide_file_writer.interface.flush();
         try w.writeAll("if(std.mem.eql(u8,&identity,&[_]u8{");
         for (identity) |value| try w.print("{d},", .{value});
         try w.print("}}))return {s}_{d};\n", .{ prefix, count });
+        try identities.append(allocator, identity);
         count += 1;
     };
     // The build graph declares the bundle's program cardinality explicitly.
@@ -67,5 +81,13 @@ pub fn main() !void {
     }
     try w.print("return null;\n}}\npub const generated_program_count={d};\n", .{count});
     for (0..count) |index| try w.print("extern fn {s}_{d}(*const native.Range) callconv(.c) void;\n", .{ prefix, index });
+    try w.writeAll("pub fn om31Executor() native.Om31.Executor {return .{.resolve=resolveOm31};}\nfn resolveOm31(identity:[32]u8) ?native.Om31.Kernel {\n");
+    for (identities.items, 0..) |id, index| {
+        try w.writeAll("if(std.mem.eql(u8,&identity,&[_]u8{");
+        for (id) |value| try w.print("{d},", .{value});
+        try w.print("}}))return {s}_om31_{d};\n", .{ prefix, index });
+    }
+    try w.writeAll("return null;\n}\n");
+    for (0..count) |index| try w.print("extern fn {s}_om31_{d}(*const native.Om31.Range) callconv(.c) void;\n", .{ prefix, index });
     try w.flush();
 }

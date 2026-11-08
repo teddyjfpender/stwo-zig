@@ -64,8 +64,8 @@ pub fn createModule(
         .root_module = b.createModule(.{ .target = target, .optimize = optimize, .pic = true, .link_libc = true }),
     });
     // The Cairo lane's kernel flags (`cairo_composition_cpu_aot.zig`).
-    for (0..program_count) |index| kernels.root_module.addCSourceFile(.{
-        .file = directory.path(b, b.fmt("{s}_{d}.c", .{ kernel_prefix, index })),
+    for (0..program_count) |index| inline for (.{ "", "_om31" }) |suffix| kernels.root_module.addCSourceFile(.{
+        .file = directory.path(b, b.fmt("{s}{s}_{d}.c", .{ kernel_prefix, suffix, index })),
         .flags = &.{ "-std=c11", "-O3", "-fstrict-aliasing", "-fno-vectorize", "-fno-slp-vectorize", "-gline-tables-only" },
     });
     module.linkLibrary(kernels);

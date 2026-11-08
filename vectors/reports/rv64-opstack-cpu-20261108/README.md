@@ -1,5 +1,24 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The [compiled OM31 evaluator A/B](recursion-aot.json) replaces domain bytecode
+dispatch with eight-coordinate C kernels generated from the same hash-pinned
+AIR. Four cold real-root trials preserve all physical proof bytes and pass
+separate receivers. Composition medians are 8.016 s for the SIMD interpreter
+and 5.740 s compiled; recursion production medians are 37.194 s and 34.685 s.
+There are two trials per variant and observable drift over trial order, so this
+is a limited interleaved comparison. Native proving is additional. The ~19 s
+recursion target remains open; no whole OP validity or 10x claim is made.
+
+Read geometry and coefficients are bound once per component, shared by bounded
+row workers, and freed before the phase returns. Both octic interaction halves,
+cyclic offsets, three source lifts and additive tiling match the scalar oracle.
+Every metadata allocation failure and invalid-source path releases its owners.
+The scalar OODS receiver is unchanged, as are all eleven generated quartic C
+kernels. Missing registered programs use the existing SIMD interpreter;
+`STWO_CIRCUIT_OM31_INTERPRETER=1` selects the control for qualification. The
+compiled domain route is enabled on the qualified AArch64 host only. M7's
+separate receiver-derived hybrid IR is not silently routed through these kernels.
+
 The subsequent [OM31 SIMD inversion A/B](recursion-packed-inverse.json)
 preserves all recursive proof bytes. Interaction generation medians decrease
 from 9.155 s to 7.731 s; four cold trials do not establish an end-to-end wall

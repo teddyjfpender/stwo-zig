@@ -6,6 +6,7 @@ const C = @import("stwo_cairo_frontend").witness;
 const P = @import("protocol.zig");
 const E = @import("program.zig");
 const PackedDomain = @import("domain_program.zig");
+const Native = @import("native_program.zig");
 const G = @import("geometry.zig");
 const O = P.O;
 const M = P.M;
@@ -200,7 +201,7 @@ pub const Component = struct {
         trace: *const ProverAir.Trace,
         row: usize,
         shadow: ?*const Shadow = null,
-        fn get(raw: *const anyopaque, tree: u8, column: u32, offset: i32) !O {
+        fn resolve(raw: *const anyopaque, tree: u8, column: u32) !Native.Poly {
             const self: *const DomainRead = @ptrCast(@alignCast(raw));
             if (tree >= self.trace.polys.items.len) return error.MissingOm31Trace;
             const global = if (tree == 0) blk: {
@@ -212,6 +213,11 @@ pub const Component = struct {
             if (self.shadow) |shadow| if (shadow.values[tree][global]) |values| {
                 poly = .{ .log_size = std.math.log2_int(usize, values.len), .values = values };
             };
+            return poly;
+        }
+        fn get(raw: *const anyopaque, tree: u8, column: u32, offset: i32) !O {
+            const self: *const DomainRead = @ptrCast(@alignCast(raw));
+            const poly = try resolve(raw, tree, column);
             // The initial native beta1 proof retains its exact2n LDE; no
             // hidden scalar re-expansion or fabricated host device columns.
             if (poly.device != null or poly.values.len == 0) return error.Om31CircuitRequiresHostLde;
@@ -220,16 +226,7 @@ pub const Component = struct {
         }
         fn getPacked(raw: *const anyopaque, tree: u8, column: u32, offset: i32) !core.fields.m31.PackedM31 {
             const self: *const DomainRead = @ptrCast(@alignCast(raw));
-            if (tree >= self.trace.polys.items.len) return error.MissingOm31Trace;
-            const global = if (tree == 0) blk: {
-                if (column >= self.component.captured.preprocessed_indices.len) return error.MissingOm31Trace;
-                break :blk self.component.captured.preprocessed_indices[column];
-            } else (try G.span(self.component.captured.*, tree)).start + column;
-            if (global >= self.trace.polys.items[tree].len) return error.MissingOm31Trace;
-            var poly = self.trace.polys.items[tree][global];
-            if (self.shadow) |shadow| if (shadow.values[tree][global]) |values| {
-                poly = .{ .log_size = std.math.log2_int(usize, values.len), .values = values };
-            };
+            const poly = try resolve(raw, tree, column);
             if (poly.device != null or poly.values.len == 0) return error.Om31CircuitRequiresHostLde;
             if (offset == 0 and poly.log_size == self.component.captured.evaluation_log_size) {
                 if (self.row > poly.values.len or PackedDomain.WIDTH > poly.values.len - self.row) return error.MissingOm31Trace;
@@ -261,9 +258,13 @@ pub const Component = struct {
         var shadow_storage: ?Shadow = if (needsShadow(trace)) try self.buildShadow(a, trace) else null;
         defer if (shadow_storage) |*shadow| shadow.deinit(a);
         const shadow: ?*const Shadow = if (shadow_storage) |*value| value else null;
+        const read = DomainRead{ .component = self, .trace = trace, .row = 0, .shadow = shadow };
+        var native_storage = if (Native.enabled()) try Native.Prepared.init(a, self.captured, params, column.*, .{ .context = &read, .get = DomainRead.resolve }) else null;
+        defer if (native_storage) |*value| value.deinit();
+        const native: ?*const Native.Prepared = if (native_storage) |*value| value else null;
         const workers = if (pool) |p| @min(p.workerCount(), @max(1, n / 4096)) else 1;
         if (workers == 1) {
-            var job = try Rows.init(a, self, trace, params, column.*, 0, n);
+            var job = try Rows.init(a, self, trace, params, column.*, 0, n, native);
             job.shadow = shadow;
             defer job.deinit(a);
             return job.evaluate();
@@ -278,7 +279,7 @@ pub const Component = struct {
         defer for (jobs[0..prepared]) |*job| job.deinit(a);
         for (jobs[0..workers], 0..) |*job, i| {
             const packs = n / PackedDomain.WIDTH;
-            job.* = try Rows.init(a, self, trace, params, column.*, packs * i / workers * PackedDomain.WIDTH, packs * (i + 1) / workers * PackedDomain.WIDTH);
+            job.* = try Rows.init(a, self, trace, params, column.*, packs * i / workers * PackedDomain.WIDTH, packs * (i + 1) / workers * PackedDomain.WIDTH, native);
             job.shadow = shadow;
             prepared += 1;
         }
@@ -305,7 +306,9 @@ pub const Component = struct {
         end: usize,
         failure: ?anyerror = null,
         shadow: ?*const Shadow = null,
-        fn init(a: std.mem.Allocator, component: *const Component, trace: *const ProverAir.Trace, parameters: []const O, column: Domain.ColumnAccumulator, first: usize, end: usize) !Rows {
+        native: ?*const Native.Prepared = null,
+        fn init(a: std.mem.Allocator, component: *const Component, trace: *const ProverAir.Trace, parameters: []const O, column: Domain.ColumnAccumulator, first: usize, end: usize, native: ?*const Native.Prepared) !Rows {
+            if (native != null) return .{ .component = component, .trace = trace, .parameters = &.{}, .column = column, .scratch = &.{}, .roots = &.{}, .first = first, .end = end, .native = native };
             const scratch = try a.alloc(PackedDomain.Scratch, component.captured.parts.len);
             errdefer a.free(scratch);
             var made: usize = 0;
@@ -333,6 +336,7 @@ pub const Component = struct {
             };
         }
         fn evaluate(self: *Rows) !void {
+            if (self.native) |native| return native.evaluateRange(self.first, self.end);
             const component = self.component;
             var read = DomainRead{ .component = component, .trace = self.trace, .row = self.first, .shadow = self.shadow };
             var r = self.first;
