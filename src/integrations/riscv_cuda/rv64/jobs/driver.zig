@@ -1,7 +1,7 @@
 //! M8 GPU-native request driver (stream: driver). Contract: gpu_native.zig;
 //! design: design/riscv-proving-stack/rv64-m8-gpu-native.md §3, §6.
 //!
-//! Selection (`STWO_RV64_M8_GPU_NATIVE=1`, requires `STWO_RV64_M8_JOBS=1`)
+//! GPU-native is the default; `STWO_RV64_M8_GPU_NATIVE=0` is the temporary reference control.
 //! and the pieces of the JOBS=1 GPU-native request driver:
 //!   driver_request.zig  install (class cache, memory plan, slabs, events) and
 //!                       the request: DAG batches per GPU, ONE host wait, one
@@ -15,16 +15,16 @@ const std = @import("std");
 const api = @import("api.zig");
 const G = @import("gpu_native.zig");
 
-/// STWO_RV64_M8_GPU_NATIVE=1 (requires STWO_RV64_M8_JOBS=1) selects the GPU-native
-/// driver; unset keeps the separately gated feeder/reference path. Missing
+/// GPU-native is selected without opt-in flags. An explicit
+/// STWO_RV64_M8_GPU_NATIVE=0 keeps the temporary reference control. Missing
 /// installed classes and factory hooks fail closed on the selected path.
 pub const env_select = "STWO_RV64_M8_GPU_NATIVE";
 
 pub fn selected(env: *const fn ([]const u8) ?[]const u8) !bool {
-    const v = env(env_select) orelse return false;
+    const v = env(env_select) orelse "1";
     if (std.mem.eql(u8, v, "0")) return false;
     if (!std.mem.eql(u8, v, "1")) return error.InvalidM8GpuNativeSelection;
-    const jobs = env("STWO_RV64_M8_JOBS") orelse return error.M8GpuNativeRequiresJobs;
+    const jobs = env("STWO_RV64_M8_JOBS") orelse "1";
     if (!std.mem.eql(u8, jobs, "1")) return error.M8GpuNativeRequiresJobs;
     return true;
 }
@@ -90,7 +90,7 @@ test "probe topology: one leaf per artifact, binary folds, root last" {
     try std.testing.expectEqual(G.ProofKind.root, d.nodes[d.recursion[topo.len - 1]].proof.?.kind);
 }
 
-test "selection: default off, requires JOBS=1, strict values" {
+test "selection: native default, explicit reference, contradictions fail closed" {
     const E = struct {
         var gpu: ?[]const u8 = null;
         var jobs: ?[]const u8 = null;
@@ -101,11 +101,15 @@ test "selection: default off, requires JOBS=1, strict values" {
         }
     };
     E.gpu = null;
-    try testing.expect(!try selected(E.get));
+    try testing.expect(try selected(E.get));
     E.gpu = "1";
+    try testing.expect(try selected(E.get));
+    E.jobs = "0";
     try testing.expectError(error.M8GpuNativeRequiresJobs, selected(E.get));
     E.jobs = "1";
     try testing.expect(try selected(E.get));
+    E.gpu = "0";
+    try testing.expect(!try selected(E.get));
     E.gpu = "yes";
     try testing.expectError(error.InvalidM8GpuNativeSelection, selected(E.get));
 }

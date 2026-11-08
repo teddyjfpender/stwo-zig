@@ -61,7 +61,7 @@ class BasketTests(unittest.TestCase):
                     patch.object(bench.subprocess, 'run', return_value=argparse.Namespace(returncode=0)):
                 for index, guard in enumerate([*invalid, closed]):
                     (run / 'receipt.json').write_text(json.dumps({'physical_budget_guard': guard, 'requests': []}))
-                    entry = b.service(24628607, {'cpu_segments': 7}, 'gpu-native', 'headline', 0, 1)
+                    entry = b.service(24628607, {'cpu_segments': 7}, 'default' if index % 2 else 'gpu-native', 'headline', 0, 1)
                     self.assertIn('--process-budget-guard', entry['argv'])
                     self.assertEqual(entry['argv'][entry['argv'].index('--process-budget-guard') + 1], '/guard')
                     if index < len(invalid):
@@ -89,7 +89,11 @@ class BasketTests(unittest.TestCase):
 
     def test_arm_environment_substitutes_assets_and_refuses_unknown_arms(self):
         assets = {'addon': '/a/libjobs.so', 'outer_fs': '/a/libfs.so'}
-        self.assertEqual(bench.arm_environment('default', assets), {})
+        default = bench.arm_environment('default', assets)
+        self.assertEqual(default['STWO_RV64_M8_JOBS_LIBRARY'], assets['addon'])
+        self.assertEqual(default['STWO_RV64_M8_OUTER_FS_LIBRARY'], assets['outer_fs'])
+        self.assertNotIn('STWO_RV64_M8_GPU_NATIVE', default)
+        self.assertNotIn('STWO_RV64_M8_JOBS', default)
         hybrid = bench.arm_environment('hybrid', assets)
         self.assertEqual(hybrid['STWO_RV64_M8_OUTER_JOBS'], '1')
         self.assertEqual(hybrid['STWO_RV64_M8_NATIVE_JOBS'], '1')

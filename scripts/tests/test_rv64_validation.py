@@ -71,6 +71,7 @@ class ValidationTests(unittest.TestCase):
 
     def test_native_comparison_refuses_wrong_arms_and_incomplete_order(self):
         preset = json.loads(stack.DEFAULT_PRESET.read_text())
+        preset['arms']['baseline']['STWO_RV64_M8_GPU_NATIVE'] = '0'
         assets = {k: '/fixture/' + k for k in stack.RUNTIME_ASSETS}
         for arm, key, value in (('baseline', 'STWO_RV64_M8_JOBS', '1'),
                                 ('fullstack', 'STWO_RV64_M8_GPU_NATIVE', '0')):

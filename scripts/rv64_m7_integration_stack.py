@@ -14,7 +14,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, JOBS_FLAGS
+from rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, JOBS_FLAGS, native_selected
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_PRESET = HERE.parent / 'design/riscv-proving-stack/m7-handoff/integration-stack-preset.json'
@@ -89,6 +89,8 @@ def native_comparison_environment(preset, assets):
         raise RuntimeError('exact six-service order is required')
     candidate = arm_environment(preset, 'fullstack', assets)
     baseline = arm_environment(preset, 'baseline', assets)
+    if native_selected(baseline):
+        raise RuntimeError('canonical baseline requires explicit legacy control')
     if any(candidate.get(key) != '1' for key in ('STWO_RV64_M8_JOBS', 'STWO_RV64_M8_GPU_NATIVE')):
         raise RuntimeError('canonical candidate must select GPU-native jobs')
     if any(baseline.get(key) == '1' for key in (*JOBS_FLAGS, 'STWO_RV64_M8_GPU_NATIVE')):
@@ -106,6 +108,7 @@ def prepare(args):
             setattr(args, name, Path(runtime_assets[name]))
     assets = {name: str(getattr(args, name).resolve()) for name in ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard')}
     preset = json.loads(args.preset.read_text())
+    preset['arms']['baseline']['STWO_RV64_M8_GPU_NATIVE'] = '0'
     candidate = native_comparison_environment(preset, assets)
     shipped = jobs_environment(runtime, candidate)
     preset['arms']['fullstack'] = {**shipped, **preset['arms']['fullstack']}

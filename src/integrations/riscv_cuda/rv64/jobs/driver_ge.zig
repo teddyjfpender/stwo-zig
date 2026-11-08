@@ -21,6 +21,7 @@
 //! reserves resources. Missing registrations fail explicitly; no served
 //! request falls back to legacy proving.
 const std = @import("std");
+const Packed = @import("outer_packed_class.zig");
 const CPU = @import("stwo_riscv_cpu_integration");
 const engine = @import("stwo_prover_engine");
 const G = @import("gpu_native.zig");
@@ -359,8 +360,8 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
     const recursion_classes = try Host.installRecursion(a, &libs, library, manifest_path, spool);
     defer recursion_classes.deinit();
     // [M component] truth-reuse-1 preserves all seven real-block truth
-    // proofs with a lower scratch high-water. Keep opt-in for request gates.
-    const reuse = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_REUSE", 0);
+    // proofs with a lower scratch high-water. This is the promoted policy.
+    const reuse = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_REUSE", 1);
     if (reuse > 1) return error.InvalidM8GpuNativeEnvironment;
     var workers: [G.max_devices]*W.Worker = undefined;
     var made: usize = 0;
@@ -432,7 +433,7 @@ pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u
         .exchange_partials = (try Chain.version()) != .flat,
         .pool_current = libs.base.lookup(*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int, "stwo_exec_context_pool_current"),
         .fixed_pool = if (std.posix.getenv("STWO_RV64_DEVICE_ARENA")) |v| !std.mem.eql(u8, v, "0") else true,
-        .prewarm_resources = (try envUnsigned("STWO_RV64_M9_CLASS_PACKED_INGRESS", 0)) == 1,
+        .prewarm_resources = try Packed.ingressEnabled(std.posix.getenv(Packed.env_select)),
         .slab_words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES", default_slab_bytes) / 4,
         .batch_pinned_words = try envUnsigned("STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES", default_batch_pinned_bytes) / 4,
     };

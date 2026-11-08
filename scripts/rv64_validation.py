@@ -41,16 +41,26 @@ def service_label(out, prefix='gate'):
 
 
 
+def native_selected(environment):
+    value = environment.get('STWO_RV64_M8_GPU_NATIVE', '1')
+    if value not in ('0', '1'):
+        raise RuntimeError('invalid GPU-native selection')
+    if value == '1' and environment.get('STWO_RV64_M8_JOBS', '1') != '1':
+        raise RuntimeError('GPU-native requires jobs')
+    return value == '1'
+
+
 def jobs_environment(runtime, extra_env):
     """Job-path environment a runtime JSON ships (`jobs_env`: STWO_* key -> path
     or value, `jobs_env_sha256`: key -> sha256 for every path entry).
 
-    Applied only when --env selects a job path (one of JOBS_FLAGS = 1), so the
-    default gate is unchanged; an explicit --env of the same key wins. Every
+    Applied to the native product default and explicitly selected job paths.
+    GPU_NATIVE=0 is the reference opt-out; explicit overrides still win. Every
     shipped library is pinned by SHA-256 like the runtime assets (gate-14
     MissingM8OuterFsLibrary was a JOBS=1 gate without the outer-fs addon).
     """
-    selected = any(extra_env.get(flag) == '1' for flag in JOBS_FLAGS)
+    native = native_selected(extra_env)
+    selected = native or any(extra_env.get(flag) == '1' for flag in JOBS_FLAGS)
     shipped = dict(runtime.get('jobs_env', {})) if selected else {}
     pins = runtime.get('jobs_env_sha256', {})
     for key, value in shipped.items():
@@ -58,7 +68,7 @@ def jobs_environment(runtime, extra_env):
             raise RuntimeError('runtime jobs_env key must be STWO_*: ' + key)
         if key.endswith('_LIBRARY') and key not in pins:
             raise RuntimeError('runtime jobs_env library without sha256: ' + key)
-    if extra_env.get('STWO_RV64_M8_GPU_NATIVE') == '1' and not all(k in {**shipped, **extra_env} for k in NATIVE_LIBRARIES):
+    if native and not all(k in {**shipped, **extra_env} for k in NATIVE_LIBRARIES):
         raise RuntimeError('GPU-native requires pinned jobs and outer-FS libraries')
     pinned_jobs = {key: value for key, value in shipped.items() if key in pins}
     if pinned_jobs:

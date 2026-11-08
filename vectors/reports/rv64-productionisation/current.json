@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS",
-  "updated_utc": "2026-11-08T11:17:18.568106+00:00",
+  "updated_utc": "2026-11-08T11:34:08.163146+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-gpu-hygiene",
   "contract": "design/riscv-proving-stack/rv64-gpu-hygiene.md",
@@ -84,7 +84,7 @@
     "tracked_receipt_files": 14945,
     "local_m8_m9_branches": 69
   },
-  "current_followup_scope": "Published candidate 51897dc26 passes default and native full correctness gates on 24628607. Its first strict comparison stops on native installation allocation failure under the physical guard; no speedup verdict. Local prepared work includes setup-miss, basket guard, live fixtures/report retirement and shared utility/test ownership; these later changes are not hardware-qualified.",
+  "current_followup_scope": "Unpublished batched candidate includes native-by-default selection, quiescent setup miss, retained-block resource bound and parallel fresh CPU acceptance. Promotion remains gated on both canonical3+3 comparisons, real setup miss and full15 native basket. No production flip or speedup claim.",
   "host_ci_repair": {
     "native_cuda": "PASS 281/281 ReleaseFast after invalid-free test cleanup",
     "component_geometry": "PASS exact 2/2 named tests after test-owner discovery fix",
@@ -582,7 +582,7 @@
   },
   "latest_goal_turn": {
     "classification": "PROGRESS",
-    "evidence": "Completed/published51897 afterbothfullcorrectnessgates; canonicalcomparison exposedcausalnativeinstallcapacityfailureunderrequiredphysicalguard andstoppedwithreceiptspreserved. Parallelimplementation advancesexplicitsetup,physicalguard parity,34fixturemoves,7004archivedreportretirements and5staticwrapperdeletions. Defaultnotflipped."
+    "evidence": "Published51897 afterbothcorrectnessgates; committed+backedup integratedcandidatea4c96 locally. Allfour focusedcomponentcommands pass onpod; completeCUDApackage/build/guardednative verificationrunning. Userlowbalance steersremainingGPUworktooneleanfull15casepasswithoutoptionalprofiling; defaultnotflipped."
   },
   "budget_results": {
     "worktree_consolidation": {
@@ -1216,7 +1216,7 @@
     "time_ns": 1794134280913435422
   },
   "integration_candidate": {
-    "status": "LOCAL_UNQUALIFIED_SNAPSHOT_READY_FOR_POD_COMPONENTS",
+    "status": "TERMINAL_FAIL_GUARDED_NODE4_FOOTPRINT_NEW_BOUND_PENDING",
     "parent_commit": "51897dc265593df7580c4abf0b232909fc105e34",
     "default_flip": false,
     "prepared_features": [
@@ -1234,14 +1234,53 @@
       "distinct_tests": 120,
       "log": "/Users/theodorepender/Coding/ge-artifacts/rv64-gpu-hygiene-20261108/consolidation/integration-host-contracts-final.log"
     },
-    "hardware": "NOT_RUN_FOR_THIS_SOURCE",
-    "source_freeze": "All agents stopped repository edits; root completed retained-array ownership and registry review; source ready for exact integration snapshot",
+    "hardware": "FAIL before READY: JobFootprintExceedsArena under unchanged physical ceiling; fresh CPUs not run",
+    "source_freeze": "production21 terminal; next batched candidate being frozen",
     "registry": "PASS: source-expression windows reviewed; default readers and four numeric defaults unchanged; generated reference update did not add declarations or change owners/status/defaults",
     "code_cost": {
       "added": 905,
       "removed": 583,
       "net": 322,
       "note": "Git edit counts include relocated test/declaration lines on both sides; moves and archived code snapshots have no deletion credit. Net is measured after rename detection."
-    }
+    },
+    "local_commit": "a4c96a01a6cac9334301b483fc30f6bdae04543f",
+    "source_manifest_sha256": "b3f877912540059fdb2ff5685b37f0ad6c9b63767304cbafad33da3cd2a18019",
+    "source_files": 8797,
+    "component_results": {
+      "borrowed_capture": "PASS actual pod execution",
+      "shared_external_resources": "PASS actual pod execution after stale PCS namespace corrected",
+      "rv64_recursion_budget": "PASS actual pod execution",
+      "native_and_jobs_runtime": "PASS actual pod execution including setup lifecycle/failure tests",
+      "full_cuda_package": "PASS actual complete optimized package",
+      "driver_build": "PASS both binaries on a4c96"
+    },
+    "path": "/workspace/m3/runs/m8-gn-bind/production-21/integration-sequence.json",
+    "session": "rv64-production-21-integration",
+    "off_laptop_bundle": "/workspace/m3/archives/rv64-consolidation-20261108/receipt-retirement-v1/integration-a4c96a01a.bundle"
+  },
+  "urgency_budget": {
+    "source": "runpodctl user live account query",
+    "balance_usd_at_check": 3.5004813902,
+    "current_spend_usd_per_hour": 1.395,
+    "estimated_remaining_hours_at_same_rate": 2.5093056560573475,
+    "policy": "Stop optional cleanup/profiling. Keep required two-block canonical3+3, genuine setupmiss and all15nativeblocks. Basket rounds1/profile none; no guard/parity/receiver weakening. No authorized top-up or additional GPU purchase."
+  },
+  "batched_native_default_candidate": {
+    "status": "UNPUBLISHED_HARDWARE_PENDING",
+    "native_selected_when_unset": true,
+    "production_promoted": false,
+    "resource_bound": "source-derived retained-block upper; physical_peak=false",
+    "required_remaining": [
+      "guarded correctness and fresh CPU/corpus",
+      "canonical 3+3 24628607",
+      "canonical 3+3 26235168",
+      "same-service new-block setup miss",
+      "full15 native round1 profile none"
+    ],
+    "new_code_net_budget": 305,
+    "new_code_net_expected": 215,
+    "flags_added": 0,
+    "scripts_added": 0,
+    "growth_justification": "explicit phase lifetimes, allocation-derived admission, actual default selection and independent fresh CPU concurrency; all within declared per-change budgets"
   }
 }

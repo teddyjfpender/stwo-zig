@@ -3,6 +3,16 @@
 //! FIXED interpolation materializes coefficients; no commitment is remixed.
 const std = @import("std");
 const api = @import("api.zig");
+
+pub const env_select = "STWO_RV64_M9_CLASS_PACKED_INGRESS";
+
+pub fn ingressEnabled(value: ?[]const u8) !bool {
+    const text = value orelse "1";
+    if (std.mem.eql(u8, text, "1")) return true;
+    if (std.mem.eql(u8, text, "0")) return false;
+    return error.InvalidPackedClassFlag;
+}
+
 pub const magic: u32 = 0x3143504f; // OPC1
 pub const field_index: u32 = 0x4f504331;
 pub const block_words = 16384;

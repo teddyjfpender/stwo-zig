@@ -26,6 +26,8 @@ program identity and SHA-256-seals header/VK/bulk (setup_cache.zig), so a stale 
 never be read; a store.json whose components disagree with the recomputed ones is refused.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
+import tempfile
 import fcntl
 import hashlib
 import json
@@ -909,14 +911,17 @@ def receive_run(run, which="all", workers=16):
     try:
         if store and Path(store).exists():
             raise SystemExit("store still visible to the receiver")
-        verdicts = []
-        for entry in receipt["requests"]:
-            if "error" in entry or (which == "first" and entry["trial"] != 0):
-                continue
-            verdict = receive_one(plan, entry["block"], Path(entry["proof"]), run, workers)
+        def receive(entry):
+            out = Path(tempfile.mkdtemp(prefix="receiver-input-", dir=run))
+            verdict = receive_one(plan, entry["block"], Path(entry["proof"]), out, workers)
             verdict["trial"] = entry["trial"]
             verdict["store_present_during_receive"] = bool(store and Path(store).exists())
-            verdicts.append(verdict)
+            return verdict
+        entries = [entry for entry in receipt["requests"] if "error" not in entry and (which != "first" or entry["trial"] == 0)]
+        # Qualified M3 pod: 40.8 CPU quota / 93 GiB RAM admits two 16-worker, 32-GiB receivers.
+        with ThreadPoolExecutor(max_workers=2 if workers <= 16 else 1) as pool:
+            verdicts = list(pool.map(receive, entries))
+        for verdict in verdicts:
             print(json.dumps({k: verdict[k] for k in ("block", "trial", "status")} | {"wall_s": round(verdict["process"]["wall_ns"] / 1e9, 1)}))
     finally:
         if quarantine is not None:

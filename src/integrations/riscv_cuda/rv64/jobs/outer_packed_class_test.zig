@@ -4,6 +4,13 @@ const P = @import("outer_packed_class.zig");
 const Codec = @import("stwo_circuit_cpu_integration").om31.cache_pack;
 const api = @import("api.zig");
 const W = @import("worker.zig").Worker;
+
+test "packed ingress defaults on and keeps strict explicit overrides" {
+    try std.testing.expect(try P.ingressEnabled(null));
+    try std.testing.expect(try P.ingressEnabled("1"));
+    try std.testing.expect(!try P.ingressEnabled("0"));
+    try std.testing.expectError(error.InvalidPackedClassFlag, P.ingressEnabled("yes"));
+}
 const Probe = struct {
     launch: P.Launch,
     memset: *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int,

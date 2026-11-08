@@ -342,6 +342,34 @@
       "positive_growth_justification": "Make the documented no-argument inner-loop command consume authoritative CI path/lane policy. Current implementation treats documentation, maintained fixtures and 7004 archived report deletions as unowned Zig sources; CI policy also omits fixtures and mislabels conformance policy as documentation. Share classification/lane commands, add genuine live validation triggers, preserve new unknown-source rejection and require Git evidence for retired-source handling. Includes host routing regressions; no second path/ignore registry or launcher.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "inter_tail_phase_retirement",
+      "net_code_budget": 65,
+      "positive_growth_justification": "Guarded startup proves the conservative complete held-buffer/PCS declaration cannot fit. Move the generation-only INTER tail to the exact suffix, retire it after its last use, compute the maximum of the two real live phases, and restore the heap snapshot on capture retry. Includes retirement/reuse/retry invariants; PCS reserve and physical ceilings are unchanged.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "native_default_candidate",
+      "net_code_budget": 49,
+      "positive_growth_justification": "Prepare an unpublished native-default candidate covering selector, pinned addon binding, accepted reuse/packed policies and guarded default validation together. Keep explicit legacy control for qualification; publication/promotion still requires both canonical comparisons, setup miss and full15. Includes existing test updates, no new feature switch.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "parallel_fresh_cpu_acceptance",
+      "net_code_budget": 60,
+      "positive_growth_justification": "Reduce paid GPU idle time without reducing proof checks: verify at most two independent cold/warm proofs concurrently on the qualified40.8CPUquota/93GiB M3pod, retaining fresh isolated processes, unique outputs, deterministic verdict order, immutable-proof checks and ArtifactStore quarantine until all workers drain. More than16receiverworkers remains serial. Includes real concurrency/order/failure-drain test.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "pcs_retained_block_resource_bound",
+      "net_code_budget": 90,
+      "positive_growth_justification": "Replace an empirical eleven-tree PCS allowance with a source-derived retained-block upper bound using the existing C++ allocation roster. Charge aligned initial/FRI blocks, keep retired cache blocks charged, match late scratch by raw-size best fit and charge misses; prove canonical contiguous borrowing. Includes anti-underbound/reuse tests and outer integration. The retained heuristic override may only increase the derived bound. No physical-peak or timing claim.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

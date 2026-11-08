@@ -1,4 +1,7 @@
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import patch
 from pathlib import Path
 import sys
 import tempfile
@@ -6,12 +9,65 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import rv64_gate as gate
+import rv64_validation as validation
 import rv64_m5_negative_corpus as corpus
 import rv64_m4_resident as resident
 from types import SimpleNamespace
 
 
 class GateTests(unittest.TestCase):
+    def test_cpu_receivers_overlap_preserve_order_and_hold_store_until_failure_drains(self):
+        for fail in (False, True):
+            with self.subTest(fail=fail), tempfile.TemporaryDirectory() as tmp:
+                run = Path(tmp)
+                store = run / "store"
+                store.mkdir()
+                rows = [{"block": 24628607, "trial": i, "proof": str(run / str(i))} for i in range(2)]
+                (run / "receipt.json").write_text(json.dumps({"requests": rows}))
+                (run / "plan.json").write_text(json.dumps({"store": {"directory": str(store)}}))
+                ready = threading.Barrier(3)
+                release = threading.Event()
+                second = threading.Event()
+                outputs, finished = [], []
+                def receive(plan, block, proof, output, workers):
+                    index = int(proof.name)
+                    outputs.append(output)
+                    try:
+                        self.assertFalse(store.exists())
+                        self.assertEqual(workers, 16)
+                        ready.wait(timeout=2)
+                        if fail and index == 0:
+                            raise RuntimeError("receiver-failure")
+                        self.assertTrue(release.wait(timeout=2))
+                        if index == 0:
+                            self.assertTrue(second.wait(timeout=2))
+                        self.assertFalse(store.exists())
+                        return {"block": block, "status": "accepted", "accepted": True, "process": {"wall_ns": 1}}
+                    finally:
+                        finished.append(index)
+                        if index == 1:
+                            second.set()
+                with patch.object(resident, "receive_one", side_effect=receive), ThreadPoolExecutor(max_workers=1) as runner:
+                    future = runner.submit(resident.receive_run, run)
+                    try:
+                        ready.wait(timeout=2)
+                        with self.assertRaises(TimeoutError):
+                            future.result(timeout=.05)
+                        self.assertFalse(store.exists())
+                    finally:
+                        release.set()
+                    if fail:
+                        with self.assertRaisesRegex(RuntimeError, "receiver-failure"):
+                            future.result(timeout=2)
+                    else:
+                        verdicts = future.result(timeout=2)
+                        self.assertEqual([row["trial"] for row in verdicts], [0, 1])
+                        self.assertEqual(finished, [1, 0])
+                        self.assertTrue(all(not row["store_present_during_receive"] for row in verdicts))
+                self.assertEqual(set(finished), {0, 1})
+                self.assertTrue(store.is_dir())
+                self.assertEqual(len(set(outputs)), 2)
+
     def test_equal_output_basenames_keep_independent_service_receipts(self):
         with tempfile.TemporaryDirectory() as tmp:
             first = Path(tmp) / 'batch-1' / 'default'
@@ -79,29 +135,34 @@ class GateTests(unittest.TestCase):
         for bad in (['PATH=/tmp'], ['STWO_RV64_M8_JOBS'], ['stwo_x=1'], ['STWO_A=1', 'STWO_A=2'], ['STWO_A-B=1']):
             with self.assertRaises(ValueError): gate.extra_environment(bad)
 
-    def test_jobs_environment_only_on_job_paths_and_pinned(self):
+    def test_default_native_addons_and_explicit_reference_remain_pinned(self):
         with tempfile.TemporaryDirectory() as tmp:
             lib = Path(tmp) / 'libjobs.so'
             lib.write_bytes(b'addon')
-            runtime = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib), 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '1'},
-                       'jobs_env_sha256': {'STWO_RV64_M8_JOBS_LIBRARY': gate.stack.sha(lib)}}
-            self.assertEqual(gate.jobs_environment(runtime, {}), {})
-            self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '0'}), {})
+            libraries = {name: str(lib) for name in validation.NATIVE_LIBRARIES}
+            runtime = {'jobs_env': {**libraries, 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '1'},
+                       'jobs_env_sha256': {name: gate.stack.sha(lib) for name in libraries}}
+            self.assertEqual(gate.jobs_environment(runtime, {}), runtime['jobs_env'])
+            self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_GPU_NATIVE': '0'}), {})
             self.assertEqual(gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1'}), runtime['jobs_env'])
-            # An explicit --env wins over the shipped value.
             got = gate.jobs_environment(runtime, {'STWO_RV64_M8_OUTER_JOBS': '1', 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '2'})
-            self.assertEqual(got, {'STWO_RV64_M8_JOBS_LIBRARY': str(lib)})
-            self.assertEqual(gate.jobs_environment({}, {'STWO_RV64_M8_JOBS': '1'}), {})
+            self.assertEqual(got, libraries)
+            for environment in ({}, {'STWO_RV64_M8_JOBS': '1'}, {'STWO_RV64_M8_JOBS': '0'}, {'STWO_RV64_M8_GPU_NATIVE': 'yes'}):
+                with self.assertRaises(RuntimeError):
+                    gate.jobs_environment({}, environment)
+            self.assertEqual(gate.jobs_environment({}, {'STWO_RV64_M8_GPU_NATIVE': '0', 'STWO_RV64_M8_JOBS': '1'}), {})
             other = Path(tmp) / 'unrecorded.so'
             other.write_bytes(b'unrecorded')
             for selected in ('0', '1'):
                 with self.assertRaisesRegex(RuntimeError, 'not a pinned asset'):
-                    gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': selected,
+                    gate.jobs_environment(runtime, {'STWO_RV64_M8_GPU_NATIVE': selected,
                                                     'STWO_RV64_M8_JOBS_LIBRARY': str(other)})
             lib.write_bytes(b'changed')
-            with self.assertRaises(RuntimeError): gate.jobs_environment(runtime, {'STWO_RV64_M8_JOBS': '1'})
-            unpinned = {'jobs_env': {'STWO_RV64_M8_JOBS_LIBRARY': str(lib)}}
-            with self.assertRaises(RuntimeError): gate.jobs_environment(unpinned, {'STWO_RV64_M8_JOBS': '1'})
+            with self.assertRaises(RuntimeError):
+                gate.jobs_environment(runtime, {})
+            unpinned = {'jobs_env': libraries}
+            with self.assertRaises(RuntimeError):
+                gate.jobs_environment(unpinned, {})
 
     def test_gate_corpus_cases_have_executable_mutations(self):
         known = {c['id'] for c in corpus.CASES if 'mutate' in c}

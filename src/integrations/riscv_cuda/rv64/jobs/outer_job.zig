@@ -165,7 +165,8 @@ pub const OuterNodeJob = struct {
     defer_decode: bool = false,
     pcs_words: []u32 = &.{},
     /// Environment knobs, parsed strictly once in init (outer_env.zig).
-    pcs_reserve_trees: u64 = 11,
+    pcs_reserve_trees: u64 = 0,
+    pcs_workspace_words: u64 = 0,
     declare_words: ?u64 = null,
     leaf_persistent: bool = false,
     /// `streams` / `composition_stream` are shallow copies of the class's
@@ -227,6 +228,7 @@ pub const OuterNodeJob = struct {
         out.composition_stream = plan.composition_stream;
         out.pcs = try clonePcs(out.allocator, &plan.pcs);
         out.pcs_plan = out.pcs.?.plan;
+        out.pcs_workspace_words = plan.pcs_workspace_words;
         _ = try out.layout.add(.opaque_words, pcs_index, @intCast(out.pcs.?.outputWords()));
         _ = try out.layout.add(.opaque_words, oods_index, Pcs.oods_field_words);
         try out.initChecks();
@@ -245,6 +247,19 @@ pub const OuterNodeJob = struct {
         // only binds the real coefficient addresses (native_pcs.bindColumn).
         out.pcs = try Pcs.PcsJob.prepare(out.allocator, whole.pcs, placeholder, try Pcs.placeholderPoint(), whole.wide);
         out.pcs_plan = out.pcs.?.plan;
+        const Cost = @import("../pcs_allocation_cost.zig");
+        var options = try Cost.optionsFromEnv();
+        options.phase_retirement = false;
+        options.domain_cached = false;
+        options.borrowed_trees = @splat(true);
+        // Geometry promise: placeholders follow each class's contiguous
+        // offsets. Runtime holdBuffers/bindColumn binds the actual arena views.
+        // All four trees merge into one span each; JobOwner validates the
+        // actual CUDA allocation before borrowing and throws on bad custody.
+        var allocation = try Cost.init(out.allocator, &out.pcs.?.descriptor, options);
+        defer allocation.deinit(out.allocator);
+        out.pcs_workspace_words = try allocation.jobWords(out.allocator);
+        std.debug.print("GPU_M8_OUTER_PCS_BOUND ordinal={d} source_derived_words={d} requested_sum_words={d} retained_blocks=true physical_peak=false\n", .{ staged.ordinal, out.pcs_workspace_words, allocation.requested_upper_bytes / 4 });
         _ = try out.layout.add(.opaque_words, pcs_index, @intCast(out.pcs.?.outputWords()));
         _ = try out.layout.add(.opaque_words, oods_index, Pcs.oods_field_words);
         try out.initChecks();
@@ -337,15 +352,10 @@ pub const OuterNodeJob = struct {
     pub fn classKey(self: *OuterNodeJob) [32]u8 {
         return self.staged.class_key;
     }
-    /// PCS working set beyond the held coefficients, in words: fitted to the
-    /// measured heap peaks of whole nodes (the PCS rebuilds every tree it
-    /// opens, rolling and streamed; its scratch scales with the lifting
-    /// height, not the column count) [M wire-outer-p2, 26235156 leaves at
-    /// lifting 2^24: 4.920e9 heap peak - 2.05e9 held = 2.87e9 = 10.7 x the
-    /// lifting-height tree]. STWO_RV64_M8_OUTER_PCS_RESERVE_TREES overrides
-    /// the multiplier (measurement sweeps).
+    /// Source-derived retained-block upper bound beyond held coefficients.
+    /// The optional diagnostic tree multiplier can only increase this bound.
     pub fn pcsReserveWords(self: *const OuterNodeJob, cs: *const Comp.Static) u64 {
-        return self.pcs_reserve_trees * cs.treeWords();
+        return @max(self.pcs_workspace_words, self.pcs_reserve_trees * cs.treeWords());
     }
 
     /// Whole nodes own Region.fixed (the FIXED coefficients RC and the PCS
@@ -396,6 +406,7 @@ pub const OuterNodeJob = struct {
         const main_commit: u64 = if (self.streams) |*st| st.main.scratchWords() else g(p.main.evaluation_words);
         const inter_commit: u64 = if (self.streams) |*st| st.inter.scratchWords() else g(p.inter.evaluation_words);
         var phase = @max(@max(eval + g(self.staged.assignment.count * 4), eval + main_commit), @max(eval + widest_inter, inter_commit));
+        var tail_phase: u64 = 0;
         const node = self.staged.image.words[@intFromEnum(St.Region.node)];
         const class = self.staged.image.words[@intFromEnum(St.Region.class)];
         var staged: u64 = g(node);
@@ -414,8 +425,7 @@ pub const OuterNodeJob = struct {
                 seen[r.eval_log] = true;
             }
             const commit: u64 = if (self.composition_stream) |*c| c.stream.scratchWords() else g(@as(u64, cs.outputColumns()) << @intCast(cs.commitLog()));
-            phase = @max(phase, buckets + @max(widest, g(cs.coefficientWords()) + commit));
-            phase = @max(phase, self.pcsReserveWords(cs));
+            tail_phase = @max(buckets + @max(widest, g(cs.coefficientWords()) + commit), self.pcsReserveWords(cs));
             pinned_extra = self.pcs_plan.ingress_words;
             if (self.nodeFixed()) if (self.staged.statics.fixed_plan) |*fp| {
                 // Coefficient buffer staged (raw evaluations interpolated in
@@ -432,7 +442,8 @@ pub const OuterNodeJob = struct {
         // caps the declared device peak so a node can run in an arena smaller
         // than this bound; the worker still fails the job closed
         // (JobWorkExceedsArena) if its real allocations do not fit.
-        var device: u64 = staged + held + phase;
+        const retired = if (self.whole != null) g(p.inter.coefficient_words + p.inter_tail_words) - g(p.inter.coefficient_words) else 0;
+        var device: u64 = staged + Heap.phasedWords(held, phase, retired, tail_phase);
         if (self.declare_words) |cap| device = @min(device, cap);
         return .{
             .device_words = @intCast(device),
@@ -551,7 +562,11 @@ pub const OuterNodeJob = struct {
         if (self.composition_stream) |*c| {
             try Plan.requireIndexable(&.{ c.stream.plan.chunk_words, c.stream.plan.bank_words[0], c.stream.plan.bank_words[1] });
         } else try Plan.requireIndexable(&.{@as(u64, cs.outputColumns()) << @intCast(cs.commitLog())});
-        for (&b, sizes) |*out, n| if (n != 0) {
+        // INTER's generation-only tail is last, so its retirement coalesces
+        // with the free suffix before RC/PCS; no fragmented budget credit.
+        for ([_]usize{ 0, 2, 3, 4, 5, 6, 7, 8, 1 }) |i| if (sizes[i] != 0) {
+            const out = &b[i];
+            const n = sizes[i];
             const d = try e.alloc(n);
             out.* = .{ .ptr = d.ptr, .words = d.words };
         };
@@ -572,6 +587,10 @@ pub const OuterNodeJob = struct {
             const held = nj.held.?;
             const cs = &nj.staged.statics.composition.?;
             const p = nj.staged.plan();
+            // Packed INTER generation writes scratch after its coefficients.
+            // RC and PCS read only the coefficients; retire the aligned tail.
+            const at = std.mem.alignForward(usize, @intCast(p.inter.coefficient_words), Heap.granule);
+            if (held.long.inter_coef.words > at) device.free(.{ .ptr = held.long.inter_coef.ptr + at, .words = held.long.inter_coef.words - at });
             try Comp.enqueue(device, whole.composition, cs, &.{
                 .bases = in.bases,
                 .twiddles = &nj.staged.image.twiddles,
@@ -606,6 +625,8 @@ pub const OuterNodeJob = struct {
         device: *K.Device,
         node: *N.Node,
         saved: api.DeviceChannel,
+        heap: *Heap.Heap,
+        saved_heap: Heap.Heap,
         /// Launches of the last enqueue (recorded or issued).
         last: u32 = 0,
         pub fn enqueue(self: *Body) !u32 {
@@ -620,6 +641,7 @@ pub const OuterNodeJob = struct {
         pub fn reset(self: *Body) void {
             // A discarded capture advanced only the host mirror of the channel.
             self.e.channel.* = self.saved;
+            self.heap.* = self.saved_heap;
         }
         fn snapshot(raw: *anyopaque, step: u32) anyerror!void {
             const self: *Body = @ptrCast(@alignCast(raw));
@@ -671,7 +693,7 @@ pub const OuterNodeJob = struct {
         var tail_state = TailState{ .job = self, .e = e, .heap = &heap };
         var node = N.Node{ .staged = self.staged, .bases = self.bases, .section = section.ptr, .mode = self.mode, .tail = self.tail, .long = if (self.held) |h| h.long else null, .fixed = self.fixed_commit, .streams = if (self.streams) |*st| st else null };
         if (self.whole != null) node.tail = .{ .context = &tail_state, .enqueue = TailState.enqueue };
-        var body = Body{ .job = self, .e = e, .device = &device, .node = &node, .saved = e.channel.* };
+        var body = Body{ .job = self, .e = e, .device = &device, .node = &node, .saved = e.channel.*, .heap = &heap, .saved_heap = heap };
         if (self.snapshots) {
             node.after_step = Body.snapshot;
             node.after_step_context = &body;
@@ -768,6 +790,7 @@ pub const WholePlan = struct {
     composition_stream: ?Comp.CommitStream,
     /// Framing template at placeholder addresses (never bound or enqueued).
     pcs: Pcs.PcsJob,
+    pcs_workspace_words: u64,
     fn destroy(raw: *anyopaque) void {
         const self: *WholePlan = @ptrCast(@alignCast(raw));
         const a = std.heap.c_allocator;
@@ -782,7 +805,8 @@ pub const WholePlan = struct {
 fn wholeSignature(kernels: *const K.Kernels, whole: Whole) !CP.Signature {
     const streamed = try TC.streamSelected(kernels);
     const chunk: u64 = if (streamed) try TC.streamChunkWords() else 0;
-    return CP.signatureOf(&.{ @intFromBool(streamed), chunk, @intFromBool(kernels.compact_eager), @intFromBool(whole.wide), @intFromPtr(whole.pcs.plan), @intFromPtr(whole.composition) });
+    const pcs = try @import("../pcs_allocation_cost.zig").optionsFromEnv();
+    return CP.signatureOf(&.{ @intFromBool(streamed), chunk, @intFromBool(kernels.compact_eager), @intFromBool(whole.wide), @intFromPtr(whole.pcs.plan), @intFromPtr(whole.composition), pcs.stream_chunk_words, @intFromBool(pcs.rolling_beta2), @intFromBool(pcs.compact_eager) });
 }
 
 const WholeBuild = struct {
@@ -797,7 +821,7 @@ const WholeBuild = struct {
         const a = std.heap.c_allocator;
         if (!St.sameAllocator(fresh.allocator, a)) return error.OuterClassPlanAllocatorMismatch;
         const plan = try a.create(WholePlan);
-        plan.* = .{ .streams = fresh.streams, .composition_stream = fresh.composition_stream, .pcs = fresh.pcs.? };
+        plan.* = .{ .streams = fresh.streams, .composition_stream = fresh.composition_stream, .pcs = fresh.pcs.?, .pcs_workspace_words = fresh.pcs_workspace_words };
         fresh.streams = null;
         fresh.composition_stream = null;
         fresh.pcs = null;

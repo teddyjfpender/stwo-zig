@@ -30,6 +30,25 @@ pub const Options = struct {
     /// Zero means the unstreamed late trace rebuild, matching pcsStreamBudget.
     stream_chunk_words: usize = Stream.default_chunk_words,
 };
+pub fn optionsFromEnv() !Options {
+    var result: Options = .{};
+    if (std.posix.getenv("STWO_RV64_PCS_PHASE_BOUND")) |v| result.phase_retirement = std.mem.eql(u8, v, "1");
+    if (result.phase_retirement) {
+        const cap = std.posix.getenv("STWO_RV64_PCS_IDLE_CACHE_BYTES") orelse return error.PcsPhaseBoundNeedsZeroIdleCache;
+        if (!std.mem.eql(u8, cap, "0")) return error.PcsPhaseBoundNeedsZeroIdleCache;
+    }
+    if (std.posix.getenv("STWO_RV64_COMPACT_EAGER_STATE")) |v| result.compact_eager = std.mem.eql(u8, v, "1");
+    if (std.posix.getenv("STWO_RV64_PCS_ROLLING_BETA2")) |v| result.rolling_beta2 = std.mem.eql(u8, v, "1");
+    if (std.posix.getenv("STWO_RV64_PCS_STREAM")) |v| if (std.mem.eql(u8, v, "0")) {
+        result.stream_chunk_words = 0;
+        return result;
+    };
+    if (std.posix.getenv("STWO_RV64_PCS_STREAM_CHUNK_WORDS")) |v| {
+        const n = std.fmt.parseInt(usize, v, 10) catch return error.InvalidPcsStreamBudget;
+        if (n != 0) result.stream_chunk_words = n;
+    }
+    return result;
+}
 pub const Plan = struct {
     allocations: std.ArrayList(Allocation) = .empty,
     additional_upper: Admission.Footprint = .{},
@@ -50,6 +69,28 @@ pub const Plan = struct {
     }
     pub fn includeFixedCold(self: *Plan, a: std.mem.Allocator, words: u64) !void {
         if (words != 0) try self.add(a, .immutable_fixed, words);
+    }
+    /// JobOwner retains retired blocks, comparing RAW word capacities for
+    /// best-fit late reuse. Each external heap request is rounded to 64 words.
+    /// This is a source-derived upper bound, including borrowed seed/point.
+    pub fn jobWords(self: *const Plan, a: std.mem.Allocator) !u64 {
+        var reusable: std.ArrayList(u64) = .empty;
+        defer reusable.deinit(a);
+        var words: u64 = 0;
+        for (self.allocations.items) |event| if (event.lifetime != .late) {
+            words = try sum(words, std.mem.alignForward(u64, @max(event.words, 1), 64));
+            if (event.lifetime == .before_late) try reusable.append(a, event.words);
+        };
+        for (self.allocations.items) |event| if (event.lifetime == .late) {
+            var best: ?usize = null;
+            for (reusable.items, 0..) |capacity, i| if (capacity >= event.words and (best == null or capacity < reusable.items[best.?])) {
+                best = i;
+            };
+            if (best) |i| {
+                _ = reusable.swapRemove(i);
+            } else words = try sum(words, std.mem.alignForward(u64, @max(event.words, 1), 64));
+        };
+        return words;
     }
     fn add(self: *Plan, a: std.mem.Allocator, kind: Kind, words: u64) !void {
         return self.addLifetime(a, kind, words, .persistent);
@@ -77,6 +118,19 @@ pub const Plan = struct {
 };
 fn sum(x: u64, y: u64) !u64 {
     return std.math.add(u64, x, y);
+}
+
+test "job retained-block bound preserves charges and compares unrounded capacities" {
+    var p = Plan{ .rolling_sources = true, .selected_stream_budget = 0 };
+    defer p.deinit(std.testing.allocator);
+    try p.add(std.testing.allocator, .metadata, 64);
+    try p.addLifetime(std.testing.allocator, .deep, 65, .before_late);
+    try p.addLifetime(std.testing.allocator, .late_trace, 100, .late);
+    // 65 raw words cannot satisfy 100, even though both round to 128.
+    try std.testing.expectEqual(@as(u64, 320), try p.jobWords(std.testing.allocator));
+    try p.addLifetime(std.testing.allocator, .late_trace, 64, .late);
+    // Reuse the retired block but keep its full original charge.
+    try std.testing.expectEqual(@as(u64, 320), try p.jobWords(std.testing.allocator));
 }
 fn mul(x: u64, y: u64) !u64 {
     return std.math.mul(u64, x, y);

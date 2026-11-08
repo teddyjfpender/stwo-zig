@@ -293,7 +293,7 @@
       "references": [
         "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
         "src/integrations/riscv_cuda/rv64/jobs/outer_kernels.zig",
-        "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+        "src/integrations/riscv_cuda/rv64/pcs_allocation_cost.zig"
       ],
       "default_evidence": {
         "path": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
@@ -1913,7 +1913,7 @@
     },
     "STWO_RV64_M8_GPU_NATIVE": {
       "owner": "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
-      "default": "false",
+      "default": "true (native product default; explicit 0 is temporary reference)",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
@@ -1921,12 +1921,14 @@
         "scripts/rv64_m7_integration_stack.py",
         "scripts/rv64_m8_bench15.py",
         "scripts/rv64_validation.py",
+        "scripts/tests/test_rv64_gate.py",
+        "scripts/tests/test_rv64_m8_bench15.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64/jobs/driver.zig"
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
-        "text": "pub const env_select = \"STWO_RV64_M8_GPU_NATIVE\";\n\npub fn selected(env: *const fn ([]const u8) ?[]const u8) !bool {\n    const v = env(env_select) orelse return false;\n    if (std.mem.eql(u8, v, \"0\")) return false;\n    if (!std.mem.eql(u8, v, \"1\")) return error.InvalidM8GpuNativeSelection;\n    const jobs = env(\"STWO_RV64_M8_JOBS\") orelse return error.M8GpuNativeRequiresJobs;\n    if (!std.mem.eql(u8, jobs, \"1\")) return error.M8GpuNativeRequiresJobs;\n    return true;\n}"
+        "text": "pub const env_select = \"STWO_RV64_M8_GPU_NATIVE\";\n\npub fn selected(env: *const fn ([]const u8) ?[]const u8) !bool {\n    const v = env(env_select) orelse \"1\";\n    if (std.mem.eql(u8, v, \"0\")) return false;\n    if (!std.mem.eql(u8, v, \"1\")) return error.InvalidM8GpuNativeSelection;\n    const jobs = env(\"STWO_RV64_M8_JOBS\") orelse \"1\";\n    if (!std.mem.eql(u8, jobs, \"1\")) return error.M8GpuNativeRequiresJobs;\n    return true;\n}"
       }
     },
     "STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES": {
@@ -1944,7 +1946,7 @@
     },
     "STWO_RV64_M8_GPU_NATIVE_REUSE": {
       "owner": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-      "default": "0",
+      "default": "1",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
@@ -1955,7 +1957,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-        "text": "    const reuse = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_REUSE\", 0);\n    if (reuse > 1) return error.InvalidM8GpuNativeEnvironment;\n    var workers: [G.max_devices]*W.Worker = undefined;\n    var made: usize = 0;\n    defer for (workers[0..made]) |w| w.destroy();\n    if (config.device_count > G.max_devices) return error.GpuNativeTooManyDevices;\n    for (config.devices[0..config.device_count]) |d| {\n        // WarmJob uploads FIXED coefficients at install. Lazy slots allocate"
+        "text": "    const reuse = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_REUSE\", 1);"
       }
     },
     "STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS": {
@@ -2011,8 +2013,8 @@
       }
     },
     "STWO_RV64_M8_JOBS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
-      "default": "false",
+      "owner": "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
+      "default": "true on native product route; legacy feeder selection remains explicit control",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
@@ -2022,6 +2024,7 @@
         "scripts/rv64_m8_bench15.py",
         "scripts/rv64_validation.py",
         "scripts/tests/test_rv64_gate.py",
+        "scripts/tests/test_rv64_m8_bench15.py",
         "scripts/tests/test_rv64_validation.py",
         "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
         "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
@@ -2029,8 +2032,8 @@
         "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/provider.zig",
-        "text": "        const jobs = try flag(env, \"STWO_RV64_M8_JOBS\") orelse false;\n        const native = try flag(env, \"STWO_RV64_M8_NATIVE_JOBS\");\n        const outer = try flag(env, \"STWO_RV64_M8_OUTER_JOBS\");\n        if (jobs) {\n            if (native == false or outer == false) return error.InvalidM8JobsSelection;\n            return .{ .feeder = true, .native = true, .outer = true };\n        }\n        return .{ .native = native orelse false, .outer = outer orelse false };\n    }\n    pub fn fromProcess() !Selection {"
+        "path": "src/integrations/riscv_cuda/rv64/jobs/driver.zig",
+        "text": "pub const env_select = \"STWO_RV64_M8_GPU_NATIVE\";\n\npub fn selected(env: *const fn ([]const u8) ?[]const u8) !bool {\n    const v = env(env_select) orelse \"1\";\n    if (std.mem.eql(u8, v, \"0\")) return false;\n    if (!std.mem.eql(u8, v, \"1\")) return error.InvalidM8GpuNativeSelection;\n    const jobs = env(\"STWO_RV64_M8_JOBS\") orelse \"1\";\n    if (!std.mem.eql(u8, jobs, \"1\")) return error.M8GpuNativeRequiresJobs;\n    return true;\n}"
       }
     },
     "STWO_RV64_M8_JOBS_ARENA_BYTES": {
@@ -2586,7 +2589,7 @@
     },
     "STWO_RV64_M8_OUTER_PCS_RESERVE_TREES": {
       "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
-      "default": "11 for direct OuterNodeJob; 0 in factory compatibility validation (not consumed there)",
+      "default": "0: allocation-derived retained-block upper bound; diagnostic tree multiplier may only increase it",
       "status": "retire-after-native-default",
       "date": "2026-11-08",
       "references": [
@@ -2932,20 +2935,19 @@
       ]
     },
     "STWO_RV64_M9_CLASS_PACKED_INGRESS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-      "default": "0",
+      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_packed_class.zig",
+      "default": "true (shared packed-ingress policy)",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
         "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
         "scripts/rv64_m8_bench15.py",
         "scripts/tests/test_rv64_m8_bench15.py",
-        "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-        "src/integrations/riscv_cuda/rv64/native_recursion_install.zig"
+        "src/integrations/riscv_cuda/rv64/jobs/outer_packed_class.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/driver_ge.zig",
-        "text": "        .prewarm_resources = (try envUnsigned(\"STWO_RV64_M9_CLASS_PACKED_INGRESS\", 0)) == 1,\n        .slab_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_SLAB_BYTES\", default_slab_bytes) / 4,\n        .batch_pinned_words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_BATCH_PINNED_BYTES\", default_batch_pinned_bytes) / 4,\n    };\n    const ring = S.RingConfig{ .buffers = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BUFFERS\", default_ring_buffers), .words = try envUnsigned(\"STWO_RV64_M8_GPU_NATIVE_RING_BYTES\", default_ring_bytes) / 4 };\n    // Admit the manifest once, install its first scheduled block, then use\n    // the measured quiescent setup boundary for later allowed blocks.\n    const svc = S.Service.install(a, &libs.ops, &peer, workers[0..made], binding.nativeFactory(), binding.recursionFactory(), source.source(), blocks[0..1], rc, ring) catch |err| {"
+        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_packed_class.zig",
+        "text": "pub const env_select = \"STWO_RV64_M9_CLASS_PACKED_INGRESS\";\n\npub fn ingressEnabled(value: ?[]const u8) !bool {\n    const text = value orelse \"1\";\n    if (std.mem.eql(u8, text, \"1\")) return true;\n    if (std.mem.eql(u8, text, \"0\")) return false;\n    return error.InvalidPackedClassFlag;\n}"
       }
     },
     "STWO_RV64_M9_STANDALONE": {
@@ -3405,7 +3407,7 @@
         "scripts/tests/test_rv64_m8_bench15.py",
         "src/backends/cuda/native/rv64/pcs_idle_cache.h",
         "src/backends/cuda/native/rv64/pcs_native.cu",
-        "src/integrations/riscv_cuda/rv64/pcs_native.zig",
+        "src/integrations/riscv_cuda/rv64/pcs_allocation_cost.zig",
         "src/integrations/riscv_cuda/rv64/resident_pool.zig"
       ],
       "default_evidence": {
@@ -3438,7 +3440,7 @@
       "date": "2026-11-08",
       "references": [
         "src/backends/cuda/native/rv64/pcs_native.cu",
-        "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+        "src/integrations/riscv_cuda/rv64/pcs_allocation_cost.zig"
       ],
       "default_evidence": {
         "path": "src/backends/cuda/native/rv64/pcs_native.cu",
@@ -3470,7 +3472,7 @@
         "design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
         "src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu",
         "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-        "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+        "src/integrations/riscv_cuda/rv64/pcs_allocation_cost.zig"
       ],
       "default_evidence": {
         "path": "src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu",
@@ -3493,7 +3495,7 @@
       "date": "2026-11-08",
       "references": [
         "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-        "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+        "src/integrations/riscv_cuda/rv64/pcs_allocation_cost.zig"
       ],
       "default_evidence": {
         "path": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
@@ -3508,7 +3510,7 @@
       "references": [
         "scripts/rv64_m4_arena_sweep.py",
         "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-        "src/integrations/riscv_cuda/rv64/pcs_native.zig"
+        "src/integrations/riscv_cuda/rv64/pcs_allocation_cost.zig"
       ],
       "default_evidence": {
         "path": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",

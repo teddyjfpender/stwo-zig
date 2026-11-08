@@ -53,7 +53,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 import rv64_m7_integration_stack as stack  # noqa: E402
-from rv64_validation import frozen_parity, validate_assets, validate_receivers, validate_library_environment, FROZEN_D2_PACKAGE as GOLDEN  # noqa: E402
+from rv64_validation import frozen_parity, validate_assets, validate_receivers, validate_library_environment, FROZEN_D2_PACKAGE as GOLDEN, native_selected  # noqa: E402
 from rv64_m8_bench15_lib.metrics import (
     fields,
     split_requests,
@@ -95,23 +95,23 @@ M7_BASELINE = {
 # Arm overlays on the preset's baseline environment. {addon}/{outer_fs} are
 # assets.json paths. PINNED_BYTES is the outer-fold gate value (c72b51646,
 # outer-fold-review/gates.json: PASS on both dev blocks).
-OUTER = {'STWO_RV64_M8_OUTER_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}',
+OUTER = {'STWO_RV64_M8_GPU_NATIVE': '0', 'STWO_RV64_M8_OUTER_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}',
          'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'}
-NATIVE = {'STWO_RV64_M8_NATIVE_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}'}
+NATIVE = {'STWO_RV64_M8_GPU_NATIVE': '0', 'STWO_RV64_M8_NATIVE_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}'}
+NATIVE_BINDINGS = {'STWO_RV64_M8_JOBS_LIBRARY': '{addon}', 'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}',
+                   'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456', 'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '2147483648'}
 ARMS = {
-    'default': {},
+    'default': NATIVE_BINDINGS,
     'outer': OUTER,
     'native': NATIVE,
     'hybrid': dict(OUTER, **NATIVE),
-    'jobs': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}',
+    'jobs': {'STWO_RV64_M8_GPU_NATIVE': '0', 'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_JOBS_LIBRARY': '{addon}',
              'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}', 'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456'},
     # Full GPU-native path, matching gn-bind's current correctness gates.
-    # Keep it explicit: none of these flags promotes the product default.
+    # Explicit alias of the promoted product default; retained during retirement.
     'gpu-native': {'STWO_RV64_M8_JOBS': '1', 'STWO_RV64_M8_GPU_NATIVE': '1',
                    'STWO_RV64_M8_GPU_NATIVE_REUSE': '1', 'STWO_RV64_M9_CLASS_PACKED_INGRESS': '1',
-                   'STWO_RV64_M8_JOBS_LIBRARY': '{addon}', 'STWO_RV64_M8_OUTER_FS_LIBRARY': '{outer_fs}',
-                   'STWO_RV64_M8_JOBS_PINNED_BYTES': '2365587456',
-                   'STWO_RV64_M8_NATIVE_JOBS_HEADROOM': '2147483648'},
+                   **NATIVE_BINDINGS},
 }
 ASSET_NAMES = ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard', 'addon', 'outer_fs')
 # M3 found blocks with >= 40 CPU segments OOM in resident composition unless the
@@ -463,8 +463,6 @@ class Bench:
         label = f'{self.out.name}-{block}-{arm}-{role[0]}{round_index}-a{attempt}'
         manifest = {'source_root': str(self.root), 'assets': self.assets['assets'], 'block': block, 'preset': self.preset}
         argv, tag = stack.command(manifest, 'baseline', 0, self.stream, role == 'profile', label)
-        if arm == 'gpu-native':
-            argv += ['--process-budget-guard', self.assets['assets']['process_budget_guard']]
         if block not in DEV_BLOCKS:
             argv.append('--bench-basket-block')
         if self.args.smoke:
@@ -473,7 +471,11 @@ class Bench:
             argv += ['--nsys-root', str(self.args.nsys_root.resolve())]
         overlay = dict(block_environment(row), **arm_environment(arm, self.assets['assets']))
         overlay.update(self.extra_env)
-        validate_library_environment({**stack.arm_environment(self.preset, 'baseline', self.assets['assets']), **overlay}, self.assets['assets'], self.assets['asset_sha256'])
+        effective = {**stack.arm_environment(self.preset, 'baseline', self.assets['assets']), **overlay}
+        is_native = native_selected(effective)
+        if is_native:
+            argv += ['--process-budget-guard', self.assets['assets']['process_budget_guard']]
+        validate_library_environment(effective, self.assets['assets'], self.assets['asset_sha256'])
         for key, value in sorted(overlay.items()):
             argv += ['--env', f'{key}={value}']
         run = M3 / 'runs' / self.stream / f'daemon-{block}-r2-{tag}'
@@ -490,7 +492,7 @@ class Bench:
             entry['status'] = 'quiet_timeout' if 'quiet admission timed out' in text else 'failed'
             return entry
         receipt = json.loads((run / 'receipt.json').read_text())
-        if arm == 'gpu-native':
+        if is_native:
             try:
                 entry['physical_budget'] = stack.guard_verdict(receipt, 'fullstack', self.assets['asset_sha256']['process_budget_guard'])
             except RuntimeError as error:
@@ -504,13 +506,13 @@ class Bench:
         try:
             entry['setup_epochs'] = []
             per_request = split_requests(stderr, entry['setup_epochs'])
-            if arm == 'gpu-native' and len(per_request) != len(receipt['requests']):
+            if is_native and len(per_request) != len(receipt['requests']):
                 raise ValueError('native request marker coverage differs from spool receipts')
             entry['requests'] = []
             for index, request in enumerate(receipt['requests']):
                 combined = load(Path(request['proof']) / 'combined-report.json', {})
                 native = load(Path(request['proof']).parents[1] / 'm8-jobs.json')
-                if arm == 'gpu-native' and (not isinstance(native, dict) or native.get('schema') != 'rv64-m8-gpu-native-request/v1'):
+                if is_native and (not isinstance(native, dict) or native.get('schema') != 'rv64-m8-gpu-native-request/v1'):
                     raise ValueError('GPU-native driver receipt missing or schema changed')
                 entry['requests'].append(request_metrics(request, combined, per_request[index] if index < len(per_request) else [], native))
         except ValueError as error:

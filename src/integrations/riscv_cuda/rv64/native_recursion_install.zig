@@ -4,6 +4,7 @@
 //! erases dynamic seeds, public outputs and channel checkpoints. This cold
 //! construction cost is included in service init, not a warm performance win.
 const std = @import("std");
+const Packed = @import("jobs/outer_packed_class.zig");
 const CPU = @import("stwo_riscv_cpu_integration");
 const Outer = @import("outer_job_factory.zig");
 const G = @import("jobs/gpu_native.zig");
@@ -143,6 +144,7 @@ pub const Owner = struct {
         const nodes = try Outer.NodeClasses.installedNodes(a);
         errdefer a.free(nodes);
         if (nodes.len == 0) return error.GpuNativeNoRecursionClasses;
+        const packed_ingress = try Packed.ingressEnabled(std.posix.getenv(Packed.env_select));
         for (nodes) |entry| {
             if (!entry.owns_template) return error.GpuNativeBorrowedRecursionTemplate;
             const fresh = try self.classes.getOrPut(a, entry.class_key);
@@ -151,11 +153,11 @@ pub const Owner = struct {
                 entry.shared = &self.shared;
                 entry.runtime_symbols = .{ .kernels = &self.shared.kernels, .whole = self.shared.whole(), .encode = self.shared.encode, .oods = self.shared.oods, .compressed = self.shared.compressed };
                 entry.graphs = @splat(null);
-                if (std.posix.getenv("STWO_RV64_M9_CLASS_PACKED_INGRESS")) |flag| if (std.mem.eql(u8, flag, "1")) {
+                if (packed_ingress) {
                     const before = entry.staged.image.words[@intFromEnum(St.Region.twiddles)];
                     try entry.staged.shareTwiddleTower();
                     std.debug.print("GPU_M9_SHARED_TWIDDLE_TOWER class={s} before_words={d} after_words={d}\n", .{ std.fmt.bytesToHex(entry.class_key[0..6], .lower), before, entry.staged.image.words[@intFromEnum(St.Region.twiddles)] });
-                };
+                }
                 // All legacy jobs are drained. Drop its address-signature
                 // plan before building the service's immutable WholePlan.
                 if (entry.staged.statics.class_plan) |p| {
@@ -164,12 +166,10 @@ pub const Owner = struct {
                 }
                 var job = try Job.OuterNodeJob.initWhole(entry.staged, &self.shared.kernels, self.shared.whole());
                 job.deinit();
-                if (std.posix.getenv("STWO_RV64_M9_CLASS_PACKED_INGRESS")) |flag| {
-                    if (std.mem.eql(u8, flag, "1")) {
-                        try Outer.NodeClasses.pack(entry);
-                        const compressed = entry.compressed.?;
-                        std.debug.print("GPU_M9_PACKED_CLASS class={s} logical_words={d} resident_words={d} class_words={d} fixed_words={d} twiddle_words={d} channels={d}\n", .{ std.fmt.bytesToHex(entry.class_key[0..6], .lower), compressed.outputWords(), compressed.words.len, compressed.class_words, compressed.fixed_words, entry.staged.image.words[@intFromEnum(St.Region.twiddles)], compressed.channel_count });
-                    } else if (!std.mem.eql(u8, flag, "0")) return error.InvalidPackedClassFlag;
+                if (packed_ingress) {
+                    try Outer.NodeClasses.pack(entry);
+                    const compressed = entry.compressed.?;
+                    std.debug.print("GPU_M9_PACKED_CLASS class={s} logical_words={d} resident_words={d} class_words={d} fixed_words={d} twiddle_words={d} channels={d}\n", .{ std.fmt.bytesToHex(entry.class_key[0..6], .lower), compressed.outputWords(), compressed.words.len, compressed.class_words, compressed.fixed_words, entry.staged.image.words[@intFromEnum(St.Region.twiddles)], compressed.channel_count });
                 }
             }
         }

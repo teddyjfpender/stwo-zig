@@ -17,6 +17,12 @@ const K = @import("outer_kernels.zig");
 
 pub const granule: usize = 64;
 
+/// A suffix of held storage dies before the tail phases. Its credit is valid
+/// only when retirement coalesces with the free suffix (INTER allocated last).
+pub fn phasedWords(held: u64, prefix: u64, retired: u64, tail: u64) u64 {
+    return @max(held + prefix, held - retired + tail);
+}
+
 pub const Heap = struct {
     const Span = struct { at: usize, words: usize };
     base: usize = 0,
@@ -226,6 +232,32 @@ test "heap attributes peaks to phases" {
     try std.testing.expectEqual(@as(usize, 64 * 5), h.phase_peak[@intFromEnum(Heap.Phase.main)]);
     try std.testing.expectEqual(@as(usize, 64 * 3), h.phase_peak[@intFromEnum(Heap.Phase.pcs)]);
     try std.testing.expectEqual(@as(usize, 64 * 3), h.phase_high[@intFromEnum(Heap.Phase.pcs)]);
+}
+
+test "INTER tail retirement shares suffix with PCS and capture retry restores custody" {
+    var backing: [64 * 16]u32 align(256) = undefined;
+    var h = Heap.init(.{ .ptr = &backing, .words = backing.len });
+    _ = try h.alloc(64 * 4); // other held buffers first
+    const inter = try h.alloc(64 * 6); // four coefficient, two tail granules
+    const saved = h;
+    for (0..2) |_| {
+        const prefix = try h.alloc(64 * 6);
+        h.free(prefix);
+        h.free(.{ .ptr = inter.ptr + 64 * 4, .words = 64 * 2 });
+        const pcs = try h.alloc(64 * 8);
+        try std.testing.expectEqual(inter.ptr + 64 * 4, pcs.ptr);
+        try std.testing.expectEqual(@as(usize, backing.len), h.high);
+        h = saved; // discarded capture: generation scratch must be owned again
+        try std.testing.expectEqual(@as(usize, 64 * 10), h.live);
+        try std.testing.expectEqual(inter.ptr + 64 * 6, (try h.alloc(64 * 6)).ptr);
+        h = saved;
+    }
+    try std.testing.expectEqual(@as(u64, 64 * 16), phasedWords(64 * 10, 64 * 6, 64 * 2, 64 * 8));
+    try std.testing.expectEqual(@as(u64, 64 * 17), phasedWords(64 * 10, 64 * 7, 64 * 2, 64 * 8));
+    // Actual refused node4: preserve eleven-tree reserve, retire 2^26 words.
+    const reserve = 11 * @as(u64, 268_435_448);
+    const held = 5_461_477_696 - 506_342_400 - reserve;
+    try std.testing.expectEqual(@as(u64, 5_394_368_832), phasedWords(held, 0, 1 << 26, reserve) + 506_342_400);
 }
 
 test "heap is deterministic and ignores foreign frees" {

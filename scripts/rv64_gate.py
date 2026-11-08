@@ -16,7 +16,7 @@ import sys
 import time
 
 import rv64_m7_integration_stack as stack
-from rv64_validation import CASES, check_corpus, frozen_parity, payload_name, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, FROZEN_D2_PACKAGE as GOLDEN
+from rv64_validation import CASES, check_corpus, frozen_parity, payload_name, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, FROZEN_D2_PACKAGE as GOLDEN, native_selected
 
 ROOT = Path(__file__).resolve().parents[1]
 # Canonical default runtime: the source-built opt-combined image (owner decision
@@ -123,6 +123,9 @@ def main():
         receipt['asset_sha256'] = {name: stack.sha(path) for name, path in assets.items()}
         label = service_label(out)
         argv, tag = stack.command(manifest, 'baseline', 0, args.stream, False, label)
+        native = native_selected(effective_env)
+        if native:
+            argv += ['--process-budget-guard', assets['process_budget_guard']]
         # Keep quiet observations but do not call correctness walls matched timings.
         argv += ['--quiet-mode', 'diagnostic', '--request-timeout', '240']
         if args.nsys:
@@ -137,6 +140,7 @@ def main():
         service = Path('/workspace/m3/runs') / args.stream / f'daemon-{args.block}-r2-{tag}'
         receipt['service'] = str(service)
         produced = json.loads((service / 'receipt.json').read_text())
+        receipt['physical_budget'] = stack.guard_verdict(produced, 'fullstack' if native else 'baseline', receipt['asset_sha256']['process_budget_guard'])
         if len(produced['requests']) != 2:
             raise RuntimeError('expected cold and warm proofs')
         golden_path = GOLDEN / f'{args.block}-combined-d2-coalesce-v1/trial-1/artifact-fingerprints.json'

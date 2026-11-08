@@ -1727,7 +1727,17 @@ pub const Hybrid = struct {
         failure: ?anyerror = null,
         fn run(raw: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
             const job: *Trim = @ptrCast(@alignCast(data.?));
-            job.released = (Memory.trimUnused(&job.service.library, job.service.session) catch |err| {
+            if (NodeClasses.installing()) if (job.service.immutable_setup) |cache| {
+                if (cache.borrows.items.len != 0) {
+                    job.failure = error.ImmutableSetupStillBorrowed;
+                    return 1;
+                }
+                job.released = cache.trimUnborrowed() catch |err| {
+                    job.failure = err;
+                    return 1;
+                };
+            };
+            job.released += (Memory.trimUnused(&job.service.library, job.service.session) catch |err| {
                 job.failure = err;
                 return 1;
             }) orelse 0;
@@ -1771,6 +1781,7 @@ pub const Hybrid = struct {
         var available: u64 = std.math.maxInt(u64);
         var released: u64 = 0;
         for (self.services) |service| {
+            if (NodeClasses.installing()) try service.requireNoRequestLeases();
             var job = Trim{ .service = service };
             const status = service.submit(service.session, Trim.run, &job);
             if (job.failure) |err| return err;
