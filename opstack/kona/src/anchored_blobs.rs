@@ -2,10 +2,12 @@
 use crate::statement_sha2::{Digest, Sha256};
 use alloc::{boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use alloy_eips::eip4844::Blob;
-use alloy_primitives::{B256, hex};
+use alloy_primitives::B256;
+#[cfg(test)]
+use alloy_primitives::hex;
 use ark_bls12_381::{Fr, G1Affine, G1Projective};
 use ark_ec::{AdditiveGroup, AffineRepr, CurveGroup, VariableBaseMSM};
-use ark_ff::{BigInteger, FftField, Field, PrimeField, batch_inversion};
+use ark_ff::{BigInt, BigInteger, FftField, Field, PrimeField, batch_inversion};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use async_trait::async_trait;
 use kona_derive::{BlobProvider, PipelineError, PipelineErrorKind};
@@ -14,6 +16,7 @@ use spin::Mutex;
 
 const FIELD_ELEMENTS: usize = 4096;
 const MAX_SIDECARS: usize = 256;
+#[cfg(test)]
 const SCALAR_MODULUS: [u8; 32] =
     hex!("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");
 
@@ -225,10 +228,14 @@ fn evaluate_blob(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
     let mut denominators = Vec::with_capacity(FIELD_ELEMENTS);
     let mut on_domain = None;
     for (index, bytes) in blob.as_slice().chunks_exact(32).enumerate() {
-        if bytes >= SCALAR_MODULUS.as_slice() {
-            return None;
-        }
-        let value = Fr::from_be_bytes_mod_order(bytes);
+        // Blob limbs are canonical big-endian scalars. Convert the four
+        // limbs once and let from_bigint reject values at or above Fr::MODULUS.
+        // Modular byte decoding would perform extra arithmetic for every limb.
+        let limbs = core::array::from_fn(|i| {
+            let start = 24 - 8 * i;
+            u64::from_be_bytes(bytes[start..start + 8].try_into().expect("scalar limb"))
+        });
+        let value = Fr::from_bigint(BigInt(limbs))?;
         let root = roots[index.reverse_bits() >> (usize::BITS - FIELD_ELEMENTS.ilog2())];
         if z == root {
             on_domain = Some(value);
