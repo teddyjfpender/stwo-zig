@@ -14,14 +14,11 @@ const worker = @import("worker.zig");
 pub const DeviceChannel = @import("channel.zig").DeviceChannel;
 pub const ProofSlab = @import("slab.zig").ProofSlab;
 pub const ProofLayout = @import("slab.zig").ProofLayout;
+/// GPU-native request contract (slab regions, status words, class cache,
+/// device checks, peer exchange): rv64-m8-gpu-native.md. Additive.
+pub const gpu_native = @import("gpu_native.zig");
 
-pub const Placement = enum {
-    bottom,
-    top,
-    pub fn other(self: Placement) Placement {
-        return if (self == .bottom) .top else .bottom;
-    }
-};
+pub const Placement = @import("resources.zig").Placement;
 
 pub const DeviceBuffer = struct {
     ptr: [*]u32,
@@ -39,16 +36,20 @@ pub const DeviceBuffer = struct {
 /// plan's static peak of `Enqueue.alloc` + `Stager.alloc`; `staged_words` the
 /// part allocated in phase 1; `slab_words` the proof slab; `pinned_words`
 /// the job-lifetime pinned host memory requested through `Stager.pinned`.
-pub const Footprint = struct {
-    device_words: usize,
-    staged_words: usize = 0,
-    slab_words: usize = 0,
-    pinned_words: usize = 0,
-};
+pub const Footprint = @import("resources.zig").Footprint;
+pub const Readback = @import("resources.zig").Readback;
 
 /// Host step enqueued on the exec stream (cudaLaunchHostFunc). It may touch
 /// pinned memory only and may not call CUDA. Errors are latched by the job.
 pub const HostFn = struct {
+    call: *const fn (?*anyopaque) callconv(.c) void,
+    user: ?*anyopaque,
+    purpose: enum { host_compute, capture_release } = .host_compute,
+};
+
+/// Synchronous host cancellation, not a CUDA stream callback. It may touch
+/// capture control state and cannot be passed to Enqueue.hostFn by accident.
+pub const HostAction = struct {
     call: *const fn (?*anyopaque) callconv(.c) void,
     user: ?*anyopaque,
 };
@@ -58,7 +59,9 @@ pub const HostFn = struct {
 pub const SlabView = struct {
     words: []const u32,
     layout: ?*const ProofLayout = null,
-    /// Receipt of the job's device run (one host wait, one D2H).
+    /// request_slab: words is empty; publish checks the final request mirror.
+    readback: Readback = .job_slab,
+    /// Device-run receipt; waits/readbacks depend on the batch and policy.
     receipt: Receipt = .{},
 };
 
@@ -71,6 +74,10 @@ pub const Receipt = struct {
     wait_ns: u64 = 0,
     host_waits: u32 = 0,
     d2h_bytes: u64 = 0,
+    d2h_copies: u32 = 0,
+    host_callbacks: u32 = 0,
+    capture_release_callbacks: u32 = 0,
+    readback: Readback = .job_slab,
     staged_words: u64 = 0,
     arena_peak_words: u64 = 0,
 };
@@ -111,9 +118,31 @@ pub const Stager = struct {
     pub fn device(self: *Stager) u32 {
         return impl(self.worker).device_ordinal;
     }
+    /// Borrow install-reserved events. The driver supplies its actual free
+    /// parity slot; generation/request-id parity is not a resource identity.
+    pub fn timingPair(self: *Stager, parity: u1, index: usize) !@import("job_timing.zig").Pair {
+        return impl(self.worker).stageTimingPair(parity, index);
+    }
+    /// Request-scoped retained region (retained.zig): find-or-create the
+    /// device region (request, name) of `words`. It survives this job (a
+    /// later job of the same request on this worker finds it), is never
+    /// evicted, and lives until `Worker.releaseRetained`/`releaseRequest`.
+    /// `fresh` = this job created it (fill it). Pinned until this job is
+    /// reported, so it is never freed under it. Create a region a LATER job
+    /// stages against in `stage` (stage(k+1) runs before enqueue(k)).
+    /// Addition (native-hybrid, M8-INTERFACES); additive.
+    pub fn retain(self: *Stager, request: u64, name: [32]u8, words: usize) !Retained {
+        return impl(self.worker).stageRetain(request, name, words, true);
+    }
+    /// Find-only (error.RetainedRegionNotFound when absent): a consumer job
+    /// that must never create the region it reads.
+    pub fn retained(self: *Stager, request: u64, name: [32]u8, words: usize) !DeviceBuffer {
+        return (try impl(self.worker).stageRetain(request, name, words, false)).buffer;
+    }
 };
 
 pub const Persistent = struct { buffer: DeviceBuffer, fresh: bool };
+pub const Retained = struct { buffer: DeviceBuffer, fresh: bool };
 
 /// Phase 2: the whole proof on the exec stream; no host waits.
 pub const Enqueue = struct {
@@ -128,6 +157,13 @@ pub const Enqueue = struct {
     /// The exec stream (lane 0 of `ctx`) for stream-level `stwo_*_on(..., stream)` stages.
     pub fn stream(self: *Enqueue) *anyopaque {
         return impl(self.worker).exec_stream;
+    }
+    /// One non-nested annotation on this worker's context. The caller owns
+    /// label_buffer through range.deinit(); disabled tracing does no formatting.
+    pub fn trace(self: *Enqueue, stage: @import("ops.zig").Trace.Stage, ordinal: u32, label_buffer: []u8) !@import("ops.zig").Trace.Range {
+        const symbols = impl(self.worker).ops.exec.trace;
+        if (symbols.push == null) return .{ .raw = self.ctx() };
+        return symbols.begin(self.ctx(), try @import("ops.zig").Trace.formatLabel(label_buffer, stage, ordinal));
     }
     /// Stream-ordered arena allocation on this job's side.
     pub fn alloc(self: *Enqueue, words: usize) !DeviceBuffer {
@@ -163,6 +199,14 @@ pub const Enqueue = struct {
     /// True when `footprint()` comes from the memory policy (measured class).
     pub fn planned(self: *Enqueue) bool {
         return impl(self.worker).enqueuePlanned();
+    }
+    /// As `Stager.retain`, from phase 2 (stream-ordered allocation outside
+    /// the arena). Addition (native-hybrid); additive.
+    pub fn retain(self: *Enqueue, request: u64, name: [32]u8, words: usize) !Retained {
+        return impl(self.worker).enqueueRetain(request, name, words, true);
+    }
+    pub fn retained(self: *Enqueue, request: u64, name: [32]u8, words: usize) !DeviceBuffer {
+        return (try impl(self.worker).enqueueRetain(request, name, words, false)).buffer;
     }
 };
 
@@ -225,5 +269,6 @@ fn impl(w: *DeviceWorker) *worker.Worker {
 }
 
 test {
+    _ = @import("resources.zig");
     _ = @import("api_test.zig");
 }

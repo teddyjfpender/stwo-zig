@@ -43,10 +43,11 @@ pub const Authority = struct {
         if (self.image.max_prefix_steps == 0 or self.image.max_prefix_steps >= 1 << 23) return error.InvalidExecutionBudget;
         return .{
             .program_identity = self.program_identity,
-            .admission = .{ .image = Memory.fromOwner(self.image), .image_identity = self.image.identity,
-                .initial_pc = self.image.initial_pc, .initial_registers = self.image.initial_registers, .max_prefix_steps = self.image.max_prefix_steps },
-            .total_steps = public.total_steps, .max_total_steps = self.max_total_steps,
-            .final_pc = self.image.terminal_pc, .final_registers = public.final_registers,
+            .admission = .{ .image = Memory.fromOwner(self.image), .image_identity = self.image.identity, .initial_pc = self.image.initial_pc, .initial_registers = self.image.initial_registers, .max_prefix_steps = self.image.max_prefix_steps },
+            .total_steps = public.total_steps,
+            .max_total_steps = self.max_total_steps,
+            .final_pc = self.image.terminal_pc,
+            .final_registers = public.final_registers,
         };
     }
 };
@@ -65,7 +66,9 @@ pub fn outputCommitment(output: [43]u8) [32]u8 {
     for (output, words[2..]) |byte, *word| word.* = byte;
     return Table.tagged("rv64-m7-typed-terminal/v1", &words);
 }
-fn same(a: [32]u8, b: [32]u8) bool { return std.mem.eql(u8, &a, &b); }
+fn same(a: [32]u8, b: [32]u8) bool {
+    return std.mem.eql(u8, &a, &b);
+}
 pub fn checkAuthenticated(authority: Authority, public: Public, summary: Summary.Native) ![43]u8 {
     // Defend callers which constructed Native directly instead of decoding it.
     _ = try Summary.Native.fromWords(&summary.words());
@@ -103,8 +106,7 @@ pub fn checkAuthenticated(authority: Authority, public: Public, summary: Summary
     const initial_claim = try Boundary.claim(public.initial, true, shared.ram);
     const terminal_claim = try Boundary.claim(public.terminal, false, shared.ram);
     if (!summary.bus[0].eql(initial_claim.add(terminal_claim).neg()) or !summary.bus[1].isZero() or !summary.bus[2].isZero()) return error.TypedRootBusClosure;
-    const final = A.word16_execution.types.Boundary{ .steps = 0, .initial_pc = 0, .initial_registers = @splat(0),
-        .final_pc = expected.final_pc, .final_registers = expected.final_registers, .register_clocks = @splat(0) };
+    const final = A.word16_execution.types.Boundary{ .steps = 0, .initial_pc = 0, .initial_registers = @splat(0), .final_pc = expected.final_pc, .final_registers = expected.final_registers, .register_clocks = @splat(0) };
     const output = try Terminal.require(authority.image, final, public.terminal);
     if (!summary.output_seen or !same(summary.output, outputCommitment(output))) return error.TypedRootTerminal;
     return output;
@@ -124,22 +126,12 @@ test "typed root semantic gate recomputes public RAM target image scope and term
     defer cpu.deinit();
     var memory = try Collector.collect(a, Memory.fromOwner(&fixture.image), cpu.memory.items, 1);
     defer memory.deinit();
-    const authority = Authority{ .image = &fixture.image, .program_identity = program.identity,
-        .native_config = Worker.Candidate.configFor(.conjectured128_b2_q108_p20_fold4),
-        .tnat = @splat(11), .trec = @splat(12), .max_total_steps = 64 };
-    const public = Public{ .total_steps = fixture.boundary.steps, .final_registers = fixture.boundary.final_registers,
-        .initial = memory.initial, .terminal = memory.terminal };
+    const authority = Authority{ .image = &fixture.image, .program_identity = program.identity, .native_config = Worker.Candidate.configFor(.conjectured128_b2_q108_p20_fold4), .tnat = @splat(11), .trec = @splat(12), .max_total_steps = 64 };
+    const public = Public{ .total_steps = fixture.boundary.steps, .final_registers = fixture.boundary.final_registers, .initial = memory.initial, .terminal = memory.terminal };
     const expected = try authority.expected(public);
     const base = Execution.executionIdentity(authority.native_config, expected);
     const scope = try Fixed.gkrExecutionIdentity(base, authority.native_config);
-    var summary = Summary.Native{ .tnat = authority.tnat, .trec = authority.trec, .image = fixture.image.identity,
-        .statement = scope, .expected = base, .chi = undefined, .lo = 0, .hi = 0, .count = 1,
-        .m_in = Canon.chainIv(Canon.versionIdentityV2(Canon.RUNGS, .native_gkr)), .m_out = @splat(33),
-        .s_in = Canon.stateDigest(expected.admission.initial_pc, expected.admission.initial_registers, false),
-        .s_out = Canon.stateDigest(expected.final_pc, expected.final_registers, true),
-        .bus = @splat(Core.fields.om31.OM31.zero()), .mass = @splat(0), .ctr_in = @splat(0), .ctr_out = @splat(0),
-        .steps_in = 0, .steps_out = @intCast(public.total_steps), .output = outputCommitment(fixture.image.expected_output),
-        .output_seen = true, .depth = 0 };
+    var summary = Summary.Native{ .tnat = authority.tnat, .trec = authority.trec, .image = fixture.image.identity, .statement = scope, .expected = base, .chi = undefined, .lo = 0, .hi = 0, .count = 1, .m_in = Canon.chainIv(Canon.versionIdentityV2(Canon.RUNGS, .native_gkr)), .m_out = @splat(33), .s_in = Canon.stateDigest(expected.admission.initial_pc, expected.admission.initial_registers, false), .s_out = Canon.stateDigest(expected.final_pc, expected.final_registers, true), .bus = @splat(Core.fields.om31.OM31.zero()), .mass = @splat(0), .ctr_in = @splat(0), .ctr_out = @splat(0), .steps_in = 0, .steps_out = @intCast(public.total_steps), .output = outputCommitment(fixture.image.expected_output), .output_seen = true, .depth = 0 };
     summary.chi = Canon.chi(scope, summary.m_out);
     for (0..Types.FAMILIES) |family| {
         summary.ctr_in[Counter.truth_next + family] = 1;
@@ -170,7 +162,10 @@ test "typed root semantic gate recomputes public RAM target image scope and term
             11 => changed.output[0] ^= 1,
             12 => changed.mass[0] = P - 1,
             13 => changed.ctr_in[Counter.sponge_next] = 0,
-            14 => { changed.hi = 128; changed.count = 129; },
+            14 => {
+                changed.hi = 128;
+                changed.count = 129;
+            },
             else => unreachable,
         }
         if (checkAuthenticated(authority, public, changed)) |_| return error.TypedRootMutationAccepted else |_| {}

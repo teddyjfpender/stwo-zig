@@ -1,0 +1,325 @@
+{
+ "schema": "rv64-m8-gpu-driver-d3/v1",
+ "build": "Debug (zig build build-rv64-jobs-parity), addon-7 sm_120, base m7-combined-residency, STWO_RV64_DEVICE_ARENA=0 (orphan pid 3302210 holds 30.1 GB/GPU)",
+ "raw": {
+  "positive": {
+   "path": "/workspace/m3/runs/m8-gpu-driver/d3-7/positive.json",
+   "sha256": "5a4b6906758439036bbf487f300fd4e3e7818e271a40d3f7bfa4eb3151a6772c"
+  },
+  "negative": {
+   "path": "/workspace/m3/runs/m8-gpu-driver/d3-7/negative.json",
+   "sha256": "c4c26b4a0d47836a0ecfc2ddece815bafefad39eac7369242e078b17951dcedd"
+  }
+ },
+ "positive": {
+  "failures": 0,
+  "peer_direct": false,
+  "peer_round_trip": {
+   "iterations": 1000,
+   "gpu_us_total": 31834,
+   "us_per_hop": 31.834,
+   "host_waits": 1
+  },
+  "segments": 7,
+  "truths": 2,
+  "nodes": 17,
+  "install_allocations": 4,
+  "requests": [
+   {
+    "request": 24576,
+    "ok": true,
+    "err": "",
+    "proofs": 26,
+    "wall_ns": 11824686,
+    "host_waits": 1,
+    "d2h": 2,
+    "d2h_bytes": 118528,
+    "jobs": 34,
+    "plan_ns": 2677224,
+    "make_ns": 2473805,
+    "enqueue_ns": 1476967,
+    "wait_ns": 24060,
+    "finish_ns": 1240288,
+    "publish_ns": 2205195,
+    "peer_publishes": 17,
+    "peer_copies": 34,
+    "device_gpu_us": [
+     1088,
+     1033
+    ],
+    "device_enqueue_ns": [
+     1114748,
+     1046238
+    ],
+    "device_gate_ns": [
+     22230,
+     82270
+    ]
+   },
+   {
+    "request": 24577,
+    "ok": true,
+    "err": "",
+    "proofs": 26,
+    "wall_ns": 11721786,
+    "host_waits": 1,
+    "d2h": 2,
+    "d2h_bytes": 118528,
+    "jobs": 34,
+    "plan_ns": 2568284,
+    "make_ns": 2427945,
+    "enqueue_ns": 1323968,
+    "wait_ns": 9330,
+    "finish_ns": 1599866,
+    "publish_ns": 2107546,
+    "peer_publishes": 17,
+    "peer_copies": 34,
+    "device_gpu_us": [
+     1166,
+     1078
+    ],
+    "device_enqueue_ns": [
+     1176398,
+     1085528
+    ],
+    "device_gate_ns": [
+     8630,
+     405089
+    ]
+   },
+   {
+    "request": 24578,
+    "ok": true,
+    "err": "",
+    "proofs": 26,
+    "wall_ns": 11702896,
+    "host_waits": 1,
+    "d2h": 2,
+    "d2h_bytes": 118528,
+    "jobs": 34,
+    "plan_ns": 2537214,
+    "make_ns": 2415475,
+    "enqueue_ns": 1358158,
+    "wait_ns": 8210,
+    "finish_ns": 1620796,
+    "publish_ns": 2103216,
+    "peer_publishes": 17,
+    "peer_copies": 34,
+    "device_gpu_us": [
+     1229,
+     1201
+    ],
+    "device_enqueue_ns": [
+     1240038,
+     1208468
+    ],
+    "device_gate_ns": [
+     9320,
+     499189
+    ]
+   },
+   {
+    "request": 24579,
+    "ok": true,
+    "err": "",
+    "proofs": 26,
+    "wall_ns": 11627766,
+    "host_waits": 1,
+    "d2h": 2,
+    "d2h_bytes": 118528,
+    "jobs": 34,
+    "plan_ns": 2512615,
+    "make_ns": 2448575,
+    "enqueue_ns": 1283037,
+    "wait_ns": 7050,
+    "finish_ns": 1609227,
+    "publish_ns": 2094986,
+    "peer_publishes": 17,
+    "peer_copies": 34,
+    "device_gpu_us": [
+     1171,
+     1142
+    ],
+    "device_enqueue_ns": [
+     1180498,
+     1149518
+    ],
+    "device_gate_ns": [
+     9180,
+     510670
+    ]
+   },
+   {
+    "request": 24580,
+    "ok": true,
+    "err": "",
+    "proofs": 26,
+    "wall_ns": 11741786,
+    "host_waits": 1,
+    "d2h": 2,
+    "d2h_bytes": 118528,
+    "jobs": 34,
+    "plan_ns": 2518784,
+    "make_ns": 2453385,
+    "enqueue_ns": 1360998,
+    "wait_ns": 8839,
+    "finish_ns": 1626937,
+    "publish_ns": 2118076,
+    "peer_publishes": 17,
+    "peer_copies": 34,
+    "device_gpu_us": [
+     1237,
+     1204
+    ],
+    "device_enqueue_ns": [
+     1245368,
+     1210428
+    ],
+    "device_gate_ns": [
+     8890,
+     568250
+    ]
+   },
+   {
+    "request": 24581,
+    "ok": true,
+    "err": "",
+    "proofs": 26,
+    "wall_ns": 11601227,
+    "host_waits": 1,
+    "d2h": 2,
+    "d2h_bytes": 118528,
+    "jobs": 34,
+    "plan_ns": 2514635,
+    "make_ns": 2406585,
+    "enqueue_ns": 1311898,
+    "wait_ns": 6760,
+    "finish_ns": 1609546,
+    "publish_ns": 2092826,
+    "peer_publishes": 17,
+    "peer_copies": 34,
+    "device_gpu_us": [
+     1196,
+     1164
+    ],
+    "device_enqueue_ns": [
+     1204988,
+     1170308
+    ],
+    "device_gate_ns": [
+     9100,
+     518510
+    ]
+   }
+  ]
+ },
+ "negative": {
+  "failures": 0,
+  "peer_direct": false,
+  "peer_round_trip": {
+   "iterations": 1000,
+   "gpu_us_total": 31899,
+   "us_per_hop": 31.899,
+   "host_waits": 1
+  },
+  "segments": 7,
+  "truths": 2,
+  "nodes": 17,
+  "install_allocations": 4,
+  "requests": [
+   {
+    "request": 24576,
+    "ok": true,
+    "err": "",
+    "proofs": 26,
+    "wall_ns": 9445171,
+    "host_waits": 1,
+    "d2h": 2,
+    "d2h_bytes": 118528,
+    "jobs": 34,
+    "plan_ns": 2066936,
+    "make_ns": 1942666,
+    "enqueue_ns": 1287897,
+    "wait_ns": 22290,
+    "finish_ns": 1018928,
+    "publish_ns": 1746027,
+    "peer_publishes": 17,
+    "peer_copies": 34,
+    "device_gpu_us": [
+     1052,
+     1007
+    ],
+    "device_enqueue_ns": [
+     1077808,
+     1021418
+    ],
+    "device_gate_ns": [
+     19090,
+     132319
+    ]
+   },
+   {
+    "request": 24577,
+    "ok": true,
+    "err": "",
+    "proofs": 26,
+    "wall_ns": 9652990,
+    "host_waits": 1,
+    "d2h": 2,
+    "d2h_bytes": 118528,
+    "jobs": 34,
+    "plan_ns": 2043425,
+    "make_ns": 1960196,
+    "enqueue_ns": 965238,
+    "wait_ns": 6640,
+    "finish_ns": 1612517,
+    "publish_ns": 1693746,
+    "peer_publishes": 17,
+    "peer_copies": 34,
+    "device_gpu_us": [
+     866,
+     832
+    ],
+    "device_enqueue_ns": [
+     873288,
+     840478
+    ],
+    "device_gate_ns": [
+     5210,
+     139940
+    ]
+   },
+   {
+    "request": 24578,
+    "ok": true,
+    "err": "GpuNativeProofRejected",
+    "proofs": 0,
+    "wall_ns": 22954393,
+    "host_waits": 0,
+    "d2h": 0,
+    "d2h_bytes": 0,
+    "jobs": 0,
+    "plan_ns": 0,
+    "make_ns": 0,
+    "enqueue_ns": 0,
+    "wait_ns": 0,
+    "finish_ns": 0,
+    "publish_ns": 0,
+    "peer_publishes": 0,
+    "peer_copies": 0,
+    "device_gpu_us": [
+     0,
+     0
+    ],
+    "device_enqueue_ns": [
+     0,
+     0
+    ],
+    "device_gate_ns": [
+     0,
+     0
+    ]
+   }
+  ]
+ }
+}

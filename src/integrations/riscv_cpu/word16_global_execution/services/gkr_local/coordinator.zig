@@ -75,7 +75,19 @@ pub const Stream = struct {
     truth_done: *const fn (context: *anyopaque, ordinal: usize, encoded: *const Truth.TruthEncoded) void,
     abort: *const fn (context: *anyopaque) void,
 };
+/// M8 native-hybrid seam (STWO_RV64_M8_NATIVE_JOBS=1; default null = the
+/// legacy path, byte for byte). After the global-chi barrier, a CPU ordinal's
+/// whole stage two (the replay restore and `CpuWorker.complete`) is replaced
+/// by `stage_two`, which proves the segment from the worker's sealed state
+/// and the manifest (job runtime; rv64/native_hybrid.zig) and returns exactly
+/// the bytes and claims `complete` would. Truth ordinals stay legacy.
+pub const NativeStageTwo = struct {
+    context: *anyopaque,
+    stage_two: *const fn (context: *anyopaque, a: std.mem.Allocator, worker: *CPU.CpuWorker, pending: *const Manifest.PendingManifest, index: usize, global_budget: usize) anyerror!CPU.CpuEncoded,
+};
 pub const Options = struct {
+    /// M8 native-hybrid stage-two seam (see NativeStageTwo); null = legacy.
+    native_stage_two: ?NativeStageTwo = null,
     early_cpu0: ?*@import("../../ethereum/early_cpu0.zig").Owner = null,
     early_segments: ?*@import("../../ethereum/early_segments.zig").Owner = null,
     stream: ?Stream = null,
@@ -407,6 +419,16 @@ const Run = struct {
         if (timer) |*clock| timing.?.restore_ns = clock.lap();
         self.results[index] = switch (worker.*) {
             .cpu => |*v| blk: {
+                if (self.options.native_stage_two) |hook| {
+                    // The hook owns the replay restore (if it needs MAIN back);
+                    // compact inputs are released after it, as below.
+                    const encoded = try hook.stage_two(hook.context, self.a, v, pending, index, self.options.global_budget);
+                    if (v.replay != null) {
+                        self.native[index].releaseFacts();
+                        if (self.options.consume_memory_events) _ = try self.advice.retireEvents(index);
+                    }
+                    break :blk Result{ .cpu = encoded };
+                }
                 if (v.replay) |*owner| {
                     try owner.restore(owner.context, v);
                     // Replay has joined every compact input reader; physical

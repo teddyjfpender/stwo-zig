@@ -1,0 +1,31 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "observed_utc": "2026-11-07T22:40:31Z",
+  "scope": "Install admission passed; full native request probe running; no completed native proof yet",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/install-9/receipt.json",
+      "sha256": "50ef87b0dab016bd977b737466dfeba816eceb1ca1d6bd8953e19e0cb340cf39",
+      "result": "PASS: exit0, READY true, STOP preposted, no native requests, wall_ns120096951570"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/install-9/producer.stderr",
+      "sha256": "9b0bf9265dd8734cd19ec9150fc9a03c3e454673d00978ed7b8ca9e53adc7540",
+      "result": "Every installed recursion FIXED root equal on both GPUs; persistent allocation census627933789 words per GPU (2.511735156GB logical); final memory plan admitted"
+    }
+  ],
+  "running_at_observation": {
+    "native_probe": "/workspace/m3/runs/m8-gn-bind/native-live-1",
+    "service": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-native-live-1-00-baseline",
+    "service_pid": 813121,
+    "service_start_utc": "2026-11-07T22:40:34Z approximately",
+    "scope": "Full cold/warm request debug correctness run; quiet diagnostic, not canonical performance qualification",
+    "default_gate": "/workspace/m3/runs/m8-gn-codec/gate-22",
+    "source_label": "7bbe1c5c0-packed-census-v2",
+    "runtime": "/workspace/m3/build/m8-gn-codec/addon-5/runtime.json",
+    "freeze_rule": "Main frozen until native-live-1 terminal; scratch frozen until full gate22 terminal. Never sync a live source stream.",
+    "gpu_lock_rule": "Native probe and gate harness own gpu.lock. Do not wrap. Track service PID and hold <=15min; ready initialization typicallyabout120s."
+  },
+  "claim_boundary": "Installation success is not proof completion. Logical allocation census is not a physical peak measurement. Need all native/default gates on both blocks, fresh CPU receivers, corpus, architecture/residency invariants, canonical performance runs, basket, production cross-block qualification and gated landing."
+}

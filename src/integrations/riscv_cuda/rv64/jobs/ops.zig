@@ -7,6 +7,7 @@
 //! are reachable from `Job.enqueue`. `Wait` entries block the host; only the
 //! worker loop holds them (lint.zig enforces the split at source level).
 const std = @import("std");
+pub const Trace = @import("../nvtx_stage.zig");
 
 pub const c_int_t = c_int;
 pub const ContextOptions = extern struct { version: u32 = 1, device_ordinal: u32, lane_count: u32 = 1, dependency_capacity: u32 = 0 };
@@ -14,6 +15,8 @@ pub const HostCall = *const fn (?*anyopaque) callconv(.c) void;
 pub const CopyKind = enum(u32) { h2d = 1, d2h = 2, d2d = 3 };
 
 pub const Exec = struct {
+    /// Loaded once at install; empty when STWO_RV64_NVTX is disabled.
+    trace: Trace.Symbols = .{},
     // base image, exec context (lane 0 = exec stream)
     alloc_u32: *const fn (*anyopaque, usize, *?[*]u32) callconv(.c) c_int,
     alloc_u32_long: *const fn (*anyopaque, usize, *?[*]u32) callconv(.c) c_int,
@@ -32,6 +35,10 @@ pub const Exec = struct {
     event_record: *const fn (*anyopaque, *anyopaque) callconv(.c) c_int,
     stream_wait: *const fn (*anyopaque, *anyopaque) callconv(.c) c_int,
     host_fn: *const fn (*anyopaque, HostCall, ?*anyopaque) callconv(.c) c_int,
+    /// base image (optional): cudaMemGetInfo of the context's device (free,
+    /// total bytes). Install-time only: the GPU-native memory plan is laid
+    /// out against measured free memory, not a constant.
+    memory_info: ?*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int = null,
 };
 
 pub const Wait = struct {
@@ -70,6 +77,7 @@ pub const Libraries = struct {
         if (version() != abi_version) return error.JobsAddonAbiMismatch;
         var out: Libraries = .{ .base = base, .addon = addon, .ops = undefined };
         out.ops.exec = .{
+            .trace = try Trace.Symbols.fromEnv(&out.base),
             .alloc_u32 = try sym(&out.base, @FieldType(Exec, "alloc_u32"), "stwo_exec_context_alloc_u32"),
             .alloc_u32_long = try sym(&out.base, @FieldType(Exec, "alloc_u32_long"), "stwo_exec_context_alloc_u32_long"),
             .free_u32 = try sym(&out.base, @FieldType(Exec, "free_u32"), "stwo_exec_context_free_u32"),
@@ -83,6 +91,7 @@ pub const Libraries = struct {
             .event_record = try sym(&out.addon, @FieldType(Exec, "event_record"), "stwo_rv64_jobs_event_record"),
             .stream_wait = try sym(&out.addon, @FieldType(Exec, "stream_wait"), "stwo_rv64_jobs_stream_wait"),
             .host_fn = try sym(&out.addon, @FieldType(Exec, "host_fn"), "stwo_rv64_jobs_host_fn"),
+            .memory_info = out.base.lookup(*const fn (*anyopaque, *usize, *usize) callconv(.c) c_int, "stwo_exec_context_memory_info"),
         };
         out.ops.wait = .{
             .context_create = try sym(&out.base, @FieldType(Wait, "context_create"), "stwo_exec_context_create_options"),
@@ -103,6 +112,33 @@ pub const Libraries = struct {
     pub fn close(self: *Libraries) void {
         self.addon.close();
         self.base.close();
+    }
+};
+
+/// GPU-native driver ops (NAT/rv64/jobs/peer_ops.cu): peer exchange, slab
+/// fills, device flag verdicts and timing events. Looked up only when the
+/// GPU-native driver installs (`Peer.open`), so the addon ABI version and
+/// every existing caller stay unchanged. All entries only enqueue work or
+/// manage handles; `event_elapsed_us` reads events the request wait passed.
+pub const Peer = struct {
+    peer_enable: *const fn ([*]const u32, u32, *u32) callconv(.c) c_int,
+    peer_copy_async: *const fn (*anyopaque, u32, *const anyopaque, u32, usize, *anyopaque) callconv(.c) c_int,
+    fill_u32: *const fn ([*]u32, u32, usize, *anyopaque) callconv(.c) c_int,
+    /// (flags, count, expected, verdict, reject_code, stream): accepted iff
+    /// every flag == expected (the request's Exchange.flagTag).
+    flags_verdict: *const fn ([*]const u32, u32, u32, [*]u32, u32, *anyopaque) callconv(.c) c_int,
+    event_create_timed: *const fn (*?*anyopaque) callconv(.c) c_int,
+    event_elapsed_us: *const fn (*anyopaque, *anyopaque, *u64) callconv(.c) c_int,
+
+    pub fn open(addon: *std.DynLib) !Peer {
+        return .{
+            .peer_enable = try sym(addon, @FieldType(Peer, "peer_enable"), "stwo_rv64_jobs_peer_enable"),
+            .peer_copy_async = try sym(addon, @FieldType(Peer, "peer_copy_async"), "stwo_rv64_jobs_peer_copy_async"),
+            .fill_u32 = try sym(addon, @FieldType(Peer, "fill_u32"), "stwo_rv64_jobs_fill_u32"),
+            .flags_verdict = try sym(addon, @FieldType(Peer, "flags_verdict"), "stwo_rv64_jobs_flags_verdict_tag"),
+            .event_create_timed = try sym(addon, @FieldType(Peer, "event_create_timed"), "stwo_rv64_jobs_event_create_timed"),
+            .event_elapsed_us = try sym(addon, @FieldType(Peer, "event_elapsed_us"), "stwo_rv64_jobs_event_elapsed_us"),
+        };
     }
 };
 

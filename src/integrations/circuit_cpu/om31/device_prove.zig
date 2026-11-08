@@ -260,7 +260,10 @@ fn proveOwnedDirect(a: std.mem.Allocator, key: *const Native.Authority, outputs:
     for (components, bound) |*out, *component| out.* = component.asProverComponent();
     owns = false;
     const proof = try P.Engine.prove(a, components, &channel, scheme, .{});
-    errdefer { var owned = proof; owned.deinit(a); }
+    errdefer {
+        var owned = proof;
+        owned.deinit(a);
+    }
     if (observer) |value| try value.finish(value.context);
     return .{ .allocator = a, .outputs = outputs, .claims = interaction.claims, .proof = proof };
 }

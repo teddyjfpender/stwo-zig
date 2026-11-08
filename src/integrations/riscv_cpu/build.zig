@@ -4,6 +4,11 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const dependency_options = .{ .target = target, .optimize = optimize };
+    const check_only = b.option(bool, "check-only", "Compile focused publication tests without running them") orelse false;
+
+    const publication_root = b.createModule(.{ .root_source_file = b.path("rv64_recursion/om31_native/publication.zig"), .target = target, .optimize = optimize });
+    const publication_tests = b.addTest(.{ .root_module = publication_root });
+    b.step("test-recursion-publication", "Test bounded root/tree binding and durable publication without prover imports").dependOn(if (check_only) &publication_tests.step else &b.addRunArtifact(publication_tests).step);
 
     const artifact_store = b.dependency(
         "stwo_artifact_store",

@@ -12,109 +12,12 @@ from types import SimpleNamespace
 from unittest import mock
 
 from scripts import ci_scope_plan, ci_scope_push, ci_scope_run
+from scripts.tests.focused_ci_fixtures import catalog_fixture, product
 
 
 ROOT = Path(__file__).resolve().parents[2]
 COMMIT = "1" * 40
 TREE = "2" * 40
-PROVER_PREFIXES = ("src/core", "src/backend", "src/prover", "src/prover_api")
-
-
-def product(scope: str, *prefixes: str, state: str = "released") -> dict[str, object]:
-    return {
-        "scope": scope,
-        "state": state,
-        "module_roots": [],
-        "allowed_files": [],
-        "configure_allowed_files": [],
-        "allowed_prefixes": list(prefixes),
-        "configure_allowed_prefixes": [],
-    }
-
-
-def catalog_fixture() -> dict[str, object]:
-    return {
-        "schema": "stwo-product-catalog-v2",
-        "products": [
-            product(
-                "aggregate",
-                *PROVER_PREFIXES,
-                "src/backends/cpu_scalar",
-                "src/frontends/riscv",
-                "src/integrations/riscv_cpu",
-            ),
-            product("core", "src/core"),
-            product("prover", *PROVER_PREFIXES),
-            product(
-                "native_cpu",
-                *PROVER_PREFIXES,
-                "src/backends/cpu_scalar",
-                "src/products/native_cpu",
-            ),
-            product(
-                "riscv_cpu",
-                *PROVER_PREFIXES,
-                "src/backends/cpu_scalar",
-                "src/frontends/riscv",
-                "src/integrations/riscv_cpu",
-            ),
-            product(
-                "cairo_cpu",
-                *PROVER_PREFIXES,
-                "src/backends/cpu_scalar",
-                "src/frontends/cairo",
-                "src/integrations/cairo_cpu",
-                "src/products/cairo_cpu",
-            ),
-            product(
-                "cairo_metal",
-                *PROVER_PREFIXES,
-                "src/backends/cpu_scalar",
-                "src/backends/metal",
-                "src/frontends/cairo",
-                "src/integrations/cairo_metal",
-                "src/products/cairo_metal",
-            ),
-            product(
-                "native_metal",
-                *PROVER_PREFIXES,
-                "src/backends/cpu_scalar",
-                "src/backends/metal",
-            ),
-            product(
-                "riscv_metal",
-                *PROVER_PREFIXES,
-                "src/backends/cpu_scalar",
-                "src/backends/metal",
-                "src/frontends/riscv",
-                "src/integrations/riscv_metal",
-                "src/products/riscv_metal",
-            ),
-            product(
-                "native_cuda",
-                *PROVER_PREFIXES,
-                "src/backends/cuda",
-                "src/backends/cpu_scalar",
-                "src/backends/metal",
-                "src/frontends/cairo",
-                "src/frontends/riscv",
-                "src/integrations/native_cuda",
-                "src/products/native_cuda",
-                state="staged",
-            ),
-            product(
-                "cairo_cuda",
-                "src/backends/cuda",
-                "src/prover_api",
-                "src/frontends/cairo",
-                "src/integrations/cairo_cuda",
-                "src/products/cairo_cuda",
-                state="staged",
-            ),
-        ],
-    }
-
-
 class PlannerContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -384,6 +287,7 @@ class PlannerContractTests(unittest.TestCase):
             {
                 "static", "cairo_cpu_integration", "package",
                 "cairo_cpu", "cairo_metal",
+                "circuit_metal_integration", "circuit_recursion_cpu",
             },
             selected,
         )
@@ -404,7 +308,7 @@ class PlannerContractTests(unittest.TestCase):
                 "static",
                 "cairo_metal_integration",
                 "package",
-                "cairo_metal",
+                "cairo_metal", "circuit_metal_integration",
                 "metal_compile",
             },
             selected,
@@ -771,19 +675,19 @@ class RunnerReceiptTests(unittest.TestCase):
         self.assertEqual(str(cache.resolve() / "cargo-target"), environment["CARGO_TARGET_DIR"])
         self.assertEqual("warm", receipt["cache_mode"])
 
-    def test_warm_cache_requires_an_explicit_root(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            with self.assertRaisesRegex(
-                ci_scope_run.PlanError, "warm cache mode requires --cache-root"
-            ):
-                ci_scope_run.run_lane(
-                    root=ROOT,
-                    policy=runner_policy([["tool"]]),
-                    lane="focused",
-                    output=Path(raw) / "receipt.json",
-                    cache_mode="warm",
-                    cache_root=None,
-                )
+    def test_invalid_cache_arguments_fail_before_git_or_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as raw, mock.patch.object(
+            ci_scope_run.subprocess, "run", side_effect=AssertionError("no Git or lane execution")
+        ):
+            output = Path(raw) / "not-created" / "receipt.json"
+            for mode, message in (("warm", "warm cache mode requires --cache-root"),
+                                  ("invalid", "invalid cache mode")):
+                with self.subTest(mode=mode), self.assertRaisesRegex(ci_scope_run.PlanError, message):
+                    ci_scope_run.run_lane(
+                        root=Path(raw) / "no-checkout", policy=runner_policy([["tool"]]),
+                        lane="focused", output=output, cache_mode=mode, cache_root=None,
+                    )
+            self.assertFalse(output.parent.exists())
 
     def test_wrong_host_and_unknown_lane_fail_before_execution(self) -> None:
         current_host = "macos" if sys.platform == "darwin" else "linux"

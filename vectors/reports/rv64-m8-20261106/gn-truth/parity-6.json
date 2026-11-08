@@ -1,0 +1,889 @@
+{
+ "schema": "rv64-m8-truth-parity/v2",
+ "block": 26235156,
+ "legacy_native_wall_ns": 21317755433,
+ "job_device": 1,
+ "wide_framing": true,
+ "classes": 7,
+ "all_equal": true,
+ "negatives_all_fired": true,
+ "truths": [
+  {
+   "ordinal": 4,
+   "truth_index": 0,
+   "family": "keccak",
+   "kind": "classic",
+   "log": 18,
+   "calls": 19418,
+   "compact_words": 970900,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 171.58543395996094,
+   "stage1_wait_ns": 54260780,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 3208462976,
+   "stage1_declared_words": 3378333123,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "device_check_equal": true,
+   "device_oods_evaluated": [
+    1666507178,
+    290751646,
+    1974552497,
+    551143691,
+    325086916,
+    988474843,
+    2105783754,
+    1121581030
+   ],
+   "host_oods_evaluated": [
+    1666507178,
+    290751646,
+    1974552497,
+    551143691,
+    325086916,
+    988474843,
+    2105783754,
+    1121581030
+   ],
+   "device_bytes_equal": true,
+   "device_runs": 2,
+   "device_gpu_ms": [
+    7.832575798034668,
+    7.838719844818115,
+    7.840767860412598,
+    -1
+   ],
+   "finish_ns": [
+    72973756,
+    685740,
+    708479,
+    0
+   ],
+   "oods_nodes": 45898,
+   "oods_levels": 200,
+   "oods_descriptor_words": 189963,
+   "encode_program_words": 25308,
+   "max_encoded_bytes": 1887072,
+   "legacy_bytes": 1388640,
+   "job_bytes": 1388640,
+   "stage2_gpu_ms": [
+    880.4713134765625,
+    877.8466186523438,
+    877.8318481445312,
+    -1
+   ],
+   "stage2_stage_ns": [
+    139690820,
+    498339,
+    486489,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    239237310,
+    234403647,
+    234505197,
+    0
+   ],
+   "stage2_wait_ns": [
+    643080429,
+    643711068,
+    643570488,
+    0
+   ],
+   "stage2_assemble_ns": 72073777,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 5757480256,
+   "stage2_declared_words": 5068553785,
+   "class_build_ns": 636995917,
+   "negatives": [
+    {
+     "fault": "parameter_program",
+     "expected_check": "truth_status",
+     "fired": true,
+     "word": 50397441,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "absent_claim",
+     "expected_check": "truth_status",
+     "fired": true,
+     "word": 50397188,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "class_root",
+     "expected_check": "root_match",
+     "fired": true,
+     "word": 34078721,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "stage1_root",
+     "expected_check": "root_match",
+     "fired": true,
+     "word": 34078722,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "channel_cursor",
+     "expected_check": "channel_order",
+     "fired": true,
+     "word": 16842755,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "pcs_header",
+     "expected_check": "pcs_status",
+     "fired": true,
+     "word": 34013185,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "oods_sample",
+     "expected_check": "truth_oods",
+     "fired": true,
+     "word": 50855940,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "oods_composition",
+     "expected_check": "truth_oods",
+     "fired": true,
+     "word": 50855940,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "encode_capacity",
+     "expected_check": "encode_bounds",
+     "fired": true,
+     "word": 17039361,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "encode_value",
+     "expected_check": "encode_bounds",
+     "fired": true,
+     "word": 17039364,
+     "error_name": "DeviceTruthCheckRejected"
+    }
+   ],
+   "error_name": ""
+  },
+  {
+   "ordinal": 5,
+   "truth_index": 1,
+   "family": "keccak",
+   "kind": "classic",
+   "log": 13,
+   "calls": 606,
+   "compact_words": 30300,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 6.767551898956299,
+   "stage1_wait_ns": 2419677,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 253044800,
+   "stage1_declared_words": 447294339,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "device_check_equal": true,
+   "device_oods_evaluated": [
+    137637141,
+    90063585,
+    377863474,
+    8287333,
+    88853682,
+    643981754,
+    1260180367,
+    1671192005
+   ],
+   "host_oods_evaluated": [
+    137637141,
+    90063585,
+    377863474,
+    8287333,
+    88853682,
+    643981754,
+    1260180367,
+    1671192005
+   ],
+   "device_bytes_equal": true,
+   "device_runs": 2,
+   "device_gpu_ms": [
+    7.506944179534912,
+    7.4844160079956055,
+    7.480319976806641,
+    -1
+   ],
+   "finish_ns": [
+    72218766,
+    710310,
+    995799,
+    0
+   ],
+   "oods_nodes": 45898,
+   "oods_levels": 200,
+   "oods_descriptor_words": 189963,
+   "encode_program_words": 25308,
+   "max_encoded_bytes": 1887072,
+   "legacy_bytes": 1391104,
+   "job_bytes": 1391104,
+   "stage2_gpu_ms": [
+    158.92201232910156,
+    156.7751007080078,
+    156.972900390625,
+    -1
+   ],
+   "stage2_stage_ns": [
+    104577574,
+    172739,
+    163080,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    25989657,
+    22894511,
+    22277251,
+    0
+   ],
+   "stage2_wait_ns": [
+    134608536,
+    134142316,
+    134947355,
+    0
+   ],
+   "stage2_assemble_ns": 71361408,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 998704320,
+   "stage2_declared_words": 675979080,
+   "class_build_ns": 710768802,
+   "negatives": [],
+   "error_name": ""
+  },
+  {
+   "ordinal": 6,
+   "truth_index": 2,
+   "family": "keccak",
+   "kind": "classic",
+   "log": 14,
+   "calls": 970,
+   "compact_words": 48500,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 11.827136039733887,
+   "stage1_wait_ns": 5530482,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 348368704,
+   "stage1_declared_words": 541831811,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "device_check_equal": true,
+   "device_oods_evaluated": [
+    1413169528,
+    1614052231,
+    1619239970,
+    1596957265,
+    1143200583,
+    1274585077,
+    1640131025,
+    1405680123
+   ],
+   "host_oods_evaluated": [
+    1413169528,
+    1614052231,
+    1619239970,
+    1596957265,
+    1143200583,
+    1274585077,
+    1640131025,
+    1405680123
+   ],
+   "device_bytes_equal": true,
+   "device_runs": 2,
+   "device_gpu_ms": [
+    7.480319976806641,
+    7.478271961212158,
+    7.480319976806641,
+    -1
+   ],
+   "finish_ns": [
+    73045726,
+    911629,
+    1020309,
+    0
+   ],
+   "oods_nodes": 45898,
+   "oods_levels": 200,
+   "oods_descriptor_words": 189963,
+   "encode_program_words": 25308,
+   "max_encoded_bytes": 1887072,
+   "legacy_bytes": 1381952,
+   "job_bytes": 1381952,
+   "stage2_gpu_ms": [
+    147.8629150390625,
+    145.83628845214844,
+    146.1491241455078,
+    -1
+   ],
+   "stage2_stage_ns": [
+    104498125,
+    181870,
+    205360,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    32542808,
+    28892823,
+    32471978,
+    0
+   ],
+   "stage2_wait_ns": [
+    117053109,
+    117148328,
+    113919463,
+    0
+   ],
+   "stage2_assemble_ns": 72196577,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 1058016192,
+   "stage2_declared_words": 734511368,
+   "class_build_ns": 645377386,
+   "negatives": [],
+   "error_name": ""
+  },
+  {
+   "ordinal": 7,
+   "truth_index": 3,
+   "family": "secp_row",
+   "kind": "delegated",
+   "log": 14,
+   "calls": 14855,
+   "compact_words": 713040,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 34.827518463134766,
+   "stage1_wait_ns": 3451496,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 185553152,
+   "stage1_declared_words": 187126587,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "device_check_equal": true,
+   "device_oods_evaluated": [
+    1872734747,
+    1724098402,
+    2068575910,
+    133596480,
+    1717460953,
+    2083105149,
+    1813175582,
+    844196666
+   ],
+   "host_oods_evaluated": [
+    1872734747,
+    1724098402,
+    2068575910,
+    133596480,
+    1717460953,
+    2083105149,
+    1813175582,
+    844196666
+   ],
+   "device_bytes_equal": true,
+   "device_runs": 2,
+   "device_gpu_ms": [
+    4.24345588684082,
+    4.241407871246338,
+    4.245503902435303,
+    -1
+   ],
+   "finish_ns": [
+    136920663,
+    870589,
+    863158,
+    0
+   ],
+   "oods_nodes": 73615,
+   "oods_levels": 42,
+   "oods_descriptor_words": 296101,
+   "encode_program_words": 49358,
+   "max_encoded_bytes": 2212688,
+   "legacy_bytes": 1933712,
+   "job_bytes": 1933712,
+   "stage2_gpu_ms": [
+    113.8655014038086,
+    113.94697570800781,
+    114.43516540527344,
+    -1
+   ],
+   "stage2_stage_ns": [
+    1491298,
+    517520,
+    462220,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    62275520,
+    62016110,
+    62713639,
+    0
+   ],
+   "stage2_wait_ns": [
+    51934303,
+    52193342,
+    52023873,
+    0
+   ],
+   "stage2_assemble_ns": 135530295,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 691482112,
+   "stage2_declared_words": 788676061,
+   "class_build_ns": 233209528,
+   "negatives": [
+    {
+     "fault": "parameter_program",
+     "expected_check": "truth_status",
+     "fired": true,
+     "word": 50397441,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "absent_claim",
+     "expected_check": "truth_status",
+     "fired": true,
+     "word": 50397189,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "class_root",
+     "expected_check": "root_match",
+     "fired": true,
+     "word": 34078721,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "stage1_root",
+     "expected_check": "root_match",
+     "fired": true,
+     "word": 34078722,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "channel_cursor",
+     "expected_check": "channel_order",
+     "fired": true,
+     "word": 16842755,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "pcs_header",
+     "expected_check": "pcs_status",
+     "fired": true,
+     "word": 34013185,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "oods_sample",
+     "expected_check": "truth_oods",
+     "fired": true,
+     "word": 50855940,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "oods_composition",
+     "expected_check": "truth_oods",
+     "fired": true,
+     "word": 50855940,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "encode_capacity",
+     "expected_check": "encode_bounds",
+     "fired": true,
+     "word": 17039361,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "encode_value",
+     "expected_check": "encode_bounds",
+     "fired": true,
+     "word": 17039364,
+     "error_name": "DeviceTruthCheckRejected"
+    }
+   ],
+   "error_name": ""
+  },
+  {
+   "ordinal": 8,
+   "truth_index": 4,
+   "family": "secp_row",
+   "kind": "delegated",
+   "log": 14,
+   "calls": 14001,
+   "compact_words": 336024,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 24.990432739257812,
+   "stage1_wait_ns": 3889385,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 143685504,
+   "stage1_declared_words": 145258945,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "device_check_equal": true,
+   "device_oods_evaluated": [
+    1211287975,
+    1305371702,
+    114227604,
+    1533903717,
+    1000768567,
+    1778524080,
+    1832210322,
+    307530838
+   ],
+   "host_oods_evaluated": [
+    1211287975,
+    1305371702,
+    114227604,
+    1533903717,
+    1000768567,
+    1778524080,
+    1832210322,
+    307530838
+   ],
+   "device_bytes_equal": true,
+   "device_runs": 2,
+   "device_gpu_ms": [
+    3.408895969390869,
+    3.4109439849853516,
+    3.4211840629577637,
+    -1
+   ],
+   "finish_ns": [
+    106177573,
+    745699,
+    691679,
+    0
+   ],
+   "oods_nodes": 47035,
+   "oods_levels": 42,
+   "oods_descriptor_words": 189418,
+   "encode_program_words": 38732,
+   "max_encoded_bytes": 1824080,
+   "legacy_bytes": 1519396,
+   "job_bytes": 1519396,
+   "stage2_gpu_ms": [
+    85.47433471679688,
+    84.5506591796875,
+    84.5195541381836,
+    -1
+   ],
+   "stage2_stage_ns": [
+    937839,
+    354529,
+    259990,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    44788912,
+    43875964,
+    43879273,
+    0
+   ],
+   "stage2_wait_ns": [
+    40974177,
+    40902277,
+    40858027,
+    0
+   ],
+   "stage2_assemble_ns": 105268104,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 541586048,
+   "stage2_declared_words": 619653321,
+   "class_build_ns": 173476815,
+   "negatives": [],
+   "error_name": ""
+  },
+  {
+   "ordinal": 9,
+   "truth_index": 5,
+   "family": "sha256",
+   "kind": "delegated",
+   "log": 12,
+   "calls": 3157,
+   "compact_words": 75768,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 21.338464736938477,
+   "stage1_wait_ns": 4586095,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 182541056,
+   "stage1_declared_words": 182935127,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "device_check_equal": true,
+   "device_oods_evaluated": [
+    1562658021,
+    1835613009,
+    492114294,
+    586712200,
+    1471285959,
+    586052933,
+    1806150734,
+    686175796
+   ],
+   "host_oods_evaluated": [
+    1562658021,
+    1835613009,
+    492114294,
+    586712200,
+    1471285959,
+    586052933,
+    1806150734,
+    686175796
+   ],
+   "device_bytes_equal": true,
+   "device_runs": 2,
+   "device_gpu_ms": [
+    10.701824188232422,
+    10.710016250610352,
+    10.72435188293457,
+    -1
+   ],
+   "finish_ns": [
+    148865428,
+    963979,
+    968868,
+    0
+   ],
+   "oods_nodes": 133523,
+   "oods_levels": 45,
+   "oods_descriptor_words": 543145,
+   "encode_program_words": 52227,
+   "max_encoded_bytes": 2251944,
+   "legacy_bytes": 2007624,
+   "job_bytes": 2007624,
+   "stage2_gpu_ms": [
+    79.04102325439453,
+    80.67561340332031,
+    78.78099060058594,
+    -1
+   ],
+   "stage2_stage_ns": [
+    879228,
+    379199,
+    229270,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    52957642,
+    54499960,
+    52548162,
+    0
+   ],
+   "stage2_wait_ns": [
+    26395686,
+    26409506,
+    26468226,
+    0
+   ],
+   "stage2_assemble_ns": 147596950,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 185766272,
+   "stage2_declared_words": 274011103,
+   "class_build_ns": 222938632,
+   "negatives": [],
+   "error_name": ""
+  },
+  {
+   "ordinal": 10,
+   "truth_index": 6,
+   "family": "arith256_mod",
+   "kind": "delegated",
+   "log": 8,
+   "calls": 25,
+   "compact_words": 1000,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 1.5360000133514404,
+   "stage1_wait_ns": 626409,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 640320,
+   "stage1_declared_words": 665527,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "device_check_equal": true,
+   "device_oods_evaluated": [
+    636288156,
+    1399414114,
+    560507054,
+    1079808159,
+    1901862118,
+    160903561,
+    276867115,
+    871102257
+   ],
+   "host_oods_evaluated": [
+    636288156,
+    1399414114,
+    560507054,
+    1079808159,
+    1901862118,
+    160903561,
+    276867115,
+    871102257
+   ],
+   "device_bytes_equal": true,
+   "device_runs": 2,
+   "device_gpu_ms": [
+    0.9953280091285706,
+    0.9707520008087158,
+    0.9564160108566284,
+    -1
+   ],
+   "finish_ns": [
+    26885385,
+    172050,
+    174759,
+    0
+   ],
+   "oods_nodes": 11317,
+   "oods_levels": 41,
+   "oods_descriptor_words": 45679,
+   "encode_program_words": 9890,
+   "max_encoded_bytes": 565888,
+   "legacy_bytes": 395212,
+   "job_bytes": 395212,
+   "stage2_gpu_ms": [
+    12.274911880493164,
+    11.907615661621094,
+    12.677791595458984,
+    -1
+   ],
+   "stage2_stage_ns": [
+    241570,
+    83420,
+    72070,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    5438743,
+    5601882,
+    6340812,
+    0
+   ],
+   "stage2_wait_ns": [
+    6994581,
+    6455762,
+    6478392,
+    0
+   ],
+   "stage2_assemble_ns": 26624105,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 2284224,
+   "stage2_declared_words": 2523157,
+   "class_build_ns": 32733827,
+   "negatives": [],
+   "error_name": ""
+  }
+ ]
+}

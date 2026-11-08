@@ -33,9 +33,14 @@ pub fn main() !void {
     }
     if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], "combined-serve")) {
         if (arguments.len != 4) return error.ExpectedCombinedServeManifestAndSpool;
-        // M8 job runtime (STWO_RV64_M8_JOBS=1). Unset keeps today's path unchanged.
-        const jobs = @import("rv64/jobs/mod.zig");
-        if (try jobs.selected()) return jobs.serve(a, library, arguments[2], arguments[3], .{});
+        // M8 request feeder (STWO_RV64_M8_JOBS=1): the resident service with
+        // every proof a job (rv64/m8_feeder.zig). Unset keeps today's path.
+        _ = try @import("rv64/jobs/mod.zig").selected();
+        // M8 GPU-native (STWO_RV64_M8_GPU_NATIVE=1, requires JOBS=1): the
+        // jobs/driver_ge.zig service (streamed GE capture -> driver, one host
+        // wait per request). Missing class/factory hooks fail closed;
+        // unset keeps the feeder/legacy path.
+        if (try @import("rv64/jobs/driver.zig").selected(posixEnv)) return @import("rv64/jobs/driver_ge.zig").serve(a, library, arguments[2], arguments[3], @import("rv64/m8_class_build_composition.zig"));
         return @import("rv64/resident_batch.zig").runServe(a, library, arguments[2], arguments[3]);
     }
     const planned_text = (try env(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS")) orelse return error.CombinedRequiresResidentPlan;
@@ -99,4 +104,8 @@ test "combined entry publication uses a descriptor that supports durability" {
     const bytes = try temporary.dir.readFileAlloc(a, "combined-entry.json", 1024);
     defer a.free(bytes);
     try std.testing.expectEqualStrings("{\"accepted\":true}", bytes);
+}
+
+fn posixEnv(name: []const u8) ?[]const u8 {
+    return std.posix.getenv(name);
 }

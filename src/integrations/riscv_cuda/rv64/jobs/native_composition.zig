@@ -168,6 +168,11 @@ pub const Plan = struct {
     // Staged in phase 1.
     tw_device: ?api.DeviceBuffer = null,
     table_device: ?api.DeviceBuffer = null,
+    /// `detach`: class slices (masks, claim slots, FIXED indices) copied into
+    /// plan-owned storage, so a cached plan outlives the Roles it was built from.
+    owned_words: std.ArrayListUnmanaged([]u32) = .empty,
+    owned_slots: std.ArrayListUnmanaged([]ClaimSlot) = .empty,
+    detached: bool = false,
 
     pub fn chunkLog(self: *const Plan) u32 {
         return self.log - self.split;
@@ -360,7 +365,71 @@ pub const Plan = struct {
         for (self.roles) |*r| freeRole(self.a, r);
         if (self.roles.len != 0) self.a.free(self.roles);
         self.freeShared();
+        for (self.owned_words.items) |w| self.a.free(w);
+        self.owned_words.deinit(self.a);
+        for (self.owned_slots.items) |w| self.a.free(w);
+        self.owned_slots.deinit(self.a);
         self.* = undefined;
+    }
+
+    /// Class-cache form (M8 GPU-native framing cache, rv64-m8-gpu-native.md
+    /// §3.1, H9): make the plan independent of the RoleSpec storage it was
+    /// built from. Class slices are copied; each role's `parameters` and `hc`
+    /// become views of the plan's own staged table (the only per-request
+    /// words, rewritten by `rebind`).
+    pub fn detach(self: *Plan) !void {
+        if (self.detached) return;
+        // Capacity first: once a copy is appended the plan owns it (deinit
+        // frees it), so no errdefer may free it again (an OOM on a later
+        // dupe used to double free the earlier copies).
+        try self.owned_words.ensureUnusedCapacity(self.a, 2 * self.roles.len);
+        try self.owned_slots.ensureUnusedCapacity(self.a, self.roles.len);
+        for (self.roles) |*r| {
+            const rs = &r.spec;
+            const masks = try self.a.dupe(u32, rs.mask_columns);
+            self.owned_words.appendAssumeCapacity(masks);
+            rs.mask_columns = masks;
+            if (rs.fixed_indices) |fi| {
+                const copy = try self.a.dupe(u32, fi);
+                self.owned_words.appendAssumeCapacity(copy);
+                rs.fixed_indices = copy;
+            }
+            const slots = try self.a.dupe(ClaimSlot, rs.claim_slots);
+            self.owned_slots.appendAssumeCapacity(slots);
+            rs.claim_slots = slots;
+            rs.parameters = self.table[r.t_params..][0..rs.parameters.len];
+            rs.hc = self.table[r.t_hc..][0..rs.hc.len];
+        }
+        self.detached = true;
+    }
+
+    /// Per-request parameters of a cached class plan: every staged-table word
+    /// other than each role's parameters and hc rows is class geometry
+    /// (fillTable), so rewriting those two spans equals a fresh `init` on the
+    /// same class (test below). `specs` must describe the same class: any
+    /// geometric difference fails closed (the cache key was wrong).
+    pub fn rebind(self: *Plan, specs: []const RoleSpec) !void {
+        if (!self.detached) return error.NativeCompositionNotDetached;
+        if (specs.len != self.roles.len) return error.NativeCompositionClassMismatch;
+        for (self.roles, specs) |*r, rs| if (!sameClass(r.spec, rs)) return error.NativeCompositionClassMismatch;
+        for (self.roles, specs) |*r, rs| {
+            @memcpy(self.table[r.t_params..][0..rs.parameters.len], rs.parameters);
+            @memcpy(self.table[r.t_hc..][0..rs.hc.len], rs.hc);
+        }
+        self.table_device = null;
+        self.tw_device = null;
+    }
+
+    fn sameClass(x: RoleSpec, y: RoleSpec) bool {
+        if (x.id != y.id or x.kernel != y.kernel or x.trace_log != y.trace_log or x.eval_log != y.eval_log or x.aux != y.aux or x.constraints != y.constraints) return false;
+        if (!std.mem.eql(u32, &x.widths, &y.widths) or !std.mem.eql(u32, &x.offsets, &y.offsets)) return false;
+        if (x.parameters.len != y.parameters.len or x.hc.len != y.hc.len) return false;
+        if (!std.mem.eql(u32, x.mask_columns, y.mask_columns)) return false;
+        if ((x.fixed_indices == null) != (y.fixed_indices == null)) return false;
+        if (x.fixed_indices) |fi| if (!std.mem.eql(u32, fi, y.fixed_indices.?)) return false;
+        if (x.claim_slots.len != y.claim_slots.len) return false;
+        for (x.claim_slots, y.claim_slots) |p, q| if (p.parameter != q.parameter or p.claim != q.claim) return false;
+        return true;
     }
 
     pub fn classKey(self: *const Plan) [32]u8 {
@@ -646,6 +715,112 @@ test "native composition plan mirrors the legacy role arena layout and power ord
     try std.testing.expect(plan.tw_offsets[6] != null and plan.tw_offsets[7] != null and plan.tw_offsets[5] != null and plan.tw_offsets[9] != null and plan.tw_offsets[8] != null);
     try std.testing.expectEqual(@as(u32, 7), plan.table[plan.t_commit_desc]);
     try std.testing.expectError(error.WrongNativeCompositionConstraintCount, Plan.init(a, .{ .roles = roles[0..1], .log = 8, .split = 1, .total = 6, .beta = 2, .tree_logs = .{ &fixed_logs, &main_logs, &inter_logs } }));
+}
+
+test "framing cache: a detached plan rebound to new parameters equals a fresh plan" {
+    const a = std.testing.allocator;
+    const fixed_logs = [_]u32{5};
+    const main_logs = [_]u32{ 4, 3 };
+    const inter_logs = [_]u32{ 5, 5 };
+    var params_a: [16]u32 = undefined;
+    var params_b: [16]u32 = undefined;
+    for (&params_a, &params_b, 0..) |*x, *y, i| {
+        x.* = @intCast(100 + i);
+        y.* = @intCast(900 + 3 * i);
+    }
+    var hc_a: [16 * 5]u32 = undefined;
+    var hc_b: [16 * 5]u32 = undefined;
+    for (&hc_a, &hc_b, 0..) |*x, *y, i| {
+        x.* = @intCast(i);
+        y.* = @intCast(7 * i + 1);
+    }
+    const masks = [_]u32{ 0, 1, 3 };
+    const slots = [_]ClaimSlot{.{ .parameter = 1, .claim = 0 }};
+    const Roles = struct {
+        fn of(p: []const u32, hc: []const u32, m: []const u32, s: []const ClaimSlot) [2]RoleSpec {
+            return .{
+                .{ .id = 3, .trace_log = 5, .eval_log = 6, .widths = .{ 1, 2, 1 }, .offsets = .{ 0, 0, 0 }, .parameters = p, .mask_columns = m, .constraints = 4, .claim_slots = s },
+                .{ .id = 7, .trace_log = 5, .eval_log = 7, .widths = .{ 0, 0, 1 }, .offsets = .{ 0, 0, 1 }, .aux = .hc, .hc = hc, .parameters = p[0..8], .mask_columns = m[0..1], .constraints = 2 },
+            };
+        }
+    };
+    const spec = Spec{ .roles = &.{}, .log = 8, .split = 1, .total = 6, .beta = 2, .tree_logs = .{ &fixed_logs, &main_logs, &inter_logs } };
+    // The cached plan is built from storage that is freed before it is reused.
+    const scratch_params = try a.dupe(u32, &params_a);
+    const scratch_hc = try a.dupe(u32, &hc_a);
+    const scratch_masks = try a.dupe(u32, &masks);
+    const scratch_slots = try a.dupe(ClaimSlot, &slots);
+    var cached_spec = spec;
+    const roles_a = Roles.of(scratch_params, scratch_hc, scratch_masks, scratch_slots);
+    cached_spec.roles = &roles_a;
+    var cached = try Plan.init(a, cached_spec);
+    defer cached.deinit();
+    try cached.detach();
+    a.free(scratch_params);
+    a.free(scratch_hc);
+    a.free(scratch_masks);
+    a.free(scratch_slots);
+    const roles_b = Roles.of(&params_b, &hc_b, &masks, &slots);
+    var fresh_spec = spec;
+    fresh_spec.roles = &roles_b;
+    var fresh = try Plan.init(a, fresh_spec);
+    defer fresh.deinit();
+    try std.testing.expect(!std.mem.eql(u32, cached.table, fresh.table));
+    try cached.rebind(&roles_b);
+    try std.testing.expectEqualSlices(u32, fresh.table, cached.table);
+    try std.testing.expectEqualSlices(u8, &fresh.key, &cached.key);
+    try std.testing.expectEqualSlices(u32, &params_b, cached.roles[0].spec.parameters);
+    try std.testing.expectEqualSlices(u32, &masks, cached.roles[0].spec.mask_columns);
+    try std.testing.expectEqual(@as(u32, 1), cached.roles[0].spec.claim_slots[0].parameter);
+    // Any geometric difference fails closed.
+    var other = roles_b;
+    other[1].trace_log = 6;
+    try std.testing.expectError(error.NativeCompositionClassMismatch, cached.rebind(&other));
+    other = roles_b;
+    other[0].mask_columns = masks[0..2];
+    try std.testing.expectError(error.NativeCompositionClassMismatch, cached.rebind(&other));
+    other = roles_b;
+    other[0].claim_slots = &.{};
+    try std.testing.expectError(error.NativeCompositionClassMismatch, cached.rebind(&other));
+    try std.testing.expectError(error.NativeCompositionClassMismatch, cached.rebind(roles_b[0..1]));
+}
+
+test "framing cache: detach under allocation failure neither leaks nor double frees" {
+    const fixed_logs = [_]u32{5};
+    const main_logs = [_]u32{ 4, 3 };
+    const inter_logs = [_]u32{ 5, 5 };
+    var params: [16]u32 = undefined;
+    for (&params, 0..) |*x, i| x.* = @intCast(100 + i);
+    var hc: [16 * 5]u32 = undefined;
+    for (&hc, 0..) |*x, i| x.* = @intCast(i);
+    const masks = [_]u32{ 0, 1, 3 };
+    const fixed_idx = [_]u32{0};
+    const slots = [_]ClaimSlot{.{ .parameter = 1, .claim = 0 }};
+    const roles = [_]RoleSpec{
+        .{ .id = 3, .trace_log = 5, .eval_log = 6, .widths = .{ 1, 2, 1 }, .offsets = .{ 0, 0, 0 }, .fixed_indices = &fixed_idx, .parameters = &params, .mask_columns = &masks, .constraints = 4, .claim_slots = &slots },
+        .{ .id = 7, .trace_log = 5, .eval_log = 7, .widths = .{ 0, 0, 1 }, .offsets = .{ 0, 0, 1 }, .aux = .hc, .hc = &hc, .parameters = params[0..8], .mask_columns = masks[0..1], .constraints = 2 },
+    };
+    const spec = Spec{ .roles = &roles, .log = 8, .split = 1, .total = 6, .beta = 2, .tree_logs = .{ &fixed_logs, &main_logs, &inter_logs } };
+    // Count the allocations of init, then fail every later one in turn.
+    var counting = std.testing.FailingAllocator.init(std.testing.allocator, .{});
+    {
+        var p = try Plan.init(counting.allocator(), spec);
+        p.deinit();
+    }
+    const init_allocs = counting.alloc_index;
+    var fail_at = init_allocs;
+    var failed_detach = false;
+    while (true) : (fail_at += 1) {
+        var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = fail_at });
+        var p = Plan.init(failing.allocator(), spec) catch break;
+        defer p.deinit();
+        p.detach() catch {
+            failed_detach = true;
+            continue;
+        };
+        break;
+    }
+    try std.testing.expect(failed_detach);
 }
 
 test "twiddle region lengths match precomputeM31 (host trees are built only for a fresh region)" {

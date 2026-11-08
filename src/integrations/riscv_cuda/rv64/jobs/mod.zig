@@ -1,5 +1,6 @@
-//! M8 job runtime entry. `combined-serve` routes here when STWO_RV64_M8_JOBS=1
-//! (rv64_combined_ethereum_main.zig); unset or "0" keeps today's path unchanged.
+//! Shared M8 worker runtime and explicit JOBS selection. `combined-serve`
+//! dispatches in rv64_combined_ethereum_main.zig: GPU_NATIVE selects
+//! driver_ge.serve; otherwise resident_batch.runServe owns the feeder path.
 //!
 //! Environment (job path only):
 //!   STWO_RV64_M8_JOBS_LIBRARY        libstwo-rv64-jobs.so (addon, required)
@@ -46,6 +47,8 @@ pub const Config = struct {
     pinned_slot_words: usize,
     /// worker.Config.pinned_lazy (grow-only pinned slots; `pinned_slot_words` is the cap).
     pinned_lazy: bool = false,
+    /// worker.Config.reuse_frees (non-LIFO frees reclaimed; native-hybrid).
+    reuse_frees: bool = false,
     pub fn fromEnv() !Config {
         var c = Config{
             .arena_words = std.mem.alignBackward(usize, try envBytes("STWO_RV64_M8_JOBS_ARENA_BYTES", 8 << 30) / 4, worker.Arena.granule),
@@ -63,12 +66,7 @@ pub const Config = struct {
     }
 };
 
-/// The request provider (capture + native/truth/outer job factories + seal +
-/// publication). Integrated here as the native-job and outer-job streams land.
-fn provider(_: std.mem.Allocator, _: []const *worker.Worker) !request.Provider {
-    std.log.err("STWO_RV64_M8_JOBS=1: the job runtime booted, but the native/outer job providers have not landed yet", .{});
-    return error.M8RequestProviderNotLanded;
-}
+pub const feeder = @import("provider.zig");
 
 const Boot = struct {
     result: ?anyerror!void = null,
@@ -96,16 +94,6 @@ fn selfTest(a: std.mem.Allocator, workers: []const *worker.Worker) !void {
     }
 }
 
-/// Host-side helpers composed OUTSIDE rv64/jobs/ (their import closures reach
-/// legacy owner-path files, which the sync lint forbids under jobs/). The
-/// combined-serve entry passes them in; jobs/ code only calls the pointers,
-/// in pre-stage/stage, never from enqueue. Typed as each provider lands.
-pub const Hooks = struct {
-    /// outer-job pre-stage (host graph/tape preparation ahead of phase 1).
-    outer_prestage: ?*const anyopaque = null,
-    outer_prestage_ctx: ?*anyopaque = null,
-};
-
 /// The job runtime's devices: libraries + one booted, self-tested worker per
 /// STWO_RV64_GPU_DEVICES entry. Usable by any entry (serve, or a legacy entry
 /// that hands workers to job-backed factories).
@@ -127,7 +115,7 @@ pub const WorkerSet = struct {
         self.* = .{ .libs = try ops.Libraries.open(library, addon) };
         errdefer self.stopWorkers();
         for (config.devices[0..config.device_count]) |device| {
-            self.workers[self.count] = try worker.Worker.create(a, &self.libs.ops, .{ .device = device, .arena_words = config.arena_words, .pinned_slot_words = config.pinned_slot_words, .pinned_lazy = config.pinned_lazy });
+            self.workers[self.count] = try worker.Worker.create(a, &self.libs.ops, .{ .device = device, .arena_words = config.arena_words, .pinned_slot_words = config.pinned_slot_words, .pinned_lazy = config.pinned_lazy, .reuse_frees = config.reuse_frees });
             self.count += 1;
         }
         try selfTest(a, self.slice());
@@ -237,16 +225,6 @@ pub const WorkerSet = struct {
     }
 };
 
-pub fn serve(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, spool: []const u8, hooks: Hooks) !void {
-    _ = hooks;
-    _ = manifest_path; // the provider reads the manifest (blocks, profile) when it lands
-    var timer = try std.time.Timer.start();
-    const set = try WorkerSet.start(a, library);
-    defer set.stop(a);
-    const p = try provider(a, set.slice());
-    try request.serve(a, p, set.slice(), spool, timer.read());
-}
-
 /// Measured class plans of every worker (declared vs measured peak words).
 pub fn writePlans(a: std.mem.Allocator, workers: []const *worker.Worker, path: []const u8) !void {
     const Row = struct { device: u32, class_key: [64]u8, stat: worker.ClassStat };
@@ -268,8 +246,7 @@ test "selection is explicit and fails closed" {
     try std.testing.expect(!(try selected()));
 }
 
-test "service entry points are analyzed" {
-    _ = &serve;
+test "worker lifecycle entry points are analyzed" {
     _ = &WorkerSet.start;
     _ = &WorkerSet.startWith;
     _ = &WorkerSet.stop;

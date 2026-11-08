@@ -1,0 +1,319 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "observed_utc": "2026-11-08T02:35:00Z",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-35/gate.json",
+      "sha256": "58f0afbef35aff5673c2085292f0117cfba5a04dd49cd53402549109a09bfd5c",
+      "status": "PASS",
+      "block": 24628607,
+      "driver_sha256": "72cf8b9cd3435c20ce812d231fac8de049ec91523f736528b3b82b9f7e95efd3",
+      "receiver_sha256": "d1e9f64b60da5c3d630963d83daf2a6545f81ef298022fc9130184d1f8b6694c",
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ],
+      "parity": [
+        {
+          "artifact_count": 39,
+          "byte_identical": true
+        },
+        {
+          "artifact_count": 39,
+          "byte_identical": true
+        }
+      ],
+      "receivers": [
+        {
+          "accepted": true,
+          "exit_code": 0,
+          "path": "/workspace/m3/runs/m8-gn-bind/daemon-24628607-r2-gate-gate-35-00-baseline/receiver-24628607-0000-24628607-20261108T020944"
+        },
+        {
+          "accepted": true,
+          "exit_code": 0,
+          "path": "/workspace/m3/runs/m8-gn-bind/daemon-24628607-r2-gate-gate-35-00-baseline/receiver-24628607-0001-24628607-20261108T021025"
+        }
+      ],
+      "corpus": {
+        "ran": 19,
+        "passed": 19,
+        "unexpected_accepts": [],
+        "crashes": [],
+        "nonsemantic_rejects": {}
+      }
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-36/gate.json",
+      "sha256": "a577400d9c80316537211a7320c0269aa309afe7b5e00ba7959405c9dea875c5",
+      "status": "PASS",
+      "block": 26235156,
+      "driver_sha256": "72cf8b9cd3435c20ce812d231fac8de049ec91523f736528b3b82b9f7e95efd3",
+      "receiver_sha256": "d1e9f64b60da5c3d630963d83daf2a6545f81ef298022fc9130184d1f8b6694c",
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ],
+      "parity": [
+        {
+          "artifact_count": 32,
+          "byte_identical": true
+        },
+        {
+          "artifact_count": 32,
+          "byte_identical": true
+        }
+      ],
+      "receivers": [
+        {
+          "accepted": true,
+          "exit_code": 0,
+          "path": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-36-00-baseline/receiver-26235156-0000-26235156-20261108T022212"
+        },
+        {
+          "accepted": true,
+          "exit_code": 0,
+          "path": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-36-00-baseline/receiver-26235156-0001-26235156-20261108T022243"
+        }
+      ],
+      "corpus": {
+        "ran": 19,
+        "passed": 19,
+        "unexpected_accepts": [],
+        "crashes": [],
+        "nonsemantic_rejects": {
+          "V04-cross-block-root": "resource"
+        }
+      }
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/gate-37/gate.json",
+      "sha256": "a14a2abde81054f6737295e1ade79ed3da3bd507c700cd15e71538bd122694f3",
+      "status": "PASS",
+      "block": 26235156,
+      "driver_sha256": "5d7f9f03c5f7af066ef41ff9abd2526fa38e74229ce03027dcee74ffe5fdc3db",
+      "receiver_sha256": "2abf6480ab127e2990c678312d9e46bebb37c9cc66442b22b3e8063441523457",
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ],
+      "parity": [
+        {
+          "artifact_count": 32,
+          "byte_identical": true
+        },
+        {
+          "artifact_count": 32,
+          "byte_identical": true
+        }
+      ],
+      "receivers": [
+        {
+          "accepted": true,
+          "exit_code": 0,
+          "path": "/workspace/m3/runs/m8-gn-codec/daemon-26235156-r2-gate-gate-37-00-baseline/receiver-26235156-0000-26235156-20261108T021943"
+        },
+        {
+          "accepted": true,
+          "exit_code": 0,
+          "path": "/workspace/m3/runs/m8-gn-codec/daemon-26235156-r2-gate-gate-37-00-baseline/receiver-26235156-0001-26235156-20261108T022014"
+        }
+      ],
+      "corpus": {
+        "ran": 19,
+        "passed": 19,
+        "unexpected_accepts": [],
+        "crashes": [],
+        "nonsemantic_rejects": {
+          "V04-cross-block-root": "resource"
+        }
+      }
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/gate-38/gate.json",
+      "sha256": "9f9467d882eab9800e35cf9c1776038144367c66e386fa81a46294c211a7b5a4",
+      "status": "PASS",
+      "block": 24628607,
+      "driver_sha256": "5d7f9f03c5f7af066ef41ff9abd2526fa38e74229ce03027dcee74ffe5fdc3db",
+      "parity": [
+        {
+          "artifact_count": 39,
+          "byte_identical": true
+        },
+        {
+          "artifact_count": 39,
+          "byte_identical": true
+        }
+      ],
+      "receivers": [
+        {
+          "accepted": true,
+          "exit_code": 0
+        },
+        {
+          "accepted": true,
+          "exit_code": 0
+        }
+      ],
+      "corpus": {
+        "ran": 19,
+        "passed": 19,
+        "unexpected_accepts": [],
+        "crashes": [],
+        "nonsemantic_rejects": {}
+      }
+    }
+  ],
+  "parser": {
+    "path": "/workspace/m3/runs/m8-gn-bind/bench-parser-1/parsed.json",
+    "sha256": "4b6734722c4739e02290d7193ccafa4cbc07b5df73c8bf5c9a949de138520ed7",
+    "result": {
+      "schema": "rv64-native-basket-parser-check/v1",
+      "source_sha256": "083bf9a3e719a7714727aa173a400eb22761b6eb60a57b369097b1a78a02fac7",
+      "producer_stderr_sha256": "690f9b1b3869247ddabc89af52ad317a80293f497c4c1de572b3c302f3c7aa18",
+      "legacy_install_markers_discarded": 1,
+      "request_count": 2,
+      "scope": "Offline replay of correctness-run receipts; not a canonical performance experiment",
+      "rows": [
+        {
+          "ordinal": 0,
+          "proving_s": 10.4584,
+          "request_s": 10.4644,
+          "capture_s": null,
+          "setup_s": null,
+          "native_window_s": null,
+          "recursion_after_native_s": null,
+          "tail_s": null,
+          "nodes": 19,
+          "root_proof_bytes": null,
+          "jobs": {},
+          "driver": {
+            "host_waits": 1,
+            "d2h": 2,
+            "d2h_bytes": 115577856,
+            "device_span_s": [
+              10.0311,
+              10.0291
+            ],
+            "device_enqueue_s": [
+              9.6539,
+              9.6538
+            ],
+            "device_gate_s": [
+              5.0134,
+              4.5119
+            ],
+            "memory_serializations": [
+              0,
+              1
+            ],
+            "scope": "Driver counters and CUDA-event spans; not a CUDA API census or a physical peak"
+          }
+        },
+        {
+          "ordinal": 1,
+          "proving_s": 10.7099,
+          "request_s": 10.7122,
+          "capture_s": null,
+          "setup_s": null,
+          "native_window_s": null,
+          "recursion_after_native_s": null,
+          "tail_s": null,
+          "nodes": 19,
+          "root_proof_bytes": null,
+          "jobs": {},
+          "driver": {
+            "host_waits": 1,
+            "d2h": 2,
+            "d2h_bytes": 115577856,
+            "device_span_s": [
+              10.2517,
+              10.2498
+            ],
+            "device_enqueue_s": [
+              9.8743,
+              9.8742
+            ],
+            "device_gate_s": [
+              5.2236,
+              4.74
+            ],
+            "memory_serializations": [
+              0,
+              1
+            ],
+            "scope": "Driver counters and CUDA-event spans; not a CUDA API census or a physical peak"
+          }
+        }
+      ]
+    }
+  },
+  "scope": "Default andGPU-native bothdevblocks fullgatesPASS. Samecore source, path-specific binaries pinned. Pythonharness42testsPASSplus actualparserreplay; exact-commitgate39plannedbeforepush. Notfullgoal.",
+  "claim_boundary": "Correctnessmilestoneonly;262V04resourcecaveat. No canonicalspeedup,productionnewblock,physicalpeak,basket,graphorfullM9/M10claim. FlagsremainOFF."
+}

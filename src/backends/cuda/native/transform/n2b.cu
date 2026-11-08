@@ -1,4 +1,5 @@
 #include "../common/circle_twiddle.cuh"
+#include "fft_small.cuh"
 #include "n2b_fused.cuh"
 #include "n2b_smem.cuh"
 #include "transform_internal.cuh"
@@ -186,6 +187,18 @@ cudaError_t n2b_columns_on(
             (pair_count + kThreadsPerBlock - 1u) / kThreadsPerBlock;
         const uint32_t final_stage =
             include_circle ? log_n : log_n - 1u;
+        if (fft_small_enabled(log_n)) {
+            // One shared-memory pass instead of final_stage launches.
+            M31 *slab_base =
+                field_columns + static_cast<size_t>(base) * column_stride_words;
+            const cudaError_t status = launch_fft_small<false, false>(
+                {slab_base, column_stride_words},
+                {slab_base, column_stride_words},
+                log_n, chunk, 1u, final_stage, domain_twiddles, stream);
+            if (status != cudaSuccess) return status;
+            ++*launches_out;
+            continue;
+        }
         uint32_t layer_size = 1;
         uint32_t layer_offset = pair_count - 2u;
         for (uint32_t stage = 1; stage <= final_stage; ++stage) {

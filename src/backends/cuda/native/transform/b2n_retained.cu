@@ -1,5 +1,6 @@
 #include "../common/circle_twiddle.cuh"
 #include "b2n_fused.cuh"
+#include "fft_small.cuh"
 #include "transform_internal.cuh"
 
 // Qualified multi-stage intervals from pinned ifft.cu drive production logs;
@@ -97,6 +98,22 @@ cudaError_t launch_columns(
             static_cast<size_t>(base) * input_column_stride_words;
         auto *chunk_outputs = reinterpret_cast<M31 *>(outputs) +
             static_cast<size_t>(base) * output_column_stride_words;
+        if (b2n_wide_supported(log_n) && b2n_wide_enabled()) {
+            // Two HBM passes (contiguous 13 stages + strided high stages)
+            // instead of the three-interval schedule.
+            const cudaError_t status =
+                launch_b2n_wide<DuplicateToRetained, 0u>(
+                    {chunk_inputs, input_column_stride_words},
+                    {chunk_outputs, output_column_stride_words},
+                    {nullptr, 0},
+                    log_n,
+                    chunk,
+                    inverse_twiddles,
+                    stream);
+            if (status != cudaSuccess) return status;
+            *launches_out += 2;
+            continue;
+        }
         if (log_n >= kFirstFusedLogN && log_n <= kLastFusedLogN) {
             const TransformSchedule &schedule =
                 kB2nSchedules[log_n - kFirstFusedLogN];
@@ -145,6 +162,17 @@ cudaError_t launch_columns(
             continue;
         }
 
+        if (fft_small_enabled(log_n)) {
+            // One shared-memory pass instead of log_n launches.
+            const cudaError_t status =
+                launch_fft_small<true, DuplicateToRetained>(
+                    {chunk_inputs, input_column_stride_words},
+                    {chunk_outputs, output_column_stride_words},
+                    log_n, chunk, 1u, log_n, inverse_twiddles, stream);
+            if (status != cudaSuccess) return status;
+            ++*launches_out;
+            continue;
+        }
         b2n_stage<false><<<
             dim3(blocks, chunk),
             kThreadsPerBlock,

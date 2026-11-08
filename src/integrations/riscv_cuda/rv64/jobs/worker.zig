@@ -23,6 +23,8 @@ const O = @import("ops.zig");
 const Channel = @import("channel.zig");
 const Slab = @import("slab.zig");
 const MP = @import("plan.zig");
+const Retained = @import("retained.zig");
+const JobTiming = @import("job_timing.zig");
 
 pub const Config = struct {
     device: u32,
@@ -53,6 +55,9 @@ pub const Config = struct {
     /// behavior). A persistent service sets it: the allocation is paid once
     /// per process, sized by what jobs really stage.
     pinned_lazy: bool = false,
+    /// Cap on request-scoped retained regions (retained.zig; 0 = accounted,
+    /// uncapped). A policy's gpu.retained_budget_words fills it when 0.
+    retained_budget_words: usize = 0,
 };
 
 /// Lazy pinned slots grow in steps of this many words (16 MiB).
@@ -69,6 +74,8 @@ pub const ParkReceipt = struct {
     epoch: u64 = 0,
     /// unpark: the arena landed at the same base and size as before the park.
     same_base: bool = false,
+    /// Retained (request-scoped) words still live after the control step.
+    retained_words: usize = 0,
 };
 
 pub const ParkOptions = struct {
@@ -76,6 +83,9 @@ pub const ParkOptions = struct {
     /// Their contents are lost (every key is fresh again) and the persistent
     /// epoch advances. Default: keep them (warm class regions across requests).
     release_persistent: bool = false,
+    /// Also release every live request-scoped retained region (all requests).
+    /// Default: retained regions survive a park (they are not in the arena).
+    release_retained: bool = false,
 };
 
 /// Measured per-class plan (spec §3.7 hook): what the class actually used,
@@ -126,188 +136,7 @@ pub const Sink = struct {
     done: *const fn (*anyopaque, api.Completion) void,
 };
 
-/// Two-sided allocator over one device allocation (pure bookkeeping).
-///
-/// The work window of the job on side S is addressed by offsets from S's
-/// origin (bottom: grows up from `work_first`; top: grows down from
-/// `work_end`). A bump `bump` marks its high-water; with `reuse` a free that
-/// is not the most recent allocation becomes a hole that later allocations of
-/// the same job take best-fit (stream-ordered: every consumer of the freed
-/// range was enqueued before, on the same exec stream). Without `reuse` only
-/// LIFO frees are reclaimed (today's behavior). Either way the sequence of
-/// addresses is a pure function of the job's allocation sequence and side,
-/// so a captured graph replays for the next job of the class on that side.
-pub const Arena = struct {
-    base: usize = 0,
-    words: usize = 0,
-    staged: [2]usize = .{ 0, 0 },
-    work_side: api.Placement = .bottom,
-    work_first: usize = 0, // inclusive lower bound of the work window
-    work_end: usize = 0, // exclusive upper bound
-    bump: usize = 0, // offset high-water mark from the work side's origin
-    /// Own staged inputs + bump high-water (what the window had to hold).
-    peak: usize = 0,
-    live: usize = 0,
-    /// Own staged inputs + live high-water (perfect-free bound).
-    live_peak: usize = 0,
-    allocs: usize = 0,
-    peak_alloc: usize = 0,
-    peak_alloc_words: usize = 0,
-    reuse: bool = false,
-    holes: [max_holes]Hole = undefined,
-    hole_count: usize = 0,
-    /// Frees not recorded because the hole table was full (reclaimed at window reset).
-    dropped_holes: usize = 0,
-
-    pub const max_holes = 64;
-    pub const Hole = struct { off: usize, len: usize };
-
-    fn side(p: api.Placement) usize {
-        return @intFromEnum(p);
-    }
-    pub fn beginStage(self: *Arena, placement: api.Placement) void {
-        self.staged[side(placement)] = 0;
-    }
-    /// Allocations are rounded to 64 words (256 bytes) so every kernel's
-    /// vector/u64 alignment assumption holds for arena sub-ranges.
-    pub const granule: usize = 64;
-    pub fn stageAlloc(self: *Arena, placement: api.Placement, requested: usize) !usize {
-        if (requested == 0) return error.InvalidAllocation;
-        const words = std.mem.alignForward(usize, requested, granule);
-        const s = side(placement);
-        const used = self.staged[0] + self.staged[1];
-        if (words > self.words - used) return error.StagedInputsExceedArena;
-        self.staged[s] += words;
-        return if (placement == .bottom) self.base + 4 * (self.staged[s] - words) else self.base + 4 * (self.words - self.staged[s]);
-    }
-    /// `other_staged`: whether a job is currently staged on the other side.
-    pub fn beginWork(self: *Arena, placement: api.Placement, other_staged: bool) void {
-        const other = side(placement.other());
-        if (!other_staged) self.staged[other] = 0;
-        self.work_side = placement;
-        self.work_first = self.staged[0];
-        self.work_end = self.words - self.staged[1];
-        self.bump = 0;
-        self.live = 0;
-        self.hole_count = 0;
-        self.dropped_holes = 0;
-        self.allocs = 0;
-        self.peak_alloc = 0;
-        self.peak_alloc_words = 0;
-        self.peak = self.staged[side(placement)];
-        self.live_peak = self.peak;
-    }
-    fn limit(self: *const Arena) usize {
-        return self.work_end - self.work_first;
-    }
-    fn wordAt(self: *const Arena, off: usize, words: usize) usize {
-        return if (self.work_side == .bottom) self.work_first + off else self.work_end - off - words;
-    }
-    pub fn workAlloc(self: *Arena, requested: usize) !usize {
-        if (requested == 0) return error.InvalidAllocation;
-        const words = std.mem.alignForward(usize, requested, granule);
-        const off = if (self.reuse) self.takeHole(words) orelse try self.bumpBy(words) else try self.bumpBy(words);
-        self.allocs += 1;
-        self.live += words;
-        self.note(words);
-        return self.base + 4 * self.wordAt(off, words);
-    }
-    fn bumpBy(self: *Arena, words: usize) !usize {
-        if (words > self.limit() - self.bump) return error.JobWorkExceedsArena;
-        const at = self.bump;
-        self.bump += words;
-        return at;
-    }
-    /// Best fit (smallest hole that fits; lowest offset on ties), from the hole's start.
-    fn takeHole(self: *Arena, words: usize) ?usize {
-        var best: ?usize = null;
-        for (self.holes[0..self.hole_count], 0..) |h, i| {
-            if (h.len < words) continue;
-            if (best == null or h.len < self.holes[best.?].len) best = i;
-        }
-        const i = best orelse return null;
-        const at = self.holes[i].off;
-        self.holes[i].off += words;
-        self.holes[i].len -= words;
-        if (self.holes[i].len == 0) self.removeHole(i);
-        return at;
-    }
-    fn removeHole(self: *Arena, i: usize) void {
-        std.mem.copyForwards(Hole, self.holes[i .. self.hole_count - 1], self.holes[i + 1 .. self.hole_count]);
-        self.hole_count -= 1;
-    }
-    /// Stream-ordered free. The most recent allocation always retracts the
-    /// bump; with `reuse` any other live range becomes a reusable hole.
-    pub fn workFree(self: *Arena, address: usize, requested: usize) void {
-        const words = std.mem.alignForward(usize, requested, granule);
-        if (address < self.base or (address - self.base) % 4 != 0) return;
-        const at = (address - self.base) / 4;
-        const off = if (self.work_side == .bottom) blk: {
-            if (at < self.work_first) return;
-            break :blk at - self.work_first;
-        } else blk: {
-            if (at > self.work_end or words > self.work_end - at) return;
-            break :blk self.work_end - at - words;
-        };
-        if (off + words > self.bump) return; // never allocated in this window
-        if (off + words == self.bump) {
-            self.bump = off;
-            self.live -|= words;
-            // Holes now touching the bump are free tail: retract over them.
-            while (self.hole_count != 0) {
-                const last = self.holes[self.hole_count - 1];
-                if (last.off + last.len != self.bump) break;
-                self.bump = last.off;
-                self.hole_count -= 1;
-            }
-            return;
-        }
-        if (!self.reuse) {
-            self.live -|= words; // dead, reclaimed when the window resets
-            return;
-        }
-        if (self.insertHole(off, words)) self.live -|= words;
-    }
-    /// Sorted, coalesced; rejects a range overlapping an existing hole (double free).
-    fn insertHole(self: *Arena, off: usize, len: usize) bool {
-        var i: usize = 0;
-        while (i < self.hole_count and self.holes[i].off < off) : (i += 1) {}
-        if (i > 0 and self.holes[i - 1].off + self.holes[i - 1].len > off) return false;
-        if (i < self.hole_count and off + len > self.holes[i].off) return false;
-        const joins_prev = i > 0 and self.holes[i - 1].off + self.holes[i - 1].len == off;
-        const joins_next = i < self.hole_count and off + len == self.holes[i].off;
-        if (joins_prev and joins_next) {
-            self.holes[i - 1].len += len + self.holes[i].len;
-            self.removeHole(i);
-        } else if (joins_prev) {
-            self.holes[i - 1].len += len;
-        } else if (joins_next) {
-            self.holes[i].off = off;
-            self.holes[i].len += len;
-        } else {
-            if (self.hole_count == max_holes) {
-                self.dropped_holes += 1;
-                return true;
-            }
-            std.mem.copyBackwards(Hole, self.holes[i + 1 .. self.hole_count + 1], self.holes[i..self.hole_count]);
-            self.holes[i] = .{ .off = off, .len = len };
-            self.hole_count += 1;
-        }
-        return true;
-    }
-    fn note(self: *Arena, words: usize) void {
-        const own = self.staged[side(self.work_side)];
-        if (own + self.bump > self.peak) {
-            self.peak = own + self.bump;
-            self.peak_alloc = self.allocs;
-            self.peak_alloc_words = words;
-        }
-        self.live_peak = @max(self.live_peak, own + self.live);
-    }
-    pub fn contains(self: *const Arena, address: usize, words: usize) bool {
-        return address >= self.base and (address - self.base) % 4 == 0 and (address - self.base) / 4 <= self.words and words <= self.words - (address - self.base) / 4;
-    }
-};
+pub const Arena = @import("arena.zig").Arena;
 
 /// Class-persistent regions in one pool (Stager.persistent with a budget):
 /// first-fit placement, LRU eviction of regions no in-flight job pins. Pure
@@ -399,6 +228,7 @@ pub const Regions = struct {
 };
 
 const Slot = struct {
+    request_parity: ?u1 = null,
     job: api.Job = undefined,
     sink: Sink = undefined,
     seq: u64 = 0,
@@ -419,12 +249,20 @@ const Slot = struct {
     slab: Slab.ProofSlab = undefined,
     slab_host: []u32 = &.{},
     /// Persistent entries this job created (fresh); dropped if the job fails.
-    fresh_keys: [8][32]u8 = undefined,
+    // 64: a native-hybrid Stage2 job fills one twiddle key per global log, plus INTER/composition/PCS keys.
+    fresh_keys: [64][32]u8 = undefined,
     fresh_count: usize = 0,
     /// Pool regions this job pinned (one unpin each when it leaves the pipeline).
-    pinned_keys: [16][32]u8 = undefined,
+    pinned_keys: [64][32]u8 = undefined,
     pinned_count: usize = 0,
     persistent_words: usize = 0,
+    /// Request-scoped retained regions this job pinned (retained.zig); one
+    /// unpin each at report. `retained_fresh`: created by this job.
+    retained_refs: [16]api.DeviceBuffer = undefined,
+    retained_fresh: [16]bool = undefined,
+    retained_count: usize = 0,
+    /// Batch dependencies (GPU-native request batches only).
+    batch_deps: []const *BatchDep = &.{},
     /// Footprint the worker planned with (plan.zig; declared when unplanned).
     resolved: MP.Resolved = MP.declared(.{ .device_words = 0 }),
     /// The job's own declaration (sweep records declared vs measured).
@@ -459,6 +297,7 @@ pub const Worker = struct {
     // loop state (worker thread only)
     staging: ?*Slot = null,
     enqueuing: ?*Slot = null,
+    warm_persistent_only: bool = false,
     last_enqueued: ?*Slot = null,
     next_seq: u64 = 0,
     // submission (any thread)
@@ -499,6 +338,22 @@ pub const Worker = struct {
     control: ?Control = null,
     control_done: bool = false,
     control_result: anyerror!ParkReceipt = .{},
+    // ---- GPU-native request batches (rv64-m8-gpu-native.md §3.7-§3.8) ----
+    /// Per-parity slot pools (events created at install by `reserveBatches`).
+    batch_slots: [2][]Slot = .{ &.{}, &.{} },
+    /// Per-parity request-lifetime pinned pools (bump-allocated per batch).
+    batch_pinned: [2][]u32 = .{ &.{}, &.{} },
+    /// Install-reserved diagnostic events, owned through worker shutdown.
+    timing_pool: JobTiming.Pool = .{},
+    /// Two-phase plan arena (`installPlanArena`): phase A excludes the
+    /// main_resident region above it; phase B grows over it.
+    plan_phase_words: [2]usize = .{ 0, 0 },
+    plan_phase_b: bool = false,
+    /// Stable arena identity per plan phase (A, B): the phase flip happens
+    /// twice per request, and both (base, words) pairs are fixed after
+    /// install, so a graph cache keyed on `arenaEpoch` stays warm across
+    /// requests instead of missing on every flip.
+    plan_phase_epochs: [2]u64 = .{ 0, 0 },
     /// Advances whenever the arena's (base, words) differ from the previous
     /// arena's: device addresses baked into captured graphs are stale.
     arena_epoch: u64 = 0,
@@ -509,9 +364,22 @@ pub const Worker = struct {
     /// Pinned host bytes allocated over the worker's life (lazy growth included).
     pinned_allocated_bytes: u64 = 0,
     pinned_allocations: u64 = 0,
+    /// Request-scoped retained regions (retained.zig). Guarded by `mutex`;
+    /// allocated and freed on the worker thread only (exec-context ledger).
+    retained: Retained.Table = .{},
+    /// Released regions with no pins, waiting for the worker thread's free.
+    retained_pending: std.ArrayListUnmanaged(api.DeviceBuffer) = .empty,
+    /// The worker thread's id (set first thing in `run`).
+    thread_id: std.Thread.Id = 0,
+    /// Set under `mutex` once the worker thread finished `shutdown`.
+    stopped: bool = false,
 
     const Submission = struct { job: api.Job, sink: Sink, index: u64, declared: api.Footprint, resolved: MP.Resolved };
-    const Control = union(enum) { park: ParkOptions, unpark: usize };
+    const Control = union(enum) { park: ParkOptions, unpark: usize, call: Posted };
+    /// A call and the completion owned by its caller's frame: concurrent
+    /// callers never consume each other's completion (one shared done flag
+    /// let caller B return A's result and pop its Call while B's was queued).
+    const Posted = struct { call: Call, done: *CallDone };
 
     pub fn create(a: std.mem.Allocator, ops: *const O.Ops, config_in: Config) !*Worker {
         var config = config_in;
@@ -523,6 +391,7 @@ pub const Worker = struct {
             // STWO_RV64_M8_JOBS_ARENA_BYTES (operator override) still wins.
             if (std.posix.getenv("STWO_RV64_M8_JOBS_ARENA_BYTES") == null) config.arena_words = @intCast(p.gpu.arena_words);
             if (config.persistent_budget_words == 0) config.persistent_budget_words = @intCast(p.gpu.persistent_budget_words);
+            if (config.retained_budget_words == 0) config.retained_budget_words = @intCast(p.gpu.retained_budget_words);
             // Pinned slots only grow (a harness may need more than any swept class);
             // an explicit STWO_RV64_M8_JOBS_PINNED_BYTES still wins.
             if (std.posix.getenv("STWO_RV64_M8_JOBS_PINNED_BYTES") == null) config.pinned_slot_words = @max(config.pinned_slot_words, @as(usize, @intCast(p.gpu.pinned_slot_words)));
@@ -535,6 +404,7 @@ pub const Worker = struct {
         const self = try a.create(Worker);
         errdefer a.destroy(self);
         self.* = .{ .ops = ops, .config = config, .device_ordinal = config.device, .a = a, .policy = policy, .owned_plan = owned };
+        self.retained.budget_words = config.retained_budget_words;
         self.thread = try std.Thread.spawn(.{}, run, .{self});
         // Startup (context creation) runs on the worker thread; report its outcome.
         self.mutex.lock();
@@ -562,6 +432,8 @@ pub const Worker = struct {
         if (std.posix.getenv(MP.env_plan_dir)) |dir| self.writePlanDir(dir) catch |err| std.log.err("M8 worker class plan output failed: {s}", .{@errorName(err)});
         self.classes.deinit(self.a);
         self.regions.deinit(self.a);
+        self.retained.deinit(self.a);
+        self.retained_pending.deinit(self.a);
         if (self.owned_plan) |p| p.deinit();
         self.a.destroy(self);
     }
@@ -614,6 +486,7 @@ pub const Worker = struct {
             .policy = self.policy != null,
             .persistent = .{ .budget_words = self.config.persistent_budget_words, .regions = self.regions.entries.items.len, .used_words = self.regions.used(), .high_water_words = self.regions.high_water, .evictions = self.regions.evictions, .evicted_words = self.regions.evicted_words, .unbudgeted_regions = if (self.shut_down) self.unbudgeted_regions else self.persistent_map.count() },
             .completed = self.completed,
+            .retained = self.retained.stats,
             .service = .{ .parks = self.parks, .unparks = self.unparks, .arena_epoch = self.arena_epoch, .persistent_epoch = self.persistent_epoch, .pinned_allocated_bytes = self.pinned_allocated_bytes, .pinned_allocations = self.pinned_allocations, .pinned_lazy = self.config.pinned_lazy },
             .classes = rows.items,
         }, .{ .whitespace = .indent_1 }, &text.writer);
@@ -656,7 +529,9 @@ pub const Worker = struct {
         if (self.parked or self.parking) return error.WorkerParked;
         if (self.mailbox != null or self.outstanding >= self.config.max_outstanding) return error.WorkerBusy;
         const declared_fp = job.footprint();
+        try declared_fp.validateSizes();
         const r = self.resolveFootprint(job, declared_fp);
+        try r.footprint.validate();
         self.mailbox = .{ .job = job, .sink = sink, .index = self.submitted, .declared = declared_fp, .resolved = r };
         self.submitted += 1;
         self.tail_peak = r.peak_words;
@@ -668,7 +543,7 @@ pub const Worker = struct {
     fn take(self: *Worker, block: bool) ?Submission {
         self.mutex.lock();
         defer self.mutex.unlock();
-        while (block and self.mailbox == null and !self.closing and self.control == null) self.cond.wait(&self.mutex);
+        while (block and self.mailbox == null and !self.closing and self.control == null and self.retained_pending.items.len == 0) self.cond.wait(&self.mutex);
         const out = self.mailbox;
         self.mailbox = null;
         if (out != null) self.cond.broadcast();
@@ -676,6 +551,7 @@ pub const Worker = struct {
     }
 
     fn run(self: *Worker) void {
+        self.thread_id = std.Thread.getCurrentId();
         const ok = if (self.startup()) |_| true else |err| blk: {
             self.mutex.lock();
             self.fatal = err;
@@ -690,6 +566,8 @@ pub const Worker = struct {
         var staged: ?*Slot = null;
         var running: ?*Slot = null;
         while (true) {
+            // Released retained regions are freed here, on the worker thread.
+            self.drainRetained();
             const idle = staged == null and running == null;
             // Park/unpark run only with an empty pipeline (park drains first).
             if (idle) if (self.takeControl()) |c| {
@@ -718,6 +596,10 @@ pub const Worker = struct {
             staged = newly;
         }
         self.shutdown();
+        self.mutex.lock();
+        self.stopped = true;
+        self.cond.broadcast();
+        self.mutex.unlock();
     }
 
     fn pairFits(self: *Worker, staged: *Slot, next: Submission) bool {
@@ -806,16 +688,29 @@ pub const Worker = struct {
     }
 
     fn serviceControl(self: *Worker, c: Control) void {
+        if (c == .call) {
+            const result = c.call.call.run(c.call.call.ctx, self);
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            c.call.done.result = result;
+            c.call.done.done = true;
+            self.cond.broadcast();
+            return;
+        }
         var timer = std.time.Timer.start() catch unreachable;
         // The pipeline is empty here: retired pinned buffers can go.
         self.freeRetiredPinned();
+        if (c == .park and c.park.release_retained) self.releaseAllRetained();
+        self.drainRetained();
         var result: anyerror!ParkReceipt = switch (c) {
             .park => |o| self.releaseArena(o),
             .unpark => |words| self.acquireArena(words),
+            .call => unreachable, // handled above
         };
         if (result) |*r| {
             r.ns = timer.read();
             r.epoch = self.arena_epoch;
+            r.retained_words = self.retainedWords(null);
         } else |_| {}
         self.mutex.lock();
         defer self.mutex.unlock();
@@ -831,6 +726,7 @@ pub const Worker = struct {
                 self.parked = false;
                 self.unparks += 1;
             } else |_| {},
+            .call => unreachable,
         }
         self.parking = false;
         self.unparking = false;
@@ -856,6 +752,15 @@ pub const Worker = struct {
     /// Best effort: every buffer is freed once and dropped from its container
     /// whatever the outcome (a failed free is never retried, so shutdown
     /// cannot free it twice); the first failure is reported.
+    /// Worker thread, or quiesced install: exact live allocation words.
+    /// Unlike class declarations this counts shared keys only once.
+    pub fn persistentWords(self: *Worker) u64 {
+        var words: u64 = if (self.regions_buffer != null) self.regions.words else 0;
+        var it = self.persistent_map.valueIterator();
+        while (it.next()) |buffer| words += buffer.words;
+        return words;
+    }
+
     fn releasePersistent(self: *Worker) !usize {
         var words: usize = 0;
         var first: ?anyerror = null;
@@ -905,13 +810,15 @@ pub const Worker = struct {
         self.arena = .{ .base = @intFromPtr(arena.?), .words = words, .reuse = self.config.reuse_frees };
         self.config.arena_words = words;
         const same = self.arena.base == self.last_base and words == self.last_words;
-        if (!same) self.arena_epoch += 1;
+        if (!same) self.arena_epoch = @max(self.arena_epoch, self.plan_phase_epochs[1]) + 1;
         return .{ .arena_words = words, .same_base = same };
     }
 
     fn requestControl(self: *Worker, c: Control) !ParkReceipt {
         self.mutex.lock();
         defer self.mutex.unlock();
+        // The control slot is single: never overwrite (lose) a posted call.
+        while (self.control != null) self.cond.wait(&self.mutex);
         self.control = c;
         self.control_done = false;
         self.cond.broadcast();
@@ -934,6 +841,9 @@ pub const Worker = struct {
             if (self.parked) return error.WorkerAlreadyParked;
             if (self.parking) return error.WorkerParked;
             if (self.unparking) return error.WorkerBusy;
+            // The GPU-native plan block holds main_resident (driver views
+            // into it) and fixes both phase windows: it is never parked.
+            if (self.plan_phase_words[1] != 0) return error.WorkerPlanArenaInstalled;
             self.parking = true;
             while (self.outstanding != 0) self.cond.wait(&self.mutex);
         }
@@ -1006,8 +916,22 @@ pub const Worker = struct {
             if (slot.done_event) |e| _ = w.event_destroy(e);
             if (slot.pinned.len != 0) _ = w.host_free(slot.pinned.ptr);
         }
+        self.releaseBatches();
+        self.timing_pool.deinit(self.a, self.ops.wait.event_destroy);
         self.freeRetiredPinned();
         self.pinned_retired.deinit(self.a);
+        self.drainRetained();
+        {
+            // Regions the request protocol never released: free and count
+            // them (no job is left, so none is pinned).
+            var leaked: std.ArrayListUnmanaged(api.DeviceBuffer) = .empty;
+            defer leaked.deinit(self.a);
+            self.mutex.lock();
+            for (self.retained.entries.items) |e| leaked.append(self.a, e.buffer) catch {};
+            self.retained.stats.leaked_at_shutdown += leaked.items.len;
+            self.mutex.unlock();
+            self.freeRetained(leaked.items);
+        }
         self.unbudgeted_regions = self.persistent_map.count();
         self.shut_down = true;
         var it = self.persistent_map.valueIterator();
@@ -1028,7 +952,7 @@ pub const Worker = struct {
         const slot = &self.slots[seq % 3];
         const staged_event = slot.staged_event;
         const done_event = slot.done_event;
-        const grow = self.ensurePinned(slot, sub.resolved.footprint.pinned_words +| sub.resolved.footprint.slab_words);
+        const grow = self.ensurePinned(slot, sub.resolved.footprint.pinnedWords() catch std.math.maxInt(usize));
         const pinned = slot.pinned;
         slot.* = .{ .job = sub.job, .sink = sub.sink, .seq = seq, .placement = if (seq % 2 == 0) .bottom else .top, .pinned = pinned, .staged_event = staged_event, .done_event = done_event, .resolved = sub.resolved, .declared = sub.declared, .submit_index = sub.index, .serialized = self.serialize_next };
         self.serialize_next = false;
@@ -1038,7 +962,7 @@ pub const Worker = struct {
         if (!sub.resolved.planned) if (self.policy) |p| if (p.unplanned() == .refuse) return self.refuse(slot, error.JobClassNotInMemoryPolicy);
         const fixed = Channel.state_words + slot.footprint.slab_words;
         if (slot.footprint.device_words > self.arena.words or fixed > self.arena.words - slot.footprint.device_words) return self.refuse(slot, error.JobFootprintExceedsArena);
-        if (slot.footprint.pinned_words > pinned.len or slot.footprint.slab_words > pinned.len - slot.footprint.pinned_words) return self.refuse(slot, error.JobFootprintExceedsPinned);
+        if (slot.footprint.pinned_words > pinned.len or slot.footprint.hostSlabWords() > pinned.len - slot.footprint.pinned_words) return self.refuse(slot, error.JobFootprintExceedsPinned);
         if (self.fatal) |err| return self.refuse(slot, err);
         grow catch |err| return self.refuse(slot, err);
         if (self.arena_buffer == null) return self.refuse(slot, error.WorkerParked);
@@ -1057,7 +981,7 @@ pub const Worker = struct {
     fn leaveTail(self: *Worker, slot: *Slot) void {
         self.mutex.lock();
         defer self.mutex.unlock();
-        if (slot.submit_index + 1 == self.submitted) self.tail_live = false;
+        if (slot.submit_index != std.math.maxInt(u64) and slot.submit_index + 1 == self.submitted) self.tail_live = false;
     }
 
     fn refuse(self: *Worker, slot: *Slot, err: anyerror) ?*Slot {
@@ -1089,7 +1013,7 @@ pub const Worker = struct {
         const slot = self.staging orelse return error.StagerOutsidePhaseOne;
         if (src.len == 0) return;
         if (src.len > dst.words) return error.UploadExceedsDestination;
-        if (!self.arena.contains(@intFromPtr(dst.ptr), src.len) and !self.isPersistent(dst, src.len)) return error.UploadOutsideJobMemory;
+        if (!self.arena.contains(@intFromPtr(dst.ptr), src.len) and !self.isPersistent(dst, src.len) and !self.isRetained(dst, src.len)) return error.UploadOutsideJobMemory;
         const pinned_lo = @intFromPtr(slot.pinned.ptr);
         const pinned_hi = pinned_lo + slot.pinned.len * 4;
         const at = @intFromPtr(src.ptr);
@@ -1125,6 +1049,7 @@ pub const Worker = struct {
     pub fn persistent(self: *Worker, key: [32]u8, words: usize) !api.Persistent {
         const slot = self.staging orelse return error.StagerOutsidePhaseOne;
         if (self.regions_buffer) |pool| {
+            if (self.warm_persistent_only and self.regions.find(key) == null) return error.PersistentClassNotWarmed;
             if (slot.pinned_count == slot.pinned_keys.len) return error.TooManyPersistentRegions;
             if (slot.fresh_count == slot.fresh_keys.len and self.regions.find(key) == null) return error.TooManyPersistentFills;
             const got = try self.regions.acquire(self.a, key, words);
@@ -1142,6 +1067,7 @@ pub const Worker = struct {
             if (b.words != words) return error.PersistentGeometryMismatch;
             return .{ .buffer = b, .fresh = false };
         }
+        if (self.warm_persistent_only) return error.PersistentClassNotWarmed;
         if (slot.fresh_count == slot.fresh_keys.len) return error.TooManyPersistentFills;
         try self.persistent_map.ensureUnusedCapacity(self.a, 1);
         var ptr: ?[*]u32 = null;
@@ -1153,6 +1079,172 @@ pub const Worker = struct {
         return .{ .buffer = b, .fresh = true };
     }
 
+    // ---------------- request-scoped retained regions ----------------
+
+    /// Find-or-create (`create`) or find-only the region (request, name) for
+    /// the job in `slot`, pinning it until the job is reported. Worker thread.
+    fn retainFor(self: *Worker, slot: *Slot, key: Retained.Key, words: usize, may_create: bool) !api.Retained {
+        if (words == 0) return error.InvalidAllocation;
+        if (slot.retained_count == slot.retained_refs.len) return error.TooManyRetainedRegions;
+        self.mutex.lock();
+        if (self.retained.pin(key, words)) |b| {
+            self.mutex.unlock();
+            slot.retained_refs[slot.retained_count] = b;
+            slot.retained_fresh[slot.retained_count] = false;
+            slot.retained_count += 1;
+            return .{ .buffer = b, .fresh = false };
+        } else |err| if (err != error.RetainedRegionNotFound or !may_create) {
+            self.mutex.unlock();
+            return err;
+        }
+        // Only this (worker) thread inserts: live words can only shrink until the insert.
+        if (!self.retained.admits(words)) {
+            self.retained.stats.budget_refusals += 1;
+            self.mutex.unlock();
+            return error.RetainedBudgetExhausted;
+        }
+        self.mutex.unlock();
+        var ptr: ?[*]u32 = null;
+        try O.check(self.ops.exec.alloc_u32_long(self.context, words, &ptr));
+        const b = api.DeviceBuffer{ .ptr = ptr orelse return error.CudaAllocationFailed, .words = words };
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.retained.insert(self.a, key, b) catch |err| {
+            _ = self.ops.exec.free_u32(self.context, b.ptr);
+            return err;
+        };
+        slot.retained_refs[slot.retained_count] = b;
+        slot.retained_fresh[slot.retained_count] = true;
+        slot.retained_count += 1;
+        return .{ .buffer = b, .fresh = true };
+    }
+
+    pub fn stageRetain(self: *Worker, request: u64, name: [32]u8, words: usize, may_create: bool) !api.Retained {
+        const slot = self.staging orelse return error.StagerOutsidePhaseOne;
+        return self.retainFor(slot, .{ .request = request, .name = name }, words, may_create);
+    }
+
+    pub fn enqueueRetain(self: *Worker, request: u64, name: [32]u8, words: usize, may_create: bool) !api.Retained {
+        const slot = self.enqueuing orelse return error.EnqueueOutsidePhaseTwo;
+        return self.retainFor(slot, .{ .request = request, .name = name }, words, may_create);
+    }
+
+    fn isRetained(self: *Worker, dst: api.DeviceBuffer, words: usize) bool {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.retained.contains(@intFromPtr(dst.ptr), words);
+    }
+
+    /// At report (worker thread): one unpin per region the job pinned. A
+    /// region a FAILED job created is released (its contents are undefined).
+    /// Regions whose last pin drops after a release are freed here.
+    fn unpinRetained(self: *Worker, slot: *Slot, ok: bool) void {
+        if (slot.retained_count == 0) return;
+        var free_now: [16]api.DeviceBuffer = undefined;
+        var n: usize = 0;
+        self.mutex.lock();
+        for (slot.retained_refs[0..slot.retained_count], slot.retained_fresh[0..slot.retained_count]) |b, fresh| {
+            if (!ok and fresh) for (self.retained.entries.items) |*e| if (e.buffer.ptr == b.ptr) {
+                e.released = true;
+            };
+            if (self.retained.unpin(b)) |f| {
+                free_now[n] = f;
+                n += 1;
+            }
+        }
+        self.mutex.unlock();
+        slot.retained_count = 0;
+        if (n == 0) return;
+        // A refused job may have h2d uploads in flight into a fresh region:
+        // order the (exec-stream) free after them on the device.
+        if (slot.uploads) if (slot.staged_event) |ev| {
+            if (O.check(self.ops.exec.event_record(ev, self.h2d_stream))) |_| {
+                O.check(self.ops.exec.stream_wait(self.exec_stream, ev)) catch |err| self.markFatal(err);
+            } else |err| self.markFatal(err);
+        };
+        self.freeRetained(free_now[0..n]);
+    }
+
+    /// Worker thread: free released, unpinned regions (stream-ordered free).
+    /// A failed free is never retried (the region is dropped either way).
+    fn freeRetained(self: *Worker, buffers: []const api.DeviceBuffer) void {
+        for (buffers) |b| {
+            O.check(self.ops.exec.free_u32(self.context, b.ptr)) catch |err| std.log.err("M8 retained region free failed: {s}", .{@errorName(err)});
+        }
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (buffers) |b| self.retained.drop(b);
+        self.cond.broadcast();
+    }
+
+    fn drainRetained(self: *Worker) void {
+        self.mutex.lock();
+        if (self.retained_pending.items.len == 0) {
+            self.mutex.unlock();
+            return;
+        }
+        const pending = self.retained_pending.toOwnedSlice(self.a) catch {
+            self.mutex.unlock();
+            return;
+        };
+        self.mutex.unlock();
+        defer self.a.free(pending);
+        self.freeRetained(pending);
+    }
+
+    fn releaseAllRetained(self: *Worker) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (self.retained.entries.items) |*e| if (!e.released) {
+            e.released = true;
+            if (e.pins == 0) self.retained_pending.append(self.a, e.buffer) catch {};
+        };
+    }
+
+    /// Release one region (any thread, non-blocking). Freed on the worker
+    /// thread once no job pins it. error.RetainedRegionNotLive on a second release.
+    pub fn releaseRetained(self: *Worker, request: u64, name: [32]u8) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        try self.retained_pending.ensureUnusedCapacity(self.a, 1);
+        if (try self.retained.release(.{ .request = request, .name = name })) |b| self.retained_pending.appendAssumeCapacity(b);
+        self.cond.broadcast();
+    }
+
+    /// Release every live region of `request` (end of request or abort; any
+    /// thread, non-blocking, idempotent). Returns how many were released.
+    pub fn releaseRequest(self: *Worker, request: u64) !usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const n = try self.retained.releaseRequest(self.a, request, &self.retained_pending);
+        self.cond.broadcast();
+        return n;
+    }
+
+    /// As `releaseRequest`, then wait until every region of `request` is
+    /// freed (jobs that pin one finish first). Never from a Sink callback
+    /// (those run on the worker thread).
+    pub fn releaseRequestAndWait(self: *Worker, request: u64) !usize {
+        if (self.thread_id == std.Thread.getCurrentId()) return error.ReleaseWaitOnWorkerThread;
+        const n = try self.releaseRequest(request);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        while (self.retained.liveWords(request) != 0 and !self.stopped) self.cond.wait(&self.mutex);
+        return n;
+    }
+
+    /// Words held by retained regions (of `request`, or all), released-but-pinned included.
+    pub fn retainedWords(self: *Worker, request: ?u64) usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.retained.liveWords(request);
+    }
+    pub fn retainedStats(self: *Worker) Retained.Stats {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.retained.stats;
+    }
+
     // ---------------- phase 2 ----------------
     fn enqueue(self: *Worker, slot: *Slot, next: ?*Slot) ?*Slot {
         var timer = std.time.Timer.start() catch unreachable;
@@ -1161,9 +1253,22 @@ pub const Worker = struct {
         defer self.enqueuing = null;
         if (self.fatal) |err| {
             slot.failed = err; // staged before a device fault: never enqueue it
+        } else if (slot.failed != null) {
+            // batch: a dependency failed host-side; never enqueue the body
         } else self.enqueueBody(slot) catch |err| {
             slot.failed = err;
         };
+        // A skipped (or early-failed) body never made the exec stream wait
+        // on its staged uploads: do it now, so this done event — and every
+        // later quiesce/request wait on the exec stream — dominates every
+        // copy the slot issued from the (parity-reused) pinned pool.
+        if (slot.uploads and !slot.waited_staged) {
+            O.check(self.ops.exec.stream_wait(self.exec_stream, slot.staged_event.?)) catch |err| {
+                self.markFatal(err);
+                slot.failed = slot.failed orelse err;
+            };
+            slot.waited_staged = true;
+        }
         // The done event is recorded even after a failure so later h2d waits
         // and this job's completion are well defined.
         O.check(self.ops.exec.event_record(slot.done_event.?, self.exec_stream)) catch |err| {
@@ -1183,16 +1288,21 @@ pub const Worker = struct {
 
     fn enqueueBody(self: *Worker, slot: *Slot) !void {
         try self.enqueueWaitStaged();
+        // Batch dependencies: device-side waits on the producers' done events
+        // (any GPU). Their records were issued before this enqueue (host latch).
+        for (slot.batch_deps) |d| if (d.event) |ev| try O.check(self.ops.exec.stream_wait(self.exec_stream, ev));
         const state = try self.enqueueAlloc(Channel.state_words);
         slot.channel = Channel.DeviceChannel.init(self.handle(), &self.ops.exec, self.context, self.exec_stream, state, slot.seq);
         const slab_device: api.DeviceBuffer = if (slot.footprint.slab_words == 0) .{ .ptr = state.ptr, .words = 0 } else try self.enqueueAlloc(slot.footprint.slab_words);
-        slot.slab_host = try self.pinnedAlloc(slot, slot.footprint.slab_words);
+        slot.slab_host = try self.pinnedAlloc(slot, slot.footprint.hostSlabWords());
+        slot.receipt.readback = slot.footprint.readback;
         slot.slab = .{ .device = slab_device };
         var e = api.Enqueue{ .worker = self.handle(), .placement = slot.placement, .channel = &slot.channel, .slab = &slot.slab };
         try slot.job.vtable.enqueue(slot.job.ctx, &e);
-        if (slab_device.words != 0) {
+        if (slot.footprint.readback == .job_slab and slab_device.words != 0) {
             try O.check(self.ops.exec.copy_async(slot.slab_host.ptr, slab_device.ptr, slab_device.words * 4, @intFromEnum(O.CopyKind.d2h), self.exec_stream));
             slot.receipt.d2h_bytes = slab_device.words * 4;
+            slot.receipt.d2h_copies = 1;
         }
     }
 
@@ -1224,8 +1334,8 @@ pub const Worker = struct {
     }
 
     pub fn enqueueHostFn(self: *Worker, f: api.HostFn) !void {
-        if (self.enqueuing == null) return error.EnqueueOutsidePhaseTwo;
-        try O.check(self.ops.exec.host_fn(self.exec_stream, f.call, f.user));
+        const slot = self.enqueuing orelse return error.EnqueueOutsidePhaseTwo;
+        try self.enqueueHostFnRaw(slot, f);
     }
 
     // ---------------- phase 3 ----------------
@@ -1246,7 +1356,7 @@ pub const Worker = struct {
             slot.job.vtable.abort(slot.job.ctx);
             return self.report(slot, err);
         }
-        const view = api.SlabView{ .words = slot.slab_host, .layout = slot.slab.layout, .receipt = slot.receipt };
+        const view = api.SlabView{ .words = slot.slab_host, .layout = slot.slab.layout, .readback = slot.footprint.readback, .receipt = slot.receipt };
         slot.job.vtable.finish(slot.job.ctx, view) catch |err| return self.report(slot, err);
         self.report(slot, {});
     }
@@ -1258,8 +1368,27 @@ pub const Worker = struct {
     }
 
     fn report(self: *Worker, slot: *Slot, result: anyerror!void) void {
+        self.settle(slot, result);
+        slot.sink.done(slot.sink.ctx, .{ .job = slot.job, .result = result, .receipt = slot.receipt });
+        self.mutex.lock();
+        self.outstanding -= 1;
+        self.completed += 1;
+        self.cond.broadcast();
+        self.mutex.unlock();
+    }
+
+    /// Pins, fresh-region retirement and class stats of a finished slot
+    /// (shared by the pipeline's `report` and the batch's `finishBatch`).
+    fn settle(self: *Worker, slot: *Slot, result: anyerror!void) void {
+        self.settleKeyed(slot, result, null);
+    }
+
+    /// `known_key`: the class key read BEFORE `finish` (a job may free itself
+    /// in finish; batch phase 3 never touches the job after it).
+    fn settleKeyed(self: *Worker, slot: *Slot, result: anyerror!void, known_key: ?[32]u8) void {
         for (slot.pinned_keys[0..slot.pinned_count]) |key| self.regions.unpin(key);
         slot.pinned_count = 0;
+        self.unpinRetained(slot, if (result) |_| true else |_| false);
         if (result) |_| {} else |_| {
             // A failed job may have left its fresh persistent buffers unfilled.
             if (self.regions_buffer != null) {
@@ -1271,7 +1400,7 @@ pub const Worker = struct {
         slot.fresh_count = 0;
         var key: [32]u8 = @splat(0);
         const ok = if (result) |_| true else |_| false;
-        if (ok) key = slot.job.classKey();
+        if (ok) key = known_key orelse slot.job.classKey();
         // Class stats are recorded BEFORE the sink fires: a completion waiter
         // may read them (classStats / writePlanDir) as soon as done() returns.
         self.mutex.lock();
@@ -1310,13 +1439,514 @@ pub const Worker = struct {
             }
         } else |_| {};
         self.mutex.unlock();
-        slot.sink.done(slot.sink.ctx, .{ .job = slot.job, .result = result, .receipt = slot.receipt });
+    }
+
+    // ---------------- GPU-native request batches ----------------
+    //
+    // rv64-m8-gpu-native.md §3.8: a request is ONE batch per GPU. The worker
+    // stages and enqueues every job of the batch back to back (stage k+1
+    // before enqueue k, as the pipeline does), with cross-job and cross-GPU
+    // dependencies as device-side event waits; it never waits on the device
+    // per job. The driver performs the request's single host wait
+    // (`requestWait`) after every GPU's batch tail was enqueued, then
+    // `finishBatch` runs each job's phase 3 on this thread without a wait.
+    // Batches run through `call` with the pipeline idle.
+
+    /// Runs `run(ctx, worker)` on the worker thread with the pipeline idle
+    /// (the control slot, like park/unpark). Any thread; returns its result.
+    /// Safe for concurrent callers: each waits on its own completion.
+    pub fn call(self: *Worker, c: Call) !void {
+        if (self.thread_id == std.Thread.getCurrentId()) return c.run(c.ctx, self);
+        var done = CallDone{};
+        try self.post(c, &done);
+        return self.awaitCall(&done);
+    }
+
+    /// Queue `c` for the worker thread and return without waiting for it
+    /// (the driver dispatches one GPU's batch while it enqueues another's,
+    /// with no per-request thread). `c.ctx` and `done` must stay valid until
+    /// `awaitCall(done)` returned. Not from the worker thread itself.
+    pub fn post(self: *Worker, c: Call, done: *CallDone) !void {
+        if (self.thread_id == std.Thread.getCurrentId()) return error.WorkerPostFromWorkerThread;
+        done.* = .{};
         self.mutex.lock();
-        self.outstanding -= 1;
-        self.completed += 1;
+        defer self.mutex.unlock();
+        if (self.fatal) |err| return err;
+        if (self.closing) return error.WorkerClosing;
+        while (self.control != null or self.unparking or self.parking) self.cond.wait(&self.mutex);
+        self.control = .{ .call = .{ .call = c, .done = done } };
         self.cond.broadcast();
+    }
+
+    /// The result of a `post`ed call (blocks until it ran).
+    pub fn awaitCall(self: *Worker, done: *CallDone) anyerror!void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        while (!done.done) self.cond.wait(&self.mutex);
+        return done.result;
+    }
+
+    /// Install-only diagnostics, reserved on the owning GPU thread.
+    pub fn reserveTimingPairs(self: *Worker, count: usize, create_event: JobTiming.Create) !void {
+        try self.onWorkerThread();
+        try self.timing_pool.reserve(self.a, count, create_event, self.ops.wait.event_destroy);
+    }
+
+    pub fn stageTimingPair(self: *Worker, parity: u1, index: usize) !JobTiming.Pair {
+        const slot = self.staging orelse return error.StagerOutsidePhaseOne;
+        const active = slot.request_parity orelse return error.JobTimingOutsideRequestBatch;
+        if (active != parity) return error.JobTimingParityMismatch;
+        return self.timing_pool.get(parity, index);
+    }
+
+    /// Install (worker thread, idle): `max_jobs` slots per parity with their
+    /// events and a pinned pool of `pinned_words` per parity. Grow-only;
+    /// never on the request path.
+    pub fn reserveBatches(self: *Worker, max_jobs: usize, pinned_words: usize) !void {
+        try self.onWorkerThread();
+        for (0..2) |p| {
+            if (self.batch_slots[p].len < max_jobs) {
+                const grown = try self.a.alloc(Slot, max_jobs);
+                const old_count = self.batch_slots[p].len;
+                var made: usize = old_count;
+                errdefer {
+                    // The copied prefix still belongs to the old array until
+                    // commit. Include the current partially created pair.
+                    for (grown[old_count..made]) |*g| {
+                        if (g.staged_event) |e| _ = self.ops.wait.event_destroy(e);
+                        if (g.done_event) |e| _ = self.ops.wait.event_destroy(e);
+                    }
+                    self.a.free(grown);
+                }
+                for (grown, 0..) |*g, i| {
+                    g.* = .{};
+                    if (i < self.batch_slots[p].len) {
+                        g.staged_event = self.batch_slots[p][i].staged_event;
+                        g.done_event = self.batch_slots[p][i].done_event;
+                    } else {
+                        made = i + 1;
+                        try O.check(self.ops.wait.event_create(&g.staged_event));
+                        try O.check(self.ops.wait.event_create(&g.done_event));
+                    }
+                }
+                self.a.free(self.batch_slots[p]);
+                self.batch_slots[p] = grown;
+            }
+            if (self.batch_pinned[p].len < pinned_words) {
+                const grown = try self.pinnedSlotAlloc(pinned_words);
+                if (self.batch_pinned[p].len != 0) _ = self.ops.wait.host_free(self.batch_pinned[p].ptr);
+                self.batch_pinned[p] = grown;
+            }
+        }
+    }
+
+    fn releaseBatches(self: *Worker) void {
+        for (0..2) |p| {
+            for (self.batch_slots[p]) |*g| {
+                if (g.staged_event) |e| _ = self.ops.wait.event_destroy(e);
+                if (g.done_event) |e| _ = self.ops.wait.event_destroy(e);
+            }
+            self.a.free(self.batch_slots[p]);
+            self.batch_slots[p] = &.{};
+            if (self.batch_pinned[p].len != 0) _ = self.ops.wait.host_free(self.batch_pinned[p].ptr);
+            self.batch_pinned[p] = &.{};
+        }
+    }
+
+    /// Install (worker thread, idle): replace the arena with ONE allocation
+    /// of `phase_b_words`; phase A uses its first `phase_a_words`, and the
+    /// rest is returned as the main_resident region (MAIN of every segment on
+    /// this GPU, witness -> PCS). A batch job with `phase_b` grows the arena
+    /// over it (stream-ordered: every earlier job on this exec stream is
+    /// before it). The base is the same in both phases.
+    pub fn installPlanArena(self: *Worker, phase_a_words: usize, phase_b_words: usize) !api.DeviceBuffer {
+        try self.onWorkerThread();
+        if (phase_a_words == 0 or phase_a_words % Arena.granule != 0 or phase_b_words < phase_a_words or phase_b_words % Arena.granule != 0) return error.InvalidArena;
+        if (self.arena_buffer) |p| try O.check(self.ops.exec.free_u32(self.context, p));
+        self.arena_buffer = null;
+        var block: ?[*]u32 = null;
+        try O.check(self.ops.exec.alloc_u32_long(self.context, phase_b_words, &block));
+        self.arena_buffer = block orelse return error.CudaArenaFailed;
+        self.arena = .{ .base = @intFromPtr(block.?), .words = phase_a_words, .reuse = self.config.reuse_frees };
+        self.config.arena_words = phase_b_words;
+        self.plan_phase_words = .{ phase_a_words, phase_b_words };
+        self.plan_phase_b = false;
+        self.last_enqueued = null;
+        self.mutex.lock();
+        self.plan_phase_epochs = .{ self.arena_epoch + 1, self.arena_epoch + 2 };
+        self.arena_epoch = self.plan_phase_epochs[0];
+        self.mutex.unlock();
+        return .{ .ptr = block.? + phase_a_words, .words = phase_b_words - phase_a_words };
+    }
+
+    /// Teardown (worker thread, every batch finished or quiesced): free the
+    /// plan block and leave the worker parked (no arena; `unpark` may
+    /// acquire a plain one again). Without it the worker kept the block and
+    /// could never park again (WorkerPlanArenaInstalled).
+    pub fn uninstallPlanArena(self: *Worker) !void {
+        try self.onWorkerThread();
+        if (self.plan_phase_words[1] == 0) return;
+        const words = self.plan_phase_words[0];
+        if (self.arena_buffer) |p| {
+            self.arena_buffer = null;
+            try O.check(self.ops.exec.free_u32(self.context, p));
+        }
+        self.last_base = self.arena.base;
+        self.last_words = words;
+        self.arena = .{ .reuse = self.config.reuse_frees };
+        self.last_enqueued = null;
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.plan_phase_words = .{ 0, 0 };
+        self.plan_phase_b = false;
+        self.arena_epoch = @max(self.arena_epoch, self.plan_phase_epochs[1]) + 1;
+        self.parked = true;
+    }
+
+    fn setPhase(self: *Worker, b: bool) void {
+        if (self.plan_phase_words[1] == 0 or self.plan_phase_b == b) return;
+        self.arena = .{ .base = self.arena.base, .words = self.plan_phase_words[@intFromBool(b)], .reuse = self.config.reuse_frees };
+        self.plan_phase_b = b;
+        self.mutex.lock();
+        self.arena_epoch = self.plan_phase_epochs[@intFromBool(b)];
         self.mutex.unlock();
     }
+
+    /// The arena epochs of plan phases A and B (install-time constants; 0
+    /// before `installPlanArena`). Any thread.
+    pub fn planPhaseEpochs(self: *Worker) [2]u64 {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.plan_phase_epochs;
+    }
+
+    fn onWorkerThread(self: *Worker) !void {
+        if (self.thread_id != std.Thread.getCurrentId()) return error.NotOnWorkerThread;
+    }
+
+    /// Exec stream and context for driver hooks (worker thread only).
+    pub fn execStream(self: *Worker) *anyopaque {
+        return self.exec_stream;
+    }
+
+    /// Stage and enqueue every job of `b` (worker thread, via `call`). Never
+    /// waits on the device. Per-job failures are recorded in the job (and
+    /// signalled to dependents); `b.result` reports hook/plan failures.
+    pub fn runBatch(self: *Worker, b: *Batch) void {
+        var timer = std.time.Timer.start() catch unreachable;
+        defer b.enqueue_ns = timer.read();
+        self.onWorkerThread() catch |err| return failBatch(b, err, 0);
+        // Validate the complete batch before staging or waiting on any gate.
+        for (b.jobs) |bj| bj.job.footprint().validateSizes() catch |err| return failBatch(b, err, 0);
+        self.warm_persistent_only = b.require_warm_persistent;
+        defer self.warm_persistent_only = false;
+        const slots = self.batch_slots[b.parity];
+        if (b.jobs.len > slots.len) return failBatch(b, error.BatchExceedsReservedSlots, 0);
+        b.pinned_used = 0;
+        b.memory_serializations = 0;
+        b.slots = slots[0..b.jobs.len];
+        self.setPhase(false);
+        if (b.preamble) |h| h.run(h.ctx, self) catch |err| return failBatch(b, err, 0);
+        var staged: ?*Slot = null;
+        for (b.jobs, 0..) |*bj, i| {
+            if (bj.phase_b and !self.plan_phase_b) {
+                // Phase change: the new window must not be pre-staged into
+                // the old one; enqueue the staged job alone first.
+                if (staged) |s| self.batchEnqueue(b, s, null);
+                staged = null;
+                self.setPhase(true);
+            }
+            // A gated job (capture) is staged only after its gates latched
+            // (its stage may read the sealed segment). Enqueue the staged
+            // job first so it does not wait behind a later segment's capture.
+            if (!gatesLatched(bj)) {
+                if (staged) |s| self.batchEnqueue(b, s, null);
+                staged = null;
+            }
+            if (staged) |s| {
+                const next = self.resolveFootprint(bj.job, bj.job.footprint());
+                if (!MP.pairFits(self.arena.words, s.resolved.peak_words, next.staged_words)) {
+                    // The ordinary mailbox pipeline applies this same test.
+                    // A batch must also enqueue the current job before staging
+                    // a neighbour whose inputs would shrink its work window.
+                    // The next upload is ordered by the done event on-device;
+                    // this introduces no host/device join.
+                    self.batchEnqueue(b, s, null);
+                    staged = null;
+                    b.memory_serializations += 1;
+                }
+            }
+            const slot = self.batchStage(b, i);
+            if (staged) |s| self.batchEnqueue(b, s, slot);
+            staged = slot;
+        }
+        if (staged) |s| self.batchEnqueue(b, s, null);
+        if (b.tail) |h| h.run(h.ctx, self) catch |err| {
+            std.debug.print("GPU_M8_GN_BATCH_FAILED device={d} phase=tail error={s}\n", .{ self.device_ordinal, @errorName(err) });
+            b.result = err;
+        };
+        b.slots_used = b.jobs.len;
+    }
+
+    fn gatesLatched(bj: *const BatchJob) bool {
+        for (bj.gates) |g| if (!g.recorded.isSet()) return false;
+        return true;
+    }
+
+    /// A job settled failed host-side: its `on_fail` hook (e.g. cancel the
+    /// capture whose gates would otherwise never fire), once.
+    fn notifyFailed(bj: *BatchJob) void {
+        if (bj.on_fail) |f| {
+            bj.on_fail = null;
+            f.call(f.user);
+        }
+    }
+
+    pub fn failBatch(b: *Batch, err: anyerror, first: usize) void {
+        std.debug.print("GPU_M8_GN_BATCH_FAILED first={d} jobs={d} error={s}\n", .{ first, b.jobs.len, @errorName(err) });
+        b.result = err;
+        for (b.jobs[first..]) |*bj| {
+            notifyFailed(bj);
+            bj.job.vtable.abort(bj.job.ctx);
+            bj.result = err;
+            // Poison dependents (any GPU): a consumer must never enqueue its
+            // body without its producer's done event.
+            bj.done.signal(null, true);
+        }
+        b.slots = &.{};
+    }
+
+    fn batchStage(self: *Worker, b: *Batch, i: usize) ?*Slot {
+        const bj = &b.jobs[i];
+        const slot = &b.slots[i];
+        const seq = self.next_seq;
+        self.next_seq += 1;
+        const declared_fp = bj.job.footprint();
+        const resolved = self.resolveFootprint(bj.job, declared_fp);
+        const need = resolved.footprint.pinnedWords() catch std.math.maxInt(usize);
+        const pool = self.batch_pinned[b.parity];
+        const pinned: []u32 = if (need <= pool.len - b.pinned_used) pool[b.pinned_used..][0..need] else &.{};
+        const staged_event = slot.staged_event;
+        const done_event = slot.done_event;
+        slot.* = .{ .job = bj.job, .seq = seq, .request_parity = b.parity, .placement = if (seq % 2 == 0) .bottom else .top, .pinned = pinned, .staged_event = staged_event, .done_event = done_event, .resolved = resolved, .declared = declared_fp, .submit_index = std.math.maxInt(u64), .batch_deps = bj.deps };
+        slot.receipt = .{ .device = self.device_ordinal, .sequence = seq, .placement = slot.placement };
+        slot.footprint = resolved.footprint;
+        var timer = std.time.Timer.start() catch unreachable;
+        const refused: ?anyerror = blk: {
+            resolved.footprint.validate() catch |err| break :blk err;
+            // Host gates first (capture seal): stage may read the segment.
+            var gate_timer = std.time.Timer.start() catch unreachable;
+            for (bj.gates) |g| g.recorded.wait();
+            b.gate_wait_ns += gate_timer.read();
+            for (bj.gates) |g| if (g.failed.load(.acquire)) break :blk error.BatchDependencyFailed;
+            if (need > 0 and pinned.len == 0) break :blk error.JobFootprintExceedsBatchPinned;
+            if (!resolved.planned) if (self.policy) |p| if (p.unplanned() == .refuse) break :blk error.JobClassNotInMemoryPolicy;
+            const fixed = Channel.state_words + slot.footprint.slab_words;
+            if (slot.footprint.device_words > self.arena.words or fixed > self.arena.words - slot.footprint.device_words) break :blk error.JobFootprintExceedsArena;
+            if (self.fatal) |err| break :blk err;
+            if (self.arena_buffer == null) break :blk error.WorkerParked;
+            self.arena.beginStage(slot.placement);
+            var stager = api.Stager{ .worker = self.handle(), .placement = slot.placement };
+            self.staging = slot;
+            defer self.staging = null;
+            bj.job.vtable.stage(bj.job.ctx, &stager) catch |err| break :blk err;
+            if (slot.uploads) O.check(self.ops.exec.event_record(slot.staged_event.?, self.h2d_stream)) catch |err| break :blk err;
+            break :blk null;
+        };
+        b.pinned_used += pinned.len;
+        if (refused) |err| {
+            if (err != error.BatchDependencyFailed) std.debug.print("GPU_M8_GN_JOB_FAILED device={d} job={d} phase=stage error={s}\n", .{ self.device_ordinal, i, @errorName(err) });
+            // Uploads the stage already issued (h2d, from the parity's pinned
+            // pool) must be dominated by the exec stream: no done event of
+            // this slot exists, so order them before every later job here.
+            if (slot.uploads) {
+                const ordered: anyerror!void = blk: {
+                    O.check(self.ops.exec.event_record(slot.staged_event.?, self.h2d_stream)) catch |e| break :blk e;
+                    O.check(self.ops.exec.stream_wait(self.exec_stream, slot.staged_event.?)) catch |e| break :blk e;
+                    break :blk {};
+                };
+                ordered catch |e| self.markFatal(e);
+            }
+            notifyFailed(bj);
+            bj.job.vtable.abort(bj.job.ctx);
+            self.settle(slot, err);
+            bj.result = err;
+            bj.settled = true;
+            // Refused before enqueue: no done event exists for dependents to
+            // wait on, so they must fail (BatchDependencyFailed), not run.
+            bj.done.signal(null, true);
+            return null;
+        }
+        slot.receipt.staged_words = self.arena.staged[@intFromEnum(slot.placement)];
+        slot.receipt.stage_ns = timer.read();
+        return slot;
+    }
+
+    fn batchEnqueue(self: *Worker, b: *Batch, slot: *Slot, next: ?*Slot) void {
+        const i = (@intFromPtr(slot) - @intFromPtr(b.slots.ptr)) / @sizeOf(Slot);
+        const bj = &b.jobs[i];
+        // Host latches only (capture release, producers' records issued on
+        // any worker thread). No device wait: the device-side order is the
+        // stream_wait on each producer's done event inside enqueueBody.
+        var gate_timer = std.time.Timer.start() catch unreachable;
+        for (bj.deps) |d| {
+            d.recorded.wait();
+            if (d.failed.load(.acquire)) slot.failed = slot.failed orelse error.BatchDependencyFailed;
+        }
+        b.gate_wait_ns += gate_timer.read();
+        _ = self.enqueue(slot, next);
+        if (slot.failed) |err| {
+            if (err != error.BatchDependencyFailed) std.debug.print("GPU_M8_GN_JOB_FAILED device={d} job={d} phase=enqueue error={s} arena_words={d} declared_peak_words={d} staged_words={any} high_words={d}\n", .{ self.device_ordinal, i, @errorName(err), self.arena.words, slot.resolved.peak_words, self.arena.staged, self.arena.peak });
+        }
+        // `after` (capture ring release) runs whatever the body's outcome,
+        // after this slot's done record, as long as every gate succeeded (a
+        // failed gate means the capture may still own its buffers; the
+        // stream's detach returns them once the capture ended). A failed
+        // Stage1 that never released its buffers wedged the capture ring.
+        if (bj.after) |f| if (gatesSucceeded(bj)) self.enqueueHostFnRaw(slot, f) catch |err| {
+            self.markFatal(err);
+            slot.failed = slot.failed orelse err;
+        };
+        if (slot.failed != null) notifyFailed(bj);
+        bj.done.signal(slot.done_event, slot.failed != null);
+    }
+
+    fn gatesSucceeded(bj: *const BatchJob) bool {
+        for (bj.gates) |g| if (!g.recorded.isSet() or g.failed.load(.acquire)) return false;
+        return true;
+    }
+
+    fn enqueueHostFnRaw(self: *Worker, slot: *Slot, f: api.HostFn) !void {
+        try O.check(self.ops.exec.host_fn(self.exec_stream, f.call, f.user));
+        slot.receipt.host_callbacks += 1;
+        if (f.purpose == .capture_release) slot.receipt.capture_release_callbacks += 1;
+    }
+
+    /// The request's single host wait (driver thread): blocks until `event`
+    /// (the root GPU's final event, recorded after it waited on every other
+    /// GPU's batch tail) completed. Device faults are fatal for the worker.
+    pub fn requestWait(self: *Worker, event: *anyopaque) !u64 {
+        var timer = std.time.Timer.start() catch unreachable;
+        // lint:host-wait-begin — the ONE host wait of a GPU-native request.
+        const waited = self.ops.wait.event_sync(event);
+        // lint:host-wait-end
+        if (waited != 0) {
+            self.markFatal(error.CudaDeviceFault);
+            return error.CudaDeviceFault;
+        }
+        return timer.read();
+    }
+
+    /// Phase 3 of every job of `b` (worker thread, via `call`, after the
+    /// request wait): `finish` with the job's slab view, no per-job wait.
+    pub fn finishBatch(self: *Worker, b: *Batch, device_ok: bool) void {
+        for (b.jobs, 0..) |*bj, i| {
+            if (bj.settled) continue;
+            if (i >= b.slots.len) continue;
+            const slot = &b.slots[i];
+            bj.settled = true;
+            slot.receipt.host_waits = 0;
+            bj.receipt = slot.receipt;
+            if (!device_ok) {
+                bj.job.vtable.abort(bj.job.ctx);
+                bj.result = error.CudaDeviceFault;
+                self.settle(slot, error.CudaDeviceFault);
+                continue;
+            }
+            if (slot.failed) |err| {
+                bj.job.vtable.abort(bj.job.ctx);
+                bj.result = err;
+                self.settle(slot, err);
+                continue;
+            }
+            const view = api.SlabView{ .words = slot.slab_host, .layout = slot.slab.layout, .readback = slot.footprint.readback, .receipt = slot.receipt };
+            const class = bj.job.classKey();
+            bj.result = bj.job.vtable.finish(bj.job.ctx, view);
+            self.settleKeyed(slot, bj.result, class);
+        }
+        if (self.last_enqueued) |le| if (@intFromPtr(le) >= @intFromPtr(b.slots.ptr) and @intFromPtr(le) < @intFromPtr(b.slots.ptr) + b.slots.len * @sizeOf(Slot)) {
+            self.last_enqueued = null;
+        };
+        b.slots = &.{};
+    }
+};
+
+pub const Call = struct {
+    ctx: *anyopaque,
+    run: *const fn (*anyopaque, *Worker) anyerror!void,
+};
+
+/// Completion of one `Worker.post` (owned by the caller; guarded by the
+/// worker's mutex).
+pub const CallDone = struct {
+    done: bool = false,
+    result: anyerror!void = {},
+};
+
+/// A host-visible completion latch of one batch job (or a capture release):
+/// `recorded` is set once the producer's done event was RECORDED (host side,
+/// so a consumer's cudaStreamWaitEvent sees this request's record), `event`
+/// is that done event (null for pure host gates), `failed` poisons dependents.
+pub const BatchDep = struct {
+    event: ?*anyopaque = null,
+    recorded: std.Thread.ResetEvent = .{},
+    failed: std.atomic.Value(bool) = .init(false),
+    pub fn signal(self: *BatchDep, event: ?*anyopaque, failed: bool) void {
+        self.event = event;
+        self.failed.store(failed, .release);
+        self.recorded.set();
+    }
+};
+
+pub const BatchJob = struct {
+    job: api.Job,
+    /// Producers this job waits for (device-side). Latched before ENQUEUE
+    /// only: a job's `stage` must not read a producer's (child's) data.
+    deps: []const *BatchDep = &.{},
+    /// Host gates (capture seal) latched before STAGE: the job is staged only
+    /// once its segment is final, so its stage may read the sealed trace. A
+    /// failed gate refuses the job (BatchDependencyFailed).
+    gates: []const *BatchDep = &.{},
+    /// Pure host step enqueued on the exec stream after the job's done
+    /// record whenever every gate succeeded (also when the body failed).
+    after: ?api.HostFn = null,
+    /// Host call made once (worker thread) when the job settles failed on the
+    /// host (refused, failed dependency, enqueue error, failed batch): e.g.
+    /// cancel the capture so its blocked acquires and later gates fail closed.
+    on_fail: ?api.HostAction = null,
+    /// Two-phase plan: the arena grows over main_resident before this job.
+    phase_b: bool = false,
+    done: BatchDep = .{},
+    result: anyerror!void = {},
+    receipt: api.Receipt = .{},
+    settled: bool = false,
+};
+
+pub const BatchHook = struct {
+    ctx: *anyopaque,
+    run: *const fn (*anyopaque, *Worker) anyerror!void,
+};
+
+pub const Batch = struct {
+    jobs: []BatchJob,
+    parity: u1 = 0,
+    /// Request batches may only adopt class resources warmed at install.
+    /// Refuse a miss before allocation, placement, eviction or host fill.
+    require_warm_persistent: bool = false,
+    /// Before the first job (slab prefix upload, unset memset, start event).
+    preamble: ?BatchHook = null,
+    /// After the last job (slab D2H, cross-GPU completion, final event).
+    tail: ?BatchHook = null,
+    result: anyerror!void = {},
+    enqueue_ns: u64 = 0,
+    /// Time the worker thread spent on host latches (capture/peer records).
+    gate_wait_ns: u64 = 0,
+    /// Neighbour staging deferred because its inputs do not fit beside the
+    /// current class peak. Ordering is by device event, never a host wait.
+    memory_serializations: u64 = 0,
+    pinned_used: usize = 0,
+    slots_used: usize = 0,
+    slots: []Slot = &.{},
 };
 
 test {

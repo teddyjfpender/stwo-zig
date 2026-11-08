@@ -39,6 +39,9 @@ pub const Image = struct {
     main_logs: Range = .{},
     inter_logs: Range = .{},
     fixed_logs: Range = .{},
+    /// Expected public outputs (4 words each) for the device lookup check
+    /// (STWO_RV64_M8_OUTER_DEVICE_CHECKS=1 only; empty otherwise).
+    expected: Range = .{},
     /// Forward/inverse twiddle trees per height (twiddle region).
     twiddles: [29]Range = @splat(.{}),
     itwiddles: [29]Range = @splat(.{}),
@@ -50,6 +53,39 @@ pub const Image = struct {
         // had: kernels may use 16-byte vector loads on any staged input.
         at.* = std.mem.alignForward(u64, at.* + words, 64);
         return r;
+    }
+
+    /// Canonical NTT trees at smaller heights are suffixes of one tower.
+    /// Verify the actual tables before sharing any storage. Small tables
+    /// keep separate aligned ranges; every range retains 256-byte alignment.
+    /// Commit the new layout only after every suffix comparison succeeds.
+    pub fn shareTwiddleTower(self: *Image, tables: [29]?Twiddles) !?u32 {
+        var maximum: ?u32 = null;
+        for (tables, 0..) |table, log| if (table != null) {
+            maximum = @intCast(log);
+        };
+        const log_max = maximum orelse return null;
+        const top = tables[log_max].?;
+        if (top.twiddles.len == 0 or top.itwiddles.len != top.twiddles.len) return error.InvalidOuterTwiddleTower;
+        var out = self.*;
+        out.words[@intFromEnum(Region.twiddles)] = 0;
+        const forward = out.take(.twiddles, top.twiddles.len);
+        const inverse = out.take(.twiddles, top.itwiddles.len);
+        for (tables, 0..) |table, log| if (table) |t| {
+            const n = t.twiddles.len;
+            if (n == 0 or n > top.twiddles.len or t.itwiddles.len != n) return error.InvalidOuterTwiddleTower;
+            if (n >= 64 or log == log_max) {
+                const start = top.twiddles.len - n;
+                if (start % 64 != 0 or !std.mem.eql(u32, t.twiddles, top.twiddles[start..]) or !std.mem.eql(u32, t.itwiddles, top.itwiddles[start..])) return error.InvalidOuterTwiddleTower;
+                out.twiddles[log] = .{ .region = .twiddles, .offset = forward.offset + start, .words = n };
+                out.itwiddles[log] = .{ .region = .twiddles, .offset = inverse.offset + start, .words = n };
+            } else {
+                out.twiddles[log] = out.take(.twiddles, n);
+                out.itwiddles[log] = out.take(.twiddles, n);
+            }
+        };
+        self.* = out;
+        return maximum;
     }
 };
 
@@ -113,6 +149,10 @@ pub const Statics = struct {
     /// Composition statics and their packed class-region blob (null: prefix only).
     composition: ?Comp.Static = null,
     rc_blob: []const u32 = &.{},
+    /// `*outer_class_plan.Slot` of a cached class (STWO_RV64_M8_OUTER_CLASS_PLAN=1):
+    /// the whole-node plan every node of the class borrows (outer_job.zig
+    /// WholePlan). Null: each node builds its own (the default path).
+    class_plan: ?*anyopaque = null,
     pub fn table(self: *const Statics, log: u32) !Twiddles {
         return (if (log < 29) self.tables[log] else null) orelse error.MissingOuterTwiddles;
     }
@@ -122,7 +162,24 @@ pub const Statics = struct {
 /// free through the other. Ownership that moves from a job into a caller
 /// container (the decoded PCS proof -> om31 Produced) requires it.
 pub fn sameAllocator(x: std.mem.Allocator, y: std.mem.Allocator) bool {
-    return x.vtable == y.vtable and x.ptr == y.ptr;
+    if (x.vtable != y.vtable) return false;
+    // c_allocator is stateless and explicitly leaves its context undefined.
+    // Comparing that undefined pointer made real class-plan builds refuse.
+    if (x.vtable == std.heap.c_allocator.vtable) return true;
+    return x.ptr == y.ptr;
+}
+
+test "stateless C allocator identity does not inspect its undefined context" {
+    var x = std.heap.c_allocator;
+    var y = std.heap.c_allocator;
+    x.ptr = @ptrFromInt(1);
+    y.ptr = @ptrFromInt(2);
+    try std.testing.expect(sameAllocator(x, y));
+    x = std.testing.allocator;
+    y = std.testing.allocator;
+    x.ptr = @ptrFromInt(1);
+    y.ptr = @ptrFromInt(2);
+    try std.testing.expect(!sameAllocator(x, y));
 }
 
 pub const Staged = struct {
@@ -139,6 +196,8 @@ pub const Staged = struct {
     graph_key: [32]u8 = @splat(0),
     ordinal: u32,
     image: Image,
+    /// Install-only transport layout; circuit/proof authority is unchanged.
+    shared_twiddle_log: ?u32 = null,
     /// FIXED tree root (host authority) and the PCS sample points of this
     /// class at native_pcs.placeholderPoint() (`*const core.pcs.TreeVec([][]D.Point)`),
     /// for whole-node jobs; null for prefix-only staging.
@@ -148,6 +207,8 @@ pub const Staged = struct {
     /// committed on device by a node that keeps the in-node FIXED commit.
     fixed_raw: []const []const u32 = &.{},
     pcs_points: ?*const anyopaque = null,
+    /// Circuit lookup constants for the device lookup_sum check (outer_checks.zig).
+    lookup: ?@import("outer_checks.zig").LookupStatic = null,
     /// Releases the legacy host preparation that owns the slices above.
     owner: *anyopaque,
     release: *const fn (*anyopaque) void,
@@ -156,8 +217,10 @@ pub const Staged = struct {
         return &self.statics.plan;
     }
     pub fn deinit(self: *Staged) void {
-        self.release(self.owner);
+        const release = self.release;
+        const owner = self.owner;
         self.* = undefined;
+        release(owner);
     }
     /// Persistent keys of the class and twiddle regions.
     pub fn classRegionKey(self: *const Staged) [32]u8 {
@@ -176,9 +239,23 @@ pub const Staged = struct {
         }
     }
     pub fn twiddleRegionKey(self: *const Staged) [32]u8 {
+        if (self.shared_twiddle_log) |maximum| {
+            var id: [30]u8 = @splat(0);
+            id[0] = @intCast(maximum + 1);
+            // Large-height subsets share identical tower bytes. Only the
+            // separately aligned small tables affect the remaining layout.
+            for (self.statics.tables, 0..) |table, log| if (table) |t| {
+                if (t.twiddles.len < 64) id[1 + log] = 1;
+            };
+            return regionKey("rv64/m8/outer-job/twiddles/v3-tower", &id, self.image.words[@intFromEnum(Region.twiddles)]);
+        }
         var logs: [29]u8 = undefined;
         for (&logs, self.statics.tables) |*l, t| l.* = @intFromBool(t != null);
         return regionKey("rv64/m8/outer-job/twiddles/v2", &logs, self.image.words[@intFromEnum(Region.twiddles)]);
+    }
+    pub fn shareTwiddleTower(self: *Staged) !void {
+        if (self.shared_twiddle_log != null) return;
+        self.shared_twiddle_log = try self.image.shareTwiddleTower(self.statics.tables);
     }
     fn regionKey(tag: []const u8, id: []const u8, words: u64) [32]u8 {
         var h = std.crypto.hash.sha2.Sha256.init(.{});
@@ -193,6 +270,11 @@ pub const Staged = struct {
     /// Lays out every section. Class sections hold a fold's schedule only
     /// when it is reusable; otherwise the node region carries it.
     pub fn layout(assignment: *const Assignment, statics: *const Statics) Image {
+        return layoutWith(assignment, statics, 0);
+    }
+    /// `expected_words` > 0 also stages the expected outputs (node region,
+    /// after every other node section, so the default layout is unchanged).
+    pub fn layoutWith(assignment: *const Assignment, statics: *const Statics, expected_words: usize) Image {
         var i = Image{};
         i.rc_blob = i.take(.class, statics.rc_blob.len);
         i.channel_seed = i.take(.node, 9);
@@ -207,6 +289,7 @@ pub const Staged = struct {
         i.main_logs = i.take(.class, Plan.main_columns);
         i.inter_logs = i.take(.class, Plan.inter_columns);
         i.fixed_logs = i.take(.class, statics.fixed_sorted_logs.len);
+        if (expected_words != 0) i.expected = i.take(.node, expected_words);
         for (statics.tables, 0..) |t, log| if (t) |tw| {
             i.twiddles[log] = i.take(.twiddles, tw.twiddles.len);
             i.itwiddles[log] = i.take(.twiddles, tw.itwiddles.len);
@@ -237,6 +320,7 @@ pub const Staged = struct {
             .{ i.main_logs, &s.main_logs },
             .{ i.inter_logs, &s.inter_logs },
             .{ i.fixed_logs, s.fixed_sorted_logs },
+            .{ i.expected, self.expected },
         };
         for (sections) |entry| {
             const r, const src = entry;

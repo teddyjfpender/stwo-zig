@@ -80,14 +80,20 @@ test "native v2 shared row binding joins different kind lane suffixes" {
     const specs = [_]R.ComponentSpec{.{ .origin = .{ 0, 13 }, .row_log = 2, .terms = .{ 3, 1, 2, 0 } }};
     var roster = try R.deriveBounded(allocator, &specs, MAX_INSTANCES);
     defer roster.deinit();
-    const o = struct { fn scalar(value: u32) O { return O.fromBase(M.fromCanonical(value)); } }.scalar;
+    const o = struct {
+        fn scalar(value: u32) O {
+            return O.fromBase(M.fromCanonical(value));
+        }
+    }.scalar;
     const point = [_]O{ o(2), o(3), o(5), o(7) };
     const local_claim = [_]O{ o(11), o(13) };
     const ram_claim = [_]O{ o(17), o(19) };
     const kio_claim = [_]O{ o(23), o(29) };
     const claims = [_][]const O{ &local_claim, &ram_claim, &kio_claim };
     var challenges = Challenges{ .gamma = o(31), .rho = @splat(O.zero()) };
-    challenges.rho[0] = o(37); challenges.rho[1] = o(41); challenges.rho[2] = o(43);
+    challenges.rho[0] = o(37);
+    challenges.rho[1] = o(41);
+    challenges.rho[2] = o(43);
     var parameters = try parametersFor(O, allocator, &roster, 0, &point, &claims, &challenges);
     defer parameters.deinit();
     try std.testing.expectEqualSlices(O, point[2..], parameters.point.slice());
@@ -95,11 +101,13 @@ test "native v2 shared row binding joins different kind lane suffixes" {
     try std.testing.expectEqual(@as(usize, 1), parameters.weights[1].len);
     try std.testing.expectEqual(@as(usize, 2), parameters.weights[2].len);
     for (parameters.weights[0..3], challenges.rho[0..3]) |weights, rho| {
-        var sum = O.zero(); for (weights) |weight| sum = sum.add(weight);
+        var sum = O.zero();
+        for (weights) |weight| sum = sum.add(weight);
         try std.testing.expect(sum.eql(rho));
     }
     const expected = try boundaryFor(O, &roster, 0, &claims, &challenges);
     try std.testing.expect(parameters.target_per_row.mulM31(M.fromCanonical(4)).eql(expected));
-    var degenerate = point; degenerate[3] = O.one();
+    var degenerate = point;
+    degenerate[3] = O.one();
     try std.testing.expectError(error.DegenerateEvalPoint, parametersFor(O, allocator, &roster, 0, &degenerate, &claims, &challenges));
 }

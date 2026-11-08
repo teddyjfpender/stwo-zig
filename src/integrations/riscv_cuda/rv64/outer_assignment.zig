@@ -912,7 +912,10 @@ pub const Prepared = struct {
         var chain_ends: ?N.Lease = null;
         if (self.narrow_plan) |plan| {
             var need_ends = graph_enabled;
-            for (plan.runs) |run| if (run.kind == .chain) { need_ends = true; break; };
+            for (plan.runs) |run| if (run.kind == .chain) {
+                need_ends = true;
+                break;
+            };
             if (need_ends) chain_ends = try Static.words(self, ctx, service, &one_shot[2], owner.initial_scope.fixed, 2, plan.ends);
         }
         try ctx.join();
@@ -930,8 +933,8 @@ pub const Prepared = struct {
             defer self.allocator.free(sequence);
             job.first = 0;
             job.count = job.record_count;
-            const hit = try owner.backend.assignment_graphs.run(owner.backend.allocator, &service.library, ctx, self.identity, sequence, &job, .{.values=values,.tasks=tasks,.indices=indices,.status=status,.ends=chain_ends.?}, plan.ends.len);
-            std.debug.print("GPU_OUTER_ASSIGNMENT_GRAPH hit={} nodes={} launches=1 fresh_pointers=true\n", .{hit,sequence.len});
+            const hit = try owner.backend.assignment_graphs.run(owner.backend.allocator, &service.library, ctx, self.identity, sequence, &job, .{ .values = values, .tasks = tasks, .indices = indices, .status = status, .ends = chain_ends.? }, plan.ends.len);
+            std.debug.print("GPU_OUTER_ASSIGNMENT_GRAPH hit={} nodes={} launches=1 fresh_pointers=true\n", .{ hit, sequence.len });
             launches += 1;
         } else if (self.narrow_plan) |plan| {
             for (plan.runs) |run| {

@@ -1,0 +1,447 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "observed_utc": "2026-11-08T01:28:55.281953+00:00",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-28/gate.json",
+      "sha256": "169035bc09793d525b06ef03b7bfc350c80f842bcf2feafa74b989fef99c1f37",
+      "status": "PASS",
+      "block": 26235156,
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ],
+      "parity": [
+        {
+          "artifact_count": 32,
+          "byte_identical": true
+        },
+        {
+          "artifact_count": 32,
+          "byte_identical": true
+        }
+      ],
+      "receivers": [
+        {
+          "block": 26235156,
+          "proof": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-28-00-baseline/spool/out/0000-26235156/26235156/proof",
+          "status": "accepted",
+          "accepted": true,
+          "receiver_sha256": "d1e9f64b60da5c3d630963d83daf2a6545f81ef298022fc9130184d1f8b6694c",
+          "process": {
+            "argv": [
+              "nice",
+              "-n",
+              "10",
+              "/workspace/m3/build/m8-gn-bind/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+              "--security-profile",
+              "d2_native_b4_q54_p20_fold4",
+              "verify-recursion-candidate",
+              "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-28-00-baseline/receiver-26235156-0000-26235156-20261108T010927/receiver-request.json",
+              "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-28-00-baseline/spool/out/0000-26235156/26235156/proof",
+              "12884901888",
+              "34359738368"
+            ],
+            "exit_code": 0,
+            "wall_ns": 31278247515,
+            "user_seconds": 147.240292,
+            "system_seconds": 9.420587,
+            "peak_rss_bytes": 7253020672,
+            "minor_faults": 4013691,
+            "major_faults": 0
+          },
+          "directory": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-28-00-baseline/receiver-26235156-0000-26235156-20261108T010927",
+          "isolation": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+            "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+            "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+            "STWO_RV64_FOLD_CLASS_CACHE": "0"
+          },
+          "trial": 0,
+          "store_present_during_receive": false
+        },
+        {
+          "block": 26235156,
+          "proof": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-28-00-baseline/spool/out/0001-26235156/26235156/proof",
+          "status": "accepted",
+          "accepted": true,
+          "receiver_sha256": "d1e9f64b60da5c3d630963d83daf2a6545f81ef298022fc9130184d1f8b6694c",
+          "process": {
+            "argv": [
+              "nice",
+              "-n",
+              "10",
+              "/workspace/m3/build/m8-gn-bind/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+              "--security-profile",
+              "d2_native_b4_q54_p20_fold4",
+              "verify-recursion-candidate",
+              "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-28-00-baseline/receiver-26235156-0001-26235156-20261108T010959/receiver-request.json",
+              "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-28-00-baseline/spool/out/0001-26235156/26235156/proof",
+              "12884901888",
+              "34359738368"
+            ],
+            "exit_code": 0,
+            "wall_ns": 31426550854,
+            "user_seconds": 144.999778,
+            "system_seconds": 9.501737,
+            "peak_rss_bytes": 7239839744,
+            "minor_faults": 4018807,
+            "major_faults": 0
+          },
+          "directory": "/workspace/m3/runs/m8-gn-bind/daemon-26235156-r2-gate-gate-28-00-baseline/receiver-26235156-0001-26235156-20261108T010959",
+          "isolation": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+            "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+            "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+            "STWO_RV64_FOLD_CLASS_CACHE": "0"
+          },
+          "trial": 1,
+          "store_present_during_receive": false
+        }
+      ],
+      "corpus": {
+        "ran": 19,
+        "passed": 19,
+        "unexpected_accepts": [],
+        "crashes": [],
+        "nonsemantic_rejects": {
+          "V04-cross-block-root": "resource"
+        }
+      }
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/gate-29/gate.json",
+      "sha256": "18ed8817286d8671ab8b3676e7fbb05b4d53762d9dfa833e7ef3845405ad0137",
+      "status": "FAIL",
+      "block": 24628607,
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 1
+        }
+      ],
+      "parity": [],
+      "receivers": null
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/gate-26/gate.json",
+      "sha256": "a95cc8ee2d8ca114942df8b42500570e62d1d32451a8d86bd87e03bf5d0ad707",
+      "status": "PASS",
+      "block": 26235156,
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ],
+      "parity": [
+        {
+          "artifact_count": 32,
+          "byte_identical": true
+        },
+        {
+          "artifact_count": 32,
+          "byte_identical": true
+        }
+      ],
+      "receivers": [
+        {
+          "block": 26235156,
+          "proof": "/workspace/m3/runs/m8-gn-codec/daemon-26235156-r2-gate-gate-26-00-baseline/spool/out/0000-26235156/26235156/proof",
+          "status": "accepted",
+          "accepted": true,
+          "receiver_sha256": "2abf6480ab127e2990c678312d9e46bebb37c9cc66442b22b3e8063441523457",
+          "process": {
+            "argv": [
+              "nice",
+              "-n",
+              "10",
+              "/workspace/m3/build/m8-gn-codec/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+              "--security-profile",
+              "d2_native_b4_q54_p20_fold4",
+              "verify-recursion-candidate",
+              "/workspace/m3/runs/m8-gn-codec/daemon-26235156-r2-gate-gate-26-00-baseline/receiver-26235156-0000-26235156-20261108T005155/receiver-request.json",
+              "/workspace/m3/runs/m8-gn-codec/daemon-26235156-r2-gate-gate-26-00-baseline/spool/out/0000-26235156/26235156/proof",
+              "12884901888",
+              "34359738368"
+            ],
+            "exit_code": 0,
+            "wall_ns": 30769224197,
+            "user_seconds": 140.530862,
+            "system_seconds": 9.327729,
+            "peak_rss_bytes": 7233474560,
+            "minor_faults": 4018353,
+            "major_faults": 0
+          },
+          "directory": "/workspace/m3/runs/m8-gn-codec/daemon-26235156-r2-gate-gate-26-00-baseline/receiver-26235156-0000-26235156-20261108T005155",
+          "isolation": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+            "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+            "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+            "STWO_RV64_FOLD_CLASS_CACHE": "0"
+          },
+          "trial": 0,
+          "store_present_during_receive": false
+        },
+        {
+          "block": 26235156,
+          "proof": "/workspace/m3/runs/m8-gn-codec/daemon-26235156-r2-gate-gate-26-00-baseline/spool/out/0001-26235156/26235156/proof",
+          "status": "accepted",
+          "accepted": true,
+          "receiver_sha256": "2abf6480ab127e2990c678312d9e46bebb37c9cc66442b22b3e8063441523457",
+          "process": {
+            "argv": [
+              "nice",
+              "-n",
+              "10",
+              "/workspace/m3/build/m8-gn-codec/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+              "--security-profile",
+              "d2_native_b4_q54_p20_fold4",
+              "verify-recursion-candidate",
+              "/workspace/m3/runs/m8-gn-codec/daemon-26235156-r2-gate-gate-26-00-baseline/receiver-26235156-0001-26235156-20261108T005226/receiver-request.json",
+              "/workspace/m3/runs/m8-gn-codec/daemon-26235156-r2-gate-gate-26-00-baseline/spool/out/0001-26235156/26235156/proof",
+              "12884901888",
+              "34359738368"
+            ],
+            "exit_code": 0,
+            "wall_ns": 30305064080,
+            "user_seconds": 137.742977,
+            "system_seconds": 8.858592999999999,
+            "peak_rss_bytes": 7220768768,
+            "minor_faults": 4018699,
+            "major_faults": 0
+          },
+          "directory": "/workspace/m3/runs/m8-gn-codec/daemon-26235156-r2-gate-gate-26-00-baseline/receiver-26235156-0001-26235156-20261108T005226",
+          "isolation": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+            "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+            "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+            "STWO_RV64_FOLD_CLASS_CACHE": "0"
+          },
+          "trial": 1,
+          "store_present_during_receive": false
+        }
+      ],
+      "corpus": {
+        "ran": 19,
+        "passed": 19,
+        "unexpected_accepts": [],
+        "crashes": [],
+        "nonsemantic_rejects": {
+          "V04-cross-block-root": "resource"
+        }
+      }
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/gate-27/gate.json",
+      "sha256": "4fd966781049f43e35774763c9816994faf2743480611ee1666d0d6afdbfb5bb",
+      "status": "PASS",
+      "block": 24628607,
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ],
+      "parity": [
+        {
+          "artifact_count": 39,
+          "byte_identical": true
+        },
+        {
+          "artifact_count": 39,
+          "byte_identical": true
+        }
+      ],
+      "receivers": [
+        {
+          "block": 24628607,
+          "proof": "/workspace/m3/runs/m8-gn-codec/daemon-24628607-r2-gate-gate-27-00-baseline/spool/out/0000-24628607/24628607/proof",
+          "status": "accepted",
+          "accepted": true,
+          "receiver_sha256": "2abf6480ab127e2990c678312d9e46bebb37c9cc66442b22b3e8063441523457",
+          "process": {
+            "argv": [
+              "nice",
+              "-n",
+              "10",
+              "/workspace/m3/build/m8-gn-codec/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+              "--security-profile",
+              "d2_native_b4_q54_p20_fold4",
+              "verify-recursion-candidate",
+              "/workspace/m3/runs/m8-gn-codec/daemon-24628607-r2-gate-gate-27-00-baseline/receiver-24628607-0000-24628607-20261108T011018/receiver-request.json",
+              "/workspace/m3/runs/m8-gn-codec/daemon-24628607-r2-gate-gate-27-00-baseline/spool/out/0000-24628607/24628607/proof",
+              "12884901888",
+              "34359738368"
+            ],
+            "exit_code": 0,
+            "wall_ns": 40833531677,
+            "user_seconds": 194.18594,
+            "system_seconds": 11.653776,
+            "peak_rss_bytes": 7567065088,
+            "minor_faults": 4900885,
+            "major_faults": 0
+          },
+          "directory": "/workspace/m3/runs/m8-gn-codec/daemon-24628607-r2-gate-gate-27-00-baseline/receiver-24628607-0000-24628607-20261108T011018",
+          "isolation": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+            "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+            "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+            "STWO_RV64_FOLD_CLASS_CACHE": "0"
+          },
+          "trial": 0,
+          "store_present_during_receive": false
+        },
+        {
+          "block": 24628607,
+          "proof": "/workspace/m3/runs/m8-gn-codec/daemon-24628607-r2-gate-gate-27-00-baseline/spool/out/0001-24628607/24628607/proof",
+          "status": "accepted",
+          "accepted": true,
+          "receiver_sha256": "2abf6480ab127e2990c678312d9e46bebb37c9cc66442b22b3e8063441523457",
+          "process": {
+            "argv": [
+              "nice",
+              "-n",
+              "10",
+              "/workspace/m3/build/m8-gn-codec/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+              "--security-profile",
+              "d2_native_b4_q54_p20_fold4",
+              "verify-recursion-candidate",
+              "/workspace/m3/runs/m8-gn-codec/daemon-24628607-r2-gate-gate-27-00-baseline/receiver-24628607-0001-24628607-20261108T011059/receiver-request.json",
+              "/workspace/m3/runs/m8-gn-codec/daemon-24628607-r2-gate-gate-27-00-baseline/spool/out/0001-24628607/24628607/proof",
+              "12884901888",
+              "34359738368"
+            ],
+            "exit_code": 0,
+            "wall_ns": 40387287191,
+            "user_seconds": 192.856588,
+            "system_seconds": 11.413502,
+            "peak_rss_bytes": 7576657920,
+            "minor_faults": 4903471,
+            "major_faults": 0
+          },
+          "directory": "/workspace/m3/runs/m8-gn-codec/daemon-24628607-r2-gate-gate-27-00-baseline/receiver-24628607-0001-24628607-20261108T011059",
+          "isolation": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+            "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+            "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+            "STWO_RV64_FOLD_CLASS_CACHE": "0"
+          },
+          "trial": 1,
+          "store_present_during_receive": false
+        }
+      ],
+      "corpus": {
+        "ran": 19,
+        "passed": 19,
+        "unexpected_accepts": [],
+        "crashes": [],
+        "nonsemantic_rejects": {}
+      }
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/native-live-12-246-tower/receipt.json",
+      "sha256": "3ca595e19f1175ccc49cc15ba8e793f644cbe38480e125c488c8059e0fa27874",
+      "result": {
+        "exit_code": 1,
+        "wall_ns": 148716035843,
+        "tag": "native-live-12-246-tower-00-baseline"
+      },
+      "failure": "GpuNativeMemoryPlanPhaseB before READY",
+      "logical_persistent_words_per_gpu": 789054061,
+      "previous_logical_persistent_words_per_gpu": 857509485,
+      "derived_reduction_bytes_per_gpu": 273821696,
+      "physical_peak_claim": false
+    }
+  ],
+  "scope": "Native gate28 PASS on26235156; default26/27PASS;246nativegate29 and towerprobe12 FAIL atPhaseB. New truth memory measurement implementation untested at capture.",
+  "claim_boundary": "Gate28 passes frozen32/32 parity twice and2fresh CPUreceiver harnesses.19case harness passes withV04cross-block-root resourceFileTooBig, not a semantic rejection. No qualified performance win, no246nativecompletion, broaderarchitecture incomplete.",
+  "pending": {
+    "source": "Main stream FROZEN through typecheck21/jobs18/gate30; local tower+truthMemoryProbe implementation synced. No CUDA change.",
+    "runs": [
+      "/workspace/m3/runs/m8-gn-bind/typecheck-21.sh",
+      "/workspace/m3/runs/m8-gn-bind/jobs-18.sh",
+      "/workspace/m3/runs/m8-gn-bind/native-gate-30.sh"
+    ]
+  }
+}

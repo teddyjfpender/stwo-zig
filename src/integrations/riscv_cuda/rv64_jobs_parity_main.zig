@@ -14,6 +14,9 @@
 //! 3-stage pipeline (depth 3) and once serialized (depth 1: the next job is only
 //! submitted after the previous finished), wall clock per arm.
 //!
+//! `rv64-jobs-channel-parity gpu-native <requests> <segments> [negative]` runs
+//! the GPU-native request driver (D3) on GPUs 0 and 1 with probe device jobs.
+//!
 //! `rv64-jobs-channel-parity service <device> <arena_mib> <pinned_mib> <cycles>`
 //! measures per-request open/close: today's create/destroy window vs a
 //! persistent worker's unpark/park (runtime-persist).
@@ -334,6 +337,13 @@ pub fn main() !void {
     const a = gpa.allocator();
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if ((args.len == 4 or args.len == 5) and std.mem.eql(u8, args[1], "gpu-native")) {
+        // D3: GPU-native driver on both GPUs with probe device jobs (driver_probe.zig).
+        var libs = try O.Libraries.open(std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary, std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon);
+        defer libs.close();
+        const negative = args.len == 5 and std.mem.eql(u8, args[4], "negative");
+        return @import("rv64/jobs/driver_probe.zig").run(a, &libs, try std.fmt.parseUnsigned(usize, args[2], 10), try std.fmt.parseUnsigned(u32, args[3], 10), negative);
+    }
     if (args.len == 4 and std.mem.eql(u8, args[1], "dag")) {
         var libs = try O.Libraries.open(std.posix.getenv("STWO_RV64_GPU_LIBRARY") orelse return error.MissingBaseLibrary, std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingJobsAddon);
         defer libs.close();

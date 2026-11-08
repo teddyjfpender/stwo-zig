@@ -17,7 +17,7 @@ const api = @import("api.zig");
 const O = @import("ops.zig");
 
 /// Channel words the worker reserves per job: 16 state + 16 boundary scratch.
-pub const state_words: usize = 32;
+pub const state_words: usize = @import("resources.zig").channel_words;
 pub const snapshot_words: usize = 16;
 const chain_tag: u64 = 0x4a4f4253 << 32; // "JOBS"
 

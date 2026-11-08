@@ -38,6 +38,7 @@ const R = @import("../resident.zig");
 const A = @import("../abi.zig");
 const N = @import("../runtime_api.zig");
 const Prefix = @import("../prefix_plan.zig");
+const Semantic = @import("native_semantic.zig");
 
 /// The CUDA packets StwoRv64BindingDeferred / StwoRv64BindingFinalize
 /// (NAT/rv64/binding.h; also mirrored in device_binding_runtime.zig, the
@@ -199,7 +200,11 @@ pub const Binding = struct {
     /// As `enqueue`; `authority` (`plan.authorityWords()`, e.g. a slab field)
     /// receives the device words of the legacy authority check (`checkAuthority`).
     pub fn enqueueWithAuthority(self: *Binding, e: *api.Enqueue, gkr: *const G.Gkr, output: api.DeviceBuffer, verdict: api.DeviceBuffer, authority: ?api.DeviceBuffer) !void {
+        return self.enqueueComplete(e, gkr, output, verdict, authority, null);
+    }
+    pub fn enqueueComplete(self: *Binding, e: *api.Enqueue, gkr: *const G.Gkr, output: api.DeviceBuffer, verdict: api.DeviceBuffer, authority: ?api.DeviceBuffer, semantic: ?api.DeviceBuffer) !void {
         const p = self.plan;
+        if (semantic) |s| if (s.words != Semantic.words(p.row_logs)) return error.NativeSemanticShape;
         const traversal = gkr.traversal orelse return error.NativeGkrNotEnqueued;
         const tw = self.twiddles orelse return error.NativeBindingNotStaged;
         if (output.words < p.output_words or verdict.words < 1) return error.InvalidNativeBindingOutput;
@@ -231,6 +236,10 @@ pub const Binding = struct {
         for (p.row_logs, p.lane_logs, gkr.fractions, 0..) |row_log, lane_log, fraction, i| {
             const rows: u32 = @as(u32, 1) << @intCast(row_log);
             try commands.deriveBindingMetadata(traversal.traversal.state, S(metadata), S(point), S(carry), S(seed), status, @intCast(i), row_log, lane_log, @intCast(p.row_logs.len), p.layers, G.traversal_chain);
+            if (semantic) |s| {
+                const at = try Semantic.instanceOffset(p.row_logs, i);
+                if (self.sym.copy_d2d(ctx, s.ptr + at, metadata.ptr, metadata.bytes()) != 0 or self.sym.copy_d2d(ctx, s.ptr + at + metadata_words, carry.ptr, 16 * @as(usize, row_log) * 4) != 0) return error.CudaEnqueueFailed;
+            }
             const proj = R.Plane{ .data = S(try projection.slice(0, 8 * @as(usize, rows))), .stride = rows, .coordinates = 8 };
             const deferred = Deferred{ .n = try fraction.n.bind(&device), .d = try fraction.d.bind(&device), .output = try proj.bind(&device), .metadata = metadata.ptr, .status = verdict.ptr, .row_log = row_log, .lane_log = lane_log };
             if (self.sym.deferred(ctx, 0, &deferred) != 0) return error.CudaEnqueueFailed;

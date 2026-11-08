@@ -1,0 +1,11 @@
+5b911ea879d78758bca70e91e0aee9d2d79937d7043174ac92b4692a7b7c2187  ./README.md
+6dfacfe5a225ae1032b4936cbc5266fdf1196536765b856c2c6874466deb1d42  ./ethproofs/clusters-20261107.md
+d6ace57505310e2adffc54833062b622d4395fafcd45fc8a05f38ab794558639  ./ethproofs/team-antchain-openlabs-20261107.md
+7d52fb04b4283bbd3da2cd90c4a71fa3bba48282b367bbc8194b94e3d0802ee5  ./queries/h2d_overlap.py
+e6ed1855997aa5d55b0100febbcb8001fc390cbf7256f74e0e7121c1e3f963c1  ./queries/h2d_range.py
+e057605e0ad6a4bc42c73db31f43fd8cdc9bab6f21aed93dc02939cb69cf5402  ./telemetry/24628607-contributions-producer-grep.txt
+4e6e598e2b3e3716d84604be29293c9d83c8fd035a420035f2eeb15468f46201  ./zkdtvm/article-reader-proxy.md
+f2d9bb13c5f42136cf93ea8a4cbe07e35276f68500ea2604accd0fc2bd9d7420  ./zkdtvm/fig4-architecture.png
+4c72820e99db7e92141a5534cae7f251605039e123701258018e10126deb2349  ./zkdtvm/fig5-cluster.png
+7bbfb86756adedb242709e8236f669d1dcf16c39a091143262a895e7af054943  ./zkdtvm/zkdtvm-docker-README.md
+75a3431a89f4f059d3de9ff925068a06915d218138217ad2a9d80e1feb0654e1  ./zkdtvm/zkdtvm-docker-prove_network_coordinator.sh

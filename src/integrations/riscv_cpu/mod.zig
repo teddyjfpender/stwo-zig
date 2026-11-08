@@ -41,10 +41,49 @@ pub const rv64_gkr_constraints = @import("word16_global_execution/services/gkr_l
 pub const rv64_gkr_source = @import("word16_global_execution/services/gkr_local/source_authority.zig");
 pub const rv64_gkr_cpu_components = @import("word16_global_execution/services/gkr_local/cpu_components.zig");
 pub const rv64_gkr_cpu_worker = @import("word16_global_execution/services/gkr_local/cpu_worker.zig");
+pub const rv64_gkr_manifest = @import("word16_global_execution/services/gkr_local/manifest.zig");
+pub const rv64_gkr_manifest_wire = @import("word16_global_execution/services/gkr_local/manifest_wire.zig");
+pub const rv64_gkr_receipt = @import("word16_global_execution/services/gkr_local/receipt.zig");
+pub const rv64_gkr_wire = @import("word16_global_execution/services/gkr_local/wire.zig");
+/// Native chain policy / version identity (M8 GPU-native device seal: the
+/// chi chain IV is chainIv(versionIdentity(version)), a host constant).
+pub const rv64_gkr_chain = @import("word16_global_execution/services/gkr_local/chain.zig");
 /// Global RAM/KIO/Wire claim layout per origin (claimCount / claimsFromVector):
 /// the authority of the Stage2 claims buffer layout (M8 jobs/native_claims.zig).
 pub const rv64_gkr_global_cpu = @import("word16_global_execution/services/gkr_local/global_cpu.zig");
 pub const rv64_gkr_worker_protocol = @import("word16_global_execution/services/gkr_local/worker_protocol.zig");
+/// M8 GPU-native request driver (riscv_cuda rv64/jobs/driver_ge.zig): the
+/// direct capture with a per-segment readiness hook, run outside the legacy
+/// gkr_main pipeline. Exports only; no behaviour change.
+pub const rv64_ethereum_request = @import("rv64_ethereum_request.zig");
+pub const rv64_expected_image = @import("word16_execution/expected_image.zig");
+pub const rv64_program = @import("word16_execution/program.zig");
+pub const rv64_program_metadata = @import("word16_execution/program_metadata.zig");
+pub const rv64_ethereum_direct = @import("word16_global_execution/ethereum/direct.zig");
+pub const rv64_ethereum_capture = @import("word16_global_execution/ethereum/capture.zig");
+pub const rv64_ethereum_receiver = @import("word16_global_execution/ethereum/receiver.zig");
+pub const rv64_services_collector = @import("word16_global_execution/services/collector.zig");
+pub const rv64_replay_capture = @import("word16_execution/replay_capture.zig");
+pub const rv64_ethereum_capture_options = @import("word16_global_execution/ethereum/capture_options.zig");
+pub const rv64_ethereum_plan = @import("word16_global_execution/ethereum/plan.zig");
+/// M8 GPU-native install-time class builder (riscv_cuda rv64/jobs/
+/// native_class_build.zig, stream gn-shape): the warm capture's setup, FIXED
+/// authority and per-segment request views, built exactly as gkr_main's
+/// inventory does. Exports only; no behaviour change.
+pub const rv64_ethereum_keys = @import("word16_global_execution/ethereum/keys.zig");
+pub const rv64_ethereum_canon_rungs = @import("word16_global_execution/ethereum/canon_native_rungs.zig");
+pub const rv64_gkr_coordinator = @import("word16_global_execution/services/gkr_local/coordinator.zig");
+pub const rv64_gkr_bundle_wire = @import("word16_global_execution/services/gkr_local/bundle_wire.zig");
+pub const rv64_gkr_source_bounds = @import("word16_global_execution/services/gkr_local/source_bounds.zig");
+pub const rv64_ethereum_terminal = @import("word16_global_execution/ethereum/terminal.zig");
+pub const rv64_gkr_execution = @import("word16_global_execution/services/gkr_local/execution.zig");
+pub const rv64_gkr_fixed_authority = @import("word16_global_execution/services/gkr_local/fixed_authority.zig");
+pub const rv64_gkr_fixed_authority_set = @import("word16_global_execution/services/gkr_local/fixed_authority_set.zig");
+pub const rv64_gkr_local_roster = @import("word16_global_execution/services/gkr_local/roster.zig");
+pub const rv64_services_protocol = @import("word16_global_execution/services/protocol.zig");
+pub const rv64_native_policy = @import("word16_execution/native_policy.zig");
+pub const rv64_pcs_suite = @import("word16_execution/pcs_suite.zig");
+pub const rv64_om31_security_candidate = @import("word16_execution/om31_security_candidate.zig");
 pub const rv64 = @import("rv64.zig");
 pub const rv64_full = @import("rv64_full.zig");
 const frontend = @import("stwo_riscv_frontend");
@@ -314,6 +353,9 @@ test {
 
 pub const rv64_om31_outer = @import("rv64_recursion/om31_outer.zig");
 pub const rv64_om31_outer_wrap = @import("rv64_recursion/om31_native/outer_wrap.zig");
+pub const rv64_om31_cpu_leaf = @import("rv64_recursion/om31_native/cpu_leaf.zig");
+pub const rv64_om31_services_root = @import("rv64_recursion/om31_native/services_root.zig");
+pub const rv64_om31_ready_dag = @import("rv64_recursion/om31_native/ready_dag.zig");
 pub const rv64_om31_typed_fold = @import("rv64_recursion/om31_native/typed_fold.zig");
 pub const rv64_om31_typed_summary = @import("rv64_recursion/om31_native/node_summary_v3.zig");
 pub const rv64_vk_table = @import("rv64_recursion/vk_table.zig");

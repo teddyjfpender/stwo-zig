@@ -196,7 +196,12 @@ pub const INV8: u32 = 1 << 28;
 /// output-plane selector fixed[27] in both groups. Every element is affine
 /// in the committed columns, so IO denominators stay linear.
 pub fn ioTupleR27For(comptime F: type, row: RowFor(F), entry: usize) [L.IO_ARITY]F {
-    const Cells = struct { values: []const F, pub fn at(self: @This(), i: usize) F { return self.values[i]; } };
+    const Cells = struct {
+        values: []const F,
+        pub fn at(self: @This(), i: usize) F {
+            return self.values[i];
+        }
+    };
     return ioTupleR27Accessors(F, Cells{ .values = row.main }, Cells{ .values = row.state_minus_one }, row.fixed, entry);
 }
 pub fn ioTupleR27Accessors(comptime F: type, main: anytype, previous: anytype, fixed: []const F, entry: usize) [L.IO_ARITY]F {
@@ -220,7 +225,12 @@ pub fn ioTupleR27Accessors(comptime F: type, main: anytype, previous: anytype, f
 /// Weight of IO entry `entry`: group A on the two plane rows of an active
 /// slot, group B on the v0 row and the output-plane row of a slot with B.
 pub fn ioActiveR27For(comptime F: type, row: RowFor(F), entry: usize) F {
-    const Cells = struct { values: []const F, pub fn at(self: @This(), i: usize) F { return self.values[i]; } };
+    const Cells = struct {
+        values: []const F,
+        pub fn at(self: @This(), i: usize) F {
+            return self.values[i];
+        }
+    };
     return ioActiveR27Accessors(F, Cells{ .values = row.main }, row.fixed, entry);
 }
 pub fn ioActiveR27Accessors(comptime F: type, main: anytype, fixed: []const F, entry: usize) F {

@@ -74,9 +74,11 @@ pub const Report = struct {
     /// Kernel nodes in the recorded graph (launches one graph launch replaces).
     kernel_nodes: u64 = 0,
     total_nodes: u64 = 0,
-    /// Host-API launches this node issued: 1 for a graph launch, else the
-    /// body's launches in its LAST enqueue (a discarded recording excluded).
+    /// Host launch calls, including calls made while recording (even a
+    /// discarded recording) and the graph launch attempt. A re-recorded
+    /// graph saves device submissions, not host enqueue work.
     launches: u32 = 0,
+    recording_launches: u32 = 0,
 };
 
 const Entry = struct { exec: *anyopaque, bytes: u64, kernel_nodes: u64, total_nodes: u64, last_use: u64, request: u64 };
@@ -201,7 +203,7 @@ pub const Cache = struct {
             self.ban(key, "begin");
             return .{ .outcome = .fallback, .launches = try body.enqueue() };
         }
-        _ = body.enqueue() catch |err| {
+        const recorded = body.enqueue() catch |err| {
             var discarded: ?*anyopaque = null;
             _ = self.api.end(stream, &discarded);
             if (discarded) |g| self.api.destroy_graph(g);
@@ -211,7 +213,7 @@ pub const Cache = struct {
         if (self.api.end(stream, &graph) != 0 or graph == null) {
             self.ban(key, "capture");
             body.reset();
-            return .{ .outcome = .fallback, .launches = try body.enqueue() };
+            return .{ .outcome = .fallback, .launches = recorded +| try body.enqueue(), .recording_launches = recorded };
         }
         defer self.api.destroy_graph(graph.?);
         var kernels: u64 = 0;
@@ -224,11 +226,11 @@ pub const Cache = struct {
                 if (self.api.launch(entry.exec, stream) != 0) {
                     self.ban(key, "launch");
                     body.reset();
-                    return .{ .outcome = .fallback, .launches = try body.enqueue() };
+                    return .{ .outcome = .fallback, .launches = recorded +| 1 +| try body.enqueue(), .recording_launches = recorded };
                 }
                 entry.last_use = self.tick;
                 entry.request = self.request;
-                return .{ .outcome = .rebound, .kernel_nodes = kernels, .total_nodes = total, .launches = 1 };
+                return .{ .outcome = .rebound, .kernel_nodes = kernels, .total_nodes = total, .launches = recorded +| 1, .recording_launches = recorded };
             }
             // Topology changed: drop the old executable and instantiate anew.
             self.api.destroy_exec(entry.exec);
@@ -241,7 +243,7 @@ pub const Cache = struct {
         if (self.api.instantiate(graph.?, &exec, &charged) != 0 or exec == null) {
             self.ban(key, "instantiate");
             body.reset();
-            return .{ .outcome = .fallback, .launches = try body.enqueue() };
+            return .{ .outcome = .fallback, .launches = recorded +| try body.enqueue(), .recording_launches = recorded };
         }
         if (charged == std.math.maxInt(u64) or charged > self.policy.budget_bytes) {
             // Unknown cost, or one executable larger than the whole budget:
@@ -249,18 +251,18 @@ pub const Cache = struct {
             self.api.destroy_exec(exec.?);
             self.ban(key, if (charged == std.math.maxInt(u64)) "charge-unknown" else "exceeds-budget");
             body.reset();
-            return .{ .outcome = .fallback, .launches = try body.enqueue() };
+            return .{ .outcome = .fallback, .launches = recorded +| try body.enqueue(), .recording_launches = recorded };
         }
         self.makeRoom(charged);
         if (self.api.launch(exec.?, stream) != 0) {
             self.api.destroy_exec(exec.?);
             self.ban(key, "first-launch");
             body.reset();
-            return .{ .outcome = .fallback, .launches = try body.enqueue() };
+            return .{ .outcome = .fallback, .launches = recorded +| 1 +| try body.enqueue(), .recording_launches = recorded };
         }
         try self.entries.put(self.allocator, key, .{ .exec = exec.?, .bytes = charged, .kernel_nodes = kernels, .total_nodes = total, .last_use = self.tick, .request = self.request });
         self.used_bytes += charged;
-        return .{ .outcome = outcome, .kernel_nodes = kernels, .total_nodes = total, .launches = 1 };
+        return .{ .outcome = outcome, .kernel_nodes = kernels, .total_nodes = total, .launches = recorded +| 1, .recording_launches = recorded };
     }
 };
 
@@ -337,9 +339,13 @@ test "graph cache: direct below threshold, capture once warm, rebind per node, b
     try testing.expectEqual(Outcome.direct, (try cache.run(key, &stream, &body)).outcome);
     const captured = try cache.run(key, &stream, &body);
     try testing.expectEqual(Outcome.captured, captured.outcome);
-    try testing.expectEqual(@as(u32, 1), captured.launches);
+    try testing.expectEqual(@as(u32, 151), captured.launches);
+    try testing.expectEqual(@as(u32, 150), captured.recording_launches);
     try testing.expectEqual(@as(u64, 150), captured.kernel_nodes);
-    try testing.expectEqual(Outcome.rebound, (try cache.run(key, &stream, &body)).outcome);
+    const rebound = try cache.run(key, &stream, &body);
+    try testing.expectEqual(Outcome.rebound, rebound.outcome);
+    try testing.expectEqual(@as(u32, 151), rebound.launches);
+    try testing.expectEqual(@as(u32, 150), rebound.recording_launches);
     try testing.expectEqual(@as(u32, 3), FakeCuda.executed); // 1 direct + 2 graph launches
     try testing.expectEqual(@as(i32, 0), FakeCuda.graphs_live);
     try testing.expectEqual(@as(i32, 1), FakeCuda.execs_live);
@@ -355,6 +361,8 @@ test "graph cache: direct below threshold, capture once warm, rebind per node, b
     const failed = try cache.run(other, &stream, &body);
     FakeCuda.fail_end = false;
     try testing.expectEqual(Outcome.fallback, failed.outcome);
+    try testing.expectEqual(@as(u32, 300), failed.launches);
+    try testing.expectEqual(@as(u32, 150), failed.recording_launches);
     try testing.expectEqual(@as(u32, 1), body.resets);
     try testing.expectEqual(Outcome.direct, (try cache.run(other, &stream, &body)).outcome);
     // One executable larger than the whole budget: never kept, only that key is banned.

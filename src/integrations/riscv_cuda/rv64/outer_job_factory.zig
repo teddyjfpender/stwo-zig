@@ -25,6 +25,15 @@ const Events = @import("cuda_events.zig");
 const Heap = @import("jobs/outer_heap.zig");
 const Env = @import("jobs/outer_env.zig");
 const OuterWindow = @import("jobs/outer_window.zig");
+const CP = @import("jobs/outer_class_plan.zig");
+const Checks = @import("jobs/outer_checks.zig");
+const Enc = @import("jobs/outer_encode.zig");
+const EncJob = @import("jobs/outer_encode_job.zig");
+const OodsAbi = @import("jobs/outer_encode_oods.zig");
+const Seed = @import("jobs/outer_seed_device.zig");
+const GnRecord = @import("outer_seed_record.zig");
+const OuterDevice = @import("jobs/outer_device.zig");
+const Runtime = @import("native_node_class.zig");
 
 pub const Shared = struct {
     kernels: K.Kernels,
@@ -35,6 +44,18 @@ pub const Shared = struct {
     fs: std.DynLib,
     /// Base-image CUDA event symbols (cuda_events.zig); null: no GPU timing.
     events: ?Events.Api = null,
+    /// Device acceptance checks from the addon (STWO_RV64_M8_OUTER_DEVICE_CHECKS=1).
+    checks: ?Checks.Symbols = null,
+    /// Device proof encoder (STWO_RV64_M8_OUTER_DEVICE_ENCODE=check|1).
+    encode: ?Enc.Symbols = null,
+    encode_mode: Enc.Mode = .off,
+    /// Device node_oods_constraint check (with the encoder, check mode).
+    oods: ?OodsAbi.Symbols = null,
+    /// gn-node device seed fill (STWO_RV64_M8_GN_NODE=check|job).
+    seed: ?Seed.Symbols = null,
+    /// gn-node job mode: the addon's peer / verdict ops (NodeJob channel_order).
+    peer: ?@import("jobs/ops.zig").Peer = null,
+    compressed: ?@import("jobs/outer_packed_class.zig").Launch = null,
     /// `base` = frozen base image, `addon` = libstwo-rv64-jobs.so, both owned by
     /// the caller (ops.Libraries); `fs_path` = libstwo-rv64-outer-fs-ops.so.
     pub fn init(base: *std.DynLib, addon: *std.DynLib, fs_path: []const u8) !Shared {
@@ -47,8 +68,15 @@ pub const Shared = struct {
             .pcs = try NativePcs.Symbols.load(addon),
             .wide = if (base.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false,
             .graph_api = try Graphs.Api.load(addon),
+            .compressed = addon.lookup(@import("jobs/outer_packed_class.zig").Launch, "stwo_rv64_outer_packed_class_v2_on"),
             .fs = fs,
             .events = Events.Api.load(base) catch null,
+            .checks = if (try Checks.selected()) try Checks.Symbols.load(addon) else null,
+            .encode = if (try Enc.mode() != .off or try GnRecord.liveSelected()) try Enc.Symbols.load(addon) else null,
+            .encode_mode = try Enc.mode(),
+            .oods = if (try Enc.mode() != .off or try GnRecord.liveSelected()) try OodsAbi.Symbols.load(addon) else null,
+            .seed = if (try GnRecord.liveSelected()) try Seed.Symbols.load(addon) else null,
+            .peer = if (GnRecord.jobSelected()) try @import("jobs/ops.zig").Peer.open(addon) else null,
         };
     }
     pub fn deinit(self: *Shared) void {
@@ -56,7 +84,7 @@ pub const Shared = struct {
         self.* = undefined;
     }
     pub fn whole(self: *const Shared) Job.Whole {
-        return .{ .composition = &self.composition, .pcs = self.pcs, .wide = self.wide };
+        return .{ .composition = &self.composition, .pcs = self.pcs, .wide = self.wide, .checks = self.checks };
     }
 };
 
@@ -127,6 +155,27 @@ pub const Report = struct {
     fixed_handoff: bool = false,
     /// The job's declared footprint (class plan).
     footprint: api.Footprint = .{ .device_words = 0 },
+    /// initWhole borrowed the class's cached WholePlan (STWO_RV64_M8_OUTER_CLASS_PLAN=1).
+    borrowed_plan: bool = false,
+    /// Device encoding (STWO_RV64_M8_OUTER_DEVICE_ENCODE=check): bytes, GPU
+    /// time of the encoder launch (CUDA events), host mirror time.
+    encoded_bytes: u64 = 0,
+    encode_gpu_ns: u64 = 0,
+    encode_mirror_ns: u64 = 0,
+    encode_launches: u32 = 0,
+    encode_identical: bool = false,
+    /// gn-node check: device seed fill + statement (GnCheck).
+    gn: GnReport = .{},
+};
+pub const GnReport = struct {
+    ran: bool = false,
+    children: u32 = 0,
+    seeds: u64 = 0,
+    gpu_ns: u64 = 0,
+    host_ns: u64 = 0,
+    warm_ns: u64 = 0,
+    launches: u32 = 0,
+    source_words: u64 = 0,
 };
 
 pub const Prover = struct {
@@ -191,6 +240,74 @@ pub const Prover = struct {
         }
     };
 
+    /// STWO_RV64_M8_GN_NODE=job: prove the node again through the production
+    /// GPU-native node job (outer_device.NodeJob over its NodeClasses
+    /// template, children from a node-local stand-in of the request slab) and
+    /// require its device-encoded bytes == the published host bytes.
+    fn gnJob(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, cur: *const @import("jobs/outer_staged.zig").Staged, g: *const GnCheck, wire: []const u8, image: []const u32, handoff: ?Job.FixedHandoff) !void {
+        const entry = NodeClasses.get(cur.class_key) orelse return error.GnNodeClassNotHarvested;
+        // A leaf's Blake sample prefill tape is a per-node HOST input today
+        // (leaf_graph): hand this node's to the template (same class, same
+        // length; remaining host work, see the receipt).
+        if (entry.staged.assignment.sample_tape) |t| {
+            const c = cur.assignment.sample_tape orelse return error.GnNodeSampleTapeMissing;
+            if (c.len != t.len) return error.GnNodeSampleTapeShape;
+            entry.staged.assignment.sample_tape = c;
+            entry.staged.assignment.sample_map = cur.assignment.sample_map;
+        }
+        // Under the hybrid window's per-job class-region policy (and with no
+        // lane handoff of the same FIXED size) the node recommits its FIXED
+        // tree from its own PP's raw evaluations: hand them over too (same
+        // class: same layout and values). With persistent class regions the
+        // FIXED tree is committed once per worker instead.
+        if (cur != entry.staged and cur.fixed_raw.len != 0) {
+            if (!std.mem.eql(u32, cur.fixed_logs, entry.fixed_logs)) return error.GnNodeFixedLayout;
+            entry.staged.fixed_raw = cur.fixed_raw;
+        }
+        // Never keep a pointer into a PP that dies with this node.
+        defer entry.staged.fixed_raw = &.{};
+        var timer = try std.time.Timer.start();
+        // Children regions in the slab convention: image in the last words.
+        var region_words: [Seed.max_children]u32 = undefined;
+        const nk = g.regions.len;
+        for (g.regions, 0..) |x, k| {
+            var at: usize = 0;
+            const sh = try Seed.Shape.parse(std.heap.c_allocator, entry.shapes[k], &at);
+            defer std.heap.c_allocator.free(sh.trees);
+            region_words[k] = GnCheck.wire_words + @as(u32, @intCast((try Seed.Layout.of(sh)).words));
+            _ = x;
+        }
+        {
+            NodeClasses.mutex.lock();
+            defer NodeClasses.mutex.unlock();
+            if (entry.program.len == 0) try entry.programFor(region_words[0..nk]);
+        }
+        const program_ns = timer.lap();
+        // This worker's graph cache: every node of the class replays the
+        // class's captured body (STWO_RV64_M8_OUTER_GRAPH_THRESHOLD=1: from
+        // the second node of the class on this GPU).
+        const dev = self.worker.device_ordinal;
+        if (dev < entry.graphs.len and entry.graphs[dev] == null) entry.graphs[dev] = &self.graphs;
+        var w = try GnJob.init(a, entry, g, region_words[0..nk], self.shared, image, dev);
+        // The FIXED coefficients the node just used (the lane's precommit
+        // handoff region): in the hybrid window a second class-persistent
+        // FIXED copy does not fit next to the legacy pipeline's live memory.
+        w.made.job.fixed_handoff = handoff;
+        // Class regions follow the Prover's policy: the hybrid window stages
+        // them per job (its workers park between requests; persistent class
+        // regions would sit next to the legacy pipeline's live memory).
+        w.made.job.persistent_classes = self.persistent_classes;
+        defer w.deinit(a);
+        var done = Done{};
+        try self.submitWait(w.job(), &done);
+        try done.result;
+        const job_ns = timer.lap();
+        const eq = std.mem.eql(u8, w.bytes orelse &.{}, wire);
+        std.debug.print("GN_NODE_JOB ordinal={d} leaf={} children={d} device_bytes={d} host_bytes={d} bytes_identical={} seed_tape=0x{x} child_binding=0x{x} lookup_sum=0x{x} channel_order=0x{x} node_pcs_status=0x{x} encode_bounds=0x{x} node_oods=0x{x} image_tail_identical={} outcome={s} launches={d} nodejob_launches={d} nodejob_host_ns={d} stage_ns={d} enqueue_ns={d} wait_ns={d} job_ns={d} program_ns={d}\n", .{ input.ordinal, input.is_leaf, nk, if (w.bytes) |b| b.len else 0, wire.len, eq, w.verdicts[0], w.verdicts[1], w.verdicts[2], w.verdicts[3], w.verdicts[4], w.verdicts[5], w.verdicts[6], w.image_eq, @tagName(w.outcome), w.launches, w.node.launches, w.node.host_ns, done.receipt.stage_ns, done.receipt.enqueue_ns, done.receipt.wait_ns, job_ns, program_ns });
+        for (w.verdicts) |v| if (v != 0) return error.GnNodeJobRejected;
+        if (!eq or !w.image_eq) return error.GnNodeJobBytesMismatch;
+    }
+
     /// One node. Reentrant: concurrent callers (one per recursion lane) run
     /// their pre-stage and assembly on their own threads while the worker
     /// pipelines up to `max_outstanding` jobs, so node k+1's host preparation
@@ -201,7 +318,10 @@ pub const Prover = struct {
     pub fn prove(self: *Prover, a: std.mem.Allocator, input: Prestage.Input, fixed: ?FixedHandoff, report: ?*Report) !Outer.prove.Produced {
         var timer = try std.time.Timer.start();
         const staged = try Prestage.prestage(a, input);
-        defer staged.deinit();
+        // gn-node: the first node of a class leaves its Staged as the class
+        // template of the GPU-native node job (NodeClasses).
+        var keep_staged = false;
+        defer if (!keep_staged) staged.deinit();
         var r = Report{ .prestage_ns = timer.lap() };
         var job = try Job.OuterNodeJob.initWhole(staged, &self.shared.kernels, self.shared.whole());
         defer job.deinit();
@@ -217,7 +337,35 @@ pub const Prover = struct {
         var gpu: ?GpuTimer = if (self.shared.events) |*ev| GpuTimer{ .api = ev } else null;
         defer if (gpu) |*t| t.deinit();
         if (gpu) |*t| job.timing = t.timing();
-        r.footprint = job.footprint();
+        // Device encoding (check mode): the encoder runs after the body on the
+        // same stream; its bytes are compared with the host's below.
+        var encode: ?EncodeCheck = null;
+        defer if (encode) |*c| c.deinit(a);
+        if (self.shared.encode_mode != .off) {
+            if (self.shared.encode_mode != .check) return error.M8OuterDeviceEncodePublishNotLanded;
+            encode = try EncodeCheck.init(a, &job, self.shared, input.key, staged);
+            encode.?.arm();
+            encode.?.node.fault = if (try Enc.faultOrdinal()) |n| n == input.ordinal else false;
+            encode.?.node.oods_fault = if (try Enc.oodsFaultOrdinal()) |n| n == input.ordinal else false;
+            encode.?.node.oods_point_fault = if (try Enc.oodsPointFaultOrdinal()) |n| n == input.ordinal else false;
+        }
+        var gn: ?GnCheck = null;
+        defer if (gn) |*g| g.deinit(a);
+        if (self.shared.seed) |sym| {
+            gn = try GnCheck.init(a, input, staged, &job, sym, if (self.shared.events) |*ev| ev else null);
+            gn.?.arm();
+            // GnCheck erases host outputs and derives them on the device.
+            // The diagnostic encoder must read that same device plane.
+            if (encode) |*c| {
+                c.node.outputs_on_device = true;
+                gn.?.encoder = &c.node;
+            }
+        }
+        const inner_job = if (encode) |*c| c.node.job() else job.job();
+        if (gn) |*g| g.next = inner_job;
+        const submitted = if (gn) |*g| g.job() else inner_job;
+        r.footprint = submitted.footprint();
+        r.borrowed_plan = job.borrowed;
         r.init_ns = timer.lap();
         {
             const p = staged.plan();
@@ -231,7 +379,7 @@ pub const Prover = struct {
         };
         var done = Done{};
         while (true) {
-            self.worker.submit(job.job(), .{ .ctx = &done, .done = Done.done }) catch |err| switch (err) {
+            self.worker.submit(submitted, .{ .ctx = &done, .done = Done.done }) catch |err| switch (err) {
                 // Mailbox occupied: the pipeline is full; back off briefly.
                 error.WorkerBusy => {
                     std.Thread.sleep(50 * std.time.ns_per_us);
@@ -261,12 +409,919 @@ pub const Prover = struct {
         r.fixed_handoff = job.report.fixed_handoff;
         r.finish_ns = job.report.finish_ns;
         try done.result;
+        // The host mirror reads the PCS image decodeProof releases.
+        if (encode) |*c| try c.mirror(a, &job, staged);
+        // gn-node recorder (STWO_RV64_M8_GN_NODE_RECORD=<dir>): keep the PCS
+        // image decodeProof releases; written with the node's proof below.
+        const record_image: ?[]u32 = if ((Recorder.dir() != null or gn != null) and job.pcs_words.len != 0) try a.dupe(u32, job.pcs_words) else null;
+        defer if (record_image) |w| a.free(w);
         try job.decodeProof();
         r.decode_ns = job.report.decode_ns;
-        const produced = try Prestage.assemble(a, input.key, staged, &job);
+        var produced = try Prestage.assembleWithOods(a, input.key, staged, &job, if (encode) |*c| &c.host_oods else null);
+        errdefer produced.deinit();
         r.assemble_ns = timer.read();
+        if (encode) |*c| {
+            try c.compare(a, input.key, &produced, input.ordinal);
+            r.encoded_bytes = c.host_bytes;
+            r.encode_gpu_ns = if (c.timer) |t| t.ns else 0;
+            r.encode_mirror_ns = c.mirror_ns;
+            r.encode_launches = c.node.launches;
+            r.encode_identical = true;
+        }
         if (report) |out| out.* = r;
+        if (gn) |*g| {
+            try g.verify(input.ordinal, staged);
+            r.gn = g.report;
+            const image = record_image orelse return error.GnNodeImageMissing;
+            const wire = try Outer.wire.encode(a, input.key.identity, produced.outputs, produced.claims, &produced.proof.proof);
+            defer a.free(wire);
+            try GnRecord.Live.putNode(job.pcs.?.prepared.metadata.shape, image, wire, Recorder.words8(input.key.identity), Recorder.words8(staged.fixed_root), @intCast(staged.expected.len / 4));
+            keep_staged = NodeClasses.harvest(self.shared, input, staged, &job, g) catch |err| blk: {
+                std.debug.print("GN_NODE_CLASS ordinal={d} harvest_error={s}\n", .{ input.ordinal, @errorName(err) });
+                break :blk false;
+            };
+            if (GnRecord.jobSelected()) try self.gnJob(a, input, staged, g, wire, image, job.fixed_handoff);
+            if (report) |out| out.* = r;
+        }
+        if (record_image) |image| if (Recorder.dir() != null) Recorder.write(a, input, staged, &job, &produced, image) catch |err| {
+            std.debug.print("GN_NODE_RECORD ordinal={d} error={s}\n", .{ input.ordinal, @errorName(err) });
+            return err;
+        };
         return produced;
+    }
+};
+
+/// gn-node piece harness recorder (STWO_RV64_M8_GN_NODE_RECORD=<dir>, default
+/// off, diagnostics only: never changes a proof). One file per proved node,
+/// `node-<ordinal>-<sha256(wire)[0..8]>.gnr`: the legacy path's inputs and
+/// outputs the GPU-native node job must reproduce on the device (host seeds,
+/// host transcript checkpoint, expected outputs) and the node's own products
+/// a parent's device seed fill reads (PCS readback image + its shape, claims,
+/// the om31 wire bytes). Format (u32 LE): see jobs/outer_seed_device.zig
+/// Record.parse.
+pub const Recorder = struct {
+    const Rec = @import("outer_seed_record.zig");
+    pub const magic = Rec.node_magic;
+    pub const dir = Rec.dir;
+    pub fn words8(bytes: [32]u8) [8]u32 {
+        var w: [8]u32 = undefined;
+        for (&w, 0..) |*x, i| x.* = std.mem.readInt(u32, bytes[4 * i ..][0..4], .little);
+        return w;
+    }
+    fn write(a: std.mem.Allocator, input: Prestage.Input, staged: *const @import("jobs/outer_staged.zig").Staged, job: *Job.OuterNodeJob, produced: *const Outer.prove.Produced, image: []const u32) !void {
+        const path = dir() orelse return;
+        const wire = try Outer.wire.encode(a, input.key.identity, produced.outputs, produced.claims, &produced.proof.proof);
+        defer a.free(wire);
+        var digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(wire, &digest, .{});
+        var out: std.ArrayListUnmanaged(u32) = .empty;
+        defer out.deinit(a);
+        try out.appendSlice(a, &.{ magic, 2, input.ordinal, @intFromBool(input.is_leaf) });
+        try out.appendSlice(a, &words8(input.key.identity));
+        try out.appendSlice(a, &words8(staged.fixed_root));
+        try out.appendSlice(a, &words8(input.class orelse @splat(0)));
+        try out.appendSlice(a, &staged.checkpoint);
+        try out.append(a, @intCast(staged.expected.len));
+        try out.appendSlice(a, staged.expected);
+        try out.append(a, @intCast(staged.assignment.seeds.len));
+        try out.appendSlice(a, staged.assignment.seeds);
+        try Rec.appendShape(a, &out, job.pcs.?.prepared.metadata.shape);
+        try out.append(a, @intCast(image.len));
+        try out.appendSlice(a, image);
+        const claims = produced.claims.toArray();
+        try out.append(a, @intCast(claims.len * 8));
+        for (claims) |cl| for (cl.toM31Array()) |m| try out.append(a, m.v);
+        try out.append(a, @intCast(wire.len));
+        const at = out.items.len;
+        try out.appendNTimes(a, 0, (wire.len + 3) / 4);
+        @memcpy(std.mem.sliceAsBytes(out.items[at..])[0..wire.len], wire);
+        // Class transcript prefix (om31 prove.begin before the statement
+        // words): the digest after the config and profile mixes, draws.
+        {
+            var channel = Outer.protocol.Channel.init();
+            (try Outer.protocol.targetConfig()).mixInto(&channel);
+            Outer.protocol.mixProfile(&channel);
+            const cp = @import("stwo_core").channel.raw_mod_m31.om31Checkpoint(&channel);
+            for (0..8) |i| try out.append(a, std.mem.readInt(u32, cp.digest[4 * i ..][0..4], .little));
+            try out.append(a, cp.draws);
+        }
+        var name_buf: [96]u8 = undefined;
+        const name = try std.fmt.bufPrint(&name_buf, "node-{d:0>4}-{x}.gnr", .{ input.ordinal, digest[0..8].* });
+        if (try Rec.writeOnce(path, name, out.items)) std.debug.print("GN_NODE_RECORD ordinal={d} leaf={} seeds={d} image_words={d} wire_bytes={d} file={s}\n", .{ input.ordinal, input.is_leaf, staged.assignment.seeds.len / 5, image.len, wire.len, name });
+    }
+};
+
+/// STWO_RV64_M8_OUTER_DEVICE_ENCODE=check: one node's device encoding next
+/// to the host bytes. Three byte strings must be identical: the device
+/// encoder's (outer_encode.cu, in-stream after the body), the host mirror's
+/// (outer_encode.encodeHost over the same PCS image words) and the host
+/// serialisation of the assembled proof (om31 wire.encode, the bytes the
+/// request publishes and the pipeline writes as the node file). Any
+/// difference or a non-accepted device verdict fails the node closed.
+const EncodeCheck = struct {
+    desc: []u32,
+    program: ?[]u32 = null,
+    oods_timer: ?GpuTimer = null,
+    host_oods: [16]u32 = @splat(0),
+    node: EncJob.EncodedNode,
+    timer: ?GpuTimer = null,
+    mirror_bytes: ?[]u8 = null,
+    mirror_ns: u64 = 0,
+    host_bytes: u64 = 0,
+    fn init(a: std.mem.Allocator, job: *Job.OuterNodeJob, shared: *const Shared, key: *const Prestage.Authority, staged: *const @import("jobs/outer_staged.zig").Staged) !EncodeCheck {
+        const shape = job.pcs.?.prepared.metadata.shape;
+        const desc = try EncJob.descriptorFor(a, shape, try EncJob.envelopeFor(key.identity, staged.expected.len / 4), staged.fixed_root);
+        errdefer a.free(desc);
+        var out = EncodeCheck{ .desc = desc, .node = try EncJob.EncodedNode.init(a, job, shared.encode.?, desc), .timer = if (shared.events) |*ev| GpuTimer{ .api = ev } else null, .oods_timer = if (shared.events) |*ev| GpuTimer{ .api = ev } else null };
+        errdefer out.node.deinit();
+        if (shared.oods) |sym| {
+            const counts = try a.alloc([]const u32, shape.trees.len);
+            defer a.free(counts);
+            for (counts, shape.trees) |*c, t| c.* = t.sample_counts;
+            const program = try Prestage.oodsProgram(a, key, counts);
+            errdefer a.free(program);
+            try out.node.withOods(sym, program);
+            out.program = program;
+        }
+        return out;
+    }
+    /// After init has been moved to its final address (the timer pointer).
+    fn arm(self: *EncodeCheck) void {
+        if (self.timer) |*t| self.node.timing = t.timing();
+        if (self.oods_timer) |*t| self.node.oods_timing = t.timing();
+    }
+    fn deinit(self: *EncodeCheck, a: std.mem.Allocator) void {
+        self.node.deinit();
+        if (self.timer) |*t| t.deinit();
+        if (self.oods_timer) |*t| t.deinit();
+        if (self.program) |p| a.free(p);
+        if (self.mirror_bytes) |b| a.free(b);
+        a.free(self.desc);
+    }
+    fn words8(root: [32]u8) [8]u32 {
+        var w: [8]u32 = undefined;
+        for (&w, 0..) |*x, i| x.* = std.mem.readInt(u32, root[4 * i ..][0..4], .little);
+        return w;
+    }
+    fn mirror(self: *EncodeCheck, a: std.mem.Allocator, job: *Job.OuterNodeJob, staged: anytype) !void {
+        if (self.node.pcs_verdict != 0 or self.node.bounds_verdict != 0) {
+            std.debug.print("GPU_M8_OUTER_ENCODE rejected ordinal={d} pcs=0x{x} bounds=0x{x}\n", .{ staged.ordinal, self.node.pcs_verdict, self.node.bounds_verdict });
+            return error.OuterDeviceEncodeRejected;
+        }
+        if (self.node.oods) |o| if (o.verdict != 0) {
+            std.debug.print("GPU_M8_OUTER_OODS rejected ordinal={d} verdict=0x{x}\n", .{ staged.ordinal, o.verdict });
+            return error.OuterDeviceOodsRejected;
+        };
+        var timer = try std.time.Timer.start();
+        const d = job.decoded orelse return error.OuterJobNotDecoded;
+        const fixed = words8(staged.fixed_root);
+        const main = words8(d.main_root);
+        const inter = words8(d.inter_root);
+        const comp = words8(job.composition_root);
+        var claims: [8 * @import("jobs/outer_plan.zig").n_components]u32 = undefined;
+        for (d.claims.toArray(), 0..) |c, i| for (c.toM31Array(), 0..) |m, k| {
+            claims[8 * i + k] = m.v;
+        };
+        const latches: [4]u32 = @splat(0);
+        const out = try a.alloc(u32, self.desc[Enc.D.max_payload_words] + 1);
+        defer a.free(out);
+        const v = try Enc.encodeHost(a, self.desc, job.pcs_words, .{ .roots = .{ &fixed, &main, &inter, &comp }, .claims = &claims, .latches = &latches, .outputs = staged.expected }, out);
+        if (v.pcs != 0 or v.bounds != 0) {
+            std.debug.print("GPU_M8_OUTER_ENCODE mirror_rejected ordinal={d} pcs=0x{x} bounds=0x{x}\n", .{ staged.ordinal, v.pcs, v.bounds });
+            return error.OuterHostEncodeRejected;
+        }
+        const bytes = try a.alloc(u8, out[0]);
+        for (0..out[0] / 4) |i| std.mem.writeInt(u32, bytes[4 * i ..][0..4], out[1 + i], .little);
+        self.mirror_bytes = bytes;
+        self.mirror_ns = timer.read();
+    }
+    fn compare(self: *EncodeCheck, a: std.mem.Allocator, key: *const Prestage.Authority, produced: *const Outer.prove.Produced, ordinal: u32) !void {
+        const host = try Outer.wire.encode(a, key.identity, produced.outputs, produced.claims, &produced.proof.proof);
+        defer a.free(host);
+        self.host_bytes = host.len;
+        const device = self.node.bytes orelse return error.OuterDeviceEncodeMissing;
+        const mirror_bytes = self.mirror_bytes orelse return error.OuterDeviceEncodeMissing;
+        const dev_eq = std.mem.eql(u8, device, host);
+        const mir_eq = std.mem.eql(u8, mirror_bytes, host);
+        var digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(host, &digest, .{});
+        std.debug.print("GPU_M8_OUTER_ENCODE ordinal={d} host_bytes={d} device_bytes={d} mirror_bytes={d} device_identical={} mirror_identical={} sha256={x} encode_gpu_ns={d} mirror_ns={d} launches={d}\n", .{ ordinal, host.len, device.len, mirror_bytes.len, dev_eq, mir_eq, digest[0..8].*, if (self.timer) |t| t.ns else 0, self.mirror_ns, self.node.launches });
+        if (self.node.oods) |o| {
+            const values_eq = std.mem.eql(u32, &o.diag, &self.host_oods);
+            std.debug.print("GPU_M8_OUTER_OODS ordinal={d} verdict=0x{x} values_identical={} oods_gpu_ns={d} parts={d}\n", .{ ordinal, o.verdict, values_eq, if (self.oods_timer) |t| t.ns else 0, if (self.program) |p| p[OodsAbi.H.parts] else 0 });
+            if (o.verdict != 0 or !values_eq) return error.OuterDeviceOodsMismatch;
+        }
+        if (!dev_eq or !mir_eq) {
+            const n = @min(@min(device.len, host.len), mirror_bytes.len);
+            var first: usize = n;
+            for (0..n) |i| if (device[i] != host[i] or mirror_bytes[i] != host[i]) {
+                first = i;
+                break;
+            };
+            std.debug.print("GPU_M8_OUTER_ENCODE mismatch ordinal={d} first_byte={d}\n", .{ ordinal, first });
+            return error.OuterDeviceEncodeMismatch;
+        }
+    }
+};
+
+/// STWO_RV64_M8_GN_NODE=check (default off): the node's assignment seeds,
+/// transcript checkpoint and (with device checks) expected outputs come from
+/// the DEVICE seed fill + statement kernel (jobs/outer_seed_device.zig,
+/// NAT/rv64/jobs/outer_seed.cu) over its children's seed sources, not from
+/// the host. The host values are erased before staging (seed limbs and the
+/// checkpoint are zeroed), so a node proof that passes the gate's byte
+/// identity was proved from device-filled inputs. Children are found in
+/// GnRecord.Live (stand-in for the request slab: their wire bytes + PCS
+/// image are uploaded as this node's child regions). A leaf's native child
+/// supplies its PCS image; its statement tail (ordinal, digests, GKR values,
+/// request words) and outputs are the native producer's words, taken here
+/// from the host seeds / expected outputs before they are erased.
+/// Verdicts seed_tape / child_binding and the device outputs/checkpoint copy
+/// are read back from the node's job slab and must match the host values.
+fn gnFaultOrdinal() !?u32 {
+    const two = std.posix.getenv("STWO_RV64_M8_FAULT_INJECTION") orelse return null;
+    if (!std.mem.eql(u8, two, "1")) return null;
+    const v = std.posix.getenv("STWO_RV64_M8_GN_NODE_FAULT_ORDINAL") orelse return null;
+    return std.fmt.parseInt(u32, v, 10) catch error.InvalidGnNodeFaultOrdinal;
+}
+const GnCheck = struct {
+    pub const field_index: u32 = 0x474e_4f44; // "GNOD"
+    /// Fold children: om31 node proofs under the diet-wire profile (fold
+    /// Merkle cap 2^3); leaf children: native proofs with full paths.
+    const cap_log: u32 = 3;
+    const leaf_cap_log: u32 = 0;
+    const fold_domain: u32 = 0x4f464c31;
+    /// >= 1 + the largest om31 node wire in words: 759,512 B on 24628607 /
+    /// 26235156 [M] (189,879 words); 2^18 words = 1 MiB of bytes.
+    const wire_words: u32 = 1 << 18;
+    outer: *Job.OuterNodeJob,
+    next: api.Job = undefined,
+    encoder: ?*EncJob.EncodedNode = null,
+    symbols: Seed.Symbols,
+    program: Seed.Program,
+    prog_key: [32]u8,
+    regions: [][]u32,
+    expected: []u32, // host copy (comparison; restored before host assembly)
+    checkpoint: [9]u32, // host copy (comparison)
+    field_words: usize,
+    d_prog: api.DeviceBuffer = undefined,
+    d_regions: [Seed.max_children]api.DeviceBuffer = undefined,
+    d_scratch: api.DeviceBuffer = undefined,
+    d_outputs: ?api.DeviceBuffer = null,
+    timer: ?GpuTimer = null,
+    report: GnReport = .{},
+    host_timer_ns: u64 = 0,
+    seed_status: u32 = 0xffff_ffff,
+    bind_status: u32 = 0xffff_ffff,
+    dev_outputs: [64]u32 = @splat(0),
+    dev_checkpoint: [9]u32 = @splat(0),
+    /// What NodeClasses.harvest keeps of this node's class (owned).
+    harvest: Harvest = .{},
+    const Harvest = struct {
+        vars: []u32 = &.{},
+        constants: [][4]u32 = &.{},
+        shapes: [Seed.max_children][]u32 = @splat(&.{}),
+        identities: [Seed.max_children][8]u32 = undefined,
+        fixed_roots: [Seed.max_children][8]u32 = undefined,
+        n_outputs: [Seed.max_children]u32 = @splat(0),
+        n: usize = 0,
+        tail: u32 = 0,
+        statement: Seed.Statement = undefined,
+        fn deinit(self: *Harvest, a: std.mem.Allocator) void {
+            a.free(self.vars);
+            a.free(self.constants);
+            for (self.shapes[0..self.n]) |x| a.free(x);
+        }
+    };
+
+    fn init(a: std.mem.Allocator, input: Prestage.Input, staged: *@import("jobs/outer_staged.zig").Staged, node_job: *Job.OuterNodeJob, symbols: Seed.Symbols, events: ?*const Events.Api) !GnCheck {
+        var warm = try std.time.Timer.start();
+        const seeds = staged.assignment.seeds;
+        const n = seeds.len / 5;
+        const vars = try a.alloc(u32, n);
+        defer a.free(vars);
+        for (vars, 0..) |*v, i| v.* = seeds[5 * i];
+        var found: std.ArrayListUnmanaged(GnRecord.Live.Found) = .empty;
+        defer {
+            for (found.items) |*f| f.deinit(a);
+            found.deinit(a);
+        }
+        try GnRecord.Live.find(a, seeds, !input.is_leaf, &found);
+        if (found.items.len == 0 or (input.is_leaf and found.items.len != 1) or found.items.len > Seed.max_children) {
+            std.debug.print("GN_NODE ordinal={d} error=GnNodeChildrenNotFound found={d} leaf={}\n", .{ input.ordinal, found.items.len, input.is_leaf });
+            return error.GnNodeChildrenNotFound;
+        }
+        const n_out = staged.expected.len;
+        var prefix: [8]u32 = undefined;
+        {
+            var channel = Outer.protocol.Channel.init();
+            (try Outer.protocol.targetConfig()).mixInto(&channel);
+            Outer.protocol.mixProfile(&channel);
+            const cp = @import("stwo_core").channel.raw_mod_m31.om31Checkpoint(&channel);
+            if (cp.draws != 0) return error.GnNodePrefixDraws;
+            for (&prefix, 0..) |*w, i| w.* = std.mem.readInt(u32, cp.digest[4 * i ..][0..4], .little);
+        }
+        const identity = Recorder.words8(input.key.identity);
+        const fixed_root = Recorder.words8(staged.fixed_root);
+        var classes: [Seed.max_children]Seed.ChildClass = undefined;
+        var shapes: [Seed.max_children]Seed.Shape = undefined;
+        var shaped: usize = 0;
+        defer for (shapes[0..shaped]) |sh| a.free(sh.trees);
+        for (found.items, 0..) |f, k| {
+            var at: usize = 0;
+            shapes[k] = try Seed.Shape.parse(a, f.entry.shape, &at);
+            shaped += 1;
+            classes[k] = .{ .shape = shapes[k], .wire_words = wire_words, .n_outputs = f.entry.n_outputs, .identity = f.entry.identity, .fixed_root = f.entry.fixed_root };
+        }
+        const regions = try a.alloc([]u32, found.items.len);
+        var made: usize = 0;
+        errdefer {
+            for (regions[0..made]) |x| a.free(x);
+            a.free(regions);
+        }
+        var program: Seed.Program = undefined;
+        if (input.is_leaf) {
+            const f = found.items[0];
+            const s0 = f.at;
+            const proof_len = try Seed.leafTapeLength(a, classes[0], leaf_cap_log);
+            if (s0 + proof_len > n) return error.GnNodeLeafTapeTooLong;
+            const tail: u32 = @intCast(n - s0 - proof_len);
+            const outputs_at: u32 = @intCast(wire_words + f.entry.image.len + 4 * tail);
+            const constants = try a.alloc([4]u32, s0);
+            defer a.free(constants);
+            for (constants, 0..) |*c, j| c.* = seeds[5 * j + 1 ..][0..4].*;
+            program = try Seed.buildLeaf(a, classes[0], leaf_cap_log, tail, vars, constants, .{ .kind = 2, .outputs_at = outputs_at, .domain = 0, .version_word = 0, .n_outputs = @intCast(n_out / 4), .prefix = prefix, .identity = identity, .fixed_root = fixed_root, .profile = @splat(0) });
+            errdefer program.deinit(a);
+            // [len][wire placeholder][image][statement tail][outputs]: the
+            // native producer's words (from the host values, erased below).
+            const region = try a.alloc(u32, outputs_at + n_out);
+            @memset(region, 0);
+            region[0] = 1;
+            @memcpy(region[wire_words..][0..f.entry.image.len], f.entry.image);
+            for (0..tail) |j| @memcpy(region[wire_words + f.entry.image.len + 4 * j ..][0..4], seeds[5 * (s0 + proof_len + j) + 1 ..][0..4]);
+            @memcpy(region[outputs_at..][0..n_out], staged.expected);
+            regions[0] = region;
+            made = 1;
+        } else {
+            const tape = try Seed.tapeLength(classes[0..found.items.len], cap_log, a);
+            if (tape > n) return error.GnNodeFoldTapeTooLong;
+            const constants = try a.alloc([4]u32, n - tape);
+            defer a.free(constants);
+            for (constants, 0..) |*c, j| c.* = seeds[5 * j + 1 ..][0..4].*;
+            for (found.items, 0..) |f, k| {
+                const L = try Seed.Layout.of(shapes[k]);
+                const need = (f.entry.wire.len + 3) / 4 + 1;
+                if (need > wire_words or f.entry.image.len != L.words) return error.GnNodeChildRegion;
+                const region = try a.alloc(u32, wire_words + f.entry.image.len);
+                @memset(region, 0);
+                region[0] = @intCast(f.entry.wire.len);
+                @memcpy(std.mem.sliceAsBytes(region[1..need])[0..f.entry.wire.len], f.entry.wire);
+                @memcpy(region[wire_words..], f.entry.image);
+                regions[k] = region;
+                made += 1;
+            }
+            var profile: [8]u32 = undefined;
+            @memcpy(&profile, regions[0][3..11]);
+            const arity = found.items.len;
+            program = try Seed.buildFold(a, classes[0..arity], cap_log, vars, constants, .{ .domain = fold_domain, .version_word = if (arity == 2) 2 else (@as(u32, @intCast(arity)) << 8) | 2, .n_outputs = @intCast(n_out / 4), .prefix = prefix, .identity = identity, .fixed_root = fixed_root, .profile = profile });
+        }
+        errdefer program.deinit(a);
+        var harvest = Harvest{ .vars = try a.dupe(u32, vars), .n = found.items.len };
+        errdefer harvest.deinit(a);
+        {
+            const n_const: usize = program.header(Seed.P.n_constants);
+            harvest.constants = try a.alloc([4]u32, n_const);
+            for (harvest.constants, 0..) |*c, j| c.* = seeds[5 * j + 1 ..][0..4].*;
+        }
+        for (found.items, 0..) |f, k| {
+            harvest.shapes[k] = try a.dupe(u32, f.entry.shape);
+            harvest.identities[k] = f.entry.identity;
+            harvest.fixed_roots[k] = f.entry.fixed_root;
+            harvest.n_outputs[k] = f.entry.n_outputs;
+        }
+        harvest.tail = if (input.is_leaf) @intCast(n - found.items[0].at - try Seed.leafTapeLength(a, classes[0], leaf_cap_log)) else 0;
+        harvest.statement = .{ .kind = program.header(Seed.P.statement), .outputs_at = program.header(Seed.P.outputs_at), .domain = program.header(Seed.P.domain), .version_word = program.header(Seed.P.version_word), .n_outputs = program.header(Seed.P.n_outputs), .prefix = prefix, .identity = identity, .fixed_root = fixed_root, .profile = program.words[program.header(Seed.P.profile)..][0..8].* };
+        // Negative test (two-key: STWO_RV64_M8_FAULT_INJECTION=1 and
+        // STWO_RV64_M8_GN_NODE_FAULT_ORDINAL=n): one MAIN-tree Merkle path
+        // word of child 0's image flips; seed_tape must refuse the node.
+        if (try gnFaultOrdinal()) |f| if (f == input.ordinal) {
+            const L = try Seed.Layout.of(shapes[0]);
+            regions[0][wire_words + L.trees[1].paths] ^= 1;
+            std.debug.print("GN_NODE fault_injected ordinal={d}\n", .{input.ordinal});
+        };
+        var key: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(program.words), &key, .{});
+        // Erase the host values: the node can only be proved from the device's.
+        const host_expected = try a.dupe(u32, staged.expected);
+        errdefer a.free(host_expected);
+        const host_checkpoint = staged.checkpoint;
+        const writable: []u32 = @constCast(staged.assignment.seeds);
+        for (0..n) |i| @memset(writable[5 * i + 1 ..][0..4], 0);
+        staged.checkpoint = @splat(0);
+        if (staged.image.expected.words != 0) @memset(@constCast(staged.expected), 0);
+        var self = GnCheck{ .outer = node_job, .symbols = symbols, .program = program, .prog_key = key, .regions = regions, .expected = host_expected, .checkpoint = host_checkpoint, .field_words = 32 + n_out, .harvest = harvest };
+        _ = try node_job.layout.add(.opaque_words, field_index, self.field_words);
+        self.timer = if (events) |ev| GpuTimer{ .api = ev } else null;
+        self.report = .{ .ran = true, .children = @intCast(found.items.len), .seeds = n, .warm_ns = warm.read(), .launches = 4 };
+        for (regions) |x| self.report.source_words += x.len;
+        return self;
+    }
+    fn arm(self: *GnCheck) void {
+        _ = self;
+    }
+    fn deinit(self: *GnCheck, a: std.mem.Allocator) void {
+        self.harvest.deinit(a);
+        if (self.timer) |*t| t.deinit();
+        self.program.deinit(a);
+        for (self.regions) |x| a.free(x);
+        a.free(self.regions);
+        a.free(self.expected);
+    }
+    fn job(self: *GnCheck) api.Job {
+        return api.Job.from(GnCheck, self);
+    }
+    pub fn classKey(self: *GnCheck) [32]u8 {
+        return self.next.classKey();
+    }
+    fn g(words: u64) u64 {
+        return std.mem.alignForward(u64, @max(words, 1), 64);
+    }
+    fn extra(self: *const GnCheck) u64 {
+        var n = g(@as(u64, self.program.header(Seed.P.scratch_words)) + 8) + g(self.expected.len);
+        for (self.regions) |x| n += g(x.len);
+        return n;
+    }
+    pub fn footprint(self: *GnCheck) api.Footprint {
+        var fp = self.next.footprint();
+        const x = self.extra();
+        fp.device_words += @intCast(x);
+        fp.staged_words += @intCast(x);
+        fp.pinned_words += self.program.words.len;
+        for (self.regions) |r| fp.pinned_words += r.len;
+        return fp;
+    }
+    pub fn stage(self: *GnCheck, s: *api.Stager) !void {
+        try self.next.vtable.stage(self.next.ctx, s);
+        var t = try std.time.Timer.start();
+        const p = try s.persistent(self.prog_key, self.program.words.len);
+        self.d_prog = p.buffer;
+        if (p.fresh) {
+            const pinned = try s.pinned(self.program.words.len);
+            @memcpy(pinned, self.program.words);
+            try s.upload(p.buffer, pinned);
+        }
+        // Check mode only: the children's seed sources (GPU-native: their
+        // request-slab regions, already on the device).
+        for (self.regions, 0..) |x, k| {
+            self.d_regions[k] = try s.alloc(x.len);
+            const pinned = try s.pinned(x.len);
+            @memcpy(pinned, x);
+            try s.upload(self.d_regions[k], pinned);
+        }
+        self.d_scratch = try s.alloc(@as(usize, self.program.header(Seed.P.scratch_words)) + 8);
+        if (self.outer.staged.image.expected.words == 0) self.d_outputs = try s.alloc(@max(self.expected.len, 1));
+        self.host_timer_ns += t.read();
+    }
+    pub fn enqueue(self: *GnCheck, e: *api.Enqueue) !void {
+        var t = try std.time.Timer.start();
+        try e.waitStaged();
+        try e.slab.bind(&self.outer.layout);
+        const field = try e.slab.field(.opaque_words, field_index);
+        const st = self.outer.staged;
+        const bases = self.outer.bases;
+        const seeds: [*]u32 = @constCast(bases.at(st.image.seeds));
+        const channel_seed: [*]u32 = @constCast(bases.at(st.image.channel_seed));
+        const outputs: [*]u32 = if (st.image.expected.words != 0) @constCast(bases.at(st.image.expected)) else self.d_outputs.?.ptr;
+        if (self.encoder) |encoder| encoder.outputs_device = .{ .ptr = outputs, .words = self.expected.len };
+        var io = Seed.Io{
+            .program = self.d_prog.ptr,
+            .program_words = self.program.words.len,
+            .children = @splat(null),
+            .children_words = @splat(0),
+            .seeds = seeds,
+            .seeds_words = st.assignment.seeds.len,
+            .scratch = self.d_scratch.ptr,
+            .scratch_words = self.d_scratch.words,
+            .seed_status = &field.ptr[0],
+            .bind_status = &field.ptr[1],
+            .outputs = outputs,
+            .checkpoint = channel_seed,
+            .outputs_copy = field.ptr + 32,
+            .checkpoint_copy = field.ptr + 16,
+            .outputs_words = @intCast(self.expected.len),
+            .n_children = @intCast(self.regions.len),
+            .n_ops = self.program.header(Seed.P.n_ops),
+            .n_caps = self.program.header(Seed.P.n_caps),
+        };
+        for (self.regions, 0..) |_, k| {
+            io.children[k] = self.d_regions[k].ptr;
+            io.children_words[k] = self.d_regions[k].words;
+        }
+        if (self.timer) |*tm| GpuTimer.mark(@ptrCast(tm), false, e.stream());
+        const rc = self.symbols.fill(e.ctx(), K.lane, &io);
+        if (self.timer) |*tm| GpuTimer.mark(@ptrCast(tm), true, e.stream());
+        if (rc != 0) {
+            std.log.err("GN_NODE seed fill enqueue failed rc={d}", .{rc});
+            return error.GnNodeSeedFillEnqueueFailed;
+        }
+        self.host_timer_ns += t.read();
+        try self.next.vtable.enqueue(self.next.ctx, e);
+    }
+    pub fn finish(self: *GnCheck, view: api.SlabView) !void {
+        if (self.timer) |*tm| GpuTimer.resolve(@ptrCast(tm));
+        // Host assembly publishes the host outputs (verified == device below).
+        if (self.outer.staged.image.expected.words != 0) @memcpy(@constCast(self.outer.staged.expected), self.expected);
+        const w = try @import("jobs/slab.zig").read(view, .opaque_words, field_index);
+        self.seed_status = w[0];
+        self.bind_status = w[1];
+        @memcpy(&self.dev_checkpoint, w[16..25]);
+        @memcpy(self.dev_outputs[0..self.expected.len], w[32..][0..self.expected.len]);
+        if (self.seed_status != 0 or self.bind_status != 0) {
+            std.debug.print("GN_NODE rejected ordinal={d} seed_tape=0x{x} child_binding=0x{x}\n", .{ self.outer.staged.ordinal, self.seed_status, self.bind_status });
+            return error.GnNodeDeviceRejected;
+        }
+        try self.next.vtable.finish(self.next.ctx, view);
+    }
+    pub fn abort(self: *GnCheck) void {
+        self.next.vtable.abort(self.next.ctx);
+    }
+    /// After the node proved: the device outputs and checkpoint equal the
+    /// legacy host values (the proof bytes themselves are the gate's check).
+    fn verify(self: *GnCheck, ordinal: u32, staged: anytype) !void {
+        _ = staged;
+        const out_eq = std.mem.eql(u32, self.dev_outputs[0..self.expected.len], self.expected);
+        const cp_eq = std.mem.eql(u32, &self.dev_checkpoint, &self.checkpoint);
+        self.report.gpu_ns = if (self.timer) |tm| tm.ns else 0;
+        self.report.host_ns = self.host_timer_ns;
+        std.debug.print("GN_NODE ordinal={d} children={d} seeds={d} seed_tape=0x{x} child_binding=0x{x} outputs_identical={} checkpoint_identical={} seed_gpu_ns={d} seed_host_ns={d} warm_ns={d} launches={d} source_words={d}\n", .{ ordinal, self.report.children, self.report.seeds, self.seed_status, self.bind_status, out_eq, cp_eq, self.report.gpu_ns, self.report.host_ns, self.report.warm_ns, self.report.launches, self.report.source_words });
+        if (!out_eq or !cp_eq) return error.GnNodeStatementMismatch;
+    }
+};
+
+/// gn-node: GPU-native node class products harvested from a warm request
+/// proved under STWO_RV64_M8_GN_NODE=check (the first node of each class).
+/// Each entry is an outer_device.NodeClass: the class Staged template (its
+/// seed limbs, checkpoint and outputs erased: the device writes them per
+/// node), the seed-program inputs (seed variables, class constants, child
+/// classes, statement), the encoder descriptor and OODS program. The service
+/// binder registers an entry under its authority (outer_device.Recursion
+/// register + ClassInfo.node) after `programFor` laid the children out in
+/// the request slab's region sizes (image at the end of each region).
+pub const NodeClasses = struct {
+    pub const Entry = struct {
+        class_key: [32]u8,
+        node: OuterDevice.NodeClass,
+        shared: *const Shared,
+        runtime_symbols: Runtime.Symbols,
+        staged: *@import("jobs/outer_staged.zig").Staged,
+        desc: []u32,
+        oods_program: []u32,
+        vars: []u32,
+        constants: [][4]u32,
+        shapes: [][]u32, // child PCS shapes (outer_seed_record.appendShape words)
+        identities: [][8]u32,
+        fixed_roots: [][8]u32,
+        n_outputs: []u32,
+        leaf: bool,
+        tail: u32,
+        statement: Seed.Statement,
+        program: []u32 = &.{},
+        max_encoded_bytes: usize,
+        /// Owned copy of the Authority's FIXED column logs (Staged.fixed_logs).
+        fixed_logs: []u32 = &.{},
+        owns_template: bool = false,
+        resources_warmed: bool = false,
+        compressed: ?@import("jobs/outer_packed_class.zig").Class = null,
+        /// Per device: the worker's whole-node graph cache (the Prover of that
+        /// GPU; set by the binder). With it every node of the class replays
+        /// the class's captured body graph (rebinding only node buffers).
+        graphs: [OuterDevice.max_graph_devices]?*Graphs.Cache = @splat(null),
+        /// The seed program for children regions of `region_words` words
+        /// each (1 + the child class's encoded capacity), image at the end.
+        pub fn programFor(self: *Entry, region_words: []const u32) !void {
+            const a = std.heap.c_allocator;
+            if (region_words.len != self.shapes.len) return error.GnNodeChildCount;
+            var classes: [Seed.max_children]Seed.ChildClass = undefined;
+            var parsed: [Seed.max_children]Seed.Shape = undefined;
+            var n: usize = 0;
+            defer for (parsed[0..n]) |p| a.free(p.trees);
+            for (self.shapes, 0..) |sw, k| {
+                var at: usize = 0;
+                parsed[k] = try Seed.Shape.parse(a, sw, &at);
+                n += 1;
+                const L = try Seed.Layout.of(parsed[k]);
+                const region = try Seed.ChildRegion.of(region_words[k], L.words, if (self.leaf) self.tail else 0, if (self.leaf) @intCast(self.staged.expected.len) else 0);
+                classes[k] = .{ .shape = parsed[k], .wire_words = region.wire_words, .n_outputs = self.n_outputs[k], .identity = self.identities[k], .fixed_root = self.fixed_roots[k] };
+            }
+            var st = self.statement;
+            const prog = if (self.leaf) blk: {
+                // leaf: [len][native bytes][image][statement tail][outputs]
+                st.outputs_at = (try Seed.ChildRegion.of(region_words[0], (try Seed.Layout.of(parsed[0])).words, self.tail, @intCast(self.staged.expected.len))).outputs_at;
+                break :blk try Seed.buildLeaf(a, classes[0], GnCheck.leaf_cap_log, self.tail, self.vars, self.constants, st);
+            } else try Seed.buildFold(a, classes[0..n], GnCheck.cap_log, self.vars, self.constants, st);
+            if (self.program.len != 0) a.free(self.program);
+            self.program = prog.words;
+            self.node.program = prog.words;
+            std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(prog.words), &self.node.prog_key, .{});
+        }
+    };
+    var mutex: std.Thread.Mutex = .{};
+    var entries: std.ArrayListUnmanaged(*Entry) = .empty;
+    var install_nodes: std.AutoHashMapUnmanaged(u32, *Entry) = .empty;
+    pub fn beginInstall() void {
+        mutex.lock();
+        defer mutex.unlock();
+        install_nodes.clearRetainingCapacity();
+    }
+    pub fn installedNodes(a: std.mem.Allocator) ![]*Entry {
+        mutex.lock();
+        defer mutex.unlock();
+        const out = try a.alloc(*Entry, install_nodes.count());
+        errdefer a.free(out);
+        for (out, 0..) |*entry, i| entry.* = install_nodes.get(@intCast(i)) orelse return error.GnNodeInstallOrdinal;
+        return out;
+    }
+    /// Service teardown, after every class cache, worker and request is gone.
+    /// Diagnostic templates retain their existing process lifetime.
+    pub fn releaseInstalled() void {
+        mutex.lock();
+        defer mutex.unlock();
+        const a = std.heap.c_allocator;
+        install_nodes.clearRetainingCapacity();
+        var keep: usize = 0;
+        for (entries.items) |e| {
+            if (!e.owns_template) {
+                entries.items[keep] = e;
+                keep += 1;
+                continue;
+            }
+            for (e.shapes) |shape| a.free(shape);
+            a.free(e.shapes);
+            a.free(e.desc);
+            a.free(e.oods_program);
+            a.free(e.vars);
+            a.free(e.constants);
+            a.free(e.identities);
+            a.free(e.fixed_roots);
+            a.free(e.n_outputs);
+            a.free(e.program);
+            a.free(e.fixed_logs);
+            if (e.compressed) |*p| p.deinit(a);
+            e.staged.deinit();
+            a.destroy(e);
+        }
+        entries.shrinkRetainingCapacity(keep);
+    }
+    fn installing() bool {
+        const v = std.posix.getenv("STWO_RV64_M8_GN_INSTALL") orelse return false;
+        return std.mem.eql(u8, v, "1");
+    }
+    fn installNode(ordinal: u32, e: *Entry) !void {
+        mutex.lock();
+        defer mutex.unlock();
+        if (install_nodes.get(ordinal)) |old| {
+            if (old != e) return error.GnNodeInstallOrdinal;
+        } else try install_nodes.put(std.heap.c_allocator, ordinal, e);
+    }
+    pub fn get(class_key: [32]u8) ?*Entry {
+        mutex.lock();
+        defer mutex.unlock();
+        for (entries.items) |e| if (std.mem.eql(u8, &e.class_key, &class_key)) return e;
+        return null;
+    }
+    pub fn pack(entry: *Entry) !void {
+        if (entry.compressed == null) entry.compressed = try Prestage.packTemplate(std.heap.c_allocator, entry.staged);
+        entry.node.compressed = true;
+    }
+    pub fn count() usize {
+        mutex.lock();
+        defer mutex.unlock();
+        return entries.items.len;
+    }
+    /// Returns true when `staged` became the class template (the caller
+    /// must not deinit it).
+    fn harvest(shared: *const Shared, input: Prestage.Input, staged: *@import("jobs/outer_staged.zig").Staged, job: *Job.OuterNodeJob, g: *const GnCheck) !bool {
+        if (get(staged.class_key)) |known| {
+            if (installing()) try installNode(input.ordinal, known);
+            return false;
+        }
+        if (staged.image.expected.words == 0) return error.GnNodeClassNeedsDeviceChecks;
+        const a = std.heap.c_allocator;
+        const shape = job.pcs.?.prepared.metadata.shape;
+        const desc = try EncJob.descriptorFor(a, shape, try EncJob.envelopeFor(input.key.identity, staged.expected.len / 4), staged.fixed_root);
+        errdefer a.free(desc);
+        const counts = try a.alloc([]const u32, shape.trees.len);
+        defer a.free(counts);
+        for (counts, shape.trees) |*c, t| c.* = t.sample_counts;
+        const program = try Prestage.oodsProgram(a, input.key, counts);
+        errdefer a.free(program);
+        const e = try a.create(Entry);
+        errdefer a.destroy(e);
+        const own_template = installing();
+        const template = if (own_template) try Prestage.retainTemplate(a, input, staged) else staged;
+        errdefer if (own_template) template.deinit();
+        const nk = g.regions.len;
+        e.* = .{
+            .class_key = staged.class_key,
+            .node = .{ .program = &.{}, .prog_key = @splat(0), .n_children = @intCast(nk), .output_words = @intCast(staged.expected.len), .ctx = e, .make = Runtime.Adapter(Entry).make },
+            .shared = shared,
+            .runtime_symbols = .{ .kernels = &shared.kernels, .whole = shared.whole(), .encode = shared.encode, .oods = shared.oods },
+            .staged = template,
+            .desc = desc,
+            .oods_program = program,
+            .vars = try a.dupe(u32, g.harvest.vars),
+            .constants = try a.dupe([4]u32, g.harvest.constants),
+            .shapes = try a.alloc([]u32, nk),
+            .identities = try a.dupe([8]u32, g.harvest.identities[0..nk]),
+            .fixed_roots = try a.dupe([8]u32, g.harvest.fixed_roots[0..nk]),
+            .n_outputs = try a.dupe(u32, g.harvest.n_outputs[0..nk]),
+            .leaf = input.is_leaf,
+            .tail = g.harvest.tail,
+            .statement = g.harvest.statement,
+            .max_encoded_bytes = 0,
+            .owns_template = own_template,
+        };
+        {
+            var sw: std.ArrayListUnmanaged(u32) = .empty;
+            defer sw.deinit(a);
+            try GnRecord.appendShape(a, &sw, shape);
+            const own = try parseShape(a, sw.items);
+            defer a.free(own.trees);
+            // Region capacity: the wire bytes, then this node's PCS image (its
+            // parent's seed source) in the last image words.
+            e.max_encoded_bytes = 4 * (@as(usize, desc[Enc.D.max_payload_words]) + (try Seed.Layout.of(own)).words);
+        }
+        for (e.shapes, g.harvest.shapes[0..nk]) |*dst, src| dst.* = try a.dupe(u32, src);
+        // The template outlives the node's Authority / PP: own what the
+        // Staged borrowed from them. FIXED raw evaluations are not kept (the
+        // class FIXED tree comes from its persistent region or the lane's
+        // precommit handoff; packFixed refuses rather than read freed PP).
+        e.fixed_logs = try a.dupe(u32, template.fixed_logs);
+        template.fixed_logs = e.fixed_logs;
+        // (fixed_raw stays this node's until its job-mode check ends; see
+        // Prover.gnJob, which then erases it.)
+        // The template carries no host value: the device writes seeds,
+        // checkpoint and outputs per node.
+        @memset(@constCast(template.expected), 0);
+        // A leaf's schedule (tasks, indices, chain ends) is a class constant
+        // of the template too: move it from the node region (re-packed and
+        // uploaded per node, ~75 MB for a 2.4 M-task leaf) to the class
+        // region (uploaded once per worker). Layout only, proof-neutral.
+        if (!template.assignment.reusable) {
+            template.assignment.reusable = true;
+            template.image = @import("jobs/outer_staged.zig").Staged.layoutWith(&template.assignment, template.statics, if (template.lookup != null) template.expected.len else 0);
+        }
+        mutex.lock();
+        defer mutex.unlock();
+        try entries.append(a, e);
+        if (own_template) try install_nodes.put(a, input.ordinal, e);
+        std.debug.print("GN_NODE_CLASS harvested ordinal={d} class={x} leaf={} children={d} classes={d}\n", .{ input.ordinal, staged.class_key[0..8].*, input.is_leaf, nk, entries.items.len });
+        return !own_template;
+    }
+    fn parseShape(a: std.mem.Allocator, words: []const u32) !Seed.Shape {
+        var at: usize = 0;
+        return Seed.Shape.parse(a, words, &at);
+    }
+    const Made = Runtime.Made;
+};
+
+/// STWO_RV64_M8_GN_NODE=job: one GPU-native node job (outer_device.NodeJob)
+/// over a node-local stand-in of its GPU's request-slab segment: the
+/// children's regions (uploaded in stage: the producers write them on device
+/// in a request), the node's encoded region and its 7 status words. After
+/// the job the region bytes and words are copied into a job-slab field for
+/// the host comparison (the GPU-native publish reads the slab mirror).
+const GnJob = struct {
+    pub const field_index: u32 = 0x474e_4a42; // "GNJB"
+    node: OuterDevice.NodeJob,
+    made: *NodeClasses.Made,
+    regions: [Seed.max_children][]u32,
+    n_children: usize,
+    region_words: [Seed.max_children]u32,
+    target_words: usize,
+    field_words: usize,
+    d2d: K.Copy,
+    bytes: ?[]u8 = null,
+    image_eq: bool = false,
+    host_image: []u32,
+    verdicts: [7]u32 = @splat(0xffff_ffff),
+    outcome: Graphs.Outcome = .direct,
+    launches: u32 = 0,
+    allocator: std.mem.Allocator,
+    target: api.DeviceBuffer = undefined,
+    words: api.DeviceBuffer = undefined,
+
+    fn init(a: std.mem.Allocator, entry: *NodeClasses.Entry, g: *const GnCheck, region_words: []const u32, shared: *const Shared, own_image: []const u32, device: u32) !GnJob {
+        const nk = g.regions.len;
+        var self = GnJob{ .node = undefined, .made = undefined, .regions = undefined, .n_children = nk, .region_words = undefined, .target_words = 1 + entry.max_encoded_bytes / 4, .field_words = 0, .d2d = shared.kernels.d2d, .host_image = &.{}, .allocator = a };
+        // Children regions in the slab convention (image in the last words;
+        // a leaf's native child keeps its tail + outputs after the image).
+        var made: usize = 0;
+        errdefer for (self.regions[0..made]) |x| a.free(x);
+        for (g.regions, 0..) |src, k| {
+            const L = blk: {
+                var at: usize = 0;
+                const sh = try Seed.Shape.parse(a, entry.shapes[k], &at);
+                defer a.free(sh.trees);
+                break :blk try Seed.Layout.of(sh);
+            };
+            const extra: usize = src.len - (GnCheck.wire_words + L.words); // leaf tail + outputs
+            const words = region_words[k] + extra;
+            const r = try a.alloc(u32, words);
+            @memcpy(r, src[0..words]); // GnCheck regions already put the image at wire_words
+            self.regions[k] = r;
+            self.region_words[k] = @intCast(words);
+            made += 1;
+        }
+        // The node job (production code path) over placeholder buffers; stage
+        // binds the real device addresses before anything runs.
+        const fake: [*]u32 = @ptrFromInt(64);
+        const target = OuterDevice.Target{ .device = device, .region = .{ .ptr = fake, .words = self.target_words }, .pcs_status = .{ .ptr = fake, .words = 1 }, .encode_status = .{ .ptr = fake, .words = 1 }, .oods_status = .{ .ptr = fake, .words = 1 } };
+        const m = try entry.node.make(entry.node.ctx, a, target);
+        errdefer m.destroy(m.ctx);
+        self.made = @ptrCast(@alignCast(m.ctx));
+        self.node = .{ .a = a, .ops = .{ .seed = shared.seed.?, .d2d = @ptrCast(shared.kernels.d2d), .peer = shared.peer orelse return error.GnNodeJobPeerOpsUnloaded }, .class = &entry.node, .device = 0, .verdicts = .{ .seed_tape = .{ .ptr = fake, .words = 1 }, .child_binding = .{ .ptr = fake, .words = 1 }, .lookup_sum = .{ .ptr = fake, .words = 1 }, .channel_order = .{ .ptr = fake, .words = 1 } }, .made = m };
+        self.node.n_children = @intCast(nk);
+        for (0..nk) |k| self.node.children[k] = .{ .device = 0, .region = .{ .ptr = fake, .words = self.region_words[k] } };
+        // Field: target region + 7 verdict words (host readback of the stand-in segment).
+        self.field_words = self.target_words + 8;
+        _ = try self.made.job.layout.add(.opaque_words, field_index, self.field_words);
+        self.host_image = try a.dupe(u32, own_image);
+        return self;
+    }
+    fn deinit(self: *GnJob, a: std.mem.Allocator) void {
+        self.node.deinit();
+        for (self.regions[0..self.n_children]) |x| a.free(x);
+        if (self.bytes) |b| a.free(b);
+        a.free(self.host_image);
+    }
+    fn job(self: *GnJob) api.Job {
+        return api.Job.from(GnJob, self);
+    }
+    pub fn classKey(self: *GnJob) [32]u8 {
+        return self.node.classKey();
+    }
+    fn g64(words: u64) u64 {
+        return std.mem.alignForward(u64, @max(words, 1), 64);
+    }
+    fn segWords(self: *const GnJob) usize {
+        var n: usize = 0;
+        for (self.region_words[0..self.n_children]) |w| n += g64(w);
+        return n + g64(self.target_words) + 64;
+    }
+    pub fn footprint(self: *GnJob) api.Footprint {
+        var fp = self.node.footprint();
+        const x = self.segWords();
+        fp.device_words += x;
+        fp.staged_words += x;
+        for (self.regions[0..self.n_children]) |r| fp.pinned_words += r.len;
+        return fp;
+    }
+    pub fn stage(self: *GnJob, s: *api.Stager) !void {
+        const seg = try s.alloc(self.segWords());
+        var at: usize = 0;
+        for (self.regions[0..self.n_children], 0..) |r, k| {
+            const b = try seg.slice(at, r.len);
+            const pinned = try s.pinned(r.len);
+            @memcpy(pinned, r);
+            try s.upload(b, pinned);
+            self.node.children[k] = .{ .device = 0, .region = b };
+            at += @intCast(g64(r.len));
+        }
+        const target = try seg.slice(at, self.target_words);
+        at += @intCast(g64(self.target_words));
+        const words = try seg.slice(at, 8);
+        self.node.verdicts = .{ .seed_tape = try words.slice(0, 1), .child_binding = try words.slice(1, 1), .lookup_sum = try words.slice(2, 1), .channel_order = try words.slice(3, 1) };
+        self.made.enc.target = .{ .region = target, .pcs_status = try words.slice(4, 1), .encode_status = try words.slice(5, 1), .layout_status_oods = try words.slice(6, 1) };
+        if (self.made.enc.oods) |*o| o.status = try words.slice(6, 1);
+        self.target = target;
+        self.words = words;
+        try self.node.stage(s);
+    }
+    pub fn enqueue(self: *GnJob, e: *api.Enqueue) !void {
+        try self.node.enqueue(e);
+        const f = try e.slab.field(.opaque_words, field_index);
+        if (self.d2d(e.ctx(), @ptrCast(f.ptr), @ptrCast(self.target.ptr), self.target_words * 4) != 0) return error.GnNodeJobCopyFailed;
+        if (self.d2d(e.ctx(), @ptrCast(f.ptr + self.target_words), @ptrCast(self.words.ptr), 7 * 4) != 0) return error.GnNodeJobCopyFailed;
+    }
+    pub fn finish(self: *GnJob, view: api.SlabView) !void {
+        const w = try @import("jobs/slab.zig").read(view, .opaque_words, field_index);
+        @memcpy(&self.verdicts, w[self.target_words..][0..7]);
+        const n = w[0];
+        if (n <= 4 * (self.target_words - 1)) {
+            const b = try self.allocator.alloc(u8, n);
+            @memcpy(b, std.mem.sliceAsBytes(w[1..])[0..n]);
+            self.bytes = b;
+        }
+        // The node's own PCS image tail (its parent's seed source).
+        const tail = w[self.target_words - self.host_image.len .. self.target_words];
+        self.image_eq = std.mem.eql(u32, tail, self.host_image);
+        self.outcome = self.made.job.report.outcome;
+        self.launches = self.made.job.report.launches;
+        try self.node.finish(view);
+    }
+    pub fn abort(self: *GnJob) void {
+        self.node.abort();
     }
 };
 
@@ -527,7 +1582,7 @@ pub const Lane = struct {
         self.nodes += 1;
         const fp = r.footprint;
         std.debug.print("GPU_M8_OUTER_NODE ordinal={d} device={d} leaf={} adopted_plan={} outcome={s} launches={d} kernel_nodes={d} host_waits={d} d2h_bytes={d} stage_ns={d} enqueue_ns={d} wait_ns={d} gpu_ns={d} prestage_ns={d} job_ns={d} assemble_ns={d} wall_ns={d} declared_device_words={d} declared_staged_words={d} slab_words={d} pinned_words={d} staged_words={d} arena_peak_words={d} heap_words={d} heap_peak_words={d} heap_allocations={d} plan_words={any} sequence={d} placement={s}\n", .{ ordinal, r.receipt.device, input.is_leaf, input.prepared != null, @tagName(r.outcome), r.launches, r.kernel_nodes, r.receipt.host_waits, r.receipt.d2h_bytes, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.gpu_ns, r.prestage_ns, r.job_ns, r.assemble_ns, timer.read(), fp.device_words, fp.staged_words, fp.slab_words, fp.pinned_words, r.receipt.staged_words, r.receipt.arena_peak_words, r.heap_words, r.heap_peak_words, r.heap_allocations, r.plan_words, r.receipt.sequence, @tagName(r.receipt.placement) });
-        std.debug.print("GPU_M8_OUTER_NODE_HOST ordinal={d} device={d} prestage_ns={d} init_ns={d} job_ns={d} stage_ns={d} enqueue_ns={d} wait_ns={d} finish_ns={d} decode_ns={d} assemble_ns={d} fixed_handoff={}\n", .{ ordinal, r.receipt.device, r.prestage_ns, r.init_ns, r.job_ns, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.finish_ns, r.decode_ns, r.assemble_ns, r.fixed_handoff });
+        std.debug.print("GPU_M8_OUTER_NODE_HOST ordinal={d} device={d} prestage_ns={d} init_ns={d} job_ns={d} stage_ns={d} enqueue_ns={d} wait_ns={d} finish_ns={d} decode_ns={d} assemble_ns={d} fixed_handoff={} class_plan={} class_plan_builds={d} class_plan_hits={d} class_plan_build_ns={d}\n", .{ ordinal, r.receipt.device, r.prestage_ns, r.init_ns, r.job_ns, r.receipt.stage_ns, r.receipt.enqueue_ns, r.receipt.wait_ns, r.finish_ns, r.decode_ns, r.assemble_ns, r.fixed_handoff, r.borrowed_plan, CP.stats.builds.load(.monotonic), CP.stats.hits.load(.monotonic), CP.stats.build_ns.load(.monotonic) });
         std.debug.print("GPU_M8_OUTER_NODE_MEM ordinal={d} device={d} streamed={} heap_high_words={d} max_alloc_words={d} max_unguarded_alloc_words={d} phase_peak_words={any} phase_high_words={any} staged_regions={any}\n", .{ ordinal, r.receipt.device, r.streamed, r.heap_high_words, r.max_alloc_words, r.max_unguarded_alloc_words, r.phase_peak_words, r.phase_high_words, r.staged_regions });
         return produced;
     }
@@ -571,6 +1626,11 @@ pub const Hybrid = struct {
     /// A FIXED handoff region was acquired in the open window: park releases
     /// worker-persistent regions so the native window gets the memory back.
     handoff_live: std.atomic.Value(bool) = .init(false),
+    /// M8 feeder (STWO_RV64_M8_JOBS=1): an already-booted, parked WorkerSet
+    /// shared with the native hybrid (one context per GPU for the request).
+    /// The window unparks/parks it like its own persistent set but never
+    /// stops it (its owner does).
+    shared_set: ?*Jobs.WorkerSet = null,
 
     /// Every hybrid knob, parsed strictly once at create (outer_env.zig;
     /// jobs/README.md "Outer job environment").
@@ -595,7 +1655,10 @@ pub const Hybrid = struct {
             k.fixed_job = try Env.flag("STWO_RV64_M8_OUTER_FIXED_JOB", k.fixed_job);
             k.fixed_handoff = try Env.flag("STWO_RV64_M8_OUTER_FIXED_HANDOFF", k.fixed_handoff) and k.fixed_job;
             k.persistent_classes = try Env.flag("STWO_RV64_M8_OUTER_PERSISTENT_CLASSES", k.persistent_classes);
+            // Two-key fault injection (outer_checks.zig): a leftover ordinal
+            // alone refuses service start instead of failing production nodes.
             k.fault_ordinal = try Env.optionalUnsigned(u32, "STWO_RV64_M8_OUTER_FAULT_ORDINAL");
+            if (k.fault_ordinal != null and !try Env.flag("STWO_RV64_M8_FAULT_INJECTION", false)) return error.M8FaultInjectionNotArmed;
             k.reserve_bytes = try Env.unsigned(u64, "STWO_RV64_M8_OUTER_RESERVE_BYTES", k.reserve_bytes);
             k.graphs = try Graphs.Policy.fromEnv();
             // Node-job knobs are parsed per job; check them here so a bad
@@ -605,10 +1668,25 @@ pub const Hybrid = struct {
             _ = try Env.unsigned(u64, "STWO_RV64_M8_OUTER_PCS_RESERVE_TREES", 0);
             _ = try Env.optionalUnsigned(u64, "STWO_RV64_M8_OUTER_DECLARE_WORDS");
             _ = try Env.flag("STWO_RV64_M8_OUTER_LEAF_PERSISTENT", false);
+            _ = try CP.selected();
+            _ = try CP.hostBudgetBytes();
+            _ = try Checks.selected();
+            _ = try Checks.faultOrdinal();
+            _ = try Enc.mode();
+            _ = try Enc.faultOrdinal();
+            _ = try Enc.oodsFaultOrdinal();
+            _ = try Enc.oodsPointFaultOrdinal();
             return k;
         }
     };
 
+    /// Use `set` (parked, owned by the caller, outliving this Hybrid) for
+    /// every window instead of booting one. Before the first window only.
+    pub fn adoptSet(self: *Hybrid, set: *Jobs.WorkerSet) !void {
+        if (self.window != null or !self.persist) return error.M8OuterSharedSetRequiresPersistentWindow;
+        if (!set.parked()) return error.M8OuterSharedSetNotParked;
+        self.shared_set = set;
+    }
     pub fn create(a: std.mem.Allocator, library: []const u8) !*Hybrid {
         const fs_path = std.posix.getenv("STWO_RV64_M8_OUTER_FS_LIBRARY") orelse return error.MissingM8OuterFsLibrary;
         _ = std.posix.getenv("STWO_RV64_M8_JOBS_LIBRARY") orelse return error.MissingM8JobsLibrary;
@@ -730,8 +1808,10 @@ pub const Hybrid = struct {
         // Persistent: boot on a small arena, park, then unpark at the
         // request's size (the same path every later request takes).
         config.arena_words = if (self.persist) @min(words, boot_arena_words) else words;
-        const set = if (self.persist) try Jobs.WorkerSet.startParked(self.allocator, self.library, config) else try Jobs.WorkerSet.startWith(self.allocator, self.library, config);
-        errdefer set.stop(self.allocator);
+        const set = if (self.shared_set) |shared| shared else if (self.persist) try Jobs.WorkerSet.startParked(self.allocator, self.library, config) else try Jobs.WorkerSet.startWith(self.allocator, self.library, config);
+        errdefer if (self.shared_set == null) set.stop(self.allocator) else {
+            _ = set.park(.{}) catch {};
+        };
         const unpark_ns: u64 = if (self.persist) (try set.unpark(words)).ns else 0;
         var shared = try Shared.init(&set.libs.base, &set.libs.addon, self.fs_path);
         errdefer shared.deinit();
@@ -801,7 +1881,7 @@ pub const Hybrid = struct {
         for (w.provers) |*p| p.deinit();
         self.allocator.free(w.provers);
         w.shared.deinit();
-        w.set.stop(self.allocator);
+        if (self.shared_set == null) w.set.stop(self.allocator) else _ = w.set.park(.{}) catch |err| std.debug.print("GPU_M8_OUTER_WINDOW shared_park_failed error={s}\n", .{@errorName(err)});
         std.debug.print("GPU_M8_OUTER_WINDOW close window={d} nodes={d} close_ns={d} stopped=true\n", .{ self.windows, nodes, timer.read() });
     }
 

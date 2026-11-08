@@ -1,0 +1,236 @@
+{
+ "schema": "rv64-m8-gn-shape-parity/v1",
+ "block": 26235156,
+ "job_device": 1,
+ "profile": "d2_native_b4_q54_p20_fold4",
+ "byte_cap": 34359738368,
+ "wide_framing": true,
+ "legacy_ran": false,
+ "legacy_wall_ns": 0,
+ "legacy_record_errors": [],
+ "legacy_stage1_record_ns": 0,
+ "legacy_full_record_ns": 0,
+ "warm_capture_ns": 3155362757,
+ "install_shape_ns": 12669333181,
+ "install_inventory_ns": 40921629,
+ "install_classes_ns": 12434263498,
+ "install_build_threads": 4,
+ "install_warm_ns": 1203450689,
+ "install_installed_ns": 184586332,
+ "miss_block_wall_ns": 11115716085,
+ "miss_new_block": {
+  "block": 24628607,
+  "segments": 7,
+  "new_classes": 7,
+  "wall_ns": 17804461635,
+  "capture_ns": 4199344635,
+  "classes_ns": 15307012166,
+  "register_and_warm_ns": 2162661110,
+  "resolved": true,
+  "registry_has_all": true,
+  "cache_has_all": true
+ },
+ "segments": [
+  {
+   "ordinal": 0,
+   "class_key": "2accb4097b9af8b3712832624372457ced6e59cfe47fc1a646231ca6d97181c0",
+   "rows": 4194304,
+   "instances": 35,
+   "fixed_columns": 207,
+   "main_columns": 3472,
+   "globals": 20,
+   "composition_roles": 37,
+   "patch_entries": 4406,
+   "semantic_words": 12368,
+   "max_encoded_bytes": 2270368,
+   "class_fields": 67,
+   "request_fields": 25,
+   "stage1_vs_legacy": null,
+   "full_vs_legacy": null,
+   "request_fields_differing": null,
+   "stage1_equal": null,
+   "full_equal": null
+  },
+  {
+   "ordinal": 1,
+   "class_key": "084a24ca4e0673ce21f7b1038bdaa29534b77f9b595306e375dd3867bd0fdabe",
+   "rows": 4194304,
+   "instances": 34,
+   "fixed_columns": 204,
+   "main_columns": 3379,
+   "globals": 19,
+   "composition_roles": 36,
+   "patch_entries": 4264,
+   "semantic_words": 11920,
+   "max_encoded_bytes": 2236800,
+   "class_fields": 66,
+   "request_fields": 24,
+   "stage1_vs_legacy": null,
+   "full_vs_legacy": null,
+   "request_fields_differing": null,
+   "stage1_equal": null,
+   "full_equal": null
+  },
+  {
+   "ordinal": 2,
+   "class_key": "894d0c7c5e7c7223ba649596ba31847dc7d10887366da80f1892197a34a08c30",
+   "rows": 4194304,
+   "instances": 35,
+   "fixed_columns": 211,
+   "main_columns": 3515,
+   "globals": 19,
+   "composition_roles": 37,
+   "patch_entries": 4542,
+   "semantic_words": 12384,
+   "max_encoded_bytes": 2280128,
+   "class_fields": 66,
+   "request_fields": 24,
+   "stage1_vs_legacy": null,
+   "full_vs_legacy": null,
+   "request_fields_differing": null,
+   "stage1_equal": null,
+   "full_equal": null
+  },
+  {
+   "ordinal": 3,
+   "class_key": "84c12cdb9546b511d693f98e9b40a3f4c71007b4724c57e40ccca81a275f0551",
+   "rows": 4194304,
+   "instances": 30,
+   "fixed_columns": 189,
+   "main_columns": 3009,
+   "globals": 18,
+   "composition_roles": 32,
+   "patch_entries": 3905,
+   "semantic_words": 11344,
+   "max_encoded_bytes": 2094528,
+   "class_fields": 65,
+   "request_fields": 23,
+   "stage1_vs_legacy": null,
+   "full_vs_legacy": null,
+   "request_fields_differing": null,
+   "stage1_equal": null,
+   "full_equal": null
+  }
+ ],
+ "unique_classes": 11,
+ "stage1_all_equal": true,
+ "full_all_equal": true,
+ "classes": [
+  {
+   "class_key": "2accb4097b9af8b3712832624372457ced6e59cfe47fc1a646231ca6d97181c0",
+   "build_ns": 10474570945,
+   "setup_ns": 8918977730,
+   "cold_gpu_ms": 5.296895980834961,
+   "cold_host_ns": 25879361,
+   "warm_gpu_ms": 0.009088000282645226,
+   "warm_host_ns": 203130,
+   "warm_arena_peak_words": 43136,
+   "held_words": 72004624,
+   "main_resident_words": 433346368,
+   "arena_peak_words": 5478344904
+  },
+  {
+   "class_key": "084a24ca4e0673ce21f7b1038bdaa29534b77f9b595306e375dd3867bd0fdabe",
+   "build_ns": 6357457349,
+   "setup_ns": 4889000669,
+   "cold_gpu_ms": 5.119872093200684,
+   "cold_host_ns": 21426984,
+   "warm_gpu_ms": 0.007840000092983246,
+   "warm_host_ns": 213670,
+   "warm_arena_peak_words": 41984,
+   "held_words": 68831792,
+   "main_resident_words": 405943232,
+   "arena_peak_words": 5384148317
+  },
+  {
+   "class_key": "894d0c7c5e7c7223ba649596ba31847dc7d10887366da80f1892197a34a08c30",
+   "build_ns": 12432141239,
+   "setup_ns": 10980594686,
+   "cold_gpu_ms": 4.8455681800842285,
+   "cold_host_ns": 20547464,
+   "warm_gpu_ms": 0.010944000445306301,
+   "warm_host_ns": 204260,
+   "warm_arena_peak_words": 43584,
+   "held_words": 67736176,
+   "main_resident_words": 391678720,
+   "arena_peak_words": 5094111477
+  },
+  {
+   "class_key": "84c12cdb9546b511d693f98e9b40a3f4c71007b4724c57e40ccca81a275f0551",
+   "build_ns": 8332101979,
+   "setup_ns": 6821628641,
+   "cold_gpu_ms": 5.44543981552124,
+   "cold_host_ns": 23619962,
+   "warm_gpu_ms": 0.012799999676644802,
+   "warm_host_ns": 222910,
+   "warm_arena_peak_words": 37248,
+   "held_words": 71481200,
+   "main_resident_words": 419551552,
+   "arena_peak_words": 6364954559
+  }
+ ],
+ "negatives": [
+  {
+   "name": "warm_fixed_root_tampered",
+   "expected": "NativeStage1FixedRootMismatch",
+   "got": "NativeStage1FixedRootMismatch",
+   "fired": true
+  },
+  {
+   "name": "register_after_seal",
+   "expected": "GpuNativeClassBuildOnRequestPath",
+   "got": "GpuNativeClassBuildOnRequestPath",
+   "fired": true
+  },
+  {
+   "name": "class_of_unknown_block",
+   "expected": "GpuNativeClassNotWarmed",
+   "got": "GpuNativeClassNotWarmed",
+   "fired": true
+  },
+  {
+   "name": "class_of_wrong_rows",
+   "expected": "GpuNativeClassNotWarmed",
+   "got": "GpuNativeClassNotWarmed",
+   "fired": true
+  },
+  {
+   "name": "framing_patch_out_of_bounds",
+   "expected": "NativeStage2PatchTable",
+   "got": "NativeStage2PatchTable",
+   "fired": true
+  },
+  {
+   "name": "fingerprint_fixed_word",
+   "expected": "GnShapeFieldMismatch",
+   "got": "GnShapeFieldMismatch",
+   "fired": true
+  },
+  {
+   "name": "class_miss_new_block_builds",
+   "expected": "ok",
+   "got": "ok",
+   "fired": true
+  },
+  {
+   "name": "miss_block_class_equals_warm",
+   "expected": "GnShapeFieldMismatch",
+   "got": "GnShapeFieldMismatch",
+   "fired": true
+  },
+  {
+   "name": "class_of_rows_only_two_equal_blocks",
+   "expected": "ok",
+   "got": "ok",
+   "fired": true
+  },
+  {
+   "name": "class_miss_new_block_warmed_on_device",
+   "expected": "ok",
+   "got": "ok",
+   "fired": true
+  }
+ ],
+ "negatives_all_fired": true,
+ "scope": "class fields compared by SHA-256 digest per field (NCB.Fingerprint); per-request fields (GKR prefix + publics, PCS section 15 + scope, patched parameter words) listed only. Times: host wall [M] (std.time.Timer), warm_gpu_ms CUDA events around the WarmJob enqueue [M]."
+}

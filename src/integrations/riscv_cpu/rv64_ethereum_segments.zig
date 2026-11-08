@@ -194,6 +194,12 @@ pub const Segments = struct {
     finished: bool = false,
     stats: Stats = .{},
     replay_timer: ?std.time.Timer = null,
+    /// M8 two-phase ledger: hand each returned batch's starting checkpoint
+    /// to the caller (`takeStart`) instead of releasing it, so the segment's
+    /// local ledger can read its starting image off the ordered thread. The
+    /// caller returns it with `releaseStart` (any thread) before `destroy`.
+    retain_starts: bool = false,
+    retained_start: ?*rv.checkpoint.Checkpoint = null,
 
     /// `main` is a fresh walk (no batch taken); the first pass drives its
     /// session and memory to the end. `a` must be thread-safe.
@@ -241,6 +247,8 @@ pub const Segments = struct {
             a.destroy(w);
             slot.* = null;
         };
+        if (self.retained_start) |cp| self.releaseStart(cp);
+        self.retained_start = null;
         for (self.pass.checkpoints.items[self.pass.consumed..]) |cp| {
             self.recorder.release(cp);
             a.destroy(cp);
@@ -392,6 +400,19 @@ pub const Segments = struct {
         }
     }
 
+    /// The starting checkpoint of the batch `next` returned last (only with
+    /// `retain_starts`); the caller owns it until `releaseStart`.
+    pub fn takeStart(self: *Segments) ?*rv.checkpoint.Checkpoint {
+        const cp = self.retained_start;
+        self.retained_start = null;
+        return cp;
+    }
+    /// Thread-safe (the recorder's page references are atomic).
+    pub fn releaseStart(self: *Segments, cp: *rv.checkpoint.Checkpoint) void {
+        self.recorder.release(cp);
+        self.allocator.destroy(cp);
+    }
+
     pub const GlobalRam = struct { words: *const rv.ram_word_set.Set, counters: rv.checkpoint.Counters, total_steps: u64, final_pc: u64 };
     /// Waits for the WHOLE fast pass, not the parallel traced capture. It never
     /// returns a partial key set on a recording/resource failure.
@@ -476,8 +497,13 @@ pub const Segments = struct {
             self.pass.mutex.lock();
             defer self.pass.mutex.unlock();
             const cp = self.pass.checkpoints.items[self.next_index];
-            self.recorder.release(cp);
-            self.allocator.destroy(cp);
+            if (self.retain_starts) {
+                if (self.retained_start) |old| self.releaseStart(old);
+                self.retained_start = cp;
+            } else {
+                self.recorder.release(cp);
+                self.allocator.destroy(cp);
+            }
             self.pass.consumed = self.next_index + 1;
             self.pass.changed.broadcast();
         }

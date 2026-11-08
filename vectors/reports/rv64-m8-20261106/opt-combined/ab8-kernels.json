@@ -1,0 +1,3880 @@
+{
+"families": {
+"T2 assignment chain": {
+"baseline": [
+0.9961,
+689
+],
+"fullstack": [
+1.1408,
+689
+]
+},
+"T3 deep/samples": {
+"baseline": [
+1.1176,
+3973
+],
+"fullstack": [
+0.4194,
+4432
+]
+},
+"T4 fft": {
+"baseline": [
+3.2111,
+31638
+],
+"fullstack": [
+2.9749,
+20387
+]
+},
+"T5 aot truth/joined": {
+"baseline": [
+0.6507,
+28
+],
+"fullstack": [
+0.2503,
+28
+]
+},
+"T6 merkle layers": {
+"baseline": [
+0.1813,
+7849
+],
+"fullstack": [
+0.1801,
+7849
+]
+},
+"T7 gkr batch": {
+"baseline": [
+0.1537,
+2250
+],
+"fullstack": [
+0.0507,
+2250
+]
+},
+"T8 logup": {
+"baseline": [
+0.565,
+3911
+],
+"fullstack": [
+0.0251,
+3371
+]
+},
+"T9 witness": {
+"baseline": [
+0.6396,
+310
+],
+"fullstack": [
+0.2604,
+341
+]
+}
+},
+"total": {
+"baseline": [
+10.609,
+71914
+],
+"fullstack": [
+8.4784,
+60220
+]
+},
+"kernels": {
+"baseline": {
+"analyze": [
+0.025675716,
+7
+],
+"arithmetic_witness": [
+0.016599802,
+13
+],
+"b2n_composition_split_final": [
+9.6e-07,
+1
+],
+"b2n_composition_stage": [
+8.928e-06,
+9
+],
+"b2n_continue": [
+0.301328387,
+1135
+],
+"b2n_init_block": [
+0.085779314,
+497
+],
+"b2n_init_warp": [
+0.080015515,
+358
+],
+"b2n_stage": [
+0.00708427,
+2797
+],
+"batch_init": [
+0.006191147,
+181
+],
+"batch_masks": [
+0.000248736,
+181
+],
+"batch_round": [
+0.153735783,
+2250
+],
+"begin_layer": [
+0.009384009,
+181
+],
+"binding_eq_expand": [
+0.018027093,
+848
+],
+"binding_eq_seed": [
+0.000789759,
+230
+],
+"boundary_witness": [
+0.000195392,
+14
+],
+"chain_run": [
+0.996120533,
+689
+],
+"channel_draw": [
+0.000671646,
+290
+],
+"channel_init": [
+6.3776e-05,
+40
+],
+"channel_mix": [
+0.0774548,
+363
+],
+"channel_queries": [
+7.8656e-05,
+33
+],
+"child_layer_kernel": [
+0.181311056,
+7849
+],
+"close_layer": [
+0.024675562,
+181
+],
+"close_local": [
+0.000271358,
+7
+],
+"counts": [
+5.376e-06,
+4
+],
+"cpu_unpack": [
+0.004645876,
+7
+],
+"cpu_witness": [
+0.010094346,
+7
+],
+"cumulative": [
+0.078141843,
+209
+],
+"deep_aggregate_rows": [
+0.126232521,
+33
+],
+"deep_combine": [
+0.481724596,
+33
+],
+"deep_combine_validate": [
+0.001371165,
+33
+],
+"deep_lines": [
+0.004184758,
+33
+],
+"deep_validate": [
+0.074479766,
+33
+],
+"derive_binding": [
+0.07184345,
+460
+],
+"eq_expand": [
+0.014711551,
+2076
+],
+"eq_seed": [
+0.000192544,
+174
+],
+"family_witness": [
+0.008493583,
+42
+],
+"fill_auxiliary": [
+0.001011486,
+230
+],
+"finalize_binding": [
+0.002522941,
+230
+],
+"fri_fold_kernel": [
+0.01461446,
+187
+],
+"fri_leaf_kernel": [
+0.009769708,
+187
+],
+"fri_open_paths": [
+0.000256735,
+187
+],
+"fri_open_values": [
+0.000216544,
+187
+],
+"fri_terminal": [
+4.4768e-05,
+33
+],
+"gather": [
+0.000269888,
+230
+],
+"generate": [
+0.297596767,
+304
+],
+"global_cumulative": [
+0.00077827,
+7
+],
+"global_inverse_contribute": [
+0.390466316,
+392
+],
+"global_row_sum": [
+0.042592261,
+392
+],
+"init_parent": [
+3.3855e-05,
+7
+],
+"initialize_kernel": [
+3.0176e-05,
+33
+],
+"keccak_witness": [
+0.342034443,
+6
+],
+"layer": [
+0.080266886,
+3977
+],
+"lift_add": [
+0.12073266,
+253
+],
+"memory_witness": [
+0.011958052,
+24
+],
+"mixed_leaf_kernel": [
+1.345923945,
+1307
+],
+"multiplicities": [
+0.000136064,
+42
+],
+"n2b_continue": [
+0.272341112,
+2699
+],
+"n2b_final_block": [
+0.073268415,
+1187
+],
+"n2b_final_warp": [
+0.131274187,
+1205
+],
+"n2b_stage": [
+0.011767623,
+8366
+],
+"n2b_wide_contiguous": [
+1.12330877,
+1815
+],
+"n2b_wide_strided": [
+0.480656667,
+561
+],
+"n2b_wide_strided_short": [
+0.533249522,
+1254
+],
+"open_paths": [
+0.00021248,
+132
+],
+"open_values": [
+0.001770683,
+587
+],
+"oracles_fold": [
+0.155171064,
+2250
+],
+"oracles_reduce": [
+0.002864659,
+1468
+],
+"oracles_sum": [
+0.150882058,
+2250
+],
+"outputs": [
+5.1776e-05,
+6
+],
+"pack_roots": [
+1.3088e-05,
+7
+],
+"prefix_kernel": [
+6.0544e-05,
+33
+],
+"project_binding": [
+0.044018629,
+230
+],
+"publish_counts": [
+2.016e-06,
+2
+],
+"rv64_joined_domain_1": [
+0.00090803,
+7
+],
+"rv64_joined_domain_11": [
+0.000172832,
+7
+],
+"rv64_joined_domain_12": [
+8.416e-05,
+7
+],
+"rv64_joined_domain_13": [
+0.006127571,
+7
+],
+"rv64_joined_domain_14": [
+0.000220478,
+7
+],
+"rv64_joined_domain_15": [
+0.000657023,
+4
+],
+"rv64_joined_domain_16": [
+0.001250972,
+6
+],
+"rv64_joined_domain_17": [
+0.000360863,
+5
+],
+"rv64_joined_domain_18": [
+0.000190655,
+3
+],
+"rv64_joined_domain_2": [
+0.000913661,
+7
+],
+"rv64_joined_domain_20": [
+0.055778018,
+7
+],
+"rv64_joined_domain_21": [
+0.000207328,
+7
+],
+"rv64_joined_domain_22": [
+0.001646492,
+6
+],
+"rv64_joined_domain_23": [
+0.00416604,
+5
+],
+"rv64_joined_domain_24": [
+0.003147641,
+5
+],
+"rv64_joined_domain_25": [
+0.001626908,
+3
+],
+"rv64_joined_domain_26": [
+0.00320332,
+6
+],
+"rv64_joined_domain_3": [
+0.003187287,
+7
+],
+"rv64_joined_domain_34": [
+0.001120958,
+7
+],
+"rv64_joined_domain_35": [
+0.001414461,
+7
+],
+"rv64_joined_domain_36": [
+0.000899006,
+7
+],
+"rv64_joined_domain_37": [
+0.002670233,
+7
+],
+"rv64_joined_domain_38": [
+0.001100254,
+6
+],
+"rv64_joined_domain_39": [
+0.000891808,
+6
+],
+"rv64_joined_domain_4": [
+0.001017982,
+7
+],
+"rv64_joined_domain_40": [
+0.00089523,
+6
+],
+"rv64_joined_domain_41_shard_0": [
+8.448e-05,
+6
+],
+"rv64_joined_domain_41_shard_1": [
+7.2448e-05,
+6
+],
+"rv64_joined_domain_41_shard_10": [
+7.1712e-05,
+6
+],
+"rv64_joined_domain_41_shard_11": [
+7.2672e-05,
+6
+],
+"rv64_joined_domain_41_shard_12": [
+7.9487e-05,
+6
+],
+"rv64_joined_domain_41_shard_13": [
+0.004911862,
+6
+],
+"rv64_joined_domain_41_shard_14": [
+0.001524795,
+6
+],
+"rv64_joined_domain_41_shard_2": [
+7.3216e-05,
+6
+],
+"rv64_joined_domain_41_shard_3": [
+7.3248e-05,
+6
+],
+"rv64_joined_domain_41_shard_4": [
+7.4176e-05,
+6
+],
+"rv64_joined_domain_41_shard_5": [
+7.3184e-05,
+6
+],
+"rv64_joined_domain_41_shard_6": [
+7.2288e-05,
+6
+],
+"rv64_joined_domain_41_shard_7": [
+7.0816e-05,
+6
+],
+"rv64_joined_domain_41_shard_8": [
+6.4319e-05,
+6
+],
+"rv64_joined_domain_41_shard_9": [
+7.3888e-05,
+6
+],
+"rv64_joined_domain_42": [
+9.088e-05,
+6
+],
+"rv64_joined_domain_43_shard_0": [
+6.5952e-05,
+6
+],
+"rv64_joined_domain_43_shard_1": [
+5.6032e-05,
+6
+],
+"rv64_joined_domain_43_shard_2": [
+5.568e-05,
+6
+],
+"rv64_joined_domain_43_shard_3": [
+7.1744e-05,
+6
+],
+"rv64_joined_domain_43_shard_4": [
+7.136e-05,
+6
+],
+"rv64_joined_domain_43_shard_5": [
+7.1488e-05,
+6
+],
+"rv64_joined_domain_43_shard_6": [
+7.3312e-05,
+6
+],
+"rv64_joined_domain_43_shard_7": [
+0.006613232,
+6
+],
+"rv64_joined_domain_43_shard_8": [
+0.007650703,
+6
+],
+"rv64_joined_domain_44_shard_0": [
+8.0864e-05,
+6
+],
+"rv64_joined_domain_44_shard_1": [
+6.2624e-05,
+6
+],
+"rv64_joined_domain_44_shard_10": [
+6.2272e-05,
+6
+],
+"rv64_joined_domain_44_shard_11": [
+6.1855e-05,
+6
+],
+"rv64_joined_domain_44_shard_12": [
+7.3664e-05,
+6
+],
+"rv64_joined_domain_44_shard_13": [
+0.000256224,
+6
+],
+"rv64_joined_domain_44_shard_14": [
+0.000257183,
+6
+],
+"rv64_joined_domain_44_shard_15": [
+0.000257119,
+6
+],
+"rv64_joined_domain_44_shard_16": [
+0.00026,
+6
+],
+"rv64_joined_domain_44_shard_17": [
+9.0336e-05,
+6
+],
+"rv64_joined_domain_44_shard_18": [
+8.7167e-05,
+6
+],
+"rv64_joined_domain_44_shard_19": [
+8.7103e-05,
+6
+],
+"rv64_joined_domain_44_shard_2": [
+6.2208e-05,
+6
+],
+"rv64_joined_domain_44_shard_20": [
+6.608e-05,
+6
+],
+"rv64_joined_domain_44_shard_21": [
+6.88e-05,
+6
+],
+"rv64_joined_domain_44_shard_22": [
+6.5888e-05,
+6
+],
+"rv64_joined_domain_44_shard_23": [
+6.6048e-05,
+6
+],
+"rv64_joined_domain_44_shard_24": [
+6.3968e-05,
+6
+],
+"rv64_joined_domain_44_shard_25": [
+6.6624e-05,
+6
+],
+"rv64_joined_domain_44_shard_26": [
+0.011107496,
+6
+],
+"rv64_joined_domain_44_shard_27": [
+0.008953932,
+6
+],
+"rv64_joined_domain_44_shard_28": [
+3.1232e-05,
+6
+],
+"rv64_joined_domain_44_shard_3": [
+6.0704e-05,
+6
+],
+"rv64_joined_domain_44_shard_4": [
+6.144e-05,
+6
+],
+"rv64_joined_domain_44_shard_5": [
+6.1887e-05,
+6
+],
+"rv64_joined_domain_44_shard_6": [
+6.0416e-05,
+6
+],
+"rv64_joined_domain_44_shard_7": [
+6.864e-05,
+6
+],
+"rv64_joined_domain_44_shard_8": [
+0.000252096,
+6
+],
+"rv64_joined_domain_44_shard_9": [
+6.2368e-05,
+6
+],
+"rv64_joined_domain_45": [
+0.012860227,
+7
+],
+"rv64_joined_domain_46": [
+0.003730167,
+6
+],
+"rv64_joined_domain_47": [
+0.000557534,
+7
+],
+"rv64_joined_domain_48": [
+0.000559263,
+7
+],
+"rv64_joined_domain_5": [
+0.001013919,
+7
+],
+"rv64_joined_domain_6": [
+0.000480446,
+7
+],
+"rv64_joined_domain_7": [
+0.000953182,
+6
+],
+"rv64_joined_domain_8_shard_0": [
+0.000182207,
+7
+],
+"rv64_joined_domain_8_shard_1": [
+0.000173087,
+7
+],
+"rv64_joined_domain_8_shard_2": [
+0.000188864,
+7
+],
+"rv64_joined_domain_8_shard_3": [
+0.000199424,
+7
+],
+"rv64_joined_domain_8_shard_4": [
+0.013201604,
+7
+],
+"rv64_joined_domain_9": [
+0.001213566,
+7
+],
+"rv64_projection_case_1": [
+0.000262559,
+7
+],
+"rv64_projection_case_11": [
+1.9296e-05,
+7
+],
+"rv64_projection_case_12": [
+1.5232e-05,
+7
+],
+"rv64_projection_case_13": [
+0.00497583,
+7
+],
+"rv64_projection_case_14": [
+4.2944e-05,
+7
+],
+"rv64_projection_case_15": [
+0.000189631,
+4
+],
+"rv64_projection_case_16": [
+0.001198845,
+6
+],
+"rv64_projection_case_17": [
+0.000261503,
+5
+],
+"rv64_projection_case_18": [
+0.000155807,
+3
+],
+"rv64_projection_case_2": [
+0.000631359,
+7
+],
+"rv64_projection_case_20": [
+0.042757852,
+7
+],
+"rv64_projection_case_21": [
+4.3104e-05,
+7
+],
+"rv64_projection_case_22": [
+0.00072691,
+6
+],
+"rv64_projection_case_23": [
+0.00328073,
+5
+],
+"rv64_projection_case_24": [
+0.001394111,
+5
+],
+"rv64_projection_case_25": [
+0.000473214,
+3
+],
+"rv64_projection_case_26": [
+0.001082843,
+6
+],
+"rv64_projection_case_3": [
+0.004317845,
+7
+],
+"rv64_projection_case_34": [
+0.000356224,
+7
+],
+"rv64_projection_case_35": [
+0.0002824,
+7
+],
+"rv64_projection_case_36": [
+0.000125824,
+7
+],
+"rv64_projection_case_37": [
+0.008587246,
+7
+],
+"rv64_projection_case_38": [
+0.000212288,
+6
+],
+"rv64_projection_case_39": [
+0.000168064,
+6
+],
+"rv64_projection_case_4": [
+0.000896319,
+7
+],
+"rv64_projection_case_40": [
+0.000154688,
+6
+],
+"rv64_projection_case_41": [
+0.001969082,
+6
+],
+"rv64_projection_case_42": [
+2.3328e-05,
+6
+],
+"rv64_projection_case_43": [
+0.000699134,
+6
+],
+"rv64_projection_case_44": [
+0.004919894,
+6
+],
+"rv64_projection_case_45": [
+0.005275284,
+7
+],
+"rv64_projection_case_46": [
+0.001500123,
+6
+],
+"rv64_projection_case_5": [
+0.000763102,
+7
+],
+"rv64_projection_case_6": [
+0.000151936,
+7
+],
+"rv64_projection_case_7": [
+0.000437982,
+6
+],
+"rv64_projection_case_8": [
+0.029771684,
+7
+],
+"rv64_projection_case_9": [
+0.001112411,
+7
+],
+"rv64_truth_domain_0_shard_0": [
+0.000928956,
+3
+],
+"rv64_truth_domain_0_shard_1": [
+0.000849566,
+3
+],
+"rv64_truth_domain_0_shard_10": [
+0.000855998,
+3
+],
+"rv64_truth_domain_0_shard_11": [
+0.000854398,
+3
+],
+"rv64_truth_domain_0_shard_12": [
+0.000857661,
+3
+],
+"rv64_truth_domain_0_shard_13": [
+0.000854589,
+3
+],
+"rv64_truth_domain_0_shard_14": [
+0.000857471,
+3
+],
+"rv64_truth_domain_0_shard_15": [
+0.000856988,
+3
+],
+"rv64_truth_domain_0_shard_16": [
+0.000856253,
+3
+],
+"rv64_truth_domain_0_shard_17": [
+0.00085587,
+3
+],
+"rv64_truth_domain_0_shard_18": [
+0.000858846,
+3
+],
+"rv64_truth_domain_0_shard_19": [
+0.000855453,
+3
+],
+"rv64_truth_domain_0_shard_2": [
+0.000848989,
+3
+],
+"rv64_truth_domain_0_shard_20": [
+0.000857374,
+3
+],
+"rv64_truth_domain_0_shard_21": [
+0.000856318,
+3
+],
+"rv64_truth_domain_0_shard_22": [
+0.000859358,
+3
+],
+"rv64_truth_domain_0_shard_23": [
+0.000858109,
+3
+],
+"rv64_truth_domain_0_shard_24": [
+0.000854302,
+3
+],
+"rv64_truth_domain_0_shard_25": [
+0.000833437,
+3
+],
+"rv64_truth_domain_0_shard_26": [
+0.000842398,
+3
+],
+"rv64_truth_domain_0_shard_27": [
+0.000839422,
+3
+],
+"rv64_truth_domain_0_shard_28": [
+0.000822589,
+3
+],
+"rv64_truth_domain_0_shard_29": [
+0.000819422,
+3
+],
+"rv64_truth_domain_0_shard_3": [
+0.00085571,
+3
+],
+"rv64_truth_domain_0_shard_30": [
+0.000818173,
+3
+],
+"rv64_truth_domain_0_shard_31": [
+0.000821309,
+3
+],
+"rv64_truth_domain_0_shard_32": [
+0.00081939,
+3
+],
+"rv64_truth_domain_0_shard_33": [
+0.000818142,
+3
+],
+"rv64_truth_domain_0_shard_34": [
+0.000819421,
+3
+],
+"rv64_truth_domain_0_shard_35": [
+0.000819294,
+3
+],
+"rv64_truth_domain_0_shard_36": [
+0.000819934,
+3
+],
+"rv64_truth_domain_0_shard_37": [
+0.000819325,
+3
+],
+"rv64_truth_domain_0_shard_38": [
+0.000822334,
+3
+],
+"rv64_truth_domain_0_shard_39": [
+0.00082131,
+3
+],
+"rv64_truth_domain_0_shard_4": [
+0.000859454,
+3
+],
+"rv64_truth_domain_0_shard_40": [
+0.000819805,
+3
+],
+"rv64_truth_domain_0_shard_41": [
+0.000822014,
+3
+],
+"rv64_truth_domain_0_shard_42": [
+0.000427038,
+3
+],
+"rv64_truth_domain_0_shard_43": [
+0.026838803,
+3
+],
+"rv64_truth_domain_0_shard_44": [
+0.043464768,
+3
+],
+"rv64_truth_domain_0_shard_45": [
+0.043471682,
+3
+],
+"rv64_truth_domain_0_shard_46": [
+0.044661951,
+3
+],
+"rv64_truth_domain_0_shard_47": [
+0.288416411,
+3
+],
+"rv64_truth_domain_0_shard_48": [
+0.084781513,
+3
+],
+"rv64_truth_domain_0_shard_49": [
+0.063259816,
+3
+],
+"rv64_truth_domain_0_shard_5": [
+0.000857661,
+3
+],
+"rv64_truth_domain_0_shard_6": [
+0.000853565,
+3
+],
+"rv64_truth_domain_0_shard_7": [
+0.000856927,
+3
+],
+"rv64_truth_domain_0_shard_8": [
+0.000853181,
+3
+],
+"rv64_truth_domain_0_shard_9": [
+0.000857373,
+3
+],
+"rv64_truth_domain_1": [
+0.003639288,
+3
+],
+"rv64_truth_domain_2": [
+9.5456e-05,
+3
+],
+"rv64_truth_domain_3": [
+0.001320606,
+1
+],
+"rv64_truth_domain_4": [
+0.000249407,
+1
+],
+"rv64_truth_domain_5_shard_0": [
+0.000114336,
+1
+],
+"rv64_truth_domain_5_shard_1": [
+0.000340671,
+1
+],
+"rv64_truth_domain_5_shard_10": [
+0.000220288,
+1
+],
+"rv64_truth_domain_5_shard_11": [
+0.000574079,
+1
+],
+"rv64_truth_domain_5_shard_12": [
+7.7792e-05,
+1
+],
+"rv64_truth_domain_5_shard_13": [
+0.000815326,
+1
+],
+"rv64_truth_domain_5_shard_14": [
+0.000942847,
+1
+],
+"rv64_truth_domain_5_shard_15": [
+0.000940862,
+1
+],
+"rv64_truth_domain_5_shard_16": [
+0.00094355,
+1
+],
+"rv64_truth_domain_5_shard_17": [
+0.000941055,
+1
+],
+"rv64_truth_domain_5_shard_18": [
+0.000936798,
+1
+],
+"rv64_truth_domain_5_shard_19": [
+0.000936831,
+1
+],
+"rv64_truth_domain_5_shard_2": [
+0.00033312,
+1
+],
+"rv64_truth_domain_5_shard_20": [
+0.000938494,
+1
+],
+"rv64_truth_domain_5_shard_21": [
+0.000937854,
+1
+],
+"rv64_truth_domain_5_shard_22": [
+0.000936447,
+1
+],
+"rv64_truth_domain_5_shard_23": [
+0.000938334,
+1
+],
+"rv64_truth_domain_5_shard_24": [
+0.000936607,
+1
+],
+"rv64_truth_domain_5_shard_25": [
+0.000936126,
+1
+],
+"rv64_truth_domain_5_shard_26": [
+0.00094019,
+1
+],
+"rv64_truth_domain_5_shard_27": [
+0.000940223,
+1
+],
+"rv64_truth_domain_5_shard_28": [
+0.00093779,
+1
+],
+"rv64_truth_domain_5_shard_29": [
+0.000941215,
+1
+],
+"rv64_truth_domain_5_shard_3": [
+0.000481535,
+1
+],
+"rv64_truth_domain_5_shard_30": [
+0.000941086,
+1
+],
+"rv64_truth_domain_5_shard_31": [
+0.000941918,
+1
+],
+"rv64_truth_domain_5_shard_32": [
+0.000938367,
+1
+],
+"rv64_truth_domain_5_shard_33": [
+0.000776414,
+1
+],
+"rv64_truth_domain_5_shard_4": [
+0.000534111,
+1
+],
+"rv64_truth_domain_5_shard_5": [
+0.000538975,
+1
+],
+"rv64_truth_domain_5_shard_6": [
+0.000387455,
+1
+],
+"rv64_truth_domain_5_shard_7": [
+0.000514175,
+1
+],
+"rv64_truth_domain_5_shard_8": [
+0.000229696,
+1
+],
+"rv64_truth_domain_5_shard_9": [
+0.000478175,
+1
+],
+"rv64_truth_domain_6_shard_0": [
+8.8095e-05,
+1
+],
+"rv64_truth_domain_6_shard_1": [
+0.000263296,
+1
+],
+"rv64_truth_domain_6_shard_10": [
+0.000215199,
+1
+],
+"rv64_truth_domain_6_shard_11": [
+0.00093747,
+1
+],
+"rv64_truth_domain_6_shard_12": [
+0.000935581,
+1
+],
+"rv64_truth_domain_6_shard_13": [
+0.000933341,
+1
+],
+"rv64_truth_domain_6_shard_14": [
+0.000931133,
+1
+],
+"rv64_truth_domain_6_shard_15": [
+0.00093539,
+1
+],
+"rv64_truth_domain_6_shard_16": [
+0.000935549,
+1
+],
+"rv64_truth_domain_6_shard_17": [
+0.000940477,
+1
+],
+"rv64_truth_domain_6_shard_18": [
+0.000937214,
+1
+],
+"rv64_truth_domain_6_shard_19": [
+0.000934685,
+1
+],
+"rv64_truth_domain_6_shard_2": [
+0.000306079,
+1
+],
+"rv64_truth_domain_6_shard_20": [
+0.000927677,
+1
+],
+"rv64_truth_domain_6_shard_21": [
+0.000922814,
+1
+],
+"rv64_truth_domain_6_shard_22": [
+0.000927485,
+1
+],
+"rv64_truth_domain_6_shard_23": [
+0.000924477,
+1
+],
+"rv64_truth_domain_6_shard_24": [
+0.000930302,
+1
+],
+"rv64_truth_domain_6_shard_25": [
+0.000926173,
+1
+],
+"rv64_truth_domain_6_shard_26": [
+0.000774942,
+1
+],
+"rv64_truth_domain_6_shard_3": [
+0.000330303,
+1
+],
+"rv64_truth_domain_6_shard_4": [
+0.000192927,
+1
+],
+"rv64_truth_domain_6_shard_5": [
+0.000330655,
+1
+],
+"rv64_truth_domain_6_shard_6": [
+0.000433567,
+1
+],
+"rv64_truth_domain_6_shard_7": [
+0.000365567,
+1
+],
+"rv64_truth_domain_6_shard_8": [
+0.000211071,
+1
+],
+"rv64_truth_domain_6_shard_9": [
+0.000200576,
+1
+],
+"sample_base_from_point": [
+7.392e-05,
+33
+],
+"sample_first": [
+0.413642044,
+914
+],
+"sample_inputs_check_kernel": [
+0.000333759,
+14
+],
+"sample_order": [
+5.8336e-05,
+33
+],
+"sample_points": [
+0.00066371,
+33
+],
+"sample_prefill_kernel": [
+0.001720061,
+14
+],
+"sample_reduce": [
+0.005279604,
+939
+],
+"sample_store": [
+0.001057471,
+914
+],
+"sample_validate": [
+0.006761431,
+914
+],
+"scan_carries": [
+0.065914642,
+967
+],
+"scan_chunks": [
+0.065409301,
+1538
+],
+"scan_claim": [
+0.00062515,
+622
+],
+"search_kernel": [
+0.025160555,
+33
+],
+"seed": [
+0.000206752,
+19
+],
+"seed_counts": [
+1.76e-06,
+2
+],
+"stage_addressed_lde_columns": [
+0.078875259,
+466
+],
+"stage_lde_columns": [
+0.001119195,
+705
+],
+"stwo_rv64_composition_0924a7e3b186ecb6e4a0f3cb548120b1ce0816cb4fdb436414c97aeedb69c077": [
+0.069636174,
+19
+],
+"stwo_rv64_composition_0eb218ba3708414be79080f813fb117f68a1ed80051f9a949386bd1e9ec5e52b": [
+0.107711901,
+19
+],
+"stwo_rv64_composition_2445d74dec12022d409cb07c6a73e36ebf22b5caafd591c593c8c7de581a8906": [
+0.000192064,
+19
+],
+"stwo_rv64_composition_3d42ffe49bc3ed25c3ee75462a5b52b60b9bafb5ae4f470f422cb209d192c914": [
+0.008356686,
+19
+],
+"stwo_rv64_composition_75c795ad48f31ff50f1c25e228ff6035a28fdeab1052f78c08c3b407708d8e7a": [
+9.8144e-05,
+19
+],
+"stwo_rv64_composition_7662daa2f117ac5cabdf50e8285e7cb6f28f0dc0eb573a1a51987ed2d89c98bb": [
+0.045492927,
+19
+],
+"stwo_rv64_composition_aed6bf23ee8e7b09a18ed0792b9ba54790ff2d5cadd654778b675cefee46ab60": [
+0.000422336,
+19
+],
+"stwo_rv64_composition_b3700bf4b31ffe283fc4c7ecb48e74079af2ce546b288a5055371636a0455858": [
+7.6896e-05,
+19
+],
+"stwo_rv64_composition_b9d7165532f8ab26e984b53af57d664da9f0f57f332e1c2292f57e2aa3a87ca2": [
+0.000255391,
+19
+],
+"stwo_rv64_composition_d4ee36441a7cabcbd368cedb4e09bb85a09270969bfcab7b0574c9afd1061f30": [
+0.000599614,
+19
+],
+"stwo_rv64_composition_d57856886adac8689cfeb7cf6424501d0d7ba39deae8637e98f9132876d55ea7": [
+0.029056066,
+19
+],
+"stwo_rv64_composition_df5949ce301b3ea570cb590dd36f62018b86e9690a26ee89621087b28acff0f0": [
+0.00960523,
+19
+],
+"stwo_rv64_global_contiguous_0387bc5bec32aa00df081ef4b16cae57f7a63cef01316b6f55c2cc8fafa498de_kernel": [
+0.000130271,
+6
+],
+"stwo_rv64_global_contiguous_0810c9aa57b28498e4199faa4857a235b322fab62d78d413af1138579f3a6077_kernel": [
+0.000590944,
+6
+],
+"stwo_rv64_global_contiguous_085fd961fe550f057562338d71a9cc94fe24d906c4cf1ad7ec346f492045b694_kernel": [
+9.632e-05,
+7
+],
+"stwo_rv64_global_contiguous_0cb9beb588eeaa0b7d2a4e379054e1e949b0466f7988cac0188acb53c971faa4_kernel": [
+0.000196352,
+5
+],
+"stwo_rv64_global_contiguous_10b48b8be5ab3fd619d4550e4b8e5dad9f8a35fae270a5b6616d98a68fc65f57_kernel": [
+0.001130718,
+7
+],
+"stwo_rv64_global_contiguous_1203eeb64b83e0bb8bd5687b6fd8df55189cfe3bababd630b1e5a0574eaaf79e_kernel": [
+9.4688e-05,
+7
+],
+"stwo_rv64_global_contiguous_3666f7f3a325bed69df2d6b529942be04583c62d56bd20dc273f1e0be607bb66_kernel": [
+0.000200192,
+7
+],
+"stwo_rv64_global_contiguous_3a32d58682991dab3cbcadbdb3f7c932b52c9b3104c90b5238d9d99fc146a345_kernel": [
+0.000126528,
+7
+],
+"stwo_rv64_global_contiguous_49f1f31a3ea1762e04523292e94e62c48bee54cc930eb076b38029780a1471f9_kernel": [
+0.000243808,
+5
+],
+"stwo_rv64_global_contiguous_6314ac354abc5e7c055b1b9bcbe15842e1ac695daf743e46976a5ce95f7442dc_kernel": [
+6.2112e-05,
+7
+],
+"stwo_rv64_global_contiguous_68cc05bf8330f85a82fcf767e9786096f83af6660889dc392ca0fc8ae586da35_kernel": [
+9.4304e-05,
+7
+],
+"stwo_rv64_global_contiguous_6ed301427dff8b4b3888c5b68ca5f01b02c9cd72c6e32606a9feada1b5ebfc13_kernel": [
+7.6383e-05,
+6
+],
+"stwo_rv64_global_contiguous_712008391f31a66df0b8ed66032cbb4e614b40c0744c13bbd0c5bd704f44419a_kernel": [
+4.3008e-05,
+6
+],
+"stwo_rv64_global_contiguous_817056373078193cac201a08fbaac4f59492458b394c6a034ba19f76bd16ccd6_kernel": [
+8.1248e-05,
+7
+],
+"stwo_rv64_global_contiguous_947cb41a4e0274131fee7c718f78903b78d8cd25c89b7694408e597c00267bbf_kernel": [
+9.44e-05,
+6
+],
+"stwo_rv64_global_contiguous_a517929939acdd782b092f8caede97cbc624508c60a02b206ba9571fe5f9cffe_kernel": [
+0.000113408,
+3
+],
+"stwo_rv64_global_contiguous_a65c769115ba97d7242da410c054ad51983a1fb33aebf2ea7dbbf99caa17fa63_kernel": [
+2.0384e-05,
+4
+],
+"stwo_rv64_global_contiguous_c2fe95ad48625a98fba5ab755493a4371a74c3f4e6fd2e8f56d507024a6a4b41_kernel": [
+0.000206688,
+6
+],
+"stwo_rv64_global_contiguous_cc3b8cd00cf873bd7ebfe67e7a5bf4f9415db63869e0011b25cd41ebf221b13a_kernel": [
+0.000206335,
+6
+],
+"stwo_rv64_global_contiguous_f234242aad2ab82af91ce4795d322347b9f17ef97e7e10e5f8ecd4a219b04376_kernel": [
+0.000172927,
+6
+],
+"stwo_rv64_global_contiguous_f55e8e4601d232027dcd85cc367ba1f60d1eceda7c172af508e4702c08d13257_kernel": [
+5.4624e-05,
+6
+],
+"stwo_rv64_truth_projection_0_kernel_part_0": [
+0.004620211,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_1": [
+0.004644434,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_10": [
+0.002150842,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_11": [
+0.002503577,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_12": [
+0.000208384,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_2": [
+0.003429974,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_3": [
+0.003387286,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_4": [
+0.003466933,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_5": [
+0.003436694,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_6": [
+0.004533907,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_7": [
+0.003182999,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_8": [
+0.003006775,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_9": [
+0.001389372,
+3
+],
+"stwo_rv64_truth_projection_1_kernel_part_0": [
+0.000370495,
+3
+],
+"stwo_rv64_truth_projection_2_kernel_part_0": [
+1.4175e-05,
+3
+],
+"stwo_rv64_truth_projection_3_kernel_part_0": [
+0.000144287,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_0": [
+4.864e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_1": [
+4.672e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_2": [
+4.736e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_3": [
+4.8e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_4": [
+4.96e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_5": [
+4.928e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_6": [
+5.184e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_7": [
+3.6608e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_0": [
+2.3168e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_1": [
+2.1024e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_10": [
+2.1248e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_11": [
+2.1728e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_12": [
+2.1504e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_13": [
+2.1312e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_14": [
+2.1759e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_15": [
+2.1184e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_16": [
+2.1184e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_17": [
+2.1856e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_18": [
+2.144e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_19": [
+2.2272e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_2": [
+2.128e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_20": [
+2.2048e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_21": [
+2.1248e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_22": [
+2.1696e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_23": [
+2.1792e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_24": [
+2.1376e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_25": [
+2.2176e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_26": [
+2.1664e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_27": [
+2.1216e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_28": [
+2.2016e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_29": [
+2.1088e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_3": [
+2.1376e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_30": [
+2.1312e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_31": [
+2.1696e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_32": [
+2.1344e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_33": [
+2.1536e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_34": [
+2.0672e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_35": [
+2.1344e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_36": [
+2.16e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_37": [
+2.1696e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_38": [
+2.208e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_39": [
+9.7791e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_4": [
+2.1312e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_40": [
+5.1968e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_5": [
+2.1312e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_6": [
+2.1824e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_7": [
+2.1344e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_8": [
+2.0832e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_9": [
+2.192e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_0": [
+2.1664e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_1": [
+2.064e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_10": [
+2.1984e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_11": [
+2.2047e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_12": [
+2.1056e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_13": [
+2.1184e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_14": [
+2.1664e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_15": [
+2.1472e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_16": [
+2.1152e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_17": [
+2.1088e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_18": [
+2.0992e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_19": [
+2.0864e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_2": [
+2.1408e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_20": [
+2.1216e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_21": [
+2.144e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_22": [
+2.1248e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_23": [
+2.1952e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_24": [
+2.1888e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_25": [
+2.0992e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_26": [
+2.1951e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_27": [
+2.1312e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_28": [
+2.1632e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_29": [
+2.1824e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_3": [
+2.0832e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_30": [
+2.1952e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_31": [
+7.5456e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_4": [
+2.1504e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_5": [
+2.2016e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_6": [
+2.1952e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_7": [
+2.1536e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_8": [
+2.1824e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_9": [
+2.1472e-05,
+1
+],
+"wide_level": [
+0.031042586,
+8583
+],
+"witness": [
+0.117765149,
+103
+]
+},
+"fullstack": {
+"analyze": [
+0.025068518,
+7
+],
+"arithmetic_witness": [
+0.016604603,
+13
+],
+"b2n_composition_split_final": [
+9.92e-07,
+1
+],
+"b2n_composition_stage": [
+8.992e-06,
+9
+],
+"b2n_continue": [
+0.045529112,
+633
+],
+"b2n_init_block": [
+0.018299496,
+407
+],
+"b2n_init_warp": [
+0.016642079,
+197
+],
+"b2n_wide_contiguous": [
+0.133620454,
+251
+],
+"b2n_wide_strided": [
+0.13709666,
+251
+],
+"batch_init": [
+0.006214743,
+181
+],
+"batch_masks": [
+0.000249056,
+181
+],
+"batch_round_par": [
+0.050651472,
+2250
+],
+"begin_layer": [
+0.009399566,
+181
+],
+"binding_eq_expand": [
+0.017987446,
+848
+],
+"binding_eq_seed": [
+0.000801182,
+230
+],
+"boundary_witness": [
+0.000195744,
+14
+],
+"chain_flow": [
+1.140780765,
+689
+],
+"channel_draw": [
+0.000665216,
+290
+],
+"channel_init": [
+6.6496e-05,
+40
+],
+"channel_mix": [
+0.07754002,
+363
+],
+"channel_queries": [
+7.8175e-05,
+33
+],
+"child_layer_kernel": [
+0.180096241,
+7849
+],
+"close_layer": [
+0.024716043,
+181
+],
+"close_local": [
+0.000273952,
+7
+],
+"counts": [
+5.376e-06,
+4
+],
+"cpu_unpack": [
+0.004607701,
+7
+],
+"cpu_witness": [
+0.010439498,
+7
+],
+"cumulative": [
+0.078533205,
+209
+],
+"deep_aggregate_rows": [
+0.126394027,
+33
+],
+"deep_combine_classes": [
+0.135855482,
+33
+],
+"deep_combine_validate": [
+0.001366078,
+33
+],
+"deep_lines": [
+0.004188983,
+33
+],
+"deep_validate_parallel": [
+0.003207125,
+33
+],
+"derive_binding": [
+0.071803141,
+460
+],
+"eq_expand": [
+0.014728445,
+2076
+],
+"eq_seed": [
+0.000196736,
+174
+],
+"family_witness": [
+0.008513678,
+42
+],
+"fft_small_columns": [
+0.009282703,
+1290
+],
+"fill_auxiliary": [
+0.00101379,
+230
+],
+"finalize_binding": [
+0.002529434,
+230
+],
+"fri_fold_kernel": [
+0.014569689,
+187
+],
+"fri_leaf_kernel": [
+0.009799182,
+187
+],
+"fri_open_paths": [
+0.000251519,
+187
+],
+"fri_open_values": [
+0.000217152,
+187
+],
+"fri_terminal": [
+4.4384e-05,
+33
+],
+"gather": [
+0.000276831,
+230
+],
+"generate": [
+0.137690452,
+285
+],
+"generate_shared": [
+0.101683267,
+19
+],
+"global_cumulative": [
+0.000778463,
+7
+],
+"global_row_sum": [
+0.001490301,
+244
+],
+"init_parent": [
+3.4304e-05,
+7
+],
+"initialize_kernel": [
+2.6752e-05,
+33
+],
+"inverse_contribute": [
+0.005087638,
+244
+],
+"inverse_contribute_sum": [
+0.174486668,
+148
+],
+"keccak_bitrev": [
+0.008230026,
+6
+],
+"keccak_witness_staged": [
+0.012262908,
+6
+],
+"layer": [
+0.080319568,
+3977
+],
+"lift_add": [
+0.120804313,
+253
+],
+"make_domain": [
+5.7856e-05,
+1
+],
+"memory_witness": [
+0.012029284,
+24
+],
+"mixed_leaf_kernel": [
+1.250229254,
+805
+],
+"multiplicities": [
+0.000137056,
+42
+],
+"n2b_continue": [
+0.082053958,
+2073
+],
+"n2b_final_block": [
+0.073265585,
+1177
+],
+"n2b_final_warp": [
+0.027061223,
+896
+],
+"n2b_wide_contiguous": [
+1.228997682,
+1724
+],
+"n2b_wide_strided": [
+0.474475819,
+396
+],
+"n2b_wide_strided_rows": [
+0.21306454,
+795
+],
+"n2b_wide_strided_short": [
+0.40447586,
+533
+],
+"open_paths": [
+0.000212416,
+132
+],
+"open_values": [
+0.001218526,
+328
+],
+"oracles_fold": [
+0.155216391,
+2250
+],
+"oracles_reduce": [
+0.002869945,
+1468
+],
+"oracles_sum": [
+0.151085806,
+2250
+],
+"outputs": [
+4.8895e-05,
+6
+],
+"pack_roots": [
+1.3152e-05,
+7
+],
+"prefix_kernel": [
+5.8752e-05,
+33
+],
+"project_binding": [
+0.043963778,
+230
+],
+"publish_counts": [
+1.952e-06,
+2
+],
+"rv64_joined_domain_1": [
+0.000912381,
+7
+],
+"rv64_joined_domain_11": [
+0.000172736,
+7
+],
+"rv64_joined_domain_12": [
+8.384e-05,
+7
+],
+"rv64_joined_domain_13": [
+0.006131507,
+7
+],
+"rv64_joined_domain_14": [
+0.000221247,
+7
+],
+"rv64_joined_domain_15": [
+0.000649822,
+4
+],
+"rv64_joined_domain_16": [
+0.001253405,
+6
+],
+"rv64_joined_domain_17": [
+0.000356223,
+5
+],
+"rv64_joined_domain_18": [
+0.000191199,
+3
+],
+"rv64_joined_domain_2": [
+0.000916863,
+7
+],
+"rv64_joined_domain_20_t5": [
+0.039877929,
+7
+],
+"rv64_joined_domain_21": [
+0.000206174,
+7
+],
+"rv64_joined_domain_22": [
+0.001651806,
+6
+],
+"rv64_joined_domain_23": [
+0.004160089,
+5
+],
+"rv64_joined_domain_24": [
+0.00313321,
+5
+],
+"rv64_joined_domain_25": [
+0.001626717,
+3
+],
+"rv64_joined_domain_26": [
+0.003207705,
+6
+],
+"rv64_joined_domain_3": [
+0.003183705,
+7
+],
+"rv64_joined_domain_34": [
+0.001115613,
+7
+],
+"rv64_joined_domain_35": [
+0.001410429,
+7
+],
+"rv64_joined_domain_36": [
+0.000898238,
+7
+],
+"rv64_joined_domain_37": [
+0.002644697,
+7
+],
+"rv64_joined_domain_38": [
+0.001103998,
+6
+],
+"rv64_joined_domain_39": [
+0.00089456,
+6
+],
+"rv64_joined_domain_4": [
+0.00101203,
+7
+],
+"rv64_joined_domain_40": [
+0.000901086,
+6
+],
+"rv64_joined_domain_41_shard_0": [
+8.0192e-05,
+6
+],
+"rv64_joined_domain_41_shard_1": [
+6.8479e-05,
+6
+],
+"rv64_joined_domain_41_shard_10": [
+6.7872e-05,
+6
+],
+"rv64_joined_domain_41_shard_11": [
+6.9888e-05,
+6
+],
+"rv64_joined_domain_41_shard_12": [
+7.7024e-05,
+6
+],
+"rv64_joined_domain_41_shard_13": [
+0.004913973,
+6
+],
+"rv64_joined_domain_41_shard_14": [
+0.001534301,
+6
+],
+"rv64_joined_domain_41_shard_2": [
+6.9536e-05,
+6
+],
+"rv64_joined_domain_41_shard_3": [
+6.7359e-05,
+6
+],
+"rv64_joined_domain_41_shard_4": [
+6.9024e-05,
+6
+],
+"rv64_joined_domain_41_shard_5": [
+6.8576e-05,
+6
+],
+"rv64_joined_domain_41_shard_6": [
+6.7008e-05,
+6
+],
+"rv64_joined_domain_41_shard_7": [
+6.7424e-05,
+6
+],
+"rv64_joined_domain_41_shard_8": [
+6.0672e-05,
+6
+],
+"rv64_joined_domain_41_shard_9": [
+7.0399e-05,
+6
+],
+"rv64_joined_domain_42": [
+8.9888e-05,
+6
+],
+"rv64_joined_domain_43_shard_0": [
+6.64e-05,
+6
+],
+"rv64_joined_domain_43_shard_1": [
+5.5936e-05,
+6
+],
+"rv64_joined_domain_43_shard_2": [
+5.824e-05,
+6
+],
+"rv64_joined_domain_43_shard_3": [
+7.1392e-05,
+6
+],
+"rv64_joined_domain_43_shard_4": [
+7.2288e-05,
+6
+],
+"rv64_joined_domain_43_shard_5": [
+7.3248e-05,
+6
+],
+"rv64_joined_domain_43_shard_6": [
+7.4464e-05,
+6
+],
+"rv64_joined_domain_43_shard_7": [
+0.006606384,
+6
+],
+"rv64_joined_domain_43_shard_8": [
+0.007683537,
+6
+],
+"rv64_joined_domain_44_shard_0": [
+7.7088e-05,
+6
+],
+"rv64_joined_domain_44_shard_1": [
+6.0352e-05,
+6
+],
+"rv64_joined_domain_44_shard_10": [
+6.4096e-05,
+6
+],
+"rv64_joined_domain_44_shard_11": [
+6.4192e-05,
+6
+],
+"rv64_joined_domain_44_shard_12": [
+7.3984e-05,
+6
+],
+"rv64_joined_domain_44_shard_13": [
+0.000268,
+6
+],
+"rv64_joined_domain_44_shard_14": [
+0.000268799,
+6
+],
+"rv64_joined_domain_44_shard_15": [
+0.000267359,
+6
+],
+"rv64_joined_domain_44_shard_16": [
+0.000269982,
+6
+],
+"rv64_joined_domain_44_shard_17": [
+9.168e-05,
+6
+],
+"rv64_joined_domain_44_shard_18": [
+8.9024e-05,
+6
+],
+"rv64_joined_domain_44_shard_19": [
+8.6144e-05,
+6
+],
+"rv64_joined_domain_44_shard_2": [
+5.9616e-05,
+6
+],
+"rv64_joined_domain_44_shard_20": [
+6.7391e-05,
+6
+],
+"rv64_joined_domain_44_shard_21": [
+6.4256e-05,
+6
+],
+"rv64_joined_domain_44_shard_22": [
+6.5344e-05,
+6
+],
+"rv64_joined_domain_44_shard_23": [
+6.5728e-05,
+6
+],
+"rv64_joined_domain_44_shard_24": [
+6.4352e-05,
+6
+],
+"rv64_joined_domain_44_shard_25": [
+6.7584e-05,
+6
+],
+"rv64_joined_domain_44_shard_26": [
+0.010977096,
+6
+],
+"rv64_joined_domain_44_shard_27": [
+0.008898125,
+6
+],
+"rv64_joined_domain_44_shard_28": [
+3.1136e-05,
+6
+],
+"rv64_joined_domain_44_shard_3": [
+5.984e-05,
+6
+],
+"rv64_joined_domain_44_shard_4": [
+5.9776e-05,
+6
+],
+"rv64_joined_domain_44_shard_5": [
+6.0768e-05,
+6
+],
+"rv64_joined_domain_44_shard_6": [
+6.4512e-05,
+6
+],
+"rv64_joined_domain_44_shard_7": [
+6.9888e-05,
+6
+],
+"rv64_joined_domain_44_shard_8": [
+0.000255104,
+6
+],
+"rv64_joined_domain_44_shard_9": [
+6.4416e-05,
+6
+],
+"rv64_joined_domain_45": [
+0.012827971,
+7
+],
+"rv64_joined_domain_46": [
+0.003738615,
+6
+],
+"rv64_joined_domain_47": [
+0.000555359,
+7
+],
+"rv64_joined_domain_48": [
+0.000555616,
+7
+],
+"rv64_joined_domain_5": [
+0.001016477,
+7
+],
+"rv64_joined_domain_6": [
+0.000478848,
+7
+],
+"rv64_joined_domain_7": [
+0.000951293,
+6
+],
+"rv64_joined_domain_8_shard_0": [
+0.000182336,
+7
+],
+"rv64_joined_domain_8_shard_1": [
+0.000170496,
+7
+],
+"rv64_joined_domain_8_shard_2": [
+0.000184352,
+7
+],
+"rv64_joined_domain_8_shard_3": [
+0.000200191,
+7
+],
+"rv64_joined_domain_8_shard_4": [
+0.013266787,
+7
+],
+"rv64_joined_domain_9": [
+0.001211518,
+7
+],
+"rv64_projection_case_1": [
+0.000261727,
+7
+],
+"rv64_projection_case_11": [
+1.9424e-05,
+7
+],
+"rv64_projection_case_12": [
+1.6704e-05,
+7
+],
+"rv64_projection_case_13": [
+0.00498719,
+7
+],
+"rv64_projection_case_14": [
+4.3328e-05,
+7
+],
+"rv64_projection_case_15": [
+0.000188127,
+4
+],
+"rv64_projection_case_16": [
+0.001197694,
+6
+],
+"rv64_projection_case_17": [
+0.000259134,
+5
+],
+"rv64_projection_case_18": [
+0.000156608,
+3
+],
+"rv64_projection_case_2": [
+0.000629247,
+7
+],
+"rv64_projection_case_20": [
+0.042956928,
+7
+],
+"rv64_projection_case_21": [
+4.32e-05,
+7
+],
+"rv64_projection_case_22": [
+0.00071875,
+6
+],
+"rv64_projection_case_23": [
+0.003223323,
+5
+],
+"rv64_projection_case_24": [
+0.001394429,
+5
+],
+"rv64_projection_case_25": [
+0.000469598,
+3
+],
+"rv64_projection_case_26": [
+0.001084031,
+6
+],
+"rv64_projection_case_3": [
+0.00427215,
+7
+],
+"rv64_projection_case_34": [
+0.000351103,
+7
+],
+"rv64_projection_case_35": [
+0.000277823,
+7
+],
+"rv64_projection_case_36": [
+0.000126304,
+7
+],
+"rv64_projection_case_37": [
+0.008768527,
+7
+],
+"rv64_projection_case_38": [
+0.000211615,
+6
+],
+"rv64_projection_case_39": [
+0.000169696,
+6
+],
+"rv64_projection_case_4": [
+0.00091203,
+7
+],
+"rv64_projection_case_40": [
+0.0001576,
+6
+],
+"rv64_projection_case_41": [
+0.001968252,
+6
+],
+"rv64_projection_case_42": [
+2.4e-05,
+6
+],
+"rv64_projection_case_43": [
+0.000696286,
+6
+],
+"rv64_projection_case_44": [
+0.004904821,
+6
+],
+"rv64_projection_case_45": [
+0.005286933,
+7
+],
+"rv64_projection_case_46": [
+0.001515229,
+6
+],
+"rv64_projection_case_5": [
+0.00079219,
+7
+],
+"rv64_projection_case_6": [
+0.000152672,
+7
+],
+"rv64_projection_case_7": [
+0.000439935,
+6
+],
+"rv64_projection_case_8": [
+0.03005751,
+7
+],
+"rv64_projection_case_9": [
+0.001114332,
+7
+],
+"rv64_truth_domain_0_shard_0": [
+0.000901854,
+3
+],
+"rv64_truth_domain_0_shard_1": [
+0.000839453,
+3
+],
+"rv64_truth_domain_0_shard_10": [
+0.000848669,
+3
+],
+"rv64_truth_domain_0_shard_11": [
+0.000849085,
+3
+],
+"rv64_truth_domain_0_shard_12": [
+0.000847517,
+3
+],
+"rv64_truth_domain_0_shard_13": [
+0.000846431,
+3
+],
+"rv64_truth_domain_0_shard_14": [
+0.000849373,
+3
+],
+"rv64_truth_domain_0_shard_15": [
+0.000850781,
+3
+],
+"rv64_truth_domain_0_shard_16": [
+0.000851326,
+3
+],
+"rv64_truth_domain_0_shard_17": [
+0.000848958,
+3
+],
+"rv64_truth_domain_0_shard_18": [
+0.000849374,
+3
+],
+"rv64_truth_domain_0_shard_19": [
+0.000884989,
+3
+],
+"rv64_truth_domain_0_shard_2": [
+0.000844798,
+3
+],
+"rv64_truth_domain_0_shard_20": [
+0.000859805,
+3
+],
+"rv64_truth_domain_0_shard_21": [
+0.000857439,
+3
+],
+"rv64_truth_domain_0_shard_22": [
+0.000853821,
+3
+],
+"rv64_truth_domain_0_shard_23": [
+0.000852861,
+3
+],
+"rv64_truth_domain_0_shard_24": [
+0.000855615,
+3
+],
+"rv64_truth_domain_0_shard_25": [
+0.000835645,
+3
+],
+"rv64_truth_domain_0_shard_26": [
+0.000837212,
+3
+],
+"rv64_truth_domain_0_shard_27": [
+0.000834527,
+3
+],
+"rv64_truth_domain_0_shard_28": [
+0.000819133,
+3
+],
+"rv64_truth_domain_0_shard_29": [
+0.000817918,
+3
+],
+"rv64_truth_domain_0_shard_3": [
+0.00084883,
+3
+],
+"rv64_truth_domain_0_shard_30": [
+0.00081875,
+3
+],
+"rv64_truth_domain_0_shard_31": [
+0.000821757,
+3
+],
+"rv64_truth_domain_0_shard_32": [
+0.000819294,
+3
+],
+"rv64_truth_domain_0_shard_33": [
+0.000819038,
+3
+],
+"rv64_truth_domain_0_shard_34": [
+0.000817726,
+3
+],
+"rv64_truth_domain_0_shard_35": [
+0.000821149,
+3
+],
+"rv64_truth_domain_0_shard_36": [
+0.000816638,
+3
+],
+"rv64_truth_domain_0_shard_37": [
+0.00082371,
+3
+],
+"rv64_truth_domain_0_shard_38": [
+0.000820957,
+3
+],
+"rv64_truth_domain_0_shard_39": [
+0.000817407,
+3
+],
+"rv64_truth_domain_0_shard_4": [
+0.000854237,
+3
+],
+"rv64_truth_domain_0_shard_40": [
+0.000819261,
+3
+],
+"rv64_truth_domain_0_shard_41": [
+0.0008183,
+3
+],
+"rv64_truth_domain_0_shard_42": [
+0.000423456,
+3
+],
+"rv64_truth_domain_0_shard_43_t5": [
+0.013101788,
+3
+],
+"rv64_truth_domain_0_shard_44_t5": [
+0.019566536,
+3
+],
+"rv64_truth_domain_0_shard_45_t5": [
+0.019216938,
+3
+],
+"rv64_truth_domain_0_shard_46_t5": [
+0.018924843,
+3
+],
+"rv64_truth_domain_0_shard_47_t5": [
+0.100275524,
+3
+],
+"rv64_truth_domain_0_shard_48_t5": [
+0.020490087,
+3
+],
+"rv64_truth_domain_0_shard_49_t5": [
+0.018817578,
+3
+],
+"rv64_truth_domain_0_shard_5": [
+0.000848958,
+3
+],
+"rv64_truth_domain_0_shard_6": [
+0.000848574,
+3
+],
+"rv64_truth_domain_0_shard_7": [
+0.000847741,
+3
+],
+"rv64_truth_domain_0_shard_8": [
+0.000850494,
+3
+],
+"rv64_truth_domain_0_shard_9": [
+0.000846814,
+3
+],
+"rv64_truth_domain_1": [
+0.003632886,
+3
+],
+"rv64_truth_domain_2": [
+9.5167e-05,
+3
+],
+"rv64_truth_domain_3": [
+0.001313534,
+1
+],
+"rv64_truth_domain_4": [
+0.0002512,
+1
+],
+"rv64_truth_domain_5_shard_0": [
+0.000110848,
+1
+],
+"rv64_truth_domain_5_shard_1": [
+0.000341439,
+1
+],
+"rv64_truth_domain_5_shard_10": [
+0.000220576,
+1
+],
+"rv64_truth_domain_5_shard_11": [
+0.000569823,
+1
+],
+"rv64_truth_domain_5_shard_12": [
+7.68e-05,
+1
+],
+"rv64_truth_domain_5_shard_13": [
+0.000809151,
+1
+],
+"rv64_truth_domain_5_shard_14": [
+0.000933854,
+1
+],
+"rv64_truth_domain_5_shard_15": [
+0.000929311,
+1
+],
+"rv64_truth_domain_5_shard_16": [
+0.000935038,
+1
+],
+"rv64_truth_domain_5_shard_17": [
+0.000929694,
+1
+],
+"rv64_truth_domain_5_shard_18": [
+0.000931775,
+1
+],
+"rv64_truth_domain_5_shard_19": [
+0.00093315,
+1
+],
+"rv64_truth_domain_5_shard_2": [
+0.000342016,
+1
+],
+"rv64_truth_domain_5_shard_20": [
+0.000931807,
+1
+],
+"rv64_truth_domain_5_shard_21": [
+0.000928574,
+1
+],
+"rv64_truth_domain_5_shard_22": [
+0.000929695,
+1
+],
+"rv64_truth_domain_5_shard_23": [
+0.000933886,
+1
+],
+"rv64_truth_domain_5_shard_24": [
+0.000931647,
+1
+],
+"rv64_truth_domain_5_shard_25": [
+0.000936094,
+1
+],
+"rv64_truth_domain_5_shard_26": [
+0.000933726,
+1
+],
+"rv64_truth_domain_5_shard_27": [
+0.000932671,
+1
+],
+"rv64_truth_domain_5_shard_28": [
+0.00093523,
+1
+],
+"rv64_truth_domain_5_shard_29": [
+0.000935391,
+1
+],
+"rv64_truth_domain_5_shard_3": [
+0.000491839,
+1
+],
+"rv64_truth_domain_5_shard_30": [
+0.000930782,
+1
+],
+"rv64_truth_domain_5_shard_31": [
+0.000935551,
+1
+],
+"rv64_truth_domain_5_shard_32": [
+0.000930622,
+1
+],
+"rv64_truth_domain_5_shard_33": [
+0.000801247,
+1
+],
+"rv64_truth_domain_5_shard_4": [
+0.000529599,
+1
+],
+"rv64_truth_domain_5_shard_5": [
+0.000538207,
+1
+],
+"rv64_truth_domain_5_shard_6": [
+0.000369376,
+1
+],
+"rv64_truth_domain_5_shard_7": [
+0.000526207,
+1
+],
+"rv64_truth_domain_5_shard_8": [
+0.000228895,
+1
+],
+"rv64_truth_domain_5_shard_9": [
+0.000490015,
+1
+],
+"rv64_truth_domain_6_shard_0": [
+8.7168e-05,
+1
+],
+"rv64_truth_domain_6_shard_1": [
+0.000267807,
+1
+],
+"rv64_truth_domain_6_shard_10": [
+0.000213631,
+1
+],
+"rv64_truth_domain_6_shard_11": [
+0.000928158,
+1
+],
+"rv64_truth_domain_6_shard_12": [
+0.000925821,
+1
+],
+"rv64_truth_domain_6_shard_13": [
+0.000929533,
+1
+],
+"rv64_truth_domain_6_shard_14": [
+0.000921726,
+1
+],
+"rv64_truth_domain_6_shard_15": [
+0.000927869,
+1
+],
+"rv64_truth_domain_6_shard_16": [
+0.000926813,
+1
+],
+"rv64_truth_domain_6_shard_17": [
+0.000925726,
+1
+],
+"rv64_truth_domain_6_shard_18": [
+0.000919133,
+1
+],
+"rv64_truth_domain_6_shard_19": [
+0.000922941,
+1
+],
+"rv64_truth_domain_6_shard_2": [
+0.000307007,
+1
+],
+"rv64_truth_domain_6_shard_20": [
+0.000922878,
+1
+],
+"rv64_truth_domain_6_shard_21": [
+0.000923901,
+1
+],
+"rv64_truth_domain_6_shard_22": [
+0.000930013,
+1
+],
+"rv64_truth_domain_6_shard_23": [
+0.00092579,
+1
+],
+"rv64_truth_domain_6_shard_24": [
+0.000925085,
+1
+],
+"rv64_truth_domain_6_shard_25": [
+0.000928541,
+1
+],
+"rv64_truth_domain_6_shard_26": [
+0.000771326,
+1
+],
+"rv64_truth_domain_6_shard_3": [
+0.000331327,
+1
+],
+"rv64_truth_domain_6_shard_4": [
+0.000194367,
+1
+],
+"rv64_truth_domain_6_shard_5": [
+0.000326751,
+1
+],
+"rv64_truth_domain_6_shard_6": [
+0.000470879,
+1
+],
+"rv64_truth_domain_6_shard_7": [
+0.000354719,
+1
+],
+"rv64_truth_domain_6_shard_8": [
+0.000214815,
+1
+],
+"rv64_truth_domain_6_shard_9": [
+0.000190656,
+1
+],
+"sample_base_from_point": [
+6.8064e-05,
+33
+],
+"sample_basis": [
+0.004101718,
+459
+],
+"sample_first": [
+0.003863419,
+455
+],
+"sample_first_basis": [
+0.12441476,
+459
+],
+"sample_inputs_check_kernel": [
+0.000346208,
+14
+],
+"sample_order": [
+5.9488e-05,
+33
+],
+"sample_points": [
+0.000660094,
+33
+],
+"sample_prefill_kernel": [
+0.001722459,
+14
+],
+"sample_reduce": [
+0.005357905,
+939
+],
+"sample_store": [
+0.001043612,
+914
+],
+"sample_validate": [
+0.006726296,
+914
+],
+"scan_carries": [
+0.000885312,
+629
+],
+"scan_chunks": [
+0.001680061,
+1200
+],
+"scan_claim": [
+0.00062131,
+622
+],
+"scan_tile_apply": [
+0.012889636,
+338
+],
+"scan_tile_sums": [
+0.007497812,
+338
+],
+"search_kernel": [
+0.025069384,
+33
+],
+"seed": [
+0.000203904,
+19
+],
+"seed_counts": [
+1.728e-06,
+2
+],
+"stage_addressed_lde_columns": [
+0.078864602,
+466
+],
+"stage_lde_columns": [
+0.001134972,
+705
+],
+"stwo_rv64_composition_0924a7e3b186ecb6e4a0f3cb548120b1ce0816cb4fdb436414c97aeedb69c077": [
+0.069777837,
+19
+],
+"stwo_rv64_composition_0eb218ba3708414be79080f813fb117f68a1ed80051f9a949386bd1e9ec5e52b": [
+0.107706332,
+19
+],
+"stwo_rv64_composition_2445d74dec12022d409cb07c6a73e36ebf22b5caafd591c593c8c7de581a8906": [
+0.000193824,
+19
+],
+"stwo_rv64_composition_3d42ffe49bc3ed25c3ee75462a5b52b60b9bafb5ae4f470f422cb209d192c914": [
+0.008266289,
+19
+],
+"stwo_rv64_composition_75c795ad48f31ff50f1c25e228ff6035a28fdeab1052f78c08c3b407708d8e7a": [
+9.9392e-05,
+19
+],
+"stwo_rv64_composition_7662daa2f117ac5cabdf50e8285e7cb6f28f0dc0eb573a1a51987ed2d89c98bb": [
+0.04522736,
+19
+],
+"stwo_rv64_composition_aed6bf23ee8e7b09a18ed0792b9ba54790ff2d5cadd654778b675cefee46ab60": [
+0.000418494,
+19
+],
+"stwo_rv64_composition_b3700bf4b31ffe283fc4c7ecb48e74079af2ce546b288a5055371636a0455858": [
+8.0927e-05,
+19
+],
+"stwo_rv64_composition_b9d7165532f8ab26e984b53af57d664da9f0f57f332e1c2292f57e2aa3a87ca2": [
+0.00025808,
+19
+],
+"stwo_rv64_composition_d4ee36441a7cabcbd368cedb4e09bb85a09270969bfcab7b0574c9afd1061f30": [
+0.000612479,
+19
+],
+"stwo_rv64_composition_d57856886adac8689cfeb7cf6424501d0d7ba39deae8637e98f9132876d55ea7": [
+0.029090109,
+19
+],
+"stwo_rv64_composition_df5949ce301b3ea570cb590dd36f62018b86e9690a26ee89621087b28acff0f0": [
+0.00949924,
+19
+],
+"stwo_rv64_global_contiguous_0387bc5bec32aa00df081ef4b16cae57f7a63cef01316b6f55c2cc8fafa498de_kernel": [
+0.000132191,
+6
+],
+"stwo_rv64_global_contiguous_0810c9aa57b28498e4199faa4857a235b322fab62d78d413af1138579f3a6077_kernel": [
+0.000591806,
+6
+],
+"stwo_rv64_global_contiguous_085fd961fe550f057562338d71a9cc94fe24d906c4cf1ad7ec346f492045b694_kernel": [
+9.312e-05,
+7
+],
+"stwo_rv64_global_contiguous_0cb9beb588eeaa0b7d2a4e379054e1e949b0466f7988cac0188acb53c971faa4_kernel": [
+0.00020083,
+5
+],
+"stwo_rv64_global_contiguous_10b48b8be5ab3fd619d4550e4b8e5dad9f8a35fae270a5b6616d98a68fc65f57_kernel": [
+0.001125086,
+7
+],
+"stwo_rv64_global_contiguous_1203eeb64b83e0bb8bd5687b6fd8df55189cfe3bababd630b1e5a0574eaaf79e_kernel": [
+9.6128e-05,
+7
+],
+"stwo_rv64_global_contiguous_3666f7f3a325bed69df2d6b529942be04583c62d56bd20dc273f1e0be607bb66_kernel": [
+0.000202432,
+7
+],
+"stwo_rv64_global_contiguous_3a32d58682991dab3cbcadbdb3f7c932b52c9b3104c90b5238d9d99fc146a345_kernel": [
+0.000128864,
+7
+],
+"stwo_rv64_global_contiguous_49f1f31a3ea1762e04523292e94e62c48bee54cc930eb076b38029780a1471f9_kernel": [
+0.000244928,
+5
+],
+"stwo_rv64_global_contiguous_6314ac354abc5e7c055b1b9bcbe15842e1ac695daf743e46976a5ce95f7442dc_kernel": [
+6.2847e-05,
+7
+],
+"stwo_rv64_global_contiguous_68cc05bf8330f85a82fcf767e9786096f83af6660889dc392ca0fc8ae586da35_kernel": [
+8.9503e-05,
+7
+],
+"stwo_rv64_global_contiguous_6ed301427dff8b4b3888c5b68ca5f01b02c9cd72c6e32606a9feada1b5ebfc13_kernel": [
+7.7024e-05,
+6
+],
+"stwo_rv64_global_contiguous_712008391f31a66df0b8ed66032cbb4e614b40c0744c13bbd0c5bd704f44419a_kernel": [
+4.3136e-05,
+6
+],
+"stwo_rv64_global_contiguous_817056373078193cac201a08fbaac4f59492458b394c6a034ba19f76bd16ccd6_kernel": [
+8.0256e-05,
+7
+],
+"stwo_rv64_global_contiguous_947cb41a4e0274131fee7c718f78903b78d8cd25c89b7694408e597c00267bbf_kernel": [
+9.392e-05,
+6
+],
+"stwo_rv64_global_contiguous_a517929939acdd782b092f8caede97cbc624508c60a02b206ba9571fe5f9cffe_kernel": [
+0.000114111,
+3
+],
+"stwo_rv64_global_contiguous_a65c769115ba97d7242da410c054ad51983a1fb33aebf2ea7dbbf99caa17fa63_kernel": [
+2.0064e-05,
+4
+],
+"stwo_rv64_global_contiguous_c2fe95ad48625a98fba5ab755493a4371a74c3f4e6fd2e8f56d507024a6a4b41_kernel": [
+0.000208544,
+6
+],
+"stwo_rv64_global_contiguous_cc3b8cd00cf873bd7ebfe67e7a5bf4f9415db63869e0011b25cd41ebf221b13a_kernel": [
+0.000207168,
+6
+],
+"stwo_rv64_global_contiguous_f234242aad2ab82af91ce4795d322347b9f17ef97e7e10e5f8ecd4a219b04376_kernel": [
+0.000172928,
+6
+],
+"stwo_rv64_global_contiguous_f55e8e4601d232027dcd85cc367ba1f60d1eceda7c172af508e4702c08d13257_kernel": [
+5.4688e-05,
+6
+],
+"stwo_rv64_truth_projection_0_kernel_part_0": [
+0.004588692,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_1": [
+0.004591954,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_10": [
+0.002152441,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_11": [
+0.002509177,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_12": [
+0.000207615,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_2": [
+0.003409302,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_3": [
+0.003351447,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_4": [
+0.003441623,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_5": [
+0.003407893,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_6": [
+0.004491444,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_7": [
+0.003176023,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_8": [
+0.003011543,
+3
+],
+"stwo_rv64_truth_projection_0_kernel_part_9": [
+0.001389565,
+3
+],
+"stwo_rv64_truth_projection_1_kernel_part_0": [
+0.000365407,
+3
+],
+"stwo_rv64_truth_projection_2_kernel_part_0": [
+1.4272e-05,
+3
+],
+"stwo_rv64_truth_projection_3_kernel_part_0": [
+0.000158304,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_0": [
+4.864e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_1": [
+4.64e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_2": [
+4.736e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_3": [
+4.864e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_4": [
+4.896e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_5": [
+4.64e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_6": [
+5.088e-06,
+1
+],
+"stwo_rv64_truth_projection_4_kernel_part_7": [
+3.7151e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_0": [
+2.4288e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_1": [
+2.144e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_10": [
+2.1024e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_11": [
+2.0992e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_12": [
+2.1728e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_13": [
+2.0928e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_14": [
+2.1471e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_15": [
+2.144e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_16": [
+2.1408e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_17": [
+2.192e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_18": [
+2.1856e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_19": [
+2.1376e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_2": [
+2.0832e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_20": [
+2.1728e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_21": [
+2.096e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_22": [
+2.0576e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_23": [
+2.1248e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_24": [
+2.1696e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_25": [
+2.1984e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_26": [
+2.1184e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_27": [
+2.2112e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_28": [
+2.1568e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_29": [
+2.2368e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_3": [
+2.0896e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_30": [
+2.1856e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_31": [
+2.2112e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_32": [
+2.1344e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_33": [
+2.1088e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_34": [
+2.1184e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_35": [
+2.1216e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_36": [
+2.1216e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_37": [
+2.1824e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_38": [
+2.1952e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_39": [
+9.6479e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_4": [
+2.1312e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_40": [
+5.2384e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_5": [
+2.0672e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_6": [
+2.192e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_7": [
+2.1088e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_8": [
+2.1248e-05,
+1
+],
+"stwo_rv64_truth_projection_5_kernel_part_9": [
+2.1856e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_0": [
+2.2176e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_1": [
+2.0704e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_10": [
+2.1856e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_11": [
+2.176e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_12": [
+2.1536e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_13": [
+2.1408e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_14": [
+2.1376e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_15": [
+2.1664e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_16": [
+2.1024e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_17": [
+2.1632e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_18": [
+2.0864e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_19": [
+2.16e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_2": [
+2.0992e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_20": [
+2.128e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_21": [
+2.1727e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_22": [
+2.032e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_23": [
+2.208e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_24": [
+2.1472e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_25": [
+2.1984e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_26": [
+2.1472e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_27": [
+2.1152e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_28": [
+2.192e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_29": [
+2.2048e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_3": [
+2.1344e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_30": [
+2.2368e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_31": [
+7.632e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_4": [
+2.1568e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_5": [
+2.1504e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_6": [
+2.1407e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_7": [
+2.1376e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_8": [
+2.2336e-05,
+1
+],
+"stwo_rv64_truth_projection_6_kernel_part_9": [
+2.192e-05,
+1
+],
+"wide_level": [
+0.031012449,
+8583
+],
+"witness": [
+0.117225288,
+78
+],
+"witness_private": [
+0.000576512,
+25
+]
+}
+}
+}

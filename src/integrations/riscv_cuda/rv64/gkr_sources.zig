@@ -105,23 +105,7 @@ pub const Plan = struct {
                 if (original >= offsets.len or context.at(original).log_size != instance.row_log) return error.InvalidGkrSourceColumn;
                 offset.* = offsets[original];
             }
-            var public: [Source.Public.count]u32 = @splat(0);
-            public[Source.Public.epoch] = native.core.cpu.epoch;
-            if (native.core.cpu.public.initial_pc >= core.fields.m31.Modulus) return error.InvalidGkrSourceColumn;
-            public[Source.Public.initial_pc] = @intCast(native.core.cpu.public.initial_pc);
-            for (0..32) |r| {
-                for (0..4) |limb| {
-                    const shift: u6 = @intCast(16 * limb);
-                    public[Source.Public.initial_registers + 4 * r + limb] = @as(u16, @truncate(native.core.cpu.public.initial_registers[r] >> shift));
-                    public[Source.Public.final_registers + 4 * r + limb] = @as(u16, @truncate(native.core.cpu.public.final_registers[r] >> shift));
-                }
-                public[Source.Public.register_clocks + r] = native.core.cpu.public.register_clocks[r];
-            }
-            if (instance.origin == .sponge) {
-                const sponge = native.sponge[@intFromEnum(instance.origin.sponge)] orelse return error.NativeGkrSourceRequired;
-                public[Source.Public.sponge_first_id] = sponge.first_id;
-            }
-            for (public) |v| if (v >= core.fields.m31.Modulus) return error.InvalidGkrSourceColumn;
+            const public = try publicWords(native, instance.origin);
             item.* = .{ .kernel = kernel, .offsets = addresses, .public = public, .log = instance.row_log, .terms = artifact.terms, .lanes = artifact.lanes, .facts = @intCast(try instance.facts()) };
             made += 1;
         }
@@ -136,3 +120,25 @@ pub const Plan = struct {
         self.* = undefined;
     }
 };
+
+/// The local-GKR public namespace shared by install plans and live captures.
+pub fn publicWords(native: anytype, origin: anytype) ![Source.Public.count]u32 {
+    var public: [Source.Public.count]u32 = @splat(0);
+    public[Source.Public.epoch] = native.core.cpu.epoch;
+    if (native.core.cpu.public.initial_pc >= core.fields.m31.Modulus) return error.InvalidGkrSourceColumn;
+    public[Source.Public.initial_pc] = @intCast(native.core.cpu.public.initial_pc);
+    for (0..32) |r| {
+        for (0..4) |limb| {
+            const shift: u6 = @intCast(16 * limb);
+            public[Source.Public.initial_registers + 4 * r + limb] = @as(u16, @truncate(native.core.cpu.public.initial_registers[r] >> shift));
+            public[Source.Public.final_registers + 4 * r + limb] = @as(u16, @truncate(native.core.cpu.public.final_registers[r] >> shift));
+        }
+        public[Source.Public.register_clocks + r] = native.core.cpu.public.register_clocks[r];
+    }
+    if (origin == .sponge) {
+        const sponge = native.sponge[@intFromEnum(origin.sponge)] orelse return error.NativeGkrSourceRequired;
+        public[Source.Public.sponge_first_id] = sponge.first_id;
+    }
+    for (public) |v| if (v >= core.fields.m31.Modulus) return error.InvalidGkrSourceColumn;
+    return public;
+}

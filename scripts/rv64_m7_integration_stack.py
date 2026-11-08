@@ -6,7 +6,6 @@ for Root AFTER native/device coverage hooks and exact process-budget guard are
 ready. Every arm uses one immutable driver, receiver, a25 and addon set.
 """
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -14,14 +13,16 @@ import statistics
 import subprocess
 import sys
 import time
+from rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_PRESET = HERE.parent / 'design/riscv-proving-stack/m7-handoff/integration-stack-preset.json'
-
-
-def sha(path):
-    with Path(path).open('rb') as handle:
-        return hashlib.file_digest(handle, 'sha256').hexdigest()
+# Canonical default CUDA runtime (owner decision 2026-11-07): the source-built
+# opt-combined image. p0-runtime.json (frozen a25) stays as an explicit control.
+DEFAULT_RUNTIME = HERE.parent / 'design/riscv-proving-stack/m7-handoff/default-runtime.json'
+FROZEN_P0_RUNTIME = HERE.parent / 'design/riscv-proving-stack/m7-handoff/p0-runtime.json'
+DEV_BLOCKS = (26235156, 24628607)
+RUNTIME_ASSETS = ('library', 'sparse', 'observer', 'process_budget_guard')
 
 
 def write(path, value):
@@ -45,27 +46,53 @@ def arm_environment(preset, arm, assets):
 
 def source_hashes(root):
     result = {}
-    for relative in ('src', 'build_support', 'scripts', 'design/typed-air/artifacts'):
+    for relative in ('src', 'build_support', 'scripts', 'design/typed-air/artifacts',
+                     'conformance', '.github', '.githooks'):
         for path in sorted((root / relative).rglob('*')):
             if path.is_file() and not path.is_symlink() and not set(path.parts).intersection({'.zig-cache', 'zig-cache', 'zig-out', '__pycache__', '.git'}):
                 result[str(path.relative_to(root))] = sha(path)
     for name in ('build.zig', 'build.zig.zon'):
         result[name] = sha(root / name)
+    for name in ('.gitignore', 'CONTRIBUTING.md'):
+        if (root / name).is_file():
+            result[name] = sha(root / name)
     return result
+
+
+def load_runtime(path):
+    """Pinned CUDA runtime JSON -> assets; every asset must match its pinned SHA-256."""
+    runtime = json.loads(Path(path).read_text())
+    assets = {name: runtime['assets'][name] for name in RUNTIME_ASSETS}
+    validate_assets(assets, runtime['asset_sha256'])
+    return runtime, assets
+
+
+def check_block(block, allow_blocks):
+    """Owner rule: development blocks only, unless this exact block is opted in."""
+    if block in DEV_BLOCKS:
+        return False
+    if block not in set(allow_blocks or ()):
+        raise RuntimeError(f'development blocks only ({DEV_BLOCKS}); opt in explicitly with --allow-block {block}')
+    return True
 
 
 def prepare(args):
     root = args.source_root.resolve()
+    runtime, runtime_assets = load_runtime(args.runtime)
+    for name in RUNTIME_ASSETS:
+        if getattr(args, name) is None:
+            setattr(args, name, Path(runtime_assets[name]))
     assets = {name: str(getattr(args, name).resolve()) for name in ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard')}
     preset = json.loads(args.preset.read_text())
     if preset['measurement']['order'] != ['baseline', 'fullstack'] * 3:
         raise RuntimeError('exact six-service order is required')
-    if args.block not in (26235156, 24628607):
-        raise RuntimeError('development blocks only')
+    allowed_block = check_block(args.block, args.allow_block)
     manifest = {'schema': 'rv64-m7-canonical-stack-artifact/v1', 'source_root': str(root),
                 'source_commit': args.source_commit, 'source_sha256': source_hashes(root),
                 'assets': assets, 'asset_sha256': {name: sha(path) for name, path in assets.items()},
                 'preset': preset, 'preset_sha256': sha(args.preset), 'block': args.block,
+                'allowed_block': allowed_block, 'runtime': str(args.runtime.resolve()),
+                'runtime_matches_assets': all(assets[n] == str(Path(runtime_assets[n]).resolve()) for n in RUNTIME_ASSETS),
                 'native_hooks_commit': args.native_hooks_commit, 'device_hooks_commit': args.device_hooks_commit,
                 'process_budget_guard': assets['process_budget_guard'],
                 'ready': bool(args.native_hooks_commit and args.device_hooks_commit and args.process_budget_guard),
@@ -78,9 +105,7 @@ def prepare(args):
 def validate_manifest(manifest):
     if not manifest.get('ready'):
         raise RuntimeError('Root native/device readiness and exact process-budget guard are required before GPU execution')
-    for name, path in manifest['assets'].items():
-        if sha(path) != manifest['asset_sha256'][name]:
-            raise RuntimeError('immutable asset changed: ' + name)
+    validate_assets(manifest['assets'], manifest['asset_sha256'])
     root = Path(manifest['source_root'])
     if source_hashes(root) != manifest['source_sha256']:
         raise RuntimeError('canonical source changed after freeze')
@@ -93,33 +118,26 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
     tag = f'{label}-{round_index:02d}-{arm}'
     argv = [sys.executable, str(root / 'scripts/rv64_m4_resident.py'), 'daemon', str(manifest['block']),
             '--stream', run_root, '--build-stream', run_root, '--repeat', '2', '--store', 'none',
-            '--receive', 'none', '--security-profile', preset['security_profile'], '--coalesce-truth-families',
+            '--receive', 'none', '--security-profile', preset['security_profile'],
             '--driver', assets['driver'], '--library', assets['library'], '--receiver', assets['receiver'],
             '--tag', tag, '--no-default-env', '--recursion-max-pending-authorities', str(preset['operational'][arm]['recursion_max_pending_authorities']), '--quiet-load-max', str(preset['measurement']['quiet_load_max']),
             '--quiet-steal-max', str(preset['measurement']['quiet_steal_max']), '--quiet-resource', preset['measurement'].get('quiet_resource', 'host-load'),
             '--quiet-pressure-max', str(preset['measurement'].get('quiet_pressure_max', 0.0)),
             '--quiet-timeout', str(preset['measurement']['quiet_timeout_s']),
             '--quiet-stable-samples', str(preset['measurement']['quiet_stable_samples'])]
+    if preset.get('coalesce_truth_families', True):
+        argv.append('--coalesce-truth-families')
+    if manifest.get('allowed_block'):
+        argv += ['--allow-block', str(manifest['block'])]
     if arm == 'fullstack':
         argv += ['--process-budget-guard', assets['process_budget_guard']]
     if profile:
         argv.append('--nsys')
+        if preset['measurement'].get('nsys_root'):
+            argv += ['--nsys-root', preset['measurement']['nsys_root']]
     for key, value in sorted(arm_environment(preset, arm, assets).items()):
         argv += ['--env', f'{key}={value}']
     return argv, tag
-
-
-def fingerprints(row, require_capture=False):
-    import rv64_resident_basket as basket
-    directory = Path(row['proof'])
-    recursive = basket.recursive_snapshot(directory, row['leaves'])
-    report = json.loads((directory / 'report.json').read_text())
-    captured = report.get('captured_values_sha256')
-    if require_capture and (not captured or len(captured) != 64):
-        raise RuntimeError('required captured-input SHA256 guard missing')
-    return {'native': {p.name: sha(p) for p in sorted(directory.glob('*.bin'))},
-            'bundle': sha(directory / 'bundle.json'), 'tree': recursive['tree_sha256'],
-            'recursive': recursive['proof_sha256'], **({'captured_values_sha256': captured} if require_capture else {})}
 
 
 def guard_verdict(receipt, arm):
@@ -135,6 +153,17 @@ def guard_verdict(receipt, arm):
             'ceiling_bytes': {str(d['device']): d['prover_physical_ceiling_bytes'] for d in devices},
             'observed_exact_process_peak_bytes': None,
             'scope': 'successful proof under physical availability ceiling; not an observed peak'}
+
+
+def prune_verified_payload(proof):
+    """Delete proof payload files (*.bin, *.proof) of a request already verified byte-identical
+    to the retained reference; report/stage JSON stays. Large-block disk mode only."""
+    removed = 0
+    for path in sorted(Path(proof).rglob('*')):
+        if path.is_file() and path.name.endswith(('.bin', '.proof')):
+            removed += path.stat().st_size
+            path.unlink()
+    return removed
 
 
 def run(args):
@@ -166,6 +195,7 @@ def run(args):
         reference = fingerprints(matches[0], require_capture=args.smoke)
     for index, arm in enumerate(result['order']):
         validate_manifest(manifest)
+        validate_library_environment(arm_environment(manifest['preset'], arm, manifest['assets']), manifest['assets'], manifest['asset_sha256'])
         profile = not args.smoke and index >= 6
         argv, tag = command(manifest, arm, index, stream, profile, output.name + '-' + (('one-stack-v5-global0-smoke' if args.global_admission_off_diagnostic else 'one-stack-v5-smoke') if args.smoke else 'one-stack-v4'))
         seed = None
@@ -184,6 +214,7 @@ def run(args):
         write(output / 'experiment.json', result)
         with (output / f'{index:02d}-{arm}.log').open('w') as log:
             code = subprocess.run(argv, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT).returncode
+        validate_manifest(manifest)
         entry['exit_code'] = code
         write(output / 'experiment.json', result)
         if code:
@@ -206,11 +237,14 @@ def run(args):
             actual = fingerprints(request, require_capture=args.smoke)
             if reference is None:
                 reference = actual
-                result['payload_reference'] = {'run': str(service), 'ordinal': request['ordinal'], 'fingerprints': reference}
+                result['payload_reference'] = {'run': str(service), 'ordinal': request['ordinal'], 'proof': request['proof'], 'fingerprints': reference}
             if actual != reference:
                 write(output / 'parity-failure.json', {'run': str(service), 'ordinal': request['ordinal'], 'expected': reference, 'actual': actual})
                 raise RuntimeError('proof payload or captured-input SHA256 mismatch across arms/cold/warm')
         entry['payload_byte_parity'] = True
+        if args.fresh_receivers == 'reference':
+            entry['pruned_payload_bytes'] = sum(prune_verified_payload(request['proof']) for request in receipt['requests']
+                                                if request['proof'] != result['payload_reference']['proof'])
         entry['captured_sha_parity_required'] = args.smoke
         warm = receipt['requests'][1]
         entry['warm'] = warm
@@ -218,16 +252,28 @@ def run(args):
         write(output / 'experiment.json', result)
     # Do not contaminate interleaved timings/quiet state with CPU receivers.
     verification = list(result['services'])
+    which = 'all'
+    if args.fresh_receivers == 'reference':
+        # Every request is byte-identical to the retained reference proof (checked above),
+        # so one fresh receiver on that proof covers every request's bytes.
+        if args.reference_run or result['payload_reference']['ordinal'] != 0:
+            raise RuntimeError('--fresh-receivers reference needs the first service cold request as reference')
+        verification = [entry for entry in result['services'] if entry['run'] == result['payload_reference']['run']]
+        which = 'first'
+        result['fresh_receiver_scope'] = 'reference proof only; all other requests byte-identical to it, payloads pruned'
     if args.reference_run:
         verification.append({'order_index':'reference','arm':'reference','run':str(args.reference_run)})
     for entry in verification:
         argv = [sys.executable, str(root / 'scripts/rv64_m4_resident.py'), 'receive', '--run', entry['run'],
-                '--which', 'all', '--receiver-workers', str(args.receiver_workers)]
+                '--which', which, '--receiver-workers', str(args.receiver_workers)]
         with (output / f'{entry["order_index"]}-{entry["arm"]}-receiver.log').open('w') as log:
             code = subprocess.run(argv, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT).returncode
         receipt = json.loads((Path(entry['run']) / 'receipt.json').read_text())
-        if code or not receipt['receivers'] or not all(v.get('accepted') for v in receipt['receivers']):
+        if code:
             raise RuntimeError('fresh isolated receiver rejected: ' + entry['run'])
+        entry['receiver_acceptance'] = validate_receivers(
+            receipt.get('receivers'), [r['proof'] for r in receipt['requests'] if which == 'all' or r['trial'] == 0],
+            manifest['asset_sha256']['receiver'])
         entry['fresh_receivers'] = receipt['receivers']
         if entry['arm'] == 'reference':
             result['reference_fresh_receivers'] = receipt['receivers']
@@ -255,10 +301,16 @@ def main():
     p = sub.add_parser('prepare')
     p.add_argument('--source-root', required=True, type=Path)
     p.add_argument('--source-commit', required=True)
-    for name in ('driver', 'receiver', 'library', 'sparse', 'observer', 'process_budget_guard'):
+    for name in ('driver', 'receiver'):
         p.add_argument('--' + name.replace('_', '-'), required=True, type=Path)
+    for name in RUNTIME_ASSETS:
+        p.add_argument('--' + name.replace('_', '-'), type=Path, help='default: from --runtime')
+    p.add_argument('--runtime', type=Path, default=DEFAULT_RUNTIME,
+                   help='pinned CUDA runtime JSON (default: the canonical default-runtime.json; p0-runtime.json is the frozen a25 control)')
     p.add_argument('--preset', type=Path, default=DEFAULT_PRESET)
     p.add_argument('--block', type=int, default=24628607)
+    p.add_argument('--allow-block', type=int, action='append', default=[],
+                   help='explicit owner opt-in for one non-development block (e.g. 26235159); one block per service, repeat 2')
     p.add_argument('--native-hooks-commit')
     p.add_argument('--device-hooks-commit')
     p.add_argument('--out', required=True, type=Path)
@@ -266,6 +318,9 @@ def main():
     p.add_argument('--manifest', required=True, type=Path)
     p.add_argument('--out', required=True, type=Path)
     p.add_argument('--receiver-workers', type=int, default=16)
+    p.add_argument('--fresh-receivers', choices=('all', 'reference'), default='all',
+                   help='reference: large-block disk mode - one fresh receiver on the retained reference proof; payloads of '
+                        'every other request are pruned once verified byte-identical to it')
     p.add_argument('--ownership-profile-pair', action='store_true', help='after six unprofiled services, one baseline/fullstack CUPTI pair; never included in headline medians')
     p.add_argument('--smoke', action='store_true', help='small-block lane1 control then lane2 seeds17/29 cold/warm correctness services before headline experiment')
     p.add_argument('--global-admission-off-diagnostic', action='store_true', help='required same-day fallback diagnosis; allotherfullstackflags/guard unchanged, no performance qualification')

@@ -48,6 +48,7 @@ import shutil
 import subprocess
 import sys
 import time
+from rv64_validation import CRASH_MARKERS, RESOURCE_ERRORS, MISSING_ERRORS, reject_class
 
 SCHEMA = "rv64-m5-negative-corpus/v5"
 DEV_BLOCKS = {26235156, 24628607}
@@ -778,22 +779,9 @@ def statement(stdout):
 def environment():
     env = {k: v for k, v in os.environ.items() if not k.startswith("STWO_RV64_GPU_")}
     env.pop("STWO_ZIG_RV64_SETUP_CACHE", None)
+    env.pop("STWO_RV64_OUTER_PLAN_CLASS_STORE", None)
     env.update(CUDA_VISIBLE_DEVICES="", STWO_RV64_GPU_PCS_HELPER="/bin/false", STWO_RV64_FOLD_CLASS_CACHE="0")
     return env
-
-
-CRASH_MARKERS = ("panic:", "reached unreachable", "Segmentation fault", "SIGSEGV", "SIGABRT", "integer overflow", "index out of bounds")
-RESOURCE_ERRORS = ("FileTooBig", "OutOfMemory", "StreamTooLong")
-MISSING_ERRORS = ("FileNotFound", "MissingRecursiveNodeProof")
-
-
-def reject_class(first_error):
-    e = first_error or ""
-    if any(m in e for m in MISSING_ERRORS):
-        return "missing"
-    if any(m in e for m in RESOURCE_ERRORS):
-        return "resource"
-    return "semantic"
 
 
 def capabilities(receiver, proof, root_donor, root_path, alt_proof=None, donor_table_root=None):
@@ -957,7 +945,8 @@ def main():
                "donor_block": djob["block"], "run": str(run), "proof_dir": str(proof), "donor_proof_dir": str(donor_proof),
                "receiver": str(receiver), "receiver_sha256": sha(receiver), "native_profile": plan["profile"],
                "receiver_env": {"CUDA_VISIBLE_DEVICES": "", "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
-                                "STWO_ZIG_RV64_SETUP_CACHE": "unset", "STWO_RV64_FOLD_CLASS_CACHE": "0"},
+                                "STWO_ZIG_RV64_SETUP_CACHE": "unset", "STWO_RV64_FOLD_CLASS_CACHE": "0",
+                                "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset"},
                "control_statement": ctx["control_statement"], "jobs": args.jobs, "loadavg_1m_start": load,
                "loadavg_1m_end": os.getloadavg()[0], "wall_s": round(time.time() - started, 1),
                "ran": len(results), "passed": sum(1 for x in results if x.get("passed")),

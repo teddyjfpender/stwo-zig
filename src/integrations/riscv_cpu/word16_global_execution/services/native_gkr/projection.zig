@@ -61,19 +61,31 @@ pub fn ProjectionFor(comptime F: type) type {
         }
         pub const LocalSink = struct {
             projection: *Self,
-            pub fn emit(self: *@This(), relation: @import("../gkr_local/fractions.zig").Relation, tuple: anytype, weight: F) void { self.projection.emitLocal(relation, tuple, weight); }
+            pub fn emit(self: *@This(), relation: @import("../gkr_local/fractions.zig").Relation, tuple: anytype, weight: F) void {
+                self.projection.emitLocal(relation, tuple, weight);
+            }
         };
         pub const TruthSink = struct {
             projection: *Self,
-            pub fn emit(self: *@This(), relation: @import("../gkr_local/truth_fractions.zig").Relation, tuple: anytype, weight: F) void { self.projection.emitLocal(relation, tuple, weight); }
+            pub fn emit(self: *@This(), relation: @import("../gkr_local/truth_fractions.zig").Relation, tuple: anytype, weight: F) void {
+                self.projection.emitLocal(relation, tuple, weight);
+            }
         };
-        pub fn truthSink(self: *Self) TruthSink { return .{ .projection = self }; }
+        pub fn truthSink(self: *Self) TruthSink {
+            return .{ .projection = self };
+        }
         pub const GlobalSink = struct {
             projection: *Self,
-            pub fn emit(self: *@This(), relation: Global.Relation, tuple: anytype, weight: F) void { self.projection.emitGlobal(relation, tuple, weight); }
+            pub fn emit(self: *@This(), relation: Global.Relation, tuple: anytype, weight: F) void {
+                self.projection.emitGlobal(relation, tuple, weight);
+            }
         };
-        pub fn localSink(self: *Self) LocalSink { return .{ .projection = self }; }
-        pub fn globalSink(self: *Self) GlobalSink { return .{ .projection = self }; }
+        pub fn localSink(self: *Self) LocalSink {
+            return .{ .projection = self };
+        }
+        pub fn globalSink(self: *Self) GlobalSink {
+            return .{ .projection = self };
+        }
         pub fn emitLocal(self: *@This(), relation: anytype, tuple: anytype, weight: F) void {
             self.append(.local, self.local.denominatorFor(F, relation, tuple), weight);
         }
@@ -83,7 +95,11 @@ pub fn ProjectionFor(comptime F: type) type {
                 .kio => E.denominatorFor(F, self.shared.kio.offset, &self.shared.kio.coefficients, &tuple, true),
                 .wire => E.denominatorFor(F, self.shared.wire.offset, &self.shared.wire.coefficients, &tuple, true),
             };
-            self.append(switch (relation) { .ram => .ram, .kio => .kio, .wire => .wire }, denominator, weight);
+            self.append(switch (relation) {
+                .ram => .ram,
+                .kio => .kio,
+                .wire => .wire,
+            }, denominator, weight);
         }
         pub fn finish(self: *@This()) !void {
             if (self.invalid) return error.NativeGkrProjectionShape;
@@ -107,7 +123,9 @@ pub fn ProjectionFor(comptime F: type) type {
 
 const O = core.fields.om31.OM31;
 const M = core.fields.m31.M31;
-fn scalar(v: u32) O { return O.fromBase(M.fromCanonical(v)); }
+fn scalar(v: u32) O {
+    return O.fromBase(M.fromCanonical(v));
+}
 test "native v2 raw terminal projection preserves poles and every padded kind" {
     const LR = @import("../gkr_local/fractions.zig").Relation;
     var local = LocalFor(O){ .z = @splat(scalar(101)), .alpha = @splat(scalar(3)) };
@@ -118,9 +136,11 @@ test "native v2 raw terminal projection preserves poles and every padded kind" {
         for (&@field(shared, field.name).coefficients, 0..) |*v, i| v.* = scalar(@intCast(i + 2));
     }
     const lw = [_]O{ scalar(2), scalar(3), scalar(5), scalar(7) };
-    const rw = [_]O{scalar(11)}; const kw = [_]O{scalar(13)};
+    const rw = [_]O{scalar(11)};
+    const kw = [_]O{scalar(13)};
     var projection = ProjectionFor(O){ .local = &local, .shared = &shared, .terms = .{ 3, 1, 1, 0 }, .weights = .{ &lw, &rw, &kw, &.{} } };
-    var ls = projection.localSink(); var gs = projection.globalSink();
+    var ls = projection.localSink();
+    var gs = projection.globalSink();
     const t0 = [_]O{scalar(11)};
     const t1 = [_]O{scalar(13)};
     const t2 = [_]O{ O.one(), scalar(2), O.zero(), O.one() };
@@ -129,18 +149,27 @@ test "native v2 raw terminal projection preserves poles and every padded kind" {
     ls.emit(LR.byte_pair, t2, O.one());
     const ram = [_]O{O.one()} ** @typeInfo(@TypeOf(shared.ram.coefficients)).array.len;
     const kio = [_]O{O.one()} ** @typeInfo(@TypeOf(shared.kio.coefficients)).array.len;
-    gs.emit(.ram, ram, O.one()); gs.emit(.kio, kio, O.one().neg());
+    gs.emit(.ram, ram, O.one());
+    gs.emit(.kio, kio, O.one().neg());
     try projection.finish();
-    var rd = shared.ram.offset; for (shared.ram.coefficients) |v| rd = rd.sub(v);
-    var kd = shared.kio.offset; for (shared.kio.coefficients) |v| kd = kd.sub(v);
-    var bd = local.z[@intFromEnum(LR.byte_pair)]; var power = O.one();
-    for (t2) |v| { bd = bd.sub(power.mul(v)); power = power.mul(scalar(3)); }
-    const expected_d = scalar(2).mul(scalar(101-11)).add(scalar(5).mul(bd)).add(scalar(7)).add(scalar(11).mul(rd)).add(scalar(13).mul(kd));
+    var rd = shared.ram.offset;
+    for (shared.ram.coefficients) |v| rd = rd.sub(v);
+    var kd = shared.kio.offset;
+    for (shared.kio.coefficients) |v| kd = kd.sub(v);
+    var bd = local.z[@intFromEnum(LR.byte_pair)];
+    var power = O.one();
+    for (t2) |v| {
+        bd = bd.sub(power.mul(v));
+        power = power.mul(scalar(3));
+    }
+    const expected_d = scalar(2).mul(scalar(101 - 11)).add(scalar(5).mul(bd)).add(scalar(7)).add(scalar(11).mul(rd)).add(scalar(13).mul(kd));
     try std.testing.expect(projection.numerator.eql(scalar(7)));
     try std.testing.expect(projection.denominator.eql(expected_d));
     try std.testing.expect(projection.combine(scalar(19)).eql(scalar(7).add(scalar(19).mul(expected_d))));
-    var wrong = projection; wrong.terms[0] = 4;
+    var wrong = projection;
+    wrong.terms[0] = 4;
     try std.testing.expectError(error.NativeGkrEmitterTermCount, wrong.finish());
-    wrong = projection; wrong.weights[3] = &rw;
+    wrong = projection;
+    wrong.weights[3] = &rw;
     try std.testing.expectError(error.NativeGkrProjectionShape, wrong.finish());
 }

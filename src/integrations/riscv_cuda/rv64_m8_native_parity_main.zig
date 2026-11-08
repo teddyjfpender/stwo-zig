@@ -919,7 +919,6 @@ const CommitDecorator = struct {
     }
 };
 
-
 const CompositionRow = struct {
     kind: []const u8 = "cpu",
     ordinal: u32,

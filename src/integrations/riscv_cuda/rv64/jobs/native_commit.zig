@@ -95,6 +95,9 @@ pub const CommitPlan = struct {
     /// evaluation buffers, which enqueue allocates back to back.
     descriptors_device: ?api.DeviceBuffer = null,
     placement: api.Placement = .bottom,
+    /// Request jobs adopt install-time resources; a class-cache miss fails
+    /// before uploading a new twiddle region.
+    require_warm: bool = false,
 
     pub fn init(a: std.mem.Allocator, shapes: []const Shape, beta: u32) !CommitPlan {
         if (shapes.len == 0 or beta < 1 or beta > 4) return error.UnsupportedTraceCommitGeometry;
@@ -136,7 +139,7 @@ pub const CommitPlan = struct {
         inline for (.{ "shapes", "order", "offsets", "logs", "host_offsets" }) |f| self.a.free(@field(self, f));
         self.* = undefined;
     }
-    fn twiddleWords(self: *const CommitPlan) usize {
+    pub fn twiddleWords(self: *const CommitPlan) usize {
         return self.tw.twiddles.len + self.tw.itwiddles.len;
     }
     /// Upper bound of enqueue-time arena words (coefficients + LDE + tree + prefix banks).
@@ -158,6 +161,7 @@ pub const CommitPlan = struct {
         @memcpy(key[0..16], "rv64-m8-trace-tw");
         key[16] = @intCast(self.eval_log);
         const tw = try s.persistent(key, self.twiddleWords());
+        if (tw.fresh and self.require_warm) return error.GpuNativeTwiddlesNotWarmed;
         if (tw.fresh) {
             try s.upload(try tw.buffer.slice(0, self.tw.twiddles.len), mWords(self.tw.twiddles));
             try s.upload(try tw.buffer.slice(self.tw.twiddles.len, self.tw.itwiddles.len), mWords(self.tw.itwiddles));
@@ -394,6 +398,40 @@ pub const CommitPlan = struct {
         return .{ .coefficients = coefficients, .root = root_out.ptr };
     }
 };
+
+/// Request-local staging headers over immutable class geometry. stage()
+/// writes host_offsets, so concurrent jobs must never borrow that array.
+pub fn jobCopy(a: std.mem.Allocator, plan: *const CommitPlan) !CommitPlan {
+    var copy = plan.*;
+    copy.host_offsets = try a.dupe(usize, plan.host_offsets);
+    copy.twiddles = null;
+    copy.logs_device = null;
+    copy.host_staged = null;
+    copy.descriptors_device = null;
+    return copy;
+}
+pub fn freeJobCopy(a: std.mem.Allocator, plan: *CommitPlan) void {
+    a.free(plan.host_offsets);
+    plan.* = undefined;
+}
+
+test "commit job copies keep staging offsets private while borrowing immutable geometry" {
+    const a = std.testing.allocator;
+    var plan = try CommitPlan.init(a, &.{.{ .log_size = 3, .encoding = .evaluations }}, 2);
+    defer plan.deinit();
+    plan.host_offsets[0] = 17;
+    var one = try jobCopy(a, &plan);
+    defer freeJobCopy(a, &one);
+    var two = try jobCopy(a, &plan);
+    defer freeJobCopy(a, &two);
+    one.host_offsets[0] = 31;
+    two.host_offsets[0] = 53;
+    try std.testing.expectEqual(@as(usize, 17), plan.host_offsets[0]);
+    try std.testing.expectEqual(@as(usize, 31), one.host_offsets[0]);
+    try std.testing.expectEqual(@as(usize, 53), two.host_offsets[0]);
+    try std.testing.expect(one.shapes.ptr == plan.shapes.ptr and two.logs.ptr == plan.logs.ptr);
+    try std.testing.expect(one.twiddles == null and one.logs_device == null and one.host_staged == null and one.descriptors_device == null);
+}
 
 fn mWords(values: []const core.fields.m31.M31) []const u32 {
     return @as([*]const u32, @ptrCast(values.ptr))[0..values.len];

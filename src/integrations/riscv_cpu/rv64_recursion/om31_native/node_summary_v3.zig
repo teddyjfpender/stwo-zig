@@ -74,7 +74,9 @@ pub const Native = struct {
             for (0..8) |i| out[@field(Index, name) + i] = std.mem.readInt(u32, digest[4 * i ..][0..4], .little);
         }
         inline for (.{ "lo", "hi", "count", "steps_in", "steps_out", "depth" }) |name| out[@field(Index, name)] = @field(self, name);
-        for (self.bus, 0..) |value, relation| for (value.toM31Array(), 0..) |coordinate, i| { out[Index.bus + 8 * relation + i] = coordinate.v; };
+        for (self.bus, 0..) |value, relation| for (value.toM31Array(), 0..) |coordinate, i| {
+            out[Index.bus + 8 * relation + i] = coordinate.v;
+        };
         @memcpy(out[Index.mass..][0..3], &self.mass);
         @memcpy(out[Index.ctr_in..][0..COUNTERS], &self.ctr_in);
         @memcpy(out[Index.ctr_out..][0..COUNTERS], &self.ctr_out);
@@ -200,10 +202,16 @@ pub const Wires = struct {
         try Bounds.rangeBits(ctx, try ctx.sub(max_index, hi), 16, w.rest_bits);
         const count = try self.integer(ctx, Index.count);
         try ctx.eq(count, try ctx.add(try ctx.sub(hi, lo), ctx.one()));
-        for (0..3) |relation| { _ = try self.secure(ctx, relation); _ = try self.massLimbs(ctx, relation); }
+        for (0..3) |relation| {
+            _ = try self.secure(ctx, relation);
+            _ = try self.massLimbs(ctx, relation);
+        }
         // Address counters are raw u32 limbs, never added in M31. All other
         // counters/step totals are < p under this named profile's admission.
-        for (0..COUNTERS - 2) |i| { _ = try self.integer(ctx, Index.ctr_in + i); _ = try self.integer(ctx, Index.ctr_out + i); }
+        for (0..COUNTERS - 2) |i| {
+            _ = try self.integer(ctx, Index.ctr_in + i);
+            _ = try self.integer(ctx, Index.ctr_out + i);
+        }
         _ = try self.integer(ctx, Index.steps_in);
         _ = try self.integer(ctx, Index.steps_out);
         const depth = try self.integer(ctx, Index.depth);
@@ -283,12 +291,7 @@ pub fn combine(ctx: *C.Context, children: []const Wires, parent: Wires) !void {
 }
 
 fn sample(index: u32) Native {
-    return .{ .tnat = @splat(1), .trec = @splat(2), .image = @splat(3), .statement = @splat(4), .chi = @splat(5),
-        .lo = index, .hi = index, .count = 1, .m_in = @splat(@intCast(index)), .m_out = @splat(@intCast(index + 1)),
-        .s_in = @splat(@intCast(index + 8)), .s_out = @splat(@intCast(index + 9)),
-        .bus = @splat(C.O.fromBase(@import("stwo_core").fields.m31.M31.fromCanonical(index + 1))), .mass = .{ 7, 11, 13 },
-        .ctr_in = @splat(index), .ctr_out = @splat(index + 1), .steps_in = index * 10, .steps_out = (index + 1) * 10,
-        .expected = @splat(6), .output = if (index == 3) @splat(41) else @splat(0), .output_seen = index == 3, .depth = 0 };
+    return .{ .tnat = @splat(1), .trec = @splat(2), .image = @splat(3), .statement = @splat(4), .chi = @splat(5), .lo = index, .hi = index, .count = 1, .m_in = @splat(@intCast(index)), .m_out = @splat(@intCast(index + 1)), .s_in = @splat(@intCast(index + 8)), .s_out = @splat(@intCast(index + 9)), .bus = @splat(C.O.fromBase(@import("stwo_core").fields.m31.M31.fromCanonical(index + 1))), .mass = .{ 7, 11, 13 }, .ctr_in = @splat(index), .ctr_out = @splat(index + 1), .steps_in = index * 10, .steps_out = (index + 1) * 10, .expected = @splat(6), .output = if (index == 3) @splat(41) else @splat(0), .output_seen = index == 3, .depth = 0 };
 }
 test "fold-v3 typed combine binds agreements adjacency counters mass and unique output" {
     const honest = [_]Native{ sample(0), sample(1), sample(2), sample(3) };
@@ -305,7 +308,10 @@ test "fold-v3 typed combine binds agreements adjacency counters mass and unique 
             5 => values[2].steps_in += 1,
             6 => values[1].tnat[0] ^= 1,
             7 => expected.mass[1] -= 1,
-            8 => { values[0].output_seen = true; values[0].output = @splat(1); },
+            8 => {
+                values[0].output_seen = true;
+                values[0].output = @splat(1);
+            },
             9 => expected.depth = @intCast(Bounds.P - 1),
             10 => values[1].ctr_in[0] = @intCast(Bounds.P),
             else => unreachable,

@@ -11,4 +11,11 @@ test {
     _ = @import("rv64/jobs/outer_fixed_job.zig");
     _ = @import("rv64/jobs/outer_env.zig");
     _ = @import("rv64/jobs/outer_window.zig");
+    _ = @import("rv64/jobs/outer_class_plan.zig");
+    _ = @import("rv64/jobs/outer_checks.zig");
+    _ = @import("rv64/jobs/outer_device.zig");
+    _ = @import("rv64/jobs/outer_encode.zig");
+    _ = @import("rv64/jobs/outer_encode_oods.zig");
+    _ = @import("rv64/jobs/outer_seed_device.zig");
+    _ = @import("rv64/jobs/outer_seed_harness_test.zig");
 }

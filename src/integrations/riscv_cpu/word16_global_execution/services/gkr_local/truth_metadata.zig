@@ -94,8 +94,7 @@ pub const Provider = struct {
                     if (instance.keccak_policy.throughputTables()) {
                         const chi_count = instance.keccak_policy.chiLookups();
                         for (first_query..end) |event| {
-                            if (event < chi_count) sink.emitBase(.chi, tuples.throughputChiAccessors(M, K.equations.ScaleFor(M).apply, StateCells{ .row = row }, ParityCells{ .row = row }, StateCells{ .row = next }, &round, event), weight)
-                            else sink.emitBase(.xor5, tuples.throughputXor5Accessors(M, StateCells{ .row = row }, ParityCells{ .row = row }, event - chi_count), weight);
+                            if (event < chi_count) sink.emitBase(.chi, tuples.throughputChiAccessors(M, K.equations.ScaleFor(M).apply, StateCells{ .row = row }, ParityCells{ .row = row }, StateCells{ .row = next }, &round, event), weight) else sink.emitBase(.xor5, tuples.throughputXor5Accessors(M, StateCells{ .row = row }, ParityCells{ .row = row }, event - chi_count), weight);
                         }
                         return;
                     }

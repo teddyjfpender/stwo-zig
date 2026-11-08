@@ -1,0 +1,33 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "observed_utc": "2026-11-08T00:55:57.553377+00:00",
+  "scope": "First published full GPU-native cold/warm requests; all32 artifacts match frozen D2 and two raw fresh CPU receivers accept; harness metadata gate still pending",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/native-live-10/receipt.json",
+      "sha256": "943061ab6bae6f8f9baada75668ad41b6da6745e4d82385a23b590b740c95b28",
+      "result": "PASS diagnostic producer exit0, block26235156 cold/warm both publish. Driver-reported host_waits1,d2h2. Request walls7642136048ns and7952154636ns, initialization115612221689ns. These are diagnostic walls, not a canonical performance comparison."
+    },
+    {
+      "path": "vectors/reports/rv64-m8-20261107/gn-finish/native10-qualification.json",
+      "sha256": "4cc53e0dac8ece2806e9ca6ef35a1db94a9fd57e9d7f7d4819fccd175b465baa",
+      "result": "Both requests: all32 frozen artifacts byte-identical; both fresh CUDA-disabled CPU receiver processes return accepted=true and completed_ethereum_block=true. Wrapper accepted=false solely because producer report lacks capture_source (profile or direct-capture authority mismatch). No artifacts repaired or replaced. Whole native gate is notPASS."
+    },
+    {
+      "path": "runpodctl get pod (live00:49UTC)",
+      "result": "Only cps13bvat3xhdo rv64-resident-2x5090 RUNNING,2 RTX5090; no4GPU existing pod listed. No pod created,stopped,deleted."
+    }
+  ],
+  "changes": [
+    "Native report now records capture_source=in_process_execution, justified by service source rejecting packet/prefix inputs; selected uniform truth option is carried from actual manifest-driven Binding.Options; retained_main=null denotes no legacy RetainedMainStore; security_profile is explicit. Combined report includes completed_ethereum_block. These metadata changes do not weaken receiver or device checks.",
+    "Current full native gates run with diagnostic flag absent. A pinned copy of the exact accepted producer executable separately probes24628607, retaining the earlier metadata limitation and unqualified timing scope."
+  ],
+  "pending": {
+    "main": "FROZEN current metadata source: gate28 native26235156 BUILD, compiler894060 observed live00:55:08UTC; gate29 native24628607 follows onlyPASS. Runtime addon5 unchanged.",
+    "scratch": "FROZEN earlier source: default gate26 corpus running,then default27. Current publication metadata correction is not in this snapshot.",
+    "native_246_probe": "native-live11-246,source-bind scripts but pinned build25 snapshot at /workspace/m3/build/m8-gn-bind/native-246-snapshot; servicePID894996 live00:55:08UTC during install, no request result yet.",
+    "qualification": "native10 qualification wrapper terminal1 because metadata, raw receiver semantic acceptance true twice; all32artifact parity true twice."
+  },
+  "claim_boundary": "First full GPU-native request completion is established on26235156, with frozen byte identity and raw independent CPU semantic acceptance. Strict harness/native gate qualification is still incomplete because producer report metadata must be retested. No qualified speedup, profile trace, basket, other architecture or gated landing claim. Full original requirements preserved."
+}

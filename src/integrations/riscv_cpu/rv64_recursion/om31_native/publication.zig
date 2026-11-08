@@ -82,18 +82,51 @@ test "strict recursion receiver preflights every original node and rejects missi
 
 /// Binds exported root/tree copies to the freshly reconstructed artifacts,
 /// without admitting producer metadata or rewriting the original directory.
-pub fn requireBytes(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, expected: []const u8) !void {
-    const actual = try dir.readFileAlloc(a, name, expected.len);
-    defer a.free(actual);
-    if (!std.mem.eql(u8, expected, actual)) return error.RecursiveReceiverArtifactMismatch;
+/// Compare with bounded storage, including EOF: a longer canonical artifact
+/// is a binding mismatch, not an allocation/read-limit rejection. Read at
+/// most expected.len + 1 bytes, even if an untrusted file is arbitrarily large.
+pub fn requireBytes(dir: std.fs.Dir, name: []const u8, expected: []const u8) !void {
+    var file = try dir.openFile(name, .{});
+    defer file.close();
+    var buffer: [4096]u8 = undefined;
+    var at: usize = 0;
+    while (at < expected.len) {
+        const n = try file.read(buffer[0..@min(buffer.len, expected.len - at)]);
+        if (n == 0 or !std.mem.eql(u8, expected[at..][0..n], buffer[0..n])) return error.RecursiveReceiverArtifactMismatch;
+        at += n;
+    }
+    if (try file.read(buffer[0..1]) != 0) return error.RecursiveReceiverArtifactMismatch;
 }
 
 test "strict receiver binds physical root and tree copies without rewriting" {
     var temporary = std.testing.tmpDir(.{});
     defer temporary.cleanup();
     try temporary.dir.writeFile(.{ .sub_path = "root.proof", .data = "proof" });
-    try requireBytes(std.testing.allocator, temporary.dir, "root.proof", "proof");
-    try std.testing.expectError(error.RecursiveReceiverArtifactMismatch, requireBytes(std.testing.allocator, temporary.dir, "root.proof", "proog"));
+    try requireBytes(temporary.dir, "root.proof", "proof");
+    try std.testing.expectError(error.RecursiveReceiverArtifactMismatch, requireBytes(temporary.dir, "root.proof", "proog"));
     try temporary.dir.writeFile(.{ .sub_path = "tree.json", .data = "tree" });
-    try std.testing.expectError(error.RecursiveReceiverArtifactMismatch, requireBytes(std.testing.allocator, temporary.dir, "tree.json", "tref"));
+    try std.testing.expectError(error.RecursiveReceiverArtifactMismatch, requireBytes(temporary.dir, "tree.json", "tref"));
+}
+
+test "strict receiver checks lengths and bytes across bounded read boundaries" {
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    var bytes: [8193]u8 = undefined;
+    for (&bytes, 0..) |*b, i| b.* = @truncate(i);
+    try temporary.dir.writeFile(.{ .sub_path = "root.proof", .data = &bytes });
+    try requireBytes(temporary.dir, "root.proof", &bytes);
+    // An equal prefix with extra bytes must be a binding failure too.
+    for ([_]usize{ 0, 4095, 4096, 4097, 8192 }) |n| try std.testing.expectError(error.RecursiveReceiverArtifactMismatch, requireBytes(temporary.dir, "root.proof", bytes[0..n]));
+    try temporary.dir.writeFile(.{ .sub_path = "root.proof", .data = bytes[0..4096] });
+    try std.testing.expectError(error.RecursiveReceiverArtifactMismatch, requireBytes(temporary.dir, "root.proof", &bytes));
+    for ([_]usize{ 0, 4095, 4096, 8192 }) |index| {
+        bytes[index] ^= 1;
+        try temporary.dir.writeFile(.{ .sub_path = "root.proof", .data = &bytes });
+        bytes[index] ^= 1;
+        try std.testing.expectError(error.RecursiveReceiverArtifactMismatch, requireBytes(temporary.dir, "root.proof", &bytes));
+    }
+    try temporary.dir.writeFile(.{ .sub_path = "root.proof", .data = "" });
+    try requireBytes(temporary.dir, "root.proof", "");
+    try temporary.dir.deleteFile("root.proof");
+    try std.testing.expectError(error.FileNotFound, requireBytes(temporary.dir, "root.proof", ""));
 }

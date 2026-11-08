@@ -30,6 +30,48 @@ const fenced_files = [_][]const u8{ "rv64/jobs/worker.zig", "rv64/jobs/ops.zig",
 
 pub const Finding = struct { file: []const u8, line: usize, symbol: []const u8 };
 
+/// D2 (rv64-m8-gpu-native.md §6.3): the GPU-native driver allocates device or
+/// pinned memory and creates events ONLY at install, inside
+/// `lint:install-begin` / `lint:install-end` fences (install runs once per
+/// service). Applies to `driver*.zig` and the capture hand-off.
+pub const install_only = [_][]const u8{ "alloc_u32", "host_alloc", "event_create", "cudaMalloc", "cudaHostAlloc", "cudaEventCreate" };
+const install_begin = "lint:install-begin";
+const install_end = "lint:install-end";
+
+pub fn isDriverFile(path: []const u8) bool {
+    const base = std.fs.path.basename(path);
+    return (std.mem.startsWith(u8, base, "driver") and std.mem.endsWith(u8, base, ".zig") and !isTestOnly(base)) or std.mem.eql(u8, base, "m8_capture_stream.zig");
+}
+
+/// Request-path allocation lint for driver files (null = clean).
+pub fn scanInstall(path: []const u8, text: []const u8) !?Finding {
+    var fenced = false;
+    var lines = std.mem.splitScalar(u8, text, '\n');
+    var number: usize = 0;
+    var in_tests = false;
+    while (lines.next()) |line| {
+        number += 1;
+        // Test blocks at the end of a file are not request-path code.
+        if (std.mem.startsWith(u8, line, "test \"")) in_tests = true;
+        if (in_tests) continue;
+        if (std.mem.indexOf(u8, line, install_begin) != null) {
+            if (fenced) return error.NestedLintFence;
+            fenced = true;
+            continue;
+        }
+        if (std.mem.indexOf(u8, line, install_end) != null) {
+            if (!fenced) return error.UnbalancedLintFence;
+            fenced = false;
+            continue;
+        }
+        if (fenced) continue;
+        const code = if (std.mem.indexOf(u8, line, "//")) |c| line[0..c] else line;
+        for (install_only) |symbol| if (std.mem.indexOf(u8, code, symbol) != null) return .{ .file = path, .line = number, .symbol = symbol };
+    }
+    if (fenced) return error.UnbalancedLintFence;
+    return null;
+}
+
 fn isTestOnly(name: []const u8) bool {
     return std.mem.endsWith(u8, name, "_test.zig") or std.mem.eql(u8, name, "fake.zig") or std.mem.eql(u8, name, "lint.zig");
 }
@@ -87,6 +129,7 @@ pub fn scanTree(a: std.mem.Allocator, root: std.fs.Dir) !?Finding {
         const text = try root.readFileAlloc(a, path, 16 << 20);
         defer a.free(text);
         if (try scan(path, text)) |f| return .{ .file = try a.dupe(u8, f.file), .line = f.line, .symbol = f.symbol };
+        if (isDriverFile(path)) if (try scanInstall(path, text)) |f| return .{ .file = try a.dupe(u8, f.file), .line = f.line, .symbol = f.symbol };
         var at: usize = 0;
         while (std.mem.indexOfPos(u8, text, at, "@import(\"")) |i| {
             const start = i + 9;
@@ -125,6 +168,16 @@ test "lint rejects sync symbols and lease APIs outside the worker's fenced wait"
     try std.testing.expect((try scan("rv64/jobs/native_stage1.zig", "// lint:host-wait-begin\nevent_sync(e);\n// lint:host-wait-end")) != null);
     try std.testing.expect((try scan("rv64/jobs/worker.zig", "// lint:host-wait-begin\nevent_sync(e);\n// lint:host-wait-end")) == null);
     try std.testing.expectError(error.UnbalancedLintFence, scan("rv64/jobs/worker.zig", "// lint:host-wait-begin\n"));
+}
+
+test "D2: driver files allocate and create events only inside install fences" {
+    try std.testing.expect(isDriverFile("rv64/jobs/driver_request.zig"));
+    try std.testing.expect(isDriverFile("rv64/m8_capture_stream.zig"));
+    try std.testing.expect(!isDriverFile("rv64/jobs/driver_test.zig"));
+    try std.testing.expect((try scanInstall("rv64/jobs/driver_request.zig", "fn serve() void {\n    _ = ops.exec.alloc_u32_long(c, n, &p);\n}")) != null);
+    try std.testing.expect((try scanInstall("rv64/jobs/driver_request.zig", "// lint:install-begin\n_ = wait.event_create(&e);\n// lint:install-end\n")) == null);
+    try std.testing.expect((try scanInstall("rv64/jobs/driver_request.zig", "x();\ntest \"t\" {\n    _ = host_alloc(1);\n}")) == null);
+    try std.testing.expectError(error.UnbalancedLintFence, scanInstall("rv64/jobs/driver_peer.zig", "// lint:install-begin\n"));
 }
 
 test "no sync symbol is reachable from any job source (file-level, transitive)" {

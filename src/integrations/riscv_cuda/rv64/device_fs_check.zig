@@ -93,30 +93,50 @@ const Recorder = struct {
     powers_consumed: bool = false,
     interaction: ?N.Lease = null,
     inter_consumed: bool = false,
-    fn of(raw: *anyopaque) *@This() { return @ptrCast(@alignCast(raw)); }
+    fn of(raw: *anyopaque) *@This() {
+        return @ptrCast(@alignCast(raw));
+    }
     fn start(raw: *anyopaque, initial: Raw.Om31Checkpoint) void {
         const self = of(raw);
-        if (self.initial != null) { self.failure = error.DuplicateOuterDeviceFsStart; return; }
+        if (self.initial != null) {
+            self.failure = error.DuplicateOuterDeviceFsStart;
+            return;
+        }
         self.initial = initial;
     }
     fn record(raw: *anyopaque, event: Raw.Om31Event, after: Raw.Om31Checkpoint) void {
         const self = of(raw);
         if (self.failure != null) return;
-        self.append(event, after) catch |err| { self.failure = err; };
+        self.append(event, after) catch |err| {
+            self.failure = err;
+        };
     }
     fn append(self: *@This(), event: Raw.Om31Event, after: Raw.Om31Checkpoint) !void {
         if (self.initial == null or self.checked or self.ops.items.len >= 1024) return error.OuterDeviceFsRecordOrder;
-        const count: usize = switch (event) { .mix_words => |v| v.len, .mix_felts => |v| try std.math.mul(usize, v.len, 8), else => 8 };
+        const count: usize = switch (event) {
+            .mix_words => |v| v.len,
+            .mix_felts => |v| try std.math.mul(usize, v.len, 8),
+            else => 8,
+        };
         if (count > (1 << 18) - @min(@as(usize, 1 << 18), self.words.items.len)) return error.OuterDeviceFsRecordBudget;
         const first = self.words.items.len;
         const kind: Kind = switch (event) {
-            .mix_words => |v| blk: { try self.words.appendSlice(self.a, v); break :blk .mix_words; },
+            .mix_words => |v| blk: {
+                try self.words.appendSlice(self.a, v);
+                break :blk .mix_words;
+            },
             .mix_felts => |values| blk: {
                 for (values) |v| for (v.toM31Array()) |word| try self.words.append(self.a, word.v);
                 break :blk .mix_felts;
             },
-            .draw_raw => |v| blk: { try self.words.appendSlice(self.a, &v); break :blk .draw_raw; },
-            .draw_om31 => |v| blk: { try self.words.appendSlice(self.a, &v); break :blk .draw_om31; },
+            .draw_raw => |v| blk: {
+                try self.words.appendSlice(self.a, &v);
+                break :blk .draw_raw;
+            },
+            .draw_om31 => |v| blk: {
+                try self.words.appendSlice(self.a, &v);
+                break :blk .draw_om31;
+            },
         };
         try self.ops.append(self.a, .{ .kind = kind, .first = first, .count = count, .after = after });
     }
@@ -139,7 +159,7 @@ const Recorder = struct {
     }
     fn destroy(raw: *anyopaque) void {
         const self = of(raw);
-        var retained = [_]?N.Lease{self.interaction, self.powers};
+        var retained = [_]?N.Lease{ self.interaction, self.powers };
         for (&retained) |*item| if (item.*) |*lease| {
             const Release = struct {
                 service: *Service.Context,
@@ -169,7 +189,10 @@ const Job = struct {
     failure: ?anyerror = null,
     fn run(raw: *anyopaque, token: u64, user: ?*anyopaque) callconv(.c) c_int {
         const self: *@This() = @ptrCast(@alignCast(user orelse return 1));
-        self.execute(raw, token) catch |err| { self.failure = err; return 1; };
+        self.execute(raw, token) catch |err| {
+            self.failure = err;
+            return 1;
+        };
         return 0;
     }
     fn execute(self: *@This(), raw: *anyopaque, token: u64) !void {
@@ -186,7 +209,9 @@ const Job = struct {
         const mix = try sym(Mix, lib, "stwo_rv64_channel_mix_on");
         const draw = try sym(Draw, lib, "stwo_rv64_channel_draw_on");
         var draws: usize = 0;
-        for (r.ops.items) |op| if (op.kind == .draw_raw or op.kind == .draw_om31) { draws += 1; };
+        for (r.ops.items) |op| if (op.kind == .draw_raw or op.kind == .draw_om31) {
+            draws += 1;
+        };
         if (draws == 0) return error.OuterDeviceFsNoChallenges;
         if (self.power_count != 0 and draws != 3) return error.OuterDeviceFsUnexpectedCompositionDraws;
         if (self.keep_interaction and draws != 2) return error.OuterDeviceFsUnexpectedLookupDraws;
@@ -199,9 +224,12 @@ const Job = struct {
             for (leases[0..made]) |*lease| ctx.release(lease) catch {};
         }
         const sizes = [_]usize{ 16, 9, @max(1, r.words.items.len), draws * 8, r.ops.items.len * 16 };
-        for (&leases, sizes) |*lease, size| { lease.* = try ctx.allocate(size, 0); made += 1; }
+        for (&leases, sizes) |*lease, size| {
+            lease.* = try ctx.allocate(size, 0);
+            made += 1;
+        }
         var seed: [9]u32 = undefined;
-        for (0..8) |i| seed[i] = std.mem.readInt(u32, r.initial.?.digest[4*i..][0..4], .little);
+        for (0..8) |i| seed[i] = std.mem.readInt(u32, r.initial.?.digest[4 * i ..][0..4], .little);
         seed[8] = r.initial.?.draws;
         try check(api.upload(raw, leases[1].words.?, &seed, @sizeOf(@TypeOf(seed))));
         if (r.words.items.len != 0) try check(api.upload(raw, leases[2].words.?, r.words.items.ptr, r.words.items.len * 4));
@@ -214,8 +242,15 @@ const Job = struct {
             const next = previous + 1;
             switch (op.kind) {
                 .mix_words, .mix_felts => try check(mix(raw, 0, leases[0].words.?, @intCast(i), previous, next, leases[2].words.? + op.first, @intCast(op.count), @intFromBool(op.kind == .mix_felts), boundary)),
-                .draw_om31 => { try check(draw(raw, 0, leases[0].words.?, @intCast(i), previous, next, 1, leases[3].words.? + output_at, boundary)); output_at += 8; },
-                .draw_raw => { const draw_raw = try sym(DrawRaw, lib, "stwo_blake2s_transcript_draw_u32s_on"); try check(draw_raw(leases[0].words.?, @intCast(i), previous, next, leases[3].words.? + output_at, leases[3].words.? + output_at, boundary, stream.?)); output_at += 8; },
+                .draw_om31 => {
+                    try check(draw(raw, 0, leases[0].words.?, @intCast(i), previous, next, 1, leases[3].words.? + output_at, boundary));
+                    output_at += 8;
+                },
+                .draw_raw => {
+                    const draw_raw = try sym(DrawRaw, lib, "stwo_blake2s_transcript_draw_u32s_on");
+                    try check(draw_raw(leases[0].words.?, @intCast(i), previous, next, leases[3].words.? + output_at, leases[3].words.? + output_at, boundary, stream.?));
+                    output_at += 8;
+                },
             }
         }
         if (self.keep_interaction) {
@@ -249,9 +284,9 @@ const Job = struct {
         try ctx.join(); // One final parity readback after the entire batch.
         output_at = 0;
         for (r.ops.items, 0..) |op, i| {
-            const actual = boundaries[i * 16..][0..16];
+            const actual = boundaries[i * 16 ..][0..16];
             var expected: [16]u32 = @splat(0);
-            for (0..8) |j| expected[j] = std.mem.readInt(u32, op.after.digest[4*j..][0..4], .little);
+            for (0..8) |j| expected[j] = std.mem.readInt(u32, op.after.digest[4 * j ..][0..4], .little);
             expected[8] = op.after.draws;
             expected[9] = @intCast(i + 1);
             expected[12] = @truncate(chain + i + 1);

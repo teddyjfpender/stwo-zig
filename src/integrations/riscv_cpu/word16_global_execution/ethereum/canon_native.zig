@@ -56,13 +56,13 @@ pub const Kind = enum(u32) { cpu = 1, truth = 2, mb = 3 };
 
 /// Frozen component ids of a CPU class rung vector (index in this list).
 pub const CPU_COMPONENTS = [_][]const u8{
-    "cpu_log",              "alu_log",                 "alu_tail_log",         "binary_log",              "binary_tail_log",       "shift_log",
-    "shift_tail_log",       "jalr_log",                "division_log",         "multiplication_log",      "ls_log",                "ls_tail_log",
-    "boundary_log",         "initial_log",             "terminal_log",         "bridge.keccak",           "bridge.add",            "bridge.double",
-    "bridge.sha256",        "bridge.arith256_mod",     "bridge.bn254_g1_add",  "bridge.bn254_g1_double",  "bridge.bn254_fp2_mul",  "bridge.bls12_381_fp2_mul",
-    "bridge.arith384_mont", "bridge.bls12_381_g1_add", "bridge.bls12_381_g1_double", "bridge.bulk.desc", "bridge.bulk.copy",    "bridge.bulk.set",
-    "bridge.bulk.ucopy",    "bridge.bulk.cdesc",       "bridge.bulk.cmp",      "bridge.bulk.jdesc",       "bridge.bulk.jscan",     "bridge.bulk.jtab",
-    "bridge.sponge.call",   "bridge.sponge.perm",      "bridge.ls_dword",      "bridge.ls_dword_tail",    "bridge.zbb",
+    "cpu_log",              "alu_log",                 "alu_tail_log",               "binary_log",             "binary_tail_log",      "shift_log",
+    "shift_tail_log",       "jalr_log",                "division_log",               "multiplication_log",     "ls_log",               "ls_tail_log",
+    "boundary_log",         "initial_log",             "terminal_log",               "bridge.keccak",          "bridge.add",           "bridge.double",
+    "bridge.sha256",        "bridge.arith256_mod",     "bridge.bn254_g1_add",        "bridge.bn254_g1_double", "bridge.bn254_fp2_mul", "bridge.bls12_381_fp2_mul",
+    "bridge.arith384_mont", "bridge.bls12_381_g1_add", "bridge.bls12_381_g1_double", "bridge.bulk.desc",       "bridge.bulk.copy",     "bridge.bulk.set",
+    "bridge.bulk.ucopy",    "bridge.bulk.cdesc",       "bridge.bulk.cmp",            "bridge.bulk.jdesc",      "bridge.bulk.jscan",    "bridge.bulk.jtab",
+    "bridge.sponge.call",   "bridge.sponge.perm",      "bridge.ls_dword",            "bridge.ls_dword_tail",   "bridge.zbb",
 };
 pub const CPU_COMPONENT_COUNT = CPU_COMPONENTS.len;
 pub const TRUTH_COMPONENTS = [_][]const u8{ "main", "aux" };
@@ -521,9 +521,15 @@ pub fn emitMainOnlyRho(main: anytype, h: anytype) void {
 pub fn mainOnlyRho(main: Digest) Digest {
     var writer = struct {
         h: Hasher,
-        pub fn digest(s: *@This(), d: Digest) void { s.h.digest(d); }
-        pub fn constantDigest(s: *@This(), d: Digest) void { s.h.digest(d); }
-        pub fn constantWord(s: *@This(), w: u32) void { s.h.word(w); }
+        pub fn digest(s: *@This(), d: Digest) void {
+            s.h.digest(d);
+        }
+        pub fn constantDigest(s: *@This(), d: Digest) void {
+            s.h.digest(d);
+        }
+        pub fn constantWord(s: *@This(), w: u32) void {
+            s.h.word(w);
+        }
     }{ .h = Hasher.init(.rho) };
     emitMainOnlyRho(main, &writer);
     return writer.h.final();

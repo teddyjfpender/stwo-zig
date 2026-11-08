@@ -22,11 +22,19 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     var fixed: ?Fixed.Binding = if (cache) |*owner| try Fixed.Binding.acquire(owner, truth.key(), config) else null;
     defer if (fixed) |*binding| binding.deinit();
     const fixed_ptr: ?*const Fixed.Binding = if (fixed) |*binding| binding else null;
-    const expected = Manifest.ExpectedWorker{ .kind = switch (truth) {
-        .keccak => .keccak,
-        .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
-        else => unreachable, // test helper: v2 truths only
-    }, .global_relations = .{ .ram = false, .kio = truth == .keccak, .wire = truth == .secp }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = try W.truthStatementWithAuthority(truth, config, @splat(17), fixed_ptr), .fixed = if (fixed_ptr) |binding| binding.root() else truth.key().root, .local_instances = null };
+    const expected = Manifest.ExpectedWorker{
+        .kind = switch (truth) {
+            .keccak => .keccak,
+            .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
+            else => unreachable, // test helper: v2 truths only
+        },
+        .global_relations = .{ .ram = false, .kio = truth == .keccak, .wire = truth == .secp },
+        .mass = try W.truthMass(truth),
+        .ordinal = 0,
+        .statement = try W.truthStatementWithAuthority(truth, config, @splat(17), fixed_ptr),
+        .fixed = if (fixed_ptr) |binding| binding.root() else truth.key().root,
+        .local_instances = null,
+    };
     var worker = W.TruthWorker.initWithAuthority(a, truth, source, expected, config, budget, fixed_ptr) catch |err| {
         var s = source;
         s.deinit();
@@ -220,7 +228,6 @@ test "beta2 K and ADD truth physical proofs separately close local claims and au
     defer ssetup.deinit();
     try runProfile(.{ .secp = .{ .setup = &ssetup, .first_id = 5, .calls = 1 } }, source, true);
 }
-
 
 test "V3 KeccakR27 throughput truth physically proves and freshly verifies policy bound local and KIO claims" {
     const Setup = @import("../../keccak/shared/roster.zig").TruthSetup;

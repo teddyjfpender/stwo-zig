@@ -79,15 +79,18 @@ fn mv(rd: u32, rs1: u32) u32 {
 const ECALL: u32 = 0x73;
 pub const WORDS = [_]u32{
     // shard 0
-    ld(11, 5, 0), andn(12, 11, 6), orn(13, 11, 7), xnor(14, 12, 13), rev8(15, 11), rev8(16, 11),
-    addi(29, 0, 0x80), sextB(22, 29), addi(30, 0, 0x7f), sextB(23, 30), lui(31, 0x8), sextH(24, 31), zextH(27, 15),
+    ld(11, 5, 0),      andn(12, 11, 6), orn(13, 11, 7),    xnor(14, 12, 13), rev8(15, 11), rev8(16, 11),
+    addi(29, 0, 0x80), sextB(22, 29),   addi(30, 0, 0x7f), sextB(23, 30),    lui(31, 0x8), sextH(24, 31),
+    zextH(27, 15),
     mv(10, 5), mv(17, 18), ECALL, // SHA-256
     mv(10, 6), mv(17, 19), ECALL, // arith256_mod
     mv(10, 7), mv(17, 20), ECALL, // memset
     // shard 1
     mv(10, 28), mv(17, 21), ECALL, // memcpy
-    mv(10, 6), mv(17, 19), ECALL, // arith256_mod
-    ld(9, 5, 0), rev8(25, 9), sd(25, 7, 24), ld(26, 7, 24), andn(30, 26, 9), sextH(31, 26), sextB(29, 9),
+    mv(10, 6),     mv(17, 19),      ECALL, // arith256_mod
+    ld(9, 5, 0),   rev8(25, 9),     sd(25, 7, 24),
+    ld(26, 7, 24), andn(30, 26, 9), sextH(31, 26),
+    sextB(29, 9),
     mv(10, 5), mv(17, 18), ECALL, // SHA-256
 };
 pub const SHARD0_STEPS: u32 = 22;

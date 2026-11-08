@@ -16,53 +16,14 @@ import sys
 import time
 
 import rv64_m7_integration_stack as stack
+from rv64_validation import CASES, check_corpus, frozen_parity, payload_name, validate_assets, validate_receivers, validate_library_environment
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / 'vectors/reports/rv64-m7-20261105/d2-composed/combined-d2-package'
-RUNTIME = ROOT / 'design/riscv-proving-stack/m7-handoff/p0-runtime.json'
-# A positive control plus byte, statement, cross-block, and coherent mutations.
-# Coherent mutations rewrite bundle hashes and exercise semantic verification.
-CASES = ('C00-control', 'S08-coherent-permute-native', 'S09-coherent-drop-native',
-         'S10-coherent-dup-native', 'S11-coherent-permute-truth',
-         'V02-cross-block-fold', 'V03-cross-block-leaf', 'V04-cross-block-root',
-         'V05-cross-block-native', 'R04-root-proof-flip', 'R05-root-proof-truncate',
-         'R06-leaf-proof-flip', 'R07-coherent-native-flip', 'R09-coherent-truth-flip',
-         'X03-coherent-stage-one-flip', 'X04-coherent-cells-flip',
-         'X06-coherent-terminal-value', 'T01-wrong-output', 'P01-wrong-native-profile')
-
-
-def payload_name(name):
-    # *.stages.json is process/timing telemetry (services/profiling.zig).
-    # candidate-fixed-setup.json is a setup/cache report: its validation
-    # counters differ between cold and warm requests (ethereum/gkr_main.zig).
-    # Receiver-owned proof/binding artifacts below must still match exactly.
-    return (name.endswith(('.bin', '.proof')) or
-            name in ('bundle.json', 'candidate-source-bounds.json',
-                     'recursion-om31/tree.json'))
-
-
-def frozen_parity(proof, golden):
-    expected = {name: row for name, row in golden.items() if payload_name(name)}
-    if not expected or 'recursion-om31/root.proof' not in expected:
-        raise RuntimeError('frozen default has no complete proof fingerprints')
-    actual = {str(p.relative_to(proof)): {'sha256': stack.sha(p), 'bytes': p.stat().st_size}
-              for p in proof.rglob('*') if p.is_file() and payload_name(str(p.relative_to(proof)))}
-    if actual != expected:
-        differences = sorted(k for k in actual.keys() | expected.keys() if actual.get(k) != expected.get(k))
-        raise RuntimeError('frozen default mismatch: ' + ', '.join(differences))
-    return {'byte_identical': True, 'artifact_count': len(actual), 'fingerprints': actual}
-
-
-def check_corpus(receipt):
-    results = receipt.get('results', [])
-    ids = [row['id'] for row in results]
-    if len(ids) != len(CASES) or set(ids) != set(CASES):
-        raise RuntimeError('negative corpus omitted or duplicated required cases')
-    if receipt.get('unsupported') or not all(row.get('passed') is True for row in results):
-        raise RuntimeError('negative corpus failed or skipped required cases')
-    if receipt.get('crashes') or receipt.get('unexpected_accepts'):
-        raise RuntimeError('negative corpus crashed or unexpectedly accepted')
-
+# Canonical default runtime: the source-built opt-combined image (owner decision
+# 2026-11-07). Pass --runtime design/riscv-proving-stack/m7-handoff/p0-runtime.json
+# for the frozen a25 control.
+RUNTIME = stack.DEFAULT_RUNTIME
 
 def extra_environment(items):
     """--env KEY=VALUE for the proving service (e.g. STWO_RV64_M8_JOBS=1).
@@ -81,14 +42,45 @@ def extra_environment(items):
     return result
 
 
+JOBS_FLAGS = ('STWO_RV64_M8_JOBS', 'STWO_RV64_M8_NATIVE_JOBS', 'STWO_RV64_M8_OUTER_JOBS')
+
+
+def jobs_environment(runtime, extra_env):
+    """Job-path environment a runtime JSON ships (`jobs_env`: STWO_* key -> path
+    or value, `jobs_env_sha256`: key -> sha256 for every path entry).
+
+    Applied only when --env selects a job path (one of JOBS_FLAGS = 1), so the
+    default gate is unchanged; an explicit --env of the same key wins. Every
+    shipped library is pinned by SHA-256 like the runtime assets (gate-14
+    MissingM8OuterFsLibrary was a JOBS=1 gate without the outer-fs addon).
+    """
+    selected = any(extra_env.get(flag) == '1' for flag in JOBS_FLAGS)
+    shipped = dict(runtime.get('jobs_env', {})) if selected else {}
+    pins = runtime.get('jobs_env_sha256', {})
+    for key, value in shipped.items():
+        if not key.startswith('STWO_'):
+            raise RuntimeError('runtime jobs_env key must be STWO_*: ' + key)
+        if key.endswith('_LIBRARY') and key not in pins:
+            raise RuntimeError('runtime jobs_env library without sha256: ' + key)
+    pinned_jobs = {key: value for key, value in shipped.items() if key in pins}
+    if pinned_jobs:
+        validate_assets(pinned_jobs, pins)
+    validate_library_environment({**shipped, **extra_env},
+                                 {**runtime.get('assets', {}), **pinned_jobs},
+                                 {**runtime.get('asset_sha256', {}), **pins})
+    return {k: v for k, v in shipped.items() if k not in extra_env}
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--stream', default='m7-integrate')
     p.add_argument('--out', required=True, type=Path, help='new unique receipt directory')
-    p.add_argument('--runtime', default=RUNTIME, type=Path)
+    p.add_argument('--runtime', default=RUNTIME, type=Path, help='pinned CUDA runtime JSON (default: default-runtime.json)')
     p.add_argument('--block', type=int, choices=(26235156, 24628607), default=26235156)
     p.add_argument('--donor', type=Path, help='accepted opposite dev block; frozen D2 run by default')
     p.add_argument('--source-commit', required=True)
+    p.add_argument('--nsys', action='store_true', help='profile the same correctness requests; walls remain unqualified')
+    p.add_argument('--nsys-root', type=Path, help='raw profile filesystem, forwarded to the resident harness')
     p.add_argument('--env', action='append', default=[], metavar='KEY=VALUE',
                    help='extra STWO_* service environment (repeatable), e.g. STWO_RV64_M8_JOBS=1')
     args = p.parse_args()
@@ -124,27 +116,37 @@ def main():
     try:
         runtime = json.loads(args.runtime.read_text())
         assets = dict(runtime['assets'])
-        for name, path in assets.items():
-            if stack.sha(path) != runtime['asset_sha256'][name]:
-                raise RuntimeError('pinned runtime changed: ' + name)
+        validate_assets(assets, runtime['asset_sha256'])
         receipt['runtime'] = runtime
+        jobs_env = jobs_environment(runtime, extra_env)
+        receipt['jobs_env'] = jobs_env
+        extra_env = {**jobs_env, **extra_env}
         lock = ['flock', '-w', '7200', '/workspace/m3/locks/build.1.lock']
         run('build', lock + [sys.executable, 'scripts/rv64_m3_pod.py', 'build',
                             '--stream', args.stream, '--only', 'zig'])
         run('unit-zig', lock + ['/workspace/zig/zig', 'build', 'test',
                                'test-rv64-recursion-ready', 'test-rv64-batch-plan',
                                'test-rv64-gkr-plan', 'test-rv64-pcs-geometry', 'test-rv64-jobs',
+                               'test-rv64-jobs-outer', 'test-rv64-resources',
                                '-j2', '-Doptimize=ReleaseSafe', '-Dtarget=x86_64-linux-gnu',
-                               '-Dcpu=x86_64_v4+sha', '--cache-dir', str(ROOT / '.zig-cache')],
+                               '-Dcpu=x86_64_v4+sha', '--summary', 'all', '--cache-dir', str(ROOT / '.zig-cache')],
             ROOT / 'src/integrations/riscv_cuda')
         run('unit-python', [sys.executable, '-m', 'unittest',
                             'scripts.tests.test_rv64_gate', 'scripts.tests.test_rv64_m7_composed_cells',
-                            'scripts.tests.test_rv64_quiet_checkpoint'])
+                            'scripts.tests.test_rv64_quiet_checkpoint',
+                            'scripts.tests.test_rv64_validation',
+                            'scripts.tests.test_rv64_gpu_activity',
+                            'scripts.tests.test_rv64_m8_bench15',
+                            'scripts.tests.test_dev_test',
+                            'scripts.tests.test_ci', 'scripts.tests.test_ci_package_graph',
+                            'scripts.tests.test_focused_ci_contract'])
         bins = Path('/workspace/m3/build') / args.stream / 'zig-out/bin'
         assets.update(driver=str(bins / 'rv64-word16-ethereum-gpu-combined'),
                       receiver=str(bins / 'rv64-word16-ethereum-recursion-receiver'))
         manifest = {'source_root': str(ROOT), 'assets': assets, 'block': args.block,
                     'preset': json.loads(stack.DEFAULT_PRESET.read_text())}
+        effective_env = {**stack.arm_environment(manifest['preset'], 'baseline', assets), **extra_env}
+        jobs_environment(runtime, effective_env)
         receipt['preset'] = manifest['preset']
         receipt['preset_sha256'] = stack.sha(stack.DEFAULT_PRESET)
         receipt['asset_sha256'] = {name: stack.sha(path) for name, path in assets.items()}
@@ -152,6 +154,12 @@ def main():
         argv, tag = stack.command(manifest, 'baseline', 0, args.stream, False, label)
         # Keep quiet observations but do not call correctness walls matched timings.
         argv += ['--quiet-mode', 'diagnostic', '--request-timeout', '240']
+        if args.nsys:
+            argv += ['--nsys']
+        if args.nsys_root:
+            if not args.nsys:
+                raise RuntimeError('--nsys-root requires --nsys')
+            argv += ['--nsys-root', str(args.nsys_root)]
         for key, value in sorted(extra_env.items()):
             argv += ['--env', f'{key}={value}']
         run('small-block-proof', argv)
@@ -168,8 +176,9 @@ def main():
         run('fresh-cpu-receiver', [sys.executable, 'scripts/rv64_m4_resident.py', 'receive',
                                     '--run', str(service), '--which', 'all'])
         verified = json.loads((service / 'receipt.json').read_text())
-        if len(verified['receivers']) != 2 or not all(r.get('accepted') for r in verified['receivers']):
-            raise RuntimeError('fresh CPU receivers did not accept both proofs')
+        receipt['receiver_acceptance'] = validate_receivers(
+            verified.get('receivers'), [r['proof'] for r in verified['requests']],
+            receipt['asset_sha256']['receiver'])
         receipt['receivers'] = verified['receivers']
         donor_block = 24628607 if args.block == 26235156 else 26235156
         donor = args.donor or Path(f'/workspace/m3/runs/m7-fold-v3/daemon-{donor_block}-r2-combined-d2-coalesce-v1')
@@ -180,19 +189,24 @@ def main():
                                '--receiver', assets['receiver'], '--jobs', '1', '--cases', ','.join(CASES),
                                '--work', str(out / 'corpus-work'), '--out', str(out / 'corpus.json')],
             environment=corpus_env)
-        check_corpus(json.loads((out / 'corpus.json').read_text()))
+        receipt['corpus_acceptance'] = check_corpus(json.loads((out / 'corpus.json').read_text()), receipt['asset_sha256']['receiver'])
+        validate_assets(assets, receipt['asset_sha256'])
+        jobs_environment(runtime, effective_env)
         if stack.source_hashes(ROOT) != receipt['source_sha256']:
             raise RuntimeError('source changed during gate; rebuild and rerun')
         if stack.sha(stack.DEFAULT_PRESET) != receipt['preset_sha256']:
             raise RuntimeError('preset changed during gate; rerun')
-        receipt['status'] = 'PASS'
+        receipt['status'] = receipt['corpus_acceptance']['status']
     except BaseException as error:
         receipt.update(status='FAIL', error=str(error))
         raise
     finally:
         stack.write(out / 'gate.json', receipt)
-    print('GATE PASS ' + str(out), flush=True)
+    print('GATE ' + receipt['status'] + ' ' + str(out), flush=True)
+    # A resource-only rejection is preserved evidence, not a green semantic
+    # gate. Exit 3 distinguishes incomplete coverage from an execution error.
+    return 0 if receipt['status'] == 'PASS' else 3
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

@@ -139,7 +139,7 @@ fn checkManifest(expected: Manifest.ExpectedWorker, pending: *const Manifest.Pen
         !std.meta.eql(entry.mass, expected.mass) or !std.meta.eql(entry.global_relations, expected.global_relations) or
         !std.mem.eql(u8, &entry.scope.statement, &expected.statement) or !std.mem.eql(u8, &entry.scope.fixed, &expected.fixed)) return error.WideCpuManifestMismatch;
 }
-fn publicClaims(request: P.Request, plan: *const Components.Plan, shared: Manifest.Shared, claims: []const O) !void {
+pub fn publicClaims(request: P.Request, plan: *const Components.Plan, shared: Manifest.Shared, claims: []const O) !void {
     if (claims.len != plan.claim_count) return error.InvalidWideCpuClaims;
     for (claims) |value| for (value.toM31Array()) |coordinate| if (coordinate.v >= core.fields.m31.Modulus) return error.NoncanonicalWideCpuClaim;
     for (plan.slots) |slot| switch (slot.origin) {

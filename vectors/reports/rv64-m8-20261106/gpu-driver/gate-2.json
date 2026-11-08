@@ -1,0 +1,10 @@
+{
+  "schema": "rv64-m8-stream-gate-receipt/v1",
+  "stream": "m8-gpu-driver",
+  "source_commit": "9a6392a14",
+  "out": "/workspace/m3/runs/m8-gpu-driver/gate-2",
+  "status": "INCOMPLETE",
+  "steps": {"build": "PASS", "unit-zig": "PASS", "unit-python": "PASS", "small-block-proof": "BLOCKED"},
+  "blocker": "service exited before READY: GpuPcsInitializationFailed; orphan combined-serve pid 3302210 (m8-native-hybrid) still holds 30.1 GB per GPU outside gpu.lock [M]; not owned by this stream, not touched",
+  "default_path_change": "none reachable: GPU-native code is behind STWO_RV64_M8_GPU_NATIVE=1; worker.zig pipeline-path change is park() refusing only plan-installed workers and the unpark epoch skipping plan epochs (both 0 unless installPlanArena ran)"
+}

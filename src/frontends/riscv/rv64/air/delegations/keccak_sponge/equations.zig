@@ -215,22 +215,22 @@ pub fn emitRawWithFirstFor(comptime F: type, comptime kind: L.Kind, f: []const F
                 sink.emit(IO, ioTuple(F, last_id, one, l, bytes8(F, m, C.new + 8 * l)), a.neg());
             }
             inline for (.{ m[C.tick_low], m[C.in_q0], m[C.q], m[C.len1].mul(q(F, 4096)) }) |v| {
-                sink.emit(RANGE16, [1]F{ v }, one);
+                sink.emit(RANGE16, [1]F{v}, one);
             }
             for (0..4) |k| {
-                sink.emit(RANGE16, [1]F{ m[C.pclock + L.CLOCK * k + L.clock.gap16] }, one);
+                sink.emit(RANGE16, [1]F{m[C.pclock + L.CLOCK * k + L.clock.gap16]}, one);
             }
             for (0..T.LANES) |l| {
-                sink.emit(RANGE16, [1]F{ m[C.sclock + L.CLOCK * l + L.clock.gap16] }, one);
+                sink.emit(RANGE16, [1]F{m[C.sclock + L.CLOCK * l + L.clock.gap16]}, one);
             }
             inline for (.{ m[C.tick_high], m[C.r], m[C.r].add(q(F, 120)), m[C.e], m[C.e].add(q(F, 248)) }) |v| {
-                sink.emit(RANGE8, [1]F{ v }, one);
+                sink.emit(RANGE8, [1]F{v}, one);
             }
             for (0..4) |k| {
-                sink.emit(RANGE8, [1]F{ m[C.pclock + L.CLOCK * k + L.clock.gap8] }, one);
+                sink.emit(RANGE8, [1]F{m[C.pclock + L.CLOCK * k + L.clock.gap8]}, one);
             }
             for (0..T.LANES) |l| {
-                sink.emit(RANGE8, [1]F{ m[C.sclock + L.CLOCK * l + L.clock.gap8] }, one);
+                sink.emit(RANGE8, [1]F{m[C.sclock + L.CLOCK * l + L.clock.gap8]}, one);
             }
         },
         .perm => {
@@ -258,13 +258,13 @@ pub fn emitRawWithFirstFor(comptime F: type, comptime kind: L.Kind, f: []const F
                 emitRamPairRaw(F, sink, permSlotAddress(F, m, j), m[P.wclock + L.CLOCK * j ..][0..L.CLOCK], after, v, v, one, m[P.wwritable + j], m[P.read + j]);
             }
             for (0..T.SLOTS) |j| {
-                sink.emit(RANGE16, [1]F{ m[P.wclock + L.CLOCK * j + L.clock.gap16] }, one);
+                sink.emit(RANGE16, [1]F{m[P.wclock + L.CLOCK * j + L.clock.gap16]}, one);
             }
             for (0..T.SLOTS) |j| {
-                sink.emit(RANGE8, [1]F{ m[P.wclock + L.CLOCK * j + L.clock.gap8] }, one);
+                sink.emit(RANGE8, [1]F{m[P.wclock + L.CLOCK * j + L.clock.gap8]}, one);
             }
             for (0..T.SLOTS) |j| for (0..4) |i| {
-                sink.emit(RANGE8, [1]F{ m[P.window + 8 * j + 2 * i + 1] }, one);
+                sink.emit(RANGE8, [1]F{m[P.window + 8 * j + 2 * i + 1]}, one);
             };
         },
     }

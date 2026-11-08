@@ -232,7 +232,6 @@ test "cache decoder refuses truncation overflow trailing and noncanonical words"
     }
 }
 
-
 test "parallel block boundaries roundtrip independently and reject corrupt lengths" {
     const a = std.testing.allocator;
     if (native() == null) return error.SkipZigTest;

@@ -345,7 +345,9 @@ fn take(words: []const u32, at: *usize) !O {
 pub const CodecVersion = enum(u32) {
     v1 = 1,
     v2 = 2,
-    fn capacity(self: CodecVersion) usize { return if (self == .v1) 64 else 128; }
+    fn capacity(self: CodecVersion) usize {
+        return if (self == .v1) 64 else 128;
+    }
 };
 pub fn encode(a: std.mem.Allocator, roster: *const R.Roster, section: *const Section) ![]u32 {
     return encodeVersion(a, roster, section, .v1);

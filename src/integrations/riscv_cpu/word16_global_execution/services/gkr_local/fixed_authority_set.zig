@@ -131,8 +131,12 @@ pub fn emitGkrExecutionIdentity(base: anytype, config: W.PcsConfig, writer: anyt
 pub fn gkrExecutionIdentity(base: [32]u8, config: W.PcsConfig) ![32]u8 {
     var writer = struct {
         channel: W.Channel,
-        pub fn constantDigest(self: *@This(), value: [32]u8) void { W.digest(&self.channel, value); }
-        pub fn publicDigest(self: *@This(), value: [32]u8) void { W.digest(&self.channel, value); }
+        pub fn constantDigest(self: *@This(), value: [32]u8) void {
+            W.digest(&self.channel, value);
+        }
+        pub fn publicDigest(self: *@This(), value: [32]u8) void {
+            W.digest(&self.channel, value);
+        }
     }{ .channel = W.Channel.init() };
     try emitGkrExecutionIdentity(base, config, &writer);
     return writer.channel.digestBytes();

@@ -532,10 +532,10 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     const verify_ns = timer.read() - verify_start;
     const bytes = try final.proof.serialize(a);
     defer a.free(bytes);
-    if (existing_only) try @import("publication.zig").requireBytes(a, dir, "root.proof", bytes) else try dir.writeFile(.{ .sub_path = "root.proof", .data = bytes });
+    if (existing_only) try @import("publication.zig").requireBytes(dir, "root.proof", bytes) else try dir.writeFile(.{ .sub_path = "root.proof", .data = bytes });
     const tree = try std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes.items, .root = final.node, .cpu_frames = cpus, .truth_frames = truth_frames }, .{ .whitespace = .indent_2 });
     defer a.free(tree);
-    if (existing_only) try @import("publication.zig").requireBytes(a, dir, "tree.json", tree) else try dir.writeFile(.{ .sub_path = "tree.json", .data = tree });
+    if (existing_only) try @import("publication.zig").requireBytes(dir, "tree.json", tree) else try dir.writeFile(.{ .sub_path = "tree.json", .data = tree });
     const trace_only_backend = factory != null and factory.?.prepare_from_circuit != null;
     const report = Report{ .outer_shape = @tagName(Outer.shape()), .outer_backend = if (existing_only) "cpu_trace_only_receiver" else if (trace_only_backend) "cuda_trace_only" else if (factory != null) "cuda_from_host_assignment" else "cpu", .assignment_source = if (existing_only) "none_receiver_trace_only" else if (trace_only_backend) "gpu_original_circuit_dag" else "cpu_circuit_builder", .gpu_new_leaf_proofs = if (factory != null) n - restored_leaves else 0, .gpu_new_fold_proofs = if (factory != null) n - 1 - restored_folds else 0, .leaf_proofs = n, .restored_leaves = restored_leaves, .fold_proofs = n - 1, .restored_folds = restored_folds, .peak_pending_authorities = peak_pending, .retired_preprocessed_bytes = retired_bytes, .root_node = final.node, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = graph_ns, .wrap_ns = wrap_ns, .fold_ns = fold_ns, .root_verify_ns = verify_ns, .total_ns = timer.read(), .root_proof_bytes = bytes.len };
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
@@ -766,7 +766,7 @@ const SchedulerInfo = struct { options: ParallelOptions, budget: *SharedBudget }
 /// tree.json for every planned route. Binary trees keep schema 2 byte for
 /// byte; k-ary trees publish schema 3 with ordered child lists, the arity and
 /// the outer profile name.
-fn treeJson(a: std.mem.Allocator, plan: *const Dag.Plan, nodes: []const Node, frames: Root.Frames) ![]u8 {
+pub fn treeJson(a: std.mem.Allocator, plan: *const Dag.Plan, nodes: []const Node, frames: Root.Frames) ![]u8 {
     if (plan.arity == 2) return std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes, .root = plan.root, .cpu_frames = frames.cpus, .truth_frames = frames.truths }, .{ .whitespace = .indent_2 });
     const wide = try a.alloc(WideNode, plan.count);
     defer a.free(wide);
@@ -791,10 +791,10 @@ fn finishPlanned(shared: *ParallelExecution, plan: *const Dag.Plan, backend: []c
     const bytes = try final.proof.serialize(a);
     defer a.free(bytes);
     const Pub = @import("publication.zig");
-    if (input.existing_only) try Pub.requireBytes(a, input.dir, "root.proof", bytes) else try Pub.write(input.dir, "root.proof", bytes);
+    if (input.existing_only) try Pub.requireBytes(input.dir, "root.proof", bytes) else try Pub.write(input.dir, "root.proof", bytes);
     const tree = try treeJson(a, plan, nodes, input.frames);
     defer a.free(tree);
-    if (input.existing_only) try Pub.requireBytes(a, input.dir, "tree.json", tree) else try Pub.write(input.dir, "tree.json", tree);
+    if (input.existing_only) try Pub.requireBytes(input.dir, "tree.json", tree) else try Pub.write(input.dir, "tree.json", tree);
     const n = input.inventory.workers.len;
     const folds = plan.count - n;
     const from_gpu = scheduler_info != null or input.factory != null;

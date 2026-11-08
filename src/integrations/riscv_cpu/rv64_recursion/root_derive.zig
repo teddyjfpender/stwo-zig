@@ -359,7 +359,7 @@ pub fn verifyTree(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth
     _ = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, frames, .{});
     const bytes = try final.serialize(a);
     defer a.free(bytes);
-    try Publication.requireBytes(a, dir, "root.proof", bytes);
+    try Publication.requireBytes(dir, "root.proof", bytes);
     const root_ns = timer.read();
     return .{ .root_digest = final.digest, .root_authority = final.effectiveIdentity(), .fold_proofs = plan.count - n, .fold_class_builds = builds, .fold_class_restores = restores, .lanes = lanes, .leaves_ns = leaves_ns, .folds_ns = folds_ns, .total_ns = start_ns + leaves_ns + folds_ns + root_ns };
 }

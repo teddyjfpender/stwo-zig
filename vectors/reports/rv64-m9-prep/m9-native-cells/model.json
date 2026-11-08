@@ -1,0 +1,1682 @@
+{
+ "labels": "M measured, D derived, E estimate",
+ "inputs": {
+  "blocks": "vectors/reports/rv64-m9-prep/m9-native-cells/blocks.json"
+ },
+ "reconciliation_24628607_current": {
+  "declared_inter_equals_measured_tree2": true,
+  "native_proofs": 14,
+  "main": 2722931296,
+  "inter": 1909017344,
+  "main_plus_inter": 4631948640,
+  "measured_pcs_coefficient_cells": 5537577472,
+  "pcs_minus_main_inter": 905628832,
+  "label": "M"
+ },
+ "blocks": [
+  {
+   "block": "24626900",
+   "gas": 16338083,
+   "minstr": 49.123899,
+   "today": {
+    "main": 5123296672,
+    "inter": 3514785792,
+    "cells": 8638082464,
+    "cols": 97470
+   },
+   "logup3": {
+    "main": 5123296672,
+    "inter": 3191807488,
+    "cells": 8315104160,
+    "cols": 89902
+   },
+   "v1": {
+    "main": 5123296672,
+    "inter": 1580409344,
+    "cells": 6703706016,
+    "cols": 68334
+   },
+   "v2share": {
+    "main": 5123296672,
+    "inter": 1318490112,
+    "cells": 6441786784,
+    "cols": 64270
+   },
+   "cpu_cells_today": 5316750240,
+   "truth_cells_today": 3321332224,
+   "cpu_cells_per_instr_today": 108.23143822521091,
+   "cells_per_instr_today": 175.84276980945668,
+   "cells_per_gas_today": 528.7084454155362
+  },
+  {
+   "block": "24628590",
+   "gas": 49134719,
+   "minstr": 157.621394,
+   "today": {
+    "main": 15173745920,
+    "inter": 10159125760,
+    "cells": 25332871680,
+    "cols": 264469
+   },
+   "logup3": {
+    "main": 15173745920,
+    "inter": 9353102080,
+    "cells": 24526848000,
+    "cols": 243805
+   },
+   "v1": {
+    "main": 15173745920,
+    "inter": 5047101440,
+    "cells": 20220847360,
+    "cols": 183253
+   },
+   "v2share": {
+    "main": 15173745920,
+    "inter": 4249432064,
+    "cells": 19423177984,
+    "cols": 171045
+   },
+   "cpu_cells_today": 16924800512,
+   "truth_cells_today": 8408071168,
+   "cpu_cells_per_instr_today": 107.37628999779052,
+   "cells_per_instr_today": 160.719754070948,
+   "cells_per_gas_today": 515.5798627850095
+  },
+  {
+   "block": "24628595",
+   "gas": 54230474,
+   "minstr": 172.79537,
+   "today": {
+    "main": 16746642528,
+    "inter": 11357337856,
+    "cells": 28103980384,
+    "cols": 292722
+   },
+   "logup3": {
+    "main": 16746642528,
+    "inter": 10410408704,
+    "cells": 27157051232,
+    "cols": 267282
+   },
+   "v1": {
+    "main": 16746642528,
+    "inter": 5528029696,
+    "cells": 22274672224,
+    "cols": 195682
+   },
+   "v2share": {
+    "main": 16746642528,
+    "inter": 4659466240,
+    "cells": 21406108768,
+    "cols": 182786
+   },
+   "cpu_cells_today": 18425883232,
+   "truth_cells_today": 9678097152,
+   "cpu_cells_per_instr_today": 106.63412585649719,
+   "cells_per_instr_today": 162.64313322747014,
+   "cells_per_gas_today": 518.2322467622171
+  },
+  {
+   "block": "24628607",
+   "gas": 7372614,
+   "minstr": 26.894777,
+   "today": {
+    "main": 2703036256,
+    "inter": 1854051072,
+    "cells": 4557087328,
+    "cols": 84835
+   },
+   "logup3": {
+    "main": 2703036256,
+    "inter": 1706483712,
+    "cells": 4409519968,
+    "cols": 74035
+   },
+   "v1": {
+    "main": 2703036256,
+    "inter": 903384064,
+    "cells": 3606420320,
+    "cols": 47659
+   },
+   "v2share": {
+    "main": 2703036256,
+    "inter": 732320256,
+    "cells": 3435356512,
+    "cols": 45259
+   },
+   "cpu_cells_today": 2859490144,
+   "truth_cells_today": 1697597184,
+   "cpu_cells_per_instr_today": 106.32139258860559,
+   "cells_per_instr_today": 169.44135019226968,
+   "cells_per_gas_today": 618.11012050814
+  },
+  {
+   "block": "24628608",
+   "gas": 12907474,
+   "minstr": 38.600821,
+   "today": {
+    "main": 3807592512,
+    "inter": 2597746688,
+    "cells": 6405339200,
+    "cols": 96343
+   },
+   "logup3": {
+    "main": 3807592512,
+    "inter": 2385071104,
+    "cells": 6192663616,
+    "cols": 85071
+   },
+   "v1": {
+    "main": 3807592512,
+    "inter": 1261628416,
+    "cells": 5069220928,
+    "cols": 57031
+   },
+   "v2share": {
+    "main": 3807592512,
+    "inter": 1054530560,
+    "cells": 4862123072,
+    "cols": 53783
+   },
+   "cpu_cells_today": 4104660800,
+   "truth_cells_today": 2300678400,
+   "cpu_cells_per_instr_today": 106.33610098603862,
+   "cells_per_instr_today": 165.9379006472427,
+   "cells_per_gas_today": 496.2504049979105
+  },
+  {
+   "block": "24628611",
+   "gas": 58862996,
+   "minstr": 187.659496,
+   "today": {
+    "main": 18129797376,
+    "inter": 12136429312,
+    "cells": 30266226688,
+    "cols": 307618
+   },
+   "logup3": {
+    "main": 18129797376,
+    "inter": 11153687552,
+    "cells": 29283484928,
+    "cols": 284738
+   },
+   "v1": {
+    "main": 18129797376,
+    "inter": 5985603584,
+    "cells": 24115400960,
+    "cols": 216426
+   },
+   "v2share": {
+    "main": 18129797376,
+    "inter": 5023892992,
+    "cells": 23153690368,
+    "cols": 202314
+   },
+   "cpu_cells_today": 20068123648,
+   "truth_cells_today": 10198103040,
+   "cpu_cells_per_instr_today": 106.93902560625017,
+   "cells_per_instr_today": 161.28268130913023,
+   "cells_per_gas_today": 514.1808732943189
+  },
+  {
+   "block": "24647140",
+   "gas": 7704951,
+   "minstr": 24.59826,
+   "today": {
+    "main": 2703701216,
+    "inter": 1950871040,
+    "cells": 4654572256,
+    "cols": 72599
+   },
+   "logup3": {
+    "main": 2703701216,
+    "inter": 1781314816,
+    "cells": 4485016032,
+    "cols": 64959
+   },
+   "v1": {
+    "main": 2703701216,
+    "inter": 915608576,
+    "cells": 3619309792,
+    "cols": 44319
+   },
+   "v2share": {
+    "main": 2703701216,
+    "inter": 778604544,
+    "cells": 3482305760,
+    "cols": 42175
+   },
+   "cpu_cells_today": 2754011616,
+   "truth_cells_today": 1900560640,
+   "cpu_cells_per_instr_today": 111.95961080173963,
+   "cells_per_instr_today": 189.2236384199533,
+   "cells_per_gas_today": 604.1014739743316
+  },
+  {
+   "block": "24697070",
+   "gas": 17435221,
+   "minstr": 57.790096,
+   "today": {
+    "main": 5885018528,
+    "inter": 4054863616,
+    "cells": 9939882144,
+    "cols": 143047
+   },
+   "logup3": {
+    "main": 5885018528,
+    "inter": 3702659072,
+    "cells": 9587677600,
+    "cols": 124879
+   },
+   "v1": {
+    "main": 5885018528,
+    "inter": 1929712128,
+    "cells": 7814730656,
+    "cols": 80175
+   },
+   "v2share": {
+    "main": 5885018528,
+    "inter": 1632922624,
+    "cells": 7517941152,
+    "cols": 75567
+   },
+   "cpu_cells_today": 6426279328,
+   "truth_cells_today": 3513602816,
+   "cpu_cells_per_instr_today": 111.20035737611511,
+   "cells_per_instr_today": 171.99975137608354,
+   "cells_per_gas_today": 570.1035934101437
+  },
+  {
+   "block": "24697073",
+   "gas": 22277128,
+   "minstr": 60.386659,
+   "today": {
+    "main": 6262839008,
+    "inter": 4402342912,
+    "cells": 10665181920,
+    "cols": 116346
+   },
+   "logup3": {
+    "main": 6262839008,
+    "inter": 3972372992,
+    "cells": 10235212000,
+    "cols": 105898
+   },
+   "v1": {
+    "main": 6262839008,
+    "inter": 2004531712,
+    "cells": 8267370720,
+    "cols": 76914
+   },
+   "v2share": {
+    "main": 6262839008,
+    "inter": 1663227392,
+    "cells": 7926066400,
+    "cols": 72226
+   },
+   "cpu_cells_today": 6677741792,
+   "truth_cells_today": 3987440128,
+   "cpu_cells_per_instr_today": 110.58306424934024,
+   "cells_per_instr_today": 176.61486985064036,
+   "cells_per_gas_today": 478.75030928582896
+  },
+  {
+   "block": "25229951",
+   "gas": 57944048,
+   "minstr": 165.910998,
+   "today": {
+    "main": 14799379232,
+    "inter": 9705615616,
+    "cells": 24504994848,
+    "cols": 236297
+   },
+   "logup3": {
+    "main": 14799379232,
+    "inter": 9013930496,
+    "cells": 23813309728,
+    "cols": 219633
+   },
+   "v1": {
+    "main": 14799379232,
+    "inter": 5119438336,
+    "cells": 19918817568,
+    "cols": 168201
+   },
+   "v2share": {
+    "main": 14799379232,
+    "inter": 4226878464,
+    "cells": 19026257696,
+    "cols": 156345
+   },
+   "cpu_cells_today": 17310250016,
+   "truth_cells_today": 7194744832,
+   "cpu_cells_per_instr_today": 104.33455421683378,
+   "cells_per_instr_today": 147.69964103283857,
+   "cells_per_gas_today": 422.90788603516273
+  },
+  {
+   "block": "25229955",
+   "gas": 39102791,
+   "minstr": 122.476661,
+   "today": {
+    "main": 11219453632,
+    "inter": 7448952320,
+    "cells": 18668405952,
+    "cols": 197935
+   },
+   "logup3": {
+    "main": 11219453632,
+    "inter": 6910231040,
+    "cells": 18129684672,
+    "cols": 179175
+   },
+   "v1": {
+    "main": 11219453632,
+    "inter": 3888205824,
+    "cells": 15107659456,
+    "cols": 127679
+   },
+   "v2share": {
+    "main": 11219453632,
+    "inter": 3252393984,
+    "cells": 14471847616,
+    "cols": 118655
+   },
+   "cpu_cells_today": 13111942848,
+   "truth_cells_today": 5556463104,
+   "cpu_cells_per_instr_today": 107.05666484490462,
+   "cells_per_instr_today": 152.42419085869756,
+   "cells_per_gas_today": 477.4187589832143
+  },
+  {
+   "block": "25229957",
+   "gas": 9768139,
+   "minstr": 27.077168,
+   "today": {
+    "main": 2959724672,
+    "inter": 2112738304,
+    "cells": 5072462976,
+    "cols": 82751
+   },
+   "logup3": {
+    "main": 2959724672,
+    "inter": 1926932480,
+    "cells": 4886657152,
+    "cols": 73039
+   },
+   "v1": {
+    "main": 2959724672,
+    "inter": 985767936,
+    "cells": 3945492608,
+    "cols": 48031
+   },
+   "v2share": {
+    "main": 2959724672,
+    "inter": 801208832,
+    "cells": 3760933504,
+    "cols": 45551
+   },
+   "cpu_cells_today": 2999542912,
+   "truth_cells_today": 2072920064,
+   "cpu_cells_per_instr_today": 110.77757142105851,
+   "cells_per_instr_today": 187.33358584620075,
+   "cells_per_gas_today": 519.2865269423378
+  },
+  {
+   "block": "26235156",
+   "gas": 5443474,
+   "minstr": 15.305679,
+   "today": {
+    "main": 1823866752,
+    "inter": 1350073088,
+    "cells": 3173939840,
+    "cols": 52716
+   },
+   "logup3": {
+    "main": 1823866752,
+    "inter": 1218347520,
+    "cells": 3042214272,
+    "cols": 47332
+   },
+   "v1": {
+    "main": 1823866752,
+    "inter": 611691520,
+    "cells": 2435558272,
+    "cols": 32756
+   },
+   "v2share": {
+    "main": 1823866752,
+    "inter": 486359040,
+    "cells": 2310225792,
+    "cols": 31380
+   },
+   "cpu_cells_today": 1829824896,
+   "truth_cells_today": 1344114944,
+   "cpu_cells_per_instr_today": 119.5520235332258,
+   "cells_per_instr_today": 207.3700774725512,
+   "cells_per_gas_today": 583.0724717340433
+  },
+  {
+   "block": "26235159",
+   "gas": 57734946,
+   "minstr": 204.825818,
+   "today": {
+    "main": 18610562336,
+    "inter": 12260704000,
+    "cells": 30871266336,
+    "cols": 330381
+   },
+   "logup3": {
+    "main": 18610562336,
+    "inter": 11362735104,
+    "cells": 29973297440,
+    "cols": 302725
+   },
+   "v1": {
+    "main": 18610562336,
+    "inter": 6445428736,
+    "cells": 25055991072,
+    "cols": 224541
+   },
+   "v2share": {
+    "main": 18610562336,
+    "inter": 5441223168,
+    "cells": 24051785504,
+    "cols": 209613
+   },
+   "cpu_cells_today": 21831809568,
+   "truth_cells_today": 9039456768,
+   "cpu_cells_per_instr_today": 106.58719579970138,
+   "cells_per_instr_today": 150.71960477169924,
+   "cells_per_gas_today": 534.7067673017309
+  },
+  {
+   "block": "26235168",
+   "gas": 29142059,
+   "minstr": 113.375897,
+   "today": {
+    "main": 10571815232,
+    "inter": 7058830592,
+    "cells": 17630645824,
+    "cols": 220567
+   },
+   "logup3": {
+    "main": 10571815232,
+    "inter": 6546312448,
+    "cells": 17118127680,
+    "cols": 198351
+   },
+   "v1": {
+    "main": 10571815232,
+    "inter": 3711971328,
+    "cells": 14283786560,
+    "cols": 139423
+   },
+   "v2share": {
+    "main": 10571815232,
+    "inter": 3140490240,
+    "cells": 13712305472,
+    "cols": 130671
+   },
+   "cpu_cells_today": 12486825280,
+   "truth_cells_today": 5143820544,
+   "cpu_cells_per_instr_today": 110.1365070566983,
+   "cells_per_instr_today": 155.50611982368704,
+   "cells_per_gas_today": 604.9897100270094
+  },
+  {
+   "block": "current-24628607",
+   "gas": 7372614,
+   "minstr": 26.894777,
+   "today": {
+    "main": 2722931296,
+    "inter": 1909017344,
+    "cells": 4631948640,
+    "cols": 65362
+   },
+   "logup3": {
+    "main": 2722931296,
+    "inter": 1743255552,
+    "cells": 4466186848,
+    "cols": 59290
+   },
+   "v1": {
+    "main": 2722931296,
+    "inter": 903576576,
+    "cells": 3626507872,
+    "cols": 42426
+   },
+   "v2share": {
+    "main": 2722931296,
+    "inter": 732512768,
+    "cells": 3455444064,
+    "cols": 40026
+   },
+   "cpu_cells_today": 2859490144,
+   "truth_cells_today": 1772458496,
+   "cpu_cells_per_instr_today": 106.32139258860559,
+   "cells_per_instr_today": 172.2248390458861,
+   "cells_per_gas_today": 628.2640919489343
+  }
+ ],
+ "components_basket": [
+  {
+   "component": "core.cpu",
+   "klass": "cpu core row (every instruction)",
+   "main_cols": 37.0,
+   "main": 53118369792.0,
+   "binding": 22970105856.0,
+   "classic": 0.0,
+   "today": 76088475648.0,
+   "today_share": 0.33301308918339256,
+   "cells_per_instr_today": 53.41630098355224,
+   "v1_main_plus_binding": 76088475648.0,
+   "v1_cells_per_instr": 53.41630098355224
+  },
+  {
+   "component": "truth.keccak",
+   "klass": "keccak truth",
+   "main_cols": 1925.0,
+   "main": 33579434496.0,
+   "binding": 0.0,
+   "classic": 30328492032.0,
+   "today": 63907926528.0,
+   "today_share": 0.27970301488033517,
+   "cells_per_instr_today": 44.865204744631015,
+   "v1_main_plus_binding": 33579434496.0,
+   "v1_cells_per_instr": 23.573729984994912
+  },
+  {
+   "component": "dword.0",
+   "klass": "LS-D64 (aligned dword load/store)",
+   "main_cols": 39.0,
+   "main": 15346925568.0,
+   "binding": 6296174592.0,
+   "classic": 6296174592.0,
+   "today": 27939274752.0,
+   "today_share": 0.12228059657483288,
+   "cells_per_instr_today": 19.614175428079065,
+   "v1_main_plus_binding": 21643100160.0,
+   "v1_cells_per_instr": 15.194079556962656
+  },
+  {
+   "component": "core.ls",
+   "klass": "LS32 (sub-dword load/store)",
+   "main_cols": 70.0,
+   "main": 5635692160.0,
+   "binding": 1288158208.0,
+   "classic": 1288158208.0,
+   "today": 8212008576.0,
+   "today_share": 0.03594113722221947,
+   "cells_per_instr_today": 5.765066497118849,
+   "v1_main_plus_binding": 6923850368.0,
+   "v1_cells_per_instr": 4.8607423407080494
+  },
+  {
+   "component": "dword.1",
+   "klass": "LS-D64 (aligned dword load/store)",
+   "main_cols": 39.0,
+   "main": 4077305856.0,
+   "binding": 1672740864.0,
+   "classic": 1672740864.0,
+   "today": 7422787584.0,
+   "today_share": 0.0324869883730539,
+   "cells_per_instr_today": 5.2110106339650475,
+   "v1_main_plus_binding": 5750046720.0,
+   "v1_cells_per_instr": 4.036698378423629
+  },
+  {
+   "component": "core.alu",
+   "klass": "ALU / compare / branch FUNCTION",
+   "main_cols": 47.0,
+   "main": 5380132864.0,
+   "binding": 1831534592.0,
+   "classic": 0.0,
+   "today": 7211667456.0,
+   "today_share": 0.031562988182284916,
+   "cells_per_instr_today": 5.062798224596974,
+   "v1_main_plus_binding": 7211667456.0,
+   "v1_cells_per_instr": 5.062798224596974
+  },
+  {
+   "component": "truth.add",
+   "klass": "secp add/double (bridge + truth)",
+   "main_cols": 1869.0,
+   "main": 1382282496.0,
+   "binding": 0.0,
+   "classic": 3792586752.0,
+   "today": 5174869248.0,
+   "today_share": 0.02264862293166359,
+   "cells_per_instr_today": 3.6329072300052374,
+   "v1_main_plus_binding": 1382282496.0,
+   "v1_cells_per_instr": 0.970402117032984
+  },
+  {
+   "component": "truth.double",
+   "klass": "secp add/double (bridge + truth)",
+   "main_cols": 1447.0,
+   "main": 1006463744.0,
+   "binding": 0.0,
+   "classic": 2804465664.0,
+   "today": 3810929408.0,
+   "today_share": 0.016679127344973635,
+   "cells_per_instr_today": 2.6753821856877917,
+   "v1_main_plus_binding": 1006463744.0,
+   "v1_cells_per_instr": 0.7065665308797654
+  },
+  {
+   "component": "core.multiplication",
+   "klass": "MUL / DIV",
+   "main_cols": 87.0,
+   "main": 2628496896.0,
+   "binding": 483401728.0,
+   "classic": 0.0,
+   "today": 3111898624.0,
+   "today_share": 0.013619710017558066,
+   "cells_per_instr_today": 2.1846424457086013,
+   "v1_main_plus_binding": 3111898624.0,
+   "v1_cells_per_instr": 2.1846424457086013
+  },
+  {
+   "component": "sponge.perm",
+   "klass": "keccak bridge + sponge",
+   "main_cols": 973.0,
+   "main": 1594785920.0,
+   "binding": 26224640.0,
+   "classic": 590054400.0,
+   "today": 2211064960.0,
+   "today_share": 0.009677070889435126,
+   "cells_per_instr_today": 1.5522312727610854,
+   "v1_main_plus_binding": 1621010560.0,
+   "v1_cells_per_instr": 1.13799609248385
+  },
+  {
+   "component": "core.initial",
+   "klass": "memory image (initial/terminal)",
+   "main_cols": 14.0,
+   "main": 851592448.0,
+   "binding": 0.0,
+   "classic": 973248512.0,
+   "today": 1824840960.0,
+   "today_share": 0.007986701273518824,
+   "cells_per_instr_today": 1.2810909028775712,
+   "v1_main_plus_binding": 1824840960.0,
+   "v1_cells_per_instr": 1.2810909028775712
+  },
+  {
+   "component": "core.terminal",
+   "klass": "memory image (initial/terminal)",
+   "main_cols": 14.0,
+   "main": 851592448.0,
+   "binding": 0.0,
+   "classic": 973248512.0,
+   "today": 1824840960.0,
+   "today_share": 0.007986701273518824,
+   "cells_per_instr_today": 1.2810909028775712,
+   "v1_main_plus_binding": 1824840960.0,
+   "v1_cells_per_instr": 1.2810909028775712
+  },
+  {
+   "component": "truth.sha256",
+   "klass": "sha256 (bridge + truth)",
+   "main_cols": 7409.0,
+   "main": 1640648960.0,
+   "binding": 0.0,
+   "classic": 3543040.0,
+   "today": 1644192000.0,
+   "today_share": 0.007196062905289819,
+   "cells_per_instr_today": 1.1542701309072325,
+   "v1_main_plus_binding": 1640648960.0,
+   "v1_cells_per_instr": 1.151782814800227
+  },
+  {
+   "component": "bulk.ucopy",
+   "klass": "bulk memory + JUMPDEST services",
+   "main_cols": 56.0,
+   "main": 940543744.0,
+   "binding": 268726784.0,
+   "classic": 403090176.0,
+   "today": 1612360704.0,
+   "today_share": 0.007056748270275843,
+   "cells_per_instr_today": 1.1319236444866279,
+   "v1_main_plus_binding": 1209270528.0,
+   "v1_cells_per_instr": 0.8489427333649708
+  },
+  {
+   "component": "core.alu_tail",
+   "klass": "ALU / compare / branch FUNCTION",
+   "main_cols": 47.0,
+   "main": 1182121440.0,
+   "binding": 402424320.0,
+   "classic": 0.0,
+   "today": 1584545760.0,
+   "today_share": 0.006935011826642062,
+   "cells_per_instr_today": 1.112396752826738,
+   "v1_main_plus_binding": 1584545760.0,
+   "v1_cells_per_instr": 1.112396752826738
+  },
+  {
+   "component": "core.rom",
+   "klass": "cpu control (ROM, boundary, selection)",
+   "main_cols": 1.0,
+   "main": 90963968.0,
+   "binding": 1455423488.0,
+   "classic": 0.0,
+   "today": 1546387456.0,
+   "today_share": 0.006768006053628222,
+   "cells_per_instr_today": 1.085608524594708,
+   "v1_main_plus_binding": 1546387456.0,
+   "v1_cells_per_instr": 1.085608524594708
+  },
+  {
+   "component": "core.shift",
+   "klass": "shift (+ table)",
+   "main_cols": 52.0,
+   "main": 1108410368.0,
+   "binding": 341049344.0,
+   "classic": 0.0,
+   "today": 1449459712.0,
+   "today_share": 0.006343786654013196,
+   "cells_per_instr_today": 1.0175624571309188,
+   "v1_main_plus_binding": 1449459712.0,
+   "v1_cells_per_instr": 1.0175624571309188
+  },
+  {
+   "component": "core.binary",
+   "klass": "bitwise (binary + and table)",
+   "main_cols": 29.0,
+   "main": 877279232.0,
+   "binding": 484016128.0,
+   "classic": 0.0,
+   "today": 1361295360.0,
+   "today_share": 0.005957921607232702,
+   "cells_per_instr_today": 0.9556685432057863,
+   "v1_main_plus_binding": 1361295360.0,
+   "v1_cells_per_instr": 0.9556685432057863
+  },
+  {
+   "component": "bulk.copy",
+   "klass": "bulk memory + JUMPDEST services",
+   "main_cols": 41.0,
+   "main": 628301056.0,
+   "binding": 245190656.0,
+   "classic": 367785984.0,
+   "today": 1241277696.0,
+   "today_share": 0.005432645568978083,
+   "cells_per_instr_today": 0.8714126869940663,
+   "v1_main_plus_binding": 873491712.0,
+   "v1_cells_per_instr": 0.6132163352921207
+  },
+  {
+   "component": "bridge.add",
+   "klass": "secp add/double (bridge + truth)",
+   "main_cols": 134.0,
+   "main": 775561984.0,
+   "binding": 92604416.0,
+   "classic": 324115456.0,
+   "today": 1192281856.0,
+   "today_share": 0.005218207628191657,
+   "cells_per_instr_today": 0.837016196407377,
+   "v1_main_plus_binding": 868166400.0,
+   "v1_cells_per_instr": 0.609477812917993
+  },
+  {
+   "component": "bulk.set",
+   "klass": "bulk memory + JUMPDEST services",
+   "main_cols": 24.0,
+   "main": 433665024.0,
+   "binding": 289110016.0,
+   "classic": 289110016.0,
+   "today": 1011885056.0,
+   "today_share": 0.004428672877558528,
+   "cells_per_instr_today": 0.7103724480183532,
+   "v1_main_plus_binding": 722775040.0,
+   "v1_cells_per_instr": 0.5074088914416809
+  },
+  {
+   "component": "core.shift_table",
+   "klass": "shift (+ table)",
+   "main_cols": 16.0,
+   "main": 363855872.0,
+   "binding": 363855872.0,
+   "classic": 0.0,
+   "today": 727711744.0,
+   "today_share": 0.00318494402523681,
+   "cells_per_instr_today": 0.5108745998092744,
+   "v1_main_plus_binding": 727711744.0,
+   "v1_cells_per_instr": 0.5108745998092744
+  },
+  {
+   "component": "core.jalr",
+   "klass": "JALR",
+   "main_cols": 17.0,
+   "main": 352129024.0,
+   "binding": 331415552.0,
+   "classic": 0.0,
+   "today": 683544576.0,
+   "today_share": 0.0029916395210934353,
+   "cells_per_instr_today": 0.4798679760152395,
+   "v1_main_plus_binding": 683544576.0,
+   "v1_cells_per_instr": 0.4798679760152395
+  },
+  {
+   "component": "core.ls_tail",
+   "klass": "LS32 (sub-dword load/store)",
+   "main_cols": 70.0,
+   "main": 403356800.0,
+   "binding": 92195840.0,
+   "classic": 92195840.0,
+   "today": 587748480.0,
+   "today_share": 0.0025723729555723876,
+   "cells_per_instr_today": 0.4126163580349052,
+   "v1_main_plus_binding": 495552640.0,
+   "v1_cells_per_instr": 0.3478922234411946
+  },
+  {
+   "component": "bridge.double",
+   "klass": "secp add/double (bridge + truth)",
+   "main_cols": 134.0,
+   "main": 382288064.0,
+   "binding": 45646336.0,
+   "classic": 159762176.0,
+   "today": 587696576.0,
+   "today_share": 0.0025721457896154703,
+   "cells_per_instr_today": 0.41257991993225385,
+   "v1_main_plus_binding": 427934400.0,
+   "v1_cells_per_instr": 0.30042227179533043
+  },
+  {
+   "component": "sponge.call",
+   "klass": "keccak bridge + sponge",
+   "main_cols": 694.0,
+   "main": 290103104.0,
+   "binding": 6688256.0,
+   "classic": 187271168.0,
+   "today": 484062528.0,
+   "today_share": 0.0021185752038579524,
+   "cells_per_instr_today": 0.3398258339426575,
+   "v1_main_plus_binding": 296791360.0,
+   "v1_cells_per_instr": 0.2083560812601786
+  },
+  {
+   "component": "bridge.keccak",
+   "klass": "keccak bridge + sponge",
+   "main_cols": 66.0,
+   "main": 264118272.0,
+   "binding": 64028672.0,
+   "classic": 128057344.0,
+   "today": 456204288.0,
+   "today_share": 0.0019966492685227475,
+   "cells_per_instr_today": 0.3202685472439963,
+   "v1_main_plus_binding": 328146944.0,
+   "v1_cells_per_instr": 0.23036860415796226
+  },
+  {
+   "component": "core.and_table",
+   "klass": "bitwise (binary + and table)",
+   "main_cols": 2.0,
+   "main": 45481984.0,
+   "binding": 363855872.0,
+   "classic": 0.0,
+   "today": 409337856.0,
+   "today_share": 0.0017915310141957057,
+   "cells_per_instr_today": 0.2873669623927168,
+   "v1_main_plus_binding": 409337856.0,
+   "v1_cells_per_instr": 0.2873669623927168
+  },
+  {
+   "component": "core.selection",
+   "klass": "cpu control (ROM, boundary, selection)",
+   "main_cols": 2.0,
+   "main": 45481984.0,
+   "binding": 363855872.0,
+   "classic": 0.0,
+   "today": 409337856.0,
+   "today_share": 0.0017915310141957057,
+   "cells_per_instr_today": 0.2873669623927168,
+   "v1_main_plus_binding": 409337856.0,
+   "v1_cells_per_instr": 0.2873669623927168
+  },
+  {
+   "component": "core.range16",
+   "klass": "range tables",
+   "main_cols": 1.0,
+   "main": 22740992.0,
+   "binding": 363855872.0,
+   "classic": 0.0,
+   "today": 386596864.0,
+   "today_share": 0.0016920015134070554,
+   "cells_per_instr_today": 0.271402131148677,
+   "v1_main_plus_binding": 386596864.0,
+   "v1_cells_per_instr": 0.271402131148677
+  },
+  {
+   "component": "bulk.jscan",
+   "klass": "bulk memory + JUMPDEST services",
+   "main_cols": 287.0,
+   "main": 280213024.0,
+   "binding": 15621632.0,
+   "classic": 78108160.0,
+   "today": 373942816.0,
+   "today_share": 0.0016366190973543335,
+   "cells_per_instr_today": 0.2625186250609048,
+   "v1_main_plus_binding": 295834656.0,
+   "v1_cells_per_instr": 0.20768444750249124
+  },
+  {
+   "component": "truth.bn254_fp2_mul",
+   "klass": "other",
+   "main_cols": 478.0,
+   "main": 78315520.0,
+   "binding": 0.0,
+   "classic": 212336640.0,
+   "today": 290652160.0,
+   "today_share": 0.001272084541780012,
+   "cells_per_instr_today": 0.20404618607295855,
+   "v1_main_plus_binding": 78315520.0,
+   "v1_cells_per_instr": 0.054979750249647234
+  },
+  {
+   "component": "core.binary_tail",
+   "klass": "bitwise (binary + and table)",
+   "main_cols": 29.0,
+   "main": 138193120.0,
+   "binding": 76244480.0,
+   "classic": 0.0,
+   "today": 214437600.0,
+   "today_share": 0.0009385196247514744,
+   "cells_per_instr_today": 0.15054137024351946,
+   "v1_main_plus_binding": 214437600.0,
+   "v1_cells_per_instr": 0.15054137024351946
+  },
+  {
+   "component": "bridge.sha256",
+   "klass": "sha256 (bridge + truth)",
+   "main_cols": 134.0,
+   "main": 115402944.0,
+   "binding": 13779456.0,
+   "classic": 48228096.0,
+   "today": 177410496.0,
+   "today_share": 0.0007764647250896902,
+   "cells_per_instr_today": 0.12454727698604362,
+   "v1_main_plus_binding": 129182400.0,
+   "v1_cells_per_instr": 0.09068976479566283
+  },
+  {
+   "component": "bridge.bn254_fp2_mul",
+   "klass": "curve bridges (bn254/bls12)",
+   "main_cols": 134.0,
+   "main": 99893248.0,
+   "binding": 11927552.0,
+   "classic": 41746432.0,
+   "today": 153567232.0,
+   "today_share": 0.0006721109588559218,
+   "cells_per_instr_today": 0.10780861905647354,
+   "v1_main_plus_binding": 111820800.0,
+   "v1_cells_per_instr": 0.07850142164306326
+  },
+  {
+   "component": "core.shift_tail",
+   "klass": "shift (+ table)",
+   "main_cols": 52.0,
+   "main": 115501568.0,
+   "binding": 35538944.0,
+   "classic": 0.0,
+   "today": 151040512.0,
+   "today_share": 0.0006610523744180617,
+   "cells_per_instr_today": 0.10603478885588509,
+   "v1_main_plus_binding": 151040512.0,
+   "v1_cells_per_instr": 0.10603478885588509
+  },
+  {
+   "component": "truth.bn254_g1_double",
+   "klass": "other",
+   "main_cols": 720.0,
+   "main": 34283520.0,
+   "binding": 0.0,
+   "classic": 110850048.0,
+   "today": 145133568.0,
+   "today_share": 0.0006351997120756928,
+   "cells_per_instr_today": 0.10188794406881539,
+   "v1_main_plus_binding": 34283520.0,
+   "v1_cells_per_instr": 0.02406801828397214
+  },
+  {
+   "component": "bulk.desc",
+   "klass": "bulk memory + JUMPDEST services",
+   "main_cols": 48.0,
+   "main": 72420864.0,
+   "binding": 24140288.0,
+   "classic": 48280576.0,
+   "today": 144841728.0,
+   "today_share": 0.0006339224287667607,
+   "cells_per_instr_today": 0.10168306398485685,
+   "v1_main_plus_binding": 96561152.0,
+   "v1_cells_per_instr": 0.0677887093232379
+  },
+  {
+   "component": "truth.bls12_381_fp2_mul",
+   "klass": "other",
+   "main_cols": 912.0,
+   "main": 37355520.0,
+   "binding": 0.0,
+   "classic": 96337920.0,
+   "today": 133693440.0,
+   "today_share": 0.0005851302063655523,
+   "cells_per_instr_today": 0.09385664477764047,
+   "v1_main_plus_binding": 37355520.0,
+   "v1_cells_per_instr": 0.026224650746693657
+  },
+  {
+   "component": "truth.arith256_mod",
+   "klass": "arith256 (bridge + truth)",
+   "main_cols": 401.0,
+   "main": 32644608.0,
+   "binding": 0.0,
+   "classic": 79454208.0,
+   "today": 112098816.0,
+   "today_share": 0.0004906179640483039,
+   "cells_per_instr_today": 0.07869659688093955,
+   "v1_main_plus_binding": 32644608.0,
+   "v1_cells_per_instr": 0.02291745486511021
+  },
+  {
+   "component": "bridge.arith256_mod",
+   "klass": "arith256 (bridge + truth)",
+   "main_cols": 134.0,
+   "main": 53518528.0,
+   "binding": 6390272.0,
+   "classic": 22365952.0,
+   "today": 82274752.0,
+   "today_share": 0.0003600882931610903,
+   "cells_per_instr_today": 0.05775924512550851,
+   "v1_main_plus_binding": 59908800.0,
+   "v1_cells_per_instr": 0.0420577027612926
+  },
+  {
+   "component": "truth.arith384_mont",
+   "klass": "other",
+   "main_cols": 520.0,
+   "main": 21299200.0,
+   "binding": 0.0,
+   "classic": 60293120.0,
+   "today": 81592320.0,
+   "today_share": 0.0003571015230025062,
+   "cells_per_instr_today": 0.05728015820988352,
+   "v1_main_plus_binding": 21299200.0,
+   "v1_cells_per_instr": 0.014952651741535858
+  },
+  {
+   "component": "bulk.jtab",
+   "klass": "bulk memory + JUMPDEST services",
+   "main_cols": 1.0,
+   "main": 3997696.0,
+   "binding": 63963136.0,
+   "classic": 0.0,
+   "today": 67960832.0,
+   "today_share": 0.0002974411882358224,
+   "cells_per_instr_today": 0.04771046109530057,
+   "v1_main_plus_binding": 67960832.0,
+   "v1_cells_per_instr": 0.04771046109530057
+  },
+  {
+   "component": "bridge.bls12_381_fp2_mul",
+   "klass": "curve bridges (bn254/bls12)",
+   "main_cols": 134.0,
+   "main": 37597184.0,
+   "binding": 4489216.0,
+   "classic": 15712256.0,
+   "today": 57798656.0,
+   "today_share": 0.00025296483891005844,
+   "cells_per_instr_today": 0.040576320908617784,
+   "v1_main_plus_binding": 42086400.0,
+   "v1_cells_per_instr": 0.029545864739284795
+  },
+  {
+   "component": "truth.bn254_g1_add",
+   "klass": "other",
+   "main_cols": 812.0,
+   "main": 13927424.0,
+   "binding": 0.0,
+   "classic": 41988096.0,
+   "today": 55915520.0,
+   "today_share": 0.0002447230002955804,
+   "cells_per_instr_today": 0.0392543052089695,
+   "v1_main_plus_binding": 13927424.0,
+   "v1_cells_per_instr": 0.009777452708491789
+  },
+  {
+   "component": "bridge.arith384_mont",
+   "klass": "curve bridges (bn254/bls12)",
+   "main_cols": 134.0,
+   "main": 35637568.0,
+   "binding": 4255232.0,
+   "classic": 14893312.0,
+   "today": 54786112.0,
+   "today_share": 0.00023977996991121075,
+   "cells_per_instr_today": 0.03846142827001853,
+   "v1_main_plus_binding": 39892800.0,
+   "v1_cells_per_instr": 0.028005894371372714
+  },
+  {
+   "component": "core.division",
+   "klass": "MUL / DIV",
+   "main_cols": 78.0,
+   "main": 24832704.0,
+   "binding": 5093888.0,
+   "classic": 0.0,
+   "today": 29926592.0,
+   "today_share": 0.00013097840068127266,
+   "cells_per_instr_today": 0.021009329363874375,
+   "v1_main_plus_binding": 29926592.0,
+   "v1_cells_per_instr": 0.021009329363874375
+  },
+  {
+   "component": "bridge.bn254_g1_double",
+   "klass": "curve bridges (bn254/bls12)",
+   "main_cols": 134.0,
+   "main": 13104128.0,
+   "binding": 1564672.0,
+   "classic": 5476352.0,
+   "today": 20145152.0,
+   "today_share": 8.816840188288534e-05,
+   "cells_per_instr_today": 0.014142476813040141,
+   "v1_main_plus_binding": 14668800.0,
+   "v1_cells_per_instr": 0.010297920009495249
+  },
+  {
+   "component": "bridge.bn254_g1_add",
+   "klass": "curve bridges (bn254/bls12)",
+   "main_cols": 134.0,
+   "main": 8850432.0,
+   "binding": 1056768.0,
+   "classic": 3698688.0,
+   "today": 13605888.0,
+   "today_share": 5.95482923711634e-05,
+   "cells_per_instr_today": 0.009551725177393604,
+   "v1_main_plus_binding": 9907200.0,
+   "v1_cells_per_instr": 0.0069551396922768955
+  },
+  {
+   "component": "bulk.cmp",
+   "klass": "bulk memory + JUMPDEST services",
+   "main_cols": 59.0,
+   "main": 1697312.0,
+   "binding": 460288.0,
+   "classic": 690432.0,
+   "today": 2848032.0,
+   "today_share": 1.2464856554634966e-05,
+   "cells_per_instr_today": 0.0019994004772362272,
+   "v1_main_plus_binding": 2157600.0,
+   "v1_cells_per_instr": 0.0015146973312395661
+  },
+  {
+   "component": "bulk.cdesc",
+   "klass": "bulk memory + JUMPDEST services",
+   "main_cols": 61.0,
+   "main": 1188768.0,
+   "binding": 311808.0,
+   "classic": 779520.0,
+   "today": 2280096.0,
+   "today_share": 9.979196010015677e-06,
+   "cells_per_instr_today": 0.0016006930506905867,
+   "v1_main_plus_binding": 1500576.0,
+   "v1_cells_per_instr": 0.0010534475632750014
+  },
+  {
+   "component": "core.range8",
+   "klass": "range tables",
+   "main_cols": 1.0,
+   "main": 88832.0,
+   "binding": 1421312.0,
+   "classic": 0.0,
+   "today": 1510144.0,
+   "today_share": 6.60938091174631e-06,
+   "cells_per_instr_today": 0.0010601645747995196,
+   "v1_main_plus_binding": 1510144.0,
+   "v1_cells_per_instr": 0.0010601645747995196
+  },
+  {
+   "component": "bulk.jdesc",
+   "klass": "bulk memory + JUMPDEST services",
+   "main_cols": 45.0,
+   "main": 381600.0,
+   "binding": 135680.0,
+   "classic": 271360.0,
+   "today": 788640.0,
+   "today_share": 3.451606046999233e-06,
+   "cells_per_instr_today": 0.0005536479900392897,
+   "v1_main_plus_binding": 517280.0,
+   "v1_cells_per_instr": 0.0003631454558322223
+  },
+  {
+   "component": "core.boundary",
+   "klass": "cpu control (ROM, boundary, selection)",
+   "main_cols": 0.0,
+   "main": 0.0,
+   "binding": 177664.0,
+   "classic": 0.0,
+   "today": 177664.0,
+   "today_share": 7.775742249113305e-07,
+   "cells_per_instr_today": 0.00012472524409406114,
+   "v1_main_plus_binding": 177664.0,
+   "v1_cells_per_instr": 0.00012472524409406114
+  }
+ ],
+ "classes_basket": [
+  {
+   "klass": "cpu core row (every instruction)",
+   "today": 76088475648.0,
+   "today_share": 0.33301308918339256,
+   "today_cells_per_instr": 53.41630098355224,
+   "v1": 76088475648.0,
+   "v1_cells_per_instr": 53.41630098355224,
+   "main": 53118369792.0,
+   "binding": 22970105856.0,
+   "classic": 0.0,
+   "prefix_active_rows_per_instr": 1.0
+  },
+  {
+   "klass": "keccak truth",
+   "today": 63907926528.0,
+   "today_share": 0.27970301488033517,
+   "today_cells_per_instr": 44.865204744631015,
+   "v1": 37109817856.0,
+   "v1_cells_per_instr": 26.052160766253984,
+   "main": 33579434496.0,
+   "binding": 0.0,
+   "classic": 30328492032.0,
+   "prefix_active_rows_per_instr": null
+  },
+  {
+   "klass": "LS-D64 (aligned dword load/store)",
+   "today": 35362062336.0,
+   "today_share": 0.15476758494788678,
+   "today_cells_per_instr": 24.825186062044114,
+   "v1": 27393146880.0,
+   "v1_cells_per_instr": 19.230777935386286,
+   "main": 19424231424.0,
+   "binding": 7968915456.0,
+   "classic": 7968915456.0,
+   "prefix_active_rows_per_instr": 0.3087942740426717
+  },
+  {
+   "klass": "secp add/double (bridge + truth)",
+   "today": 10765777088.0,
+   "today_share": 0.04711810369444435,
+   "today_cells_per_instr": 7.55788553203266,
+   "v1": 3707809216.0,
+   "v1_cells_per_instr": 2.6029888414074285,
+   "main": 3546596288.0,
+   "binding": 138250752.0,
+   "classic": 7080930048.0,
+   "prefix_active_rows_per_instr": 0.0005652309811665967
+  },
+  {
+   "klass": "LS32 (sub-dword load/store)",
+   "today": 8799757056.0,
+   "today_share": 0.03851351017779186,
+   "today_cells_per_instr": 6.177682855153755,
+   "v1": 7419403008.0,
+   "v1_cells_per_instr": 5.208634564149245,
+   "main": 6039048960.0,
+   "binding": 1380354048.0,
+   "classic": 1380354048.0,
+   "prefix_active_rows_per_instr": 0.06321395950650203
+  },
+  {
+   "klass": "ALU / compare / branch FUNCTION",
+   "today": 8796213216.0,
+   "today_share": 0.038498000008926975,
+   "today_cells_per_instr": 6.175194977423712,
+   "v1": 8796213216.0,
+   "v1_cells_per_instr": 6.175194977423712,
+   "main": 6562254304.0,
+   "binding": 2233958912.0,
+   "classic": 0.0,
+   "prefix_active_rows_per_instr": 0.07779689497873664
+  },
+  {
+   "klass": "bulk memory + JUMPDEST services",
+   "today": 4458185600.0,
+   "today_share": 0.019511945089781022,
+   "today_cells_per_instr": 3.1297746711580756,
+   "v1": 3270069376.0,
+   "v1_cells_per_instr": 2.295682868370149,
+   "main": 2362409088.0,
+   "binding": 907660288.0,
+   "classic": 1188116224.0,
+   "prefix_active_rows_per_instr": 0.04001236915883283
+  },
+  {
+   "klass": "memory image (initial/terminal)",
+   "today": 3649681920.0,
+   "today_share": 0.01597340254703765,
+   "today_cells_per_instr": 2.5621818057551424,
+   "v1": 3649681920.0,
+   "v1_cells_per_instr": 2.5621818057551424,
+   "main": 1703184896.0,
+   "binding": 0.0,
+   "classic": 1946497024.0,
+   "prefix_active_rows_per_instr": 0.10869577138323101
+  },
+  {
+   "klass": "keccak bridge + sponge",
+   "today": 3151331776.0,
+   "today_share": 0.013792295361815825,
+   "today_cells_per_instr": 2.2123256539477394,
+   "v1": 2245948864.0,
+   "v1_cells_per_instr": 1.5767207779019907,
+   "main": 2149007296.0,
+   "binding": 96941568.0,
+   "classic": 905382912.0,
+   "prefix_active_rows_per_instr": 0.0035156019963269226
+  },
+  {
+   "klass": "MUL / DIV",
+   "today": 3141825216.0,
+   "today_share": 0.013750688418239338,
+   "today_cells_per_instr": 2.2056517750724756,
+   "v1": 3141825216.0,
+   "v1_cells_per_instr": 2.2056517750724756,
+   "main": 2653329600.0,
+   "binding": 488495616.0,
+   "classic": 0.0,
+   "prefix_active_rows_per_instr": 0.013445201741505085
+  },
+  {
+   "klass": "shift (+ table)",
+   "today": 2328211968.0,
+   "today_share": 0.010189783053668067,
+   "today_cells_per_instr": 1.634471845796078,
+   "v1": 2328211968.0,
+   "v1_cells_per_instr": 1.634471845796078,
+   "main": 1587767808.0,
+   "binding": 740444160.0,
+   "classic": 0.0,
+   "prefix_active_rows_per_instr": 0.013244095622085481
+  },
+  {
+   "klass": "bitwise (binary + and table)",
+   "today": 1985070816.0,
+   "today_share": 0.008687972246179882,
+   "today_cells_per_instr": 1.3935768758420226,
+   "v1": 1985070816.0,
+   "v1_cells_per_instr": 1.3935768758420226,
+   "main": 1060954336.0,
+   "binding": 924116480.0,
+   "classic": 0.0,
+   "prefix_active_rows_per_instr": 0.017882291765759412
+  },
+  {
+   "klass": "cpu control (ROM, boundary, selection)",
+   "today": 1955902976.0,
+   "today_share": 0.008560314642048839,
+   "today_cells_per_instr": 1.373100212231519,
+   "v1": 1955902976.0,
+   "v1_cells_per_instr": 1.373100212231519,
+   "main": 136445952.0,
+   "binding": 1819457024.0,
+   "classic": 0.0,
+   "prefix_active_rows_per_instr": null
+  },
+  {
+   "klass": "sha256 (bridge + truth)",
+   "today": 1821602496.0,
+   "today_share": 0.007972527630379509,
+   "today_cells_per_instr": 1.2788174078932761,
+   "v1": 1773374400.0,
+   "v1_cells_per_instr": 1.2449598957028953,
+   "main": 1756051904.0,
+   "binding": 13779456.0,
+   "classic": 51771136.0,
+   "prefix_active_rows_per_instr": 1.7881397695874619e-07
+  },
+  {
+   "klass": "other",
+   "today": 706987008.0,
+   "today_share": 0.0030942389835193437,
+   "today_cells_per_instr": 0.4963252383382674,
+   "v1": 190149632.0,
+   "v1_cells_per_instr": 0.13349051730004893,
+   "main": 185181184.0,
+   "binding": 0.0,
+   "classic": 521805824.0,
+   "prefix_active_rows_per_instr": null
+  },
+  {
+   "klass": "JALR",
+   "today": 683544576.0,
+   "today_share": 0.0029916395210934353,
+   "today_cells_per_instr": 0.4798679760152395,
+   "v1": 683544576.0,
+   "v1_cells_per_instr": 0.4798679760152395,
+   "main": 352129024.0,
+   "binding": 331415552.0,
+   "classic": 0.0,
+   "prefix_active_rows_per_instr": 0.009538056740297495
+  },
+  {
+   "klass": "range tables",
+   "today": 388107008.0,
+   "today_share": 0.0016986108943188017,
+   "today_cells_per_instr": 0.2724622957234765,
+   "v1": 388107008.0,
+   "v1_cells_per_instr": 0.2724622957234765,
+   "main": 22829824.0,
+   "binding": 365277184.0,
+   "classic": 0.0,
+   "prefix_active_rows_per_instr": null
+  },
+  {
+   "klass": "curve bridges (bn254/bls12)",
+   "today": 299903040.0,
+   "today_share": 0.0013125724619312397,
+   "today_cells_per_instr": 0.2105405702255436,
+   "v1": 218376000.0,
+   "v1_cells_per_instr": 0.1533062404554929,
+   "main": 195082560.0,
+   "binding": 23293440.0,
+   "classic": 81527040.0,
+   "prefix_active_rows_per_instr": null
+  },
+  {
+   "klass": "arith256 (bridge + truth)",
+   "today": 194373568.0,
+   "today_share": 0.0008507062572093942,
+   "today_cells_per_instr": 0.13645584200644806,
+   "v1": 93855936.0,
+   "v1_cells_per_instr": 0.06588956979059674,
+   "main": 86163136.0,
+   "binding": 6390272.0,
+   "classic": 101820160.0,
+   "prefix_active_rows_per_instr": 6.914140442404852e-05
+  }
+ ],
+ "basket_totals": {
+  "instructions": 1424442993,
+  "gas": 445399117,
+  "today": 228484939840.0,
+  "v1": 182438984512,
+  "today_cells_per_instr": 160.4030073248428,
+  "v1_cells_per_instr": 128.07742072413004,
+  "today_cells_per_gas": 512.9892070262007,
+  "label": "M (declaration census) / D (v1)"
+ },
+ "padding": {
+  "cpu_prefix_waste_share_of_cpu_v1": 0.04891279388447928,
+  "cpu_prefix_top": [
+   [
+    "dword.1",
+    17837215.0
+   ],
+   [
+    "sponge.perm",
+    11750309.0
+   ],
+   [
+    "core.alu_tail",
+    8604351.0
+   ],
+   [
+    "bulk.ucopy",
+    7714008.0
+   ],
+   [
+    "bulk.set",
+    5726240.0
+   ],
+   [
+    "core.multiplication",
+    4161612.0
+   ],
+   [
+    "core.initial",
+    4105980.0
+   ],
+   [
+    "core.terminal",
+    4105980.0
+   ]
+  ],
+  "keccak_truth_waste_share_of_keccak_v1": 0.004848098856160949,
+  "keccak_truth_waste_cells_basket": 163157155,
+  "label": "M (exact active rows: 4-packet prefix roster of 24628607 for CPU, extrapolated to the basket; ceil(calls/2)*27 (pair27) for keccak)"
+ },
+ "levers": [
+  {
+   "lever": "NGKR_V1",
+   "label": "M/D",
+   "basis": "today",
+   "what": "native GKR v1: classic RAM/KIO/Wire + truth classic LogUp move into one stage-two GKR; one eq+prefix pair per component (plan lever NGKR)",
+   "soundness": "changes the proof (new section, receiver, leaf); rv64-native-gkr.md sec 9 review; REQUIRED_BITS 151 gate",
+   "cells_before": 228484939840,
+   "cells_after": 182438984512,
+   "cells_factor": 0.7984726898838743,
+   "native_gpu_s_factor": {
+    "pess": 0.7812867682395485,
+    "central": 0.782756487878459,
+    "opt": 0.7839946340448519
+   },
+   "leaf_columns_removed_basket": 885672,
+   "leaf_recursion_gpu_s_saved_basket": 12.01025204933309
+  },
+  {
+   "lever": "LOGUP3",
+   "label": "D",
+   "basis": "today",
+   "what": "ALTERNATIVE to NGKR only: 3 fractions per classic LogUp column (degree-4 batch constraint, fits the b4 D2 composition)",
+   "soundness": "same LogUp argument; constraint degree 3 -> 4; changes the proof",
+   "cells_before": 228484939840,
+   "cells_after": 221155868480,
+   "cells_factor": 0.9679231753080431,
+   "native_gpu_s_factor": {
+    "pess": 0.9664103827716806,
+    "central": 0.9665397549954289,
+    "opt": 0.9666487429402252
+   },
+   "leaf_columns_removed_basket": 235272,
+   "leaf_recursion_gpu_s_saved_basket": 3.190431694973641
+  },
+  {
+   "lever": "V2SHARE",
+   "label": "M (declaration census of the real Plan) / D (GPU-s)",
+   "basis": "v1",
+   "what": "on top of v1: ONE eq + prefix pair per distinct row log of a proof; prefixes of same-log components combined with a fresh rho",
+   "soundness": "needs the shared-row-point lemma (one batch per proof, lane-major); rho drawn after all instance claims; error +k/|OM31|; changes the proof",
+   "cells_before": 182438984512,
+   "cells_after": 174981912384,
+   "cells_factor": 0.959125665230232,
+   "native_gpu_s_factor": {
+    "pess": 0.9808691045209484,
+    "central": 0.9788404201310702,
+    "opt": 0.9771579867037926
+   },
+   "leaf_columns_removed_basket": 108784,
+   "leaf_recursion_gpu_s_saved_basket": 1.4751773330698619
+  },
+  {
+   "lever": "PAD",
+   "label": "M (waste) / E (recovery 50 %)",
+   "basis": "v1",
+   "what": "tighter power-of-two packing: a second tail height for alu/ls_dword/bulk/sponge and exact keccak shard logs; recover ~half of the measured waste",
+   "soundness": "prover-side shape only; roster/class change, no new argument",
+   "cells_before": 174981912384,
+   "cells_after": 171450779329.51953,
+   "cells_factor": 0.9798200110721652,
+   "native_gpu_s_factor": {
+    "pess": 0.9849549590643237,
+    "central": 0.9844758633382408,
+    "opt": 0.9840785385160803
+   },
+   "leaf_columns_removed_basket": 0,
+   "leaf_recursion_gpu_s_saved_basket": 0.0,
+   "waste_cells_basket": 7062266108.960923
+  },
+  {
+   "lever": "CORE_NARROW",
+   "label": "E",
+   "basis": "v1",
+   "what": "CPU row 37 -> 34 MAIN columns (candidate: derive the three enabled flags; not verified sound)",
+   "soundness": "AIR change; needs the decode/enable authority re-derived; changes the proof",
+   "cells_before": 174981912384,
+   "cells_after": 170675017536.0,
+   "cells_factor": 0.9753866283130541,
+   "native_gpu_s_factor": {
+    "pess": 0.9816876424260126,
+    "central": 0.9810997515776306,
+    "opt": 0.9806122005224526
+   },
+   "leaf_columns_removed_basket": 1041,
+   "leaf_recursion_gpu_s_saved_basket": 0.01411659438635945
+  }
+ ],
+ "guest": {
+  "zbb": {
+   "label": "M (basket scored, zbb-prefix-24628607-v2.json)",
+   "instr_per_gas": [
+    3.130023801238801,
+    2.934248313418029
+   ],
+   "bits_per_gas": [
+    33695.394597325794,
+    32187.44336049941
+   ],
+   "instr_factor": 0.9374523964503759,
+   "native_cells_factor": 0.9552475566810527,
+   "note": "opt-in ethereum_services_v3_zbb profile: proven prefix + fresh verify; driver/class work left to make it default"
+  },
+  "dispatch": {
+   "label": "M (cost, client3 note) / E (cut)",
+   "dispatch_instr_per_gas": [
+    1.12,
+    1.36
+   ],
+   "instr_per_dispatched_op": 28.1,
+   "ops_basket": 17700000.0,
+   "ops_per_gas": 0.03973963872945891,
+   "removable_instr_per_op": {
+    "pess": 1.5,
+    "central": 2.5,
+    "opt": 5.0
+   },
+   "note": "autoresearch/guest_efficiency/notes/client3-20261102.md: 28.1 instructions per dispatched opcode is the WHOLE per-opcode cost inside dispatch_cgoto (handler bodies included: PUSH1 16, POP 10, SWAP1 25, ADD 36), 17.7 M ops on the 15 blocks. The overhead is 6 dispatch + 1-2 stack-check + 2 gas instructions per op, and patch 0030 already removed the gas branch of pure opcodes (28.1 -> 27.2). Review fix: the first cut took 28 -> 14-18 per op (x0.92/0.85/0.79), i.e. removed handler work. A basic-block (evmone advanced-style) gas + stack check removes ~1.5 / 2.5 / 5 instructions per op (pess: stack checks only; opt: + a cheaper threaded dispatch) [E], on the post-Zbb instruction count (DISPATCH is stacked on ZBB).",
+   "instr_factor": {
+    "pess": 0.9801175349099782,
+    "central": 0.966862558183297,
+    "opt": 0.933725116366594
+   }
+  },
+  "cpu_share_of_native_cells": 0.6701883149901702,
+  "cpu_share_of_native_cells_v1": 0.7731306433725651
+ },
+ "combined_prover_side_on_v1": {
+  "native_gpu_s_factor": {
+   "pess": 0.9661118886908906,
+   "central": 0.945431642178854,
+   "opt": 0.9429568915326335
+  },
+  "levers": "V2SHARE x PAD (+ CORE_NARROW central/opt)",
+  "label": "D/E"
+ }
+}

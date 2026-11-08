@@ -33,6 +33,15 @@ const Code = @import("composition_codegen.zig");
 const RvAir = @import("stwo_riscv_frontend").rv64_air;
 const NativePcs = @import("jobs/native_pcs.zig");
 const Job = @import("jobs/outer_job.zig");
+const ClassPlan = @import("jobs/outer_class_plan.zig");
+const Checks = @import("jobs/outer_checks.zig");
+
+/// Circuit constants of the om31 LogUp closure (witness.zig lookupSum).
+fn lookupStatic() Checks.LookupStatic {
+    const T = circuit.witness.trace;
+    const u = T.U_VALUE.toM31Array();
+    return .{ .relation = circuit.common.component_list.GATE_RELATION_ID, .u_index = @intCast(T.U_VAR_IDX), .u_value = .{ u[0].v, u[1].v, u[2].v, u[3].v } };
+}
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const CP = engine.air.component_prover.ForField(Outer.protocol.O);
 const O = Outer.protocol.O;
@@ -80,6 +89,12 @@ fn samplePoints(a: std.mem.Allocator, key: *const Authority) !*core.pcs.TreeVec(
 /// and the same composition OODS consistency check prove_family.zig runs
 /// before returning a proof (ConstraintsNotSatisfied otherwise).
 pub fn assemble(a: std.mem.Allocator, key: *const Authority, staged: *const St.Staged, job: *Job.OuterNodeJob) !Outer.prove.Produced {
+    return assembleWithOods(a, key, staged, job, null);
+}
+/// assemble, also returning the two OODS values it compares
+/// ([evaluated composition | extracted composition], 8 coordinates each)
+/// for the device node_oods_constraint parity check.
+pub fn assembleWithOods(a: std.mem.Allocator, key: *const Authority, staged: *const St.Staged, job: *Job.OuterNodeJob, oods: ?*[16]u32) !Outer.prove.Produced {
     // The decoded PCS proof moves into the Produced below, which its owner
     // frees with `a`: it must have been decoded with `a`.
     if (!St.sameAllocator(job.proof_allocator, a)) return error.OuterProofAllocatorMismatch;
@@ -106,6 +121,10 @@ pub fn assemble(a: std.mem.Allocator, key: *const Authority, staged: *const St.S
     defer view.deinit(a);
     const composition = proof.proof.extractCompositionOodsEvalWithSplit(point, mask_log + split, split) orelse return error.InvalidStructure;
     const expected = try view.evalCompositionPolynomialAtPointWithWorkCapture(a, point, &proof.proof.commitment_scheme_proof.sampled_values, d.coefficient, mask_log, mask_log + split, split, null);
+    if (oods) |out| {
+        for (expected.toM31Array(), 0..) |m, i| out[i] = m.v;
+        for (composition.toM31Array(), 0..) |m, i| out[8 + i] = m.v;
+    }
     if (!composition.eql(expected)) return error.ConstraintsNotSatisfied;
     const outputs = try a.alloc(Q, staged.expected.len / 4);
     errdefer a.free(outputs);
@@ -331,11 +350,20 @@ const Statics = struct {
     rc: ?Rc = null,
     fixed_plan: ?Plan.TreePlan = null,
     fixed_sorted: []u32 = &.{},
+    /// Whole-node plan of the class (outer_class_plan.zig), attached only to
+    /// cached statics under STWO_RV64_M8_OUTER_CLASS_PLAN=1.
+    slot: ClassPlan.Slot = .{},
+    /// Bytes charged to StaticsCache.budget (0: not charged).
+    charged: u64 = 0,
+    /// Class-plan cache only (StaticsCache.mutex): Staged instances borrowing
+    /// this entry, and the cache tick of the last borrow (LRU eviction).
+    refs: u32 = 0,
+    last_use: u64 = 0,
 
     fn init(a: std.mem.Allocator, key: *const Authority, library: *std.DynLib, composition: bool) !*Statics {
         const self = try a.create(Statics);
         errdefer a.destroy(self);
-        self.allocator = a;
+        self.* = .{ .public = undefined, .allocator = a, .gather = undefined, .gathered = &.{} };
         var made: usize = 0;
         errdefer for (self.gather[0..made]) |g| a.free(g);
         for (&self.gather, 0..) |*g, c| {
@@ -403,8 +431,16 @@ const Statics = struct {
         const tw = try Twiddles.get(log);
         self.public.tables[log] = .{ .twiddles = tw.twiddles, .itwiddles = tw.itwiddles };
     }
+    /// Host bytes this class keeps alive while cached (the large parts).
+    fn hostBytes(self: *const Statics) u64 {
+        var n: u64 = self.gathered.len;
+        for (self.gather) |g| n += g.len;
+        if (self.rc) |*rc| n += rc.blob.len;
+        return 4 * n;
+    }
     fn destroy(self: *Statics) void {
         const a = self.allocator;
+        self.slot.deinit();
         if (self.rc) |*rc| rc.deinit(a);
         if (self.fixed_plan) |*fp| fp.deinit(a);
         a.free(self.fixed_sorted);
@@ -436,23 +472,143 @@ const Twiddles = struct {
     }
 };
 
-/// Fold classes reuse statics; a leaf is its own class and owns its statics.
+/// Fold classes reuse statics; by default a leaf owns its statics. Under
+/// STWO_RV64_M8_OUTER_CLASS_PLAN=1 every class is cached by authority identity
+/// (statics are a pure function of the authority: identity binds the FIXED
+/// root, the component logs and the output count) within a host-byte budget,
+/// and carries a whole-node plan slot. Under the class plan the cache is
+/// reference counted: a new class that does not fit (entry limit or host
+/// budget) evicts the least recently used classes no node still borrows, and
+/// stays per node (correct, only slower) only when every entry is in use.
+/// Without eviction the cache froze after the first few block shapes (each
+/// block brings its own leaf classes: 15 on 24628607 [M outer-fold-p3]) and
+/// every later leaf rebuilt its statics with up to 64 stale classes pinned.
 const StaticsCache = struct {
     var mutex: std.Thread.Mutex = .{};
     var entries: std.ArrayList(*Statics) = .empty;
-    const limit = 16;
-    fn acquire(key: *const Authority, reusable: bool, library: *std.DynLib, composition: bool) !struct { statics: *Statics, owned: bool } {
+    const limit: usize = 16;
+    /// Entry limit under the class plan: 24628607 has 15 leaves + 4 fold
+    /// classes + root [M outer-fold-p3]; 64 leaves headroom for a class mix of
+    /// several block shapes (bounded by the host-byte budget anyway).
+    const class_plan_limit: usize = 64;
+    var budget: ?ClassPlan.Budget = null;
+    var tick: u64 = 0;
+    const Acquired = struct { statics: *Statics, owned: bool, counted: bool = false };
+    fn find(key: *const Authority, composition: bool) ?*Statics {
+        for (entries.items) |s| if (std.mem.eql(u8, &s.public.identity, &key.identity) and (s.rc != null) == composition) return s;
+        return null;
+    }
+    fn acquire(key: *const Authority, reusable: bool, library: *std.DynLib, composition: bool) !Acquired {
         const a = std.heap.c_allocator;
+        if (try ClassPlan.selected()) return acquireCounted(a, key, library, composition);
         if (!reusable) return .{ .statics = try Statics.init(a, key, library, composition), .owned = true };
         mutex.lock();
         defer mutex.unlock();
-        for (entries.items) |s| if (std.mem.eql(u8, &s.public.identity, &key.identity) and (s.rc != null) == composition) return .{ .statics = s, .owned = false };
+        if (find(key, composition)) |s| return .{ .statics = s, .owned = false };
         const s = try Statics.init(a, key, library, composition);
         if (entries.items.len >= limit) return .{ .statics = s, .owned = true };
         entries.append(a, s) catch return .{ .statics = s, .owned = true };
         return .{ .statics = s, .owned = false };
     }
+    /// Must hold `mutex`.
+    fn borrow(s: *Statics) Acquired {
+        tick += 1;
+        s.refs += 1;
+        s.last_use = tick;
+        return .{ .statics = s, .owned = false, .counted = true };
+    }
+    /// Must hold `mutex`: destroy the LRU unreferenced entry; false when none.
+    fn evictOne() bool {
+        var refs: [class_plan_limit]u32 = undefined;
+        var last: [class_plan_limit]u64 = undefined;
+        const n = @min(entries.items.len, class_plan_limit);
+        for (entries.items[0..n], refs[0..n], last[0..n]) |s, *r, *t| {
+            r.* = s.refs;
+            t.* = s.last_use;
+        }
+        const i = ClassPlan.lruVictim(refs[0..n], last[0..n]) orelse return false;
+        const victim = entries.swapRemove(i);
+        if (victim.charged != 0) budget.?.release(victim.charged);
+        victim.destroy();
+        _ = evictions.fetchAdd(1, .monotonic);
+        return true;
+    }
+    pub var evictions: std.atomic.Value(u64) = .init(0);
+    /// STWO_RV64_M8_OUTER_CLASS_PLAN=1: every class by identity. The miss
+    /// builds OUTSIDE the cache lock (leaf prestages of different classes run
+    /// concurrently on the lanes' threads, 0.18-0.34 s each [M, feeder gate-c
+    /// 24628607]); a racing builder of the same class keeps the first entry.
+    fn acquireCounted(a: std.mem.Allocator, key: *const Authority, library: *std.DynLib, composition: bool) !Acquired {
+        {
+            mutex.lock();
+            defer mutex.unlock();
+            if (find(key, composition)) |s| return borrow(s);
+            // Parsed before the build so no error can leak a built class.
+            if (budget == null) budget = .{ .limit = try ClassPlan.hostBudgetBytes() };
+        }
+        const s = try Statics.init(a, key, library, composition);
+        mutex.lock();
+        defer mutex.unlock();
+        if (find(key, composition)) |hit| {
+            s.destroy();
+            return borrow(hit);
+        }
+        const bytes = s.hostBytes();
+        while (entries.items.len >= class_plan_limit) if (!evictOne()) return .{ .statics = s, .owned = true };
+        while (!budget.?.reserve(bytes)) if (!evictOne()) return .{ .statics = s, .owned = true };
+        s.charged = bytes;
+        entries.append(a, s) catch {
+            budget.?.release(s.charged);
+            s.charged = 0;
+            return .{ .statics = s, .owned = true };
+        };
+        // Only a cached class gets a slot: its plan lives as long as the class.
+        if (composition) s.public.class_plan = @ptrCast(&s.slot);
+        return borrow(s);
+    }
+    /// The borrowing Staged is gone (Owner.release / prestage error path).
+    fn unref(s: *Statics) void {
+        mutex.lock();
+        defer mutex.unlock();
+        std.debug.assert(s.refs != 0);
+        s.refs -= 1;
+    }
 };
+
+/// A counted borrow of a cached class's statics for a holder outside any
+/// Staged (the GPU-native recursion class registry, jobs/outer_device.zig):
+/// while held, LRU eviction never destroys the entry (lruVictim skips
+/// referenced entries), so a sealed ClassCache entry never dangles.
+pub const ClassPin = struct {
+    statics: *anyopaque,
+    /// `plan` is a cached entry's `public` (St.Statics) pointer;
+    /// error.OuterClassNotCached if no cached entry owns it (an uncached,
+    /// per-node statics can never back a warmed class).
+    pub fn take(plan: *anyopaque) !ClassPin {
+        StaticsCache.mutex.lock();
+        defer StaticsCache.mutex.unlock();
+        for (StaticsCache.entries.items) |s| if (@as(*anyopaque, @ptrCast(&s.public)) == plan) {
+            _ = StaticsCache.borrow(s);
+            return .{ .statics = s };
+        };
+        return error.OuterClassNotCached;
+    }
+    pub fn retain(raw: *anyopaque) void {
+        StaticsCache.mutex.lock();
+        defer StaticsCache.mutex.unlock();
+        _ = StaticsCache.borrow(@ptrCast(@alignCast(raw)));
+    }
+    pub fn release(raw: *anyopaque) void {
+        StaticsCache.unref(@ptrCast(@alignCast(raw)));
+    }
+};
+
+comptime {
+    // Analyzed with this file (its only caller, the GPU-native warm entry, is not landed).
+    _ = &ClassPin.take;
+    _ = &ClassPin.retain;
+    _ = &ClassPin.release;
+}
 
 /// Thread-local producer hints Prepared.init reads (outer_source.zig ControllerTls).
 const Hints = struct {
@@ -490,6 +646,8 @@ const Owner = struct {
     prepared: Assignment.Prepared,
     statics: *Statics,
     owns_statics: bool,
+    /// A reference counted class-plan cache borrow (StaticsCache.unref on release).
+    counted_statics: bool = false,
     runs: []St.Run,
     expected: []u32,
     fixed_raw: [][]const u32,
@@ -498,7 +656,7 @@ const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(raw));
         const a = self.allocator;
         self.prepared.deinit();
-        if (self.owns_statics) self.statics.destroy();
+        if (self.owns_statics) self.statics.destroy() else if (self.counted_statics) StaticsCache.unref(self.statics);
         a.free(self.runs);
         a.free(self.expected);
         a.free(self.fixed_raw);
@@ -533,10 +691,13 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
     errdefer owner.prepared.deinit();
     const prepared = &owner.prepared;
     if (prepared.reference != null or prepared.count == 0 or prepared.count > std.math.maxInt(u32) / 4) return error.TraceOnlySourceRequired;
+    // The statics cache already uses the process allocator; retained native
+    // templates take a counted pin rather than borrowing request custody.
     const acquired = try StaticsCache.acquire(key, !input.is_leaf and input.class != null, input.library, input.composition);
-    errdefer if (acquired.owned) acquired.statics.destroy();
+    errdefer if (acquired.owned) acquired.statics.destroy() else if (acquired.counted) StaticsCache.unref(acquired.statics);
     owner.statics = acquired.statics;
     owner.owns_statics = acquired.owned;
+    owner.counted_statics = acquired.counted;
     var needs_ends = false;
     var ends: []const u32 = &.{};
     owner.runs = if (prepared.narrow_plan) |narrow| blk: {
@@ -584,6 +745,7 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
         .reusable = prepared.reusable and !input.is_leaf,
     };
     if (sample_tape != null and prepared.blake_sample_span == null) return error.MissingBlakeSampleClassSpan;
+    const device_checks = try Checks.selected();
     var class_key: [32]u8 = undefined;
     {
         var h = std.crypto.hash.sha2.Sha256.init(.{});
@@ -600,6 +762,9 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
         h.update(std.mem.sliceAsBytes(&key.fixed_logs));
         for (owner.runs) |run| h.update(std.mem.asBytes(&[_]u32{ @intFromEnum(run.kind), run.first_task, run.task_count, run.first_level, run.level_count }));
         h.update(std.mem.asBytes(&[_]u64{ prepared.plan.level_ends.len, prepared.tasks.len, prepared.seeds.len, prepared.indices.len, prepared.count, @intFromBool(sample_tape != null), @intFromBool(prepared.blake_sample_outputs != null), @intFromBool(input.composition) }));
+        // The device checks add one kernel to the body (topology).
+        // v2: the body also clears the check words (one memset node).
+        if (device_checks) h.update("device-checks/v2");
         graph_key = h.finalResult();
     }
     owner.staged = .{
@@ -610,7 +775,8 @@ pub fn prestage(a: std.mem.Allocator, input: Input) !*St.Staged {
         .class_key = class_key,
         .graph_key = graph_key,
         .ordinal = input.ordinal,
-        .image = St.Staged.layout(&assignment, &owner.statics.public),
+        .image = St.Staged.layoutWith(&assignment, &owner.statics.public, if (device_checks) owner.expected.len else 0),
+        .lookup = if (device_checks) lookupStatic() else null,
         .owner = owner,
         .release = Owner.release,
         .fixed_root = key.fixedRoot(),
@@ -638,6 +804,89 @@ pub fn prestageHook(_: ?*anyopaque, a: std.mem.Allocator, input: *const anyopaqu
     const typed: *const Input = @ptrCast(@alignCast(input));
     return prestage(a, typed.*);
 }
+
+/// Own the class schedule and statics after a real install-time proof. The
+/// retained template has no seed values, public outputs, channel checkpoint,
+/// sample tape or pointer into the warm request's authority/allocator.
+pub fn packTemplate(a: std.mem.Allocator, source: *const St.Staged) !@import("jobs/outer_packed_class.zig").Class {
+    const class_words: usize = @intCast(source.image.words[@intFromEnum(St.Region.class)]);
+    const fixed_words: usize = @intCast((source.statics.fixed_plan orelse return error.OuterJobWholeStagingMissing).coefficient_words);
+    const raw = try a.alloc(u32, class_words + fixed_words);
+    defer a.free(raw);
+    @memset(raw, 0);
+    try source.pack(.class, raw[0..class_words]);
+    try source.packFixed(raw[class_words..]);
+    // Assignment tasks have eight fields. Preserve those predictors instead
+    // of delta-coding adjacent fields against each other. All class ranges
+    // are granule-aligned; scalar-only odd images retain one channel.
+    var compressed = try Outer.cache_pack.pack(a, raw, if (raw.len % 8 == 0) 8 else 1);
+    defer compressed.deinit(a);
+    return @import("jobs/outer_packed_class.zig").build(a, compressed, class_words, fixed_words);
+}
+
+pub fn retainTemplate(a: std.mem.Allocator, input: Input, source: *const St.Staged) !*St.Staged {
+    if (source.assignment.sample_tape != null or source.assignment.sample_map != null) return error.GnTemplateContainsSampleWitness;
+    const owner = try a.create(TemplateOwner);
+    errdefer a.destroy(owner);
+    owner.* = .{ .a = a, .arena = std.heap.ArenaAllocator.init(a) };
+    errdefer owner.arena.deinit();
+    const ar = owner.arena.allocator();
+    const statics = if (ClassPin.take(@ptrCast(@constCast(source.statics)))) |pin| blk: {
+        owner.pin = pin;
+        break :blk source.statics;
+    } else |_| blk: {
+        const s = try Statics.init(a, input.key, input.library, true);
+        s.public.class_plan = @ptrCast(&s.slot);
+        owner.statics = s;
+        break :blk &s.public;
+    };
+    errdefer {
+        if (owner.pin) |pin| ClassPin.release(pin.statics);
+        if (owner.statics) |s| s.destroy();
+    }
+    var assignment = source.assignment;
+    const seeds = try ar.dupe(u32, assignment.seeds);
+    if (seeds.len % 5 != 0) return error.InvalidOuterSeedLayout;
+    for (0..seeds.len / 5) |i| @memset(seeds[5 * i + 1 ..][0..4], 0);
+    assignment.seeds = seeds;
+    assignment.tasks = try ar.dupe(u32, assignment.tasks);
+    assignment.indices = try ar.dupe(u32, assignment.indices);
+    assignment.runs = try ar.dupe(St.Run, assignment.runs);
+    assignment.level_ends = try ar.dupe(usize, assignment.level_ends);
+    assignment.ends = try ar.dupe(u32, assignment.ends);
+    assignment.reusable = true;
+    const expected = try ar.alloc(u32, source.expected.len);
+    @memset(expected, 0);
+    const fixed = try ar.alloc([]const u32, source.fixed_raw.len);
+    for (fixed, source.fixed_raw) |*out, column| out.* = try ar.dupe(u32, column);
+    owner.staged = source.*;
+    owner.staged.assignment = assignment;
+    owner.staged.statics = statics;
+    owner.staged.checkpoint = @splat(0);
+    owner.staged.expected = expected;
+    owner.staged.fixed_logs = try ar.dupe(u32, source.fixed_logs);
+    owner.staged.fixed_raw = fixed;
+    owner.staged.pcs_points = if (owner.statics) |s| if (s.rc) |*rc| @ptrCast(rc.points) else null else source.pcs_points;
+    owner.staged.image = St.Staged.layoutWith(&assignment, statics, expected.len);
+    owner.staged.owner = owner;
+    owner.staged.release = TemplateOwner.release;
+    return &owner.staged;
+}
+const TemplateOwner = struct {
+    a: std.mem.Allocator,
+    arena: std.heap.ArenaAllocator,
+    pin: ?ClassPin = null,
+    statics: ?*Statics = null,
+    staged: St.Staged = undefined,
+    fn release(raw: *anyopaque) void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        const a = self.a;
+        self.arena.deinit();
+        if (self.pin) |pin| ClassPin.release(pin.statics);
+        if (self.statics) |s| s.destroy();
+        a.destroy(self);
+    }
+};
 /// Hooks.outer_assemble: heap Outer.prove.Produced (caller deinit + destroy).
 /// `key` is a *const Authority.
 pub fn assembleHook(_: ?*anyopaque, a: std.mem.Allocator, key: *const anyopaque, staged: *const St.Staged, job: *Job.OuterNodeJob) anyerror!*anyopaque {
@@ -684,3 +933,154 @@ pub const FixedPrecommit = struct {
         self.* = undefined;
     }
 };
+
+/// Per-class OODS program of the device node_oods_constraint check
+/// (jobs/outer_encode_oods.zig): every bound component part's AIR bytecode
+/// with its mask reads resolved to PCS-image sample indices, the component
+/// coset constants and parameter sources, in the order assemble's
+/// evalCompositionPolynomialAtPoint accumulates them. Challenge independent:
+/// components are bound with placeholder challenges (only geometry, programs
+/// and parameter SOURCES are read). `sample_counts[t][c]` are the PCS shape's
+/// per-column sample counts (tree, original column), i.e. the image order.
+pub fn oodsProgram(a: std.mem.Allocator, key: *const Authority, sample_counts: []const []const u32) ![]u32 {
+    const OP = @import("jobs/outer_encode_oods.zig");
+    const Geo = Outer.geometry;
+    const RG = struct {
+        // resident_geometry.offsetIndex
+        fn offsetIndex(offsets: []const i32, wanted: i32) ?usize {
+            for (offsets, 0..) |offset, index| if (offset == wanted) return index;
+            return null;
+        }
+    };
+    const placeholder: [Plan.n_components]O = @splat(O.one());
+    const bound = try Outer.prove.bind(a, key, O.one(), O.one(), Outer.witness.Claims.fromArray(placeholder));
+    defer a.free(bound);
+    const components = try a.alloc(CP.ComponentProver, bound.len);
+    defer a.free(components);
+    for (components, bound) |*out, *c| out.* = c.asProverComponent();
+    const provers = CP.ComponentProvers{ .components = components, .n_preprocessed_columns = key.fixed_logs.len };
+    const log = provers.compositionLogDegreeBound();
+    const split = try provers.compositionLogSplit();
+    if (split != 1) return error.InvalidOuterCompositionAuthority;
+    const mask_log = core.verifier_types.compositionMaskLogSize(log, split) orelse return error.InvalidOuterCompositionAuthority;
+    if (sample_counts.len != 4) return error.InvalidOuterOodsShape;
+    // First sample index of every (tree, column).
+    const first = try a.alloc([]u32, sample_counts.len);
+    defer a.free(first);
+    var made: usize = 0;
+    defer for (first[0..made]) |f| a.free(f);
+    var total: u32 = 0;
+    for (sample_counts, first) |counts, *f| {
+        f.* = try a.alloc(u32, counts.len);
+        made += 1;
+        for (counts, f.*) |c, *x| {
+            x.* = total;
+            total += c;
+        }
+    }
+    const columns = core.verifier_types.compositionColumnCount(split, 8) orelse return error.InvalidOuterCompositionAuthority;
+    if (sample_counts[3].len != columns) return error.InvalidOuterOodsShape;
+    for (sample_counts[3]) |c| if (c != 1) return error.InvalidOuterOodsShape;
+    var b = OP.Builder{ .a = a };
+    defer b.deinit();
+    for (bound, 0..) |*component, ci| {
+        const c = component.captured;
+        if (mask_log < c.trace_log_size) return error.InvalidOm31MaskGeometry;
+        const mo = try Geo.offsets(a, c.*, 1);
+        defer Geo.freeOffsets(a, mo);
+        const io = try Geo.offsets(a, c.*, 2);
+        defer Geo.freeOffsets(a, io);
+        const spans = [_]Geo.Span{ .{ .start = 0, .end = 0 }, try Geo.span(c.*, 1), try Geo.span(c.*, 2) };
+        const Resolve = struct {
+            c: @TypeOf(c),
+            first: []const []u32,
+            counts: []const []const u32,
+            spans: []const Geo.Span,
+            offs: [2][]const std.ArrayList(i32),
+            /// component.zig PointRead.get: the sample index of one physical read.
+            fn get(self: @This(), tree: u8, column: u32, offset: i32) !u32 {
+                if (tree == 0) {
+                    if (offset != 0 or column >= self.c.preprocessed_indices.len) return error.MissingOm31Mask;
+                    const global = self.c.preprocessed_indices[column];
+                    if (global >= self.counts[0].len or self.counts[0][global] != 1) return error.MissingOm31Mask;
+                    return self.first[0][global];
+                }
+                if (tree > 2) return error.MissingOm31Mask;
+                const offsets = self.offs[tree - 1];
+                const global = self.spans[tree].start + column;
+                if (column >= offsets.len or global >= self.counts[tree].len) return error.MissingOm31Mask;
+                if (self.counts[tree][global] != offsets[column].items.len) return error.MissingOm31Mask;
+                const at = RG.offsetIndex(offsets[column].items, offset) orelse return error.MissingOm31Mask;
+                return self.first[tree][global] + @as(u32, @intCast(at));
+            }
+        };
+        const r = Resolve{ .c = c, .first = first, .counts = sample_counts, .spans = &spans, .offs = .{ mo, io } };
+        // Parameter sources (program_lane.zig extensionParameters).
+        var params: std.ArrayListUnmanaged(u32) = .empty;
+        defer params.deinit(a);
+        for (c.ext_sources) |source| try params.appendSlice(a, &switch (source) {
+            .constant => |w| [6]u32{ @intFromEnum(OP.ParamKind.constant), w[0], w[1], w[2], w[3], 0 },
+            .lookup_z => [6]u32{ @intFromEnum(OP.ParamKind.lookup_z), 0, 0, 0, 0, 0 },
+            .lookup_alpha_power => |n| [6]u32{ @intFromEnum(OP.ParamKind.alpha_power), 0, 0, 0, 0, n },
+            .lookup_alpha_power_scaled => |x| [6]u32{ @intFromEnum(OP.ParamKind.alpha_power_scaled), x.scale, 0, 0, 0, x.power },
+            .claimed_sum_scaled => [6]u32{ @intFromEnum(OP.ParamKind.claimed_sum_scaled), 0, 0, 0, 0, 0 },
+        });
+        const coset = core.poly.circle.canonic.CanonicCoset.new(c.trace_log_size).coset();
+        const scale = try core.fields.m31.M31.fromCanonical(@as(u32, 1) << @intCast(c.trace_log_size)).inv();
+        for (c.parts) |part| {
+            const p = part.program;
+            if (p.header.n_base_params != 0 or p.header.n_ext_params != c.ext_sources.len) return error.InvalidOm31Parameters;
+            var row: [OP.Part.words]u32 = @splat(0);
+            row[OP.Part.component] = @intCast(ci);
+            row[OP.Part.trace_log] = c.trace_log_size;
+            row[OP.Part.claim] = @intCast(ci);
+            row[OP.Part.params_at] = try b.span(params.items);
+            row[OP.Part.n_params] = @intCast(c.ext_sources.len);
+            var insts: std.ArrayListUnmanaged(u32) = .empty;
+            defer insts.deinit(a);
+            for (p.base_insts) |i| {
+                var s0: u32 = OP.no_sample;
+                var s1: u32 = OP.no_sample;
+                switch (i.op) {
+                    .trace_col, .preprocessed_col => {
+                        // program_lane.zig Reader.read: INTER logical = low + v * high.
+                        if (i.interaction != 2) s0 = try r.get(i.interaction, i.a, i.imm) else {
+                            const low = (i.a / 4) * 8 + i.a % 4;
+                            s0 = try r.get(2, low, i.imm);
+                            s1 = try r.get(2, low + 4, i.imm);
+                        }
+                    },
+                    .param => return error.InvalidOm31Parameters,
+                    else => {},
+                }
+                try insts.appendSlice(a, &[_]u32{ @intFromEnum(i.op), i.dst, i.a, i.b, s0, s1 });
+            }
+            row[OP.Part.base_at] = try b.span(insts.items);
+            row[OP.Part.n_base] = @intCast(p.base_insts.len);
+            insts.clearRetainingCapacity();
+            for (p.ext_insts) |i| try insts.appendSlice(a, &[_]u32{ @intFromEnum(i.op), i.dst, i.a, i.b, i.c, i.d });
+            row[OP.Part.ext_at] = try b.span(insts.items);
+            row[OP.Part.n_ext] = @intCast(p.ext_insts.len);
+            row[OP.Part.roots_at] = try b.span(p.constraint_roots);
+            row[OP.Part.n_roots] = @intCast(p.constraint_roots.len);
+            row[OP.Part.max_base] = p.header.max_base_regs;
+            row[OP.Part.max_ext] = p.header.max_ext_regs;
+            row[OP.Part.regs_at] = b.regs(p.header.max_base_regs, p.header.max_ext_regs);
+            row[OP.Part.initial] = coset.initial.x.v;
+            row[OP.Part.initial + 1] = coset.initial.y.v;
+            row[OP.Part.half_step] = coset.half_step.x.v;
+            row[OP.Part.half_step + 1] = coset.half_step.y.v;
+            row[OP.Part.coset_log] = coset.log_size;
+            row[OP.Part.claim_scale] = scale.v;
+            try b.part(row);
+        }
+    }
+    var header: [OP.H.header_words]u32 = @splat(0);
+    header[OP.H.global_log] = mask_log;
+    header[OP.H.composition_log] = mask_log + split;
+    header[OP.H.split] = split;
+    header[OP.H.composition_sample] = first[3][0];
+    header[OP.H.samples] = total;
+    header[OP.H.claims] = Plan.n_components;
+    return b.finish(header);
+}

@@ -18,7 +18,7 @@ test "fused_blake2s_v1 constants match the circuit's relation ids and table shap
     try std.testing.expectEqual(component_list.VERIFY_BITWISE_XOR_8_RELATION_ID, v1.XOR_8_RELATION_ID);
     // The new split tables must not collide with any existing relation id.
     const existing = [_]u32{
-        component_list.GATE_RELATION_ID,              component_list.RANGE_CHECK_16_RELATION_ID,
+        component_list.GATE_RELATION_ID,                 component_list.RANGE_CHECK_16_RELATION_ID,
         component_list.VERIFY_BITWISE_XOR_4_RELATION_ID, component_list.VERIFY_BITWISE_XOR_7_RELATION_ID,
         component_list.VERIFY_BITWISE_XOR_8_RELATION_ID, component_list.VERIFY_BITWISE_XOR_8_B_RELATION_ID,
         component_list.VERIFY_BITWISE_XOR_9_RELATION_ID, component_list.VERIFY_BITWISE_XOR_12_RELATION_ID,

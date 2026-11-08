@@ -44,12 +44,20 @@ pub const CompactHeader = struct { domain: Digest, class_key: Digest, program: D
 pub const SignedMass = struct { positive: U64, negative: U64 };
 pub const SignedGlobals = struct { ram: SignedMass, kio: SignedMass, wire: SignedMass };
 pub const CompactCpuMetadata = struct {
-    ordinal: Word, execution: Digest, mass: SignedGlobals, relations: Word,
-    cpu_ordinal: Word, steps_in: U64, ls_count: Word, ls_dword: Word,
-    calls: [Types.FAMILIES]Word, first_ids: [Types.FAMILIES]Word, sponge: [3]Word, bulk: [8]Word,
+    ordinal: Word,
+    execution: Digest,
+    mass: SignedGlobals,
+    relations: Word,
+    cpu_ordinal: Word,
+    steps_in: U64,
+    ls_count: Word,
+    ls_dword: Word,
+    calls: [Types.FAMILIES]Word,
+    first_ids: [Types.FAMILIES]Word,
+    sponge: [3]Word,
+    bulk: [8]Word,
 };
-pub const CompactTruthMetadata = struct { ordinal: Word, execution: Digest, mass: SignedGlobals, relations: Word,
-    family: Word, first_id: Word, calls: Word, logs: [2]Word };
+pub const CompactTruthMetadata = struct { ordinal: Word, execution: Digest, mass: SignedGlobals, relations: Word, family: Word, first_id: Word, calls: Word, logs: [2]Word };
 /// Witness assignment only. compactCpu/Truth and all admission constraints must
 /// consume these SAME handles; these constructors do not authenticate a proof.
 pub fn guessCompactCpuMetadata(ctx: *C.Context, native: @import("../../word16_global_execution/services/native_gkr/cpu_statement.zig").Metadata) !CompactCpuMetadata {
@@ -88,24 +96,35 @@ const IdentityWriter = struct {
     failure: ?anyerror = null,
     pub fn header(self: *@This(), values: []const u32) void {
         if (self.failure != null) return;
-        self.channel.mixConstU32s(self.ctx, values) catch |err| { self.failure = err; };
+        self.channel.mixConstU32s(self.ctx, values) catch |err| {
+            self.failure = err;
+        };
     }
     pub fn configuration(self: *@This(), config: Worker.PcsConfig) void {
         if (self.failure != null) return;
-        self.channel.mixConfig(self.ctx, config) catch |err| { self.failure = err; };
+        self.channel.mixConfig(self.ctx, config) catch |err| {
+            self.failure = err;
+        };
     }
     pub fn constantDigest(self: *@This(), value: Canon.Digest) void {
         if (self.failure != null) return;
-        const words = Public.constantDigest(self.ctx, value) catch |err| { self.failure = err; return; };
+        const words = Public.constantDigest(self.ctx, value) catch |err| {
+            self.failure = err;
+            return;
+        };
         self.publicDigest(words);
     }
     pub fn publicDigest(self: *@This(), value: Digest) void {
         if (self.failure != null) return;
-        self.channel.mixU32s(self.ctx, &value) catch |err| { self.failure = err; };
+        self.channel.mixU32s(self.ctx, &value) catch |err| {
+            self.failure = err;
+        };
     }
     pub fn int64(self: *@This(), value: U64) void {
         if (self.failure != null) return;
-        self.channel.mixU64(self.ctx, value[0], value[1]) catch |err| { self.failure = err; };
+        self.channel.mixU64(self.ctx, value[0], value[1]) catch |err| {
+            self.failure = err;
+        };
     }
     fn final(self: *@This()) !Digest {
         if (self.failure) |err| return err;
@@ -141,23 +160,35 @@ const Writer = struct {
     }
     pub fn word(self: *Writer, value: Word) void {
         if (self.failure != null) return;
-        self.values.append(self.ctx.scratch(), value) catch |err| { self.failure = err; };
+        self.values.append(self.ctx.scratch(), value) catch |err| {
+            self.failure = err;
+        };
     }
     pub fn words(self: *Writer, values: []const Word) void {
         for (values) |value| self.word(value);
     }
     pub fn constantWord(self: *Writer, value: u32) void {
         if (self.failure != null) return;
-        const converted = B.wrappers.constU32(C.Q, self.ctx, value) catch |err| { self.failure = err; return; };
+        const converted = B.wrappers.constU32(C.Q, self.ctx, value) catch |err| {
+            self.failure = err;
+            return;
+        };
         self.word(converted);
     }
     pub fn constantDigest(self: *Writer, value: [32]u8) void {
         if (self.failure != null) return;
-        const converted = Public.constantDigest(self.ctx, value) catch |err| { self.failure = err; return; };
+        const converted = Public.constantDigest(self.ctx, value) catch |err| {
+            self.failure = err;
+            return;
+        };
         self.digest(converted);
     }
-    pub fn int64(self: *Writer, value: U64) void { self.words(&value); }
-    pub fn digest(self: *Writer, value: Digest) void { self.words(&value); }
+    pub fn int64(self: *Writer, value: U64) void {
+        self.words(&value);
+    }
+    pub fn digest(self: *Writer, value: Digest) void {
+        self.words(&value);
+    }
     fn final(self: *Writer) !Digest {
         if (self.failure) |err| return err;
         return (try B.blake.blake2sU32s(C.Q, self.ctx, self.values.items, 4 * self.values.items.len)).words;
@@ -273,14 +304,18 @@ fn mirror(comptime Wire: type, ctx: *C.Context, native: anytype) !Wire {
     }
     var out: Wire = undefined;
     switch (@typeInfo(Wire)) {
-        .array => |array| for (0..array.len) |i| { out[i] = try mirror(array.child, ctx, native[i]); },
+        .array => |array| for (0..array.len) |i| {
+            out[i] = try mirror(array.child, ctx, native[i]);
+        },
         .pointer => |pointer| {
             if (pointer.size != .slice) @compileError("canonical witness supports slices only");
             const values = try ctx.scratch().alloc(pointer.child, native.len);
             for (values, native) |*value, item| value.* = try mirror(pointer.child, ctx, item);
             out = values;
         },
-        .@"struct" => |structure| inline for (structure.fields) |field| { @field(out, field.name) = try mirror(field.type, ctx, @field(native, field.name)); },
+        .@"struct" => |structure| inline for (structure.fields) |field| {
+            @field(out, field.name) = try mirror(field.type, ctx, @field(native, field.name));
+        },
         else => @compileError("unsupported canonical hash witness"),
     }
     return out;
@@ -289,17 +324,15 @@ test "compact native-GKR CPU and truth circuit hashes share the source visitor" 
     const CPU = @import("../../word16_global_execution/services/native_gkr/cpu_statement.zig");
     const Truth = @import("../../word16_global_execution/services/native_gkr/truth_statement.zig");
     const Inputs = @import("cpu_leaf.zig").Statement.ChainInputs;
-    const header = CPU.Header{ .domain = CPU.domainDigest(), .class_key = @splat(1), .program = @splat(2),
-        .config_identity = @splat(3), .fixed_identity = @splat(4), .fixed_root = @splat(5) };
-    var rows = [_]u32{0,3}; var calls = [_]u32{0,5}; var first = [_]u32{1,9};
-    const input = CPU.Inputs{ .steps = 9, .epoch = 2, .initial_pc = @splat(0), .final_pc = @splat(1),
-        .initial_registers = @splat(@splat(0)), .final_registers = @splat(@splat(1)), .register_clocks = @splat(3),
-        .sponge_first = 1, .rows = &rows, .calls = &calls, .first_ids = &first };
-    const metadata = CPU.Metadata{ .ordinal = 7, .execution = @splat(8), .mass = .{.ram=.{.positive=13,.negative=11}}, .relations=1,
-        .cpu_ordinal=2,.steps_in=111,.ls_count=3,.ls_dword=5,.calls=@splat(2),.first_ids=@splat(1),.sponge=.{1,3,5},.bulk=@splat(7) };
-    var truth_header = header; truth_header.domain = Truth.domainDigest();
-    const truth = Truth.Metadata{ .ordinal=8,.execution=@splat(8),.mass=.{.wire=.{.positive=12,.negative=4}},.relations=4,
-        .family=19,.first_id=1,.calls=3,.logs=.{10,0} };
+    const header = CPU.Header{ .domain = CPU.domainDigest(), .class_key = @splat(1), .program = @splat(2), .config_identity = @splat(3), .fixed_identity = @splat(4), .fixed_root = @splat(5) };
+    var rows = [_]u32{ 0, 3 };
+    var calls = [_]u32{ 0, 5 };
+    var first = [_]u32{ 1, 9 };
+    const input = CPU.Inputs{ .steps = 9, .epoch = 2, .initial_pc = @splat(0), .final_pc = @splat(1), .initial_registers = @splat(@splat(0)), .final_registers = @splat(@splat(1)), .register_clocks = @splat(3), .sponge_first = 1, .rows = &rows, .calls = &calls, .first_ids = &first };
+    const metadata = CPU.Metadata{ .ordinal = 7, .execution = @splat(8), .mass = .{ .ram = .{ .positive = 13, .negative = 11 } }, .relations = 1, .cpu_ordinal = 2, .steps_in = 111, .ls_count = 3, .ls_dword = 5, .calls = @splat(2), .first_ids = @splat(1), .sponge = .{ 1, 3, 5 }, .bulk = @splat(7) };
+    var truth_header = header;
+    truth_header.domain = Truth.domainDigest();
+    const truth = Truth.Metadata{ .ordinal = 8, .execution = @splat(8), .mass = .{ .wire = .{ .positive = 12, .negative = 4 } }, .relations = 4, .family = 19, .first_id = 1, .calls = 3, .logs = .{ 10, 0 } };
     for (0..3) |mutation| {
         var ctx = try C.Context.init(std.testing.allocator, 0);
         defer ctx.deinit();
@@ -320,16 +353,22 @@ test "compact native-GKR CPU and truth circuit hashes share the source visitor" 
 }
 test "fold-v3 circuit CPU truth segment and chi hashes reproduce native authority" {
     const native = Canon.CpuStatement{
-        .ordinal = 17, .cpu_ordinal = 4, .steps_in = 0x123456789abcdef0,
-        .steps = 89123, .ls_count = 741, .ls_dword = 9,
-        .calls = @splat(17), .first_ids = @splat(32), .sponge = .{ 13, 27, 42 },
-        .bulk = .{ 1, 2, 3, 4, 5, 6, 7, 8 }, .mass = .{ .ram = 729, .kio = 831, .wire = 391 },
-        .relations = 7, .legacy = @splat(9),
+        .ordinal = 17,
+        .cpu_ordinal = 4,
+        .steps_in = 0x123456789abcdef0,
+        .steps = 89123,
+        .ls_count = 741,
+        .ls_dword = 9,
+        .calls = @splat(17),
+        .first_ids = @splat(32),
+        .sponge = .{ 13, 27, 42 },
+        .bulk = .{ 1, 2, 3, 4, 5, 6, 7, 8 },
+        .mass = .{ .ram = 729, .kio = 831, .wire = 391 },
+        .relations = 7,
+        .legacy = @splat(9),
     };
-    const truth = Canon.TruthStatement{ .ordinal = 23, .family = 16, .first_id = 1, .calls = 871, .logs = .{ 19, 0 },
-        .mass = .{ .ram = 0, .kio = 87100, .wire = 0 }, .relations = 2, .legacy = @splat(39) };
-    const segment = Canon.Segment{ .k = 17, .family = 1, .rung = 3, .vkhash = @splat(7),
-        .stmt = native.digest(), .s_in = @splat(4), .s_out = @splat(5), .rho = @splat(2) };
+    const truth = Canon.TruthStatement{ .ordinal = 23, .family = 16, .first_id = 1, .calls = 871, .logs = .{ 19, 0 }, .mass = .{ .ram = 0, .kio = 87100, .wire = 0 }, .relations = 2, .legacy = @splat(39) };
+    const segment = Canon.Segment{ .k = 17, .family = 1, .rung = 3, .vkhash = @splat(7), .stmt = native.digest(), .s_in = @splat(4), .s_out = @splat(5), .rho = @splat(2) };
     const previous: Canon.Digest = @splat(71);
     for (0..2) |mutation| {
         var ctx = try C.Context.init(std.testing.allocator, 0);

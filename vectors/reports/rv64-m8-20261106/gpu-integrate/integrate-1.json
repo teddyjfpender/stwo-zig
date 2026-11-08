@@ -1,0 +1,23 @@
+{
+  "schema": "rv64-m8-gpu-integrate/v1",
+  "head": "40d99f56a",
+  "merged": {
+    "driver": "28836c53a (fast-forward)",
+    "native": "46606e695 (merge 3905abf64, clean)",
+    "recursion": "8c9fdfd1c (merge 4b32d62ca, clean)"
+  },
+  "integration_fix": "40d99f56a: test-rv64-jobs binary links libc. After the merge, recursion's outer_device.zig registry uses std.heap.c_allocator and is reachable from the driver's rv64_jobs_test_root.zig. That fails to compile on x86_64-linux-gnu, though macOS links libc implicitly. Found by gate-3 unit-zig [M].",
+  "local_host_tests": "[M] zig build test-rv64-jobs test-rv64-jobs-outer: 411/416 passed, 5 pre-existing GPU-only skips (memguard 6 GB)",
+  "gate_4": {
+    "out": "/workspace/m3/runs/m8-gpu/gate-4",
+    "build": "PASS [M]", "unit_zig": "PASS [M]", "unit_python": "PASS [M]",
+    "small_block_proof": "BLOCKED [M]: service exited before READY with GpuPcsInitializationFailed",
+    "blocker": "orphan combined-serve pid 3302210 (m8-native-hybrid daemon-26235156-r2-gate-gate-n-26235156-00-baseline, parent init) holds 30098/30110 MiB on GPU0/GPU1 outside gpu.lock [M]. It is not owned by this stream, and earlier agents were denied permission to stop it."
+  },
+  "acceptance_status": {
+    "1_gates_default_and_jobs1": "not run: GPUs held by the orphan",
+    "2_nsys_warm_24628607_jobs1": "not run: GPUs held; also, GPU_NATIVE factories (native_device/outer_device truth+node) still fail closed, so JOBS=1 is not yet GPU-native end to end",
+    "3_interleaved_3plus3": "not run: GPUs held"
+  },
+  "gpu_native_end_to_end_gaps": "Driver runtime landed (DAG, plan, peer exchange, slab, 1 host wait). Native landed only the H9 framing cache. Recursion landed class plans and the device lookup_sum check. Not written: device witness from TraceChunks (H4/H5), MAIN residency (H12), device seal (H8), device checks binding/global/composition/oods/pcs (H7/H10/H11), device ProofEncoder (H11/H22), TruthJob (H14), device seed fill (H16/H17), warm-time graph capture per (class,device) (H24), driver_serve loop (H27/H28)."
+}

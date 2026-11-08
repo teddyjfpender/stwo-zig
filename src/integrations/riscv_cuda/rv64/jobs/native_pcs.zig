@@ -205,7 +205,10 @@ fn Bridge(comptime EnqueuePtr: type) type {
     return struct {
         fn alloc(user: ?*anyopaque, words: u64) callconv(.c) ?[*]u32 {
             const e: *E = @ptrCast(@alignCast(user orelse return null));
-            const buffer = e.alloc(@intCast(words)) catch return null;
+            const buffer = e.alloc(@intCast(words)) catch |err| {
+                std.debug.print("GPU_PCS_JOB_ALLOC_FAILED words={} error={s}\n", .{ words, @errorName(err) });
+                return null;
+            };
             return buffer.ptr;
         }
         fn release(user: ?*anyopaque, ptr: [*]u32, words: u64) callconv(.c) void {
