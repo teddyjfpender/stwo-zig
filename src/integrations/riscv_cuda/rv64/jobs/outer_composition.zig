@@ -1,9 +1,9 @@
 //! Enqueue-only outer composition (RC) for OuterNodeJob. Same kernels, same
 //! order, same words as resident_composition.zig Job.run on the deployed
 //! outer configuration (STWO_RV64_COMPOSITION_ENQUEUE=1, direct extension,
-//! no role workspace, no selected columns, no auxiliary columns, no sparse
-//! role): for each catalogue role in order,
-//!   LDE of every source column straight from its coefficient buffer
+//! no role workspace, no auxiliary columns, no sparse role): each catalogue
+//! role selects unique authenticated input columns and remaps mask aliases.
+//!   LDE of each selected source column straight from its coefficient buffer
 //!   (n2b_columns, eval_log = trace_log + 1 for every outer component),
 //!   the AOT role kernel accumulating into the per-height quotient bucket,
 //! then the finish kernel (bucket fold + interpolation + split), the commit
@@ -47,7 +47,7 @@ pub const RoleStatic = struct {
     widths: [3]u32,
     sources: []const Source,
     roots: u32,
-    /// u64 mask offsets (input.column * n), 2 words each.
+    /// u64 mask offsets (selected slot * n), 2 words each; aliases share slots.
     masks: St.Range,
     mask_count: u32,
     denominators: St.Range,
@@ -174,8 +174,8 @@ pub fn enqueue(device: *K.Device, kernels: *const Kernels, st: *const Static, in
     for (st.roles) |role| {
         const el = role.eval_log;
         const n = @as(u64, 1) << @intCast(el);
-        const columns: u64 = role.widths[0] + role.widths[1] + role.widths[2];
-        if (role.sources.len != columns or role.trace_log + 1 != el) return error.UnsupportedOuterCompositionRole;
+        const columns: u64 = role.sources.len;
+        if (columns == 0 or role.trace_log + 1 != el) return error.UnsupportedOuterCompositionRole;
         const arena = try device.alloc(@intCast(columns * n));
         defer device.free(arena);
         const tw = in.bases.at(in.twiddles[el]);
@@ -194,15 +194,14 @@ pub fn enqueue(device: *K.Device, kernels: *const Kernels, st: *const Static, in
         }
         if (role.roots > next) return error.NotEnoughCoefficients;
         next -= role.roots;
-        const w = role.widths;
         const packet = Abi.CompositionRole{
             .role = role.id,
             .trace_log = role.trace_log,
             .eval_log = el,
             .first_row = 0,
             .row_count = @intCast(n),
-            .trees = .{ arena.ptr, arena.ptr + w[0] * n, arena.ptr + (w[0] + w[1]) * n },
-            .tree_words = .{ @max(1, w[0] * n), @max(1, w[1] * n), @max(1, w[2] * n) },
+            .trees = .{ arena.ptr, arena.ptr, arena.ptr },
+            .tree_words = @splat(columns * n),
             .column_offsets = @ptrCast(@alignCast(in.bases.at(role.masks))),
             .mask_count = role.mask_count,
             .parameters = in.parameters + 8 * @as(usize, role.param_first),

@@ -55,6 +55,11 @@ pub const Selection = struct {
         a.free(self.mask_slots);
         self.* = undefined;
     }
+    /// Source indices are ascending, so projection in the original roster is
+    /// safe in place. Mask slots keep tree identity and shifted aliases.
+    pub fn compact(self: *const Selection, roster: anytype) void {
+        for (self.source_indices, 0..) |source, target| roster[target] = roster[source];
+    }
 };
 
 test "composition selection preserves trees, aliases and original source indices" {
@@ -66,5 +71,9 @@ test "composition selection preserves trees, aliases and original source indices
     defer selected.deinit(std.testing.allocator);
     try std.testing.expectEqualSlices(usize, &.{ 2, 5, 8 }, selected.source_indices);
     try std.testing.expectEqualSlices(u32, &.{ 1, 0, 1, 2 }, selected.mask_slots);
+    var roster = [_]u32{ 10, 11, 12, 20, 21, 22, 23, 30, 31 };
+    selected.compact(&roster);
+    try std.testing.expectEqualSlices(u32, &.{ 12, 22, 31 }, roster[0..selected.source_indices.len]);
+    try std.testing.expectEqual(roster[selected.mask_slots[0]], roster[selected.mask_slots[2]]);
     try std.testing.expectError(error.InvalidCompositionInputs, Selection.init(std.testing.allocator, .{ 3, 4, 2 }, &[_]Input{.{ .tree = 2, .column = 2 }}));
 }

@@ -377,6 +377,13 @@
       "positive_growth_justification": "Make the existing deletion-routing regression independent of checkout Git metadata while preserving explicit Git-confirmed deletion and unconfirmed-path rejection. Production routing remains fail closed.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "outer_composition_authenticated_columns",
+      "net_code_budget": 100,
+      "positive_growth_justification": "Reduce actual composition evaluation storage using the existing authenticated unique-column selector. Preserve tree identities, input-slot order and shifted aliases; use the same projected source roster for LDE allocations and resource declaration. A source-derived node4 preflight fits the unchanged arena before hardware. No new kernel, flag, ceiling or reserve change.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

@@ -419,7 +419,7 @@ pub const OuterNodeJob = struct {
             var buckets: u64 = 0;
             var seen: [29]bool = @splat(false);
             for (cs.roles) |r| {
-                const cols: u64 = r.widths[0] + r.widths[1] + r.widths[2];
+                const cols: u64 = r.sources.len;
                 widest = @max(widest, g(cols << @intCast(r.eval_log)));
                 if (!seen[r.eval_log]) buckets += g(@as(u64, 8) << @intCast(r.eval_log));
                 seen[r.eval_log] = true;

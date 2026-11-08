@@ -161,7 +161,8 @@ pub const Input = struct {
 /// AIR bundle's root groups, as outer_source.zig ensureCatalogue builds them),
 /// authenticated against the base image's AOT kernel identities.
 const Catalogue = struct {
-    const Group = struct { component: u32, roots: u32, masks: []u32, slots: []u32 };
+    const Input = struct { tree: u8, column: u32 };
+    const Group = struct { component: u32, roots: u32, inputs: []Input, slots: []u32 };
     var mutex: std.Thread.Mutex = .{};
     var groups: ?[]Group = null;
     var identity: [32]u8 = undefined;
@@ -195,9 +196,9 @@ const Catalogue = struct {
             var actual: [64]u8 = undefined;
             if (ident(@intCast(id), &actual) != 0) return error.Om31OuterAotIdentityMismatch;
             if (!std.mem.eql(u8, actual[0..32], &artifact.program.identity) or !std.mem.eql(u8, actual[32..], &(try Code.identity(&artifact.program)))) return error.Om31OuterAotIdentityMismatch;
-            const masks = try a.alloc(u32, artifact.program.inputs.len);
-            for (masks, artifact.program.inputs) |*m, input| m.* = input.column;
-            dst.* = .{ .component = group.component, .roots = @intCast(artifact.program.roots.len), .masks = masks, .slots = try a.dupe(u32, artifact.parameter_slots) };
+            const inputs = try a.alloc(Input, artifact.program.inputs.len);
+            for (inputs, artifact.program.inputs) |*dst_input, input| dst_input.* = .{ .tree = input.tree, .column = input.column };
+            dst.* = .{ .component = group.component, .roots = @intCast(artifact.program.roots.len), .inputs = inputs, .slots = try a.dupe(u32, artifact.parameter_slots) };
         }
         groups = out;
         identity = body;
@@ -261,11 +262,16 @@ const Rc = struct {
             for (component.preprocessed_indices) |index| try sources.append(a, .{ .tree = 0, .index = @intCast(index) });
             for (main.start..main.end) |index| try sources.append(a, .{ .tree = 1, .index = @intCast(index) });
             for (inter.start..inter.end) |index| try sources.append(a, .{ .tree = 2, .index = @intCast(index) });
+            const widths = [3]usize{ component.preprocessed_indices.len, main.end - main.start, inter.end - inter.start };
+            var selected = try @import("composition_columns.zig").Selection.init(a, widths, group.inputs);
+            defer selected.deinit(a);
+            selected.compact(sources.items[source_first[id]..]);
+            sources.shrinkRetainingCapacity(source_first[id] + selected.source_indices.len);
             const columns = sources.items.len - source_first[id];
-            const masks = try a.alloc(u32, group.masks.len * 2);
+            const masks = try a.alloc(u32, selected.mask_slots.len * 2);
             defer a.free(masks);
-            for (group.masks, 0..) |column, i| {
-                const offset = @as(u64, column) * n;
+            for (selected.mask_slots, 0..) |slot, i| {
+                const offset = @as(u64, slot) * n;
                 masks[2 * i] = @truncate(offset);
                 masks[2 * i + 1] = @truncate(offset >> 32);
             }
@@ -307,7 +313,7 @@ const Rc = struct {
                 .sources = &.{},
                 .roots = group.roots,
                 .masks = try Take.take(&blob, a, masks),
-                .mask_count = @intCast(group.masks.len),
+                .mask_count = @intCast(selected.mask_slots.len),
                 .denominators = try Take.take(&blob, a, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(denominators))),
                 .logs = try Take.take(&blob, a, logs),
                 .param_count = @intCast(group.slots.len),

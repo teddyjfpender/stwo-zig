@@ -1266,7 +1266,7 @@
     "policy": "Stop optional cleanup/profiling. Keep required two-block canonical3+3, genuine setupmiss and all15nativeblocks. Basket rounds1/profile none; no guard/parity/receiver weakening. No authorized top-up or additional GPU purchase."
   },
   "batched_native_default_candidate": {
-    "status": "PRODUCTION22_BUILD_AND_ZIG_PASS_PYTHON_FIXTURE_FAILURE",
+    "status": "PRODUCTION23_HOST_GATES_PASS_GUARDED_STARTUP_FAILED_RC_FULL_COLUMN_ARENA",
     "native_selected_when_unset": true,
     "production_promoted": false,
     "resource_bound": "source-derived retained-block upper; physical_peak=false",
@@ -1283,8 +1283,28 @@
     "scripts_added": 0,
     "growth_justification": "explicit phase lifetimes, allocation-derived admission, actual default selection and independent fresh CPU concurrency; all within declared per-change budgets",
     "failed_python_case": "test_only_git_confirmed_unowned_deletions_select_static_checks: non-Git pod lacks local .git existence assumed by fixture",
-    "gpu_execution": "NOT_STARTED_FOR_216f39d",
+    "gpu_execution": "FAIL before READY; no new proof or speedup",
     "driver_sha256": "3c32e576c1dc55f0a0bd1327d34ca7aac7e56482923aa3b4ddefc2861b4e9c56",
-    "receiver_sha256": "43a7858ad952b5e1e8186a7396b2a26c63ab9910b08b58981016c72b5b392b76"
+    "receiver_sha256": "43a7858ad952b5e1e8186a7396b2a26c63ab9910b08b58981016c72b5b392b76",
+    "candidate_commit": "054baacc2e96c6653e656bd714160f7f43106b2a",
+    "resource_failure": {
+      "worker_arena_words": 4949278720,
+      "declared_device_words": 5394368832,
+      "staged_words": 506342400,
+      "pcs_source_derived_words": 1894024896,
+      "cause": "full-role composition evaluation image dominates; authenticated input projection prepared"
+    },
+    "prepared_rc_projection": {
+      "status": "INDEPENDENT_DIFF_AND_SOURCE_DERIVED_PREFLIGHT_PASS_HARDWARE_PENDING",
+      "code_added": 32,
+      "code_removed": 18,
+      "code_net": 14,
+      "largest_role_full_columns": 167,
+      "largest_role_selected_columns": 116,
+      "source_derived_evaluation_storage_removed_bytes": 3422552064,
+      "source_derived_device_words_upper": 4538730816,
+      "not_physical_peak": true,
+      "new_flags_or_kernels": 0
+    }
   }
 }
