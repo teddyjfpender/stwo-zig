@@ -1,5 +1,20 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The optional [GROUP2 arithmetic qualification](recursion-group-structural.json)
+uses symbolic zero identities and a seven-row full OM31 product. Every add and
+multiply costs one QM31 arithmetic row here; native Karatsuba's three products
+require nine rows once its additions/subtractions are included. All 64 basis
+products, random values, all-coordinate corruption, scope and allocation tests
+pass. The real OP root and independent receiver pass, as do the old GROUP1 and
+original M7 tree authorities under the default policy.
+
+Active arithmetic rows fall to 10,757,366 but still pad to 16,777,216. The
+20.195 s final qualification is not evidence of another whole-root speedup.
+The [bounded expression-cache experiment](rejected-group-expression-memo.json)
+also passes physical reception, but only 5.87% of queries hit and the padding
+stays unchanged. It adds complexity without an established wall gain and is
+**not landed**; its patch and qualification remain as experimental evidence.
+
 The [native-verifier group comparison](recursion-native-groups.json) replaces
 three wrapped native verifiers and one fold with one outer proof of all three
 native verifiers. No native equations are removed. The complete execution-only

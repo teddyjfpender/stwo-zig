@@ -61,6 +61,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         .{ .name = "test-riscv64-op-public-fold", .source = "src/integrations/riscv_cpu/rv64_op_public_fold_test_root.zig" },
         .{ .name = "test-riscv64-m5-vk-table", .source = "src/integrations/riscv_cpu/rv64_m5_vk_table_test_root.zig" },
         .{ .name = "test-riscv64-m5-rootverify", .source = "src/integrations/riscv_cpu/rv64_m5_rootverify_test_root.zig" },
+        .{ .name = "test-riscv64-structural-arithmetic", .source = "src/integrations/riscv_cpu/rv64_structural_arithmetic_test_root.zig" },
         .{ .name = "test-riscv64-native-group", .source = "src/integrations/riscv_cpu/rv64_native_group_test_root.zig" },
         .{ .name = "test-riscv64-om31-native-pcs", .source = "src/integrations/riscv_cpu/rv64_om31_native_pcs_test_root.zig" },
         .{ .name = "test-riscv64-om31-services-root", .source = "src/integrations/riscv_cpu/rv64_om31_services_root_test_root.zig" },
@@ -74,7 +75,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         .{ .name = "test-riscv64-word16-execution-circuit", .source = "src/integrations/riscv_cpu/rv64_word16_execution_circuit_test_root.zig" },
         .{ .name = "test-riscv64-v3-services-recursion", .source = "src/integrations/riscv_cpu/rv64_v3_services_recursion_test_root.zig" },
     }) |spec| {
-        const tests = context.b.addTest(.{ .root_module = createRoot(context, product, spec.source), .filters = if (std.mem.eql(u8, spec.name, "test-riscv64-native-group")) &.{"native verifier group"} else if (std.mem.eql(u8, spec.name, "test-riscv64-om31-native-pcs")) &.{ "OM31 native PCS", "OM31 frame", "OM31 V3" } else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-full-leaf-census")) &.{"actual complete CPU P2 mixed recursive leaf"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-pure-leaf-census")) &.{"source-exact complete CPU pure P2 candidate"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-matched-blake-census")) &.{"matched all-Blake complete CPU b4 q54 P20"} else &.{} });
+        const tests = context.b.addTest(.{ .root_module = createRoot(context, product, spec.source), .filters = if (std.mem.eql(u8, spec.name, "test-riscv64-structural-arithmetic")) &.{"structural circuit arithmetic"} else if (std.mem.eql(u8, spec.name, "test-riscv64-native-group")) &.{"native verifier group"} else if (std.mem.eql(u8, spec.name, "test-riscv64-om31-native-pcs")) &.{ "OM31 native PCS", "OM31 frame", "OM31 V3" } else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-full-leaf-census")) &.{"actual complete CPU P2 mixed recursive leaf"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-pure-leaf-census")) &.{"source-exact complete CPU pure P2 candidate"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-matched-blake-census")) &.{"matched all-Blake complete CPU b4 q54 P20"} else &.{} });
         const run = context.b.addRunArtifact(tests);
         run.setCwd(context.b.path("."));
         context.b.step(spec.name, "Qualify native and circuit-lane execution authorities").dependOn(&run.step);
@@ -84,7 +85,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
 fn createRoot(context: circuit_product.Context, product: graph.Product, source: []const u8) *std.Build.Module {
     const root = createRootBase(context, product, source);
     // Pure arithmetic checks deliberately avoid a native compiler dependency.
-    if (!std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_lowering_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_polynomial_test_root.zig")) root.addImport("outer_gkr_cpu_aot", createHybridModule(context, product, root.import_table.get("stwo_cairo_frontend").?));
+    if (!std.mem.endsWith(u8, source, "rv64_structural_arithmetic_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_lowering_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_polynomial_test_root.zig")) root.addImport("outer_gkr_cpu_aot", createHybridModule(context, product, root.import_table.get("stwo_cairo_frontend").?));
     return root;
 }
 

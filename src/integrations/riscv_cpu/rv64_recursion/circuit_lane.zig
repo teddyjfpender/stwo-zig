@@ -21,6 +21,24 @@ pub const Var = builder.Var;
 threadlocal var active: ?*Context = null;
 threadlocal var failure: ?builder.context.Error = null;
 
+// Explicit graph-construction policy, separate from witness values. Legacy
+// circuits keep their original gate order unless a caller scopes this option.
+threadlocal var structural_identities = false;
+pub const StructuralScope = struct {
+    previous: bool,
+    pub fn init() StructuralScope {
+        const previous = structural_identities;
+        structural_identities = true;
+        return .{ .previous = previous };
+    }
+    pub fn deinit(self: *StructuralScope) void {
+        structural_identities = self.previous;
+    }
+};
+pub fn structuralIdentitiesEnabled() bool {
+    return structural_identities;
+}
+
 /// Binds the lane to `ctx` for the emission that follows; `finish` unbinds
 /// it and reports the first builder error, if any.
 pub fn begin(context: *Context) void {
@@ -77,13 +95,17 @@ pub const Lane = struct {
         return .{ .v = latch(ctx().add(self.v, other.v)) };
     }
     pub fn sub(self: Lane, other: Lane) Lane {
+        if (structural_identities) {
+            if (other.v.idx == 0) return self;
+            if (self.v.idx == other.v.idx) return zero();
+        }
         return .{ .v = latch(ctx().sub(self.v, other.v)) };
     }
     pub fn mul(self: Lane, other: Lane) Lane {
         return .{ .v = latch(ctx().mul(self.v, other.v)) };
     }
     pub fn neg(self: Lane) Lane {
-        return .{ .v = latch(ctx().sub(zero().v, self.v)) };
+        return zero().sub(self);
     }
     pub fn square(self: Lane) Lane {
         return self.mul(self);

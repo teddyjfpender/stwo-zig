@@ -101,6 +101,16 @@ partial-execution acceptance. Run `zig build test-riscv64-native-group
 The [bounded review](../design/riscv-proving-stack/rv64-native-verifier-groups.md)
 explains computed-wire digest binding, native closure and remaining limitations.
 
+`STWO_RV64_GROUP_ARITHMETIC=structural-v1` separately opts into GROUP2
+for the grouped modes. Both producer and receiver must choose it independently;
+the transport becomes `recursion-group-v2/root.proof`. It removes operations on
+immutable zero wires and uses the circuit's cheaper seven-row OM31 product.
+Guessed zeros are still unknown wires and retain their constraints. The original
+GROUP1 and leaf/fold authorities remain available when the flag is absent.
+Current active-row savings do not reduce the real fixture's padded arithmetic
+height, so no further whole-root speedup is claimed. The fast qualification
+command is `zig build test-riscv64-structural-arithmetic -Doptimize=ReleaseFast`.
+
 The receiver operator supplies the canonical L1 anchor, previously admitted L2
 checkpoint and next claim, the trusted runner and the request files with the
 independent ELF and input hashes. Choose the outer profile used by both proof

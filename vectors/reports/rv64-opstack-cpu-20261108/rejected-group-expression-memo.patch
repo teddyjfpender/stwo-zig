@@ -1,0 +1,593 @@
+diff --git a/build_support/products/catalog.zig b/build_support/products/catalog.zig
+index 0dda40857..4621c7f39 100644
+--- a/build_support/products/catalog.zig
++++ b/build_support/products/catalog.zig
+@@ -65,6 +65,7 @@ pub const steps = [_]Step{
+     .{ .name = "test-riscv64-op-public-fold", .description = "Prove and verify an ordered OM31 fold with synthetic OP public outputs", .scope = .riscv_cpu },
+     .{ .name = "test-riscv64-m5-vk-table", .description = "Qualify the M5 recursion/native VK tables and in-circuit membership (canon-vk)", .scope = .riscv_cpu },
+     .{ .name = "test-riscv64-m5-rootverify", .description = "M5 rootverify: receiver VK table, root-only tree digest and refusals", .scope = .riscv_cpu },
++    .{ .name = "test-riscv64-structural-arithmetic", .description = "Fast symbolic circuit arithmetic and scope-lifecycle qualification", .scope = .riscv_cpu },
+     .{ .name = "test-riscv64-native-group", .description = "Qualify bounded adjacent native-verifier composition and authenticated group frames", .scope = .riscv_cpu },
+     .{ .name = "test-riscv64-om31-native-pcs", .description = "Verify native OM31 proof captures in circuit with all eight coordinates", .scope = .riscv_cpu },
+     .{ .name = "test-riscv64-recursion-circuit", .description = "Test the RV64 recursion leaf statement against the circuit builder", .scope = .riscv_cpu },
+diff --git a/build_support/products/riscv_recursion.zig b/build_support/products/riscv_recursion.zig
+index a9fe86f1b..de4c74aec 100644
+--- a/build_support/products/riscv_recursion.zig
++++ b/build_support/products/riscv_recursion.zig
+@@ -61,6 +61,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
+         .{ .name = "test-riscv64-op-public-fold", .source = "src/integrations/riscv_cpu/rv64_op_public_fold_test_root.zig" },
+         .{ .name = "test-riscv64-m5-vk-table", .source = "src/integrations/riscv_cpu/rv64_m5_vk_table_test_root.zig" },
+         .{ .name = "test-riscv64-m5-rootverify", .source = "src/integrations/riscv_cpu/rv64_m5_rootverify_test_root.zig" },
++        .{ .name = "test-riscv64-structural-arithmetic", .source = "src/integrations/riscv_cpu/rv64_structural_arithmetic_test_root.zig" },
+         .{ .name = "test-riscv64-native-group", .source = "src/integrations/riscv_cpu/rv64_native_group_test_root.zig" },
+         .{ .name = "test-riscv64-om31-native-pcs", .source = "src/integrations/riscv_cpu/rv64_om31_native_pcs_test_root.zig" },
+         .{ .name = "test-riscv64-om31-services-root", .source = "src/integrations/riscv_cpu/rv64_om31_services_root_test_root.zig" },
+@@ -74,7 +75,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
+         .{ .name = "test-riscv64-word16-execution-circuit", .source = "src/integrations/riscv_cpu/rv64_word16_execution_circuit_test_root.zig" },
+         .{ .name = "test-riscv64-v3-services-recursion", .source = "src/integrations/riscv_cpu/rv64_v3_services_recursion_test_root.zig" },
+     }) |spec| {
+-        const tests = context.b.addTest(.{ .root_module = createRoot(context, product, spec.source), .filters = if (std.mem.eql(u8, spec.name, "test-riscv64-native-group")) &.{"native verifier group"} else if (std.mem.eql(u8, spec.name, "test-riscv64-om31-native-pcs")) &.{ "OM31 native PCS", "OM31 frame", "OM31 V3" } else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-full-leaf-census")) &.{"actual complete CPU P2 mixed recursive leaf"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-pure-leaf-census")) &.{"source-exact complete CPU pure P2 candidate"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-matched-blake-census")) &.{"matched all-Blake complete CPU b4 q54 P20"} else &.{} });
++        const tests = context.b.addTest(.{ .root_module = createRoot(context, product, spec.source), .filters = if (std.mem.eql(u8, spec.name, "test-riscv64-structural-arithmetic")) &.{"structural circuit arithmetic"} else if (std.mem.eql(u8, spec.name, "test-riscv64-native-group")) &.{"native verifier group"} else if (std.mem.eql(u8, spec.name, "test-riscv64-om31-native-pcs")) &.{ "OM31 native PCS", "OM31 frame", "OM31 V3" } else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-full-leaf-census")) &.{"actual complete CPU P2 mixed recursive leaf"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-pure-leaf-census")) &.{"source-exact complete CPU pure P2 candidate"} else if (std.mem.eql(u8, spec.name, "test-riscv64-poseidon-matched-blake-census")) &.{"matched all-Blake complete CPU b4 q54 P20"} else &.{} });
+         const run = context.b.addRunArtifact(tests);
+         run.setCwd(context.b.path("."));
+         context.b.step(spec.name, "Qualify native and circuit-lane execution authorities").dependOn(&run.step);
+@@ -84,7 +85,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
+ fn createRoot(context: circuit_product.Context, product: graph.Product, source: []const u8) *std.Build.Module {
+     const root = createRootBase(context, product, source);
+     // Pure arithmetic checks deliberately avoid a native compiler dependency.
+-    if (!std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_lowering_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_polynomial_test_root.zig")) root.addImport("outer_gkr_cpu_aot", createHybridModule(context, product, root.import_table.get("stwo_cairo_frontend").?));
++    if (!std.mem.endsWith(u8, source, "rv64_structural_arithmetic_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_lowering_test_root.zig") and !std.mem.endsWith(u8, source, "rv64_outer_gkr_cpu_polynomial_test_root.zig")) root.addImport("outer_gkr_cpu_aot", createHybridModule(context, product, root.import_table.get("stwo_cairo_frontend").?));
+     return root;
+ }
+ 
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/circuit_lane.zig b/src/integrations/riscv_cpu/rv64_recursion/circuit_lane.zig
+index 7a84ec04d..9bad73d9c 100644
+--- a/src/integrations/riscv_cpu/rv64_recursion/circuit_lane.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/circuit_lane.zig
+@@ -21,14 +21,107 @@ pub const Var = builder.Var;
+ threadlocal var active: ?*Context = null;
+ threadlocal var failure: ?builder.context.Error = null;
+ 
++// Explicit graph-construction policy, separate from witness values. Legacy
++// circuits keep their original gate order unless a caller scopes this option.
++threadlocal var structural_identities = false;
++threadlocal var active_memo: ?*Memo = null;
++pub const MemoStats = struct { queries: u64 = 0, hits: u64 = 0, resets: u64 = 0 };
++const MemoOp = enum(u2) { add, sub, mul, inverse };
++/// Exact keys: two 31-bit variable ids and a two-bit operation. Only pure
++/// temporary results are interned; explicit Into/yield/guess gates are untouched.
++const Memo = struct {
++    const capacity = 1 << 17;
++    allocator: std.mem.Allocator,
++    map: std.AutoHashMapUnmanaged(u64, Var) = .empty,
++    context: ?*Context = null,
++    stats: MemoStats = .{},
++    fn key(op: MemoOp, lhs: Var, rhs: Var) u64 {
++        var a = lhs.idx;
++        var b = rhs.idx;
++        if ((op == .add or op == .mul) and b < a) std.mem.swap(u32, &a, &b);
++        std.debug.assert(a < (1 << 31) and b < (1 << 31));
++        return (@as(u64, @intFromEnum(op)) << 62) | (@as(u64, a) << 31) | b;
++    }
++    fn get(self: *Memo, op: MemoOp, lhs: Var, rhs: Var) ?Var {
++        std.debug.assert(self.context == ctx());
++        self.stats.queries += 1;
++        if (self.map.get(key(op, lhs, rhs))) |value| {
++            self.stats.hits += 1;
++            return value;
++        }
++        return null;
++    }
++    fn put(self: *Memo, op: MemoOp, lhs: Var, rhs: Var, value: Var) builder.context.Error!void {
++        if (self.map.count() >= capacity) {
++            self.map.clearRetainingCapacity();
++            self.stats.resets += 1;
++        }
++        try self.map.put(self.allocator, key(op, lhs, rhs), value);
++    }
++    fn binary(self: *Memo, op: MemoOp, lhs: Var, rhs: Var) builder.context.Error!Var {
++        if (self.get(op, lhs, rhs)) |value| return value;
++        const out = switch (op) {
++            .add => try ctx().add(lhs, rhs),
++            .sub => try ctx().sub(lhs, rhs),
++            .mul => try ctx().mul(lhs, rhs),
++            .inverse => unreachable,
++        };
++        try self.put(op, lhs, rhs, out);
++        return out;
++    }
++};
++pub const StructuralScope = struct {
++    previous: bool,
++    previous_memo: ?*Memo,
++    owned_memo: ?*Memo = null,
++    pub fn init() StructuralScope {
++        const previous = structural_identities;
++        structural_identities = true;
++        return .{ .previous = previous, .previous_memo = active_memo };
++    }
++    /// Bounded graph-local hash-consing. Construction failure changes no lane
++    /// ownership or policy. Allocations use the caller's existing live budget.
++    pub fn initMemo(allocator: std.mem.Allocator) builder.context.Error!StructuralScope {
++        const memo = try allocator.create(Memo);
++        errdefer allocator.destroy(memo);
++        memo.* = .{ .allocator = allocator, .context = active };
++        errdefer memo.map.deinit(allocator);
++        try memo.map.ensureTotalCapacity(allocator, Memo.capacity);
++        var scope = init();
++        scope.owned_memo = memo;
++        active_memo = memo;
++        return scope;
++    }
++    pub fn stats(self: *const StructuralScope) MemoStats {
++        return if (self.owned_memo) |memo| memo.stats else .{};
++    }
++    pub fn deinit(self: *StructuralScope) void {
++        structural_identities = self.previous;
++        active_memo = self.previous_memo;
++        if (self.owned_memo) |memo| {
++            const allocator = memo.allocator;
++            memo.map.deinit(allocator);
++            allocator.destroy(memo);
++        }
++    }
++};
++pub fn structuralIdentitiesEnabled() bool {
++    return structural_identities;
++}
++
+ /// Binds the lane to `ctx` for the emission that follows; `finish` unbinds
+ /// it and reports the first builder error, if any.
+ pub fn begin(context: *Context) void {
+     std.debug.assert(active == null);
+     active = context;
++    if (active_memo) |memo| {
++        memo.map.clearRetainingCapacity();
++        memo.context = context;
++    }
+     failure = null;
+ }
+ pub fn finish() builder.context.Error!void {
++    if (active_memo) |memo| memo.context = null;
+     active = null;
+     defer failure = null;
+     if (failure) |err| return err;
+@@ -74,16 +167,32 @@ pub const Lane = struct {
+         return fromBase(M31.fromCanonical(word));
+     }
+     pub fn add(self: Lane, other: Lane) Lane {
++        if (active_memo) |memo| {
++            if (self.v.idx == 0) return other;
++            if (other.v.idx == 0) return self;
++            return .{ .v = latch(memo.binary(.add, self.v, other.v)) };
++        }
+         return .{ .v = latch(ctx().add(self.v, other.v)) };
+     }
+     pub fn sub(self: Lane, other: Lane) Lane {
++        if (structural_identities) {
++            if (other.v.idx == 0) return self;
++            if (self.v.idx == other.v.idx) return zero();
++        }
++        if (active_memo) |memo| return .{ .v = latch(memo.binary(.sub, self.v, other.v)) };
+         return .{ .v = latch(ctx().sub(self.v, other.v)) };
+     }
+     pub fn mul(self: Lane, other: Lane) Lane {
++        if (active_memo) |memo| {
++            if (self.v.idx == 0 or other.v.idx == 0) return zero();
++            if (self.v.idx == 1) return other;
++            if (other.v.idx == 1) return self;
++            return .{ .v = latch(memo.binary(.mul, self.v, other.v)) };
++        }
+         return .{ .v = latch(ctx().mul(self.v, other.v)) };
+     }
+     pub fn neg(self: Lane) Lane {
+-        return .{ .v = latch(ctx().sub(zero().v, self.v)) };
++        return zero().sub(self);
+     }
+     pub fn square(self: Lane) Lane {
+         return self.mul(self);
+@@ -97,6 +206,7 @@ pub const Lane = struct {
+     }
+     /// The guessed inverse, constrained to `self * inv = 1` (so `self != 0`).
+     pub fn inv(self: Lane) Lane {
++        if (active_memo) |memo| if (memo.get(.inverse, self.v, zero().v)) |cached_var| return .{ .v = cached_var };
+         // Invalid witness denominators must emit an unsatisfied constraint,
+         // not panic in the builder's value-mode division. Witness selection
+         // changes only the guessed value, never topology or gate order.
+@@ -110,6 +220,9 @@ pub const Lane = struct {
+         ctx().eq(product, one().v) catch |err| {
+             if (failure == null) failure = err;
+         };
++        if (active_memo) |memo| memo.put(.inverse, self.v, zero().v, inverse) catch |err| {
++            if (failure == null) failure = err;
++        };
+         return .{ .v = inverse };
+     }
+     pub fn div(self: Lane, other: Lane) Lane {
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/om31_circuit_lane.zig b/src/integrations/riscv_cpu/rv64_recursion/om31_circuit_lane.zig
+index ea7148166..675458b5f 100644
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_circuit_lane.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_circuit_lane.zig
+@@ -10,6 +10,7 @@ pub const Context = q.Context;
+ pub const begin = q.begin;
+ pub const finish = q.finish;
+ pub const check = q.check;
++pub const StructuralScope = q.StructuralScope;
+ const Ops = struct {
+     pub fn mulByU(x: q.Lane) q.Lane {
+         return x.mul(q.Lane.fromQm31(core.fields.om31.NONRESIDUE));
+@@ -77,9 +78,25 @@ pub const Lane = struct {
+         return wrap(arithmetic(x).sub(arithmetic(y)));
+     }
+     pub fn mul(x: Lane, y: Lane) Lane {
++        if (q.structuralIdentitiesEnabled()) {
++            // These are the builder's immutable zero wires, never a test of
++            // a witness value. Use the original tower's inner-field product.
++            if (y.c1.v.idx == 0) return x.mulInner(y.c0);
++            if (x.c1.v.idx == 0) return y.mulInner(x.c0);
++            // Every QM31 add/sub/mul consumes one arithmetic row. The native
++            // Karatsuba formula saves a multiplication but costs nine rows;
++            // four schoolbook products plus the fixed-u map cost seven.
++            // Both compute (a+bv)(c+dv)=(ac+u*bd)+(ad+bc)v.
++            const ac = x.c0.mul(y.c0);
++            const bd = x.c1.mul(y.c1);
++            const ad = x.c0.mul(y.c1);
++            const bc = x.c1.mul(y.c0);
++            return .{ .c0 = ac.add(Ops.mulByU(bd)), .c1 = ad.add(bc) };
++        }
+         return wrap(arithmetic(x).mul(arithmetic(y)));
+     }
+     pub fn square(x: Lane) Lane {
++        if (q.structuralIdentitiesEnabled() and x.c1.v.idx == 0) return fromInner(x.c0.square());
+         return wrap(arithmetic(x).square());
+     }
+     pub fn neg(x: Lane) Lane {
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/om31_native/group_execution.zig b/src/integrations/riscv_cpu/rv64_recursion/om31_native/group_execution.zig
+index e60bfca53..066872e04 100644
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/group_execution.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/group_execution.zig
+@@ -18,7 +18,13 @@ const Publication = @import("publication.zig");
+ pub const Report = struct {
+     schema: []const u8 = "rv64-native-group-root/v1",
+     accepted: bool = true,
++    arithmetic: []const u8,
+     native_members: usize,
++    arithmetic_memo: @import("../circuit_lane.zig").MemoStats,
++    pre_padding_variables: u32,
++    pre_padding_qm31_rows: usize,
++    pre_padding_blake_rows: usize,
++    padding_targets: @import("stwo_circuit_frontend").common.finalize.ComponentSizes,
+     outer_proofs: usize = 1,
+     fold_proofs: usize = 0,
+     restored: bool,
+@@ -59,7 +65,9 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
+         members[ordinal] = .{ .truth = .{ .truth = truth, .expected = inventory.workers[ordinal], .manifest = &manifest, .config = config, .encoded = &bundle.truths[i], .fixed = if (fixed) |set| set.at(ordinal) else null } };
+     }
+     // first=0,total=n,count=n are receiver-derived, never producer declarations.
+-    var graph = try Group.build(a, members[0..n], .{ .first = 0, .total = @intCast(n) }, existing_only);
++    const reduced = try Group.reducedFromEnv();
++    const build = if (reduced) &Group.buildReduced else &Group.build;
++    var graph = try build(a, members[0..n], .{ .first = 0, .total = @intCast(n) }, existing_only);
+     defer graph.deinit();
+     if (existing_only and (!graph.ctx.trace_only or graph.ctx.value_table.items.len != 0 or graph.ctx.value_table.capacity != 0)) return error.NativeGroupReceiverAssignment;
+     var cpus: [Group.MAX_MEMBERS]Root.CpuFrame = undefined;
+@@ -73,6 +81,10 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
+     const metadata = try Root.checkPrepared(a, setups, truths, bundle.requests, &inventory, stages.stages, frames, .{}, 1);
+     if (!std.mem.eql(u8, &metadata.manifest.digest, &manifest.digest)) return error.NativeGroupManifest;
+     const graph_ns = timer.read();
++    const variables = graph.ctx.circuit.n_vars;
++    const qm31_rows = graph.ctx.circuit.nQm31OpsRows();
++    const blake_rows = graph.ctx.circuit.blake_g_gate.items.len;
++    const padding_targets = try Outer.paddingTargets(graph.ctx);
+     var proof = try Outer.wrapGraphOrLoad(a, graph.ctx, graph.digest, encoded);
+     defer proof.deinit();
+     if (proof.restored != existing_only) return error.NativeGroupReceiverProving;
+@@ -82,5 +94,5 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
+     const bytes = try proof.serialize(a);
+     defer a.free(bytes);
+     if (existing_only) try Publication.requireBytes(dir, "root.proof", bytes) else try Publication.write(dir, "root.proof", bytes);
+-    return .{ .native_members = n, .restored = proof.restored, .trace_only = existing_only, .manifest = metadata.manifest.digest, .root_digest = graph.digest, .root_authority = proof.effectiveIdentity(), .root_proof_bytes = bytes.len, .graph_ns = graph_ns, .preprocess_ns = proof.timings.preprocess_ns, .prove_ns = proof.timings.prove_ns, .verify_ns = proof.timings.verify_ns, .total_ns = timer.read() };
++    return .{ .schema = if (reduced) "rv64-native-group-root/v2" else "rv64-native-group-root/v1", .arithmetic = if (reduced) "structural-v1" else "legacy", .native_members = n, .arithmetic_memo = graph.arithmetic_memo, .pre_padding_variables = variables, .pre_padding_qm31_rows = qm31_rows, .pre_padding_blake_rows = blake_rows, .padding_targets = padding_targets, .restored = proof.restored, .trace_only = existing_only, .manifest = metadata.manifest.digest, .root_digest = graph.digest, .root_authority = proof.effectiveIdentity(), .root_proof_bytes = bytes.len, .graph_ns = graph_ns, .preprocess_ns = proof.timings.preprocess_ns, .prove_ns = proof.timings.prove_ns, .verify_ns = proof.timings.verify_ns, .total_ns = timer.read() };
+ }
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group.zig b/src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group.zig
+index d76bde1f7..0683b4d05 100644
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group.zig
+@@ -15,6 +15,15 @@ const Fixed = @import("../../word16_global_execution/services/gkr_local/fixed_au
+ pub const MAX_MEMBERS = 4;
+ pub const MAX_NATIVE_WORKERS = 256;
+ pub const DOMAIN = "STWO/RV64/GROUP1";
++pub const REDUCED_DOMAIN = "STWO/RV64/GROUP2";
++/// Receiver policy, never selected from a proof. GROUP2 changes graph
++/// authority while retaining the original native mathematical verifiers.
++pub fn reducedFromEnv() !bool {
++    const value = std.posix.getenv("STWO_RV64_GROUP_ARITHMETIC") orelse return false;
++    if (std.mem.eql(u8, value, "legacy")) return false;
++    if (std.mem.eql(u8, value, "structural-v1")) return true;
++    return error.NativeGroupArithmeticPolicy;
++}
+ pub const Member = union(enum) { cpu: G.CpuInput, truth: G.TruthInput };
+ pub const Range = struct { first: u32, total: u32 };
+ pub const Kind = enum(u32) { cpu = 0, keccak = 1, delegation = 2 };
+@@ -97,6 +106,7 @@ pub const Graph = struct {
+     words: []u32,
+     digest: [32]u8,
+     range: Range,
++    arithmetic_memo: @import("../circuit_lane.zig").MemoStats,
+     pub fn deinit(self: *Graph) void {
+         for (self.frames) |*frame| frame.deinit(self.a);
+         self.a.free(self.frames);
+@@ -124,12 +134,21 @@ fn appendHeader(ctx: *C.Context, frame: *V.frame.Frame, words: *std.ArrayList(u3
+     try words.append(a, value);
+ }
+ pub fn build(a: std.mem.Allocator, members: []const Member, range: Range, trace_only: bool) !Graph {
++    return buildImpl(a, members, range, trace_only, false);
++}
++pub fn buildReduced(a: std.mem.Allocator, members: []const Member, range: Range, trace_only: bool) !Graph {
++    return buildImpl(a, members, range, trace_only, true);
++}
++fn buildImpl(a: std.mem.Allocator, members: []const Member, range: Range, trace_only: bool, reduced: bool) !Graph {
++    const domain: []const u8 = if (reduced) REDUCED_DOMAIN else DOMAIN;
+     if (members.len == 0 or members.len > MAX_MEMBERS or range.total == 0 or range.total > MAX_NATIVE_WORKERS or @as(u64, range.first) + members.len > range.total) return error.NativeGroupRange;
+     const manifest = memberManifest(members[0]);
+     for (members, 0..) |member, i| {
+         if (memberOrdinal(member) != @as(u64, range.first) + i) return error.NativeGroupOrder;
+         if (!std.mem.eql(u8, &manifest, &memberManifest(member))) return error.NativeGroupManifest;
+     }
++    var scope: ?C.lane.StructuralScope = if (reduced) try C.lane.StructuralScope.initMemo(a) else null;
++    defer if (scope) |*owned| owned.deinit();
+     const ctx = try a.create(C.Context);
+     errdefer a.destroy(ctx);
+     ctx.* = if (trace_only) try C.Context.initTraceOnly(a, circuit.common.component_list.N_RESERVED) else try C.Context.init(a, circuit.common.component_list.N_RESERVED);
+@@ -144,7 +163,7 @@ pub fn build(a: std.mem.Allocator, members: []const Member, range: Range, trace_
+     var active = true;
+     defer if (active) C.lane.finish() catch {};
+     var frame = V.frame.Frame.init(ctx);
+-    for (0..4) |i| try appendHeader(ctx, &frame, &words, a, std.mem.readInt(u32, DOMAIN[4 * i ..][0..4], .little));
++    for (0..4) |i| try appendHeader(ctx, &frame, &words, a, std.mem.readInt(u32, domain[4 * i ..][0..4], .little));
+     try appendHeader(ctx, &frame, &words, a, range.first);
+     try appendHeader(ctx, &frame, &words, a, @intCast(members.len));
+     try appendHeader(ctx, &frame, &words, a, range.total);
+@@ -172,5 +191,5 @@ pub fn build(a: std.mem.Allocator, members: []const Member, range: Range, trace_
+     active = false;
+     try ctx.finalize(false);
+     if (!trace_only and !try ctx.isCircuitValid()) return error.NativeGroupCircuitRejects;
+-    return .{ .a = a, .ctx = ctx, .frames = frames, .words = try words.toOwnedSlice(a), .digest = digest, .range = range };
++    return .{ .a = a, .ctx = ctx, .frames = frames, .words = try words.toOwnedSlice(a), .digest = digest, .range = range, .arithmetic_memo = if (scope) |owned| owned.stats() else .{} };
+ }
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group_test.zig b/src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group_test.zig
+index 4ae3fe282..1c94f7148 100644
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group_test.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/native_group_test.zig
+@@ -54,6 +54,20 @@ test "native verifier group authenticates adjacent CPU and truth members in one
+         try std.testing.expectEqual(graph.digest, trace.digest);
+         try std.testing.expectEqual(@as(usize, 0), trace.ctx.value_table.capacity);
+         try std.testing.expectEqual(@as(usize, 9), graph.ctx.circuit.output.items.len);
++        {
++            var reduced = try Group.buildReduced(a, members[r.start..r.end], .{ .first = r.start, .total = 5 }, false);
++            defer reduced.deinit();
++            var reduced_trace = try Group.buildReduced(a, members[r.start..r.end], .{ .first = r.start, .total = 5 }, true);
++            defer reduced_trace.deinit();
++            try std.testing.expectEqualDeep(reduced.ctx.circuit, reduced_trace.ctx.circuit);
++            try std.testing.expectEqualSlices(u32, reduced.words, reduced_trace.words);
++            try std.testing.expectEqual(reduced.digest, reduced_trace.digest);
++            try std.testing.expect(!std.mem.eql(u8, &graph.digest, &reduced.digest));
++            try std.testing.expect(reduced.ctx.circuit.nQm31OpsRows() < graph.ctx.circuit.nQm31OpsRows());
++            try std.testing.expectEqual(@as(usize, 0), reduced_trace.ctx.value_table.capacity);
++            try std.testing.expect(!@import("../circuit_lane.zig").structuralIdentitiesEnabled());
++            std.debug.print("NATIVE_GROUP_REDUCED qm31={} blake={} vars={}\n", .{ reduced.ctx.circuit.nQm31OpsRows(), reduced.ctx.circuit.blake_g_gate.items.len, reduced.ctx.circuit.n_vars });
++        }
+         std.debug.print("NATIVE_GROUP first={} count={} qm31={} blake={} vars={}\n", .{ r.start, r.end - r.start, graph.ctx.circuit.nQm31OpsRows(), graph.ctx.circuit.blake_g_gate.items.len, graph.ctx.circuit.n_vars });
+     }
+ }
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig b/src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig
+index dd7abbb28..b15478efb 100644
+--- a/src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig
++++ b/src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig
+@@ -473,8 +473,9 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
+                 const native_verify_ns = timer.read() - native_start_ns;
+                 const last = loaded.bundle.requests[loaded.bundle.requests.len - 1].base;
+                 const output = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
+-                if (!strict_recursion_verify) try dir.makeDir("recursion-group-v1");
+-                var grouped_dir = try dir.openDir("recursion-group-v1", .{});
++                const group_path = if (try @import("../../rv64_recursion/om31_native/native_group.zig").reducedFromEnv()) "recursion-group-v2" else "recursion-group-v1";
++                if (!strict_recursion_verify) try dir.makeDir(group_path);
++                var grouped_dir = try dir.openDir(group_path, .{});
+                 defer grouped_dir.close();
+                 const grouped = try @import("../../rv64_recursion/om31_native/group_execution.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, fixed_set, grouped_dir, strict_recursion_verify);
+                 return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domainName(), .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .existing_recursive_proofs_only = strict_recursion_verify, .trace_only_recursive_graphs = strict_recursion_verify, .load_and_setup_ns = setup_ns, .native_verify_ns = native_verify_ns, .grouped = grouped });
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/structural_arithmetic_test.zig b/src/integrations/riscv_cpu/rv64_recursion/structural_arithmetic_test.zig
+new file mode 100644
+index 000000000..0e8aa3d2f
+--- /dev/null
++++ b/src/integrations/riscv_cpu/rv64_recursion/structural_arithmetic_test.zig
+@@ -0,0 +1,180 @@
++const std = @import("std");
++const a = std.testing.allocator;
++test "structural circuit arithmetic is symbolic and scope restores legacy topology" {
++    const Lane = @import("om31_circuit_lane.zig");
++    const QLane = @import("circuit_lane.zig");
++    const core = @import("stwo_core");
++    const O = core.fields.om31.OM31;
++    const Q = core.fields.qm31.QM31;
++    try std.testing.expect(!QLane.structuralIdentitiesEnabled());
++    var rng = core.channel.raw_mod_m31.Om31Channel.init();
++    for (0..16) |_| {
++        var ctx = try Lane.Context.init(a, 0);
++        defer ctx.deinit();
++        Lane.begin(&ctx);
++        var active = true;
++        defer if (active) Lane.finish() catch {};
++        var scope = Lane.StructuralScope.init();
++        var scoped = true;
++        defer if (scoped) scope.deinit();
++        const vx = rng.drawSecureFelt();
++        const vy = rng.drawSecureFelt().c0;
++        const x = try Lane.Lane.guess(&ctx, vx);
++        const y = Lane.Lane.fromInner(QLane.Lane.wire(try ctx.guess(vy)));
++        const before = ctx.circuit.nQm31OpsRows();
++        const xy = x.mul(y);
++        try std.testing.expectEqual(before + 2, ctx.circuit.nQm31OpsRows());
++        try std.testing.expect(xy.value().eql(vx.mul(O.fromInner(vy))));
++        try std.testing.expect(y.mul(x).value().eql(O.fromInner(vy).mul(vx)));
++        try std.testing.expect(y.square().value().eql(O.fromInner(vy).square()));
++        try std.testing.expectEqual(@as(u32, 0), x.sub(x).c0.v.idx);
++        try std.testing.expectEqual(@as(u32, 0), x.sub(x).c1.v.idx);
++        try std.testing.expectEqual(x.c0.v.idx, x.sub(Lane.Lane.zero()).c0.v.idx);
++        // A guessed zero is not the immutable zero wire. The full product
++        // must retain constraints for that coordinate, independent of values.
++        const guessed_zero = try Lane.Lane.guess(&ctx, O.fromInner(vy));
++        const start = ctx.circuit.nQm31OpsRows();
++        const product = guessed_zero.mul(x);
++        const full_cost = ctx.circuit.nQm31OpsRows() - start;
++        try std.testing.expectEqual(@as(usize, 7), full_cost);
++        try std.testing.expect(product.value().eql(O.fromInner(vy).mul(vx)));
++        const vz = rng.drawSecureFelt();
++        const z = try Lane.Lane.guess(&ctx, vz);
++        const xz = x.mul(z);
++        try std.testing.expect(xz.value().eql(vx.mul(vz)));
++        for (0..8) |coordinate| {
++            const var_id = if (coordinate < 4) z.c0.v else z.c1.v;
++            const saved = ctx.value_table.items[var_id.idx];
++            var words = saved.toM31Array();
++            words[coordinate % 4] = words[coordinate % 4].add(core.fields.m31.M31.one());
++            ctx.value_table.items[var_id.idx] = Q.fromM31Array(words);
++            try std.testing.expect(!try ctx.isCircuitValid());
++            ctx.value_table.items[var_id.idx] = saved;
++        }
++        scope.deinit();
++        scoped = false;
++        try std.testing.expect(!QLane.structuralIdentitiesEnabled());
++        const legacy_start = ctx.circuit.nQm31OpsRows();
++        _ = y.sub(y);
++        try std.testing.expectEqual(legacy_start + 2, ctx.circuit.nQm31OpsRows());
++        try Lane.finish();
++        active = false;
++        try ctx.finalize(false);
++        try std.testing.expect(try ctx.isCircuitValid());
++        const old = ctx.value_table.items[guessed_zero.c1.v.idx];
++        ctx.value_table.items[guessed_zero.c1.v.idx] = Q.one();
++        try std.testing.expect(!try ctx.isCircuitValid());
++        ctx.value_table.items[guessed_zero.c1.v.idx] = old;
++    }
++}
++
++test "structural circuit arithmetic basis products and inverse equations retain the field" {
++    const Lane = @import("om31_circuit_lane.zig");
++    const core = @import("stwo_core");
++    const O = core.fields.om31.OM31;
++    const M = core.fields.m31.M31;
++    var ctx = try Lane.Context.init(a, 0);
++    defer ctx.deinit();
++    var scope = Lane.StructuralScope.init();
++    defer scope.deinit();
++    Lane.begin(&ctx);
++    var active = true;
++    defer if (active) Lane.finish() catch {};
++    for (0..8) |i| for (0..8) |j| {
++        var x: [8]M = @splat(M.zero());
++        var y: [8]M = @splat(M.zero());
++        x[i] = M.one();
++        y[j] = M.one();
++        const vx = O.fromM31Array(x);
++        const vy = O.fromM31Array(y);
++        const actual = Lane.Lane.fromOm31(vx).mul(Lane.Lane.fromOm31(vy));
++        try std.testing.expect(actual.value().eql(vx.mul(vy)));
++    };
++    var random = core.channel.raw_mod_m31.Om31Channel.init();
++    for (0..16) |_| {
++        const value = random.drawSecureFelt();
++        const x = try Lane.Lane.guess(&ctx, value);
++        try std.testing.expect(x.inv().value().eql(try value.inv()));
++    }
++    try Lane.finish();
++    active = false;
++    try ctx.finalize(false);
++    try std.testing.expect(try ctx.isCircuitValid());
++}
++
++fn failureEmission(allocator: std.mem.Allocator) !void {
++    const Lane = @import("om31_circuit_lane.zig");
++    const core = @import("stwo_core");
++    const O = core.fields.om31.OM31;
++    var ctx = try Lane.Context.init(allocator, 0);
++    defer ctx.deinit();
++    var scope = try Lane.StructuralScope.initMemo(allocator);
++    defer scope.deinit();
++    Lane.begin(&ctx);
++    var active = true;
++    defer if (active) Lane.finish() catch {};
++    const x = try Lane.Lane.guess(&ctx, O.one().add(O.basis()));
++    const y = x.mul(Lane.Lane.fromInner(x.c0)).square().sub(x).inv();
++    try Lane.check();
++    try ctx.markAsMaybeUnused(y.c0.v);
++    try ctx.markAsMaybeUnused(y.c1.v);
++    try Lane.finish();
++    active = false;
++    try ctx.finalize(false);
++    try std.testing.expect(try ctx.isCircuitValid());
++}
++test "structural circuit arithmetic allocation failures release emission and policy ownership" {
++    try std.testing.checkAllAllocationFailures(a, failureEmission, .{});
++    try std.testing.expect(!@import("circuit_lane.zig").structuralIdentitiesEnabled());
++}
++
++test "structural circuit arithmetic memo reuses pure expressions and resets at context boundaries" {
++    const L = @import("circuit_lane.zig");
++    const Q = @import("stwo_core").fields.qm31.QM31;
++    var scope = try L.StructuralScope.initMemo(a);
++    defer scope.deinit();
++    for (0..2) |pass| {
++        var ctx = try L.Context.init(a, 0);
++        defer ctx.deinit();
++        L.begin(&ctx);
++        var active = true;
++        defer if (active) L.finish() catch {};
++        const x = L.Lane.wire(try ctx.guess(Q.fromU32Unchecked(@intCast(2 + pass), 3, 5, 7)));
++        const y = L.Lane.wire(try ctx.guess(Q.fromU32Unchecked(11, @intCast(13 + pass), 17, 19)));
++        const sum = x.add(y);
++        try std.testing.expectEqual(sum.v, y.add(x).v);
++        const product = x.mul(y);
++        try std.testing.expectEqual(product.v, y.mul(x).v);
++        try std.testing.expect(!std.meta.eql(x.sub(y).v, y.sub(x).v));
++        const inverse = x.inv();
++        try std.testing.expectEqual(inverse.v, x.inv().v);
++        try std.testing.expect(sum.value().eql(x.value().add(y.value())));
++        try std.testing.expect(product.value().eql(x.value().mul(y.value())));
++        try std.testing.expect(inverse.value().eql(try x.value().inv()));
++        try std.testing.expect(scope.stats().hits >= 3);
++        try L.finish();
++        active = false;
++        try ctx.finalize(false);
++        try std.testing.expect(try ctx.isCircuitValid());
++    }
++}
++
++test "structural circuit arithmetic memo has a bounded deterministic capacity" {
++    const L = @import("circuit_lane.zig");
++    const Q = @import("stwo_core").fields.qm31.QM31;
++    var scope = try L.StructuralScope.initMemo(a);
++    defer scope.deinit();
++    var ctx = try L.Context.init(a, 0);
++    defer ctx.deinit();
++    L.begin(&ctx);
++    var active = true;
++    defer if (active) L.finish() catch {};
++    const x = L.Lane.wire(try ctx.guess(Q.fromU32Unchecked(2, 3, 5, 7)));
++    for (0..(1 << 17) + 3) |i| {
++        const y = L.Lane.wire(try ctx.guess(Q.fromU32Unchecked(@intCast(i + 11), 13, 17, 19)));
++        _ = x.mul(y);
++    }
++    try std.testing.expect(scope.stats().resets >= 1);
++    try L.finish();
++    active = false;
++}
+diff --git a/src/integrations/riscv_cpu/rv64_structural_arithmetic_test_root.zig b/src/integrations/riscv_cpu/rv64_structural_arithmetic_test_root.zig
+new file mode 100644
+index 000000000..08c60e49e
+--- /dev/null
++++ b/src/integrations/riscv_cpu/rv64_structural_arithmetic_test_root.zig
+@@ -0,0 +1,3 @@
++test {
++    _ = @import("rv64_recursion/structural_arithmetic_test.zig");
++}

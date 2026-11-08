@@ -473,8 +473,9 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
                 const native_verify_ns = timer.read() - native_start_ns;
                 const last = loaded.bundle.requests[loaded.bundle.requests.len - 1].base;
                 const output = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
-                if (!strict_recursion_verify) try dir.makeDir("recursion-group-v1");
-                var grouped_dir = try dir.openDir("recursion-group-v1", .{});
+                const group_path = if (try @import("../../rv64_recursion/om31_native/native_group.zig").reducedFromEnv()) "recursion-group-v2" else "recursion-group-v1";
+                if (!strict_recursion_verify) try dir.makeDir(group_path);
+                var grouped_dir = try dir.openDir(group_path, .{});
                 defer grouped_dir.close();
                 const grouped = try @import("../../rv64_recursion/om31_native/group_execution.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, fixed_set, grouped_dir, strict_recursion_verify);
                 return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domainName(), .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .existing_recursive_proofs_only = strict_recursion_verify, .trace_only_recursive_graphs = strict_recursion_verify, .load_and_setup_ns = setup_ns, .native_verify_ns = native_verify_ns, .grouped = grouped });

@@ -10,6 +10,7 @@ pub const Context = q.Context;
 pub const begin = q.begin;
 pub const finish = q.finish;
 pub const check = q.check;
+pub const StructuralScope = q.StructuralScope;
 const Ops = struct {
     pub fn mulByU(x: q.Lane) q.Lane {
         return x.mul(q.Lane.fromQm31(core.fields.om31.NONRESIDUE));
@@ -77,9 +78,25 @@ pub const Lane = struct {
         return wrap(arithmetic(x).sub(arithmetic(y)));
     }
     pub fn mul(x: Lane, y: Lane) Lane {
+        if (q.structuralIdentitiesEnabled()) {
+            // These are the builder's immutable zero wires, never a test of
+            // a witness value. Use the original tower's inner-field product.
+            if (y.c1.v.idx == 0) return x.mulInner(y.c0);
+            if (x.c1.v.idx == 0) return y.mulInner(x.c0);
+            // Every QM31 add/sub/mul consumes one arithmetic row. The native
+            // Karatsuba formula saves a multiplication but costs nine rows;
+            // four schoolbook products plus the fixed-u map cost seven.
+            // Both compute (a+bv)(c+dv)=(ac+u*bd)+(ad+bc)v.
+            const ac = x.c0.mul(y.c0);
+            const bd = x.c1.mul(y.c1);
+            const ad = x.c0.mul(y.c1);
+            const bc = x.c1.mul(y.c0);
+            return .{ .c0 = ac.add(Ops.mulByU(bd)), .c1 = ad.add(bc) };
+        }
         return wrap(arithmetic(x).mul(arithmetic(y)));
     }
     pub fn square(x: Lane) Lane {
+        if (q.structuralIdentitiesEnabled() and x.c1.v.idx == 0) return fromInner(x.c0.square());
         return wrap(arithmetic(x).square());
     }
     pub fn neg(x: Lane) Lane {

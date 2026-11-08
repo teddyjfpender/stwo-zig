@@ -18,7 +18,12 @@ const Publication = @import("publication.zig");
 pub const Report = struct {
     schema: []const u8 = "rv64-native-group-root/v1",
     accepted: bool = true,
+    arithmetic: []const u8,
     native_members: usize,
+    pre_padding_variables: u32,
+    pre_padding_qm31_rows: usize,
+    pre_padding_blake_rows: usize,
+    padding_targets: @import("stwo_circuit_frontend").common.finalize.ComponentSizes,
     outer_proofs: usize = 1,
     fold_proofs: usize = 0,
     restored: bool,
@@ -59,7 +64,9 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
         members[ordinal] = .{ .truth = .{ .truth = truth, .expected = inventory.workers[ordinal], .manifest = &manifest, .config = config, .encoded = &bundle.truths[i], .fixed = if (fixed) |set| set.at(ordinal) else null } };
     }
     // first=0,total=n,count=n are receiver-derived, never producer declarations.
-    var graph = try Group.build(a, members[0..n], .{ .first = 0, .total = @intCast(n) }, existing_only);
+    const reduced = try Group.reducedFromEnv();
+    const build = if (reduced) &Group.buildReduced else &Group.build;
+    var graph = try build(a, members[0..n], .{ .first = 0, .total = @intCast(n) }, existing_only);
     defer graph.deinit();
     if (existing_only and (!graph.ctx.trace_only or graph.ctx.value_table.items.len != 0 or graph.ctx.value_table.capacity != 0)) return error.NativeGroupReceiverAssignment;
     var cpus: [Group.MAX_MEMBERS]Root.CpuFrame = undefined;
@@ -73,6 +80,10 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     const metadata = try Root.checkPrepared(a, setups, truths, bundle.requests, &inventory, stages.stages, frames, .{}, 1);
     if (!std.mem.eql(u8, &metadata.manifest.digest, &manifest.digest)) return error.NativeGroupManifest;
     const graph_ns = timer.read();
+    const variables = graph.ctx.circuit.n_vars;
+    const qm31_rows = graph.ctx.circuit.nQm31OpsRows();
+    const blake_rows = graph.ctx.circuit.blake_g_gate.items.len;
+    const padding_targets = try Outer.paddingTargets(graph.ctx);
     var proof = try Outer.wrapGraphOrLoad(a, graph.ctx, graph.digest, encoded);
     defer proof.deinit();
     if (proof.restored != existing_only) return error.NativeGroupReceiverProving;
@@ -82,5 +93,5 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     const bytes = try proof.serialize(a);
     defer a.free(bytes);
     if (existing_only) try Publication.requireBytes(dir, "root.proof", bytes) else try Publication.write(dir, "root.proof", bytes);
-    return .{ .native_members = n, .restored = proof.restored, .trace_only = existing_only, .manifest = metadata.manifest.digest, .root_digest = graph.digest, .root_authority = proof.effectiveIdentity(), .root_proof_bytes = bytes.len, .graph_ns = graph_ns, .preprocess_ns = proof.timings.preprocess_ns, .prove_ns = proof.timings.prove_ns, .verify_ns = proof.timings.verify_ns, .total_ns = timer.read() };
+    return .{ .schema = if (reduced) "rv64-native-group-root/v2" else "rv64-native-group-root/v1", .arithmetic = if (reduced) "structural-v1" else "legacy", .native_members = n, .pre_padding_variables = variables, .pre_padding_qm31_rows = qm31_rows, .pre_padding_blake_rows = blake_rows, .padding_targets = padding_targets, .restored = proof.restored, .trace_only = existing_only, .manifest = metadata.manifest.digest, .root_digest = graph.digest, .root_authority = proof.effectiveIdentity(), .root_proof_bytes = bytes.len, .graph_ns = graph_ns, .preprocess_ns = proof.timings.preprocess_ns, .prove_ns = proof.timings.prove_ns, .verify_ns = proof.timings.verify_ns, .total_ns = timer.read() };
 }

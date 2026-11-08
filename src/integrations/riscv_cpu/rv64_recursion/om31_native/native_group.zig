@@ -15,6 +15,15 @@ const Fixed = @import("../../word16_global_execution/services/gkr_local/fixed_au
 pub const MAX_MEMBERS = 4;
 pub const MAX_NATIVE_WORKERS = 256;
 pub const DOMAIN = "STWO/RV64/GROUP1";
+pub const REDUCED_DOMAIN = "STWO/RV64/GROUP2";
+/// Receiver policy, never selected from a proof. GROUP2 changes graph
+/// authority while retaining the original native mathematical verifiers.
+pub fn reducedFromEnv() !bool {
+    const value = std.posix.getenv("STWO_RV64_GROUP_ARITHMETIC") orelse return false;
+    if (std.mem.eql(u8, value, "legacy")) return false;
+    if (std.mem.eql(u8, value, "structural-v1")) return true;
+    return error.NativeGroupArithmeticPolicy;
+}
 pub const Member = union(enum) { cpu: G.CpuInput, truth: G.TruthInput };
 pub const Range = struct { first: u32, total: u32 };
 pub const Kind = enum(u32) { cpu = 0, keccak = 1, delegation = 2 };
@@ -124,12 +133,21 @@ fn appendHeader(ctx: *C.Context, frame: *V.frame.Frame, words: *std.ArrayList(u3
     try words.append(a, value);
 }
 pub fn build(a: std.mem.Allocator, members: []const Member, range: Range, trace_only: bool) !Graph {
+    return buildImpl(a, members, range, trace_only, false);
+}
+pub fn buildReduced(a: std.mem.Allocator, members: []const Member, range: Range, trace_only: bool) !Graph {
+    return buildImpl(a, members, range, trace_only, true);
+}
+fn buildImpl(a: std.mem.Allocator, members: []const Member, range: Range, trace_only: bool, reduced: bool) !Graph {
+    const domain: []const u8 = if (reduced) REDUCED_DOMAIN else DOMAIN;
     if (members.len == 0 or members.len > MAX_MEMBERS or range.total == 0 or range.total > MAX_NATIVE_WORKERS or @as(u64, range.first) + members.len > range.total) return error.NativeGroupRange;
     const manifest = memberManifest(members[0]);
     for (members, 0..) |member, i| {
         if (memberOrdinal(member) != @as(u64, range.first) + i) return error.NativeGroupOrder;
         if (!std.mem.eql(u8, &manifest, &memberManifest(member))) return error.NativeGroupManifest;
     }
+    var scope: ?C.lane.StructuralScope = if (reduced) C.lane.StructuralScope.init() else null;
+    defer if (scope) |*owned| owned.deinit();
     const ctx = try a.create(C.Context);
     errdefer a.destroy(ctx);
     ctx.* = if (trace_only) try C.Context.initTraceOnly(a, circuit.common.component_list.N_RESERVED) else try C.Context.init(a, circuit.common.component_list.N_RESERVED);
@@ -144,7 +162,7 @@ pub fn build(a: std.mem.Allocator, members: []const Member, range: Range, trace_
     var active = true;
     defer if (active) C.lane.finish() catch {};
     var frame = V.frame.Frame.init(ctx);
-    for (0..4) |i| try appendHeader(ctx, &frame, &words, a, std.mem.readInt(u32, DOMAIN[4 * i ..][0..4], .little));
+    for (0..4) |i| try appendHeader(ctx, &frame, &words, a, std.mem.readInt(u32, domain[4 * i ..][0..4], .little));
     try appendHeader(ctx, &frame, &words, a, range.first);
     try appendHeader(ctx, &frame, &words, a, @intCast(members.len));
     try appendHeader(ctx, &frame, &words, a, range.total);

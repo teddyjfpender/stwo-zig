@@ -54,6 +54,20 @@ test "native verifier group authenticates adjacent CPU and truth members in one 
         try std.testing.expectEqual(graph.digest, trace.digest);
         try std.testing.expectEqual(@as(usize, 0), trace.ctx.value_table.capacity);
         try std.testing.expectEqual(@as(usize, 9), graph.ctx.circuit.output.items.len);
+        {
+            var reduced = try Group.buildReduced(a, members[r.start..r.end], .{ .first = r.start, .total = 5 }, false);
+            defer reduced.deinit();
+            var reduced_trace = try Group.buildReduced(a, members[r.start..r.end], .{ .first = r.start, .total = 5 }, true);
+            defer reduced_trace.deinit();
+            try std.testing.expectEqualDeep(reduced.ctx.circuit, reduced_trace.ctx.circuit);
+            try std.testing.expectEqualSlices(u32, reduced.words, reduced_trace.words);
+            try std.testing.expectEqual(reduced.digest, reduced_trace.digest);
+            try std.testing.expect(!std.mem.eql(u8, &graph.digest, &reduced.digest));
+            try std.testing.expect(reduced.ctx.circuit.nQm31OpsRows() < graph.ctx.circuit.nQm31OpsRows());
+            try std.testing.expectEqual(@as(usize, 0), reduced_trace.ctx.value_table.capacity);
+            try std.testing.expect(!@import("../circuit_lane.zig").structuralIdentitiesEnabled());
+            std.debug.print("NATIVE_GROUP_REDUCED qm31={} blake={} vars={}\n", .{ reduced.ctx.circuit.nQm31OpsRows(), reduced.ctx.circuit.blake_g_gate.items.len, reduced.ctx.circuit.n_vars });
+        }
         std.debug.print("NATIVE_GROUP first={} count={} qm31={} blake={} vars={}\n", .{ r.start, r.end - r.start, graph.ctx.circuit.nQm31OpsRows(), graph.ctx.circuit.blake_g_gate.items.len, graph.ctx.circuit.n_vars });
     }
 }

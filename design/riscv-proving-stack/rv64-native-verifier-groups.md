@@ -106,3 +106,20 @@ Every fresh receiver accepts; all same-variant proofs match exactly. Peak RSS
 increases to 39.16 GiB from M6's 27.34 GiB. Observable trial drift and the small
 sample count remain explicit. Native proving is additional. The detailed
 receipt is `vectors/reports/rv64-opstack-cpu-20261108/recursion-native-groups.json`.
+
+## Optional GROUP2 arithmetic
+
+The independently selected `structural-v1` policy has the `STWO/RV64/GROUP2`
+header and separate `recursion-group-v2` transport. It specializes only immutable
+zero wire identities. A guessed zero never selects a different topology. Full
+OM31 multiplication uses four QM31 products, two additions and one fixed-u
+product (seven rows), instead of native Karatsuba's nine circuit rows. Scalar
+field arithmetic and the underlying QM31 gate constraints are unchanged.
+
+The concrete lane policy is thread-local and scoped, with failure cleanup. The
+legacy policy emits the original graphs and independently restores the existing
+GROUP1 and M7 tree proofs. Real GROUP2 production and fresh reception pass;
+10,757,366 active arithmetic rows still pad to 2^24, so no additional complete
+wall-time gain is established. A bounded symbolic cache was tested and rejected
+because its 5.87% hit rate did not change that geometry. It is retained as a patch
+and receipt, rather than permanent cache machinery in the production lane.
