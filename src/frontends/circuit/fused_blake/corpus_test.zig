@@ -1,5 +1,5 @@
 //! Negative corpus v3 hooks BG01-BG08 for `fused_blake2s_v1` (stream
-//! blake-gadget; case text: `python3 scripts/rv64_m5_negative_corpus.py spec`).
+//! blake-gadget; case text: `python3 scripts/rv64/rv64_m5_negative_corpus.py spec`).
 //! Each W test mutates ONE witness (or preprocessed) value of an honest row
 //! and asserts the named check fails: a local constraint, an XOR table
 //! lookup, the XOR LogUp balance, or Gate-wire consistency.

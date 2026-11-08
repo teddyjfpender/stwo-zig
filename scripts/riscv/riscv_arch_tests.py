@@ -8,9 +8,9 @@ The upstream checkout remains byte-clean. This adapter:
 * compiles self-checking ELFs against the checked-in zkVM boundary; and
 * records every source and ELF digest in a machine-readable receipt.
 
-Run after ``scripts/riscv_formal_tools.py prepare``:
+Run after ``scripts/riscv/riscv_formal_tools.py prepare``:
 
-  python3 scripts/riscv_arch_tests.py build \
+  python3 scripts/riscv/riscv_arch_tests.py build \
       --formal-workspace /tmp/stwo-riscv-formal \
       --workdir zig-out/riscv-formal/arch-test
 """
@@ -30,49 +30,28 @@ import time
 from pathlib import Path
 from typing import Any
 
-try:
-    from riscv_arch_tests_lib.support import (
-        EXPECTED_SUITES,
-        ROOT,
-        ArchTestError,
-        adapter_digest as _adapter_digest,
-        expected_sources as _expected_sources,
-        json_digest as _json_digest,
-        load_json_file as _load_json_file,
-        materialize_adapter as _materialize_adapter,
-        prepend_tool_paths as _prepend_tool_paths,
-        require_sha256 as _require_sha256,
-        resolve_llvm_nm as _resolve_llvm_nm,
-        resolve_riscv_clang as _resolve_riscv_clang,
-        run_checked as _run_checked,
-        run_json as _run_json,
-        sha256_file as _sha256_file,
-    )
-except ModuleNotFoundError:  # Imported as scripts.riscv_arch_tests in tests.
-    from scripts.riscv_arch_tests_lib.support import (
-        EXPECTED_SUITES,
-        ROOT,
-        ArchTestError,
-        adapter_digest as _adapter_digest,
-        expected_sources as _expected_sources,
-        json_digest as _json_digest,
-        load_json_file as _load_json_file,
-        materialize_adapter as _materialize_adapter,
-        prepend_tool_paths as _prepend_tool_paths,
-        require_sha256 as _require_sha256,
-        resolve_llvm_nm as _resolve_llvm_nm,
-        resolve_riscv_clang as _resolve_riscv_clang,
-        run_checked as _run_checked,
-        run_json as _run_json,
-        sha256_file as _sha256_file,
-    )
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.riscv_arch_tests_lib.support import (
+    EXPECTED_SUITES,
+    ROOT,
+    ArchTestError,
+    adapter_digest as _adapter_digest,
+    expected_sources as _expected_sources,
+    json_digest as _json_digest,
+    load_json_file as _load_json_file,
+    materialize_adapter as _materialize_adapter,
+    prepend_tool_paths as _prepend_tool_paths,
+    require_sha256 as _require_sha256,
+    resolve_llvm_nm as _resolve_llvm_nm,
+    resolve_riscv_clang as _resolve_riscv_clang,
+    run_checked as _run_checked,
+    run_json as _run_json,
+    sha256_file as _sha256_file,
+)
 
-try:
-    from scripts import riscv_equivalence as equivalence
-    from scripts import riscv_formal_tools as formal
-except ImportError:
-    import riscv_equivalence as equivalence
-    import riscv_formal_tools as formal
+from scripts.riscv import riscv_equivalence as equivalence
+from scripts.riscv import riscv_formal_tools as formal
 
 
 def build_arch_tests(

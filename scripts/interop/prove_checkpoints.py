@@ -22,13 +22,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-try:
-    from interop_cli_command import run_command
-except ModuleNotFoundError:
-    from scripts.interop_cli_command import run_command
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.interop.interop_cli_command import run_command
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 RUST_MANIFEST = ROOT / "tools" / "stwo-interop-rs" / "Cargo.toml"
 REPORT_DEFAULT = ROOT / "vectors" / "reports" / "prove_checkpoints_report.json"
 ARTIFACT_DIR_DEFAULT = ROOT / "vectors" / "reports" / "prove_checkpoints_artifacts"

@@ -1,5 +1,5 @@
 //! Exports real proving runs for the independent Python row checker
-//! (`scripts/air_satisfaction.py`), and pins what each exported run is.
+//! (`scripts/riscv/air_satisfaction.py`), and pins what each exported run is.
 //!
 //! The checker's value is that it shares no code with the Zig evaluator, so its
 //! input has to be a trace Zig actually committed rather than one assembled for

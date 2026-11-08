@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-AUTHORITY_ROOT = Path(__file__).resolve().parents[1]
+AUTHORITY_ROOT = Path(__file__).resolve().parents[2]
 ALLOWED_PREFIX = "scripts/"
 
 

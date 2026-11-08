@@ -96,7 +96,7 @@ def verify_checkout(
         if not allow_unpatched:
             raise CuMetalToolchainError(
                 "CuMetal compatibility patch is not applied; run "
-                "scripts/cuda_cumetal_toolchain.py --apply"
+                "scripts/cuda/cuda_cumetal_toolchain.py --apply"
             )
         return {
             "commit": AUDITED_COMMIT,

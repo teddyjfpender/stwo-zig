@@ -8,18 +8,12 @@ import os
 from pathlib import Path
 from typing import Any
 
-try:
-    from scripts.benchmark_product_contract_lib import (
-        ProductEvidenceError,
-        validate_receipt,
-    )
-except ModuleNotFoundError:
-    from benchmark_product_contract_lib import ProductEvidenceError, validate_receipt
+from scripts.bench.benchmark_product_contract_lib import ProductEvidenceError, validate_receipt
 
 if __package__.startswith("scripts."):
-    from scripts.native_proof_matrix_lib.artifacts import atomic_write_bytes, atomic_write_json
+    from scripts.native.native_proof_matrix_lib.artifacts import atomic_write_bytes, atomic_write_json
 else:
-    from native_proof_matrix_lib.artifacts import atomic_write_bytes, atomic_write_json
+    from scripts.native.native_proof_matrix_lib.artifacts import atomic_write_bytes, atomic_write_json
 
 from .model import (
     MAX_ARTIFACT_BYTES,

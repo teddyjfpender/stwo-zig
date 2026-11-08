@@ -180,7 +180,7 @@ counts are planning bounds; the scoped native allocator independently rejects
 excess live bytes. Increasing the count does not establish that the workload
 fits VRAM. Host resource-file budgets and device allocator caps are separate.
 
-Use `scripts/rv64_ethereum_basket.py` for the complete-block runs and fresh
+Use `scripts/rv64/rv64_ethereum_basket.py` for the complete-block runs and fresh
 receiver. A manifest `gpu_workers` entry can name a device group:
 
 ```json

@@ -4,7 +4,7 @@
 
 **Owner:** `riscv_cpu` in `conformance/ci-touchpoints-v1.json`
 
-**Entrypoint:** `scripts/riscv_pr_proof_smoke.py`
+**Entrypoint:** `scripts/riscv/riscv_pr_proof_smoke.py`
 
 ## Purpose
 
@@ -39,7 +39,7 @@ The focused lane must, in order:
 
 1. build and test `test-riscv-cpu-product` in `ReleaseFast`;
 2. build the focused `stwo-zig-riscv-cpu` executable from the same checkout;
-3. execute `scripts/riscv_pr_proof_smoke.py` with that executable;
+3. execute `scripts/riscv/riscv_pr_proof_smoke.py` with that executable;
 4. retain the smoke summary, proof artifacts, prove reports, and independent
    verify receipts in the focused-lane artifact directory; and
 5. run the committed RISC-V trace-vector parity gate.

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Six CPU-only full-receiver negatives against the accepted coalesced headline."""
+
 import argparse
 import hashlib
 import json
@@ -8,7 +9,9 @@ from pathlib import Path
 import re
 import shutil
 
-import rv64_m4_resident as R
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_m4_resident as R
 
 
 def fingerprint(path):

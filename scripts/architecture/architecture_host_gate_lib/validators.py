@@ -8,18 +8,18 @@ import stat
 from pathlib import Path
 from typing import Any
 
-from scripts.architecture_host_gate_lib import aggregate_parity, link_closure
-from scripts.architecture_host_gate_lib import performance_readiness
-from scripts.architecture_host_gate_lib.capture import sha256_file
-from scripts.architecture_host_gate_lib.products import _canonical, _normalize
-from scripts.benchmark_delta_lib.product_identity import validate_native_v6_report
-from scripts.build_architecture_receipt_lib.model import ReceiptError
-from scripts.e2e_interop_lib.controller import SUPPORTED_EXAMPLES
-from scripts.e2e_interop_lib.evidence import ARCHIVE_PROTOCOL
-from scripts.metal_core_aot_receipt_lib import artifacts as aot_artifacts
-from scripts.metal_core_aot_receipt_lib import controller as aot_controller
-from scripts.metal_core_aot_receipt_lib.model import BUILD_SCHEMA
-from scripts.product_identity_lib import validate_canonical_identity
+from scripts.architecture.architecture_host_gate_lib import aggregate_parity, link_closure
+from scripts.architecture.architecture_host_gate_lib import performance_readiness
+from scripts.architecture.architecture_host_gate_lib.capture import sha256_file
+from scripts.architecture.architecture_host_gate_lib.products import _canonical, _normalize
+from scripts.bench.benchmark_delta_lib.product_identity import validate_native_v6_report
+from scripts.architecture.build_architecture_receipt_lib.model import ReceiptError
+from scripts.interop.e2e_interop_lib.controller import SUPPORTED_EXAMPLES
+from scripts.interop.e2e_interop_lib.evidence import ARCHIVE_PROTOCOL
+from scripts.metal.metal_core_aot_receipt_lib import artifacts as aot_artifacts
+from scripts.metal.metal_core_aot_receipt_lib import controller as aot_controller
+from scripts.metal.metal_core_aot_receipt_lib.model import BUILD_SCHEMA
+from scripts.repo.product_identity_lib import validate_canonical_identity
 
 
 EXECUTABLE_COMMANDS = {

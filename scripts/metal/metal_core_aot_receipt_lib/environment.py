@@ -13,7 +13,7 @@ from .artifacts import sha256_bytes
 from .model import COMMIT_RE, DECIMAL_RE, ReceiptError
 
 ROOT = Path(
-    os.environ.get("STWO_ZIG_EXECUTION_ROOT", Path(__file__).resolve().parents[2])
+    os.environ.get("STWO_ZIG_EXECUTION_ROOT", Path(__file__).resolve().parents[3])
 ).resolve()
 
 

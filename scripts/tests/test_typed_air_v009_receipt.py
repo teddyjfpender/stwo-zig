@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.typed_air_r006_capture_lib.codec import canonical_bytes, content_digest
-from scripts.typed_air_v009_receipt import (
+from scripts.typed_air.typed_air_r006_capture_lib.codec import canonical_bytes, content_digest
+from scripts.typed_air.typed_air_v009_receipt import (
     REQUIRED_ARTIFACTS,
     ReceiptError,
     mint_receipt,
@@ -82,12 +82,12 @@ class V009ReceiptTests(unittest.TestCase):
             raise AssertionError(arguments)
 
         with (
-            mock.patch("scripts.typed_air_v009_receipt._git", side_effect=git),
+            mock.patch("scripts.typed_air.typed_air_v009_receipt._git", side_effect=git),
             mock.patch(
-                "scripts.typed_air_v009_receipt._github_run", side_effect=runs
+                "scripts.typed_air.typed_air_v009_receipt._github_run", side_effect=runs
             ),
             mock.patch(
-                "scripts.typed_air_v009_receipt._tool_version", return_value="0.15.2"
+                "scripts.typed_air.typed_air_v009_receipt._tool_version", return_value="0.15.2"
             ),
             mock.patch("platform.python_version", return_value="3.14.6"),
             mock.patch("platform.system", return_value="Darwin"),
@@ -111,7 +111,7 @@ class V009ReceiptTests(unittest.TestCase):
         )
         self.assertFalse(receipt["claim_boundary"]["proof_system_soundness"])
         with mock.patch(
-            "scripts.typed_air_v009_receipt._git", return_value=TREE
+            "scripts.typed_air.typed_air_v009_receipt._git", return_value=TREE
         ):
             self.assertEqual(validate_receipt(self.root, self._write(receipt)), receipt)
 
@@ -128,20 +128,20 @@ class V009ReceiptTests(unittest.TestCase):
             mutate(changed)
             changed["content_sha256"] = content_digest(changed)
             with self.subTest(name=name), mock.patch(
-                "scripts.typed_air_v009_receipt._git", return_value=TREE
+                "scripts.typed_air.typed_air_v009_receipt._git", return_value=TREE
             ), self.assertRaises(ReceiptError):
                 validate_receipt(self.root, self._write(changed, f"{name}.json"))
 
         pretty = self.root / "pretty.json"
         pretty.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
         with mock.patch(
-            "scripts.typed_air_v009_receipt._git", return_value=TREE
+            "scripts.typed_air.typed_air_v009_receipt._git", return_value=TREE
         ), self.assertRaisesRegex(ReceiptError, "canonical JSON"):
             validate_receipt(self.root, pretty)
 
     def test_mint_rejects_dirty_source_incomplete_runs_and_ambiguous_log(self) -> None:
         with mock.patch(
-            "scripts.typed_air_v009_receipt._git", return_value="dirty"
+            "scripts.typed_air.typed_air_v009_receipt._git", return_value="dirty"
         ), self.assertRaisesRegex(ReceiptError, "clean worktree"):
             mint_receipt(self.root, "HEAD", ["1", "2", "3", "4"], self.log)
 

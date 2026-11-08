@@ -11,7 +11,7 @@ from typing import Any
 
 from .contract import EquivalenceError
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 RVFI_DII_ENTRY = 0x0001_0000
 RVFI_DII_V1_BYTES = 88
 RVFI_TRANSPORT_PATCH = (

@@ -206,7 +206,7 @@ def scan_python_controllers(repo: Path) -> list[Finding]:
     """Cap every active deep evidence controller without pretending it is an entry point."""
     findings: list[Finding] = []
     scripts_root = repo / "scripts"
-    for source in sorted(scripts_root.glob("*_lib/controller.py")):
+    for source in sorted(scripts_root.glob("*/*_lib/controller.py")):
         display = source.relative_to(repo)
         if is_deferred(display):
             continue
@@ -230,7 +230,11 @@ def scan_python_controllers(repo: Path) -> list[Finding]:
             source.parent.name,
             f"{source.parent.name.removesuffix('_lib')}.py",
         )
-        root = scripts_root / root_name
+        # The facade sits beside its package in scripts/<area>/, or is one of
+        # the top-level developer entry points (for example rv64_m8_bench15.py).
+        root = source.parent.parent / root_name
+        if not root.is_file():
+            root = scripts_root / root_name
         if not root.is_file():
             findings.append(Finding(
                 f"deep-controller:{display.as_posix()}",

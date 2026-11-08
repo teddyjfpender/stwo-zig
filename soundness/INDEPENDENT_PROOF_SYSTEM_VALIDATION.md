@@ -91,7 +91,7 @@ this scope.
 | Production Zig RISC-V verifier | Full schema-v4 proof verification | It is the implementation being independently checked |
 | `tools/stwo-interop-rs` | Cross-language Native proof compatibility | It imports pinned Stwo verifier code and does not verify the RISC-V protocol |
 | `tools/stwo-cairo-verifier-rs` | Isolated official Cairo verification | It imports pinned Stwo and Cairo AIR code and targets a different statement |
-| `scripts/air_satisfaction.py` | Independent committed-row and LogUp re-evaluation | It never reads commitments, openings, OODS, FRI, or the proof transcript |
+| `scripts/riscv/air_satisfaction.py` | Independent committed-row and LogUp re-evaluation | It never reads commitments, openings, OODS, FRI, or the proof transcript |
 | RISC-V staged smoke | Separate-process Zig verification and selected mutations | The process is separate, but the verifier implementation is the same |
 | Native interchange mutations | Rich JSON-wire semantic mutations | They target Native example artifacts rather than the production RISC-V wire |
 

@@ -8,12 +8,8 @@ from typing import Callable, Sequence
 
 from .models import AuditError, TableAudit
 
-try:
-    from air_satisfaction_lib import infrastructure
-    from air_satisfaction_lib.field import P, QM31, QM31_ONE, QM31_ZERO
-except ModuleNotFoundError:  # Imported through scripts.* in tests.
-    from scripts.air_satisfaction_lib import infrastructure
-    from scripts.air_satisfaction_lib.field import P, QM31, QM31_ONE, QM31_ZERO
+from scripts.riscv.air_satisfaction_lib import infrastructure
+from scripts.riscv.air_satisfaction_lib.field import P, QM31, QM31_ONE, QM31_ZERO
 
 
 TABLE_ORDER = (

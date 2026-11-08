@@ -5,10 +5,7 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
-try:
-    from scripts.benchmark_product_contract_lib import revision_identity
-except ModuleNotFoundError:
-    from benchmark_product_contract_lib import revision_identity
+from scripts.bench.benchmark_product_contract_lib import revision_identity
 
 from .model import MatrixError, RUNTIME_ADMISSION_KEYS
 from .validation import (

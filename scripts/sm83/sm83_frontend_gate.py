@@ -14,14 +14,13 @@ import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
-try:
-    from . import sm83_frontend_gate_args, sm83_pokemon_gate
-except ImportError:
-    import sm83_frontend_gate_args
-    import sm83_pokemon_gate
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.sm83 import sm83_frontend_gate_args
+from scripts.sm83 import sm83_pokemon_gate
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 CORPUS_REPOSITORY = "https://github.com/SingleStepTests/sm83"
 CORPUS_REVISION = "f9c30210245dd691661db39f5ace022c465ecc2f"
 BLARGG_REPOSITORY = "https://github.com/retrio/gb-test-roms"
@@ -399,9 +398,9 @@ def precommit(
         "format",
         ["zig", "fmt", "--check", "build.zig", "build_support", "src", "tools"],
     )
-    run("package contracts", ["python3", "scripts/check_package_workspace.py"])
-    run("authority pins", ["python3", "scripts/check_upstream_pins.py"])
-    run("source conformance", ["python3", "scripts/check_source_conformance.py"])
+    run("package contracts", ["python3", "scripts/repo/check_package_workspace.py"])
+    run("authority pins", ["python3", "scripts/repo/check_upstream_pins.py"])
+    run("source conformance", ["python3", "scripts/repo/check_source_conformance.py"])
     run(
         "CI package contracts",
         [

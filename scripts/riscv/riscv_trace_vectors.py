@@ -9,9 +9,9 @@ the Zig `riscv-trace-dump` CLI over each fixture and requires the canonical
 trace JSON to match the committed digest, step count, and final PC.
 
 Modes:
-  python3 scripts/riscv_trace_vectors.py            # gate (default)
-  python3 scripts/riscv_trace_vectors.py --update   # regenerate fixtures
-  python3 scripts/riscv_trace_vectors.py \
+  python3 scripts/riscv/riscv_trace_vectors.py            # gate (default)
+  python3 scripts/riscv/riscv_trace_vectors.py --update   # regenerate fixtures
+  python3 scripts/riscv/riscv_trace_vectors.py \
       --sail-bin /path/to/sail_riscv_sim --spike-bin /path/to/spike
 
 The live mode verifies the Sail model/compiler/transport identity, compares
@@ -31,26 +31,18 @@ import subprocess
 import sys
 from pathlib import Path
 
-try:
-    from scripts import riscv_equivalence as equivalence
-    from scripts.riscv_trace_vectors_lib import admission, classics, corpus, elf
-    from scripts.riscv_trace_vectors_lib.encoders import (  # noqa: F401
-        ADDI, XORI, ORI, ANDI, SLTI, SLTIU, SLLI, SRLI, SRAI, ADD, SUB, SLL, SLT, SLTU,
-        XOR, SRL, SRA, OR, AND, MUL, MULH, MULHSU, MULHU, DIV, DIVU, REM, REMU, LB, LH,
-        LW, LBU, LHU, SB, SH, SW, BEQ, BNE, BLT, BGE, BLTU, BGEU, JAL, JALR, LUI,
-        AUIPC, FENCE, ECALL,
-    )
-except ImportError:
-    import riscv_equivalence as equivalence
-    from riscv_trace_vectors_lib import admission, classics, corpus, elf
-    from riscv_trace_vectors_lib.encoders import (  # noqa: F401
-        ADDI, XORI, ORI, ANDI, SLTI, SLTIU, SLLI, SRLI, SRAI, ADD, SUB, SLL, SLT, SLTU,
-        XOR, SRL, SRA, OR, AND, MUL, MULH, MULHSU, MULHU, DIV, DIVU, REM, REMU, LB, LH,
-        LW, LBU, LHU, SB, SH, SW, BEQ, BNE, BLT, BGE, BLTU, BGEU, JAL, JALR, LUI,
-        AUIPC, FENCE, ECALL,
-    )
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv import riscv_equivalence as equivalence
+from scripts.riscv.riscv_trace_vectors_lib import admission, classics, corpus, elf
+from scripts.riscv.riscv_trace_vectors_lib.encoders import (  # noqa: F401
+    ADDI, XORI, ORI, ANDI, SLTI, SLTIU, SLLI, SRLI, SRAI, ADD, SUB, SLL, SLT, SLTU,
+    XOR, SRL, SRA, OR, AND, MUL, MULH, MULHSU, MULHU, DIV, DIVU, REM, REMU, LB, LH,
+    LW, LBU, LHU, SB, SH, SW, BEQ, BNE, BLT, BGE, BLTU, BGEU, JAL, JALR, LUI,
+    AUIPC, FENCE, ECALL,
+)
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 VECTOR_DIR = ROOT / "vectors" / "riscv_elfs"
 VECTOR_FILE = VECTOR_DIR / "trace_vectors.json"
 
@@ -76,7 +68,7 @@ SPIKE_COMPARISON_FIELDS = (
 def comparison_digest(compared: list[dict]) -> str:
     """Digest binding an attestation to the exact per-program trace digests.
 
-    scripts/riscv_sail_gate.py recomputes this from the committed manifest, so
+    scripts/riscv/riscv_sail_gate.py recomputes this from the committed manifest, so
     the digest is the one value that makes evidence-vs-corpus staleness
     mechanically detectable; changing the recipe orphans every committed
     attestation and requires regenerating the live evidence.
@@ -433,9 +425,9 @@ def update(scratch: Path) -> int:
         )
     payload = {
         **manifest_identity(),
-        "captured_by": "scripts/riscv_trace_vectors.py --update",
+        "captured_by": "scripts/riscv/riscv_trace_vectors.py --update",
         "formal_verification": {
-            "tool": "scripts/riscv_trace_vectors.py --sail-bin --spike-bin",
+            "tool": "scripts/riscv/riscv_trace_vectors.py --sail-bin --spike-bin",
             "comparison": (
                 "every canonical RVFI-shaped field against Sail; every scalar "
                 "commit-log field exposed by independently pinned Spike"

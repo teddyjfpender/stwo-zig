@@ -31,10 +31,7 @@ from dataclasses import dataclass, field as dataclass_field
 from .dump import Component
 from .field import P
 
-try:
-    from riscv_air_ir_lib import ir, tables
-except ModuleNotFoundError:  # Imported as scripts.air_satisfaction_lib in tests.
-    from scripts.riscv_air_ir_lib import ir, tables
+from scripts.riscv.riscv_air_ir_lib import ir, tables
 
 
 class LayoutMismatch(ValueError):

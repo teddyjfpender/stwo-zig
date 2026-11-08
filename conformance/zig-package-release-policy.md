@@ -59,7 +59,7 @@ For each package:
 5. `conformance/package-release-v1.json` is authoritative for whether a
    package is `published`, `deferred`, or `internal`.
 
-`scripts/check_package_workspace.py` rejects drift among these views, boundary
+`scripts/repo/check_package_workspace.py` rejects drift among these views, boundary
 escapes, cycles, forbidden layer edges, and untested public API declarations.
 
 ## Change and review policy
@@ -84,7 +84,7 @@ selects its consumers; an unrelated frontend change does not.
 
 ## Source archive contract
 
-`python3 scripts/package_release.py` and `zig build package-dist` implement the
+`python3 scripts/release/package_release.py` and `zig build package-dist` implement the
 v1 publication contract. They first run the package-workspace audit, reject a
 dirty source tree by default, compute dependency closures from package
 contracts, select only Git-tracked owner files, normalize tar metadata, and

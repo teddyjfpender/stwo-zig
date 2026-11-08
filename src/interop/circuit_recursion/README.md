@@ -144,7 +144,7 @@ from the repository root and round-trips the upstream goldens copied into
   not match its config.
 - Decoders never read past their input and report errors instead of the
   upstream panics.
-- Fixtures are upstream files verbatim; `scripts/check_upstream_pins.py`
+- Fixtures are upstream files verbatim; `scripts/repo/check_upstream_pins.py`
   authenticates them against `vectors/circuit/provenance.json`.
 
 ## Change checklist
@@ -153,10 +153,10 @@ from the repository root and round-trips the upstream goldens copied into
    comment at the decoder in step with the Rust.
 2. Add or update a golden round trip in `vectors_test.zig` for every format
    touched; upstream goldens go through
-   `scripts/generate_circuit_oracle_vectors.py` and the provenance record.
+   `scripts/interop/generate_circuit_oracle_vectors.py` and the provenance record.
 3. Update `package.contract.json` and this README when the public API changes.
 4. Run the focused package command above and
-   `python3 scripts/check_package_workspace.py`.
+   `python3 scripts/repo/check_package_workspace.py`.
 
 ## Related documentation
 

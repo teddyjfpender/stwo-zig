@@ -548,7 +548,7 @@ def _check_provenance(root: Path, repository: str, revision: str, toolchain: str
     if oracle.get("source_sha256") != oracle_source_sha256(root):
         errors.append(
             f"{PROVENANCE}: oracle source digest drifted; regenerate with "
-            "scripts/generate_circuit_oracle_vectors.py"
+            "scripts/interop/generate_circuit_oracle_vectors.py"
         )
     artifacts = provenance.get("artifacts", [])
     by_path = {artifact.get("path"): artifact for artifact in artifacts}

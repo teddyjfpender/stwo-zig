@@ -4,7 +4,7 @@
 try:
     import riscv_release_gate_lib.controller as controller
 except ModuleNotFoundError:  # Imported through the repository package in tests.
-    import scripts.riscv_release_gate_lib.controller as controller
+    import scripts.riscv.riscv_release_gate_lib.controller as controller
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 FORMAL_ROOT = REPOSITORY_ROOT / "formal/riscv-refinement"
 LEAN_ROOT = REPOSITORY_ROOT / "formal/riscv-refinement/RiscvRefinement"
 AIR_PROGRAM_ROOT = REPOSITORY_ROOT / "formal/riscv-refinement/generated/air"

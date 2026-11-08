@@ -32,8 +32,8 @@ Subcommands:
          "did not run", which reads like a skip rather than a broken gate.
 
   run    The live gate: verify (or, with --prepare-on-miss, build) the
-         pinned Sail/Spike workspace via scripts/riscv_formal_tools.py, run
-         the full corpus differential via scripts/riscv_trace_vectors.py,
+         pinned Sail/Spike workspace via scripts/riscv/riscv_formal_tools.py, run
+         the full corpus differential via scripts/riscv/riscv_trace_vectors.py,
          and require the fresh attestation to re-derive the committed
          evidence on every field except the two build-nondeterministic
          binary hashes.
@@ -49,13 +49,14 @@ workflow's verdict job requires those receipts, so a live job cannot report
 success with its gate steps skipped: an unwritten receipt is empty and empty
 is red.
 
-  python3 scripts/riscv_sail_gate.py bind
-  python3 scripts/riscv_sail_gate.py scope --base <sha> --head <sha>
-  python3 scripts/riscv_sail_gate.py preflight --workspace /tmp/stwo-riscv-formal
-  python3 scripts/riscv_sail_gate.py run --workspace /tmp/stwo-riscv-formal
+  python3 scripts/riscv/riscv_sail_gate.py bind
+  python3 scripts/riscv/riscv_sail_gate.py scope --base <sha> --head <sha>
+  python3 scripts/riscv/riscv_sail_gate.py preflight --workspace /tmp/stwo-riscv-formal
+  python3 scripts/riscv/riscv_sail_gate.py run --workspace /tmp/stwo-riscv-formal
 """
 
 from __future__ import annotations
+
 
 import argparse
 import hashlib
@@ -69,21 +70,21 @@ from pathlib import Path
 from typing import Any, Iterable
 
 if __package__:
-    from scripts import check_upstream_pins
-    from scripts import ci_scope_plan
-    from scripts import riscv_equivalence as equivalence
-    from scripts import riscv_formal_tools as formal_tools
-    from scripts import riscv_trace_vectors as trace_vectors
-else:  # direct execution: python3 scripts/riscv_sail_gate.py
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import check_upstream_pins
-    import ci_scope_plan
-    import riscv_equivalence as equivalence
-    import riscv_formal_tools as formal_tools
-    import riscv_trace_vectors as trace_vectors
+    from scripts.repo import check_upstream_pins
+    from scripts.repo import ci_scope_plan
+    from scripts.riscv import riscv_equivalence as equivalence
+    from scripts.riscv import riscv_formal_tools as formal_tools
+    from scripts.riscv import riscv_trace_vectors as trace_vectors
+else:  # direct execution: python3 scripts/riscv/riscv_sail_gate.py
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.repo import check_upstream_pins
+    from scripts.repo import ci_scope_plan
+    from scripts.riscv import riscv_equivalence as equivalence
+    from scripts.riscv import riscv_formal_tools as formal_tools
+    from scripts.riscv import riscv_trace_vectors as trace_vectors
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 EVIDENCE_PATH = Path("conformance") / "riscv" / "formal-corpus-evidence.json"
 MANIFEST_PATH = Path("vectors") / "riscv_elfs" / "trace_vectors.json"
 GATE_REPORT_SCHEMA = "stwo-riscv-sail-gate-report-v1"
@@ -92,7 +93,7 @@ EXIT_PASS = 0
 EXIT_FAIL = 1
 EXIT_TOOLCHAIN_UNAVAILABLE = 3
 
-# Same resolution chain as scripts/riscv_sail_oracle.py: one documented
+# Same resolution chain as scripts/riscv/riscv_sail_oracle.py: one documented
 # workspace for every Sail consumer, overridable by one environment variable.
 ENV_WORKSPACE = "STWO_RISCV_FORMAL_WORKSPACE"
 DEFAULT_WORKSPACE = Path("/tmp/stwo-riscv-formal")
@@ -131,12 +132,12 @@ LIVE_TRIGGER_PREFIXES = (
     "build_support/products/riscv_test_filter.zig",
     "conformance/riscv",
     "conformance/upstream.md",
-    "scripts/riscv_equivalence.py",
-    "scripts/riscv_formal_tools.py",
-    "scripts/riscv_sail_gate.py",
-    "scripts/riscv_sail_oracle.py",
-    "scripts/riscv_trace_vectors.py",
-    "scripts/riscv_trace_vectors_lib",
+    "scripts/riscv/riscv_equivalence.py",
+    "scripts/riscv/riscv_formal_tools.py",
+    "scripts/riscv/riscv_sail_gate.py",
+    "scripts/riscv/riscv_sail_oracle.py",
+    "scripts/riscv/riscv_trace_vectors.py",
+    "scripts/riscv/riscv_trace_vectors_lib",
     "src/frontends/riscv/isa",
     "src/frontends/riscv/runner",
     # Test root for the two sail_oracle self-checks; it decides what the job's
@@ -509,7 +510,7 @@ def run_gate(
         )
         print(
             f"riscv sail gate: build the workspace with: python3 "
-            f"scripts/riscv_formal_tools.py prepare --workspace {workspace}",
+            f"scripts/riscv/riscv_formal_tools.py prepare --workspace {workspace}",
             file=sys.stderr,
         )
         return EXIT_TOOLCHAIN_UNAVAILABLE

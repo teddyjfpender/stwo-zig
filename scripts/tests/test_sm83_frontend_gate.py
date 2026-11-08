@@ -8,9 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import sm83_frontend_gate
-
-
+from scripts.sm83 import sm83_frontend_gate
 class Sm83FrontendGateTests(unittest.TestCase):
     def test_mooneye_release_url_names_the_pinned_directory_asset(self) -> None:
         release = sm83_frontend_gate.MOONEYE_RELEASE

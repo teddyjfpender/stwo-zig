@@ -2,7 +2,7 @@
 """RV64 M5 rootverify: the negative corpus against the ROOT-ONLY receiver.
 
 Runs ON the pod, CPU only (never holds the GPU lock). Reuses every runnable
-case of scripts/rv64_m5_negative_corpus.py (binding note section 7) verbatim,
+case of scripts/rv64/rv64_m5_negative_corpus.py (binding note section 7) verbatim,
 but runs the receiver as `verify-root-candidate CONFIG OUT TABLE ...` with a
 receiver-local VK table, and adds table/profile cases (RV*) that only exist
 for the root-only path.
@@ -18,6 +18,7 @@ such cases are `reject_or_same_statement` (accepting is a pass only with the
 control's exact statement: output, root digest, root identity, profiles). Every
 case that changes what the statement or the root proof says must be rejected.
 """
+
 import argparse
 import concurrent.futures as cf
 import hashlib
@@ -29,8 +30,8 @@ import subprocess
 import sys
 import time
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import rv64_m5_negative_corpus as N  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_m5_negative_corpus as N  # noqa: E402
 
 SCHEMA = "rv64-m5-rootverify-corpus/v1"
 HOST_BYTES = 34359738368

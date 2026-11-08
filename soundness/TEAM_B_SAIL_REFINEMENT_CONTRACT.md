@@ -75,7 +75,7 @@ Consequently:
 
 ## 1. Frozen identity of the pinned Sail side
 
-These remain fail-closed exactly as `scripts/riscv_refinement_lib/sail.py`
+These remain fail-closed exactly as `scripts/riscv/riscv_refinement_lib/sail.py`
 already enforces them. Team B may extend the checks; it may not relax them.
 
 | Item | Authority | Enforcement |
@@ -184,7 +184,7 @@ later admitted transitions.
 ### 5.1 What the translation receipt can discharge mechanically, and what stays hand proof
 
 The receipt machinery now exists:
-`scripts/riscv_refinement_lib/sail_translation.py` (schema
+`scripts/riscv/riscv_refinement_lib/sail_translation.py` (schema
 `stwo-sail-translation-receipt-v1`, parser `sail-lean-subset-parser-v2`). It
 parses a generated `execute_*` definition slice into a typed AST and normalizes
 it to per-selector observable effects, refusing every construct outside its
@@ -417,7 +417,7 @@ authority. If the pinned Sail revision cannot be compiled into usable Lean, the
 only sanctioned fallback is a generated normalized capsule plus a **checked
 translation receipt from the Sail AST**, and that fallback requires independent
 approval recorded in this document. The receipt *machinery* now exists
-(`scripts/riscv_refinement_lib/sail_translation.py`, section 5.1), and an exact
+(`scripts/riscv/riscv_refinement_lib/sail_translation.py`, section 5.1), and an exact
 generated-output receipt is committed for the LUI/ADDI pilot. That pilot
 receipt is not independent approval, no approval is recorded here, and it does
 not cover the remaining Team B execute families. The separate direct bridge
@@ -451,11 +451,11 @@ from a clean checkout. A signer who cannot check an item does not sign.
 
 **Team B DRI (Sail/profile).**
 
-1. `python3 scripts/riscv_team_b.py check --air-ir-dir <fresh export>` exits 0,
+1. `python3 scripts/riscv/riscv_team_b.py check --air-ir-dir <fresh export>` exits 0,
    where the export comes from a fresh
    `zig build riscv-refinement-ir -Driscv-refinement-ir-dir=<dir>` on the same
    commit.
-2. The section 1 identity table matches `scripts/riscv_refinement_lib/sail.py`
+2. The section 1 identity table matches `scripts/riscv/riscv_refinement_lib/sail.py`
    verbatim: pinned revision, compiler `0.20.2`,
    `GENERATED_DEFINITION_HASHES`, `SOURCE_SLICE_HASHES`, and the
    `rv32d_v256_e32.json` base-configuration path.
@@ -477,7 +477,7 @@ from a clean checkout. A signer who cannot check an item does not sign.
 
 **Team A AIR DRI.**
 
-1. `python3 scripts/riscv_team_b.py ir-digests --air-ir-dir <fresh export>`
+1. `python3 scripts/riscv/riscv_team_b.py ir-digests --air-ir-dir <fresh export>`
    exits 0 on the same commit: every family capsule digest
    (`loadStoreIrDigest`, `shiftsImmIrDigest`, `shiftsRegIrDigest`,
    `mulIrDigest`, `mulhIrDigest`, `divIrDigest`) equals the fresh production
@@ -511,7 +511,7 @@ from a clean checkout. A signer who cannot check an item does not sign.
    `signExtendHalf_nonnegative`) and half selection agrees with bits 15:0 and
    31:16 (`lowHalf_extract`, `highHalf_extract`), including the
    `rd = rs1` overlap case.
-4. `python3 scripts/riscv_team_b_witnesses.py --air-ir-dir <fresh export>`
+4. `python3 scripts/riscv/riscv_team_b_witnesses.py --air-ir-dir <fresh export>`
    exits 0 and its LH line reports all LH witnesses reachable in the exported
    production AIR, including a witness with a negative (high-bit-set) loaded
    half.

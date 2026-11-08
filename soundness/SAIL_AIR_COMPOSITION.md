@@ -160,12 +160,12 @@ geometry.
 
 **Executable evidence:**
 
-- [`scripts/riscv_infrastructure_uniqueness.py`](../scripts/riscv_infrastructure_uniqueness.py):
+- [`scripts/riscv/riscv_infrastructure_uniqueness.py`](../scripts/riscv/riscv_infrastructure_uniqueness.py):
   `verify_offline_memory_chain`, the exhaustive small analogue, the detached
   cycle counterexample, and the same-clock alias counterexample;
 - [`scripts/tests/test_riscv_infrastructure_uniqueness.py`](../scripts/tests/test_riscv_infrastructure_uniqueness.py):
   focused contracts and production-source bindings; and
-- [`scripts/air_satisfaction.py`](../scripts/air_satisfaction.py): recomputation
+- [`scripts/riscv/air_satisfaction.py`](../scripts/riscv/air_satisfaction.py): recomputation
   of `memory_access` terms on exported committed traces.
 
 **Not discharged by CR-1:** the randomized LogUp-to-exact-multiset reduction or
@@ -259,19 +259,19 @@ one of the three live residues.
 These numbers are a review snapshot, not an independent second source. The
 normative values of \(B\), \(E\), the access-slot encoding, and the bridge
 count are parsed from production and emitted by
-[`scripts/riscv_state_chain_recurrence.py`](../scripts/riscv_state_chain_recurrence.py).
+[`scripts/riscv/riscv_state_chain_recurrence.py`](../scripts/riscv/riscv_state_chain_recurrence.py).
 Any clock-layout change must update that source-bound certificate and its test;
 SA-1 requires the certificate to be green, and this snapshot must then be
 updated in the same change.
 
 **Executable evidence:**
 
-- `python3 -m scripts.riscv_state_chain_recurrence`;
+- `python3 -m scripts.riscv.riscv_state_chain_recurrence`;
 - [`scripts/tests/test_riscv_state_chain_recurrence.py`](../scripts/tests/test_riscv_state_chain_recurrence.py),
   including small-ring exhaustion and the historical wrapped-cycle witness;
   and
 - the clock-update and memory production bindings in
-  [`scripts/riscv_infrastructure_uniqueness.py`](../scripts/riscv_infrastructure_uniqueness.py).
+  [`scripts/riscv/riscv_infrastructure_uniqueness.py`](../scripts/riscv/riscv_infrastructure_uniqueness.py).
 
 **Merge condition for the strict-clock change:** the production binding must
 show distinct live access slots and the shifted
@@ -308,11 +308,11 @@ whether an individual `next_pc` is the Sail result; that is premise 5 of SA-1.
 
 - `state_cycle_certificate` and the production recurrence/admission bindings
   in
-  [`scripts/riscv_state_chain_recurrence.py`](../scripts/riscv_state_chain_recurrence.py);
+  [`scripts/riscv/riscv_state_chain_recurrence.py`](../scripts/riscv/riscv_state_chain_recurrence.py);
 - [`scripts/tests/test_riscv_state_chain_recurrence.py`](../scripts/tests/test_riscv_state_chain_recurrence.py);
   and
 - the independent `registers_state` public-boundary recomputation in
-  [`scripts/air_satisfaction_lib/logup.py`](../scripts/air_satisfaction_lib/logup.py).
+  [`scripts/riscv/air_satisfaction_lib/logup.py`](../scripts/riscv/air_satisfaction_lib/logup.py).
 
 ### CR-4 — program binding, root to executed word
 
@@ -377,15 +377,15 @@ root.
 
 - `verify_program_binding`, `merkle_connectivity_certificate`, and the explicit
   coefficient-wrap counterexample in
-  [`scripts/riscv_infrastructure_uniqueness.py`](../scripts/riscv_infrastructure_uniqueness.py);
+  [`scripts/riscv/riscv_infrastructure_uniqueness.py`](../scripts/riscv/riscv_infrastructure_uniqueness.py);
 - the all-path symbolic index certificate and depth-cycle calculation in
-  [`scripts/riscv_merkle_recurrence.py`](../scripts/riscv_merkle_recurrence.py);
+  [`scripts/riscv/riscv_merkle_recurrence.py`](../scripts/riscv/riscv_merkle_recurrence.py);
 - [`scripts/tests/test_riscv_merkle_recurrence.py`](../scripts/tests/test_riscv_merkle_recurrence.py)
   and
   [`scripts/tests/test_riscv_infrastructure_uniqueness.py`](../scripts/tests/test_riscv_infrastructure_uniqueness.py);
   and
 - active narrow-row Poseidon2 functionality and six-table rigidity in
-  [`scripts/riscv_poseidon_table_uniqueness.py`](../scripts/riscv_poseidon_table_uniqueness.py).
+  [`scripts/riscv/riscv_poseidon_table_uniqueness.py`](../scripts/riscv/riscv_poseidon_table_uniqueness.py).
 
 **Not discharged by CR-4:** the randomized reduction to exact Merkle balance,
 Poseidon2 collision resistance, or proof-wire binding of the claimed root.
@@ -422,7 +422,7 @@ exact closure; SA-1 obtains the latter only through premise 1.
   pin the 28-slot order;
 - [`src/frontends/riscv/air/public_logup.zig`](../src/frontends/riscv/air/public_logup.zig)
   is the production public compensation;
-- [`scripts/air_satisfaction.py`](../scripts/air_satisfaction.py) independently
+- [`scripts/riscv/air_satisfaction.py`](../scripts/riscv/air_satisfaction.py) independently
   recomputes active rows, fixed-table requests, all 28 claims, the public
   compensation, and global closure from an exported committed trace; and
 - [`scripts/tests/test_air_satisfaction.py`](../scripts/tests/test_air_satisfaction.py)
@@ -438,11 +438,11 @@ The following are finite executable evidence, not universal quantifiers:
 
 | Evidence | Established scope | Command or artifact |
 | --- | --- | --- |
-| Pinned Sail/Spike differential | Runner agrees with Sail on 17 programs, 472,827 retirements, and 6 negative dispositions recorded by the committed evidence. | `python3 scripts/riscv_sail_gate.py bind`; live truth requires `python3 scripts/riscv_sail_gate.py run` |
+| Pinned Sail/Spike differential | Runner agrees with Sail on 17 programs, 472,827 retirements, and 6 negative dispositions recorded by the committed evidence. | `python3 scripts/riscv/riscv_sail_gate.py bind`; live truth requires `python3 scripts/riscv/riscv_sail_gate.py run` |
 | Sail-derived operand classes | All 292 named cases compare the runner retirement fields with recorded Sail answers and exercise an honestly admitted corresponding AIR row. | `zig build test-riscv-release-exhaustive -Doptimize=ReleaseFast` |
 | Committed family adversaries | Every one of the 17 opcode families has a pre-ingestion committed-row forgery and a paired honest prove/verify/Sail case; this is one adversarial board point per family, not all operands. | [`src/tests/riscv/opcode_family_committed_soundness_test.zig`](../src/tests/riscv/opcode_family_committed_soundness_test.zig) through the exhaustive build |
 | All-component committed trace | One honest guest covers 17 opcode and 11 infrastructure component kinds, proves, verifies, and reaches a Sail tail. | [`src/tests/riscv/committed_trace_export_test.zig`](../src/tests/riscv/committed_trace_export_test.zig) |
-| Independent AIR re-decision | Exported traces are re-evaluated outside the Zig evaluator; all 28 claims and public closure are recomputed, and focused forgeries are rejected. | `python3 -m unittest scripts.tests.test_air_satisfaction`; after generating exports, `python3 -m scripts.air_satisfaction check --dump zig-out/committed-trace/all_families.json` |
+| Independent AIR re-decision | Exported traces are re-evaluated outside the Zig evaluator; all 28 claims and public closure are recomputed, and focused forgeries are rejected. | `python3 -m unittest scripts.tests.test_air_satisfaction`; after generating exports, `python3 -m scripts.riscv.air_satisfaction check --dump zig-out/committed-trace/all_families.json` |
 | Cross-row arithmetic/graphs | The five conditional lemmas above, small exhaustive analogues, production source anchors, and counterexamples to stronger statements. | Commands in the next section |
 
 The strongest honest conclusion today is therefore:
@@ -476,7 +476,7 @@ This document does **not** claim:
 
 - an independent second verifier or proof-wire audit;
 - a reviewed security-bit accounting;
-- that `scripts/air_satisfaction.py` opens or verifies a proof;
+- that `scripts/riscv/air_satisfaction.py` opens or verifies a proof;
 - that the 17-program or 292-case corpora cover every RV32IM state;
 - that row-local determinism alone implies Sail semantics;
 - that the node guard \(2\,n_{\mathrm{node}}<p\) alone supplies the
@@ -495,10 +495,10 @@ historical bundles.
 Run the inexpensive certificates first:
 
 ```sh
-python3 -m scripts.riscv_infrastructure_uniqueness
-python3 -m scripts.riscv_merkle_recurrence
-python3 -m scripts.riscv_state_chain_recurrence
-python3 -m scripts.riscv_poseidon_table_uniqueness check
+python3 -m scripts.riscv.riscv_infrastructure_uniqueness
+python3 -m scripts.riscv.riscv_merkle_recurrence
+python3 -m scripts.riscv.riscv_state_chain_recurrence
+python3 -m scripts.riscv.riscv_poseidon_table_uniqueness check
 python3 -m unittest \
   scripts.tests.test_riscv_infrastructure_uniqueness \
   scripts.tests.test_riscv_merkle_recurrence \
@@ -512,7 +512,7 @@ available, the live Sail gate:
 
 ```sh
 zig build test-riscv-release-exhaustive -Doptimize=ReleaseFast
-python3 scripts/riscv_sail_gate.py run
+python3 scripts/riscv/riscv_sail_gate.py run
 ```
 
 A change to access-clock slots or scale must update the source-bound output of

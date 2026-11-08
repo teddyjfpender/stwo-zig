@@ -6,7 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 OWNED = (
     ROOT / "build_support/products/riscv_cpu.zig",
     ROOT / "build_support/products/riscv_refinement.zig",

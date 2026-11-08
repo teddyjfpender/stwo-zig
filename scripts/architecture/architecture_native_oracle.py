@@ -17,7 +17,7 @@ import tempfile
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "build-architecture-native-oracle-bundle-v1"
 UPSTREAM = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2"
 TOOLCHAIN = "nightly-2025-07-14"

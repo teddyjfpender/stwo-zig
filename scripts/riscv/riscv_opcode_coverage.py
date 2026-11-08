@@ -15,19 +15,15 @@ import sys
 from pathlib import Path
 from typing import Any
 
-try:
-    from . import riscv_team_a as team_a
-    from . import riscv_team_b as team_b
-    from .riscv_refinement_lib import air_program
-    from .riscv_refinement_lib.model import RefinementError
-except ImportError:
-    import riscv_team_a as team_a
-    import riscv_team_b as team_b
-    from riscv_refinement_lib import air_program
-    from riscv_refinement_lib.model import RefinementError
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv import riscv_team_a as team_a
+from scripts.riscv import riscv_team_b as team_b
+from scripts.riscv.riscv_refinement_lib import air_program
+from scripts.riscv.riscv_refinement_lib.model import RefinementError
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 INDEX_PATH = (
     REPOSITORY_ROOT / "formal/riscv-refinement/opcode-coverage.json"
 )
@@ -211,7 +207,7 @@ def check_index() -> str:
     if actual != expected:
         raise CoverageError(
             "aggregate opcode index drifted; regenerate with "
-            "`python3 scripts/riscv_opcode_coverage.py write`"
+            "`python3 scripts/riscv/riscv_opcode_coverage.py write`"
         )
     return (
         "aggregate opcode coverage: exact 46/46 manifest partition with "

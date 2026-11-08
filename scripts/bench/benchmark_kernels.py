@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 RUNNER = ROOT / "src" / "bench" / "kernels.zig"
 ZIG_BIN = ROOT / "vectors" / ".bench_kernels"
 REPORT_DEFAULT = ROOT / "vectors" / "reports" / "benchmark_kernels_report.json"

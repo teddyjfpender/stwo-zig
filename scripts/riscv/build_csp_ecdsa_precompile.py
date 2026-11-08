@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 CRATE = ROOT / 'vectors/riscv_guests/ecdsa_secp256k1_precompile'
 MANIFEST = ROOT / 'vectors/riscv_csp/ecdsa-precompile-v1.json'
 

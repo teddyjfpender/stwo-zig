@@ -17,9 +17,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-from scripts.riscv_csp_ab_benchmark_lib import contract as ab_contract
-from scripts.riscv_csp_ab_benchmark_lib import runner as ab_runner
-from scripts.riscv_csp_benchmark_lib.host import collect_host
+from scripts.riscv.riscv_csp_ab_benchmark_lib import contract as ab_contract
+from scripts.riscv.riscv_csp_ab_benchmark_lib import runner as ab_runner
+from scripts.riscv.riscv_csp_benchmark_lib.host import collect_host
 
 from .codec import (
     canonical_bytes,

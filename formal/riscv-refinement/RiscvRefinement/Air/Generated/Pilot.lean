@@ -1,6 +1,6 @@
 -- GENERATED FILE. DO NOT EDIT.
--- Generator: scripts/riscv_refinement.py
--- Regenerate: python3 scripts/riscv_refinement.py generate
+-- Generator: scripts/riscv/riscv_refinement.py
+-- Regenerate: python3 scripts/riscv/riscv_refinement.py generate
 -- Production binding: symbolic collector plus exact structural validation.
 -- Boundary: normalized predicate; LUI AIR IR v2 is bound in LuiProgram.lean.
 

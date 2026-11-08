@@ -166,7 +166,7 @@ pub const proveRiscVSegmentLookupV1CompatibilityWithEngineUsingChannel =
 /// runner's `--secure` flag (`src/tools/riscv/bench/runner.zig`) both return
 /// exactly this value rather than restating its numbers.
 ///
-/// Cross-language mirror: `scripts/riscv_csp_benchmark_lib/contract.py` parses
+/// Cross-language mirror: `scripts/riscv/riscv_csp_benchmark_lib/contract.py` parses
 /// *this literal* and refuses to validate a workload manifest when its own
 /// `SECURE_PCS_CONFIG` disagrees, so two profiles can no longer both connote
 /// "the secure one" while differing (issue #152 item 7). The parser is

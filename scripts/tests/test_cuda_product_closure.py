@@ -11,8 +11,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import cuda_product_closure as closure  # noqa: E402
-from cuda_build_lib.builder import (  # noqa: E402
+from scripts.cuda import cuda_product_closure as closure  # noqa: E402
+from scripts.cuda.cuda_build_lib.builder import (  # noqa: E402
     BuildConfig,
     Toolchain,
     build_plan,
@@ -184,7 +184,7 @@ class CudaProductClosureTests(unittest.TestCase):
             )
             plan = build_plan(config, probe_tools=False)
             with mock.patch(
-                "cuda_build_lib.builder.run_parallel"
+                "scripts.cuda.cuda_build_lib.builder.run_parallel"
             ) as run_parallel:
                 compile_native_cuda(config, source_closure, plan, output)
 

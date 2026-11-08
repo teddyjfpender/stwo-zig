@@ -13,20 +13,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-try:
-    from scripts.process_resources_lib import (
-        ResourceMeasurementError,
-        measurement_command,
-        measurement_environment,
-        parse_process_resources,
-    )
-except ModuleNotFoundError:
-    from process_resources_lib import (  # type: ignore[no-redef]
-        ResourceMeasurementError,
-        measurement_command,
-        measurement_environment,
-        parse_process_resources,
-    )
+from scripts.repo.process_resources_lib import (  # type: ignore[no-redef]
+    ResourceMeasurementError,
+    measurement_command,
+    measurement_environment,
+    parse_process_resources,
+)
 
 from .contract import require_finite_positive, validate_artifact, validate_report
 from .model import (

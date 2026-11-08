@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build the persistent in-process RV64 CUDA service from pinned AOT sources."""
+
 import argparse
 import concurrent.futures
 import ctypes
@@ -16,7 +17,9 @@ import subprocess
 import threading
 import time
 
-import rv64_cuda_private_host_symbols as PrivateHost
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_cuda_private_host_symbols as PrivateHost
 
 
 def sha(path):

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 from dataclasses import dataclass
 
 if __package__:
@@ -32,10 +35,10 @@ if __package__:
         _validate_receipt_theorem_axioms,
     )
 else:
-    import riscv_refinement_publication as publication
-    from riscv_refinement_lib import air_program, air_program_contract, codec, render, sail
-    from riscv_refinement_lib.model import FULL_OPCODE_COUNT, Paths, RefinementError
-    from riscv_refinement_receipt_constants import (
+    from scripts.riscv import riscv_refinement_publication as publication
+    from scripts.riscv.riscv_refinement_lib import air_program, air_program_contract, codec, render, sail
+    from scripts.riscv.riscv_refinement_lib.model import FULL_OPCODE_COUNT, Paths, RefinementError
+    from scripts.riscv.riscv_refinement_receipt_constants import (
         APPROVED_LEAN_AXIOMS,
         MUTATION_THEOREMS,
         NEGATIVE_CONTROLS,
@@ -43,7 +46,7 @@ else:
         RECEIPT_SCHEMA_VERSION,
         RECEIPT_TIER,
     )
-    from riscv_refinement_receipt_identity import (
+    from scripts.riscv.riscv_refinement_receipt_identity import (
         _certificate_index_identities,
         _fixed_table_schemas,
         _generated_manifest_identity,
@@ -54,7 +57,7 @@ else:
         _toolchain,
         _validate_certificate_mappings,
     )
-    from riscv_refinement_receipt_validate import (
+    from scripts.riscv.riscv_refinement_receipt_validate import (
         _validate_receipt_structure,
         _validate_receipt_theorem_axioms,
     )

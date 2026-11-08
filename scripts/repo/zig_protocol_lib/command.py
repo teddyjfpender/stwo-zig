@@ -10,7 +10,7 @@ from functools import lru_cache
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 
 # Product composition remains explicit, while every selected package's source
 # and dependency edges come from its authoritative package contract.

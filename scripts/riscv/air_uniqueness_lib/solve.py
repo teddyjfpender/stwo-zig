@@ -22,12 +22,8 @@ from .smtlib import (
     emit_uniqueness_query,
 )
 
-try:
-    from riscv_air_ir_lib import tables
-    from riscv_air_ir_lib.ir import MODULUS, System
-except ModuleNotFoundError:  # Imported as scripts.air_uniqueness_lib in tests.
-    from scripts.riscv_air_ir_lib import tables
-    from scripts.riscv_air_ir_lib.ir import MODULUS, System
+from scripts.riscv.riscv_air_ir_lib import tables
+from scripts.riscv.riscv_air_ir_lib.ir import MODULUS, System
 
 
 def check(

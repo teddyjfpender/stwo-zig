@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Exact CUPTI interval accounting for resident request windows; no wall-speed inference."""
+
 import argparse
 import json
 from pathlib import Path
 import sqlite3
-import rv64_m3_timeline as T
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_m3_timeline as T
 from contextlib import closing
-from rv64_validation import fingerprints, sha, validate_receivers
-from rv64_m7_gpu_seconds_lib.census import request_census
+from scripts.rv64.rv64_validation import fingerprints, sha, validate_receivers
+from scripts.rv64.rv64_m7_gpu_seconds_lib.census import request_census
 
 
 def main():

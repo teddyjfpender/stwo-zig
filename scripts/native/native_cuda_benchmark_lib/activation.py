@@ -674,7 +674,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--repo-root",
         type=Path,
-        default=Path(__file__).resolve().parents[2],
+        default=Path(__file__).resolve().parents[3],
     )
     args = parser.parse_args(argv)
     root = args.repo_root.resolve()

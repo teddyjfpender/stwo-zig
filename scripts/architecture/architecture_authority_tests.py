@@ -11,7 +11,7 @@ import unittest
 from pathlib import Path
 
 
-AUTHORITY_ROOT = Path(__file__).resolve().parents[1]
+AUTHORITY_ROOT = Path(__file__).resolve().parents[2]
 
 
 class AuthorityTestError(ValueError):

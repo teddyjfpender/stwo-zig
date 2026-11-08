@@ -9,6 +9,7 @@ Every hostile case uses a temporary copy; proof mutations reseal transport hashe
 
 from __future__ import annotations
 
+
 import argparse
 import copy
 import hashlib
@@ -19,8 +20,10 @@ import subprocess
 import tempfile
 import time
 
-from riscv_segment_v2_detached_gate import AOT_PROFILES, MODULUS, sha256, shifted
-from zig_serial_build import build_lock
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.riscv_segment_v2_detached_gate import AOT_PROFILES, MODULUS, sha256, shifted
+from scripts.repo.zig_serial_build import build_lock
 
 
 def digest(value: str) -> str:

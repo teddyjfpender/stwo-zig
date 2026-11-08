@@ -10,9 +10,9 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from scripts.riscv_refinement_lib import codec, sail
-from scripts.riscv_refinement_lib import sail_translation as translation
-from scripts.riscv_refinement_lib.sail_translation import SailTranslationError
+from scripts.riscv.riscv_refinement_lib import codec, sail
+from scripts.riscv.riscv_refinement_lib import sail_translation as translation
+from scripts.riscv.riscv_refinement_lib.sail_translation import SailTranslationError
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "sail_translation"
 ROOT = Path(__file__).resolve().parents[2]

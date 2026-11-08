@@ -10,10 +10,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-try:
-    from scripts import ci_package_graph
-except ModuleNotFoundError:
-    import ci_package_graph  # type: ignore[no-redef]
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.repo import ci_package_graph  # type: ignore[no-redef]
 
 
 SCHEMA = "stwo-zig-package-contract-v2"
@@ -814,7 +813,7 @@ def main() -> int:
     parser.add_argument(
         "--repo",
         type=Path,
-        default=Path(__file__).resolve().parents[1],
+        default=Path(__file__).resolve().parents[2],
     )
     arguments = parser.parse_args()
     failures = check_repository(arguments.repo)

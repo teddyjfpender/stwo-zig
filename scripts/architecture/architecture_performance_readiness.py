@@ -9,13 +9,12 @@ import os
 import tempfile
 from pathlib import Path
 
-try:
-    from architecture_host_gate_lib.performance_readiness import ReadinessError, inspect
-except ModuleNotFoundError:
-    from scripts.architecture_host_gate_lib.performance_readiness import ReadinessError, inspect
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.architecture.architecture_host_gate_lib.performance_readiness import ReadinessError, inspect
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def main() -> int:

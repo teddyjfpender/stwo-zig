@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """canon-vk (M5): re-run a harness run's strict receiver argv with STWO_RV64_FOLD_CLASS_CACHE in a list of modes (0, 1, check).
 The cache is in-process and receiver-built (never persisted, never producer-fed); the acceptance harness forces 0.
-Usage (pod): python3 scripts/rv64_m5_receiver_class_ab.py RUN_DIR 0,1,check   (export the run's outer profile env first)"""
+Usage (pod): python3 scripts/rv64/rv64_m5_receiver_class_ab.py RUN_DIR 0,1,check   (export the run's outer profile env first)"""
+
 # Re-run a run's strict receiver argv with STWO_RV64_FOLD_CLASS_CACHE in {0, 1, check}; report wall + verdict.
 import json, os, subprocess, sys, time
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import rv64_resident_basket as R
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_resident_basket as R
 run, modes = sys.argv[1], sys.argv[2].split(",")
 rec = json.load(open(run + "/receipt.json"))["receiver"]
 argv = rec["argv"]

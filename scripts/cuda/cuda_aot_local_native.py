@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compile authenticated Cairo cubins in a local ARM64 Linux CPU container."""
 from __future__ import annotations
+
 import argparse
 import concurrent.futures
 import hashlib
@@ -10,11 +11,13 @@ import shutil
 import subprocess
 import time
 
-from cuda_build_lib.builder import Toolchain, aot_compile_command
-from cuda_build_lib.cubin_import import SCHEMA, digest, validate_elf
-from cuda_build_lib.product_selection import validate_aot_manifest
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.cuda.cuda_build_lib.builder import Toolchain, aot_compile_command
+from scripts.cuda.cuda_build_lib.cubin_import import SCHEMA, digest, validate_elf
+from scripts.cuda.cuda_build_lib.product_selection import validate_aot_manifest
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def main() -> int:

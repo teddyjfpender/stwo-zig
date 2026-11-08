@@ -10,7 +10,7 @@ from typing import Mapping
 
 
 ZIG_RESOURCE_AUTHORITY = (
-    Path(__file__).resolve().parents[2]
+    Path(__file__).resolve().parents[3]
     / "src"
     / "prover"
     / "native"

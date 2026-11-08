@@ -10,8 +10,8 @@ import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from scripts.riscv_csp_ab_benchmark_lib import contract
-from scripts.riscv_csp_benchmark_lib.host import (
+from scripts.riscv.riscv_csp_ab_benchmark_lib import contract
+from scripts.riscv.riscv_csp_benchmark_lib.host import (
     collect_host,
     power_conditions_admissible,
 )

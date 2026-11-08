@@ -3,12 +3,15 @@
 
 from __future__ import annotations
 
+
 import argparse
 import json
 import os
 from pathlib import Path
 
-from cuda_build_lib.builder import (
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.cuda.cuda_build_lib.builder import (
     BuildConfig,
     BuildError,
     Toolchain,
@@ -19,7 +22,7 @@ from cuda_build_lib.builder import (
 )
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def parser() -> argparse.ArgumentParser:

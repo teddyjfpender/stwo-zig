@@ -10,7 +10,7 @@ const std = @import("std");
 const cairo_vm_adapter = @import("vm_adapter.zig");
 
 const provenance_path = "vectors/cairo/csp/fixture-provenance-v1.json";
-const validator_path = "scripts/cairo_csp_fixtures.py";
+const validator_path = "scripts/cairo/cairo_csp_fixtures.py";
 const output_directory = "zig-out/cairo-csp";
 
 pub fn addSteps(b: *std.Build) void {

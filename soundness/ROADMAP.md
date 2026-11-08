@@ -29,7 +29,7 @@ The two obligations stay separate:
 - [x] The deterministic positive/negative corpus passes live Sail and Spike
       comparison, including strict illegal/reserved/misaligned rejection.
 - [x] That live differential is wired as a fail-closed CI gate
-      (`scripts/riscv_sail_gate.py`): the committed evidence must bind to the
+      (`scripts/riscv/riscv_sail_gate.py`): the committed evidence must bind to the
       committed corpus and pins on every PR, semantics-bearing changes must
       re-derive it against freshly verified pinned Sail/Spike, and toolchain
       unavailability is red, never a skip
@@ -52,8 +52,8 @@ The two obligations stay separate:
       decoded-program root from the supplied ELF.
 
 The reproducible commands and evidence schemas live in
-`scripts/riscv_formal_tools.py`, `scripts/riscv_trace_vectors.py`,
-`scripts/riscv_arch_tests.py`, and `conformance/riscv/`.
+`scripts/riscv/riscv_formal_tools.py`, `scripts/riscv/riscv_trace_vectors.py`,
+`scripts/riscv/riscv_arch_tests.py`, and `conformance/riscv/`.
 
 ## Closed under-constraints — 2026-07-26
 
@@ -186,7 +186,7 @@ Several of those modules say in their own doc comments that nothing in the
 repository previously proved a row of their family end to end. Read that as
 "no test under `src/tests/riscv/` did", and not even that for `branch_eq` and
 `load_store`: `prover_test.zig` already proves and verifies BEQ, BNE, `LW`, and
-`SW` rows, and `scripts/riscv_arch_tests.py` already runs execute → prove →
+`SW` rows, and `scripts/riscv/riscv_arch_tests.py` already runs execute → prove →
 separate-process verify over the pinned architectural corpus, which exercises
 every one of the six families. What the honest halves add is a *guest the forged
 half is derived from*, which is what keeps the rejection from being vacuous —
@@ -211,7 +211,7 @@ The instrument chain, each link executed rather than assumed:
   with a tracing scalar, and a fixed-seed differential (17 families x 32
   trials, seed 0x51501ce01dedbeef) checks the emitted DAG against
   `Semantics(QM31)` constraint by constraint.
-* `scripts/air_uniqueness_board.py` decides the two-copy query per family,
+* `scripts/riscv/air_uniqueness_board.py` decides the two-copy query per family,
   sharded by opcode, with an honest-witness probe so an `unsat` cannot be
   vacuous silently.
 * `src/tests/riscv/uniqueness_counterexample_test.zig` replays every exported
@@ -363,7 +363,7 @@ What an `unsat` row on this board does not establish:
 ## Infrastructure components and cross-row composition — 2026-07-27
 
 The 17-family board is no longer the only independently checked AIR surface.
-`scripts/air_satisfaction.py` now re-decides all 28 canonical transcript
+`scripts/riscv/air_satisfaction.py` now re-decides all 28 canonical transcript
 component kinds on an exported committed trace: the 17 opcode families,
 program, RW-memory boundary, Merkle, Poseidon2, clock update, and all six
 preprocessed lookup tables. It checks every implemented infrastructure direct
@@ -376,17 +376,17 @@ The infrastructure rows are not all unconditionally unique in isolation, so
 the certificates state conditional theorems rather than relabelling bus inputs
 as row-local outputs:
 
-- `scripts/riscv_poseidon_table_uniqueness.py` proves the active narrow
+- `scripts/riscv/riscv_poseidon_table_uniqueness.py` proves the active narrow
   Poseidon2 schedule triangular: 16 inputs determine all 426 materialized
   cells and hence the 445-column main row. It separately exhausts the natural
   row → tuple mapping and singleton-LogUp recurrence for all six tables,
   retaining the required zero-denominator and inactive-row counterexamples.
-- `scripts/riscv_infrastructure_uniqueness.py` binds the exact production
+- `scripts/riscv/riscv_infrastructure_uniqueness.py` binds the exact production
   requests for program, RW-memory, Merkle, and clock-update rows; proves the
   program and clock mixed-radix decompositions; checks small exact-multiset
   analogues for program binding and offline memory; and makes every
   integer-coefficient and root-connectivity premise explicit.
-- `scripts/riscv_merkle_recurrence.py` proves the 30-step binary index/parity
+- `scripts/riscv/riscv_merkle_recurrence.py` proves the 30-step binary index/parity
   recurrence from the public root and the additive order of the depth
   decrement. Its retained counterexample showed that `n_rows < p` alone did
   not lift Merkle node coefficients: `(p-1)/2` rows of multiplicity two plus
@@ -395,7 +395,7 @@ as row-local outputs:
   `2 * merkle_rows + program_rows + memory_rows + 3 < p`. The combined rule
   covers malicious cross-source tuple collisions and supplies the all-source
   coefficient lift used by the conditional connectivity lemma.
-- `scripts/riscv_state_chain_recurrence.py` binds the `+1` state clock,
+- `scripts/riscv/riscv_state_chain_recurrence.py` binds the `+1` state clock,
   strict four-wide access-clock encoding, shifted live-gap lookup, long-gap
   bridges, predecessor decomposition, and no-wrap statement bounds to the
   production sources. It retains the historical wrapped-clock cycle and
@@ -538,7 +538,7 @@ security-bit accounting, and no universal AIR-to-Sail refinement proof.
       [`INDEPENDENT_PROOF_SYSTEM_VALIDATION.md`](INDEPENDENT_PROOF_SYSTEM_VALIDATION.md).
 
       One slice of it exists, named for what it is.
-      `scripts/air_satisfaction.py` is an independent AIR **row-satisfaction and
+      `scripts/riscv/air_satisfaction.py` is an independent AIR **row-satisfaction and
       LogUp-closure checker**. It is not a verifier and must not be cited as
       one. It reads committed buffers exported from a real proving run
       (`src/tests/riscv/committed_trace_export_test.zig`, via the test-only

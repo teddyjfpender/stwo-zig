@@ -6,7 +6,7 @@ import dataclasses
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_LEDGER = ROOT / "conformance" / "upstream.md"
 REVISION_RE = r"[0-9a-f]{40}"
 

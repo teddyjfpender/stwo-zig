@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_PROTOCOL = (
     REPOSITORY_ROOT / "design/typed-air/performance/m5-m9-protocol-v1.json"
 )

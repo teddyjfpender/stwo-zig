@@ -15,12 +15,12 @@ from pathlib import Path
 from typing import Any
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.architecture_host_gate_lib import capture  # noqa: E402
-from scripts.architecture_host_gate_lib.aggregate_parity import artifact  # noqa: E402
+from scripts.architecture.architecture_host_gate_lib import capture  # noqa: E402
+from scripts.architecture.architecture_host_gate_lib.aggregate_parity import artifact  # noqa: E402
 
 
 MAX_OUTPUT_BYTES = 64 * 1024 * 1024

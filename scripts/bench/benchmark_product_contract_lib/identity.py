@@ -5,18 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-try:
-    from scripts.product_identity_lib import (
-        ProductIdentityError,
-        canonical_identity_sha256,
-        validate_canonical_identity,
-    )
-except ModuleNotFoundError:
-    from product_identity_lib import (
-        ProductIdentityError,
-        canonical_identity_sha256,
-        validate_canonical_identity,
-    )
+from scripts.repo.product_identity_lib import (
+    ProductIdentityError,
+    canonical_identity_sha256,
+    validate_canonical_identity,
+)
 
 
 ProductEvidenceError = ProductIdentityError

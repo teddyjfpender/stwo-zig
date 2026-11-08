@@ -10,18 +10,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-try:
-    from scripts.benchmark_product_contract_lib import (
-        MIN_PROMOTION_WARMUPS,
-        build_receipt,
-        validate_receipt,
-    )
-except ModuleNotFoundError:
-    from benchmark_product_contract_lib import (
-        MIN_PROMOTION_WARMUPS,
-        build_receipt,
-        validate_receipt,
-    )
+from scripts.bench.benchmark_product_contract_lib import (
+    MIN_PROMOTION_WARMUPS,
+    build_receipt,
+    validate_receipt,
+)
 
 from .artifacts import (
     atomic_write_json,

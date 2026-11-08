@@ -10,12 +10,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.product_closure.graph import ClosureError, inspect_sources
-from scripts.product_closure.linkage import (
+from scripts.repo.product_closure.graph import ClosureError, inspect_sources
+from scripts.repo.product_closure.linkage import (
     LinkageError,
     check_dynamic,
     check_static_elf,
@@ -23,7 +23,7 @@ from scripts.product_closure.linkage import (
     inspect_elf,
     sha256_file,
 )
-from scripts.product_closure.model import Manifest, parse_named_import
+from scripts.repo.product_closure.model import Manifest, parse_named_import
 
 
 DEFAULT_GENERATED = ("build_identity", "builtin", "product_identity", "std")

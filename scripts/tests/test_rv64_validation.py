@@ -8,11 +8,11 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import rv64_validation as validation
-import rv64_gate as gate
-import rv64_m7_integration_stack as stack
+from scripts.rv64 import rv64_validation as validation
+from scripts.rv64 import rv64_gate as gate
+from scripts.rv64 import rv64_m7_integration_stack as stack
 import rv64_m8_bench15 as basket
-import rv64_m5_negative_corpus as corpus
+from scripts.rv64 import rv64_m5_negative_corpus as corpus
 
 
 class ValidationTests(unittest.TestCase):
@@ -131,7 +131,7 @@ class ValidationTests(unittest.TestCase):
             report = proof / 'report.json'
             report.write_text(json.dumps({'captured_values_sha256': 'a' * 64}))
             row = {'proof': str(proof), 'leaves': 1}
-            with patch('rv64_resident_basket.recursive_snapshot', return_value={'tree_sha256': 'tree', 'proof_sha256': {}}):
+            with patch('scripts.rv64.rv64_resident_basket.recursive_snapshot', return_value={'tree_sha256': 'tree', 'proof_sha256': {}}):
                 self.assertNotIn('captured_values_sha256', validation.fingerprints(row))
                 self.assertEqual(validation.fingerprints(row, True)['captured_values_sha256'], 'a' * 64)
                 report.write_text(json.dumps({'captured_values_sha256': 'z' * 64}))

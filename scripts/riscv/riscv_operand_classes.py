@@ -10,19 +10,20 @@ under `src/tests/riscv/operand_class_corpus/` for guest-building tests to
 consume. It also measures which of those classes an existing trace corpus
 ever touches -- the untouched list is the actionable finding.
 
-  python3 scripts/riscv_operand_classes.py list
-  python3 scripts/riscv_operand_classes.py emit  [--output-dir DIR]
-  python3 scripts/riscv_operand_classes.py check [--output-dir DIR]
-  python3 scripts/riscv_operand_classes.py audit [--zig-bin BIN] [--elf E ...]
+  python3 scripts/riscv/riscv_operand_classes.py list
+  python3 scripts/riscv/riscv_operand_classes.py emit  [--output-dir DIR]
+  python3 scripts/riscv/riscv_operand_classes.py check [--output-dir DIR]
+  python3 scripts/riscv/riscv_operand_classes.py audit [--zig-bin BIN] [--elf E ...]
 
 `emit` and `check` refuse to run without the pinned Sail binary (exit 3,
-same contract as scripts/riscv_sail_oracle.py): expectations this tool
+same contract as scripts/riscv/riscv_sail_oracle.py): expectations this tool
 cannot source from Sail are not emitted at all, because a structurally
 derived corpus presented as Sail-derived would be another self-referential
 oracle. The Sail binary resolution order is riscv_sail_oracle's.
 """
 
 from __future__ import annotations
+
 
 import argparse
 import json
@@ -31,14 +32,14 @@ import tempfile
 from pathlib import Path
 
 if __package__:
-    from scripts import riscv_sail_oracle as oracle
-    from scripts.riscv_operand_classes_lib import audit, classes, emit
+    from scripts.riscv import riscv_sail_oracle as oracle
+    from scripts.riscv.riscv_operand_classes_lib import audit, classes, emit
 else:
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import riscv_sail_oracle as oracle
-    from riscv_operand_classes_lib import audit, classes, emit
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.riscv import riscv_sail_oracle as oracle
+    from scripts.riscv.riscv_operand_classes_lib import audit, classes, emit
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 EXIT_OK, EXIT_DRIFT, EXIT_ERROR, EXIT_UNAVAILABLE = 0, 1, 2, 3
 DEFAULT_ZIG_BIN = ROOT / "zig-out" / "bin" / "riscv-trace-dump"
 

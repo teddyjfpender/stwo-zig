@@ -1,8 +1,8 @@
 """Reviewable generated inventory of every audited Lean theorem.
 
-Generator: ``scripts/riscv_refinement.py audited-theorems --write``.
+Generator: ``scripts/riscv/riscv_refinement.py audited-theorems --write``.
 Regenerate: run that command after a successful full Lean axiom audit.
-The public tuple is re-exported by :mod:`scripts.riscv_refinement`.
+The public tuple is re-exported by :mod:`scripts.riscv.riscv_refinement`.
 """
 
 from __future__ import annotations

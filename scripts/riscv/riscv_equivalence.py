@@ -16,11 +16,11 @@ PCs or PC-derived architectural values.
 
 Manual mode compares two pre-existing canonical JSON traces:
 
-  python3 scripts/riscv_equivalence.py trace_a.json trace_b.json
+  python3 scripts/riscv/riscv_equivalence.py trace_a.json trace_b.json
 
 Automatic Sail mode:
 
-  python3 scripts/riscv_equivalence.py --run program.elf \
+  python3 scripts/riscv/riscv_equivalence.py --run program.elf \
       --sail-bin /path/to/sail_riscv_sim \
       [--zig-bin zig-out/bin/riscv-trace-dump] [--max-steps N]
 
@@ -42,10 +42,9 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-try:
-    from riscv_equivalence_lib import contract, rvfi, sail_identity
-except ModuleNotFoundError:  # Imported as scripts.riscv_equivalence in tests.
-    from scripts.riscv_equivalence_lib import contract, rvfi, sail_identity
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.riscv_equivalence_lib import contract, rvfi, sail_identity
 
 
 ROOT = rvfi.ROOT

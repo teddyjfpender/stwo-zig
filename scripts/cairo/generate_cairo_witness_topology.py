@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 COMPILER_ROOT = ROOT / "tools/cairo-witness-compiler"
 sys.path.insert(0, str(COMPILER_ROOT))
 
@@ -248,7 +248,7 @@ def generate(source: Path) -> dict[str, object]:
     return {
         "components": [asdict(component) for component in components],
         "generator": {
-            "path": "scripts/generate_cairo_witness_topology.py",
+            "path": "scripts/cairo/generate_cairo_witness_topology.py",
             "sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             "rewriter_closure_sha256": witness_compiler.closure_sha256(
                 witness_compiler.REWRITER

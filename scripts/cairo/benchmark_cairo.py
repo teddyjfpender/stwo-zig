@@ -7,6 +7,9 @@ receipts, including the initial (cold-process) trial; no warmup is hidden.
 
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 import argparse
 import hashlib
 import json
@@ -157,7 +160,7 @@ def run_benchmark(args: argparse.Namespace, env: dict[str, str] | None = None) -
                 if __package__:
                     from .check_cairo_metal_report import validate
                 else:
-                    from check_cairo_metal_report import validate
+                    from scripts.cairo.check_cairo_metal_report import validate
                 validate(receipt, proof_hash, proof.stat().st_size, "authenticated-aot", "json", bool(args.program))
             config = json.loads(proof.read_text())["stark_proof"]["config"]
             expected_config = CANONICAL_SECURITY

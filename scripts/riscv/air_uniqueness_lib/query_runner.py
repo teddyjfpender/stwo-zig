@@ -11,10 +11,7 @@ from pathlib import Path
 from .result import Result, Witness
 from .smtlib import Query
 
-try:
-    from riscv_air_ir_lib.ir import MODULUS
-except ModuleNotFoundError:  # Imported as scripts.air_uniqueness_lib in tests.
-    from scripts.riscv_air_ir_lib.ir import MODULUS
+from scripts.riscv.riscv_air_ir_lib.ir import MODULUS
 
 
 def run_query(query: Query, timeout_ms: int = 0) -> Result:

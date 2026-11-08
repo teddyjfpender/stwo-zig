@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 if __package__:
     from .typed_air_performance_protocol_lib import (
         DEFAULT_PROTOCOL,
@@ -15,7 +18,7 @@ if __package__:
         validate_protocol_value,
     )
 else:
-    from typed_air_performance_protocol_lib import (
+    from scripts.typed_air.typed_air_performance_protocol_lib import (
         DEFAULT_PROTOCOL,
         REPOSITORY_ROOT,
         ProtocolError,

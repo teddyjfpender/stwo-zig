@@ -7,44 +7,41 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-try:
-    from scripts.benchmark_product_contract_lib import build_receipt, validate_receipt
-except ModuleNotFoundError:
-    from benchmark_product_contract_lib import build_receipt, validate_receipt
+from scripts.bench.benchmark_product_contract_lib import build_receipt, validate_receipt
 
 if __package__.startswith("scripts."):
-    from scripts.native_proof_matrix_lib.artifacts import (
+    from scripts.native.native_proof_matrix_lib.artifacts import (
         output_dir_lock,
         prepare_output_dir,
         require_binary,
         sha256_file,
     )
-    from scripts.native_proof_matrix_lib.contract import validate_proof_artifact
-    from scripts.native_proof_matrix_lib.model import (
+    from scripts.native.native_proof_matrix_lib.contract import validate_proof_artifact
+    from scripts.native.native_proof_matrix_lib.model import (
         MatrixError,
         PROTOCOL_PRESETS,
         workload_descriptor_sha256,
     )
-    from scripts.native_proof_matrix_lib.provenance import (
+    from scripts.native.native_proof_matrix_lib.provenance import (
         collect_load,
         collect_static,
         validate_environment,
         validate_load,
     )
 else:
-    from native_proof_matrix_lib.artifacts import (
+    from scripts.native.native_proof_matrix_lib.artifacts import (
         output_dir_lock,
         prepare_output_dir,
         require_binary,
         sha256_file,
     )
-    from native_proof_matrix_lib.contract import validate_proof_artifact
-    from native_proof_matrix_lib.model import (
+    from scripts.native.native_proof_matrix_lib.contract import validate_proof_artifact
+    from scripts.native.native_proof_matrix_lib.model import (
         MatrixError,
         PROTOCOL_PRESETS,
         workload_descriptor_sha256,
     )
-    from native_proof_matrix_lib.provenance import (
+    from scripts.native.native_proof_matrix_lib.provenance import (
         collect_load,
         collect_static,
         validate_environment,

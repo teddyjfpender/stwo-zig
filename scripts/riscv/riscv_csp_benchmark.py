@@ -32,17 +32,17 @@ import time
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts import riscv_cli_admission  # noqa: E402
-from scripts.riscv_csp_benchmark_lib.build_identity import (  # noqa: E402
+from scripts.riscv import riscv_cli_admission  # noqa: E402
+from scripts.riscv.riscv_csp_benchmark_lib.build_identity import (  # noqa: E402
     read_build_identity,
     read_trace_provenance,
     validate_build_identity,
 )
-from scripts.riscv_csp_benchmark_lib.contract import (  # noqa: E402
+from scripts.riscv.riscv_csp_benchmark_lib.contract import (  # noqa: E402
     BACKENDS,
     BenchmarkError,
     CANONICAL_SIZES,
@@ -64,19 +64,19 @@ from scripts.riscv_csp_benchmark_lib.contract import (  # noqa: E402
     sha256_file,
     validate_manifest,
 )
-from scripts.riscv_csp_benchmark_lib.host import (  # noqa: E402
+from scripts.riscv.riscv_csp_benchmark_lib.host import (  # noqa: E402
     classify_result,
     collect_host,
     official_host_match,
     power_conditions_admissible,
 )
-from scripts.riscv_csp_benchmark_lib.public_output import (  # noqa: E402
+from scripts.riscv.riscv_csp_benchmark_lib.public_output import (  # noqa: E402
     reconstruct_public_output,
 )
-from scripts.riscv_csp_benchmark_lib.source_audit import (  # noqa: E402
+from scripts.riscv.riscv_csp_benchmark_lib.source_audit import (  # noqa: E402
     audit_csp_source,
 )
-from scripts.riscv_csp_benchmark_lib.validation import (  # noqa: E402
+from scripts.riscv.riscv_csp_benchmark_lib.validation import (  # noqa: E402
     summarize_evidence,
     phase_seconds as _phase_seconds,
     peak_memory as _peak_memory,
@@ -88,8 +88,8 @@ from scripts.riscv_csp_benchmark_lib.validation import (  # noqa: E402
     validate_verify_receipt,
 )
 
-from scripts.riscv_csp_benchmark_lib.evidence import EvidenceRun, prove_negative_case
-from scripts.riscv_csp_benchmark_lib.workloads import require_execution_mode, workload_inventory
+from scripts.riscv.riscv_csp_benchmark_lib.evidence import EvidenceRun, prove_negative_case
+from scripts.riscv.riscv_csp_benchmark_lib.workloads import require_execution_mode, workload_inventory
 
 
 SCHEMA = "stwo_riscv_csp_benchmark_v5"
@@ -293,7 +293,7 @@ def benchmark_case(
     if report.get("schema") == "riscv_full_width_execution_v2":
         if proof_suite != "blake3":
             raise BenchmarkError("full-width report supplied for a different requested suite")
-        from scripts.riscv_csp_benchmark_lib.full_width import finish
+        from scripts.riscv.riscv_csp_benchmark_lib.full_width import finish
         return finish(case, report, cli=cli, backend=backend, warmups=warmups,
                       samples=samples, admission=admission, env=env, timeout=timeout,
                       artifact_path=artifact_path, bench_path=bench_path, execution=execution,
@@ -560,7 +560,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     selected_benchmark = partial(benchmark_case, proof_suite=args.proof_suite)
     if args.execution_mode == "precompile":
         from functools import partial
-        from scripts.riscv_csp_benchmark_lib.precompile import benchmark_case as accelerated
+        from scripts.riscv.riscv_csp_benchmark_lib.precompile import benchmark_case as accelerated
         selected_benchmark = partial(accelerated, run=_run, software_benchmark=selected_benchmark,
                                      workers=args.workers or 16, proof_suite=args.proof_suite)
     print(f"[scope] {args.execution_mode} full guest proofs; secure 70 queries / 26 PoW bits", flush=True)

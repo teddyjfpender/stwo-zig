@@ -4,7 +4,7 @@
 Builds `tools/stwo-circuit-oracle-rs` from its lockfile, locates the `proving`
 checkout Cargo resolved for the pinned revision, runs every oracle subcommand,
 copies the upstream goldens the rungs consume, and writes the provenance record
-that `scripts/check_upstream_pins.py` authenticates. Every subcommand builds
+that `scripts/repo/check_upstream_pins.py` authenticates. Every subcommand builds
 circuits, hashes data or proves small instances: `prove-small` proves the small
 `prover_test.rs` circuits under the oracle's default memory budget, and
 `adapt-program` and `prove-cairo` run and prove small Cairo programs (seconds
@@ -28,17 +28,14 @@ import sys
 import tempfile
 from pathlib import Path
 
-try:
-    from upstream_pins_lib import circuit_recursion as lane
-    from upstream_pins_lib.model import parse_ledger
-    from upstream_pins_lib.official_cairo_air import bundle_summary
-except ModuleNotFoundError:  # Imported as scripts.generate_circuit_oracle_vectors in tests.
-    from scripts.upstream_pins_lib import circuit_recursion as lane
-    from scripts.upstream_pins_lib.model import parse_ledger
-    from scripts.upstream_pins_lib.official_cairo_air import bundle_summary
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.repo.upstream_pins_lib import circuit_recursion as lane
+from scripts.repo.upstream_pins_lib.model import parse_ledger
+from scripts.repo.upstream_pins_lib.official_cairo_air import bundle_summary
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 ORACLE_BINARY = "stwo-circuit-oracle"
 
 
@@ -213,7 +210,7 @@ def provenance(artifacts: list[dict], ledger, generated_on: str) -> dict:
             "lock_sha256": lane.sha256_file(ROOT / lane.LOCK),
             "source_sha256": lane.oracle_source_sha256(ROOT),
         },
-        "generator": "scripts/generate_circuit_oracle_vectors.py",
+        "generator": "scripts/interop/generate_circuit_oracle_vectors.py",
         "generated_on": generated_on,
         "artifacts": artifacts,
     }

@@ -63,7 +63,7 @@ def run(command: list[str], cwd: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2])
     args = parser.parse_args()
     repository = args.repo.resolve()
     with tempfile.TemporaryDirectory(

@@ -1,6 +1,6 @@
 //! Test-only export of a proving run's complete committed main trace and its
 //! LogUp inputs, for the independent Python checker
-//! (`scripts/air_satisfaction.py`).
+//! (`scripts/riscv/air_satisfaction.py`).
 //!
 //! ## Why this lives on the proving path
 //!

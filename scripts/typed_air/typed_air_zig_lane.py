@@ -7,7 +7,7 @@ makes edit loops less predictable. This controller admits at most three
 commands at once and gives each command or explicit cache group a stable,
 repository-private local cache protected by a nonblocking group lock:
 
-    python3 scripts/typed_air_zig_lane.py --label a013 -- zig build ...
+    python3 scripts/typed_air/typed_air_zig_lane.py --label a013 -- zig build ...
 
 The slot locks, retained logs, and exact GREEN receipts live inside Git's
 private directory and never dirty the worktree. Reuse is development-only and
@@ -29,10 +29,9 @@ import sys
 import time
 from typing import Sequence
 
-try:
-    from scripts import typed_air_zig_gate_cache as gate_cache
-except ModuleNotFoundError:  # Direct execution outside the repository root.
-    import typed_air_zig_gate_cache as gate_cache
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.typed_air import typed_air_zig_gate_cache as gate_cache
 
 
 BUSY_EXIT = 75
@@ -737,7 +736,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     command = list(arguments.command)
     if command and command[0] == "--":
         command.pop(0)
-    repository = Path(__file__).resolve().parents[1]
+    repository = Path(__file__).resolve().parents[2]
     try:
         if arguments.status:
             if command:

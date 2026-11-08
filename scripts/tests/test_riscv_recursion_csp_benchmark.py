@@ -8,8 +8,8 @@ import unittest
 from decimal import Decimal
 from pathlib import Path
 
-from scripts.riscv_csp_benchmark_lib.contract import Case
-from scripts.riscv_recursion_csp_benchmark_lib import (
+from scripts.riscv.riscv_csp_benchmark_lib.contract import Case
+from scripts.riscv.riscv_recursion_csp_benchmark_lib import (
     EvidenceError,
     atomic_write_new,
     build_comparison,
@@ -27,8 +27,8 @@ from scripts.riscv_recursion_csp_benchmark_lib import (
     validate_recursive_report,
     validate_shape_audit,
 )
-from scripts.riscv_recursion_csp_benchmark_lib.codec import content_digest, seal_document
-from scripts.riscv_recursion_csp_benchmark_lib.contract import (
+from scripts.riscv.riscv_recursion_csp_benchmark_lib.codec import content_digest, seal_document
+from scripts.riscv.riscv_recursion_csp_benchmark_lib.contract import (
     GENERATION_PHASES,
     PHASES,
     RECURSIVE_ARTIFACT_CONTRACT,
@@ -37,7 +37,7 @@ from scripts.riscv_recursion_csp_benchmark_lib.contract import (
     SCHEMA_VERSION,
     available_metric,
 )
-from scripts.riscv_recursion_csp_benchmark import (
+from scripts.riscv.riscv_recursion_csp_benchmark import (
     CURRENT_SOURCE_CAPTURE_GUIDANCE,
     _has_source_alignment_failure,
 )
@@ -693,7 +693,7 @@ class RecursionCspBenchmarkTests(unittest.TestCase):
                 )
 
     def test_v5_native_report_preserves_recursion_isolation(self) -> None:
-        from scripts.riscv_recursion_csp_benchmark_lib.native_adapter import adapt_native_report
+        from scripts.riscv.riscv_recursion_csp_benchmark_lib.native_adapter import adapt_native_report
         report = _native_report()
         report["schema"] = "stwo_riscv_csp_benchmark_v5"
         adapted = adapt_native_report(report, raw_sha256="a" * 64)

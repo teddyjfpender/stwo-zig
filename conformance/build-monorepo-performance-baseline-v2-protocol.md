@@ -15,7 +15,7 @@ and BG-15 do not execute or consume this protocol.
 | Component | Owner | Responsibility |
 | --- | --- | --- |
 | Protocol manifest | `conformance/build-monorepo-performance-baseline-v2-protocol-v2.json` | Frozen authority, workloads, hosts, lanes, statistics, budgets, and bounds |
-| CLI | `scripts/performance_epoch_gate.py` | Thin command dispatch and machine-readable results |
+| CLI | `scripts/bench/performance_epoch_gate.py` | Thin command dispatch and machine-readable results |
 | Plan | `performance_epoch_gate_lib/plan.py` | Deterministic host plan with fixed baseline `A` and candidate `B` ownership |
 | Capture | `performance_epoch_gate_lib/capture.py` | Bounded no-shell execution, raw evidence, append-only journal, and atomic publication |
 | Validator | `performance_epoch_gate_lib/receipt.py` | Independent schema, identity, artifact, statistical, and budget verification |
@@ -163,10 +163,10 @@ attestations, budget evidence, or a `PASS` verdict fail closed.
 ## Commands
 
 ```sh
-python3 scripts/performance_epoch_gate.py create-plan --help
-python3 scripts/performance_epoch_gate.py capture-host --help
-python3 scripts/performance_epoch_gate.py validate-plan --help
-python3 scripts/performance_epoch_gate.py validate-receipt --help
+python3 scripts/bench/performance_epoch_gate.py create-plan --help
+python3 scripts/bench/performance_epoch_gate.py capture-host --help
+python3 scripts/bench/performance_epoch_gate.py validate-plan --help
+python3 scripts/bench/performance_epoch_gate.py validate-receipt --help
 ```
 
 The capture command is intentionally not part of ordinary fast CI. The tests

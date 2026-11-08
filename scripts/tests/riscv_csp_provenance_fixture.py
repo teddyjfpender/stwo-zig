@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import json
 
-from scripts import riscv_cli_admission
-from scripts import riscv_csp_benchmark as csp
-from scripts.riscv_csp_benchmark_lib import build_identity as csp_build_identity
-from scripts.riscv_csp_benchmark_lib import contract as csp_contract
+from scripts.riscv import riscv_cli_admission
+from scripts.riscv import riscv_csp_benchmark as csp
+from scripts.riscv.riscv_csp_benchmark_lib import build_identity as csp_build_identity
+from scripts.riscv.riscv_csp_benchmark_lib import contract as csp_contract
 
 
 TARGET = "ecdsa_secp256k1"
@@ -22,7 +22,7 @@ FOREIGN_COMMIT = "b" * 40
 # Stand-ins for the two executables: tracked, executable, and never run, because
 # every subprocess boundary the harness crosses is faked in these tests.
 STAND_IN_CLI = csp.ROOT / "scripts" / "ci.py"
-STAND_IN_TRACE = csp.ROOT / "scripts" / "cuda_build.py"
+STAND_IN_TRACE = csp.ROOT / "scripts" / "cuda/cuda_build.py"
 
 
 def public_values(

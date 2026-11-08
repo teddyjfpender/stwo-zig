@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from scripts.native_cuda_diagnostic_lib.model import (
+from scripts.native.native_cuda_diagnostic_lib.model import (
     BlakeShape,
     DiagnosticError,
     PlonkShape,

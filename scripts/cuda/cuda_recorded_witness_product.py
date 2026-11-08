@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 PRODUCT = ROOT / "src/backends/cuda/aot/native"
 BUNDLE = ROOT / "vectors/cairo/sn_pie_2_witness_programs.bin"
 SCHEMA = "recorded_witness_v1"

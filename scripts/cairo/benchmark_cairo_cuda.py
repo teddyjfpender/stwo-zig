@@ -111,7 +111,7 @@ def run_trial(args: argparse.Namespace, number: int, trial: int, nvml, device) -
     try:
         with (out / "prover.log").open("xb") as log:
             process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
-                                       env=env, cwd=Path(__file__).resolve().parents[1], start_new_session=True)
+                                       env=env, cwd=Path(__file__).resolve().parents[2], start_new_session=True)
             killer = threading.Timer(args.timeout, expire)
             killer.start()
             try:

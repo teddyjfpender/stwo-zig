@@ -5,6 +5,9 @@ Install the optional oracle in an isolated venv: pip install unicorn==2.1.4.
 This is execution evidence, not Sail conformance or proof soundness evidence.
 Temporary vectors and binaries are deleted automatically.
 """
+
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
 import argparse
 import hashlib
 import json
@@ -17,11 +20,11 @@ import unicorn
 from unicorn import Uc, UC_ARCH_RISCV, UC_MODE_RISCV64
 from unicorn.riscv_const import UC_RISCV_REG_X0, UC_RISCV_REG_PC
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if __package__:
     from .riscv64_cases import MASK, cases
 else:
-    from riscv64_cases import MASK, cases
+    from scripts.rv64.riscv64_cases import MASK, cases
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

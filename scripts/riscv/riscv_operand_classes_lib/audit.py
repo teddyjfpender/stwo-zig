@@ -20,10 +20,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-try:
-    from riscv_equivalence_lib import contract, rvfi
-except ModuleNotFoundError:  # Imported as scripts.riscv_operand_classes_lib.
-    from scripts.riscv_equivalence_lib import contract, rvfi
+from scripts.riscv.riscv_equivalence_lib import contract, rvfi
 
 from . import classes, encoding, session
 

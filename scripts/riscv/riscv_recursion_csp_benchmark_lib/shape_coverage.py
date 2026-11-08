@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from scripts.riscv_csp_benchmark_lib.contract import (
+from scripts.riscv.riscv_csp_benchmark_lib.contract import (
     MANIFEST,
     BenchmarkError,
     validate_manifest,

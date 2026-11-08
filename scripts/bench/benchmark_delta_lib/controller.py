@@ -17,8 +17,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from benchmark_delta_lib.archive import ARCHIVE_SCHEMA_VERSION, update_archive  # noqa: E402
-from benchmark_delta_lib.common import (  # noqa: E402
+from scripts.bench.benchmark_delta_lib.archive import ARCHIVE_SCHEMA_VERSION, update_archive  # noqa: E402
+from scripts.bench.benchmark_delta_lib.common import (  # noqa: E402
     DELTA_PROTOCOL,
     SEQUENTIAL_DELTA_NOTE,
     DeltaError,
@@ -30,11 +30,11 @@ from benchmark_delta_lib.common import (  # noqa: E402
     require_list,
     require_object,
 )
-from benchmark_delta_lib.native_oracle import (  # noqa: E402
+from scripts.bench.benchmark_delta_lib.native_oracle import (  # noqa: E402
     classify_transition,
     oracle_binary_pair,
 )
-from benchmark_delta_lib.product_identity import (  # noqa: E402
+from scripts.bench.benchmark_delta_lib.product_identity import (  # noqa: E402
     LEGACY_V5_PRODUCT_ALIASES,
     product_identity_transition,
     product_receipt_revision,

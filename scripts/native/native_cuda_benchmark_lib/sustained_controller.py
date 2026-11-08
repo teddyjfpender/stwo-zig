@@ -10,11 +10,11 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
-from scripts.native_cuda_diagnostic_lib.model import (
+from scripts.native.native_cuda_diagnostic_lib.model import (
     MAX_REPORT_BYTES,
     MAX_STDERR_BYTES,
 )
-from scripts.process_resources_lib import (
+from scripts.repo.process_resources_lib import (
     ResourceMeasurementError,
     measurement_command,
     measurement_environment,

@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from scripts.riscv_csp_benchmark_lib import contract
+from scripts.riscv.riscv_csp_benchmark_lib import contract
 
 
 class SecurePcsConfigAgreementTest(unittest.TestCase):

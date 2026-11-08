@@ -6,15 +6,15 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.riscv_release_gate_lib.contract import (
+from scripts.riscv.riscv_release_gate_lib.contract import (
     AIR_SOUNDNESS_LEDGER_ROW,
     core_purity_errors,
     divergence_errors,
     divergence_ledger_errors,
     frontend_layering_errors,
 )
-from scripts.riscv_release_gate_lib import controller
-from scripts.riscv_release_gate_lib.controller import command_plan
+from scripts.riscv.riscv_release_gate_lib import controller
+from scripts.riscv.riscv_release_gate_lib.controller import command_plan
 
 
 COMMIT = "a" * 40

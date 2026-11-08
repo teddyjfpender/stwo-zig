@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = ROOT / "vectors" / "riscv_csp" / "manifest-v2.json"
 DEFAULT_REPORT = ROOT / "vectors" / "reports" / "riscv_csp_benchmark_report.json"
 DEFAULT_CLI = ROOT / "zig-out" / "bin" / "stwo-zig-riscv-cpu"

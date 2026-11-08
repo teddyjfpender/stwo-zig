@@ -38,6 +38,7 @@ Verdict rule: a case PASSES when the receiver's verdict equals the expectation.
                            the control's; otherwise it must reject.
 Standard library only; no GPU; never holds the GPU lock.
 """
+
 import argparse
 import concurrent.futures as cf
 import hashlib
@@ -48,7 +49,9 @@ import shutil
 import subprocess
 import sys
 import time
-from rv64_validation import CRASH_MARKERS, RESOURCE_ERRORS, MISSING_ERRORS, reject_class
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64.rv64_validation import CRASH_MARKERS, RESOURCE_ERRORS, MISSING_ERRORS, reject_class
 
 SCHEMA = "rv64-m5-negative-corpus/v5"
 DEV_BLOCKS = {26235156, 24628607}

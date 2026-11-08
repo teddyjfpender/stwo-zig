@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 MANIFEST_PATH = ROOT / "vectors/cairo/source_semantics/v3/manifest.json"
 SEMANTIC_REGISTRY_PATH = ROOT / "vectors/cairo/source_semantics/v3/registry.json"
 DEFAULT_REPORT = ROOT / "vectors/cairo/source_semantics/four_pie_coverage_v1.json"

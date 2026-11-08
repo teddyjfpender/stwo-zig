@@ -14,16 +14,19 @@ Regenerate mode:
 
 from __future__ import annotations
 
+
 import argparse
 import json
 import subprocess
 import sys
 from pathlib import Path
 
-from zig_protocol_lib.command import test_command
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.repo.zig_protocol_lib.command import test_command
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 GEN_MANIFEST = ROOT / "tools" / "stwo-air-derive-vector-gen" / "Cargo.toml"
 VECTORS_DIR = ROOT / "vectors"
 COMMITTED = VECTORS_DIR / "air_derive.json"

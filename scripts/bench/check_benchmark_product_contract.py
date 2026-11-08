@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 import json
 import os
 import subprocess
@@ -10,36 +11,36 @@ import sys
 from pathlib import Path
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 ROOT = Path(os.environ.get("STWO_ZIG_EXECUTION_ROOT", SCRIPT_DIR.parent)).resolve()
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from benchmark_product_contract_lib import (  # noqa: E402
+from scripts.bench.benchmark_product_contract_lib import (  # noqa: E402
     MIN_PROMOTION_VERIFIED_SAMPLES,
     MIN_PROMOTION_WARMUPS,
     PRODUCT_SPECS,
     RECEIPT_PROTOCOL,
 )
-from scripts.product_identity_lib import IDENTITY_SCHEMA_VERSION  # noqa: E402
-from benchmark_product_contract_lib.legacy import aggregate_diagnostic_scope  # noqa: E402
-from benchmark_delta_lib.controller import (  # noqa: E402
+from scripts.repo.product_identity_lib import IDENTITY_SCHEMA_VERSION  # noqa: E402
+from scripts.bench.benchmark_product_contract_lib.legacy import aggregate_diagnostic_scope  # noqa: E402
+from scripts.bench.benchmark_delta_lib.controller import (  # noqa: E402
     LEGACY_V5_PRODUCT_ALIASES,
     NATIVE_PROTOCOL_V6,
 )
-from native_profile_capture import parse_args as parse_profile_args  # noqa: E402
-from native_proof_matrix import parse_args as parse_matrix_args  # noqa: E402
-from native_profile_capture_lib.controller import (  # noqa: E402
+from scripts.native.native_profile_capture import parse_args as parse_profile_args  # noqa: E402
+from scripts.native.native_proof_matrix import parse_args as parse_matrix_args  # noqa: E402
+from scripts.native.native_profile_capture_lib.controller import (  # noqa: E402
     _product_receipts as profile_receipts,
 )
-from native_proof_matrix_lib.controller import (  # noqa: E402
+from scripts.native.native_proof_matrix_lib.controller import (  # noqa: E402
     product_receipts as benchmark_receipts,
 )
-from native_proof_matrix_lib.evidence import SUMMARY_PROTOCOL  # noqa: E402
-from native_proof_matrix_lib.model import MIN_HEADLINE_WARMUPS  # noqa: E402
-from native_proof_matrix_lib.evidence import MIN_FORMAL_MEASURED_PROOFS  # noqa: E402
+from scripts.native.native_proof_matrix_lib.evidence import SUMMARY_PROTOCOL  # noqa: E402
+from scripts.native.native_proof_matrix_lib.model import MIN_HEADLINE_WARMUPS  # noqa: E402
+from scripts.native.native_proof_matrix_lib.evidence import MIN_FORMAL_MEASURED_PROOFS  # noqa: E402
 
 
 POLICY = SCRIPT_DIR.parent / "conformance" / "benchmark-profiler-product-contract-v1.json"

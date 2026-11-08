@@ -58,12 +58,8 @@ from .analysis import (
     renormalise,
 )
 
-try:
-    from riscv_air_ir_lib import tables
-    from riscv_air_ir_lib.ir import MODULUS, IRError, System
-except ModuleNotFoundError:  # Imported as scripts.air_uniqueness_lib in tests.
-    from scripts.riscv_air_ir_lib import tables
-    from scripts.riscv_air_ir_lib.ir import MODULUS, IRError, System
+from scripts.riscv.riscv_air_ir_lib import tables
+from scripts.riscv.riscv_air_ir_lib.ir import MODULUS, IRError, System
 
 COPIES = ("a", "b")
 # Suffix for a variable both copies share; see `_Emitter._shared_nodes`.

@@ -78,7 +78,7 @@ def main() -> int:
     parser.add_argument(
         "--tests-dir",
         type=Path,
-        default=Path(__file__).resolve().parents[1] / "tests/cuda",
+        default=Path(__file__).resolve().parents[2] / "tests/cuda",
     )
     args = parser.parse_args()
 
@@ -122,11 +122,11 @@ def main() -> int:
         )
         subprocess.run(command, check=True)
         result = subprocess.run(
-            run_command(source, executable, Path(__file__).resolve().parents[1]),
+            run_command(source, executable, Path(__file__).resolve().parents[2]),
             check=True,
             capture_output=True,
             text=True,
-            cwd=Path(__file__).resolve().parents[1],
+            cwd=Path(__file__).resolve().parents[2],
             timeout=180,
         )
         tests.append(

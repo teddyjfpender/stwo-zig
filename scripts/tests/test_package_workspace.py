@@ -4,9 +4,7 @@ import unittest
 from tempfile import TemporaryDirectory
 from pathlib import Path
 
-from scripts import check_package_workspace as subject
-
-
+from scripts.repo import check_package_workspace as subject
 ROOT = Path(__file__).resolve().parents[2]
 
 

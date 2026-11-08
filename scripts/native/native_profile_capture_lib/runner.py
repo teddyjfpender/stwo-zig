@@ -11,19 +11,19 @@ from pathlib import Path
 from typing import Any
 
 if __package__.startswith("scripts."):
-    from scripts.native_proof_matrix_lib.artifacts import (
+    from scripts.native.native_proof_matrix_lib.artifacts import (
         decode_report,
         lane_command,
         load_proof_artifact,
     )
-    from scripts.native_proof_matrix_lib.model import Workload
+    from scripts.native.native_proof_matrix_lib.model import Workload
 else:
-    from native_proof_matrix_lib.artifacts import (
+    from scripts.native.native_proof_matrix_lib.artifacts import (
         decode_report,
         lane_command,
         load_proof_artifact,
     )
-    from native_proof_matrix_lib.model import Workload
+    from scripts.native.native_proof_matrix_lib.model import Workload
 
 from .evidence import write_bytes_exclusive
 from .model import MAX_ARTIFACT_BYTES, CaptureError, CaptureSettings
@@ -31,10 +31,10 @@ from .sample_profile import build_sample_summary
 
 
 ROOT = Path(
-    os.environ.get("STWO_ZIG_EXECUTION_ROOT", Path(__file__).resolve().parents[2])
+    os.environ.get("STWO_ZIG_EXECUTION_ROOT", Path(__file__).resolve().parents[3])
 ).resolve()
 SAMPLE_BIN = Path("/usr/bin/sample")
-METAL_REPORT_SCRIPT = ROOT / "scripts/metal_profile_report.py"
+METAL_REPORT_SCRIPT = ROOT / "scripts/metal/metal_profile_report.py"
 
 
 def _profile_command(

@@ -360,7 +360,7 @@ of that file's raw bytes; text newline conversion is forbidden.
 The v2 production builder is exactly
 `src/frontends/riscv/air/constraint_program.zig`. The normative common closure
 and per-family semantic additions are enumerated in
-`scripts/riscv_refinement_lib/air_program_contract.py`. Each opcode artifact
+`scripts/riscv/riscv_refinement_lib/air_program_contract.py`. Each opcode artifact
 MUST carry exactly the closure selected by its family; a same-family selector
 therefore has the same source closure, while its content digest still binds
 the selector's distinct manifest ID and mnemonic.

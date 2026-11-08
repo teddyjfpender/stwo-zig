@@ -253,7 +253,7 @@ pub fn addProduct(context: Context) void {
     test_step.dependOn(&identity.step);
     const fail_closed = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_cairo_metal_aot_fail_closed.py",
+        "scripts/cairo/check_cairo_metal_aot_fail_closed.py",
         "--executable",
     });
     fail_closed.addArtifactArg(installed.executable);

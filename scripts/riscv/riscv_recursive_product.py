@@ -7,6 +7,9 @@ producer destruction, independent statement/key admission and hostile replay.
 """
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 import argparse
 import hashlib
 import json
@@ -17,7 +20,7 @@ import subprocess
 import sys
 import time
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 ADMISSION = ROOT / "vectors/reports/recursive-product-20260917/canonical-admission-v2/admission.json"
 ADMISSION_SHA256 = "1fe20e6c7ee8daec966ccf2aa601e9e417d1aa37e9e96e8d9290c8ae18d90a89"
 OTHER_ADMISSION = ROOT / "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/tree-admissions/air-fusion-q193-4-seed14.json"
@@ -117,7 +120,7 @@ def main() -> None:
         print(f"{name}: passed in {entry['elapsed_ns'] / 1e9:.3f}s", flush=True)
 
     def build(name: str, cwd: str, prefix: Path, targets: list[str]) -> None:
-        run(name, [sys.executable, str(ROOT / "scripts/zig_serial_build.py"),
+        run(name, [sys.executable, str(ROOT / "scripts/repo/zig_serial_build.py"),
                    "--cwd", str(ROOT / cwd), *targets, "-Doptimize=ReleaseSafe",
                    "--prefix", str(prefix), "--summary", "all"])
 
@@ -154,7 +157,7 @@ def main() -> None:
             "leaf-verifier": cpu / "bin/recursive-segment-v2-detached-verify",
             "parent-verifier": cpu / "bin/recursive-segment-v2-detached-parent-verify",
         }
-        command = [sys.executable, str(ROOT / "scripts/riscv_segment_v2_detached_tree_gate.py"),
+        command = [sys.executable, str(ROOT / "scripts/riscv/riscv_segment_v2_detached_tree_gate.py"),
                    "--backend", args.backend, "--admission", str(admission),
                    "--admission-sha256", admission_sha256, "--output", str(output / "tree")]
         report["binary_sha256"] = {role: sha256(path) for role, path in binaries.items()}
@@ -165,7 +168,7 @@ def main() -> None:
         if tree.get("passed") is not True or source_snapshot() != snapshot:
             raise RuntimeError("complete-tree acceptance or frozen-source check failed")
         if args.backend == "metal":
-            from riscv_segment_v2_detached_gate import records
+            from scripts.riscv.riscv_segment_v2_detached_gate import records
             native_device = records((output / "tree/produce-leaves.log").read_text(), "SEGMENT_V2_TWO_CHILD_NATIVE_METAL")
             if len(native_device) != 4 or any(row.get("table_interaction_dispatches") != "24" for row in native_device):
                 raise RuntimeError("all six native tables must execute device interactions for every child")
@@ -191,7 +194,7 @@ def main() -> None:
                     or expected.read_bytes() == wrong.read_bytes()):
                 raise RuntimeError("substitution must have the same key and geometry and a distinct pinned statement")
             run(f"substitution-{index}", [sys.executable,
-                str(ROOT / "scripts/riscv_segment_v2_detached_gate.py"),
+                str(ROOT / "scripts/riscv/riscv_segment_v2_detached_gate.py"),
                 "--proof-profile", "recursive_q193_v1", "--verifier", str(binaries["leaf-verifier"]),
                 "--bundle", str(output / f"tree/leaves/child-{index}"),
                 "--key-sha256", node["key"]["sha256"], "--expected-wire", str(expected),

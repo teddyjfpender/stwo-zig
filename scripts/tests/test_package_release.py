@@ -8,9 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
-from scripts import package_release as subject
-
-
+from scripts.release import package_release as subject
 ROOT = Path(__file__).resolve().parents[2]
 
 

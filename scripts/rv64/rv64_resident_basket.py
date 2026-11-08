@@ -5,6 +5,7 @@ A fresh process per block/device count runs one cold request, or (by default)
 two requests against one persistent pool: cold, then warm. The cold proof gets an independent receiver; warm acceptance requires exact byte parity. Missing/unsupported
 cases stay explicit failures; a partial matrix is never called complete.
 """
+
 import argparse
 import copy
 import hashlib
@@ -16,7 +17,9 @@ from pathlib import Path
 import re
 import subprocess
 
-import rv64_ethereum_basket as B
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_ethereum_basket as B
 
 SCHEMA = "rv64-resident-basket/v1"
 PROFILE = "conjectured128_b2_q108_p20_fold4"

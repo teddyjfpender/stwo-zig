@@ -30,11 +30,14 @@ The AIR IR directory is an input, exported beforehand with::
 
 Examples::
 
-    python3 scripts/riscv_team_b_refresh.py            # dry-run drift report
-    python3 scripts/riscv_team_b_refresh.py --write    # refresh for real
+    python3 scripts/riscv/riscv_team_b_refresh.py            # dry-run drift report
+    python3 scripts/riscv/riscv_team_b_refresh.py --write    # refresh for real
 """
 
 from __future__ import annotations
+
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
 
 import argparse
 import hashlib
@@ -47,12 +50,12 @@ if __package__:
     from .riscv_refinement_lib import audited_inventory
     from .riscv_refinement_lib.model import RefinementError
 else:
-    from riscv_refinement_lib import audited_inventory
-    from riscv_refinement_lib.model import RefinementError
+    from scripts.riscv.riscv_refinement_lib import audited_inventory
+    from scripts.riscv.riscv_refinement_lib.model import RefinementError
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 FORMAL_DIR = ROOT / "formal" / "riscv-refinement"
-PIN_RELATIVE = Path("scripts/riscv_refinement_lib/audited_inventory.py")
+PIN_RELATIVE = Path("scripts/riscv/riscv_refinement_lib/audited_inventory.py")
 PIN_FILE = ROOT / PIN_RELATIVE
 COVERAGE_INDEX = FORMAL_DIR / "team-b-coverage.json"
 GENERATED_AIR_DIR = FORMAL_DIR / "generated" / "air"
@@ -102,7 +105,7 @@ def _run(command: tuple[str, ...], cwd: Path) -> str:
 
 
 def _refinement_command(*arguments: str) -> tuple[str, ...]:
-    return (sys.executable, "scripts/riscv_refinement.py", *arguments)
+    return (sys.executable, "scripts/riscv/riscv_refinement.py", *arguments)
 
 
 def _generation_arguments(air_ir_dir: Path) -> tuple[str, ...]:
@@ -219,7 +222,7 @@ def _refresh_for_real(air_ir_dir: Path, before_count: int) -> list[str]:
     _run(
         (
             sys.executable,
-            "scripts/riscv_team_b.py",
+            "scripts/riscv/riscv_team_b.py",
             "check",
             "--air-ir-dir",
             str(air_ir_dir),
@@ -229,7 +232,7 @@ def _refresh_for_real(air_ir_dir: Path, before_count: int) -> list[str]:
     _run(
         (
             sys.executable,
-            "scripts/riscv_team_b_witnesses.py",
+            "scripts/riscv/riscv_team_b_witnesses.py",
             "--air-ir-dir",
             str(air_ir_dir),
         ),

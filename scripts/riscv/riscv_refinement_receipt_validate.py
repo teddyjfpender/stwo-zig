@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 import re
 import subprocess
 from pathlib import Path
@@ -40,16 +43,16 @@ if __package__:
         _validate_payload_identity,
     )
 else:
-    import riscv_refinement_publication as publication
-    from riscv_refinement_lib import air_program_contract, codec, render, sail
-    from riscv_refinement_lib.audited_inventory import AUDITED_THEOREMS
-    from riscv_refinement_lib.model import (
+    from scripts.riscv import riscv_refinement_publication as publication
+    from scripts.riscv.riscv_refinement_lib import air_program_contract, codec, render, sail
+    from scripts.riscv.riscv_refinement_lib.audited_inventory import AUDITED_THEOREMS
+    from scripts.riscv.riscv_refinement_lib.model import (
         FULL_OPCODE_COUNT,
         SCHEMA_VERSION,
         Paths,
         RefinementError,
     )
-    from riscv_refinement_receipt_constants import (
+    from scripts.riscv.riscv_refinement_receipt_constants import (
         APPROVED_LEAN_AXIOMS,
         MUTATION_THEOREMS,
         NEGATIVE_CONTROLS,
@@ -60,7 +63,7 @@ else:
         TEAM_A_INDEX_RELATIVE,
         TEAM_B_INDEX_RELATIVE,
     )
-    from riscv_refinement_receipt_identity import (
+    from scripts.riscv.riscv_refinement_receipt_identity import (
         _fixed_table_schemas,
         _opcode_mutations,
         _payload_identity,

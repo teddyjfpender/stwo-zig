@@ -137,7 +137,7 @@ construct or rebuild an unrelated product.
 ## Proof-performance basket
 
 The Native basket is the six canonical functional workloads from
-`scripts/native_proof_matrix_lib/model.py`:
+`scripts/native/native_proof_matrix_lib/model.py`:
 
 | AIR | Parameters |
 | --- | --- |

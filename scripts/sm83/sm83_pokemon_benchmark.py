@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 from typing import Any, Sequence
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CORPUS = ROOT.parent / "PE-AGI" / "v1"
 DEFAULT_REPORT = ROOT / "zig-out" / "sm83-pokemon-benchmark.json"
 TRACE_DIRECTORY = Path("build/traces/battle-benchmark-fast")

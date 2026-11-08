@@ -2,6 +2,7 @@
 """Local CUDA-source compile/parity checks on CuMetal; never NVIDIA evidence."""
 from __future__ import annotations
 
+
 import argparse
 import concurrent.futures
 import hashlib
@@ -14,9 +15,11 @@ import subprocess
 import sys
 import time
 
-from cuda_build_lib.product_selection import validate_aot_manifest
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.cuda.cuda_build_lib.product_selection import validate_aot_manifest
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 PIN = "e74b377942f9d2db0f2dde14c5a1b51a9c678692"
 PATCH = ROOT / "conformance/cuda-cumetal-cairo-v0.6-pointer-select.patch"
 

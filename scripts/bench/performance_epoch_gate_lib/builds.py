@@ -6,10 +6,7 @@ import math
 from pathlib import Path
 from typing import Any
 
-try:
-    from scripts.product_identity_lib import ProductIdentityError, validate_canonical_identity
-except ModuleNotFoundError:
-    from product_identity_lib import ProductIdentityError, validate_canonical_identity
+from scripts.repo.product_identity_lib import ProductIdentityError, validate_canonical_identity
 
 from .artifacts import require_artifact
 from .codec import strict_json

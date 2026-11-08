@@ -19,7 +19,7 @@ import tempfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
@@ -198,7 +198,7 @@ def publish_bundle(matrix_dir: Path, archive_dir: Path, expected_report: Path | 
     index, _ = load_object(index_path, "archive index")
     if index.get("schema_version") == 1:
         raise ArchiveError(
-            "archive uses the v1 layout; run scripts/migrate_benchmark_history_v2.py first"
+            "archive uses the v1 layout; run scripts/bench/migrate_benchmark_history_v2.py first"
         )
     if index.get("schema_version") != INDEX_SCHEMA_VERSION:
         raise ArchiveError("archive index schema is incompatible")

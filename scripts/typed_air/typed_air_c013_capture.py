@@ -10,27 +10,27 @@ from dataclasses import asdict
 from pathlib import Path
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 REPOSITORY = SCRIPT_DIR.parent
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
-from scripts.typed_air_c013_capture_lib import (  # noqa: E402
+from scripts.typed_air.typed_air_c013_capture_lib import (  # noqa: E402
     CaptureError,
     PlanSettings,
     build_plan,
     load_and_validate_plan,
     write_plan_new,
 )
-from scripts.typed_air_c013_capture_lib.plan import (  # noqa: E402
+from scripts.typed_air.typed_air_c013_capture_lib.plan import (  # noqa: E402
     ARTIFACT_IDS,
     default_artifacts,
 )
-from scripts.typed_air_c013_capture_lib.runner import (  # noqa: E402
+from scripts.typed_air.typed_air_c013_capture_lib.runner import (  # noqa: E402
     CaptureSettings,
     capture,
 )
-from scripts.typed_air_c013_capture_lib.bundle import validate_bundle  # noqa: E402
+from scripts.typed_air.typed_air_c013_capture_lib.bundle import validate_bundle  # noqa: E402
 
 
 def _artifact(value: str) -> tuple[str, Path]:

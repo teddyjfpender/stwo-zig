@@ -134,7 +134,7 @@ pub fn addReportCheck(
 ) *std.Build.Step {
     const report = b.addSystemCommand(&.{
         "python3",
-        "scripts/check_cairo_metal_report.py",
+        "scripts/cairo/check_cairo_metal_report.py",
         "--report",
     });
     report.addFileArg(proof.report);

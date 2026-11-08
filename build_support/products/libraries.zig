@@ -329,7 +329,7 @@ pub fn addProducts(context: Context) Result {
 
     const downstream = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_downstream_package.py",
+        "scripts/repo/check_downstream_package.py",
         "--repo",
         context.b.build_root.path.?,
     });

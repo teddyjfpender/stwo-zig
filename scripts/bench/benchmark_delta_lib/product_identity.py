@@ -4,22 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
-try:
-    from scripts.benchmark_product_contract_lib import (
-        ProductEvidenceError,
-        comparable_identity,
-        revision_identity,
-        validate_product_identity,
-        validate_receipt,
-    )
-except ModuleNotFoundError:
-    from benchmark_product_contract_lib import (
-        ProductEvidenceError,
-        comparable_identity,
-        revision_identity,
-        validate_product_identity,
-        validate_receipt,
-    )
+from scripts.bench.benchmark_product_contract_lib import (
+    ProductEvidenceError,
+    comparable_identity,
+    revision_identity,
+    validate_product_identity,
+    validate_receipt,
+)
 
 from .common import DeltaError, IncompatibleReports, require_list, require_object
 

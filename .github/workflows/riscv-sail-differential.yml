@@ -71,17 +71,17 @@ jobs:
           case "${{ github.event_name }}" in
             pull_request)
               BASE="$(git merge-base "origin/${{ github.base_ref }}" HEAD)"
-              python3 scripts/riscv_sail_gate.py scope \
+              python3 scripts/riscv/riscv_sail_gate.py scope \
                 --base "$BASE" --head "${{ github.sha }}" \
                 --github-output "$GITHUB_OUTPUT"
               ;;
             push)
-              python3 scripts/riscv_sail_gate.py scope \
+              python3 scripts/riscv/riscv_sail_gate.py scope \
                 --base "${{ github.event.before }}" --head "${{ github.sha }}" \
                 --github-output "$GITHUB_OUTPUT"
               ;;
             *)
-              python3 scripts/riscv_sail_gate.py scope \
+              python3 scripts/riscv/riscv_sail_gate.py scope \
                 --force-live --github-output "$GITHUB_OUTPUT"
               ;;
           esac
@@ -130,7 +130,7 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
-          key: riscv-formal-v2-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json', 'scripts/riscv_formal_tools.py') }}
+          key: riscv-formal-v2-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json', 'scripts/riscv/riscv_formal_tools.py') }}
 
       # device-tree-compiler is Spike's build dependency. z3 is Sail's: the
       # pinned 0.20.2 release binary shells out to an SMT solver, so without
@@ -171,7 +171,7 @@ jobs:
       - name: Assert the pinned toolchain is functional (cache hit or miss)
         id: preflight
         run: |
-          python3 scripts/riscv_sail_gate.py preflight \
+          python3 scripts/riscv/riscv_sail_gate.py preflight \
             --workspace "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal" \
             --sail-compiler "$RUNNER_TEMP/sail/bin/sail" \
             --cache-hit "${{ steps.restore.outputs.cache-hit }}" \
@@ -180,7 +180,7 @@ jobs:
       - name: Run the fail-closed Sail/Spike differential gate
         id: differential
         run: |
-          python3 scripts/riscv_sail_gate.py run \
+          python3 scripts/riscv/riscv_sail_gate.py run \
             --workspace "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal" \
             --sail-compiler "$RUNNER_TEMP/sail/bin/sail" \
             --prepare-on-miss \
@@ -210,7 +210,7 @@ jobs:
         run: |
           # Probe first so a provisioning fault reads as one, rather than
           # surfacing minutes later inside a test binary.
-          python3 scripts/riscv_sail_oracle.py probe
+          python3 scripts/riscv/riscv_sail_oracle.py probe
           zig build test-riscv-release-exhaustive \
             -Driscv-test-filter="malicious prover" -Doptimize=ReleaseSafe
           # Reached only when the required leg actually passed; the verdict
@@ -269,7 +269,7 @@ jobs:
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: ${{ runner.tool_cache }}/stwo-zig/riscv-formal
-          key: riscv-formal-v2-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json', 'scripts/riscv_formal_tools.py') }}
+          key: riscv-formal-v2-${{ runner.os }}-${{ hashFiles('conformance/riscv/rv32im-sail-profile.json', 'conformance/riscv/sail-rvfi-zkvm-entry.patch', 'conformance/riscv/sail-rv32im-override.json', 'conformance/riscv/sail-rv32im-tagged-options.json', 'scripts/riscv/riscv_formal_tools.py') }}
 
       - name: Retain differential report
         if: always()

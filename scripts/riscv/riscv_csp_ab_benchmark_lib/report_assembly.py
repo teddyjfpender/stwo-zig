@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from scripts.riscv_csp_ab_benchmark_lib import contract
+from scripts.riscv.riscv_csp_ab_benchmark_lib import contract
 
 from .host_gate import _now
 

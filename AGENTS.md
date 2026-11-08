@@ -17,7 +17,8 @@ gates. Do not declare this phase complete from component tests or warm timings.
 - The developer entrypoints are `scripts/dev_test.py`,
   `scripts/rv64_gate.sh` before every push, and `scripts/rv64_m8_bench15.py`
   for the regression basket. Extend these entrypoints and their shared
-  libraries; do not add another top-level launcher.
+  libraries; do not add another top-level launcher. Everything else in
+  `scripts/` lives in a `scripts/<area>/` package (`scripts/README.md`).
 - Keep installation, new-block setup, request execution and publication
   ownership explicit. Derive budgets from the allocation schedule. Preserve
   cancellation, failure and teardown invariants with the owner being moved.

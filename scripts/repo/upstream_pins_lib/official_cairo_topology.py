@@ -50,7 +50,7 @@ def check(
         errors.append(f"{relative_path}: source identity is invalid")
 
     generator_path = generator.get("path")
-    if generator_path != "scripts/generate_cairo_witness_topology.py":
+    if generator_path != "scripts/cairo/generate_cairo_witness_topology.py":
         errors.append(f"{relative_path}: generator path drifted")
     else:
         try:

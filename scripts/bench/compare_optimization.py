@@ -3,15 +3,16 @@
 
 from __future__ import annotations
 
+
 import json
 import sys
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from optimization_compare_lib.controller import (  # noqa: E402
+from scripts.bench.optimization_compare_lib.controller import (  # noqa: E402
     BASELINE_DEFAULT,
     BENCHMARK_FULL_REPORT_DEFAULT,
     BENCHMARK_REPORT_DEFAULT,

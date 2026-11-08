@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path, PurePosixPath
 from typing import Any, Mapping, Sequence
 
-from scripts.riscv_csp_ab_benchmark_lib import contract
+from scripts.riscv.riscv_csp_ab_benchmark_lib import contract
 
 
 SOURCE_DIGEST_SCHEMA = b"stwo-native-ab-source-content-v1\0"

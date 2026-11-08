@@ -27,9 +27,9 @@ authenticated external wrapper, which rewrites a temporary manifest to the
 verified projection. Do not run this manifest directly:
 
 ```sh
-python3 scripts/cuda_external_authority.py materialize \
+python3 scripts/cuda/cuda_external_authority.py materialize \
   --output /tmp/stwo-cuda-authority
-python3 scripts/cuda_adapter_external.py run \
+python3 scripts/cuda/cuda_adapter_external.py run \
   --authority-root /tmp/stwo-cuda-authority \
   --output /tmp/stwo-cuda-adapter -- \
   --mode bench \

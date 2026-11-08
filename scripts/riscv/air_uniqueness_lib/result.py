@@ -6,10 +6,7 @@ from dataclasses import dataclass, field
 
 from .smtlib import COPIES
 
-try:
-    from riscv_air_ir_lib.ir import System
-except ModuleNotFoundError:  # Imported as scripts.air_uniqueness_lib in tests.
-    from scripts.riscv_air_ir_lib.ir import System
+from scripts.riscv.riscv_air_ir_lib.ir import System
 
 
 @dataclass

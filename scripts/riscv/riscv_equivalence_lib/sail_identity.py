@@ -10,7 +10,7 @@ from typing import Any
 
 from .contract import EquivalenceError
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 PROFILE_PATH = ROOT / "conformance" / "riscv" / "rv32im-sail-profile.json"
 
 

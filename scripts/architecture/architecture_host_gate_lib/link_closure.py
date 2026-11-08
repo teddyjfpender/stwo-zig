@@ -10,7 +10,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from scripts.product_closure.linkage import (
+from scripts.repo.product_closure.linkage import (
     DynamicLinkage,
     LinkageError,
     check_dynamic,

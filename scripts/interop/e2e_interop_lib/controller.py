@@ -28,41 +28,24 @@ from pathlib import Path
 
 from typing import Any, Optional
 
-try:
-    from zig_protocol_lib.command import test_command
-except ModuleNotFoundError:
-    from scripts.zig_protocol_lib.command import test_command
+from scripts.repo.zig_protocol_lib.command import test_command
 
-try:
-    from e2e_interop_lib import (
-        ACTIVE_MUTATIONS,
-        PLONK_LOGUP_ORACLE_MUTATIONS,
-        archive_receipt,
-        collect_provenance,
-        coverage_manifest,
-        mutate_artifact,
-        plonk_logup_oracle_coverage_manifest,
-        mutations_for_example,
-        register_artifact,
-    )
-    from interop_cli_lib.command import build_command, installed_binary
-except ModuleNotFoundError:
-    from scripts.e2e_interop_lib import (
-        ACTIVE_MUTATIONS,
-        PLONK_LOGUP_ORACLE_MUTATIONS,
-        archive_receipt,
-        collect_provenance,
-        coverage_manifest,
-        mutate_artifact,
-        plonk_logup_oracle_coverage_manifest,
-        mutations_for_example,
-        register_artifact,
-    )
-    from scripts.interop_cli_lib.command import build_command, installed_binary
+from scripts.interop.e2e_interop_lib import (
+    ACTIVE_MUTATIONS,
+    PLONK_LOGUP_ORACLE_MUTATIONS,
+    archive_receipt,
+    collect_provenance,
+    coverage_manifest,
+    mutate_artifact,
+    plonk_logup_oracle_coverage_manifest,
+    mutations_for_example,
+    register_artifact,
+)
+from scripts.interop.interop_cli_lib.command import build_command, installed_binary
 
 
 ROOT = Path(
-    os.environ.get("STWO_ZIG_EXECUTION_ROOT", Path(__file__).resolve().parents[2])
+    os.environ.get("STWO_ZIG_EXECUTION_ROOT", Path(__file__).resolve().parents[3])
 ).resolve()
 REPORT_DEFAULT = ROOT / "vectors" / "reports" / "e2e_interop_report.json"
 ARTIFACT_DIR_DEFAULT = ROOT / "vectors" / "reports" / "interop_artifacts"
@@ -741,8 +724,8 @@ def main() -> int:
 
         gate_sources = {
             Path(__file__).resolve(),
-            ROOT / "scripts/e2e_interop_lib/evidence.py",
-            ROOT / "scripts/e2e_interop_lib/mutations.py",
+            ROOT / "scripts/interop/e2e_interop_lib/evidence.py",
+            ROOT / "scripts/interop/e2e_interop_lib/mutations.py",
             ROOT / "src/interop/examples_artifact.zig",
             ROOT / "src/interop/examples_artifact_verifier.zig",
             ROOT / "src/interop/proof_wire/mod.zig",

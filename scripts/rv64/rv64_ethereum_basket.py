@@ -434,7 +434,7 @@ def ordered_blocks(blocks, selected, execution_order):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--basket", type=Path, default=Path(__file__).resolve().parents[1] / "tests/fixtures/ethereum/basket.json")
+    p.add_argument("--basket", type=Path, default=Path(__file__).resolve().parents[2] / "tests/fixtures/ethereum/basket.json")
     p.add_argument("--manifest", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--backend", choices=["cpu", "gpu"], default="cpu")

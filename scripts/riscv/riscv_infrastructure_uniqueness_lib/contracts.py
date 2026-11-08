@@ -6,10 +6,7 @@ import dataclasses
 import math
 from collections.abc import Iterable
 
-try:
-    from air_satisfaction_lib import infrastructure
-except ModuleNotFoundError:  # Imported through scripts.* in tests.
-    from scripts.air_satisfaction_lib import infrastructure
+from scripts.riscv.air_satisfaction_lib import infrastructure
 
 
 P = infrastructure.P

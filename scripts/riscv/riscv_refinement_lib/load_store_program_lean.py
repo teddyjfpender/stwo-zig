@@ -24,7 +24,7 @@ def render(payload: dict[str, Any]) -> bytes:
     lookups = [event for event in payload["events"] if event["kind"] == "lookup"]
     lines = [
         "-- GENERATED FILE. DO NOT EDIT.",
-        "-- Generator: scripts/riscv_refinement.py",
+        "-- Generator: scripts/riscv/riscv_refinement.py",
         "-- Source: generated/air/lb.air-ir-v2.json",
         "import RiscvRefinement.Air.Bridge.MulhProgram",
         "namespace RiscvRefinement.Air.Bridge",

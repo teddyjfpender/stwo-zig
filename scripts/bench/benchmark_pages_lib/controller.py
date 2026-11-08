@@ -9,7 +9,7 @@ from pathlib import Path
 from .catalog import CatalogError, build_catalog
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 HISTORY_DEFAULT = ROOT / "vectors" / "reports" / "benchmark_history"
 SITE_DEFAULT = ROOT / "bench" / "site"
 REQUIRED_ASSETS = (

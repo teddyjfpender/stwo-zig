@@ -39,7 +39,7 @@ def coverage() -> dict[str, Any]:
         if not entry["enabled_workloads"]
     ]
     try:
-        activation, _ = load_state(Path(__file__).resolve().parents[2])
+        activation, _ = load_state(Path(__file__).resolve().parents[3])
     except ActivationError as error:
         raise BenchmarkError(
             f"CUDA activation authority is invalid: {error}"

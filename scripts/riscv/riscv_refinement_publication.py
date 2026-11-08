@@ -9,6 +9,9 @@ count.
 
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 import re
 from pathlib import Path
 from typing import Any, Mapping
@@ -23,14 +26,14 @@ if __package__:
     from .riscv_refinement_lib.model import Paths, RefinementError
     from .riscv_refinement_receipt_constants import APPROVED_LEAN_AXIOMS
 else:
-    import riscv_opcode_coverage
-    from riscv_refinement_lib import (
+    from scripts.riscv import riscv_opcode_coverage
+    from scripts.riscv.riscv_refinement_lib import (
         air_program,
         air_program_contract,
         sail_lean_bridge,
     )
-    from riscv_refinement_lib.model import Paths, RefinementError
-    from riscv_refinement_receipt_constants import APPROVED_LEAN_AXIOMS
+    from scripts.riscv.riscv_refinement_lib.model import Paths, RefinementError
+    from scripts.riscv.riscv_refinement_receipt_constants import APPROVED_LEAN_AXIOMS
 
 
 FULL_OPCODE_COUNT = 46

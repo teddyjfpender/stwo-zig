@@ -195,11 +195,11 @@ def repository_contract_errors(root: Path, phase: str) -> list[str]:
     required = (
         "conformance/2026-07-26-riscv-sail-contract.md",
         "conformance/divergence-log.md",
-        "scripts/riscv_release_gate.py",
-        "scripts/riscv_formal_tools.py",
-        "scripts/riscv_arch_tests.py",
-        "scripts/riscv_staged_smoke.py",
-        "scripts/riscv_trace_vectors.py",
+        "scripts/riscv/riscv_release_gate.py",
+        "scripts/riscv/riscv_formal_tools.py",
+        "scripts/riscv/riscv_arch_tests.py",
+        "scripts/riscv/riscv_staged_smoke.py",
+        "scripts/riscv/riscv_trace_vectors.py",
         "src/frontends/riscv/air/lang/typed_mulh_authority.zig",
         "src/products/riscv_cpu/capabilities.zig",
     )

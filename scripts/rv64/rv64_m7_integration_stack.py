@@ -5,6 +5,7 @@ prepare freezes existing artifacts/source without touching a GPU. run is reserve
 for Root AFTER native/device coverage hooks and exact process-budget guard are
 ready. Every arm uses one immutable driver, receiver, a25 and addon set.
 """
+
 import argparse
 import json
 import os
@@ -14,9 +15,11 @@ import subprocess
 import sys
 import tempfile
 import time
-from rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, JOBS_FLAGS
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64.rv64_validation import fingerprints, sha, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, JOBS_FLAGS
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent
 DEFAULT_PRESET = HERE.parent / 'design/riscv-proving-stack/m7-handoff/integration-stack-preset.json'
 # Canonical default CUDA runtime (owner decision 2026-11-07): the source-built
 # opt-combined image. p0-runtime.json (frozen a25) stays as an explicit control.
@@ -151,7 +154,7 @@ def command(manifest, arm, round_index, run_root, profile, label="one-stack"):
     assets = manifest['assets']
     preset = manifest['preset']
     tag = f'{label}-{round_index:02d}-{arm}'
-    argv = [sys.executable, str(root / 'scripts/rv64_m4_resident.py'), 'daemon', str(manifest['block']),
+    argv = [sys.executable, str(root / 'scripts/rv64/rv64_m4_resident.py'), 'daemon', str(manifest['block']),
             '--stream', run_root, '--build-stream', run_root, '--repeat', '2', '--store', 'none',
             '--receive', 'none', '--security-profile', preset['security_profile'],
             '--driver', assets['driver'], '--library', assets['library'], '--receiver', assets['receiver'],
@@ -188,8 +191,6 @@ def guard_verdict(receipt, arm):
             'ceiling_bytes': {str(d['device']): d['prover_physical_ceiling_bytes'] for d in devices},
             'observed_exact_process_peak_bytes': None,
             'scope': 'successful proof under physical availability ceiling; not an observed peak'}
-
-
 
 
 def run(args):
@@ -250,7 +251,7 @@ def run(args):
         write(output / 'experiment.json', result)
     # Do not contaminate interleaved timings/quiet state with CPU receivers.
     for entry in result['services']:
-        argv = [sys.executable, str(root / 'scripts/rv64_m4_resident.py'), 'receive', '--run', entry['run'],
+        argv = [sys.executable, str(root / 'scripts/rv64/rv64_m4_resident.py'), 'receive', '--run', entry['run'],
                 '--which', 'all', '--receiver-workers', str(args.receiver_workers)]
         with (output / f'{entry["order_index"]}-{entry["arm"]}-receiver.log').open('w') as log:
             code = subprocess.run(argv, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT).returncode
@@ -266,7 +267,7 @@ def run(args):
         for entry in result['services']:
             if not entry['profiled']:
                 continue
-            argv = [sys.executable, str(root / 'scripts/rv64_m7_gpu_seconds.py'), entry['run'], '--accepted-run', entry['run']]
+            argv = [sys.executable, str(root / 'scripts/rv64/rv64_m7_gpu_seconds.py'), entry['run'], '--accepted-run', entry['run']]
             with (output / f'{entry["order_index"]:02d}-gpu-seconds.log').open('w') as log:
                 subprocess.run(argv, cwd=root, env=environment, check=True, stdout=log, stderr=subprocess.STDOUT)
             entry['gpu_seconds'] = json.loads((Path(entry['run']) / 'gpu-seconds.json').read_text())

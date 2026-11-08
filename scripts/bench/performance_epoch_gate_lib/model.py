@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_PROTOCOL = ROOT / "conformance/build-monorepo-performance-baseline-v2-protocol-v2.json"
 PLAN_SCHEMA = "build-monorepo-performance-capture-plan-v1"
 RECEIPT_SCHEMA = "build-monorepo-performance-baseline-v2"

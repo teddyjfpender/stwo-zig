@@ -11,7 +11,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from scripts.product_identity_lib import validate_canonical_identity
+from scripts.repo.product_identity_lib import validate_canonical_identity
 
 
 ARTIFACT_FIELDS = {

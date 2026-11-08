@@ -57,7 +57,7 @@ unchanged.
 | `refined` | refinement theorem and tuple projections | refinement, tuple |
 | `proved` | plus a witness and a named, load-bearing Lean mutation control | refinement, tuple, non-vacuity, mutation, mutation_theorem |
 
-A state cannot overstate what exists: `scripts/riscv_team_b.py coverage`
+A state cannot overstate what exists: `scripts/riscv/riscv_team_b.py coverage`
 refuses a certificate claiming a state without the fields that state requires,
 and `theorems` refuses a certificate naming a theorem that is not in the Lean
 sources.
@@ -149,7 +149,7 @@ Writing a new control, in order:
 | `div` | DIV, DIVU, REM, REMU | `Air/Family/Div.lean` | the Stage B3 stress gate |
 
 Each capsule records the SHA-256 of the exported production AIR it was
-transcribed from. `scripts/riscv_team_b.py ir-digests` recomputes those digests
+transcribed from. `scripts/riscv/riscv_team_b.py ir-digests` recomputes those digests
 from a fresh `zig build riscv-refinement-ir` export and fails closed on any
 difference, so a production AIR change invalidates the transcription rather than
 silently diverging from it.
@@ -171,7 +171,7 @@ computed in the M31 base field, so the old AIR admitted base `0x7FFFFFFB` with
 displacement `+8` as a read at `0x00000004`, even though the architectural
 address is `0x80000003`. The source fix pins the base's high limb to zero on
 active rows, bounding the base below `2^24`; the old counterexample now fails
-at constraint root C69. `scripts/riscv_team_b_witnesses.py` requires that exact
+at constraint root C69. `scripts/riscv/riscv_team_b_witnesses.py` requires that exact
 rejection and also checks that a zero-high-byte control row remains reachable.
 
 **Alignment is enforced by equality constraints together with the range check,
@@ -223,10 +223,10 @@ Run from the repository root.
 zig build riscv-refinement-ir -Driscv-refinement-ir-dir=zig-out/team-b-ir
 
 # Coverage, certificates, profile claims, and AIR bindings.
-python3 scripts/riscv_team_b.py check --air-ir-dir zig-out/team-b-ir
+python3 scripts/riscv/riscv_team_b.py check --air-ir-dir zig-out/team-b-ir
 
 # Non-vacuity witnesses checked against the production AIR, not the capsule.
-python3 scripts/riscv_team_b_witnesses.py --air-ir-dir zig-out/team-b-ir
+python3 scripts/riscv/riscv_team_b_witnesses.py --air-ir-dir zig-out/team-b-ir
 
 # Every theorem, and the axiom audit.
 cd formal/riscv-refinement && lake build
@@ -244,7 +244,7 @@ rebuilds everything from empty caches and re-checks the environment through
 A Lean non-vacuity theorem proves a row satisfies the *transcribed capsule*. If
 the transcription drifted, that row could be unreachable in production and the
 "honest witness" would be honest about the wrong system.
-`scripts/riscv_team_b_witnesses.py` evaluates the same witnesses against the
+`scripts/riscv/riscv_team_b_witnesses.py` evaluates the same witnesses against the
 *exported production* AIR — every constraint root over M31 and every active
 range request against the widths the production tables actually provide. A
 witness that passes both is reachable in the shipped AIR and satisfies the

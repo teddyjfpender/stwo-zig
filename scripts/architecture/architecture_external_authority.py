@@ -11,19 +11,19 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-AUTHORITY_ROOT = Path(__file__).resolve().parents[1]
+AUTHORITY_ROOT = Path(__file__).resolve().parents[2]
 if str(AUTHORITY_ROOT) not in sys.path:
     sys.path.insert(0, str(AUTHORITY_ROOT))
 
-from scripts.architecture_host_gate_lib import controller as host_controller  # noqa: E402
-from scripts.architecture_host_gate_lib import plan as host_plan  # noqa: E402
-from scripts.architecture_host_gate_lib import preimages  # noqa: E402
-from scripts import architecture_native_oracle  # noqa: E402
-from scripts.build_architecture_receipt_lib.codec import sha256_file, strict_json  # noqa: E402
-from scripts.build_architecture_receipt_lib.model import ReceiptError, require_hex40  # noqa: E402
-from scripts.build_architecture_receipt_lib.producer import produce  # noqa: E402
-from scripts.build_architecture_receipt_lib.protocol import load_protocol  # noqa: E402
-from scripts.build_architecture_receipt_lib.verifier import verify as verify_receipts  # noqa: E402
+from scripts.architecture.architecture_host_gate_lib import controller as host_controller  # noqa: E402
+from scripts.architecture.architecture_host_gate_lib import plan as host_plan  # noqa: E402
+from scripts.architecture.architecture_host_gate_lib import preimages  # noqa: E402
+from scripts.architecture import architecture_native_oracle  # noqa: E402
+from scripts.architecture.build_architecture_receipt_lib.codec import sha256_file, strict_json  # noqa: E402
+from scripts.architecture.build_architecture_receipt_lib.model import ReceiptError, require_hex40  # noqa: E402
+from scripts.architecture.build_architecture_receipt_lib.producer import produce  # noqa: E402
+from scripts.architecture.build_architecture_receipt_lib.protocol import load_protocol  # noqa: E402
+from scripts.architecture.build_architecture_receipt_lib.verifier import verify as verify_receipts  # noqa: E402
 
 
 CONTRACT = AUTHORITY_ROOT / "conformance/build-architecture-external-verifier-v1.json"

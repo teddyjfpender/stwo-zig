@@ -21,9 +21,9 @@
     "both_frontends_and_unicorn_agree": true
   },
   "source_sha256": {
-    "scripts/riscv64_csp_compare.py": "f09d4558d889359fc0d5911c96ad2a2d3054343e49e3a5a944cd2083c78180e6",
-    "scripts/riscv64_differential.py": "973b2ddddec9dd57920652cb69301100c64c500356fc35cee9aeb8a3c63eaa9f",
-    "scripts/riscv64_foundations_benchmark.py": "b9cbc53189b3473a64e2861288f15928c363e9fd030b7095d0506733dbe86817",
+    "scripts/rv64/riscv64_csp_compare.py": "f09d4558d889359fc0d5911c96ad2a2d3054343e49e3a5a944cd2083c78180e6",
+    "scripts/rv64/riscv64_differential.py": "973b2ddddec9dd57920652cb69301100c64c500356fc35cee9aeb8a3c63eaa9f",
+    "scripts/rv64/riscv64_foundations_benchmark.py": "b9cbc53189b3473a64e2861288f15928c363e9fd030b7095d0506733dbe86817",
     "scripts/tests/test_riscv64_tools.py": "2f4eea392ae08fddabd4069386273f8a825a873717c21dce1a9acba6835de935",
     "src/frontends/riscv/rv64/benchmark.zig": "c901d901f8dc3662af7a15ca24b80111066a07a918c8d266cc9f2fdb0802bc5c",
     "src/frontends/riscv/rv64/build.zig": "f9bb1f9b405384fa84a5ba56cc2606fb94057941fafae0c223019ef62536c921",

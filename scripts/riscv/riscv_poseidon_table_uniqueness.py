@@ -33,49 +33,30 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Callable, Sequence
 
-try:
-    from air_satisfaction_lib import infrastructure, poseidon2
-    from air_satisfaction_lib.field import P, QM31, QM31_ONE, QM31_ZERO
-    from riscv_poseidon_table_uniqueness_lib.models import (
-        AuditError,
-        AuditReport,
-        PoseidonAudit,
-        TableAudit,
-    )
-    from riscv_poseidon_table_uniqueness_lib.tables import (
-        TABLE_ORDER,
-        TABLE_SEMANTIC_DIGESTS,
-        audit_tables,
-        committed_index as _committed_index,
-        dummy_denominator as _dummy_denominator,
-        table_formula as _table_formula,
-        table_index as _table_index,
-        transition_residual as _transition_residual,
-        zero_denominator_counterexample as _zero_denominator_counterexample,
-    )
-except ModuleNotFoundError:  # Imported as scripts.riscv_poseidon_table_uniqueness.
-    from scripts.air_satisfaction_lib import infrastructure, poseidon2
-    from scripts.air_satisfaction_lib.field import P, QM31, QM31_ONE, QM31_ZERO
-    from scripts.riscv_poseidon_table_uniqueness_lib.models import (
-        AuditError,
-        AuditReport,
-        PoseidonAudit,
-        TableAudit,
-    )
-    from scripts.riscv_poseidon_table_uniqueness_lib.tables import (
-        TABLE_ORDER,
-        TABLE_SEMANTIC_DIGESTS,
-        audit_tables,
-        committed_index as _committed_index,
-        dummy_denominator as _dummy_denominator,
-        table_formula as _table_formula,
-        table_index as _table_index,
-        transition_residual as _transition_residual,
-        zero_denominator_counterexample as _zero_denominator_counterexample,
-    )
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.air_satisfaction_lib import infrastructure, poseidon2
+from scripts.riscv.air_satisfaction_lib.field import P, QM31, QM31_ONE, QM31_ZERO
+from scripts.riscv.riscv_poseidon_table_uniqueness_lib.models import (
+    AuditError,
+    AuditReport,
+    PoseidonAudit,
+    TableAudit,
+)
+from scripts.riscv.riscv_poseidon_table_uniqueness_lib.tables import (
+    TABLE_ORDER,
+    TABLE_SEMANTIC_DIGESTS,
+    audit_tables,
+    committed_index as _committed_index,
+    dummy_denominator as _dummy_denominator,
+    table_formula as _table_formula,
+    table_index as _table_index,
+    transition_residual as _transition_residual,
+    zero_denominator_counterexample as _zero_denominator_counterexample,
+)
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 # These bindings cover field and relation-challenge algebra, the production AIR
 # adapters and constraint schedules, the fixed-table generator and placement,
@@ -116,11 +97,11 @@ SOURCE_BINDINGS: dict[str, str] = {
         "d648017174f8f122562617b0d823843900ad0b7eb8ba5db2ac3d91f20e86335b",
     "src/frontends/riscv/infra_trace/permutation.zig":
         "2e6551f2c758b18f4a620d166b908a269297e9f1a74308c2ebd769dd8a474b98",
-    "scripts/air_satisfaction_lib/poseidon2.py":
+    "scripts/riscv/air_satisfaction_lib/poseidon2.py":
         "13e6e97035652e250859e2dfa77c20ff373dda47d1cc44b093e8725f64f0ede3",
-    "scripts/air_satisfaction_lib/infrastructure.py":
+    "scripts/riscv/air_satisfaction_lib/infrastructure.py":
         "dc2df08d61cc4d5e9b2e9c995d55df20e8489edd0b6b5b45246455033a0791f7",
-    "scripts/air_satisfaction_lib/field.py":
+    "scripts/riscv/air_satisfaction_lib/field.py":
         "84402a223ddb4622fdeab073186ba9e3614dd5d9887d8b4c8e339e866571daf9",
 }
 

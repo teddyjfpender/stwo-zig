@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 REPORTS_DIR = ROOT / "vectors" / "reports"
 REPORT_DEFAULT = REPORTS_DIR / "release_evidence.json"
 LATEST_DEFAULT = REPORTS_DIR / "latest_release_evidence.json"
@@ -87,30 +87,30 @@ def load_optional_report(path: Path, *, name: str) -> tuple[dict[str, Any], dict
 
 def gate_steps(gate_mode: str) -> list[dict[str, str]]:
     benchmark_cmd = (
-        "python3 scripts/benchmark_smoke.py --include-medium --warmups 3 --repeats 11"
+        "python3 scripts/bench/benchmark_smoke.py --include-medium --warmups 3 --repeats 11"
         if gate_mode == "strict"
-        else "python3 scripts/benchmark_smoke.py"
+        else "python3 scripts/bench/benchmark_smoke.py"
     )
     steps = [
         {"name": "fmt", "command": "zig fmt --check build.zig src tools"},
-        {"name": "test", "command": "python3 scripts/zig_protocol_test.py src/stwo.zig"},
-        {"name": "api_parity", "command": "python3 scripts/check_api_parity.py"},
-        {"name": "deep_gate", "command": "python3 scripts/zig_protocol_test.py src/stwo_deep.zig"},
-        {"name": "vectors_fields", "command": "python3 scripts/parity_fields.py --skip-zig"},
-        {"name": "vectors_constraint", "command": "python3 scripts/parity_constraint_expr.py --skip-zig"},
-        {"name": "vectors_air_derive", "command": "python3 scripts/parity_air_derive.py --skip-zig"},
+        {"name": "test", "command": "python3 scripts/repo/zig_protocol_test.py src/stwo.zig"},
+        {"name": "api_parity", "command": "python3 scripts/repo/check_api_parity.py"},
+        {"name": "deep_gate", "command": "python3 scripts/repo/zig_protocol_test.py src/stwo_deep.zig"},
+        {"name": "vectors_fields", "command": "python3 scripts/repo/parity_fields.py --skip-zig"},
+        {"name": "vectors_constraint", "command": "python3 scripts/repo/parity_constraint_expr.py --skip-zig"},
+        {"name": "vectors_air_derive", "command": "python3 scripts/repo/parity_air_derive.py --skip-zig"},
         {
             "name": "interop",
             "command": (
-                "python3 scripts/e2e_interop.py --archive-dir "
+                "python3 scripts/interop/e2e_interop.py --archive-dir "
                 f"{INTEROP_GATE_ARCHIVE}"
             ),
         },
         {"name": "benchmark", "command": benchmark_cmd},
-        {"name": "profile", "command": "python3 scripts/profile_smoke.py"},
+        {"name": "profile", "command": "python3 scripts/bench/profile_smoke.py"},
     ]
     if gate_mode == "strict":
-        steps.insert(8, {"name": "prove_checkpoints", "command": "python3 scripts/prove_checkpoints.py"})
+        steps.insert(8, {"name": "prove_checkpoints", "command": "python3 scripts/interop/prove_checkpoints.py"})
         steps.append(
             {
                 "name": "std_shims",
@@ -120,7 +120,7 @@ def gate_steps(gate_mode: str) -> list[dict[str, str]]:
         steps.append(
             {
                 "name": "std_shims_behavior",
-                "command": "python3 scripts/std_shims_behavior.py",
+                "command": "python3 scripts/interop/std_shims_behavior.py",
             }
         )
     return steps

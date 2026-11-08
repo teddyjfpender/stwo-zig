@@ -2,6 +2,9 @@
 """Run a pinned Cairo workload matrix serially, retaining failures and proof parity."""
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 import argparse
 import json
 import os
@@ -12,9 +15,9 @@ import sys
 if __package__:
     from . import benchmark_cairo as benchmark
 else:
-    import benchmark_cairo as benchmark
+    from scripts.cairo import benchmark_cairo as benchmark
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MANIFEST = ROOT / "bench/cairo/manifest.json"
 SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 

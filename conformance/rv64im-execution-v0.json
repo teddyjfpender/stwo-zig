@@ -22,7 +22,7 @@
   "base_commit": "9f65f77779f700d9e01f9ae7a33667b6b8ff142a",
   "zig_version": "0.15.2",
   "source_sha256": {
-    "scripts/riscv64_differential.py": "c612ff012f3ed033a863ed1cd2947c4346fbab44e170524c2e58cf7bf2cca974",
+    "scripts/rv64/riscv64_differential.py": "c612ff012f3ed033a863ed1cd2947c4346fbab44e170524c2e58cf7bf2cca974",
     "src/frontends/riscv/rv64/build.zig": "02b8641d2ddb902c570f00ca6a44b6165c0b4e2ba420a86b52df93e433254fb7",
     "src/frontends/riscv/rv64/decode.zig": "b335abf03a1f4c4eba3f3d0422392af0669a1df83a7b929e94de64363307540e",
     "src/frontends/riscv/rv64/diagnostic.zig": "4724782ceeacf75e4c0e4ed97639540f5328560a8296d6070489aba359525dbf",

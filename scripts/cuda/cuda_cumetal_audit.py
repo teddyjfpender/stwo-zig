@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 import argparse
 import hashlib
 import json
@@ -12,13 +13,15 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from cuda_build_lib.cumetal_toolchain import (
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.cuda.cuda_build_lib.cumetal_toolchain import (
     CuMetalToolchainError,
     verify_checkout,
 )
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_LEDGER = ROOT / "conformance/cuda-cumetal-compatibility-v1.json"
 TRANSLATED = {"translated", "translated_host_parity_bitreverse"}
 BLOCKERS = {

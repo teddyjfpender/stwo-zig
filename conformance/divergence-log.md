@@ -9,8 +9,8 @@ Some rows are architectural disclosures rather than temporary debts: their
 absence is itself a gate failure, because deleting them would hide a permanent
 divergence or an oracle limitation. Those rows are listed in
 `REQUIRED_ARCHITECTURAL_DIVERGENCES` in
-`scripts/riscv_release_gate_lib/contract.py`, and their conditions are read by
-`python3 scripts/check_riscv_release_contract.py --all`; a row's status text and
+`scripts/riscv/riscv_release_gate_lib/contract.py`, and their conditions are read by
+`python3 scripts/riscv/check_riscv_release_contract.py --all`; a row's status text and
 the code that enforces it must be changed together.
 
 ## Active divergences

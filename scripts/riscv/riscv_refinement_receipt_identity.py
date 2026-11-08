@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 import shutil
 import sys
 from pathlib import Path
@@ -24,17 +27,17 @@ if __package__:
         TEAM_B_INDEX_RELATIVE,
     )
 else:
-    import riscv_team_a
-    import riscv_team_b
-    from riscv_refinement_lib import air_program, air_program_contract, codec, render
-    from riscv_refinement_lib.model import (
+    from scripts.riscv import riscv_team_a
+    from scripts.riscv import riscv_team_b
+    from scripts.riscv.riscv_refinement_lib import air_program, air_program_contract, codec, render
+    from scripts.riscv.riscv_refinement_lib.model import (
         FULL_OPCODE_COUNT,
         SCHEMA_VERSION,
         Paths,
         RefinementError,
     )
-    from riscv_refinement_lib.process import _run
-    from riscv_refinement_receipt_constants import (
+    from scripts.riscv.riscv_refinement_lib.process import _run
+    from scripts.riscv.riscv_refinement_receipt_constants import (
         APPROVED_LEAN_AXIOMS,
         OPCODE_INDEX_RELATIVE,
         TEAM_A_INDEX_RELATIVE,

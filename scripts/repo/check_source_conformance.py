@@ -32,35 +32,23 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-try:
-    from scripts.source_conformance_lib import (
-        build_graph,
-        change_scope,
-        comments,
-        owners,
-        python_graph,
-        report,
-        rust_graph,
-        rv64_flags,
-        typed_air_proposals,
-    )
-    from scripts.source_conformance_lib.model import Finding, headroom, is_headroom
-except ModuleNotFoundError:  # Direct execution adds scripts/, not the repository root.
-    from source_conformance_lib import (
-        build_graph,
-        change_scope,
-        comments,
-        owners,
-        python_graph,
-        report,
-        rust_graph,
-        rv64_flags,
-        typed_air_proposals,
-    )
-    from source_conformance_lib.model import Finding, headroom, is_headroom
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.repo.source_conformance_lib import (
+    build_graph,
+    change_scope,
+    comments,
+    owners,
+    python_graph,
+    report,
+    rust_graph,
+    rv64_flags,
+    typed_air_proposals,
+)
+from scripts.repo.source_conformance_lib.model import Finding, headroom, is_headroom
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_BASELINE = ROOT / "conformance/source-baseline.json"
 BASELINE_VERSION = 3
 BASELINE_TRACKS = ("active_native_backend", "deferred_todo")
@@ -396,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
         choices=BASELINE_TRACKS,
         help=(
             "reject baseline findings assigned to one track; optimization-readiness command: "
-            "python3 scripts/check_source_conformance.py --strict-track active_native_backend"
+            "python3 scripts/repo/check_source_conformance.py --strict-track active_native_backend"
         ),
     )
     args = parser.parse_args(argv)

@@ -54,8 +54,8 @@ scope, and a green result says nothing about any of it:
 
 Usage
 -----
-    python3 -m scripts.air_satisfaction explain
-    python3 -m scripts.air_satisfaction check [--dump PATH] [--ir DIR]
+    python3 -m scripts.riscv.air_satisfaction explain
+    python3 -m scripts.riscv.air_satisfaction check [--dump PATH] [--ir DIR]
         [--max-report N]
 
 `check` exits 0 when every row is satisfied and the ledger closes, and 1
@@ -70,14 +70,11 @@ import argparse
 import sys
 from pathlib import Path
 
-try:
-    from air_satisfaction_lib import dump as dump_mod
-    from air_satisfaction_lib import infrastructure, logup, rows
-    from riscv_air_ir_lib import ir
-except ModuleNotFoundError:  # Imported as scripts.air_satisfaction in tests.
-    from scripts.air_satisfaction_lib import dump as dump_mod
-    from scripts.air_satisfaction_lib import infrastructure, logup, rows
-    from scripts.riscv_air_ir_lib import ir
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.air_satisfaction_lib import dump as dump_mod
+from scripts.riscv.air_satisfaction_lib import infrastructure, logup, rows
+from scripts.riscv.riscv_air_ir_lib import ir
 
 DEFAULT_DUMP = Path("zig-out/committed-trace/honest.json")
 DEFAULT_IR = Path("zig-out/uniqueness-ir")

@@ -16,10 +16,9 @@ import time
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
-try:
-    from scripts import typed_air_zig_gate_execution as gate_execution
-except ModuleNotFoundError:  # Direct sibling import from scripts/.
-    import typed_air_zig_gate_execution as gate_execution
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.typed_air import typed_air_zig_gate_execution as gate_execution
 
 
 AUTHORITY_SCHEMA = "stwo.typed-air.zig-gate-authority.v1"

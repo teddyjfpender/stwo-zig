@@ -16,12 +16,12 @@ import sys
 from pathlib import Path
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 ROOT = SCRIPT_DIR.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.riscv_recursion_csp_benchmark_lib import (  # noqa: E402
+from scripts.riscv.riscv_recursion_csp_benchmark_lib import (  # noqa: E402
     EvidenceError,
     atomic_write_new,
     build_comparison,
@@ -42,8 +42,8 @@ CURRENT_SOURCE_CAPTURE_GUIDANCE = """canonical recursive CSP comparison requires
 Prerequisite: `git status --porcelain=v1 --untracked-files=all` must print nothing.
 Capture it with fresh output paths:
   zig build stwo-zig-riscv-cpu riscv-trace-dump riscv-recursion-csp-producer -Doptimize=ReleaseFast
-  python3 scripts/riscv_csp_benchmark.py --backend cpu --cli zig-out/bin/stwo-zig-riscv-cpu --trace-cli zig-out/bin/riscv-trace-dump --report-out zig-out/riscv-csp-current-native.json
-  python3 scripts/riscv_recursion_csp_benchmark.py plan --native-report zig-out/riscv-csp-current-native.json --output zig-out/riscv-recursion-current.plan.json
+  python3 scripts/riscv/riscv_csp_benchmark.py --backend cpu --cli zig-out/bin/stwo-zig-riscv-cpu --trace-cli zig-out/bin/riscv-trace-dump --report-out zig-out/riscv-csp-current-native.json
+  python3 scripts/riscv/riscv_recursion_csp_benchmark.py plan --native-report zig-out/riscv-csp-current-native.json --output zig-out/riscv-recursion-current.plan.json
 The report, plan, artifact directory, and final output paths must not already exist."""
 
 

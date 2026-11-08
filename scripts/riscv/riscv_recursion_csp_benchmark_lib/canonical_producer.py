@@ -15,7 +15,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from scripts.riscv_csp_benchmark_lib.contract import (
+from scripts.riscv.riscv_csp_benchmark_lib.contract import (
     BenchmarkError,
     MANIFEST,
     Case,

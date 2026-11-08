@@ -10,12 +10,10 @@ import zipfile
 from pathlib import Path
 from unittest import mock
 
-from scripts.architecture_host_gate_lib import capture, controller, plan, preimages, validators
-from scripts.architecture_host_gate_lib import performance_readiness
-from scripts.build_architecture_receipt_lib.protocol import load_protocol
-from scripts import performance_epoch_gate
-
-
+from scripts.architecture.architecture_host_gate_lib import capture, controller, plan, preimages, validators
+from scripts.architecture.architecture_host_gate_lib import performance_readiness
+from scripts.architecture.build_architecture_receipt_lib.protocol import load_protocol
+from scripts.bench import performance_epoch_gate
 SHA = "1" * 40
 TREE = "2" * 40
 

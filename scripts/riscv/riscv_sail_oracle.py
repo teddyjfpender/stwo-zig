@@ -23,11 +23,11 @@ dead oracle starts to look like a passing one.
 Exit codes mirror verdicts: 0 EQUIVALENT, 1 DIVERGENT, 2 ERROR,
 3 UNAVAILABLE. stdout is a single JSON report; humans and Zig tests
 parse the same object. Comparison semantics live in
-scripts/riscv_equivalence.py; this module adds only resolution,
+scripts/riscv/riscv_equivalence.py; this module adds only resolution,
 classification, and the report shape.
 
-  python3 scripts/riscv_sail_oracle.py probe
-  python3 scripts/riscv_sail_oracle.py check --elf guest.elf --trace trace.json \
+  python3 scripts/riscv/riscv_sail_oracle.py probe
+  python3 scripts/riscv/riscv_sail_oracle.py check --elf guest.elf --trace trace.json \
       [--memory initial_memory.json]
 
 --memory declares the memory image the runner started from (ELF data, the
@@ -38,12 +38,13 @@ memory. The image comes from the guest's definition, never from the trace.
 
 The binary is resolved from, in order: --sail-bin, $STWO_RISCV_SAIL_BIN,
 $STWO_RISCV_FORMAL_WORKSPACE, then the documented default workspace
-/tmp/stwo-riscv-formal (scripts/riscv_formal_tools.py prepare). The
+/tmp/stwo-riscv-formal (scripts/riscv/riscv_formal_tools.py prepare). The
 first candidate that is configured wins and must verify; a configured
 but wrong binary is never silently papered over by a later candidate.
 """
 
 from __future__ import annotations
+
 
 import argparse
 import hashlib
@@ -56,12 +57,12 @@ from pathlib import Path
 from typing import Any, Mapping
 
 if __package__:
-    from scripts import riscv_equivalence as equivalence
-    from scripts.riscv_sail_oracle_lib import resolution
-else:  # direct execution: python3 scripts/riscv_sail_oracle.py
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import riscv_equivalence as equivalence
-    from riscv_sail_oracle_lib import resolution
+    from scripts.riscv import riscv_equivalence as equivalence
+    from scripts.riscv.riscv_sail_oracle_lib import resolution
+else:  # direct execution: python3 scripts/riscv/riscv_sail_oracle.py
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.riscv import riscv_equivalence as equivalence
+    from scripts.riscv.riscv_sail_oracle_lib import resolution
 
 
 REPORT_SCHEMA = "stwo-riscv-sail-oracle-report-v1"

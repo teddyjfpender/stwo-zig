@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from scripts.riscv_csp_benchmark_lib.contract import (
+from scripts.riscv.riscv_csp_benchmark_lib.contract import (
     BenchmarkError,
     TARGET_ORDER,
     repo_path,

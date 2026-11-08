@@ -29,64 +29,36 @@ import time
 from pathlib import Path
 from typing import Any
 
-try:
-    from . import riscv_team_a_support as _support
-    from . import riscv_team_b as shared
-    from .riscv_refinement_lib import air_program, air_program_layout, render
-    from .riscv_refinement_lib.model import RefinementError
-except ImportError:
-    import riscv_team_a_support as _support
-    import riscv_team_b as shared
-    from riscv_refinement_lib import air_program, air_program_layout, render
-    from riscv_refinement_lib.model import RefinementError
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv import riscv_team_a_support as _support
+from scripts.riscv import riscv_team_b as shared
+from scripts.riscv.riscv_refinement_lib import air_program, air_program_layout, render
+from scripts.riscv.riscv_refinement_lib.model import RefinementError
 
 
-try:
-    from .riscv_team_a_constants import (
-        AIR_PROGRAM_ROOT,
-        APPROVED_AXIOMS,
-        CERTIFICATE_FIELDS,
-        CERTIFICATE_INDEX,
-        EXPECTED_PROOF_BINDINGS,
-        FORMAL_ROOT, FULL_OPCODE_COUNT,
-        GENERATED_SAIL_INPUT_THEOREMS,
-        GENERATED_SAIL_RECEIPT,
-        GENERATED_SAIL_RETIREMENT_THEOREMS,
-        HEX_DIGEST,
-        LEAN_ROOT, MAX_PROOF_TIME_MS,
-        OPTIONAL_CERTIFICATE_FIELDS,
-        PROOF_TIMING_TARGETS,
-        RAW_COLUMN_MODELS,
-        REPOSITORY_ROOT,
-        SAIL_BINDINGS,
-        TEAM_A_FAMILIES,
-        TEAM_A_OPCODE_COUNT,
-        THEOREM_FIELDS,
-        TeamAError,
-    )
-except ImportError:
-    from riscv_team_a_constants import (
-        AIR_PROGRAM_ROOT,
-        APPROVED_AXIOMS,
-        CERTIFICATE_FIELDS,
-        CERTIFICATE_INDEX,
-        EXPECTED_PROOF_BINDINGS,
-        FORMAL_ROOT, FULL_OPCODE_COUNT,
-        GENERATED_SAIL_INPUT_THEOREMS,
-        GENERATED_SAIL_RECEIPT,
-        GENERATED_SAIL_RETIREMENT_THEOREMS,
-        HEX_DIGEST,
-        LEAN_ROOT, MAX_PROOF_TIME_MS,
-        OPTIONAL_CERTIFICATE_FIELDS,
-        PROOF_TIMING_TARGETS,
-        RAW_COLUMN_MODELS,
-        REPOSITORY_ROOT,
-        SAIL_BINDINGS,
-        TEAM_A_FAMILIES,
-        TEAM_A_OPCODE_COUNT,
-        THEOREM_FIELDS,
-        TeamAError,
-    )
+from scripts.riscv.riscv_team_a_constants import (
+    AIR_PROGRAM_ROOT,
+    APPROVED_AXIOMS,
+    CERTIFICATE_FIELDS,
+    CERTIFICATE_INDEX,
+    EXPECTED_PROOF_BINDINGS,
+    FORMAL_ROOT, FULL_OPCODE_COUNT,
+    GENERATED_SAIL_INPUT_THEOREMS,
+    GENERATED_SAIL_RECEIPT,
+    GENERATED_SAIL_RETIREMENT_THEOREMS,
+    HEX_DIGEST,
+    LEAN_ROOT, MAX_PROOF_TIME_MS,
+    OPTIONAL_CERTIFICATE_FIELDS,
+    PROOF_TIMING_TARGETS,
+    RAW_COLUMN_MODELS,
+    REPOSITORY_ROOT,
+    SAIL_BINDINGS,
+    TEAM_A_FAMILIES,
+    TEAM_A_OPCODE_COUNT,
+    THEOREM_FIELDS,
+    TeamAError,
+)
 
 def manifest_opcodes() -> list[tuple[str, str, int]]:
     try:
@@ -498,7 +470,7 @@ def check_air_programs(
             ) from exc
         try:
             receipt = air_program_layout.load_receipt(
-                Path(__file__).resolve().parents[1]
+                Path(__file__).resolve().parents[2]
                 / air_program_layout.RECEIPT_RELATIVE_PATH
             )
             fresh_unsigned = air_program_layout.normalize_inventory(

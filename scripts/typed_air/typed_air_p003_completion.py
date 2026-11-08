@@ -16,25 +16,25 @@ from pathlib import Path
 from typing import Any, Sequence
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 REPOSITORY = SCRIPT_DIR.parent
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
-from scripts.typed_air_r006_capture_lib.codec import (  # noqa: E402
+from scripts.typed_air.typed_air_r006_capture_lib.codec import (  # noqa: E402
     canonical_bytes,
     content_digest,
     decode_strict,
     exact_object,
     write_new,
 )
-from scripts.typed_air_r006_capture_lib.model import CaptureError  # noqa: E402
-from scripts.typed_air_r006_capture_lib.preflight import (  # noqa: E402
+from scripts.typed_air.typed_air_r006_capture_lib.model import CaptureError  # noqa: E402
+from scripts.typed_air.typed_air_r006_capture_lib.preflight import (  # noqa: E402
     LEGACY_PREFLIGHT_SCHEMA,
     validate_host_preflight,
     validate_legacy_host_preflight,
 )
-from scripts.typed_air_work_profile_contract_lib import (  # noqa: E402
+from scripts.typed_air.typed_air_work_profile_contract_lib import (  # noqa: E402
     FAMILY_IDS,
     MATRIX_PATH,
     MATRIX_SCHEMA,
@@ -43,7 +43,7 @@ from scripts.typed_air_work_profile_contract_lib import (  # noqa: E402
     MatrixContractError,
     inventory_authority,
 )
-from scripts.typed_air_work_profile_contract_lib import (  # noqa: E402
+from scripts.typed_air.typed_air_work_profile_contract_lib import (  # noqa: E402
     validate_matrix as validate_source_matrix,
 )
 

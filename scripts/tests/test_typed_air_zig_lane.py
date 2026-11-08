@@ -11,9 +11,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from scripts import typed_air_zig_lane as lane
-
-
+from scripts.typed_air import typed_air_zig_lane as lane
 class ZigCompilerLaneTests(unittest.TestCase):
     def test_zig_build_gets_slot_cache_and_releases_cleanly(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -4,7 +4,7 @@ This ledger maps every public export in the Zig root/module API surface to the p
 (or records a compatibility rationale when no direct upstream exported symbol exists).
 
 - Pinned upstream commit: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
-- Validation gate: `python3 scripts/check_api_parity.py`
+- Validation gate: `python3 scripts/repo/check_api_parity.py`
 
 <!-- API_PARITY_JSON_START -->
 ```json

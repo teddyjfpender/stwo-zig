@@ -21,7 +21,7 @@ depth cycle from fitting.
 
 Run from the repository root:
 
-    python3 -m scripts.riscv_merkle_recurrence
+    python3 -m scripts.riscv.riscv_merkle_recurrence
 """
 
 from __future__ import annotations
@@ -417,7 +417,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--repo-root",
         type=Path,
-        default=Path(__file__).resolve().parents[1],
+        default=Path(__file__).resolve().parents[2],
         help="repository root whose production Zig sources are checked",
     )
     return parser

@@ -7,7 +7,7 @@
 //! every one of them; everything backend-specific stays in the product owner.
 //!
 //! Nothing here may name a foreign backend or frontend: this file shapes the
-//! CPU product's graph, and `scripts/check_riscv_cpu_product.py` fails that
+//! CPU product's graph, and `scripts/riscv/check_riscv_cpu_product.py` fails that
 //! product's build on any foreign-backend marker in the sources it owns.
 
 const std = @import("std");

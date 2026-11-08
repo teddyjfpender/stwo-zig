@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from cuda_build_lib.builder import (  # noqa: E402
+from scripts.cuda.cuda_build_lib.builder import (  # noqa: E402
     BuildConfig,
     BuildError,
     Toolchain,
@@ -165,10 +165,10 @@ class CudaBuildCacheTests(unittest.TestCase):
         )
 
         scripts = project / "scripts"
-        scripts.mkdir()
-        (scripts / "cuda_build.py").symlink_to(ROOT / "scripts/cuda_build.py")
-        (scripts / "cuda_build_lib").symlink_to(
-            ROOT / "scripts/cuda_build_lib",
+        (scripts / "cuda").mkdir(parents=True)
+        (scripts / "cuda/cuda_build.py").symlink_to(ROOT / "scripts/cuda/cuda_build.py")
+        (scripts / "cuda/cuda_build_lib").symlink_to(
+            ROOT / "scripts/cuda/cuda_build_lib",
             target_is_directory=True,
         )
 

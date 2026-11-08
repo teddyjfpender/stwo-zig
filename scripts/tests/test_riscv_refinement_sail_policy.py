@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-from scripts import riscv_refinement_publication as publication
+from scripts.riscv import riscv_refinement_publication as publication
 from scripts.tests.riscv_refinement_test_support import *
 
 

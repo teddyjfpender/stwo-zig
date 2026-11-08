@@ -11,7 +11,7 @@ pub fn generate(allocator: std.mem.Allocator) !struct { source: []u8, inventory:
     errdefer inventory.deinit(allocator);
     const writer = source.writer(allocator);
     const table = inventory.writer(allocator);
-    try writer.writeAll("// Generated Ethereum fixed-program/narrow-Poseidon profile v1.\n// Generator: src/tests/riscv/ethereum_narrow_aot_generator_test.zig\n// Regenerate: STWO_ETHEREUM_NARROW_AOT_GENERATE=<directory> python3 scripts/zig_protocol_test.py src/tests/riscv/ethereum_narrow_aot_generator_test.zig -O ReleaseSafe\n");
+    try writer.writeAll("// Generated Ethereum fixed-program/narrow-Poseidon profile v1.\n// Generator: src/tests/riscv/ethereum_narrow_aot_generator_test.zig\n// Regenerate: STWO_ETHEREUM_NARROW_AOT_GENERATE=<directory> python3 scripts/repo/zig_protocol_test.py src/tests/riscv/ethereum_narrow_aot_generator_test.zig -O ReleaseSafe\n");
     try table.writeAll("// Generated Ethereum-only export/declaration authority.\npub const entries = .{\n");
     for (0..narrow.DIRECT_PARTITION_COUNT) |partition| {
         var program = try narrow.buildDirect(allocator, partition);

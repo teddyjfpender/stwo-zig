@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 import argparse
 import json
 import math
@@ -14,11 +15,11 @@ import time
 from pathlib import Path
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from native_proof_matrix_lib import (  # noqa: E402
+from scripts.native.native_proof_matrix_lib import (  # noqa: E402
     ARCHIVE_STORE_COUNTER_KEYS,
     ARCHIVE_STORE_SECONDS_KEY,
     ACCOUNTED_BYTES_PER_COMMITTED_CELL,
@@ -57,7 +58,7 @@ from native_proof_matrix_lib import (  # noqa: E402
     validate_workload,
     workload_descriptor_sha256,
 )
-from native_proof_matrix_lib.model import (  # noqa: E402
+from scripts.native.native_proof_matrix_lib.model import (  # noqa: E402
     MAX_COOLDOWN_SECONDS,
     MAX_LOG_ROWS,
     MAX_MATRIX_ROWS,

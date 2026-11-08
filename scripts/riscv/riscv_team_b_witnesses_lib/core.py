@@ -37,7 +37,7 @@ M31 = 2147483647
 
 #: Repository root, derived from this file's location so the freshness guard
 #: works no matter which directory the gate is invoked from.
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
 #: Every Zig source that can change the exported production AIR lives under
 #: this tree (the AIR components, their lookups, and the IR export tool). The
@@ -142,7 +142,7 @@ def _column_drift_message(declared: set[str], assigned: set[str]) -> str:
     lines.append(
         "  likely cause: the exported production AIR changed shape (for "
         "example Team A's AIR IR v2 work or an opcode fix) while the witness "
-        "builders in scripts/riscv_team_b_witnesses.py still describe the old "
+        "builders in scripts/riscv/riscv_team_b_witnesses.py still describe the old "
         f"layout. Re-derive the export with `{EXPORT_COMMAND}`, then update "
         "the witness builders (and the Lean capsule transcription) to the new "
         "column set."
@@ -197,7 +197,7 @@ def _unknown_domain_error(family: str, domain: str) -> WitnessError:
         f"({', '.join(sorted(RANGE_DOMAINS))}) nor a deliberately skipped bus "
         f"domain ({', '.join(sorted(SKIPPED_DOMAINS))}). A new production "
         "lookup domain must be classified explicitly in RANGE_DOMAINS or "
-        "SKIPPED_DOMAINS in scripts/riscv_team_b_witnesses.py — skipping it "
+        "SKIPPED_DOMAINS in scripts/riscv/riscv_team_b_witnesses.py — skipping it "
         "silently could hide an unchecked range table. If the domain is new, "
         f"re-derive the export with `{EXPORT_COMMAND}` and read "
         "src/frontends/riscv/air/lookups/ for what the domain provides."
@@ -309,7 +309,7 @@ def audit_exported_families(air_ir_dir: Path) -> str:
                 f"family {family!r} uses node operations the evaluator does "
                 f"not implement: {', '.join(sorted(unsupported))} (supported: "
                 f"{', '.join(sorted(SUPPORTED_OPERATIONS))}). The evaluator "
-                "in scripts/riscv_team_b_witnesses.py must learn them before "
+                "in scripts/riscv/riscv_team_b_witnesses.py must learn them before "
                 "any witness verdict on this family can be trusted."
             )
         for lookup in payload["lookups"]:

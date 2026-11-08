@@ -99,7 +99,7 @@ The optional independent oracle is pinned separately from production code:
 ```sh
 python3 -m venv /tmp/stwo-rv64-oracle-venv
 /tmp/stwo-rv64-oracle-venv/bin/pip install unicorn==2.1.4
-/tmp/stwo-rv64-oracle-venv/bin/python scripts/riscv64_differential.py
+/tmp/stwo-rv64-oracle-venv/bin/python scripts/rv64/riscv64_differential.py
 ```
 
 The deterministic corpus compares all registers, PC and data bytes after each
@@ -120,8 +120,8 @@ updates without granting guest read permission.
 For the full CSP comparison and the paired foundation kernels:
 
 ```sh
-/tmp/stwo-rv64-oracle-venv/bin/python scripts/riscv64_csp_compare.py --work-dir /tmp/stwo-rv64-csp-comparison --samples 7 --oracle --report /tmp/csp-comparison.json
-python3 scripts/riscv64_foundations_benchmark.py --report /tmp/rv64-kernels.json
+/tmp/stwo-rv64-oracle-venv/bin/python scripts/rv64/riscv64_csp_compare.py --work-dir /tmp/stwo-rv64-csp-comparison --samples 7 --oracle --report /tmp/csp-comparison.json
+python3 scripts/rv64/riscv64_foundations_benchmark.py --report /tmp/rv64-kernels.json
 ```
 
 The CSP build requires the pinned `nightly-2026-03-04` toolchain, `rust-src`

@@ -166,7 +166,7 @@ pub fn addProduct(context: Context) void {
     test_step.dependOn(&applications.step);
     const lifecycle = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_native_metal_lifecycle.py",
+        "scripts/native/check_native_metal_lifecycle.py",
     });
     lifecycle.addArtifactArg(installed.executable);
     test_step.dependOn(&lifecycle.step);
@@ -179,7 +179,7 @@ pub fn addProduct(context: Context) void {
     test_step.dependOn(&closure_check.step);
     const marker_check = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_native_metal_product.py",
+        "scripts/native/check_native_metal_product.py",
     });
     test_step.dependOn(&marker_check.step);
     const identity_cache_check = context.b.addSystemCommand(&.{

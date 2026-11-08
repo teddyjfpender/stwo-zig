@@ -3,14 +3,15 @@
 
 from __future__ import annotations
 
+
 import sys
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from benchmark_delta_lib.controller import (  # noqa: E402
+from scripts.bench.benchmark_delta_lib.controller import (  # noqa: E402
     DELTA_PROTOCOL,
     DELTA_SCHEMA_VERSION,
     MAX_REPORT_BYTES,

@@ -88,7 +88,7 @@ adapter or invocation failed.
 
 ```sh
 cargo test --manifest-path tools/stwo-cairo-official-verifier-rs/Cargo.toml
-python3 scripts/check_upstream_pins.py
+python3 scripts/repo/check_upstream_pins.py
 ```
 
 The tests accept the committed all-opcodes official proof, reject a mutated

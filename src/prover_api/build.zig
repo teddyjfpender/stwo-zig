@@ -36,7 +36,7 @@ pub fn build(b: *std.Build) void {
     completion_tests.setCwd(repository_root);
     const completion_matrix = b.addSystemCommand(&.{
         "python3",
-        "scripts/typed_air_p003_completion.py",
+        "scripts/typed_air/typed_air_p003_completion.py",
         "validate-matrix",
         "--quiet",
     });
@@ -44,7 +44,7 @@ pub fn build(b: *std.Build) void {
     completion_matrix.step.dependOn(&completion_tests.step);
     const completion_receipt = b.addSystemCommand(&.{
         "python3",
-        "scripts/typed_air_p003_completion.py",
+        "scripts/typed_air/typed_air_p003_completion.py",
         "validate-blocker",
         "design/typed-air/artifacts/p003-work-profile-closure-v1/scaling-blocker-v1.json",
     });

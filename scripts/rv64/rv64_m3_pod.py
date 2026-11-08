@@ -19,6 +19,7 @@ the receiver is CPU-only and never holds the GPU lock.  Owner rule: develop and
 measure only on 26235156 and 24628607; this harness refuses other blocks unless
 --allow-scale-up is passed (final integration scale-up only).
 """
+
 import argparse
 import copy
 import fcntl
@@ -96,10 +97,10 @@ def producer_env(args):
     env.update(kv.split("=", 1) for kv in args.env)
     return env
 GPU_LOCK_WAIT = 7200
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
-import rv64_resident_basket as R  # noqa: E402
-import rv64_measure as M  # noqa: E402  (stream measure: counters, smaps census, receipt v2)
+HERE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_resident_basket as R  # noqa: E402
+from scripts.rv64 import rv64_measure as M  # noqa: E402  (stream measure: counters, smaps census, receipt v2)
 B = R.B
 
 
@@ -176,11 +177,11 @@ def build(args):
             for command in (["build-tools", "--stream", args.stream],
                             ["catalogue-gate", "--stream", args.stream, "--catalogues", str(cat), "--output", str(gate_log), "--strict",
                              "--tools", str(M3 / "build" / args.stream / "tools/bin")]):
-                run_logged([sys.executable, str(root / "scripts/rv64_m4_resident.py"), *command], logs / f"{command[0]}.log", cwd=root)
+                run_logged([sys.executable, str(root / "scripts/rv64/rv64_m4_resident.py"), *command], logs / f"{command[0]}.log", cwd=root)
             gate = B.load(gate_log)
             receipt["catalogue_gate"] = {"status": gate["gate"], "statuses": gate["statuses"], "receipt": str(gate_log),
                                          "seconds": round(time.monotonic() - started, 1)}
-        command = [sys.executable, str(root / "scripts/rv64_cuda_resident_image_build.py"), "--source-root", str(root),
+        command = [sys.executable, str(root / "scripts/rv64/rv64_cuda_resident_image_build.py"), "--source-root", str(root),
                    "--core-domain", str(cat / "core"), "--core-projection", str(cat / "projection"),
                    "--global-projection", str(cat / "global"), "--truth-domain", str(cat / "truth"),
                    "--truth-partitions", str(cat / "truth-parts"), "--truth-rational", str(cat / "rational"),

@@ -11,18 +11,18 @@ import sys
 from pathlib import Path
 from typing import Any, Callable
 
-from scripts.architecture_host_gate_lib import capture, plan, preimages, products, validators
-from scripts.build_architecture_receipt_lib.codec import atomic_write, canonical_bytes
-from scripts.build_architecture_receipt_lib.model import (
+from scripts.architecture.architecture_host_gate_lib import capture, plan, preimages, products, validators
+from scripts.architecture.build_architecture_receipt_lib.codec import atomic_write, canonical_bytes
+from scripts.architecture.build_architecture_receipt_lib.model import (
     DEFAULT_PROTOCOL,
     EVIDENCE_NAMES,
     ReceiptError,
 )
-from scripts.build_architecture_receipt_lib.protocol import load_protocol
-from scripts.build_architecture_receipt_lib.receipt import validate_evidence_manifest
+from scripts.architecture.build_architecture_receipt_lib.protocol import load_protocol
+from scripts.architecture.build_architecture_receipt_lib.receipt import validate_evidence_manifest
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_PLAN = ROOT / "conformance/build-architecture-ci-plan-v1.json"
 
 

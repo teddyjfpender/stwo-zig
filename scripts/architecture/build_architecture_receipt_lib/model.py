@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 HOST_SCHEMA = "build-monorepo-host-receipt-v1"
 AGGREGATE_SCHEMA = "build-monorepo-receipt-v1"
 EVIDENCE_SCHEMA = "build-architecture-host-evidence-v1"

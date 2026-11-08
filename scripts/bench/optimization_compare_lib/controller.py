@@ -16,7 +16,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from optimization_compare_lib.metrics import (  # noqa: E402
+from scripts.bench.optimization_compare_lib.metrics import (  # noqa: E402
     benchmark_family_ratios,
     benchmark_workload_matrix_hash,
     canonical_hash,
@@ -30,7 +30,7 @@ from optimization_compare_lib.metrics import (  # noqa: E402
 )
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 REPORTS_DIR = ROOT / "vectors" / "reports"
 
 BASELINE_DEFAULT = REPORTS_DIR / "optimization_baseline.json"

@@ -2,13 +2,13 @@
   "schema": "stwo-benchmark-profiler-product-contract-v1",
   "promotion_surface": {
     "benchmark": {
-      "command": "python3 scripts/native_proof_matrix.py",
+      "command": "python3 scripts/native/native_proof_matrix.py",
       "protocol": "native_proof_cross_backend_matrix_v6",
       "receipt_protocol": "focused_product_measurement_receipt_v1",
       "requires_pinned_rust_stwo": true
     },
     "profiler": {
-      "command": "python3 scripts/native_profile_capture.py",
+      "command": "python3 scripts/native/native_profile_capture.py",
       "protocol": "native_profiler_baseline_v2",
       "receipt_protocol": "focused_product_measurement_receipt_v1",
       "promotion_eligible": false
@@ -76,9 +76,9 @@
     }
   },
   "legacy_diagnostic_surfaces": {
-    "scripts/benchmark_full.py": "aggregate Rust/Zig family continuity",
-    "scripts/benchmark_smoke.py": "aggregate Rust/Zig workload continuity",
-    "scripts/profile_smoke.py": "aggregate coarse profiler continuity"
+    "scripts/bench/benchmark_full.py": "aggregate Rust/Zig family continuity",
+    "scripts/bench/benchmark_smoke.py": "aggregate Rust/Zig workload continuity",
+    "scripts/bench/profile_smoke.py": "aggregate coarse profiler continuity"
   },
   "comparison_invariants": [
     "workload_descriptor",

@@ -8,10 +8,7 @@ import subprocess
 from pathlib import Path
 from typing import Mapping
 
-try:
-    from riscv_equivalence_lib import contract, sail_identity
-except ModuleNotFoundError:  # Imported as scripts.riscv_sail_oracle_lib.
-    from scripts.riscv_equivalence_lib import contract, sail_identity
+from scripts.riscv.riscv_equivalence_lib import contract, sail_identity
 
 ENV_SAIL_BIN = "STWO_RISCV_SAIL_BIN"
 ENV_WORKSPACE = "STWO_RISCV_FORMAL_WORKSPACE"
@@ -41,7 +38,7 @@ def resolve_sail(
     if not candidate.is_file():
         raise SailUnavailable(
             f"pinned Sail binary not found at {candidate} (from {source}); "
-            f"build it with: python3 scripts/riscv_formal_tools.py prepare "
+            f"build it with: python3 scripts/riscv/riscv_formal_tools.py prepare "
             f"--workspace {DEFAULT_WORKSPACE}"
         )
     try:

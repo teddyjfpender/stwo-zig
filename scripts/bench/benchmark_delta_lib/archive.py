@@ -34,7 +34,7 @@ from .naming import NamingError, run_id, run_id_for_report
 ARCHIVE_SCHEMA_VERSION = 2
 MIGRATION_HINT = (
     "archive uses the v1 content-hash layout; run "
-    "`python3 scripts/migrate_benchmark_history_v2.py --archive-dir <dir>` once"
+    "`python3 scripts/bench/migrate_benchmark_history_v2.py --archive-dir <dir>` once"
 )
 
 

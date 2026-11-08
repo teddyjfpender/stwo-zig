@@ -12,36 +12,25 @@ import sys
 import tomllib
 from pathlib import Path
 
-try:
-    from upstream_pins_lib import model
-    from upstream_pins_lib.blake_oracle_source import check as _check_blake_oracle_source
-    from upstream_pins_lib.cairo_vm_adapter import check as check_cairo_vm_adapter
-    from upstream_pins_lib.circuit_recursion import check as check_circuit_recursion
-    from upstream_pins_lib.official_cairo_manifest import (
-        check as _check_official_cairo_manifest,
-    )
-    from upstream_pins_lib.official_cairo_vectors import (
-        check as check_official_cairo_vectors,
-    )
-    from upstream_pins_lib.sm83 import check as check_sm83_pins
-except ModuleNotFoundError:  # Imported as scripts.check_upstream_pins in tests.
-    from scripts.upstream_pins_lib import model
-    from scripts.upstream_pins_lib.blake_oracle_source import (
-        check as _check_blake_oracle_source,
-    )
-    from scripts.upstream_pins_lib.cairo_vm_adapter import (
-        check as check_cairo_vm_adapter,
-    )
-    from scripts.upstream_pins_lib.circuit_recursion import (
-        check as check_circuit_recursion,
-    )
-    from scripts.upstream_pins_lib.official_cairo_vectors import (
-        check as check_official_cairo_vectors,
-    )
-    from scripts.upstream_pins_lib.official_cairo_manifest import (
-        check as _check_official_cairo_manifest,
-    )
-    from scripts.upstream_pins_lib.sm83 import check as check_sm83_pins
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.repo.upstream_pins_lib import model
+from scripts.repo.upstream_pins_lib.blake_oracle_source import (
+    check as _check_blake_oracle_source,
+)
+from scripts.repo.upstream_pins_lib.cairo_vm_adapter import (
+    check as check_cairo_vm_adapter,
+)
+from scripts.repo.upstream_pins_lib.circuit_recursion import (
+    check as check_circuit_recursion,
+)
+from scripts.repo.upstream_pins_lib.official_cairo_vectors import (
+    check as check_official_cairo_vectors,
+)
+from scripts.repo.upstream_pins_lib.official_cairo_manifest import (
+    check as _check_official_cairo_manifest,
+)
+from scripts.repo.upstream_pins_lib.sm83 import check as check_sm83_pins
 
 
 ROOT = model.ROOT
@@ -385,7 +374,7 @@ def _check_riscv_formal_profile(root: Path, ledger: PinLedger) -> list[str]:
                 _check_text_pin(
                     root,
                     TextPin(
-                        "scripts/riscv_equivalence.py",
+                        "scripts/riscv/riscv_equivalence.py",
                         "RVFI transport patch SHA-256",
                         r'^PINNED_RVFI_TRANSPORT_PATCH_SHA256 = \(\n    "([0-9a-f]{64})"\n\)$',
                         patch_sha256,
@@ -394,11 +383,11 @@ def _check_riscv_formal_profile(root: Path, ledger: PinLedger) -> list[str]:
             )
 
     try:
-        equivalence_source = (root / "scripts/riscv_equivalence.py").read_text(
+        equivalence_source = (root / "scripts/riscv/riscv_equivalence.py").read_text(
             encoding="utf-8"
         )
     except OSError as error:
-        errors.append(f"scripts/riscv_equivalence.py: unable to read RVFI entry: {error}")
+        errors.append(f"scripts/riscv/riscv_equivalence.py: unable to read RVFI entry: {error}")
     else:
         entries = re.findall(
             r"^RVFI_DII_ENTRY = (0x[0-9A-Fa-f_]+)$",
@@ -407,11 +396,11 @@ def _check_riscv_formal_profile(root: Path, ledger: PinLedger) -> list[str]:
         )
         if len(entries) != 1:
             errors.append(
-                "scripts/riscv_equivalence.py: expected exactly one RVFI_DII_ENTRY"
+                "scripts/riscv/riscv_equivalence.py: expected exactly one RVFI_DII_ENTRY"
             )
         elif int(entries[0].replace("_", ""), 16) != transport.get("entry_point"):
             errors.append(
-                "scripts/riscv_equivalence.py: RVFI_DII_ENTRY disagrees with "
+                "scripts/riscv/riscv_equivalence.py: RVFI_DII_ENTRY disagrees with "
                 f"{relative_path}"
             )
     return errors
@@ -424,19 +413,19 @@ def _text_pins(ledger: PinLedger) -> tuple[TextPin, ...]:
     cairo_stwo = ledger.cairo_stwo_revision
     return (
         TextPin(
-            "scripts/riscv_equivalence.py",
+            "scripts/riscv/riscv_equivalence.py",
             "Sail PINNED_SAIL_REVISION",
             rf'^PINNED_SAIL_REVISION = "({REVISION_RE})"$',
             ledger.riscv_sail_revision,
         ),
         TextPin(
-            "scripts/riscv_equivalence.py",
+            "scripts/riscv/riscv_equivalence.py",
             "Spike PINNED_SPIKE_REVISION",
             rf'^PINNED_SPIKE_REVISION = "({REVISION_RE})"$',
             ledger.riscv_spike_revision,
         ),
         TextPin(
-            "scripts/riscv_equivalence.py",
+            "scripts/riscv/riscv_equivalence.py",
             "Sail compiler version",
             r'^PINNED_SAIL_COMPILER_VERSION = "([^"]+)"$',
             ledger.riscv_sail_compiler_version,
@@ -516,19 +505,19 @@ def _text_pins(ledger: PinLedger) -> tuple[TextPin, ...]:
             legacy_riscv,
         ),
         TextPin(
-            "scripts/e2e_interop_lib/controller.py",
+            "scripts/interop/e2e_interop_lib/controller.py",
             "Native UPSTREAM_COMMIT",
             rf'^UPSTREAM_COMMIT = "({REVISION_RE})"$',
             native,
         ),
         TextPin(
-            "scripts/prove_checkpoints.py",
+            "scripts/interop/prove_checkpoints.py",
             "Native UPSTREAM_COMMIT",
             rf'^UPSTREAM_COMMIT = "({REVISION_RE})"$',
             native,
         ),
         TextPin(
-            "scripts/native_proof_matrix_lib/model.py",
+            "scripts/native/native_proof_matrix_lib/model.py",
             "Native INTEROP_UPSTREAM_COMMIT",
             rf'^INTEROP_UPSTREAM_COMMIT = "({REVISION_RE})"$',
             native,
@@ -582,13 +571,13 @@ def _text_pins(ledger: PinLedger) -> tuple[TextPin, ...]:
             cairo_stwo,
         ),
         TextPin(
-            "scripts/generate_cairo_claim_registry.py",
+            "scripts/cairo/generate_cairo_claim_registry.py",
             "official claim-generator Stwo-Cairo revision",
             rf'^PINNED_STWO_CAIRO_REVISION = "({REVISION_RE})"$',
             ledger.official_cairo_revision,
         ),
         TextPin(
-            "scripts/generate_cairo_claim_registry.py",
+            "scripts/cairo/generate_cairo_claim_registry.py",
             "official claim-generator Stwo revision",
             rf'^PINNED_STWO_REVISION = "({REVISION_RE})"$',
             ledger.official_cairo_stwo_revision,

@@ -9,7 +9,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Callable
 
-from scripts.typed_air_poseidon_benchmark_lib import (
+from scripts.typed_air.typed_air_poseidon_benchmark_lib import (
     ARMS,
     BenchmarkError,
     BenchmarkRunFailed,
@@ -26,7 +26,7 @@ from scripts.typed_air_poseidon_benchmark_lib import (
     validate_report,
     validate_sample,
 )
-from scripts.typed_air_poseidon_benchmark_lib.contract import (
+from scripts.typed_air.typed_air_poseidon_benchmark_lib.contract import (
     ARM_BY_ID,
     ARTIFACT_DIGEST,
     BACKEND,
@@ -50,7 +50,7 @@ from scripts.typed_air_poseidon_benchmark_lib.contract import (
     VECTOR_SEALS,
     VECTOR_TRACE_DIGESTS,
 )
-from scripts.typed_air_poseidon_benchmark_lib.environment import SOURCE_MANIFEST
+from scripts.typed_air.typed_air_poseidon_benchmark_lib.environment import SOURCE_MANIFEST
 
 
 Transform = Callable[[dict[str, object], int, int], None]

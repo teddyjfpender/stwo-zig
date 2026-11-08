@@ -217,7 +217,7 @@ pub fn addProduct(context: Context) void {
 
     const csp_benchmark = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/riscv_csp_benchmark.py",
+        "scripts/riscv/riscv_csp_benchmark.py",
         "--backend",
         "metal",
     });

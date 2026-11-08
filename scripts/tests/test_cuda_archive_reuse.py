@@ -2,7 +2,7 @@
 import hashlib,json,sys,tempfile,unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from cuda_build_lib.builder import reusable_archive,copy_archive,ARCHIVE_NAME,AOT_PACK_NAME,PLAN_NAME,RECEIPT_NAME
+from scripts.cuda.cuda_build_lib.builder import reusable_archive,copy_archive,ARCHIVE_NAME,AOT_PACK_NAME,PLAN_NAME,RECEIPT_NAME
 
 class ArchiveReuseTests(unittest.TestCase):
     def seed(self, root):

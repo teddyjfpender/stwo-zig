@@ -117,7 +117,7 @@ fn surfaceModule(context: Context, core: *std.Build.Module) *std.Build.Module {
 fn purityCheck(context: Context, product: []const u8) *std.Build.Step.Run {
     const check = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_library_products.py",
+        "scripts/repo/check_library_products.py",
         "--product",
         product,
     });

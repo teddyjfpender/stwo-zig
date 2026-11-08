@@ -19,7 +19,7 @@ from typing import Callable
 from .contract import repository_contract_errors, sha256_file
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE_BASE = ROOT / "zig-out/release-evidence/riscv/runs"
 MAX_CAPTURE_CHARS = 16_384
 DEFAULT_COMMAND_TIMEOUT_SECONDS = 3_600.0
@@ -40,12 +40,12 @@ def command_plan(
     cli_evidence = evidence_dir / "cli"
     commands = [
         ["zig", "fmt", "--check", "build.zig", "src", "tools"],
-        [python, "scripts/check_upstream_pins.py"],
-        [python, "scripts/check_source_conformance.py"],
-        [python, "scripts/check_riscv_release_contract.py", "--all", "--phase", phase],
-        [python, "scripts/check_riscv_release_contract.py", "--structure"],
-        [python, "scripts/check_riscv_release_contract.py", "--core-purity"],
-        [python, "scripts/check_riscv_release_contract.py", "--frontend-layering"],
+        [python, "scripts/repo/check_upstream_pins.py"],
+        [python, "scripts/repo/check_source_conformance.py"],
+        [python, "scripts/riscv/check_riscv_release_contract.py", "--all", "--phase", phase],
+        [python, "scripts/riscv/check_riscv_release_contract.py", "--structure"],
+        [python, "scripts/riscv/check_riscv_release_contract.py", "--core-purity"],
+        [python, "scripts/riscv/check_riscv_release_contract.py", "--frontend-layering"],
     ]
     if (platform.system() if host_system is None else host_system) == "Darwin":
         commands.append(
@@ -65,7 +65,7 @@ def command_plan(
             ],
             [
                 python,
-                "scripts/riscv_staged_smoke.py",
+                "scripts/riscv/riscv_staged_smoke.py",
                 "--phase",
                 phase,
                 "--evidence-dir",
@@ -86,14 +86,14 @@ def command_plan(
                 ["zig", "build", "release-gate-strict", "-Doptimize=ReleaseFast"],
                 [
                     python,
-                    "scripts/riscv_formal_tools.py",
+                    "scripts/riscv/riscv_formal_tools.py",
                     "verify",
                     "--workspace",
                     str(workspace),
                 ],
                 [
                     python,
-                    "scripts/riscv_trace_vectors.py",
+                    "scripts/riscv/riscv_trace_vectors.py",
                     "--sail-bin",
                     str(sail_binary),
                     "--spike-bin",
@@ -103,7 +103,7 @@ def command_plan(
                 ],
                 [
                     python,
-                    "scripts/riscv_arch_tests.py",
+                    "scripts/riscv/riscv_arch_tests.py",
                     "build",
                     "--formal-workspace",
                     str(workspace),
@@ -112,7 +112,7 @@ def command_plan(
                 ],
                 [
                     python,
-                    "scripts/riscv_arch_tests.py",
+                    "scripts/riscv/riscv_arch_tests.py",
                     "audit",
                     "--formal-workspace",
                     str(workspace),

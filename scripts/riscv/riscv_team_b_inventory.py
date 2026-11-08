@@ -35,7 +35,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_LEAN_ROOT = REPOSITORY_ROOT / "formal/riscv-refinement/RiscvRefinement"
 
 #: The 22 Team B opcodes of issue #137, keyed by AIR family, in production
@@ -101,56 +101,32 @@ SHIFT_KIND_OPCODES: dict[tuple[str, str], tuple[str, ...]] = {
     ("ShiftRow", "sra"): ("sra", "srai"),
 }
 
-try:
-    from .riscv_team_b_inventory_lean import (
-        CLOSE_BRACKETS,
-        CONTROL_NAME_FIELD,
-        CONTROL_TYPE,
-        DECLARATION,
-        END_LINE,
-        FALLBACK_DEVICE,
-        MANIFEST_ENTRY,
-        NAMESPACE_LINE,
-        OPEN_BRACKETS,
-        SELECTOR_ENUM_GUARD,
-        SELECTOR_GUARD,
-        SHIFT_KIND_GUARD,
-        STRICTLY_WEAKER,
-        ConclusionInfo,
-        ControlInfo,
-        Declaration,
-        LoadBearingInfo,
-        _binder_groups,
-        _binder_name,
-        _scan_top_level,
-        parse_declarations,
-        strip_comments,
-    )
-except ImportError:
-    from riscv_team_b_inventory_lean import (
-        CLOSE_BRACKETS,
-        CONTROL_NAME_FIELD,
-        CONTROL_TYPE,
-        DECLARATION,
-        END_LINE,
-        FALLBACK_DEVICE,
-        MANIFEST_ENTRY,
-        NAMESPACE_LINE,
-        OPEN_BRACKETS,
-        SELECTOR_ENUM_GUARD,
-        SELECTOR_GUARD,
-        SHIFT_KIND_GUARD,
-        STRICTLY_WEAKER,
-        ConclusionInfo,
-        ControlInfo,
-        Declaration,
-        LoadBearingInfo,
-        _binder_groups,
-        _binder_name,
-        _scan_top_level,
-        parse_declarations,
-        strip_comments,
-    )
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.riscv_team_b_inventory_lean import (
+    CLOSE_BRACKETS,
+    CONTROL_NAME_FIELD,
+    CONTROL_TYPE,
+    DECLARATION,
+    END_LINE,
+    FALLBACK_DEVICE,
+    MANIFEST_ENTRY,
+    NAMESPACE_LINE,
+    OPEN_BRACKETS,
+    SELECTOR_ENUM_GUARD,
+    SELECTOR_GUARD,
+    SHIFT_KIND_GUARD,
+    STRICTLY_WEAKER,
+    ConclusionInfo,
+    ControlInfo,
+    Declaration,
+    LoadBearingInfo,
+    _binder_groups,
+    _binder_name,
+    _scan_top_level,
+    parse_declarations,
+    strip_comments,
+)
 
 
 def conclusion_opcodes(decl: Declaration) -> ConclusionInfo:
@@ -563,7 +539,7 @@ def render_text(inventory: Inventory) -> str:
         lines.append(f"Manifest check: {inventory.manifest_note}")
     lines.append("")
     lines.append(
-        "Produced by `scripts/riscv_team_b_inventory.py` (read-only; the "
+        "Produced by `scripts/riscv/riscv_team_b_inventory.py` (read-only; the "
         "certificate index is never written). Certified-opcode sets are "
         "read mechanically from selector guards; prose claims of broader "
         "coverage are not trusted."

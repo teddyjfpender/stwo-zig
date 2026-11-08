@@ -10,6 +10,7 @@ rejected. Part of the riscv release gate; also runnable standalone.
 
 from __future__ import annotations
 
+
 import argparse
 import contextlib
 import hashlib
@@ -20,10 +21,10 @@ import tempfile
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
-from scripts.riscv_staged_smoke_lib import contracts, mutations, profiles  # noqa: E402
+from scripts.riscv.riscv_staged_smoke_lib import contracts, mutations, profiles  # noqa: E402
 
 ELF = "vectors/riscv_elfs/branch_fib.elf"
 ELF_SHA256 = "7ff124d1aea7433225b018c7f4dbcae7f693506c0ac34d6790c60cd50c7b2c3f"
@@ -36,8 +37,8 @@ WITNESS_LAYOUT_SHA256 = "2163899f40e1bffb7f5d355b600ee4e013e7e4f63c205cedd01f6fe
 
 
 def write_multi_shard_elf(path: Path) -> None:
-    sys.path.insert(0, str(ROOT / "scripts"))
-    import riscv_trace_vectors as vectors  # pylint: disable=import-outside-toplevel
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.riscv import riscv_trace_vectors as vectors  # pylint: disable=import-outside-toplevel
 
     elf = vectors.build_release_elf(vectors.prog_multi_shard_addi())
     digest = hashlib.sha256(elf).hexdigest()
@@ -48,7 +49,7 @@ def write_multi_shard_elf(path: Path) -> None:
 
 def write_unsupported_elf(path: Path) -> None:
     sys.path.insert(0, str(ROOT / "scripts"))
-    import riscv_trace_vectors as vectors  # pylint: disable=import-outside-toplevel
+    from scripts.riscv import riscv_trace_vectors as vectors  # pylint: disable=import-outside-toplevel
 
     path.write_bytes(vectors.build_release_elf([0x0000_0073]))  # ECALL is outside the proof ISA.
 
@@ -136,7 +137,7 @@ def main() -> int:
     if fast:
         parser.error(
             "the pre-Sail producer-linked fast profile is retired; run the "
-            "exhaustive profile and scripts/riscv_sail_gate.py instead"
+            "exhaustive profile and scripts/riscv/riscv_sail_gate.py instead"
         )
     if fast and (args.cli is None or args.producer_receipt is None or args.evidence_dir is None):
         parser.error("--profile fast requires --cli, --producer-receipt, and --evidence-dir")
@@ -713,7 +714,7 @@ def main() -> int:
                     build_command_count=build_command_count,
                     build_duration_ns=build_duration_ns,
                 ),
-                "generator": "scripts/riscv_trace_vectors.py::build_release_elf",
+                "generator": "scripts/riscv/riscv_trace_vectors.py::build_release_elf",
                 "multi_shard_program": "declared ADDI/BLT loop with halt-flag epilogue",
                 "multi_shard_program_words": MULTI_SHARD_PROGRAM_WORDS,
                 "multi_shard_addi_rows": MULTI_SHARD_ADDI_ROWS,

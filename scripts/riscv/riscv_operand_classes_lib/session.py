@@ -18,10 +18,7 @@ import struct
 import subprocess
 from pathlib import Path
 
-try:
-    from riscv_equivalence_lib import rvfi
-except ModuleNotFoundError:  # Imported as scripts.riscv_operand_classes_lib.
-    from scripts.riscv_equivalence_lib import rvfi
+from scripts.riscv.riscv_equivalence_lib import rvfi
 
 from . import classes, encoding
 

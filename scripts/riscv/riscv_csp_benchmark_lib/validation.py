@@ -8,7 +8,7 @@ from typing import Any, Mapping, Protocol, Sequence
 
 from .public_output import reconstruct_output_words
 
-from scripts.riscv_csp_benchmark_lib.contract import (
+from scripts.riscv.riscv_csp_benchmark_lib.contract import (
     BenchmarkError,
     Case,
     HEX_32,
@@ -70,7 +70,7 @@ RESIDENT_POLYNOMIAL_TELEMETRY_FIELDS = {
 class Admission(Protocol):
     """Structural view of the admission state these validators check against.
 
-    The concrete state is ``scripts.riscv_cli_admission.Admission``, owned by
+    The concrete state is ``scripts.riscv.riscv_cli_admission.Admission``, owned by
     the boundary layer; this package states only the fields it reads.
     """
 

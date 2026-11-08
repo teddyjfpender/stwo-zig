@@ -8,12 +8,12 @@ import sys
 from pathlib import Path
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 ROOT = SCRIPT_DIR.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.typed_air_poseidon_benchmark_lib import (  # noqa: E402
+from scripts.typed_air.typed_air_poseidon_benchmark_lib import (  # noqa: E402
     BenchmarkError,
     Settings,
     run_benchmark,

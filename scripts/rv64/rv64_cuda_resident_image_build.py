@@ -5,6 +5,7 @@ Every compiler owns a process-group deadline. This builds one coherent truth
 catalogue, never combines cached kernels with a different partition geometry.
 It does not qualify a GPU image or run a benchmark.
 """
+
 import argparse
 import concurrent.futures
 import ctypes
@@ -16,10 +17,12 @@ import subprocess
 import threading
 import sys
 
-import rv64_cuda_native_library_build as N
-import rv64_cuda_partition_rational as Rational
-import rv64_cuda_partition_grouped as Grouped
-import rv64_cuda_partition_instruction_slices as Instructions
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_cuda_native_library_build as N
+from scripts.rv64 import rv64_cuda_partition_rational as Rational
+from scripts.rv64 import rv64_cuda_partition_grouped as Grouped
+from scripts.rv64 import rv64_cuda_partition_instruction_slices as Instructions
 
 
 def core_catalog(directory):
@@ -318,7 +321,7 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         compiled = [obj for group in pool.map(compile_one, sources) for obj in group]
 
-    command = [sys.executable, str(root / "scripts/rv64_cuda_native_library_build.py"), "--source-root", str(root), "--build", str(build / "native"), "--nvcc", args.nvcc, "--jobs", str(args.jobs), "--compile-timeout", str(args.compile_timeout), "--link-timeout", str(args.link_timeout), "--extra-native-source", "rv64/curve_witness.cu"]
+    command = [sys.executable, str(root / "scripts/rv64/rv64_cuda_native_library_build.py"), "--source-root", str(root), "--build", str(build / "native"), "--nvcc", args.nvcc, "--jobs", str(args.jobs), "--compile-timeout", str(args.compile_timeout), "--link-timeout", str(args.link_timeout), "--extra-native-source", "rv64/curve_witness.cu"]
     if device_link:
         command += ["--device-link"]
     if args.object_store:

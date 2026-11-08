@@ -46,7 +46,7 @@ pub const TRACE_DUMP = "riscv-trace-dump";
 /// Target-qualified name of the static trace dumper.
 pub const TRACE_DUMP_STATIC = "riscv-trace-dump-x86_64-linux-musl";
 /// Independent AIR-satisfaction checker, run over an exported trace.
-pub const AIR_SATISFACTION = "scripts/air_satisfaction.py";
+pub const AIR_SATISFACTION = "scripts/riscv/air_satisfaction.py";
 
 /// The complete invocations the hints below are allowed to name.
 ///

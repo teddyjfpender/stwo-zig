@@ -18,7 +18,7 @@ renumber wires. This lint rejects, outside comments:
 * an import of ``stwo_cairo_frontend``: Cairo facts reach the circuit
   frontend only through the committed compiled-AIR projection.
 
-Usage: ``python3 scripts/lint_circuit_frontend.py [--root DIR]``. Exits 1 and
+Usage: ``python3 scripts/interop/lint_circuit_frontend.py [--root DIR]``. Exits 1 and
 lists every violation as ``path:line: rule: text``.
 """
 
@@ -30,7 +30,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = Path("src/frontends/circuit")
 WAIVER = "circuit-lint: ordered-iteration"
 EXCLUDED_DIRS = {".zig-cache", "zig-cache", "zig-out"}

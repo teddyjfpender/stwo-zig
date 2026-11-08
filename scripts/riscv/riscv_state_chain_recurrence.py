@@ -23,7 +23,7 @@ constant or recurrence change makes this checker fail closed.
 
 Run from the repository root:
 
-    python3 -m scripts.riscv_state_chain_recurrence
+    python3 -m scripts.riscv.riscv_state_chain_recurrence
 """
 
 from __future__ import annotations
@@ -449,7 +449,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--repo-root",
         type=Path,
-        default=Path(__file__).resolve().parents[1],
+        default=Path(__file__).resolve().parents[2],
     )
     args = parser.parse_args(argv)
     print(json.dumps(report(args.repo_root.resolve()), indent=2, sort_keys=True))

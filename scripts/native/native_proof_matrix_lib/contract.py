@@ -7,18 +7,11 @@ import math
 import statistics
 from typing import Any
 
-try:
-    from scripts.benchmark_product_contract_lib import (
-        PRODUCT_SPECS,
-        ProductEvidenceError,
-        validate_product_identity,
-    )
-except ModuleNotFoundError:
-    from benchmark_product_contract_lib import (  # type: ignore[no-redef]
-        PRODUCT_SPECS,
-        ProductEvidenceError,
-        validate_product_identity,
-    )
+from scripts.bench.benchmark_product_contract_lib import (  # type: ignore[no-redef]
+    PRODUCT_SPECS,
+    ProductEvidenceError,
+    validate_product_identity,
+)
 
 from .model import (
     ACCELERATED_CLASSIFICATIONS,

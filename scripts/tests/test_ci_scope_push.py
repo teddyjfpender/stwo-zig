@@ -6,9 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import ci_scope_push
-
-
+from scripts.repo import ci_scope_push
 OID_A = "a" * 40
 OID_B = "b" * 40
 ZERO = "0" * 40

@@ -5,10 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-try:
-    from zig_protocol_lib.command import aggregate_run_command
-except ModuleNotFoundError:
-    from scripts.zig_protocol_lib.command import aggregate_run_command
+from scripts.repo.zig_protocol_lib.command import aggregate_run_command
 
 
 def installed_binary(root: Path) -> Path:

@@ -21,8 +21,8 @@ import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from scripts.riscv_csp_ab_benchmark_lib import contract
-from scripts.riscv_csp_benchmark_lib.host import (
+from scripts.riscv.riscv_csp_ab_benchmark_lib import contract
+from scripts.riscv.riscv_csp_benchmark_lib.host import (
     collect_host,
     official_host_match,
     power_conditions_admissible,
@@ -104,7 +104,7 @@ def arm_from_root(
         raise contract.ABError(f"{label} benchmark clone is dirty")
     content = source_content(root)
     manifest = root / "vectors" / "riscv_csp" / "manifest-v2.json"
-    harness = root / "scripts" / "riscv_csp_benchmark.py"
+    harness = root / "scripts" / "riscv/riscv_csp_benchmark.py"
     for name, path in (("manifest", manifest), ("harness", harness)):
         if not path.is_file():
             raise contract.ABError(f"{label} has no {name}: {path}")
@@ -245,7 +245,7 @@ def benchmark_command(
     prefix = root / "zig-out" / "native-ab" / "bin"
     return [
         sys.executable,
-        str(root / "scripts" / "riscv_csp_benchmark.py"),
+        str(root / "scripts" / "riscv/riscv_csp_benchmark.py"),
         "--backend",
         "cpu",
         "--cli",

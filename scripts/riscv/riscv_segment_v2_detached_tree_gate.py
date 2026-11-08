@@ -8,6 +8,7 @@ All native, wrapper and parent proving uses the selected backend. CPU verifies.
 """
 from __future__ import annotations
 
+
 import argparse
 import json
 import os
@@ -16,9 +17,11 @@ import subprocess
 import sys
 import time
 
-from riscv_segment_v2_detached_gate import AOT_PROFILES, require_producer_lifecycle, sha256
-from riscv_segment_v2_detached_parent_gate import digest
-from zig_serial_build import build_lock
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.riscv_segment_v2_detached_gate import AOT_PROFILES, require_producer_lifecycle, sha256
+from scripts.riscv.riscv_segment_v2_detached_parent_gate import digest
+from scripts.repo.zig_serial_build import build_lock
 
 
 def main() -> None:
@@ -87,7 +90,7 @@ def main() -> None:
               "backend": args.backend, "aot_profile": AOT_PROFILES[args.aot_profile or "core-v2"] if args.backend == "metal" else None, "segments": count, "memory_addresses": memory_addresses, "profile": manifest["profile"],
               "inputs": {str(p): pin for p, pin in inputs.items()}, "steps": [], "passed": False,
               "timing_scope": "complete gate includes hostile cases; production sums are separate measurements"}
-    scripts = Path(__file__).resolve().parent
+    scripts = Path(__file__).resolve().parent.parent
     started = time.monotonic_ns()
 
     def run(name: str, argv: list[str], *, heavy: bool = False) -> dict:
@@ -140,7 +143,7 @@ def main() -> None:
         previous_dirs = [leaf_dir / f"child-{index}" for index in range(count)]
         for index, (directory, node) in enumerate(zip(previous_dirs, leaves)):
             gate = output / f"leaf-{index}-accepted.json"
-            run(f"verify-leaf-{index}", [sys.executable, str(scripts / "riscv_segment_v2_detached_gate.py"),
+            run(f"verify-leaf-{index}", [sys.executable, str(scripts / "riscv/riscv_segment_v2_detached_gate.py"),
                 "--proof-profile", manifest["profile"], "--verifier", str(args.leaf_verifier),
                 "--bundle", str(directory), "--key-sha256", node["key"]["sha256"],
                 "--expected-wire", node["expected"]["resolved"], "--output", str(gate)] +
@@ -158,7 +161,7 @@ def main() -> None:
                 name = f"parent-{level_index + 1}-{index}"
                 directory, gate = output / name, output / (name + "-accepted.json")
                 root = level_index == len(levels) - 1
-                argv = [sys.executable, str(scripts / "riscv_segment_v2_detached_parent_gate.py"),
+                argv = [sys.executable, str(scripts / "riscv/riscv_segment_v2_detached_parent_gate.py"),
                         "--proof-profile", "recursive_q193_v1" if manifest["profile"] == "recursive_q193_v1" else "detached_continuation_development_q3_v2",
                         "--verifier", str(args.parent_verifier), "--verifier-sha256", args.parent_verifier_sha256,
                         "--producer", str(args.parent_producer), "--producer-sha256", args.parent_producer_sha256,

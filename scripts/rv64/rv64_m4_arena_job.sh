@@ -9,7 +9,7 @@ ENVS=(--env STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS=1 --env STWO_RV64_GPU_CPU_REP
 for kv in "$@"; do ENVS+=(--env "$kv"); done
 LOAD=$(cut -d' ' -f1 /proc/loadavg)
 echo "START $(date +%T) $MODE $BLOCK $TAG load1=$LOAD lib=$LIB $*"
-cd $SRC && python3 scripts/rv64_m3_pod.py $MODE $BLOCK --gpus 2 --stream m4-arena --tag $TAG \
+cd $SRC && python3 scripts/rv64/rv64_m3_pod.py $MODE $BLOCK --gpus 2 --stream m4-arena --tag $TAG \
   --driver $BASE/rv64-word16-ethereum-gpu-combined --library $LIB --receiver $BASE/rv64-word16-ethereum-recursion-receiver "${ENVS[@]}"
 RC=$?
 RUN=/workspace/m3/runs/m4-arena/$BLOCK-2gpu-$TAG

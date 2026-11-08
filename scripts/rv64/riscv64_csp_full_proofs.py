@@ -18,9 +18,9 @@ import tempfile
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from scripts.riscv64_csp_compare import ISA, BINARIES, elf_info
+from scripts.rv64.riscv64_csp_compare import ISA, BINARIES, elf_info
 
 
 def digest(path):

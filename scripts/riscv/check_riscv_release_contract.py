@@ -7,23 +7,17 @@ import argparse
 import sys
 from pathlib import Path
 
-try:
-    from riscv_release_gate_lib.contract import (
-        core_purity_errors,
-        frontend_layering_errors,
-        repository_contract_errors,
-        structure_errors,
-    )
-except ModuleNotFoundError:  # Imported through the repository package in tests.
-    from scripts.riscv_release_gate_lib.contract import (
-        core_purity_errors,
-        frontend_layering_errors,
-        repository_contract_errors,
-        structure_errors,
-    )
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.riscv_release_gate_lib.contract import (
+    core_purity_errors,
+    frontend_layering_errors,
+    repository_contract_errors,
+    structure_errors,
+)
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -22,6 +22,7 @@ Idempotent: a v2 archive is left untouched. Use --dry-run to preview.
 
 from __future__ import annotations
 
+
 import argparse
 import hashlib
 import json
@@ -30,11 +31,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from benchmark_delta_lib.naming import run_id_for_report  # noqa: E402
+from scripts.bench.benchmark_delta_lib.naming import run_id_for_report  # noqa: E402
 
 
 class MigrationError(RuntimeError):

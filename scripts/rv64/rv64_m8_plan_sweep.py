@@ -228,7 +228,7 @@ def generate(sweeps: list[dict], *, device_bytes: int = DEFAULT_DEVICE_BYTES,
         raise ValueError('a class persistent region exceeds the persistent budget')
     return {
         'schema': POLICY_SCHEMA,
-        'generator': 'scripts/rv64_m8_plan_sweep.py generate',
+        'generator': 'scripts/rv64/rv64_m8_plan_sweep.py generate',
         'label_kind': '[D] from [M] sweeps',
         'inputs': {'margin': margin, 'device_bytes': int(device_bytes), 'reserve_bytes': int(reserve_bytes),
                    'sweeps': [s['label'] for s in sweeps]},

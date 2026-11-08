@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 import argparse
 import json
 import os
@@ -11,11 +12,11 @@ import tempfile
 from pathlib import Path
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from native_profile_capture_lib import (  # noqa: E402
+from scripts.native.native_profile_capture_lib import (  # noqa: E402
     COUNTER_WORKLOADS,
     METAL_MAX_ENCODERS_PER_COMMAND_BUFFER,
     PROFILE_WORKLOADS,

@@ -10,12 +10,12 @@ import sys
 from pathlib import Path
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 REPOSITORY = SCRIPT_DIR.parent
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
-from scripts.typed_air_r006_capture_lib import (  # noqa: E402
+from scripts.typed_air.typed_air_r006_capture_lib import (  # noqa: E402
     CaptureError,
     CaptureSettings,
     PAIR_ATTEMPTS,
@@ -45,17 +45,17 @@ from scripts.typed_air_r006_capture_lib import (  # noqa: E402
     write_plan_new,
     write_pair_plan_new,
 )
-from scripts.typed_air_r006_capture_lib.codec import (  # noqa: E402
+from scripts.typed_air.typed_air_r006_capture_lib.codec import (  # noqa: E402
     canonical_bytes,
     decode_strict,
     sha256_bytes,
     write_new,
 )
-from scripts.typed_air_r006_capture_lib.contract import (  # noqa: E402
+from scripts.typed_air.typed_air_r006_capture_lib.contract import (  # noqa: E402
     WorkloadPaths,
     materialized_poseidon_input,
 )
-from scripts.typed_air_r006_capture_lib.model import (  # noqa: E402
+from scripts.typed_air.typed_air_r006_capture_lib.model import (  # noqa: E402
     GENERATED_WORKLOADS,
     GENERATED_WORKLOAD_PARAMETERS,
     LANES,

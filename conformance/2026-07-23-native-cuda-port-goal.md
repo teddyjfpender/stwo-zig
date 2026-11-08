@@ -87,9 +87,9 @@ No skipped hardware test is release evidence. A non-CUDA host may validate
 source, ABI, build-plan, product-isolation, and fail-closed behavior, but cannot
 promote the backend.
 
-On a CUDA host, `python3 scripts/cuda_device_smoke.py` compiles and runs the
+On a CUDA host, `python3 scripts/cuda/cuda_device_smoke.py` compiles and runs the
 product-owned differential suite against the exact archive produced by
-`python3 scripts/cuda_build.py`. Both commands emit immutable receipts; a
+`python3 scripts/cuda/cuda_build.py`. Both commands emit immutable receipts; a
 receipt copied from another source closure is invalid.
 
 ## Performance Evidence

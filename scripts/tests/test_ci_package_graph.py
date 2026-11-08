@@ -15,10 +15,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import ci_package_graph as graph
-from scripts import ci_scope_plan
-
-
+from scripts.repo import ci_package_graph as graph
+from scripts.repo import ci_scope_plan
 ROOT = Path(__file__).resolve().parents[2]
 POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(encoding="utf-8"))
 
@@ -307,7 +305,7 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_new_script_and_build_helper_paths_use_bounded_owner_contracts(self) -> None:
         self.assertEqual(
-            self.select("scripts/riscv_poseidon_table_uniqueness.py"),
+            self.select("scripts/riscv/riscv_poseidon_table_uniqueness.py"),
             {"static", "script_contracts"},
         )
         self.assertEqual(

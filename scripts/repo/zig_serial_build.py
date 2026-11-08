@@ -15,7 +15,7 @@ to one job at each level. Explicit `-jN` opts into concurrent work.
 
 Usage mirrors `zig build`:
 
-    python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_metal \\
+    python3 scripts/repo/zig_serial_build.py --cwd src/integrations/riscv_metal \\
         check-stage101-degree5-provider-sweep-v1 -Doptimize=ReleaseFast
 
 Options consumed by the wrapper:

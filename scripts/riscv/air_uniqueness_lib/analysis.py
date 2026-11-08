@@ -11,12 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-try:
-    from riscv_air_ir_lib import tables
-    from riscv_air_ir_lib.ir import LEAF_OPS, MODULUS, Node, System
-except ModuleNotFoundError:  # Imported as scripts.air_uniqueness_lib in tests.
-    from scripts.riscv_air_ir_lib import tables
-    from scripts.riscv_air_ir_lib.ir import LEAF_OPS, MODULUS, Node, System
+from scripts.riscv.riscv_air_ir_lib import tables
+from scripts.riscv.riscv_air_ir_lib.ir import LEAF_OPS, MODULUS, Node, System
 
 
 def degrees(system: System) -> list[int]:

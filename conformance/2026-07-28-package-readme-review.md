@@ -27,7 +27,7 @@ Every package README must:
 10. link to relevant packages, product guidance, and conformance authority; and
 11. use valid CommonMark structure and a Mermaid architecture diagram.
 
-`scripts/check_package_workspace.py` now enforces the objective parts of this
+`scripts/repo/check_package_workspace.py` now enforces the objective parts of this
 contract: metadata, module import, dependencies, API names, exact command,
 required sections, diagram presence, heading hierarchy, minimum substantive
 length, balanced fences, and resolvable local links.

@@ -14,13 +14,12 @@ import tempfile
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-try:
-    from scripts import check_package_workspace
-except ModuleNotFoundError:
-    import check_package_workspace  # type: ignore[no-redef]
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.repo import check_package_workspace  # type: ignore[no-redef]
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 POLICY_PATH = ROOT / "conformance/package-release-v1.json"
 POLICY_SCHEMA = "stwo-zig-package-release-policy-v1"
 MANIFEST_SCHEMA = "stwo-zig-source-package-v1"

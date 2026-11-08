@@ -15,10 +15,7 @@ from .codec import atomic_write, canonical_bytes, content_digest, sha256_bytes, 
 from .model import EvidenceError
 from .session import attempt_chain_seed
 
-try:
-    from scripts.process_resources_lib import measurement_command, measurement_environment, parse_process_resources
-except ModuleNotFoundError:
-    from process_resources_lib import measurement_command, measurement_environment, parse_process_resources
+from scripts.repo.process_resources_lib import measurement_command, measurement_environment, parse_process_resources
 
 
 @dataclass(frozen=True)

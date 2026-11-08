@@ -42,8 +42,8 @@ from .render_validation import (
 
 AIR_LEAN_TEMPLATE = """\
 -- GENERATED FILE. DO NOT EDIT.
--- Generator: scripts/riscv_refinement.py
--- Regenerate: python3 scripts/riscv_refinement.py generate
+-- Generator: scripts/riscv/riscv_refinement.py
+-- Regenerate: python3 scripts/riscv/riscv_refinement.py generate
 -- Production binding: symbolic collector plus exact structural validation.
 -- Boundary: normalized predicate; LUI AIR IR v2 is bound in LuiProgram.lean.
 
@@ -304,8 +304,8 @@ end RiscvRefinement.Air.Generated
 
 SAIL_LEAN_TEMPLATE = """\
 -- GENERATED FILE. DO NOT EDIT.
--- Generator: scripts/riscv_refinement.py
--- Regenerate: python3 scripts/riscv_refinement.py generate
+-- Generator: scripts/riscv/riscv_refinement.py
+-- Regenerate: python3 scripts/riscv/riscv_refinement.py generate
 -- Source: exact-profile Sail 0.20.2 theorem-backend definition slices.
 -- Binding: fail-closed generated-definition AST translation receipt.
 -- Boundary: checked execute-clause translation/input binding. Normalized

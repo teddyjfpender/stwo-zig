@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 import argparse
 import json
 import os
@@ -11,10 +12,12 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from cuda_external_authority import AuthorityError, verify_projection
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.cuda.cuda_external_authority import AuthorityError, verify_projection
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 ADAPTER = ROOT / "tools/stwo-cuda-adapter-rs"
 DEPENDENCIES = {
     ".authority/crates/stwo": "crates/stwo",

@@ -14,10 +14,10 @@ from typing import Any
 
 # The library is named exactly once, so it has exactly one module identity.
 #
-# This used to be a two-spelling fallback: ``scripts.riscv_refinement_lib`` first,
+# This used to be a two-spelling fallback: ``scripts.riscv.riscv_refinement_lib`` first,
 # bare ``riscv_refinement_lib`` second, with a comment explaining that the order
 # mattered. It did, and relying on it was the defect. Direct execution
-# (``python3 scripts/riscv_refinement.py``) puts ``scripts/`` on ``sys.path``
+# (``python3 scripts/riscv/riscv_refinement.py``) puts ``scripts/`` on ``sys.path``
 # instead of the repository root, so the qualified import failed and the fallback
 # imported the same files again under a second name -- giving ``RefinementError``
 # two distinct classes. A test that catches one cannot catch the other, and
@@ -29,17 +29,9 @@ from typing import Any
 # Repairing ``sys.path`` and importing the one spelling removes the second name
 # from the file, so no import order can reintroduce the second identity.
 if __package__ in (None, ""):  # direct execution; the repository root is absent
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from scripts import (
-    riscv_opcode_coverage,
-    riscv_refinement_receipt_build as receipt_build,
-    riscv_refinement_receipt_constants as receipt_constants,
-    riscv_refinement_receipt_identity as receipt_identity,
-    riscv_refinement_receipt_validate as receipt_validate,
-    riscv_team_a,
-    riscv_team_b,
-)
-from scripts.riscv_refinement_lib import (
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from scripts.riscv import riscv_opcode_coverage, riscv_refinement_receipt_build as receipt_build, riscv_refinement_receipt_constants as receipt_constants, riscv_refinement_receipt_identity as receipt_identity, riscv_refinement_receipt_validate as receipt_validate, riscv_team_a, riscv_team_b
+from scripts.riscv.riscv_refinement_lib import (
     air_program,
     air_program_contract,
     audited_inventory,
@@ -48,7 +40,7 @@ from scripts.riscv_refinement_lib import (
     render,
     sail,
 )
-from scripts.riscv_refinement_lib.model import (
+from scripts.riscv.riscv_refinement_lib.model import (
     FULL_OPCODE_COUNT,
     PILOT_OPCODES,
     SCHEMA_VERSION,
@@ -56,7 +48,7 @@ from scripts.riscv_refinement_lib.model import (
     RefinementError,
     repository_root,
 )
-from scripts.riscv_refinement_lib.process import _run
+from scripts.riscv.riscv_refinement_lib.process import _run
 
 AUDITED_THEOREMS = audited_inventory.AUDITED_THEOREMS
 AUDITED_THEOREMS_BLOCK = audited_inventory.AUDITED_THEOREMS_BLOCK
@@ -576,7 +568,7 @@ def audited_theorems(args: argparse.Namespace, paths: Paths) -> None:
     source = args.pin_file or (
         paths.root
         / "scripts"
-        / "riscv_refinement_lib"
+        / "riscv/riscv_refinement_lib"
         / "audited_inventory.py"
     )
     _rewrite_audited_theorems(source, live)
@@ -599,7 +591,7 @@ def _verify_with_evidence(
     _run(
         [
             sys.executable,
-            "scripts/riscv_team_b.py",
+            "scripts/riscv/riscv_team_b.py",
             "check",
             "--air-ir-dir",
             str(paths.uniqueness_ir),
@@ -609,18 +601,18 @@ def _verify_with_evidence(
     _run(
         [
             sys.executable,
-            "scripts/riscv_team_b_witnesses.py",
+            "scripts/riscv/riscv_team_b_witnesses.py",
             "--air-ir-dir",
             str(paths.uniqueness_ir),
         ],
         paths.root,
     )
     _run(
-        [sys.executable, "scripts/riscv_team_a.py", "check"],
+        [sys.executable, "scripts/riscv/riscv_team_a.py", "check"],
         paths.root,
     )
     _run(
-        [sys.executable, "scripts/riscv_opcode_coverage.py", "check"],
+        [sys.executable, "scripts/riscv/riscv_opcode_coverage.py", "check"],
         paths.root,
     )
     _run(

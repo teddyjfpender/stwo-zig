@@ -8,10 +8,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-try:
-    from .riscv_team_a_constants import TeamAError
-except ImportError:
-    from riscv_team_a_constants import TeamAError
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.riscv_team_a_constants import TeamAError
 
 
 def assigned_opcodes(

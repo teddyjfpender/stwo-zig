@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 import json
 import sys
 from pathlib import Path
@@ -10,7 +13,7 @@ from pathlib import Path
 try:
     import performance_epoch_gate_lib.controller as controller
 except ModuleNotFoundError:
-    import scripts.performance_epoch_gate_lib.controller as controller
+    import scripts.bench.performance_epoch_gate_lib.controller as controller
 
 
 def promotion_enabled(state_path: Path) -> bool:
@@ -29,7 +32,7 @@ def main(argv: list[str] | None = None) -> int:
         None,
     )
     if promotion_command is not None:
-        state_path = Path(__file__).resolve().parents[1] / (
+        state_path = Path(__file__).resolve().parents[2] / (
             "conformance/build-architecture-performance-state-v1.json"
         )
         try:
@@ -46,9 +49,9 @@ def main(argv: list[str] | None = None) -> int:
 
     def run_oracle(binary, artifact, timeout):
         try:
-            from scripts.native_proof_matrix_lib.artifacts import run_rust_oracle
+            from scripts.native.native_proof_matrix_lib.artifacts import run_rust_oracle
         except ModuleNotFoundError:
-            from native_proof_matrix_lib.artifacts import run_rust_oracle
+            from scripts.native.native_proof_matrix_lib.artifacts import run_rust_oracle
         return run_rust_oracle(binary, artifact, timeout)
 
     return controller.main(arguments, oracle_runner=run_oracle)

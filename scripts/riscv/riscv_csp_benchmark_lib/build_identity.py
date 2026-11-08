@@ -31,7 +31,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Mapping
 
-from scripts.riscv_csp_benchmark_lib.contract import (
+from scripts.riscv.riscv_csp_benchmark_lib.contract import (
     BenchmarkError,
     Case,
     HEX_32,
@@ -39,7 +39,7 @@ from scripts.riscv_csp_benchmark_lib.contract import (
     MAX_CAPTURE_BYTES,
     _strict_object,
 )
-from scripts.riscv_csp_benchmark_lib.host import host_architecture
+from scripts.riscv.riscv_csp_benchmark_lib.host import host_architecture
 
 
 PUBLICATION_OPTIMIZE = "ReleaseFast"

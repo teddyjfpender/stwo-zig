@@ -12,7 +12,7 @@ import urllib.request
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 CONFORMANCE_DIR = ROOT / "docs" / "conformance"
 API_PARITY_PATH = CONFORMANCE_DIR / "api-parity.md"
 UPSTREAM_PATH = CONFORMANCE_DIR / "upstream.md"

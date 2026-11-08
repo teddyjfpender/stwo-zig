@@ -10,6 +10,7 @@ or expected statements. Development results are not production-security results.
 
 from __future__ import annotations
 
+
 import argparse
 import copy
 import hashlib
@@ -19,7 +20,9 @@ import subprocess
 import tempfile
 import time
 
-from zig_serial_build import build_lock
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.repo.zig_serial_build import build_lock
 
 MODULUS = (1 << 31) - 1
 

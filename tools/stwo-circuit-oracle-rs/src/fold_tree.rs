@@ -140,7 +140,7 @@ pub fn run(proving_root: &Path) -> Result<Envelope<FoldTreeBody>> {
         trees.push(record);
     }
     // The registry and the goldens are authenticated against their checked-in copies by
-    // `scripts/check_upstream_pins.py`.
+    // `scripts/repo/check_upstream_pins.py`.
     let inputs: Vec<InputRecord> = root.into_records();
     Ok(Envelope::new(
         "r9",

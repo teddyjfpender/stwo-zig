@@ -60,7 +60,7 @@ zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 For large RISC-V builds on a laptop, use the serialized build wrapper:
 
 ```sh
-python3 scripts/zig_serial_build.py stwo-zig-riscv-cpu -Doptimize=ReleaseFast
+python3 scripts/repo/zig_serial_build.py stwo-zig-riscv-cpu -Doptimize=ReleaseFast
 ```
 
 It queues competing wrapper invocations, defaults to one job per build level,
@@ -87,10 +87,10 @@ These build settings do not change prover worker policy or proof identities.
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes
 select decoding and component coverage only, never component semantics or
 correctness authority. Validate its source reconciliation with
-`python3 scripts/cairo_four_pie_source_coverage.py check-record`; add
+`python3 scripts/cairo/cairo_four_pie_source_coverage.py check-record`; add
 `--require-coverage-ready` to fail on every recorded source-coverage blocker.
 Source-semantic packs themselves are generated separately with
-`scripts/generate_cairo_source_semantic_pack.py` from an authenticated checkout.
+`scripts/cairo/generate_cairo_source_semantic_pack.py` from an authenticated checkout.
 
 Library consumers can select the smallest public module they need:
 
@@ -273,11 +273,11 @@ zig build riscv-trace-dump -Doptimize=ReleaseFast   # trace dumper for equivalen
 zig build riscv-recursion-csp-producer -Doptimize=ReleaseFast # canonical verified outer-child producer
 zig build riscv-recursion-shape-inspector -Doptimize=ReleaseFast # proof-independent CSP profile audit
 
-python3 scripts/riscv_recursion_csp_benchmark.py --help # sealed native/recursive cohort workflow
+python3 scripts/riscv/riscv_recursion_csp_benchmark.py --help # sealed native/recursive cohort workflow
 
-python3 scripts/riscv_formal_tools.py verify \
+python3 scripts/riscv/riscv_formal_tools.py verify \
   --workspace /tmp/stwo-riscv-formal
-python3 scripts/riscv_trace_vectors.py \
+python3 scripts/riscv/riscv_trace_vectors.py \
   --sail-bin /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim \
   --spike-bin /tmp/stwo-riscv-formal/install/spike/bin/spike
 ```
@@ -292,7 +292,7 @@ For release evidence, use `python3 scripts/ci.py --strict`. Enable the versioned
 and product-scoped pre-push checks once per checkout with:
 
 ```sh
-python3 scripts/install_hooks.py
+python3 scripts/repo/install_hooks.py
 ```
 
 ## Explore

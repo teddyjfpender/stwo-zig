@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 TEAM_B_FAMILIES = (
     "shifts_reg",
     "shifts_imm",

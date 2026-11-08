@@ -8,7 +8,7 @@ or rebuilding it, following the libstwo-rv64-outer-fs-ops.so precedent
 with argv, toolkit version and SHA-256 of sources, objects, addon and base.
 
 Run on the pod under one build lock, e.g.
-  flock /workspace/m3/locks/build.2.lock python3 scripts/rv64_m8_jobs_addon_build.py \\
+  flock /workspace/m3/locks/build.2.lock python3 scripts/rv64/rv64_m8_jobs_addon_build.py \\
       --base /workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so \\
       --out /workspace/m3/build/m8-runtime/jobs-addon
 """
@@ -19,7 +19,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 NATIVE = ROOT / 'src/backends/cuda/native'
 SOURCES = NATIVE / 'rv64/jobs'
 ADDON = 'libstwo-rv64-jobs.so'

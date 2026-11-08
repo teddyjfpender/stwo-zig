@@ -22,10 +22,10 @@ import time
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from scripts.riscv_csp_benchmark_lib.contract import validate_manifest
-from scripts.riscv_csp_benchmark_lib.public_output import reconstruct_public_output
+from scripts.riscv.riscv_csp_benchmark_lib.contract import validate_manifest
+from scripts.riscv.riscv_csp_benchmark_lib.public_output import reconstruct_public_output
 
 TOOLCHAIN = 'nightly-2026-03-04'
 ISA = ('riscv32im-unknown-none-elf', 'riscv64im-unknown-none-elf')

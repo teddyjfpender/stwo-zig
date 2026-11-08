@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 if __package__:
     from . import riscv_opcode_coverage, riscv_team_a, riscv_team_b
 else:
-    import riscv_opcode_coverage
-    import riscv_team_a
-    import riscv_team_b
+    from scripts.riscv import riscv_opcode_coverage
+    from scripts.riscv import riscv_team_a
+    from scripts.riscv import riscv_team_b
 
 APPROVED_LEAN_AXIOMS = frozenset(
     {
@@ -117,6 +120,6 @@ LIVE_SAIL_OPTIONS = (
 AUDIT_COMMAND = ("lake", "env", "lean", "RiscvRefinement/AxiomAudit.lean")
 AUDITED_THEOREMS_REFRESH = (
     "refresh the pin with "
-    "'python3 scripts/riscv_refinement.py audited-theorems --write' "
+    "'python3 scripts/riscv/riscv_refinement.py audited-theorems --write' "
     "and review the diff"
 )

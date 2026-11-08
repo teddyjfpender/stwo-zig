@@ -69,7 +69,7 @@ def _carried_base_pins(carried: dict[str, object]) -> None:
         if carried.get(key) != expected:
             raise RefinementError(
                 f"committed Sail provenance {key} does not match the pin in "
-                f"scripts/riscv_refinement_lib/sail.py: "
+                f"scripts/riscv/riscv_refinement_lib/sail.py: "
                 f"{carried.get(key)!r} != {expected!r}"
             )
     if carried.get("checkout_state") not in ("clean", "rvfi-transport-patch-only"):
@@ -97,7 +97,7 @@ def _carried_pins(carried: dict[str, object]) -> None:
         if carried.get(key) != expected:
             raise RefinementError(
                 f"committed Sail provenance {key} does not match the pin in "
-                f"scripts/riscv_refinement_lib/sail.py: "
+                f"scripts/riscv/riscv_refinement_lib/sail.py: "
                 f"{carried.get(key)!r} != {expected!r}"
             )
     translation = carried.get("generated_ast_translation_receipt")

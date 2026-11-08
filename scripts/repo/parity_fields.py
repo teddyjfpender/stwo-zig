@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 GEN_MANIFEST = ROOT / "tools" / "stwo-vector-gen" / "Cargo.toml"
 VECTORS_DIR = ROOT / "vectors"
 COMMITTED = VECTORS_DIR / "fields.json"

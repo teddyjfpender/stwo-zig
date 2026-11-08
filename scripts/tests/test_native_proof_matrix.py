@@ -29,7 +29,7 @@ from scripts.tests.native_proof_matrix_support import (
     summary,
     write_proof_artifact,
 )
-from native_proof_matrix_lib.contract import pipeline_preparation_occurred
+from scripts.native.native_proof_matrix_lib.contract import pipeline_preparation_occurred
 
 
 class NativeProofMatrixTests(unittest.TestCase):
@@ -249,7 +249,7 @@ class NativeProofMatrixTests(unittest.TestCase):
             MODULE.validate_workload(too_large, resource_profile="large")
 
     def test_large_profile_is_explicit_in_commands_and_report_evidence(self) -> None:
-        from native_proof_matrix_lib.artifacts import lane_command
+        from scripts.native.native_proof_matrix_lib.artifacts import lane_command
 
         workload = MODULE.Workload.wide_fibonacci(20, 100)
         command = lane_command(
@@ -356,7 +356,7 @@ class NativeProofMatrixTests(unittest.TestCase):
         self.assertEqual(admitted.resource_profile, "large")
 
     def test_lane_commands_use_only_canonical_tagged_flags(self) -> None:
-        from native_proof_matrix_lib.artifacts import lane_command
+        from scripts.native.native_proof_matrix_lib.artifacts import lane_command
 
         artifact = Path("/tmp/proof.json")
         self.assertEqual(
@@ -765,7 +765,7 @@ class NativeProofMatrixTests(unittest.TestCase):
 
             artifact_dir = root / "nonzero"
             with mock.patch(
-                "native_proof_matrix_lib.artifacts.subprocess.run",
+                "scripts.native.native_proof_matrix_lib.artifacts.subprocess.run",
                 side_effect=nonzero_run,
             ), self.assertRaisesRegex(MODULE.MatrixError, "exited 7"):
                 MODULE.run_lane(
@@ -785,7 +785,7 @@ class NativeProofMatrixTests(unittest.TestCase):
 
             artifact_dir = root / "timeout"
             with mock.patch(
-                "native_proof_matrix_lib.artifacts.subprocess.run",
+                "scripts.native.native_proof_matrix_lib.artifacts.subprocess.run",
                 side_effect=timeout_run,
             ), self.assertRaisesRegex(MODULE.MatrixError, "timed out"):
                 MODULE.run_lane(
@@ -806,7 +806,7 @@ class NativeProofMatrixTests(unittest.TestCase):
 
             artifact_dir = root / "missing"
             with mock.patch(
-                "native_proof_matrix_lib.artifacts.subprocess.run",
+                "scripts.native.native_proof_matrix_lib.artifacts.subprocess.run",
                 side_effect=missing_artifact_run,
             ), self.assertRaisesRegex(MODULE.MatrixError, "was not produced"):
                 MODULE.run_lane(
@@ -830,10 +830,10 @@ class NativeProofMatrixTests(unittest.TestCase):
 
             artifact_dir = root / "oversized"
             with mock.patch(
-                "native_proof_matrix_lib.artifacts.subprocess.run",
+                "scripts.native.native_proof_matrix_lib.artifacts.subprocess.run",
                 side_effect=oversized_run,
             ), mock.patch(
-                "native_proof_matrix_lib.artifacts.MAX_STDOUT_BYTES", 4
+                "scripts.native.native_proof_matrix_lib.artifacts.MAX_STDOUT_BYTES", 4
             ), self.assertRaisesRegex(MODULE.MatrixError, "stream limit exceeded"):
                 MODULE.run_lane(
                     "cpu", binary, workload, lane_args(), artifact_dir

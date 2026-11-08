@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from scripts.build_architecture_receipt_lib.model import EVIDENCE_NAMES, ReceiptError
+from scripts.architecture.build_architecture_receipt_lib.model import EVIDENCE_NAMES, ReceiptError
 
 
 PLAN_FIELDS = {"schema", "optimize", "evidence_phases", "roles"}
@@ -16,41 +16,41 @@ PRODUCT_FIELDS = {
     "product_id", "phase", "identity_path", "identity_command", "artifact_path",
 }
 COMMAND_LAUNCHERS = {
-    "baseline": ("python3", "scripts/check_build_monorepo_baseline.py"),
+    "baseline": ("python3", "scripts/repo/check_build_monorepo_baseline.py"),
     "product-matrix": ("zig", "build"),
     "core-prover": ("zig", "build"),
     "riscv-product": ("zig", "build"),
     "riscv-applications": ("zig-out/bin/stwo-zig-riscv-cpu", "applications"),
-    "riscv-link-closure": ("python3", "scripts/check_architecture_link_closure.py"),
+    "riscv-link-closure": ("python3", "scripts/architecture/check_architecture_link_closure.py"),
     "native-cpu-product": ("zig", "build"),
     "native-cpu-applications": ("zig-out/bin/stwo-zig-native-cpu", "applications"),
-    "native-cpu-link-closure": ("python3", "scripts/check_architecture_link_closure.py"),
+    "native-cpu-link-closure": ("python3", "scripts/architecture/check_architecture_link_closure.py"),
     "native-metal-product": ("zig", "build"),
     "native-metal-applications": ("zig-out/bin/stwo-zig-native-metal", "applications"),
-    "native-metal-link-closure": ("python3", "scripts/check_architecture_link_closure.py"),
+    "native-metal-link-closure": ("python3", "scripts/architecture/check_architecture_link_closure.py"),
     "native-metal-correctness": (
-        "python3", "scripts/architecture_native_metal_correctness.py",
+        "python3", "scripts/architecture/architecture_native_metal_correctness.py",
     ),
     "metal-aot-builder": ("zig", "build"),
-    "metal-aot-receipt": ("python3", "scripts/metal_core_aot_receipt.py"),
+    "metal-aot-receipt": ("python3", "scripts/metal/metal_core_aot_receipt.py"),
     "cuda-policy": ("zig", "test"),
     "deferred-products": ("zig", "test"),
     "aggregate": ("zig", "build"),
     "aggregate-applications": ("zig-out/bin/stwo-zig", "applications"),
-    "aggregate-link-closure": ("python3", "scripts/check_architecture_link_closure.py"),
+    "aggregate-link-closure": ("python3", "scripts/architecture/check_architecture_link_closure.py"),
     "focused-parity-prove": ("zig-out/bin/stwo-zig-native-cpu", "prove"),
     "aggregate-parity-prove": ("zig-out/bin/stwo-zig", "prove"),
     "focused-parity-verify": ("zig-out/bin/stwo-zig-native-cpu", "verify"),
     "aggregate-parity-verify": ("zig-out/bin/stwo-zig", "verify"),
-    "aggregate-parity-compare": ("python3", "scripts/check_aggregate_parity.py"),
+    "aggregate-parity-compare": ("python3", "scripts/architecture/check_aggregate_parity.py"),
     "configure-closure": ("zig", "build"),
-    "source-conformance": ("python3", "scripts/check_source_conformance.py"),
+    "source-conformance": ("python3", "scripts/repo/check_source_conformance.py"),
     "identity-mutations": ("zig", "test"),
     "ci-boundaries": ("python3", "-m"),
-    "benchmark-contract": ("python3", "scripts/check_benchmark_product_contract.py"),
-    "native-rust-oracle": ("python3", "scripts/e2e_interop.py"),
-    "native-oracle-bundle-validate": ("python3", "scripts/architecture_native_oracle.py"),
-    "performance-readiness": ("python3", "scripts/architecture_performance_readiness.py"),
+    "benchmark-contract": ("python3", "scripts/bench/check_benchmark_product_contract.py"),
+    "native-rust-oracle": ("python3", "scripts/interop/e2e_interop.py"),
+    "native-oracle-bundle-validate": ("python3", "scripts/architecture/architecture_native_oracle.py"),
+    "performance-readiness": ("python3", "scripts/architecture/architecture_performance_readiness.py"),
 }
 def _unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
@@ -184,7 +184,7 @@ def authority_argv(
     """
 
     if argv[:3] == ["python3", "-m", "unittest"]:
-        runner = authority_root / "scripts/architecture_authority_tests.py"
+        runner = authority_root / "scripts/architecture/architecture_authority_tests.py"
         return [
             "python3", str(runner), "--candidate-root", str(candidate_root),
             *argv[3:],
@@ -193,7 +193,7 @@ def authority_argv(
         script = (authority_root / argv[1]).resolve()
         if not script.is_relative_to(authority_root.resolve()) or not script.is_file():
             raise ReceiptError(f"authority policy script is missing for {command_id}")
-        dispatcher = authority_root / "scripts/architecture_authority_dispatch.py"
+        dispatcher = authority_root / "scripts/architecture/architecture_authority_dispatch.py"
         if not dispatcher.is_file():
             raise ReceiptError("authority Python dispatcher is missing")
         resolved = [

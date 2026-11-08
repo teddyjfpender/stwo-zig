@@ -7,8 +7,8 @@ applies the hash-pinned RVFI harness patch, and builds the two executors.
 
 Examples:
 
-  python3 scripts/riscv_formal_tools.py prepare --workspace /tmp/riscv-formal
-  python3 scripts/riscv_formal_tools.py verify  --workspace /tmp/riscv-formal
+  python3 scripts/riscv/riscv_formal_tools.py prepare --workspace /tmp/riscv-formal
+  python3 scripts/riscv/riscv_formal_tools.py verify  --workspace /tmp/riscv-formal
 
 The workspace is caller-selected and may be cached. Existing checkouts are
 accepted only when their source identity and complete working-tree state are
@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 PROFILE_PATH = ROOT / "conformance" / "riscv" / "rv32im-sail-profile.json"
 SAIL_PATCHED_SOURCE = Path("c_emulator/rvfi_dii.cpp")
 SAIL_BINARY = Path("build/c_emulator/sail_riscv_sim")

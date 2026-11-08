@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 if __package__.startswith("scripts."):
-    from scripts.native_proof_matrix_lib.model import Workload, parse_workload
+    from scripts.native.native_proof_matrix_lib.model import Workload, parse_workload
 else:
-    from native_proof_matrix_lib.model import Workload, parse_workload
+    from scripts.native.native_proof_matrix_lib.model import Workload, parse_workload
 
 
 PROFILE_PROTOCOL = "functional"

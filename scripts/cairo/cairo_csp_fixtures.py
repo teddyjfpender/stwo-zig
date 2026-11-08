@@ -21,7 +21,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Mapping, Sequence
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROVENANCE = ROOT / "vectors/cairo/csp/fixture-provenance-v1.json"
 COMPARISON_MANIFEST = "vectors/cairo/csp/comparison-manifest-v1.json"
 SCHEMA = "stwo_cairo_csp_fixture_provenance_v1"

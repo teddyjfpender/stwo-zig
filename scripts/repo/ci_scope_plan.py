@@ -12,13 +12,12 @@ import tempfile
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Mapping
 
-try:
-    from scripts import ci_package_graph
-except ModuleNotFoundError:  # Direct execution adds scripts/, not the repository root.
-    import ci_package_graph  # type: ignore[no-redef]
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.repo import ci_package_graph  # type: ignore[no-redef]
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 POLICY = ROOT / "conformance/ci-touchpoints-v1.json"
 CATALOG = ROOT / "zig-out/identity/product-matrix.json"
 ALL_HOSTS = ("linux", "macos")

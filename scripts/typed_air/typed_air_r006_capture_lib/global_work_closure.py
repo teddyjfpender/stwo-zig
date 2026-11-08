@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from scripts.typed_air_work_profile_contract_lib import (
+from scripts.typed_air.typed_air_work_profile_contract_lib import (
     FAMILY_IDS,
     INVENTORY_PATH,
     INVENTORY_SCHEMA_VERSION,

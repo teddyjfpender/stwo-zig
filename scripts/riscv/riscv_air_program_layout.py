@@ -10,13 +10,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
-try:
-    from .riscv_refinement_lib import air_program_layout, codec
-except ImportError:
-    from riscv_refinement_lib import air_program_layout, codec
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.riscv_refinement_lib import air_program_layout, codec
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 GENERATED_AIR = "formal/riscv-refinement/generated/air"
 
 

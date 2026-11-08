@@ -3,7 +3,7 @@
 
 The admitted catalogue lowers every single-group module above 32 KiB into a
 "bounded" form: one volatile local-memory slot per live SSA value and
-noinline instruction slices (scripts/rv64_cuda_partition_grouped.py
+noinline instruction slices (scripts/rv64/rv64_cuda_partition_grouped.py
 bound_ssa_module). For the Keccak truth group 174 that is an 11,368 B private
 frame per thread and 95 ms per launch [M census1, 24628607 warm].
 

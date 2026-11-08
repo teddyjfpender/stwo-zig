@@ -11,15 +11,18 @@ Importing zig_protocol_lib.command.test_command never acquires a lock.
 
 from __future__ import annotations
 
+
 import subprocess
 import sys
 from pathlib import Path
 
-from zig_protocol_lib.command import test_command
-from zig_serial_build import DEFAULT_LOCK, build_lock
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.repo.zig_protocol_lib.command import test_command
+from scripts.repo.zig_serial_build import DEFAULT_LOCK, build_lock
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def main(argv: list[str] | None = None) -> int:

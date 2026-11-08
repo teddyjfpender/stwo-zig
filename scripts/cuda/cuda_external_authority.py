@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 CUDA_ROOT = ROOT / "src/backends/cuda"
 DEFAULT_OUTPUT = CUDA_ROOT / "vendor/host_authority"
 HOST_MANIFEST = CUDA_ROOT / "host_source_manifest.json"

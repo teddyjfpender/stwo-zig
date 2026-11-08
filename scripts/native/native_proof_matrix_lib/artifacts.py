@@ -23,22 +23,15 @@ from .model import (
     Workload,
 )
 
-try:
-    from process_resources_lib import (
-        ResourceMeasurementError,
-        measurement_command as shared_measurement_command,
-        parse_process_resources as shared_parse_process_resources,
-    )
-except ModuleNotFoundError:
-    from scripts.process_resources_lib import (
-        ResourceMeasurementError,
-        measurement_command as shared_measurement_command,
-        parse_process_resources as shared_parse_process_resources,
-    )
+from scripts.repo.process_resources_lib import (
+    ResourceMeasurementError,
+    measurement_command as shared_measurement_command,
+    parse_process_resources as shared_parse_process_resources,
+)
 
 
 ROOT = Path(
-    os.environ.get("STWO_ZIG_EXECUTION_ROOT", Path(__file__).resolve().parents[2])
+    os.environ.get("STWO_ZIG_EXECUTION_ROOT", Path(__file__).resolve().parents[3])
 ).resolve()
 PROFILE_ENV_VARS = (
     "STWO_ZIG_METAL_PROFILE_OUT",

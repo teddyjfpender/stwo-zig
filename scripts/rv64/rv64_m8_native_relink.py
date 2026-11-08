@@ -11,8 +11,9 @@ uses this recipe. The frozen objects are never written: native objects are
 compiled into OUT/objects, and every link-input path outside the native
 directory must keep its recorded SHA-256.
 
-  python3 scripts/rv64_m8_native_relink.py --base-link-inputs LINK.json --out DIR
+  python3 scripts/rv64/rv64_m8_native_relink.py --base-link-inputs LINK.json --out DIR
 """
+
 import argparse
 import ctypes as C
 import json
@@ -22,11 +23,11 @@ import subprocess
 import sys
 import time
 
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
-import rv64_cuda_native_library_build as N  # noqa: E402
-import rv64_m3_pod as P  # noqa: E402
-import rv64_m7_integration_stack as S  # noqa: E402
+HERE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_cuda_native_library_build as N  # noqa: E402
+from scripts.rv64 import rv64_m3_pod as P  # noqa: E402
+from scripts.rv64 import rv64_m7_integration_stack as S  # noqa: E402
 
 ROOT = HERE.parent
 NATIVE = Path('/workspace/m3/build/m7-integrate/cuda/native')

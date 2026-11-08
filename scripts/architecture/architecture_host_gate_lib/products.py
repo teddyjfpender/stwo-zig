@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from scripts.architecture_host_gate_lib.capture import sha256_file
-from scripts.product_identity_lib import ProductIdentityError, validate_canonical_identity
+from scripts.architecture.architecture_host_gate_lib.capture import sha256_file
+from scripts.repo.product_identity_lib import ProductIdentityError, validate_canonical_identity
 
 
 class ProductError(ValueError):

@@ -20,12 +20,12 @@ from pathlib import Path
 from typing import Any, Sequence
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 REPOSITORY = SCRIPT_DIR.parent
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
-from scripts.typed_air_r006_capture_lib.codec import (  # noqa: E402
+from scripts.typed_air.typed_air_r006_capture_lib.codec import (  # noqa: E402
     canonical_bytes,
     content_digest,
     decode_strict,
@@ -33,7 +33,7 @@ from scripts.typed_air_r006_capture_lib.codec import (  # noqa: E402
     sha256_file,
     write_new,
 )
-from scripts.typed_air_r006_capture_lib.model import CaptureError  # noqa: E402
+from scripts.typed_air.typed_air_r006_capture_lib.model import CaptureError  # noqa: E402
 
 
 SCHEMA = "stwo.typed-air.v009-clean-release-receipt.v1"

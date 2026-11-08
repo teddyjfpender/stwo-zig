@@ -11,9 +11,9 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from scripts.architecture_host_gate_lib import capture, products, validators
-from scripts.build_architecture_receipt_lib.codec import canonical_bytes
-from scripts.build_architecture_receipt_lib.model import ReceiptError
+from scripts.architecture.architecture_host_gate_lib import capture, products, validators
+from scripts.architecture.build_architecture_receipt_lib.codec import canonical_bytes
+from scripts.architecture.build_architecture_receipt_lib.model import ReceiptError
 
 
 MAX_FILES = 512
@@ -251,7 +251,7 @@ def verify(
         ]
         if product_records != manifest["products"]:
             raise ReceiptError("architecture product records differ from protected recomputation")
-        from scripts.architecture_host_gate_lib.controller import _checkpoints, _evidence
+        from scripts.architecture.architecture_host_gate_lib.controller import _checkpoints, _evidence
 
         checkpoints = _checkpoints(
             role=role, protocol=protocol, role_plan=role_plan,

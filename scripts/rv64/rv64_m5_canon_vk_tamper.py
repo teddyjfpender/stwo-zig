@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """canon-vk (M5) adversarial tamper cases for the opt-in recursion formats.
 
-Runs extra cases on top of scripts/rv64_m5_negative_corpus.py (same receiver
+Runs extra cases on top of scripts/rv64/rv64_m5_negative_corpus.py (same receiver
 argv, same fresh GPU-disabled process per case, same verdict rules). The
 corpus runs every receiver with STWO_RV64_FOLD_CLASS_CACHE=0; these cases also
 cover the receiver DEFAULT (=1, in-process fold-class reuse), because under a
 uniform outer shape every fold shares ONE verification key and the output
 digest check is the only barrier between two folds.
 
-  python3 scripts/rv64_m5_canon_vk_tamper.py --run <E6 canonical run> --donor <other block canonical run> \
+  python3 scripts/rv64/rv64_m5_canon_vk_tamper.py --run <E6 canonical run> --donor <other block canonical run> \
       --base-env STWO_RV64_OUTER_PROFILE=m5_outer_canonical_r1_b2_q108_p20_fold4_v1 --set canonical --out <receipt>
 
 Sets: canonical (proofs under the named canonical profile), uniform (r1 domain, uniform-v1 shape),
 set-v2 (r1 domain, set-v2 shape). Every case except the controls must be rejected cleanly.
 """
+
 import argparse
 import concurrent.futures as cf
 import json
@@ -23,8 +24,8 @@ import shutil
 import sys
 import time
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import rv64_m5_negative_corpus as K  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_m5_negative_corpus as K  # noqa: E402
 
 SCHEMA = "rv64-m5-canon-vk-tamper/v1"
 CANON = "m5_outer_canonical_r1_b2_q108_p20_fold4_v1"

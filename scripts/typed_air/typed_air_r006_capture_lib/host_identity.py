@@ -8,7 +8,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from scripts.riscv_csp_benchmark_lib.host import power_evidence
+from scripts.riscv.riscv_csp_benchmark_lib.host import power_evidence
 
 from .model import ENVIRONMENT, CaptureError
 

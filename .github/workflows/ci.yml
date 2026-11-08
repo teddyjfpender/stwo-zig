@@ -79,7 +79,7 @@ jobs:
           else
             BASE="${{ github.event.before }}"
           fi
-          python3 scripts/ci_scope_plan.py \
+          python3 scripts/repo/ci_scope_plan.py \
             --base "$BASE" \
             --head "${{ github.sha }}" \
             --output "$RUNNER_TEMP/focused-ci-plan.json" \
@@ -174,7 +174,7 @@ jobs:
       - name: Run focused lane
         run: |
           mkdir -p "$RUNNER_TEMP/focused-ci"
-          python3 scripts/ci_scope_run.py \
+          python3 scripts/repo/ci_scope_run.py \
             --lane "${{ matrix.lane }}" \
             --cache-mode warm \
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/${{ matrix.lane }}" \
@@ -238,7 +238,7 @@ jobs:
       - name: Run focused lane
         run: |
           mkdir -p "$RUNNER_TEMP/focused-ci"
-          python3 scripts/ci_scope_run.py \
+          python3 scripts/repo/ci_scope_run.py \
             --lane "${{ matrix.lane }}" \
             --cache-mode warm \
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/${{ matrix.lane }}" \
@@ -306,7 +306,7 @@ jobs:
       - name: Run fail-closed Native CUDA product and oracle lane
         run: |
           mkdir -p "$RUNNER_TEMP/focused-ci"
-          python3 scripts/ci_scope_run.py \
+          python3 scripts/repo/ci_scope_run.py \
             --lane native_cuda_device \
             --cache-mode warm \
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/native_cuda_device" \
@@ -465,7 +465,7 @@ jobs:
       - name: Capture reproducible Full-Xcode AOT build receipt
         run: |
           zig build metal-core-aot -Doptimize=ReleaseSafe
-          python3 scripts/metal_core_aot_receipt.py build \
+          python3 scripts/metal/metal_core_aot_receipt.py build \
             --builder zig-out/bin/metal-core-aot \
             --output-dir "$RUNNER_TEMP/native-metal-core-aot-acceptance" \
             --receipt-out "$RUNNER_TEMP/native-metal-core-aot-acceptance/receipt.json" \
@@ -501,7 +501,7 @@ jobs:
           persist-credentials: false
       - name: Emit explicit non-authoritative status
         run: >-
-          python3 scripts/architecture_candidate_diagnostic.py
+          python3 scripts/architecture/architecture_candidate_diagnostic.py
           --output "$RUNNER_TEMP/architecture-candidate-diagnostic.json"
       - name: Retain candidate diagnostic
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4

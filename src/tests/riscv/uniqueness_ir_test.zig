@@ -622,7 +622,7 @@ fn writeSystem(
     try w.writeAll("  ],\n  \"notes\": \"extracted from Semantics(S) and Entries(S)\"\n}\n");
 }
 
-// Writes one JSON system per family for `scripts/air_uniqueness.py`.
+// Writes one JSON system per family for `scripts/riscv/air_uniqueness.py`.
 test "uniqueness IR: emit every family" {
     const allocator = std.testing.allocator;
     const dir_path = "zig-out/uniqueness-ir";

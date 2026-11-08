@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """RV64 M4 measurement toolkit (stream measure; plan M4.0 items 2 and 9).
 
-Library used by scripts/rv64_m3_pod.py (--counters / --smaps hooks) plus a CLI:
+Library used by scripts/rv64/rv64_m3_pod.py (--counters / --smaps hooks) plus a CLI:
 
   python3 rv64_measure.py receipt-v2  RUN_DIR [--reference RECEIPT] [--out PATH]
       Build receipt schema v2 (fixed stage boundaries, plan section 8.1) from a harness run
@@ -29,7 +29,7 @@ import threading
 import time
 
 SCHEMA_V2 = "rv64-m4-receipt/v2"
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent
 SHIM_DEFAULT = Path("/workspace/m3/build/m4-measure/shim/librv64_cuda_counters.so")
 
 

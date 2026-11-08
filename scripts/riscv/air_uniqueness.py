@@ -16,15 +16,15 @@ The uniqueness leg needs no reference model, which is what makes it cheap:
 
 Usage
 -----
-    python3 -m scripts.air_uniqueness explain
-    python3 -m scripts.air_uniqueness emit  <model.json> [-o query.smt2]
-    python3 -m scripts.air_uniqueness check <model.json> [--timeout-ms N]
+    python3 -m scripts.riscv.air_uniqueness explain
+    python3 -m scripts.riscv.air_uniqueness emit  <model.json> [-o query.smt2]
+    python3 -m scripts.riscv.air_uniqueness check <model.json> [--timeout-ms N]
         [--no-refine] [--no-derived-facts] [--opcode F] [--output-column C]
         [--counterexample-json out.json]
 
 `explain` prints the encoding decisions a reviewer has to agree with, including
 what a green result does not mean.  `check` exits 0 on `unsat` (unique) and 1
-on `sat` or `unknown`.  It answers for one family; `scripts/air_uniqueness_board.py`
+on `sat` or `unknown`.  It answers for one family; `scripts/riscv/air_uniqueness_board.py`
 schedules it across all of them and folds the shard verdicts into a board.
 
 Not wired into any gate: it is an operator tool until a family's IR is emitted
@@ -40,12 +40,10 @@ import json
 import sys
 from pathlib import Path
 
-try:
-    from air_uniqueness_lib import analysis, smtlib, solve
-    from riscv_air_ir_lib import ir
-except ModuleNotFoundError:  # Imported as scripts.air_uniqueness in tests.
-    from scripts.air_uniqueness_lib import analysis, smtlib, solve
-    from scripts.riscv_air_ir_lib import ir
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.air_uniqueness_lib import analysis, smtlib, solve
+from scripts.riscv.riscv_air_ir_lib import ir
 
 
 ENCODING_SPEC = """\

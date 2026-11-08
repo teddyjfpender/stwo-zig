@@ -9,13 +9,13 @@ from pathlib import Path
 from typing import Any
 
 if __package__.startswith("scripts."):
-    from scripts.metal_profile_report_lib import build_report, load_events
-    from scripts.native_proof_matrix_lib import contract as matrix_contract
-    from scripts.native_proof_matrix_lib.model import MatrixError, Workload
+    from scripts.metal.metal_profile_report_lib import build_report, load_events
+    from scripts.native.native_proof_matrix_lib import contract as matrix_contract
+    from scripts.native.native_proof_matrix_lib.model import MatrixError, Workload
 else:
-    from metal_profile_report_lib import build_report, load_events
-    from native_proof_matrix_lib import contract as matrix_contract
-    from native_proof_matrix_lib.model import MatrixError, Workload
+    from scripts.metal.metal_profile_report_lib import build_report, load_events
+    from scripts.native.native_proof_matrix_lib import contract as matrix_contract
+    from scripts.native.native_proof_matrix_lib.model import MatrixError, Workload
 
 from .evidence import canonical_sha256
 from .model import (

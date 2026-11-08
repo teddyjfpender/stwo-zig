@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 ADAPTER_DIR = ROOT / "conformance" / "riscv" / "arch-test"
 EXPECTED_SUITES = ("I", "M")
 EXPECTED_SOURCE_DIRS = tuple(Path("rv32i") / suite for suite in EXPECTED_SUITES)

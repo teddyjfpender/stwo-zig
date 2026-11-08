@@ -49,8 +49,8 @@ but it must not present that observation as judged promotion evidence.
 ## Commands
 
 ```sh
-python3 scripts/benchmark_pages.py
-python3 scripts/benchmark_pages.py --validate
+python3 scripts/bench/benchmark_pages.py
+python3 scripts/bench/benchmark_pages.py --validate
 python3 -m http.server 8000 --directory bench/site
 ```
 

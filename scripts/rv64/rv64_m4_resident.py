@@ -25,6 +25,7 @@ The driver additionally keys every artifact on SHA-256(own executable) and the r
 program identity and SHA-256-seals header/VK/bulk (setup_cache.zig), so a stale store can
 never be read; a store.json whose components disagree with the recomputed ones is refused.
 """
+
 import argparse
 import fcntl
 import hashlib
@@ -40,10 +41,10 @@ import subprocess
 import sys
 import time
 
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
-import rv64_m3_pod as P  # noqa: E402
-import rv64_resident_basket as R  # noqa: E402
+HERE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_m3_pod as P  # noqa: E402
+from scripts.rv64 import rv64_resident_basket as R  # noqa: E402
 
 B = R.B
 M3 = P.M3

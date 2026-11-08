@@ -6,7 +6,7 @@ the m3 harness), then selects the preset with the lowest device peak among the
 presets whose proofs are byte-identical to the M3 baseline and whose native
 prove is within --max-native-slowdown of the reference preset.
 
-  python3 scripts/rv64_m4_arena_sweep.py BLOCK --lib LIB --presets presets.json --out sweep.json [--reuse]
+  python3 scripts/rv64/rv64_m4_arena_sweep.py BLOCK --lib LIB --presets presets.json --out sweep.json [--reuse]
 
 presets.json: [{"name": "auto", "env": {"STWO_RV64_DEVICE_ARENA": "1"}}, ...]; the
 first preset is the reference for the slowdown gate. --reuse skips presets whose
@@ -21,7 +21,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent
 REPORTS = Path("/workspace/m3/runs/m4-arena/reports")
 DEV_BLOCKS = {26235156, 24628607}
 ALLOWED = ("STWO_RV64_DEVICE_ARENA", "STWO_RV64_DEVICE_ARENA_RESERVE", "STWO_RV64_DEVICE_ARENA_STACK",
@@ -61,7 +61,7 @@ def main():
         tag = f"{str(a.block)[-3:]}-{a.prefix}-{preset['name']}"
         report_path = REPORTS / f"{tag}.json"
         if not (a.reuse and report_path.is_file()):
-            argv = [str(HERE / "rv64_m4_arena_job.sh"), a.mode, str(a.block), tag, a.lib] + [f"{k}={v}" for k, v in preset["env"].items()]
+            argv = [str(HERE / "rv64/rv64_m4_arena_job.sh"), a.mode, str(a.block), tag, a.lib] + [f"{k}={v}" for k, v in preset["env"].items()]
             subprocess.run(argv, check=False)
         if not report_path.is_file():
             rows.append({"preset": preset["name"], "env": preset["env"], "status": "no_report"})

@@ -29,37 +29,21 @@ from .catalog import (
     SUPPORTED_ZIG_OPT_MODES,
 )
 
-try:
-    from scripts.benchmark_product_contract_lib import aggregate_diagnostic_scope
-except ModuleNotFoundError:
-    from benchmark_product_contract_lib import aggregate_diagnostic_scope
+from scripts.bench.benchmark_product_contract_lib import aggregate_diagnostic_scope
 
-try:
-    from interop_cli_lib.command import build_command, installed_binary
-except ModuleNotFoundError:
-    from scripts.interop_cli_lib.command import build_command, installed_binary
+from scripts.interop.interop_cli_lib.command import build_command, installed_binary
 
-try:
-    from process_resources_lib import (
-        WALL_CLOCK_MEASUREMENT,
-        collector_label,
-        measurement_command,
-        measurement_environment,
-        measurement_for_platform,
-        parse_process_resources,
-    )
-except ModuleNotFoundError:
-    from scripts.process_resources_lib import (
-        WALL_CLOCK_MEASUREMENT,
-        collector_label,
-        measurement_command,
-        measurement_environment,
-        measurement_for_platform,
-        parse_process_resources,
-    )
+from scripts.repo.process_resources_lib import (
+    WALL_CLOCK_MEASUREMENT,
+    collector_label,
+    measurement_command,
+    measurement_environment,
+    measurement_for_platform,
+    parse_process_resources,
+)
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 REPORT_DEFAULT = ROOT / "vectors" / "reports" / "benchmark_smoke_report.json"
 
 RUST_MANIFEST = ROOT / "tools" / "stwo-interop-rs" / "Cargo.toml"

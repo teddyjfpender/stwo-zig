@@ -13,11 +13,11 @@ import time
 from pathlib import Path
 from typing import Iterable
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.ci_scope_plan import (
+from scripts.repo.ci_scope_plan import (
     CATALOG,
     POLICY,
     PlanError,
@@ -26,7 +26,7 @@ from scripts.ci_scope_plan import (
     strict_json,
     write_json,
 )
-from scripts.ci_scope_run import run_lane
+from scripts.repo.ci_scope_run import run_lane
 
 
 OID = re.compile(r"^[0-9a-f]{40}$")

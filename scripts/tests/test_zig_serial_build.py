@@ -10,9 +10,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from scripts import zig_serial_build as subject
-
-
+from scripts.repo import zig_serial_build as subject
 class SerialBuildTests(unittest.TestCase):
     def test_host_budget_reserves_memory_and_caps_large_hosts(self):
         for gib in (8, 16, 36, 64):
@@ -70,7 +68,7 @@ class SerializedSubprocessTests(unittest.TestCase):
         self.environment = dict(os.environ, PATH=f"{self.directory}{os.pathsep}{os.environ['PATH']}", TEST_ZIG_MARKER=str(self.marker))
 
     def command(self, wrapper, *arguments):
-        return [sys.executable, str(self.root / "scripts" / wrapper), *arguments]
+        return [sys.executable, str(self.root / "scripts" / "repo" / wrapper), *arguments]
 
     def test_both_wrappers_wait_for_shared_lock_and_propagate_child_exit(self):
         for wrapper, target in (("zig_serial_build.py", "test"), ("zig_protocol_test.py", "src/stwo.zig")):
@@ -113,7 +111,7 @@ class SerializedSubprocessTests(unittest.TestCase):
 
     def test_nested_protocol_wrapper_uses_explicit_parent_lock_without_deadlock(self):
         zig = self.directory / "zig"
-        wrapper = str(self.root / "scripts" / "zig_protocol_test.py")
+        wrapper = str(self.root / "scripts" / "repo/zig_protocol_test.py")
         zig.write_text(
             f"#!{sys.executable}\n"
             "import fcntl, json, os, pathlib, subprocess, sys\n"

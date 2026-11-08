@@ -5,12 +5,15 @@ changes protocol semantics. Missing evidence never counts as acceptance.
 """
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 import hashlib
 import json
 from pathlib import Path
 import re
 
-FROZEN_D2_PACKAGE = Path(__file__).resolve().parents[1] / 'vectors/fixtures/rv64-d2-composed-v1'
+FROZEN_D2_PACKAGE = Path(__file__).resolve().parents[2] / 'vectors/fixtures/rv64-d2-composed-v1'
 
 CASES = (
     'C00-control', 'S08-coherent-permute-native', 'S09-coherent-drop-native',
@@ -144,7 +147,7 @@ def frozen_parity(proof, golden):
 
 
 def fingerprints(row, require_capture=False):
-    import rv64_resident_basket as basket
+    from scripts.rv64 import rv64_resident_basket as basket
     directory = Path(row['proof'])
     recursive = basket.recursive_snapshot(directory, row['leaves'])
     report = json.loads((directory / 'report.json').read_text())

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Run the witness-uniqueness question over every emitted AIR family.
 
-    python3 -m scripts.air_uniqueness_board
+    python3 -m scripts.riscv.air_uniqueness_board
 
 reproduces the board: one row per family, each of `unsat` / `sat` with a decoded
 two-witness counterexample / `skipped` with the reason / `timeout` with its wall
-clock.  `scripts/air_uniqueness.py` answers the question for one family and
+clock.  `scripts/riscv/air_uniqueness.py` answers the question for one family and
 explains the encoding; this schedules it across all of them.
 
 Budget
@@ -44,12 +44,10 @@ import sys
 import time
 from pathlib import Path
 
-try:
-    from air_uniqueness_lib import smtlib, solve
-    from riscv_air_ir_lib import ir
-except ModuleNotFoundError:  # Imported as scripts.air_uniqueness_board in tests.
-    from scripts.air_uniqueness_lib import smtlib, solve
-    from scripts.riscv_air_ir_lib import ir
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.riscv.air_uniqueness_lib import smtlib, solve
+from scripts.riscv.riscv_air_ir_lib import ir
 
 # Worst first: a counterexample outranks an unfinished shard, which outranks a
 # family the query cannot speak about, which outranks a proof.

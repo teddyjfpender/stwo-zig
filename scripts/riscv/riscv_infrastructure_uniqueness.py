@@ -38,7 +38,7 @@ constraints and relation declarations, so relevant source drift fails closed.
 
 Run from the repository root:
 
-    python3 -m scripts.riscv_infrastructure_uniqueness
+    python3 -m scripts.riscv.riscv_infrastructure_uniqueness
 """
 
 from __future__ import annotations
@@ -50,9 +50,9 @@ import re
 from collections.abc import Sequence
 from pathlib import Path
 
-from scripts import riscv_merkle_recurrence
-from scripts import riscv_state_chain_recurrence
-from scripts.riscv_infrastructure_uniqueness_lib.contracts import (
+from scripts.riscv import riscv_merkle_recurrence
+from scripts.riscv import riscv_state_chain_recurrence
+from scripts.riscv.riscv_infrastructure_uniqueness_lib.contracts import (
     CLOCK_HIGH_BOUND,
     CLOCK_LOW_BASE,
     CLOCK_PREDECESSOR_BOUND,
@@ -75,12 +75,12 @@ from scripts.riscv_infrastructure_uniqueness_lib.contracts import (
     request as _request,
     row_snapshot as _row_snapshot,
 )
-from scripts.riscv_infrastructure_uniqueness_lib.production import (
+from scripts.riscv.riscv_infrastructure_uniqueness_lib.production import (
     ProductionContract,
     check_production_contract as _check_production_contract,
     compact as _compact,
 )
-from scripts.riscv_infrastructure_uniqueness_lib.production_bindings import (
+from scripts.riscv.riscv_infrastructure_uniqueness_lib.production_bindings import (
     ACCESS_CLOCK_PATH,
     CLOCK_COMPONENT_PATH,
     CLOCK_INTERACTION_PATH,
@@ -102,7 +102,7 @@ from scripts.riscv_infrastructure_uniqueness_lib.production_bindings import (
     STATEMENT_PATH,
     STATEMENT_VALIDATION_PATH,
 )
-from scripts.riscv_infrastructure_uniqueness_lib.program_memory import (
+from scripts.riscv.riscv_infrastructure_uniqueness_lib.program_memory import (
     DetachedMemoryCycle,
     MemoryBoundaryRow,
     MemoryChainCheck,
@@ -751,7 +751,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--repo-root",
         type=Path,
-        default=Path(__file__).resolve().parents[1],
+        default=Path(__file__).resolve().parents[2],
     )
     args = parser.parse_args(argv)
     print(

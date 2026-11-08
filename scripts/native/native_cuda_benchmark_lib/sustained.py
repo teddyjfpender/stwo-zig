@@ -9,8 +9,8 @@ import statistics
 from pathlib import Path
 from typing import Any
 
-from scripts.native_cuda_diagnostic_lib.contract import validate_artifact
-from scripts.native_cuda_diagnostic_lib.model import (
+from scripts.native.native_cuda_diagnostic_lib.contract import validate_artifact
+from scripts.native.native_cuda_diagnostic_lib.model import (
     EXCHANGE_MODE,
     UPSTREAM_COMMIT,
     DiagnosticError,

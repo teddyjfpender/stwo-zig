@@ -394,22 +394,22 @@ fn addMetalTools(
 fn addPolicyGates(b: *std.Build) void {
     inline for (.{
         .{ "fmt", "Check formatting (zig fmt --check)", &.{ "zig", "fmt", "--check", "build.zig", "build_support", "src", "tools" } },
-        .{ "api-parity", "Validate API parity ledger coverage", &.{ "python3", "scripts/check_api_parity.py" } },
-        .{ "upstream-pins", "Validate Native and Cairo pin carriers against the upstream ledger", &.{ "python3", "scripts/check_upstream_pins.py" } },
-        .{ "source-conformance", "Reject new source layout, dependency direction, and file-size violations", &.{ "python3", "scripts/check_source_conformance.py" } },
-        .{ "package-workspace", "Audit package ownership, API, and dependency boundaries", &.{ "python3", "scripts/check_package_workspace.py" } },
-        .{ "registry-parity", "Compare focused and aggregate compiled capability registries", &.{ "python3", "scripts/check_registry_parity.py" } },
-        .{ "upstream-surface", "Validate API parity rust_path entries against pinned upstream commit", &.{ "python3", "scripts/check_upstream_surface.py" } },
+        .{ "api-parity", "Validate API parity ledger coverage", &.{ "python3", "scripts/repo/check_api_parity.py" } },
+        .{ "upstream-pins", "Validate Native and Cairo pin carriers against the upstream ledger", &.{ "python3", "scripts/repo/check_upstream_pins.py" } },
+        .{ "source-conformance", "Reject new source layout, dependency direction, and file-size violations", &.{ "python3", "scripts/repo/check_source_conformance.py" } },
+        .{ "package-workspace", "Audit package ownership, API, and dependency boundaries", &.{ "python3", "scripts/repo/check_package_workspace.py" } },
+        .{ "registry-parity", "Compare focused and aggregate compiled capability registries", &.{ "python3", "scripts/repo/check_registry_parity.py" } },
+        .{ "upstream-surface", "Validate API parity rust_path entries against pinned upstream commit", &.{ "python3", "scripts/repo/check_upstream_surface.py" } },
         .{ "circuit-air-projection-check", "Authenticate and decode the committed compiled-AIR projection", &.{ "zig", "build", "circuit-air-projection-check", "--build-file", "src/frontends/circuit/build.zig", "-j2" } },
         .{ "circuit-slot-order", "Assert the circuit projection's Cairo slot order equals the Cairo claim registry", &.{ "zig", "build", "test", "--build-file", "conformance/circuit_slot_order/build.zig", "-j2" } },
-        .{ "circuit-lint", "Reject order-unstable constructs in the circuit recursion frontend", &.{ "python3", "scripts/lint_circuit_frontend.py" } },
+        .{ "circuit-lint", "Reject order-unstable constructs in the circuit recursion frontend", &.{ "python3", "scripts/interop/lint_circuit_frontend.py" } },
     }) |gate| {
         const command = b.addSystemCommand(gate[2]);
         b.step(gate[0], gate[1]).dependOn(&command.step);
     }
     const closure = b.addSystemCommand(&.{
         "python3",
-        "scripts/check_build_configure_closure.py",
+        "scripts/repo/check_build_configure_closure.py",
     });
     b.step(
         "build-configure-closure",

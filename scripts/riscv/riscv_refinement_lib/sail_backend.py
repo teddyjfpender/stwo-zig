@@ -83,7 +83,7 @@ def _generated_file(source_root: Path, explicit: Path | None) -> Path:
     if not candidate.is_file():
         raise RefinementError(
             "generated RV32IM Lean model is absent; run "
-            "scripts/riscv_refinement.py prepare-sail"
+            "scripts/riscv/riscv_refinement.py prepare-sail"
         )
     return candidate
 
@@ -251,7 +251,7 @@ def collect_evidence(
     ):
         raise RefinementError(
             "exact RV32IM Sail configuration is absent or stale; run "
-            "scripts/riscv_refinement.py prepare-sail"
+            "scripts/riscv/riscv_refinement.py prepare-sail"
         )
     simulator, simulator_sha256 = _validate_exact_configuration(
         root,

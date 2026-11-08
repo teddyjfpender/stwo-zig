@@ -8,8 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.check_upstream_pins import parse_ledger, validate_repository
-from scripts.upstream_pins_lib import circuit_recursion as lane
+from scripts.repo.check_upstream_pins import parse_ledger, validate_repository
+from scripts.repo.upstream_pins_lib import circuit_recursion as lane
 
 
 ROOT = Path(__file__).resolve().parents[2]

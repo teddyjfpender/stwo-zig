@@ -149,7 +149,7 @@ When changing this package:
    [package.contract.json](package.contract.json).
 3. Preserve verifier behavior independently of any concrete prover backend.
 4. Add both positive and adversarial tests for protocol-visible changes.
-5. Run the owner-local test command and `python3 scripts/check_package_workspace.py`.
+5. Run the owner-local test command and `python3 scripts/repo/check_package_workspace.py`.
 
 ## Related documentation
 

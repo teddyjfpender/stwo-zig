@@ -7,6 +7,7 @@ uses that runner's baseline command and preset with a unique service tag.
 The CUDA image is an explicit pinned build input, never an implicit stale
 output of a host rebuild. A CUDA change must supply a newly built manifest.
 """
+
 import argparse
 import json
 import os
@@ -15,10 +16,12 @@ import subprocess
 import sys
 import time
 
-import rv64_m7_integration_stack as stack
-from rv64_validation import CASES, check_corpus, frozen_parity, payload_name, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, FROZEN_D2_PACKAGE as GOLDEN
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.rv64 import rv64_m7_integration_stack as stack
+from scripts.rv64.rv64_validation import CASES, check_corpus, frozen_parity, payload_name, validate_assets, validate_receivers, validate_library_environment, jobs_environment, service_label, FROZEN_D2_PACKAGE as GOLDEN
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 # Canonical default runtime: the source-built opt-combined image (owner decision
 # 2026-11-07). Pass --runtime design/riscv-proving-stack/m7-handoff/p0-runtime.json
 # for the frozen a25 control.
@@ -92,7 +95,7 @@ def main():
         receipt['jobs_env'] = jobs_env
         extra_env = {**jobs_env, **extra_env}
         lock = ['flock', '-w', '7200', '/workspace/m3/locks/build.1.lock']
-        run('build', lock + [sys.executable, 'scripts/rv64_m3_pod.py', 'build',
+        run('build', lock + [sys.executable, 'scripts/rv64/rv64_m3_pod.py', 'build',
                             '--stream', args.stream, '--only', 'zig'])
         run('unit-zig', lock + ['/workspace/zig/zig', 'build', 'test',
                                'test-rv64-recursion-ready', 'test-rv64-batch-plan',
@@ -144,7 +147,7 @@ def main():
         receipt['frozen_default_sha256'] = stack.sha(golden_path)
         receipt['parity'] = [frozen_parity(Path(row['proof']), golden) for row in produced['requests']]
         stack.write(out / 'gate.json', receipt)
-        run('fresh-cpu-receiver', [sys.executable, 'scripts/rv64_m4_resident.py', 'receive',
+        run('fresh-cpu-receiver', [sys.executable, 'scripts/rv64/rv64_m4_resident.py', 'receive',
                                     '--run', str(service), '--which', 'all'])
         verified = json.loads((service / 'receipt.json').read_text())
         receipt['receiver_acceptance'] = validate_receivers(
@@ -155,7 +158,7 @@ def main():
         donor = args.donor or Path(f'/workspace/m3/runs/m7-fold-v3/daemon-{donor_block}-r2-combined-d2-coalesce-v1')
         corpus_env = dict(env, STWO_RV64_OUTER_PROFILE=manifest['preset']['common']['STWO_RV64_OUTER_PROFILE'],
                           STWO_RV64_NATIVE_VERSION='v1-flat')
-        run('negative-corpus', [sys.executable, 'scripts/rv64_m5_negative_corpus.py', 'run',
+        run('negative-corpus', [sys.executable, 'scripts/rv64/rv64_m5_negative_corpus.py', 'run',
                                '--run', str(service), '--donor', str(donor), '--format', 'm5-audit',
                                '--receiver', assets['receiver'], '--jobs', '1', '--cases', ','.join(CASES),
                                '--work', str(out / 'corpus-work'), '--out', str(out / 'corpus.json')],

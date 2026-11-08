@@ -11,7 +11,7 @@ from .model import PinLedger, REVISION_RE
 def check(root: Path, ledger: PinLedger) -> list[str]:
     authority = "src/frontends/sm83/isa/authority.zig"
     fixture = "src/frontends/sm83/pokemon_checkpoint_fixture_input.zig"
-    gate = "scripts/sm83_frontend_gate.py"
+    gate = "scripts/sm83/sm83_frontend_gate.py"
     specs = (
         (authority, "SM83 opcode repository", r'^pub const opcode_repository = "([^"]+)";$', ledger.sm83_opcode_repository),
         (authority, "SM83 opcode revision", rf'^pub const opcode_revision = "({REVISION_RE})";$', ledger.sm83_opcode_revision),

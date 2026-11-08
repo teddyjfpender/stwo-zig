@@ -34,6 +34,9 @@ AIR that lost a constraint.
 
 from __future__ import annotations
 
+if __package__ in (None, ""):  # run as a file: make `scripts.*` importable
+    __import__("sys").path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+
 import argparse
 import difflib
 import hashlib
@@ -48,10 +51,10 @@ if __package__:
     from .riscv_team_b_witnesses_lib.memory import *
     from .riscv_team_b_witnesses_lib.mutations import *
 else:
-    from riscv_team_b_witnesses_lib.arithmetic import *
-    from riscv_team_b_witnesses_lib.core import *
-    from riscv_team_b_witnesses_lib.memory import *
-    from riscv_team_b_witnesses_lib.mutations import *
+    from scripts.riscv.riscv_team_b_witnesses_lib.arithmetic import *
+    from scripts.riscv.riscv_team_b_witnesses_lib.core import *
+    from scripts.riscv.riscv_team_b_witnesses_lib.memory import *
+    from scripts.riscv.riscv_team_b_witnesses_lib.mutations import *
 
 
 CHECKS = (
