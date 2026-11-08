@@ -288,6 +288,48 @@
       "top_level_scripts_added_budget": 0,
       "scope": "The full optimized package exposed that its committed policy test previously skipped from the wrong working directory. Route the full package test through the existing jobTestStep owner so broad and focused tests use the same package cwd and check-only policy. Keep the missing-fixture failure and all tests.",
       "validation_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
+    },
+    {
+      "id": "post_merge_source_contract_definition_owners",
+      "net_code_budget": 50,
+      "positive_growth_justification": "Repair source-contract readers to inspect current definition owners and exact facade reexports, retaining all mutation/duplicate checks. Authenticate memory helper delegation and scope sparse Merkle claims to the actual selected profile. Baseline bounded owner checks fail; no runtime behavior, proof checks or rejection classifications change.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_metal_test_package_owners",
+      "net_code_budget": 100,
+      "positive_growth_justification": "Preserve eighty Metal resource contracts and four AOT authority tests under concrete package and focused developer owners. Reuse canonical frontend/backend APIs and platform linkage; preserve exporter CLI and all assertions. Replace orphan top-level roots with actual owning package roots. Moves receive zero deletion credit; no runtime behavior or flags change.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_installation_lifetime_owner",
+      "net_code_budget": 60,
+      "positive_growth_justification": "Transfer the complete existing installation resource lifetime into stable embedded Owner storage while Driver retains request scheduling/publication and drains before teardown. Preserve current warm/probe algorithms and validation order. Verify cache callback address stability; cover and fix the concrete partial peer-table allocator rollback gap without changing GPU algorithm/default behavior. Moves receive zero deletion credit.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_historical_receipt_retirement",
+      "net_code_budget": -1,
+      "positive_growth_justification": "Reapply only the previously audited evidence retirement and maintained-fixture ownership slice after independent current-byte and published-tag revalidation. Seven path-only consumers retain SHA pins; thirty-four live fixtures move byte-identically into the maintained209-file union. Retire7004 historical evidence files after exact blob/SHA verification. No runtime/setup/default changes, no code credit for evidence or embedded historical snapshots.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_developer_policy_routing",
+      "net_code_budget": 180,
+      "positive_growth_justification": "Make the documented no-argument developer loop use the existing authoritative CI path/lane policy, including maintained fixture validation, real tracked-deletion evidence and unknown-source rejection. Reuse shared policy predicates instead of a second ignore/routing registry; preserve hermetic fixture setup and all live validation triggers. Large archived-report removals must not fall into nonexistent Zig packages. Independent review reproduced nonexistent owned-path typos and raw hosted CI templates with unexpanded output placeholders. Validate all input paths against the filesystem/Git retirement evidence, and delegate non-package lanes to existing CI host/expansion owners with explicit deferred status; preserve broad fallback tests using real owners.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_unreachable_metal_compile_wrappers",
+      "net_code_budget": -246,
+      "positive_growth_justification": "Delete only five archive-byte-verified compile-body wrappers with no live build/import/symbol/shader consumer. Real runtime and budget owners and all eighty-four package tests/exporter remain live and hash-preserved. Literal file list only, no source scan exclusions or replacements.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

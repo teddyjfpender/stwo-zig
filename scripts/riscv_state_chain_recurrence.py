@@ -318,7 +318,15 @@ def check_production_contract(repo_root: Path) -> ProductionContract:
 
     statement_path = repo_root / "src/frontends/riscv/air/statement.zig"
     statement_source = statement_path.read_text(encoding="utf-8")
-    source_max_components = _decimal_constant(statement_source, "MAX_COMPONENTS")
+    geometry_path = statement_path.with_name("statement_geometry.zig")
+    source_max_components = _decimal_constant(geometry_path.read_text(encoding="utf-8"), "MAX_COMPONENTS")
+    types_source = _compact((repo_root / "src/frontends/riscv/prover/types.zig").read_text(encoding="utf-8"))
+    aliases = (
+        (_compact(statement_source), 'pub const MAX_COMPONENTS = @import("statement_geometry.zig").MAX_COMPONENTS;'),
+        (types_source, "pub const MAX_COMPONENTS = statement_mod.MAX_COMPONENTS;"),
+    )
+    if any(source.count(fragment) != 1 for source, fragment in aliases):
+        raise AssertionError("production execution geometry reexport changed")
     source_shard_log_size = _decimal_constant(
         admission_path.read_text(encoding="utf-8"),
         "MAX_OPCODE_SHARD_LOG_SIZE",

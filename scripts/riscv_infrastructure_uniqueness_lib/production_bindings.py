@@ -32,6 +32,8 @@ STATE_COMMON_PATH = Path("src/frontends/riscv/air/semantics/common.zig")
 LOOKUP_ENTRY_PATH = Path("src/frontends/riscv/air/lookups/entry.zig")
 ACCESS_CLOCK_PATH = Path("src/frontends/riscv/access_clock.zig")
 STATEMENT_PATH = Path("src/frontends/riscv/air/statement.zig")
+STATEMENT_GEOMETRY_PATH = Path("src/frontends/riscv/air/statement_geometry.zig")
+PROVER_TYPES_PATH = Path("src/frontends/riscv/prover/types.zig")
 STATEMENT_VALIDATION_PATH = Path(
     "src/frontends/riscv/prover/statement_validation.zig"
 )
@@ -54,10 +56,24 @@ PRODUCTION_PATHS = (
     LOOKUP_ENTRY_PATH,
     ACCESS_CLOCK_PATH,
     STATEMENT_PATH,
+    STATEMENT_GEOMETRY_PATH,
+    PROVER_TYPES_PATH,
     STATEMENT_VALIDATION_PATH,
 )
 
 SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
+    (
+        "statement geometry owner", STATEMENT_GEOMETRY_PATH,
+        "pub const MAX_COMPONENTS: usize = 256;",
+    ),
+    (
+        "statement geometry reexport", STATEMENT_PATH,
+        'pub const MAX_COMPONENTS = @import("statement_geometry.zig").MAX_COMPONENTS;',
+    ),
+    (
+        "prover geometry reexport", PROVER_TYPES_PATH,
+        "pub const MAX_COMPONENTS = statement_mod.MAX_COMPONENTS;",
+    ),
     (
         "program active selector",
         PROGRAM_INTERACTION_PATH,
@@ -396,7 +412,7 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
     (
         "Merkle coefficient lift admission",
         STATEMENT_VALIDATION_PATH,
-        "try validateMerkleCoefficientLift( program.n_rows, memory_shards, merkle_desc.n_rows, public_merkle_terms, );",
+        "try validateMerkleCoefficientLift( if (circuit_profile.programPolicy() == .sparse_merkle_v1) program.n_rows else 0, memory_shards, merkle_desc.n_rows, public_merkle_terms, );",
     ),
     (
         "Merkle node coefficient bound",
@@ -414,9 +430,14 @@ SOURCE_BINDINGS: tuple[tuple[str, Path, str], ...] = (
         "try validateMemoryRelationCoefficientLift( statement.total_steps, memory_shards, clock_update.n_rows, public_memory_terms, );",
     ),
     (
+        "memory coefficient extra-term delegation",
+        STATEMENT_VALIDATION_PATH,
+        "const extra_terms = std.math.mul( u64, supplemental_rows, extra_terms_per_supplemental_row, ) catch return error.Overflow; return computeMemoryRelationTermsWithExtra( total_steps, memory_shards, clock_update_rows, extra_terms, public_terms, );",
+    ),
+    (
         "memory coefficient side bound",
         STATEMENT_VALIDATION_PATH,
-        "var terms = std.math.mul( u64, total_steps, access_clock.MAX_ACCESSES_PER_INSTRUCTION, ) catch return error.Overflow; terms = std.math.add( u64, terms, std.math.mul( u64, supplemental_rows, extra_terms_per_supplemental_row, ) catch return error.Overflow, ) catch return error.Overflow; terms = std.math.add(u64, terms, clock_update_rows) catch return error.Overflow; terms = std.math.add(u64, terms, public_terms) catch return error.Overflow; for (memory_shards) |desc| { terms = std.math.add(u64, terms, desc.n_rows) catch return error.Overflow; } return terms;",
+        "var terms = std.math.mul( u64, total_steps, access_clock.MAX_ACCESSES_PER_INSTRUCTION, ) catch return error.Overflow; terms = std.math.add(u64, terms, extra_terms) catch return error.Overflow; terms = std.math.add(u64, terms, clock_update_rows) catch return error.Overflow; terms = std.math.add(u64, terms, public_terms) catch return error.Overflow; for (memory_shards) |desc| { terms = std.math.add(u64, terms, desc.n_rows) catch return error.Overflow; } return terms;",
     ),
     (
         "public Merkle root tuple",

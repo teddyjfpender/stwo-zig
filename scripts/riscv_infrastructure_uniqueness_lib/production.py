@@ -135,7 +135,7 @@ def check_production_contract(
         opcode_gap_table=clock_contract.opcode_gap_table,
         clock_predecessor_range=clock_contract.clock_predecessor_range,
         program_relation=(
-            "fixed row -> program tuple plus four same-root depth-30 leaves; "
+            "sparse_merkle_v1: fixed row -> program tuple plus four same-root depth-30 leaves; "
             "bounded address limbs are unique"
         ),
         memory_relation=(
