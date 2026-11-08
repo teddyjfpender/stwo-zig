@@ -19,4 +19,6 @@ pub mod metadata;
 pub mod precompiles;
 #[cfg(feature = "derivation")]
 pub mod transition;
+#[cfg(feature = "transition-program")]
+pub mod transition_input;
 pub mod witness;

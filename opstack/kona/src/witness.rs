@@ -10,6 +10,8 @@ pub const MAGIC: &[u8; 8] = b"STWOPX01";
 pub const HEADER: usize = 24;
 pub const DESCRIPTOR: usize = 40;
 pub const MAX_INPUT: usize = 16 * 1024 * 1024 - 4;
+#[cfg(feature = "derivation")]
+pub(crate) const MAX_TRANSITION_WITNESS: usize = 64 * 1024 * 1024;
 pub const MAX_RECORDS: usize = 131_072;
 pub const MAX_BLOCKS: usize = 32;
 
@@ -57,10 +59,19 @@ fn u32_at(bytes: &[u8], offset: usize) -> usize {
 }
 impl<'a> Witness<'a> {
     pub fn parse(bytes: &'a [u8], validation: Validation) -> Result<Self, Error> {
+        Self::parse_bounded(bytes, validation, MAX_INPUT)
+    }
+
+    #[cfg(feature = "derivation")]
+    pub(crate) fn parse_transition(bytes: &'a [u8], validation: Validation) -> Result<Self, Error> {
+        Self::parse_bounded(bytes, validation, MAX_TRANSITION_WITNESS)
+    }
+
+    fn parse_bounded(bytes: &'a [u8], validation: Validation, limit: usize) -> Result<Self, Error> {
         if bytes.len() < HEADER {
             return Err(Error::Length);
         }
-        if bytes.len() > MAX_INPUT {
+        if bytes.len() > limit {
             return Err(Error::Limit);
         }
         if &bytes[..8] != MAGIC || u32_at(bytes, 20) != 0 {
@@ -161,6 +172,21 @@ impl<'a> Witness<'a> {
 
 /// Canonical producer encoder. Authentication remains the consumer's responsibility.
 pub fn encode(metadata: &[u8], records: &[(B256, Vec<u8>)]) -> Result<Vec<u8>, Error> {
+    encode_bounded(metadata, records, MAX_INPUT)
+}
+
+#[cfg(feature = "transition-program")]
+pub fn encode_transition_records(records: &[(B256, Vec<u8>)]) -> Result<Vec<u8>, Error> {
+    let bytes = encode_bounded(&[], records, MAX_TRANSITION_WITNESS)?;
+    Witness::parse_transition(&bytes, Validation::Eager)?;
+    Ok(bytes)
+}
+
+fn encode_bounded(
+    metadata: &[u8],
+    records: &[(B256, Vec<u8>)],
+    limit: usize,
+) -> Result<Vec<u8>, Error> {
     if records.len() > MAX_RECORDS {
         return Err(Error::Limit);
     }
@@ -168,7 +194,7 @@ pub fn encode(metadata: &[u8], records: &[(B256, Vec<u8>)]) -> Result<Vec<u8>, E
         HEADER + metadata.len() + records.len() * DESCRIPTOR,
         |n, (_, v)| n.checked_add(v.len()).ok_or(Error::Limit),
     )?;
-    if total > MAX_INPUT {
+    if total > limit {
         return Err(Error::Limit);
     }
     let mut out = Vec::with_capacity(total);

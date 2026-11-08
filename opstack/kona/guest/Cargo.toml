@@ -6,6 +6,7 @@ publish = false
 
 [features]
 default = []
+transition-program = ["stwo-kona-execution/transition-program"]
 eager-preimages = []
 allocator-check = []
 precompile-services = ["stwo-kona-execution/precompile-services"]

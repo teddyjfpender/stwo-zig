@@ -21,6 +21,7 @@ VARIANTS = {
     "keccak": "keccak-service",
     "services": "services-v3",
     "sponge": "sponge-service",
+    "transition": "transition-program,services-v3",
 }
 
 LEAN_VARIANTS = {
@@ -133,6 +134,8 @@ def main():
     )
     parser.add_argument("--jobs", type=int, default=2)
     args = parser.parse_args()
+    if args.variant == "transition" and args.eager:
+        parser.error("the transition program authenticates preimages on demand")
     if not 1 <= args.jobs <= 8:
         parser.error("jobs 1..8")
     try:
@@ -185,6 +188,8 @@ def main():
                 "--features",
                 "host,pairing-hints"
                 if args.variant == "canonical-glv-hinted"
+                else "host,transition-program"
+                if args.variant == "transition"
                 else "host",
                 "-j",
                 args.jobs,

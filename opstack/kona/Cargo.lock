@@ -2601,6 +2601,7 @@ dependencies = [
  "kona-mpt",
  "kona-protocol",
  "kona-registry",
+ "miniz_oxide",
  "op-alloy-consensus",
  "op-alloy-rpc-types-engine",
  "postcard",

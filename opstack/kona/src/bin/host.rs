@@ -7,9 +7,20 @@ use stwo_kona_execution::{
 };
 #[path = "../host/mainnet.rs"]
 mod mainnet;
+#[cfg(feature = "transition-program")]
+#[path = "../host/transition.rs"]
+mod transition;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     match args.get(1).map(String::as_str) {
+        #[cfg(feature = "transition-program")]
+        Some("pack-transition") if args.len() == 6 => {
+            transition::pack(&args[2], &args[3], &args[4], &args[5])?;
+        }
+        #[cfg(feature = "transition-program")]
+        Some("run-transition") if args.len() == 3 => {
+            transition::run(&args[2])?;
+        }
         Some("import-mainnet") => {
             if args.len() != 4 {
                 return Err("import-mainnet REPLAY_JSON FIXTURE_JSON".into());
@@ -102,9 +113,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
         _ => {
-            return Err(
-                "usage: stwo-kona-host pack OUT FIXTURE_DIR... | run INPUT eager|lazy".into(),
-            );
+            return Err(concat!(
+                "usage: stwo-kona-host pack OUT FIXTURE_DIR... | run INPUT eager|lazy",
+                " | pack-transition CLAIM RECORDS SIDECARS_OR_DASH OUT | run-transition INPUT"
+            )
+            .into());
         }
     }
     Ok(())

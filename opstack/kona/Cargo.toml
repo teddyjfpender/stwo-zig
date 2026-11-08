@@ -12,6 +12,7 @@ resolver = "2"
 [features]
 default = []
 host = ["dep:kona-registry"]
+transition-program = ["blob-derivation", "dep:kona-registry", "dep:miniz_oxide"]
 derivation = ["dep:alloy-eips", "dep:async-trait", "dep:kona-derive", "dep:kona-protocol", "dep:op-alloy-consensus", "dep:thiserror", "dep:spin"]
 blob-derivation = ["derivation", "dep:ark-bls12-381", "dep:ark-ff", "dep:revm-precompile"]
 keccak-service = ["alloy-primitives/native-keccak"]
@@ -24,6 +25,7 @@ pairing-cache = ["precompile-services", "dep:ark-bn254", "dep:ark-ec", "dep:ark-
 pairing-hints = ["pairing-cache"]
 
 [dependencies]
+miniz_oxide = { version = "=0.9.1", default-features = false, features = ["with-alloc"], optional = true }
 alloy-eips = { version = "=2.5.0", default-features = false, optional = true }
 async-trait = { version = "=0.1.92", optional = true }
 thiserror = { version = "2", default-features = false, optional = true }

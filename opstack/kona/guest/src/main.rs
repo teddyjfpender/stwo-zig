@@ -1,4 +1,4 @@
-//! RV64IM execution-only OP range. Panics trap without publishing success.
+//! RV64IM OP execution or anchored transition. Panics trap without publishing success.
 #![no_std]
 #![no_main]
 extern crate alloc;
@@ -21,6 +21,7 @@ use core::{
     arch::{asm, global_asm},
     ptr,
 };
+#[cfg(not(feature = "transition-program"))]
 use stwo_kona_execution::{
     execution::execute,
     witness::{Validation, Witness},
@@ -71,6 +72,7 @@ extern "C" fn guest_main() -> ! {
         assert!(len <= ptr::addr_of!(__input_end) as usize - start as usize - 4);
         core::slice::from_raw_parts(start.add(4), len)
     };
+    #[cfg(not(feature = "transition-program"))]
     let mode = if cfg!(feature = "eager-preimages") {
         Validation::Eager
     } else {
@@ -81,9 +83,17 @@ extern "C" fn guest_main() -> ! {
     #[cfg(feature = "pairing-hints")]
     let input = stwo_kona_execution::precompiles::install_hinted(input)
         .expect("invalid pairing hint stream");
-    let witness = Witness::parse(input, mode).expect("invalid OP witness");
-    let result = execute(&witness).expect("OP execution rejected");
-    let output = result.public_output();
+    #[cfg(not(feature = "transition-program"))]
+    let output = execute(&Witness::parse(input, mode).expect("invalid OP witness"))
+        .expect("OP execution rejected")
+        .public_output();
+    #[cfg(feature = "transition-program")]
+    let output = stwo_kona_execution::transition_input::TransitionInput::parse(input)
+        .expect("invalid OP transition witness")
+        .verify()
+        .expect("OP anchored transition rejected")
+        .statement
+        .public_output();
     unsafe {
         ptr::copy_nonoverlapping(
             output.as_ptr(),

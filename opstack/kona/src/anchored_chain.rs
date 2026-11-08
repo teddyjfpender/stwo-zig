@@ -3,9 +3,9 @@ use crate::{execution::decode_exact, witness::Witness};
 use alloc::{collections::BTreeMap, string::ToString, sync::Arc, vec::Vec};
 use alloy_consensus::Header;
 use alloy_eips::eip2718::Decodable2718;
-use alloy_primitives::B256;
+use alloy_primitives::{B256, Bytes};
 use kona_derive::{PipelineError, PipelineErrorKind};
-use kona_mpt::{OrderedListWalker, TrieNode, TrieProvider};
+use kona_mpt::{Nibbles, OrderedListWalker, TrieNode, TrieProvider};
 use kona_protocol::BlockInfo;
 use spin::{Mutex, MutexGuard};
 
@@ -17,6 +17,8 @@ pub enum AnchorError {
     Ancestry,
     #[error("ordered trie: {0}")]
     Trie(kona_mpt::OrderedListWalkerError),
+    #[error("ordered trie entry: {0}")]
+    TrieEntry(#[from] kona_mpt::TrieNodeError),
     #[error("invalid EIP-2718 list entry")]
     Envelope,
     #[error("invalid OP checkpoint output preimage or state root")]
@@ -96,6 +98,17 @@ impl<'a> AnchoredChain<'a> {
             return Err(AnchorError::Ancestry);
         }
         Ok(header.clone())
+    }
+
+    pub(crate) fn first_entry(&self, root: B256) -> Result<Option<Bytes>, AnchorError> {
+        if root == alloy_consensus::EMPTY_ROOT_HASH {
+            return Ok(None);
+        }
+        // Transaction zero is keyed by RLP(0) = 0x80, not a zero byte.
+        let key = Nibbles::unpack(&[0x80]);
+        let mut node = TrieNode::Blinded { commitment: root };
+        let value = node.open(&key, self)?.ok_or(AnchorError::Envelope)?;
+        Ok(Some(value.clone()))
     }
 
     pub(crate) fn ordered_list<T: Decodable2718>(&self, root: B256) -> Result<Vec<T>, AnchorError> {

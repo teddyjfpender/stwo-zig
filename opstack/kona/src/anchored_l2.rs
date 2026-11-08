@@ -7,6 +7,7 @@ use crate::{
 };
 use alloc::{boxed::Box, string::ToString, sync::Arc};
 use alloy_consensus::{BlockBody, Header, Sealed};
+use alloy_eips::eip2718::Decodable2718;
 use alloy_op_evm::{OpEvmFactory, OpTx, block::OpAlloyReceiptBuilder};
 use alloy_primitives::B256;
 use async_trait::async_trait;
@@ -17,7 +18,7 @@ use kona_mpt::NoopTrieHinter;
 use kona_protocol::{
     BatchValidationProvider, L2BlockInfo, OpAttributesWithParent, OutputRoot, to_system_config,
 };
-use op_alloy_consensus::OpBlock;
+use op_alloy_consensus::{OpBlock, OpTxEnvelope};
 
 pub use crate::anchored_chain::AnchorError;
 
@@ -56,8 +57,19 @@ impl<'a> AnchoredL2<'a> {
         self.l1 = Some(l1);
     }
 
-    async fn authenticated_info(&mut self, block: &OpBlock) -> Result<L2BlockInfo, AnchorError> {
-        let info = L2BlockInfo::from_block_and_genesis(block, &self.config.genesis)?;
+    async fn authenticated_info(
+        &mut self,
+        hash: B256,
+        header: Header,
+    ) -> Result<L2BlockInfo, AnchorError> {
+        let first = if header.number == self.config.genesis.l2.number {
+            None
+        } else {
+            self.chain.first_entry(header.transactions_root)?
+        };
+        let header = Sealed::new_unchecked(header, hash);
+        let info =
+            L2BlockInfo::from_header_and_first_tx(&header, first.as_ref(), &self.config.genesis)?;
         if let Some(l1) = &mut self.l1 {
             let origin = l1.block_info_by_number(info.l1_origin.number).await?;
             if origin.hash != info.l1_origin.hash {
@@ -151,11 +163,6 @@ impl<'a> AnchoredL2<'a> {
             },
         })
     }
-
-    fn block_by_hash(&mut self, hash: B256) -> Result<OpBlock, AnchorError> {
-        let header = self.chain.authenticated_header(hash)?;
-        self.block(header)
-    }
 }
 
 #[async_trait]
@@ -168,13 +175,14 @@ impl BatchValidationProvider for AnchoredL2<'_> {
     }
 
     async fn l2_block_info_by_number(&mut self, number: u64) -> Result<L2BlockInfo, Self::Error> {
-        let block = self.block_by_number(number).await?;
-        self.authenticated_info(&block).await
+        let (hash, header) = self.chain.ancestor(number)?;
+        let (hash, header) = (*hash, header.clone());
+        self.authenticated_info(hash, header).await
     }
 
     async fn l2_block_info_by_hash(&mut self, hash: B256) -> Result<L2BlockInfo, Self::Error> {
-        let block = self.block_by_hash(hash)?;
-        self.authenticated_info(&block).await
+        let header = self.chain.authenticated_header(hash)?;
+        self.authenticated_info(hash, header).await
     }
 }
 
@@ -190,7 +198,16 @@ impl L2ChainProvider for AnchoredL2<'_> {
         if !Arc::ptr_eq(&config, &self.config) && config != self.config {
             return Err(AnchorError::RollupConfig);
         }
-        let block = self.block_by_hash(hash)?;
-        Ok(to_system_config(&block, &self.config)?)
+        let header = self.chain.authenticated_header(hash)?;
+        let mut body = BlockBody::default();
+        // Kona reconstructs system config from the header and the deposit at
+        // transaction zero; other transactions are immaterial to this query.
+        if header.number != self.config.genesis.l2.number
+            && let Some(first) = self.chain.first_entry(header.transactions_root)?
+        {
+            body.transactions
+                .push(OpTxEnvelope::decode_2718_exact(&first).map_err(|_| AnchorError::Envelope)?);
+        }
+        Ok(to_system_config(&OpBlock { header, body }, &self.config)?)
     }
 }

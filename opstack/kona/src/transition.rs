@@ -179,7 +179,7 @@ async fn verify_transition<B: BlobProvider + Send + Sync + Clone + core::fmt::De
     }
     let chain_id = config.l2_chain_id.into();
     let l1_chain_id = config.l1_chain_id;
-    let witness = || Witness::parse(input, Validation::Lazy).map_err(AnchorError::from);
+    let witness = || Witness::parse_transition(input, Validation::Lazy).map_err(AnchorError::from);
     let mut l1 = AnchoredL1::new(witness()?, claim.anchor.number, claim.anchor.hash)?;
     let mut l2 = AnchoredL2::new(
         witness()?,
@@ -208,6 +208,7 @@ async fn verify_transition<B: BlobProvider + Send + Sync + Clone + core::fmt::De
         return Err(TransitionError::Origin);
     }
 
+    let l1 = l1.for_derivation(&config);
     let data = EthereumDataSource::new_from_parts(l1.clone(), blobs, &config);
     let attributes =
         StatefulAttributesBuilder::new(config.clone(), l1_config, l2.clone(), l1.clone(), None);
