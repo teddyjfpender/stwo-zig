@@ -94,10 +94,9 @@ test "public fold admission rejects substituted digest and transport roles" {
 
 test "public binary fold proves synthetic ordered OD and OP outputs" {
     const base = std.heap.smp_allocator;
-    const max_bytes = if (std.posix.getenv("STWO_OP_FOLD_MAX_BYTES")) |raw|
-        try std.fmt.parseUnsigned(usize, raw, 10)
-    else
-        32 << 30;
+    const raw = std.posix.getenv("STWO_OP_FOLD_MAX_BYTES") orelse return error.SkipZigTest;
+    const max_bytes = try std.fmt.parseUnsigned(usize, raw, 10);
+    if (max_bytes == 0) return error.InvalidPublicFoldBudget;
     const budget = try engine.host_budget_allocator.SharedHostBudget.create(base, max_bytes);
     defer budget.destroy();
     const a = budget.allocator();

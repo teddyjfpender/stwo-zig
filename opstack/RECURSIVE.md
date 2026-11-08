@@ -69,3 +69,12 @@ synthetic OD/OP proof fixture and fresh receiver. It can be bounded with
 and verification over fixed transport values. It does not prove Kona or EVM
 semantics. Existing execution roots expose a digest rather than those raw
 output words, so the public binary fold is not wired into Mainnet production.
+
+Run the expensive child and parent proof fixture with an explicit host budget:
+
+```sh
+STWO_OP_FOLD_MAX_BYTES=34359738368 zig build test-riscv64-op-public-fold -Doptimize=ReleaseFast -j1
+```
+
+The budget is an admission cap, not a measured fit. With no explicit budget the
+same target runs the public output admission test and skips the full proof trial.
