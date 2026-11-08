@@ -49,3 +49,24 @@ This proves the native execution of the pinned historical OP input. It does
 not establish L1 derivation, a verified recursive root, a joined checkpoint
 proof, Solidity settlement, or certified whole-protocol 128-bit security. The
 native profile is the repository's conjectured 128-bit FRI target.
+
+## Bounded CPU wrap continuation
+
+The [follow-up receipts](closure-attempts.json) use the accepted native
+bundle for OP Mainnet 120794432. The first retry reached a 28,034,345-variable
+graph, then failed to resolve the pinned AIR file from its working directory.
+CPU recursion now checks the recording before native setup and rejects both
+a missing file and modified bytes.
+
+The 64 MiB recycler run reached outer proving and was killed by signal 9 at
+4.63 GiB peak RSS. The subsequent native OM31 run additionally retired the
+builder topology before outer authority construction. It reached the first
+leaf's fixed commitment and returned `OutOfMemory` after 539.247 s at
+5.42 GiB peak RSS under a 6 GiB requested-live cap. Its fixed source census
+contains about 692 MB before extension. The runs differ in load and tracing,
+so their wall time and RSS are operational receipts. Neither wrote a
+recursive proof.
+
+The linked executable builds with Zig 0.15.2. The focused no-LLVM proof
+parity test reached the real outer proof test and timed out. The full
+recursive parity check and fresh root admission remain open.
