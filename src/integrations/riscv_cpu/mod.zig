@@ -373,3 +373,14 @@ test {
     _ = @import("recursive_segment_v2_single_root_test.zig");
     _ = @import("word16_execution/om31_compress_corpus_test.zig");
 }
+
+// Restored live authority, division and services regressions.
+test {
+    _ = @import("word16_execution/division_product_integration_test.zig");
+    _ = @import("word16_execution/optional_division_test.zig");
+    _ = @import("word16_global_execution/services/gkr_local/metadata_test.zig");
+    _ = @import("word16_global_execution/services/gkr_local/truth_test.zig");
+    _ = @import("word16_global_execution/services/gkr_local/truth_worker_test.zig");
+    _ = @import("division_contract_test_root.zig");
+    _ = @import("services_truth_contract_test_root.zig");
+}

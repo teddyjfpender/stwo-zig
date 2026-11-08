@@ -14,6 +14,13 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-retained-authority-contracts",
+        .description = "Check retained guest relation and segment range authority regressions",
+        .root = "retained_authority_contract_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 12,
+    },
+    .{
         .step = "test-inventory",
         .description = "Check complete package test discovery and reject stale inventory paths",
         .root = "test_inventory_test.zig",

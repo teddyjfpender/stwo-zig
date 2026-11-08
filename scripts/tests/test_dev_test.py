@@ -126,6 +126,9 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_optimized_ci_reproduction_covers_focused_and_broad_routes(self) -> None:
         for path, step in (
+            ("src/frontends/riscv/retained_authority_contract_test_root.zig", "test-retained-authority-contracts"),
+            ("src/integrations/riscv_cpu/division_contract_test_root.zig", "test-division-contracts"),
+            ("src/integrations/riscv_cpu/services_truth_contract_test_root.zig", "test-services-truth-contracts"),
             ("src/frontends/riscv/test_inventory_test.zig", "test-inventory"),
             ("src/frontends/riscv/test_inventory.zig", "test-inventory"),
             ("src/waist/core/fri/folding_family.zig", "test-fri"),

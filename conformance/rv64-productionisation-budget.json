@@ -372,6 +372,13 @@
       "positive_growth_justification": "Restore archived tests whose subject modules and relative import closure remain live. Preserve package ownership and mandatory discovery via existing inventories. Expose the existing inventory invariant as a focused package step through dev_test.py; no retired production implementations, new launcher, flags, ceilings or proof-policy changes. Benefit: 94 restored lexical regression blocks and independently executable completeness checks. Rollback restores the archived test batch together with its inventory entries; it must never silently lower coverage floors.",
       "flags_added_budget": 0,
       "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_named_authority_and_cpu_tests",
+      "net_code_budget": 6000,
+      "positive_growth_justification": "Restore seven named live regression families and rehome four retired helper adapters under explicit test-only ownership. Preserve the exact live authority, hostile mutation, OOM, division closure and GKR services checks. Existing developer entrypoint selects focused roots, with executable test-count floors to reject missing discovery. Runtime defaults, proof checks, public contracts and production algorithms remain unchanged. Benefit: recovered live semantic rejection coverage; rollback archives test and support owners together, never lowers a floor to pass.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
