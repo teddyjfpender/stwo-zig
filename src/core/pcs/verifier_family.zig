@@ -268,7 +268,13 @@ pub fn ForField(comptime Secure: type) type {
 
                     const sampled_values_flat = try flattenSampledValues(allocator, proof.sampled_values);
                     defer allocator.free(sampled_values_flat);
-                    channel.mixFelts(sampled_values_flat);
+                    {
+                        const observer = @import("../crypto/blake2s_observer.zig");
+                        const previous = observer.phase;
+                        observer.phase = .sampled_values_mix;
+                        defer observer.phase = previous;
+                        channel.mixFelts(sampled_values_flat);
+                    }
                     const deep_randomness = channel.drawSecureFelt();
 
                     var column_log_sizes = try self.columnLogSizes(allocator);

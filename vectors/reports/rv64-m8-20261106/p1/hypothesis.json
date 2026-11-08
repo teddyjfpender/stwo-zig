@@ -1,0 +1,23 @@
+{
+  "schema": "rv64-m8-p1-first-experiment/v1",
+  "status": "PRE_MEASUREMENT",
+  "base": "df01fd929673e09c3871e61fb6aa0a0623bc123c",
+  "purpose": "refresh same-source baseline and existing composed two-lane failure before designing the footprint reduction",
+  "dev_block": 26235156,
+  "first_experiment": "canonical smoke, seed17 only; no code optimization activated",
+  "runtime": "frozen V2 4273 image required for owner-aware admission; both arms use it; historical a25 P0 parity separately retained",
+  "observed_prior_bottleneck": {
+    "source": "vectors/reports/rv64-m7-20261105/integration-stack/pressure-static-class-refusal.json",
+    "largest_actual_recursion_composition_workspace_bytes": 11240738728,
+    "status": "HISTORICAL_MEASURED_ALLOCATION",
+    "model_successor_bytes": 24628953088,
+    "model_status": "MODEL_BOUND_NOT_PEAK"
+  },
+  "time_target": {
+    "historical_headline_recursion_s": 5.7,
+    "status": "HISTORICAL_DIAGNOSTIC_APPROXIMATION",
+    "hypothesis": "Reducing per-node footprint enough for two active lanes should remove roughly 1.7-2.2 s from the recursion window; estimate only, subject to matched 3+3 measurement."
+  },
+  "implementation_boundary": "Current code already streams beta1 traces and retires outer INTER input. Do not rebuild those mechanisms; first inspect remaining composition/GKR allocations and retained caches. No security/profile changes.",
+  "harness_fix": "service tag includes unique experiment directory name; prevents collisions across attempts; numerical commands and environments unchanged"
+}

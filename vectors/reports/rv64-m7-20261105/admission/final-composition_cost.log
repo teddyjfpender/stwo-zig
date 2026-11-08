@@ -1,0 +1,10 @@
+1/9 composition_cost.test.composition lifetime plan retains metadata but releases each role arena...OK
+2/9 composition_cost.test.classic Keccak role exposes its actual arena multiplier before mutation...OK
+3/9 composition_cost.test.new hash ABI cannot reuse legacy composition allocation costs...OK
+4/9 global_admission.test.native retention cannot consume the GKR successor headroom...OK
+5/9 global_admission.test.physical devices independent; active and stale tickets fail closed...OK
+6/9 global_admission.test.unknown costs, physical rounding, small slab and untracked owners...OK
+7/9 global_admission.test.host frontier charged globally and unavailable costs refused...OK
+8/9 global_admission.test.native usize allocation list uses exact arena bucket charges...OK
+9/9 global_admission.test.terminal pool destruction retires interrupted claims only after actual owner teardown...OK
+All 9 tests passed.

@@ -1,0 +1,31 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "observed_utc": "2026-11-08T00:21:09.146129+00:00",
+  "scope": "Mandatory OODS hookup executes; full native requests now reject a real mismatch; planned diagnostic readback added and typechecked",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/native-live-7/receipt.json",
+      "sha256": "d12c543eef1911821fe87040a4e323d279454177c26948303c60733e370463ca",
+      "result": "FAIL exit1 wall_ns142139612422, both native requests reject native_segment0 oods_constraint0x02050004 (mismatch). Normal LLVM service starts and installs successfully, so non-LLVM startup crash did not recur."
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/typecheck-18.done",
+      "result": "PASS0, current full driver including debug-only OODS tail and rejected-mirror dump"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/oods-offline-1/build-2.done",
+      "result": "PASS0; offline tool calls native_encode_oods.hostCheck on retained descriptor/table/alpha/point/samples, ready for actual data. Initial standalone module failed import boundary; isolated copied rv64 module wrapper fixes it without changing frozen source."
+    }
+  ],
+  "changes": [
+    "Optional STWO_RV64_M8_NATIVE_REJECT_DUMP adds planned readback tail containing evaluated/extracted OODS pair, alpha, point, composition table and PCS samples. It uses only D2D copies into the existing request slab, preserves one request readback, no extra host waits or weakening of device acceptance. Diagnostic timings are unqualified.",
+    "Rejected-request diagnostics list all nonaccepted verdicts and may retain existing host mirrors and directory metadata. No publication hook runs on failure.",
+    "Offline host replay utility built under owned run/build paths, not on successful request path."
+  ],
+  "pending": {
+    "main": "Build23 (compiler860504) then native-live8; MAIN frozen through chain; runtime addon5 unchanged",
+    "scratch": "Current-source default gate24 units running, gate25 follows only onPASS; SCRATCH frozen through chain"
+  },
+  "claim_boundary": "No GPU-native proof accepted. OODS mismatch is unresolved. Full original requirement list remains intact; no new qualified performance win or production claim."
+}

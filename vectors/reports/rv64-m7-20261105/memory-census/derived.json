@@ -1,0 +1,93 @@
+{
+  "status": "SOURCE_DERIVED_RECONCILED_M6_NEGATIVE_NOT_D2_FAILURE",
+  "arena": {
+    "capacity_bytes": 23622320128,
+    "small_slab_bytes": 536870912,
+    "live_large_bytes": 9596567552,
+    "live_small_bytes": 17297920,
+    "available_large_bytes": 13488881664,
+    "available_small_bytes": 519572992,
+    "requested_payload_bytes": 14750402976,
+    "requested_rounded_bytes": 14763950080,
+    "shortfall_large_chunks": 38,
+    "shortfall_large_bytes": 1275068416
+  },
+  "rc_payload_parts": {
+    "dense_evaluation_bytes": 14747172864,
+    "aux_staging_bytes": 1048576,
+    "twiddle_bytes": 2097152,
+    "descriptors_bytes": 84384
+  },
+  "owner_snapshot": {
+    "retained_bytes": 9373928128,
+    "lease_bytes": 9138817728,
+    "domains_bytes": 235110400,
+    "idle_pcs_bytes": 0,
+    "active_pcs_bytes": 0,
+    "per_scope_lease_inventory_available": false
+  },
+  "cpu_static_payloads_not_simultaneous_snapshot": [
+    {
+      "ordinal": 0,
+      "physical_gpu": 0,
+      "main_bytes": 1350669440,
+      "stage1_projection_bytes": 247278592,
+      "global_evaluation_bytes": 278492160
+    },
+    {
+      "ordinal": 1,
+      "physical_gpu": 1,
+      "main_bytes": 1046975360,
+      "stage1_projection_bytes": 225901568,
+      "global_evaluation_bytes": 115974144
+    },
+    {
+      "ordinal": 2,
+      "physical_gpu": 0,
+      "main_bytes": 1060292096,
+      "stage1_projection_bytes": 227588096,
+      "global_evaluation_bytes": 114480128
+    },
+    {
+      "ordinal": 3,
+      "physical_gpu": 1,
+      "main_bytes": 1072811904,
+      "stage1_projection_bytes": 231431168,
+      "global_evaluation_bytes": 126824448
+    },
+    {
+      "ordinal": 4,
+      "physical_gpu": 0,
+      "main_bytes": 1047977984,
+      "stage1_projection_bytes": 226500608,
+      "global_evaluation_bytes": 116466688
+    },
+    {
+      "ordinal": 5,
+      "physical_gpu": 1,
+      "main_bytes": 1108015360,
+      "stage1_projection_bytes": 228780032,
+      "global_evaluation_bytes": 125425664
+    },
+    {
+      "ordinal": 6,
+      "physical_gpu": 0,
+      "main_bytes": 688859904,
+      "stage1_projection_bytes": 130630656,
+      "global_evaluation_bytes": 148473856
+    }
+  ],
+  "first_keccak_truth_static_payloads": {
+    "fixed_payload_bytes": 94109696,
+    "main_payload_bytes": 2025062400,
+    "inter_payload_bytes": 1774190592
+  },
+  "census_sha256": "4e5cfcde2070def1208a6e2802524411cea1ce645742e9a8936fb7290818e521",
+  "process_limit": {
+    "required_bytes": 28000000000,
+    "stack_context_whole_device_delta_bytes": 3007315968,
+    "whole_device_used_after_stack_before_arena_bytes": 4206166016,
+    "arena22g_plus_whole_device_used_model_bytes": 27828486144,
+    "exact_process_peak_known": false
+  }
+}

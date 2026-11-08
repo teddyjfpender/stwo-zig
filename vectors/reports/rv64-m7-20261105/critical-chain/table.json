@@ -1,0 +1,2687 @@
+{
+  "schema": "rv64-m7-critical-chain/v1",
+  "status": "OBSERVED_ACCEPTED_D2_WARM_SCHEDULE_SOURCE_AUDIT",
+  "pipeline_sha256": "3ec3e3104573ab6794886d7e042f4c7061401279ac49985b153212dd041210db",
+  "tree_sha256": "b4bf2a794ea95048c96ef12fa1b025cee339aa496186bb4be461a73cc6f1ece5",
+  "sqlite_sha256": "fe1d54c746c85a16283fde79ac5fcc940bf06c39e0f4ef1d08ed632f2f052635",
+  "class_log_sha256": "db5a4c7de4734011f11762ee50da69b846cc824cde7e0b3f9eaa2a6ba613a072",
+  "node_count": 19,
+  "lanes": 2,
+  "logical_lanes_per_physical_gpu": 1,
+  "pipeline_wall_ns": 8290759044,
+  "root_finish_ns": 8289065496,
+  "post_root_finish_pipeline_ns": 1693548,
+  "root_publication_ns": 17414366,
+  "stream_native_done_unaligned_ns": 2658293252,
+  "device_wait_for_native_observed_ns": 2397950909,
+  "native_clock_origin_pipeline_ns": null,
+  "nsys_minus_pipeline_containment_offset_interval_ns": [
+    43311836750,
+    43338542519
+  ],
+  "observed_last_known_predecessor_chain": [
+    "1:prep",
+    "1:device",
+    "2:device",
+    "5:device",
+    "4:device",
+    "10:device",
+    "12:device",
+    "13:device",
+    "13:finish",
+    "14:prep",
+    "14:device",
+    "14:finish",
+    "18:prep",
+    "18:device",
+    "18:finish"
+  ],
+  "slack_scope": "Upper bound under known child+lane edges and fixed stage durations. Host-resource/authority/memory gating unlogged. Not promised attainable rescheduling or saved time.",
+  "rows": [
+    {
+      "id": 0,
+      "kind": "leaf",
+      "first_leaf": 0,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 0,
+      "physical_gpu": 0,
+      "lane_predecessor": null,
+      "device_last_known_gate": "native barrier (clock alignment UNKNOWN)",
+      "native_publish_stream_ns": 1054783220,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 794407697,
+        "prep_start": 794417367,
+        "prep_end": 1289414292,
+        "device_start": 2397939529,
+        "device_end": 2984428832,
+        "finish_start": 2984454032,
+        "finish_end": 3213855739
+      },
+      "device_dispatch_residual_ns": 1108525237,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 25200,
+      "verify_ns": 113086440,
+      "publish_ns": 114940148,
+      "finish_other_ns": 1375119,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 1130683949,
+        "device": 22158712,
+        "finish": 605534827
+      },
+      "on_observed_last_predecessor_chain": false,
+      "tree_authority_hex": "6b8ccdc9b119f6e1d2dd058ac85d5ba9c744c51c9ca4dfc19707dff51d5dbd99",
+      "tree_digest_hex": "006fecb8d91d3a44cf7d98f16aa8e328853bd9b28b6f6160ef5c15f5902d1953",
+      "class_log_prefix_hex": "360172c2d48ef180",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 45770795282,
+        "end": 46296238683,
+        "global_tid": 319373887830050,
+        "kernel_ns": 386545055,
+        "copy_only_ns": 42654592,
+        "api_without_gpu_ns": 22215893,
+        "untraced_host_without_gpu_api_ns": 74027861,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 587008,
+            "api_without_gpu_ns": 172614,
+            "untraced_host_without_gpu_api_ns": 53726074,
+            "wall_ns": 54485696
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 124168565,
+            "copy_only_ns": 20440847,
+            "api_without_gpu_ns": 9958497,
+            "untraced_host_without_gpu_api_ns": 14018647,
+            "wall_ns": 168586556
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 20834766,
+            "copy_only_ns": 4223005,
+            "api_without_gpu_ns": 350976,
+            "untraced_host_without_gpu_api_ns": 138553,
+            "wall_ns": 25547300
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 35915680,
+            "copy_only_ns": 572096,
+            "api_without_gpu_ns": 378927,
+            "untraced_host_without_gpu_api_ns": 62877,
+            "wall_ns": 36929580
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 39090375,
+            "copy_only_ns": 6474619,
+            "api_without_gpu_ns": 479556,
+            "untraced_host_without_gpu_api_ns": 1523182,
+            "wall_ns": 47567732
+          },
+          "rv64/composition": {
+            "kernel_ns": 64752598,
+            "copy_only_ns": 6368700,
+            "api_without_gpu_ns": 9484640,
+            "untraced_host_without_gpu_api_ns": 1814107,
+            "wall_ns": 82420045
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 101783071,
+            "copy_only_ns": 3988317,
+            "api_without_gpu_ns": 1390683,
+            "untraced_host_without_gpu_api_ns": 2744421,
+            "wall_ns": 109906492
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 45771139831,
+            "end": 45939726387
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 45987151499,
+            "end": 46012698799
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 46012722689,
+            "end": 46049652269
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 46049695149,
+            "end": 46097262881
+          },
+          {
+            "name": "rv64/composition",
+            "start": 46097379301,
+            "end": 46179799346
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 46180999365,
+            "end": 46290905857
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 393398086
+      }
+    },
+    {
+      "id": 1,
+      "kind": "leaf",
+      "first_leaf": 1,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 1,
+      "physical_gpu": 1,
+      "lane_predecessor": null,
+      "device_last_known_gate": "native barrier (clock alignment UNKNOWN)",
+      "native_publish_stream_ns": 1863489045,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 1603102802,
+        "prep_start": 1603119792,
+        "prep_end": 2122823348,
+        "device_start": 2397948719,
+        "device_end": 2948964580,
+        "finish_start": 2948994600,
+        "finish_end": 3076993278
+      },
+      "device_dispatch_residual_ns": 275125371,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 30020,
+      "verify_ns": 34450832,
+      "publish_ns": 92866746,
+      "finish_other_ns": 681100,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 283437094,
+        "device": 8311723,
+        "finish": 742397288
+      },
+      "on_observed_last_predecessor_chain": true,
+      "tree_authority_hex": "83016f7f01b9a459196e6de20a83274e790bb541f5473539a7c8781413515c72",
+      "tree_digest_hex": "37b1de1a8ec78e7d877746cb59aa7079e2772176e6e0d76f416066b5cb1608c9",
+      "class_log_prefix_hex": "4eb9ec78338063ba",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 45764812876,
+        "end": 46260702141,
+        "global_tid": 319373887830104,
+        "kernel_ns": 369440634,
+        "copy_only_ns": 43170820,
+        "api_without_gpu_ns": 15827866,
+        "untraced_host_without_gpu_api_ns": 67449945,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 584607,
+            "api_without_gpu_ns": 176867,
+            "untraced_host_without_gpu_api_ns": 39758493,
+            "wall_ns": 40519967
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 107878064,
+            "copy_only_ns": 20487187,
+            "api_without_gpu_ns": 9433354,
+            "untraced_host_without_gpu_api_ns": 13574015,
+            "wall_ns": 151372620
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 20810067,
+            "copy_only_ns": 4310646,
+            "api_without_gpu_ns": 2976382,
+            "untraced_host_without_gpu_api_ns": 9196315,
+            "wall_ns": 37293410
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 35658928,
+            "copy_only_ns": 571359,
+            "api_without_gpu_ns": 390321,
+            "untraced_host_without_gpu_api_ns": 59823,
+            "wall_ns": 36680431
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 39006058,
+            "copy_only_ns": 6944849,
+            "api_without_gpu_ns": 500330,
+            "untraced_host_without_gpu_api_ns": 1273945,
+            "wall_ns": 47725182
+          },
+          "rv64/composition": {
+            "kernel_ns": 64626550,
+            "copy_only_ns": 6287955,
+            "api_without_gpu_ns": 920419,
+            "untraced_host_without_gpu_api_ns": 1082928,
+            "wall_ns": 72917852
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 101460967,
+            "copy_only_ns": 3984217,
+            "api_without_gpu_ns": 1430193,
+            "untraced_host_without_gpu_api_ns": 2504426,
+            "wall_ns": 109379803
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 45764890876,
+            "end": 45916263496
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 45949926119,
+            "end": 45987219529
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 45987257569,
+            "end": 46023938000
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 46023970560,
+            "end": 46071695742
+          },
+          {
+            "name": "rv64/composition",
+            "start": 46071781572,
+            "end": 46144699424
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 46145853553,
+            "end": 46255233356
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 363916600
+      }
+    },
+    {
+      "id": 2,
+      "kind": "leaf",
+      "first_leaf": 2,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 1,
+      "physical_gpu": 1,
+      "lane_predecessor": 1,
+      "device_last_known_gate": "lane:1",
+      "native_publish_stream_ns": 639324451,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 1603107812,
+        "prep_start": 1603150892,
+        "prep_end": 2183022540,
+        "device_start": 2948979300,
+        "device_end": 3539102280,
+        "finish_start": 3539122960,
+        "finish_end": 3666049889
+      },
+      "device_dispatch_residual_ns": 14720,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 20680,
+      "verify_ns": 36419751,
+      "publish_ns": 89641519,
+      "finish_other_ns": 865659,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 774253763,
+        "device": 8297003,
+        "finish": 153340677
+      },
+      "on_observed_last_predecessor_chain": true,
+      "tree_authority_hex": "649980b57a2bee94ab12ecbe4b900e9d5d56a13297e857a74347ce5b266ed276",
+      "tree_digest_hex": "fe3ea7dfc86f8263667511f3347d13a02096d8f7d6f2509bbd08ca3f285ff4ed",
+      "class_log_prefix_hex": "b41ce84c6f0d1298",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 46299655890,
+        "end": 46850870061,
+        "global_tid": 319373887830104,
+        "kernel_ns": 378637494,
+        "copy_only_ns": 43125090,
+        "api_without_gpu_ns": 21462775,
+        "untraced_host_without_gpu_api_ns": 107988812,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 592159,
+            "api_without_gpu_ns": 708433,
+            "untraced_host_without_gpu_api_ns": 77164625,
+            "wall_ns": 78465217
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 117308197,
+            "copy_only_ns": 20246961,
+            "api_without_gpu_ns": 2134885,
+            "untraced_host_without_gpu_api_ns": 15972113,
+            "wall_ns": 155662156
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 20819028,
+            "copy_only_ns": 4204279,
+            "api_without_gpu_ns": 355168,
+            "untraced_host_without_gpu_api_ns": 9687467,
+            "wall_ns": 35065942
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 35633140,
+            "copy_only_ns": 566110,
+            "api_without_gpu_ns": 390170,
+            "untraced_host_without_gpu_api_ns": 85761,
+            "wall_ns": 36675181
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 39068972,
+            "copy_only_ns": 6494004,
+            "api_without_gpu_ns": 1318502,
+            "untraced_host_without_gpu_api_ns": 1578503,
+            "wall_ns": 48459981
+          },
+          "rv64/composition": {
+            "kernel_ns": 64446774,
+            "copy_only_ns": 6652498,
+            "api_without_gpu_ns": 15130224,
+            "untraced_host_without_gpu_api_ns": 1957384,
+            "wall_ns": 88186880
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 101361383,
+            "copy_only_ns": 4369079,
+            "api_without_gpu_ns": 1425393,
+            "untraced_host_without_gpu_api_ns": 1542959,
+            "wall_ns": 108698814
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 46299866760,
+            "end": 46455528916
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 46526577369,
+            "end": 46561643311
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 46561796061,
+            "end": 46598471242
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 46598509972,
+            "end": 46646969953
+          },
+          {
+            "name": "rv64/composition",
+            "start": 46647100563,
+            "end": 46735287443
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 46737420531,
+            "end": 46846119345
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 382687182
+      }
+    },
+    {
+      "id": 3,
+      "kind": "leaf",
+      "first_leaf": 3,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 0,
+      "physical_gpu": 0,
+      "lane_predecessor": 0,
+      "device_last_known_gate": "lane:0",
+      "native_publish_stream_ns": 1525717655,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 1603112132,
+        "prep_start": 1603135252,
+        "prep_end": 1973495787,
+        "device_start": 2984442972,
+        "device_end": 3557628255,
+        "finish_start": 3557653765,
+        "finish_end": 3756078137
+      },
+      "device_dispatch_residual_ns": 14140,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 25510,
+      "verify_ns": 110877262,
+      "publish_ns": 86122591,
+      "finish_other_ns": 1424519,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 1033091757,
+        "device": 22144572,
+        "finish": 63312429
+      },
+      "on_observed_last_predecessor_chain": false,
+      "tree_authority_hex": "9f9d89e19fdbd39301a37792218cc1c0bef178ba0cca60b2256b9c34da0b4169",
+      "tree_digest_hex": "2a41b002b8ffc3b2d50b18ba61f5461d8077008e196b61de57526f9d476fa3a3",
+      "class_log_prefix_hex": "5fdcb9b683d4da93",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 46384322973,
+        "end": 46869366826,
+        "global_tid": 319373887830050,
+        "kernel_ns": 381250955,
+        "copy_only_ns": 40771818,
+        "api_without_gpu_ns": 10706828,
+        "untraced_host_without_gpu_api_ns": 52314252,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 590464,
+            "api_without_gpu_ns": 777517,
+            "untraced_host_without_gpu_api_ns": 39112318,
+            "wall_ns": 40480299
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 118119699,
+            "copy_only_ns": 16988086,
+            "api_without_gpu_ns": 5631073,
+            "untraced_host_without_gpu_api_ns": 6230394,
+            "wall_ns": 146969252
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 20894323,
+            "copy_only_ns": 4215005,
+            "api_without_gpu_ns": 338622,
+            "untraced_host_without_gpu_api_ns": 149959,
+            "wall_ns": 25597909
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 35918666,
+            "copy_only_ns": 567775,
+            "api_without_gpu_ns": 372903,
+            "untraced_host_without_gpu_api_ns": 68657,
+            "wall_ns": 36928001
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 39131367,
+            "copy_only_ns": 6821852,
+            "api_without_gpu_ns": 479963,
+            "untraced_host_without_gpu_api_ns": 1645199,
+            "wall_ns": 48078381
+          },
+          "rv64/composition": {
+            "kernel_ns": 64958677,
+            "copy_only_ns": 7414975,
+            "api_without_gpu_ns": 1503184,
+            "untraced_host_without_gpu_api_ns": 1599504,
+            "wall_ns": 75476340
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 102228223,
+            "copy_only_ns": 4173661,
+            "api_without_gpu_ns": 1603566,
+            "untraced_host_without_gpu_api_ns": 3508221,
+            "wall_ns": 111513671
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 46384397213,
+            "end": 46531366465
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 46561263652,
+            "end": 46586861561
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 46586912161,
+            "end": 46623840162
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 46623884402,
+            "end": 46671962783
+          },
+          {
+            "name": "rv64/composition",
+            "start": 46672062423,
+            "end": 46747538763
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 46749673162,
+            "end": 46861186833
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 380300506
+      }
+    },
+    {
+      "id": 4,
+      "kind": "fold",
+      "first_leaf": 0,
+      "leaf_count": 4,
+      "children": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "last_child": 3,
+      "lane": 1,
+      "physical_gpu": 1,
+      "lane_predecessor": 5,
+      "device_last_known_gate": "lane:5",
+      "native_publish_stream_ns": null,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 3756091597,
+        "prep_start": 3756092177,
+        "prep_end": 4119479748,
+        "device_start": 4174515134,
+        "device_end": 4862177996,
+        "finish_start": 4862196336,
+        "finish_end": 5020245770
+      },
+      "device_dispatch_residual_ns": 17820,
+      "prep_after_last_child_ns": 14040,
+      "finish_queue_ns": 18340,
+      "verify_ns": 28230077,
+      "publish_ns": 129815867,
+      "finish_other_ns": 3490,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 63298389,
+        "device": 8263003,
+        "finish": 2322423260
+      },
+      "on_observed_last_predecessor_chain": true,
+      "tree_authority_hex": "8d87f53d960c3834a33d807d5d5994c9f2b6d90032aebc85488ba53bb909e462",
+      "tree_digest_hex": "99dea008e870d84e02de91d8512cb8e287d85381ffa00331daeb76f2db9c52e3",
+      "class_log_prefix_hex": "ca596645d27e7905",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 47554972910,
+        "end": 48173971877,
+        "global_tid": 319373887830104,
+        "kernel_ns": 454561018,
+        "copy_only_ns": 52118351,
+        "api_without_gpu_ns": 23542655,
+        "untraced_host_without_gpu_api_ns": 88776943,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 847134,
+            "api_without_gpu_ns": 248707,
+            "untraced_host_without_gpu_api_ns": 76787236,
+            "wall_ns": 77883077
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 27135909,
+            "copy_only_ns": 23140812,
+            "api_without_gpu_ns": 2159854,
+            "untraced_host_without_gpu_api_ns": 5398239,
+            "wall_ns": 57834814
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 39021580,
+            "copy_only_ns": 6024595,
+            "api_without_gpu_ns": 375709,
+            "untraced_host_without_gpu_api_ns": 1060379,
+            "wall_ns": 46482263
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 58567939,
+            "copy_only_ns": 833663,
+            "api_without_gpu_ns": 732019,
+            "untraced_host_without_gpu_api_ns": 252721,
+            "wall_ns": 60386342
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 72229861,
+            "copy_only_ns": 8743821,
+            "api_without_gpu_ns": 8936007,
+            "untraced_host_without_gpu_api_ns": 1039189,
+            "wall_ns": 90948878
+          },
+          "rv64/composition": {
+            "kernel_ns": 105835421,
+            "copy_only_ns": 8665549,
+            "api_without_gpu_ns": 8339489,
+            "untraced_host_without_gpu_api_ns": 1761232,
+            "wall_ns": 124601691
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 151770308,
+            "copy_only_ns": 3862777,
+            "api_without_gpu_ns": 2750870,
+            "untraced_host_without_gpu_api_ns": 2477947,
+            "wall_ns": 160861902
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 47555042270,
+            "end": 47612877084
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 47658498877,
+            "end": 47704981140
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 47705020560,
+            "end": 47765406902
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 47765444492,
+            "end": 47856393370
+          },
+          {
+            "name": "rv64/composition",
+            "start": 47856532389,
+            "end": 47981134080
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 48008349138,
+            "end": 48169211040
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 448924333
+      }
+    },
+    {
+      "id": 5,
+      "kind": "leaf",
+      "first_leaf": 4,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 1,
+      "physical_gpu": 1,
+      "lane_predecessor": 2,
+      "device_last_known_gate": "lane:2",
+      "native_publish_stream_ns": 1295019568,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 1603117232,
+        "prep_start": 1603119362,
+        "prep_end": 1968195752,
+        "device_start": 3539118460,
+        "device_end": 4174497314,
+        "finish_start": 4174515864,
+        "finish_end": 4291094641
+      },
+      "device_dispatch_residual_ns": 16180,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 18550,
+      "verify_ns": 29429197,
+      "publish_ns": 86451091,
+      "finish_other_ns": 698489,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 1579203531,
+        "device": 8280823,
+        "finish": 914368570
+      },
+      "on_observed_last_predecessor_chain": true,
+      "tree_authority_hex": "294ec8e71fad8881bbe1f15dea527f47520554ce972f03af03a0bd0daf44a27b",
+      "tree_digest_hex": "56ddd108b73d739ac683eb52bd2315c6f31707ecca603ac0642583cbd9777622",
+      "class_log_prefix_hex": "62e7f0a73145b034",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 46891735708,
+        "end": 47486275655,
+        "global_tid": 319373887830104,
+        "kernel_ns": 376444473,
+        "copy_only_ns": 44870080,
+        "api_without_gpu_ns": 86103705,
+        "untraced_host_without_gpu_api_ns": 87121689,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 590334,
+            "api_without_gpu_ns": 193452,
+            "untraced_host_without_gpu_api_ns": 70272098,
+            "wall_ns": 71055884
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 115137704,
+            "copy_only_ns": 19480280,
+            "api_without_gpu_ns": 64434201,
+            "untraced_host_without_gpu_api_ns": 10164148,
+            "wall_ns": 209216333
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 20824819,
+            "copy_only_ns": 4234455,
+            "api_without_gpu_ns": 333130,
+            "untraced_host_without_gpu_api_ns": 130226,
+            "wall_ns": 25522630
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 35648661,
+            "copy_only_ns": 571421,
+            "api_without_gpu_ns": 373910,
+            "untraced_host_without_gpu_api_ns": 71199,
+            "wall_ns": 36665191
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 39050380,
+            "copy_only_ns": 7182385,
+            "api_without_gpu_ns": 1286550,
+            "untraced_host_without_gpu_api_ns": 1615466,
+            "wall_ns": 49134781
+          },
+          "rv64/composition": {
+            "kernel_ns": 64472501,
+            "copy_only_ns": 7318673,
+            "api_without_gpu_ns": 17806495,
+            "untraced_host_without_gpu_api_ns": 2005328,
+            "wall_ns": 91602997
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 101310408,
+            "copy_only_ns": 5492532,
+            "api_without_gpu_ns": 1675967,
+            "untraced_host_without_gpu_api_ns": 2863224,
+            "wall_ns": 111342131
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 46891901858,
+            "end": 47101118191
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 47130175978,
+            "end": 47155698608
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 47155738118,
+            "end": 47192403309
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 47227415821,
+            "end": 47276550602
+          },
+          {
+            "name": "rv64/composition",
+            "start": 47276729942,
+            "end": 47368332939
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 47369582468,
+            "end": 47480924599
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 379501088
+      }
+    },
+    {
+      "id": 6,
+      "kind": "leaf",
+      "first_leaf": 5,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 0,
+      "physical_gpu": 0,
+      "lane_predecessor": 3,
+      "device_last_known_gate": "lane:3",
+      "native_publish_stream_ns": 2473696639,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 2213318256,
+        "prep_start": 2213327116,
+        "prep_end": 2415499705,
+        "device_start": 3557646475,
+        "device_end": 4296303767,
+        "finish_start": 4296316027,
+        "finish_end": 4392977440
+      },
+      "device_dispatch_residual_ns": 18220,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 12260,
+      "verify_ns": 58258504,
+      "publish_ns": 37836970,
+      "finish_other_ns": 565939,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 1164273122,
+        "device": 22126352,
+        "finish": 812485771
+      },
+      "on_observed_last_predecessor_chain": false,
+      "tree_authority_hex": "09b8e725b60d5bf243f2286de4249621e1a1c2383973fb7e1bdd8f02d80161de",
+      "tree_digest_hex": "c7ecd7f56ff5d645e5a7d4d2f3ca0d5f89402c9434ecb9677a3506235c3aa15e",
+      "class_log_prefix_hex": "2ef3e76351e87e3d",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 46979185159,
+        "end": 47608140517,
+        "global_tid": 319373887830050,
+        "kernel_ns": 377004301,
+        "copy_only_ns": 44958022,
+        "api_without_gpu_ns": 86158968,
+        "untraced_host_without_gpu_api_ns": 120834067,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 589536,
+            "api_without_gpu_ns": 225291,
+            "untraced_host_without_gpu_api_ns": 96797425,
+            "wall_ns": 97612252
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 112969880,
+            "copy_only_ns": 17238422,
+            "api_without_gpu_ns": 72917454,
+            "untraced_host_without_gpu_api_ns": 6891506,
+            "wall_ns": 210017262
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 20879154,
+            "copy_only_ns": 5220317,
+            "api_without_gpu_ns": 366986,
+            "untraced_host_without_gpu_api_ns": 129922,
+            "wall_ns": 26596379
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 35920297,
+            "copy_only_ns": 569152,
+            "api_without_gpu_ns": 376778,
+            "untraced_host_without_gpu_api_ns": 61983,
+            "wall_ns": 36928210
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 39187591,
+            "copy_only_ns": 8418235,
+            "api_without_gpu_ns": 630590,
+            "untraced_host_without_gpu_api_ns": 2345184,
+            "wall_ns": 50581600
+          },
+          "rv64/composition": {
+            "kernel_ns": 64855478,
+            "copy_only_ns": 7162364,
+            "api_without_gpu_ns": 1099391,
+            "untraced_host_without_gpu_api_ns": 1731147,
+            "wall_ns": 74848380
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 103191901,
+            "copy_only_ns": 5759996,
+            "api_without_gpu_ns": 10542478,
+            "untraced_host_without_gpu_api_ns": 12876900,
+            "wall_ns": 132371275
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 46979257729,
+            "end": 47189274991
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 47227284101,
+            "end": 47253880480
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 47253920240,
+            "end": 47290848450
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 47290880900,
+            "end": 47341462500
+          },
+          {
+            "name": "rv64/composition",
+            "start": 47341563870,
+            "end": 47416412250
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 47417691509,
+            "end": 47550062784
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 372784053
+      }
+    },
+    {
+      "id": 7,
+      "kind": "leaf",
+      "first_leaf": 6,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 0,
+      "physical_gpu": 0,
+      "lane_predecessor": 6,
+      "device_last_known_gate": "lane:6",
+      "native_publish_stream_ns": 1757418770,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 2397936959,
+        "prep_start": 2397940379,
+        "prep_end": 2782499743,
+        "device_start": 4296314617,
+        "device_end": 4618444600,
+        "finish_start": 4618464350,
+        "finish_end": 4696028258
+      },
+      "device_dispatch_residual_ns": 10850,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 19750,
+      "verify_ns": 28549778,
+      "publish_ns": 48242741,
+      "finish_other_ns": 771389,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 1535930376,
+        "device": 22115502,
+        "finish": 509434953
+      },
+      "on_observed_last_predecessor_chain": false,
+      "tree_authority_hex": "ea5b3197fedad5bf5e24eeb0a637f4a246c5221ca866c8c71a66bafd76740cf8",
+      "tree_digest_hex": "f796d1d51e8b92104926d1ac23b562d0fb2bdc5fc0f20143be6d82c28a0cacc9",
+      "class_log_prefix_hex": "0b30eb146d62866a",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 47660236326,
+        "end": 47930230701,
+        "global_tid": 319373887830050,
+        "kernel_ns": 211268474,
+        "copy_only_ns": 22375603,
+        "api_without_gpu_ns": 5336747,
+        "untraced_host_without_gpu_api_ns": 31013551,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 286592,
+            "api_without_gpu_ns": 214026,
+            "untraced_host_without_gpu_api_ns": 22211104,
+            "wall_ns": 22711722
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 81403212,
+            "copy_only_ns": 9917050,
+            "api_without_gpu_ns": 1925674,
+            "untraced_host_without_gpu_api_ns": 3954176,
+            "wall_ns": 97200112
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 9250458,
+            "copy_only_ns": 2153823,
+            "api_without_gpu_ns": 230527,
+            "untraced_host_without_gpu_api_ns": 117383,
+            "wall_ns": 11752191
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 20262770,
+            "copy_only_ns": 286496,
+            "api_without_gpu_ns": 365770,
+            "untraced_host_without_gpu_api_ns": 65047,
+            "wall_ns": 20980083
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 18593268,
+            "copy_only_ns": 3491998,
+            "api_without_gpu_ns": 372035,
+            "untraced_host_without_gpu_api_ns": 1204930,
+            "wall_ns": 23662231
+          },
+          "rv64/composition": {
+            "kernel_ns": 33565290,
+            "copy_only_ns": 3460318,
+            "api_without_gpu_ns": 989043,
+            "untraced_host_without_gpu_api_ns": 1006358,
+            "wall_ns": 39021009
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 48193476,
+            "copy_only_ns": 2779326,
+            "api_without_gpu_ns": 1239672,
+            "untraced_host_without_gpu_api_ns": 2454553,
+            "wall_ns": 54667027
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 47660589286,
+            "end": 47757789398
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 47774187785,
+            "end": 47785939976
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 47785989956,
+            "end": 47806970039
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 47806999089,
+            "end": 47830661320
+          },
+          {
+            "name": "rv64/composition",
+            "start": 47830808730,
+            "end": 47869829739
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 47870814258,
+            "end": 47925481285
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 213851891
+      }
+    },
+    {
+      "id": 8,
+      "kind": "leaf",
+      "first_leaf": 7,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 0,
+      "physical_gpu": 0,
+      "lane_predecessor": 7,
+      "device_last_known_gate": "lane:7",
+      "native_publish_stream_ns": 1178331521,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 2397948839,
+        "prep_start": 2397957639,
+        "prep_end": 2554929154,
+        "device_start": 4618459830,
+        "device_end": 5026976925,
+        "finish_start": 5026993215,
+        "finish_end": 5109988268
+      },
+      "device_dispatch_residual_ns": 15230,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 16290,
+      "verify_ns": 26574739,
+      "publish_ns": 55321595,
+      "finish_other_ns": 1098719,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 2085630948,
+        "device": 22100272,
+        "finish": 95474943
+      },
+      "on_observed_last_predecessor_chain": false,
+      "tree_authority_hex": "bac097b6c510f347a684b724a06ef25189565e934b88fe7802403c3d0bdb30a1",
+      "tree_digest_hex": "809f28a3c298a4381e93c1d25104310e9f48edc62510543665ec411463956256",
+      "class_log_prefix_hex": "3a00fb62d80f64fa",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 47958939968,
+        "end": 48338701365,
+        "global_tid": 319373887830050,
+        "kernel_ns": 247690692,
+        "copy_only_ns": 24725655,
+        "api_without_gpu_ns": 33725352,
+        "untraced_host_without_gpu_api_ns": 73619698,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 401312,
+            "api_without_gpu_ns": 365822,
+            "untraced_host_without_gpu_api_ns": 46803819,
+            "wall_ns": 47570953
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 54471198,
+            "copy_only_ns": 10992539,
+            "api_without_gpu_ns": 5672937,
+            "untraced_host_without_gpu_api_ns": 4865015,
+            "wall_ns": 76001689
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 16823224,
+            "copy_only_ns": 2707295,
+            "api_without_gpu_ns": 385861,
+            "untraced_host_without_gpu_api_ns": 105264,
+            "wall_ns": 20021644
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 29803250,
+            "copy_only_ns": 395744,
+            "api_without_gpu_ns": 392419,
+            "untraced_host_without_gpu_api_ns": 59802,
+            "wall_ns": 30651215
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 28666643,
+            "copy_only_ns": 4381983,
+            "api_without_gpu_ns": 362040,
+            "untraced_host_without_gpu_api_ns": 922897,
+            "wall_ns": 34333563
+          },
+          "rv64/composition": {
+            "kernel_ns": 51020744,
+            "copy_only_ns": 3840543,
+            "api_without_gpu_ns": 11330328,
+            "untraced_host_without_gpu_api_ns": 1821140,
+            "wall_ns": 68012755
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 66905633,
+            "copy_only_ns": 2006239,
+            "api_without_gpu_ns": 15215945,
+            "untraced_host_without_gpu_api_ns": 19041761,
+            "wall_ns": 103169578
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 47959004958,
+            "end": 48035006647
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 48057202520,
+            "end": 48077224164
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 48077261764,
+            "end": 48107912979
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 48107934969,
+            "end": 48142268532
+          },
+          {
+            "name": "rv64/composition",
+            "start": 48142385362,
+            "end": 48210398117
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 48229356782,
+            "end": 48332526360
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 248437382
+      }
+    },
+    {
+      "id": 9,
+      "kind": "fold",
+      "first_leaf": 4,
+      "leaf_count": 4,
+      "children": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "last_child": 8,
+      "lane": 0,
+      "physical_gpu": 0,
+      "lane_predecessor": 11,
+      "device_last_known_gate": "lane:11",
+      "native_publish_stream_ns": null,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 5110103758,
+        "prep_start": 5110104278,
+        "prep_end": 5405759073,
+        "device_start": 5479046654,
+        "device_end": 6213941879,
+        "finish_start": 6213961649,
+        "finish_end": 6368356966
+      },
+      "device_dispatch_residual_ns": 14260,
+      "prep_after_last_child_ns": 116010,
+      "finish_queue_ns": 19770,
+      "verify_ns": 29575356,
+      "publish_ns": 124815681,
+      "finish_other_ns": 4280,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 95358933,
+        "device": 22071352,
+        "finish": 974312064
+      },
+      "on_observed_last_predecessor_chain": false,
+      "tree_authority_hex": "866be8bd045086faa631264aacd435c4d6b8a09d615bca86ab571be5c64f29ba",
+      "tree_digest_hex": "9b0554357d79279772f7513f5d4e4410dd809c3ada66717c8bcce721fb95520a",
+      "class_log_prefix_hex": "17a6965d01abd772",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 48860114990,
+        "end": 49525730019,
+        "global_tid": 319373887830050,
+        "kernel_ns": 457526002,
+        "copy_only_ns": 53704260,
+        "api_without_gpu_ns": 57026120,
+        "untraced_host_without_gpu_api_ns": 97358647,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 848544,
+            "api_without_gpu_ns": 408321,
+            "untraced_host_without_gpu_api_ns": 60217235,
+            "wall_ns": 61474100
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 27506228,
+            "copy_only_ns": 24975282,
+            "api_without_gpu_ns": 2668807,
+            "untraced_host_without_gpu_api_ns": 25170479,
+            "wall_ns": 80320796
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 39029646,
+            "copy_only_ns": 5987837,
+            "api_without_gpu_ns": 6523928,
+            "untraced_host_without_gpu_api_ns": 178987,
+            "wall_ns": 51720398
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 59125445,
+            "copy_only_ns": 837952,
+            "api_without_gpu_ns": 4643436,
+            "untraced_host_without_gpu_api_ns": 108956,
+            "wall_ns": 64715789
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 72495423,
+            "copy_only_ns": 8774460,
+            "api_without_gpu_ns": 18082520,
+            "untraced_host_without_gpu_api_ns": 1292697,
+            "wall_ns": 100645100
+          },
+          "rv64/composition": {
+            "kernel_ns": 106664433,
+            "copy_only_ns": 7767963,
+            "api_without_gpu_ns": 22987697,
+            "untraced_host_without_gpu_api_ns": 3202835,
+            "wall_ns": 140622928
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 152704827,
+            "copy_only_ns": 4512222,
+            "api_without_gpu_ns": 1711411,
+            "untraced_host_without_gpu_api_ns": 7187458,
+            "wall_ns": 166115918
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 48860235850,
+            "end": 48940556646
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 48991955035,
+            "end": 49043675433
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 49043716823,
+            "end": 49108432612
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 49108480482,
+            "end": 49209125582
+          },
+          {
+            "name": "rv64/composition",
+            "start": 49209203132,
+            "end": 49349826060
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 49351732268,
+            "end": 49517848186
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 462516859
+      }
+    },
+    {
+      "id": 10,
+      "kind": "leaf",
+      "first_leaf": 8,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 1,
+      "physical_gpu": 1,
+      "lane_predecessor": 4,
+      "device_last_known_gate": "lane:4",
+      "native_publish_stream_ns": 1490363233,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 2948995000,
+        "prep_start": 2948996980,
+        "prep_end": 3410323063,
+        "device_start": 4862192656,
+        "device_end": 5252672185,
+        "finish_start": 5252701885,
+        "finish_end": 5355952772
+      },
+      "device_dispatch_residual_ns": 14660,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 29700,
+      "verify_ns": 28591338,
+      "publish_ns": 72971311,
+      "finish_other_ns": 1688238,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 1460117936,
+        "device": 8248343,
+        "finish": 766931229
+      },
+      "on_observed_last_predecessor_chain": true,
+      "tree_authority_hex": "77e941074010b42746ce007d9883b5a4f252bbf83aabce5ce025d9392a1acc7d",
+      "tree_digest_hex": "394c9275f1db5446e4a18f7d626842b7865bf6f33b1bbd0b2f581d01ecaf3af8",
+      "class_log_prefix_hex": "eef2320ddd5c0a77",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 48200735175,
+        "end": 48564429025,
+        "global_tid": 319373887830104,
+        "kernel_ns": 248224480,
+        "copy_only_ns": 24692424,
+        "api_without_gpu_ns": 20451378,
+        "untraced_host_without_gpu_api_ns": 70325568,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 399359,
+            "api_without_gpu_ns": 176504,
+            "untraced_host_without_gpu_api_ns": 39617735,
+            "wall_ns": 40193598
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 54272305,
+            "copy_only_ns": 10823911,
+            "api_without_gpu_ns": 4094866,
+            "untraced_host_without_gpu_api_ns": 3465180,
+            "wall_ns": 72656262
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 16821566,
+            "copy_only_ns": 2708091,
+            "api_without_gpu_ns": 323483,
+            "untraced_host_without_gpu_api_ns": 8220568,
+            "wall_ns": 28073708
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 29545826,
+            "copy_only_ns": 401728,
+            "api_without_gpu_ns": 418688,
+            "untraced_host_without_gpu_api_ns": 64894,
+            "wall_ns": 30431136
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 28564900,
+            "copy_only_ns": 4520694,
+            "api_without_gpu_ns": 502280,
+            "untraced_host_without_gpu_api_ns": 9815061,
+            "wall_ns": 43402935
+          },
+          "rv64/composition": {
+            "kernel_ns": 50785368,
+            "copy_only_ns": 3802358,
+            "api_without_gpu_ns": 13594279,
+            "untraced_host_without_gpu_api_ns": 7129845,
+            "wall_ns": 75311850
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 68234515,
+            "copy_only_ns": 2036283,
+            "api_without_gpu_ns": 1341278,
+            "untraced_host_without_gpu_api_ns": 2012285,
+            "wall_ns": 73624361
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 48200855495,
+            "end": 48273511757
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 48307411620,
+            "end": 48335485328
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 48335516528,
+            "end": 48365947664
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 48365984124,
+            "end": 48409387059
+          },
+          {
+            "name": "rv64/composition",
+            "start": 48409506619,
+            "end": 48484818469
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 48485776528,
+            "end": 48559400889
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 243539507
+      }
+    },
+    {
+      "id": 11,
+      "kind": "leaf",
+      "first_leaf": 9,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 0,
+      "physical_gpu": 0,
+      "lane_predecessor": 8,
+      "device_last_known_gate": "lane:8",
+      "native_publish_stream_ns": 2629163025,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 2984481712,
+        "prep_start": 2984489142,
+        "prep_end": 3396175604,
+        "device_start": 5026991585,
+        "device_end": 5479032394,
+        "finish_start": 5479065704,
+        "finish_end": 5565607236
+      },
+      "device_dispatch_residual_ns": 14660,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 33310,
+      "verify_ns": 21404093,
+      "publish_ns": 64525079,
+      "finish_other_ns": 612360,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 1652901593,
+        "device": 22085612,
+        "finish": 557276765
+      },
+      "on_observed_last_predecessor_chain": false,
+      "tree_authority_hex": "3b9433e9cbacaa83f10d9e0331a47ea7c38ac76350b0e9bc7e3c607f68900914",
+      "tree_digest_hex": "5cef1b2eec58c32e0484ec1b18defba3b797957e0f197caabdc2dd79f8537016",
+      "class_log_prefix_hex": "dbff907a4954a03f",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 48367011653,
+        "end": 48790810015,
+        "global_tid": 319373887830050,
+        "kernel_ns": 247775983,
+        "copy_only_ns": 26716536,
+        "api_without_gpu_ns": 106544576,
+        "untraced_host_without_gpu_api_ns": 42761267,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 412640,
+            "api_without_gpu_ns": 342148,
+            "untraced_host_without_gpu_api_ns": 27364669,
+            "wall_ns": 28119457
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 54453288,
+            "copy_only_ns": 11603003,
+            "api_without_gpu_ns": 51642569,
+            "untraced_host_without_gpu_api_ns": 5022652,
+            "wall_ns": 122721512
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 16855896,
+            "copy_only_ns": 2769343,
+            "api_without_gpu_ns": 327482,
+            "untraced_host_without_gpu_api_ns": 97533,
+            "wall_ns": 20050254
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 29763443,
+            "copy_only_ns": 394400,
+            "api_without_gpu_ns": 395429,
+            "untraced_host_without_gpu_api_ns": 72863,
+            "wall_ns": 30626135
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 28689523,
+            "copy_only_ns": 5000703,
+            "api_without_gpu_ns": 443832,
+            "untraced_host_without_gpu_api_ns": 2198203,
+            "wall_ns": 36332261
+          },
+          "rv64/composition": {
+            "kernel_ns": 50933992,
+            "copy_only_ns": 4475039,
+            "api_without_gpu_ns": 52005984,
+            "untraced_host_without_gpu_api_ns": 4914656,
+            "wall_ns": 112329671
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 67079841,
+            "copy_only_ns": 2061408,
+            "api_without_gpu_ns": 1387132,
+            "untraced_host_without_gpu_api_ns": 3090691,
+            "wall_ns": 73619072
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 48367079553,
+            "end": 48489801065
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 48511366438,
+            "end": 48531416692
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 48531443592,
+            "end": 48562069727
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 48562102687,
+            "end": 48598434948
+          },
+          {
+            "name": "rv64/composition",
+            "start": 48598593688,
+            "end": 48710923359
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 48712706107,
+            "end": 48786325179
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 206298355
+      }
+    },
+    {
+      "id": 12,
+      "kind": "leaf",
+      "first_leaf": 10,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 1,
+      "physical_gpu": 1,
+      "lane_predecessor": 10,
+      "device_last_known_gate": "lane:10",
+      "native_publish_stream_ns": 1770698929,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 3539123460,
+        "prep_start": 3539129020,
+        "prep_end": 3915800590,
+        "device_start": 5252689615,
+        "device_end": 5684693371,
+        "finish_start": 5684741081,
+        "finish_end": 5812791699
+      },
+      "device_dispatch_residual_ns": 17430,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 47710,
+      "verify_ns": 29428117,
+      "publish_ns": 97202603,
+      "finish_other_ns": 1419898,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 1345119938,
+        "device": 8230913,
+        "finish": 310092302
+      },
+      "on_observed_last_predecessor_chain": true,
+      "tree_authority_hex": "cc32c14ae21e8a8f6ba2e08dd5f689aa152e2e0a9528a8146bb13c999da2c89c",
+      "tree_digest_hex": "750b41ab102df4a7515f82d6c120c7cf6bf982e4ee52eeb7d3e3430018feee61",
+      "class_log_prefix_hex": "025395cc32b40221",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 48596995809,
+        "end": 48996442901,
+        "global_tid": 319373887830104,
+        "kernel_ns": 250052439,
+        "copy_only_ns": 27555462,
+        "api_without_gpu_ns": 17360744,
+        "untraced_host_without_gpu_api_ns": 104478447,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 411263,
+            "api_without_gpu_ns": 235474,
+            "untraced_host_without_gpu_api_ns": 43734318,
+            "wall_ns": 44381055
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 45696769,
+            "copy_only_ns": 12569957,
+            "api_without_gpu_ns": 9885213,
+            "untraced_host_without_gpu_api_ns": 4273034,
+            "wall_ns": 72424973
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 16526494,
+            "copy_only_ns": 3507896,
+            "api_without_gpu_ns": 315346,
+            "untraced_host_without_gpu_api_ns": 129317,
+            "wall_ns": 20479053
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 30949761,
+            "copy_only_ns": 394815,
+            "api_without_gpu_ns": 409627,
+            "untraced_host_without_gpu_api_ns": 62652,
+            "wall_ns": 31816855
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 33440027,
+            "copy_only_ns": 4473398,
+            "api_without_gpu_ns": 368835,
+            "untraced_host_without_gpu_api_ns": 763819,
+            "wall_ns": 39046079
+          },
+          "rv64/composition": {
+            "kernel_ns": 52124498,
+            "copy_only_ns": 4071256,
+            "api_without_gpu_ns": 3671562,
+            "untraced_host_without_gpu_api_ns": 8836429,
+            "wall_ns": 68703745
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 71314890,
+            "copy_only_ns": 2126877,
+            "api_without_gpu_ns": 2474687,
+            "untraced_host_without_gpu_api_ns": 46678878,
+            "wall_ns": 122595332
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 48597067039,
+            "end": 48669492012
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 48699519198,
+            "end": 48719998251
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 48720027851,
+            "end": 48751844706
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 48751868726,
+            "end": 48790914805
+          },
+          {
+            "name": "rv64/composition",
+            "start": 48791011075,
+            "end": 48859714820
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 48869588292,
+            "end": 48992183624
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 247790179
+      }
+    },
+    {
+      "id": 13,
+      "kind": "leaf",
+      "first_leaf": 11,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 1,
+      "physical_gpu": 1,
+      "lane_predecessor": 12,
+      "device_last_known_gate": "lane:12",
+      "native_publish_stream_ns": 2655224005,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 3557659475,
+        "prep_start": 3557661835,
+        "prep_end": 4035171095,
+        "device_start": 5684717201,
+        "device_end": 6015485057,
+        "finish_start": 6015516897,
+        "finish_end": 6114708758
+      },
+      "device_dispatch_residual_ns": 23830,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 31840,
+      "verify_ns": 26251199,
+      "publish_ns": 71838063,
+      "finish_other_ns": 1102599,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 1657753189,
+        "device": 8207083,
+        "finish": 8175243
+      },
+      "on_observed_last_predecessor_chain": true,
+      "tree_authority_hex": "26d9bec71354cd638af0dd9a95847ed81ee00f5b6f8c9dc86fbcfac21b4d2b63",
+      "tree_digest_hex": "7ce347e1dd0015dd6646f2354bf463f4a44b1bf8009f9db36e547de18a76815d",
+      "class_log_prefix_hex": "575e4aacb03a642b",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 49024156859,
+        "end": 49327251307,
+        "global_tid": 319373887830104,
+        "kernel_ns": 231116452,
+        "copy_only_ns": 24506285,
+        "api_without_gpu_ns": 5700542,
+        "untraced_host_without_gpu_api_ns": 41771169,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 402751,
+            "api_without_gpu_ns": 173408,
+            "untraced_host_without_gpu_api_ns": 33134253,
+            "wall_ns": 33710412
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 38458289,
+            "copy_only_ns": 10725867,
+            "api_without_gpu_ns": 865006,
+            "untraced_host_without_gpu_api_ns": 3126286,
+            "wall_ns": 53175448
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 16830142,
+            "copy_only_ns": 2726458,
+            "api_without_gpu_ns": 1578460,
+            "untraced_host_without_gpu_api_ns": 114963,
+            "wall_ns": 21250023
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 29578948,
+            "copy_only_ns": 395230,
+            "api_without_gpu_ns": 412276,
+            "untraced_host_without_gpu_api_ns": 64532,
+            "wall_ns": 30450986
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 28660260,
+            "copy_only_ns": 4388567,
+            "api_without_gpu_ns": 370131,
+            "untraced_host_without_gpu_api_ns": 709045,
+            "wall_ns": 34128003
+          },
+          "rv64/composition": {
+            "kernel_ns": 50777529,
+            "copy_only_ns": 3721240,
+            "api_without_gpu_ns": 977152,
+            "untraced_host_without_gpu_api_ns": 909474,
+            "wall_ns": 56385395
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 66811284,
+            "copy_only_ns": 2146172,
+            "api_without_gpu_ns": 1324109,
+            "untraced_host_without_gpu_api_ns": 3712616,
+            "wall_ns": 73994181
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 49024224339,
+            "end": 49077399787
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 49104827425,
+            "end": 49126077448
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 49126109318,
+            "end": 49156560304
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 49156587043,
+            "end": 49190715046
+          },
+          {
+            "name": "rv64/composition",
+            "start": 49190798466,
+            "end": 49247183861
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 49248144201,
+            "end": 49322138382
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 235279294
+      }
+    },
+    {
+      "id": 14,
+      "kind": "fold",
+      "first_leaf": 8,
+      "leaf_count": 4,
+      "children": [
+        10,
+        11,
+        12,
+        13
+      ],
+      "last_child": 13,
+      "lane": 0,
+      "physical_gpu": 0,
+      "lane_predecessor": 16,
+      "device_last_known_gate": "prep:14",
+      "native_publish_stream_ns": null,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 6115058658,
+        "prep_start": 6115059598,
+        "prep_end": 6475487771,
+        "device_start": 6480701666,
+        "device_end": 7228465391,
+        "finish_start": 7228486071,
+        "finish_end": 7340079202
+      },
+      "device_dispatch_residual_ns": 5213895,
+      "prep_after_last_child_ns": 350840,
+      "finish_queue_ns": 20680,
+      "verify_ns": 25920009,
+      "publish_ns": 85670672,
+      "finish_other_ns": 2450,
+      "next_lane_overlaps_finish": false,
+      "known_edge_slack_upper_ns": {
+        "prep": 7824403,
+        "device": 2610508,
+        "finish": 2589828
+      },
+      "on_observed_last_predecessor_chain": true,
+      "tree_authority_hex": "7cf61c7446b1f7bba842b6f10ae7c66fad12be00598c4ad713bc8844806ab5d2",
+      "tree_digest_hex": "e72b1b3de91bfd855947128cb5243b2c65333138d80ae70ab3a23ea55fa10c9e",
+      "class_log_prefix_hex": "58b084b454fa95de",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 49849378621,
+        "end": 50540254951,
+        "global_tid": 319373887830050,
+        "kernel_ns": 458411219,
+        "copy_only_ns": 53879213,
+        "api_without_gpu_ns": 46216425,
+        "untraced_host_without_gpu_api_ns": 132369473,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 849760,
+            "api_without_gpu_ns": 335354,
+            "untraced_host_without_gpu_api_ns": 112084076,
+            "wall_ns": 113269190
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 27687316,
+            "copy_only_ns": 24635446,
+            "api_without_gpu_ns": 12908624,
+            "untraced_host_without_gpu_api_ns": 9513605,
+            "wall_ns": 74744991
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 39135119,
+            "copy_only_ns": 5487646,
+            "api_without_gpu_ns": 350931,
+            "untraced_host_without_gpu_api_ns": 146438,
+            "wall_ns": 45120134
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 59267753,
+            "copy_only_ns": 841760,
+            "api_without_gpu_ns": 7392087,
+            "untraced_host_without_gpu_api_ns": 151266,
+            "wall_ns": 67652866
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 72662029,
+            "copy_only_ns": 9968413,
+            "api_without_gpu_ns": 6726462,
+            "untraced_host_without_gpu_api_ns": 3918152,
+            "wall_ns": 93275056
+          },
+          "rv64/composition": {
+            "kernel_ns": 106630884,
+            "copy_only_ns": 8003197,
+            "api_without_gpu_ns": 16959411,
+            "untraced_host_without_gpu_api_ns": 3207940,
+            "wall_ns": 134801432
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 153028118,
+            "copy_only_ns": 4092991,
+            "api_without_gpu_ns": 1543556,
+            "untraced_host_without_gpu_api_ns": 3347996,
+            "wall_ns": 162012661
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 49849516061,
+            "end": 49924261052
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 49973848292,
+            "end": 50018968426
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 50019012786,
+            "end": 50086665652
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 50086861252,
+            "end": 50180136308
+          },
+          {
+            "name": "rv64/composition",
+            "start": 50180231408,
+            "end": 50315032840
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 50316725649,
+            "end": 50478738310
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 462917891
+      }
+    },
+    {
+      "id": 15,
+      "kind": "leaf",
+      "first_leaf": 12,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 1,
+      "physical_gpu": 1,
+      "lane_predecessor": 13,
+      "device_last_known_gate": "lane:13",
+      "native_publish_stream_ns": 1852079935,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 4296319017,
+        "prep_start": 4296320277,
+        "prep_end": 4573340196,
+        "device_start": 6015501677,
+        "device_end": 6413152150,
+        "finish_start": 6413173000,
+        "finish_end": 6523923762
+      },
+      "device_dispatch_residual_ns": 16620,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 20850,
+      "verify_ns": 26483679,
+      "publish_ns": 82661834,
+      "finish_other_ns": 1605249,
+      "next_lane_overlaps_finish": false,
+      "known_edge_slack_upper_ns": {
+        "prep": 1610245057,
+        "device": 168083576,
+        "finish": 168062726
+      },
+      "on_observed_last_predecessor_chain": false,
+      "tree_authority_hex": "22607ce2508d04a6e5443918e42eeecc48e9a99ccf9337c816810a4290ed38c7",
+      "tree_digest_hex": "fb4ff085e8690e6f248055f45cea18aee6f530b1ab29e796ea1c480590da10c3",
+      "class_log_prefix_hex": "3e70a8d2575995bf",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 49355333525,
+        "end": 49724939771,
+        "global_tid": 319373887830104,
+        "kernel_ns": 256920141,
+        "copy_only_ns": 26523145,
+        "api_without_gpu_ns": 7326296,
+        "untraced_host_without_gpu_api_ns": 78836664,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 406815,
+            "api_without_gpu_ns": 214055,
+            "untraced_host_without_gpu_api_ns": 70477874,
+            "wall_ns": 71098744
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 52040565,
+            "copy_only_ns": 12524709,
+            "api_without_gpu_ns": 3551653,
+            "untraced_host_without_gpu_api_ns": 4726465,
+            "wall_ns": 72843392
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 16538942,
+            "copy_only_ns": 2749530,
+            "api_without_gpu_ns": 319199,
+            "untraced_host_without_gpu_api_ns": 111434,
+            "wall_ns": 19719105
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 30959776,
+            "copy_only_ns": 395455,
+            "api_without_gpu_ns": 400267,
+            "untraced_host_without_gpu_api_ns": 65866,
+            "wall_ns": 31821364
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 33432987,
+            "copy_only_ns": 4518263,
+            "api_without_gpu_ns": 392778,
+            "untraced_host_without_gpu_api_ns": 886311,
+            "wall_ns": 39230339
+          },
+          "rv64/composition": {
+            "kernel_ns": 52233747,
+            "copy_only_ns": 3939833,
+            "api_without_gpu_ns": 1083586,
+            "untraced_host_without_gpu_api_ns": 954297,
+            "wall_ns": 58211463
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 71714124,
+            "copy_only_ns": 1988540,
+            "api_without_gpu_ns": 1364758,
+            "untraced_host_without_gpu_api_ns": 1614417,
+            "wall_ns": 76681839
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 49355458185,
+            "end": 49428301577
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 49449227800,
+            "end": 49468946905
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 49468972165,
+            "end": 49500793529
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 49500822999,
+            "end": 49540053338
+          },
+          {
+            "name": "rv64/composition",
+            "start": 49540176908,
+            "end": 49598388371
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 49641747677,
+            "end": 49718429516
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 256755335
+      }
+    },
+    {
+      "id": 16,
+      "kind": "leaf",
+      "first_leaf": 13,
+      "leaf_count": 1,
+      "children": [],
+      "last_child": null,
+      "lane": 0,
+      "physical_gpu": 0,
+      "lane_predecessor": 9,
+      "device_last_known_gate": "lane:9",
+      "native_publish_stream_ns": 2657727133,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 4618466460,
+        "prep_start": 4618468800,
+        "prep_end": 4716172672,
+        "device_start": 6213954829,
+        "device_end": 6461253772,
+        "finish_start": 6461293312,
+        "finish_end": 6573262973
+      },
+      "device_dispatch_residual_ns": 12950,
+      "prep_after_last_child_ns": null,
+      "finish_queue_ns": 39540,
+      "verify_ns": 78652367,
+      "publish_ns": 27169039,
+      "finish_other_ns": 6148255,
+      "next_lane_overlaps_finish": true,
+      "known_edge_slack_upper_ns": {
+        "prep": 1519840559,
+        "device": 22058402,
+        "finish": 118723515
+      },
+      "on_observed_last_predecessor_chain": false,
+      "tree_authority_hex": "8ed9484f6f0f4715f435c2d51fccd30483d06cab5cb16ddda99de0d5286e52f7",
+      "tree_digest_hex": "fe2b557ee7b96211e5270b7adcf00937b99787e4ac1528a8e9a7f99f7149062f",
+      "class_log_prefix_hex": "0759b8d80de944f2",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 49553196327,
+        "end": 49773034002,
+        "global_tid": 319373887830050,
+        "kernel_ns": 69453727,
+        "copy_only_ns": 7473788,
+        "api_without_gpu_ns": 4908839,
+        "untraced_host_without_gpu_api_ns": 138001321,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 131072,
+            "api_without_gpu_ns": 171921,
+            "untraced_host_without_gpu_api_ns": 76972386,
+            "wall_ns": 77275379
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 10502842,
+            "copy_only_ns": 3341950,
+            "api_without_gpu_ns": 1452174,
+            "untraced_host_without_gpu_api_ns": 1762191,
+            "wall_ns": 17059157
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 4059198,
+            "copy_only_ns": 750432,
+            "api_without_gpu_ns": 214130,
+            "untraced_host_without_gpu_api_ns": 18361991,
+            "wall_ns": 23385751
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 10072827,
+            "copy_only_ns": 121472,
+            "api_without_gpu_ns": 374442,
+            "untraced_host_without_gpu_api_ns": 66370,
+            "wall_ns": 10635111
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 9293596,
+            "copy_only_ns": 1371935,
+            "api_without_gpu_ns": 272201,
+            "untraced_host_without_gpu_api_ns": 1060619,
+            "wall_ns": 11998351
+          },
+          "rv64/composition": {
+            "kernel_ns": 14885562,
+            "copy_only_ns": 1165439,
+            "api_without_gpu_ns": 1242214,
+            "untraced_host_without_gpu_api_ns": 38791020,
+            "wall_ns": 56084235
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 20639702,
+            "copy_only_ns": 591488,
+            "api_without_gpu_ns": 1181757,
+            "untraced_host_without_gpu_api_ns": 986744,
+            "wall_ns": 23399691
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 49553264927,
+            "end": 49570324084
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 49585150962,
+            "end": 49608536713
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 49619177645,
+            "end": 49629812756
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 49629832596,
+            "end": 49641830947
+          },
+          {
+            "name": "rv64/composition",
+            "start": 49641930447,
+            "end": 49698014682
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 49745063515,
+            "end": 49768463206
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 67707645
+      }
+    },
+    {
+      "id": 17,
+      "kind": "fold",
+      "first_leaf": 12,
+      "leaf_count": 2,
+      "children": [
+        15,
+        16
+      ],
+      "last_child": 16,
+      "lane": 1,
+      "physical_gpu": 1,
+      "lane_predecessor": 15,
+      "device_last_known_gate": "prep:17",
+      "native_publish_stream_ns": null,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 6573383433,
+        "prep_start": 6573384053,
+        "prep_end": 6752921720,
+        "device_start": 6754207898,
+        "device_end": 7125278773,
+        "finish_start": 7125311083,
+        "finish_end": 7225385083
+      },
+      "device_dispatch_residual_ns": 1286178,
+      "prep_after_last_child_ns": 121080,
+      "finish_queue_ns": 32310,
+      "verify_ns": 25499050,
+      "publish_ns": 74571900,
+      "finish_other_ns": 3050,
+      "next_lane_overlaps_finish": false,
+      "known_edge_slack_upper_ns": {
+        "prep": 118602435,
+        "device": 117316257,
+        "finish": 117283947
+      },
+      "on_observed_last_predecessor_chain": false,
+      "tree_authority_hex": "7b861022c4c378cbf15f6b4c450b517711dd55250f1c9ecc06ff7fe5f87228ad",
+      "tree_digest_hex": "9be8aaa62d199330e6ba199ed5e8bd83f4d23d63a4066b9d8cbdbbd509b4502e",
+      "class_log_prefix_hex": "1c3f30f09c4144cc",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 50097730574,
+        "end": 50437084793,
+        "global_tid": 319373887830104,
+        "kernel_ns": 224091835,
+        "copy_only_ns": 29208704,
+        "api_without_gpu_ns": 45464334,
+        "untraced_host_without_gpu_api_ns": 40589346,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 409152,
+            "api_without_gpu_ns": 331198,
+            "untraced_host_without_gpu_api_ns": 29686535,
+            "wall_ns": 30426885
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 18859194,
+            "copy_only_ns": 15043295,
+            "api_without_gpu_ns": 5298401,
+            "untraced_host_without_gpu_api_ns": 6693504,
+            "wall_ns": 45894394
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 16537342,
+            "copy_only_ns": 2806010,
+            "api_without_gpu_ns": 291877,
+            "untraced_host_without_gpu_api_ns": 125265,
+            "wall_ns": 19760494
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 30968417,
+            "copy_only_ns": 399775,
+            "api_without_gpu_ns": 406541,
+            "untraced_host_without_gpu_api_ns": 70182,
+            "wall_ns": 31844915
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 33494205,
+            "copy_only_ns": 4697013,
+            "api_without_gpu_ns": 477053,
+            "untraced_host_without_gpu_api_ns": 812967,
+            "wall_ns": 39481238
+          },
+          "rv64/composition": {
+            "kernel_ns": 52239382,
+            "copy_only_ns": 3865751,
+            "api_without_gpu_ns": 37322292,
+            "untraced_host_without_gpu_api_ns": 1189240,
+            "wall_ns": 94616665
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 71993295,
+            "copy_only_ns": 1987708,
+            "api_without_gpu_ns": 1336972,
+            "untraced_host_without_gpu_api_ns": 2011653,
+            "wall_ns": 77329628
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 50097812303,
+            "end": 50143706697
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 50167784648,
+            "end": 50187545142
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 50187571362,
+            "end": 50219416277
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 50219463067,
+            "end": 50258944305
+          },
+          {
+            "name": "rv64/composition",
+            "start": 50259038585,
+            "end": 50353655250
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 50354987379,
+            "end": 50432317007
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 228607720
+      }
+    },
+    {
+      "id": 18,
+      "kind": "fold",
+      "first_leaf": 0,
+      "leaf_count": 14,
+      "children": [
+        4,
+        9,
+        14,
+        17
+      ],
+      "last_child": 14,
+      "lane": 1,
+      "physical_gpu": 1,
+      "lane_predecessor": 17,
+      "device_last_known_gate": "prep:18",
+      "native_publish_stream_ns": null,
+      "native_publish_pipeline_ns": null,
+      "memory_ready_ns": null,
+      "memory_gate": "UNKNOWN; planner inactive",
+      "host_worker_id": null,
+      "host_admission": "taken observed; throttle/authority-slot readiness unlogged",
+      "stamps": {
+        "taken": 7341218141,
+        "prep_start": 7341218781,
+        "prep_end": 7543188540,
+        "device_start": 7544619259,
+        "device_end": 8204452323,
+        "finish_start": 8204471853,
+        "finish_end": 8289065496
+      },
+      "device_dispatch_residual_ns": 1430719,
+      "prep_after_last_child_ns": 1139579,
+      "finish_queue_ns": 19530,
+      "verify_ns": 10776231,
+      "publish_ns": 73815012,
+      "finish_other_ns": 2400,
+      "next_lane_overlaps_finish": false,
+      "known_edge_slack_upper_ns": {
+        "prep": 1450249,
+        "device": 19530,
+        "finish": 0
+      },
+      "on_observed_last_predecessor_chain": true,
+      "tree_authority_hex": "585a61b453932417a3dbf8e265cc3824ee87b4beac17c4a99441f9b261ededba",
+      "tree_digest_hex": "6a9277786fb7fc48e985e34f01f93d0ed0e6e8ddd19c1c237556bfca2dbe8752",
+      "class_log_prefix_hex": "f48b6f5a7ba41c49",
+      "full_class_hash": null,
+      "device_scope_hash": null,
+      "controller_nvtx": {
+        "start": 50910077256,
+        "end": 51516259763,
+        "global_tid": 319373887830104,
+        "kernel_ns": 455534080,
+        "copy_only_ns": 50588535,
+        "api_without_gpu_ns": 30939365,
+        "untraced_host_without_gpu_api_ns": 69120527,
+        "phases": {
+          "unmarked_controller": {
+            "kernel_ns": 0,
+            "copy_only_ns": 843614,
+            "api_without_gpu_ns": 354711,
+            "untraced_host_without_gpu_api_ns": 55701300,
+            "wall_ns": 56899625
+          },
+          "rv64/recursion/MAIN-assignment": {
+            "kernel_ns": 27260616,
+            "copy_only_ns": 23714288,
+            "api_without_gpu_ns": 16229803,
+            "untraced_host_without_gpu_api_ns": 7010624,
+            "wall_ns": 74215331
+          },
+          "rv64/TC/MAIN": {
+            "kernel_ns": 39053873,
+            "copy_only_ns": 5446869,
+            "api_without_gpu_ns": 361318,
+            "untraced_host_without_gpu_api_ns": 134194,
+            "wall_ns": 44996254
+          },
+          "rv64/recursion/INTER-witness": {
+            "kernel_ns": 58597801,
+            "copy_only_ns": 836222,
+            "api_without_gpu_ns": 399249,
+            "untraced_host_without_gpu_api_ns": 62840,
+            "wall_ns": 59896112
+          },
+          "rv64/TC/INTER": {
+            "kernel_ns": 72253645,
+            "copy_only_ns": 8592815,
+            "api_without_gpu_ns": 4451455,
+            "untraced_host_without_gpu_api_ns": 651187,
+            "wall_ns": 85949102
+          },
+          "rv64/composition": {
+            "kernel_ns": 105460522,
+            "copy_only_ns": 7448911,
+            "api_without_gpu_ns": 7557421,
+            "untraced_host_without_gpu_api_ns": 1981878,
+            "wall_ns": 122448732
+          },
+          "rv64/owner/pcs": {
+            "kernel_ns": 152907623,
+            "copy_only_ns": 3705816,
+            "api_without_gpu_ns": 1585408,
+            "untraced_host_without_gpu_api_ns": 3578504,
+            "wall_ns": 161777351
+          }
+        },
+        "named_ranges": [
+          {
+            "name": "rv64/recursion/MAIN-assignment",
+            "start": 50910198096,
+            "end": 50984413427
+          },
+          {
+            "name": "rv64/TC/MAIN",
+            "start": 51034588507,
+            "end": 51079584761
+          },
+          {
+            "name": "rv64/recursion/INTER-witness",
+            "start": 51079618961,
+            "end": 51139515073
+          },
+          {
+            "name": "rv64/TC/INTER",
+            "start": 51139557043,
+            "end": 51225506145
+          },
+          {
+            "name": "rv64/composition",
+            "start": 51225606325,
+            "end": 51348055057
+          },
+          {
+            "name": "rv64/owner/pcs",
+            "start": 51349756796,
+            "end": 51511534147
+          }
+        ],
+        "blocking_api_wall_ns_nonadditive": 454788707
+      }
+    }
+  ]
+}

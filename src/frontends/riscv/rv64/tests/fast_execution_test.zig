@@ -469,3 +469,350 @@ test {
     _ = @import("../ethereum_services/secp256k1.zig");
     _ = @import("../ethereum_services/arith256.zig");
 }
+
+// M6 capture: the traced fast engine (`Engine.runTraced`) interleaved with
+// reference traced steps must produce exactly the reference compact tape,
+// memory_before words, boundary capture, register clocks and request
+// counts (what `Native.captureNext` + `Batch.observe` record), the same
+// architectural state and the same stop, on random programs.
+const compact_tape = @import("../compact_tape.zig");
+const boundary_capture = @import("../boundary_capture.zig");
+const Traced = struct {
+    tape: compact_tape.Tape,
+    capture: boundary_capture.Capture,
+    clocks: [32]u32 = @splat(0),
+    divisions: u32 = 0,
+    multiplications: u32 = 0,
+    stop: ?anyerror = null,
+    cpu: machine.Cpu = undefined,
+    fn init(limit: u64, pc: u64) !Traced {
+        var tape = try compact_tape.Tape.init(a, @intCast(limit), pc, 0, .rv64im);
+        errdefer tape.deinit();
+        return .{ .tape = tape, .capture = try boundary_capture.Capture.init(a, 0, @intCast(limit), 1 << 24) };
+    }
+    fn deinit(self: *Traced) void {
+        self.capture.deinit();
+        self.tape.deinit();
+    }
+    /// One reference traced step; false once stopped.
+    fn referenceStep(self: *Traced, session: *Base.Session) bool {
+        const tick: u32 = @intCast(4 * self.tape.len);
+        const row = session.step() catch |err| {
+            self.stop = err;
+            return false;
+        };
+        self.tape.append(row) catch |err| {
+            self.stop = err;
+            return false;
+        };
+        self.capture.append(row, session.memory) catch |err| {
+            self.stop = err;
+            return false;
+        };
+        const fx = isa.effects(row.opcode);
+        if (fx.reads_rs1 and row.rs1 != 0) self.clocks[row.rs1] = tick + 1;
+        if (fx.reads_rs2 and row.rs2 != 0) self.clocks[row.rs2] = tick + 2;
+        if (fx.writes_rd and row.rd != 0) self.clocks[row.rd] = tick + 3;
+        switch (row.opcode) {
+            .DIV, .DIVU, .REM, .REMU, .DIVW, .DIVUW, .REMW, .REMUW => self.divisions += 1,
+            .MUL, .MULH, .MULHSU, .MULHU, .MULW => self.multiplications += 1,
+            else => {},
+        }
+        return true;
+    }
+    fn expectEqual(x: *Traced, y: *Traced) !void {
+        try std.testing.expectEqual(x.stop, y.stop);
+        try std.testing.expectEqualDeep(x.cpu, y.cpu);
+        try std.testing.expectEqual(x.tape.len, y.tape.len);
+        try std.testing.expectEqualSlices(compact_tape.Step, x.tape.steps(), y.tape.steps());
+        try std.testing.expectEqualSlices(u64, x.tape.memory_before.items, y.tape.memory_before.items);
+        try std.testing.expectEqual(x.capture.steps, y.capture.steps);
+        const cx = try x.capture.sorted(a);
+        defer a.free(cx);
+        const cy = try y.capture.sorted(a);
+        defer a.free(cy);
+        try std.testing.expectEqualSlices(boundary_capture.Cell, cx, cy);
+        try std.testing.expectEqualSlices(u32, &x.clocks, &y.clocks);
+        try std.testing.expectEqual(x.divisions, y.divisions);
+        try std.testing.expectEqual(x.multiplications, y.multiplications);
+    }
+};
+const Refuse = struct {
+    salt: u64,
+    fn admit(self: *const Refuse, pc: u64, raw: u32, inst: isa.Instruction) bool {
+        _ = raw;
+        _ = inst;
+        return std.hash.Wyhash.hash(self.salt, std.mem.asBytes(&pc)) % 16 != 0;
+    }
+};
+
+test "traced fast engine: tape, boundary capture and batch counters equal the reference traced walk" {
+    var prng = std.Random.DefaultPrng.init(0x7aced_e9e);
+    const r = prng.random();
+    var total_fast: u64 = 0;
+    var total: u64 = 0;
+    var traps: usize = 0;
+    var memory_words: usize = 0;
+    for (0..800) |program| {
+        var words: [SLOTS]u32 = undefined;
+        for (&words, 0..) |*w, i| w.* = randomWord(r, i, true);
+        const seed = r.int(u64);
+        const start = initialCpu(r);
+        const limit = 1 + r.uintLessThan(u64, 20000);
+        const set: isa.Isa = if (program % 2 == 0) .rv64im else .rv64im_zbb_binary;
+        var ref = try Image.init(&words, seed);
+        defer ref.deinit();
+        var subject = try Image.init(&words, seed);
+        defer subject.deinit();
+        var expected = try Traced.init(limit, start.pc);
+        defer expected.deinit();
+        {
+            var session = try Base.Session.init(a, start, &ref.memory, .{ .max_retirements = limit, .isa = set });
+            defer session.deinit();
+            while (session.cpu.retired < limit and expected.referenceStep(&session)) {}
+            expected.cpu = session.cpu;
+        }
+        var actual = try Traced.init(limit, start.pc);
+        defer actual.deinit();
+        var base_engine = try fast.Engine.init(a, &subject.memory, .{ .isa = set });
+        defer base_engine.deinit();
+        // A third of the programs also refuse random pcs (authority restriction).
+        var program_engine = try fast.Engine.cloneProgram(a, &base_engine);
+        defer program_engine.deinit();
+        if (program % 3 == 1) program_engine.restrict(@as(*const Refuse, &.{ .salt = seed }), Refuse.admit);
+        var engine = try fast.Engine.initBorrowing(a, &subject.memory, &program_engine);
+        defer engine.deinit();
+        {
+            var session = try Base.Session.init(a, start, &subject.memory, .{ .max_retirements = limit, .isa = set });
+            defer session.deinit();
+            while (session.cpu.retired < limit) {
+                const budget = @min(limit, session.cpu.retired + 1 + r.uintLessThan(u64, 3000));
+                try actual.tape.memory_before.ensureUnusedCapacity(a, @intCast(budget - session.cpu.retired));
+                var trace = fast.Trace{ .steps = actual.tape.storage, .len = actual.tape.len, .memory_before = &actual.tape.memory_before, .capture = &actual.capture, .clocks = undefined };
+                trace.clocks[0..32].* = actual.clocks;
+                trace.clocks[32] = 0;
+                const exit = engine.runTraced(&session.cpu, budget, &trace);
+                actual.tape.len = trace.len;
+                actual.clocks = trace.clocks[0..32].*;
+                actual.divisions += trace.divisions;
+                actual.multiplications += trace.multiplications;
+                if (exit == .limit) continue;
+                if (!actual.referenceStep(&session)) break;
+            }
+            actual.cpu = session.cpu;
+        }
+        try Traced.expectEqual(&expected, &actual);
+        try expectSameMemory(&ref.memory, &subject.memory);
+        total_fast += engine.fast_retired;
+        total += actual.cpu.retired;
+        memory_words += actual.tape.memory_before.items.len;
+        if (actual.stop != null) traps += 1;
+    }
+    try std.testing.expect(total_fast * 2 > total);
+    try std.testing.expect(traps > 50);
+    try std.testing.expect(memory_words > 10000);
+}
+
+test "traced fast engine: a discontinuous boundary word stops before the instruction" {
+    // ld x9, 0(x5); beq x0, x0, +4; ld x9, 0(x5). The branch ends the first
+    // block (limits are checked per block). The capture cell of DATA+0x800
+    // is made stale after the first load, so the second load must be left
+    // to the reference path (whose Capture.append reports the discontinuity).
+    const words = [_]u32{ iType(0, 5, 3, 9, 0x03), bType(4, 0, 0, 0), iType(0, 5, 3, 9, 0x03) };
+    var image = try Image.init(&words, 3);
+    defer image.deinit();
+    var base_engine = try fast.Engine.init(a, &image.memory, .{});
+    defer base_engine.deinit();
+    var engine = try fast.Engine.initBorrowing(a, &image.memory, &base_engine);
+    defer engine.deinit();
+    var t = try Traced.init(3, CODE);
+    defer t.deinit();
+    var cpu = machine.Cpu.init(CODE, 0);
+    cpu.regs[5] = DATA + 0x800;
+    try t.tape.memory_before.ensureUnusedCapacity(a, 3);
+    var trace = fast.Trace{ .steps = t.tape.storage, .len = 0, .memory_before = &t.tape.memory_before, .capture = &t.capture, .clocks = @splat(0) };
+    try std.testing.expectEqual(fast.Exit.limit, engine.runTraced(&cpu, 2, &trace));
+    try std.testing.expectEqual(@as(usize, 2), trace.len);
+    try std.testing.expectEqual(@as(u32, 2), t.capture.steps);
+    try std.testing.expectEqual(@as(u32, 1), trace.steps[1].flags);
+    t.capture.cells.getPtr(DATA + 0x800).?.final +%= 1;
+    try std.testing.expectEqual(fast.Exit.slow, engine.runTraced(&cpu, 3, &trace));
+    try std.testing.expectEqual(@as(usize, 2), trace.len);
+    try std.testing.expectEqual(@as(u64, 2), cpu.retired);
+    try std.testing.expectEqual(CODE + 8, cpu.pc);
+    try std.testing.expectEqual(@as(usize, 1), t.tape.memory_before.items.len);
+}
+
+test "minimal fast first-pass records equal reference PC result and branch polarity" {
+    var prng = std.Random.DefaultPrng.init(0x1675_09a7);
+    const r = prng.random();
+    var fast_steps: u64 = 0;
+    var total: u64 = 0;
+    var traps: usize = 0;
+    for (0..1000) |program| {
+        var words: [SLOTS]u32 = undefined;
+        for (&words, 0..) |*w, i| w.* = randomWord(r, i, true);
+        const seed = r.int(u64);
+        const start = initialCpu(r);
+        const limit = 1 + r.uintLessThan(u64, 20000);
+        const set: isa.Isa = if (program % 2 == 0) .rv64im else .rv64im_zbb_binary;
+        var ref = try Image.init(&words, seed);
+        defer ref.deinit();
+        var subject = try Image.init(&words, seed);
+        defer subject.deinit();
+        const ref_records = try a.alloc(fast.MinimalRecord, @intCast(limit));
+        defer a.free(ref_records);
+        const seed_count = std.math.divCeil(usize, @intCast(limit), fast.MINIMAL_CHUNK_ROWS) catch unreachable;
+        const ref_seeds = try a.alloc(fast.MinimalSeed, seed_count);
+        defer a.free(ref_seeds);
+        const actual_seeds = try a.alloc(fast.MinimalSeed, seed_count);
+        defer a.free(actual_seeds);
+        var expected = fast.MinimalTrace{ .records = ref_records, .seeds = if (program % 2 == 0) ref_seeds else &.{} };
+        var ref_stop: ?anyerror = null;
+        var expected_cpu: machine.Cpu = undefined;
+        {
+            var session = try Base.Session.init(a, start, &ref.memory, .{ .max_retirements = limit, .isa = set });
+            defer session.deinit();
+            while (session.cpu.retired < limit) {
+                expected.prepareReference(&session.cpu.regs);
+                const row = session.step() catch |err| {
+                    ref_stop = err;
+                    break;
+                };
+                expected.appendRetirement(row) catch |err| {
+                    ref_stop = err;
+                    break;
+                };
+            }
+            expected_cpu = session.cpu;
+        }
+        const actual_records = try a.alloc(fast.MinimalRecord, @intCast(limit));
+        defer a.free(actual_records);
+        var actual = fast.MinimalTrace{ .records = actual_records, .seeds = if (program % 2 == 0) actual_seeds else &.{} };
+        var engine = try fast.Engine.init(a, &subject.memory, .{ .counting = program % 2 == 0, .isa = set, .watch = if (program % 3 == 0) &.{.{ DATA + 0x100, 8 }} else &.{} });
+        defer engine.deinit();
+        var actual_stop: ?anyerror = null;
+        {
+            var session = try Base.Session.init(a, start, &subject.memory, .{ .max_retirements = limit, .isa = set });
+            defer session.deinit();
+            while (session.cpu.retired < limit) {
+                const budget = @min(limit, session.cpu.retired + 1 + r.uintLessThan(u64, 3000));
+                if (try engine.runMinimal(&session.cpu, budget, &actual) == .limit) continue;
+                actual.prepareReference(&session.cpu.regs);
+                const row = session.step() catch |err| {
+                    actual_stop = err;
+                    break;
+                };
+                actual.appendRetirement(row) catch |err| {
+                    actual_stop = err;
+                    break;
+                };
+            }
+            try std.testing.expectEqualDeep(expected_cpu, session.cpu);
+        }
+        try std.testing.expectEqual(ref_stop, actual_stop);
+        try std.testing.expectEqualSlices(fast.MinimalRecord, expected.records[0..expected.len], actual.records[0..actual.len]);
+        if (program % 2 == 0) {
+            const used = std.math.divCeil(usize, actual.len, fast.MINIMAL_CHUNK_ROWS) catch unreachable;
+            try std.testing.expectEqualSlices(fast.MinimalSeed, ref_seeds[0..used], actual_seeds[0..used]);
+            try std.testing.expectEqualSlices(u32, &expected.clocks, &actual.clocks);
+        }
+        try expectSameMemory(&ref.memory, &subject.memory);
+        fast_steps += engine.fast_retired;
+        total += actual.len;
+        if (actual_stop != null) traps += 1;
+    }
+    try std.testing.expect(fast_steps * 2 > total);
+    try std.testing.expect(traps > 50);
+}
+
+test "minimal fast first-pass refuses high PC and bounds record capacity before retirement" {
+    const words = [_]u32{ iType(1, 0, 0, 9, 0x13), jType(-4, 0) };
+    var image = try Image.init(&words, 1);
+    defer image.deinit();
+    var engine = try fast.Engine.init(a, &image.memory, .{});
+    defer engine.deinit();
+    var cpu = machine.Cpu.init(CODE, 0);
+    var records: [2]fast.MinimalRecord = undefined;
+    var trace = fast.MinimalTrace{ .records = &records };
+    const high = engine.code_hi;
+    engine.code_hi = @as(u64, std.math.maxInt(u32)) + 1;
+    try std.testing.expectError(error.MinimalTracePcRange, engine.runMinimal(&cpu, 2, &trace));
+    try std.testing.expectEqual(@as(u64, 0), cpu.retired);
+    try std.testing.expectEqual(@as(usize, 0), trace.len);
+    engine.code_hi = high;
+    try std.testing.expectEqual(fast.Exit.limit, try engine.runMinimal(&cpu, 2, &trace));
+    try std.testing.expectEqual(@as(u64, 2), cpu.retired);
+    try std.testing.expectEqual(@as(usize, 2), trace.len);
+    const saved = cpu;
+    try std.testing.expectEqual(fast.Exit.limit, try engine.runMinimal(&cpu, 4, &trace));
+    try std.testing.expectEqualDeep(saved, cpu);
+    trace.len = 3;
+    try std.testing.expectError(error.MinimalTraceFull, engine.runMinimal(&cpu, 4, &trace));
+}
+
+test "RAM-key fast first pass equals reference on 1000 random programs without instruction fetches" {
+    const Words = @import("../ram_word_set.zig").Set;
+    var prng = std.Random.DefaultPrng.init(0x9a77_6c31);
+    const r = prng.random();
+    var total_fast: u64 = 0;
+    var all_words: usize = 0;
+    for (0..1000) |program| {
+        var instructions: [SLOTS]u32 = undefined;
+        for (&instructions, 0..) |*w, i| w.* = randomWord(r, i, true);
+        const seed = r.int(u64);
+        const start = initialCpu(r);
+        const limit = 1 + r.uintLessThan(u64, 20000);
+        const set: isa.Isa = if (program % 2 == 0) .rv64im else .rv64im_zbb_binary;
+        var ref = try Image.init(&instructions, seed);
+        defer ref.deinit();
+        var subject = try Image.init(&instructions, seed);
+        defer subject.deinit();
+        var expected = try Words.init(a, 1 << 20);
+        defer expected.deinit();
+        var actual = try Words.init(a, 1 << 20);
+        defer actual.deinit();
+        var expected_cpu: machine.Cpu = undefined;
+        var expected_stop: ?anyerror = null;
+        {
+            var session = try Base.Session.init(a, start, &ref.memory, .{ .max_retirements = limit, .isa = set });
+            defer session.deinit();
+            while (session.cpu.retired < limit) {
+                const row = session.step() catch |err| {
+                    expected_stop = err;
+                    break;
+                };
+                try expected.observeRetirement(row);
+            }
+            expected_cpu = session.cpu;
+        }
+        var engine = try fast.Engine.init(a, &subject.memory, .{ .isa = set, .watch = if (program % 3 == 0) &.{.{ DATA + 0x100, 8 }} else &.{} });
+        defer engine.deinit();
+        var actual_stop: ?anyerror = null;
+        {
+            var session = try Base.Session.init(a, start, &subject.memory, .{ .max_retirements = limit, .isa = set });
+            defer session.deinit();
+            while (session.cpu.retired < limit) {
+                const budget = @min(limit, session.cpu.retired + 1 + r.uintLessThan(u64, 3000));
+                if (try engine.runRam(&session.cpu, budget, &actual) == .limit) continue;
+                const row = session.step() catch |err| {
+                    actual_stop = err;
+                    break;
+                };
+                try actual.observeRetirement(row);
+            }
+            try std.testing.expectEqualDeep(expected_cpu, session.cpu);
+        }
+        try std.testing.expectEqual(expected_stop, actual_stop);
+        const want = try expected.sorted(a);
+        defer a.free(want);
+        const got = try actual.sorted(a);
+        defer a.free(got);
+        try std.testing.expectEqualSlices(u64, want, got);
+        try expectSameMemory(&ref.memory, &subject.memory);
+        total_fast += engine.fast_retired;
+        all_words += got.len;
+    }
+    try std.testing.expect(total_fast > 10000);
+    try std.testing.expect(all_words > 1000);
+}

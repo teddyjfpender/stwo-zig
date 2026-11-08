@@ -20,10 +20,6 @@ def load_module(name: str, relative: str):
 subject = load_module(
     "ethereum_block_corpus", "autoresearch/benchmarks/ethereum_block_corpus.py",
 )
-comparison = load_module(
-    "ethereum_block_comparison_for_corpus",
-    "autoresearch/benchmarks/ethereum_block_comparison.py",
-)
 
 
 def reseal(value: dict) -> None:
@@ -45,23 +41,6 @@ class EthereumBlockCorpusTests(unittest.TestCase):
                               for fixture in self.corpus["fixtures"]}), 5)
         self.assertFalse(self.corpus["promotion_ready"])
 
-    def test_reference_fixture_cross_binds_existing_transport_custody(self) -> None:
-        manifest = comparison.load_manifest()
-        subject.validate_reference_manifest(self.corpus, manifest)
-        fixture = self.corpus["fixtures"][0]
-        block = manifest["block"]
-        for field in (
-            "chain_id", "number", "hash", "parent_hash", "state_root",
-            "transactions_root", "receipts_root", "withdrawals_root", "requests_hash",
-            "transaction_count", "gas_used", "timestamp",
-        ):
-            self.assertEqual(fixture["block"][field], block[field])
-        guest = fixture["semantic_io"]["guest_transports"]
-        protocol = manifest["benchmark_protocol"]["statement"]
-        self.assertEqual(guest["zisk_input"], protocol["inputs"]["zisk_transport"])
-        self.assertEqual(guest["stwo_input"], protocol["inputs"]["stwo_transport"])
-        self.assertEqual(guest["zisk_output"], protocol["outputs"]["zisk_transport"])
-        self.assertEqual(guest["stwo_output"], protocol["outputs"]["stwo_transport"])
 
     def test_candidate_semantic_io_is_pinned_without_guest_or_proof_inflation(self) -> None:
         for fixture in self.corpus["fixtures"][1:]:

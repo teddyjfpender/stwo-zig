@@ -1,0 +1,1347 @@
+{
+  "schema": "rv64-m7-prefill-assignment-comparison/v1",
+  "label": "M",
+  "status": "all12_artifact_sets_M6_identical_fresh_ON_receiver_pair_accepted",
+  "notes": "Two warm observations per config; loaded same-binary ON thenOFF; no broad timing guarantee.",
+  "runs": [
+    {
+      "tag": "prefill-on-v3-auto",
+      "driver_sha256": "197b693025c1287435e9fbb50a9251fa4e135eeee2de2dfa648373bb9ae3ea02",
+      "assignment_callbacks": 114,
+      "median": {
+        "total_ns": 77254939.0,
+        "levels_stream_ms": 47.568,
+        "launches": 721.0
+      },
+      "seed_tape_preps": 77,
+      "leaf_tape_preps": 57,
+      "sample_prefills": 84,
+      "sample_input_checks": 84,
+      "all_input_checks_match": true,
+      "total_records": 283833,
+      "rss_peak_gib": 23.560497283935547,
+      "device_peak_gb": 31.507611648,
+      "load_avg_before": [
+        7.87060546875,
+        8.72314453125,
+        9.6259765625
+      ],
+      "load_avg_after": [
+        21.55029296875,
+        13.0537109375,
+        11.04443359375
+      ],
+      "assignment_observations": [
+        {
+          "total_ns": 87321120.0,
+          "levels_stream_ms": 49.329,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 86670021.0,
+          "levels_stream_ms": 49.018,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 161079752.0,
+          "levels_stream_ms": 119.612,
+          "launches": 784.0
+        },
+        {
+          "total_ns": 161254632.0,
+          "levels_stream_ms": 115.395,
+          "launches": 784.0
+        },
+        {
+          "total_ns": 167893046.0,
+          "levels_stream_ms": 120.686,
+          "launches": 794.0
+        },
+        {
+          "total_ns": 143551525.0,
+          "levels_stream_ms": 107.212,
+          "launches": 774.0
+        },
+        {
+          "total_ns": 73757873.0,
+          "levels_stream_ms": 49.284,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 79410049.0,
+          "levels_stream_ms": 45.925,
+          "launches": 424.0
+        },
+        {
+          "total_ns": 22083096.0,
+          "levels_stream_ms": 9.806,
+          "launches": 249.0
+        },
+        {
+          "total_ns": 72028086.0,
+          "levels_stream_ms": 36.557,
+          "launches": 424.0
+        },
+        {
+          "total_ns": 91810579.0,
+          "levels_stream_ms": 53.398,
+          "launches": 349.0
+        },
+        {
+          "total_ns": 55970585.0,
+          "levels_stream_ms": 12.935,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 52476004.0,
+          "levels_stream_ms": 13.125,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 48072194.0,
+          "levels_stream_ms": 12.549,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 44987092.0,
+          "levels_stream_ms": 12.535,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 161300511.0,
+          "levels_stream_ms": 123.41,
+          "launches": 792.0
+        },
+        {
+          "total_ns": 144459082.0,
+          "levels_stream_ms": 105.983,
+          "launches": 773.0
+        },
+        {
+          "total_ns": 71975507.0,
+          "levels_stream_ms": 49.491,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 151869184.0,
+          "levels_stream_ms": 117.633,
+          "launches": 786.0
+        },
+        {
+          "total_ns": 154211058.0,
+          "levels_stream_ms": 117.397,
+          "launches": 784.0
+        },
+        {
+          "total_ns": 155806725.0,
+          "levels_stream_ms": 115.661,
+          "launches": 782.0
+        },
+        {
+          "total_ns": 151467765.0,
+          "levels_stream_ms": 111.251,
+          "launches": 781.0
+        },
+        {
+          "total_ns": 106953502.0,
+          "levels_stream_ms": 80.552,
+          "launches": 715.0
+        },
+        {
+          "total_ns": 80282826.0,
+          "levels_stream_ms": 49.272,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 74250271.0,
+          "levels_stream_ms": 49.477,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 78657281.0,
+          "levels_stream_ms": 45.212,
+          "launches": 400.0
+        },
+        {
+          "total_ns": 49202391.0,
+          "levels_stream_ms": 13.037,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 84716896.0,
+          "levels_stream_ms": 45.86,
+          "launches": 340.0
+        },
+        {
+          "total_ns": 76447926.0,
+          "levels_stream_ms": 45.479,
+          "launches": 272.0
+        },
+        {
+          "total_ns": 62135020.0,
+          "levels_stream_ms": 36.056,
+          "launches": 400.0
+        },
+        {
+          "total_ns": 61274403.0,
+          "levels_stream_ms": 36.131,
+          "launches": 340.0
+        },
+        {
+          "total_ns": 55588086.0,
+          "levels_stream_ms": 12.998,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 21293839.0,
+          "levels_stream_ms": 10.039,
+          "launches": 268.0
+        },
+        {
+          "total_ns": 58757469.0,
+          "levels_stream_ms": 13.179,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 89073696.0,
+          "levels_stream_ms": 53.407,
+          "launches": 349.0
+        },
+        {
+          "total_ns": 53032973.0,
+          "levels_stream_ms": 12.936,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 52765953.0,
+          "levels_stream_ms": 12.968,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 33095931.0,
+          "levels_stream_ms": 11.322,
+          "launches": 597.0
+        },
+        {
+          "total_ns": 154445408.0,
+          "levels_stream_ms": 115.928,
+          "launches": 784.0
+        },
+        {
+          "total_ns": 77664483.0,
+          "levels_stream_ms": 49.26,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 168637064.0,
+          "levels_stream_ms": 119.613,
+          "launches": 784.0
+        },
+        {
+          "total_ns": 171083008.0,
+          "levels_stream_ms": 121.455,
+          "launches": 794.0
+        },
+        {
+          "total_ns": 84188167.0,
+          "levels_stream_ms": 49.107,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 151239935.0,
+          "levels_stream_ms": 106.632,
+          "launches": 774.0
+        },
+        {
+          "total_ns": 73000364.0,
+          "levels_stream_ms": 49.503,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 76394516.0,
+          "levels_stream_ms": 45.832,
+          "launches": 424.0
+        },
+        {
+          "total_ns": 64743235.0,
+          "levels_stream_ms": 36.703,
+          "launches": 424.0
+        },
+        {
+          "total_ns": 45716230.0,
+          "levels_stream_ms": 12.963,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 43470355.0,
+          "levels_stream_ms": 13.081,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 84979775.0,
+          "levels_stream_ms": 53.26,
+          "launches": 349.0
+        },
+        {
+          "total_ns": 18309776.0,
+          "levels_stream_ms": 9.886,
+          "launches": 249.0
+        },
+        {
+          "total_ns": 42619647.0,
+          "levels_stream_ms": 12.567,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 43240986.0,
+          "levels_stream_ms": 12.562,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 174939139.0,
+          "levels_stream_ms": 117.49,
+          "launches": 784.0
+        },
+        {
+          "total_ns": 182567670.0,
+          "levels_stream_ms": 124.526,
+          "launches": 792.0
+        },
+        {
+          "total_ns": 159691925.0,
+          "levels_stream_ms": 106.509,
+          "launches": 773.0
+        },
+        {
+          "total_ns": 157493651.0,
+          "levels_stream_ms": 117.2,
+          "launches": 786.0
+        },
+        {
+          "total_ns": 148909011.0,
+          "levels_stream_ms": 114.817,
+          "launches": 782.0
+        },
+        {
+          "total_ns": 145740239.0,
+          "levels_stream_ms": 111.967,
+          "launches": 781.0
+        },
+        {
+          "total_ns": 53219872.0,
+          "levels_stream_ms": 13.167,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 105693525.0,
+          "levels_stream_ms": 80.229,
+          "launches": 715.0
+        },
+        {
+          "total_ns": 83025160.0,
+          "levels_stream_ms": 49.645,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 73341524.0,
+          "levels_stream_ms": 49.564,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 84936355.0,
+          "levels_stream_ms": 49.447,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 79958898.0,
+          "levels_stream_ms": 45.445,
+          "launches": 400.0
+        },
+        {
+          "total_ns": 48451323.0,
+          "levels_stream_ms": 13.031,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 75631738.0,
+          "levels_stream_ms": 46.118,
+          "launches": 340.0
+        },
+        {
+          "total_ns": 75530338.0,
+          "levels_stream_ms": 45.409,
+          "launches": 272.0
+        },
+        {
+          "total_ns": 58221149.0,
+          "levels_stream_ms": 36.275,
+          "launches": 400.0
+        },
+        {
+          "total_ns": 46850587.0,
+          "levels_stream_ms": 13.063,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 62655109.0,
+          "levels_stream_ms": 36.117,
+          "launches": 340.0
+        },
+        {
+          "total_ns": 19147414.0,
+          "levels_stream_ms": 10.011,
+          "launches": 268.0
+        },
+        {
+          "total_ns": 84310657.0,
+          "levels_stream_ms": 53.397,
+          "launches": 349.0
+        },
+        {
+          "total_ns": 48265824.0,
+          "levels_stream_ms": 13.003,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 50284859.0,
+          "levels_stream_ms": 13.06,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 28577011.0,
+          "levels_stream_ms": 11.457,
+          "launches": 597.0
+        },
+        {
+          "total_ns": 164052315.0,
+          "levels_stream_ms": 114.991,
+          "launches": 784.0
+        },
+        {
+          "total_ns": 79209849.0,
+          "levels_stream_ms": 49.133,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 157180891.0,
+          "levels_stream_ms": 120.094,
+          "launches": 784.0
+        },
+        {
+          "total_ns": 158683058.0,
+          "levels_stream_ms": 121.6,
+          "launches": 794.0
+        },
+        {
+          "total_ns": 148108574.0,
+          "levels_stream_ms": 106.696,
+          "launches": 774.0
+        },
+        {
+          "total_ns": 76845395.0,
+          "levels_stream_ms": 49.578,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 75051580.0,
+          "levels_stream_ms": 49.744,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 80007727.0,
+          "levels_stream_ms": 45.994,
+          "launches": 424.0
+        },
+        {
+          "total_ns": 72567475.0,
+          "levels_stream_ms": 36.856,
+          "launches": 424.0
+        },
+        {
+          "total_ns": 54146689.0,
+          "levels_stream_ms": 13.017,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 91375540.0,
+          "levels_stream_ms": 53.611,
+          "launches": 349.0
+        },
+        {
+          "total_ns": 48547113.0,
+          "levels_stream_ms": 13.08,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 19747322.0,
+          "levels_stream_ms": 9.889,
+          "launches": 249.0
+        },
+        {
+          "total_ns": 45863390.0,
+          "levels_stream_ms": 12.572,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 47847795.0,
+          "levels_stream_ms": 12.561,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 163710656.0,
+          "levels_stream_ms": 106.606,
+          "launches": 773.0
+        },
+        {
+          "total_ns": 181483033.0,
+          "levels_stream_ms": 124.369,
+          "launches": 792.0
+        },
+        {
+          "total_ns": 174176061.0,
+          "levels_stream_ms": 117.02,
+          "launches": 786.0
+        },
+        {
+          "total_ns": 166210189.0,
+          "levels_stream_ms": 118.421,
+          "launches": 784.0
+        },
+        {
+          "total_ns": 153614410.0,
+          "levels_stream_ms": 114.934,
+          "launches": 782.0
+        },
+        {
+          "total_ns": 152274433.0,
+          "levels_stream_ms": 112.027,
+          "launches": 781.0
+        },
+        {
+          "total_ns": 49903930.0,
+          "levels_stream_ms": 13.0,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 108801888.0,
+          "levels_stream_ms": 80.186,
+          "launches": 715.0
+        },
+        {
+          "total_ns": 78865520.0,
+          "levels_stream_ms": 49.534,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 78882080.0,
+          "levels_stream_ms": 49.697,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 73503463.0,
+          "levels_stream_ms": 49.33,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 82868720.0,
+          "levels_stream_ms": 45.565,
+          "launches": 400.0
+        },
+        {
+          "total_ns": 87473419.0,
+          "levels_stream_ms": 46.046,
+          "launches": 340.0
+        },
+        {
+          "total_ns": 50972398.0,
+          "levels_stream_ms": 13.567,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 82921060.0,
+          "levels_stream_ms": 45.42,
+          "launches": 272.0
+        },
+        {
+          "total_ns": 65101154.0,
+          "levels_stream_ms": 36.361,
+          "launches": 400.0
+        },
+        {
+          "total_ns": 65484213.0,
+          "levels_stream_ms": 36.153,
+          "launches": 340.0
+        },
+        {
+          "total_ns": 54655268.0,
+          "levels_stream_ms": 13.152,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 93022147.0,
+          "levels_stream_ms": 53.357,
+          "launches": 349.0
+        },
+        {
+          "total_ns": 22058697.0,
+          "levels_stream_ms": 9.997,
+          "launches": 268.0
+        },
+        {
+          "total_ns": 45612950.0,
+          "levels_stream_ms": 12.987,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 51497136.0,
+          "levels_stream_ms": 13.065,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 32611541.0,
+          "levels_stream_ms": 11.415,
+          "launches": 597.0
+        }
+      ],
+      "plans": [
+        {
+          "removed_tasks": 401280,
+          "old_levels": 146140,
+          "new_levels": 45316
+        },
+        {
+          "removed_tasks": 401280,
+          "old_levels": 146140,
+          "new_levels": 45316
+        },
+        {
+          "removed_tasks": 262800,
+          "old_levels": 116342,
+          "new_levels": 116342
+        },
+        {
+          "removed_tasks": 256640,
+          "old_levels": 111648,
+          "new_levels": 111648
+        },
+        {
+          "removed_tasks": 264080,
+          "old_levels": 117522,
+          "new_levels": 117522
+        },
+        {
+          "removed_tasks": 231440,
+          "old_levels": 103357,
+          "new_levels": 103357
+        },
+        {
+          "removed_tasks": 401280,
+          "old_levels": 146140,
+          "new_levels": 45316
+        },
+        {
+          "removed_tasks": 282080,
+          "old_levels": 102727,
+          "new_levels": 31829
+        },
+        {
+          "removed_tasks": 56640,
+          "old_levels": 21005,
+          "new_levels": 6467
+        },
+        {
+          "removed_tasks": 221360,
+          "old_levels": 80716,
+          "new_levels": 24998
+        },
+        {
+          "removed_tasks": 298160,
+          "old_levels": 108528,
+          "new_levels": 39239
+        },
+        {
+          "removed_tasks": 273040,
+          "old_levels": 120241,
+          "new_levels": 120241
+        },
+        {
+          "removed_tasks": 236160,
+          "old_levels": 102380,
+          "new_levels": 102380
+        },
+        {
+          "removed_tasks": 256640,
+          "old_levels": 110913,
+          "new_levels": 110913
+        },
+        {
+          "removed_tasks": 261840,
+          "old_levels": 112997,
+          "new_levels": 112997
+        },
+        {
+          "removed_tasks": 247680,
+          "old_levels": 107439,
+          "new_levels": 107439
+        },
+        {
+          "removed_tasks": 262800,
+          "old_levels": 112877,
+          "new_levels": 112877
+        },
+        {
+          "removed_tasks": 106080,
+          "old_levels": 82611,
+          "new_levels": 82611
+        },
+        {
+          "removed_tasks": 401280,
+          "old_levels": 146140,
+          "new_levels": 45316
+        },
+        {
+          "removed_tasks": 401280,
+          "old_levels": 146140,
+          "new_levels": 45316
+        },
+        {
+          "removed_tasks": 282080,
+          "old_levels": 102727,
+          "new_levels": 31829
+        },
+        {
+          "removed_tasks": 282080,
+          "old_levels": 102727,
+          "new_levels": 31829
+        },
+        {
+          "removed_tasks": 282080,
+          "old_levels": 102727,
+          "new_levels": 31829
+        },
+        {
+          "removed_tasks": 221360,
+          "old_levels": 80716,
+          "new_levels": 24998
+        },
+        {
+          "removed_tasks": 221360,
+          "old_levels": 80716,
+          "new_levels": 24998
+        },
+        {
+          "removed_tasks": 56640,
+          "old_levels": 21005,
+          "new_levels": 6467
+        },
+        {
+          "removed_tasks": 298160,
+          "old_levels": 108528,
+          "new_levels": 39239
+        }
+      ]
+    },
+    {
+      "tag": "prefill-off-v3-auto",
+      "driver_sha256": "197b693025c1287435e9fbb50a9251fa4e135eeee2de2dfa648373bb9ae3ea02",
+      "assignment_callbacks": 114,
+      "median": {
+        "total_ns": 137188827.5,
+        "levels_stream_ms": 100.547,
+        "launches": 721.0
+      },
+      "seed_tape_preps": 77,
+      "leaf_tape_preps": 57,
+      "sample_prefills": 0,
+      "sample_input_checks": 0,
+      "all_input_checks_match": true,
+      "total_records": 0,
+      "rss_peak_gib": 23.406879425048828,
+      "device_peak_gb": 31.507611648,
+      "load_avg_before": [
+        20.3046875,
+        12.9365234375,
+        11.01708984375
+      ],
+      "load_avg_after": [
+        14.390625,
+        13.86669921875,
+        11.6533203125
+      ],
+      "assignment_observations": [
+        {
+          "total_ns": 176042336.0,
+          "levels_stream_ms": 135.287,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 168918183.0,
+          "levels_stream_ms": 135.893,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 179812477.0,
+          "levels_stream_ms": 120.07,
+          "launches": 780.0
+        },
+        {
+          "total_ns": 149717609.0,
+          "levels_stream_ms": 113.659,
+          "launches": 782.0
+        },
+        {
+          "total_ns": 160429524.0,
+          "levels_stream_ms": 120.073,
+          "launches": 786.0
+        },
+        {
+          "total_ns": 151718975.0,
+          "levels_stream_ms": 106.905,
+          "launches": 772.0
+        },
+        {
+          "total_ns": 179399648.0,
+          "levels_stream_ms": 137.003,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 132338131.0,
+          "levels_stream_ms": 100.325,
+          "launches": 420.0
+        },
+        {
+          "total_ns": 118752344.0,
+          "levels_stream_ms": 79.857,
+          "launches": 420.0
+        },
+        {
+          "total_ns": 151837344.0,
+          "levels_stream_ms": 110.985,
+          "launches": 341.0
+        },
+        {
+          "total_ns": 32182952.0,
+          "levels_stream_ms": 21.282,
+          "launches": 245.0
+        },
+        {
+          "total_ns": 52756923.0,
+          "levels_stream_ms": 13.036,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 57848901.0,
+          "levels_stream_ms": 13.146,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 50065029.0,
+          "levels_stream_ms": 12.467,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 56336974.0,
+          "levels_stream_ms": 12.55,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 170272540.0,
+          "levels_stream_ms": 123.195,
+          "launches": 789.0
+        },
+        {
+          "total_ns": 141741198.0,
+          "levels_stream_ms": 105.143,
+          "launches": 770.0
+        },
+        {
+          "total_ns": 177025453.0,
+          "levels_stream_ms": 136.966,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 162444899.0,
+          "levels_stream_ms": 117.862,
+          "launches": 781.0
+        },
+        {
+          "total_ns": 159657206.0,
+          "levels_stream_ms": 110.301,
+          "launches": 778.0
+        },
+        {
+          "total_ns": 157607740.0,
+          "levels_stream_ms": 116.204,
+          "launches": 781.0
+        },
+        {
+          "total_ns": 153159901.0,
+          "levels_stream_ms": 113.302,
+          "launches": 778.0
+        },
+        {
+          "total_ns": 125184418.0,
+          "levels_stream_ms": 81.193,
+          "launches": 715.0
+        },
+        {
+          "total_ns": 167554577.0,
+          "levels_stream_ms": 135.733,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 166923308.0,
+          "levels_stream_ms": 136.86,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 142927825.0,
+          "levels_stream_ms": 99.141,
+          "launches": 396.0
+        },
+        {
+          "total_ns": 140338672.0,
+          "levels_stream_ms": 100.915,
+          "launches": 332.0
+        },
+        {
+          "total_ns": 137557049.0,
+          "levels_stream_ms": 99.372,
+          "launches": 266.0
+        },
+        {
+          "total_ns": 105420516.0,
+          "levels_stream_ms": 79.498,
+          "launches": 396.0
+        },
+        {
+          "total_ns": 104427879.0,
+          "levels_stream_ms": 78.696,
+          "launches": 332.0
+        },
+        {
+          "total_ns": 44577113.0,
+          "levels_stream_ms": 13.047,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 43720435.0,
+          "levels_stream_ms": 12.986,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 29761318.0,
+          "levels_stream_ms": 21.369,
+          "launches": 262.0
+        },
+        {
+          "total_ns": 139781774.0,
+          "levels_stream_ms": 112.236,
+          "launches": 341.0
+        },
+        {
+          "total_ns": 44624343.0,
+          "levels_stream_ms": 13.02,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 46939797.0,
+          "levels_stream_ms": 12.901,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 43793097.0,
+          "levels_stream_ms": 12.973,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 28797936.0,
+          "levels_stream_ms": 11.31,
+          "launches": 597.0
+        },
+        {
+          "total_ns": 156205976.0,
+          "levels_stream_ms": 115.05,
+          "launches": 782.0
+        },
+        {
+          "total_ns": 170824048.0,
+          "levels_stream_ms": 135.166,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 172466034.0,
+          "levels_stream_ms": 118.473,
+          "launches": 780.0
+        },
+        {
+          "total_ns": 167416617.0,
+          "levels_stream_ms": 121.085,
+          "launches": 786.0
+        },
+        {
+          "total_ns": 167264807.0,
+          "levels_stream_ms": 106.195,
+          "launches": 772.0
+        },
+        {
+          "total_ns": 180292393.0,
+          "levels_stream_ms": 136.821,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 173660911.0,
+          "levels_stream_ms": 136.344,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 154631020.0,
+          "levels_stream_ms": 100.227,
+          "launches": 420.0
+        },
+        {
+          "total_ns": 61493981.0,
+          "levels_stream_ms": 13.063,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 120109209.0,
+          "levels_stream_ms": 79.387,
+          "launches": 420.0
+        },
+        {
+          "total_ns": 147858847.0,
+          "levels_stream_ms": 112.236,
+          "launches": 341.0
+        },
+        {
+          "total_ns": 53349812.0,
+          "levels_stream_ms": 13.053,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 31773727.0,
+          "levels_stream_ms": 21.31,
+          "launches": 245.0
+        },
+        {
+          "total_ns": 49853701.0,
+          "levels_stream_ms": 12.535,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 52702424.0,
+          "levels_stream_ms": 12.59,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 150394691.0,
+          "levels_stream_ms": 106.438,
+          "launches": 770.0
+        },
+        {
+          "total_ns": 166526609.0,
+          "levels_stream_ms": 122.314,
+          "launches": 789.0
+        },
+        {
+          "total_ns": 156996724.0,
+          "levels_stream_ms": 116.158,
+          "launches": 781.0
+        },
+        {
+          "total_ns": 151797747.0,
+          "levels_stream_ms": 116.487,
+          "launches": 781.0
+        },
+        {
+          "total_ns": 143235569.0,
+          "levels_stream_ms": 113.859,
+          "launches": 778.0
+        },
+        {
+          "total_ns": 141236095.0,
+          "levels_stream_ms": 111.482,
+          "launches": 778.0
+        },
+        {
+          "total_ns": 41688393.0,
+          "levels_stream_ms": 12.982,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 102541794.0,
+          "levels_stream_ms": 81.055,
+          "launches": 715.0
+        },
+        {
+          "total_ns": 163152067.0,
+          "levels_stream_ms": 136.685,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 162383589.0,
+          "levels_stream_ms": 135.886,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 166243100.0,
+          "levels_stream_ms": 136.86,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 122307034.0,
+          "levels_stream_ms": 99.616,
+          "launches": 396.0
+        },
+        {
+          "total_ns": 41099394.0,
+          "levels_stream_ms": 13.135,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 127565540.0,
+          "levels_stream_ms": 100.128,
+          "launches": 332.0
+        },
+        {
+          "total_ns": 128197119.0,
+          "levels_stream_ms": 100.686,
+          "launches": 266.0
+        },
+        {
+          "total_ns": 99841752.0,
+          "levels_stream_ms": 78.974,
+          "launches": 396.0
+        },
+        {
+          "total_ns": 45533262.0,
+          "levels_stream_ms": 13.659,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 103801991.0,
+          "levels_stream_ms": 78.78,
+          "launches": 332.0
+        },
+        {
+          "total_ns": 29190424.0,
+          "levels_stream_ms": 21.336,
+          "launches": 262.0
+        },
+        {
+          "total_ns": 136820606.0,
+          "levels_stream_ms": 111.378,
+          "launches": 341.0
+        },
+        {
+          "total_ns": 47620747.0,
+          "levels_stream_ms": 13.055,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 50205530.0,
+          "levels_stream_ms": 13.12,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 28211097.0,
+          "levels_stream_ms": 11.361,
+          "launches": 597.0
+        },
+        {
+          "total_ns": 153613642.0,
+          "levels_stream_ms": 115.022,
+          "launches": 782.0
+        },
+        {
+          "total_ns": 162263450.0,
+          "levels_stream_ms": 136.131,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 149226664.0,
+          "levels_stream_ms": 119.163,
+          "launches": 780.0
+        },
+        {
+          "total_ns": 154088552.0,
+          "levels_stream_ms": 121.047,
+          "launches": 786.0
+        },
+        {
+          "total_ns": 143750808.0,
+          "levels_stream_ms": 106.124,
+          "launches": 772.0
+        },
+        {
+          "total_ns": 167352307.0,
+          "levels_stream_ms": 136.307,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 160713654.0,
+          "levels_stream_ms": 137.066,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 127903529.0,
+          "levels_stream_ms": 100.408,
+          "launches": 420.0
+        },
+        {
+          "total_ns": 55499326.0,
+          "levels_stream_ms": 13.091,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 108687229.0,
+          "levels_stream_ms": 79.359,
+          "launches": 420.0
+        },
+        {
+          "total_ns": 45505502.0,
+          "levels_stream_ms": 13.144,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 141642383.0,
+          "levels_stream_ms": 111.179,
+          "launches": 341.0
+        },
+        {
+          "total_ns": 30434271.0,
+          "levels_stream_ms": 21.31,
+          "launches": 245.0
+        },
+        {
+          "total_ns": 44521235.0,
+          "levels_stream_ms": 12.55,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 46436030.0,
+          "levels_stream_ms": 12.614,
+          "launches": 727.0
+        },
+        {
+          "total_ns": 157454733.0,
+          "levels_stream_ms": 105.555,
+          "launches": 770.0
+        },
+        {
+          "total_ns": 175173197.0,
+          "levels_stream_ms": 123.439,
+          "launches": 789.0
+        },
+        {
+          "total_ns": 150301051.0,
+          "levels_stream_ms": 115.501,
+          "launches": 781.0
+        },
+        {
+          "total_ns": 152334866.0,
+          "levels_stream_ms": 117.483,
+          "launches": 781.0
+        },
+        {
+          "total_ns": 149600863.0,
+          "levels_stream_ms": 113.997,
+          "launches": 778.0
+        },
+        {
+          "total_ns": 143061610.0,
+          "levels_stream_ms": 111.675,
+          "launches": 778.0
+        },
+        {
+          "total_ns": 43991936.0,
+          "levels_stream_ms": 13.137,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 102249775.0,
+          "levels_stream_ms": 81.08,
+          "launches": 715.0
+        },
+        {
+          "total_ns": 157402303.0,
+          "levels_stream_ms": 136.847,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 158834359.0,
+          "levels_stream_ms": 135.56,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 129915474.0,
+          "levels_stream_ms": 99.497,
+          "launches": 396.0
+        },
+        {
+          "total_ns": 162482479.0,
+          "levels_stream_ms": 136.555,
+          "launches": 596.0
+        },
+        {
+          "total_ns": 41977872.0,
+          "levels_stream_ms": 13.13,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 134451872.0,
+          "levels_stream_ms": 100.294,
+          "launches": 332.0
+        },
+        {
+          "total_ns": 127518650.0,
+          "levels_stream_ms": 100.791,
+          "launches": 266.0
+        },
+        {
+          "total_ns": 103924371.0,
+          "levels_stream_ms": 79.046,
+          "launches": 396.0
+        },
+        {
+          "total_ns": 44233386.0,
+          "levels_stream_ms": 13.06,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 100996839.0,
+          "levels_stream_ms": 79.386,
+          "launches": 332.0
+        },
+        {
+          "total_ns": 144072987.0,
+          "levels_stream_ms": 112.315,
+          "launches": 341.0
+        },
+        {
+          "total_ns": 29458173.0,
+          "levels_stream_ms": 21.142,
+          "launches": 262.0
+        },
+        {
+          "total_ns": 42415110.0,
+          "levels_stream_ms": 13.062,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 43259028.0,
+          "levels_stream_ms": 13.056,
+          "launches": 753.0
+        },
+        {
+          "total_ns": 27571649.0,
+          "levels_stream_ms": 11.363,
+          "launches": 597.0
+        }
+      ],
+      "plans": []
+    }
+  ],
+  "fresh_receiver_pair_accepted": true
+}

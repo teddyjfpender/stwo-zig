@@ -1,0 +1,24 @@
+{
+  "status": "CPU_source_and_numerical_qualified_GPU_pending",
+  "source_identity": "0e888de1c14c0b10cf9fa622543e9c2fa737d33068f21d7406ce213ebe198c2a",
+  "plan_identity": "d69b50e5c882403b008f9be4bb64bcebe4782ea06e001066b92d541f8756dd90",
+  "program_nodes": 45676,
+  "program_roots": 5650,
+  "input_masks": 6733,
+  "columns": 3514,
+  "union_columns": 3514,
+  "terms": 5787,
+  "groups": 54,
+  "column_cap": 512,
+  "cache_slots": 1024,
+  "cache_fills": 11912,
+  "LDE_duplication_ratio": 3.389869095048378,
+  "widths": [
+    32,
+    1923,
+    1561
+  ],
+  "cover_trials": 8,
+  "mutated_sign_rejected": true,
+  "mutants_rejected": 6
+}

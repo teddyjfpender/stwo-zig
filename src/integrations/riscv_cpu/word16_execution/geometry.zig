@@ -106,7 +106,8 @@ pub const Geometry = struct {
         if (self.mul_u8_pairs and !self.cpu_u8_pairs) return error.InvalidMulPairGeometry;
         if (self.ls_fused_pairs and !self.cpu_u8_pairs) return error.InvalidLsPairGeometry;
         if (self.ls_dword_fused_pairs and !self.cpu_u8_pairs) return error.InvalidLsPairGeometry;
-        for ([_]u32{ @min(self.cpu_log, 22), self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+        for ([_]u32{ @min(self.cpu_log, 22), self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.ls_log, self.boundary_log }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+        for ([_]u32{ self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 23) return error.InvalidExecutionGeometry;
         if (self.multiplication_log < 5 or self.multiplication_log > A.multiplication.degree3_layout.MAX_LOG) return error.InvalidExecutionGeometry;
         for ([_]?u32{ self.ls_tail_log, self.alu_tail_log, self.binary_tail_log, self.shift_tail_log }) |optional| {
             if (optional) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
@@ -128,7 +129,9 @@ pub const Geometry = struct {
         const tail = total - head;
         if (self.ls_tail_log) |log| {
             if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
-            if (tail == 0 or tail >= rows(log)) return error.InvalidLsTailCapacity;
+            // rv64-m6-native/v2 strict roster: a rung's tail is a class
+            // constant and may be all padding (presence is not a count).
+            if ((tail == 0 and !@import("native_policy.zig").strictRoster()) or tail >= rows(log)) return error.InvalidLsTailCapacity;
         } else if (tail != 0) return error.InvalidLsTailCapacity;
         return .{ .head = head, .tail = tail };
     }
@@ -285,7 +288,27 @@ pub fn factCounts(total: usize, head_log: u32, tail_log: ?u32) !FactCounts {
     const tail = total - head;
     if (tail_log) |log| {
         if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
-        if (tail == 0 or tail > rows(log)) return error.InvalidProviderTailCapacity;
+        // v2 strict roster: the rung's tail may be all padding.
+        if ((tail == 0 and !@import("native_policy.zig").strictRoster()) or tail > rows(log)) return error.InvalidProviderTailCapacity;
     } else if (tail != 0) return error.InvalidProviderTailCapacity;
     return .{ .head = head, .tail = tail };
+}
+
+test "public boundary log23 declarations preserve CPU and LS admission" {
+    const valid = Geometry{ .cpu_log = 22, .initial_log = 23, .terminal_log = 23 };
+    try valid.validate();
+    try @import("../word16_global_execution/services/gkr_local/service_scope.zig").geometry(valid);
+    try std.testing.expect(!valid.wideClock());
+    var forged = valid;
+    forged.initial_log = 24;
+    try std.testing.expectError(error.InvalidExecutionGeometry, forged.validate());
+    forged = valid;
+    forged.terminal_log = 24;
+    try std.testing.expectError(error.InvalidExecutionGeometry, forged.validate());
+    forged = valid;
+    forged.ls_log = 23;
+    try std.testing.expectError(error.InvalidExecutionGeometry, forged.validate());
+    forged = valid;
+    forged.cpu_log = 23;
+    try std.testing.expectError(error.InvalidExecutionGeometry, forged.validate());
 }

@@ -1,0 +1,210 @@
+{
+  "schema": "rv64-largest-recursive-capacity-failure/v1",
+  "accepted": false,
+  "completed_recursive_block": false,
+  "block": 26235159,
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "source_producer": "923e63b4598c91fe23d239811a971c918447f384",
+  "driver_sha256": "b8d7096a0d2317272203d39dfcd2780bd5389cce35a0024787229aed971b9b31",
+  "runtime_sha256": "60968c1308448768d78a3587d0077380e6038e93912c0eaa78122f5df92d02a9",
+  "environment": {
+    "CUDA_MODULE_LOADING": "EAGER",
+    "CORE_SINGLE_STREAM": "1",
+    "CPU_REPLAY": "1",
+    "device_cap_bytes": 30064771072,
+    "immutable_device_bytes": 2147483648,
+    "host_cap_bytes": 51539607552
+  },
+  "native": {
+    "completed_ethereum_block": true,
+    "cpu_proofs": 49,
+    "truth_proofs": 26,
+    "capture_ns": 30982922890,
+    "setup_ns": 179710304373,
+    "prove_ns": 97671449606,
+    "same_process_verify_ns": 20877568401
+  },
+  "process_failure": {
+    "schema": "rv64-resident-basket/v1",
+    "status": "failed",
+    "block": 26235159,
+    "device_count": 1,
+    "error": "producer failed (1); see /workspace/rv64-gpu-session/qualification/combined-v2-b8d7096a/remaining14/1gpu/26235159/producer.stderr",
+    "process_measurement": {
+      "argv": [
+        "/workspace/rv64-gpu-session/rv64-combined-v2-b8d7096a",
+        "combined-batch",
+        "/workspace/rv64-gpu-session/qualification/combined-v2-b8d7096a/remaining14/1gpu/26235159/manifest.json",
+        "/workspace/rv64-gpu-session/qualification/combined-v2-b8d7096a/remaining14/1gpu/26235159/batch"
+      ],
+      "exit_code": 1,
+      "wall_ns": 397525335835,
+      "user_seconds": 861.272514,
+      "system_seconds": 150.04194,
+      "peak_rss_bytes": 35952558080,
+      "minor_faults": 55210900,
+      "major_faults": 0
+    }
+  },
+  "terminal_error": "CudaAllocationFailed",
+  "terminal_phase": "Outer leaf5/75, ordinal7, INTER trace commitment after GPU MAIN evaluation retirement; before INTER ownership marker",
+  "terminal_geometry": {
+    "padded_variables": 53477376,
+    "row_logs": [
+      18,
+      24,
+      20,
+      21,
+      23,
+      16,
+      20,
+      8,
+      14,
+      18,
+      16
+    ],
+    "fixed_forest_bytes": 971181056,
+    "schedule_bytes": 874708960,
+    "main_coefficient_words": 685195520,
+    "main_scratch_words": 1403946270,
+    "main_evaluation_released_bytes": 2740782080
+  },
+  "diagnostic_limits": "This binary did not print the terminal allocation request. Earlier ordinal6 GPU_OWNER_OOM was recovered and its fold accepted; it is not the terminal allocation.",
+  "source_peak_analysis": {
+    "kind": "source-derived live allocation analysis by memory-fix owner, not measured peak",
+    "unfixed_live_GiB_before_immutable": 28.278,
+    "early_INTER_retirement_live_GiB_before_immutable": 22.488,
+    "fix_source": "dd550a79f",
+    "scope": "Release consumed INTER row evaluations after joined coefficient transform and before LDE/tree allocation; no protocol/cap/fallback change."
+  },
+  "native_artifact_sha256": {
+    "cells.bin": "bac6b953c8034b39969baac856060e2b20486246ecf475f5bb43cf8edc234c6b",
+    "cpu-0.bin": "87e602d41f60ccd968676caa8aa8fbd887c0c8f7fc4a69f3668837efb4f4ebf9",
+    "cpu-1.bin": "f4bc392783db3b28fc3f49ed910081e9e6ffa791b3fcddc594cdfd7999f19c22",
+    "cpu-2.bin": "23731af2fdb3a0afa6c2826634ac5f2e2bd509bbad65b35a35ef2eaa8bb59763",
+    "cpu-3.bin": "8451e5cb93b37ed2fcc61717d78ca8e9282fcb752bdfd581182756e8e68da2b6",
+    "cpu-4.bin": "3b0d71273b02eb707d59c257b3b56bee1b257e4cdb0dc27b479abc1641723636",
+    "cpu-5.bin": "2e133127cbd030dea2232a0662e6823d1575a646900a073dadb91bdbe2ae3343",
+    "cpu-6.bin": "fed43a23fd6fd2488426c3fbf92007bcd13157885d86166d98bf2247d57c0889",
+    "cpu-7.bin": "764efd7f8fb9e03e3345c08357db6a0866ee0fd098b745f08e0a58a84073d9be",
+    "cpu-8.bin": "06038732d2656128939d325db8655ed27e1136c79b23c5d12d8277ded73f9329",
+    "cpu-9.bin": "c378cec7038452e314ab7e5bda382f16b4e0a7d994c69151eebf5ea2a8313a29",
+    "cpu-10.bin": "6b94308afa4149cb69de964382a4064898e397f888b151ee98d7d34080b89a9c",
+    "cpu-11.bin": "22d3a1df57e2cecb34d93c49844e348cd5c7869fe224b3247b2bce2919fc9058",
+    "cpu-12.bin": "4796351bf9aca83cb108e974f500e0df91d2d228474b6fb229730c3de764146f",
+    "cpu-13.bin": "2320cc7176e62bcb679a3cf75aa2dcec8c1a0149beec6547a55f9612e43a720c",
+    "cpu-14.bin": "50fbb7e58e4f066c39cd7e9a15da35d1de7df3cd98aa94473be4a2f4a15b94d8",
+    "cpu-15.bin": "c38a8a7436e74e41a59296ba97c4e274091d4adc0d14ddaefba09337bc2f87d8",
+    "cpu-16.bin": "491704a7522022e4c0f5ffff978c0cbcb4e34a472ea022cc5834ee84c848c149",
+    "cpu-17.bin": "9d93da5a8c5fede032ef38beb4e9346031f20dfb63b377e7b2c474f345fea0ed",
+    "cpu-18.bin": "b1879d69837bef61dcb9804ef015e9dfa54a0347c787341a6ce58cafefe82b22",
+    "cpu-19.bin": "13a557de73728cda100b4e48df46402025ddf31257569962f02edb99a0467cff",
+    "cpu-20.bin": "95f527529296cfdd879d0af1ea22318dc4daf623fc2af9c49903f6110184ed04",
+    "cpu-21.bin": "715aab76db7b1678ee08514013385bd9b1b807f1ecef6e79951bf64045ec5d05",
+    "cpu-22.bin": "a42c00b812bef9e2f957b244d3aa4edb548687f28e3dfd6fccaa9cc968cfc034",
+    "cpu-23.bin": "5d45d186f723c0a931be609be978fa3bcf0b84ef6dc032bc09ad2b0f20b2bbf2",
+    "cpu-24.bin": "50d96ba55364e2458dcecd9e49d28dd62b8da0707457e2c9326e85e08eb02793",
+    "cpu-25.bin": "2855176e9dce769ec8557ccfc211ad02b49c85b454c3022230df82470c550772",
+    "cpu-26.bin": "0eee3f65f2f80dcb76225d79f70a2296b1c8a4c9cdceee17ce3841a416eba78e",
+    "cpu-27.bin": "8db95c05b3f13570bb0fa58681fa9dfc9eb125b7503dedd9463cce78e113fe2d",
+    "cpu-28.bin": "8eb769dfbc21ec98c74ee4b520f53c35e410113d9456ff4d8f8d65673fc8766f",
+    "cpu-29.bin": "b5bec98ff9f3aba3bbdb6c497d7d2ca787abbb92fddc63d0b3977db871abdefd",
+    "cpu-30.bin": "9ff929cf6be7caecdee13fd96dd3e3e3e8f03da9585a629a11e0f0997f815146",
+    "cpu-31.bin": "4ed7780590f9097a55e8004c2c92f1c761c6a3f3a5c26146d057dd7637b6204e",
+    "cpu-32.bin": "e9361f846a51e44b1e834aec272f2bcd03f3fa6201f55dbc6d136be8332e8bf9",
+    "cpu-33.bin": "2aceb0b565038bac35ef08ec32c566a1d64d5cfd1ca77664872bb45956cb5127",
+    "cpu-34.bin": "da9513020496c3c6e7b6918875d792d9d9b252263a111c7b8151e675ff7290ec",
+    "cpu-35.bin": "7037050fd744fc29297d52710ada2b52d893ff8a52e9170cac6a95fa7b662529",
+    "cpu-36.bin": "b0ec165c344047b5539c394376e40420dc7a3e5efdda77cf2b65247a24a36002",
+    "cpu-37.bin": "c1962a6e0d6032b95473a1f2eb6bb6b1521d4634d8af650c000186a1efa22c11",
+    "cpu-38.bin": "99fbe18a496c832b982748cba0148a039704df1b35cc9bc7b2a7abe38b4c93f5",
+    "cpu-39.bin": "a87178f9540062e792dcdfb284b7da0a5d7c3e365b9ee7b05181c97265abaab1",
+    "cpu-40.bin": "587fb4bec01253d24a3c6da90bcaaecd7eecf9f86ea30b3280882ed9560da133",
+    "cpu-41.bin": "7f428243ef7d236e22af3cf968a93b6b142e1d28398dbd5bcc0eab2ce4f2ad49",
+    "cpu-42.bin": "d316acf86ba43fa445c3fed2d3095458b802a525c37df5cfa9934873ddd9bb41",
+    "cpu-43.bin": "9972e0018176f31483c1edc7151c441754830d16a59d928a9ca5d2417abf3580",
+    "cpu-44.bin": "cc52f1878018d4213a9b6021044a450fdf9e4d150db7949158496f512dbe5169",
+    "cpu-45.bin": "14f8b37d8ba1f4f03f163f379432c387ca44e5f58047d5f351522643be6493f1",
+    "cpu-46.bin": "706c1be86f1ee655c77eeb93081636499135672c1f8605217130f79d54ee6e73",
+    "cpu-47.bin": "fbda05290ffa67a807653cc4892532f611ebb13584e7e38608f11f4a880f4b29",
+    "cpu-48.bin": "492b2c6925f029ca116851c31e58925db19036dccdbc72d31f1de94a5af139e4",
+    "truth-0.bin": "ef55dbe1d6615d3ae8a2b3189b92e124e3274347f6537926d3f01dbd793e3b85",
+    "truth-1.bin": "b615d18f0376efdfbeeae80c752d18f240ff34562c2526d316cf1e943c72cc39",
+    "truth-2.bin": "6c3691d0144c0f96d56b47d5714b0c1151d96a370869c0dae4dcc569701f20e6",
+    "truth-3.bin": "cc45958fd75684259a3e9248079fd63f9f9141afdacc0242dcb33f2a1d2470d6",
+    "truth-4.bin": "de34a1236c4ca6e5b47c117b4b862982cf9131c35cb1920813c4c073b5575d4c",
+    "truth-5.bin": "8482d9dd02b57c714a2a8e0f8a8c1395460950b1896e6e6094854e7f6b043047",
+    "truth-6.bin": "b0b2e691e9bd992a074d28023b8103dd265d7dd7a44c204255666d79b1d62cb8",
+    "truth-7.bin": "906a87027a10aae5e02ecc878105b8f67bd5bf4a5b95d5d3cdcfceb22adff742",
+    "truth-8.bin": "5c618bc841caaa40beabc96bf09db28d2396a70358ab3c27762b3c15aea6be81",
+    "truth-9.bin": "62958924016e26177d34d729bddccda30e8ec8fcffcc6615f262bc32ab0130b5",
+    "truth-10.bin": "53252b91a99bb588456ec8ed2e3de9cdc3cf0f4c0790f0a04c6a5b2ab8e4ec6d",
+    "truth-11.bin": "72cb3e601d6dd13758dd5279581a948ac169dc05f9cc8bd02ae5bb181d2c4bb5",
+    "truth-12.bin": "b83fe152c90951931794ecde340331b6fb13ed61e4b5e23e7bc5e3a5dc355042",
+    "truth-13.bin": "00c22ffdc7852a71baf016bea67cae26bfd3e94924ae939fe57832cc851b164f",
+    "truth-14.bin": "2e589726e1ae1d573e5aaba8ffcf61c32e956deb972db12927c8e691fb5ffe37",
+    "truth-15.bin": "69adb681bd8f426bbe14074fa83e2806abd51ffbec50264d8cfa6d274d35c4b9",
+    "truth-16.bin": "0ad1c9935fb396ab6272053ca18bc471ddd545970ed1a621d2f90eb942cf4913",
+    "truth-17.bin": "2c57ea24573824ca227e14cf40d4b7604d7ae57f8ffbb7cda3432b0565890c44",
+    "truth-18.bin": "0abea95d4441a756a23cc10bf65a06352e333ae4def1addf7572345f904643c1",
+    "truth-19.bin": "c761219e60165442266a670bc779a1a9093fe380f1f29346588df87a00eaa3fa",
+    "truth-20.bin": "1b22b800f77853264037d2b6ede7d800e7410c5f2dbed07aa6ff0f15c45c24d0",
+    "truth-21.bin": "0196b68b6a498bf50a57a05583d742e930fe1680e56ec1e2faca1712a69e4070",
+    "truth-22.bin": "74e36d840dfa1ed3e0c1d108683a7a7fbf52578f4c4b3e504c1f8159fce81de6",
+    "truth-23.bin": "95813e49f59f396a7669685a957d302b81a810ab17ae0c79468de6887b7ea923",
+    "truth-24.bin": "8efe40a31b74cd2f47815c7b9810246f0b06d641ad094dd3b9ca71f924355eb7",
+    "truth-25.bin": "2163f615d8b6bac6bca6ab5e39fd31551d4b8cff927ef69f02e166a1372e5859",
+    "stage-one.bin": "fb5ccbd96099d356e3aadcca72f9518238eafe2080ee1ba2ac28c6c1e9ee09ea",
+    "bundle.json": "479d53bfa3ff15f6c899ec93c6cbd566855f19da3abb4c94197eae651bdb89a1"
+  },
+  "surviving_outer_nodes": {
+    "leaf-000000.proof": {
+      "sha256": "d69855a35fe460b40b0d05b52ccbc02ed8d93aefc06f724bd74e6b8fd48c4e2d",
+      "bytes": 746008
+    },
+    "leaf-000001.proof": {
+      "sha256": "795aea3e0644efaddf66fe1ef8024971b082048b84c4ffdcb9831755bcea2b90",
+      "bytes": 744760
+    },
+    "fold-000002.proof": {
+      "sha256": "9a716561470d9d32957f65a0db4cb1ed21dcf9285a2c25531e9343e553d97a36",
+      "bytes": 751992
+    },
+    "leaf-000002.proof": {
+      "sha256": "cc185758cb1ea8df6d9e0901f9766c26065e701d0cebb163c5d6a3e64c737af4",
+      "bytes": 745720
+    },
+    "leaf-000003.proof": {
+      "sha256": "288de228a7f33e194964e472a3729441ef3edd196f6c94041651448cbea7c37a",
+      "bytes": 743736
+    },
+    "fold-000005.proof": {
+      "sha256": "833ce28aeea6594ac921cf229010722c3c9b3913543ef40d15d59c6a37987a9d",
+      "bytes": 745624
+    },
+    "fold-000006.proof": {
+      "sha256": "6cb99bd35cba1c1729fbe71d0d03485e670bd62a97af6de96a9b2d0148790702",
+      "bytes": 753848
+    }
+  },
+  "root_present": false,
+  "tree_present": false,
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 1714,
+    "errors": [],
+    "peak_used_bytes": {
+      "0": 33663483904
+    }
+  },
+  "producer_log_sha256": {
+    "producer.stdout": "fc14180a03f65222e4959ae2b1cb0dabb8866fb3645d932ecfe9823be01c3221",
+    "producer.stderr": "9160d964a5876d8ac0fa34918b593abcc56df36863aab8ba29ed95a854f2a2ea"
+  },
+  "follow_up": [
+    "All surviving native files and four leaf/three fold proofs are retained unchanged. No accepted recursive execution root exists for this attempt.",
+    "Selective resume must independently rederive authorities and verify all cached nodes before generating remaining71 leaves+71 folds with the fixed binary.",
+    "Original and resume binary/source provenance and times must remain separate; recovery is not a fresh-cold benchmark.",
+    "Other13 independent blocks continue under separate pinned production plan; no accepted test/native run is restarted."
+  ]
+}

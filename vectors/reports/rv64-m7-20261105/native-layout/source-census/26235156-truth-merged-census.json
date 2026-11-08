@@ -1,0 +1,2934 @@
+{
+ "schema": "rv64-native-gkr-census/v1",
+ "scope": "declaration-only committed native INTER cells per component (own-height, pre-LDE, M31 base cells); OM31 columns count as 8 base columns",
+ "protocol": "RV64-SERVICES-CPU-GKR-TRUTH-CLASSIC-OM31-V3",
+ "rom_log": 18,
+ "cpus": [
+  {
+   "slots": [
+    {
+     "name": "core.cpu",
+     "log": 22,
+     "local_terms": 14,
+     "fixed_cols": 3,
+     "main_cols": 37,
+     "native_terms": [
+      14,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.rom",
+     "log": 18,
+     "local_terms": 1,
+     "fixed_cols": 32,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.boundary",
+     "log": 5,
+     "local_terms": 2,
+     "fixed_cols": 34,
+     "main_cols": 0,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.alu",
+     "log": 18,
+     "local_terms": 13,
+     "fixed_cols": 0,
+     "main_cols": 47,
+     "native_terms": [
+      13,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.binary",
+     "log": 17,
+     "local_terms": 9,
+     "fixed_cols": 0,
+     "main_cols": 29,
+     "native_terms": [
+      9,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.shift",
+     "log": 16,
+     "local_terms": 11,
+     "fixed_cols": 0,
+     "main_cols": 52,
+     "native_terms": [
+      11,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.jalr",
+     "log": 16,
+     "local_terms": 3,
+     "fixed_cols": 0,
+     "main_cols": 17,
+     "native_terms": [
+      3,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.division",
+     "log": 11,
+     "local_terms": 26,
+     "fixed_cols": 3,
+     "main_cols": 78,
+     "native_terms": [
+      26,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.multiplication",
+     "log": 16,
+     "local_terms": 97,
+     "fixed_cols": 3,
+     "main_cols": 87,
+     "native_terms": [
+      97,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.shift_table",
+     "log": 16,
+     "local_terms": 16,
+     "fixed_cols": 18,
+     "main_cols": 16,
+     "native_terms": [
+      16,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.and_table",
+     "log": 16,
+     "local_terms": 2,
+     "fixed_cols": 5,
+     "main_cols": 2,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.range16",
+     "log": 16,
+     "local_terms": 1,
+     "fixed_cols": 3,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.range8",
+     "log": 8,
+     "local_terms": 1,
+     "fixed_cols": 3,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.ls",
+     "log": 18,
+     "local_terms": 10,
+     "fixed_cols": 3,
+     "main_cols": 70,
+     "native_terms": [
+      10,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "core.initial",
+     "log": 20,
+     "local_terms": 0,
+     "fixed_cols": 3,
+     "main_cols": 14,
+     "native_terms": [
+      0,
+      1,
+      0,
+      0
+     ],
+     "binding_cols": 0,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
+    },
+    {
+     "name": "core.terminal",
+     "log": 5,
+     "local_terms": 0,
+     "fixed_cols": 3,
+     "main_cols": 14,
+     "native_terms": [
+      0,
+      1,
+      0,
+      0
+     ],
+     "binding_cols": 0,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
+    },
+    {
+     "name": "core.selection",
+     "log": 16,
+     "local_terms": 2,
+     "fixed_cols": 6,
+     "main_cols": 2,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.ls_tail",
+     "log": 15,
+     "local_terms": 10,
+     "fixed_cols": 3,
+     "main_cols": 70,
+     "native_terms": [
+      10,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "core.alu_tail",
+     "log": 16,
+     "local_terms": 13,
+     "fixed_cols": 0,
+     "main_cols": 47,
+     "native_terms": [
+      13,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.shift_tail",
+     "log": 13,
+     "local_terms": 11,
+     "fixed_cols": 0,
+     "main_cols": 52,
+     "native_terms": [
+      11,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "bridge.keccak",
+     "log": 15,
+     "local_terms": 42,
+     "fixed_cols": 6,
+     "main_cols": 66,
+     "native_terms": [
+      42,
+      2,
+      2,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 16,
+     "other_relation": "kio",
+     "ram_queries": 2,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.add",
+     "log": 12,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.double",
+     "log": 11,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.sha256",
+     "log": 5,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bulk.desc",
+     "log": 12,
+     "local_terms": 20,
+     "fixed_cols": 3,
+     "main_cols": 48,
+     "native_terms": [
+      20,
+      6,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 32,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.copy",
+     "log": 16,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 41,
+     "native_terms": [
+      7,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.set",
+     "log": 18,
+     "local_terms": 4,
+     "fixed_cols": 3,
+     "main_cols": 24,
+     "native_terms": [
+      4,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.ucopy",
+     "log": 17,
+     "local_terms": 19,
+     "fixed_cols": 3,
+     "main_cols": 56,
+     "native_terms": [
+      19,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.cdesc",
+     "log": 7,
+     "local_terms": 19,
+     "fixed_cols": 3,
+     "main_cols": 61,
+     "native_terms": [
+      19,
+      8,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 8,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.cmp",
+     "log": 7,
+     "local_terms": 15,
+     "fixed_cols": 3,
+     "main_cols": 59,
+     "native_terms": [
+      15,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.jdesc",
+     "log": 5,
+     "local_terms": 17,
+     "fixed_cols": 3,
+     "main_cols": 45,
+     "native_terms": [
+      17,
+      6,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 32,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.jscan",
+     "log": 12,
+     "local_terms": 92,
+     "fixed_cols": 3,
+     "main_cols": 287,
+     "native_terms": [
+      92,
+      18,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 80,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 18,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.jtab",
+     "log": 14,
+     "local_terms": 1,
+     "fixed_cols": 7,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "sponge.call",
+     "log": 12,
+     "local_terms": 69,
+     "fixed_cols": 3,
+     "main_cols": 694,
+     "native_terms": [
+      69,
+      58,
+      50,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 240,
+     "other_cols": 208,
+     "other_relation": "kio",
+     "ram_queries": 58,
+     "other_queries": 50
+    },
+    {
+     "name": "sponge.perm",
+     "log": 14,
+     "local_terms": 245,
+     "fixed_cols": 3,
+     "main_cols": 973,
+     "native_terms": [
+      245,
+      36,
+      50,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 152,
+     "other_cols": 208,
+     "other_relation": "kio",
+     "ram_queries": 36,
+     "other_queries": 50
+    },
+    {
+     "name": "dword.0",
+     "log": 20,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 39,
+     "native_terms": [
+      7,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "dword.1",
+     "log": 18,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 39,
+     "native_terms": [
+      7,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    }
+   ],
+   "main_cells": 312780064,
+   "inter_cells": 181506816,
+   "inter_cols": 1936
+  },
+  {
+   "slots": [
+    {
+     "name": "core.cpu",
+     "log": 22,
+     "local_terms": 14,
+     "fixed_cols": 3,
+     "main_cols": 37,
+     "native_terms": [
+      14,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.rom",
+     "log": 18,
+     "local_terms": 1,
+     "fixed_cols": 32,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.boundary",
+     "log": 5,
+     "local_terms": 2,
+     "fixed_cols": 34,
+     "main_cols": 0,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.alu",
+     "log": 18,
+     "local_terms": 13,
+     "fixed_cols": 0,
+     "main_cols": 47,
+     "native_terms": [
+      13,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.binary",
+     "log": 16,
+     "local_terms": 9,
+     "fixed_cols": 0,
+     "main_cols": 29,
+     "native_terms": [
+      9,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.shift",
+     "log": 16,
+     "local_terms": 11,
+     "fixed_cols": 0,
+     "main_cols": 52,
+     "native_terms": [
+      11,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.jalr",
+     "log": 16,
+     "local_terms": 3,
+     "fixed_cols": 0,
+     "main_cols": 17,
+     "native_terms": [
+      3,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.division",
+     "log": 10,
+     "local_terms": 26,
+     "fixed_cols": 3,
+     "main_cols": 78,
+     "native_terms": [
+      26,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.multiplication",
+     "log": 17,
+     "local_terms": 97,
+     "fixed_cols": 3,
+     "main_cols": 87,
+     "native_terms": [
+      97,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.shift_table",
+     "log": 16,
+     "local_terms": 16,
+     "fixed_cols": 18,
+     "main_cols": 16,
+     "native_terms": [
+      16,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.and_table",
+     "log": 16,
+     "local_terms": 2,
+     "fixed_cols": 5,
+     "main_cols": 2,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.range16",
+     "log": 16,
+     "local_terms": 1,
+     "fixed_cols": 3,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.range8",
+     "log": 8,
+     "local_terms": 1,
+     "fixed_cols": 3,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.ls",
+     "log": 18,
+     "local_terms": 10,
+     "fixed_cols": 3,
+     "main_cols": 70,
+     "native_terms": [
+      10,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "core.initial",
+     "log": 5,
+     "local_terms": 0,
+     "fixed_cols": 3,
+     "main_cols": 14,
+     "native_terms": [
+      0,
+      1,
+      0,
+      0
+     ],
+     "binding_cols": 0,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
+    },
+    {
+     "name": "core.terminal",
+     "log": 5,
+     "local_terms": 0,
+     "fixed_cols": 3,
+     "main_cols": 14,
+     "native_terms": [
+      0,
+      1,
+      0,
+      0
+     ],
+     "binding_cols": 0,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
+    },
+    {
+     "name": "core.selection",
+     "log": 16,
+     "local_terms": 2,
+     "fixed_cols": 6,
+     "main_cols": 2,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.alu_tail",
+     "log": 17,
+     "local_terms": 13,
+     "fixed_cols": 0,
+     "main_cols": 47,
+     "native_terms": [
+      13,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.binary_tail",
+     "log": 15,
+     "local_terms": 9,
+     "fixed_cols": 0,
+     "main_cols": 29,
+     "native_terms": [
+      9,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "bridge.keccak",
+     "log": 14,
+     "local_terms": 42,
+     "fixed_cols": 6,
+     "main_cols": 66,
+     "native_terms": [
+      42,
+      2,
+      2,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 16,
+     "other_relation": "kio",
+     "ram_queries": 2,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.add",
+     "log": 14,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.double",
+     "log": 13,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.arith256_mod",
+     "log": 6,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bulk.desc",
+     "log": 12,
+     "local_terms": 20,
+     "fixed_cols": 3,
+     "main_cols": 48,
+     "native_terms": [
+      20,
+      6,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 32,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.copy",
+     "log": 16,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 41,
+     "native_terms": [
+      7,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.set",
+     "log": 16,
+     "local_terms": 4,
+     "fixed_cols": 3,
+     "main_cols": 24,
+     "native_terms": [
+      4,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.ucopy",
+     "log": 13,
+     "local_terms": 19,
+     "fixed_cols": 3,
+     "main_cols": 56,
+     "native_terms": [
+      19,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.cdesc",
+     "log": 6,
+     "local_terms": 19,
+     "fixed_cols": 3,
+     "main_cols": 61,
+     "native_terms": [
+      19,
+      8,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 8,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.cmp",
+     "log": 7,
+     "local_terms": 15,
+     "fixed_cols": 3,
+     "main_cols": 59,
+     "native_terms": [
+      15,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.jdesc",
+     "log": 6,
+     "local_terms": 17,
+     "fixed_cols": 3,
+     "main_cols": 45,
+     "native_terms": [
+      17,
+      6,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 32,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.jscan",
+     "log": 13,
+     "local_terms": 92,
+     "fixed_cols": 3,
+     "main_cols": 287,
+     "native_terms": [
+      92,
+      18,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 80,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 18,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.jtab",
+     "log": 14,
+     "local_terms": 1,
+     "fixed_cols": 7,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "sponge.call",
+     "log": 5,
+     "local_terms": 69,
+     "fixed_cols": 3,
+     "main_cols": 694,
+     "native_terms": [
+      69,
+      58,
+      50,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 240,
+     "other_cols": 208,
+     "other_relation": "kio",
+     "ram_queries": 58,
+     "other_queries": 50
+    },
+    {
+     "name": "sponge.perm",
+     "log": 6,
+     "local_terms": 245,
+     "fixed_cols": 3,
+     "main_cols": 973,
+     "native_terms": [
+      245,
+      36,
+      50,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 152,
+     "other_cols": 208,
+     "other_relation": "kio",
+     "ram_queries": 36,
+     "other_queries": 50
+    },
+    {
+     "name": "dword.0",
+     "log": 20,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 39,
+     "native_terms": [
+      7,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "dword.1",
+     "log": 19,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 39,
+     "native_terms": [
+      7,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    }
+   ],
+   "main_cells": 285622272,
+   "inter_cells": 155201024,
+   "inter_cols": 1904
+  },
+  {
+   "slots": [
+    {
+     "name": "core.cpu",
+     "log": 22,
+     "local_terms": 14,
+     "fixed_cols": 3,
+     "main_cols": 37,
+     "native_terms": [
+      14,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.rom",
+     "log": 18,
+     "local_terms": 1,
+     "fixed_cols": 32,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.boundary",
+     "log": 5,
+     "local_terms": 2,
+     "fixed_cols": 34,
+     "main_cols": 0,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.alu",
+     "log": 18,
+     "local_terms": 13,
+     "fixed_cols": 0,
+     "main_cols": 47,
+     "native_terms": [
+      13,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.binary",
+     "log": 17,
+     "local_terms": 9,
+     "fixed_cols": 0,
+     "main_cols": 29,
+     "native_terms": [
+      9,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.shift",
+     "log": 16,
+     "local_terms": 11,
+     "fixed_cols": 0,
+     "main_cols": 52,
+     "native_terms": [
+      11,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.jalr",
+     "log": 16,
+     "local_terms": 3,
+     "fixed_cols": 0,
+     "main_cols": 17,
+     "native_terms": [
+      3,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.division",
+     "log": 10,
+     "local_terms": 26,
+     "fixed_cols": 3,
+     "main_cols": 78,
+     "native_terms": [
+      26,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.multiplication",
+     "log": 16,
+     "local_terms": 97,
+     "fixed_cols": 3,
+     "main_cols": 87,
+     "native_terms": [
+      97,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.shift_table",
+     "log": 16,
+     "local_terms": 16,
+     "fixed_cols": 18,
+     "main_cols": 16,
+     "native_terms": [
+      16,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.and_table",
+     "log": 16,
+     "local_terms": 2,
+     "fixed_cols": 5,
+     "main_cols": 2,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.range16",
+     "log": 16,
+     "local_terms": 1,
+     "fixed_cols": 3,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.range8",
+     "log": 8,
+     "local_terms": 1,
+     "fixed_cols": 3,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.ls",
+     "log": 18,
+     "local_terms": 10,
+     "fixed_cols": 3,
+     "main_cols": 70,
+     "native_terms": [
+      10,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "core.initial",
+     "log": 5,
+     "local_terms": 0,
+     "fixed_cols": 3,
+     "main_cols": 14,
+     "native_terms": [
+      0,
+      1,
+      0,
+      0
+     ],
+     "binding_cols": 0,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
+    },
+    {
+     "name": "core.terminal",
+     "log": 5,
+     "local_terms": 0,
+     "fixed_cols": 3,
+     "main_cols": 14,
+     "native_terms": [
+      0,
+      1,
+      0,
+      0
+     ],
+     "binding_cols": 0,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
+    },
+    {
+     "name": "core.selection",
+     "log": 16,
+     "local_terms": 2,
+     "fixed_cols": 6,
+     "main_cols": 2,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.ls_tail",
+     "log": 16,
+     "local_terms": 10,
+     "fixed_cols": 3,
+     "main_cols": 70,
+     "native_terms": [
+      10,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "core.alu_tail",
+     "log": 17,
+     "local_terms": 13,
+     "fixed_cols": 0,
+     "main_cols": 47,
+     "native_terms": [
+      13,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.binary_tail",
+     "log": 14,
+     "local_terms": 9,
+     "fixed_cols": 0,
+     "main_cols": 29,
+     "native_terms": [
+      9,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.shift_tail",
+     "log": 15,
+     "local_terms": 11,
+     "fixed_cols": 0,
+     "main_cols": 52,
+     "native_terms": [
+      11,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "bridge.keccak",
+     "log": 14,
+     "local_terms": 42,
+     "fixed_cols": 6,
+     "main_cols": 66,
+     "native_terms": [
+      42,
+      2,
+      2,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 16,
+     "other_relation": "kio",
+     "ram_queries": 2,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.add",
+     "log": 11,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.double",
+     "log": 10,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.sha256",
+     "log": 6,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.arith256_mod",
+     "log": 7,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bulk.desc",
+     "log": 13,
+     "local_terms": 20,
+     "fixed_cols": 3,
+     "main_cols": 48,
+     "native_terms": [
+      20,
+      6,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 32,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.copy",
+     "log": 16,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 41,
+     "native_terms": [
+      7,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.set",
+     "log": 15,
+     "local_terms": 4,
+     "fixed_cols": 3,
+     "main_cols": 24,
+     "native_terms": [
+      4,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.ucopy",
+     "log": 16,
+     "local_terms": 19,
+     "fixed_cols": 3,
+     "main_cols": 56,
+     "native_terms": [
+      19,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.jdesc",
+     "log": 5,
+     "local_terms": 17,
+     "fixed_cols": 3,
+     "main_cols": 45,
+     "native_terms": [
+      17,
+      6,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 32,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.jscan",
+     "log": 12,
+     "local_terms": 92,
+     "fixed_cols": 3,
+     "main_cols": 287,
+     "native_terms": [
+      92,
+      18,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 80,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 18,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.jtab",
+     "log": 14,
+     "local_terms": 1,
+     "fixed_cols": 7,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "sponge.call",
+     "log": 11,
+     "local_terms": 69,
+     "fixed_cols": 3,
+     "main_cols": 694,
+     "native_terms": [
+      69,
+      58,
+      50,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 240,
+     "other_cols": 208,
+     "other_relation": "kio",
+     "ram_queries": 58,
+     "other_queries": 50
+    },
+    {
+     "name": "sponge.perm",
+     "log": 12,
+     "local_terms": 245,
+     "fixed_cols": 3,
+     "main_cols": 973,
+     "native_terms": [
+      245,
+      36,
+      50,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 152,
+     "other_cols": 208,
+     "other_relation": "kio",
+     "ram_queries": 36,
+     "other_queries": 50
+    },
+    {
+     "name": "dword.0",
+     "log": 20,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 39,
+     "native_terms": [
+      7,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "dword.1",
+     "log": 17,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 39,
+     "native_terms": [
+      7,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    }
+   ],
+   "main_cells": 276192928,
+   "inter_cells": 146928128,
+   "inter_cols": 1928
+  },
+  {
+   "slots": [
+    {
+     "name": "core.cpu",
+     "log": 22,
+     "local_terms": 14,
+     "fixed_cols": 3,
+     "main_cols": 37,
+     "native_terms": [
+      14,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.rom",
+     "log": 18,
+     "local_terms": 1,
+     "fixed_cols": 32,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.boundary",
+     "log": 5,
+     "local_terms": 2,
+     "fixed_cols": 34,
+     "main_cols": 0,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.alu",
+     "log": 18,
+     "local_terms": 13,
+     "fixed_cols": 0,
+     "main_cols": 47,
+     "native_terms": [
+      13,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.binary",
+     "log": 16,
+     "local_terms": 9,
+     "fixed_cols": 0,
+     "main_cols": 29,
+     "native_terms": [
+      9,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.shift",
+     "log": 16,
+     "local_terms": 11,
+     "fixed_cols": 0,
+     "main_cols": 52,
+     "native_terms": [
+      11,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.jalr",
+     "log": 15,
+     "local_terms": 3,
+     "fixed_cols": 0,
+     "main_cols": 17,
+     "native_terms": [
+      3,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.multiplication",
+     "log": 18,
+     "local_terms": 97,
+     "fixed_cols": 3,
+     "main_cols": 87,
+     "native_terms": [
+      97,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.shift_table",
+     "log": 16,
+     "local_terms": 16,
+     "fixed_cols": 18,
+     "main_cols": 16,
+     "native_terms": [
+      16,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.and_table",
+     "log": 16,
+     "local_terms": 2,
+     "fixed_cols": 5,
+     "main_cols": 2,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.range16",
+     "log": 16,
+     "local_terms": 1,
+     "fixed_cols": 3,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.range8",
+     "log": 8,
+     "local_terms": 1,
+     "fixed_cols": 3,
+     "main_cols": 1,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.ls",
+     "log": 16,
+     "local_terms": 10,
+     "fixed_cols": 3,
+     "main_cols": 70,
+     "native_terms": [
+      10,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "core.initial",
+     "log": 5,
+     "local_terms": 0,
+     "fixed_cols": 3,
+     "main_cols": 14,
+     "native_terms": [
+      0,
+      1,
+      0,
+      0
+     ],
+     "binding_cols": 0,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
+    },
+    {
+     "name": "core.terminal",
+     "log": 20,
+     "local_terms": 0,
+     "fixed_cols": 3,
+     "main_cols": 14,
+     "native_terms": [
+      0,
+      1,
+      0,
+      0
+     ],
+     "binding_cols": 0,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 1,
+     "other_queries": 0
+    },
+    {
+     "name": "core.selection",
+     "log": 16,
+     "local_terms": 2,
+     "fixed_cols": 6,
+     "main_cols": 2,
+     "native_terms": [
+      2,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "core.ls_tail",
+     "log": 15,
+     "local_terms": 10,
+     "fixed_cols": 3,
+     "main_cols": 70,
+     "native_terms": [
+      10,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "core.alu_tail",
+     "log": 17,
+     "local_terms": 13,
+     "fixed_cols": 0,
+     "main_cols": 47,
+     "native_terms": [
+      13,
+      0,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 0,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 0,
+     "other_queries": 0
+    },
+    {
+     "name": "bridge.keccak",
+     "log": 7,
+     "local_terms": 42,
+     "fixed_cols": 6,
+     "main_cols": 66,
+     "native_terms": [
+      42,
+      2,
+      2,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 16,
+     "other_relation": "kio",
+     "ram_queries": 2,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.add",
+     "log": 17,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.double",
+     "log": 16,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bridge.sha256",
+     "log": 14,
+     "local_terms": 100,
+     "fixed_cols": 8,
+     "main_cols": 134,
+     "native_terms": [
+      100,
+      8,
+      0,
+      2
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 16,
+     "other_relation": "wire",
+     "ram_queries": 8,
+     "other_queries": 2
+    },
+    {
+     "name": "bulk.desc",
+     "log": 12,
+     "local_terms": 20,
+     "fixed_cols": 3,
+     "main_cols": 48,
+     "native_terms": [
+      20,
+      6,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 32,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 6,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.copy",
+     "log": 13,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 41,
+     "native_terms": [
+      7,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.set",
+     "log": 13,
+     "local_terms": 4,
+     "fixed_cols": 3,
+     "main_cols": 24,
+     "native_terms": [
+      4,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.ucopy",
+     "log": 16,
+     "local_terms": 19,
+     "fixed_cols": 3,
+     "main_cols": 56,
+     "native_terms": [
+      19,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.cdesc",
+     "log": 5,
+     "local_terms": 19,
+     "fixed_cols": 3,
+     "main_cols": 61,
+     "native_terms": [
+      19,
+      8,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 40,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 8,
+     "other_queries": 0
+    },
+    {
+     "name": "bulk.cmp",
+     "log": 5,
+     "local_terms": 15,
+     "fixed_cols": 3,
+     "main_cols": 59,
+     "native_terms": [
+      15,
+      4,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 24,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 4,
+     "other_queries": 0
+    },
+    {
+     "name": "sponge.call",
+     "log": 10,
+     "local_terms": 69,
+     "fixed_cols": 3,
+     "main_cols": 694,
+     "native_terms": [
+      69,
+      58,
+      50,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 240,
+     "other_cols": 208,
+     "other_relation": "kio",
+     "ram_queries": 58,
+     "other_queries": 50
+    },
+    {
+     "name": "sponge.perm",
+     "log": 12,
+     "local_terms": 245,
+     "fixed_cols": 3,
+     "main_cols": 973,
+     "native_terms": [
+      245,
+      36,
+      50,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 152,
+     "other_cols": 208,
+     "other_relation": "kio",
+     "ram_queries": 36,
+     "other_queries": 50
+    },
+    {
+     "name": "dword.0",
+     "log": 20,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 39,
+     "native_terms": [
+      7,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    },
+    {
+     "name": "dword.1",
+     "log": 16,
+     "local_terms": 7,
+     "fixed_cols": 3,
+     "main_cols": 39,
+     "native_terms": [
+      7,
+      2,
+      0,
+      0
+     ],
+     "binding_cols": 16,
+     "ram_cols": 16,
+     "other_cols": 0,
+     "other_relation": "none",
+     "ram_queries": 2,
+     "other_queries": 0
+    }
+   ],
+   "main_cells": 306641600,
+   "inter_cells": 164952064,
+   "inter_cols": 1744
+  }
+ ],
+ "truths": [
+  {
+   "native_supported": true,
+   "family": "keccak",
+   "calls": 20994,
+   "logs": [
+    19,
+    1770517
+   ],
+   "parts": [
+    {
+     "kind": "keccak",
+     "log": 19,
+     "fixed_cols": 32,
+     "native_terms": [
+      427,
+      0,
+      50,
+      0
+     ],
+     "composition_split": 2,
+     "main_cols": 1923,
+     "local_cols": 1152,
+     "global_cols": 408,
+     "global_relation": "kio",
+     "local_queries": 427,
+     "global_queries": 50,
+     "queries_exact": true
+    },
+    {
+     "kind": "chi",
+     "log": 21,
+     "fixed_cols": 7,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "composition_split": 2,
+     "main_cols": 1,
+     "local_cols": 16,
+     "global_cols": 0,
+     "global_relation": "none",
+     "local_queries": 1,
+     "global_queries": 0,
+     "queries_exact": true
+    },
+    {
+     "kind": "xor5",
+     "log": 16,
+     "fixed_cols": 7,
+     "native_terms": [
+      1,
+      0,
+      0,
+      0
+     ],
+     "composition_split": 2,
+     "main_cols": 1,
+     "local_cols": 16,
+     "global_cols": 0,
+     "global_relation": "none",
+     "local_queries": 1,
+     "global_queries": 0,
+     "queries_exact": true
+    }
+   ],
+   "main_cells": 1010368512,
+   "inter_cells": 852492288
+  },
+  {
+   "native_supported": true,
+   "family": "add",
+   "calls": 14855,
+   "logs": [
+    14,
+    0
+   ],
+   "parts": [
+    {
+     "kind": "add",
+     "log": 14,
+     "fixed_cols": 4,
+     "native_terms": [
+      1913,
+      0,
+      0,
+      9
+     ],
+     "composition_split": 2,
+     "main_cols": 1869,
+     "local_cols": 5104,
+     "global_cols": 24,
+     "global_relation": "wire",
+     "local_queries": 1276,
+     "global_queries": 6,
+     "queries_exact": false
+    }
+   ],
+   "main_cells": 30621696,
+   "inter_cells": 84017152
+  },
+  {
+   "native_supported": true,
+   "family": "double",
+   "calls": 14001,
+   "logs": [
+    14,
+    0
+   ],
+   "parts": [
+    {
+     "kind": "double",
+     "log": 14,
+     "fixed_cols": 4,
+     "native_terms": [
+      1506,
+      0,
+      0,
+      6
+     ],
+     "composition_split": 2,
+     "main_cols": 1447,
+     "local_cols": 4016,
+     "global_cols": 16,
+     "global_relation": "wire",
+     "local_queries": 1004,
+     "global_queries": 4,
+     "queries_exact": false
+    }
+   ],
+   "main_cells": 23707648,
+   "inter_cells": 66060288
+  },
+  {
+   "native_supported": true,
+   "family": "sha256",
+   "calls": 3157,
+   "logs": [
+    12,
+    0
+   ],
+   "parts": [
+    {
+     "kind": "sha256",
+     "log": 12,
+     "fixed_cols": 3,
+     "native_terms": [
+      0,
+      0,
+      0,
+      4
+     ],
+     "composition_split": 1,
+     "main_cols": 7409,
+     "local_cols": 0,
+     "global_cols": 16,
+     "global_relation": "wire",
+     "local_queries": 0,
+     "global_queries": 4,
+     "queries_exact": false
+    }
+   ],
+   "main_cells": 30347264,
+   "inter_cells": 65536
+  },
+  {
+   "native_supported": true,
+   "family": "arith256_mod",
+   "calls": 25,
+   "logs": [
+    8,
+    0
+   ],
+   "parts": [
+    {
+     "kind": "arith256_mod",
+     "log": 8,
+     "fixed_cols": 4,
+     "native_terms": [
+      238,
+      0,
+      0,
+      6
+     ],
+     "composition_split": 1,
+     "main_cols": 401,
+     "local_cols": 952,
+     "global_cols": 24,
+     "global_relation": "wire",
+     "local_queries": 238,
+     "global_queries": 6,
+     "queries_exact": false
+    }
+   ],
+   "main_cells": 102656,
+   "inter_cells": 249856
+  }
+ ]
+}

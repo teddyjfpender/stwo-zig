@@ -1,0 +1,89 @@
+{
+  "schema": "rv64-m7-owner-controller-negative/v1",
+  "label": "M",
+  "status": "incomplete_native_capacity_failure",
+  "mode": "on",
+  "assets": {
+    "driver": "e93af1894f9a8fcc720328f4ccd9d56b89895d58a63632550cf50653b1edb198",
+    "library": "116a3658ed4aecb1dff18d56e4a3be62d651411dc845da018a8362830a7590aa",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "environment": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+    "STWO_RV64_LEAF_SEED_TAPE": "1",
+    "STWO_RV64_PACK_FOLD_CACHE": "1",
+    "STWO_RV64_CPU_COMPACT_INGRESS": "1",
+    "STWO_RV64_COMPOSITION_ENQUEUE": "0",
+    "STWO_RV64_BLAKE_SAMPLE_PREFILL": "1",
+    "STWO_RV64_NVTX": "1",
+    "STWO_RV64_OUTER_OWNER_CONTROLLER": "1",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m7-device-controller/cuda/native/libstwo-rv64-native.so",
+    "CUDA_MODULE_LOADING": "EAGER"
+  },
+  "completed_requests": [
+    {
+      "block": 26235156,
+      "trial": 0,
+      "ordinal": 0,
+      "marker": {
+        "ok": true,
+        "block": 26235156,
+        "sequence": 0,
+        "request_wall_ns": 26918788921,
+        "queue_ns": 5076666
+      },
+      "stages": {
+        "request_wall_s": 26.919,
+        "capture_s": 1.682,
+        "setup_s": 8.698,
+        "native_prove_s": 3.943,
+        "native_verify_s": 1.276,
+        "native_total_before_report_s": 14.431,
+        "recursion_s": 12.46
+      },
+      "proof": "/workspace/m3/runs/m7-device-fs/daemon-26235156-24628607-r2-owner-controller-on/spool/out/0000-26235156/26235156/proof",
+      "proof_bytes_root": 750136,
+      "matches": {
+        "native": true,
+        "bundle": true,
+        "recursive": true
+      },
+      "reference": "/workspace/m3/src/m7-device-fs/vectors/reports/rv64-m6-20261105/integrate/26235156-2gpu-c1-bench.json"
+    }
+  ],
+  "all_completed_m6_byte_identical": true,
+  "last_oom": {
+    "requested_bytes": "33554432",
+    "retained_bytes": "25887348648",
+    "lease_bytes": "25652139944",
+    "idle_cache_bytes": "0",
+    "active_cache_bytes": "0",
+    "physical_free_bytes": "2179137536",
+    "physical_total_bytes": "33679736832",
+    "memory_rc": "0",
+    "pool_used_bytes": "26777255424",
+    "pool_reserved_bytes": "27279753216",
+    "pool_rc": "0",
+    "phase": "after_idle_eviction_retry",
+    "context_token": "2",
+    "device_index": "1",
+    "device_rc": "0",
+    "default_pool_used_bytes": "0",
+    "default_pool_reserved_bytes": "0",
+    "default_pool_rc": "0"
+  },
+  "last_error": "error: ImmutableSetupUploadFailed",
+  "scope": "Completedrequests only. Bothdaemonsfailed nativecapacity; nofullpairedperformance/capacityqualification. Requesttimescold/warmloadedobservations, not a speedupclaim."
+}

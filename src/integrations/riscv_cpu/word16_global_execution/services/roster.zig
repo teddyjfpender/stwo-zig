@@ -272,6 +272,9 @@ pub const CpuSetup = struct {
     }
 };
 pub const Sources = struct {
+    /// Persists after MAIN handoff so cleanup never treats device headers as CPU tombstones.
+    device_generated: bool = false,
+    device_main: ?@import("device_main.zig").Owner = null,
     core: Core.Source,
     keccak: ?K.source.Source = null,
     add: ?S.source.Source = null,
@@ -289,6 +292,8 @@ pub const Sources = struct {
     /// Zbb BINARY truth provider (FUNCTION ids 19..24 of this CPU proof).
     zbb: ?BS.Source = null,
     pub fn deinit(self: *Sources) void {
+        if (self.device_main) |*owner| owner.release();
+        self.device_main = null;
         if (self.zbb) |*s| s.deinit();
         for (&self.ls_dword) |*b| if (b.*) |*s| s.deinit();
         for (&self.sponge) |*b| if (b.*) |*s| s.deinit();
@@ -382,6 +387,64 @@ pub const Sources = struct {
         } else if (self.zbb != null) return error.UnexpectedCombinedServiceSource;
         return out;
     }
+    pub fn mainTraceColumns(self: *const Sources, a: std.mem.Allocator, setup: *const CpuSetup) ![]@import("stwo_prover_api").device_pcs.TraceColumn {
+        if (self.device_main) |owner| {
+            const logs = try setup.logs(a, 1);
+            defer a.free(logs);
+            try owner.validate(owner.scope, logs);
+            return a.dupe(@import("stwo_prover_api").device_pcs.TraceColumn, owner.columns);
+        }
+        const tree = 1;
+        const old = try self.core.mainTraceColumns(a);
+        defer a.free(old);
+        const out = try a.alloc(@import("stwo_prover_api").device_pcs.TraceColumn, setup.columnCount(tree));
+        errdefer a.free(out);
+        @memcpy(out[0..old.len], old);
+        var at = old.len;
+        for (0..T.FAMILIES) |k| {
+            const f: T.Family = @enumFromInt(k);
+            if (setup.bridges.at(f)) |log| {
+                const data = self.matrix(f, tree) orelse return error.MissingCombinedServiceSource;
+                if (data.len != T.widths(f)[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+                appendTrace(out, &at, data, log);
+            } else if (self.matrix(f, tree) != null) return error.UnexpectedCombinedServiceSource;
+        }
+        for (T.bulk_kinds, 0..) |kind, k| {
+            if (setup.bridges.bulk.at(kind)) |log| {
+                const s = self.bulk[k] orelse return error.MissingCombinedServiceSource;
+                const data = if (tree == 1) s.main else s.interaction;
+                if (s.kind != kind or data.len != T.bulkWidths(kind)[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+                appendTrace(out, &at, data, log);
+            } else if (self.bulk[k] != null) return error.UnexpectedCombinedServiceSource;
+        }
+        for (T.sponge_kinds, 0..) |kind, k| {
+            if (setup.bridges.sponge.at(kind)) |log| {
+                const s = self.sponge[k] orelse return error.MissingCombinedServiceSource;
+                const data = if (tree == 1) s.main else s.interaction;
+                if (s.kind != kind or data.len != T.spongeWidths(kind)[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+                appendTrace(out, &at, data, log);
+            } else if (self.sponge[k] != null) return error.UnexpectedCombinedServiceSource;
+        }
+        for (0..T.DWORD_INSTANCES) |k| {
+            if (setup.bridges.dwordLog(k)) |log| {
+                const s = self.ls_dword[k] orelse return error.MissingCombinedServiceSource;
+                const data = if (tree == 1) s.main else s.interaction;
+                if (s.log_size != log or data.len != T.dwordWidthsFor(setup.materials.geometry)[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+                appendTrace(out, &at, data, log);
+            } else if (self.ls_dword[k] != null) return error.UnexpectedCombinedServiceSource;
+        }
+        if (setup.bridges.zbb) |log| {
+            const s = self.zbb orelse return error.MissingCombinedServiceSource;
+            const data = switch (tree) {
+                1 => s.main,
+                2 => s.interaction,
+                else => return error.InvalidCombinedServiceSource,
+            };
+            if (s.log_size != log or data.len != T.zbbWidths()[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+            appendTrace(out, &at, data, log);
+        } else if (self.zbb != null) return error.UnexpectedCombinedServiceSource;
+        return out;
+    }
     pub fn mergeRanges(self: *Sources) !void {
         if (self.keccak) |*s| try merge(&self.core, s.counts16, s.counts8);
         if (self.add) |*s| try merge(&self.core, s.counts16, s.counts8);
@@ -412,6 +475,14 @@ pub const Sources = struct {
         if (self.zbb) |*s| try mergeAnd(&self.core, s.and_counts);
     }
     pub fn releaseMain(self: *Sources) !void {
+        if (self.device_main) |*owner| {
+            owner.release();
+            self.device_main = null;
+            // CPU37 may retain its own disjoint formatter lease. Other roles
+            // are headers only: no dummy host matrices exist to release.
+            self.core.cpu.releaseMain();
+            return;
+        }
         try self.core.releaseMain();
         if (self.keccak) |*s| s.releaseMain();
         if (self.add) |*s| s.releaseMain();
@@ -999,4 +1070,12 @@ fn takeCurve(s: anytype, tree: usize) !Commit {
     matrix.* = &.{};
     if (tree == 1) s.owns_main = false;
     return .{ .columns = headers, .backings = backings };
+}
+
+fn appendTrace(out: []@import("stwo_prover_api").device_pcs.TraceColumn, at: *usize, data: []const M, log: u32) void {
+    const n = @as(usize, 1) << @intCast(log);
+    for (0..data.len / n) |i| {
+        out[at.*] = .{ .log_size = log, .encoding = .evaluations, .host = data[i * n ..][0..n] };
+        at.* += 1;
+    }
 }

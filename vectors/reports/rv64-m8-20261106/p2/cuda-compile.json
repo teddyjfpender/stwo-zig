@@ -1,0 +1,70 @@
+{
+  "status": "CUDA_COMPILE_PASS_GPU_NOT_RUN",
+  "scope": "CUDA compile only; no GPU execution, throughput/S2/whole-proof qualification.",
+  "source_sha256": {
+    "tests/cuda/rv64/poseidon2_m31_smoke.cu": "f87c368cb638e7c90f598b23e05ce3c8a79dbbba1f0fa0453d9e52fcd4c52f25",
+    "tests/cuda/rv64/poseidon_commit_bench.cu": "730e258b6fed3722323c3181699211f0c4854c79f5940096b5ec4cac4eac996d",
+    "src/backends/cuda/native/rv64/poseidon2_m31.cuh": "c5593b92f42e0a451a6feeadb584b17fab88e6865bd90ce415cd4c477504a291",
+    "src/backends/cuda/native/rv64/poseidon2_m31_register.cuh": "82e9e5455a37bcb85de5691b9d31f7fe68d08d2e189708bd1c85aa15cdcdfd09",
+    "src/backends/cuda/native/common/m31.cuh": "20fb8c44b80c0729275e7109993523ae8402125566ecb1430f26d641b2044c17",
+    "scripts/rv64_m7_poseidon_fast_reduction.py": "989384525d81c7d514b2f2b86bbd73992fa9f17017452e2286452856525580dc",
+    "src/backends/cuda/native/commitment/merkle.cu": "1d9e34a915d92d8c7f3cdf0555077a0fcf5b458eb6e8d8d8ce92d257c76fec59",
+    "src/backends/cuda/native/commitment/progressive.cu": "5f68ad1f47197ade12ab043314dcae7b68de5c2fef4968bd495081588cc99774",
+    "src/backends/cuda/native/commitment/blake2s_core.cuh": "1f35b2fe47b2f3b9b85499e5b9515f42dbdb8a83397f58919e6feffe32f75447",
+    "src/backends/cuda/native/commitment/blake2s_protocol.cuh": "5988ef51326af8b4680422530e036741a2b9c3ee01919b7fd133cd66ae0f709c",
+    "src/backends/cuda/native/commitment/progressive_scalar.cuh": "80bbc807dfbcdc1351cca4f1aef2a7398f1b309dd6a4d25de5e55a8fd64d51b2",
+    "src/backends/cuda/native/commitment/resident_layout.cuh": "2d6b4f93097abdc97f046cd7d9a1c3fa91647478ec07add9fe3459c515681bdc",
+    "src/backends/cuda/native/commitment/blake2s_domain_states.h": "380318f129647f41dec900ebf5543263d20f18acefe079b291fae5fc3c548132",
+    "src/backends/cuda/native/commitment/mixed_layout.h": "4cc34269e60c1145692f35cbb2dcd365e69b226b38ae961e2bb692e945021196"
+  },
+  "steps": [
+    {
+      "name": "smoke-register",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xptxas=-v",
+        "-DSTWO_P2_REGISTER_PACKED",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native/rv64",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native/commitment",
+        "/workspace/m3/src/m7-integrate/tests/cuda/rv64/poseidon2_m31_smoke.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p2-register-v1/smoke-register"
+      ],
+      "exit_code": 0,
+      "seconds": 12.895726824179292,
+      "log_sha256": "5b20bd2486ddf245f03d1053cd1d05f72fd2d2e40c25b9a064b805fcece4e43c",
+      "binary": "/workspace/m3/build/m7-integrate/p2-register-v1/smoke-register",
+      "sha256": "f8133c18eab5f2c44be4b0b495fdc137ec6a21633c6e704b0d8b1a25a41f638e"
+    },
+    {
+      "name": "bench-register",
+      "argv": [
+        "/usr/local/cuda/bin/nvcc",
+        "-O3",
+        "-std=c++17",
+        "-gencode",
+        "arch=compute_120,code=sm_120",
+        "-Xptxas=-v",
+        "-DSTWO_P2_REGISTER_PACKED",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native/rv64",
+        "-I/workspace/m3/src/m7-integrate/src/backends/cuda/native/commitment",
+        "/workspace/m3/src/m7-integrate/tests/cuda/rv64/poseidon_commit_bench.cu",
+        "/workspace/m3/src/m7-integrate/src/backends/cuda/native/commitment/merkle.cu",
+        "/workspace/m3/src/m7-integrate/src/backends/cuda/native/commitment/progressive.cu",
+        "-o",
+        "/workspace/m3/build/m7-integrate/p2-register-v1/bench-register"
+      ],
+      "exit_code": 0,
+      "seconds": 20.91281622601673,
+      "log_sha256": "7eed3b28d50aa93baa49b3bf7e5c5e0962759a87c6f4004521302e4383547c86",
+      "binary": "/workspace/m3/build/m7-integrate/p2-register-v1/bench-register",
+      "sha256": "045eff885e0bff407d06bcb0382fd375cb7c8e554c97db4373adb96200ccf4e3"
+    }
+  ]
+}

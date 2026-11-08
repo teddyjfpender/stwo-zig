@@ -1,0 +1,329 @@
+{
+  "schema": "rv64-gkr-mixed-tail-real-block-ab/v1",
+  "qualified_at_utc": "2026-11-04T00:10:38.038711+00:00",
+  "complete": true,
+  "decision": "Keep the optional mixed persistent tail OFF by default; real whole-block speedup was not demonstrated.",
+  "scope": "Four fresh native full-block productions (OFF/ON \u00d7cold/warm), seven CPU + ten truth proofs each. No recursion. Each complete 20-artifact set exactly matches the accepted policy-v2 reference; four separately fresh CPU receivers accept completed execution.",
+  "security_profile": "conjectured128_b2_q108_p20_fold4",
+  "security_label": "128-bit target under documented assumptions, policy identity v2; unchanged by this optimization.",
+  "block": 24628607,
+  "instructions": 26894777,
+  "gpu_count": 1,
+  "gpu_model": "RTX5090",
+  "driver_sha256": "36211c4937776e7b51ac0c07f848426866c83fa82d81c1417a3f649c68ea481a",
+  "library_sha256": "ca537e7a1ad8edad79d0398fbdee8e6056e2edbc8f92512d3d61af2c925cd249",
+  "receiver_sha256": "52a436daf39d8c9cab30a1a00f3885a16abfae323f2fc5ea22e4e21da085e394",
+  "runtime_build_metadata": "/workspace/rv64-gpu-session/build/wide-framing-083e19587/build.json",
+  "native_runtime_source_commit": "3e0e4325a",
+  "kernel_qualification_commit": "668e32185",
+  "manifest": {
+    "schema": "rv64-ethereum-basket-inputs/v1",
+    "profile": "conjectured128_b2_q108_p20_fold4",
+    "blocks": {
+      "24628607": {
+        "request": "/workspace/rv64-gpu-session/basket/blocks/24628607/request.json",
+        "expected_cpu_segments": 7
+      }
+    },
+    "execution_order": [
+      24628607
+    ],
+    "resources": {
+      "gkr_bytes": 34359738368,
+      "global_bytes": 8589934592,
+      "retained_frontend_bytes": 51539607552,
+      "disk_bytes": 0,
+      "park_main": false,
+      "schedule": {
+        "lanes": 1,
+        "workers_per_lane": 8,
+        "memory_cap_bytes": 38654705664
+      },
+      "capture_options": {
+        "max_inflight_packets": 4,
+        "packet_heap_bytes": 1073741824,
+        "max_inflight_packet_heap_bytes": 4294967296,
+        "max_inflight_wire_bytes": 4294967296,
+        "execution_workers": 8
+      },
+      "recycler_cache_bytes": 1073741824,
+      "keccak_max_log": 18,
+      "fixed_setup_bytes": 12884901888,
+      "defer_local_binding": true,
+      "keccak_uniform_throughput": true
+    },
+    "repeat": 2,
+    "immutable_host_key_bytes": 4294967296,
+    "immutable_device_bytes": 2147483648
+  },
+  "reference": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/24628607/proof",
+  "reference_artifacts": {
+    "bundle.json": {
+      "bytes": 75236,
+      "sha256": "eed289d3d554135c1b01d6bcb4a6e093907f4a4e737a203c1e8f6b9fc0259edf"
+    },
+    "cells.bin": {
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    "cpu-0.bin": {
+      "bytes": 3272408,
+      "sha256": "cac9c335bf241d149c9e18cfd586b452772840815c79bfceaa635baeaab701dc"
+    },
+    "cpu-1.bin": {
+      "bytes": 2909736,
+      "sha256": "6577164eeea71a3d125fef5e541c7f9bb1a7ee28fbf78a10114df4f1180703b0"
+    },
+    "cpu-2.bin": {
+      "bytes": 3158560,
+      "sha256": "84195a81e9f07ec36178fc661d5a5417a6f23ce07e95f1520cfd48292346051f"
+    },
+    "cpu-3.bin": {
+      "bytes": 3163048,
+      "sha256": "dab97ee3286b07ff75fbe558234ed395fc4611108a1ad3723433daae1b532fba"
+    },
+    "cpu-4.bin": {
+      "bytes": 3102504,
+      "sha256": "881469a76adb62af859af8aab845347116b8710585f7f4a6932a9027af95a531"
+    },
+    "cpu-5.bin": {
+      "bytes": 3022368,
+      "sha256": "11f1f6803999416ac991d9186ec4cdc8d3ee8fb790d3bc1f1442ebcfdd0190d3"
+    },
+    "cpu-6.bin": {
+      "bytes": 1428848,
+      "sha256": "0b97341fbe90dd30c6e1744f95864f5e4d92efb45d429bdfc5e2eacb58b7ed9a"
+    },
+    "stage-one.bin": {
+      "bytes": 823536,
+      "sha256": "7fec3b71d5243d3aae41ae92d80b0b5c6a97eedec3b2a8b04aaf6e5765bd0598"
+    },
+    "truth-0.bin": {
+      "bytes": 2350760,
+      "sha256": "232cd69be3048f1afd1e01d5c074c38760b4dbda540bfcddc3b3cc0769b09d4b"
+    },
+    "truth-1.bin": {
+      "bytes": 2351336,
+      "sha256": "b783e801c3611f78bd141dda63fa9e0bd409c529109995d2f1e7dc12453a0410"
+    },
+    "truth-2.bin": {
+      "bytes": 2344488,
+      "sha256": "60c0640e426c5244ac61ea1aa13cb9fa1f5f170817aefdfbfe27c397ca1d1651"
+    },
+    "truth-3.bin": {
+      "bytes": 3463972,
+      "sha256": "f85c229528814b1527d8c2c6336f9aa50aa9964e9a3858aa306f56f46fbd43dd"
+    },
+    "truth-4.bin": {
+      "bytes": 3374616,
+      "sha256": "e6b67f1417c0181bb6f460b293383d6dd9a55734eed62711a38999cc5717bc0f"
+    },
+    "truth-5.bin": {
+      "bytes": 3103028,
+      "sha256": "e7da39cb6c2cfafd3b5e578e0b1b056cf86184becf955531a17074b7ce56bfe3"
+    },
+    "truth-6.bin": {
+      "bytes": 2769112,
+      "sha256": "966b549031f9f51b1613b7ae7aab94fcbae6afa3792ecc3c1246fdebb8c7ddb5"
+    },
+    "truth-7.bin": {
+      "bytes": 2717104,
+      "sha256": "588690cb3be8cd39379fbbf315eb35e747ec6cfa09988741a229afb321216d98"
+    },
+    "truth-8.bin": {
+      "bytes": 3591784,
+      "sha256": "8b0ec4a14e36b1741350624e5931c62b00b41bf53425ad583d198967ef7d306f"
+    },
+    "truth-9.bin": {
+      "bytes": 662392,
+      "sha256": "dc4c4cac1e2cea7d96eb8e501b092cb76635ef19218e475008c170d99b83d839"
+    }
+  },
+  "cases": [
+    {
+      "tail_enabled": false,
+      "tail_env_present": false,
+      "logged_tail_values": [
+        "false"
+      ],
+      "logged_batched_masks_values": [
+        "true"
+      ],
+      "gpu_pcs_invocations": 25,
+      "process_wall_seconds": 64.63017223705538,
+      "process_user_seconds": 125.00021,
+      "process_system_seconds": 17.215136,
+      "process_peak_rss_bytes": 14664699904,
+      "sampled_gpu_peak_mib": 32106,
+      "producer_log_sha256": "836400e0911ec5bbf373aa40bc5b38f7b3da45475eb2cee3d6e97d90cd29b8a2",
+      "environment": {
+        "CUDA_MODULE_LOADING": "EAGER",
+        "STWO_RV64_GPU_LIBRARY": "/workspace/rv64-gpu-session/build/wide-framing-083e19587/libstwo-rv64-wide-framing-ca537e7a1ad8edad.so",
+        "STWO_RV64_GPU_DEVICE_TRACE": "1",
+        "STWO_RV64_GPU_DEVICE_BINDING": "1",
+        "STWO_RV64_GPU_DEVICES": "0",
+        "STWO_RV64_GPU_DEVICE_CAPS": "30064771072",
+        "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+        "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "7",
+        "STWO_RV64_GPU_CPU_REPLAY": "1",
+        "STWO_RV64_CORE_SINGLE_STREAM": "1",
+        "STWO_RV64_GKR_BATCH_ORACLES": "1",
+        "STWO_RV64_PCS_PHASE_TIMING": "1"
+      }
+    },
+    {
+      "tail_enabled": true,
+      "tail_env_present": true,
+      "logged_tail_values": [
+        "true"
+      ],
+      "logged_batched_masks_values": [
+        "true"
+      ],
+      "gpu_pcs_invocations": 25,
+      "process_wall_seconds": 71.67653778498061,
+      "process_user_seconds": 135.935396,
+      "process_system_seconds": 19.406073,
+      "process_peak_rss_bytes": 14667264000,
+      "sampled_gpu_peak_mib": 32106,
+      "producer_log_sha256": "ebba3b5f47e5dffc43e0882439d92d2f427d81e52425591a56b6ec6e0cde7bb4",
+      "environment": {
+        "CUDA_MODULE_LOADING": "EAGER",
+        "STWO_RV64_GPU_LIBRARY": "/workspace/rv64-gpu-session/build/wide-framing-083e19587/libstwo-rv64-wide-framing-ca537e7a1ad8edad.so",
+        "STWO_RV64_GPU_DEVICE_TRACE": "1",
+        "STWO_RV64_GPU_DEVICE_BINDING": "1",
+        "STWO_RV64_GPU_DEVICES": "0",
+        "STWO_RV64_GPU_DEVICE_CAPS": "30064771072",
+        "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+        "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "7",
+        "STWO_RV64_GPU_CPU_REPLAY": "1",
+        "STWO_RV64_CORE_SINGLE_STREAM": "1",
+        "STWO_RV64_GKR_BATCH_ORACLES": "1",
+        "STWO_RV64_PCS_PHASE_TIMING": "1",
+        "STWO_RV64_GKR_BATCH_TAIL": "1"
+      }
+    }
+  ],
+  "trials": [
+    {
+      "tail_enabled": false,
+      "trial": 0,
+      "prove_seconds": 12.387043479,
+      "capture_seconds": 5.268097088,
+      "setup_seconds": 21.87736041,
+      "gkr_adapter_seconds": 0.907368085,
+      "gkr_traversal_ms": 587.76382,
+      "gkr_gpu_span_ms": 792.602028,
+      "gkr_kernel_launches": 15190,
+      "exact_all20_reference": true,
+      "fresh_cpu_receiver_accepted_completed": true,
+      "physical_stages_summed_seconds_not_additive": {
+        "source_construction": 1.5516910680000002,
+        "local_gkr_prove": 1.032338365,
+        "binding_finalize": 0.32732442700000003,
+        "interaction_generation": 0.679410797,
+        "draw_random_coeff": 0.00010651199999999999,
+        "oods_point_and_mask_points": 0.042647735000000006,
+        "constraint_check_and_assembly": 0.08871139200000003
+      },
+      "fresh_receiver_process_wall_seconds": 27.850483171874657
+    },
+    {
+      "tail_enabled": false,
+      "trial": 1,
+      "prove_seconds": 9.801569942,
+      "capture_seconds": 4.969067892,
+      "setup_seconds": 0.184012554,
+      "gkr_adapter_seconds": 0.861358664,
+      "gkr_traversal_ms": 627.0264500000001,
+      "gkr_gpu_span_ms": 800.418771,
+      "gkr_kernel_launches": 15190,
+      "exact_all20_reference": true,
+      "fresh_cpu_receiver_accepted_completed": true,
+      "physical_stages_summed_seconds_not_additive": {
+        "source_construction": 1.249151319,
+        "local_gkr_prove": 0.9881297960000001,
+        "binding_finalize": 0.335321943,
+        "interaction_generation": 0.6061289759999999,
+        "draw_random_coeff": 0.000128494,
+        "oods_point_and_mask_points": 0.042000393,
+        "constraint_check_and_assembly": 0.099398441
+      },
+      "fresh_receiver_process_wall_seconds": 25.262449742062017
+    },
+    {
+      "tail_enabled": true,
+      "trial": 0,
+      "prove_seconds": 12.658984082,
+      "capture_seconds": 5.646921121,
+      "setup_seconds": 25.967385097,
+      "gkr_adapter_seconds": 0.933995977,
+      "gkr_traversal_ms": 598.685261,
+      "gkr_gpu_span_ms": 815.263949,
+      "gkr_kernel_launches": 13228,
+      "exact_all20_reference": true,
+      "fresh_cpu_receiver_accepted_completed": true,
+      "physical_stages_summed_seconds_not_additive": {
+        "source_construction": 1.54757673,
+        "local_gkr_prove": 1.062417612,
+        "binding_finalize": 0.385961784,
+        "interaction_generation": 0.701154434,
+        "draw_random_coeff": 0.000139176,
+        "oods_point_and_mask_points": 0.04283500899999999,
+        "constraint_check_and_assembly": 0.120587648
+      },
+      "fresh_receiver_process_wall_seconds": 24.77832290995866
+    },
+    {
+      "tail_enabled": true,
+      "trial": 1,
+      "prove_seconds": 10.482248467,
+      "capture_seconds": 5.322579501,
+      "setup_seconds": 0.207635252,
+      "gkr_adapter_seconds": 0.869590133,
+      "gkr_traversal_ms": 602.04443,
+      "gkr_gpu_span_ms": 777.753645,
+      "gkr_kernel_launches": 13228,
+      "exact_all20_reference": true,
+      "fresh_cpu_receiver_accepted_completed": true,
+      "physical_stages_summed_seconds_not_additive": {
+        "source_construction": 1.293753101,
+        "local_gkr_prove": 1.000740141,
+        "binding_finalize": 0.382285916,
+        "interaction_generation": 0.6420975800000001,
+        "draw_random_coeff": 0.00013650400000000002,
+        "oods_point_and_mask_points": 0.043080151000000004,
+        "constraint_check_and_assembly": 0.11714984899999997
+      },
+      "fresh_receiver_process_wall_seconds": 26.1173407160677
+    }
+  ],
+  "on_relative_to_off": [
+    {
+      "trial": 0,
+      "prove_percent_change": 2.1953632718010985,
+      "gkr_adapter_percent_change": 2.934629555545798,
+      "gkr_traversal_percent_change": 1.8581342757708397,
+      "gkr_launch_percent_change": -12.916392363396966
+    },
+    {
+      "trial": 1,
+      "prove_percent_change": 6.944586724655943,
+      "gkr_adapter_percent_change": 0.9556378015372236,
+      "gkr_traversal_percent_change": -3.9842051320163607,
+      "gkr_launch_percent_change": -12.916392363396966
+    }
+  ],
+  "interpretation": [
+    "Launch count fell 12.9%, but adapter wall did not improve in either trial. Warm CUDA traversal improved 4.0%; cold traversal regressed 1.9%.",
+    "Whole-block proving was slower in both ON observations. Concurrent CPU-only basket qualification and a single pair prevent strong causal or statistical claims for whole-block differences.",
+    "OFF truly omitted STWO_RV64_GKR_BATCH_TAIL; setting it to 0 would also enable this presence-based option. Producer logs independently confirm false/true.",
+    "The earlier accepted image logged batched_masks=false. This coherent image logs batched_masks=true for BOTH OFF and ON; its lower OFF launch count is not evidence that the tail was enabled.",
+    "No default activation and no performance improvement claim. Correctness qualification is positive; kernel memory/race sanitizers remain pending for the optional route."
+  ],
+  "raw_result": {
+    "path": "/workspace/rv64-gpu-session/qualification/gkr-tail-ab-3e0e4325a/result.json",
+    "sha256": "a98f841e413bcd14e23f4751ceaea74b8ead38fec8c3ebcb9c03666d3cd7a47c"
+  },
+  "harness_sha256": "56bb37e65c6ecc54d4dedfecc81cabf9a74da29d315e9abf5235afea24edbfaf"
+}

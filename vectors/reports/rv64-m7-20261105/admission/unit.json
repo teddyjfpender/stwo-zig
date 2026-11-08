@@ -1,0 +1,11 @@
+{
+  "schema": "rv64-m7-global-admission-unit/v1",
+  "status": "passed",
+  "label": "M",
+  "tests": 3,
+  "source_sha256": "54b68f5223f3315e20ae81e318e940a81c990550a204609d6440e1191081c8e2",
+  "scope": "Pure ledger only; no production hooks or capacity qualification yet",
+  "root_commit": "96a99dfa491474da7eeb60224196fec6c592c53c",
+  "pod": "cps13bvat3xhdo",
+  "command": "flock build.3 zig test global_admission.zig -O ReleaseSafe"
+}

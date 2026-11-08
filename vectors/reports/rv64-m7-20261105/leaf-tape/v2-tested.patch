@@ -1,0 +1,1063 @@
+--- /dev/null
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_tape.zig
+@@ -0,0 +1,179 @@
++//! Producer-only leaf seeds, emitted from independently verified native captures.
++//! The circuit, transcript, PP and receiver are unchanged. A cache miss uses the
++//! full graph; `check` compares every seed against that graph before reuse.
++const std = @import("std");
++const core = @import("stwo_core");
++const V = @import("mod.zig");
++const Fold = @import("fold_tape.zig");
++const Outer = @import("outer_wrap.zig");
++const Components = @import("../../word16_global_execution/services/gkr_local/cpu_components.zig");
++const Types = @import("../../word16_global_execution/services/types.zig");
++const Frame = @import("../../word16_global_execution/services/gkr_local/frame.zig");
++pub const Mode = enum { off, on, check };
++pub fn mode() Mode {
++    const value = std.posix.getenv("STWO_RV64_LEAF_SEED_TAPE") orelse return .off;
++    if (std.mem.eql(u8, value, "check")) return .check;
++    return if (std.mem.eql(u8, value, "1")) .on else .off;
++}
++
++const Key = struct {
++    h: std.crypto.hash.sha2.Sha256,
++    fn word(self: *Key, value: anytype) void {
++        var bytes: [8]u8 = undefined;
++        std.mem.writeInt(u64, &bytes, @intCast(value), .little);
++        self.h.update(&bytes);
++    }
++    fn init(input: anytype, shape: *const V.Shape) Key {
++        var self = Key{ .h = std.crypto.hash.sha2.Sha256.init(.{}) };
++        self.h.update("rv64-om31-leaf-seed-class/v1\x00");
++        self.h.update(@import("stwo_circuit_cpu_integration").om31.protocol.domainName());
++        self.h.update(@tagName(Outer.shape()));
++        self.h.update(&input.expected.fixed);
++        if (input.fixed) |fixed| {
++            self.h.update(&fixed.fixed_identity);
++            self.h.update(&fixed.source_root);
++            if (fixed.profile) |p| self.h.update(@tagName(p));
++        }
++        self.word(shape.global_log);
++        self.word(shape.composition_log_split);
++        self.word(shape.pcs.pow_bits);
++        self.word(shape.pcs.fri_config.log_blowup_factor);
++        self.word(shape.pcs.fri_config.n_queries);
++        self.word(shape.pcs.fri_config.log_last_layer_degree_bound);
++        self.word(shape.pcs.fri_config.fold_step);
++        self.word(shape.pcs.lifting_log_size orelse 0);
++        self.word(shape.nTrees());
++        for (shape.tree_column_log_sizes, shape.mask_offsets) |logs, columns| {
++            self.word(logs.len);
++            for (logs, columns) |log, offsets| {
++                self.word(log);
++                self.word(offsets.len);
++                for (offsets) |offset| self.word(@as(u32, @bitCast(offset)));
++            }
++        }
++        return self;
++    }
++};
++
++/// All class constants: source FIXED root, layout, exact GKR roster and proof
++/// structure, config and outer profile. No producer-supplied class is admitted.
++pub fn cpuClass(input: anytype, shape: *const V.Shape) ![32]u8 {
++    var key = Key.init(input, shape);
++    key.h.update("cpu\x00");
++    key.h.update(&input.setup.key.root);
++    const instances = input.expected.local_instances orelse return error.WideCpuLocalRequired;
++    key.word(instances.len);
++    for (instances) |instance| {
++        for (Frame.originWords(instance.origin)) |w| key.word(w);
++        key.word(instance.row_log);
++        key.word(instance.terms);
++        key.word(instance.fixed_offset);
++        key.word(instance.main_offset);
++    }
++    const proof = (input.stage.local orelse return error.WideCpuLocalRequired).proof;
++    key.word(proof.sumcheck_proofs.len);
++    for (proof.sumcheck_proofs) |sc| {
++        key.word(sc.round_polys.len);
++        for (sc.round_polys) |p| key.word(p.coeffsSlice().len);
++    }
++    key.word(proof.layer_masks_by_instance.len);
++    for (proof.layer_masks_by_instance) |masks| {
++        key.word(masks.len);
++        for (masks) |mask| key.word(mask.columns.len);
++    }
++    key.word(proof.output_claims_by_instance.len);
++    for (proof.output_claims_by_instance) |claims| key.word(claims.len);
++    return key.h.finalResult();
++}
++pub fn truthClass(input: anytype, shape: *const V.Shape) [32]u8 {
++    var key = Key.init(input, shape);
++    key.h.update("truth\x00");
++    key.h.update(@tagName(std.meta.activeTag(input.truth)));
++    key.h.update(&input.truth.key().root);
++    key.word(input.truth.first());
++    key.word(input.truth.count());
++    return key.h.finalResult();
++}
++
++pub fn cpu(a: std.mem.Allocator, input: anytype, values: *const V.Captured) ![][4]u32 {
++    var out: std.ArrayListUnmanaged([4]u32) = .empty;
++    errdefer out.deinit(a);
++    var emit = Fold.Emit{ .a = a, .out = &out };
++    try emit.proof(values);
++    // Same seed order as Cpu.Statement.init. Root/receipt exposure aliases
++    // existing variables; arithmetic, byte extraction and inverse flags are hints.
++    try emit.word(input.expected.ordinal);
++    try emit.hash(input.expected.statement);
++    try emit.hash(input.manifest.digest);
++    const proof = (input.stage.local orelse return error.WideCpuLocalRequired).proof;
++    for (proof.sumcheck_proofs) |sc| for (sc.round_polys) |poly| for (poly.coeffsSlice()) |v| try emit.om(v);
++    for (proof.layer_masks_by_instance) |masks| for (masks) |mask| for (mask.columns) |pair| for (pair) |v| try emit.om(v);
++    for (proof.output_claims_by_instance) |claims| for (claims) |v| try emit.om(v);
++    for (input.encoded.claims) |v| try emit.om(v);
++    const c = input.request.base.cpu;
++    try emit.word(c.steps);
++    try emit.word(input.request.base.epoch);
++    for (0..4) |i| {
++        const shift: u6 = @intCast(16 * i);
++        try emit.word(@as(u16, @truncate(c.initial_pc >> shift)));
++        try emit.word(@as(u16, @truncate(c.final_pc >> shift)));
++    }
++    for (0..32) |r| {
++        for (0..4) |i| {
++            const shift: u6 = @intCast(16 * i);
++            try emit.word(@as(u16, @truncate(c.initial_registers[r] >> shift)));
++            try emit.word(@as(u16, @truncate(c.final_registers[r] >> shift)));
++        }
++        try emit.word(c.register_clocks[r]);
++    }
++    var plan = try Components.Plan.init(a, input.setup);
++    defer plan.deinit();
++    const ls = try input.setup.materials.geometry.lsCounts(input.request.base.memory.ls_count);
++    const dword = try Types.dwordCounts(input.setup.bridges, input.request.ls_dword);
++    try emit.word(input.request.sponge.first_id);
++    for (plan.slots) |slot| {
++        var rows: u32 = 0;
++        var calls: u32 = 0;
++        var first: u32 = 1;
++        switch (slot.origin) {
++            .core => |role| rows = switch (role) {
++                .initial => @intCast(input.request.base.memory.initial.len),
++                .terminal => @intCast(input.request.base.memory.terminal.len),
++                .ls => ls.head,
++                .ls_tail => ls.tail,
++                .multiplication => input.request.base.multiplication_requests,
++                .division => input.request.base.division_requests,
++                else => 0,
++            },
++            .bridge => |family| {
++                calls = input.request.calls[@intFromEnum(family)];
++                first = input.first[@intFromEnum(family)];
++            },
++            .bulk => |kind| rows = input.request.bulk.rows(kind),
++            .sponge => |kind| rows = input.request.sponge.rows(kind),
++            .dword => |index| rows = dword[index],
++        }
++        try emit.word(rows);
++        try emit.word(calls);
++        try emit.word(first);
++    }
++    return out.toOwnedSlice(a);
++}
++pub fn truth(a: std.mem.Allocator, input: anytype, values: *const V.Captured) ![][4]u32 {
++    var out: std.ArrayListUnmanaged([4]u32) = .empty;
++    errdefer out.deinit(a);
++    var emit = Fold.Emit{ .a = a, .out = &out };
++    try emit.proof(values);
++    try emit.word(input.expected.ordinal);
++    try emit.word(input.truth.first());
++    try emit.word(input.truth.count());
++    try emit.hash(input.expected.statement);
++    try emit.hash(input.manifest.digest);
++    for (input.encoded.claims) |v| try emit.om(v);
++    return out.toOwnedSlice(a);
++}
++pub fn compare(a: std.mem.Allocator, tape: []const [4]u32, ctx: *const V.common.Context) !void {
++    // The fold comparator walks seed origins only and compares all coordinates.
++    try Fold.compare(a, tape, ctx);
++    std.debug.print("LEAF_SEED_TAPE check_ok seeds={}\n", .{tape.len});
++}
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig
+@@ -16,18 +16,50 @@
+ const Fixed = @import("../../word16_global_execution/services/gkr_local/fixed_authority.zig");
+ const CpuWorker = @import("../../word16_global_execution/services/gkr_local/cpu_worker.zig");
+ const TruthWorker = @import("../../word16_global_execution/services/gkr_local/truth_worker.zig");
++const Tape = @import("leaf_tape.zig");
++const Outer = @import("outer_wrap.zig");
+ pub const Graph = struct {
+     allocator: std.mem.Allocator,
+     ctx: *C.Context,
+     words: []u32,
+     digest: [32]u8,
++    class: ?[32]u8 = null,
++    seed_tape: ?[][4]u32 = null,
+     pub fn deinit(self: *Graph) void {
+         self.ctx.deinit();
+         self.allocator.destroy(self.ctx);
+         self.allocator.free(self.words);
++        if (self.seed_tape) |values| self.allocator.free(values);
+         self.* = undefined;
+     }
+ };
++fn digestWords(words: []const u32) [32]u8 {
++    var h = std.crypto.hash.blake2.Blake2s256.init(.{});
++    var bytes: [4]u8 = undefined;
++    for (words) |word| {
++        std.mem.writeInt(u32, &bytes, word, .little);
++        h.update(&bytes);
++    }
++    var result: [32]u8 = undefined;
++    h.final(&result);
++    return result;
++}
++fn stub(a: std.mem.Allocator, words: []const u32, class: [32]u8, seeds: [][4]u32) !Graph {
++    const ctx = try context(a, true);
++    errdefer {
++        ctx.deinit();
++        a.destroy(ctx);
++    }
++    ctx.finalized = true;
++    return .{ .allocator = a, .ctx = ctx, .words = try a.dupe(u32, words), .digest = digestWords(words), .class = class, .seed_tape = seeds };
++}
++fn finishClass(a: std.mem.Allocator, ctx: *C.Context, output: C.Hash, words: []const u32, label: []const u8, class: ?[32]u8, seeds: ?[][4]u32) !Graph {
++    var graph = try finish(a, ctx, output, words, label);
++    errdefer a.free(graph.words);
++    if (seeds) |values| try Tape.compare(a, values, ctx);
++    graph.class = class;
++    return graph;
++}
+ fn context(a: std.mem.Allocator, trace_only: bool) !*C.Context {
+     const ctx = try a.create(C.Context);
+     errdefer a.destroy(ctx);
+@@ -75,18 +107,31 @@
+     fixed: ?*const Fixed.Binding = null,
+ };
+ pub fn cpu(a: std.mem.Allocator, input: CpuInput) !Graph {
+-    return cpuMode(a, input, false);
++    return cpuMode(a, input, false, null);
+ }
+ pub fn cpuTraceOnly(a: std.mem.Allocator, input: CpuInput) !Graph {
+-    return cpuMode(a, input, true);
+-}
+-fn cpuMode(a: std.mem.Allocator, input: CpuInput, trace_only: bool) !Graph {
++    return cpuMode(a, input, true, null);
++}
++pub fn cpuTraceWithTape(a: std.mem.Allocator, input: CpuInput, factory: ?Outer.Device.Factory) !Graph {
++    return cpuMode(a, input, true, factory);
++}
++fn cpuMode(a: std.mem.Allocator, input: CpuInput, trace_only: bool, factory: ?Outer.Device.Factory) !Graph {
+     var admitted = try Capture.verify(a, input.setup, input.request, input.expected, input.first, input.manifest, input.index, input.config, input.encoded, input.fixed);
+     defer admitted.deinit(a);
+     var arena = std.heap.ArenaAllocator.init(a);
+     defer arena.deinit();
+     const shape = try Capture.geometry(arena.allocator(), input.setup, input.config);
+     const values = try V.proof.fromNative(arena.allocator(), &admitted.proof, &admitted.capture, &shape);
++    const local = input.manifest.entries[input.index].local orelse return error.WideCpuLocalRequired;
++    const words = try Cpu.expectedWords(arena.allocator(), input.setup, input.request, input.first, input.expected, input.manifest.digest, admitted.proof.commitment_scheme_proof.commitments.items[1], local.digest, input.encoded.claims);
++    const class = if (factory != null and Tape.mode() != .off) try Tape.cpuClass(input, &shape) else null;
++    if (class) |key| if (Tape.mode() == .on and Outer.tapeReady(factory.?, key)) {
++        const seeds = try Tape.cpu(a, input, &values);
++        errdefer a.free(seeds);
++        return stub(a, words, key, seeds);
++    };
++    const seeds = if (class != null and Tape.mode() == .check) try Tape.cpu(a, input, &values) else null;
++    defer if (seeds) |s| a.free(s);
+     const ctx = try context(a, trace_only);
+     errdefer {
+         ctx.deinit();
+@@ -96,13 +141,11 @@
+     errdefer C.lane.finish() catch {};
+     const proof = try V.proof.guess(ctx, &values, &shape);
+     var frame = V.frame.Frame.init(ctx);
+-    const local = input.manifest.entries[input.index].local orelse return error.WideCpuLocalRequired;
+     var statement = try Cpu.Statement.init(&frame, input.setup, input.request, input.first, input.expected, input.manifest.digest, input.encoded.claims, &proof, (input.stage.local orelse return error.WideCpuLocalRequired).proof, input.config, binding(input.fixed));
+     defer statement.deinit(ctx);
+     _ = try V.verify(ctx, &shape, &proof, &statement);
+-    const words = try Cpu.expectedWords(arena.allocator(), input.setup, input.request, input.first, input.expected, input.manifest.digest, admitted.proof.commitment_scheme_proof.commitments.items[1], local.digest, input.encoded.claims);
+     var label: [48]u8 = undefined;
+-    return finish(a, ctx, try frame.finish(), words, try std.fmt.bufPrint(&label, "leaf-cpu-{d:0>4}", .{input.index}));
++    return finishClass(a, ctx, try frame.finish(), words, try std.fmt.bufPrint(&label, "leaf-cpu-{d:0>4}", .{input.index}), class, seeds);
+ }
+ pub const TruthInput = struct {
+     truth: R.Truth,
+@@ -113,12 +156,15 @@
+     fixed: ?*const Fixed.Binding = null,
+ };
+ pub fn truth(a: std.mem.Allocator, input: TruthInput) !Graph {
+-    return truthMode(a, input, false);
++    return truthMode(a, input, false, null);
+ }
+ pub fn truthTraceOnly(a: std.mem.Allocator, input: TruthInput) !Graph {
+-    return truthMode(a, input, true);
+-}
+-fn truthMode(a: std.mem.Allocator, input: TruthInput, trace_only: bool) !Graph {
++    return truthMode(a, input, true, null);
++}
++pub fn truthTraceWithTape(a: std.mem.Allocator, input: TruthInput, factory: ?Outer.Device.Factory) !Graph {
++    return truthMode(a, input, true, factory);
++}
++fn truthMode(a: std.mem.Allocator, input: TruthInput, trace_only: bool, factory: ?Outer.Device.Factory) !Graph {
+     var capture: V.proof.NativeCapture = undefined;
+     var native = if (input.truth == .keccak)
+         try Keccak.capture(a, input.truth, input.expected, input.manifest, input.config, input.encoded, input.fixed, &capture)
+@@ -130,6 +176,22 @@
+     defer arena.deinit();
+     const shape = if (input.truth == .keccak) try Keccak.shape(arena.allocator(), input.truth, input.config) else try Truth.shape(arena.allocator(), input.truth, input.config);
+     const values = try V.proof.fromNative(arena.allocator(), &native, &capture, &shape);
++    const class = if (factory != null and Tape.mode() != .off) Tape.truthClass(input, &shape) else null;
++    if (class) |key| if (Tape.mode() == .on and Outer.tapeReady(factory.?, key)) {
++        const seeds = try Tape.truth(a, input, &values);
++        errdefer a.free(seeds);
++        const main = native.commitment_scheme_proof.commitments.items[1];
++        if (input.truth == .keccak) {
++            if (input.encoded.claims.len != 5) return error.InvalidWideTruthClaims;
++            const words = Keccak.statementWords(input.truth, .{ .ordinal = input.expected.ordinal, .statement = input.expected.statement, .manifest = input.manifest.digest, .claims = input.encoded.claims[0..5].* }, main);
++            return stub(a, &words, key, seeds);
++        }
++        if (input.encoded.claims.len != 1) return error.InvalidWideTruthClaims;
++        const words = Truth.statementWords(input.truth, .{ .ordinal = input.expected.ordinal, .statement = input.expected.statement, .manifest = input.manifest.digest, .claim = input.encoded.claims[0] }, main);
++        return stub(a, &words, key, seeds);
++    };
++    const seeds = if (class != null and Tape.mode() == .check) try Tape.truth(a, input, &values) else null;
++    defer if (seeds) |s| a.free(s);
+     const ctx = try context(a, trace_only);
+     errdefer {
+         ctx.deinit();
+@@ -144,12 +206,12 @@
+         const leaf = try Keccak.build(ctx, input.truth, input.config, binding(input.fixed), public, &values);
+         const words = Keccak.statementWords(input.truth, public, main_root);
+         var label: [48]u8 = undefined;
+-        return finish(a, ctx, leaf.output, &words, try std.fmt.bufPrint(&label, "leaf-keccak-{d:0>4}", .{input.expected.ordinal}));
++        return finishClass(a, ctx, leaf.output, &words, try std.fmt.bufPrint(&label, "leaf-keccak-{d:0>4}", .{input.expected.ordinal}), class, seeds);
+     }
+     if (input.encoded.claims.len != 1) return error.InvalidWideTruthClaims;
+     const public = Truth.Public{ .ordinal = input.expected.ordinal, .statement = input.expected.statement, .manifest = input.manifest.digest, .claim = input.encoded.claims[0] };
+     const leaf = try Truth.build(ctx, input.truth, input.config, binding(input.fixed), public, &values);
+     const words = Truth.statementWords(input.truth, public, main_root);
+     var label: [48]u8 = undefined;
+-    return finish(a, ctx, leaf.output, &words, try std.fmt.bufPrint(&label, "leaf-{s}-{d:0>4}", .{ @tagName(std.meta.activeTag(input.truth)), input.expected.ordinal }));
+-}
++    return finishClass(a, ctx, leaf.output, &words, try std.fmt.bufPrint(&label, "leaf-{s}-{d:0>4}", .{ @tagName(std.meta.activeTag(input.truth)), input.expected.ordinal }), class, seeds);
++}
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/fold_tape.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/fold_tape.zig
+@@ -69,34 +69,34 @@
+     return out.toOwnedSlice(a);
+ }
+ 
+-const Emit = struct {
++pub const Emit = struct {
+     a: std.mem.Allocator,
+     out: *std.ArrayListUnmanaged([4]u32),
+     fn put(self: *Emit, value: [4]u32) !void {
+         try self.out.append(self.a, value);
+     }
+-    fn q(self: *Emit, value: Q) !void {
++    pub fn q(self: *Emit, value: Q) !void {
+         try self.put(B.ivalue.limbs(value));
+     }
+-    fn om(self: *Emit, value: C.O) !void {
++    pub fn om(self: *Emit, value: C.O) !void {
+         try self.q(value.c0);
+         try self.q(value.c1);
+     }
+     fn m31(self: *Emit, value: M) !void {
+         try self.q(Q.fromBase(value));
+     }
+-    fn word(self: *Emit, value: u32) !void {
++    pub fn word(self: *Emit, value: u32) !void {
+         try self.put(.{ value & 0xFFFF, 0, 0, 0 });
+         try self.put(.{ value >> 16, 0, 0, 0 });
+     }
+-    fn hash(self: *Emit, digest: [32]u8) !void {
++    pub fn hash(self: *Emit, digest: [32]u8) !void {
+         for (core.vcs.blake2_hash.digestToU32s(digest)) |w| try self.word(w);
+     }
+     fn paths(self: *Emit, source: []const []const [32]u8) !void {
+         for (source) |path| for (path) |node| try self.hash(node);
+     }
+     /// Same order as om31_native/proof.zig `guess`.
+-    fn proof(self: *Emit, source: *const V.Captured) !void {
++    pub fn proof(self: *Emit, source: *const V.Captured) !void {
+         for (source.commitments) |root| try self.hash(root);
+         for (source.sampled_values, source.queried_values, source.auth_paths) |tree_samples, tree_queried, tree_paths| {
+             for (tree_samples, tree_queried) |samples, bases| {
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
+@@ -1067,8 +1067,15 @@
+             break :blk try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{job.id});
+         } else blk: {
+             const ordinal = self.plan.nodes[job.id].first_leaf;
+-            const worker = in.inventory.workers[ordinal];
+-            job.leaf = if (ordinal < in.setups.len) try Graph.cpuTraceOnly(a, .{ .setup = in.setups[ordinal], .request = in.bundle.requests[ordinal], .expected = worker, .first = in.inventory.first_ids[ordinal], .manifest = in.manifest, .index = ordinal, .stage = &in.stages.stages[ordinal], .config = in.config, .encoded = &in.bundle.cpus[ordinal], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }) else try Graph.truthTraceOnly(a, .{ .truth = in.truths[ordinal - in.setups.len], .expected = worker, .manifest = in.manifest, .config = in.config, .encoded = &in.bundle.truths[ordinal - in.setups.len], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null });
++            job.leaf = try self.leafGraph(ordinal, true);
++            if (job.leaf.?.seed_tape != null) {
++                if (try self.prepLeafTape(job, &timer)) return true;
++                // A PP hit can outlive a bounded assignment-template miss. Rebuild
++                // the full graph after a refusal; never prove the stub directly.
++                job.leaf.?.deinit();
++                job.leaf = null;
++                job.leaf = try self.leafGraph(ordinal, false);
++            }
+             if (!std.mem.eql(u32, job.leaf.?.words, in.words[ordinal])) return error.RecursiveLeafFrame;
+             job.digest = job.leaf.?.digest;
+             break :blk try std.fmt.bufPrint(&name_buffer, "leaf-{d:0>6}.proof", .{ordinal});
+@@ -1089,8 +1096,10 @@
+         // Fold v2: the topology-only producer plan cache keys by geometry class.
+         // class_hint is threadlocal and Prepared.init (via prepare_host) runs on
+         // this prep thread, so set it here as the lane path does in prove().
+-        if (children != null) Outer.Device.class_hint = try Bridge.classKey(kids);
++        if (children != null) Outer.Device.class_hint = try Bridge.classKey(kids) else Outer.Device.class_hint = job.leaf.?.class;
+         defer Outer.Device.class_hint = null;
++        Outer.Device.class_is_leaf = children == null;
++        defer Outer.Device.class_is_leaf = false;
+         // Any lane's factory: host prep reads only immutable library symbols.
+         const raw_shape = @import("stwo_circuit_frontend").common.finalize.rawComponentSizes(.fromBuilder(&job.ctx().circuit));
+         job.host = try Outer.prepareHost(a, job.ctx(), self.options.lanes[0].factory);
+@@ -1101,6 +1110,45 @@
+         job.record.host_plan_ns = job.host.?.host_plan_ns;
+         job.record.host_authority_ns = job.host.?.authority_ns;
+         job.record.stamps.prep_end = self.now();
++        return true;
++    }
++    fn leafGraph(self: *Pipelined, ordinal: usize, allow_tape: bool) !Graph.Graph {
++        const in = self.input;
++        const a = in.allocator;
++        const worker = in.inventory.workers[ordinal];
++        const factory: ?Outer.Device.Factory = if (allow_tape and !in.allow_resume) self.options.lanes[0].factory else null;
++        return if (ordinal < in.setups.len) try Graph.cpuTraceWithTape(a, .{ .setup = in.setups[ordinal], .request = in.bundle.requests[ordinal], .expected = worker, .first = in.inventory.first_ids[ordinal], .manifest = in.manifest, .index = ordinal, .stage = &in.stages.stages[ordinal], .config = in.config, .encoded = &in.bundle.cpus[ordinal], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }, factory) else try Graph.truthTraceWithTape(a, .{ .truth = in.truths[ordinal - in.setups.len], .expected = worker, .manifest = in.manifest, .config = in.config, .encoded = &in.bundle.truths[ordinal - in.setups.len], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }, factory);
++    }
++    fn prepLeafTape(self: *Pipelined, job: *Pipe.Job, timer: *std.time.Timer) !bool {
++        const in = self.input;
++        const a = in.allocator;
++        const graph = &job.leaf.?;
++        const values = graph.seed_tape orelse return false;
++        if (!std.mem.eql(u32, graph.words, in.words[self.plan.nodes[job.id].first_leaf])) return error.RecursiveLeafFrame;
++        const class = graph.class orelse return error.MissingLeafSeedClass;
++        var tape = Outer.Device.SeedTape{ .values = values };
++        Outer.Device.seed_tape = &tape;
++        defer Outer.Device.seed_tape = null;
++        Outer.Device.class_hint = class;
++        defer Outer.Device.class_hint = null;
++        Outer.Device.class_is_leaf = true;
++        defer Outer.Device.class_is_leaf = false;
++        const graph_ns = timer.lap();
++        const host = (try Outer.prepareHostTape(a, graph.ctx, self.options.lanes[0].factory, class)) orelse return false;
++        if (!tape.consumed) {
++            var unused = host;
++            unused.deinit(a);
++            return false;
++        }
++        graph.ctx.circuit.n_vars = tape.n_vars;
++        job.digest = graph.digest;
++        job.host = host;
++        job.record.graph_ns = graph_ns;
++        job.record.variables = tape.n_vars;
++        job.record.host_plan_ns = host.host_plan_ns;
++        job.record.host_authority_ns = host.authority_ns;
++        job.record.stamps.prep_end = self.now();
++        std.debug.print("LEAF_SEED_TAPE used node={} class={x} seeds={} record_ns={} authority_ns={} prep_ns={}\n", .{ job.id, class[0..8], values.len, graph_ns, host.authority_ns, job.record.stamps.prep_end - job.record.stamps.prep_start });
+         return true;
+     }
+     /// M6 hint-tape (HT1): a fold whose class PP and class plan are cached is
+@@ -1152,7 +1200,7 @@
+         job.record.host_plan_ns = host.?.host_plan_ns;
+         job.record.host_authority_ns = host.?.authority_ns;
+         job.record.stamps.prep_end = self.now();
+-        std.debug.print("FOLD_SEED_TAPE used node={} class={x} seeds={} record_ns={} authority_ns={} plan_ns={} prep_ns={}\n", .{ job.id, class[0..8], values.len, record_ns, host.?.authority_ns, host.?.host_plan_ns - host.?.authority_ns, job.record.stamps.prep_end - job.record.stamps.prep_start });
++        std.debug.print("FOLD_SEED_TAPE used node={} class={x} seeds={} record_ns={} authority_ns={} plan_ns={} prep_ns={}\n", .{ job.id, class[0..8], values.len, record_ns, host.?.authority_ns, host.?.host_plan_ns, job.record.stamps.prep_end - job.record.stamps.prep_start });
+         return true;
+     }
+     fn deviceLane(self: *Pipelined, lane: usize) void {
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/outer_wrap.zig
+@@ -8,6 +8,7 @@
+ const C = @import("common.zig");
+ const PP = circuit.common.preprocessed.PreprocessedCircuit;
+ const Finalize = circuit.common.finalize;
++const CachePack = @import("stwo_circuit_cpu_integration").om31.cache_pack;
+ /// Outer shape versions (canon-vk M5; binding note §1 `S_out`). The shape is
+ /// a function of the outer profile: the M5 canonical profiles
+ /// (`Profile.canonical()`) use `uniform_v1`, every other profile `exact`.
+@@ -168,7 +169,38 @@
+ pub const PPCache = struct {
+     pub const Mode = enum { off, on, check };
+     const gpa = std.heap.smp_allocator;
+-    const Entry = struct { key: [32]u8, pp: *PP, bytes: usize };
++    const PackedPP = struct {
++        meta: PP,
++        columns: [@import("stwo_circuit_frontend").common.preprocessed.N_PREPROCESSED_COLUMNS]CachePack.Packed,
++        fn destroy(self: *PackedPP) void {
++            for (&self.columns) |*column| column.deinit(gpa);
++            gpa.destroy(self);
++        }
++        fn unpack(self: *const PackedPP, a: std.mem.Allocator) !*PP {
++            const pp = try a.create(PP);
++            errdefer a.destroy(pp);
++            pp.* = self.meta;
++            var done: usize = 0;
++            errdefer for (pp.columns[0..done]) |column| a.free(column.values);
++            for (&pp.columns, self.columns) |*column, encoded| {
++                column.values = try a.alloc(@import("stwo_core").fields.m31.M31, encoded.words);
++                done += 1;
++                try encoded.unpack(std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column.values)));
++            }
++            return pp;
++        }
++    };
++    const Entry = struct { key: [32]u8, pp: ?*PP = null, encoded: ?*PackedPP = null, bytes: usize };
++    pub const Lease = struct {
++        pp: *PP,
++        borrowed: bool,
++        fn deinit(self: Lease, a: std.mem.Allocator) void {
++            if (!self.borrowed) {
++                self.pp.deinit(a);
++                a.destroy(self.pp);
++            }
++        }
++    };
+     var mutex: std.Thread.Mutex = .{};
+     var entries: std.ArrayListUnmanaged(Entry) = .empty;
+     var held_bytes: usize = 0;
+@@ -188,6 +220,25 @@
+         for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) return e.pp;
+         return null;
+     }
++    fn contains(key: [32]u8) bool {
++        mutex.lock();
++        defer mutex.unlock();
++        for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) return true;
++        return false;
++    }
++    fn acquire(a: std.mem.Allocator, key: [32]u8) !?Lease {
++        mutex.lock();
++        const hit: ?Entry = for (entries.items) |e| {
++            if (std.mem.eql(u8, &e.key, &key)) break e;
++        } else null;
++        mutex.unlock();
++        const e = hit orelse return null;
++        if (e.pp) |pp| return .{ .pp = pp, .borrowed = true };
++        var timer = try std.time.Timer.start();
++        const pp = try e.encoded.?.unpack(a);
++        std.debug.print("GPU_OUTER_PP_PACK unpack class={x} logical_bytes={} physical_bytes={} ns={}\n", .{ key[0..8], bytesOf(pp), e.bytes, timer.read() });
++        return .{ .pp = pp, .borrowed = false };
++    }
+     fn bytesOf(pp: *const PP) usize {
+         var bytes: usize = 0;
+         for (pp.columns) |column| bytes += column.values.len * @sizeOf(@import("stwo_core").fields.m31.M31);
+@@ -203,6 +254,7 @@
+         adoptImpl(key, pp) catch |err| std.debug.print("GPU_OUTER_PP_CLASS adopt_error={s}\n", .{@errorName(err)});
+     }
+     fn adoptImpl(key: [32]u8, pp: *const PP) !void {
++        if (Device.class_is_leaf) return adoptPacked(key, pp);
+         const bytes = bytesOf(pp);
+         mutex.lock();
+         defer mutex.unlock();
+@@ -219,6 +271,40 @@
+         }
+         try entries.append(gpa, .{ .key = key, .pp = copy, .bytes = bytes });
+         held_bytes += bytes;
++    }
++    fn adoptPacked(key: [32]u8, pp: *const PP) !void {
++        mutex.lock();
++        const exists = for (entries.items) |e| {
++            if (std.mem.eql(u8, &e.key, &key)) break true;
++        } else false;
++        mutex.unlock();
++        if (exists) return;
++        var timer = try std.time.Timer.start();
++        const copy = try gpa.create(PackedPP);
++        errdefer gpa.destroy(copy);
++        copy.meta = pp.*;
++        var done: usize = 0;
++        errdefer for (copy.columns[0..done]) |*column| column.deinit(gpa);
++        var bytes: usize = @sizeOf(PackedPP);
++        for (&copy.columns, pp.columns) |*out, column| {
++            out.* = try CachePack.pack(gpa, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column.values)), 1);
++            done += 1;
++            bytes += out.data.len;
++        }
++        mutex.lock();
++        defer mutex.unlock();
++        for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) {
++            copy.destroy();
++            return;
++        };
++        if (held_bytes + bytes > limit()) {
++            copy.destroy();
++            std.debug.print("GPU_OUTER_PP_PACK refused=cap class={x} physical_bytes={} held_bytes={}\n", .{ key[0..8], bytes, held_bytes });
++            return;
++        }
++        try entries.append(gpa, .{ .key = key, .encoded = copy, .bytes = bytes });
++        held_bytes += bytes;
++        std.debug.print("GPU_OUTER_PP_PACK adopt class={x} logical_bytes={} physical_bytes={} held_bytes={} classes={} ns={}\n", .{ key[0..8], bytesOf(pp), bytes, held_bytes, entries.items.len, timer.read() });
+     }
+ };
+ /// Context must already be finalized by its concrete statement authority. Padding follows its exact graph counts; no external registry or legacy
+@@ -383,17 +469,18 @@
+     fn runImpl(self: *ColumnsJob) !void {
+         var timer = try std.time.Timer.start();
+         const mode = PPCache.mode();
+-        const shared: ?*PP = if (self.class) |key| (if (mode == .on) PPCache.find(key) else null) else null;
+-        const pp = if (shared) |hit| hit else blk: {
++        const shared: ?PPCache.Lease = if (self.class) |key| (if (mode == .on) try PPCache.acquire(self.a, key) else null) else null;
++        const pp = if (shared) |hit| hit.pp else blk: {
+             const owned = try self.a.create(PP);
+             errdefer self.a.destroy(owned);
+             owned.* = try PP.fromBuilderCircuit(self.a, &self.ctx.circuit);
+             break :blk owned;
+         };
+         self.pp = pp;
+-        self.pp_borrowed = shared != null;
+-        if (self.class) |key| if (mode == .check) if (PPCache.find(key)) |cached| {
+-            if (!PPCache.equal(cached, pp)) return error.PPClassMismatch;
++        self.pp_borrowed = if (shared) |hit| hit.borrowed else false;
++        if (self.class) |key| if (mode == .check) if (try PPCache.acquire(self.a, key)) |cached| {
++            defer cached.deinit(self.a);
++            if (!PPCache.equal(cached.pp, pp)) return error.PPClassMismatch;
+             std.debug.print("GPU_OUTER_PP_CLASS pipelined check_ok class={x}\n", .{key[0..8]});
+         };
+         self.columns_ns = timer.lap();
+@@ -423,7 +510,10 @@
+     result.pp_borrowed = columns.pp_borrowed;
+     result.authority = columns.authority;
+     result.columns_ns = columns.columns_ns;
+-    result.authority_ns = columns.authority_ns - columns.columns_ns;
++    // ColumnsJob laps after building columns: authority_ns is already the
++    // authority-only duration. Subtracting columns_ns again underflows on
++    // cold classes and corrupts the host-preparation attribution.
++    result.authority_ns = columns.authority_ns;
+     if (plan) |value| {
+         result.host = value catch |err| return err;
+     }
+@@ -441,15 +531,17 @@
+ /// plan templates are adopted together by the first fold of a class).
+ pub fn tapeReady(factory: Device.Factory, class: [32]u8) bool {
+     if (factory.precommit_fixed == null or factory.prepare_host == null or PPCache.mode() != .on) return false;
+-    return PPCache.find(class) != null;
++    const ready = factory.tape_ready orelse return false;
++    return PPCache.contains(class) and ready(factory.context, class);
+ }
+ pub fn prepareHostTape(a: std.mem.Allocator, ctx: *C.Context, factory: Device.Factory, class: [32]u8) !?HostPrep {
+     if (factory.precommit_fixed == null or PPCache.mode() != .on) return null;
+     const prepare = factory.prepare_host orelse return null;
+     if (Device.seed_tape == null or Device.class_hint == null) return error.MissingSeedTape;
+-    const pp = PPCache.find(class) orelse return null;
++    const cached = (try PPCache.acquire(a, class)) orelse return null;
++    const pp = cached.pp;
+     var timer = try std.time.Timer.start();
+-    var result = HostPrep{ .pp = pp, .pp_borrowed = true };
++    var result = HostPrep{ .pp = pp, .pp_borrowed = cached.borrowed };
+     errdefer result.deinit(a);
+     result.authority = try Outer.Authority.prepareForDeviceProver(a, pp);
+     result.authority_ns = timer.lap();
+@@ -535,7 +627,7 @@
+     proved.* = undefined;
+     return result;
+ }
+-/// Output values must be canonical packed raw-u32 words, not arbitrary QM31s
++/// Output values must be canonical encoded raw-u32 words, not arbitrary QM31s
+ /// that happen to reduce to the same field value.
+ pub fn requireDigest(outputs: []const C.Q, expected: [32]u8) !void {
+     if (outputs.len != 8) return error.CurrentOm31OutputCount;
+--- /dev/null
++++ b/src/integrations/circuit_cpu/om31/cache_pack.zig
+@@ -0,0 +1,110 @@
++//! Lossless producer-cache encoding. Columns predict their previous u32;
++//! fixed-width records predict each field separately. No proof/wire uses it.
++const std = @import("std");
++pub const Encoding = enum { raw, delta_varint };
++pub const Packed = struct {
++    data: []u8,
++    words: usize,
++    channels: u8,
++    encoding: Encoding,
++    pub fn deinit(self: *Packed, a: std.mem.Allocator) void {
++        a.free(self.data);
++        self.* = undefined;
++    }
++    pub fn unpack(self: Packed, output: []u32) !void {
++        if (output.len != self.words or self.channels == 0 or self.words % self.channels != 0) return error.CachePackShape;
++        if (self.encoding == .raw) {
++            if (self.data.len != output.len * 4) return error.CachePackLength;
++            @memcpy(std.mem.sliceAsBytes(output), self.data);
++            return;
++        }
++        var at: usize = 0;
++        const rows = self.words / self.channels;
++        for (0..self.channels) |column| {
++            var previous: u32 = 0;
++            for (0..rows) |row| {
++                var word: u32 = 0;
++                var bytes: usize = 0;
++                while (true) {
++                    if (at == self.data.len or bytes == 5) return error.CachePackLength;
++                    const byte = self.data[at];
++                    at += 1;
++                    if (bytes == 4 and byte > 15) return error.CachePackOverflow;
++                    word |= @as(u32, byte & 0x7f) << @as(u5, @intCast(7 * bytes));
++                    bytes += 1;
++                    if (byte < 128) {
++                        if (bytes > 1 and byte == 0) return error.CachePackNoncanonical;
++                        break;
++                    }
++                }
++                const delta = (word >> 1) ^ (0 -% (word & 1));
++                previous +%= delta;
++                output[row * self.channels + column] = previous;
++            }
++        }
++        if (at != self.data.len) return error.CachePackLength;
++    }
++};
++
++pub fn pack(a: std.mem.Allocator, words: []const u32, channels: u8) !Packed {
++    if (channels == 0 or words.len % channels != 0) return error.CachePackShape;
++    var data: std.ArrayListUnmanaged(u8) = .empty;
++    errdefer data.deinit(a);
++    try data.ensureTotalCapacity(a, words.len);
++    const rows = words.len / channels;
++    for (0..channels) |column| {
++        var previous: u32 = 0;
++        for (0..rows) |row| {
++            const value = words[row * channels + column];
++            const delta: i32 = @bitCast(value -% previous);
++            previous = value;
++            var word: u32 = (@as(u32, @bitCast(delta)) << 1) ^ @as(u32, @bitCast(delta >> 31));
++            while (word >= 128) {
++                try data.append(a, @as(u8, @truncate(word)) | 128);
++                word >>= 7;
++            }
++            try data.append(a, @intCast(word));
++        }
++    }
++    if (data.items.len >= words.len * 4) {
++        data.deinit(a);
++        data = .empty;
++        return .{ .data = try a.dupe(u8, std.mem.sliceAsBytes(words)), .words = words.len, .channels = channels, .encoding = .raw };
++    }
++    return .{ .data = try data.toOwnedSlice(a), .words = words.len, .channels = channels, .encoding = .delta_varint };
++}
++
++test "cache encoding roundtrips wrapping words and strided task records" {
++    const a = std.testing.allocator;
++    var words: [8192]u32 = undefined;
++    for (&words, 0..) |*word, i| word.* = switch (i % 8) {
++        0 => @intCast(i % 16),
++        1 => @intCast(i * 5),
++        2 => std.math.maxInt(u32) - @as(u32, @intCast(i)),
++        3 => 0x80000000 + @as(u32, @intCast(i)),
++        4 => 0,
++        else => @truncate(i *% 0x9e3779b97f4a7c15),
++    };
++    for ([_]u8{ 1, 8 }) |channels| {
++        var encoded = try pack(a, &words, channels);
++        defer encoded.deinit(a);
++        var result: [words.len]u32 = undefined;
++        try encoded.unpack(&result);
++        try std.testing.expectEqualSlices(u32, &words, &result);
++        try std.testing.expect(encoded.data.len <= words.len * 4);
++        if (channels == 8) try std.testing.expectEqual(Encoding.delta_varint, encoded.encoding);
++    }
++}
++test "cache decoder refuses truncation overflow trailing and noncanonical words" {
++    var out: [1]u32 = undefined;
++    const Case = struct { bytes: []const u8, failure: anyerror };
++    for ([_]Case{
++        .{ .bytes = &.{128}, .failure = error.CachePackLength },
++        .{ .bytes = &.{ 128, 128, 128, 128, 16 }, .failure = error.CachePackOverflow },
++        .{ .bytes = &.{ 0, 0 }, .failure = error.CachePackLength },
++        .{ .bytes = &.{ 128, 0 }, .failure = error.CachePackNoncanonical },
++    }) |case| {
++        const encoded = Packed{ .data = @constCast(case.bytes), .words = 1, .channels = 1, .encoding = .delta_varint };
++        try std.testing.expectError(case.failure, encoded.unpack(&out));
++    }
++}
+--- a/src/integrations/circuit_cpu/om31/device_prove.zig
++++ b/src/integrations/circuit_cpu/om31/device_prove.zig
+@@ -43,6 +43,9 @@
+ /// calling thread is about to prove, or null. Device factories may key
+ /// topology-only caches (assignment plans) by it; it never enters a proof.
+ pub threadlocal var class_hint: ?[32]u8 = null;
++/// Host template reuse and device immutable placement are separate decisions.
++/// Leaf plans remain request-leased, even when their host template is cached.
++pub threadlocal var class_is_leaf: bool = false;
+ /// Host-only producer hint (M6 hint-tape v1): the seed-origin values of the
+ /// v2 fold graph whose class is `class_hint`, in variable order, recorded from
+ /// the fold's guess prologue instead of building the verifier graph. A device
+@@ -56,6 +59,7 @@
+     /// Optional device-free host stage. Thread-safe with respect to this
+     /// factory's device work: it never touches device or active-proof state.
+     prepare_host: ?*const fn (*anyopaque, std.mem.Allocator, *const circuit.builder.Context(P.Q)) anyerror!HostPrepared = null,
++    tape_ready: ?*const fn (*anyopaque, [32]u8) bool = null,
+     /// Moves a HostPrepared into this factory's next trace-only source. Takes
+     /// ownership on every path; a refused value is destroyed before returning.
+     stage_host: ?*const fn (*anyopaque, HostPrepared) anyerror!void = null,
+--- a/src/integrations/circuit_cpu/om31/mod.zig
++++ b/src/integrations/circuit_cpu/om31/mod.zig
+@@ -8,3 +8,4 @@
+ pub const wire = @import("wire.zig");
+ pub const record = @import("record.zig");
+ pub const device_prove = @import("device_prove.zig");
++pub const cache_pack = @import("cache_pack.zig");
+--- a/src/integrations/riscv_cuda/rv64/outer_assignment.zig
++++ b/src/integrations/riscv_cuda/rv64/outer_assignment.zig
+@@ -14,6 +14,7 @@
+ const Pack = @import("outer_assignment_pack.zig");
+ const Runs = @import("assignment_runs.zig");
+ const Dev = @import("stwo_circuit_cpu_integration").om31.device_prove;
++const CachePack = @import("stwo_circuit_cpu_integration").om31.cache_pack;
+ pub const Task = Pack.Task;
+ pub const Seed = extern struct { out: u32, value: [4]u32 };
+ pub const Job = extern struct { values: [*]u32, records: [*]const u32, indices: ?[*]const u32, status: *u32, value_count: u32, record_count: u32, index_count: u32, first: u32, count: u32, reserved: u32 = 0 };
+@@ -79,7 +80,30 @@
+     /// order (the first `n_constants` seeds). A v2 fold's constants are class
+     /// data; every full-graph hit re-checks them and a disagreement clears
+     /// `constants_stable`, which disables the seed tape (HT1) for that class.
+-    const Template = struct { key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize, seed_vars: []u32, constants: [][4]u32, tasks: []Task, indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize, persisted: bool = false, capability_checked: bool = true, rejected: bool = false, constants_stable: bool = true };
++    const TaskView = struct {
++        values: []Task,
++        owned: bool,
++        fn deinit(self: TaskView, a: std.mem.Allocator) void {
++            if (self.owned) a.free(self.values);
++        }
++    };
++    const Template = struct {
++        key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize,
++        seed_vars: []u32, constants: [][4]u32, tasks: []Task,
++        packed_tasks: ?CachePack.Packed = null,
++        indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize,
++        persisted: bool = false, capability_checked: bool = true, rejected: bool = false, constants_stable: bool = true,
++        fn taskCount(t: *const Template) usize {
++            return if (t.packed_tasks) |encoded| encoded.words / 8 else t.tasks.len;
++        }
++        fn taskView(t: *const Template, a: std.mem.Allocator) !TaskView {
++            const encoded = t.packed_tasks orelse return .{ .values = t.tasks, .owned = false };
++            const tasks = try a.alloc(Task, t.taskCount());
++            errdefer a.free(tasks);
++            try encoded.unpack(std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(tasks)));
++            return .{ .values = tasks, .owned = true };
++        }
++    };
+     const gpa = std.heap.smp_allocator;
+     var mutex: std.Thread.Mutex = .{};
+     var entries: std.ArrayListUnmanaged(*Template) = .empty;
+@@ -109,6 +133,13 @@
+             for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) return if (t.rejected) null else t;
+         }
+         return Store.load(key);
++    }
++    pub fn tapeReady(key: [32]u8) bool {
++        if (mode() != .on) return false;
++        const t = find(key) orelse return false;
++        mutex.lock();
++        defer mutex.unlock();
++        return !t.rejected and t.constants_stable and t.constants.len == t.n_constants;
+     }
+     /// A disk-loaded template that fails a use-time check (library capability,
+     /// shape, seed layout) is a logged miss, not a request failure.
+@@ -193,6 +224,7 @@
+             gpa.free(t.seed_vars);
+             gpa.free(t.constants);
+             gpa.free(t.tasks);
++            if (t.packed_tasks) |*encoded| encoded.deinit(gpa);
+             gpa.free(t.indices);
+             gpa.free(t.level_ends);
+             gpa.destroy(t);
+@@ -235,8 +267,10 @@
+             if (try file.read(&extra) != 0) return error.ClassStoreFormat;
+             const recomputed = try @import("schedule_identity.zig").digest(gpa, .{ std.mem.sliceAsBytes(tasks), std.mem.sliceAsBytes(indices), std.mem.sliceAsBytes(level_ends) });
+             if (!std.mem.eql(u8, &recomputed, &identity)) return error.ClassStoreIdentity;
+-            const bytes = tasks.len * @sizeOf(Task) + indices.len * 4 + level_ends.len * @sizeOf(usize) + seed_vars.len * 4 + constants.len * 16;
+-            t.* = .{ .key = key, .n_vars = n_vars, .n_constants = n_constants, .n_origins = n_origins, .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .indices = indices, .level_ends = level_ends, .identity = identity, .bytes = bytes, .persisted = true, .capability_checked = false };
++            const encoded = try CachePack.pack(gpa, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(tasks)), 8);
++            const bytes = encoded.data.len + indices.len * 4 + level_ends.len * @sizeOf(usize) + seed_vars.len * 4 + constants.len * 16;
++            gpa.free(tasks);
++            t.* = .{ .key = key, .n_vars = n_vars, .n_constants = n_constants, .n_origins = n_origins, .seed_vars = seed_vars, .constants = constants, .tasks = &.{}, .packed_tasks = encoded, .indices = indices, .level_ends = level_ends, .identity = identity, .bytes = bytes, .persisted = true, .capability_checked = false };
+             return t;
+         }
+         /// Service boot: loads every class template in the store (in parallel,
+@@ -301,6 +335,8 @@
+                 std.crypto.random.bytes(&suffix);
+                 const tmp = try std.fmt.bufPrint(&tmp_buffer, "{s}.{s}.tmp", .{ final, std.fmt.bytesToHex(suffix, .lower) });
+                 errdefer std.fs.cwd().deleteFile(tmp) catch {};
++                const view = try t.taskView(gpa);
++                defer view.deinit(gpa);
+                 {
+                     const file = try std.fs.cwd().createFile(tmp, .{ .exclusive = true });
+                     defer file.close();
+@@ -311,15 +347,15 @@
+                     @memcpy(header[48..80], &own);
+                     @memcpy(header[80..112], &t.identity);
+                     std.mem.writeInt(u32, header[112..116], t.n_vars, .little);
+-                    const f = [6]u64{ t.n_constants, t.n_origins, t.seed_vars.len, t.tasks.len, t.indices.len, t.level_ends.len };
++                    const f = [6]u64{ t.n_constants, t.n_origins, t.seed_vars.len, t.taskCount(), t.indices.len, t.level_ends.len };
+                     for (f, 0..) |v, i| std.mem.writeInt(u64, header[120 + 8 * i ..][0..8], v, .little);
+                     try file.writeAll(&header);
+                     try file.writeAll(std.mem.sliceAsBytes(t.seed_vars));
+                     try file.writeAll(std.mem.sliceAsBytes(t.constants));
+-                    try file.writeAll(std.mem.sliceAsBytes(t.tasks));
++                    try file.writeAll(std.mem.sliceAsBytes(view.values));
+                     try file.writeAll(std.mem.sliceAsBytes(t.indices));
+                     try file.writeAll(std.mem.sliceAsBytes(t.level_ends));
+-                    written += HEADER + t.bytes;
++                    written += HEADER + t.seed_vars.len * 4 + t.constants.len * 16 + view.values.len * @sizeOf(Task) + t.indices.len * 4 + t.level_ends.len * @sizeOf(usize);
+                 }
+                 try std.fs.cwd().rename(tmp, final);
+                 t.persisted = true;
+@@ -356,11 +392,21 @@
+     fn insertImpl(key: [32]u8, p: *const Prepared, ctx: *const Circuit.builder.Context(Q)) !void {
+         const n_constants = ctx.constants.count();
+         if (n_constants > p.seeds.len) return error.PlanClassSeedLayout;
+-        const bytes = p.tasks.len * @sizeOf(Task) + p.indices.len * 4 + p.plan.level_ends.len * @sizeOf(usize) + p.seeds.len * 4 + n_constants * 16;
++        var encoded: ?CachePack.Packed = if (Dev.class_is_leaf) try CachePack.pack(gpa, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(p.tasks)), 8) else null;
++        errdefer if (encoded) |*value| value.deinit(gpa);
++        const task_bytes = if (encoded) |value| value.data.len else p.tasks.len * @sizeOf(Task);
++        const bytes = task_bytes + p.indices.len * 4 + p.plan.level_ends.len * @sizeOf(usize) + p.seeds.len * 4 + n_constants * 16;
+         mutex.lock();
+         defer mutex.unlock();
+-        for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) return;
+-        if (held_bytes + bytes > limit()) return;
++        for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) {
++            if (encoded) |*value| value.deinit(gpa);
++            return;
++        };
++        if (held_bytes + bytes > limit()) {
++            if (encoded) |*value| value.deinit(gpa);
++            std.debug.print("GPU_OUTER_PLAN_PACK refused=cap class={x} physical_bytes={} held_bytes={}\n", .{ key[0..8], bytes, held_bytes });
++            return;
++        }
+         const t = try gpa.create(Template);
+         errdefer gpa.destroy(t);
+         const seed_vars = try gpa.alloc(u32, p.seeds.len);
+@@ -369,15 +415,16 @@
+         const constants = try gpa.alloc([4]u32, n_constants);
+         errdefer gpa.free(constants);
+         for (constants, p.seeds[0..n_constants]) |*out, seed| out.* = seed.value;
+-        const tasks = try gpa.dupe(Task, p.tasks);
++        const tasks = try gpa.dupe(Task, if (encoded == null) p.tasks else &.{});
+         errdefer gpa.free(tasks);
+         const indices = try gpa.dupe(u32, p.indices);
+         errdefer gpa.free(indices);
+         const level_ends = try gpa.dupe(usize, p.plan.level_ends);
+         errdefer gpa.free(level_ends);
+-        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = n_constants, .n_origins = originCount(ctx), .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes };
++        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = n_constants, .n_origins = originCount(ctx), .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .packed_tasks = encoded, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes };
+         try entries.append(gpa, t);
+         held_bytes += bytes;
++        std.debug.print("GPU_OUTER_PLAN_PACK adopt class={x} logical_task_bytes={} physical_task_bytes={} held_bytes={} classes={}\n", .{ key[0..8], p.tasks.len * @sizeOf(Task), task_bytes, held_bytes, entries.items.len });
+     }
+ };
+ pub const Prepared = struct {
+@@ -399,6 +446,7 @@
+     wide_level: ?Launch = null,
+     /// tasks/indices/plan.level_ends are owned by a ClassCache template.
+     borrowed: bool = false,
++    decoded_tasks: bool = false,
+     /// Class plans (folds: a template exists or will) keep their static words
+     /// in the device immutable cache; a one-shot plan (a leaf: its own class)
+     /// uploads them into request leases so it never evicts class entries.
+@@ -422,7 +470,9 @@
+         errdefer fresh.deinit();
+         if (template) |t| {
+             // check mode: the template must equal the freshly built plan.
+-            if (!std.mem.eql(u8, std.mem.sliceAsBytes(t.tasks), std.mem.sliceAsBytes(fresh.tasks)) or !std.mem.eql(u32, t.indices, fresh.indices) or !std.mem.eql(usize, t.level_ends, fresh.plan.level_ends) or !std.mem.eql(u8, &t.identity, &fresh.identity)) return error.PlanClassMismatch;
++            const view = try t.taskView(a);
++            defer view.deinit(a);
++            if (!std.mem.eql(u8, std.mem.sliceAsBytes(view.values), std.mem.sliceAsBytes(fresh.tasks)) or !std.mem.eql(u32, t.indices, fresh.indices) or !std.mem.eql(usize, t.level_ends, fresh.plan.level_ends) or !std.mem.eql(u8, &t.identity, &fresh.identity)) return error.PlanClassMismatch;
+             const seeds = try ClassCache.seedsFor(a, t, ctx);
+             defer a.free(seeds);
+             if (!std.mem.eql(u8, std.mem.sliceAsBytes(seeds), std.mem.sliceAsBytes(fresh.seeds))) return error.PlanClassMismatch;
+@@ -445,7 +495,9 @@
+         if (!checked) {
+             // Disk-loaded template: re-check every task kind against THIS library once.
+             const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
+-            for (t.tasks) |task| if (task.kind >= 32 or capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
++            const view = try t.taskView(a);
++            defer view.deinit(a);
++            for (view.values) |task| if (task.kind >= 32 or capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
+             ClassCache.mutex.lock();
+             t.capability_checked = true;
+             ClassCache.mutex.unlock();
+@@ -481,7 +533,9 @@
+         }
+         if (!checked) {
+             const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
+-            for (t.tasks) |task| if (task.kind >= 32 or capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
++            const view = try t.taskView(a);
++            defer view.deinit(a);
++            for (view.values) |task| if (task.kind >= 32 or capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
+             ClassCache.mutex.lock();
+             t.capability_checked = true;
+             ClassCache.mutex.unlock();
+@@ -497,7 +551,7 @@
+         ClassCache.mutex.lock();
+         ClassCache.tape_hits += 1;
+         ClassCache.mutex.unlock();
+-        std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN seed_tape=true class={x} seeds_ns={} total_ns={} seeds={} task_bytes={} levels={}\n", .{ t.key[0..8], seeds_ns, timer.read(), seeds.len, t.tasks.len * @sizeOf(Task), t.level_ends.len });
++        std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN seed_tape=true class={x} seeds_ns={} total_ns={} seeds={} task_bytes={} levels={}\n", .{ t.key[0..8], seeds_ns, timer.read(), seeds.len, t.taskCount() * @sizeOf(Task), t.level_ends.len });
+         return prepared;
+     }
+     fn initFromTemplate(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib, t: *ClassCache.Template) !Prepared {
+@@ -517,19 +571,23 @@
+         };
+         const seeds_ns = timer.read();
+         const prepared = try fromTemplateSeeds(a, library, t, seeds, if (ctx.trace_only) null else ctx.values().ptr);
+-        std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN class_cache_hit=true class={x} seeds_ns={} task_bytes={} levels={}\n", .{ t.key[0..8], seeds_ns, t.tasks.len * @sizeOf(Task), t.level_ends.len });
++        std.debug.print("GPU_OUTER_ASSIGNMENT_PLAN class_cache_hit=true class={x} seeds_ns={} task_bytes={} levels={}\n", .{ t.key[0..8], seeds_ns, t.taskCount() * @sizeOf(Task), t.level_ends.len });
+         return prepared;
+     }
+     /// Takes ownership of `seeds` on success.
+     fn fromTemplateSeeds(a: std.mem.Allocator, library: *std.DynLib, t: *const ClassCache.Template, seeds: []Seed, reference: ?[*]const Q) !Prepared {
+         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
+         const level = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
+-        var grouping = try Grouping.init(a, library, t.level_ends, t.tasks.len);
++        var timer = try std.time.Timer.start();
++        const view = try t.taskView(a);
++        errdefer view.deinit(a);
++        var grouping = try Grouping.init(a, library, t.level_ends, view.values.len);
+         errdefer if (grouping.plan) |*value| value.deinit();
+         ClassCache.mutex.lock();
+         ClassCache.hits += 1;
+         ClassCache.mutex.unlock();
+-        return .{ .allocator = a, .reference = reference, .count = t.n_vars, .plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = t.level_ends }, .tasks = t.tasks, .indices = t.indices, .seeds = seeds, .identity = t.identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = grouping.plan, .narrow_run = grouping.narrow, .chain_run = grouping.chain, .wide_level = grouping.wide, .borrowed = true };
++        if (view.owned) std.debug.print("GPU_OUTER_PLAN_PACK unpack class={x} logical_bytes={} physical_bytes={} ns={}\n", .{ t.key[0..8], view.values.len * @sizeOf(Task), t.packed_tasks.?.data.len, timer.read() });
++        return .{ .allocator = a, .reference = reference, .count = t.n_vars, .plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = t.level_ends }, .tasks = view.values, .decoded_tasks = view.owned, .indices = t.indices, .seeds = seeds, .identity = t.identity, .seed = seed, .level = level, .timing_api = try Events.Api.load(library), .narrow_plan = grouping.plan, .narrow_run = grouping.narrow, .chain_run = grouping.chain, .wide_level = grouping.wide, .borrowed = true, .reusable = reusableClassPlan() };
+     }
+     fn initFull(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
+         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
+@@ -653,7 +711,7 @@
+     }
+     fn reusableClassPlan() bool {
+         if (std.posix.getenv("STWO_RV64_OUTER_ASSIGNMENT_LEAF_IMMUTABLE")) |value| if (std.mem.eql(u8, value, "1")) return true;
+-        return @import("stwo_circuit_cpu_integration").om31.device_prove.class_hint != null;
++        return !Dev.class_is_leaf and Dev.class_hint != null;
+     }
+     pub fn rebind(self: *Prepared, library: *std.DynLib) !void {
+         const seed = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
+@@ -678,6 +736,7 @@
+     pub fn deinit(self: *Prepared) void {
+         if (self.narrow_plan) |*value| value.deinit();
+         if (self.borrowed) {
++            if (self.decoded_tasks) self.allocator.free(self.tasks);
+             self.allocator.free(self.seeds);
+             self.* = undefined;
+             return;
+--- a/src/integrations/riscv_cuda/rv64/outer_source.zig
++++ b/src/integrations/riscv_cuda/rv64/outer_source.zig
+@@ -75,7 +75,10 @@
+         self.* = undefined;
+     }
+     pub fn factory(self: *Context) Dev.Factory {
+-        return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .stage_host = stageHost, .unstage_host = unstageHost };
++        return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .tape_ready = tapeReady, .stage_host = stageHost, .unstage_host = unstageHost };
++    }
++    fn tapeReady(_: *anyopaque, class: [32]u8) bool {
++        return Assignment.ClassCache.tapeReady(class);
+     }
+     /// Device-free: builds the exact Assignment.Prepared that prepareImpl
+     /// would build for this finalized graph. Reads only immutable library

@@ -1,0 +1,27 @@
+{
+  "schema": "rv64-cuda-gkr-terminal-mask-wave/v1",
+  "source_commit": "011946ea7",
+  "hardware": "NVIDIA RTX 5090",
+  "native_cases": 15,
+  "poison_cases": 5,
+  "max_oracles_tested": 64,
+  "scalar_and_om31_numerators": true,
+  "all_individual_and_batched_masks_exact": true,
+  "native_round_records_and_checkpoint_exact": true,
+  "late_alias_and_empty_packet_rejected": true,
+  "memcheck_errors": 0,
+  "kernel_launches_per_layer": "One for all active masks when the optional capability is available; otherwise the established per-oracle route.",
+  "full_ethereum_proof_qualified": false,
+  "speedup_measured": false,
+  "fixtures_tree_sha256": "fa72887b87ce3bd5972710123d9f43452e9dcf1e4536620ca2b532a5d2520f46",
+  "sources_sha256": {
+    "src/backends/cuda/native/rv64/batch.cu": "60e4aa51f5245ae989ea70125724a61450b2fc52c527e9d04d1338d71960d3f4",
+    "src/backends/cuda/native/rv64/batch.h": "7ca6475a567925a2f2346d6330d961740fa3d03066809d08ad8f83ab4c878f8d",
+    "tests/cuda/rv64/batch_smoke.cu": "f8da5ca092e0a04e04bff3987b0183b565773f158215d52cfd1c03257014ffd1"
+  },
+  "commands": [
+    "batch-smoke fixtures",
+    "compute-sanitizer --tool memcheck --error-exitcode 97 batch-smoke fixtures"
+  ],
+  "scope": "Native mixed-height LogUp sumcheck oracle comparison, including maximum 64-oracle cases. Full production block parity and timing remain separate gates."
+}

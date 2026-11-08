@@ -1,0 +1,15 @@
+{
+  "schema": "rv64-resident-router-host/v1",
+  "scope": "Concrete stage routing and per-device custody planning; no GPU performance qualification",
+  "command": "zig build --build-file src/integrations/riscv_cuda/build.zig test-rv64-resident-router -Doptimize=ReleaseFast -j4",
+  "host_tests_passed": 5,
+  "cpu_workers": 7,
+  "devices": 4,
+  "assignment_by_worker": [0, 1, 2, 3, 0, 1, 2],
+  "maximum_retained_cpu_scopes_per_device": 2,
+  "stage_callbacks_tested": ["CPU projection", "MAIN commitment", "INTER commitment", "resident composition", "PCS", "numerical GKR", "host-only truth PCS"],
+  "rejections_tested": ["insufficient device count before initialization", "duplicate device", "incomplete byte caps", "missing scope", "unplanned ordinal", "changed statement", "changed MAIN root", "missing prior admission", "device truth ingress"],
+  "properties": ["out-of-order completion preserves device assignment", "numerical workspace capped per device", "CPU admission released on terminal PCS return", "truth PCS does not consume retained CPU slots"],
+  "not_qualified": ["multi-GPU hardware", "two simultaneous large scopes fitting the chosen byte cap", "whole-block speedup", "device truth retention"],
+  "one_gpu_seven_worker_policy": "reject before opening CUDA; the global-manifest barrier prevents waiting for stage-two slots; requires explicit retention spill or different phase scheduling"
+}

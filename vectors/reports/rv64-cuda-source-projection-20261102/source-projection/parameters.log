@@ -1,0 +1,6 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv646gatherEPKjPjNS1_3MapES4_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv646gatherEPKjPjNS1_3MapES4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 12 registers, used 0 barriers
+ptxas info    : Compile time = 3.966 ms

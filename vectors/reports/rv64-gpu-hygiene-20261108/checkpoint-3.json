@@ -1,0 +1,90 @@
+{
+  "schema": "rv64-gpu-hygiene-checkpoint/v1",
+  "status": "IN_PROGRESS",
+  "source_base": "0941244f0a0372c16a5188846cbf8cc77cdaf806",
+  "branch": "codex/rv64-gpu-hygiene",
+  "updated_utc": "2026-11-08T04:29:02.079356+00:00",
+  "scope": "Resource, request-path and validation hygiene; no latency qualification or default promotion",
+  "source_snapshot_digest": "12c45e8947376bbf1e1983e50cc6acba239ef172064cd364ccfc23bff1b29f71",
+  "source_digest_algorithm": "SHA256 of sorted-key JSON from rv64_m7_integration_stack.source_hashes(root), identical locally and on pod",
+  "current_focused_host_tests": {
+    "status": "PASS",
+    "passed": 182,
+    "steps_succeeded": 6,
+    "steps_total": 6,
+    "resource_tests": 18,
+    "runtime_tests": 164,
+    "log": "/workspace/m3/runs/m8-gn-bind/hygiene-9/host.log",
+    "source_before": "/workspace/m3/runs/m8-gn-bind/hygiene-9/source-before.log",
+    "source_after": "/workspace/m3/runs/m8-gn-bind/hygiene-9/source-after-host.log",
+    "sha256": "b18b906a19de4528df0093af39afe652f4580990af12865f2190b0cc583541b9"
+  },
+  "python_tests": {
+    "status": "PASS",
+    "passed": 70,
+    "python": "3.12",
+    "modules": [
+      "test_rv64_gpu_activity",
+      "test_rv64_validation",
+      "test_dev_test",
+      "test_rv64_gate",
+      "test_rv64_m8_bench15",
+      "test_rv64_quiet_checkpoint"
+    ]
+  },
+  "developer_check": {
+    "status": "PASS",
+    "scope": "Existing dev_test.py --check route for memory_plan.zig, real pod execution",
+    "log": "/workspace/m3/runs/m8-gn-bind/hygiene-9/dev-check.log",
+    "sha256": "15eb5164c3d37aa6e90441073bdf129aefa23881025d50b81b175290e976c5aa"
+  },
+  "changes_after_checkpoint_2": [
+    "Removed the unreachable jobs.serve provider scaffold and untyped unused hooks; corrected actual service dispatch and legacy install documentation",
+    "Extracted pure checked request region accounting; production MAIN allocation uses the same transactional cursor as the planner",
+    "Rejected overflowing region, alignment, byte, capacity and class reservations before allocation; driver failure injection verifies no request allocation/event creation",
+    "Corpus acceptance now requires receiver pin, complete CPU/cache isolation, positive-control statement, explicit clean exit/verdict and error-backed classification; missing or contradictory evidence fails",
+    "Corpus harness and validator share classification; producer class-store environment is removed before negative receivers",
+    "Effective library/preload environments are checked after overrides against declared pinned assets; service execution rechecks asset hashes",
+    "Resource routing derives from the actual root/module test imports, not guessed adjacent file names"
+  ],
+  "static_audit": "static-audit.json",
+  "superseded_runs": [
+    {
+      "run": "/workspace/m3/runs/m8-gn-bind/hygiene-6",
+      "status": "FAIL_BEFORE_GPU",
+      "reason": "Two pruned test executables left stale cache manifests; executed tests passed 1327 with 16 skipped. Invalidated only the two targets metadata, retained recovery receipt."
+    },
+    {
+      "run": "/workspace/m3/runs/m8-gn-bind/hygiene-7",
+      "status": "INVALID_SOURCE_SYNC_OVERLAP",
+      "reason": "Focused check started before source sync completion; discarded as current-source evidence. Replaced by digest-matched hygiene-8 and hygiene-9 checks."
+    }
+  ],
+  "cache_hygiene": {
+    "recovery_receipt": "/workspace/m3/runs/m8-gn-bind/hygiene-6/cache-recovery.json",
+    "relocation_receipt": "/workspace/m3/runs/m8-gn-bind/hygiene-9/cache-relocation.json",
+    "relocated_owned_test_files": 38,
+    "retained_bytes": 510999512,
+    "scope": "Owned hygiene-era test outputs retained byte-for-byte on /tmp with valid cache-path symlinks. No source, proof, pinned runtime or frozen binary removed.",
+    "recovery_sha256": "5d79f2b93f69e0d349615cac316d6e0a4c9d05a519961a5e5e654b0559e7c309",
+    "relocation_sha256": "46cb7569efa34a71cdc48cfcdc4d259bbe621184bb2f05df5b6aeceafa426717"
+  },
+  "hardware_regression": {
+    "status": "RUNNING",
+    "supervisor": "/workspace/m3/runs/m8-gn-bind/hygiene-9/regression.sh",
+    "tmux": "rv64-hygiene-regression-9",
+    "scope": "One frozen snapshot: default/native on both dev blocks; native 24628607 profile within its correctness gate. Source remains frozen until terminal. Exit 3 remains non-green for any corpus limitation."
+  },
+  "remaining": [
+    "Inspect current full gate outcomes; resolve actual correctness failures without performance tuning",
+    "Verify new profile readback/event/callback/range census against newly accepted proofs",
+    "Close completion audit and static/negative-corpus limitations explicitly; do not call incomplete evidence green",
+    "Commit and land the fully evidenced, reviewable hygiene change within applicable gate rules"
+  ],
+  "limitations": [
+    "Full host suite and production build results at checkpoint-2 belong to its prior source snapshot. Only 182 focused host tests and 70 Python tests are current here.",
+    "Repository-wide static checks remain red for baseline debt; latest audit has no new failing paths and two removed size violations. Changed Zig formatting passes on 36 files.",
+    "The V04 cross-block root case on 26235156 historically rejects at a resource cap, not semantically; new gate returns PASS_WITH_LIMITATIONS and exit 3 if it recurs.",
+    "No qualified speedup, 4-6 second forecast, or complete production GPU-native qualification is claimed."
+  ]
+}

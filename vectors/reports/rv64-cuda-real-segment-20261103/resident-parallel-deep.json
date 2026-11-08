@@ -1,0 +1,47 @@
+{
+  "schema": "rv64-resident-parallel-deep-qualification/v1",
+  "date_utc": "2026-11-03",
+  "block": 24628607,
+  "gpu_count": 1,
+  "gpu_model": "RTX5090 sm120",
+  "scope": "Two complete sequential resident native proof bundles; recursion excluded",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "security_scope": "128-bit conjectured target under documented owner-accepted assumptions; no whole-protocol certificate",
+  "host_target": "x86_64-linux-gnu x86_64_v4+sha ReleaseFast",
+  "native_library_sha256": "6b86c059417977218878720d4a7b1a9823efe16a677955ba80bb725f6a20111a",
+  "source_commit": "e7b1b91c9",
+  "source_delta": "DEEP line aggregation: one128-thread CTA per group instead of one thread; exact field reduction",
+  "native_tests": {
+    "honest": 5,
+    "mutations": 19,
+    "pass": true
+  },
+  "trials": [
+    {
+      "completed_ethereum_block": true,
+      "capture_ns": 9624719435,
+      "setup_ns": 22135896810,
+      "prove_ns": 11577524080,
+      "same_process_verify_ns": 2205675934,
+      "trial": 0,
+      "mismatches": []
+    },
+    {
+      "completed_ethereum_block": true,
+      "capture_ns": 8993577211,
+      "setup_ns": 166763912,
+      "prove_ns": 9852494824,
+      "same_process_verify_ns": 2195735495,
+      "trial": 1,
+      "mismatches": []
+    }
+  ],
+  "all20_artifacts_each_trial_match_freshly_accepted_reference": true,
+  "fresh_receiver_reference": "fully-resident-complete-block.json",
+  "retained_host_wide_parking": false,
+  "logical_gpu_allocation_cap_bytes": 30064771072,
+  "limitations": [
+    "One cold and one warm request; paired control is prior resident-warm-authority receipt",
+    "No CPU speedup ratio or2/4GPU/recursion qualification"
+  ]
+}

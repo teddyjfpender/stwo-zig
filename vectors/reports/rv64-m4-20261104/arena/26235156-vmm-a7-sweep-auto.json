@@ -1,0 +1,479 @@
+{
+ "schema": "rv64-m4-arena/v1",
+ "label": "156-a7-auto",
+ "block": 26235156,
+ "run": "/workspace/m3/runs/m4-arena/26235156-2gpu-156-a7-auto",
+ "source_commit": "bcd401ce4",
+ "assets": {
+  "driver": "b28544a1efc336fd23d7fc102d99b725432fb76d7dbe8b6c727b2799d3d551aa",
+  "library": "878253ae7926a6578a4ff0925488ad3929844c1fa9063bd4947e157e9b7d3076",
+  "receiver": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+  "recursive_receiver": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b"
+ },
+ "environment_overrides": {
+  "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+  "STWO_RV64_GPU_CPU_REPLAY": "1",
+  "STWO_RV64_CORE_SINGLE_STREAM": "1",
+  "STWO_RV64_DEVICE_ARENA": "1"
+ },
+ "stages": {
+  "request_wall_s": 34.762,
+  "capture_s": 2.629,
+  "setup_s": 9.187,
+  "native_prove_s": 5.058,
+  "native_verify_s": 1.282,
+  "native_total_before_report_s": 17.008,
+  "recursion_s": 17.719
+ },
+ "producer_process": {
+  "argv": [
+   "/workspace/m3/build/m4-arena/base/rv64-word16-ethereum-gpu-combined",
+   "combined-batch",
+   "/workspace/m3/runs/m4-arena/26235156-2gpu-156-a7-auto/case/manifest.json",
+   "/workspace/m3/runs/m4-arena/26235156-2gpu-156-a7-auto/case/batch"
+  ],
+  "exit_code": 0,
+  "wall_ns": 41066322584,
+  "user_seconds": 115.308733,
+  "system_seconds": 48.15501,
+  "peak_rss_bytes": 23872303104,
+  "minor_faults": 15345539,
+  "major_faults": 0
+ },
+ "physical_gpu_memory_peak": {
+  "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+  "samples": 326,
+  "errors": [],
+  "kernel_activity": {
+   "0": {
+    "samples": 163,
+    "mean_percent": 25.883435582822084,
+    "min_percent": 0,
+    "max_percent": 100
+   },
+   "1": {
+    "samples": 163,
+    "mean_percent": 28.220858895705522,
+    "min_percent": 0,
+    "max_percent": 100
+   }
+  },
+  "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+  "peak_used_bytes": {
+   "0": 31503417344,
+   "1": 31503417344
+  }
+ },
+ "load1_at_start": 74.37,
+ "arena": {
+  "arena_init": [
+   {
+    "device": 1,
+    "status": 0,
+    "mode": "vmm",
+    "capacity_bytes": 27313307648,
+    "chunk_bytes": 33554432,
+    "chunks": 814,
+    "small_slab_bytes": 536870912,
+    "va_bytes": 109790101504,
+    "granularity": 2097152,
+    "reserve_bytes": 2147483648,
+    "free_before_bytes": 32497664000,
+    "free_after_stack_bytes": 29490348032,
+    "total_bytes": 33679736832,
+    "stack_before": 1024,
+    "stack_after": 12544,
+    "init_ms": 71.906,
+    "t_ms": 0.0
+   },
+   {
+    "device": 0,
+    "status": 0,
+    "mode": "vmm",
+    "capacity_bytes": 27313307648,
+    "chunk_bytes": 33554432,
+    "chunks": 814,
+    "small_slab_bytes": 536870912,
+    "va_bytes": 109790101504,
+    "granularity": 2097152,
+    "reserve_bytes": 2147483648,
+    "free_before_bytes": 32497664000,
+    "free_after_stack_bytes": 29490348032,
+    "total_bytes": 33679736832,
+    "stack_before": 1024,
+    "stack_after": 12544,
+    "init_ms": 175.123,
+    "t_ms": 72.0
+   }
+  ],
+  "arena_hw": [
+   {
+    "device": 1,
+    "physical_high_water_bytes": 27850178560,
+    "live_bytes": 33554432,
+    "long_bytes": 33554432,
+    "t_ms": 72.0,
+    "after_stage_line": "start"
+   },
+   {
+    "device": 0,
+    "physical_high_water_bytes": 27850178560,
+    "live_bytes": 33554432,
+    "long_bytes": 33554432,
+    "t_ms": 247.2,
+    "after_stage_line": "start"
+   }
+  ],
+  "arena_overrun": [
+   {
+    "device": 0,
+    "requested_bytes": 18436147616,
+    "long": 0,
+    "live_bytes": 9837211648,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 16978542592,
+    "live": 273,
+    "t_ms": 3475.2
+   },
+   {
+    "device": 1,
+    "requested_bytes": 3489660928,
+    "long": 0,
+    "live_bytes": 24072730624,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 2717908992,
+    "live": 154,
+    "t_ms": 8475.9
+   },
+   {
+    "device": 0,
+    "requested_bytes": 11240738728,
+    "long": 0,
+    "live_bytes": 17924834816,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 8858370048,
+    "live": 86,
+    "t_ms": 9661.5
+   },
+   {
+    "device": 1,
+    "requested_bytes": 11240738728,
+    "long": 0,
+    "live_bytes": 15793198080,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 11005853696,
+    "live": 156,
+    "t_ms": 10109.9
+   },
+   {
+    "device": 0,
+    "requested_bytes": 11240738728,
+    "long": 0,
+    "live_bytes": 15725124096,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 11072962560,
+    "live": 169,
+    "t_ms": 12042.1
+   },
+   {
+    "device": 1,
+    "requested_bytes": 11240738728,
+    "long": 0,
+    "live_bytes": 15725174784,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 11072962560,
+    "live": 168,
+    "t_ms": 12380.0
+   },
+   {
+    "device": 0,
+    "requested_bytes": 11240738728,
+    "long": 0,
+    "live_bytes": 17034912768,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 9764339712,
+    "live": 167,
+    "t_ms": 13260.8
+   },
+   {
+    "device": 1,
+    "requested_bytes": 11240738728,
+    "long": 0,
+    "live_bytes": 17034974208,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 9764339712,
+    "live": 167,
+    "t_ms": 13550.5
+   },
+   {
+    "device": 0,
+    "requested_bytes": 536870912,
+    "long": 0,
+    "live_bytes": 26378196992,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 436207616,
+    "live": 203,
+    "t_ms": 14417.2
+   },
+   {
+    "device": 1,
+    "requested_bytes": 11240738728,
+    "long": 0,
+    "live_bytes": 15624515072,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 11173625856,
+    "live": 163,
+    "t_ms": 14889.3
+   },
+   {
+    "device": 0,
+    "requested_bytes": 536870912,
+    "long": 0,
+    "live_bytes": 26378196992,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 436207616,
+    "live": 203,
+    "t_ms": 15605.2
+   },
+   {
+    "device": 1,
+    "requested_bytes": 11240738728,
+    "long": 0,
+    "live_bytes": 16983859200,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 9831448576,
+    "live": 199,
+    "t_ms": 16610.3
+   },
+   {
+    "device": 0,
+    "requested_bytes": 536870912,
+    "long": 0,
+    "live_bytes": 26378196992,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 436207616,
+    "live": 203,
+    "t_ms": 17484.8
+   },
+   {
+    "device": 1,
+    "requested_bytes": 536870912,
+    "long": 0,
+    "live_bytes": 26378258432,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 436207616,
+    "live": 203,
+    "t_ms": 17821.6
+   },
+   {
+    "device": 1,
+    "requested_bytes": 536870912,
+    "long": 0,
+    "live_bytes": 26378258432,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 436207616,
+    "live": 203,
+    "t_ms": 19069.3
+   },
+   {
+    "device": 1,
+    "requested_bytes": 536870912,
+    "long": 0,
+    "live_bytes": 26378258432,
+    "capacity_bytes": 27313307648,
+    "free_chunk_bytes": 0,
+    "mapped_free_bytes": 436207616,
+    "live": 203,
+    "t_ms": 21883.2
+   }
+  ],
+  "arena_summary": [
+   {
+    "device": 0,
+    "mode": "vmm",
+    "capacity_bytes": 27313307648,
+    "chunk_bytes": 33554432,
+    "physical_high_water_bytes": 27850178560,
+    "live_high_water_bytes": 26378196992,
+    "live_long_high_water_bytes": 3184666624,
+    "live_small_high_water_bytes": 62457856,
+    "small_slab_bytes": 536870912,
+    "allocations": 4874,
+    "releases": 4874,
+    "overruns": 7,
+    "largest_overrun_bytes": 18436147616,
+    "live_at_overrun_bytes": 9837211648,
+    "free_chunks_at_overrun": 506,
+    "small_spills": 0,
+    "map_calls": 2235,
+    "unmap_calls": 43,
+    "map_ms": 629.435,
+    "unmap_ms": 126.142,
+    "evict_host_syncs": 0,
+    "fence_records": 0,
+    "fence_same_stream": 0,
+    "fence_stream_waits": 0,
+    "fence_host_syncs": 0,
+    "fences_now": 0,
+    "reuse_hits": 1357,
+    "map_misses": 19,
+    "steals": 19,
+    "stolen_chunks": 1421,
+    "mapped_free_bytes": 26776436736,
+    "init_ms": 175.123,
+    "free_before_bytes": 32497664000,
+    "free_after_stack_bytes": 29490348032,
+    "stack_after": 12544,
+    "t_ms": 22833.2
+   },
+   {
+    "device": 1,
+    "mode": "vmm",
+    "capacity_bytes": 27313307648,
+    "chunk_bytes": 33554432,
+    "physical_high_water_bytes": 27850178560,
+    "live_high_water_bytes": 26378258432,
+    "live_long_high_water_bytes": 3319797760,
+    "live_small_high_water_bytes": 57771008,
+    "small_slab_bytes": 536870912,
+    "allocations": 5436,
+    "releases": 5436,
+    "overruns": 9,
+    "largest_overrun_bytes": 11240738728,
+    "live_at_overrun_bytes": 15793198080,
+    "free_chunks_at_overrun": 328,
+    "small_spills": 0,
+    "map_calls": 2333,
+    "unmap_calls": 40,
+    "map_ms": 461.773,
+    "unmap_ms": 211.064,
+    "evict_host_syncs": 0,
+    "fence_records": 0,
+    "fence_same_stream": 0,
+    "fence_stream_waits": 0,
+    "fence_host_syncs": 0,
+    "fences_now": 0,
+    "reuse_hits": 1529,
+    "map_misses": 19,
+    "steals": 19,
+    "stolen_chunks": 1519,
+    "mapped_free_bytes": 26776436736,
+    "init_ms": 71.906,
+    "free_before_bytes": 32497664000,
+    "free_after_stack_bytes": 29490348032,
+    "stack_after": 12544,
+    "t_ms": 22833.2
+   }
+  ],
+  "pool_summary": {
+   "pool_mallocs": 0,
+   "pool_trims": 0,
+   "pool_oom_recoveries": 0,
+   "arena_enabled": 1,
+   "staging_enabled": 0
+  },
+  "staging_summary": {
+   "pageable_h2d": 9817,
+   "pageable_h2d_bytes": 47815780468,
+   "pageable_d2h": 2479,
+   "pageable_d2h_bytes": 77694688,
+   "pinned_direct": 0,
+   "staged_h2d": 0,
+   "staged_h2d_bytes": 0,
+   "staged_d2h": 0,
+   "staged_d2h_bytes": 0,
+   "slot_waits": 0,
+   "rings": 0
+  },
+  "device_peak_by_stage_line": {
+   "trace_commit:tree1": {
+    "pool_used_bytes": 22462117376,
+    "live_lease_bytes": 11344137568,
+    "scratch_bytes": 3825205760
+   },
+   "trace_commit:tree2": {
+    "pool_used_bytes": 22967288832,
+    "live_lease_bytes": 13725133920,
+    "scratch_bytes": 3825206528
+   },
+   "trace_commit:tree0": {
+    "pool_used_bytes": 18003012608,
+    "live_lease_bytes": 6697476428,
+    "scratch_bytes": 3234733260
+   }
+  },
+  "composition_arena_bytes_max": {
+   "eval_log23": 5620371368,
+   "eval_log19": 254806752,
+   "eval_log6": 329288,
+   "eval_log17": 120329472,
+   "eval_log11": 9665992,
+   "eval_log18": 240653568,
+   "eval_log9": 2862456,
+   "eval_log16": 2294386776,
+   "eval_log15": 576211360,
+   "eval_log14": 26322208,
+   "eval_log7": 732848,
+   "eval_log13": 243595360,
+   "eval_log8": 240384,
+   "eval_log21": 750782432,
+   "eval_log20": 18436147616,
+   "eval_log12": 19303880,
+   "eval_log24": 11240738728,
+   "eval_log22": 2810187688
+  },
+  "owner_oom_lines": 16
+ },
+ "receiver": {
+  "status": "not_run",
+  "accepted": null,
+  "process": null
+ },
+ "accepted": null,
+ "parity_vs_accepted_v7": {
+  "native_bins": true,
+  "bundle": true,
+  "recursive_tree": false,
+  "recursive_proofs": false,
+  "recursive_mismatched": [
+   "fold-000002.proof",
+   "fold-000005.proof",
+   "fold-000006.proof",
+   "fold-000009.proof",
+   "fold-000012.proof",
+   "fold-000013.proof",
+   "fold-000014.proof",
+   "fold-000017.proof",
+   "fold-000019.proof",
+   "fold-000020.proof",
+   "root.proof"
+  ],
+  "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+  "control_root_sha256": "4e4b174e65d9c0b5391608ceb692a0852dca3f6c3440b359847123ef20b59a7f",
+  "native_mismatched": [],
+  "byte_identical": false
+ },
+ "parity_vs_m3_baseline": {
+  "artifacts_compared": 37,
+  "mismatched": [],
+  "byte_identical": true,
+  "baseline_root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+  "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+  "baseline": "/workspace/m3/src/m4-arena/vectors/reports/rv64-m3-20261104/integrate/scale/26235156.json"
+ }
+}

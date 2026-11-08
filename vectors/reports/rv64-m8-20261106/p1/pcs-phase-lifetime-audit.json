@@ -1,0 +1,56 @@
+{
+  "schema": "rv64-p1-pcs-phase-lifetime-audit/v1",
+  "status": "READ_ONLY_SOURCE_AUDIT_NO_BOUND_CHANGED",
+  "trigger": "Compact state activates but composed2-lane cold stalls before root. The allocation-summed PCS future remains dominant.",
+  "observed_model_node4": {
+    "label": "D",
+    "main_evaluations": 2348810240,
+    "main_coefficients": 2348810240,
+    "inter_evaluations": 4999610368,
+    "interaction_additional_peak": 8858370048,
+    "pcs_additional_summed_upper": 7381975040,
+    "source_future": 12918456320
+  },
+  "findings": [
+    {
+      "source": "src/integrations/riscv_cuda/rv64/pcs_allocation_cost.zig:1",
+      "finding": "The cost calculator explicitly sums every rounded allocation request. This is an upper envelope, not simultaneous live memory."
+    },
+    {
+      "source": "src/backends/cuda/native/rv64/pcs_pipeline.cuh:631",
+      "finding": "Rolling PCS retires its combined DEEP arena, both sample scratch buffers and specified challenge/metadata planes after DEEP combine."
+    },
+    {
+      "source": "src/backends/cuda/native/rv64/pcs_pipeline.cuh:687",
+      "finding": "FRI full columns and trees are retired after openings and before the late source-rebuild scratch is allocated. Those reservations are disjoint in the current execution."
+    },
+    {
+      "source": "src/backends/cuda/native/rv64/pcs_native.cu:307",
+      "finding": "retirePlanes validates whole active temporary reservations, joins both lanes, marks them idle, then applies the configured idle-cache cap. Source planes and domains are excluded."
+    },
+    {
+      "source": "src/backends/cuda/native/rv64/pcs_idle_cache.h:35",
+      "finding": "Zero idle-cache cap releases every retired block. Nonzero or disabled caps cannot support a simple max-of-phases contract without charging retained blocks. VMM mapped-free physical pages remain a separate accounting issue."
+    },
+    {
+      "source": "src/backends/cuda/native/rv64/pcs_pipeline.cuh:433",
+      "finding": "FRI storage is allocated before DEEP execution; it overlaps the DEEP arena already. Merely changing the summed cost into a phase maximum does not remove that actual coexistence."
+    },
+    {
+      "source": "src/integrations/riscv_cuda/rv64/resident_composition.zig:1262",
+      "finding": "Composition allocates its commitment LDE scratch before finish consumes quotient buckets. The buckets, accumulator and inverse lease remain in the common cleanup list through commitment. Moving real last-use retirement before LDE/tree allocation is a separate footprint opportunity."
+    }
+  ],
+  "obligations_before_any_discount": [
+    "Enumerate each allocation with its exact word count, allocator rounding, birth phase, last-use join and retention policy. Validate coverage against actual native allocations, including borrowed source leases and cold domains.",
+    "Use the existing strict sorted borrow checks; count coefficient copies unless the physical lease roster proves a borrow. Include inherited idle caches or require a checked zero-cap contract.",
+    "Keep original summed path as default. A selected phase bound must fail closed if native capability or frozen allocation policy differs.",
+    "Report measured owner-attributed live peaks separately from process physical residency and mapped-free cache pages. Existing process/session high-water logs are not per-node peak proof.",
+    "Prefer deferring FRI allocations and retiring composition buckets/accumulator at actual last use over adding admission coordination. A model correction alone is not a physical footprint improvement.",
+    "Fused INTER numerator removal can lower its generation peak, but the current summed PCS future can remain dominant. Do not predict a complete admission fix from the numerator saving alone."
+  ],
+  "next_validation": "A host-only real-class allocation census, then a source-bound physical lifetime change with byte parity. No new budget or permit machinery in this audit.",
+  "exact_node_peak": null,
+  "gpu_seconds": null,
+  "request_gain_claim": false
+}

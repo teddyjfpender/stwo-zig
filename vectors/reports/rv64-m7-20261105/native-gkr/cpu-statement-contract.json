@@ -1,0 +1,27 @@
+{
+  "schema": "rv64-m7-native-cpu-statement-contract/v1",
+  "author": "OpenAI Codex",
+  "status": "fully typed constructor and OODS contract; numerical circuit fixtures qualified; complete physical native-GKR PCS proof still owed",
+  "command": "zig build test-native-gkr-circuit",
+  "exit_code": 0,
+  "source_sha256": {
+    "src/integrations/riscv_cpu/build.zig": "a851e56b971a6da42df7f8f7d7e0af672b1ccd5331f9bc1ed4cd61703c5f4d6c",
+    "src/integrations/riscv_cpu/rv64_native_gkr_test_root.zig": "6acfa459accaa952aea3b8cef40bdf5f42d0eec0b7647183e2d74e4d49495da3",
+    "src/integrations/riscv_cpu/rv64_native_gkr_circuit_test_root.zig": "d41352206024fbc1191099515e100b45badbb29038fea320e65e3b31a0a2bcb3",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/native_gkr_cpu_leaf.zig": "86fa571c8e54bdc6d001fc8d2f75150c38837d07812b8f4cf7230f5f50726345",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/cpu_statement.zig": "62a02b72c3490b5b9a80a06971a04b58e630804823801edbb8b2448db392a9f9"
+  },
+  "fields": [
+    "chain_inputs",
+    "compact_header",
+    "compact_metadata",
+    "statement",
+    "main",
+    "chi",
+    "global",
+    "source_plan",
+    "native_plan"
+  ],
+  "transcript": "MAIN-only native begin/fixed/main, full strict v2 section +gamma/rho, derived aggregate RAM/KIO/Wire mix, reduced INTER and PCS; no freely guessed classic claim vector",
+  "limits": "New native format remains disabled. Whole worker/GPU stage and receiver gates incomplete."
+}

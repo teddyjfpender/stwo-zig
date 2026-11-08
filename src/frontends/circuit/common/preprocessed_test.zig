@@ -236,3 +236,106 @@ test "preprocessed: malformed circuit views fail closed" {
         try std.testing.expectError(error.VariableOutOfRange, preprocessed.PreprocessedCircuit.fromCircuit(allocator, malformed));
     }
 }
+
+const prover = @import("stwo_prover_engine");
+
+fn expectSameColumns(a: *const preprocessed.PreprocessedCircuit, b: *const preprocessed.PreprocessedCircuit) !void {
+    const la = a.layout();
+    const lb = b.layout();
+    try std.testing.expect(la.eql(&lb));
+    try std.testing.expectEqual(a.first_permutation_row, b.first_permutation_row);
+    try std.testing.expectEqual(a.n_outputs, b.n_outputs);
+    for (a.columns, b.columns) |left, right| {
+        try std.testing.expectEqualStrings(left.id, right.id);
+        try std.testing.expectEqualSlices(@import("stwo_core").fields.m31.M31, left.values, right.values);
+    }
+}
+
+test "preprocessed parallel fill: disjoint columns exact with bounded pool and CPU timings" {
+    const a = std.testing.allocator;
+    const n: usize = 1 << 20;
+    const gates = try a.alloc(BinaryGate, n);
+    defer a.free(gates);
+    for (gates, 0..) |*gate, i| gate.* = .{ .in0 = @intCast(3 * i), .in1 = @intCast(3 * i + 1), .out = @intCast(3 * i + 2) };
+    var sample = SampleCircuit.init();
+    var view = sample.view();
+    const blake_rows: usize = 1 << 21;
+    const blake = try a.alloc(preprocessed.BlakeGGate, blake_rows);
+    defer a.free(blake);
+    for (blake, 0..) |*gate, i| {
+        gate.* = sample.blake_g_gate[0];
+        gate.out_base = @intCast(3 * n + 8 + 4 * i);
+    }
+    view.n_vars = 3 * n + 8 + 4 * blake_rows;
+    view.blake_g_gate = blake;
+    view.add = gates;
+    view.sub = &.{};
+    view.mul = &.{};
+    view.pointwise_mul = &.{};
+    // Keep Blake outputs unreferenced, so all four multiplicities agree.
+
+    var serial_ns: [3]u64 = undefined;
+    var parallel_ns: [3]u64 = undefined;
+    var pool: prover.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    for (0..3) |iteration| {
+        var timer = try std.time.Timer.start();
+        var serial = try preprocessed.PreprocessedCircuit.fromCircuit(a, view);
+        serial_ns[iteration] = timer.read();
+        defer serial.deinit(a);
+        var binding = try prover.work_pool.ScopedPoolBinding.init(&pool);
+        timer.reset();
+        var parallel = try preprocessed.PreprocessedCircuit.fromCircuit(a, view);
+        parallel_ns[iteration] = timer.read();
+        binding.deinit();
+        defer parallel.deinit(a);
+        try expectSameColumns(&serial, &parallel);
+    }
+    std.mem.sort(u64, &serial_ns, {}, std.sort.asc(u64));
+    std.mem.sort(u64, &parallel_ns, {}, std.sort.asc(u64));
+    std.debug.print("PP_COLUMN_FILL_PARITY binary_rows={} blake_rows=2097152 workers=4 all45_exact=true serial_median_ns={} parallel_median_ns={} includes_serial_validation_and_multiplicities=true excludes_root_commit=true\n", .{ n, serial_ns[1], parallel_ns[1] });
+}
+
+test "preprocessed parallel fill: joins last-shard errors and frees every allocation" {
+    const a = std.testing.allocator;
+    var sample = SampleCircuit.init();
+    const gates = try a.alloc(preprocessed.BlakeGGate, 1 << 16);
+    defer a.free(gates);
+    @memset(gates, sample.blake_g_gate[0]);
+    gates[gates.len - 1].out_base = 92;
+    var view = sample.view();
+    view.blake_g_gate = gates;
+    sample.output[0] = 93;
+    var pool: prover.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    var binding = try prover.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    try std.testing.expectError(error.MultiplicityMismatch, preprocessed.PreprocessedCircuit.fromCircuit(a, view));
+    sample.output[0] = 0;
+    var valid = try preprocessed.PreprocessedCircuit.fromCircuit(a, view);
+    defer valid.deinit(a);
+    // A fully leased pool must use the same serial path without acquiring a
+    // nested lease or allocating a second pool.
+    var lease = try pool.acquire(try prover.work_pool.WorkerBudget.init(4));
+    defer lease.deinit();
+    var nested = try preprocessed.PreprocessedCircuit.fromCircuit(a, view);
+    defer nested.deinit(a);
+    try expectSameColumns(&valid, &nested);
+}
+
+fn allocationFailureCase(a: std.mem.Allocator) !void {
+    const sample = SampleCircuit.init();
+    var pp = try preprocessed.PreprocessedCircuit.fromCircuit(a, sample.view());
+    defer pp.deinit(a);
+}
+
+test "preprocessed parallel fill: allocation failure after joined table fills is leak free" {
+    var pool: prover.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    var binding = try prover.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, allocationFailureCase, .{});
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "path": "/workspace/m3/src/m7-device-graph",
+    "bytes": 409258702,
+    "reason": "superseded owned source only; pushed commits/source hashes, admitted binaries and first proof pairs retained"
+  },
+  {
+    "path": "/workspace/m3/src/m7-capture",
+    "bytes": 409267156,
+    "reason": "superseded owned source only; pushed commits/source hashes, admitted binaries and first proof pairs retained"
+  },
+  {
+    "path": "/workspace/m3/src/m7-device-lanes",
+    "bytes": 409337031,
+    "reason": "superseded owned source only; pushed commits/source hashes, admitted binaries and first proof pairs retained"
+  }
+]

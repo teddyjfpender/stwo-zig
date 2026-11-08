@@ -1,0 +1,89 @@
+{
+ "schema": "rv64-m8-runtime-gates/v1",
+ "gates": [
+  {
+   "gate": "/workspace/m3/runs/m8-runtime/gate-1/gate.json",
+   "gate_json_sha256": "67e8f21d3cc51a32c81df5a0394317f8d821317cc86942a48c441739553e0959",
+   "status": "PASS",
+   "source_commit": "6b7864839",
+   "block": 26235156,
+   "extra_env": {},
+   "parity_byte_identical": [
+    true,
+    true
+   ],
+   "artifact_counts": [
+    32,
+    32
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "steps": [
+    "build",
+    "unit-zig",
+    "unit-python",
+    "small-block-proof",
+    "fresh-cpu-receiver",
+    "negative-corpus"
+   ]
+  },
+  {
+   "gate": "/workspace/m3/runs/m8-runtime/gate-2/gate.json",
+   "gate_json_sha256": "3342eb323ce430c32a92bde6a0a209e1b8d558413c41bc409b8268ed3d7cfff7",
+   "status": "PASS",
+   "source_commit": "37520eb87",
+   "block": 26235156,
+   "extra_env": {},
+   "parity_byte_identical": [
+    true,
+    true
+   ],
+   "artifact_counts": [
+    32,
+    32
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "steps": [
+    "build",
+    "unit-zig",
+    "unit-python",
+    "small-block-proof",
+    "fresh-cpu-receiver",
+    "negative-corpus"
+   ]
+  },
+  {
+   "gate": "/workspace/m3/runs/m8-runtime/gate-3/gate.json",
+   "gate_json_sha256": "06db44942e9d53d934dc0f683ce2ccf3024a2d0680c17d9df3cff1fb5aa7a338",
+   "status": "PASS",
+   "source_commit": "fe2d494ac",
+   "block": 26235156,
+   "extra_env": {},
+   "parity_byte_identical": [
+    true,
+    true
+   ],
+   "artifact_counts": [
+    32,
+    32
+   ],
+   "receivers_accepted": [
+    true,
+    true
+   ],
+   "steps": [
+    "build",
+    "unit-zig",
+    "unit-python",
+    "small-block-proof",
+    "fresh-cpu-receiver",
+    "negative-corpus"
+   ]
+  }
+ ]
+}

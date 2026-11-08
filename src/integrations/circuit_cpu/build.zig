@@ -12,6 +12,7 @@ pub fn build(b: *std.Build) void {
     const prover = b.dependency("stwo_prover_engine", dependency_options).module("stwo_prover_engine");
     const prover_api = b.dependency("stwo_prover_api", dependency_options).module("stwo_prover_api");
     const cpu_backend = b.dependency("stwo_cpu_backend", dependency_options).module("stwo_cpu_backend");
+    const proof_wire = b.dependency("stwo_proof_wire", dependency_options).module("stwo_proof_wire");
     const circuit = b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend");
     const cairo = b.dependency("stwo_cairo_frontend", dependency_options).module("stwo_cairo_frontend");
     // The wire package shares the Cairo frontend's injected interop modules:
@@ -33,6 +34,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     integration.addImport("stwo_core", core);
+    integration.addImport("stwo_proof_wire", proof_wire);
     integration.addImport("stwo_prover_api", prover_api);
     integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
@@ -40,6 +42,70 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_cairo_frontend", cairo);
     integration.addImport("stwo_circuit_recursion_wire", wire);
     integration.addImport("circuit_composition_cpu_aot", composition_aot.createModule(b, target, optimize, core, cairo, "../../../"));
+
+    const om31_root = b.createModule(.{ .root_source_file = b.path("om31_test_root.zig"), .target = target, .optimize = optimize });
+    om31_root.addImport("stwo_core", core);
+    om31_root.addImport("stwo_prover_api", prover_api);
+    om31_root.addImport("stwo_prover_engine", prover);
+    om31_root.addImport("stwo_cpu_backend", cpu_backend);
+    om31_root.addImport("stwo_circuit_frontend", circuit);
+    om31_root.addImport("stwo_cairo_frontend", cairo);
+    const om31_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_root }));
+    om31_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    b.step("test-circuit-om31", "Test concrete native OM31 circuit authority and witnesses").dependOn(&om31_tests.step);
+
+    const om31_fraction_root = b.createModule(.{ .root_source_file = b.path("om31_fractions_test_root.zig"), .target = target, .optimize = optimize });
+    om31_fraction_root.addImport("stwo_core", core);
+    om31_fraction_root.addImport("stwo_prover_engine", prover);
+    om31_fraction_root.addImport("stwo_circuit_frontend", circuit);
+    om31_fraction_root.addImport("stwo_cairo_frontend", cairo);
+    const om31_fraction_test = b.addTest(.{ .root_module = om31_fraction_root });
+    om31_fraction_root.addIncludePath(.{ .cwd_relative = b.pathFromRoot("../circuit_cuda/native/emulation/include") });
+    om31_fraction_root.addIncludePath(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native") });
+    om31_fraction_root.addCSourceFile(.{ .file = .{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/rv64/circuit_interaction.cu") }, .flags = &.{ "-std=c++17", "-O3", "-DSTWO_CIRCUIT_OM31_HOST_EMULATION", "-Wall", "-Wextra", "-Werror" }, .language = .cpp });
+    om31_fraction_test.linkLibCpp();
+    const om31_fraction_run = b.addRunArtifact(om31_fraction_test);
+    om31_fraction_run.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    b.step("test-circuit-om31-cuda-fractions", "Compare native octic CUDA fractions with all original native lookup tuples").dependOn(&om31_fraction_run.step);
+
+    const om31_witness_root = b.createModule(.{ .root_source_file = b.path("om31_witness_test_root.zig"), .target = target, .optimize = optimize });
+    om31_witness_root.addImport("stwo_core", core);
+    om31_witness_root.addImport("stwo_prover_engine", prover);
+    om31_witness_root.addImport("stwo_cpu_backend", cpu_backend);
+    om31_witness_root.addImport("stwo_circuit_frontend", circuit);
+    om31_witness_root.addImport("stwo_cairo_frontend", cairo);
+    const om31_witness_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_witness_root }));
+    om31_witness_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    b.step("test-circuit-om31-witness", "Compare real circuit MAIN/lookup witnesses across quartic and octic fields").dependOn(&om31_witness_tests.step);
+
+    const om31_wire_root = b.createModule(.{ .root_source_file = b.path("om31_wire_test_root.zig"), .target = target, .optimize = optimize });
+    om31_wire_root.addImport("stwo_core", core);
+    om31_wire_root.addImport("stwo_prover_engine", prover);
+    om31_wire_root.addImport("stwo_cpu_backend", cpu_backend);
+    om31_wire_root.addImport("stwo_circuit_frontend", circuit);
+    om31_wire_root.addImport("stwo_proof_wire", proof_wire);
+    const om31_wire_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_wire_root }));
+    b.step("test-circuit-om31-wire", "Test bounded native OM31 circuit proof transport").dependOn(&om31_wire_tests.step);
+    const om31_proof_root = b.createModule(.{ .root_source_file = b.path("om31_proof_test_root.zig"), .target = target, .optimize = optimize });
+    om31_proof_root.addImport("stwo_core", core);
+    om31_proof_root.addImport("stwo_prover_engine", prover);
+    om31_proof_root.addImport("stwo_cpu_backend", cpu_backend);
+    om31_proof_root.addImport("stwo_circuit_frontend", circuit);
+    om31_proof_root.addImport("stwo_cairo_frontend", cairo);
+    const om31_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_proof_root }));
+    om31_proof_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    b.step("test-circuit-om31-proof", "Prove and freshly verify an actual circuit under native octic q108/P20").dependOn(&om31_proof_tests.step);
+
+    const om31_parallel_root = b.createModule(.{ .root_source_file = b.path("om31_parallel_test_root.zig"), .target = target, .optimize = optimize });
+    om31_parallel_root.addImport("stwo_core", core);
+    om31_parallel_root.addImport("stwo_prover_engine", prover);
+    om31_parallel_root.addImport("stwo_cpu_backend", cpu_backend);
+    om31_parallel_root.addImport("stwo_circuit_frontend", circuit);
+    om31_parallel_root.addImport("stwo_cairo_frontend", cairo);
+    om31_parallel_root.addImport("stwo_proof_wire", proof_wire);
+    const om31_parallel_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_parallel_root }));
+    om31_parallel_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    b.step("test-circuit-om31-parallel", "Compare serial and bounded-pool native OM31 outer proofs").dependOn(&om31_parallel_tests.step);
 
     // Fixture tests read `vectors/circuit` from the repository root.
     const repository_root: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../..") };

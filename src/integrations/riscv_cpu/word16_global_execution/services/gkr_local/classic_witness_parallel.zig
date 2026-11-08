@@ -23,7 +23,10 @@ pub const Plan = struct {
     chunk_rows: usize,
     scratch_bytes: usize,
     pub fn init(log: u32, groups: []const C.Group, budget: usize, workers: usize) !Plan {
-        if (log < 5 or log > 22 or groups.len == 0 or groups.len > C.MAX_GROUPS) return error.InvalidClassicWitnessShape;
+        return initWithLogBound(22, log, groups, budget, workers);
+    }
+    pub fn initWithLogBound(comptime max_log: u32, log: u32, groups: []const C.Group, budget: usize, workers: usize) !Plan {
+        if (log < 5 or log > max_log or groups.len == 0 or groups.len > C.MAX_GROUPS) return error.InvalidClassicWitnessShape;
         const rows = @as(usize, 1) << @intCast(log);
         var terms: usize = 0;
         var width: usize = 0;
@@ -32,10 +35,10 @@ pub const Plan = struct {
             terms = try std.math.add(usize, terms, g.inverses);
             width = try std.math.add(usize, width, 8 * (@as(usize, g.inverses) + 1));
         }
-        if (terms > 640) return error.InvalidClassicWitnessShape;
+        if ((max_log > 22 and (groups.len != 1 or terms != 1)) or terms > 640) return error.InvalidClassicWitnessShape;
         const output = try std.math.mul(usize, try std.math.mul(usize, rows, width), @sizeOf(M));
         if (output > budget or terms == 0) return error.ClassicWitnessBudgetExceeded;
-        const capacity = @min(MAX_SCRATCH_BYTES, @min(try C.scratchByteUpperBound(log, terms), budget - output));
+        const capacity = @min(MAX_SCRATCH_BYTES, @min(try (if (max_log == 23) C.publicBoundaryScratchByteUpperBound(log, terms) else C.scratchByteUpperBound(log, terms)), budget - output));
         const row_bytes = try std.math.mul(usize, terms, 2 * @sizeOf(O) + @sizeOf(C.Numerator));
         var jobs = @max(1, @min(Rows.MAX_SHARDS, @min(workers, rows / (2 * BLOCK_ROWS))));
         while (true) {
@@ -69,9 +72,12 @@ const Scratch = struct {
 };
 pub const Result = struct { data: []M, claims: [C.MAX_GROUPS]O };
 pub fn generate(a: std.mem.Allocator, log: u32, groups: []const C.Group, provider: anytype, budget: usize) !Result {
+    return generateWithLogBound(22, a, log, groups, provider, budget);
+}
+pub fn generateWithLogBound(comptime max_log: u32, a: std.mem.Allocator, log: u32, groups: []const C.Group, provider: anytype, budget: usize) !Result {
     const pool = engine.work_pool.currentScopedPool();
     const available = if (pool) |p| if (engine.work_pool.cooperative.current() == null) p.availableWorkers() else 1 else 1;
-    const plan = try Plan.init(log, groups, budget, available);
+    const plan = try Plan.initWithLogBound(max_log, log, groups, budget, available);
     const data = try a.alloc(M, plan.output_bytes / @sizeOf(M));
     errdefer a.free(data);
     var scratch: [Rows.MAX_SHARDS]Scratch = undefined;

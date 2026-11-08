@@ -43,7 +43,7 @@ parallel segment parity and forged tape/identity/resource rejection.
 - The in-process walk skips the legacy Poseidon initial-image cache
   (`Request.Options.poseidon_initial_cache = false`). Durable collection keeps it.
 - `max_inflight_packets` accepts 1..16 (was 1..2), on both routes.
-- Reports carry `block_to_inputs` (init, first/last segment inputs, all inputs,
-  ledger). Recommended: `"execution_workers": 7, "max_inflight_packets": 7`.
+- Reports carry `capture_inputs` (init, first/last segment inputs, all inputs,
+  ledger; also nested as `block_to_inputs.capture` in report.json). Recommended: `"execution_workers": 7, "max_inflight_packets": 7`.
 - Expected-image inputs are bounded by `INPUT_CAPACITY_MAX - 4`, not 4 MiB (P4).
 - Receipts: `vectors/reports/rv64-gkr-direct-capture-20261103/`.

@@ -1,0 +1,14 @@
+{
+  "base": "4415a2de3",
+  "sha256": {
+    "src/integrations/riscv_cpu/build.zig": "56f0d5fdfa2c9c0c27018b655b5352b5f3ef808b74c18457f31553e830e3e661",
+    "src/integrations/riscv_cpu/rv64_native_route_test_root.zig": "ec49c555f3c3de903c15825aa5787a80d92e2bd1f8ab0dd0e0ce5b7aad6935dd",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig": "6f96291d3dc98683019d69791977f773a653414232d314827bba4a4563e490f6",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig": "2533f31ad7bf9eab4ac162a2d47794a71a63fdc1cb894289b737594eb7de29ee",
+    "src/integrations/riscv_cpu/word16_global_execution/services/schedule.zig": "b466c047b532fae501bed44c02bdce1b90f9cdad77d6690f8ff5e2766ed678e8",
+    "src/integrations/riscv_cuda/rv64/native_route_plan.zig": "b52c1666ef2a4c4e88308b4d3b68a84590f2e0e4e0ebea5f8b132760963d8485",
+    "src/integrations/riscv_cuda/rv64/resident_router.zig": "464d89fce181a242cbc68782646e761f4956658d2f6ea7b4111e2d4105576c75",
+    "src/integrations/riscv_cuda/rv64/resident_pool.zig": "915611159e941d1270962e7c9dedbd8e5fe02d3f09cbdc5cc6c99a7532f833bc"
+  },
+  "scope": "Operational source-estimate placement; source frozen before driver build; CUDA and proof-neutral CPU receiver reused"
+}

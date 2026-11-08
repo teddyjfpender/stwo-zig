@@ -166,6 +166,17 @@ pub inline fn qFor(comptime F: type, value: u32) F {
     if (comptime isExternalLane(F) or isSymbolicLane(F)) return F.fromU32(value);
     @compileError("unsupported RV64 arithmetic lane");
 }
+/// Seven byte-shift selectors: base + sum(i * selectors[i-1]); scalar sum < 29p.
+pub fn addByteShiftFor(comptime F: type, base: F, selectors: *const [7]F) F {
+    if (F == M) {
+        var sum: u64 = base.v;
+        for (selectors, 1..) |value, i| sum += @as(u64, value.v) * i;
+        return M.fromU64(sum);
+    }
+    var sum = base;
+    inline for (selectors, 1..) |value, i| sum = sum.add(value.mul(qFor(F, @intCast(i))));
+    return sum;
+}
 pub inline fn liftFor(comptime F: type, value: F) SecureFor(F) {
     if (F == PackedBase) return PackedSecure.fromBase(value);
     if (F == PackedFields.PackedOmBase) return PackedFields.PackedOmSecure.fromBase(value);

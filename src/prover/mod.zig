@@ -26,6 +26,7 @@ pub const task_graph = @import("task_graph.zig");
 pub const task_profile = @import("stwo_prover_api").task_profile;
 pub const transaction = @import("transaction.zig");
 pub const work_pool = @import("work_pool.zig");
+pub const chunked_sha256 = @import("chunked_sha256.zig");
 pub const resident_storage = @import("resident_storage.zig");
 pub const measurement = @import("measurement/mod.zig");
 pub const execution = @import("execution/mod.zig");
@@ -36,6 +37,7 @@ test {
     _ = @import("tests/fri_work_test.zig");
     _ = @import("tests/work_pool_test.zig");
     _ = host_budget_allocator;
+    _ = @import("chunked_sha256.zig");
     _ = @import("tests/tracked_smp_allocator_test.zig");
     _ = @import("tests/task_graph_nested_test.zig");
     _ = @import("tests/task_graph_profile_failure_test.zig");

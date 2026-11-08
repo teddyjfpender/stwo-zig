@@ -1,0 +1,32 @@
+{
+  "schema": "rv64-owner-admission-v2-fixture/v1",
+  "scope": "Allocator ownership controls only; no production proof/parity/performance qualification",
+  "library_sha256": "4273d53688fc489035a43af159e617757c6d977afbd4fd66caa75148e8542992",
+  "math_objects_unchanged": 948,
+  "runtime_source_commit": "0eeaad6fd",
+  "fixture_source_commit": "5a9e1622d",
+  "fixture_cpp_sha256": "aa82d456cc07664848a4d00eeca6405929e63a63803907fe0795c1069d7dc23d",
+  "fixture_binary_sha256": "3c010f57ab49d0431789df04a85cf477a6d5094b77dfa056836774297ad23d9f",
+  "fixture_log_sha256": "d432c4828a35aeeb094e216cd5c5f4ea29e7e6a49939630d39d9eb0e94d54bbe",
+  "checks": 197,
+  "devices": [
+    0,
+    1
+  ],
+  "accepted": true,
+  "mapped_runtime_paths": [
+    "/workspace/m3/build/m7-owner-v2/libstwo-rv64-native.so"
+  ],
+  "old_a25_mapped": false,
+  "allocations_per_device": 6,
+  "releases_per_device": 6,
+  "overruns": 0,
+  "env": {
+    "CUDA_MODULE_LOADING": "EAGER",
+    "STWO_RV64_DEVICE_ARENA": "22G",
+    "STWO_RV64_DEVICE_SYNC": "0",
+    "LD_LIBRARY_PATH": "/workspace/m3/build/m7-owner-v2:/usr/local/cuda/lib64",
+    "LD_PRELOAD": "/workspace/m3/build/m7-owner-v2/libstwo-rv64-native.so:/workspace/m3/build/m7-rc-sparse/libstwo-process-memory-v3.so",
+    "STWO_V2_FIXTURE_ADDONS": "/workspace/m3/build/m7-rc-sparse/libstwo-rc-sparse.so:/workspace/m3/build/m7-outer-fs-ops-v2/libstwo-rv64-outer-fs-ops.so"
+  }
+}

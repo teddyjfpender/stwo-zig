@@ -1,0 +1,39 @@
+{
+  "schema": "stwo/circuit-om31/gpu-fractions/v1",
+  "hardware": "NVIDIA RTX 5090",
+  "cuda": "12.8",
+  "qualified_scope": "Exact circuit lookup fraction, inverse/contribution and native circuit cumulative INTER kernels",
+  "actual_gpu": {
+    "components": 11,
+    "physical_rows_each": 16,
+    "numerators_native_exact": true,
+    "denominators_native_exact": true,
+    "all_circuit_interaction_columns_native_exact": true,
+    "all_eight_claim_coordinates_native_exact": true,
+    "geometry_alias_mutants_rejected": 22,
+    "memcheck_errors": 0,
+    "synccheck_errors": 0
+  },
+  "existing_truth_global_regression": {
+    "row_logs": [4, 5, 7, 8],
+    "pairs": [1, 3, 13, 640],
+    "cases": 16,
+    "native_all_columns_and_claims_exact": true,
+    "preflight_mutants_rejected": 80
+  },
+  "host_emulation": {
+    "components": 11,
+    "geometry_alias_mutants_rejected": 44,
+    "zero_denominator_cases_flagged": 11,
+    "legacy_qm31_fraction_translation_unit_syntax_check": true
+  },
+  "encoding_distinction": "Circuit earlier columns are row-cumulative fractions; its last column is a logical prefix subtracting claim/N per row. Existing truth cumulative encoding remains unchanged.",
+  "tuple_fixed_mapping": "Lookup kernels gather canonical component *_COLUMN_IDS; original AIR preprocessed read order is a separate mapping (BlakeG differs).",
+  "runtime_base": "/workspace/rv64-gpu-session/build/resident-oom-trim/libstwo-rv64-native-6d9a8d6188fb6df6.so",
+  "canonical_runtime_overwritten": false,
+  "fixture_command": "STWO_OM31_FRACTIONS_FIXTURES=/tmp/om31-fixtures zig build --build-file src/integrations/circuit_cpu/build.zig test-circuit-om31-cuda-fractions -Doptimize=ReleaseFast -j2 --summary all",
+  "gpu_drivers": ["tests/cuda/rv64/circuit_om31_interaction_smoke.cu", "tests/cuda/rv64/global_cumulative_smoke.cu"],
+  "remaining": ["Resident outer source/controller integration", "Real outer composition GPU AOT parity", "Actual full outer GPU proof with fresh native receiver", "Production topology and execution-root GPU qualification"],
+  "end_to_end_outer_gpu_proof_qualified": false,
+  "performance_claim": null
+}

@@ -154,7 +154,7 @@ pub fn writeAtomic(a: std.mem.Allocator, directory: std.fs.Dir, name: []const u8
         },
         else => return err,
     };
-    var parent = try directory.openDir(".", .{});
+    var parent = try directory.openDir(".", .{ .iterate = true });
     defer parent.close();
     try std.posix.fsync(parent.fd);
     return digest;

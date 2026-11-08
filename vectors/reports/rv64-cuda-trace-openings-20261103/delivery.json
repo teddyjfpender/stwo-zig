@@ -1,0 +1,19 @@
+{
+  "schema": "rv64-cuda-trace-delivery/v1",
+  "safe_tests": "72/72 PASS",
+  "fast_tests": "72/72 PASS",
+  "real_ffi": "compiled Safe/Fast",
+  "independent_linux_receiver": "six actual assembled lifted Merkle proofs accepted after each sanitizer; mutations rejected",
+  "native_arm_receiver": "six actual assembled lifted Merkle proofs accepted; mutations rejected",
+  "locally_matched_hardware_inputs": 20,
+  "full_stark_verified": false,
+  "full_block_verified": false,
+  "sources_sha256": {
+    "src/integrations/riscv_cuda/rv64/trace.zig": "45ba734bf37c267fcea09fd70445b58f196078c3cb093e9b09c1b271b5ed003f",
+    "src/integrations/riscv_cuda/rv64/pcs.zig": "6b79a20678563aa5fad0fea7b98d0e3021d8f9c0b28bf05398677600cfb8070e",
+    "src/integrations/riscv_cuda/rv64_trace_fixture_main.zig": "40b9a88de6e596a281e00232361163aca4b26fc1f69636d5c8e7ff91e8fae1bb",
+    "src/integrations/riscv_cuda/rv64/tests/trace_test.zig": "79efee5b27f244108c25f3b250409e70164aabe6dfe57b31ec1249abe511fbe8",
+    "src/integrations/riscv_cuda/rv64/tests/pcs_test.zig": "7a4a5a506812bec908d3cb9edf6e87346fa7bc09d83813e852e63fdf9a6d2c4e",
+    "src/integrations/riscv_cuda/rv64/abi.zig": "659a24a0398b4423c6659e9e65ad45f166f419b0fc90c27253edb4f8698e7c2d"
+  }
+}

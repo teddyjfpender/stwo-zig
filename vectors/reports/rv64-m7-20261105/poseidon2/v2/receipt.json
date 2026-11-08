@@ -1,0 +1,34 @@
+{
+  "scope": "scoped CPU and circuit gadget gates; no Ethereum or production activation",
+  "native_versions": [
+    1,
+    2
+  ],
+  "fields": [
+    4,
+    8
+  ],
+  "separate_process_receivers": 16,
+  "separate_process_rejections": 12,
+  "v1_pairs_byte_identical": 8,
+  "gadget_sequence_permutations": {
+    "v1": 22,
+    "v2": 17
+  },
+  "gadget_sequence_padded_permutations": {
+    "v1": 32,
+    "v2": 32
+  },
+  "source_sha256": {
+    "src/core/channel/poseidon2_m31.zig": "fe3e0f77822221614aca49d5505815d54d121dc6e2666b0add7ebd1618e34eda",
+    "src/core/vcs/poseidon2_m31_merkle.zig": "efbc9d7ffebf4c7862c8f18416f5956fd1811b210db89a3b54b8844db64cd61e",
+    "src/core/vcs_lifted/poseidon2_profile.zig": "719f0ed9a3555bc95f558b06b6134c3790efa82754076a91436b3df0363effe3",
+    "src/interop/proof_wire/family.zig": "adaa3684edaf763a07e2835a147f85aff2233bc05dde065027d6a0b575da9506",
+    "src/integrations/riscv_cpu/poseidon2_outer/sponge.zig": "083f1ead26fa2ce4a0e677c093b7d5412141caeca6060185f76bd66c90d44b40",
+    "src/integrations/riscv_cpu/poseidon2_outer/merkle.zig": "eee942aeb046273182b1c8329e79c569043b48aa8c9794861124bd2fd80d5c69",
+    "src/integrations/riscv_cpu/poseidon2_outer/channel.zig": "ae748454be8572a0393ba782aa279b614bd01af6b60c29582581a180cac3e29f",
+    "src/integrations/riscv_cpu/poseidon2_outer/gadgets_test.zig": "26763dcc6f5585df2e5065aa6af7242cc1d44bd894690c461a99d60cba77c113",
+    "src/tests/native/prover/poseidon2_stark_test.zig": "11b79a314fe142397c58f1f5c3d452d3e188346004e13f1c1061c2cbc09b62b1",
+    "src/tests/native/prover/poseidon2_stark_fixture_main.zig": "52b7227c6b2515cd17234bee94ab8f7b980f9af60397fc699525e605236c22e4"
+  }
+}

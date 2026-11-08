@@ -1,0 +1,3942 @@
+{
+ "schema": "rv64-m40-geometry/v1",
+ "label": "D (arithmetic on measured M3 bundles)",
+ "scope": "native proofs of the 15 M3 scale-up runs (bundle.json declarations). Rows = 2^log per component per proof; today every component is already padded to its own power of two, so 'tax' is the extra padded rows a canonical rung set would add on top of today's pow2 padding. Width-agnostic (each component's tax is width-independent within a family; family/all aggregates weight components by rows, NOT cells).",
+ "blocks": {
+  "24626900": {
+   "proofs": 20,
+   "cpu": 12,
+   "truth": 8,
+   "distinct_geometry_classes": 18,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "24628590": {
+   "proofs": 56,
+   "cpu": 38,
+   "truth": 18,
+   "distinct_geometry_classes": 48,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "24628595": {
+   "proofs": 66,
+   "cpu": 42,
+   "truth": 24,
+   "distinct_geometry_classes": 57,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:bn254_fp2_mul",
+    "truth:bn254_g1_add",
+    "truth:bn254_g1_double",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "24628607": {
+   "proofs": 17,
+   "cpu": 7,
+   "truth": 10,
+   "distinct_geometry_classes": 17,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "24628608": {
+   "proofs": 20,
+   "cpu": 10,
+   "truth": 10,
+   "distinct_geometry_classes": 19,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "24628611": {
+   "proofs": 67,
+   "cpu": 45,
+   "truth": 22,
+   "distinct_geometry_classes": 55,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:arith384_mont",
+    "truth:bls12_381_fp2_mul",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "24647140": {
+   "proofs": 15,
+   "cpu": 6,
+   "truth": 9,
+   "distinct_geometry_classes": 15,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "24697070": {
+   "proofs": 31,
+   "cpu": 14,
+   "truth": 17,
+   "distinct_geometry_classes": 29,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:bn254_fp2_mul",
+    "truth:bn254_g1_add",
+    "truth:bn254_g1_double",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "24697073": {
+   "proofs": 28,
+   "cpu": 15,
+   "truth": 13,
+   "distinct_geometry_classes": 25,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:arith384_mont",
+    "truth:bls12_381_fp2_mul",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "25229951": {
+   "proofs": 58,
+   "cpu": 40,
+   "truth": 18,
+   "distinct_geometry_classes": 52,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:bn254_fp2_mul",
+    "truth:bn254_g1_add",
+    "truth:bn254_g1_double",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "25229955": {
+   "proofs": 49,
+   "cpu": 30,
+   "truth": 19,
+   "distinct_geometry_classes": 45,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:bn254_fp2_mul",
+    "truth:bn254_g1_add",
+    "truth:bn254_g1_double",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "25229957": {
+   "proofs": 17,
+   "cpu": 7,
+   "truth": 10,
+   "distinct_geometry_classes": 17,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "26235156": {
+   "proofs": 11,
+   "cpu": 4,
+   "truth": 7,
+   "distinct_geometry_classes": 11,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "26235159": {
+   "proofs": 75,
+   "cpu": 49,
+   "truth": 26,
+   "distinct_geometry_classes": 67,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:arith384_mont",
+    "truth:bls12_381_fp2_mul",
+    "truth:bn254_fp2_mul",
+    "truth:bn254_g1_add",
+    "truth:bn254_g1_double",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  },
+  "26235168": {
+   "proofs": 49,
+   "cpu": 28,
+   "truth": 21,
+   "distinct_geometry_classes": 46,
+   "families": [
+    "cpu",
+    "truth:add",
+    "truth:arith256_mod",
+    "truth:arith384_mont",
+    "truth:bls12_381_fp2_mul",
+    "truth:bn254_fp2_mul",
+    "truth:bn254_g1_add",
+    "truth:bn254_g1_double",
+    "truth:double",
+    "truth:keccak",
+    "truth:sha256"
+   ]
+  }
+ },
+ "basket": {
+  "proofs": 579,
+  "distinct_geometry_classes": 389,
+  "distinct_classes_per_family": {
+   "cpu": 336,
+   "truth:keccak": 9,
+   "truth:add": 9,
+   "truth:double": 8,
+   "truth:sha256": 3,
+   "truth:arith256_mod": 7,
+   "truth:bn254_g1_add": 5,
+   "truth:bn254_g1_double": 5,
+   "truth:bn254_fp2_mul": 3,
+   "truth:bls12_381_fp2_mul": 2,
+   "truth:arith384_mont": 2
+  },
+  "log_histograms": {
+   "cpu": {
+    "cpu_log": {
+     "22": 340,
+     "20": 3,
+     "21": 3,
+     "17": 1
+    },
+    "alu_log": {
+     "18": 275,
+     "19": 42,
+     "15": 4,
+     "20": 19,
+     "17": 2,
+     "13": 3,
+     "14": 1,
+     "12": 1
+    },
+    "alu_tail_log": {
+     "17": 87,
+     "15": 28,
+     "16": 128,
+     "13": 5,
+     "14": 12,
+     "18": 16,
+     "5": 1,
+     "12": 2,
+     "10": 2
+    },
+    "binary_log": {
+     "17": 47,
+     "16": 199,
+     "18": 35,
+     "15": 52,
+     "14": 9,
+     "12": 3,
+     "13": 1,
+     "11": 1
+    },
+    "binary_tail_log": {
+     "14": 81,
+     "11": 14,
+     "15": 38,
+     "13": 40,
+     "16": 15,
+     "10": 4,
+     "5": 1,
+     "12": 15,
+     "9": 2,
+     "6": 1,
+     "17": 6,
+     "8": 2
+    },
+    "shift_log": {
+     "16": 160,
+     "15": 125,
+     "17": 46,
+     "14": 9,
+     "18": 2,
+     "12": 2,
+     "13": 3
+    },
+    "shift_tail_log": {
+     "15": 14,
+     "13": 28,
+     "14": 70,
+     "12": 22,
+     "10": 6,
+     "16": 4,
+     "11": 13,
+     "9": 2,
+     "7": 1
+    },
+    "jalr_log": {
+     "16": 234,
+     "15": 83,
+     "17": 19,
+     "14": 10,
+     "12": 1
+    },
+    "division_log": {
+     "10": 149,
+     "11": 65,
+     "5": 80,
+     "9": 31,
+     "12": 3,
+     "8": 15,
+     "7": 4
+    },
+    "multiplication_log": {
+     "16": 208,
+     "15": 33,
+     "18": 16,
+     "17": 43,
+     "14": 21,
+     "19": 10,
+     "13": 6,
+     "12": 7,
+     "11": 2,
+     "9": 1
+    },
+    "ls_log": {
+     "18": 287,
+     "16": 20,
+     "17": 21,
+     "11": 7,
+     "19": 2,
+     "15": 4,
+     "5": 2,
+     "9": 1,
+     "8": 1,
+     "7": 1,
+     "14": 1
+    },
+    "ls_tail_log": {
+     "16": 26,
+     "15": 34,
+     "13": 27,
+     "14": 42,
+     "9": 11,
+     "17": 15,
+     "8": 1,
+     "12": 10,
+     "11": 7,
+     "10": 7,
+     "6": 3,
+     "7": 2
+    },
+    "boundary_log": {
+     "5": 347
+    },
+    "initial_log": {
+     "21": 6,
+     "5": 332,
+     "23": 4,
+     "20": 2,
+     "22": 3
+    },
+    "terminal_log": {
+     "5": 332,
+     "21": 6,
+     "23": 4,
+     "20": 2,
+     "22": 3
+    },
+    "bridge.keccak": {
+     "15": 11,
+     "13": 128,
+     "14": 99,
+     "12": 36,
+     "10": 2,
+     "17": 4,
+     "11": 15,
+     "9": 4,
+     "8": 6,
+     "16": 4,
+     "7": 4
+    },
+    "bridge.add": {
+     "11": 32,
+     "12": 54,
+     "17": 14,
+     "16": 6,
+     "10": 36,
+     "13": 23,
+     "15": 7,
+     "14": 12,
+     "18": 10,
+     "7": 1
+    },
+    "bridge.double": {
+     "10": 32,
+     "11": 54,
+     "16": 13,
+     "15": 7,
+     "9": 36,
+     "12": 23,
+     "14": 6,
+     "13": 13,
+     "17": 10,
+     "5": 1
+    },
+    "bridge.sha256": {
+     "5": 49,
+     "15": 6,
+     "16": 8,
+     "14": 8,
+     "9": 1,
+     "6": 2,
+     "8": 7,
+     "7": 1,
+     "10": 1,
+     "12": 1
+    },
+    "bridge.arith256_mod": {
+     "6": 29,
+     "9": 25,
+     "5": 27,
+     "8": 62,
+     "7": 43,
+     "13": 3,
+     "10": 4,
+     "11": 5,
+     "14": 5,
+     "12": 3,
+     "15": 5,
+     "16": 1
+    },
+    "bridge.bulk.desc": {
+     "13": 35,
+     "11": 109,
+     "12": 133,
+     "10": 20,
+     "14": 24,
+     "9": 13,
+     "15": 1,
+     "8": 3,
+     "7": 1,
+     "5": 1
+    },
+    "bridge.bulk.copy": {
+     "17": 20,
+     "15": 96,
+     "16": 131,
+     "14": 45,
+     "11": 10,
+     "13": 16,
+     "12": 20,
+     "10": 1,
+     "8": 1
+    },
+    "bridge.bulk.set": {
+     "18": 6,
+     "16": 49,
+     "15": 140,
+     "17": 18,
+     "13": 28,
+     "5": 10,
+     "14": 52,
+     "19": 10,
+     "12": 3,
+     "9": 1,
+     "10": 1,
+     "6": 1
+    },
+    "bridge.bulk.ucopy": {
+     "18": 18,
+     "13": 55,
+     "12": 135,
+     "11": 32,
+     "15": 10,
+     "17": 31,
+     "14": 11,
+     "20": 4,
+     "16": 10,
+     "10": 5,
+     "9": 17,
+     "19": 3,
+     "5": 1,
+     "7": 2
+    },
+    "bridge.bulk.cdesc": {
+     "9": 7,
+     "7": 30,
+     "5": 113,
+     "6": 64,
+     "8": 9,
+     "10": 2
+    },
+    "bridge.bulk.cmp": {
+     "9": 9,
+     "8": 36,
+     "6": 45,
+     "7": 60,
+     "5": 73,
+     "10": 2
+    },
+    "bridge.bulk.jdesc": {
+     "5": 223,
+     "6": 21
+    },
+    "bridge.bulk.jscan": {
+     "11": 47,
+     "12": 102,
+     "13": 53,
+     "10": 21,
+     "9": 10,
+     "8": 4,
+     "5": 3,
+     "7": 2,
+     "6": 2
+    },
+    "bridge.bulk.jtab": {
+     "14": 244
+    },
+    "bridge.sponge.call": {
+     "13": 6,
+     "5": 183,
+     "8": 3,
+     "11": 16,
+     "12": 26,
+     "15": 4,
+     "6": 24,
+     "7": 6,
+     "9": 1,
+     "10": 7,
+     "14": 5
+    },
+    "bridge.sponge.perm": {
+     "16": 5,
+     "5": 114,
+     "6": 55,
+     "10": 2,
+     "13": 27,
+     "17": 5,
+     "7": 33,
+     "8": 10,
+     "12": 10,
+     "14": 13,
+     "9": 2,
+     "15": 5
+    },
+    "bridge.ls_dword": {
+     "20": 307,
+     "21": 33,
+     "18": 3,
+     "19": 3,
+     "15": 1
+    },
+    "bridge.ls_dword_tail": {
+     "17": 11,
+     "18": 128,
+     "19": 132,
+     "16": 4,
+     "15": 2,
+     "14": 1
+    },
+    "bridge.bn254_g1_add": {
+     "10": 2,
+     "11": 3,
+     "13": 3,
+     "9": 1,
+     "15": 1
+    },
+    "bridge.bn254_g1_double": {
+     "10": 1,
+     "12": 3,
+     "14": 3,
+     "9": 1,
+     "15": 1,
+     "11": 1
+    },
+    "bridge.bn254_fp2_mul": {
+     "16": 8,
+     "15": 6,
+     "13": 1,
+     "14": 1
+    },
+    "bridge.bls12_381_fp2_mul": {
+     "14": 2,
+     "15": 7,
+     "11": 1,
+     "13": 2
+    },
+    "bridge.arith384_mont": {
+     "16": 2,
+     "10": 1,
+     "5": 1,
+     "13": 2,
+     "15": 3,
+     "9": 1,
+     "11": 1,
+     "6": 3,
+     "14": 1
+    }
+   },
+   "truth:keccak": {
+    "main": {
+     "18": 60,
+     "14": 10,
+     "17": 7,
+     "11": 2,
+     "10": 1,
+     "15": 6,
+     "13": 2,
+     "9": 1,
+     "16": 5
+    }
+   },
+   "truth:add": {
+    "main": {
+     "15": 6,
+     "16": 6,
+     "14": 7,
+     "9": 4,
+     "8": 5,
+     "13": 2,
+     "11": 1,
+     "12": 3,
+     "10": 1
+    }
+   },
+   "truth:double": {
+    "main": {
+     "15": 7,
+     "16": 5,
+     "13": 5,
+     "11": 5,
+     "14": 5,
+     "8": 1,
+     "12": 1,
+     "9": 2
+    }
+   },
+   "truth:sha256": {
+    "main": {
+     "13": 24,
+     "8": 1,
+     "12": 6
+    }
+   },
+   "truth:arith256_mod": {
+    "main": {
+     "8": 4,
+     "10": 1,
+     "11": 2,
+     "9": 3,
+     "12": 2,
+     "14": 2,
+     "15": 1
+    }
+   },
+   "truth:bn254_g1_add": {
+    "main": {
+     "8": 1,
+     "9": 1,
+     "11": 2,
+     "12": 1,
+     "13": 1
+    }
+   },
+   "truth:bn254_g1_double": {
+    "main": {
+     "9": 1,
+     "11": 1,
+     "13": 1,
+     "14": 2,
+     "12": 1
+    }
+   },
+   "truth:bn254_fp2_mul": {
+    "main": {
+     "14": 4,
+     "15": 1,
+     "16": 1
+    }
+   },
+   "truth:bls12_381_fp2_mul": {
+    "main": {
+     "13": 3,
+     "14": 1
+    }
+   },
+   "truth:arith384_mont": {
+    "main": {
+     "13": 3,
+     "14": 1
+    }
+   }
+  }
+ },
+ "rung_tax_per_component": {
+  "1": {
+   "distinct_padded_classes": {
+    "cpu": 151,
+    "truth:keccak": 1,
+    "truth:add": 1,
+    "truth:double": 1,
+    "truth:sha256": 1,
+    "truth:arith256_mod": 1,
+    "truth:bn254_g1_add": 1,
+    "truth:bn254_g1_double": 1,
+    "truth:bn254_fp2_mul": 1,
+    "truth:bls12_381_fp2_mul": 1,
+    "truth:arith384_mont": 1
+   },
+   "distinct_padded_classes_total": 161,
+   "per_family_rows_tax": {
+    "cpu": 3.0606,
+    "truth:keccak": 0.4197,
+    "truth:add": 2.1014,
+    "truth:double": 1.9209,
+    "truth:sha256": 0.1468,
+    "truth:arith256_mod": 5.0377,
+    "truth:bn254_g1_add": 1.8657,
+    "truth:bn254_g1_double": 1.0645,
+    "truth:bn254_fp2_mul": 1.4,
+    "truth:bls12_381_fp2_mul": 0.6,
+    "truth:arith384_mont": 0.6
+   },
+   "all_rows_tax": 3.0411,
+   "components": {
+    "cpu/cpu_log": {
+     "rungs": [
+      22
+     ],
+     "rows_real_pow2": 1435631616,
+     "rows_padded": 1455423488,
+     "tax": 0.0138
+    },
+    "cpu/alu_log": {
+     "rungs": [
+      20
+     ],
+     "rows_real_pow2": 114470912,
+     "rows_padded": 363855872,
+     "tax": 2.1786
+    },
+    "cpu/alu_tail_log": {
+     "rungs": [
+      18
+     ],
+     "rows_real_pow2": 25151520,
+     "rows_padded": 73662464,
+     "tax": 1.9287
+    },
+    "cpu/binary_log": {
+     "rungs": [
+      18
+     ],
+     "rows_real_pow2": 30251008,
+     "rows_padded": 90963968,
+     "tax": 2.007
+    },
+    "cpu/binary_tail_log": {
+     "rungs": [
+      17
+     ],
+     "rows_real_pow2": 4765280,
+     "rows_padded": 28704768,
+     "tax": 5.0237
+    },
+    "cpu/shift_log": {
+     "rungs": [
+      18
+     ],
+     "rows_real_pow2": 21315584,
+     "rows_padded": 90963968,
+     "tax": 3.2675
+    },
+    "cpu/shift_tail_log": {
+     "rungs": [
+      16
+     ],
+     "rows_real_pow2": 2221184,
+     "rows_padded": 10485760,
+     "tax": 3.7208
+    },
+    "cpu/jalr_log": {
+     "rungs": [
+      17
+     ],
+     "rows_real_pow2": 20713472,
+     "rows_padded": 45481984,
+     "tax": 1.1958
+    },
+    "cpu/division_log": {
+     "rungs": [
+      12
+     ],
+     "rows_real_pow2": 320768,
+     "rows_padded": 1421312,
+     "tax": 3.431
+    },
+    "cpu/multiplication_log": {
+     "rungs": [
+      19
+     ],
+     "rows_real_pow2": 30212608,
+     "rows_padded": 181927936,
+     "tax": 5.0216
+    },
+    "cpu/ls_log": {
+     "rungs": [
+      19
+     ],
+     "rows_real_pow2": 80509888,
+     "rows_padded": 181927936,
+     "tax": 1.2597
+    },
+    "cpu/ls_tail_log": {
+     "rungs": [
+      17
+     ],
+     "rows_real_pow2": 5762240,
+     "rows_padded": 24248320,
+     "tax": 3.2081
+    },
+    "cpu/boundary_log": {
+     "rungs": [
+      5
+     ],
+     "rows_real_pow2": 11104,
+     "rows_padded": 11104,
+     "tax": 0.0
+    },
+    "cpu/initial_log": {
+     "rungs": [
+      23
+     ],
+     "rows_real_pow2": 60828032,
+     "rows_padded": 2910846976,
+     "tax": 46.8537
+    },
+    "cpu/terminal_log": {
+     "rungs": [
+      23
+     ],
+     "rows_real_pow2": 60828032,
+     "rows_padded": 2910846976,
+     "tax": 46.8537
+    },
+    "cpu/bridge.keccak": {
+     "rungs": [
+      17
+     ],
+     "rows_real_pow2": 4001792,
+     "rows_padded": 41025536,
+     "tax": 9.2518
+    },
+    "cpu/bridge.add": {
+     "rungs": [
+      18
+     ],
+     "rows_real_pow2": 5787776,
+     "rows_padded": 51118080,
+     "tax": 7.8321
+    },
+    "cpu/bridge.double": {
+     "rungs": [
+      17
+     ],
+     "rows_real_pow2": 2852896,
+     "rows_padded": 25559040,
+     "tax": 7.959
+    },
+    "cpu/bridge.sha256": {
+     "rungs": [
+      16
+     ],
+     "rows_real_pow2": 861216,
+     "rows_padded": 5505024,
+     "tax": 5.3922
+    },
+    "cpu/bridge.arith256_mod": {
+     "rungs": [
+      16
+     ],
+     "rows_real_pow2": 399392,
+     "rows_padded": 13893632,
+     "tax": 33.787
+    },
+    "cpu/bridge.bulk.desc": {
+     "rungs": [
+      15
+     ],
+     "rows_real_pow2": 1508768,
+     "rows_padded": 11141120,
+     "tax": 6.3842
+    },
+    "cpu/bridge.bulk.copy": {
+     "rungs": [
+      17
+     ],
+     "rows_real_pow2": 15324416,
+     "rows_padded": 44564480,
+     "tax": 1.9081
+    },
+    "cpu/bridge.bulk.set": {
+     "rungs": [
+      19
+     ],
+     "rows_real_pow2": 18069376,
+     "rows_padded": 167247872,
+     "tax": 8.2559
+    },
+    "cpu/bridge.bulk.ucopy": {
+     "rungs": [
+      20
+     ],
+     "rows_real_pow2": 16795424,
+     "rows_padded": 350224384,
+     "tax": 19.8524
+    },
+    "cpu/bridge.bulk.cdesc": {
+     "rungs": [
+      10
+     ],
+     "rows_real_pow2": 19488,
+     "rows_padded": 230400,
+     "tax": 10.8227
+    },
+    "cpu/bridge.bulk.cmp": {
+     "rungs": [
+      10
+     ],
+     "rows_real_pow2": 28768,
+     "rows_padded": 230400,
+     "tax": 7.0089
+    },
+    "cpu/bridge.bulk.jdesc": {
+     "rungs": [
+      6
+     ],
+     "rows_real_pow2": 8480,
+     "rows_padded": 15616,
+     "tax": 0.8415
+    },
+    "cpu/bridge.bulk.jscan": {
+     "rungs": [
+      13
+     ],
+     "rows_real_pow2": 976352,
+     "rows_padded": 1998848,
+     "tax": 1.0473
+    },
+    "cpu/bridge.bulk.jtab": {
+     "rungs": [
+      14
+     ],
+     "rows_real_pow2": 3997696,
+     "rows_padded": 3997696,
+     "tax": 0.0
+    },
+    "cpu/bridge.sponge.call": {
+     "rungs": [
+      15
+     ],
+     "rows_real_pow2": 418016,
+     "rows_padded": 9207808,
+     "tax": 21.0274
+    },
+    "cpu/bridge.sponge.perm": {
+     "rungs": [
+      17
+     ],
+     "rows_real_pow2": 1639040,
+     "rows_padded": 36831232,
+     "tax": 21.4712
+    },
+    "cpu/bridge.ls_dword": {
+     "rungs": [
+      21
+     ],
+     "rows_real_pow2": 393510912,
+     "rows_padded": 727711744,
+     "tax": 0.8493
+    },
+    "cpu/bridge.ls_dword_tail": {
+     "rungs": [
+      19
+     ],
+     "rows_real_pow2": 104546304,
+     "rows_padded": 145752064,
+     "tax": 0.3941
+    },
+    "cpu/bridge.bn254_g1_add": {
+     "rungs": [
+      15
+     ],
+     "rows_real_pow2": 66048,
+     "rows_padded": 327680,
+     "tax": 3.9612
+    },
+    "cpu/bridge.bn254_g1_double": {
+     "rungs": [
+      15
+     ],
+     "rows_real_pow2": 97792,
+     "rows_padded": 327680,
+     "tax": 2.3508
+    },
+    "cpu/bridge.bn254_fp2_mul": {
+     "rungs": [
+      16
+     ],
+     "rows_real_pow2": 745472,
+     "rows_padded": 1048576,
+     "tax": 0.4066
+    },
+    "cpu/bridge.bls12_381_fp2_mul": {
+     "rungs": [
+      15
+     ],
+     "rows_real_pow2": 280576,
+     "rows_padded": 393216,
+     "tax": 0.4015
+    },
+    "cpu/bridge.arith384_mont": {
+     "rungs": [
+      16
+     ],
+     "rows_real_pow2": 265952,
+     "rows_padded": 983040,
+     "tax": 2.6963
+    },
+    "truth:keccak/main": {
+     "rungs": [
+      18
+     ],
+     "rows_real_pow2": 17356288,
+     "rows_padded": 24641536,
+     "tax": 0.4197
+    },
+    "truth:add/main": {
+     "rungs": [
+      16
+     ],
+     "rows_real_pow2": 739584,
+     "rows_padded": 2293760,
+     "tax": 2.1014
+    },
+    "truth:double/main": {
+     "rungs": [
+      16
+     ],
+     "rows_real_pow2": 695552,
+     "rows_padded": 2031616,
+     "tax": 1.9209
+    },
+    "truth:sha256/main": {
+     "rungs": [
+      13
+     ],
+     "rows_real_pow2": 221440,
+     "rows_padded": 253952,
+     "tax": 0.1468
+    },
+    "truth:arith256_mod/main": {
+     "rungs": [
+      15
+     ],
+     "rows_real_pow2": 81408,
+     "rows_padded": 491520,
+     "tax": 5.0377
+    },
+    "truth:bn254_g1_add/main": {
+     "rungs": [
+      13
+     ],
+     "rows_real_pow2": 17152,
+     "rows_padded": 49152,
+     "tax": 1.8657
+    },
+    "truth:bn254_g1_double/main": {
+     "rungs": [
+      14
+     ],
+     "rows_real_pow2": 47616,
+     "rows_padded": 98304,
+     "tax": 1.0645
+    },
+    "truth:bn254_fp2_mul/main": {
+     "rungs": [
+      16
+     ],
+     "rows_real_pow2": 163840,
+     "rows_padded": 393216,
+     "tax": 1.4
+    },
+    "truth:bls12_381_fp2_mul/main": {
+     "rungs": [
+      14
+     ],
+     "rows_real_pow2": 40960,
+     "rows_padded": 65536,
+     "tax": 0.6
+    },
+    "truth:arith384_mont/main": {
+     "rungs": [
+      14
+     ],
+     "rows_real_pow2": 40960,
+     "rows_padded": 65536,
+     "tax": 0.6
+    }
+   }
+  },
+  "2": {
+   "distinct_padded_classes": {
+    "cpu": 264,
+    "truth:keccak": 2,
+    "truth:add": 2,
+    "truth:double": 2,
+    "truth:sha256": 2,
+    "truth:arith256_mod": 2,
+    "truth:bn254_g1_add": 2,
+    "truth:bn254_g1_double": 2,
+    "truth:bn254_fp2_mul": 2,
+    "truth:bls12_381_fp2_mul": 2,
+    "truth:arith384_mont": 2
+   },
+   "distinct_padded_classes_total": 284,
+   "per_family_rows_tax": {
+    "cpu": 0.1412,
+    "truth:keccak": 0.1139,
+    "truth:add": 0.5729,
+    "truth:double": 0.5782,
+    "truth:sha256": 0.0173,
+    "truth:arith256_mod": 0.8113,
+    "truth:bn254_g1_add": 0.4328,
+    "truth:bn254_g1_double": 0.2903,
+    "truth:bn254_fp2_mul": 0.2,
+    "truth:bls12_381_fp2_mul": 0.0,
+    "truth:arith384_mont": 0.0
+   },
+   "all_rows_tax": 0.1413,
+   "components": {
+    "cpu/cpu_log": {
+     "rungs": [
+      21,
+      22
+     ],
+     "rows_real_pow2": 1435631616,
+     "rows_padded": 1440743424,
+     "tax": 0.0036
+    },
+    "cpu/alu_log": {
+     "rungs": [
+      18,
+      20
+     ],
+     "rows_real_pow2": 114470912,
+     "rows_padded": 138936320,
+     "tax": 0.2137
+    },
+    "cpu/alu_tail_log": {
+     "rungs": [
+      16,
+      18
+     ],
+     "rows_real_pow2": 25151520,
+     "rows_padded": 38666240,
+     "tax": 0.5373
+    },
+    "cpu/binary_log": {
+     "rungs": [
+      16,
+      18
+     ],
+     "rows_real_pow2": 30251008,
+     "rows_padded": 38862848,
+     "tax": 0.2847
+    },
+    "cpu/binary_tail_log": {
+     "rungs": [
+      15,
+      17
+     ],
+     "rows_real_pow2": 4765280,
+     "rows_padded": 9240576,
+     "tax": 0.9391
+    },
+    "cpu/shift_log": {
+     "rungs": [
+      16,
+      18
+     ],
+     "rows_real_pow2": 21315584,
+     "rows_padded": 32178176,
+     "tax": 0.5096
+    },
+    "cpu/shift_tail_log": {
+     "rungs": [
+      14,
+      16
+     ],
+     "rows_real_pow2": 2221184,
+     "rows_padded": 3506176,
+     "tax": 0.5785
+    },
+    "cpu/jalr_log": {
+     "rungs": [
+      16,
+      17
+     ],
+     "rows_real_pow2": 20713472,
+     "rows_padded": 23986176,
+     "tax": 0.158
+    },
+    "cpu/division_log": {
+     "rungs": [
+      10,
+      12
+     ],
+     "rows_real_pow2": 320768,
+     "rows_padded": 564224,
+     "tax": 0.759
+    },
+    "cpu/multiplication_log": {
+     "rungs": [
+      16,
+      19
+     ],
+     "rows_real_pow2": 30212608,
+     "rows_padded": 54394880,
+     "tax": 0.8004
+    },
+    "cpu/ls_log": {
+     "rungs": [
+      18,
+      19
+     ],
+     "rows_real_pow2": 80509888,
+     "rows_padded": 91488256,
+     "tax": 0.1364
+    },
+    "cpu/ls_tail_log": {
+     "rungs": [
+      15,
+      17
+     ],
+     "rows_real_pow2": 5762240,
+     "rows_padded": 10092544,
+     "tax": 0.7515
+    },
+    "cpu/boundary_log": {
+     "rungs": [
+      5
+     ],
+     "rows_real_pow2": 11104,
+     "rows_padded": 11104,
+     "tax": 0.0
+    },
+    "cpu/initial_log": {
+     "rungs": [
+      5,
+      23
+     ],
+     "rows_real_pow2": 60828032,
+     "rows_padded": 125839744,
+     "tax": 1.0688
+    },
+    "cpu/terminal_log": {
+     "rungs": [
+      5,
+      23
+     ],
+     "rows_real_pow2": 60828032,
+     "rows_padded": 125839744,
+     "tax": 1.0688
+    },
+    "cpu/bridge.keccak": {
+     "rungs": [
+      14,
+      17
+     ],
+     "rows_real_pow2": 4001792,
+     "rows_padded": 7307264,
+     "tax": 0.826
+    },
+    "cpu/bridge.add": {
+     "rungs": [
+      14,
+      18
+     ],
+     "rows_real_pow2": 5787776,
+     "rows_padded": 12288000,
+     "tax": 1.1231
+    },
+    "cpu/bridge.double": {
+     "rungs": [
+      13,
+      17
+     ],
+     "rows_real_pow2": 2852896,
+     "rows_padded": 6021120,
+     "tax": 1.1105
+    },
+    "cpu/bridge.sha256": {
+     "rungs": [
+      10,
+      16
+     ],
+     "rows_real_pow2": 861216,
+     "rows_padded": 1569792,
+     "tax": 0.8228
+    },
+    "cpu/bridge.arith256_mod": {
+     "rungs": [
+      11,
+      16
+     ],
+     "rows_real_pow2": 399392,
+     "rows_padded": 1513472,
+     "tax": 2.7894
+    },
+    "cpu/bridge.bulk.desc": {
+     "rungs": [
+      12,
+      15
+     ],
+     "rows_real_pow2": 1508768,
+     "rows_padded": 3112960,
+     "tax": 1.0632
+    },
+    "cpu/bridge.bulk.copy": {
+     "rungs": [
+      16,
+      17
+     ],
+     "rows_real_pow2": 15324416,
+     "rows_padded": 23592960,
+     "tax": 0.5396
+    },
+    "cpu/bridge.bulk.set": {
+     "rungs": [
+      16,
+      19
+     ],
+     "rows_real_pow2": 18069376,
+     "rows_padded": 36503552,
+     "tax": 1.0202
+    },
+    "cpu/bridge.bulk.ucopy": {
+     "rungs": [
+      17,
+      20
+     ],
+     "rows_real_pow2": 16795424,
+     "rows_padded": 66715648,
+     "tax": 2.9723
+    },
+    "cpu/bridge.bulk.cdesc": {
+     "rungs": [
+      7,
+      10
+     ],
+     "rows_real_pow2": 19488,
+     "rows_padded": 44928,
+     "tax": 1.3054
+    },
+    "cpu/bridge.bulk.cmp": {
+     "rungs": [
+      8,
+      10
+     ],
+     "rows_real_pow2": 28768,
+     "rows_padded": 66048,
+     "tax": 1.2959
+    },
+    "cpu/bridge.bulk.jdesc": {
+     "rungs": [
+      5,
+      6
+     ],
+     "rows_real_pow2": 8480,
+     "rows_padded": 8480,
+     "tax": 0.0
+    },
+    "cpu/bridge.bulk.jscan": {
+     "rungs": [
+      12,
+      13
+     ],
+     "rows_real_pow2": 976352,
+     "rows_padded": 1216512,
+     "tax": 0.246
+    },
+    "cpu/bridge.bulk.jtab": {
+     "rungs": [
+      14
+     ],
+     "rows_real_pow2": 3997696,
+     "rows_padded": 3997696,
+     "tax": 0.0
+    },
+    "cpu/bridge.sponge.call": {
+     "rungs": [
+      12,
+      15
+     ],
+     "rows_real_pow2": 418016,
+     "rows_padded": 1581056,
+     "tax": 2.7823
+    },
+    "cpu/bridge.sponge.perm": {
+     "rungs": [
+      13,
+      17
+     ],
+     "rows_real_pow2": 1639040,
+     "rows_padded": 5742592,
+     "tax": 2.5036
+    },
+    "cpu/bridge.ls_dword": {
+     "rungs": [
+      20,
+      21
+     ],
+     "rows_real_pow2": 393510912,
+     "rows_padded": 398458880,
+     "tax": 0.0126
+    },
+    "cpu/bridge.ls_dword_tail": {
+     "rungs": [
+      18,
+      19
+     ],
+     "rows_real_pow2": 104546304,
+     "rows_padded": 107479040,
+     "tax": 0.0281
+    },
+    "cpu/bridge.bn254_g1_add": {
+     "rungs": [
+      13,
+      15
+     ],
+     "rows_real_pow2": 66048,
+     "rows_padded": 106496,
+     "tax": 0.6124
+    },
+    "cpu/bridge.bn254_g1_double": {
+     "rungs": [
+      12,
+      15
+     ],
+     "rows_real_pow2": 97792,
+     "rows_padded": 155648,
+     "tax": 0.5916
+    },
+    "cpu/bridge.bn254_fp2_mul": {
+     "rungs": [
+      15,
+      16
+     ],
+     "rows_real_pow2": 745472,
+     "rows_padded": 786432,
+     "tax": 0.0549
+    },
+    "cpu/bridge.bls12_381_fp2_mul": {
+     "rungs": [
+      14,
+      15
+     ],
+     "rows_real_pow2": 280576,
+     "rows_padded": 311296,
+     "tax": 0.1095
+    },
+    "cpu/bridge.arith384_mont": {
+     "rungs": [
+      13,
+      16
+     ],
+     "rows_real_pow2": 265952,
+     "rows_padded": 466944,
+     "tax": 0.7557
+    },
+    "truth:keccak/main": {
+     "rungs": [
+      16,
+      18
+     ],
+     "rows_real_pow2": 17356288,
+     "rows_padded": 19333120,
+     "tax": 0.1139
+    },
+    "truth:add/main": {
+     "rungs": [
+      14,
+      16
+     ],
+     "rows_real_pow2": 739584,
+     "rows_padded": 1163264,
+     "tax": 0.5729
+    },
+    "truth:double/main": {
+     "rungs": [
+      14,
+      16
+     ],
+     "rows_real_pow2": 695552,
+     "rows_padded": 1097728,
+     "tax": 0.5782
+    },
+    "truth:sha256/main": {
+     "rungs": [
+      12,
+      13
+     ],
+     "rows_real_pow2": 221440,
+     "rows_padded": 225280,
+     "tax": 0.0173
+    },
+    "truth:arith256_mod/main": {
+     "rungs": [
+      12,
+      15
+     ],
+     "rows_real_pow2": 81408,
+     "rows_padded": 147456,
+     "tax": 0.8113
+    },
+    "truth:bn254_g1_add/main": {
+     "rungs": [
+      11,
+      13
+     ],
+     "rows_real_pow2": 17152,
+     "rows_padded": 24576,
+     "tax": 0.4328
+    },
+    "truth:bn254_g1_double/main": {
+     "rungs": [
+      12,
+      14
+     ],
+     "rows_real_pow2": 47616,
+     "rows_padded": 61440,
+     "tax": 0.2903
+    },
+    "truth:bn254_fp2_mul/main": {
+     "rungs": [
+      14,
+      16
+     ],
+     "rows_real_pow2": 163840,
+     "rows_padded": 196608,
+     "tax": 0.2
+    },
+    "truth:bls12_381_fp2_mul/main": {
+     "rungs": [
+      13,
+      14
+     ],
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0
+    },
+    "truth:arith384_mont/main": {
+     "rungs": [
+      13,
+      14
+     ],
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0
+    }
+   }
+  },
+  "3": {
+   "distinct_padded_classes": {
+    "cpu": 313,
+    "truth:keccak": 3,
+    "truth:add": 3,
+    "truth:double": 3,
+    "truth:sha256": 3,
+    "truth:arith256_mod": 3,
+    "truth:bn254_g1_add": 3,
+    "truth:bn254_g1_double": 3,
+    "truth:bn254_fp2_mul": 3,
+    "truth:bls12_381_fp2_mul": 2,
+    "truth:arith384_mont": 2
+   },
+   "distinct_padded_classes_total": 341,
+   "per_family_rows_tax": {
+    "cpu": 0.0366,
+    "truth:keccak": 0.0384,
+    "truth:add": 0.2738,
+    "truth:double": 0.2013,
+    "truth:sha256": 0.0,
+    "truth:arith256_mod": 0.4088,
+    "truth:bn254_g1_add": 0.194,
+    "truth:bn254_g1_double": 0.1183,
+    "truth:bn254_fp2_mul": 0.0,
+    "truth:bls12_381_fp2_mul": 0.0,
+    "truth:arith384_mont": 0.0
+   },
+   "all_rows_tax": 0.0368,
+   "components": {
+    "cpu/cpu_log": {
+     "rungs": [
+      20,
+      21,
+      22
+     ],
+     "rows_real_pow2": 1435631616,
+     "rows_padded": 1436549120,
+     "tax": 0.0006
+    },
+    "cpu/alu_log": {
+     "rungs": [
+      18,
+      19,
+      20
+     ],
+     "rows_real_pow2": 114470912,
+     "rows_padded": 116916224,
+     "tax": 0.0214
+    },
+    "cpu/alu_tail_log": {
+     "rungs": [
+      16,
+      17,
+      18
+     ],
+     "rows_real_pow2": 25151520,
+     "rows_padded": 27262976,
+     "tax": 0.0839
+    },
+    "cpu/binary_log": {
+     "rungs": [
+      16,
+      17,
+      18
+     ],
+     "rows_real_pow2": 30251008,
+     "rows_padded": 32702464,
+     "tax": 0.081
+    },
+    "cpu/binary_tail_log": {
+     "rungs": [
+      14,
+      15,
+      17
+     ],
+     "rows_real_pow2": 4765280,
+     "rows_padded": 6619136,
+     "tax": 0.389
+    },
+    "cpu/shift_log": {
+     "rungs": [
+      16,
+      17,
+      18
+     ],
+     "rows_real_pow2": 21315584,
+     "rows_padded": 26148864,
+     "tax": 0.2267
+    },
+    "cpu/shift_tail_log": {
+     "rungs": [
+      13,
+      14,
+      16
+     ],
+     "rows_real_pow2": 2221184,
+     "rows_padded": 2916352,
+     "tax": 0.313
+    },
+    "cpu/jalr_log": {
+     "rungs": [
+      15,
+      16,
+      17
+     ],
+     "rows_real_pow2": 20713472,
+     "rows_padded": 20905984,
+     "tax": 0.0093
+    },
+    "cpu/division_log": {
+     "rungs": [
+      10,
+      11,
+      12
+     ],
+     "rows_real_pow2": 320768,
+     "rows_padded": 431104,
+     "tax": 0.344
+    },
+    "cpu/multiplication_log": {
+     "rungs": [
+      16,
+      17,
+      19
+     ],
+     "rows_real_pow2": 30212608,
+     "rows_padded": 37486592,
+     "tax": 0.2408
+    },
+    "cpu/ls_log": {
+     "rungs": [
+      17,
+      18,
+      19
+     ],
+     "rows_real_pow2": 80509888,
+     "rows_padded": 83886080,
+     "tax": 0.0419
+    },
+    "cpu/ls_tail_log": {
+     "rungs": [
+      14,
+      16,
+      17
+     ],
+     "rows_real_pow2": 5762240,
+     "rows_padded": 7700480,
+     "tax": 0.3364
+    },
+    "cpu/boundary_log": {
+     "rungs": [
+      5
+     ],
+     "rows_real_pow2": 11104,
+     "rows_padded": 11104,
+     "tax": 0.0
+    },
+    "cpu/initial_log": {
+     "rungs": [
+      5,
+      21,
+      23
+     ],
+     "rows_real_pow2": 60828032,
+     "rows_padded": 75508096,
+     "tax": 0.2413
+    },
+    "cpu/terminal_log": {
+     "rungs": [
+      5,
+      21,
+      23
+     ],
+     "rows_real_pow2": 60828032,
+     "rows_padded": 75508096,
+     "tax": 0.2413
+    },
+    "cpu/bridge.keccak": {
+     "rungs": [
+      13,
+      14,
+      17
+     ],
+     "rows_real_pow2": 4001792,
+     "rows_padded": 5709824,
+     "tax": 0.4268
+    },
+    "cpu/bridge.add": {
+     "rungs": [
+      14,
+      17,
+      18
+     ],
+     "rows_real_pow2": 5787776,
+     "rows_padded": 8749056,
+     "tax": 0.5116
+    },
+    "cpu/bridge.double": {
+     "rungs": [
+      13,
+      16,
+      17
+     ],
+     "rows_real_pow2": 2852896,
+     "rows_padded": 4317184,
+     "tax": 0.5133
+    },
+    "cpu/bridge.sha256": {
+     "rungs": [
+      10,
+      15,
+      16
+     ],
+     "rows_real_pow2": 861216,
+     "rows_padded": 1078272,
+     "tax": 0.252
+    },
+    "cpu/bridge.arith256_mod": {
+     "rungs": [
+      9,
+      14,
+      16
+     ],
+     "rows_real_pow2": 399392,
+     "rows_padded": 816128,
+     "tax": 1.0434
+    },
+    "cpu/bridge.bulk.desc": {
+     "rungs": [
+      12,
+      14,
+      15
+     ],
+     "rows_real_pow2": 1508768,
+     "rows_padded": 2146304,
+     "tax": 0.4226
+    },
+    "cpu/bridge.bulk.copy": {
+     "rungs": [
+      15,
+      16,
+      17
+     ],
+     "rows_real_pow2": 15324416,
+     "rows_padded": 17399808,
+     "tax": 0.1354
+    },
+    "cpu/bridge.bulk.set": {
+     "rungs": [
+      15,
+      17,
+      19
+     ],
+     "rows_real_pow2": 18069376,
+     "rows_padded": 24903680,
+     "tax": 0.3782
+    },
+    "cpu/bridge.bulk.ucopy": {
+     "rungs": [
+      14,
+      18,
+      20
+     ],
+     "rows_real_pow2": 16795424,
+     "rows_padded": 29655040,
+     "tax": 0.7657
+    },
+    "cpu/bridge.bulk.cdesc": {
+     "rungs": [
+      6,
+      8,
+      10
+     ],
+     "rows_real_pow2": 19488,
+     "rows_padded": 30528,
+     "tax": 0.5665
+    },
+    "cpu/bridge.bulk.cmp": {
+     "rungs": [
+      7,
+      8,
+      10
+     ],
+     "rows_real_pow2": 28768,
+     "rows_padded": 43264,
+     "tax": 0.5039
+    },
+    "cpu/bridge.bulk.jdesc": {
+     "rungs": [
+      5,
+      6
+     ],
+     "rows_real_pow2": 8480,
+     "rows_padded": 8480,
+     "tax": 0.0
+    },
+    "cpu/bridge.bulk.jscan": {
+     "rungs": [
+      11,
+      12,
+      13
+     ],
+     "rows_real_pow2": 976352,
+     "rows_padded": 1034240,
+     "tax": 0.0593
+    },
+    "cpu/bridge.bulk.jtab": {
+     "rungs": [
+      14
+     ],
+     "rows_real_pow2": 3997696,
+     "rows_padded": 3997696,
+     "tax": 0.0
+    },
+    "cpu/bridge.sponge.call": {
+     "rungs": [
+      7,
+      12,
+      15
+     ],
+     "rows_real_pow2": 418016,
+     "rows_padded": 735872,
+     "tax": 0.7604
+    },
+    "cpu/bridge.sponge.perm": {
+     "rungs": [
+      8,
+      14,
+      17
+     ],
+     "rows_real_pow2": 1639040,
+     "rows_padded": 2905088,
+     "tax": 0.7724
+    },
+    "cpu/bridge.ls_dword": {
+     "rungs": [
+      19,
+      20,
+      21
+     ],
+     "rows_real_pow2": 393510912,
+     "rows_padded": 394788864,
+     "tax": 0.0032
+    },
+    "cpu/bridge.ls_dword_tail": {
+     "rungs": [
+      17,
+      18,
+      19
+     ],
+     "rows_real_pow2": 104546304,
+     "rows_padded": 105119744,
+     "tax": 0.0055
+    },
+    "cpu/bridge.bn254_g1_add": {
+     "rungs": [
+      11,
+      13,
+      15
+     ],
+     "rows_real_pow2": 66048,
+     "rows_padded": 69632,
+     "tax": 0.0543
+    },
+    "cpu/bridge.bn254_g1_double": {
+     "rungs": [
+      12,
+      14,
+      15
+     ],
+     "rows_real_pow2": 97792,
+     "rows_padded": 106496,
+     "tax": 0.089
+    },
+    "cpu/bridge.bn254_fp2_mul": {
+     "rungs": [
+      14,
+      15,
+      16
+     ],
+     "rows_real_pow2": 745472,
+     "rows_padded": 753664,
+     "tax": 0.011
+    },
+    "cpu/bridge.bls12_381_fp2_mul": {
+     "rungs": [
+      13,
+      14,
+      15
+     ],
+     "rows_real_pow2": 280576,
+     "rows_padded": 286720,
+     "tax": 0.0219
+    },
+    "cpu/bridge.arith384_mont": {
+     "rungs": [
+      13,
+      15,
+      16
+     ],
+     "rows_real_pow2": 265952,
+     "rows_padded": 335872,
+     "tax": 0.2629
+    },
+    "truth:keccak/main": {
+     "rungs": [
+      15,
+      17,
+      18
+     ],
+     "rows_real_pow2": 17356288,
+     "rows_padded": 18022400,
+     "tax": 0.0384
+    },
+    "truth:add/main": {
+     "rungs": [
+      12,
+      15,
+      16
+     ],
+     "rows_real_pow2": 739584,
+     "rows_padded": 942080,
+     "tax": 0.2738
+    },
+    "truth:double/main": {
+     "rungs": [
+      13,
+      15,
+      16
+     ],
+     "rows_real_pow2": 695552,
+     "rows_padded": 835584,
+     "tax": 0.2013
+    },
+    "truth:sha256/main": {
+     "rungs": [
+      8,
+      12,
+      13
+     ],
+     "rows_real_pow2": 221440,
+     "rows_padded": 221440,
+     "tax": 0.0
+    },
+    "truth:arith256_mod/main": {
+     "rungs": [
+      12,
+      14,
+      15
+     ],
+     "rows_real_pow2": 81408,
+     "rows_padded": 114688,
+     "tax": 0.4088
+    },
+    "truth:bn254_g1_add/main": {
+     "rungs": [
+      11,
+      12,
+      13
+     ],
+     "rows_real_pow2": 17152,
+     "rows_padded": 20480,
+     "tax": 0.194
+    },
+    "truth:bn254_g1_double/main": {
+     "rungs": [
+      11,
+      13,
+      14
+     ],
+     "rows_real_pow2": 47616,
+     "rows_padded": 53248,
+     "tax": 0.1183
+    },
+    "truth:bn254_fp2_mul/main": {
+     "rungs": [
+      14,
+      15,
+      16
+     ],
+     "rows_real_pow2": 163840,
+     "rows_padded": 163840,
+     "tax": 0.0
+    },
+    "truth:bls12_381_fp2_mul/main": {
+     "rungs": [
+      13,
+      14
+     ],
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0
+    },
+    "truth:arith384_mont/main": {
+     "rungs": [
+      13,
+      14
+     ],
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0
+    }
+   }
+  },
+  "4": {
+   "distinct_padded_classes": {
+    "cpu": 325,
+    "truth:keccak": 4,
+    "truth:add": 4,
+    "truth:double": 4,
+    "truth:sha256": 3,
+    "truth:arith256_mod": 4,
+    "truth:bn254_g1_add": 4,
+    "truth:bn254_g1_double": 4,
+    "truth:bn254_fp2_mul": 3,
+    "truth:bls12_381_fp2_mul": 2,
+    "truth:arith384_mont": 2
+   },
+   "distinct_padded_classes_total": 359,
+   "per_family_rows_tax": {
+    "cpu": 0.0104,
+    "truth:keccak": 0.0157,
+    "truth:add": 0.0744,
+    "truth:double": 0.0835,
+    "truth:sha256": 0.0,
+    "truth:arith256_mod": 0.1006,
+    "truth:bn254_g1_add": 0.0149,
+    "truth:bn254_g1_double": 0.0323,
+    "truth:bn254_fp2_mul": 0.0,
+    "truth:bls12_381_fp2_mul": 0.0,
+    "truth:arith384_mont": 0.0
+   },
+   "all_rows_tax": 0.0104,
+   "components": {
+    "cpu/cpu_log": {
+     "rungs": [
+      17,
+      20,
+      21,
+      22
+     ],
+     "rows_real_pow2": 1435631616,
+     "rows_padded": 1435631616,
+     "tax": 0.0
+    },
+    "cpu/alu_log": {
+     "rungs": [
+      15,
+      18,
+      19,
+      20
+     ],
+     "rows_real_pow2": 114470912,
+     "rows_padded": 114851840,
+     "tax": 0.0033
+    },
+    "cpu/alu_tail_log": {
+     "rungs": [
+      15,
+      16,
+      17,
+      18
+     ],
+     "rows_real_pow2": 25151520,
+     "rows_padded": 25624576,
+     "tax": 0.0188
+    },
+    "cpu/binary_log": {
+     "rungs": [
+      15,
+      16,
+      17,
+      18
+     ],
+     "rows_real_pow2": 30251008,
+     "rows_padded": 30539776,
+     "tax": 0.0095
+    },
+    "cpu/binary_tail_log": {
+     "rungs": [
+      14,
+      15,
+      16,
+      17
+     ],
+     "rows_real_pow2": 4765280,
+     "rows_padded": 5636096,
+     "tax": 0.1827
+    },
+    "cpu/shift_log": {
+     "rungs": [
+      15,
+      16,
+      17,
+      18
+     ],
+     "rows_real_pow2": 21315584,
+     "rows_padded": 21594112,
+     "tax": 0.0131
+    },
+    "cpu/shift_tail_log": {
+     "rungs": [
+      13,
+      14,
+      15,
+      16
+     ],
+     "rows_real_pow2": 2221184,
+     "rows_padded": 2457600,
+     "tax": 0.1064
+    },
+    "cpu/jalr_log": {
+     "rungs": [
+      14,
+      15,
+      16,
+      17
+     ],
+     "rows_real_pow2": 20713472,
+     "rows_padded": 20725760,
+     "tax": 0.0006
+    },
+    "cpu/division_log": {
+     "rungs": [
+      5,
+      10,
+      11,
+      12
+     ],
+     "rows_real_pow2": 320768,
+     "rows_padded": 351744,
+     "tax": 0.0966
+    },
+    "cpu/multiplication_log": {
+     "rungs": [
+      16,
+      17,
+      18,
+      19
+     ],
+     "rows_real_pow2": 30212608,
+     "rows_padded": 33292288,
+     "tax": 0.1019
+    },
+    "cpu/ls_log": {
+     "rungs": [
+      16,
+      17,
+      18,
+      19
+     ],
+     "rows_real_pow2": 80509888,
+     "rows_padded": 81461248,
+     "tax": 0.0118
+    },
+    "cpu/ls_tail_log": {
+     "rungs": [
+      14,
+      15,
+      16,
+      17
+     ],
+     "rows_real_pow2": 5762240,
+     "rows_padded": 6586368,
+     "tax": 0.143
+    },
+    "cpu/boundary_log": {
+     "rungs": [
+      5
+     ],
+     "rows_real_pow2": 11104,
+     "rows_padded": 11104,
+     "tax": 0.0
+    },
+    "cpu/initial_log": {
+     "rungs": [
+      5,
+      21,
+      22,
+      23
+     ],
+     "rows_real_pow2": 60828032,
+     "rows_padded": 62925184,
+     "tax": 0.0345
+    },
+    "cpu/terminal_log": {
+     "rungs": [
+      5,
+      21,
+      22,
+      23
+     ],
+     "rows_real_pow2": 60828032,
+     "rows_padded": 62925184,
+     "tax": 0.0345
+    },
+    "cpu/bridge.keccak": {
+     "rungs": [
+      13,
+      14,
+      15,
+      17
+     ],
+     "rows_real_pow2": 4001792,
+     "rows_padded": 4628480,
+     "tax": 0.1566
+    },
+    "cpu/bridge.add": {
+     "rungs": [
+      13,
+      15,
+      17,
+      18
+     ],
+     "rows_real_pow2": 5787776,
+     "rows_padded": 7061504,
+     "tax": 0.2201
+    },
+    "cpu/bridge.double": {
+     "rungs": [
+      12,
+      14,
+      16,
+      17
+     ],
+     "rows_real_pow2": 2852896,
+     "rows_padded": 3530752,
+     "tax": 0.2376
+    },
+    "cpu/bridge.sha256": {
+     "rungs": [
+      9,
+      14,
+      15,
+      16
+     ],
+     "rows_real_pow2": 861216,
+     "rows_padded": 915456,
+     "tax": 0.063
+    },
+    "cpu/bridge.arith256_mod": {
+     "rungs": [
+      9,
+      13,
+      15,
+      16
+     ],
+     "rows_real_pow2": 399392,
+     "rows_padded": 611328,
+     "tax": 0.5306
+    },
+    "cpu/bridge.bulk.desc": {
+     "rungs": [
+      11,
+      12,
+      14,
+      15
+     ],
+     "rows_real_pow2": 1508768,
+     "rows_padded": 1845248,
+     "tax": 0.223
+    },
+    "cpu/bridge.bulk.copy": {
+     "rungs": [
+      14,
+      15,
+      16,
+      17
+     ],
+     "rows_real_pow2": 15324416,
+     "rows_padded": 15876096,
+     "tax": 0.036
+    },
+    "cpu/bridge.bulk.set": {
+     "rungs": [
+      15,
+      16,
+      17,
+      19
+     ],
+     "rows_real_pow2": 18069376,
+     "rows_padded": 21692416,
+     "tax": 0.2005
+    },
+    "cpu/bridge.bulk.ucopy": {
+     "rungs": [
+      13,
+      17,
+      18,
+      20
+     ],
+     "rows_real_pow2": 16795424,
+     "rows_padded": 22208512,
+     "tax": 0.3223
+    },
+    "cpu/bridge.bulk.cdesc": {
+     "rungs": [
+      6,
+      7,
+      9,
+      10
+     ],
+     "rows_real_pow2": 19488,
+     "rows_padded": 25408,
+     "tax": 0.3038
+    },
+    "cpu/bridge.bulk.cmp": {
+     "rungs": [
+      6,
+      7,
+      8,
+      10
+     ],
+     "rows_real_pow2": 28768,
+     "rows_padded": 35712,
+     "tax": 0.2414
+    },
+    "cpu/bridge.bulk.jdesc": {
+     "rungs": [
+      5,
+      6
+     ],
+     "rows_real_pow2": 8480,
+     "rows_padded": 8480,
+     "tax": 0.0
+    },
+    "cpu/bridge.bulk.jscan": {
+     "rungs": [
+      10,
+      11,
+      12,
+      13
+     ],
+     "rows_real_pow2": 976352,
+     "rows_padded": 991232,
+     "tax": 0.0152
+    },
+    "cpu/bridge.bulk.jtab": {
+     "rungs": [
+      14
+     ],
+     "rows_real_pow2": 3997696,
+     "rows_padded": 3997696,
+     "tax": 0.0
+    },
+    "cpu/bridge.sponge.call": {
+     "rungs": [
+      7,
+      12,
+      14,
+      15
+     ],
+     "rows_real_pow2": 418016,
+     "rows_padded": 555648,
+     "tax": 0.3293
+    },
+    "cpu/bridge.sponge.perm": {
+     "rungs": [
+      8,
+      14,
+      16,
+      17
+     ],
+     "rows_real_pow2": 1639040,
+     "rows_padded": 2249728,
+     "tax": 0.3726
+    },
+    "cpu/bridge.ls_dword": {
+     "rungs": [
+      18,
+      19,
+      20,
+      21
+     ],
+     "rows_real_pow2": 393510912,
+     "rows_padded": 393740288,
+     "tax": 0.0006
+    },
+    "cpu/bridge.ls_dword_tail": {
+     "rungs": [
+      16,
+      17,
+      18,
+      19
+     ],
+     "rows_real_pow2": 104546304,
+     "rows_padded": 104660992,
+     "tax": 0.0011
+    },
+    "cpu/bridge.bn254_g1_add": {
+     "rungs": [
+      10,
+      11,
+      13,
+      15
+     ],
+     "rows_real_pow2": 66048,
+     "rows_padded": 66560,
+     "tax": 0.0078
+    },
+    "cpu/bridge.bn254_g1_double": {
+     "rungs": [
+      10,
+      12,
+      14,
+      15
+     ],
+     "rows_real_pow2": 97792,
+     "rows_padded": 100352,
+     "tax": 0.0262
+    },
+    "cpu/bridge.bn254_fp2_mul": {
+     "rungs": [
+      13,
+      14,
+      15,
+      16
+     ],
+     "rows_real_pow2": 745472,
+     "rows_padded": 745472,
+     "tax": 0.0
+    },
+    "cpu/bridge.bls12_381_fp2_mul": {
+     "rungs": [
+      11,
+      13,
+      14,
+      15
+     ],
+     "rows_real_pow2": 280576,
+     "rows_padded": 280576,
+     "tax": 0.0
+    },
+    "cpu/bridge.arith384_mont": {
+     "rungs": [
+      10,
+      13,
+      15,
+      16
+     ],
+     "rows_real_pow2": 265952,
+     "rows_padded": 292864,
+     "tax": 0.1012
+    },
+    "truth:keccak/main": {
+     "rungs": [
+      14,
+      16,
+      17,
+      18
+     ],
+     "rows_real_pow2": 17356288,
+     "rows_padded": 17629184,
+     "tax": 0.0157
+    },
+    "truth:add/main": {
+     "rungs": [
+      12,
+      14,
+      15,
+      16
+     ],
+     "rows_real_pow2": 739584,
+     "rows_padded": 794624,
+     "tax": 0.0744
+    },
+    "truth:double/main": {
+     "rungs": [
+      11,
+      14,
+      15,
+      16
+     ],
+     "rows_real_pow2": 695552,
+     "rows_padded": 753664,
+     "tax": 0.0835
+    },
+    "truth:sha256/main": {
+     "rungs": [
+      8,
+      12,
+      13
+     ],
+     "rows_real_pow2": 221440,
+     "rows_padded": 221440,
+     "tax": 0.0
+    },
+    "truth:arith256_mod/main": {
+     "rungs": [
+      9,
+      12,
+      14,
+      15
+     ],
+     "rows_real_pow2": 81408,
+     "rows_padded": 89600,
+     "tax": 0.1006
+    },
+    "truth:bn254_g1_add/main": {
+     "rungs": [
+      9,
+      11,
+      12,
+      13
+     ],
+     "rows_real_pow2": 17152,
+     "rows_padded": 17408,
+     "tax": 0.0149
+    },
+    "truth:bn254_g1_double/main": {
+     "rungs": [
+      11,
+      12,
+      13,
+      14
+     ],
+     "rows_real_pow2": 47616,
+     "rows_padded": 49152,
+     "tax": 0.0323
+    },
+    "truth:bn254_fp2_mul/main": {
+     "rungs": [
+      14,
+      15,
+      16
+     ],
+     "rows_real_pow2": 163840,
+     "rows_padded": 163840,
+     "tax": 0.0
+    },
+    "truth:bls12_381_fp2_mul/main": {
+     "rungs": [
+      13,
+      14
+     ],
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0
+    },
+    "truth:arith384_mont/main": {
+     "rungs": [
+      13,
+      14
+     ],
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0
+    }
+   }
+  }
+ },
+ "rung_tax_class_vectors": {
+  "1": {
+   "all_rows_tax": 3.1673,
+   "per_family": {
+    "cpu": {
+     "rows_real_pow2": 2465195200,
+     "rows_padded": 10323733024,
+     "tax": 3.1878,
+     "classes": [
+      {
+       "proofs": 347,
+       "rung": {
+        "alu_log": 20,
+        "alu_tail_log": 18,
+        "binary_log": 18,
+        "binary_tail_log": 17,
+        "boundary_log": 5,
+        "bridge.add": 18,
+        "bridge.arith256_mod": 16,
+        "bridge.arith384_mont": 16,
+        "bridge.bls12_381_fp2_mul": 15,
+        "bridge.bn254_fp2_mul": 16,
+        "bridge.bn254_g1_add": 15,
+        "bridge.bn254_g1_double": 15,
+        "bridge.bulk.cdesc": 10,
+        "bridge.bulk.cmp": 10,
+        "bridge.bulk.copy": 17,
+        "bridge.bulk.desc": 15,
+        "bridge.bulk.jdesc": 6,
+        "bridge.bulk.jscan": 13,
+        "bridge.bulk.jtab": 14,
+        "bridge.bulk.set": 19,
+        "bridge.bulk.ucopy": 20,
+        "bridge.double": 17,
+        "bridge.keccak": 17,
+        "bridge.ls_dword": 21,
+        "bridge.ls_dword_tail": 19,
+        "bridge.sha256": 16,
+        "bridge.sponge.call": 15,
+        "bridge.sponge.perm": 17,
+        "cpu_log": 22,
+        "division_log": 12,
+        "initial_log": 23,
+        "jalr_log": 17,
+        "ls_log": 19,
+        "ls_tail_log": 17,
+        "multiplication_log": 19,
+        "shift_log": 18,
+        "shift_tail_log": 16,
+        "terminal_log": 23
+       }
+      }
+     ]
+    },
+    "truth:keccak": {
+     "rows_real_pow2": 17356288,
+     "rows_padded": 24641536,
+     "tax": 0.4197,
+     "classes": [
+      {
+       "proofs": 94,
+       "rung": {
+        "main": 18
+       }
+      }
+     ]
+    },
+    "truth:add": {
+     "rows_real_pow2": 739584,
+     "rows_padded": 2293760,
+     "tax": 2.1014,
+     "classes": [
+      {
+       "proofs": 35,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:double": {
+     "rows_real_pow2": 695552,
+     "rows_padded": 2031616,
+     "tax": 1.9209,
+     "classes": [
+      {
+       "proofs": 31,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:sha256": {
+     "rows_real_pow2": 221440,
+     "rows_padded": 253952,
+     "tax": 0.1468,
+     "classes": [
+      {
+       "proofs": 31,
+       "rung": {
+        "main": 13
+       }
+      }
+     ]
+    },
+    "truth:arith256_mod": {
+     "rows_real_pow2": 81408,
+     "rows_padded": 491520,
+     "tax": 5.0377,
+     "classes": [
+      {
+       "proofs": 15,
+       "rung": {
+        "main": 15
+       }
+      }
+     ]
+    },
+    "truth:bn254_g1_add": {
+     "rows_real_pow2": 17152,
+     "rows_padded": 49152,
+     "tax": 1.8657,
+     "classes": [
+      {
+       "proofs": 6,
+       "rung": {
+        "main": 13
+       }
+      }
+     ]
+    },
+    "truth:bn254_g1_double": {
+     "rows_real_pow2": 47616,
+     "rows_padded": 98304,
+     "tax": 1.0645,
+     "classes": [
+      {
+       "proofs": 6,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    },
+    "truth:bn254_fp2_mul": {
+     "rows_real_pow2": 163840,
+     "rows_padded": 393216,
+     "tax": 1.4,
+     "classes": [
+      {
+       "proofs": 6,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:bls12_381_fp2_mul": {
+     "rows_real_pow2": 40960,
+     "rows_padded": 65536,
+     "tax": 0.6,
+     "classes": [
+      {
+       "proofs": 4,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    },
+    "truth:arith384_mont": {
+     "rows_real_pow2": 40960,
+     "rows_padded": 65536,
+     "tax": 0.6,
+     "classes": [
+      {
+       "proofs": 4,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    }
+   },
+   "native_classes": 11
+  },
+  "2": {
+   "all_rows_tax": 1.3396,
+   "per_family": {
+    "cpu": {
+     "rows_real_pow2": 2465195200,
+     "rows_padded": 5790740416,
+     "tax": 1.349,
+     "classes": [
+      {
+       "proofs": 276,
+       "rung": {
+        "alu_log": 19,
+        "alu_tail_log": 17,
+        "binary_log": 18,
+        "binary_tail_log": 16,
+        "boundary_log": 5,
+        "bridge.add": 16,
+        "bridge.arith256_mod": 16,
+        "bridge.arith384_mont": 15,
+        "bridge.bls12_381_fp2_mul": 13,
+        "bridge.bn254_fp2_mul": 15,
+        "bridge.bn254_g1_add": 13,
+        "bridge.bn254_g1_double": 14,
+        "bridge.bulk.cdesc": 10,
+        "bridge.bulk.cmp": 10,
+        "bridge.bulk.copy": 17,
+        "bridge.bulk.desc": 15,
+        "bridge.bulk.jdesc": 6,
+        "bridge.bulk.jscan": 13,
+        "bridge.bulk.jtab": 14,
+        "bridge.bulk.set": 18,
+        "bridge.bulk.ucopy": 18,
+        "bridge.double": 15,
+        "bridge.keccak": 15,
+        "bridge.ls_dword": 20,
+        "bridge.ls_dword_tail": 19,
+        "bridge.sha256": 16,
+        "bridge.sponge.call": 13,
+        "bridge.sponge.perm": 15,
+        "cpu_log": 22,
+        "division_log": 12,
+        "initial_log": 5,
+        "jalr_log": 17,
+        "ls_log": 19,
+        "ls_tail_log": 17,
+        "multiplication_log": 18,
+        "shift_log": 18,
+        "shift_tail_log": 15,
+        "terminal_log": 22
+       }
+      },
+      {
+       "proofs": 71,
+       "rung": {
+        "alu_log": 20,
+        "alu_tail_log": 18,
+        "binary_log": 18,
+        "binary_tail_log": 17,
+        "boundary_log": 5,
+        "bridge.add": 18,
+        "bridge.arith256_mod": 15,
+        "bridge.arith384_mont": 16,
+        "bridge.bls12_381_fp2_mul": 15,
+        "bridge.bn254_fp2_mul": 16,
+        "bridge.bn254_g1_add": 15,
+        "bridge.bn254_g1_double": 15,
+        "bridge.bulk.cdesc": 9,
+        "bridge.bulk.cmp": 9,
+        "bridge.bulk.copy": 17,
+        "bridge.bulk.desc": 14,
+        "bridge.bulk.jdesc": 5,
+        "bridge.bulk.jscan": 13,
+        "bridge.bulk.jtab": 14,
+        "bridge.bulk.set": 19,
+        "bridge.bulk.ucopy": 20,
+        "bridge.double": 17,
+        "bridge.keccak": 17,
+        "bridge.ls_dword": 21,
+        "bridge.ls_dword_tail": 19,
+        "bridge.sha256": 16,
+        "bridge.sponge.call": 15,
+        "bridge.sponge.perm": 17,
+        "cpu_log": 22,
+        "division_log": 11,
+        "initial_log": 23,
+        "jalr_log": 17,
+        "ls_log": 18,
+        "ls_tail_log": 17,
+        "multiplication_log": 19,
+        "shift_log": 18,
+        "shift_tail_log": 16,
+        "terminal_log": 23
+       }
+      }
+     ]
+    },
+    "truth:keccak": {
+     "rows_real_pow2": 17356288,
+     "rows_padded": 19333120,
+     "tax": 0.1139,
+     "classes": [
+      {
+       "proofs": 27,
+       "rung": {
+        "main": 16
+       }
+      },
+      {
+       "proofs": 67,
+       "rung": {
+        "main": 18
+       }
+      }
+     ]
+    },
+    "truth:add": {
+     "rows_real_pow2": 739584,
+     "rows_padded": 1163264,
+     "tax": 0.5729,
+     "classes": [
+      {
+       "proofs": 23,
+       "rung": {
+        "main": 14
+       }
+      },
+      {
+       "proofs": 12,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:double": {
+     "rows_real_pow2": 695552,
+     "rows_padded": 1097728,
+     "tax": 0.5782,
+     "classes": [
+      {
+       "proofs": 19,
+       "rung": {
+        "main": 14
+       }
+      },
+      {
+       "proofs": 12,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:sha256": {
+     "rows_real_pow2": 221440,
+     "rows_padded": 225280,
+     "tax": 0.0173,
+     "classes": [
+      {
+       "proofs": 7,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 24,
+       "rung": {
+        "main": 13
+       }
+      }
+     ]
+    },
+    "truth:arith256_mod": {
+     "rows_real_pow2": 81408,
+     "rows_padded": 147456,
+     "tax": 0.8113,
+     "classes": [
+      {
+       "proofs": 12,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 3,
+       "rung": {
+        "main": 15
+       }
+      }
+     ]
+    },
+    "truth:bn254_g1_add": {
+     "rows_real_pow2": 17152,
+     "rows_padded": 24576,
+     "tax": 0.4328,
+     "classes": [
+      {
+       "proofs": 4,
+       "rung": {
+        "main": 11
+       }
+      },
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 13
+       }
+      }
+     ]
+    },
+    "truth:bn254_g1_double": {
+     "rows_real_pow2": 47616,
+     "rows_padded": 61440,
+     "tax": 0.2903,
+     "classes": [
+      {
+       "proofs": 3,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 3,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    },
+    "truth:bn254_fp2_mul": {
+     "rows_real_pow2": 163840,
+     "rows_padded": 196608,
+     "tax": 0.2,
+     "classes": [
+      {
+       "proofs": 4,
+       "rung": {
+        "main": 14
+       }
+      },
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:bls12_381_fp2_mul": {
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0,
+     "classes": [
+      {
+       "proofs": 3,
+       "rung": {
+        "main": 13
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    },
+    "truth:arith384_mont": {
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0,
+     "classes": [
+      {
+       "proofs": 3,
+       "rung": {
+        "main": 13
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    }
+   },
+   "native_classes": 22
+  },
+  "3": {
+   "all_rows_tax": 0.87,
+   "per_family": {
+    "cpu": {
+     "rows_real_pow2": 2465195200,
+     "rows_padded": 4625800384,
+     "tax": 0.8764,
+     "classes": [
+      {
+       "proofs": 6,
+       "rung": {
+        "alu_log": 18,
+        "alu_tail_log": 13,
+        "binary_log": 14,
+        "binary_tail_log": 12,
+        "boundary_log": 5,
+        "bridge.add": 16,
+        "bridge.bulk.copy": 11,
+        "bridge.bulk.desc": 9,
+        "bridge.bulk.set": 14,
+        "bridge.bulk.ucopy": 14,
+        "bridge.double": 15,
+        "bridge.ls_dword": 19,
+        "bridge.ls_dword_tail": 18,
+        "bridge.sha256": 15,
+        "cpu_log": 21,
+        "division_log": 5,
+        "initial_log": 5,
+        "jalr_log": 15,
+        "ls_log": 17,
+        "ls_tail_log": 16,
+        "multiplication_log": 17,
+        "shift_log": 16,
+        "shift_tail_log": 15,
+        "terminal_log": 22
+       }
+      },
+      {
+       "proofs": 270,
+       "rung": {
+        "alu_log": 19,
+        "alu_tail_log": 17,
+        "binary_log": 18,
+        "binary_tail_log": 16,
+        "boundary_log": 5,
+        "bridge.add": 16,
+        "bridge.arith256_mod": 16,
+        "bridge.arith384_mont": 15,
+        "bridge.bls12_381_fp2_mul": 13,
+        "bridge.bn254_fp2_mul": 15,
+        "bridge.bn254_g1_add": 13,
+        "bridge.bn254_g1_double": 14,
+        "bridge.bulk.cdesc": 10,
+        "bridge.bulk.cmp": 10,
+        "bridge.bulk.copy": 17,
+        "bridge.bulk.desc": 15,
+        "bridge.bulk.jdesc": 6,
+        "bridge.bulk.jscan": 13,
+        "bridge.bulk.jtab": 14,
+        "bridge.bulk.set": 18,
+        "bridge.bulk.ucopy": 18,
+        "bridge.double": 15,
+        "bridge.keccak": 15,
+        "bridge.ls_dword": 20,
+        "bridge.ls_dword_tail": 19,
+        "bridge.sha256": 16,
+        "bridge.sponge.call": 13,
+        "bridge.sponge.perm": 15,
+        "cpu_log": 22,
+        "division_log": 12,
+        "initial_log": 5,
+        "jalr_log": 17,
+        "ls_log": 19,
+        "ls_tail_log": 17,
+        "multiplication_log": 18,
+        "shift_log": 18,
+        "shift_tail_log": 15,
+        "terminal_log": 5
+       }
+      },
+      {
+       "proofs": 71,
+       "rung": {
+        "alu_log": 20,
+        "alu_tail_log": 18,
+        "binary_log": 18,
+        "binary_tail_log": 17,
+        "boundary_log": 5,
+        "bridge.add": 18,
+        "bridge.arith256_mod": 15,
+        "bridge.arith384_mont": 16,
+        "bridge.bls12_381_fp2_mul": 15,
+        "bridge.bn254_fp2_mul": 16,
+        "bridge.bn254_g1_add": 15,
+        "bridge.bn254_g1_double": 15,
+        "bridge.bulk.cdesc": 9,
+        "bridge.bulk.cmp": 9,
+        "bridge.bulk.copy": 17,
+        "bridge.bulk.desc": 14,
+        "bridge.bulk.jdesc": 5,
+        "bridge.bulk.jscan": 13,
+        "bridge.bulk.jtab": 14,
+        "bridge.bulk.set": 19,
+        "bridge.bulk.ucopy": 20,
+        "bridge.double": 17,
+        "bridge.keccak": 17,
+        "bridge.ls_dword": 21,
+        "bridge.ls_dword_tail": 19,
+        "bridge.sha256": 16,
+        "bridge.sponge.call": 15,
+        "bridge.sponge.perm": 17,
+        "cpu_log": 22,
+        "division_log": 11,
+        "initial_log": 23,
+        "jalr_log": 17,
+        "ls_log": 18,
+        "ls_tail_log": 17,
+        "multiplication_log": 19,
+        "shift_log": 18,
+        "shift_tail_log": 16,
+        "terminal_log": 23
+       }
+      }
+     ]
+    },
+    "truth:keccak": {
+     "rows_real_pow2": 17356288,
+     "rows_padded": 18022400,
+     "tax": 0.0384,
+     "classes": [
+      {
+       "proofs": 22,
+       "rung": {
+        "main": 15
+       }
+      },
+      {
+       "proofs": 12,
+       "rung": {
+        "main": 17
+       }
+      },
+      {
+       "proofs": 60,
+       "rung": {
+        "main": 18
+       }
+      }
+     ]
+    },
+    "truth:add": {
+     "rows_real_pow2": 739584,
+     "rows_padded": 942080,
+     "tax": 0.2738,
+     "classes": [
+      {
+       "proofs": 14,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 15,
+       "rung": {
+        "main": 15
+       }
+      },
+      {
+       "proofs": 6,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:double": {
+     "rows_real_pow2": 695552,
+     "rows_padded": 835584,
+     "tax": 0.2013,
+     "classes": [
+      {
+       "proofs": 14,
+       "rung": {
+        "main": 13
+       }
+      },
+      {
+       "proofs": 12,
+       "rung": {
+        "main": 15
+       }
+      },
+      {
+       "proofs": 5,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:sha256": {
+     "rows_real_pow2": 221440,
+     "rows_padded": 221440,
+     "tax": 0.0,
+     "classes": [
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 8
+       }
+      },
+      {
+       "proofs": 6,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 24,
+       "rung": {
+        "main": 13
+       }
+      }
+     ]
+    },
+    "truth:arith256_mod": {
+     "rows_real_pow2": 81408,
+     "rows_padded": 114688,
+     "tax": 0.4088,
+     "classes": [
+      {
+       "proofs": 12,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 14
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 15
+       }
+      }
+     ]
+    },
+    "truth:bn254_g1_add": {
+     "rows_real_pow2": 17152,
+     "rows_padded": 20480,
+     "tax": 0.194,
+     "classes": [
+      {
+       "proofs": 4,
+       "rung": {
+        "main": 11
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 13
+       }
+      }
+     ]
+    },
+    "truth:bn254_g1_double": {
+     "rows_real_pow2": 47616,
+     "rows_padded": 53248,
+     "tax": 0.1183,
+     "classes": [
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 11
+       }
+      },
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 13
+       }
+      },
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    },
+    "truth:bn254_fp2_mul": {
+     "rows_real_pow2": 163840,
+     "rows_padded": 163840,
+     "tax": 0.0,
+     "classes": [
+      {
+       "proofs": 4,
+       "rung": {
+        "main": 14
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 15
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:bls12_381_fp2_mul": {
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0,
+     "classes": [
+      {
+       "proofs": 3,
+       "rung": {
+        "main": 13
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    },
+    "truth:arith384_mont": {
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0,
+     "classes": [
+      {
+       "proofs": 3,
+       "rung": {
+        "main": 13
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    }
+   },
+   "native_classes": 31
+  },
+  "4": {
+   "all_rows_tax": 0.4813,
+   "per_family": {
+    "cpu": {
+     "rows_real_pow2": 2465195200,
+     "rows_padded": 3660704576,
+     "tax": 0.485,
+     "classes": [
+      {
+       "proofs": 6,
+       "rung": {
+        "alu_log": 18,
+        "alu_tail_log": 13,
+        "binary_log": 14,
+        "binary_tail_log": 12,
+        "boundary_log": 5,
+        "bridge.add": 16,
+        "bridge.bulk.copy": 11,
+        "bridge.bulk.desc": 9,
+        "bridge.bulk.set": 14,
+        "bridge.bulk.ucopy": 14,
+        "bridge.double": 15,
+        "bridge.ls_dword": 19,
+        "bridge.ls_dword_tail": 18,
+        "bridge.sha256": 15,
+        "cpu_log": 21,
+        "division_log": 5,
+        "initial_log": 5,
+        "jalr_log": 15,
+        "ls_log": 17,
+        "ls_tail_log": 16,
+        "multiplication_log": 17,
+        "shift_log": 16,
+        "shift_tail_log": 15,
+        "terminal_log": 22
+       }
+      },
+      {
+       "proofs": 243,
+       "rung": {
+        "alu_log": 18,
+        "alu_tail_log": 17,
+        "binary_log": 18,
+        "binary_tail_log": 16,
+        "boundary_log": 5,
+        "bridge.add": 15,
+        "bridge.arith256_mod": 15,
+        "bridge.bn254_g1_add": 13,
+        "bridge.bn254_g1_double": 14,
+        "bridge.bulk.cdesc": 10,
+        "bridge.bulk.cmp": 10,
+        "bridge.bulk.copy": 17,
+        "bridge.bulk.desc": 15,
+        "bridge.bulk.jdesc": 6,
+        "bridge.bulk.jscan": 13,
+        "bridge.bulk.jtab": 14,
+        "bridge.bulk.set": 18,
+        "bridge.bulk.ucopy": 18,
+        "bridge.double": 14,
+        "bridge.keccak": 15,
+        "bridge.ls_dword": 20,
+        "bridge.ls_dword_tail": 19,
+        "bridge.sha256": 8,
+        "bridge.sponge.call": 13,
+        "bridge.sponge.perm": 15,
+        "cpu_log": 22,
+        "division_log": 12,
+        "initial_log": 5,
+        "jalr_log": 17,
+        "ls_log": 18,
+        "ls_tail_log": 17,
+        "multiplication_log": 17,
+        "shift_log": 17,
+        "shift_tail_log": 15,
+        "terminal_log": 5
+       }
+      },
+      {
+       "proofs": 77,
+       "rung": {
+        "alu_log": 20,
+        "alu_tail_log": 18,
+        "binary_log": 18,
+        "binary_tail_log": 17,
+        "boundary_log": 5,
+        "bridge.add": 18,
+        "bridge.arith256_mod": 16,
+        "bridge.arith384_mont": 16,
+        "bridge.bls12_381_fp2_mul": 15,
+        "bridge.bn254_fp2_mul": 16,
+        "bridge.bn254_g1_add": 15,
+        "bridge.bn254_g1_double": 15,
+        "bridge.bulk.cdesc": 8,
+        "bridge.bulk.cmp": 8,
+        "bridge.bulk.copy": 17,
+        "bridge.bulk.desc": 14,
+        "bridge.bulk.jdesc": 6,
+        "bridge.bulk.jscan": 13,
+        "bridge.bulk.jtab": 14,
+        "bridge.bulk.set": 18,
+        "bridge.bulk.ucopy": 18,
+        "bridge.double": 17,
+        "bridge.keccak": 15,
+        "bridge.ls_dword": 21,
+        "bridge.ls_dword_tail": 19,
+        "bridge.sha256": 16,
+        "bridge.sponge.call": 13,
+        "bridge.sponge.perm": 15,
+        "cpu_log": 22,
+        "division_log": 11,
+        "initial_log": 20,
+        "jalr_log": 17,
+        "ls_log": 19,
+        "ls_tail_log": 16,
+        "multiplication_log": 19,
+        "shift_log": 18,
+        "shift_tail_log": 16,
+        "terminal_log": 20
+       }
+      },
+      {
+       "proofs": 21,
+       "rung": {
+        "alu_log": 19,
+        "alu_tail_log": 17,
+        "binary_log": 17,
+        "binary_tail_log": 16,
+        "boundary_log": 5,
+        "bridge.add": 17,
+        "bridge.arith256_mod": 9,
+        "bridge.arith384_mont": 13,
+        "bridge.bulk.cdesc": 9,
+        "bridge.bulk.cmp": 9,
+        "bridge.bulk.copy": 17,
+        "bridge.bulk.desc": 13,
+        "bridge.bulk.jdesc": 5,
+        "bridge.bulk.jscan": 12,
+        "bridge.bulk.jtab": 14,
+        "bridge.bulk.set": 19,
+        "bridge.bulk.ucopy": 20,
+        "bridge.double": 15,
+        "bridge.keccak": 17,
+        "bridge.ls_dword": 20,
+        "bridge.ls_dword_tail": 19,
+        "bridge.sha256": 16,
+        "bridge.sponge.call": 15,
+        "bridge.sponge.perm": 17,
+        "cpu_log": 22,
+        "division_log": 11,
+        "initial_log": 23,
+        "jalr_log": 17,
+        "ls_log": 18,
+        "ls_tail_log": 17,
+        "multiplication_log": 18,
+        "shift_log": 18,
+        "shift_tail_log": 16,
+        "terminal_log": 23
+       }
+      }
+     ]
+    },
+    "truth:keccak": {
+     "rows_real_pow2": 17356288,
+     "rows_padded": 17629184,
+     "tax": 0.0157,
+     "classes": [
+      {
+       "proofs": 16,
+       "rung": {
+        "main": 14
+       }
+      },
+      {
+       "proofs": 11,
+       "rung": {
+        "main": 16
+       }
+      },
+      {
+       "proofs": 7,
+       "rung": {
+        "main": 17
+       }
+      },
+      {
+       "proofs": 60,
+       "rung": {
+        "main": 18
+       }
+      }
+     ]
+    },
+    "truth:add": {
+     "rows_real_pow2": 739584,
+     "rows_padded": 794624,
+     "tax": 0.0744,
+     "classes": [
+      {
+       "proofs": 14,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 9,
+       "rung": {
+        "main": 14
+       }
+      },
+      {
+       "proofs": 6,
+       "rung": {
+        "main": 15
+       }
+      },
+      {
+       "proofs": 6,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:double": {
+     "rows_real_pow2": 695552,
+     "rows_padded": 753664,
+     "tax": 0.0835,
+     "classes": [
+      {
+       "proofs": 8,
+       "rung": {
+        "main": 11
+       }
+      },
+      {
+       "proofs": 11,
+       "rung": {
+        "main": 14
+       }
+      },
+      {
+       "proofs": 7,
+       "rung": {
+        "main": 15
+       }
+      },
+      {
+       "proofs": 5,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:sha256": {
+     "rows_real_pow2": 221440,
+     "rows_padded": 221440,
+     "tax": 0.0,
+     "classes": [
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 8
+       }
+      },
+      {
+       "proofs": 6,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 24,
+       "rung": {
+        "main": 13
+       }
+      }
+     ]
+    },
+    "truth:arith256_mod": {
+     "rows_real_pow2": 81408,
+     "rows_padded": 89600,
+     "tax": 0.1006,
+     "classes": [
+      {
+       "proofs": 7,
+       "rung": {
+        "main": 9
+       }
+      },
+      {
+       "proofs": 5,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 14
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 15
+       }
+      }
+     ]
+    },
+    "truth:bn254_g1_add": {
+     "rows_real_pow2": 17152,
+     "rows_padded": 17408,
+     "tax": 0.0149,
+     "classes": [
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 9
+       }
+      },
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 11
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 13
+       }
+      }
+     ]
+    },
+    "truth:bn254_g1_double": {
+     "rows_real_pow2": 47616,
+     "rows_padded": 49152,
+     "tax": 0.0323,
+     "classes": [
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 11
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 12
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 13
+       }
+      },
+      {
+       "proofs": 2,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    },
+    "truth:bn254_fp2_mul": {
+     "rows_real_pow2": 163840,
+     "rows_padded": 163840,
+     "tax": 0.0,
+     "classes": [
+      {
+       "proofs": 4,
+       "rung": {
+        "main": 14
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 15
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 16
+       }
+      }
+     ]
+    },
+    "truth:bls12_381_fp2_mul": {
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0,
+     "classes": [
+      {
+       "proofs": 3,
+       "rung": {
+        "main": 13
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    },
+    "truth:arith384_mont": {
+     "rows_real_pow2": 40960,
+     "rows_padded": 40960,
+     "tax": 0.0,
+     "classes": [
+      {
+       "proofs": 3,
+       "rung": {
+        "main": 13
+       }
+      },
+      {
+       "proofs": 1,
+       "rung": {
+        "main": 14
+       }
+      }
+     ]
+    }
+   },
+   "native_classes": 38
+  }
+ }
+}

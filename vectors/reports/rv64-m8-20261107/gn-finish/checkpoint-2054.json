@@ -1,0 +1,48 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "scope": "Component codec and host evidence; no GPU-native request completed",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/gpu-3.log",
+      "sha256": "0b76adcba1c0672c633123a5b567b953b8a1a5447e382fcc8e2f9c9c927f4ef4",
+      "lines": [
+        "GPU_M8_NATIVE_LEAF_SUFFIX_PARITY device=0 words=147 polynomial_shape_rejected=1 noncanonical_rejected=1 bounds_rejected=1 prior_rejection_preserved=1",
+        "GPU_M8_NATIVE_LEAF_SUFFIX_PARITY device=1 words=147 polynomial_shape_rejected=1 noncanonical_rejected=1 bounds_rejected=1 prior_rejection_preserved=1",
+        "Build Summary: 7/7 steps succeeded; 83/83 tests passed"
+      ]
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/jobs-5.log",
+      "sha256": "4a069d8549d7b1e9ef9624df68cf96086234ffb458b19399234a01419d7f1225",
+      "lines": [
+        "Build Summary: 17/17 steps succeeded; 697/713 tests passed; 16 skipped"
+      ]
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/typecheck-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "lines": []
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/install-2/producer.stderr",
+      "sha256": "92b3a557299695d66163937c26fa5250ddf4512450b744f22619623496edd546",
+      "result": "FAIL OuterClassPlanAllocatorMismatch; stateless allocator identity corrected in bringup8, not GPU-retested yet"
+    }
+  ],
+  "current": {
+    "default_gate": "/workspace/m3/runs/m8-gn-bind/gate-21",
+    "state": "RUNNING build; compiler pid 790892 observed live",
+    "source_label": "7bbe1c5c0-bringup8",
+    "next_if_pass": "/workspace/m3/runs/m8-gn-bind/install-3",
+    "native_delivery": "incomplete"
+  },
+  "implemented_pending_full_request": [
+    "Install-only owned recursion class templates and authority registry",
+    "Live device leaf PCS image, statement tape and frame hash",
+    "Per-block recursion authority and per-request leaf public program binding",
+    "Warm-only recursion FIXED/program adoption on request path",
+    "Final class-capacity suffix layout across blocks",
+    "Allocator identity and Staged teardown corrections"
+  ]
+}

@@ -1,0 +1,832 @@
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=558288880
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=6291518
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=107374128
+GPU_PCS_STREAM tree=0 columns=204 leaves=8388608 calls=1 chunk_words=62166080 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=780959736
+GPU_PCS_STREAM tree=1 columns=3379 leaves=8388608 calls=5 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=780959736
+GPU_PCS_STREAM tree=2 columns=1904 leaves=8388608 calls=3 chunk_words=132144128 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=780959736
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=780959736
+MASKED_PCS columns=5503 groups=73 log=23 q=108 resident_ms=88.258911 device_bytes=5047635820 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=32 device_columns=5503
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=495342678
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=6291518
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=107374128
+GPU_PCS_STREAM tree=0 columns=189 leaves=8388608 calls=1 chunk_words=67464896 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=810415480
+GPU_PCS_STREAM tree=1 columns=3009 leaves=8388608 calls=5 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=810415480
+GPU_PCS_STREAM tree=2 columns=1744 leaves=8388608 calls=3 chunk_words=132771840 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=810415480
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=810415480
+MASKED_PCS columns=4958 groups=63 log=23 q=108 resident_ms=82.253822 device_bytes=4806190832 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=30 device_columns=4958
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=2813319
+GPU_PCS_PHASE_RETIRE planes=6 logical_words=24622
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=419392
+GPU_PCS_STREAM tree=0 columns=4 leaves=32768 calls=1 chunk_words=131072 bank_words=524280,0 scratch_words=135528448 legacy_rebuild_words=168558584
+GPU_PCS_STREAM tree=1 columns=1869 leaves=32768 calls=1 chunk_words=61243392 bank_words=524280,0 scratch_words=135528448 legacy_rebuild_words=168558584
+GPU_PCS_STREAM tree=2 columns=5128 leaves=32768 calls=2 chunk_words=134217728 bank_words=786432,524280 scratch_words=135528448 legacy_rebuild_words=168558584
+GPU_PCS_STREAM tree=3 columns=32 leaves=32768 calls=1 chunk_words=1048576 bank_words=524280,0 scratch_words=135528448 legacy_rebuild_words=168558584
+MASKED_PCS columns=7033 groups=2 log=15 q=108 resident_ms=18.461727 device_bytes=559527472 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=7033
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=912287
+GPU_PCS_PHASE_RETIRE planes=5 logical_words=6182
+GPU_PCS_PHASE_RETIRE planes=6 logical_words=104808
+GPU_PCS_STREAM tree=0 columns=3 leaves=8192 calls=1 chunk_words=24576 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+GPU_PCS_STREAM tree=1 columns=7409 leaves=8192 calls=1 chunk_words=60694528 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+GPU_PCS_STREAM tree=2 columns=16 leaves=8192 calls=1 chunk_words=131072 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+GPU_PCS_STREAM tree=3 columns=16 leaves=8192 calls=1 chunk_words=131072 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+MASKED_PCS columns=7444 groups=2 log=13 q=108 resident_ms=15.038944 device_bytes=251598284 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=7444
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=157782398
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=3145790
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=53687088
+GPU_PCS_STREAM tree=0 columns=46 leaves=4194304 calls=1 chunk_words=47054848 bank_words=67108856,0 scratch_words=213909504 legacy_rebuild_words=1095368696
+GPU_PCS_STREAM tree=1 columns=1925 leaves=4194304 calls=8 chunk_words=134217728 bank_words=12582912,67108856 scratch_words=213909504 legacy_rebuild_words=1095368696
+GPU_PCS_STREAM tree=2 columns=1592 leaves=4194304 calls=7 chunk_words=134217728 bank_words=67108856,12582912 scratch_words=213909504 legacy_rebuild_words=1095368696
+GPU_PCS_STREAM tree=3 columns=32 leaves=4194304 calls=1 chunk_words=134217728 bank_words=67108856,0 scratch_words=213909504 legacy_rebuild_words=1095368696
+MASKED_PCS columns=3595 groups=11 log=22 q=108 resident_ms=83.677856 device_bytes=1853471988 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=5 device_columns=3595
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=108650878
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=3145790
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=53687088
+GPU_PCS_STREAM tree=0 columns=46 leaves=4194304 calls=1 chunk_words=30801920 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=204865528
+GPU_PCS_STREAM tree=1 columns=1925 leaves=4194304 calls=1 chunk_words=35831808 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=204865528
+GPU_PCS_STREAM tree=2 columns=1592 leaves=4194304 calls=1 chunk_words=94765056 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=204865528
+GPU_PCS_STREAM tree=3 columns=32 leaves=4194304 calls=1 chunk_words=134217728 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=204865528
+MASKED_PCS columns=3595 groups=11 log=22 q=108 resident_ms=59.374207 device_bytes=1574108404 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=6 device_columns=3595
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=495625991
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=6291518
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=107374128
+GPU_PCS_STREAM tree=0 columns=211 leaves=8388608 calls=1 chunk_words=59974848 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=749518136
+GPU_PCS_STREAM tree=1 columns=3515 leaves=8388608 calls=5 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=749518136
+GPU_PCS_STREAM tree=2 columns=1928 leaves=8388608 calls=3 chunk_words=132375552 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=749518136
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=749518136
+MASKED_PCS columns=5670 groups=73 log=23 q=108 resident_ms=89.796638 device_bytes=4792680532 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=33 device_columns=5670
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=495491421
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=6291518
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=107374128
+GPU_PCS_STREAM tree=0 columns=207 leaves=8388608 calls=1 chunk_words=68511744 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=822692408
+GPU_PCS_STREAM tree=1 columns=3472 leaves=8388608 calls=5 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=822692408
+GPU_PCS_STREAM tree=2 columns=1936 leaves=8388608 calls=3 chunk_words=132326912 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=822692408
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=822692408
+MASKED_PCS columns=5631 groups=63 log=23 q=108 resident_ms=87.028381 device_bytes=4809198016 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=35 device_columns=5631
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=109830526
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=3145790
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=53687088
+GPU_PCS_STREAM tree=0 columns=46 leaves=4194304 calls=1 chunk_words=31326208 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+GPU_PCS_STREAM tree=1 columns=1925 leaves=4194304 calls=1 chunk_words=67338240 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+GPU_PCS_STREAM tree=2 columns=1592 leaves=4194304 calls=1 chunk_words=120324096 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+GPU_PCS_STREAM tree=3 columns=32 leaves=4194304 calls=1 chunk_words=134217728 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+MASKED_PCS columns=3595 groups=11 log=22 q=108 resident_ms=61.450462 device_bytes=1579875572 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=6 device_columns=3595
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=2376135
+GPU_PCS_PHASE_RETIRE planes=6 logical_words=24622
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=419392
+GPU_PCS_STREAM tree=0 columns=4 leaves=32768 calls=1 chunk_words=131072 bank_words=524280,0 scratch_words=132644864 legacy_rebuild_words=132644856
+GPU_PCS_STREAM tree=1 columns=1447 leaves=32768 calls=1 chunk_words=47415296 bank_words=524280,0 scratch_words=132644864 legacy_rebuild_words=132644856
+GPU_PCS_STREAM tree=2 columns=4032 leaves=32768 calls=1 chunk_words=132120576 bank_words=524280,0 scratch_words=132644864 legacy_rebuild_words=132644856
+GPU_PCS_STREAM tree=3 columns=32 leaves=32768 calls=1 chunk_words=1048576 bank_words=524280,0 scratch_words=132644864 legacy_rebuild_words=132644856
+MASKED_PCS columns=5515 groups=2 log=15 q=108 resident_ms=14.130464 device_bytes=545533976 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=5515
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=80727
+GPU_PCS_PHASE_RETIRE planes=4 logical_words=414
+GPU_PCS_PHASE_RETIRE planes=4 logical_words=6512
+GPU_PCS_STREAM tree=0 columns=4 leaves=512 calls=1 chunk_words=2048 bank_words=8184,0 scratch_words=507904 legacy_rebuild_words=507896
+GPU_PCS_STREAM tree=1 columns=401 leaves=512 calls=1 chunk_words=205312 bank_words=8184,0 scratch_words=507904 legacy_rebuild_words=507896
+GPU_PCS_STREAM tree=2 columns=976 leaves=512 calls=1 chunk_words=499712 bank_words=8184,0 scratch_words=507904 legacy_rebuild_words=507896
+GPU_PCS_STREAM tree=3 columns=16 leaves=512 calls=1 chunk_words=8192 bank_words=8184,0 scratch_words=507904 legacy_rebuild_words=507896
+MASKED_PCS columns=1397 groups=2 log=9 q=108 resident_ms=3.338240 device_bytes=3415776 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=1397
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=853650799
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=853650799
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+MASKED_PCS columns=479 groups=23 log=24 q=108 resident_ms=103.071678 device_bytes=8251642216 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+MASKED_PCS columns=479 groups=23 log=24 q=108 resident_ms=104.276642 device_bytes=8251642216 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=153.871521 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=154.956314 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=153.704636 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=722513331
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2728660984
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2728660984
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2728660984
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2728660984
+MASKED_PCS columns=479 groups=23 log=24 q=108 resident_ms=161.283707 device_bytes=7727092344 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=853650799
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+MASKED_PCS columns=479 groups=23 log=24 q=108 resident_ms=102.980766 device_bytes=8251642216 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=247016883
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=3145790
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=53687088
+GPU_PCS_STREAM tree=0 columns=45 leaves=4194304 calls=1 chunk_words=93980160 bank_words=67108856,0 scratch_words=335544320 legacy_rebuild_words=837160952
+GPU_PCS_STREAM tree=1 columns=114 leaves=4194304 calls=3 chunk_words=134217728 bank_words=100663296,100663296 scratch_words=335544320 legacy_rebuild_words=837160952
+GPU_PCS_STREAM tree=2 columns=304 leaves=4194304 calls=6 chunk_words=134217728 bank_words=100663296,100663296 scratch_words=335544320 legacy_rebuild_words=837160952
+GPU_PCS_STREAM tree=3 columns=16 leaves=4194304 calls=1 chunk_words=67108864 bank_words=67108856,0 scratch_words=335544320 legacy_rebuild_words=837160952
+MASKED_PCS columns=479 groups=23 log=22 q=108 resident_ms=37.244320 device_bytes=2601178104 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=571517436
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2598899704
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=151.380798 device_bytes=7123108764 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=571517436
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2598899704
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=148.713089 device_bytes=7123108764 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=571517436
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2598899704
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=150.103867 device_bytes=7123108764 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2775846904
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=154.210663 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2775846904
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=153.610947 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=533767749
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2637434872
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2637434872
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2637434872
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2637434872
+MASKED_PCS columns=479 groups=17 log=24 q=108 resident_ms=153.248123 device_bytes=6972110016 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=2 colum{
+  "schema": 1,
+  "accepted": true,
+  "completed_ethereum_block": true,
+  "fixed_setup_backend": "device_candidate",
+  "authority_handoff": "live independently derived keys and fixed authority; direct in-memory bundle",
+  "native_bundle_reload": false,
+  "recursion_execution": {
+    "mode": "ready_candidate",
+    "physical_device_ids": [
+      0,
+      1
+    ],
+    "lane_workers": [
+      4,
+      4
+    ],
+    "native_helper_stack_reserved_bytes": 15728640,
+    "lane_helper_stack_reserved_bytes": 6291456,
+    "coordinator_stack_reserved_bytes": 16777216,
+    "producer_manifest_sha256": [
+      76,
+      27,
+      240,
+      4,
+      74,
+      0,
+      84,
+      89,
+      20,
+      237,
+      72,
+      94,
+      223,
+      241,
+      63,
+      90,
+      87,
+      51,
+      98,
+      144,
+      165,
+      107,
+      226,
+      217,
+      9,
+      159,
+      203,
+      58,
+      218,
+      29,
+      152,
+      112
+    ],
+    "hardware_parallel_qualified": false
+  },
+  "native_authority_session_used": true,
+  "native_authority_classes": 11,
+  "restored_recursive_proofs": false,
+  "security_qualified": false,
+  "security_scope": "128-bit target under documented assumptions; no whole-protocol certificate",
+  "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+  "capture_ns": 1710159473,
+  "native_setup_ns": 8911000635,
+  "setup_breakdown": {
+    "image_ns": 279131939,
+    "program_ns": 23732509,
+    "native_keys_ns": 5548126390,
+    "fixed_authority_ns": 3242056187
+  },
+  "native_prove_ns": 3895844078,
+  "native_verify_ns": 1266182630,
+  "native_verify_overlapped_with_recursion": true,
+  "native_verify_join_wait_ns": 138109,
+  "native_verify_workers": 8,
+  "native_publish_ns": 85962698,
+  "recursion_ns": 13050189965,
+  "recursion_streamed": true,
+  "recursion_after_native_ns": 13148686980,
+  "combined_ns": 27665736525,
+  "recursive": {
+    "schema": 2,
+    "accepted": true,
+    "outer_backend": "cuda_trace_only",
+    "leaf_proofs": 11,
+    "restored_leaves": 0,
+    "fold_proofs": 4,
+    "restored_folds": 0,
+    "peak_pending_authorities": 14,
+    "retired_preprocessed_bytes": 9293181952,
+    "gpu_new_leaf_proofs": 11,
+    "gpu_new_fold_proofs": 4,
+    "assignment_source": "gpu_original_circuit_dag",
+    "root_node": 14,
+    "root_digest": [
+      86,
+      196,
+      200,
+      69,
+      155,
+      51,
+      36,
+      205,
+      235,
+      177,
+      19,
+      108,
+      210,
+      105,
+      196,
+      220,
+      79,
+      147,
+      61,
+      192,
+      4,
+      154,
+      142,
+      212,
+      109,
+      224,
+      3,
+      218,
+      152,
+      120,
+      55,
+      15
+    ],
+    "root_authority": [
+      254,
+      180,
+      119,
+      120,
+      164,
+      112,
+      154,
+      174,
+      178,
+      45,
+      115,
+      209,
+      146,
+      108,
+      33,
+      94,
+      212,
+      236,
+      231,
+      40,
+      208,
+      76,
+      126,
+      216,
+      47,
+      81,
+      105,
+      223,
+      20,
+      118,
+      194,
+      154
+    ],
+    "manifest": [
+      46,
+      59,
+      31,
+      95,
+      197,
+      53,
+      127,
+      128,
+      92,
+      81,
+      60,
+      239,
+      66,
+      85,
+      7,
+      48,
+      217,
+      177,
+      146,
+      101,
+      6,
+      170,
+      78,
+      45,
+      35,
+      49,
+      115,
+      155,
+      228,
+      132,
+      59,
+      77
+    ],
+    "native_prove_ns": 3895844078,
+    "graph_ns": 6771550353,
+    "wrap_ns": 33812415768,
+    "fold_ns": 11931822473,
+    "root_verify_ns": 26970131,
+    "total_ns": 15279507486,
+    "root_proof_bytes": 750136,
+    "portable_root_key_admission": false,
+    "fold_arity": 4,
+    "outer_shape": "exact"
+  }
+}
+ns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2775846904
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=156.826141 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=495342678
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=6291518
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=107374128
+GPU_PCS_STREAM tree=0 columns=189 leaves=8388608 calls=1 chunk_words=67464896 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=810415480
+GPU_PCS_STREAM tree=1 columns=3009 leaves=8388608 calls=5 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=810415480
+GPU_PCS_STREAM tree=2 columns=1744 leaves=8388608 calls=3 chunk_words=132771840 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=810415480
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=810415480
+MASKED_PCS columns=4958 groups=63 log=23 q=108 resident_ms=82.096191 device_bytes=4806190832 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=30 device_columns=4958
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=2813319
+GPU_PCS_PHASE_RETIRE planes=6 logical_words=24622
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=419392
+GPU_PCS_STREAM tree=0 columns=4 leaves=32768 calls=1 chunk_words=131072 bank_words=524280,0 scratch_words=135528448 legacy_rebuild_words=168558584
+GPU_PCS_STREAM tree=1 columns=1869 leaves=32768 calls=1 chunk_words=61243392 bank_words=524280,0 scratch_words=135528448 legacy_rebuild_words=168558584
+GPU_PCS_STREAM tree=2 columns=5128 leaves=32768 calls=2 chunk_words=134217728 bank_words=786432,524280 scratch_words=135528448 legacy_rebuild_words=168558584
+GPU_PCS_STREAM tree=3 columns=32 leaves=32768 calls=1 chunk_words=1048576 bank_words=524280,0 scratch_words=135528448 legacy_rebuild_words=168558584
+MASKED_PCS columns=7033 groups=2 log=15 q=108 resident_ms=18.443169 device_bytes=559527472 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=7033
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=912287
+GPU_PCS_PHASE_RETIRE planes=5 logical_words=6182
+GPU_PCS_PHASE_RETIRE planes=6 logical_words=104808
+GPU_PCS_STREAM tree=0 columns=3 leaves=8192 calls=1 chunk_words=24576 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+GPU_PCS_STREAM tree=1 columns=7409 leaves=8192 calls=1 chunk_words=60694528 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+GPU_PCS_STREAM tree=2 columns=16 leaves=8192 calls=1 chunk_words=131072 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+GPU_PCS_STREAM tree=3 columns=16 leaves=8192 calls=1 chunk_words=131072 bank_words=131064,0 scratch_words=60825600 legacy_rebuild_words=60825592
+MASKED_PCS columns=7444 groups=2 log=13 q=108 resident_ms=15.105376 device_bytes=251598284 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=7444
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=108650878
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=3145790
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=53687088
+GPU_PCS_STREAM tree=0 columns=46 leaves=4194304 calls=1 chunk_words=30801920 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=204865528
+GPU_PCS_STREAM tree=1 columns=1925 leaves=4194304 calls=1 chunk_words=35831808 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=204865528
+GPU_PCS_STREAM tree=2 columns=1592 leaves=4194304 calls=1 chunk_words=94765056 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=204865528
+GPU_PCS_STREAM tree=3 columns=32 leaves=4194304 calls=1 chunk_words=134217728 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=204865528
+MASKED_PCS columns=3595 groups=11 log=22 q=108 resident_ms=59.586754 device_bytes=1574108404 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=6 device_columns=3595
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=157782398
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=3145790
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=53687088
+GPU_PCS_STREAM tree=0 columns=46 leaves=4194304 calls=1 chunk_words=47054848 bank_words=67108856,0 scratch_words=213909504 legacy_rebuild_words=1095368696
+GPU_PCS_STREAM tree=1 columns=1925 leaves=4194304 calls=8 chunk_words=134217728 bank_words=12582912,67108856 scratch_words=213909504 legacy_rebuild_words=1095368696
+GPU_PCS_STREAM tree=2 columns=1592 leaves=4194304 calls=7 chunk_words=134217728 bank_words=67108856,12582912 scratch_words=213909504 legacy_rebuild_words=1095368696
+GPU_PCS_STREAM tree=3 columns=32 leaves=4194304 calls=1 chunk_words=134217728 bank_words=67108856,0 scratch_words=213909504 legacy_rebuild_words=1095368696
+MASKED_PCS columns=3595 groups=11 log=22 q=108 resident_ms=83.765572 device_bytes=1853471988 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=5 device_columns=3595
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=495491421
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=6291518
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=107374128
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=558288880
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=6291518
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=107374128
+GPU_PCS_STREAM tree=0 columns=204 leaves=8388608 calls=1 chunk_words=62166080 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=780959736
+GPU_PCS_STREAM tree=1 columns=3379 leaves=8388608 calls=5 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=780959736
+GPU_PCS_STREAM tree=2 columns=1904 leaves=8388608 calls=3 chunk_words=132144128 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=780959736
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=780959736
+GPU_PCS_STREAM tree=0 columns=207 leaves=8388608 calls=1 chunk_words=68511744 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=822692408
+GPU_PCS_STREAM tree=1 columns=3472 leaves=8388608 calls=5 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=822692408
+GPU_PCS_STREAM tree=2 columns=1936 leaves=8388608 calls=3 chunk_words=132326912 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=822692408
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=822692408
+MASKED_PCS columns=5503 groups=73 log=23 q=108 resident_ms=88.439812 device_bytes=5047635820 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=32 device_columns=5503
+MASKED_PCS columns=5631 groups=63 log=23 q=108 resident_ms=146.987228 device_bytes=4809198016 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=35 device_columns=5631
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=495625991
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=6291518
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=107374128
+GPU_PCS_STREAM tree=0 columns=211 leaves=8388608 calls=1 chunk_words=59974848 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=749518136
+GPU_PCS_STREAM tree=1 columns=3515 leaves=8388608 calls=5 chunk_words=134217728 bank_words=201326592,201326592 scratch_words=536870912 legacy_rebuild_words=749518136
+GPU_PCS_STREAM tree=2 columns=1928 leaves=8388608 calls=3 chunk_words=132375552 bank_words=134217720,201326592 scratch_words=536870912 legacy_rebuild_words=749518136
+GPU_PCS_STREAM tree=3 columns=16 leaves=8388608 calls=1 chunk_words=134217728 bank_words=134217720,0 scratch_words=536870912 legacy_rebuild_words=749518136
+MASKED_PCS columns=5670 groups=73 log=23 q=108 resident_ms=89.951843 device_bytes=4792680532 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=33 device_columns=5670
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=109830526
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=3145790
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=53687088
+GPU_PCS_STREAM tree=0 columns=46 leaves=4194304 calls=1 chunk_words=31326208 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+GPU_PCS_STREAM tree=1 columns=1925 leaves=4194304 calls=1 chunk_words=67338240 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+GPU_PCS_STREAM tree=2 columns=1592 leaves=4194304 calls=1 chunk_words=120324096 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+GPU_PCS_STREAM tree=3 columns=32 leaves=4194304 calls=1 chunk_words=134217728 bank_words=67108856,0 scratch_words=201326592 legacy_rebuild_words=205258744
+MASKED_PCS columns=3595 groups=11 log=22 q=108 resident_ms=61.465855 device_bytes=1579875572 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=6 device_columns=3595
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=80727
+GPU_PCS_PHASE_RETIRE planes=4 logical_words=414
+GPU_PCS_PHASE_RETIRE planes=4 logical_words=6512
+GPU_PCS_STREAM tree=0 columns=4 leaves=512 calls=1 chunk_words=2048 bank_words=8184,0 scratch_words=507904 legacy_rebuild_words=507896
+GPU_PCS_STREAM tree=1 columns=401 leaves=512 calls=1 chunk_words=205312 bank_words=8184,0 scratch_words=507904 legacy_rebuild_words=507896
+GPU_PCS_STREAM tree=2 columns=976 leaves=512 calls=1 chunk_words=499712 bank_words=8184,0 scratch_words=507904 legacy_rebuild_words=507896
+GPU_PCS_STREAM tree=3 columns=16 leaves=512 calls=1 chunk_words=8192 bank_words=8184,0 scratch_words=507904 legacy_rebuild_words=507896
+MASKED_PCS columns=1397 groups=2 log=9 q=108 resident_ms=3.358080 device_bytes=3415776 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=1397
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=2376135
+GPU_PCS_PHASE_RETIRE planes=6 logical_words=24622
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=419392
+GPU_PCS_STREAM tree=0 columns=4 leaves=32768 calls=1 chunk_words=131072 bank_words=524280,0 scratch_words=132644864 legacy_rebuild_words=132644856
+GPU_PCS_STREAM tree=1 columns=1447 leaves=32768 calls=1 chunk_words=47415296 bank_words=524280,0 scratch_words=132644864 legacy_rebuild_words=132644856
+GPU_PCS_STREAM tree=2 columns=4032 leaves=32768 calls=1 chunk_words=132120576 bank_words=524280,0 scratch_words=132644864 legacy_rebuild_words=132644856
+GPU_PCS_STREAM tree=3 columns=32 leaves=32768 calls=1 chunk_words=1048576 bank_words=524280,0 scratch_words=132644864 legacy_rebuild_words=132644856
+MASKED_PCS columns=5515 groups=2 log=15 q=108 resident_ms=14.153696 device_bytes=545533976 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=5515
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=157.286179 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=153.981567 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2778992632
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2778992632
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=216.844254 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=722513331
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2728660984
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2728660984
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2728660984
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2728660984
+MASKED_PCS columns=479 groups=23 log=24 q=108 resident_ms=160.558884 device_bytes=7727092344 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=853650799
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+MASKED_PCS columns=479 groups=23 log=24 q=108 resident_ms=103.925026 device_bytes=8251642216 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=853650799
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+MASKED_PCS columns=479 groups=23 log=24 q=108 resident_ms=104.024223 device_bytes=8251642216 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=853650799
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=2 chunk_words=129140224 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=6 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=11 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=1902645240
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=1902645240
+MASKED_PCS columns=479 groups=23 log=24 q=108 resident_ms=104.017281 device_bytes=8251642216 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=571517436
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2598899704
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=150.601440 device_bytes=7123108764 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2775846904
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=154.987747 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=571517436
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2598899704
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=148.819168 device_bytes=7123108764 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=571517436
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=17 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2598899704
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2598899704
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=150.196671 device_bytes=7123108764 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=247016883
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=3145790
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=53687088
+GPU_PCS_STREAM tree=0 columns=45 leaves=4194304 calls=1 chunk_words=93980160 bank_words=67108856,0 scratch_words=335544320 legacy_rebuild_words=837160952
+GPU_PCS_STREAM tree=1 columns=114 leaves=4194304 calls=3 chunk_words=134217728 bank_words=100663296,100663296 scratch_words=335544320 legacy_rebuild_words=837160952
+GPU_PCS_STREAM tree=2 columns=304 leaves=4194304 calls=6 chunk_words=134217728 bank_words=100663296,100663296 scratch_words=335544320 legacy_rebuild_words=837160952
+GPU_PCS_STREAM tree=3 columns=16 leaves=4194304 calls=1 chunk_words=67108864 bank_words=67108856,0 scratch_words=335544320 legacy_rebuild_words=837160952
+MASKED_PCS columns=479 groups=23 log=22 q=108 resident_ms=37.564831 device_bytes=2601178104 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2775846904
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=153.597885 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=533767749
+GPU_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2637434872
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2637434872
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2637434872
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2637434872
+MASKED_PCS columns=479 groups=17 log=24 q=108 resident_ms=152.501282 device_bytes=6972110016 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479
+GPU_PCS_PHASE_RETIRE planes=19 logical_words=684763644
+GPU{
+  "schema": 1,
+  "accepted": true,
+  "completed_ethereum_block": true,
+  "fixed_setup_backend": "device_candidate",
+  "authority_handoff": "live independently derived keys and fixed authority; direct in-memory bundle",
+  "native_bundle_reload": false,
+  "recursion_execution": {
+    "mode": "ready_candidate",
+    "physical_device_ids": [
+      0,
+      1
+    ],
+    "lane_workers": [
+      4,
+      4
+    ],
+    "native_helper_stack_reserved_bytes": 15728640,
+    "lane_helper_stack_reserved_bytes": 6291456,
+    "coordinator_stack_reserved_bytes": 16777216,
+    "producer_manifest_sha256": [
+      76,
+      27,
+      240,
+      4,
+      74,
+      0,
+      84,
+      89,
+      20,
+      237,
+      72,
+      94,
+      223,
+      241,
+      63,
+      90,
+      87,
+      51,
+      98,
+      144,
+      165,
+      107,
+      226,
+      217,
+      9,
+      159,
+      203,
+      58,
+      218,
+      29,
+      152,
+      112
+    ],
+    "hardware_parallel_qualified": false
+  },
+  "native_authority_session_used": true,
+  "native_authority_classes": 11,
+  "restored_recursive_proofs": false,
+  "security_qualified": false,
+  "security_scope": "128-bit target under documented assumptions; no whole-protocol certificate",
+  "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+  "capture_ns": 1885563260,
+  "native_setup_ns": 137401635,
+  "setup_breakdown": {
+    "image_ns": 38061062,
+    "program_ns": 513238,
+    "native_keys_ns": 11010,
+    "fixed_authority_ns": 13399
+  },
+  "native_prove_ns": 3168238247,
+  "native_verify_ns": 1465367816,
+  "native_verify_overlapped_with_recursion": true,
+  "native_verify_join_wait_ns": 248989,
+  "native_verify_workers": 8,
+  "native_publish_ns": 102787315,
+  "recursion_ns": 7381075306,
+  "recursion_streamed": true,
+  "recursion_after_native_ns": 7505375125,
+  "combined_ns": 12696614747,
+  "recursive": {
+    "schema": 2,
+    "accepted": true,
+    "outer_backend": "cuda_trace_only",
+    "leaf_proofs": 11,
+    "restored_leaves": 0,
+    "fold_proofs": 4,
+    "restored_folds": 0,
+    "peak_pending_authorities": 13,
+    "retired_preprocessed_bytes": 9293181952,
+    "gpu_new_leaf_proofs": 11,
+    "gpu_new_fold_proofs": 4,
+    "assignment_source": "gpu_original_circuit_dag",
+    "root_node": 14,
+    "root_digest": [
+      86,
+      196,
+      200,
+      69,
+      155,
+      51,
+      36,
+      205,
+      235,
+      177,
+      19,
+      108,
+      210,
+      105,
+      196,
+      220,
+      79,
+      147,
+      61,
+      192,
+      4,
+      154,
+      142,
+      212,
+      109,
+      224,
+      3,
+      218,
+      152,
+      120,
+      55,
+      15
+    ],
+    "root_authority": [
+      254,
+      180,
+      119,
+      120,
+      164,
+      112,
+      154,
+      174,
+      178,
+      45,
+      115,
+      209,
+      146,
+      108,
+      33,
+      94,
+      212,
+      236,
+      231,
+      40,
+      208,
+      76,
+      126,
+      216,
+      47,
+      81,
+      105,
+      223,
+      20,
+      118,
+      194,
+      154
+    ],
+    "manifest": [
+      46,
+      59,
+      31,
+      95,
+      197,
+      53,
+      127,
+      128,
+      92,
+      81,
+      60,
+      239,
+      66,
+      85,
+      7,
+      48,
+      217,
+      177,
+      146,
+      101,
+      6,
+      170,
+      78,
+      45,
+      35,
+      49,
+      115,
+      155,
+      228,
+      132,
+      59,
+      77
+    ],
+    "native_prove_ns": 3168238247,
+    "graph_ns": 1548291640,
+    "wrap_ns": 14457384919,
+    "fold_ns": 4614471292,
+    "root_verify_ns": 26498921,
+    "total_ns": 9259030826,
+    "root_proof_bytes": 750136,
+    "portable_root_key_admission": false,
+    "fold_arity": 4,
+    "outer_shape": "exact"
+  }
+}
+_PCS_PHASE_RETIRE planes=8 logical_words=12582974
+GPU_PCS_PHASE_RETIRE planes=12 logical_words=214748304
+GPU_PCS_STREAM tree=0 columns=45 leaves=16777216 calls=3 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=1 columns=114 leaves=16777216 calls=9 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=2 columns=304 leaves=16777216 calls=18 chunk_words=134217728 bank_words=402653184,402653184 scratch_words=939524096 legacy_rebuild_words=2775846904
+GPU_PCS_STREAM tree=3 columns=16 leaves=16777216 calls=2 chunk_words=134217728 bank_words=402653184,268435448 scratch_words=939524096 legacy_rebuild_words=2775846904
+MASKED_PCS columns=479 groups=20 log=24 q=108 resident_ms=153.360641 device_bytes=7576093596 hot_d2h=0 hot_h2d=0 coefficient_copy_calls=4 device_columns=479

@@ -1,0 +1,30 @@
+{
+  "schema": "rv64-static-compact-eager-state-census/v1",
+  "status": "SOURCE_AND_SCHEDULE_MODEL_NOT_IMPLEMENTED_OR_GPU_VALIDATED",
+  "source_census": "stream-inplace-static-census.json",
+  "storage_law": "Eager SoA state touches8 hash words plus absorbed_columns%16 pending words per row. Current allocation and range validation reserve24 words per row regardless of this value.",
+  "old_bank_words": [
+    402653184,
+    402653184
+  ],
+  "compact_banks_existing_schedule": [
+    318767104,
+    268435448
+  ],
+  "compact_and_inplace_banks": [
+    318767104,
+    268435448
+  ],
+  "compact_total_scratch_bytes": 2952791296,
+  "compact_inplace_total_scratch_bytes": 2952791296,
+  "compact_derived_saving_bytes": 872415232,
+  "compact_inplace_derived_saving_bytes": 872415232,
+  "next": "Prefer a strictly validated compact eager-state ABI before adding aliasing if the existing disjoint schedule gets the same physical saving. Preserve old full-state entry contract and qualify every pending alignment, expansion and finalization.",
+  "alignment_correction": {
+    "status": "CORRECTED_BY_ZIG_PLAN_TEST",
+    "word_alignment": 64,
+    "prior_saving_bytes_unaligned": 872415264,
+    "correct_aligned_saving_bytes": 872415232,
+    "reason": "Final tree bank size268435448 words rounds to268435456 words in scratchWords;32 additional bytes. Raw bank sizes are unchanged."
+  }
+}

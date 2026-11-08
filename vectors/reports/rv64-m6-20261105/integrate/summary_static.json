@@ -1,0 +1,266 @@
+{
+ "source_commits": {
+  "merge_head": "1345c6eb9 (+ harness default commit)",
+  "first_measured_driver": "a883de47 (30650ee7c)",
+  "final_driver": "b7a4615f (1345c6eb9)",
+  "receiver": "0434da78 (57e95fb0a and later; receiver code unchanged since)",
+  "cuda_library": "dd33c9d9 (built from this tree: hint-tape circuit_fill_chain.cu)"
+ },
+ "merged_streams": {
+  "capture": "b657b8c5f",
+  "profiles": "f27bce5eb",
+  "native-stream": "e31f19041",
+  "hint-tape": "b99bf5f66",
+  "enqueue": "20e903f58",
+  "sched": "df7ceb5d3 (incl. adversarial fix 117b6f537)",
+  "native-format": "efe0eae6a",
+  "fold-v3": "4c579d9e5 (incl. adversarial A1 fix f33e3c9d2)",
+  "diet-wire": "7f2d09c8d"
+ },
+ "merge_conflicts": [
+  "vectors/reports/progress/PROGRESS.md (generated; kept ours, regenerated)",
+  "no source conflicts; semantic seams fixed below"
+ ],
+ "integration_fixes": [
+  "30650ee7c fold seed tape (hint-tape) follows diet-wire's Merkle cap: record/recordReplay convert with Profile.foldMerkleCapLog() and the emitter writes tree caps after trace paths and each FRI layer cap before its commitment (guess order); cap_log 0 unchanged",
+  "57e95fb0a root-only derive on k-ary trees: derive-vk-tables refused k4-cap3 with VkDeriveKaryFoldNotTabled [M]; root_verify.recordFoldIntoK cross-checks class key + digest over k children (binary = k 2); fold-v3 verifyRoot was already plan-driven",
+  "1345c6eb9 24697070 device OOM: native-stream count-first MAIN retention held 15.37 GB on GPU0 when stage-2 composition asked 14.75 GB (GPU_OWNER_LOGICAL_CAP / GPU_ARENA_OVERRUN -> CudaAllocationFailed) [M]; retention now all-or-nothing per device per request (share > bound -> replay all = M5 path); dev blocks 33/33 retained, 24697070 14/14 replayed and accepted",
+  "harness default format = k4-cap3 (DEFAULT_PRODUCER_ENV); fresh receivers inherit STWO_RV64_OUTER_PROFILE / STWO_RV64_NATIVE_VERSION from the run's plan unless the caller sets them"
+ ],
+ "default_config": {
+  "producer": "config (c): STWO_RV64_OUTER_PROFILE=m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1 (4-ary folds + Merkle cap 3 in fold circuits), flat M5 native format, every M6 pipeline change on (capture traced engine, native-stream schedule + retain, hint-tape seed tape + chain runs, enqueue lane-0, sched streaming handoff); arena auto",
+  "where": "scripts/rv64_m3_pod.py DEFAULT_PRODUCER_ENV (+ format_environment for receivers); old format: --env STWO_RV64_OUTER_PROFILE=r1 (byte-identical to M5) or --no-default-env",
+  "why_not_b": "native v2-strict is slower than (c) on both blocks, +3.5 GiB RSS, and not total (no cpu_single rung, cpu_last only cpu_log 20-22: single-segment blocks / short last segments fail closed, native-format review); flag-gated STWO_RV64_NATIVE_VERSION=m6-native-v2-strict",
+  "arena": "auto (31.5 GB); STWO_RV64_DEVICE_ARENA=22G gives 27.81 GB (meets <=28 GB) at +0.9 s/request on 24628607 [M], opt-in",
+  "receiver": "full-tree receiver accepts; root-only verify-root-candidate --table-root <pin> accepts; --audit agrees; acceptance under table profile rv64-m4-fold-v2-compat/v0 still rests on the leaf-class premise (fold v3 in circuit not built), so --audit remains the acceptance path"
+ },
+ "gates": {
+  "a_byte_identity": "met: every native, bundle and recursive proof hash equal to the M5 default (= M3) receipts on all 6+6+6+4 requests of a1-warm, a5-final (final driver), a4-warm22, a2-trace; fresh receiver accepted a1-warm and a5-final round 1 on both blocks",
+  "b_new_format": "(b) v2-strict + k4c: fresh full-tree receiver accepted both blocks (bench and service); root-only pinned accepted; --audit agrees (native audit 9/9, 13/13); rootverify 68/68 x2, profiles m6-root 43/43 x2; full-tree corpus v4: see corpora",
+  "c_default": "(c) k4c: fresh full-tree receiver accepted both blocks (bench, c2-warm, d1-default); root-only pinned accepted; --audit agrees (native audit 17/17 on 607); rootverify 68/68 x2, profiles m6-root 43/43 x2, full-tree corpus v4 44/44 x2, 0 unexpected accepts, 0 crashes",
+  "outer_gkr_fused_blake_setv2_foldv3_q51": "NOT composed: not built/wired by any M6 stream (DW-R1 reopened; fused Blake one-instance not built; set-v2 not built; fold v3 in circuit not started; q51 OOM)"
+ },
+ "m6_targets_24628607": {
+  "request_le_12s": "NOT met: 17.8-19.4 s warm (default); M5 27.5 same session",
+  "native_le_2s": "NOT met: 4.4-4.5 s",
+  "recursion_le_8s": "NOT met: 11.3-12.5 s (harness stage, overlaps native under streaming)",
+  "capture_le_1s": "NOT met: 1.97-2.17 s",
+  "root_only_le_1.5s": "met on this load: 1.41-1.44 s fresh process (c), 1.37-1.44 (b); old-format proofs 1.49-1.63",
+  "derive_le_30s": "met: 28.3 s (607), merged 27.1 s (c)",
+  "gpu_busy_ge_70pct": "NOT met: 41.6% recursion-window kernel busy (nsys, warm 607)",
+  "launches_per_node_le_500": "NOT met: 1,774 (tracer, (a)); per request 82.4k (M5 223k)",
+  "syncs_per_node_le_10": "NOT met: 123.5 blocking calls per node (tracer, (a))",
+  "host_prep_per_node_le_0.1s": "met for class-cached folds (hint-tape: median 0.027 s); NOT for leaves (1.6-2.1 s) or cold fold classes",
+  "h2d_le_80_B_per_instr": "NOT met: 213-223 B/instr native window (native-stream nsys, not re-measured here)",
+  "no_host_replay": "met on dev blocks (33/33 retained); big blocks replay by design (24697070 14/14)",
+  "device_peak_le_28gb": "only with STWO_RV64_DEVICE_ARENA=22G (27.81 GB, +0.9 s); default auto 31.5 GB",
+  "rss_le_20gib": "NOT met: 33.5-33.7 GiB service peak"
+ },
+ "counters_24628607_warm": {
+  "tracer_config_a": {
+   "blocking_per_node": 123.5,
+   "launches_per_node": 1774.1,
+   "m5_blocking_per_node": 172,
+   "m5_launches_per_node": 5167,
+   "receipt": "integrate/a2-trace-windows.json"
+  },
+  "nsys_default": {
+   "recursion_kernel_busy_frac": 0.416,
+   "request_kernel_busy_frac": 0.364,
+   "launches_per_request": 82354,
+   "stream_syncs": 4443,
+   "event_syncs": 2389,
+   "m5_launches": 223004,
+   "m5_syncs": 10696,
+   "m5_gpu_busy": 0.398,
+   "receipt": "integrate/daemon-d2-nsys-per-request.json"
+  },
+  "pageable_copies": 0,
+  "staged_h2d_one_shot_request_gb": 42.1
+ },
+ "scale_probe_24697070": {
+  "config": "default (c), one-shot bench, cold setup, load 25-30",
+  "request_s": 73.479,
+  "capture_s": 3.604,
+  "setup_s": 26.269,
+  "native_s": 13.775,
+  "recursion_s": 29.4,
+  "root_proof_bytes": 713144,
+  "receiver": "accepted, 102.8 s",
+  "m5": 74.8,
+  "m3": 86.37,
+  "first_attempt": "device OOM before 1345c6eb9 (24697070-s1-scale-oom-producer.stderr)",
+  "receipt": "integrate/24697070-2gpu-s2-scale.json"
+ },
+ "not_delivered": [
+  "outer LogUp-GKR wiring (DW-R1 reopened: eq column E unconstrained)",
+  "one-instance fused Blake",
+  "native v2-gkr (specified only; selector refused)",
+  "set-v2 canonical folds",
+  "fold v3 in circuit (T_rec, NS chain, PCD self-VK)",
+  "q51 outer profile (OOM)",
+  "2 outer proofs per GPU (shared per-device state)",
+  "device transcript / CUDA graphs (enqueue)",
+  "GPU witness widening from compact records (native-stream)",
+  "two-phase address-sharded ledger (capture)"
+ ],
+ "root_only_process_wall_s": {
+  "a": {
+   "derive-26235156": {
+    "exit": 0,
+    "process_wall_s": 21.453
+   },
+   "derive-24628607": {
+    "exit": 0,
+    "process_wall_s": 29.18
+   },
+   "derive-both": {
+    "exit": 0,
+    "process_wall_s": 32.127
+   },
+   "verify-pinned-26235156-r1": {
+    "exit": 0,
+    "process_wall_s": 1.338
+   },
+   "verify-pinned-24628607-r1": {
+    "exit": 0,
+    "process_wall_s": 1.503
+   },
+   "verify-pinned-26235156-r2": {
+    "exit": 0,
+    "process_wall_s": 1.276
+   },
+   "verify-pinned-24628607-r2": {
+    "exit": 0,
+    "process_wall_s": 1.488
+   },
+   "verify-pinned-26235156-r3": {
+    "exit": 0,
+    "process_wall_s": 1.297
+   },
+   "verify-pinned-24628607-r3": {
+    "exit": 0,
+    "process_wall_s": 1.627
+   },
+   "audit-26235156": {
+    "exit": 0,
+    "process_wall_s": 41.189
+   },
+   "audit-24628607": {
+    "exit": 0,
+    "process_wall_s": 55.991
+   }
+  },
+  "b": {
+   "derive-26235156": {
+    "exit": 0,
+    "process_wall_s": 19.288
+   },
+   "derive-24628607": {
+    "exit": 0,
+    "process_wall_s": 26.317
+   },
+   "derive-both": {
+    "exit": 0,
+    "process_wall_s": 28.633
+   },
+   "verify-pinned-26235156-r1": {
+    "exit": 0,
+    "process_wall_s": 1.148
+   },
+   "verify-pinned-24628607-r1": {
+    "exit": 0,
+    "process_wall_s": 1.371
+   },
+   "verify-pinned-26235156-r2": {
+    "exit": 0,
+    "process_wall_s": 1.133
+   },
+   "verify-pinned-24628607-r2": {
+    "exit": 0,
+    "process_wall_s": 1.383
+   },
+   "verify-pinned-26235156-r3": {
+    "exit": 0,
+    "process_wall_s": 1.157
+   },
+   "verify-pinned-24628607-r3": {
+    "exit": 0,
+    "process_wall_s": 1.438
+   },
+   "audit-26235156": {
+    "exit": 0,
+    "process_wall_s": 39.32
+   },
+   "audit-24628607": {
+    "exit": 0,
+    "process_wall_s": 57.489
+   }
+  },
+  "c": {
+   "derive-26235156": {
+    "exit": 0,
+    "process_wall_s": 19.501
+   },
+   "derive-24628607": {
+    "exit": 0,
+    "process_wall_s": 28.277
+   },
+   "derive-both": {
+    "exit": 0,
+    "process_wall_s": 27.072
+   },
+   "verify-pinned-26235156-r1": {
+    "exit": 0,
+    "process_wall_s": 1.199
+   },
+   "verify-pinned-24628607-r1": {
+    "exit": 0,
+    "process_wall_s": 1.405
+   },
+   "verify-pinned-26235156-r2": {
+    "exit": 0,
+    "process_wall_s": 1.204
+   },
+   "verify-pinned-24628607-r2": {
+    "exit": 0,
+    "process_wall_s": 1.437
+   },
+   "verify-pinned-26235156-r3": {
+    "exit": 0,
+    "process_wall_s": 1.233
+   },
+   "verify-pinned-24628607-r3": {
+    "exit": 0,
+    "process_wall_s": 1.431
+   },
+   "audit-26235156": {
+    "exit": 0,
+    "process_wall_s": 36.264
+   },
+   "audit-24628607": {
+    "exit": 0,
+    "process_wall_s": 52.94
+   }
+  }
+ },
+ "tests": [
+  "test-riscv64-m5-rootverify exit=0 22s Build Summary: 2/2 steps succeeded",
+  "test-riscv64-m5-canon-native exit=0 12s Build Summary: 2/2 steps succeeded",
+  "test-riscv64-native-gkr exit=0 52s Build Summary: 2/2 steps succeeded",
+  "test-riscv64-execution exit=0 49s Build Summary: 2/2 steps succeeded",
+  "test-riscv64-om31-outer exit=0 857s Build Summary: 2/2 steps succeeded",
+  "security-candidate exit=0 10s All 36 tests passed.",
+  "sync-lint-unittest exit=0 OK",
+  "sync-lint-check exit=0 sync lint OK: 58 allowlisted host-blocking sites on the outer-node prove path",
+  "progress-check exit=0   legacy resident.jsonl:40: load_avg_1m, device_peak_gb{}, loading, service_position, service_trial, store_mode",
+  "TESTS_DONE",
+  "EXIT=0",
+  "test-rv64-recursion-ready exit=0 48s Build Summary: 11/11 steps succeeded; 38/38 tests passed",
+  "test-rv64-gkr-plan exit=0 17s Build Summary: 3/3 steps succeeded; 33/33 tests passed",
+  "DONE",
+  "(the two exit=1 lines in tests.log were the riscv_cuda-scoped steps invoked from the repo root: no such step there; re-run from src/integrations/riscv_cuda above)"
+ ],
+ "tests_note": "pod, CPU only, ReleaseSafe, on the merged tree c271b555c (source identical to the final driver tree for every tested file). cpu_replay.zig's new segmentsOnDevice test is in no test root; its behaviour is measured end to end (dev blocks 33/33 retained, 24697070 14/14 replayed).",
+ "corpora_note": "(a) old-format root-only corpora were not re-run: the corpus harness needs /workspace/m3/src/integrate (the M3 producer cwd), which is pruned. (a) is byte-identical to the M5 default, whose corpora passed at M5 and under fold-v3's receiver; root-only accept + --audit on (a) proofs re-measured here."
+}

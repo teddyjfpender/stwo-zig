@@ -1,0 +1,47 @@
+{
+  "schema": "rv64-m7-typed-root-fold-unit/v1",
+  "label": "M",
+  "source_marker": "231dbaf57+typed-root-fold-uncommitted",
+  "status": "pod CPU/circuit semantic unit PASS; no v3 STARK or Ethereum claim",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_m5_vk_table_test_root.zig": "50e2afe1e215b840333db8ffd209be38ad9d452c9b60f6fe5e47beb25947075a",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/typed_root.zig": "edc8a4fbc8e75ebb7f4c22af8bd2acb20aa4bea8bd865ced3b116e23497427b0",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/typed_fold.zig": "fbe18f4d9bf5ae588742db3c4b3d257eb2afda6ad27971478d8afbf445c13a47",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_outer.zig": "aa3113f98b8764bb793bfb2bd89db8fc4a98280352b1ce873ae3be2dbf965980"
+  },
+  "gate": "zig build test-riscv64-m5-vk-table -Doptimize=ReleaseSafe -j16 --summary all",
+  "build_steps": "2/2 success",
+  "runtime_s": 34,
+  "max_rss_mb": 642,
+  "root_negatives": [
+    "Tnat",
+    "Trec",
+    "image",
+    "execution scope",
+    "semantic base",
+    "step coverage",
+    "chain IV",
+    "chi",
+    "final state",
+    "truth counter",
+    "RAM claim",
+    "terminal commitment",
+    "characteristic mass",
+    "sponge span",
+    "boundary rights",
+    "address",
+    "epoch",
+    "missing boundary address"
+  ],
+  "membership_negatives": [
+    "authenticated identity",
+    "authenticated FIXED root",
+    "Trec header",
+    "arity relabel"
+  ],
+  "limitations": [
+    "Semantic test deliberately supplies already-authenticated summary.",
+    "Membership unit supplies mock authenticated handles; complete Bridge.verifyChild path is typechecked only.",
+    "Actual typed pair proof, native-GKR typed leaves, producer/root-wire, fresh reception, audit and adversarial corpus remain open."
+  ]
+}

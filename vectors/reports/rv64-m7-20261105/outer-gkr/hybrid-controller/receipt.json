@@ -1,0 +1,96 @@
+{
+  "schema": "rv64-m7-binding-gate/v1",
+  "date": "2026-11-05T04:04:08.184232+00:00",
+  "source_commit": "26ca2079314833704137aae900955ece81ae49e9",
+  "source_tree": "727ca80f8856be92acfb632bf987a05a5e65f0ae",
+  "implementation_dirty": true,
+  "source_files_sha256": {
+    "src/integrations/circuit_cpu/om31/device_prove.zig": "2279a24934af5006153235706d130dc0e9cbac2b63db1272c0bbac7aa1e4f7fb",
+    "src/integrations/riscv_cpu/mod.zig": "02e2192378fef20d982434e21346cab0570cdb3c6dc571a81edde6ecda43d887",
+    "src/integrations/riscv_cpu/outer_gkr/binding.zig": "74303920318837ebe329d8aad2c18d578a90573aa0a89fa74b01787611ef6f6e",
+    "src/integrations/riscv_cpu/outer_gkr/hybrid_device.zig": "7ce32c73b0eed818e71ee75c690444fdb2a4c71fdbb57abafb2e98957248c11d",
+    "src/integrations/riscv_cpu/outer_gkr/hybrid_receiver.zig": "c02885395b7eaae94bf29366551aea5dfaee44499a25a068fc57b91f5a45385d",
+    "src/integrations/riscv_cpu/outer_gkr/hybrid_component.zig": "97f39f1f8a584d14cbafca5e67ecf1c89fbfc59b3cc6d298211e673d03fc2ea7",
+    "src/integrations/riscv_cpu/outer_gkr/hybrid_air.zig": "2bd3cf31a4672e99a204986f600440e0bc9d16dfbf405b7ebe435ab03f4396a5",
+    "src/integrations/riscv_cpu/outer_gkr/hybrid_air_test.zig": "88d7b9bf1bbd5715b35cd5248cd082d1ccdeea5a61a19bb0707a415cf34700d3",
+    "src/integrations/riscv_cpu/outer_gkr/tuples.zig": "848235559a3902e102f38fc421e9f7e8538bc5e346d77f79e8116210f9c9d2e9",
+    "src/integrations/riscv_cpu/outer_gkr/binding_v2.zig": "a99967d73e83465d740306a48cafc5e132107a4a78c4e9d97105905c9e969478",
+    "src/integrations/riscv_cpu/outer_gkr/binding_v2_test.zig": "0fdb71a70abc5f8604223b189ddf232d1c2992162a0c714af1516cf45e742bf1",
+    "src/integrations/riscv_cpu/outer_gkr/circuit.zig": "c009dc37b1e1641b5d3018375347277d02da615ac7ee985f4f55957d7967c5b7",
+    "src/integrations/riscv_cpu/outer_gkr/profile.zig": "1080f735933193feb83c30ac36c1d902e720018db2156bc7dd237c086b2fcada",
+    "src/integrations/riscv_cpu/outer_gkr/section.zig": "290664c40ceb23e82aa1c0912daab5bb7993feb1334247510ab2db36dcb78a8e",
+    "src/integrations/riscv_cpu/rv64_outer_gkr_test_root.zig": "96773b998724aa7b756ae6f5f5adf2c3a4599f971d846c98bf602600f1b5c631",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/binding.zig": "d0d6fd77b2facba11d12bf1522a86135733c98d9cb222f315fd85c7299650652",
+    "src/integrations/riscv_cpu/word16_execution/om31_security_candidate.zig": "ecdc8aad7d66e967de6611b48427f157ea7ccc2461d066d535d1209f323d4dee",
+    "src/integrations/riscv_cpu/word16_execution/om31_security_candidate_test.zig": "07a2e29ebc9438f4b3b15c95d496d53308971ce8392660c4e2b4737057bc1969",
+    "scripts/rv64_m5_negative_corpus.py": "8ad3a1e15462397062fbe716e3ee337e4543e451c34ddee84c3ee5412cfed77e",
+    "src/backends/cuda/native/rv64/outer_gkr_projector.cuh": "08c0d019dbf5ddcbd1a01ae1961497901c15637d4366dcbc54afd8dd3b1098e8",
+    "src/backends/cuda/native/rv64/circuit_interaction.cu": "ad5463c6717d2c71d3069df948aa3356b0a38b15406680d688efcdfa12441889",
+    "src/integrations/circuit_cpu/om31/fractions_qualification.zig": "5666076d401f9fcd10c1a13bcc025bb2eea112a0cff713b181d63d462cbd0f91"
+  },
+  "source_snapshot_sha256": "26e9cd8143eaaff7253b88bc81b1a44f5cfeb74d6a566c4d34d6536e5868cb50",
+  "gpus": 0,
+  "production_profile_promoted": false,
+  "tests": [
+    {
+      "step": "test-riscv64-outer-gkr",
+      "argv": [
+        "/workspace/zig/zig",
+        "build",
+        "test-riscv64-outer-gkr",
+        "-Doptimize=ReleaseSafe",
+        "-Dimplementation-commit=26ca2079314833704137aae900955ece81ae49e9",
+        "-Dimplementation-tree=727ca80f8856be92acfb632bf987a05a5e65f0ae",
+        "-Dimplementation-dirty=true",
+        "-Dimplementation-dirty-content-sha256=26e9cd8143eaaff7253b88bc81b1a44f5cfeb74d6a566c4d34d6536e5868cb50",
+        "-j8",
+        "--summary",
+        "all"
+      ],
+      "exit_code": 0,
+      "wall_s": 81.93088433519006,
+      "loadavg_1m": 10.31787109375,
+      "log": "/workspace/m3/runs/m7-outer-gkr/hybrid-gate8/test-riscv64-outer-gkr.log"
+    },
+    {
+      "step": "test-riscv64-security-policy",
+      "argv": [
+        "/workspace/zig/zig",
+        "build",
+        "test-riscv64-security-policy",
+        "-Doptimize=ReleaseSafe",
+        "-Dimplementation-commit=26ca2079314833704137aae900955ece81ae49e9",
+        "-Dimplementation-tree=727ca80f8856be92acfb632bf987a05a5e65f0ae",
+        "-Dimplementation-dirty=true",
+        "-Dimplementation-dirty-content-sha256=26e9cd8143eaaff7253b88bc81b1a44f5cfeb74d6a566c4d34d6536e5868cb50",
+        "-j8",
+        "--summary",
+        "all"
+      ],
+      "exit_code": 0,
+      "wall_s": 9.776217704173177,
+      "loadavg_1m": 16.5126953125,
+      "log": "/workspace/m3/runs/m7-outer-gkr/hybrid-gate8/test-riscv64-security-policy.log"
+    },
+    {
+      "step": "test-circuit-om31-cuda-fractions",
+      "argv": [
+        "/workspace/zig/zig",
+        "build",
+        "--build-file",
+        "src/integrations/circuit_cpu/build.zig",
+        "test-circuit-om31-cuda-fractions",
+        "-Doptimize=ReleaseSafe",
+        "-j8",
+        "--summary",
+        "all"
+      ],
+      "exit_code": 0,
+      "wall_s": 0.29600329091772437,
+      "loadavg_1m": 16.75732421875,
+      "log": "/workspace/m3/runs/m7-outer-gkr/hybrid-gate8/test-circuit-om31-cuda-fractions.log"
+    }
+  ],
+  "passed": true,
+  "qualification_scope": "29/29 outerGKRtests incltypedresidentcontrollerbody, taggedextensionguards, derivedLaneparameters+OODS;58/58registry;7/7fractions. NoGPUhybridSourceadapter/fullSTARKproducedyet."
+}

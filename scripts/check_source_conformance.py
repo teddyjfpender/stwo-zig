@@ -41,6 +41,7 @@ try:
         python_graph,
         report,
         rust_graph,
+        rv64_flags,
         typed_air_proposals,
     )
     from scripts.source_conformance_lib.model import Finding, headroom, is_headroom
@@ -53,6 +54,7 @@ except ModuleNotFoundError:  # Direct execution adds scripts/, not the repositor
         python_graph,
         report,
         rust_graph,
+        rv64_flags,
         typed_air_proposals,
     )
     from source_conformance_lib.model import Finding, headroom, is_headroom
@@ -370,6 +372,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo", type=Path, default=ROOT)
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     parser.add_argument("--update-baseline", action="store_true")
+    flag_mode = parser.add_mutually_exclusive_group()
+    flag_mode.add_argument("--check-rv64-flags", action="store_true", help="check flag declarations without the layout scan")
+    flag_mode.add_argument("--update-rv64-flag-references", action="store_true", help="regenerate references for reviewed declarations; never declare flags")
+    parser.add_argument("--strict-rv64-flags", action="store_true", help="also require fewer than 60 live flags and no M7/M8 switches")
     parser.add_argument(
         report.SHOW_ALL_FLAG,
         dest="show_headroom",
@@ -396,6 +402,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     repo = args.repo.resolve()
+    flag_errors = rv64_flags.check(repo, refresh=args.update_rv64_flag_references,
+                                  strict=args.strict_rv64_flags or args.strict)
+    if flag_errors:
+        for error in flag_errors:
+            print(f"error: {error}", file=sys.stderr)
+        return 1
+    if args.check_rv64_flags or args.update_rv64_flag_references:
+        print("RV64 flag declarations and generated references: PASS")
+        return 0
     baseline_path = args.baseline if args.baseline.is_absolute() else repo / args.baseline
     measured = measure(repo)
     findings = [finding for finding in measured if not is_headroom(finding)]

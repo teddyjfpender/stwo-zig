@@ -1,4 +1,6 @@
-//! Scope of the authenticated OM GKR / wide services route: the v2 roster only
+//! Frozen legacy V2 admission. The full V3 services coordinator uses
+//! service_scope.zig instead; do not apply these legacy guards to that route.
+//! This scope accepts the v2 roster only
 //! (CPU bridges and truths for Keccak, secp256k1 ADD and DOUBLE). Its CPU
 //! roles, global layouts, masses, statements and truth components enumerate
 //! exactly those three families. Every v3 extension of the classic services

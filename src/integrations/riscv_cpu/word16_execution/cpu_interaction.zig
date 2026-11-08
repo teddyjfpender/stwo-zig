@@ -142,8 +142,7 @@ pub fn generate(source: *Source, ch: X.types.Challenges, dictionaries: Dictionar
     for (jobs[0..workers], 0..) |*job, i| job.* = .{ .source = source, .ch = ch, .dict = dictionaries, .padding_rom = padding_rom, .output = output, .summaries = summaries, .scratch = scratch[i * 10 * CHUNK ..][0 .. 10 * CHUNK], .hints = hints[i * CHUNK ..][0..CHUNK], .start = i, .end = units, .stride = workers, .segment_log = segment_log orelse LOG_CHUNK, .grouped = segment_log != null };
     const totals = try Prefix.run(1, Job, jobs[0..workers], summaries, n, pool);
     source.interaction = output;
-    a.free(source.metadata);
-    source.metadata = &.{};
+    source.retireMetadata();
     return totals[0];
 }
 const Job = struct {

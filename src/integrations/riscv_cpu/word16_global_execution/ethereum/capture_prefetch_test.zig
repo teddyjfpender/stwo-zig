@@ -111,9 +111,9 @@ test "two packet capture equals serial, held lease and budget fallback" {
     try std.testing.expectEqual(@as(u8, 2), parallel.capture_schedule.max_worker_shards);
     try std.testing.expect(parallel.capture_schedule.max_single_packet_decoded_heap_bytes > 0);
     try std.testing.expect(parallel.capture_schedule.max_single_packet_decoded_heap_bytes <= 512 << 20);
-    parallel.native.items[0].cpu.?.metadata[0].values[0] ^= 1;
+    @constCast(parallel.native.items[0].cpu.?.metadata)[0].values[0] ^= 1;
     try std.testing.expect(!std.mem.eql(u8, &before, &D.digest(image_owner.identity, &parallel)));
-    parallel.native.items[0].cpu.?.metadata[0].values[0] ^= 1;
+    @constCast(parallel.native.items[0].cpu.?.metadata)[0].values[0] ^= 1;
     var altered_identity = image_owner.identity;
     altered_identity[0] ^= 1;
     try std.testing.expect(!std.mem.eql(u8, &before, &D.digest(altered_identity, &parallel)));
@@ -461,6 +461,12 @@ test "fast first pass + parallel segment walks equal the serial walk (native job
                 try same(&serial, &direct);
                 try std.testing.expectEqualDeep(digestOf(&image_owner, &serial), digestOf(&image_owner, &direct));
                 try std.testing.expectEqual(@as(u32, @intCast(serial.native.items.len)), stats.segments.?.segments);
+                if (@import("../../rv64_ethereum_segments.zig").minimalFirstPassEnabled()) {
+                    try std.testing.expect(stats.segments.?.minimal_cpu0_checked);
+                    try std.testing.expectEqual(@as(u64, @min(batch_steps, serial.total_steps)), stats.segments.?.minimal_cpu0_records);
+                    try std.testing.expectEqual(@as(u64, @min(batch_steps, serial.total_steps)) * 16 + 384, stats.segments.?.minimal_cpu0_bytes);
+                    try std.testing.expect(stats.segments.?.minimal_cpu0_ready_utc_ns > 0);
+                }
             };
         }
     };
@@ -685,5 +691,229 @@ test "pipelined native collection writes byte-identical packets and descriptors"
         const r = try std.fs.cwd().readFileAlloc(a, right, 1 << 24);
         defer a.free(r);
         try std.testing.expectEqualSlices(u8, l, r);
+    }
+}
+
+test "concurrent resident walk and expected image share only pinned immutable authority" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    var cache = Image.AuthorityCache.init(a);
+    defer cache.deinit();
+    var stats = Direct.Stats{};
+    const started = try Direct.Started.startWithAuthority(a, config, 0, 2, cache.provider());
+    defer started.deinit(&stats);
+    var image_owner = try Image.Owner.initShared(a, config, &cache);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var shared = try started.capture(&image_owner, &program, 2, &stats);
+    defer shared.deinit();
+    var control_stats = Direct.Stats{};
+    var control = try Direct.captureWithSegments(a, &image_owner, &program, config, 0, 2, 2, &control_stats);
+    defer control.deinit();
+    try same(&control, &shared);
+    const D = @import("capture_digest.zig");
+    try std.testing.expectEqualDeep(D.digest(image_owner.identity, &control), D.digest(image_owner.identity, &shared));
+    try std.testing.expect(started.walk.?.request.shared_authority);
+    try std.testing.expectEqual(@as(u64, 1), cache.misses);
+    try std.testing.expect(cache.hits >= 1);
+    try std.testing.expectEqual(@as(usize, 1), cache.provider_leases);
+    var altered = config;
+    altered.input_sha256 = "ff" ** 32;
+    try std.testing.expectError(error.EthereumInputIdentityMismatch, Request.Request.initWithOptions(a, altered, .{ .poseidon_initial_cache = false, .authority_provider = cache.provider() }));
+    // Request-specific output remains fresh despite sharing the program.
+    altered = config;
+    altered.expected_output = "ff" ** 43;
+    var fresh = try Request.Request.initWithOptions(a, altered, .{ .poseidon_initial_cache = false, .authority_provider = cache.provider() });
+    defer fresh.deinit();
+    try std.testing.expectEqualDeep([_]u8{0xff} ** 43, fresh.expected_output);
+    try std.testing.expectEqual(@as(u64, 1), cache.misses);
+    altered.control_policy = .limbs24_v2;
+    try std.testing.expectError(error.ResidentAuthorityProviderKeyChanged, Request.Request.initWithOptions(a, altered, .{ .poseidon_initial_cache = false, .authority_provider = cache.provider() }));
+    try std.testing.expectError(error.ResidentAuthorityProviderKeyChanged, Image.Owner.initShared(a, altered, &cache));
+    try std.testing.expectEqual(@as(usize, 2), cache.provider_leases);
+    altered = config;
+    altered.terminal_pc = 4096;
+    try std.testing.expectError(error.InvalidEthereumTerminalPc, Request.Request.initWithOptions(a, altered, .{ .poseidon_initial_cache = false, .authority_provider = cache.provider() }));
+    try std.testing.expectEqual(@as(usize, 2), cache.provider_leases);
+}
+
+const ReadinessBorrow = struct {
+    mutex: std.Thread.Mutex = .{},
+    changed: std.Thread.Condition = .{},
+    thread: ?std.Thread = null,
+    metadata: []const @import("../../word16_execution/cpu_source.zig").Metadata = &.{},
+    expected_row: u32 = 0,
+    released: bool = false,
+    may_read: bool = false,
+    checked: bool = false,
+    cancellations: usize = 0,
+    fn ready(raw: *anyopaque, index: usize, native: *const @import("../../word16_execution/prepared.zig").Prepared, _: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, _: u64) void {
+        const self: *ReadinessBorrow = @ptrCast(@alignCast(raw));
+        if (index != 0) return;
+        self.metadata = native.cpu.?.metadata;
+        self.expected_row = self.metadata[0].rom_row;
+        self.thread = std.Thread.spawn(.{}, reader, .{self}) catch unreachable;
+    }
+    fn reader(self: *ReadinessBorrow) void {
+        self.mutex.lock();
+        while (!self.released) self.changed.wait(&self.mutex);
+        const may_read = self.may_read;
+        self.mutex.unlock();
+        if (may_read) self.checked = self.metadata[0].rom_row == self.expected_row;
+    }
+    fn cancel(raw: *anyopaque) void {
+        const self: *ReadinessBorrow = @ptrCast(@alignCast(raw));
+        self.finish(true);
+    }
+    fn finish(self: *ReadinessBorrow, may_read: bool) void {
+        if (self.thread) |thread| {
+            self.mutex.lock();
+            self.released = true;
+            self.may_read = may_read;
+            self.changed.signal();
+            self.mutex.unlock();
+            thread.join();
+            self.thread = null;
+            self.cancellations += 1;
+        }
+    }
+};
+test "capture failure joins readiness reader before destroying captured metadata" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var config = fixture.config();
+    config.max_batches = 1; // Valid first segment, then missing terminal segment.
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var stats = Direct.Stats{};
+    const started = try Direct.Started.start(a, config, 0, 0);
+    defer started.deinit(&stats);
+    var borrowed = ReadinessBorrow{};
+    // If the production callback is missing, test cleanup still joins the
+    // helper WITHOUT dereferencing metadata after the failed capture freed it.
+    defer borrowed.finish(false);
+    started.ready = .{ .context = &borrowed, .call = ReadinessBorrow.ready, .cancel = ReadinessBorrow.cancel };
+    try std.testing.expectError(error.MissingEthereumTerminalPacket, started.capture(&image_owner, &program, 2, &stats));
+    try std.testing.expectEqual(@as(usize, 1), borrowed.cancellations);
+    try std.testing.expect(borrowed.checked);
+}
+
+test "whole fast-pass RAM INITIAL equals final collector including zero-valued words" {
+    if (!@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled()) return;
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    for ([_]u8{ 1, 3 }) |workers| {
+        var stats: Direct.Stats = .{};
+        var direct = try Direct.captureWithSegments(a, &image_owner, &program, config, 0, 2, workers, &stats);
+        defer direct.deinit();
+        try std.testing.expect(stats.fast_ram_compared);
+        try std.testing.expectEqual(@as(u64, direct.advice.initial.len), stats.fast_ram_words);
+        try std.testing.expect(stats.fast_ram_ready_utc_ns > 0);
+    }
+}
+
+test "sealed capture shares immutable CPU metadata with independent retirement" {
+    const Replay = @import("../../word16_execution/replay_capture.zig");
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    _ = try Collect.run(a, config);
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var jobs = try fixture.temp.dir.openDir("artifacts/jobs", .{});
+    defer jobs.close();
+    const file = try jobs.openFile("job-000000.work", .{});
+    defer file.close();
+    var packet = try PacketCodec.read(a, file, &image_owner, config);
+    defer packet.deinit();
+    const native = try Capture.Owner.captureOne(a, &program, &packet, 0);
+    defer a.destroy(native);
+    var native_live = true;
+    defer if (native_live) native.deinit();
+    const seal = try Replay.sealCaptured(native);
+    try std.testing.expectEqualDeep(seal, try Replay.sealCaptured(native));
+    var wrong = seal;
+    wrong.digest[0] ^= 1;
+    try std.testing.expectError(error.CaptureSealMismatch, Replay.Capture.borrowSealed(a, native, wrong));
+    try std.testing.expectError(error.SealedCaptureIsReadOnly, native.cpu.?.materializeMain());
+    {
+        var view = try Replay.Capture.borrowSealed(a, native, seal);
+        defer view.deinit();
+        try std.testing.expectEqual(native.cpu.?.metadata.ptr, view.value.cpu.?.metadata.ptr);
+        try std.testing.expect(native.cpu.?.counts16.ptr != view.value.cpu.?.counts16.ptr);
+        try std.testing.expectEqualDeep(native.cpu.?.metadata, view.value.cpu.?.metadata);
+    }
+    // Actual CPU metadata retirement must release only its own reference.
+    const CPU = @import("../../word16_execution/cpu_source.zig");
+    const sample = native.cpu.?.metadata[0];
+    var retained = try native.cpu.?.borrowSealed(a, seal);
+    defer retained.deinit();
+    native.deinit();
+    native_live = false;
+    try std.testing.expectEqualDeep(@as(CPU.Metadata, sample), retained.metadata[0]);
+    retained.retireMetadata();
+    try std.testing.expectEqual(@as(usize, 0), retained.metadata.len);
+}
+
+const SealedReady = struct {
+    const Cell = @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell;
+    count: usize = 0,
+    terminal: []const Cell = &.{},
+    initial: ?[]Cell = null,
+    initial_allocator: ?std.mem.Allocator = null,
+    fn ready(raw: *anyopaque, _: usize, native: *const @import("../../word16_execution/prepared.zig").Prepared, _: []const @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event, _: u64) void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        std.debug.assert(native.cpu.?.capture_seal != null);
+        self.count += 1;
+    }
+    fn take(raw: *anyopaque, allocator: std.mem.Allocator, cells: []Cell, _: Capture.GlobalRamInfo) bool {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        std.debug.assert(self.initial == null);
+        self.initial = cells;
+        self.initial_allocator = allocator;
+        return true;
+    }
+    fn terminalReady(raw: *anyopaque, cells: []const Cell) void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        self.terminal = cells;
+    }
+    fn deinit(self: *@This()) void {
+        if (self.initial) |cells| self.initial_allocator.?.free(cells);
+    }
+};
+test "direct readiness transfers fast INITIAL and publishes sealed captures and terminal" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var stats = Direct.Stats{};
+    const started = try Direct.Started.start(a, config, 0, 1);
+    defer started.deinit(&stats);
+    var ready = SealedReady{};
+    defer ready.deinit();
+    started.ready = .{ .context = &ready, .call = SealedReady.ready, .seal_native = true, .take_global_ram = SealedReady.take, .terminal_ready = SealedReady.terminalReady };
+    var captured = try started.capture(&image_owner, &program, 2, &stats);
+    defer captured.deinit();
+    try std.testing.expectEqual(captured.native.items.len, ready.count);
+    try std.testing.expectEqual(captured.advice.terminal.ptr, ready.terminal.ptr);
+    if (@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled()) {
+        try std.testing.expect(ready.initial != null);
+        try std.testing.expectEqualDeep(captured.advice.initial, ready.initial.?);
+        // RamJob joined and relinquished this allocation; only the receiver's
+        // deinit frees it, while terminal remains owned by captured advice.
     }
 }

@@ -1,0 +1,17 @@
+========= COMPUTE-SANITIZER
+same16x2+5                   classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+15+1+1                       classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+17+16+1                      classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+1+31+16+16+1                 classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+40+8                         classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+48+16(final exact block)     classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+lift16,16,3->leaves          classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+lift 32 then final 1         classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+lift multi-seg calls         classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+lift seed_size<size          classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+many 16-boundaries           classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+odd chunks                   classic_rc=0 eager_rc=0 single_rc=0 classic==eager:1 classic==single:1 OK
+empty-final eager rc first=0 final=1 (rejected)
+DONE bad=0
+========= ERROR SUMMARY: 0 errors
+EXIT=0

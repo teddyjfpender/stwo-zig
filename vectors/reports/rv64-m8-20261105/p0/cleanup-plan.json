@@ -1,0 +1,489 @@
+{
+  "status": "COMPLETE_LOCAL_CLOSURE_REMOTE_HISTORY_RETAINED",
+  "scope": "remove clean reviewed historical local worktrees and local branch refs after successful P0 gate; remote reviewed tips retain full history",
+  "reviewed_remote_tips": {
+    "codex/rv64-m7-native-gkr": "44dd10e652d922b2a70cf4600616edbea9cb4423",
+    "codex/rv64-m7-outer-gkr": "36a079de524273cb063fed78c7611f256373b88d",
+    "codex/rv64-m7-owner-cleanup": "c2ae434463d0f9082cd8fd5bf821fb07dc3c84b8",
+    "codex/rv64-m7-device-fs": "a91bb8b4ac6fdb59f9408afcb35149d1af906afb",
+    "codex/rv64-m7-rc-workspace": "5a2f41ef4cd50435d37f2e94bb1a0939581557a6",
+    "codex/rv64-m7-rc-sparse": "f828e0ab2edaf0cd1ca4ffcc6e07bfd6df825722",
+    "codex/rv64-m7-stage1-cost": "0fef70e45203a257643120f59b86e52692cc9e1a",
+    "codex/rv64-m7-admission": "147406998dfebd742159cc2b663d4113753ff0fd",
+    "codex/rv64-m7-native-witness": "0013ec6de671993b0dc68a5e35351e531db464c6",
+    "codex/rv64-m7-graph-checkpoint": "2f7645fec71181f33b54e96a41904fbaeb6a2d51",
+    "codex/rv64-m7-early-recursion": "cee957756f6ba3af7f568d3d80f5f9aebd1d403e",
+    "codex/rv64-m7-device-fs-p2": "95e0002b104909239c5f602a7777034a1bb5244f",
+    "codex/rv64-m7-callback-retire": "14442686ded590b1c4e6d2d91871a7db75be2b75",
+    "codex/rv64-m7-blake-inputs": "b053aefe2ec792277103268e545f4f722e3bd748",
+    "codex/rv64-m7-projection-cost": "fb6b004c3aee82c0de55b6b96c45cf861d109865",
+    "codex/rv64-m7-keccak-batches": "beb9f865bd98aee004d93f8e6441ba6b23231b21",
+    "codex/rv64-m7-device-lanes-checkpoint": "6615fb2dec99c9457e7bb09c82487f3fd35cf8bb",
+    "codex/rv64-m7-device-graph": "5924a1d62198a2343822f550c63a7353be3b0084",
+    "codex/rv64-m7-device-fs-p1": "3134125938154d987506e433f93edf295b576347",
+    "codex/rv64-m7-critical-chain": "e547961153ced86480a8076dc4d0d56a2b16cc1e",
+    "codex/rv64-m7-native-inter-retire": "ce88816fcf841b9f870a4e3ab25bd76bcf14c47a",
+    "codex/rv64-m7-native-capture": "c147aa41cff77a03d54624ab30540d81035cbf28",
+    "codex/rv64-m7-memory-census": "9b0aee2ea9d893d4e29273c4e6ca544dcf05e706",
+    "codex/rv64-m7-keccak-stream": "333263e76ad754ca811a74e57ce68f8ec2960e69",
+    "codex/rv64-m7-graph-shape-checkpoint": "86817b07fb6465d0c48ef1941bd3e6a0dfa12b63",
+    "codex/rv64-m7-fold-expanded": "3b7f0d5a7fd346ea420627f772a2296f61788e5e",
+    "codex/rv64-m7-fold-circuit": "e189ab4081887a9809493012d6730ec64696904e",
+    "codex/rv64-m7-cpu-prestage": "2ff01fc4fd5eb8b0d9a2ad7362960e4c510f8899",
+    "codex/rv64-m7-capture": "8954ddf8487d1eeb71be0d9e54bc222bb6d709ce"
+  },
+  "worktrees": [
+    {
+      "branch": "codex/rv64-m7-admission",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-admission",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-blake-inputs",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-blake-inputs",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-callback-retire",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-callback-retire",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-capture",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-capture",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-critical-chain",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-critical-chain",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-device-fs",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-fs",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-device-fs-p1",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-fs-p1",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-device-fs-p2",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-fs-p2",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-device-graph",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-graph",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-early-recursion",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-early-recursion",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-fold-circuit",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-fold-circuit",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-fold-expanded",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-fold-expanded",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-keccak-batches",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-keccak-batches",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-keccak-stream",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-keccak-stream",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-memory-census",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-memory-census",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-cpu-prestage",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-capture",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-native-gkr",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-gkr",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-native-inter-retire",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-inter-retire",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-native-witness",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-witness",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-outer-gkr",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-outer-gkr",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-owner-cleanup",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-owner-cleanup",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-projection-cost",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-projection-cost",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-rc-sparse",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-rc-sparse",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-rc-workspace",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-rc-workspace",
+      "clean": true,
+      "status": ""
+    },
+    {
+      "branch": "codex/rv64-m7-stage1-cost",
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-stage1-cost",
+      "clean": true,
+      "status": ""
+    }
+  ],
+  "completed_unix": 1793908877.70066,
+  "results": [
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-admission",
+      "branch": "codex/rv64-m7-admission",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-blake-inputs",
+      "branch": "codex/rv64-m7-blake-inputs",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-callback-retire",
+      "branch": "codex/rv64-m7-callback-retire",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-capture",
+      "branch": "codex/rv64-m7-capture",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-critical-chain",
+      "branch": "codex/rv64-m7-critical-chain",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-fs",
+      "branch": "codex/rv64-m7-device-fs",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-fs-p1",
+      "branch": "codex/rv64-m7-device-fs-p1",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-fs-p2",
+      "branch": "codex/rv64-m7-device-fs-p2",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-device-graph",
+      "branch": "codex/rv64-m7-device-graph",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-early-recursion",
+      "branch": "codex/rv64-m7-early-recursion",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-fold-circuit",
+      "branch": "codex/rv64-m7-fold-circuit",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-fold-expanded",
+      "branch": "codex/rv64-m7-fold-expanded",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-keccak-batches",
+      "branch": "codex/rv64-m7-keccak-batches",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-keccak-stream",
+      "branch": "codex/rv64-m7-keccak-stream",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-memory-census",
+      "branch": "codex/rv64-m7-memory-census",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-capture",
+      "branch": "codex/rv64-m7-cpu-prestage",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-gkr",
+      "branch": "codex/rv64-m7-native-gkr",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-inter-retire",
+      "branch": "codex/rv64-m7-native-inter-retire",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-native-witness",
+      "branch": "codex/rv64-m7-native-witness",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-outer-gkr",
+      "branch": "codex/rv64-m7-outer-gkr",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-owner-cleanup",
+      "branch": "codex/rv64-m7-owner-cleanup",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-projection-cost",
+      "branch": "codex/rv64-m7-projection-cost",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-rc-sparse",
+      "branch": "codex/rv64-m7-rc-sparse",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-rc-workspace",
+      "branch": "codex/rv64-m7-rc-workspace",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/ge-wt/rv64-m7-stage1-cost",
+      "branch": "codex/rv64-m7-stage1-cost",
+      "status": "REMOVED_CLEAN_WORKTREE"
+    },
+    {
+      "branch": "codex/rv64-m7-native-gkr",
+      "tip": "44dd10e652d922b2a70cf4600616edbea9cb4423",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-native-gkr"
+    },
+    {
+      "branch": "codex/rv64-m7-outer-gkr",
+      "tip": "36a079de524273cb063fed78c7611f256373b88d",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-outer-gkr"
+    },
+    {
+      "branch": "codex/rv64-m7-owner-cleanup",
+      "tip": "c2ae434463d0f9082cd8fd5bf821fb07dc3c84b8",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-owner-cleanup"
+    },
+    {
+      "branch": "codex/rv64-m7-device-fs",
+      "tip": "a91bb8b4ac6fdb59f9408afcb35149d1af906afb",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-device-fs"
+    },
+    {
+      "branch": "codex/rv64-m7-rc-workspace",
+      "tip": "5a2f41ef4cd50435d37f2e94bb1a0939581557a6",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-rc-workspace"
+    },
+    {
+      "branch": "codex/rv64-m7-rc-sparse",
+      "tip": "f828e0ab2edaf0cd1ca4ffcc6e07bfd6df825722",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-rc-sparse"
+    },
+    {
+      "branch": "codex/rv64-m7-stage1-cost",
+      "tip": "0fef70e45203a257643120f59b86e52692cc9e1a",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-stage1-cost"
+    },
+    {
+      "branch": "codex/rv64-m7-admission",
+      "tip": "147406998dfebd742159cc2b663d4113753ff0fd",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-admission"
+    },
+    {
+      "branch": "codex/rv64-m7-native-witness",
+      "tip": "0013ec6de671993b0dc68a5e35351e531db464c6",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-native-witness"
+    },
+    {
+      "branch": "codex/rv64-m7-graph-checkpoint",
+      "tip": "2f7645fec71181f33b54e96a41904fbaeb6a2d51",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-graph-checkpoint"
+    },
+    {
+      "branch": "codex/rv64-m7-early-recursion",
+      "tip": "cee957756f6ba3af7f568d3d80f5f9aebd1d403e",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-early-recursion"
+    },
+    {
+      "branch": "codex/rv64-m7-device-fs-p2",
+      "tip": "95e0002b104909239c5f602a7777034a1bb5244f",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-device-fs-p2"
+    },
+    {
+      "branch": "codex/rv64-m7-callback-retire",
+      "tip": "14442686ded590b1c4e6d2d91871a7db75be2b75",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-callback-retire"
+    },
+    {
+      "branch": "codex/rv64-m7-blake-inputs",
+      "tip": "b053aefe2ec792277103268e545f4f722e3bd748",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-blake-inputs"
+    },
+    {
+      "branch": "codex/rv64-m7-projection-cost",
+      "tip": "fb6b004c3aee82c0de55b6b96c45cf861d109865",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-projection-cost"
+    },
+    {
+      "branch": "codex/rv64-m7-keccak-batches",
+      "tip": "beb9f865bd98aee004d93f8e6441ba6b23231b21",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-keccak-batches"
+    },
+    {
+      "branch": "codex/rv64-m7-device-lanes-checkpoint",
+      "tip": "6615fb2dec99c9457e7bb09c82487f3fd35cf8bb",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-device-lanes-checkpoint"
+    },
+    {
+      "branch": "codex/rv64-m7-device-graph",
+      "tip": "5924a1d62198a2343822f550c63a7353be3b0084",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-device-graph"
+    },
+    {
+      "branch": "codex/rv64-m7-device-fs-p1",
+      "tip": "3134125938154d987506e433f93edf295b576347",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-device-fs-p1"
+    },
+    {
+      "branch": "codex/rv64-m7-critical-chain",
+      "tip": "e547961153ced86480a8076dc4d0d56a2b16cc1e",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-critical-chain"
+    },
+    {
+      "branch": "codex/rv64-m7-native-inter-retire",
+      "tip": "ce88816fcf841b9f870a4e3ab25bd76bcf14c47a",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-native-inter-retire"
+    },
+    {
+      "branch": "codex/rv64-m7-native-capture",
+      "tip": "c147aa41cff77a03d54624ab30540d81035cbf28",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-native-capture"
+    },
+    {
+      "branch": "codex/rv64-m7-memory-census",
+      "tip": "9b0aee2ea9d893d4e29273c4e6ca544dcf05e706",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-memory-census"
+    },
+    {
+      "branch": "codex/rv64-m7-keccak-stream",
+      "tip": "333263e76ad754ca811a74e57ce68f8ec2960e69",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-keccak-stream"
+    },
+    {
+      "branch": "codex/rv64-m7-graph-shape-checkpoint",
+      "tip": "86817b07fb6465d0c48ef1941bd3e6a0dfa12b63",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-graph-shape-checkpoint"
+    },
+    {
+      "branch": "codex/rv64-m7-fold-expanded",
+      "tip": "3b7f0d5a7fd346ea420627f772a2296f61788e5e",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-fold-expanded"
+    },
+    {
+      "branch": "codex/rv64-m7-fold-circuit",
+      "tip": "e189ab4081887a9809493012d6730ec64696904e",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-fold-circuit"
+    },
+    {
+      "branch": "codex/rv64-m7-cpu-prestage",
+      "tip": "2ff01fc4fd5eb8b0d9a2ad7362960e4c510f8899",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-cpu-prestage"
+    },
+    {
+      "branch": "codex/rv64-m7-capture",
+      "tip": "8954ddf8487d1eeb71be0d9e54bc222bb6d709ce",
+      "status": "REMOVED_LOCAL_CLOSED_BRANCH",
+      "history_retained_at": "origin/codex/rv64-m7-capture"
+    }
+  ]
+}

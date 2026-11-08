@@ -1,0 +1,132 @@
+{
+ "schema": "rv64-m8-jobs-service/v1",
+ "device": 0,
+ "arena_mib": 20480,
+ "pinned_mib": 2256,
+ "upload_mib": 16,
+ "cycles": 5,
+ "window": {
+  "rows": [
+   {
+    "open_ns": 4453217146,
+    "job_ns": 2265083,
+    "close_ns": 1474018443,
+    "same_base": false,
+    "epoch": 12297829382473034410,
+    "nonce": [
+     1070,
+     0
+    ]
+   },
+   {
+    "open_ns": 3694399016,
+    "job_ns": 1673175,
+    "close_ns": 1426859297,
+    "same_base": false,
+    "epoch": 12297829382473034410,
+    "nonce": [
+     1070,
+     0
+    ]
+   },
+   {
+    "open_ns": 3694804944,
+    "job_ns": 1732195,
+    "close_ns": 1444179375,
+    "same_base": false,
+    "epoch": 12297829382473034410,
+    "nonce": [
+     1070,
+     0
+    ]
+   },
+   {
+    "open_ns": 3674214587,
+    "job_ns": 1644285,
+    "close_ns": 1435527621,
+    "same_base": false,
+    "epoch": 12297829382473034410,
+    "nonce": [
+     1070,
+     0
+    ]
+   },
+   {
+    "open_ns": 4042488831,
+    "job_ns": 2025974,
+    "close_ns": 1574166508,
+    "same_base": false,
+    "epoch": 12297829382473034410,
+    "nonce": [
+     1070,
+     0
+    ]
+   }
+  ],
+  "pinned_bytes": 7096762368,
+  "pinned_allocations_per_worker": 3
+ },
+ "persistent": {
+  "boot_ns": 3732089,
+  "stop_ns": 22042413,
+  "rows": [
+   {
+    "open_ns": 110940,
+    "job_ns": 32666020,
+    "close_ns": 49450,
+    "same_base": false,
+    "epoch": 2,
+    "nonce": [
+     1070,
+     0
+    ]
+   },
+   {
+    "open_ns": 33630,
+    "job_ns": 22816140,
+    "close_ns": 50930,
+    "same_base": true,
+    "epoch": 2,
+    "nonce": [
+     1070,
+     0
+    ]
+   },
+   {
+    "open_ns": 31750,
+    "job_ns": 21428894,
+    "close_ns": 51320,
+    "same_base": true,
+    "epoch": 2,
+    "nonce": [
+     1070,
+     0
+    ]
+   },
+   {
+    "open_ns": 34050,
+    "job_ns": 1430535,
+    "close_ns": 48940,
+    "same_base": true,
+    "epoch": 2,
+    "nonce": [
+     1070,
+     0
+    ]
+   },
+   {
+    "open_ns": 30080,
+    "job_ns": 1541915,
+    "close_ns": 42070,
+    "same_base": true,
+    "epoch": 2,
+    "nonce": [
+     1070,
+     0
+    ]
+   }
+  ],
+  "pinned_bytes": 100663296,
+  "pinned_allocations_total": 3
+ }
+}

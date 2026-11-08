@@ -1,0 +1,36 @@
+0f2a414661578936d504fa8657811af8e93e688c41bd5d00dc0830ee772aa2b1  /workspace/m3/build/m6-fold-v3/zig-out/bin/rv64-word16-ethereum-recursion-receiver
+192
+format=canon outer profile: m5_outer_canonical_r1_b2_q108_p20_fold4_v1 commit=b78ff8c9b
+== derive-26235156 load=27.44 21:58:57
+exit=0 wall=24.351 load_end=26.37 maxrss_kb=30361028
+== derive-24628607 load=26.37 21:59:21
+exit=0 wall=32.646 load_end=35.94 maxrss_kb=31559744
+== derive-both load=35.94 21:59:54
+exit=0 wall=28.941 load_end=30.88 maxrss_kb=30924144
+pin=b73f637aac7d1b2a1004b50a2b3787bc0126bd2f0b6d5b36db37518de9cb0da9
+== verify-pinned-26235156-r1 load=30.88 22:00:23
+exit=0 wall=1.495 load_end=30.88 maxrss_kb=1342520
+== verify-pinned-24628607-r1 load=30.88 22:00:25
+exit=0 wall=1.749 load_end=30.89 maxrss_kb=1746496
+== verify-pinned-26235156-r2 load=30.89 22:00:26
+exit=0 wall=1.543 load_end=30.89 maxrss_kb=1291848
+== verify-pinned-24628607-r2 load=30.89 22:00:28
+exit=0 wall=1.648 load_end=30.89 maxrss_kb=1744916
+== verify-pinned-26235156-r3 load=30.89 22:00:30
+exit=0 wall=1.479 load_end=29.13 maxrss_kb=1333320
+== verify-pinned-24628607-r3 load=29.13 22:00:31
+exit=0 wall=1.541 load_end=29.13 maxrss_kb=1761844
+== audit-26235156 load=29.13 22:00:33
+exit=0 wall=24.604 load_end=37.92 maxrss_kb=5623332
+== audit-24628607 load=37.92 22:00:57
+exit=0 wall=37.694 load_end=30.65 maxrss_kb=5869352
+== rootverify corpus 26235156 22:01:35 load=30.65
+exit=0 {"block": 26235156, "ran": 66, "passed": 66, "reject_expected": 48, "rejected_where_reject_expected": 48, "accepted_same_statement": ["C00-control", "S02-drop-leaf", "S04-dup-leaf", "S06-permute-leaves", "K01-tree-leaf-count", "K02-report-cpu-proofs", "K03-tree-drop-node", "V01-cross-class-fold", "V02-cross-block-fold", "V03-cross-block-leaf", "R06-leaf-proof-flip", "R07-coherent-native-flip", "R08-coherent-native-head-flip", "R09-coherent-truth-flip", "RV18-pinned-control", "RV21-unpinned-resealed-relabel", "RV22-producer-tree-table", "RV26-native-section-dropped"], "unexpected_accepts": [], "crashes": [], "wall_s": 25.5}
+== profiles corpus v3 m5-root 26235156 22:02:02 load=37.32
+exit=0 {"block": 26235156, "ran": 46, "passed": 46, "unexpected_accepts": [], "crashes": [], "nonsemantic_rejects": {"S01-drop-native-segment": "missing"}, "wall_s": 17.5}
+== rootverify corpus 24628607 22:02:20 load=42.35
+exit=0 {"block": 24628607, "ran": 66, "passed": 66, "reject_expected": 48, "rejected_where_reject_expected": 48, "accepted_same_statement": ["C00-control", "S02-drop-leaf", "S04-dup-leaf", "S06-permute-leaves", "K01-tree-leaf-count", "K02-report-cpu-proofs", "K03-tree-drop-node", "V01-cross-class-fold", "V02-cross-block-fold", "V03-cross-block-leaf", "R06-leaf-proof-flip", "R07-coherent-native-flip", "R08-coherent-native-head-flip", "R09-coherent-truth-flip", "RV18-pinned-control", "RV21-unpinned-resealed-relabel", "RV22-producer-tree-table", "RV26-native-section-dropped"], "unexpected_accepts": [], "crashes": [], "wall_s": 33.7}
+== profiles corpus v3 m5-root 24628607 22:02:56 load=42.86
+exit=0 {"block": 24628607, "ran": 46, "passed": 46, "unexpected_accepts": [], "crashes": [], "nonsemantic_rejects": {"S01-drop-native-segment": "missing"}, "wall_s": 18.7}
+ROOTONLY_DONE
+EXIT=0

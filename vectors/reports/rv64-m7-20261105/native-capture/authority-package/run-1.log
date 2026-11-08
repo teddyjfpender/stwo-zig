@@ -1,0 +1,36 @@
+{
+ "run": "/workspace/m3/runs/m7-native-capture/daemon-26235156-24628607-r1-authority-1-v1",
+ "process_wall_s": 69.76,
+ "service_overhead_s": 6.398,
+ "rss_gib": 20.21,
+ "cuda_api": {},
+ "requests": [
+  {
+   "block": 26235156,
+   "trial": 0,
+   "request_s": 28.966,
+   "capture": 1.72,
+   "setup": 11.593,
+   "native": 4.614,
+   "recursion": 10.886,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 24628607,
+   "trial": 0,
+   "request_s": 34.394,
+   "capture": 2.054,
+   "setup": 16.439,
+   "native": 4.97,
+   "recursion": 10.765,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 4.751, "service_stop_s": 1.633, "client_latency_s": [28.973, 34.4]}
+{"block": 26235156, "trial": 0, "status": "accepted", "wall_s": 32.5}
+{"block": 24628607, "trial": 0, "status": "accepted", "wall_s": 41.3}

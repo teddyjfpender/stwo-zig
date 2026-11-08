@@ -237,19 +237,20 @@ pub fn Operations(comptime H: type) type {
             var workers = parameters.parallelWorkersForLayer(first_out_len, worker_override);
             if (!executor.enabled or !seed_available) workers = 1;
 
-            if (workers > 1) {
-                // Power-of-two worker count so chunk boundaries align with
-                // subtree boundaries at every level.
-                var w = std.math.floorPowerOfTwo(usize, workers);
-                while (w > 1 and leaves.len / w < 2) w >>= 1;
-                if (w > 1) {
-                    buildSubtreesParallel(leaves, levels, w, executor);
-                    // Serial top: levels of size < w remain.
-                    finishTopSerial(levels, std.math.log2_int(usize, w));
-                    return;
+            if (comptime seed_available) {
+                if (workers > 1) {
+                    // Power-of-two worker count so chunk boundaries align with
+                    // subtree boundaries at every level.
+                    var w = std.math.floorPowerOfTwo(usize, workers);
+                    while (w > 1 and leaves.len / w < 2) w >>= 1;
+                    if (w > 1) {
+                        buildSubtreesParallel(leaves, levels, w, executor);
+                        // Serial top: levels of size < w remain.
+                        finishTopSerial(levels, std.math.log2_int(usize, w));
+                        return;
+                    }
                 }
             }
-
             // Serial fallback: identical to sequential buildNextLayer levels.
             var prev: []const H.Hash = leaves;
             for (levels) |level| {

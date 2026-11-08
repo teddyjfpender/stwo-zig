@@ -1,0 +1,23 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "observed_utc": "2026-11-08T00:41:23.399385+00:00",
+  "scope": "Resident sorted-offset and flat exchange-layout corrections pass composed host tests; optimized build25/native10 and default26/27 active",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/jobs-17.log",
+      "sha256": "09f460947c545ae0bc26ff1075260d80d6f70c38e175afe7861797d024d202a1",
+      "result": "PASS726/742 tests,16 skipped;16/16 build steps succeeded. Includes actual mixed-log sorted-coefficient view regression,flat-mode contiguous flags,D1 flat request success plus refusal on unset public_claims; default chained partial/stale-tag tests remain passing."
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/typecheck-20.done",
+      "result": "PASS0 current full-driver semantic compile"
+    }
+  ],
+  "pending": {
+    "main": "FROZEN: LLVM build25 compiler885661 live00:41:03UTC,then native-live10 with diagnostics. Main chain requires host17PASS and typecheck20PASS (both satisfied). Automatic offline result native-live10/host-check.log after terminal.",
+    "scratch": "FROZEN: current-source default gates26/27 started. Gate26 compiler886130 live00:41:03UTC. Gate27 follows only gate26PASS.",
+    "runtime": "/workspace/m3/build/m8-gn-codec/addon-5/runtime.json unchanged"
+  },
+  "claim_boundary": "Latest full native attempt is native9FAIL. Stage-one and7 truth bytes equal accepted default in both rejected requests; native CPU proof roots/bytes differ. Address correction and flat slot model pass host tests, but no full native retest has yet run. No GPU-native accepted proof or qualified speedup. Full original requirements remain open."
+}

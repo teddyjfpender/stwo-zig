@@ -17,6 +17,8 @@ const machine = @import("machine.zig");
 const mem = @import("memory.zig");
 const pages = @import("pages.zig");
 const Page = pages.Page;
+const compact_tape = @import("compact_tape.zig");
+const boundary_capture = @import("boundary_capture.zig");
 const PAGE_SHIFT = 12;
 comptime {
     std.debug.assert(mem.PAGE_SIZE == 1 << PAGE_SHIFT);
@@ -116,6 +118,74 @@ comptime {
 }
 
 pub const Exit = enum { limit, slow };
+const UNKNOWN_MASK: u8 = 0xff;
+/// Output of `Engine.runTraced`, appended in place (see there).
+pub const Trace = struct {
+    /// Tape storage; `len` steps are already written.
+    steps: []compact_tape.Step,
+    len: usize,
+    memory_before: *std.ArrayList(u64),
+    capture: *boundary_capture.Capture,
+    /// `Batch.register_clocks` plus a sink entry (index 32) for x0 writes.
+    clocks: [33]u32,
+    divisions: u32 = 0,
+    multiplications: u32 = 0,
+};
+/// CPU-only first-pass advice. PC is remapped through the receiver-owned ROM;
+/// branches record their taken bit as `result`, like native CPU metadata.
+/// No operands, register clocks, field columns or memory/service ledger live
+/// here. A consumer still needs the segment initial state and ordered advice.
+pub const MinimalRecord = extern struct { result: u64, pc: u32, next_pc: u32 };
+pub const MINIMAL_CHUNK_ROWS: usize = 256;
+/// Architectural state preceding each chunk, captured inside the original
+/// fast pass. Unused registers may be zeroed by a later transport adapter;
+/// retaining them here permits an independent prefix consistency check.
+pub const MinimalSeed = extern struct { values: [32]u64, clocks: [32]u32 };
+pub const MinimalTrace = struct {
+    records: []MinimalRecord,
+    len: usize = 0,
+    seeds: []MinimalSeed = &.{},
+    clocks: [32]u32 = @splat(0),
+    seed_prepared: bool = false,
+    /// Reference fallback calls this BEFORE retirement; a trap publishes no
+    /// record and the same seed may be overwritten on retry.
+    pub fn prepareReference(self: *MinimalTrace, registers: *const [32]u64) void {
+        if (self.seeds.len == 0 or self.len % MINIMAL_CHUNK_ROWS != 0) return;
+        std.debug.assert(self.len / MINIMAL_CHUNK_ROWS < self.seeds.len);
+        self.seeds[self.len / MINIMAL_CHUNK_ROWS] = .{ .values = registers.*, .clocks = self.clocks };
+        self.seeds[self.len / MINIMAL_CHUNK_ROWS].values[0] = 0;
+        self.seed_prepared = true;
+    }
+    fn appendRecord(self: *MinimalTrace, pc: u64, next_pc: u64, result: u64, ids: [3]u8) void {
+        std.debug.assert(self.len < self.records.len);
+        std.debug.assert(self.seeds.len == 0 or self.len % MINIMAL_CHUNK_ROWS != 0 or self.seed_prepared);
+        self.records[self.len] = .{ .result = result, .pc = @intCast(pc), .next_pc = @intCast(next_pc) };
+        if (self.seeds.len != 0) for (ids, 0..) |id, slot| {
+            if (id != 0 and id != SINK) self.clocks[id] = @intCast(4 * self.len + slot + 1);
+        };
+        self.len += 1;
+        self.seed_prepared = false;
+    }
+    fn appendFast(self: *MinimalTrace, pc: u64, next_pc: u64, result: u64, registers: *const [32]u64, ids: [3]u8) void {
+        self.prepareReference(registers);
+        self.appendRecord(pc, next_pc, result, ids);
+    }
+    /// Slow instructions (including services) are retired by the unchanged
+    /// reference session. Append only after successful retirement, never retry.
+    pub fn appendRetirement(self: *MinimalTrace, row: machine.Retirement) !void {
+        if (self.len == self.records.len) return error.MinimalTraceFull;
+        if (self.seeds.len != 0 and self.len % MINIMAL_CHUNK_ROWS == 0 and !self.seed_prepared) return error.MinimalSeedMissing;
+        if (row.pc.toInt() > std.math.maxInt(u32) or row.next_pc.toInt() > std.math.maxInt(u32)) return error.MinimalTracePcRange;
+        const branch = switch (row.opcode) {
+            .BEQ, .BNE, .BLT, .BGE, .BLTU, .BGEU => true,
+            else => false,
+        };
+        self.appendRecord(row.pc.toInt(), row.next_pc.toInt(), if (branch) @intFromBool(row.branch_taken) else row.result.toInt(), .{ row.rs1, row.rs2, row.rd });
+    }
+};
+comptime {
+    std.debug.assert(@sizeOf(MinimalRecord) == 16 and @sizeOf(MinimalSeed) == 384);
+}
 pub const PcCounts = struct { start: u64, end: u64, counts: []u64, outside: *u64 };
 pub const Error = std.mem.Allocator.Error || error{ FastExecutionCodeTooLarge, FastExecutionTableTooLarge, FastExecutionCheckpointOverflow };
 
@@ -151,6 +221,15 @@ pub const Engine = struct {
     counts: []i64,
     counting: bool,
     fast_retired: u64 = 0,
+    /// False for an engine that borrows `slots`/`blen`/`opcodes`/`rights`
+    /// from a program engine (`initBorrowing`); those tables are immutable.
+    owns_program: bool = true,
+    /// Decode set the slots were lowered with (`Options.isa`).
+    decode_isa: isa.Isa = .rv64im,
+    /// Traced mode: boundary-capture rights per page (1 = every word
+    /// read-only, 3 = every word read/write, 0 = mixed or unreadable,
+    /// UNKNOWN until first use). Computed from `memory.mappings` only.
+    cmask: []u8 = &.{},
 
     pub fn init(a: std.mem.Allocator, memory: *mem.Memory, options: Options) Error!Engine {
         const entries = memory.mappings.entries.items;
@@ -171,7 +250,7 @@ pub const Engine = struct {
         const n_slots = (hi - lo) / 4;
         if (n_slots >= MAX_CODE_SLOTS) return error.FastExecutionCodeTooLarge;
         const n_pages: usize = @intCast(@min(top, MAX_TABLE_PAGES));
-        var self = Engine{ .allocator = a, .memory = memory, .code_lo = lo, .code_hi = hi, .slots = &.{}, .blen = &.{}, .opcodes = &.{}, .rd_tab = &.{}, .wr_tab = &.{}, .rights = &.{}, .dirty = .{ .bits = &.{} }, .counts = &.{}, .counting = options.counting };
+        var self = Engine{ .allocator = a, .memory = memory, .code_lo = lo, .code_hi = hi, .slots = &.{}, .blen = &.{}, .opcodes = &.{}, .rd_tab = &.{}, .wr_tab = &.{}, .rights = &.{}, .dirty = .{ .bits = &.{} }, .counts = &.{}, .counting = options.counting, .decode_isa = options.isa };
         errdefer self.deinit();
         // One trailing slow sentinel so fall-through past the code never indexes out.
         self.slots = try a.alloc(Slot, n_slots + 1);
@@ -240,15 +319,87 @@ pub const Engine = struct {
     pub fn deinit(self: *Engine) void {
         self.detach();
         const a = self.allocator;
+        a.free(self.cmask);
         a.free(self.counts);
         a.free(self.dirty.bits);
-        a.free(self.rights);
         a.free(self.wr_tab);
         a.free(self.rd_tab);
-        a.free(self.opcodes);
-        a.free(self.blen);
-        a.free(self.slots);
+        if (self.owns_program) {
+            a.free(self.rights);
+            a.free(self.opcodes);
+            a.free(self.blen);
+            a.free(self.slots);
+        }
         self.* = undefined;
+    }
+
+    /// An independent program engine with the same decoded program, page
+    /// rights and stop pcs as `source` (deep copy; `source` may run meanwhile
+    /// on its own memory: only immutable tables are read). Census is off.
+    pub fn cloneProgram(a: std.mem.Allocator, source: *const Engine) Error!Engine {
+        var self = Engine{ .allocator = a, .memory = source.memory, .code_lo = source.code_lo, .code_hi = source.code_hi, .slots = &.{}, .blen = &.{}, .opcodes = &.{}, .rd_tab = &.{}, .wr_tab = &.{}, .rights = &.{}, .dirty = .{ .bits = &.{} }, .counts = &.{}, .counting = false, .decode_isa = source.decode_isa };
+        errdefer self.deinit();
+        self.slots = try a.dupe(Slot, source.slots);
+        self.blen = try a.dupe(u32, source.blen);
+        self.opcodes = try a.dupe(isa.Opcode, source.opcodes);
+        self.rights = try a.dupe(u8, source.rights);
+        self.rd_tab = try a.alloc(?[*]u8, source.rd_tab.len);
+        @memset(self.rd_tab, null);
+        self.wr_tab = try a.alloc(?[*]u8, source.wr_tab.len);
+        @memset(self.wr_tab, null);
+        self.dirty.bits = try a.alloc(u64, source.dirty.bits.len);
+        @memset(self.dirty.bits, 0);
+        return self;
+    }
+
+    /// Turn every fast slot whose pc `admit` refuses into a slow slot (the
+    /// reference session then retires it, with its checks and errors), and
+    /// recompute block lengths. `admit` sees the raw image word and its
+    /// decode under `decode_isa`. Program engines only, before any run.
+    pub fn restrict(self: *Engine, context: anytype, comptime admit: fn (@TypeOf(context), pc: u64, raw: u32, inst: isa.Instruction) bool) void {
+        std.debug.assert(self.owns_program);
+        for (self.slots[0 .. self.slots.len - 1], 0..) |*slot, i| {
+            if (slot.op == .slow) continue;
+            const pc = self.code_lo + 4 * @as(u64, i);
+            const keep = blk: {
+                const raw = self.memory.fetch(pc) catch break :blk false;
+                const inst = isa.decodeFor(self.decode_isa, raw) catch break :blk false;
+                if (inst.opcode != self.opcodes[i]) break :blk false;
+                break :blk admit(context, pc, raw, inst);
+            };
+            if (!keep) {
+                slot.* = .{};
+                self.opcodes[i] = .EBREAK;
+            }
+        }
+        var length: u32 = 0;
+        var i = self.slots.len;
+        while (i > 0) {
+            i -= 1;
+            length = switch (self.slots[i].op) {
+                .slow => 0,
+                .beq, .bne, .blt, .bge, .bltu, .bgeu, .jal, .jalr => 1,
+                else => length + 1,
+            };
+            self.blen[i] = length;
+        }
+    }
+
+    /// An engine executing on `memory` with `program`'s immutable decoded
+    /// program and page rights (borrowed; `program` must outlive it).
+    /// `memory` must have `program.memory`'s mappings (a checkpoint copy).
+    pub fn initBorrowing(a: std.mem.Allocator, memory: *mem.Memory, program: *const Engine) Error!Engine {
+        var self = Engine{ .allocator = a, .memory = memory, .code_lo = program.code_lo, .code_hi = program.code_hi, .slots = program.slots, .blen = program.blen, .opcodes = program.opcodes, .rd_tab = &.{}, .wr_tab = &.{}, .rights = program.rights, .dirty = .{ .bits = &.{} }, .counts = &.{}, .counting = false, .owns_program = false, .decode_isa = program.decode_isa };
+        errdefer self.deinit();
+        self.rd_tab = try a.alloc(?[*]u8, program.rd_tab.len);
+        @memset(self.rd_tab, null);
+        self.wr_tab = try a.alloc(?[*]u8, program.wr_tab.len);
+        @memset(self.wr_tab, null);
+        self.dirty.bits = try a.alloc(u64, program.dirty.bits.len);
+        @memset(self.dirty.bits, 0);
+        self.cmask = try a.alloc(u8, program.rights.len);
+        @memset(self.cmask, UNKNOWN_MASK);
+        return self;
     }
 
     /// Route reference-path writes into this engine's dirty set.
@@ -376,6 +527,9 @@ pub const Engine = struct {
         if (self.rights[i] & 1 != 0) self.rd_tab[i] = base;
         if (write) {
             self.dirty.mark(index);
+            // A foreign write observer (segment continuity) sees fast
+            // stores too: the fast path writes without `Pages.store`.
+            if (self.memory.backing.dirty) |d| if (d != &self.dirty) d.mark(index);
             self.wr_tab[i] = base;
         }
         return base;
@@ -385,10 +539,45 @@ pub const Engine = struct {
     /// next instruction must be retired by the reference session (`.slow`).
     pub fn run(self: *Engine, cpu: *machine.Cpu, limit: u64) Exit {
         if (cpu.retired >= limit) return .limit;
-        return if (self.counting) self.runImpl(cpu, limit, true) else self.runImpl(cpu, limit, false);
+        return if (self.counting) self.runImpl(cpu, limit, true, false, false, null, null) else self.runImpl(cpu, limit, false, false, false, null, null);
     }
 
-    fn runImpl(self: *Engine, cpu: *machine.Cpu, limit: u64, comptime counting: bool) Exit {
+    /// Optional first-pass CPU records, emitted by the existing arithmetic and
+    /// page-table loop. Default `run` specializes this entire path away.
+    /// Capacity is checked before any instruction; .limit refers to the
+    /// requested limit or the end of the supplied record span.
+    pub fn runMinimal(self: *Engine, cpu: *machine.Cpu, limit: u64, trace: *MinimalTrace) !Exit {
+        if (trace.len > trace.records.len) return error.MinimalTraceFull;
+        if (trace.seeds.len != 0 and trace.seeds.len < std.math.divCeil(usize, trace.records.len, MINIMAL_CHUNK_ROWS) catch unreachable) return error.MinimalSeedCapacity;
+        if (self.code_lo > std.math.maxInt(u32) or self.code_hi > std.math.maxInt(u32)) return error.MinimalTracePcRange;
+        const bounded = @min(limit, cpu.retired +| (trace.records.len - trace.len));
+        if (cpu.retired >= bounded) return .limit;
+        return if (self.counting) self.runImpl(cpu, bounded, true, true, false, trace, null) else self.runImpl(cpu, bounded, false, true, false, trace, null);
+    }
+
+    pub fn runMinimalRam(self: *Engine, cpu: *machine.Cpu, limit: u64, trace: *MinimalTrace, words: *@import("ram_word_set.zig").Set) !Exit {
+        if (words.failure) |err| return err;
+        if (trace.len > trace.records.len) return error.MinimalTraceFull;
+        if (trace.seeds.len != 0 and trace.seeds.len < std.math.divCeil(usize, trace.records.len, MINIMAL_CHUNK_ROWS) catch unreachable) return error.MinimalSeedCapacity;
+        if (self.code_lo > std.math.maxInt(u32) or self.code_hi > std.math.maxInt(u32)) return error.MinimalTracePcRange;
+        const bounded = @min(limit, cpu.retired +| (trace.records.len - trace.len));
+        if (cpu.retired >= bounded) return .limit;
+        const result = if (self.counting) self.runImpl(cpu, bounded, true, true, true, trace, words) else self.runImpl(cpu, bounded, false, true, true, trace, words);
+        if (words.failure) |err| return err;
+        return result;
+    }
+
+    /// Same first pass with an explicit RAM-key sidecar. Normal run specializes
+    /// all marks away; fetches and failed accesses never publish RAM keys.
+    pub fn runRam(self: *Engine, cpu: *machine.Cpu, limit: u64, words: *@import("ram_word_set.zig").Set) !Exit {
+        if (words.failure) |err| return err;
+        if (cpu.retired >= limit) return .limit;
+        const result = if (self.counting) self.runImpl(cpu, limit, true, false, true, null, words) else self.runImpl(cpu, limit, false, false, true, null, words);
+        if (words.failure) |err| return err;
+        return result;
+    }
+
+    fn runImpl(self: *Engine, cpu: *machine.Cpu, limit: u64, comptime counting: bool, comptime minimal: bool, comptime ram: bool, trace: ?*MinimalTrace, words: ?*@import("ram_word_set.zig").Set) Exit {
         var i: usize = self.slotOf(cpu.pc) orelse return .slow;
         var r: [33]u64 = undefined;
         @memcpy(r[0..32], &cpu.regs);
@@ -417,18 +606,22 @@ pub const Engine = struct {
             },
             .slow => break :sw,
             .nop => {
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0, r[0..32], .{ 0, 0, 0 });
                 i += 1;
                 continue :sw slots[i].op;
             },
             .li => {
                 const s = slots[i];
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, s.imm, r[0..32], .{ 0, 0, s.rd });
                 r[s.rd] = s.imm;
                 i += 1;
                 continue :sw slots[i].op;
             },
             inline .add, .sub, .sll, .slt, .sltu, .xor, .srl, .sra, .@"or", .@"and", .addi, .slti, .sltiu, .xori, .ori, .andi, .slli, .srli, .srai, .addw, .subw, .sllw, .srlw, .sraw, .addiw, .slliw, .srliw, .sraiw, .mul, .mulh, .mulhsu, .mulhu, .div, .divu, .rem, .remu, .mulw, .divw, .divuw, .remw, .remuw, .andn, .orn, .xnor, .rev8, .sext_b, .sext_h, .zext_h => |op| {
                 const s = slots[i];
-                r[s.rd] = alu(op, r[s.rs1], r[s.rs2], s.imm);
+                const result = alu(op, r[s.rs1], r[s.rs2], s.imm);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, result, r[0..32], .{ s.rs1, s.rs2, s.rd });
+                r[s.rd] = result;
                 i += 1;
                 continue :sw slots[i].op;
             },
@@ -445,13 +638,19 @@ pub const Engine = struct {
                 if (address & (@sizeOf(T) - 1) != 0) break :sw;
                 const index = address >> PAGE_SHIFT;
                 const base = (if (index < rd_tab.len) rd_tab[@intCast(index)] else null) orelse self.fill(index, false) orelse break :sw;
+                if (ram) words.?.mark(address & ~@as(u64, 7)) catch |err| {
+                    words.?.failure = err;
+                    break :sw;
+                };
                 const raw = std.mem.readInt(T, base[@intCast(address & (mem.PAGE_SIZE - 1))..][0..@sizeOf(T)], .little);
-                r[s.rd] = switch (op) {
+                const result: u64 = switch (op) {
                     .lb => @bitCast(@as(i64, @as(i8, @bitCast(raw)))),
                     .lh => @bitCast(@as(i64, @as(i16, @bitCast(raw)))),
                     .lw => @bitCast(@as(i64, @as(i32, @bitCast(raw)))),
                     else => raw,
                 };
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, result, r[0..32], .{ s.rs1, 0, s.rd });
+                r[s.rd] = result;
                 i += 1;
                 continue :sw slots[i].op;
             },
@@ -468,7 +667,12 @@ pub const Engine = struct {
                 if (address & (@sizeOf(T) - 1) != 0) break :sw;
                 const index = address >> PAGE_SHIFT;
                 const base = (if (index < wr_tab.len) wr_tab[@intCast(index)] else null) orelse self.fill(index, true) orelse break :sw;
+                if (ram) words.?.mark(address & ~@as(u64, 7)) catch |err| {
+                    words.?.failure = err;
+                    break :sw;
+                };
                 std.mem.writeInt(T, base[@intCast(address & (mem.PAGE_SIZE - 1))..][0..@sizeOf(T)], @truncate(r[s.rs2]), .little);
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, i) + 4, 0, r[0..32], .{ s.rs1, s.rs2, 0 });
                 i += 1;
                 continue :sw slots[i].op;
             },
@@ -487,11 +691,14 @@ pub const Engine = struct {
                     .bgeu => a >= b,
                     else => unreachable,
                 };
-                i = if (taken) s.target else i + 1;
+                const next = if (taken) s.target else i + 1;
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, next), @intFromBool(taken), r[0..32], .{ s.rs1, s.rs2, 0 });
+                i = next;
                 continue :sw .enter;
             },
             .jal => {
                 const s = slots[i];
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), self.code_lo + 4 * @as(u64, s.target), s.imm, r[0..32], .{ 0, 0, s.rd });
                 r[s.rd] = s.imm;
                 i = s.target;
                 continue :sw .enter;
@@ -500,7 +707,9 @@ pub const Engine = struct {
                 const s = slots[i];
                 const target = (r[s.rs1] +% s.imm) & ~@as(u64, 1);
                 if (target & 3 != 0 or target < self.code_lo or target >= self.code_hi) break :sw;
-                r[s.rd] = self.code_lo + 4 * @as(u64, i) + 4;
+                const link = self.code_lo + 4 * @as(u64, i) + 4;
+                if (minimal) trace.?.appendFast(self.code_lo + 4 * @as(u64, i), target, link, r[0..32], .{ s.rs1, 0, s.rd });
+                r[s.rd] = link;
                 i = @intCast((target - self.code_lo) / 4);
                 continue :sw .enter;
             },
@@ -519,6 +728,250 @@ pub const Engine = struct {
             self.fast_retired += retired - start;
         }
         return if (retired == limit) .limit else .slow;
+    }
+
+    /// Boundary-capture rights of every 8-byte word of page `index`, when
+    /// uniform (1 read-only, 3 read/write), else 0. Mirrors the per-word
+    /// `mappings.check` pair of `boundary_capture.Capture.publish`.
+    noinline fn captureMask(self: *Engine, index: u64) u8 {
+        const i: usize = @intCast(index);
+        if (self.cmask[i] != UNKNOWN_MASK) return self.cmask[i];
+        const base = index << PAGE_SHIFT;
+        const m = &self.memory.mappings;
+        var mask: u8 = 0;
+        if (m.check(base, mem.PAGE_SIZE, .read)) |_| {
+            if (m.check(base, mem.PAGE_SIZE, .write)) |_| mask = 3 else |_| {
+                mask = 1;
+                var word: u64 = 0;
+                while (word < mem.PAGE_SIZE) : (word += 8) {
+                    if (m.check(base + word, 8, .write)) |_| {
+                        mask = 0;
+                        break;
+                    } else |_| {}
+                }
+            }
+        } else |_| {}
+        self.cmask[i] = mask;
+        return mask;
+    }
+
+    /// Traced retirement (borrowing engines only): like `run`, but every
+    /// fast instruction also writes exactly the reference advice
+    /// (`compact_tape.Tape.append`), boundary word (`Capture.append`) and
+    /// batch register clocks / service request counts (`Batch.observe`).
+    /// An instruction whose capture update the reference would refuse, or
+    /// that needs any allocation, stops the engine before it executes, so
+    /// the caller's reference step reports the reference error. `trace`
+    /// must have `memory_before` capacity for `limit - cpu.retired` words.
+    pub fn runTraced(self: *Engine, cpu: *machine.Cpu, limit: u64, trace: *Trace) Exit {
+        if (cpu.retired >= limit) return .limit;
+        var i: usize = self.slotOf(cpu.pc) orelse return .slow;
+        std.debug.assert(self.cmask.len == self.rights.len);
+        var r: [33]u64 = undefined;
+        @memcpy(r[0..32], &cpu.regs);
+        r[0] = 0;
+        r[SINK] = 0;
+        const slots = self.slots.ptr;
+        const blen = self.blen.ptr;
+        const rd_tab = self.rd_tab;
+        const wr_tab = self.wr_tab;
+        const cmask = self.cmask;
+        const code_lo = self.code_lo;
+        const steps = trace.steps.ptr;
+        const before = trace.memory_before;
+        const cap = trace.capture;
+        const start = trace.len;
+        std.debug.assert(limit - cpu.retired <= trace.steps.len - start);
+        const end_pos: usize = start + @as(usize, @intCast(limit - cpu.retired));
+        std.debug.assert(before.capacity - before.items.len >= end_pos - start);
+        var pos = start;
+        var clocks = trace.clocks;
+        const saved_zero = clocks[0];
+        var divisions: u32 = 0;
+        var multiplications: u32 = 0;
+        sw: switch (Op.enter) {
+            .enter => {
+                const n = blen[i];
+                if (n == 0 or n > end_pos - pos) break :sw;
+                continue :sw slots[i].op;
+            },
+            .slow => break :sw,
+            .nop => {
+                steps[pos] = .{ .next_pc = code_lo + 4 * @as(u64, i) + 4, .lhs = 0, .rhs = 0, .previous_rd = 0, .result = 0, .memory_index = compact_tape.NO_MEMORY, .flags = 0 };
+                pos += 1;
+                i += 1;
+                continue :sw slots[i].op;
+            },
+            .li => {
+                const s = slots[i];
+                const tick: u32 = @intCast(4 * pos);
+                steps[pos] = .{ .next_pc = code_lo + 4 * @as(u64, i) + 4, .lhs = 0, .rhs = 0, .previous_rd = r[s.rd], .result = s.imm, .memory_index = compact_tape.NO_MEMORY, .flags = 0 };
+                clocks[s.rd] = tick + 3;
+                r[s.rd] = s.imm;
+                r[SINK] = 0;
+                pos += 1;
+                i += 1;
+                continue :sw slots[i].op;
+            },
+            inline .add, .sub, .sll, .slt, .sltu, .xor, .srl, .sra, .@"or", .@"and", .addi, .slti, .sltiu, .xori, .ori, .andi, .slli, .srli, .srai, .addw, .subw, .sllw, .srlw, .sraw, .addiw, .slliw, .srliw, .sraiw, .mul, .mulh, .mulhsu, .mulhu, .div, .divu, .rem, .remu, .mulw, .divw, .divuw, .remw, .remuw, .andn, .orn, .xnor, .rev8, .sext_b, .sext_h, .zext_h => |op| {
+                const s = slots[i];
+                const x = r[s.rs1];
+                const y = r[s.rs2];
+                const v = alu(op, x, y, s.imm);
+                const tick: u32 = @intCast(4 * pos);
+                steps[pos] = .{ .next_pc = code_lo + 4 * @as(u64, i) + 4, .lhs = x, .rhs = y, .previous_rd = r[s.rd], .result = v, .memory_index = compact_tape.NO_MEMORY, .flags = 0 };
+                clocks[s.rs1] = tick + 1;
+                clocks[s.rs2] = tick + 2;
+                clocks[s.rd] = tick + 3;
+                switch (op) {
+                    .div, .divu, .rem, .remu, .divw, .divuw, .remw, .remuw => divisions += 1,
+                    .mul, .mulh, .mulhsu, .mulhu, .mulw => multiplications += 1,
+                    else => {},
+                }
+                r[s.rd] = v;
+                r[SINK] = 0;
+                pos += 1;
+                i += 1;
+                continue :sw slots[i].op;
+            },
+            inline .lb, .lh, .lw, .ld, .lbu, .lhu, .lwu => |op| {
+                const s = slots[i];
+                const T = switch (op) {
+                    .lb, .lbu => u8,
+                    .lh, .lhu => u16,
+                    .lw, .lwu => u32,
+                    .ld => u64,
+                    else => unreachable,
+                };
+                const x = r[s.rs1];
+                const address = x +% s.imm;
+                if (address & (@sizeOf(T) - 1) != 0) break :sw;
+                const index = address >> PAGE_SHIFT;
+                const base = (if (index < rd_tab.len) rd_tab[@intCast(index)] else null) orelse self.fill(index, false) orelse break :sw;
+                const m = if (cmask[@intCast(index)] != UNKNOWN_MASK) cmask[@intCast(index)] else self.captureMask(index);
+                if (m == 0) break :sw;
+                const offset: usize = @intCast(address & (mem.PAGE_SIZE - 1));
+                const word = std.mem.readInt(u64, base[offset & ~@as(usize, 7) ..][0..8], .little);
+                const tick: u32 = @intCast(4 * pos);
+                if (!cap.fastWord(address & ~@as(u64, 7), word, word, @intCast(m), tick + 4)) break :sw;
+                const raw: T = @truncate(word >> @intCast((offset & 7) * 8));
+                const v: u64 = switch (op) {
+                    .lb => @bitCast(@as(i64, @as(i8, @bitCast(raw)))),
+                    .lh => @bitCast(@as(i64, @as(i16, @bitCast(raw)))),
+                    .lw => @bitCast(@as(i64, @as(i32, @bitCast(raw)))),
+                    else => raw,
+                };
+                steps[pos] = .{ .next_pc = code_lo + 4 * @as(u64, i) + 4, .lhs = x, .rhs = 0, .previous_rd = r[s.rd], .result = v, .memory_index = @intCast(before.items.len), .flags = 0 };
+                before.appendAssumeCapacity(word);
+                clocks[s.rs1] = tick + 1;
+                clocks[s.rd] = tick + 3;
+                r[s.rd] = v;
+                r[SINK] = 0;
+                pos += 1;
+                i += 1;
+                continue :sw slots[i].op;
+            },
+            inline .sb, .sh, .sw, .sd => |op| {
+                const s = slots[i];
+                const T = switch (op) {
+                    .sb => u8,
+                    .sh => u16,
+                    .sw => u32,
+                    .sd => u64,
+                    else => unreachable,
+                };
+                const x = r[s.rs1];
+                const y = r[s.rs2];
+                const address = x +% s.imm;
+                if (address & (@sizeOf(T) - 1) != 0) break :sw;
+                const index = address >> PAGE_SHIFT;
+                const base = (if (index < wr_tab.len) wr_tab[@intCast(index)] else null) orelse self.fill(index, true) orelse break :sw;
+                const m = if (cmask[@intCast(index)] != UNKNOWN_MASK) cmask[@intCast(index)] else self.captureMask(index);
+                if (m != 3) break :sw;
+                const offset: usize = @intCast(address & (mem.PAGE_SIZE - 1));
+                const bytes = base[offset & ~@as(usize, 7) ..][0..8];
+                const word = std.mem.readInt(u64, bytes, .little);
+                const shift: u6 = @intCast((offset & 7) * 8);
+                const width_mask: u64 = std.math.maxInt(T);
+                const after = (word & ~(width_mask << shift)) | ((y & width_mask) << shift);
+                const tick: u32 = @intCast(4 * pos);
+                if (!cap.fastWord(address & ~@as(u64, 7), word, after, 3, tick + 4)) break :sw;
+                std.mem.writeInt(u64, bytes, after, .little);
+                steps[pos] = .{ .next_pc = code_lo + 4 * @as(u64, i) + 4, .lhs = x, .rhs = y, .previous_rd = 0, .result = 0, .memory_index = @intCast(before.items.len), .flags = 0 };
+                before.appendAssumeCapacity(word);
+                clocks[s.rs1] = tick + 1;
+                clocks[s.rs2] = tick + 2;
+                pos += 1;
+                i += 1;
+                continue :sw slots[i].op;
+            },
+            inline .beq, .bne, .blt, .bge, .bltu, .bgeu => |op| {
+                const s = slots[i];
+                const x = r[s.rs1];
+                const y = r[s.rs2];
+                const sx: i64 = @bitCast(x);
+                const sy: i64 = @bitCast(y);
+                const taken = switch (op) {
+                    .beq => x == y,
+                    .bne => x != y,
+                    .blt => sx < sy,
+                    .bge => sx >= sy,
+                    .bltu => x < y,
+                    .bgeu => x >= y,
+                    else => unreachable,
+                };
+                const next: usize = if (taken) s.target else i + 1;
+                const tick: u32 = @intCast(4 * pos);
+                steps[pos] = .{ .next_pc = code_lo + 4 * @as(u64, next), .lhs = x, .rhs = y, .previous_rd = 0, .result = 0, .memory_index = compact_tape.NO_MEMORY, .flags = @intFromBool(taken) };
+                clocks[s.rs1] = tick + 1;
+                clocks[s.rs2] = tick + 2;
+                pos += 1;
+                i = next;
+                continue :sw .enter;
+            },
+            .jal => {
+                const s = slots[i];
+                const tick: u32 = @intCast(4 * pos);
+                steps[pos] = .{ .next_pc = code_lo + 4 * @as(u64, s.target), .lhs = 0, .rhs = 0, .previous_rd = r[s.rd], .result = s.imm, .memory_index = compact_tape.NO_MEMORY, .flags = 1 };
+                clocks[s.rd] = tick + 3;
+                r[s.rd] = s.imm;
+                r[SINK] = 0;
+                pos += 1;
+                i = s.target;
+                continue :sw .enter;
+            },
+            .jalr => {
+                const s = slots[i];
+                const x = r[s.rs1];
+                const target = (x +% s.imm) & ~@as(u64, 1);
+                if (target & 3 != 0 or target < code_lo or target >= self.code_hi) break :sw;
+                const link = code_lo + 4 * @as(u64, i) + 4;
+                const tick: u32 = @intCast(4 * pos);
+                steps[pos] = .{ .next_pc = target, .lhs = x, .rhs = 0, .previous_rd = r[s.rd], .result = link, .memory_index = compact_tape.NO_MEMORY, .flags = 1 };
+                clocks[s.rs1] = tick + 1;
+                clocks[s.rd] = tick + 3;
+                r[s.rd] = link;
+                r[SINK] = 0;
+                pos += 1;
+                i = @intCast((target - code_lo) / 4);
+                continue :sw .enter;
+            },
+        }
+        const retired = pos - start;
+        clocks[0] = saved_zero;
+        trace.clocks = clocks;
+        trace.len = pos;
+        trace.divisions += divisions;
+        trace.multiplications += multiplications;
+        if (retired != 0) {
+            @memcpy(&cpu.regs, r[0..32]);
+            cpu.regs[0] = 0;
+            cpu.pc = code_lo + 4 * @as(u64, i);
+            cpu.retired += retired;
+            cap.steps += @intCast(retired);
+            self.fast_retired += retired;
+        }
+        return if (pos == end_pos) .limit else .slow;
     }
 
     /// Census: add fast retirements per reference opcode (and load/store

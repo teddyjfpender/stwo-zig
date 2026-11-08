@@ -1,0 +1,9 @@
+26235156 0 True {'request_wall_s': 27.358, 'capture_s': 1.691, 'setup_s': 8.73, 'native_prove_s': 3.81, 'native_verify_s': 1.329, 'native_total_before_report_s': 14.367, 'recursion_s': 12.973}
+26235156 1 True {'request_wall_s': 11.819, 'capture_s': 1.812, 'setup_s': 0.135, 'native_prove_s': 3.136, 'native_verify_s': 1.56, 'native_total_before_report_s': 5.235, 'recursion_s': 6.566}
+26235156 0 True {'request_wall_s': 27.136, 'capture_s': 1.661, 'setup_s': 8.903, 'native_prove_s': 4.012, 'native_verify_s': 1.236, 'native_total_before_report_s': 14.676, 'recursion_s': 12.434}
+26235156 1 True {'request_wall_s': 12.673, 'capture_s': 1.675, 'setup_s': 0.128, 'native_prove_s': 3.089, 'native_verify_s': 1.488, 'native_total_before_report_s': 5.047, 'recursion_s': 7.597}
+24628607 0 True {'request_wall_s': 39.128, 'capture_s': 1.953, 'setup_s': 12.222, 'native_prove_s': 5.586, 'native_verify_s': 2.088, 'native_total_before_report_s': 19.989, 'recursion_s': 19.098}
+24628607 1 True {'request_wall_s': 17.302, 'capture_s': 2.342, 'setup_s': 0.167, 'native_prove_s': 4.619, 'native_verify_s': 2.177, 'native_total_before_report_s': 7.366, 'recursion_s': 9.902}
+24628607 0 True {'request_wall_s': 38.967, 'capture_s': 1.892, 'setup_s': 12.232, 'native_prove_s': 5.221, 'native_verify_s': 1.87, 'native_total_before_report_s': 19.497, 'recursion_s': 19.446}
+24628607 1 True {'request_wall_s': 17.781, 'capture_s': 2.068, 'setup_s': 0.136, 'native_prove_s': 4.628, 'native_verify_s': 2.464, 'native_total_before_report_s': 7.174, 'recursion_s': 10.491}
+ISOLATED_CONTROLLER_PAIR_PASS

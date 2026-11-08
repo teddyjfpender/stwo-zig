@@ -1,0 +1,14 @@
+{
+  "scope": "synthetic P2v1 proof files only; not M6/Ethereum",
+  "status": "PASS",
+  "files": {
+    "d8-f4.binary": true,
+    "d8-f4.json": true,
+    "d4-f4.binary": true,
+    "d4-f1.json": true,
+    "d8-f1.json": true,
+    "d4-f1.binary": true,
+    "d4-f4.json": true,
+    "d8-f1.binary": true
+  }
+}

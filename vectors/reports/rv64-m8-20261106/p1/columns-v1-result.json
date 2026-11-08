@@ -1,0 +1,90 @@
+{
+  "schema": "rv64-m8-p1-columns-result/v1",
+  "status": "NEGATIVE_WARM_TIMEOUT_NO_HEADLINE_TIMING",
+  "source_commit": "df01fd929673e09c3871e61fb6aa0a0623bc123c+p1-columns-v1",
+  "flag": "STWO_RV64_RC_COMPOSITION_COLUMNS=1; default off",
+  "validation": "Five Zig unit targets and production build passed. All three completed requests freshly accepted. Candidate cold matches baseline proof payloads and independent capture SHA256.",
+  "block": 26235156,
+  "timing_scope": "UNQUALIFIED_CORRECTNESS_WALLS",
+  "baseline_requests": [
+    {
+      "trial": 0,
+      "request_s": 29.045874068,
+      "stages": {
+        "request_wall_s": 29.046,
+        "phase_transition_s": 0.0,
+        "capture_s": 1.784,
+        "setup_s": 11.717,
+        "native_prove_s": 4.583,
+        "native_verify_s": 1.059,
+        "native_total_before_report_s": 18.253,
+        "recursion_s": 10.764
+      }
+    },
+    {
+      "trial": 1,
+      "request_s": 15.349848413,
+      "stages": {
+        "request_wall_s": 15.35,
+        "phase_transition_s": 0.001,
+        "capture_s": 1.816,
+        "setup_s": 4.847,
+        "native_prove_s": 3.321,
+        "native_verify_s": 1.156,
+        "native_total_before_report_s": 10.101,
+        "recursion_s": 5.227
+      }
+    }
+  ],
+  "candidate_cold": {
+    "block": 26235156,
+    "trial": 0,
+    "ordinal": 0,
+    "proof": "/workspace/m3/runs/m7-integrate/daemon-26235156-r2-p1-columns-small-20261106-01-one-stack-v5-smoke-01-fullstack/spool/out/0000-26235156/26235156/proof",
+    "leaves": 11,
+    "stages": {
+      "request_wall_s": 31.156,
+      "phase_transition_s": 0.002,
+      "capture_s": 1.653,
+      "setup_s": 11.802,
+      "native_prove_s": 5.175,
+      "native_verify_s": 1.213,
+      "native_total_before_report_s": 18.787,
+      "recursion_s": 12.32
+    },
+    "marker": {
+      "request_wall_ns": 31155863719
+    },
+    "payload_and_capture_parity": true
+  },
+  "candidate_warm": "120 second watchdog; no complete root; 26 matching partial payload files",
+  "gpu_seconds": null,
+  "exact_node_peak_bytes": null,
+  "role_arena_allocations": {
+    "status": "OBSERVED_REQUESTED_ARENA_BYTES_NOT_WHOLE_NODE_PEAK",
+    "original_columns": 167,
+    "role4": {
+      "selected_columns": 116,
+      "arena_bytes": 7818182656
+    },
+    "role5": {
+      "selected_columns": 79,
+      "arena_bytes": 5335154688
+    }
+  },
+  "capacity_failure": {
+    "status": "ADMISSION_MODEL_NOT_ACTUAL_NODE_PEAK",
+    "physical": 1,
+    "ordinal": 4,
+    "stage": "INTER_trace_commit",
+    "required_large_bytes": 25300041728,
+    "capacity_large_bytes": 23085449216,
+    "stable_large_bytes": 14294188032,
+    "temporary_large_bytes": 8589934592,
+    "retained_upper_large_bytes": 4731174912,
+    "peer_interaction_ordinal": 10
+  },
+  "decision": "Keep flag off. No usable end-to-end improvement. Smaller composition changes scheduling but remaining INTER coefficient ingress and scratch cannot proceed beside existing stable owners. Headline queue skipped after smoke failure.",
+  "next": "Audit in-place INTER interpolation and transfer of existing leases instead of allocating and copying another full coefficient slab; preserve full ownership/future charges including padding.",
+  "receipts": "vectors/reports/rv64-m8-20261106/p1/p1-columns-evidence-20261106-01"
+}

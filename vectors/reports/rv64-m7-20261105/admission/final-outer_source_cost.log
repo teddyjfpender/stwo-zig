@@ -1,0 +1,10 @@
+1/9 outer_source_cost.test.MAIN plan charges prefill and tasks in separate live phases...OK
+2/9 outer_source_cost.test.INTER plan accumulates actual output owners including final cumulative column...OK
+3/9 global_admission.test.native retention cannot consume the GKR successor headroom...OK
+4/9 global_admission.test.physical devices independent; active and stale tickets fail closed...OK
+5/9 global_admission.test.unknown costs, physical rounding, small slab and untracked owners...OK
+6/9 global_admission.test.host frontier charged globally and unavailable costs refused...OK
+7/9 global_admission.test.native usize allocation list uses exact arena bucket charges...OK
+8/9 global_admission.test.terminal pool destruction retires interrupted claims only after actual owner teardown...OK
+9/9 prefix_plan.test.numeric prefix geometry supports circuit rows independently of ISA clock caps...OK
+All 9 tests passed.

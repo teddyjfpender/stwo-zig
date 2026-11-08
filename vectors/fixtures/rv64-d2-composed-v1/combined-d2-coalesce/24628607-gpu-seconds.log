@@ -1,0 +1,18 @@
+[
+ {
+  "block": 24628607,
+  "trial": 0,
+  "profiled_request_wall_s": 29.961,
+  "byte_identical_to_fresh_accepted_reference": true,
+  "kernel_busy_gpu_seconds": 10.574243586,
+  "any_busy_gpu_seconds": 11.995804285999998
+ },
+ {
+  "block": 24628607,
+  "trial": 1,
+  "profiled_request_wall_s": 12.935,
+  "byte_identical_to_fresh_accepted_reference": true,
+  "kernel_busy_gpu_seconds": 10.584695335,
+  "any_busy_gpu_seconds": 11.98421303
+ }
+]

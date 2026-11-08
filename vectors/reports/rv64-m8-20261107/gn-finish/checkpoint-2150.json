@@ -1,0 +1,57 @@
+{
+  "schema": "rv64-gn-finish-checkpoint-evidence/v1",
+  "status": "M",
+  "observed_utc": "2026-11-07T21:52:38Z",
+  "scope": "Recursion construction and packed-residency component evidence; full request remains incomplete",
+  "items": [
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/install-5/receipt.json",
+      "sha256": "fc3275e6682ff75267f178105a805169fa146db2a46301b3e24df9a4b5e65011",
+      "result": "FAIL: memory plan after complete install-only recursion construction; READY false; no native request"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-bind/install-5/producer.stderr",
+      "sha256": "cbace68d45dc577b6d14e9bc162ea03d3eb1b4559293d8b2246c531afb0f0a25",
+      "result": "15 nodes, 15 classes; device-derived outputs/checkpoints match at every constructor node; class construction_ns=56884894786; plan class_cache_words=5920244235, capacity_words=6819938304; main_words=866921984, phase_a/b_words=4202847976/5617560953"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/gpu-4.log",
+      "sha256": "1eafa07e1a21f7af2ea9dc56f46eab1c4a70ef6560d12d31504ad53f1d28b136",
+      "result": "84/84 tests PASS; resident packed class parity for 32785 words, malformed header, block bounds and malformed LZ4 rejected; output guards preserved on both GPUs"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/typecheck-7.done",
+      "result": "0; full driver semantic typecheck PASS"
+    },
+    {
+      "path": "/workspace/m3/build/m8-gn-codec/addon-4/build.json",
+      "result": "Source-built additive CUDA addon, terminal exit 0; runtime.json pins hashes"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/memcheck-1.log",
+      "sha256": "6b0bbb5d00124857cc2cee21a28a87f3906cb68b901af09a5a8695976fe58d8d",
+      "result": "84/84 codec tests passed under compute-sanitizer memcheck; ERROR SUMMARY: 0 errors; no full request claim"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/jobs-7.log",
+      "sha256": "64dbb59f8a6b94a1ece27adcbb21cc6dc2b976cfd73c2f4b3a027bc363f1b94b",
+      "result": "test-rv64-jobs PASS: 588/603 passed,15 skipped"
+    },
+    {
+      "path": "/workspace/m3/runs/m8-gn-codec/outer-8.log",
+      "result": "test-rv64-jobs-outer PASS: 115/116 passed,1 skipped"
+    }
+  ],
+  "implemented_pending_full_request": [
+    "Default-off STWO_RV64_M9_CLASS_PACKED_INGRESS resident, lossless compressed recursion class and FIXED-evaluation images",
+    "Per-node expansion and coefficient interpolation inside the declared arena; no per-node FIXED commitment or host unpack",
+    "Explicit class_unpack device verdict, with malformed-input GPU rejection tests",
+    "Twiddle residency accounting deduplicated by the same persistent region key the worker uses"
+  ],
+  "running_at_observation": {
+    "build": "/workspace/m3/runs/m8-gn-bind/build-14.log",
+    "next_if_build_pass": "/workspace/m3/runs/m8-gn-bind/install-6 (packed flag + addon-4)"
+  },
+  "claim_boundary": "The 15-node diagnostic builds install-only classes using the legacy warm constructor; it is not a completed GPU-native request or a production class-miss timing qualification. No new end-to-end speed claim.",
+  "snapshot_note": "Build14 snapshot precedes a later local-only launch-counter correction and comment cleanup; no request or proof logic changed in those local edits. Do not sync either live source stream."
+}

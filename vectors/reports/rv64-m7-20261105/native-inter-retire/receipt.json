@@ -1,0 +1,79 @@
+{
+  "schema": "rv64-m7-native-inter-retirement/v1",
+  "status": "CPU_UNIT_PASS_GPU_UNQUALIFIED",
+  "source_base": "cc6f36414",
+  "flag": "STWO_RV64_NATIVE_INTER_RETIRE_GLOBALS=1",
+  "default": false,
+  "cpu_test": {
+    "compiler": "Zig 0.15.2",
+    "mode": "ReleaseSafe",
+    "passed": 4,
+    "failed": 0,
+    "gpu_used": false,
+    "command": "flock /workspace/m3/locks/build.1 /workspace/zig/zig test -O ReleaseSafe -lc /workspace/m3/src/m7-native-inter-retire-unit/inter_retirement.zig --cache-dir /workspace/m3/build/m7-native-inter-retire-unit/cache",
+    "log": "unit-test.log"
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/inter_retirement.zig": "3e589829d4c2e0cb82108ce99743657f4ad4f7ad576f7ec9519446cfbe1dc05a",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig": "a5d64856e42aa02bc2a9f653ae34c792351c010889ad37a4ed7862a37ed3b59f",
+    "src/integrations/riscv_cuda/rv64/trace_commit.zig": "90289972b7d714a4b71976c553b0c3aac2958e91c024ab99f80acdbef7dafc88",
+    "src/integrations/riscv_cuda/rv64/global_stage.zig": "9bbc357b31e4d31d2091167373b342fdcac4c1620e68d0c14847a037e3eed71d",
+    "src/integrations/riscv_cuda/rv64/scoped_device_copy.zig": "be41fb1383af76558a66339dc6e1916e31aa80b0dd54f7b84dbf3ec21bf72e45",
+    "vectors/reports/rv64-m7-20261105/native-layout/source-census/24628607-baseline-census.json": "4e5cfcde2070def1208a6e2802524411cea1ce645742e9a8936fb7290818e521"
+  },
+  "headline_static_global_evaluation_payload": {
+    "status": "SOURCE_DERIVED_NOT_MEASURED_SAVINGS",
+    "block": 24628607,
+    "profile": "M6 native declaration census; D2 geometry needs separate proof gate",
+    "cpus": [
+      {
+        "ordinal": 0,
+        "physical_gpu": 0,
+        "published_input_bytes": 278492160
+      },
+      {
+        "ordinal": 1,
+        "physical_gpu": 1,
+        "published_input_bytes": 115974144
+      },
+      {
+        "ordinal": 2,
+        "physical_gpu": 0,
+        "published_input_bytes": 114480128
+      },
+      {
+        "ordinal": 3,
+        "physical_gpu": 1,
+        "published_input_bytes": 126824448
+      },
+      {
+        "ordinal": 4,
+        "physical_gpu": 0,
+        "published_input_bytes": 116466688
+      },
+      {
+        "ordinal": 5,
+        "physical_gpu": 1,
+        "published_input_bytes": 125425664
+      },
+      {
+        "ordinal": 6,
+        "physical_gpu": 0,
+        "published_input_bytes": 148473856
+      }
+    ],
+    "total_bytes": 1026137088,
+    "per_gpu_bytes": [
+      657912832,
+      368224256
+    ],
+    "simultaneously_live": false
+  },
+  "not_run": [
+    "full CpuWorker production compile",
+    "both-dev full artifact byte parity",
+    "fresh CPU receivers",
+    "GPU memcheck",
+    "actual arena-live/process-peak savings"
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "src/integrations/riscv_cuda/rv64/resident_composition.zig": "ab61d15766dafc87b13faf2bfa6c7ebfde9fefd240bfd99e86a221082eaef714",
+  "src/integrations/riscv_cuda/rv64/resident_ready.zig": "46e5fcec6cf0c8d8cdf7c536fe7641cb0a2b42113a78307eeb7bbeb390db0166",
+  "base_commit": "26ca2079314833704137aae900955ece81ae49e9"
+}

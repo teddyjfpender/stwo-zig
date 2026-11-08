@@ -1,0 +1,26 @@
+{
+  "schema": "rv64-m7-native-routing-summary/v1",
+  "source": "source.json",
+  "byte_parity": "m6-parity.json",
+  "receivers": "balanced-receipt.json",
+  "result": "negative: no speed promotion",
+  "blocks": [
+    {
+      "block": 26235156,
+      "native_median_s": 3.2744999999999997,
+      "request_median_s": 12.9905,
+      "control_complete": false,
+      "default": "cyclic",
+      "promoted": false
+    },
+    {
+      "block": 24628607,
+      "native_median_s": 4.840999999999999,
+      "request_median_s": 18.555500000000002,
+      "control_complete": false,
+      "default": "cyclic",
+      "promoted": false
+    }
+  ],
+  "cyclic_control": "Final warm headline request 0005 failed; partial timings are not a complete AB gate."
+}

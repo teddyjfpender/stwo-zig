@@ -1,0 +1,7 @@
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-m5-rootverify success
++- run /workspace/zig/zig success 14s MaxRSS:347M
+
+BUILD test-riscv64-m5-rootverify exit=0 37s
+EXIT=0

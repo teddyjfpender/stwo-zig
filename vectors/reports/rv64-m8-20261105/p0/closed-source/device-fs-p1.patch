@@ -1,0 +1,31 @@
+commit 3134125938154d987506e433f93edf295b576347
+Author:     Theodore Pender <teddyjfpender@gmail.com>
+AuthorDate: Thu Nov 5 22:50:41 2026 +0400
+Commit:     Theodore Pender <teddyjfpender@gmail.com>
+CommitDate: Thu Nov 5 22:50:41 2026 +0400
+
+    WIP checkpoint: uncommitted work preserved before consolidation (unqualified, not built or tested)
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/src/integrations/riscv_cuda/rv64/device_fs_check.zig b/src/integrations/riscv_cuda/rv64/device_fs_check.zig
+index 615a61f68..ec172bf81 100644
+--- a/src/integrations/riscv_cuda/rv64/device_fs_check.zig
++++ b/src/integrations/riscv_cuda/rv64/device_fs_check.zig
+@@ -160,7 +160,6 @@ const Job = struct {
+         const init = try sym(Init, lib, "stwo_rv64_channel_init_on");
+         const mix = try sym(Mix, lib, "stwo_rv64_channel_mix_on");
+         const draw = try sym(Draw, lib, "stwo_rv64_channel_draw_on");
+-        const draw_raw = try sym(DrawRaw, lib, "stwo_blake2s_transcript_draw_u32s_on");
+         var draws: usize = 0;
+         for (r.ops.items) |op| if (op.kind == .draw_raw or op.kind == .draw_om31) { draws += 1; };
+         if (draws == 0) return error.OuterDeviceFsNoChallenges;
+@@ -190,7 +189,7 @@ const Job = struct {
+             switch (op.kind) {
+                 .mix_words, .mix_felts => try check(mix(raw, 0, leases[0].words.?, @intCast(i), previous, next, leases[2].words.? + op.first, @intCast(op.count), @intFromBool(op.kind == .mix_felts), boundary)),
+                 .draw_om31 => { try check(draw(raw, 0, leases[0].words.?, @intCast(i), previous, next, 1, leases[3].words.? + output_at, boundary)); output_at += 8; },
+-                .draw_raw => { try check(draw_raw(leases[0].words.?, @intCast(i), previous, next, leases[3].words.? + output_at, leases[3].words.? + output_at, boundary, stream.?)); output_at += 8; },
++                .draw_raw => { const draw_raw = try sym(DrawRaw, lib, "stwo_blake2s_transcript_draw_u32s_on"); try check(draw_raw(leases[0].words.?, @intCast(i), previous, next, leases[3].words.? + output_at, leases[3].words.? + output_at, boundary, stream.?)); output_at += 8; },
+             }
+         }
+         if (self.keep_interaction) {

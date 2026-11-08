@@ -1,0 +1,10 @@
+1/5 fused_blake2s.test.fused blake2s: completeness against std Blake2s256 (0..300 bytes, chained blocks)...OK
+2/5 fused_blake2s.test.fused blake2s: row shape (columns, lookups, constraint degree)...OK
+3/5 fused_blake2s.test.fused blake2s: every single-cell change of an honest row is rejected...OK
+4/5 fused_blake2s.test.fused blake2s: a claimed wrong digest with valid byte encoding is rejected...OK
+5/5 fused_blake2s.test.fused blake2s: power-of-two instance splitting...OK
+All 5 tests passed.
+
+real	0m17.778s
+user	0m10.840s
+sys	0m6.919s

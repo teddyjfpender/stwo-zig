@@ -302,3 +302,43 @@ test "joined execution proofs are exact with serial and1 4 16worker multichunk L
         try Execution.verify(a, &setup, admission, actual);
     }
 }
+
+test "resident pinned image program cache rechecks inputs and ELF on every request" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var cache = Image.AuthorityCache.init(a);
+    defer cache.deinit();
+    var first = try Image.Owner.initShared(a, fixture.config(), &cache);
+    defer first.deinit();
+    const words = first.authority.words.ptr;
+    const first_identity = first.identity;
+    // A new input uses the same executable authority, but gets fresh bytes,
+    // policy and request identity. No request memory is retained in the cache.
+    try fixture.temp.dir.writeFile(.{ .sub_path = "input.bin", .data = &.{0xbb} });
+    fixture.input_sha = std.fmt.bytesToHex(Request.sha(&.{0xbb}), .lower);
+    var second = try Image.Owner.initShared(a, fixture.config(), &cache);
+    defer second.deinit();
+    try std.testing.expectEqual(words, second.authority.words.ptr);
+    try std.testing.expectEqual(@as(u64, 0xaa00000001), try first.initialWord(symbols.input_start));
+    try std.testing.expectEqual(@as(u64, 0xbb00000001), try second.initialWord(symbols.input_start));
+    try std.testing.expect(!std.mem.eql(u8, &first_identity, &second.identity));
+    try std.testing.expectEqual(@as(u64, 1), cache.hits);
+    var bad = fixture.config();
+    bad.elf_sha256 = &fixture.input_sha;
+    try std.testing.expectError(error.EthereumInputIdentityMismatch, Image.Owner.initShared(a, bad, &cache));
+    bad = fixture.config();
+    bad.input_sha256 = &fixture.elf_sha;
+    try std.testing.expectError(error.EthereumInputIdentityMismatch, Image.Owner.initShared(a, bad, &cache));
+    bad = fixture.config();
+    bad.terminal_pc = 4096;
+    try std.testing.expectError(error.InvalidEthereumTerminalPc, Image.Owner.initShared(a, bad, &cache));
+    var changed = elfBytes();
+    std.mem.writeInt(u32, changed[120..124], 0x01200093, .little);
+    try fixture.temp.dir.writeFile(.{ .sub_path = "guest.elf", .data = &changed });
+    fixture.elf_sha = std.fmt.bytesToHex(Request.sha(&changed), .lower);
+    var other = try Image.Owner.initShared(a, fixture.config(), &cache);
+    defer other.deinit();
+    try std.testing.expect(other.authority.words.ptr != words);
+    try std.testing.expectEqual(@as(u64, 0x0000006f01200093), try other.initialWord(4096));
+    try std.testing.expectEqual(@as(u64, 2), cache.misses);
+}

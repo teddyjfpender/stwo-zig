@@ -1,0 +1,82 @@
+{
+  "schema": "rv64-outer-task-pack-cpu-candidate/v1",
+  "base_commit": "dde87eca5",
+  "branch": "codex/rv64-outer-task-pack-parallel",
+  "qualification": "CPU records/identities and GNU production semantics qualified; full GPU/basket timing pending",
+  "design": {
+    "selection": "Only ctx.circuit.permutation.ends.items.len == 0 uses disjoint fixed-position packing. Unexpected permutation records reject fail-closed.",
+    "storage": "Caller-owned original Task allocation, no second task copy, cache, helper allocation or implicit global pool.",
+    "scheduler": "Existing scoped row_work, minimum16384 records/shard, at most16shards; helpers join before returning any error.",
+    "validation": "Original hint encoding and default missing-capability-query mask0xfff preserved. Capability failure is collected during fill but returned only after all packing errors, preserving original precedence.",
+    "unchanged": [
+      "Schedule.build/validation",
+      "Plan task/seed/level ordering",
+      "Seed packing",
+      "indices/CSR serialization",
+      "schedule content identity framing",
+      "device Task ABI",
+      "GPU kernels/protocol/transcript"
+    ],
+    "csr": "Original serial append/census/second capability pass remains for any graph with CSR permutations."
+  },
+  "benchmark": {
+    "host": "Apple M5 Max arm64",
+    "tasks": 8388608,
+    "task_bytes": 268435456,
+    "workers": 4,
+    "trials_each": 3,
+    "statistic": "median",
+    "original_serial_ns": 28455792,
+    "parallel_ns": 8106041,
+    "speedup": 3.510442643949124,
+    "record_mix": [
+      "BlakeG one third",
+      "add one sixth",
+      "mul one sixth",
+      "hint one sixth",
+      "TripleXor one sixth"
+    ],
+    "input_basis": "Repeated records drawn from a validated compact original-circuit fixture. This measures packing with a compact gate source, not a complete8M-operation generated circuit or full-basket time.",
+    "includes": "Task encoding and capability validation",
+    "excludes": [
+      "Task allocation",
+      "Schedule.build",
+      "seed packing",
+      "identity hashing",
+      "GPU proving",
+      "fresh receiver"
+    ]
+  },
+  "checks": {
+    "every_task_byte_equal_original_encoder": true,
+    "real_plan_seed_task_level_bytes_unchanged": true,
+    "schedule_identity_equal": true,
+    "all_eight_hint_encodings_equal": true,
+    "legacy_capability_mask_rejection": true,
+    "invalid_hint_precedes_unsupported_mask": true,
+    "last_shard_error_join_and_valid_retry": true,
+    "unexpected_zero_csr_permutation_rejects": true,
+    "csr_append_index_control": true,
+    "fully_leased_pool_fallback_exact": true,
+    "gnu_native_gpu_semantics": true,
+    "gnu_recursive_gpu_semantics": true,
+    "gnu_combined_gpu_semantics": true
+  },
+  "commands": [
+    "zig build --build-file src/integrations/riscv_cuda/build.zig test-rv64-gkr-plan -Doptimize=ReleaseFast -j2",
+    "zig build --build-file src/integrations/riscv_cuda/build.zig check-rv64-ethereum-gpu-combined -Doptimize=ReleaseFast -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha -j2",
+    "zig build --build-file src/integrations/riscv_cuda/build.zig check-rv64-ethereum-gpu-recursion check-rv64-ethereum-gpu -Doptimize=ReleaseFast -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha -j2"
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cuda/build.zig": "2d2401bb6b8cddc6e1b36f7b0ffe8d1a91a3c313e4aabc70663a504b0d188fdc",
+    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "ed59d8a4bb12b2d13a58aa04926bb8eaf0a2812210d6350e1618caab89d81a5c",
+    "src/integrations/riscv_cuda/rv64/outer_assignment_pack.zig": "02dee9c7021f73e620a5458c73f32b26ccd36faa74e12ad36a718b22329557a2",
+    "src/integrations/riscv_cuda/rv64/tests/outer_assignment_pack_test.zig": "49d883ebe6722bf5f1b5fb26d5297089a6d3cfc1995d774fbb090d739d887b65",
+    "src/integrations/riscv_cuda/rv64_gkr_plan_test_root.zig": "1b3c0fa514af9546efcd4351b28b3b2ce48ffa4e32c46368d338006e318ab235"
+  },
+  "limits": [
+    "No GPU jobs, new native image or budget used.",
+    "No production full-basket speedup extrapolated from this CPU microbenchmark.",
+    "Main is untouched; isolated candidate for review."
+  ]
+}

@@ -79,6 +79,12 @@ pub const Claims = struct {
     }
 };
 
+/// External AIR evaluators receive row count and nonempty as independent wires.
+/// Native evaluators retain the existing integer metadata representation.
+pub fn RowsFor(comptime C: type) type {
+    return if (E.isExternalLane(C)) struct { rows: C, nonempty: C } else u32;
+}
+
 /// `rows` active rows must leave at least one inactive row (wrap guard), and
 /// every unconditional lookup mass of the component stays below p.
 pub fn validateGeometry(kind: @import("layout.zig").Kind, rows: u64, log: u32) !usize {

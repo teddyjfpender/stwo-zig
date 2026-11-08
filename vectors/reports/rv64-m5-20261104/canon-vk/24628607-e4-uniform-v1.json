@@ -1,0 +1,261 @@
+{
+  "schema": "rv64-m4-receipt/v2",
+  "label": "measured",
+  "derived_from": "rv64-m3-receipt/v1 + producer logs + proof dir",
+  "stream": "m5-canon-vk",
+  "block": 24628607,
+  "gpus": 2,
+  "run": "/workspace/m3/runs/m5-canon-vk/24628607-2gpu-e4-uniform-v1",
+  "source_commit": "97e391d1a",
+  "assets": {
+    "driver": "de97ff2e2728b8cc35e4fad8a1c68b0f980fb8032bcdf8c3a92168d69716f6ae",
+    "library": "2bb02b11eb3b3e1bd6b0e4845a1b5716fd7d80e9d6e12f4de879cc11095fe067",
+    "receiver": null,
+    "recursive_receiver": null
+  },
+  "environment_overrides": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_OUTER_SHAPE": "uniform-v1"
+  },
+  "nsys": false,
+  "host": {
+    "nodename": "f675b38ce80e",
+    "nproc": 192,
+    "cgroup_cpus": 40.8
+  },
+  "loadavg": {
+    "start": {
+      "1m": 39.48,
+      "5m": 32.45,
+      "15m": 26.04,
+      "unix": 1793808556.169336
+    },
+    "end": {
+      "1m": 48.81,
+      "5m": 41.52,
+      "15m": 30.57,
+      "unix": 1793808702.9230306
+    }
+  },
+  "stages": {
+    "request_s": 52.036,
+    "capture_s": 3.224,
+    "capture_critical_s": 3.224,
+    "setup_s": 15.721,
+    "setup_cold_service_s": 15.721,
+    "setup_warm_s": null,
+    "setup_install_s": null,
+    "native_s": 7.552,
+    "stage1_s": 2.819,
+    "stage1_jobs": 17,
+    "stage2_s": 4.461,
+    "stage2_jobs": 17,
+    "native_verify_side_thread_s": 2.291,
+    "native_verify_on_critical_path_s": 0.0,
+    "recursion_s": 25.295,
+    "recursion_wall_s": 25.295,
+    "recursion_tail_s": 25.295,
+    "fold_tail_after_last_leaf_s": 6.948,
+    "compress_s": 0.0
+  },
+  "stage_boundaries": {
+    "request_s": "request accepted -> final proof bytes written (GPU_RESIDENT_BLOCK request_wall_ns)",
+    "capture_s": "input -> last segment compact records ready (report.capture_ns); M3: nothing overlaps it, so capture_critical_s == capture_s",
+    "setup_s": "report.setup_ns; cold_service when the SetupCache missed, warm when it hit; install is not a separate step yet (null)",
+    "native_s": "report.prove_ns: projection/widening/stage1/barrier/stage2 all count here, never under capture",
+    "stage1_s/stage2_s": "schedule.json phase walls (first claim -> last finish of each phase)",
+    "recursion_s": "combined recursion_ns; recursion starts after the last native proof in M3, so tail == wall",
+    "compress_s": "no compress layer before M7 (0)"
+  },
+  "ram": {
+    "rss_peak_daemon_gib": 24.959,
+    "rss_peak_request_private_gib": null,
+    "rss_scope": "one process per request (no daemon yet): daemon == whole-process peak (getrusage); request_private = private non-file-backed pages at the sampled peak",
+    "smaps_peak_census": null,
+    "smaps_peak_t_s": null
+  },
+  "device_memory": {
+    "device_peak_gb": {
+      "0": 31.503,
+      "1": 31.503
+    },
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak"
+  },
+  "gpu": {
+    "nvml_kernel_activity": {
+      "0": {
+        "samples": 230,
+        "mean_percent": 18.291304347826088,
+        "min_percent": 0,
+        "max_percent": 99
+      },
+      "1": {
+        "samples": 230,
+        "mean_percent": 24.395652173913042,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    }
+  },
+  "proof_size": {
+    "proof_bytes_final": 745624,
+    "proof_bytes_root": 745624
+  },
+  "process": {
+    "argv": [
+      "/workspace/m3/build/m5-canon-vk-c/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+      "combined-batch",
+      "/workspace/m3/runs/m5-canon-vk/24628607-2gpu-e4-uniform-v1/case/manifest.json",
+      "/workspace/m3/runs/m5-canon-vk/24628607-2gpu-e4-uniform-v1/case/batch"
+    ],
+    "exit_code": 0,
+    "wall_ns": 59312516370,
+    "user_seconds": 166.286703,
+    "system_seconds": 76.630992,
+    "peak_rss_bytes": 26799906816,
+    "minor_faults": 21809151,
+    "major_faults": 0
+  },
+  "recursion": {
+    "nodes": 33,
+    "leaves": 17,
+    "folds": 16,
+    "pipeline": {
+      "dag_wall_ns": 25043812737,
+      "lane_device_stage_ns": [
+        17221099615,
+        18880849043
+      ],
+      "lane_device_stage_occupancy": 0.7207758067257585,
+      "peak_ready": 6
+    }
+  },
+  "native": {
+    "cpu_proofs": 7,
+    "truth_proofs": 10,
+    "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+    "output_matches_pin": true
+  },
+  "correctness": {
+    "parity_vs_accepted_v7": {
+      "native_bins": true,
+      "bundle": true,
+      "recursive_tree": false,
+      "recursive_proofs": false,
+      "recursive_mismatched": [
+        "fold-000002.proof",
+        "fold-000005.proof",
+        "fold-000006.proof",
+        "fold-000009.proof",
+        "fold-000012.proof",
+        "fold-000013.proof",
+        "fold-000014.proof",
+        "fold-000017.proof",
+        "fold-000020.proof",
+        "fold-000021.proof",
+        "fold-000024.proof",
+        "fold-000027.proof",
+        "fold-000028.proof",
+        "fold-000029.proof",
+        "fold-000030.proof",
+        "fold-000032.proof",
+        "leaf-000006.proof",
+        "leaf-000007.proof",
+        "leaf-000008.proof",
+        "leaf-000009.proof",
+        "leaf-000010.proof",
+        "leaf-000011.proof",
+        "leaf-000012.proof",
+        "leaf-000013.proof",
+        "leaf-000014.proof",
+        "leaf-000015.proof",
+        "leaf-000016.proof",
+        "root.proof"
+      ],
+      "root_sha256": "fa74fb5d67d19181a6027c01d39d9091d4b70b90aed3f7147dc0c4570be84dfe",
+      "control_root_sha256": "07a537d3244bc27dcf1c11634bfa1f4746d93899aeb9abaa1afc9cfd127cdddf",
+      "native_mismatched": [],
+      "byte_identical": false
+    },
+    "receiver": {
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "8a4ead406d24ddc1e45052173ddfe576a220ca1024e053396c9021ebb8e25c38",
+      "restored_leaves": 17,
+      "restored_folds": 16,
+      "producer_strict_checks": "pass"
+    },
+    "accepted": true
+  },
+  "verifier": {
+    "verify_per_block_s": 96.53,
+    "derive_vk_tables_once_s": null,
+    "verifier_peak_rss_gib": 6.389
+  },
+  "proof_sha256": {
+    "native": {
+      "cells.bin": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1",
+      "cpu-0.bin": "cac9c335bf241d149c9e18cfd586b452772840815c79bfceaa635baeaab701dc",
+      "cpu-1.bin": "6577164eeea71a3d125fef5e541c7f9bb1a7ee28fbf78a10114df4f1180703b0",
+      "cpu-2.bin": "84195a81e9f07ec36178fc661d5a5417a6f23ce07e95f1520cfd48292346051f",
+      "cpu-3.bin": "dab97ee3286b07ff75fbe558234ed395fc4611108a1ad3723433daae1b532fba",
+      "cpu-4.bin": "881469a76adb62af859af8aab845347116b8710585f7f4a6932a9027af95a531",
+      "cpu-5.bin": "11f1f6803999416ac991d9186ec4cdc8d3ee8fb790d3bc1f1442ebcfdd0190d3",
+      "cpu-6.bin": "0b97341fbe90dd30c6e1744f95864f5e4d92efb45d429bdfc5e2eacb58b7ed9a",
+      "stage-one.bin": "7fec3b71d5243d3aae41ae92d80b0b5c6a97eedec3b2a8b04aaf6e5765bd0598",
+      "truth-0.bin": "232cd69be3048f1afd1e01d5c074c38760b4dbda540bfcddc3b3cc0769b09d4b",
+      "truth-1.bin": "b783e801c3611f78bd141dda63fa9e0bd409c529109995d2f1e7dc12453a0410",
+      "truth-2.bin": "60c0640e426c5244ac61ea1aa13cb9fa1f5f170817aefdfbfe27c397ca1d1651",
+      "truth-3.bin": "f85c229528814b1527d8c2c6336f9aa50aa9964e9a3858aa306f56f46fbd43dd",
+      "truth-4.bin": "e6b67f1417c0181bb6f460b293383d6dd9a55734eed62711a38999cc5717bc0f",
+      "truth-5.bin": "e7da39cb6c2cfafd3b5e578e0b1b056cf86184becf955531a17074b7ce56bfe3",
+      "truth-6.bin": "966b549031f9f51b1613b7ae7aab94fcbae6afa3792ecc3c1246fdebb8c7ddb5",
+      "truth-7.bin": "588690cb3be8cd39379fbbf315eb35e747ec6cfa09988741a229afb321216d98",
+      "truth-8.bin": "8b0ec4a14e36b1741350624e5931c62b00b41bf53425ad583d198967ef7d306f",
+      "truth-9.bin": "dc4c4cac1e2cea7d96eb8e501b092cb76635ef19218e475008c170d99b83d839"
+    },
+    "bundle": "eed289d3d554135c1b01d6bcb4a6e093907f4a4e737a203c1e8f6b9fc0259edf",
+    "recursive": {
+      "proof_sha256": {
+        "fold-000002.proof": "f1218a7e49eed103d2a84419cf3b5b7e4dc642ad524a7936d5e3bb52208f92b1",
+        "fold-000005.proof": "fecc6cd32f618ed53a2ad5a144175942ea1a3f7235a956811789030fe36c2d45",
+        "fold-000006.proof": "913233d47fb7367927e99464add717ab4696533850de1f955928d1affaf59c6e",
+        "fold-000009.proof": "6d50494e846ed861a64cbfed8472d40317161ab97465e61e12105064f5f22de7",
+        "fold-000012.proof": "7e819a30e5fafe2e5fba6f3eb1e88ae637cfd8e6a16ea5eb0e31337bcad80be5",
+        "fold-000013.proof": "42da3dfcd0790fac9036a3845634bbf8f4fb02f95dd68d4413c27f2c5849c5e5",
+        "fold-000014.proof": "ec9260811d39b978f0a421c6444c422b3ca3cfa2dedc876644010cdab7b19f79",
+        "fold-000017.proof": "88d9badc1ab92ce9875eb0cbb2196a77205033ee6d1b5e7f584b5f65ef3c146f",
+        "fold-000020.proof": "cb4dedef9398b361740dad13895dfbd904c91f71b010646b0159064bd72e55b5",
+        "fold-000021.proof": "98361eac74bd00f1b08619bbd72792a5c955301c7b3106d85b8904c5770df123",
+        "fold-000024.proof": "824ece9894597ca979df9957bef17eb031969cea9458471083a01d5b1720a74b",
+        "fold-000027.proof": "1da0bc9e7f60652ef86d4249c374c33ffe4691f3a88b5b3066ef153a54143c98",
+        "fold-000028.proof": "95639978c78bdac54637035ccb7cc712ac7dc084f22bbf411d399a613254af9e",
+        "fold-000029.proof": "28eeb8f06581ef35d321955327412cb67eeac3c328832625e8d1f49dccc1dc88",
+        "fold-000030.proof": "1d1970eb54287fa23cb31a9ff2e38bcabf7a7c4c62662f3866b69cde106ae558",
+        "fold-000032.proof": "fa74fb5d67d19181a6027c01d39d9091d4b70b90aed3f7147dc0c4570be84dfe",
+        "leaf-000000.proof": "f65013886fd794c8af4473f7cdd0e1169cbf11ae8f084af97a9dded5f7a6a790",
+        "leaf-000001.proof": "3713ee56a9c6c55733540f1ea598c0c21ffd76be0ecab7c6c66a0bebb7676751",
+        "leaf-000002.proof": "9ac35570632bfc4f58ce254a91908df266c8e510c9f6b65dd6119a3c4bacdde7",
+        "leaf-000003.proof": "13ae952a3cbbee7005a242ff4199c9ae21d031305106eb33fa9261557ddc39ef",
+        "leaf-000004.proof": "26646070cf0919a3f6f9c790b45ca1d7805de01fe1d528255c1850d21392c9a8",
+        "leaf-000005.proof": "fafd31180c97c22b4707210879213e71024dad1cbe0712431335dde1e364002f",
+        "leaf-000006.proof": "9f15ffc1e8b522425ef9177b6421f0e895436e747fb5204b3cf31fbce89b78a2",
+        "leaf-000007.proof": "66b8a6bca92e820a20e2d0d62ca0b6b0030bd6017d23a910517c482b48ac5e83",
+        "leaf-000008.proof": "57c32393f4926088ccc784f244eb36bac99be16c567309988f204db92efcf64a",
+        "leaf-000009.proof": "e0e1e1b4652349d16df303e456f4a1573f3190e550458e5e714090c34c83a5d0",
+        "leaf-000010.proof": "8ec22ab21121420fcf8cfbef541e770328fc8e30e6106a53bd0dea1fb9b9d592",
+        "leaf-000011.proof": "c5b547d589c3da46f97902a69ae8a00713d19f9f8bc7eaae6fff1bca71c76611",
+        "leaf-000012.proof": "b35f7a45f4020d100a2f8569d276a68add8453f285e51a94b0c38e5745ec7032",
+        "leaf-000013.proof": "e79a4fef9f15eeaf687ee4814ecc01478313f3c61e541c201c707849df02499e",
+        "leaf-000014.proof": "7e66a8193bc62d56b6a2180669628be9321fd557ac18eb578879463da6b31258",
+        "leaf-000015.proof": "0ce636d18c7afc0b2f6ba387eab4705d03cb26e2ae94c16db5df5c2693254520",
+        "leaf-000016.proof": "21cbc7b70cb0d36b8ad90142da900232b7216881624ee3a4ae0396a6f5409e7d",
+        "root.proof": "fa74fb5d67d19181a6027c01d39d9091d4b70b90aed3f7147dc0c4570be84dfe"
+      },
+      "tree_sha256": "9d40c44c02802788accf5c73280ba36f8fcf084cdcf27f2e446ab0c59014740c"
+    }
+  }
+}

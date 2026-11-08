@@ -1,0 +1,38 @@
+{
+  "schema": "rv64-m7-combined-m6-gate/v1",
+  "scope": "All included image; actual combined flags, both dev blocks, M6 default security profile, isolated cold+warm services,22GiB arena; no latency claim before complete node-level GPU accounting",
+  "source_checkpoint": "9531c5c16 plus pod Zig formatting; hashes below authoritative",
+  "driver_sha256": "9cf6589f1b479f4c6b1049cc98860c55bfbb2fa680e4716ffd976748f782a2f6",
+  "library_sha256": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+  "receiver_sha256": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+  "source_sha256": {
+    "src/integrations/riscv_cuda/rv64/assignment_graphs.zig": "e7715fb23fb1b736766557b8fee5991c23d02831804522603e97c35208669076",
+    "src/integrations/riscv_cuda/rv64/pcs_native.zig": "f3e6bc62adce6e7f8ee98ea7ff035ca28fac965ed8986ad176e9a06251cde56d",
+    "src/integrations/riscv_cuda/rv64/resident_batch.zig": "ab25ebaa1e99287bce8416942c7a428c4cb549ccf32e429c0fb27c4b562c3a8f",
+    "src/integrations/riscv_cuda/rv64/resident_composition.zig": "42579b99e804f601547fc58826a3a99bd81249f4f9867e4e0567262e66ff001d",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig": "8fadd42e83a78e5e0f4c65e7bb0bac51f7905148a71dd328c70c90c20b39d20a",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig": "ecddac6d45d502cce785ffbef82d24e91226cccbd72b4ed31290af0a8b8f8662"
+  },
+  "preset": [
+    "STWO_RV64_LEAF_SEED_TAPE=1",
+    "STWO_RV64_PACK_FOLD_CACHE=1",
+    "STWO_RV64_CPU_COMPACT_INGRESS=1",
+    "STWO_RV64_COMPOSITION_ENQUEUE=1",
+    "STWO_RV64_BLAKE_SAMPLE_PREFILL=1",
+    "STWO_RV64_NVTX=1",
+    "STWO_RV64_OUTER_ASSIGNMENT_GRAPH=1",
+    "STWO_RV64_OUTER_OWNER_CONTROLLER=1",
+    "STWO_RV64_RC_ROLE_WORKSPACE=1",
+    "STWO_RV64_PHASE_CACHE_TRIM=1",
+    "STWO_RV64_DEVICE_ARENA=22G",
+    "STWO_RV64_PCS_ROLLING_BETA2=1",
+    "STWO_ZIG_RV64_SETUP_CACHE="
+  ],
+  "runs": [
+    {
+      "block": 26235156,
+      "run": "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-combined-m6-v1",
+      "exit": 1
+    }
+  ]
+}

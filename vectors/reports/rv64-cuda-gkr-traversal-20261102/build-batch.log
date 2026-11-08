@@ -1,0 +1,16 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6410batch_maskE13StwoRv64PlaneS2_Pj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6410batch_maskE13StwoRv64PlaneS2_Pj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 18 registers, used 0 barriers
+ptxas info    : Compile time = 5.203 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6411batch_roundEPjNS1_9BatchJobsEjPKjS2_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6411batch_roundEPjNS1_9BatchJobsEjPKjS2_
+    192 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 177 registers, used 0 barriers, 192 bytes cumulative stack size
+ptxas info    : Compile time = 1543.360 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6410batch_initEPjPKjS4_S4_NS1_9BatchJobsE' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6410batch_initEPjPKjS4_S4_NS1_9BatchJobsE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, used 0 barriers
+ptxas info    : Compile time = 75.458 ms

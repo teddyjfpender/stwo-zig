@@ -1,0 +1,68 @@
+{
+ "compared": 8,
+ "identical": 8,
+ "golden_nodes": [
+  "recursion-om31/fold-000004.proof",
+  "recursion-om31/fold-000009.proof",
+  "recursion-om31/fold-000014.proof",
+  "recursion-om31/fold-000017.proof",
+  "recursion-om31/fold-000018.proof",
+  "recursion-om31/leaf-000000.proof",
+  "recursion-om31/leaf-000001.proof",
+  "recursion-om31/leaf-000002.proof",
+  "recursion-om31/leaf-000003.proof",
+  "recursion-om31/leaf-000004.proof",
+  "recursion-om31/leaf-000005.proof",
+  "recursion-om31/leaf-000006.proof",
+  "recursion-om31/leaf-000007.proof",
+  "recursion-om31/leaf-000008.proof",
+  "recursion-om31/leaf-000009.proof",
+  "recursion-om31/leaf-000010.proof",
+  "recursion-om31/leaf-000011.proof",
+  "recursion-om31/leaf-000012.proof",
+  "recursion-om31/leaf-000013.proof",
+  "recursion-om31/root.proof"
+ ],
+ "proofs": {
+  "recursion-om31/leaf-000000.proof": {
+   "sha256": "b35623b95d296fd5fb396225a67f30455163185845db11ca90a9f0b97ed18bb3",
+   "bytes": 750552,
+   "golden_identical": true
+  },
+  "recursion-om31/leaf-000001.proof": {
+   "sha256": "3deed10bab751244e371650186b783f77aaa02a62dc805e3f7a8f8853356660c",
+   "bytes": 759512,
+   "golden_identical": true
+  },
+  "recursion-om31/leaf-000002.proof": {
+   "sha256": "b8654117aec1e71e7cae0ede6aed57d3dbbf4ee9569f0082b820964e1d1ca7c2",
+   "bytes": 742392,
+   "golden_identical": true
+  },
+  "recursion-om31/leaf-000003.proof": {
+   "sha256": "9d4dae04df04c6cfb869b1d87afe873f66560c5000f13947f216c0d42e67f140",
+   "bytes": 747928,
+   "golden_identical": true
+  },
+  "recursion-om31/leaf-000004.proof": {
+   "sha256": "6633b1762315690f4034e44f59f615422843d94ef4278f46a4d8f95764e7254c",
+   "bytes": 755864,
+   "golden_identical": true
+  },
+  "recursion-om31/leaf-000005.proof": {
+   "sha256": "6ec8056f0a86087ff057c803d46d012c56c0621ade5e4a2449567cec674e928d",
+   "bytes": 748312,
+   "golden_identical": true
+  },
+  "recursion-om31/leaf-000006.proof": {
+   "sha256": "5454a29fb1c54f830bb60b2a01f05602917147ec0477a0b08a45df7956ee52ae",
+   "bytes": 706360,
+   "golden_identical": true
+  },
+  "recursion-om31/leaf-000007.proof": {
+   "sha256": "ff5905d069c25d43134488201b34c6ece3f1e55afa9e2672b3a6ceac57d135f8",
+   "bytes": 704376,
+   "golden_identical": true
+  }
+ }
+}

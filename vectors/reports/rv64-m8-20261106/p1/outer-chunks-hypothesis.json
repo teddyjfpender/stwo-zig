@@ -1,0 +1,117 @@
+{
+  "schema": "rv64-m8-p1-outer-chunks-hypothesis/v1",
+  "status": "NEGATIVE_INCOMPLETE_HEADLINE_FINAL_CANDIDATE_COLD_DRAIN_FAILURE",
+  "before": "inter-reuse-v2-result.json",
+  "measured_seconds_to_attack": {
+    "label": "M",
+    "request_median_s": 12.401007834,
+    "recursion_median_s": 4.652,
+    "native_median_s": 5.116
+  },
+  "hypothesis": "Evaluate unchanged role roots in bounded groups using a32-column full-domain LDE cache. Generate only the dependency closure for each group; retain original reverse RLC powers, global row masks and denominator indexing. Retire/refill cached columns on the same ordered owner lane. Remove the largest composition workspace before any admission changes.",
+  "estimated_effect": {
+    "label": "E",
+    "recursion_seconds_removed_range": [
+      0.3,
+      1.0
+    ],
+    "request_gain": "unknown until composed3+3; avoid the profiled warm capacity stall and release space for concurrent progress; no <=8s prediction",
+    "risk": "More dependent group launches and possible lost cross-root CSE can offset overlap. Static caching estimates126 mask-column loads versus116 for role4,87 versus87 for role5; runtime tree-column alias deduplication still required."
+  },
+  "allocation_screen": {
+    "label": "D",
+    "source": "p1-root-group-screen-20261106-01/census.json",
+    "slot_cap": 32,
+    "eval_log": 24,
+    "role_arena_bytes": 2181038080,
+    "prior_observed_role4_arena_bytes": 7818182656,
+    "prior_observed_role5_arena_bytes": 5335154688,
+    "whole_node_peak": null,
+    "remaining_issues": "INTER numerator scratch and MAIN evaluations plus retained coefficients remain live; long-lived immutable caches also require accounting. No <=11GB qualification."
+  },
+  "implementation_constraints": [
+    "New default-off flag, composed with existing two P1 flags; default remains unchanged.",
+    "Do not alter composition_codegen.zig identity or regenerate unrelated frozen AOT families. Bind a small companion module to exact parent program and group-cover identities.",
+    "Every authenticated root exactly once, unchanged powers and full-domain mask geometry; no cross-half mask reinterpretation.",
+    "No relaxed custody/admission checks, no profile retries without a memory change.",
+    "Pod-only build under build lock, small seeded parity/fresh receivers then canonicalquiet3+3 and separate profile; full gate before commit."
+  ],
+  "decision": "Proceed with a minimal source-bound group implementation after the current checkpoint gate and push; keep final P1 exit open.",
+  "build_run": "/workspace/m3/runs/m7-integrate/p1-outer-chunks-build-20261106-01",
+  "implementation_progress": [
+    "Existing joined tool now exports source-bound companion kernels for roles4/5.",
+    "Pod generator build116.39s, generation0.01s, all13 CUDA group compilations and shared link pass.",
+    "Whole-root cover and32-slot cache plans validate. Role4:16 roots,8 groups,116 columns,126 fills. Role5:5 roots,5 groups,79 physical columns,79 fills.",
+    "Exported96-byte parent/plan/code identities match both generated source plans; invalid role and null output rejected.",
+    "Prover cache refill integration, GPU parity, composed timing/profile and full commit gate remain required."
+  ],
+  "evidence_archive": "p1-outer-chunks-evidence-20261106-01",
+  "companion_library_sha256": "129959c18fff008a80c5db0459731ca3266b63afff16eb983d94a6d4ef5debab",
+  "source_matches_local": true,
+  "measured_latency": null,
+  "gpu_numerical_qualification": false,
+  "preflight_run": "/workspace/m3/runs/m7-integrate/p1-outer-chunks-preflight-20261106-01",
+  "smoke_controller": "/workspace/m3/runs/m7-integrate/p1-outer-chunks-smoke-controller-20261106-01",
+  "unit_status": "ALL_FIVE_ZIG_TARGETS_PASS",
+  "unit_s": 111.6,
+  "runtime_changes": [
+    "Cold source/plan/code binding is retained with outer executable metadata; source identity and whole-root cover checked before ownership transfer.",
+    "Existing compact and half-degree LDE functions refill only group cache misses, validated against scoped resident coefficients.",
+    "Every group accumulates into unchanged quotient bucket with original masks, denominators and RLC powers. Combined LDE/rows timing span is explicit.",
+    "Default-off STWO_RV64_RC_OUTER_CHUNKS composes with the two prior P1 flags. Class allocation plan charges32 full-domain columns and twiddles."
+  ],
+  "source_overlay_sha256": {
+    "src/integrations/riscv_cuda/rv64/outer_chunks_runtime.zig": "43ade6488cd3f09f91a7dd5f432dc18250235ef3921076f5d4de4a6b96cea191",
+    "src/integrations/riscv_cuda/rv64/outer_source.zig": "41d40c3873ca654101f18412ed64d000872174b05b961ab5191cfeec3aaa6538",
+    "src/integrations/riscv_cuda/rv64/resident_composition.zig": "c4fb6e21e99464301e27107abb896784e93b5b3a3b02f8f4343b15fd1b865ca5"
+  },
+  "production_build_s": 368.0,
+  "small_run": "/workspace/m3/runs/m7-integrate/p1-outer-chunks-small-20261106-01",
+  "headline_controller": "/workspace/m3/runs/m7-integrate/p1-outer-chunks-headline-controller-20261106-01",
+  "small_observations": {
+    "scope": "Unqualified correctness walls with capture SHA256; not a matched latency claim",
+    "baseline_s": [
+      28.44786685,
+      14.868612704
+    ],
+    "candidate_s": [
+      29.609777524,
+      15.610440184
+    ],
+    "payload_and_capture_parity": true,
+    "candidate_logged_chunk_invocations": 60,
+    "requested_arena_words_per_role": 545259520,
+    "requested_arena_bytes_per_role": 2181038080,
+    "exact_node_peak": null,
+    "fresh_cpu_status": "all4 accepted"
+  },
+  "headline_run": "/workspace/m3/runs/m7-integrate/p1-outer-chunks-headline-20261106-01",
+  "headline_result": {
+    "completed_services": 5,
+    "completed_proofs": 10,
+    "final_3plus3_medians": null,
+    "failure": "NativePostGlobalDrainUnavailable at node14 witness; node9 trace-commit peer",
+    "fresh_cpu_validation": "ALL10_COMPLETED_HEADLINE_PROOFS_FRESH_ACCEPTED",
+    "required_large_bytes": 28621930496,
+    "capacity_large_bytes": 23085449216,
+    "status_of_memory_numbers": "ADMISSION_MODEL_NOT_EXACT_NODE_PEAK",
+    "gpu_seconds": null,
+    "decision": "No complete3+3 result, no promotion, no profile retry on this source; preserve failure before additional workspace work.",
+    "whole_canonical_pass": false,
+    "gate_profile_auto_controllers": "ABORTED_BEFORE_WORK_DUE_TO_PRIMARY_FAILURE",
+    "failed_request_partial": {
+      "payload_count": 34,
+      "complete_root": false,
+      "all_present_match_reference": true,
+      "scope": "Partial matching files are not an accepted proof",
+      "audit": "p1-outer-chunks-partial-audit-20261106-01/audit.json",
+      "raw_partial_receipt_status": "Original comparison and missing-list invalidated by direct-file audit; completed proof receiver verdicts unaffected"
+    }
+  },
+  "preservation_gate": "/workspace/m3/runs/m7-integrate/p1-outer-chunks-gate-20261106-02",
+  "preservation_gate_scope": "Independent correctness gate after failed primary experiment; no timing or P1 exit claim.",
+  "preservation_gate_status": "PASS: build, five Zig targets, Python, small cold/warm frozen32-payload parity,2 fresh CPU receivers,19 corpus cases; V04 size cap only",
+  "evidence_archive_hash_verified_files": 618,
+  "gate_receipt": "vectors/reports/rv64-m8-20261106/p1/p1-outer-chunks-gate-evidence-20261106-02/p1-outer-chunks-gate-20261106-02/gate.json",
+  "gate_source_matches_local": true
+}

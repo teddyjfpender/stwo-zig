@@ -1,0 +1,28 @@
+88416b28f2c1a87ac4461da5fa716fab97352add9e0f37ede2314b91a61ac3f4  /workspace/m3/build/m6-fold-v3/zig-out/bin/rv64-word16-ethereum-recursion-receiver
+192
+format=old outer profile: <default r1> commit=95d40063d
+== derive-26235156 load=17.32 21:21:58
+exit=0 wall=22.996 load_end=15.16 maxrss_kb=26863388
+== derive-24628607 load=15.16 21:22:22
+exit=0 wall=30.096 load_end=17.13 maxrss_kb=27777440
+== derive-both load=17.13 21:22:52
+exit=0 wall=31.171 load_end=18.99 maxrss_kb=28621608
+pin=2548f610061390b4f5b99c628d97ebecd890f24c27ee0ba78ea28873313d5d70
+== verify-pinned-26235156-r1 load=18.99 21:23:23
+exit=0 wall=1.562 load_end=18.99 maxrss_kb=1327180
+== verify-pinned-24628607-r1 load=18.99 21:23:24
+exit=0 wall=1.837 load_end=18.11 maxrss_kb=1760312
+== verify-pinned-26235156-r2 load=18.11 21:23:26
+exit=0 wall=1.498 load_end=18.11 maxrss_kb=1350220
+== verify-pinned-24628607-r2 load=18.11 21:23:28
+exit=0 wall=1.893 load_end=18.11 maxrss_kb=1752632
+== verify-pinned-26235156-r3 load=18.11 21:23:30
+exit=0 wall=1.495 load_end=17.30 maxrss_kb=1334868
+== verify-pinned-24628607-r3 load=17.30 21:23:31
+exit=0 wall=1.922 load_end=17.30 maxrss_kb=1760320
+== audit-26235156 load=17.30 21:23:33
+exit=0 wall=31.944 load_end=14.57 maxrss_kb=6253084
+== audit-24628607 load=14.57 21:24:05
+exit=0 wall=44.62 load_end=22.29 maxrss_kb=6313500
+ROOTONLY_DONE
+EXIT=0

@@ -1,0 +1,19 @@
+1/18 rv64_native_gkr_codegen_test_root.test_0...OK
+2/18 rv64.native_gkr_codegen.test.native CPU raw source and reduced AIR retain all source-derived groups...OK
+3/18 rv64.native_gkr_stage.test.native GKR owner callback remains fully typed...OK
+4/18 rv64.native_gkr_stage.test.native GKR exact allocation census matches the qualified six-lease fixture...OK
+5/18 rv64.native_gkr_stage_fixture.test.actual CPU implicit source full production GPU traversal matches complete CPU proof...SKIP
+6/18 rv64.truth_interaction_codegen.test.truth rational projection keeps native triple and strict IO groups...OK
+7/18 rv64.truth_interaction_codegen.test.native GKR truth raw groups preserve original query census without classic padding...OK
+8/18 rv64.session_context.test.borrowed session slices bind token generation range and proof namespace...OK
+9/18 rv64.gkr_twiddles.test.GKR immutable setup cache matches independent canonical towers and bounds retention...OK
+10/18 rv64.immutable_setup.test.immutable setup reuses one upload and protects live requests from eviction...OK
+11/18 rv64.immutable_setup.test.failed immutable alias admission leaves exactly one cache owner...OK
+12/18 rv64.immutable_setup.test.immutable FIXED forest reuses geometry across statements without host copies...OK
+13/18 rv64.immutable_setup.test.immutable setup retains recently reused identity when cold entries compete...OK
+14/18 rv64.gkr_result.test.device compact GKR readback preserves native proof and fails atomically...OK
+15/18 rv64.truth_codegen.test.curve AOT IDs preserve triple policy and reject unimplemented families...OK
+16/18 rv64.truth_codegen.test.classic truth records the existing equation authority with bounded mask geometry...OK
+17/18 rv64.truth_codegen.test.V3 SHA arithmetic and secp row providers record original equation authority...OK
+18/18 rv64.truth_codegen.test.classic GPU authority IDs distinguish admitted policy independently of log...OK
+17 passed; 1 skipped; 0 failed.

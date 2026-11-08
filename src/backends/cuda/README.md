@@ -17,6 +17,12 @@ exists.
 See [package.contract.json](package.contract.json) and the
 [public facade](mod.zig) for the authoritative package boundary.
 
+The strict `native/` build closure contains only C/C++ and CUDA source files.
+Export requirements live in `contracts/*required-symbols.json`; the RV64 library
+builder and relinker consume `contracts/rv64-required-symbols.json`.
+The [arena admission owner contract](../../../design/riscv-proving-stack/rv64-arena-admission-v2.md)
+is maintained with the proving-stack design documents.
+
 ## Architecture and status
 
 ```mermaid

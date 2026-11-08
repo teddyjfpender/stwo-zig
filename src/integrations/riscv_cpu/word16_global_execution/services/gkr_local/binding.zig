@@ -48,10 +48,29 @@ pub fn MaskFor(comptime S: type) type {
 }
 pub const CONSTRAINTS = 3;
 pub const INTERACTION_COLUMNS = 2 * E.extensionDegree(@import("stwo_core").fields.om31.OM31);
+/// Single algebraic authority for native and outer-GKR binding. Keeping the
+/// three residuals together lets row-mutation checks exercise the equations
+/// actually emitted by both physical AIRs.
+fn endpointsFor(comptime S: type, eq: S, aux: AuxFor(S)) S {
+    return eq.sub(aux.eq0).mul(aux.first).add(eq.sub(aux.eq1).mul(aux.second));
+}
+fn recurrenceFor(comptime S: type, eq: S, eq_next2: S, carry: S) S {
+    return eq.sub(eq_next2.mul(carry));
+}
+pub fn residualsFor(comptime S: type, masks: MaskFor(S), aux: AuxFor(S), projection: S, target_per_row: S) [CONSTRAINTS]S {
+    return .{
+        endpointsFor(S, masks.eq, aux),
+        recurrenceFor(S, masks.eq, masks.eq_next2, aux.carry),
+        prefixResidualFor(S, masks.prefix, masks.prefix_previous, masks.eq, projection, target_per_row),
+    };
+}
 /// Original MAIN arithmetic and these constraints share ONE physical role MAIN
 /// span. q is the authenticated Eq recurrence's succinct carry polynomial.
 pub fn emitFor(comptime F: type, masks: MaskFor(E.SecureFor(F)), aux: AuxFor(E.SecureFor(F)), projection: E.SecureFor(F), target_per_row: E.SecureFor(F), sink: *E.SinkFor(F)) void {
-    sink.emit(masks.eq.sub(aux.eq0).mul(aux.first).add(masks.eq.sub(aux.eq1).mul(aux.second)));
-    sink.emit(masks.eq.sub(masks.eq_next2.mul(aux.carry)));
-    sink.emit(masks.prefix.sub(masks.prefix_previous).sub(masks.eq.mul(projection)).add(target_per_row));
+    // Preserve the original symbolic evaluation/emit interleaving as well as
+    // its algebra, so extracting the test authority cannot reorder AOT IR.
+    const S = E.SecureFor(F);
+    sink.emit(endpointsFor(S, masks.eq, aux));
+    sink.emit(recurrenceFor(S, masks.eq, masks.eq_next2, aux.carry));
+    sink.emit(prefixResidualFor(S, masks.prefix, masks.prefix_previous, masks.eq, projection, target_per_row));
 }

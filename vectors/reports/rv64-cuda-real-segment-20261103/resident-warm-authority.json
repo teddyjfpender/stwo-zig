@@ -1,0 +1,76 @@
+{
+  "schema": "rv64-resident-warm-authority-qualification/v1",
+  "date_utc": "2026-11-03",
+  "block": 24628607,
+  "gpu_count": 1,
+  "gpu_model": "RTX5090 sm120",
+  "scope": "Two sequential complete resident requests; native bundle, recursion excluded",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "security_scope": "128-bit conjectured target under documented owner-accepted assumptions; no whole-protocol certificate",
+  "source_commits": [
+    "15caf0c50",
+    "542baf1aa",
+    "207d1ffa9",
+    "0dee5ae53"
+  ],
+  "host_build_target": "x86_64-linux-gnu x86_64_v4+sha ReleaseFast",
+  "host_sha_ni_available": true,
+  "native_library_sha256": "0478062d25c11267143dc3d260d15b79d39d06ec804114ad75ac88d97c81fff6",
+  "producer_binary_sha256": "452ec16d455e3eaa076a3602c500d2bc8456cbc3275fb4f03581045da04bf933",
+  "all20_artifacts_each_trial_match_freshly_accepted_reference": true,
+  "fresh_receiver_reference": "fully-resident-complete-block.json",
+  "trials": [
+    {
+      "completed_ethereum_block": true,
+      "total_steps": 26894777,
+      "capture_ns": 10285015872,
+      "setup_ns": 22544038134,
+      "prove_ns": 12507484391,
+      "same_process_verify_ns": 2234883920,
+      "trial": 0,
+      "mismatches": [],
+      "fixed": {
+        "source_validations": 17,
+        "source_coefficient_cells": 266924192
+      }
+    },
+    {
+      "completed_ethereum_block": true,
+      "total_steps": 26894777,
+      "capture_ns": 9259697845,
+      "setup_ns": 179514975,
+      "prove_ns": 10904584399,
+      "same_process_verify_ns": 2233274836,
+      "trial": 1,
+      "mismatches": [],
+      "fixed": {
+        "source_validations": 0,
+        "source_coefficient_cells": 0
+      }
+    }
+  ],
+  "two_request_wall_seconds": 72.14819578290917,
+  "two_request_host_peak_rss_bytes": 8563662848,
+  "minor_faults_two_requests": 7806851,
+  "major_faults_two_requests": 0,
+  "retained_host_wide_parking": false,
+  "logical_gpu_allocation_cap_bytes": 30064771072,
+  "improvements": [
+    "Same frozen session-owned setup sources reuse validated bindings; unseen sources and fresh receivers still fully validate coefficients",
+    "Cached ROM words and addresses owned under host key cap",
+    "Compact memory advice routed directly without full native Event partitions",
+    "SHA-NI enabled explicitly only for compatible benchmark host"
+  ],
+  "sha_probe": {
+    "scope": "Single128MiB SHA256 microbenchmark, not a whole-prover speedup",
+    "generic_ns": 3218782381,
+    "sha_ni_ns": 574389495,
+    "identical_digest": true
+  },
+  "limitations": [
+    "Combined change qualification cannot assign timing gains independently",
+    "Host peak includes retained immutable host setup; GPU reservation measured separately",
+    "Single warm request in this run; no CPU speedup ratio or multiGPU claim"
+  ],
+  "sampled_whole_device_peak_bytes": 33667678208
+}

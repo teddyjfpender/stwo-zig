@@ -1,0 +1,57 @@
+{
+  "schema": "rv64-outer-assignment-narrow-runs-source/v1",
+  "status": "EXPERIMENTAL-host-and-semantic-only-CUDA-UNCOMPILED",
+  "base_commit": "6aa344dbb",
+  "default_enabled": false,
+  "cuda_compiled": false,
+  "gpu_executed": false,
+  "runtime_modified": false,
+  "lease_restarted": false,
+  "flag": "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS",
+  "old_abi_unchanged": true,
+  "new_optional_symbol": "stwo_circuit_assignment_narrow_run_on",
+  "threads": 256,
+  "max_levels_per_run": 256,
+  "task_order_and_constraints_unchanged": true,
+  "production_width_distribution": "Two independently admitted post-padding CPU-only leaves matched retained GPU vars/tasks/levels; see selection evidence.",
+  "host_tests": {
+    "passed": true,
+    "count": 6,
+    "command": "zig test src/integrations/riscv_cuda/rv64/assignment_runs.zig -OReleaseFast"
+  },
+  "semantic_check": {
+    "passed": true,
+    "command": "zig build --build-file src/integrations/riscv_cuda/build.zig check-rv64-ethereum-gpu-recursion -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha -Doptimize=ReleaseFast -j4"
+  },
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/circuit_assignment.cu": "0c9b97528ef5e1d0643388fb5863da45daaf9d8a2b3ec191f87d7a1cb3a97ecd",
+    "src/backends/cuda/native/rv64/circuit_assignment.h": "d768bca762dfd510dd817ac1574050de857b18f24c53e62786e6c6f9356ff9a2",
+    "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "112734eefda2ecaa9fdc1f8658f7bb334eab70f414e9758f992dc5061321406c",
+    "src/integrations/riscv_cuda/rv64/assignment_runs.zig": "eb78cb0ac179e91820f92b09d1da23094fc416a14fb728ba7989266b9f9d2da7",
+    "tests/cuda/rv64/assignment_narrow_run_smoke.cu": "605f0ef4fba16f5cb9b4f20e05792cbe37836a5f923a8cb419b55311ca95c310"
+  },
+  "remaining": [
+    "Bounded SM120 compilation",
+    "Future tiny original-vs-run numerical fixture plus malformed and invalid-task barrier checks",
+    "Connected original outer proof-byte parity with positive narrow_run_calls",
+    "New-kernel sanitizer qualification",
+    "Representative real-leaf performance and memory before activation"
+  ],
+  "thread_selection_evidence": {
+    "diagnostic_source_commit": "edc22ba74",
+    "binary_sha256": "11116523a1cc103b049717278c8122855f62e997a787e686a3888f211b6a8a22",
+    "cpu0_result_sha256": "9bf1759341a47ab97bd2a4bc9a478841541bdd17666051646964703aa6bad4d9",
+    "keccak7_result_sha256": "668eedc2af7b40bece9aa97895ce7c3ab4e8cd39f3f6784b05d34e5cd969434f",
+    "cpu0_projected_level_calls": {
+      "original": 120240,
+      "cta128": 22542,
+      "cta256": 6869
+    },
+    "keccak7_projected_level_calls": {
+      "original": 146139,
+      "cta128": 23410,
+      "cta256": 3712
+    },
+    "gpu_performance_measured": false
+  }
+}

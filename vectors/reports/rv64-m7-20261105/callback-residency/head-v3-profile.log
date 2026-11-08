@@ -1,0 +1,41 @@
+{
+ "run": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-callback-nvtx-v3",
+ "process_wall_s": 74.55,
+ "service_overhead_s": 16.891,
+ "rss_gib": 0.04,
+ "cuda_api": {
+  "cuLibraryLoadData": 686,
+  "cudaLaunchKernel_v7000": 164933,
+  "cudaMemcpyAsync_v3020": 42020,
+  "cudaStreamSynchronize_v3020": 8508
+ },
+ "requests": [
+  {
+   "block": 24628607,
+   "trial": 0,
+   "request_s": 40.051,
+   "capture": 1.955,
+   "setup": 12.395,
+   "native": 5.722,
+   "recursion": 19.817,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 24628607,
+   "trial": 1,
+   "request_s": 17.604,
+   "capture": 2.032,
+   "setup": 0.137,
+   "native": 4.519,
+   "recursion": 10.687,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 9.541, "service_stop_s": 7.335, "client_latency_s": [40.062, 17.607]}
+{"block": 24628607, "trial": 0, "status": "accepted", "wall_s": 50.5}
+{"block": 24628607, "trial": 1, "status": "accepted", "wall_s": 49.6}

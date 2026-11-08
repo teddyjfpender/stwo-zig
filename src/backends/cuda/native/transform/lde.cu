@@ -1,4 +1,5 @@
 #include "n2b_fused.cuh"
+#include "n2b_smem.cuh"
 #include "transform_internal.cuh"
 
 // Production schedules load and zero-extend coefficients in their first N2B
@@ -108,8 +109,16 @@ int lde_columns_on(
     uint32_t evaluation_domain_size,
     void *stream_raw,
     bool include_circle,
-    uint32_t *launches_out) {
+    uint32_t *launches_out,
+    size_t coefficient_words_per_column = 0) {
     using namespace stwo::cuda::transform;
+    // Every kernel reads at most min(2^log_size, domain) coefficients of a
+    // column and zero-extends the rest, so a compact source (stride below the
+    // half domain, e.g. degree el-2 columns) is valid when the caller bounds
+    // its per-column words. 0 keeps the original full-domain bound.
+    if (coefficient_words_per_column == 0 ||
+        coefficient_words_per_column > evaluation_domain_size)
+        coefficient_words_per_column = evaluation_domain_size;
     if (launches_out != nullptr) *launches_out = 0;
     if (!valid_shape(
             log_n,
@@ -131,7 +140,7 @@ int lde_columns_on(
             coefficients,
             coefficient_column_stride_words,
             polynomial_count,
-            evaluation_domain_size,
+            coefficient_words_per_column,
             &coefficient_range) ||
         !word_range(coefficient_log_sizes, polynomial_count, &size_range) ||
         !column_range(
@@ -150,6 +159,29 @@ int lde_columns_on(
         reinterpret_cast<cudaStream_t>(stream_raw);
     const auto *domain_twiddles = reinterpret_cast<const M31 *>(
         twiddles + twiddle_words - evaluation_domain_size);
+    if (n2b_wide_supported(log_n) && n2b_wide_enabled()) {
+        // Two HBM passes: the strided pass loads and zero-extends the
+        // coefficients itself, then the contiguous pass finishes in place.
+        for (uint32_t base = 0; base < polynomial_count;
+             base += kMaxColumnsPerLaunch) {
+            const uint32_t remaining = polynomial_count - base;
+            const uint32_t chunk = remaining < kMaxColumnsPerLaunch
+                ? remaining
+                : kMaxColumnsPerLaunch;
+            const cudaError_t status = launch_n2b_wide<true>(
+                {reinterpret_cast<const M31 *>(coefficients) +
+                     static_cast<size_t>(base) * coefficient_column_stride_words,
+                 coefficient_column_stride_words},
+                coefficient_log_sizes + base,
+                {reinterpret_cast<M31 *>(evaluations) +
+                     static_cast<size_t>(base) * evaluation_column_stride_words,
+                 evaluation_column_stride_words},
+                log_n, chunk, include_circle, domain_twiddles, stream);
+            if (status != cudaSuccess) return static_cast<int>(status);
+            *launches_out += 2;
+        }
+        return 0;
+    }
     const bool fuse_first_interval =
         log_n >= kFirstFusedLogN && log_n <= kLastFusedLogN;
     const uint32_t blocks = static_cast<uint32_t>(
@@ -282,10 +314,10 @@ static int preprocessed_transpose_simd_blocks_on(
     return static_cast<int>(status);
 }
 
-extern "C" int stwo_lde_n2b_addressed_on(
+extern "C" __attribute__((visibility("default"))) int stwo_lde_n2b_addressed_on(
     uint32_t *arena,
     size_t arena_words,
-    const AddressedLdeDescriptor *descriptors,
+    const void *raw_descriptors,
     uint32_t descriptor_count,
     size_t evaluation_tile_offset_words,
     uint32_t log_n,
@@ -295,6 +327,7 @@ extern "C" int stwo_lde_n2b_addressed_on(
     void *stream_raw,
     uint32_t include_circle,
     uint32_t *launches_out) {
+    const auto *descriptors = static_cast<const AddressedLdeDescriptor *>(raw_descriptors);
     using namespace stwo::cuda::transform;
     // Mode 2 is the checked ingress-only in-place fixed-coefficient order
     // conversion. Keep the stable Rust-declared transform ABI; no extra
@@ -438,4 +471,41 @@ extern "C" int stwo_lde_n2b_columns_before_circle_on(
         stream_raw,
         false,
         launches_out);
+}
+
+// M5 platform: compact-source variant of stwo_lde_n2b_columns_on for
+// direct extension of degree el-2 (or lower) device columns straight from
+// their retained lease. `coefficient_words_per_column` bounds the readable
+// source per column (the caller guarantees 2^log_size <= it for every column);
+// kernels are unchanged, so evaluations are bit-identical to the staged path.
+extern "C" int stwo_lde_n2b_columns_compact_on(
+    const uint32_t *coefficients,
+    size_t coefficient_column_stride_words,
+    const uint32_t *coefficient_log_sizes,
+    uint32_t *evaluations,
+    size_t evaluation_column_stride_words,
+    uint32_t log_n,
+    uint32_t polynomial_count,
+    const uint32_t *twiddles,
+    uint32_t twiddle_words,
+    uint32_t evaluation_domain_size,
+    size_t coefficient_words_per_column,
+    void *stream_raw,
+    uint32_t *launches_out) {
+    if (coefficient_words_per_column == 0) return static_cast<int>(cudaErrorInvalidValue);
+    return lde_columns_on(
+        coefficients,
+        coefficient_column_stride_words,
+        coefficient_log_sizes,
+        evaluations,
+        evaluation_column_stride_words,
+        log_n,
+        polynomial_count,
+        twiddles,
+        twiddle_words,
+        evaluation_domain_size,
+        stream_raw,
+        true,
+        launches_out,
+        coefficient_words_per_column);
 }

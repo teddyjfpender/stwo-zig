@@ -1,0 +1,118 @@
+{
+ "schema": "rv64-m6-hint-tape-prep/v1",
+ "run": "/workspace/m3/runs/m6-hint-tape/daemon-26235156-24628607-r1-tape2-check",
+ "requests": [
+  {
+   "request": "0000-26235156",
+   "block": 26235156,
+   "dag_wall_s": 15.085,
+   "nodes": 21,
+   "leaf": {
+    "prep_s_median": 1.7446,
+    "graph_s_median": 0.6589,
+    "finalize_s_median": 0.0798,
+    "columns_s_median": 0.3161,
+    "host_plan_s_median": 1.0259,
+    "device_s_median": 1.0573,
+    "wait_s_median": 1.444,
+    "finish_s_median": 0.1954,
+    "prep_max": 2.4047,
+    "prep_sum_s": 19.044,
+    "count": 11
+   },
+   "fold": {
+    "prep_s_median": 1.7316,
+    "graph_s_median": 0.3113,
+    "finalize_s_median": 0.1005,
+    "columns_s_median": 0.2877,
+    "host_plan_s_median": 1.0362,
+    "device_s_median": 0.6716,
+    "wait_s_median": 0.0001,
+    "finish_s_median": 0.1397,
+    "prep_max": 2.4925,
+    "prep_sum_s": 16.688,
+    "count": 10
+   },
+   "tail": {
+    "after_last_leaf_s": 7.364,
+    "folds": 6,
+    "prep_sum_s": 7.27,
+    "device_sum_s": 3.903,
+    "finish_sum_s": 0.797,
+    "ids": [
+     17,
+     6,
+     13,
+     19,
+     14,
+     20
+    ]
+   },
+   "first_device_start_s": 1.122
+  },
+  {
+   "request": "0001-24628607",
+   "block": 24628607,
+   "dag_wall_s": 19.303,
+   "nodes": 33,
+   "leaf": {
+    "prep_s_median": 1.9781,
+    "graph_s_median": 0.6734,
+    "finalize_s_median": 0.0793,
+    "columns_s_median": 0.3009,
+    "host_plan_s_median": 1.0696,
+    "device_s_median": 0.916,
+    "wait_s_median": 1.9662,
+    "finish_s_median": 0.2819,
+    "prep_max": 2.5172,
+    "prep_sum_s": 32.976,
+    "count": 17
+   },
+   "fold": {
+    "prep_s_median": 0.5524,
+    "graph_s_median": 0.3397,
+    "finalize_s_median": 0.0938,
+    "columns_s_median": 0.0,
+    "host_plan_s_median": 0.0084,
+    "device_s_median": 0.6733,
+    "wait_s_median": 0.0154,
+    "finish_s_median": 0.1142,
+    "prep_max": 2.0596,
+    "prep_sum_s": 11.078,
+    "count": 16
+   },
+   "tail": {
+    "after_last_leaf_s": 5.923,
+    "folds": 5,
+    "prep_sum_s": 2.441,
+    "device_sum_s": 3.013,
+    "finish_sum_s": 0.327,
+    "ids": [
+     27,
+     28,
+     29,
+     30,
+     32
+    ]
+   },
+   "first_device_start_s": 1.648
+  }
+ ],
+ "log": {
+  "tape_used": 0,
+  "tape_fallbacks": 0,
+  "tape_check_ok": 26,
+  "tape_check_mismatch": 0,
+  "tape_refused": [],
+  "constants_unstable": 0,
+  "tape_prep_ms_median": null,
+  "tape_record_ms_median": null,
+  "tape_authority_ms_median": null,
+  "tape_plan_ms_median": null,
+  "assignment_levels_stream_ms": {
+   "fold_like_median": 15.9925,
+   "leaf_like_median": 135.2595,
+   "count": 54
+  }
+ }
+}

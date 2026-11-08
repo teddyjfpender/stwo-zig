@@ -1,0 +1,25 @@
+{
+  "schema": "rv64-m7-native-static-class-envelope/v1",
+  "author": "OpenAI Codex",
+  "status": "class API unit qualified; new format disabled",
+  "class_source_gate_bits": 159,
+  "semantic_target_bits": 151,
+  "salt_loss_bits": 6,
+  "mixed_class_slack_bits": 2,
+  "max_native_proofs": 256,
+  "gates": [
+    {
+      "name": "class factories",
+      "exit_code": 0
+    },
+    {
+      "name": "all frozen truth class envelopes",
+      "exit_code": 0
+    },
+    {
+      "name": "public count capacities",
+      "exit_code": 0
+    }
+  ],
+  "limits": "Static CPU factory is fully typed; full actual CPU setup enumeration remains required at Tnat construction. No Ethereum native-GKR request accepted."
+}

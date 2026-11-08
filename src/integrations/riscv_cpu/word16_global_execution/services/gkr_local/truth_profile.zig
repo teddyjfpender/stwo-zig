@@ -11,7 +11,9 @@ pub fn fromDeclaration(d: Wire.TruthDeclaration) !K.equations.BatchPolicy {
     return policy;
 }
 pub fn validateDeclaration(d: Wire.TruthDeclaration) !void {
-    if (d.family == .keccak) { _ = try fromDeclaration(d); } else try @import("v2_scope.zig").truthDeclaration(d);
+    if (d.family == .keccak) {
+        _ = try fromDeclaration(d);
+    } else try @import("v2_scope.zig").truthDeclaration(d);
 }
 pub fn validate(truth: R.Truth) !void {
     if (truth == .keccak) {

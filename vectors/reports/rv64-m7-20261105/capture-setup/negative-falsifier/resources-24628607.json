@@ -1,0 +1,1 @@
+{"recycler_cache_bytes": 1073741824, "fixed_setup_bytes": 12884901888, "keccak_uniform_throughput": true, "capture_options": {"max_inflight_packets": 4, "packet_heap_bytes": 1073741824, "max_inflight_packet_heap_bytes": 4294967296, "max_inflight_wire_bytes": 4294967296, "execution_workers": 8}}

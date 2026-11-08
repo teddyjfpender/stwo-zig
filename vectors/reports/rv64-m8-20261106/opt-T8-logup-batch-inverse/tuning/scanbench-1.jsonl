@@ -1,0 +1,9 @@
+{"kind":"bench_scan","row_log":11,"reps":7,"old_ms":{"median":0.0109,"min":0.0086,"max":0.0112},"new_ms":{"median":0.0092,"min":0.0086,"max":0.0100},"speedup":1.192}
+{"kind":"bench_scan","row_log":12,"reps":7,"old_ms":{"median":0.0107,"min":0.0087,"max":0.0130},"new_ms":{"median":0.0159,"min":0.0129,"max":0.0171},"speedup":0.673}
+{"kind":"bench_scan","row_log":14,"reps":7,"old_ms":{"median":0.0135,"min":0.0124,"max":0.0135},"new_ms":{"median":0.0154,"min":0.0144,"max":0.0164},"speedup":0.876}
+{"kind":"bench_scan","row_log":16,"reps":7,"old_ms":{"median":0.0347,"min":0.0338,"max":0.0357},"new_ms":{"median":0.0196,"min":0.0192,"max":0.0207},"speedup":1.773}
+{"kind":"bench_scan","row_log":18,"reps":7,"old_ms":{"median":0.1091,"min":0.1059,"max":0.1111},"new_ms":{"median":0.0240,"min":0.0230,"max":0.0256},"speedup":4.547}
+{"kind":"bench_scan","row_log":20,"reps":7,"old_ms":{"median":0.3568,"min":0.3553,"max":0.3575},"new_ms":{"median":0.0418,"min":0.0403,"max":0.0423},"speedup":8.544}
+{"kind":"bench_scan","row_log":22,"reps":7,"old_ms":{"median":1.6854,"min":1.6833,"max":1.6909},"new_ms":{"median":0.2787,"min":0.2764,"max":0.2826},"speedup":6.048}
+{"kind":"bench_scan","row_log":23,"reps":7,"old_ms":{"median":3.3470,"min":3.3466,"max":3.3530},"new_ms":{"median":0.5677,"min":0.5671,"max":0.5705},"speedup":5.895}
+{"kind":"bench_scan","row_log":24,"reps":7,"old_ms":{"median":7.7073,"min":7.7004,"max":7.7131},"new_ms":{"median":1.1160,"min":1.1093,"max":1.1190},"speedup":6.906}

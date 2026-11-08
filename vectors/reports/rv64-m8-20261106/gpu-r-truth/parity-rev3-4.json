@@ -1,0 +1,539 @@
+{
+ "schema": "rv64-m8-truth-parity/v1",
+ "block": 26235156,
+ "legacy_native_wall_ns": 21654576134,
+ "job_device": 1,
+ "wide_framing": true,
+ "classes": 7,
+ "all_equal": true,
+ "negatives_all_fired": true,
+ "truths": [
+  {
+   "ordinal": 4,
+   "truth_index": 0,
+   "family": "keccak",
+   "kind": "classic",
+   "log": 18,
+   "calls": 19418,
+   "compact_words": 970900,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 171.56781005859375,
+   "stage1_wait_ns": 54105360,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 3208462976,
+   "stage1_declared_words": 3378333123,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "legacy_bytes": 1388640,
+   "job_bytes": 1388640,
+   "stage2_gpu_ms": [
+    876.0831909179688,
+    873.3209228515625,
+    -1,
+    -1
+   ],
+   "stage2_stage_ns": [
+    142461861,
+    614760,
+    0,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    238782468,
+    233853040,
+    0,
+    0
+   ],
+   "stage2_wait_ns": [
+    639195436,
+    639741536,
+    0,
+    0
+   ],
+   "stage2_assemble_ns": 74900029,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 5757008448,
+   "stage2_declared_words": 5068553785,
+   "class_build_ns": 644323164,
+   "negatives": [
+    {
+     "fault": "parameter_program",
+     "expected_check": "truth_status",
+     "fired": true,
+     "word": 50397441,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "absent_claim",
+     "expected_check": "truth_status",
+     "fired": true,
+     "word": 50397188,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "class_root",
+     "expected_check": "root_match",
+     "fired": true,
+     "word": 34078721,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "stage1_root",
+     "expected_check": "root_match",
+     "fired": true,
+     "word": 34078722,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "channel_cursor",
+     "expected_check": "channel_order",
+     "fired": true,
+     "word": 16842755,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "pcs_header",
+     "expected_check": "pcs_status",
+     "fired": true,
+     "word": 34013185,
+     "error_name": "DeviceTruthCheckRejected"
+    }
+   ],
+   "error_name": ""
+  },
+  {
+   "ordinal": 5,
+   "truth_index": 1,
+   "family": "keccak",
+   "kind": "classic",
+   "log": 13,
+   "calls": 606,
+   "compact_words": 30300,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 7.4633917808532715,
+   "stage1_wait_ns": 2184168,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 253044800,
+   "stage1_declared_words": 447294339,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "legacy_bytes": 1391104,
+   "job_bytes": 1391104,
+   "stage2_gpu_ms": [
+    151.36338806152344,
+    149.64659118652344,
+    -1,
+    -1
+   ],
+   "stage2_stage_ns": [
+    105722832,
+    162490,
+    0,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    25258336,
+    21686798,
+    0,
+    0
+   ],
+   "stage2_wait_ns": [
+    127855339,
+    128273419,
+    0,
+    0
+   ],
+   "stage2_assemble_ns": 74954189,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 998232512,
+   "stage2_declared_words": 675979080,
+   "class_build_ns": 694330036,
+   "negatives": [],
+   "error_name": ""
+  },
+  {
+   "ordinal": 6,
+   "truth_index": 2,
+   "family": "keccak",
+   "kind": "classic",
+   "log": 14,
+   "calls": 970,
+   "compact_words": 48500,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 11.833056449890137,
+   "stage1_wait_ns": 5550407,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 348368704,
+   "stage1_declared_words": 541831811,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "legacy_bytes": 1381952,
+   "job_bytes": 1381952,
+   "stage2_gpu_ms": [
+    140.6732177734375,
+    138.8473663330078,
+    -1,
+    -1
+   ],
+   "stage2_stage_ns": [
+    107527310,
+    162380,
+    0,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    31842592,
+    28183694,
+    0,
+    0
+   ],
+   "stage2_wait_ns": [
+    110615909,
+    110899619,
+    0,
+    0
+   ],
+   "stage2_assemble_ns": 75385538,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 1057544384,
+   "stage2_declared_words": 734511368,
+   "class_build_ns": 683778402,
+   "negatives": [],
+   "error_name": ""
+  },
+  {
+   "ordinal": 7,
+   "truth_index": 3,
+   "family": "secp_row",
+   "kind": "delegated",
+   "log": 14,
+   "calls": 14855,
+   "compact_words": 713040,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 35.30268859863281,
+   "stage1_wait_ns": 4464357,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 185553152,
+   "stage1_declared_words": 187126587,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "legacy_bytes": 1933712,
+   "job_bytes": 1933712,
+   "stage2_gpu_ms": [
+    109.63017272949219,
+    110.2432632446289,
+    -1,
+    -1
+   ],
+   "stage2_stage_ns": [
+    1053489,
+    502440,
+    0,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    61865156,
+    59095817,
+    0,
+    0
+   ],
+   "stage2_wait_ns": [
+    48014314,
+    51414832,
+    0,
+    0
+   ],
+   "stage2_assemble_ns": 132329997,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 690928960,
+   "stage2_declared_words": 788676061,
+   "class_build_ns": 200093850,
+   "negatives": [
+    {
+     "fault": "parameter_program",
+     "expected_check": "truth_status",
+     "fired": true,
+     "word": 50397441,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "absent_claim",
+     "expected_check": "truth_status",
+     "fired": true,
+     "word": 50397189,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "class_root",
+     "expected_check": "root_match",
+     "fired": true,
+     "word": 34078721,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "stage1_root",
+     "expected_check": "root_match",
+     "fired": true,
+     "word": 34078722,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "channel_cursor",
+     "expected_check": "channel_order",
+     "fired": true,
+     "word": 16842755,
+     "error_name": "DeviceTruthCheckRejected"
+    },
+    {
+     "fault": "pcs_header",
+     "expected_check": "pcs_status",
+     "fired": true,
+     "word": 34013185,
+     "error_name": "DeviceTruthCheckRejected"
+    }
+   ],
+   "error_name": ""
+  },
+  {
+   "ordinal": 8,
+   "truth_index": 4,
+   "family": "secp_row",
+   "kind": "delegated",
+   "log": 14,
+   "calls": 14001,
+   "compact_words": 336024,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 25.125728607177734,
+   "stage1_wait_ns": 3984838,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 143685504,
+   "stage1_declared_words": 145258945,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "legacy_bytes": 1519396,
+   "job_bytes": 1519396,
+   "stage2_gpu_ms": [
+    81.10249328613281,
+    81.08930969238281,
+    -1,
+    -1
+   ],
+   "stage2_stage_ns": [
+    835099,
+    275170,
+    0,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    41030428,
+    41093567,
+    0,
+    0
+   ],
+   "stage2_wait_ns": [
+    40308808,
+    40232478,
+    0,
+    0
+   ],
+   "stage2_assemble_ns": 105884101,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 541129984,
+   "stage2_declared_words": 619653321,
+   "class_build_ns": 165113418,
+   "negatives": [],
+   "error_name": ""
+  },
+  {
+   "ordinal": 9,
+   "truth_index": 5,
+   "family": "sha256",
+   "kind": "delegated",
+   "log": 12,
+   "calls": 3157,
+   "compact_words": 75768,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 20.89276885986328,
+   "stage1_wait_ns": 4541018,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 182541056,
+   "stage1_declared_words": 182935127,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "legacy_bytes": 2007624,
+   "job_bytes": 2007624,
+   "stage2_gpu_ms": [
+    69.53817749023438,
+    63.81411361694336,
+    -1,
+    -1
+   ],
+   "stage2_stage_ns": [
+    617819,
+    297390,
+    0,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    54072000,
+    48352883,
+    0,
+    0
+   ],
+   "stage2_wait_ns": [
+    15625472,
+    15651331,
+    0,
+    0
+   ],
+   "stage2_assemble_ns": 146840079,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 185203264,
+   "stage2_declared_words": 274011103,
+   "class_build_ns": 168130587,
+   "negatives": [],
+   "error_name": ""
+  },
+  {
+   "ordinal": 10,
+   "truth_index": 6,
+   "family": "arith256_mod",
+   "kind": "delegated",
+   "log": 8,
+   "calls": 25,
+   "compact_words": 1000,
+   "binding": true,
+   "seed_resolved": true,
+   "stage1_root_equal": true,
+   "stage1_gpu_ms": 1.52457594871521,
+   "stage1_wait_ns": 591060,
+   "stage1_host_waits": 1,
+   "stage1_arena_peak_words": 640320,
+   "stage1_declared_words": 665527,
+   "fixed_root_equal": true,
+   "main_root_equal": true,
+   "inter_root_equal": true,
+   "claims_equal": true,
+   "local_equal": true,
+   "shared_equal": true,
+   "verdicts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "bytes_equal": true,
+   "legacy_bytes": 395212,
+   "job_bytes": 395212,
+   "stage2_gpu_ms": [
+    11.198240280151367,
+    11.63270378112793,
+    -1,
+    -1
+   ],
+   "stage2_stage_ns": [
+    210430,
+    94220,
+    0,
+    0
+   ],
+   "stage2_enqueue_ns": [
+    5112057,
+    6423806,
+    0,
+    0
+   ],
+   "stage2_wait_ns": [
+    6183707,
+    8652736,
+    0,
+    0
+   ],
+   "stage2_assemble_ns": 28705085,
+   "stage2_host_waits": 1,
+   "stage2_arena_peak_words": 2142720,
+   "stage2_declared_words": 2523157,
+   "class_build_ns": 27635215,
+   "negatives": [],
+   "error_name": ""
+  }
+ ]
+}

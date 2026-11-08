@@ -1,0 +1,59 @@
+== zig test host_budget_allocator
+2/8 host_budget_allocator.test.host budget allocator distinguishes child exhaustion from its limit...OK
+3/8 host_budget_allocator.test.host budget allocator accounts in-place resize and remap...OK
+4/8 host_budget_allocator.test.shared host budget admits exactly once under heavy contention...OK
+5/8 host_budget_allocator.test.shared host budget preserves exact accounting across thread transfer...OK
+6/8 host_budget_allocator.test.shared host budget lease survives original owner release...OK
+7/8 host_budget_allocator.test.shared host budget nested owner survives backing release and every allocation failure...OK
+8/8 host_budget_allocator.test.shared host budget nested descendants and external lease preserve backing chain...OK
+All 8 tests passed.
+STEP host_budget_allocator rc=0 7s
+== zig test shared_external_memory_test_root
+13/19 prover.host_budget_allocator.test.host budget allocator distinguishes child exhaustion from its limit...OK
+14/19 prover.host_budget_allocator.test.host budget allocator accounts in-place resize and remap...OK
+15/19 prover.host_budget_allocator.test.shared host budget admits exactly once under heavy contention...OK
+16/19 prover.host_budget_allocator.test.shared host budget preserves exact accounting across thread transfer...OK
+17/19 prover.host_budget_allocator.test.shared host budget lease survives original owner release...OK
+18/19 prover.host_budget_allocator.test.shared host budget nested owner survives backing release and every allocation failure...OK
+19/19 prover.host_budget_allocator.test.shared host budget nested descendants and external lease preserve backing chain...OK
+All 19 tests passed.
+STEP shared_external_memory rc=0 9s
+== STEP test-rv64-recursion-ready (src/integrations/riscv_cuda)
+STEP test-rv64-recursion-ready rc=0 49s
+== STEP test-rv64-gkr-plan (src/integrations/riscv_cuda)
+test-rv64-gkr-plan
++- run test stderr
+GPU_COMPOSITION_POOL_TRIM native_status=13 arena_bytes=12884901888
+OUTER_TASK_PACK_PARITY tasks=8388608 bytes=268435456 workers=4 serial_median_ns=41310725 parallel_median_ns=37942934 all_records_exact=true csr=false
+STEP test-rv64-gkr-plan rc=0 18s
+== STEP test-trace-stream-plan (src/integrations/riscv_cuda)
+STEP test-trace-stream-plan rc=0 7s
+== STEP test-riscv64-om31-outer (.)
+                                 ^
+/workspace/m3/src/integrate/build_support/graph/delegation.zig:129:40: 0x1305095 in read (build.zig)
+            .identity = resolveIdentity(b, .{
+                                       ^
+/workspace/m3/src/integrate/build_support/root_dispatcher.zig:19:44: 0x12cec61 in add (build.zig)
+    const options = delegation.Options.read(b);
+                                           ^
+/workspace/m3/src/integrate/build.zig:5:19: 0x1291a1a in build (build.zig)
+    dispatcher.add(b);
+                  ^
+/workspace/zig/lib/std/Build.zig:2214:33: 0x12640da in runBuild__anon_23793 (std.zig)
+        .void => build_zig.build(b),
+                                ^
+/workspace/zig/lib/compiler/build_runner.zig:366:29: 0x1249ff1 in main (build_runner.zig)
+        try builder.runBuild(root);
+                            ^
+/workspace/zig/lib/std/start.zig:627:37: 0x1250c69 in posixCallMainAndExit (std.zig)
+            const result = root.main() catch |err| {
+                                    ^
+/workspace/zig/lib/std/start.zig:232:5: 0x122f351 in _start (std.zig)
+    asm volatile (switch (native_arch) {
+    ^
+???:?:?: 0x0 in ??? (???)
+error: the following build command crashed:
+.zig-cache/o/3939de693ceac02f1be4abe58b0a8147/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/integrate .zig-cache /workspace/m3/cache/zig-global --seed 0x6e98c0dc -Z2f83a637d91c5824 test-riscv64-om31-outer -Doptimize=ReleaseFast -Dimplementation-commit=423b53a87 -Dimplementation-tree=0000000000000000000000000000000000000000 -Dimplementation-dirty=false -j8
+STEP test-riscv64-om31-outer rc=0 3s
+ALLDONE
+EXIT=0

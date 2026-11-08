@@ -1,0 +1,55 @@
+test-rv64-pcs-geometry
++- run test stderr
+PP_SOURCE_ADMISSION_REFUSED physical=0 handoff=1 runtime_v2=false ordinal=0 pp_retained_upper_large=5368709120 pp_retained_upper_small=0 temp_large=18253611008 temp_small=0 stage_retained_upper_large=0 stage_retained_upper_small=0 successor_large=0 successor_small=0 required_large=23622320128 required_small=0 cap_large=23085449216 cap_small=536870912
+test-rv64-gkr-plan
++- run test stderr
+GKR_CHUNK_CONTRACT {"device_workspace_bytes":219275556,"pinned_ring_bytes":201326592,"host_store_bytes":16508780032,"product_combinations":257949688,"host_device_transfer_bytes_upper_bound":132070244352,"chunk_facts":262144,"pipeline_slots":2,"numerical_implementation_available":false}
+
+GKR_FRONTIER_PLAN retained_bytes=16573396480 frontier_bytes=15046661376 saved_bytes=1526735104
+GPU_COMPOSITION_POOL_TRIM native_status=13 arena_bytes=12884901888
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=112 kind=0
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=333 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=0
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=projection owner=cpu_evaluations words=222 kind=1
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=commit owner=committed_coefficients words=555 kind=2
+PP_SOURCE_ADMISSION_REFUSED physical=0 handoff=1 runtime_v2=false ordinal=0 pp_retained_upper_large=5368709120 pp_retained_upper_small=0 temp_large=18253611008 temp_small=0 stage_retained_upper_large=0 stage_retained_upper_small=0 successor_large=0 successor_small=0 required_large=23622320128 required_small=0 cap_large=23085449216 cap_small=536870912
+OUTER_TASK_PACK_PARITY tasks=8388608 bytes=268435456 workers=4 serial_median_ns=87645479 parallel_median_ns=62279544 all_records_exact=true csr=false
+test
++- run test 244/245 passed, 1 failed
+thread 2404550 panic: integer overflow
+/workspace/zig/lib/std/mem/Allocator.zig:428:9: 0x144119c in deinit (test)
+    if (bytes_len == 0) return;
+        ^
+/workspace/m3/src/m7-integrate/src/integrations/riscv_cuda/rv64/outer_source.zig:611:26: 0x145c4d0 in retireAssignment (test)
+        assignment.deinit();
+                         ^
+/workspace/m3/src/m7-integrate/src/integrations/riscv_cuda/rv64/outer_source.zig:694:27: 0x14818d5 in test.atomic circuit plan retires after MAIN while restoring persistent legacy plan (test)
+    owner.retireAssignment();
+                          ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x114b81d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x114adfa in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x11485d5 in main (test)
+            root.main();
+                     ^
+???:?:?: 0x76c2c5f251c9 in ??? (libc.so.6)
+Unwind information for `libc.so.6:0x76c2c5f251c9` was not available, trace may be incomplete
+
+???:?:?: 0x76c2c5f2528a in ??? (libc.so.6)
+/workspace/zig/lib/libc/glibc/sysdeps/x86_64/start-2.33.S:120:0: 0x1102389 in ??? (/workspace/zig/lib/libc/glibc/sysdeps/x86_64/start-2.33.S)
+ call *__libc_start_main@GOTPCREL(%rip)
+error: 'rv64.tests.projection_codegen_test.test.native source projection IR preserves every role tuple weight and semantic draw slot at aliased values' failed: GKR_FRONTIER_PLAN retained_bytes=16573396480 frontier_bytes=15046661376 saved_bytes=1526735104
+projection value mismatch descriptor=13 mode=0 term=0 numerator=true denominator=false
+error: while executing test 'rv64.outer_source.test.atomic circuit plan retires after MAIN while restoring persistent legacy plan', the following command terminated with signal 6 (expected exited with code 0):
+/workspace/m3/src/m7-integrate/.zig-cache/o/09834720e54236c3a7d3e0b86eeaad92/test --cache-dir=/workspace/m3/src/m7-integrate/.zig-cache --seed=0x80b01a3 --listen=-
+
+Build Summary: 28/30 steps succeeded; 1 failed; 429/430 tests passed; 1 failed
+test transitive failure
++- run test 244/245 passed, 1 failed
+
+error: the following build command failed with exit code 1:
+/workspace/m3/src/m7-integrate/.zig-cache/o/6a83379fd463de18515e4a4746153f4d/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m7-integrate/src/integrations/riscv_cuda /workspace/m3/src/m7-integrate/.zig-cache /workspace/m3/cache/zig-global --seed 0x80b01a3 -Z62214db60a1c0f98 test test-rv64-recursion-ready test-rv64-batch-plan test-rv64-gkr-plan test-rv64-pcs-geometry -j2 -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha

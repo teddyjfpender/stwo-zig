@@ -189,7 +189,17 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             if (queried_values.len != self.column_log_sizes.len) {
                 return MerkleVerificationError.InvalidQueryShape;
             }
-            if (self.column_log_sizes.len == 0) return;
+            if (self.column_log_sizes.len == 0) {
+                // Empty trees still publish an owned, destructible capture.
+                // PCS capture retires every tree slot, including this one.
+                if (capture_out) |destination| {
+                    const positions = try allocator.dupe(usize, query_positions);
+                    errdefer allocator.free(positions);
+                    const siblings = try allocator.alloc(H.Hash, 0);
+                    destination.* = .{ .positions = positions, .path_depth = 0, .siblings = siblings };
+                }
+                return;
+            }
 
             for (queried_values) |column| {
                 if (column.len != query_positions.len) return MerkleVerificationError.InvalidQueryShape;
@@ -419,6 +429,26 @@ fn maxLogSize(values: []const u32) u32 {
 
 test "vcs_lifted verifier: verifies simple proof" {
     try verifySimpleProofWithAllocator(std.testing.allocator);
+}
+test "vcs_lifted verifier: empty tree publishes owned destructible capture" {
+    try emptyCaptureWithAllocator(std.testing.allocator);
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, emptyCaptureWithAllocator, .{});
+}
+fn emptyCaptureWithAllocator(allocator: std.mem.Allocator) !void {
+    const Hasher = @import("blake2_merkle.zig").Blake2sMerkleHasher;
+    var verifier = try MerkleVerifierLifted(Hasher).init(allocator, @splat(0), &.{});
+    defer verifier.deinit(allocator);
+    var positions = [_]usize{ 1, 3 };
+    var capture = MerklePathCapture(Hasher){ .positions = &.{}, .path_depth = 7, .siblings = &.{} };
+    verifier.verifyWithPathCapture(allocator, &positions, &.{}, .{ .hash_witness = &.{} }, &capture) catch |err| {
+        try std.testing.expectEqual(@as(u32, 7), capture.path_depth);
+        return err;
+    };
+    defer capture.deinit(allocator);
+    positions[0] = 9;
+    try std.testing.expectEqualSlices(usize, &.{ 1, 3 }, capture.positions);
+    try std.testing.expectEqual(@as(u32, 0), capture.path_depth);
+    try std.testing.expectEqual(@as(usize, 0), capture.siblings.len);
 }
 
 test "vcs_lifted verifier: every allocation failure preserves capture and releases columns" {

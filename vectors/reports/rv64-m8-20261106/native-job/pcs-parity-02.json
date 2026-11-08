@@ -1,0 +1,570 @@
+{
+ "schema": "rv64-m8-native-job-pcs-parity/v1",
+ "scope": "M8 native-job: enqueue-only PCS + device OODS byte parity versus the legacy PCS pipeline.",
+ "base_sha256": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+ "fixture_tool_sha256": "f89128926ca88eaf27705ffbd8138a4d3587e72ec1a6a20aa72bfc1c9e73aa79",
+ "inputs": {
+  "src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu": "ad24bb9387a22521045633a6882121225d1ae25b34302e51a9ae2ac0dd4b3dcb",
+  "src/backends/cuda/native/rv64/jobs/oods_points.cu": "138fe062b5d24eaf9baa319045f3b24df91ada7193f53620dcbf36e2db8445dc",
+  "tests/cuda/rv64/jobs/pcs_enqueue_parity.cu": "1dcd50c4c8e4e818a3bfe274b1e7fcba1992d526af35aa64b81fd45b299f1eb9",
+  "src/backends/cuda/native/rv64/jobs/pcs_enqueue.h": "5659def1ab06de9f5acd9efe10070256398b573474399bfae375a75ff82fe9ec",
+  "src/backends/cuda/native/rv64/jobs/oods_points.h": "a516e31bd67fd25bdc94cbbc0432664756a6005c85f446db66e6105d964b2986",
+  "src/backends/cuda/native/rv64/pcs_pipeline.cuh": "8dba79af1fce27d4f030eabe2d313af7146eff81b1c31346c83cfbc7111977f9"
+ },
+ "sync_lint": {
+  "forbidden": "stwo_exec_context_sync|cudaStreamSynchronize|cudaEventSynchronize|cudaDeviceSynchronize|cudaMemcpy\\(|cudaMemcpyDeviceToHost|memcpy_d2h|stwo_rv64_gpu_lease|gpu_session_submit",
+  "hits": [],
+  "result": "PASS"
+ },
+ "compile_seconds": 9.015277589904144,
+ "addon_sha256": "8b63e57b2eaf6f34a27291e336b455914fc327ff91f275d07dc58809bfa9b750",
+ "harness_sha256": "a09cb3c86d605841cc490229d62059eeeb3e2c0de40982254bea7f55c2df231d",
+ "addon_resolves_against_base_rtld_now": true,
+ "fixtures": {
+  "plain": "a70d5a53e6a5bac4b537819aa3c00682819323071076a63b4dab6feebc516236",
+  "imported": "7b4f431edcfb23ee63db14a42b569ccfc9171f9f615f22274fd282a5b83f1fd4"
+ },
+ "arms": [
+  {
+   "arm": "plain-host-default",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "host",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3575892",
+     "gpu_ms": "1.416992",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "host",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3575892",
+     "gpu_ms": "1.397088",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "plain-host-beta2",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "host",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3575892",
+     "gpu_ms": "1.434240",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "host",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3575892",
+     "gpu_ms": "1.327200",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "plain-host-beta2-nostream",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "host",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3575892",
+     "gpu_ms": "1.441440",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "host",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3575892",
+     "gpu_ms": "1.317056",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "plain-device-default",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "device",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3622932",
+     "gpu_ms": "1.383776",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "device",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3622932",
+     "gpu_ms": "1.267424",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "plain-device-beta2",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "device",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3622932",
+     "gpu_ms": "1.378304",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "device",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3622932",
+     "gpu_ms": "1.272192",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "plain-device-beta2-nostream",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "device",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3622932",
+     "gpu_ms": "1.451840",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "device",
+     "rolling": "0",
+     "imported": "0",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "16",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "3622932",
+     "gpu_ms": "1.271776",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "imported-host-default",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "host",
+     "rolling": "0",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "11",
+     "arena_allocs": "58",
+     "arena_peak_bytes": "3575924",
+     "gpu_ms": "1.403360",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "host",
+     "rolling": "0",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "11",
+     "arena_allocs": "58",
+     "arena_peak_bytes": "3575924",
+     "gpu_ms": "1.294656",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "imported-host-beta2",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "host",
+     "rolling": "1",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "11",
+     "arena_allocs": "62",
+     "arena_peak_bytes": "2885332",
+     "gpu_ms": "1.433952",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "host",
+     "rolling": "1",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "11",
+     "arena_allocs": "62",
+     "arena_peak_bytes": "2885332",
+     "gpu_ms": "1.315840",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "imported-host-beta2-nostream",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "host",
+     "rolling": "1",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "11",
+     "arena_allocs": "63",
+     "arena_peak_bytes": "2885332",
+     "gpu_ms": "1.444896",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "host",
+     "rolling": "1",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "17475",
+     "steps": "11",
+     "arena_allocs": "63",
+     "arena_peak_bytes": "2885332",
+     "gpu_ms": "1.316768",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "imported-device-default",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "device",
+     "rolling": "0",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "11",
+     "arena_allocs": "58",
+     "arena_peak_bytes": "3622964",
+     "gpu_ms": "1.391936",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "device",
+     "rolling": "0",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "11",
+     "arena_allocs": "58",
+     "arena_peak_bytes": "3622964",
+     "gpu_ms": "1.267552",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "imported-device-beta2",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "device",
+     "rolling": "1",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "11",
+     "arena_allocs": "58",
+     "arena_peak_bytes": "2885332",
+     "gpu_ms": "1.378528",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "device",
+     "rolling": "1",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "11",
+     "arena_allocs": "58",
+     "arena_peak_bytes": "2885332",
+     "gpu_ms": "1.257056",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "imported-device-beta2-nostream",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "columns": "device",
+     "rolling": "1",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "11",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "2885332",
+     "gpu_ms": "1.375744",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "columns": "device",
+     "rolling": "1",
+     "imported": "1",
+     "output_words": "290937",
+     "ingress_words": "5715",
+     "steps": "11",
+     "arena_allocs": "59",
+     "arena_peak_bytes": "2885332",
+     "gpu_ms": "1.269184",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "oods-default",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "device_seed_equals_host": "1",
+     "device_point_equals_host": "1",
+     "oods_status": "0",
+     "channel_status": "0",
+     "byte_identical": "1",
+     "output_words": "290937"
+    }
+   ]
+  },
+  {
+   "arm": "oods-beta2",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "device_seed_equals_host": "1",
+     "device_point_equals_host": "1",
+     "oods_status": "0",
+     "channel_status": "0",
+     "byte_identical": "1",
+     "output_words": "290937"
+    }
+   ]
+  },
+  {
+   "arm": "capture-plain-default",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "capture_mode": "global",
+     "graph_nodes": "443",
+     "kernel_nodes": "353",
+     "memcpy_nodes": "89",
+     "arena_allocs": "62",
+     "arena_used_words": "895552",
+     "gpu_ms": "0.854624",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "capture_mode": "global",
+     "graph_nodes": "443",
+     "kernel_nodes": "353",
+     "memcpy_nodes": "89",
+     "arena_allocs": "62",
+     "arena_used_words": "895552",
+     "gpu_ms": "0.763712",
+     "byte_identical": "1"
+    }
+   ]
+  },
+  {
+   "arm": "capture-imported-beta2",
+   "exit": 0,
+   "passed": true,
+   "runs": [
+    {
+     "run": "0",
+     "capture_mode": "global",
+     "graph_nodes": "441",
+     "kernel_nodes": "344",
+     "memcpy_nodes": "96",
+     "arena_allocs": "65",
+     "arena_used_words": "788544",
+     "gpu_ms": "0.843872",
+     "byte_identical": "1"
+    },
+    {
+     "run": "1",
+     "capture_mode": "global",
+     "graph_nodes": "441",
+     "kernel_nodes": "344",
+     "memcpy_nodes": "96",
+     "arena_allocs": "65",
+     "arena_used_words": "788544",
+     "gpu_ms": "0.741792",
+     "byte_identical": "1"
+    }
+   ]
+  }
+ ],
+ "sanitizers": {
+  "memcheck": {
+   "exit": 0,
+   "passed": true
+  },
+  "racecheck": {
+   "exit": 0,
+   "passed": true
+  },
+  "synccheck": {
+   "exit": 0,
+   "passed": true
+  },
+  "initcheck": {
+   "exit": 0,
+   "passed": true
+  }
+ },
+ "receivers": [
+  {
+   "readback": "oods-default.oods-job.bin",
+   "exit": 0,
+   "passed": true,
+   "mutations_rejected": 8
+  },
+  {
+   "readback": "oods-beta2.oods-job.bin",
+   "exit": 0,
+   "passed": true,
+   "mutations_rejected": 8
+  },
+  {
+   "readback": "capture-plain-default.graph1.bin",
+   "exit": 0,
+   "passed": true,
+   "mutations_rejected": 8
+  },
+  {
+   "readback": "capture-imported-beta2.graph1.bin",
+   "exit": 0,
+   "passed": true,
+   "mutations_rejected": 8
+  },
+  {
+   "readback": "plain-device-beta2.job1.bin",
+   "exit": 0,
+   "passed": true,
+   "mutations_rejected": 8
+  },
+  {
+   "readback": "imported-device-beta2.job1.bin",
+   "exit": 0,
+   "passed": true,
+   "mutations_rejected": 8
+  }
+ ],
+ "result": "PASS"
+}

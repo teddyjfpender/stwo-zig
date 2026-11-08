@@ -8,6 +8,7 @@ const prover_circle = @import("../poly/circle/mod.zig");
 pub const Error = error{
     InvalidLogSize,
     InvalidColumnLength,
+    DeviceColumnRequiresBackend,
 };
 
 /// Trace column retained by the commitment scheme.
@@ -21,9 +22,16 @@ pub const Poly = struct {
     /// Constraint evaluators use these to evaluate on domains other than the
     /// committed LDE. The commitment tree remains the owner.
     coefficients: ?prover_circle.CircleCoefficients = null,
+    /// Explicit device polynomial; never a zero/dummy host evaluation. Its
+    /// lease owner outlives this trace. Host evaluators must refuse access.
+    device: ?@import("stwo_prover_api").device_pcs.DeviceCoefficients = null,
 
     pub fn validate(self: Poly) Error!void {
         const expected = try checkedPow2(self.log_size);
+        if (self.device) |device| {
+            if (self.values.len != 0 or self.coefficients != null or device.count == 0 or device.count > expected or !std.math.isPowerOfTwo(device.count) or device.context_token == 0 or device.generation == 0) return error.InvalidColumnLength;
+            return;
+        }
         if (self.values.len == 0) {
             const coefficients = self.coefficients orelse return error.InvalidColumnLength;
             if (coefficients.coefficients().len > expected) return error.InvalidColumnLength;
@@ -36,6 +44,7 @@ pub const Poly = struct {
         position: usize,
     ) Error!M31 {
         try self.validate();
+        if (self.device != null) return error.DeviceColumnRequiresBackend;
         if (self.log_size > lifting_log_size) return error.InvalidLogSize;
 
         const lifting_size = try checkedPow2(lifting_log_size);

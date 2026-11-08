@@ -274,6 +274,10 @@ test "fri: fold line in-place workspace matches default implementation" {
     );
     defer alloc.free(in_place_fold.values);
 
+    // Integer modular oracle: x=579625837, 1/x=248349974 in F_(2^31-1).
+    const expected_first = QM31.fromU32Unchecked(1884709475, 364864509, 1826115947, 744825755);
+    try std.testing.expect(default_fold.values[0].eql(expected_first));
+    try std.testing.expect(in_place_fold.values[0].eql(expected_first));
     try std.testing.expectEqual(default_fold.domain.logSize(), in_place_fold.domain.logSize());
     try std.testing.expectEqual(default_fold.values.len, in_place_fold.values.len);
     for (default_fold.values, in_place_fold.values) |lhs, rhs| {

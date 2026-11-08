@@ -668,6 +668,7 @@ pub const Blake2sHasher = struct {
 
     fn compressWords(self: *Self, m: *const [16]u32, is_last: bool) void {
         const f0: u32 = if (is_last) 0xFFFF_FFFF else 0;
+        @import("blake2s_observer.zig").observe(&self.h, m, self.t0, self.t1, f0);
         switch (self.selection.effective) {
             .simd => compressSimd(&self.h, m, self.t0, self.t1, f0),
             .scalar => compressScalar(&self.h, m, self.t0, self.t1, f0),

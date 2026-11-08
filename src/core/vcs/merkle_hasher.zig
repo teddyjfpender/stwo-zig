@@ -26,7 +26,10 @@ pub fn hashNode(
     column_values: []const M31,
 ) H.Hash {
     comptime assertMerkleHasher(H);
-    return H.hashNode(children_hashes, column_values);
+    return if (children_hashes) |children|
+        H.hashNode(.{ .left = children.left, .right = children.right }, column_values)
+    else
+        H.hashNode(null, column_values);
 }
 
 test "merkle_hasher: blake2 merkle satisfies contract" {

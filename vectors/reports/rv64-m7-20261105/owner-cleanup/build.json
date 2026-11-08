@@ -1,0 +1,44 @@
+{
+  "schema": "rv64-m7-cleanup-overlay/v1",
+  "label": "M",
+  "scope": "Fixture overlay only; everyServiceAPI must originate here; arithmetic/runtime/graphs dependency69f. Not standalone production qualification. NewPCSobject includes integrated D2rolling header.",
+  "seconds": 4.793201341992244,
+  "compile_command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-O3",
+    "-std=c++17",
+    "-lineinfo",
+    "-gencode",
+    "arch=compute_120,code=sm_120",
+    "-Xcompiler=-fPIC,-pthread",
+    "-I/workspace/m3/build/m7-owner-cleanup",
+    "-I/workspace/m3/build/m7-owner-cleanup/rv64",
+    "-I/workspace/m3/src/m7-rc-workspace/src/backends/cuda/native/rv64",
+    "-I/workspace/m3/src/m7-rc-workspace/src/backends/cuda/native",
+    "-c",
+    "/workspace/m3/build/m7-owner-cleanup/pcs_native.cu",
+    "-o",
+    "/workspace/m3/build/m7-owner-cleanup/rv64-pcs_native.cu.o"
+  ],
+  "link_command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-shared",
+    "-Xcompiler=-pthread",
+    "-Xlinker=-Bsymbolic",
+    "-rdc=true",
+    "-gencode",
+    "arch=compute_120,code=sm_120",
+    "/workspace/m3/build/m7-owner-cleanup/rv64-pcs_native.cu.o",
+    "/workspace/m3/build/m7-controller-graphs/cuda/native/libstwo-rv64-native.so",
+    "-o",
+    "/workspace/m3/build/m7-owner-cleanup/cleanup-overlay.so"
+  ],
+  "object_sha256": "12067bb64a95bcfb33e15f4e0560cc1eec9ba107a63be6e129e0e85a446ee3f0",
+  "library_sha256": "687f8848efb9c6c305b91a2b3929437f37b6574b7886fc6fedad16563db4d77c",
+  "base_sha256": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+  "source_sha256": {
+    "/workspace/m3/build/m7-owner-cleanup/pcs_native.cu": "962bf8c5a7390e778bc92975c34e589119f2af1f7b61d3fe45d45edf0a032f44",
+    "/workspace/m3/build/m7-owner-cleanup/rv64/pcs_native.h": "a2694a8aaa79a97d7b3ee3980d6dce2a3c31a59171ccf4032bb9658761e53f42",
+    "/workspace/m3/src/m7-rc-workspace/src/backends/cuda/native/rv64/pcs_pipeline.cuh": "b6bafd714bf148dcef8e63ad6c2494c9b066fce771cd5bbcfd9757f59daaf0e0"
+  }
+}

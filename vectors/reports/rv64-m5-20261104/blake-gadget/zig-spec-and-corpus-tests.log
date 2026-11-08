@@ -1,0 +1,26 @@
+1/23 fused_blake_test_root.test_0...OK
+2/23 fused_blake_test_root.test.fused_blake2s_v1 constants match the circuit's relation ids and table shape...OK
+3/23 fused_blake.fused_blake2s_v1.test.fused_blake2s_v1: completeness against std Blake2s256 (0..1024 bytes, chained blocks)...OK
+4/23 fused_blake.fused_blake2s_v1.test.fused_blake2s_v1: completeness on random compressions (+ multiplicity balance)...FUSED_BLAKE2S_V1 cpu_random_rows=4096 violations=0
+OK
+5/23 fused_blake.fused_blake2s_v1.test.fused_blake2s_v1: row shape (columns, lookups, constraint degree)...OK
+6/23 fused_blake.fused_blake2s_v1.test.fused_blake2s_v1: padding rows are honest zero compressions wired to address 0...OK
+7/23 fused_blake.fused_blake2s_v1.test.fused_blake2s_v1: every single-cell change of an honest row is rejected...OK
+8/23 fused_blake.fused_blake2s_v1.test.fused_blake2s_v1: negative rows (wrong digest, non-byte cells, carry abuse, wrong flag) are rejected...OK
+9/23 fused_blake.fused_blake2s_v1.test.fused_blake2s_v1: instance plans (no power-of-two padding tax)...OK
+10/23 fused_blake.fused_blake2s_v1.test.fused_blake2s_v1: tape record round trip...OK
+11/23 fused_blake.fused_blake2s_v1.test.fused_blake2s_v1: relation id derivation...OK
+12/23 fused_blake.fused_blake2s_v1.test.fused_blake2s_v1: GPU fill dump equals the CPU fill...SKIP
+13/23 fused_blake.corpus_test.test.corpus BG01 fused gadget digest equals reference Blake2s-256 (RFC 7693, 0/1/63/64/65/128 B, random)...OK
+14/23 fused_blake.corpus_test.test.corpus BG02 one G output word altered is rejected by its addition constraint...OK
+15/23 fused_blake.corpus_test.test.corpus BG03 XOR multiplicity shifted between two table rows breaks the LogUp balance...OK
+16/23 fused_blake.corpus_test.test.corpus BG04 message schedule changed for one round row is rejected...OK
+17/23 fused_blake.corpus_test.test.corpus BG05 non-canonical u32 limbs are rejected (message w + 2^32 split; byte-limb borrow)...OK
+18/23 fused_blake.corpus_test.test.corpus BG06 padding row with non-zero output multiplicity or non-zero output is rejected...OK
+19/23 fused_blake.corpus_test.test.corpus BG07 finalization flag or byte counter of a compression changed is rejected...OK
+20/23 fused_blake.corpus_test.test.corpus BG08 XOR table mass stays below p at the gadget's max compressions per proof...OK
+21/23 common.component_list.test.component list: order and names match COMPONENT_NAMES...OK
+22/23 common.component_list.test.component list: PerComponent round-trips through its array...OK
+23/23 common.component_list.test.component list: every relation use names a declared relation (statement_test.rs)...OK
+22 passed; 1 skipped; 0 failed.
+EXIT=0

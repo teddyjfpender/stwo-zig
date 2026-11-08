@@ -1,0 +1,43 @@
+{"id": "S01-drop-native-segment", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: FileNotFound"}
+{"id": "S03-dup-native-segment", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: WideBundleFileChanged"}
+{"id": "S05-permute-native-segments", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: WideBundleFileChanged"}
+{"id": "S02-drop-leaf", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 15.15, "first_error": "error: MissingRecursiveNodeProof"}
+{"id": "S07-permute-truth", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: WideBundleFileChanged"}
+{"id": "S08-coherent-permute-native", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.42, "first_error": "error: InvalidServicesWireRequest"}
+{"id": "S09-coherent-drop-native", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.42, "first_error": "error: InvalidServicesWireBoundary"}
+{"id": "S10-coherent-dup-native", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.47, "first_error": "error: InvalidServicesWireRequest"}
+{"id": "S11-coherent-permute-truth", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.42, "first_error": "error: InvalidCombinedTruthSpan"}
+{"id": "S06-permute-leaves", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 18.51, "first_error": "error: Om31CircuitWireAuthority"}
+{"id": "S04-dup-leaf", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 24.53, "first_error": "error: Om31CircuitWireAuthority"}
+{"id": "C00-control", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 69.34, "first_error": null}
+{"id": "K01-tree-leaf-count", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 72.26, "first_error": "error: RecursiveReceiverArtifactMismatch"}
+{"id": "K02-report-cpu-proofs", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 72.15, "first_error": null}
+{"id": "V01-cross-class-fold", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 23.11, "first_error": "error: CurrentOm31OutputDigest"}
+{"id": "K03-tree-drop-node", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 71.78, "first_error": "error: RecursiveReceiverArtifactMismatch"}
+{"id": "V05-cross-block-native", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: WideBundleFileChanged"}
+{"id": "R01-native-head-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.52, "first_error": "error: WideBundleFileChanged"}
+{"id": "R02-native-mid-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.47, "first_error": "error: WideBundleFileChanged"}
+{"id": "R03-truth-mid-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.57, "first_error": "error: WideBundleFileChanged"}
+{"id": "V03-cross-block-leaf", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 18.16, "first_error": "error: Om31CircuitWireAuthority"}
+{"id": "V02-cross-block-fold", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 21.66, "first_error": "error: CurrentOm31OutputDigest"}
+{"id": "R06-leaf-proof-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 30.73, "first_error": "error: RootMismatch"}
+{"id": "R07-coherent-native-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 15.3, "first_error": "error: RootMismatch"}
+{"id": "V04-cross-block-root", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 71.43, "first_error": "error: FileTooBig"}
+{"id": "R04-root-proof-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 69.78, "first_error": "error: RecursiveReceiverArtifactMismatch"}
+{"id": "X01-stage-one-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.57, "first_error": "error: WideBundleFileChanged"}
+{"id": "X02-cells-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.57, "first_error": "error: WideBundleCellsChanged"}
+{"id": "R08-coherent-native-head-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 14.11, "first_error": "error: GlobalGkrPhysicalRootMismatch"}
+{"id": "R09-coherent-truth-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 14.95, "first_error": "error: RootMismatch"}
+{"id": "R05-root-proof-truncate", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 70.35, "first_error": "error: RecursiveReceiverArtifactMismatch"}
+{"id": "X03-coherent-stage-one-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 14.16, "first_error": "error: CircuitCheckFailure"}
+{"id": "X04-coherent-cells-flip", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 13.52, "first_error": "error: UntrustedGlobalMemoryInitialization"}
+{"id": "X06-coherent-terminal-value", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 13.74, "first_error": "error: InvalidSumcheck"}
+{"id": "T01-wrong-output", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 13.24, "first_error": "error: GlobalGkrManifestExecution"}
+{"id": "P01-wrong-native-profile", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 16.7, "first_error": "error: GlobalGkrManifestExecution"}
+{"id": "P02-wrong-outer-profile", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 19.0, "first_error": "error: Om31CircuitWireProfile"}
+{"id": "P03-unknown-outer-profile", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 0.0, "first_error": "error: UnknownOm31OuterProfile"}
+{"id": "P02d-wrong-outer-profile-default-arity", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 14.84, "first_error": "error: MissingRecursiveNodeProof"}
+{"id": "P02b-wrong-outer-profile-b8", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 21.06, "first_error": "error: Om31CircuitWireProfile"}
+{"id": "P04-wrong-fold-arity", "verdict": "reject", "passed": true, "exit_code": 1, "wall_s": 14.5, "first_error": "error: MissingRecursiveNodeProof"}
+{"id": "C01-control-explicit-r1", "verdict": "accept", "passed": true, "exit_code": 0, "wall_s": 66.47, "first_error": null}
+{"block": 24628607, "ran": 42, "passed": 42, "unexpected_accepts": [], "crashes": [], "nonsemantic_rejects": {"S01-drop-native-segment": "missing", "S02-drop-leaf": "missing", "V04-cross-block-root": "resource", "P02d-wrong-outer-profile-default-arity": "missing", "P04-wrong-fold-arity": "missing"}, "wall_s": 271.9}

@@ -1,0 +1,177 @@
+{
+  "schema": "rv64-merge-validation-summary/v1",
+  "recorded_utc": "2026-11-08T15:40:26.585825+00:00",
+  "code_checkpoint": "51897dc265593df7580c4abf0b232909fc105e34",
+  "scope": "Published hygiene/FRI code plus requested roadmap; later hardware-unqualified candidate changes remain backup-only. Documentation/evidence additions do not rerun or expand the historical gate claim.",
+  "gpu_native_default": false,
+  "arms": [
+    {
+      "arm": "default",
+      "status": "HISTORICAL_HARDWARE_CORRECTNESS_PASS",
+      "source_commit": "51897dc265593df7580c4abf0b232909fc105e34",
+      "block": 24628607,
+      "original_receipt_sha256": "a429ad3fbd89e678f57eea5b10724820ed7c7371d4834a1f0fc99bcecb787594",
+      "source_manifest_sha256": "16023ea74a8e173fc6422ecc80564b1e24d5388c0d1a6eba968548d4736ed473",
+      "source_files": 8769,
+      "asset_sha256": {
+        "library": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+        "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
+        "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
+        "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139",
+        "driver": "1bc508c8c2dccc60c9db9b6fe1d38a02b74c92278ced60371fa0bb422d303c0e",
+        "receiver": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a"
+      },
+      "preset_sha256": "28812a1d1443f4d343f7e3282b578598dd3bf1594e3383c33db1e569cb789f18",
+      "frozen_default_sha256": "bd6bc79381f1c0c801d1db3814d2483b0a32295730bdb19a84360196d999dc29",
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ],
+      "cold_warm_artifacts_each": 39,
+      "cold_warm_byte_identical": true,
+      "fresh_cpu_acceptance": {
+        "status": "FRESH_ISOLATED_CPU_ACCEPTED",
+        "proofs": 2,
+        "receiver_sha256": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a"
+      },
+      "negative_corpus": {
+        "status": "PASS",
+        "receiver_sha256": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a",
+        "cpu_isolation_checked": true,
+        "required_cases": 19,
+        "completed_cases": 19,
+        "out_of_scope_pending_cases": 105,
+        "semantic_rejection_complete": true,
+        "nonsemantic_rejects": {}
+      },
+      "proof_manifest_sha256_each": [
+        "f364e01b7bccf1ce2db26e938d239a23775695772366778b03cde6c7f585f2bb",
+        "f364e01b7bccf1ce2db26e938d239a23775695772366778b03cde6c7f585f2bb"
+      ],
+      "timing_qualification": "DIAGNOSTIC_ONLY_NO_CONTROLLED_SPEEDUP",
+      "physical_memory_qualification": "NO_OBSERVED_PHYSICAL_PEAK_CLAIM"
+    },
+    {
+      "arm": "native",
+      "status": "HISTORICAL_HARDWARE_CORRECTNESS_PASS",
+      "source_commit": "51897dc265593df7580c4abf0b232909fc105e34",
+      "block": 24628607,
+      "original_receipt_sha256": "5825c7830fd13a6cf47dc18a7998e412f7e5e4a76d884cc33cc10cabd0adeefe",
+      "source_manifest_sha256": "16023ea74a8e173fc6422ecc80564b1e24d5388c0d1a6eba968548d4736ed473",
+      "source_files": 8769,
+      "asset_sha256": {
+        "library": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+        "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
+        "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
+        "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139",
+        "driver": "1bc508c8c2dccc60c9db9b6fe1d38a02b74c92278ced60371fa0bb422d303c0e",
+        "receiver": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a"
+      },
+      "preset_sha256": "28812a1d1443f4d343f7e3282b578598dd3bf1594e3383c33db1e569cb789f18",
+      "frozen_default_sha256": "bd6bc79381f1c0c801d1db3814d2483b0a32295730bdb19a84360196d999dc29",
+      "steps": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-zig",
+          "exit_code": 0
+        },
+        {
+          "name": "unit-python",
+          "exit_code": 0
+        },
+        {
+          "name": "small-block-proof",
+          "exit_code": 0
+        },
+        {
+          "name": "fresh-cpu-receiver",
+          "exit_code": 0
+        },
+        {
+          "name": "negative-corpus",
+          "exit_code": 0
+        }
+      ],
+      "cold_warm_artifacts_each": 39,
+      "cold_warm_byte_identical": true,
+      "fresh_cpu_acceptance": {
+        "status": "FRESH_ISOLATED_CPU_ACCEPTED",
+        "proofs": 2,
+        "receiver_sha256": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a"
+      },
+      "negative_corpus": {
+        "status": "PASS",
+        "receiver_sha256": "5fa6182f8b0f75e606914548837aae8d91cb8e939d7903993ec44fc86ce2bd7a",
+        "cpu_isolation_checked": true,
+        "required_cases": 19,
+        "completed_cases": 19,
+        "out_of_scope_pending_cases": 105,
+        "semantic_rejection_complete": true,
+        "nonsemantic_rejects": {}
+      },
+      "proof_manifest_sha256_each": [
+        "f364e01b7bccf1ce2db26e938d239a23775695772366778b03cde6c7f585f2bb",
+        "f364e01b7bccf1ce2db26e938d239a23775695772366778b03cde6c7f585f2bb"
+      ],
+      "timing_qualification": "DIAGNOSTIC_ONLY_NO_CONTROLLED_SPEEDUP",
+      "physical_memory_qualification": "NO_OBSERVED_PHYSICAL_PEAK_CLAIM"
+    }
+  ],
+  "unqualified_followup_backup_branch": "codex/rv64-gpu-hygiene-local",
+  "backup_snapshot": "357e5d23010dff22bbdd1fe8afaf25082644bb2d",
+  "open_acceptance": [
+    "controlled3+3 on24628607 and26235168",
+    "new-block setup miss and latency",
+    "full15 GPU-native basket",
+    "physical observations on final source",
+    "default promotion",
+    "complete legacy retirement",
+    "static ownership and broad CI hygiene",
+    "fewer than60live flags"
+  ],
+  "retention": {
+    "user_storage_preference": "LOCAL_LAPTOP",
+    "local_recovery_payloads_verified": 338,
+    "payload_bytes": 21557449,
+    "proof_binary_payloads_not_confirmed_local": 36,
+    "proof_binary_bytes_not_confirmed_local": 83973536,
+    "additional_raw_logs_and_captures": "POD_REFERENCED_NOT_ALL_CONFIRMED_LOCAL",
+    "pod": "cps13bvat3xhdo",
+    "pod_state_last_checked": "EXITED_NEGATIVE_BALANCE",
+    "next_funded_start_first_action": "Copy/hash-verify recovery and referenced raw evidence locally before new GPU jobs"
+  },
+  "related_prs": {
+    "316": "EXACT_HEAD_INCLUDED_IN314",
+    "320": "EXACT_HEAD_INCLUDED_IN314",
+    "299": "SEPARATE_CIRCUIT_CUDA_FRI_FIX_NOT_RV64_INSTALL_DEPENDENCY",
+    "270": "SEPARATE_CONFLICTING_CAPTURE_API_HARDENING",
+    "306": "DRAFT_STAGED_WORK_OUTSIDE_MERGE",
+    "322": "EXCLUDED_UNTOUCHED"
+  },
+  "full_repository_ci": "NOT_CLAIMED_GREEN"
+}

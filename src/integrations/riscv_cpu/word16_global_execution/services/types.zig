@@ -337,12 +337,15 @@ pub fn dwordCounts(logs: Logs, total: u32) ![DWORD_INSTANCES]u32 {
         if (total != 0 or logs.ls_dword_tail != null) return error.InvalidCombinedBridgePresence;
         return .{ 0, 0 };
     };
-    if (total == 0) return error.InvalidCombinedBridgePresence;
+    // rv64-m6-native/v2 strict roster: presence is a class constant, so a
+    // present head or tail may be all padding.
+    const strict = @import("../../word16_execution/native_policy.zig").strictRoster();
+    if (total == 0 and !strict) return error.InvalidCombinedBridgePresence;
     for ([_]?u32{ logs.ls_dword, logs.ls_dword_tail }) |optional| if (optional) |l| if (l < 5 or l > DWORD_MAX_LOG) return error.InvalidCombinedServiceCount;
     const head: u32 = @intCast(@min(total, (@as(u64, 1) << @intCast(head_log)) - 1));
     const tail = total - head;
     if (logs.ls_dword_tail) |l| {
-        if (tail == 0 or tail >= (@as(u64, 1) << @intCast(l))) return error.InvalidCombinedServiceCount;
+        if ((tail == 0 and !strict) or tail >= (@as(u64, 1) << @intCast(l))) return error.InvalidCombinedServiceCount;
     } else if (tail != 0) return error.InvalidCombinedServiceCount;
     return .{ head, tail };
 }

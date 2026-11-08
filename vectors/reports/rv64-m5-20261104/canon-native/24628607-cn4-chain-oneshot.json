@@ -1,0 +1,287 @@
+{
+  "schema": "rv64-m4-receipt/v2",
+  "label": "measured",
+  "derived_from": "rv64-m3-receipt/v1 + producer logs + proof dir",
+  "stream": "m5-canon-native",
+  "block": 24628607,
+  "gpus": 2,
+  "run": "/workspace/m3/runs/m5-canon-native/24628607-2gpu-cn4-chain",
+  "source_commit": "63894647e",
+  "assets": {
+    "driver": "0c93af63d2730ddde9d38a73dcf5fe2d8474088bd7534372db559227fa646864",
+    "library": "5886e2a52d2382cfa947cf432967c92da5d42cc9a1f745b8d5960f3c844dba5f",
+    "receiver": "45333cf0f491047e49ce546d92d12499d2595fecc3c4af4949a86604af967de1",
+    "recursive_receiver": "45333cf0f491047e49ce546d92d12499d2595fecc3c4af4949a86604af967de1"
+  },
+  "environment_overrides": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_CANON_RUNGS": "1",
+    "STWO_RV64_NATIVE_VERSION": "m5-chi-chain-v1"
+  },
+  "nsys": false,
+  "host": {
+    "nodename": "f675b38ce80e",
+    "nproc": 192,
+    "cgroup_cpus": 40.8
+  },
+  "loadavg": {
+    "start": {
+      "1m": 15.62,
+      "5m": 19.62,
+      "15m": 21.2,
+      "unix": 1793812026.0527427
+    },
+    "end": {
+      "1m": 14.29,
+      "5m": 18.64,
+      "15m": 20.78,
+      "unix": 1793812078.5830538
+    }
+  },
+  "stages": {
+    "request_s": 45.164,
+    "capture_s": 2.873,
+    "capture_critical_s": 2.873,
+    "setup_s": 13.635,
+    "setup_cold_service_s": 13.635,
+    "setup_warm_s": null,
+    "setup_install_s": null,
+    "native_s": 7.636,
+    "stage1_s": 2.771,
+    "stage1_jobs": 17,
+    "stage2_s": 4.597,
+    "stage2_jobs": 17,
+    "native_verify_side_thread_s": 1.889,
+    "native_verify_on_critical_path_s": 0.0,
+    "recursion_s": 20.828,
+    "recursion_wall_s": 20.828,
+    "recursion_tail_s": 20.828,
+    "fold_tail_after_last_leaf_s": 6.424,
+    "compress_s": 0.0
+  },
+  "stage_boundaries": {
+    "request_s": "request accepted -> final proof bytes written (GPU_RESIDENT_BLOCK request_wall_ns)",
+    "capture_s": "input -> last segment compact records ready (report.capture_ns); M3: nothing overlaps it, so capture_critical_s == capture_s",
+    "setup_s": "report.setup_ns; cold_service when the SetupCache missed, warm when it hit; install is not a separate step yet (null)",
+    "native_s": "report.prove_ns: projection/widening/stage1/barrier/stage2 all count here, never under capture",
+    "stage1_s/stage2_s": "schedule.json phase walls (first claim -> last finish of each phase)",
+    "recursion_s": "combined recursion_ns; recursion starts after the last native proof in M3, so tail == wall",
+    "compress_s": "no compress layer before M7 (0)"
+  },
+  "ram": {
+    "rss_peak_daemon_gib": 22.943,
+    "rss_peak_request_private_gib": null,
+    "rss_scope": "one process per request (no daemon yet): daemon == whole-process peak (getrusage); request_private = private non-file-backed pages at the sampled peak",
+    "smaps_peak_census": null,
+    "smaps_peak_t_s": null
+  },
+  "device_memory": {
+    "device_peak_gb": {
+      "0": 31.503,
+      "1": 31.503
+    },
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak"
+  },
+  "gpu": {
+    "nvml_kernel_activity": {
+      "0": {
+        "samples": 202,
+        "mean_percent": 25.014851485148515,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 202,
+        "mean_percent": 21.207920792079207,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    }
+  },
+  "proof_size": {
+    "proof_bytes_final": 714520,
+    "proof_bytes_root": 714520
+  },
+  "process": {
+    "argv": [
+      "/workspace/m3/build/m5-canon-native-chain/rv64-word16-ethereum-gpu-combined",
+      "combined-batch",
+      "/workspace/m3/runs/m5-canon-native/24628607-2gpu-cn4-chain/case/manifest.json",
+      "/workspace/m3/runs/m5-canon-native/24628607-2gpu-cn4-chain/case/batch"
+    ],
+    "exit_code": 0,
+    "wall_ns": 51205388825,
+    "user_seconds": 160.273665,
+    "system_seconds": 71.875654,
+    "peak_rss_bytes": 24635138048,
+    "minor_faults": 22222846,
+    "major_faults": 0
+  },
+  "recursion": {
+    "nodes": 33,
+    "leaves": 17,
+    "folds": 16,
+    "pipeline": {
+      "dag_wall_ns": 20593246561,
+      "lane_device_stage_ns": [
+        15160726752,
+        13619478724
+      ],
+      "lane_device_stage_occupancy": 0.6987777616984557,
+      "peak_ready": 5
+    }
+  },
+  "native": {
+    "cpu_proofs": 7,
+    "truth_proofs": 10,
+    "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+    "output_matches_pin": true
+  },
+  "correctness": {
+    "parity_vs_accepted_v7": {
+      "native_bins": false,
+      "bundle": false,
+      "recursive_tree": false,
+      "recursive_proofs": false,
+      "recursive_mismatched": [
+        "fold-000002.proof",
+        "fold-000005.proof",
+        "fold-000006.proof",
+        "fold-000009.proof",
+        "fold-000012.proof",
+        "fold-000013.proof",
+        "fold-000014.proof",
+        "fold-000017.proof",
+        "fold-000020.proof",
+        "fold-000021.proof",
+        "fold-000024.proof",
+        "fold-000027.proof",
+        "fold-000028.proof",
+        "fold-000029.proof",
+        "fold-000030.proof",
+        "fold-000032.proof",
+        "leaf-000000.proof",
+        "leaf-000001.proof",
+        "leaf-000002.proof",
+        "leaf-000003.proof",
+        "leaf-000004.proof",
+        "leaf-000005.proof",
+        "leaf-000006.proof",
+        "leaf-000007.proof",
+        "leaf-000008.proof",
+        "leaf-000009.proof",
+        "leaf-000010.proof",
+        "leaf-000011.proof",
+        "leaf-000012.proof",
+        "leaf-000013.proof",
+        "leaf-000014.proof",
+        "leaf-000015.proof",
+        "leaf-000016.proof",
+        "root.proof"
+      ],
+      "root_sha256": "0559e4028cf595bccb0b9a11ebdddcdade363f6d02fb74c32da79624ed738bc9",
+      "control_root_sha256": "07a537d3244bc27dcf1c11634bfa1f4746d93899aeb9abaa1afc9cfd127cdddf",
+      "native_mismatched": [
+        "cpu-0.bin",
+        "cpu-1.bin",
+        "cpu-2.bin",
+        "cpu-3.bin",
+        "cpu-4.bin",
+        "cpu-5.bin",
+        "cpu-6.bin",
+        "stage-one.bin",
+        "truth-0.bin",
+        "truth-1.bin",
+        "truth-2.bin",
+        "truth-3.bin",
+        "truth-4.bin",
+        "truth-5.bin",
+        "truth-6.bin",
+        "truth-7.bin",
+        "truth-8.bin",
+        "truth-9.bin"
+      ],
+      "byte_identical": false
+    },
+    "receiver": {
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "45333cf0f491047e49ce546d92d12499d2595fecc3c4af4949a86604af967de1",
+      "restored_leaves": 17,
+      "restored_folds": 16,
+      "producer_strict_checks": "pass"
+    },
+    "accepted": true
+  },
+  "verifier": {
+    "verify_per_block_s": 65.376,
+    "derive_vk_tables_once_s": null,
+    "verifier_peak_rss_gib": 7.144
+  },
+  "proof_sha256": {
+    "native": {
+      "cells.bin": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1",
+      "cpu-0.bin": "19bdd5449e986b3adfaa21e4a3f5cea8eecd800a56e2331b472cdd74d8a0013b",
+      "cpu-1.bin": "13151f9e9db37a8e656cc2b2c70844ec971c1417c24c9563efd971e12717e981",
+      "cpu-2.bin": "13fe050bd78ddbb5178fdd0da8d56a635a70d04456cea594bc78b2ce560ee4f7",
+      "cpu-3.bin": "d4838fd9d1f2109b9f51c1a4f7bb526bffe9637eafbf7451d3ecc10d42858c0d",
+      "cpu-4.bin": "9342a85fa80833a5532abb610903876b43c8894947c8243f528b72abb0821653",
+      "cpu-5.bin": "557f7528e5730bac1daeecec40e8898a1bb1e4801380fb3e6207cf0b8e468c84",
+      "cpu-6.bin": "9d7fe627600e15204988e058709fb3b4a3077fd4c1ea231cdce18aab4fd5bd34",
+      "stage-one.bin": "41aea95f1e5450a845821e2606ade411bc4a96d304c1b022274931793844c2c1",
+      "truth-0.bin": "5a3982822d393487ddfee76aa33dd0ab6c86282bf3cf7f2bf175f2c6a2ec4510",
+      "truth-1.bin": "96a038fcc5042328389185d436d2f7acaca63e8cffc911d11e042668b0baa5fe",
+      "truth-2.bin": "f8c3b64ccfaec334503f54b25d75508e778172fb9767e42bf8f2fb0837024514",
+      "truth-3.bin": "95bb2a57c5f44101f5628dd0631a0932308ed086a831d87418581eb4d66d615f",
+      "truth-4.bin": "5c1951c339e8220a1de65ae1ec060ec4f3a17fd6565cda8c43e763168f78ddec",
+      "truth-5.bin": "119300c17552f80cabfea3c22a5fa1b3327786395b121ee3c0e9d986d23f4587",
+      "truth-6.bin": "2920145cc9a7eb8b84a60b06b1ee5a45d235c75d5e4461710572c0c3f9f464ca",
+      "truth-7.bin": "f84836334127baf53d2b4e5fc3679471cc7c1365821e5b7862b1d655402c9733",
+      "truth-8.bin": "ac3386b004264a18d4f580d281d86bb8f65bb882863fe9e80287588c256d72fb",
+      "truth-9.bin": "a4e716bb92d3cccfc27a57182ae1633ef8b8abf9837972a0211e519e457681bc"
+    },
+    "bundle": "bf0c460fe331228d1248115140d934f8a6505a218dc9da50b879af9dc6aa447b",
+    "recursive": {
+      "proof_sha256": {
+        "fold-000002.proof": "419ca3f0a276b55de0936f18c35c9bf65d57b9d22f2f217efcf6647be4c20668",
+        "fold-000005.proof": "2bb805defe0dd10ee8aac2c3e0f99125374cf5f4d6ec14fe58e54b3092e3fc3f",
+        "fold-000006.proof": "8fdec2564bf4ebf3992cac6428ce775104ace4e2f2339b69db31a95e1810d11e",
+        "fold-000009.proof": "a936abd56dfcab9a0961ca3195f5a66723e07d632ee8e13247b8f89cf32a8618",
+        "fold-000012.proof": "7aaae065dadf48a630de65f461d03fe7898908964cf39ef9ee701bd932dc1466",
+        "fold-000013.proof": "7b1b441c162980ea207985485f45c9ae6ba36c652608dba57af971931aabf74e",
+        "fold-000014.proof": "ff644162aa96c47a7632eef1c806c721037e789b4d9aa6ea65cdaf0617c8b5aa",
+        "fold-000017.proof": "8bd5014a4c1b59fb8c45707b505de25306096c3ead66cad70313f39496e8f615",
+        "fold-000020.proof": "412081f5ddf6d986a67f14bf070ad8058347e357324270c4518240b9bb4fd7b4",
+        "fold-000021.proof": "a8a9efa9313409d6195421cf3a65b9ab98c7e2c2f76a6c20f3a6e79a04e0c512",
+        "fold-000024.proof": "df1b9e3b5907039278d86db71184f205a06634472663af4e8e280f679384afb4",
+        "fold-000027.proof": "aae8cac31484c94ea307fe76ac8525821be2023c9c0fa945519f6a954c886e32",
+        "fold-000028.proof": "95d65acea1e483e318593d713454a4f073a3ca843ba4d48f9401ee831db0755d",
+        "fold-000029.proof": "032a0ea6bfe2cdfe93ab0f394ae33d5d018f62b52715aaf5c3a1e0fb5431e0f1",
+        "fold-000030.proof": "467f04acb5ea14bfb0081c376bfbbd79f64f856c11e3db88c79ec2f9b572fb0c",
+        "fold-000032.proof": "0559e4028cf595bccb0b9a11ebdddcdade363f6d02fb74c32da79624ed738bc9",
+        "leaf-000000.proof": "d8413b0efb96daad7e037ce671c9b3850a25912f15b0ba29f77f2d918e4cfe0e",
+        "leaf-000001.proof": "cc7ec8833209f37a740e26daa7aef42543fa336669c1b1c3712bd8c985634054",
+        "leaf-000002.proof": "54b7adefd6eaae6356daab51d5a40f297d53f4d048d87d0070c580b7b957b3e6",
+        "leaf-000003.proof": "57e422f5fa976d50012513c2f2b473b0ded173fe333b1466c74ca3e89bb1dbc9",
+        "leaf-000004.proof": "c2430e9db830e5736184922d3787e81f2b913ed93276f8f4389e3072edf8ea67",
+        "leaf-000005.proof": "c5a62b92b1ff2046c7c8beaadf5e587c2cc89c5bb07eb27609787893049e1b7b",
+        "leaf-000006.proof": "967debd72993ed3134df2915083117e1bde27e472b25c9ba160e5cb6605bdb82",
+        "leaf-000007.proof": "2d6784f0ae6f05162d17e679c4c3900c8b1391e418405a961879cfa6cdc9ae9d",
+        "leaf-000008.proof": "10144280221f0c2989836481ee12b32d7636d1e4d672bceac5ca77541404c07a",
+        "leaf-000009.proof": "4c824a3cbbc298fbb814d5fcf2b8c06b2de053fc5a7eb113894574760d494551",
+        "leaf-000010.proof": "828724c3c551d4a0e93cab2370d6c32483de3d79596c362fcf51fd2c820291f8",
+        "leaf-000011.proof": "bb1b6728220e0b5b2be47287213a0a0411b9cd9b211a6e9604ddd88ab32d444e",
+        "leaf-000012.proof": "3a4759b81ff61734a8c6941d9e740ea92d63ecae877cf25e08b36c9b1fffe796",
+        "leaf-000013.proof": "414266e8ff136ba4c5afbcc0cce8c14671b5dad6302602dc8d8b0154a2603400",
+        "leaf-000014.proof": "2e8d5f49b6847bb4a051ddaf131e0c2877883b4a91050ccdea065b26b07d73ad",
+        "leaf-000015.proof": "5613d49f135780c97aed63f87fb85e4ee22980ba997cd0af48d0e5f2006b252e",
+        "leaf-000016.proof": "b5d7541ed57cf9945506cbd79c3feab8095fe7bd0e5234d4c49e05c3c4503a69",
+        "root.proof": "0559e4028cf595bccb0b9a11ebdddcdade363f6d02fb74c32da79624ed738bc9"
+      },
+      "tree_sha256": "dde0df5d2ffe874088196daa8f4303002a09a5499a9650a3b0e3c004273298ec"
+    }
+  }
+}

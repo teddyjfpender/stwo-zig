@@ -57,14 +57,35 @@ pub fn digest(ch: *Channel, value: [32]u8) void {
     for (&words, 0..) |*w, i| w.* = std.mem.readInt(u32, value[4 * i ..][0..4], .little);
     ch.mixU32s(&words);
 }
+/// Shared framing visitor. Only the ordinal and statement may be circuit
+/// wires; kind/profile framing is independently admitted topology authority.
+pub fn emitBegin(expected: anytype, writer: anytype) void {
+    writer.header(&.{ 0x57474b4f, 1, 8, @intFromEnum(expected.kind) }, expected.ordinal);
+    var profile: [32]u8 = undefined;
+    std.crypto.hash.blake2.Blake2s256.hash(Manifest.PROFILE, &profile, .{});
+    writer.constantDigest(profile);
+    writer.publicDigest(expected.statement);
+}
 pub fn begin(config: PcsConfig, expected: Manifest.ExpectedWorker) Channel {
     var ch = Channel.init();
     config.mixInto(&ch);
-    ch.mixU32s(&.{ 0x57474b4f, 1, 8, @intFromEnum(expected.kind), expected.ordinal });
-    var profile: [32]u8 = undefined;
-    std.crypto.hash.blake2.Blake2s256.hash(Manifest.PROFILE, &profile, .{});
-    digest(&ch, profile);
-    digest(&ch, expected.statement);
+    var writer = struct {
+        ch: *Channel,
+        pub fn header(self: *@This(), prefix: []const u32, ordinal: u32) void {
+            std.debug.assert(prefix.len == 4);
+            var words: [5]u32 = undefined;
+            @memcpy(words[0..4], prefix);
+            words[4] = ordinal;
+            self.ch.mixU32s(&words);
+        }
+        pub fn constantDigest(self: *@This(), value: [32]u8) void {
+            digest(self.ch, value);
+        }
+        pub fn publicDigest(self: *@This(), value: [32]u8) void {
+            digest(self.ch, value);
+        }
+    }{ .ch = &ch };
+    emitBegin(expected, &writer);
     return ch;
 }
 pub fn appendFixed(a: std.mem.Allocator, key: *const @import("../../keccak/shared/key.zig").Key, expected: [32]u8, scheme: *Scheme, ch: *Channel) !void {
@@ -74,10 +95,26 @@ pub fn appendFixed(a: std.mem.Allocator, key: *const @import("../../keccak/share
     errdefer tree.deinit(key.allocator);
     try scheme.appendCommittedTree(a, tree, ch);
 }
+pub fn emitManifestAndClaims(manifest: anytype, claims: anytype, writer: anytype) void {
+    writer.header(&.{ 0x57474b32, 1 }, @as(u32, @intCast(claims.len)));
+    writer.publicDigest(manifest);
+    writer.fields(claims);
+}
 pub fn mixManifestAndClaims(ch: *Channel, manifest: [32]u8, claims: []const O) void {
-    ch.mixU32s(&.{ 0x57474b32, 1, @intCast(claims.len) });
-    digest(ch, manifest);
-    ch.mixFelts(claims);
+    var writer = struct {
+        ch: *Channel,
+        pub fn header(s: *@This(), prefix: []const u32, count: u32) void {
+            std.debug.assert(prefix.len == 2);
+            s.ch.mixU32s(&.{ prefix[0], prefix[1], count });
+        }
+        pub fn publicDigest(s: *@This(), value: [32]u8) void {
+            digest(s.ch, value);
+        }
+        pub fn fields(s: *@This(), values: []const O) void {
+            s.ch.mixFelts(values);
+        }
+    }{ .ch = ch };
+    emitManifestAndClaims(manifest, claims, &writer);
 }
 pub fn encodePhysical(a: std.mem.Allocator, proof: Proof) ![]u8 {
     return Wire.encodeProofBytesBinary(a, proof);

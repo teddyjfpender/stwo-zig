@@ -45,7 +45,7 @@ pub const Inventory = struct {
         // RAM rights, epoch, call spans, program, register/PC adjacency and
         // exact total/final endpoint authority. It does not verify proofs.
         if (fixed) |authority| try authority.require(setups, truths, config) else try validateConfig(config);
-        // Admit only the qualified v2 families and bulk extension; other v3 routes remain closed.
+        // Admit only service_scope-qualified families and representations; unsupported routes remain closed.
         for (setups) |setup| try Scope.setup(setup);
         for (requests) |request| try Scope.request(request);
         for (truths) |truth| try Scope.truth(truth);
@@ -60,6 +60,13 @@ pub const Inventory = struct {
             for (truths, truth_declarations) |truth, *d| d.* = Wire.TruthDeclaration.from(truth);
             var source_bounds = try @import("source_bounds.zig").derive(a, setups[0].materials.program.log_size, declarations, truth_declarations, requests);
             defer source_bounds.deinit();
+            if (@import("worker_protocol.zig").candidateProfile(config) == .d2_native_b4_q54_p20_fold4) {
+                const Candidate = @import("../../../word16_execution/om31_security_candidate.zig");
+                // Source derivation above enforces the receiver caps and signed
+                // characteristic bounds. The conservative whole-cap D2 ledger
+                // also charges its actual LDE domain factor before any worker.
+                try Candidate.requireProfileAlgebraicRomBudget(.d2_native_b4_q54_p20_fold4, Candidate.Facts.caps(), Candidate.MAX_AUDITED_LOG_WORK);
+            }
         }
         const count = try std.math.add(usize, setups.len, truths.len);
         const workers = try a.alloc(Manifest.ExpectedWorker, count);
@@ -73,22 +80,14 @@ pub const Inventory = struct {
         var next: [@import("../types.zig").FAMILIES]u64 = @splat(1);
         for (setups, requests, 0..) |setup, request, i| {
             for (next, &first_ids[i]) |id, *out| out.* = std.math.cast(u32, id) orelse return error.GlobalGkrManifestOrdinal;
-            instances[i] = try Roster.fromSetup(a, setup);
-            done += 1;
             const binding = if (fixed) |authority| authority.at(i) else null;
-            workers[i] = .{
-                .kind = .cpu,
-                .ordinal = @intCast(i),
-                .statement = CPU.cpuStatementWithAuthority(setup, request, first_ids[i], config, binding),
-                .fixed = if (binding) |authority| authority.root() else setup.key.root,
-                .local_instances = instances[i],
-                .global_relations = .{ .ram = true, .kio = setup.bridges.keccak != null or setup.bridges.sponge.any(), .wire = CPU.wirePresent(setup.bridges) },
-                .mass = try CPU.cpuMass(request),
-            };
+            workers[i] = try localCpuExpected(a, setup, request, @intCast(i), first_ids[i], config, binding);
+            instances[i] = @constCast(workers[i].local_instances.?);
+            done += 1;
             for (&next, request.calls) |*id, calls| id.* = try std.math.add(u64, id.*, calls);
         }
         const base_identity = executionIdentity(config, expected);
-        const identity = if (fixed) |authority| authority.executionIdentity(base_identity) else base_identity;
+        const identity = if (fixed) |authority| (if ((try @import("../../../word16_execution/native_policy.zig").current()) == .m6_v2_gkr) try authority.executionIdentityForGkr(base_identity) else authority.executionIdentity(base_identity)) else base_identity;
         for (truths, 0..) |truth, i| {
             const kind: Manifest.Kind = if (extendedTruth(truth)) .delegation else switch (truth.family()) {
                 .keccak => .keccak,
@@ -108,11 +107,43 @@ pub const Inventory = struct {
             };
         }
         try Manifest.validateRoster(workers);
+        if (try @import("chain.zig").enabled()) try @import("chain.zig").assign(setups, truths, requests, first_ids, workers, config, fixed);
         return .{ .allocator = a, .execution_identity = identity, .workers = workers, .instances = instances, .first_ids = first_ids };
     }
 };
 /// Initial profile supports the two qualified fold schedules and the fixed
 /// trees' blowup. Numeric parameters are receiver inputs, never proof hydration.
+/// One worker's exact source-local expectation. Whole Inventory and early
+/// MAIN construction share this authority; this is not global acceptance.
+/// Caller owns `local_instances` and must free it after constructing a worker.
+pub fn localCpuExpected(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, ordinal: u32, first: [@import("../types.zig").FAMILIES]u32, config: Config, binding: ?*const @import("fixed_authority.zig").Binding) !Manifest.ExpectedWorker {
+    if (ordinal >= 256) return error.GlobalGkrManifestOrdinal;
+    try Scope.setup(setup);
+    try Scope.request(request);
+    const instances = try Roster.fromSetup(a, setup);
+    errdefer a.free(instances);
+    return .{
+        .kind = .cpu,
+        .ordinal = ordinal,
+        .statement = CPU.cpuStatementWithAuthority(setup, request, first, config, binding),
+        .fixed = if (binding) |authority| authority.root() else setup.key.root,
+        .local_instances = instances,
+        .global_relations = .{ .ram = true, .kio = setup.bridges.keccak != null or setup.bridges.sponge.any(), .wire = CPU.wirePresent(setup.bridges) },
+        .mass = try CPU.cpuMass(request),
+    };
+}
+/// Global-inventory handoff checks exact expected class/public/protocol and
+/// roster, before an early worker or its MAIN tree can enter stage two.
+pub fn requireSameCpuExpected(local: Manifest.ExpectedWorker, admitted: Manifest.ExpectedWorker) !void {
+    if (local.kind != .cpu or admitted.kind != .cpu or local.ordinal != admitted.ordinal or
+        !std.mem.eql(u8, &local.statement, &admitted.statement) or !std.mem.eql(u8, &local.fixed, &admitted.fixed) or
+        !std.meta.eql(local.mass, admitted.mass) or !std.meta.eql(local.global_relations, admitted.global_relations)) return error.EarlyCpuInventoryMismatch;
+    const x = local.local_instances orelse return error.EarlyCpuInventoryMismatch;
+    const y = admitted.local_instances orelse return error.EarlyCpuInventoryMismatch;
+    if (x.len != y.len) return error.EarlyCpuInventoryMismatch;
+    for (x, y) |left, right| if (!std.meta.eql(left, right)) return error.EarlyCpuInventoryMismatch;
+}
+
 pub fn validateConfig(config: Config) !void {
     return @import("worker_protocol.zig").validateConfig(config);
 }
@@ -144,20 +175,43 @@ fn digest(channel: anytype, bytes: [32]u8) void {
 /// Raw256-bit transcript identity, with the implemented eight-coordinate
 /// sampler identity. This is request binding, not a security certificate.
 pub fn executionIdentity(config: Config, expected: P.Expected) [32]u8 {
-    var channel = core.channel.raw_mod_m31.Om31Channel.init();
-    channel.mixU32s(&.{ 0x45584731, 1, 8 });
-    config.mixInto(&channel);
-    digest(&channel, core.channel.raw_mod_m31.om31_profile.identity());
-    digest(&channel, expected.program_identity);
-    digest(&channel, expected.admission.image_identity);
-    channel.mixU64(expected.total_steps);
-    channel.mixU64(expected.max_total_steps);
-    channel.mixU64(expected.admission.max_prefix_steps);
-    channel.mixU64(expected.admission.initial_pc);
-    for (expected.admission.initial_registers) |value| channel.mixU64(value);
-    channel.mixU64(expected.final_pc);
-    for (expected.final_registers) |value| channel.mixU64(value);
-    return channel.digestBytes();
+    var writer = ExecutionIdentityWriter{ .channel = core.channel.raw_mod_m31.Om31Channel.init() };
+    emitExecutionIdentity(config, expected, &writer);
+    return writer.channel.digestBytes();
+}
+const ExecutionIdentityWriter = struct {
+    channel: core.channel.raw_mod_m31.Om31Channel,
+    pub fn header(self: *@This(), words: []const u32) void {
+        self.channel.mixU32s(words);
+    }
+    pub fn configuration(self: *@This(), config: Config) void {
+        config.mixInto(&self.channel);
+    }
+    pub fn constantDigest(self: *@This(), value: [32]u8) void {
+        digest(&self.channel, value);
+    }
+    pub fn publicDigest(self: *@This(), value: [32]u8) void {
+        digest(&self.channel, value);
+    }
+    pub fn int64(self: *@This(), value: u64) void {
+        self.channel.mixU64(value);
+    }
+};
+/// Single native/circuit authority for this frozen transcript order. The
+/// circuit writer uses raw u32 pairs for u64 values and propagates its errors.
+pub fn emitExecutionIdentity(config: Config, expected: anytype, writer: anytype) void {
+    writer.header(&.{ 0x45584731, 1, 8 });
+    writer.configuration(config);
+    writer.constantDigest(core.channel.raw_mod_m31.om31_profile.identity());
+    writer.publicDigest(expected.program_identity);
+    writer.publicDigest(expected.admission.image_identity);
+    writer.int64(expected.total_steps);
+    writer.int64(expected.max_total_steps);
+    writer.int64(expected.admission.max_prefix_steps);
+    writer.int64(expected.admission.initial_pc);
+    for (expected.admission.initial_registers) |value| writer.int64(value);
+    writer.int64(expected.final_pc);
+    for (expected.final_registers) |value| writer.int64(value);
 }
 pub const Verified = struct {
     completed: bool,

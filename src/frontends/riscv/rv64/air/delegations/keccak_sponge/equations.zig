@@ -56,11 +56,6 @@ pub fn limbsOfBytes(comptime F: type, bytes: []const F) [4]F {
 fn limbs(comptime F: type, m: []const F, start: usize) [4]F {
     return m[start..][0..4].*;
 }
-fn shiftValue(comptime F: type, sigma: []const F) F {
-    var s = F.zero();
-    for (sigma[1..8], 1..) |v, j| s = s.add(v.mul(q(F, @intCast(j))));
-    return s;
-}
 pub fn ioTuple(comptime F: type, id: F, direction: F, lane: usize, bytes: [8]F) [11]F {
     var out: [11]F = undefined;
     out[0] = id;
@@ -102,7 +97,7 @@ pub fn callPacket(comptime F: type, m: []const F, k: usize) [4]F {
     const C = L.call;
     return switch (k) {
         0 => limbs(F, m, C.state),
-        1 => .{ shiftValue(F, m[C.shift..][0..8]).add(m[C.in_q0].mul(q(F, 8))), m[C.in_hi], m[C.in_hi + 1], m[C.in_hi + 2] },
+        1 => .{ E.addByteShiftFor(F, F.zero(), m[C.shift + 1 ..][0..7]).add(m[C.in_q0].mul(q(F, 8))), m[C.in_hi], m[C.in_hi + 1], m[C.in_hi + 2] },
         2 => .{ m[C.len0], m[C.len1], F.zero(), F.zero() },
         else => .{ m[C.fin].add(m[C.fresh].mul(q(F, 2))), F.zero(), F.zero(), F.zero() },
     };
@@ -186,6 +181,11 @@ fn emitRamPairRaw(comptime F: type, sink: anytype, address: [4]F, k: []const F, 
     sink.emit(RAM, ramTuple(F, address, after[0], after[1], after[2], after_value, readable, writable), weight.neg());
 }
 pub fn emitRawFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, first_id: u32, sink: anytype) void {
+    emitRawWithFirstFor(F, kind, f, m, if (kind == .perm) q(F, first_id) else F.zero(), sink);
+}
+/// Same tuple authority with an already lifted public first-ID value. This
+/// keeps cold symbolic/device programs independent of request numeric values.
+pub fn emitRawWithFirstFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, first_id: F, sink: anytype) void {
     const one = F.one();
     const after = afterClock(F, m, kind);
     switch (kind) {
@@ -194,7 +194,7 @@ pub fn emitRawFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []co
             const a = m[C.active];
             const base = [4]F{ m[C.in_q0].mul(q(F, 8)), m[C.in_hi], m[C.in_hi + 1], m[C.in_hi + 2] };
             sink.emit(OWNER, ecallTuple(F, m), a.neg());
-            sink.emit(OWNER, tokenTuple(F, after, base, callLen(F, m), m[C.words], m[C.fin], m[C.fresh], shiftValue(F, m[C.shift..][0..8]), m[C.id]), a);
+            sink.emit(OWNER, tokenTuple(F, after, base, callLen(F, m), m[C.words], m[C.fin], m[C.fresh], E.addByteShiftFor(F, F.zero(), m[C.shift + 1 ..][0..7]), m[C.id]), a);
             for (0..4) |k| {
                 const v = callPacket(F, m, k);
                 emitRamPairRaw(F, sink, callPacketAddress(F, m, k), m[C.pclock + L.CLOCK * k ..][0..L.CLOCK], after, v, v, one, m[C.pwritable + k], a);
@@ -210,30 +210,30 @@ pub fn emitRawFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []co
                 sink.emit(IO, ioTuple(F, last_id, one, l, bytes8(F, m, C.new + 8 * l)), a.neg());
             }
             inline for (.{ m[C.tick_low], m[C.in_q0], m[C.q], m[C.len1].mul(q(F, 4096)) }) |v| {
-                sink.emit(RANGE16, [1]F{ v }, one);
+                sink.emit(RANGE16, [1]F{v}, one);
             }
             for (0..4) |k| {
-                sink.emit(RANGE16, [1]F{ m[C.pclock + L.CLOCK * k + L.clock.gap16] }, one);
+                sink.emit(RANGE16, [1]F{m[C.pclock + L.CLOCK * k + L.clock.gap16]}, one);
             }
             for (0..T.LANES) |l| {
-                sink.emit(RANGE16, [1]F{ m[C.sclock + L.CLOCK * l + L.clock.gap16] }, one);
+                sink.emit(RANGE16, [1]F{m[C.sclock + L.CLOCK * l + L.clock.gap16]}, one);
             }
             inline for (.{ m[C.tick_high], m[C.r], m[C.r].add(q(F, 120)), m[C.e], m[C.e].add(q(F, 248)) }) |v| {
-                sink.emit(RANGE8, [1]F{ v }, one);
+                sink.emit(RANGE8, [1]F{v}, one);
             }
             for (0..4) |k| {
-                sink.emit(RANGE8, [1]F{ m[C.pclock + L.CLOCK * k + L.clock.gap8] }, one);
+                sink.emit(RANGE8, [1]F{m[C.pclock + L.CLOCK * k + L.clock.gap8]}, one);
             }
             for (0..T.LANES) |l| {
-                sink.emit(RANGE8, [1]F{ m[C.sclock + L.CLOCK * l + L.clock.gap8] }, one);
+                sink.emit(RANGE8, [1]F{m[C.sclock + L.CLOCK * l + L.clock.gap8]}, one);
             }
         },
         .perm => {
             const P = L.perm;
             const a = m[P.active];
             const first = m[P.first];
-            const id = permId(F, f, first_id);
-            sink.emit(OWNER, tokenTuple(F, after, limbs(F, m, P.base), m[P.rb], m[P.wr], m[P.fin], m[P.freshfirst], shiftValue(F, m[P.shift..][0..8]), id), first.neg());
+            const id = first_id.add(f[0]);
+            sink.emit(OWNER, tokenTuple(F, after, limbs(F, m, P.base), m[P.rb], m[P.wr], m[P.fin], m[P.freshfirst], E.addByteShiftFor(F, F.zero(), m[P.shift + 1 ..][0..7]), id), first.neg());
             for (0..T.LANES) |l| {
                 sink.emit(IO, ioTuple(F, id, F.zero(), l, inputBytes(F, m, l)), a.neg());
             }
@@ -253,13 +253,13 @@ pub fn emitRawFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []co
                 emitRamPairRaw(F, sink, permSlotAddress(F, m, j), m[P.wclock + L.CLOCK * j ..][0..L.CLOCK], after, v, v, one, m[P.wwritable + j], m[P.read + j]);
             }
             for (0..T.SLOTS) |j| {
-                sink.emit(RANGE16, [1]F{ m[P.wclock + L.CLOCK * j + L.clock.gap16] }, one);
+                sink.emit(RANGE16, [1]F{m[P.wclock + L.CLOCK * j + L.clock.gap16]}, one);
             }
             for (0..T.SLOTS) |j| {
-                sink.emit(RANGE8, [1]F{ m[P.wclock + L.CLOCK * j + L.clock.gap8] }, one);
+                sink.emit(RANGE8, [1]F{m[P.wclock + L.CLOCK * j + L.clock.gap8]}, one);
             }
             for (0..T.SLOTS) |j| for (0..4) |i| {
-                sink.emit(RANGE8, [1]F{ m[P.window + 8 * j + 2 * i + 1] }, one);
+                sink.emit(RANGE8, [1]F{m[P.window + 8 * j + 2 * i + 1]}, one);
             };
         },
     }
@@ -284,20 +284,23 @@ fn clockConstraints(comptime F: type, k: []const F, after: [3]F, gate: F, out: *
 }
 /// Active rows are exactly the public prefix `[0, rows)` and the last row is
 /// padding, so the wrapped predecessor of row 0 is inactive.
-fn countConstraints(comptime F: type, f: []const F, active: F, previous: F, rows: u32, out: *E.SinkFor(F)) void {
+fn countConstraints(comptime F: type, f: []const F, active: F, previous: F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const one = F.one();
     const first = f[1];
-    out.emit(first.mul(active.sub(q(F, @intFromBool(rows != 0)))));
+    const external = comptime E.isExternalLane(F);
+    const nonempty = if (external) rows.nonempty else q(F, @intFromBool(rows != 0));
+    const count = if (external) rows.rows else q(F, rows);
+    out.emit(first.mul(active.sub(nonempty)));
     out.emit(f[2].mul(active));
     out.emit(one.sub(first).mul(active).mul(one.sub(previous)));
-    out.emit(one.sub(first).mul(previous.sub(active)).mul(f[0].sub(q(F, rows))));
+    out.emit(one.sub(first).mul(previous.sub(active)).mul(f[0].sub(count)));
 }
 fn sum(comptime F: type, values: []const F) F {
     var s = F.zero();
     for (values) |v| s = s.add(v);
     return s;
 }
-fn emitCall(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u32, out: *E.SinkFor(F)) void {
+fn emitCall(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const C = L.call;
     const one = F.one();
     const a = m[C.active];
@@ -322,10 +325,10 @@ fn emitCall(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u
     out.emit(m[C.zero].mul(len));
     out.emit(a.mul(len.mul(m[C.zinv]).sub(one).add(m[C.zero])));
     // words = (shift + len + 7 - e) / 8 with e < 8, or 0 for an empty message.
-    const span = shiftValue(F, m[C.shift..][0..8]).add(len).add(q(F, 7)).sub(m[C.e]);
+    const span = E.addByteShiftFor(F, F.zero(), m[C.shift + 1 ..][0..7]).add(len).add(q(F, 7)).sub(m[C.e]);
     out.emit(a.mul(m[C.words].mul(q(F, 8)).sub(one.sub(m[C.zero]).mul(span))));
 }
-fn emitPerm(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u32, out: *E.SinkFor(F)) void {
+fn emitPerm(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const P = L.perm;
     const one = F.one();
     const a = m[P.active];
@@ -387,7 +390,7 @@ fn emitPerm(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u
     // A fresh call starts from the zero state.
     for (m[P.pre..][0..200]) |v| out.emit(m[P.freshfirst].mul(v));
 }
-pub fn emitMainFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, pm: []const F, rows: u32, out: *E.SinkFor(F)) void {
+pub fn emitMainFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, pm: []const F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     switch (kind) {
         .call => emitCall(F, f, m, pm, rows, out),
         .perm => emitPerm(F, f, m, pm, rows, out),

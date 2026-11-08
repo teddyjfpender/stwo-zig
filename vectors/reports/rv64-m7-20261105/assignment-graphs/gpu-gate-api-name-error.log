@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/workspace/m3/src/m7-fold-v3/scripts/rv64_m7_assignment_graph_gate.py", line 100, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/m3/src/m7-fold-v3/scripts/rv64_m7_assignment_graph_gate.py", line 21, in main
+    create=fn(base,'stwo_rv64_gpu_session_create',[U,C.c_uint64,C.POINTER(C.c_void_p)])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/m3/src/m7-fold-v3/scripts/rv64_m7_assignment_graph_gate.py", line 17, in fn
+    f=getattr(lib,name);f.argtypes=args;f.restype=C.c_int;return f
+      ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ctypes/__init__.py", line 392, in __getattr__
+    func = self.__getitem__(name)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ctypes/__init__.py", line 397, in __getitem__
+    func = self._FuncPtr((name_or_ordinal, self))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: /workspace/m3/build/m7-integrate/cuda/native/libstwo-rv64-native.so: undefined symbol: stwo_rv64_gpu_session_create

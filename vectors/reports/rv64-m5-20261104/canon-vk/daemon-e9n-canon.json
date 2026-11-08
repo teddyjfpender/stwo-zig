@@ -1,0 +1,399 @@
+{
+  "schema": "rv64-m4-resident-daemon/v1",
+  "label": "measured",
+  "stream": "m5-canon-vk",
+  "run": "/workspace/m3/runs/m5-canon-vk/daemon-26235156-24628607-r2-e9n-canon",
+  "blocks": [
+    26235156,
+    24628607
+  ],
+  "repeat": 2,
+  "loading": "eager",
+  "nsys": false,
+  "source_commit": "97e391d1a",
+  "assets": {
+    "driver": "106acfada0878d5b2efcd6bc1c3b387b7522a64acb23a0756cada49f641dc8d3",
+    "library": "2bb02b11eb3b3e1bd6b0e4845a1b5716fd7d80e9d6e12f4de879cc11095fe067",
+    "receiver": "0be2e15951b7a5e19834575c10488b5124293355c437afee350cfb52b1c5ac3a",
+    "recursive_receiver": "0be2e15951b7a5e19834575c10488b5124293355c437afee350cfb52b1c5ac3a"
+  },
+  "environment": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_OUTER_PROFILE": "m5_outer_canonical_r1_b2_q108_p20_fold4_v1",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m5-canon-vk/cuda/native/libstwo-rv64-native.so",
+    "CUDA_MODULE_LOADING": "EAGER"
+  },
+  "store": {
+    "mode": "none",
+    "directory": null,
+    "key": null,
+    "components": {
+      "store_format": "rv64-m4-artifact-store/v1",
+      "driver_sha256": "106acfada0878d5b2efcd6bc1c3b387b7522a64acb23a0756cada49f641dc8d3",
+      "library_sha256": "2bb02b11eb3b3e1bd6b0e4845a1b5716fd7d80e9d6e12f4de879cc11095fe067",
+      "catalogue_sha256": "e1f83a61127c72eac753a8d0a6abb1c5287c05a924eeda8549aea71986dd805f",
+      "catalogue_dir": "/workspace/m3/catalogues-v3",
+      "build_catalogues": "/workspace/m3/catalogues-v3",
+      "elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "field_hash": "m31-circle/blake2s-merkle/om31-recursion"
+    },
+    "before": null,
+    "after": null
+  },
+  "load_avg_before": [
+    15.93603515625,
+    19.1572265625,
+    20.97802734375
+  ],
+  "load_avg_after": [
+    26.85302734375,
+    21.2353515625,
+    21.4052734375
+  ],
+  "service_start_s": 4.41,
+  "service_stop_s": 1.942,
+  "service_ready_record": {
+    "schema": "rv64-resident-service/v1",
+    "pid": 833966,
+    "init_ns": 4403931699
+  },
+  "producer_process": {
+    "argv": [
+      "/workspace/m3/build/m5-canon-vk-c/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+      "combined-serve",
+      "/workspace/m3/runs/m5-canon-vk/daemon-26235156-24628607-r2-e9n-canon/manifest.json",
+      "/workspace/m3/runs/m5-canon-vk/daemon-26235156-24628607-r2-e9n-canon/spool"
+    ],
+    "exit_code": 0,
+    "wall_ns": 132140607476,
+    "user_seconds": 394.604487,
+    "system_seconds": 184.167833,
+    "peak_rss_bytes": 28102225920,
+    "minor_faults": 55534264,
+    "major_faults": 0
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 1046,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 523,
+        "mean_percent": 29.609942638623327,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 523,
+        "mean_percent": 33.751434034416825,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 31503417344,
+      "1": 31503417344
+    }
+  },
+  "cuda_api": null,
+  "service_overhead_s": 6.379,
+  "requests": [
+    {
+      "block": 26235156,
+      "trial": 0,
+      "ordinal": 0,
+      "proof": "/workspace/m3/runs/m5-canon-vk/daemon-26235156-24628607-r2-e9n-canon/spool/out/0000-26235156/26235156/proof",
+      "client_latency_ns": 30484822793,
+      "marker": {
+        "request_wall_ns": 30479397662
+      },
+      "queue_ns": 5075002,
+      "stages": {
+        "request_wall_s": 30.479,
+        "capture_s": 2.327,
+        "setup_s": 8.797,
+        "native_prove_s": 4.906,
+        "native_verify_s": 1.172,
+        "native_total_before_report_s": 16.131,
+        "recursion_s": 14.31
+      },
+      "setup_breakdown": {
+        "image_ns": 521048453,
+        "program_ns": 104656960,
+        "native_keys_ns": 5385033170,
+        "fixed_authority_ns": 3307682997
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 750712,
+      "leaves": 11,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/26235156-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": false,
+        "recursive_proofs": false,
+        "recursive_mismatched": [
+          "fold-000002.proof",
+          "fold-000005.proof",
+          "fold-000006.proof",
+          "fold-000009.proof",
+          "fold-000012.proof",
+          "fold-000013.proof",
+          "fold-000014.proof",
+          "fold-000017.proof",
+          "fold-000019.proof",
+          "fold-000020.proof",
+          "leaf-000000.proof",
+          "leaf-000001.proof",
+          "leaf-000002.proof",
+          "leaf-000003.proof",
+          "leaf-000004.proof",
+          "leaf-000005.proof",
+          "leaf-000006.proof",
+          "leaf-000007.proof",
+          "leaf-000008.proof",
+          "leaf-000009.proof",
+          "leaf-000010.proof",
+          "root.proof"
+        ],
+        "root_sha256": "09dbb72eebb331a6a8e1a6e64bf1b46f274f21253b05256c149699fd4aa62c5a",
+        "baseline_root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "proof_count": 22,
+        "native_mismatched": [],
+        "byte_identical": false
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 0,
+      "ordinal": 1,
+      "proof": "/workspace/m3/runs/m5-canon-vk/daemon-26235156-24628607-r2-e9n-canon/spool/out/0001-24628607/24628607/proof",
+      "client_latency_ns": 42755297846,
+      "marker": {
+        "request_wall_ns": 42747308531
+      },
+      "queue_ns": 5101251,
+      "stages": {
+        "request_wall_s": 42.747,
+        "capture_s": 3.17,
+        "setup_s": 10.882,
+        "native_prove_s": 6.962,
+        "native_verify_s": 1.682,
+        "native_total_before_report_s": 21.289,
+        "recursion_s": 21.397
+      },
+      "setup_breakdown": {
+        "image_ns": 569399840,
+        "program_ns": 82042039,
+        "native_keys_ns": 6439630825,
+        "fixed_authority_ns": 4289168927
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 745752,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": false,
+        "recursive_proofs": false,
+        "recursive_mismatched": [
+          "fold-000002.proof",
+          "fold-000005.proof",
+          "fold-000006.proof",
+          "fold-000009.proof",
+          "fold-000012.proof",
+          "fold-000013.proof",
+          "fold-000014.proof",
+          "fold-000017.proof",
+          "fold-000020.proof",
+          "fold-000021.proof",
+          "fold-000024.proof",
+          "fold-000027.proof",
+          "fold-000028.proof",
+          "fold-000029.proof",
+          "fold-000030.proof",
+          "fold-000032.proof",
+          "leaf-000000.proof",
+          "leaf-000001.proof",
+          "leaf-000002.proof",
+          "leaf-000003.proof",
+          "leaf-000004.proof",
+          "leaf-000005.proof",
+          "leaf-000006.proof",
+          "leaf-000007.proof",
+          "leaf-000008.proof",
+          "leaf-000009.proof",
+          "leaf-000010.proof",
+          "leaf-000011.proof",
+          "leaf-000012.proof",
+          "leaf-000013.proof",
+          "leaf-000014.proof",
+          "leaf-000015.proof",
+          "leaf-000016.proof",
+          "root.proof"
+        ],
+        "root_sha256": "bcd573871efa4e29f7e71d28f59640788f3af1d7d4036e95fbd793945dc55c5e",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 34,
+        "native_mismatched": [],
+        "byte_identical": false
+      }
+    },
+    {
+      "block": 26235156,
+      "trial": 1,
+      "ordinal": 2,
+      "proof": "/workspace/m3/runs/m5-canon-vk/daemon-26235156-24628607-r2-e9n-canon/spool/out/0002-26235156/26235156/proof",
+      "client_latency_ns": 20260983934,
+      "marker": {
+        "request_wall_ns": 20252619278
+      },
+      "queue_ns": 5098381,
+      "stages": {
+        "request_wall_s": 20.253,
+        "capture_s": 2.431,
+        "setup_s": 0.14,
+        "native_prove_s": 4.268,
+        "native_verify_s": 1.201,
+        "native_total_before_report_s": 6.973,
+        "recursion_s": 13.213
+      },
+      "setup_breakdown": {
+        "image_ns": 580384269,
+        "program_ns": 86058980,
+        "native_keys_ns": 11570,
+        "fixed_authority_ns": 7470
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 750712,
+      "leaves": 11,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/26235156-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": false,
+        "recursive_proofs": false,
+        "recursive_mismatched": [
+          "fold-000002.proof",
+          "fold-000005.proof",
+          "fold-000006.proof",
+          "fold-000009.proof",
+          "fold-000012.proof",
+          "fold-000013.proof",
+          "fold-000014.proof",
+          "fold-000017.proof",
+          "fold-000019.proof",
+          "fold-000020.proof",
+          "leaf-000000.proof",
+          "leaf-000001.proof",
+          "leaf-000002.proof",
+          "leaf-000003.proof",
+          "leaf-000004.proof",
+          "leaf-000005.proof",
+          "leaf-000006.proof",
+          "leaf-000007.proof",
+          "leaf-000008.proof",
+          "leaf-000009.proof",
+          "leaf-000010.proof",
+          "root.proof"
+        ],
+        "root_sha256": "09dbb72eebb331a6a8e1a6e64bf1b46f274f21253b05256c149699fd4aa62c5a",
+        "baseline_root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "proof_count": 22,
+        "native_mismatched": [],
+        "byte_identical": false
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 1,
+      "ordinal": 3,
+      "proof": "/workspace/m3/runs/m5-canon-vk/daemon-26235156-24628607-r2-e9n-canon/spool/out/0003-24628607/24628607/proof",
+      "client_latency_ns": 32286144019,
+      "marker": {
+        "request_wall_ns": 32282190827
+      },
+      "queue_ns": 5109221,
+      "stages": {
+        "request_wall_s": 32.282,
+        "capture_s": 3.147,
+        "setup_s": 0.161,
+        "native_prove_s": 6.533,
+        "native_verify_s": 2.22,
+        "native_total_before_report_s": 9.994,
+        "recursion_s": 22.245
+      },
+      "setup_breakdown": {
+        "image_ns": 597558029,
+        "program_ns": 124032964,
+        "native_keys_ns": 14560,
+        "fixed_authority_ns": 13150
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 745752,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": false,
+        "recursive_proofs": false,
+        "recursive_mismatched": [
+          "fold-000002.proof",
+          "fold-000005.proof",
+          "fold-000006.proof",
+          "fold-000009.proof",
+          "fold-000012.proof",
+          "fold-000013.proof",
+          "fold-000014.proof",
+          "fold-000017.proof",
+          "fold-000020.proof",
+          "fold-000021.proof",
+          "fold-000024.proof",
+          "fold-000027.proof",
+          "fold-000028.proof",
+          "fold-000029.proof",
+          "fold-000030.proof",
+          "fold-000032.proof",
+          "leaf-000000.proof",
+          "leaf-000001.proof",
+          "leaf-000002.proof",
+          "leaf-000003.proof",
+          "leaf-000004.proof",
+          "leaf-000005.proof",
+          "leaf-000006.proof",
+          "leaf-000007.proof",
+          "leaf-000008.proof",
+          "leaf-000009.proof",
+          "leaf-000010.proof",
+          "leaf-000011.proof",
+          "leaf-000012.proof",
+          "leaf-000013.proof",
+          "leaf-000014.proof",
+          "leaf-000015.proof",
+          "leaf-000016.proof",
+          "root.proof"
+        ],
+        "root_sha256": "bcd573871efa4e29f7e71d28f59640788f3af1d7d4036e95fbd793945dc55c5e",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 34,
+        "native_mismatched": [],
+        "byte_identical": false
+      }
+    }
+  ],
+  "receivers": []
+}

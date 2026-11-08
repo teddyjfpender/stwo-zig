@@ -1,0 +1,49 @@
+{
+  "status": "PASS_SCOPED_NEGATIVE_NO_PROMOTION",
+  "single_sample_falsifier": true,
+  "actual_proof": false,
+  "requests": [
+    {
+      "block": 26235156,
+      "capture_s": {
+        "off": 1.600787105,
+        "on": 1.706473883
+      },
+      "captured_complete_v2_identical": true,
+      "setup_s": {
+        "serial": 5.521729473,
+        "classes": 5.358946807,
+        "eager": 5.344704865
+      },
+      "fixed_peak_bytes": {
+        "serial": 1193345776,
+        "classes": 1193345776,
+        "eager": 1274131424
+      },
+      "source_classes": 11,
+      "proof_count": 11,
+      "authority_all_three_identical": true
+    },
+    {
+      "block": 24628607,
+      "capture_s": {
+        "off": 2.064341245,
+        "on": 2.093087378
+      },
+      "captured_complete_v2_identical": true,
+      "setup_s": {
+        "serial": 7.628871463,
+        "classes": 7.78305391,
+        "eager": 7.660874177
+      },
+      "fixed_peak_bytes": {
+        "serial": 1210674208,
+        "classes": 1210674208,
+        "eager": 1253953904
+      },
+      "source_classes": 17,
+      "proof_count": 17,
+      "authority_all_three_identical": true
+    }
+  ]
+}

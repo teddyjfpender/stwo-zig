@@ -1,0 +1,35 @@
+{
+ "run": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-existing-setup-existing-setup-full1-off",
+ "process_wall_s": 64.96,
+ "service_overhead_s": 6.196,
+ "rss_gib": 23.42,
+ "cuda_api": {},
+ "requests": [
+  {
+   "block": 24628607,
+   "trial": 0,
+   "request_s": 40.155,
+   "capture": 2.132,
+   "setup": 12.631,
+   "native": 5.547,
+   "recursion": 19.491,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  },
+  {
+   "block": 24628607,
+   "trial": 1,
+   "request_s": 18.614,
+   "capture": 2.17,
+   "setup": 0.155,
+   "native": 4.941,
+   "recursion": 10.887,
+   "m3_identical": false,
+   "setup_hits": null,
+   "resident_hits": null
+  }
+ ]
+}
+{"service_start_s": 4.677, "service_stop_s": 1.501, "client_latency_s": [40.166, 18.62]}
+{"block": 24628607, "trial": 0, "status": "accepted", "wall_s": 53.0}

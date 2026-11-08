@@ -1,0 +1,451 @@
+{
+  "schema": "rv64-m4-resident-daemon/v1",
+  "label": "measured",
+  "stream": "m4-resident",
+  "run": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7",
+  "blocks": [
+    26235156,
+    24628607
+  ],
+  "repeat": 2,
+  "loading": "eager",
+  "nsys": false,
+  "source_commit": "bcd401ce4",
+  "assets": {
+    "driver": "d6af8aae051cd0cd758a8378e50fe1cc7aee528f1b677b96f427d1a4de907d55",
+    "library": "fe8a3e10a0788a08d8117b9490090cf644fc9046fb71773a1cf520aafb424411",
+    "receiver": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+    "recursive_receiver": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b"
+  },
+  "environment": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/integrate/cuda/native/libstwo-rv64-native.so",
+    "CUDA_MODULE_LOADING": "EAGER",
+    "STWO_ZIG_RV64_SETUP_CACHE": "/workspace/m3/store/codex-rv64-m4-resident/6ce263f1ab26c9fc82f69887/setup",
+    "STWO_RV64_OUTER_PLAN_CLASS_STORE": "/workspace/m3/store/codex-rv64-m4-resident/6ce263f1ab26c9fc82f69887/classes"
+  },
+  "store": {
+    "mode": "reuse",
+    "directory": "/workspace/m3/store/codex-rv64-m4-resident/6ce263f1ab26c9fc82f69887",
+    "key": "6ce263f1ab26c9fc82f698875119e6e134990711654c2f2acc919cae5e3e6d3a",
+    "components": {
+      "store_format": "rv64-m4-artifact-store/v1",
+      "driver_sha256": "d6af8aae051cd0cd758a8378e50fe1cc7aee528f1b677b96f427d1a4de907d55",
+      "library_sha256": "fe8a3e10a0788a08d8117b9490090cf644fc9046fb71773a1cf520aafb424411",
+      "catalogue_sha256": "e1f83a61127c72eac753a8d0a6abb1c5287c05a924eeda8549aea71986dd805f",
+      "catalogue_dir": "/workspace/m3/catalogues-v3",
+      "build_catalogues": "/workspace/m3/catalogues-v3",
+      "elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "field_hash": "m31-circle/blake2s-merkle/om31-recursion"
+    },
+    "before": {
+      "files": 37,
+      "bytes": 6578922671,
+      "setup_artifacts": 25,
+      "class_artifacts": 11
+    },
+    "after": {
+      "files": 37,
+      "bytes": 6578922671,
+      "setup_artifacts": 25,
+      "class_artifacts": 11
+    }
+  },
+  "load_avg_before": [
+    44.4462890625,
+    48.42822265625,
+    43.2041015625
+  ],
+  "load_avg_after": [
+    26.4306640625,
+    37.27001953125,
+    39.7177734375
+  ],
+  "service_start_s": 13.486,
+  "service_stop_s": 2.443,
+  "service_ready_record": {
+    "schema": "rv64-resident-service/v1",
+    "pid": 416203,
+    "init_ns": 13483221631
+  },
+  "producer_process": {
+    "argv": [
+      "/workspace/m3/build/m4-resident/driver-r7",
+      "combined-serve",
+      "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/manifest.json",
+      "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool"
+    ],
+    "exit_code": 0,
+    "wall_ns": 137358204835,
+    "user_seconds": 343.353631,
+    "system_seconds": 192.953481,
+    "peak_rss_bytes": 29952073728,
+    "minor_faults": 58895607,
+    "major_faults": 0
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 1088,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 544,
+        "mean_percent": 41.0625,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 544,
+        "mean_percent": 39.262867647058826,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 33655095296,
+      "1": 33648803840
+    }
+  },
+  "cuda_api": null,
+  "service_overhead_s": 15.955,
+  "requests": [
+    {
+      "block": 26235156,
+      "trial": 0,
+      "ordinal": 0,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0000-26235156/26235156/proof",
+      "client_latency_ns": 24691097410,
+      "marker": {
+        "request_wall_ns": 24682789009
+      },
+      "queue_ns": 5073734,
+      "stages": {
+        "request_wall_s": 24.683,
+        "capture_s": 2.571,
+        "setup_s": 0.137,
+        "native_prove_s": 5.146,
+        "native_verify_s": 1.209,
+        "native_total_before_report_s": 7.985,
+        "recursion_s": 16.652
+      },
+      "setup_breakdown": {
+        "image_ns": 508069042,
+        "program_ns": 70106318,
+        "native_keys_ns": 513920,
+        "fixed_authority_ns": 8000
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 748536,
+      "leaves": 11,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/26235156-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "baseline_root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "proof_count": 22,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 0,
+      "ordinal": 1,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0001-24628607/24628607/proof",
+      "client_latency_ns": 35717252272,
+      "marker": {
+        "request_wall_ns": 35712343238
+      },
+      "queue_ns": 5103614,
+      "stages": {
+        "request_wall_s": 35.712,
+        "capture_s": 3.147,
+        "setup_s": 0.165,
+        "native_prove_s": 6.523,
+        "native_verify_s": 1.97,
+        "native_total_before_report_s": 10.083,
+        "recursion_s": 25.583
+      },
+      "setup_breakdown": {
+        "image_ns": 563058347,
+        "program_ns": 103828118,
+        "native_keys_ns": 583809,
+        "fixed_authority_ns": 10900
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 706424,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 34,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    },
+    {
+      "block": 26235156,
+      "trial": 1,
+      "ordinal": 2,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0002-26235156/26235156/proof",
+      "client_latency_ns": 23947805425,
+      "marker": {
+        "request_wall_ns": 23942680110
+      },
+      "queue_ns": 5098654,
+      "stages": {
+        "request_wall_s": 23.943,
+        "capture_s": 2.764,
+        "setup_s": 0.141,
+        "native_prove_s": 4.265,
+        "native_verify_s": 1.395,
+        "native_total_before_report_s": 7.325,
+        "recursion_s": 16.582
+      },
+      "setup_breakdown": {
+        "image_ns": 585696681,
+        "program_ns": 103733378,
+        "native_keys_ns": 515960,
+        "fixed_authority_ns": 9350
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 748536,
+      "leaves": 11,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/26235156-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "baseline_root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "proof_count": 22,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 1,
+      "ordinal": 3,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0003-24628607/24628607/proof",
+      "client_latency_ns": 37071506278,
+      "marker": {
+        "request_wall_ns": 37064935676
+      },
+      "queue_ns": 5122914,
+      "stages": {
+        "request_wall_s": 37.065,
+        "capture_s": 3.224,
+        "setup_s": 0.164,
+        "native_prove_s": 6.946,
+        "native_verify_s": 2.019,
+        "native_total_before_report_s": 10.492,
+        "recursion_s": 26.529
+      },
+      "setup_breakdown": {
+        "image_ns": 541811712,
+        "program_ns": 100340152,
+        "native_keys_ns": 489430,
+        "fixed_authority_ns": 10520
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 706424,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 34,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    }
+  ],
+  "receivers": [
+    {
+      "block": 26235156,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0000-26235156/26235156/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/receiver-26235156-0000-26235156-20261104T132204/receiver-request.json",
+          "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0000-26235156/26235156/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 43953402199,
+        "user_seconds": 183.200312,
+        "system_seconds": 16.044742,
+        "peak_rss_bytes": 7164461056,
+        "minor_faults": 6714326,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/receiver-26235156-0000-26235156-20261104T132204",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 0,
+      "store_present_during_receive": false
+    },
+    {
+      "block": 24628607,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0001-24628607/24628607/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/receiver-24628607-0001-24628607-20261104T132248/receiver-request.json",
+          "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0001-24628607/24628607/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 65674609253,
+        "user_seconds": 286.048456,
+        "system_seconds": 21.644601,
+        "peak_rss_bytes": 7312306176,
+        "minor_faults": 9083750,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/receiver-24628607-0001-24628607-20261104T132248",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 0,
+      "store_present_during_receive": false
+    },
+    {
+      "block": 26235156,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0002-26235156/26235156/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/receiver-26235156-0002-26235156-20261104T132354/receiver-request.json",
+          "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0002-26235156/26235156/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 44444889851,
+        "user_seconds": 183.040792,
+        "system_seconds": 16.403839,
+        "peak_rss_bytes": 7125291008,
+        "minor_faults": 6710280,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/receiver-26235156-0002-26235156-20261104T132354",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 1,
+      "store_present_during_receive": false
+    },
+    {
+      "block": 24628607,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0003-24628607/24628607/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/receiver-24628607-0003-24628607-20261104T132439/receiver-request.json",
+          "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/spool/out/0003-24628607/24628607/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 70259797549,
+        "user_seconds": 313.882064,
+        "system_seconds": 23.277973,
+        "peak_rss_bytes": 7324504064,
+        "minor_faults": 9066947,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-warmboot-r7/receiver-24628607-0003-24628607-20261104T132439",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 1,
+      "store_present_during_receive": false
+    }
+  ],
+  "all_received": true
+}

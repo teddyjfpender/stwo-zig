@@ -106,9 +106,10 @@ pub const Provider = struct {
     shared: Manifest.Shared,
     pub fn fill(self: *const @This(), logical: usize, denominators: []O, numerators: []Classic.Numerator) !void {
         const l = G.layout(self.origin);
-        if (self.log_size < 5 or self.log_size > 22) return error.InvalidWideGlobalMetadata;
+        const max_log: u32 = if (self.origin == .core and (self.origin.core == .initial or self.origin.core == .terminal)) 23 else 22;
+        if (self.log_size < 5 or self.log_size > max_log) return error.InvalidWideGlobalMetadata;
         const n: usize = @as(usize, 1) << @intCast(self.log_size);
-        if (self.log_size < 5 or self.log_size > 22 or logical >= n or denominators.len != (l.ram_queries + 1) / 2 + (l.other_queries + 1) / 2 or numerators.len != denominators.len) return error.InvalidWideGlobalMetadata;
+        if (self.log_size < 5 or self.log_size > max_log or logical >= n or denominators.len != (l.ram_queries + 1) / 2 + (l.other_queries + 1) / 2 or numerators.len != denominators.len) return error.InvalidWideGlobalMetadata;
         var sink = Sink{ .shared = &self.shared };
         switch (self.origin) {
             .dword => |index| {

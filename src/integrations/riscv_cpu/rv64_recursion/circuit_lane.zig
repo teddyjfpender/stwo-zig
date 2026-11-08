@@ -100,9 +100,12 @@ pub const Lane = struct {
         // Invalid witness denominators must emit an unsatisfied constraint,
         // not panic in the builder's value-mode division. Witness selection
         // changes only the guessed value, never topology or gate order.
-        const inverse_value = ctx().get(self.v).inv() catch Q.zero();
+        const inverse_value = if (ctx().trace_only) Q.zero() else ctx().get(self.v).inv() catch Q.zero();
         ctx().stats.inv += 1;
         const inverse = latch(ctx().guess(inverse_value));
+        ctx().noteWitnessHint(inverse, .inverse, self.v, ctx().one()) catch |err| {
+            if (failure == null) failure = err;
+        };
         const product = latch(ctx().mul(self.v, inverse));
         ctx().eq(product, one().v) catch |err| {
             if (failure == null) failure = err;

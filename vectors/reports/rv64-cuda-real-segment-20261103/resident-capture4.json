@@ -1,0 +1,92 @@
+{
+  "schema": "rv64-resident-capture4-qualification/v1",
+  "date_utc": "2026-11-03",
+  "block": 24628607,
+  "gpu_count": 1,
+  "gpu_model": "RTX5090 sm120",
+  "scope": "Two sequential complete resident bundles; recursion excluded; twohostlanes do not mean concurrentGPUcallbacks",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "native_library_sha256": "6b86c059417977218878720d4a7b1a9823efe16a677955ba80bb725f6a20111a",
+  "fresh_receiver_reference": "fully-resident-complete-block.json",
+  "all20_artifacts_each_trial_match_reference": true,
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 51539607552,
+    "disk_bytes": 0,
+    "park_main": false,
+    "schedule": {
+      "lanes": 2,
+      "workers_per_lane": 4,
+      "memory_cap_bytes": 38654705664
+    },
+    "capture_options": {
+      "max_inflight_packets": 4,
+      "packet_heap_bytes": 1073741824,
+      "max_inflight_packet_heap_bytes": 4294967296,
+      "max_inflight_wire_bytes": 4294967296,
+      "execution_workers": 8
+    },
+    "recycler_cache_bytes": 1073741824,
+    "keccak_max_log": 18,
+    "fixed_setup_bytes": 12884901888,
+    "defer_local_binding": true,
+    "keccak_uniform_throughput": true
+  },
+  "trials": [
+    {
+      "completed_ethereum_block": true,
+      "capture_ns": 5726067571,
+      "capture_breakdown": {
+        "image_load_ns": 411926147,
+        "program_ns": 138124244,
+        "pre_import_ns": 88997863,
+        "import_ns": 5087019098
+      },
+      "setup_ns": 25418823578,
+      "prove_ns": 10202692535,
+      "same_process_verify_ns": 2262325972,
+      "trial": 0,
+      "mismatches": []
+    },
+    {
+      "completed_ethereum_block": true,
+      "capture_ns": 5251424764,
+      "capture_breakdown": {
+        "image_load_ns": 333949913,
+        "program_ns": 59450979,
+        "pre_import_ns": 61506158,
+        "import_ns": 4796517539
+      },
+      "setup_ns": 178833583,
+      "prove_ns": 8269605655,
+      "same_process_verify_ns": 2207642332,
+      "trial": 1,
+      "mismatches": []
+    }
+  ],
+  "two_request_wall_seconds": 61.45706828695256,
+  "two_request_peak_rss_bytes": 9860562944,
+  "logical_gpu_allocation_cap_bytes": 30064771072,
+  "retained_host_wide_parking": false,
+  "limits": [
+    "Onecoldandonewarm request, not median",
+    "GPU callbacks serialized by native owner; gain is hostworkoverlap",
+    "Native retained/running leases remain protected by original GPUcap",
+    "No2/4GPU or samehardwareCPU comparison",
+    "Fourpacket capture saves0.48s in this singlewarm comparison, uses0.70GBmorehostpeak than2packets; proving8.24vs8.27s is noise"
+  ],
+  "source_admission_commit": "b0f1a60d3",
+  "capture_prefetch_tests": "test-riscv64-capture-prefetch ReleaseFast passes, including bounded windows and malformed ordering",
+  "fresh_receiver": {
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "cpu_proofs": 7,
+    "truth_proofs": 10,
+    "load_and_setup_ns": 25538251002,
+    "verify_ns": 2290910737,
+    "source_validations": 15,
+    "source_coefficient_cells": 266883232
+  },
+  "fresh_receiver_note": "Separateprocess independentlyrebuilds and fullyvalidates15immutableauthorities; no residentproducer catalogreuse"
+}

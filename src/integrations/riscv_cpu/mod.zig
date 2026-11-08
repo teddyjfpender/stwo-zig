@@ -1,6 +1,89 @@
 //! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
 
+pub const rv64_poseidon2_outer = @import("poseidon2_outer/mod.zig");
+pub const rv64_outer_mle_point = @import("logup_gkr/mle_point.zig");
+pub const rv64_outer_hybrid_device = @import("outer_gkr/hybrid_device.zig");
+pub const rv64_outer_hybrid_air = @import("outer_gkr/hybrid_air.zig");
+pub const rv64_outer_hybrid_receiver = @import("outer_gkr/hybrid_receiver.zig");
+pub const rv64_outer_hybrid_wire = @import("outer_gkr/hybrid_wire.zig");
+pub const rv64_outer_hybrid_child = @import("outer_gkr/child_verifier.zig");
+pub const rv64_outer_gkr_profile = @import("outer_gkr/profile.zig");
+pub const rv64_outer_gkr_section = @import("outer_gkr/section.zig");
+pub const rv64_outer_gkr_binding = @import("outer_gkr/binding.zig");
+pub const rv64_services_roster = @import("word16_global_execution/services/roster.zig");
+pub const rv64_services_types = @import("word16_global_execution/services/types.zig");
+pub const rv64_services_pipeline = @import("word16_global_execution/services/pipeline.zig");
+pub const rv64_device_core_headers = @import("word16_execution/device_headers.zig");
+pub const rv64_provider_tails = @import("word16_execution/provider_tails.zig");
+pub const rv64_memory_input = @import("word16_execution/memory_input.zig");
+pub const rv64_family_input = @import("word16_execution/family_input.zig");
+pub const rv64_device_main = @import("word16_global_execution/services/device_main.zig");
+pub const rv64_device_source_stage = @import("word16_global_execution/services/pipeline.zig").DeviceSourceStage;
 const std = @import("std");
+pub const rv64_gkr_truth_products = @import("word16_global_execution/services/gkr_local/truth_classic.zig").products;
+pub const rv64_gkr_truth_device_source = @import("word16_global_execution/services/gkr_local/truth_device_source.zig");
+pub const rv64_gkr_truth_device_composition = @import("word16_global_execution/services/gkr_local/truth_device_composition.zig");
+pub const rv64_device_pcs = @import("stwo_prover_api").device_pcs;
+pub const rv64_cpu_source = @import("word16_execution/cpu_source.zig");
+pub const rv64_gkr_child = @import("word16_global_execution/services/gkr_local/child.zig");
+pub const rv64_gkr_cpu_replay = @import("word16_global_execution/services/gkr_local/cpu_replay.zig");
+pub const rv64_gkr_native_provider = @import("word16_global_execution/services/gkr_local/native_provider.zig");
+pub const rv64_ethereum_gkr_main = @import("word16_global_execution/ethereum/gkr_main.zig");
+pub const rv64_gkr_truth_v3_role = @import("word16_global_execution/services/gkr_local/truth_v3_role.zig");
+pub const rv64_gkr_truth_v3_catalog = @import("word16_global_execution/services/gkr_local/truth_v3_catalog.zig");
+pub const rv64_gkr_truth_role = @import("word16_global_execution/services/gkr_local/truth_role.zig");
+pub const rv64_native_gkr_truth = @import("word16_global_execution/services/native_gkr/truth_authority.zig");
+pub const rv64_native_gkr_roster = @import("word16_global_execution/services/native_gkr/native_roster.zig");
+pub const rv64_native_gkr_cpu = @import("word16_global_execution/services/native_gkr/cpu_component.zig");
+pub const rv64_native_gkr_section = @import("word16_global_execution/services/native_gkr/section.zig");
+pub const rv64_native_gkr_v2 = @import("word16_global_execution/services/native_gkr/v2.zig");
+pub const rv64_gkr_constraints = @import("word16_global_execution/services/gkr_local/constraint_authority.zig");
+pub const rv64_gkr_source = @import("word16_global_execution/services/gkr_local/source_authority.zig");
+pub const rv64_gkr_cpu_components = @import("word16_global_execution/services/gkr_local/cpu_components.zig");
+pub const rv64_gkr_cpu_worker = @import("word16_global_execution/services/gkr_local/cpu_worker.zig");
+pub const rv64_gkr_manifest = @import("word16_global_execution/services/gkr_local/manifest.zig");
+pub const rv64_gkr_manifest_wire = @import("word16_global_execution/services/gkr_local/manifest_wire.zig");
+pub const rv64_gkr_receipt = @import("word16_global_execution/services/gkr_local/receipt.zig");
+pub const rv64_gkr_wire = @import("word16_global_execution/services/gkr_local/wire.zig");
+/// Native chain policy / version identity (M8 GPU-native device seal: the
+/// chi chain IV is chainIv(versionIdentity(version)), a host constant).
+pub const rv64_gkr_chain = @import("word16_global_execution/services/gkr_local/chain.zig");
+/// Global RAM/KIO/Wire claim layout per origin (claimCount / claimsFromVector):
+/// the authority of the Stage2 claims buffer layout (M8 jobs/native_claims.zig).
+pub const rv64_gkr_global_cpu = @import("word16_global_execution/services/gkr_local/global_cpu.zig");
+pub const rv64_gkr_worker_protocol = @import("word16_global_execution/services/gkr_local/worker_protocol.zig");
+/// M8 GPU-native request driver (riscv_cuda rv64/jobs/driver_ge.zig): the
+/// direct capture with a per-segment readiness hook, run outside the legacy
+/// gkr_main pipeline. Exports only; no behaviour change.
+pub const rv64_ethereum_request = @import("rv64_ethereum_request.zig");
+pub const rv64_expected_image = @import("word16_execution/expected_image.zig");
+pub const rv64_program = @import("word16_execution/program.zig");
+pub const rv64_program_metadata = @import("word16_execution/program_metadata.zig");
+pub const rv64_ethereum_direct = @import("word16_global_execution/ethereum/direct.zig");
+pub const rv64_ethereum_capture = @import("word16_global_execution/ethereum/capture.zig");
+pub const rv64_ethereum_receiver = @import("word16_global_execution/ethereum/receiver.zig");
+pub const rv64_services_collector = @import("word16_global_execution/services/collector.zig");
+pub const rv64_replay_capture = @import("word16_execution/replay_capture.zig");
+pub const rv64_ethereum_capture_options = @import("word16_global_execution/ethereum/capture_options.zig");
+pub const rv64_ethereum_plan = @import("word16_global_execution/ethereum/plan.zig");
+/// M8 GPU-native install-time class builder (riscv_cuda rv64/jobs/
+/// native_class_build.zig, stream gn-shape): the warm capture's setup, FIXED
+/// authority and per-segment request views, built exactly as gkr_main's
+/// inventory does. Exports only; no behaviour change.
+pub const rv64_ethereum_keys = @import("word16_global_execution/ethereum/keys.zig");
+pub const rv64_ethereum_canon_rungs = @import("word16_global_execution/ethereum/canon_native_rungs.zig");
+pub const rv64_gkr_coordinator = @import("word16_global_execution/services/gkr_local/coordinator.zig");
+pub const rv64_gkr_bundle_wire = @import("word16_global_execution/services/gkr_local/bundle_wire.zig");
+pub const rv64_gkr_source_bounds = @import("word16_global_execution/services/gkr_local/source_bounds.zig");
+pub const rv64_ethereum_terminal = @import("word16_global_execution/ethereum/terminal.zig");
+pub const rv64_gkr_execution = @import("word16_global_execution/services/gkr_local/execution.zig");
+pub const rv64_gkr_fixed_authority = @import("word16_global_execution/services/gkr_local/fixed_authority.zig");
+pub const rv64_gkr_fixed_authority_set = @import("word16_global_execution/services/gkr_local/fixed_authority_set.zig");
+pub const rv64_gkr_local_roster = @import("word16_global_execution/services/gkr_local/roster.zig");
+pub const rv64_services_protocol = @import("word16_global_execution/services/protocol.zig");
+pub const rv64_native_policy = @import("word16_execution/native_policy.zig");
+pub const rv64_pcs_suite = @import("word16_execution/pcs_suite.zig");
+pub const rv64_om31_security_candidate = @import("word16_execution/om31_security_candidate.zig");
 pub const rv64 = @import("rv64.zig");
 pub const rv64_full = @import("rv64_full.zig");
 const frontend = @import("stwo_riscv_frontend");
@@ -267,3 +350,20 @@ test {
     _ = @import("guest_precompile_proof_test.zig");
     _ = @import("split_pcs_prepare_test.zig");
 }
+
+pub const rv64_om31_outer = @import("rv64_recursion/om31_outer.zig");
+pub const rv64_om31_outer_wrap = @import("rv64_recursion/om31_native/outer_wrap.zig");
+pub const rv64_om31_cpu_leaf = @import("rv64_recursion/om31_native/cpu_leaf.zig");
+pub const rv64_om31_services_root = @import("rv64_recursion/om31_native/services_root.zig");
+pub const rv64_om31_ready_dag = @import("rv64_recursion/om31_native/ready_dag.zig");
+pub const rv64_om31_typed_fold = @import("rv64_recursion/om31_native/typed_fold.zig");
+pub const rv64_om31_typed_summary = @import("rv64_recursion/om31_native/node_summary_v3.zig");
+pub const rv64_vk_table = @import("rv64_recursion/vk_table.zig");
+
+pub const rv64_om31_execution_wrap = @import("rv64_recursion/om31_native/execution_wrap.zig");
+pub const rv64_root_verify = @import("rv64_recursion/root_verify.zig");
+pub const rv64_root_verify_main = @import("rv64_recursion/root_verify_main.zig");
+
+/// Exact production allocator adapter, also used by ready-lane budget admission.
+pub const rv64_large_block_recycler = @import("rv64_large_block_recycler.zig");
+pub const rv64_recursion_budget = @import("rv64_recursion_budget.zig");

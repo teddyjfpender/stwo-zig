@@ -1,0 +1,36 @@
+{
+  "schema": "rv64-m7-native-authority-api/v1",
+  "author": "OpenAI Codex",
+  "status": "unit and GPU source fixture qualified; production selector still disabled",
+  "class_api": "class_authority.cpuStructure(allocator,canonical_structure,CpuSetup); truthStructure(allocator,canonical_structure,TruthDeclaration)",
+  "global_targets": "V2.GlobalSplitFor keeps ram_internal,ram_initial,ram_terminal,kio,wire; each derives from its own authenticated component root ratio",
+  "gates": [
+    {
+      "name": "CPU/truth verifier adapters and shared authority",
+      "log": "native-truth-component-test2.log",
+      "exit_code": 0
+    },
+    {
+      "name": "class API factories",
+      "log": "native-class-api-test.log",
+      "exit_code": 0
+    },
+    {
+      "name": "authenticated boundary split",
+      "log": "native-boundary-target-test.log",
+      "exit_code": 0
+    }
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/class_authority.zig": "9f6ca9f6dc3f5c12492d2de614fb38304778acf01102be54a56fbfcff1478490",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/native_roster.zig": "6df872edf43f2065aa4ab9a511aad89aea918c40ebd6fcb19c8e4c2860580be5",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/cpu_component.zig": "0f4d2726fde96908642dc0173b70dfb4cd5d492681fd1d6d472f7cda6ca72cd3",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/projection.zig": "bdfe0cf5c18ee2318bbff207ad2ee165d07f20d6e653ef794f5b23a4362af547",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/v2.zig": "bdb7c757f4a4e8e0e1da2e8f1a6d9b98dd632d11119635b2cfb82081dfe1709c",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/source_admission.zig": "238921f94098f4eaea8df1142b040a2aff172751242d47c1231a43ebfc098cb3",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/truth_authority.zig": "70b3107950bd5b37b46b3a53dd9277308a513441d73639fa3389cdfb76bc543f",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/truth_component.zig": "d53516e3eb642c634dc7d689078903e7e6fcc4888f4023ae2e077bb904414fa6",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/canonical_rungs.zig": "19e44d349b1aece24e58f52438ca527b3b3b93ff8e3a4704cab4013bdac2fb81"
+  },
+  "limits": "No native-GKR Ethereum producer, receiver or circuit leaf acceptance claimed. Source paired tuple collision and six-bit salt retry loss are required gates."
+}

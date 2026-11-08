@@ -1,0 +1,52 @@
+LOADAVG 34.34 24.56 21.22 25/7321 943344
+0, NVIDIA GeForce RTX 5090, 24 MHz, 9.07 W, 43, 2 MiB
+1, NVIDIA GeForce RTX 5090, 28 MHz, 7.41 W, 41, 2 MiB
+=== 24628607-cpu-0 v1 n=64
+GPU_STAGING_SUMMARY pageable_h2d=115 pageable_h2d_bytes=3942675108 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+GPU_POOL_SUMMARY pool_mallocs=2490 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=129 pageable_h2d_bytes=4867519140 pageable_d2h=53 pageable_d2h_bytes=202176 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+{"schema":"rv64-outer-gkr-gpu-bench/v1","class_id":0,"instances":64,"layers":26,"fractions":135208864,"reps":3,"tree_ms_median":17.076,"traversal_ms_median":199.480,"total_ms_median":216.556,"tree_ms":[17.071,17.076,17.084],"traversal_ms":[199.362,210.119,199.480],"kernel_calls_per_rep":20668,"device_allocated_bytes":14091773020,"device_total_bytes":33679736832,"device_free_bytes_after":19050725376,"input_gen_upload_s":13.366,"section_words":45229,"trimmed_round":false,"route":"plain"}
+RC=0
+=== 24628607-cpu-0 m4local n=36
+GPU_STAGING_SUMMARY pageable_h2d=54 pageable_h2d_bytes=3480644900 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+GPU_POOL_SUMMARY pool_mallocs=1524 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=73 pageable_h2d_bytes=4467375396 pageable_d2h=53 pageable_d2h_bytes=147520 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+{"schema":"rv64-outer-gkr-gpu-bench/v1","class_id":0,"instances":36,"layers":26,"fractions":124093760,"reps":3,"tree_ms_median":14.771,"traversal_ms_median":148.443,"total_ms_median":163.214,"tree_ms":[14.771,14.780,14.754],"traversal_ms":[148.644,148.355,148.443],"kernel_calls_per_rep":13542,"device_allocated_bytes":12977427932,"device_total_bytes":33679736832,"device_free_bytes_after":20158021632,"input_gen_upload_s":13.210,"section_words":31565,"trimmed_round":false,"route":"plain"}
+RC=0
+=== 24628607-cpu-3 v1 n=61
+GPU_STAGING_SUMMARY pageable_h2d=119 pageable_h2d_bytes=3686616612 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+GPU_POOL_SUMMARY pool_mallocs=2205 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=123 pageable_h2d_bytes=3875360292 pageable_d2h=53 pageable_d2h_bytes=184704 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+{"schema":"rv64-outer-gkr-gpu-bench/v1","class_id":0,"instances":61,"layers":26,"fractions":107648896,"reps":3,"tree_ms_median":14.290,"traversal_ms_median":163.656,"total_ms_median":177.945,"tree_ms":[14.269,14.337,14.290],"traversal_ms":[163.657,163.656,163.645],"kernel_calls_per_rep":16918,"device_allocated_bytes":11328868668,"device_total_bytes":33679736832,"device_free_bytes_after":21802188800,"input_gen_upload_s":12.424,"section_words":40861,"trimmed_round":false,"route":"plain"}
+RC=0
+=== 24628607-cpu-3 m4local n=35
+GPU_STAGING_SUMMARY pageable_h2d=69 pageable_h2d_bytes=3575856420 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+GPU_POOL_SUMMARY pool_mallocs=1417 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=71 pageable_h2d_bytes=3726851364 pageable_d2h=53 pageable_d2h_bytes=140928 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+{"schema":"rv64-outer-gkr-gpu-bench/v1","class_id":0,"instances":35,"layers":26,"fractions":103523648,"reps":3,"tree_ms_median":12.726,"traversal_ms_median":129.904,"total_ms_median":142.630,"tree_ms":[12.726,12.748,12.711],"traversal_ms":[129.748,129.904,129.922],"kernel_calls_per_rep":11998,"device_allocated_bytes":10915267580,"device_total_bytes":33679736832,"device_free_bytes_after":22204841984,"input_gen_upload_s":12.124,"section_words":29917,"trimmed_round":false,"route":"plain"}
+RC=0
+=== 24628607-truth-0 v1 n=4
+GPU_STAGING_SUMMARY pageable_h2d=9 pageable_h2d_bytes=5513674788 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+GPU_POOL_SUMMARY pool_mallocs=256 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=9 pageable_h2d_bytes=5513674788 pageable_d2h=55 pageable_d2h_bytes=79008 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+{"schema":"rv64-outer-gkr-gpu-bench/v1","class_id":0,"instances":4,"layers":27,"fractions":153157632,"reps":3,"tree_ms_median":16.592,"traversal_ms_median":93.367,"total_ms_median":109.959,"tree_ms":[16.598,16.592,16.574],"traversal_ms":[93.367,93.531,93.217],"kernel_calls_per_rep":2875,"device_allocated_bytes":16427882300,"device_total_bytes":33679736832,"device_free_bytes_after":16701915136,"input_gen_upload_s":22.167,"section_words":14125,"trimmed_round":false,"route":"plain"}
+RC=0
+=== 24628607-truth-3 v1 n=2
+GPU_POOL_SUMMARY pool_mallocs=144 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=5 pageable_h2d_bytes=606339108 pageable_d2h=49 pageable_d2h_bytes=59536 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+{"schema":"rv64-outer-gkr-gpu-bench/v1","class_id":0,"instances":2,"layers":24,"fractions":16842752,"reps":3,"tree_ms_median":1.889,"traversal_ms_median":22.831,"total_ms_median":24.720,"tree_ms":[1.885,1.889,1.890],"traversal_ms":[22.831,22.831,22.841],"kernel_calls_per_rep":1498,"device_allocated_bytes":1822771948,"device_total_bytes":33679736832,"device_free_bytes_after":31298093056,"input_gen_upload_s":0.714,"section_words":10157,"trimmed_round":false,"route":"plain"}
+RC=0
+=== 26235156-cpu-3 v1 n=54
+GPU_STAGING_SUMMARY pageable_h2d=103 pageable_h2d_bytes=5613750180 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+GPU_POOL_SUMMARY pool_mallocs=2134 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=109 pageable_h2d_bytes=5712840612 pageable_d2h=53 pageable_d2h_bytes=181952 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+{"schema":"rv64-outer-gkr-gpu-bench/v1","class_id":0,"instances":54,"layers":26,"fractions":158690016,"reps":3,"tree_ms_median":19.306,"traversal_ms_median":191.733,"total_ms_median":211.038,"tree_ms":[19.291,19.317,19.306],"traversal_ms":[191.733,191.644,192.140],"kernel_calls_per_rep":18012,"device_allocated_bytes":16445738012,"device_total_bytes":33679736832,"device_free_bytes_after":16668360704,"input_gen_upload_s":16.703,"section_words":40173,"trimmed_round":false,"route":"plain"}
+RC=0
+=== 26235156-cpu-3 m4local n=30
+GPU_STAGING_SUMMARY pageable_h2d=61 pageable_h2d_bytes=5475108132 pageable_d2h=0 pageable_d2h_bytes=0 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+GPU_POOL_SUMMARY pool_mallocs=1288 pool_trims=0 pool_oom_recoveries=0 arena_enabled=0 staging_enabled=0 poison=-1 poison_allocs=0 poison_frees=0 poison_bytes=0
+GPU_STAGING_SUMMARY pageable_h2d=61 pageable_h2d_bytes=5475108132 pageable_d2h=53 pageable_d2h_bytes=133952 pinned_direct=0 staged_h2d=0 staged_h2d_bytes=0 staged_d2h=0 staged_d2h_bytes=0 slot_waits=0 rings=0
+{"schema":"rv64-outer-gkr-gpu-bench/v1","class_id":0,"instances":30,"layers":26,"fractions":152086336,"reps":3,"tree_ms_median":17.481,"traversal_ms_median":148.277,"total_ms_median":165.758,"tree_ms":[17.474,17.481,17.516],"traversal_ms":[148.037,148.277,148.532],"kernel_calls_per_rep":11690,"device_allocated_bytes":15783669916,"device_total_bytes":33679736832,"device_free_bytes_after":17339449344,"input_gen_upload_s":16.517,"section_words":28173,"trimmed_round":false,"route":"plain"}
+RC=0
+LOADAVG 24.27 25.10 21.87 7/6444 947865
+EXIT=0

@@ -1,0 +1,311 @@
+{
+  "schema": "rv64-m4-resident-daemon/v1",
+  "label": "measured",
+  "stream": "m7-rc-workspace",
+  "run": "/workspace/m3/runs/m7-rc-workspace/daemon-24628607-r2-rc-idle0-role-0-enqueue-0",
+  "blocks": [
+    24628607
+  ],
+  "repeat": 2,
+  "loading": "eager",
+  "nsys": true,
+  "source_commit": null,
+  "assets": {
+    "driver": "5345f2fb7977133ec6ceaedbe00ee2d1852caeef034dbb439484479d4e550813",
+    "library": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "environment": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "1",
+    "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+    "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0",
+    "STWO_RV64_LEAF_SEED_TAPE": "1",
+    "STWO_RV64_PACK_FOLD_CACHE": "1",
+    "STWO_RV64_CPU_COMPACT_INGRESS": "1",
+    "STWO_RV64_BLAKE_SAMPLE_PREFILL": "1",
+    "STWO_RV64_NVTX": "1",
+    "STWO_RV64_OUTER_OWNER_CONTROLLER": "1",
+    "STWO_RV64_OUTER_ASSIGNMENT_GRAPH": "0",
+    "STWO_RV64_COMPOSITION_ENQUEUE": "0",
+    "STWO_RV64_RC_ROLE_WORKSPACE": "0",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "7",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m7-controller-graphs/cuda/native/libstwo-rv64-native.so",
+    "CUDA_MODULE_LOADING": "EAGER"
+  },
+  "store": {
+    "mode": "none",
+    "directory": null,
+    "key": null,
+    "components": {
+      "store_format": "rv64-m4-artifact-store/v1",
+      "driver_sha256": "5345f2fb7977133ec6ceaedbe00ee2d1852caeef034dbb439484479d4e550813",
+      "library_sha256": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+      "catalogue_sha256": "e1f83a61127c72eac753a8d0a6abb1c5287c05a924eeda8549aea71986dd805f",
+      "catalogue_dir": "/workspace/m3/catalogues-v3",
+      "build_catalogues": null,
+      "elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "field_hash": "m31-circle/blake2s-merkle/om31-recursion"
+    },
+    "before": null,
+    "after": null
+  },
+  "load_avg_before": [
+    26.6103515625,
+    22.04931640625,
+    18.29248046875
+  ],
+  "load_avg_after": [
+    24.19873046875,
+    21.73095703125,
+    18.43896484375
+  ],
+  "service_start_s": 9.081,
+  "service_stop_s": 7.867,
+  "service_ready_record": {
+    "schema": "rv64-resident-service/v1",
+    "pid": 2242097,
+    "init_ns": 7960155960
+  },
+  "producer_process": {
+    "argv": [
+      "nsys",
+      "profile",
+      "--trace=cuda,nvtx",
+      "--sample=none",
+      "--cpuctxsw=none",
+      "--force-overwrite=true",
+      "-o",
+      "/workspace/m3/runs/m7-rc-workspace/daemon-24628607-r2-rc-idle0-role-0-enqueue-0/nsys/timeline",
+      "/workspace/m3/build/m7-rc-workspace/rv64-word16-ethereum-gpu-combined",
+      "combined-serve",
+      "/workspace/m3/runs/m7-rc-workspace/daemon-24628607-r2-rc-idle0-role-0-enqueue-0/manifest.json",
+      "/workspace/m3/runs/m7-rc-workspace/daemon-24628607-r2-rc-idle0-role-0-enqueue-0/spool"
+    ],
+    "exit_code": 0,
+    "wall_ns": 73008304405,
+    "user_seconds": 0.040445999999999996,
+    "system_seconds": 0.368071,
+    "peak_rss_bytes": 45711360,
+    "minor_faults": 8287,
+    "major_faults": 1
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 572,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 286,
+        "mean_percent": 20.748251748251747,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 286,
+        "mean_percent": 23.636363636363637,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 31501320192,
+      "1": 31501320192
+    }
+  },
+  "cuda_api": {
+    "cuLibraryLoadData": {
+      "count": 686,
+      "seconds": 2.9762,
+      "first_ns": 356285025,
+      "last_ns": 3333117556
+    },
+    "cudaLaunchKernel_v7000": {
+      "count": 164933,
+      "seconds": 0.6787,
+      "first_ns": 23023597687,
+      "last_ns": 63883949377
+    },
+    "cudaMemcpyAsync_v3020": {
+      "count": 42224,
+      "seconds": 0.2269,
+      "first_ns": 23022170470,
+      "last_ns": 63926446617
+    },
+    "cudaStreamSynchronize_v3020": {
+      "count": 8870,
+      "seconds": 15.0206,
+      "first_ns": 23023494617,
+      "last_ns": 64143246837
+    },
+    "per_request": {
+      "session_start_utc_ns": 1793872128261578549,
+      "requests": [
+        {
+          "cuLibraryLoadData": 0,
+          "cuLibraryUnload": 0,
+          "cudaMallocFromPoolAsync": 0,
+          "cudaStreamSynchronize": 4399,
+          "cudaLaunchKernel": 82473
+        },
+        {
+          "cuLibraryLoadData": 0,
+          "cuLibraryUnload": 0,
+          "cudaMallocFromPoolAsync": 0,
+          "cudaStreamSynchronize": 4470,
+          "cudaLaunchKernel": 82460
+        }
+      ],
+      "cuLibraryLoadData_before_first_request": 686
+    }
+  },
+  "service_overhead_s": 16.965,
+  "requests": [
+    {
+      "block": 24628607,
+      "trial": 0,
+      "ordinal": 0,
+      "proof": "/workspace/m3/runs/m7-rc-workspace/daemon-24628607-r2-rc-idle0-role-0-enqueue-0/spool/out/0000-24628607/24628607/proof",
+      "client_latency_ns": 39211829334,
+      "marker": {
+        "request_wall_ns": 39203901764
+      },
+      "queue_ns": 10164714,
+      "stages": {
+        "request_wall_s": 39.204,
+        "capture_s": 2.069,
+        "setup_s": 12.65,
+        "native_prove_s": 5.395,
+        "native_verify_s": 2.076,
+        "native_total_before_report_s": 20.36,
+        "recursion_s": 18.8
+      },
+      "setup_breakdown": {
+        "image_ns": 267087630,
+        "program_ns": 22751861,
+        "native_keys_ns": 7731168772,
+        "fixed_authority_ns": 4786815057
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 708696,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": false,
+        "recursive_proofs": false,
+        "recursive_mismatched": [
+          "fold-000004.proof",
+          "fold-000009.proof",
+          "fold-000014.proof",
+          "fold-000019.proof",
+          "fold-000020.proof",
+          "fold-000022.proof",
+          "leaf-000000.proof",
+          "leaf-000001.proof",
+          "leaf-000002.proof",
+          "leaf-000003.proof",
+          "leaf-000004.proof",
+          "leaf-000005.proof",
+          "leaf-000006.proof",
+          "leaf-000007.proof",
+          "leaf-000008.proof",
+          "leaf-000009.proof",
+          "leaf-000010.proof",
+          "leaf-000011.proof",
+          "leaf-000012.proof",
+          "leaf-000013.proof",
+          "leaf-000014.proof",
+          "leaf-000015.proof",
+          "leaf-000016.proof",
+          "root.proof"
+        ],
+        "root_sha256": "b3eb90e35187f0157b96be1407e2ca2c1c15fb71c40fb2a933ec404acafd2507",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 24,
+        "native_mismatched": [],
+        "byte_identical": false
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 1,
+      "ordinal": 1,
+      "proof": "/workspace/m3/runs/m7-rc-workspace/daemon-24628607-r2-rc-idle0-role-0-enqueue-0/spool/out/0001-24628607/24628607/proof",
+      "client_latency_ns": 16847403427,
+      "marker": {
+        "request_wall_ns": 16839844646
+      },
+      "queue_ns": 5161107,
+      "stages": {
+        "request_wall_s": 16.84,
+        "capture_s": 2.161,
+        "setup_s": 0.17,
+        "native_prove_s": 4.729,
+        "native_verify_s": 2.301,
+        "native_total_before_report_s": 7.233,
+        "recursion_s": 9.575
+      },
+      "setup_breakdown": {
+        "image_ns": 85892018,
+        "program_ns": 558779,
+        "native_keys_ns": 14060,
+        "fixed_authority_ns": 12400
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 708696,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": false,
+        "recursive_proofs": false,
+        "recursive_mismatched": [
+          "fold-000004.proof",
+          "fold-000009.proof",
+          "fold-000014.proof",
+          "fold-000019.proof",
+          "fold-000020.proof",
+          "fold-000022.proof",
+          "leaf-000000.proof",
+          "leaf-000001.proof",
+          "leaf-000002.proof",
+          "leaf-000003.proof",
+          "leaf-000004.proof",
+          "leaf-000005.proof",
+          "leaf-000006.proof",
+          "leaf-000007.proof",
+          "leaf-000008.proof",
+          "leaf-000009.proof",
+          "leaf-000010.proof",
+          "leaf-000011.proof",
+          "leaf-000012.proof",
+          "leaf-000013.proof",
+          "leaf-000014.proof",
+          "leaf-000015.proof",
+          "leaf-000016.proof",
+          "root.proof"
+        ],
+        "root_sha256": "b3eb90e35187f0157b96be1407e2ca2c1c15fb71c40fb2a933ec404acafd2507",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 24,
+        "native_mismatched": [],
+        "byte_identical": false
+      }
+    }
+  ],
+  "receivers": []
+}

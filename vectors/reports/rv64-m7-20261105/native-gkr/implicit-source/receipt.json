@@ -1,0 +1,66 @@
+{
+  "schema": "rv64-m7-native-gkr-implicit-source/v1",
+  "author": "OpenAI Codex",
+  "label": "M numerical and static frontend controls; no Ethereum new-format request",
+  "status": "numerical path qualified; new-format selector remains disabled; no physical worker/PCS acceptance or end-to-end gain claimed",
+  "gpu": {
+    "pod": "cps13bvat3xhdo",
+    "inventory": "2 RTX 5090; one GPU used for fixture",
+    "arena_bytes": 23622320128,
+    "premap": false
+  },
+  "full_batch": {
+    "source": "actual CPU Keccak bridge IR and original query authority",
+    "row_log": 5,
+    "groups": 3,
+    "real_fraction_rows": 1472,
+    "padded_fact_rows": 704,
+    "total_fact_rows": 2176,
+    "numerical_proof_words": 2556,
+    "proof_sha256": "3f75ac655f9b62a2674d34a29d39848615121cb7523fb62209852eff0c55edd6",
+    "proof_bytes_identical_to_CPU": true,
+    "final_channel_exact": true,
+    "row_point_exact": true,
+    "raw_fraction_device_bytes": 0,
+    "decoded_source_bytes": 9216,
+    "workspace_bytes": 188288,
+    "launches": 364,
+    "allocations": 6,
+    "releases": 6,
+    "live_high_water_bytes": 200192,
+    "memcheck_errors": 0
+  },
+  "gates": {
+    "focused_host_tests": 17,
+    "gpu_batch_memcheck_exit": 0,
+    "raw_source_layer_fold_sum_binding_poison_memcheck_exit": 0,
+    "poison_cases": 4,
+    "pure_native_v2_suite_exit": 0,
+    "ng01_mutations_rejected": 3468,
+    "main_only_manifest_test_exit": 0
+  },
+  "planner_contract": "native_gkr_stage.cost(request) returns workspace, decoded source, twiddle, metadata and summed transient payload bytes; retained coefficient owners/cache/slab rounding are external costs; no admission bypass",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/mod.zig": "975ee460530bf282d0f2eae9df510a1c8f5fbdb58c20593296c9c385cf9a0eeb",
+    "src/integrations/riscv_cpu/rv64_native_gkr_test_root.zig": "b2706d8cce320bd63c15543e21164c454d297d1dbda13df74f859b5695166d73",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest.zig": "828a00247101f2c0a6abd6c7e0aef95f3862dd05aa0dbbd785d7c98de4372105",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/v2.zig": "a498d8e506c77ca819ab0eec32349685684ede0f903624a513f1677f68c156cc",
+    "src/integrations/riscv_cuda/build.zig": "55574f5dd3c895533818a17a7b8eb3ba7cc69fe3a01f7a77eaf6a4c89db5d488",
+    "src/integrations/riscv_cuda/rv64/truth_interaction_codegen.zig": "454cc5e2a6cf272d506805031ac2b06096163bf53c8d5cd204051b162616c880",
+    "src/backends/cuda/native/rv64/native_gkr_source.h": "c2c918091d8f39107e68ad157ec0d14d87d68077ced79c21df9f1b1019202810",
+    "src/integrations/riscv_cuda/rv64/native_gkr_codegen.zig": "d3878c7ec667bca5e5e4701d019581e8780d5fdf2aa80ff6ee492f2deb54566c",
+    "src/integrations/riscv_cuda/rv64/native_gkr_parameters.zig": "dd22bf4ed6bab4d479b14830aca21fc95c7a70132b72c4cb6762fcb114f11d12",
+    "src/integrations/riscv_cuda/rv64/native_gkr_source_fixture.zig": "8103aeced625c9ff3658fe5f90d2b6901beb3ca87ac192bbe1bab9050cd83613",
+    "src/integrations/riscv_cuda/rv64/native_gkr_stage.zig": "2ef932b533ce40e9f79304b0eadbe20bd48d61cf983bf118f36dd92068e3b959",
+    "src/integrations/riscv_cuda/rv64/native_gkr_stage_fixture.zig": "d080e261aefc4acf1d450d15f15c655ba3ed32e1414145b445153b68c6ee70eb",
+    "src/integrations/riscv_cuda/rv64_native_gkr_codegen_test_root.zig": "60212fb63b1e3d020c58d2208f4b49d1b71bceceee5b50f6a1fb427d3c1182eb",
+    "tests/cuda/rv64/native_gkr_source_smoke.cu": "a639cb9e53a9f337baa18a4fb85d6cc01d546c4395bf35c6c9582fed287d465f"
+  },
+  "artifacts": "artifacts.json",
+  "commands": [
+    "zig build test-native-gkr-codegen",
+    "STWO_NATIVE_GKR_SOURCE_LIBRARY=... compute-sanitizer --tool memcheck --error-exitcode 99 <focused test executable>",
+    "zig build test-native-gkr",
+    "zig build test-native-gkr -Dnative-gkr-test-filter=native-GKR MAIN-only"
+  ]
+}

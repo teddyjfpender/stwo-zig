@@ -74,7 +74,13 @@ pub const Component = struct {
         const d = try C.shape(s.truth);
         if (d.main > MAX_MAIN or d.inter > MAX_INTER) return error.V3TruthShapeExceeded;
     }
+    pub fn ParametersFor(comptime C_: type) type {
+        return struct { span: E.CallSpanFor(C_), wire: A.crypto.sha256.equations.WireFor(C_), bytes: C_, claim: C_ };
+    }
     pub fn emitMainFor(s: *const @This(), comptime F: type, fixed_values: []const F, main_values: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
+        return s.emitMainWithSpan(F, fixed_values, main_values, previous, .{ .calls = s.truth.count(), .first_id = s.truth.first() }, sink);
+    }
+    pub fn emitMainWithSpan(s: *const @This(), comptime F: type, fixed_values: []const F, main_values: []const F, previous: []const F, span: E.CallSpanFor(E.ConstFor(F)), sink: *E.SinkFor(F)) !void {
         const View = struct {
             f: []const F,
             m: []const F,
@@ -90,16 +96,19 @@ pub const Component = struct {
             }
         };
         var ctx = struct {
-            owner: *const Component,
+            span: E.CallSpanFor(E.ConstFor(F)),
             v: View,
             sink: *E.SinkFor(F),
             pub fn call(c: *@This(), comptime T: type) !void {
-                T.Eq.emitMain(F, &c.v, .{ .calls = c.owner.truth.count(), .first_id = c.owner.truth.first() }, c.sink);
+                T.Eq.emitMain(F, &c.v, c.span, c.sink);
             }
-        }{ .owner = s, .v = .{ .f = fixed_values, .m = main_values, .p = previous }, .sink = sink };
+        }{ .span = span, .v = .{ .f = fixed_values, .m = main_values, .p = previous }, .sink = sink };
         try C.visit(s.truth, &ctx);
     }
     pub fn emitGlobalFor(s: *const @This(), comptime F: type, fixed_values: []const F, main_values: []const F, current: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
+        return s.emitGlobalWithParameters(F, fixed_values, main_values, current, previous, .{ .span = .{ .calls = s.truth.count(), .first_id = s.truth.first() }, .wire = s.wire, .bytes = s.bytes, .claim = s.claim }, sink);
+    }
+    pub fn emitGlobalWithParameters(s: *const @This(), comptime F: type, fixed_values: []const F, main_values: []const F, current: []const F, previous: []const F, parameters: ParametersFor(E.ConstFor(F)), sink: *E.SinkFor(F)) !void {
         const View = struct {
             f: []const F,
             m: []const F,
@@ -123,14 +132,14 @@ pub const Component = struct {
             }
         };
         var ctx = struct {
-            owner: *const Component,
+            params: ParametersFor(E.ConstFor(F)),
             v: View,
             sink: *E.SinkFor(F),
             pub fn call(c: *@This(), comptime T: type) !void {
-                const span = E.CallSpanFor(O){ .calls = c.owner.truth.count(), .first_id = c.owner.truth.first() };
-                if (T.bytes == 0) T.Eq.emitInteraction(F, &c.v, span, c.owner.claim, c.owner.wire, c.sink) else T.Eq.emitInteraction(F, &c.v, span, c.owner.claim, .{ .bytes = c.owner.bytes, .wire = c.owner.wire }, c.sink);
+                const span = c.params.span;
+                if (T.bytes == 0) T.Eq.emitInteraction(F, &c.v, span, c.params.claim, c.params.wire, c.sink) else T.Eq.emitInteraction(F, &c.v, span, c.params.claim, .{ .bytes = c.params.bytes, .wire = c.params.wire }, c.sink);
             }
-        }{ .owner = s, .v = .{ .f = fixed_values, .m = main_values, .i = current, .p = previous, .pa = F.zero() }, .sink = sink };
+        }{ .params = parameters, .v = .{ .f = fixed_values, .m = main_values, .i = current, .p = previous, .pa = F.zero() }, .sink = sink };
         try C.visit(s.truth, &ctx);
     }
     pub fn traceLogDegreeBounds(s: *const @This(), a: std.mem.Allocator) !Air.TraceLogDegreeBounds {

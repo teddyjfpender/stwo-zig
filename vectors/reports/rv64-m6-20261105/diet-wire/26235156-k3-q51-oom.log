@@ -1,0 +1,13 @@
+RECURSION_NODE_SHAPE node=5 kind=leaf shape=exact raw=[13806,6997002,406784,779846,4067840] padded=[16384,8388608,524288,1048576,4194304]
+RECURSION_NODE_SHAPE node=1 kind=leaf shape=exact raw=[178794,7687701,556728,1288640,5567280] padded=[262144,8388608,1048576,2097152,8388608]
+RECURSION_NODE_SHAPE node=2 kind=leaf shape=exact raw=[185113,7925778,569112,1320226,5691120] padded=[262144,8388608,1048576,2097152,8388608]
+RECURSION_NODE_SHAPE node=6 kind=leaf shape=exact raw=[13806,6997301,406784,779846,4067840] padded=[16384,8388608,524288,1048576,4194304]
+RECURSION_NODE_SHAPE node=4 kind=leaf shape=exact raw=[168618,7102738,521464,1205732,5214640] padded=[262144,8388608,524288,2097152,8388608]
+RECURSION_NODE_SHAPE node=0 kind=leaf shape=exact raw=[184223,7886497,565352,1314750,5653520] padded=[262144,8388608,1048576,2097152,8388608]
+GPU_TRACE_ALLOCATION_FAILURE tree=2 columns=304 phase=coefficients requested_words=691275776 kind=2 error=CudaAllocationFailed
+error: rv64 OM31 pipelined recursion node 5 failed: CudaAllocationFailed
+RECURSION_NODE_SHAPE node=8 kind=leaf shape=exact raw=[13806,6997240,406784,779846,4067840] padded=[16384,8388608,524288,1048576,4194304]
+GPU_TRACE_ALLOCATION_FAILURE tree=2 columns=304 phase=lde_arena requested_words=5932462160 kind=0 error=CudaAllocationFailed
+error: rv64 OM31 pipelined recursion node 1 failed: CudaAllocationFailed
+RECURSION_NODE_SHAPE node=9 kind=leaf shape=exact raw=[9896,5481269,511288,1002798,5112880] padded=[16384,8388608,524288,1048576,8388608]
+error: CudaAllocationFailed

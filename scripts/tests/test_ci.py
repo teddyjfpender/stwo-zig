@@ -1,6 +1,8 @@
+import os
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -386,14 +388,18 @@ class CiTests(unittest.TestCase):
         }
         for command, expected_count in transitive_commands.items():
             self.assertEqual(expected_count, build_graph.count(command))
-        self.assertEqual(
-            0,
-            subprocess.run(
-                ["git", "check-ignore", "-q", gate_archive],
-                cwd=ROOT,
-                check=False,
-            ).returncode,
-        )
+        # Test this checkout's ignore rules without depending on its Git
+        # metadata or a developer's global excludes/template configuration.
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = Path(raw)
+            git_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+            git_env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+            subprocess.run(["git", "init", "-q", "--template=", raw], check=True, env=git_env)
+            (fixture / ".gitignore").write_bytes((ROOT / ".gitignore").read_bytes())
+            self.assertEqual(0, subprocess.run(
+                ["git", "-c", "core.excludesFile=/dev/null", "check-ignore", "-q", gate_archive],
+                cwd=fixture, check=False, env=git_env,
+            ).returncode)
         interop_steps = [step for step in gate_steps("strict") if step["name"] == "interop"]
         self.assertEqual(1, len(interop_steps))
         self.assertIn(f"--archive-dir {gate_archive}", interop_steps[0]["command"])

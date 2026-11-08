@@ -1,0 +1,13 @@
+{
+  "schema": "rv64-paired-coset-window-parity/v1",
+  "gpu": "RTX 5090 sm120",
+  "layouts": 49,
+  "tile_counts": [1, 3],
+  "comparisons": 98,
+  "physical_windows_per_fixture": 2,
+  "native_full_domain_output_parity": true,
+  "source_view_rows": 32,
+  "global_domain_rows": 64,
+  "purpose": "Validate global-mask addressing with half-domain source slabs for bounded 4n truth composition.",
+  "scope": "Numerical window/addressing qualification only; real Keccak truth composition and memory qualification remain pending."
+}

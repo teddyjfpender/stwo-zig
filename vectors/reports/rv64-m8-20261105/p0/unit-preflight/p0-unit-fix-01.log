@@ -1,0 +1,49 @@
+test-rv64-pcs-geometry
++- run test stderr
+PP_SOURCE_ADMISSION_REFUSED physical=0 handoff=1 runtime_v2=false ordinal=0 pp_retained_upper_large=5368709120 pp_retained_upper_small=0 temp_large=18253611008 temp_small=0 stage_retained_upper_large=0 stage_retained_upper_small=0 successor_large=0 successor_small=0 required_large=23622320128 required_small=0 cap_large=23085449216 cap_small=536870912
+test-rv64-gkr-plan
++- run test stderr
+GKR_CHUNK_CONTRACT {"device_workspace_bytes":219275556,"pinned_ring_bytes":201326592,"host_store_bytes":16508780032,"product_combinations":257949688,"host_device_transfer_bytes_upper_bound":132070244352,"chunk_facts":262144,"pipeline_slots":2,"numerical_implementation_available":false}
+
+GKR_FRONTIER_PLAN retained_bytes=16573396480 frontier_bytes=15046661376 saved_bytes=1526735104
+GPU_COMPOSITION_POOL_TRIM native_status=13 arena_bytes=12884901888
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=112 kind=0
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=333 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=0
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=projection owner=cpu_evaluations words=222 kind=1
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=commit owner=committed_coefficients words=555 kind=2
+PP_SOURCE_ADMISSION_REFUSED physical=0 handoff=1 runtime_v2=false ordinal=0 pp_retained_upper_large=5368709120 pp_retained_upper_small=0 temp_large=18253611008 temp_small=0 stage_retained_upper_large=0 stage_retained_upper_small=0 successor_large=0 successor_small=0 required_large=23622320128 required_small=0 cap_large=23085449216 cap_small=536870912
+OUTER_TASK_PACK_PARITY tasks=8388608 bytes=268435456 workers=4 serial_median_ns=88619037 parallel_median_ns=64002601 all_records_exact=true csr=false
+test
++- run test 243/245 passed, 2 failed
+thread 2402694 panic: reached unreachable code
+/workspace/zig/lib/std/debug.zig:559:14: 0x142892d in test.local and execution closure preserve typed owners and reject malformed counts before dispatch (test)
+    if (!ok) unreachable; // assertion failure
+             ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x114b72d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x114ad0a in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x11484e5 in main (test)
+            root.main();
+                     ^
+???:?:?: 0x724754d671c9 in ??? (libc.so.6)
+Unwind information for `libc.so.6:0x724754d671c9` was not available, trace may be incomplete
+
+???:?:?: 0x724754d6728a in ??? (libc.so.6)
+/workspace/zig/lib/libc/glibc/sysdeps/x86_64/start-2.33.S:120:0: 0x1102299 in ??? (/workspace/zig/lib/libc/glibc/sysdeps/x86_64/start-2.33.S)
+ call *__libc_start_main@GOTPCREL(%rip)
+error: 'rv64.resident_composition.test.frontend-neutral composition entry rejects absent authority roles before device submission' failed: expected error.InvalidResidentCompositionRoles, found error.UnsupportedResidentCompositionBlowup
+error: 'rv64.tests.projection_codegen_test.test.native source projection IR preserves every role tuple weight and semantic draw slot at aliased values' failed: GKR_FRONTIER_PLAN retained_bytes=16573396480 frontier_bytes=15046661376 saved_bytes=1526735104
+error: while executing test 'rv64.tests.resident_test.test.local and execution closure preserve typed owners and reject malformed counts before dispatch', the following command terminated with signal 6 (expected exited with code 0):
+/workspace/m3/src/m7-integrate/.zig-cache/o/162275be73fe526c98f818c549e83a0b/test --cache-dir=/workspace/m3/src/m7-integrate/.zig-cache --seed=0x9fa06943 --listen=-
+
+Build Summary: 28/30 steps succeeded; 1 failed; 428/430 tests passed; 2 failed
+test transitive failure
++- run test 243/245 passed, 2 failed
+
+error: the following build command failed with exit code 1:
+/workspace/m3/src/m7-integrate/.zig-cache/o/6a83379fd463de18515e4a4746153f4d/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m7-integrate/src/integrations/riscv_cuda /workspace/m3/src/m7-integrate/.zig-cache /workspace/m3/cache/zig-global --seed 0x9fa06943 -Za4efc3707932974d test test-rv64-recursion-ready test-rv64-batch-plan test-rv64-gkr-plan test-rv64-pcs-geometry -j2 -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha

@@ -1,0 +1,43 @@
+{
+  "schema": "rv64-cuda-native-pcs/v1",
+  "scope": "actual segment0 block24628607 PCS, no standalone end-to-end native producer timing yet",
+  "profile": {
+    "queries": 108,
+    "pow_bits": 20,
+    "eval_log": 23
+  },
+  "columns": 5845,
+  "groups": 68,
+  "host_input": "mmap borrowed real CPU coefficient arrays; no fixture serialization inside timed prove",
+  "whole_segment_gpu_residency": false,
+  "persistent_context": true,
+  "coefficient_ingress": "host-to-device once per PCS proof; borrowed device descriptors accepted",
+  "repeat_runs": [
+    {
+      "wall_seconds": 0.5963220939738676,
+      "device_ns": 125372802
+    },
+    {
+      "wall_seconds": 0.4976892239646986,
+      "device_ns": 120754211
+    }
+  ],
+  "device_bytes": 12681778464,
+  "output_sha256": "794f997ea7d05477fad1f0523b7bc8d019c486b15694a993de8860304f1276ca",
+  "matches_prior_accepted_hybrid": true,
+  "caveat": "PCS-only comparison; host witness, binding and setup remain. This is not full-resident end-to-end timing.",
+  "lease_rejection_checks": [
+    "wrong_owner_thread",
+    "wrong_token",
+    "wrong_generation",
+    "wrong_scope",
+    "overflow_range",
+    "retired_lease",
+    "double_release",
+    "altered_lease_kind",
+    "altered_whole_lease_count"
+  ],
+  "lease_acceptance_checks": [
+    "valid_subrange"
+  ]
+}

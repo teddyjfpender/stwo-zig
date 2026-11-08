@@ -1,0 +1,15 @@
+test-riscv64-m5-rootverify exit=0 22s Build Summary: 2/2 steps succeeded
+test-riscv64-m5-canon-native exit=0 12s Build Summary: 2/2 steps succeeded
+test-riscv64-native-gkr exit=0 52s Build Summary: 2/2 steps succeeded
+test-riscv64-execution exit=0 49s Build Summary: 2/2 steps succeeded
+test-riscv64-om31-outer exit=0 857s Build Summary: 2/2 steps succeeded
+security-candidate exit=0 10s All 36 tests passed.
+sync-lint-unittest exit=0 OK
+sync-lint-check exit=0 sync lint OK: 58 allowlisted host-blocking sites on the outer-node prove path
+progress-check exit=0   legacy resident.jsonl:40: load_avg_1m, device_peak_gb{}, loading, service_position, service_trial, store_mode
+TESTS_DONE
+EXIT=0
+test-rv64-recursion-ready exit=0 48s Build Summary: 11/11 steps succeeded; 38/38 tests passed
+test-rv64-gkr-plan exit=0 17s Build Summary: 3/3 steps succeeded; 33/33 tests passed
+DONE
+(the two exit=1 lines in tests.log were the riscv_cuda-scoped steps invoked from the repo root: no such step there; re-run from src/integrations/riscv_cuda above)

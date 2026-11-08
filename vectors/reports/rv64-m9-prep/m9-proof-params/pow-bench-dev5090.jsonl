@@ -1,0 +1,15 @@
+{"device":"NVIDIA GeForce RTX 5090","sms":170}
+{"variant":"as_built","pow_bits":16,"ms_per_grind":0.3035,"gcands_per_s":0.974}
+{"variant":"check_every_64","pow_bits":16,"ms_per_grind":0.4692,"gcands_per_s":0.630,"nonce_mismatches":0,"seeds":4}
+{"variant":"as_built","pow_bits":18,"ms_per_grind":0.3371,"gcands_per_s":1.424}
+{"variant":"check_every_64","pow_bits":18,"ms_per_grind":0.4597,"gcands_per_s":1.044,"nonce_mismatches":0,"seeds":4}
+{"variant":"as_built","pow_bits":20,"ms_per_grind":0.7439,"gcands_per_s":1.496}
+{"variant":"check_every_64","pow_bits":20,"ms_per_grind":0.4754,"gcands_per_s":2.340,"nonce_mismatches":0,"seeds":4}
+{"variant":"as_built","pow_bits":22,"ms_per_grind":1.9237,"gcands_per_s":2.056}
+{"variant":"check_every_64","pow_bits":22,"ms_per_grind":0.5634,"gcands_per_s":7.020,"nonce_mismatches":0,"seeds":4}
+{"variant":"as_built","pow_bits":24,"ms_per_grind":4.6317,"gcands_per_s":2.004}
+{"variant":"check_every_64","pow_bits":24,"ms_per_grind":0.7552,"gcands_per_s":12.293,"nonce_mismatches":0,"seeds":4}
+{"variant":"as_built","pow_bits":26,"ms_per_grind":27.8883,"gcands_per_s":2.385}
+{"variant":"check_every_64","pow_bits":26,"ms_per_grind":2.6793,"gcands_per_s":24.822,"nonce_mismatches":0,"seeds":4}
+{"variant":"as_built","pow_bits":28,"ms_per_grind":144.2073,"gcands_per_s":2.106}
+{"variant":"check_every_64","pow_bits":28,"ms_per_grind":15.8809,"gcands_per_s":19.120,"nonce_mismatches":0,"seeds":4}

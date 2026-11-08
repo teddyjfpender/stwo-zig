@@ -1,0 +1,45 @@
+test-riscv64-capture-prefetch
++- riscv test suite guard
+   +- run test failure
+thread 1693930 panic: reached unreachable code
+/workspace/zig/lib/std/posix.zig:4872:13: 0x11791bb in runWithOptions (test)
+    switch (errno(system.munmap(memory.ptr, memory.len))) {
+            ^
+/workspace/m3/src/m6-capture-base/src/integrations/riscv_cpu/rv64_ethereum_native_prepare.zig:291:26: 0x11b48c5 in test.in-process handoff capture equals the on-disk packet capture (test)
+    return runWithOptions(a, config, .{});
+                         ^
+/workspace/zig/lib/compiler/test_runner.zig:130:29: 0x107cd4d in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/workspace/zig/lib/compiler/test_runner.zig:64:26: 0x107c168 in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/workspace/zig/lib/std/start.zig:618:22: 0x1079a42 in posixCallMainAndExit (test)
+            root.main();
+                     ^
+/workspace/zig/lib/std/start.zig:232:5: 0x107965d in _start (test)
+    asm volatile (switch (native_arch) {
+    ^
+???:?:?: 0x0 in ??? (???)
+error: while executing test 'word16_global_execution.ethereum.capture_prefetch_test.test.in-process handoff capture equals the on-disk packet capture', the following command terminated with signal 6 (expected exited with code 0):
+/workspace/m3/build/m6-capture/testcache-m6-capture-base/products/riscv_cpu/o/c78e0b1927a707df596adaa454fdd4c3/test --cache-dir=/workspace/m3/build/m6-capture/testcache-m6-capture-base/products/riscv_cpu --seed=0xaf57484 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 3/3 tests passed
+test-riscv64-capture-prefetch transitive failure
++- riscv test suite guard transitive failure
+   +- run test failure
+
+error: the following build command failed with exit code 1:
+/workspace/m3/build/m6-capture/testcache-m6-capture-base/products/riscv_cpu/o/0a2c06e073cb9fbc3d9a0615ff2feb46/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m6-capture-base/build_support /workspace/m3/build/m6-capture/testcache-m6-capture-base/products/riscv_cpu /workspace/m3/cache/zig-global --seed 0xaf57484 -Zf50429dbec5db1ed test-riscv64-capture-prefetch -p /workspace/m3/src/m6-capture-base/zig-out -Drepository-root=/workspace/m3/src/m6-capture-base -Dproduct-scope=riscv_cpu -Doptimize=ReleaseSafe -Driscv-test-filter=on-disk -Dtarget=x86_64-linux.6.8...6.8-gnu.2.39 -Dcpu=x86_64_v4+sha -Dimplementation-commit=95d40063d8b4723338535cf06b7a1b11cdbba0f9 -Dimplementation-dirty=false -Dimplementation-tree=fee6f4d962be2708722df7edbf97df4d424bfe21
+test-riscv64-capture-prefetch
++- run /workspace/zig/zig failure
+error: the following command exited with error code 1:
+/workspace/zig/zig build test-riscv64-capture-prefetch --build-file /workspace/m3/src/m6-capture-base/build_support/internal_build.zig --cache-dir /workspace/m3/build/m6-capture/testcache-m6-capture-base/products/riscv_cpu -p /workspace/m3/src/m6-capture-base/zig-out -Drepository-root=/workspace/m3/src/m6-capture-base -Dproduct-scope=riscv_cpu -Doptimize=ReleaseSafe -Driscv-test-filter=on-disk -Dtarget=x86_64-linux.6.8...6.8-gnu.2.39 -Dcpu=x86_64_v4+sha -Dimplementation-commit=95d40063d8b4723338535cf06b7a1b11cdbba0f9 -Dimplementation-dirty=false -Dimplementation-tree=fee6f4d962be2708722df7edbf97df4d424bfe21
+
+Build Summary: 0/2 steps succeeded; 1 failed
+test-riscv64-capture-prefetch transitive failure
++- run /workspace/zig/zig failure
+
+error: the following build command failed with exit code 1:
+/workspace/m3/build/m6-capture/testcache-m6-capture-base/o/480735211f9ce3ca80ebf2f4066f6784/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m6-capture-base /workspace/m3/build/m6-capture/testcache-m6-capture-base /workspace/m3/cache/zig-global --seed 0x74fa4451 -Ze377eb366bcdbe66 test-riscv64-capture-prefetch -Doptimize=ReleaseSafe -Dcpu=x86_64_v4+sha -Dimplementation-commit=95d40063d8b4723338535cf06b7a1b11cdbba0f9 -Dimplementation-tree=fee6f4d962be2708722df7edbf97df4d424bfe21 -Dimplementation-dirty=false -j16 -Driscv-test-filter=on-disk
+STEP test-riscv64-capture-prefetch on-disk rc=1 1s

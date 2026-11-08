@@ -1,0 +1,7 @@
+Could not attach to process.  If your uid matches the uid of the target
+process, check the setting of /proc/sys/kernel/yama/ptrace_scope, or try
+again as the root user.  For more details, see /etc/sysctl.d/10-ptrace.conf
+ptrace: Inappropriate ioctl for device.
+No shared libraries loaded at this time.
+/workspace/m3/runs/m7-one-stack-pp/stall_capture.gdb:50: Error in sourced command file:
+No current process: you must name one.

@@ -1,0 +1,92 @@
+{
+  "schema": "rv64-m7-blake-prefill-negative/v1",
+  "label": "M",
+  "status": "failed_closed",
+  "qualified": false,
+  "gate": "leaf-only tape ownership",
+  "error": "fold ordinal4 MissingBlakeSampleInputs",
+  "completed_requests": 0,
+  "checked_leaf_spans": [
+    {
+      "ordinal": 5,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 6,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 0,
+      "records": 3285,
+      "gg_rows": 262800,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 1,
+      "records": 3208,
+      "gg_rows": 256640,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 2,
+      "records": 3301,
+      "gg_rows": 264080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 3,
+      "records": 2893,
+      "gg_rows": 231440,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 7,
+      "records": 5016,
+      "gg_rows": 401280,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 8,
+      "records": 3526,
+      "gg_rows": 282080,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 10,
+      "records": 2767,
+      "gg_rows": 221360,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 11,
+      "records": 3727,
+      "gg_rows": 298160,
+      "mismatch": 0
+    },
+    {
+      "ordinal": 12,
+      "records": 708,
+      "gg_rows": 56640,
+      "mismatch": 0
+    }
+  ],
+  "all_checked_leaf_inputs_match": true,
+  "driver_sha256": "5c583692f9086722ea97d627361d6aa991e532638685d94d72076546f976f7a9",
+  "library_sha256": "148c4a1760678521d7d793a119a17b03c60ae807dd6006011429610fc50126aa",
+  "source_overrides": {
+    "base_commit": "e0c16b74764d08d7f45b1b00922cdefd8879b8ea",
+    "status": "dirty-prefill-opt-in",
+    "sources": {
+      "src/backends/cuda/native/rv64/fused_blake2s.cu": "15b5bfd3c4edc8e146df56df57570e13b88bd83dde9225a78f976420c316cec4",
+      "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig": "04008ab347c4c14784543e46bf46318e8c95e980c15ca741e722f04a8387c9aa",
+      "src/integrations/riscv_cuda/rv64/outer_assignment.zig": "8cd57d09556ae602305d7a31e2a053fb3c4e8fe4f002263e719ddcd3157c2c46",
+      "src/integrations/riscv_cuda/rv64/blake_sample_plan.zig": "9c677fc6d0b82f3ea83b27fb1cf0ad2f131276edb8c42f80c2bb4561f1db741f"
+    }
+  },
+  "stderr_sha256": "ca71ad37c68fa2f0fed159a534058bf3fc956e98254de5387edf341fe8e6261e",
+  "fix": "Restrict filtering, output-map creation and cached prefill metadata to Dev.class_is_leaf. Folds have no captured native input tape and retain their original numerical schedule."
+}

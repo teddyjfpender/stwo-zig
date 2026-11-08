@@ -59,6 +59,10 @@ def run_lane(
         )
         if forbidden:
             raise PlanError(f"focused lane {lane} contains workload targets: {forbidden}")
+    if cache_mode not in {"inherit", "cold", "warm"}:
+        raise PlanError(f"invalid cache mode: {cache_mode}")
+    if cache_mode == "warm" and cache_root is None:
+        raise PlanError("warm cache mode requires --cache-root")
     root = root.resolve(strict=True)
     output_dir = output.parent.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -76,8 +80,7 @@ def run_lane(
         temporary_cache = tempfile.TemporaryDirectory(prefix=f"stwo-ci-{lane}-")
         selected_cache = Path(temporary_cache.name)
     elif cache_mode == "warm":
-        if cache_root is None:
-            raise PlanError("warm cache mode requires --cache-root")
+        assert cache_root is not None  # validated before Git and output I/O
         selected_cache = cache_root.resolve()
         selected_cache.mkdir(parents=True, exist_ok=True)
     else:

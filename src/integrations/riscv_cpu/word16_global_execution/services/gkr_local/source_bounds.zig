@@ -36,7 +36,7 @@ pub const Bound = struct {
     unit_negative_mass: u64 = 0,
     /// Includes every zero-weight/padded denominator, not only semantic mass.
     denominator_slots: u64 = 0,
-    fn validate(self: Bound) !void {
+    pub fn validate(self: Bound) !void {
         if (self.unit_consumer_mass >= MODULUS or self.unit_positive_mass >= MODULUS or self.unit_negative_mass >= MODULUS) return error.CandidateCharacteristicBoundExceeded;
     }
 };
@@ -50,7 +50,9 @@ pub const CpuScope = struct {
 pub const TruthScope = struct { relations: [std.meta.fields(TF.Relation).len]Bound };
 pub const Shape = struct {
     native_proofs: usize = 0,
+    /// General CPU/provider maximum; public boundaries have their own cap.
     max_trace_log: u32 = 0,
+    max_public_boundary_log: u32 = 5,
     max_columns: usize = 0,
     max_constraints: usize = 0,
     max_samples_per_column: usize = 0,
@@ -58,8 +60,18 @@ pub const Shape = struct {
     max_local_instances: usize = 0,
     max_tuple_arity: usize = 0,
     max_gkr_variables: u32 = 0,
+    /// Source-derived M31 coefficient cells, in FIXED/MAIN/INTER order.
+    /// Includes padding and repeated fixed commitments; excludes composition,
+    /// GKR working planes, openings and allocations. Reporting only.
+    native_trace_cells: [3]u64 = @splat(0),
+    fn includeCells(self: *Shape, log: u32, widths: [3]usize) !void {
+        const n = try rows(log);
+        for (&self.native_trace_cells, widths) |*total, width| {
+            total.* = try plus(total.*, try times(n, std.math.cast(u64, width) orelse return error.SizeOverflow));
+        }
+    }
     pub fn validate(self: Shape) !void {
-        if (self.native_proofs == 0 or self.native_proofs > Policy.MAX_PROOFS or self.max_trace_log < 5 or self.max_trace_log > Policy.MAX_TRACE_LOG or self.max_columns == 0 or self.max_columns > Policy.MAX_COLUMNS or self.max_constraints == 0 or self.max_constraints > Policy.MAX_CONSTRAINTS or self.max_samples_per_column > Policy.MAX_SAMPLES_PER_COLUMN or self.max_air_degree > Policy.MAX_AIR_DEGREE or self.max_local_instances > Policy.MAX_LOCAL_INSTANCES or self.max_tuple_arity > Policy.MAX_TUPLE_ARITY or self.max_gkr_variables > Policy.MAX_GKR_VARIABLES) return error.CandidateSourceShapeExceeded;
+        if (self.native_proofs == 0 or self.native_proofs > Policy.MAX_PROOFS or self.max_trace_log < 5 or self.max_trace_log > Policy.MAX_TRACE_LOG or self.max_public_boundary_log < 5 or self.max_public_boundary_log > Policy.MAX_PUBLIC_BOUNDARY_LOG or self.max_columns == 0 or self.max_columns > Policy.MAX_COLUMNS or self.max_constraints == 0 or self.max_constraints > Policy.MAX_CONSTRAINTS or self.max_samples_per_column > Policy.MAX_SAMPLES_PER_COLUMN or self.max_air_degree > Policy.MAX_AIR_DEGREE or self.max_local_instances > Policy.MAX_LOCAL_INSTANCES or self.max_tuple_arity > Policy.MAX_TUPLE_ARITY or self.max_gkr_variables > Policy.MAX_GKR_VARIABLES) return error.CandidateSourceShapeExceeded;
     }
 };
 pub const ConditionalDegrees = struct {
@@ -80,7 +92,7 @@ pub const ConditionalDegrees = struct {
         ledger.degree_weight[@intFromEnum(Policy.AlgebraicTerm.pole_events)] = self.poles;
         try ledger.requireRawModuloBits(bits);
     }
-    fn add(self: *ConditionalDegrees, b: Bound) !void {
+    pub fn add(self: *ConditionalDegrees, b: Bound) !void {
         const n: u128 = b.denominator_slots;
         const pairs = if (n == 0) 0 else try std.math.mul(u128, n, n - 1) / 2;
         self.tuple_collision = try std.math.add(u128, self.tuple_collision, try std.math.mul(u128, pairs, b.arity));
@@ -88,7 +100,7 @@ pub const ConditionalDegrees = struct {
         self.local_rational_identity = try std.math.add(u128, self.local_rational_identity, n);
         self.poles = try std.math.add(u128, self.poles, n);
     }
-    fn addGlobal(self: *ConditionalDegrees, bound: Bound) !void {
+    pub fn addGlobal(self: *ConditionalDegrees, bound: Bound) !void {
         try self.add(bound);
         self.local_rational_identity -= bound.denominator_slots;
         self.global_rational_identity = try std.math.add(u128, self.global_rational_identity, bound.denominator_slots);
@@ -120,10 +132,10 @@ fn times(a: u64, b: u64) !u64 {
     return std.math.mul(u64, a, b);
 }
 fn rows(log: u32) !u64 {
-    if (log < 5 or log > Policy.MAX_TRACE_LOG) return error.CandidateSourceShapeExceeded;
+    if (log < 5 or log > Policy.MAX_PUBLIC_BOUNDARY_LOG) return error.CandidateSourceShapeExceeded;
     return @as(u64, 1) << @intCast(log);
 }
-fn emptyCpu() CpuScope {
+pub fn emptyCpu() CpuScope {
     var out: CpuScope = .{ .relations = undefined };
     for (std.enums.values(F.Relation), &out.relations) |relation, *bound| bound.* = .{ .arity = relation.arity(), .model = switch (relation) {
         .register, .owner => .unit_consistency,
@@ -134,7 +146,7 @@ fn emptyCpu() CpuScope {
 fn addCpuRole(scope: *CpuScope, origin: Frame.Origin, log: u32) !void {
     return addCpuRoleMode(scope, origin, log, false);
 }
-fn addCpuRoleMode(scope: *CpuScope, origin: Frame.Origin, log: u32, pairs: bool) !void {
+pub fn addCpuRoleMode(scope: *CpuScope, origin: Frame.Origin, log: u32, pairs: bool) !void {
     const count = try rows(log);
     const fractions = switch (origin) {
         .bulk => |kind| Q.BULK[@intFromEnum(kind)],
@@ -185,10 +197,15 @@ fn addCpuRoleMode(scope: *CpuScope, origin: Frame.Origin, log: u32, pairs: bool)
     }
 }
 fn includeRole(shape: *Shape, origin: Frame.Origin, log: u32, descriptor: Meta.Descriptor, columns: *usize, constraints: *usize, instances: *usize) !void {
-    _ = try rows(log);
+    try shape.includeCells(log, descriptor.widths);
     for (descriptor.widths) |width| columns.* = try std.math.add(usize, columns.*, width);
     constraints.* = try std.math.add(usize, constraints.*, descriptor.constraints);
-    shape.max_trace_log = @max(shape.max_trace_log, log);
+    if (origin == .core and (origin.core == .initial or origin.core == .terminal)) {
+        shape.max_public_boundary_log = @max(shape.max_public_boundary_log, log);
+    } else {
+        if (log > Policy.MAX_TRACE_LOG) return error.CandidateSourceShapeExceeded;
+        shape.max_trace_log = @max(shape.max_trace_log, log);
+    }
     shape.max_samples_per_column = @max(shape.max_samples_per_column, descriptor.max_samples);
     shape.max_air_degree = @max(shape.max_air_degree, descriptor.degree);
     if (descriptor.local_terms != 0) {
@@ -207,7 +224,7 @@ fn finishProof(shape: *Shape, columns: usize, constraints: usize, instances: usi
 /// the independently loaded image. Ordinary counts come from request/call spans,
 /// never decoded producer Facts or field-valued claims. Full image/coverage
 /// admission remains mandatory in the accepting receiver after this preflight.
-fn globalSlots(slots: *[3]u64, origin: Frame.Origin, log: u32) !void {
+pub fn globalSlots(slots: *[3]u64, origin: Frame.Origin, log: u32) !void {
     const layout = Global.layout(origin);
     const n = try rows(log);
     slots[0] = try plus(slots[0], try times(n, layout.ram_queries));
@@ -281,7 +298,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         const first = try P.firstIds(requests, ordinal);
         for (std.enums.values(Types.Family), request.calls, first) |family, calls, first_id| {
             const optional = declaration.bridges.at(family);
-            if ((optional != null) != (calls != 0)) return error.InvalidCombinedBridgePresence;
+            if (!P.presenceAdmitted(optional != null, calls != 0)) return error.InvalidCombinedBridgePresence;
             if (optional) |log| {
                 if (family == .keccak) _ = try A.crypto.keccak.word16_bridge.types.validateGeometry(calls, first_id, log) else _ = try A.crypto.secp256k1.word16_bridge.types.validateGeometry(Types.bridgeKind(family), calls, first_id, log);
                 const origin = Frame.Origin{ .bridge = family };
@@ -293,7 +310,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         inline for (Types.bulk_kinds) |kind| {
             const optional = declaration.bridges.bulk.at(kind);
             const active = request.bulk.rows(kind);
-            if ((optional != null) != (active != 0)) return error.InvalidCombinedBridgePresence;
+            if (!P.presenceAdmitted(optional != null, active != 0)) return error.InvalidCombinedBridgePresence;
             if (optional) |log| {
                 _ = try A.crypto.bulk_memory.types.validateGeometry(kind, active, log);
                 const origin = Frame.Origin{ .bulk = kind };
@@ -305,7 +322,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         for (Types.sponge_kinds) |kind| {
             const optional = declaration.bridges.sponge.at(kind);
             const active = request.sponge.rows(kind);
-            if ((optional != null) != (active != 0)) return error.InvalidCombinedBridgePresence;
+            if (!P.presenceAdmitted(optional != null, active != 0)) return error.InvalidCombinedBridgePresence;
             if (optional) |log| {
                 _ = try A.crypto.keccak_sponge.types.validateGeometry(kind, active, log);
                 const origin = Frame.Origin{ .sponge = kind };
@@ -339,6 +356,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
             const Cat = @import("truth_v3_catalog.zig");
             const descriptor = try Cat.descriptorForDeclaration(declaration);
             const counts = try Cat.lookupCountsForDeclaration(declaration);
+            try shape.includeCells(descriptor.log_size, descriptor.widths());
             for (std.enums.values(TF.Relation), &scope.relations) |relation, *bound| bound.* = .{ .arity = relation.arity(), .consumer_sign = if (relation == .byte) .positive else .negative };
             const bytes = &scope.relations[@intFromEnum(TF.Relation.byte)];
             bytes.unit_consumer_mass = counts.byte_unit_consumers;
@@ -365,6 +383,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         for (std.enums.values(TF.Relation), &scope.relations) |relation, *bound| bound.* = .{ .arity = relation.arity(), .consumer_sign = if (relation == .byte) .positive else .negative };
         for (descriptors) |part| {
             const n = try rows(part.log_size);
+            try shape.includeCells(part.log_size, part.widths());
             for (part.widths()) |width| columns = try std.math.add(usize, columns, width);
             constraints = try std.math.add(usize, constraints, part.nConstraints());
             shape.max_trace_log = @max(shape.max_trace_log, part.log_size);
@@ -446,4 +465,16 @@ test "weighted JUMPDEST OWNER support is partitioned from unit token mass and ch
     const bulk = A.crypto.bulk_memory.types;
     try t.expect(bulk.TOKEN_JD_TABLE >= 256 and bulk.TOKEN_JD_TABLE < MODULUS);
     inline for (.{ bulk.TOKEN_COPY, bulk.TOKEN_SET, bulk.TOKEN_CMP, bulk.TOKEN_CMP_RESULT, bulk.TOKEN_JD }) |token| try t.expect(token != bulk.TOKEN_JD_TABLE);
+}
+
+test "public boundary log23 source summary needs typed boundary provenance" {
+    var shape = Shape{ .native_proofs = 1, .max_trace_log = 23, .max_columns = 1, .max_constraints = 1 };
+    try std.testing.expectError(error.CandidateSourceShapeExceeded, shape.validate());
+    shape.max_public_boundary_log = 23;
+    // A valid boundary must never raise the summary cap of another provider.
+    try std.testing.expectError(error.CandidateSourceShapeExceeded, shape.validate());
+    shape.max_trace_log = 22;
+    try shape.validate();
+    shape.max_public_boundary_log = 24;
+    try std.testing.expectError(error.CandidateSourceShapeExceeded, shape.validate());
 }

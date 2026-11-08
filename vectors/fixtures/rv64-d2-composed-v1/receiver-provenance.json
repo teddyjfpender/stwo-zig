@@ -1,0 +1,17 @@
+{
+  "schema": "rv64-m7-combined-fresh-receiver/v1",
+  "author": "OpenAI Codex",
+  "source_checkpoint": "9531c5c16 plus pod Zig formatting; hashes below authoritative",
+  "source_sha256": {
+    "src/integrations/riscv_cuda/rv64/assignment_graphs.zig": "e7715fb23fb1b736766557b8fee5991c23d02831804522603e97c35208669076",
+    "src/integrations/riscv_cuda/rv64/pcs_native.zig": "f3e6bc62adce6e7f8ee98ea7ff035ca28fac965ed8986ad176e9a06251cde56d",
+    "src/integrations/riscv_cuda/rv64/resident_batch.zig": "ab25ebaa1e99287bce8416942c7a428c4cb549ccf32e429c0fb27c4b562c3a8f",
+    "src/integrations/riscv_cuda/rv64/resident_composition.zig": "42579b99e804f601547fc58826a3a99bd81249f4f9867e4e0567262e66ff001d",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig": "8fadd42e83a78e5e0f4c65e7bb0bac51f7905148a71dd328c70c90c20b39d20a",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig": "ecddac6d45d502cce785ffbef82d24e91226cccbd72b4ed31290af0a8b8f8662"
+  },
+  "receiver": "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+  "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+  "build_exit": 0,
+  "fresh_proof_gate": "pending"
+}

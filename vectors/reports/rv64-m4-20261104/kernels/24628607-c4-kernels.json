@@ -1,0 +1,93 @@
+{
+ "schema": "rv64-m4-kernels-receipt/v1",
+ "stream": "kernels",
+ "milestone": "M4",
+ "block": 24628607,
+ "gpus": 2,
+ "commit": "f10428435",
+ "library_sha256": "dcfc494eb3ac0aec9c33c8fad47bb355dc52c84e228bf4f3c80b89f8351fa1d6",
+ "parent_receipt": "24628607-c3-kernels.json",
+ "correctness": {
+  "byte_identical_to": "rv64-m3-20261104/integrate/scale/24628607 (55/55) and 26235156 (37/37)",
+  "receiver_accepted": true
+ },
+ "label": "M (nsys durations, one observation, load avg 20); D for derived",
+ "kernel_gpu_s": {
+  "base": 29.909,
+  "c1": 25.612,
+  "c2": 24.767,
+  "c3": 23.542,
+  "c4": 22.459
+ },
+ "recursion_kernel_gpu_s": {
+  "base": 24.962,
+  "c1": 20.94,
+  "c2": 20.119,
+  "c3": 18.904,
+  "c4": 17.82
+ },
+ "recursion_ns_per_lde_cell": {
+  "base": 0.1977,
+  "c1": 0.1659,
+  "c2": 0.1594,
+  "c3": 0.1498,
+  "c4": 0.1412
+ },
+ "families_gpu_s": {
+  "n2b": {
+   "base": 9.153,
+   "c1": 7.253,
+   "c2": 7.263,
+   "c3": 6.949,
+   "c4": 6.945
+  },
+  "mixed_leaf_kernel": {
+   "base": 5.556,
+   "c1": 5.667,
+   "c2": 5.166,
+   "c3": 4.272,
+   "c4": 4.256
+  },
+  "generate": {
+   "base": 1.865,
+   "c1": 1.889,
+   "c2": 1.894,
+   "c3": 1.867,
+   "c4": 0.811
+  },
+  "b2n": {
+   "base": 1.381,
+   "c1": 1.384,
+   "c2": 1.024,
+   "c3": 1.024,
+   "c4": 1.024
+  },
+  "sample_first": {
+   "base": 0.795,
+   "c1": 0.797,
+   "c2": 0.797,
+   "c3": 0.797,
+   "c4": 0.796
+  }
+ },
+ "kernels": [
+  {
+   "kernel": "circuit_outer::generate<4> (Blake G gate LogUp fractions), grid (32768,13)",
+   "before": {
+    "avg_us": 37902.7,
+    "regs": 150,
+    "stack_bytes": 288,
+    "theoretical_occupancy_pct_D": 17
+   },
+   "after": {
+    "avg_us": 7115.8,
+    "regs": 48,
+    "stack_bytes": 0,
+    "theoretical_occupancy_pct_D": 100
+   },
+   "speedup": 5.33,
+   "cause": "lookup_at loads every base column (52 for Kind 4) into a local array and switches on a runtime lookup index (blockIdx.y); a compile-time pair dispatch lets each case keep only its columns",
+   "other_kinds": "kinds 1,5-9 had 240-288 B stacks; all kinds now STACK 0"
+  }
+ ]
+}

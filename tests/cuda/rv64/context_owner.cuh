@@ -48,7 +48,9 @@ struct Owner {
             check(status, "context create");
         }
     }
-    StwoRv64Plane plane(uint32_t count, uint32_t coordinates) {
+    StwoRv64Plane plane(uint64_t count, uint32_t coordinates) {
+        if (!coordinates || count > SIZE_MAX / sizeof(uint32_t) / coordinates)
+            throw std::runtime_error("device allocation overflow");
         uint32_t* p = nullptr;
         CHECK(stwo_exec_context_alloc_u32(ctx, size_t(count) * coordinates, &p));
         allocations.push_back(p);
@@ -69,6 +71,9 @@ struct Owner {
                                                  v.size() * 4));
     }
     std::vector<uint32_t> read(StwoRv64Plane p) {
+        // Validation copies use the coordination stream. A later whole-context
+        // join cannot order that copy after writers on another compute lane.
+        CHECK(stwo_exec_context_sync(ctx));
         std::vector<uint32_t> out(size_t(p.stride) * p.coordinates);
         CHECK(stwo_exec_context_memcpy_d2h_async(ctx, out.data(), p.words, out.size() * 4));
         CHECK(stwo_exec_context_sync(ctx));

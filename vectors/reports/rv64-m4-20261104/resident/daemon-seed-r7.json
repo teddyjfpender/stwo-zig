@@ -1,0 +1,293 @@
+{
+  "schema": "rv64-m4-resident-daemon/v1",
+  "label": "measured",
+  "stream": "m4-resident",
+  "run": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-seed-r7",
+  "blocks": [
+    26235156,
+    24628607
+  ],
+  "repeat": 2,
+  "loading": "eager",
+  "nsys": false,
+  "source_commit": "bcd401ce4",
+  "assets": {
+    "driver": "d6af8aae051cd0cd758a8378e50fe1cc7aee528f1b677b96f427d1a4de907d55",
+    "library": "fe8a3e10a0788a08d8117b9490090cf644fc9046fb71773a1cf520aafb424411",
+    "receiver": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b",
+    "recursive_receiver": "7b823d49f215fca65d98ec122bed3415b253d4ddc1ee31799fab06b584038f1b"
+  },
+  "environment": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/integrate/cuda/native/libstwo-rv64-native.so",
+    "CUDA_MODULE_LOADING": "EAGER",
+    "STWO_ZIG_RV64_SETUP_CACHE": "/workspace/m3/store/codex-rv64-m4-resident/6ce263f1ab26c9fc82f69887/setup",
+    "STWO_RV64_OUTER_PLAN_CLASS_STORE": "/workspace/m3/store/codex-rv64-m4-resident/6ce263f1ab26c9fc82f69887/classes"
+  },
+  "store": {
+    "mode": "fresh",
+    "directory": "/workspace/m3/store/codex-rv64-m4-resident/6ce263f1ab26c9fc82f69887",
+    "key": "6ce263f1ab26c9fc82f698875119e6e134990711654c2f2acc919cae5e3e6d3a",
+    "components": {
+      "store_format": "rv64-m4-artifact-store/v1",
+      "driver_sha256": "d6af8aae051cd0cd758a8378e50fe1cc7aee528f1b677b96f427d1a4de907d55",
+      "library_sha256": "fe8a3e10a0788a08d8117b9490090cf644fc9046fb71773a1cf520aafb424411",
+      "catalogue_sha256": "e1f83a61127c72eac753a8d0a6abb1c5287c05a924eeda8549aea71986dd805f",
+      "catalogue_dir": "/workspace/m3/catalogues-v3",
+      "build_catalogues": "/workspace/m3/catalogues-v3",
+      "elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "field_hash": "m31-circle/blake2s-merkle/om31-recursion"
+    },
+    "before": {
+      "files": 1,
+      "bytes": 806,
+      "setup_artifacts": 0,
+      "class_artifacts": 0
+    },
+    "after": {
+      "files": 37,
+      "bytes": 6578922671,
+      "setup_artifacts": 25,
+      "class_artifacts": 11
+    }
+  },
+  "load_avg_before": [
+    55.6650390625,
+    44.58251953125,
+    40.849609375
+  ],
+  "load_avg_after": [
+    45.87841796875,
+    48.7734375,
+    43.28662109375
+  ],
+  "service_start_s": 4.872,
+  "service_stop_s": 2.538,
+  "service_ready_record": {
+    "schema": "rv64-resident-service/v1",
+    "pid": 411776,
+    "init_ns": 4869592079
+  },
+  "producer_process": {
+    "argv": [
+      "/workspace/m3/build/m4-resident/driver-r7",
+      "combined-serve",
+      "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-seed-r7/manifest.json",
+      "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-seed-r7/spool"
+    ],
+    "exit_code": 0,
+    "wall_ns": 148053867509,
+    "user_seconds": 410.344851,
+    "system_seconds": 201.613227,
+    "peak_rss_bytes": 30033375232,
+    "minor_faults": 60954652,
+    "major_faults": 0
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 1178,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 589,
+        "mean_percent": 36.758913412563665,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 589,
+        "mean_percent": 37.56366723259762,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 33655095296,
+      "1": 33648803840
+    }
+  },
+  "cuda_api": null,
+  "service_overhead_s": 9.392,
+  "requests": [
+    {
+      "block": 26235156,
+      "trial": 0,
+      "ordinal": 0,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-seed-r7/spool/out/0000-26235156/26235156/proof",
+      "client_latency_ns": 33068428061,
+      "marker": {
+        "request_wall_ns": 31991543808
+      },
+      "queue_ns": 5083605,
+      "stages": {
+        "request_wall_s": 31.992,
+        "capture_s": 2.741,
+        "setup_s": 5.013,
+        "native_prove_s": 5.378,
+        "native_verify_s": 1.244,
+        "native_total_before_report_s": 13.323,
+        "recursion_s": 18.635
+      },
+      "setup_breakdown": {
+        "image_ns": 560294044,
+        "program_ns": 137425384,
+        "native_keys_ns": 1036765781,
+        "fixed_authority_ns": 3766933833
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 748536,
+      "leaves": 11,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/26235156-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "baseline_root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "proof_count": 22,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 0,
+      "ordinal": 1,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-seed-r7/spool/out/0001-24628607/24628607/proof",
+      "client_latency_ns": 45846206942,
+      "marker": {
+        "request_wall_ns": 44951461944
+      },
+      "queue_ns": 5096524,
+      "stages": {
+        "request_wall_s": 44.951,
+        "capture_s": 3.671,
+        "setup_s": 6.231,
+        "native_prove_s": 7.542,
+        "native_verify_s": 1.665,
+        "native_total_before_report_s": 17.68,
+        "recursion_s": 27.228
+      },
+      "setup_breakdown": {
+        "image_ns": 650680554,
+        "program_ns": 149656094,
+        "native_keys_ns": 991781452,
+        "fixed_authority_ns": 5074560497
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 706424,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 34,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    },
+    {
+      "block": 26235156,
+      "trial": 1,
+      "ordinal": 2,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-seed-r7/spool/out/0002-26235156/26235156/proof",
+      "client_latency_ns": 24274023480,
+      "marker": {
+        "request_wall_ns": 24269299755
+      },
+      "queue_ns": 5103124,
+      "stages": {
+        "request_wall_s": 24.269,
+        "capture_s": 2.731,
+        "setup_s": 0.138,
+        "native_prove_s": 4.533,
+        "native_verify_s": 1.278,
+        "native_total_before_report_s": 7.502,
+        "recursion_s": 16.727
+      },
+      "setup_breakdown": {
+        "image_ns": 572364536,
+        "program_ns": 96688476,
+        "native_keys_ns": 566139,
+        "fixed_authority_ns": 9480
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 748536,
+      "leaves": 11,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/26235156-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "baseline_root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "proof_count": 22,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 1,
+      "ordinal": 3,
+      "proof": "/workspace/m3/runs/m4-resident/daemon-26235156-24628607-r2-seed-r7/spool/out/0003-24628607/24628607/proof",
+      "client_latency_ns": 37454228528,
+      "marker": {
+        "request_wall_ns": 37449251674
+      },
+      "queue_ns": 5101764,
+      "stages": {
+        "request_wall_s": 37.449,
+        "capture_s": 3.385,
+        "setup_s": 0.183,
+        "native_prove_s": 6.998,
+        "native_verify_s": 2.043,
+        "native_total_before_report_s": 10.722,
+        "recursion_s": 26.678
+      },
+      "setup_breakdown": {
+        "image_ns": 660920382,
+        "program_ns": 123390155,
+        "native_keys_ns": 577669,
+        "fixed_authority_ns": 14500
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 706424,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 34,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    }
+  ],
+  "receivers": []
+}

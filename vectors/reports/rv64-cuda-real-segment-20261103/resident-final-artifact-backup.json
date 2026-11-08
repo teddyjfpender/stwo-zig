@@ -1,0 +1,23 @@
+{
+  "schema": "rv64-resident-final-artifact-backup/v1",
+  "date_utc": "2026-11-03",
+  "archive_file": "rv64-resident-final-handoff-20261103.tar.gz",
+  "local_path": "/private/tmp/rv64-resident-final-handoff-20261103.tar.gz",
+  "bytes": 372038346,
+  "sha256": "bf9ccad0474473aab641c74667162de40bca3ac00b783049119569df1cbcbf46",
+  "local_copy_hash_verified": true,
+  "contents": [
+    "Final default full-block repetitions including proofs, stage reports and producer log",
+    "Fresh receiver output/log",
+    "Exact native CUDA runtime6d9a8d6188fb6df6",
+    "Exact GNUx86_64_v4+sha producer executable",
+    "Pinned ELF/input and request/benchmarkmanifest"
+  ],
+  "git_contains_archive": false,
+  "gpu_pod_status": "EXITED after verified backup; persistent source/build volume retained",
+  "qualification_receipt": "resident-coordinate-default.json",
+  "notes": [
+    "Archive is a reproducibility backup, not sole evidence: numeric receipts and artifact hashes are committed",
+    "Archive binary intentionally remains outside git"
+  ]
+}

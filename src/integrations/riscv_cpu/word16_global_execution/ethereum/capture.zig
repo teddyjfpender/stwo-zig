@@ -10,6 +10,7 @@ const Program = @import("../../word16_execution/program.zig").Program;
 const Coverage = @import("../../word16_execution/coverage.zig");
 const Memory = @import("../../word16_execution/memory/statement.zig");
 const Collector = @import("../services/collector.zig");
+const LS = @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2;
 pub const Options = @import("capture_prefetch.zig").Options;
 pub const MAX_INFLIGHT = @import("capture_prefetch.zig").MAX_INFLIGHT;
 pub const ScheduleStats = struct {
@@ -30,6 +31,38 @@ pub const Timing = struct {
     ledger_ns: u64 = 0,
     /// `finish` (global initial/terminal boundary cells).
     finish_ns: u64 = 0,
+};
+/// Per-segment readiness hook (M6 streaming stage 1). Called on the ordered
+/// owner's thread, strictly in index order, once a segment's narrow capture is
+/// accepted and its ledger shard (LS events with RAM predecessors) is final.
+/// `native` and `events` stay owned by the capture and immutable until
+/// `Owner.deinit`; a consumer may read them from other threads but must not
+/// block here (the ledger of the next segment waits). Scheduling only: the
+/// hook observes data and never changes it, so outputs are byte-identical
+/// with or without it.
+pub const GlobalRamInfo = struct { counters: @import("stwo_riscv_frontend").rv64.checkpoint.Counters, total_steps: u64, final_pc: u64 };
+pub const Ready = struct {
+    context: *anyopaque,
+    call: *const fn (context: *anyopaque, index: usize, native: *const Native, events: []const LS.native.Event, at_ns: u64) void,
+    cancel: ?*const fn (*anyopaque) void = null,
+    /// Runs before source.next waits for traced CPU0. Borrowed for this call
+    /// only, not until Owner.deinit; asynchronous readers must own a copy.
+    first_pass: ?*const fn (*anyopaque, *const @import("../../word16_execution/cpu_source.zig").FirstPass) void = null,
+    /// Whole first-pass GLOBAL INITIAL, derived from the pinned initial image.
+    /// Called on a bounded one-request helper; data borrowed for this call only.
+    global_ram: ?*const fn (*anyopaque, []const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell, GlobalRamInfo) void = null,
+    /// Transfers the helper allocation when true; receiver must free with the
+    /// supplied allocator after all asynchronous readers join, including cancel.
+    /// Keep cells alive until capture returns: the helper still borrows them
+    /// for mandatory final Collector equivalence (also on receiver failure).
+    take_global_ram: ?*const fn (*anyopaque, std.mem.Allocator, []@import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell, GlobalRamInfo) bool = null,
+    /// Immutable until Owner.deinit; callback never waits for GPU completion.
+    terminal_ready: ?*const fn (*anyopaque, []const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell) void = null,
+    /// Seal once before publishing; default capture retains its old behavior.
+    seal_native: bool = false,
+    native_segment: ?*const fn (*anyopaque, usize, *const Native, Collector.Shard, u64) void = null,
+    ram_stack_budget: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget = null,
+    require_ram_stack_budget: bool = false,
 };
 pub const Owner = struct {
     capture_schedule: ScheduleStats = .{},
@@ -114,8 +147,13 @@ pub const Ordered = struct {
     timing: Timing = .{},
     first_inputs_at: ?std.time.Instant = null,
     last_inputs_at: ?std.time.Instant = null,
+    /// Optional M6 hook, see `Ready`.
+    on_ready: ?Ready = null,
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, config: Request.Config, prefix_packets: u32) Ordered {
-        return .{ .origin = std.time.Instant.now() catch null, .allocator = a, .image = image, .config = config, .prefix_packets = prefix_packets, .collector = Collector.Builder.init(a, Memory.fromOwner(image)), .pc = image.initial_pc, .regs = image.initial_registers };
+        var collector = Collector.Builder.init(a, Memory.fromOwner(image));
+        // Same image, page-at-a-time first-touch reads (exact, see OwnerPages).
+        collector.ledger.pages = .{ .owner = image };
+        return .{ .origin = std.time.Instant.now() catch null, .allocator = a, .image = image, .config = config, .prefix_packets = prefix_packets, .collector = collector, .pc = image.initial_pc, .regs = image.initial_registers };
     }
     /// Ordered adjacency/budget admission of the next packet, before its
     /// capture is accepted. Advances the expected chain state.
@@ -134,7 +172,23 @@ pub const Ordered = struct {
     /// `n` (also on error). Returns true once the requested prefix or the
     /// terminal packet has been consumed.
     pub fn accept(self: *Ordered, p: *const Packet.Packet, n: *Native) !bool {
+        return self.acceptWithEvents(p, n, null);
+    }
+    /// `accept` with an optional LS event array prepared off this thread
+    /// (`Collector.prepareEvents`); ownership of both `n` and `events` is
+    /// taken (also on error). Outputs are identical to `accept`.
+    pub fn acceptWithEvents(self: *Ordered, p: *const Packet.Packet, n: *Native, events: ?[]LS.native.Event) !bool {
+        return self.acceptPrepared(p, n, events, null);
+    }
+    /// `acceptWithEvents` with an optional phase-1 segment ledger built off
+    /// this thread (`Collector.prepareLocal`, M8 two-phase ledger); ownership
+    /// of `local` is taken (also on error). Outputs are identical.
+    pub fn acceptPrepared(self: *Ordered, p: *const Packet.Packet, n: *Native, events: ?[]LS.native.Event, local: ?*Collector.Local) !bool {
         const a = self.allocator;
+        var prepared = events;
+        defer if (prepared) |e| a.free(e);
+        var owned_local = local;
+        defer if (owned_local) |l| l.deinit(a);
         if (self.admitted != self.next_index + 1) {
             n.deinit();
             a.destroy(n);
@@ -147,7 +201,10 @@ pub const Ordered = struct {
         };
         self.native.appendAssumeCapacity(n);
         const ledger_start = self.elapsed();
-        try self.collector.append(n, &p.tape);
+        if (owned_local) |l| {
+            owned_local = null;
+            try self.collector.appendLocal(l, n, &p.tape, &prepared);
+        } else try self.collector.appendWithEvents(n, &p.tape, &prepared);
         const ledger_end = self.elapsed();
         self.timing.ledger_ns += ledger_end - ledger_start;
         const now = std.time.Instant.now() catch null;
@@ -160,6 +217,11 @@ pub const Ordered = struct {
         // The ledger and service advice own all predecessor/call data.
         // MAIN/INTER generation retains its separate CPU metadata.
         n.cpu.?.releaseCaptureRecords();
+        if (self.on_ready) |ready| {
+            if (ready.seal_native) _ = try @import("../../word16_execution/replay_capture.zig").sealCaptured(n);
+            ready.call(ready.context, self.next_index, n, self.collector.lastEvents(), ledger_end);
+            if (ready.native_segment) |call| call(ready.context, self.next_index, n, try self.collector.lastShard(), ledger_end);
+        }
         self.next_index += 1;
         if ((self.prefix_packets != 0 and self.next_index == self.prefix_packets) or (self.prefix_packets == 0 and self.pc == self.image.terminal_pc)) {
             self.done = true;
@@ -173,6 +235,7 @@ pub const Ordered = struct {
         const finish_start = self.elapsed();
         var advice = try self.collector.finish();
         errdefer advice.deinit();
+        if (self.on_ready) |ready| if (ready.terminal_ready) |call| call(ready.context, advice.terminal);
         self.timing.finish_ns = self.elapsed() - finish_start;
         const native = self.native;
         self.native = .{};
@@ -193,3 +256,47 @@ pub const Ordered = struct {
         self.* = undefined;
     }
 };
+/// Diagnostic SHA-256 over EVERY advice family (events, keccak, secp, sha256,
+/// arith256_mod, curves, bulk, sponge, initial, terminal), field by field
+/// (never raw struct bytes, so padding cannot leak in). `captured_values_sha256`
+/// covers only events/keccak/secp/initial/terminal; this one carries the M8
+/// two-phase ledger parity for the other families. Report-only.
+pub fn adviceDigest(advice: *const Collector.Advice) [32]u8 {
+    const H = struct {
+        hash: std.crypto.hash.sha2.Sha256 = .init(.{}),
+        buffer: [1 << 16]u8 = undefined,
+        used: usize = 0,
+        fn value(self: *@This(), item: anytype) void {
+            const T = @TypeOf(item);
+            switch (@typeInfo(T)) {
+                .int => |info| {
+                    if (self.used + 8 > self.buffer.len) {
+                        self.hash.update(self.buffer[0..self.used]);
+                        self.used = 0;
+                    }
+                    std.mem.writeInt(u64, self.buffer[self.used..][0..8], @as(std.meta.Int(.unsigned, info.bits), @bitCast(item)), .little);
+                    self.used += 8;
+                },
+                .bool => self.value(@as(u8, @intFromBool(item))),
+                .@"enum" => self.value(@intFromEnum(item)),
+                .array => for (item) |entry| self.value(entry),
+                .pointer => |info| {
+                    if (info.size != .slice) @compileError("advice digest may not follow pointers");
+                    self.value(@as(u64, item.len));
+                    for (item) |entry| self.value(entry);
+                },
+                .@"struct" => |info| inline for (info.fields) |field| {
+                    if (comptime !std.mem.eql(u8, field.name, "allocator")) self.value(@field(item, field.name));
+                },
+                else => @compileError("unsupported advice value " ++ @typeName(T)),
+            }
+        }
+    };
+    const h = std.heap.page_allocator.create(H) catch @panic("advice digest buffer");
+    defer std.heap.page_allocator.destroy(h);
+    h.* = .{};
+    h.hash.update("stwo/rv64/ethereum/advice-all/v1\x00");
+    h.value(advice.*);
+    h.hash.update(h.buffer[0..h.used]);
+    return h.hash.finalResult();
+}

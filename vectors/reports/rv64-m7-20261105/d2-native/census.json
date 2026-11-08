@@ -1,0 +1,260 @@
+{
+  "schema": "rv64-d2-actual-circuit-census/v1",
+  "status": "exact constructed classic OM31 verifier graph geometry after accepted native CPU mini proofs; no outer proof",
+  "default": {
+    "schema": "rv64-native-recursive-circuit-geometry/v1",
+    "label": "conjectured128_b2_q108_p20_fold4",
+    "status": "exact constructed classic OM31 outer geometry; no outer proof",
+    "census": {
+      "n_vars": 12670677,
+      "raw_rows": {
+        "eq": 79390,
+        "qm31_ops": 2739337,
+        "m31_to_u32": 521676,
+        "triple_xor": 229504,
+        "blake_g_gate": 2295040
+      },
+      "padded_rows": {
+        "eq": 131072,
+        "qm31_ops": 4194304,
+        "m31_to_u32": 524288,
+        "triple_xor": 262144,
+        "blake_g_gate": 4194304
+      },
+      "fixed_cells": 87081728,
+      "main_cells": 293552384,
+      "inter_cells": 599918592,
+      "total_cells": 980552704,
+      "components": [
+        {
+          "name": "eq",
+          "log": 17,
+          "rows": 131072,
+          "main_columns": 4,
+          "inter_columns": 8,
+          "main_cells": 524288,
+          "inter_cells": 1048576
+        },
+        {
+          "name": "qm31_ops",
+          "log": 22,
+          "rows": 4194304,
+          "main_columns": 12,
+          "inter_columns": 16,
+          "main_cells": 50331648,
+          "inter_cells": 67108864
+        },
+        {
+          "name": "triple_xor",
+          "log": 18,
+          "rows": 262144,
+          "main_columns": 20,
+          "inter_columns": 48,
+          "main_cells": 5242880,
+          "inter_cells": 12582912
+        },
+        {
+          "name": "m_31_to_u_32",
+          "log": 19,
+          "rows": 524288,
+          "main_columns": 4,
+          "inter_columns": 24,
+          "main_cells": 2097152,
+          "inter_cells": 12582912
+        },
+        {
+          "name": "blake_g_gate",
+          "log": 22,
+          "rows": 4194304,
+          "main_columns": 52,
+          "inter_columns": 104,
+          "main_cells": 218103808,
+          "inter_cells": 436207616
+        },
+        {
+          "name": "verify_bitwise_xor_8",
+          "log": 16,
+          "rows": 65536,
+          "main_columns": 2,
+          "inter_columns": 8,
+          "main_cells": 131072,
+          "inter_cells": 524288
+        },
+        {
+          "name": "verify_bitwise_xor_12",
+          "log": 20,
+          "rows": 1048576,
+          "main_columns": 16,
+          "inter_columns": 64,
+          "main_cells": 16777216,
+          "inter_cells": 67108864
+        },
+        {
+          "name": "verify_bitwise_xor_4",
+          "log": 8,
+          "rows": 256,
+          "main_columns": 1,
+          "inter_columns": 8,
+          "main_cells": 256,
+          "inter_cells": 2048
+        },
+        {
+          "name": "verify_bitwise_xor_7",
+          "log": 14,
+          "rows": 16384,
+          "main_columns": 1,
+          "inter_columns": 8,
+          "main_cells": 16384,
+          "inter_cells": 131072
+        },
+        {
+          "name": "verify_bitwise_xor_9",
+          "log": 18,
+          "rows": 262144,
+          "main_columns": 1,
+          "inter_columns": 8,
+          "main_cells": 262144,
+          "inter_cells": 2097152
+        },
+        {
+          "name": "range_check_16",
+          "log": 16,
+          "rows": 65536,
+          "main_columns": 1,
+          "inter_columns": 8,
+          "main_cells": 65536,
+          "inter_cells": 524288
+        }
+      ]
+    }
+  },
+  "d2": {
+    "schema": "rv64-native-recursive-circuit-geometry/v1",
+    "label": "d2_native_b4_q54_p20_fold4",
+    "status": "exact constructed classic OM31 outer geometry; no outer proof",
+    "census": {
+      "n_vars": 7645524,
+      "raw_rows": {
+        "eq": 73764,
+        "qm31_ops": 1810868,
+        "m31_to_u32": 341640,
+        "triple_xor": 133976,
+        "blake_g_gate": 1339760
+      },
+      "padded_rows": {
+        "eq": 131072,
+        "qm31_ops": 2097152,
+        "m31_to_u32": 524288,
+        "triple_xor": 262144,
+        "blake_g_gate": 2097152
+      },
+      "fixed_cells": 47235840,
+      "main_cells": 159334656,
+      "inter_cells": 348260352,
+      "total_cells": 554830848,
+      "components": [
+        {
+          "name": "eq",
+          "log": 17,
+          "rows": 131072,
+          "main_columns": 4,
+          "inter_columns": 8,
+          "main_cells": 524288,
+          "inter_cells": 1048576
+        },
+        {
+          "name": "qm31_ops",
+          "log": 21,
+          "rows": 2097152,
+          "main_columns": 12,
+          "inter_columns": 16,
+          "main_cells": 25165824,
+          "inter_cells": 33554432
+        },
+        {
+          "name": "triple_xor",
+          "log": 18,
+          "rows": 262144,
+          "main_columns": 20,
+          "inter_columns": 48,
+          "main_cells": 5242880,
+          "inter_cells": 12582912
+        },
+        {
+          "name": "m_31_to_u_32",
+          "log": 19,
+          "rows": 524288,
+          "main_columns": 4,
+          "inter_columns": 24,
+          "main_cells": 2097152,
+          "inter_cells": 12582912
+        },
+        {
+          "name": "blake_g_gate",
+          "log": 21,
+          "rows": 2097152,
+          "main_columns": 52,
+          "inter_columns": 104,
+          "main_cells": 109051904,
+          "inter_cells": 218103808
+        },
+        {
+          "name": "verify_bitwise_xor_8",
+          "log": 16,
+          "rows": 65536,
+          "main_columns": 2,
+          "inter_columns": 8,
+          "main_cells": 131072,
+          "inter_cells": 524288
+        },
+        {
+          "name": "verify_bitwise_xor_12",
+          "log": 20,
+          "rows": 1048576,
+          "main_columns": 16,
+          "inter_columns": 64,
+          "main_cells": 16777216,
+          "inter_cells": 67108864
+        },
+        {
+          "name": "verify_bitwise_xor_4",
+          "log": 8,
+          "rows": 256,
+          "main_columns": 1,
+          "inter_columns": 8,
+          "main_cells": 256,
+          "inter_cells": 2048
+        },
+        {
+          "name": "verify_bitwise_xor_7",
+          "log": 14,
+          "rows": 16384,
+          "main_columns": 1,
+          "inter_columns": 8,
+          "main_cells": 16384,
+          "inter_cells": 131072
+        },
+        {
+          "name": "verify_bitwise_xor_9",
+          "log": 18,
+          "rows": 262144,
+          "main_columns": 1,
+          "inter_columns": 8,
+          "main_cells": 262144,
+          "inter_cells": 2097152
+        },
+        {
+          "name": "range_check_16",
+          "log": 16,
+          "rows": 65536,
+          "main_columns": 1,
+          "inter_columns": 8,
+          "main_cells": 65536,
+          "inter_cells": 524288
+        }
+      ]
+    }
+  },
+  "delta_cells": -425721856,
+  "reduction_percent": 43.4165195061254
+}

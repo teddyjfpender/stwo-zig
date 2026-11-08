@@ -1,0 +1,32 @@
+{
+  "schema": "rv64-m7-composed-cells-qualification/v1",
+  "positive_runs": 5,
+  "cold_warm_request_scopes": 10,
+  "known_M6_head_cells": 35790524160,
+  "negative_cases": [
+    {
+      "mutation": "duplicate_node",
+      "rejected": true,
+      "exit": 1,
+      "error": "RuntimeError: duplicate or missing source node id"
+    },
+    {
+      "mutation": "foreign_scope",
+      "rejected": true,
+      "exit": 1,
+      "error": "RuntimeError: foreign request scope"
+    },
+    {
+      "mutation": "duplicate_boundary",
+      "rejected": true,
+      "exit": 1,
+      "error": "RuntimeError: missing or duplicate request boundary"
+    },
+    {
+      "mutation": "component_roster",
+      "rejected": true,
+      "exit": 1,
+      "error": "RuntimeError: warm committed geometries changed: 24628607-combined-d2-coalesce-v1"
+    }
+  ]
+}

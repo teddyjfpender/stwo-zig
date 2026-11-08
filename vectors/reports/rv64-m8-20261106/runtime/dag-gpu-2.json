@@ -1,0 +1,13 @@
+{
+ "schema": "rv64-m8-jobs-dag/v1",
+ "ok": true,
+ "nodes": 50,
+ "jobs": 49,
+ "affinity_hits": 47,
+ "per_device": [
+  27,
+  22
+ ],
+ "snapshots_checked": 980,
+ "wall_ns": 36675583
+}

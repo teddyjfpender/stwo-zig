@@ -13,6 +13,32 @@ const Poly = component_prover.Poly;
 const SecureColumn = secure_column.SecureColumnByCoords;
 const Trace = component_prover.Trace;
 
+test "OM31 CpuBackend whole-stage callback runs before unsupported wide CPU scheduling" {
+    const O = core.fields.om31.OM31;
+    const C = component_prover.ForField(O);
+    const Column = secure_column.SecureColumnByCoordsFor(O);
+    const Callback = struct {
+        fn evaluate(ctx: *anyopaque, allocator: std.mem.Allocator, alpha: O, _: u32, _: usize, _: *const anyopaque, result: *anyopaque) anyerror!bool {
+            const count: *usize = @ptrCast(@alignCast(ctx));
+            count.* += 1;
+            const output: *Column = @ptrCast(@alignCast(result));
+            output.* = try Column.zeros(allocator, 1);
+            for (output.columns, alpha.toM31Array()) |column, value| column[0] = value;
+            return true;
+        }
+    };
+    var calls: usize = 0;
+    const provers = C.ComponentProvers{ .components = &.{}, .n_preprocessed_columns = 0, .composition_stage = .{ .context = &calls, .evaluate = Callback.evaluate }, .cpu_composition_execution = .{ .worker_count = 0, .host_byte_budget = 0 } };
+    var trace = C.Trace{ .polys = TreeVec([]const C.Poly).initOwned(try std.testing.allocator.alloc([]const C.Poly, 0)) };
+    defer trace.polys.deinit(std.testing.allocator);
+    const Backend = struct {};
+    const alpha = O.fromBase(core.fields.m31.M31.fromCanonical(17));
+    var output = try provers.computeCompositionEvaluationForBackend(Backend, std.testing.allocator, alpha, &trace, &.{}, null);
+    defer output.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 1), calls);
+    try std.testing.expect(output.at(0).eql(alpha));
+}
+
 fn emptyTrace(allocator: std.mem.Allocator) !Trace {
     return .{
         .polys = TreeVec([]const Poly).initOwned(try allocator.alloc([]const Poly, 0)),

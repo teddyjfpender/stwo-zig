@@ -1,0 +1,17 @@
+{
+ "schema": "rv64-m8-native-job-gpu-tests/v1",
+ "scope": "test-rv64-jobs (ReleaseSafe) with STWO_RV64_M8_GPU_BASE=a25 base, STWO_RV64_M8_JOBS_LIBRARY=jobs-addon-2 on RTX 5090 dev0 under gpu.lock; real runtime DeviceWorker; host engine / legacy worker_protocol as reference",
+ "base_sha256": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+ "addon_sha256": "724c21d7c56e7ea7ddf2f8c4acb0f6d8827e6bf1262662b56ccbfe9211f90f8b",
+ "test_binary_sha256": "f8e2c23bbd5085d0cae4f19e21eee33258b04e4e093fda3f3a1ab4e725d27df8",
+ "summary": ["62 passed; 1 skipped (scale test, run separately: gpu-scale-01.json); 0 failed"],
+ "results": [
+  "GPU_M8_NATIVE_COMMIT_PARITY columns=6 coefficient_cells=128 eval_log=6 root_equal=1 channel_equal=1 coefficients_equal=1",
+  "GPU_M8_NATIVE_TAIL_PARITY trees=2 columns=7 samples=8 pow_bits=0 pcs_words=2257 proof_json_bytes=13889 proof_sha256=e4dd5372b1a6a3a446bd53b5a9e4d0c7c303ed32f47f42f3ddbca779519a89ab byte_identical=1 channel_equal=1",
+  "GPU_M8_NATIVE_STAGE2_PARITY trees=4 claims=5 pow_bits=8 alpha_equal=1 roots_equal=1 proof_sha256=b24acdf403092574a2ca16808732d55e4ab7de4e84ce7a5f23934b19f96ed0cc byte_identical=1 channel_equal=1",
+  "GPU_M8_NATIVE_STAGE1_PARITY job=0 fixed_fresh=true fixed_root_equal=1 main_root_equal=1 channel_equal=1",
+  "GPU_M8_NATIVE_STAGE1_PARITY job=1 fixed_fresh=false fixed_root_equal=1 main_root_equal=1 channel_equal=1"
+ ],
+ "notes": ["Stage2 reference calls the legacy rv64_gkr_worker_protocol.mixManifestAndClaims itself; its composition producer is a test commit of fixed columns (native composition kernels not ported)",
+           "Stage1 stops before the local GKR (not ported); witness-source producers not ported"]
+}

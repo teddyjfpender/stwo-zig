@@ -1,0 +1,1 @@
+{"source_sha256": "c5593b92f42e0a451a6feeadb584b17fab88e6865bd90ce415cd4c477504a291", "generated_sha256": "ce4e500faeb446eb332d4f3e6a958be04fc183072ea525f356977cab14d1c69c", "variant": "common-rotate", "numerical_formula": "production common/m31.cuh add/mul +exact31bitdiagonalrotate", "production_selected": false}

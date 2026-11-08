@@ -1,0 +1,45 @@
+{
+  "schema": "rv64-m7-critical-chain-receipt/v1",
+  "status": "READ_ONLY_ACCEPTED_WARM_TRACE_JOIN",
+  "block": 24628607,
+  "gpu_jobs": 0,
+  "analysis_base": "2600c4d2c",
+  "compiled_asset_source_audit": "9531c5c16; original harness source_commit label preserved separately",
+  "original_harness_source_label": "136e0ba60+leaf-tape-v3-uncommitted",
+  "assets": {
+    "driver": "9cf6589f1b479f4c6b1049cc98860c55bfbb2fa680e4716ffd976748f782a2f6",
+    "library": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+    "receiver": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+    "recursive_receiver": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42"
+  },
+  "sqlite_sha256": "fe1d54c746c85a16283fde79ac5fcc940bf06c39e0f4ef1d08ed632f2f052635",
+  "sqlite_path": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-combined-d2-coalesce-v1/nsys/timeline.sqlite",
+  "warm_trial": 1,
+  "fresh_cpu_direct_trial": 0,
+  "cold_warm_proof_artifacts_identical": true,
+  "node_count": 19,
+  "logical_lanes_per_physical": 1,
+  "unknown": [
+    "native/pipeline exact clock origin",
+    "pernode memory ready",
+    "hostworker IDs",
+    "fullclass hashes",
+    "deviceScope hashes",
+    "full-device-stage outside-controller phasepartition"
+  ],
+  "source_953_sha256": {
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig": "ecddac6d45d502cce785ffbef82d24e91226cccbd72b4ed31290af0a8b8f8662",
+    "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig": "aef6d88bc2811b0b23ebd7115c7897d3069384fffd4f0f1bfb1ca5323e3e5fb3"
+  },
+  "artifacts_sha256": {
+    "vectors/reports/rv64-m7-20261105/critical-chain/class-log.json": "db5a4c7de4734011f11762ee50da69b846cc824cde7e0b3f9eaa2a6ba613a072",
+    "vectors/reports/rv64-m7-20261105/critical-chain/request-receipt.json": "1b8bb6e038bdca7cc3581cc02bcda04aadc79c962ff20c9e8ba101959f011959",
+    "vectors/reports/rv64-m7-20261105/critical-chain/table.md": "cb33e7f655f64a4edf80ce0cbb84b81f22d454a1c184ee456a4c848091af8639",
+    "vectors/reports/rv64-m7-20261105/critical-chain/README.md": "e40bb9c49a1a74cf5a1be0929a2ad985c78385881942abc9a8db702386bf6cc6",
+    "vectors/reports/rv64-m7-20261105/critical-chain/table.json": "2a714f7d9b6612357c8ce8acd7380ef215506b5e8c41dead9978aca2ca4faf84",
+    "vectors/reports/rv64-m7-20261105/critical-chain/pipeline.json": "3ec3e3104573ab6794886d7e042f4c7061401279ac49985b153212dd041210db",
+    "vectors/reports/rv64-m7-20261105/critical-chain/tree.json": "b4bf2a794ea95048c96ef12fa1b025cee339aa496186bb4be461a73cc6f1ece5",
+    "vectors/reports/rv64-m7-20261105/critical-chain/cold-warm-identity.json": "40838d9b331ff451f3a5bc75690777a83834e9f4c033c6cf9ece64774123d608"
+  },
+  "reproducer_sha256": "83c14b65b9b3072241879916b75b827b6b93082c49880dcb010a88e9ce729f13"
+}

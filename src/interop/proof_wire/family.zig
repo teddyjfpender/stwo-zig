@@ -8,6 +8,15 @@ const blake2_merkle = core.vcs_lifted.blake2_merkle;
 const M31 = m31.M31;
 
 pub fn ForField(comptime Secure: type) type {
+    return ForHasher(Secure, blake2_merkle.Blake2sPrefixedMerkleHasher);
+}
+
+/// Explicit new hash family; historical ForField bytes remain unchanged.
+pub fn ForHasher(comptime Secure: type, comptime HashFamily: type) type {
+    const is_poseidon_v2 = HashFamily == core.vcs.poseidon2_m31_merkle.Poseidon2M31MerkleHasherV2;
+    const is_poseidon = is_poseidon_v2 or HashFamily == core.vcs.poseidon2_m31_merkle.Poseidon2M31MerkleHasher;
+    if (!is_poseidon and @sizeOf(HashFamily.Hash) != 32) @compileError("unqualified hash wire family");
+    const legacy_json = !is_poseidon and Secure == core.fields.qm31.QM31;
     const DEGREE = @typeInfo(@TypeOf(Secure.zero().toM31Array())).array.len;
     if (Secure != core.fields.qm31.QM31 and Secure != core.fields.om31.OM31)
         @compileError("proof wire supports only the qualified QM31 and OM31 field authorities");
@@ -17,7 +26,7 @@ pub fn ForField(comptime Secure: type) type {
         const proof_mod = core.proof.ForField(Secure);
         /// Default QM31 exchange preserves pinned raw Stwo `a8fcf4bd`;
         /// explicit OM31 uses a distinct eight-coordinate wire version.
-        pub const Hasher = blake2_merkle.Blake2sPrefixedMerkleHasher;
+        pub const Hasher = HashFamily;
         pub const Proof = proof_mod.StarkProof(Hasher);
         const MerkleDecommitment = vcs_verifier.MerkleDecommitmentLifted(Hasher);
 
@@ -35,7 +44,7 @@ pub fn ForField(comptime Secure: type) type {
         };
 
         pub const SecureWire = [DEGREE]u32;
-        pub const HashWire = [32]u8;
+        pub const HashWire = HashFamily.Hash;
 
         pub const MerkleDecommitmentWire = struct {
             hash_witness: []HashWire,
@@ -68,10 +77,11 @@ pub fn ForField(comptime Secure: type) type {
             ValueOutOfRange,
             InvalidBinaryProof,
             UnsupportedBinaryVersion,
+            NonCanonicalPoseidonDigest,
         };
 
-        const BINARY_WIRE_MAGIC = if (DEGREE == 4) "STWOPRW1" else "STWOPRW8";
-        const JSON_PROTOCOL = "stwo-om31-proof-v1";
+        const BINARY_WIRE_MAGIC = if (is_poseidon_v2) (if (DEGREE == 4) "STP2QW02" else "STP2OW02") else if (is_poseidon) (if (DEGREE == 4) "STP2QW01" else "STP2OW01") else (if (DEGREE == 4) "STWOPRW1" else "STWOPRW8");
+        const JSON_PROTOCOL = if (is_poseidon_v2) (if (DEGREE == 4) "stwo-p2m31-w24-d9-qm31-proof-v2" else "stwo-p2m31-w24-d9-om31-proof-v2") else if (is_poseidon) (if (DEGREE == 4) "stwo-p2m31-w24-d9-qm31-proof-v1" else "stwo-p2m31-w24-d9-om31-proof-v1") else "stwo-om31-proof-v1";
         const Envelope = struct { protocol: []const u8, proof: ProofWire };
 
         /// Encodes a Stark proof into wire bytes for cross-language interchange.
@@ -80,7 +90,7 @@ pub fn ForField(comptime Secure: type) type {
             defer arena.deinit();
 
             const wire = try proofToWire(arena.allocator(), proof);
-            return std.json.Stringify.valueAlloc(allocator, if (DEGREE == 4) wire else Envelope{ .protocol = JSON_PROTOCOL, .proof = wire }, .{});
+            return std.json.Stringify.valueAlloc(allocator, if (legacy_json) wire else Envelope{ .protocol = JSON_PROTOCOL, .proof = wire }, .{});
         }
 
         /// Encodes a Stark proof directly to hex JSON-wire bytes without allocating an
@@ -100,13 +110,13 @@ pub fn ForField(comptime Secure: type) type {
 
         /// Decodes wire bytes into a Stark proof with owned allocations.
         pub fn decodeProofBytes(allocator: std.mem.Allocator, encoded: []const u8) !Proof {
-            const parsed = try std.json.parseFromSlice(if (DEGREE == 4) ProofWire else Envelope, allocator, encoded, .{
+            const parsed = try std.json.parseFromSlice(if (legacy_json) ProofWire else Envelope, allocator, encoded, .{
                 .ignore_unknown_fields = false,
             });
             defer parsed.deinit();
 
-            if (DEGREE == 8 and !std.mem.eql(u8, parsed.value.protocol, JSON_PROTOCOL)) return CodecError.UnsupportedBinaryVersion;
-            return wireToProof(allocator, if (DEGREE == 4) parsed.value else parsed.value.proof);
+            if (!legacy_json and !std.mem.eql(u8, parsed.value.protocol, JSON_PROTOCOL)) return CodecError.UnsupportedBinaryVersion;
+            return wireToProof(allocator, if (legacy_json) parsed.value else parsed.value.proof);
         }
 
         /// Encodes a Stark proof into a compact binary wire format for internal benchmarking.
@@ -179,7 +189,9 @@ pub fn ForField(comptime Secure: type) type {
         /// Decode the same wire contract under a caller-selected Blake2s Merkle
         /// domain. Circuit recursion uses plain Blake2s; the historical exchange
         /// format uses prefixed Blake2s. Hash bytes are identical in representation.
-        pub fn wireToProofFor(comptime H: type, allocator: std.mem.Allocator, wire: ProofWire) !proof_mod.StarkProof(H) {
+        pub fn wireToProofFor(comptime TargetHasher: type, allocator: std.mem.Allocator, wire: ProofWire) !proof_mod.StarkProof(TargetHasher) {
+            if (TargetHasher.Hash != HashWire) @compileError("hash wire representation mismatch");
+            try validateHashes(wire);
             if (!validLastPolyLength(wire.fri_proof.last_layer_poly.len)) return CodecError.ValueOutOfRange;
             if (wire.config.fri_config.n_queries > std.math.maxInt(usize)) return CodecError.ValueOutOfRange;
 
@@ -207,7 +219,7 @@ pub fn ForField(comptime Secure: type) type {
                 sv.deinitDeep(allocator);
             }
 
-            const decommitments = try decodeDecommitmentsFor(H, allocator, wire.decommitments);
+            const decommitments = try decodeDecommitmentsFor(TargetHasher, allocator, wire.decommitments);
             errdefer {
                 var ds = decommitments;
                 for (ds.items) |*decommitment| decommitment.deinit(allocator);
@@ -220,7 +232,7 @@ pub fn ForField(comptime Secure: type) type {
                 qv.deinitDeep(allocator);
             }
 
-            const fri_proof = try decodeFriProofFor(H, allocator, wire.fri_proof);
+            const fri_proof = try decodeFriProofFor(TargetHasher, allocator, wire.fri_proof);
             errdefer {
                 var fp = fri_proof;
                 fp.deinit(allocator);
@@ -557,6 +569,21 @@ pub fn ForField(comptime Secure: type) type {
             return out;
         }
 
+        fn validateHash(hash: HashWire) CodecError!void {
+            if (comptime is_poseidon) _ = try core.crypto.poseidon2_m31_sponge.decode(hash);
+        }
+        fn validateHashes(wire: ProofWire) CodecError!void {
+            for (wire.commitments) |hash| try validateHash(hash);
+            for (wire.decommitments) |d| for (d.hash_witness) |hash| {
+                try validateHash(hash);
+            };
+            try validateHash(wire.fri_proof.first_layer.commitment);
+            for (wire.fri_proof.first_layer.decommitment.hash_witness) |hash| try validateHash(hash);
+            for (wire.fri_proof.inner_layers) |layer| {
+                try validateHash(layer.commitment);
+                for (layer.decommitment.hash_witness) |hash| try validateHash(hash);
+            }
+        }
         fn writeHashWire(writer: anytype, hash: HashWire) !void {
             try writer.writeAll(hash[0..]);
         }
@@ -565,6 +592,7 @@ pub fn ForField(comptime Secure: type) type {
             var out: HashWire = undefined;
             const raw = try cursor.readBytes(out.len);
             @memcpy(out[0..], raw);
+            try validateHash(out);
             return out;
         }
 
@@ -577,7 +605,7 @@ pub fn ForField(comptime Secure: type) type {
             allocator: std.mem.Allocator,
             cursor: *BinaryCursor,
         ) !MerkleDecommitmentWire {
-            const witness_len = try cursor.readCount(32);
+            const witness_len = try cursor.readCount(@sizeOf(HashWire));
             const witness = try allocator.alloc(HashWire, witness_len);
             for (witness) |*hash| hash.* = try readHashWire(cursor);
             return .{ .hash_witness = witness };
@@ -665,7 +693,7 @@ pub fn ForField(comptime Secure: type) type {
             const lifting_raw = try cursor.readU32();
             const lifting_log_size: ?u32 = if (lifting_raw == std.math.maxInt(u32)) null else lifting_raw;
 
-            const commitments_len = try cursor.readCount(32);
+            const commitments_len = try cursor.readCount(@sizeOf(HashWire));
             const commitments = try allocator.alloc(HashWire, commitments_len);
             for (commitments) |*hash| hash.* = try readHashWire(cursor);
 

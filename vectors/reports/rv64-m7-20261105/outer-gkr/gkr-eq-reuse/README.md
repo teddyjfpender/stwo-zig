@@ -1,0 +1,7 @@
+GKR Eq now reuses a consumed product-tree pair. At outer remaining-height r, the live gate input is tree[r-2] and the two folding banks are tree[r-1] and tree[r]. A maximum-height oracle's tree[r+1] has already closed. Its N/D pair and alignment gap have enough contiguous owned space for Eq; independent root/mask/state copies retain everything needed later. The first two small layers use a separate 64-word fallback. GPU stream order and the existing batch reservations preserve these lifetimes.
+
+Host controls cover mixed heights through 28 and explicitly check interval disjointness against every live input, fold bank, scratch, record, mask and state. The independent native-path agent reviewed these lifetimes and the small-pair alignment gap before qualification.
+
+Measured fixture: requested GKR workspace falls from 1,212,302,336 to 1,078,084,864 bytes. Four complete resident proofs remain byte-identical to the earlier named-profile fixture (SHA a89f4b83...). A fresh CPU receiver, exact authenticated child handles and four composite circuit mutants pass. Whole-producer CUDA memcheck reports zero errors and produces the same proof hash.
+
+Derived exact allocation models: the real outer leaf that failed admission falls from 17,647,138,048 to 16,573,396,480 bytes; accepted native CPU0 geometry needs 7,973,247,488 bytes. These are requested workspace payloads, not physical GPU peaks or completed Ethereum performance results. The arena size, arithmetic, transcript order, CUDA kernels and proof format are unchanged. A full Ethereum retry is still required.

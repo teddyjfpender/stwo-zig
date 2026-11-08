@@ -1,0 +1,5 @@
+1/4 inter_retirement.test.joined independent coefficients survive poisoning old witness storage exactly once...OK
+2/4 inter_retirement.test.borrowed generation and overlapping replacement are refused before release...OK
+3/4 inter_retirement.test.foreign context, stale geometry and mixed-owner inputs fail atomically...OK
+4/4 inter_retirement.test.retirement flag is strict and empty waves need no commit owner...OK
+All 4 tests passed.

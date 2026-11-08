@@ -1,0 +1,558 @@
+commit e0c16b74764d08d7f45b1b00922cdefd8879b8ea
+Author:     Theodore Pender <teddyjfpender@gmail.com>
+AuthorDate: Thu Nov 5 09:13:08 2026 +0400
+Commit:     Theodore Pender <teddyjfpender@gmail.com>
+CommitDate: Thu Nov 5 09:13:08 2026 +0400
+
+    rv64 m7: qualify sampled Blake input mapping on 56 production leaves [M]
+
+diff --git a/src/backends/cuda/native/rv64/fused_blake2s.cu b/src/backends/cuda/native/rv64/fused_blake2s.cu
+index 6cd199404..e279253b8 100644
+--- a/src/backends/cuda/native/rv64/fused_blake2s.cu
++++ b/src/backends/cuda/native/rv64/fused_blake2s.cu
+@@ -18,6 +18,7 @@
+ #include <cstdint>
+ #include <cstdio>
+ #include <cuda_runtime.h>
++#include "custody.cuh"
+ 
+ namespace fused_blake2s_v1 {
+ 
+@@ -512,6 +513,37 @@ __global__ void random_tape_kernel(uint64_t seed, uint64_t first, uint64_t count
+   random_record(seed, first + i, tape + i * TAPE_WORDS);
+ }
+ 
++// Compare native CPU compression INPUTS with the already authoritative GG
++// assignment. No value or trace cell is written. GG rows remain in their
++// original order; t0/last are recovered from the round-0 IV XORs.
++__global__ void sample_inputs_check_kernel(
++    const uint32_t* values, uint32_t value_count, GatherPp pp,
++    const uint32_t* records, uint32_t first_gg, uint32_t count, uint32_t* status) {
++  const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
++  if (i >= count) return;
++  const uint64_t g0 = uint64_t(first_gg) + uint64_t(i) * 80;
++  const uint32_t* expected = records + uint64_t(i) * TAPE_WORDS;
++  uint32_t h[8]{}, m[16]{}, c[4]{}, d[4]{};
++  bool ok = true;
++  for (int j = 0; j < 4; ++j) {
++    ok &= load_word(values, value_count, pp.col[0][g0+j], h[j]);
++    ok &= load_word(values, value_count, pp.col[1][g0+j], h[4+j]);
++    ok &= load_word(values, value_count, pp.col[2][g0+j], c[j]);
++    ok &= load_word(values, value_count, pp.col[3][g0+j], d[j]);
++  }
++  for (int j = 0; j < 8; ++j) {
++    ok &= load_word(values, value_count, pp.col[4][g0+j], m[2*j]);
++    ok &= load_word(values, value_count, pp.col[5][g0+j], m[2*j+1]);
++  }
++  for (int j = 0; j < 8; ++j) ok &= h[j] == expected[j];
++  for (int j = 0; j < 16; ++j) ok &= m[j] == expected[8+j];
++  for (int j = 0; j < 4; ++j) ok &= c[j] == kIV[j];
++  ok &= d[0] == (kIV[4] ^ expected[24]);
++  ok &= d[1] == kIV[5] && d[3] == kIV[7];
++  ok &= expected[25] <= 1 && d[2] == (kIV[6] ^ (expected[25] ? 0xffffffffu : 0));
++  if (!ok) atomicOr(status, 1u);
++}
++
+ // Host-side instance plan, identical to `planInstances`.
+ inline uint32_t plan_instances(uint64_t n, uint32_t logs[MAX_INSTANCES]) {
+   uint32_t used = 0;
+@@ -537,6 +569,26 @@ constexpr int kThreads = 128;
+ 
+ using namespace fused_blake2s_v1;
+ 
++extern "C" int stwo_circuit_blake_sample_inputs_check_on(
++    void* ctx, uint32_t lane, const uint32_t* values, uint32_t value_count,
++    const uint32_t* const* gpp, uint32_t g_rows, uint32_t first_gg,
++    const uint32_t* records, uint32_t count, uint32_t* status) {
++  if (!gpp || !value_count || !count || uint64_t(first_gg) + uint64_t(count)*80 > g_rows)
++    return int(cudaErrorInvalidValue);
++  stwo::cuda::rv64::RangeCustody<16> custody(ctx, lane);
++  if (!custody.range(values, uint64_t(value_count)*4, false) ||
++      !custody.range(records, uint64_t(count)*TAPE_WORDS, false) ||
++      !custody.range(status, 1, true)) return custody.status;
++  GatherPp pp{};
++  for (int j = 0; j < 10; ++j) {
++    if (!custody.range(gpp[j], g_rows, false)) return custody.status;
++    pp.col[j] = gpp[j];
++  }
++  sample_inputs_check_kernel<<<(count+127)/128,128,0,custody.stream>>>(
++      values,value_count,pp,records,first_gg,count,status);
++  return int(cudaPeekAtLastError());
++}
++
+ extern "C" int stwo_fused_blake2s_v1_fill_on(const uint32_t* tape, uint64_t n_records, uint64_t first, uint64_t count,
+                                              uint32_t* cols, uint64_t stride, uint32_t* xor_counts, void* stream) {
+   if (count == 0) return 0;
+diff --git a/src/core/crypto/blake2s_backend.zig b/src/core/crypto/blake2s_backend.zig
+index 9b1ea5843..551e99f4c 100644
+--- a/src/core/crypto/blake2s_backend.zig
++++ b/src/core/crypto/blake2s_backend.zig
+@@ -668,6 +668,7 @@ pub const Blake2sHasher = struct {
+ 
+     fn compressWords(self: *Self, m: *const [16]u32, is_last: bool) void {
+         const f0: u32 = if (is_last) 0xFFFF_FFFF else 0;
++        @import("blake2s_observer.zig").observe(&self.h, m, self.t0, self.t1, f0);
+         switch (self.selection.effective) {
+             .simd => compressSimd(&self.h, m, self.t0, self.t1, f0),
+             .scalar => compressScalar(&self.h, m, self.t0, self.t1, f0),
+diff --git a/src/core/crypto/blake2s_observer.zig b/src/core/crypto/blake2s_observer.zig
+new file mode 100644
+index 000000000..1f1d02e1a
+--- /dev/null
++++ b/src/core/crypto/blake2s_observer.zig
+@@ -0,0 +1,13 @@
++//! Optional producer diagnostics. Inputs only; observers never supply a digest.
++//! Phase and listener are scoped to one host worker thread.
++pub const Phase = enum { none, sampled_values_mix };
++pub const Event = struct { h: [8]u32, message: [16]u32, t0: u32, t1: u32, final_word: u32 };
++pub const Observer = struct { context: *anyopaque, before_compress: *const fn (*anyopaque, Event) void };
++pub threadlocal var observer: ?Observer = null;
++pub threadlocal var phase: Phase = .none;
++
++pub inline fn observe(h: *const [8]u32, message: *const [16]u32, t0: u32, t1: u32, final_word: u32) void {
++    if (observer) |listener| if (phase == .sampled_values_mix) {
++        listener.before_compress(listener.context, .{ .h = h.*, .message = message.*, .t0 = t0, .t1 = t1, .final_word = final_word });
++    };
++}
+diff --git a/src/core/crypto/blake2s_observer_test.zig b/src/core/crypto/blake2s_observer_test.zig
+new file mode 100644
+index 000000000..54ff476c1
+--- /dev/null
++++ b/src/core/crypto/blake2s_observer_test.zig
+@@ -0,0 +1,74 @@
++const std = @import("std");
++const Backend = @import("blake2s_backend.zig");
++const Observer = @import("blake2s_observer.zig");
++const Capture = struct {
++    events: [8]Observer.Event = undefined,
++    count: usize = 0,
++    fn record(raw: *anyopaque, event: Observer.Event) void {
++        const self: *Capture = @ptrCast(@alignCast(raw));
++        std.debug.assert(self.count < self.events.len);
++        self.events[self.count] = event;
++        self.count += 1;
++    }
++};
++test "sampled Blake observer records pre-compression words counters and final flags without changing the digest" {
++    var capture = Capture{};
++    const previous = Observer.observer;
++    const previous_phase = Observer.phase;
++    defer {
++        Observer.observer = previous;
++        Observer.phase = previous_phase;
++    }
++    Observer.observer = .{ .context = &capture, .before_compress = Capture.record };
++    Observer.phase = .sampled_values_mix;
++    var bytes: [160]u8 = undefined;
++    for (&bytes, 0..) |*b, i| b.* = @truncate(i);
++    var hasher = Backend.Blake2sHasher.initWithMode(.scalar);
++    hasher.update(bytes[0..32]);
++    hasher.update(bytes[32..96]);
++    hasher.update(bytes[96..]);
++    const actual = hasher.finalize();
++    var expected: [32]u8 = undefined;
++    std.crypto.hash.blake2.Blake2s256.hash(&bytes, &expected, .{});
++    try std.testing.expectEqual(expected, actual);
++    try std.testing.expectEqual(@as(usize, 3), capture.count);
++    try std.testing.expectEqual(@as(u32, 0x6a09e667 ^ 0x01010020), capture.events[0].h[0]);
++    for (capture.events[0..3], 0..) |event, i| {
++        try std.testing.expectEqual(@as(u32, @intCast(@min((i + 1) * 64, bytes.len))), event.t0);
++        try std.testing.expectEqual(@as(u32, 0), event.t1);
++        try std.testing.expectEqual(if (i == 2) std.math.maxInt(u32) else @as(u32, 0), event.final_word);
++        var block: [64]u8 = @splat(0);
++        const start = i * 64;
++        const len = @min(64, bytes.len - start);
++        @memcpy(block[0..len], bytes[start..][0..len]);
++        for (event.message, 0..) |word, j| try std.testing.expectEqual(std.mem.readInt(u32, block[j * 4 ..][0..4], .little), word);
++    }
++}
++test "sampled Blake observer ignores other phases and stays isolated between host threads" {
++    var capture = Capture{};
++    const previous = Observer.observer;
++    const previous_phase = Observer.phase;
++    defer {
++        Observer.observer = previous;
++        Observer.phase = previous_phase;
++    }
++    Observer.observer = .{ .context = &capture, .before_compress = Capture.record };
++    Observer.phase = .none;
++    var h = Backend.Blake2sHasher.init();
++    h.update("unobserved");
++    _ = h.finalize();
++    try std.testing.expectEqual(@as(usize, 0), capture.count);
++    const Worker = struct {
++        fn run() !void {
++            try std.testing.expect(Observer.observer == null);
++            try std.testing.expectEqual(Observer.Phase.none, Observer.phase);
++        }
++    };
++    const thread = try std.Thread.spawn(.{}, Worker.run, .{});
++    thread.join();
++    Observer.phase = .sampled_values_mix;
++    var observed = Backend.Blake2sHasher.init();
++    observed.update("observed");
++    _ = observed.finalize();
++    try std.testing.expectEqual(@as(usize, 1), capture.count);
++}
+diff --git a/src/core/crypto/mod.zig b/src/core/crypto/mod.zig
+index 3170c0c78..f5a2f3d96 100644
+--- a/src/core/crypto/mod.zig
++++ b/src/core/crypto/mod.zig
+@@ -1,5 +1,6 @@
+ pub const hash256 = @import("hash256.zig");
+ pub const blake2s_backend = @import("blake2s_backend.zig");
++pub const blake2s_observer = @import("blake2s_observer.zig");
+ pub const blake_sigma = @import("blake_sigma.zig");
+ pub const chacha20_rng = @import("chacha20_rng.zig");
+ pub const blake3_compression = @import("blake3_compression.zig");
+diff --git a/src/core/pcs/verifier_family.zig b/src/core/pcs/verifier_family.zig
+index 8e4fdda89..3d07868d6 100644
+--- a/src/core/pcs/verifier_family.zig
++++ b/src/core/pcs/verifier_family.zig
+@@ -268,7 +268,13 @@ pub fn ForField(comptime Secure: type) type {
+ 
+                     const sampled_values_flat = try flattenSampledValues(allocator, proof.sampled_values);
+                     defer allocator.free(sampled_values_flat);
+-                    channel.mixFelts(sampled_values_flat);
++                    {
++                        const observer = @import("../crypto/blake2s_observer.zig");
++                        const previous = observer.phase;
++                        observer.phase = .sampled_values_mix;
++                        defer observer.phase = previous;
++                        channel.mixFelts(sampled_values_flat);
++                    }
+                     const deep_randomness = channel.drawSecureFelt();
+ 
+                     var column_log_sizes = try self.columnLogSizes(allocator);
+diff --git a/src/frontends/circuit/builder/context.zig b/src/frontends/circuit/builder/context.zig
+index 4f8a9374e..842d5795c 100644
+--- a/src/frontends/circuit/builder/context.zig
++++ b/src/frontends/circuit/builder/context.zig
+@@ -37,6 +37,8 @@ const Allocator = std.mem.Allocator;
+ const QM31 = stwo_core.fields.qm31.QM31;
+ 
+ pub const Var = circuit_mod.Var;
++/// Producer-only address span; never enters circuit rows or proof bytes.
++pub const BlakeSampleSpan = struct { first_gg: u32, gg_count: u32 };
+ pub const Circuit = circuit_mod.Circuit;
+ pub const NoValue = ivalue.NoValue;
+ 
+@@ -134,6 +136,7 @@ pub fn Context(comptime V: type) type {
+         /// Explicit opt-in: topology + true seeds, with no CPU assignment array.
+         trace_only: bool = false,
+         gate_counts: GateCounts = .{},
++        blake_sample_span: ?BlakeSampleSpan = null,
+         /// Interned constants, in first-use order (upstream `IndexMap<QM31, Var>`).
+         constants: std.AutoArrayHashMapUnmanaged(u128, circuit_mod.Var) = .empty,
+         /// One value per variable in value mode; empty in topology mode.
+diff --git a/src/integrations/circuit_cpu/om31/device_prove.zig b/src/integrations/circuit_cpu/om31/device_prove.zig
+index 7a125016e..e4958e03b 100644
+--- a/src/integrations/circuit_cpu/om31/device_prove.zig
++++ b/src/integrations/circuit_cpu/om31/device_prove.zig
+@@ -54,6 +54,8 @@ pub threadlocal var class_is_leaf: bool = false;
+ /// it reports the template's variable count in `n_vars`. Never enters a proof.
+ pub const SeedTape = struct { values: []const [4]u32, n_vars: u32 = 0, consumed: bool = false };
+ pub threadlocal var seed_tape: ?*SeedTape = null;
++/// Producer-only shadow inputs. The original assignment remains authoritative.
++pub threadlocal var blake_sample_inputs: ?[]const [26]u32 = null;
+ pub const Factory = struct {
+     context: *anyopaque,
+     /// Optional device-free host stage. Thread-safe with respect to this
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig b/src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig
+new file mode 100644
+index 000000000..d84907e51
+--- /dev/null
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig
+@@ -0,0 +1,50 @@
++//! Native sampled-values hash inputs for a producer-only GPU shadow check.
++const std = @import("std");
++const Observer = @import("stwo_core").crypto.blake2s_observer;
++pub const Record = [26]u32;
++pub fn enabled() !bool {
++    const value = std.posix.getenv("STWO_RV64_BLAKE_SAMPLE_CHECK") orelse return false;
++    if (std.mem.eql(u8, value, "0")) return false;
++    if (std.mem.eql(u8, value, "1")) return true;
++    return error.InvalidBlakeSampleCheckOption;
++}
++pub const Recorder = struct {
++    allocator: std.mem.Allocator,
++    records: std.ArrayListUnmanaged(Record) = .empty,
++    failure: ?anyerror = null,
++    pub const Saved = struct { listener: ?Observer.Observer, phase: Observer.Phase };
++    pub fn install(self: *Recorder) Saved {
++        const saved = Saved{ .listener = Observer.observer, .phase = Observer.phase };
++        Observer.observer = .{ .context = self, .before_compress = record };
++        Observer.phase = .none;
++        return saved;
++    }
++    pub fn restore(saved: Saved) void {
++        Observer.observer = saved.listener;
++        Observer.phase = saved.phase;
++    }
++    fn record(raw: *anyopaque, event: Observer.Event) void {
++        const self: *Recorder = @ptrCast(@alignCast(raw));
++        if (self.failure != null) return;
++        if (event.t1 != 0 or (event.final_word != 0 and event.final_word != std.math.maxInt(u32))) {
++            self.failure = error.UnsupportedBlakeSampleCounter;
++            return;
++        }
++        var words: Record = undefined;
++        @memcpy(words[0..8], &event.h);
++        @memcpy(words[8..24], &event.message);
++        words[24] = event.t0;
++        words[25] = @intFromBool(event.final_word != 0);
++        self.records.append(self.allocator, words) catch |err| {
++            self.failure = err;
++        };
++    }
++    pub fn take(self: *Recorder) ![]Record {
++        if (self.failure) |err| return err;
++        if (self.records.items.len == 0) return error.MissingBlakeSampleInputs;
++        return self.records.toOwnedSlice(self.allocator);
++    }
++    pub fn deinit(self: *Recorder) void {
++        self.records.deinit(self.allocator);
++    }
++};
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig b/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
+index c68c4a59a..4eb27a825 100644
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig
+@@ -1100,6 +1100,8 @@ const Pipelined = struct {
+         defer Outer.Device.class_hint = null;
+         Outer.Device.class_is_leaf = children == null;
+         defer Outer.Device.class_is_leaf = false;
++        Outer.Device.blake_sample_inputs = if (children == null) job.leaf.?.blake_sample_inputs else null;
++        defer Outer.Device.blake_sample_inputs = null;
+         // Any lane's factory: host prep reads only immutable library symbols.
+         const raw_shape = @import("stwo_circuit_frontend").common.finalize.rawComponentSizes(.fromBuilder(&job.ctx().circuit));
+         job.host = try Outer.prepareHost(a, job.ctx(), self.options.lanes[0].factory);
+@@ -1133,6 +1135,8 @@ const Pipelined = struct {
+         defer Outer.Device.class_hint = null;
+         Outer.Device.class_is_leaf = true;
+         defer Outer.Device.class_is_leaf = false;
++        Outer.Device.blake_sample_inputs = graph.blake_sample_inputs;
++        defer Outer.Device.blake_sample_inputs = null;
+         const graph_ns = timer.lap();
+         const host = (try Outer.prepareHostTape(a, graph.ctx, self.options.lanes[0].factory, class)) orelse return false;
+         if (!tape.consumed) {
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig b/src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig
+index f4c4296fd..8c1f413e5 100644
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/leaf_graph.zig
+@@ -18,6 +18,7 @@ const CpuWorker = @import("../../word16_global_execution/services/gkr_local/cpu_
+ const TruthWorker = @import("../../word16_global_execution/services/gkr_local/truth_worker.zig");
+ const Tape = @import("leaf_tape.zig");
+ const Outer = @import("outer_wrap.zig");
++const BlakeSamples = @import("blake_sample_capture.zig");
+ pub const Graph = struct {
+     allocator: std.mem.Allocator,
+     ctx: *C.Context,
+@@ -25,11 +26,13 @@ pub const Graph = struct {
+     digest: [32]u8,
+     class: ?[32]u8 = null,
+     seed_tape: ?[][4]u32 = null,
++    blake_sample_inputs: ?[]BlakeSamples.Record = null,
+     pub fn deinit(self: *Graph) void {
+         self.ctx.deinit();
+         self.allocator.destroy(self.ctx);
+         self.allocator.free(self.words);
+         if (self.seed_tape) |values| self.allocator.free(values);
++        if (self.blake_sample_inputs) |values| self.allocator.free(values);
+         self.* = undefined;
+     }
+ };
+@@ -113,7 +116,15 @@ pub fn cpuTraceOnly(a: std.mem.Allocator, input: CpuInput) !Graph {
+     return cpuMode(a, input, true, null);
+ }
+ pub fn cpuTraceWithTape(a: std.mem.Allocator, input: CpuInput, factory: ?Outer.Device.Factory) !Graph {
+-    return cpuMode(a, input, true, factory);
++    if (!try BlakeSamples.enabled()) return cpuMode(a, input, true, factory);
++    var recorder = BlakeSamples.Recorder{ .allocator = a };
++    defer recorder.deinit();
++    const saved = recorder.install();
++    defer BlakeSamples.Recorder.restore(saved);
++    var result = try cpuMode(a, input, true, factory);
++    errdefer result.deinit();
++    result.blake_sample_inputs = try recorder.take();
++    return result;
+ }
+ fn cpuMode(a: std.mem.Allocator, input: CpuInput, trace_only: bool, factory: ?Outer.Device.Factory) !Graph {
+     var admitted = try Capture.verify(a, input.setup, input.request, input.expected, input.first, input.manifest, input.index, input.config, input.encoded, input.fixed);
+@@ -162,7 +173,15 @@ pub fn truthTraceOnly(a: std.mem.Allocator, input: TruthInput) !Graph {
+     return truthMode(a, input, true, null);
+ }
+ pub fn truthTraceWithTape(a: std.mem.Allocator, input: TruthInput, factory: ?Outer.Device.Factory) !Graph {
+-    return truthMode(a, input, true, factory);
++    if (!try BlakeSamples.enabled()) return truthMode(a, input, true, factory);
++    var recorder = BlakeSamples.Recorder{ .allocator = a };
++    defer recorder.deinit();
++    const saved = recorder.install();
++    defer BlakeSamples.Recorder.restore(saved);
++    var result = try truthMode(a, input, true, factory);
++    errdefer result.deinit();
++    result.blake_sample_inputs = try recorder.take();
++    return result;
+ }
+ fn truthMode(a: std.mem.Allocator, input: TruthInput, trace_only: bool, factory: ?Outer.Device.Factory) !Graph {
+     var capture: V.proof.NativeCapture = undefined;
+diff --git a/src/integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig b/src/integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig
+index ca6c9c810..5521adfd7 100644
+--- a/src/integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig
++++ b/src/integrations/riscv_cpu/rv64_recursion/om31_native/mod.zig
+@@ -87,7 +87,9 @@ pub fn verify(ctx: *common.Context, geometry: *const Shape, witness: *const Proo
+         @memcpy(sampled[at..][0..column.len], column);
+         at += column.len;
+     };
++    const sampled_first_gg = ctx.circuit.blake_g_gate.items.len;
+     try channel.mixFelts(ctx, sampled);
++    if (ctx.record_gates) ctx.blake_sample_span = .{ .first_gg = @intCast(sampled_first_gg), .gg_count = @intCast(ctx.circuit.blake_g_gate.items.len - sampled_first_gg) };
+     const alpha = try channel.draw(ctx);
+     const alphas = try fri.commit(ctx, &channel, witness);
+     try channel.raw.inner.pow(Q, ctx, geometry.pcs.pow_bits, witness.pow_nonce);
+diff --git a/src/integrations/riscv_cuda/rv64/outer_assignment.zig b/src/integrations/riscv_cuda/rv64/outer_assignment.zig
+index 2207d9b26..34dd3d73e 100644
+--- a/src/integrations/riscv_cuda/rv64/outer_assignment.zig
++++ b/src/integrations/riscv_cuda/rv64/outer_assignment.zig
+@@ -89,11 +89,23 @@ pub const ClassCache = struct {
+         }
+     };
+     const Template = struct {
+-        key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize,
+-        seed_vars: []u32, constants: [][4]u32, tasks: []Task,
++        key: [32]u8,
++        n_vars: u32,
++        n_constants: usize,
++        n_origins: usize,
++        seed_vars: []u32,
++        constants: [][4]u32,
++        tasks: []Task,
+         packed_tasks: ?CachePack.Packed = null,
+-        indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize,
+-        persisted: bool = false, capability_checked: bool = true, rejected: bool = false, constants_stable: bool = true,
++        indices: []u32,
++        level_ends: []usize,
++        identity: [32]u8,
++        bytes: usize,
++        persisted: bool = false,
++        capability_checked: bool = true,
++        rejected: bool = false,
++        constants_stable: bool = true,
++        blake_sample_span: ?Circuit.builder.context.BlakeSampleSpan = null,
+         fn taskCount(t: *const Template) usize {
+             return if (t.packed_tasks) |encoded| encoded.words / 8 else t.tasks.len;
+         }
+@@ -140,6 +152,7 @@ pub const ClassCache = struct {
+         const t = find(key) orelse return false;
+         mutex.lock();
+         defer mutex.unlock();
++        if (std.posix.getenv("STWO_RV64_BLAKE_SAMPLE_CHECK")) |value| if (std.mem.eql(u8, value, "1") and t.blake_sample_span == null) return false;
+         return !t.rejected and t.constants_stable and t.constants.len == t.n_constants;
+     }
+     /// A disk-loaded template that fails a use-time check (library capability,
+@@ -422,7 +435,7 @@ pub const ClassCache = struct {
+         errdefer gpa.free(indices);
+         const level_ends = try gpa.dupe(usize, p.plan.level_ends);
+         errdefer gpa.free(level_ends);
+-        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = n_constants, .n_origins = originCount(ctx), .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .packed_tasks = encoded, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes };
++        t.* = .{ .key = key, .n_vars = ctx.circuit.n_vars, .n_constants = n_constants, .n_origins = originCount(ctx), .seed_vars = seed_vars, .constants = constants, .tasks = tasks, .packed_tasks = encoded, .indices = indices, .level_ends = level_ends, .identity = p.identity, .bytes = bytes, .blake_sample_span = ctx.blake_sample_span };
+         try entries.append(gpa, t);
+         held_bytes += bytes;
+         std.debug.print("GPU_OUTER_PLAN_PACK adopt class={x} logical_task_bytes={} physical_task_bytes={} held_bytes={} classes={}\n", .{ key[0..8], p.tasks.len * @sizeOf(Task), task_bytes, held_bytes, entries.items.len });
+@@ -437,6 +450,8 @@ pub const Prepared = struct {
+     indices: []u32,
+     seeds: []Seed,
+     identity: [32]u8,
++    blake_sample_span: ?Circuit.builder.context.BlakeSampleSpan = null,
++    blake_sample_inputs: ?[][26]u32 = null,
+     check_reference: bool = false,
+     seed: Launch,
+     level: Launch,
+@@ -453,6 +468,26 @@ pub const Prepared = struct {
+     /// uploads them into request leases so it never evicts class entries.
+     reusable: bool = true,
+     pub fn init(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
++        var result = try initImpl(a, ctx, library);
++        errdefer result.deinit();
++        result.blake_sample_span = ctx.blake_sample_span;
++        if (ClassCache.mode() != .off) if (Dev.class_hint) |class_key| if (ClassCache.find(class_key)) |t| {
++            ClassCache.mutex.lock();
++            defer ClassCache.mutex.unlock();
++            if (ctx.blake_sample_span) |span| {
++                if (t.blake_sample_span) |old| if (!std.meta.eql(old, span)) return error.BlakeSampleClassSpanMismatch;
++                t.blake_sample_span = span;
++            }
++            result.blake_sample_span = t.blake_sample_span;
++        };
++        if (Dev.blake_sample_inputs) |inputs| {
++            const span = result.blake_sample_span orelse return error.MissingBlakeSampleClassSpan;
++            if (inputs.len == 0 or span.gg_count % 80 != 0 or inputs.len != span.gg_count / 80) return error.BlakeSampleInputCountMismatch;
++            result.blake_sample_inputs = try a.dupe([26]u32, inputs);
++        }
++        return result;
++    }
++    fn initImpl(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
+         // M6 hint-tape (HT1): a seed tape replaces the graph for this class.
+         if (Dev.seed_tape) |tape| return initFromTape(a, library, tape);
+         const cache_mode = ClassCache.mode();
+@@ -735,6 +770,7 @@ pub const Prepared = struct {
+         if (self.wide_level != null) self.wide_level = library.lookup(Launch, "stwo_circuit_assignment_wide_level_on") orelse return error.MissingCircuitAssignmentChainKernel;
+     }
+     pub fn deinit(self: *Prepared) void {
++        if (self.blake_sample_inputs) |inputs| self.allocator.free(inputs);
+         if (self.narrow_plan) |*value| value.deinit();
+         if (self.borrowed) {
+             if (self.decoded_tasks) self.allocator.free(self.tasks);
+diff --git a/src/integrations/riscv_cuda/rv64/outer_source_main.zig b/src/integrations/riscv_cuda/rv64/outer_source_main.zig
+index f77f68921..bbddeff5d 100644
+--- a/src/integrations/riscv_cuda/rv64/outer_source_main.zig
++++ b/src/integrations/riscv_cuda/rv64/outer_source_main.zig
+@@ -78,13 +78,37 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
+         try S.checked(b.base(@intCast(component), values.words.?, @intCast(owner.value_count), @as(u32, 1) << @intCast(logs[component]), @intCast(owner.key.pp.first_permutation_row), &pp, @intCast(pp_widths[component]), &outputs, @intCast(widths[component]), &counts, 22, status.words.?, stream.?));
+         main_at += widths[component];
+     }
++    const checked_blake_records = try checkBlakeSampleInputs(owner, &ctx, values.words.?, logs[4], status.words.?);
+     if (fusedBlakeFlags()) |flags| fusedBlakeShadow(owner, &ctx, values.words.?, logs, stream.?, flags);
+     var flag: [1]u32 = undefined;
+     try ctx.download(try ctx.borrow(status), &flag);
+     try ctx.join();
++    if (checked_blake_records != 0) std.debug.print("BLAKE_SAMPLE_INPUTS_CHECK ordinal={} records={} gg_rows={} mismatch={} assignment_unchanged=true\n", .{ owner.initial_scope.ordinal, checked_blake_records, checked_blake_records * 80, flag[0] });
+     if (flag[0] != 0) return error.InvalidCircuitDeviceWitness;
+ }
+ 
++const BlakeSampleCheckFn = *const fn (*anyopaque, u32, [*]const u32, u32, [*]const [*]const u32, u32, u32, [*]const u32, u32, [*]u32) callconv(.c) c_int;
++fn checkBlakeSampleInputs(owner: *S.Owner, ctx: anytype, values: [*]u32, gg_log: u32, status: [*]u32) !usize {
++    const assignment = if (owner.backend.assignment) |*value| value else return 0;
++    const inputs = assignment.blake_sample_inputs orelse return 0;
++    const span = assignment.blake_sample_span orelse return error.MissingBlakeSampleClassSpan;
++    if (inputs.len == 0 or span.gg_count % 80 != 0 or inputs.len != span.gg_count / 80) return error.BlakeSampleInputCountMismatch;
++    const kernel = owner.backend.service.library.lookup(BlakeSampleCheckFn, "stwo_circuit_blake_sample_inputs_check_on") orelse return error.MissingBlakeSampleCheckKernel;
++    const indices = try S.lookupIndices(owner.allocator, owner.key, 4);
++    defer owner.allocator.free(indices);
++    var pp: [10][*]const u32 = undefined;
++    for (&pp, indices[0..10]) |*out, index| {
++        const lease = owner.raw_fixed[index];
++        try S.checked(owner.backend.service.lease_validate_range(owner.backend.service.session, lease.words.?, lease.count, lease.context_token, lease.generation, &ctx.scope));
++        out.* = lease.words.?;
++    }
++    var tape = try ctx.allocate(try std.math.mul(usize, inputs.len, 26), 0);
++    defer ctx.release(&tape) catch {};
++    try ctx.upload(try ctx.borrow(tape), @as([*]const u32, @ptrCast(inputs.ptr))[0 .. inputs.len * 26]);
++    try S.checked(kernel(ctx.native_context, 0, values, @intCast(owner.value_count), &pp, @as(u32, 1) << @intCast(gg_log), span.first_gg, tape.words.?, @intCast(inputs.len), status));
++    return inputs.len;
++}
++
+ // ---------------------------------------------------------------------------
+ // fused_blake2s_v1 shadow hook (stream blake-gadget, M5; minimal hook in an
+ // enqueue-owned file, see /workspace/m3/M5-INTERFACES.md "blake-gadget").
+@@ -125,8 +149,8 @@ fn fusedBlakeShadow(owner: *S.Owner, ctx: anytype, values: [*]u32, logs: anytype
+     const status = shadow(values, @intCast(owner.value_count), &pp, g_rows, flags, stream, &stats, if (workspace) |w| w.words.? else null, if (workspace != null) workspace_words else 0);
+     const wall: u64 = @intCast(std.time.nanoTimestamp() - start);
+     std.debug.print("FUSED_BLAKE2S_V1_SHADOW status={d} ordinal={d} g_rows={d} chunks={d} shape={d} valid={d} fused_rows={d} instances={d} inst_logs=0x{x} gather_ns={d} fill_ns={d} check_ns={d} check_violations={d} xor_lookups={d} scratch_rows={d} fill_bytes={d} mem={d} wall_ns={d} flags={d} logs={any}\n", .{
+-        status,    owner.initial_scope.ordinal, stats[0], stats[1],  stats[2],  stats[3], stats[4], stats[5],
+-        stats[14], stats[6],                    stats[7], stats[8],  stats[9],  stats[10], stats[11], stats[12],
++        status,    owner.initial_scope.ordinal, stats[0], stats[1], stats[2], stats[3],  stats[4],  stats[5],
++        stats[14], stats[6],                    stats[7], stats[8], stats[9], stats[10], stats[11], stats[12],
+         stats[15], wall,                        flags,    logs,
+     });
+ }

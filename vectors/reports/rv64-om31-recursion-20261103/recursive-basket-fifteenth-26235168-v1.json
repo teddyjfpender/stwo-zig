@@ -1,0 +1,132 @@
+{
+  "schema": "rv64-recursive-basket-independent-case/v1",
+  "accepted": true,
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "security_scope": "128-bit target under documented assumptions; no whole-protocol certificate",
+  "row": {
+    "block": 26235168,
+    "case_result_sha256": "d5616a95a6b57f71b0ee8d3651d928766f97f144416bcebe9d912b2c9302a184",
+    "producer_assets": {
+      "driver": "86a285d3f48f030f467a156db00246e0aeea8c30254e5383389e0ad48fdce2be",
+      "receiver": "52a436daf39d8c9cab30a1a00f3885a16abfae323f2fc5ea22e4e21da085e394",
+      "library": "25295868fe3410dc2f54b366497cb57e260ef9c1f9f74e03d4266f253f7cc809",
+      "recursive_receiver": "a0dc4437c7b0fb2448656b8d63f51481912f8e9b143f73853413ece04fb7c40d"
+    },
+    "actual_receiver_assets": {
+      "driver": "86a285d3f48f030f467a156db00246e0aeea8c30254e5383389e0ad48fdce2be",
+      "receiver": "0025ac3c498822c9ce1db66c1aad9bbaf76fa6490e4172342ada25167bf30395",
+      "library": "25295868fe3410dc2f54b366497cb57e260ef9c1f9f74e03d4266f253f7cc809",
+      "recursive_receiver": "0025ac3c498822c9ce1db66c1aad9bbaf76fa6490e4172342ada25167bf30395"
+    },
+    "request_sha256": "abc67f478789ef557aadd1529d76d6f2d8cfd98c43294c8fcef1a8c69e843a7f",
+    "input_sha256": "870d17f352ac42590656023cab77c3c82fb1627722bf0c2156c2a8f8ada94fc0",
+    "cpu_segments": 28,
+    "truths": 21,
+    "instructions": 113375897,
+    "request_wall_ns": 788735807123,
+    "capture_ns": 20970309172,
+    "native_setup_ns": 102764825647,
+    "native_prove_ns": 54810321163,
+    "native_verify_ns": 15592373616,
+    "recursion_ns": 593318404000,
+    "root_bytes": 748760,
+    "root_sha256": "d4e8a381b5fe6bd7b34072b241ced3a9c90054966996b9d6f6c40bf57a036146",
+    "tree_sha256": "cfbeba65e68a6df421747932f5fd76c1b10c79fabf001ab87e69fd83df344a76",
+    "bundle_sha256": "2d8df78b91abe8da362868778d6516afb6dbcf5d3fb230513a1b4f81478ff228",
+    "outer_artifact_count": 98,
+    "fresh_native_accepted": true,
+    "fresh_recursive_accepted": true,
+    "zero_cpu_assignments": true,
+    "lifecycle_audit": "all request leases released",
+    "receiver_process": {
+      "argv": [
+        "nice",
+        "-n",
+        "10",
+        "/private/tmp/rv64-cpu-v2-arm/bin/rv64-word16-ethereum-recursion-receiver",
+        "--security-profile",
+        "conjectured128_b2_q108_p20_fold4",
+        "verify-recursion-candidate",
+        "/private/tmp/rv64-offhost-queue/groups/phase-final-2529/qualified/26235168/receiver-request.json",
+        "/private/tmp/rv64-offhost-queue/groups/phase-final-2529/cases/26235168/batch/trial-0/26235168/proof",
+        "12884901888",
+        "34359738368"
+      ],
+      "exit_code": 0,
+      "wall_ns": 203150919750,
+      "user_seconds": 542.418724,
+      "system_seconds": 12.460762,
+      "peak_rss_bytes": 12241747968,
+      "minor_faults": 15568070,
+      "major_faults": 1
+    },
+    "receiver_kind": "Darwin ARM64 strict shared-authority CPU receiver, explicit off-host view",
+    "receiver_sha256": "0025ac3c498822c9ce1db66c1aad9bbaf76fa6490e4172342ada25167bf30395",
+    "receiver_workers": 4,
+    "receiver_host_live_cap_bytes": 34359738368,
+    "receiver_recycler_cap_bytes": 4294967296,
+    "production_plan_sha256": "2d4fd411e559498b9a45031df4b02db4cdeb728b3d6afed0d5647d06f809d6d4",
+    "production_plan_file_sha256": "96694af8cefda72b9e4e829d22b327a64e16fc0218644ba4f3f3a76d8d6a73d6",
+    "qualification_plan_sha256": "25b3effeaf02fad8b74f60c5752866c1f7ed49d305124401b919364f967d79f8",
+    "offhost_artifact_snapshot_sha256": "cd5e234c2007efc55ef0c670aa35052c59f9fc01aeb216290bc7e1861f817636",
+    "offhost_all_case_files_unchanged": true,
+    "native_artifact_count_legacy": 51,
+    "native_artifact_count_legacy_definition": "native binaries only",
+    "native_proof_count": 49,
+    "native_binary_count": 51,
+    "native_bundle_count": 1,
+    "total_native_artifacts": 52,
+    "native_inventory_check": {
+      "basis": "Actual retained files; bundle SHA matches independently accepted case pin",
+      "local_proof_directory": "/private/tmp/rv64-offhost-queue/groups/phase-final-2529/cases/26235168/batch/trial-0/26235168/proof",
+      "inventory_sha256": "133278868b67cf3f2997f0bdec1fa879adceb8b0f16eac8e5359afdb68daf1b4",
+      "native_binary_count": 51,
+      "bundle_count": 1
+    }
+  },
+  "source_group": "7b2c75b1a composition lease split client86a285...; phase-lifetime runtime25295868...",
+  "receiver_request_overrides": {
+    "workers": 4
+  },
+  "path_mapping": {
+    "target": {
+      "original": "/workspace/rv64-gpu-session/qualification/combined-v2-b8d7096a/phase-final-group-2529/1gpu/26235168",
+      "local": "/private/tmp/rv64-offhost-queue/groups/phase-final-2529/cases/26235168"
+    },
+    "request": {
+      "original": "/workspace/rv64-gpu-session/basket/blocks/26235168/request.json",
+      "local": "/private/tmp/rv64-offhost-queue/groups/phase-final-2529/requests/26235168.json"
+    },
+    "assets": {
+      "driver": {
+        "original": "/workspace/rv64-gpu-session/qualification/compact-composition-7b2c75b1a/rv64-word16-ethereum-gpu-combined",
+        "local": "/private/tmp/rv64-offhost-queue/assets/86a285d3f48f030f467a156db00246e0aeea8c30254e5383389e0ad48fdce2be",
+        "sha256": "86a285d3f48f030f467a156db00246e0aeea8c30254e5383389e0ad48fdce2be"
+      },
+      "library": {
+        "original": "/workspace/rv64-gpu-session/build/pcs-phase-lifetime-final/libstwo-rv64-pcs-phase-25295868fe3410dc.so",
+        "local": "/private/tmp/rv64-offhost-queue/assets/25295868fe3410dc2f54b366497cb57e260ef9c1f9f74e03d4266f253f7cc809",
+        "sha256": "25295868fe3410dc2f54b366497cb57e260ef9c1f9f74e03d4266f253f7cc809"
+      }
+    },
+    "receiver": {
+      "original_native": "/workspace/rv64-gpu-session/rv64-cpu-recursive-v2-receiver",
+      "original_recursive": "/workspace/rv64-gpu-session/rv64-cpu-recursive-v2-strict-a0dc4437",
+      "local": "/private/tmp/rv64-cpu-v2-arm/bin/rv64-word16-ethereum-recursion-receiver",
+      "sha256": "0025ac3c498822c9ce1db66c1aad9bbaf76fa6490e4172342ada25167bf30395"
+    },
+    "guest_input": {
+      "elf": {
+        "original": "/private/tmp/stwo-rv64-pr308-guest-artifacts/v3/client-evmone-v3.elf",
+        "local": "/private/tmp/stwo-rv64-pr308-guest-artifacts/v3/client-evmone-v3.elf",
+        "sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903"
+      },
+      "input": {
+        "original": "/private/tmp/rv64-basket-ready/blocks/26235168/adapted-input.bin",
+        "local": "/private/tmp/rv64-basket-ready/blocks/26235168/adapted-input.bin",
+        "sha256": "870d17f352ac42590656023cab77c3c82fb1627722bf0c2156c2a8f8ada94fc0"
+      }
+    }
+  },
+  "scope": "Fresh GPU production, all49 leaves+48 folds generated; independent ARM strict receiver restored every existing node and generated zero proofs. All case files unchanged."
+}

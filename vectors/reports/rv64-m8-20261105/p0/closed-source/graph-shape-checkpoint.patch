@@ -1,0 +1,635 @@
+commit 86817b07fb6465d0c48ef1941bd3e6a0dfa12b63
+Author:     Theodore Pender <teddyjfpender@gmail.com>
+AuthorDate: Thu Nov 5 09:03:29 2026 +0400
+Commit:     Theodore Pender <teddyjfpender@gmail.com>
+CommitDate: Thu Nov 5 09:03:29 2026 +0400
+
+    rv64 m7 device: preserve shape-graph correctness and failed22G composed gate [D]
+    
+    Five ON and one OFF complete requests match every M6 artifact byte; both
+    sessions fail the22GiB native composition admission.34 actual executable
+    updates across91 assignments,10 GPU poisoning/update cases pass. No latency
+    win or graph default promotion is claimed. Preserve exact frozenroot source
+    overrides and build/parity/failure evidence.
+
+diff --git a/src/backends/cuda/native/runtime/context.cu b/src/backends/cuda/native/runtime/context.cu
+index 1649c5f33..32fa0e8b6 100644
+--- a/src/backends/cuda/native/runtime/context.cu
++++ b/src/backends/cuda/native/runtime/context.cu
+@@ -56,6 +56,17 @@ struct StwoNativeCudaContext {
+     uint64_t identity;
+     std::thread::id owner_thread;
+     bool capture_active;
++    bool proof_capture;
++    uint32_t capture_lane;
++    struct ProofGraph {
++        uint8_t key[32];
++        uint8_t shape[32];
++        cudaGraphExec_t exec;
++        uint64_t age;
++        uint32_t lane;
++    } proof_graphs[32];
++    uint64_t proof_graph_clock;
++    uint64_t h2d_enqueued_bytes;
+     bool closing;
+     cudaMemPool_t pool;
+     // Lifetime segregation: immutable setup/domain planes outlive every
+@@ -470,6 +481,12 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
+     status = join_lanes(context);
+     if (status != cudaSuccess) return static_cast<int>(status);
+     context->closing = true;
++    for (auto &graph : context->proof_graphs) {
++        if (graph.exec == nullptr) continue;
++        status = cudaGraphExecDestroy(graph.exec);
++        if (status != cudaSuccess) return static_cast<int>(status);
++        graph.exec = nullptr;
++    }
+     if (context->nvtx_depth != 0) { nvtxRangePop(); context->nvtx_depth = 0; }
+     // A failed destroy retains the control owner with remaining handles for
+     // retry; ordinary operations reject a partially closed context.
+@@ -672,7 +689,8 @@ extern "C" int stwo_exec_context_lane_stream(void *handle, uint32_t lane, void *
+     StwoNativeCudaContext *context = nullptr;
+     cudaError_t status = require_context(handle, &context);
+     if (status != cudaSuccess) return static_cast<int>(status);
+-    if (lane >= context->lane_count || context->capture_active)
++    if (lane >= context->lane_count ||
++        (context->capture_active && (!context->proof_capture || lane != context->capture_lane)))
+         return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+     *out_stream = context->lanes[lane];
+     return 0;
+@@ -861,11 +879,15 @@ extern "C" int stwo_graph_capture_begin(void *handle) {
+     // Cross-lane graph/event routing is deliberately not admitted yet.
+     if (context->lane_count != 1) return static_cast<int>(STWO_CUDA_ERROR_INVALID_CONFIGURATION);
+     status = cudaStreamBeginCapture(context->stream, cudaStreamCaptureModeThreadLocal);
+-    if (status == cudaSuccess) context->capture_active = true;
++    if (status == cudaSuccess) {
++        context->capture_active = true;
++        context->proof_capture = false;
++        context->capture_lane = 0;
++    }
+     return static_cast<int>(status);
+ }
+ 
+-extern "C" int stwo_graph_capture_end(
++static int finish_graph_capture(
+     void *handle,
+     void **out_exec,
+     uint64_t *out_kernel_nodes) {
+@@ -880,7 +902,7 @@ extern "C" int stwo_graph_capture_end(
+ 
+     if (!context->capture_active) return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+     cudaGraph_t graph = nullptr;
+-    status = cudaStreamEndCapture(context->stream, &graph);
++    status = cudaStreamEndCapture(context->lanes[context->capture_lane], &graph);
+     context->capture_active = false;
+     if (status != cudaSuccess) {
+         if (graph != nullptr) cudaGraphDestroy(graph);
+@@ -919,29 +941,35 @@ extern "C" int stwo_graph_capture_end(
+             status == cudaSuccess ? STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE : status);
+     }
+ 
+-    cudaGraphExec_t exec = nullptr;
+-    status = cudaGraphInstantiate(&exec, graph, nullptr, nullptr, 0);
+-    const cudaError_t destroy_status = cudaGraphDestroy(graph);
+-    if (status != cudaSuccess) return static_cast<int>(status);
+-    if (destroy_status != cudaSuccess) {
+-        cudaGraphExecDestroy(exec);
+-        return static_cast<int>(destroy_status);
+-    }
+-    if (exec == nullptr) {
+-        return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+-    }
+-    *out_exec = reinterpret_cast<void *>(exec);
++    *out_exec = reinterpret_cast<void *>(graph);
+     *out_kernel_nodes = kernel_nodes;
+     return 0;
+ }
+ 
++extern "C" int stwo_graph_capture_end(
++    void *handle, void **out_exec, uint64_t *out_kernel_nodes) {
++    if (!out_exec || !out_kernel_nodes) return int(cudaErrorInvalidValue);
++    *out_exec = nullptr;
++    void *raw = nullptr;
++    int rc = finish_graph_capture(handle, &raw, out_kernel_nodes);
++    if (rc) return rc;
++    auto graph = reinterpret_cast<cudaGraph_t>(raw);
++    cudaGraphExec_t exec = nullptr;
++    auto status = cudaGraphInstantiate(&exec, graph, nullptr, nullptr, 0);
++    const auto retired = cudaGraphDestroy(graph);
++    if (status != cudaSuccess) return int(status);
++    if (retired != cudaSuccess) { cudaGraphExecDestroy(exec); return int(retired); }
++    *out_exec = reinterpret_cast<void *>(exec);
++    return exec ? 0 : int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
++}
++
+ extern "C" int stwo_graph_capture_abort(void *handle) {
+     StwoNativeCudaContext *context = nullptr;
+     cudaError_t status = require_context(handle, &context);
+     if (status != cudaSuccess) return static_cast<int>(status);
+     if (!context->capture_active) return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+     cudaGraph_t graph = nullptr;
+-    status = cudaStreamEndCapture(context->stream, &graph);
++    status = cudaStreamEndCapture(context->lanes[context->capture_lane], &graph);
+     context->capture_active = false;
+     if (graph != nullptr) {
+         const cudaError_t destroy_status = cudaGraphDestroy(graph);
+@@ -972,6 +1000,141 @@ extern "C" int stwo_graph_destroy(void *exec_handle) {
+         reinterpret_cast<cudaGraphExec_t>(exec_handle)));
+ }
+ 
++// M7 numerical-only graphs. Callers validate every CURRENT scoped lease before
++// lookup/replay; this cache owns executable metadata, never device allocations.
++// Capture is restricted to one lane and owner thread, with no dependency slots.
++extern "C" int stwo_rv64_graph_cache_lookup_on(
++    void *handle, uint32_t lane, const uint8_t *key, void **out_exec) {
++    if (!key || !out_exec) return int(cudaErrorInvalidValue);
++    *out_exec = nullptr;
++    StwoNativeCudaContext *context = nullptr;
++    auto status = require_context(handle, &context);
++    if (status != cudaSuccess) return int(status);
++    if (context->capture_active || lane >= context->lane_count)
++        return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
++    for (auto &graph : context->proof_graphs) {
++        if (graph.exec && graph.lane == lane && !std::memcmp(graph.key, key, 32)) {
++            graph.age = ++context->proof_graph_clock;
++            *out_exec = reinterpret_cast<void *>(graph.exec);
++            break;
++        }
++    }
++    return 0;
++}
++
++extern "C" int stwo_rv64_graph_capture_begin_on(void *handle, uint32_t lane) {
++    StwoNativeCudaContext *context = nullptr;
++    auto status = require_context(handle, &context);
++    if (status != cudaSuccess) return int(status);
++    if (context->capture_active || lane >= context->lane_count)
++        return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
++    for (uint32_t slot = 0; slot < context->dependency_capacity; ++slot)
++        if (context->dependencies[slot].active)
++            return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
++    status = cudaStreamBeginCapture(context->lanes[lane], cudaStreamCaptureModeThreadLocal);
++    if (status == cudaSuccess) {
++        context->capture_active = true;
++        context->proof_capture = true;
++        context->capture_lane = lane;
++    }
++    return int(status);
++}
++
++// Exact keys are pointer-complete. The shape key excludes pointers but binds
++// every launch geometry, kernel and edge. On pointer changes, freshly capture
++// all current arguments and dependencies, then ask CUDA to update the entire
++// executable. Unsupported updates instantiate a fresh graph, never replay old
++// arguments. No old/new allocation is owned by this metadata cache.
++extern "C" int stwo_rv64_graph_capture_store_shape_on(
++    void *handle, uint32_t lane, const uint8_t *key, const uint8_t *shape,
++    uint64_t expected_kernels, void **out_exec, uint32_t *out_updated) {
++    if (!key || !shape || !out_exec || !out_updated || !expected_kernels)
++        return int(cudaErrorInvalidValue);
++    *out_exec = nullptr;
++    *out_updated = 0;
++    StwoNativeCudaContext *context = nullptr;
++    auto status = require_context(handle, &context);
++    if (status != cudaSuccess) return int(status);
++    if (!context->capture_active || context->capture_lane != lane)
++        return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
++    void *raw = nullptr;
++    uint64_t kernels = 0;
++    int rc = finish_graph_capture(handle, &raw, &kernels);
++    if (rc) return rc;
++    auto graph = reinterpret_cast<cudaGraph_t>(raw);
++    if (kernels != expected_kernels || kernels > 2048) {
++        cudaGraphDestroy(graph);
++        return int(STWO_CUDA_ERROR_INVALID_CONFIGURATION);
++    }
++    auto *slot = &context->proof_graphs[0];
++    bool compatible = false;
++    for (auto &cached : context->proof_graphs) {
++        if (cached.exec && cached.lane == lane && !std::memcmp(cached.shape, shape, 32)) {
++            slot = &cached; compatible = true; break;
++        }
++    }
++    if (!compatible) for (auto &cached : context->proof_graphs) {
++        if (!cached.exec) { slot = &cached; break; }
++        if (cached.age < slot->age) slot = &cached;
++    }
++    cudaGraphExec_t exec = nullptr;
++    if (compatible) {
++        cudaGraphExecUpdateResultInfo result{};
++        const auto prior = cudaPeekAtLastError();
++        status = cudaGraphExecUpdate(slot->exec, graph, &result);
++        if (status != cudaSuccess && status != cudaErrorGraphExecUpdateFailure) {
++            cudaGraphDestroy(graph); return int(status);
++        }
++        if (status == cudaErrorGraphExecUpdateFailure && prior == cudaSuccess &&
++            cudaPeekAtLastError() == cudaErrorGraphExecUpdateFailure) (void)cudaGetLastError();
++        if (status == cudaSuccess && result.result == cudaGraphExecUpdateSuccess) {
++            exec = slot->exec;
++            *out_updated = 1;
++        }
++    }
++    if (!exec) {
++        // CUDA promises a failed update leaves the old executable unchanged.
++        // Instantiate a complete replacement before retiring that old handle.
++        status = cudaGraphInstantiate(&exec, graph, nullptr, nullptr, 0);
++        if (status != cudaSuccess) { cudaGraphDestroy(graph); return int(status); }
++        if (slot->exec) {
++            status = cudaGraphExecDestroy(slot->exec);
++            if (status != cudaSuccess) { cudaGraphExecDestroy(exec); cudaGraphDestroy(graph); return int(status); }
++        }
++    }
++    status = cudaGraphDestroy(graph);
++    // Even a graph-source retirement error must not leave the slot pointing
++    // at a destroyed old executable. Publish only the newly valid handle.
++    std::memcpy(slot->key, key, 32);
++    std::memcpy(slot->shape, shape, 32);
++    slot->exec = exec;
++    slot->lane = lane;
++    slot->age = ++context->proof_graph_clock;
++    if (status != cudaSuccess) return int(status);
++    *out_exec = reinterpret_cast<void *>(exec);
++    return 0;
++}
++
++extern "C" int stwo_rv64_graph_capture_store_on(
++    void *handle, uint32_t lane, const uint8_t *key,
++    uint64_t expected_kernels, void **out_exec) {
++    uint32_t updated = 0;
++    return stwo_rv64_graph_capture_store_shape_on(
++        handle, lane, key, key, expected_kernels, out_exec, &updated);
++}
++
++extern "C" int stwo_rv64_graph_launch_on(void *handle, uint32_t lane, void *exec) {
++    StwoNativeCudaContext *context = nullptr;
++    auto status = require_context(handle, &context);
++    if (status != cudaSuccess) return int(status);
++    if (!exec || context->capture_active || lane >= context->lane_count)
++        return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
++    for (const auto &graph : context->proof_graphs)
++        if (graph.exec == reinterpret_cast<cudaGraphExec_t>(exec) && graph.lane == lane)
++            return int(cudaGraphLaunch(graph.exec, context->lanes[lane]));
++    return int(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
++}
++
+ static int alloc_u32_from(void *handle, size_t count, uint32_t **out_pointer, bool long_lived);
+ extern "C" int stwo_exec_context_alloc_u32(
+     void *handle,
+@@ -1277,9 +1440,21 @@ extern "C" int stwo_exec_context_memcpy_h2d_async(
+             context->stream);
+ #endif
+     }
++    if (status == cudaSuccess) context->h2d_enqueued_bytes += bytes;
+     return static_cast<int>(status);
+ }
+ 
++// Owner-thread snapshot; counts successful H2D enqueues, including setup and
++// native PCS. Captured copies count their capture call, not future replays.
++extern "C" int stwo_exec_context_h2d_enqueued_bytes(void *handle, uint64_t *out_bytes) {
++    if (!out_bytes) return int(cudaErrorInvalidValue);
++    StwoNativeCudaContext *context = nullptr;
++    auto status = require_context(handle, &context);
++    if (status != cudaSuccess) return int(status);
++    *out_bytes = context->h2d_enqueued_bytes;
++    return 0;
++}
++
+ extern "C" int stwo_exec_context_memcpy_d2h_async(
+     void *handle,
+     void *destination,
+diff --git a/src/integrations/riscv_cuda/build.zig b/src/integrations/riscv_cuda/build.zig
+index 0debaf932..2f2ff9661 100644
+--- a/src/integrations/riscv_cuda/build.zig
++++ b/src/integrations/riscv_cuda/build.zig
+@@ -326,11 +326,12 @@ pub fn build(b: *std.Build) void {
+     outer_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+     outer_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
+     const ready_root = b.createModule(.{ .root_source_file = b.path("rv64_recursion_ready_test_root.zig"), .target = target, .optimize = optimize });
++    ready_root.addImport("stwo_cuda_backend", backend);
+     ready_root.addImport("stwo_riscv_cpu_integration", cpu_integration);
+     ready_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+     ready_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+     ready_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
+-    const ready_tests = b.addTest(.{ .root_module = ready_root });
++    const ready_tests = b.addTest(.{ .root_module = ready_root, .filters = if (b.option([]const u8, "rv64-cuda-test-filter", "Run matching CUDA integration CPU tests")) |filter| &.{filter} else &.{} });
+     const ready_step = b.step("test-rv64-recursion-ready", "Force ready API typing and test threaded custody, durable publication and stack budgets without a GPU");
+     ready_step.dependOn(&b.addRunArtifact(ready_tests).step);
+     for ([_][]const u8{ "ready_dag.zig", "publication.zig" }) |source| {
+diff --git a/src/integrations/riscv_cuda/rv64/assignment_graph.zig b/src/integrations/riscv_cuda/rv64/assignment_graph.zig
+new file mode 100644
+index 000000000..8b02838cd
+--- /dev/null
++++ b/src/integrations/riscv_cuda/rv64/assignment_graph.zig
+@@ -0,0 +1,221 @@
++//! Bounded native graph metadata for the numerical assignment DAG only.
++//! No device lease is retained. Every replay checks CURRENT scoped custody;
++//! the cache key binds all pointer arguments and the exact task schedule.
++const std = @import("std");
++const SC = @import("session_context.zig");
++const N = @import("pcs_native_abi.zig");
++pub const Counters = struct { launches: usize = 0, ordinary: usize = 0, narrow: usize = 0, chain: usize = 0 };
++const Lookup = *const fn (*anyopaque, u32, *const [32]u8, *?*anyopaque) callconv(.c) c_int;
++const Begin = *const fn (*anyopaque, u32) callconv(.c) c_int;
++const Store = *const fn (*anyopaque, u32, *const [32]u8, *const [32]u8, u64, *?*anyopaque, *u32) callconv(.c) c_int;
++const Launch = *const fn (*anyopaque, u32, *anyopaque) callconv(.c) c_int;
++const Abort = *const fn (*anyopaque) callconv(.c) c_int;
++const Api = struct { lookup: Lookup, begin: Begin, store: Store, launch: Launch, abort_capture: Abort };
++pub fn enabled() !bool {
++    const value = std.posix.getenv("STWO_RV64_ASSIGNMENT_GRAPHS") orelse return false;
++    if (std.mem.eql(u8, value, "0")) return false;
++    if (std.mem.eql(u8, value, "1")) return true;
++    return error.InvalidAssignmentGraphOption;
++}
++const Inputs = struct { values: N.Lease, tasks: N.Lease, indices: ?N.Lease, status: N.Lease, ends: ?N.Lease };
++/// These checks deliberately precede a cache hit. In particular, recycled
++/// addresses do not make an old generation, foreign context or scope valid.
++pub fn validate(ctx: *SC.Context, inputs: Inputs) !void {
++    const leases = [_]?N.Lease{ inputs.values, inputs.tasks, inputs.indices, inputs.status, inputs.ends };
++    for (leases, 0..) |maybe, i| if (maybe) |lease| {
++        if (i == 0 or i == 3) {
++            // Mutable values/status must be request scratch, never sealed setup.
++            if (lease.kind != 0) return error.InvalidAssignmentGraphInputs;
++            _ = try ctx.borrow(lease);
++        } else if (lease.kind == 4) {
++            // Immutable task/index/end tapes are borrowed read-only through the
++            // CURRENT scope alias. SC.borrow intentionally excludes sealed setup.
++            if (lease.reserved != 0 or lease.words == null) return error.InvalidDeviceAddress;
++            _ = try ctx.deviceSlicePointer(u32, .{
++                .address = @intFromPtr(lease.words.?),
++                .len = std.math.cast(usize, lease.count) orelse return error.SizeOverflow,
++                .owner = std.math.cast(usize, lease.context_token) orelse return error.SizeOverflow,
++                .generation = lease.generation,
++            }, std.math.cast(usize, lease.count) orelse return error.SizeOverflow);
++        } else {
++            _ = try ctx.borrow(lease);
++        }
++        const begin = @intFromPtr(lease.words.?);
++        const bytes = try std.math.mul(u64, lease.count, 4);
++        const end = try std.math.add(u64, begin, bytes);
++        for (leases[0..i]) |previous| if (previous) |old| {
++            const old_begin = @intFromPtr(old.words.?);
++            const old_end = try std.math.add(u64, old_begin, try std.math.mul(u64, old.count, 4));
++            if (begin < old_end and old_begin < end) return error.AliasedAssignmentGraphInputs;
++        };
++    };
++}
++fn key(prepared: anytype, ctx: *SC.Context, job: anytype, ends: ?N.Lease) [32]u8 {
++    return keyFor(true, prepared, ctx, job, ends);
++}
++fn keyFor(comptime pointers: bool, prepared: anytype, ctx: *SC.Context, job: anytype, ends: ?N.Lease) [32]u8 {
++    var h = std.crypto.hash.sha2.Sha256.init(.{});
++    h.update(if (pointers) "rv64-assignment-graph-pointers-v2" else "rv64-assignment-graph-shape-v2");
++    h.update(&prepared.identity);
++    var word: [8]u8 = undefined;
++    const fields = [_]u64{ ctx.token, @intFromPtr(ctx.native_context), if (pointers) @intFromPtr(job.values) else 0, if (pointers) @intFromPtr(job.records) else 0, if (pointers and job.indices != null) @intFromPtr(job.indices.?) else 0, if (pointers) @intFromPtr(job.status) else 0, job.value_count, job.record_count, job.index_count, if (pointers and ends != null) @intFromPtr(ends.?.words.?) else 0, if (prepared.wide_level) |f| @intFromPtr(f) else @intFromPtr(prepared.level), if (prepared.narrow_run) |f| @intFromPtr(f) else 0, if (prepared.chain_run) |f| @intFromPtr(f) else 0 };
++    for (fields) |value| {
++        std.mem.writeInt(u64, &word, value, .little);
++        h.update(&word);
++    }
++    if (prepared.narrow_plan) |plan| for (plan.runs) |run| {
++        const run_fields = [_]u64{ @intFromEnum(run.kind), run.first_task, run.task_count, run.first_level, run.level_count };
++        for (run_fields) |value| {
++            std.mem.writeInt(u64, &word, value, .little);
++            h.update(&word);
++        }
++    };
++    return h.finalResult();
++}
++fn traverse(prepared: anytype, ctx: *SC.Context, initial: anytype, ends: ?N.Lease, enqueue: bool) !Counters {
++    var job = initial;
++    var counters = Counters{};
++    if (prepared.narrow_plan) |plan| {
++        for (plan.runs) |run| {
++            job.first = run.first_task;
++            job.count = run.task_count;
++            const rc = switch (run.kind) {
++                .narrow => blk: {
++                    const function = prepared.narrow_run orelse return error.MissingCircuitAssignmentNarrowRunKernel;
++                    counters.narrow += 1;
++                    break :blk if (enqueue) function(ctx.native_context, 1, &job, plan.ends[run.first_level..].ptr, run.level_count) else 0;
++                },
++                .chain => blk: {
++                    const function = prepared.chain_run orelse return error.MissingCircuitAssignmentChainKernel;
++                    const lease = ends orelse return error.MissingCircuitAssignmentChainKernel;
++                    counters.chain += 1;
++                    break :blk if (enqueue) function(ctx.native_context, 1, &job, lease.words.?, run.first_level, run.level_count) else 0;
++                },
++                .ordinary => blk: {
++                    counters.ordinary += 1;
++                    break :blk if (enqueue) (prepared.wide_level orelse prepared.level)(ctx.native_context, 1, &job) else 0;
++                },
++            };
++            if (rc != 0) return error.CudaCircuitAssignmentFailed;
++            counters.launches += 1;
++        }
++    } else {
++        var begin: usize = 0;
++        for (prepared.plan.level_ends) |end| {
++            if (end != begin) {
++                job.first = @intCast(begin);
++                job.count = @intCast(end - begin);
++                if (enqueue and prepared.level(ctx.native_context, 1, &job) != 0) return error.CudaCircuitAssignmentFailed;
++                counters.ordinary += 1;
++                counters.launches += 1;
++            }
++            begin = end;
++        }
++    }
++    return counters;
++}
++pub fn execute(prepared: anytype, ctx: *SC.Context, library: *std.DynLib, job: anytype, values: N.Lease, tasks: N.Lease, indices: ?N.Lease, status: N.Lease, ends: ?N.Lease) !Counters {
++    if (!try enabled()) return traverse(prepared, ctx, job, ends, true);
++    const api = Api{
++        .lookup = library.lookup(Lookup, "stwo_rv64_graph_cache_lookup_on") orelse return error.MissingAssignmentGraphCapability,
++        .begin = library.lookup(Begin, "stwo_rv64_graph_capture_begin_on") orelse return error.MissingAssignmentGraphCapability,
++        .store = library.lookup(Store, "stwo_rv64_graph_capture_store_shape_on") orelse return error.MissingAssignmentGraphCapability,
++        .launch = library.lookup(Launch, "stwo_rv64_graph_launch_on") orelse return error.MissingAssignmentGraphCapability,
++        .abort_capture = library.lookup(Abort, "stwo_graph_capture_abort") orelse return error.MissingAssignmentGraphCapability,
++    };
++    try validate(ctx, .{ .values = values, .tasks = tasks, .indices = indices, .status = status, .ends = ends });
++    if (values.count != @as(u64, job.value_count) * 4 or tasks.count != @as(u64, job.record_count) * 8 or status.count != 1 or (if (indices) |lease| lease.count else 0) != job.index_count or @intFromPtr(values.words.?) != @intFromPtr(job.values) or @intFromPtr(tasks.words.?) != @intFromPtr(job.records) or @intFromPtr(status.words.?) != @intFromPtr(job.status) or (if (indices) |lease| @intFromPtr(lease.words.?) else 0) != (if (job.indices) |p| @intFromPtr(p) else 0)) return error.InvalidAssignmentGraphInputs;
++    if (ends) |lease| if (prepared.narrow_plan == null or lease.count != prepared.narrow_plan.?.ends.len) return error.InvalidAssignmentGraphInputs;
++    const planned = try traverse(prepared, ctx, job, ends, false);
++    if (planned.launches == 0 or planned.launches > 2048) return error.AssignmentGraphTooLarge;
++    const digest = key(prepared, ctx, job, ends);
++    const shape = keyFor(false, prepared, ctx, job, ends);
++    var updated: u32 = 0;
++    var graph: ?*anyopaque = null;
++    if (api.lookup(ctx.native_context, 1, &digest, &graph) != 0) return error.AssignmentGraphLookupFailed;
++    const hit = graph != null;
++    const counters = if (hit) planned else blk: {
++        if (api.begin(ctx.native_context, 1) != 0) return error.AssignmentGraphCaptureFailed;
++        var capturing = true;
++        errdefer if (capturing) {
++            _ = api.abort_capture(ctx.native_context);
++        };
++        const result = try traverse(prepared, ctx, job, ends, true);
++        const rc = api.store(ctx.native_context, 1, &digest, &shape, result.launches, &graph, &updated);
++        if (rc != 0 or graph == null) return error.AssignmentGraphCaptureFailed;
++        capturing = false;
++        break :blk result;
++    };
++    if (api.launch(ctx.native_context, 1, graph.?) != 0) return error.AssignmentGraphLaunchFailed;
++    std.debug.print("GPU_ASSIGNMENT_GRAPH hit={} updated={} kernels={} retained_device_leases=0 metadata_entries_max=32\n", .{ hit, updated == 1, counters.launches });
++    return counters;
++}
++
++test "assignment graph scoped custody rejects poisoned generations contexts scopes and aliases" {
++    const Mock = struct {
++        fn check(_: *anyopaque, ptr: [*]const u32, count: u64, token: u64, generation: u64, scope: *const [8]u32) callconv(.c) c_int {
++            if (token != 3 or generation != 4 or !std.mem.allEqual(u32, scope, 7) or @intFromPtr(ptr) < 4096 or count > 512) return 1;
++            return 0;
++        }
++    };
++    const api = SC.Api{ .validate_range = Mock.check, .allocate = undefined, .release = undefined, .upload = undefined, .download = undefined, .sync = undefined, .lane_stream = undefined };
++    var ctx = SC.Context{ .session = @ptrFromInt(1), .native_context = @ptrFromInt(2), .token = 3, .scope = @splat(7), .api = &api };
++    var input = Inputs{
++        .values = .{ .words = @ptrFromInt(4096), .count = 256, .context_token = 3, .generation = 4 },
++        .tasks = .{ .words = @ptrFromInt(8192), .count = 256, .context_token = 3, .generation = 4 },
++        .status = .{ .words = @ptrFromInt(12288), .count = 1, .context_token = 3, .generation = 4 },
++        .indices = null,
++        .ends = null,
++    };
++    try validate(&ctx, input);
++    input.tasks.kind = 4;
++    try validate(&ctx, input); // A scope-bound sealed tape is a legal read.
++    input.values.kind = 4;
++    try std.testing.expectError(error.InvalidAssignmentGraphInputs, validate(&ctx, input));
++    input.values.kind = 0;
++    input.values.generation = 5; // Same address cannot revive a stale lease.
++    try std.testing.expectError(error.InvalidDeviceAddress, validate(&ctx, input));
++    input.values.generation = 4;
++    input.tasks.context_token = 8;
++    try std.testing.expectError(error.InvalidDeviceAddress, validate(&ctx, input));
++    input.tasks.context_token = 3;
++    input.tasks.count = 513;
++    try std.testing.expectError(error.InvalidDeviceAddress, validate(&ctx, input));
++    input.tasks.count = 256;
++    ctx.scope[0] = 8;
++    try std.testing.expectError(error.InvalidDeviceAddress, validate(&ctx, input));
++    ctx.scope[0] = 7;
++    input.status.words = input.values.words;
++    try std.testing.expectError(error.AliasedAssignmentGraphInputs, validate(&ctx, input));
++}
++
++test "assignment graph cache key binds schedule numerical pointers geometry and session" {
++    const Run = @import("assignment_runs.zig").Run;
++    const Prepared = struct {
++        identity: [32]u8 = @splat(5),
++        wide_level: ?*const anyopaque = null,
++        level: *const anyopaque = @ptrFromInt(64),
++        narrow_run: ?*const anyopaque = null,
++        chain_run: ?*const anyopaque = null,
++        narrow_plan: ?struct { runs: []const Run } = null,
++    };
++    var prepared = Prepared{};
++    var ctx = SC.Context{ .session = @ptrFromInt(1), .native_context = @ptrFromInt(2), .token = 3, .scope = @splat(7), .api = undefined };
++    const TestJob = struct { values: [*]u32, records: [*]const u32, indices: ?[*]const u32, status: *u32, value_count: u32, record_count: u32, index_count: u32 };
++    var job: TestJob = .{ .values = @as([*]u32, @ptrFromInt(4096)), .records = @as([*]const u32, @ptrFromInt(8192)), .indices = @as(?[*]const u32, null), .status = @as(*u32, @ptrFromInt(12288)), .value_count = @as(u32, 256), .record_count = @as(u32, 256), .index_count = @as(u32, 0) };
++    const original = key(&prepared, &ctx, job, null);
++    const shape = keyFor(false, &prepared, &ctx, job, null);
++    job.values += 1;
++    try std.testing.expect(!std.mem.eql(u8, &original, &key(&prepared, &ctx, job, null)));
++    try std.testing.expectEqual(shape, keyFor(false, &prepared, &ctx, job, null));
++    job.values -= 1;
++    job.record_count += 1;
++    try std.testing.expect(!std.mem.eql(u8, &original, &key(&prepared, &ctx, job, null)));
++    try std.testing.expect(!std.mem.eql(u8, &shape, &keyFor(false, &prepared, &ctx, job, null)));
++    job.record_count -= 1;
++    ctx.token += 1;
++    try std.testing.expect(!std.mem.eql(u8, &original, &key(&prepared, &ctx, job, null)));
++    ctx.token -= 1;
++    prepared.identity[0] += 1;
++    try std.testing.expect(!std.mem.eql(u8, &original, &key(&prepared, &ctx, job, null)));
++}
+diff --git a/src/integrations/riscv_cuda/rv64/outer_assignment.zig b/src/integrations/riscv_cuda/rv64/outer_assignment.zig
+index 2207d9b26..3a911fb15 100644
+--- a/src/integrations/riscv_cuda/rv64/outer_assignment.zig
++++ b/src/integrations/riscv_cuda/rv64/outer_assignment.zig
+@@ -813,47 +813,11 @@ pub const Prepared = struct {
+         try ctx.join();
+         const static_ingress_ns = timer.lap();
+         try recorder.mark(.levels, false, lane);
+-        var launches: usize = 1;
+-        var ordinary_level_calls: usize = 0;
+-        var narrow_run_calls: usize = 0;
+-        var chain_run_calls: usize = 0;
+-        if (self.narrow_plan) |plan| {
+-            for (plan.runs) |run| {
+-                job.first = run.first_task;
+-                job.count = run.task_count;
+-                const status_code = switch (run.kind) {
+-                    .narrow => blk: {
+-                        const function = self.narrow_run orelse return error.MissingCircuitAssignmentNarrowRunKernel;
+-                        narrow_run_calls += 1;
+-                        break :blk function(ctx.native_context, 1, &job, plan.ends[run.first_level..].ptr, run.level_count);
+-                    },
+-                    .chain => blk: {
+-                        const function = self.chain_run orelse return error.MissingCircuitAssignmentChainKernel;
+-                        const ends = chain_ends orelse return error.MissingCircuitAssignmentChainKernel;
+-                        chain_run_calls += 1;
+-                        break :blk function(ctx.native_context, 1, &job, ends.words.?, run.first_level, run.level_count);
+-                    },
+-                    .ordinary => blk: {
+-                        ordinary_level_calls += 1;
+-                        break :blk (self.wide_level orelse self.level)(ctx.native_context, 1, &job);
+-                    },
+-                };
+-                if (status_code != 0) return error.CudaCircuitAssignmentFailed;
+-                launches += 1;
+-            }
+-        } else {
+-            var begin: usize = 0;
+-            for (self.plan.level_ends) |end| {
+-                if (end != begin) {
+-                    job.first = @intCast(begin);
+-                    job.count = @intCast(end - begin);
+-                    if (self.level(ctx.native_context, 1, &job) != 0) return error.CudaCircuitAssignmentFailed;
+-                    launches += 1;
+-                    ordinary_level_calls += 1;
+-                }
+-                begin = end;
+-            }
+-        }
++        const dispatch = try @import("assignment_graph.zig").execute(self, ctx, &service.library, job, values, tasks, indices, status, chain_ends);
++        const launches = 1 + dispatch.launches;
++        const ordinary_level_calls = dispatch.ordinary;
++        const narrow_run_calls = dispatch.narrow;
++        const chain_run_calls = dispatch.chain;
+         try recorder.mark(.levels, true, lane);
+         const levels_enqueue_ns = timer.lap();
+         // Numeric kernels use lane1 while the copy API uses stream0. A join
+diff --git a/src/integrations/riscv_cuda/rv64/resident_composition.zig b/src/integrations/riscv_cuda/rv64/resident_composition.zig
+index fa37b51f8..e36d82bb1 100644
+--- a/src/integrations/riscv_cuda/rv64/resident_composition.zig
++++ b/src/integrations/riscv_cuda/rv64/resident_composition.zig
+@@ -421,7 +421,7 @@ pub const Context = struct {
+                 const offsets = c.columnOffsets();
+                 role.* = .{ .id = id, .artifact = artifact, .evaluate = self.role orelse return error.CpuCompositionNotInitialized, .trace_log = G.Authority.RoleGeometry.logSize(c), .eval_log = c.maxConstraintLogDegreeBound(), .widths = .{ shape.fixed, shape.main, G.Authority.RoleGeometry.interWidth(c) }, .offsets = .{ offsets[0], offsets[1], c.inter_offset }, .parameters = parameters };
+                 if (comptime @hasField(T, "data")) {
+-                    var hc: [2 * 27 * 8]u32 = undefined;
++                    var hc: [2 * 22 * 8]u32 = undefined;
+                     for (0..2) |half| for (0..role.trace_log) |i| for ((if (half == 0) c.data.point.hc0[i] else c.data.point.hc1[i]).toM31Array(), 0..) |word, j| {
+                         hc[(half * role.trace_log + i) * 8 + j] = word.v;
+                     };
+@@ -451,7 +451,7 @@ pub const RuntimeRole = struct {
+     /// Original AIR-local FIXED reads may gather non-contiguous sorted columns.
+     fixed_indices: ?[]const u32 = null,
+     parameters: []O,
+-    auxiliary: union(enum) { none, hc: [2 * 27 * 8]u32, last } = .none,
++    auxiliary: union(enum) { none, hc: [2 * 22 * 8]u32, last } = .none,
+ };
+ const Job = struct {
+     backend: *Context,
+diff --git a/src/integrations/riscv_cuda/rv64_recursion_ready_test_root.zig b/src/integrations/riscv_cuda/rv64_recursion_ready_test_root.zig
+index 59fddf1c9..8b94f79e1 100644
+--- a/src/integrations/riscv_cuda/rv64_recursion_ready_test_root.zig
++++ b/src/integrations/riscv_cuda/rv64_recursion_ready_test_root.zig
+@@ -128,6 +128,7 @@ test "combined ready admission binds exact physical lanes and refuses dual selec
+ }
+ 
+ test {
++    _ = @import("rv64/assignment_graph.zig");
+     _ = @import("rv64/resident_ready_policy.zig");
+     _ = @import("rv64/serial_fixed_policy.zig");
+     _ = @import("rv64/circuit_air_preflight.zig");

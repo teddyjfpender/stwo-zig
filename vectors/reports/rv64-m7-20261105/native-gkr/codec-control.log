@@ -1,0 +1,4 @@
+test-native-gkr
++- run test stderr
+NATIVE_GKR_NG01 words=3468 rejected=3468
+EXIT:0

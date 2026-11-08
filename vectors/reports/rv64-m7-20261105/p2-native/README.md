@@ -1,0 +1,11 @@
+# Complete RV64 CPU fixture with Poseidon PCS/FS
+
+Status: complete native CPU fixture proof gates PASS; mixed-suite P0 only. No Ethereum, recursive proof, performance, D2-complete or128-bit claim.
+
+Two physical CPU proofs execute the source five-instruction jumpdest fixture, including service bridges and cross-epoch RAM. They use the complete existing CPU AIR, local GKR terminal binding and global classic relations. The new namespace supplies receiver-owned P2v2 physical PCS/Fiat–Shamir, a separately identified fixture profile and P2 FIXED keys rebuilt from trusted source columns. Public execution/image/endpoints and source count/characteristic admission run before proving. Both independently reconstructed same-process receiver authorities accept and global RAM closure holds. Full verified PCS capture is available for the new recursive query verifier.
+
+The proof files are551,776 and549,208 bytes. Four mutants reject: legacy raw-Blake wire, changed query count, changed ninth MAIN-root limb and nonzero P0 nonce. An additional test confirms the ninth limb changes the raw local scope hash. Roots retain all nine canonical M31 limbs (36bytes); explicit new-domain Blake scope hashes bind the full roots and suite/profile ID.
+
+The profile is `fixture_b4_q54_p0_fold4`:4× LDE,54queries,P0,fold-step4. Local GKR, manifest and canonical public hashes remain raw Blake. Equal PCS parameters never infer a suite; the new receiver-owned namespace chooses it. The five-component all-Poseidon outer roster cannot promote this mixed proof. Channel-parametric local GKR/canonical visitors, separate-process new worker container, new query circuit and global GPU admission remain open. Stable Corev2 dependency is9f5df2ef0; old aliases/defaults are unchanged.
+
+API: `worker_protocol.ForSuite`/`W`, `fixed_key.Key`, `inventory.Inventory`, `cpu_worker.Worker` and `cpu_worker.verify(...,captureOrNull)`. `fixture.exercise(Hook)` calls `Hook.run(a,setups,requests,keys,inventory,pending,encodedProofs,nativeProof0,capture0)` after complete native acceptance. `cpu_capture.geometry` can supply the same source geometry under this explicit fixture config; roots/proof-capture types come from the new suite.

@@ -1,0 +1,27 @@
+{
+  "schema": "rv64-m8-p1-inter-reuse-hypothesis/v1",
+  "created_ns": 1793914711617052000,
+  "status": "TESTED_NEGATIVE_HEADLINE_MEDIAN_PROFILE_WARM_STALL",
+  "before": "columns-v1-result.json; candidate cold proof exact/fresh accepted, warm120s capacity timeout, no headline result",
+  "flag": "STWO_RV64_RC_INTER_REUSE=1; default off; composed with columns-v1",
+  "hypothesis": "Interpolate owned INTER evaluation buffers in place and transfer their leases to final coefficient custody. Eliminate the extra full coefficient allocation and D2D ingress copy. Use existing kernels and preserve every proof word.",
+  "estimated_time_removed": "First remove the observed warm capacity stall. Conditional latency estimate: 0.2-1.2s from the prior measured6.123s fullstack recursion window through reduced copying/overlap waits; not a prediction that the <=8s target will pass. Must measure complete canonical3+3 after small cold/warm succeeds.",
+  "memory_estimate": {
+    "status": "DERIVED_ALLOCATION_MODEL_NOT_NODE_PEAK",
+    "failing_INTER_commit_new_bytes_before": 8589934592,
+    "new_coefficient_allocation_removed": 4731174912,
+    "estimated_new_scratch_bytes_after": 3858759680,
+    "retained_input_bytes": 4999610368,
+    "old_retained_compact_coefficients_bytes": 4731174912,
+    "caveat": "Derived at the failing node geometry: one retained tail of eight log23 row planes, versus per-component padding in v1. The generation peak allocates the complete slab before temporary numerator/prefix buffers. No exact node-peak or <=11GB claim.",
+    "tail_bytes": 268435456
+  },
+  "scope": "Legacy outer INTER only, beta1, default off. Generate outputs in increasing trace-log order into one slab in PCS column order. Logical roster and claims remain in original component order. Hybrid outer-GKR rejects the flag.",
+  "ownership": "One lease holds all INTER columns contiguously plus a tail of eight maximum-height rows. Each cumulative prefix uses the still-unwritten suffix; processing in physical order prevents writes into earlier completed columns. Keep the entire lease including tail charged through PCS. Interpolate in place and atomically transfer its lease and future claims.",
+  "cost": "Allocate the full sorted output before component generation; charge each component scratch over that live slab. INTER commit allocates only stream scratch. No input-retirement discount. Final retained tail is charged; no node<=11GB claim.",
+  "validation": "Ownership-prefix rejection tests, claim migration tests, exact lifetime model, five Zig unit targets and production build; small whole-stack parity and fresh receivers; then canonical3+3 plus separate ownership profile. Full gate before any commit.",
+  "previous_failure": "inter-reuse-v1-result.json",
+  "revision": "v2 sorted contiguous slab",
+  "result": "inter-reuse-v2-result.json",
+  "conclusion": "Sorted slab removes the INTER coefficient copy and repairs PCS adjacency. Small and quiet headline 3+3 pass byte identity and fresh receivers, but headline median is 12.332s to 12.401s (0.56% slower). Profiled warm capacity stall persists. Do not add admission machinery or promote flags; reduce remaining actual workspaces. P1 exit not met."
+}

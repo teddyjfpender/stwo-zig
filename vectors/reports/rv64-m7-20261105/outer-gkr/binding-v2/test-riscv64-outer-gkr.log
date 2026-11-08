@@ -1,0 +1,12 @@
+test-riscv64-outer-gkr
++- run test stderr
+OUTER_GKR_TAMPER {"class":"test-small","words":3469,"rejected":3469}
+
+OUTER_GKR_M5_CIRCUIT {"class":"test-small","layers":10,"instances":8,"draws":75,"blake_g_gate":40800,"qm31_ops":36370,"m31_to_u32":4280,"triple_xor":4080,"eq":272,"variables":207930}
+
+OUTER_GKR_M5_CIRCUIT {"class":"test-small","layers":10,"instances":8,"draws":75,"blake_g_gate":40800,"qm31_ops":36370,"m31_to_u32":4280,"triple_xor":4080,"eq":272,"variables":207930}
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-outer-gkr success
++- run /workspace/zig/zig success 40s MaxRSS:39M
+

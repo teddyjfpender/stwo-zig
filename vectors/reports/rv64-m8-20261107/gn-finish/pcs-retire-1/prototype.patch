@@ -1,0 +1,57 @@
+diff --git a/src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu b/src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu
+index 66dd65b9c..66c081067 100644
+--- a/src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu
++++ b/src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu
+@@ -17,6 +17,7 @@
+ #include "rv64/jobs/pcs_enqueue.h"
+ #include "rv64/om31.cuh"
+ #include "rv64/pcs_pipeline.cuh"
++#include <cstring>
+ #include <string>
+ extern "C" int stwo_exec_context_validate_allocation(void *, const void *, size_t);
+ // Newer than the frozen a25 base image: bind weakly, fail closed when selected.
+@@ -143,6 +144,7 @@ struct JobOwner {
+   const StwoRv64PcsJobMemory &memory;
+   const StwoRv64PcsJobIo &io;
+   uint64_t pinned_used = 0, allocated_bytes = 0;
++  bool retire_to_arena = false;
+   // Same reuse policy as the resident owner (pcs_native.cu ResidentOwner):
+   // a retired plane's block returns to a best-fit cache and later planes of
+   // this proof reuse it. Legal without a join: every producer and consumer is
+@@ -158,6 +160,15 @@ struct JobOwner {
+   uint64_t block_words = 0;
+   JobOwner(void *context, uint32_t l, const StwoRv64PcsJobMemory &m, const StwoRv64PcsJobIo &i)
+       : ctx(context), lane(l), memory(m), io(i) {
++    // Storage schedule only. Return whole retired allocations to the caller's
++    // stream-ordered coalescing arena instead of retaining separate PCS bins.
++    // The default keeps the established local best-fit cache. Install memory
++    // probes and request enqueues read the same process configuration.
++    if (const char *flag = std::getenv("STWO_RV64_M9_PCS_RETIRE")) {
++      if (std::strcmp(flag, "1") == 0) retire_to_arena = true;
++      else if (std::strcmp(flag, "0") != 0)
++        throw std::runtime_error("invalid STWO_RV64_M9_PCS_RETIRE");
++    }
+     void *raw = nullptr;
+     CHECK(stwo_exec_context_lane_stream(ctx, lane, &raw));
+     if (!raw) throw std::runtime_error("missing job lane stream");
+@@ -207,6 +218,20 @@ struct JobOwner {
+         throw std::runtime_error("foreign, duplicate or partial temporary retirement");
+       selected.push_back(i);
+     }
++    if (retire_to_arena) {
++      // Validate the entire list before releasing anything. Borrowed input
++      // coefficients/domain never enter selected. Release the allocation's
++      // full capacity, not the active subspan of a reused larger block, and
++      // remove its ownership record so teardown cannot release it twice.
++      std::sort(selected.rbegin(), selected.rend());
++      for (auto i : selected) {
++        const auto block = blocks[i];
++        memory.release(memory.user, block.ptr, block.words);
++        block_words -= block.words;
++        blocks.erase(blocks.begin() + i);
++      }
++      return;
++    }
+     for (auto i : selected) {
+       blocks[i].used = false;
+       blocks[i].active = 0;

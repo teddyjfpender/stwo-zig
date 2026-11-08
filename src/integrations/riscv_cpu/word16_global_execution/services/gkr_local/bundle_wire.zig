@@ -167,7 +167,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, setups: []const *const R.Cpu
     if (setups.len == 0 or bundle.requests.len != setups.len or bundle.cpus.len != setups.len or bundle.truths.len != truths.len) return error.InvalidWideServicesProofInventory;
     const initial = bundle.requests[0].base.memory.initial;
     const terminal = bundle.requests[bundle.requests.len - 1].base.memory.terminal;
-    if (initial.len != terminal.len or initial.len > 1 << 22) return error.InvalidMemorySidecarCount;
+    if (initial.len != terminal.len or initial.len >= 1 << 23) return error.InvalidMemorySidecarCount;
     var arena = std.heap.ArenaAllocator.init(a);
     defer arena.deinit();
     const scratch = arena.allocator();

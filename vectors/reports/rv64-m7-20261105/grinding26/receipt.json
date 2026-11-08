@@ -1,0 +1,51 @@
+{
+  "schema": "rv64-m7-grinding26-policy/v1",
+  "status": "CPU_FIXTURE_PASS_PRODUCTION_PENDING",
+  "source_parent": "e4176b2dc",
+  "configs": {
+    "outer": {
+      "log_blowup": 1,
+      "queries": 102,
+      "pow_bits": 26,
+      "fold_step": 4,
+      "conjectured_bits": 128
+    },
+    "c1_b8": {
+      "log_blowup": 3,
+      "queries": 34,
+      "pow_bits": 26,
+      "fold_step": 4,
+      "conjectured_bits": 128
+    },
+    "c1_b16": {
+      "log_blowup": 4,
+      "queries": 26,
+      "pow_bits": 26,
+      "fold_step": 4,
+      "conjectured_bits": 130
+    }
+  },
+  "qualification": {
+    "registry_old_identity_golden_tests": 36,
+    "focused_tests_passed": 3,
+    "actual_outer_pcs_proof": true,
+    "fresh_authority_same_process": true,
+    "wire_roundtrip": true,
+    "old_profile_rejected": true,
+    "proof_wire_bytes": 606392,
+    "independent_process_receiver": false,
+    "ethereum_blocks": 0,
+    "c1_one_child_wrapper": false,
+    "production_timing_claim": false,
+    "whole_protocol_security_certified": false
+  },
+  "test_summary": "Focused gate54s runtime,1G MaxRSS; compile cached30ms37M. Initial gate real proof accepted but final error-code assertion was wrong, corrected from UnsupportedOm31CircuitProfile to actual InvalidOm31CircuitProof. Negative receipt preserved.",
+  "source_sha256": {
+    "src/integrations/circuit_cpu/build.zig": "ab42ab45684ba9df98ba31774b719c640ac56dabc3007fdf8659726c6a5b4c2b",
+    "src/integrations/circuit_cpu/om31/protocol.zig": "bafdde97d2d98cbf26a78aa182c1af64fd835c456c82e2c2ff8572352707abd7",
+    "src/integrations/circuit_cpu/om31/proof_qualification.zig": "5aa4cd03f8f9eb9eb84e72c1d47d21e91c29b731141fb87c6186f2a76eb6212d",
+    "src/integrations/riscv_cpu/word16_execution/om31_security_candidate.zig": "c6ae4f359f61557daf2816ecdadfd29fc0449d3d4f8f39ef762536d6c7859c33",
+    "src/integrations/riscv_cpu/word16_execution/om31_security_candidate_test.zig": "3063b6e570ffaadfa3f7696e0d61d173da225273916d00aae868ad9ff81b85df"
+  },
+  "recipe": "pod /workspace/m3/src/m7-callback-retire/src/integrations/circuit_cpu: flock build.3.lock /workspace/zig/zig build test-circuit-om31-proof -Dtest-filter=grinding26 -Doptimize=ReleaseSafe --cache-dir /workspace/m3/build/m7-grind26/cache-circuit --summary all"
+}

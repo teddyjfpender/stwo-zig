@@ -1,0 +1,23 @@
+{
+  "scope": "frozen thin semantic/geometry gate source files; base953-era isolated checkout plus listed RootR1 files and pod-only test shims",
+  "files_sha256": {
+    "src/integrations/riscv_cuda/rv64/native_cpu_projection_cost.zig": "353e4cb4d897933989129c2aa67e6b6b760af657a452553775517a286dfb5773",
+    "src/integrations/riscv_cuda/rv64/native_source_cost.zig": "92b53f967f7e9d2aa674e632ed783b559d77f1c960595ca81dc00f681f0eb107",
+    "src/integrations/riscv_cuda/rv64/native_source_cost_adapter.zig": "c85b469ad97dd8d09b187ef896b68f3dac86c83af0785de4729cd3e08b333d14",
+    "src/integrations/riscv_cuda/rv64/native_stage1_admission.zig": "27c4ee1f756d62490e05c963867c3067ca020beb9d7d6bdd2aed791e0752fde3",
+    "src/integrations/riscv_cuda/rv64/native_stage1_capacity.zig": "7a907033d899f475f9a7ef270e54a120415db43d01906e95291e38f6fa455d48",
+    "src/integrations/riscv_cuda/rv64/native_stage1_allocations.zig": "47080db5fad3510af978f356b04c196f1fe6b1164a72fc0e23ce9d5afbb8e74a",
+    "src/integrations/riscv_cuda/rv64/session_context.zig": "9649f1186f57d58d10693a9eb05345bb6cb1e12cb7a00cc48751f4c91bfa8c66",
+    "src/integrations/riscv_cuda/rv64/pcs_native.zig": "79f838211b7fae0f69ab6ae7970389bd68839ac3dff16ca2151712c23eb2889e",
+    "src/integrations/riscv_cuda/rv64/cpu_projection.zig": "32c7dd2b7b5e2c9dbf7b45c74085352a1a5a763eae5dfd3a640d1098731da65f",
+    "src/integrations/riscv_cuda/rv64/cpu_witness.zig": "9bc2162ae58841ea4b8cb6986b0e5c7d9532c2381a8ef1d30483c137a2afa222",
+    "src/integrations/riscv_cuda/rv64/core_witness.zig": "503815756d64357708f4ec6c759542ab4f37802afa751964f26c466f4b8e78cc",
+    "src/integrations/riscv_cuda/rv64/trace_commit.zig": "3217a15be6d47b54863b12f65618c0492cc1f9c59ff81eabed4209750e0f1058",
+    "src/integrations/riscv_cuda/rv64/resident_pool.zig": "c6d16553a2221dc7838eebf62df616a741b510d653f67730c632d44281832e68",
+    "src/integrations/riscv_cpu/mod.zig": "685a63b1d6fba39090cc41e79a4cf765269e633e8591b683555fbb389df12ebd",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig": "c1672671f8169f52a90425b314176a832c60fd357af229318ae174eb4d9b5bb3",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_cpu0.zig": "a6f510605f8716d62963c3cf1b0fdab4a8b69f96767246a65e0577e21897e689",
+    "src/integrations/riscv_cuda/build.zig": "2951af0502a14e020292f4f7b3531afb45b81aeb37eb63f140e3acda4c4d02d4",
+    "src/integrations/riscv_cuda/rv64_cpu_prestage_test_root.zig": "935a47eced24549ce2ccc48149963bb1645d04871cb11d9aba24d05ff1c70851"
+  }
+}

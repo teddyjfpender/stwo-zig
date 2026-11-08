@@ -1,0 +1,100 @@
+{
+  "schema": "rv64-m7-request-gpu-seconds/v1",
+  "author": "OpenAI Codex",
+  "scope": "Exact per-device union of CUPTI kernels/copies clipped to complete UTC request windows; summed across devices. Profiled walls include profiler overhead and are not latency claims. Whole-request accounting, not native-only attribution.",
+  "cuda_graph_envelopes_in_measured_windows": 0,
+  "kernel_accounting_complete": true,
+  "assets": {
+    "driver": "9cf6589f1b479f4c6b1049cc98860c55bfbb2fa680e4716ffd976748f782a2f6",
+    "library": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "accepted_run": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-combined-m6-v3",
+  "fresh_accepted_reference_blocks": [
+    24628607
+  ],
+  "accepted_receipt_sha256": "d939a45925e11d72a479a5303d9433bbd9d98a56e3c3ae2da16937d5ff417abf",
+  "profile_receipt_sha256": "d939a45925e11d72a479a5303d9433bbd9d98a56e3c3ae2da16937d5ff417abf",
+  "sqlite_sha256": "4d76e5a416192223d38848d7479093d7e4cebc2effa3a8f381ea1b3f5060366e",
+  "nsys_report_sha256": "fbf539042d5704a0ee567a47da3becb6eb8096452d67a90d604a2c6f64fd972c",
+  "session_start_utc_ns": 1793873842808773198,
+  "requests": [
+    {
+      "block": 24628607,
+      "trial": 0,
+      "utc_window_ns": [
+        1793873851097227752,
+        1793873885606699375
+      ],
+      "profiled_request_wall_s": 34.505,
+      "byte_identical_to_fresh_accepted_reference": true,
+      "devices": {
+        "0": {
+          "kernel_count": 41522,
+          "kernel_duration_sum_s": 6.001529175,
+          "kernel_busy_union_s": 6.001529175,
+          "memcpy_busy_union_s": 0.894636517,
+          "any_busy_union_s": 6.896095676,
+          "copy_bytes_by_CUPTI_kind": {
+            "1": 18170446804,
+            "2": 48819648,
+            "8": 97970151808
+          }
+        },
+        "1": {
+          "kernel_count": 40951,
+          "kernel_duration_sum_s": 8.034647146,
+          "kernel_busy_union_s": 8.034647146,
+          "memcpy_busy_union_s": 1.127373279,
+          "any_busy_union_s": 9.161960905,
+          "copy_bytes_by_CUPTI_kind": {
+            "1": 22662603100,
+            "2": 54126540,
+            "8": 130215531824
+          }
+        }
+      },
+      "kernel_busy_gpu_seconds": 14.036176321,
+      "any_busy_gpu_seconds": 16.058056581000002
+    },
+    {
+      "block": 24628607,
+      "trial": 1,
+      "utc_window_ns": [
+        1793873885607264634,
+        1793873902753223941
+      ],
+      "profiled_request_wall_s": 17.137,
+      "byte_identical_to_fresh_accepted_reference": true,
+      "devices": {
+        "0": {
+          "kernel_count": 46639,
+          "kernel_duration_sum_s": 7.134193204,
+          "kernel_busy_union_s": 7.134193044,
+          "memcpy_busy_union_s": 1.10787825,
+          "any_busy_union_s": 8.242000574,
+          "copy_bytes_by_CUPTI_kind": {
+            "1": 22780955856,
+            "2": 54244008,
+            "8": 122753245504
+          }
+        },
+        "1": {
+          "kernel_count": 35821,
+          "kernel_duration_sum_s": 6.918900003,
+          "kernel_busy_union_s": 6.918900003,
+          "memcpy_busy_union_s": 0.917515404,
+          "any_busy_union_s": 7.836345935,
+          "copy_bytes_by_CUPTI_kind": {
+            "1": 18171018976,
+            "2": 48702180,
+            "8": 105432438128
+          }
+        }
+      },
+      "kernel_busy_gpu_seconds": 14.053093047,
+      "any_busy_gpu_seconds": 16.078346509
+    }
+  ]
+}

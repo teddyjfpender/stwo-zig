@@ -1,0 +1,492 @@
+{
+  "schema": "rv64-m8-bench15-check/v1",
+  "blocks": [
+    {
+      "block": 26235156,
+      "segments": 4,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/26235156.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/26235156.bin",
+        "exists": true,
+        "bytes": 1737272,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": {
+        "path": "/workspace/m3/src/m8-bench15/vectors/reports/rv64-m7-20261105/d2-composed/combined-d2-package/26235156-combined-d2-coalesce-v1/trial-1/artifact-fingerprints.json",
+        "exists": true,
+        "bytes": 6990
+      },
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/26235156-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 60909
+      },
+      "problems": []
+    },
+    {
+      "block": 24647140,
+      "segments": 6,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/24647140.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/24647140.bin",
+        "exists": true,
+        "bytes": 2914792,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/24647140-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 80968
+      },
+      "problems": []
+    },
+    {
+      "block": 24628607,
+      "segments": 7,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/24628607.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/24628607.bin",
+        "exists": true,
+        "bytes": 2703496,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": {
+        "path": "/workspace/m3/src/m8-bench15/vectors/reports/rv64-m7-20261105/d2-composed/combined-d2-package/24628607-combined-d2-coalesce-v1/trial-1/artifact-fingerprints.json",
+        "exists": true,
+        "bytes": 8366
+      },
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 90924
+      },
+      "problems": []
+    },
+    {
+      "block": 25229957,
+      "segments": 7,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/25229957.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/25229957.bin",
+        "exists": true,
+        "bytes": 3046864,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/25229957-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 90989
+      },
+      "problems": []
+    },
+    {
+      "block": 24628608,
+      "segments": 10,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/24628608.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/24628608.bin",
+        "exists": true,
+        "bytes": 3301504,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/24628608-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 107917
+      },
+      "problems": []
+    },
+    {
+      "block": 24626900,
+      "segments": 12,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/24626900.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/24626900.bin",
+        "exists": true,
+        "bytes": 4675512,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/24626900-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 110552
+      },
+      "problems": []
+    },
+    {
+      "block": 24697073,
+      "segments": 15,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/24697073.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/24697073.bin",
+        "exists": true,
+        "bytes": 4422112,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/24697073-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 149295
+      },
+      "problems": []
+    },
+    {
+      "block": 24697070,
+      "segments": 14,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/24697070.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/24697070.bin",
+        "exists": true,
+        "bytes": 4846992,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/24697070-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 161055
+      },
+      "problems": []
+    },
+    {
+      "block": 26235168,
+      "segments": 28,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/26235168.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/26235168.bin",
+        "exists": true,
+        "bytes": 7269952,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/26235168-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 257431
+      },
+      "problems": []
+    },
+    {
+      "block": 25229955,
+      "segments": 30,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/25229955.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/25229955.bin",
+        "exists": true,
+        "bytes": 7856192,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/25229955-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 260071
+      },
+      "problems": []
+    },
+    {
+      "block": 25229951,
+      "segments": 40,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/25229951.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/25229951.bin",
+        "exists": true,
+        "bytes": 10131912,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {
+        "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0"
+      },
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/25229951-2gpu-scale/receipt.json",
+        "exists": false
+      },
+      "m3_parity_note": "informational only (M3 used another profile); the harness records parity_vs_m3 = unavailable",
+      "problems": []
+    },
+    {
+      "block": 24628590,
+      "segments": 38,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/24628590.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/24628590.bin",
+        "exists": true,
+        "bytes": 12153320,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {},
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/24628590-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 300984
+      },
+      "problems": []
+    },
+    {
+      "block": 24628595,
+      "segments": 42,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/24628595.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/24628595.bin",
+        "exists": true,
+        "bytes": 13854112,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {
+        "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0"
+      },
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/24628595-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 349524
+      },
+      "problems": []
+    },
+    {
+      "block": 24628611,
+      "segments": 45,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/24628611.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/24628611.bin",
+        "exists": true,
+        "bytes": 14681320,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {
+        "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0"
+      },
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/24628611-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 357771
+      },
+      "problems": []
+    },
+    {
+      "block": 26235159,
+      "segments": 49,
+      "request": {
+        "path": "/workspace/m3/inputs/requests/26235159.json",
+        "exists": true,
+        "bytes": 1094
+      },
+      "input": {
+        "path": "/workspace/m3/inputs/26235159.bin",
+        "exists": true,
+        "bytes": 12250816,
+        "sha256_ok": true
+      },
+      "elf_sha256_ok": true,
+      "plan_template_job": true,
+      "block_env": {
+        "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0"
+      },
+      "witness": "generated in-request by capture from the input bytes (no stored witness)",
+      "golden": "none frozen: parity = all arms/requests byte-identical to the block reference + fresh CPU receivers",
+      "m3_parity_receipt": {
+        "path": "/workspace/m3/runs/integrate/26235159-2gpu-scale/receipt.json",
+        "exists": true,
+        "bytes": 397666
+      },
+      "problems": []
+    }
+  ],
+  "shared": {
+    "guest_elf": {
+      "path": "/workspace/m3/inputs/guest.elf",
+      "exists": true,
+      "bytes": 19587160
+    },
+    "plan_template": {
+      "path": "/workspace/m3/inputs/plan-template.json",
+      "exists": true,
+      "bytes": 26245
+    },
+    "catalogues": {
+      "path": "/workspace/m3/catalogues-v3",
+      "exists": true,
+      "files": 414
+    },
+    "preset": {
+      "path": "/workspace/m3/src/m8-bench15/design/riscv-proving-stack/m7-handoff/integration-stack-preset.json",
+      "exists": true,
+      "bytes": 4570
+    },
+    "full15_originals": {
+      "path": "/workspace/rv64-gpu-session/two-gpu-ready-fixed-full15",
+      "exists": true,
+      "files": 100
+    }
+  },
+  "assets": {
+    "library": {
+      "path": "/workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so",
+      "exists": true,
+      "bytes": 1974871808,
+      "sha256_ok": true
+    },
+    "sparse": {
+      "path": "/workspace/m3/build/m7-rc-sparse/libstwo-rc-sparse.so",
+      "exists": true,
+      "bytes": 249917760,
+      "sha256_ok": true
+    },
+    "observer": {
+      "path": "/workspace/m3/build/m7-rc-sparse/libstwo-process-memory-v3.so",
+      "exists": true,
+      "bytes": 999584,
+      "sha256_ok": true
+    },
+    "process_budget_guard": {
+      "path": "/workspace/m3/build/m7-rc-sparse/gpu-budget-guard",
+      "exists": true,
+      "bytes": 17896,
+      "sha256_ok": true
+    },
+    "driver": {
+      "path": "/workspace/m3/build/m8-bench15/pinned-c72b51646/rv64-word16-ethereum-gpu-combined",
+      "exists": true,
+      "bytes": 77344128,
+      "sha256_ok": true
+    },
+    "receiver": {
+      "path": "/workspace/m3/build/m8-bench15/pinned-c72b51646/rv64-word16-ethereum-recursion-receiver",
+      "exists": true,
+      "bytes": 59890096,
+      "sha256_ok": true
+    },
+    "addon": {
+      "path": "/workspace/m3/build/m8-bench15/pinned-c72b51646/libstwo-rv64-jobs.so",
+      "exists": true,
+      "bytes": 1840512,
+      "sha256_ok": true
+    },
+    "outer_fs": {
+      "path": "/workspace/m3/build/m8-bench15/pinned-c72b51646/libstwo-rv64-outer-fs-ops.so",
+      "exists": true,
+      "bytes": 1175496,
+      "sha256_ok": true
+    }
+  },
+  "disk_free_bytes": 7549747200,
+  "gpu_lock_free_now": true,
+  "missing": [],
+  "status": "READY"
+}

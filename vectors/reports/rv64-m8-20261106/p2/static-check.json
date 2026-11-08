@@ -1,0 +1,114 @@
+{
+  "schema": "rv64-m8-p2-cpu-formula-check/v1",
+  "status": "PASS",
+  "evidence": "CPU formula model and source hashes only; CUDA uncompiled/unexecuted",
+  "arithmetic_checks": 102475,
+  "permutation_cases": 8,
+  "packed_leaf_widths": [
+    0,
+    1,
+    11,
+    12,
+    13,
+    23,
+    24,
+    25,
+    47,
+    128,
+    479
+  ],
+  "parent_limbs": 18,
+  "independent_reference": {
+    "official_kat": "PASS",
+    "dense_vectors": 3,
+    "parameter_identity": "d2571a7f496f0140e967e4bfc5eccbd624c951fcdfee7dfce1c3bae39331293e",
+    "framing_vectors": {
+      "leaf_479": [
+        75302569,
+        257737695,
+        1624457975,
+        1579973030,
+        1400139966,
+        1447753837,
+        28457724,
+        607448533,
+        1394666894
+      ],
+      "node": [
+        1537522230,
+        2040128408,
+        1238183579,
+        301663181,
+        1576296983,
+        1473021156,
+        1359818301,
+        233623515,
+        648580489
+      ],
+      "om31_initial": [
+        1330976328,
+        831062042,
+        1895455003,
+        48331469,
+        559002403,
+        963616176,
+        541419123,
+        498048611,
+        975458412
+      ],
+      "mixed_max_and_p": [
+        348281176,
+        2081254126,
+        754483733,
+        834140345,
+        694420978,
+        965114686,
+        1021524188,
+        194545677,
+        29427344
+      ],
+      "draw_zero": [
+        637042778,
+        932126381,
+        313942954,
+        1285771035,
+        1162516394,
+        1897078136,
+        2128892566,
+        1090472593
+      ],
+      "v2_om31_initial": [
+        57382800,
+        1207574701,
+        1265253890,
+        1760172830,
+        479392263,
+        1320142026,
+        255816341,
+        347152043,
+        1067040074
+      ],
+      "v2_draw_zero": [
+        1546644933,
+        1865351654,
+        1390622127,
+        1503218337,
+        1107593605,
+        2041726037,
+        1892978394,
+        915540967
+      ]
+    }
+  },
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/poseidon2_m31.cuh": "c5593b92f42e0a451a6feeadb584b17fab88e6865bd90ce415cd4c477504a291",
+    "src/backends/cuda/native/rv64/poseidon2_m31_register.cuh": "82e9e5455a37bcb85de5691b9d31f7fe68d08d2e189708bd1c85aa15cdcdfd09",
+    "src/backends/cuda/native/common/m31.cuh": "20fb8c44b80c0729275e7109993523ae8402125566ecb1430f26d641b2044c17",
+    "tests/cuda/rv64/poseidon_commit_bench.cu": "730e258b6fed3722323c3181699211f0c4854c79f5940096b5ec4cac4eac996d",
+    "tests/cuda/rv64/poseidon2_m31_smoke.cu": "f87c368cb638e7c90f598b23e05ce3c8a79dbbba1f0fa0453d9e52fcd4c52f25",
+    "scripts/rv64_m8_poseidon_static.py": "4e67c0711b98a7c8162e74248b7db951f279f341893c6e5e12dd98d19b4bddf3"
+  },
+  "cuda_qualified": false,
+  "native_s2_qualified": false,
+  "performance_gain": null
+}

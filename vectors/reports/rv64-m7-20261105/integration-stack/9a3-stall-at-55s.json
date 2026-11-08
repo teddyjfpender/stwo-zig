@@ -1,0 +1,90 @@
+{
+  "producer_pid": 2382239,
+  "client_submission": {
+    "name": "0000-26235156",
+    "block": 26235156,
+    "submitted_utc_ns": 1793898390095728656,
+    "submitted_monotonic_ns": 1231271782755035,
+    "cpu_resource_before": {
+      "known": true,
+      "monotonic_ns": 1231271782684746,
+      "cpu_max": "4080000 100000",
+      "cpu_pressure": {
+        "some": {
+          "avg10": 0.0,
+          "avg60": 0.0,
+          "avg300": 0.0,
+          "total": 158784642
+        },
+        "full": {
+          "avg10": 0.0,
+          "avg60": 0.0,
+          "avg300": 0.0,
+          "total": 155280401
+        }
+      },
+      "cpu_stat": {
+        "usage_usec": 650679606431,
+        "user_usec": 547583323205,
+        "system_usec": 103096283226,
+        "core_sched.force_idle_usec": 0,
+        "nr_periods": 1054530,
+        "nr_throttled": 11290,
+        "throttled_usec": 10793955151,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "host_loadavg": [
+        30.79150390625,
+        20.9638671875,
+        17.14013671875
+      ]
+    }
+  },
+  "capture_utc_ns": 1793898445123701923,
+  "elapsed_since_client_s": 55.027973657,
+  "nvml": {
+    "returncode": 0,
+    "stdout": "0, GPU-534c9128-9f16-f387-33d4-03c3c296d9ef, 32004, 0\n1, GPU-6f69a857-3fbc-00d7-920d-39abafb41288, 32008, 0\n",
+    "stderr": ""
+  },
+  "last_global_stages": [
+    "GLOBAL_ADMISSION_STAGE physical=1 ticket=183 domain=recursion_node stage=interaction ordinal=6 owner_queue_ns=34970 owner_callback_ns=30506905 total_host_ns=30601065 retained_large=7449083904 retained_small=46907904 successor_large=8757706752 successor_small=3520000",
+    "GLOBAL_ADMISSION_STAGE physical=0 ticket=182 domain=recursion_node stage=witness ordinal=8 owner_queue_ns=59970 owner_callback_ns=68416581 total_host_ns=68556121 retained_large=3925868544 retained_small=44283392 successor_large=13052674048 successor_small=5109248",
+    "GLOBAL_ADMISSION_STAGE physical=1 ticket=184 domain=recursion_node stage=trace_commit ordinal=6 owner_queue_ns=29680 owner_callback_ns=51462304 total_host_ns=51588483 retained_large=5872025600 retained_small=45318656 successor_large=6341787648 successor_small=3520000",
+    "GLOBAL_ADMISSION_STAGE physical=0 ticket=185 domain=recursion_node stage=trace_commit ordinal=8 owner_queue_ns=64580 owner_callback_ns=19702341 total_host_ns=19851571 retained_large=5133828096 retained_small=44283392 successor_large=11844714496 successor_small=5109248",
+    "GLOBAL_ADMISSION_STAGE physical=0 ticket=187 domain=recursion_node stage=interaction ordinal=8 owner_queue_ns=30020 owner_callback_ns=31952201 total_host_ns=32052611 retained_large=8086618112 retained_small=45872640 successor_large=8891924480 successor_small=3520000",
+    "GLOBAL_ADMISSION_STAGE physical=0 ticket=188 domain=recursion_node stage=trace_commit ordinal=8 owner_queue_ns=30720 owner_callback_ns=50833405 total_host_ns=50938435 retained_large=6442450944 retained_small=44283392 successor_large=6375342080 successor_small=3520000",
+    "GLOBAL_ADMISSION_STAGE physical=1 ticket=186 domain=recursion_node stage=composition ordinal=6 owner_queue_ns=131810 owner_callback_ns=133006392 total_host_ns=133226232 retained_large=6140461056 retained_small=45318656 successor_large=4932501504 successor_small=3520000",
+    "GLOBAL_ADMISSION_STAGE physical=0 ticket=189 domain=recursion_node stage=composition ordinal=8 owner_queue_ns=29320 owner_callback_ns=148190775 total_host_ns=148299135 retained_large=6710886400 retained_small=44283392 successor_large=4932501504 successor_small=3520000",
+    "GLOBAL_ADMISSION_STAGE physical=1 ticket=190 domain=recursion_node stage=pcs ordinal=6 owner_queue_ns=47670 owner_callback_ns=280954849 total_host_ns=281089998 retained_large=1979711488 retained_small=45318656 successor_large=0 successor_small=0",
+    "GLOBAL_ADMISSION_STAGE physical=0 ticket=191 domain=recursion_node stage=pcs ordinal=8 owner_queue_ns=30140 owner_callback_ns=327390075 total_host_ns=327494294 retained_large=2415919104 retained_small=44283392 successor_large=0 successor_small=0",
+    "GLOBAL_ADMISSION_STAGE physical=1 ticket=192 domain=recursion_node stage=trace_commit ordinal=3 owner_queue_ns=94959 owner_callback_ns=193943723 total_host_ns=194147272 retained_large=3321888768 retained_small=62295552 successor_large=0 successor_small=0",
+    "GLOBAL_ADMISSION_STAGE physical=0 ticket=193 domain=recursion_node stage=trace_commit ordinal=0 owner_queue_ns=54639 owner_callback_ns=177416784 total_host_ns=177600962 retained_large=3758096384 retained_small=61260288 successor_large=0 successor_small=0"
+  ],
+  "last_producer_lines": [
+    "GPU_TRACE_OWNERSHIP tree=0 coefficient_words=123781888 scratch_words=264341307 final_coefficient_copy_words=0",
+    "GLOBAL_ADMISSION_STAGE physical=1 ticket=192 domain=recursion_node stage=trace_commit ordinal=3 owner_queue_ns=94959 owner_callback_ns=193943723 total_host_ns=194147272 retained_large=3321888768 retained_small=62295552 successor_large=0 successor_small=0",
+    "info: CUDA_OUTER_PREPROCESS ordinal=3 finalize_ns=126203449 columns_ns=333330289 authority_ns=194473422 host_authority_ns=25351158 total_ns=654007160 fixed_setup_backend=device_candidate",
+    "info: CUDA_OUTER_AUTHORITY ordinal=3 vars=26738688 row_logs={ 18, 23, 19, 20, 22, 16, 20, 8, 14, 18, 16 }",
+    "GPU_OUTER fixed_forest_bytes=495127552 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=431607072 logs={ 18, 23, 19, 20, 22, 16, 20, 8, 14, 18, 16 }",
+    "GPU_OUTER_PLAN_PACK adopt class=8c39309d2b06f158 logical_task_bytes=273865600 physical_task_bytes=7099152 held_bytes=156665827 classes=10",
+    "GPU_DEVICE_PEAK stage=trace_commit tree=0 mode=legacy columns=45 calls=0 coefficient_bytes=495127552 scratch_bytes=3137739980 legacy_scratch_bytes=3137739980 live_lease_bytes=4486873292 live_kinds={ 3, 0, 1, 0, 45 } pool_used_bytes=6620952064 pool_reserved_bytes=23622320128 pool_status=0 lease_status=0",
+    "GPU_TRACE_OWNERSHIP tree=0 coefficient_words=123781888 scratch_words=264341307 final_coefficient_copy_words=0",
+    "GLOBAL_ADMISSION_STAGE physical=0 ticket=193 domain=recursion_node stage=trace_commit ordinal=0 owner_queue_ns=54639 owner_callback_ns=177416784 total_host_ns=177600962 retained_large=3758096384 retained_small=61260288 successor_large=0 successor_small=0",
+    "info: CUDA_OUTER_PREPROCESS ordinal=0 finalize_ns=85075801 columns_ns=191489369 authority_ns=177869872 host_authority_ns=1576406 total_ns=454435042 fixed_setup_backend=device_candidate",
+    "info: CUDA_OUTER_AUTHORITY ordinal=0 vars=26738688 row_logs={ 18, 23, 19, 20, 22, 16, 20, 8, 14, 18, 16 }",
+    "GPU_OUTER fixed_forest_bytes=495127552 immutable_limit_bytes=2147483648 device_limit_bytes=30064771072 assignment_bytes=0 schedule_bytes=429354048 logs={ 18, 23, 19, 20, 22, 16, 20, 8, 14, 18, 16 }",
+    "BLAKE_SAMPLE_PLAN removed_tasks=298160 old_levels=108528 new_levels=39239 original_air=true",
+    "GPU_OUTER_ASSIGNMENT_LEVELS enabled=true cta_threads=256 max_run_levels=256 levels=39239 nonempty=39238 empty=1 width_1_32=11509 width_33_64=5881 width_65_128=11761 width_129_256=4822 width_gt256=5265 max_width=3357410 selected_narrow_runs=29 selected_narrow_levels=39106 run_plan_ns=163909 chain=true",
+    "GPU_OUTER_PP_PACK adopt class=8c39309d2b06f158 logical_bytes=347343872 physical_bytes=5165497 held_bytes=75747760 classes=10 ns=130591549",
+    "RECURSION_NODE_SHAPE node=10 kind=leaf shape=exact raw=[5012,2575364,226520,442500,2265200] padded=[8192,4194304,262144,524288,4194304]",
+    "GPU_OUTER_ASSIGNMENT_PLAN plan_ns=658095020 producer_alloc_zero_ns=40464850 seeds_ns=24976788 tasks_ns=132028986 level_alloc_zero_ns=19884221 dependency_walk_ns=66862695 ready_tasks=9470936 dfs_roots=8 ordering_ns=64229572 task_pack_ns=42402166 seed_pack_ns=876888 hash_ns=58886155 task_bytes=293539968 index_bytes=0 levels=39239 permutation_count=0 max_permutation_inputs=0 permutation_pair_work=0",
+    "GPU_OUTER_PLAN_PACK adopt class=62af1264098cd020 logical_task_bytes=293539968 physical_task_bytes=9783300 held_bytes=168799307 classes=11",
+    "GPU_OUTER_PP_PACK adopt class=62af1264098cd020 logical_bytes=358878208 physical_bytes=6346790 held_bytes=82094550 classes=11 ns=72409151",
+    "RECURSION_NODE_SHAPE node=11 kind=leaf shape=exact raw=[4430,3668414,278680,546466,2786800] padded=[8192,4194304,524288,1048576,4194304]"
+  ],
+  "last_stderr_utc_ns": 1793898411961541531,
+  "gdb_returncode": 1,
+  "capture_end_utc_ns": 1793898445313127967
+}

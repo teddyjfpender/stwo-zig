@@ -63,7 +63,7 @@ pub const Component = struct {
         return MAX_DEGREE;
     }
     pub fn validate(self: *const @This()) !void {
-        if (self.origin != .core or (self.origin.core != .initial and self.origin.core != .terminal) or self.log < 5 or self.log > 22 or self.count >= @as(u32, 1) << @intCast(self.log)) return error.InvalidWideBoundaryGeometry;
+        if (self.origin != .core or (self.origin.core != .initial and self.origin.core != .terminal) or self.log < 5 or self.log > 23 or self.count >= @as(u32, 1) << @intCast(self.log)) return error.InvalidWideBoundaryGeometry;
     }
     pub fn emitMainFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
         A.memory.load_store_v2.equations.emitBoundaryMainFor(F, fixed, main, previous, E.qFor(F, self.count), E.qFor(F, @intFromBool(self.count != 0)), sink);

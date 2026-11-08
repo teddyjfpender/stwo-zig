@@ -1,0 +1,12 @@
+{
+  "schema": "rv64-m7-native-metadata-api/v1",
+  "status": "unit-qualified; new format disabled",
+  "author": "OpenAI Codex",
+  "command": "zig build test-native-gkr -Dnative-gkr-test-filter=compact",
+  "exit_code": 0,
+  "execution": "RunPod cps13bvat3xhdo CPU build.2; no Ethereum request or GPU performance measurement",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/cpu_statement.zig": "298b7ec4caec2bca84dbd43e7e35243f8dc9811928b1f9fd95a5e9f4706a33c8",
+    "src/integrations/riscv_cpu/word16_global_execution/services/native_gkr/truth_statement.zig": "2436e0eaddf3a6499a47e7cf3a3e011333caf714c4028539ea39f0732216acaf"
+  }
+}

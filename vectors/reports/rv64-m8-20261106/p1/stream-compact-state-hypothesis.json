@@ -1,0 +1,121 @@
+{
+  "schema": "rv64-p1-compact-eager-state-hypothesis/v1",
+  "status": "TWO_LANE_SMALL_FAIL_SINGLE_LANE_CORRECTNESS_AND_DEFAULT_GATE_PASS",
+  "before": "outer-chunks-hypothesis.json",
+  "source_screen": "stream-compact-state-census.json",
+  "measured_seconds_to_attack": "Largest logged node9 INTER trace-commit callback110892354ns; complete headline requests around13.35s in two candidate observations, no complete3+3 median. Direct speed gain is unknown; objective is lower physical residency and future envelope.",
+  "hypothesis": "Keep the existing disjoint streaming call schedule and identical eager Blake2s arithmetic. Allocate each state bank for max(rows*(8+absorbed_after%16)) live SoA words, plus any final tree. Introduce a strict compact-state numerical entry whose range validation checks exactly the live seed/prefix words. Keep the established full-state entry unchanged. Apply matching plans to Zig MAIN/INTER commits and C++ PCS late source rebuild.",
+  "expected_effect": {
+    "label": "D",
+    "old_scratch_bytes": 3825206528,
+    "modeled_new_scratch_bytes": 2952791296,
+    "derived_bytes_removed": 872415232,
+    "old_bank_words": [
+      402653184,
+      402653184
+    ],
+    "compact_bank_words": [
+      318767104,
+      268435448
+    ],
+    "exact_node_peak": null
+  },
+  "timing_estimate": {
+    "label": "E",
+    "request_seconds_removed": [
+      0.0,
+      0.3
+    ],
+    "caveat": "No arithmetic or traffic reduction is assumed; physical headroom can improve overlap but must be tested. Other INTER and PCS lifetime issues remain."
+  },
+  "constraints": [
+    "Default-off flag and explicit compact-kernel capability; a compact plan may never call the legacy24-word validator.",
+    "Every kernel seed reads8 hash words and pending=absorbed_before%16 words; output prefix writes8+absorbed_after%16 words. Final hashes/tree remain disjoint.",
+    "No source/output or seed/output overlap; aliasing adds no saving for the logged case.",
+    "Validate every pending alignment, nontrivial lifting, finalization, short capacities, unsupported formats and all old ABI rejection cases.",
+    "GPU numerical tests and composed proof identity/fresh receivers before canonical3+3. No PCS reservation discount until its implemented physical allocation/lifetime contract is proved."
+  ],
+  "source_sha256": "5f68ad1f47197ade12ab043314dcae7b68de5c2fef4968bd495081588cc99774",
+  "companion_library_sha256": "0dc30befc3b46a9fbcc0512db6ac60a8de095ee2cc1df109bf950858ad78dffa",
+  "gpu_numerical": {
+    "cases": 64,
+    "devices": 2,
+    "pending_alignments": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "rejected_invalid_calls": 384,
+    "scope": "Kernel ABI parity against frozen eager and full unchunked mixed-leaf reference; not whole-prover qualification"
+  },
+  "build_run": "/workspace/m3/runs/m7-integrate/p1-compact-state-kernel-build-20261106-01",
+  "numerical_run": "/workspace/m3/runs/m7-integrate/p1-compact-state-numerical-20261106-01",
+  "memcheck_run": "/workspace/m3/runs/m7-integrate/p1-compact-state-memcheck-20261106-01",
+  "runtime_integration": "Implemented default-off STWO_RV64_COMPACT_EAGER_STATE in Zig trace allocation/dispatch, native PCS allocation/dispatch and both host cost calculators. New image capability required before reservations can shrink.",
+  "evidence_archive": "vectors/reports/rv64-m8-20261106/p1/p1-compact-state-evidence-20261106-01",
+  "evidence_archive_hash_verified_files": 19,
+  "memcheck_status": "PASS:0 errors;64 cases and384 invalid-call rejections on2 GPUs",
+  "whole_prover_qualification": false,
+  "default_activation": false,
+  "integration_status": "Build/units/export/resource checks pass. New image completes baseline cold/warm; composed candidate cold stalls at MAIN trace commit admission until120s watchdog, with no root. Compact trace storage activates, including304-column INTER scratch2952791296B. No PCS late rebuild activation observed before stall.",
+  "preflight_run": "/workspace/m3/runs/m7-integrate/p1-compact-state-preflight-20261106-04",
+  "first_preflight_failure": "Alignment expectation32bytes; all old code/measurement receipts preserved at preflight01. No GPU request from failed preflight.",
+  "cpp_schedule_test": {
+    "status": "PASS",
+    "trials": 8,
+    "columns": 304,
+    "scope": "four chunk budgets and two lift heights; old/new call schedules identical; compact final tree capacities sufficient",
+    "run": "/workspace/m3/runs/m7-integrate/p1-compact-state-cpp-plan-20261106-02"
+  },
+  "native_image_note": "Existing sparse and outer-chunk addons name the frozen canonical native SONAME; new image must preserve that linker namespace before the one-selected-image check and GPU proofs.",
+  "integrated_library_sha256": "5fe87033f860ffa1760d931e6edd4cc56d187939a5910fb63b660e88ca208b12",
+  "build_failures_archive": "vectors/reports/rv64-m8-20261106/p1/p1-compact-state-link-failures-20261106-01",
+  "first_unit_and_cpp_archive": "vectors/reports/rv64-m8-20261106/p1/p1-compact-state-preflight-failures-20261106-01",
+  "small_run": "/workspace/m3/runs/m7-integrate/p1-compact-state-small-20261106-04",
+  "headline_status": "SKIPPED: whole-stack small cold did not complete; no headline median or speed claim",
+  "why_not_positive": "The872415232B trace scratch reduction is insufficient for remaining concurrent source futures: node4 MAIN trace commit requires24561844224B against23085449216B capacity while node13 waits wide_stage_busy. Stable9730785280B, max_future12918456320B are admission model fields, not exact node peak.",
+  "failed_request_accepted": false,
+  "singlelane_diagnostic": {
+    "status": "BYTE_AND_CAPTURE_PARITY_FRESH_CPU_ACCEPTED",
+    "run": "/workspace/m3/runs/m7-integrate/p1-compact-state-singlelane-correctness-20261106-01",
+    "completed_proofs": 2,
+    "trace_compact_invocations": 78,
+    "pcs_compact_invocations": 208,
+    "scope": "All P1 flags,22GiB arena,global admission,sessions,sparse and physical ceiling retained; lanes per GPU1,pending17. Correctness walls only; not a two-lane timing retry or P1 exit."
+  },
+  "preservation_gate": {
+    "status": "PASS",
+    "run": "/workspace/m3/runs/m7-integrate/p1-compact-state-gate-20261106-01",
+    "checks": "build,five Zig targets,Python,2small proofs32frozen artifacts,freshCPU,19corpus",
+    "V04": "FileTooBig:size cap only"
+  },
+  "integrated_evidence_archive": "vectors/reports/rv64-m8-20261106/p1/p1-compact-state-integrated-evidence-20261106-01",
+  "archive_hash_verified_files": 300,
+  "source_hashes_matched": 8483,
+  "partial_audit": {
+    "present_matches": 27,
+    "missing_required": 5,
+    "root": false,
+    "accepted": false
+  },
+  "next": "Audit PCS real phases and remove live composition/INTER buffers at actual last use. No admission coordination or unproved cost discount.",
+  "whole_prover_scope": "Single-lane correctness diagnostic only; intended two-lane composed service failed. P1 exit and performance unqualified.",
+  "storage_prune": {
+    "bytes_freed": 889409784,
+    "label": "M",
+    "receipt": "vectors/reports/rv64-m8-20261106/p1/p1-compact-state-prune-20261106-01/prune.json"
+  }
+}

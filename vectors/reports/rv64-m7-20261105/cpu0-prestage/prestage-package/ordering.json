@@ -1,0 +1,124 @@
+{
+  "schema": "rv64-m7-cpu0-prestage-ordering/v1",
+  "scope": "Measured eventordering; hashcost bounded by mixedheader/startup intervals, not separately instrumented. No latencyclaim.",
+  "rows": [
+    {
+      "block": 26235156,
+      "events": [
+        {
+          "event": "capture_ready",
+          "ordinal": "0",
+          "utc_ns": "1793879748004528122",
+          "ordered_ready_ns": "822434406"
+        },
+        {
+          "event": "enqueued",
+          "ordinal": "0",
+          "utc_ns": "1793879748004937231",
+          "serial": "1"
+        },
+        {
+          "event": "ready",
+          "ordinal": "0",
+          "utc_ns": "1793879748362723894",
+          "metadata_sha256": "86e8e4b0c2cd51c959992d58a6e0ac1a06f0fb5beec6d76a4a7754c2ea317949"
+        },
+        {
+          "event": "inventory_plan_ready",
+          "utc_ns": "1793879753188546346",
+          "process_at_ns": "6311025622"
+        },
+        {
+          "event": "inventory_ready",
+          "utc_ns": "1793879760195372487",
+          "process_at_ns": "13317852043"
+        },
+        {
+          "event": "promoted",
+          "ordinal": "0",
+          "begin_utc_ns": "1793879760366703158",
+          "end_utc_ns": "1793879760462559657",
+          "metadata_sha256": "86e8e4b0c2cd51c959992d58a6e0ac1a06f0fb5beec6d76a4a7754c2ea317949"
+        },
+        {
+          "event": "main_commit_enter",
+          "ordinal": "0",
+          "utc_ns": "1793879760785168372"
+        },
+        {
+          "event": "main_commit_end",
+          "ordinal": "0",
+          "utc_ns": "1793879760968693071"
+        }
+      ],
+      "early_enqueue_to_ready_ns": 357786663,
+      "early_projection_including_pack_ns": 159525632,
+      "early_pack_ns": 24732096,
+      "early_hash_plus_startup_upper_ns": 198261031,
+      "final_before_copy_header_and_hash_ns": 170839133,
+      "final_scope_copy_and_owner_wait_ns": 95856499,
+      "worker0_source_ns": 510698503,
+      "gpu_ready_before_inventory": true,
+      "commit_after_inventory": true
+    },
+    {
+      "block": 24628607,
+      "events": [
+        {
+          "event": "capture_ready",
+          "ordinal": "0",
+          "utc_ns": "1793879776026759597",
+          "ordered_ready_ns": "806475208"
+        },
+        {
+          "event": "enqueued",
+          "ordinal": "0",
+          "utc_ns": "1793879776027783814",
+          "serial": "2"
+        },
+        {
+          "event": "ready",
+          "ordinal": "0",
+          "utc_ns": "1793879776445681460",
+          "metadata_sha256": "bc0efca47f3284f39104b9d1d246f19d4aec96a71511c578782a60a5f00cb61b"
+        },
+        {
+          "event": "inventory_plan_ready",
+          "utc_ns": "1793879784562902713",
+          "process_at_ns": "9652701522"
+        },
+        {
+          "event": "inventory_ready",
+          "utc_ns": "1793879793244728826",
+          "process_at_ns": "18334527925"
+        },
+        {
+          "event": "promoted",
+          "ordinal": "0",
+          "begin_utc_ns": "1793879793425505753",
+          "end_utc_ns": "1793879793426804930",
+          "metadata_sha256": "bc0efca47f3284f39104b9d1d246f19d4aec96a71511c578782a60a5f00cb61b"
+        },
+        {
+          "event": "main_commit_enter",
+          "ordinal": "0",
+          "utc_ns": "1793879794016400686"
+        },
+        {
+          "event": "main_commit_end",
+          "ordinal": "0",
+          "utc_ns": "1793879794056372511"
+        }
+      ],
+      "early_enqueue_to_ready_ns": 417897646,
+      "early_projection_including_pack_ns": 194925220,
+      "early_pack_ns": 33065113,
+      "early_hash_plus_startup_upper_ns": 222972426,
+      "final_before_copy_header_and_hash_ns": 180337958,
+      "final_scope_copy_and_owner_wait_ns": 1299177,
+      "worker0_source_ns": 643330856,
+      "gpu_ready_before_inventory": true,
+      "commit_after_inventory": true
+    }
+  ]
+}

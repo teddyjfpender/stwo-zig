@@ -1,0 +1,56 @@
+{
+  "schema": "rv64-rc-sparse-indexed-lde-build/v1",
+  "base_sha256": "a25cc3b23ae21994e01cf0e332f1f79b666c402197bc5ed84920bf7575226e45",
+  "addon_sha256": "fa1c977c57f1489bd3e0d10389329de9121a1882a09603b1b84d3f2de2efff8e",
+  "source_sha256": "ee5b9a7f11ec967fce9987e119f01eb7a1b643c4d06f1fa41fddc0a08cd7e589",
+  "private_header_manifest": {
+    "schema": "rv64-rc-sparse-private-n2b-addressing/v1",
+    "scope": "Address view only; identical original numerical functions",
+    "files": [
+      {
+        "source": "/workspace/m3/src/m7-rc-sparse/src/backends/cuda/native/transform/transform_internal.cuh",
+        "source_sha256": "c981885c8f7a9696e236d968b6362af97116af82b42ceb6801e4129ccfe9261a",
+        "output": "/workspace/m3/build/m7-rc-sparse/include/rc_sparse_private/transform_internal.cuh",
+        "output_sha256": "8ce0ea75e9c94414b23075ca5424258ff85ad3e35622a03d5a50e324cb812acf"
+      },
+      {
+        "source": "/workspace/m3/src/m7-rc-sparse/src/backends/cuda/native/transform/n2b_fused.cuh",
+        "source_sha256": "36b1a33b667d8de86e46350c36277aad68cd6d5615f10f8c3494e379e4e6ce15",
+        "output": "/workspace/m3/build/m7-rc-sparse/include/rc_sparse_private/n2b_fused.cuh",
+        "output_sha256": "84d08b5bbc7e1199ed338f5704ee7fbf11ed2d109d4ecbbf08390fdef5925c11"
+      }
+    ]
+  },
+  "compile": [
+    "/usr/local/cuda/bin/nvcc",
+    "-O3",
+    "-std=c++17",
+    "-lineinfo",
+    "-gencode",
+    "arch=compute_120,code=sm_120",
+    "-Xcompiler=-fPIC,-pthread",
+    "-Xptxas=-v",
+    "-I/workspace/m3/src/m7-rc-sparse/src/backends/cuda/native",
+    "-I/workspace/m3/src/m7-rc-sparse/src/backends/cuda/native/transform",
+    "-I/workspace/m3/build/m7-rc-sparse/include",
+    "-c",
+    "/workspace/m3/src/m7-rc-sparse/src/backends/cuda/native/rv64/rc_sparse_lde.cu",
+    "-o",
+    "/workspace/m3/build/m7-rc-sparse/rc_sparse_lde.o"
+  ],
+  "link": [
+    "/usr/local/cuda/bin/nvcc",
+    "-shared",
+    "-gencode",
+    "arch=compute_120,code=sm_120",
+    "-Xcompiler=-pthread",
+    "-Xlinker=-Bsymbolic",
+    "/workspace/m3/build/m7-rc-sparse/rc_sparse_lde.o",
+    "/workspace/m3/build/m7-combined-residency/cuda/native/libstwo-rv64-native.so",
+    "-Xlinker=-rpath,/workspace/m3/build/m7-combined-residency/cuda/native",
+    "-o",
+    "/workspace/m3/build/m7-rc-sparse/libstwo-rc-sparse-lde.so"
+  ],
+  "seconds": 1.896510079037398,
+  "schedule": "source18/eval20 qualified 6/6/8 first/continue/final"
+}

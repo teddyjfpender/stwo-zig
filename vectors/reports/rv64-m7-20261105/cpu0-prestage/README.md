@@ -1,0 +1,19 @@
+CPU0 now builds its real GPU witness while capture is still running, before global inventory admission. The producer retains private, uncommitted CPU MAIN and ledger buffers, then copies their values into newly allocated final-proof-scope buffers after global binding. Final MAIN commitment and all transcript challenges keep their original order. No lease is retagged or borrowed under a different scope.
+
+The actual 9600d71bd CLI driver 8e53f80f93c4343df17fa44c8135c08fd1321927baf88332d5ec934327cb8b7a proves both development blocks. Every native/cells/stage-one/bundle/tree/recursive proof byte matches the accepted 9cf/a25/D2-coalesced golden sets. Captured-value hashes also match the authority OFF controls exactly. Fresh isolated ddcb CPU receivers accept both complete blocks. Request-end lease audits pass, covering actual private/final buffer retirement. This establishes mechanism and correctness; the feature remains default OFF behind STWO_RV64_CPU0_PRESTAGE=1.
+
+The kernel uses only validated CPU metadata, captured public state, ROM and CPU geometry. It does not require the global RAM initial/terminal lists or final roster. CPU0 alone is staged. Main proof authority still comes from the complete receiver-derived inventory and fixed set. The pending identity binds every metadata byte, epoch, CPU/ROM shape/profile, captured publics and independently pinned image/input/policy identity; final promotion rechecks it. The runtime block identity also binds the request and trial. Source mutation, wrong shape, duplicate promotion, wrong active block, missing resident ledgers and unplanned global-admission mode fail closed. Cancellation joins borrowed-data readers before capture/program release; private/final copies validate each lease in its own scope.
+
+| Measured mechanism interval |26235156|24628607|
+|---|---:|---:|
+|Early enqueue→GPU witness fully ready, including hash/host work|357.787ms|417.898ms|
+|Existing projection interval, including compact packing|159.526ms|194.925ms|
+|Outside projection: content hash + startup/pre-timer checks, upper bound|198.261ms|222.972ms|
+|Final source entry→copy entry: headers + SHA guard, mixed interval|170.839ms|180.338ms|
+|Final-scope D2D copy + owner wait/allocation/join|95.856ms|1.299ms|
+
+These are not isolated hash/kernel measurements or latency improvements. All timestamps show GPU-ready before inventory-ready and final MAIN commitment after inventory-ready. The cold setup and captured-value digest instrumentation add several CPU seconds, so the long gap to inventory is not time saved. The first copy also includes initial allocation/mapping/owner wait. Full metadata SHA passes are materially expensive; the next improvement is a single content-bound capture seal, retaining immutability and lifetime guarantees, rather than repeated late hashing.
+
+No warm critical-path or GPU-busy gain is qualified. No second recursion lane per GPU was enabled. Sampled whole-device peak reaches 31.615GB and is not an exact process peak; the 28GB target remains open. The global admission planner is explicitly refused for this unplanned pre-stage, rather than silently bypassed. The automatic-arena 13-flag preset, canonical a25 image and ddcb receiver are preserved; shared-authority caching is explicitly OFF so the mechanisms are separate.
+
+`prestage-package/parity.json` binds full artifact fingerprints, captured hashes and fresh verdicts. `ordering.json` retains all 16 source/queue/ready/inventory/promotion/commit timestamps and interval derivations. Plans, source hashes, producer stderr, per-block native/recursive reports and build/unit exit 0 logs are included. The exact production source checkpoint is 9600d71bd; dc589d7d6 adds a later host-only error-cancellation test and is not part of the qualified CLI. No C++ image rebuild was needed. Full proof pairs remain at receipt paths on the pod. Author: OpenAI Codex.

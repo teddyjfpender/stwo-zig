@@ -1,0 +1,49 @@
+{
+  "schema": "rv64-om31-cpu-leaf-v1",
+  "scope": "experimental full physical CPU circuit graph; no execution-root acceptance or recursive proof timing",
+  "fixture": "existing coordinator services fixture, CPU shard 0 including Keccak bridge",
+  "native_profile": {
+    "field": "OM31",
+    "log_blowup": 1,
+    "queries": 12,
+    "pow": 0,
+    "fold": 1,
+    "security_claim": "test profile only; production security admission unchanged"
+  },
+  "graph": {
+    "variables": 3541906,
+    "blake_g_gates": 588240,
+    "eq": 65906,
+    "qm31_ops": 939970,
+    "m31_to_u32": 190152,
+    "triple_xor": 58824,
+    "public_frame_words": 434
+  },
+  "qualification": {
+    "native_fresh_verification": true,
+    "native_final_transcript_exact": true,
+    "native_public_frame_projection_exact": true,
+    "native_canonical_gkr_receipt_eta_exact": true,
+    "child_v1_v3_parity": true,
+    "mutation_rejections": [
+      "public final pc",
+      "physical sample OM31 coordinate 7",
+      "physical RAM claim",
+      "MAIN scope root",
+      "GKR numerical proof",
+      "canonical GKR receipt"
+    ],
+    "checks": [
+      "complete OM31 PCS/frame/CPU root: 55/55 before final shared-framing deduplication",
+      "final focused CPU/v3 graph gate: 7/7",
+      "git diff --check"
+    ]
+  },
+  "remaining_gates": [
+    "root authenticated sidecar and expectedWords comparison",
+    "complete inventory/adjacency/input/output and global RAM/KIO/Wire closure at root",
+    "admitted production topology/profile registry",
+    "production V3 CPU service-layout qualification",
+    "recursive proving/wrapping/folding qualification"
+  ]
+}

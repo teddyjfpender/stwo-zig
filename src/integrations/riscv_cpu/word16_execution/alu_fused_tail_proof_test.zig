@@ -127,7 +127,6 @@ fn run(tamper: Tamper) !Outcome {
     return .{ .physical = physical, .full = full, .physical_error = physical_error };
 }
 
-
 test "fused-tail ALU: honest physical proof verifies with a fresh receiver" {
     const outcome = try run(.none);
     try std.testing.expect(outcome.physical and outcome.full);

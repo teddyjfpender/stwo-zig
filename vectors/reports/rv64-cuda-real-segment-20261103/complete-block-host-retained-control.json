@@ -1,0 +1,118 @@
+{
+  "schema": "rv64-cuda-ethereum-host-retained-control/v1",
+  "date_utc": "2026-11-03",
+  "scope": "Complete block, bounded host-retained MAIN; GPU GKR/composition/PCS for CPU proofs. Service proofs are CPU. Not fully GPU resident; single run, no controlled speedup claim.",
+  "block": 24628607,
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "coverage": {
+    "fresh_receiver_accepted": true,
+    "completed_block": true,
+    "instructions": 26894777,
+    "segments": 7,
+    "truth_proofs": 11
+  },
+  "native_control_parity": {
+    "all_artifacts_equal": true,
+    "artifact_count": 21,
+    "control_receipt": "cpu-control-24628607.json",
+    "artifact_sha256": {
+      "cells.bin": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1",
+      "cpu-0.bin": "058623a300a4a51c3bc559076949e3c13e99931eda158c457d3b5136d933aad1",
+      "cpu-1.bin": "7c79dfc1fff651edc8e7dcc4a3d5765f8747c3dc97c963bef93ed3033883c7fe",
+      "cpu-2.bin": "ab9bb1af6084da104ae3b6537f789d21f3824408e64b0873bcba9737753b6fe8",
+      "cpu-3.bin": "1e6c97600827f83909021198ad12d521d15739f3c75fa82db40aa83ab6cef34a",
+      "cpu-4.bin": "a19e963bdc331729448856e18feac23b546b2a594f2e23d5f902923d1cf7476d",
+      "cpu-5.bin": "ae2df24e6169549ce031ad908759a278e6aabaceecffd274ad77cd6cd04c1e7e",
+      "cpu-6.bin": "8f359cc2d436800bbce3ed2e3be9336c9e2900f494eca444df533dcd74b2250b",
+      "truth-0.bin": "086499cc2d04181f8a77a642d1ae794513e36d562e21707954642559c2053c65",
+      "truth-1.bin": "39b1dc34a19d8576da5561bf3364690f189bc17b7a6a249085f34429e6de2d74",
+      "truth-2.bin": "8cfe88e03c9b5be31e497be6fa081b1c6972e451c00dec1301f9543c829e88c1",
+      "truth-3.bin": "2364ab89349e796a88e3b479eba6aaf48da1ead4bbb643702a764bdd1b56cecf",
+      "truth-4.bin": "cee002bc942424d109dfeb758efee0284b799727bf1308091ff2f7940e5cd722",
+      "truth-5.bin": "223d923e2b658be7794198935ae31033f3d02312516ad7adc8898e58e681b7a4",
+      "truth-6.bin": "28e138cb724fcc2fe720f741f79a66f13f870f755fa52a56c6e0b276ea56d3af",
+      "truth-7.bin": "aa245001bebcc229cd2225bc60a49c66d8d56eba28943b427e68cff634c76d05",
+      "truth-8.bin": "2e06e2e50f192bc7ea0250f06b39453a5ed0a39f2ed5be81f865f26be6f448bf",
+      "truth-9.bin": "78a63cfe434de13399757cfa67b33d0d8561e1158f112569cca8e2959626a25d",
+      "truth-10.bin": "769eb1c760273ff16a79db850dab28bc5f34b3f3b7fd6ffb9046f172e82ac466",
+      "stage-one.bin": "564acdf3405bfdbe90192a41bd8a383d6fc70a968c7f96e22a4d1c79e325e9a3"
+    },
+    "bundle_sha256": "22f72db4d0a86d949bbb52a78ee7d6c89c726b67eb2ee846ef31d4ab2a46b2d2"
+  },
+  "timings_ns": {
+    "capture_ns": 11311131566,
+    "setup_ns": 154211949521,
+    "prove_ns": 240797862455
+  },
+  "producer": {
+    "exit_code": 0,
+    "wall_ns": 414911407036,
+    "user_seconds": 1327.036892,
+    "system_seconds": 77.307218,
+    "peak_rss_bytes": 13848084480,
+    "minor_faults": 35172965,
+    "major_faults": 0
+  },
+  "receiver": {
+    "exit_code": 0,
+    "wall_ns": 165025363793,
+    "user_seconds": 260.498943,
+    "system_seconds": 2.927605,
+    "peak_rss_bytes": 3273510912,
+    "minor_faults": 1274835,
+    "major_faults": 0
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 1790,
+    "errors": [],
+    "peak_used_bytes": {
+      "0": 21850226688
+    }
+  },
+  "budgets": {
+    "host_job_bytes": 51539607552,
+    "aggregate_gpu_job_credit_bytes": 32212254720,
+    "per_device_gpu_caps_bytes": null
+  },
+  "disk_admission": {
+    "free_before_producer_bytes": 146967846912,
+    "reservation_bytes": 137438953472,
+    "free_floor_bytes": 4294967296
+  },
+  "summed_worker_stage_seconds": {
+    "source_construction": 12.757447479,
+    "streaming_commit_prepare": 48.15864452499998,
+    "merkle_commit": 4.2078953760000015,
+    "local_gkr_prove": 9.858296576999999,
+    "binding_finalize": 6.5448926389999995,
+    "interaction_generation": 18.237406121,
+    "draw_random_coeff": 5.833899999999999e-05,
+    "oods_point_and_mask_points": 0.037320861000000004,
+    "constraint_check_and_assembly": 0.105820875,
+    "composition_trace_extract": 0.001381467,
+    "composition_evaluation": 80.765193934,
+    "composition_interpolate_and_split": 3.072710447,
+    "composition_commit": 1.9705240940000002,
+    "sampled_value_evaluation": 3.937412757,
+    "sampled_value_channel_mix": 0.008966854000000002,
+    "fri_quotient_build_and_commit": 5.958829213,
+    "proof_of_work": 0.07738808199999998,
+    "fri_decommit": 0.12639734799999996,
+    "trace_decommit": 2.84279503
+  },
+  "stage_scope": "Top-level stage elapsed summed over physical workers; overlaps are not block wall time",
+  "gpu": {
+    "kernel_launches": 18986,
+    "device_ms": 3529.2477649999996,
+    "launch_count_scope": "Source-derived GKR traversal only, not CUPTI; excludes other stages",
+    "device_time_scope": "Summed GKR/composition CUDA-event spans and PCS resident time; includes enqueue gaps; excludes untimed stages and overlaps",
+    "memory_scope": "Native logical counters; physical device peak is sampled separately"
+  },
+  "provenance": {
+    "producer_binary": "rv64-word16-ethereum-accounting-fixed",
+    "host_target": "x86_64-linux-gnu baseline, ReleaseFast, Zig0.15.2",
+    "same_hardware_reference_receipt": "complete-block-resident-core.json",
+    "benchmark_caveat": "Separate hardware-target CPU verification overlaps part of receiver execution; do not treat receiver timing as an isolated benchmark. Retention/proving route differs from resident-core run."
+  }
+}

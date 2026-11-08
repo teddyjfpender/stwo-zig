@@ -1,0 +1,104 @@
+{
+  "schema": "rv64-m7-supplemental-fresh-receiver/v1",
+  "scope": "Supplemental CPU-only acceptance; original run metadata stays unchanged. No verifier timing comparison.",
+  "receiver": "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+  "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+  "runs": [
+    {
+      "run": "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-combined-m6-v3",
+      "original_sha256": {
+        "receipt.json": "132ebc2d465d3ca0c880f23d10a6e24e71c9b74e7f08fcee06d6b085a2a85c9b",
+        "plan.json": "cb330ab3a371d0e205c83aa2f59d12200b47dc8faabb4dab09028592d4a9b530"
+      },
+      "receivers": [
+        {
+          "block": 26235156,
+          "proof": "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-combined-m6-v3/spool/out/0000-26235156/26235156/proof",
+          "status": "accepted",
+          "accepted": true,
+          "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+          "process": {
+            "argv": [
+              "nice",
+              "-n",
+              "10",
+              "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+              "--security-profile",
+              "conjectured128_b2_q108_p20_fold4",
+              "verify-recursion-candidate",
+              "/workspace/m3/runs/m7-native-gkr/combined-m6-supplemental/receiver-26235156-0000-26235156-20261105T102942/receiver-request.json",
+              "/workspace/m3/runs/m7-fold-v3/daemon-26235156-r2-combined-m6-v3/spool/out/0000-26235156/26235156/proof",
+              "12884901888",
+              "34359738368"
+            ],
+            "exit_code": 0,
+            "wall_ns": 34897739527,
+            "user_seconds": 141.638983,
+            "system_seconds": 11.845638,
+            "peak_rss_bytes": 7299932160,
+            "minor_faults": 5195544,
+            "major_faults": 0
+          },
+          "directory": "/workspace/m3/runs/m7-native-gkr/combined-m6-supplemental/receiver-26235156-0000-26235156-20261105T102942",
+          "isolation": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+            "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+            "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+            "STWO_RV64_FOLD_CLASS_CACHE": "0"
+          },
+          "trial": 0,
+          "store_present_during_receive": false
+        }
+      ]
+    },
+    {
+      "run": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-combined-m6-v3",
+      "original_sha256": {
+        "receipt.json": "d939a45925e11d72a479a5303d9433bbd9d98a56e3c3ae2da16937d5ff417abf",
+        "plan.json": "dfa2ae0532975a63f886060a5394db4c283fb8c0c3405086308c0308f5bd86cb"
+      },
+      "receivers": [
+        {
+          "block": 24628607,
+          "proof": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-combined-m6-v3/spool/out/0000-24628607/24628607/proof",
+          "status": "accepted",
+          "accepted": true,
+          "receiver_sha256": "ddcbcf4b24aaf770f8b42d22188ea3c3c9b7f57726db1d0aa9cb09be27069b42",
+          "process": {
+            "argv": [
+              "nice",
+              "-n",
+              "10",
+              "/workspace/m3/build/m7-combined-d2-receiver/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+              "--security-profile",
+              "conjectured128_b2_q108_p20_fold4",
+              "verify-recursion-candidate",
+              "/workspace/m3/runs/m7-native-gkr/combined-m6-supplemental/receiver-24628607-0000-24628607-20261105T103017/receiver-request.json",
+              "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-combined-m6-v3/spool/out/0000-24628607/24628607/proof",
+              "12884901888",
+              "34359738368"
+            ],
+            "exit_code": 0,
+            "wall_ns": 49643151019,
+            "user_seconds": 210.854911,
+            "system_seconds": 14.176044,
+            "peak_rss_bytes": 7288176640,
+            "minor_faults": 6519457,
+            "major_faults": 0
+          },
+          "directory": "/workspace/m3/runs/m7-native-gkr/combined-m6-supplemental/receiver-24628607-0000-24628607-20261105T103017",
+          "isolation": {
+            "CUDA_VISIBLE_DEVICES": "",
+            "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+            "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+            "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+            "STWO_RV64_FOLD_CLASS_CACHE": "0"
+          },
+          "trial": 0,
+          "store_present_during_receive": false
+        }
+      ]
+    }
+  ]
+}

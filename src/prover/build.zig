@@ -66,6 +66,11 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_deep_tests.step);
 
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-device-trace",
+        .description = "Verify explicit resident MAIN/INTER logical trees and host-access rejection",
+        .root = "device_trace_test_root.zig",
+    });
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-blake3-prefix-reuse",
         .description = "Verify BLAKE3 bounded prefix reuse across budgets and worker counts",
         .root = "blake3_prefix_reuse_test_root.zig",

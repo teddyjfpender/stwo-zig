@@ -1,0 +1,26 @@
+{
+  "schema": "rv64-pinned-cuda-runtime/v1",
+  "scope": "M8 opt-combined image: P1 native relink of the merged tree (T2/T3/T4/T6/T7/T8/T9 kernels, flag-selected) + T5 register-scheduled AOT shards behind STWO_RV64_M8_AOT_REGISTER_SCHEDULE; frozen sparse/observer/guard addons; + m8-gn-bind jobs env (addon-3: + gn-node outer_seed; + gn-s2 native_encode_oods/seal_flat, gn-truth truth_oods): jobs addon and outer-fs addon rebuilt from source and linked against this base (25d0e62f)",
+  "assets": {
+    "library": "/workspace/m3/build/m8-opt-combined/img/native/libstwo-rv64-native.so",
+    "sparse": "/workspace/m3/build/m7-rc-sparse/libstwo-rc-sparse.so",
+    "observer": "/workspace/m3/build/m7-rc-sparse/libstwo-process-memory-v3.so",
+    "process_budget_guard": "/workspace/m3/build/m7-rc-sparse/gpu-budget-guard"
+  },
+  "asset_sha256": {
+    "library": "25d0e62f426f12ffafe5e92d8d4b4a92389fb444d0380cc026764be9106a2d4c",
+    "sparse": "e66ab0cfa50e4869351de87a1081792ce1d3385ce44f79ff1f4b3debc06cb278",
+    "observer": "29dba5cc45838a71387a86b2e3c93150a54f157e2e7e6277378f0ec76c1335f5",
+    "process_budget_guard": "773d5f04240e4692c07c26b1c72a43a8090f3df4969c1493c2c7e9923e0d1139"
+  },
+  "jobs_env": {
+    "STWO_RV64_M8_JOBS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-3/libstwo-rv64-jobs.so",
+    "STWO_RV64_M8_OUTER_FS_LIBRARY": "/workspace/m3/build/m8-gn-bind/addon-3/libstwo-rv64-outer-fs-ops.so",
+    "STWO_RV64_M8_JOBS_PINNED_BYTES": "2365587456",
+    "STWO_RV64_M8_NATIVE_JOBS_HEADROOM": "2147483648"
+  },
+  "jobs_env_sha256": {
+    "STWO_RV64_M8_JOBS_LIBRARY": "32c52c90b370b7822932ca541b911ed0430f5262db3488334103ee46bd370336",
+    "STWO_RV64_M8_OUTER_FS_LIBRARY": "f421d4350d286a05637bd2f3b2701eec6aa64e8f22007d4bbbbe9bf26916a5da"
+  }
+}

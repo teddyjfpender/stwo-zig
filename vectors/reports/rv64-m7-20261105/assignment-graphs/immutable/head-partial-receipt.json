@@ -1,0 +1,81 @@
+{
+  "schema": "rv64-m7-partial-completed-request/v1",
+  "label": "M",
+  "scope": "First request explicitly completed before the warm native-capacity failure. No service success, warm performance, client-latency window or complete paired gate is claimed. Load/peak/process metrics lost by original harness fatal unwind remain unknown.",
+  "source_commit": "136e0ba60+leaf-tape-v3-uncommitted",
+  "assets": {
+    "driver": "eba08050ea233a4ead8d6d719127b2c5f84702b0339fe2566fed184c84b91f44",
+    "library": "69f18a25c23c042b7fc00d2477097de64c69ea59fd46d2eee6fc9e154dc665e0",
+    "receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+    "recursive_receiver": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d"
+  },
+  "load_avg_before": null,
+  "load_avg_after": null,
+  "producer_process": {
+    "exit_code": 1,
+    "scope": "daemon failed during next request"
+  },
+  "physical_gpu_memory": null,
+  "requests": [
+    {
+      "block": 24628607,
+      "trial": 0,
+      "ordinal": 0,
+      "proof": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-assignment-v2-isolated-on/spool/out/0000-24628607/24628607/proof",
+      "marker": {
+        "request_wall_ns": 39526524383
+      },
+      "stages": {
+        "request_wall_s": 39.527,
+        "capture_s": 2.068,
+        "setup_s": 12.284,
+        "native_prove_s": 5.434,
+        "native_verify_s": 1.99,
+        "native_total_before_report_s": 20.004,
+        "recursion_s": 19.487
+      },
+      "leaves": 17,
+      "proof_bytes_root": 708696
+    }
+  ],
+  "receivers": [
+    {
+      "block": 24628607,
+      "proof": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-assignment-v2-isolated-on/spool/out/0000-24628607/24628607/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "0434da7892cd5c0365eef9a999de0c2f78fb5323da604c0f30e96a7224f65d6d",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/m6-integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-assignment-v2-isolated-on/receiver-24628607-0000-24628607-20261105T094549/receiver-request.json",
+          "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-assignment-v2-isolated-on/spool/out/0000-24628607/24628607/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 53486339096,
+        "user_seconds": 229.107026,
+        "system_seconds": 15.850542,
+        "peak_rss_bytes": 7309336576,
+        "minor_faults": 6527651,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m7-fold-v3/daemon-24628607-r2-assignment-v2-isolated-on/receiver-24628607-0000-24628607-20261105T094549",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 0
+    }
+  ]
+}

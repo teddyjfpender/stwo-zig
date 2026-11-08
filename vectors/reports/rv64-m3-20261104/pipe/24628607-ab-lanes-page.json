@@ -1,0 +1,47 @@
+{
+ "schema": "rv64-m3-pipe-run/v1",
+ "label": "A/B control: same p4 binary, lane path, page child (= accepted config)",
+ "block": 24628607,
+ "measured": true,
+ "devices": "2x RTX 5090 (pod cps13bvat3xhdo)",
+ "driver_sha256_prefix": "92d24751ba46a3e5",
+ "runtime_library": "/workspace/rv64-gpu-session/assets/library.so (accepted 25295868...)",
+ "environment_delta": "STWO_RV64_RECURSION_PIPELINE=0 STWO_RV64_HOST_BUDGET_PAGE_CHILD=1",
+ "profile": "conjectured128_b2_q108_p20_fold4",
+ "parity_vs_accepted_v7_controls": {
+  "native_bins": true,
+  "bundle": true,
+  "recursive_proofs_and_tree": true
+ },
+ "root_proof_sha256": "07a537d3244bc27dcf1c11634bfa1f4746d93899aeb9abaa1afc9cfd127cdddf",
+ "tree_sha256": "d1709e9c9c1bf02fa456421628e4570359fcf2865db15c0c1ab0b4acf0417b3f",
+ "request_wall_s": 98.024198181,
+ "stages_s": {
+  "capture": 5.107309444,
+  "native_setup": 13.053484035,
+  "native_prove": 10.328024498,
+  "native_verify": 5.661143966,
+  "native_publish": 0.181311471,
+  "recursion": 63.619710452,
+  "combined": 97.969746076
+ },
+ "recursive_report": {
+  "leaf_proofs": 17,
+  "fold_proofs": 16,
+  "restored_leaves": 0,
+  "restored_folds": 0,
+  "gpu_new_leaf_proofs": 17,
+  "gpu_new_fold_proofs": 16,
+  "outer_backend": "cuda_trace_only",
+  "assignment_source": "gpu_original_circuit_dag",
+  "peak_pending_authorities": 7
+ },
+ "producer_process": {
+  "exit": 0,
+  "wall_s": 104.3644151687622,
+  "user_s": 166.952004,
+  "sys_s": 85.51342,
+  "maxrss_kb": 14522120,
+  "minflt": 23717157
+ }
+}

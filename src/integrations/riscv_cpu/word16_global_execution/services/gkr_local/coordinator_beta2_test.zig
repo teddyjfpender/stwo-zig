@@ -7,6 +7,77 @@ const FixedSet = @import("fixed_authority_set.zig").Set;
 const Candidate = @import("../../../word16_execution/om31_security_candidate.zig");
 const W = @import("worker_protocol.zig");
 const a = std.testing.allocator;
+test "resident fixed catalogue reuses only frozen owned sources and revalidates new bodies" {
+    const Authority = @import("fixed_authority_set.zig");
+    var keys = try F.Keys.init(a);
+    defer keys.deinit();
+    var cache = try Fixed.Fixed.Cache.init(a, 1 << 30);
+    defer cache.deinit();
+    var catalogue = Authority.ValidatedCatalogue{ .allocator = a };
+    defer catalogue.deinit();
+    const config = Candidate.config();
+    var first = try FixedSet.initWithValidatedCatalogue(a, &cache, &.{keys.cpus[0]}, &.{}, config, &catalogue);
+    defer first.deinit();
+    try std.testing.expectEqual(@as(usize, 1), first.source_validations);
+    var second = try FixedSet.initWithValidatedCatalogue(a, &cache, &.{keys.cpus[0]}, &.{}, config, &catalogue);
+    defer second.deinit();
+    try std.testing.expectEqual(@as(usize, 0), second.source_validations);
+    try std.testing.expectEqual(@as(usize, 0), second.source_coefficient_cells);
+    try std.testing.expectEqual(first.at(0).fixed_identity, second.at(0).fixed_identity);
+    try second.require(&.{keys.cpus[0]}, &.{}, config);
+    // A distinct source object with the SAME sealed root cannot borrow the
+    // session owner's provenance. Its actual body must still be validated.
+    var copied = keys.cpus[0].*;
+    const coefficients = try a.dupe(@TypeOf(copied.key.tree.coefficients.?[0]), copied.key.tree.coefficients.?);
+    defer a.free(coefficients);
+    const values = try a.dupe(@import("stwo_core").fields.m31.M31, coefficients[0].coeffs);
+    defer a.free(values);
+    values[0] = values[0].add(@import("stwo_core").fields.m31.M31.one());
+    coefficients[0].coeffs = values;
+    copied.key.tree.coefficients = coefficients;
+    var changed = try FixedSet.initWithValidatedCatalogue(a, &cache, &.{&copied}, &.{}, config, &catalogue);
+    defer changed.deinit();
+    try std.testing.expectEqual(@as(usize, 1), changed.source_validations);
+    try std.testing.expect(!std.mem.eql(u8, &changed.at(0).fixed_identity, &first.at(0).fixed_identity));
+    try std.testing.expectError(error.FixedSetupIdentityMismatch, first.at(0).revalidateSource(&copied.key, config));
+    // Receiver-selected profile authority remains separate from reusable trees.
+    const other_config = Candidate.configFor(.conjectured128_b2_q108_p20_fold4);
+    var other_profile = try FixedSet.initWithValidatedCatalogue(a, &cache, &.{keys.cpus[0]}, &.{}, other_config, &catalogue);
+    defer other_profile.deinit();
+    try std.testing.expectEqual(@as(usize, 1), other_profile.source_validations);
+    try std.testing.expectError(error.WideCandidateProfileMismatch, first.at(0).require(&keys.cpus[0].key, other_config));
+    var wrong = other_config;
+    wrong.fri_config.n_queries -= 1;
+    if (FixedSet.initWithValidatedCatalogue(a, &cache, &.{keys.cpus[0]}, &.{}, wrong, &catalogue)) |accepted| {
+        var cleanup = accepted;
+        cleanup.deinit();
+        return error.AcceptedUnadmittedResidentConfig;
+    } else |_| {}
+    catalogue.clear();
+    var after_eviction = try FixedSet.initWithValidatedCatalogue(a, &cache, &.{keys.cpus[0]}, &.{}, config, &catalogue);
+    defer after_eviction.deinit();
+    try std.testing.expectEqual(@as(usize, 1), after_eviction.source_validations);
+    // Clearing the catalogue does not revoke already retained request leases.
+    try first.require(&.{keys.cpus[0]}, &.{}, config);
+    try std.testing.checkAllAllocationFailures(a, catalogueAllocationCase, .{ &cache, keys.cpus[0] });
+    const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
+    const metadata_budget = try Budget.create(a, 1 << 20);
+    defer metadata_budget.destroy();
+    var bounded = Authority.ValidatedCatalogue{ .allocator = metadata_budget.allocator() };
+    defer bounded.deinit();
+    var charged = try FixedSet.initWithValidatedCatalogue(a, &cache, &.{keys.cpus[0]}, &.{}, config, &bounded);
+    defer charged.deinit();
+    try std.testing.expect(metadata_budget.snapshot().live_bytes > 0);
+    bounded.clear();
+    try std.testing.expectEqual(@as(usize, 0), metadata_budget.snapshot().live_bytes);
+}
+fn catalogueAllocationCase(allocator: std.mem.Allocator, cache: *const Fixed.Fixed.Cache, setup: *const @import("../roster.zig").CpuSetup) !void {
+    var catalogue = @import("fixed_authority_set.zig").ValidatedCatalogue{ .allocator = allocator };
+    defer catalogue.deinit();
+    var set = try FixedSet.initWithValidatedCatalogue(allocator, cache, &.{setup}, &.{}, Candidate.config(), &catalogue);
+    defer set.deinit();
+    try set.require(&.{setup}, &.{}, Candidate.config());
+}
 test "beta2 candidate two CPU and K ADD DOUBLE execution verifies from independent fixed leases" {
     var captured = try Original.Captured.init(a);
     defer captured.deinit();

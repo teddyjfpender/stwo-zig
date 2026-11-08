@@ -1,0 +1,21 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6411close_layerEPjPKjS4_S4_jjj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6411close_layerEPjPKjS4_S4_jjj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 0 barriers
+ptxas info    : Compile time = 286.167 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6411begin_layerEPjjjjPKjS2_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6411begin_layerEPjjjjPKjS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 0 barriers
+ptxas info    : Compile time = 212.497 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6411init_parentEPjPKjNS1_4PlanEm' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6411init_parentEPjPKjNS1_4PlanEm
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 28 registers, used 0 barriers
+ptxas info    : Compile time = 76.591 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6410pack_rootsENS1_5RootsEPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6410pack_rootsENS1_5RootsEPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 18 registers, used 0 barriers
+ptxas info    : Compile time = 2.536 ms

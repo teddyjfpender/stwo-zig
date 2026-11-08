@@ -1,0 +1,13 @@
+{
+  "schema": "rv64-m3-build/v1",
+  "stream": "m7-integrate",
+  "source_root": "/workspace/m3/src/m7-integrate",
+  "source_commit": "972b41f26+leaf-tape-v1-uncommitted",
+  "host": "f675b38ce80e",
+  "zig_seconds": {
+    "build-rv64-ethereum-gpu-combined": 327.89,
+    "build-rv64-ethereum-recursion-receiver": 278.54
+  },
+  "driver_sha256": "1140fe8fc57764fdf366c67c3b28c29ad3ae86643dac2155ea34af7d6e338dec",
+  "receiver_sha256": "d9cc07f288ee49ea2fd934fb132fe1c4ead91503a74bbe02122e7c9d9075771e"
+}

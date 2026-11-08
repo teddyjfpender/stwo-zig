@@ -1,0 +1,54 @@
+test-rv64-pcs-geometry
++- run test stderr
+PP_SOURCE_ADMISSION_REFUSED physical=0 handoff=1 runtime_v2=false ordinal=0 pp_retained_upper_large=5368709120 pp_retained_upper_small=0 temp_large=18253611008 temp_small=0 stage_retained_upper_large=0 stage_retained_upper_small=0 successor_large=0 successor_small=0 required_large=23622320128 required_small=0 cap_large=23085449216 cap_small=536870912
+test-rv64-gkr-plan
++- run test stderr
+GKR_CHUNK_CONTRACT {"device_workspace_bytes":219275556,"pinned_ring_bytes":201326592,"host_store_bytes":16508780032,"product_combinations":257949688,"host_device_transfer_bytes_upper_bound":132070244352,"chunk_facts":262144,"pipeline_slots":2,"numerical_implementation_available":false}
+
+GKR_FRONTIER_PLAN retained_bytes=16573396480 frontier_bytes=15046661376 saved_bytes=1526735104
+GPU_COMPOSITION_POOL_TRIM native_status=13 arena_bytes=12884901888
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=112 kind=0
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=333 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=0
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=projection owner=cpu_evaluations words=222 kind=1
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=commit owner=committed_coefficients words=555 kind=2
+PP_SOURCE_ADMISSION_REFUSED physical=0 handoff=1 runtime_v2=false ordinal=0 pp_retained_upper_large=5368709120 pp_retained_upper_small=0 temp_large=18253611008 temp_small=0 stage_retained_upper_large=0 stage_retained_upper_small=0 successor_large=0 successor_small=0 required_large=23622320128 required_small=0 cap_large=23085449216 cap_small=536870912
+OUTER_TASK_PACK_PARITY tasks=8388608 bytes=268435456 workers=4 serial_median_ns=90775873 parallel_median_ns=63861532 all_records_exact=true csr=false
+test
++- run test 243/245 passed, 2 failed
+OUTER_TASK_PACK_PARITY tasks=8388608 bytes=268435456 workers=4 serial_median_ns=82397918 parallel_median_ns=63081718 all_records_exact=true csr=false
+error: 'rv64.tests.projection_codegen_test.test.native source projection IR preserves every role tuple weight and semantic draw slot at aliased values' failed: GKR_FRONTIER_PLAN retained_bytes=16573396480 frontier_bytes=15046661376 saved_bytes=1526735104
+projection value mismatch descriptor=13 mode=0 term=0 numerator=true denominator=false expected={ .{ .v = 1452295284 }, .{ .v = 722873918 }, .{ .v = 1967768694 }, .{ .v = 1968098961 }, .{ .v = 1817014933 }, .{ .v = 1552748972 }, .{ .v = 1793297899 }, .{ .v = 1006808237 } } actual={ .{ .v = 1990191464 }, .{ .v = 177181957 }, .{ .v = 442519188 }, .{ .v = 143434545 }, .{ .v = 769475734 }, .{ .v = 1413444117 }, .{ .v = 1058836927 }, .{ .v = 307984892 } }
+error: 'rv64.native_gkr_cost.test.production GKR rounds planes separately and retires decoded columns before tree' failed: GPU_OUTER native_status=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=112 kind=0
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=333 kind=1
+GPU_EARLY_MAIN_ALLOCATION_REFUSED phase=projection words=111 kind=0
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=projection owner=cpu_evaluations words=222 kind=1
+GPU_EARLY_MAIN_ALLOCATION_MISSING phase=commit owner=committed_coefficients words=555 kind=2
+GLOBAL_ADMISSION_STAGE physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 owner_queue_ns=32599 owner_callback_ns=230 total_host_ns=33669 retained_large=33554432 retained_small=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE physical=0 ticket=2 domain=native_packet stage=witness ordinal=0 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=490 retained_large=0 retained_small=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_WAIT runtime=v1 physical=0 epoch=6 reason=capacity_pressure domain=native_packet stage=witness ordinal=0 required_large=27917287424 required_small=0 cap_large=23085449216 cap_small=536870912 temp_large=5368709120 temp_small=0 retained_upper_large=5368709120 retained_upper_small=0 successor_large=0 successor_small=0 stable_large=2147483648 stable_small=0 active_temp_large=0 active_temp_small=0 active_retained_upper_large=0 active_retained_upper_small=0 max_future_large=20401094656 max_future_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 owner_queue_ns=30930 owner_callback_ns=7570 total_host_ns=38870 stable_large=2147483648 stable_small=0 global_live_large=10737418240 global_live_small=0 active_windows=1 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=2 domain=native_packet stage=witness ordinal=1 owner_queue_ns=510 owner_callback_ns=5590 total_host_ns=6220 stable_large=5368709120 stable_small=0 global_live_large=5368709120 global_live_small=0 active_windows=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=1 domain=gkr_packet stage=witness ordinal=0 owner_queue_ns=30940 owner_callback_ns=70 total_host_ns=31140 stable_large=6442450944 stable_small=0 global_live_large=6442450944 global_live_small=0 active_windows=0 successor_large=15032385536 successor_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=2 domain=gkr_packet stage=gkr ordinal=0 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=7090 stable_large=6442450944 stable_small=0 global_live_large=6442450944 global_live_small=0 active_windows=1 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=3 domain=gkr_packet stage=gkr ordinal=1 owner_queue_ns=5630 owner_callback_ns=90 total_host_ns=5860 stable_large=6442450944 stable_small=0 global_live_large=6442450944 global_live_small=0 active_windows=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_RETENTION_REFUSED runtime=v2 physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 own_new_large=3221225472 own_new_small=0 retained_upper_large=2147483648 retained_upper_small=0 temporary_large=4294967296 temporary_small=0 owner_live_large=3221225472 owner_live_small=0 baseline_large=0 baseline_small=0 stable_large=0 stable_small=0 global_large=3221225472 global_small=0 active_windows=1
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=1 domain=native_packet stage=witness ordinal=0 owner_queue_ns=30880 owner_callback_ns=90 total_host_ns=31120 stable_large=4294967296 stable_small=0 global_live_large=4294967296 global_live_small=0 active_windows=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_WAIT runtime=v2 physical=0 epoch=4 reason=capacity_pressure domain=recursion_node stage=witness ordinal=1 required_large=25769803776 required_small=0 cap_large=23085449216 cap_small=536870912 temp_large=21474836480 temp_small=0 retained_upper_large=0 retained_upper_small=0 successor_large=0 successor_small=0 stable_large=4294967296 stable_small=0 active_temp_large=0 active_temp_small=0 active_retained_upper_large=0 active_retained_upper_small=0 max_future_large=0 max_future_small=0
+GLOBAL_ADMISSION_STAGE runtime=v2 physical=0 ticket=2 domain=recursion_node stage=witness ordinal=1 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=500 stable_large=0 stable_small=0 global_live_large=0 global_live_small=0 active_windows=0 successor_large=0 successor_small=0
+GLOBAL_ADMISSION_STAGE physical=0 ticket=2 domain=gkr_packet stage=gkr ordinal=0 owner_queue_ns=0 owner_callback_ns=0 total_host_ns=530 retained_large=6442450944 retained_small=0 successor_large=0 successor_small=0
+PP_SOURCE_ADMISSION_REFUSED physical=0 handoff=1 runtime_v2=false ordinal=0 pp_retained_upper_large=5368709120 pp_retained_upper_small=0 temp_large=18253611008 temp_small=0 stage_retained_upper_large=0 stage_retained_upper_small=0 successor_large=0 successor_small=0 required_large=23622320128 required_small=0 cap_large=23085449216 cap_small=536870912
+GPU_COMPOSITION_POOL_TRIM native_status=13 arena_bytes=12884901888
+expected 3171840, found 3685376
+error: while executing test 'rv64.tests.outer_assignment_pack_test.test.parallel ordering preserves real builder GPU record and schedule identities', the following test command failed:
+/workspace/m3/src/m7-integrate/.zig-cache/o/08bf4070530d096845707e5de316a80a/test --cache-dir=/workspace/m3/src/m7-integrate/.zig-cache --seed=0xb76f6949 --listen=-
+
+Build Summary: 28/30 steps succeeded; 1 failed; 428/430 tests passed; 2 failed
+test transitive failure
++- run test 243/245 passed, 2 failed
+
+error: the following build command failed with exit code 1:
+/workspace/m3/src/m7-integrate/.zig-cache/o/6a83379fd463de18515e4a4746153f4d/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m7-integrate/src/integrations/riscv_cuda /workspace/m3/src/m7-integrate/.zig-cache /workspace/m3/cache/zig-global --seed 0xb76f6949 -Z445b90935db05af3 test test-rv64-recursion-ready test-rv64-batch-plan test-rv64-gkr-plan test-rv64-pcs-geometry -j2 -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha

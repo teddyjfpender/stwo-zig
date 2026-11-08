@@ -1,0 +1,24 @@
+info: RECURSION_SETUP image_ns=254402863 program_ns=118936843 native_keys_ns=8251283818 fixed_authority_ns=4777877700 other_ns=119730121
+info: rv64 OM31 recursion m3 node 1/23: arity=0
+info: rv64 OM31 recursion m3 node 2/23: arity=0
+info: rv64 OM31 recursion m3 node 3/23: arity=0
+info: rv64 OM31 recursion m3 node 4/23: arity=0
+info: rv64 OM31 recursion m3 node 5/23: arity=4
+info: rv64 OM31 recursion m3 node 6/23: arity=0
+info: rv64 OM31 recursion m3 node 7/23: arity=0
+info: rv64 OM31 recursion m3 node 8/23: arity=0
+info: rv64 OM31 recursion m3 node 9/23: arity=0
+info: rv64 OM31 recursion m3 node 10/23: arity=4
+info: rv64 OM31 recursion m3 node 11/23: arity=0
+info: rv64 OM31 recursion m3 node 12/23: arity=0
+info: rv64 OM31 recursion m3 node 13/23: arity=0
+info: rv64 OM31 recursion m3 node 14/23: arity=0
+info: rv64 OM31 recursion m3 node 15/23: arity=4
+info: rv64 OM31 recursion m3 node 16/23: arity=0
+info: rv64 OM31 recursion m3 node 17/23: arity=0
+info: rv64 OM31 recursion m3 node 18/23: arity=0
+info: rv64 OM31 recursion m3 node 19/23: arity=0
+info: rv64 OM31 recursion m3 node 20/23: arity=4
+info: rv64 OM31 recursion m3 node 21/23: arity=4
+info: rv64 OM31 recursion m3 node 22/23: arity=0
+info: rv64 OM31 recursion m3 node 23/23: arity=2

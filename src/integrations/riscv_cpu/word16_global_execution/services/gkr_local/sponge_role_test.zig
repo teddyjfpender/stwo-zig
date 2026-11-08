@@ -90,7 +90,7 @@ fn produce(comptime kind: B.layout.Kind, fault: Fault) !Bundle {
     @import("sponge_metadata.zig").retireLocal(src);
     @import("sponge_metadata.zig").retireLocal(src);
     try std.testing.expectEqual(retained, try @import("sponge_metadata.zig").retainedPlanBytes(&own_plan));
-    var global = try @import("classic_witness.zig").Witness.initTruth(a, 5, &.{.{ .inverses = @intCast(@import("sponge_projection.zig").ramTerms(kind) / 2) }, .{ .inverses = 25 }}, Metadata.Provider{ .source = &sources, .origin = instance.origin, .log_size = 5, .shared = global_ch }, 1 << 20);
+    var global = try @import("classic_witness.zig").Witness.initTruth(a, 5, &.{ .{ .inverses = @intCast(@import("sponge_projection.zig").ramTerms(kind) / 2) }, .{ .inverses = 25 } }, Metadata.Provider{ .source = &sources, .origin = instance.origin, .log_size = 5, .shared = global_ch }, 1 << 20);
     defer global.deinit();
     const claims = Global.ClaimsFor(O){ .ram = global.claimSlice()[0], .kio = global.claimSlice()[1], .wire = O.zero() };
     try std.testing.expect(!claims.ram.isZero());
