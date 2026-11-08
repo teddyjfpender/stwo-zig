@@ -68,7 +68,9 @@ const NG = @import("native_gkr.zig");
 const Wire = @import("native_gkr_wire.zig");
 const Semantic = @import("native_semantic.zig");
 const NB = @import("native_binding.zig");
-const HJ = @import("native_hybrid_jobs.zig");
+const Timing = @import("job_timing.zig").Timing;
+/// addon stwo_rv64_jobs_copy_async(dst, src, bytes, kind, stream) (kind 3 = d2d).
+pub const CopyAsync = *const fn (*anyopaque, *const anyopaque, usize, u32, *anyopaque) callconv(.c) c_int;
 const Slab = @import("slab.zig");
 const Sources = @import("../gkr_sources.zig");
 const W = @import("worker.zig");
@@ -143,7 +145,7 @@ pub const ScatterFn = *const fn (*anyopaque, u32, [*]const Run, u32, [*]const u3
 pub const Symbols = struct {
     check: CheckFn,
     scatter: ScatterFn,
-    copy: HJ.CopyAsync,
+    copy: CopyAsync,
     memset: *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int,
     commit: C.Symbols,
     /// Local GKR symbols (native_gkr.Symbols.load); required by the GKR half
@@ -159,7 +161,7 @@ pub const Symbols = struct {
             .receipt_encode = Wire.load(addon) catch null,
             .check = addon.lookup(CheckFn, "stwo_rv64_n1_check_v2_on") orelse return error.MissingNativeStage1Kernel,
             .scatter = addon.lookup(ScatterFn, "stwo_rv64_n1_scatter_v1_on") orelse return error.MissingNativeStage1Kernel,
-            .copy = addon.lookup(HJ.CopyAsync, "stwo_rv64_jobs_copy_async") orelse return error.MissingNativeStage1Kernel,
+            .copy = addon.lookup(CopyAsync, "stwo_rv64_jobs_copy_async") orelse return error.MissingNativeStage1Kernel,
             .memset = base.lookup(*const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int, "stwo_exec_context_memset_async") orelse return error.MissingNativeStage1Kernel,
             .commit = try C.Symbols.load(base),
             .gkr = gkr,
@@ -604,7 +606,7 @@ pub const Stage1Job = struct {
     device: u32,
     words: RequestWords,
     witness: Witness,
-    timing: ?*const HJ.Timing = null,
+    timing: ?*const Timing = null,
     timing_storage: enum { owned, installed } = .owned,
     // per-job shallow copies of the class plans (stage writes device views
     // into them; the class plans stay immutable and shareable across GPUs)
@@ -990,7 +992,7 @@ pub const Registry = struct {
     /// Per (request generation, segment): the request words and the chunks.
     requests: std.AutoHashMapUnmanaged(u64, *Pending) = .empty,
     sym: ?*const Symbols = null,
-    timing: ?*const HJ.Timing = null,
+    timing: ?*const Timing = null,
     /// gn-pack: host ROM words for the v2 programs' persistent ROM regions
     /// (filled by native_pack_capture.pack on the capture thread).
     roms: ?*NP.Roms = null,

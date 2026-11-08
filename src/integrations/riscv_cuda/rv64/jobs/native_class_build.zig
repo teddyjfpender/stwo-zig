@@ -54,7 +54,6 @@ const NGl = @import("native_global.zig");
 const NP = @import("native_pcs.zig");
 const NComp = @import("native_composition.zig");
 const NE = @import("native_encode.zig");
-const HJ = @import("native_hybrid_jobs.zig");
 const FC = @import("native_framing_cache.zig");
 const Sources = @import("../gkr_sources.zig");
 const JP = @import("../joined_parameters.zig");
@@ -259,7 +258,7 @@ pub const Class = struct {
     total: u32,
     mask_log: u32,
     claim_count: u32,
-    slots: []HJ.Slot = &.{},
+    slots: []NGl.Slot = &.{},
     gplans: std.ArrayListUnmanaged(NGl.Plan) = .empty,
     /// Per global plan: the artifact parameter slots (patch derivation).
     gslots: [][]const u32 = &.{},
@@ -540,7 +539,7 @@ fn buildStage2(env: *const Env, in: Inputs, cl: *Class) !void {
     cl.mask_log = @intCast(mask_log);
 
     // ---- hybrid buildFraming ----
-    cl.slots = try a.alloc(HJ.Slot, plan.slots.len);
+    cl.slots = try a.alloc(NGl.Slot, plan.slots.len);
     try cl.gplans.ensureTotalCapacity(a, plan.slots.len);
     cl.gslots = try a.alloc([]const u32, plan.slots.len);
     var n_globals: usize = 0;

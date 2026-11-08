@@ -46,7 +46,6 @@ const N = @import("native_pcs.zig");
 const S2 = @import("native_stage2.zig");
 const NComp = @import("native_composition.zig");
 const Gl = @import("native_global.zig");
-const HJ = @import("native_hybrid_jobs.zig");
 const B = @import("native_binding.zig");
 const JP = @import("../joined_parameters.zig");
 pub const NO = @import("native_encode_oods.zig");
@@ -595,7 +594,7 @@ pub const ClassFraming = struct {
     a: std.mem.Allocator,
     key: G.ClassKey,
     claim_count: u32,
-    slots: []const HJ.Slot,
+    slots: []const Gl.Slot,
     inter: *C.CommitPlan,
     composition: *NComp.Plan,
     pcs: *N.PcsJob,
