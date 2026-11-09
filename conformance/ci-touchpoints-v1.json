@@ -80,6 +80,15 @@
         [
           "zig",
           "build",
+          "test-fields",
+          "--build-file",
+          "src/waist/core/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
           "test-stwo-core",
           "identity-stwo-core",
           "-Doptimize=ReleaseFast",
@@ -92,15 +101,6 @@
           "--build-file",
           "src/waist/core/build.zig",
           "-Doptimize=ReleaseFast",
-          "-j2"
-        ],
-        [
-          "zig",
-          "build",
-          "test-fields",
-          "--build-file",
-          "src/waist/core/build.zig",
-          "-Doptimize=Debug",
           "-j2"
         ]
       ]

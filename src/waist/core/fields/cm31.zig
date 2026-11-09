@@ -94,13 +94,21 @@ pub const CM31 = struct {
         };
     }
 
-    pub inline fn mul(lhs: CM31, rhs: CM31) CM31 {
-        // Keep each coordinate in its direct schoolbook expression. This
-        // avoids shared aggregate intermediates in optimized nested callers.
-        // Four base products replace the three-product Karatsuba expression.
+    // Keep the three-product expression behind a call boundary in nested callers.
+    pub noinline fn mul(lhs: CM31, rhs: CM31) CM31 {
+        // Karatsuba: 3 base-field multiplies instead of 4.
+        // real = ac - bd
+        // imag = (a+b)(c+d) - ac - bd
+        const ac = lhs.a.mul(rhs.a);
+        const bd = lhs.b.mul(rhs.b);
+        const lhs_sum = lhs.a.add(lhs.b);
+        const rhs_sum = rhs.a.add(rhs.b);
+        const cross = lhs_sum.mul(rhs_sum);
+        var imaginary = cross.sub(ac);
+        imaginary = imaginary.sub(bd);
         return .{
-            .a = lhs.a.mul(rhs.a).sub(lhs.b.mul(rhs.b)),
-            .b = lhs.a.mul(rhs.b).add(lhs.b.mul(rhs.a)),
+            .a = ac.sub(bd),
+            .b = imaginary,
         };
     }
 
