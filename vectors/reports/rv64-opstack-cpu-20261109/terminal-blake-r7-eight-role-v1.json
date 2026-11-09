@@ -1,0 +1,50 @@
+{
+  "schema": "op-terminal-blake-R7-eight-role-v1",
+  "scope": "two concrete backend namespaces; shared generic PCS pipeline; no runtime/settlement admission",
+  "R6": {
+    "wire_magic": "STB26G01",
+    "original_tiny_commit": "59dd122c8",
+    "original_tiny_bytes": 895872,
+    "original_tiny_sha256": "5ad175c28c357fe7268d8a1239057dd7ed96dc7ca5ed25c4568026ad0be91088",
+    "new_proof_byte_identical_to_original": true,
+    "retained_actual_root_bytes": 1278096,
+    "retained_actual_root_sha256": "ca4bbee8fa1c806099059209b4e04b14233999b4e8f6bfd2e2a20a409f0d6f08",
+    "fresh_source_only_actual_root_and_nine_controls_pass": true
+  },
+  "R7": {
+    "wire_magic": "STB28G01",
+    "source": "genuine native_dot/outer_authority.Key as key.inner; key.inner.core.base remains original source authority",
+    "physical_components": 8,
+    "claims": 8,
+    "tiny_proof_bytes": 935624,
+    "dot_rows": 16,
+    "input_rows": 16,
+    "hard_shared_budget_bytes": 2147483648,
+    "cold_P2_source_and_FIXED_ns": 67519500,
+    "additional_Blake_FIXED_ns": 12332667,
+    "final_live": 0,
+    "final_external": 0
+  },
+  "qualification": {
+    "numeric_trace_circuit_P2_nativeMul_nativeDot_inputID_parity": true,
+    "nonempty_Dot_and_Input_components": true,
+    "coherent_balanced_claims_and_Dot_accumulator_Input_value_false_witnesses_rejected": true,
+    "independently_modified_valid_Dot_source_key_rejected": true,
+    "fresh_source_key_and_retired_prover_data_verify": true,
+    "retired_key_cannot_prove": true,
+    "public_output_corruption_noncanonical_claim_controls": true,
+    "valid_original_P2_R7_positive_and_cross_format_guards": true,
+    "R6_namespace_rejects_R7_source_and_wire": true,
+    "original_R7_shared_host_budget_required": true
+  },
+  "original_tiny_golden_method": "Original59dd code checked out temporarily; ONLY existing-proof test-file write added, no source/witness/channel/algorithm changes. Entire895872B new proof equals saved original. Ephemeral worktree removed after retaining golden artifact.",
+  "original_tiny_golden_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/terminal-blake-r6-original-tiny-v1/root.bin",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "remaining": [
+    "Actual R7 selected-source collector gate",
+    "Explicit terminal hash/Fiat-Shamir budget review",
+    "No production receiver or settlement selector"
+  ]
+}
