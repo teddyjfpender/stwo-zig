@@ -536,6 +536,10 @@ test "narrow QM31 and OM31 bounded inversion chunks preserve every scalar intera
             try std.testing.expect(retained.wire.eql(expected.wire));
             try std.testing.expectEqualSlices(core.fields.m31.M31, scalar.interaction, released.interaction);
             if (role == .arithmetic) try std.testing.expect(released.retainedAdviceBytes() < main_bytes / 10);
+            try released.releaseAdvice();
+            try std.testing.expectEqual(@as(u32, 5), released.public().calls);
+            try std.testing.expectError(error.TowerAdviceRetired, released.generateInteraction(ch));
+            try std.testing.expectError(error.TowerAdviceRetired, released.releaseAdvice());
         }
     }
 }

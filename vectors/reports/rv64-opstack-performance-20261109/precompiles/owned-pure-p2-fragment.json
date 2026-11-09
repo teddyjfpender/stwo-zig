@@ -38,7 +38,10 @@
       "wrong span and mass",
       "balanced forged SSA claims",
       "physical proof mutation",
-      "bounded durable envelope and truncation"
+      "bounded durable envelope and truncation",
+      "one-byte live limit refused before allocator use",
+      "durable public call count after advice retirement",
+      "regeneration after INTER transfer/advice retirement refused"
     ]
   },
   "remaining": [
@@ -46,5 +49,24 @@
     "source and working memory admissions at production geometry",
     "service recursive leaf and fold/root receiver",
     "heavy block end-to-end timed qualification"
-  ]
+  ],
+  "resource_admission": {
+    "mandatory_limits": [
+      "live_bytes",
+      "main_bytes",
+      "interaction_bytes",
+      "advice_bytes"
+    ],
+    "source_floor_before_allocation": true,
+    "synchronized_hard_worker_heap_cap": true,
+    "physical_peak_requested_bytes": 499410100,
+    "physical_limit_bytes": 1073741824,
+    "live_bytes_after_completion": 0,
+    "separately_owned": [
+      "immutable key",
+      "caller input",
+      "shared pool stacks",
+      "serialized output"
+    ]
+  }
 }

@@ -117,3 +117,19 @@ interaction cell before and after MAIN/FIXED release against the scalar
 reference. The source-owned target-profile pure-P2 fragment proof freshly
 verifies (558,184 framed bytes); missing CPU/Wire closure is explicitly refused.
 A complete inventory and recursive receiver remain required for admission.
+
+### Explicit phase and resource admission
+
+The worker requires `Limits{live_bytes, main_bytes, interaction_bytes,
+advice_bytes}`. Geometry-derived source floors are checked before allocation;
+a stable synchronized allocator then caps source, PCS and prover heap allocations
+through completion. Immutable cached keys, caller input, shared-pool stacks and
+returned serialized bytes remain separately caller-owned. The single-call
+physical gate peaks at 499,410,100 requested worker bytes under a 1 GiB cap and
+returns to zero worker-owned bytes. This is a logical allocation counter, not RSS.
+
+Source retains its call count independently of compact advice. Successful
+interaction generation and advice retirement are explicit phases: moving INTER
+out cannot permit regeneration, and retiring advice preserves public identity.
+These close the two gaps recorded in the independent
+[worker review](../../../../../../../design/riscv-proving-stack/reviews/op-miller-worker-f673-resource-review.md).

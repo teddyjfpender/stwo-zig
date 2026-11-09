@@ -24,7 +24,7 @@ fn expectedWire(shared: M.Shared, packet: [20]u256, id: u32) !O {
     }
     return sum;
 }
-test "OP pure P2 tower worker releases MAIN and freshly verifies a framed physical fragment" {
+pub fn exercise(comptime Hook: type) !void {
     const profile = @import("../../poseidon2_outer/op_profile.zig").Profile.op_target_b4_q72_p0_fold4_v1;
     var key = try T.Key.init(a, profile, 8, 15);
     defer key.deinit();
@@ -40,7 +40,10 @@ test "OP pure P2 tower worker releases MAIN and freshly verifies a framed physic
     packet[16] = 7;
     packet[18] = 2;
     packet[19] = 3;
-    var worker = try T.Worker.init(a, &key, span, authority, &.{packet});
+    var fail = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
+    try std.testing.expectError(error.OpTowerBudgetExceeded, T.Worker.init(fail.allocator(), &key, span, authority, &.{packet}, .{ .live_bytes = 1, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 1 << 20 }));
+    try std.testing.expect(!fail.has_induced_failure);
+    var worker = try T.Worker.init(a, &key, span, authority, &.{packet}, .{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 1 << 20 });
     defer worker.deinit();
     const stage = try worker.seal();
     try std.testing.expectEqual(@as(usize, 0), worker.frontier.main.len);
@@ -62,7 +65,10 @@ test "OP pure P2 tower worker releases MAIN and freshly verifies a framed physic
     defer a.free(framed);
     var restored = try T.decode(a, framed, framed.len);
     defer restored.deinit(a);
-    const claim = try T.verify(a, &fresh, span, trusted, &pending, 0, &restored);
+    var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(@import("../../poseidon2_outer/pure_p2_worker_protocol.zig").W.H) = undefined;
+    const claim = try T.verifyWithCapture(a, &fresh, span, trusted, &pending, 0, &restored, &capture);
+    defer capture.deinit(a);
+    if (comptime @hasDecl(Hook, "run")) try Hook.run(a, &fresh, span, trusted, &pending, &restored, &capture);
     try std.testing.expect(claim.wire.eql(try expectedWire(pending.shared, packet, 7)));
     try std.testing.expectError(error.UnclosedGlobalGkrWire, pending.checkGlobalClosure(&.{claim}));
     try std.testing.expectError(error.OpTowerEnvelope, T.decode(a, framed, framed.len - 1));
@@ -77,5 +83,12 @@ test "OP pure P2 tower worker releases MAIN and freshly verifies a framed physic
     restored.claims = produced.claims;
     restored.bytes[restored.bytes.len - 1] ^= 1;
     try std.testing.expect(std.meta.isError(T.verify(a, &fresh, span, trusted, &pending, 0, &restored)));
+    const budget = worker.budget.snapshot();
+    try std.testing.expect(budget.peak_live_bytes <= budget.limit and !budget.exceeded);
+    std.debug.print("OP_TOWER_BUDGET {any}\n", .{budget});
     std.debug.print("OP_PURE_P2_TOWER_WORKER bytes={} retained_advice={} active_calls=1 field=OM31 profile=target fragment_only=true\n", .{ framed.len, retained_advice });
+}
+
+test "OP pure P2 tower worker releases MAIN and freshly verifies a framed physical fragment" {
+    try exercise(struct {});
 }

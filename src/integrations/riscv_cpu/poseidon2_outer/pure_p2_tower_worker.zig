@@ -13,6 +13,7 @@ const M31 = core.fields.m31.M31;
 const Protocol = @import("pure_p2_worker_protocol.zig");
 const W = Protocol.W;
 const Manifest = @import("pure_p2_manifest.zig");
+const Budget = engine.host_budget_allocator.SharedHostBudget;
 const Commit = @import("../word16_execution/main_ownership.zig").Commit;
 const F = N.ForField(O).Component(.frontier);
 const C = N.ForField(O).Component(.arithmetic);
@@ -21,6 +22,32 @@ const LC = C.L;
 const SF = N.trace.SourceForField(.frontier, O);
 const SC = N.trace.SourceForField(.arithmetic, O);
 pub const Span = struct { calls: u32, first_id: u32 };
+/// Explicit worker allocations, including PCS/FFT/prover scratch, are hard
+/// capped. Independently cached immutable Key, caller input, shared-pool stacks
+/// and returned serialized proof bytes remain separately caller-owned.
+pub const Limits = struct { live_bytes: usize, main_bytes: usize, interaction_bytes: usize, advice_bytes: usize };
+pub const ResourcePlan = struct {
+    main_bytes: usize,
+    interaction_bytes: usize,
+    advice_bytes: usize,
+    interaction_scratch_bytes: usize,
+    pub fn derive(key: *const Key, span: Span) !ResourcePlan {
+        try key.validateSpan(span);
+        const f = @as(usize, 1) << @intCast(key.frontier_log);
+        const c = @as(usize, 1) << @intCast(key.arithmetic_log);
+        return .{
+            .main_bytes = 4 * (LF.MAIN * f + LC.MAIN * c),
+            .interaction_bytes = 4 * (LF.INTERACTION * f + LC.INTERACTION * c),
+            .advice_bytes = @as(usize, span.calls) * (@sizeOf(N.trace.Input) + @sizeOf(N.micro.Advice)) + 2 * 256 * @sizeOf(u32) + N.micro.CARRY_LIMIT * @sizeOf(u32),
+            .interaction_scratch_bytes = 2 * N.micro.CARRY_LIMIT * @sizeOf(O) + 3 * 128 * 9 * @sizeOf(O) + 256 * @sizeOf(O),
+        };
+    }
+    pub fn admit(self: ResourcePlan, limits: Limits) !void {
+        if (limits.live_bytes == 0 or limits.main_bytes == 0 or limits.interaction_bytes == 0 or limits.advice_bytes == 0) return error.OpTowerBudgetMissing;
+        const source_floor = self.advice_bytes + @max(self.main_bytes, self.interaction_bytes + self.interaction_scratch_bytes);
+        if (self.main_bytes > limits.main_bytes or self.interaction_bytes > limits.interaction_bytes or self.advice_bytes > limits.advice_bytes or source_floor > limits.live_bytes) return error.OpTowerBudgetExceeded;
+    }
+};
 pub const Encoded = struct {
     bytes: []u8,
     /// Frontier SSA/Wire, then arithmetic SSA/Wire. Each enters the transcript.
@@ -139,7 +166,7 @@ pub const Key = struct {
     pub fn expected(self: *const Key, span: Span, ordinal: u32) !Manifest.Expected {
         return .{ .kind = .delegation, .ordinal = ordinal, .profile = self.profile, .global_relations = .{ .ram = false, .kio = false, .wire = true }, .mass = .{ .ram = 0, .kio = 0, .wire = 32 * @as(u64, span.calls) }, .fixed_identity = self.identity, .fixed = self.root, .statement = try self.statement(span), .local_instances = null };
     }
-    fn logs(self: *const Key, a: std.mem.Allocator, tree: usize) ![]u32 {
+    pub fn logs(self: *const Key, a: std.mem.Allocator, tree: usize) ![]u32 {
         const widths = switch (tree) {
             0 => [2]usize{ S.FIXED, S.FIXED },
             1 => [2]usize{ LF.MAIN, LC.MAIN },
@@ -183,6 +210,9 @@ fn checkClaims(claims: [4]O) !void {
 }
 pub const Worker = struct {
     allocator: std.mem.Allocator,
+    parent_allocator: std.mem.Allocator,
+    budget: *Budget,
+    resources: ResourcePlan,
     key: *const Key,
     span: Span,
     expected: Manifest.Expected,
@@ -193,9 +223,14 @@ pub const Worker = struct {
     sealed: bool = false,
     consumed: bool = false,
     owns_scheme: bool = true,
-    pub fn init(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manifest.Expected, input: []const N.trace.Input) !Worker {
+    pub fn init(backing: std.mem.Allocator, key: *const Key, span: Span, expected: Manifest.Expected, input: []const N.trace.Input, limits: Limits) !Worker {
         try validate(key, span, expected);
         if (input.len != span.calls) return error.OpTowerCallCount;
+        const resources = try ResourcePlan.derive(key, span);
+        try resources.admit(limits);
+        const budget = try Budget.createRetainingParent(backing, limits.live_bytes);
+        errdefer budget.destroy();
+        const a = budget.allocator();
         var frontier = try SF.initWithoutFixed(a, input, span.first_id, key.frontier_log);
         errdefer frontier.deinit();
         var arithmetic = try SC.initWithoutFixed(a, input, span.first_id, key.arithmetic_log);
@@ -203,12 +238,13 @@ pub const Worker = struct {
         var scheme = try W.Prover.init(a, key.profile.config());
         errdefer scheme.deinit(a);
         scheme.setCompactPolynomialStorage(1);
-        return .{ .allocator = a, .key = key, .span = span, .expected = expected, .frontier = frontier, .arithmetic = arithmetic, .scheme = scheme, .channel = Protocol.begin(key.profile, expected, key.identity, key.root) };
+        return .{ .allocator = a, .parent_allocator = backing, .budget = budget, .resources = resources, .key = key, .span = span, .expected = expected, .frontier = frontier, .arithmetic = arithmetic, .scheme = scheme, .channel = Protocol.begin(key.profile, expected, key.identity, key.root) };
     }
     pub fn deinit(self: *Worker) void {
         self.frontier.deinit();
         self.arithmetic.deinit();
         if (self.owns_scheme) self.scheme.deinit(self.allocator);
+        self.budget.destroy();
         self.* = undefined;
     }
     fn takeColumns(self: *Worker, comptime tree: enum { main, interaction }) !Commit {
@@ -256,8 +292,8 @@ pub const Worker = struct {
         Protocol.mixManifestAndClaims(&self.channel, pending.digest, &claims);
         const interaction = try self.takeColumns(.interaction);
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, interaction.columns, interaction.backings, 64, null, &self.channel);
-        self.frontier.releaseAdvice();
-        self.arithmetic.releaseAdvice();
+        try self.frontier.releaseAdvice();
+        try self.arithmetic.releaseAdvice();
         const set = components(self.key, self.span, ch, claims);
         const handles = [_]engine.air.component_prover.ForField(O).ComponentProver{ set[0].asProverComponent(), set[1].asProverComponent() };
         const scheme = self.scheme;
@@ -265,12 +301,15 @@ pub const Worker = struct {
         self.owns_scheme = false;
         var proof = try W.Prover.prove(self.allocator, &handles, &self.channel, scheme, .{});
         defer proof.deinit(self.allocator);
-        return .{ .bytes = try W.Wire.encodeProofBytesBinary(self.allocator, proof.proof), .claims = claims };
+        return .{ .bytes = try W.Wire.encodeProofBytesBinary(self.parent_allocator, proof.proof), .claims = claims };
     }
 };
 /// Only a freshly verified fragment claim. The caller must verify EVERY
 /// admitted worker and close RAM/KIO/Wire before accepting an execution.
 pub fn verify(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manifest.Expected, pending: *const Manifest.Pending, index: usize, encoded: *const Encoded) !Manifest.Claims {
+    return verifyWithCapture(a, key, span, expected, pending, index, encoded, null);
+}
+pub fn verifyWithCapture(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manifest.Expected, pending: *const Manifest.Pending, index: usize, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
     try checkPending(key, span, expected, pending, index);
     try checkClaims(encoded.claims);
     var proof = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
@@ -293,8 +332,10 @@ pub fn verify(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manif
     try receiver.commit(a, roots[2], logs, &channel);
     const set = components(key, span, ch, encoded.claims);
     const handles = [_]core.air.components.ForField(O).Component{ set[0].asVerifierComponent(), set[1].asVerifierComponent() };
-    var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H) = undefined;
-    try core.verifier.ForField(O).verifyBorrowedWithProofCapture(W.H, W.MC, a, &handles, &channel, &receiver, &proof, &capture);
-    capture.deinit(a);
+    if (comptime @TypeOf(output_capture) == @TypeOf(null)) {
+        var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H) = undefined;
+        try core.verifier.ForField(O).verifyBorrowedWithProofCapture(W.H, W.MC, a, &handles, &channel, &receiver, &proof, &capture);
+        capture.deinit(a);
+    } else try core.verifier.ForField(O).verifyBorrowedWithProofCapture(W.H, W.MC, a, &handles, &channel, &receiver, &proof, output_capture);
     return .{ .ram = O.zero(), .kio = O.zero(), .wire = encoded.claims[1].add(encoded.claims[3]) };
 }

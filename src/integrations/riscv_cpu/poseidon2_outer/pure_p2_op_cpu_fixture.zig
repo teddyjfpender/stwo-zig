@@ -108,7 +108,7 @@ test "OP actual Miller CPU GKR physical proof freshly closes RAM Wire and manife
     const fresh_truth_expected = try fresh_truth.expected(truth_span, 1);
     var input: A.crypto.bn254_tower.narrow.trace.Input = undefined;
     for (&input, 0..) |*value, i| value.* = @as(u256, before[4 * i]) | (@as(u256, before[4 * i + 1]) << 64) | (@as(u256, before[4 * i + 2]) << 128) | (@as(u256, before[4 * i + 3]) << 192);
-    var truth = try Truth.Worker.init(a, &truth_key, truth_span, truth_expected, &.{input});
+    var truth = try Truth.Worker.init(a, &truth_key, truth_span, truth_expected, &.{input}, .{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 1 << 20 });
     defer truth.deinit();
     const stages = [_]Manifest.StageOne{ try worker.seal(a), try truth.seal() };
     const expected = [_]Manifest.Expected{ cpu_expected, truth_expected };

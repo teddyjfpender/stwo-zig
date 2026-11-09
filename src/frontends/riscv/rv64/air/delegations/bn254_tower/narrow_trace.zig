@@ -32,6 +32,9 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
         allocator: std.mem.Allocator,
         log_size: u32,
         first_id: u32,
+        call_count: u32,
+        interaction_generated: bool = false,
+        advice_retired: bool = false,
         inputs: []Retained,
         byte_counts: [256]u32,
         carry_counts: []u32,
@@ -47,7 +50,8 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
             return initImpl(a, inputs, first, log, false);
         }
         fn initImpl(a: std.mem.Allocator, inputs: []const Input, first: u32, log: u32, comptime keep_fixed: bool) !Self {
-            try L.validateGeometry(@intCast(inputs.len), first, log);
+            const call_count = std.math.cast(u32, inputs.len) orelse return error.TowerGeometry;
+            try L.validateGeometry(call_count, first, log);
             const n = @as(usize, 1) << @intCast(log);
             const copy = try a.alloc(Retained, inputs.len);
             errdefer a.free(copy);
@@ -85,7 +89,7 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
                 for (byte_counts, 0..) |count, value| main[L.BYTE_MULT * n + R.trace.physical(value, log)] = M.fromCanonical(count);
                 for (carry_counts, 0..) |count, value| main[L.CARRY_MULT * n + R.trace.physical(value, log)] = M.fromCanonical(count);
             }
-            return .{ .allocator = a, .log_size = log, .first_id = first, .inputs = copy, .fixed = preprocessing, .main = main, .byte_counts = byte_counts, .carry_counts = carry_counts };
+            return .{ .allocator = a, .log_size = log, .first_id = first, .call_count = call_count, .inputs = copy, .fixed = preprocessing, .main = main, .byte_counts = byte_counts, .carry_counts = carry_counts };
         }
         pub fn deinit(self: *Self) void {
             const a = self.allocator;
@@ -100,7 +104,7 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
             return @as(usize, 1) << @intCast(self.log_size);
         }
         pub fn public(self: *const Self) @import("../../evaluation.zig").CallSpanFor(Q) {
-            return .{ .calls = @intCast(self.inputs.len), .first_id = self.first_id };
+            return .{ .calls = self.call_count, .first_id = self.first_id };
         }
         /// Ownership transfers only after the caller has allocated all commit
         /// headers/backings. Advice and range counts remain owned by Source.
@@ -116,12 +120,15 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
         }
         /// After INTER is committed, authenticated claims/PCS retain the
         /// obligations. No source operation is allowed to regenerate it.
-        pub fn releaseAdvice(self: *Self) void {
+        pub fn releaseAdvice(self: *Self) !void {
+            if (self.advice_retired) return error.TowerAdviceRetired;
+            if (!self.interaction_generated) return error.TowerInteractionNotGenerated;
             self.allocator.free(self.inputs);
             self.inputs = &.{};
             self.allocator.free(self.carry_counts);
             self.carry_counts = &.{};
             self.byte_counts = @splat(0);
+            self.advice_retired = true;
         }
         pub fn retainedAdviceBytes(self: *const Self) usize {
             return self.inputs.len * @sizeOf(Retained) + @sizeOf(@TypeOf(self.byte_counts)) + self.carry_counts.len * @sizeOf(u32);
@@ -172,7 +179,8 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
         const CHUNK_ROWS = 128;
         const FRACTIONS = L.SSA_FRACTIONS + 1;
         fn generateInteractionImpl(self: *Self, ch: NE.ChallengesFor(Q), comptime batched: bool) !NE.ClaimsFor(Q) {
-            if (self.interaction.len != 0) return error.TowerInteractionAlreadyGenerated;
+            if (self.advice_retired) return error.TowerAdviceRetired;
+            if (self.interaction_generated or self.interaction.len != 0) return error.TowerInteractionAlreadyGenerated;
             const n = self.size();
             const out = try self.allocator.alloc(M, L.INTERACTION * n);
             errdefer self.allocator.free(out);
@@ -275,6 +283,7 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
             for (0..L.SSA_BATCHES) |batch| center(out, n, L.SSA_FIRST + L.COORDINATES * batch, ssa_total);
             center(out, n, L.WIRE_FIRST, wire_total);
             self.interaction = out;
+            self.interaction_generated = true;
             return .{ .ssa = ssa_total, .wire = wire_total };
         }
     };
