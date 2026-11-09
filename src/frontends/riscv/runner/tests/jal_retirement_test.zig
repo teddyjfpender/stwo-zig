@@ -374,7 +374,7 @@ test "JAL cold allocation failure is atomic and warm retirement allocates nothin
     try std.testing.expect(@sizeOf(subject.Plan) <= subject.MAX_PLAN_BYTES);
 }
 
-test "JAL retirement retains paired legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try subject.authenticateCanonical(std.testing.allocator);
     const samples = 9;

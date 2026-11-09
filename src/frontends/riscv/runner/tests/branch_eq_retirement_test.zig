@@ -395,7 +395,7 @@ test "typed BRANCH_EQ cold retirement releases every induced allocation failure"
     );
 }
 
-test "typed BRANCH_EQ retirement retains at least 0.97x legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try authenticatedAuthority();
     const samples = 15;

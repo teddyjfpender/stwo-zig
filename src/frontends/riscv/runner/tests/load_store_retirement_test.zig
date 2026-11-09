@@ -433,7 +433,7 @@ test "LOAD_STORE reserve reentrancy is detected before publication" {
     try std.testing.expectEqual(@as(usize, 0), tracker.accesses.items.len);
 }
 
-test "LOAD_STORE retirement strictly preserves paired legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try subject.authenticateCanonical(std.testing.allocator);
     _ = try measureFixed(&authority, 1 << 9);

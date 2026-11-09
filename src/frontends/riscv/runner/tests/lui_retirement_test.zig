@@ -310,7 +310,7 @@ test "E-018 staged LUI warm hot path performs no allocation" {
     try std.testing.expectEqual(@as(usize, iterations), tracker.accesses.items.len);
 }
 
-test "E-018 staged LUI retirement retains paired legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
 
     const authority = try authenticatedAuthority();

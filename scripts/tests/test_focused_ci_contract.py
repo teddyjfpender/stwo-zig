@@ -199,10 +199,10 @@ class PlannerContractTests(unittest.TestCase):
     def test_timing_benchmarks_are_separate_and_nonblocking(self):
         package = ROOT / "src/frontends/riscv"
         catalog = (package / "build_focused_tests.zig").read_text()
-        spec = catalog.split('.step = "test-typed-witness-benchmarks",', 1)[1].split('.minimum = 33,', 1)[0]
+        spec = catalog.split('.step = "test-typed-witness-benchmarks",', 1)[1].split('.minimum = 52,', 1)[0]
         filters = re.findall(r'"([^"\n]+)"', spec.split('.filters = &.{', 1)[1])
         imports = re.findall(r'@import\("([^"]+)"\)', (package / "typed_witness_benchmark_test_root.zig").read_text())
-        self.assertEqual(33, len(set(filters)))
+        self.assertEqual(52, len(set(filters)))
         self.assertEqual(13, len(set(imports)))
         for path in imports:
             self.assertNotIn('@import("' + path + '")', (package / "test_inventory.zig").read_text())

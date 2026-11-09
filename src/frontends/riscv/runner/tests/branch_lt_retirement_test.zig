@@ -326,7 +326,7 @@ test "typed BRANCH_LT capacity failures expose no prefix and warm path allocates
     try std.testing.expect(!failing.has_induced_failure);
 }
 
-test "typed BRANCH_LT retirement retains at least 97 percent legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try authenticatedAuthority();
     const samples = 13;

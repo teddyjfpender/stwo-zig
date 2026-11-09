@@ -279,7 +279,7 @@ test "LT_REG cold allocation failure is atomic and warm path allocates nothing" 
     try std.testing.expect(@sizeOf(subject.CompactTransaction) <= subject.MAX_TRANSACTION_BYTES);
 }
 
-test "LT_REG retirement retains at least 0.97x legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try subject.authenticateCanonical(std.testing.allocator);
     const samples = 11;

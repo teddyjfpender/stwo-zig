@@ -399,7 +399,7 @@ test "E-019 staged FENCE warm hot path performs no allocation or tracker write" 
     try std.testing.expect(@sizeOf(subject.Prepared) <= subject.MAX_PREPARED_BYTES);
 }
 
-test "E-019 staged FENCE retirement retains paired legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
 
     const authority = try authenticatedAuthority();

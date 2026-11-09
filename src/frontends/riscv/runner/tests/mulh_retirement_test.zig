@@ -490,7 +490,7 @@ test "MULH reserve reentrancy is detected before retirement publication" {
     try std.testing.expectEqual(@as(usize, 0), tracker.clock_updates_reg.items.len);
 }
 
-test "MULH retirement strictly preserves paired legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const authority = try subject.authenticateCanonical(std.testing.allocator);
     _ = try measureFixed(&authority, 1 << 10);

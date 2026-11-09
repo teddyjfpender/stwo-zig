@@ -524,7 +524,7 @@ fn measureSplit(
     return elapsed;
 }
 
-test "split sequential shadow path retains paired combined throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const samples = 9;
     const call_count: u32 = 64;

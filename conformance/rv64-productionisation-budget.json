@@ -991,10 +991,10 @@
     },
     {
       "id": "a3_remaining_nonblocking_frontend_benchmark_ownership",
-      "net_code_budget": 180,
+      "net_code_budget": 240,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Pre-edit issue330 comment6748065237 bounds the remaining shared-runner throughput separation. Preserve33 test names, exact assertion bodies and thresholds in the existing nonblocking lane.21 mixed correctness modules expose test-only fixtures without copies; mandatory correctness floors and frozen proof pins remain unchanged. Actual bounded source delta110 lines; no optimization or performance-PASS claim."
+      "positive_growth_justification": "Pre-edit issue330 comments6751095616 and6751132519 extend the complete shared-runner timing separation to52 exact cases, including17 retirement and2 split/scheduler comparisons. Preserve every name, assertion body, threshold and helper in the existing nonblocking lane; mandatory correctness floors, functional/negative tests and frozen proof pins stay unchanged. Growth owns only test registration/filter metadata and test-only fixture signatures, not production optimization. Earlier180-line allowance covered33 cases; full bounded allowance240, no runtime flag or launcher."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

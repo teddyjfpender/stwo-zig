@@ -83,3 +83,79 @@ test "SHIFTS_IMM fixed direct and lookup evaluators preserve legacy throughput" 
 test "SHIFTS_REG fixed direct and lookup evaluators retain legacy throughput" {
     try @import("typed_shifts_reg_authority_test.zig").benchmarkLegacyThroughput();
 }
+
+test "typed AUIPC retirement retains at least 97 percent legacy throughput" {
+    try @import("../../../runner/tests/auipc_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "E-020 BASE_ALU_IMM retirement retains paired legacy throughput" {
+    try @import("../../../runner/tests/base_alu_imm_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "E-020 BASE_ALU_REG retirement retains at least 0.97x legacy throughput" {
+    try @import("../../../runner/tests/base_alu_reg_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "typed BRANCH_EQ retirement retains at least 0.97x legacy throughput" {
+    try @import("../../../runner/tests/branch_eq_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "typed BRANCH_LT retirement retains at least 97 percent legacy throughput" {
+    try @import("../../../runner/tests/branch_lt_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "DIV retirement strictly preserves paired legacy throughput" {
+    try @import("../../../runner/tests/div_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "E-019 staged FENCE retirement retains paired legacy throughput" {
+    try @import("../../../runner/tests/fence_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "JAL retirement retains paired legacy throughput" {
+    try @import("../../../runner/tests/jal_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "typed JALR retirement retains at least 97 percent legacy throughput" {
+    try @import("../../../runner/tests/jalr_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "LOAD_STORE retirement strictly preserves paired legacy throughput" {
+    try @import("../../../runner/tests/load_store_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "LT_IMM retirement strictly preserves paired legacy throughput" {
+    try @import("../../../runner/tests/lt_imm_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "LT_REG retirement retains at least 0.97x legacy throughput" {
+    try @import("../../../runner/tests/lt_reg_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "E-018 staged LUI retirement retains paired legacy throughput" {
+    try @import("../../../runner/tests/lui_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "MUL retirement strictly preserves paired legacy throughput" {
+    try @import("../../../runner/tests/mul_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "MULH retirement strictly preserves paired legacy throughput" {
+    try @import("../../../runner/tests/mulh_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "SHIFTS_IMM retirement strictly preserves paired legacy throughput" {
+    try @import("../../../runner/tests/shifts_imm_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "SHIFTS_REG retirement retains at least 0.97x legacy throughput" {
+    try @import("../../../runner/tests/shifts_reg_retirement_test.zig").benchmarkLegacyThroughput();
+}
+
+test "split sequential shadow path retains paired combined throughput" {
+    try @import("../../../prover/guest_precompile/tests/split_main_trace_test.zig").benchmarkLegacyThroughput();
+}
+
+test "interaction trace epoch: paired scheduler performance sample" {
+    try @import("../../../prover/tests/interaction_trace_plan_performance_test.zig").benchmarkLegacyThroughput();
+}
