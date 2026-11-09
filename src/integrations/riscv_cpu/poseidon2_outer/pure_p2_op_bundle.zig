@@ -13,6 +13,8 @@ const Truth = @import("pure_p2_truth_worker.zig");
 const TruthLocal = @import("truth_local_gkr/worker.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
 const MillerLocal = @import("miller_local_gkr/worker.zig");
+const SuiteWire = @import("pure_p2_source_suite.zig");
+const Suite = SuiteWire.Suite;
 const R = @import("../word16_global_execution/services/roster.zig");
 const P = @import("../word16_global_execution/services/protocol.zig");
 const T = @import("../word16_global_execution/services/types.zig");
@@ -103,6 +105,7 @@ pub const Closed = struct {
     }
 };
 pub const Bundle = struct {
+    source_suite: ?Suite = null,
     stage_one: []u8,
     proofs: []Proof,
     pub fn deinit(self: *Bundle, a: std.mem.Allocator) void {
@@ -121,7 +124,16 @@ pub const Bundle = struct {
         return self.verifyWithHooksForTruthLocal(a, inventory, setups, requests, spans, keys, truths, truth_keys, miller, hooks);
     }
     pub fn verifyWithHooksForTruthLocal(self: *const Bundle, a: std.mem.Allocator, inventory: *const Inventory.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inventory.MillerDeclaration, hooks: Hooks) !Closed {
-        if (inventory.source_suite != null) return error.OpSourceSuiteRequiresExplicitReceiver;
+        if (inventory.source_suite != null or self.source_suite != null) return error.OpSourceSuiteRequiresExplicitReceiver;
+        return self.verifyImpl(a, inventory, setups, requests, spans, keys, truths, truth_keys, miller, hooks);
+    }
+    pub fn verifyWithHooksForSourceSuite(self: *const Bundle, a: std.mem.Allocator, inventory: *const Inventory.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inventory.MillerDeclaration, expected_suite: Suite, hooks: Hooks) !Closed {
+        const selected = inventory.source_suite orelse return error.OpSourceSuiteRequiresExplicitReceiver;
+        try selected.requireExpected(expected_suite);
+        try (self.source_suite orelse return error.OpSourceSuitePolicyMismatch).requireExpected(expected_suite);
+        return self.verifyImpl(a, inventory, setups, requests, spans, keys, truths, truth_keys, miller, hooks);
+    }
+    fn verifyImpl(self: *const Bundle, a: std.mem.Allocator, inventory: *const Inventory.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inventory.MillerDeclaration, hooks: Hooks) !Closed {
         if (inventory.truth_local_keys.len != 0 and inventory.truth_local_keys.len != truths.len) return error.InvalidOpTruthLocalInventory;
         if (setups.len != inventory.cpu_count or requests.len != setups.len or keys.len != setups.len or spans.len != setups.len or truths.len != inventory.truth_count or truths.len != truth_keys.len or self.proofs.len != inventory.workers.len or setups.len + truths.len + miller.len != self.proofs.len) return error.InvalidOpNativeBundle;
         var stages = try MW.decode(a, inventory.execution, inventory.workers, self.stage_one);
@@ -163,6 +175,21 @@ pub const Bundle = struct {
         }
         for (miller, 0..) |item, j| {
             const i = setups.len + truths.len + j;
+            if (item.local_key) |local_key| {
+                const suite = inventory.source_suite orelse return error.OpSourceSuiteRequiresExplicitReceiver;
+                if (suite.miller != .local_gkr) return error.OpMillerSourceSuitePolicy;
+                var local = try MillerLocal.decode(a, self.proofs[i].bytes, self.proofs[i].bytes.len);
+                defer local.deinit(a);
+                if (self.proofs[i].claims.len != 2 or !std.meta.eql(self.proofs[i].claims[0..2].*, local.claims)) return error.OpMillerLocalClaimEnvelope;
+                if (hooks.miller_local) |hook| {
+                    var capture: Capture = undefined;
+                    claims[i] = try MillerLocal.verifyWithCapture(a, local_key, item.span, inventory.workers[i], &pending, i, &local, &capture);
+                    defer capture.deinit(a);
+                    try hook(hooks.context, a, .{ .span = item.span, .key = local_key, .expected = inventory.workers[i], .manifest = &pending, .ordinal = i, .encoded = &local, .capture = &capture, .stage_one = stages.stages[i] });
+                } else claims[i] = try MillerLocal.verify(a, local_key, item.span, inventory.workers[i], &pending, i, &local);
+                continue;
+            }
+            if (inventory.source_suite) |suite| if (suite.miller != .classic) return error.OpMillerSourceSuitePolicy;
             if (self.proofs[i].claims.len != 4) return error.InvalidOpNativeBundle;
             const proof = Miller.Encoded{ .bytes = self.proofs[i].bytes, .claims = self.proofs[i].claims[0..4].* };
             if (hooks.miller) |hook| {
@@ -197,10 +224,18 @@ fn word(a: std.mem.Allocator, out: *std.ArrayList(u8), n: usize) !void {
     try out.appendSlice(a, &bytes);
 }
 pub fn encode(a: std.mem.Allocator, bundle: *const Bundle, limits: Limits) ![]u8 {
+    if (bundle.source_suite != null) return error.OpSourceSuiteRequiresExplicitEncoder;
+    return encodeImpl(a, bundle, limits, null);
+}
+pub fn encodeForSuite(a: std.mem.Allocator, bundle: *const Bundle, limits: Limits, expected_suite: Suite) ![]u8 {
+    try (bundle.source_suite orelse return error.OpSourceSuitePolicyMismatch).requireExpected(expected_suite);
+    return encodeImpl(a, bundle, limits, expected_suite);
+}
+fn encodeImpl(a: std.mem.Allocator, bundle: *const Bundle, limits: Limits, source_suite: ?Suite) ![]u8 {
     if (bundle.proofs.len == 0 or bundle.proofs.len > Manifest.MAX_WORKERS or bundle.stage_one.len > MW.MAX_BYTES) return error.OpNativeBundleLimit;
     // Determine the complete wire size before acquiring a potentially large
     // buffer. Grow-and-copy would retain two block-sized buffers transiently.
-    var size = try std.math.add(usize, MAGIC.len + 8, bundle.stage_one.len);
+    var size = try std.math.add(usize, MAGIC.len + 8 + (if (source_suite != null) @as(usize, SuiteWire.BYTES) else 0), bundle.stage_one.len);
     for (bundle.proofs) |proof| {
         if (proof.bytes.len == 0 or proof.bytes.len > limits.proof_bytes or proof.claims.len > limits.claims or proof.bytes.len > std.math.maxInt(u32) or proof.claims.len > std.math.maxInt(u32)) return error.OpNativeBundleLimit;
         const claim_bytes = try std.math.mul(usize, proof.claims.len, 8 * @sizeOf(u32));
@@ -211,7 +246,8 @@ pub fn encode(a: std.mem.Allocator, bundle: *const Bundle, limits: Limits) ![]u8
     var out = std.ArrayList(u8).empty;
     errdefer out.deinit(a);
     try out.ensureTotalCapacityPrecise(a, size);
-    try out.appendSlice(a, MAGIC);
+    try out.appendSlice(a, if (source_suite != null) SuiteWire.WIRE_MAGIC else MAGIC);
+    if (source_suite) |suite| try out.appendSlice(a, &try suite.encode());
     try word(a, &out, bundle.proofs.len);
     try word(a, &out, bundle.stage_one.len);
     try out.appendSlice(a, bundle.stage_one);
@@ -228,10 +264,12 @@ pub fn encode(a: std.mem.Allocator, bundle: *const Bundle, limits: Limits) ![]u8
 }
 /// Validate ALL lengths, count, canonical claims and trailing bytes before any
 /// owned allocation. The caller's complete source inventory fixes proof count.
-fn preflight(bytes: []const u8, count: usize, limits: Limits) !void {
+fn preflight(bytes: []const u8, count: usize, limits: Limits, source_suite: ?Suite) !void {
     if (bytes.len > limits.bytes or count == 0 or count > Manifest.MAX_WORKERS) return error.OpNativeBundleLimit;
     var r = Reader{ .data = bytes };
-    if (!std.mem.eql(u8, try r.take(MAGIC.len), MAGIC) or try r.word() != count) return error.InvalidOpNativeBundle;
+    if (!std.mem.eql(u8, try r.take(MAGIC.len), if (source_suite != null) SuiteWire.WIRE_MAGIC else MAGIC)) return error.InvalidOpNativeBundle;
+    if (source_suite) |suite| try (try Suite.decode((try r.take(SuiteWire.BYTES))[0..SuiteWire.BYTES].*)).requireExpected(suite);
+    if (try r.word() != count) return error.InvalidOpNativeBundle;
     const stage = try r.word();
     if (stage > MW.MAX_BYTES) return error.OpNativeBundleLimit;
     _ = try r.take(stage);
@@ -239,15 +277,25 @@ fn preflight(bytes: []const u8, count: usize, limits: Limits) !void {
         const claims = try r.word();
         const n = try r.word();
         if (claims > limits.claims or n == 0 or n > limits.proof_bytes) return error.OpNativeBundleLimit;
-        for (0..claims * 8) |_| if (try r.word() >= core.fields.m31.Modulus) return error.NoncanonicalOpNativeClaim;
+        const coordinates = try std.math.mul(usize, claims, 8);
+        const claim_words = try r.take(try std.math.mul(usize, coordinates, 4));
+        for (0..coordinates) |j| if (std.mem.readInt(u32, claim_words[4 * j ..][0..4], .little) >= core.fields.m31.Modulus) return error.NoncanonicalOpNativeClaim;
         _ = try r.take(n);
     }
     if (r.at != bytes.len) return error.TrailingOpNativeBundle;
 }
 pub fn decode(a: std.mem.Allocator, bytes: []const u8, count: usize, limits: Limits) !Bundle {
-    try preflight(bytes, count, limits);
+    return decodeImpl(a, bytes, count, limits, null);
+}
+pub fn decodeForSuite(a: std.mem.Allocator, bytes: []const u8, count: usize, limits: Limits, expected_suite: Suite) !Bundle {
+    try expected_suite.validate();
+    return decodeImpl(a, bytes, count, limits, expected_suite);
+}
+fn decodeImpl(a: std.mem.Allocator, bytes: []const u8, count: usize, limits: Limits, source_suite: ?Suite) !Bundle {
+    try preflight(bytes, count, limits, source_suite);
     var r = Reader{ .data = bytes };
     _ = try r.take(MAGIC.len);
+    if (source_suite != null) _ = try r.take(SuiteWire.BYTES);
     _ = try r.word();
     const stage = try r.word();
     const stage_one = try a.dupe(u8, try r.take(stage));
@@ -270,7 +318,7 @@ pub fn decode(a: std.mem.Allocator, bytes: []const u8, count: usize, limits: Lim
         proof.* = .{ .bytes = data, .claims = claims };
         done += 1;
     }
-    return .{ .stage_one = stage_one, .proofs = proofs };
+    return .{ .stage_one = stage_one, .proofs = proofs, .source_suite = source_suite };
 }
 
 test "OP bundle encoding preflights the whole byte cap before allocation" {
@@ -292,4 +340,35 @@ test "OP bundle encoding preflights the whole byte cap before allocation" {
     try std.testing.expectEqualSlices(u8, &stage, decoded.stage_one);
     try std.testing.expectEqualSlices(u8, &payload, decoded.proofs[0].bytes);
     try std.testing.expect(decoded.proofs[0].claims[0].eql(claim[0]));
+}
+
+fn suiteCodecAllocations(a: std.mem.Allocator, bundle: *const Bundle, suite: Suite) !void {
+    const wire = try encodeForSuite(a, bundle, .{ .bytes = 4096, .proof_bytes = 4096 }, suite);
+    defer a.free(wire);
+    var received = try decodeForSuite(a, wire, 1, .{ .bytes = 4096, .proof_bytes = 4096 }, suite);
+    defer received.deinit(a);
+    try std.testing.expectEqualDeep(suite, received.source_suite.?);
+    try std.testing.expectEqualSlices(u8, bundle.proofs[0].bytes, received.proofs[0].bytes);
+}
+test "OP source suite bundle requires independent version policy before allocation" {
+    const a = std.testing.allocator;
+    var claim = [_]O{O.one()};
+    var payload = [_]u8{ 1, 2, 3 };
+    var stage = [_]u8{0x81};
+    var proofs = [_]Proof{.{ .bytes = &payload, .claims = &claim }};
+    const suite = Suite.millerGkr();
+    const bundle = Bundle{ .source_suite = suite, .stage_one = &stage, .proofs = &proofs };
+    try std.testing.checkAllAllocationFailures(a, suiteCodecAllocations, .{ &bundle, suite });
+    const limits = Limits{ .bytes = 4096, .proof_bytes = 4096 };
+    try std.testing.expectError(error.OpSourceSuiteRequiresExplicitEncoder, encode(std.testing.failing_allocator, &bundle, limits));
+    const wire = try encodeForSuite(a, &bundle, limits, suite);
+    defer a.free(wire);
+    try std.testing.expectEqual(@as(usize, 80), wire.len);
+    try std.testing.expectError(error.InvalidOpNativeBundle, decode(std.testing.failing_allocator, wire, 1, limits));
+    try std.testing.expectError(error.OpSourceSuitePolicyMismatch, decodeForSuite(std.testing.failing_allocator, wire, 1, limits, Suite{}));
+    var bad = try a.dupe(u8, wire);
+    defer a.free(bad);
+    std.mem.writeInt(u32, bad[8..12], 2, .little);
+    try std.testing.expectError(error.UnsupportedOpSourceSuite, decodeForSuite(std.testing.failing_allocator, bad, 1, limits, suite));
+    try std.testing.expectError(error.TruncatedOpNativeBundle, decodeForSuite(std.testing.failing_allocator, wire[0..20], 1, limits, suite));
 }

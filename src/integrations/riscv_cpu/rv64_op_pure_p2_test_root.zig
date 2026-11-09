@@ -102,3 +102,11 @@ test {
 test {
     _ = @import("poseidon2_outer/pure_p2_op_inventory.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/pure_p2_op_bundle.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/pure_p2_source_suite_security.zig");
+}

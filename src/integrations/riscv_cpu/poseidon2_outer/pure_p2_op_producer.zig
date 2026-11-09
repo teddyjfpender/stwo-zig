@@ -12,6 +12,8 @@ const CPU = @import("pure_p2_cpu_worker.zig");
 const Truth = @import("pure_p2_truth_worker.zig");
 const TruthLocal = @import("truth_local_gkr/worker.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
+const MillerLocal = @import("miller_local_gkr/worker.zig");
+const Suite = @import("pure_p2_source_suite.zig").Suite;
 const Key = @import("pure_p2_fixed_key.zig").Key;
 const Store = @import("pure_p2_retained_main.zig").Store;
 const R = @import("../word16_global_execution/services/roster.zig");
@@ -29,6 +31,7 @@ pub const Limits = struct {
     truth: Truth.Limits,
     miller: Miller.Limits,
     truth_local_gkr_bytes: usize = 0,
+    miller_local_gkr_bytes: usize = 0,
     recorders: []const ?*Stage.Recorder = &.{},
     timing: ?*Timing = null,
     /// Destructive source handoff only; metadata/requests already admitted.
@@ -45,6 +48,7 @@ const Worker = union(enum) {
     truth: Truth.Worker,
     truth_local: TruthLocal.Worker,
     miller: Miller.Worker,
+    miller_local: MillerLocal.Worker,
     fn deinit(self: *Worker) void {
         switch (self.*) {
             inline else => |*v| v.deinit(),
@@ -83,6 +87,13 @@ const Worker = union(enum) {
                 errdefer a.free(bytes);
                 break :block .{ .bytes = bytes, .claims = try a.dupe(W.O, &out.claims) };
             },
+            .miller_local => |*v| block: {
+                var out = try v.complete(pending, index);
+                defer out.deinit(a);
+                const bytes = try MillerLocal.encode(a, &out);
+                errdefer a.free(bytes);
+                break :block .{ .bytes = bytes, .claims = try a.dupe(W.O, &out.claims) };
+            },
             .miller => |*v| block: {
                 var out = try v.complete(pending, index);
                 errdefer out.deinit(a);
@@ -105,13 +116,25 @@ fn sealAndPark(a: std.mem.Allocator, worker: *Worker, expected: Manifest.Expecte
     return out;
 }
 pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inv.MillerDeclaration, native: []const *Native, advice: *const Advice, store: *Store, limits: Limits) !B.Bundle {
-    if (inventory.source_suite != null) return error.OpSourceSuiteWireNotImplemented;
+    if (inventory.source_suite != null) return error.OpSourceSuiteRequiresExplicitProducer;
+    return produceImpl(a, inventory, setups, requests, spans, keys, truths, truth_keys, miller, native, advice, store, limits);
+}
+pub fn produceForSourceSuite(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inv.MillerDeclaration, native: []const *Native, advice: *const Advice, store: *Store, limits: Limits, expected_suite: Suite) !B.Bundle {
+    try (inventory.source_suite orelse return error.OpSourceSuiteRequiresExplicitProducer).requireExpected(expected_suite);
+    return produceImpl(a, inventory, setups, requests, spans, keys, truths, truth_keys, miller, native, advice, store, limits);
+}
+fn produceImpl(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inv.MillerDeclaration, native: []const *Native, advice: *const Advice, store: *Store, limits: Limits) !B.Bundle {
     if (!Budget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     if (limits.consume_memory_events and !@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
     if (setups.len != inventory.cpu_count or requests.len != setups.len or spans.len != setups.len or keys.len != setups.len or native.len != setups.len or advice.tower.len != setups.len or truths.len != inventory.truth_count or truth_keys.len != truths.len or setups.len + truths.len + miller.len != inventory.workers.len) return error.InvalidOpNativeInventory;
     if (limits.recorders.len != 0 and limits.recorders.len != inventory.workers.len) return error.InvalidOpNativeTimings;
     if (inventory.truth_local_keys.len != 0 and inventory.truth_local_keys.len != truths.len) return error.InvalidOpTruthLocalInventory;
     for (inventory.truth_local_keys) |key| if (key != null and limits.truth_local_gkr_bytes == 0) return error.OpTruthLocalBudget;
+    for (miller) |item| {
+        const wants_local = if (inventory.source_suite) |suite| suite.miller == .local_gkr else false;
+        if (wants_local != (item.local_key != null)) return error.OpMillerSourceSuitePolicy;
+        if (item.local_key != null and limits.miller_local_gkr_bytes == 0) return error.MillerLocalBudget;
+    }
     var timer = try std.time.Timer.start();
     const workers = try a.alloc(Worker, inventory.workers.len);
     defer a.free(workers);
@@ -182,7 +205,10 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
             ordinal += 1;
         };
         if (filled != input.len) return error.InvalidOpTowerCoverage;
-        workers[done] = .{ .miller = try Miller.Worker.init(a, item.key, item.span, inventory.workers[i], input, limits.miller) };
+        workers[done] = if (item.local_key) |key|
+            .{ .miller_local = try MillerLocal.Worker.init(a, key, item.span, inventory.workers[i], input, .{ .live_bytes = limits.miller.live_bytes, .main_bytes = limits.miller.main_bytes, .interaction_bytes = limits.miller.interaction_bytes, .advice_bytes = limits.miller.advice_bytes, .gkr_bytes = limits.miller_local_gkr_bytes }) }
+        else
+            .{ .miller = try Miller.Worker.init(a, item.key, item.span, inventory.workers[i], input, limits.miller) };
         done += 1;
         source_scope.end();
         stages[i] = try sealAndPark(a, &workers[i], inventory.workers[i], store, limits.recorder(i));
@@ -213,5 +239,5 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
         retired += 1;
     }
     if (limits.timing) |timing| timing.* = .{ .stage_one_ns = stage_one_ns, .manifest_ns = stage_two_start - stage_one_ns, .stage_two_ns = timer.read() - stage_two_start };
-    return .{ .stage_one = stage_one, .proofs = proofs };
+    return .{ .stage_one = stage_one, .proofs = proofs, .source_suite = inventory.source_suite };
 }

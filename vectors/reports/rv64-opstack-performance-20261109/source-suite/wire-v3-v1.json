@@ -1,0 +1,12 @@
+{
+  "schema": "op-source-suite-wire-v3-foundation-v1",
+  "wire_magic": "OPP2B003",
+  "suite_words_little_endian": ["suite_version", "cpu_source", "truth_flavor", "miller_flavor", "sponge_source"],
+  "header_suite_bytes": 20,
+  "policy": "An independently supplied expected Suite is mandatory; incoming bytes never select a receiver construction.",
+  "legacy": "OPP2B001 encoding and old entrypoint semantics remain unchanged; old encode/decode/receive APIs refuse non-null source suites.",
+  "qualified": ["new 80-byte tiny frame round trip", "old 60-byte frame control unchanged", "all allocation failure points", "unsupported suite, wrong expected suite, old-reader mismatch and truncation fail before allocation", "full OP pure-P2 semantic check including producer dispatch"],
+  "pending": ["complete new-suite native CPU and Miller join", "metadata version3 and CLI source authority plumbing", "whole root acceptance"],
+  "production_admission_open": false,
+  "security_qualified": false
+}
