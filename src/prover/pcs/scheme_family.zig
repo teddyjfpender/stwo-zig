@@ -125,8 +125,11 @@ pub fn ForField(comptime Secure: type) type {
                 /// Optional scratch storage for typed AIR quotient-domain values.
                 /// Its owner must outlive proving and all prepared evaluators.
                 quotient_values_allocator: ?std.mem.Allocator = null,
-                /// Reuse lifted prefixes by default for full-width BLAKE3 commitments.
+                /// Reuse lifted prefixes for existing Blake routes and the
+                /// source-qualified P2v2 suite. Other generic hashers retain
+                /// their previous default; no hash/domain/wire bytes change.
                 reuse_bounded_merkle_tail: bool = H == @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher or
+                    H == @import("stwo_core").vcs_lifted.poseidon2_profile.Om31V2.MerkleHasher or
                     @import("../vcs_lifted/blake2_stream4.zig").supports(H),
                 /// Execution-only opt-in for adopting backends; keeps source and
                 /// coefficient storage in the same aligned arena.

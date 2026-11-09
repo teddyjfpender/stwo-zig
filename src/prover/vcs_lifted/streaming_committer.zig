@@ -22,6 +22,7 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
     const merkleWorkerOverride = parameters.merkleWorkerOverride;
     const merklePoolReuseEnabled = parameters.merklePoolReuseEnabled;
     const WaitGroup = std.Thread.WaitGroup;
+    const native_four = @hasDecl(H, "updateM31Columns4") and @hasDecl(H, "finalize4");
 
     return struct {
         const Committer = @This();
@@ -413,9 +414,15 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                 break :blk LayerOps.sharedThreadPool();
             } else null;
             const worker_count = if (pool != null) requested_workers else 1;
-            if (reuse_tail) if (stats) |out| {
-                out.tail_cache_bytes = worker_count * tail_cache_bytes_per_worker;
-            };
+            if (stats) |out| {
+                const native_scratch = if (native_four)
+                    64 * (4 * @sizeOf(@import("stwo_core").fields.m31.M31) + @sizeOf(ColumnRef)) + 4 * (@sizeOf(H) + @sizeOf(H.Hash))
+                else
+                    0;
+                // Conservative bounded stack ledger, separate from the
+                // existing heap-only leaf_phase_peak_bytes statistic.
+                out.tail_cache_bytes = worker_count * ((if (reuse_tail) tail_cache_bytes_per_worker else 0) + native_scratch);
+            }
 
             var ranges: [parameters.max_parallel_workers]BoundedTailRange = undefined;
             for (0..worker_count) |worker| {
@@ -503,7 +510,7 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             var indices = [_][2]usize{.{ std.math.maxInt(usize), std.math.maxInt(usize) }} ** @bitSizeOf(usize);
             const base_shift: std.math.Log2Int(usize) = @intCast(range.final_log_size - range.base_log_size + 1);
             var absorptions: usize = 0;
-            const batch_width = if (comptime bulk and blake2_stream4.supports(H)) 4 else 1;
+            const batch_width = if (comptime bulk and (native_four or blake2_stream4.supports(H))) 4 else 1;
             var position = range.start;
             while (position < range.end) : (position += batch_width) {
                 var batch: [batch_width]H = undefined;
@@ -530,8 +537,13 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                         // Final-height columns have adjacent source rows and
                         // equal counters; compress them as four independent
                         // messages without transposing a complete row slab.
-                        blake2_stream4.updateM31Columns4(&batch, range.tail_columns[begin..], position);
-                        const hashes = blake2_stream4.finalize4(&batch);
+                        const hashes = if (comptime native_four) blk: {
+                            H.updateM31Columns4(&batch, range.tail_columns[begin..], position);
+                            break :blk H.finalize4(&batch);
+                        } else blk: {
+                            blake2_stream4.updateM31Columns4(&batch, range.tail_columns[begin..], position);
+                            break :blk blake2_stream4.finalize4(&batch);
+                        };
                         @memcpy(range.leaves[position..][0..4], &hashes);
                         absorptions += 4 * (range.tail_columns.len - begin);
                         continue;
@@ -546,12 +558,47 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             range.absorptions = absorptions;
         }
 
+        /// Gather only a bounded four-row slab. The generic native-four API
+        /// expects adjacent source entries, whereas lifted low-height columns
+        /// repeat parity rows. Temporary column views preserve that exact map
+        /// without materializing a final-height state or complete row slab.
+        fn updateLiftedColumns4(batch: *[4]H, columns: []const ColumnRef, position: usize, final_log: u32) void {
+            const M31 = @import("stwo_core").fields.m31.M31;
+            var values: [64][4]M31 = undefined;
+            var views: [64]ColumnRef = undefined;
+            var start: usize = 0;
+            while (start < columns.len) {
+                const count: usize = @min(values.len, columns.len - start);
+                for (columns[start..][0..count], 0..) |column, c| {
+                    const shift: std.math.Log2Int(usize) = @intCast(final_log - column.log_size + 1);
+                    inline for (0..4) |lane| {
+                        const row = position + lane;
+                        values[c][lane] = column.values[((row >> shift) << 1) + (row & 1)];
+                    }
+                    views[c] = .{ .log_size = 2, .values = &values[c], .original_index = column.original_index };
+                }
+                H.updateM31Columns4(batch, views[0..count], 0);
+                start += count;
+            }
+        }
+
         fn finalizeBoundedTailRange(range: *const BoundedTailRange) void {
             const base_shift: std.math.Log2Int(usize) = @intCast(
                 range.final_log_size - range.base_log_size + 1,
             );
             var position = range.start;
-            if (comptime blake2_stream4.supports(H) and builtin.cpu.arch.endian() == .little) {
+            if (comptime native_four) {
+                while (position + 4 <= range.end) : (position += 4) {
+                    var batch: [4]H = undefined;
+                    inline for (0..4) |lane| {
+                        const row = position + lane;
+                        batch[lane] = range.base_hashers[((row >> base_shift) << 1) + (row & 1)];
+                    }
+                    updateLiftedColumns4(&batch, range.tail_columns, position, range.final_log_size);
+                    const hashes = H.finalize4(&batch);
+                    @memcpy(range.leaves[position..][0..4], &hashes);
+                }
+            } else if (comptime blake2_stream4.supports(H) and builtin.cpu.arch.endian() == .little) {
                 while (position + 4 <= range.end) : (position += 4) {
                     var batch: [4]H = undefined;
                     for (&batch, 0..) |*hasher, lane| {
