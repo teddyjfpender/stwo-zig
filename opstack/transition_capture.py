@@ -231,9 +231,11 @@ def classify_error(error):
 
 def rpc(url, method, params, *, cap=2 << 20, timeout=12):
     endpoint_label(url)
-    # Read-only metadata/proof fetches only. No client execution, debug trace,
-    # transaction submission, eth_call or proving method can enter this helper.
-    if method not in {"eth_chainId", "eth_getBlockByHash", "eth_getBlockByNumber", "eth_getProof", "eth_getBlockReceipts", "debug_getRawHeader"}:
+    # Read-only metadata/proof fetches. The payload-method capability probe has
+    # deliberately invalid empty parameters and cannot execute a payload.
+    # No debug trace, transaction submission, eth_call or proving method enters.
+    metadata = {"eth_chainId", "eth_getBlockByHash", "eth_getBlockByNumber", "eth_getProof", "eth_getBlockReceipts", "debug_getRawHeader", "debug_getRawReceipts", "debug_dbGet"}
+    if method not in metadata and not (method == "debug_executePayload" and params == []):
         raise ValueError("RPC method outside capture scope")
     request = urllib.request.Request(url, json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode(), {"Content-Type": "application/json"})
     http = None
@@ -288,6 +290,35 @@ def probe(url, layer, receipt):
         except RpcFailure as error:
             rows.append({"capability": name, **error.report})
     return {"endpoint": endpoint_label(url), "layer": layer, "capabilities": rows, "complete_witness": False}
+
+
+
+def probe_host(url, layer, receipt):
+    """Probe exact pinned Kona-host dependencies before compiling/running it.
+
+    Payload capability uses empty params only. A returned invalid-params error
+    means exposed, not that a real payload/capture has been checked.
+    """
+    statement = receipt["statement"]
+    digest = statement["anchor_hash"] if layer == "l1" else statement["block_hash"]
+    jobs = [("raw_header", "debug_getRawHeader", ["0x" + digest])]
+    if layer == "l1":
+        jobs += [("raw_receipts", "debug_getRawReceipts", ["0x" + digest])]
+    else:
+        jobs += [("state_by_hash", "debug_dbGet", ["0x" + "00" * 32]),
+                 ("payload_method_exposure_only", "debug_executePayload", [])]
+    rows = []
+    for name, method, params in jobs:
+        try:
+            rpc(url, method, params)
+            rows.append({"capability": name, "status": "returned"})
+        except RpcFailure as error:
+            result = dict(error.report)
+            if name == "payload_method_exposure_only" and result["rpc_code"] == -32602:
+                result["status"] = "method_exposed_invalid_params_only"
+            rows.append({"capability": name, **result})
+    return {"endpoint": endpoint_label(url), "layer": layer, "capabilities": rows,
+            "host_executed": False, "payload_executed": False, "complete_witness": False}
 
 
 def rlp(value):
@@ -620,6 +651,9 @@ def main():
     p = commands.add_parser("probe")
     p.add_argument("--rpc", required=True)
     p.add_argument("--layer", choices=["l1", "l2"], required=True)
+    p = commands.add_parser("probe-host")
+    p.add_argument("--rpc", required=True)
+    p.add_argument("--layer", choices=["l1", "l2"], required=True)
     p = commands.add_parser("recent")
     p.add_argument("--l1-rpc", required=True)
     p.add_argument("--l2-rpc", required=True)
@@ -645,6 +679,8 @@ def main():
         result = recover(args.roots, args.output)
     elif args.command == "probe":
         result = probe(args.rpc, args.layer, receipt)
+    elif args.command == "probe-host":
+        result = probe_host(args.rpc, args.layer, receipt)
     elif args.command == "recent":
         result = capture_recent(args.l1_rpc, args.l2_rpc, args.output)
     elif args.command == "headers":

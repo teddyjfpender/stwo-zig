@@ -140,7 +140,7 @@
     "https://ethereum.publicnode.com/"
   ],
   "validation": {
-    "focused_unittests": 18,
+    "focused_unittests": 19,
     "result": "pass",
     "resource_warnings": "treated as errors",
     "covers": [
@@ -230,5 +230,52 @@
       "bytes": 635,
       "sha256": "bae79a42074a2b8b09661a69c94296c9a5c40f51d0396a02c91e56408b32f867"
     }
+  },
+  "host_preflight": {
+    "revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+    "existing_upstream_host_executable_found": false,
+    "existing_local_hosts": "offline conversion/run-transition only; no online host mode",
+    "capabilities": [
+      {
+        "endpoint": "https://mainnet.optimism.io",
+        "method": "debug_getRawHeader",
+        "http_status": 403,
+        "rpc_code": -32601,
+        "status": "method_unavailable"
+      },
+      {
+        "endpoint": "https://mainnet.optimism.io",
+        "method": "debug_dbGet",
+        "http_status": 403,
+        "rpc_code": -32601,
+        "status": "method_unavailable"
+      },
+      {
+        "endpoint": "https://mainnet.optimism.io",
+        "method": "debug_executePayload",
+        "http_status": 403,
+        "rpc_code": -32601,
+        "status": "method_unavailable"
+      },
+      {
+        "endpoint": "https://rpc.flashbots.net",
+        "method": "debug_getRawHeader",
+        "http_status": 403,
+        "rpc_code": -32601,
+        "status": "method_unavailable"
+      },
+      {
+        "endpoint": "https://rpc.flashbots.net",
+        "method": "debug_getRawReceipts",
+        "http_status": 403,
+        "rpc_code": -32601,
+        "status": "method_unavailable"
+      }
+    ],
+    "payload_method_probe": "empty invalid parameters only; no payload execution",
+    "first_unavoidable_failure": "SingleChainHintHandler.StartingL2Output requests L2 debug_getRawHeader; official endpoint rejects method",
+    "native_host_started": false,
+    "reason_not_built": "required public methods already demonstrated unavailable before build/run",
+    "next_capability_needed": "endpoint supporting Kona debug_getRawHeader/debug_getRawReceipts and L2 witness/code/state retrieval; or implement audited standard-RPC hint adapter with proof/code provenance"
   }
 }

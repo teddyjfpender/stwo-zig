@@ -120,6 +120,16 @@ class TransitionCaptureTests(unittest.TestCase):
         self.assertEqual(raised.exception.report, {"status": "historical_proof_window_10000", "http_status": 413, "rpc_code": -32614})
         self.assertNotIn("EXAMPLE", str(raised.exception.report))
 
+    def test_host_preflight_cannot_submit_a_payload(self):
+        with self.assertRaisesRegex(ValueError, "scope"):
+            capture.rpc("https://example.invalid", "debug_executePayload", ["0x00", {}])
+        with patch.object(capture, "rpc", side_effect=capture.RpcFailure("method_unavailable", 403, -32601)) as rpc:
+            result = capture.probe_host("https://example.invalid", "l2", self.receipt)
+        self.assertEqual(rpc.call_args_list[-1].args[2], [])
+        self.assertFalse(result["host_executed"])
+        self.assertFalse(result["payload_executed"])
+        self.assertTrue(all(row["status"] == "method_unavailable" for row in result["capabilities"]))
+
     def test_real_pinned_headers_and_root_preimages(self):
         headers = json.loads((Path(__file__).parent / "fixtures/transition-159257842-headers.json").read_text())
         with patch.object(capture, "rpc", side_effect=headers):

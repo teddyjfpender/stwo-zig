@@ -15,6 +15,7 @@ accepted derivation or a complete execution witness.
 PY=/private/tmp/stwo-opstack-cpu-venv/bin/python
 $PY opstack/transition_capture.py recover /private/tmp /path/to/retained-artifacts
 $PY opstack/transition_capture.py probe --layer l2 --rpc https://mainnet.optimism.io
+$PY opstack/transition_capture.py probe-host --layer l2 --rpc https://mainnet.optimism.io
 $PY opstack/transition_capture.py headers --rpc https://mainnet.optimism.io \
   --output /new/path/historical-headers
 # Interrupted journals are reauthenticated from the pinned target hash.
@@ -95,3 +96,27 @@ Offline tests:
 $PY -W error::ResourceWarning -m unittest discover -s opstack/tests \
   -p test_transition_capture.py -q
 ```
+
+## Native-host capture preflight
+
+The separately authorized next step is a bounded native Kona host capture, not
+RV64 execution or STARK proving. `probe-host` checks the exact pinned host's
+required methods before that build/run. Its `debug_executePayload` request has
+empty invalid parameters only, so it tests method exposure without executing a
+payload. The helper rejects any nonempty parameters for that method.
+
+The observed official OP endpoint rejects `debug_getRawHeader`, `debug_dbGet`
+and `debug_executePayload` with HTTP 403 / RPC -32601. The observed Flashbots
+endpoint likewise rejects raw headers and raw receipts. In pinned
+`rust/kona/bin/host/src/single/handler.rs`, `StartingL2Output` unconditionally
+requests a raw L2 header before it can drive capture. No upstream `kona-host`
+executable was found; compiling it against these endpoints would not fix that
+first failure, so no client was run. The existing local `stwo-kona-host`
+binaries implement offline `run-transition`, not online capture.
+
+A suitable public endpoint or an audited standard-RPC hint adapter is still
+needed. Header reconstruction is already available here; a full adapter also
+needs authenticated transaction/receipt tries, code-hash-to-address provenance,
+on-demand account/storage proofs, deletion siblings, and standard blob KZG
+material. Merely suppressing unsupported witness hints cannot safely replace
+those obligations.
