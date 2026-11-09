@@ -988,6 +988,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
+    },
+    {
+      "id": "riscv_pr_smoke_live_schema_349",
+      "net_code_budget": 280,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Strict private CPU smoke consumers for retained legacy schema pairs and the actual full-width BLAKE3 producer/verifier, source-pinned hosted report fixtures, identity/PCS/phase/ambiguity negatives and independent workload-input binding. No producer, public API, proof suite/default, pin, corpus, floor or timeout changes. Issue #349."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
