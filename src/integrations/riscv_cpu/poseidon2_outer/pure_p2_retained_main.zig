@@ -10,6 +10,14 @@ const Hash = W.H.Hash;
 const Reserved = engine.file_backed_allocator.ReservedFile;
 const Budget = engine.host_budget_allocator.SharedHostBudget;
 pub const Binding = struct { setup: [32]u8, statement: [32]u8 };
+/// Optional enclosing cache custody for independently owned request views.
+/// Retain runs under the Store lock and must be infallible/non-reentrant;
+/// release runs after descriptor, mapping and allocator-custody teardown.
+pub const ViewLifetime = struct {
+    context: ?*anyopaque,
+    retain_fn: *const fn (?*anyopaque) void,
+    release_fn: *const fn (?*anyopaque) void,
+};
 const Column = struct { offset: usize, count: usize, native_log: u32 = 0, column_log: u32 = 0 };
 pub const Store = struct {
     backing: engine.file_backed_allocator.FileBackedAllocator,
@@ -21,9 +29,15 @@ pub const Store = struct {
     peak_mapped: usize = 0,
     mutex: std.Thread.Mutex = .{},
     head: ?*Owner = null,
+    view_lifetime: ?ViewLifetime = null,
     pub fn init(a: std.mem.Allocator, path: []const u8, disk_limit: usize, mapped_limit: usize) !Store {
         if (disk_limit == 0 or mapped_limit == 0) return error.InvalidOpParkingLimit;
         return .{ .backing = try engine.file_backed_allocator.FileBackedAllocator.init(path), .allocator = a, .disk_limit = disk_limit, .mapped_limit = mapped_limit };
+    }
+    pub fn initWithViewLifetime(a: std.mem.Allocator, path: []const u8, disk_limit: usize, mapped_limit: usize, lifetime: ViewLifetime) !Store {
+        var store = try init(a, path, disk_limit, mapped_limit);
+        store.view_lifetime = lifetime;
+        return store;
     }
     pub fn deinit(self: *Store) void {
         std.debug.assert(self.head == null and self.reserved == 0 and self.mapped == 0);
@@ -189,7 +203,8 @@ pub const Store = struct {
             }
             for (layers, owner.layers) |*layer, descriptor| layer.* = std.mem.bytesAsSlice(Hash, values[descriptor.offset..][0 .. descriptor.count * @sizeOf(Hash)]);
         }
-        lease.* = .{ .allocator = a, .owner = owner, .memory = memory, .reservation = reservation.take() };
+        if (self.view_lifetime) |lifetime| lifetime.retain_fn(lifetime.context);
+        lease.* = .{ .allocator = a, .owner = owner, .memory = memory, .reservation = reservation.take(), .lifetime = self.view_lifetime };
         var result = template.*;
         result.columns = columns;
         result.coefficients = coefficients;
@@ -331,12 +346,14 @@ const Lease = struct {
     owner: *Owner,
     memory: ?[]align(std.heap.page_size_min) u8,
     reservation: Budget.ExternalReservation,
+    lifetime: ?ViewLifetime,
     fn release(context: ?*anyopaque, bytes: u64) void {
         const self: *Lease = @ptrCast(@alignCast(context.?));
         const owner = self.owner;
         const store = owner.store;
         const a = self.allocator;
         var reservation = self.reservation.take();
+        const lifetime = self.lifetime;
         std.debug.assert(bytes == owner.file.size);
         if (self.memory) |memory| std.posix.munmap(memory);
         store.mutex.lock();
@@ -346,6 +363,7 @@ const Lease = struct {
         if (last) owner.destroy();
         a.destroy(self);
         reservation.deinit();
+        if (lifetime) |retained| retained.release_fn(retained.context);
     }
 };
 fn contains(outer: []const M, inner: []const M) bool {
@@ -468,7 +486,8 @@ test "OP immutable FIXED leases retain parked custody with independent request b
     defer tmp.cleanup();
     const path = try tmp.dir.realpathAlloc(a, ".");
     defer a.free(path);
-    var store = try Store.init(a, path, 1 << 20, 1 << 20);
+    var custody = TestViewCustody{};
+    var store = try Store.initWithViewLifetime(a, path, 1 << 20, 1 << 20, .{ .context = &custody, .retain_fn = TestViewCustody.retain, .release_fn = TestViewCustody.release });
     defer store.deinit();
     const template_budget = try Budget.create(a, 1 << 24);
     defer template_budget.destroy();
@@ -489,6 +508,7 @@ test "OP immutable FIXED leases retain parked custody with independent request b
     const root = template.root();
     const binding: Binding = .{ .setup = @splat(23), .statement = @splat(41) };
     const bytes = try store.parkBound(b, &template, binding);
+    try std.testing.expectEqual(@as(usize, 0), custody.references);
     var wrong = binding;
     wrong.setup[31] ^= 1;
     try std.testing.expectError(error.OpParkingBindingMismatch, store.leaseBound(a, &template, wrong));
@@ -499,6 +519,7 @@ test "OP immutable FIXED leases retain parked custody with independent request b
     try std.testing.checkAllAllocationFailures(a, leaseAndRelease, .{ &store, &template, binding });
     try std.testing.expectEqual(@as(usize, 0), store.mapped);
     try std.testing.expectEqual(@as(usize, 1), owner.references);
+    try std.testing.expectEqual(@as(usize, 0), custody.references);
     const request_budget = try Budget.create(a, 1 << 20);
     var request_live = true;
     defer if (request_live) request_budget.destroy();
@@ -538,6 +559,7 @@ test "OP immutable FIXED leases retain parked custody with independent request b
     try std.testing.expect(template.commitment.layers_parked and template.coefficients.?[0].coeffs.len == 0);
     try std.testing.expectEqualSlices(M, original, first.coefficients.?[0].coefficients());
     try std.testing.expectEqualSlices(u8, &root, &second.root());
+    try std.testing.expectEqual(@as(usize, 3), custody.references);
     // Template destruction must not close a file still leased by two workers.
     template.deinit(b);
     template_live = false;
@@ -558,6 +580,7 @@ test "OP immutable FIXED leases retain parked custody with independent request b
     try std.testing.expectEqual(@as(usize, 0), store.mapped);
     try std.testing.expectEqual(@as(usize, 0), store.reserved);
     try std.testing.expect(store.head == null);
+    try std.testing.expectEqual(@as(usize, 0), custody.references);
 }
 fn leaseAndRelease(a: std.mem.Allocator, store: *Store, tree: *const Tree, binding: Binding) !void {
     var lease = try store.leaseBound(a, tree, binding);
@@ -567,3 +590,16 @@ fn shapeAndRelease(a: std.mem.Allocator, store: *Store, tree: *const Tree, bindi
     var shape = try store.shapeBound(a, tree, binding);
     defer shape.deinit(a);
 }
+
+const TestViewCustody = struct {
+    references: usize = 0,
+    fn retain(raw: ?*anyopaque) void {
+        const self: *@This() = @ptrCast(@alignCast(raw.?));
+        self.references += 1;
+    }
+    fn release(raw: ?*anyopaque) void {
+        const self: *@This() = @ptrCast(@alignCast(raw.?));
+        std.debug.assert(self.references != 0);
+        self.references -= 1;
+    }
+};

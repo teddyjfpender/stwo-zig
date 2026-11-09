@@ -39,3 +39,13 @@ scratch construction. The prior MAIN restore/custody regression passes.
 
 This is the storage primitive qualification. Complete parked-FIXED worker proof
 parity and the heavy-block memory qualification are separate integration gates.
+
+An enclosing service cache can register `ViewLifetime` at Store construction.
+Only successfully published request shapes/maps retain that cache, with one
+release after descriptor, mapping and allocator-reservation teardown. Templates
+do not retain it, avoiding an ownership cycle. Retain is atomic and non-reentrant
+under the Store mutex; release runs outside it so the final cache destructor can
+release templates and the Store safely. The focused lease/allocation-failure
+gate confirms balanced callbacks, including zero callbacks from template
+custody and refusal paths. Cache integration separately tests derived views
+surviving release of all request and cache handles.
