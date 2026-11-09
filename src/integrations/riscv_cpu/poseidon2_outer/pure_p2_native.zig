@@ -101,6 +101,9 @@ pub const Pending = struct {
     challenges: Challenges,
     eta: O,
     digest: Digest,
+    pub fn checkedTerminal(self: *const @This()) @import("../word16_global_execution/services/gkr_local/terminal_view.zig").Checked {
+        return .{ .artifact = &self.artifact, .challenges = self.challenges, .eta = self.eta };
+    }
     pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
         self.artifact.deinit(a);
         self.* = undefined;

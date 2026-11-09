@@ -326,3 +326,37 @@ test "OP pure P2 manifest authenticates full roots source roster and shared draw
     try std.testing.expectEqual(@as(usize, 0), ctx.circuit.blake_g_gate.items.len);
     std.debug.print("OP_PURE_P2_MANIFEST_PARITY permutations={} roster_cases=cpu_keccak_secp all_RAM_KIO_Wire_coordinates_exact=true native_execution_acceptance=false\n", .{owner.calls.items.len});
 }
+
+test "OP pure P2 checked terminal view preserves legacy data and owns copied points" {
+    const Legacy = @import("../word16_global_execution/services/gkr_local/child.zig");
+    const Role = @import("../word16_global_execution/services/gkr_local/role.zig");
+    const View = @import("../word16_global_execution/services/gkr_local/terminal_view.zig").Checked;
+    const legacy_scope = @import("../word16_global_execution/services/gkr_local/receipt.zig").Scope{ .statement = [_]u8{3} ** 32, .fixed = [_]u8{4} ** 32, .main = [_]u8{5} ** 32, .ordinal = 0 };
+    const produced = try Legacy.Unbound.prove(a, 64 << 20, legacy_scope, &instances, Provider{});
+    defer produced.deinit();
+    var pending = try Legacy.verifyPending(a, legacy_scope, &instances, &produced.result.proof, produced.digest);
+    var live = true;
+    defer if (live) pending.deinit(a);
+    const checked = View{ .artifact = &pending.artifact, .challenges = pending.challenges, .eta = pending.eta };
+    const legacy = try Role.Data.init(instances[0], &pending, 0);
+    const next = try Role.Data.initChecked(instances[0], checked, 0);
+    try std.testing.expect(std.meta.eql(legacy.instance, next.instance));
+    try std.testing.expect(legacy.target_per_row.eql(next.target_per_row));
+    try std.testing.expect(legacy.eta.eql(next.eta));
+    try std.testing.expect(std.meta.eql(legacy.challenges, next.challenges));
+    try std.testing.expectEqual(legacy.point.n, next.point.n);
+    for (legacy.point.p[0..legacy.point.n], next.point.p[0..next.point.n]) |x, y| try std.testing.expect(x.eql(y));
+    for (legacy.point.hc0[0..legacy.point.n], next.point.hc0[0..next.point.n]) |x, y| try std.testing.expect(x.eql(y));
+    for (legacy.point.hc1[0..legacy.point.n], next.point.hc1[0..next.point.n]) |x, y| try std.testing.expect(x.eql(y));
+    for (legacy.lane_weights[0..legacy.lane_count], next.lane_weights[0..next.lane_count]) |x, y| try std.testing.expect(x.eql(y));
+    var malformed = pending.artifact;
+    malformed.n_variables_by_instance = malformed.n_variables_by_instance[0..0];
+    try std.testing.expectError(error.LocalGkrProjectionShape, Role.Data.initChecked(instances[0], .{ .artifact = &malformed, .challenges = pending.challenges, .eta = pending.eta }, 0));
+    const before = next.point.eq0.add(next.point.eq1).add(next.point.hc0[0]).add(next.lane_weights[0]).add(next.target_per_row);
+    pending.deinit(a);
+    live = false;
+    // The view is now invalid; the Data is not. No pointer to artifact-owned
+    // row/terminal vectors survives the checked projection constructor.
+    const after = next.point.eq0.add(next.point.eq1).add(next.point.hc0[0]).add(next.lane_weights[0]).add(next.target_per_row);
+    try std.testing.expect(before.eql(after));
+}

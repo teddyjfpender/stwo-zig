@@ -87,6 +87,10 @@ pub const Set = struct {
     allocator: std.mem.Allocator,
     items: []Item,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first_ids: anytype, plan: *const Plan, pending: *const @import("child.zig").Pending, shared: Manifest.Shared, values: []const O) !Set {
+        return initChecked(a, setup, request, first_ids, plan, .{ .artifact = &pending.artifact, .challenges = pending.challenges, .eta = pending.eta }, shared, values);
+    }
+    pub fn initChecked(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first_ids: anytype, plan: *const Plan, pending: @import("terminal_view.zig").Checked, shared: Manifest.Shared, values: []const O) !Set {
+        try pending.validate();
         const ids = @import("cpu_worker.zig").firstVector(first_ids);
         if (values.len != plan.claim_count or pending.artifact.claims_to_verify_by_instance.len != plan.binding_count) return error.InvalidWideCpuClaims;
         try setup.materials.geometry.validate();
@@ -100,25 +104,25 @@ pub const Set = struct {
             const nclaims = Global.claimCount(slot.origin);
             const claims = try Global.claimsFromVector(O, slot.origin, values[slot.claim_offset..][0..nclaims]);
             if (slot.origin == .sponge) {
-                item.* = .{ .sponge = .{ .data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = request.sponge.rows(slot.origin.sponge), .first_id = request.sponge.first_id, .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
+                item.* = .{ .sponge = .{ .data = try Role.Data.initChecked(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = request.sponge.rows(slot.origin.sponge), .first_id = request.sponge.first_id, .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
                 try item.sponge.validate();
                 continue;
             }
             if (slot.origin == .dword) {
                 const counts = try @import("../types.zig").dwordCounts(setup.bridges, request.ls_dword);
-                item.* = .{ .dword = .{ .data = try @import("dword_role.zig").Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = counts[slot.origin.dword], .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
+                item.* = .{ .dword = .{ .data = try @import("dword_role.zig").Data.initChecked(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = counts[slot.origin.dword], .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
                 try item.dword.validate();
                 continue;
             }
             if (slot.origin == .bulk) {
-                item.* = .{ .bulk = .{ .data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = request.bulk.rows(slot.origin.bulk), .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
+                item.* = .{ .bulk = .{ .data = try Role.Data.initChecked(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = request.bulk.rows(slot.origin.bulk), .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
                 try item.bulk.validate();
                 continue;
             }
             if (slot.origin == .bridge) {
                 const family = slot.origin.bridge;
                 const index = @intFromEnum(family);
-                item.* = .{ .service = .{ .data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?), .span = .{ .calls = request.calls[index], .first_id = ids[index] }, .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
+                item.* = .{ .service = .{ .data = try Role.Data.initChecked(instances[slot.binding_index.?], pending, slot.binding_index.?), .span = .{ .calls = request.calls[index], .first_id = ids[index] }, .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
                 try item.service.validate();
                 continue;
             }
@@ -128,7 +132,7 @@ pub const Set = struct {
                 try item.boundary.validate();
                 continue;
             }
-            var data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?);
+            var data = try Role.Data.initChecked(instances[slot.binding_index.?], pending, slot.binding_index.?);
             data.cpu_u8_pairs = setup.materials.geometry.cpu_u8_pairs;
             data.cpu_compact_decode = setup.materials.geometry.cpu_compact_decode;
             switch (role) {

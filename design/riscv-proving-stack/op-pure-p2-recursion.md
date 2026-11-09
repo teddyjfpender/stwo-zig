@@ -179,3 +179,20 @@ kinds, nonzero absent relation claims and cross-relation cancellation. A balance
 CPU+Keccak+secp roster closes each relation independently. The return type remains
 `Pending`: actual physical terminal projections, complete execution boundaries,
 coverage and fresh source authority are still required for execution acceptance.
+
+## Hash-independent terminal binding
+
+Physical AIR adapters now have a concrete checked-terminal view containing a
+borrowed verified artifact, complete source point/marginals, challenges and eta.
+The full receipt stays with its protocol. The legacy API projects to the same
+concrete view; it has no truncated or fabricated 32-byte digest. The final
+per-role data copies the succinct point, weights and field values, so it owns
+its binding data after construction. Malformed artifact vector lengths reject.
+
+A before/after physical comparison of the existing mixed-P2 two-CPU fixture
+produces identical two native proofs, two durable worker containers, legacy
+manifest and complete source-publics JSON. That includes source key identities,
+ordered geometry and claims. Fresh receivers, existing mutants and the explicit
+post-owner-release data test pass. The compact comparison receipt is
+`vectors/reports/rv64-opstack-cpu-20261109/checked-terminal-legacy-parity-v1.json`.
+The new pure suite may consume this API without changing legacy AIR semantics.

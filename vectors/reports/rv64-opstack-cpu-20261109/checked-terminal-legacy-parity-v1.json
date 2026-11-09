@@ -1,0 +1,13 @@
+{
+  "schema": "stwo.opstack.checked-terminal-legacy-parity.v1",
+  "control": "same source tree with only three legacy wrapper source files from parent commit vs explicit checked-terminal delegation",
+  "sha256": {
+    "cpu-0.p2v2.binary": "1cfd865dfe1b62c7bfe278024874c69f255d428dad7cff2f4e45bae1f60662e3",
+    "cpu-1.worker.binary": "3d024bcced3c4fd16d81648d77973b35e5bc83af5cd37c9c7a7ea3fffba4a302",
+    "cpu-1.p2v2.binary": "fd2d5733330892372b7cc93932971d3ce6e047a851190dc1e2709231898661da",
+    "manifest.raw-blake.binary": "c3e27126329fceb6f0dba6fb39224209a97b19e44b5a65e31f1c1708c5749858",
+    "source-publics.json": "0c9edb77d00f6c086b8303520c05ceb5aa81d0a9b73dd810237fcdfd5996a825",
+    "cpu-0.worker.binary": "76aac560edcf360dbdc13c8dd2696db442524f159f1502f16d26a878d9d88f28"
+  },
+  "all_files_identical": true
+}

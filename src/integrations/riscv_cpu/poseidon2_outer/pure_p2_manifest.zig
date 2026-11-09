@@ -10,6 +10,9 @@ const Frame = @import("../word16_global_execution/services/gkr_local/frame.zig")
 const Proof = @import("stwo_prover_engine").lookups.gkr_verifier.ForField(core.fields.om31.OM31).GkrBatchProof;
 const O = core.fields.om31.OM31;
 pub const MAX_WORKERS = 256;
+pub const Claims = Old.Claims;
+pub const Shared = Old.Shared;
+pub const Relations = Old.Relations;
 pub const DOMAIN = [_]u32{ 0x4f504d39, 1, 9 };
 pub const Expected = struct {
     kind: Old.Kind,

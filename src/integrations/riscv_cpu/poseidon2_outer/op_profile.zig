@@ -16,6 +16,12 @@ pub const Profile = enum {
         if (self != .reference_b2_q24_p0) fri.fold_step = 4;
         return .{ .pow_bits = 0, .fri_config = fri };
     }
+    pub fn identity(self: Profile) [32]u8 {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update(self.domain());
+        hash.update(&core.crypto.poseidon2_m31_sponge.identity());
+        return hash.finalResult();
+    }
     pub fn domain(self: Profile) []const u8 {
         return switch (self) {
             .reference_b2_q24_p0 => "stwo/rv64/p2-five-roster/reference-om31-v2/classic-logup/v1\x00",
