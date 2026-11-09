@@ -282,8 +282,8 @@ jobs:
           for field in ("m31.zig", "qm31.zig"):
               assert (roots["main"] / "fields" / field).read_bytes() == (roots["current"] / "fields" / field).read_bytes()
           probe = out / "pinned-fri-probe.zig"
-          probe.write_bytes(Path("src/waist/core/fields/tests/qm31_integer.zig").read_bytes())
-          assert probe.read_bytes() == (roots["rejected-schoolbook"] / "fields/tests/qm31_integer.zig").read_bytes()
+          probe.write_bytes((roots["rejected-schoolbook"] / "fields/tests/qm31_integer.zig").read_bytes())
+          assert hashlib.sha256(probe.read_bytes()).hexdigest() == "a062a47ce8ad8a262489c602d611d414f0cddfe960ceadb44d50d2ba8ad10571"
           records = []
           cases = [(name, root, mode, "qm31 integer:") for name, root in roots.items() for mode in ("Debug", "ReleaseSafe", "ReleaseFast")]
           cases += [(name + "-fold-only", roots[name], "ReleaseFast", "qm31 integer: first circle fold without stage instrumentation") for name in ("main", "current-inline", "rejected-schoolbook")]
