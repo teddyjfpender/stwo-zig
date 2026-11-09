@@ -10,6 +10,35 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_native_cpu_product_sources_select_only_their_canonical_ci_lane(self):
+        paths = [f"src/products/native/cpu/{name}.zig" for name in (
+            "main", "app", "cli", "identity", "registry", "benchmark", "root",
+        )]
+        for host in ("darwin", "linux"):
+            with self.subTest(host=host), mock.patch("scripts.dev_test.sys.platform", host):
+                (command,) = dev_test.commands_for_paths(ROOT, paths)
+                self.assertIn("scripts/repo/ci_scope_run.py", command)
+                self.assertEqual("native_cpu", command[command.index("--lane") + 1])
+                self.assertIn("--local-compatible", command)
+
+    def test_shared_native_capabilities_preserve_all_consumer_deferrals(self):
+        deferred = []
+        commands = dev_test.commands_for_paths(ROOT, ["src/products/native/cpu/capabilities.zig"], check_only=True, deferred=deferred)
+        self.assertEqual([], commands)
+        self.assertEqual({"native_cpu", "native_metal", "aggregate_cpu", "aggregate_metal"}, set(deferred))
+
+    def test_native_cpu_product_semantic_checks_defer_the_full_execution_lane(self):
+        with self.assertRaisesRegex(dev_test.DevTestError, "requires full-lane validation"):
+            dev_test.commands_for_paths(ROOT, ["src/products/native/cpu/main.zig"], check_only=True)
+        deferred = []
+        with mock.patch("scripts.dev_test.subprocess.run") as run:
+            commands = dev_test.commands_for_paths(
+                ROOT, ["src/products/native/cpu/main.zig"], check_only=True, deferred=deferred,
+            )
+        self.assertEqual([], commands)
+        self.assertEqual(["native_cpu"], deferred)
+        run.assert_not_called()
+
     def test_check_only_never_substitutes_a_full_package_or_ci_build(self):
         with self.assertRaisesRegex(dev_test.DevTestError, "focused owner"):
             dev_test.commands_for_paths(ROOT, ["src/waist/core/mod.zig"], check_only=True)

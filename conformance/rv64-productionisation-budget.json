@@ -533,6 +533,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Finish the existing Native CPU product gate after actual ReleaseFast execution passed all 222 tests but rejected missing canonical module bindings. Declare the exact existing atomic/postcard/native-artifact roots; admit only the Native artifact barrel, its existing test owner and three already-mandatory proof-wire test owners exposed by those exact bindings, retaining every directory prefix and forbidden-link rule. Fix reproduced positional stdout overwriting by streaming the existing applications writer. Extend the existing product checker with one optional positional binary path and actual append-offset/registry validation; retain default source-marker behavior. Negative tests protect overwritten, invalid and failed output. No package API/dependency ledger, runtime flag, new launcher, protocol, security policy or proof check change. Include the existing omitted Poseidon2 proof root in aggregate validation and force all seven existing product test runs to execute freshly, retaining roots, filters, cases and standalone steps. The pinned per-artifact run exposed a zero-case main root; explicitly collect its application/parser/identity/registry owners and require their five existing names from the compiler test list in an anonymous, unfilterable guard."
+    },
+    {
+      "id": "delivery_native_cpu_developer_path_owner",
+      "net_code_budget": 90,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair missing CI/developer selection for the moved Native CPU product source directory by mapping it to the existing native_cpu lane. Preserve its commands, Linux host policy and explicit macOS local-compatibility semantics; private CPU sources do not select GPU lanes, and no package contract is invented. Regression tests require exact CPU lane selection, deduplication and semantic-only deferral without compiler or prover execution. No production algorithm, protocol, API/dependency ledger, flag, script launcher, ceiling or rejection change. Local-compatible Zig builds use the existing serial wrapper and its build-lock owner, overriding only valid compiler job counts while preserving optimization, explicit limits, runtime arguments after -- and invalid-job rejection. Normal CI execution remains unchanged. The external diagnostic guard remains 4 GiB and 180 seconds. A regenerated real product catalog confirms capabilities.zig is shared: retain its exact Native/aggregate CPU and Metal consumer fanout in classification metadata, without executing the Metal lanes."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
