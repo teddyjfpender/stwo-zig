@@ -98,3 +98,22 @@ and claim centering retain their exact order. A test-only scalar reference check
 every interaction cell and claim in both fields, with five calls crossing a
 chunk boundary and including the padded provider rows. This removes per-fraction
 inversion work; no whole-block speedup is inferred from this unit qualification.
+
+### Owned commitment and durable relation advice
+
+The pure-P2 truth worker transfers both MAIN and INTER backings into the PCS.
+It retains 52 field values, 32 quotients and 32 carry vectors per call after
+MAIN is consumed: the expensive arithmetic witness is generated once. Packed
+row reconstruction from this advice performs no field products, modular
+division or DAG rerun. Source-owned fixed rows are reconstructed directly when
+needed, so workers reuse the independently committed FIXED setup. Advice is
+released after INTER commitment, when physical claims and the PCS retain its
+obligations.
+
+For 22,185 calls the two sources retain 118,689,760 bytes between phases,
+versus 1,621,098,496 bytes of MAIN at the modeled geometry. These are source
+storage figures, not whole-prover peak RSS. Both field families compare every
+interaction cell before and after MAIN/FIXED release against the scalar
+reference. The source-owned target-profile pure-P2 fragment proof freshly
+verifies (558,184 framed bytes); missing CPU/Wire closure is explicitly refused.
+A complete inventory and recursive receiver remain required for admission.

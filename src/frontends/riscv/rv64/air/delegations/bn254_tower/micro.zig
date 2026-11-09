@@ -116,7 +116,11 @@ pub fn fill(step: usize, values: *const [D.VALUES]u256) Row {
         std.debug.assert(encoded >= 0 and encoded < (@as(i64, 1) << @intCast(G.carry_bits)));
         row[CARRY + group] = @intCast(encoded);
     }
-    put(&row, DISTANCE, 32, B.BN254_P - 1 - output);
+    finishCanonical(&row, output);
+    return row;
+}
+fn finishCanonical(row: *Row, output: u256) void {
+    put(row, DISTANCE, 32, B.BN254_P - 1 - output);
     var borrow: u32 = 0;
     for (0..15) |i| {
         const total = row[RESULT + 2 * i] + 256 * row[RESULT + 2 * i + 1] + row[DISTANCE + 2 * i] + 256 * row[DISTANCE + 2 * i + 1] + borrow + @intFromBool(i == 0);
@@ -125,7 +129,6 @@ pub fn fill(step: usize, values: *const [D.VALUES]u256) Row {
         borrow = @intFromBool(total != modulus);
         row[BORROW + i] = borrow;
     }
-    return row;
 }
 inline fn k(comptime F: type, value: u32) F {
     return E.qFor(F, value);
@@ -189,6 +192,31 @@ pub fn emitSelected(comptime F: type, v: anytype, arithmetic: F, sink: *E.SinkFo
         sink.emit(arithmetic.mul(residual));
     }
 }
+/// Durable relation advice retained after owned MAIN commitment. Each row's
+/// expensive products/division/carry witness is constructed once, then encoded
+/// into the trace and this narrow record. Replay does no field multiplication,
+/// modular division or DAG evaluation.
+pub const Advice = struct {
+    values: [D.VALUES]u256,
+    quotients: [D.STEPS][G.q_bytes]u8,
+    carries: [D.STEPS][G.carries]u16,
+    pub fn record(self: *@This(), step: usize, row: *const Row) void {
+        for (&self.quotients[step], 0..) |*value, i| value.* = @intCast(row[QUOTIENT + i]);
+        for (&self.carries[step], 0..) |*value, i| value.* = @intCast(row[CARRY + i]);
+    }
+    pub fn replay(self: *const @This(), step: usize) Row {
+        var row: Row = @splat(0);
+        row[ACTIVE] = 1;
+        for (D.PROGRAM[step].operands(), 0..) |id, slot| put(&row, OPERANDS + 32 * slot, 32, D.read(&self.values, id));
+        const output = self.values[D.PROGRAM[step].output];
+        put(&row, RESULT, 32, output);
+        for (self.quotients[step], 0..) |value, i| row[QUOTIENT + i] = value;
+        for (self.carries[step], 0..) |value, i| row[CARRY + i] = value;
+        finishCanonical(&row, output);
+        return row;
+    }
+};
+
 /// Only writes need byte authority: authenticated frontier bytes and every
 /// canonical result make operand ranges follow by the acyclic exact-fanout SSA
 /// relation. Quotients/carries/distance remain explicit local range queries.

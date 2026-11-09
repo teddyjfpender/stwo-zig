@@ -1,0 +1,50 @@
+{
+  "schema": "stwo.opstack.owned-pure-p2-miller-fragment.v1",
+  "execution_admission": false,
+  "security_qualified": false,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "proof_scope": "single-call truth fragment; not whole execution",
+  "physical": {
+    "framed_bytes": 558184,
+    "frontier_log": 8,
+    "arithmetic_log": 15,
+    "independently_rebuilt_fixed_key": true,
+    "owned_MAIN": true,
+    "owned_INTER": true,
+    "source_MAIN_and_FIXED_released_before_interaction": true,
+    "advice_released_after_INTER_commit": true
+  },
+  "retention": {
+    "per_arithmetic_call_bytes": 4704,
+    "one_call_two_source_advice_and_table_counts_bytes": 138464,
+    "calls_model": 22185,
+    "two_source_retained_advice_model_bytes": 118689760,
+    "source_MAIN_model_bytes": 1621098496,
+    "whole_prover_peak_not_measured": true,
+    "expensive_witness_constructions_per_call": 1,
+    "replay_field_products_or_divisions": 0
+  },
+  "qualification": {
+    "ReleaseSafe": [
+      "test-riscv64-op-tower",
+      "filtered OP pure P2 tower worker physical gate"
+    ],
+    "controls": [
+      "every QM31/OM31 interaction cell matches scalar with/without MAIN/FIXED",
+      "fresh source key and expected statement",
+      "independent numeric expected Wire output",
+      "truth-only manifest refused",
+      "unclosed execution Wire refused",
+      "wrong span and mass",
+      "balanced forged SSA claims",
+      "physical proof mutation",
+      "bounded durable envelope and truncation"
+    ]
+  },
+  "remaining": [
+    "complete source-backed CPU/GKR/RAM/Wire inventory",
+    "source and working memory admissions at production geometry",
+    "service recursive leaf and fold/root receiver",
+    "heavy block end-to-end timed qualification"
+  ]
+}

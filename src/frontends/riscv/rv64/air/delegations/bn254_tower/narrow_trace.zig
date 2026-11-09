@@ -28,40 +28,52 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
         const Self = @This();
         pub const L = NE.LayoutForField(role, Q);
         pub const Eq = NE.EquationsForField(role, Q);
+        const Retained = if (role == .frontier) Input else Micro.Advice;
         allocator: std.mem.Allocator,
         log_size: u32,
         first_id: u32,
-        inputs: []Input,
+        inputs: []Retained,
+        byte_counts: [256]u32,
+        carry_counts: []u32,
         fixed: []M,
         main: []M,
         interaction: []M = &.{},
         pub fn init(a: std.mem.Allocator, inputs: []const Input, first: u32, log: u32) !Self {
+            return initImpl(a, inputs, first, log, true);
+        }
+        /// Reuse independently committed immutable FIXED setup. Native fixed
+        /// rows are cheap source-owned expressions, never mutable input advice.
+        pub fn initWithoutFixed(a: std.mem.Allocator, inputs: []const Input, first: u32, log: u32) !Self {
+            return initImpl(a, inputs, first, log, false);
+        }
+        fn initImpl(a: std.mem.Allocator, inputs: []const Input, first: u32, log: u32, comptime keep_fixed: bool) !Self {
             try L.validateGeometry(@intCast(inputs.len), first, log);
             const n = @as(usize, 1) << @intCast(log);
-            const copy = try a.dupe(Input, inputs);
+            const copy = try a.alloc(Retained, inputs.len);
             errdefer a.free(copy);
-            const preprocessing = try fixed(a, role, log);
+            const preprocessing = if (keep_fixed) try fixed(a, role, log) else try a.alloc(M, 0);
             errdefer a.free(preprocessing);
             const main = try a.alloc(M, L.MAIN * n);
             errdefer a.free(main);
             @memset(main, M.zero());
-            const byte_counts = try a.alloc(u32, 256);
-            defer a.free(byte_counts);
-            @memset(byte_counts, 0);
-            const carry_counts = try a.alloc(u32, Micro.CARRY_LIMIT);
-            defer a.free(carry_counts);
+            var byte_counts: [256]u32 = @splat(0);
+            const carry_counts = try a.alloc(u32, if (role == .arithmetic) Micro.CARRY_LIMIT else 0);
+            errdefer a.free(carry_counts);
             @memset(carry_counts, 0);
             for (inputs, 0..) |*input, call| {
                 if (role == .frontier) {
+                    copy[call] = input.*;
                     for (0..D.INPUTS) |step| {
                         const row = S.frontierRow(input, step);
                         const physical = R.trace.physical(call * D.INPUTS + step, log);
                         for (row, 0..) |value, column| main[column * n + physical] = M.fromCanonical(value);
                     }
                 } else {
-                    const values = D.evaluate(input);
+                    copy[call] = .{ .values = D.evaluate(input), .quotients = undefined, .carries = undefined };
+                    const values = &copy[call].values;
                     for (0..D.STEPS) |step| {
-                        const row = Micro.fill(step, &values);
+                        const row = Micro.fill(step, values);
+                        copy[call].record(step, &row);
                         const physical = R.trace.physical(call * D.STEPS + step, log);
                         for (row, 0..) |value, column| main[column * n + physical] = M.fromCanonical(value);
                         for (0..Micro.BYTE_QUERIES) |query| byte_counts[Micro.rangeQuery(&row, query)] += 1;
@@ -73,11 +85,12 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
                 for (byte_counts, 0..) |count, value| main[L.BYTE_MULT * n + R.trace.physical(value, log)] = M.fromCanonical(count);
                 for (carry_counts, 0..) |count, value| main[L.CARRY_MULT * n + R.trace.physical(value, log)] = M.fromCanonical(count);
             }
-            return .{ .allocator = a, .log_size = log, .first_id = first, .inputs = copy, .fixed = preprocessing, .main = main };
+            return .{ .allocator = a, .log_size = log, .first_id = first, .inputs = copy, .fixed = preprocessing, .main = main, .byte_counts = byte_counts, .carry_counts = carry_counts };
         }
         pub fn deinit(self: *Self) void {
             const a = self.allocator;
             a.free(self.inputs);
+            a.free(self.carry_counts);
             a.free(self.fixed);
             a.free(self.main);
             a.free(self.interaction);
@@ -89,14 +102,62 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
         pub fn public(self: *const Self) @import("../../evaluation.zig").CallSpanFor(Q) {
             return .{ .calls = @intCast(self.inputs.len), .first_id = self.first_id };
         }
+        /// Ownership transfers only after the caller has allocated all commit
+        /// headers/backings. Advice and range counts remain owned by Source.
+        pub fn takeMain(self: *Self) ![]M {
+            if (self.main.len == 0) return error.TowerMainAlreadyReleased;
+            const data = self.main;
+            self.main = &.{};
+            return data;
+        }
+        pub fn releaseFixed(self: *Self) void {
+            self.allocator.free(self.fixed);
+            self.fixed = &.{};
+        }
+        /// After INTER is committed, authenticated claims/PCS retain the
+        /// obligations. No source operation is allowed to regenerate it.
+        pub fn releaseAdvice(self: *Self) void {
+            self.allocator.free(self.inputs);
+            self.inputs = &.{};
+            self.allocator.free(self.carry_counts);
+            self.carry_counts = &.{};
+            self.byte_counts = @splat(0);
+        }
+        pub fn retainedAdviceBytes(self: *const Self) usize {
+            return self.inputs.len * @sizeOf(Retained) + @sizeOf(@TypeOf(self.byte_counts)) + self.carry_counts.len * @sizeOf(u32);
+        }
+        fn replayMain(self: *const Self, index: usize) [L.MAIN]u32 {
+            var out: [L.MAIN]u32 = @splat(0);
+            const active_rows = self.inputs.len * S.period(role);
+            if (index < active_rows) {
+                const call = index / S.period(role);
+                const step = index % S.period(role);
+                if (role == .frontier) out = S.frontierRow(&self.inputs[call], step) else out[0..Micro.MAIN].* = self.inputs[call].replay(step);
+            }
+            if (role == .arithmetic) {
+                if (index < self.byte_counts.len) out[L.BYTE_MULT] = self.byte_counts[index];
+                if (index < self.carry_counts.len) out[L.CARRY_MULT] = self.carry_counts[index];
+            }
+            return out;
+        }
+        fn viewAt(self: *const Self, index: usize, row: *[L.MAIN]u32, preprocessing: *[S.FIXED]u32) View {
+            if (self.main.len == 0) row.* = self.replayMain(index);
+            if (self.fixed.len == 0) preprocessing.* = S.fixedRow(role, index, self.log_size);
+            return .{ .source = self, .physical = R.trace.physical(index, self.log_size), .row = if (self.main.len == 0) row else null, .preprocessing = if (self.fixed.len == 0) preprocessing else null };
+        }
         pub const View = struct {
             source: *const Self,
             physical: usize,
+            row: ?*const [L.MAIN]u32 = null,
+            preprocessing: ?*const [S.FIXED]u32 = null,
             pub fn fixed(self: *const @This(), c: usize) Q {
-                return Q.fromBase(self.source.fixed[c * self.source.size() + self.physical]);
+                return Q.fromBase(if (self.preprocessing) |values| M.fromCanonical(values[c]) else self.source.fixed[c * self.source.size() + self.physical]);
             }
             pub fn main(self: *const @This(), c: usize) Q {
-                return Q.fromBase(self.source.main[c * self.source.size() + self.physical]);
+                return Q.fromBase(self.mainBase(c));
+            }
+            pub fn mainBase(self: *const @This(), c: usize) M {
+                return if (self.row) |values| M.fromCanonical(values[c]) else self.source.main[c * self.source.size() + self.physical];
             }
         };
         pub fn generateInteraction(self: *Self, ch: NE.ChallengesFor(Q)) !NE.ClaimsFor(Q) {
@@ -145,7 +206,9 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
                 const numerators = if (batched) scratch[2 * count .. 3 * count] else scratch;
                 if (batched) {
                     for (chunk_start..chunk_end) |index| {
-                        const view = View{ .source = self, .physical = R.trace.physical(index, self.log_size) };
+                        var replay: [L.MAIN]u32 = undefined;
+                        var preprocessing: [S.FIXED]u32 = undefined;
+                        const view = self.viewAt(index, &replay, &preprocessing);
                         for (0..FRACTIONS) |slot| {
                             const fraction = if (slot < L.SSA_FRACTIONS) Eq.fraction(Q, &view, self.public(), ch, .ssa, slot) else Eq.fraction(Q, &view, self.public(), ch, .wire, 0);
                             const at = (index - chunk_start) * FRACTIONS + slot;
@@ -159,7 +222,9 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
                 }
                 for (chunk_start..chunk_end) |index| {
                     const physical = R.trace.physical(index, self.log_size);
-                    const view = View{ .source = self, .physical = physical };
+                    var replay: [L.MAIN]u32 = undefined;
+                    var preprocessing: [S.FIXED]u32 = undefined;
+                    const view = self.viewAt(index, &replay, &preprocessing);
                     if (role == .arithmetic) {
                         for (0..L.RANGE_BATCHES) |batch| {
                             for (0..2) |lane| {
@@ -167,15 +232,15 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
                                 if (query < Micro.BYTE_QUERIES) {
                                     if (index < self.inputs.len * D.STEPS) {
                                         const column = if (query < 32) Micro.RESULT + query else if (query < 32 + Micro.G.q_bytes) Micro.QUOTIENT + query - 32 else Micro.DISTANCE + query - 32 - Micro.G.q_bytes;
-                                        range_total = range_total.add(bytes[self.main[column * n + physical].v]);
+                                        range_total = range_total.add(bytes[view.mainBase(column).v]);
                                     }
                                 } else if (query == Micro.BYTE_QUERIES) {
-                                    range_total = range_total.sub(bytes[index % 256].mul(Q.fromBase(self.main[L.BYTE_MULT * n + physical])));
+                                    range_total = range_total.sub(bytes[index % 256].mul(Q.fromBase(view.mainBase(L.BYTE_MULT))));
                                 } else {
                                     const carry = query - Micro.BYTE_QUERIES - 1;
                                     if (carry < Micro.G.carries) {
-                                        if (index < self.inputs.len * D.STEPS) range_total = range_total.add(carries[self.main[(Micro.CARRY + carry) * n + physical].v]);
-                                    } else if (carry == Micro.G.carries) range_total = range_total.sub(carries[index % Micro.CARRY_LIMIT].mul(Q.fromBase(self.main[L.CARRY_MULT * n + physical])));
+                                        if (index < self.inputs.len * D.STEPS) range_total = range_total.add(carries[view.mainBase(Micro.CARRY + carry).v]);
+                                    } else if (carry == Micro.G.carries) range_total = range_total.sub(carries[index % Micro.CARRY_LIMIT].mul(Q.fromBase(view.mainBase(L.CARRY_MULT))));
                                 }
                             }
                             store(out, n, physical, L.COORDINATES * batch, range_total);
