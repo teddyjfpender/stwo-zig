@@ -445,3 +445,7 @@ The native search helper defaults to four CPU threads (optional third argument
 selects 1–8); counter chunks are disjoint, and 2^28 is the total across all threads.
 Previously retained candidate slots should be checked first. An exhausted search
 is an explicit recovery limit, never evidence that the requested state is absent.
+The pinned SHA3 dependency enables its `asm` feature: its runtime-detected
+AArch64 SHA3 path accelerates Keccak while retaining the generic fallback.
+Five complete 32-byte-input digest vectors are checked independently against
+Python Keccak; all returned slot advice still undergoes the Python rehash.

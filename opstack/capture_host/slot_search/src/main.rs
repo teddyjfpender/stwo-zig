@@ -38,3 +38,15 @@ fn main() {
         println!("{{\"candidate\":{candidate},\"attempts\":{},\"threads\":{threads},\"seconds\":{}}}",total.load(Ordering::Relaxed),started.elapsed().as_secs_f64());
     } else {eprintln!("bounded search stopped after {} hashes",total.load(Ordering::Relaxed));std::process::exit(2);}
 }
+
+#[cfg(test)]
+mod tests {
+ use super::*;
+ #[test] fn independent_full_keccak_vectors() {
+  assert_eq!(Keccak256::digest([0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8]).iter().map(|b|format!("{b:02x}")).collect::<String>(),"290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563");
+  assert_eq!(Keccak256::digest([255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8,255u8]).iter().map(|b|format!("{b:02x}")).collect::<String>(),"a9c584056064687e149968cbab758a3376d22aedc6a55823d1b3ecbee81b8fb9");
+  assert_eq!(Keccak256::digest([0u8,1u8,2u8,3u8,4u8,5u8,6u8,7u8,8u8,9u8,10u8,11u8,12u8,13u8,14u8,15u8,16u8,17u8,18u8,19u8,20u8,21u8,22u8,23u8,24u8,25u8,26u8,27u8,28u8,29u8,30u8,31u8]).iter().map(|b|format!("{b:02x}")).collect::<String>(),"8ae1aa597fa146ebd3aa2ceddf360668dea5e526567e92b0321816a4e895bd2d");
+  assert_eq!(Keccak256::digest([128u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8]).iter().map(|b|format!("{b:02x}")).collect::<String>(),"de3995408d4211c18871603faad2abbdd832ff9dfb97528065798ee20dc635bf");
+  assert_eq!(Keccak256::digest([0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,1u8]).iter().map(|b|format!("{b:02x}")).collect::<String>(),"b10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6");
+ }
+}
