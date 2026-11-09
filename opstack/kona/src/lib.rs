@@ -29,3 +29,9 @@ pub mod witness;
 
 #[cfg(feature = "host-phase-census")]
 pub mod phase_census;
+
+#[cfg(all(feature="host-phase-census",feature="canonical-fr"))]
+compile_error!("Montgomery branch census requires the control field representation");
+
+#[cfg(all(test, feature="canonical-fr"))]
+mod canonical_fr_tests;

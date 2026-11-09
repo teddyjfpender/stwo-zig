@@ -5,6 +5,7 @@ edition = "2024"
 publish = false
 
 [features]
+canonical-fr = ["stwo-kona-execution/canonical-fr"]
 default = []
 transition-program = ["stwo-kona-execution/transition-program"]
 blob-eval-probe = ["stwo-kona-execution/blob-eval-probe"]

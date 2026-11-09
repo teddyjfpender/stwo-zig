@@ -120,7 +120,11 @@ def main():
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--kzg", action="store_true", help="Exercise complete one/two-blob KZG verification, including BLS12-381 arithmetic")
     parser.add_argument("--oracle", action="store_true", help="Also require independent Unicorn execution, registers, steps and service counts")
+    parser.add_argument("--case",action="append",choices=("dense","dense-hash","half-padded","sparse","zero","domain","kzg-single","kzg-batch"),help="explicit bounded subset; default preserves all existing cases")
+    parser.add_argument("--algorithm",choices=("fraction","adaptive","production"))
+    parser.add_argument("--max-steps",type=int,help="explicit execution cap,1..100000000; default preserves prior diagnostic policy")
     args = parser.parse_args()
+    if args.max_steps is not None and not 1<=args.max_steps<=100_000_000:parser.error("max-steps1..100000000")
     args.artifacts.mkdir(parents=True, exist_ok=False)
     build = args.build.resolve()
     artifacts = args.artifacts.resolve()
@@ -141,6 +145,8 @@ def main():
     symbols = {name: elf_symbols["__" + name] for name in names}
     records = []
     for name, algorithm, payload, output in encoded_cases(args.kzg):
+        if args.case and name not in args.case:continue
+        if args.algorithm and algorithm!=args.algorithm:continue
         prefix = artifacts / f"{name}-{algorithm}"
         input_path = prefix.with_suffix(".input")
         input_path.write_bytes(payload)
@@ -159,7 +165,7 @@ def main():
             "expected_output": output,
             "elf_sha256": hashlib.sha256(elf.read_bytes()).hexdigest(),
             "input_sha256": hashlib.sha256(payload).hexdigest(),
-            "max_steps": 2_000_000_000 if args.kzg else 100_000_000,
+            "max_steps": args.max_steps if args.max_steps is not None else 2_000_000_000 if args.kzg else 100_000_000,
             "engine": "fast",
             "execution_profile": "ethereum_services_v3",
             "symbols": symbols,
@@ -207,10 +213,12 @@ def main():
             "scope": "isolated actual RV64 KZG verification, not OP validity or full transition performance" if args.kzg else "isolated actual RV64 blob evaluation, not OP validity or full transition performance",
             "elf_sha256": config["elf_sha256"],
             "records": records,
+            "selection":{"cases":args.case,"algorithm":args.algorithm,"max_steps":args.max_steps},
             "oracle": "known c-kzg 2.1.8 blob/proof vectors; native Arkworks and RV64 agree; independent Python pins metadata framing" if args.kzg else "independent Python polynomial and single-support Lagrange evaluations; native Arkworks and RV64 both agree",
         }
         (artifacts / "receipt.json").write_text(json.dumps(report, indent=2) + "\n")
         print(name, algorithm, execution["instructions"], flush=True)
+    if not records:raise ValueError("no probe cases selected")
 
 
 if __name__ == "__main__":

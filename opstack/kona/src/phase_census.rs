@@ -135,6 +135,11 @@ pub fn note(update: impl FnOnce(&mut Counts)) {
     })
 }
 pub fn record<T>(f: impl FnOnce() -> T) -> (T, Report) {
+    use ark_ff::MontConfig;
+    assert!(
+        !ark_bls12_381::FrConfig::CANONICAL_REPRESENTATION,
+        "Montgomery branch census requires control representation"
+    );
     STATE.with_borrow_mut(|s| {
         assert!(s.is_none(), "nested native census");
         *s = Some(State {

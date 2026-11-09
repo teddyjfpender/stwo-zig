@@ -23,6 +23,8 @@ VARIANTS = {
     "sponge": "sponge-service",
     "transition": "transition-program,services-v3",
     "transition-sha": "transition-program,services-v3,sha-service",
+    "blob-eval-canonical-fr": "blob-eval-probe,services-v3,montgomery-services,canonical-fr",
+    "transition-sha-canonical-fr": "transition-program,services-v3,sha-service,montgomery-services,canonical-fr",
     "blob-eval-probe": "blob-eval-probe",
     "blob-eval-services": "blob-eval-probe,services-v3,montgomery-services",
     "transition-montgomery": "transition-program,services-v3,montgomery-services",
@@ -149,6 +151,8 @@ def main():
         help="explicit shared copy/set/compare threshold: 8..1048576 or off",
     )
     parser.add_argument("--jobs", type=int, default=2)
+    parser.add_argument("--native-reference",type=Path,help="explicit trusted native reference binary; reuse/hash instead of rebuilding it")
+    parser.add_argument("--runner-reference",type=Path,help="explicit trusted RV64 execution runner; reuse/hash instead of recompiling it")
     args = parser.parse_args()
     if (args.variant.startswith("transition") or args.variant.startswith("blob-eval")) and args.eager:
         parser.error("the transition program authenticates preimages on demand")
@@ -158,6 +162,8 @@ def main():
         compiler_env, bulk_thresholds = bulk_environment(os.environ, args.bulk_min)
     except ValueError as error:
         parser.error(str(error))
+    for reference in(args.native_reference,args.runner_reference):
+        if reference is not None and(not reference.is_file()or reference.stat().st_size==0):parser.error("reference binary missing")
     args.artifacts.mkdir(parents=True, exist_ok=False)
     artifacts = args.artifacts.resolve()
     crate = ROOT / "opstack/kona"
@@ -188,32 +194,33 @@ def main():
                 timeout=1200,
             )
 
-        # Same compiler revision, independent native execution backend.
-        host_env = dict(
-            compiler_env, CARGO_TARGET_DIR=str(crate / "target"), RUSTFLAGS=""
-        )
-        run(
-            [
-                "cargo",
-                "+" + TOOLCHAIN,
-                "build",
-                "--manifest-path",
-                crate / "Cargo.toml",
-                "--locked",
-                "--release",
-                "--features",
-                "host,pairing-hints"
-                if args.variant.startswith("canonical-glv-hinted")
-                else "host,blob-eval-probe"
-                if args.variant.startswith("blob-eval")
-                else "host,transition-program"
-                if args.variant.startswith("transition")
-                else "host",
-                "-j",
-                args.jobs,
-            ],
-            host_env,
-        )
+        if args.native_reference is None:
+            # Same compiler revision, independent native execution backend.
+            host_env = dict(
+                compiler_env, CARGO_TARGET_DIR=str(crate / "target"), RUSTFLAGS=""
+            )
+            run(
+                [
+                    "cargo",
+                    "+" + TOOLCHAIN,
+                    "build",
+                    "--manifest-path",
+                    crate / "Cargo.toml",
+                    "--locked",
+                    "--release",
+                    "--features",
+                    "host,pairing-hints"
+                    if args.variant.startswith("canonical-glv-hinted")
+                    else "host,blob-eval-probe"
+                    if args.variant.startswith("blob-eval")
+                    else "host,transition-program"
+                    if args.variant.startswith("transition")
+                    else "host",
+                    "-j",
+                    args.jobs,
+                ],
+                host_env,
+            )
         lean = args.variant in LEAN_VARIANTS
         manifest = crate / ("lean/Cargo.toml" if lean else "Cargo.toml")
         profile, lean_features = LEAN_VARIANTS.get(args.variant, ("release", []))
@@ -255,7 +262,7 @@ def main():
     guest = artifacts / "guest.elf"
     host = artifacts / "host"
     shutil.copy2(crate / f"target/riscv64i-stwo/{profile}/{executable}", guest)
-    shutil.copy2(crate / "target/release/stwo-kona-host", host)
+    shutil.copy2(args.native_reference.resolve()if args.native_reference else crate / "target/release/stwo-kona-host", host)
     zig = (
         [shutil.which("zig")]
         if shutil.which("zig")
@@ -275,8 +282,12 @@ def main():
         "-femit-bin=" + str(runner_cache),
     ]
     commands.append(zig_command)
-    subprocess.run(zig_command, cwd=ROOT, check=True, timeout=600)
-    shutil.copy2(runner_cache, runner)
+    if args.runner_reference is None:
+        subprocess.run(zig_command, cwd=ROOT, check=True, timeout=600)
+        shutil.copy2(runner_cache, runner)
+    else:
+        commands.pop()
+        shutil.copy2(args.runner_reference.resolve(),runner)
     require_unchanged(source_snapshot, compile_sources(ROOT))
     _, symbols, segments = elf_info(guest)
     sources = {
@@ -306,6 +317,8 @@ def main():
             len(data) for _, _, data, flags in segments if flags & 1
         ),
         "kona_commit": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+        "external_native_reference": identity(args.native_reference.resolve()) if args.native_reference else None,
+        "external_runner_reference": identity(args.runner_reference.resolve()) if args.runner_reference else None,
         "cargo_lock_sha256": identity(manifest.parent / "Cargo.lock")["sha256"],
         "guest_rustflags": env["RUSTFLAGS"],
         "zig_version": zig_version,

@@ -4,10 +4,14 @@
 //! integer arithmetic. Decode at compile time: no heap, runtime field
 //! multiplications, unsafe layout casts, or witness-controlled constants.
 use ark_bls12_381::Fr;
-use ark_ff::BigInt;
+use ark_ff::{BigInt, MontConfig};
 
 pub(super) const SIZE: usize = 4096;
-const ENCODED: &[u8; SIZE * 32] = include_bytes!("blob_roots/montgomery.bin");
+const ENCODED: &[u8; SIZE * 32] = if ark_bls12_381::FrConfig::CANONICAL_REPRESENTATION {
+    include_bytes!("blob_roots/canonical.bin")
+} else {
+    include_bytes!("blob_roots/montgomery.bin")
+};
 pub(super) static ROOTS: [Fr; SIZE] = decode();
 
 const fn decode() -> [Fr; SIZE] {
