@@ -946,6 +946,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Pin both rows of the isolated CM31 SLP fold regression using actual production QM31 arithmetic and independent modular integer results, with exact test discovery in mandatory Debug and ReleaseFast core commands."
+    },
+    {
+      "id": "a1_native_archive_standalone_program_ownership",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Preserve and explicitly collect four pure host policy regressions while removing standalone tests, benchmarks and opt-in diagnostic overlays from the product archive; reject future standalone entrypoints without relaxing live CUDA policy."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

@@ -3,7 +3,7 @@
 // columns and twiddles, byte-compares the outputs, and times every interval
 // with events so per-pass bandwidth can be compared with the 1.79 TB/s peak.
 //   nvcc -O3 -std=c++17 -arch=sm_120 -I src/backends/cuda/native \
-//        src/backends/cuda/native/transform/bench/n2b_schedule_bench.cu -o n2b_bench
+//        tests/cuda/rv64/native/transform/bench/n2b_schedule_bench.cu -o n2b_bench
 //   ./n2b_bench LOG_N COLUMNS OLD NEW   (schedules like 6,6,6,6 and 8,8,8)
 #include "transform/n2b_fused.cuh"
 #include "transform/n2b_smem.cuh"

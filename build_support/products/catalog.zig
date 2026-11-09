@@ -94,6 +94,10 @@ pub const configure = [_]Configure{
         .dependency_module_roots = package_dependencies.frontend_cuda_metal_cpu_protocol_package_roots,
         .allowed_module_files = &.{
             "tests/cuda/cumetal/native_frontend_execution.zig",
+            "tests/cuda/rv64/native/runtime/device_arena_test.cpp",
+            "tests/cuda/rv64/native/rv64/pcs_idle_cache_test.cpp",
+            "tests/cuda/rv64/native/rv64/prefix_banks_test.cpp",
+            "tests/cuda/rv64/native/rv64/pcs_oom_diagnostics_test.cpp",
             // The deduction contract the CUDA witness AOT generator shares
             // with the Cairo witness programs.
             "src/frontends/cairo/witness/deduction_contract.zig",

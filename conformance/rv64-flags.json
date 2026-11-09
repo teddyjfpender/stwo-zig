@@ -588,12 +588,12 @@
       }
     },
     "STWO_RV64_DIAGNOSTIC_BASE": {
-      "owner": "src/backends/cuda/native/rv64/lease_diagnostics.cpp",
+      "owner": "tests/cuda/rv64/native/rv64/lease_diagnostics.cpp",
       "default": "compile-time diagnostic base selected by build; no runtime environment reader",
       "status": "constant",
       "date": "2026-11-08",
       "references": [
-        "src/backends/cuda/native/rv64/lease_diagnostics.cpp"
+        "tests/cuda/rv64/native/rv64/lease_diagnostics.cpp"
       ]
     },
     "STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION": {
@@ -3417,16 +3417,16 @@
       }
     },
     "STWO_RV64_PROCESS_MEMORY_OBSERVE": {
-      "owner": "src/backends/cuda/native/rv64/process_memory_observer.cu",
+      "owner": "tests/cuda/rv64/native/rv64/process_memory_observer.cu",
       "default": "false",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
         "conformance/rv64/presets/integration-stack-preset.json",
-        "src/backends/cuda/native/rv64/process_memory_observer.cu"
+        "tests/cuda/rv64/native/rv64/process_memory_observer.cu"
       ],
       "default_evidence": {
-        "path": "src/backends/cuda/native/rv64/process_memory_observer.cu",
+        "path": "tests/cuda/rv64/native/rv64/process_memory_observer.cu",
         "text": "  const char*enabled=std::getenv(\"STWO_RV64_PROCESS_MEMORY_OBSERVE\");\n  if(!enabled||enabled[0]!='1'||enabled[1])return;\n  const int status=int(cudaGetDeviceCount(&devices));\n  if(status){std::fprintf(stderr,\"GPU_PROCESS_MEMORY_INIT status=%d\\n\",status);devices=0;return;}\n  int previous=0;(void)cudaGetDevice(&previous);\n  std::fprintf(stderr,\"GPU_PROCESS_MEMORY_INIT preloaded=%d eager=%d devices=%d\\n\",std::getenv(\"LD_PRELOAD\")!=nullptr,std::getenv(\"CUDA_MODULE_LOADING\")&&std::getenv(\"CUDA_MODULE_LOADING\")[0]=='E',devices);\n  for(int device=0;device<devices;++device){\n    if(cudaSetDevice(device)!=cudaSuccess||cudaFree(nullptr)!=cudaSuccess){std::fprintf(stderr,\"GPU_PROCESS_MEMORY_INIT device=%d status=failed\\n\",device);continue;}"
       }
     },

@@ -20,6 +20,8 @@ from scripts.cuda.cuda_build_lib.builder import (  # noqa: E402
     load_source_closure,
 )
 from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
+from scripts.cuda.cuda_build_lib.native_closure import load_native_closure
+from scripts.cuda.cuda_build_lib.errors import BuildError
 
 
 CUDA_ROOT = ROOT / "src/backends/cuda"
@@ -31,6 +33,19 @@ NATIVE = CUDA_ROOT / "native"
 
 
 class CudaProductClosureTests(unittest.TestCase):
+    def test_standalone_program_cannot_enter_product_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "fixture.cpp").write_text("int main() { return 0; }\n")
+            with self.assertRaisesRegex(BuildError, "standalone program cannot enter"):
+                load_native_closure(root)
+
+    def test_product_archive_owns_runtime_and_excludes_standalone_programs(self) -> None:
+        native = load_native_closure(NATIVE)
+        self.assertEqual([NATIVE.resolve() / "aot_loader.cpp"], native["host_sources"])
+        self.assertFalse(any("bench" in path.relative_to(NATIVE.resolve()).parts for path in native["sources"]))
+        self.assertNotIn(NATIVE.resolve() / "rv64/process_memory_observer.cu", native["sources"])
+
     def fixture(self, root: Path, *, define_active: bool) -> dict[str, Path]:
         paths = {
             "abi": root / "abi",

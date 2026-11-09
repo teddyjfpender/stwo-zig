@@ -837,11 +837,19 @@
         [
           "zig",
           "build",
+          "test-cuda-runtime-contract",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
           "cuda-source-closure",
           "cuda-cumetal-ledger",
           "cuda-build-plan",
           "test-cuda-build-plan",
-          "test-cuda-runtime-contract",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]

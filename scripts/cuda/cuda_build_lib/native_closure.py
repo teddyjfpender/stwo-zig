@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 
 from .errors import BuildError
@@ -23,6 +24,8 @@ def load_native_closure(native_root: Path) -> dict[str, object]:
     for path in files:
         relative = path.relative_to(native_root).as_posix()
         payload = path.read_bytes()
+        if re.search(rb"\b(?:int|auto)\s+main\s*\(", payload):
+            raise BuildError(f"standalone program cannot enter the CUDA product archive: {relative}")
         encoded = relative.encode("utf-8")
         digest.update(len(encoded).to_bytes(8, "little"))
         digest.update(encoded)
