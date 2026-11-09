@@ -57,7 +57,7 @@ fn appendOutput(a: std.mem.Allocator, words: []u32, output: *Fold.Digest) !void 
 pub fn prepare(a: std.mem.Allocator, authority: Authority, metadata: Metadata) !Prepared {
     const inventory = authority.inventory;
     try M.validateExpected(inventory.workers);
-    if (authority.cpus.len != inventory.cpu_count or authority.detached.len != inventory.detached_count or authority.catalog.len != inventory.truth_count or authority.cpus.len + authority.detached.len + authority.catalog.len + authority.towers.len != inventory.workers.len) return error.OpRootLeafCoverage;
+    if (authority.cpus.len == 0 or authority.cpus.len != inventory.cpu_count or authority.detached.len != inventory.detached_count or authority.catalog.len != inventory.truth_count or authority.cpus.len + authority.detached.len + authority.catalog.len + authority.towers.len != inventory.workers.len) return error.OpRootLeafCoverage;
     if (!std.mem.eql(u8, &metadata.execution, &inventory.execution)) return error.OpRootExecutionAuthority;
     if (metadata.leaves.len != inventory.workers.len) return error.OpRootLeafCoverage;
     const final = authority.cpus[authority.cpus.len - 1].request;

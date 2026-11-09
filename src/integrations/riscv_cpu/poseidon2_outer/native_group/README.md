@@ -60,3 +60,49 @@ execution/coverage/terminal/output admission, bounded group selection on actual
 source classes, composed security accounting and full OP measurements. Admission
 stays closed and the security label remains a128-bit target under documented
 assumptions, with `security_qualified=false`.
+
+
+## Complete actual execution (experimental)
+
+The selected Kona guest for block120794432 now closes all796,406retirements,
+124sponge calls/338permutations and34SHA calls through ONE physical grouped
+root. Its four native members are CPU/frontier, detached sponge, local-GKR
+Keccak and classic SHA. No wrapped child or intermediate fold proof is created.
+The750,068-byte root accepts in a separate source-only process with the native
+proof file physically absent. Eight physical proof/output/metadata/debt attacks
+reject, followed by a restored positive control.
+
+Prove/persist/native-root-check takes93.373seconds; total root producer121.133s
+also includes native re-verification and cold source construction. Native proof
+production is ADDITIONAL. A fresh CLI receiver takes22.609s rebuilding group
+source/key authority, then30.151ms reading/verifying the root. Requested peak
+18.885GB is below32GiB, with zero final heap/external retention. These runs
+qualify correctness during concurrent engineering, not a quiet speed comparison.
+The complete source model is830,730,240cells. Its QM31 role crosses the2^23
+padding boundary; existing R7 dot lowering and a final-only b2/q144 PCS policy
+are experiments to measure next, not established speedups.
+
+```sh
+zig build rv64-op-group-root -Doptimize=ReleaseFast -j1
+rv64-op-group-root prove CONFIG DETACHED_NATIVE ROOT 4
+rv64-op-group-root verify CONFIG SOURCE_ONLY ROOT 4
+rv64-op-group-root qualify CONFIG SOURCE_ONLY ROOT 4
+```
+
+`SOURCE_ONLY` needs only `detached-op.json` and public `cells.bin`; ELF/input/
+ABI/output remain independently pinned by CONFIG. Receiver-selected1/2/4 group
+limit and profile must match. `model` generates source-only cost/key metadata
+without claiming a root proof. `qualify` runs the retained adversarial corpus;
+normal verification performs one root check. An optional resources.json bounds
+host, worker and parked data ownership. Existing OP/Ethereum commands/defaults
+and source-suite admission are unchanged.
+
+Producer keys are built once per group and retired after its proof. Remaining
+fold keys are derived lazily in canonical postorder and retired immediately;
+no collection of wide parent keys is retained. Root metadata does not contain a
+proposed VK. The receiver validates all native identities/ordinals/manifests,
+all polynomial-shape advice against independently derived rosters, global claims
+and terminal policy, then constructs its own group/fold keys. Root publication
+requires the complete native callback and all closure plus physical acceptance.
+Actual multi-group fold runtime qualification remains open; all768 numeric
+planner cases already match the independent original tree implementation.

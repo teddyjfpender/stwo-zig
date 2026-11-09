@@ -26,6 +26,8 @@ pub const steps = [_]Step{
     .{ .name = "test-stwo-prover-gkr-resource", .description = "Qualify GKR memory bounds for every field and layer kind", .scope = .prover },
     .{ .name = "test-stwo-core-om31", .description = "Qualify additive degree8 arithmetic and irreducibility", .scope = .core },
     .{ .name = "rv64-poseidon-graph-fixture", .description = "Real source-owned five-roster P2 v2 graph STARK and fresh receiver", .scope = .riscv_cpu },
+    .{ .name = "rv64-op-group-root", .description = "Experimental grouped OP root producer and source-only receiver", .scope = .riscv_cpu },
+    .{ .name = "check-rv64-op-group-root", .description = "Semantic-only grouped OP root CLI check", .scope = .riscv_cpu },
     .{ .name = "rv64-op-root", .description = "Explicit OP R5 physical-root producer and source-owned root-only receiver", .scope = .riscv_cpu },
     .{ .name = "check-rv64-op-root", .description = "Semantic-only OP root CLI check without LLVM output", .scope = .riscv_cpu },
     .{ .name = "rv64-poseidon-row-fixture", .description = "Scoped dedicated Poseidon row STARK and fresh receiver", .scope = .riscv_cpu },

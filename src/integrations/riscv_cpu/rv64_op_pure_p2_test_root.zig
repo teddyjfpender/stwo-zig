@@ -239,3 +239,7 @@ test {
 test {
     _ = @import("poseidon2_outer/sponge_cpu/root_admission_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/native_group/runtime_test.zig");
+}
