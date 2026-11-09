@@ -616,6 +616,7 @@ class RunnerReceiptTests(unittest.TestCase):
                     cache_root=None,
                 )
             persisted = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(b"ok\n", (output.parent / "focused-0.stdout").read_bytes())
 
         self.assertEqual(receipt, persisted)
         self.assertEqual("stwo-focused-ci-timing-v1", receipt["schema"])
@@ -675,6 +676,7 @@ class RunnerReceiptTests(unittest.TestCase):
                 )
 
             persisted = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(b"failed\n", (output.parent / "focused-1.stderr").read_bytes())
         self.assertEqual("FAIL", receipt["status"])
         self.assertEqual(receipt, persisted)
         self.assertEqual(["first", "second"], [item[0][0] for item in captured])

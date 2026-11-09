@@ -194,6 +194,41 @@ jobs:
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/${{ matrix.lane }}" \
             --output "$RUNNER_TEMP/focused-ci/${{ matrix.lane }}.json"
 
+      - name: Retain failed RV64 worker frame evidence
+        if: failure() && matrix.lane == 'riscv_cpu'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, re, subprocess
+          from pathlib import Path
+          out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci"
+          cache = Path(os.environ["RUNNER_TOOL_CACHE"]) / "stwo-zig/focused/riscv_cpu"
+          binaries = set()
+          for log in out.glob("riscv_cpu-*.stderr"):
+              for raw in re.findall(rb"(?m)^(/[^\r\n]+/test) --cache-dir", log.read_bytes()):
+                  binary = Path(os.fsdecode(raw)).resolve(strict=True)
+                  if binary.is_relative_to(cache.resolve()):
+                      binaries.add(binary)
+          records = []
+          for binary in sorted(binaries):
+              symbols = subprocess.run(["nm", "-S", "--defined-only", str(binary)], check=True, capture_output=True, text=True).stdout
+              frames = []
+              for line in symbols.splitlines():
+                  parts = line.split(maxsplit=3)
+                  if len(parts) != 4 or not parts[3].endswith(("Job.runSimd", "packed_rows.evaluate", "packed_rows.Scratch.initialize")):
+                      continue
+                  address, size, _, name = parts
+                  start = int(address, 16)
+                  stop = start + min(int(size, 16), 512)
+                  argv = ["objdump", "-d", "--demangle", f"--start-address={start}", f"--stop-address={stop}", str(binary)]
+                  assembly = subprocess.run(argv, check=True, capture_output=True).stdout
+                  path = out / f"worker-frame-{binary.parent.name}-{len(frames)}.txt"
+                  path.write_bytes(assembly)
+                  frames.append({"symbol": name, "address": address, "size": size, "assembly": path.name, "assembly_sha256": hashlib.sha256(assembly).hexdigest()})
+              records.append({"binary": str(binary.relative_to(cache)), "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "frames": frames})
+          (out / "failed-rv64-worker-frames.json").write_text(json.dumps(records, indent=2) + "\n")
+          PY
+
       - name: Retain lane timing receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4

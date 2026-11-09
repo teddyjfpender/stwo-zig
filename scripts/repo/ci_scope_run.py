@@ -134,6 +134,8 @@ def run_lane(
             duration_ns = time.monotonic_ns() - command_started
             sys.stdout.buffer.write(result.stdout)
             sys.stderr.buffer.write(result.stderr)
+            (output_dir / f"{lane}-{ordinal}.stdout").write_bytes(result.stdout)
+            (output_dir / f"{lane}-{ordinal}.stderr").write_bytes(result.stderr)
             records.append({
                 "ordinal": ordinal,
                 "argv": argv,

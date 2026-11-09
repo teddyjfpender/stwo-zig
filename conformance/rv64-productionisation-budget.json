@@ -834,6 +834,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Expose the planned CI toolchain check through the existing entrypoint and reuse its static tests in the fast tier. Validate exact Rust crate/guest inventories and Sail authority and count every Zig/Python installer despite trailing comments. One CI selector, no runtime flags or launchers; no installation, binary-digest or device claim."
+    },
+    {
+      "id": "failed_cpu_worker_frame_evidence",
+      "net_code_budget": 10,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Retain exact command output and inspect only failed test binaries inside the existing CPU cache. Existing hosted workflow records binary hashes and bounded worker/evaluator prologues before teardown. Diagnostics leave failure status, timeouts, stack limits and production logic unchanged; no launcher or runtime flag."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
