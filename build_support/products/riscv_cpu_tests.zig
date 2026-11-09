@@ -294,5 +294,5 @@ pub fn addObservationContracts(context: Context) void {
     context.b.step(
         "test-riscv-observation-contracts",
         "Test bounded observation admission, journal ownership and failure cleanup",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{ .tests = tests, .minimum = 13 }}));
+    ).dependOn(test_filter.addSuites(context.b, &.{.{ .tests = tests, .minimum = 19 }}));
 }

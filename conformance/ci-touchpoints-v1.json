@@ -605,6 +605,7 @@
           "riscv-memcpy-hotspot-observer",
           "riscv-function-value-observer",
           "riscv-memcpy-admission-observer",
+          "riscv-analyze-legacy-semantic-observer",
           "-Doptimize=ReleaseFast",
           "-j2"
         ],
@@ -1638,7 +1639,8 @@
         "src/products/riscv/tools/function_value",
         "src/products/riscv/tools/memcpy_admission",
         "src/products/riscv/tools/observations",
-        "src/products/riscv/tools/observation_contracts.zig"
+        "src/products/riscv/tools/observation_contracts.zig",
+        "src/products/riscv/tools/analyze_legacy_semantics"
       ],
       "lanes": [
         "riscv_cpu"

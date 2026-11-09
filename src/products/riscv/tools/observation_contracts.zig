@@ -13,6 +13,7 @@ test {
     _ = @import("function_value/input.zig");
     _ = @import("memcpy_admission/options.zig");
     _ = @import("memcpy_admission/classifier.zig");
+    _ = @import("analyze_legacy_semantics/main.zig");
 }
 
 test "observation journal: selected prefix owns its segments" {
@@ -79,6 +80,12 @@ test "observation contracts: required named discovery" {
         "memcpy-admission options retain prefix count and radix admission",
         "classifier matches aligned-word candidate boundary",
         "memcpy classifier retains every rejection class",
+        "options require every exact custody input",
+        "input identity borrows digest storage from its owner",
+        "call wire borrows digest and opcode storage from retained call",
+        "witness code wire borrows its retained hex allocation",
+        "canonical sealed identity wire reopens to its unsigned bytes",
+        "snapshot reader handles unaligned exact bytes",
     }) |required| {
         var found = false;
         for (@import("builtin").test_functions) |entry| {

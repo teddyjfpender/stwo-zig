@@ -785,6 +785,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Receipt-only checkpoint of exact hosted component positives, retained arithmetic and timing negatives, independent source/workspace counts, measured commit budgets and a downloaded/hash-verified remote evidence archive. Preserve every incomplete full-suite/formal/GPU/performance gate and all historical receipt sections."
+    },
+    {
+      "id": "legacy_observer_complete_discovery",
+      "net_code_budget": 20,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Make all six existing legacy semantic observer contracts mandatory in the shared named discovery root and build the fifth real command through the existing hosted CPU lane. Preserve the exact source-file bytes because the observer binds that file into its output; its distinct strict completion and summary parser is unchanged. No structural-completion or code-removal credit is claimed."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
