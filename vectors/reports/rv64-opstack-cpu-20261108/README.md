@@ -459,3 +459,13 @@ or a qualified cheaper commitment/outer construction. More simultaneous CPU
 proofs and larger caches have not demonstrated that multiplier. Preserve
 full RAM/KIO/Wire closure, source authority, public statement/roster binding
 and the documented security construction in any replacement.
+
+The [final production-source gates](final-source-gates.json) build both native
+and recursion CLIs, reject a physically corrupted new heavy leaf with
+`ProofOfWork`, reject a missing final fold with `MissingRecursiveNodeProof`,
+and refuse the retired CPU-lane selector. The original accepted D2 files stay
+unchanged. The new executable also freshly accepts the retained original B2
+heavy bundle with **126 native members and all 190 recursive nodes**, under
+its original 4 GiB fixed-key admission. Both source modes and both native
+profiles are thus exercised after the geometry repair. These checks establish
+compatibility/refusal behavior, not a controlled receiver speed improvement.
