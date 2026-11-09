@@ -25,7 +25,15 @@ pub const View = struct {
         for (&out, try core.crypto.poseidon2_m31_sponge.decode(digest)) |*wire, value| wire.* = C.Q.fromBase(value);
         return out;
     }
+    /// Production construction skips only repeated diagnostic circuit scans;
+    /// topology/public words are identical and fresh physical verification stays mandatory.
+    pub fn buildForProving(self: View, a: std.mem.Allocator) !C.PoseidonContext {
+        return self.buildMode(a, false, false);
+    }
     pub fn build(self: View, a: std.mem.Allocator, trace_only: bool) !C.PoseidonContext {
+        return self.buildMode(a, trace_only, true);
+    }
+    fn buildMode(self: View, a: std.mem.Allocator, trace_only: bool, diagnostic_checks: bool) !C.PoseidonContext {
         var structural = @import("../rv64_recursion/circuit_lane.zig").StructuralScope.init();
         defer structural.deinit();
         var owner = if (trace_only) try C.PoseidonContext.initTraceOnly(a, 9) else try C.PoseidonContext.init(a, 9);
@@ -44,7 +52,7 @@ pub const View = struct {
         active = false;
         try owner.setOutputs(&output);
         try owner.finalize();
-        if (!trace_only) {
+        if (!trace_only and diagnostic_checks) {
             try std.testing.expect(try owner.isCircuitValid());
             for ([_]C.Var{ proof.sampled_values[1][0][0].c0.v, statement.claims[0].c0.v, frame.free_words.items[0].get(), frame.free_words.items[1].get(), frame.free_words.items[9 + 18 + 8].get(), frame.free_words.items[frame.free_words.items.len - 2].get(), frame.free_words.items[frame.free_words.items.len - 1].get(), output[8] }) |port| {
                 const original = ctx.get(port);
