@@ -502,7 +502,7 @@
       ]
     },
     "vectors/reports": {
-      "files": 2,
+      "files": 3,
       "consumers": [
         ".github/workflows/ci.yml",
         "build_support/benchmarks/native.zig",
@@ -1938,6 +1938,12 @@
       "path": "vectors/reports/rv64-productionisation/merge-validation-51897.json",
       "sha256": "9766bb12620d9448d9f205cf6f975a3b3a97cd6e8023af1de08bb383ceea2683",
       "bytes": 7152,
+      "group": "vectors/reports"
+    },
+    {
+      "path": "vectors/reports/rv64-productionisation/poseidon-table-audit-current.json",
+      "sha256": "b6a5bd26374ffe52492a062a4be4711c72b107c3a59230ddd0b98a060fdb75c5",
+      "bytes": 8044,
       "group": "vectors/reports"
     },
     {

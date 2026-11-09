@@ -813,6 +813,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Move complete exact backend preparation into live generation so candidate mode does not perform the same full kernel verification in a redundant prior process. Preserve prepare_exact_backend and every kernel/pin check unchanged, preserve explicit generated-file and carried-evidence behavior, and retain independent check-generated verification. No proof-result caching, new CLI flag or admission bypass."
+    },
+    {
+      "id": "reviewed_cm31_table_binding_refresh",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Regenerate the one changed row-local audit binding only after exact normalization reproduces the previously trusted CM31 source and the unchanged owner checks all 2981888 table rows, Poseidon materializations and negative controls. Preserve every other pin and all proof/security/timing exclusions; generated receipt records the exact binding map."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

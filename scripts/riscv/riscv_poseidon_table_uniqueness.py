@@ -66,7 +66,7 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/waist/core/fields/m31.zig":
         "a5d47cc1a8c57a858b943c25e63eb1561b9f994fdff36ea38517bc166ea66d73",
     "src/waist/core/fields/cm31.zig":
-        "4b7a14c91fba7c467f92e924ce90c7230a22d08329591e3d5b8874d862b31288",
+        "a69ebf43415c9682d81a6f873217c1b006a28152f5a35fa6e917a6d50d9a70cf",
     "src/waist/core/fields/qm31.zig":
         "916275ccc46e2b9d13c1d591a405dfa071018634ef652b053ee8e5414ba3c71e",
     "src/waist/core/utils.zig":
