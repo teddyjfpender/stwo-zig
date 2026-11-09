@@ -150,6 +150,7 @@ pub fn addProduct(context: Context) void {
     context.b.step("test-cairo-cuda-relation-local", "Test relation graph scratch admission and stream execution without a GPU").dependOn(&context.b.addRunArtifact(relation_tests).step);
     if (!descriptor.isAvailableOn(context.target.result.os.tag)) {
         policy.registerUnavailable(context.b, descriptor, context.target.result.os.tag);
+        registerResidentUnavailable(context.b, descriptor.unsupported_target_reason.?);
         return;
     }
 
@@ -482,6 +483,13 @@ fn registerMissingToolchain(b: *std.Build) void {
     b.step(descriptor.build_step, toolchain_requirement).dependOn(&unavailable.step);
     b.step(descriptor.test_step.?, toolchain_requirement).dependOn(&unavailable.step);
     b.step(descriptor.benchmark_step.?, toolchain_requirement).dependOn(&unavailable.step);
+    registerResidentUnavailable(b, toolchain_requirement);
+}
+
+fn registerResidentUnavailable(b: *std.Build, reason: []const u8) void {
+    const unavailable = b.addFail(reason);
+    b.step("benchmark-circuit-cuda-resident", reason).dependOn(&unavailable.step);
+    b.step("circuit-recursion-cuda-resident", reason).dependOn(&unavailable.step);
 }
 
 fn product(role: graph.Role) graph.Product {

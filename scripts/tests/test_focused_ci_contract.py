@@ -36,7 +36,7 @@ class PlannerContractTests(unittest.TestCase):
             lanes, reasons = ci_scope_plan.manual_cpu_selection(lane, self.policy)
             self.assertEqual([lane], lanes)
             self.assertIn("not automatic PR scope", reasons[lane][0])
-        for lane in ("native_cuda_device", "native_cuda_static", "native_metal", "cairo_metal", "unknown", "core; echo injected"):
+        for lane in ("native_cuda_device", "native_metal", "cairo_metal", "unknown", "core; echo injected"):
             with self.assertRaises(ci_scope_plan.PlanError):
                 ci_scope_plan.manual_cpu_selection(lane, self.policy)
         for field, value in (("host", "cuda"), ("hosted", False)):

@@ -225,6 +225,7 @@ pub const steps = [_]Step{
     .{ .name = "circuit-recursion-cuda-resident", .description = "Build the fully resident PIE-to-root CUDA prover", .scope = .cairo_cuda },
     .{ .name = "check-cairo-cuda-local", .description = "Compile the full Cairo CUDA product without a GPU or CUDA runtime", .scope = .cairo_cuda },
     .{ .name = "test-cairo-cuda-local", .description = "Test canonical CUDA source admission and table geometry without a GPU", .scope = .cairo_cuda },
+    .{ .name = "test-cairo-cuda-relation-local", .description = "Test relation graph scratch admission and stream execution without a GPU", .scope = .cairo_cuda },
     .{ .name = "test-stwo-prover-fft", .description = "Test circle transforms, radix scheduling and coefficient parity", .scope = .prover },
     .{ .name = "test-stwo-prover-sampling", .description = "Test sampled values and independent circle polynomial evaluation", .scope = .prover },
     .{ .name = "test-stwo-core-blake2s", .description = "Test BLAKE2s streams and SIMD lifted leaves", .scope = .core },

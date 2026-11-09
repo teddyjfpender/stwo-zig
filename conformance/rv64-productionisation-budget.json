@@ -932,6 +932,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Restore eleven explicitly handed-over regressions whose production subjects remain live: four native V3 projection cases and seven VM composition cases. Keep whole live VM bodies verbatim; mixed native/AIR tests retain all native semantics and source-class counts while retired circuit-program checks remain in immutable archive with their subjects. Relation-summary and three retired VM cases remain archived. Reuse existing focused roots, raise floors by eleven, retain default inventory and full package gate; serialize diagnostic compilation. No production algorithm, protocol, pin, API, runtime flag or launcher change. Rollback archives restored tests and discovery together, never claims unrun semantics."
+    },
+    {
+      "id": "a1_configure_closure_fail_closed_registration",
+      "net_code_budget": 20,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Restore missing unavailable-toolchain and host rejection steps and declare the existing portable test and observed product identity; preserve exact build configure closure without device execution."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
