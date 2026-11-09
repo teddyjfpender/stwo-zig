@@ -1,0 +1,144 @@
+{
+  "schema": "stwo.opstack.caller-owned-miller-packet.v1",
+  "status": "execution qualification; proof admission still closed",
+  "description": "Write every coordinate directly into caller-owned MaybeUninit Packet storage, exposing a Packet reference only after all80u64 words are initialized. No returned640B aggregate and no zero-fill replacement. Existing packet order/tag/profile unchanged.",
+  "baseline": {
+    "instructions": 253185635,
+    "op_sparse034_calls": 22185,
+    "curve_calls": [
+      19465,
+      31908,
+      331163,
+      0,
+      0,
+      0,
+      0
+    ],
+    "arith256_mod_calls": 33117,
+    "bulk_memcpy_calls": 142737,
+    "bulk_memcpy_bytes": 31202576,
+    "bulk_memset_calls": 43116,
+    "bulk_memset_bytes": 7012312,
+    "service_ram_word_transitions": 20423872
+  },
+  "candidate": {
+    "instructions": 252009830,
+    "op_sparse034_calls": 22185,
+    "curve_calls": [
+      19465,
+      31908,
+      331163,
+      0,
+      0,
+      0,
+      0
+    ],
+    "arith256_mod_calls": 33117,
+    "bulk_memcpy_calls": 120552,
+    "bulk_memcpy_bytes": 17004176,
+    "bulk_memset_calls": 43116,
+    "bulk_memset_bytes": 7012312,
+    "service_ram_word_transitions": 16807717
+  },
+  "savings": {
+    "retirements": 1175805,
+    "service_ram_word_transitions": 3616155,
+    "service_ram_fraction": 0.17705531056990564
+  },
+  "text_bytes": 2582336,
+  "rom_log": 20,
+  "elf_sha256": "9f937d5eb7278c1e1d94bbadfa5204fe9cabdc24affc1b451ba82a15be8bc3a9",
+  "unsafe_initialization_review": [
+    "repr(C) sole contiguous array field starts atoffset0; Packet alignment32 meets rowalignment8",
+    "Each row0..19 written once from a fully initialized canonical Fq conversion,20*4u64 writes",
+    "No typed Packet/array reference before all writes; assume_init_mut only after final coordinate",
+    "Unique caller-owned MaybeUninit borrow controls resulting mutable Packet lifetime",
+    "No Rust Ark field-object layout cast, only explicit coordinate marshaling"
+  ],
+  "rejected_controls": {
+    "initialized_fill": {
+      "instructions": 252749330,
+      "service_ram_word_transitions": 17584192,
+      "reason": "Removes fullmemcpy but replaces part with22,185 tailzero memset calls"
+    },
+    "quad_add_sub_inline": {
+      "instructions": 253784643,
+      "text_bytes": 2578392,
+      "reason": "Increases retirements by599,008; reverted"
+    }
+  },
+  "performance_limitation": "Concurrent engineering run: retiredinstructions and service counts qualified; no physical proving or walltime speed claim. NewOP provider/RAM/receiver gates remain open.",
+  "qualification": {
+    "host_tests": {
+      "command": "cargo +nightly-2026-08-08 test --release --locked --manifest-path opstack/kona/Cargo.toml --features host,pairing-sparse-service --lib",
+      "passed": 15
+    },
+    "blocks": [
+      {
+        "block": 121065789,
+        "instructions": 252009830,
+        "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+        "exact_native_unicorn_agreement": [
+          "output",
+          "exact_steps",
+          "all32registers",
+          "terminal_pc",
+          "all_service_counters"
+        ],
+        "whole_final_ram_snapshot_compared": false
+      },
+      {
+        "block": 120794432,
+        "instructions": 796313,
+        "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+        "exact_native_unicorn_agreement": [
+          "output",
+          "exact_steps",
+          "all32registers",
+          "terminal_pc",
+          "all_service_counters"
+        ],
+        "whole_final_ram_snapshot_compared": false
+      },
+      {
+        "block": 121057303,
+        "instructions": 5927325,
+        "output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+        "exact_native_unicorn_agreement": [
+          "output",
+          "exact_steps",
+          "all32registers",
+          "terminal_pc",
+          "all_service_counters"
+        ],
+        "whole_final_ram_snapshot_compared": false
+      }
+    ]
+  },
+  "sources": {
+    "op-kona-packet-direct-heavy.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-packet-direct-heavy.native.json",
+      "sha256": "4774b9f5af10e27224f5faf2ab9f7b65385cf228f250385ab5ef4850593c0921"
+    },
+    "op-kona-packet-direct-121065789.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-packet-direct-121065789.oracle.json",
+      "sha256": "4cef2b1572b5731d5a27bdec3ecf48d1c1a4d30f8cb9470c73ae47af6cef8e9d"
+    },
+    "op-kona-packet-direct-120794432.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-packet-direct-120794432.native.json",
+      "sha256": "9daf647404b5d4b64d30119ff6c2fd8f6f9a421a191d708907c4127b98a67e4d"
+    },
+    "op-kona-packet-direct-120794432.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-packet-direct-120794432.oracle.json",
+      "sha256": "a3f79cc9dee8f63e0809f2a607b26259d67d122382ae80499bf2e7d48c7cdcf3"
+    },
+    "op-kona-packet-direct-121057303.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-packet-direct-121057303.native.json",
+      "sha256": "83049c8a07c92b50b17596ffb6ec101b2a867628f29437dde59da6b48e01247f"
+    },
+    "op-kona-packet-direct-121057303.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-packet-direct-121057303.oracle.json",
+      "sha256": "fd076e1516c8ee11551037337b923541058ad620a21b15780b081e98fda72ffd"
+    }
+  }
+}

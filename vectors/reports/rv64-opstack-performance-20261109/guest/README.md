@@ -64,3 +64,25 @@ transitions fall **26,347,061 → 20,423,872**. Smaller cases use796,313 and
 5,927,325 instructions. These execution gains do not qualify native proving
 speed or production proof admission; physical provider/RAM/receiver gates
 remain open. The complete post-fusion census is pinned in the receipt.
+
+
+## Caller-owned packet initialization
+
+[Qualified initialization receipt](caller-owned-packet.json) removes the full
+640-byte aggregate copy on every line call. A fully initialized zeroed buffer
+still emitted 22,185 replacement memset calls, so the final path writes all
+20 named coordinates into caller-owned `MaybeUninit<Packet>` storage before
+creating any Packet reference. There are no reads or references to partially
+initialized storage and no Ark object-layout casts.
+
+Heavy retirements fall **253,185,635 → 252,009,830**. Service RAM word
+transitions fall **20,423,872 → 16,807,717** (−17.7%); all 22,185 full-packet
+memcpy calls disappear without replacement zero-fill calls. Text is 20 bytes
+smaller and ROM remains log 20. Fifteen host tests and exact native/Unicorn
+agreement on all three fixtures pass. This preserves the 640-byte ABI and
+its still-closed physical proof admission. It does not establish a wall-time
+proving speedup.
+
+The rejected targeted Fp2 Add/Sub inlining experiment increased instructions
+by 599,008 and was reverted. The [Miller program design](../../../../design/riscv-proving-stack/op-bn254-miller-program.md)
+costs the next arithmetic boundary; it emits no new service.
