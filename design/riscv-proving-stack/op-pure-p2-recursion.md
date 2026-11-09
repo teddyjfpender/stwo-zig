@@ -353,3 +353,24 @@ for recursive parents. Default receive remains uncaptured; unsupported revision
 configuration refuses. Captures and ordered geometry are checked against the
 same source authority and complete Var/range closure, then consumed by the
 native-PCS circuit. No producer geometry or unchecked terminal override is used.
+
+## Pure parent verifier gate
+
+A parent now numerically verifies two actual source-owned physical five-roster
+P2 child proofs. It derives child geometry from admitted keys, checks their
+immutable FIXED root and profile, reconstructs every classic component through
+the original field-lifted AIR interpreter and every dedicated permutation root,
+and closes the complete Var/range claim against authenticated public outputs.
+PCS/FRI and the transcript match actual native captures. The parent's ordered
+nine-limb digest changes if child order changes; a changed ninth child word
+invalidates the circuit. No producer geometry is authority.
+
+This first gate intentionally uses two algebraic sponge children, not OP execution
+frames. Its real census is2,182,638 arithmetic rows/52,131 permutations and
+200,687,104 cells. Structural lowering is already enabled; padding reaches log22
+because it is4.1% above the next smaller threshold. Physical heterogeneous
+CPU/Miller folding, independent execution inventory/adjacency/global closure
+and the final root receiver are still required. No root execution admission has
+opened. The field-lifted interpreter is shared with the native component; the
+P2 equations use the same row authority and are cross-checked against actual
+native point/composition verification in this gate.

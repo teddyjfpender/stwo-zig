@@ -1,0 +1,32 @@
+{
+  "scope": "two_physical_source_owned_algebraic_children_not_execution",
+  "raw": [
+    31130,
+    2182638,
+    268,
+    52131,
+    65536
+  ],
+  "cells": {
+    "rows": [
+      32768,
+      4194304,
+      512,
+      65536,
+      65536
+    ],
+    "main_cells": 81725440,
+    "fixed_cells": 38471168,
+    "interaction_cells": 80490496,
+    "total_trace_cells": 200687104,
+    "poseidon_hybrid": false,
+    "production_qualified": false
+  },
+  "native_in_circuit_exact": true,
+  "ordered_digest": true,
+  "production_admission_open": false,
+  "schema": "stwo.opstack.pure-p2-source-fold-circuit.v1",
+  "qualification": "ReleaseSafe actual native P2 child proofs/captures plus full in-circuit source OODS/FS/PCS/FRI/Var/range closure, ordered parent digest and child mutation",
+  "scope_limit": "two source-owned algebraic sponge children; not execution frames, physical fold/root or complete OP",
+  "security_qualified": false
+}
