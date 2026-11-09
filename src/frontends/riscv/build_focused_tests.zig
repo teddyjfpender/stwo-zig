@@ -80,6 +80,7 @@ pub const specs = [_]Spec{
         .step = "test-isa",
         .description = "Run only RISC-V ISA authority and decoder tests",
         .root = "isa_test_root.zig",
+        .minimum = 28,
     },
     .{
         .step = "test-runner",
@@ -118,6 +119,7 @@ pub const specs = [_]Spec{
         .description = "Run only bounded main-trace plan and production execution tests",
         .root = "main_trace_plan_execution_test_root.zig",
         .imports_prover_engine = true,
+        .minimum = 340,
     },
     .{
         .step = "test-poseidon-witness-work",
@@ -212,27 +214,32 @@ pub const specs = [_]Spec{
         .step = "test-air-static-profile",
         .description = "Run only typed-AIR static profiler tests",
         .root = "air_static_profile_test_root.zig",
+        .minimum = 6,
     },
     .{
         .step = "test-air-static-profile-registry",
         .description = "Run the complete native typed-AIR static profile registry",
         .root = "air_static_profile_registry_test_root.zig",
         .imports_typed_air_artifacts = true,
+        .minimum = 29,
     },
     .{
         .step = "test-air-runtime-profile",
         .description = "Run the authenticated typed-AIR/runtime profile join tests",
         .root = "air_runtime_profile_test_root.zig",
+        .minimum = 8,
     },
     .{
         .step = "test-proof-phase-meter",
         .description = "Run the exact five-region witness/proving phase-meter state machine",
         .root = "proof_phase_meter_test_root.zig",
+        .minimum = 12,
     },
     .{
         .step = "test-air-function-frames",
         .description = "Run Cairo-style frame isolation and activation-relation tests",
         .root = "air_function_frames_test_root.zig",
+        .minimum = 7,
     },
     .{
         .step = "test-lookup-batching",
@@ -364,12 +371,14 @@ pub const specs = [_]Spec{
         .description = "Run the prepared Tree-2 planning and execution tests",
         .root = "interaction_trace_plan_execution_test_root.zig",
         .imports_prover_engine = true,
+        .minimum = 208,
     },
     .{
         .step = "test-recursion-transcript-v2",
         .description = "Run exact generic-channel V2 scheduled transcript parity tests",
         .root = "transcript_v2_test_root.zig",
         .imports_prover_engine = true,
+        .minimum = 236,
     },
     .{
         .step = "test-recursion-pair-node",
@@ -520,18 +529,21 @@ pub const specs = [_]Spec{
         .description = "Compare backend polynomial export with authenticated recursive AIR plans",
         .root = "recursion_framework_export_test_root.zig",
         .imports_prover_engine = true,
+        .minimum = 151,
     },
     .{
         .step = "test-recursion-arithmetic-fusion",
         .description = "Check fused verifier arithmetic and authenticated graph lowering",
         .root = "recursion_arithmetic_fusion_test_root.zig",
         .imports_prover_engine = true,
+        .minimum = 16,
     },
     .{
         .step = "test-recursion-opening-accumulation",
         .description = "Check fused opening accumulation and exact wire fanout",
         .root = "recursion_opening_accumulation_test_root.zig",
         .imports_prover_engine = true,
+        .minimum = 95,
     },
     .{
         .step = "test-poseidon-universal-degree3",
