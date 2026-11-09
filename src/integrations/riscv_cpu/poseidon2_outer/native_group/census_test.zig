@@ -45,6 +45,9 @@ const Collector = struct {
                 .cpu => |view| try Leaf.initSpongeCpu(self.a, view),
                 .detached => |view| try Leaf.initDetachedSponge(self.a, view),
                 .truth => |view| try Leaf.initLocalCatalog(self.a, view),
+                .classic_truth => |view| try Leaf.initCatalog(self.a, view),
+                .classic_miller => |view| try Leaf.initMiller(self.a, view),
+                .local_miller => |view| try Leaf.initLocalMiller(self.a, view),
             };
             leaf.retireProverData();
             self.baseline[self.seen] = leaf;

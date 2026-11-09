@@ -8,6 +8,7 @@ const Sponge = @import("../sponge.zig").ForContext(P.PoseidonContext);
 const Fold = @import("../native_omul/fold.zig");
 const Profile = @import("../op_profile.zig").Profile;
 pub const Member = @import("../sponge_cpu/source_view.zig").View;
+pub const Binding = struct { ordinal: u32, fixed_identity: [32]u8 };
 
 /// Append callbacks synchronously and release each native capture afterwards.
 /// No global builder scope survives a callback; unrelated source builders can
@@ -26,6 +27,7 @@ pub const Stream = struct {
     roots: [4][9]C.Var = undefined,
     expected_roots: [4]Fold.Digest = undefined,
     mutation_ports: [4][4]C.Var = undefined,
+    bindings: [4]Binding = @splat(.{ .ordinal = 0, .fixed_identity = @splat(0) }),
     pub fn init(a: std.mem.Allocator, trace_only: bool, first: u32, count: u32, profile: Profile, manifest: [36]u8) !Stream {
         if ((count != 1 and count != 2 and count != 4) or first >= 256 or @as(u64, first) + count > 256 or first % count != 0) return error.NativeGroupCoverage;
         if (profile == .reference_b2_q24_p0) return error.InvalidOpPurePoseidonProfile;
@@ -38,8 +40,8 @@ pub const Stream = struct {
     }
     pub fn append(self: *Stream, member: Member) !void {
         if (!self.owns or self.poisoned or self.appended >= self.count) return error.NativeGroupPhase;
-        if (member.ordinal() != self.first + self.appended or member.profile() != self.profile or !std.mem.eql(u8, &self.manifest, &member.manifest())) return error.NativeGroupSourceAuthority;
         errdefer self.poisoned = true;
+        if (member.ordinal() != self.first + self.appended or member.profile() != self.profile or !std.mem.eql(u8, &self.manifest, &member.manifest())) return error.NativeGroupSourceAuthority;
         var arena = std.heap.ArenaAllocator.init(self.allocator);
         defer arena.deinit();
         const source = try member.normalized(arena.allocator());
@@ -54,6 +56,7 @@ pub const Stream = struct {
         self.roots[self.appended] = emitted.output;
         self.mutation_ports[self.appended] = emitted.mutation_ports;
         self.expected_roots[self.appended] = try source.expected(self.allocator);
+        self.bindings[self.appended] = .{ .ordinal = source.ordinal(), .fixed_identity = source.fixedIdentity() };
         try P.finish();
         active = false;
         self.appended += 1;
