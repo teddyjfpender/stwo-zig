@@ -35,7 +35,10 @@ pub const Shape = struct {
 };
 pub fn shapes(truth: R.Truth) ![3]Shape {
     if (truth != .keccak and truth != .secp) return error.UnsupportedLocalGkrTruth;
-    const source = try Roles.shapesForDeclaration(@import("../../word16_global_execution/services/wire.zig").TruthDeclaration.from(truth));
+    return shapesForDeclaration(@import("../../word16_global_execution/services/wire.zig").TruthDeclaration.from(truth));
+}
+pub fn shapesForDeclaration(declaration: @import("../../word16_global_execution/services/wire.zig").TruthDeclaration) ![3]Shape {
+    const source = try Roles.shapesForDeclaration(declaration);
     var out: [3]Shape = undefined;
     for (source, &out) |old, *value| value.* = .{ .original = old };
     try validate(out);

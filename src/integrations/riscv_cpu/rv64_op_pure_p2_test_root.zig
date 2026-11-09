@@ -1,4 +1,5 @@
 test {
+    _ = @import("poseidon2_outer/truth_local_gkr/security.zig");
     _ = @import("poseidon2_outer/truth_local_gkr/actual_test.zig");
     _ = @import("poseidon2_outer/truth_local_gkr/r6_leaf_test.zig");
     _ = @import("poseidon2_outer/truth_local_gkr/projection.zig");
