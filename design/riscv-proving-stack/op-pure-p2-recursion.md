@@ -453,3 +453,27 @@ always comes from the complete inventory and root verifier, never the marker.
 The opt-in physical gate requires an artifact directory; later positive and
 negative receiver checks reuse it. Standalone fresh handoff and this setup reuse
 remain physically unqualified until the next persisted complete-block run.
+
+### Persisted standalone handoff qualification
+
+The persisted small-block gate now passes. Reusing each independently derived
+setup once reduces recursion ingress from436.567s to305.567s (1.429× observed;
+native17.05s production remains separate). All five provisional node proofs and
+stage profiles are retained, followed by root667,304 bytes, metadata1,132 bytes
+and GKR length templates290 bytes. A separately loaded receiver reconstructs
+source classes/topology in68.949s and checks only the final root plus adversarial
+controls in0.363s, with no native PCS/GKR verification. It rechecks the complete
+image-owned absorbing PC, HALT, output length and output policy.
+
+The attack gate physically proves an arbitrary same-profile nine-output circuit
+that merely guesses the expected digest: it verifies under its own key and
+rejects under the independently derived execution topology. Balanced CPU-KIO and
+Keccak debt changes preserve closure but cannot authenticate against the old
+root. Omitted/duplicate/reordered metadata and physical corruption reject.
+Terminal mutations rebuild execution identity and manifest first and require the
+specific HALT/length/PC errors, rather than accidentally testing stale metadata.
+See `pure-p2-root-only-handoff-v1.json` for exact stage/source-cell counts, hashes
+and artifact custody. This closes a correctness handoff; the heavy10× speed
+requirement remains unmet. Tall-table padding and native P2 commitments remain
+large costs; logical lifted cell counts must not be confused with actual hash
+absorptions, since the existing committer already reuses native-height prefixes.
