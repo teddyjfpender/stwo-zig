@@ -1,0 +1,77 @@
+{
+  "schema": "op-native-heavy-capture-plan/v1",
+  "block": 121065789,
+  "status": "complete-capture-and-source-plan-only",
+  "proof_verified": false,
+  "production_admitted": false,
+  "guest_elf_sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "instructions": 238226172,
+  "counts": {
+    "cpu": 57,
+    "legacy_truth": 13,
+    "miller_truth": 22,
+    "cpu_fixed_classes": 36
+  },
+  "source_cells": {
+    "fixed": 3349459232,
+    "main": 18554338528,
+    "interaction": 12930500096
+  },
+  "wall_seconds": 19.62,
+  "capture_phase_ns": 17913753334,
+  "maxrss_bytes": 32743669760,
+  "capture_heap": {
+    "live_bytes": 32379845030,
+    "peak_live_bytes": 32865064630,
+    "host_live_bytes": 32379845030,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 32865064630,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "native_capture_payload_bytes": 23766442488,
+  "advice_capture_payload": {
+    "ordinary_events": 7263933624,
+    "service_calls": 545220952,
+    "public_cells": 25180944,
+    "outer_slice_headers": 17328
+  },
+  "main_coefficient_bytes": 74217354112,
+  "main_merkle_node_upper_bytes": 69382173456,
+  "main_disk_upper_bytes": 143601034804,
+  "max_cpu_restore_bytes": 2599431260,
+  "p2_fixed_retention_lower_bound": {
+    "class_count": 36,
+    "all_cpu_log": 22,
+    "log_blowup": 2,
+    "hash_bytes": 36,
+    "merkle_nodes_bytes": 43486542576,
+    "cpu3_plus_rom32_coefficient_bytes": 6643777536,
+    "cpu_metadata_bytes": 13340665632,
+    "sum_bytes": 63470985744,
+    "excludes": [
+      "other FIXED columns",
+      "old native source keys",
+      "family facts",
+      "advice events",
+      "any active proof scratch"
+    ],
+    "fits_52GiB": false
+  },
+  "decision": "Do not begin heavy proving under current eager FIXED retention. Retire copied raw capture records; qualify exact small proof parity; then bound/lazily materialize or park immutable FIXED classes. Do not blindly increase heap limit.",
+  "artifacts": {
+    "native-op-plan.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-heavy-plan/native-op-plan.json",
+      "bytes": 257203,
+      "sha256": "371b233f4b3b5d64af1db0f4cdc952f9fc670f900bbc44b0e4b387e15c38b3be"
+    },
+    "native-op-cost.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-heavy-plan/native-op-cost.json",
+      "bytes": 565854,
+      "sha256": "4d76ea067ad059f703e99a8c725d63b9ae9968041b8ce24a42469bdcdba4881d"
+    }
+  }
+}
