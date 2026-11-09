@@ -12,17 +12,19 @@ challenge is also checked. Packed addition/subtraction use each slot's spare
 bit to reduce modulo `2^31-1`; canonical operands prevent carries or borrows
 crossing slots. A whole-word byte swap translates the native wire into slots.
 
-Multiplication reuses `NativeFriFold.multiplyInto` and its existing 27-product
-quadratic tower. Eight-word operands and output are temporary. Only the packed
-result escapes; the free-memory pointer is restored after the operation. The
-saved pointer precedes all temporary allocations, and multiplication scratch
-starts after live inputs/output. No caller-owned value or returned memory
-pointer aliases the reclaimed region. This holds for nested AIR operations
-because stored DAG values and arithmetic arguments are words, not references
-to that scratch. A future change returning a scratch pointer would invalidate
-this design and must not be added.
+Multiplication uses the native 27-product tower directly on packed words:
+`i²=-1`, `u²=2+i`, `v²=u`. It expands neither input nor output into EVM arrays.
+Canonical half sums fit in 32-bit slots without cross-limb carries. All signed
+Karatsuba intermediates fit below `2^80`; only the final eight coordinates need
+signed modular reduction. Base-field scalars use eight direct modular products,
+with explicit zero and identity cases. The original array tower remains in
+`NativeFriFold` and is a second differential reference alongside the independent
+formal polynomial model. The canonical-input admission boundary is unchanged.
 
 ## Qualification and gas
+
+The first table records the original packed-storage qualification. The current
+packed-tower arithmetic improves it further, as recorded below.
 
 Solc 0.8.30, via-IR, optimizer 100,000 runs, Shanghai, Anvil 1.7.1. Gas includes
 transaction intrinsic/calldata costs. The control substitutes the unchanged
@@ -59,3 +61,24 @@ npm test
 
 Raw measured counters are in
 [`fixtures/packed-air-gas.json`](fixtures/packed-air-gas.json).
+
+### Current packed tower
+
+The matched control already includes the base-scalar fast path. Compiler, harness
+and inputs are unchanged between these two runs:
+
+| Probe | Control gas | Current gas |
+| --- | ---: | ---: |
+| 64 dense extension multiplications | 508,926 | 192,367 |
+| Real native initial-state AIR, 177 nodes | 1,064,808 | 637,484 |
+| Mixed-operation diagnostic, 2,048 nodes | 6,783,106 | 4,100,021 |
+
+All 24 default settlement tests pass, with the same three external-fixture
+skips. The physical EIP-170 deployment checks pass. Both independent arithmetic
+references agree on basis, edge and dense products; repeated operations retain
+the free-memory pointer and preserve the live guard. These are component gas
+measurements, not complete settlement costs. The full worker PCS diagnostic
+remains around 1.724 billion gas and requires further architectural work.
+
+The matched measurements and bounds are in
+[the packed-tower receipt](../vectors/reports/rv64-opstack-cpu-20261108/solidity-packed-tower.json).
