@@ -1,0 +1,42 @@
+{
+  "schema": "op-native-capture-retirement/v1",
+  "status": "qualified-exact-native-bundle-and-heavy-capture-parity",
+  "production_admitted": false,
+  "changes": [
+    "CPU raw memory/service records retired immediately after ordered collector owns chronology; independent56Bmetadata retained",
+    "ordinary Advice events optionally retired after authenticated LS caches copied; allocatoridentity checked beforedestructivehandoff; oldhelperdefaultfalse"
+  ],
+  "small_block": {
+    "block": 120794432,
+    "bundle_bytes": 7048980,
+    "exact_bundle_sha256": "ceb1bb7f64e1224b4db02007a4df4a11e902408fb540caa7ae31b2d6680581fd",
+    "fresh_receiver_accepted": true,
+    "candidate_native_prove_seconds": 12.664613417,
+    "candidate_process_wall_seconds": 16.88,
+    "fresh_receiver_wall_seconds": 3.75,
+    "speedup_claim": false
+  },
+  "heavy_capture": {
+    "block": 121065789,
+    "instructions": 238226172,
+    "same_final_pc": true,
+    "same_all32_registers": true,
+    "same_full_metadata_counts_spans_geometry": true,
+    "same_source_cells": true,
+    "same_pinned43byte_terminal": true,
+    "before_retained_heap": 32379845030,
+    "after_retained_heap": 24290622270,
+    "recovered_bytes": 8089222760,
+    "before_peak_requested": 32865064630,
+    "after_peak_requested": 24871224894,
+    "before_maxrss": 32743669760,
+    "after_maxrss": 24745312256,
+    "after_wall_seconds": 19.67,
+    "ordinary_advice_events_remaining_at_capture": 7263933624
+  },
+  "limitations": [
+    "full heavy proving not yet attempted; immutableFIXEDclasslease integration stillrequired",
+    "peakRSS includes allocator/OS behavior; requestedheap is tracked separately",
+    "remaining capture owns independentCPUmetadata and groupedfacts; fullRuntime32GiB fit unqualified"
+  ]
+}

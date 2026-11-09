@@ -28,6 +28,8 @@ pub const Limits = struct {
     miller: Miller.Limits,
     recorders: []const ?*Stage.Recorder = &.{},
     timing: ?*Timing = null,
+    /// Destructive source handoff only; metadata/requests already admitted.
+    consume_memory_events: bool = false,
     fn recorder(self: Limits, i: usize) ?*Stage.Recorder {
         return if (self.recorders.len == 0) null else self.recorders[i];
     }
@@ -90,6 +92,7 @@ fn sealAndPark(a: std.mem.Allocator, worker: *Worker, expected: Manifest.Expecte
 }
 pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inv.MillerDeclaration, native: []const *Native, advice: *const Advice, store: *Store, limits: Limits) !B.Bundle {
     if (!Budget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
+    if (limits.consume_memory_events and !@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
     if (setups.len != inventory.cpu_count or requests.len != setups.len or spans.len != setups.len or keys.len != setups.len or native.len != setups.len or advice.tower.len != setups.len or truths.len != inventory.truth_count or truth_keys.len != truths.len or setups.len + truths.len + miller.len != inventory.workers.len) return error.InvalidOpNativeInventory;
     if (limits.recorders.len != 0 and limits.recorders.len != inventory.workers.len) return error.InvalidOpNativeTimings;
     var timer = try std.time.Timer.start();
@@ -103,7 +106,7 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
     for (setups, requests, spans, keys, native, 0..) |setup, request, span, key, n, i| {
         var source_scope = try Stage.StageScope.begin(limits.recorder(i), "source_construction", "Construct CPU witness and narrow metadata once");
         defer source_scope.end();
-        var source = try Pipeline.buildCpuSourceForOp(a, setup, request, span, n, advice, i, inventory.first_ids[i], false, null);
+        var source = try Pipeline.buildCpuSourceForOp(a, setup, request, span, n, advice, i, inventory.first_ids[i], limits.consume_memory_events, limits.recorder(i));
         const worker = CPU.Worker.initForOp(a, setup, request, span, source, inventory.workers[i], inventory.first_ids[i], key, limits.cpu) catch |err| {
             source.deinit();
             return err;

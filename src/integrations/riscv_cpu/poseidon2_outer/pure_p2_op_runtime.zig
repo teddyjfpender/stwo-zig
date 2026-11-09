@@ -41,6 +41,7 @@ pub const Metadata = struct {
     }
 };
 pub const Resources = struct {
+    consume_memory_events: bool = true,
     live_bytes: usize = 32 << 30,
     disk_bytes: usize = 192 << 30,
     mapped_bytes: usize = 12 << 30,
@@ -410,6 +411,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     var phases: Producer.Timing = .{};
     const ready_ns = timer.read();
     var bundle = try Producer.produce(a, &inventory, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, captured.native, &captured.advice, &store, .{
+        .consume_memory_events = resources.consume_memory_events,
         .recorders = observations.pointers,
         .timing = &phases,
         .cpu = .{ .gkr_bytes = resources.gkr_bytes, .global_bytes = resources.global_bytes },

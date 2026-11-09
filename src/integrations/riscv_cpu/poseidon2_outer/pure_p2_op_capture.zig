@@ -82,6 +82,10 @@ pub const Owner = struct {
             n.* = try Native.captureForOpServices(a, program, boundary, @intCast(native.items.len + 1), try Coverage.minimalCpuLog(boundary.steps), &tape, .{ .deduplicate_shift = true });
             errdefer n.deinit();
             try builder.append(n, &tape);
+            // The ordered ledger now owns chronological RAM/service advice.
+            // Projection retains its independent 56-byte CPU metadata; raw
+            // records are no longer needed, exactly as on the v3 capture path.
+            n.cpu.?.releaseCaptureRecords();
             try native.append(a, n);
         }
         var advice = try builder.finish();
