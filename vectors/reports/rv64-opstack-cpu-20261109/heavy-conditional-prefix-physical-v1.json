@@ -1,0 +1,250 @@
+{
+  "schema": "op-heavy-conditional-cpu-fragment-measured/v1",
+  "source_commit": "dc42345b3",
+  "scope": "A genuine CPU22 proof of exactly first4,000,000 real retirements from selected heavyOP121065789 guest. Conditional fragment only, not whole-prefix closure/block acceptance/root.",
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-v1",
+  "configuration": {
+    "optimization": "ReleaseFast",
+    "workers": 16,
+    "host_cap_bytes": 34359738368,
+    "gkr_child_cap_bytes": 12884901888,
+    "profile": "op_target_b4_q72_p0_fold4_v1",
+    "security": "128-bit security target under documented assumptions; not certified",
+    "elf_sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930",
+    "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e"
+  },
+  "qualification": {
+    "realMachine_steps": 4000000,
+    "independent_unicorn_2_1_4_PC_and_all32_registers_match": true,
+    "CPU_fragment_fresh_source_key_verified": true,
+    "full_execution_accepted": false,
+    "block_accepted": false,
+    "root_accepted": false,
+    "all66focusedtests_pass": true,
+    "heap_and_external_reservations_end_zero": true
+  },
+  "timing": {
+    "seal_seconds": 45.55537825,
+    "complete_seconds": 29.176412209,
+    "seal_plus_complete_seconds": 74.731790459,
+    "fresh_physical_verify_seconds": 0.067763542,
+    "full_including_image_capture_coldProducerFIXED_freshDigestFIXED_and_verification_seconds": 89.43167,
+    "process_time": {
+      "wall_seconds": 89.46,
+      "user_seconds": 1269.91,
+      "system_seconds": 9.78,
+      "minor_faults": 3493777,
+      "major_faults": 0,
+      "rss_peak_bytes": 10099392512
+    }
+  },
+  "stages": [
+    {
+      "stage": "MAIN Merkle",
+      "wall_seconds": 39.245148,
+      "user_seconds": 621.83403,
+      "system_seconds": 0.996939,
+      "mean_busy_cores": 15.870266790687094,
+      "minor_faults": 80717,
+      "major_faults": 0
+    },
+    {
+      "stage": "local_gkr",
+      "wall_seconds": 3.863519,
+      "user_seconds": 47.388354,
+      "system_seconds": 2.123876,
+      "mean_busy_cores": 12.815319401819947,
+      "minor_faults": 813527,
+      "major_faults": 0
+    },
+    {
+      "stage": "interaction_generation",
+      "wall_seconds": 0.460269,
+      "user_seconds": 5.727542,
+      "system_seconds": 0.267502,
+      "mean_busy_cores": 13.02508750317749,
+      "minor_faults": 46112,
+      "major_faults": 0
+    },
+    {
+      "stage": "INTER Merkle",
+      "wall_seconds": 20.095399,
+      "user_seconds": 319.615424,
+      "system_seconds": 0.805852,
+      "mean_busy_cores": 15.945006914269282,
+      "minor_faults": 80705,
+      "major_faults": 0
+    },
+    {
+      "stage": "composition_evaluation",
+      "wall_seconds": 1.92439,
+      "user_seconds": 13.47657,
+      "system_seconds": 0.397456,
+      "mean_busy_cores": 7.209570825040663,
+      "minor_faults": 263170,
+      "major_faults": 0
+    },
+    {
+      "stage": "composition_interpolate_and_split",
+      "wall_seconds": 0.029253,
+      "user_seconds": 0.223086,
+      "system_seconds": 0.000375,
+      "mean_busy_cores": 7.638908829863603,
+      "minor_faults": 7,
+      "major_faults": 0
+    },
+    {
+      "stage": "composition_commit",
+      "wall_seconds": 1.833577,
+      "user_seconds": 27.687737,
+      "system_seconds": 0.333836,
+      "mean_busy_cores": 15.282463185347547,
+      "minor_faults": 155700,
+      "major_faults": 0
+    },
+    {
+      "stage": "sampled_value_evaluation",
+      "wall_seconds": 0.130279,
+      "user_seconds": 1.66379,
+      "system_seconds": 0.011499,
+      "mean_busy_cores": 12.859240552967094,
+      "minor_faults": 63,
+      "major_faults": 0
+    },
+    {
+      "stage": "fri_quotient_build_and_commit",
+      "wall_seconds": 2.5028,
+      "user_seconds": 25.680259,
+      "system_seconds": 1.715967,
+      "mean_busy_cores": 10.946230621703691,
+      "minor_faults": 569571,
+      "major_faults": 0
+    },
+    {
+      "stage": "fri_decommit",
+      "wall_seconds": 0.057348,
+      "user_seconds": 0.559604,
+      "system_seconds": 0.052343,
+      "mean_busy_cores": 10.67076445560438,
+      "minor_faults": 35036,
+      "major_faults": 0
+    },
+    {
+      "stage": "trace_decommit",
+      "wall_seconds": 0.918532,
+      "user_seconds": 2.865752,
+      "system_seconds": 0.180269,
+      "mean_busy_cores": 3.3161838673013024,
+      "minor_faults": 45757,
+      "major_faults": 0
+    },
+    {
+      "stage": "MAIN prepare",
+      "wall_seconds": 2.438293,
+      "user_seconds": 4.449124,
+      "system_seconds": 0.419877,
+      "mean_busy_cores": 1.9968892171695527,
+      "minor_faults": 415143,
+      "major_faults": 0
+    },
+    {
+      "stage": "INTER prepare",
+      "wall_seconds": 1.156433,
+      "user_seconds": 2.426571,
+      "system_seconds": 0.22226200000000002,
+      "mean_busy_cores": 2.290520073363524,
+      "minor_faults": 211547,
+      "major_faults": 0
+    }
+  ],
+  "cells": {
+    "FIXED": 57531616,
+    "MAIN": 333849888,
+    "INTER": 172722176,
+    "total": 564103680,
+    "per_retirement": 141.02592,
+    "INIT": {
+      "FIXED": 393216,
+      "MAIN": 1835008,
+      "INTER": 2097152,
+      "total": 4325376,
+      "active_words": 67326,
+      "log": 17,
+      "fraction_of_total": 0.00766769683190154
+    },
+    "gkr_padded_facts": 149605184
+  },
+  "proofs": {
+    "cpu.pcs.bin": {
+      "bytes": 1333204,
+      "sha256": "db731dc7bc725b68eca35ed7462cd3550dc691c42dab73a06ffe76f8301b8a70"
+    },
+    "cpu.gkr.bin": {
+      "bytes": 113288,
+      "sha256": "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3"
+    }
+  },
+  "conditional_binding": {
+    "key_identity": "fbc71a65949514beb27a9327e198563a0932f248d5460266c20736e8f33a5974",
+    "manifest_digest": "35cf1157cde3616b0360c564ecf042365786981b26b81341f007dd399c0e6a3b2e044768",
+    "MAIN_root": "29aa924a49f6ec201ed7397e7fe3fe61e948e86958194549b68df4063778bc1ad6aeca68",
+    "local_receipt": "3f110a09da6e4916c5a1f618215acb5477ff050459edce3095313e70aba6103364ad8e00",
+    "outstanding_global_debt_OM31_base_coordinates": {
+      "ram": [
+        1285237544,
+        467877764,
+        419833102,
+        1897166422,
+        1723306883,
+        1213846701,
+        666668391,
+        200752847
+      ],
+      "kio": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "wire": [
+        469833573,
+        455781612,
+        967699160,
+        1807074663,
+        948219657,
+        1593417060,
+        1803038088,
+        223911206
+      ]
+    },
+    "challenge_scope": "Domain-separated conditional experiment hash binding source key, expected statement, sealed MAIN and local GKR receipt. This is deliberately not a whole-execution manifest."
+  },
+  "resource": {
+    "live_bytes": 0,
+    "peak_live_bytes": 10093072140,
+    "host_live_bytes": 0,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 10093072140,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "findings": [
+    "MAIN+INTER Poseidon Merkle hashing is59.3405s,79.405% of seal+complete. Both use nearly16 busy cores: missing parallel utilization is not the primary bottleneck.",
+    "Local GKR is3.8635s,5.17% of native seal+complete. Composition evaluation1.9244s is2.58%. Further GKR/composition tuning alone cannot deliver the requested order of magnitude.",
+    "MAIN+INTER prepare/FFT transforms are separately measured below; Merkle hashing dominates those preparation costs.",
+    "No major page faults, swaps, or budget failure occurred. Native requested peak10.093GB leaves substantial32GiB host headroom.",
+    "No matched equally secure old-Blake CPU class was proved here; do not compare this directly to old96-bit whole-block or8.57s figures."
+  ],
+  "limitations": [
+    "INIT contains only prefix-touched memory, not the full heavy execution touched set: log17 versus original production first-shard INITlog20. INIT here is0.77% of total cells.",
+    "No Miller calls occur in this prefix. Real bulk,curve,SHA and detached-sponge frontiers are present, with unproved corresponding truth debts.",
+    "No TEARDOWN/truth/detached/remainingCPU proof and no global closure/terminal/root acceptance; all nonzero global obligations explicitly recorded.",
+    "One bounded qualification measurement; no full238M execution/proof or extrapolated full-block claim.",
+    "The full timer includes two independent FIXED constructions (producer resident and receiver digest), unlike native seal+complete."
+  ]
+}
