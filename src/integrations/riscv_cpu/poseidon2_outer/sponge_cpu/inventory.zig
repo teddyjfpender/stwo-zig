@@ -22,6 +22,10 @@ const Truth = @import("../pure_p2_truth_worker.zig");
 const TruthLocal = @import("../truth_local_gkr/worker.zig");
 const Tower = @import("../pure_p2_op_inventory.zig").MillerDeclaration;
 const Profile = @import("../pure_p2_worker_protocol.zig").Profile;
+const Bounds = @import("../../word16_global_execution/services/gkr_local/source_bounds.zig");
+const Wire = @import("../../word16_global_execution/services/wire.zig");
+const Security = @import("security.zig");
+const MillerGeometry = @import("../miller_local_gkr/authority.zig").Geometry;
 pub const Cpu = struct { setup: *const R.CpuSetup, request: P.Request, span: T.OpTowerSpan, key: *const CpuKey };
 pub const Detached = struct { key: *const DetachedKey, geometry: Geometry };
 pub const Catalog = struct { truth: R.Truth, key: *const Truth.Key, local_key: ?*const TruthLocal.Key = null };
@@ -35,12 +39,15 @@ pub const Inventory = struct {
     cpu_count: usize,
     detached_count: usize,
     truth_count: usize,
+    bounds: Bounds.DetachedOpReport,
+    security: Security.Checked,
     pub fn deinit(self: *Inventory) void {
         for (self.rosters) |*roster| roster.deinit();
         self.allocator.free(self.rosters);
         self.allocator.free(self.workers);
         self.allocator.free(self.first_ids);
         self.kio.deinit();
+        self.bounds.deinit();
         self.* = undefined;
     }
     pub fn init(a: std.mem.Allocator, profile: Profile, cpus: []const Cpu, detached: []const Detached, catalog: []const Catalog, towers: []const Tower, expected: P.Expected) !Inventory {
@@ -157,6 +164,44 @@ pub const Inventory = struct {
             ordinal += 1;
         }
         try M.validateExpected(workers);
+        // Exact source-owned lookup/global/PCS/GKR accounting is mandatory,
+        // not inferred from the three global mass numbers in the manifest.
+        const cpu_declarations = try a.alloc(Wire.CpuDeclaration, cpus.len);
+        defer a.free(cpu_declarations);
+        for (cpus, cpu_declarations) |cpu, *declaration| declaration.* = .{ .geometry = cpu.setup.materials.geometry, .bridges = cpu.setup.bridges };
+        const truth_declarations = try a.alloc(Wire.TruthDeclaration, catalog.len);
+        defer a.free(truth_declarations);
+        const local_truth = try a.alloc(Wire.TruthDeclaration, catalog.len);
+        defer a.free(local_truth);
+        var local_truth_count: usize = 0;
+        for (catalog, truth_declarations) |item, *declaration| {
+            declaration.* = Wire.TruthDeclaration.from(item.truth);
+            if (item.local_key != null) {
+                local_truth[local_truth_count] = declaration.*;
+                local_truth_count += 1;
+            }
+        }
+        const tower_declarations = try a.alloc(Bounds.OpTowerTruthDeclaration, towers.len);
+        defer a.free(tower_declarations);
+        const local_miller = try a.alloc(MillerGeometry, towers.len);
+        defer a.free(local_miller);
+        var local_miller_count: usize = 0;
+        for (towers, tower_declarations) |item, *declaration| {
+            declaration.* = .{ .calls = item.span.calls, .first_id = item.span.first_id, .frontier_log = item.key.frontier_log, .arithmetic_log = item.key.arithmetic_log };
+            if (item.local_key) |local| {
+                local_miller[local_miller_count] = try local.geometry(item.span);
+                local_miller_count += 1;
+            }
+        }
+        const detached_geometries = try a.alloc(Geometry, detached.len);
+        defer a.free(detached_geometries);
+        for (detached, detached_geometries) |item, *geometry| geometry.* = item.geometry;
+        var bounds = try Bounds.deriveForOpDetached(a, setups[0].materials.program.log_size, cpu_declarations, truth_declarations, requests, spans, tower_declarations, logs, detached_geometries);
+        errdefer bounds.deinit();
+        const instances = try a.alloc([]const Frame.Instance, rosters.len);
+        defer a.free(instances);
+        for (rosters, instances) |roster, *out| out.* = roster.instances;
+        const checked = try Security.check(profile, &bounds, instances, detached_geometries, local_truth[0..local_truth_count], local_miller[0..local_miller_count]);
         var h = std.crypto.hash.sha2.Sha256.init(.{});
         h.update("op-detached-sponge-complete-execution/v1\x00");
         h.update(&profile.identity());
@@ -173,7 +218,7 @@ pub const Inventory = struct {
             h.update(&worker.authority.fixed_identity);
             h.update(&worker.authority.fixed);
         }
-        return .{ .allocator = a, .workers = workers, .rosters = rosters, .first_ids = ids, .kio = kio, .execution = h.finalResult(), .cpu_count = cpus.len, .detached_count = detached.len, .truth_count = catalog.len };
+        return .{ .allocator = a, .workers = workers, .rosters = rosters, .first_ids = ids, .kio = kio, .execution = h.finalResult(), .cpu_count = cpus.len, .detached_count = detached.len, .truth_count = catalog.len, .bounds = bounds, .security = checked };
     }
 };
 fn catalogAuthority(source: Base.Expected) !M.Authority {
