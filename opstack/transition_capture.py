@@ -229,7 +229,7 @@ def classify_error(error):
     return "rpc_error"
 
 
-def rpc(url, method, params, *, cap=2 << 20, timeout=12):
+def rpc(url, method, params, *, cap=2 << 20, timeout=12, transport=None):
     endpoint_label(url)
     # Read-only metadata/proof fetches. The payload-method capability probe has
     # deliberately invalid empty parameters and cannot execute a payload.
@@ -240,8 +240,11 @@ def rpc(url, method, params, *, cap=2 << 20, timeout=12):
     request = urllib.request.Request(url, json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode(), {"Content-Type": "application/json"})
     http = None
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            data = response.read(cap + 1)
+        if transport is not None:
+            http, data = transport.request(url, request.data, cap, timeout)
+        else:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                data = response.read(cap + 1)
     except urllib.error.HTTPError as error:
         http = error.code
         with error:

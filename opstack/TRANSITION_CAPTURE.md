@@ -361,3 +361,18 @@ known recovered proof, while remaining explicit about incomplete execution.
 pinned new transition. Omitting `--claim` preserves the historical receipt's claim.
 Packing is still only container validation; neither it nor KZG sidecar validation
 claims full derivation or a STARK proof.
+
+### Owned keepalive transport
+
+`--pooled-rpc` opts capture into per-thread HTTP keepalive. Each thread owns its
+connection; closed/broken connections reconnect, read timeouts follow the current
+capture deadline, and retirement closes all live sockets. There is no global
+pool or additional dependency. The exact same bounded RPC parser and MPT/hash
+checks remain authoritative. Local tests cover reuse, thread isolation,
+reconnection, malformed/oversized responses and timeouts on reused sockets.
+
+Eight interleaved, fully verified public proof fetches measured0.359second median
+with urllib's close-per-request path and0.170second warm keepalive median. Four
+pooled calls used one connection. This small network sample is not a proving-time
+benchmark. Capture's default remains unchanged; the next bounded run explicitly
+selects the pooled transport.

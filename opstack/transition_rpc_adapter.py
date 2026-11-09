@@ -192,7 +192,7 @@ def verified_proof(block, address, slots, proof):
 
 
 class Adapter:
-    def __init__(self, upstream, record_limit=MAX_RECORD_BYTES, header_window=1, transport_cache=None, cache_claim=None, code_provenance=(), provenance_block=None):
+    def __init__(self, upstream, record_limit=MAX_RECORD_BYTES, header_window=1, transport_cache=None, cache_claim=None, code_provenance=(), provenance_block=None, pooled_rpc=False):
         C.endpoint_label(upstream)
         if not 1 <= record_limit <= MAX_RECORD_BYTES:
             raise ValueError("invalid record budget")
@@ -216,6 +216,10 @@ class Adapter:
         self.failures = []
         self.failure_count = 0
         self.transport_retries = 0
+        self.transport = None
+        if pooled_rpc:
+            from transition_rpc_transport import PooledRpc
+            self.transport = PooledRpc(upstream)
         self.deadline = None
         for provenance in code_provenance:
             self.load_provenance(provenance, provenance_block)
@@ -227,7 +231,9 @@ class Adapter:
             if remaining <= 0:
                 raise C.RpcFailure("capture_deadline")
             try:
-                return C.rpc(self.upstream, method, params, cap=cap, timeout=min(timeout,remaining))
+                if self.transport is None:
+                    return C.rpc(self.upstream, method, params, cap=cap, timeout=min(timeout,remaining))
+                return C.rpc(self.upstream, method, params, cap=cap, timeout=min(timeout,remaining), transport=self.transport)
             except C.RpcFailure as error:
                 transient = error.report["rpc_code"] == -32603 or error.report["http_status"] in (429,502,503,504) or error.report["status"] == "transport_unavailable"
                 if attempt == 2 or not transient:
@@ -338,7 +344,7 @@ class Adapter:
             self.prefetched_headers += 1
             expected = parent["parentHash"]
 
-    def block(self, identifier):
+    def block(self, identifier, readahead=True):
         if not isinstance(identifier, str):
             raise ValueError("invalid block identifier")
         if identifier in self.headers:
@@ -363,7 +369,7 @@ class Adapter:
             raise ValueError("requested header number mismatch")
         # Cache immutable hash aliases only; never retain a moving safe/latest tag.
         self.cache_header(block)
-        if self.header_window > 1 and cached is None:
+        if readahead and self.header_window > 1 and cached is None:
             self.prefetch_parents(block)
         return block
 
@@ -395,7 +401,7 @@ class Adapter:
                 if set(identifier) - {"blockHash", "requireCanonical"} or identifier.get("requireCanonical", True) is not True:
                     raise ValueError("invalid canonical proof block")
                 identifier = identifier["blockHash"]
-            block = self.block(identifier)
+            block = self.block(identifier, readahead=False)
             result = self.remote(method, [address, ["0x" + s.hex() for s in slots],
                            {"blockHash": block["hash"], "requireCanonical": True}], cap=MAX_RESPONSE)
             records, code = verified_proof(block, address, slots, result)
@@ -461,11 +467,14 @@ class Adapter:
         if len(self.failures) < 64:self.failures.append(row)
         return row
 
+    def close(self):
+        if self.transport is not None:self.transport.close()
+
     def export(self, directory):
         directory.mkdir(parents=True, exist_ok=False)
         C.write_new(directory / "code-provenance.json", (json.dumps({"schema":"op-code-provenance-v1","entries":self.code_proofs}) + "\n").encode())
         C.write_new(directory / "records.json", (json.dumps([(k.hex(), v.hex()) for k, v in sorted(self.records.items())]) + "\n").encode())
-        C.write_new(directory / "capture.json", (json.dumps({"records": len(self.records), "bytes": self.record_bytes, "preimage_hashes_verified": True, "complete_witness": False, "derivation_accepted": False, "proof_verified": False, "missing_preimages": self.missing_preimages, "method_counts": self.method_counts, "prefetched_headers": self.prefetched_headers, "failure_count": self.failure_count, "transport_retries": self.transport_retries, "failures": self.failures}, indent=2) + "\n").encode())
+        C.write_new(directory / "capture.json", (json.dumps({"records": len(self.records), "bytes": self.record_bytes, "preimage_hashes_verified": True, "complete_witness": False, "derivation_accepted": False, "proof_verified": False, "missing_preimages": self.missing_preimages, "method_counts": self.method_counts, "prefetched_headers": self.prefetched_headers, "failure_count": self.failure_count, "transport_retries": self.transport_retries, "http_pool": {"requests":self.transport.requests,"connections_created":self.transport.connections_created} if self.transport else None, "failures": self.failures}, indent=2) + "\n").encode())
 
 
 def serve(adapter, port, max_requests, seconds):
@@ -529,10 +538,11 @@ def main():
     p.add_argument("--cache-claim")
     p.add_argument("--code-provenance", type=Path, action="append", default=[])
     p.add_argument("--provenance-block")
+    p.add_argument("--pooled-rpc", action="store_true")
     a = p.parse_args()
     if not 1 <= a.seconds <= 180 or not 1 <= a.max_requests <= 10000 or not 1024 <= a.port <= 65535:
         raise ValueError("adapter limits invalid")
-    adapter = Adapter(a.rpc, header_window=a.header_window, transport_cache=a.transport_cache, cache_claim=a.cache_claim, code_provenance=a.code_provenance, provenance_block=a.provenance_block)
+    adapter = Adapter(a.rpc, header_window=a.header_window, transport_cache=a.transport_cache, cache_claim=a.cache_claim, code_provenance=a.code_provenance, provenance_block=a.provenance_block, pooled_rpc=a.pooled_rpc)
     import time
     adapter.deadline = time.monotonic() + a.seconds
     try:
@@ -543,7 +553,8 @@ def main():
         else:
             serve(adapter, a.port, a.max_requests, a.seconds)
     finally:
-        adapter.export(a.output)
+        try:adapter.export(a.output)
+        finally:adapter.close()
 
 
 if __name__ == "__main__":
