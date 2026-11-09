@@ -988,6 +988,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
+    },
+    {
+      "id": "e1_waist_vector_ownership",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue362: move three immutable waist JSON fixtures to vectors/waist and update every live reader/generator default plus exact manifest path/group references. Fixture blobs, sizes, hashes, cases, generator dependencies and upstream identities remain unchanged; no numeric regeneration or source-pin bypass. Path-only source substitutions have zero net growth; physical moves get no removal credit. Remaining legacy line/source-bound artifacts stay explicit E1 follow-up."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

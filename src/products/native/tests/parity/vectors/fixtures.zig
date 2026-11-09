@@ -376,7 +376,7 @@ pub const VectorFile = struct {
 pub fn parseVectors(allocator: std.mem.Allocator) !std.json.Parsed(VectorFile) {
     const raw = try std.fs.cwd().readFileAlloc(
         allocator,
-        "vectors/fields.json",
+        "vectors/waist/fields.json",
         16 * 1024 * 1024,
     );
     defer allocator.free(raw);
