@@ -1,4 +1,4 @@
-//! Explicit R7 seven-role source authority. Protected R5 and R6 keys stay closed.
+//! Explicit R7-v2 eight-role source authority. Protected R5 and R6 keys stay closed.
 const std = @import("std");
 const Core = @import("stwo_core");
 const Circuit = @import("stwo_circuit_frontend");
@@ -9,6 +9,7 @@ const P2Row = @import("../row.zig");
 const R = @import("../native_omul/row.zig");
 const R6 = @import("../native_omul/authority.zig");
 const D = @import("row.zig");
+const I = @import("input_row.zig");
 const DotSource = @import("authority.zig").Source;
 const OldAir = @import("stwo_circuit_cpu_integration").air;
 const OldProve = @import("stwo_circuit_cpu_integration").om31.prove;
@@ -19,15 +20,18 @@ pub const MUL_MAIN_START = A.MAIN_COUNT;
 pub const MAIN_START = R6.MAIN_COUNT;
 pub const MUL_INTER_START = A.INTER_COUNT;
 pub const INTER_START = R6.INTER_COUNT;
-pub const FIXED_COUNT = FIXED_START + D.FIXED;
-pub const MAIN_COUNT = MAIN_START + D.MAIN;
-pub const INTER_COUNT = INTER_START + D.INTER;
+pub const INPUT_FIXED_START = FIXED_START + D.FIXED;
+pub const FIXED_COUNT = INPUT_FIXED_START + I.FIXED;
+pub const INPUT_MAIN_START = MAIN_START + D.MAIN;
+pub const MAIN_COUNT = INPUT_MAIN_START + I.MAIN;
+pub const INPUT_INTER_START = INTER_START + D.INTER;
+pub const INTER_COUNT = INPUT_INTER_START + I.INTER;
 const OLD_SLOTS = A.OLD_SLOTS;
 const NEW_SLOTS = A.NEW_SLOTS;
 const FIXED_BASE = A.FIXED_START;
 const MAIN_BASE = A.MAIN_START;
 const INTER_BASE = A.INTER_START;
-pub fn columns(a: std.mem.Allocator, tree: usize, logs: [5]u32, mul_log: u32, dot_log: u32) !A.Columns {
+pub fn columns(a: std.mem.Allocator, tree: usize, logs: [5]u32, mul_log: u32, dot_log: u32, input_log: u32) !A.Columns {
     if (tree >= 3) return error.InvalidR7Tree;
     const widths = fixedWidths(tree);
     var total: usize = 0;
@@ -39,7 +43,7 @@ pub fn columns(a: std.mem.Allocator, tree: usize, logs: [5]u32, mul_log: u32, do
         a.free(values);
     }
     for (widths, 0..) |width, role| {
-        const log = if (role < 5) logs[role] else if (role == 5) mul_log else dot_log;
+        const log = if (role < 5) logs[role] else if (role == 5) mul_log else if (role == 6) dot_log else input_log;
         for (0..width) |_| {
             const data = try a.alloc(M, @as(usize, 1) << @intCast(log));
             @memset(data, M.zero());
@@ -55,6 +59,9 @@ pub const Key = struct {
     dot_rows: usize,
     dot_raw: usize,
     dot_identity: [32]u8,
+    input_log: u32,
+    input_rows: usize,
+    input_raw: usize,
     pub fn deinit(self: *Key) void {
         self.core.deinit();
         self.* = undefined;
@@ -105,12 +112,16 @@ pub const Key = struct {
         const dot_rows = dot_source.fixed.len;
         const dot_log: u32 = @intCast(std.math.log2_int(usize, dot_rows));
         if (dot_log > 26) return error.InvalidR7Geometry;
+        const input_rows = try std.math.ceilPowerOfTwo(usize, @max(16, ctx.native_input_ids.items.len));
+        const input_log: u32 = @intCast(std.math.log2_int(usize, input_rows));
+        if (input_log > 26) return error.InvalidR7Geometry;
         var mass: u64 = @intCast(ctx.base.circuit.output.items.len);
         for (rows[0..4], [_]u64{ 2, 3, 5, 48 }) |r, n| mass = try std.math.add(u64, mass, try std.math.mul(u64, r, n));
         mass = try std.math.add(u64, mass, try std.math.mul(u64, mul_rows, 6));
         mass = try std.math.add(u64, mass, try std.math.mul(u64, dot_rows, 5));
+        mass = try std.math.add(u64, mass, input_rows);
         if (mass >= Core.fields.m31.Modulus or usage.len >= Core.fields.m31.Modulus) return error.PoseidonCharacteristicBound;
-        var fixed = try columns(a, 0, logs, mul_log, dot_log);
+        var fixed = try columns(a, 0, logs, mul_log, dot_log, input_log);
         errdefer fixed.deinit();
         const c = &ctx.base.circuit;
         for (0..rows[0]) |r| {
@@ -184,6 +195,10 @@ pub const Key = struct {
             for (row, 0..) |value, j| fixed.put(MUL_FIXED_START + j, r, value);
         }
         for (dot_source.fixed, 0..) |row, r| for (row, 0..) |value, j| fixed.put(FIXED_START + j, physical(r, dot_log), value);
+        for (ctx.native_input_ids.items, 0..) |id, r| {
+            fixed.put(INPUT_FIXED_START, r, M.fromCanonical(id));
+            fixed.put(INPUT_FIXED_START + 1, r, M.fromCanonical(usage[id]));
+        }
         var scheme = try A.E.init(a, profile.config());
         defer scheme.deinit(a);
         scheme.reuse_bounded_merkle_tail = true;
@@ -195,13 +210,14 @@ pub const Key = struct {
         var tree = scheme.trees.items[0].retainShared();
         errdefer tree.deinit(a);
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update("opstack/outer-R7-native-om31-mul-DEEP-dot/v1/whole-dot-complete-Var/reset-last");
+        hash.update("opstack/outer-R7-v2/whole-dot/genuine-QM31-inputs/8roles/full-Var/reset-last");
         hash.update(profile.domain());
         hash.update(&A.MC.identity());
         hash.update(OldAir.bundle_sha256);
         hash.update(&P2Row.sourceIdentity());
         hash.update(&R.semanticIdentity());
         hash.update(&dot_source.identity);
+        hash.update(&ctx.native_input_origin_seal.?);
         hash.update(&root);
         var geometry_bytes: [8]u8 = undefined;
         for (logs) |log| {
@@ -212,10 +228,12 @@ pub const Key = struct {
         hash.update(&geometry_bytes);
         std.mem.writeInt(u64, &geometry_bytes, dot_log, .little);
         hash.update(&geometry_bytes);
+        std.mem.writeInt(u64, &geometry_bytes, input_log, .little);
+        hash.update(&geometry_bytes);
         // Explicit native heights remain authoritative even when zero columns
         // share a lifted root. Every tree's complete ordered geometry enters.
         for (0..3) |t| for (fixedWidths(t), 0..) |width, slot| {
-            const log = if (slot < 5) logs[slot] else if (slot == 5) mul_log else dot_log;
+            const log = if (slot < 5) logs[slot] else if (slot == 5) mul_log else if (slot == 6) dot_log else input_log;
             std.mem.writeInt(u64, &geometry_bytes, width, .little);
             hash.update(&geometry_bytes);
             for (0..width) |_| {
@@ -226,7 +244,7 @@ pub const Key = struct {
         std.mem.writeInt(u64, &geometry_bytes, c.output.items.len - 1, .little);
         hash.update(&geometry_bytes);
         const base = A.Authority{ .allocator = a, .profile = profile, .logs = logs, .rows = rows, .raw = raw, .n_outputs = c.output.items.len - 1, .original_vars = c.n_vars, .usage = usage, .fixed = fixed, .fixed_tree = tree, .bound = bound, .fixed_root = root, .identity = hash.finalResult(), .gather_mass = mass };
-        return .{ .core = .{ .base = base, .mul_log = mul_log, .mul_rows = mul_rows, .mul_raw = ctx.native_mul_calls.items.len }, .dot_log = dot_log, .dot_rows = dot_rows, .dot_raw = dot_source.raw_rows, .dot_identity = dot_source.identity };
+        return .{ .core = .{ .base = base, .mul_log = mul_log, .mul_rows = mul_rows, .mul_raw = ctx.native_mul_calls.items.len }, .dot_log = dot_log, .dot_rows = dot_rows, .dot_raw = dot_source.raw_rows, .dot_identity = dot_source.identity, .input_log = input_log, .input_rows = input_rows, .input_raw = ctx.native_input_ids.items.len };
     }
     pub fn treeLogs(self: *const Key, a: std.mem.Allocator, tree: usize) ![]u32 {
         const widths = fixedWidths(tree);
@@ -235,19 +253,19 @@ pub const Key = struct {
         const out = try a.alloc(u32, total);
         var at: usize = 0;
         for (widths, 0..) |width, i| {
-            @memset(out[at..][0..width], if (i < 5) self.core.base.logs[i] else if (i == 5) self.core.mul_log else self.dot_log);
+            @memset(out[at..][0..width], if (i < 5) self.core.base.logs[i] else if (i == 5) self.core.mul_log else if (i == 6) self.dot_log else self.input_log);
             at += width;
         }
         return out;
     }
     pub fn maxLog(self: *const Key) u32 {
-        var out = @max(self.core.mul_log, self.dot_log);
+        var out = @max(self.input_log, @max(self.core.mul_log, self.dot_log));
         for (self.core.base.logs) |log| out = @max(out, log);
         return out;
     }
 };
-fn fixedWidths(tree: usize) [7]usize {
-    var out: [7]usize = undefined;
+fn fixedWidths(tree: usize) [8]usize {
+    var out: [8]usize = undefined;
     for (L.FACTS, 0..) |fact, i| out[i] = switch (tree) {
         0 => fact.fixed,
         1 => fact.main,
@@ -264,6 +282,12 @@ fn fixedWidths(tree: usize) [7]usize {
         0 => D.FIXED,
         1 => D.MAIN,
         2 => D.INTER,
+        else => unreachable,
+    };
+    out[7] = switch (tree) {
+        0 => I.FIXED,
+        1 => I.MAIN,
+        2 => I.INTER,
         else => unreachable,
     };
     return out;

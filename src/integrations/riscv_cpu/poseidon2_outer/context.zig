@@ -30,6 +30,8 @@ pub const Context = struct {
     native_dot_calls: std.ArrayList(@import("native_dot/authority.zig").Call) = .empty,
     /// Separate capability: legacy R5/R6 keys reject before any allocation.
     native_dot_finalized: bool = false,
+    native_input_ids: std.ArrayList(u32) = .empty,
+    native_input_origin_seal: ?[32]u8 = null,
     usage: ?Usage = null,
     finalized: bool = false,
     poisoned: bool = false,
@@ -52,6 +54,7 @@ pub const Context = struct {
         self.native_mul_calls.deinit(self.allocator);
         for (self.native_dot_calls.items) |call| self.allocator.free(call.terms);
         self.native_dot_calls.deinit(self.allocator);
+        self.native_input_ids.deinit(self.allocator);
         self.base.deinit();
         self.* = undefined;
     }
@@ -119,12 +122,25 @@ pub const Context = struct {
         return outputs;
     }
     pub fn sourceMultiplicities(self: *const Context, a: std.mem.Allocator) !B.circuit.Multiplicities {
-        if (self.native_dot_finalized or self.native_dot_calls.items.len != 0) return error.NativeDotRequiresR7;
+        if (self.native_dot_finalized or self.native_dot_calls.items.len != 0 or self.native_input_ids.items.len != 0) return error.NativeDotRequiresR7;
         return self.sourceMultiplicitiesMode(a, false);
     }
     pub fn sourceMultiplicitiesForNativeDot(self: *const Context, a: std.mem.Allocator) !B.circuit.Multiplicities {
+        if (!self.native_dot_finalized or self.finalized or self.native_input_origin_seal == null or !std.mem.eql(u8, &self.native_input_origin_seal.?, &self.inputOriginIdentity())) return error.InvalidNativeInputOrigin;
         try self.requireRoster(false, true);
         return self.sourceMultiplicitiesMode(a, true);
+    }
+    pub fn inputOriginIdentity(self: *const Context) [32]u8 {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update("opstack/R7-v2/genuine-QM31-guess-origins/not-constants-or-dedicated-producers");
+        var bytes: [4]u8 = undefined;
+        std.mem.writeInt(u32, &bytes, self.base.circuit.n_vars, .little);
+        hash.update(&bytes);
+        for (self.native_input_ids.items) |id| {
+            std.mem.writeInt(u32, &bytes, id, .little);
+            hash.update(&bytes);
+        }
+        return hash.finalResult();
     }
     fn sourceMultiplicitiesMode(self: *const Context, a: std.mem.Allocator, native_dot: bool) !B.circuit.Multiplicities {
         var counts = try self.base.circuit.computeMultiplicities(a);
@@ -161,6 +177,10 @@ pub const Context = struct {
                 counts.n_yields[output] = 1;
             }
         };
+        if (native_dot) for (self.native_input_ids.items) |id| {
+            if (id <= 2 or id >= counts.n_yields.len or counts.n_yields[id] != 0) return error.PoseidonProducerConflict;
+            counts.n_yields[id] = 1;
+        };
         return counts;
     }
     pub fn setOutputs(self: *Context, outputs: []const Var) !void {
@@ -168,7 +188,7 @@ pub const Context = struct {
         try self.base.setOutputs(outputs);
     }
     fn requireRoster(self: *const Context, mixed: bool, native_dot: bool) !void {
-        if (!native_dot and self.native_dot_calls.items.len != 0) return error.NativeDotRequiresR7;
+        if (!native_dot and (self.native_dot_calls.items.len != 0 or self.native_input_ids.items.len != 0)) return error.NativeDotRequiresR7;
         const c = &self.base.circuit;
         if (!self.base.record_gates or (!mixed and (c.blake_g_gate.items.len != 0 or c.triple_xor.items.len != 0 or c.permutation.len() != 0))) return error.UnsupportedPoseidonRosterOperation;
         if (c.n_vars >= Core.fields.m31.Modulus) return error.InvalidPoseidonSourceUsage;
@@ -181,6 +201,7 @@ pub const Context = struct {
         if (native_dot) for (self.native_dot_calls.items) |call| {
             total = try std.math.add(u64, total, try std.math.add(u64, try std.math.mul(u64, 3, @max(1, call.terms.len)), 2));
         };
+        total = try std.math.add(u64, total, self.native_input_ids.items.len);
         if (total >= Core.fields.m31.Modulus) return error.InvalidPoseidonSourceUsage;
     }
     pub fn finalize(self: *Context) !void {
@@ -198,7 +219,15 @@ pub const Context = struct {
         if (self.isClosed()) return error.PoseidonContextClosed;
         errdefer self.poisoned = true;
         try self.requireRoster(mixed, native_dot);
-        try self.base.finalize(false);
+        if (native_dot) {
+            if (self.native_input_ids.items.len != 0 or self.native_input_origin_seal != null) return error.InvalidNativeInputOrigin;
+            var dispatch = @import("native_dot/input_registry.zig").Dispatch{ .owner = self };
+            defer dispatch.deinit();
+            var sink = B.context.Qm31GuessSinkScope.init(.{ .context = &dispatch, .emit = @import("native_dot/input_registry.zig").Dispatch.emit });
+            defer sink.deinit();
+            try self.base.finalize(false);
+            try dispatch.finish();
+        } else try self.base.finalize(false);
         try self.requireRoster(mixed, native_dot);
         var counts = try self.sourceMultiplicitiesMode(self.allocator, native_dot);
         defer counts.deinit(self.allocator);
@@ -232,12 +261,12 @@ pub const Context = struct {
         return .{ g.eq, g.qm31_ops, g.m31_to_u32, self.calls.items.len, 1 << 16 };
     }
     /// R7 roster counts are unavailable through the legacy five-role API.
-    pub fn rawCountsForNativeDot(self: *const Context) ![7]u64 {
+    pub fn rawCountsForNativeDot(self: *const Context) ![8]u64 {
         if (!self.native_dot_finalized or self.finalized or self.poisoned or self.mixed_census_only) return error.NativeDotContextNotFinalized;
         var dot_rows: u64 = 0;
         for (self.native_dot_calls.items) |call| dot_rows = try std.math.add(u64, dot_rows, @max(1, call.terms.len));
         const g = self.base.gate_counts;
-        return .{ g.eq, g.qm31_ops, g.m31_to_u32, self.calls.items.len, 1 << 16, self.native_mul_calls.items.len, dot_rows };
+        return .{ g.eq, g.qm31_ops, g.m31_to_u32, self.calls.items.len, 1 << 16, self.native_mul_calls.items.len, dot_rows, self.native_input_ids.items.len };
     }
     pub fn census(self: *const Context, poseidon_hybrid: bool) !L.Census {
         return L.census(try self.rawCounts(), poseidon_hybrid);

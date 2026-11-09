@@ -1,3 +1,5 @@
+> Current closed protocol is R7-v2 with eight roles; earlier seven-role sections are historical. No R7 production/root admission.
+
 # Experimental OM31-by-M31 dot accumulator
 
 This isolated prototype targets the DEEP numerator `sum(weight * queried_base_value)`. No live DEEP emitter, Context hook, source roster, receiver, protocol or R6 default uses it. Its standalone physical STARK gate is now qualified; it remains outside every live R5/R6 roster and is not R7 admission.
@@ -156,3 +158,38 @@ This is **witness-free source construction only**: it supplies a legal skeleton,
 not an actual native proof. It executes no guest, proves no block/outer leaf,
 and establishes no proving-time speedup. The small-class regression remains;
 these two wider classes do not justify enabling R7 for every request.
+
+## Current closed prototype: R7-v2, eight roles
+
+[free-input-v2.json](free-input-v2.json) supersedes the seven-role prototype;
+its reports above remain historical evidence. There is one current R7 decoder:
+`STP27I02`, eight claims, 296-byte header. It rejects the former seven-role
+wire. No production/R6 route is switched.
+
+The eighth chip removes tautological QM31 guess self-yields. Its row has
+**4 MAIN / 2 FIXED / 8 INTER** columns, a complete four-coordinate Var value,
+source-fixed ID/fanout and one prefix fraction. Arithmetic remains degree two
+on 2n; domain preparation/column custody are shared with dot. Domain work uses
+M31 SIMD; only challenge compression/prefix/accumulation uses packed OM31.
+
+This is **not** a missing-producer repair rule. A default-null builder sink
+runs only on `.qm31` entries in the genuine typed guess registry, after the
+unchanged constant pass. It validates the exact algebra context, rejects
+constants/sentinels/generic or dedicated producers and duplicate origins, and
+seals the source-owned IDs. Joint source usage/yields and characteristic bounds
+are recomputed. M31 pointwise and U16 conversion/range constraints remain.
+
+ZERO, ONE and all constants stay anchored: `0+0=0`, `1+0=1`, `U*1=U`, the
+independently pinned public U output and the original constant/basis chain are
+retained. Physical coherent Var0/Var1/constant reassignment closes the shared
+lookup claims but fails the AIR. Typed M31 and U16 forgeries also fail. Nineteen
+physical mutations require their exact expected rejection; a missing mutation
+fixture cannot accidentally count as a successful negative test.
+
+[Actual small CPU source v2](actual-small-cpu-source-v2.json) records **129,248**
+genuine QM31 inputs moved to log 17. Generic rows become **2,005,775**, crossing
+the padding boundary to log 21. All eight roles total **217,378,816 cells**,
+versus R6's **264,302,592**: **17.75% fewer**. Declared masks are
+`[108,550,368,16]`; sampled references 1114. The default-null path still produces
+the entire old R6 golden proof byte-for-byte. This is actual source/cost
+qualification, not an R7 CPU proof or block speed measurement.

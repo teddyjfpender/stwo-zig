@@ -1,0 +1,91 @@
+{
+  "schema": "op-r7-free-qm31-producer-v2",
+  "production_admitted": false,
+  "protocol": {
+    "magic": "STP27I02",
+    "header_bytes": 296,
+    "claims_and_components": 8,
+    "old_seven_role_wire_refused": true,
+    "no_live_parallel_seven_role_mode": true
+  },
+  "free_producer": {
+    "main": 4,
+    "fixed": 2,
+    "interaction": 8,
+    "fraction": "one negative source-fanout-weighted complete Var tuple",
+    "degree": 2,
+    "quotient": "2n",
+    "domain": "16-lane M31 for committed fields; packed OM31 for compression/prefix; scalar OM31 at OODS"
+  },
+  "origin_authority": [
+    "Always-on typed builder guessed_vars registry after unchanged finalizeConstants",
+    "Default-null scoped QM31-only sink validates exact algebra context",
+    "Generic/P2/OMUL/dot/reserved/constant producers cannot be reclassified as inputs",
+    "Orphans and duplicate producers fail joint recomputation; missing producers are never repaired",
+    "M31 pointwise and U16 conversion/range constraints remain unchanged",
+    "Sealed source origin IDs participate in source key identity and FIXED fanout"
+  ],
+  "constant_authority": {
+    "var0": "0+0=0 remains",
+    "var1": "1+0=1 and U*1=U remain",
+    "U": "independently fixed outputTerm(address2,U_VALUE) remains",
+    "derived_constants": "unchanged constant/basis chain remains; never enters QM registry"
+  },
+  "physical_fixture": {
+    "bytes": 554752,
+    "sha256": "9906950e7077fae1f5026a34ace16673a6c1e45741a2d82995f1a49efa0f7631",
+    "peak_live_bytes": 155183879,
+    "hard_budget_bytes": 2147483648,
+    "final_live_bytes": 0,
+    "final_external_bytes": 0,
+    "fresh_source_key": true,
+    "producer_key_destroyed_before_receiver": true,
+    "independently_pinned_inputs_and_outputs": true,
+    "complete_var_and_range_claims_close": true,
+    "full_storage_control_bytes_identical": true,
+    "qualification_only_seconds": {
+      "prove": 0.611,
+      "fresh_verify": 0.081
+    },
+    "controlled_speed_measurement": false,
+    "mutations": {
+      "port_extension": "PoseidonGlobalLookupSum",
+      "native_result": "PoseidonGlobalLookupSum",
+      "dot_accumulator": "ConstraintsNotSatisfied",
+      "dot_weight": "PoseidonGlobalLookupSum",
+      "dot_scalar": "PoseidonGlobalLookupSum",
+      "dot_prefix": "ConstraintsNotSatisfied",
+      "dot_claim_balanced": "ConstraintsNotSatisfied",
+      "dot_reset": "ConstraintsNotSatisfied",
+      "dot_empty": "PoseidonGlobalLookupSum",
+      "omit_dot": "ShapeMismatch",
+      "omit_inputs": "ShapeMismatch",
+      "input_value": "PoseidonGlobalLookupSum",
+      "input_prefix": "ConstraintsNotSatisfied",
+      "input_claim_balanced": "ConstraintsNotSatisfied",
+      "nonzero_zero": "ConstraintsNotSatisfied",
+      "changed_one": "ConstraintsNotSatisfied",
+      "changed_constant": "ConstraintsNotSatisfied",
+      "bad_m31": "ConstraintsNotSatisfied",
+      "bad_u16": "PoseidonGlobalLookupSum"
+    },
+    "unexpected_fixture_errors_do_not_count_as_rejections": true,
+    "scalar_domain_control_bytes_identical": true
+  },
+  "actual_small_source": {
+    "old_r6_cells": 264302592,
+    "new_v2_cells": 217378816,
+    "generic_raw": 2005775,
+    "generic_log": 21,
+    "genuine_qm31_inputs": 129248,
+    "input_log": 17,
+    "r6_golden_byte_exact": true,
+    "actual_r7_outer_cpu_proof": false
+  },
+  "remaining": [
+    "Actual small R7 CPU physical proof plus separately rebuilt source key reception",
+    "R7 eight-role recursive statement, fold and final independent root receiver",
+    "Composed source/security ledger qualification before route promotion",
+    "No heavy execution/proving rerun and no whole-block speed claim"
+  ]
+}

@@ -1,4 +1,4 @@
-//! Explicit R7 seven-role shared-Var CPU STARK; no R5/R6 acceptance path.
+//! Explicit R7-v2 eight-role shared-Var CPU STARK; no R5/R6 acceptance path.
 //! Reference security parameters only; no Ethereum/default/GPU promotion.
 const std = @import("std");
 const Core = @import("stwo_core");
@@ -9,6 +9,7 @@ const Mul = @import("../native_omul/component.zig").Component;
 const W = @import("outer_witness.zig");
 const Dot = @import("outer_component.zig").Component;
 const DotRow = @import("row.zig");
+const Input = @import("input_component.zig").Component;
 const C = @import("../context.zig");
 const P2 = @import("../component.zig").Component;
 const Legacy = @import("stwo_circuit_cpu_integration").om31.component.Component;
@@ -22,8 +23,8 @@ const Air = Core.air.components.ForField(O);
 const PC = Engine.air.component_prover.ForField(O);
 pub const Authority = K.Key;
 pub const Wire = @import("stwo_proof_wire").ForHasher(O, H);
-const MAGIC = "STP27D01";
-pub const HEADER_BYTES = 8 + 32 + 7 * 8 * 4;
+const MAGIC = "STP27I02";
+pub const HEADER_BYTES = 8 + 32 + 8 * 8 * 4;
 const HEADER = HEADER_BYTES;
 fn begin(a: std.mem.Allocator, key: *const Authority, outputs: []const Q) !Channel {
     if (outputs.len != key.core.base.n_outputs) return error.InvalidPoseidonOutputCount;
@@ -50,7 +51,7 @@ fn legacy(a: std.mem.Allocator, key: *const Authority, elements: W.Elements, cla
 pub fn proveFullStorageControl(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q) ![]u8 {
     return proveRecorded(a, ctx, key, outputs, .none, null, false);
 }
-pub const Mutation = enum { none, x2, x5, port_extension, range_multiplicity, inter_prefix, claim_balanced, native_result, native_prefix, dot_accumulator, dot_weight, dot_scalar, dot_prefix, dot_claim_balanced, dot_reset, dot_empty, omit_dot };
+pub const Mutation = enum { none, x2, x5, port_extension, range_multiplicity, inter_prefix, claim_balanced, native_result, native_prefix, dot_accumulator, dot_weight, dot_scalar, dot_prefix, dot_claim_balanced, dot_reset, dot_empty, omit_dot, omit_inputs, input_value, input_prefix, input_claim_balanced, nonzero_zero, changed_one, changed_constant, bad_m31, bad_u16 };
 pub fn prove(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q) ![]u8 {
     return proveMutation(a, ctx, key, outputs, .none);
 }
@@ -61,6 +62,43 @@ pub fn proveProfiled(a: std.mem.Allocator, ctx: *const C.Context, key: *const Au
 /// self-check and receiver. No receiver accepts a mutation selector.
 pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, mutation: Mutation) ![]u8 {
     return proveRecorded(a, ctx, key, outputs, mutation, null, true);
+}
+// Coherent named-Var reassignment: every active producer/consumer port reads
+// the same changed value. No host-only assertion substitutes for AIR rejection.
+fn rebindConstant(main: *A.Columns, key: *const Authority, id: u32, value: Q) !void {
+    const L = @import("../layout.zig");
+    const base = &key.core.base;
+    const coords = value.toM31Array();
+    for (coords[1..]) |v| if (!v.isZero()) return error.InvalidConstantMutation;
+    for (0..base.rows[0]) |r| if (base.fixed.values[0].values[r].v == id) for (coords, 0..) |v, j| main.put(A.MAIN_START[0] + j, r, v);
+    for (0..base.rows[1]) |r| for (0..3) |slot| if (base.fixed.values[6 + slot].values[r].v == id) for (coords, 0..) |v, j| main.put(A.MAIN_START[1] + 4 * slot + j, r, v);
+    for (0..base.rows[2]) |r| if (base.fixed.values[10].values[r].v == id) {
+        var row: [4]M = undefined;
+        @import("stwo_circuit_frontend").witness.components.m31_to_u32.row(coords[0], &row);
+        for (row, 0..) |v, j| main.put(A.MAIN_START[2] + j, r, v);
+    };
+    rebuildRangeHistogram(main, key);
+    for (0..base.raw[3]) |r| for (0..24) |slot| {
+        if (base.fixed.values[13 + L.INPUT_ID + slot].values[r].v == id) main.put(A.MAIN_START[3] + L.INPUT + slot, r, coords[0]);
+        if (base.fixed.values[13 + L.OUTPUT_ID + slot].values[r].v == id) main.put(A.MAIN_START[3] + L.OUTPUT + slot, r, coords[0]);
+    };
+    for (0..key.core.mul_raw) |r| for (0..6) |slot| if (base.fixed.values[K.MUL_FIXED_START + slot].values[r].v == id) for (coords, 0..) |v, j| main.put(K.MUL_MAIN_START + 4 * slot + j, r, v);
+    for (0..key.dot_raw) |logical| {
+        const r = K.physical(logical, key.dot_log);
+        for (0..2) |slot| if (base.fixed.values[K.FIXED_START + slot].values[r].v == id) for (coords, 0..) |v, j| main.put(K.MAIN_START + 4 * slot + j, r, v);
+        if (base.fixed.values[K.FIXED_START + 2].values[r].v == id) main.put(K.MAIN_START + 8, r, coords[0]);
+        if (!base.fixed.values[K.FIXED_START + DotRow.LAST].values[r].isZero()) for (0..2) |slot| if (base.fixed.values[K.FIXED_START + DotRow.OUTPUT_IDS + slot].values[r].v == id) for (coords, 0..) |v, j| main.put(K.MAIN_START + DotRow.ACC + 4 * slot + j, r, v);
+    }
+    for (0..key.input_raw) |r| if (base.fixed.values[K.INPUT_FIXED_START].values[r].v == id) for (coords, 0..) |v, j| main.put(K.INPUT_MAIN_START + j, r, v);
+}
+fn rebuildRangeHistogram(main: *A.Columns, key: *const Authority) void {
+    const base = &key.core.base;
+    @memset(@constCast(main.values[A.MAIN_START[4]].values), M.zero());
+    for (0..base.rows[2]) |r| {
+        const lo = main.values[A.MAIN_START[2] + 1].values[r].v;
+        const hi = main.values[A.MAIN_START[2] + 2].values[r].v;
+        for ([_]u32{ lo, hi, 32767 - hi }) |n| main.put(A.MAIN_START[4], n, main.values[A.MAIN_START[4]].values[n].add(M.one()));
+    }
 }
 fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, mutation: Mutation, recorder: ?*Engine.stage_profile.Recorder, compact: bool) ![]u8 {
     if (!Engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.NativeDotR7BudgetRequired;
@@ -92,7 +130,41 @@ fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Author
                 found = true;
                 break;
             };
+            if (!found) for (0..key.input_raw) |r| {
+                if (key.core.base.fixed.values[K.INPUT_FIXED_START].values[r].v != input_id.v) continue;
+                const col = K.INPUT_MAIN_START + 1;
+                main.put(col, r, main.values[col].values[r].add(M.one()));
+                found = true;
+                break;
+            };
             if (!found) return error.PoseidonMutationFixtureMissing;
+        },
+        .bad_m31 => {
+            var found = false;
+            for (0..key.core.base.rows[1]) |r| {
+                if (key.core.base.fixed.values[5].values[r].isZero() or key.core.base.fixed.values[6].values[r].v != key.core.base.fixed.values[8].values[r].v) continue;
+                for ([_]usize{ A.MAIN_START[1] + 1, A.MAIN_START[1] + 9 }) |col| main.put(col, r, main.values[col].values[r].add(M.one()));
+                found = true;
+                break;
+            }
+            if (!found) return error.PoseidonMutationFixtureMissing;
+        },
+        .bad_u16 => {
+            if (key.core.base.raw[2] == 0) return error.PoseidonMutationFixtureMissing;
+            var row: [4]M = undefined;
+            @import("stwo_circuit_frontend").witness.components.m31_to_u32.row(M.fromCanonical(70000), &row);
+            for (row, 0..) |v, j| main.put(A.MAIN_START[2] + j, 0, v);
+            rebuildRangeHistogram(&main, key);
+        },
+        .nonzero_zero => try rebindConstant(&main, key, 0, Q.one()),
+        .changed_one => try rebindConstant(&main, key, 1, Q.fromU32Unchecked(2, 0, 0, 0)),
+        .changed_constant => {
+            const id = ctx.base.constants.get(@import("stwo_circuit_frontend").builder.context.constantKey(Q.fromU32Unchecked(17, 0, 0, 0))) orelse return error.PoseidonMutationFixtureMissing;
+            try rebindConstant(&main, key, id.idx, Q.fromU32Unchecked(18, 0, 0, 0));
+        },
+        .input_value => {
+            const col = K.INPUT_MAIN_START + 1;
+            main.put(col, 0, main.values[col].values[0].add(M.one()));
         },
         .dot_reset => {
             const first = K.physical(0, key.dot_log);
@@ -177,6 +249,14 @@ fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Author
         interaction.claims[6] = interaction.claims[6].sub(O.one());
         if (!(try W.closure(outputs, interaction.claims, &elements)).isZero()) return error.InvalidPoseidonMutation;
     }
+    if (mutation == .input_prefix) {
+        const col = K.INPUT_INTER_START;
+        @constCast(interaction.columns[col].values)[1] = interaction.columns[col].values[1].add(M.one());
+    }
+    if (mutation == .input_claim_balanced) {
+        interaction.claims[0] = interaction.claims[0].add(O.one());
+        interaction.claims[7] = interaction.claims[7].sub(O.one());
+    }
     channel.mixFelts(&interaction.claims);
     {
         var span = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.interaction_commit", "P2 interaction commitment");
@@ -196,9 +276,10 @@ fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Author
     const p2 = P2{ .key = &key.core.base, .elements = elements, .claim = interaction.claims[3] };
     const native_mul = Mul{ .key = &key.core, .elements = elements, .claim = interaction.claims[5] };
     const dot = Dot{ .key = key, .elements = elements, .claim = interaction.claims[6] };
-    const components = [_]PC.ComponentProver{ ls[0].asProverComponent(), ls[1].asProverComponent(), ls[2].asProverComponent(), @import("../native_omul/p2_domain.zig").adapter(&p2), ls[3].asProverComponent(), Mul.Adapter.asProverComponent(&native_mul), Dot.Adapter.asProverComponent(&dot) };
+    const input = Input{ .key = key, .elements = elements, .claim = interaction.claims[7] };
+    const components = [_]PC.ComponentProver{ ls[0].asProverComponent(), ls[1].asProverComponent(), ls[2].asProverComponent(), @import("../native_omul/p2_domain.zig").adapter(&p2), ls[3].asProverComponent(), Mul.Adapter.asProverComponent(&native_mul), Dot.Adapter.asProverComponent(&dot), Input.Adapter.asProverComponent(&input) };
     owned = false;
-    const selected = if (mutation == .omit_dot) components[0..6] else &components;
+    const selected = if (mutation == .omit_dot) components[0..6] else if (mutation == .omit_inputs) components[0..7] else &components;
     var produced = try A.E.prove(a, selected, &channel, scheme, .{ .recorder = recorder });
     defer produced.deinit(a);
     const body = try Wire.encodeProofBytesBinary(a, produced.proof);
@@ -272,7 +353,8 @@ fn verifyImpl(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, e
     const p2 = P2{ .key = &key.core.base, .elements = elements, .claim = claims[3] };
     const native_mul = Mul{ .key = &key.core, .elements = elements, .claim = claims[5] };
     const dot = Dot{ .key = key, .elements = elements, .claim = claims[6] };
-    const components = [_]Air.Component{ ls[0].asVerifierComponent(), ls[1].asVerifierComponent(), ls[2].asVerifierComponent(), P2.Adapter.asVerifierComponent(&p2), ls[3].asVerifierComponent(), Mul.Adapter.asVerifierComponent(&native_mul), Dot.Adapter.asVerifierComponent(&dot) };
+    const input = Input{ .key = key, .elements = elements, .claim = claims[7] };
+    const components = [_]Air.Component{ ls[0].asVerifierComponent(), ls[1].asVerifierComponent(), ls[2].asVerifierComponent(), P2.Adapter.asVerifierComponent(&p2), ls[3].asVerifierComponent(), Mul.Adapter.asVerifierComponent(&native_mul), Dot.Adapter.asVerifierComponent(&dot), Input.Adapter.asVerifierComponent(&input) };
     if (capture) |captured| {
         try Core.verifier.ForField(O).verifyBorrowedWithProofCapture(H, MC, a, &components, &channel, &receiver, &proof, captured);
         retained.?.* = proof;

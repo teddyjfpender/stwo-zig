@@ -9,6 +9,7 @@ const Context = @import("../context.zig").Context;
 const L = @import("../layout.zig");
 const Row = @import("../row.zig");
 const D = @import("row.zig");
+const I = @import("input_row.zig");
 const MulRow = @import("../native_omul/row.zig");
 const K = @import("outer_authority.zig");
 const Old = @import("stwo_circuit_cpu_integration").om31.witness;
@@ -20,7 +21,7 @@ const O = A.O;
 const Q = A.Q;
 const LogUp = Engine.air.logup_columns.ForField(O);
 pub const Elements = Base.Elements;
-pub const Claims = [7]O;
+pub const Claims = [8]O;
 fn assignment(ctx: *const Context, key: *const A.Authority, id: u32) !Q {
     if (id < key.original_vars) return ctx.base.get(.{ .idx = id });
     if (id >= key.usage.len) return error.InvalidPoseidonAssignmentAddress;
@@ -29,7 +30,7 @@ fn assignment(ctx: *const Context, key: *const A.Authority, id: u32) !Q {
 pub fn main(a: std.mem.Allocator, ctx: *const Context, key: *const K.Key) !A.Columns {
     const source = &key.core.base;
     if (ctx.base.trace_only or !ctx.native_dot_finalized or ctx.finalized or ctx.poisoned or ctx.base.circuit.n_vars != source.original_vars) return error.InvalidPoseidonAssignment;
-    var out = try K.columns(a, 1, source.logs, key.core.mul_log, key.dot_log);
+    var out = try K.columns(a, 1, source.logs, key.core.mul_log, key.dot_log, key.input_log);
     errdefer out.deinit();
     for (0..source.rows[0]) |r| {
         const value = try assignment(ctx, source, source.fixed.values[0].values[r].v);
@@ -89,6 +90,11 @@ pub fn main(a: std.mem.Allocator, ctx: *const Context, key: *const K.Key) !A.Col
         for (row, 0..) |v, col| out.put(K.MAIN_START + col, r, v);
         prior = result;
     }
+    if (ctx.native_input_ids.items.len != key.input_raw) return error.InvalidNativeInputOrigin;
+    for (ctx.native_input_ids.items, 0..) |id, r| {
+        if (source.fixed.values[K.INPUT_FIXED_START].values[r].v != id) return error.InvalidNativeInputOrigin;
+        for (ctx.base.get(.{ .idx = id }).toM31Array(), 0..) |v, j| out.put(K.INPUT_MAIN_START + j, r, v);
+    }
     return out;
 }
 const Fractions = struct {
@@ -99,6 +105,18 @@ const Fractions = struct {
     fn fill(self: @This(), r: usize, out: []LogUp.Fraction) !void {
         var storage: [48]Lookup = undefined;
         if (self.kind < 5) return Old.pairFractions(self.elements, try self.raw.fill(self.kind, r, &storage), out);
+        if (self.kind == 7) {
+            var main_values: [I.MAIN]M = undefined;
+            var fixed: [I.FIXED]M = undefined;
+            for (&main_values, self.raw.main[K.INPUT_MAIN_START..][0..I.MAIN]) |*v, col| v.* = col.values[r];
+            for (&fixed, self.key.core.base.fixed.values[K.INPUT_FIXED_START..][0..I.FIXED]) |*v, col| v.* = col.values[r];
+            const port = I.portFor(M, &main_values, &fixed);
+            var denominator = self.elements.z.neg();
+            for (port.tuple, self.elements.powers) |v, power| denominator = denominator.add(power.mulM31(v));
+            if (out.len != 1) return error.InvalidNativeInputOrigin;
+            out[0] = .{ .numerator = O.fromBase(port.numerator), .denominator = denominator };
+            return;
+        }
         if (self.kind == 6) {
             var main_values: [D.MAIN]M = undefined;
             var fixed: [D.FIXED]M = undefined;
@@ -133,12 +151,12 @@ pub fn closure(outputs: []const Q, claims: Claims, elements: *const Elements) !O
 pub fn interaction(a: std.mem.Allocator, key: *const K.Key, main_columns: []const A.Col, outputs: []const Q, elements: *const Elements) !Interaction {
     if (outputs.len != key.core.base.n_outputs) return error.InvalidPoseidonOutputCount;
     const raw = Base.Raw{ .key = &key.core.base, .main = main_columns };
-    var blocks: [7]?LogUp.Output = @splat(null);
+    var blocks: [8]?LogUp.Output = @splat(null);
     defer for (blocks) |block| if (block) |value| Circuit.witness.trace.freeColumns(a, value.columns);
     var claims: Claims = undefined;
-    for (0..7) |kind| {
-        const width: usize = if (kind < 5) L.FACTS[kind].classic_interaction / 8 else if (kind == 5) MulRow.INTER / 8 else D.INTER / 8;
-        const block = try LogUp.build(a, if (kind < 5) key.core.base.logs[kind] else if (kind == 5) key.core.mul_log else key.dot_log, width, Fractions{ .raw = &raw, .key = key, .kind = kind, .elements = elements }, Fractions.fill);
+    for (0..8) |kind| {
+        const width: usize = if (kind < 5) L.FACTS[kind].classic_interaction / 8 else if (kind == 5) MulRow.INTER / 8 else if (kind == 6) D.INTER / 8 else I.INTER / 8;
+        const block = try LogUp.build(a, if (kind < 5) key.core.base.logs[kind] else if (kind == 5) key.core.mul_log else if (kind == 6) key.dot_log else key.input_log, width, Fractions{ .raw = &raw, .key = key, .kind = kind, .elements = elements }, Fractions.fill);
         blocks[kind] = block;
         claims[kind] = block.claimed_sum;
     }

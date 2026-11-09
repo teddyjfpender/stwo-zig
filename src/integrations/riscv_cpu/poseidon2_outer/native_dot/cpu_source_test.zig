@@ -13,9 +13,9 @@ const L = @import("../layout.zig");
 const MR = @import("../native_omul/row.zig");
 const D = @import("row.zig");
 pub const Counts = struct {
-    raw: [7]u64,
-    rows: [7]usize,
-    logs: [7]u32,
+    raw: [8]u64,
+    rows: [8]usize,
+    logs: [8]u32,
     main_cells: u64 = 0,
     fixed_cells: u64 = 0,
     interaction_cells: u64 = 0,
@@ -29,9 +29,9 @@ pub const Counts = struct {
         for (raw, 0..) |n, i| {
             out.rows[i] = try std.math.ceilPowerOfTwo(usize, @max(if (i == 4) @as(usize, 65536) else 16, std.math.cast(usize, n) orelse return error.R7CountOverflow));
             out.logs[i] = @intCast(std.math.log2_int(usize, out.rows[i]));
-            const main: usize = if (i < 5) L.FACTS[i].main else if (i == 5) MR.MAIN else D.MAIN;
-            const fixed: usize = if (i < 5) L.FACTS[i].fixed else if (i == 5) MR.FIXED else D.FIXED;
-            const inter: usize = if (i < 5) L.FACTS[i].classic_interaction else if (i == 5) MR.INTER else D.INTER;
+            const main: usize = if (i < 5) L.FACTS[i].main else if (i == 5) MR.MAIN else if (i == 6) D.MAIN else @import("input_row.zig").MAIN;
+            const fixed: usize = if (i < 5) L.FACTS[i].fixed else if (i == 5) MR.FIXED else if (i == 6) D.FIXED else @import("input_row.zig").FIXED;
+            const inter: usize = if (i < 5) L.FACTS[i].classic_interaction else if (i == 5) MR.INTER else if (i == 6) D.INTER else @import("input_row.zig").INTER;
             out.main_cells += out.rows[i] * main;
             out.fixed_cells += out.rows[i] * fixed;
             out.interaction_cells += out.rows[i] * inter;
@@ -114,10 +114,10 @@ test "OP R7 actual small CPU source lowering and unchanged R6 golden proof" {
     try std.testing.expectEqual(@as(usize, 1), state.callbacks);
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
     var r7_masks = state.old_masks;
-    if (state.golden_parity) for (&r7_masks, [_]usize{ 10, 25, 32, 0 }) |*n, extra| {
+    if (state.golden_parity) for (&r7_masks, [_]usize{ 12, 29, 48, 0 }) |*n, extra| {
         n.* += extra;
     };
-    const json = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-r7-actual-small-cpu-source-v1", .old = state.old.?, .r7 = state.r7.?, .r6_golden_proof_exact = state.golden_parity, .native_bundle_fresh_received = true, .same_public_output = state.output_parity, .old_declared_masks = state.old_masks, .r7_declared_masks = r7_masks, .old_sample_refs = state.old_sample_refs, .r7_sample_refs = if (state.golden_parity) state.old_sample_refs + 83 else 0, .masks_derived_from_physical_role_layouts_without_r7_key_construction = true, .r7_source_only = true, .r7_physical_cpu_leaf_proved = false, .heavy_run = false, .production_admission = false, .peak_live_bytes = budget.snapshot().peak_live_bytes, .phases = state.phases }, .{ .whitespace = .indent_2 });
+    const json = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-r7-actual-small-cpu-source-v1", .old = state.old.?, .r7 = state.r7.?, .r6_golden_proof_exact = state.golden_parity, .native_bundle_fresh_received = true, .same_public_output = state.output_parity, .old_declared_masks = state.old_masks, .r7_declared_masks = r7_masks, .old_sample_refs = state.old_sample_refs, .r7_sample_refs = if (state.golden_parity) state.old_sample_refs + 113 else 0, .masks_derived_from_physical_role_layouts_without_r7_key_construction = true, .r7_source_only = true, .r7_physical_cpu_leaf_proved = false, .heavy_run = false, .production_admission = false, .peak_live_bytes = budget.snapshot().peak_live_bytes, .phases = state.phases }, .{ .whitespace = .indent_2 });
     defer a.free(json);
     var file = try std.fs.cwd().createFile(report_path, .{});
     defer file.close();

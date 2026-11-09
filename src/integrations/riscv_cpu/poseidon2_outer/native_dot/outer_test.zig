@@ -37,6 +37,10 @@ fn source(a: std.mem.Allocator) !C.Context {
     defer if (active) Common.finish() catch {};
     const x = try Common.F.guess(owner.algebra(), number(3));
     const y = try Common.F.guess(owner.algebra(), number(17));
+    _ = try owner.base.guessM31(Q.fromU32Unchecked(7, 0, 0, 0));
+    _ = try owner.base.guessU16(Q.fromU32Unchecked(9, 0, 0, 0));
+    const seventeen = try owner.base.constant(Q.fromU32Unchecked(17, 0, 0, 0));
+    try owner.base.eq(seventeen, seventeen);
     const product = x.mul(y);
     const s0 = try owner.base.guess(Q.fromBase(M.fromCanonical(5)));
     const s1 = try owner.base.guess(Q.fromBase(M.fromCanonical(11)));
@@ -50,18 +54,21 @@ fn source(a: std.mem.Allocator) !C.Context {
     return owner;
 }
 fn rejectMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const K.Key, mutation: P.Mutation) !void {
+    const expected_error: anyerror = switch (mutation) {
+        .port_extension, .native_result, .dot_weight, .dot_scalar, .dot_empty, .input_value, .bad_u16 => error.PoseidonGlobalLookupSum,
+        .omit_dot, .omit_inputs => error.ShapeMismatch,
+        else => error.ConstraintsNotSatisfied,
+    };
     if (P.proveMutation(a, ctx, key, &expected(), mutation)) |bytes| {
         defer a.free(bytes);
-        if (P.verify(a, key, &expected(), bytes)) |_| return error.R7MutationAccepted else |err| {
-            if (err == error.OutOfMemory) return err;
-            std.debug.print("OP_R7_MUTATION mode={s} receiver={s}\n", .{ @tagName(mutation), @errorName(err) });
-        }
+        return error.R7InvalidWitnessWasProved;
     } else |err| {
-        if (err == error.OutOfMemory) return err;
+        if (err != expected_error) return err;
         std.debug.print("OP_R7_MUTATION mode={s} producer={s}\n", .{ @tagName(mutation), @errorName(err) });
     }
 }
-test "OP R7 seven role physical proof closes whole Var debt with fresh source authority" {
+
+test "OP R7 eight role physical proof closes whole Var debt with fresh source authority" {
     const budget = try Engine.host_budget_allocator.SharedHostBudget.create(std.testing.allocator, 2 << 30);
     defer budget.destroy();
     const a = budget.allocator();
@@ -117,11 +124,17 @@ test "OP R7 seven role physical proof closes whole Var debt with fresh source au
         var wrong = expected();
         wrong[4] = wrong[4].add(Q.one());
         if (P.verify(a, &receiver, &wrong, bytes)) |_| return error.R7WrongPublicInputAccepted else |err| if (err == error.OutOfMemory) return err;
+        const old_v1 = try a.dupe(u8, bytes);
+        defer a.free(old_v1);
+        @memcpy(old_v1[0..8], "STP27D01");
+        var old_fail = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
+        try std.testing.expectError(error.InvalidNativeDotR7Wire, P.verify(old_fail.allocator(), &receiver, &expected(), old_v1));
+        try std.testing.expect(!old_fail.has_induced_failure);
         var fail = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
         try std.testing.expectError(error.InvalidNativeOmulWire, @import("../native_omul/proof.zig").verify(fail.allocator(), &receiver.core, &expected(), bytes));
         try std.testing.expect(!fail.has_induced_failure);
-        for ([_]P.Mutation{ .port_extension, .native_result, .dot_accumulator, .dot_weight, .dot_scalar, .dot_prefix, .dot_claim_balanced, .dot_reset, .dot_empty, .omit_dot }) |mutation| try rejectMutation(a, &fresh, &receiver, mutation);
-        std.debug.print("OP_R7_COMPLETE bytes={d} prove_s={d:.3} fresh_verify_s={d:.3} roles=7 dot_raw={d} dot_log={d} peak={d}\n", .{ bytes.len, @as(f64, @floatFromInt(prove_ns)) / 1e9, @as(f64, @floatFromInt(verify_ns)) / 1e9, receiver.dot_raw, receiver.dot_log, budget.snapshot().peak_live_bytes });
+        for ([_]P.Mutation{ .port_extension, .native_result, .dot_accumulator, .dot_weight, .dot_scalar, .dot_prefix, .dot_claim_balanced, .dot_reset, .dot_empty, .omit_dot, .omit_inputs, .input_value, .input_prefix, .input_claim_balanced, .nonzero_zero, .changed_one, .changed_constant, .bad_m31, .bad_u16 }) |mutation| try rejectMutation(a, &fresh, &receiver, mutation);
+        std.debug.print("OP_R7_COMPLETE bytes={d} prove_s={d:.3} fresh_verify_s={d:.3} roles=8 dot_raw={d} dot_log={d} peak={d}\n", .{ bytes.len, @as(f64, @floatFromInt(prove_ns)) / 1e9, @as(f64, @floatFromInt(verify_ns)) / 1e9, receiver.dot_raw, receiver.dot_log, budget.snapshot().peak_live_bytes });
     }
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);

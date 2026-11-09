@@ -210,3 +210,71 @@ test "OP R7 source lowering allocation failures retain unique custody and restor
     try std.testing.checkAllAllocationFailures(a, allocationGraph, .{});
     try std.testing.expect(DotHook.current() == null);
 }
+
+test "OP R7 v2 free input origins reject orphans duplicates constants and dedicated outputs" {
+    var orphan = try C.Context.init(a, 0);
+    defer orphan.deinit();
+    _ = try orphan.base.newVar(Q.one());
+    try std.testing.expectError(error.PoseidonMissingProducer, orphan.finalizeForNativeDot());
+    for (0..8) |kind| {
+        var owner = try C.Context.init(a, 0);
+        defer owner.deinit();
+        const genuine = try owner.base.guess(Q.fromBase(M.fromCanonical(7)));
+        const bad: C.Var = switch (kind) {
+            0 => owner.base.zero(),
+            1 => owner.base.one(),
+            2 => try owner.base.constant(Q.fromBase(M.fromCanonical(17))),
+            3 => genuine,
+            4 => (try owner.permute(@splat(owner.base.zero())))[0],
+            5 => (try owner.nativeOmul(@splat(owner.base.one())))[0],
+            6 => (try owner.nativeDot(&.{}))[0],
+            7 => try owner.base.add(owner.base.one(), owner.base.one()),
+            else => unreachable,
+        };
+        try owner.base.guessed_vars.append(a, .{ .qm31 = bad });
+        try std.testing.expectError(error.InvalidWitnessOrigin, owner.finalizeForNativeDot());
+        try std.testing.expect(owner.poisoned and !owner.native_dot_finalized and !owner.finalized);
+    }
+    // Injecting a supposed input before finalization is never an orphan repair.
+    var injected = try C.Context.init(a, 0);
+    defer injected.deinit();
+    const raw = try injected.base.newVar(Q.one());
+    try injected.native_input_ids.append(a, raw.idx);
+    try std.testing.expectError(error.InvalidNativeInputOrigin, injected.finalizeForNativeDot());
+}
+
+test "OP R7 v2 QM sink preserves typed canonical constraints and restores after wrong context" {
+    var owner = try C.Context.init(a, 0);
+    defer owner.deinit();
+    const unrestricted = try owner.base.guess(Q.fromM31Array(.{ M.one(), M.one(), M.one(), M.one() }));
+    _ = try owner.base.guessM31(Q.fromBase(M.fromCanonical(5)));
+    _ = try owner.base.guessU16(Q.fromBase(M.fromCanonical(9)));
+    try owner.finalizeForNativeDot();
+    try std.testing.expectEqualSlices(u32, &.{unrestricted.idx}, owner.native_input_ids.items);
+    try std.testing.expectEqual(@as(usize, 1), owner.base.circuit.pointwise_mul.items.len);
+    try std.testing.expectEqual(@as(usize, 1), owner.base.circuit.m31_to_u32.items.len);
+    try std.testing.expect(try owner.isCircuitValid());
+    const saved = owner.native_input_ids.items[0];
+    owner.native_input_ids.items[0] = 0;
+    try std.testing.expectError(error.InvalidNativeInputOrigin, owner.sourceMultiplicitiesForNativeDot(a));
+    owner.native_input_ids.items[0] = saved;
+    var target = try C.Context.init(a, 0);
+    defer target.deinit();
+    {
+        var dispatch = @import("input_registry.zig").Dispatch{ .owner = &target };
+        defer dispatch.deinit();
+        var sink = @import("stwo_circuit_frontend").builder.context.Qm31GuessSinkScope.init(.{ .context = &dispatch, .emit = @import("input_registry.zig").Dispatch.emit });
+        defer sink.deinit();
+        var other = try C.Algebra.init(a, 0);
+        defer other.deinit();
+        _ = try other.guess(Q.one());
+        try std.testing.expectError(error.InvalidWitnessOrigin, other.finalize(false));
+    }
+    var legacy = try C.Context.init(a, 0);
+    defer legacy.deinit();
+    _ = try legacy.base.guess(Q.one());
+    try legacy.finalize();
+    try std.testing.expect(legacy.finalized and !legacy.native_dot_finalized);
+    try std.testing.expectEqual(@as(usize, 0), legacy.native_input_ids.items.len);
+    try std.testing.expect(try legacy.isCircuitValid());
+}

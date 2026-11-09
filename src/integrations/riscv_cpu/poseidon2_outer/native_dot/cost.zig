@@ -1,4 +1,4 @@
-//! Source-fed geometry model only, not an implemented new circuit roster.
+//! Historical seven-role source model, not current eight-role R7-v2 admission.
 //! QM31 widths are the actual OM31-field P2 values (12/8/16), not the
 //! legacy QM31-field circuit evaluator's 8 interaction columns.
 const std = @import("std");
