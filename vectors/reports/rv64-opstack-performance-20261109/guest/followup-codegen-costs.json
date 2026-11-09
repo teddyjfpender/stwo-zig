@@ -1,0 +1,78 @@
+{
+  "schema": "stwo.opstack.guest-followup-codegen-costs.v1",
+  "qualified_baseline": {
+    "instructions": 238226172,
+    "service_ram_word_transitions": 15867083,
+    "elf_sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930"
+  },
+  "controls": [
+    {
+      "name": "op-kona-borrow-sub-final",
+      "description": "Borrow first then add modulus on underflow; mathematically equivalent but worse aggregate copies/register allocation",
+      "retained": false,
+      "instructions": 244383841,
+      "service_ram_word_transitions": 16968374,
+      "bulk_memcpy_calls": 142053,
+      "elf_sha256": "4108103307486b348d442f086af0657090fa8c2825f11a26d65f6e7ba49d4144",
+      "execution_output_verified": true,
+      "independent_oracle_qualified": false
+    },
+    {
+      "name": "op-kona-fp12-inplace",
+      "description": "Rewrite two Fp12-square temporaries as in-place Fp6 operations; small0.23% instruction gain, slightly more RAM, not independently oracle-qualified or retained",
+      "retained": false,
+      "instructions": 237679740,
+      "service_ram_word_transitions": 15868949,
+      "bulk_memcpy_calls": 120376,
+      "elf_sha256": "d355b60f6a4432786e4efd9b6777cc3cec87f42576179da1b0cd93d22fe26d30",
+      "execution_output_verified": true,
+      "independent_oracle_qualified": false
+    },
+    {
+      "name": "op-kona-add-only",
+      "description": "Force-inline quadratic AddAssign only; smaller text but more instructions and RAM",
+      "retained": false,
+      "instructions": 238955174,
+      "service_ram_word_transitions": 15871920,
+      "bulk_memcpy_calls": 120377,
+      "elf_sha256": "62a431ab1985af04d467802151d607b6a4218325d3ef3b0a7dbb01197cbede56",
+      "execution_output_verified": true,
+      "independent_oracle_qualified": false
+    }
+  ],
+  "sources": {
+    "op-kona-borrow-sub-final-heavy.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-borrow-sub-final-heavy.native.json",
+      "sha256": "2189282afd0e6ca205de2d3808093f64908953af74452001537e1cf96876b098"
+    },
+    "op-kona-fp12-inplace-heavy.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-fp12-inplace-heavy.native.json",
+      "sha256": "0703b8ecea4ce416ccbdda2d6fab5bd57c72a69d10ac2a6c57cd5ce6d9928d27"
+    },
+    "op-kona-add-only-heavy.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-add-only-heavy.native.json",
+      "sha256": "06e13c0ca65503c4e58285b8a783683056f3f7bb6088d4ff4edc335e5705ca79"
+    },
+    "op-kona-canonical-attribution.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-canonical-attribution.json",
+      "sha256": "50470793a0278b5e4f521c8e15d2d08f47e76214611c68a566c737ad62b23bed"
+    }
+  },
+  "remaining_census": {
+    "kind": "Function self instructions; excludes callees, not a proving-time cost model",
+    "fp6_general_mul": 32725655,
+    "evm_dispatch": 28383306,
+    "fp2_add_assign": 23320522,
+    "memcpy": 11710918,
+    "g2_preparation": 10344577,
+    "mload": 10232957,
+    "g2_subgroup_check": 9647186,
+    "g2_double": 8835738,
+    "fp12_square": 8352229,
+    "miller_line_wrapper": 7584486,
+    "fp2_square": 6274875,
+    "mpt_decode": 4403987,
+    "memcmp": 3239161
+  },
+  "decision": "Retain the238.226M independently qualified baseline. Do not broaden inlining or change canonical subtraction based on arithmetic operation counts alone. Full-Miller/local-field DAG is the structural next step; all experimental source below restored."
+}

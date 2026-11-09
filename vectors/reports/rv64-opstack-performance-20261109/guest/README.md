@@ -131,3 +131,22 @@ RAM and call counts. Fifteen host tests and three real-block native/Unicorn
 agreements pass. A returned Fq12 variant regressed through aggregate copies and
 was rejected. Complete CPU/RAM/receiver qualification is still required before
 OP-profile admission; none of these guest receipts admits unproved host advice.
+
+
+## Further experiments rejected
+
+[Follow-up costs](followup-codegen-costs.json) retain the actual native
+instruction/RAM counts for three additional compiler/arithmetic experiments.
+Borrow-first canonical subtraction increased instructions by 6.16M and RAM
+transitions by 1.10M. Isolated AddAssign inlining increased instructions by
+729,002. An in-place square-temporary rewrite saved only 0.23% of instructions
+with slightly more RAM; it was not independently qualified or retained.
+All these experimental sources were restored. The qualified baseline remains
+238,226,172 retirements, 15,867,083 service RAM transitions and ROM log 20.
+
+The refreshed full-text census still attributes 32.73M self instructions to
+Fp6 multiplication and 23.32M to Fp2 addition. Those costs do not disappear
+through blanket inlining. A bounded local field microprogram that removes
+repeated canonicalization and global RAM crossings remains the structural
+next step, with explicit range bounds and the semantic gates in the Miller
+design. These negative results prevent repeating low-yield compiler tweaks.
