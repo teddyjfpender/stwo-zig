@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import io
+import os
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -10,6 +13,63 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DevTestPlanTests(unittest.TestCase):
+    def test_cli_preserves_canonical_parent_lock_and_wraps_other_builds(self):
+        planned = ["zig", "build", "test-isa", "-j1"]
+        for held in ("", dev_test.zig_serial_build.DEFAULT_LOCK, "/tmp/foreign-build.lock"):
+            borrowed = held == dev_test.zig_serial_build.DEFAULT_LOCK
+            with mock.patch.object(dev_test, "commands_for_paths", return_value=[planned]), mock.patch.dict(
+                os.environ, {dev_test.zig_serial_build.HELD_LOCK_ENV: held},
+            ), mock.patch("scripts.dev_test.subprocess.run", return_value=mock.Mock(returncode=0)) as run, mock.patch(
+                "sys.stdout", new=io.StringIO(),
+            ):
+                self.assertEqual(0, dev_test.main(["src/frontends/riscv/isa_test_root.zig"]))
+            argv = run.call_args.args[0]
+            self.assertEqual(borrowed, argv[:2] == ["zig", "build"])
+            if not borrowed:
+                self.assertIn("scripts/repo/zig_serial_build.py", argv)
+
+    def test_catalog_roots_select_bounded_commands_without_tool_probes(self):
+        for filename, step in (
+            ("transcript_v2_test_root.zig", "test-recursion-transcript-v2"),
+            ("main_trace_plan_execution_test_root.zig", "test-main-trace-plan-execution"),
+            ("air_static_profile_registry_test_root.zig", "test-air-static-profile-registry"),
+        ):
+            for check_only in (False, True):
+                with self.subTest(filename=filename, check_only=check_only), mock.patch(
+                    "scripts.dev_test.subprocess.run", side_effect=AssertionError("tool probe"),
+                ), mock.patch("scripts.dev_test.subprocess.check_output", side_effect=AssertionError("tool probe")):
+                    (command,) = dev_test.commands_for_paths(
+                        ROOT, ["src/frontends/riscv/" + filename],
+                        optimize="ReleaseFast", check_only=check_only,
+                    )
+                self.assertEqual(step, command[2])
+                self.assertIn("-Doptimize=ReleaseFast", command)
+                self.assertIn("-j1", command)
+                self.assertEqual(check_only, "-Dcheck-only=true" in command)
+
+    def test_catalog_routing_keeps_unbounded_ambiguous_and_workload_fallbacks(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            path = "src/frontends/riscv/qualified.zig"
+            self.assertIsNone(dev_test.frontend_root_step(root, path))
+            catalog = root / "src/frontends/riscv/build_focused_tests.zig"
+            catalog.parent.mkdir(parents=True)
+            catalog.write_text("".join(
+                f'    .{{\n        .step = "{step}",\n        .root = "{source}.zig",\n'
+                + (f'        .minimum = {floor},\n' if floor is not None else "") + '    },\n'
+                for step, source, floor in (
+                    ("test-qualified", "qualified", 3), ("test-zero", "zero", 0),
+                    ("test-default", "default", None), ("benchmark-only", "workload", 3),
+                    ("test-shared", "shared", 3), ("test-other", "shared", 4),
+                )
+            ))
+            self.assertEqual("test-qualified", dev_test.frontend_root_step(root, path))
+            for source in ("zero", "default", "workload", "shared", "qualified.zig/child"):
+                self.assertIsNone(dev_test.frontend_root_step(root, f"src/frontends/riscv/{source}.zig"))
+        self.assertEqual("test-runner", dev_test.focus_step(
+            "stwo_riscv_frontend", "src/frontends/riscv/runner_test_root.zig", ROOT,
+        ))
+
     def test_native_cpu_product_sources_select_only_their_canonical_ci_lane(self):
         paths = [f"src/products/native/cpu/{name}.zig" for name in (
             "main", "app", "cli", "identity", "registry", "benchmark", "root",
