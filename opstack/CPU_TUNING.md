@@ -97,3 +97,38 @@ Fast bounded-cache admission checks:
 ```sh
 zig build test-riscv64-recursion -Doptimize=ReleaseSafe -j1
 ```
+
+## Experimental pure-P2 source retention
+
+The explicit `rv64-op-native` route accepts these optional resource-file fields:
+
+```json
+{
+  "park_cpu_metadata": true,
+  "retire_source_auxiliaries": true
+}
+```
+
+Both default to false. They change producer custody, not the native profile,
+source statement, manifest or receiver policy. They do not configure the older
+Ethereum/D2 driver illustrated above.
+
+Metadata parking writes inactive CPU advice once into the existing quota-charged,
+unlinked store and restores only the active shard. Auxiliary retirement frees
+post-seal LS32/LS-D64 raw fixed masks and SHIFT histograms after validating the
+saved packed MAIN multiplicities. The later binding reads that already-retained
+MAIN; it does not reconstruct a table or discard an authenticated obligation.
+Immutable key FIXED data and its leases remain independently owned.
+
+The actual small OP block was re-proved with both options: all 5,317,432 bundle
+bytes match the unmodified schema-2 control, a fresh receiver closes the global
+relations and terminal statement, and final heap/external reservations are zero.
+The heavy source model identifies 2,224,128,000 bytes of removable auxiliary
+payload plus inactive CPU metadata. This is not a measured RSS improvement or a
+complete heavy proof. Do not add these payload reductions as though all objects
+had overlapping lifetimes.
+
+See the [metadata custody review](../vectors/reports/rv64-opstack-performance-20261109/native/cpu-metadata-parking.md)
+and [auxiliary consumer review](../vectors/reports/rv64-opstack-performance-20261109/native/source-auxiliary-retirement.md)
+for refusal rules, consumer citations and qualification scope. The user-requested
+heavy rerun remains off the measurement schedule.
