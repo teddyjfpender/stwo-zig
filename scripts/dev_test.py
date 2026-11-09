@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -18,7 +19,7 @@ OPTIMIZE_MODES = ("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.repo import ci_package_graph, ci_scope_plan, ci_scope_push
+from scripts.repo import ci_package_graph, ci_scope_plan, ci_scope_push, ci_scope_run, zig_serial_build
 from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
@@ -38,7 +39,6 @@ FOCUSED_RULES = (
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_poseidon2_native_test_root.zig", "test-poseidon2-native-cpu"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native", "test-poseidon2-native-cpu"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/fri_profile_frontier_test.zig", "test-retained-fri-frontier"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/retained_fri_frontier_test_root.zig", "test-retained-fri-frontier"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_image_program_contract_test_root.zig", "test-word16-image-program-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/tests/rv64_word16_execution_image_test.zig", "test-word16-image-program-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/tests/rv64_word16_execution_program_test.zig", "test-word16-image-program-contracts"),
@@ -47,14 +47,12 @@ FOCUSED_RULES = (
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed_v1/manifest_test.zig", "test-distributed-binary-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/rv64_distributed_execution_v1/binary_worker_test.zig", "test-distributed-binary-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/retained_typed_component_test_root.zig", "test-retained-typed-components"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_component_test.zig", "test-retained-typed-components"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_quotient_test.zig", "test-retained-typed-components"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/universal_typed_component_test_support.zig", "test-retained-typed-components"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/air/tests/qm31_mul_full_relation_test_support.zig", "test-retained-typed-components"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/scheduled_channel_test_support.zig", "test-retained-transcript-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/recursion/tests/transcript_program_v2_test.zig", "test-retained-transcript-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/retained_transcript_contract_test_root.zig", "test-retained-transcript-contracts"),
 
     ("stwo_core", "src/waist/core/air_components_test_root.zig", "test-air-components"),
     ("stwo_core", "src/waist/core/tests/borrowed_proof_capture_root.zig", "test-proof-capture"),
@@ -72,11 +70,9 @@ FOCUSED_RULES = (
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_execution/measurement_test_support.zig", "test-word16-image-program-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/dispatch_test_support.zig", "test-services-truth-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_inputs_test_support.zig", "test-services-truth-contracts"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/retained_authority_contract_test_root.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/division_contract_test_root.zig", "test-division-contracts"),
     ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/services_truth_contract_test_root.zig", "test-services-truth-contracts"),
 
-    ("stwo_riscv_frontend", "src/frontends/riscv/test_inventory_test.zig", "test-inventory"),
     ("stwo_riscv_frontend", "src/frontends/riscv/test_inventory.zig", "test-inventory"),
     ("stwo_riscv_frontend", "src/frontends/riscv/rv64_test_inventory.zig", "test-inventory"),
     ("stwo_riscv_cuda_integration", "src/integrations/riscv_cuda/rv64/jobs/gpu_native_classes.zig", "test-rv64-class-cache"),
@@ -112,7 +108,6 @@ FOCUSED_RULES = (
         "test-pcs-commitments",
     ),
     ("stwo_riscv_frontend", "src/frontends/riscv/isa", "test-isa"),
-    ("stwo_riscv_frontend", "src/frontends/riscv/isa_test_root.zig", "test-isa"),
     ("stwo_riscv_frontend", "src/frontends/riscv/runner", "test-runner"),
     ("stwo_riscv_frontend", "src/frontends/riscv/runner_test_root.zig", "test-runner"),
     (
@@ -180,6 +175,24 @@ def worktree_paths(root: Path) -> list[str]:
     })
 
 
+def frontend_root_step(root: Path, path: str) -> str | None:
+    catalog = root / "src/frontends/riscv/build_focused_tests.zig"
+    if not catalog.is_file():
+        return None
+    matches: list[tuple[str, int]] = []
+    for step, body in re.findall(
+        r'\.\{\s*\.step = "([^"\n]+)"(.*?)\n    \},', catalog.read_text(), re.S,
+    ):
+        source = re.search(r'^\s*\.root = "([^"\n]+)",', body, re.M)
+        floor = re.search(r'^\s*\.minimum = ([0-9][0-9_]*),', body, re.M)
+        if source and path == "src/frontends/riscv/" + source[1]:
+            matches.append((step, int(floor[1].replace("_", "")) if floor else 0))
+    if len(matches) != 1:
+        return None
+    step, minimum = matches[0]
+    return step if step.startswith("test-") and minimum > 0 else None
+
+
 def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
     if package == "stwo_metal_backend":
         for owner, filename, step in FOCUSED_RULES:
@@ -235,7 +248,7 @@ def focus_step(package: str, path: str, root: Path = ROOT) -> str | None:
     for owner, prefix, step in FOCUSED_RULES:
         if owner == package and owns(path, prefix):
             return step
-    return None
+    return frontend_root_step(root, path) if package == "stwo_riscv_frontend" else None
 
 
 def local_command(command: list[str], optimize: str = "ReleaseSafe") -> list[str]:
@@ -438,6 +451,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise DevTestError("--watch requires one focused package")
             commands[0].append("--watch")
         for command in commands:
+            if os.environ.get(zig_serial_build.HELD_LOCK_ENV) != zig_serial_build.DEFAULT_LOCK:
+                command = ci_scope_run.local_build_command(command)
             print(f"+ {shlex.join(command)}", flush=True)
             if args.dry_run:
                 continue

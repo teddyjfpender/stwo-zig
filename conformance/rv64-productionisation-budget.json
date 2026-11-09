@@ -561,6 +561,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Strengthen twelve existing CPU-only frontend targets whose default zero discovery floor permits missing suites to pass. Bind floors to complete observed test metadata in Debug/ReleaseFast, preserve all roots/filters/check-only behavior and retain the two existing failing pin/layout negatives as failures. Restore four existing V2 transcript named cases to their focused root, which previously ran only its anonymous import case; require those four names from the compiler test table in the anonymous filter-resistant guard. Execute an intentional unmatched-filter negative to prove missing cases fail closed. Growth owns test-discovery invariants only; no runtime/proof implementation, pin, ledger, wire, ceiling, rejection classification, flag or launcher change. Prior near-cap Debug compiler diagnostics remain sampled host evidence, not physical memory certification. Count discovered cases separately from verdicts: the restored transcript image has 235 passes and one unchanged opt-in sparse-Merkle benchmark skip in both modes; all four required transcript regressions execute. No skip is introduced or promoted to a pass."
+    },
+    {
+      "id": "delivery_frontend_catalog_developer_roots",
+      "net_code_budget": 80,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Derive exact frontend test-root developer routing from the existing standalone catalog after the restored transcript root still deferred to full-package CI. Route only one unambiguous test-prefixed target with a positive declared discovery floor. Preserve all existing explicit source/subsystem overrides, ambiguous/unfloored/workload fallback, CI policy, filters, count floors, optimization and semantic-only behavior. Remove six duplicate manual root mappings already owned by that catalog. Tests cover actual planner commands without tool/compiler execution, exact path matching, ambiguity, missing/zero floors, missing catalogs and workload rejection. Growth owns safe developer execution selection, not a new launcher, runtime/proof algorithm, API ledger, flag, allowance, pin or gate relaxation. Normal focused CLI builds delegate to the existing shared serial build-lock wrapper; an inherited canonical lock marker preserves parent ownership, while foreign markers do not waive the shared lock. Planning remains side-effect-free and CI lane execution is unchanged."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

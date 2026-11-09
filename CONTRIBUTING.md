@@ -1344,12 +1344,17 @@ loop; the standard gate remains the optimized authority. Pass paths explicitly
 to preview a planned edit, or use `--dry-run` to inspect the commands. An
 unowned path fails closed; the script never reports green for a change it
 cannot route. Broad package fallbacks retain their declared ReleaseSafe command.
+Exact RISC-V frontend root paths also use the standalone focused catalog when
+one test target owns the root and declares a positive discovery floor. Existing
+explicit subsystem routes take precedence; ambiguous or unbounded roots retain
+the package fallback. Focused Zig builds use the shared serial build-lock owner,
+or retain ownership from a parent already holding the canonical build lock.
 
 `--check` follows Zig's recommended incremental, no-binary path and skips test
 execution; use it for compile errors while editing, then run the normal focused
 test before committing. `--watch` keeps one focused package's compiler process
-alive and rebuilds on each save. Unfocused package fallbacks still run their
-complete declared test command rather than pretending to be check-only.
+alive and rebuilds on each save. Check/watch mode explicitly defers unfocused
+packages and hosted lanes. Normal mode retains their complete declared commands.
 
 Run `--fast` first and often: it rejects formatting, pin drift, and source-conformance
 breakage in seconds without a single `zig build`. That
