@@ -381,6 +381,29 @@ def check_owner_roles(repository: Path, expected: Mapping[str, set[str]]) -> lis
             failures.append(f"package workspace: CODEOWNERS accounts differ or are absent for {role!r}")
     return failures
 
+
+def package_owner(contracts: Mapping[str, Any], source: Path) -> Any | None:
+    """Unique longest package prefix, then consumer exclusions; no import-based ownership.
+
+    Callers supply all validated contracts and check tracked regular-file eligibility.
+    An unowned source remains a gap, not an empty package or a zero global census.
+    """
+    directories = {contract.directory.resolve(): contract for contract in contracts.values()}
+    if len(directories) != len(contracts):
+        raise GraphError("package ownership: duplicate registered directory")
+    source = source.resolve()
+    matches = [directory for directory in directories if source.is_relative_to(directory)]
+    if not matches:
+        return None
+    directory = max(matches, key=lambda value: len(value.parts))
+    owner = directories[directory]
+    relative = source.relative_to(directory)
+    if any(Path(*relative.parts[:depth]).as_posix() in owner.consumer_subdirs
+           for depth in range(1, len(relative.parts))):
+        return None
+    return owner
+
+
 class _ProductSource:
     """Literal product-declaration reader, deliberately not a Zig evaluator."""
 

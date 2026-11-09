@@ -475,5 +475,44 @@ class ProductDeclarationSourceTests(unittest.TestCase):
             self.assertIn("stwo-native-cpu", self.resolve())
 
 
+class ConsumerSourceOwnershipTests(unittest.TestCase):
+    def test_longest_owner_and_consumer_exclusions_match_existing_ownership_rule(self):
+        original = subject.load_contract(ROOT / "src/waist/core/package.contract.json")
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            parent = replace(original, package="parent", directory=root / "src/parent", consumer_subdirs=("external",))
+            child = replace(original, package="child", directory=parent.directory / "child", consumer_subdirs=("tools",))
+            child.directory.mkdir(parents=True)
+            (child.directory / "package.contract.json").write_text("{}")
+            contracts = {c.package: c for c in (parent, child)}
+            cases = [(parent.directory / "mod.zig", parent),
+                     (parent.directory / "external/source.zig", None),
+                     (parent.directory / "externality/source.zig", parent),
+                     (child.directory / "mod.zig", child),
+                     (child.directory / "tools/consumer.zig", None),
+                     (root / "src/parental/source.zig", None),
+                     (root / "scripts/task.py", None)]
+            for path, expected in cases:
+                with self.subTest(path=path):
+                    actual = subject.ci_package_graph.package_owner(contracts, path)
+                    self.assertIs(expected, actual)
+                    oracle = [c for c in contracts.values() if path.is_relative_to(c.directory) and subject.owned_by(c, path)]
+                    self.assertEqual([expected] if expected else [], oracle)
+            child = replace(child, consumer_subdirs=("tools/deferred",))
+            contracts["child"] = child
+            self.assertIs(child, subject.ci_package_graph.package_owner(contracts, child.directory / "tools/kept.zig"))
+            self.assertIsNone(subject.ci_package_graph.package_owner(contracts, child.directory / "tools/deferred/test.zig"))
+
+    def test_duplicate_owner_directories_are_errors_and_unowned_sources_remain_gaps(self):
+        original = subject.load_contract(ROOT / "src/waist/core/package.contract.json")
+        duplicate = replace(original, package="duplicate")
+        with self.assertRaises(subject.ci_package_graph.GraphError):
+            subject.ci_package_graph.package_owner({original.package: original, duplicate.package: duplicate}, original.directory / "mod.zig")
+        self.assertIsNone(subject.ci_package_graph.package_owner({}, ROOT / "scripts/dev_test.py"))
+        contracts = {original.package: original}
+        self.assertIs(original, subject.ci_package_graph.package_owner(contracts, original.directory / "fields/m31.zig"))
+        self.assertIsNone(subject.ci_package_graph.package_owner(contracts, ROOT / "scripts/dev_test.py"))
+
+
 if __name__ == "__main__":
     unittest.main()
