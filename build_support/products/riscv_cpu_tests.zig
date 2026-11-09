@@ -288,3 +288,11 @@ fn createStwoModule(context: Context) *std.Build.Module {
     );
     return module;
 }
+
+pub fn addObservationContracts(context: Context) void {
+    const tests = addFocusedTestRoot(context, "src/products/riscv/tools/observation_contracts.zig", &.{});
+    context.b.step(
+        "test-riscv-observation-contracts",
+        "Test bounded observation admission, journal ownership and failure cleanup",
+    ).dependOn(test_filter.addSuites(context.b, &.{.{ .tests = tests, .minimum = 10 }}));
+}

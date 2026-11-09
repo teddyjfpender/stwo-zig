@@ -301,6 +301,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv-bench", .description = "Run focused RISC-V benchmark CLI contract tests", .scope = .compatibility_tools },
     .{ .name = "native-proof-bench-cpu", .description = "Build the machine-readable native CPU full-proof benchmark with SIMD hot paths", .scope = .compatibility_tools },
     .{ .name = "riscv-trace-dump", .description = "Build RISC-V trace dumper CLI", .scope = .riscv_cpu },
+    .{ .name = "test-riscv-observation-contracts", .description = "Test bounded observation admission, journal ownership and failure cleanup", .scope = .riscv_cpu },
     .{ .name = "riscv-pc-hotspot-observer", .description = "Build the bounded RISC-V retirement PC-hotspot observer", .scope = .riscv_cpu },
     .{ .name = "riscv-function-value-observer", .description = "Build the bounded RISC-V function-load value observer", .scope = .riscv_cpu },
     .{ .name = "riscv-analyze-legacy-semantic-observer", .description = "Build the bounded Revm-42 analyze_legacy semantic observer", .scope = .riscv_cpu },

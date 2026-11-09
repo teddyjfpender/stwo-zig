@@ -736,6 +736,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Resolve all existing invariant-owner roles to explicit repository-maintainer review routing in CODEOWNERS, with exact contract/build-manifest coverage. Extend existing package graph/workspace owners to reject missing/unknown roles, malformed accounts and duplicate or wildcard override paths. Reuse the ownership projection parser in the shared graph library instead of growing the 850-line checker. No collaborators are added, branch protection or RFC approval claimed, public API ledger changed or top-level launcher introduced."
+    },
+    {
+      "id": "bounded-observer-journal-ownership",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Consolidate three identical V3 prefix-journal parsers with one explicit internal owner. Preserve per-command radix/count admission, strict function-value regular-file admission, execution/teardown and existing wire bodies. New named contracts cover identity, bounds, prefix lifetime and every parser allocation failure. Build all three commands and execute the contract root in hosted ReleaseFast and Debug CPU CI; relocation receives no subtraction credit."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

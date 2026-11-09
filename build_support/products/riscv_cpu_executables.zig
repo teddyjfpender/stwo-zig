@@ -85,6 +85,14 @@ pub fn addObserver(
         .target = target,
         .optimize = optimize,
     });
+    if (observer == .pc_hotspot or observer == .memcpy_hotspot or observer == .function_value) {
+        root.addImport("observation_journal", graph.create(b, .{
+            .product = product,
+            .root_source_file = "src/products/riscv/tools/observations/journal.zig",
+            .target = target,
+            .optimize = optimize,
+        }));
+    }
     context.protocol.addImports(root);
     integration_graph.addRiscVCpuStack(
         b,
@@ -293,4 +301,65 @@ fn createStwoModule(
         .{ .atomic_file = true, .postcard = true, .riscv_artifact = true },
     );
     return module;
+}
+
+pub fn addObserverProducts(context: Context) void {
+    const pc_hotspot = addObserver(context, context.target, context.optimize, .pc_hotspot);
+    const install_pc_hotspot = context.b.addInstallArtifact(pc_hotspot, .{});
+    context.b.step(
+        "riscv-pc-hotspot-observer",
+        "Build the bounded RISC-V retirement PC-hotspot observer",
+    ).dependOn(&install_pc_hotspot.step);
+    const function_value = addObserver(context, context.target, context.optimize, .function_value);
+    const install_function_value = context.b.addInstallArtifact(function_value, .{});
+    context.b.step(
+        "riscv-function-value-observer",
+        "Build the bounded RISC-V function-load value observer",
+    ).dependOn(&install_function_value.step);
+    const analyze_legacy_semantic = addObserver(context, context.target, context.optimize, .legacy_semantics);
+    const install_analyze_legacy_semantic = context.b.addInstallArtifact(
+        analyze_legacy_semantic,
+        .{},
+    );
+    context.b.step(
+        "riscv-analyze-legacy-semantic-observer",
+        "Build the bounded Revm-42 analyze_legacy semantic observer",
+    ).dependOn(&install_analyze_legacy_semantic.step);
+    const memcpy_hotspot = addObserver(context, context.target, context.optimize, .memcpy_hotspot);
+    const install_memcpy_hotspot = context.b.addInstallArtifact(memcpy_hotspot, .{});
+    context.b.step(
+        "riscv-memcpy-hotspot-observer",
+        "Build the bounded RISC-V memcpy-call hotspot observer",
+    ).dependOn(&install_memcpy_hotspot.step);
+    const memcpy_admission = addObserver(context, context.target, context.optimize, .memcpy_admission);
+    const install_memcpy_admission = context.b.addInstallArtifact(
+        memcpy_admission,
+        .{},
+    );
+    context.b.step(
+        "riscv-memcpy-admission-observer",
+        "Build the exact RISC-V bulk-memcpy admission observer",
+    ).dependOn(&install_memcpy_admission.step);
+}
+
+pub fn addRecursiveDiagnostics(context: Context) void {
+    const recursive_csp_producer = addRecursiveCspProducer(context);
+    const install_recursive_csp_producer = context.b.addInstallArtifact(
+        recursive_csp_producer,
+        .{},
+    );
+    context.b.step(
+        "riscv-recursion-csp-producer",
+        "Build the canonical one-workload recursive CSP producer",
+    ).dependOn(&install_recursive_csp_producer.step);
+
+    const recursion_shape_inspector = addRecursionShapeInspector(context);
+    const install_recursion_shape_inspector = context.b.addInstallArtifact(
+        recursion_shape_inspector,
+        .{},
+    );
+    context.b.step(
+        "riscv-recursion-shape-inspector",
+        "Build the proof-independent canonical workload shape inspector",
+    ).dependOn(&install_recursion_shape_inspector.step);
 }

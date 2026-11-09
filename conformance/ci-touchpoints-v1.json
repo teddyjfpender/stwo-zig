@@ -599,6 +599,24 @@
         [
           "zig",
           "build",
+          "stwo-zig-riscv-cpu",
+          "test-riscv-observation-contracts",
+          "riscv-pc-hotspot-observer",
+          "riscv-memcpy-hotspot-observer",
+          "riscv-function-value-observer",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-riscv-observation-contracts",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
           "test-riscv-profile-partition",
           "stwo-zig-riscv-cpu",
           "-Doptimize=ReleaseFast",
@@ -1009,7 +1027,9 @@
       "prefixes": [
         "build_support/products/riscv_cpu.zig",
         "build_support/products/riscv_refinement.zig",
-        "build_support/products/riscv_sail_oracle_tests.zig"
+        "build_support/products/riscv_sail_oracle_tests.zig",
+        "build_support/products/riscv_cpu_executables.zig",
+        "build_support/products/riscv_cpu_tests.zig"
       ],
       "lanes": [
         "build_graph",

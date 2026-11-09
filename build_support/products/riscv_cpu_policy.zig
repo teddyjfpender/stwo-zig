@@ -24,6 +24,7 @@ pub const source_closure = product_policy.SourceClosure{
         "src/frontends/riscv/sail_oracle_test_root.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
+        .{ .name = "observation_journal", .source = "src/products/riscv/tools/observations/journal.zig" },
         .{ .name = "stwo", .source = "src/products/riscv/cpu/root.zig" },
         .{ .name = "stwo_artifact_store", .source = "src/engine/artifact_store/mod.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/waist/backend/mod.zig" },

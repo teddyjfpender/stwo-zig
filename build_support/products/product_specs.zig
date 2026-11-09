@@ -66,6 +66,7 @@ pub const products = [_]Spec{
             "src/frontends/riscv/air/lang/artifacts/h009_embedded.zig",
             "src/frontends/riscv/air/lang/artifacts/h010_embedded.zig",
             "src/products/riscv/cpu/test_root.zig",
+            "src/products/riscv/tools/observation_contracts.zig",
             "src/products/riscv/cpu/tests/main_trace_planned_proof_test.zig",
             "src/products/riscv/cpu/tests/recursion_ingress_real_guest_test.zig",
             "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test.zig",
