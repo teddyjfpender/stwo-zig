@@ -93,6 +93,15 @@
           "src/waist/core/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-fields",
+          "--build-file",
+          "src/waist/core/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
         ]
       ]
     },

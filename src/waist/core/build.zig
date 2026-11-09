@@ -55,6 +55,14 @@ pub fn build(b: *std.Build) void {
         check_only,
         "fields/tests/m31.zig",
     ));
+    fields_step.dependOn(addNamedCoreTests(
+        b,
+        core,
+        target,
+        optimize,
+        check_only,
+        "fields/tests/qm31_integer.zig",
+    ));
 
     const crypto_step = addFocusedTests(b, target, optimize, check_only, .{
         .step = "test-crypto",

@@ -668,6 +668,13 @@
       "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
     },
     {
+      "id": "delivery_independent_field_context_and_catalog_projection",
+      "net_code_budget": 180,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Project exact named roots already admitted by product source-closure descriptors into configure manifests instead of manually granting implementation directories. Add schoolbook integer QM31 multiplication regressions using runtime edge/random operands in direct, reversed and detached call contexts; the staged FRI test changed from failing to passing without production arithmetic edits, so preserve that negative evidence and strengthen falsification. Wire the new named root through mandatory test-fields and add Debug field execution beside existing ReleaseFast CI. No arithmetic implementation, public API, golden, ceiling, rejection or launcher changes."
+    },
+    {
       "id": "delivery_cpu_closure_and_complex_differential",
       "net_code_budget": 120,
       "flags_added_budget": 0,
