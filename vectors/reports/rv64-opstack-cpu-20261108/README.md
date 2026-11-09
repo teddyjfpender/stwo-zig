@@ -1,5 +1,19 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The [heavy execution recursion receipt](heavy-recursion-ternary.json) closes OP
+121065789: 102 CPU and 24 service proofs, 126 wraps and 64 ternary folds. A
+separate strict receiver accepts and both physical leaf corruption and a missing
+final fold reject. Production is **2,536.789 s**, additional to native proving;
+fresh native-plus-recursive reception is **193.250 s**. Producer RSS peaks at
+**31.125 GiB** under a 52 GiB requested-live admission. Builds/tests overlapped,
+so this is qualification evidence, not a quiet benchmark.
+
+Leaf wrapping accounts for 1,540.263 s, folding 897.961 s and leaf graph
+construction 54.926 s. The 749,304-byte root still requires the native bundle and
+all 190 original recursive nodes for this strict receiver. It is execution-only,
+not a root-only portable checkpoint or anchored OP validity. The failed M7
+four-child memory attempt and refused binary override are retained explicitly.
+
 The optional [Arkworks Montgomery client](arkworks-montgomery-service.json)
 reduces full one-/two-blob KZG verification from 51.37M/73.33M to
 28.49M/40.54M retired instructions. All fourteen positive probes agree with

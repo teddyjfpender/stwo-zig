@@ -31,8 +31,12 @@ receivers and both corruption controls. The synthetic OD/OP child/parent fold
 also completes with physical STARK verification. These close the local execution
 reproduction and synthetic-fold checks. The follow-up [real recursion receipt](../vectors/reports/rv64-opstack-cpu-20261108/real-recursion.json)
 also closes an execution-only Mainnet root: three wrapped leaves and two folds,
-accepted in a separate receiver process. Anchored transition, joined checkpoint,
-accumulation and settlement acceptance remain open.
+accepted in a separate receiver process. The [heavy execution root](../vectors/reports/rv64-opstack-cpu-20261108/heavy-recursion-ternary.json)
+also closes block 121065789 with 126 leaves and 64 ternary folds, independent
+strict acceptance and physical corruption/missing-node rejection. Its 42.3-minute
+recursion is a functionality and memory milestone, not a speed target. The
+strict receiver still needs all native and recursive proofs. Anchored transition,
+joined checkpoint, accumulation and settlement acceptance remain open.
 
 - Replay is not a proof. A native bundle is not a recursive root. A receiver-side
   join is not an in-circuit join. A PCS replay is not a complete checkpoint verifier.
