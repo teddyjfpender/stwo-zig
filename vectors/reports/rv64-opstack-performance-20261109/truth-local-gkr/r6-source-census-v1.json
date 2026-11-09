@@ -1,0 +1,67 @@
+{
+  "scope": "tiny_source_exact_complete_truth_local_GKR_plus_R6_recursion_census",
+  "source_only": true,
+  "production_admission_open": false,
+  "security_qualified": false,
+  "fixtures": [
+    {
+      "kind": "keccak",
+      "calls": 2,
+      "crypto_log": 5,
+      "table_logs": [
+        13,
+        10
+      ],
+      "raw_legacy": [
+        14990,
+        3749702,
+        276,
+        37264,
+        65536
+      ],
+      "native_omul_calls": 95758,
+      "padded_rows": [
+        16384,
+        4194304,
+        512,
+        65536,
+        65536,
+        131072
+      ],
+      "total_native_cells": 207928832,
+      "r5_local_gkr_cells": 351452672,
+      "legacy_qm_height_reduced": true
+    },
+    {
+      "kind": "secp_add",
+      "calls": 1,
+      "raw_legacy": [
+        10000,
+        684219,
+        276,
+        15466,
+        65536
+      ],
+      "native_omul_calls": 12911,
+      "padded_rows": [
+        16384,
+        1048576,
+        512,
+        16384,
+        65536,
+        16384
+      ],
+      "total_native_cells": 51723776,
+      "r5_local_gkr_cells": 50789888,
+      "legacy_qm_height_reduced": false
+    }
+  ],
+  "qualification": [
+    "Complete native GKR/PCS/OODS/FRI/DEEP and public-frame equations numerically valid",
+    "Forged terminal marginal, MAIN, global claim and ninth output rejected by actual circuit equations"
+  ],
+  "limits": {
+    "allocator_bytes": 8589934592
+  },
+  "caveat": "No physical R6 outer proof or actual338-call block-source performance claim in this receipt. An extra native OM chip can increase committed work when it does not cross a padded-height boundary."
+}
