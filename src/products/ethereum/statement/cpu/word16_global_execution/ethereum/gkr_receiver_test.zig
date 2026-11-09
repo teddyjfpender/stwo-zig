@@ -27,7 +27,7 @@ test "wide GKR Ethereum receiver authenticates terminal RAM and never promotes p
             defer native.deinit();
             var advice = try Collector.collect(a, &.{&native}, &.{&f.tape}, Memory.fromOwner(&f.image));
             defer advice.deinit();
-            const declarations = &.{@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/wire.zig").CpuDeclaration{ .geometry = .{ .cpu_log = 5 }, .bridges = .{} }};
+            const declarations = &.{@import("stwo_riscv_cpu_integration").rv64_gkr_bundle_wire.CpuDeclaration{ .geometry = .{ .cpu_log = 5 }, .bridges = .{} }};
             var keys = try Keys.Owner.init(a, &f.image, declarations, &.{});
             defer keys.deinit();
             var cache: ?Fixed.Cache = if (candidate) try Fixed.Cache.init(a, 1 << 30) else null;

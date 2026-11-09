@@ -124,7 +124,7 @@ pub fn pin(raw: []const u8, expected_hex: []const u8) !void {
     _ = try std.fmt.hexToBytes(&expected, expected_hex);
     if (!std.mem.eql(u8, &expected, &sha(raw))) return error.EthereumInputIdentityMismatch;
 }
-pub const sha = @import("../../../../integrations/riscv_cpu/content_sha256.zig").sha;
+pub const sha = @import("content_sha256.zig").sha;
 pub const Program = struct {
     words: []u32,
     addresses: []u64,

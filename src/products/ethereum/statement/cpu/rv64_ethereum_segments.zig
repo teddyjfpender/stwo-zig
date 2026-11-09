@@ -14,7 +14,7 @@ const std = @import("std");
 const rv = @import("stwo_riscv_frontend").rv64;
 const Walk = @import("rv64_ethereum_native_prepare.zig").Walk;
 const Native = @import("rv64_ethereum_batch.zig");
-const ReplayWindow = @import("../../../../integrations/riscv_cpu/rv64_capture_replay_window.zig");
+const ReplayWindow = @import("rv64_capture_replay_window.zig");
 pub const MAX_WORKERS = 32;
 
 /// M6 traced fast engine for segment walks (`STWO_RV64_TRACED_ENGINE`,

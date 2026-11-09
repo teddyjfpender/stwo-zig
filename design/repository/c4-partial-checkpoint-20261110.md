@@ -7,7 +7,7 @@ validation head, change its merge bar or claim a completed product package.
 - Slice: https://github.com/teddyjfpender/stwo-zig/issues/336
 - Contract RFC: https://github.com/teddyjfpender/stwo-zig/issues/352
 - Stable PR head/base for this checkpoint: `b167250a425101262805bdb79cfbf4f1e57f93e8`.
-- Material tree before this runbook: `bceb119ab47cd16baef77a73d77ce274fec70fe9`.
+- Material tree before this runbook: `682c8ae6c89af4d64a6d6730893b3d6674a98ae9`.
 - Owner for every new role/contract/manifest route: @teddyjfpender.
 - Backup ref: `backup/c4-product-ownership-partial-20261110`.
 
@@ -37,8 +37,8 @@ service/product cuts remain unfinished. Do not merge or use this as proof output
 
 ## Actual validation boundaries
 
-The actual strict checker on the material tree is **FAIL: 896 findings**:
-24 product-placement, 331 relative owner escapes, 540 relative owner ingresses,
+The actual strict checker on the material tree is **FAIL: 881 findings**:
+24 product-placement, 331 relative owner escapes, 525 relative owner ingresses,
 and one embedded-file owner escape. The missing real package and unresolved
 cross-owner sources are not baselined, allowlisted or suppressed.
 The source/code remains subject to all existing ceilings and negative checks.
@@ -99,6 +99,32 @@ The stable PR head remains b167250a425101262805bdb79cfbf4f1e57f93e8.
 This ref is PARTIAL and must not be treated as mergeable or green. All
 full type/runtime/CPU/proof/negative acceptance is UNRUN here. The mandatory
 rv64 gate invocation before backup push remains subject to pod-only refusal.
+
+## Four product-exclusive private helper owners
+
+The exact four-path refinement approved in RFC #352 comment6753246914
+moves replay policy, allocation diagnostics, raw content hashing and
+retained-host policy into product ownership (map below). All four complete
+bodies and inline tests are byte identical. Their live imports follow the
+real owners; only three JSON flag-registry path values change. Flag status,
+default evidence text and source behavior remain identical. No source-pinned
+formal/hash artifact is edited. Shared registry and generic batch-memory
+test ownership remain lower; driver_ge is deferred for its dependency cut.
+
+Ten additional import expressions reuse already-published canonical Store
+and wire declaration providers, including two private aliases whose only
+uses are the same canonical declaration types. No new public API, flag,
+script or module provider is introduced. Measured code +14/-14/net 0;
+configuration +3/-3/net 0; four complete-file moves have no subtraction
+credit. Total C4 code stays net +397 within the approved +800 bound.
+
+Actual four existing std-only replay/retained-host tests pass in Debug and
+ReleaseFast under memguard 1 GiB. All changed Zig sources pass formatter/AST
+checks. The actual strict checker is still FAIL: 881 findings, with 15
+fewer relative ingresses than the prior checkpoint. These limited helper
+executions do not establish full lifecycle/product/CPU/proof acceptance.
+All full Debug/ReleaseFast, discovery union, semantic negative and frozen
+Native proof gates remain UNRUN; no GPU execution is claimed.
 
 ## Original-to-product ownership map
 
@@ -305,3 +331,7 @@ rv64 gate invocation before backup push remains subject to pod-only refusal.
 | `src/integrations/riscv_cpu/word16_global_execution/ethereum/terminal_test.zig` | `src/products/ethereum/statement/cpu/word16_global_execution/ethereum/terminal_test.zig` | `src/products/ethereum/statement/cpu/word16_global_execution/ethereum/terminal_test.zig` |
 | `src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig` | `src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig` | `src/products/ethereum/statement/cuda/rv64_combined_ethereum_main.zig` |
 | `src/integrations/riscv_cuda/rv64_hybrid_ethereum_main.zig` | `src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig` | `src/products/ethereum/statement/cuda/rv64_hybrid_ethereum_main.zig` |
+| `src/integrations/riscv_cpu/content_sha256.zig` | `src/products/ethereum/statement/cpu/content_sha256.zig` | `src/products/ethereum/statement/cpu/content_sha256.zig` |
+| `src/integrations/riscv_cpu/rv64_capture_replay_window.zig` | `src/products/ethereum/statement/cpu/rv64_capture_replay_window.zig` | `src/products/ethereum/statement/cpu/rv64_capture_replay_window.zig` |
+| `src/integrations/riscv_cpu/rv64_oom_diagnostic.zig` | `src/products/ethereum/statement/cpu/rv64_oom_diagnostic.zig` | `src/products/ethereum/statement/cpu/rv64_oom_diagnostic.zig` |
+| `src/integrations/riscv_cuda/rv64/host_retained_policy.zig` | `src/products/ethereum/statement/cuda/rv64/host_retained_policy.zig` | `src/products/ethereum/statement/cuda/rv64/host_retained_policy.zig` |

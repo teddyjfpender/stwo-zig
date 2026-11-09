@@ -29,7 +29,7 @@ pub fn main() !void {
     defer parsed.deinit();
     const config = parsed.value;
     try Request.validateBudget(config);
-    var diagnostic = @import("../../../../integrations/riscv_cpu/rv64_oom_diagnostic.zig").Diagnostic{ .child = base };
+    var diagnostic = @import("rv64_oom_diagnostic.zig").Diagnostic{ .child = base };
     const a = if (config.diagnose_allocations) diagnostic.allocator() else base;
     const work = @import("stwo_prover_engine").work_pool;
     var pool: work.WorkPool = .{};

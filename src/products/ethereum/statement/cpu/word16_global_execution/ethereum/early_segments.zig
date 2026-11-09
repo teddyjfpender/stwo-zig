@@ -64,7 +64,7 @@ pub const Slot = struct {
     first_ids: [T.FAMILIES]u32 = @splat(0),
     sponge_before: u64 = 0,
     seal: ?CpuSource.CaptureSeal = null,
-    declaration: ?@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/wire.zig").CpuDeclaration = null,
+    declaration: ?@import("stwo_riscv_cpu_integration").rv64_gkr_bundle_wire.CpuDeclaration = null,
     overlay: ?Replay.Capture = null,
     advice: ?Collector.Advice = null,
     keys: ?Keys = null,
@@ -291,7 +291,7 @@ pub const Owner = struct {
         if (self.failure) |err| return err;
         const slot = &self.slots[ordinal];
         if (self.cancelled or slot.transferred or slot.worker == null or !std.meta.eql(config, self.options.pcs) or !std.meta.eql(first_ids, slot.first_ids)) return error.EarlySegmentsInventoryMismatch;
-        if (!std.meta.eql(slot.declaration.?, @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/wire.zig").CpuDeclaration{ .geometry = setup.materials.geometry, .bridges = setup.bridges }) or !std.meta.eql(slot.native.?.cpu.?.capture_seal.?, slot.seal.?)) return error.EarlySegmentsInventoryMismatch;
+        if (!std.meta.eql(slot.declaration.?, @import("stwo_riscv_cpu_integration").rv64_gkr_bundle_wire.CpuDeclaration{ .geometry = setup.materials.geometry, .bridges = setup.bridges }) or !std.meta.eql(slot.native.?.cpu.?.capture_seal.?, slot.seal.?)) return error.EarlySegmentsInventoryMismatch;
         try Execution.requireSameCpuExpected(slot.worker.?.expected, expected);
         var worker = slot.worker.?;
         worker.expected.chain = expected.chain;

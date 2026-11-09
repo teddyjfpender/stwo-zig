@@ -122,7 +122,7 @@ pub fn main() !void {
     defer dir.close();
     const setup_ns = timer.read() - capture_ns - trim_ns;
     try @import("telemetry.zig").write(a, dir, &keys, &captured);
-    var store = if (operational.park_retained_main) try @import("../../../../../../integrations/riscv_cpu/word16_global_execution/retained_main_store.zig").Store.initParked(out_path, 128 << 30) else try @import("../../../../../../integrations/riscv_cpu/word16_global_execution/retained_main_store.zig").Store.init(out_path, 128 << 30);
+    var store = if (operational.park_retained_main) try @import("stwo_riscv_cpu_integration").rv64_gkr_coordinator.Store.initParked(out_path, 128 << 30) else try @import("stwo_riscv_cpu_integration").rv64_gkr_coordinator.Store.init(out_path, 128 << 30);
     defer store.deinit();
     var observations = try @import("observations.zig").Owner.init(a, keys.cpus.len + keys.truths.len);
     defer observations.deinit();

@@ -2,7 +2,7 @@
 //! is supplied independently by the receiver; it is never repeated in receipts.
 const std = @import("std");
 const A = @import("../../../../integrations/riscv_cpu/rv64_authenticated_execution.zig");
-const request = @import("../../../../integrations/riscv_cpu/content_sha256.zig");
+const request = @import("content_sha256.zig");
 pub const Receipt = struct {
     schema: []const u8 = "rv64-authenticated-ethereum-batch-v1",
     index: u32,

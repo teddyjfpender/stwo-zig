@@ -22,7 +22,7 @@ pub fn main() !void {
         return @import("../../../../integrations/riscv_cuda/rv64/resident_batch.zig").run(a, native_library orelse return error.ResidentBatchRequiresNativeLibrary, arguments[2], arguments[3]);
     }
     const host_retained = std.process.hasEnvVarConstant("STWO_RV64_GPU_HOST_RETAINED");
-    try @import("../../../../integrations/riscv_cuda/rv64/host_retained_policy.zig").validate(host_retained, native_library != null, std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES"), std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE"), std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING"));
+    try @import("rv64/host_retained_policy.zig").validate(host_retained, native_library != null, std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES"), std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE"), std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING"));
     if (std.process.hasEnvVarConstant("STWO_RV64_GPU_CPU_REPLAY") and (host_retained or native_library == null or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES") or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE") or !std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING"))) return error.CpuReplayRequiresFullyResidentPool;
     if (native_library) |path| {
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES")) {

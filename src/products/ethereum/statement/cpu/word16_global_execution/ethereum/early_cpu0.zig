@@ -87,7 +87,7 @@ pub const Owner = struct {
     ticket_finished: bool = false,
     worker: ?Worker.CpuWorker = null,
     expected: ?Manifest.ExpectedWorker = null,
-    declaration: ?@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/wire.zig").CpuDeclaration = null,
+    declaration: ?@import("stwo_riscv_cpu_integration").rv64_gkr_bundle_wire.CpuDeclaration = null,
     transferred: bool = false,
     ready_utc_ns: u64 = 0,
     admit_utc_ns: u64 = 0,
@@ -237,7 +237,7 @@ pub const Owner = struct {
     pub fn take(self: *Owner, setup: anytype, request: P.Request, expected: Manifest.ExpectedWorker, config: W.PcsConfig, first_ids: [T.FAMILIES]u32) !Worker.CpuWorker {
         try self.requireReady();
         if (self.transferred or !std.meta.eql(config, self.options.pcs) or !std.meta.eql(first_ids, @as([T.FAMILIES]u32, @splat(1)))) return error.EarlyCpuInventoryMismatch;
-        if (!std.meta.eql(self.declaration.?, @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/wire.zig").CpuDeclaration{ .geometry = setup.materials.geometry, .bridges = setup.bridges })) return error.EarlyCpuInventoryMismatch;
+        if (!std.meta.eql(self.declaration.?, @import("stwo_riscv_cpu_integration").rv64_gkr_bundle_wire.CpuDeclaration{ .geometry = setup.materials.geometry, .bridges = setup.bridges })) return error.EarlyCpuInventoryMismatch;
         const local = try Execution.localCpuExpected(self.options.allocator, setup, request, 0, first_ids, config, &self.binding.?);
         defer self.options.allocator.free(local.local_instances.?);
         try Execution.requireSameCpuExpected(self.worker.?.expected, local);

@@ -219,15 +219,15 @@
       }
     },
     "STWO_RV64_CAPTURE_REPLAY_AHEAD": {
-      "owner": "src/integrations/riscv_cpu/rv64_capture_replay_window.zig",
+      "owner": "src/products/ethereum/statement/cpu/rv64_capture_replay_window.zig",
       "default": "false",
       "status": "runtime",
       "date": "2026-11-08",
       "references": [
-        "src/integrations/riscv_cpu/rv64_capture_replay_window.zig"
+        "src/products/ethereum/statement/cpu/rv64_capture_replay_window.zig"
       ],
       "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_capture_replay_window.zig",
+        "path": "src/products/ethereum/statement/cpu/rv64_capture_replay_window.zig",
         "text": "pub const FLAG = \"STWO_RV64_CAPTURE_REPLAY_AHEAD\";\npub fn enabled() bool {\n    const value = std.posix.getenv(FLAG) orelse return false;\n    return std.mem.eql(u8, value, \"1\");\n}\npub const Decision = enum { launch, wait_checkpoint, stop };\npub const State = struct {\n    next: u32,"
       }
     },
