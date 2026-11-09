@@ -143,6 +143,7 @@ class PlannerContractTests(unittest.TestCase):
         )
         commands = self.policy["lanes"]["riscv_frontend"]["commands"]
         self.assertEqual(3, len(commands))
+        self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-air-runtime-profile", f"-Doptimize={mode}", "-j2", "--summary", "all"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_runtime_profile"]["commands"])
         for command, step, mode in zip(commands, ("test-air-runtime-profile", "test-air-runtime-profile", "test"), ("Debug", "ReleaseFast", "Debug")):
             self.assertEqual(["zig", "build", step, "--build-file", "src/frontends/riscv/build.zig", f"-Doptimize={mode}", "-j2"], command)
 

@@ -934,6 +934,34 @@
           "{output_dir}/metal-aot"
         ]
       ]
+    },
+    "riscv_runtime_profile": {
+      "host": "linux",
+      "description": "Bounded runtime-profile contract diagnostic; full frontend package lane remains mandatory",
+      "commands": [
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-air-runtime-profile",
+          "-Doptimize=Debug",
+          "-j2",
+          "--summary",
+          "all"
+        ],
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-air-runtime-profile",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--summary",
+          "all"
+        ]
+      ]
     }
   },
   "product_scope_lanes": {
@@ -1734,6 +1762,15 @@
       ],
       "lanes": [
         "riscv_cpu"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/frontends/riscv/air/lang/tests/runtime_profile_test.zig",
+        "src/frontends/riscv/air_runtime_profile_test_root.zig"
+      ],
+      "lanes": [
+        "riscv_runtime_profile"
       ]
     }
   ],

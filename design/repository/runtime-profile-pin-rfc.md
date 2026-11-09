@@ -68,3 +68,10 @@ The owner approved this exact test-only transaction and opening its RFC on
 2026-11-09. The existing eight-case target is mandatory in Debug and ReleaseFast
 before the original full frontend command in its hosted CPU lane. Hosted
 acceptance remains pending until those commands actually execute successfully.
+
+The original full frontend run at 46dd1c89c completed both bounded command
+outputs, then hit the unchanged 30-minute job limit in the later full-suite
+process. It did not mint a final lane receipt. A separate named CPU diagnostic
+uses the existing shared build wrapper and the same package-owned target in
+Debug/ReleaseFast with build summaries. The full frontend lane and every
+command/floor remain mandatory. Its separate current-source verdict is pending.
