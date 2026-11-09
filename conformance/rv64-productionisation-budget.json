@@ -925,6 +925,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Provision the existing mandatory child-capture test with an archived CPU proof whose key and expected statement exactly match the unchanged committed admission. CI owns installation from an immutable archive commit, checks independent admission/key/expected/proof pins and records all input digests before execution. Preserve missing-input rejection, required test discovery and all production interfaces. No producer-derived key authority, new golden bytes, runtime flags or launcher. Two catalog/routing lines collect the same required case with minimum-one discovery before the long package suite, preserving the dedicated BLAKE3 corpus and original full command. This keeps RFC #324 cumulative code at +37 of +40 and makes missing/invalid fixture rejection immediate."
+    },
+    {
+      "id": "remaining_handover_native_projection_vm_regressions",
+      "net_code_budget": 1000,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Restore eleven explicitly handed-over regressions whose production subjects remain live: four native V3 projection cases and seven VM composition cases. Keep whole live VM bodies verbatim; mixed native/AIR tests retain all native semantics and source-class counts while retired circuit-program checks remain in immutable archive with their subjects. Relation-summary and three retired VM cases remain archived. Reuse existing focused roots, raise floors by eleven, retain default inventory and full package gate; serialize diagnostic compilation. No production algorithm, protocol, pin, API, runtime flag or launcher change. Rollback archives restored tests and discovery together, never claims unrun semantics."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

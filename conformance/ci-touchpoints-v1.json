@@ -971,6 +971,36 @@
           "all"
         ]
       ]
+    },
+    "riscv_retained_contracts": {
+      "host": "linux",
+      "description": "Retained native projection, transcript and VM composition contract diagnostic; full frontend remains mandatory",
+      "commands": [
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-retained-transcript-contracts",
+          "test-retained-typed-components",
+          "-Doptimize=Debug",
+          "-j1",
+          "--summary",
+          "all"
+        ],
+        [
+          "python3",
+          "scripts/repo/zig_serial_build.py",
+          "--cwd",
+          "src/frontends/riscv",
+          "test-retained-transcript-contracts",
+          "test-retained-typed-components",
+          "-Doptimize=ReleaseFast",
+          "-j1",
+          "--summary",
+          "all"
+        ]
+      ]
     }
   },
   "product_scope_lanes": {
@@ -1780,6 +1810,17 @@
       ],
       "lanes": [
         "riscv_runtime_profile"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/frontends/riscv/recursion/tests/segment_leaf_local_projection_v3_test.zig",
+        "src/frontends/riscv/recursion/tests/vm_composition_program_v2_test.zig",
+        "src/frontends/riscv/retained_transcript_contract_test_root.zig",
+        "src/frontends/riscv/retained_typed_component_test_root.zig"
+      ],
+      "lanes": [
+        "riscv_retained_contracts"
       ]
     }
   ],

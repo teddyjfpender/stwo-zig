@@ -254,6 +254,8 @@ class DevTestPlanTests(unittest.TestCase):
             ("src/integrations/riscv_cpu/word16_image_program_contract_test_root.zig", "test-word16-image-program-contracts"),
             ("src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
             ("src/frontends/riscv/retained_typed_component_test_root.zig", "test-retained-typed-components"),
+            ("src/frontends/riscv/recursion/tests/segment_leaf_local_projection_v3_test.zig", "test-retained-transcript-contracts"),
+            ("src/frontends/riscv/recursion/tests/vm_composition_program_v2_test.zig", "test-retained-typed-components"),
             ("src/frontends/riscv/retained_transcript_contract_test_root.zig", "test-retained-transcript-contracts"),
             ("src/waist/core/air_components_test_root.zig", "test-air-components"),
             ("src/waist/core/tests/borrowed_proof_capture_root.zig", "test-proof-capture"),

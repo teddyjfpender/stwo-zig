@@ -13,7 +13,7 @@ const std = @import("std");
 /// `test_inventory_test.zig` fails when a file is missing from that list. This
 /// floor is the backstop for the wiring itself. Raise it deliberately as the
 /// suite grows; never lower it to make a build pass.
-const test_floor = 1092;
+const test_floor = 1103;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});

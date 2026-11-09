@@ -23,17 +23,17 @@ pub const specs = [_]Spec{
     },
     .{
         .step = "test-retained-typed-components",
-        .description = "Check retained typed adapter authority and quotient lifecycle regressions",
+        .description = "Check retained typed adapters, VM composition authority and quotient lifecycle",
         .root = "retained_typed_component_test_root.zig",
         .imports_prover_engine = true,
-        .minimum = 14,
+        .minimum = 21,
     },
     .{
         .step = "test-retained-transcript-contracts",
-        .description = "Check canonical transcript parity and reject hostile transcript programs",
+        .description = "Check native segment projection, transcript parity and hostile programs",
         .root = "retained_transcript_contract_test_root.zig",
         .imports_prover_engine = true,
-        .minimum = 4,
+        .minimum = 8,
     },
     .{
         .step = "test-retained-authority-contracts",
