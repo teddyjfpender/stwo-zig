@@ -62,6 +62,7 @@ pub fn encode(a: std.mem.Allocator, bundle: Bundle, limits: Limits) ![]u8 {
         _ = try core.crypto.poseidon2_m31_sponge.decode(f.main);
         if (f.native.len == 0 or f.native.len > limits.proof_bytes or f.local.len > limits.proof_bytes or f.claims.len > limits.claims or (f.local.len == 0) != (f.receipt == null)) return error.DetachedWireLimit;
         if (f.receipt) |receipt| _ = try core.crypto.poseidon2_m31_sponge.decode(receipt);
+        for (f.claims) |claim| for (claim.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.DetachedWireNoncanonicalClaim;
         size = try std.math.add(usize, size, 52 + @as(usize, if (f.receipt != null) 36 else 0));
         size = try std.math.add(usize, size, try std.math.mul(usize, 32, f.claims.len));
         size = try std.math.add(usize, size, try std.math.add(usize, f.native.len, f.local.len));

@@ -225,17 +225,9 @@ test {
     _ = @import("poseidon2_outer/pure_p2_op_capture_plan_test.zig");
     _ = @import("poseidon2_outer/sponge_cpu/security.zig");
     _ = @import("poseidon2_outer/sponge_cpu/security_test.zig");
-}
-
-test {
     _ = @import("delegations/op_tower/pure_p2_worker_test.zig");
-}
-
-test {
     _ = @import("poseidon2_outer/sponge_cpu/wire.zig");
     _ = @import("poseidon2_outer/native_group/plan.zig");
-}
-
-test {
     _ = @import("poseidon2_outer/sponge_cpu/root_admission.zig");
+    _ = @import("poseidon2_outer/sponge_cpu/runtime_test.zig");
 }

@@ -424,9 +424,12 @@ pub fn verifyWithCapture(a: std.mem.Allocator, key: *const Key, truth: R.Truth, 
 }
 /// Verifies one source-owned truth fragment only; no whole inventory acceptance.
 pub fn verifySealed(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, sealed: SealedScope, encoded: *const Encoded) !Manifest.Claims {
+    return verifySealedWithCapture(a, key, truth, expected, sealed, encoded, null);
+}
+pub fn verifySealedWithCapture(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, sealed: SealedScope, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
     try validateExpected(key, truth, expected);
     _ = try core.crypto.poseidon2_m31_sponge.decode(sealed.main);
-    return verifyBound(a, key, truth, expected, sealed, try Manifest.drawShared(sealed.manifest), encoded, null);
+    return verifyBound(a, key, truth, expected, sealed, try Manifest.drawShared(sealed.manifest), encoded, output_capture);
 }
 fn verifyBound(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, sealed: SealedScope, shared: Manifest.Shared, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
     var proof = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
