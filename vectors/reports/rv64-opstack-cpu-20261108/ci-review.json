@@ -1,0 +1,84 @@
+{
+  "schema": "stwo.opstack.final-ci-review.v1",
+  "scope": "CI audit and bounded fixture/manifest hygiene, not a proving speed measurement",
+  "reviewed_head": "32dcd11b8e4d0ca509c71d1d4a88ace3d6f1d994",
+  "ci_merge_tree_identical_to_head": true,
+  "passed_before_followup": [
+    "OP Python",
+    "OP Kona",
+    "Fresh production AIR export",
+    "Prover",
+    "Prover API"
+  ],
+  "outstanding": {
+    "sail": "Refused on circuit provenance drift; no differential qualification claimed.",
+    "formal_samples": "Reviewed non-vacuity and ALU jobs failed during elan download with HTTP 504, before Lean proof execution.",
+    "aggregate_cpu": "Obsolete AdapterNotReleaseGated error arm and LegacyProofGenerationRemoved expectation mismatch. Outside this CPU proving route.",
+    "static": "Circuit oracle source/artifact provenance drift; fixtures were not blindly re-pinned.",
+    "package": "Full workspace checker still reports 860 diagnostics after the narrow contract fix; no repository-wide pass claimed.",
+    "circuit_linux": "R0 FRI values digest mismatch. Isolated current/pre-window x86 macOS tests and full current x86 macOS package pass. Fresh Linux CI required after fixture digest pointer hardening."
+  },
+  "isolated_r0_checks": [
+    {
+      "case": "current",
+      "command": [
+        "zig",
+        "test",
+        "-OReleaseFast",
+        "-target",
+        "x86_64-macos",
+        "--test-filter",
+        "R0:",
+        "--dep",
+        "stwo_core",
+        "-Mroot=/private/tmp/opstack-r0-compare/r0.zig",
+        "-Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig"
+      ],
+      "returncode": 0,
+      "seconds": 5.239886665949598
+    },
+    {
+      "case": "pre-window",
+      "command": [
+        "zig",
+        "test",
+        "-OReleaseFast",
+        "-target",
+        "x86_64-macos",
+        "--test-filter",
+        "R0:",
+        "--dep",
+        "stwo_core",
+        "-Mroot=/private/tmp/opstack-r0-compare/r0.zig",
+        "-Mstwo_core=/private/tmp/opstack-r0-compare/src/core/mod.zig"
+      ],
+      "returncode": 0,
+      "seconds": 3.7983584169996902
+    }
+  ],
+  "full_current_x86_macos_package": {
+    "before_pointer_hardening_exit_code": 0,
+    "after_pointer_hardening_exit_code": 0,
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/circuit/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-Dtarget=x86_64-macos",
+      "-j2"
+    ],
+    "oracle_expected_digests_changed": false
+  },
+  "fixture_hardening": "Hash QM31 limbs from original storage; avoid known Zig 0.15.2 optimized by-value aggregate-copy issue. Not a claimed arithmetic or transcript fix.",
+  "proof_wire_contract": {
+    "focused_manifest_api_and_signature_validation": true,
+    "change": "Sort API surface and include existing ForHasher/wireToProofFor exports; no runtime, wire or schema change."
+  },
+  "links": {
+    "linux_circuit_failure": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42567412251/job/128997237307",
+    "formal_download_failure": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42567412296/job/128997279336",
+    "sail_pin_drift": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42567412272/job/128997009674"
+  }
+}

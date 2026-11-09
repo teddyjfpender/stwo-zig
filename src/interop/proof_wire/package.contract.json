@@ -13,6 +13,8 @@
   "injected_modules": [],
   "api_surface": [
     "CodecError",
+    "ForField",
+    "ForHasher",
     "FriConfigWire",
     "FriLayerWire",
     "FriProofWire",
@@ -30,7 +32,7 @@
     "encodeProofHexAlloc",
     "proofToWire",
     "wireToProof",
-    "ForField"
+    "wireToProofFor"
   ],
   "api_contract": {
     "signature_tests": [

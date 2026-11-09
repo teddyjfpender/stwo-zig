@@ -11,17 +11,17 @@ and settlement. Its dashboard describes a SNARK wrap. Our chosen settlement
 route remains a direct STARK verifier. CPU qualification comes first; GPU
 latency figures are not CPU acceptance criteria.
 
-| Gate | Evidence at the starting head `5b7d3ffbd` | Required closure |
+| Gate | Current qualification | Required closure |
 | --- | --- | --- |
-| Kona execution | Six historical OP Mainnet execution agreements; complete native execution bundles exist | Reproduce complete bundles and independent acceptance on this machine, preserving full output and corruption checks |
-| Anchored derivation | Native and RV64 accept transition 159257841 → 159257842; KZG/anchor/root mutations reject | Complete physical STARK proof of the anchored transition with independently pinned OD output |
-| Capacity and continuity | Fastest retained replay needs at least 733 CPU proofs before services; native cap is 256 | A reviewed versioned segmented construction binding PC, registers, clocks, memory, service spans and the final output; no unversioned cap increase |
-| Recursive closure | Native execution wrap reached outer FIXED commitment, then failed under a 6 GiB requested-live cap | Complete leaf/fold/root generation, bounded memory, and fresh recursive reception on real OP execution and derivation |
-| Joined statement | Receiver-side OD/OP join exists; synthetic ordered fold admission exists | An actual recursive root authenticating both matching programs, exact outputs, order and complete native closure |
-| Accumulator | No complete running OP checkpoint accumulator receipt | Adjacent checkpoint folds with rejection of gaps, overlaps, swapped branches and substituted anchors |
-| Settlement | Real native PCS pieces replay locally; one worker costs ~1.72 billion gas | Compact STARK plus complete checkpoint verifier under actual chain transaction constraints, with independently established program/input authority |
-| Security | Conjectured-128 native profile, explicitly unqualified; recursion separate | Bounded composed accounting for the actual native, segmentation, recursive and settlement construction under documented assumptions |
-| Regression hygiene | OP guest/tooling is separate; shared native engine is reused | Keep Ethereum proof formats/defaults stable unless separately versioned and qualified; exercise shared regressions for every shared-engine change |
+| Kona execution | Three complete local native execution bundles, including selected heavy block 121065789 with 91 CPU and 24 service proofs; fresh receivers and physical corruption rejection | Extend representative execution coverage without weakening expected-output binding |
+| Anchored derivation | Native and RV64 accept transition 159257841 → 159257842; KZG/anchor/root mutations reject | Complete physical STARK proof with independently pinned OD output and retained authenticated input |
+| Capacity and continuity | Fastest retained anchored replay needs at least 733 CPU proofs before services; native cap is 256 | Reviewed versioned segmentation binding PC, registers, clocks, memory, services and final output; no blind cap increase |
+| Recursive closure | Complete small grouped roots plus original B2 heavy root (126 leaves/64 folds) and selected D2 heavy root (115 leaves/58 folds); final executable accepts both and rejects physical attacks | Reduce heavy latency; extend closure to an actual anchored derivation proof |
+| Joined statement | Receiver-side OD/OP join and synthetic ordered folds exist | Actual recursive root authenticating both matching programs, exact outputs, order and complete native closure |
+| Accumulator | No complete running OP checkpoint accumulator receipt | Adjacent checkpoint folds rejecting gaps, overlaps, swapped branches and substituted anchors |
+| Settlement | Packed pinned AIR 637,484 gas; full native worker PCS remains about 1.724 billion gas | Complete authorized checkpoint verifier under actual transaction constraints |
+| Security | 128-bit security target under documented assumptions; `security_qualified=false` | Bounded composed accounting for the concrete derivation, segmentation, recursive and settlement construction; no certification claim |
+| Regression hygiene | Fixed-source geometry repair; both heavy profiles accepted by final executable; 24 settlement tests pass, three external-fixture skips | Keep formats/defaults stable; resolve outstanding broader CI failures and qualify new shared changes independently |
 
 ## Working rules
 

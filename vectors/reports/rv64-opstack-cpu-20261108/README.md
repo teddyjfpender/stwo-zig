@@ -481,3 +481,21 @@ its root bytes fall 783,396 → 764,132 without a demonstrated wall gain.
 GROUP1 stays the default and GROUP2 remains opt-in. The historical 18.840 s
 qualification is valid but **does not establish a repeatable sub-19-second
 median**. These tiny complete blocks do not predict heavy-block recursion cost.
+
+After the physical controls, the final production executable also freshly
+accepts **all 115 native members and 173 recursive nodes** of the new D2 heavy
+root with independently rebuilt committed-source authority. Every retained
+physical proof stays unchanged. The [final-source receipt](final-source-gates.json)
+contains this complete positive case alongside the older B2 root and both
+physical negatives.
+
+The [CI audit](ci-review.json) keeps broader failures visible. OP Python, Kona,
+fresh AIR export, prover and prover API lanes pass at the reviewed head.
+Reviewed formal jobs hit HTTP 504 while downloading elan; Sail refuses on
+circuit provenance drift. Aggregate adapters and workspace contracts have
+remaining mismatches. A Linux circuit R0 digest failure is not reproduced in
+isolated current/pre-window x86 macOS tests or the full current x86 macOS
+package. The fixture digest helper now loads original QM31 storage directly
+to avoid the known optimized aggregate-copy issue; no expected vector changes.
+Fresh Linux CI is still required. The proof-wire API manifest is corrected,
+but the full workspace checker remains red; no broad CI pass is claimed.
