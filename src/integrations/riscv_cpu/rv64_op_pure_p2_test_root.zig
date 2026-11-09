@@ -166,3 +166,14 @@ test {
 test {
     _ = @import("poseidon2_outer/native_omul/root_runtime.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/frame.zig");
+    _ = @import("poseidon2_outer/sponge_cpu/source.zig");
+    _ = @import("poseidon2_outer/sponge_cpu/provider.zig");
+    _ = @import("poseidon2_outer/sponge_cpu/source_inputs.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/metadata_test.zig");
+}

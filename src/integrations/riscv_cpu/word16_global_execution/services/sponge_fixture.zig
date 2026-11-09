@@ -135,9 +135,16 @@ pub const Captured = struct {
     digest_a: [32]u8,
     digest_c: [32]u8,
     pub fn init(a: std.mem.Allocator) !Captured {
+        return initProfile(a, .ethereum_services_v3);
+    }
+    /// Real OP executor/capture route for the closed detached-sponge join.
+    pub fn initForOp(a: std.mem.Allocator) !Captured {
+        return initProfile(a, .ethereum_services_op_v1);
+    }
+    fn initProfile(a: std.mem.Allocator, comptime profile: rv.execution_profile.Profile) !Captured {
         const program = try a.create(Program);
         errdefer a.destroy(program);
-        program.* = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+        program.* = try Program.initWithProfile(a, .{ .base = 4096, .words = &WORDS }, profile);
         errdefer program.deinit();
         var memory = rv.memory.Memory.init(a, .{});
         defer memory.deinit();
@@ -156,7 +163,7 @@ pub const Captured = struct {
         }
         var cpu = rv.machine.Cpu.init(4096, 0);
         cpu.regs = initialRegisters();
-        var session = try rv.ethereum_services.Session.initWithProfile(a, cpu, &memory, .{ .max_retirements = 64 }, .ethereum_services_v3);
+        var session = try rv.ethereum_services.Session.initWithProfile(a, cpu, &memory, .{ .max_retirements = 64 }, profile);
         defer session.deinit();
         const sizes = [2]u32{ SHARD0_STEPS, STEPS - SHARD0_STEPS };
         var tapes: [2]rv.compact_tape.Tape = undefined;
@@ -166,7 +173,7 @@ pub const Captured = struct {
         var digest_a: [32]u8 = undefined;
         for (sizes, &tapes, &boundaries, 0..) |steps, *tape, *boundary, shard| {
             const c = &session.keccak.base.cpu;
-            tape.* = try rv.compact_tape.Tape.init(a, steps, c.pc, c.retired, .ethereum_services_v3);
+            tape.* = try rv.compact_tape.Tape.init(a, steps, c.pc, c.retired, profile);
             made += 1;
             boundary.* = .{ .steps = steps, .initial_pc = c.pc, .final_pc = undefined, .initial_registers = c.regs, .final_registers = undefined, .register_clocks = @splat(0) };
             for (0..steps) |local| {
@@ -191,9 +198,9 @@ pub const Captured = struct {
         var digest_c: [32]u8 = undefined;
         for (0..4) |l| std.mem.writeInt(u64, digest_c[8 * l ..][0..8], try memory.load(SC + 8 * l, 8), .little);
         const loaded = session.keccak.base.cpu.regs[9];
-        var n0 = try Native.captureForCombinedServicesV3(a, program, boundaries[0], 1, CPU_LOG, &tapes[0], .{});
+        var n0 = if (profile == .ethereum_services_op_v1) try Native.captureForOpServices(a, program, boundaries[0], 1, CPU_LOG, &tapes[0], .{}) else try Native.captureForCombinedServicesV3(a, program, boundaries[0], 1, CPU_LOG, &tapes[0], .{});
         errdefer n0.deinit();
-        var n1 = try Native.captureForCombinedServicesV3(a, program, boundaries[1], 2, CPU_LOG, &tapes[1], .{});
+        var n1 = if (profile == .ethereum_services_op_v1) try Native.captureForOpServices(a, program, boundaries[1], 2, CPU_LOG, &tapes[1], .{}) else try Native.captureForCombinedServicesV3(a, program, boundaries[1], 2, CPU_LOG, &tapes[1], .{});
         errdefer n1.deinit();
         var advice = try C.collect(a, &.{ &n0, &n1 }, &.{ &tapes[0], &tapes[1] }, image());
         errdefer advice.deinit();
