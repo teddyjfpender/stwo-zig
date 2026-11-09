@@ -192,7 +192,7 @@ jobs:
           python3 - <<'PY'
           import hashlib, json, os, subprocess
           from pathlib import Path
-          from scripts.riscv.riscv_recursive_product import ADMISSION, ADMISSION_SHA256, sha256
+          from scripts.riscv.riscv_recursive_product import ADMISSION, ADMISSION_SHA256, OTHER_ADMISSION, OTHER_ADMISSION_SHA256, sha256
           if sha256(ADMISSION) != ADMISSION_SHA256:
               raise RuntimeError("independent recursive admission drifted")
           leaves = json.loads(ADMISSION.read_text())["leaves"]
@@ -200,9 +200,12 @@ jobs:
           expected = (ADMISSION.parent / leaf["expected"]["path"]).resolve(strict=True)
           if sha256(expected) != leaf["expected"]["sha256"]:
               raise RuntimeError("independent expected statement drifted")
-          other_expected = (ADMISSION.parent / leaves[1]["expected"]["path"]).resolve(strict=True)
-          if sha256(other_expected) != leaves[1]["expected"]["sha256"] or other_expected.read_bytes() == expected.read_bytes():
-              raise RuntimeError("independent negative statement drifted or duplicates the accepted statement")
+          if sha256(OTHER_ADMISSION) != OTHER_ADMISSION_SHA256:
+              raise RuntimeError("independent negative admission drifted")
+          other_leaf = json.loads(OTHER_ADMISSION.read_text())["leaves"][0]
+          other_expected = (OTHER_ADMISSION.parent / other_leaf["expected"]["path"]).resolve(strict=True)
+          if sha256(other_expected) != other_leaf["expected"]["sha256"] or other_expected.read_bytes() == expected.read_bytes() or len(json.loads(other_expected.read_text())) != len(json.loads(expected.read_text())):
+              raise RuntimeError("independent negative statement drifted, duplicates the accepted statement or has different geometry")
           archive = "51897dc265593df7580c4abf0b232909fc105e34"
           source = "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-air-fusion/leaves/child-0"
           fixture = Path(os.environ["RUNNER_TEMP"]) / "focused-ci/child-capture-fixture"
@@ -219,7 +222,7 @@ jobs:
               raise RuntimeError("archived proof transport identity drifted")
           if files["proof.bin"]["sha256"] != "8ef19db0aa78f425149522db8ae7861e96db753b71595f6da45d191b46c949ea":
               raise RuntimeError("archived proof differs from the frozen CPU fixture")
-          receipt = {"source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "archive_commit": archive, "archive_directory": source, "admission_sha256": ADMISSION_SHA256, "expected_statement_sha256": leaf["expected"]["sha256"], "other_expected_statement_sha256": leaves[1]["expected"]["sha256"], "files": files, "scope": "archived CPU proof input; fresh capture verification is still required"}
+          receipt = {"source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "archive_commit": archive, "archive_directory": source, "admission_sha256": ADMISSION_SHA256, "expected_statement_sha256": leaf["expected"]["sha256"], "other_admission_sha256": OTHER_ADMISSION_SHA256, "other_expected_statement_sha256": other_leaf["expected"]["sha256"], "files": files, "scope": "archived CPU proof input; fresh capture verification is still required"}
           (fixture.parent / "child-capture-fixture.json").write_text(json.dumps(receipt, indent=2) + "\n")
           with open(os.environ["GITHUB_ENV"], "a") as env:
               for key, value in {"STWO_SEGMENT_V2_CHILD_BUNDLE": fixture, "STWO_SEGMENT_V2_CHILD_KEY_SHA256": leaf["key"]["sha256"], "STWO_SEGMENT_V2_CHILD_EXPECTED_WIRE": expected, "STWO_SEGMENT_V2_CHILD_OTHER_EXPECTED_WIRE": other_expected}.items():
