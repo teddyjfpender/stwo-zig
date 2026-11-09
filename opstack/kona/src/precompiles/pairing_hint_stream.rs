@@ -110,6 +110,11 @@ impl Stream {
     }
 
     #[cfg(feature = "host")]
+    pub(super) fn factor_census(&self) -> [u64; 4] {
+        self.factors.census
+    }
+
+    #[cfg(feature = "host")]
     pub(super) fn finish(&mut self, mut input: Vec<u8>) -> Option<Vec<u8>> {
         let rows = self.collect.take()?;
         if input.len().checked_add(HEADER + rows.len())? > crate::witness::MAX_INPUT {

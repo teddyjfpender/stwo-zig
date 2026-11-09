@@ -83,6 +83,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             fs::write(&args[2], bytes)?;
         }
         #[cfg(feature = "pairing-hints")]
+        Some("pairing-census") => {
+            if args.len() != 4 {
+                return Err("pairing-census INPUT OUT".into());
+            }
+            let rows =
+                stwo_kona_execution::precompiles::collect_pairing_census(fs::read(&args[2])?)?;
+            let bytes = serde_json::to_vec_pretty(&rows)?;
+            use std::io::Write;
+            fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&args[3])?
+                .write_all(&bytes)?;
+        }
+        #[cfg(feature = "pairing-hints")]
         Some("pairing-hints") => {
             use std::io::Write;
             if args.len() != 4 {

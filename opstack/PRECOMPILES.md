@@ -123,3 +123,17 @@ A wider inlining trial grows text to 5.86 MB for only a small further saving.
 A narrower in-place Fp2 API passes all three blocks and native differential tests
 but saves only 0.54%, so that source is also removed. Their patches are retained
 as rejected experiments. See the [review and receipts](../vectors/reports/rv64-opstack-cpu-20261108/extension-codegen-review.json).
+
+## Measured bounded cache recency
+
+The current [full-text census and LRU qualification](../vectors/reports/rv64-opstack-performance-20261109/guest/lru-census.json)
+finds 84 unique requests on heavy block 121065789. FIFO G2 eviction rebuilt
+102 preparations for only 87 distinct points and rebuilt the constant Miller
+factor six times. Recency reduces those to 87 preparations and one factor,
+while keeping the same 16 point, 16 factor and eight result slots. Old computed
+factors no longer permanently displace candidates in a new execution phase.
+
+The guest uses 361,804,837 instructions and 619,553 Fp2 service calls, versus
+380,167,068 / 678,888 in the selected control. Three native/Unicorn execution
+checks pass and the rebuilt ELF is deterministic. This new ELF still needs its
+physical proving qualification; no AIR, tag, packet, or security profile changes.

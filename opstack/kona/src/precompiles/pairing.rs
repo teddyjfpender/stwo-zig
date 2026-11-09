@@ -28,6 +28,7 @@ struct PointEntry {
     bytes: [u8; 128],
     point: G2Affine,
     prepared: Option<Arc<PreparedG2>>,
+    last_use: u64,
 }
 struct Cache {
     results: Vec<ResultEntry>,
@@ -35,11 +36,13 @@ struct Cache {
     next_result: usize,
     #[cfg(feature = "pairing-hints")]
     hints: hints::Stream,
-    next_point: usize,
+    point_clock: u64,
     hits: usize,
     point_hits: usize,
-    #[cfg(test)]
+    #[cfg(any(test, feature = "host"))]
     prepared_builds: usize,
+    #[cfg(all(feature = "host", feature = "pairing-hints"))]
+    census: Option<Vec<CensusRow>>,
 }
 impl Cache {
     const fn new() -> Self {
@@ -49,17 +52,21 @@ impl Cache {
             next_result: 0,
             #[cfg(feature = "pairing-hints")]
             hints: hints::Stream::new(),
-            next_point: 0,
+            point_clock: 0,
             hits: 0,
             point_hits: 0,
-            #[cfg(test)]
+            #[cfg(any(test, feature = "host"))]
             prepared_builds: 0,
+            #[cfg(all(feature = "host", feature = "pairing-hints"))]
+            census: None,
         }
     }
     fn g2(&mut self, bytes: &[u8]) -> Result<usize, PrecompileHalt> {
-        for (index, entry) in self.points.iter().enumerate() {
+        self.point_clock = self.point_clock.wrapping_add(1);
+        for (index, entry) in self.points.iter_mut().enumerate() {
             if entry.bytes == bytes {
                 self.point_hits += 1;
+                entry.last_use = self.point_clock;
                 return Ok(index);
             }
         }
@@ -78,14 +85,23 @@ impl Cache {
             bytes: bytes.try_into().expect("checked pair width"),
             point,
             prepared: None,
+            last_use: self.point_clock,
         };
         let index = if self.points.len() < POINTS {
             self.points.push(entry);
             self.points.len() - 1
         } else {
-            let index = self.next_point;
+            // Recurring verification-key points must retain their prepared
+            // owner while one-shot proof points stream through the cache.
+            // Age subtraction also preserves recency across clock wrap.
+            let index = self
+                .points
+                .iter()
+                .enumerate()
+                .max_by_key(|(_, point)| self.point_clock.wrapping_sub(point.last_use))
+                .map(|(index, _)| index)
+                .expect("full point cache");
             self.points[index] = entry;
-            self.next_point = (index + 1) % POINTS;
             index
         };
         Ok(index)
@@ -94,7 +110,7 @@ impl Cache {
         let entry = &mut self.points[index];
         if entry.prepared.is_none() {
             entry.prepared = Some(Arc::new(PreparedG2::from(entry.point)));
-            #[cfg(test)]
+            #[cfg(any(test, feature = "host"))]
             {
                 self.prepared_builds += 1;
             }
@@ -185,7 +201,43 @@ fn field(bytes: &[u8]) -> Result<Fq, PrecompileHalt> {
 }
 static CACHE: spin::Mutex<Cache> = spin::Mutex::new(Cache::new());
 pub(super) fn check(pairs: &[(&[u8], &[u8])]) -> Result<bool, PrecompileHalt> {
-    CACHE.lock().check(pairs)
+    #[cfg(not(all(feature = "host", feature = "pairing-hints")))]
+    {
+        CACHE.lock().check(pairs)
+    }
+    #[cfg(all(feature = "host", feature = "pairing-hints"))]
+    {
+        let mut cache = CACHE.lock();
+        if cache.census.is_none() {
+            return cache.check(pairs);
+        }
+        let before = (
+            cache.hits,
+            cache.point_hits,
+            cache.prepared_builds,
+            cache.hints.factor_census(),
+        );
+        let result = cache.check(pairs);
+        let after = cache.hints.factor_census();
+        let row = CensusRow {
+            pairs: pairs
+                .iter()
+                .map(|(a, b)| {
+                    let mut bytes = Vec::with_capacity(a.len() + b.len());
+                    bytes.extend_from_slice(a);
+                    bytes.extend_from_slice(b);
+                    alloy_primitives::hex::encode(bytes)
+                })
+                .collect(),
+            result: result.as_ref().ok().copied(),
+            result_cache_hits: cache.hits - before.0,
+            point_cache_hits: cache.point_hits - before.1,
+            prepared_builds: cache.prepared_builds - before.2,
+            factors: core::array::from_fn(|i| after[i] - before.3[i]),
+        };
+        cache.census.as_mut().unwrap().push(row);
+        result
+    }
 }
 
 #[cfg(test)]
@@ -205,4 +257,25 @@ pub(super) fn start_hint_collection() {
 #[cfg(all(feature = "pairing-hints", feature = "host"))]
 pub(super) fn finish_hint_collection(input: Vec<u8>) -> Option<Vec<u8>> {
     CACHE.lock().hints.finish(input)
+}
+
+/// Host-only observations. Guest execution and cache decisions do not read this.
+#[cfg(all(feature = "host", feature = "pairing-hints"))]
+#[derive(serde::Serialize)]
+pub struct CensusRow {
+    pub pairs: Vec<alloc::string::String>,
+    pub result: Option<bool>,
+    pub result_cache_hits: usize,
+    pub point_cache_hits: usize,
+    pub prepared_builds: usize,
+    /// Existing hits, built factors, inserted candidates, evicted candidates.
+    pub factors: [u64; 4],
+}
+#[cfg(all(feature = "host", feature = "pairing-hints"))]
+pub(super) fn start_census() {
+    CACHE.lock().census = Some(Vec::new());
+}
+#[cfg(all(feature = "host", feature = "pairing-hints"))]
+pub(super) fn finish_census() -> Vec<CensusRow> {
+    CACHE.lock().census.take().unwrap_or_default()
 }

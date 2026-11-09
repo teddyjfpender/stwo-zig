@@ -118,7 +118,7 @@ fn borrowed_miller_checks_multi_chunk_cancellation_and_pins_evicted_lines() {
         assert_eq!(cache.check(&[(&p, q)]), Ok(false));
     }
     let mut pairs = alloc::vec![(&p[..], &points[0][..])];
-    // New points evict the first slot, while its coefficient owner must live.
+    // New points replace older slots while borrowed coefficient owners stay live.
     for q in &points[16..22] {
         pairs.push((&p, q));
     }
@@ -177,4 +177,34 @@ fn residue_witness_checks_true_pairing_and_rejects_replay_for_false_pairing() {
     let mut malformed = hint.encode();
     malformed[..32].fill(255);
     assert!(residue::Hint::decode(&malformed).is_none());
+}
+
+#[test]
+fn frequent_g2_owners_survive_one_shot_points_and_clock_wrap() {
+    let mut cache = Cache::new();
+    cache.point_clock = u64::MAX - 20;
+    let fixed: Vec<_> = (1..=3u64)
+        .map(|i| g2((G2Projective::generator() * Fr::from(i)).into_affine()))
+        .collect();
+    let owners: Vec<_> = fixed
+        .iter()
+        .map(|bytes| {
+            let index = cache.g2(bytes).unwrap();
+            cache.prepared(index)
+        })
+        .collect();
+    for i in 4..40u64 {
+        let transient = g2((G2Projective::generator() * Fr::from(i)).into_affine());
+        cache.g2(&transient).unwrap();
+        for (bytes, owner) in fixed.iter().zip(&owners) {
+            let index = cache.g2(bytes).unwrap();
+            assert!(
+                Arc::ptr_eq(owner, &cache.prepared(index)),
+                "a frequently used prepared point was discarded"
+            );
+        }
+    }
+    assert_eq!(cache.prepared_builds, 3);
+    assert_eq!(cache.points.len(), POINTS);
+    assert!(cache.point_clock < 200, "test must cross counter wrap");
 }

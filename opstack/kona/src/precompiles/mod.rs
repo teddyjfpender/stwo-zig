@@ -75,3 +75,15 @@ pub fn collect_hints(input: Vec<u8>) -> Result<Vec<u8>, alloc::string::String> {
     execute(&witness)?;
     pairing::finish_hint_collection(input).ok_or_else(|| "pairing hint size limit".into())
 }
+
+/// Replay real requests under the same bounded cache and expose exact public
+/// input keys to host-side reuse analysis. This code is absent from RV64 guests.
+#[cfg(all(feature = "pairing-hints", feature = "host"))]
+pub fn collect_pairing_census(
+    input: Vec<u8>,
+) -> Result<Vec<pairing::CensusRow>, alloc::string::String> {
+    pairing::start_census();
+    let result = collect_hints(input);
+    let rows = pairing::finish_census();
+    result.map(|_| rows)
+}

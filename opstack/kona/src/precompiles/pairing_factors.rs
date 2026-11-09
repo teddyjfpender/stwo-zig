@@ -48,11 +48,51 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn stale_computed_factors_do_not_starve_a_new_repeated_pair() {
+        let p = G1Affine::generator();
+        let q = Arc::new(PreparedG2::from(G2Affine::generator()));
+        let mut cache = Factors::new();
+        let old: Vec<_> = (1..=16u64)
+            .map(|i| ((p * Fr::from(i)).into_affine(), None, Arc::clone(&q)))
+            .collect();
+        for _ in 0..3 {
+            for pair in old.chunks(2) {
+                cache.collect(pair);
+            }
+        }
+        assert_eq!(
+            cache.entries.iter().filter(|e| e.factor.is_some()).count(),
+            ENTRIES
+        );
+        let fixed = (p * Fr::from(101)).into_affine();
+        for i in 0..8u64 {
+            let groups = [
+                (fixed, None, Arc::clone(&q)),
+                ((p * Fr::from(1000 + i)).into_affine(), None, Arc::clone(&q)),
+            ];
+            let (mask, _) = cache.collect(&groups);
+            assert_eq!(mask & 1 != 0, i >= 2, "new hot pair never matures");
+        }
+        assert!(
+            cache
+                .entries
+                .iter()
+                .find(|e| e.point == fixed)
+                .unwrap()
+                .factor
+                .is_some()
+        );
+        assert!(cache.entries.len() <= ENTRIES);
+    }
 }
 
 pub(super) struct Factors {
     entries: Vec<Entry>,
     clock: u64,
+    #[cfg(feature = "host")]
+    pub(super) census: [u64; 4],
 }
 
 impl Factors {
@@ -60,6 +100,8 @@ impl Factors {
         Self {
             entries: Vec::new(),
             clock: 0,
+            #[cfg(feature = "host")]
+            census: [0; 4],
         }
     }
 
@@ -69,7 +111,7 @@ impl Factors {
         if groups.len() < 2 {
             return (mask, product);
         }
-        self.clock += 1;
+        self.clock = self.clock.wrapping_add(1);
         for (ordinal, group) in groups.iter().enumerate() {
             let (point, _, lines) = group;
             if point.is_zero() {
@@ -81,12 +123,20 @@ impl Factors {
                 .find(|entry| entry.point == *point && Arc::ptr_eq(&entry.lines, lines))
             {
                 entry.last_use = self.clock;
+                #[cfg(feature = "host")]
+                {
+                    self.census[0] += 1;
+                }
                 if !entry.repeated {
                     entry.repeated = true;
                     continue;
                 }
                 // Wait until the third sighting. Computing one independent
                 // factor incurs a separate loop of squarings once.
+                #[cfg(feature = "host")]
+                if entry.factor.is_none() {
+                    self.census[1] += 1;
+                }
                 let factor = *entry
                     .factor
                     .get_or_insert_with(|| miller::run(core::slice::from_ref(group), None));
@@ -98,6 +148,10 @@ impl Factors {
                 mask |= 1 << ordinal;
                 continue;
             }
+            #[cfg(feature = "host")]
+            {
+                self.census[2] += 1;
+            }
             let entry = Entry {
                 point: *point,
                 lines: Arc::clone(lines),
@@ -108,10 +162,14 @@ impl Factors {
             if self.entries.len() < ENTRIES {
                 self.entries.push(entry);
             } else {
+                #[cfg(feature = "host")]
+                {
+                    self.census[3] += 1;
+                }
                 let oldest = self
                     .entries
                     .iter_mut()
-                    .min_by_key(|entry| (entry.factor.is_some(), entry.last_use))
+                    .max_by_key(|entry| self.clock.wrapping_sub(entry.last_use))
                     .expect("full factor cache");
                 *oldest = entry;
             }
