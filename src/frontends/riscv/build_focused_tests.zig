@@ -38,7 +38,7 @@ pub const specs = [_]Spec{
         .description = "Check retained guest relation and segment range authority regressions",
         .root = "retained_authority_contract_test_root.zig",
         .imports_prover_engine = true,
-        .minimum = 31,
+        .minimum = 260,
     },
     .{
         .step = "test-inventory",
