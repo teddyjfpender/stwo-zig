@@ -2,13 +2,12 @@
 #![no_std]
 #![no_main]
 extern crate alloc;
-#[cfg(all(
-    feature = "pairing-packet-probe",
-    any(feature = "blob-eval-probe", feature = "transition-program")
+#[cfg(any(
+    all(feature = "pairing-packet-probe", any(feature = "blob-eval-probe", feature = "transition-program", feature = "brotli-probe")),
+    all(feature = "brotli-probe", any(feature = "transition-program", feature = "blob-eval-probe")),
+    all(feature = "blob-eval-probe", feature = "transition-program")
 ))]
-compile_error!("pairing packet diagnostic cannot be combined with another guest mode");
-#[cfg(all(feature = "blob-eval-probe", feature = "transition-program"))]
-compile_error!("blob evaluation diagnostic and transition are distinct programs");
+compile_error!("diagnostic and transition guest modes are mutually exclusive");
 #[rustfmt::skip]
 #[path = "../../../../autoresearch/benchmarks/guest_runtime/exact_layout_allocator_v2.rs"]
 mod allocator;
@@ -31,7 +30,8 @@ use core::{
 #[cfg(not(any(
     feature = "transition-program",
     feature = "blob-eval-probe",
-    feature = "pairing-packet-probe"
+    feature = "pairing-packet-probe",
+    feature = "brotli-probe"
 )))]
 use stwo_kona_execution::{
     execution::execute,
@@ -86,7 +86,8 @@ extern "C" fn guest_main() -> ! {
     #[cfg(not(any(
         feature = "transition-program",
         feature = "blob-eval-probe",
-        feature = "pairing-packet-probe"
+        feature = "pairing-packet-probe",
+        feature = "brotli-probe"
     )))]
     let mode = if cfg!(feature = "eager-preimages") {
         Validation::Eager
@@ -101,7 +102,8 @@ extern "C" fn guest_main() -> ! {
     #[cfg(not(any(
         feature = "transition-program",
         feature = "blob-eval-probe",
-        feature = "pairing-packet-probe"
+        feature = "pairing-packet-probe",
+        feature = "brotli-probe"
     )))]
     let output = execute(&Witness::parse(input, mode).expect("invalid OP witness"))
         .expect("OP execution rejected")
@@ -111,6 +113,9 @@ extern "C" fn guest_main() -> ! {
         assert_eq!(input, b"PKT1");
         stwo_kona_execution::precompiles::pairing_packet_probe()
     };
+    #[cfg(feature = "brotli-probe")]
+    let output =
+        stwo_kona_execution::brotli_probe::execute(input).expect("Brotli diagnostic rejected");
     #[cfg(feature = "blob-eval-probe")]
     let output = stwo_kona_execution::anchored_blobs::evaluation_probe(input)
         .expect("blob evaluation diagnostic rejected");

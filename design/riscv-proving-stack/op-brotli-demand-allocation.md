@@ -26,3 +26,20 @@ collector is native-only, bounded to 32 calls and 64 MiB of copied actual data.
 Receipt: `vectors/reports/rv64-opstack-performance-20261109/brotli-lazy-native-v1.json`.
 Selected/default guest/profile remain unchanged. Isolated RV64/Unicorn probes are
 the next qualification gate. No complete transition replay or STARK was run.
+
+## Bounded RV64 qualification
+
+`brotli-probe` and `brotli-lazy` build variants execute the same BRP1-framed
+isolated decoder. Their 43-byte BP diagnostic hashes the decoded output and binds
+accept/reject plus length. BP cannot be admitted as an OP execution result.
+`opstack/tools/brotli_probe_bench.py` enforces a maximum four-million-step cap.
+
+The eager golden control did not finish within 4,000,000 instructions. The lazy
+candidate completed the identical 10-byte plaintext in 48,493 instructions;
+five-byte output truncation took 48,507; a malformed input took 46,982. Independent
+Unicorn agreed on every completed output, all registers, PC and exact steps.
+The setup-heavy golden probe therefore saves over 82× instructions relative to
+the bounded control. This is **not** a whole-transition or proving multiplier.
+The completed native real-transition channel checks remain the semantic control;
+a full RV64 transition was intentionally not executed. Receipt:
+`brotli-lazy-rv64-v1.json` in the same report directory.

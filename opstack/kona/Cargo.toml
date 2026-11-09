@@ -13,6 +13,7 @@ resolver = "2"
 default = []
 host = ["dep:kona-registry"]
 host-brotli-census = ["host", "transition-program", "kona-protocol/stwo-brotli-census"]
+brotli-probe = ["derivation"]
 lazy-brotli = ["derivation", "kona-protocol/stwo-lazy-brotli-alloc"]
 canonical-fr = ["blob-derivation", "ark-bls12-381/stwo-canonical-fr-service"]
 host-phase-census = ["host", "transition-program", "ark-ff/stwo-operation-census"]

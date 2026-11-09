@@ -21,6 +21,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("run-transition-phase-census") if args.len() == 4 => {
             transition::run_phase_census(&args[2], &args[3])?;
         }
+        #[cfg(feature = "brotli-probe")]
+        Some("brotli-probe") if args.len() == 3 => {
+            let output=stwo_kona_execution::brotli_probe::execute(&fs::read(&args[2])?).ok_or("invalid Brotli probe")?;
+            println!("{}",alloy_primitives::hex::encode(output));
+        }
         #[cfg(feature = "blob-eval-probe")]
         Some("blob-eval-probe") if args.len() == 3 => {
             let output =

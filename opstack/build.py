@@ -18,6 +18,8 @@ from scripts.riscv64_csp_compare import elf_info
 TOOLCHAIN = "nightly-2026-08-08"
 VARIANTS = {
     "software": None,
+    "brotli-probe": "brotli-probe",
+    "brotli-lazy": "brotli-probe,lazy-brotli",
     "keccak": "keccak-service",
     "services": "services-v3",
     "sponge": "sponge-service",
@@ -211,6 +213,8 @@ def main():
                     "--features",
                     "host,pairing-hints"
                     if args.variant.startswith("canonical-glv-hinted")
+                    else "host,brotli-probe"
+                    if args.variant.startswith("brotli-")
                     else "host,blob-eval-probe"
                     if args.variant.startswith("blob-eval")
                     else "host,transition-program"

@@ -42,3 +42,6 @@ mod brotli_allocator_qualification;
 
 #[cfg(all(test, feature="derivation"))]
 mod brotli_qualification;
+
+#[cfg(feature="brotli-probe")]
+pub mod brotli_probe;
