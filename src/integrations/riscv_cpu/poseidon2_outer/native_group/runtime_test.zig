@@ -12,6 +12,8 @@ test "native grouped actual small complete execution root and independent receiv
     const verify_only = std.mem.eql(u8, mode, "verify") or attacks;
     if (!physical and !verify_only and !std.mem.eql(u8, mode, "source")) return error.InvalidOpGroupGateMode;
     const maximum = try std.fmt.parseInt(u32, std.posix.getenv("STWO_OP_GROUP_MAX") orelse "4", 10);
+    const terminal = std.posix.getenv("STWO_OP_GROUP_TERMINAL") orelse "b4";
+    const options = Runtime.Options{ .terminal_outer_profile = if (std.mem.eql(u8, terminal, "b2")) .op_control_b2_q144_p0_fold4_v1 else if (std.mem.eql(u8, terminal, "b4")) null else return error.InvalidOpGroupTerminalGate };
     const a = std.testing.allocator;
     const raw = try std.fs.cwd().readFileAlloc(a, path, 16384);
     defer a.free(raw);
@@ -27,14 +29,32 @@ test "native grouped actual small complete execution root and independent receiv
     defer bind.deinit();
     var timer = try std.time.Timer.start();
     const profile = @import("../op_profile.zig").Profile.op_target_b4_q72_p0_fold4_v1;
-    if (!verify_only) try Runtime.produce(budget.allocator(), parsed.value, native, out, profile, .{}, maximum, physical);
+    if (!verify_only) try Runtime.produceWithOptions(budget.allocator(), parsed.value, native, out, profile, .{}, maximum, physical, options);
     const producer_ns = timer.lap();
     if (attacks) {
-        const controls = try Runtime.qualify(budget.allocator(), parsed.value, native, out, profile, .{}, maximum);
+        const controls = try Runtime.qualifyWithOptions(budget.allocator(), parsed.value, native, out, profile, .{}, maximum, options);
         std.debug.print("OP_NATIVE_GROUP_PHYSICAL_ATTACKS controls={} restored_positive=true\n", .{controls});
-    } else if (physical or verify_only) try Runtime.verify(budget.allocator(), parsed.value, native, out, profile, .{}, maximum);
+    } else if (physical or verify_only) try Runtime.verifyWithOptions(budget.allocator(), parsed.value, native, out, profile, .{}, maximum, options);
     const receiver_ns = timer.lap();
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
     std.debug.print("OP_NATIVE_GROUP_ACTUAL complete_physical={} source_only={} producer_ns={} fresh_receiver_ns={} peak={} cap={} final_live=0\n", .{ physical or verify_only, !physical and !verify_only, producer_ns, receiver_ns, budget.snapshot().peak_live_bytes, @as(usize, 32) << 30 });
+}
+
+test "native grouped terminal policy changes only final canonical node" {
+    const P = @import("../op_profile.zig").Profile;
+    const T = @import("topology.zig");
+    const Plan = @import("plan.zig").Plan;
+    const native = P.op_target_b4_q72_p0_fold4_v1;
+    const terminal = P.op_control_b2_q144_p0_fold4_v1;
+    try std.testing.expectEqual(native, try (Runtime.Options{}).resolve(native));
+    try std.testing.expectEqual(terminal, try (Runtime.Options{ .terminal_outer_profile = terminal }).resolve(native));
+    try std.testing.expectError(error.NativeGroupTerminalProfile, (Runtime.Options{ .terminal_outer_profile = .reference_b2_q24_p0 }).resolve(native));
+    try std.testing.expectError(error.NativeGroupTerminalProfile, (Runtime.Options{ .terminal_outer_profile = native }).resolve(terminal));
+    for (1..257) |n| for ([_]u32{ 1, 2, 4 }) |maximum| {
+        const topology = T.Topology{ .allocator = std.testing.allocator, .plan = try Plan.init(@intCast(n), maximum), .profile = native, .terminal_outer_profile = terminal, .execution = @splat(0), .manifest = @splat(0) };
+        for (topology.plan.ordered(), 0..) |_, i| try std.testing.expectEqual(if (i == topology.plan.root) terminal else native, topology.outerProfile(i));
+    };
+    // Same nominal FRI query/blowup product; not a whole-protocol certificate.
+    try std.testing.expectEqual(native.config().fri_config.n_queries * native.config().fri_config.log_blowup_factor, terminal.config().fri_config.n_queries * terminal.config().fri_config.log_blowup_factor);
 }

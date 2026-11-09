@@ -28,7 +28,22 @@ pub const Metadata = struct {
     profile: Profile,
     maximum_group: u32,
     statement: A.Metadata,
+    terminal_outer_profile: ?Profile = null,
 };
+pub const Options = struct {
+    terminal_outer_profile: ?Profile = null,
+    pub fn resolve(self: Options, native: Profile) !Profile {
+        const terminal = self.terminal_outer_profile orelse native;
+        try Topology.requireTerminalProfile(native, terminal);
+        return terminal;
+    }
+};
+fn metadataJson(a: std.mem.Allocator, value: Metadata) ![]u8 {
+    // Preserve every byte of the default B4 metadata, including existing null
+    // receipts. Only the explicit terminal policy adds a new wire field.
+    if (value.terminal_outer_profile == null) return std.json.Stringify.valueAlloc(a, .{ .schema = value.schema, .format = value.format, .profile = value.profile, .maximum_group = value.maximum_group, .statement = value.statement }, .{ .whitespace = .indent_2 });
+    return std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
+}
 fn authority(source: Runtime.SourceDirectory) A.Authority {
     return .{ .inventory = source.inventory, .cpus = source.authority.cpu, .detached = source.authority.detached, .catalog = source.authority.catalogs, .towers = source.authority.catalog.miller, .image = source.image };
 }
@@ -47,6 +62,7 @@ const Collector = struct {
     directory: std.fs.Dir,
     maximum: u32,
     profile: Profile,
+    terminal_outer_profile: Profile,
     plan: ?Planner.Plan = null,
     group_node: usize = 0,
     seen: u32 = 0,
@@ -137,7 +153,7 @@ const Collector = struct {
             const model = try Cost.derive(&source_owner);
             std.debug.print("OP_NATIVE_GROUP_SOURCE span={any} model={any}\n", .{ plan.nodes[self.group_node].span, model });
             // Derive the immutable key from the independent trace, exactly once.
-            group.* = .{ .key = try Key.init(self.a, &source_owner, self.profile), .span = plan.nodes[self.group_node].span, .profile = self.profile, .manifest = self.manifest.?, .bindings = self.source.?.bindings };
+            group.* = .{ .key = try Key.init(self.a, &source_owner, if (self.group_node == plan.root) self.terminal_outer_profile else self.profile), .span = plan.nodes[self.group_node].span, .profile = self.profile, .manifest = self.manifest.?, .bindings = self.source.?.bindings };
             self.groups.appendAssumeCapacity(group);
             transferred = true;
             if (self.numeric) |*numeric| {
@@ -158,10 +174,10 @@ const Collector = struct {
     fn complete(raw: ?*anyopaque, _: std.mem.Allocator, source: Runtime.SourceDirectory, closed: *const Receiver.Closed) !void {
         const self: *Collector = @ptrCast(@alignCast(raw.?));
         if (self.completed or self.seen != source.inventory.workers.len or self.source != null or self.numeric != null or self.manifest == null or !std.mem.eql(u8, &closed.pending.digest, &self.manifest.?)) return error.NativeGroupSourceCoverage;
-        const metadata = Metadata{ .profile = self.profile, .maximum_group = self.maximum, .statement = .{ .execution = source.inventory.execution, .manifest = self.manifest.?, .leaves = self.leaves.items } };
+        const metadata = Metadata{ .terminal_outer_profile = if (self.terminal_outer_profile == self.profile) null else self.terminal_outer_profile, .profile = self.profile, .maximum_group = self.maximum, .statement = .{ .execution = source.inventory.execution, .manifest = self.manifest.?, .leaves = self.leaves.items } };
         var prepared = try A.prepare(self.a, authority(source), metadata.statement);
         defer prepared.deinit();
-        const json = try std.json.Stringify.valueAlloc(self.a, metadata, .{ .whitespace = .indent_2 });
+        const json = try metadataJson(self.a, metadata);
         defer self.a.free(json);
         const templates = try Templates.encode(self.a, self.templates.items);
         defer self.a.free(templates);
@@ -171,7 +187,7 @@ const Collector = struct {
             self.completed = true;
             return;
         }
-        self.topology = try Topology.Topology.begin(self.a, source.inventory, &prepared, self.maximum, self.groups.items);
+        self.topology = try Topology.Topology.beginWithOuterProfile(self.a, source.inventory, &prepared, self.maximum, self.groups.items, self.terminal_outer_profile);
         for (self.plan.?.ordered(), 0..) |node, index| if (node.operation == .fold) {
             const edge = node.operation.fold;
             const left = if (self.nodes[edge.left]) |*value| value else return error.NativeGroupSourceCoverage;
@@ -195,10 +211,14 @@ const Collector = struct {
     }
 };
 pub fn produce(a: std.mem.Allocator, config: Config, native_path: []const u8, out: []const u8, profile: Profile, resources: Runtime.Resources, maximum_group: u32, physical: bool) !void {
+    return produceWithOptions(a, config, native_path, out, profile, resources, maximum_group, physical, .{});
+}
+pub fn produceWithOptions(a: std.mem.Allocator, config: Config, native_path: []const u8, out: []const u8, profile: Profile, resources: Runtime.Resources, maximum_group: u32, physical: bool, options: Options) !void {
+    const terminal_outer_profile = try options.resolve(profile);
     _ = try Planner.Plan.init(1, maximum_group);
     if (!E.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     try std.fs.cwd().makeDir(out);
-    var state = Collector{ .a = a, .directory = try std.fs.cwd().openDir(out, .{}), .maximum = maximum_group, .profile = profile, .prove_groups = physical };
+    var state = Collector{ .terminal_outer_profile = terminal_outer_profile, .a = a, .directory = try std.fs.cwd().openDir(out, .{}), .maximum = maximum_group, .profile = profile, .prove_groups = physical };
     defer state.deinit();
     try Runtime.verifyDirectoryWithHooks(a, config, native_path, profile, resources, .{ .context = &state, .complete = Collector.complete, .fragments = .{ .context = &state, .fragment = Collector.fragment } });
     if (!state.completed) return error.NativeGroupSourceCoverage;
@@ -208,6 +228,7 @@ const SourceCollector = struct {
     plan: Planner.Plan,
     profile: Profile,
     manifest: [36]u8,
+    terminal_outer_profile: Profile,
     next_node: usize = 0,
     seen: u32 = 0,
     stream: ?S.Stream = null,
@@ -236,7 +257,7 @@ const SourceCollector = struct {
             const group = try self.a.create(Topology.Group);
             var transferred = false;
             errdefer if (!transferred) self.a.destroy(group);
-            group.* = try Topology.Group.init(self.a, &self.stream.?);
+            group.* = try Topology.Group.initWithOuterProfile(self.a, &self.stream.?, if (self.next_node == self.plan.root) self.terminal_outer_profile else self.profile);
             group.retireProverData();
             self.groups.appendAssumeCapacity(group);
             transferred = true;
@@ -250,6 +271,7 @@ const Reception = struct {
     path: []const u8,
     maximum: u32,
     profile: Profile,
+    terminal_outer_profile: Profile,
     passed: bool = false,
     adversarial: bool = false,
     controls: u32 = 0,
@@ -262,7 +284,7 @@ const Reception = struct {
         const parsed = try std.json.parseFromSlice(Metadata, a, json, .{});
         defer parsed.deinit();
         const metadata = parsed.value;
-        if (metadata.schema != 1 or !std.mem.eql(u8, metadata.format, "op-direct-native-group-root/v1") or metadata.profile != self.profile or metadata.maximum_group != self.maximum) return error.NativeGroupReceiverPolicy;
+        if (metadata.schema != 1 or !std.mem.eql(u8, metadata.format, "op-direct-native-group-root/v1") or metadata.profile != self.profile or metadata.maximum_group != self.maximum or (metadata.terminal_outer_profile orelse metadata.profile) != self.terminal_outer_profile) return error.NativeGroupReceiverPolicy;
         var timer = try std.time.Timer.start();
         var prepared = try A.prepare(a, authority(source), metadata.statement);
         defer prepared.deinit();
@@ -270,11 +292,11 @@ const Reception = struct {
         defer a.free(shape_bytes);
         var templates = try Walk.decodeTemplates(a, authority(source), shape_bytes);
         defer templates.deinit(a);
-        var collector = SourceCollector{ .a = a, .plan = try Planner.Plan.init(@intCast(source.inventory.workers.len), self.maximum), .profile = self.profile, .manifest = prepared.manifest };
+        var collector = SourceCollector{ .terminal_outer_profile = self.terminal_outer_profile, .a = a, .plan = try Planner.Plan.init(@intCast(source.inventory.workers.len), self.maximum), .profile = self.profile, .manifest = prepared.manifest };
         defer collector.deinit();
         try Walk.visit(a, authority(source), &prepared, metadata.statement, &templates, .{ .context = &collector, .visit = SourceCollector.append });
         if (collector.seen != source.inventory.workers.len or collector.stream != null) return error.NativeGroupSourceCoverage;
-        var topology = try Topology.Topology.init(a, source.inventory, &prepared, self.maximum, collector.groups.items);
+        var topology = try Topology.Topology.initWithOuterProfile(a, source.inventory, &prepared, self.maximum, collector.groups.items, self.terminal_outer_profile);
         defer topology.deinit();
         const source_ns = timer.lap();
         const bytes = try dir.readFileAlloc(a, "root.bin", 2 << 20);
@@ -283,20 +305,31 @@ const Reception = struct {
         const physical_ns = timer.lap();
         if (self.adversarial) self.controls = try @import("root_attacks.zig").run(a, &topology, authority(source), &prepared, metadata.statement, bytes);
         self.passed = true;
+        var public_root: [36]u8 = undefined;
+        for (try prepared.expectedRoot(), 0..) |word, i| std.mem.writeInt(u32, public_root[4 * i ..][0..4], word.toM31Array()[0].v, .little);
+        std.debug.print("OP_NATIVE_GROUP_TERMINAL native={s} outer={s} source_identity={s} canonical_root={s}\n", .{ @tagName(self.profile), @tagName(self.terminal_outer_profile), std.fmt.bytesToHex(topology.rootKey().base.identity, .lower), std.fmt.bytesToHex(public_root, .lower) });
         std.debug.print("OP_NATIVE_GROUP_RECEIVER accepted=true execution_only=true leaves={} groups={} folds={} bytes={} source_group_and_fold_key_ns={} physical_root_read_verify_ns={} native_proof_bytes_read=0 production_admission=false\n", .{ collector.seen, collector.groups.items.len, topology.owned.items.len, bytes.len, source_ns, physical_ns });
     }
 };
 pub fn verify(a: std.mem.Allocator, config: Config, native_source: []const u8, root_path: []const u8, profile: Profile, resources: Runtime.Resources, maximum_group: u32) !void {
+    return verifyWithOptions(a, config, native_source, root_path, profile, resources, maximum_group, .{});
+}
+pub fn verifyWithOptions(a: std.mem.Allocator, config: Config, native_source: []const u8, root_path: []const u8, profile: Profile, resources: Runtime.Resources, maximum_group: u32, options: Options) !void {
+    const terminal_outer_profile = try options.resolve(profile);
     _ = try Planner.Plan.init(1, maximum_group);
-    var reception = Reception{ .path = root_path, .maximum = maximum_group, .profile = profile };
+    var reception = Reception{ .terminal_outer_profile = terminal_outer_profile, .path = root_path, .maximum = maximum_group, .profile = profile };
     try Runtime.withSourceDirectory(a, config, native_source, profile, resources, &reception, Reception.run);
     if (!reception.passed) return error.NativeGroupSourceCoverage;
 }
 
 /// Explicit qualification path; normal verify performs exactly one root check.
 pub fn qualify(a: std.mem.Allocator, config: Config, native_source: []const u8, root_path: []const u8, profile: Profile, resources: Runtime.Resources, maximum_group: u32) !u32 {
+    return qualifyWithOptions(a, config, native_source, root_path, profile, resources, maximum_group, .{});
+}
+pub fn qualifyWithOptions(a: std.mem.Allocator, config: Config, native_source: []const u8, root_path: []const u8, profile: Profile, resources: Runtime.Resources, maximum_group: u32, options: Options) !u32 {
+    const terminal_outer_profile = try options.resolve(profile);
     _ = try Planner.Plan.init(1, maximum_group);
-    var reception = Reception{ .path = root_path, .maximum = maximum_group, .profile = profile, .adversarial = true };
+    var reception = Reception{ .terminal_outer_profile = terminal_outer_profile, .path = root_path, .maximum = maximum_group, .profile = profile, .adversarial = true };
     try Runtime.withSourceDirectory(a, config, native_source, profile, resources, &reception, Reception.run);
     if (!reception.passed or reception.controls < 6) return error.NativeGroupSourceCoverage;
     return reception.controls;

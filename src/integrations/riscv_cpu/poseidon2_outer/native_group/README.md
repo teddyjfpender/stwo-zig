@@ -106,3 +106,48 @@ and terminal policy, then constructs its own group/fold keys. Root publication
 requires the complete native callback and all closure plus physical acceptance.
 Actual multi-group fold runtime qualification remains open; all768 numeric
 planner cases already match the independent original tree implementation.
+
+## Independently selected terminal PCS (experimental)
+
+The native member profile stays `op_target_b4_q72_p0_fold4_v1`. An explicit
+receiver policy can prove only the final group or final fold with the existing
+`op_control_b2_q144_p0_fold4_v1` profile. All intermediate groups and folds retain
+b4/q72. The native verifiers, full public frames, canonical ordered tree, global
+RAM/KIO/Wire closure and pinned terminal output stay unchanged.
+
+Use `--terminal-outer=b2-q144` on **both** producer and receiver; the optional
+resources file can appear before or after the flag. `--terminal-outer=b4-q72`
+is explicit default behavior. Old command arguments, B4 proof format/identity
+and B4 metadata field order remain supported. A proof cannot choose this policy:
+the receiver rejects metadata that differs from its selected terminal profile,
+then derives the expected source key under that exact profile.
+
+The b2 profile halves the commitment extension factor while doubling queries;
+there is no recursive parent paying for the larger terminal opening proof.
+Both profiles have nominal query-times-log-blowup product144 under the existing
+FRI assumptions. This is **not** a composed security certificate. Native local
+GKR/lookup bounds are unchanged; the outer source AIR, OM31 lookup mass and
+characteristic bounds remain enforced. Hash-query unions, Fiat-Shamir, FRI and
+recursive composition retain their documented assumptions. The label remains
+“128-bit security target under documented assumptions”, `security_qualified=false`
+and production admission closed. Reduced LDE work is a cost hypothesis until a
+matched workload is measured; cold source setup and opening costs must be counted.
+
+The matched selected four-member block gate now passes with this terminal policy:
+1,341,688-byte proof,46.589s prove/persist/verify versus the retained B4
+93.373s, and62.63s total producer including fresh native verification and cold
+source setup. The original native proof production is additional. Requested
+peak is13.313GB under32GiB, with zero final live ownership. A separate
+native-bin-absent receiver reconstructs its key in11.413s and verifies in53.2ms;
+eight retained physical attacks reject. The B4 default control still verifies
+under its original identity, and both profiles authenticate the same canonical
+public root. Both policy cross-selections reject; stripping the B2 metadata
+policy to pretend B4 still rejects at physical key authority.
+
+These are correctness qualifications during concurrent engineering, not a quiet
+speed comparison or a heavy-block result. The first B2 attempt failed before
+publishing any root because compact same-domain columns lacked host values;
+the narrow OM31 shadow fix now has compact/full-storage byte parity and
+allocation-failure coverage. The failure is retained in the receipt rather than
+counted as a benchmark. See
+`vectors/reports/rv64-opstack-cpu-20261109/grouped-terminal-b2-actual-small-v1.json`.

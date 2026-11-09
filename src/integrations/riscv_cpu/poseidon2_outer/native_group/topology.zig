@@ -19,10 +19,14 @@ pub const Group = struct {
     manifest: [36]u8,
     bindings: [4]Stream.Binding,
     pub fn init(a: std.mem.Allocator, source: *Stream.Stream) !Group {
+        return initWithOuterProfile(a, source, source.profile);
+    }
+    pub fn initWithOuterProfile(a: std.mem.Allocator, source: *Stream.Stream, outer_profile: Profile) !Group {
+        try requireTerminalProfile(source.profile, outer_profile);
         if (!source.trace_only) return error.NativeGroupSourceTraceRequired;
         var trace = try source.finish();
         defer trace.deinit();
-        return .{ .key = try Key.init(a, &trace, source.profile), .span = .{ .first = source.first, .count = source.count }, .profile = source.profile, .manifest = source.manifest, .bindings = source.bindings };
+        return .{ .key = try Key.init(a, &trace, outer_profile), .span = .{ .first = source.first, .count = source.count }, .profile = source.profile, .manifest = source.manifest, .bindings = source.bindings };
     }
     pub fn deinit(self: *Group) void {
         self.key.deinit();
@@ -31,8 +35,8 @@ pub const Group = struct {
     pub fn retireProverData(self: *Group) void {
         Retire(&self.key);
     }
-    fn require(self: *const Group, inventory: *const Inventory, prepared: *const Prepared, span: Planner.Span, profile: Profile) !void {
-        if (!std.meta.eql(self.span, span) or self.profile != profile or self.key.base.profile != profile or self.key.base.n_outputs != 9 or !std.mem.eql(u8, &self.manifest, &prepared.manifest)) return error.NativeGroupSourceAuthority;
+    fn require(self: *const Group, inventory: *const Inventory, prepared: *const Prepared, span: Planner.Span, profile: Profile, outer_profile: Profile) !void {
+        if (!std.meta.eql(self.span, span) or self.profile != profile or self.key.base.profile != outer_profile or self.key.base.n_outputs != 9 or !std.mem.eql(u8, &self.manifest, &prepared.manifest)) return error.NativeGroupSourceAuthority;
         for (self.bindings[0..span.count], inventory.workers[span.first..try span.end()], span.first..) |binding, worker, ordinal| {
             if (binding.ordinal != ordinal or worker.authority.ordinal != ordinal or worker.authority.profile != profile or !std.mem.eql(u8, &binding.fixed_identity, &worker.authority.fixed_identity)) return error.NativeGroupSourceAuthority;
         }
@@ -42,6 +46,7 @@ pub const Topology = struct {
     allocator: std.mem.Allocator,
     plan: Planner.Plan,
     profile: Profile,
+    terminal_outer_profile: Profile,
     execution: [32]u8,
     manifest: [36]u8,
     keys: [Planner.MAX_NODES]?*const Key = @splat(null),
@@ -50,16 +55,21 @@ pub const Topology = struct {
     /// Producer scheduling derives one fold key just before its proof, then
     /// retires its wide data; receiver init derives verification-only keys.
     pub fn begin(a: std.mem.Allocator, inventory: *const Inventory, prepared: *const Prepared, maximum_group: u32, groups: []const *const Group) !Topology {
+        if (inventory.workers.len == 0) return error.NativeGroupExecutionAuthority;
+        return beginWithOuterProfile(a, inventory, prepared, maximum_group, groups, inventory.workers[0].authority.profile);
+    }
+    pub fn beginWithOuterProfile(a: std.mem.Allocator, inventory: *const Inventory, prepared: *const Prepared, maximum_group: u32, groups: []const *const Group, terminal_outer_profile: Profile) !Topology {
         if (inventory.workers.len == 0 or inventory.workers.len != prepared.outputs.len or !std.mem.eql(u8, &inventory.execution, &prepared.execution)) return error.NativeGroupExecutionAuthority;
         const profile = inventory.workers[0].authority.profile;
-        var self = Topology{ .allocator = a, .plan = try Planner.Plan.init(@intCast(inventory.workers.len), maximum_group), .profile = profile, .execution = prepared.execution, .manifest = prepared.manifest };
+        try requireTerminalProfile(profile, terminal_outer_profile);
+        var self = Topology{ .terminal_outer_profile = terminal_outer_profile, .allocator = a, .plan = try Planner.Plan.init(@intCast(inventory.workers.len), maximum_group), .profile = profile, .execution = prepared.execution, .manifest = prepared.manifest };
         errdefer self.deinit();
         var group_index: usize = 0;
         for (self.plan.ordered(), 0..) |node, index| switch (node.operation) {
             .group => {
                 if (group_index >= groups.len) return error.NativeGroupSourceCoverage;
                 const source = groups[group_index];
-                try source.require(inventory, prepared, node.span, profile);
+                try source.require(inventory, prepared, node.span, profile, self.outerProfile(index));
                 self.keys[index] = &source.key;
                 group_index += 1;
             },
@@ -69,13 +79,20 @@ pub const Topology = struct {
         return self;
     }
     pub fn init(a: std.mem.Allocator, inventory: *const Inventory, prepared: *const Prepared, maximum_group: u32, groups: []const *const Group) !Topology {
-        var self = try begin(a, inventory, prepared, maximum_group, groups);
+        if (inventory.workers.len == 0) return error.NativeGroupExecutionAuthority;
+        return initWithOuterProfile(a, inventory, prepared, maximum_group, groups, inventory.workers[0].authority.profile);
+    }
+    pub fn initWithOuterProfile(a: std.mem.Allocator, inventory: *const Inventory, prepared: *const Prepared, maximum_group: u32, groups: []const *const Group, terminal_outer_profile: Profile) !Topology {
+        var self = try beginWithOuterProfile(a, inventory, prepared, maximum_group, groups, terminal_outer_profile);
         errdefer self.deinit();
         for (self.plan.ordered(), 0..) |node, index| if (node.operation == .fold) {
             _ = try self.deriveFold(index, false);
         };
         try self.requireComplete();
         return self;
+    }
+    pub fn outerProfile(self: *const Topology, index: usize) Profile {
+        return if (index == self.plan.root) self.terminal_outer_profile else self.profile;
     }
     pub fn deriveFold(self: *Topology, index: usize, resident: bool) !*Key {
         if (index >= self.plan.node_count or self.plan.nodes[index].operation != .fold or self.keys[index] != null) return error.NativeGroupFoldPhase;
@@ -86,7 +103,7 @@ pub const Topology = struct {
         try self.owned.ensureUnusedCapacity(self.allocator, 1);
         const key = try self.allocator.create(Key);
         errdefer self.allocator.destroy(key);
-        key.* = try Key.init(self.allocator, &trace, self.profile);
+        key.* = try Key.init(self.allocator, &trace, self.outerProfile(index));
         self.owned.appendAssumeCapacity(key);
         self.keys[index] = key;
         if (!resident) Retire(key);
@@ -110,8 +127,14 @@ pub const Topology = struct {
     pub fn verify(self: *const Topology, inventory: *const Inventory, prepared: *const Prepared, bytes: []const u8) !void {
         try self.requireComplete();
         if (self.plan.leaf_count != inventory.workers.len or prepared.outputs.len != inventory.workers.len or !std.mem.eql(u8, &self.execution, &inventory.execution) or !std.mem.eql(u8, &self.execution, &prepared.execution) or !std.mem.eql(u8, &self.manifest, &prepared.manifest)) return error.NativeGroupExecutionAuthority;
-        if (self.profile != inventory.workers[0].authority.profile or self.rootKey().base.profile != self.profile or self.rootKey().base.n_outputs != 9) return error.NativeGroupSourceAuthority;
+        if (self.profile != inventory.workers[0].authority.profile or self.rootKey().base.profile != self.terminal_outer_profile or self.rootKey().base.n_outputs != 9) return error.NativeGroupSourceAuthority;
         const output = try prepared.expectedRoot();
         try @import("../native_omul/proof.zig").verify(self.allocator, self.rootKey(), &output, bytes);
     }
 };
+
+/// Terminal policy is receiver-owned and separate from all native members.
+/// No other cross-profile conversion is admitted by this experimental route.
+pub fn requireTerminalProfile(native: Profile, terminal: Profile) !void {
+    if (native == .reference_b2_q24_p0 or (terminal != native and !(native == .op_target_b4_q72_p0_fold4_v1 and terminal == .op_control_b2_q144_p0_fold4_v1))) return error.NativeGroupTerminalProfile;
+}
