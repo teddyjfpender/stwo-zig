@@ -9,7 +9,7 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const PcsConfig = stwo_core.pcs.PcsConfig;
 const recursion = struct {
     const captured_fri = @import("captured_fri.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
+    const poseidon2_channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
     const vm_air_composition_circuit = @import("vm_air_composition_circuit.zig");
     const vm_air_composition_prepared_v2 = @import("vm_air_composition_prepared.zig");
 };
@@ -18,11 +18,11 @@ const transcript_v2 = @import("transcript_program_v2.zig");
 const authority_v2 = @import("segment_leaf_outer_authority.zig");
 const source_v2 = @import("segment_leaf_authority_v2.zig");
 const air_v2 = @import("segment_leaf_outer_air.zig");
-const universal = @import("air/universal_challenges.zig");
-const schedule = @import("air/verifier_schedule.zig");
-const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
-const transcript_claims = @import("../air/transcript/claims.zig");
-const relation_challenges = @import("../air/relation_challenges.zig");
+const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
+const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
+const poseidon2_air = @import("stwo_riscv_memory").air_poseidon2_air;
+const transcript_claims = @import("stwo_riscv_rv32").air_transcript_claims;
+const relation_challenges = @import("stwo_riscv_air_lang").shared_air_relation_challenges;
 
 /// CorePreflight supplies the sealed rows-18--34 and rows-18--35 preflight
 /// receipt types, their constructors, verifier plans, and roster constants.

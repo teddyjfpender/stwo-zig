@@ -1,8 +1,8 @@
 //! One explicit native/recursive choice for the Ethereum fixed-program AIR.
 //! The profile selects constraints and column layouts; callers must separately
 //! admit the exact ELF-derived fixed table and independently derive Tree0.
-const execution = @import("../isa/execution_profile.zig");
-const program = @import("../air/program/interaction.zig");
+const execution = @import("stwo_riscv_isa").execution_profile;
+const program = @import("stwo_riscv_rv32").air_program_interaction;
 
 pub const CircuitProfileV1 = enum(u16) {
     legacy_v4 = 0,

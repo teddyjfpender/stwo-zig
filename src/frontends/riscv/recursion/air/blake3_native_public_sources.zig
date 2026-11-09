@@ -2,17 +2,17 @@
 //! Public values deliberately remain in preprocessing until reusable-key binding.
 const std = @import("std");
 const core = @import("stwo_core");
-const statement = @import("../../air/statement_v2.zig");
+const statement = @import("stwo_riscv_rv32").air_statement_v2;
 const bytes = @import("../segment_register_byte_layout.zig");
 const public = @import("blake3_native_public_boundary.zig");
-const transcript_mod = @import("blake3_native_transcript.zig");
-const recorder = @import("blake3_native_recorder.zig");
-const boundary = @import("blake3_boundary.zig");
-const scalar = @import("scalar_wire_source.zig");
+const transcript_mod = @import("stwo_riscv_rv32").recursion_air_blake3_native_transcript;
+const recorder = @import("stwo_riscv_recursion_air").blake3_native_recorder;
+const boundary = @import("stwo_riscv_air_lang").framework_blake3_boundary;
+const scalar = @import("stwo_riscv_air_lang").framework_scalar_wire_source;
 const CIRCUIT = @import("blake3_native_public_links.zig").BOUNDARY_CIRCUIT;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
-pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{ 2, 12 });
+pub const Columns = @import("stwo_riscv_recursion_air").blake3_upstream_source_columns.ForSlots(.{ 2, 12 });
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     rows: []boundary.Row,

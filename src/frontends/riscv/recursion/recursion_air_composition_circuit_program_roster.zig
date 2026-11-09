@@ -102,7 +102,7 @@ pub const ProgramDescriptorV3 = struct {
     /// Explicit admission of the typed Initial38 circuit; its exact capacity
     /// and component geometry remain bound by the validated manifest seal.
     pub fn sealAuthenticatedEthereumInitialWrapperV1(
-        manifest: *const @import("air/ethereum_initial_input_manifest.zig").Manifest,
+        manifest: *const @import("stwo_riscv_frontend").modules.compat_product_tree_recursion_air_ethereum_initial_input_manifest.Manifest,
         air_program_id: AirProgramId,
     ) Error!ProgramDescriptorV3 {
         const result = try descriptorForAuthenticatedManifest(manifest, air_program_id, dependency_4.initialWrapperDescriptorShape());
@@ -839,12 +839,12 @@ pub fn authorityStorage(
 }
 
 test "Initial38 composition descriptor authenticates exact capacity and rejects stale shape or policy" {
-    const initial = @import("air/ethereum_initial_input_manifest.zig");
-    const base = @import("air/universal_adapter_manifest.zig");
-    const profile = @import("incremental_ethereum_composition_profile.zig");
+    const initial = @import("stwo_riscv_frontend").modules.compat_product_tree_recursion_air_ethereum_initial_input_manifest;
+    const base = @import("stwo_riscv_air_lang").framework_universal_adapter_manifest;
+    const profile = @import("stwo_riscv_frontend").modules.compat_product_tree_recursion_incremental_ethereum_composition_profile;
     var logs = [_]u32{4} ** base.COMPONENT_COUNT;
-    logs[@intFromEnum(base.ComponentKey.range_check_8_8)] = @import("air/range_check_8_8_contract.zig").LOG_SIZE;
-    const ordinary = try @import("air/universal_manifest.zig").buildForCatalog(profile.StatementRoutingOuterCatalog, logs);
+    logs[@intFromEnum(base.ComponentKey.range_check_8_8)] = @import("stwo_riscv_rv32").recursion_air_range_check_8_8_contract.LOG_SIZE;
+    const ordinary = try @import("stwo_riscv_rv32").recursion_air_universal_manifest.buildForCatalog(profile.StatementRoutingOuterCatalog, logs);
     const first = try initial.build(&ordinary, 40);
     const second = try initial.build(&ordinary, 41);
     var air_id: AirProgramId = undefined;

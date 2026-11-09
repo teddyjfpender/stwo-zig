@@ -1,7 +1,7 @@
 //! Owned, canonical DEEP-answer and FRI-coefficient input mappings.
 const std = @import("std");
 const deep = @import("pcs_deep_circuit.zig");
-const fri = @import("fri_verifier_circuit.zig");
+const fri = @import("stwo_riscv_rv32").recursion_air_fri_verifier_circuit;
 pub const PACK_CIRCUIT: u32 = 5_000_002;
 pub const Answer = struct { deep: u32, fri: u32 };
 pub const Prepared = struct {

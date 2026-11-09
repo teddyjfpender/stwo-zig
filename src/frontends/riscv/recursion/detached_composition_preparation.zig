@@ -7,8 +7,8 @@ const recursion = struct {
     const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
 };
 const air = struct {
-    const composition_circuit = @import("air/composition_circuit.zig");
-    const universal_adapter_manifest = @import("air/universal_adapter_manifest.zig");
+    const composition_circuit = @import("stwo_riscv_rv32").recursion_air_composition_circuit;
+    const universal_adapter_manifest = @import("stwo_riscv_air_lang").framework_universal_adapter_manifest;
 };
 const std = @import("std");
 const core = @import("stwo_core");

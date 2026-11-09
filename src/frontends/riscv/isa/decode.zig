@@ -5,7 +5,7 @@
 //! instructions in the proof-bearing profile.
 
 const std = @import("std");
-const opcode_manifest = @import("../opcode_manifest.zig");
+const opcode_manifest = @import("opcode_manifest.zig");
 
 /// All RV32IM opcodes.
 pub const Opcode = enum(u8) {

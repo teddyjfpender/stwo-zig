@@ -294,3 +294,75 @@ def check_owner_roles(repository: Path, expected: Mapping[str, set[str]]) -> lis
         if len(set(actual.values())) != 1:
             failures.append(f"package workspace: CODEOWNERS accounts differ or are absent for {role!r}")
     return failures
+
+
+def frontend_family_edges(root: Path, contracts: Mapping[str, Any]) -> set[tuple[str, str]]:
+    """Read owner-approved frontend peer directions; never infer family membership."""
+    path = root / 'conformance/frontend-package-families.json'
+    if not path.exists():
+        return set()
+    try:
+        payload = json.loads(path.read_text(encoding='utf-8'))
+        if set(payload) != {'schema', 'families'} or payload['schema'] != 'stwo-zig-frontend-package-families-v1':
+            raise ValueError('invalid frontend family policy schema')
+        families = payload['families']
+        if not isinstance(families, dict) or not families:
+            raise ValueError('frontend families must be a nonempty object')
+        edges: set[tuple[str, str]] = set()
+        seen_names: set[str] = set()
+        seen_paths: set[Path] = set()
+        for family in families.values():
+            if set(family) != {'owner', 'decision', 'root', 'packages'}:
+                raise ValueError('unknown or missing family policy field')
+            if not all(isinstance(family[key], str) and family[key] for key in ('owner', 'decision', 'root')):
+                raise ValueError('family requires its invariant owner, decision and root')
+            relative_root = PurePosixPath(family['root'])
+            if relative_root.is_absolute() or str(relative_root) != family['root'] or '..' in relative_root.parts or family['root'] in ('', '.') or '\\' in family['root']:
+                raise ValueError('family root must be canonical POSIX-relative')
+            family_root = (root / family['root']).resolve()
+            if family_root.parent != (root / 'src/frontends').resolve():
+                raise ValueError('family root must be one canonical frontend container')
+            members = family['packages']
+            if not isinstance(members, list) or not members:
+                raise ValueError('family packages must be a nonempty ordered array')
+            providers: list[str] = []
+            for member in members:
+                if not isinstance(member, dict) or set(member) != {'name', 'path'}:
+                    raise ValueError('family member requires exact name and path')
+                name, relative = member['name'], member['path']
+                if not isinstance(name, str) or not isinstance(relative, str):
+                    raise ValueError('family member name and path must be strings')
+                relative_path = PurePosixPath(relative)
+                if relative_path.is_absolute() or str(relative_path) != relative or '..' in relative_path.parts or not relative or '\\' in relative:
+                    raise ValueError('family member path must be canonical POSIX-relative')
+                if relative == '.' and (member is not members[-1] or name != 'stwo_' + family_root.name + '_frontend'):
+                    raise ValueError('only the final canonical umbrella may use dot')
+                directory = (family_root / relative).resolve()
+                if not directory.is_relative_to(family_root):
+                    raise ValueError('frontend family member escapes its root')
+                contract = contracts.get(name)
+                if contract is None or contract.layer != 'frontend' or contract.directory.resolve() != directory:
+                    raise ValueError(f'unknown or noncanonical frontend member {name}')
+                if name in seen_names or directory in seen_paths:
+                    raise ValueError(f'duplicate frontend member {name}')
+                seen_names.add(name)
+                seen_paths.add(directory)
+                edges.update((name, provider) for provider in providers)
+                providers.append(name)
+        return edges
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+        raise GraphError(f'invalid frontend package family policy: {error}') from error
+
+
+def validate_dependency_layers(repository, contracts, packages, allowed_layers, failures):
+    """Check ordinary layer rules plus only exact reviewed acyclic family peers."""
+    try:
+        family = frontend_family_edges(repository, packages) if repository else set()
+    except GraphError as error:
+        failures.append(str(error))
+        family = set()
+    for contract in contracts:
+        for dependency in contract.dependencies:
+            target = packages.get(dependency)
+            if target is not None and target.layer not in allowed_layers[contract.layer] and (contract.package, dependency) not in family:
+                failures.append(f"{contract.package}: {contract.layer} layer cannot depend on {target.layer} package {dependency}")

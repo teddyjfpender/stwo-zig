@@ -1,0 +1,52 @@
+{
+  "schema": "stwo-zig-frontend-package-families-v1",
+  "families": {
+    "riscv": {
+      "owner": "riscv-frontend",
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/344#issuecomment-6747949215",
+      "root": "src/frontends/riscv",
+      "packages": [
+        {
+          "name": "stwo_riscv_isa",
+          "path": "isa"
+        },
+        {
+          "name": "stwo_riscv_air_lang",
+          "path": "air_lang"
+        },
+        {
+          "name": "stwo_riscv_memory",
+          "path": "memory"
+        },
+        {
+          "name": "stwo_riscv_recursion_air",
+          "path": "recursion_air"
+        },
+        {
+          "name": "stwo_riscv_precompiles",
+          "path": "precompiles"
+        },
+        {
+          "name": "stwo_riscv_rv32",
+          "path": "rv32"
+        },
+        {
+          "name": "stwo_riscv_rv64",
+          "path": "rv64"
+        },
+        {
+          "name": "stwo_riscv_recursion",
+          "path": "recursion"
+        },
+        {
+          "name": "stwo_riscv_testing",
+          "path": "testing"
+        },
+        {
+          "name": "stwo_riscv_frontend",
+          "path": "."
+        }
+      ]
+    }
+  }
+}

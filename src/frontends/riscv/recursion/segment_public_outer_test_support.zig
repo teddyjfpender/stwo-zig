@@ -4,17 +4,17 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
-const public_data_v2 = @import("../air/public_data_v2.zig");
-const public_data_support = @import("../air/public_data_test_support.zig");
-const native_relations = @import("../air/relation_challenges.zig");
-const statement_v1 = @import("../air/statement.zig");
-const statement_v2 = @import("../air/statement_v2.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").air_public_data_v2;
+const public_data_support = @import("stwo_riscv_rv32").air_public_data_test_support;
+const native_relations = @import("stwo_riscv_air_lang").shared_air_relation_challenges;
+const statement_v1 = @import("stwo_riscv_rv32").air_statement;
+const statement_v2 = @import("stwo_riscv_rv32").air_statement_v2;
 const source_v2 = @import("segment_leaf_authority_v2.zig");
 const public_v2 = @import("segment_public_outer_source_v2.zig");
-const fixed_profile = @import("fixed_profile.zig");
-const protocol = @import("protocol.zig");
-const channel = @import("poseidon2_channel.zig");
-const schedule = @import("air/verifier_schedule.zig");
+const fixed_profile = @import("stwo_riscv_recursion_air").protocol_recursion_fixed_profile;
+const protocol = @import("stwo_riscv_recursion_air").protocol_recursion_protocol;
+const channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
+const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 
 pub const component_descs = [_]statement_v1.FamilyComponentDesc{.{
     .family = .base_alu_imm,

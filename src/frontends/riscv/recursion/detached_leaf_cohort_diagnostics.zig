@@ -2,7 +2,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const tuple_diagnostic = @import("detached_leaf_tuple_diagnostic.zig");
-const relation_interaction = @import("air/relation_interaction.zig");
+const relation_interaction = @import("stwo_riscv_air_lang").framework_relation_interaction;
 const RED_TUPLE_DOMAIN_MASK = tuple_diagnostic.RED_DOMAIN_MASK;
 
 /// Diagnostic-only inventory of the actual materialized Tree 0 and all

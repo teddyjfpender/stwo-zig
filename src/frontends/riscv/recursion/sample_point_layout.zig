@@ -4,7 +4,7 @@
 //! Capture identities retain the original order; arbitrary masks are rejected.
 
 const stwo_core = @import("stwo_core");
-const masks = @import("../air/guest_precompile/mask_layout.zig");
+const masks = @import("stwo_riscv_precompiles").air_mask_layout;
 
 const CirclePointQM31 = stwo_core.circle.CirclePointQM31;
 

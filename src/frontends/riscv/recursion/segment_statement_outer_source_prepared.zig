@@ -452,7 +452,7 @@ pub fn writeTerms(
     comptime batch_count: usize,
     size: usize,
     logical_row: usize,
-    pairs: [batch_count]@import("../air/logup.zig").RowPair,
+    pairs: [batch_count]@import("stwo_riscv_air_lang").shared_air_logup.RowPair,
     numerators: []QM31,
     denominators: []QM31,
 ) void {
@@ -499,8 +499,8 @@ pub fn prepareFrameworkResult(
     return claimed_sum;
 }
 
-pub fn paddingPairs(comptime count: usize) [count]@import("../air/logup.zig").RowPair {
-    return [_]@import("../air/logup.zig").RowPair{.{
+pub fn paddingPairs(comptime count: usize) [count]@import("stwo_riscv_air_lang").shared_air_logup.RowPair {
+    return [_]@import("stwo_riscv_air_lang").shared_air_logup.RowPair{.{
         .n1 = QM31.zero(),
         .d1 = QM31.one(),
         .n2 = QM31.zero(),

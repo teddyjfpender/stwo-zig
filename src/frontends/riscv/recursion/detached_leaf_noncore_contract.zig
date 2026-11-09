@@ -9,9 +9,9 @@ const public_components = @import("segment_public_outer_components.zig");
 const range_authority = @import("segment_range_authority_v2.zig");
 const boundary_components = @import("air/segment_boundary_components.zig");
 const input_provider_component = @import("air/segment_publication_input_provider_component.zig");
-const shared_provider = @import("air/universal_shared_provider.zig");
-const universal = @import("air/universal_challenges.zig");
-const relation_interaction = @import("air/relation_interaction.zig");
+const shared_provider = @import("stwo_riscv_rv32").recursion_air_universal_shared_provider;
+const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
+const relation_interaction = @import("stwo_riscv_air_lang").framework_relation_interaction;
 const noncore_audits = @import("segment_outer_noncore_audits.zig");
 
 const FORMAT_VERSION: u16 = 1;

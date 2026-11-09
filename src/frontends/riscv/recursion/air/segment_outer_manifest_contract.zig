@@ -5,11 +5,11 @@ pub const stwo_core = @import("stwo_core");
 pub const core_components = stwo_core.air.components;
 pub const QM31 = stwo_core.fields.qm31.QM31;
 
-pub const digest = @import("../../air/lang/digest.zig");
-pub const relation = @import("../../air/lang/relation.zig");
-pub const base = @import("universal_manifest_contract.zig");
-pub const universal_manifest = @import("universal_manifest.zig");
-pub const universal_roster = @import("universal_roster.zig");
+pub const digest = @import("stwo_riscv_air_lang").digest;
+pub const relation = @import("stwo_riscv_air_lang").relation;
+pub const base = @import("stwo_riscv_air_lang").framework_universal_manifest_contract;
+pub const universal_manifest = @import("stwo_riscv_rv32").recursion_air_universal_manifest;
+pub const universal_roster = @import("stwo_riscv_air_lang").framework_universal_roster;
 pub const typed_catalog_v2 = @import("segment_outer_typed_catalog.zig");
 pub const boundary_v2 = @import("../segment_leaf_outer_geometry.zig");
 pub const provider_authority_v2 =

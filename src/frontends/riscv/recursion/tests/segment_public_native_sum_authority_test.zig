@@ -6,21 +6,21 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const public_data_v2 = @import("../../air/public_data_v2.zig");
-const public_data_support = @import("../../air/public_data_test_support.zig");
-const native_relations = @import("../../air/relation_challenges.zig");
-const statement_v1 = @import("../../air/statement.zig");
-const native_statement = @import("../../air/statement_v2.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").air_public_data_v2;
+const public_data_support = @import("stwo_riscv_rv32").air_public_data_test_support;
+const native_relations = @import("stwo_riscv_air_lang").shared_air_relation_challenges;
+const statement_v1 = @import("stwo_riscv_rv32").air_statement;
+const native_statement = @import("stwo_riscv_rv32").air_statement_v2;
 const leaf_source = @import("../segment_leaf_authority_v2.zig");
 const public_source = @import("../segment_public_outer_source_v2.zig");
 const subject = @import("../segment_public_native_sum_authority.zig");
 const fixture_support = @import("../segment_public_outer_test_support.zig");
-const fixed_profile = @import("../fixed_profile.zig");
-const protocol = @import("../protocol.zig");
-const channel = @import("../poseidon2_channel.zig");
-const schedule = @import("../air/verifier_schedule.zig");
+const fixed_profile = @import("stwo_riscv_recursion_air").protocol_recursion_fixed_profile;
+const protocol = @import("stwo_riscv_recursion_air").protocol_recursion_protocol;
+const channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
+const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 const register_bytes = @import("../segment_register_byte_layout.zig");
-const lowering = @import("../air/verifier_arithmetic_lowering.zig");
+const lowering = @import("stwo_riscv_rv32").recursion_air_verifier_arithmetic_lowering;
 
 const Fixture = fixture_support.Fixture;
 
@@ -154,7 +154,7 @@ test "SegmentV2 native-sum register inputs preserve graph and preprocessing acro
     defer second_source.deinit();
     try std.testing.expect(!std.meta.eql(first_source.wire_id, second_source.wire_id));
     try std.testing.expectEqualDeep(first_prepared.manifest.log_sizes, second_prepared.manifest.log_sizes);
-    try std.testing.expectEqualSlices(@import("../air/composition_circuit.zig").Node, first_source.owned_graph.nodes, second_source.owned_graph.nodes);
+    try std.testing.expectEqualSlices(@import("stwo_riscv_rv32").recursion_air_composition_circuit.Node, first_source.owned_graph.nodes, second_source.owned_graph.nodes);
     try std.testing.expectEqualSlices(u32, first_source.owned_graph.outputs, second_source.owned_graph.outputs);
     try std.testing.expectEqualDeep(first_source.owned_graph.graph.identity_digest, second_source.owned_graph.graph.identity_digest);
     try std.testing.expectEqualDeep(first_source.bindings, second_source.bindings);
@@ -447,7 +447,7 @@ const EmptyFixture = struct {
         segment.memory_words = &.{};
         segment.entry_memory_clocks = &.{};
         segment.exit_memory_clocks = &.{};
-        const empty_snapshot = @import("../segment_statement.zig").snapshotDigest(&.{}, .initial_word).id;
+        const empty_snapshot = @import("stwo_riscv_rv32").recursion_segment_statement.snapshotDigest(&.{}, .initial_word).id;
         segment.base_statement.job.complete.initial_state.rw_memory = empty_snapshot;
         segment.base_statement.job.complete.final_state.rw_memory = empty_snapshot;
         segment.base_statement.body.executed.entry.rw_memory = empty_snapshot;
@@ -639,8 +639,8 @@ test "SegmentV2 native-sum graph independently binds every Span snapshot digest 
     var owned = try OwnedEvaluation.init(allocator, &source);
     defer owned.deinit();
     _ = try source.evaluateInto(&prepared, fixture.inputs(), owned.buffers());
-    const wire = @import("../segment_statement.zig");
-    const span = @import("../span_statement.zig");
+    const wire = @import("stwo_riscv_rv32").recursion_segment_statement;
+    const span = @import("stwo_riscv_rv32").recursion_span_statement;
     const relation_output_count = subject.DOMAIN_COUNT + 1;
     try std.testing.expectEqual(relation_output_count + 16, source.circuit.outputs().len);
     inline for (.{
@@ -674,7 +674,7 @@ const sparseValueCanonicalWords = public_data_support.sparseValueCanonicalWords;
 
 test "SegmentV2 native-sum sparse values preserve fixed graph under identical address topology" {
     const allocator = std.testing.allocator;
-    const segment = @import("../segment_statement.zig");
+    const segment = @import("stwo_riscv_rv32").recursion_segment_statement;
     const graph_contract = @import("../segment_public_native_sum_authority_contract.zig");
     const graph_builder = @import("../segment_public_native_sum_authority_add_boundary_terms.zig");
     const values = [_]u32{ 13, 14, 269 };

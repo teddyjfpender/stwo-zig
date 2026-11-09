@@ -7,14 +7,14 @@
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const base_statement = @import("../../air/statement.zig");
-const keccak_component = @import("../../air/guest_precompile/keccakf_component.zig");
-const secp_bundle = @import("../../air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_component = @import("../../air/guest_precompile/secp256k1_component.zig");
-const secp_config = @import("../../air/guest_precompile/secp256k1_component_config.zig");
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const base_statement = @import("stwo_riscv_rv32").air_statement;
+const keccak_component = @import("stwo_riscv_rv32").air_guest_precompile_keccakf_component;
+const secp_bundle = @import("stwo_riscv_rv32").air_guest_precompile_secp256k1_component_bundle;
+const secp_component = @import("stwo_riscv_precompiles").air_secp256k1_component;
+const secp_config = @import("stwo_riscv_rv32").air_guest_precompile_secp256k1_component_config;
 const ethereum_types = @import("ethereum_types.zig");
-const base_wire = @import("proof_artifact_wire.zig");
+const base_wire = @import("stwo_riscv_rv32").prover_guest_precompile_proof_artifact_wire;
 
 pub const extension_encoded_size: usize = 456;
 pub const identity_encoded_size: usize = 84;

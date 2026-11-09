@@ -1,0 +1,106 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_memory",
+  "version": "0.1.0",
+  "layer": "frontend",
+  "owner": "riscv-frontend",
+  "public_modules": {
+    "stwo_riscv_memory": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../../waist/core",
+    "stwo_prover_api": "../../../waist/prover_api",
+    "stwo_prover_engine": "../../../engine/prover",
+    "stwo_riscv_air_lang": "../air_lang",
+    "stwo_riscv_isa": "../isa"
+  },
+  "injected_modules": [
+    "typed_air_h009_artifacts",
+    "typed_air_h010_artifacts"
+  ],
+  "api_surface": [
+    "air_blake3_state_tree",
+    "air_boundary",
+    "air_byte_tree_topology",
+    "air_hash_component_prepared_domain",
+    "air_hash_component_prepared_support",
+    "air_hash_component_reference_test_support",
+    "air_hash_component_sampling",
+    "air_incremental_boundary_interaction",
+    "air_incremental_bridge",
+    "air_incremental_bridge_component",
+    "air_interaction",
+    "air_merkle_node",
+    "air_merkle_typed_admission",
+    "air_mod",
+    "air_poseidon2",
+    "air_poseidon2_air",
+    "air_poseidon2_call",
+    "air_poseidon2_constants",
+    "air_poseidon2_degree3_component",
+    "air_poseidon2_degree3_schedule",
+    "air_poseidon2_degree3_verifier",
+    "air_poseidon2_layout",
+    "air_poseidon2_universal_equations",
+    "air_poseidon2_universal_identity",
+    "air_poseidon2_universal_layout",
+    "air_poseidon2_wide_equations",
+    "air_poseidon2_wide_typed_admission",
+    "air_sparse_merkle",
+    "air_trace",
+    "assets",
+    "primitives_aggregation_hash",
+    "primitives_common_poseidon2",
+    "primitives_prover_poseidon_witness_work",
+    "primitives_recursion_blake3_identity_digest",
+    "primitives_recursion_poseidon2_channel",
+    "prover_authority",
+    "prover_provider_order_component",
+    "prover_standalone_component",
+    "typed_materialization_frontier_cost_model",
+    "typed_materialization_frontier_manifest",
+    "typed_materialization_frontier_projection",
+    "typed_poseidon_layout_benchmark_command",
+    "typed_typed_poseidon2",
+    "typed_typed_poseidon2_authority",
+    "typed_typed_poseidon2_compact",
+    "typed_typed_poseidon2_compat",
+    "typed_typed_poseidon2_degree5_component",
+    "typed_typed_poseidon2_degree5_row_program",
+    "typed_typed_poseidon2_degree5_trace",
+    "typed_typed_poseidon2_degree_bounded_candidate",
+    "typed_typed_poseidon2_degree_bounded_component",
+    "typed_typed_poseidon2_degree_bounded_residency",
+    "typed_typed_poseidon2_degree_bounded_trace",
+    "typed_typed_poseidon2_fixed_polynomials",
+    "typed_typed_poseidon2_frontier_artifact",
+    "typed_typed_poseidon2_identity",
+    "typed_typed_poseidon2_identity_codec",
+    "typed_typed_poseidon2_identity_golden",
+    "typed_typed_poseidon2_proof_authority",
+    "typed_typed_poseidon2_relations",
+    "typed_typed_poseidon2_wide",
+    "typed_typed_poseidon2_witness"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "typed/poseidon_layout_benchmark_artifact.zig::H-010 default artifact set excludes opt-in log 18"
+    ],
+    "invariant_tests": [
+      "primitives/recursion/poseidon2_channel.zig::recursion Poseidon2: canonical Stark-V conformance vector"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_memory_package",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/riscv/memory/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

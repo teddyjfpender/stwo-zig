@@ -5,22 +5,22 @@ const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const HashColumns = @import("../blake3_native_hash_columns.zig").Owner;
 const Column = @import("stwo_prover_engine").pcs.ColumnEvaluation;
-const lower = @import("verifier_arithmetic_lowering.zig");
-const Graph = @import("composition_circuit.zig").CircuitGraph;
+const lower = @import("stwo_riscv_rv32").recursion_air_verifier_arithmetic_lowering;
+const Graph = @import("stwo_riscv_rv32").recursion_air_composition_circuit.CircuitGraph;
 const vm = @import("../vm_air_composition_circuit.zig");
-const scalar = @import("scalar_wire_source.zig");
-const boundary = @import("blake3_boundary.zig");
-const storage = @import("blake3_parent_row_storage.zig");
+const scalar = @import("stwo_riscv_air_lang").framework_scalar_wire_source;
+const boundary = @import("stwo_riscv_air_lang").framework_blake3_boundary;
+const storage = @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage;
 pub const selectors = storage.selectors;
 pub const Airs = storage.Airs;
 const FixedTuple = storage.FixedTuple;
 const Builder = storage.Builder;
 pub const Prepared = storage.Prepared;
 const directCohort = storage.directCohort;
-const inventory = @import("blake3_parent_input_inventory.zig").check;
+const inventory = @import("stwo_riscv_rv32").recursion_air_blake3_parent_input_inventory.check;
 pub const Sources = struct {
     composition: *const vm.Prepared,
-    transcript: *const @import("blake3_native_transcript.zig").Prepared,
+    transcript: *const @import("stwo_riscv_rv32").recursion_air_blake3_native_transcript.Prepared,
     deep: *const @import("blake3_native_deep.zig").Prepared,
     fri: *const @import("blake3_native_fri.zig").Prepared,
     payloads: *const @import("blake3_native_payload_links.zig").Prepared,
@@ -29,7 +29,7 @@ pub const Sources = struct {
     terminal: *const @import("blake3_native_terminal_encoding.zig").Prepared,
     queries: *const @import("blake3_native_queries.zig").Prepared,
     openings: *const @import("blake3_native_openings.zig").Prepared,
-    roots: *const @import("blake3_native_root_nonce.zig").Prepared,
+    roots: *const @import("stwo_riscv_rv32").recursion_air_blake3_native_root_nonce.Prepared,
     public_boundary: *const @import("blake3_native_public_boundary.zig").Prepared,
     public_join: *const @import("blake3_native_public_links.zig").Prepared,
     public_inputs: *const @import("blake3_native_public_sources.zig").Prepared,
@@ -52,7 +52,7 @@ pub fn fusionCensusGraphs(a: std.mem.Allocator, graphs: []const Graph, deep: any
     var original: usize = 0;
     for (graphs, 0..) |graph, i| {
         const lane = lower.Lane{ .circuit_id = @intCast(1500 + 2 * i), .active_in = .segment, .circuit_identity = graph.identity_digest, .graph = graph };
-        const census = try @import("arithmetic_fusion_census.zig").inspect(a, lane);
+        const census = try @import("stwo_riscv_rv32").recursion_air_arithmetic_fusion_census.inspect(a, lane);
         std.debug.print("BLAKE3_RESIDUAL_FUSION_CENSUS lane={d} multiply={d} linear={d} inverse={d} quotient_accumulations={d} prelinear_products={d} prelinear_hidden_rows={d} prelinear_add={d} prelinear_sub={d} prelinear_neg={d} prelinear_both={d} candidate_only=true\n", .{ lane.circuit_id, census.remaining_multiply, census.remaining_linear, census.remaining_inverse, census.quotient_accumulations, census.prelinear_products, census.prelinear_hidden_rows, census.prelinear_add, census.prelinear_sub, census.prelinear_neg, census.prelinear_both_operands });
         original += census.multiply + census.linear + census.inverse;
         removed += census.removedRows();
@@ -140,7 +140,7 @@ fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator
     const graphs = source.graphs();
     const values = source.evaluations();
     // Replacements are selected once, before constructing any row roster.
-    const source_direct = @import("blake3_direct_source_columns.zig");
+    const source_direct = @import("stwo_riscv_recursion_air").blake3_direct_source_columns;
     var source_counts = source_direct.Counts{};
     try appendSources(source, &source_counts);
     try appendSelectorInputs(a, source, graphs, values, &source_counts);
@@ -157,13 +157,13 @@ fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator
     if (release_rows) |release| release.call(release.context);
     @import("stwo_prover_engine").measurement.process_usage.reportStage("assembly.row_sources_released");
     // Selector-use scratch was released before the separate input audit.
-    const packed_rows = try @import("blake3_recursive_column_rows.zig").ForAir(Airs[11]).init(main[11], fixed[11]);
-    const scalar_rows = try @import("blake3_recursive_column_rows.zig").ForAir(Airs[12]).init(main[12], fixed[12]);
-    const boundary_rows = try @import("blake3_recursive_column_rows.zig").ForAir(Airs[2]).init(main[2], fixed[2]);
+    const packed_rows = try @import("stwo_riscv_recursion_air").blake3_recursive_column_rows.ForAir(Airs[11]).init(main[11], fixed[11]);
+    const scalar_rows = try @import("stwo_riscv_recursion_air").blake3_recursive_column_rows.ForAir(Airs[12]).init(main[12], fixed[12]);
+    const boundary_rows = try @import("stwo_riscv_recursion_air").blake3_recursive_column_rows.ForAir(Airs[2]).init(main[2], fixed[2]);
     const input_count = if (comptime @hasDecl(@TypeOf(source), "externalInputs")) blk: {
         const external = try source.externalInputs(a);
         defer a.free(external);
-        break :blk try @import("blake3_parent_input_inventory.zig").checkExternal(a, graphs, values, scalar_rows, boundary_rows, packed_rows, external);
+        break :blk try @import("stwo_riscv_rv32").recursion_air_blake3_parent_input_inventory.checkExternal(a, graphs, values, scalar_rows, boundary_rows, packed_rows, external);
     } else try inventory(a, graphs, values, scalar_rows, boundary_rows, packed_rows);
     @import("stwo_prover_engine").measurement.process_usage.reportStage("assembly.input_inventory_released");
     {
@@ -190,7 +190,7 @@ fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator
         for (plan.public_terms) |term| if (term.active_in == .segment) {
             public_count = try std.math.add(usize, public_count, 1);
         };
-        var boundaries = try @import("blake3_direct_cohort_columns.zig").ForAir(Airs[2]).init(a, try std.math.add(usize, boundary_rows.rowCount(), public_count));
+        var boundaries = try @import("stwo_riscv_recursion_air").blake3_direct_cohort_columns.ForAir(Airs[2]).init(a, try std.math.add(usize, boundary_rows.rowCount(), public_count));
         defer boundaries.deinit();
         for (0..boundary_rows.rowCount()) |index| try boundaries.append(boundary_rows.rowAt(index));
         // Inventory no longer owns a dense boundary roster. Release the
@@ -202,7 +202,7 @@ fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator
         fixed[2] = &.{};
         // Emit arithmetic cohorts directly into their final committed layout.
         // Dot4 opening rows remain exact sources for the native PCS matcher.
-        var fused = try @import("arithmetic_fusion_rows.zig").materializeColumns(a, &plan, reference, .{ .lanes = &evaluations }, .segment_leaf);
+        var fused = try @import("stwo_riscv_rv32").recursion_air_arithmetic_fusion_rows.materializeColumns(a, &plan, reference, .{ .lanes = &evaluations }, .segment_leaf);
         defer fused.deinit();
         var query_fused = try @import("native_pcs_fusion_rows.zig").materializeColumns(a, source.deep, fused.opening, scalar_rows);
         defer query_fused.deinit();
@@ -397,9 +397,9 @@ fn projectCohort(comptime i: usize, comptime shared: bool, a: std.mem.Allocator,
         if (comptime directCohort(i)) {
             const chunks = directChunks(i, source);
             if (try std.math.add(usize, chunks[0].len, chunks[1].len) != b.fixed[i].items.len) return error.InvalidNativeParentRows;
-            try @import("blake3_row_columns.zig").projectChunks(Air, a, &chunks, log, 1, &columns);
+            try @import("stwo_riscv_air_lang").framework_blake3_row_columns.projectChunks(Air, a, &chunks, log, 1, &columns);
         } else {
-            try @import("blake3_row_columns.zig").project(Air, a, b.rows[i].items, log, 1, &columns);
+            try @import("stwo_riscv_air_lang").framework_blake3_row_columns.project(Air, a, b.rows[i].items, log, 1, &columns);
         }
         main[i] = try columns.toOwnedSlice(a);
     }

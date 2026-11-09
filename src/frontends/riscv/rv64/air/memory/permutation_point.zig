@@ -6,13 +6,14 @@ const core = @import("stwo_core");
 const E = @import("../evaluation.zig");
 const lane = @import("../lane.zig");
 const geometry = @import("../geometry.zig");
-const universal = @import("../../../air/memory_commitment/poseidon2_universal_degree3.zig");
-pub const Relations = @import("../../../air/relation_challenges.zig").Relations;
+const canonical_universal_ea9285 = @import("stwo_riscv_memory").air_poseidon2_universal_equations;
+const canonical_universal_1fa41d = @import("stwo_riscv_memory").air_poseidon2_universal_layout;
+pub const Relations = @import("stwo_riscv_air_lang").shared_air_relation_challenges.Relations;
 pub const Q = E.Q;
-pub const N_MAIN = universal.N_MAIN_COLUMNS;
-pub const N_SUMS = universal.N_SUMS;
-pub const N_INTERACTION = universal.N_INTERACTION_COLUMNS;
-pub const N_CONSTRAINTS = universal.N_CONSTRAINTS + universal.N_SUMS;
+pub const N_MAIN = canonical_universal_1fa41d.N_MAIN_COLUMNS;
+pub const N_SUMS = canonical_universal_1fa41d.N_SUMS;
+pub const N_INTERACTION = canonical_universal_1fa41d.N_INTERACTION_COLUMNS;
+pub const N_CONSTRAINTS = canonical_universal_1fa41d.N_CONSTRAINTS + canonical_universal_1fa41d.N_SUMS;
 /// Draws consumed by `Relations.draw`: twelve `(z, alpha)` pairs in schema order.
 pub const RELATION_DRAWS = 24;
 /// Schema index of the Poseidon2 full-I/O relation inside the twelve pairs.
@@ -114,16 +115,16 @@ pub fn ComponentFor(comptime Lane: type) type {
                 prior.* = try lane.secureSample(F, masks, 2, self.interaction_col_offset + 4 * k, 1, 2);
             }
             sink.scale = try geometry.denominatorInverseFor(F, point, global_log, self.log_size);
-            for (universal.evaluateGeneric(F, main)) |constraint| sink.emit(constraint);
+            for (canonical_universal_ea9285.evaluateGeneric(F, main)) |constraint| sink.emit(constraint);
             const relations = if (Lane == Q) self.relations else &self.relations;
-            for (universal.interactionConstraintsGeneric(F, main, first, sums, previous, self.claims, relations)) |constraint| sink.emit(constraint);
+            for (canonical_universal_ea9285.interactionConstraintsGeneric(F, main, first, sums, previous, self.claims, relations)) |constraint| sink.emit(constraint);
         }
     };
 }
 pub const Component = ComponentFor(Q);
 
 test "lane relation elements match the pinned Stark-V combination" {
-    const Elements = @import("../../../air/relation_challenges.zig").RelationElements(32);
+    const Elements = @import("stwo_riscv_air_lang").shared_air_relation_challenges.RelationElements(32);
     const z = Q.fromU32Unchecked(3, 1, 4, 1);
     const alpha = Q.fromU32Unchecked(5, 9, 2, 6);
     const pinned = Elements.init(z, alpha);

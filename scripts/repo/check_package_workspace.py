@@ -559,22 +559,10 @@ def _validate_api_contract(contract: Contract, failures: list[str]) -> None:
                 )
 
 
-def _validate_layers(
-    contracts: list[Contract],
-    packages: dict[str, Contract],
-    failures: list[str],
-) -> None:
-    for contract in contracts:
-        allowed = ALLOWED_DEPENDENCY_LAYERS[contract.layer]
-        for dependency in contract.dependencies:
-            target = packages.get(dependency)
-            if target is None:
-                continue
-            if target.layer not in allowed:
-                failures.append(
-                    f"{contract.package}: {contract.layer} layer cannot depend on "
-                    f"{target.layer} package {dependency}"
-                )
+def _validate_layers(contracts, packages, failures, repository=None) -> None:
+    ci_package_graph.validate_dependency_layers(
+        repository, contracts, packages, ALLOWED_DEPENDENCY_LAYERS, failures
+    )
 
 
 def _validate_ci_contracts(
@@ -801,7 +789,7 @@ def check_repository(repository: Path) -> list[str]:
     }
     for cycle in dependency_cycles(graph):
         failures.append(f"package workspace: dependency cycle {' -> '.join(cycle)}")
-    _validate_layers(contracts, packages, failures)
+    _validate_layers(contracts, packages, failures, repository)
     generated_embeds = ci_package_graph.generated_embedded_assets(repository)
     for contract in contracts:
         _validate_manifest(contract, failures)

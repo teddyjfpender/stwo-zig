@@ -4,15 +4,15 @@
 //! owner, not a proof receipt. V2 lineage/hash and provider closure remain the
 //! surrounding parent profile's obligations.
 const recursion = struct {
-    const segment_statement_v2 = @import("segment_statement.zig");
+    const segment_statement_v2 = @import("stwo_riscv_rv32").recursion_segment_statement;
     const span_continuation_v1 = @import("span_continuation.zig");
-    const span_statement = @import("span_statement.zig");
+    const span_statement = @import("stwo_riscv_rv32").recursion_span_statement;
     const statement_semantics_circuit = @import("statement_semantics_circuit.zig");
 };
 const air = struct {
-    const composition_circuit = @import("air/composition_circuit.zig");
-    const composition_graph_recorder = @import("air/composition_graph_recorder.zig");
-    const statement_input = @import("air/statement_input.zig");
+    const composition_circuit = @import("stwo_riscv_rv32").recursion_air_composition_circuit;
+    const composition_graph_recorder = @import("stwo_riscv_rv32").recursion_air_composition_graph_recorder;
+    const statement_input = @import("stwo_riscv_recursion_air").statement_input;
 };
 const std = @import("std");
 const core = @import("stwo_core");

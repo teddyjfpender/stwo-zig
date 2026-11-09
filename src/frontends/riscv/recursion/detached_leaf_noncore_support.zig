@@ -16,10 +16,10 @@ pub fn For(comptime leaf_outer: type) type {
         const boundary_authority = @import("segment_leaf_outer_authority.zig");
         const input_provider_authority = @import("segment_publication_input_provider_authority.zig");
         const input_provider_air = @import("air/segment_publication_input_provider.zig");
-        const shared_provider = @import("air/universal_shared_provider.zig");
-        const universal = @import("air/universal_challenges.zig");
-        const native_relations_mod = @import("../air/relation_challenges.zig");
-        const range_bridge = @import("air/range_check_8_8_bridge.zig");
+        const shared_provider = @import("stwo_riscv_rv32").recursion_air_universal_shared_provider;
+        const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
+        const native_relations_mod = @import("stwo_riscv_air_lang").shared_air_relation_challenges;
+        const range_bridge = @import("stwo_riscv_rv32").recursion_air_range_check_8_8_bridge;
         const noncore_audits = @import("segment_outer_noncore_audits.zig");
         const OWNED_ROW_INDICES = noncore_audits.NONCORE_ROW_INDICES;
         const PreparedNativeV2LeafOuter = leaf_outer.PreparedNativeV2LeafOuter;

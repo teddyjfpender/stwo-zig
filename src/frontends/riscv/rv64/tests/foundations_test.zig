@@ -1,5 +1,5 @@
 const std = @import("std");
-const rv = @import("../mod.zig");
+const rv = @import("../implementation.zig");
 const cache = @import("../decode_cache.zig");
 const machine = @import("../machine.zig");
 const mem = @import("../memory.zig");

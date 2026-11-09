@@ -11,24 +11,24 @@ const pcs_core = @import("stwo_core").pcs;
 const pcs_verifier = @import("stwo_core").pcs.verifier;
 const prover_pcs = @import("stwo_prover_engine").pcs;
 const m31 = @import("stwo_core").fields.m31;
-const fixed_program_table = @import("../air/program/fixed_table.zig");
-const program_commitment = @import("../air/program/commitment.zig");
-const base_assembly = @import("base_component_assembly.zig");
+const fixed_program_table = @import("stwo_riscv_rv32").air_program_fixed_table;
+const program_commitment = @import("stwo_riscv_rv32").air_program_commitment;
+const base_assembly = @import("stwo_riscv_rv32").prover_base_component_assembly;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
-const logup = @import("../air/logup.zig");
+const logup = @import("stwo_riscv_air_lang").shared_air_logup;
 const lookup_physical_v2 =
-    @import("../air/lang/lookup_physical_manifest.zig");
-const statement = @import("../air/statement.zig");
-const public_data_v2 = @import("../air/public_data_v2.zig");
-const statement_v2 = @import("../air/statement_v2.zig");
-const public_data_v1 = @import("../air/public_data.zig");
-const incremental_public = @import("../air/incremental_public_logup_v4.zig");
+    @import("stwo_riscv_rv32").air_lang_lookup_physical_manifest;
+const statement = @import("stwo_riscv_rv32").air_statement;
+const public_data_v2 = @import("stwo_riscv_rv32").air_public_data_v2;
+const statement_v2 = @import("stwo_riscv_rv32").air_statement_v2;
+const public_data_v1 = @import("stwo_riscv_rv32").air_public_data;
+const incremental_public = @import("stwo_riscv_rv32").air_incremental_public_logup_v4;
 const ethereum_statement =
     @import("../air/guest_precompile/ethereum_statement.zig");
-const transcript = @import("../air/transcript/mod.zig");
-const ethereum_context = @import("../recursion/ethereum_leaf_context.zig");
-const incremental_bridge = @import("incremental_bridge_external.zig");
+const transcript = @import("stwo_riscv_rv32").air_transcript_mod;
+const ethereum_context = @import("../compat/product_tree/recursion/ethereum_leaf_context.zig");
+const incremental_bridge = @import("stwo_riscv_rv32").prover_incremental_bridge_external;
 const ethereum_assembly = @import("guest_precompile/ethereum_assembly.zig");
 const ethereum_interaction = @import("guest_precompile/ethereum_interaction.zig");
 const ethereum_main = @import("guest_precompile/ethereum_main.zig");
@@ -36,10 +36,10 @@ const ethereum_preprocessed =
     @import("guest_precompile/ethereum_preprocessed.zig");
 const ethereum_transcript = @import("guest_precompile/ethereum_transcript.zig");
 const ethereum_types = @import("guest_precompile/ethereum_types.zig");
-const external_tree = @import("guest_precompile/external_profile_tree.zig");
-const proof_capture_sha256 = @import("proof_capture_sha256.zig");
-const proof_workspace = @import("proof_workspace.zig");
-const types = @import("types.zig");
+const external_tree = @import("stwo_riscv_rv32").prover_guest_precompile_external_profile_tree;
+const proof_capture_sha256 = @import("stwo_riscv_rv32").prover_proof_capture_sha256;
+const proof_workspace = @import("stwo_riscv_rv32").prover_proof_workspace;
+const types = @import("stwo_riscv_rv32").prover_types;
 
 pub const PRODUCTION_ACTIVE = false;
 pub const FORMAT_VERSION: u16 = 4;
@@ -928,7 +928,7 @@ fn transcriptIdentity(
     hashInt(&hash, u64, base_claim.interaction_pow);
     hashQm31(&hash, extension_claim.componentSum());
     hashQm31(&hash, bridge_claim);
-    var base_draws: [@import("../air/relation_challenges.zig").DRAW_COUNT]QM31 =
+    var base_draws: [@import("stwo_riscv_air_lang").shared_air_relation_challenges.DRAW_COUNT]QM31 =
         undefined;
     relations.base.writeDraws(&base_draws) catch unreachable;
     for (base_draws) |draw| hashQm31(&hash, draw);

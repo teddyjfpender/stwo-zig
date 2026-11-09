@@ -8,14 +8,14 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const prover_engine = @import("stwo_prover_engine").engine;
-const poseidon2 = @import("poseidon2_channel.zig");
+const poseidon2 = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
 const native_scheduled = @import("native_scheduled_channel.zig");
 
-pub const Hasher = @import("engine_protocol.zig").Hasher;
-pub const MerkleChannel = @import("engine_protocol.zig").MerkleChannel;
-pub const Channel = @import("engine_protocol.zig").Channel;
-pub const Proof = @import("engine_protocol.zig").Proof;
-pub const ExtendedProof = @import("engine_protocol.zig").ExtendedProof;
+pub const Hasher = @import("stwo_riscv_recursion_air").protocol_recursion_engine_protocol.Hasher;
+pub const MerkleChannel = @import("stwo_riscv_recursion_air").protocol_recursion_engine_protocol.MerkleChannel;
+pub const Channel = @import("stwo_riscv_recursion_air").protocol_recursion_engine_protocol.Channel;
+pub const Proof = @import("stwo_riscv_recursion_air").protocol_recursion_engine_protocol.Proof;
+pub const ExtendedProof = @import("stwo_riscv_recursion_air").protocol_recursion_engine_protocol.ExtendedProof;
 
 pub fn ProverEngineForBackend(comptime Backend: type) type {
     return prover_engine.ProverEngine(
@@ -29,7 +29,7 @@ pub fn ProverEngineForBackend(comptime Backend: type) type {
 /// Explicit experimental suite selection. Production defaults and scheduled
 /// Poseidon identities are unchanged; the normal engine pipeline is reused.
 pub fn Blake3ProverEngineForBackend(comptime Backend: type) type {
-    const suite = @import("blake3_engine_protocol.zig");
+    const suite = @import("stwo_riscv_recursion_air").protocol_recursion_blake3_engine_protocol;
     return prover_engine.ProverEngine(Backend, suite.Hasher, suite.MerkleChannel, suite.Channel);
 }
 

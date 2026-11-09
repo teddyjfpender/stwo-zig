@@ -19,22 +19,22 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-const public_data_mod = @import("../air/public_data.zig");
-const fixed_wire = @import("fixed_wire.zig");
+const public_data_mod = @import("stwo_riscv_rv32").air_public_data;
+const fixed_wire = @import("stwo_riscv_recursion_air").protocol_recursion_fixed_wire;
 const leaf_authority = @import("segment_leaf_authority.zig");
 const transcript_witness = @import("segment_transcript_witness.zig");
 const transcript_source_mod = @import("segment_transcript_outer_source.zig");
 const statement_source = @import("segment_statement_outer_source.zig");
 const public_source = @import("segment_public_outer_source.zig");
 
-const manifest_mod = @import("air/universal_adapter_manifest.zig");
-const relation_interaction = @import("air/relation_interaction.zig");
-const roster = @import("air/universal_roster.zig");
-const schedule = @import("air/verifier_schedule.zig");
-const shared_provider = @import("air/universal_shared_provider.zig");
-const universal = @import("air/universal_challenges.zig");
-const universal_manifest = @import("air/universal_manifest.zig");
-const lowering = @import("air/verifier_arithmetic_lowering.zig");
+const manifest_mod = @import("stwo_riscv_air_lang").framework_universal_adapter_manifest;
+const relation_interaction = @import("stwo_riscv_air_lang").framework_relation_interaction;
+const roster = @import("stwo_riscv_air_lang").framework_universal_roster;
+const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
+const shared_provider = @import("stwo_riscv_rv32").recursion_air_universal_shared_provider;
+const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
+const universal_manifest = @import("stwo_riscv_rv32").recursion_air_universal_manifest;
+const lowering = @import("stwo_riscv_rv32").recursion_air_verifier_arithmetic_lowering;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const FIRST_PREFIX_ROW: usize = @intFromEnum(roster.Component.control);

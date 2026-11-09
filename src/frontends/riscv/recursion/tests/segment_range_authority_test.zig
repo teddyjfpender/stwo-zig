@@ -4,17 +4,17 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const public_data_mod = @import("../../air/public_data.zig");
-const lookup_counter = @import("../../air/lookups/tables/counter.zig");
-const range_bridge = @import("../air/range_check_8_8_bridge.zig");
-const statement_air = @import("../air/statement_semantics_input.zig");
-const statement_relation = @import("../air/statement_semantics_input_relation.zig");
-const statement_witness = @import("../air/statement_semantics_input_witness.zig");
-const claim_air = @import("../air/vm_public_claim_input.zig");
+const public_data_mod = @import("stwo_riscv_rv32").air_public_data;
+const lookup_counter = @import("stwo_riscv_air_lang").shared_air_lookups_tables_counter;
+const range_bridge = @import("stwo_riscv_rv32").recursion_air_range_check_8_8_bridge;
+const statement_air = @import("stwo_riscv_recursion_air").statement_semantics_input;
+const statement_relation = @import("stwo_riscv_recursion_air").statement_semantics_input_relation;
+const statement_witness = @import("stwo_riscv_rv32").recursion_air_statement_semantics_input_witness;
+const claim_air = @import("stwo_riscv_recursion_air").vm_public_claim_input;
 const claim_relation = @import("claim_relation_test_support.zig");
-const claim_witness = @import("../air/vm_public_claim_input_witness.zig");
+const claim_witness = @import("stwo_riscv_rv32").recursion_air_vm_public_claim_input_witness;
 const leaf_owner = @import("../segment_leaf_authority.zig");
-const claim = @import("../vm_public_claim.zig");
+const claim = @import("stwo_riscv_rv32").recursion_vm_public_claim;
 const owner = @import("../segment_range_authority.zig");
 
 const BINDING_COUNT: usize = 6;
@@ -80,16 +80,16 @@ test "R-012 segment range authority pins the complete two-source ledger" {
     try authority.validate();
     try std.testing.expectEqual(@as(usize, 2), authority.sources.len);
     try std.testing.expectEqual(
-        @import("../air/universal_roster.zig").Component.statement_semantics_input,
+        @import("stwo_riscv_air_lang").framework_universal_roster.Component.statement_semantics_input,
         authority.sources[0].component,
     );
     try std.testing.expectEqual(@as(u8, 2), authority.sources[0].event_ordinal);
     try std.testing.expectEqual(
-        @import("../../air/lang/relation.zig").Role.request,
+        @import("stwo_riscv_air_lang").relation.Role.request,
         authority.sources[0].role,
     );
     try std.testing.expectEqual(
-        @import("../air/universal_roster.zig").Component.vm_public_claim_input,
+        @import("stwo_riscv_air_lang").framework_universal_roster.Component.vm_public_claim_input,
         authority.sources[1].component,
     );
     try std.testing.expectEqual(@as(u8, 5), authority.sources[1].event_ordinal);
@@ -98,11 +98,11 @@ test "R-012 segment range authority pins the complete two-source ledger" {
     defer statement_definition.deinit();
     const statement_plan = try statement_relation.authenticate(&statement_definition);
     try std.testing.expectEqual(
-        @import("../../air/lang/relation.zig").Domain.range_check_8_8,
+        @import("stwo_riscv_air_lang").relation.Domain.range_check_8_8,
         statement_plan.events[authority.sources[0].event_ordinal].domain,
     );
     try std.testing.expectEqual(
-        @import("../../air/lang/relation.zig").Role.request,
+        @import("stwo_riscv_air_lang").relation.Role.request,
         statement_plan.events[authority.sources[0].event_ordinal].role,
     );
 
@@ -110,11 +110,11 @@ test "R-012 segment range authority pins the complete two-source ledger" {
     defer claim_definition.deinit();
     const claim_plan = try claim_relation.authenticate(&claim_definition);
     try std.testing.expectEqual(
-        @import("../../air/lang/relation.zig").Domain.range_check_8_8,
+        @import("stwo_riscv_air_lang").relation.Domain.range_check_8_8,
         claim_plan.events[authority.sources[1].event_ordinal].domain,
     );
     try std.testing.expectEqual(
-        @import("../../air/lang/relation.zig").Role.request,
+        @import("stwo_riscv_air_lang").relation.Role.request,
         claim_plan.events[authority.sources[1].event_ordinal].role,
     );
 

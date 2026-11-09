@@ -7,19 +7,19 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-const universal = @import("air/universal_challenges.zig");
+const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
 const boundary_air = @import("segment_leaf_outer_air.zig");
 const boundary = @import("segment_leaf_outer_authority.zig");
 const witness = @import("air/segment_publication_input_provider_witness.zig");
 const public_support = @import("segment_public_outer_test_support.zig");
-const public_data_v2 = @import("../air/public_data_v2.zig");
-const native_relations = @import("../air/relation_challenges.zig");
-const lookup = @import("../air/lang/lookup_physical_manifest.zig");
-const statement_v1 = @import("../air/statement.zig");
-const statement_v2 = @import("../air/statement_v2.zig");
-const trace_mod = @import("../runner/trace.zig");
-const vm_air_profile = @import("vm_air_profile_v2.zig");
-const vm_leaf_context = @import("vm_leaf_context_v2.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").air_public_data_v2;
+const native_relations = @import("stwo_riscv_air_lang").shared_air_relation_challenges;
+const lookup = @import("stwo_riscv_rv32").air_lang_lookup_physical_manifest;
+const statement_v1 = @import("stwo_riscv_rv32").air_statement;
+const statement_v2 = @import("stwo_riscv_rv32").air_statement_v2;
+const trace_mod = @import("stwo_riscv_rv32").runner_trace;
+const vm_air_profile = @import("stwo_riscv_rv32").recursion_vm_air_profile_v2;
+const vm_leaf_context = @import("stwo_riscv_rv32").recursion_vm_leaf_context_v2;
 
 pub const component_descs = [_]statement_v1.FamilyComponentDesc{
     .{
@@ -40,7 +40,7 @@ pub const infra_descs = [_]statement_v1.InfraComponentDesc{.{
     .kind = .program,
     .log_size = 5,
     .n_rows = 11,
-    .n_columns = @import("../air/program/commitment.zig").N_MAIN_COLUMNS,
+    .n_columns = @import("stwo_riscv_rv32").air_program_commitment.N_MAIN_COLUMNS,
 }};
 
 pub const VerifiedSources = struct {
@@ -220,7 +220,7 @@ fn verifiedContextWithCore(
     const relations = native_relations.Relations.dummy();
     const sums = try statement_v2.NativePublicSums.init(data, &relations);
     const receipt = try native.verifiedReceipt();
-    const sampled_count = try @import("vm_composition_base_geometry.zig").expectedSampledValueCount(&native.core, &manifest);
+    const sampled_count = try @import("stwo_riscv_rv32").recursion_vm_composition_base_geometry.expectedSampledValueCount(&native.core, &manifest);
     return vm_leaf_context.testing.initFromFacts(
         allocator,
         &native,

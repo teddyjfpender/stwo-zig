@@ -10,23 +10,23 @@ const pcs_core = @import("stwo_core").pcs;
 const prover_api = @import("stwo_prover_api");
 const stage_profile = prover_api.stage_profile;
 const work_pool = @import("stwo_prover_engine").work_pool;
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
-const public_data_v2 = @import("../../air/public_data_v2.zig");
-const statement_v2 = @import("../../air/statement_v2.zig");
+const lookup_physical_v2 = @import("stwo_riscv_rv32").air_lang_lookup_physical_manifest;
+const public_data_v2 = @import("stwo_riscv_rv32").air_public_data_v2;
+const statement_v2 = @import("stwo_riscv_rv32").air_statement_v2;
 const proof_admission = @import("../../air/guest_precompile/ethereum_proof_admission.zig");
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
-const keccak_calls_mod = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
-const keccak_rows_mod = @import("../../runner/guest_precompile/keccakf.zig");
-const recovery_calls_mod = @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const recovery_rows_mod = @import("../../runner/guest_precompile/secp256k1_recover.zig");
+const keccak_calls_mod = @import("stwo_riscv_precompiles").runner_keccakf_call_buffer;
+const keccak_rows_mod = @import("stwo_riscv_rv32").runner_guest_precompile_keccakf;
+const recovery_calls_mod = @import("stwo_riscv_precompiles").runner_secp256k1_recover_call_buffer;
+const recovery_rows_mod = @import("stwo_riscv_rv32").runner_guest_precompile_secp256k1_recover;
 const runner_result = @import("../../runner/result.zig");
-const commitment_witness = @import("../commitment_witness.zig");
-const base_orchestration = @import("../orchestration.zig");
-const proof_finalize = @import("../proof_finalize.zig");
-const proof_workspace = @import("../proof_workspace.zig");
-const statement_geometry = @import("../statement_geometry.zig");
-const base_types = @import("../types.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
+const commitment_witness = @import("stwo_riscv_rv32").prover_commitment_witness;
+const base_orchestration = @import("stwo_riscv_rv32").prover_orchestration;
+const proof_finalize = @import("stwo_riscv_rv32").prover_proof_finalize;
+const proof_workspace = @import("stwo_riscv_rv32").prover_proof_workspace;
+const statement_geometry = @import("stwo_riscv_rv32").prover_statement_geometry;
+const base_types = @import("stwo_riscv_rv32").prover_types;
+const native_provider_omit = @import("stwo_riscv_rv32").prover_memory_provider_shards_native_provider_omit;
 const ethereum_assembly = @import("ethereum_assembly.zig");
 const ethereum_cancellation = @import("ethereum_cancellation.zig");
 const ethereum_interaction = @import("ethereum_interaction.zig");
@@ -625,7 +625,7 @@ pub fn proveWithEngineUsingChannelAndExecutionInternal(
 }
 
 fn validateClockAuthority(
-    trace: *const @import("../../runner/trace.zig").Trace,
+    trace: *const @import("stwo_riscv_rv32").runner_trace.Trace,
     keccak_calls: usize,
     keccak_rows: usize,
     recovery_calls: usize,

@@ -1,8 +1,8 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const pair_node = @import("pair_node.zig");
-const protocol = @import("protocol.zig");
-const channel = @import("poseidon2_channel.zig");
+const protocol = @import("stwo_riscv_recursion_air").protocol_recursion_protocol;
+const channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
 
 const m31 = stwo_core.fields.m31;
 const Digest = pair_node.Digest;

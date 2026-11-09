@@ -75,7 +75,7 @@ pub const ClaimReference = struct {
         return initWithMachineIoPolicy(.ethereum_initial_inputs, allocator, shape, circuit_id);
     }
 
-    pub fn nativeRootConsumerRow(self: *const ClaimReference, side: u1) ?@import("air/statement_semantics_input_witness.zig").Row {
+    pub fn nativeRootConsumerRow(self: *const ClaimReference, side: u1) ?@import("stwo_riscv_rv32").recursion_air_statement_semantics_input_witness.Row {
         for (self.inputs) |binding| if (binding.source == .native_continuation_root and binding.source.native_continuation_root == side) return .{
             .source = .statement,
             .integer = false,
@@ -83,7 +83,7 @@ pub const ClaimReference = struct {
             .circuit_id = self.circuit_id,
             .node_id = binding.node_id,
             .use_count = binding.use_count,
-            .statement_scope = @import("air/vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE,
+            .statement_scope = @import("stwo_riscv_rv32").recursion_air_vm_statement_roots.NATIVE_CONTINUATION_SCOPE,
             .word_index = side,
         };
         return null;

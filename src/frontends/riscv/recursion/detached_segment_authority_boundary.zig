@@ -3,11 +3,11 @@ const std = @import("std");
 const core = @import("stwo_core");
 const authority = @import("segment_expected_authority_hash.zig");
 const call_source = @import("segment_authority_wire.zig");
-const statement = @import("../air/statement_geometry.zig");
-const preimage = @import("../air/statement_authority_preimage.zig");
-const PublicDataV2 = @import("../air/public_data_v2.zig").PublicDataV2;
-const universal = @import("air/universal_challenges.zig");
-const poseidon_call = @import("../air/memory_commitment/poseidon2_call.zig");
+const statement = @import("stwo_riscv_rv32").air_statement_geometry;
+const preimage = @import("stwo_riscv_rv32").air_statement_authority_preimage;
+const PublicDataV2 = @import("stwo_riscv_rv32").air_public_data_v2.PublicDataV2;
+const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
+const poseidon_call = @import("stwo_riscv_memory").air_poseidon2_call;
 const QM31 = core.fields.qm31.QM31;
 const max_calls = authority.authorityHashCallCount(statement.MAX_COMPONENTS, statement.MAX_INFRA_COMPONENTS) catch unreachable;
 

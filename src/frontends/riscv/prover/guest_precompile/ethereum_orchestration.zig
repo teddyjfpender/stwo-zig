@@ -7,20 +7,20 @@ const stage_profile = prover_api.stage_profile;
 const work_pool = @import("stwo_prover_engine").work_pool;
 const proof_admission = @import("../../air/guest_precompile/ethereum_proof_admission.zig");
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const keccak_calls_mod = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
-const keccak_rows_mod = @import("../../runner/guest_precompile/keccakf.zig");
-const recovery_calls_mod = @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const recovery_rows_mod = @import("../../runner/guest_precompile/secp256k1_recover.zig");
-const memory_state = @import("../../runner/memory_state.zig");
-const state_chain = @import("../../runner/state_chain.zig");
-const trace_mod = @import("../../runner/trace.zig");
-const commitment_witness = @import("../commitment_witness.zig");
-const base_orchestration = @import("../orchestration.zig");
-const proof_finalize = @import("../proof_finalize.zig");
-const proof_workspace = @import("../proof_workspace.zig");
-const statement_geometry = @import("../statement_geometry.zig");
-const base_types = @import("../types.zig");
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const keccak_calls_mod = @import("stwo_riscv_precompiles").runner_keccakf_call_buffer;
+const keccak_rows_mod = @import("stwo_riscv_rv32").runner_guest_precompile_keccakf;
+const recovery_calls_mod = @import("stwo_riscv_precompiles").runner_secp256k1_recover_call_buffer;
+const recovery_rows_mod = @import("stwo_riscv_rv32").runner_guest_precompile_secp256k1_recover;
+const memory_state = @import("stwo_riscv_isa").runner_memory_state;
+const state_chain = @import("stwo_riscv_isa").runner_state_chain;
+const trace_mod = @import("stwo_riscv_rv32").runner_trace;
+const commitment_witness = @import("stwo_riscv_rv32").prover_commitment_witness;
+const base_orchestration = @import("stwo_riscv_rv32").prover_orchestration;
+const proof_finalize = @import("stwo_riscv_rv32").prover_proof_finalize;
+const proof_workspace = @import("stwo_riscv_rv32").prover_proof_workspace;
+const statement_geometry = @import("stwo_riscv_rv32").prover_statement_geometry;
+const base_types = @import("stwo_riscv_rv32").prover_types;
 const ethereum_assembly = @import("ethereum_assembly.zig");
 const ethereum_cancellation = @import("ethereum_cancellation.zig");
 const ethereum_interaction = @import("ethereum_interaction.zig");
@@ -255,7 +255,7 @@ pub fn proveWithEngineUsingChannelAndExecution(
         try Engine.commit(&scheme, allocator, tree0, recorder, channel);
     }
 
-    var retained: @import("external_profile_tree.zig").MainRetained = undefined;
+    var retained: @import("stwo_riscv_rv32").prover_guest_precompile_external_profile_tree.MainRetained = undefined;
     {
         var stage = try stage_profile.StageScope.begin(
             recorder,

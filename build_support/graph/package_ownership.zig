@@ -6,6 +6,16 @@
 const std = @import("std");
 
 pub const Package = enum {
+    riscv_isa,
+    riscv_air_lang,
+    riscv_memory,
+    riscv_recursion_air,
+    riscv_precompiles,
+    riscv_rv32,
+    riscv_rv64,
+    riscv_recursion,
+    riscv_testing,
+
     core,
     backend_contracts,
     prover_api,
@@ -47,6 +57,16 @@ const Owner = struct {
 };
 
 const owners = [_]Owner{
+    .{ .prefix = "src/frontends/riscv/isa/", .package = .riscv_isa, .dependency_name = "stwo_riscv_isa" },
+    .{ .prefix = "src/frontends/riscv/air_lang/", .package = .riscv_air_lang, .dependency_name = "stwo_riscv_air_lang" },
+    .{ .prefix = "src/frontends/riscv/memory/", .package = .riscv_memory, .dependency_name = "stwo_riscv_memory" },
+    .{ .prefix = "src/frontends/riscv/recursion_air/", .package = .riscv_recursion_air, .dependency_name = "stwo_riscv_recursion_air" },
+    .{ .prefix = "src/frontends/riscv/precompiles/", .package = .riscv_precompiles, .dependency_name = "stwo_riscv_precompiles" },
+    .{ .prefix = "src/frontends/riscv/rv32/", .package = .riscv_rv32, .dependency_name = "stwo_riscv_rv32" },
+    .{ .prefix = "src/frontends/riscv/rv64/", .package = .riscv_rv64, .dependency_name = "stwo_riscv_rv64" },
+    .{ .prefix = "src/frontends/riscv/recursion/", .package = .riscv_recursion, .dependency_name = "stwo_riscv_recursion" },
+    .{ .prefix = "src/frontends/riscv/testing/", .package = .riscv_testing, .dependency_name = "stwo_riscv_testing" },
+
     .{ .prefix = "src/waist/core/", .package = .core, .dependency_name = "stwo_core" },
     .{ .prefix = "src/waist/backend/", .package = .backend_contracts, .dependency_name = "stwo_backend_contracts" },
     .{ .prefix = "src/waist/prover_api/", .package = .prover_api, .dependency_name = "stwo_prover_api" },

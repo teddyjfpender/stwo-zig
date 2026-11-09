@@ -33,8 +33,8 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const permutation = @import("../air/memory_commitment/poseidon2.zig");
-const native_channel = @import("poseidon2_channel.zig");
+const permutation = @import("stwo_riscv_memory").air_poseidon2;
+const native_channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
 const transcript = @import("transcript_program_v2.zig");
 
 pub const FORMAT_VERSION: u16 = 4;

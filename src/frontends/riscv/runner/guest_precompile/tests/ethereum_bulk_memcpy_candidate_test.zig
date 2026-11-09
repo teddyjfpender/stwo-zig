@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const execution_profile = @import("../../../isa/execution_profile.zig");
-const authority_mod = @import("../../../isa/ethereum_bulk_memcpy_candidate.zig");
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const authority_mod = @import("../../../compat/product_tree/isa/ethereum_bulk_memcpy_candidate.zig");
 const segment_session = @import("../../segment_session.zig");
-const test_elf = @import("../test_elf.zig");
+const test_elf = @import("stwo_riscv_rv32").runner_guest_precompile_test_elf;
 
 test "Ethereum bulk memcpy candidate retires one exact authority-bound call" {
     const elf = test_elf.buildEthereumBulkMemcpyCandidate();

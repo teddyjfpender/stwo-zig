@@ -4,7 +4,7 @@ const recursion = struct {
     const recording_poseidon_channel_v4 = @import("recording_poseidon_channel.zig");
 };
 const air = struct {
-    const universal_challenges = @import("air/universal_challenges.zig");
+    const universal_challenges = @import("stwo_riscv_air_lang").framework_universal_challenges;
 };
 const std = @import("std");
 const core = @import("stwo_core");

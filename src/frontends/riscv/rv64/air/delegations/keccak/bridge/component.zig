@@ -13,7 +13,7 @@ const L = @import("layout.zig");
 const E = @import("equations.zig");
 const sinks = @import("../../../evaluation.zig");
 const geometry = @import("../../../geometry.zig");
-const points = @import("../../../../../air/component_point_support.zig");
+const points = @import("stwo_riscv_air_lang").shared_air_component_point_support;
 const lane = @import("../../../lane.zig");
 pub fn ComponentFor(comptime Lane: type) type {
     return struct {

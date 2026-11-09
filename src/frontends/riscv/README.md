@@ -230,3 +230,15 @@ The CSP benchmark classifier reports these publication states:
   and memory measurements are available under admissible power conditions.
 - `host-qualified-non-comparable`: the host, matrix or memory evidence does not
   meet the publication contract. Keep its results separate from comparable runs.
+
+The compatibility umbrella directly composes these canonical child packages:
+
+- `stwo_riscv_isa`
+- `stwo_riscv_air_lang`
+- `stwo_riscv_memory`
+- `stwo_riscv_recursion_air`
+- `stwo_riscv_precompiles`
+- `stwo_riscv_rv32`
+- `stwo_riscv_rv64`
+- `stwo_riscv_recursion`
+- `stwo_riscv_testing`

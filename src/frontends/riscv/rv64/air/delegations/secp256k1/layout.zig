@@ -2,8 +2,8 @@
 const std = @import("std");
 const core = @import("stwo_core");
 pub const P = @import("program.zig");
-pub const mul = @import("../../../../air/guest_precompile/secp256k1_mul_direct.zig");
-pub const linear = @import("../../../../air/guest_precompile/secp256k1_linear_direct.zig");
+pub const mul = @import("stwo_riscv_precompiles").air_secp256k1_mul_direct;
+pub const linear = @import("stwo_riscv_precompiles").air_secp256k1_linear_direct;
 pub const Kind = enum { product, linear };
 /// Receiver-owned relation premise. Legacy bridges require local operand
 /// ranges; only Word16 receivers with canonical positive Wire35 producers

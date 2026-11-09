@@ -77,7 +77,7 @@ pub const Prepared = struct {
         return self.ownedCircuit().graph();
     }
 
-    pub fn laneProfile(self: *const Prepared) circuit.Error!@import("pcs_deep_input_witness.zig").LaneProfile {
+    pub fn laneProfile(self: *const Prepared) circuit.Error!@import("stwo_riscv_rv32").recursion_air_pcs_deep_input_witness.LaneProfile {
         return self.ownedCircuit().laneProfile();
     }
 

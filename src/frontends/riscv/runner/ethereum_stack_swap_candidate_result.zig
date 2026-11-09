@@ -2,10 +2,10 @@
 
 const std = @import("std");
 
-const authority_mod = @import("../isa/ethereum_stack_swap_candidate.zig");
+const authority_mod = @import("../compat/product_tree/isa/ethereum_stack_swap_candidate.zig");
 const result_mod = @import("result.zig");
 const combined_state = @import("guest_precompile/ethereum_stack_swap_candidate.zig");
-const swap_tape = @import("guest_precompile/stack_swap_session_tape.zig");
+const swap_tape = @import("stwo_riscv_precompiles").runner_stack_swap_session_tape;
 
 pub const production_active = false;
 

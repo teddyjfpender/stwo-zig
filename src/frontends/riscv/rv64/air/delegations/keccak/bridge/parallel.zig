@@ -12,7 +12,7 @@ const sinks = @import("../../../evaluation.zig");
 const work = engine.work_pool;
 const Column = engine.air.accumulation.ColumnAccumulator;
 const packed_rows = @import("packed_rows.zig");
-const points = @import("../../../../../air/component_point_support.zig");
+const points = @import("stwo_riscv_air_lang").shared_air_component_point_support;
 pub fn evaluatePart(component: *const C.Component, evaluation: *const Eval, part: usize, output: *Column, inverse: M, pool: ?*work.WorkPool) !void {
     const simd = if (comptime @import("builtin").is_test) testing.simd else true;
     return evaluateImpl(component, evaluation, part, output, inverse, pool, simd);

@@ -1,0 +1,58 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_isa",
+  "version": "0.1.0",
+  "layer": "frontend",
+  "owner": "riscv-frontend",
+  "public_modules": {
+    "stwo_riscv_isa": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../../waist/core"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "access_clock",
+    "authority",
+    "bulk_memcpy_candidate",
+    "bulk_memcpy_private_registry",
+    "custom0",
+    "decode",
+    "execution_profile",
+    "host_interface",
+    "implementation",
+    "opcode_manifest",
+    "profile",
+    "runner_cpu",
+    "runner_decode",
+    "runner_execution_boundary",
+    "runner_memory",
+    "runner_memory_state",
+    "runner_state_chain",
+    "runner_trace_row",
+    "sha256_compression",
+    "stack_swap_candidate",
+    "stack_swap_private_registry"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "access_clock.zig::access clock: instruction buckets are ordered and reserve every fourth value"
+    ],
+    "invariant_tests": [
+      "runner/state_chain.zig::state_chain: register access tracking"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_isa_package",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/riscv/isa/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

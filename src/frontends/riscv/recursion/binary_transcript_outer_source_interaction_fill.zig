@@ -3,9 +3,9 @@
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const binary_authority = @import("binary_pair_authority.zig");
-const manifest_mod = @import("air/universal_adapter_manifest.zig");
-const schedule = @import("air/verifier_schedule.zig");
-const universal = @import("air/universal_challenges.zig");
+const manifest_mod = @import("stwo_riscv_air_lang").framework_universal_adapter_manifest;
+const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
+const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
 
 pub fn fill(
     self: anytype,

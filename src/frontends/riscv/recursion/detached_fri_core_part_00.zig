@@ -20,12 +20,12 @@ pub fn Namespace(comptime context: type) type {
             pub const recursion = @import("detached_fri_core_dependencies.zig");
             pub const air = struct {
                 pub const memory_commitment = struct {
-                    pub const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
+                    pub const poseidon2_air = @import("stwo_riscv_memory").air_poseidon2_air;
                 };
-                pub const public_data = @import("../air/public_data.zig");
-                pub const public_data_v2 = @import("../air/public_data_v2.zig");
-                pub const statement = @import("../air/statement.zig");
-                pub const typed_poseidon2_authority = @import("../air/lang/typed_poseidon2_authority.zig");
+                pub const public_data = @import("stwo_riscv_rv32").air_public_data;
+                pub const public_data_v2 = @import("stwo_riscv_rv32").air_public_data_v2;
+                pub const statement = @import("stwo_riscv_rv32").air_statement;
+                pub const typed_poseidon2_authority = @import("stwo_riscv_memory").typed_typed_poseidon2_authority;
             };
         };
         pub const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;

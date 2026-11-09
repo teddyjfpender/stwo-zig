@@ -1,7 +1,7 @@
 const air = struct {
-    const direct_constraint_program = @import("air/direct_constraint_program.zig");
-    const relation_interaction = @import("air/relation_interaction.zig");
-    const universal_relation_binding = @import("air/universal_relation_binding.zig");
+    const direct_constraint_program = @import("stwo_riscv_air_lang").framework_direct_constraint_program;
+    const relation_interaction = @import("stwo_riscv_air_lang").framework_relation_interaction;
+    const universal_relation_binding = @import("stwo_riscv_air_lang").framework_universal_relation_binding;
 };
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;

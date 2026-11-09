@@ -1,7 +1,7 @@
 //! AIR reuses the same std-only operation topology as native service execution.
-const native = @import("../../../ethereum_services/secp256k1.zig");
-pub const field = @import("../../../../air/guest_precompile/secp256k1_field.zig");
-pub const affine = @import("../../../../air/guest_precompile/secp256k1_affine.zig");
+const native = @import("stwo_riscv_precompiles").rv64_services_secp256k1;
+pub const field = @import("stwo_riscv_precompiles").air_secp256k1_field;
+pub const affine = @import("stwo_riscv_precompiles").air_secp256k1_affine;
 pub const Kind = native.Kind;
 pub const Ref = native.Ref;
 pub const Operation = native.Operation;

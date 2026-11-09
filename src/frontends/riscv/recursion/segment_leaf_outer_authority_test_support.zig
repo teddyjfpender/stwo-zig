@@ -6,15 +6,15 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const air_v2 = @import("segment_leaf_outer_air.zig");
 const authority = @import("segment_leaf_outer_authority.zig");
 const source_v2 = @import("segment_leaf_authority_v2.zig");
-const public_data_v2 = @import("../air/public_data_v2.zig");
-const native_relations = @import("../air/relation_challenges.zig");
-const statement_v1 = @import("../air/statement.zig");
-const statement_v2 = @import("../air/statement_v2.zig");
-const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
-const support = @import("../air/public_data_test_support.zig");
-const relation = @import("../air/lang/relation.zig");
-const framework = @import("air/framework_interaction.zig");
-const universal = @import("air/universal_challenges.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").air_public_data_v2;
+const native_relations = @import("stwo_riscv_air_lang").shared_air_relation_challenges;
+const statement_v1 = @import("stwo_riscv_rv32").air_statement;
+const statement_v2 = @import("stwo_riscv_rv32").air_statement_v2;
+const poseidon2_air = @import("stwo_riscv_memory").air_poseidon2_air;
+const support = @import("stwo_riscv_rv32").air_public_data_test_support;
+const relation = @import("stwo_riscv_air_lang").relation;
+const framework = @import("stwo_riscv_air_lang").framework_framework_interaction;
+const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
 
 // Shared fixtures and mutation helpers for this conformance suite.
 

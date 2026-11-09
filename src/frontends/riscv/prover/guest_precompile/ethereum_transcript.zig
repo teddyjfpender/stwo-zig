@@ -2,12 +2,12 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const transcript = @import("../../air/transcript/mod.zig");
-const base_relations = @import("../../air/relation_challenges.zig");
-const keccak_relations = @import("../../air/guest_precompile/keccakf_relations.zig");
-const secp_relations = @import("../../air/guest_precompile/secp256k1_relations.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
-const base_statement = @import("../../air/statement.zig");
+const transcript = @import("stwo_riscv_rv32").air_transcript_mod;
+const base_relations = @import("stwo_riscv_air_lang").shared_air_relation_challenges;
+const keccak_relations = @import("stwo_riscv_precompiles").air_keccakf_relations;
+const secp_relations = @import("stwo_riscv_precompiles").air_secp256k1_relations;
+const lookup_physical_v2 = @import("stwo_riscv_rv32").air_lang_lookup_physical_manifest;
+const base_statement = @import("stwo_riscv_rv32").air_statement;
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
 const types = @import("ethereum_types.zig");
 

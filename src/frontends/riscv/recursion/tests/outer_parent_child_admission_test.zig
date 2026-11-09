@@ -1,11 +1,11 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const admission = @import("../outer_parent_child_admission.zig");
-const channel = @import("../poseidon2_channel.zig");
+const channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
 const engine = @import("../engine.zig");
-const fixed_wire = @import("../fixed_wire.zig");
+const fixed_wire = @import("stwo_riscv_recursion_air").protocol_recursion_fixed_wire;
 const pair_node = @import("../pair_node.zig");
-const protocol = @import("../protocol.zig");
+const protocol = @import("stwo_riscv_recursion_air").protocol_recursion_protocol;
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;

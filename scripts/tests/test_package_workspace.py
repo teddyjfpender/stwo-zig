@@ -293,5 +293,74 @@ const owned = @import(
             )
 
 
+    def test_frontend_family_policy_permits_only_declared_acyclic_canonical_peers(self):
+        import json
+        from types import SimpleNamespace
+        graph = subject.ci_package_graph
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            policy = root / 'conformance/frontend-package-families.json'
+            policy.parent.mkdir()
+            members = [('isa', 'isa'), ('air_lang', 'air_lang'), ('frontend', '.')]
+            contracts = {
+                'stwo_riscv_' + name: SimpleNamespace(
+                    package='stwo_riscv_' + name, layer='frontend',
+                    directory=root / 'src/frontends/riscv' / directory)
+                for name, directory in members
+            }
+            payload = {
+                'schema': 'stwo-zig-frontend-package-families-v1',
+                'families': {'riscv': {
+                    'owner': 'riscv-frontend', 'decision': 'https://github.com/teddyjfpender/stwo-zig/issues/344',
+                    'root': 'src/frontends/riscv',
+                    'packages': [{'name': 'stwo_riscv_' + name, 'path': directory}
+                                 for name, directory in members],
+                }},
+            }
+            self.assertEqual(set(), graph.frontend_family_edges(root, contracts))
+            policy.write_text(json.dumps(payload))
+            edges = graph.frontend_family_edges(root, contracts)
+            self.assertEqual({('stwo_riscv_air_lang', 'stwo_riscv_isa'),
+                              ('stwo_riscv_frontend', 'stwo_riscv_isa'),
+                              ('stwo_riscv_frontend', 'stwo_riscv_air_lang')}, edges)
+            self.assertNotIn(('stwo_riscv_isa', 'stwo_riscv_air_lang'), edges)
+            family = payload['families']['riscv']
+            invalid = [
+                lambda: family['packages'].append(dict(family['packages'][0])),
+                lambda: family['packages'][0].update(name='unregistered'),
+                lambda: family['packages'][0].update(path='../cairo'),
+                lambda: family.update(root='src/products/ethereum'),
+                lambda: family.update(root=str(root / 'src/frontends/riscv')),
+                lambda: family.update(root='./src/frontends/riscv'),
+                lambda: family.update(root='src/frontends/riscv/../riscv'),
+                lambda: family['packages'][0].update(path=str(root / 'src/frontends/riscv/isa')),
+                lambda: family['packages'][0].update(path='./isa'),
+                lambda: family['packages'][0].update(path='isa//'),
+                lambda: family['packages'][0].update(path='isa/.'),
+                lambda: family['packages'][0].update(path='isa/../isa'),
+                lambda: family['packages'][0].update(path=''),
+                lambda: family['packages'][0].update(path='.'),
+
+                lambda: contracts['stwo_riscv_isa'].__dict__.update(layer='integration'),
+                lambda: contracts['stwo_riscv_isa'].__dict__.update(directory=root / 'src/frontends/cairo'),
+            ]
+            from copy import deepcopy
+            saved = deepcopy(payload)
+            for mutate in invalid:
+                with self.subTest(mutate=mutate):
+                    payload = deepcopy(saved)
+                    family = payload['families']['riscv']
+                    contracts['stwo_riscv_isa'].layer = 'frontend'
+                    contracts['stwo_riscv_isa'].directory = root / 'src/frontends/riscv/isa'
+                    mutate()
+                    policy.write_text(json.dumps(payload))
+                    with self.assertRaises(graph.GraphError):
+                        graph.frontend_family_edges(root, contracts)
+            self.assertTrue(subject.dependency_cycles({
+                'stwo_riscv_isa': {'stwo_riscv_air_lang'},
+                'stwo_riscv_air_lang': {'stwo_riscv_isa'},
+            }))
+
+
 if __name__ == "__main__":
     unittest.main()

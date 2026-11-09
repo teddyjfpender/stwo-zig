@@ -2,8 +2,8 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const source = @import("segment_leaf_statement_contract.zig");
-const PublicData = @import("../air/public_data_v2.zig").PublicDataV2;
-const universal = @import("air/universal_challenges.zig");
+const PublicData = @import("stwo_riscv_rv32").air_public_data_v2.PublicDataV2;
+const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
 const QM31 = core.fields.qm31.QM31;
 
 /// The caller independently admits the source manifest and both verifier key

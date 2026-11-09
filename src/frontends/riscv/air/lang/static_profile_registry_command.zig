@@ -1,7 +1,7 @@
 //! Explicit check/update command for reviewed P-002 static-profile artifacts.
 
 const std = @import("std");
-const artifact_mod = @import("static_profile_registry_artifact.zig");
+const artifact_mod = @import("stwo_riscv_rv32").air_lang_static_profile_registry_artifact;
 
 const max_artifact_bytes: usize = 4 * 1024 * 1024;
 const Mode = enum { check, update };

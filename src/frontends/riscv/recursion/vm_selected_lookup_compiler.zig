@@ -7,15 +7,15 @@
 
 const std = @import("std");
 const prover_component = @import("stwo_prover_engine").air.component_prover;
-const logup = @import("../air/logup.zig");
-const entry_mod = @import("../air/lookups/entry.zig");
-const opcode_entries = @import("../air/lookups/opcode_entries.zig");
-const lookup_batch = @import("../air/lang/lookup_batch_execution.zig");
-const lookup_lowering = @import("../air/lang/lookup_polynomial_program.zig");
-const lookup_manifest = @import("../air/lang/lookup_physical_manifest.zig");
-const statement_mod = @import("../air/statement.zig");
-const trace = @import("../runner/trace.zig");
-const profile_mod = @import("vm_air_profile_v2.zig");
+const logup = @import("stwo_riscv_air_lang").shared_air_logup;
+const entry_mod = @import("stwo_riscv_air_lang").shared_air_lookups_entry;
+const opcode_entries = @import("stwo_riscv_rv32").air_lookups_opcode_entries;
+const lookup_batch = @import("stwo_riscv_rv32").air_lang_lookup_batch_execution;
+const lookup_lowering = @import("stwo_riscv_rv32").air_lang_lookup_polynomial_program;
+const lookup_manifest = @import("stwo_riscv_rv32").air_lang_lookup_physical_manifest;
+const statement_mod = @import("stwo_riscv_rv32").air_statement;
+const trace = @import("stwo_riscv_rv32").runner_trace;
+const profile_mod = @import("stwo_riscv_rv32").recursion_vm_air_profile_v2;
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 

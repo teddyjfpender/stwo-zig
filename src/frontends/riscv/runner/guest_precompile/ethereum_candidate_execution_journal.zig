@@ -8,19 +8,19 @@
 const std = @import("std");
 
 const registry_mod =
-    @import("../../isa/ethereum_candidate_private_registry.zig");
+    @import("../../compat/product_tree/isa/ethereum_candidate_private_registry.zig");
 const bulk_authority_mod =
-    @import("../../isa/ethereum_bulk_memcpy_candidate.zig");
-const bulk_registry = @import("../../isa/bulk_memcpy_private_registry.zig");
+    @import("../../compat/product_tree/isa/ethereum_bulk_memcpy_candidate.zig");
+const bulk_registry = @import("stwo_riscv_isa").bulk_memcpy_private_registry;
 const combined_authority_mod =
-    @import("../../isa/ethereum_candidate_combined_authority.zig");
+    @import("../../compat/product_tree/isa/ethereum_candidate_combined_authority.zig");
 const swap_authority_mod =
-    @import("../../isa/ethereum_stack_swap_candidate.zig");
+    @import("../../compat/product_tree/isa/ethereum_stack_swap_candidate.zig");
 const capability_mod = @import("ethereum_candidate_execution_capability.zig");
 const combined_result = @import("../ethereum_candidate_combined_result.zig");
 const candidate_result = @import("../ethereum_stack_swap_candidate_result.zig");
-const bulk_tape = @import("bulk_memcpy_session_tape.zig");
-const swap_tape = @import("stack_swap_session_tape.zig");
+const bulk_tape = @import("stwo_riscv_precompiles").runner_bulk_memcpy_session_tape;
+const swap_tape = @import("stwo_riscv_precompiles").runner_stack_swap_session_tape;
 const result_mod = @import("../result.zig");
 const ethereum_capture = @import("../minimal_trace/ethereum_capture.zig");
 const ethereum_types = @import("../minimal_trace/ethereum_types.zig");
@@ -1329,7 +1329,7 @@ test "combined candidate contract v1: execution artifact cannot self-promote" {
 }
 
 test "combined candidate contract v1: final result projects both ordered member captures" {
-    const test_elf = @import("test_elf.zig");
+    const test_elf = @import("stwo_riscv_rv32").runner_guest_precompile_test_elf;
     const segment_session = @import("../segment_session.zig");
     const elf = test_elf.buildEthereumCombinedCandidate();
     var elf_identity: Digest = undefined;

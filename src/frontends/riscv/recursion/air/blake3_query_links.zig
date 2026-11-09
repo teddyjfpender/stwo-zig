@@ -1,9 +1,9 @@
 //! Ordered native query outputs and canonical DEEP/FRI input bindings.
 const std = @import("std");
-const t = @import("blake3_transcript_witness.zig");
+const t = @import("stwo_riscv_recursion_air").blake3_transcript_witness;
 const deep = @import("pcs_deep_circuit.zig");
-const fri = @import("fri_verifier_circuit.zig");
-const Endpoint = @import("blake3_byte_route.zig").Endpoint;
+const fri = @import("stwo_riscv_rv32").recursion_air_fri_verifier_circuit;
+const Endpoint = @import("stwo_riscv_air_lang").framework_blake3_byte_route.Endpoint;
 const missing = std.math.maxInt(u32);
 pub const Bit = struct { deep: u32 = missing, fri: u32 = missing };
 pub const Query = struct { source: Endpoint, position: u32 = missing, bits: [31]Bit = @splat(.{}), path_uses: [31]u32 = @splat(0) };

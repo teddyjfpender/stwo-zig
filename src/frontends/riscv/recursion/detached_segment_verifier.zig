@@ -4,11 +4,11 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const recursion = struct {
-    const poseidon2_channel = @import("poseidon2_channel.zig");
-    const protocol = @import("protocol.zig");
+    const poseidon2_channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
+    const protocol = @import("stwo_riscv_recursion_air").protocol_recursion_protocol;
     const verifier_tree = @import("verifier_tree.zig");
 };
-const PublicData = @import("../air/public_data_v2.zig").PublicDataV2;
+const PublicData = @import("stwo_riscv_rv32").air_public_data_v2.PublicDataV2;
 const postcard = @import("interop_postcard");
 const transcript = @import("detached_segment_protocol.zig");
 const components = @import("detached_segment_verifier_components.zig");
@@ -18,7 +18,7 @@ const Proof = core.proof.StarkProof(Hasher);
 pub const KeyV1 = transcript.KeyV1;
 pub const ClaimsV1 = components.ClaimsV1;
 pub const ProofCapture = core.pcs.verifier.VerifiedProofCapture(Hasher);
-pub const MAX_PROOF_BYTES = @import("artifact_limits.zig").MAX_CANONICAL_PROOF_BYTES;
+pub const MAX_PROOF_BYTES = @import("stwo_riscv_rv32").recursion_artifact_limits.MAX_CANONICAL_PROOF_BYTES;
 
 /// Derive decoder allocation bounds only from the admitted canonical AIRs.
 /// Preparing these fixed adapters may allocate, but no proof length, claim or
@@ -33,7 +33,7 @@ pub fn proofPreflightShape(allocator: std.mem.Allocator, key: *const KeyV1) !pos
         .components = try owner.verifierComponents(),
         .n_preprocessed_columns = key.manifest.total_preprocessed_columns,
     };
-    return @import("detached_proof_preflight.zig").shape(allocator, admitted, key.pcs_config, MAX_PROOF_BYTES);
+    return @import("stwo_riscv_rv32").recursion_detached_proof_preflight.shape(allocator, admitted, key.pcs_config, MAX_PROOF_BYTES);
 }
 
 pub fn verify(

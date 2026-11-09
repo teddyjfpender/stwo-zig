@@ -1,9 +1,9 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const span = @import("../span_statement_blake3.zig");
-const legacy = @import("../span_statement.zig");
+const span = @import("stwo_riscv_rv32").recursion_span_statement_blake3;
+const legacy = @import("stwo_riscv_rv32").recursion_span_statement;
 
-const fixture = @import("../span_statement_blake3_test_fixture.zig");
+const fixture = @import("stwo_riscv_rv32").recursion_span_statement_blake3_test_fixture;
 const job = fixture.job;
 const leaf = fixture.leaf;
 const state = fixture.state;

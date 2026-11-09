@@ -3,12 +3,12 @@ const std = @import("std");
 const Q = @import("stwo_core").fields.qm31.QM31;
 const M = @import("stwo_core").fields.m31.M31;
 const deep = @import("blake3_native_deep.zig");
-const old = @import("detached_opening_accumulate4.zig");
-const native = @import("native_pcs_opening4.zig");
-const scalar = @import("scalar_wire_source.zig");
-const opening = @import("detached_opening_accumulation_plan.zig");
+const old = @import("stwo_riscv_air_lang").framework_detached_opening_accumulate4;
+const native = @import("stwo_riscv_air_lang").framework_native_pcs_opening4;
+const scalar = @import("stwo_riscv_air_lang").framework_scalar_wire_source;
+const opening = @import("stwo_riscv_rv32").recursion_air_detached_opening_accumulation_plan;
 const matcher = @import("detached_pcs_opening_plan.zig");
-const lower = @import("verifier_arithmetic_lowering.zig");
+const lower = @import("stwo_riscv_rv32").recursion_air_verifier_arithmetic_lowering;
 /// Only genuine four-query matches carry the large candidate payload. Most
 /// arithmetic nodes cannot be opening candidates; allocating one optional
 /// payload per graph node made this cold audit disproportionately large.
@@ -49,7 +49,7 @@ pub const Rows = struct {
         self.* = undefined;
     }
 };
-const Direct = @import("blake3_direct_cohort_columns.zig");
+const Direct = @import("stwo_riscv_recursion_air").blake3_direct_cohort_columns;
 const Stats = struct { opening: usize = 0, native: usize = 0, scalars: usize = 0 };
 const CountSink = struct {
     counts: Stats = .{},
@@ -145,9 +145,9 @@ pub fn materializeColumns(a: std.mem.Allocator, source: *const deep.Prepared, or
 pub const Fixed = struct {
     allocator: std.mem.Allocator,
     lease: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget,
-    opening: []@import("blake3_parent_row_storage.zig").FixedRow(old),
-    native: []@import("blake3_parent_row_storage.zig").FixedRow(native),
-    scalars: []@import("blake3_parent_row_storage.zig").FixedRow(scalar),
+    opening: []@import("stwo_riscv_air_lang").framework_blake3_parent_row_storage.FixedRow(old),
+    native: []@import("stwo_riscv_air_lang").framework_blake3_parent_row_storage.FixedRow(native),
+    scalars: []@import("stwo_riscv_air_lang").framework_blake3_parent_row_storage.FixedRow(scalar),
     pub fn deinit(self: *Fixed) void {
         const lease = self.lease;
         self.allocator.free(self.opening);
@@ -157,13 +157,13 @@ pub const Fixed = struct {
         if (lease) |owner| owner.destroy();
     }
 };
-pub fn materializeFixed(a: std.mem.Allocator, circuit: *const @import("pcs_deep_circuit.zig").Circuit, originals: []const @import("blake3_parent_row_storage.zig").FixedRow(old), scalars: []const @import("blake3_parent_row_storage.zig").FixedRow(scalar)) !Fixed {
+pub fn materializeFixed(a: std.mem.Allocator, circuit: *const @import("pcs_deep_circuit.zig").Circuit, originals: []const @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage.FixedRow(old), scalars: []const @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage.FixedRow(scalar)) !Fixed {
     try circuit.validate();
     return materializeFixedGraph(a, circuit.graph(), circuit.bindings, originals, scalars);
 }
-fn materializeFixedGraph(a: std.mem.Allocator, g: @import("composition_circuit.zig").CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, originals: []const @import("blake3_parent_row_storage.zig").FixedRow(old), scalars: []const @import("blake3_parent_row_storage.zig").FixedRow(scalar)) !Fixed {
+fn materializeFixedGraph(a: std.mem.Allocator, g: @import("stwo_riscv_rv32").recursion_air_composition_circuit.CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, originals: []const @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage.FixedRow(old), scalars: []const @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage.FixedRow(scalar)) !Fixed {
     try g.validate();
-    const Storage = @import("blake3_parent_row_storage.zig");
+    const Storage = @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage;
     const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
     const lease = if (Budget.fromAllocator(a)) |owner| owner.retain() else null;
     errdefer if (lease) |owner| owner.destroy();
@@ -217,7 +217,7 @@ fn materializeFixedGraph(a: std.mem.Allocator, g: @import("composition_circuit.z
     const owned_scalars = try kept.toOwnedSlice(a);
     return .{ .allocator = a, .lease = lease, .opening = owned_opening, .native = owned_native, .scalars = owned_scalars };
 }
-fn materializeGraph(a: std.mem.Allocator, g: @import("composition_circuit.zig").CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, values: []const Q, originals: []const old.Row, scalars: anytype) !Rows {
+fn materializeGraph(a: std.mem.Allocator, g: @import("stwo_riscv_rv32").recursion_air_composition_circuit.CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, values: []const Q, originals: []const old.Row, scalars: anytype) !Rows {
     var sink = RowSink{ .a = a };
     defer sink.deinit();
     var plan = try MatchPlan.init(a, g, bindings);
@@ -225,7 +225,7 @@ fn materializeGraph(a: std.mem.Allocator, g: @import("composition_circuit.zig").
     try emitPlan(a, &plan, values, originals, scalars, &sink);
     return sink.take();
 }
-fn materializeGraphColumns(a: std.mem.Allocator, g: @import("composition_circuit.zig").CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, values: []const Q, originals: []const old.Row, scalars: anytype) !Columns {
+fn materializeGraphColumns(a: std.mem.Allocator, g: @import("stwo_riscv_rv32").recursion_air_composition_circuit.CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, values: []const Q, originals: []const old.Row, scalars: anytype) !Columns {
     var plan = try MatchPlan.init(a, g, bindings);
     defer plan.deinit();
     var count = CountSink{};
@@ -244,11 +244,11 @@ fn materializeGraphColumns(a: std.mem.Allocator, g: @import("composition_circuit
 /// or rebuild of candidate payloads is needed.
 const MatchPlan = struct {
     a: std.mem.Allocator,
-    graph: @import("composition_circuit.zig").CircuitGraph,
+    graph: @import("stwo_riscv_rv32").recursion_air_composition_circuit.CircuitGraph,
     uses: []u32,
     selected: []bool,
     candidates: CandidateIndex,
-    fn init(a: std.mem.Allocator, g: @import("composition_circuit.zig").CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding) !@This() {
+    fn init(a: std.mem.Allocator, g: @import("stwo_riscv_rv32").recursion_air_composition_circuit.CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding) !@This() {
         const uses = try a.alloc(u32, g.nodes.len);
         errdefer a.free(uses);
         _ = try lower.computeLaneUseCountsInto(.{ .circuit_id = 1502, .active_in = .segment, .circuit_identity = g.identity_digest, .graph = g }, uses);
@@ -346,31 +346,31 @@ fn emitPlan(a: std.mem.Allocator, plan: *const MatchPlan, values: []const Q, ori
 
 fn requireColumnParity(comptime Air: type, a: std.mem.Allocator, rows: []const Air.Row, columns: anytype) !void {
     const Column = @import("stwo_prover_engine").pcs.ColumnEvaluation;
-    const storage = @import("blake3_parent_row_storage.zig");
+    const storage = @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage;
     var projected: std.ArrayList(Column) = .empty;
     defer {
         for (projected.items) |column| a.free(column.values);
         projected.deinit(a);
     }
-    try @import("blake3_row_columns.zig").project(Air, a, rows, columns.log, 1, &projected);
+    try @import("stwo_riscv_air_lang").framework_blake3_row_columns.project(Air, a, rows, columns.log, 1, &projected);
     try std.testing.expectEqual(projected.items.len, columns.main.len);
     for (projected.items, columns.main) |expected, actual| try std.testing.expectEqualSlices(M, expected.values, actual.values);
     try std.testing.expectEqual(rows.len, columns.fixed.len);
     for (rows, columns.fixed) |row, fixed| try std.testing.expectEqualDeep(storage.compactFixed(Air, row), fixed);
 }
 
-fn checkMatcherAllocation(a: std.mem.Allocator, g: @import("composition_circuit.zig").CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, values: []const Q, row: old.Row, scalars: []const scalar.Row) !void {
+fn checkMatcherAllocation(a: std.mem.Allocator, g: @import("stwo_riscv_rv32").recursion_air_composition_circuit.CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, values: []const Q, row: old.Row, scalars: []const scalar.Row) !void {
     var columns = try materializeGraphColumns(a, g, bindings, values, &.{row}, scalars);
     defer columns.deinit();
     try std.testing.expectEqual(@as(usize, 1), columns.native.fixed.len);
     try std.testing.expectEqual(@as(usize, 0), columns.opening.fixed.len);
     try std.testing.expectEqual(@as(usize, 0), columns.scalars.fixed.len);
 }
-fn checkBorrowedMatcherAllocation(a: std.mem.Allocator, g: @import("composition_circuit.zig").CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, values: []const Q, row: old.Row, scalars: []const scalar.Row) !void {
+fn checkBorrowedMatcherAllocation(a: std.mem.Allocator, g: @import("stwo_riscv_rv32").recursion_air_composition_circuit.CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, values: []const Q, row: old.Row, scalars: []const scalar.Row) !void {
     var source = try Direct.ForAir(scalar).init(a, scalars.len);
     defer source.deinit();
     for (scalars) |value| try source.append(value);
-    const borrowed = try @import("blake3_recursive_column_rows.zig").ForAir(scalar).init(source.main, source.fixed);
+    const borrowed = try @import("stwo_riscv_recursion_air").blake3_recursive_column_rows.ForAir(scalar).init(source.main, source.fixed);
     var columns = try materializeGraphColumns(a, g, bindings, values, &.{row}, borrowed);
     defer columns.deinit();
     // Both count and emission borrow one immutable original owner. Fused
@@ -406,7 +406,7 @@ test "native query sparse candidate index preserves all coordinate boundaries an
 
 test "native query fusion admission rejects altered missing and duplicate sources" {
     const a = std.testing.allocator;
-    const graph = @import("composition_circuit.zig");
+    const graph = @import("stwo_riscv_rv32").recursion_air_composition_circuit;
     const pcs = @import("pcs_deep_circuit.zig");
     var nodes: [17]graph.Node = undefined;
     var values: [17]Q = undefined;
@@ -498,7 +498,7 @@ test "native query fusion admission rejects altered missing and duplicate source
     try requireColumnParity(old, a, mixed_old.opening, &mixed_direct.opening);
     try requireColumnParity(native, a, mixed_old.native, &mixed_direct.native);
     try requireColumnParity(scalar, a, mixed_old.scalars, &mixed_direct.scalars);
-    const storage = @import("blake3_parent_row_storage.zig");
+    const storage = @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage;
     var owned = storage.Prepared{ .allocator = a, .main = @splat(&.{}), .fixed = undefined, .input_count = 0 };
     inline for (0..storage.Airs.len) |i| owned.fixed[i] = &.{};
     defer owned.deinit();
@@ -512,7 +512,7 @@ test "native query fusion admission rejects altered missing and duplicate source
     try std.testing.expectEqual(@as(usize, 0), try owned.retainedBytes());
 }
 
-fn checkFixedMatcherAllocation(a: std.mem.Allocator, g: @import("composition_circuit.zig").CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, pp: @import("blake3_parent_row_storage.zig").FixedRow(old), scalar_pp: []const @import("blake3_parent_row_storage.zig").FixedRow(scalar)) !void {
+fn checkFixedMatcherAllocation(a: std.mem.Allocator, g: @import("stwo_riscv_rv32").recursion_air_composition_circuit.CircuitGraph, bindings: []const @import("pcs_deep_circuit.zig").InputBinding, pp: @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage.FixedRow(old), scalar_pp: []const @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage.FixedRow(scalar)) !void {
     var result = try materializeFixedGraph(a, g, bindings, &.{pp}, scalar_pp);
     defer result.deinit();
     try std.testing.expectEqual(@as(usize, 1), result.native.len);
@@ -520,7 +520,7 @@ fn checkFixedMatcherAllocation(a: std.mem.Allocator, g: @import("composition_cir
 test "recursive fixed roster: original native PCS matcher parity mutation and allocation rollback" {
     // Original arithmetic-only graph oracle; NOT proof or successful admission.
     const a = std.testing.allocator;
-    const graph = @import("composition_circuit.zig");
+    const graph = @import("stwo_riscv_rv32").recursion_air_composition_circuit;
     const pcs = @import("pcs_deep_circuit.zig");
     var nodes: [17]graph.Node = undefined;
     var values: [17]Q = undefined;
@@ -549,7 +549,7 @@ test "recursive fixed roster: original native PCS matcher parity mutation and al
     const g = try graph.CircuitGraph.authenticate(&nodes, &.{16}, graph.computeGraphDigest(&nodes, &.{16}));
     const row = try old.logicalRow(.{ .circuit = 1502, .accumulator = 0, .lhs = queries, .rhs = weights, .output = 16, .uses = 1 }, values[0], lhs, rhs, values[16]);
 
-    const Storage = @import("blake3_parent_row_storage.zig");
+    const Storage = @import("stwo_riscv_air_lang").framework_blake3_parent_row_storage;
     const pp = Storage.compactFixed(old, row);
     var scalar_pp: [4]Storage.FixedRow(scalar) = undefined;
     for (scalars, &scalar_pp) |source, *out| out.* = Storage.compactFixed(scalar, source);

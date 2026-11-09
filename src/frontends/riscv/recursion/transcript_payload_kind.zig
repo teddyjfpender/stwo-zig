@@ -1,7 +1,7 @@
 //! Canonical transcript payload classification for recursive row preparation.
 const program_mod = @import("pcs_transcript_program.zig");
 const air = struct {
-    const transcript_payload = @import("air/transcript_payload.zig");
+    const transcript_payload = @import("stwo_riscv_recursion_air").transcript_payload;
 };
 
 pub fn payloadKind(kind: program_mod.Source) ?air.transcript_payload.VerifierInputKind {

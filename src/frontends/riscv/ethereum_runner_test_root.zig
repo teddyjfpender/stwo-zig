@@ -1,10 +1,10 @@
 //! Focused edit-loop root for the combined Ethereum runner profile.
 
 test {
-    _ = @import("isa/custom0.zig");
-    _ = @import("isa/ethereum_signer_recovery.zig");
-    _ = @import("isa/execution_profile.zig");
+    _ = @import("stwo_riscv_isa");
+    _ = @import("compat/product_tree/isa/ethereum_signer_recovery.zig");
+    _ = @import("stwo_riscv_isa");
     _ = @import("runner/guest_precompile/tests/ethereum_runner_test.zig");
-    _ = @import("runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-    _ = @import("runner/guest_precompile/tests/secp256k1_recover_test.zig");
+    _ = @import("stwo_riscv_precompiles");
+    _ = @import("stwo_riscv_testing");
 }

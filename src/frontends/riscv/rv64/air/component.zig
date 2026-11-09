@@ -11,7 +11,7 @@ const canonic = core.poly.circle.canonic;
 const E = @import("evaluation.zig");
 const L = E.L;
 const relation = @import("relations.zig");
-const support = @import("../../air/memory_commitment/hash_component_prepared_support.zig");
+const support = @import("stwo_riscv_memory").air_hash_component_prepared_support;
 pub const Component = struct {
     log_size: u32,
     projection: @import("projection.zig").Projection,
@@ -60,7 +60,7 @@ pub const Component = struct {
 
     pub fn maskPoints(self: *const Component, a: std.mem.Allocator, point: core.circle.CirclePointQM31, max_log: u32) !air.MaskPoints {
         if (max_log != self.log_size) return error.InvalidRv64MaskGeometry;
-        const previous = @import("../../air/logup.zig").prevRowPoint(max_log, point);
+        const previous = @import("stwo_riscv_air_lang").shared_air_logup.prevRowPoint(max_log, point);
         const fixed = try pointColumns(a, self.projection.fixed_count, point, null, 0);
         errdefer freePoints(a, fixed);
         const main = try pointColumns(a, self.projection.main_count, point, null, 0);

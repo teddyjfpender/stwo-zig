@@ -11,10 +11,10 @@ const M31 = stwo_core.fields.m31.M31;
 const air = @import("segment_publication_input_provider.zig");
 const binding = @import("segment_publication_input_provider_relation.zig");
 const authority = @import("../segment_publication_input_provider_authority.zig");
-const framework = @import("framework_interaction.zig");
+const framework = @import("stwo_riscv_air_lang").framework_framework_interaction;
 const segment_manifest = @import("segment_outer_adapter_manifest.zig");
-const typed_component = @import("universal_typed_component.zig");
-const universal = @import("universal_challenges.zig");
+const typed_component = @import("stwo_riscv_air_lang").framework_universal_typed_component;
+const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
 
 pub const PROPOSED_ROSTER_ROW: u8 = authority.PROPOSED_ROSTER_ROW;
 pub const PROPOSED_COMPONENT_COUNT: usize = PROPOSED_ROSTER_ROW + 1;

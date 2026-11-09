@@ -17,7 +17,7 @@ const PA = @import("policy_air.zig");
 const Capture = @import("openings.zig");
 pub const sameAllocator = @import("ownership.zig").same;
 const physical = @import("../witness.zig").physical;
-const universal = @import("../../../air/memory_commitment/poseidon2_universal_degree3.zig");
+const canonical_universal_1fa41d = @import("stwo_riscv_memory").air_poseidon2_universal_layout;
 const M = core.fields.m31.M31;
 pub const Shapes = struct {
     chunk: CA.Shape,
@@ -78,7 +78,7 @@ pub const MainBuffers = struct {
     pub fn validate(self: MainBuffers, shapes: Shapes, policy_size: usize) !void {
         try shapes.validate();
         for (TABLES) |table| if (self.callers[@intFromEnum(table)].len != try std.math.mul(usize, mainWidth(table), @as(usize, 1) << @intCast(tableLog(shapes, table)))) return error.InvalidPrivateRamMainBuffers;
-        if (self.provider.len != try std.math.mul(usize, universal.N_MAIN_COLUMNS, @as(usize, 1) << @intCast(shapes.provider_log)) or self.policy_tail.len != policy_size or self.byte_tail.len != 256) return error.InvalidPrivateRamMainBuffers;
+        if (self.provider.len != try std.math.mul(usize, canonical_universal_1fa41d.N_MAIN_COLUMNS, @as(usize, 1) << @intCast(shapes.provider_log)) or self.policy_tail.len != policy_size or self.byte_tail.len != 256) return error.InvalidPrivateRamMainBuffers;
         var spans: [11][]M = undefined;
         @memcpy(spans[0..8], &self.callers);
         spans[8] = self.provider;
@@ -286,12 +286,12 @@ pub const Trace = struct {
             try borrowed.validate(shapes, policy_size);
             buffers = borrowed;
         } else {
-            var total = try std.math.mul(usize, universal.N_MAIN_COLUMNS, @as(usize, 1) << @intCast(shapes.provider_log));
+            var total = try std.math.mul(usize, canonical_universal_1fa41d.N_MAIN_COLUMNS, @as(usize, 1) << @intCast(shapes.provider_log));
             for (TABLES) |table| total = try std.math.add(usize, total, try std.math.mul(usize, mainWidth(table), @as(usize, 1) << @intCast(tableLog(shapes, table))));
             total = try std.math.add(usize, total, policy_size + 256);
             backing = try a.alloc(M, total);
             var cursor: usize = 0;
-            const provider = view(backing, &cursor, universal.N_MAIN_COLUMNS, shapes.provider_log, false);
+            const provider = view(backing, &cursor, canonical_universal_1fa41d.N_MAIN_COLUMNS, shapes.provider_log, false);
             var callers: [8][]M = undefined;
             for (TABLES) |table| callers[@intFromEnum(table)] = view(backing, &cursor, mainWidth(table), tableLog(shapes, table), false);
             const policy_tail = backing[cursor..][0..policy_size];

@@ -1015,7 +1015,7 @@ pub fn Namespace(comptime context: type) type {
                 relations: *const universal.UniversalRelations,
                 provider_relations: *const shared_provider.SharedProviderRelations,
             ) !NativeSegmentCoreGeneratedV2 {
-                const generator = @import("air/interaction_generator.zig").Host{};
+                const generator = @import("stwo_riscv_recursion_air").interaction_generator.Host{};
                 return prepareInteractionsWithGenerator(self, allocator, relations, provider_relations, &generator);
             }
 

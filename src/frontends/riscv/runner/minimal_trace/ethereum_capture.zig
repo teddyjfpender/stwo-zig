@@ -6,16 +6,16 @@
 //! loop. No full trace or state-chain allocation survives this conversion.
 
 const std = @import("std");
-const custom0 = @import("../../isa/custom0.zig");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const recovery_abi = @import("../../isa/ethereum_signer_recovery.zig");
-const decode = @import("../decode.zig");
-const memory_state = @import("../memory_state.zig");
+const custom0 = @import("stwo_riscv_isa").custom0;
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
+const recovery_abi = @import("../../compat/product_tree/isa/ethereum_signer_recovery.zig");
+const decode = @import("stwo_riscv_isa").runner_decode;
+const memory_state = @import("stwo_riscv_isa").runner_memory_state;
 const result_mod = @import("../result.zig");
-const trace_mod = @import("../trace.zig");
-const keccakf_v1 = @import("../guest_precompile/keccakf.zig");
-const recovery_v1 = @import("../guest_precompile/secp256k1_recover.zig");
-const replay = @import("replay.zig");
+const trace_mod = @import("stwo_riscv_rv32").runner_trace;
+const keccakf_v1 = @import("stwo_riscv_rv32").runner_guest_precompile_keccakf;
+const recovery_v1 = @import("stwo_riscv_rv32").runner_guest_precompile_secp256k1_recover;
+const replay = @import("stwo_riscv_rv32").runner_minimal_trace_replay;
 const types = @import("ethereum_types.zig");
 
 pub const RequestV1 = struct {
@@ -266,9 +266,9 @@ fn buildBoundary(
 }
 
 fn findSnapshotWord(
-    words: []const @import("../memory_state.zig").WordState,
+    words: []const @import("stwo_riscv_isa").runner_memory_state.WordState,
     address: u32,
-) ?@import("../memory_state.zig").WordState {
+) ?@import("stwo_riscv_isa").runner_memory_state.WordState {
     var low: usize = 0;
     var high = words.len;
     while (low < high) {

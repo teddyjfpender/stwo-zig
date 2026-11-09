@@ -3,7 +3,7 @@
 //! These words become authenticated only through the admitted proof relation.
 const std = @import("std");
 const core = @import("stwo_core");
-const span = @import("span_statement.zig");
+const span = @import("stwo_riscv_rv32").recursion_span_statement;
 const M31 = core.fields.m31.M31;
 pub const VERSION: u32 = 1;
 pub const SPAN_WORDS = span.SPAN_STATEMENT_CANONICAL_WORDS;
@@ -15,7 +15,7 @@ pub const Words = [WORD_COUNT]M31;
 pub const Mode = enum(u8) { intermediate = 0, root = 1 };
 pub const Error = span.Error || error{ NonCanonicalContinuationWord, SessionMismatch, LineageDiscontinuity, EndpointPropagationMismatch };
 
-pub fn fromSegment(statement: *const @import("segment_statement_contract.zig").StatementV2) !Words {
+pub fn fromSegment(statement: *const @import("stwo_riscv_rv32").recursion_segment_statement_contract.StatementV2) !Words {
     try statement.validate();
     var result: Words = undefined;
     result[0..SPAN_WORDS].* = statement.base_statement_words;

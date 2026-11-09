@@ -3,18 +3,18 @@
 const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
 const stage_profile = @import("stwo_prover_api").stage_profile;
-const opcode_memory = @import("air/opcode_memory.zig");
-const trace_mod = @import("runner/trace.zig");
-const state_chain = @import("runner/state_chain.zig");
-const memory_state = @import("runner/memory_state.zig");
+const opcode_memory = @import("stwo_riscv_rv32").air_opcode_memory;
+const trace_mod = @import("stwo_riscv_rv32").runner_trace;
+const state_chain = @import("stwo_riscv_isa").runner_state_chain;
+const memory_state = @import("stwo_riscv_isa").runner_memory_state;
 const run_result_mod = @import("runner/result.zig");
-const orchestration = @import("prover/orchestration.zig");
-const types = @import("prover/types.zig");
+const orchestration = @import("stwo_riscv_rv32").prover_orchestration;
+const types = @import("stwo_riscv_rv32").prover_types;
 
-pub const proof_phase_meter = @import("prover/proof_phase_meter.zig");
+pub const proof_phase_meter = @import("stwo_riscv_rv32").prover_proof_phase_meter;
 pub const guest_precompile = @import("prover/guest_precompile/mod.zig");
 pub const main_trace_plan_execution_production =
-    @import("prover/main_trace_plan_execution_production.zig");
+    @import("stwo_riscv_rv32").prover_main_trace_plan_execution_production;
 /// Fixed joined Ethereum Tree0 derivation; accepts no candidate proof root.
 pub const deriveIncrementalEthereumPreprocessedRootWithFixedProgramV1 =
     @import("prover/incremental_ethereum_verifier.zig").deriveExpectedPreprocessedRootWithFixedProgramV1;
@@ -25,7 +25,7 @@ pub const ethereum_native_provider_omit_protocol_v1 =
 pub const ethereum_native_provider_omit_proof_v1 =
     guest_precompile.ethereum_native_provider_omit_proof_v1;
 pub const PublicData = types.PublicData;
-pub const PublicDataV2 = @import("air/public_data_v2.zig").PublicDataV2;
+pub const PublicDataV2 = @import("stwo_riscv_rv32").air_public_data_v2.PublicDataV2;
 pub const Hasher = types.Hasher;
 pub const FamilyComponentDesc = types.FamilyComponentDesc;
 pub const InfraKind = types.InfraKind;
@@ -38,7 +38,7 @@ pub const MAX_INFRA_COMPONENTS = types.MAX_INFRA_COMPONENTS;
 /// Canonical one-shot execution capacity shared by runner admission, witness
 /// geometry, and every product adapter. Larger workloads require segmentation.
 pub const MAX_EXECUTION_STEPS =
-    @import("prover/statement_validation.zig").MAX_EXECUTION_STEPS;
+    @import("stwo_riscv_rv32").prover_statement_validation.MAX_EXECUTION_STEPS;
 pub const Proof = types.Proof;
 pub const ProofForEngine = types.ProofForEngine;
 pub const ExtendedProof = types.ExtendedProof;
@@ -514,10 +514,8 @@ pub fn diagnoseRiscVRelationsWithEngineAndPublicData(
     );
 }
 
-const verifier = @import("prover/verifier.zig");
-const verifier_lookup_v1 = @import(
-    "prover/verifier_lookup_compatibility.zig",
-);
+const verifier = @import("stwo_riscv_rv32").prover_verifier;
+const verifier_lookup_v1 = @import("stwo_riscv_rv32").prover_verifier_lookup_compatibility;
 pub const verifier_diagnostic_wiring_source = verifier.diagnostic_wiring_source;
 pub const QueryCapture = verifier.QueryCapture;
 pub const ProofCaptureForEngine = verifier.ProofCaptureForEngine;
@@ -548,20 +546,20 @@ pub const verifyRiscVSegmentLookupV2WithEngine =
     verifier.verifyRiscVSegmentLookupV2WithEngine;
 pub const verifyRiscVSegmentLookupV2WithEngineUsingChannel =
     verifier.verifyRiscVSegmentLookupV2WithEngineUsingChannel;
-pub const proveAndVerifyElfWithEngine = @import("prover/elf.zig").proveAndVerifyElfWithEngine;
+pub const proveAndVerifyElfWithEngine = @import("stwo_riscv_rv32").prover_elf.proveAndVerifyElfWithEngine;
 
 /// Explicit BLAKE3 execution path; caller-admitted plans, no default promotion.
-pub const blake3_execution = @import("prover/blake3_execution_proof.zig");
-pub const blake3_commitment_components = @import("prover/blake3_commitment_components.zig");
-pub const blake3_execution_artifact = @import("prover/blake3_execution_artifact.zig");
+pub const blake3_execution = @import("stwo_riscv_rv32").prover_blake3_execution_proof;
+pub const blake3_commitment_components = @import("stwo_riscv_rv32").prover_blake3_commitment_components;
+pub const blake3_execution_artifact = @import("stwo_riscv_rv32").prover_blake3_execution_artifact;
 
-pub const blake3_verified_public = @import("prover/blake3_profile_artifact.zig").VerifiedPublic;
-pub const blake3_ethereum_artifact = @import("prover/blake3_profile_artifact.zig").ForProfile(true);
+pub const blake3_verified_public = @import("stwo_riscv_rv32").prover_blake3_profile_artifact.VerifiedPublic;
+pub const blake3_ethereum_artifact = @import("stwo_riscv_rv32").prover_blake3_profile_artifact.ForProfile(true);
 pub const blake3_ethereum_proof = @import("prover/blake3_ethereum_proof.zig");
-pub const blake3_commitment_sharing = @import("prover/blake3_commitment_sharing.zig");
+pub const blake3_commitment_sharing = @import("stwo_riscv_rv32").prover_blake3_commitment_sharing;
 pub const blake3_ethereum_witness = @import("prover/blake3_ethereum_witness.zig");
-pub const blake3_segment_execution = @import("prover/blake3_segment_execution.zig");
+pub const blake3_segment_execution = @import("stwo_riscv_rv32").prover_blake3_segment_execution;
 
-pub const blake3_profile_artifact = @import("prover/blake3_profile_artifact.zig");
-pub const blake3_poseidon_proof = @import("prover/blake3_poseidon_proof.zig");
-pub const blake3_poseidon_witness = @import("prover/blake3_poseidon_witness.zig");
+pub const blake3_profile_artifact = @import("stwo_riscv_rv32").prover_blake3_profile_artifact;
+pub const blake3_poseidon_proof = @import("stwo_riscv_rv32").prover_blake3_poseidon_proof;
+pub const blake3_poseidon_witness = @import("stwo_riscv_rv32").prover_blake3_poseidon_witness;

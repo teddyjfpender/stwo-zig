@@ -13,10 +13,10 @@ const std = @import("std");
 const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
-const permutation = @import("poseidon2.zig");
-const permutation_air = @import("poseidon2_air.zig");
-const logup = @import("../logup.zig");
-const relation_challenges = @import("../relation_challenges.zig");
+const permutation = @import("stwo_riscv_memory").air_poseidon2;
+const permutation_air = @import("stwo_riscv_memory").air_poseidon2_air;
+const logup = @import("stwo_riscv_air_lang").shared_air_logup;
+const relation_challenges = @import("stwo_riscv_air_lang").shared_air_relation_challenges;
 const work_pool = @import("stwo_prover_engine").work_pool;
 
 pub const SCHEMA_VERSION: u32 = 1;
@@ -360,7 +360,7 @@ test "Ethereum node V1 provider bus binds the second squeeze and padded trace" {
     const provider = try permutation_air.claimsFromIoOutputs(&calls, &outputs, 4, &relations);
     const caller_sum = interaction.claims[0].add(interaction.claims[1]);
     try std.testing.expect(caller_sum.add(provider.total()).isZero());
-    const placement = try @import("../../infra_trace.zig").BitReversalTable.init(allocator, 4);
+    const placement = try @import("stwo_riscv_rv32").infra_trace.BitReversalTable.init(allocator, 4);
     defer placement.deinit(allocator);
     for (0..16) |logical| {
         const current = placement.map(logical);

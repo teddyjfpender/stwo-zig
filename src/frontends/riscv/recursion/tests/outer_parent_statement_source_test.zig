@@ -4,7 +4,7 @@ const std = @import("std");
 
 const admission = @import("../outer_parent_child_admission.zig");
 const pair_node = @import("../pair_node.zig");
-const protocol = @import("../protocol.zig");
+const protocol = @import("stwo_riscv_recursion_air").protocol_recursion_protocol;
 const source = @import("../outer_parent_statement_source.zig");
 const support = @import("outer_parent_transcript_source_test.zig");
 

@@ -4,28 +4,28 @@
 //! expected-boundary/composition AIRs until their exact lookup closure passes.
 const recursion = struct {
     const pcs_transcript_program_v1 = @import("pcs_transcript_program.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
+    const poseidon2_channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
     const recording_poseidon_channel_v4 = @import("recording_poseidon_channel.zig");
     const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
     const segment_leaf_authority_v2 = @import("segment_leaf_authority_v2.zig");
     const segment_transcript_outer_source_v2 = @import("segment_transcript_outer_source_v2.zig");
 };
 const air = struct {
-    const control_witness = @import("air/control_witness.zig");
-    const field_statement_word_v3 = @import("air/field_statement_word.zig");
-    const pow_check = @import("air/pow_check.zig");
-    const pow_check_witness = @import("air/pow_check_witness.zig");
-    const pow_frame = @import("air/pow_frame.zig");
-    const pow_frame_witness = @import("air/pow_frame_witness.zig");
-    const relation_challenge_witness = @import("air/relation_challenge_witness.zig");
-    const transcript_air_witness = @import("air/transcript_air_witness.zig");
-    const transcript_payload = @import("air/transcript_payload.zig");
-    const transcript_payload_relation = @import("air/transcript_payload_relation.zig");
-    const transcript_payload_witness = @import("air/transcript_payload_witness.zig");
-    const universal_challenges = @import("air/universal_challenges.zig");
+    const control_witness = @import("stwo_riscv_recursion_air").control_witness;
+    const field_statement_word_v3 = @import("stwo_riscv_recursion_air").field_statement_word;
+    const pow_check = @import("stwo_riscv_recursion_air").pow_check;
+    const pow_check_witness = @import("stwo_riscv_recursion_air").pow_check_witness;
+    const pow_frame = @import("stwo_riscv_recursion_air").pow_frame;
+    const pow_frame_witness = @import("stwo_riscv_recursion_air").pow_frame_witness;
+    const relation_challenge_witness = @import("stwo_riscv_recursion_air").relation_challenge_witness;
+    const transcript_air_witness = @import("stwo_riscv_recursion_air").transcript_air_witness;
+    const transcript_payload = @import("stwo_riscv_recursion_air").transcript_payload;
+    const transcript_payload_relation = @import("stwo_riscv_recursion_air").transcript_payload_relation;
+    const transcript_payload_witness = @import("stwo_riscv_recursion_air").transcript_payload_witness;
+    const universal_challenges = @import("stwo_riscv_air_lang").framework_universal_challenges;
 };
 const std = @import("std");
-const relation = @import("../air/lang/relation.zig");
+const relation = @import("stwo_riscv_air_lang").relation;
 
 const core = @import("stwo_core");
 const recording = recursion.recording_poseidon_channel_v4;

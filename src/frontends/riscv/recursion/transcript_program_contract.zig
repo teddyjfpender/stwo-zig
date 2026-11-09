@@ -2,13 +2,13 @@
 
 pub const std = @import("std");
 pub const stwo_core = @import("stwo_core");
-pub const permutation = @import("../air/memory_commitment/poseidon2.zig");
-pub const fixed_wire = @import("fixed_wire.zig");
-pub const channel_mod = @import("poseidon2_channel.zig");
-pub const schedule = @import("air/verifier_schedule.zig");
-pub const statement_input = @import("air/statement_input.zig");
-pub const trace_mod = @import("air/pow_frame_witness.zig");
-pub const pow_check = @import("air/pow_check_witness.zig");
+pub const permutation = @import("stwo_riscv_memory").air_poseidon2;
+pub const fixed_wire = @import("stwo_riscv_recursion_air").protocol_recursion_fixed_wire;
+pub const channel_mod = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
+pub const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
+pub const statement_input = @import("stwo_riscv_recursion_air").statement_input;
+pub const trace_mod = @import("stwo_riscv_recursion_air").pow_frame_witness;
+pub const pow_check = @import("stwo_riscv_recursion_air").pow_check_witness;
 
 pub const M31 = stwo_core.fields.m31.M31;
 pub const QM31 = stwo_core.fields.qm31.QM31;

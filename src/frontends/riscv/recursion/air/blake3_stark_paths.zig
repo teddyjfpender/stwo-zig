@@ -1,14 +1,14 @@
 //! All native STARK openings, linked to private arithmetic scalar sources.
 const std = @import("std");
-const Nonhash = @import("blake3_nonhash_emission.zig");
+const Nonhash = @import("stwo_riscv_recursion_air").blake3_nonhash_emission;
 const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
-const suite = @import("../blake3_engine_protocol.zig");
-const group = @import("blake3_merkle_group_witness.zig");
+const suite = @import("stwo_riscv_recursion_air").protocol_recursion_blake3_engine_protocol;
+const group = @import("stwo_riscv_recursion_air").blake3_merkle_group_witness;
 const inputs = @import("blake3_opening_inputs.zig");
-const frontier = @import("blake3_two_level_frontier.zig");
-const discovery = @import("blake3_frontier_capture.zig");
-const leaf = @import("blake3_lifted_leaf_plan.zig");
+const frontier = @import("stwo_riscv_recursion_air").blake3_two_level_frontier;
+const discovery = @import("stwo_riscv_recursion_air").blake3_frontier_capture;
+const leaf = @import("stwo_riscv_recursion_air").blake3_lifted_leaf_plan;
 pub const word = group.word;
 const Capture = core.verifier.ProofCapture(suite.Hasher);
 pub const Rows = struct {
@@ -23,9 +23,9 @@ pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     row_allocator: std.mem.Allocator,
     /// Live hash metadata and main columns belong to the caller in this mode.
-    hash_metadata: ?@import("blake3_hash_metadata.zig").Rows = null,
+    hash_metadata: ?@import("stwo_riscv_air_lang").framework_blake3_hash_metadata.Rows = null,
     /// Owned trusted hash tails, independently derived from public path geometry.
-    fixed_hash_metadata: ?@import("blake3_hash_metadata.zig").Rows = null,
+    fixed_hash_metadata: ?@import("stwo_riscv_air_lang").framework_blake3_hash_metadata.Rows = null,
     inputs: inputs.Prepared,
     nonhash: ?Nonhash.Owner = null,
     nonhash_fixed: ?Nonhash.FixedOwner = null,
@@ -99,7 +99,7 @@ const Builder = struct {
     count_only: bool = false,
     live_sink: ?Nonhash.Sink = null,
     fixed_sink: ?Nonhash.Sink = null,
-    fixed_metadata: ?@import("blake3_hash_metadata.zig").Rows = null,
+    fixed_metadata: ?@import("stwo_riscv_air_lang").framework_blake3_hash_metadata.Rows = null,
     g_used: usize = 0,
     xor_used: usize = 0,
     cache: *group.PlanCache,
@@ -116,7 +116,7 @@ const Builder = struct {
     }
     fn beginFrontier(self: *Builder, openings: []const discovery.Opening, root_index: usize, root: [32]u8) !?frontier.Context {
         if (openings.len < 2 or openings[0].siblings.len < 2) return null;
-        const plan = frontier.Plan{ .namespace = self.next, .queries = @intCast(openings.len), .root_source = try @import("blake3_root_sources.zig").caller(root_index) };
+        const plan = frontier.Plan{ .namespace = self.next, .queries = @intCast(openings.len), .root_source = try @import("stwo_riscv_recursion_air").blake3_root_sources.caller(root_index) };
         // The count pass needs only authenticated public topology. Private
         // discovery and root agreement run exactly once in the live pass.
         const context = if (self.count_only) frontier.Context{ .plan = plan, .witness = frontier.empty_witness } else try discovery.collect(self.backing, plan, openings, root);
@@ -126,7 +126,7 @@ const Builder = struct {
         const plans = try self.cache.get(len);
         const counts = group.HashCounts{ .g = 3 * plans.node.g.len, .xor = 3 * plans.node.xor.len };
         if (self.count_only) {
-            const metadata = if (self.fixed_metadata) |m| try m.slice(self.g_used, counts.g, self.xor_used, counts.xor) else try @import("blake3_hash_metadata.zig").Rows.allocate(self.backing, counts.g, counts.xor);
+            const metadata = if (self.fixed_metadata) |m| try m.slice(self.g_used, counts.g, self.xor_used, counts.xor) else try @import("stwo_riscv_air_lang").framework_blake3_hash_metadata.Rows.allocate(self.backing, counts.g, counts.xor);
             defer if (self.fixed_metadata == null) metadata.free(self.backing);
             var shape = try frontier.emitWithPlanEmitting(self.backing, context, false, .{ .fixed = metadata }, null, plans.node, self.fixed_sink.?);
             defer shape.deinit();
@@ -149,17 +149,17 @@ const Builder = struct {
         self.shared_path_g_rows += (2 * openings.len - 3) * plans.node.g.len;
         return context;
     }
-    fn opening(self: *Builder, leaves: u32, words: u32, index: u32, depth: u32, root_index: usize, root: [32]u8, directions: []const group.select.Endpoint, values: []const M31, siblings: []const [32]u8, sharing: ?@import("blake3_shared_root_plan.zig").Sharing, frontier_use: ?frontier.Use) ![]const u32 {
+    fn opening(self: *Builder, leaves: u32, words: u32, index: u32, depth: u32, root_index: usize, root: [32]u8, directions: []const group.select.Endpoint, values: []const M31, siblings: []const [32]u8, sharing: ?@import("stwo_riscv_recursion_air").blake3_shared_root_plan.Sharing, frontier_use: ?frontier.Use) ![]const u32 {
         const span = try std.math.add(u32, try std.math.sub(u32, try std.math.mul(u32, leaves, 2), 1), try std.math.mul(u32, depth, 3));
         const end = try std.math.add(u32, self.next, span);
         if (end >= 3_000_000 or depth > 31) return error.InvalidStarkPathNamespace;
-        const statement = group.Statement{ .namespace = self.next, .payload = .{ .circuit = 3_000_000, .first_wire = self.payload }, .leaf_count = leaves, .words_per_leaf = words, .index = index, .depth = @intCast(depth), .root = root, .root_source = try @import("blake3_root_sources.zig").caller(root_index), .directions = directions, .shared_root = sharing, .frontier = frontier_use };
+        const statement = group.Statement{ .namespace = self.next, .payload = .{ .circuit = 3_000_000, .first_wire = self.payload }, .leaf_count = leaves, .words_per_leaf = words, .index = index, .depth = @intCast(depth), .root = root, .root_source = try @import("stwo_riscv_recursion_air").blake3_root_sources.caller(root_index), .directions = directions, .shared_root = sharing, .frontier = frontier_use };
         const counts = try group.requiredHashRowsCached(self.backing, statement, self.cache);
         if (sharing) |plan| {
             if (plan.query_index > 0) self.shared_path_g_rows += self.cache.node.?.g.len;
         }
         if (self.count_only) {
-            const metadata = if (self.fixed_metadata) |m| try m.slice(self.g_used, counts.g, self.xor_used, counts.xor) else try @import("blake3_hash_metadata.zig").Rows.allocate(self.backing, counts.g, counts.xor);
+            const metadata = if (self.fixed_metadata) |m| try m.slice(self.g_used, counts.g, self.xor_used, counts.xor) else try @import("stwo_riscv_air_lang").framework_blake3_hash_metadata.Rows.allocate(self.backing, counts.g, counts.xor);
             defer if (self.fixed_metadata == null) metadata.free(self.backing);
             var shape = try group.prepareEmittingCached(self.backing, statement, null, null, .{ .fixed = metadata }, null, self.cache, self.fixed_sink.?);
             defer shape.deinit();
@@ -192,18 +192,18 @@ const Builder = struct {
         return self.a.dupe(u32, live.payload_uses);
     }
 };
-pub fn prepare(backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared) !Prepared {
+pub fn prepare(backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("stwo_riscv_rv32").recursion_air_fri_verifier_circuit.Circuit, queries: *@import("blake3_query_links.zig").Prepared) !Prepared {
     return build(true, backing, capture, dg, fg, queries, null);
 }
 /// Explicit dense-source parity oracle.
-pub fn prepareRows(backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared) !Prepared {
+pub fn prepareRows(backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("stwo_riscv_rv32").recursion_air_fri_verifier_circuit.Circuit, queries: *@import("blake3_query_links.zig").Prepared) !Prepared {
     return build(false, backing, capture, dg, fg, queries, null);
 }
 pub const MainColumns = group.MainColumns;
-pub fn prepareMainColumns(backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: MainColumns) !Prepared {
+pub fn prepareMainColumns(backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("stwo_riscv_rv32").recursion_air_fri_verifier_circuit.Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: MainColumns) !Prepared {
     return build(true, backing, capture, dg, fg, queries, columns);
 }
-fn build(comptime direct: bool, backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: ?MainColumns) !Prepared {
+fn build(comptime direct: bool, backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("stwo_riscv_rv32").recursion_air_fri_verifier_circuit.Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: ?MainColumns) !Prepared {
     if (!direct) return (try buildMode(false, backing, capture, dg, fg, queries, columns, null, null, false)).?;
     const saved = try backing.alloc([31]u32, queries.queries.len);
     defer backing.free(saved);
@@ -236,7 +236,7 @@ pub const FixedOpening = struct { tree: usize, query: usize, payload: u32, uses:
 pub const FixedShape = struct {
     allocator: std.mem.Allocator,
     allocation_owner: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget,
-    metadata: @import("blake3_hash_metadata.zig").Rows,
+    metadata: @import("stwo_riscv_air_lang").framework_blake3_hash_metadata.Rows,
     nonhash: Nonhash.FixedOwner,
     shape_id: [32]u8,
     openings: usize,
@@ -272,7 +272,7 @@ pub fn compileFixedProfile(comptime commitments: usize, backing: std.mem.Allocat
     for (queries.queries, saved) |*query, original| query.path_uses = original;
     var nonhash = try Nonhash.FixedOwner.init(backing, counts);
     errdefer nonhash.deinit();
-    const metadata = try @import("blake3_hash_metadata.zig").Rows.allocate(backing, census.g, census.xor);
+    const metadata = try @import("stwo_riscv_air_lang").framework_blake3_hash_metadata.Rows.allocate(backing, census.g, census.xor);
     errdefer metadata.free(backing);
     const input_routes = try backing.alloc(FixedOpening, census.openings);
     for (input_routes) |*route| route.* = .{ .tree = 0, .query = 0, .payload = 0, .uses = &.{} };
@@ -286,7 +286,7 @@ pub fn compileFixedProfile(comptime commitments: usize, backing: std.mem.Allocat
     return .{ .allocator = backing, .allocation_owner = lease, .metadata = metadata, .nonhash = nonhash, .shape_id = shape.seal, .openings = emitted.openings, .input_routes = input_routes };
 }
 const ShapeCounts = struct { g: usize, xor: usize, openings: usize };
-fn emitFixedShape(comptime commitments: usize, backing: std.mem.Allocator, shape: anytype, queries: *@import("blake3_query_links.zig").Prepared, sink: Nonhash.Sink, metadata: ?@import("blake3_hash_metadata.zig").Rows, input_routes: ?[]FixedOpening) !ShapeCounts {
+fn emitFixedShape(comptime commitments: usize, backing: std.mem.Allocator, shape: anytype, queries: *@import("blake3_query_links.zig").Prepared, sink: Nonhash.Sink, metadata: ?@import("stwo_riscv_air_lang").framework_blake3_hash_metadata.Rows, input_routes: ?[]FixedOpening) !ShapeCounts {
     var arena = std.heap.ArenaAllocator.init(backing);
     defer arena.deinit();
     const a = arena.allocator();
@@ -348,7 +348,7 @@ fn emitFixedShape(comptime commitments: usize, backing: std.mem.Allocator, shape
     if (metadata) |out| try out.validate(b.g_used, b.xor_used);
     return .{ .g = b.g_used, .xor = b.xor_used, .openings = b.count };
 }
-fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: ?MainColumns, live_sink: ?Nonhash.Sink, fixed_sink: ?Nonhash.Sink, count_only: bool) !?Prepared {
+fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("stwo_riscv_rv32").recursion_air_fri_verifier_circuit.Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: ?MainColumns, live_sink: ?Nonhash.Sink, fixed_sink: ?Nonhash.Sink, count_only: bool) !?Prepared {
     const original_reads = try backing.alloc([31]u32, queries.queries.len);
     defer backing.free(original_reads);
     for (queries.queries, original_reads) |query, *saved| saved.* = query.path_uses;
@@ -371,7 +371,7 @@ fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const 
     errdefer if (b.fixed_metadata) |m| m.free(backing);
     if (columns) |out| {
         try out.validate(out.g_rows.metadata.len, out.xor_rows.metadata.len);
-        b.fixed_metadata = try @import("blake3_hash_metadata.zig").Rows.allocate(backing, out.g_rows.metadata.len, out.xor_rows.metadata.len);
+        b.fixed_metadata = try @import("stwo_riscv_air_lang").framework_blake3_hash_metadata.Rows.allocate(backing, out.g_rows.metadata.len, out.xor_rows.metadata.len);
     }
     defer b.live.deinit(backing);
     defer b.fixed.deinit(backing);
@@ -434,7 +434,7 @@ fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const 
         arena.deinit();
         return null;
     }
-    if (std.posix.getenv("STWO_RISCV_PATH_SHARING_CENSUS") != null) try @import("blake3_path_sharing_census.zig").report(backing, capture, b.g_used, b.shared_path_g_rows);
+    if (std.posix.getenv("STWO_RISCV_PATH_SHARING_CENSUS") != null) try @import("stwo_riscv_recursion_air").blake3_path_sharing_census.report(backing, capture, b.g_used, b.shared_path_g_rows);
     if (columns) |out| if (b.g_used != out.g_rows.metadata.len or b.xor_used != out.xor_rows.metadata.len) return error.InvalidBlake3WitnessDestination;
     var linked = try links.?.finish();
     errdefer linked.deinitColumns();

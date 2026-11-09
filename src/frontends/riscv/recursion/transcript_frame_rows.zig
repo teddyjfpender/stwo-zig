@@ -2,8 +2,8 @@
 //! validate the recording before supplying frame/call coordinates.
 const M31 = @import("stwo_core").fields.m31.M31;
 const air = struct {
-    const transcript_air_witness = @import("air/transcript_air_witness.zig");
-    const field_statement_word_v3 = @import("air/field_statement_word.zig");
+    const transcript_air_witness = @import("stwo_riscv_recursion_air").transcript_air_witness;
+    const field_statement_word_v3 = @import("stwo_riscv_recursion_air").field_statement_word;
 };
 const recording = @import("recording_poseidon_channel.zig");
 const rows = @import("segment_transcript_outer_source_v2.zig");

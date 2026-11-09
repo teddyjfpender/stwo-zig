@@ -7,20 +7,20 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const recursion = struct {
     const air = struct {
         const segment_outer_adapter_manifest_v2 = @import("air/segment_outer_adapter_manifest.zig");
-        const universal_challenges = @import("air/universal_challenges.zig");
+        const universal_challenges = @import("stwo_riscv_air_lang").framework_universal_challenges;
     };
 };
 const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
 const universal = recursion.air.universal_challenges;
-const Channel = @import("poseidon2_channel.zig").Channel;
+const Channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel.Channel;
 const OuterProofCapture = stwo_core.pcs.verifier.VerifiedProofCapture(
-    @import("poseidon2_channel.zig").MerkleHasher,
+    @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel.MerkleHasher,
 );
 const VerifiedSegmentV2PublicationV1 = verified_publication.VerifiedSegmentV2PublicationV1;
 const RecursiveWitnessV1 = verified_artifact.RecursiveWitnessV1;
 const VerifierScheme = stwo_core.pcs.verifier.CommitmentSchemeVerifier(
-    @import("poseidon2_channel.zig").MerkleHasher,
-    @import("poseidon2_channel.zig").MerkleChannel,
+    @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel.MerkleHasher,
+    @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel.MerkleChannel,
 );
 
 pub fn rejectTransactionOutputAlias(
@@ -81,7 +81,7 @@ pub fn commitVerifierTree(
     scheme: *VerifierScheme,
     manifest: *const manifest_mod.Manifest,
     tree: usize,
-    commitment: @import("poseidon2_channel.zig").MerkleHasher.Hash,
+    commitment: @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel.MerkleHasher.Hash,
     channel: *Channel,
 ) !void {
     const logs = try allocator.alloc(u32, treeColumnCount(manifest, tree));

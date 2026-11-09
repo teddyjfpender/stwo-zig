@@ -24,6 +24,15 @@ pub fn build(b: *std.Build) void {
         "Type-check focused roots without emitting or running test binaries",
     ) orelse false;
     const dependency_options = .{ .target = target, .optimize = optimize };
+    const isa_package = b.dependency("stwo_riscv_isa", dependency_options);
+    const air_lang_package = b.dependency("stwo_riscv_air_lang", dependency_options);
+    const memory_package = b.dependency("stwo_riscv_memory", dependency_options);
+    const recursion_air_package = b.dependency("stwo_riscv_recursion_air", dependency_options);
+    const precompiles_package = b.dependency("stwo_riscv_precompiles", dependency_options);
+    const rv32_package = b.dependency("stwo_riscv_rv32", dependency_options);
+    const rv64_package = b.dependency("stwo_riscv_rv64", dependency_options);
+    const recursion_package = b.dependency("stwo_riscv_recursion", dependency_options);
+    const testing_package = b.dependency("stwo_riscv_testing", dependency_options);
 
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
     const prover = b.dependency(
@@ -73,6 +82,15 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    frontend.addImport("stwo_riscv_isa", isa_package.module("stwo_riscv_isa"));
+    frontend.addImport("stwo_riscv_air_lang", air_lang_package.module("stwo_riscv_air_lang"));
+    frontend.addImport("stwo_riscv_memory", memory_package.module("stwo_riscv_memory"));
+    frontend.addImport("stwo_riscv_recursion_air", recursion_air_package.module("stwo_riscv_recursion_air"));
+    frontend.addImport("stwo_riscv_precompiles", precompiles_package.module("stwo_riscv_precompiles"));
+    frontend.addImport("stwo_riscv_rv32", rv32_package.module("stwo_riscv_rv32"));
+    frontend.addImport("stwo_riscv_rv64", rv64_package.module("stwo_riscv_rv64"));
+    frontend.addImport("stwo_riscv_recursion", recursion_package.module("stwo_riscv_recursion"));
+    frontend.addImport("stwo_riscv_testing", testing_package.module("stwo_riscv_testing"));
     frontend.addImport("stwo_core", core);
     frontend.addImport("stwo_prover_api", prover_api);
     frontend.addImport("stwo_prover_engine", prover);

@@ -1,31 +1,31 @@
 //! Typed component construction for segment transcript rows.
 
-const adapter = @import("air/universal_typed_component.zig");
-const binding = @import("air/universal_relation_binding.zig");
-const manifest_mod = @import("air/universal_adapter_manifest.zig");
-const universal = @import("air/universal_challenges.zig");
+const adapter = @import("stwo_riscv_air_lang").framework_universal_typed_component;
+const binding = @import("stwo_riscv_air_lang").framework_universal_relation_binding;
+const manifest_mod = @import("stwo_riscv_air_lang").framework_universal_adapter_manifest;
+const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
 
-const ControlRelation = binding.Binding(@import("air/control.zig"));
-const TranscriptAirRelation = binding.Binding(@import("air/transcript_air.zig"));
-const TranscriptBindingRelation = binding.Binding(@import("air/transcript_binding.zig"));
-const TranscriptStateRelation = binding.Binding(@import("air/transcript_state.zig"));
-const TranscriptWordRelation = binding.Binding(@import("air/transcript_word.zig"));
-const TranscriptPayloadRelation = binding.Binding(@import("air/transcript_payload.zig"));
-const PowCheckRelation = binding.Binding(@import("air/pow_check.zig"));
-const PowFrameRelation = binding.Binding(@import("air/pow_frame.zig"));
-const RelationChallengeRelation = binding.Binding(@import("air/relation_challenge.zig"));
-const VerifierRandomnessRelation = binding.Binding(@import("air/verifier_randomness.zig"));
+const ControlRelation = binding.Binding(@import("stwo_riscv_air_lang").framework_control);
+const TranscriptAirRelation = binding.Binding(@import("stwo_riscv_recursion_air").transcript_air);
+const TranscriptBindingRelation = binding.Binding(@import("stwo_riscv_recursion_air").transcript_binding);
+const TranscriptStateRelation = binding.Binding(@import("stwo_riscv_recursion_air").transcript_state);
+const TranscriptWordRelation = binding.Binding(@import("stwo_riscv_recursion_air").transcript_word);
+const TranscriptPayloadRelation = binding.Binding(@import("stwo_riscv_recursion_air").transcript_payload);
+const PowCheckRelation = binding.Binding(@import("stwo_riscv_recursion_air").pow_check);
+const PowFrameRelation = binding.Binding(@import("stwo_riscv_recursion_air").pow_frame);
+const RelationChallengeRelation = binding.Binding(@import("stwo_riscv_recursion_air").relation_challenge);
+const VerifierRandomnessRelation = binding.Binding(@import("stwo_riscv_recursion_air").verifier_randomness);
 
-const ControlAdapter = adapter.Component(@import("air/control.zig"), ControlRelation);
-const TranscriptAirAdapter = adapter.Component(@import("air/transcript_air.zig"), TranscriptAirRelation);
-const TranscriptBindingAdapter = adapter.Component(@import("air/transcript_binding.zig"), TranscriptBindingRelation);
-const TranscriptStateAdapter = adapter.Component(@import("air/transcript_state.zig"), TranscriptStateRelation);
-const TranscriptWordAdapter = adapter.Component(@import("air/transcript_word.zig"), TranscriptWordRelation);
-const TranscriptPayloadAdapter = adapter.Component(@import("air/transcript_payload.zig"), TranscriptPayloadRelation);
-const PowCheckAdapter = adapter.Component(@import("air/pow_check.zig"), PowCheckRelation);
-const PowFrameAdapter = adapter.Component(@import("air/pow_frame.zig"), PowFrameRelation);
-const RelationChallengeAdapter = adapter.Component(@import("air/relation_challenge.zig"), RelationChallengeRelation);
-const VerifierRandomnessAdapter = adapter.Component(@import("air/verifier_randomness.zig"), VerifierRandomnessRelation);
+const ControlAdapter = adapter.Component(@import("stwo_riscv_air_lang").framework_control, ControlRelation);
+const TranscriptAirAdapter = adapter.Component(@import("stwo_riscv_recursion_air").transcript_air, TranscriptAirRelation);
+const TranscriptBindingAdapter = adapter.Component(@import("stwo_riscv_recursion_air").transcript_binding, TranscriptBindingRelation);
+const TranscriptStateAdapter = adapter.Component(@import("stwo_riscv_recursion_air").transcript_state, TranscriptStateRelation);
+const TranscriptWordAdapter = adapter.Component(@import("stwo_riscv_recursion_air").transcript_word, TranscriptWordRelation);
+const TranscriptPayloadAdapter = adapter.Component(@import("stwo_riscv_recursion_air").transcript_payload, TranscriptPayloadRelation);
+const PowCheckAdapter = adapter.Component(@import("stwo_riscv_recursion_air").pow_check, PowCheckRelation);
+const PowFrameAdapter = adapter.Component(@import("stwo_riscv_recursion_air").pow_frame, PowFrameRelation);
+const RelationChallengeAdapter = adapter.Component(@import("stwo_riscv_recursion_air").relation_challenge, RelationChallengeRelation);
+const VerifierRandomnessAdapter = adapter.Component(@import("stwo_riscv_recursion_air").verifier_randomness, VerifierRandomnessRelation);
 
 pub fn init(
     self: anytype,

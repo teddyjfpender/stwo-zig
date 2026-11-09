@@ -7,20 +7,20 @@ pub const m31 = stwo_core.fields.m31;
 pub const M31 = m31.M31;
 pub const QM31 = stwo_core.fields.qm31.QM31;
 
-pub const air_v2 = @import("air/segment_public_outer_air.zig");
-pub const binding = @import("air/universal_relation_binding.zig");
-pub const direct_program = @import("air/direct_constraint_program.zig");
-pub const framework = @import("air/framework_interaction.zig");
+pub const air_v2 = @import("stwo_riscv_recursion_air").segment_public_outer_air;
+pub const binding = @import("stwo_riscv_air_lang").framework_universal_relation_binding;
+pub const direct_program = @import("stwo_riscv_air_lang").framework_direct_constraint_program;
+pub const framework = @import("stwo_riscv_air_lang").framework_framework_interaction;
 pub const manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
-pub const relation_interaction = @import("air/relation_interaction.zig");
-pub const relation = @import("../air/lang/relation.zig");
-pub const typed_component = @import("air/universal_typed_component.zig");
-pub const universal = @import("air/universal_challenges.zig");
+pub const relation_interaction = @import("stwo_riscv_air_lang").framework_relation_interaction;
+pub const relation = @import("stwo_riscv_air_lang").relation;
+pub const typed_component = @import("stwo_riscv_air_lang").framework_universal_typed_component;
+pub const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
 pub const source_v2 = @import("segment_public_outer_source_v2.zig");
 pub const native_sum_authority = @import("segment_public_native_sum_authority.zig");
 pub const claim_hash_authority = @import("segment_public_claim_hash_authority.zig");
-pub const control_witness_v2 = @import("air/vm_public_logup_control_witness.zig");
-pub const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
+pub const control_witness_v2 = @import("stwo_riscv_recursion_air").vm_public_logup_control_witness;
+pub const poseidon2_air = @import("stwo_riscv_memory").air_poseidon2_air;
 
 pub const FORMAT_VERSION: u16 = 2;
 pub const SCHEMA_VERSION: u16 = 1;
@@ -106,7 +106,7 @@ pub inline fn evaluateRelationOp(
     values: anytype,
 ) M31 {
     return switch (op) {
-        .machine => |v| @import("air/closed_machine_expression.zig").evaluate(M31, v, values),
+        .machine => |v| @import("stwo_riscv_air_lang").framework_closed_machine_expression.evaluate(M31, v, values),
         .constant => |value| M31.fromU64(value),
         .add => |binary| values[binary.lhs].add(values[binary.rhs]),
         .sub => |binary| values[binary.lhs].sub(values[binary.rhs]),

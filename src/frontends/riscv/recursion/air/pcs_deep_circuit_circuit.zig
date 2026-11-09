@@ -12,9 +12,9 @@ pub const stwo_core = @import("stwo_core");
 pub const M31 = stwo_core.fields.m31.M31;
 pub const m31 = stwo_core.fields.m31;
 pub const QM31 = stwo_core.fields.qm31.QM31;
-pub const digest = @import("../../air/lang/digest.zig");
-pub const graph_mod = @import("composition_circuit.zig");
-pub const input_mod = @import("pcs_deep_input_witness.zig");
+pub const digest = @import("stwo_riscv_air_lang").digest;
+pub const graph_mod = @import("stwo_riscv_rv32").recursion_air_composition_circuit;
+pub const input_mod = @import("stwo_riscv_rv32").recursion_air_pcs_deep_input_witness;
 pub const sample_point_layout = @import("../sample_point_layout.zig");
 
 pub const SECURE_WORD_COUNT: usize = input_mod.SECURE_WORD_COUNT;

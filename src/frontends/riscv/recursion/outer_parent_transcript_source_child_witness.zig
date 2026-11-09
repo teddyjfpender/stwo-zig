@@ -7,13 +7,13 @@ pub const M31 = stwo_core.fields.m31.M31;
 pub const QM31 = stwo_core.fields.qm31.QM31;
 
 pub const admission = @import("outer_parent_child_admission.zig");
-pub const channel = @import("poseidon2_channel.zig");
+pub const channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
 pub const engine = @import("engine.zig");
-pub const fixed_wire = @import("fixed_wire.zig");
+pub const fixed_wire = @import("stwo_riscv_recursion_air").protocol_recursion_fixed_wire;
 pub const pair_node = @import("pair_node.zig");
-pub const protocol = @import("protocol.zig");
-pub const span_statement = @import("span_statement.zig");
-pub const roster = @import("air/universal_roster.zig");
+pub const protocol = @import("stwo_riscv_recursion_air").protocol_recursion_protocol;
+pub const span_statement = @import("stwo_riscv_rv32").recursion_span_statement;
+pub const roster = @import("stwo_riscv_air_lang").framework_universal_roster;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SOURCE_ID_DOMAIN: u32 = 0x4f50_5453; // "OPTS"

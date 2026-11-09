@@ -15,9 +15,10 @@
 
 const std = @import("std");
 
-const runner_result = @import("../runner/result.zig");
-const span = @import("span_statement.zig");
-const segment_v2 = @import("segment_statement.zig");
+const runner_result = @import("stwo_riscv_frontend").modules.runner_result;
+const span = @import("stwo_riscv_rv32").recursion_span_statement;
+const canonical_segment_v2_440fbb = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
+const canonical_segment_v2_be5e22 = @import("stwo_riscv_rv32").recursion_segment_statement_source;
 const global_v3 = @import("segment_leaf_local_authority.zig");
 
 pub const FORMAT_VERSION: u16 = 3;
@@ -109,7 +110,7 @@ pub const ProjectionV3 = struct {
         if (!std.meta.eql(self.local_result, expected_result))
             return error.LocalProjectionMismatch;
 
-        _ = try segment_v2.SourceV2.fromSegmentResult(
+        _ = try canonical_segment_v2_be5e22.SourceV2.fromSegmentResult(
             placeholderSessionId(),
             self.local_statement,
             &self.local_result,
@@ -133,7 +134,7 @@ pub const ProjectionV3 = struct {
         {
             return error.LocalProjectionMismatch;
         }
-        _ = try segment_v2.SourceV2.fromSegmentResult(
+        _ = try canonical_segment_v2_be5e22.SourceV2.fromSegmentResult(
             placeholderSessionId(),
             self.local_statement,
             &self.local_result,
@@ -146,10 +147,10 @@ pub const ProjectionV3 = struct {
     pub fn sourceV2(
         self: *const ProjectionV3,
         source: *const global_v3.SourceV3,
-        session_id: segment_v2.Digest,
-    ) Error!segment_v2.SourceV2 {
+        session_id: canonical_segment_v2_440fbb.Digest,
+    ) Error!canonical_segment_v2_be5e22.SourceV2 {
         try self.validateAgainst(source);
-        return segment_v2.SourceV2.fromSegmentResult(
+        return canonical_segment_v2_be5e22.SourceV2.fromSegmentResult(
             session_id,
             self.local_statement,
             &self.local_result,
@@ -160,10 +161,10 @@ pub const ProjectionV3 = struct {
         self: *const ProjectionV3,
         source: *const global_v3.SourceV3,
         retained: *const global_v3.MetadataV3,
-        session_id: segment_v2.Digest,
-    ) Error!segment_v2.SourceV2 {
+        session_id: canonical_segment_v2_440fbb.Digest,
+    ) Error!canonical_segment_v2_be5e22.SourceV2 {
         try self.validateAgainstRetainedMetadata(source, retained);
-        return segment_v2.SourceV2.fromSegmentResult(
+        return canonical_segment_v2_be5e22.SourceV2.fromSegmentResult(
             session_id,
             self.local_statement,
             &self.local_result,
@@ -211,6 +212,6 @@ pub fn localStatementFromMetadata(
 
 /// Used only for structural validation before a caller supplies the real
 /// transcript-bound session identity. It is nonzero and canonical.
-fn placeholderSessionId() segment_v2.Digest {
+fn placeholderSessionId() canonical_segment_v2_440fbb.Digest {
     return .{ FORMAT_VERSION, SCHEMA_VERSION, 0x4c50_5633, 1, 2, 3, 4, 5 };
 }

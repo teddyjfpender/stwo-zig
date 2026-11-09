@@ -28,23 +28,23 @@ pub const verifier_types = stwo_core.verifier_types;
 
 pub const Sha256 = std.crypto.hash.sha2.Sha256;
 
-pub const graph_mod = @import("air/composition_circuit.zig");
+pub const graph_mod = @import("stwo_riscv_rv32").recursion_air_composition_circuit;
 
-pub const recorder = @import("air/composition_graph_recorder.zig");
+pub const recorder = @import("stwo_riscv_rv32").recursion_air_composition_graph_recorder;
 
 pub const segment_manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
 
-pub const universal_manifest_mod = @import("air/universal_adapter_manifest.zig");
+pub const universal_manifest_mod = @import("stwo_riscv_air_lang").framework_universal_adapter_manifest;
 
-pub const universal_roster = @import("air/universal_roster.zig");
+pub const universal_roster = @import("stwo_riscv_air_lang").framework_universal_roster;
 
-pub const universal = @import("air/universal_challenges.zig");
+pub const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
 
-pub const statement_input = @import("air/statement_input.zig");
+pub const statement_input = @import("stwo_riscv_recursion_air").statement_input;
 
-pub const channel = @import("poseidon2_channel.zig");
+pub const channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
 
-pub const span_statement = @import("span_statement.zig");
+pub const span_statement = @import("stwo_riscv_rv32").recursion_span_statement;
 
 pub const temporal_pair_node = @import("temporal_pair_node.zig");
 

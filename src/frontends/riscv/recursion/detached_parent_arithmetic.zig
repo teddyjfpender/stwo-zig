@@ -7,23 +7,23 @@ const recursion = struct {
     const span_continuation_v1 = @import("span_continuation.zig");
 };
 const air = struct {
-    const composition_circuit = @import("air/composition_circuit.zig");
-    const detached_arithmetic_fusion_plan = @import("air/detached_arithmetic_fusion_plan.zig");
-    const detached_graph_input_v1 = @import("air/detached_graph_input.zig");
-    const detached_opening_accumulate4_v1 = @import("air/detached_opening_accumulate4.zig");
-    const detached_opening_accumulation_plan = @import("air/detached_opening_accumulation_plan.zig");
-    const detached_poseidon_graph_v1 = @import("air/detached_poseidon_graph.zig");
-    const fixed_wire_v3 = @import("air/fixed_wire.zig");
-    const linear_ops = @import("air/linear_ops.zig");
-    const linear_ops_witness = @import("air/linear_ops_witness.zig");
-    const qm31_inv = @import("air/qm31_inv.zig");
-    const qm31_inv_witness = @import("air/qm31_inv_witness.zig");
-    const qm31_mul_add_v1 = @import("air/qm31_mul_add.zig");
-    const qm31_mul_full_witness = @import("air/qm31_mul_full_witness.zig");
-    const relation_challenge_witness = @import("air/relation_challenge_witness.zig");
-    const transcript_payload = @import("air/transcript_payload.zig");
-    const verifier_arithmetic_lowering = @import("air/verifier_arithmetic_lowering.zig");
-    const verifier_randomness_witness = @import("air/verifier_randomness_witness.zig");
+    const composition_circuit = @import("stwo_riscv_rv32").recursion_air_composition_circuit;
+    const detached_arithmetic_fusion_plan = @import("stwo_riscv_rv32").recursion_air_detached_arithmetic_fusion_plan;
+    const detached_graph_input_v1 = @import("stwo_riscv_recursion_air").detached_graph_input;
+    const detached_opening_accumulate4_v1 = @import("stwo_riscv_air_lang").framework_detached_opening_accumulate4;
+    const detached_opening_accumulation_plan = @import("stwo_riscv_rv32").recursion_air_detached_opening_accumulation_plan;
+    const detached_poseidon_graph_v1 = @import("stwo_riscv_recursion_air").detached_poseidon_graph;
+    const fixed_wire_v3 = @import("stwo_riscv_recursion_air").fixed_wire;
+    const linear_ops = @import("stwo_riscv_air_lang").framework_linear_ops;
+    const linear_ops_witness = @import("stwo_riscv_recursion_air").linear_ops_witness;
+    const qm31_inv = @import("stwo_riscv_air_lang").framework_qm31_inv;
+    const qm31_inv_witness = @import("stwo_riscv_recursion_air").qm31_inv_witness;
+    const qm31_mul_add_v1 = @import("stwo_riscv_air_lang").framework_qm31_mul_add;
+    const qm31_mul_full_witness = @import("stwo_riscv_recursion_air").qm31_mul_full_witness;
+    const relation_challenge_witness = @import("stwo_riscv_recursion_air").relation_challenge_witness;
+    const transcript_payload = @import("stwo_riscv_recursion_air").transcript_payload;
+    const verifier_arithmetic_lowering = @import("stwo_riscv_rv32").recursion_air_verifier_arithmetic_lowering;
+    const verifier_randomness_witness = @import("stwo_riscv_recursion_air").verifier_randomness_witness;
 };
 const std = @import("std");
 const core = @import("stwo_core");
@@ -222,7 +222,7 @@ fn compositionSource(source: air.composition_circuit.RecursionSource, verifier: 
     };
 }
 fn arithmeticRows(a: std.mem.Allocator, temporary: std.mem.Allocator, plan: *const lowering.Plan, reference: lowering.Reference, evaluations: lowering.Evaluations, logical: *cohort.LogicalRowsV1) !void {
-    var rows = try @import("air/arithmetic_fusion_rows.zig").materialize(temporary, plan, reference, evaluations, .binary_node);
+    var rows = try @import("stwo_riscv_rv32").recursion_air_arithmetic_fusion_rows.materialize(temporary, plan, reference, evaluations, .binary_node);
     defer rows.deinit();
     logical[cohort.logicalIndex(14)] = try a.dupe(air.detached_opening_accumulate4_v1.Row, rows.opening);
     logical[cohort.logicalIndex(30)] = try a.dupe(air.qm31_mul_add_v1.Row, rows.multiply);

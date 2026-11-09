@@ -3,11 +3,11 @@ const std = @import("std");
 const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
-const recorder = @import("air/composition_graph_recorder.zig");
+const recorder = @import("stwo_riscv_rv32").recursion_air_composition_graph_recorder;
 const S = recorder.Scalar;
 const recursion = struct {
-    const segment_statement_v2 = @import("segment_statement.zig");
-    const span_statement = @import("span_statement.zig");
+    const segment_statement_v2 = @import("stwo_riscv_rv32").recursion_segment_statement;
+    const span_statement = @import("stwo_riscv_rv32").recursion_span_statement;
 };
 const wire_layout = recursion.segment_statement_v2.fixed_layout;
 const span_layout = recursion.span_statement.canonical_layout;
@@ -20,9 +20,9 @@ const U32 = graph.U32;
 const base = graph.base;
 const GraphCalls = graph.GraphCalls;
 const NativeCalls = graph.NativeCalls;
-const access_clock = @import("../access_clock.zig");
+const access_clock = @import("stwo_riscv_isa").access_clock;
 const memory_profile_mod = @import("detached_memory_profile.zig");
-const poseidon = @import("../air/memory_commitment/mod.zig").poseidon2;
+const poseidon = @import("stwo_riscv_memory").air_mod.poseidon2;
 
 pub fn constrainSegmentIndexBound(builder: *recorder.Builder, next: U32, count: U32, remaining: U32, carry: S) !void {
     // Every limb is independently ranged to u16. Both equations are below2^18,

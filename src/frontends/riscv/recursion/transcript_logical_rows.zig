@@ -1,12 +1,12 @@
 const air = struct {
-    const control_witness = @import("air/control_witness.zig");
-    const relation_challenge_witness = @import("air/relation_challenge_witness.zig");
-    const transcript_air_witness = @import("air/transcript_air_witness.zig");
-    const transcript_binding_witness = @import("air/transcript_binding_witness.zig");
-    const transcript_payload_witness = @import("air/transcript_payload_witness.zig");
-    const transcript_state_witness = @import("air/transcript_state_witness.zig");
-    const transcript_word_witness = @import("air/transcript_word_witness.zig");
-    const verifier_randomness_witness = @import("air/verifier_randomness_witness.zig");
+    const control_witness = @import("stwo_riscv_recursion_air").control_witness;
+    const relation_challenge_witness = @import("stwo_riscv_recursion_air").relation_challenge_witness;
+    const transcript_air_witness = @import("stwo_riscv_recursion_air").transcript_air_witness;
+    const transcript_binding_witness = @import("stwo_riscv_recursion_air").transcript_binding_witness;
+    const transcript_payload_witness = @import("stwo_riscv_recursion_air").transcript_payload_witness;
+    const transcript_state_witness = @import("stwo_riscv_recursion_air").transcript_state_witness;
+    const transcript_word_witness = @import("stwo_riscv_recursion_air").transcript_word_witness;
+    const verifier_randomness_witness = @import("stwo_riscv_recursion_air").verifier_randomness_witness;
 };
 const M31 = @import("stwo_core").fields.m31.M31;
 const catalog = @import("common_fold_catalog.zig");

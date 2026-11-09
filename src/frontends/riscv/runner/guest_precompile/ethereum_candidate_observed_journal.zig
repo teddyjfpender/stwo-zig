@@ -9,7 +9,7 @@
 
 const std = @import("std");
 
-const execution_profile = @import("../../isa/execution_profile.zig");
+const execution_profile = @import("stwo_riscv_isa").execution_profile;
 const capability_mod = @import("ethereum_candidate_execution_capability.zig");
 const journal_mod = @import("ethereum_candidate_execution_journal.zig");
 const combined_result = @import("../ethereum_candidate_combined_result.zig");
@@ -255,10 +255,10 @@ comptime {
 }
 
 test "combined candidate observed journal keeps live bulk execution-only" {
-    const registry_mod = @import("../../isa/ethereum_candidate_private_registry.zig");
+    const registry_mod = @import("../../compat/product_tree/isa/ethereum_candidate_private_registry.zig");
     const receipt_mod = @import("ethereum_candidate_combined_elf_receipt.zig");
-    const test_elf = @import("test_elf.zig");
-    const segment_manifest = @import("../../diagnostics/segment_manifest.zig");
+    const test_elf = @import("stwo_riscv_rv32").runner_guest_precompile_test_elf;
+    const segment_manifest = @import("stwo_riscv_rv32").diagnostics_segment_manifest;
 
     const elf = test_elf.buildEthereumCombinedCandidate();
     const elf_identity = receipt_mod.hashBytes(&elf);

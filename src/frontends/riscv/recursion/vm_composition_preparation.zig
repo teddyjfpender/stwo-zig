@@ -5,9 +5,9 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const vm = @import("vm_air_composition_circuit.zig");
-const graph_mod = @import("air/composition_circuit.zig");
-const rows = @import("air/vm_air_composition_input_witness.zig");
-const ethereum = @import("incremental_ethereum_vm_composition_program.zig");
+const graph_mod = @import("stwo_riscv_rv32").recursion_air_composition_circuit;
+const rows = @import("stwo_riscv_rv32").recursion_air_vm_air_composition_input_witness;
+const ethereum = @import("stwo_riscv_frontend").modules.compat_product_tree_recursion_incremental_ethereum_vm_composition_program;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 
@@ -33,7 +33,7 @@ pub const ProgramView = struct {
     outputs: []const u32,
     bindings: []const graph_mod.VmInputBinding,
     input_profile: graph_mod.InputProfile,
-    claim_routing: ?@import("incremental_ethereum_composition_profile.zig").ClaimRoutingPlan = null,
+    claim_routing: ?@import("stwo_riscv_frontend").modules.compat_product_tree_recursion_incremental_ethereum_composition_profile.ClaimRoutingPlan = null,
     air_program_identity: [32]u8,
     verifier_program_authority: [32]u8,
     graph_sha256: [32]u8,
@@ -353,7 +353,7 @@ test "composition borrowed admission retains mutation checks and matches frozen 
     try borrowed.validate();
     try std.testing.expectEqualSlices(M31, borrowed.view().schedule_values, owned.source().view().schedule_values);
     try std.testing.expectEqualDeep(borrowed.view().circuit, owned.source().view().circuit);
-    var definition = try @import("air/vm_air_composition_input.zig").build(std.testing.allocator);
+    var definition = try @import("stwo_riscv_recursion_air").vm_air_composition_input.build(std.testing.allocator);
     defer definition.deinit();
     const binding = try rows.Binding.canonical(&definition);
     const executor = try rows.Executor.init(&definition, &binding);

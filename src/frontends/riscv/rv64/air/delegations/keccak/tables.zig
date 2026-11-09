@@ -8,10 +8,10 @@ const physical = @import("../../witness.zig").physical;
 const I = @import("interaction.zig");
 const C = @import("component.zig");
 const E = @import("equations.zig");
-const schema = @import("../../../../air/guest_precompile/keccakf_tables.zig");
+const schema = @import("stwo_riscv_precompiles").air_keccakf_tables;
 /// Throughput-v1 universes (2^21 five-output chi, 2^16 three-position xor5)
 /// are the RV32 authority's tables, reused unchanged.
-const throughput = @import("../../../../air/guest_precompile/keccakf_throughput_tables.zig");
+const throughput = @import("stwo_riscv_precompiles").air_keccakf_throughput_tables;
 pub const Policy = E.BatchPolicy;
 fn tableOf(kind: C.Kind) @import("batch_policy.zig").Table {
     return if (kind == .chi) .chi else .xor5;

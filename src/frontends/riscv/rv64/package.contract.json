@@ -1,0 +1,55 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_rv64",
+  "version": "0.1.0",
+  "layer": "frontend",
+  "owner": "riscv-frontend",
+  "public_modules": {
+    "stwo_riscv_rv64": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../../waist/core",
+    "stwo_prover_engine": "../../../engine/prover",
+    "stwo_riscv_air_lang": "../air_lang",
+    "stwo_riscv_memory": "../memory",
+    "stwo_riscv_precompiles": "../precompiles",
+    "stwo_riscv_rv32": "../rv32"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "access_census",
+    "air_mod",
+    "candidate_isa",
+    "elf",
+    "ethereum_services_candidate_services",
+    "ethereum_services_session",
+    "execution_profile",
+    "frequent_operations",
+    "implementation",
+    "machine",
+    "memory",
+    "service_session",
+    "session"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "air/delegations/arith256/tests.zig::known answers: edge and random values agree with independent big-integer references"
+    ],
+    "invariant_tests": [
+      "tests/zbb_binary_test.zig::pinned encodings decode exactly under the Zbb BINARY ISA and are illegal under RV64IM"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_rv64_package",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/riscv/rv64/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

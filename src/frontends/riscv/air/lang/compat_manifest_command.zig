@@ -1,9 +1,9 @@
 //! Explicit check/update command for reviewed `compat-v1` family artifacts.
 
 const std = @import("std");
-const compat_manifest = @import("compat_manifest.zig");
-const compat_manifest_diff = @import("compat_manifest_diff.zig");
-const trace = @import("../../runner/trace.zig");
+const compat_manifest = @import("stwo_riscv_rv32").air_lang_compat_manifest;
+const compat_manifest_diff = @import("stwo_riscv_air_lang").compat_manifest_diff;
+const trace = @import("stwo_riscv_rv32").runner_trace;
 
 const max_artifact_bytes: usize = 16 * 1024 * 1024;
 const Mode = enum { check, update };

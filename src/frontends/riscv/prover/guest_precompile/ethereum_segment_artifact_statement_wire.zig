@@ -4,11 +4,12 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
-const public_data_v2 = @import("../../air/public_data_v2.zig");
-const statement = @import("../../air/statement.zig");
-const statement_v2 = @import("../../air/statement_v2.zig");
-const segment_v2 = @import("../../recursion/segment_statement.zig");
-const base_wire = @import("proof_artifact_wire.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").air_public_data_v2;
+const statement = @import("stwo_riscv_rv32").air_statement;
+const statement_v2 = @import("stwo_riscv_rv32").air_statement_v2;
+const canonical_segment_v2_440fbb = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
+const canonical_segment_v2_51c663 = @import("stwo_riscv_rv32").recursion_segment_statement_contract;
+const base_wire = @import("stwo_riscv_rv32").prover_guest_precompile_proof_artifact_wire;
 
 pub const schema_version: u16 = 1;
 
@@ -130,7 +131,7 @@ fn decodeWithLease(
 const RawDecoded = struct {
     core: statement.RiscVStatement,
     words: []M31,
-    authority_id: segment_v2.Digest,
+    authority_id: canonical_segment_v2_440fbb.Digest,
 };
 
 fn decodeRaw(
@@ -152,7 +153,7 @@ fn decodeRaw(
         if (raw >= m31.Modulus) return error.NonCanonicalM31;
         word.* = M31.fromCanonical(raw);
     }
-    var authority_id: segment_v2.Digest = undefined;
+    var authority_id: canonical_segment_v2_440fbb.Digest = undefined;
     for (&authority_id) |*word| {
         word.* = try cursor.readInt(u32);
         if (word.* >= m31.Modulus) return error.NonCanonicalDigest;
@@ -213,7 +214,7 @@ fn decodeCoreGeometry(cursor: *base_wire.Cursor) !statement.RiscVStatement {
 }
 
 fn validateWordCount(count: usize, max_section_bytes: usize) !void {
-    if (count < segment_v2.MIN_CANONICAL_WORDS)
+    if (count < canonical_segment_v2_51c663.MIN_CANONICAL_WORDS)
         return error.InvalidCanonicalWordCount;
     const bytes = std.math.mul(usize, count, @sizeOf(u32)) catch
         return error.StatementResourceLimitExceeded;

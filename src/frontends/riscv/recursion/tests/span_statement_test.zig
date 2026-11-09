@@ -2,12 +2,12 @@
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const public_data_mod = @import("../../air/public_data.zig");
-const protocol = @import("../protocol.zig");
-const statement = @import("../span_statement.zig");
-const claim = @import("../vm_public_claim.zig");
-const row10 = @import("../air/statement_input_witness.zig");
-const row11 = @import("../air/statement_semantics_input_witness.zig");
+const public_data_mod = @import("stwo_riscv_rv32").air_public_data;
+const protocol = @import("stwo_riscv_recursion_air").protocol_recursion_protocol;
+const statement = @import("stwo_riscv_rv32").recursion_span_statement;
+const claim = @import("stwo_riscv_rv32").recursion_vm_public_claim;
+const row10 = @import("stwo_riscv_rv32").recursion_air_statement_input_witness;
+const row11 = @import("stwo_riscv_rv32").recursion_air_statement_semantics_input_witness;
 
 const M31 = stwo_core.fields.m31.M31;
 

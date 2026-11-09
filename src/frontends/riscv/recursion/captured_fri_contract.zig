@@ -7,14 +7,14 @@ pub const m31 = stwo_core.fields.m31;
 pub const QM31 = stwo_core.fields.qm31.QM31;
 pub const circle = stwo_core.circle;
 pub const canonic = stwo_core.poly.circle.canonic;
-pub const circuit_mod = @import("air/fri_verifier_circuit.zig");
+pub const circuit_mod = @import("stwo_riscv_rv32").recursion_air_fri_verifier_circuit;
 pub const pcs_circuit_mod = @import("air/pcs_deep_circuit.zig");
-pub const fri_merkle = @import("air/fri_merkle_leaf_witness.zig");
-pub const merkle_root = @import("air/merkle_root_witness.zig");
-pub const trace_merkle = @import("air/trace_merkle_witness.zig");
-pub const protocol = @import("protocol.zig");
+pub const fri_merkle = @import("stwo_riscv_recursion_air").fri_merkle_leaf_witness;
+pub const merkle_root = @import("stwo_riscv_recursion_air").merkle_root_witness;
+pub const trace_merkle = @import("stwo_riscv_recursion_air").trace_merkle_witness;
+pub const protocol = @import("stwo_riscv_recursion_air").protocol_recursion_protocol;
 pub const sample_point_layout = @import("sample_point_layout.zig");
-pub const transcript_claims = @import("../air/transcript/claims.zig");
+pub const transcript_claims = @import("stwo_riscv_rv32").air_transcript_claims;
 
 pub const STAGE_TELEMETRY_ENV = "STWO_RECURSION_OUTER_STAGE_TELEMETRY";
 

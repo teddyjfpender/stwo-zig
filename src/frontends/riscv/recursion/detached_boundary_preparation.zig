@@ -4,29 +4,29 @@
 //! provider binding and authenticate the canonical Span/continuation projection.
 const recursion = struct {
     const detached_parent_protocol_v1 = @import("detached_parent_protocol.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
-    const protocol = @import("protocol.zig");
+    const poseidon2_channel = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
+    const protocol = @import("stwo_riscv_recursion_air").protocol_recursion_protocol;
     const segment_leaf_authority_v2 = @import("segment_leaf_authority_v2.zig");
     const segment_public_claim_hash_authority_v2 = @import("segment_public_claim_hash_authority.zig");
-    const segment_statement_v2 = @import("segment_statement.zig");
+    const segment_statement_v2 = @import("stwo_riscv_rv32").recursion_segment_statement;
     const segment_transcript_outer_source_v2 = @import("segment_transcript_outer_source_v2.zig");
     const span_continuation_v1 = @import("span_continuation.zig");
-    const span_statement = @import("span_statement.zig");
+    const span_statement = @import("stwo_riscv_rv32").recursion_span_statement;
 };
 const air = struct {
-    const composition_circuit = @import("air/composition_circuit.zig");
-    const composition_graph_recorder = @import("air/composition_graph_recorder.zig");
-    const universal_challenges = @import("air/universal_challenges.zig");
-    const verifier_arithmetic_lowering = @import("air/verifier_arithmetic_lowering.zig");
+    const composition_circuit = @import("stwo_riscv_rv32").recursion_air_composition_circuit;
+    const composition_graph_recorder = @import("stwo_riscv_rv32").recursion_air_composition_graph_recorder;
+    const universal_challenges = @import("stwo_riscv_air_lang").framework_universal_challenges;
+    const verifier_arithmetic_lowering = @import("stwo_riscv_rv32").recursion_air_verifier_arithmetic_lowering;
 };
 const riscv_air = struct {
-    const memory_commitment = @import("../air/memory_commitment/mod.zig");
-    const public_data_v2 = @import("../air/public_data_v2.zig");
-    const relation = @import("../air/lang/relation.zig");
-    const statement_v2 = @import("../air/statement_v2.zig");
+    const memory_commitment = @import("stwo_riscv_memory").air_mod;
+    const public_data_v2 = @import("stwo_riscv_rv32").air_public_data_v2;
+    const relation = @import("stwo_riscv_air_lang").relation;
+    const statement_v2 = @import("stwo_riscv_rv32").air_statement_v2;
 };
 const testing_support = struct {
-    const public_data_v2_test_support = @import("../air/public_data_test_support.zig");
+    const public_data_v2_test_support = @import("stwo_riscv_rv32").air_public_data_test_support;
 };
 const std = @import("std");
 const core = @import("stwo_core");

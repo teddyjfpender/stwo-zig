@@ -12,47 +12,47 @@ pub const leaf_authority = @import("segment_leaf_authority.zig");
 
 pub const segment_source = @import("segment_public_outer_source.zig");
 
-pub const adapter = @import("air/universal_typed_component.zig");
+pub const adapter = @import("stwo_riscv_air_lang").framework_universal_typed_component;
 
-pub const binding = @import("air/universal_relation_binding.zig");
+pub const binding = @import("stwo_riscv_air_lang").framework_universal_relation_binding;
 
-pub const framework = @import("air/framework_interaction.zig");
+pub const framework = @import("stwo_riscv_air_lang").framework_framework_interaction;
 
-pub const manifest_mod = @import("air/universal_adapter_manifest.zig");
+pub const manifest_mod = @import("stwo_riscv_air_lang").framework_universal_adapter_manifest;
 
-pub const relation_interaction = @import("air/relation_interaction.zig");
+pub const relation_interaction = @import("stwo_riscv_air_lang").framework_relation_interaction;
 
-pub const roster = @import("air/universal_roster.zig");
+pub const roster = @import("stwo_riscv_air_lang").framework_universal_roster;
 
-pub const schedule = @import("air/verifier_schedule.zig");
+pub const schedule = @import("stwo_riscv_recursion_air").verifier_schedule;
 
-pub const universal = @import("air/universal_challenges.zig");
+pub const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
 
-pub const universal_manifest = @import("air/universal_manifest.zig");
+pub const universal_manifest = @import("stwo_riscv_rv32").recursion_air_universal_manifest;
 
-pub const claim_input_air = @import("air/vm_public_claim_input.zig");
+pub const claim_input_air = @import("stwo_riscv_recursion_air").vm_public_claim_input;
 
-pub const claim_input_witness = @import("air/vm_public_claim_input_witness.zig");
+pub const claim_input_witness = @import("stwo_riscv_rv32").recursion_air_vm_public_claim_input_witness;
 
-pub const claim_hash_air = @import("air/vm_public_claim_hash.zig");
+pub const claim_hash_air = @import("stwo_riscv_recursion_air").vm_public_claim_hash;
 
-pub const claim_hash_witness = @import("air/vm_public_claim_hash_witness.zig");
+pub const claim_hash_witness = @import("stwo_riscv_rv32").recursion_air_vm_public_claim_hash_witness;
 
-pub const io_hash_air = @import("air/vm_public_io_hash.zig");
+pub const io_hash_air = @import("stwo_riscv_recursion_air").vm_public_io_hash;
 
-pub const io_hash_witness = @import("air/vm_public_io_hash_witness.zig");
+pub const io_hash_witness = @import("stwo_riscv_rv32").recursion_air_vm_public_io_hash_witness;
 
-pub const claim_semantics_air = @import("air/vm_public_claim_semantics_input.zig");
+pub const claim_semantics_air = @import("stwo_riscv_recursion_air").vm_public_claim_semantics_input;
 
-pub const claim_semantics_witness = @import("air/vm_public_claim_semantics_input_witness.zig");
+pub const claim_semantics_witness = @import("stwo_riscv_recursion_air").vm_public_claim_semantics_input_witness;
 
-pub const public_logup_air = @import("air/vm_public_logup_input.zig");
+pub const public_logup_air = @import("stwo_riscv_recursion_air").vm_public_logup_input;
 
-pub const public_logup_witness = @import("air/vm_public_logup_input_witness.zig");
+pub const public_logup_witness = @import("stwo_riscv_recursion_air").vm_public_logup_input_witness;
 
-pub const public_logup_control_air = @import("air/vm_public_logup_control.zig").Air;
+pub const public_logup_control_air = @import("stwo_riscv_recursion_air").vm_public_logup_control.Air;
 
-pub const control_witness = @import("air/control_slice_witness.zig");
+pub const control_witness = @import("stwo_riscv_recursion_air").control_slice_witness;
 
 pub const prepared_init = @import("binary_inactive_outer_source_prepared_init.zig");
 

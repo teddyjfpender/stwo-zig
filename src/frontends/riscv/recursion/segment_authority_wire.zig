@@ -2,9 +2,9 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;
-const poseidon2 = @import("../air/memory_commitment/poseidon2.zig");
-const poseidon2_air = @import("../air/memory_commitment/poseidon2_call.zig");
-const air = @import("air/vm_public_claim_hash_authority.zig");
+const poseidon2 = @import("stwo_riscv_memory").air_poseidon2;
+const poseidon2_air = @import("stwo_riscv_memory").air_poseidon2_call;
+const air = @import("stwo_riscv_recursion_air").vm_public_claim_hash_authority;
 pub const CALL_WIRE_CIRCUIT_ID = air.CALL_WIRE_CIRCUIT_ID;
 pub const CALL_WIRE_GROUP_COUNT = air.CALL_WIRE_GROUP_COUNT;
 

@@ -20,9 +20,9 @@ pub fn For(comptime leaf_outer: type, comptime core_mod: type) type {
 
         const composition_v3 = @import("recursion_air_composition_circuit_v3.zig");
         const manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
-        const universal = @import("air/universal_challenges.zig");
-        const shared_provider = @import("air/universal_shared_provider.zig");
-        const relation_interaction = @import("air/relation_interaction.zig");
+        const universal = @import("stwo_riscv_air_lang").framework_universal_challenges;
+        const shared_provider = @import("stwo_riscv_rv32").recursion_air_universal_shared_provider;
+        const relation_interaction = @import("stwo_riscv_air_lang").framework_relation_interaction;
         const cohort_protocol = @import("segment_outer_cohort.zig");
         const public_native_sum = @import("segment_public_native_sum_authority.zig");
         const authority_boundary = @import("detached_segment_authority_boundary.zig");
@@ -310,7 +310,7 @@ pub fn For(comptime leaf_outer: type, comptime core_mod: type) type {
             ) !PublicationAuthorityV1 {
                 try self.validateEnvelope();
                 const data = &self.prepared.capture.public_data.data;
-                const view = try @import("segment_statement.zig")
+                const view = try @import("stwo_riscv_rv32").recursion_segment_statement
                     .authenticateCanonicalWire(data.words());
                 const context = self.prepared.authority_prepared.source.context;
                 if (!std.meta.eql(view.wire_id, data.wireId()) or
@@ -510,7 +510,7 @@ pub fn For(comptime leaf_outer: type, comptime core_mod: type) type {
                 provider_relations: *const shared_provider.SharedProviderRelations,
                 destination: [][]M31,
             ) !CohortGeneratedInteractionsV2 {
-                const generator = @import("air/interaction_generator.zig").Host{};
+                const generator = @import("stwo_riscv_recursion_air").interaction_generator.Host{};
                 return fillInteractionIntoWithGenerator(self, manifest_value, relations, provider_relations, destination, &generator);
             }
 

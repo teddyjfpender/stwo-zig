@@ -2,12 +2,12 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const keccak_component = @import("../../air/guest_precompile/keccakf_component.zig");
-const secp_bundle = @import("../../air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_component = @import("../../air/guest_precompile/secp256k1_component.zig");
-const secp_config = @import("../../air/guest_precompile/secp256k1_component_config.zig");
+const keccak_component = @import("stwo_riscv_rv32").air_guest_precompile_keccakf_component;
+const secp_bundle = @import("stwo_riscv_rv32").air_guest_precompile_secp256k1_component_bundle;
+const secp_component = @import("stwo_riscv_precompiles").air_secp256k1_component;
+const secp_config = @import("stwo_riscv_rv32").air_guest_precompile_secp256k1_component_config;
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
-const base_types = @import("../types.zig");
+const base_types = @import("stwo_riscv_rv32").prover_types;
 
 pub const ExtensionClaim = struct {
     keccak_shard: keccak_component.Claim,
@@ -55,7 +55,7 @@ pub const ExtensionClaim = struct {
         {
             return error.InvalidClaim;
         }
-        try self.keccak_shard.validateWithMaximumLogSize(@import("../../air/guest_precompile/keccakf_trace.zig").ethereum_maximum_log_size);
+        try self.keccak_shard.validateWithMaximumLogSize(@import("stwo_riscv_rv32").air_guest_precompile_keccakf_trace.ethereum_maximum_log_size);
         try expectDescriptor(
             self.keccak_shard.log_size,
             self.keccak_shard.n_rows,

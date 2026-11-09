@@ -1,9 +1,9 @@
 //! End-to-end and hostile mutation gates for rows 10 and 12--14.
 
 const std = @import("std");
-const public_data_mod = @import("../../air/public_data.zig");
+const public_data_mod = @import("stwo_riscv_rv32").air_public_data;
 const owner = @import("../segment_leaf_authority.zig");
-const claim = @import("../vm_public_claim.zig");
+const claim = @import("stwo_riscv_rv32").recursion_vm_public_claim;
 
 test "R-012 segment authority derives rows 10 and 12 through 14 once" {
     const data = testPublicData();
@@ -46,7 +46,7 @@ test "R-012 segment authority rejects detached claim and statement snapshots" {
     );
     prepared.claim_hash.output_digest[0] ^= 1;
 
-    const index = @import("../span_statement.zig").canonical_layout.public_output_start;
+    const index = @import("stwo_riscv_rv32").recursion_span_statement.canonical_layout.public_output_start;
     const saved = prepared.statement.words[index];
     prepared.statement.words[index] = saved.add(@import("stwo_core").fields.m31.M31.one());
     try std.testing.expectError(
