@@ -33,16 +33,18 @@ The reason to test this architecture is padding, not only arithmetic count.
 The actual R5 source census has CPU 4,818,570 QM31 rows and SHA 4,426,562 rows.
 Their full-product lowering accounts for 825,659 and 517,567 rows respectively.
 If extraction preserves those counts, their tall table drops below 2^22 while
-native products occupy their own smaller table. The actual R6 source census and
-physical leaf must establish that before any speed claim. Keccak service-local
+native products occupy their own smaller table. The actual R6 source census now confirms CPU 3,992,911 rows and SHA
+3,908,995 rows, both below 2^22. The actual small-block CPU physical leaf
+passes independent reception; the measurements below apply only to that leaf. Keccak service-local
 GKR is a separate cooperating workstream. Height-grouped PCS is not assumed to
 remove width-times-height absorption: the existing lifted committer already
 reuses native-height prefixes, and extra trees add authentication paths.
 
 The security label remains **128-bit security target under documented
 assumptions**, `security_qualified=false`; production admission remains closed.
-Pending gates are source-shard census, actual recursive leaf, fold/root and
-fresh durable receiver, then matched full-block native-plus-root timings.
+Pending gates are full-height heavy source-shard census, combined service-local
+GKR recursive leaf, complete fold/root and fresh durable receiver, then matched
+full-block native-plus-root timings.
 
 ## Actual small-block CPU gate
 
@@ -91,3 +93,27 @@ The focused physical proof gate verifies after retirement, exercises recursive
 verification and rejects altered outputs and claims with the retired key. The
 fold gate derives identical actual and source-only parent graphs from retired
 child keys. Complete-block memory qualification remains a separate gate.
+
+## Actual small-block CPU measurement
+
+For block 120794432, the retained 796,406-instruction native bundle produces a
+689,252-byte R6 CPU wrapper. With ReleaseSafe and eight workers, production is
+30.934 seconds versus 57.847 seconds for the retained R5 leaf, an observed 1.87x
+reduction in sequential development samples. Fresh source setup takes 7.829
+seconds and physical verification 35.67 milliseconds. These are separate costs;
+the source bootstrap must not be omitted from cold end-to-end accounting.
+
+| Stage | R5 seconds | R6 seconds |
+| --- | ---: | ---: |
+| MAIN commitment | 16.322 | 8.935 |
+| INTER commitment | 16.300 | 8.502 |
+| Composition evaluation | 7.719 | 5.084 |
+| Composition commitment | 8.306 | 4.052 |
+| FRI quotient | 6.795 | 2.309 |
+| Trace decommit | 0.042 | 0.629 |
+
+The compact representation trades slower openings for lower retention and less
+other work. This is not a statistically repeated A/B or a heavy-block result.
+Source and stage evidence is in
+`vectors/reports/rv64-opstack-cpu-20261109/pure-p2-r6-actual-cpu-leaf-v1.json`.
+The 10x complete heavy-block requirement remains unqualified.
