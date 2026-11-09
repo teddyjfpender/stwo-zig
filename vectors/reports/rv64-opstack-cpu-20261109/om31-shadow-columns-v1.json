@@ -1,0 +1,61 @@
+{
+  "schema": "op-om31-shadow-columns-v1",
+  "scope": "CPU execution preparation only; constraint programs, source identities, geometry and transcript unchanged",
+  "changes": [
+    "Reuse one immutable FFT twiddle tree per minimal coefficient domain within each component call",
+    "Prepare unique requested columns through one bounded joined pool wave",
+    "Release twiddles after joined preparation; no process-global cache or retained LDE bank"
+  ],
+  "gates": {
+    "focused_unit_target": "test-circuit-om31-shadow-columns ReleaseSafe",
+    "minimal_domains_and_duplicate_requests": true,
+    "sequential_and_two_worker_differential": true,
+    "all_allocation_failure_points": true,
+    "invalid_tree_and_column_rejection": true,
+    "tiny_physical_native_recursive_and_mutation_gate": true,
+    "actual_same_source_cpu_proof_bytes": 689252,
+    "actual_full_proof_parity": true,
+    "sha256": "e80751cd103b4dca9e602590d21bb1b65771993f1a897ad2b0cc5aced90f88c6",
+    "fresh_source_receiver": true,
+    "wrong_output_rejected": true
+  },
+  "actual_prove_ns": {
+    "previous": 29249600292,
+    "candidate": 27350407500
+  },
+  "composition_s": {
+    "previous": 3.472163,
+    "candidate": 1.396031
+  },
+  "composition_cpu_s": {
+    "previous": 6.357287,
+    "candidate": 5.340858000000001
+  },
+  "control_stage_seconds": {
+    "op_p2.main_commit": {
+      "previous": 8.889644,
+      "candidate": 8.951353
+    },
+    "op_p2.interaction_commit": {
+      "previous": 8.527504,
+      "candidate": 8.517308
+    },
+    "fri_quotient_build_and_commit": {
+      "previous": 2.300542,
+      "candidate": 2.369927
+    }
+  },
+  "configuration": {
+    "optimize": "ReleaseSafe",
+    "workers": 8,
+    "host_admission_bytes": 34359738368,
+    "block": 120794432
+  },
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/pure-p2-r6-cpu-shadow-columns-v1",
+  "caveats": [
+    "Single sequential development samples, not paired medians",
+    "No heavy-block or complete-root latency attributed to this slice",
+    "Shared change is limited to the OM31 circuit evaluator; standard Ethereum native prover/profile is unchanged"
+  ],
+  "security_qualified": false
+}

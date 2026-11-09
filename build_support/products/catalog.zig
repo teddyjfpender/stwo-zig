@@ -313,6 +313,7 @@ pub const steps = [_]Step{
     .{ .name = "test-cairo-preprocessed-cache", .description = "Qualify preprocessing cache identity, integrity and fallback", .scope = .cairo_cpu },
     .{ .name = "test-cairo-cpu-native-composition", .description = "Compare every authenticated native CPU AIR kernel with SIMD", .scope = .cairo_cpu },
     .{ .name = "test-cairo-cpu-oracle", .description = "Prove through the CPU CLI and require official Rust acceptance", .scope = .cairo_cpu },
+    .{ .name = "test-circuit-om31-shadow-columns", .description = "Qualify bounded OM31 quotient-domain column preparation", .scope = .circuit_recursion_cpu },
     .{ .name = "circuit-parity-r8", .description = "R8: leaf-wrap of the leaf prover's test program equals leaf-prover's expected_output.json (large)", .scope = .circuit_recursion_cpu },
     .{ .name = "circuit-parity", .description = "The whole circuit recursion parity ladder: the local lane, then the large lane", .scope = .circuit_recursion_cpu },
     .{ .name = "circuit-parity-local", .description = "Circuit parity ladder within 8 GB: R0-R7, registry, R10b/R10c, R11", .scope = .circuit_recursion_cpu },

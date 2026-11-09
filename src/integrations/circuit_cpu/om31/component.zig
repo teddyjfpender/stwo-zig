@@ -144,15 +144,8 @@ pub const Component = struct {
     /// evaluation domain. Their reads are re-expressed exactly as the beta1
     /// route sees them: each read column's minimal polynomial evaluated on its
     /// own 2x canonic domain (coefficient log + 1), then lifted as before.
-    const Shadow = struct {
-        values: [3][]?[]M,
-        fn deinit(self: *Shadow, a: std.mem.Allocator) void {
-            for (self.values) |tree| {
-                for (tree) |entry| if (entry) |v| a.free(v);
-                a.free(tree);
-            }
-        }
-    };
+    const ShadowColumns = @import("shadow_columns.zig");
+    const Shadow = ShadowColumns.Shadow;
     fn needsShadow(trace: *const ProverAir.Trace) bool {
         for (trace.polys.items) |tree| for (tree) |poly| {
             if (poly.device != null) continue;
@@ -161,40 +154,19 @@ pub const Component = struct {
         };
         return false;
     }
-    fn buildShadow(self: *const Component, a: std.mem.Allocator, trace: *const ProverAir.Trace) !Shadow {
-        var shadow: Shadow = .{ .values = undefined };
-        var made: usize = 0;
-        errdefer {
-            for (shadow.values[0..made]) |tree| {
-                for (tree) |entry| if (entry) |v| a.free(v);
-                a.free(tree);
-            }
-        }
-        for (&shadow.values, 0..) |*tree, t| {
-            const n = if (t < trace.polys.items.len) trace.polys.items[t].len else 0;
-            tree.* = try a.alloc(?[]M, n);
-            @memset(tree.*, null);
-            made += 1;
-        }
-        const Circle = prover.poly.circle;
+    fn buildShadow(self: *const Component, a: std.mem.Allocator, trace: *const ProverAir.Trace, pool: ?*prover.work_pool.WorkPool) !Shadow {
+        var requests: std.ArrayList(ShadowColumns.Request) = .empty;
+        defer requests.deinit(a);
         for (0..3) |t| {
             if (t >= trace.polys.items.len) continue;
-            const globals: []const u32 = if (t == 0) self.captured.preprocessed_indices else &.{};
-            const span = if (t == 0) G.Span{ .start = 0, .end = 0 } else try G.span(self.captured.*, @intCast(t));
-            const count = if (t == 0) globals.len else span.end - span.start;
-            for (0..count) |i| {
-                const global: usize = if (t == 0) globals[i] else span.start + i;
-                if (global >= trace.polys.items[t].len or shadow.values[t][global] != null) continue;
-                const poly = trace.polys.items[t][global];
-                const coefficients = poly.coefficients orelse return error.Om31CircuitRequiresHostLde;
-                const log = coefficients.logSize() + 1;
-                if (poly.log_size == log) continue;
-                var evaluation = try coefficients.evaluate(a, Circle.CanonicCoset.new(log).circleDomain());
-                _ = &evaluation;
-                shadow.values[t][global] = @constCast(evaluation.values);
+            if (t == 0) {
+                for (self.captured.preprocessed_indices) |column| try requests.append(a, .{ .tree = 0, .column = column });
+            } else {
+                const span = try G.span(self.captured.*, @intCast(t));
+                for (span.start..span.end) |column| try requests.append(a, .{ .tree = @intCast(t), .column = column });
             }
         }
-        return shadow;
+        return ShadowColumns.prepare(a, trace, requests.items, pool);
     }
     const DomainRead = struct {
         component: *const Component,
@@ -255,7 +227,7 @@ pub const Component = struct {
         const params = try self.extensionParameters();
         defer self.allocator.free(params);
         const n = @as(usize, 1) << @intCast(self.captured.evaluation_log_size);
-        var shadow_storage: ?Shadow = if (needsShadow(trace)) try self.buildShadow(a, trace) else null;
+        var shadow_storage: ?Shadow = if (needsShadow(trace)) try self.buildShadow(a, trace, pool) else null;
         defer if (shadow_storage) |*shadow| shadow.deinit(a);
         const shadow: ?*const Shadow = if (shadow_storage) |*value| value else null;
         const read = DomainRead{ .component = self, .trace = trace, .row = 0, .shadow = shadow };

@@ -104,6 +104,17 @@ pub fn addProduct(context: Context) void {
         "Test the circuit recursion CPU product's commands and embedded assets",
     );
     test_step.dependOn(&context.b.addRunArtifact(tests).step);
+    const shadow_root = graph.create(context.b, .{
+        .product = product(.@"test"),
+        .root_source_file = "src/integrations/circuit_cpu/om31/shadow_columns.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(shadow_root);
+    const shadow_tests = context.b.addTest(.{ .root_module = shadow_root });
+    const shadow_run = context.b.addRunArtifact(shadow_tests);
+    context.b.step("test-circuit-om31-shadow-columns", "Qualify exact bounded OM31 quotient-domain column preparation").dependOn(&shadow_run.step);
+    test_step.dependOn(&shadow_run.step);
     const help = context.b.addRunArtifact(installed.executable);
     help.addArg("--help");
     test_step.dependOn(&help.step);
