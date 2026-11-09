@@ -28,7 +28,14 @@ pub fn fixed(a: std.mem.Allocator, kind: T.Kind, log: u32) ![]M {
     return out;
 }
 pub fn validate(kind: T.Kind, c: T.Call) !void {
+    return validateValue(kind, c);
+}
+pub fn validateTower(kind: T.Kind, c: T.TowerCall) !void {
+    return validateValue(kind, c);
+}
+fn validateValue(kind: T.Kind, c: anytype) !void {
     const words = 4 * T.coordinates(kind);
+    if ((@TypeOf(c) == T.TowerCall) != (kind == .bn254_sparse034) or words > c.before.len) return error.InvalidWord16PacketCapacity;
     // The tick stride (4, or 1 under the wide-clock CPU) is the producing CPU's
     // encoding; collectors check it against the CPU log (word16_execution.layout.ramStride).
     if (c.epoch == 0 or c.tick == 0 or c.pointer & 31 != 0 or c.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidWord16SecpCall;
@@ -37,6 +44,12 @@ pub fn validate(kind: T.Kind, c: T.Call) !void {
     }
 }
 pub fn nativeRow(kind: T.Kind, call: ?T.Call, coord: usize, id: u32) [L.MAIN]M {
+    return nativeRowValue(kind, call, coord, id);
+}
+pub fn nativeTowerRow(call: ?T.TowerCall, coord: usize, id: u32) [L.MAIN]M {
+    return nativeRowValue(.bn254_sparse034, call, coord, id);
+}
+fn nativeRowValue(kind: T.Kind, call: anytype, coord: usize, id: u32) [L.MAIN]M {
     var out: [L.MAIN]M = @splat(M.zero());
     const c = call orelse return out;
     out[L.ACTIVE] = M.one();
@@ -66,83 +79,97 @@ pub fn nativeRow(kind: T.Kind, call: ?T.Call, coord: usize, id: u32) [L.MAIN]M {
     for (0..11) |bit| out[L.ALIGN + bit] = M.fromCanonical(@as(u1, @truncate(c.pointer >> @as(u6, @intCast(bit + 5)))));
     return out;
 }
-pub const Source = struct {
-    allocator: std.mem.Allocator,
-    kind: T.Kind,
-    log_size: u32,
-    first_id: u32,
-    calls: []T.Call,
-    fixed: []M,
-    main: []M,
-    owns_main: bool,
-    interaction: []M = &.{},
-    counts16: []u64,
-    counts8: []u64,
-    pub fn init(a: std.mem.Allocator, kind: T.Kind, calls: []const T.Call, first_id: u32, log: u32) !Source {
-        return create(a, kind, calls, first_id, log, null);
-    }
-    pub fn initWithMainBuffer(a: std.mem.Allocator, kind: T.Kind, calls: []const T.Call, first_id: u32, log: u32, main: []M) !Source {
-        return create(a, kind, calls, first_id, log, main);
-    }
-    fn create(a: std.mem.Allocator, kind: T.Kind, calls: []const T.Call, first_id: u32, log: u32, buffer: ?[]M) !Source {
-        const n = try T.validateGeometry(kind, calls.len, first_id, log);
-        for (calls, 0..) |c, index| {
-            try validate(kind, c);
-            if (index != 0 and (c.epoch < calls[index - 1].epoch or (c.epoch == calls[index - 1].epoch and c.tick <= calls[index - 1].tick))) return error.InvalidWord16SecpCallOrder;
+pub const Source = SourceForCall(T.Call);
+pub const TowerSource = SourceForCall(T.TowerCall);
+// Exactly two concrete packet owners share the unchanged bridge constraints;
+// no field/ISA abstraction or widened legacy packet is introduced.
+fn SourceForCall(comptime CallType: type) type {
+    return struct {
+        const Self = @This();
+        allocator: std.mem.Allocator,
+        kind: T.Kind,
+        log_size: u32,
+        first_id: u32,
+        calls: []CallType,
+        fixed: []M,
+        main: []M,
+        owns_main: bool,
+        interaction: []M = &.{},
+        counts16: []u64,
+        counts8: []u64,
+        pub fn init(a: std.mem.Allocator, kind: T.Kind, calls: []const CallType, first_id: u32, log: u32) !Self {
+            return create(a, kind, calls, first_id, log, null);
         }
-        if (buffer) |b| {
-            const Storage = @import("../../main_storage.zig");
-            try Storage.validate(&.{.{ .values = b, .cells = L.MAIN * n }});
-            try Storage.exclude(&.{.{ .values = b, .cells = L.MAIN * n }}, std.mem.sliceAsBytes(calls));
+        pub fn initWithMainBuffer(a: std.mem.Allocator, kind: T.Kind, calls: []const CallType, first_id: u32, log: u32, main: []M) !Self {
+            return create(a, kind, calls, first_id, log, main);
         }
-        const copy = try a.dupe(T.Call, calls);
-        errdefer a.free(copy);
-        const f = try fixed(a, kind, log);
-        errdefer a.free(f);
-        const counts16 = try a.alloc(u64, 65536);
-        errdefer a.free(counts16);
-        const counts8 = try a.alloc(u64, 256);
-        errdefer a.free(counts8);
-        @memset(counts16, 0);
-        @memset(counts8, 0);
-        const main = if (buffer) |b| b else try a.alloc(M, L.MAIN * n);
-        const coords = T.coordinates(kind);
-        for (0..n) |p| {
-            const row = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(p, log), log);
-            const index = row / coords;
-            const values = nativeRow(kind, if (index < calls.len) calls[index] else null, row % coords, if (index < calls.len) first_id + @as(u32, @intCast(index)) else 0);
-            for (values, 0..) |v, c| main[c * n + p] = v;
-            for (L.U16) |c| counts16[values[c].v] += 1;
-            for (L.U8) |c| counts8[values[c].v] += 1;
+        fn create(a: std.mem.Allocator, kind: T.Kind, calls: []const CallType, first_id: u32, log: u32, buffer: ?[]M) !Self {
+            if ((CallType == T.TowerCall) != (kind == .bn254_sparse034)) return error.InvalidWord16PacketCapacity;
+            const n = try T.validateGeometry(kind, calls.len, first_id, log);
+            for (calls, 0..) |c, index| {
+                try validateValue(kind, c);
+                if (index != 0 and (c.epoch < calls[index - 1].epoch or (c.epoch == calls[index - 1].epoch and c.tick <= calls[index - 1].tick))) return error.InvalidWord16SecpCallOrder;
+            }
+            if (buffer) |b| {
+                const Storage = @import("../../main_storage.zig");
+                try Storage.validate(&.{.{ .values = b, .cells = L.MAIN * n }});
+                try Storage.exclude(&.{.{ .values = b, .cells = L.MAIN * n }}, std.mem.sliceAsBytes(calls));
+            }
+            const copy = try a.dupe(CallType, calls);
+            errdefer a.free(copy);
+            const f = try fixed(a, kind, log);
+            errdefer a.free(f);
+            const counts16 = try a.alloc(u64, 65536);
+            errdefer a.free(counts16);
+            const counts8 = try a.alloc(u64, 256);
+            errdefer a.free(counts8);
+            @memset(counts16, 0);
+            @memset(counts8, 0);
+            const main = if (buffer) |b| b else try a.alloc(M, L.MAIN * n);
+            const coords = T.coordinates(kind);
+            for (0..n) |p| {
+                const row = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(p, log), log);
+                const index = row / coords;
+                const values = nativeRowValue(kind, if (index < calls.len) calls[index] else null, row % coords, if (index < calls.len) first_id + @as(u32, @intCast(index)) else 0);
+                for (values, 0..) |v, c| main[c * n + p] = v;
+                for (L.U16) |c| counts16[values[c].v] += 1;
+                for (L.U8) |c| counts8[values[c].v] += 1;
+            }
+            return .{ .allocator = a, .kind = kind, .log_size = log, .first_id = first_id, .calls = copy, .fixed = f, .main = main, .owns_main = buffer == null, .counts16 = counts16, .counts8 = counts8 };
         }
-        return .{ .allocator = a, .kind = kind, .log_size = log, .first_id = first_id, .calls = copy, .fixed = f, .main = main, .owns_main = buffer == null, .counts16 = counts16, .counts8 = counts8 };
-    }
-    pub fn size(self: *const Source) usize {
-        return @as(usize, 1) << @intCast(self.log_size);
-    }
-    pub fn releaseMain(self: *Source) void {
-        if (self.owns_main) self.allocator.free(self.main);
-        self.main = &.{};
-        self.owns_main = false;
-    }
-    pub fn takeMain(self: *Source) ![]M {
-        if (!self.owns_main or self.main.len == 0) return error.Word16SecpMainNotOwned;
-        const m = self.main;
-        self.main = &.{};
-        self.owns_main = false;
-        return m;
-    }
-    pub fn deinit(self: *Source) void {
-        self.releaseMain();
-        const a = self.allocator;
-        a.free(self.fixed);
-        a.free(self.calls);
-        a.free(self.counts16);
-        a.free(self.counts8);
-        a.free(self.interaction);
-        self.* = undefined;
-    }
-    pub fn generate(self: *Source, ch: T.Challenges, d16: []const T.Q, d8: []const T.Q) !T.Claims {
-        return @import("interaction.zig").generate(self, ch, d16, d8);
-    }
-};
+        pub fn size(self: *const Self) usize {
+            return @as(usize, 1) << @intCast(self.log_size);
+        }
+        pub fn releaseMain(self: *Self) void {
+            if (self.owns_main) self.allocator.free(self.main);
+            self.main = &.{};
+            self.owns_main = false;
+        }
+        pub fn takeMain(self: *Self) ![]M {
+            if (!self.owns_main or self.main.len == 0) return error.Word16SecpMainNotOwned;
+            const m = self.main;
+            self.main = &.{};
+            self.owns_main = false;
+            return m;
+        }
+        pub fn deinit(self: *Self) void {
+            self.releaseMain();
+            const a = self.allocator;
+            a.free(self.fixed);
+            a.free(self.calls);
+            a.free(self.counts16);
+            a.free(self.counts8);
+            a.free(self.interaction);
+            self.* = undefined;
+        }
+        pub fn validateCall(self: *const Self, call: CallType) !void {
+            return validateValue(self.kind, call);
+        }
+        pub fn rowForCall(self: *const Self, call: ?CallType, coord: usize, id: u32) [L.MAIN]M {
+            return nativeRowValue(self.kind, call, coord, id);
+        }
+        pub fn generate(self: *Self, ch: T.Challenges, d16: []const T.Q, d8: []const T.Q) !T.Claims {
+            return @import("interaction.zig").generate(self, ch, d16, d8);
+        }
+    };
+}

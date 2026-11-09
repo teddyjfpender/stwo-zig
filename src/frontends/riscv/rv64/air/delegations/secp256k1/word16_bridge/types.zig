@@ -7,6 +7,8 @@ const P = @import("../program.zig");
 const L = @import("layout.zig");
 pub const Q = E.Q;
 pub const Call = struct { pointer: u64, epoch: u16, tick: u24, before: [24]u64, after: [24]u64, predecessors: [24]R.types.State };
+/// OP-only sparse tower payload. It never widens the legacy per-call owner.
+pub const TowerCall = struct { pointer: u64, epoch: u16, tick: u24, before: [80]u64, after: [80]u64, predecessors: [80]R.types.State };
 /// Challenges over constant lane C (QM31 natively, a circuit wire lane for
 /// recursion). The native layout is unchanged: `Challenges = ChallengesFor(Q)`.
 pub fn ChallengesFor(comptime C: type) type {
@@ -37,10 +39,10 @@ pub const Claims = ClaimsFor(Q);
 /// only the trailing r written (its before-value is still a Wire35 input).
 /// Curve/field packets (v3, kinds 5..11 = curves.Op ordinals): inline
 /// 32-byte coordinates, the leading `curves.writtenCoords` written in place.
-pub const Kind = enum(u8) { add = 1, double = 2, sha256 = 3, arith256_mod = 4, bn254_g1_add = 5, bn254_g1_double = 6, bn254_fp2_mul = 7, bls12_381_fp2_mul = 8, arith384_mont = 9, bls12_381_g1_add = 10, bls12_381_g1_double = 11 };
+pub const Kind = enum(u8) { add = 1, double = 2, sha256 = 3, arith256_mod = 4, bn254_g1_add = 5, bn254_g1_double = 6, bn254_fp2_mul = 7, bls12_381_fp2_mul = 8, arith384_mont = 9, bls12_381_g1_add = 10, bls12_381_g1_double = 11, bn254_sparse034 = 12 };
 pub const Curves = @import("../../../../ethereum_services/curves.zig");
 pub fn curveOp(kind: Kind) ?Curves.Op {
-    return if (@intFromEnum(kind) >= 5) @enumFromInt(@intFromEnum(kind)) else null;
+    return if (@intFromEnum(kind) >= 5 and @intFromEnum(kind) <= 11) @enumFromInt(@intFromEnum(kind)) else null;
 }
 pub fn curveKind(op: Curves.Op) Kind {
     return @enumFromInt(@intFromEnum(op));
@@ -57,6 +59,7 @@ pub fn tag(kind: Kind) u32 {
         .double => 0x20012,
         .sha256 => 0x30010,
         .arith256_mod => 0x30021,
+        .bn254_sparse034 => @intCast(@import("../../../../ethereum_services/bn254_tower.zig").TAG),
         else => @intCast(Curves.tag(curveOp(kind).?)),
     };
 }
@@ -64,6 +67,7 @@ pub fn coordinates(kind: Kind) usize {
     return switch (kind) {
         .sha256 => 3,
         .arith256_mod => 5,
+        .bn254_sparse034 => 20,
         .add, .double => program(kind).inputs,
         else => Curves.coords(curveOp(kind).?),
     };
@@ -73,6 +77,7 @@ pub fn written(kind: Kind) usize {
     return switch (kind) {
         .sha256, .arith256_mod => 1,
         .add, .double => 3,
+        .bn254_sparse034 => 12,
         else => Curves.writtenCoords(curveOp(kind).?),
     };
 }

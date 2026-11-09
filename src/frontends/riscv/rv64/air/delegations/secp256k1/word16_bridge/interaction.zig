@@ -6,12 +6,11 @@ const LS = @import("../../../memory/load_store_v2/mod.zig");
 const L = @import("layout.zig");
 const T = @import("types.zig");
 const Eq = @import("equations.zig");
-const Src = @import("source.zig");
 const Q = T.Q;
-pub fn generate(s: *Src.Source, ch: T.Challenges, d16: []const Q, d8: []const Q) !T.Claims {
+pub fn generate(s: anytype, ch: T.Challenges, d16: []const Q, d8: []const Q) !T.Claims {
     if (s.interaction.len != 0) return error.InvalidWord16SecpPhase;
     const n = try T.validateGeometry(s.kind, s.calls.len, s.first_id, s.log_size);
-    for (s.calls) |c| try Src.validate(s.kind, c);
+    for (s.calls) |c| try s.validateCall(c);
     try LS.interaction.validateDictionary(ch.range16, d16, 65536);
     try LS.interaction.validateDictionary(ch.range8, d8, 256);
     const out = try s.allocator.alloc(core.fields.m31.M31, L.INTERACTION * n);
@@ -24,7 +23,7 @@ pub fn generate(s: *Src.Source, ch: T.Challenges, d16: []const Q, d8: []const Q)
     for (0..n) |row| {
         const p = R.trace.physical(row, s.log_size);
         const index = row / coords;
-        const base = Src.nativeRow(s.kind, if (index < s.calls.len) s.calls[index] else null, row % coords, if (index < s.calls.len) s.first_id + @as(u32, @intCast(index)) else 0);
+        const base = s.rowForCall(if (index < s.calls.len) s.calls[index] else null, row % coords, if (index < s.calls.len) s.first_id + @as(u32, @intCast(index)) else 0);
         var m: [L.MAIN]Q = undefined;
         for (base, &m) |v, *q| q.* = Q.fromBase(v);
         var f: [L.FIXED]Q = undefined;

@@ -1,0 +1,26 @@
+{
+  "status": "qualified_closed_admission_reference",
+  "production_admitted": false,
+  "security_qualified": false,
+  "tag": "0x00040001",
+  "packet_bytes": 640,
+  "input_words": 80,
+  "output_words": 48,
+  "truth_main_columns": 4656,
+  "truth_interaction_qm31_columns": 8088,
+  "truth_interaction_m31_columns": 16176,
+  "truth_degree": 3,
+  "toy_physical_proof_bytes": 931648,
+  "physical_profile": "12 queries, no proof of work; correctness only",
+  "tests": [
+    "zig build test-riscv64-op-tower test-riscv64-op-tower-proof -Doptimize=ReleaseSafe -j1",
+    "semantic check after correcting every output Wire label to20+coordinate"
+  ],
+  "modeled_per_line": {
+    "legacy_truth_qm31_cells": 18194,
+    "reference_truth_qm31_cells": 12744,
+    "legacy_truth_and_bridge_qm31_cells": 45410,
+    "reference_truth_and_bridge_qm31_cells": 20304
+  },
+  "qualification_limit": "Standalone physical truth and bounded packet bridge tests; CPU/RAM/manifest/recursive joins not admitted. Main+M31 interaction width20832 is unsuitable as production recursion leaf; narrow static-DAG provider follows."
+}

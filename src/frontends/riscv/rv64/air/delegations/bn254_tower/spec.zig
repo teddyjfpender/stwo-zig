@@ -4,11 +4,20 @@ const Base = @import("../curves/spec.zig");
 pub const execution = @import("../../../ethereum_services/bn254_tower.zig");
 pub const Kind = execution.Kind;
 pub const ALL = [_]Kind{.mul034};
-fn product(a: u8, b: u8, coefficient: i32) Base.Term {
-    return .{ .a = .{ .in = a }, .b = .{ .in = b }, .coef = coefficient };
+fn product(a: Base.Vec, b: Base.Vec, coefficient: i32) Base.Term {
+    return .{ .a = a, .b = b, .coef = coefficient };
 }
-fn output(i: u8) Base.Term {
-    return .{ .a = .{ .out = i }, .coef = -1 };
+fn linear(a: Base.Vec, coefficient: i32) Base.Term {
+    return .{ .a = a, .coef = coefficient };
+}
+fn input(i: u8) Base.Vec {
+    return .{ .in = i };
+}
+fn witness(i: u8) Base.Vec {
+    return .{ .wit = i };
+}
+fn output(i: u8) Base.Vec {
+    return .{ .out = i };
 }
 pub fn def(comptime kind: Kind) Base.Def {
     _ = kind;
@@ -18,23 +27,38 @@ pub fn def(comptime kind: Kind) Base.Def {
         .written = execution.OUTPUTS,
         .inputs = execution.INPUTS,
         .outputs = execution.OUTPUTS,
-        .witnesses = 0,
+        .witnesses = 14,
         .modulus = .{ .constant = Base.BN254_P },
-        // Like bn254_fp2_mul, arbitrary byte-bounded input representatives are
-        // admitted; canonical outputs are checked by the carried truth AIR.
+        .asymmetric_carries = true,
+        // Private residues are byte bounded, not assumed canonical. Their
+        // carried identities plus final canonical outputs fix the field result.
         .relations = &.{
-            &.{ product(0, 12, 1), product(1, 13, -1), product(8, 16, 9), product(8, 17, -1), product(9, 16, -1), product(9, 17, -9), product(10, 14, 9), product(10, 15, -1), product(11, 14, -1), product(11, 15, -9), output(0) },
-            &.{ product(0, 13, 1), product(1, 12, 1), product(8, 16, 1), product(8, 17, 9), product(9, 16, 9), product(9, 17, -1), product(10, 14, 1), product(10, 15, 9), product(11, 14, 9), product(11, 15, -1), output(1) },
-            &.{ product(2, 12, 1), product(3, 13, -1), product(6, 14, 1), product(7, 15, -1), product(10, 16, 9), product(10, 17, -1), product(11, 16, -1), product(11, 17, -9), output(2) },
-            &.{ product(2, 13, 1), product(3, 12, 1), product(6, 15, 1), product(7, 14, 1), product(10, 16, 1), product(10, 17, 9), product(11, 16, 9), product(11, 17, -1), output(3) },
-            &.{ product(4, 12, 1), product(5, 13, -1), product(6, 16, 1), product(7, 17, -1), product(8, 14, 1), product(9, 15, -1), output(4) },
-            &.{ product(4, 13, 1), product(5, 12, 1), product(6, 17, 1), product(7, 16, 1), product(8, 15, 1), product(9, 14, 1), output(5) },
-            &.{ product(0, 14, 1), product(1, 15, -1), product(4, 16, 9), product(4, 17, -1), product(5, 16, -1), product(5, 17, -9), product(6, 12, 1), product(7, 13, -1), output(6) },
-            &.{ product(0, 15, 1), product(1, 14, 1), product(4, 16, 1), product(4, 17, 9), product(5, 16, 9), product(5, 17, -1), product(6, 13, 1), product(7, 12, 1), output(7) },
-            &.{ product(0, 16, 1), product(1, 17, -1), product(2, 14, 1), product(3, 15, -1), product(8, 12, 1), product(9, 13, -1), output(8) },
-            &.{ product(0, 17, 1), product(1, 16, 1), product(2, 15, 1), product(3, 14, 1), product(8, 13, 1), product(9, 12, 1), output(9) },
-            &.{ product(2, 16, 1), product(3, 17, -1), product(4, 14, 1), product(5, 15, -1), product(10, 12, 1), product(11, 13, -1), output(10) },
-            &.{ product(2, 17, 1), product(3, 16, 1), product(4, 15, 1), product(5, 14, 1), product(10, 13, 1), product(11, 12, 1), output(11) },
+            &.{ product(input(12), input(19), 1), linear(witness(0), -1) },
+            &.{ product(input(13), input(19), 1), linear(witness(1), -1) },
+            &.{ product(input(14), input(18), 1), linear(witness(2), -1) },
+            &.{ product(input(15), input(18), 1), linear(witness(3), -1) },
+            &.{ linear(witness(2), 9), linear(witness(3), -1), linear(witness(4), -1) },
+            &.{ linear(witness(2), 1), linear(witness(3), 9), linear(witness(5), -1) },
+            &.{ linear(input(16), 9), linear(input(17), -1), linear(witness(6), -1) },
+            &.{ linear(input(16), 1), linear(input(17), 9), linear(witness(7), -1) },
+            &.{ product(input(0), witness(0), 1), product(input(1), witness(1), -1), product(input(8), witness(6), 1), product(input(9), witness(7), -1), product(input(10), witness(4), 1), product(input(11), witness(5), -1), linear(output(0), -1) },
+            &.{ product(input(0), witness(1), 1), product(input(1), witness(0), 1), product(input(8), witness(7), 1), linear(witness(8), -1) },
+            &.{ linear(witness(8), 1), product(input(9), witness(6), 1), product(input(10), witness(5), 1), product(input(11), witness(4), 1), linear(output(1), -1) },
+            &.{ product(input(2), witness(0), 1), product(input(3), witness(1), -1), product(input(6), witness(2), 1), product(input(7), witness(3), -1), product(input(10), witness(6), 1), product(input(11), witness(7), -1), linear(output(2), -1) },
+            &.{ product(input(2), witness(1), 1), product(input(3), witness(0), 1), product(input(6), witness(3), 1), linear(witness(9), -1) },
+            &.{ linear(witness(9), 1), product(input(7), witness(2), 1), product(input(10), witness(7), 1), product(input(11), witness(6), 1), linear(output(3), -1) },
+            &.{ product(input(4), witness(0), 1), product(input(5), witness(1), -1), product(input(6), input(16), 1), product(input(7), input(17), -1), product(input(8), witness(2), 1), product(input(9), witness(3), -1), linear(output(4), -1) },
+            &.{ product(input(4), witness(1), 1), product(input(5), witness(0), 1), product(input(6), input(17), 1), linear(witness(10), -1) },
+            &.{ linear(witness(10), 1), product(input(7), input(16), 1), product(input(8), witness(3), 1), product(input(9), witness(2), 1), linear(output(5), -1) },
+            &.{ product(input(0), witness(2), 1), product(input(1), witness(3), -1), product(input(4), witness(6), 1), product(input(5), witness(7), -1), product(input(6), witness(0), 1), product(input(7), witness(1), -1), linear(output(6), -1) },
+            &.{ product(input(0), witness(3), 1), product(input(1), witness(2), 1), product(input(4), witness(7), 1), linear(witness(11), -1) },
+            &.{ linear(witness(11), 1), product(input(5), witness(6), 1), product(input(6), witness(1), 1), product(input(7), witness(0), 1), linear(output(7), -1) },
+            &.{ product(input(0), input(16), 1), product(input(1), input(17), -1), product(input(2), witness(2), 1), product(input(3), witness(3), -1), product(input(8), witness(0), 1), product(input(9), witness(1), -1), linear(output(8), -1) },
+            &.{ product(input(0), input(17), 1), product(input(1), input(16), 1), product(input(2), witness(3), 1), linear(witness(12), -1) },
+            &.{ linear(witness(12), 1), product(input(3), witness(2), 1), product(input(8), witness(1), 1), product(input(9), witness(0), 1), linear(output(9), -1) },
+            &.{ product(input(2), input(16), 1), product(input(3), input(17), -1), product(input(4), witness(2), 1), product(input(5), witness(3), -1), product(input(10), witness(0), 1), product(input(11), witness(1), -1), linear(output(10), -1) },
+            &.{ product(input(2), input(17), 1), product(input(3), input(16), 1), product(input(4), witness(3), 1), linear(witness(13), -1) },
+            &.{ linear(witness(13), 1), product(input(5), witness(2), 1), product(input(10), witness(1), 1), product(input(11), witness(0), 1), linear(output(11), -1) },
         },
     };
 }

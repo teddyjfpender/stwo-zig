@@ -65,6 +65,9 @@ pub const Def = struct {
     odd_modulus: bool = false,
     /// Variable modulus only: explicit quotient width (see `def`).
     q_bytes: ?usize = null,
+    /// Candidate-only source-owned interval selection. Legacy truth geometry
+    /// keeps its symmetric interval and exact native proof identities.
+    asymmetric_carries: bool = false,
 };
 
 fn t(a: Vec, b: ?Vec, coef: i32) Term {
@@ -256,6 +259,13 @@ pub const RelationGeometry = struct {
     /// carry_bytes bytes of (carry + 2^(carry_bits-1) * active); the top byte
     /// is below 2^top_bits (an extra BYTE query when top_bits < 8).
     carry_bits: u32,
+    /// Encoded carry = signed carry + carry_offset * active.
+    carry_offset: u64,
+    /// Source-certified strict integer residual extrema (both < M31).
+    residual_positive_bound: u64,
+    residual_negative_bound: u64,
+    honest_positive_carry: u64,
+    honest_negative_carry: u64,
     carry_bytes: usize,
     top_bits: u32,
     /// max_j |G_j| and the honest carry bound (both certified < 2^31 - 1).
@@ -324,6 +334,12 @@ pub fn deriveRelation(comptime d: Def, comptime terms: []const Term) RelationGeo
         const radix: u64 = @as(u64, 1) << @intCast(8 * group);
         const groups = (g.coefficients + group - 1) / group;
         var group_bound: u64 = 0;
+        var positive_bound: u64 = 0;
+        var negative_bound: u64 = 0;
+        var honest_positive: Big = 0;
+        var honest_negative: Big = 0;
+        var partial_positive: Big = 0;
+        var partial_negative: Big = 0;
         var honest: Big = 0;
         var partial: Big = 0;
         for (0..groups) |j| {
@@ -335,9 +351,64 @@ pub fn deriveRelation(comptime d: Def, comptime terms: []const Term) RelationGeo
                 gp += p_max[k] << @intCast(8 * offset);
                 gn += n_max[k] << @intCast(8 * offset);
                 partial += @as(Big, @max(p_max[k], n_max[k])) << @intCast(8 * k);
+                partial_positive += @as(Big, p_max[k]) << @intCast(8 * k);
+                partial_negative += @as(Big, n_max[k]) << @intCast(8 * k);
             }
             group_bound = @max(group_bound, @max(gp, gn));
-            if (j + 1 < groups) honest = @max(honest, partial >> @intCast(8 * group * (j + 1)));
+            positive_bound = @max(positive_bound, gp);
+            negative_bound = @max(negative_bound, gn);
+            if (j + 1 < groups) {
+                honest = @max(honest, partial >> @intCast(8 * group * (j + 1)));
+                honest_positive = @max(honest_positive, partial_positive >> @intCast(8 * group * (j + 1)));
+                honest_negative = @max(honest_negative, partial_negative >> @intCast(8 * group * (j + 1)));
+            }
+        }
+        if (d.asymmetric_carries) {
+            // Carries are integer quotients of coefficient prefixes. Separate
+            // positive/negative prefix maxima certify honest completeness.
+            const carry_span = honest_positive + honest_negative + 1;
+            if (carry_span >= M31) continue;
+            var bits: u32 = 1;
+            while ((@as(Big, 1) << @intCast(bits)) < carry_span) bits += 1;
+            const range: u64 = @as(u64, 1) << @intCast(bits);
+            const honest_pos: u64 = @intCast(honest_positive);
+            const honest_neg: u64 = @intCast(honest_negative);
+            // Offset is source-derived, not witness advice. An interval
+            // [-offset, range-1-offset] must contain the honest extrema and
+            // make G+Cprev-radix*Cnext strictly smaller than M31 in magnitude.
+            const positive_base: u128 = @as(u128, positive_bound) + range - 1;
+            const negative_base: u128 = @as(u128, negative_bound) + @as(u128, radix) * (range - 1);
+            if (positive_base >= M31) continue;
+            const step = radix - 1;
+            const min_sound: u64 = if (negative_base >= M31)
+                @intCast((negative_base - (M31 - 1) + step - 1) / step)
+            else
+                0;
+            const max_sound: u64 = @intCast((M31 - 1 - positive_base) / step);
+            const low = @max(honest_neg, min_sound);
+            const high = @min(range - 1 - honest_pos, max_sound);
+            if (low > high) continue;
+            const offset = low + (high - low) / 2;
+            const upper = range - 1 - offset;
+            const positive = @as(u128, positive_bound) + upper + @as(u128, radix) * offset;
+            const negative = @as(u128, negative_bound) + offset + @as(u128, radix) * upper;
+            if (positive >= M31 or negative >= M31) @compileError("asymmetric carry residual wraps M31");
+            var r = g;
+            r.group = group;
+            r.groups = groups;
+            r.carries = groups - 1;
+            r.carry_bits = bits;
+            r.carry_offset = offset;
+            r.residual_positive_bound = @intCast(positive);
+            r.residual_negative_bound = @intCast(negative);
+            r.honest_positive_carry = honest_pos;
+            r.honest_negative_carry = honest_neg;
+            r.carry_bytes = (bits + 7) / 8;
+            r.top_bits = bits - 8 * @as(u32, @intCast(r.carry_bytes - 1));
+            r.group_bound = group_bound;
+            r.honest_carry = @intCast(@max(honest_positive, honest_negative));
+            best = r;
+            continue;
         }
         var bits: u32 = 1;
         while ((@as(Big, 1) << @intCast(bits - 1)) <= honest) bits += 1;
@@ -348,6 +419,11 @@ pub fn deriveRelation(comptime d: Def, comptime terms: []const Term) RelationGeo
             r.groups = groups;
             r.carries = groups - 1;
             r.carry_bits = bits;
+            r.carry_offset = half;
+            r.residual_positive_bound = group_bound + half * (radix + 1);
+            r.residual_negative_bound = r.residual_positive_bound;
+            r.honest_positive_carry = @intCast(honest);
+            r.honest_negative_carry = @intCast(honest);
             r.carry_bytes = (bits + 7) / 8;
             r.top_bits = bits - 8 * @as(u32, @intCast(r.carry_bytes - 1));
             r.group_bound = group_bound;

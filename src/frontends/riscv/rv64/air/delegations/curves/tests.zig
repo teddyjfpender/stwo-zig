@@ -344,7 +344,7 @@ pub fn Harness(comptime op: anytype) type {
                 };
                 var carry: i64 = 0;
                 const radix: i64 = @as(i64, 1) << @intCast(8 * g.group);
-                const half: i64 = @as(i64, 1) << @intCast(g.carry_bits - 1);
+                const half: i64 = @intCast(g.carry_offset);
                 for (0..g.carries) |j| {
                     var s: i64 = carry;
                     for (0..g.group) |offset| s += coef[g.group * j + offset] << @intCast(8 * offset);
