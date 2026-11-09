@@ -1,4 +1,5 @@
 test {
+    _ = @import("poseidon2_outer/miller_local_gkr/fixture_image.zig");
     _ = @import("poseidon2_outer/root_cli_options.zig");
     _ = @import("poseidon2_outer/pure_p2_source_auxiliary_retirement.zig");
     _ = @import("poseidon2_outer/pure_p2_source_memory_layout_test.zig");
