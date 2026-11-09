@@ -1,7 +1,13 @@
 //! Independent integer checks for layout-sensitive extension multiplication.
 const std = @import("std");
-const QM31 = @import("stwo_core").fields.qm31.QM31;
+const core = @import("stwo_core");
+const QM31 = core.fields.qm31.QM31;
 const modulus: u64 = 2147483647;
+// Existing frozen first-FRI operands: shared by the integer oracle and laws.
+const pinned_words = [2][4]u32{
+    .{ 5, 7, 11, 13 },
+    .{ 1303640556, 459797465, 1763438021, 535549304 },
+};
 
 // This schoolbook expansion uses neither field helpers nor Karatsuba. Each
 // basis is i^(index & 1) * u^(index >> 1), with i^2=-1 and u^2=2+i.
@@ -66,10 +72,7 @@ fn checkContexts(a: *const QM31, b: *const QM31) !void {
 }
 
 test "qm31 integer: pinned first FRI extension product" {
-    var operands = [_]QM31{
-        field(.{ 5, 7, 11, 13 }),
-        field(.{ 1303640556, 459797465, 1763438021, 535549304 }),
-    };
+    var operands = [_]QM31{ field(pinned_words[0]), field(pinned_words[1]) };
     std.mem.doNotOptimizeAway(&operands);
     const expected = [_]u32{ 1502722113, 2034726791, 546122166, 519690011 };
     try std.testing.expectEqualSlices(u32, &expected, &integerProduct(words(&operands[0]), words(&operands[1])));
@@ -106,7 +109,6 @@ test "qm31 integer: runtime edges and seeded aggregate call contexts" {
 }
 
 test "qm31 integer: first circle fold without stage instrumentation" {
-    const core = @import("stwo_core");
     var input: [256]QM31 = undefined;
     for (&input, 0..) |*value, i| {
         const x: u32 = @intCast(i);
@@ -173,5 +175,61 @@ test "qm31 integer: required regression discovery" {
             if (std.mem.endsWith(u8, entry.name, ".test." ++ suffix)) found += 1;
         }
         try std.testing.expectEqual(@as(usize, 1), found);
+    }
+}
+
+fn lawValue(comptime F: type, limbs: [8]u32) F {
+    const M = core.fields.m31.M31;
+    if (F == M) return M.fromCanonical(limbs[0]);
+    if (F == core.fields.cm31.CM31) return F.fromU32Unchecked(limbs[0], limbs[1]);
+    var coordinates: [@typeInfo(@TypeOf(F.zero().toM31Array())).array.len]M = undefined;
+    for (&coordinates, 0..) |*x, i| x.* = M.fromCanonical(limbs[i]);
+    return F.fromM31Array(coordinates);
+}
+fn lawBase(comptime F: type, x: core.fields.m31.M31) F {
+    return if (F == core.fields.m31.M31) x else F.fromBase(x);
+}
+
+test "properties fields: CM31 corpus seeded tower laws and integer base embeddings" {
+    const M = core.fields.m31.M31;
+    // Seed is the first64 bits of the existing frozen first-fold digest.
+    var prng = std.Random.DefaultPrng.init(0x012d_3293_6102_268b);
+    const rng = prng.random();
+    inline for (.{ M, core.fields.cm31.CM31, QM31, core.fields.om31.OM31 }) |F| {
+        try std.testing.expectError(error.DivisionByZero, F.zero().inv());
+        for (0..64) |trial| {
+            var limbs: [3][8]u32 = undefined;
+            for (&limbs) |*row| for (row) |*word| {
+                word.* = rng.int(u32) % core.fields.m31.Modulus;
+            };
+            if (trial < 2) {
+                @memset(&limbs[0], 0);
+                @memset(&limbs[1], 0);
+                @memcpy(limbs[0][0..4], &pinned_words[trial]);
+                @memcpy(limbs[1][0..4], &pinned_words[1 - trial]);
+            } else if (trial == 2) {
+                @memset(&limbs[0], core.fields.m31.Modulus - 1);
+                @memset(&limbs[1], 0);
+            }
+            std.mem.doNotOptimizeAway(&limbs);
+            const x = lawValue(F, limbs[0]);
+            const y = lawValue(F, limbs[1]);
+            const z = lawValue(F, limbs[2]);
+            try std.testing.expect(x.add(F.zero()).eql(x));
+            try std.testing.expect(x.mul(F.one()).eql(x));
+            try std.testing.expect(x.sub(x).isZero());
+            try std.testing.expect(x.add(x.neg()).isZero());
+            try std.testing.expect(x.add(y).eql(y.add(x)));
+            try std.testing.expect(x.mul(y).eql(y.mul(x)));
+            try std.testing.expect(x.add(y).add(z).eql(x.add(y.add(z))));
+            try std.testing.expect(x.mul(y).mul(z).eql(x.mul(y.mul(z))));
+            try std.testing.expect(x.mul(y.add(z)).eql(x.mul(y).add(x.mul(z))));
+            try std.testing.expect(x.square().eql(x.mul(x)));
+            if (!x.isZero()) try std.testing.expect(x.mul(try x.inv()).eql(F.one()));
+            const a0 = M.fromCanonical(limbs[0][0]);
+            const b0 = M.fromCanonical(limbs[1][0]);
+            const integer = M.fromCanonical(@intCast(@as(u64, a0.v) * b0.v % modulus));
+            try std.testing.expect(lawBase(F, a0).mul(lawBase(F, b0)).eql(lawBase(F, integer)));
+        }
     }
 }

@@ -981,6 +981,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue #330: reuse the existing frontend test catalog, floor checker and hosted CPU lane to isolate the twelve unchanged failures from the complete ReleaseFast run. Literal leaf imports and exact filters retain original assertions; error traces improve diagnosis. Preserve complete mandatory suite, floors, golden pins and throughput thresholds. No copied tests, runtime flags or new launcher. Diagnostic result never substitutes for the complete gate; rollback removes the selection and lane together."
+    },
+    {
+      "id": "d4_seeded_protocol_properties",
+      "net_code_budget": 800,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #347: at most800 net test-source lines for bounded fixed-seed field laws, FRI polynomial/linearity/composition properties, frozen Merkle membership/mutation checks and codec round trips in Debug and ReleaseFast. Reuse existing roots, independent integer/polynomial/frozen expectations and exact CM31 corpus; retain its noinline workaround. No runtime/public API, flags, launcher, golden or performance claims."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
