@@ -202,8 +202,23 @@
           "test",
           "--build-file",
           "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
           "-Doptimize=Debug",
-          "-j2"
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
         ]
       ]
     },
@@ -252,20 +267,14 @@
         [
           "zig",
           "build",
-          "test-detached-child-capture",
-          "--build-file",
-          "src/integrations/riscv_cpu/build.zig",
-          "-Doptimize=ReleaseFast",
-          "-j2"
-        ],
-        [
-          "zig",
-          "build",
           "test",
           "--build-file",
           "src/integrations/riscv_cpu/build.zig",
           "-Doptimize=ReleaseFast",
-          "-j2"
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
         ]
       ]
     },
@@ -994,7 +1003,8 @@
           "-Doptimize=Debug",
           "-j1",
           "--summary",
-          "all"
+          "all",
+          "--verbose"
         ],
         [
           "python3",
@@ -1006,7 +1016,8 @@
           "-Doptimize=ReleaseFast",
           "-j1",
           "--summary",
-          "all"
+          "all",
+          "--verbose"
         ]
       ]
     }

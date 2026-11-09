@@ -128,21 +128,34 @@ def run_lane(
             if local_compatible:
                 argv = local_build_command(argv)
             command_started = time.monotonic_ns()
-            result = subprocess.run(
-                argv, cwd=root, env=environment, check=False, capture_output=True,
-            )
+            stdout_path = output_dir / f"{lane}-{ordinal}.stdout"
+            stderr_path = output_dir / f"{lane}-{ordinal}.stderr"
+            write_json(output_dir / f"{lane}-{ordinal}.started.json", {
+                "schema": "stwo-focused-ci-command-start-v1",
+                "state": "STARTED",
+                "commit": commit,
+                "tree": tree,
+                "lane": lane,
+                "ordinal": ordinal,
+                "argv": argv,
+                "completed_commands": records,
+            })
+            with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
+                result = subprocess.run(
+                    argv, cwd=root, env=environment, check=False,
+                    stdout=stdout, stderr=stderr,
+                )
             duration_ns = time.monotonic_ns() - command_started
-            sys.stdout.buffer.write(result.stdout)
-            sys.stderr.buffer.write(result.stderr)
-            (output_dir / f"{lane}-{ordinal}.stdout").write_bytes(result.stdout)
-            (output_dir / f"{lane}-{ordinal}.stderr").write_bytes(result.stderr)
+            stdout_bytes, stderr_bytes = stdout_path.read_bytes(), stderr_path.read_bytes()
+            sys.stdout.buffer.write(stdout_bytes)
+            sys.stderr.buffer.write(stderr_bytes)
             records.append({
                 "ordinal": ordinal,
                 "argv": argv,
                 "duration_ns": duration_ns,
                 "exit_code": result.returncode,
-                "stdout_sha256": digest(result.stdout),
-                "stderr_sha256": digest(result.stderr),
+                "stdout_sha256": digest(stdout_bytes),
+                "stderr_sha256": digest(stderr_bytes),
             })
             if result.returncode != 0:
                 status = "FAIL"

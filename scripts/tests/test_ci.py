@@ -1,5 +1,7 @@
 import os
 import re
+import json
+import signal
 import subprocess
 import sys
 import tempfile
@@ -10,12 +12,31 @@ from pathlib import Path
 from scripts.ci import FAST_PLAN, TOOLCHAIN_PLAN, command_plan, main
 from scripts.repo.check_build_configure_closure import validate_actual_construction
 from scripts.release.release_evidence import gate_steps
+from scripts.tests.test_focused_ci_contract import runner_policy
 
 ROOT = Path(__file__).resolve().parents[2]
 PINNED_ACTION_RE = re.compile(r"^\s*uses:\s*[^@\s]+@[0-9a-f]{40}(?:\s+#.*)?$")
 
 
 class CiTests(unittest.TestCase):
+    def test_killed_runner_preserves_unfinished_output_without_acceptance(self):
+        command = [sys.executable, "-c", "import os,signal; os.write(1,b'compiler-progress\\n'); os.write(2,b'before-cancel\\n'); os.kill(os.getppid(),signal.SIGTERM)"]
+        policy = runner_policy([command])
+        policy["lanes"]["focused"]["host"] = "macos" if sys.platform == "darwin" else "linux"
+        launcher = "from pathlib import Path; import json,sys; from scripts.repo.ci_scope_run import run_lane; run_lane(root=Path.cwd(),policy=json.loads(sys.argv[2]),lane='focused',output=Path(sys.argv[1]),cache_mode='inherit',cache_root=None)"
+        with tempfile.TemporaryDirectory() as raw:
+            output = Path(raw) / "receipt.json"
+            result = subprocess.run([sys.executable, "-c", launcher, str(output), json.dumps(policy)], cwd=ROOT, capture_output=True, timeout=10)
+            self.assertEqual(-signal.SIGTERM, result.returncode, result.stderr)
+            self.assertFalse(output.exists())
+            self.assertEqual(b"compiler-progress\n", (output.parent / "focused-0.stdout").read_bytes())
+            self.assertEqual(b"before-cancel\n", (output.parent / "focused-0.stderr").read_bytes())
+            started = json.loads((output.parent / "focused-0.started.json").read_text())
+            self.assertEqual("STARTED", started["state"])
+            self.assertEqual(command, started["argv"])
+            self.assertEqual([], started["completed_commands"])
+            self.assertNotIn("exit_code", started)
+
     def test_circuit_regeneration_is_manual_cpu_only_and_preserves_failed_results(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         job = workflow.split("\n  circuit-oracle-regeneration:\n", 1)[1]

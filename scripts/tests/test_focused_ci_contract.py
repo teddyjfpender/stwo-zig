@@ -142,11 +142,11 @@ class PlannerContractTests(unittest.TestCase):
             }.issubset(selected)
         )
         commands = self.policy["lanes"]["riscv_frontend"]["commands"]
-        self.assertEqual(3, len(commands))
-        self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-retained-transcript-contracts", "test-retained-typed-components", f"-Doptimize={mode}", "-j1", "--summary", "all"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_retained_contracts"]["commands"])
+        self.assertEqual(4, len(commands))
+        self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-retained-transcript-contracts", "test-retained-typed-components", f"-Doptimize={mode}", "-j1", "--summary", "all", "--verbose"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_retained_contracts"]["commands"])
         self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-air-runtime-profile", f"-Doptimize={mode}", "-j2", "--summary", "all"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_runtime_profile"]["commands"])
-        for command, step, mode in zip(commands, ("test-air-runtime-profile", "test-air-runtime-profile", "test"), ("Debug", "ReleaseFast", "Debug")):
-            self.assertEqual(["zig", "build", step, "--build-file", "src/frontends/riscv/build.zig", f"-Doptimize={mode}", "-j2"], command)
+        for command, step, mode in zip(commands, ("test-air-runtime-profile", "test-air-runtime-profile", "test", "test"), ("Debug", "ReleaseFast", "ReleaseFast", "Debug"), strict=True):
+            self.assertEqual(["zig", "build", step, "--build-file", "src/frontends/riscv/build.zig", f"-Doptimize={mode}", "-j2"] + (["--verbose", "--summary", "all"] if step == "test" else []), command)
 
     def test_cairo_frontend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/frontends/cairo/air/components/add_ap.zig")
@@ -574,7 +574,9 @@ class RunnerReceiptTests(unittest.TestCase):
                 return subprocess.CompletedProcess(argv, 0, b"", b"")
             captured.append((list(argv), kwargs))
             returncode, stdout, stderr = remaining.pop(0)
-            return subprocess.CompletedProcess(argv, returncode, stdout, stderr)
+            kwargs["stdout"].write(stdout)
+            kwargs["stderr"].write(stderr)
+            return subprocess.CompletedProcess(argv, returncode)
 
         return run
 

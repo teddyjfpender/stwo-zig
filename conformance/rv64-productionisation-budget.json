@@ -953,6 +953,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Preserve and explicitly collect four pure host policy regressions while removing standalone tests, benchmarks and opt-in diagnostic overlays from the product archive; reject future standalone entrypoints without relaxing live CUDA policy."
+    },
+    {
+      "id": "a_cpu_ci_unfinished_command_evidence",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Preserve source-pinned unfinished command streams and prior completion records across cancellation, and protect complete-package required child discovery while eliminating duplicate execution."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
