@@ -38,8 +38,27 @@ recursion is a functionality and memory milestone, not a speed target. The
 strict receiver still needs all native and recursive proofs. Anchored transition,
 joined checkpoint, accumulation and settlement acceptance remain open.
 The [selected guest and bounded schedule](../vectors/reports/rv64-opstack-cpu-20261108/heavy-cpu-scheduling-and-guest.json)
-also complete the heavy block's native proof in 1,298 s, with 91 CPU and 24
-service proofs and fresh reception. This measurement excludes recursion.
+also complete the heavy block's native proof with 91 CPU and 24 service proofs.
+The subsequent [capture/packed-accumulation qualification](../vectors/reports/rv64-opstack-cpu-20261108/capture-and-packed-accumulation.json)
+reduces native production to **1,222.972 s**, with **32.358 s** fresh reception
+and byte identity for all preceding proof/statement artifacts. This excludes
+recursion. The [selected D2 heavy root](../vectors/reports/rv64-opstack-cpu-20261108/heavy-d2-recursion-comparison.json)
+also closes all 115 native members and 173 recursive nodes in **1,781.674 s**,
+additional to **1,586.092 s** D2 native production. D2 reduces native proof bytes
+and increases native time; it is an explicit profile, not a default speedup.
+The matched CPU recursion fanout experiment is removed after no heavy-block
+gain and higher memory. Its patch and refusal selector remain documented in
+[CPU tuning](CPU_TUNING.md).
+
+The [fixed-source repair](../design/riscv-proving-stack/rv64-fixed-source-geometry.md)
+checks ordered native column geometry as well as the lifted source root before
+reusing a fixed binding. Complete heavy native acceptance works with both
+committed-source and identity-only independently derived setup. This closes a
+real cache alias; no transcript or admission guard was weakened.
+
+The [packed Solidity arithmetic](../settlement/PACKED_AIR.md) reduces the pinned
+177-node AIR to **637,484 gas**, while the full worker PCS remains around
+1.724 billion gas. Component gas improvements do not close settlement.
 
 - Replay is not a proof. A native bundle is not a recursive root. A receiver-side
   join is not an in-circuit join. A PCS replay is not a complete checkpoint verifier.
