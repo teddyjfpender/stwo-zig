@@ -86,7 +86,9 @@ pub fn addProduct(context: Context) Result {
 
     const om_root = graph.create(context.b, .{ .product = graph.coreProduct(.@"test"), .root_source_file = "src/waist/core/fields/om31_test.zig", .target = context.target, .optimize = context.optimize });
     const om_tests = context.b.addTest(.{ .root_module = om_root });
-    context.b.step("test-stwo-core-om31", "Qualify additive degree8 field against independent polynomial oracle").dependOn(&context.b.addRunArtifact(om_tests).step);
+    const om_run = context.b.addRunArtifact(om_tests);
+    context.b.step("test-stwo-core-om31", "Qualify additive degree8 field against independent polynomial oracle").dependOn(&om_run.step);
+    test_step.dependOn(&om_run.step);
     inline for (.{
         .{ "deep", "src/waist/core/om31_deep_test.zig" },
         .{ "fri", "src/waist/core/om31_fri_test.zig" },
