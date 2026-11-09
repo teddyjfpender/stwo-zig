@@ -477,3 +477,34 @@ and artifact custody. This closes a correctness handoff; the heavy10× speed
 requirement remains unmet. Tall-table padding and native P2 commitments remain
 large costs; logical lifted cell counts must not be confused with actual hash
 absorptions, since the existing committer already reuses native-height prefixes.
+
+## Standalone R5 commands
+
+Build the explicit experimental tools with
+`zig build rv64-op-native rv64-op-root -Doptimize=ReleaseFast -j1`.
+`check-rv64-op-root` performs semantic checking without LLVM emission.
+
+```sh
+zig-out/bin/rv64-op-native prove config.json /tmp/op-native
+zig-out/bin/rv64-op-root prove config.json /tmp/op-native /tmp/op-root
+zig-out/bin/rv64-op-root verify config.json /tmp/op-native /tmp/op-root
+```
+
+Both root modes accept an optional final `resources.json` using the native
+runtime's explicit resource limits. They select the pinned
+`op_target_b4_q72_p0_fold4_v1` profile. The root output directory must be new;
+pending node proofs, source identities, outputs and stage profiles survive a
+later failure, and successful completion publishes the root/metadata/templates.
+
+Root production consumes an already produced native bundle and includes native
+verification while constructing leaves. Report native production separately.
+Root-only verification needs independently pinned ELF/input/config, source
+`native-op.json` and public `cells.bin`, plus `root.bin`, `root-sidecar.bin` and
+`root-gkr-shapes.bin`. It does not open `native-op.bin`. The config must use the
+actual pinned ELF's ABI symbols. A producer-selected key is never accepted.
+
+Cold verification independently reconstructs immutable source keys. Its setup
+cost remains included and substantial; a small root file does not imply a cheap
+cold verifier. These commands retain the label **128-bit security target under
+documented assumptions**, `security_qualified=false`. They do not promote R5 as
+the default OP route or establish the heavy-block tenfold performance target.
