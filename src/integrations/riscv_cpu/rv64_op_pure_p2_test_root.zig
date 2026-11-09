@@ -205,3 +205,7 @@ test {
 test {
     _ = @import("poseidon2_outer/sponge_cpu/leaf_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/manifest_test.zig");
+}

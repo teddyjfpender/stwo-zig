@@ -48,6 +48,7 @@ test "sponge CPU authentic two-shard source GKR consumes all OWNER calls without
         defer a.free(encoded);
         var decoded = try Native.decode(a, roster.instances, encoded);
         defer decoded.deinit();
+        if (ordinal == 0) try @import("manifest_test.zig").exerciseCheckedCpu(a, scope, roster.instances, &decoded.proof, child.digest);
         var pending = try Native.verifyPending(a, scope, roster.instances, &decoded.proof, child.digest);
         defer pending.deinit(a);
         var prefix: engine.lookups.gkr_verifier.ForField(core.fields.om31.OM31).GkrArtifact = undefined;

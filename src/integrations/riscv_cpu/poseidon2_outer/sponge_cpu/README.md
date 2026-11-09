@@ -129,3 +129,29 @@ receiver with its original source identities and all adversarial controls.
 Detached sponge recursion and full new-suite root/runtime admission remain
 closed. See the recursive-leaf receipt for exact identities and limitations:
 `vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-cpu-recursive-leaf-v1.json`.
+
+
+## Typed two-phase manifest foundation
+
+`manifest.zig` now owns pending framing for genuine CPU/frontier and detached
+sources. It checks contiguous source order/epochs, canonical roots, profile and
+per-relation absolute mass before allocation. Every CPU local child is verified
+against its actual typed roster and source scope before shared challenges are
+drawn. Detached and truth local proofs remain post-manifest obligations, never
+fabricated stage-one children. Physical-root checks and relation-specific global
+closure share the existing canonical authorities; opposite debt in an absent
+relation is refused even when its aggregate sum is zero.
+
+`mass.zig` derives the CPU's original signed event bounds with sponge events
+removed, retains tower bounds, and adds one positive frontier Wire event per
+call. The detached source owns RAM at most58C+36P, KIO at most50(C+P), and C
+negative Wire events. These are absolute event bounds; local cancellations do
+not reduce them. Exact source equations and remaining policy gates are cited in
+[the qualification receipt](../../../../../vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-typed-manifest-v1.json).
+
+This API returns pending obligations. The caller must derive `Expected` from
+independent source keys and authenticated requests, establish complete inventory,
+continuity and KIO coverage, and verify all physical workers plus terminal/output
+policy. Source-suite admission remains closed. The existing actual two-shard
+source test exercises authenticated CPU child/receipt framing without another
+VM execution or STARK proof.
