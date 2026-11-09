@@ -5,6 +5,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 from unittest import mock
 from pathlib import Path
@@ -19,6 +20,34 @@ PINNED_ACTION_RE = re.compile(r"^\s*uses:\s*[^@\s]+@[0-9a-f]{40}(?:\s+#.*)?$")
 
 
 class CiTests(unittest.TestCase):
+    def test_cpu_golden_check_rejects_changed_proof_without_verifying_or_passing(self):
+        from scripts.cuda.cuda_proof_parity_gate import UPSTREAM_COMMIT, EXCHANGE_MODE, EXPECTED_CONFIG
+        source = (ROOT / ".github/workflows/ci.yml").read_text().split("- name: Compare fresh Native CPU proof with the frozen golden", 1)[1]
+        code = textwrap.dedent(source.split("python3 - <<'PYCPU'\n", 1)[1].split("          PYCPU", 1)[0])
+        relative = Path("conformance/evidence/cuda/native-bringup-sm89/product-parity-receipt.json")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            reference = root / relative
+            reference.parent.mkdir(parents=True)
+            reference.write_bytes((ROOT / relative).read_bytes())
+            calls = []
+            def prove(argv, **kwargs):
+                calls.append(argv)
+                self.assertEqual(60, kwargs["timeout"])
+                self.assertTrue(kwargs["check"])
+                self.assertEqual("prove", argv[1])
+                Path(argv[-1]).write_text(json.dumps({
+                    "schema_version": 1, "upstream_commit": UPSTREAM_COMMIT,
+                    "exchange_mode": EXCHANGE_MODE, "example": "wide_fibonacci",
+                    "pcs_config": EXPECTED_CONFIG, "wide_fibonacci_statement": {"log_n_rows": 5, "sequence_len": 8},
+                    "proof_bytes_hex": "00" * 8390,
+                }))
+            with mock.patch.object(Path, "cwd", return_value=root), mock.patch.dict(os.environ, {"RUNNER_TEMP": str(root / "out")}), mock.patch("subprocess.run", side_effect=prove):
+                with self.assertRaisesRegex(AssertionError, "differs from the frozen golden"):
+                    exec(code, {})
+            self.assertEqual(1, len(calls))
+            self.assertFalse(list(root.rglob("native-cpu-frozen-parity.json")))
+
     def test_killed_runner_preserves_unfinished_output_without_acceptance(self):
         command = [sys.executable, "-c", "import os,signal; os.write(1,b'compiler-progress\\n'); os.write(2,b'before-cancel\\n'); os.kill(os.getppid(),signal.SIGTERM)"]
         policy = runner_policy([command])

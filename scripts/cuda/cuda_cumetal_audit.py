@@ -19,6 +19,8 @@ from scripts.cuda.cuda_build_lib.cumetal_toolchain import (
     CuMetalToolchainError,
     verify_checkout,
 )
+from scripts.cuda.cuda_build_lib.native_closure import provider_cuda_sources
+from scripts.cuda.cuda_build_lib.errors import BuildError
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -114,11 +116,16 @@ def read_ledger(path: Path) -> dict[str, object]:
         or strict != 31
     ):
         raise AuditError("CuMetal positive floor drifted")
-    maintained = {
-        path.relative_to(ROOT).as_posix()
-        for path in (ROOT / "src/backends/cuda/native").rglob("*.cu")
-        if path.is_file()
-    }
+    support = json.loads((ROOT / "src/backends/cuda/cumetal/frontend_support.json").read_text())
+    try:
+        ownership = provider_cuda_sources(ROOT / "src/backends/cuda/native", support)
+    except BuildError as error:
+        raise AuditError(str(error)) from error
+    maintained = {path.relative_to(ROOT).as_posix() for path in ownership["native"]}
+    if sources != maintained:
+        raise AuditError("CuMetal Native source ownership differs from the recorded translation floor")
+    current_sources: set[str] = set()
+    cairo_sources = {path.relative_to(ROOT).as_posix() for path in ownership["cairo"]}
     # The historical 0.1.3 translation floor remains unchanged. New maintained
     # CUDA sources are enrolled in the separately pinned current Cairo lane.
     current_contract = json.loads((ROOT / "conformance/cuda-cumetal-cairo-local-v1.json").read_text())
@@ -126,12 +133,13 @@ def read_ledger(path: Path) -> dict[str, object]:
         raise AuditError("current Cairo CuMetal enrollment is malformed")
     for extension in current_contract.get("additional_maintained_sources", []):
         source = extension.get("source")
-        if not isinstance(source, str) or source in sources or source not in maintained or \
+        if not isinstance(source, str) or source in sources or source not in cairo_sources or \
                 digest_file(ROOT / source) != extension.get("sha256"):
             raise AuditError("current Cairo CuMetal enrollment drifted")
         sources.add(source)
-    if sources != maintained:
-        raise AuditError("CuMetal ledger does not cover the maintained CUDA closure")
+        current_sources.add(source)
+    if current_sources != cairo_sources:
+        raise AuditError("CuMetal Cairo source ownership differs from its pinned enrollment")
     return ledger
 
 
@@ -337,6 +345,7 @@ def main() -> int:
             {
                 "schema": "stwo-zig-cumetal-ledger-check-v1",
                 "ledger_sha256": digest_file(ledger_path),
+                "support_manifest_sha256": digest_file(ROOT / "src/backends/cuda/cumetal/frontend_support.json"),
                 "probe_count": len(ledger["probes"]),
                 "positive_floor_count": ledger["positive_floor_count"],
                 "strict_translation_count": ledger["strict_translation_count"],

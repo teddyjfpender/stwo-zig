@@ -9,6 +9,27 @@ from pathlib import Path
 from .errors import BuildError
 
 
+def provider_cuda_sources(native_root: Path, support: dict[str, object]) -> dict[str, list[Path]]:
+    """Partition every maintained CUDA unit by its declared provider frontend."""
+    frontends = support.get("frontends")
+    if not isinstance(frontends, dict) or set(frontends) != {"native", "cairo", "riscv"}:
+        raise BuildError("CuMetal source ownership requires all three frontend dispositions")
+    actual = {path.relative_to(native_root).as_posix() for path in native_root.rglob("*.cu") if path.is_file()}
+    owned: set[str] = set()
+    result: dict[str, list[Path]] = {}
+    for name, frontend in frontends.items():
+        sources = frontend.get("runtime_cuda_sources") if isinstance(frontend, dict) else None
+        if not isinstance(sources, list) or any(not isinstance(s, str) for s in sources) or sources != sorted(set(sources)):
+            raise BuildError(f"CuMetal {name} runtime sources must be sorted unique paths")
+        if not set(sources).issubset(actual) or owned.intersection(sources):
+            raise BuildError("CuMetal runtime source ownership is absent or duplicated")
+        owned.update(sources)
+        result[name] = [native_root / source for source in sources]
+    if owned != actual:
+        raise BuildError(f"CuMetal runtime source ownership is incomplete: {sorted(actual - owned)}")
+    return result
+
+
 def load_native_closure(native_root: Path) -> dict[str, object]:
     native_root = native_root.resolve()
     if not native_root.is_dir():

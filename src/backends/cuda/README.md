@@ -132,7 +132,7 @@ NVIDIA occupancy, memory hierarchy, graphs, or launch behavior.
 
 The checked 2026-08-04 audit pins CuMetal 0.1.3 commit
 `e88dd103bddaff9a134913dec4bd8439817d160c` plus the repository's authenticated
-compatibility patch. All 33 maintained Native runtime translation units meet
+compatibility patch. The 33 historical Native runtime translation units meet
 the recorded translation floor; two use their existing host-parity
 bit-reversal definition. The patch identity is included in every build plan and
 receipt, so an unpatched or differently patched checkout fails closed.
@@ -157,9 +157,13 @@ fallback, then decodes and independently verifies the proof in Zig. This
 qualifies that pinned workload and provider boundary, not every Native AIR and
 not NVIDIA behavior.
 
-CI checks the ledger's exact 33-source coverage without invoking CuMetal. The
-translation and execution lanes remain intentionally opt-in and never enter a
-product closure. On macOS, run them with an explicit CuMetal build:
+CI checks the unchanged 33-probe Native floor and the separately pinned Cairo
+extension against their explicit runtime source owners. The support manifest
+accounts for all 102 CUDA units: 33 Native, one Cairo extension and 68 RISC-V/
+circuit units whose provider remains unavailable. New, absent or multiply owned
+units reject. The Native archive selects only its 33 runtime units; the NVIDIA
+archive still owns the complete source closure. Translation and execution lanes
+remain opt-in; source enrollment does not qualify additional GPU execution. On macOS, run them with an explicit CuMetal build:
 
 ```sh
 zig build cuda-cumetal-portability \
@@ -181,7 +185,8 @@ zig build run-native-cumetal-smoke \
   -Dcuda-air-validate=/absolute/path/to/air_validate
 ```
 
-`cuda-cumetal-ledger` validates the 33-source checked contract without CuMetal.
+`cuda-cumetal-ledger` validates the 33-probe checked contract and complete source
+ownership without CuMetal.
 The portability and audit steps emit machine-readable cache receipts containing
 tool, source, diagnostic, metallib, and execution-provenance hashes. Adding
 translated outputs to source control, accepting a smaller floor, or using

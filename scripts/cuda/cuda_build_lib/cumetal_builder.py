@@ -26,7 +26,7 @@ from .builder import (
 )
 from .cumetal_toolchain import verify_checkout
 from .errors import BuildError
-from .native_closure import load_native_closure
+from .native_closure import load_native_closure, provider_cuda_sources
 from .product_selection import MODULE_GLOBAL_REQUIREMENTS, validate_aot_manifest
 
 
@@ -122,10 +122,10 @@ def _load_native_product(config: Config, closure: object) -> NativeProduct:
         )
     except (OSError, json.JSONDecodeError) as error:
         raise BuildError(f"cannot read Native AOT manifest: {error}") from error
+    validate_aot_manifest(config.native_aot_root, manifest)
     native_manifest = [
         entry for entry in manifest if entry.get("abi_schema") != "recorded_witness_v1"
     ]
-    validate_aot_manifest(config.native_aot_root, native_manifest)
     aot = tuple(
         (entry, config.native_aot_root / str(entry["file"]))
         for entry in native_manifest
@@ -143,6 +143,7 @@ def build_plan(config: Config, *, probe_tools: bool) -> dict[str, object]:
     if config.toolchain.jobs <= 0:
         raise BuildError("CuMetal build jobs must be positive")
     support, support_sha256 = _load_support(config)
+    provider_sources = provider_cuda_sources(config.native_root, support)
     frontend_support = support["frontends"][config.frontend]
     assert isinstance(frontend_support, dict)
     checkout = verify_checkout(
@@ -179,6 +180,7 @@ def build_plan(config: Config, *, probe_tools: bool) -> dict[str, object]:
 
     closure = load_source_closure(config.source_root, config.source_manifest)
     native = load_native_closure(config.native_root)
+    native["cuda_sources"] = provider_sources[config.frontend]
     product = _load_native_product(config, closure)
     native_pow_source = _native_pow_source(config)
     native_decommit_source = _native_decommit_source(config)
@@ -241,6 +243,8 @@ def execute(config: Config) -> dict[str, object]:
 
     closure = load_source_closure(config.source_root, config.source_manifest)
     native = load_native_closure(config.native_root)
+    support, _ = _load_support(config)
+    native["cuda_sources"] = provider_cuda_sources(config.native_root, support)[config.frontend]
     product = _load_native_product(config, closure)
     selected = product.aot
     work = output / ".work" / str(plan["build_identity_sha256"])
