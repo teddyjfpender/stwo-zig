@@ -128,6 +128,9 @@ pub const cairo_protocol_package_roots = &.{
 };
 
 pub const cairo_cuda_protocol_package_roots = &.{
+    "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
+    "dependency:../src/frontends/cairo:interop/felt_json.zig",
+    "dependency:../src/waist/recursion_wire:mod.zig",
     "dependency:../src/waist/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",

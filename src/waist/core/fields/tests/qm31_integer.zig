@@ -127,11 +127,46 @@ test "qm31 integer: first circle fold without stage instrumentation" {
     );
 }
 
+fn twoRowFriFold(input: *const [4]QM31, output: *[2]QM31, inverse: *const [2]u32) void {
+    const alpha = field(.{ 5, 7, 11, 13 });
+    const alpha_sq = alpha.square();
+    for (output, 0..) |*dst, i| {
+        var f0 = input[2 * i];
+        var f1 = input[2 * i + 1];
+        const tmp = f0;
+        f0 = tmp.add(f1);
+        f1 = tmp.sub(f1).mulM31(@import("stwo_core").fields.m31.M31.fromCanonical(inverse[i]));
+        const fp = alpha.mul(f1).add(f0);
+        dst.* = dst.mul(alpha_sq).add(fp);
+    }
+}
+
+test "qm31 integer: mandatory two-row FRI SLP regression" {
+    var input = [_]QM31{
+        field(.{ 1, 3, 5, 11 }),  field(.{ 2, 5, 8, 18 }),
+        field(.{ 3, 7, 11, 25 }), field(.{ 4, 9, 14, 32 }),
+    };
+    var inverse = [_]u32{ 843843091, 843843091 };
+    var output = [_]QM31{QM31.zero()} ** 2;
+    std.mem.doNotOptimizeAway(&input);
+    std.mem.doNotOptimizeAway(&inverse);
+    @call(.never_inline, twoRowFriFold, .{ &input, &output, &inverse });
+    // Independent integer polynomial expansion modulo 2^31-1, i^2=-1,
+    // u^2=2+i. The affected LLVM 20 SLP path changes row zero's last limbs
+    // to 546122187 and 519690016; retain the production call workaround.
+    const expected = [_][4]u32{
+        .{ 1502722116, 2034726799, 546122179, 519690040 },
+        .{ 1502722120, 2034726807, 546122191, 519690068 },
+    };
+    for (&output, expected) |*actual, row| try std.testing.expectEqual(row, words(actual));
+}
+
 test "qm31 integer: required regression discovery" {
     inline for (.{
         "qm31 integer: pinned first FRI extension product",
         "qm31 integer: runtime edges and seeded aggregate call contexts",
         "qm31 integer: first circle fold without stage instrumentation",
+        "qm31 integer: mandatory two-row FRI SLP regression",
     }) |suffix| {
         var found: usize = 0;
         for (@import("builtin").test_functions) |entry| {

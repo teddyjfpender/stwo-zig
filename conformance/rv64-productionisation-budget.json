@@ -939,6 +939,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Restore missing unavailable-toolchain and host rejection steps and declare the existing portable test and observed product identity; preserve exact build configure closure without device execution."
+    },
+    {
+      "id": "a3_mandatory_two_row_cm31_regression",
+      "net_code_budget": 60,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pin both rows of the isolated CM31 SLP fold regression using actual production QM31 arithmetic and independent modular integer results, with exact test discovery in mandatory Debug and ReleaseFast core commands."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
