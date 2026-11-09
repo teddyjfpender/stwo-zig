@@ -8,7 +8,9 @@ const M = @import("stwo_core").fields.m31.M31;
 const Tree = W.Scheme.CommittedTree;
 const Hash = W.H.Hash;
 const Reserved = engine.file_backed_allocator.ReservedFile;
-const Column = struct { offset: usize, count: usize };
+const Budget = engine.host_budget_allocator.SharedHostBudget;
+pub const Binding = struct { setup: [32]u8, statement: [32]u8 };
+const Column = struct { offset: usize, count: usize, native_log: u32 = 0, column_log: u32 = 0 };
 pub const Store = struct {
     backing: engine.file_backed_allocator.FileBackedAllocator,
     allocator: std.mem.Allocator,
@@ -28,8 +30,17 @@ pub const Store = struct {
         self.backing.deinit();
         self.* = undefined;
     }
-    /// Exclusive tree ownership; all fallible work precedes publication.
+    /// The Store must remain at a stable address until every tree token releases.
+    /// Unbound custody is a test control; OP producers must supply source authority.
     pub fn park(self: *Store, a: std.mem.Allocator, tree: *Tree) !usize {
+        if (!@import("builtin").is_test) return error.OpParkingBindingRequired;
+        return self.parkInner(a, tree, null);
+    }
+    pub fn parkBound(self: *Store, a: std.mem.Allocator, tree: *Tree, binding: Binding) !usize {
+        return self.parkInner(a, tree, binding);
+    }
+    /// Exclusive tree ownership; all fallible work precedes publication.
+    fn parkInner(self: *Store, a: std.mem.Allocator, tree: *Tree, binding: ?Binding) !usize {
         if (!tree.compact_polynomials or tree.shared_owner != null or tree.backing_teardown != null or tree.commitment.layer_values_borrowed or tree.commitment.layers_parked) return error.InvalidOpParkingTree;
         const coefficients = tree.coefficients orelse return error.InvalidOpParkingTree;
         if (coefficients.len == 0 or coefficients.len != tree.columns.len or tree.commitment.layers.len == 0) return error.InvalidOpParkingTree;
@@ -83,10 +94,10 @@ pub const Store = struct {
         errdefer file.deinit();
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         var offset: usize = 0;
-        for (coefficients, columns) |c, *descriptor| {
+        for (coefficients, tree.columns, columns) |c, col, *descriptor| {
             const values = c.coefficients();
             const data = std.mem.sliceAsBytes(values);
-            descriptor.* = .{ .offset = offset, .count = values.len };
+            descriptor.* = .{ .offset = offset, .count = values.len, .native_log = c.log_size, .column_log = col.log_size };
             try file.file.writeAll(data);
             hash.update(data);
             offset += data.len;
@@ -99,7 +110,7 @@ pub const Store = struct {
             offset += data.len;
         }
         if (offset != bytes) return error.InvalidOpParkingTree;
-        owner.* = .{ .store = self, .file = file, .columns = columns, .layers = layers, .root = .{tree.root()}, .payload_bytes = bytes, .digest = hash.finalResult(), .descriptors = @intFromPtr(coefficients.ptr), .tree_columns = @intFromPtr(tree.columns.ptr), .tree_layers = @intFromPtr(tree.commitment.layers.ptr) };
+        owner.* = .{ .binding = binding, .budget = if (Budget.fromAllocator(a)) |budget| budget.retain() else null, .store = self, .file = file, .columns = columns, .layers = layers, .root = .{tree.root()}, .payload_bytes = bytes, .digest = hash.finalResult(), .descriptors = @intFromPtr(coefficients.ptr), .tree_columns = @intFromPtr(tree.columns.ptr), .tree_layers = @intFromPtr(tree.commitment.layers.ptr) };
         // Original buffers are released only after the complete durable write.
         for (coefficients, tree.columns) |*c, *col| {
             const log = c.log_size;
@@ -128,18 +139,58 @@ pub const Store = struct {
         return rounded;
     }
     pub fn restore(self: *Store, tree: *Tree) !usize {
+        if (!@import("builtin").is_test) return error.OpParkingBindingRequired;
+        return self.restoreInner(tree, null);
+    }
+    pub fn restoreBound(self: *Store, tree: *Tree, binding: Binding) !usize {
+        return self.restoreInner(tree, binding);
+    }
+    fn restoreInner(self: *Store, tree: *Tree, binding: ?Binding) !usize {
         self.mutex.lock();
         defer self.mutex.unlock();
-        const coefficients = tree.coefficients orelse return error.InvalidOpParkingTree;
+        const token = tree.backing_teardown orelse return error.InvalidOpParkingTree;
+        if (token.release_fn != Owner.release) return error.InvalidOpParkingTree;
+        const context = token.context orelse return error.InvalidOpParkingTree;
         var cursor = self.head;
         const owner = while (cursor) |item| {
-            if (item.descriptors == @intFromPtr(coefficients.ptr)) break item;
+            if (@intFromPtr(context) == @intFromPtr(item)) break item;
             cursor = item.next;
         } else return error.InvalidOpParkingTree;
-        if (owner.tree_columns != @intFromPtr(tree.columns.ptr) or owner.tree_layers != @intFromPtr(tree.commitment.layers.ptr) or coefficients.len != owner.columns.len or tree.commitment.layers.len != owner.layers.len or !std.mem.eql(u8, &tree.root(), &owner.root[0])) return error.InvalidOpParkingTree;
+        if (token.value != owner.file.size) return error.InvalidOpParkingTree;
+        if (!std.meta.eql(owner.binding, binding)) return error.OpParkingBindingMismatch;
+        const coefficients = tree.coefficients orelse return error.InvalidOpParkingTree;
+        if (!tree.compact_polynomials or tree.shared_owner != null or tree.coefficient_backing_buffers != null or !tree.commitment.layer_values_borrowed or
+            owner.descriptors != @intFromPtr(coefficients.ptr) or owner.tree_columns != @intFromPtr(tree.columns.ptr) or owner.tree_layers != @intFromPtr(tree.commitment.layers.ptr) or
+            coefficients.len != owner.columns.len or tree.columns.len != owner.columns.len or tree.commitment.layers.len != owner.layers.len or
+            !std.mem.eql(u8, &tree.root(), &owner.root[0])) return error.InvalidOpParkingTree;
+        var offset: usize = 0;
+        for (coefficients, tree.columns, owner.columns) |c, col, d| {
+            if (d.offset != offset or d.native_log >= @bitSizeOf(usize) or d.count != @as(usize, 1) << @intCast(d.native_log) or
+                c.log_size != d.native_log or col.log_size != d.column_log or c.owns_coeffs or col.values.len != 0) return error.InvalidOpParkingTree;
+            const alias = col.coefficient_values orelse return error.InvalidOpParkingTree;
+            if (owner.mapping) |memory| {
+                const expected = std.mem.bytesAsSlice(M, memory[d.offset..][0 .. d.count * @sizeOf(M)]);
+                if (c.coeffs.ptr != expected.ptr or c.coeffs.len != expected.len or alias.ptr != expected.ptr or alias.len != expected.len) return error.InvalidOpParkingTree;
+            } else if (c.coeffs.len != 0 or alias.len != 0) return error.InvalidOpParkingTree;
+            offset = try std.math.add(usize, offset, try std.math.mul(usize, d.count, @sizeOf(M)));
+        }
+        for (tree.commitment.layers, owner.layers, 0..) |layer, d, i| {
+            if (d.offset != offset) return error.InvalidOpParkingTree;
+            if (owner.mapping) |memory| {
+                const expected = std.mem.bytesAsSlice(Hash, memory[d.offset..][0 .. d.count * @sizeOf(Hash)]);
+                if (layer.ptr != expected.ptr or layer.len != expected.len) return error.InvalidOpParkingTree;
+            } else if (i == 0) {
+                if (layer.ptr != &owner.root or layer.len != 1) return error.InvalidOpParkingTree;
+            } else if (layer.len != 0) return error.InvalidOpParkingTree;
+            offset = try std.math.add(usize, offset, try std.math.mul(usize, d.count, @sizeOf(Hash)));
+        }
+        if (offset != owner.payload_bytes or try Reserved.roundedLength(offset) != owner.file.size or tree.commitment.layers_parked != (owner.mapping == null)) return error.InvalidOpParkingTree;
         if (owner.mapping != null) return 0;
-        if (!tree.commitment.layers_parked or owner.file.size > self.mapped_limit - self.mapped) return error.OpParkingMappedLimit;
-        const mapping = try std.posix.mmap(null, owner.file.size, std.posix.PROT.READ | std.posix.PROT.WRITE, .{ .TYPE = .SHARED }, owner.file.file.handle, 0);
+        if (try owner.file.file.getEndPos() != owner.file.size) return error.OpParkingIntegrity;
+        if (owner.file.size > self.mapped_limit - self.mapped) return error.OpParkingMappedLimit;
+        var reservation: Budget.ExternalReservation = if (owner.budget) |budget| try budget.reserveExternal(owner.file.size) else .empty();
+        errdefer reservation.deinit();
+        const mapping = try owner.file.map(true);
         errdefer std.posix.munmap(mapping);
         var digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(mapping[0..owner.payload_bytes], &digest, .{});
@@ -151,6 +202,7 @@ pub const Store = struct {
         }
         for (tree.commitment.layers, owner.layers) |*layer, d| layer.* = std.mem.bytesAsSlice(Hash, mapping[d.offset..][0 .. d.count * @sizeOf(Hash)]);
         owner.mapping = mapping;
+        owner.mapping_reservation = reservation.take();
         tree.commitment.layers_parked = false;
         self.mapped += owner.file.size;
         self.peak_mapped = @max(self.peak_mapped, self.mapped);
@@ -158,6 +210,9 @@ pub const Store = struct {
     }
 };
 const Owner = struct {
+    binding: ?Binding,
+    budget: ?*Budget,
+    mapping_reservation: Budget.ExternalReservation = .empty(),
     store: *Store,
     file: Reserved,
     columns: []Column,
@@ -175,6 +230,8 @@ const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(context.?));
         const store = self.store;
         const a = store.allocator;
+        const budget = self.budget;
+        var reservation = self.mapping_reservation.take();
         std.debug.assert(bytes == self.file.size);
         store.mutex.lock();
         if (self.previous) |p| p.next = self.next else store.head = self.next;
@@ -189,6 +246,8 @@ const Owner = struct {
         a.free(self.columns);
         a.free(self.layers);
         a.destroy(self);
+        reservation.deinit();
+        if (budget) |b| b.destroy();
     }
 };
 fn contains(outer: []const M, inner: []const M) bool {
@@ -207,41 +266,100 @@ test "OP parking retains nine-coordinate roots exact coefficients and bounded in
     defer a.free(path);
     var store = try Store.init(a, path, 1 << 20, 1 << 20);
     defer store.deinit();
-    var scheme = try W.Prover.init(a, @import("pure_p2_worker_protocol.zig").Profile.op_target_b4_q72_p0_fold4_v1.config());
-    defer scheme.deinit(a);
+    const budget = try Budget.create(a, 1 << 24);
+    var budget_lease = true;
+    defer if (budget_lease) budget.destroy();
+    const b = budget.allocator();
+    var scheme = try W.Prover.init(b, @import("pure_p2_worker_protocol.zig").Profile.op_target_b4_q72_p0_fold4_v1.config());
+    var scheme_live = true;
+    defer if (scheme_live) scheme.deinit(b);
     scheme.setStorePolynomialsCoefficients();
     scheme.setCompactPolynomialStorage(1);
     var data: [64]M = undefined;
     for (&data, 0..) |*v, i| v.* = M.fromCanonical(@intCast(i * 73 + 11));
     var channel = W.Channel.init();
     const columns = [_]engine.pcs.ColumnEvaluation{ .{ .log_size = 5, .values = data[0..32] }, .{ .log_size = 5, .values = data[32..64] } };
-    try scheme.commitBorrowedStreaming(a, &columns, 64, &channel);
+    try scheme.commitBorrowedStreaming(b, &columns, 64, &channel);
     const tree = &scheme.trees.items[0];
     const root = tree.root();
     const old = try a.dupe(M, tree.coefficients.?[0].coeffs);
     defer a.free(old);
     var tiny = try Store.init(a, path, 1, 1);
     defer tiny.deinit();
-    try std.testing.expectError(error.OpParkingDiskLimit, tiny.park(a, tree));
+    try std.testing.expectError(error.OpParkingDiskLimit, tiny.park(b, tree));
     try std.testing.expectEqualSlices(u8, &root, &tree.root());
-    const bytes = try store.park(a, tree);
+    const binding: Binding = .{ .setup = @splat(17), .statement = @splat(29) };
+    const bytes = try store.parkBound(b, tree, binding);
     try std.testing.expect(bytes > 0);
     try std.testing.expect(tree.commitment.layers_parked and tree.coefficients.?[0].coeffs.len == 0);
     try std.testing.expectEqualSlices(u8, &root, &tree.root());
     const owner = store.head.?;
+    var wrong = binding;
+    wrong.setup[31] ^= 1;
+    try std.testing.expectError(error.OpParkingBindingMismatch, store.restoreBound(tree, wrong));
+    wrong = binding;
+    wrong.statement[31] ^= 1;
+    try std.testing.expectError(error.OpParkingBindingMismatch, store.restoreBound(tree, wrong));
+    try std.testing.expectError(error.OpParkingBindingMismatch, store.restore(tree));
+    const saved_token_value = tree.backing_teardown.?.value;
+    tree.backing_teardown.?.value += 1;
+    try std.testing.expectError(error.InvalidOpParkingTree, store.restoreBound(tree, binding));
+    tree.backing_teardown.?.value = saved_token_value;
+    const native_log = tree.coefficients.?[0].log_size;
+    tree.coefficients.?[0].log_size += 1;
+    try std.testing.expectError(error.InvalidOpParkingTree, store.restoreBound(tree, binding));
+    tree.coefficients.?[0].log_size = native_log;
+    const column_log = tree.columns[0].log_size;
+    tree.columns[0].log_size += 1;
+    try std.testing.expectError(error.InvalidOpParkingTree, store.restoreBound(tree, binding));
+    tree.columns[0].log_size = column_log;
+    // The last root word is authority too, not a truncated 32-byte digest.
+    var fake_root = root;
+    fake_root[35] ^= 1;
+    tree.commitment.layers[0] = @as(*[1]Hash, @ptrCast(&fake_root));
+    try std.testing.expectError(error.InvalidOpParkingTree, store.restoreBound(tree, binding));
+    tree.commitment.layers[0] = &owner.root;
+    const file_size = owner.file.size;
+    try owner.file.file.setEndPos(file_size - 1);
+    try std.testing.expectError(error.OpParkingIntegrity, store.restoreBound(tree, binding));
+    try owner.file.file.setEndPos(file_size);
+    try owner.file.file.setEndPos(file_size + 1);
+    try std.testing.expectError(error.OpParkingIntegrity, store.restoreBound(tree, binding));
+    try owner.file.file.setEndPos(file_size);
+    const budget_limit = budget.limit;
+    budget.limit = budget.snapshot().live_bytes;
+    try std.testing.expectError(error.OutOfMemory, store.restoreBound(tree, binding));
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
+    try std.testing.expectEqual(@as(usize, 0), store.mapped);
+    budget.limit = budget_limit;
     var one: [1]u8 = undefined;
     _ = try owner.file.file.pread(&one, 0);
     const saved = one;
     one[0] ^= 1;
     try owner.file.file.pwriteAll(&one, 0);
-    try std.testing.expectError(error.OpParkingIntegrity, store.restore(tree));
+    try std.testing.expectError(error.OpParkingIntegrity, store.restoreBound(tree, binding));
     try owner.file.file.pwriteAll(&saved, 0);
     const cap = store.mapped_limit;
     store.mapped_limit = 1;
-    try std.testing.expectError(error.OpParkingMappedLimit, store.restore(tree));
+    try std.testing.expectError(error.OpParkingMappedLimit, store.restoreBound(tree, binding));
     store.mapped_limit = cap;
-    try std.testing.expectEqual(bytes, try store.restore(tree));
-    try std.testing.expectEqual(@as(usize, 0), try store.restore(tree));
+    try std.testing.expectEqual(bytes, try store.restoreBound(tree, binding));
+    try std.testing.expectEqual(bytes, budget.snapshot().external_live_bytes);
+    tree.columns[0].log_size += 1;
+    try std.testing.expectError(error.InvalidOpParkingTree, store.restoreBound(tree, binding));
+    tree.columns[0].log_size = column_log;
+    try std.testing.expectEqual(@as(usize, 0), try store.restoreBound(tree, binding));
     try std.testing.expectEqualSlices(M, old, tree.coefficients.?[0].coeffs);
     try std.testing.expectEqualSlices(u8, &root, &tree.root());
+    // The caller's budget lease may end before the tree's custody token. The
+    // owner retains both its budget lifetime and the mapping reservation.
+    var detached = scheme.trees.pop().?;
+    scheme.deinit(b);
+    scheme_live = false;
+    budget.destroy();
+    budget_lease = false;
+    detached.deinit(b);
+    try std.testing.expectEqual(@as(usize, 0), store.mapped);
+    try std.testing.expectEqual(@as(usize, 0), store.reserved);
+    try std.testing.expect(store.head == null);
 }
