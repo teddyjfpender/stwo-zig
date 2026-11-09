@@ -668,6 +668,13 @@
       "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
     },
     {
+      "id": "delivery_exact_configure_helpers_and_shape_rejection",
+      "net_code_budget": 60,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reconcile only the observed native test roots, retained SDK support modules and existing CPU circuit-composition generated root in configure metadata. Preserve CUDA missing-step and Metal protocol-identity rejections. Keep exact shape-registry admission unchanged while printing rejected dimensions to stderr and retaining raw diagnostic output for every canonical input in the existing hosted CPU owner. Any rejected case prevents the unchanged collector from minting a candidate. No public API, registry, golden, source prefix, new flag or launcher changes."
+    },
+    {
       "id": "delivery_existing_circuit_dependency_binding",
       "net_code_budget": 10,
       "flags_added_budget": 0,

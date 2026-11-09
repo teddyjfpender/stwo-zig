@@ -51,13 +51,13 @@ pub const products = [_]Spec{
     .{ .descriptor = aggregate.descriptor, .scope = .aggregate, .constructor = .aggregate, .identity_step = "identity-stwo-zig", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.native_riscv_cpu_protocol_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
     .{ .descriptor = core.descriptor, .scope = .core, .constructor = .core, .identity_step = "identity-stwo-core", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.core_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
     .{ .descriptor = prover.descriptor, .scope = .prover, .constructor = .prover, .identity_step = "identity-stwo-prover", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.core_prover_products_package_roots, .configure_allowed_files = &.{ "build_support/graph/identity/emitter.zig", "src/products/stwo/core/surface.zig" } },
-    .{ .descriptor = native_cpu.descriptor(.cli), .scope = .native_cpu, .constructor = .native_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.native_cpu_protocol_package_roots },
+    .{ .descriptor = native_cpu.descriptor(.cli), .scope = .native_cpu, .constructor = .native_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.native_cpu_protocol_package_roots, .configure_allowed_files = &.{ "src/products/native/tests/prover/om31_stark_test_root.zig", "src/products/native/tests/prover/poseidon2_stark_test_root.zig" } },
     .{
         .descriptor = riscv_cpu.descriptor,
         .scope = .riscv_cpu,
         .constructor = .riscv_cpu,
         .configure_tools = &.{ "cargo", "python3" },
-        .generated_module_roots = &.{"generated:options:"},
+        .generated_module_roots = &.{ "generated:options:", "generated:circuit-composition-cpu-aot:" },
         .dependency_module_roots = catalog.package_dependencies.riscv_cpu_protocol_package_roots,
         .configure_allowed_files = &.{
             "src/frontends/riscv/air/lang/artifacts/embedded.zig",

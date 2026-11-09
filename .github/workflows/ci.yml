@@ -610,9 +610,26 @@ jobs:
           /usr/bin/time -v zig build riscv-recursion-shape-inspector -Doptimize=ReleaseFast -j2 > "$OUT/build.log" 2>&1
           sha256sum zig-out/bin/stwo-zig-riscv-recursion-shape-inspector > "$OUT/inspector-binary.sha256"
           cp zig-out/bin/stwo-zig-riscv-recursion-shape-inspector "$OUT/"
-          zig-out/bin/stwo-zig-riscv-recursion-shape-inspector \
-            --elf vectors/riscv_csp/guests/sha256.elf --input vectors/riscv_csp/inputs/msg_128.bin \
-            --report-out "$OUT/first-case.json" > "$OUT/first-case.stdout" 2> "$OUT/first-case.stderr"
+          python3 - "$OUT" <<'PYSHAPES'
+          from pathlib import Path
+          import subprocess, sys
+          from scripts.riscv.riscv_csp_benchmark_lib.contract import validate_manifest
+          root, output = Path.cwd(), Path(sys.argv[1])
+          _, cases, _ = validate_manifest((root / "vectors/riscv_csp/manifest-v2.json").resolve())
+          failed = []
+          for ordinal, case in enumerate(cases):
+              prefix = output / f"probe-{ordinal:03d}"
+              command = ["zig-out/bin/stwo-zig-riscv-recursion-shape-inspector",
+                         "--elf", case.guest_path.relative_to(root).as_posix(),
+                         "--input", case.input_path.relative_to(root).as_posix(),
+                         "--report-out", str(prefix.with_suffix(".json"))]
+              with prefix.with_suffix(".stdout").open("xb") as stdout, prefix.with_suffix(".stderr").open("xb") as stderr:
+                  result = subprocess.run(command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, timeout=120)
+              if result.returncode:
+                  failed.append(f"{case.target}/{case.input_size}: {result.returncode}")
+          if failed:
+              raise SystemExit("canonical shape probes rejected: " + "; ".join(failed))
+          PYSHAPES
           /usr/bin/time -v python3 scripts/riscv/riscv_recursion_csp_benchmark.py audit-shapes \
             --inspector zig-out/bin/stwo-zig-riscv-recursion-shape-inspector \
             --output "$OUT/recursion-shape-audit-v2.json" > "$OUT/audit.log" 2>&1

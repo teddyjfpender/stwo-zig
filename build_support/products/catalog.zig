@@ -75,7 +75,7 @@ pub const configure = [_]Configure{
             .protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v2+authenticated-core-aot-v2+rv32im-zkvm-poseidon2-v1",
         }},
     },
-    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/stwo/prover/root.zig", "src/products/stwo/root.zig", "src/products/stwo/tests/public_modules.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.public_package_roots, .allowed_module_files = &.{ "src/products/stwo/root.zig", "src/products/stwo/tests/public_modules.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/products/stwo/core", "src/products/stwo/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
+    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/stwo/prover/root.zig", "src/products/stwo/root.zig", "src/products/stwo/tests/public_modules.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.public_package_roots, .allowed_module_files = &.{ "src/products/stwo/root.zig", "src/products/stwo/tests/public_modules.zig", "build_support/graph/identity/emitter.zig", "src/products/native/artifact/mod.zig", "src/products/riscv/artifact/mod.zig", "src/support/io/atomic_file.zig", "src/support/io/output_transaction.zig", "src/support/shims/mod.zig", "src/support/tracing/mod.zig" }, .allowed_module_prefixes = &.{ "src/products/stwo/core", "src/products/stwo/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
         .{ .product_id = "stwo-core", .frontend = "none", .backend = "none", .role = "library", .protocol_manifest = "stwo-core-v1" },
         .{ .product_id = "stwo-prover", .frontend = "none", .backend = "contracts", .role = "library", .protocol_manifest = "generic-prover+backend-contracts-v1" },
         .{ .product_id = "stwo", .frontend = "aggregate", .backend = "contracts", .role = "library", .protocol_manifest = "aggregate-sdk-v1" },
@@ -135,7 +135,7 @@ pub const configure = [_]Configure{
             "src/products/native/tools/proof_bench/cpu.zig",
         },
         .dependency_module_roots = package_dependencies.compatibility_package_roots,
-        .allowed_module_files = &.{"src/products/stwo/root.zig"},
+        .allowed_module_files = &.{ "src/products/stwo/root.zig", "src/support/shims/mod.zig", "src/support/tracing/mod.zig" },
         .allowed_module_prefixes = &.{
             "src/frontends/cairo",
             "src/frontends/riscv",

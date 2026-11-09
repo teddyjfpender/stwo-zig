@@ -74,7 +74,13 @@ pub fn main() !void {
         .main_column_count = facts.main_column_count,
         .interaction_column_count = facts.interaction_column_count,
         .maximum_column_log_degree = facts.maximum_column_log_degree,
-    });
+    }) catch |err| {
+        std.debug.print("rejected canonical shape: components={d} infrastructure={d} preprocessed={d} main={d} interaction={d} max_log={d}\n", .{
+            facts.component_count,   facts.infrastructure_count,     facts.preprocessed_column_count,
+            facts.main_column_count, facts.interaction_column_count, facts.maximum_column_log_degree,
+        });
+        return err;
+    };
 
     const elf_hex = hexDigest(sha256(elf));
     const input_hex = hexDigest(sha256(input));

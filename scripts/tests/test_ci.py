@@ -26,6 +26,8 @@ class CiTests(unittest.TestCase):
         self.assertIn("scripts/riscv/riscv_recursion_csp_benchmark.py validate-shapes", job)
         self.assertIn('test ! -s "$OUT/worktree-status.txt"', job)
         self.assertLess(job.index('cp zig-out/bin/stwo-zig-riscv-recursion-shape-inspector'), job.index('scripts/riscv/riscv_recursion_csp_benchmark.py audit-shapes'))
+        self.assertIn('for ordinal, case in enumerate(cases):', job)
+        self.assertIn('raise SystemExit("canonical shape probes rejected: "', job)
         self.assertIn("runs-on: ubuntu-latest", job)
         self.assertIn('CARGO_BUILD_JOBS: "1"', job)
         self.assertLess(job.index("size < 32 * (1 << 30)"), job.index("/usr/bin/time -v python3"))
