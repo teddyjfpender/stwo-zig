@@ -18,7 +18,13 @@ class CiTests(unittest.TestCase):
     def test_circuit_regeneration_is_manual_cpu_only_and_preserves_failed_results(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         job = workflow.split("\n  circuit-oracle-regeneration:\n", 1)[1]
-        self.assertIn("if: github.event_name == 'workflow_dispatch' && inputs.gate == 'regenerate-circuit-vectors'", job)
+        self.assertIn("if: github.event_name == 'workflow_dispatch' && (inputs.gate == 'regenerate-circuit-vectors' || inputs.gate == 'regenerate-recursion-shapes')", job)
+        self.assertIn("if: inputs.gate == 'regenerate-circuit-vectors'", job)
+        self.assertIn("if: inputs.gate == 'regenerate-recursion-shapes'", job)
+        self.assertIn("zig build riscv-recursion-shape-inspector -Doptimize=ReleaseFast -j2", job)
+        self.assertIn("scripts/riscv/riscv_recursion_csp_benchmark.py audit-shapes", job)
+        self.assertIn("scripts/riscv/riscv_recursion_csp_benchmark.py validate-shapes", job)
+        self.assertIn('test ! -s "$OUT/worktree-status.txt"', job)
         self.assertIn("runs-on: ubuntu-latest", job)
         self.assertIn('CARGO_BUILD_JOBS: "1"', job)
         self.assertLess(job.index("size < 32 * (1 << 30)"), job.index("/usr/bin/time -v python3"))

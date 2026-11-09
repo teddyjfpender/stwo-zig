@@ -17,6 +17,7 @@ on:
           - strict
           - architecture
           - regenerate-circuit-vectors
+          - regenerate-recursion-shapes
           - focused-cpu
         default: standard
       cpu_lane:
@@ -525,8 +526,8 @@ jobs:
           retention-days: 7
 
   circuit-oracle-regeneration:
-    name: Pinned circuit oracle regeneration (CPU)
-    if: github.event_name == 'workflow_dispatch' && inputs.gate == 'regenerate-circuit-vectors'
+    name: Pinned CPU artifact regeneration
+    if: github.event_name == 'workflow_dispatch' && (inputs.gate == 'regenerate-circuit-vectors' || inputs.gate == 'regenerate-recursion-shapes')
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
@@ -543,9 +544,17 @@ jobs:
           python-version: "3.13"
 
       - name: Install the oracle's pinned Rust toolchain
+        if: inputs.gate == 'regenerate-circuit-vectors'
         run: rustup toolchain install nightly-2026-01-15 --profile minimal
 
+      - name: Setup pinned Zig for shape inspection
+        if: inputs.gate == 'regenerate-recursion-shapes'
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.15.2
+
       - name: Run the existing authenticated circuit generator
+        if: inputs.gate == 'regenerate-circuit-vectors'
         shell: bash
         run: |
           export CARGO_TARGET_DIR="$RUNNER_TEMP/circuit-oracle-target"
@@ -586,11 +595,36 @@ jobs:
           fi
           exit "$STATUS"
 
+      - name: Reproduce the canonical proof-independent shape audit
+        if: inputs.gate == 'regenerate-recursion-shapes'
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/recursion-shape-audit-regeneration"
+          mkdir -p "$OUT"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          git rev-parse HEAD > "$OUT/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/source-tree.txt"
+          zig version > "$OUT/zig-version.txt"
+          /usr/bin/time -v zig build riscv-recursion-shape-inspector -Doptimize=ReleaseFast -j2 > "$OUT/build.log" 2>&1
+          sha256sum zig-out/bin/stwo-zig-riscv-recursion-shape-inspector > "$OUT/inspector-binary.sha256"
+          /usr/bin/time -v python3 scripts/riscv/riscv_recursion_csp_benchmark.py audit-shapes \
+            --inspector zig-out/bin/stwo-zig-riscv-recursion-shape-inspector \
+            --output "$OUT/recursion-shape-audit-v2.json" > "$OUT/audit.log" 2>&1
+          python3 scripts/riscv/riscv_recursion_csp_benchmark.py validate-shapes \
+            --audit "$OUT/recursion-shape-audit-v2.json" > "$OUT/validation.log" 2>&1
+          git diff --exit-code
+          git status --porcelain=v1 --untracked-files=all > "$OUT/worktree-status.txt"
+          test ! -s "$OUT/worktree-status.txt"
+          cp zig-out/bin/stwo-zig-riscv-recursion-shape-inspector "$OUT/"
+          printf '%s\n' 'Proof-independent shape inspection only; no proof or timing qualification.' > "$OUT/qualification-scope.txt"
+
       - name: Preserve raw generation results even after rejection
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: circuit-oracle-regeneration-${{ github.sha }}
-          path: ${{ runner.temp }}/circuit-oracle-regeneration
+          name: ${{ inputs.gate == 'regenerate-circuit-vectors' && 'circuit-oracle-regeneration' || 'recursion-shape-audit-regeneration' }}-${{ github.sha }}
+          path: ${{ runner.temp }}/${{ inputs.gate == 'regenerate-circuit-vectors' && 'circuit-oracle-regeneration' || 'recursion-shape-audit-regeneration' }}
           if-no-files-found: error
           retention-days: 30

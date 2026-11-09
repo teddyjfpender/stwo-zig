@@ -668,6 +668,13 @@
       "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
     },
     {
+      "id": "delivery_live_cpu_shape_audit_candidate",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Extend the existing pinned CPU artifact-regeneration workflow to run the maintained proof-independent recursion shape inspector and collector against immutable clean source and all sixteen canonical inputs. Retain the exact binary/source hashes, validation and candidate artifact instead of restamping stale source evidence. Circuit regeneration and its 32 GiB preflight remain independently selected. No proof, timing, hardware, golden expectation or acceptance-rule changes, and no new script or launcher."
+    },
+    {
       "id": "delivery_complete_configure_scope_rejection",
       "net_code_budget": 50,
       "flags_added_budget": 0,
