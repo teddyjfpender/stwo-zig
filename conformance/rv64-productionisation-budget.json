@@ -988,6 +988,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
+    },
+    {
+      "id": "csp_protocol_shape_source_contract",
+      "net_code_budget": 5,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue361: pin the exact already-shipped RISC-V Metal protocol manifest including typed ECDSA recovery; retain strict single-registration checks. Regenerate stale proof-independent shape coverage only with the existing pinned CPU inspector/audit entrypoints, complete16-case matrix and source identity; no hand-edited hash or performance/proof/GPU reclassification. Code growth is limited to the existing test contract; metadata/receipts reported separately."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
