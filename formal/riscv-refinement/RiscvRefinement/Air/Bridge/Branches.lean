@@ -1300,10 +1300,10 @@ def Kind.manifestId : Kind → Nat
   | .bgeu => 32
 
 def Kind.contentDigest : Kind → String
-  | .blt => "5f2733a65def62d36f93b1b478f930f8873372abdbd95b28c852fe51972b6bdf"
-  | .bge => "27993749273b58da9481a157b855d8215f85ce9a16ef93d341eafbfda24c2596"
-  | .bltu => "e502a3bc7c118d5d86f7f3f4af99428033c62174d7e86d08a4ca86e09d09839e"
-  | .bgeu => "dc025f9d0b5b7b71e7729a04d51d9ee1a4f22558e2d1f532cdeeec82d20715ee"
+  | .blt => "8e95a46f53998f887b6e5ace225c2ebdca91f13a61a64eb3d8e20ca8aa046aef"
+  | .bge => "0023ecf42505c4a76e3f51a1bb84735c6ac4cdb5284f64f8c66e6399177224c5"
+  | .bltu => "b2d29fc948adc820f5b67562e748c5501f64082019a49735a76d96197b5a732a"
+  | .bgeu => "dcec35bdf0074d4bf0f649c0ec0b46b1ba89f62518bda4df6da6a8fbbb0c6dae"
 
 def Kind.signed : Kind → Bool
   | .blt | .bge => true
