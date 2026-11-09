@@ -1,0 +1,15 @@
+{
+  "format": "supplemental gzip tar in LFS; prior evidence refs retained",
+  "source_snapshot_commit": "3a278a3b81b8e7aadda4fd1bc8ea644939174db8",
+  "parts": [
+    {
+      "name": "delivery-evidence.tar.gz.part000",
+      "bytes": 899716,
+      "sha256": "a5a9bdb72c86a20b2135a34b7bd76183e4dde8abade2c203e36440dd490def3d"
+    }
+  ],
+  "checkpoints": [
+    "3a278a3b81b8-contracts-cpu-20261109T122507Z"
+  ],
+  "classification": "Approved RFC #325 provider passes Debug/ReleaseFast at 2badd9f4f (42613410082). Approved RFC #324 provider six commands pass at 40f0b8a49 (42614444674); the subsequent consumer correction awaits acceptance. Preserve initial fixture overflow, duplicate-codec and direct-Cairo import failures without reclassification. New Debug CPU run 42615884077 reproduces signal 11 and explicitly records debugger UNRUN (unavailable). Current source provisions and pins the debugger; that replay is pending. Formal run 42590995006 generated 60 artifacts then failed Lean bridge checking. Broad Python/workspace/source audits remain red. No GPU execution, proof-byte or timing qualification."
+}
