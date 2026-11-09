@@ -34,7 +34,7 @@ pub const Component = struct {
     inter_offset: usize,
     shared: Manifest.Shared,
     claims: Global.ClaimsFor(O),
-    pub fn mainShape(self: *const @This()) A.main_only.authority.Shape {
+    pub fn mainShape(_: *const @This()) A.main_only.authority.Shape {
         return mainShapeFor();
     }
     pub fn columnOffsets(self: *const @This()) [2]usize {
@@ -43,13 +43,13 @@ pub const Component = struct {
     pub fn interWidth(self: *const @This()) usize {
         return 16 + Global.layout(self.data.instance.origin).width();
     }
-    pub fn previousMain(self: *const @This(), c: usize) bool {
+    pub fn previousMain(_: *const @This(), c: usize) bool {
         return S.layout.previousMainFor(.bridge, c);
     }
     pub fn previousInter(self: *const @This(), c: usize) bool {
         return c >= 16 and Global.layout(self.data.instance.origin).previous(c - 16);
     }
-    pub fn nConstraints(self: *const @This()) usize {
+    pub fn nConstraints(_: *const @This()) usize {
         return constraintCount();
     }
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
@@ -73,7 +73,7 @@ pub const Component = struct {
     pub fn emitMainFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
         Projection.emitMainFor(F, fixed, main, previous, self.span, sink);
     }
-    pub fn emitLocalFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, projection: anytype) void {
+    pub fn emitLocalFor(_: *const @This(), comptime F: type, fixed: []const F, main: []const F, projection: anytype) void {
         Projection.emitLocalFor(F, fixed, main, projection);
     }
     pub fn emitGlobalFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, current: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {

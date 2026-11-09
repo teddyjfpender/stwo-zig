@@ -23,8 +23,15 @@ pub const Plan = struct {
     inter_columns: usize,
     claim_count: usize,
     binding_count: usize,
+    op_only: bool = false,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup) !Plan {
-        try @import("service_scope.zig").setup(setup);
+        return initMode(a, setup, false);
+    }
+    pub fn initForOp(a: std.mem.Allocator, setup: *const R.CpuSetup) !Plan {
+        return initMode(a, setup, true);
+    }
+    fn initMode(a: std.mem.Allocator, setup: *const R.CpuSetup, op_only: bool) !Plan {
+        if (op_only) try @import("service_scope.zig").setupForOp(setup) else try @import("service_scope.zig").setup(setup);
         var slots = std.ArrayList(Slot).empty;
         errdefer slots.deinit(a);
         var inter: usize = 0;
@@ -67,7 +74,15 @@ pub const Plan = struct {
             claims = try std.math.add(usize, claims, Global.claimCount(origin));
             bindings += 1;
         };
-        return .{ .allocator = a, .slots = try slots.toOwnedSlice(a), .inter_columns = inter, .claim_count = claims, .binding_count = bindings };
+        if (setup.bridges.tower) |log| {
+            if (!op_only) return error.UnqualifiedOpProtocol;
+            const origin = Frame.Origin{ .tower = {} };
+            try slots.append(a, .{ .origin = origin, .log = log, .fixed_offset = setup.towerOffset(0), .main_offset = setup.towerOffset(1), .inter_offset = inter, .binding_index = bindings, .claim_offset = claims });
+            inter = try std.math.add(usize, inter, 16 + Global.layout(origin).width());
+            claims = try std.math.add(usize, claims, Global.claimCount(origin));
+            bindings += 1;
+        }
+        return .{ .allocator = a, .slots = try slots.toOwnedSlice(a), .inter_columns = inter, .claim_count = claims, .binding_count = bindings, .op_only = op_only };
     }
     pub fn deinit(self: *Plan) void {
         self.allocator.free(self.slots);
@@ -82,7 +97,7 @@ pub const Plan = struct {
         return out;
     }
 };
-pub const Item = union(enum) { arithmetic: Role.Component, table: Table.Component, boundary: Boundary.Component, service: Service.Component, bulk: @import("bulk_role.zig").Component, sponge: @import("sponge_role.zig").Component, dword: @import("dword_role.zig").Component };
+pub const Item = union(enum) { arithmetic: Role.Component, table: Table.Component, boundary: Boundary.Component, service: Service.Component, bulk: @import("bulk_role.zig").Component, sponge: @import("sponge_role.zig").Component, dword: @import("dword_role.zig").Component, tower: @import("op_tower_role.zig").Component };
 pub const Set = struct {
     allocator: std.mem.Allocator,
     items: []Item,
@@ -90,19 +105,34 @@ pub const Set = struct {
         return initChecked(a, setup, request, first_ids, plan, .{ .artifact = &pending.artifact, .challenges = pending.challenges, .eta = pending.eta }, shared, values);
     }
     pub fn initChecked(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first_ids: anytype, plan: *const Plan, pending: @import("terminal_view.zig").Checked, shared: Manifest.Shared, values: []const O) !Set {
+        if (setup.op_only or plan.op_only or setup.bridges.tower != null) return error.UnqualifiedOpProtocol;
+        return initCheckedMode(a, setup, request, first_ids, null, plan, pending, shared, values);
+    }
+    pub fn initForOpChecked(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first_ids: anytype, span: @import("../types.zig").OpTowerSpan, plan: *const Plan, pending: @import("terminal_view.zig").Checked, shared: Manifest.Shared, values: []const O) !Set {
+        if (!setup.op_only or !plan.op_only) return error.UnqualifiedOpProtocol;
+        try span.validate(setup.bridges);
+        return initCheckedMode(a, setup, request, first_ids, span, plan, pending, shared, values);
+    }
+    fn initCheckedMode(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first_ids: anytype, tower_span: ?@import("../types.zig").OpTowerSpan, plan: *const Plan, pending: @import("terminal_view.zig").Checked, shared: Manifest.Shared, values: []const O) !Set {
         try pending.validate();
         const ids = @import("cpu_worker.zig").firstVector(first_ids);
         if (values.len != plan.claim_count or pending.artifact.claims_to_verify_by_instance.len != plan.binding_count) return error.InvalidWideCpuClaims;
         try setup.materials.geometry.validate();
         try @import("../../../word16_execution/protocol.zig").validateArithmeticRequests(setup.materials.geometry, request.base);
         const ls_counts = try setup.materials.geometry.lsCounts(request.base.memory.ls_count);
-        const instances = try @import("roster.zig").fromSetup(a, setup);
+        const instances = if (tower_span != null) try @import("roster.zig").fromOpSetup(a, setup) else try @import("roster.zig").fromSetup(a, setup);
         defer a.free(instances);
         const items = try a.alloc(Item, plan.slots.len);
         errdefer a.free(items);
         for (items, plan.slots) |*item, slot| {
             const nclaims = Global.claimCount(slot.origin);
             const claims = try Global.claimsFromVector(O, slot.origin, values[slot.claim_offset..][0..nclaims]);
+            if (slot.origin == .tower) {
+                const span = tower_span orelse return error.UnqualifiedOpProtocol;
+                item.* = .{ .tower = .{ .data = try Role.Data.initChecked(instances[slot.binding_index.?], pending, slot.binding_index.?), .span = .{ .calls = span.calls, .first_id = span.first_id }, .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
+                try item.tower.validate();
+                continue;
+            }
             if (slot.origin == .sponge) {
                 item.* = .{ .sponge = .{ .data = try Role.Data.initChecked(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = request.sponge.rows(slot.origin.sponge), .first_id = request.sponge.first_id, .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
                 try item.sponge.validate();

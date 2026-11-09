@@ -98,7 +98,18 @@ test "OP tower collector binds all80words through readonly tail and cross-shard 
     try std.testing.expectError(error.UnqualifiedOpProtocol, Pipeline.buildCpuSource(a, &setup, request, &natives[0], &advice, 0, @splat(1), false, null));
     try std.testing.expectError(error.UnqualifiedOpProtocol, @import("../../word16_global_execution/services/gkr_local/roster.zig").fromSetup(a, &setup));
     try std.testing.expectError(error.UnqualifiedOpProtocol, @import("../../word16_global_execution/services/gkr_local/service_scope.zig").profile(.ethereum_services_op_v1));
+    const CpuComponents = @import("../../word16_global_execution/services/gkr_local/cpu_components.zig");
+    try std.testing.expectError(error.UnqualifiedOpProtocol, CpuComponents.Plan.init(a, &setup));
+    var op_plan = try CpuComponents.Plan.initForOp(a, &setup);
+    defer op_plan.deinit();
+    const local_instances = try @import("../../word16_global_execution/services/gkr_local/roster.zig").fromOpSetup(a, &setup);
+    defer a.free(local_instances);
+    try std.testing.expect(local_instances[local_instances.len - 1].origin == .tower);
+    try std.testing.expectEqual(setup.towerOffset(1), local_instances[local_instances.len - 1].main_offset);
+    try std.testing.expectEqual(op_plan.binding_count, local_instances.len);
     const span = Types.OpTowerSpan{ .calls = 1, .first_id = 1 };
+    const retention = try @import("../../word16_global_execution/services/gkr_local/retention_plan.zig").forOpCpuWithSourceStorage(a, &setup, request, span, .{ .pow_bits = 0, .fri_config = .{ .log_last_layer_degree_bound = 0, .log_blowup_factor = 1, .n_queries = 12 } }, 1 << 30, 1 << 30, true);
+    try std.testing.expect(retention.global_metadata_bytes >= @sizeOf(A.crypto.secp256k1.word16_bridge.types.TowerCall));
     const mass = try span.mass(bridges);
     try std.testing.expectEqual(@as(u64, 160), mass.ram);
     try std.testing.expectEqual(@as(u64, 32), mass.wire);
@@ -119,4 +130,76 @@ test "OP tower collector binds all80words through readonly tail and cross-shard 
     defer commit.deinit(a);
     try std.testing.expectEqual(setup.columnCount(1), commit.columns.len);
     try std.testing.expect(!source.tower.?.owns_main and source.tower.?.main.len == 0);
+    const core = @import("stwo_core");
+    const M = core.fields.m31.M31;
+    const O = core.fields.om31.OM31;
+    const GL = @import("../../word16_global_execution/services/gkr_local/inputs.zig");
+    const Frame = @import("../../word16_global_execution/services/gkr_local/frame.zig");
+    const Authority = @import("../../word16_global_execution/services/gkr_local/source_authority.zig");
+    const Projection = @import("../../word16_global_execution/services/gkr_local/op_tower_projection.zig");
+    const Metadata = @import("../../word16_global_execution/services/gkr_local/native_provider.zig");
+    const GlobalMetadata = @import("../../word16_global_execution/services/gkr_local/global_metadata.zig");
+    const Classic = @import("../../word16_global_execution/services/gkr_local/classic_witness.zig");
+    const Manifest = @import("../../word16_global_execution/services/gkr_local/manifest.zig");
+    var channel = @import("../../word16_global_execution/services/gkr_local/worker_protocol.zig").Channel{ .inner = .{} };
+    const challenges = @import("../../word16_global_execution/services/gkr_local/challenges.zig").For(O).drawForInstances(&channel, local_instances);
+    const sink_adapter = struct {
+        target: *GL.RowSink,
+        pub fn emit(self: *@This(), relation: @import("../../word16_global_execution/services/gkr_local/fractions.zig").Relation, tuple: anytype, weight: M) void {
+            self.target.emitBase(relation, tuple, weight);
+        }
+    };
+    const instance = local_instances[local_instances.len - 1];
+    try std.testing.expectEqual([_]u32{ 5, 0 }, Frame.originWords(instance.origin));
+    try std.testing.expectEqual([_]u32{ 1, 7 }, Frame.originWords(.{ .bridge = .bn254_fp2_mul }));
+    const authority = Authority.Descriptor{ .origin = .{ .tower = {} } };
+    try std.testing.expectEqual(Projection.LOCAL_TERMS, try authority.terms());
+    const shared = Manifest.drawShared(@splat(0x5c));
+    try std.testing.expectError(error.InvalidWideCpuClaims, CpuComponents.Set.initForOpChecked(a, &setup, request, [_]u32{1} ** Types.FAMILIES, span, &op_plan, .{ .artifact = undefined, .challenges = undefined, .eta = undefined }, shared, &.{}));
+    var shape_probe = @import("../../word16_global_execution/services/gkr_local/op_tower_role.zig").Component{ .data = undefined, .span = .{ .calls = 1, .first_id = 1 }, .offsets = .{ setup.towerOffset(0), setup.towerOffset(1) }, .inter_offset = 0, .shared = shared, .claims = .zero() };
+    _ = shape_probe.asVerifierComponent();
+    _ = shape_probe.asProverComponent();
+
+    const global_provider = GlobalMetadata.Provider{ .source = &source, .origin = .{ .tower = {} }, .log_size = 5, .shared = shared };
+    for (0..32) |row_index| {
+        var native_n: [Projection.LOCAL_TERMS]M = undefined;
+        var native_d: [Projection.LOCAL_TERMS]O = undefined;
+        var point_n: [Projection.LOCAL_TERMS]M = undefined;
+        var point_d: [Projection.LOCAL_TERMS]O = undefined;
+        var native_sink = GL.RowSink{ .challenges = &challenges, .numerator = &native_n, .denominator = &native_d };
+        try (Metadata.Provider{ .source = &source }).emit(instance, row_index, &native_sink);
+        const packet_call = if (row_index < 20) source.tower.?.calls[0] else null;
+        const row = A.crypto.secp256k1.word16_bridge.source.nativeTowerRow(packet_call, row_index % 20, 1 + @as(u32, @intCast(row_index / 20)));
+        var fixed: [8]M = undefined;
+        const physical = A.memory.closed_ram.trace.physical(row_index, 5);
+        for (&fixed, 0..) |*field, col| field.* = source.tower.?.fixed[col * 32 + physical];
+        var point_sink = GL.RowSink{ .challenges = &challenges, .numerator = &point_n, .denominator = &point_d };
+        var adapter = sink_adapter{ .target = &point_sink };
+        const previous: [134]M = @splat(M.zero());
+        const public_values: [Authority.Public.count]M = @splat(M.zero());
+        try authority.emit(M, &fixed, &row, &previous, &public_values, &adapter);
+        try std.testing.expect(!native_sink.invalid and !point_sink.invalid);
+        try std.testing.expectEqual(Projection.LOCAL_TERMS, native_sink.count);
+        try std.testing.expectEqualSlices(M, &native_n, &point_n);
+        try std.testing.expectEqualSlices(O, &native_d, &point_d);
+        var denominators: [5]O = undefined;
+        var numerators: [5]Classic.Numerator = undefined;
+        try global_provider.fill(row_index, &denominators, &numerators);
+    }
+}
+
+test "absent OP block preserves pinned legacy JSON and origin words" {
+    const Types = @import("../../word16_global_execution/services/types.zig");
+    const Frame = @import("../../word16_global_execution/services/gkr_local/frame.zig");
+    const old = try std.json.Stringify.valueAlloc(a, Types.Logs{}, .{});
+    defer a.free(old);
+    try std.testing.expectEqualStrings("{\"keccak\":null,\"add\":null,\"double\":null}", old);
+    const legacy = try std.json.Stringify.valueAlloc(a, Types.Logs{ .keccak = 5, .sha256 = 8 }, .{});
+    defer a.free(legacy);
+    try std.testing.expectEqualStrings("{\"keccak\":5,\"add\":null,\"double\":null,\"sha256\":8}", legacy);
+    try std.testing.expectEqual([_]u32{ 0, 0 }, Frame.originWords(.{ .core = .cpu }));
+    try std.testing.expectEqual([_]u32{ 1, 7 }, Frame.originWords(.{ .bridge = .bn254_fp2_mul }));
+    try std.testing.expectEqual([_]u32{ 2, 0 }, Frame.originWords(.{ .bulk = .desc }));
+    try std.testing.expectEqual([_]u32{ 3, 1 }, Frame.originWords(.{ .dword = 1 }));
+    try std.testing.expectEqual([_]u32{ 4, 0 }, Frame.originWords(.{ .sponge = .call }));
 }

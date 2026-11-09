@@ -64,20 +64,25 @@ pub fn forCpuWithOwnedCheckpoints(a: std.mem.Allocator, setup: *const R.CpuSetup
     return forCpuWithTightAdmission(a, setup, request, config, gkr_limit, global_limit, checkpointed, checkpointed);
 }
 pub fn forCpuWithTightAdmission(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool, tight: bool) !RetentionPlan {
-    return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, checkpointed, tight, false);
+    return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, checkpointed, tight, false, null);
 }
 pub fn forCpuWithStreamedBottom(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize) !RetentionPlan {
-    return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, true, true, true);
+    return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, true, true, true, null);
 }
 pub fn forCpuWithSourceStorage(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool) !RetentionPlan {
-    return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, checkpointed, true, true);
+    return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, checkpointed, true, true, null);
 }
-fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool, tight: bool, streamed: bool) !RetentionPlan {
+pub fn forOpCpuWithSourceStorage(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, span: @import("../types.zig").OpTowerSpan, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool) !RetentionPlan {
+    if (!setup.op_only) return error.UnqualifiedOpProtocol;
+    try span.validate(setup.bridges);
+    return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, checkpointed, true, true, span);
+}
+fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool, tight: bool, streamed: bool, tower_span: ?@import("../types.zig").OpTowerSpan) !RetentionPlan {
     try @import("service_scope.zig").request(request);
-    const instances = try @import("roster.zig").fromSetup(a, setup);
+    const instances = if (tower_span != null) try @import("roster.zig").fromOpSetup(a, setup) else try @import("roster.zig").fromSetup(a, setup);
     defer a.free(instances);
     const numerical = if (streamed) try @import("resource.zig").Plan.forInstancesWithSourceStorage(instances, gkr_limit, checkpointed) else try @import("resource.zig").Plan.forInstancesWithTightAdmission(instances, gkr_limit, checkpointed, tight);
-    var plan = try Components.Plan.init(a, setup);
+    var plan = if (tower_span != null) try Components.Plan.initForOp(a, setup) else try Components.Plan.init(a, setup);
     defer plan.deinit();
     const logs = try setup.logs(a, 1);
     defer a.free(logs);
@@ -102,7 +107,12 @@ fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Reque
     for (plan.slots) |slot| {
         const n = try rows(slot.log);
         switch (slot.origin) {
-            .tower => return error.UnqualifiedOpRetentionPlan,
+            .tower => {
+                const span = tower_span orelse return error.UnqualifiedOpRetentionPlan;
+                out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(span.calls, @sizeOf(A.crypto.secp256k1.word16_bridge.types.TowerCall)));
+                const fixed_bytes = try mul(try mul(n, A.crypto.secp256k1.word16_bridge.layout.FIXED), 4);
+                out.bulk_local_metadata_bytes = try add(out.bulk_local_metadata_bytes, try add(fixed_bytes, (65536 + 256) * @sizeOf(u64)));
+            },
             .dword => {
                 out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(n, @sizeOf(A.memory.load_store_dword.source.Metadata)));
                 out.bulk_local_metadata_bytes = try add(out.bulk_local_metadata_bytes, try add(try mul(n, 3 * 4), (65536 + 256) * @sizeOf(u64)));

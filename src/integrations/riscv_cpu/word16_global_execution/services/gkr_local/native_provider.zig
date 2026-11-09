@@ -39,7 +39,7 @@ pub const Provider = struct {
                 const coords = A.crypto.secp256k1.word16_bridge.types.coordinates(src.kind);
                 const coord = logical % coords;
                 const call = logical / coords;
-                const row = A.crypto.secp256k1.word16_bridge.source.nativeTowerRow(src.kind, if (call < src.calls.len) src.calls[call] else null, coord, src.first_id + @as(u32, @intCast(call)));
+                const row = A.crypto.secp256k1.word16_bridge.source.nativeTowerRow(if (call < src.calls.len) src.calls[call] else null, coord, src.first_id + @as(u32, @intCast(call)));
                 var fixed: [8]M = @splat(M.zero());
                 fixed[4] = M.fromCanonical(@intFromBool(coord == 0));
                 @import("op_tower_projection.zig").emitLocalFor(M, &fixed, &row, &base_sink);
