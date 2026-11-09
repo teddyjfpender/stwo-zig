@@ -1002,6 +1002,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Pre-edit issue333 comment6752084383: apply pinned Zig0.15.2 canonical whitespace after path shortening. All changed Zig files are checked; only one declaration-array alignment differs. Preserve line counts, non-whitespace source bytes, literal strings and all protocol/source pins; no implementation or optimization change. Existing13-line P003 facade retains its separate16-line allowance."
+    },
+    {
+      "id": "c4_rv64_math_ownership",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "RFC352 decision6753676480: <=40 net is a contained sub-budget of the existing C4 <=800 allowance, not an additional overall reserve. Move three complete mathematical implementations to canonical RV64 owners with all23 public declarations and four named test bodies; retain the independent Candidate oracle in upper test composition, explicit public aliases and canonical record identity. No numerical rewrite or product admission below; geometry61 transfers once to the C3 foundation."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

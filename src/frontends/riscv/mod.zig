@@ -100,3 +100,10 @@ test {
     // which roots a test artifact at the file itself.
     _ = @import("runner/sail_oracle.zig");
 }
+
+test "api signature: RV64 mathematical providers preserve canonical modules" {
+    const math_test = @import("std").testing;
+    try math_test.expect(rv64.arith256_mod == rv64.ethereum_services.arith256);
+    try math_test.expect(rv64.secp256k1_rcb == rv64.ethereum_services.secp256k1);
+    try math_test.expect(rv64.sha256_compression == rv64.ethereum_services.sha256);
+}

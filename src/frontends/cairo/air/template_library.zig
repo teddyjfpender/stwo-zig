@@ -270,7 +270,7 @@ fn templateLabelMatches(template: []const u8, live: []const u8) bool {
     const prefix = "memory_id_to_big[";
     if (!std.mem.startsWith(u8, live, prefix) or live.len <= prefix.len or live[live.len - 1] != ']') return false;
     const index = std.fmt.parseUnsigned(usize, live[prefix.len .. live.len - 1], 10) catch return false;
-    return index < @import("../air/official_claim_registry.zig").memory_id_to_big_enable_slot_count;
+    return index < @import("official_claim_registry.zig").memory_id_to_big_enable_slot_count;
 }
 
 test "official Cairo AIR template library covers all claim fields" {
