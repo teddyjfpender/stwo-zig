@@ -23,6 +23,7 @@ pub const Limits = struct {
 pub const Snapshot = struct {
     entries: usize,
     active_leases: usize,
+    owned_views: usize,
     hits: u64,
     misses: u64,
     heap: Budget.Snapshot,
@@ -47,12 +48,29 @@ const State = struct {
     metadata: Metadata.Cache,
     limits: Limits,
     references: std.atomic.Value(usize) = .init(1),
+    views: std.atomic.Value(usize) = .init(0),
     mutex: std.Thread.Mutex = .{},
     entries: std.ArrayList(*Entry) = .empty,
     active_leases: usize = 0,
     request_active: bool = false,
     hits: u64 = 0,
     misses: u64 = 0,
+    fn retain(self: *State) void {
+        const prior = self.references.fetchAdd(1, .monotonic);
+        if (prior >= std.math.maxInt(usize) / 2) @panic("too many OP setup cache leases");
+    }
+    // Store invokes retain under its mutex: these callbacks must never acquire
+    // State/Store locks or allocate. Release runs after complete view teardown.
+    fn retainView(raw: ?*anyopaque) void {
+        const self: *State = @ptrCast(@alignCast(raw.?));
+        self.retain();
+        _ = self.views.fetchAdd(1, .monotonic);
+    }
+    fn releaseView(raw: ?*anyopaque) void {
+        const self: *State = @ptrCast(@alignCast(raw.?));
+        if (self.views.fetchSub(1, .acq_rel) == 0) @panic("OP setup view underflow");
+        self.release();
+    }
     fn release(self: *State) void {
         if (self.references.fetchSub(1, .acq_rel) != 1) return;
         const a = self.budget.allocator();
@@ -63,7 +81,7 @@ const State = struct {
         }
         self.entries.deinit(a);
         self.metadata.deinit();
-        if (self.store.reserved != 0 or self.store.mapped != 0 or self.active_leases != 0) @panic("OP setup cache custody leak");
+        if (self.store.reserved != 0 or self.store.mapped != 0 or self.active_leases != 0 or self.request_active or self.views.load(.acquire) != 0) @panic("OP setup cache custody leak");
         self.store.deinit();
         const budget = self.budget;
         a.destroy(self);
@@ -117,7 +135,7 @@ pub const Cache = struct {
         errdefer a.destroy(state);
         var metadata = try Metadata.Cache.init(a, limits.metadata_bytes);
         errdefer metadata.deinit();
-        state.* = .{ .budget = budget, .limits = limits, .metadata = metadata, .store = try Store.init(a, path, limits.disk_bytes, limits.mapped_bytes) };
+        state.* = .{ .budget = budget, .limits = limits, .metadata = metadata, .store = try Store.initWithViewLifetime(a, path, limits.disk_bytes, limits.mapped_bytes, .{ .context = state, .retain_fn = State.retainView, .release_fn = State.releaseView }) };
         return .{ .state = state };
     }
     pub fn deinit(self: *Cache) void {
@@ -136,10 +154,10 @@ pub const Cache = struct {
         const state = self.state;
         state.mutex.lock();
         defer state.mutex.unlock();
-        if (state.request_active) return error.OpSetupCacheRequestBusy;
+        if (state.request_active or state.views.load(.acquire) != 0) return error.OpSetupCacheRequestBusy;
         if (disk <= state.limits.disk_bytes or mapped <= state.limits.mapped_bytes) return error.OpSetupCacheResourcePartition;
         state.request_active = true;
-        _ = state.references.fetchAdd(1, .monotonic);
+        state.retain();
         return .{ .state = state, .disk_bytes = disk - state.limits.disk_bytes, .mapped_bytes = mapped - state.limits.mapped_bytes };
     }
     pub fn configuredLimits(self: *const Cache) Limits {
@@ -151,7 +169,7 @@ pub const Cache = struct {
         defer state.mutex.unlock();
         state.store.mutex.lock();
         defer state.store.mutex.unlock();
-        return .{ .entries = state.entries.items.len, .active_leases = state.active_leases, .hits = state.hits, .misses = state.misses, .heap = state.budget.snapshot(), .parked_bytes = state.store.reserved, .mapped_bytes = state.store.mapped, .peak_mapped_bytes = state.store.peak_mapped };
+        return .{ .entries = state.entries.items.len, .active_leases = state.active_leases, .owned_views = state.views.load(.acquire), .hits = state.hits, .misses = state.misses, .heap = state.budget.snapshot(), .parked_bytes = state.store.reserved, .mapped_bytes = state.store.mapped, .peak_mapped_bytes = state.store.peak_mapped };
     }
     pub fn acquire(self: *Cache, source: *const Full.ProgramAuthority, g: Mat.Geometry, bridges: T.Logs, profile: Profile) !Lease {
         if (source.rom_profile != .ethereum_services_op_v1 or profile == .reference_b2_q24_p0) return error.UnqualifiedOpSetup;
@@ -164,7 +182,7 @@ pub const Cache = struct {
         for (state.entries.items) |entry| if (std.mem.eql(u8, &lookup, &entry.lookup) and entry.matches(source, g, bridges, profile)) {
             state.hits += 1;
             state.active_leases += 1;
-            _ = state.references.fetchAdd(1, .monotonic);
+            state.retain();
             return .{ .state = state, .entry = entry };
         };
         if (state.entries.items.len == state.limits.entries) return error.OpSetupCacheEntryLimit;
@@ -183,7 +201,7 @@ pub const Cache = struct {
         state.entries.appendAssumeCapacity(entry);
         state.misses += 1;
         state.active_leases += 1;
-        _ = state.references.fetchAdd(1, .monotonic);
+        state.retain();
         return .{ .state = state, .entry = entry };
     }
 };

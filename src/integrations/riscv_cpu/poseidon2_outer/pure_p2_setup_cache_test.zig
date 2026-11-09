@@ -193,3 +193,79 @@ test "OP independent receiver setup cache bootstraps from source and rejects rep
     cache_alive = false;
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
 }
+
+fn exerciseOwnedViews(comptime mapped_last: bool) !void {
+    const W = @import("pure_p2_worker_protocol.zig").W;
+    const budget = try engine.host_budget_allocator.SharedHostBudget.create(a, 1 << 30);
+    defer budget.destroy();
+    const alloc = budget.allocator();
+    var temp = std.testing.tmpDir(.{});
+    defer temp.cleanup();
+    const path = try temp.dir.realpathAlloc(a, ".");
+    defer a.free(path);
+    var cache = try CacheModule.Cache.init(alloc, path, .{ .heap_bytes = 512 << 20, .disk_bytes = 512 << 20, .mapped_bytes = 512 << 20, .entries = 1, .metadata_bytes = 16 << 20 });
+    var cache_alive = true;
+    defer if (cache_alive) cache.deinit();
+    var source = try Full.ProgramAuthority.initForOpWord16(alloc, .{ .base = 4096, .words = &.{0x00108093} }, .bytes_v1);
+    var source_alive = true;
+    defer if (source_alive) source.deinit();
+    var class = try cache.acquire(&source, .{ .cpu_log = 5 }, .{}, profile);
+    var class_alive = true;
+    defer if (class_alive) class.deinit();
+    var request = try cache.enterRequest(alloc, 1 << 30, 1 << 30);
+    var request_alive = true;
+    defer if (request_alive) request.deinit();
+    var shape = try W.Prover.init(alloc, profile.config());
+    var shape_alive = true;
+    defer if (shape_alive) shape.deinit(alloc);
+    var mapped = try W.Prover.init(alloc, profile.config());
+    var mapped_alive = true;
+    defer if (mapped_alive) mapped.deinit(alloc);
+    var channel0 = W.Channel.init();
+    var channel1 = W.Channel.init();
+    const expected_root = class.key().root;
+    try class.key().append(alloc, &shape, &channel0);
+    try class.key().append(alloc, &mapped, &channel1);
+    try class.key().materialize(alloc, &mapped);
+    try std.testing.expectEqual(@as(usize, 2), cache.snapshot().owned_views);
+    try std.testing.expect(cache.snapshot().mapped_bytes > 0);
+    class.deinit();
+    class_alive = false;
+    request.deinit();
+    request_alive = false;
+    try std.testing.expectEqual(@as(usize, 0), cache.snapshot().active_leases);
+    // Returning the request token cannot reopen its quota while an owned PCS
+    // view still exists. This also covers a shape-only view after unmapping.
+    try std.testing.expectError(error.OpSetupCacheRequestBusy, cache.enterRequest(alloc, 1 << 30, 1 << 30));
+    source.deinit();
+    source_alive = false;
+    cache.deinit();
+    cache_alive = false;
+    // Neither a Cache nor EntryLease nor RequestLease survives this point.
+    // Both independently owned PCS objects still have live storage authority.
+    try std.testing.expectEqualSlices(u8, &expected_root, &shape.trees.items[0].root());
+    try std.testing.expectEqualSlices(u8, &expected_root, &mapped.trees.items[0].root());
+    try std.testing.expect(shape.trees.items[0].commitment.layers_parked);
+    try std.testing.expect(!mapped.trees.items[0].commitment.layers_parked);
+    try std.testing.expect(mapped.trees.items[0].coefficients.?[0].coeffs.len > 0);
+    if (mapped_last) {
+        shape.deinit(alloc);
+        shape_alive = false;
+        try std.testing.expectEqualSlices(u8, &expected_root, &mapped.trees.items[0].root());
+        mapped.deinit(alloc);
+        mapped_alive = false;
+    } else {
+        mapped.deinit(alloc);
+        mapped_alive = false;
+        try std.testing.expectEqualSlices(u8, &expected_root, &shape.trees.items[0].root());
+        shape.deinit(alloc);
+        shape_alive = false;
+    }
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
+}
+
+test "OP immutable setup owned shape and mapped PCS views retain cache state through teardown" {
+    try exerciseOwnedViews(true);
+    try exerciseOwnedViews(false);
+}

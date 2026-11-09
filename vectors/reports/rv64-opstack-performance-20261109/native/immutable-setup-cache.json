@@ -89,5 +89,26 @@
     "warm_physical_verify_seconds": 1.355884333,
     "statement_replay_rejected_on_hit": true,
     "post_teardown_common_heap_bytes": 0
+  },
+  "owned_view_lifetime_hardening": {
+    "review_finding": "Store file owners alone retained a pointer to the cache-owned State; independently owned PCS views must also retain that State",
+    "fix": "atomic State retain/release callbacks on successfully published shape/mapped views only; release after all view teardown outside Store mutex; templates have no State back-reference",
+    "guard": "new request admission fails busy while owned views survive even after request token is returned",
+    "qualification": "ReleaseSafe focused owned-view lifetime fixture passes both mapped-last and shape-last teardown orders",
+    "released_before_views": [
+      "source authority",
+      "EntryLease",
+      "RequestLease",
+      "Cache handle"
+    ],
+    "mapped_coefficients_and_roots_remain_valid": true,
+    "final_common_heap_bytes": 0,
+    "final_common_external_bytes": 0,
+    "heap_caps_unchanged": true,
+    "disk_caps_unchanged": true,
+    "mapping_caps_unchanged": true,
+    "store_dependency": "0ca004c38",
+    "raw_log": "/private/tmp/op-setup-cache-owned-views.log",
+    "note": "Storage lifetime hardening only; prior actual-small proof-byte measurements remain the qualification baseline; no new prover speed claim"
   }
 }
