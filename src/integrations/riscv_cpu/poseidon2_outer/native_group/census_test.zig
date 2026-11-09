@@ -17,6 +17,10 @@ const Manifest = @import("../pure_p2_manifest.zig");
 const VCapture = core.pcs.ForField(C.O).verifier.VerifiedProofCapture(W.H);
 const Collector = struct {
     a: std.mem.Allocator,
+    physical_path: ?[]const u8 = null,
+    source_owner: ?C.PoseidonContext = null,
+    numeric_owner: ?C.PoseidonContext = null,
+    baseline: [4]?@import("../native_omul/topology.zig").SourceLeaf = @splat(null),
     streams: [3]?S.Stream = @splat(null),
     numeric: ?S.Stream = null,
     models: [3]?Cost.Model = @splat(null),
@@ -25,6 +29,9 @@ const Collector = struct {
     fn deinit(self: *Collector) void {
         for (&self.streams) |*stream| if (stream.*) |*value| value.deinit();
         if (self.numeric) |*value| value.deinit();
+        if (self.source_owner) |*value| value.deinit();
+        if (self.numeric_owner) |*value| value.deinit();
+        for (&self.baseline) |*leaf| if (leaf.*) |*value| value.deinit();
     }
     fn sink(self: *Collector) Capture.Sink {
         return .{ .context = self, .visit = visit };
@@ -32,6 +39,16 @@ const Collector = struct {
     fn visit(raw: *anyopaque, _: std.mem.Allocator, member: Capture.View) !void {
         const self: *Collector = @ptrCast(@alignCast(raw));
         if (member.ordinal() != self.seen) return error.NativeGroupFixtureOrder;
+        if (self.physical_path != null) {
+            const Leaf = @import("../native_omul/topology.zig").SourceLeaf;
+            var leaf = switch (member) {
+                .cpu => |view| try Leaf.initSpongeCpu(self.a, view),
+                .detached => |view| try Leaf.initDetachedSponge(self.a, view),
+                .truth => |view| try Leaf.initLocalCatalog(self.a, view),
+            };
+            leaf.retireProverData();
+            self.baseline[self.seen] = leaf;
+        }
         if (self.seen == 0) {
             for (&self.streams, [_]u32{ 1, 2, 4 }) |*stream, count| stream.* = try S.Stream.init(self.a, true, 0, count, member.profile(), member.manifest());
             self.numeric = try S.Stream.init(self.a, false, 0, 4, member.profile(), member.manifest());
@@ -43,7 +60,8 @@ const Collector = struct {
             if (stream.appended == stream.count) {
                 const expected = try stream.expectedOutput();
                 var source = try stream.finish();
-                defer source.deinit();
+                var source_live = true;
+                defer if (source_live) source.deinit();
                 self.models[index] = try Cost.Model.derive(&source);
                 self.outputs[index] = expected;
                 if (stream.count == 1) {
@@ -59,6 +77,10 @@ const Collector = struct {
                     try std.testing.expectEqualDeep(control.native_mul_calls.items, source.native_mul_calls.items);
                     try std.testing.expectEqualDeep(try control.rawCounts(), try source.rawCounts());
                 }
+                if (stream.count == 4 and self.physical_path != null) {
+                    self.source_owner = source;
+                    source_live = false;
+                }
             }
         }
         if (self.numeric) |*stream| if (self.seen < stream.count) {
@@ -67,7 +89,8 @@ const Collector = struct {
                 const expected = try stream.expectedOutput();
                 const source_ports = stream.mutation_ports;
                 var owner = try stream.finish();
-                defer owner.deinit();
+                var owner_live = true;
+                defer if (owner_live) owner.deinit();
                 try std.testing.expectEqualDeep(self.models[2].?, try Cost.Model.derive(&owner));
                 try std.testing.expectEqualDeep(self.outputs[2].?, expected);
                 try std.testing.expect(try owner.isCircuitValid());
@@ -78,11 +101,15 @@ const Collector = struct {
                 const accepted = try owner.isCircuitValid();
                 ctx.value_table.items[port.idx] = old;
                 try std.testing.expect(!accepted);
+                if (self.physical_path != null) {
+                    self.numeric_owner = owner;
+                    owner_live = false;
+                }
             }
         };
         self.seen += 1;
     }
-    fn complete(self: *Collector) !void {
+    fn complete(self: *Collector, execution: [32]u8) !void {
         if (self.seen != 4) return error.NativeGroupFixtureCoverage;
         for (self.models) |model| if (model == null) return error.NativeGroupFixtureCoverage;
         const report = .{
@@ -105,11 +132,18 @@ const Collector = struct {
             try file.writeAll(json);
             try file.sync();
         }
+        if (self.physical_path) |path| {
+            const baseline_path = std.posix.getenv("STWO_OP_NATIVE_GROUP_BASELINE_ROOT") orelse return error.MissingNativeGroupBaselineRoot;
+            var sources: [4]@import("../native_omul/topology.zig").SourceLeaf = undefined;
+            // Borrowed copies only. Collector owns and destroys these keys.
+            for (&sources, self.baseline) |*source, leaf| source.* = leaf orelse return error.NativeGroupFixtureCoverage;
+            try @import("physical.zig").run(self.a, &self.numeric_owner.?, &self.source_owner.?, self.numeric.?.profile, self.outputs[2].?, &sources, execution, path, baseline_path);
+        }
     }
 };
 threadlocal var current: ?*Collector = null;
 const Hook = struct {
-    pub const workers = 4;
+    pub const workers = 8;
     pub const local_truth = true;
     pub const typed_manifest = true;
     pub fn verified(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, ordinal: u32, key: *const @import("../sponge_cpu/key.zig").Key, manifest: [36]u8, main: [36]u8, encoded: *const CPU.Encoded, capture: *const VCapture) !void {
@@ -124,14 +158,15 @@ const Hook = struct {
         const collector = current orelse return error.MissingNativeGroupCollector;
         try Capture.truth(a, key, declaration, expected, manifest, main, encoded, capture, collector.sink());
     }
-    pub fn complete(_: std.mem.Allocator, _: [32]u8, _: [36]u8, _: []const Manifest.Claims) !void {
-        try (current orelse return error.MissingNativeGroupCollector).complete();
+    pub fn complete(_: std.mem.Allocator, execution: [32]u8, _: [36]u8, _: []const Manifest.Claims) !void {
+        try (current orelse return error.MissingNativeGroupCollector).complete(execution);
     }
 };
 test "direct native group source census one two four preserves standalone and canonical frames" {
-    const budget = try engine.host_budget_allocator.SharedHostBudget.createRetainingParent(std.testing.allocator, 12 << 30);
+    const physical = std.posix.getenv("STWO_OP_NATIVE_GROUP_PHYSICAL_OUT");
+    const budget = try engine.host_budget_allocator.SharedHostBudget.createRetainingParent(std.testing.allocator, if (physical != null) 32 << 30 else 12 << 30);
     defer budget.destroy();
-    var collector = Collector{ .a = budget.allocator() };
+    var collector = Collector{ .a = budget.allocator(), .physical_path = physical };
     var live = true;
     defer if (live) collector.deinit();
     current = &collector;

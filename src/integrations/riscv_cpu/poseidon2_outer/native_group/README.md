@@ -44,7 +44,18 @@ zig build check-riscv64-op-native-group -Doptimize=ReleaseSafe -j1
 zig build test-riscv64-op-native-group -Doptimize=ReleaseSafe -j1
 ```
 
-Before promotion: physical proof/fresh source authority, complete independent
+The bounded physical gate now proves all four native verifiers directly. Its
+711,340-byte proof takes44.984seconds after12.920seconds of cold source/key
+construction. A separately rebuilt source key verifies it and rejects changed
+output, corrupted proof, and an independently verified old-topology root proof.
+The public root is identical to the retained seven-node tree. The old tree
+encodes1,274,831,872 cells versus416,800,768 here (3.059x fewer), including all
+three eliminated folds. Requested peak is9,296,996,721 bytes under32GiB, with
+zero final live allocation. This is a fixture qualification during concurrent
+engineering, not a controlled OP block timing or a whole-block speedup.
+See `vectors/reports/rv64-opstack-cpu-20261109/direct-native-group4-physical-v1.json`.
+
+Before promotion: complete independent
 execution/coverage/terminal/output admission, bounded group selection on actual
 source classes, composed security accounting and full OP measurements. Admission
 stays closed and the security label remains a128-bit target under documented
