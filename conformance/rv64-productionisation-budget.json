@@ -668,6 +668,13 @@
       "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
     },
     {
+      "id": "delivery_cpu_closure_and_complex_differential",
+      "net_code_budget": 120,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reconcile aggregate configure roots with actual canonical CPU composition and the existing circuit recursion CPU proof-wire injection. Admit only its four measured definition/test leaves, without new dependency edges or wildcard source prefixes. Decompose the authenticated FRI extension-product failure into exact independent complex ac, bd and cross comparisons before changing production field arithmetic. Existing product linkage checks, ceilings, goldens and rejection gates remain unchanged."
+    },
+    {
       "id": "delivery_invariant_owner_review_routing",
       "net_code_budget": 180,
       "flags_added_budget": 0,

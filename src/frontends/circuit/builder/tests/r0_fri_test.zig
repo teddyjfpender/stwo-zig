@@ -170,6 +170,16 @@ fn expectScalarCircleFold(input: []const QM31, actual: []const QM31, domain: stw
         try expectStage("subtraction", i, difference_words, &difference);
         const scaled = difference.mulM31(inverse);
         try expectStage("base scaling", i, scaled_words, &scaled);
+        const b = [_]u64{ scaled_words[0], scaled_words[1], scaled_words[2], scaled_words[3] };
+        const ac = alpha.c0.mul(scaled.c0);
+        const bd = alpha.c1.mul(scaled.c1);
+        const cross = alpha.c0.add(alpha.c1).mul(scaled.c0.add(scaled.c1));
+        try expectComplexStage("complex ac", i, scalarComplex(a[0..2].*, b[0..2].*), ac);
+        try expectComplexStage("complex bd", i, scalarComplex(a[2..4].*, b[2..4].*), bd);
+        try expectComplexStage("complex cross", i, scalarComplex(
+            .{ (a[0] + a[2]) % modulus, (a[1] + a[3]) % modulus },
+            .{ (b[0] + b[2]) % modulus, (b[1] + b[3]) % modulus },
+        ), cross);
         const product = alpha.mul(scaled);
         try expectStage("extension product", i, product_words, &product);
         var f0 = left.*;
@@ -183,6 +193,12 @@ fn expectScalarCircleFold(input: []const QM31, actual: []const QM31, domain: stw
         try std.testing.expectEqualSlices(u32, &expected, &stored);
         try std.testing.expectEqualSlices(u32, &stored, &@import("stwo_circuit_frontend").builder.ivalue.limbs(value.*));
     }
+}
+
+fn expectComplexStage(label: []const u8, index: usize, expected: [2]u64, value: stwo_core.fields.cm31.CM31) !void {
+    const words = [_]u32{ @intCast(expected[0]), @intCast(expected[1]), 0, 0 };
+    const extended = QM31{ .c0 = value, .c1 = stwo_core.fields.cm31.CM31.zero() };
+    try expectStage(label, index, words, &extended);
 }
 
 fn expectStage(label: []const u8, index: usize, expected: [4]u32, value: *const QM31) !void {
