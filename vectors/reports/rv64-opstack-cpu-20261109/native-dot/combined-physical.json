@@ -1,0 +1,87 @@
+{
+  "schema": "stwo.opstack.r7-combined-dot-physical.v1",
+  "stage": "Seven-role physical fixture only",
+  "production_admitted": false,
+  "default_r5_r6_changed": false,
+  "complete_heavy_execution_or_proof": false,
+  "budget_bytes": 2147483648,
+  "peak_live_bytes": 155159239,
+  "final_live_bytes": 0,
+  "final_external_live_bytes": 0,
+  "proof_bytes": 546224,
+  "proof_sha256": "ae3fa0e21279d49baf53bfa4da9c3390b61e6d64a122c7985c1e84400535d26d",
+  "proof_magic": "STP27D01",
+  "proof_header_bytes": 264,
+  "claims": 7,
+  "roles": [
+    "equality",
+    "QM31 arithmetic",
+    "M31-to-U32",
+    "Poseidon2",
+    "U16 range",
+    "native OM31 multiplication",
+    "whole OM31-by-M31 dot"
+  ],
+  "geometry": {
+    "dot_rows": 16,
+    "dot_log": 4,
+    "dot_active_rows": 4,
+    "largest_role_log": 16,
+    "constraint_degree": 3,
+    "composition_log_split": 1,
+    "main_accumulator_previous_masks": 8,
+    "interaction_prefix_previous_masks": 8,
+    "domain_arithmetic": "16-lane packed M31; packed OM31 only for LogUp compression/prefix/random accumulation; scalar OM31 at OODS",
+    "tree_widths": [
+      106,
+      538,
+      296
+    ]
+  },
+  "qualification_seconds": {
+    "prove": 0.562,
+    "fresh_native_verify": 0.083,
+    "controlled_performance_measurement": false
+  },
+  "authority": {
+    "producer_key_destroyed_before_receiver": true,
+    "receiver_source_independently_rebuilt": true,
+    "public_inputs": 6,
+    "public_outputs": 4,
+    "expected_values_from_independent_native_field_arithmetic": true,
+    "all_claims_in_transcript": true,
+    "shared_var_and_range_debt_closed": true,
+    "immutable_fixed_root_checked": true,
+    "ordered_all_role_geometry_in_identity": true
+  },
+  "controls": {
+    "full_storage_control_proof_bytes_identical": true,
+    "wrong_independently_compiled_source_same_fanout": "InvalidNativeDotR7Authority",
+    "wrong_fixed_root": "UntrustedPoseidonFixedCommitment",
+    "wrong_public_input": "rejected",
+    "legacy_r6_entrypoint": "InvalidNativeOmulWire before any allocation",
+    "mutations": {
+      "port_extension": "PoseidonGlobalLookupSum",
+      "native_result": "PoseidonGlobalLookupSum",
+      "dot_accumulator": "ConstraintsNotSatisfied",
+      "dot_weight": "PoseidonGlobalLookupSum",
+      "dot_scalar": "PoseidonGlobalLookupSum",
+      "dot_prefix": "ConstraintsNotSatisfied",
+      "dot_claim_balanced": "ConstraintsNotSatisfied",
+      "dot_reset": "ConstraintsNotSatisfied",
+      "dot_empty": "PoseidonGlobalLookupSum",
+      "omit_dot": "ShapeMismatch"
+    },
+    "packed_and_scalar_full_proof_bytes_identical": true,
+    "packed_lane_all_16_random_coordinate_roots_match_scalar": true,
+    "all_source_and_physical_named_tests_pass": 7
+  },
+  "command": "STWO_OP_R7_FIXTURE_OUTPUT=... zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP R7 seven role physical'",
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/native-dot-r7-fixture-v1",
+  "remaining": [
+    "Actual CPU/catalog/Miller leaf source construction must explicitly choose whole-dot lowering and R7 finalization.",
+    "R7 recursive shape/receiver/root adapters remain closed; R6 topology/root_runtime are unchanged.",
+    "Re-run composed source security/cost accounting for seven roles before any full route admission.",
+    "Source-only heavy cell model is not a measured block improvement."
+  ]
+}

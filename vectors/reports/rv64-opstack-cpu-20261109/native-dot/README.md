@@ -68,3 +68,42 @@ nested/error scope restoration, and allocation-failure custody. This does not
 qualify a live R7 proof: the seven-role key, shared PCS/Var closure, transcript,
 physical receiver and recursive root are separate remaining gates. The prior
 heavy source model remains a model; no heavy execution/proof was rerun.
+
+## Seven-role physical fixture
+
+[combined-physical.json](combined-physical.json) qualifies the combined R7 PCS,
+not a dot fragment. Equality, generic arithmetic, conversions, Poseidon2, U16,
+native OM31 multiplication and dot share one transcript and one Var/range
+closure. Six external field inputs and four results are pinned independently
+by native field arithmetic. The producer key is destroyed before a fresh
+source key verifies the proof. The 546,224-byte proof stays under a 2 GiB
+allocator cap (155,159,239-byte observed peak; zero final live/external bytes).
+Small fixture timings are qualification telemetry, not controlled benchmarks.
+
+The R7 key hashes its own domain, every role's ordered geometry, full FIXED
+root and dot source topology. Wire magic `STP27D01` carries seven claims; each
+claim enters the transcript. The legacy R6 receiver rejects it before any
+allocation. A different independently compiled dot source with the same fanout,
+a changed FIXED root and a changed public input all fail reception. Hidden
+QM31 coordinates, a forged native product, changed dot weights/scalars,
+nonlast accumulator, internal reset, empty result, prefix and balanced false
+claims are rejected. Omitting the seventh provider is rejected as a shape
+mismatch. Full-storage and early-retirement paths produce identical bytes.
+
+R7 MAIN collection reads canonical source FIXED IDs directly. It never flips
+legacy finalization flags. The unchanged typed P2 and OMUL components are
+reused only at their exact original offsets; the dot role has its own offsets,
+previous-accumulator masks and native-height circle ordering. Raw MAIN and
+INTER are retired after their last consumers. This constructor/collector glue
+lives outside protected R5 files and outside R6 topology/root-runtime code.
+
+Actual execution leaf factories, recursive seven-role verification and final
+root admission remain separate gates. No selected guest, CPU route or root
+protocol is switched by this fixture, and no heavy block was rerun.
+
+The new dot domain evaluator already uses 16-row M31 SIMD for its eight
+arithmetic roots. Only shared-Var challenge compression, prefixes and random
+accumulation use packed OM31; OODS stays scalar. The scalar-domain control
+produces **exactly the same full proof bytes**. A separate randomized test
+compares all eleven roots across every SIMD lane, including arbitrary current
+and previous accumulator values. This is not a measured large-domain speedup.
