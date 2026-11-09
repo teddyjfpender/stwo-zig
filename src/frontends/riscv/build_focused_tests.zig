@@ -10,11 +10,36 @@ pub const Spec = struct {
     filters: []const []const u8 = &.{},
     minimum: usize = 0,
     strip: ?bool = null,
+    error_tracing: ?bool = null,
     /// Complete compilation partitions; all run before the shared discovery floor.
     partition_roots: []const []const u8 = &.{},
 };
 
 pub const specs = [_]Spec{
+    .{
+        .step = "test-releasefast-acceptance",
+        .description = "Diagnose the twelve full-suite ReleaseFast failures without replacing the complete gate",
+        .root = "releasefast_acceptance_test_root.zig",
+        .imports_prover_engine = true,
+        .imports_typed_air_artifacts = true,
+        .strip = false,
+        .error_tracing = true,
+        .filters = &.{
+            "range framework admission rejects selector claim shape identity and malformed source",
+            "typed BRANCH_EQ hot rows retain paired legacy throughput and scaling",
+            "typed BRANCH_LT hot rows retain paired legacy throughput and scaling",
+            "typed DIV hot rows retain paired legacy throughput and scaling",
+            "typed FENCE hot rows retain paired legacy throughput in every build mode",
+            "typed load/store hot rows retain paired legacy throughput and scaling",
+            "typed LT_IMM hot rows retain paired legacy throughput and scaling",
+            "typed LT_REG hot rows retain paired legacy throughput and scaling",
+            "typed SHIFTS_IMM hot rows retain paired legacy throughput and scaling",
+            "E-022 trace and witness geometry consumers retired their duplicate registries",
+            "BLAKE3 Span public program authenticates complete ROM and emits no hash rows",
+            "BLAKE3 memory update proves runner snapshot conversion agrees with full roots",
+        },
+        .minimum = 12,
+    },
     .{
         .step = "test-retained-fri-frontier",
         .description = "Check configured FRI frontier ledger and fail-closed tradeoff validation",

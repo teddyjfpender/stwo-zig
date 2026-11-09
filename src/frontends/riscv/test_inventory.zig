@@ -8,6 +8,7 @@
 //! listed to make coverage explicit.
 
 test {
+    _ = @import("releasefast_acceptance_test_root.zig");
     _ = @import("recursion/tests/segment_leaf_local_projection_v3_test.zig");
     _ = @import("recursion/tests/vm_composition_program_v2_test.zig");
     _ = @import("air/lang/tests/function_activation_logup_test.zig");

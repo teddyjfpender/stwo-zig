@@ -319,6 +319,7 @@ fn addFocusedTests(
             .target = target,
             .optimize = optimize,
             .strip = spec.strip,
+            .error_tracing = spec.error_tracing,
         });
         root.addImport("stwo_core", core);
         root.addImport("stwo_prover_api", prover_api);

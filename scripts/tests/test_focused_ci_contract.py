@@ -4,6 +4,7 @@ import io
 import contextlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -158,6 +159,24 @@ class PlannerContractTests(unittest.TestCase):
             selected = self.lanes_for("src/frontends/riscv/retained_typed_component_test_root.zig")
             self.assertTrue({parent, companion}.issubset(selected))
             self.assertIn(companion, ci_scope_plan.MANUAL_CPU_LANES)
+
+    def test_releasefast_failure_diagnostic_retains_twelve_real_cases_and_full_gate(self):
+        package = ROOT / "src/frontends/riscv"
+        catalog = (package / "build_focused_tests.zig").read_text()
+        spec = catalog.split('.step = "test-releasefast-acceptance",', 1)[1].split('.minimum = 12,', 1)[0]
+        filters = re.findall(r'"([^"\n]+)"', spec.split('.filters = &.{', 1)[1])
+        imports = re.findall(r'@import\("([^"]+)"\)', (package / "releasefast_acceptance_test_root.zig").read_text())
+        self.assertEqual(12, len(set(filters)))
+        self.assertEqual(12, len(set(imports)))
+        declared = [name for path in imports for name in re.findall(r'test "([^"]+)"', (package / path).read_text())]
+        self.assertTrue(all(sum(name == selected for name in declared) == 1 for selected in filters))
+        self.assertIn('.error_tracing = true,', spec)
+        self.assertIn('.strip = false,', spec)
+        lane = "riscv_frontend_acceptance"
+        self.assertEqual([["zig", "build", "test-releasefast-acceptance", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2", "--verbose", "--summary", "all"]], self.policy["lanes"][lane]["commands"])
+        self.assertIn(lane, ci_scope_plan.MANUAL_CPU_LANES)
+        selected = self.lanes_for("src/frontends/riscv/releasefast_acceptance_test_root.zig")
+        self.assertTrue({lane, "riscv_frontend_releasefast"}.issubset(selected))
 
     def test_cairo_frontend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/frontends/cairo/air/components/add_ap.zig")

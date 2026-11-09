@@ -1032,6 +1032,24 @@
           "--verbose"
         ]
       ]
+    },
+    "riscv_frontend_acceptance": {
+      "host": "linux",
+      "description": "Focused diagnostic of the twelve unchanged full frontend ReleaseFast failures (#330); full suite remains mandatory",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-releasefast-acceptance",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
     }
   },
   "product_scope_lanes": {
@@ -1051,6 +1069,7 @@
     ],
     "riscv_cpu": [
       "riscv_frontend",
+      "riscv_frontend_acceptance",
       "riscv_frontend_releasefast",
       "riscv_cpu"
     ],
@@ -1104,6 +1123,7 @@
         "prover_api",
         "prover",
         "riscv_frontend",
+        "riscv_frontend_acceptance",
         "riscv_frontend_releasefast",
         "sm83_frontend",
         "riscv_cpu_integration",
@@ -1800,6 +1820,7 @@
       "lanes": [
         "script_contracts",
         "riscv_frontend",
+        "riscv_frontend_acceptance",
         "riscv_frontend_releasefast",
         "riscv_cuda_integration",
         "static"

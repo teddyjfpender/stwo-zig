@@ -360,6 +360,7 @@ MANUAL_CPU_LANES = frozenset({
     "riscv_retained_contracts", "riscv_retained_contracts_releasefast",
     "native_cuda_static",
     "riscv_frontend", "riscv_frontend_releasefast", "riscv_cpu_integration", "riscv_cpu",
+    "riscv_frontend_acceptance",
     "circuit_frontend", "circuit_cpu_integration", "circuit_recursion_wire", "circuit_recursion_cpu",
     "native_cpu", "native_oracle", "aggregate_cpu", "script_contracts", "build_graph", "package", "static",
 })

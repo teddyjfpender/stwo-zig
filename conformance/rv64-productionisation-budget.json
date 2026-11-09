@@ -960,6 +960,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Preserve source-pinned unfinished command streams and prior completion records across cancellation, and protect complete-package required child discovery while eliminating duplicate execution."
+    },
+    {
+      "id": "a3_focused_releasefast_acceptance_diagnostic",
+      "net_code_budget": 110,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #330: reuse the existing frontend test catalog, floor checker and hosted CPU lane to isolate the twelve unchanged failures from the complete ReleaseFast run. Literal leaf imports and exact filters retain original assertions; error traces improve diagnosis. Preserve complete mandatory suite, floors, golden pins and throughput thresholds. No copied tests, runtime flags or new launcher. Diagnostic result never substitutes for the complete gate; rollback removes the selection and lane together."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
