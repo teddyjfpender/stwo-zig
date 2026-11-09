@@ -27,3 +27,7 @@ test {
     _ = @import("poseidon2_outer/pure_p2_fold_test.zig");
     _ = @import("poseidon2_outer/pure_p2_heterogeneous_fold_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/native_omul/source_census_test.zig");
+}
