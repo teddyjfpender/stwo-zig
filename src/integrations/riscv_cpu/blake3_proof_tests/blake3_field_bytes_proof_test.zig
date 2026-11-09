@@ -1,10 +1,11 @@
 //! Authenticated field tuple -> canonical bytes -> complete BLAKE3 hash.
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const encoding = @import("../blake3_field_bytes.zig");
-const framed = @import("../blake3_frame_witness.zig");
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const encoding = frontend.testing.blake3_proof.blake3_field_bytes;
+const framed = frontend.testing.blake3_proof.blake3_frame_witness;
 const bridge = framed.route;
-const F = @import("../blake3_fixture_roster.zig").WithExtras(.{ encoding, bridge });
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{ encoding, bridge });
 const coordinates = [4]f.M31{ f.M31.zero(), f.M31.fromCanonical(2147483646), f.M31.fromCanonical(256), f.M31.fromCanonical(0x76543210) };
 const schedule = encoding.Schedule{ .source_circuit = 1401, .source_wire = 0, .destination_circuit = 1402, .destination_first = 0, .uses = @splat(1) };
 const Data = struct {
@@ -31,7 +32,7 @@ test "BLAKE3 canonical field bytes feed an authenticated complete hash proof" {
     var wrong = expected;
     wrong[31] ^= 0x80;
     const false_pp = try preprocessing(a, wrong);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted, false_pp);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted, false_pp);
 }
 fn preprocessing(a: std.mem.Allocator, expected: [32]u8) ![]f.Column {
     const data = try assemble(a, false, expected);

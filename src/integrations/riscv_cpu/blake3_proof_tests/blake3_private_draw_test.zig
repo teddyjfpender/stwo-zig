@@ -1,15 +1,16 @@
-//! A native absorption produces private state for a partial raw query batch.
+//! A native absorption produces private state used by an ordered challenge draw.
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const draw = @import("../blake3_query_witness.zig");
-const graph = @import("../blake3_hash_plan.zig");
-const hash = @import("../blake3_hash_witness.zig");
-const F = @import("../blake3_fixture_roster.zig").WithExtras(.{ draw.mask, draw.route });
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const draw = frontend.testing.blake3_proof.blake3_draw_witness;
+const graph = frontend.testing.blake3_proof.blake3_hash_plan;
+const hash = frontend.testing.blake3_proof.blake3_hash_witness;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{ draw.challenge, draw.route });
 const Data = struct {
     gs: []f.g.Row,
     xs: []f.xor.Row,
     bs: []f.boundary.Row,
-    cs: []draw.mask.Row,
+    cs: []draw.challenge.Row,
     rs: []draw.route.Row,
     fn logs(self: Data) [5]u32 {
         return .{ log(self.gs.len), log(self.xs.len), log(self.bs.len), log(self.cs.len), log(self.rs.len) };
@@ -18,26 +19,23 @@ const Data = struct {
         return @max(1, std.math.log2_int_ceil(usize, n));
     }
 };
-test "BLAKE3 raw query indices verify in a complete CPU draw proof" {
+test "BLAKE3 absorption feeds private state into a complete ordered challenge proof" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
     var channel = f.core.channel.blake3.Channel{};
     channel.mixU64(198);
-    const native = try f.core.queries.drawQueries(&channel, a, 20, 9);
-    var expected: [9]u32 = undefined;
-    for (&expected, native) |*value, word| value.* = @intCast(word);
-    try std.testing.expectEqual(@as(u64, 2), channel.n_draws);
+    const expected = channel.drawSecureFelt().toM31Array();
     const live = try assemble(a, true, expected);
     const logs = live.logs();
-    const rows = .{ try f.padded(f.g, a, live.gs, logs[0]), try f.padded(f.xor, a, live.xs, logs[1]), try f.padded(f.boundary, a, live.bs, logs[2]), try f.padded(draw.mask, a, live.cs, logs[3]), try f.padded(draw.route, a, live.rs, logs[4]) };
+    const rows = .{ try f.padded(f.g, a, live.gs, logs[0]), try f.padded(f.xor, a, live.xs, logs[1]), try f.padded(f.boundary, a, live.bs, logs[2]), try f.padded(draw.challenge, a, live.cs, logs[3]), try f.padded(draw.route, a, live.rs, logs[4]) };
     const trusted = try preprocessing(a, expected);
     var wrong = expected;
-    wrong[8] ^= 1;
+    wrong[0] = wrong[0].add(f.M31.one());
     const false_pp = try preprocessing(a, wrong);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted, false_pp);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted, false_pp);
 }
-fn preprocessing(a: std.mem.Allocator, expected: [9]u32) ![]f.Column {
+fn preprocessing(a: std.mem.Allocator, expected: [4]f.M31) ![]f.Column {
     const data = try assemble(a, false, expected);
     const logs = data.logs();
     var columns: std.ArrayList(f.Column) = .empty;
@@ -45,7 +43,7 @@ fn preprocessing(a: std.mem.Allocator, expected: [9]u32) ![]f.Column {
     for (f.kinds) |kind| try f.tablePreprocessed(a, kind, &columns);
     return columns.toOwnedSlice(a);
 }
-fn assemble(a: std.mem.Allocator, comptime live: bool, expected: [9]u32) !Data {
+fn assemble(a: std.mem.Allocator, comptime live: bool, expected: [4]f.M31) !Data {
     const initial = (f.core.channel.blake3.Channel{}).digestBytes();
     const bytes = try (f.core.channel.blake3.Frame{ .integer = .{ .state = initial, .value = 198 } }).encode(a);
     defer a.free(bytes);
@@ -60,7 +58,9 @@ fn assemble(a: std.mem.Allocator, comptime live: bool, expected: [9]u32) !Data {
         state = prepared.digest;
     } else producer = try hash.trustedRows(a, 801, bytes, @splat(0));
     defer producer.deinit();
-    const statement = draw.Statement{ .namespace = 802, .state = state, .start = 0, .log_domain_size = 20, .values = &expected, .state_source = .{ .circuit = 801, .first_wire = plan.output[0] } };
+    var values: [8]f.M31 = @splat(f.M31.zero());
+    values[0..4].* = expected;
+    const statement = draw.Statement{ .namespace = 802, .state = state, .start = 0, .attempts = 1, .values = values, .consumption = .one, .state_source = .{ .circuit = 801, .first_wire = plan.output[0] } };
     var challenge = if (live) try draw.prepare(a, statement) else try draw.trusted(a, statement);
     defer challenge.deinit();
     for (challenge.state_uses, 0..) |count, i| producer.xor_rows[producer.xor_rows.len - 16 + i][17] = f.M31.fromCanonical(count);
@@ -68,7 +68,7 @@ fn assemble(a: std.mem.Allocator, comptime live: bool, expected: [9]u32) !Data {
         .gs = try std.mem.concat(a, f.g.Row, &.{ producer.g_rows, challenge.g_rows }),
         .xs = try std.mem.concat(a, f.xor.Row, &.{ producer.xor_rows, challenge.xor_rows }),
         .bs = try std.mem.concat(a, f.boundary.Row, &.{ producer.boundary_rows[0 .. producer.boundary_rows.len - 8], challenge.boundary_rows }),
-        .cs = try a.dupe(draw.mask.Row, challenge.mask_rows),
+        .cs = try a.dupe(draw.challenge.Row, challenge.challenge_rows),
         .rs = try a.dupe(draw.route.Row, challenge.route_rows),
     };
 }

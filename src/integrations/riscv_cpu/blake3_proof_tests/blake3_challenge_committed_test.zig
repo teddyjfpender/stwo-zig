@@ -1,9 +1,10 @@
 //! Full STARK gate for ordered native BLAKE3 draw admission.
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
 const core = @import("stwo_core");
-const f = @import("../blake3_proof_fixture.zig");
-const draw = @import("../blake3_draw_witness.zig");
-const F = @import("../blake3_fixture_roster.zig").WithExtras(.{draw.challenge});
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const draw = frontend.testing.blake3_proof.blake3_draw_witness;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{draw.challenge});
 test "BLAKE3 native draw produces constrained scalar challenges in a complete CPU proof" {
     for ([_]draw.Consumption{ .one, .two }) |consumption| try proveDraw(consumption);
 }
@@ -34,7 +35,7 @@ fn proveDraw(consumption: draw.Consumption) !void {
     const trusted_pp = try preprocessing(a, statement);
     statement.values[2] = statement.values[2].add(f.M31.one());
     const false_pp = try preprocessing(a, statement);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted_pp, false_pp);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted_pp, false_pp);
 }
 fn preprocessing(a: std.mem.Allocator, statement: draw.Statement) ![]f.Column {
     var fixed = try draw.trusted(a, statement);

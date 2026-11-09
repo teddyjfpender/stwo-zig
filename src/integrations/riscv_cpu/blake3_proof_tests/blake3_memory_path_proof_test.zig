@@ -1,12 +1,13 @@
 //! Diagnostic CPU STARK gate for a full-depth byte-memory opening.
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const tree = @import("../../../air/memory_commitment/blake3_state_tree.zig");
-const path = @import("../blake3_memory_path.zig");
-const route = @import("../blake3_byte_route.zig");
-const word = @import("../blake3_private_word.zig");
-const bridge = @import("../blake3_input_bridge.zig");
-const F = @import("../blake3_fixture_roster.zig").WithExtras(.{ route, word, bridge });
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const tree = frontend.testing.blake3_proof.blake3_state_tree;
+const path = frontend.testing.blake3_proof.blake3_memory_path;
+const route = frontend.testing.blake3_proof.blake3_byte_route;
+const word = frontend.testing.blake3_proof.blake3_private_word;
+const bridge = frontend.testing.blake3_proof.blake3_input_bridge;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{ route, word, bridge });
 
 test "BLAKE3 memory path proves all 30 levels and rejects a changed root" {
     try proveOpening(.memory, 255);
@@ -34,7 +35,7 @@ fn proveOpening(kind: tree.Kind, byte: u32) !void {
     var wrong = statement;
     wrong.root.bytes[31] ^= 0x80;
     const false_pp = try preprocessing(a, wrong, byte, logs);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted, false_pp);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted, false_pp);
 }
 fn log(n: usize) u32 {
     return @max(1, std.math.log2_int_ceil(usize, n));

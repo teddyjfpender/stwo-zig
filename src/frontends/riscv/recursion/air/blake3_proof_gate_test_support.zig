@@ -1,9 +1,5 @@
 //! Shared real-proof gate for canonical compression and complete hash graphs.
 //! Callers use an arena for fixture storage; core verification consumes proofs.
-pub const run = ForBackend(@import("blake3_proof_fixture.zig").Cpu).run;
-pub const runFor = ForBackend(@import("blake3_proof_fixture.zig").Cpu).runFor;
-pub const runForParameters = ForBackend(@import("blake3_proof_fixture.zig").Cpu).runForParameters;
-pub const runForParametersObserved = ForBackend(@import("blake3_proof_fixture.zig").Cpu).runForParametersObserved;
 
 pub fn ForBackend(comptime Backend: type) type {
     return ForBackendWithTables(Backend, @import("blake3_proof_fixture.zig").kinds);

@@ -465,7 +465,7 @@ pub fn addProduct(context: Context) void {
     ).dependOn(test_filter.addSuites(context.b, &.{.{
         .tests = riscv_cpu_tests.addFocusedTestRoot(
             test_context,
-            "src/frontends/riscv/blake3_memory_path_proof_test_root.zig",
+            "src/integrations/riscv_cpu/blake3_memory_path_proof_test_root.zig",
             &.{"BLAKE3 memory path proves"},
         ),
         .minimum = 2,

@@ -139,3 +139,32 @@ pub const component_proof = struct {
 };
 
 pub const keccak_tuple_regression = @import("air/guest_precompile/tests/keccakf_lookup_tuple_test.zig");
+
+/// Backend-neutral AIR/fixture hooks used by the CPU integration proof corpus.
+pub const blake3_proof = struct {
+    pub const air_lang = @import("air/lang/mod.zig");
+    pub const blake3_state_tree = @import("air/memory_commitment/blake3_state_tree.zig");
+    pub const blake3_byte_route = @import("recursion/air/blake3_byte_route.zig");
+    pub const blake3_draw_witness = @import("recursion/air/blake3_draw_witness.zig");
+    pub const blake3_field_bytes = @import("recursion/air/blake3_field_bytes.zig");
+    pub const blake3_fixture_roster = @import("recursion/air/blake3_fixture_roster.zig");
+    pub const blake3_frame_witness = @import("recursion/air/blake3_frame_witness.zig");
+    pub const blake3_hash_plan = @import("recursion/air/blake3_hash_plan.zig");
+    pub const blake3_hash_witness = @import("recursion/air/blake3_hash_witness.zig");
+    pub const blake3_input_bridge = @import("recursion/air/blake3_input_bridge.zig");
+    pub const blake3_lifted_leaf_plan = @import("recursion/air/blake3_lifted_leaf_plan.zig");
+    pub const blake3_memory_path = @import("recursion/air/blake3_memory_path.zig");
+    pub const blake3_memory_update = @import("recursion/air/blake3_memory_update.zig");
+    pub const blake3_memory_update_chain = @import("recursion/air/blake3_memory_update_chain.zig");
+    pub const blake3_merkle_path_witness = @import("recursion/air/blake3_merkle_path_witness.zig");
+    pub const blake3_node_route = @import("recursion/air/blake3_node_route.zig");
+    pub const blake3_private_word = @import("recursion/air/blake3_private_word.zig");
+    pub const blake3_proof_fixture = @import("recursion/air/blake3_proof_fixture.zig");
+    pub const blake3_proof_gate_test_support = @import("recursion/air/blake3_proof_gate_test_support.zig");
+    pub const blake3_public_subtree_path = @import("recursion/air/blake3_public_subtree_path.zig");
+    pub const blake3_query_witness = @import("recursion/air/blake3_query_witness.zig");
+    pub const blake3_transcript_witness = @import("recursion/air/blake3_transcript_witness.zig");
+    pub const readonly_consistency = @import("recursion/air/readonly_consistency.zig");
+    pub const readonly_input = @import("recursion/air/readonly_input.zig");
+    pub const test_support = @import("recursion/air/test_support.zig");
+};

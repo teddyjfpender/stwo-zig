@@ -1,8 +1,9 @@
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const geometry = @import("../blake3_lifted_leaf_plan.zig");
-const path = @import("../blake3_merkle_path_witness.zig");
-const F = @import("../blake3_fixture_roster.zig").WithExtras(.{ path.route, path.word });
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const geometry = frontend.testing.blake3_proof.blake3_lifted_leaf_plan;
+const path = frontend.testing.blake3_proof.blake3_merkle_path_witness;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{ path.route, path.word });
 const logs = [_]u32{ 3, 1, 2, 3 };
 const raw = [_][8]u32{ .{ 1, 2, 3, 4, 5, 6, 7, 8 }, .{ 19, 23, 0, 0, 0, 0, 0, 0 }, .{ 29, 31, 37, 41, 0, 0, 0, 0 }, .{ 43, 47, 53, 59, 61, 67, 71, 73 } };
 test "BLAKE3 lifted geometry matches native decommitments and a complete typed path proof" {
@@ -63,7 +64,7 @@ test "BLAKE3 lifted geometry matches native decommitments and a complete typed p
     var wrong = s;
     wrong.leaf = try plan.leaf(a, &wrong_values);
     const false_pp = try preprocessing(a, wrong);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, sizes, trusted, false_pp);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, sizes, trusted, false_pp);
     try std.testing.expectError(error.InvalidBlake3LiftedLeaf, plan.columnIndex(1, 8));
     try std.testing.expectError(error.InvalidBlake3LiftedLeaf, plan.leaf(a, &.{}));
     try std.testing.expectError(error.InvalidBlake3LiftedLeaf, geometry.build(a, &.{0}));

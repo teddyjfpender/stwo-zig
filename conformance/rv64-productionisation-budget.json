@@ -596,6 +596,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Use the existing CI workflow and existing pinned circuit-oracle generator for owner reproduction that exceeds the laptop budget. Add one manually selected CPU-only dispatch choice, serial Cargo compilation, an allocation preflight, immutable source/binary/toolchain receipts, a source-mutation rejection and always-retained raw logs plus a binary candidate patch. Preserve the generator exit classification and all pin checks; no generated vector is applied or promoted automatically. Tests protect manual dispatch isolation, CPU runner selection, pinned/serial ownership and failure artifact retention. No local compiler, GPU run, new launcher, public API ledger, pin waiver or new runtime flag."
+    },
+    {
+      "id": "delivery_cpu_proof_fixture_owner",
+      "net_code_budget": 200,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Move the complete concrete CPU proof corpus into its declared CPU integration owner while retaining generic frontend helpers. Preserve every test body and negative assertion, add a mandatory exact-name discovery guard and run the corpus through existing focused CI/developer entrypoints; rollback is the source-preserving relocation receipt. No dependency or API ledger widening."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

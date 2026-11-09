@@ -24,6 +24,10 @@ from scripts.repo.ci_scope_plan import normalize_path, owns
 
 
 FOCUSED_RULES = (
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/blake3_proof_tests", "test-blake3-proof-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/blake3_proof_contract_test_root.zig", "test-blake3-proof-contracts"),
+    ("stwo_riscv_cpu_integration", "src/integrations/riscv_cpu/blake3_memory_path_proof_test_root.zig", "test-blake3-proof-contracts"),
+
     ("stwo_riscv_frontend", "src/frontends/riscv/air/lang/function_activation_logup_test_support.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/air/lang/tests/function_activation_logup_test.zig", "test-retained-authority-contracts"),
     ("stwo_riscv_frontend", "src/frontends/riscv/air/guest_precompile/tests/sha256_memory_caller_test.zig", "test-retained-authority-contracts"),

@@ -1,12 +1,13 @@
 //! Full-word conversion qualification; execution custody is a separate contract.
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const chain = @import("../blake3_memory_update_chain.zig");
-const tree = @import("../../../air/memory_commitment/blake3_state_tree.zig");
-const route = @import("../blake3_byte_route.zig");
-const word = @import("../blake3_private_word.zig");
-const bridge = @import("../blake3_input_bridge.zig");
-const F = @import("../blake3_fixture_roster.zig").WithExtras(.{ route, word, bridge });
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const chain = frontend.testing.blake3_proof.blake3_memory_update_chain;
+const tree = frontend.testing.blake3_proof.blake3_state_tree;
+const route = frontend.testing.blake3_proof.blake3_byte_route;
+const word = frontend.testing.blake3_proof.blake3_private_word;
+const bridge = frontend.testing.blake3_proof.blake3_input_bridge;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{ route, word, bridge });
 const Rows = std.meta.Tuple(&.{ []f.g.Row, []f.xor.Row, []f.boundary.Row, []route.Row, []word.Row, []bridge.Row });
 const initial = [_]tree.Leaf{ .{ .index = 12, .value = 0xfedcba98 }, .{ .index = 900, .value = 8 } };
 const inserted = [_]tree.Leaf{ .{ .index = 0, .value = 0xffffffff }, .{ .index = 12, .value = 0xfedcba98 }, .{ .index = 900, .value = 8 } };
@@ -38,7 +39,7 @@ test "BLAKE3 memory update proves chained insertion deletion and preserved words
     // fixed columns must reject this different transition schedule.
     plan.roots[1].bytes[31] ^= 0x80;
     const false_pp = try preprocessing(a, &plan, logs);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, pp, false_pp);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, pp, false_pp);
 }
 test "BLAKE3 memory update proves admission rejects disconnected transitions" {
     const a = std.testing.allocator;

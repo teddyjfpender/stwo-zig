@@ -200,6 +200,15 @@
         [
           "zig",
           "build",
+          "test-blake3-proof-contracts",
+          "--build-file",
+          "src/integrations/riscv_cpu/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
           "test",
           "--build-file",
           "src/integrations/riscv_cpu/build.zig",

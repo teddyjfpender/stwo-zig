@@ -390,3 +390,8 @@ test {
     _ = @import("word16_image_program_contract_test_root.zig");
     _ = @import("distributed_binary_contract_test_root.zig");
 }
+
+// Concrete CPU proof tests are owned here; generic frontend helpers stay neutral.
+test {
+    _ = @import("blake3_proof_contract_test_root.zig");
+}

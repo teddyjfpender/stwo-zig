@@ -1,6 +1,7 @@
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
 const core = @import("stwo_core");
-const ro = @import("../readonly_consistency.zig");
+const ro = frontend.testing.blake3_proof.readonly_consistency;
 const M = core.fields.m31.M31;
 const schedule = ro.Schedule{ .table = 700, .chain = 701, .rank = 1, .last = false };
 test "Read-only consistency pins sorted sparse table semantics and full u32 indices" {
@@ -10,9 +11,9 @@ test "Read-only consistency pins sorted sparse table semantics and full u32 indi
     try std.testing.expectEqualSlices(u8, &ro.SEMANTIC_DIGEST, &digest);
     var d = try ro.build(a);
     defer d.deinit();
-    const plan = try @import("../universal_relation_binding.zig").Binding(ro).authenticate(&d);
-    const direct = try @import("../direct_constraint_program.zig").authenticate(&d.arena, ro.SEMANTIC_DIGEST, ro.LOGICAL_INPUT_COUNT);
-    var exported = try @import("../framework_polynomial_export_v1.zig").exportLocalPrepared(ro, a, &direct, &plan);
+    const plan = try frontend.recursion.air.universal_relation_binding.Binding(ro).authenticate(&d);
+    const direct = try frontend.recursion.air.direct_constraint_program.authenticate(&d.arena, ro.SEMANTIC_DIGEST, ro.LOGICAL_INPUT_COUNT);
+    var exported = try frontend.recursion.air.framework_polynomial_export_v1.exportLocalPrepared(ro, a, &direct, &plan);
     defer exported.deinit();
     const pairs = [_][2]u32{ .{ 0, 0 }, .{ 0, 1 }, .{ 255, 256 }, .{ 65535, 65536 }, .{ 0xffffff, 0x1000000 }, .{ 0, 0xffffffff }, .{ 0x7ffffffe, 0x7fffffff }, .{ 0x7fffffff, 0x80000000 }, .{ 0xfffffffe, 0xffffffff }, .{ 0xffffffff, 0xffffffff } };
     const fixed = try ro.fixedRow(schedule);
@@ -55,15 +56,15 @@ test "Read-only consistency pins sorted sparse table semantics and full u32 indi
 }
 fn satisfied(d: *const ro.Definition, row: ro.Row) !bool {
     const a = std.testing.allocator;
-    const values = try @import("../test_support.zig").evaluateArena(a, &d.arena, &row);
+    const values = try frontend.testing.blake3_proof.test_support.evaluateArena(a, &d.arena, &row);
     defer a.free(values);
-    for (d.arena.constraintsView()) |constraint| if (!values[@import("../../../air/lang/mod.zig").types.idIndex(constraint.root)].isZero()) return false;
+    for (d.arena.constraintsView()) |constraint| if (!values[frontend.testing.blake3_proof.air_lang.types.idIndex(constraint.root)].isZero()) return false;
     return true;
 }
 test "Read-only consistency verifies unsorted duplicate inputs in a complete CPU proof" {
-    const f = @import("../blake3_proof_fixture.zig");
-    const input_air = @import("../readonly_input.zig");
-    const F = @import("../blake3_fixture_roster.zig").WithExtras(.{ ro, input_air });
+    const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+    const input_air = frontend.testing.blake3_proof.readonly_input;
+    const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{ ro, input_air });
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
@@ -104,20 +105,20 @@ test "Read-only consistency verifies unsorted duplicate inputs in a complete CPU
     pp = .empty;
     inline for (F.Airs, .{ rows[0], rows[1], &boundaries, &fixed, &fixed_inputs }, 0..) |Air, data, i| try f.project(Air, a, data, logs[i], 0, &pp);
     for (f.kinds) |kind| try f.tablePreprocessed(a, kind, &pp);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted, try pp.toOwnedSlice(a));
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted, try pp.toOwnedSlice(a));
 }
 
 test "Read-only input authenticates byte indices scalar values and stable table tuples" {
-    const adapter = @import("../readonly_input.zig");
+    const adapter = frontend.testing.blake3_proof.readonly_input;
     const a = std.testing.allocator;
     const digest = try adapter.computeSemanticDigest(a);
     if (!std.mem.eql(u8, &digest, &adapter.SEMANTIC_DIGEST)) std.debug.print("readonly input identity: {s}\n", .{std.fmt.bytesToHex(digest, .lower)});
     try std.testing.expectEqualSlices(u8, &adapter.SEMANTIC_DIGEST, &digest);
     var d = try adapter.build(a);
     defer d.deinit();
-    const plan = try @import("../universal_relation_binding.zig").Binding(adapter).authenticate(&d);
-    const direct = try @import("../direct_constraint_program.zig").authenticate(&d.arena, adapter.SEMANTIC_DIGEST, adapter.LOGICAL_INPUT_COUNT);
-    var exported = try @import("../framework_polynomial_export_v1.zig").exportLocalPrepared(adapter, a, &direct, &plan);
+    const plan = try frontend.recursion.air.universal_relation_binding.Binding(adapter).authenticate(&d);
+    const direct = try frontend.recursion.air.direct_constraint_program.authenticate(&d.arena, adapter.SEMANTIC_DIGEST, adapter.LOGICAL_INPUT_COUNT);
+    var exported = try frontend.recursion.air.framework_polynomial_export_v1.exportLocalPrepared(adapter, a, &direct, &plan);
     defer exported.deinit();
     const port = adapter.Schedule{ .index = .{ .circuit = 1, .wire = 0 }, .value = .{ .circuit = 1, .wire = 1 }, .table = 2 };
     const fixed = try adapter.fixedRow(port);

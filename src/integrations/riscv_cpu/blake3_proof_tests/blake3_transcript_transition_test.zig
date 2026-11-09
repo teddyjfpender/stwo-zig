@@ -1,11 +1,12 @@
 //! Two native absorptions with an authenticated private intermediate state.
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const frame_hash = @import("../blake3_frame_witness.zig");
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const frame_hash = frontend.testing.blake3_proof.blake3_frame_witness;
 const route = frame_hash.route;
-const graph = @import("../blake3_hash_plan.zig");
-const hash = @import("../blake3_hash_witness.zig");
-const F = @import("../blake3_fixture_roster.zig").WithBridge(route);
+const graph = frontend.testing.blake3_proof.blake3_hash_plan;
+const hash = frontend.testing.blake3_proof.blake3_hash_witness;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithBridge(route);
 const Data = struct {
     gs: []f.g.Row,
     xs: []f.xor.Row,
@@ -33,7 +34,7 @@ test "BLAKE3 transcript absorption proves with private intermediate state" {
     var wrong = expected;
     wrong[19] ^= 0x80;
     const false_pp = try preprocessing(a, wrong);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted, false_pp);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted, false_pp);
 }
 fn preprocessing(a: std.mem.Allocator, digest: [32]u8) ![]f.Column {
     const data = try assemble(a, false, digest);

@@ -1,10 +1,11 @@
 //! External bounded words and canonical fields feed private transcript state.
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const t = @import("../blake3_transcript_witness.zig");
-const word = @import("../blake3_private_word.zig");
-const encoding = @import("../blake3_field_bytes.zig");
-const F = @import("../blake3_fixture_roster.zig").WithExtras(.{ t.challenge, t.route, t.query_mask, word, encoding });
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const t = frontend.testing.blake3_proof.blake3_transcript_witness;
+const word = frontend.testing.blake3_proof.blake3_private_word;
+const encoding = frontend.testing.blake3_proof.blake3_field_bytes;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{ t.challenge, t.route, t.query_mask, word, encoding });
 const words = [_]u32{ 0, 0xffffffff, 0x80000000, 17 };
 const fields = [_]f.QM31{f.QM31.fromU32Unchecked(1, 2147483646, 23, 91)};
 fn operations(raw: []const u32, secure: []const f.QM31) [2]t.Operation {
@@ -144,7 +145,7 @@ test "BLAKE3 private routed words and canonical fields verify in a transcript pr
     const trusted = try preprocessing(a, trusted_rows, logs);
     trusted_bounds[0][8] = trusted_bounds[0][8].add(f.M31.one());
     const wrong = try preprocessing(a, trusted_rows, logs);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted, wrong);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted, wrong);
 }
 fn preprocessing(a: std.mem.Allocator, rows: anytype, logs: [8]u32) ![]f.Column {
     var columns: std.ArrayList(f.Column) = .empty;

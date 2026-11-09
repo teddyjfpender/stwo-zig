@@ -1,11 +1,12 @@
 //! Three hash graphs and typed byte routing authenticate one Merkle parent.
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const route = @import("../blake3_byte_route.zig");
-const node = @import("../blake3_node_route.zig");
-const graph = @import("../blake3_hash_plan.zig");
-const hash = @import("../blake3_hash_witness.zig");
-const F = @import("../blake3_fixture_roster.zig").WithBridge(route);
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const route = frontend.testing.blake3_proof.blake3_byte_route;
+const node = frontend.testing.blake3_proof.blake3_node_route;
+const graph = frontend.testing.blake3_proof.blake3_hash_plan;
+const hash = frontend.testing.blake3_proof.blake3_hash_witness;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithBridge(route);
 const M31 = f.M31;
 const LeafValues = [2][4]M31{
     .{ M31.zero(), M31.one(), M31.fromCanonical(2147483646), M31.fromCanonical(19) },
@@ -48,7 +49,7 @@ test "BLAKE3 routed Merkle proof authenticates both private child digests" {
     var wrong = expected;
     wrong[0] ^= 1;
     const false_pp = try preprocessing(a, wrong);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted, false_pp);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted, false_pp);
 }
 fn preprocessing(a: std.mem.Allocator, digest: [32]u8) ![]f.Column {
     const data = try assemble(a, false, digest);

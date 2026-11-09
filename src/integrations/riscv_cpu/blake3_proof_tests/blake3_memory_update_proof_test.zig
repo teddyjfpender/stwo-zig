@@ -1,12 +1,13 @@
 //! Diagnostic proof of one byte change with shared private siblings.
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const tree = @import("../../../air/memory_commitment/blake3_state_tree.zig");
-const update = @import("../blake3_memory_update.zig");
-const route = @import("../blake3_byte_route.zig");
-const word = @import("../blake3_private_word.zig");
-const bridge = @import("../blake3_input_bridge.zig");
-const F = @import("../blake3_fixture_roster.zig").WithExtras(.{ route, word, bridge });
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const tree = frontend.testing.blake3_proof.blake3_state_tree;
+const update = frontend.testing.blake3_proof.blake3_memory_update;
+const route = frontend.testing.blake3_proof.blake3_byte_route;
+const word = frontend.testing.blake3_proof.blake3_private_word;
+const bridge = frontend.testing.blake3_proof.blake3_input_bridge;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{ route, word, bridge });
 const Rows = std.meta.Tuple(&.{ []f.g.Row, []f.xor.Row, []f.boundary.Row, []route.Row, []word.Row, []bridge.Row });
 test "BLAKE3 memory update proves shared siblings and rejects changed after root" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
@@ -31,7 +32,7 @@ test "BLAKE3 memory update proves shared siblings and rejects changed after root
     var wrong = statement;
     wrong.after_root.bytes[31] ^= 0x80;
     const false_pp = try preprocessing(a, wrong, logs);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted, false_pp);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted, false_pp);
 }
 fn assemble(a: std.mem.Allocator, p: *const update.Prepared, s: update.Statement) !Rows {
     // Public byte fixtures; production memory relations replace these sources.

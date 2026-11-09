@@ -65,6 +65,11 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
         "stwo_prover_engine",
         context.stwo_module.import_table.get("stwo_prover_engine").?,
     );
+    riscv_adapter.addImport(
+        "stwo_cpu_backend",
+        context.stwo_module.import_table.get("stwo_cpu_backend") orelse
+            @panic("canonical aggregate graph is missing the CPU backend"),
+    );
     riscv_adapter.addImport("riscv_cpu_capabilities", riscv_capabilities);
     riscv_adapter.addOptions("build_identity", identity_options);
     const module = b.createModule(.{

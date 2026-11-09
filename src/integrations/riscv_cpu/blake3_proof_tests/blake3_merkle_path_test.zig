@@ -1,7 +1,8 @@
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const path = @import("../blake3_merkle_path_witness.zig");
-const F = @import("../blake3_fixture_roster.zig").WithExtras(.{ path.route, path.word });
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const path = frontend.testing.blake3_proof.blake3_merkle_path_witness;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{ path.route, path.word });
 const M31 = f.M31;
 const leaves = [4][2]M31{
     .{ M31.fromCanonical(11), M31.fromCanonical(13) }, .{ M31.fromCanonical(17), M31.fromCanonical(19) },
@@ -33,8 +34,8 @@ test "BLAKE3 private sibling word semantics pin and reject out of range bytes" {
     var d = try path.word.build(a);
     defer d.deinit();
     const plan = try f.binding.Binding(path.word).authenticate(&d);
-    const direct = try @import("../direct_constraint_program.zig").authenticate(&d.arena, path.word.SEMANTIC_DIGEST, path.word.LOGICAL_INPUT_COUNT);
-    var exported = try @import("../framework_polynomial_export_v1.zig").exportLocalPrepared(path.word, a, &direct, &plan);
+    const direct = try frontend.recursion.air.direct_constraint_program.authenticate(&d.arena, path.word.SEMANTIC_DIGEST, path.word.LOGICAL_INPUT_COUNT);
+    var exported = try frontend.recursion.air.framework_polynomial_export_v1.exportLocalPrepared(path.word, a, &direct, &plan);
     defer exported.deinit();
     var row = try path.word.logicalRow(7, 8, 2, 0xffffffff);
     const good = plan.preparedEntries(row);
@@ -92,7 +93,7 @@ test "BLAKE3 private sibling paths verify in complete CPU proofs" {
         var wrong = s;
         wrong.root[0] ^= 1;
         const false_pp = try preprocessing(a, wrong);
-        try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted, false_pp);
+        try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted, false_pp);
     }
 }
 fn preprocessing(a: std.mem.Allocator, s: path.Statement) ![]f.Column {

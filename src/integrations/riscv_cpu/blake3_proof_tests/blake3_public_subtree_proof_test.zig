@@ -1,11 +1,12 @@
 //! Real STARK coverage for a public subtree joined to private memory siblings.
+const frontend = @import("stwo_riscv_frontend");
 const std = @import("std");
-const f = @import("../blake3_proof_fixture.zig");
-const tree = @import("../../../air/memory_commitment/blake3_state_tree.zig");
-const path = @import("../blake3_public_subtree_path.zig");
-const route = @import("../blake3_byte_route.zig");
-const word = @import("../blake3_private_word.zig");
-const F = @import("../blake3_fixture_roster.zig").WithExtras(.{ route, word });
+const f = frontend.testing.blake3_proof.blake3_proof_fixture.ForBackend(@import("stwo_cpu_backend").CpuBackend);
+const tree = frontend.testing.blake3_proof.blake3_state_tree;
+const path = frontend.testing.blake3_proof.blake3_public_subtree_path;
+const route = frontend.testing.blake3_proof.blake3_byte_route;
+const word = frontend.testing.blake3_proof.blake3_private_word;
+const F = frontend.testing.blake3_proof.blake3_fixture_roster.WithExtras(.{ route, word });
 test "public subtree path proves private siblings and rejects a changed admitted root" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
@@ -24,7 +25,7 @@ test "public subtree path proves private siblings and rejects a changed admitted
     var wrong = statement;
     wrong.root.bytes[31] ^= 0x80;
     const false_pp = try preprocessing(a, wrong, logs);
-    try @import("../blake3_proof_gate_test_support.zig").runFor(F, a, rows, logs, trusted, false_pp);
+    try frontend.testing.blake3_proof.blake3_proof_gate_test_support.ForBackend(@import("stwo_cpu_backend").CpuBackend).runFor(F, a, rows, logs, trusted, false_pp);
     wrong = statement;
     wrong.subtree.bytes[0] ^= 1;
     try std.testing.expectError(error.InvalidPublicSubtreeRoot, path.prepare(a, wrong, &opening.siblings));

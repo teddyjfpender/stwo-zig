@@ -93,6 +93,12 @@ def _encloser(text: str, offset: int) -> str:
 
 
 class RunAdmissionGateTest(unittest.TestCase):
+    def test_aggregate_adapter_reuses_the_canonical_cpu_verifier_backend(self):
+        source = read(ROOT / "build_support/prove_cli.zig")
+        self.assertIn('context.stwo_module.import_table.get("stwo_cpu_backend")', source)
+        self.assertIn('canonical aggregate graph is missing the CPU backend', source)
+        self.assertNotIn('graph.cpuBackend(', source)
+
     def test_the_gate_is_declared_once_in_the_frontend(self) -> None:
         text = read(GATE)
         for declaration in (

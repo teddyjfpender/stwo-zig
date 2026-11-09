@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import re
 
 from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import ROOT, catalog_fixture
@@ -43,7 +44,35 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             lane="riscv_cpu_integration",
             build_file="src/integrations/riscv_cpu/build.zig",
             consumers={"riscv_cpu", "aggregate_cpu", "aggregate_metal"},
+            steps=("test-blake3-proof-contracts", "test"),
         )
+
+    def test_cpu_blake3_corpus_has_exact_named_discovery_and_no_frontend_backend(self):
+        integration = ROOT / "src/integrations/riscv_cpu"
+        corpus = integration / "blake3_proof_contract_test_root.zig"
+        source = corpus.read_text()
+        leaves = re.findall(r'@import\("(blake3_proof_tests/[^"\n]+)"\)', source)
+        self.assertEqual(14, len(leaves))
+        declared = []
+        for leaf in leaves:
+            text = (integration / leaf).read_text()
+            declared.extend(re.findall(r'\btest\s+"([^"\n]+)"', text))
+            self.assertNotIn('@import("..', text)
+        required = re.findall(r'^        "([^"\n]+)",$', source, re.M)
+        self.assertEqual(21, len(declared))
+        self.assertEqual(sorted(declared), sorted(required))
+        self.assertIn('@import("builtin").test_functions', source)
+        self.assertIn('expectEqual(@as(usize, 1), found)', source)
+        self.assertIn('@import("blake3_proof_contract_test_root.zig")', (integration / "mod.zig").read_text())
+        frontend = ROOT / "src/frontends/riscv"
+        for name in ("blake3_proof_fixture", "blake3_proof_gate_test_support"):
+            text = (frontend / "recursion/air" / (name + ".zig")).read_text()
+            self.assertNotIn('"stwo_cpu_backend"', text)
+            self.assertNotIn('.Cpu)', text)
+            self.assertIn('pub fn ForBackend(', text)
+        inventory = (frontend / "test_inventory.zig").read_text()
+        for leaf in leaves:
+            self.assertNotIn('recursion/air/tests/' + leaf.split('/')[-1], inventory)
 
     def test_cairo_cpu_integration_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(
