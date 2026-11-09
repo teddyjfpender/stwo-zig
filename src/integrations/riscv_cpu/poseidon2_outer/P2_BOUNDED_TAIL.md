@@ -19,7 +19,8 @@ lifted parity/source-index mapping in temporary column views. The reused path
 continues its existing two-parity cache at each lower height and sends its
 final-height adjacent rows directly through native-four updates. Remainders
 keep the scalar path. No full-height hasher or complete-row slab is allocated.
-The extra bounded workspace is included in the separate stack-cache telemetry;
+The explicit caller workspace is included in the separate stack-cache telemetry
+(which does not bound helper call frames or compiler spills);
 the existing leaf-phase metric remains heap-only.
 
 The default predicate now adds only the exact `Poseidon2M31MerkleHasherV2`
@@ -49,9 +50,14 @@ The source data and36-byte root are identical:
 This is about2.96×/5.21× for this **synthetic microprobe**, not a quiet matched
 heavy/native proof benchmark. The heap-only leaf peak stays exactly2,359,504
 bytes; bounded stack telemetry is3,632/19,760 bytes for packed/reused paths.
-Actual native proof-byte parity and the representative heavy-prefix timing are
-the next integration gates, using the retained controls rather than a complete
-heavy-block rerun. No end-to-end or hard10× target achievement is claimed.
+The actual same-source four-million-instruction heavy CPU fragment now passes
+independent verification with byte-identical PCS and GKR proofs. Native seal
+plus complete falls74.732→23.931 seconds (3.123×); MAIN Merkle39.245→5.792
+and INTER Merkle20.095→3.828 seconds. Requested peak remains exactly
+10,093,072,140 bytes, with zero major faults and zero final heap/external retention.
+See `vectors/reports/rv64-opstack-cpu-20261109/heavy-conditional-prefix-p2-tail-v1.json`.
+This remains a conditional component proof: RAM/Wire obligations are outstanding.
+No complete heavy-block rerun, full-root speedup or hard10× achievement is claimed.
 
 Add `p2_bounded_tail_test.zig` to the OP native test root and run:
 

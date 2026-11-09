@@ -419,8 +419,9 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                     64 * (4 * @sizeOf(@import("stwo_core").fields.m31.M31) + @sizeOf(ColumnRef)) + 4 * (@sizeOf(H) + @sizeOf(H.Hash))
                 else
                     0;
-                // Conservative bounded stack ledger, separate from the
-                // existing heap-only leaf_phase_peak_bytes statistic.
+                // Explicit bounded caller workspace, separate from the
+                // heap-only leaf_phase_peak_bytes statistic. This is not
+                // a bound on helper call frames or compiler spills.
                 out.tail_cache_bytes = worker_count * ((if (reuse_tail) tail_cache_bytes_per_worker else 0) + native_scratch);
             }
 
