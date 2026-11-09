@@ -151,3 +151,41 @@ the narrow OM31 shadow fix now has compact/full-storage byte parity and
 allocation-failure coverage. The failure is retained in the receipt rather than
 counted as a benchmark. See
 `vectors/reports/rv64-opstack-cpu-20261109/grouped-terminal-b2-actual-small-v1.json`.
+
+### Explicit R7 arithmetic policy
+
+The experimental shared runtime also accepts receiver-pinned
+`Options.arithmetization = .r7` (`--arithmetization=r7` on the grouped CLI).
+The default remains R6, including its existing proof and metadata bytes. New R7
+metadata records the arithmetic policy explicitly; a receiver checks that policy
+before constructing wide source keys. Proof headers never select a fallback.
+
+Both modes share native capture adapters, source admission, canonical planning,
+public frames, tree ordering, bounded custody, and publication. Typed key owners
+reuse the existing R6/R7 `Ref` and `Captured` dispatch. R7 source streams lower
+whole DEEP numerators into native dot rows and finalize the complete eight-role
+Var argument once. Subsequent R7 folds use the same verifier body as existing R7
+recursion, with an explicit canonical R6 tree hash domain. Existing R7 fold
+methods retain their original domain and source identity.
+
+Native proofs retain their independent B4 profile. The optional final-only
+B2/q144 outer policy remains separate from arithmetic selection. A fresh
+receiver must select both policies explicitly, for example:
+
+```sh
+rv64-op-group-root verify config.json source-only root-directory 4 \
+  --terminal-outer=b2-q144 --arithmetization=r7
+```
+
+The R7 source census of the selected 796,406-step block's four native fragments
+has 643,035,136 committed trace cells, with QM31 rows at log23 instead of the
+R6 census's log24. The actual one-group R7+B2 root qualified at 37.757 s for
+node proving/persistence/verification, 51.743 s for the producer including native
+reception and cold setup, and 8.965 GB peak requested allocation. Its fresh
+source-only receiver accepts without the native proof file, rejects nine
+physical/metadata controls including a valid opposite-format proof, and refuses
+a stripped R7 policy under an independently reconstructed R6 key. These are
+single qualification runs, not a controlled performance benchmark. See
+`vectors/reports/rv64-opstack-cpu-20261109/grouped-r7-terminal-b2-actual-small-v1.json`.
+Production source-suite admission remains closed; no heavy OP execution or proof
+was repeated.

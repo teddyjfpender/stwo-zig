@@ -4,12 +4,12 @@ const std = @import("std");
 const E = @import("stwo_prover_engine");
 const Runtime = @import("poseidon2_outer/native_group/runtime.zig");
 const Native = @import("poseidon2_outer/sponge_cpu/runtime.zig");
-const usage = "usage: rv64-op-group-root <prove|verify|model|qualify> config.json native-or-source-directory root-directory <1|2|4> [resources.json] [--terminal-outer=b2-q144|b4-q72]\n";
+const usage = "usage: rv64-op-group-root <prove|verify|model|qualify> config.json native-or-source-directory root-directory <1|2|4> [resources.json] [--terminal-outer=b2-q144|b4-q72] [--arithmetization=r6|r7]\n";
 pub fn main() !void {
     const base = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, args);
-    if (args.len < 6 or args.len > 8) {
+    if (args.len < 6 or args.len > 9) {
         std.debug.print(usage, .{});
         return error.ExpectedOpGroupedRootArguments;
     }
@@ -29,12 +29,18 @@ pub fn main() !void {
     var options: Runtime.Options = .{};
     var resource_path: ?[]const u8 = null;
     var terminal_selected = false;
+    var arithmetic_selected = false;
     for (args[6..]) |argument| {
         if (std.mem.startsWith(u8, argument, "--terminal-outer=")) {
             if (terminal_selected) return error.DuplicateOpGroupedTerminalPolicy;
             terminal_selected = true;
             const name = argument["--terminal-outer=".len..];
             options.terminal_outer_profile = if (std.mem.eql(u8, name, "b2-q144")) .op_control_b2_q144_p0_fold4_v1 else if (std.mem.eql(u8, name, "b4-q72")) .op_target_b4_q72_p0_fold4_v1 else return error.InvalidOpGroupedTerminalPolicy;
+        } else if (std.mem.startsWith(u8, argument, "--arithmetization=")) {
+            if (arithmetic_selected) return error.DuplicateOpGroupedArithmeticPolicy;
+            arithmetic_selected = true;
+            const name = argument["--arithmetization=".len..];
+            options.arithmetization = if (std.mem.eql(u8, name, "r7")) .r7 else if (std.mem.eql(u8, name, "r6")) .r6 else return error.InvalidOpGroupedArithmeticPolicy;
         } else {
             if (resource_path != null or std.mem.startsWith(u8, argument, "--")) return error.ExpectedOpGroupedRootResources;
             resource_path = argument;

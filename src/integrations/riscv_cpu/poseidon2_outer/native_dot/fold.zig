@@ -58,6 +58,9 @@ pub const Source = struct {
     pub fn buildCanonicalTree(self: Source, a: std.mem.Allocator, trace_only: bool) !Context {
         return self.buildMode(a, trace_only, true, CANONICAL_TAGS, null);
     }
+    pub fn buildCanonicalTreeForProving(self: Source, a: std.mem.Allocator) !Context {
+        return self.buildMode(a, false, false, CANONICAL_TAGS, null);
+    }
     pub fn buildCanonicalTreeWithPortsForTest(self: Source, a: std.mem.Allocator, ports: *MutationPorts) !Context {
         if (!@import("builtin").is_test) return error.R7QualificationOnly;
         return self.buildMode(a, false, true, CANONICAL_TAGS, ports);

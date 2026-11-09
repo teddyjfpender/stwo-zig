@@ -13,7 +13,8 @@ test "native grouped actual small complete execution root and independent receiv
     if (!physical and !verify_only and !std.mem.eql(u8, mode, "source")) return error.InvalidOpGroupGateMode;
     const maximum = try std.fmt.parseInt(u32, std.posix.getenv("STWO_OP_GROUP_MAX") orelse "4", 10);
     const terminal = std.posix.getenv("STWO_OP_GROUP_TERMINAL") orelse "b4";
-    const options = Runtime.Options{ .terminal_outer_profile = if (std.mem.eql(u8, terminal, "b2")) .op_control_b2_q144_p0_fold4_v1 else if (std.mem.eql(u8, terminal, "b4")) null else return error.InvalidOpGroupTerminalGate };
+    const arithmetic = std.posix.getenv("STWO_OP_GROUP_ARITHMETIZATION") orelse "r6";
+    const options = Runtime.Options{ .arithmetization = if (std.mem.eql(u8, arithmetic, "r7")) .r7 else if (std.mem.eql(u8, arithmetic, "r6")) .r6 else return error.InvalidOpGroupArithmeticGate, .terminal_outer_profile = if (std.mem.eql(u8, terminal, "b2")) .op_control_b2_q144_p0_fold4_v1 else if (std.mem.eql(u8, terminal, "b4")) null else return error.InvalidOpGroupTerminalGate };
     const a = std.testing.allocator;
     const raw = try std.fs.cwd().readFileAlloc(a, path, 16384);
     defer a.free(raw);
@@ -35,6 +36,11 @@ test "native grouped actual small complete execution root and independent receiv
         const controls = try Runtime.qualifyWithOptions(budget.allocator(), parsed.value, native, out, profile, .{}, maximum, options);
         std.debug.print("OP_NATIVE_GROUP_PHYSICAL_ATTACKS controls={} restored_positive=true\n", .{controls});
     } else if (physical or verify_only) try Runtime.verifyWithOptions(budget.allocator(), parsed.value, native, out, profile, .{}, maximum, options);
+    if (attacks) {
+        var wrong = options;
+        wrong.arithmetization = if (options.arithmetization == .r7) .r6 else .r7;
+        try std.testing.expectError(error.NativeGroupReceiverPolicy, Runtime.verifyWithOptions(budget.allocator(), parsed.value, native, out, profile, .{}, maximum, wrong));
+    }
     const receiver_ns = timer.lap();
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);

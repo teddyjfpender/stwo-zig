@@ -10,12 +10,76 @@ const Fold = @import("../native_dot/fold.zig");
 const Profile = @import("../op_profile.zig").Profile;
 pub const Ref = Keys.Ref;
 pub const Captured = Keys.Captured;
+pub const Format = std.meta.Tag(Ref);
+/// One concrete source stream selected by receiver policy, not proof headers.
+pub const Stream = union(Format) {
+    r6: Base.Stream,
+    r7: Dot.Stream,
+    pub fn init(a: std.mem.Allocator, trace_only: bool, first: u32, count: u32, profile: Profile, manifest: [36]u8, format: Format) !Stream {
+        return switch (format) {
+            .r6 => .{ .r6 = try Base.Stream.init(a, trace_only, first, count, profile, manifest) },
+            .r7 => .{ .r7 = try Dot.Stream.init(a, trace_only, first, count, profile, manifest) },
+        };
+    }
+    pub fn base(self: *Stream) *Base.Stream {
+        return switch (self.*) {
+            .r6 => |*v| v,
+            .r7 => |*v| &v.inner,
+        };
+    }
+    pub fn deinit(self: *Stream) void {
+        switch (self.*) {
+            inline else => |*v| v.deinit(),
+        }
+        self.* = undefined;
+    }
+    pub fn append(self: *Stream, member: Base.Member) !void {
+        switch (self.*) {
+            inline else => |*v| try v.append(member),
+        }
+    }
+    pub fn finish(self: *Stream) !@import("../../rv64_recursion/om31_poseidon/common.zig").PoseidonContext {
+        return switch (self.*) {
+            inline else => |*v| v.finish(),
+        };
+    }
+    pub fn expectedOutput(self: *const Stream) !Fold.Digest {
+        return switch (self.*) {
+            inline else => |*v| v.expectedOutput(),
+        };
+    }
+};
+pub const Cost = union(Format) {
+    r6: @import("cost.zig").Model,
+    r7: Dot.Cost,
+    pub fn derive(ctx: *const C.Context, format: Format) !Cost {
+        return switch (format) {
+            .r6 => .{ .r6 = try @import("cost.zig").Model.derive(ctx) },
+            .r7 => .{ .r7 = try Dot.Cost.derive(ctx) },
+        };
+    }
+};
 /// Place an Owner in stable storage before publishing Ref pointers; every Ref
 /// remains borrowed until this Owner is destroyed or moved. Request statements,
 /// witnesses and transcripts stay outside immutable key construction.
-pub const Owner = union(enum) {
+pub const Owner = union(Format) {
     r6: @import("../native_omul/authority.zig").Key,
     r7: @import("../native_dot/outer_authority.zig").Key,
+    pub fn fromSelectedStreamWithProfile(a: std.mem.Allocator, source: *Stream, outer_profile: Profile) !Owner {
+        return fromSelectedStreamWithCost(a, source, outer_profile, null);
+    }
+    pub fn fromSelectedStreamWithCost(a: std.mem.Allocator, source: *Stream, outer_profile: Profile, cost: ?*Cost) !Owner {
+        if (outer_profile == .reference_b2_q24_p0) return error.InvalidOpPurePoseidonProfile;
+        if (!source.base().trace_only) return error.NativeGroupSourceTraceRequired;
+        const format = std.meta.activeTag(source.*);
+        var trace = try source.finish();
+        defer trace.deinit();
+        if (cost) |out| out.* = try Cost.derive(&trace, format);
+        return switch (format) {
+            .r6 => .{ .r6 = try @import("../native_omul/authority.zig").Key.init(a, &trace, outer_profile) },
+            .r7 => .{ .r7 = try @import("../native_dot/outer_authority.zig").Key.init(a, &trace, outer_profile) },
+        };
+    }
     pub fn fromStream(a: std.mem.Allocator, source: *Base.Stream) !Owner {
         return fromStreamWithProfile(a, source, source.profile);
     }

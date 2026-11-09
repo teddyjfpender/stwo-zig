@@ -77,6 +77,12 @@ pub fn run(a: std.mem.Allocator, topology: *const Topology, authority: A.Authori
         controls += 1;
         break;
     };
+    if (comptime @import("builtin").is_test) if (std.posix.getenv("STWO_OP_GROUP_CROSS_FORMAT_PROOF")) |path| {
+        const other = try std.fs.cwd().readFileAlloc(a, path, 2 << 20);
+        defer a.free(other);
+        try refuse(topology, authority, prepared, other);
+        controls += 1;
+    };
     try topology.verify(authority.inventory, prepared, bytes);
     return controls;
 }
