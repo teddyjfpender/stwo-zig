@@ -69,8 +69,8 @@ pub fn emitReceipt(scope: anytype, geometry: Authority.Geometry, proof: anytype,
     writer.root(scope.manifest);
     writer.integer(scope.ordinal);
     writer.integer(4);
-    writer.integer(geometry.calls);
-    writer.integer(geometry.first_id);
+    writer.integer(if (@hasField(@TypeOf(scope), "calls")) scope.calls else geometry.calls);
+    writer.integer(if (@hasField(@TypeOf(scope), "first_id")) scope.first_id else geometry.first_id);
     writer.integer(geometry.frontier_log);
     writer.integer(geometry.arithmetic_log);
     var variables: [4]u32 = undefined;
@@ -150,13 +150,16 @@ pub fn proveUnboundWithOptions(a: std.mem.Allocator, scope: Scope, geometry: Aut
 /// One shared SSA draw for both components; range relations have distinct
 /// transcript labels. The local child never draws the global Wire challenge.
 pub fn draw(channel: *Channel) Challenges {
+    return drawFor(O, channel);
+}
+pub fn drawFor(comptime Field: type, channel: anytype) A.crypto.bn254_tower.narrow.equations.ChallengesFor(Field) {
     channel.mixU32s(&.{0x42595445});
     const bytes = channel.drawSecureFelt();
     channel.mixU32s(&.{0x55313500});
     const carries = channel.drawSecureFelt();
     channel.mixU32s(&.{0x53534123});
-    const ssa = A.crypto.curves.equations.WireFor(O).draw(channel);
-    return .{ .bytes = bytes, .carries = carries, .ssa = ssa, .wire = .{ .offset = O.zero(), .coefficients = @splat(O.zero()) } };
+    const ssa = A.crypto.curves.equations.WireFor(Field).draw(channel);
+    return .{ .bytes = bytes, .carries = carries, .ssa = ssa, .wire = .{ .offset = Field.zero(), .coefficients = @splat(Field.zero()) } };
 }
 /// BYTE and U15 close independently; SSA closes exactly across the two
 /// source-owned instances. This disallows cancellation between unrelated buses.

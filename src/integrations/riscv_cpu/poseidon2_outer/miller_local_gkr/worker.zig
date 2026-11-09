@@ -369,8 +369,7 @@ pub fn decode(a: std.mem.Allocator, bytes: []const u8, max_bytes: usize) !Encode
     return .{ .bytes = proof, .local = try a.dupe(u8, bytes[HEADER + pcs ..]), .receipt = receipt, .claims = claims };
 }
 
-test "Miller local GKR bounded worker codec and exact source admission" {
-    const a = std.testing.allocator;
+pub fn runWithHook(a: std.mem.Allocator, comptime Hook: type) !void {
     var key = try Key.init(a, .op_target_b4_q72_p0_fold4_v1, 8, 15);
     defer key.deinit();
     const span = Span{ .calls = 1, .first_id = 7 };
@@ -402,12 +401,29 @@ test "Miller local GKR bounded worker codec and exact source admission" {
     defer restored.deinit(a);
     var fresh = try Key.init(a, key.base.profile, 8, 15);
     defer fresh.deinit();
-    const claims = try verify(a, &fresh, span, expected, &pending, 0, &restored);
+    var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H) = undefined;
+    const claims = try verifyWithCapture(a, &fresh, span, expected, &pending, 0, &restored, &capture);
+    defer capture.deinit(a);
+    if (comptime Hook != void) try Hook.run(a, &fresh, span, expected, &pending, &restored, &capture);
     std.debug.print("OP_MILLER_GKR_WORKER native_bytes={d} local_bytes={d} peak_requested={d} retained_requested={d} source_expected=true fresh_receiver=true inventory_accepted=false\n", .{ restored.bytes.len, restored.local.len, worker.budget.snapshot().peak_live_bytes, worker.budget.snapshot().live_bytes });
     try std.testing.expect(claims.wire.eql(restored.claims[0].add(restored.claims[1])));
+    const original_receipt = restored.receipt;
+    restored.receipt[0] ^= 1;
+    try std.testing.expectError(error.LocalGkrReceiptMismatch, verify(a, &fresh, span, expected, &pending, 0, &restored));
+    restored.receipt = original_receipt;
+    const other_span = Span{ .calls = 1, .first_id = 8 };
+    const other_expected = try fresh.expected(other_span, 0);
+    var other_entries = [_]Manifest.Entry{.{ .authority = other_expected, .scope = .{ .statement = other_expected.statement, .fixed = other_expected.fixed, .main = stage.main, .ordinal = 0 }, .local = null, .global_relations = other_expected.global_relations }};
+    const other_digest = try Manifest.digest([_]u8{31} ** 32, &other_entries);
+    const other_pending = Manifest.Pending{ .entries = &other_entries, .digest = other_digest, .shared = try Manifest.drawShared(other_digest) };
+    if (verify(a, &fresh, other_span, other_expected, &other_pending, 0, &restored)) |_| return error.SwitchedMillerSpanAccepted else |_| {}
     restored.claims[0] = restored.claims[0].add(O.one());
     restored.claims[1] = restored.claims[1].sub(O.one());
     if (verify(a, &fresh, span, expected, &pending, 0, &restored)) |_| return error.ForgedBalancedMillerDebtAccepted else |_| {}
+}
+
+test "Miller local GKR bounded worker codec and exact source admission" {
+    try runWithHook(std.testing.allocator, void);
 }
 
 fn codecAllocations(a: std.mem.Allocator, source: *const Encoded) !void {

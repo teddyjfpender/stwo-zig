@@ -76,3 +76,20 @@ test {
     _ = @import("poseidon2_outer/miller_local_gkr/worker.zig");
     _ = @import("poseidon2_outer/native_omul/sponge_gkr_cost_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/child.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/statement.zig");
+    _ = @import("poseidon2_outer/miller_local_gkr/leaf_test.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/source_class_test.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/security.zig");
+}

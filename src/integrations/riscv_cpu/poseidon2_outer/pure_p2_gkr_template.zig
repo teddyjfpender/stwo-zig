@@ -10,6 +10,14 @@ const SC = engine.lookups.sumcheck.ForField(O);
 const Poly = engine.lookups.utils.UnivariatePoly(O);
 pub const MAX_LAYERS: usize = 30;
 pub const MAX_COEFFICIENT_LENGTHS = MAX_LAYERS * (MAX_LAYERS - 1) / 2;
+/// Source-owned typed rosters may share the bounded template implementation;
+/// no dimensions or opcode authority are accepted from incoming proof bytes.
+pub fn countFor(instances: anytype) !usize {
+    return countImpl(instances);
+}
+pub fn skeletonFor(a: std.mem.Allocator, instances: anytype, lengths: []const u8) !GV.GkrBatchProof {
+    return skeletonImpl(a, instances, lengths);
+}
 pub fn layers(instances: []const Frame.Instance) !usize {
     return layersImpl(instances);
 }
