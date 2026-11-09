@@ -58,6 +58,26 @@ included before selecting a production guest. The retained full anchored
 transition input is still missing, so no full-transition latency is claimed.
 Security remains a 128-bit target under documented assumptions, unqualified.
 
+## Immutable blob domain
+
+The guest now borrows the 4,096 EIP-4844 roots from its authenticated
+read-only program image. It no longer allocates and multiplies through the
+same domain at runtime. The table occupies 128 KiB and contains Arkworks'
+four-limb Montgomery residues. Compile-time decoding uses no unsafe layout
+cast. `python3 opstack/tools/blob_roots.py --check` reproduces every byte with
+Python integer arithmetic; the host test checks all entries against Arkworks,
+canonical storage and exact root order. Build source identities include the
+embedded binary, and a second build produced an identical ELF.
+
+The [qualification receipt](../vectors/reports/rv64-opstack-cpu-20261108/immutable-blob-domain.json)
+pins native/Unicorn agreement on all twelve interpolation and two full KZG
+probes, with seven malformed KZG inputs rejected. Relative to the service
+guest above, single-blob verification falls from 28,486,651 to 28,230,795
+instructions and the two-blob batch from 40,544,466 to 40,280,311. This saves
+setup once per batch: the previous batch verifier already shared the roots
+between blobs. The extra image data remains part of the authenticated initial
+memory; this is not a measured full-transition prover speedup.
+
 ## Reproduction
 
 ```sh

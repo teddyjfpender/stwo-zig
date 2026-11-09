@@ -7,6 +7,8 @@ pub(crate) use sha2 as statement_sha2;
 pub(crate) use sha2_rv64 as statement_sha2;
 #[cfg(feature = "blob-derivation")]
 pub mod anchored_blobs;
+#[cfg(feature = "blob-derivation")]
+mod blob_roots;
 #[cfg(feature = "derivation")]
 mod anchored_chain;
 #[cfg(feature = "derivation")]

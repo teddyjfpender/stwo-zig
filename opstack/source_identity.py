@@ -13,6 +13,7 @@ COMPILE_SUFFIXES = {
     ".h",
     ".c",
     ".py",
+    ".bin",  # include_bytes! compiler inputs, including the fixed blob domain
 }
 
 

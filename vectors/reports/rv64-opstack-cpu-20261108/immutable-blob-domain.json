@@ -1,0 +1,468 @@
+{
+  "schema": "stwo.opstack.immutable-blob-domain.v1",
+  "scope": "CPU guest instruction reduction; no full transition proving-time claim",
+  "control_elf": {
+    "bytes": 627816,
+    "sha256": "357c4921e23098ec73a1e3b918e71291246459b6ee0fd07be6323f751f9cdd9b"
+  },
+  "new_elf": {
+    "bytes": 757696,
+    "sha256": "7d0bb2c49038298fa6f1474dd26e303a18f57a57c89ba4923b5bdbb74d08902b"
+  },
+  "binary_table_sha256": "5d1f72cf909ddd2244c20b1b36c892b4cbe33adc87886e56400af4a79a52ce3e",
+  "binary_table_bytes": 131072,
+  "all_4096_roots_canonical_and_match_arkworks": true,
+  "generator_check_passed": true,
+  "byte_identical_rebuild": true,
+  "compiler_identity_includes_binary_constants": true,
+  "rows": [
+    {
+      "case": "dense",
+      "algorithm": "fraction",
+      "input_sha256": "b2e0331e0b6d1d0dc98d796546dcb3af97634779a105edbe11f7fe2c5e34dee5",
+      "expected_output": "000000000000000000000000000000000000000000000000000000013df493a24245563100000000004250",
+      "before_instructions": 3250010,
+      "after_instructions": 2985873,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        24609,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        20493,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "204d7dc9015238a44029b5b0d3eecb4ec6666260239169557a4ddc1a4107ce0e"
+    },
+    {
+      "case": "dense",
+      "algorithm": "adaptive",
+      "input_sha256": "4314082dc650562bd7da1530ce30d2c6f23e71c74b4c70a0f82cdda114e45169",
+      "expected_output": "000000000000000000000000000000000000000000000000000000013df493a24245563100000000004250",
+      "before_instructions": 2807877,
+      "after_instructions": 2553054,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        15403,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        11287,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "789cf386c3068e5d04b6962009822d76dc11a8c96d799a97ed63caa62294f3a1"
+    },
+    {
+      "case": "dense-hash",
+      "algorithm": "fraction",
+      "input_sha256": "83e39b61e9be59678e24b3ebb217f2224cddb4778e95678878e3dfd50e735983",
+      "expected_output": "538c2fa46699dec5d0c0eff99a0ddc78bac42aec86b4c5cbc4f234d46514139f4245563100000000004250",
+      "before_instructions": 3248638,
+      "after_instructions": 2984661,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        24609,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        20493,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "edbdd0622d4f0173ef621795eaa3f1d77092f097eb807375da4ebf3c1d6667b6"
+    },
+    {
+      "case": "dense-hash",
+      "algorithm": "adaptive",
+      "input_sha256": "48de0bee9171afb9dd77ee161c7b1cd326fde09fb562c43f7f6a37e9cba27d7c",
+      "expected_output": "538c2fa46699dec5d0c0eff99a0ddc78bac42aec86b4c5cbc4f234d46514139f4245563100000000004250",
+      "before_instructions": 2906789,
+      "after_instructions": 2650944,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        16416,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        12300,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "b78a24d1d8b61fad20e54b80014bb522b36fb39300a972f4c4252bce477a1f56"
+    },
+    {
+      "case": "half-padded",
+      "algorithm": "fraction",
+      "input_sha256": "46721bde32efc98954efc83472f7a2bfeaf988a2ab8f6b5d120cb7f7149f9cfd",
+      "expected_output": "1406374561c3aceb910e3d896bb50f0bb6da957df8ebd87d47633fa4837df2e34245563100000000004250",
+      "before_instructions": 2510955,
+      "after_instructions": 2251082,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        14369,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        10253,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "6d426be339477d879434a58d7bea8dd7d8aa5adaa1c5d0dfeb87c423c6cd63c8"
+    },
+    {
+      "case": "half-padded",
+      "algorithm": "adaptive",
+      "input_sha256": "1a1fc54ca67fbe32cef0fa996ca08cf3f6c137453b62773c426d9e902a55321d",
+      "expected_output": "1406374561c3aceb910e3d896bb50f0bb6da957df8ebd87d47633fa4837df2e34245563100000000004250",
+      "before_instructions": 2485617,
+      "after_instructions": 2244035,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        14369,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        10253,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "bc5e722fd50956d14141be7b56366ae902b729c9b6f6481cc8f8394c00fa6703"
+    },
+    {
+      "case": "sparse",
+      "algorithm": "fraction",
+      "input_sha256": "4037c6fe708cbf91f0c4305454c1677d648c75b726fa6fdb7cbcb710595be6da",
+      "expected_output": "43e27fcf3f6106de21c79243c9d94e165167ef4dff9d52957a08f1a8fe5e3e814245563100000000004250",
+      "before_instructions": 1770346,
+      "after_instructions": 1514498,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        4135,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        19,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "029883b2fc646a6cb5bbdee7173becf56157dfda1764a7ee0693e0e27a953abc"
+    },
+    {
+      "case": "sparse",
+      "algorithm": "adaptive",
+      "input_sha256": "91783ad3ba7bf82c7735458a5825a2c8d97446e120191d5a9632a946dbb7f428",
+      "expected_output": "43e27fcf3f6106de21c79243c9d94e165167ef4dff9d52957a08f1a8fe5e3e814245563100000000004250",
+      "before_instructions": 1672255,
+      "after_instructions": 1424602,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        4135,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        19,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "8862d30f9ff3b019ff2b0294242b84cc49712556e515888b7260b4ad8108bde5"
+    },
+    {
+      "case": "zero",
+      "algorithm": "fraction",
+      "input_sha256": "1f45fb034068e44c24f88e09decc42a1bfdda080fcdd8efcbcc0286233fe7939",
+      "expected_output": "00000000000000000000000000000000000000000000000000000000000000004245563100000000004250",
+      "before_instructions": 1772233,
+      "after_instructions": 1516389,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        4130,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        14,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "3f1952ef697b98fa0c19e6d0e991ffda2b9d9105c4da17b591de47c9421679d0"
+    },
+    {
+      "case": "zero",
+      "algorithm": "adaptive",
+      "input_sha256": "43acd2f2c3d5e557dcd2aed1e6e5ad3b946aa1c3a8fb7deb0da2035a835d6a23",
+      "expected_output": "00000000000000000000000000000000000000000000000000000000000000004245563100000000004250",
+      "before_instructions": 1394921,
+      "after_instructions": 1147385,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        4117,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "adfd0c7f12edf5f5b22ad4b2d42ac2251886b5e3a699279eb2b26ad37d17ad8c"
+    },
+    {
+      "case": "domain",
+      "algorithm": "fraction",
+      "input_sha256": "e934e64ccb495cf97ba99ee56b908b6f57bfaea31a7b175b0a652399a9def626",
+      "expected_output": "17fc5e7c8dda13cc28fa5f1b6622bf8fd97cef1c0a2a27b51cb3c7eb6c4e84fa4245563100000000004250",
+      "before_instructions": 1879365,
+      "after_instructions": 1623570,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        8325,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        4209,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "c7ea2bbdd6e30100882978e48e0a79959c40ed93027985407f3d0369f5e12a88"
+    },
+    {
+      "case": "domain",
+      "algorithm": "adaptive",
+      "input_sha256": "0097bbae8e6e8145ba31eb7e453756ab00cd9c6beabb3eb21f3ccadeecfed903",
+      "expected_output": "17fc5e7c8dda13cc28fa5f1b6622bf8fd97cef1c0a2a27b51cb3c7eb6c4e84fa4245563100000000004250",
+      "before_instructions": 1646677,
+      "after_instructions": 1399012,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        8218,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        4102,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "b6303099f0029efc37c70fb89a61aa4e1f833e49b16fbdd5e618ab55014f13ad"
+    },
+    {
+      "case": "kzg-single",
+      "algorithm": "production",
+      "input_sha256": "1f14a94bc7306d15afc7dc1449fa83a9350833739dd82b16e4488de7a143a93a",
+      "expected_output": "15566234c3147e7d3f0fa4207e6044985f8043969e91f590f75df0bd83aa18d6424b563101000000004250",
+      "before_instructions": 28486651,
+      "after_instructions": 28230795,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        60130,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        56014,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "71d0fec2d9e7f271db74aabbe0456d095e15da3b57c4b9f6d80642ffdcb4a8dd"
+    },
+    {
+      "case": "kzg-batch",
+      "algorithm": "production",
+      "input_sha256": "54a515e3f239cae56fe6a06b7867d0f460b944267e64f2078d4650a3cb373598",
+      "expected_output": "13b70f311b06eeba9739ecc67870fd2d2925ddb8216d2997278838310da6ae72424b563102000000004250",
+      "before_instructions": 40544466,
+      "after_instructions": 40280311,
+      "before_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        81960,
+        0,
+        0
+      ],
+      "after_curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        77844,
+        0,
+        0
+      ],
+      "native_and_independent_unicorn_agree": true,
+      "oracle_sha256": "3a72216ce144f09058cdce3b8615d578fd722aa3f190f60b7b27b83d94c9675d"
+    }
+  ],
+  "negative_cases": [
+    {
+      "case": "proof-bit",
+      "input_sha256": "3d1568768a709b73ff7450d2edc5c51889b1199acca172dd64c561a9585731f6",
+      "native_returncode": 1,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "blob-bit",
+      "input_sha256": "70f5e243fb409c5fc0806fd584fcd48ac562049138568c11875feafebf4e3815",
+      "native_returncode": 1,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "noncanonical-scalar",
+      "input_sha256": "2887a24f6f80f474ecc70438bd594dc1a0b5b33a80e1f099883bea9b430517aa",
+      "native_returncode": 1,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "duplicate-blob",
+      "input_sha256": "2777ca7cf02ef761a190eea1307cc79d8ca86b0f1ccb7fe4ebffef1037261cda",
+      "native_returncode": 1,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "truncated",
+      "input_sha256": "75f44bf40262551dc45bc18b1d44822cea75b8043d80dc31131365a07601609e",
+      "native_returncode": 1,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "zero-count",
+      "input_sha256": "5a2ce064fc6ca17297c35c7cb7e92dae0699a7a1f43be36ad341c793adcdc1e8",
+      "native_returncode": 1,
+      "rv64_status": "trap",
+      "verified_output": false
+    },
+    {
+      "case": "oversize-count",
+      "input_sha256": "c28a43bfc5830c07c622218f236378127b639a4d0f5c8a2611c1025b1a398646",
+      "native_returncode": 1,
+      "rv64_status": "trap",
+      "verified_output": false
+    }
+  ],
+  "limitations": [
+    "Roots were already shared across all blobs in a batch; saving occurs once per verification batch, not once per blob.",
+    "Additional read-only image bytes must be included in initial memory and ROM cost; no unchecked host constants.",
+    "Instruction reduction is not a full prover speedup."
+  ]
+}

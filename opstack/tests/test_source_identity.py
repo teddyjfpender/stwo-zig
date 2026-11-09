@@ -41,3 +41,15 @@ class SourceIdentity(unittest.TestCase):
             shared_core.write_text("runner dependency")
             with self.assertRaisesRegex(ValueError, "m31.zig"):
                 require_unchanged(baseline, compile_sources(root))
+
+    def test_embedded_binary_constants_are_compiler_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            constants = root / "opstack/kona/src/blob_roots/montgomery.bin"
+            constants.parent.mkdir(parents=True)
+            constants.write_bytes(bytes(32))
+            baseline = compile_sources(root)
+            self.assertEqual(baseline[str(constants.relative_to(root))]["bytes"], 32)
+            constants.write_bytes(bytes(31) + b"\x01")
+            with self.assertRaisesRegex(ValueError, "montgomery.bin"):
+                require_unchanged(baseline, compile_sources(root))

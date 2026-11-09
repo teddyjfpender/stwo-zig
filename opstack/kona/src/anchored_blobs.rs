@@ -7,7 +7,7 @@ use alloy_primitives::B256;
 use alloy_primitives::hex;
 use ark_bls12_381::{Fr, G1Affine, G1Projective};
 use ark_ec::{AdditiveGroup, AffineRepr, CurveGroup, VariableBaseMSM};
-use ark_ff::{BigInt, BigInteger, FftField, Field, PrimeField};
+use ark_ff::{BigInt, BigInteger, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use async_trait::async_trait;
 use kona_derive::{BlobProvider, PipelineError, PipelineErrorKind};
@@ -129,7 +129,7 @@ fn evaluation_point(sidecar: &BlobSidecar<'_>) -> Fr {
 
 fn verify_sidecar(sidecar: &BlobSidecar<'_>) -> bool {
     let z = evaluation_point(sidecar);
-    let Some(y) = evaluate_blob(sidecar.blob, z, &evaluation_roots()) else {
+    let Some(y) = evaluate_blob(sidecar.blob, z, evaluation_roots()) else {
         return false;
     };
     revm_precompile::kzg_point_evaluation::arkworks::verify_kzg_proof(
@@ -179,7 +179,7 @@ fn verify_sidecar_batch<'a>(mut sidecars: impl ExactSizeIterator<Item = BlobSide
             return false;
         };
         let z = evaluation_point(&sidecar);
-        let Some(y) = evaluate_blob(sidecar.blob, z, &roots) else {
+        let Some(y) = evaluate_blob(sidecar.blob, z, roots) else {
             return false;
         };
         transcript.update(sidecar.commitment);
@@ -218,13 +218,8 @@ fn verify_sidecar_batch<'a>(mut sidecars: impl ExactSizeIterator<Item = BlobSide
     )
 }
 
-fn evaluation_roots() -> Vec<Fr> {
-    let step = Fr::get_root_of_unity(FIELD_ELEMENTS as u64).expect("EIP-4844 domain");
-    let mut roots = alloc::vec![Fr::ONE; FIELD_ELEMENTS];
-    for i in 1..FIELD_ELEMENTS {
-        roots[i] = roots[i - 1] * step;
-    }
-    roots
+fn evaluation_roots() -> &'static [Fr; FIELD_ELEMENTS] {
+    &crate::blob_roots::ROOTS
 }
 
 fn evaluate_blob(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
@@ -373,8 +368,8 @@ pub fn evaluation_probe(input: &[u8]) -> Option<[u8; 43]> {
     blob.as_mut_slice().copy_from_slice(&input[37..]);
     let roots = evaluation_roots();
     let result = match input[4] {
-        0 => evaluate_blob_fraction(&blob, point, &roots),
-        1 => evaluate_blob(&blob, point, &roots),
+        0 => evaluate_blob_fraction(&blob, point, roots),
+        1 => evaluate_blob(&blob, point, roots),
         2 => {
             let mut values = Vec::with_capacity(FIELD_ELEMENTS);
             for bytes in blob.as_slice().chunks_exact(32) {
@@ -384,7 +379,7 @@ pub fn evaluation_probe(input: &[u8]) -> Option<[u8; 43]> {
                 }
                 values.push(value);
             }
-            evaluate_blob_folded(&mut values, point, &roots)
+            evaluate_blob_folded(&mut values, point, roots)
         }
         _ => None,
     }?;
@@ -591,11 +586,11 @@ mod tests {
     fn domain_hit_still_checks_every_scalar_for_canonical_encoding() {
         let mut blob = example_blob();
         assert_eq!(
-            evaluate_blob(&blob, Fr::ONE, &evaluation_roots()),
+            evaluate_blob(&blob, Fr::ONE, evaluation_roots()),
             Some(Fr::ONE)
         );
         blob.as_mut_slice()[32..64].copy_from_slice(&SCALAR_MODULUS);
-        assert_eq!(evaluate_blob(&blob, Fr::ONE, &evaluation_roots()), None);
+        assert_eq!(evaluate_blob(&blob, Fr::ONE, evaluation_roots()), None);
     }
 
     #[cfg(feature = "blob-eval-probe")]
@@ -655,8 +650,8 @@ mod tests {
                 roots[4095],
             ] {
                 assert_eq!(
-                    evaluate_blob(blob, point, &roots),
-                    evaluate_blob_fraction(blob, point, &roots)
+                    evaluate_blob(blob, point, roots),
+                    evaluate_blob_fraction(blob, point, roots)
                 );
                 let mut values: Vec<_> = blob
                     .as_slice()
@@ -664,8 +659,8 @@ mod tests {
                     .map(Fr::from_be_bytes_mod_order)
                     .collect();
                 assert_eq!(
-                    evaluate_blob_folded(&mut values, point, &roots),
-                    evaluate_blob_fraction(blob, point, &roots)
+                    evaluate_blob_folded(&mut values, point, roots),
+                    evaluate_blob_fraction(blob, point, roots)
                 );
             }
         }
@@ -674,13 +669,13 @@ mod tests {
         for i in [0usize, 1, 2, 3, 17, 255, 2048, 4094, 4095] {
             let index = i.reverse_bits() >> (usize::BITS - FIELD_ELEMENTS.ilog2());
             let expected = Fr::from_be_bytes_mod_order(&dense.as_slice()[32 * i..32 * (i + 1)]);
-            assert_eq!(evaluate_blob(&dense, roots[index], &roots), Some(expected));
+            assert_eq!(evaluate_blob(&dense, roots[index], roots), Some(expected));
         }
         for index in [0usize, 1, 2048, 4095] {
             let mut malformed = dense.clone();
             malformed.as_mut_slice()[32 * index..32 * (index + 1)].copy_from_slice(&SCALAR_MODULUS);
-            assert_eq!(evaluate_blob(&malformed, roots[0], &roots), None);
-            assert_eq!(evaluate_blob(&malformed, Fr::from(17), &roots), None);
+            assert_eq!(evaluate_blob(&malformed, roots[0], roots), None);
+            assert_eq!(evaluate_blob(&malformed, Fr::from(17), roots), None);
         }
     }
 }
