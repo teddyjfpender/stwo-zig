@@ -20,7 +20,7 @@ fn build(view: View, a: std.mem.Allocator, trace_only: bool) !C.PoseidonContext 
     defer scope.deinit();
     return view.build(a, trace_only);
 }
-const Hook = struct {
+pub const Hook = struct {
     pub fn run(backing: std.mem.Allocator, key: *const Native.Key, truth: R.Truth, expected: Manifest.Expected, pending: *const Manifest.Pending, encoded: *const Native.Encoded, capture: anytype) !void {
         const owner_budget = try engine.host_budget_allocator.SharedHostBudget.createRetainingParent(backing, 8 << 30);
         defer owner_budget.destroy();
@@ -47,6 +47,7 @@ const Hook = struct {
         rows[5] = try std.math.ceilPowerOfTwo(usize, @max(16, owner.native_mul_calls.items.len));
         cells += rows[5] * (Row.FIXED + Row.MAIN + Row.INTER);
         std.debug.print("OP_TRUTH_LOCAL_GKR_R6 kind={s} raw={any} native_omul={d} padded={any} cells={d}\n", .{ @tagName(truth), raw, owner.native_mul_calls.items.len, rows, cells });
+        try @import("../native_omul/source_physical.zig").maybe(a, @tagName(truth), view, &owner);
         const requested = std.posix.getenv("STWO_OP_TRUTH_LOCAL_GKR_R6_PHYSICAL") orelse return;
         if (!std.mem.eql(u8, requested, "1") and !std.mem.eql(u8, requested, @tagName(truth))) return;
         var source = try build(view, a, true);
