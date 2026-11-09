@@ -469,7 +469,7 @@
       "net_code_budget": 150,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Provider-only regression coverage for existing generic codec exports. Preserve exact field/family framing, all secure and digest coordinates, rejection before allocation, input immutability and independent ownership through every allocation-failure point. No algorithm, API ledger, version, golden byte, error tag or gate is changed. Rollback removes the new test owner and its mandatory import together."
+      "positive_growth_justification": "RFC #325 approves declaring the existing ForHasher/wireToProofFor exports at version 0.2.0 after provider tests. The +150 total test allowance includes the prior +132 candidate and bounded signature/CI-order checks. Preserve exact six-family framing, all coordinates, rejection before allocation, input immutability and independent ownership at every allocation-failure point. No production codec code, golden byte, error or protocol change. Rollback reverts this additive transaction as a whole before publication."
     },
     {
       "id": "delivery_cpu_fixture_entrypoint_routing",

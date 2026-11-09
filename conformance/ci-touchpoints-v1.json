@@ -551,6 +551,15 @@
           "test",
           "--build-file",
           "src/waist/proof_wire/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/waist/proof_wire/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
         ]

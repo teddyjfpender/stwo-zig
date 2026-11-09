@@ -153,6 +153,7 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
         self.assert_package_lane(
             path="src/waist/proof_wire/mod.zig",
             lane="proof_wire",
+            steps=("test", "test"),
             build_file="src/waist/proof_wire/build.zig",
             consumers={
                 "aggregate_cpu",
@@ -166,6 +167,8 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
                 "riscv_cpu",
             },
         )
+
+        self.assertEqual(["-Doptimize=Debug", "-Doptimize=ReleaseFast"], [command[-2] for command in self.policy["lanes"]["proof_wire"]["commands"]])
 
     def test_native_examples_has_an_independent_package_lane(self) -> None:
         self.assert_package_lane(

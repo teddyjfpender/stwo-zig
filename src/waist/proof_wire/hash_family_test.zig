@@ -60,6 +60,14 @@ fn Checks(comptime Secure: type, comptime H: type) type {
     };
 }
 
+test "api signature: explicit families preserve selected proof authority" {
+    inline for (.{ core.fields.qm31.QM31, core.fields.om31.OM31 }) |Secure| inline for (.{ Default, P1, P2 }) |H| {
+        const W = codec.ForHasher(Secure, H);
+        const decoded = @typeInfo(@typeInfo(@TypeOf(W.decodeProofBytesBinary)).@"fn".return_type.?).error_union.payload;
+        try std.testing.expect(W.Hasher == H and decoded == core.proof.ForField(Secure).StarkProof(H));
+    };
+}
+
 test "explicit hash families preserve framing coordinates and allocation ownership" {
     inline for (.{ core.fields.qm31.QM31, core.fields.om31.OM31 }, 0..) |Secure, field| {
         inline for (.{ Default, P1, P2 }, 0..) |H, family| {

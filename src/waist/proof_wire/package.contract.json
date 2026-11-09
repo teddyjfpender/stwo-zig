@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_proof_wire",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "layer": "interchange",
   "owner": "proof-wire",
   "public_modules": {
@@ -14,6 +14,7 @@
   "api_surface": [
     "CodecError",
     "ForField",
+    "ForHasher",
     "FriConfigWire",
     "FriLayerWire",
     "FriProofWire",
@@ -30,13 +31,18 @@
     "encodeProofBytesBinary",
     "encodeProofHexAlloc",
     "proofToWire",
-    "wireToProof"
+    "wireToProof",
+    "wireToProofFor"
   ],
   "api_contract": {
     "signature_tests": [
+      "hash_family_test.zig::api signature: explicit families preserve selected proof authority",
       "mod.zig::api signature: proof wire codecs preserve owned byte and proof results"
     ],
     "invariant_tests": [
+      "hash_family_test.zig::Poseidon wire rejects every noncanonical digest word before allocation without mutating input",
+      "hash_family_test.zig::caller selected hash reconstruction owns bytes and does not authenticate algorithm choice",
+      "hash_family_test.zig::explicit hash families preserve framing coordinates and allocation ownership",
       "mod.zig::proof wire binary decoder rejects truncation and wrong versions"
     ]
   },

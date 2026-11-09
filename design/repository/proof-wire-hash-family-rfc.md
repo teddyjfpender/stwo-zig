@@ -1,6 +1,7 @@
-# Draft RFC: explicit hash-family proof-wire contract
+# Approved RFC: explicit hash-family proof-wire contract
 
-Status: draft; no issue, invariant-owner approval or contract edit is recorded.
+Status: approved in [RFC #325](https://github.com/teddyjfpender/stwo-zig/issues/325).
+Owner decision: [approved, recorded by delegate](https://github.com/teddyjfpender/stwo-zig/issues/325#issuecomment-6739260920).
 Owner: `proof-wire`. Scope: the existing `stwo_proof_wire` package only.
 
 ## Problem and decision requested
@@ -121,10 +122,11 @@ Before publication the transaction can be reverted as a whole. After releasing
 process. A failing contract test blocks the declaration; it must not be resolved
 by weakening a decoder, count bound, input canonicality check or test floor.
 
-## Required approval record
+## Recorded approval and implementation
 
-[Engineering Standards section 6 and WW-4](../../ENGINEERING_STANDARDS.md)
-require an approved RFC for an API-ledger change. The repository owner must
-approve this proposal and authorize opening the RFC issue and recording that
-decision before the ledger transaction. This local draft supplies no approval
-and no release authorization by itself.
+The repository owner approved this exact transaction and opening its RFC on
+2026-11-09. The signature case precedes the ledger edit; all three candidate
+invariant cases are registered. The package/manifest/guide now declare version
+0.2.0. The hosted provider lane executes Debug then ReleaseFast, retaining its
+original command. Fresh hosted acceptance remains pending; earlier candidate
+provider-fixture execution is not full product proof qualification.

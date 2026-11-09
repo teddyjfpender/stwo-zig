@@ -7,7 +7,7 @@ verification policy.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `interchange` |
 | Owner | `proof-wire` |
 | Public Zig module | `stwo_proof_wire` |
@@ -61,19 +61,39 @@ defer decoded.deinit(allocator);
 
 | Area | Exports |
 | :--- | :--- |
-| Explicit field selection | `ForField` (QM31 or OM31) |
+| Explicit field/family selection | `ForField` (QM31 or OM31), `ForHasher` |
 | Concrete proof identity | `Hasher`, `Proof` |
 | Wire shape | `ProofWire`, `PcsConfigWire`, `FriConfigWire`, `FriProofWire`, `FriLayerWire`, `MerkleDecommitmentWire` |
 | Scalar encodings | `HashWire`, `Qm31Wire` |
 | JSON codec | `encodeProofBytes`, `encodeProofHexAlloc`, `decodeProofBytes` |
 | Binary codec | `encodeProofBytesBinary`, `decodeProofBytesBinary` |
-| Shape conversion | `proofToWire`, `wireToProof` |
+| Shape conversion | `proofToWire`, `wireToProof`, `wireToProofFor` |
 | Errors | `CodecError` |
 
 All decode functions return an independently owned `Proof`. The caller must
 deinitialize it with the same allocator. `ProofWire` contains borrowed or
 allocator-owned slices according to how it was constructed; prefer the
 high-level byte codecs unless direct shape access is required.
+
+`ForHasher(Secure, HashFamily)` qualifies QM31 and OM31 with the existing
+lifted prefixed Blake2s, Poseidon2 M31 v1 and Poseidon2 M31 v2 families.
+Other thirty-two-byte representations have no qualification from these tests.
+
+| Family | QM31 binary header | OM31 binary header |
+| --- | --- | --- |
+| Default lifted Blake2s | `STWOPRW1` | `STWOPRW8` |
+| Poseidon2 M31 v1 | `STP2QW01` | `STP2OW01` |
+| Poseidon2 M31 v2 | `STP2QW02` | `STP2OW02` |
+
+Existing JSON envelopes and protocol strings remain exact; default QM31 JSON
+remains unenveloped. `wireToProofFor(TargetHasher, allocator, wire)` reconstructs
+an independently owned proof when the target hash representation matches.
+The caller derives that target from trusted verifier policy: representation
+compatibility does not authenticate an algorithm. Inputs remain borrowed and
+immutable, partial allocations are released on failure, and successful proof
+ownership ends with `deinit(allocator)`. Allocation failure permits a retry with
+resources; malformed/noncanonical input needs correction. Existing error tags
+and rejection meanings remain unchanged.
 
 ## Dependencies
 
@@ -103,6 +123,9 @@ verify commands, which include statement and policy checks absent here.
 ## Contract and invariants
 
 - API signature: byte codecs preserve owned byte/proof result contracts.
+- Explicit-family signatures pin selected proof types for all six combinations.
+- Family framing, all coordinates, immutable inputs and every allocation-failure
+  point are exercised by provider tests in Debug and ReleaseFast.
 - Behavioral invariant: the binary decoder rejects every truncation and wrong
   version exercised by the corpus.
 
@@ -125,3 +148,6 @@ behavior. Do not silently reinterpret a prior binary version.
 - [Repository artifact and CLI overview](../../../README.md)
 - [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 - [Package release policy](../../../design/repository/zig-package-release-policy.md)
+
+Approved contract transaction: [RFC #325](https://github.com/teddyjfpender/stwo-zig/issues/325).
+No production codec implementation, proof bytes or protocol revisions changed.
