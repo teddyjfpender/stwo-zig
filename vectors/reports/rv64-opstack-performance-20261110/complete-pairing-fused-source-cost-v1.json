@@ -1,0 +1,278 @@
+{
+  "schema": "op-pairing-fused-source-cost-v1",
+  "production_admission": false,
+  "security_qualified": false,
+  "actual_request": "d64d0a0412c2b038b8ea1d9e7b671daa1193470fbe4505c892152a5659466e14",
+  "checks": {
+    "all256homogeneous_double_steps": true,
+    "all92homogeneous_add_steps": true,
+    "all780affine_subgroup_steps": true,
+    "all_original_point_outputs_and_line_coefficients_exact": true,
+    "dense_carry_reference_exact": true,
+    "sparse_basis_and_mixed_cases": 89,
+    "all_canonical_writer_inverse_slope_mutations_reject": true
+  },
+  "homogeneous_double": {
+    "coordinate_congruences": 24,
+    "max_input_fq_slots": 6,
+    "coefficient_mass": [
+      6,
+      6,
+      1,
+      2
+    ],
+    "geometry": {
+      "q_bytes": 33,
+      "groups": 65,
+      "carries": 64,
+      "carry_bits": 17,
+      "carry_bytes": 3,
+      "carry_offset": 67424,
+      "residual_positive": 29809248,
+      "residual_negative": 29809756
+    },
+    "main": 498,
+    "byte_queries": 353,
+    "arithmetic_cells_at_40_inter": 12912,
+    "qualification": "source model only; source SSA/range/binding/branch selectors and actual padding not implemented"
+  },
+  "homogeneous_add": {
+    "coordinate_congruences": 22,
+    "max_input_fq_slots": 10,
+    "coefficient_mass": [
+      6,
+      6,
+      1,
+      1
+    ],
+    "geometry": {
+      "q_bytes": 33,
+      "groups": 65,
+      "carries": 64,
+      "carry_bits": 17,
+      "carry_bytes": 3,
+      "carry_offset": 67424,
+      "residual_positive": 29809262,
+      "residual_negative": 29809501
+    },
+    "main": 626,
+    "byte_queries": 353,
+    "arithmetic_cells_at_40_inter": 14652,
+    "qualification": "source model only; source SSA/range/binding/branch selectors and actual padding not implemented"
+  },
+  "subgroup_affine_step": {
+    "coordinate_congruences": 8,
+    "max_input_fq_slots": 7,
+    "coefficient_mass": [
+      5,
+      6,
+      1,
+      3
+    ],
+    "geometry": {
+      "q_bytes": 33,
+      "groups": 65,
+      "carries": 64,
+      "carry_bits": 17,
+      "carry_bytes": 3,
+      "carry_offset": 71504,
+      "residual_positive": 28768882,
+      "residual_negative": 28769611
+    },
+    "main": 530,
+    "byte_queries": 353,
+    "arithmetic_cells_at_40_inter": 4560,
+    "qualification": "source model only; source SSA/range/binding/branch selectors and actual padding not implemented"
+  },
+  "direct_sparse034": {
+    "coordinate_congruences": 12,
+    "max_input_fq_slots": 12,
+    "coefficient_mass": [
+      40,
+      23,
+      0,
+      1
+    ],
+    "geometry": {
+      "q_bytes": 34,
+      "groups": 65,
+      "carries": 64,
+      "carry_bits": 19,
+      "carry_bytes": 3,
+      "carry_offset": 194681,
+      "residual_positive": 133399980,
+      "residual_negative": 133395862
+    },
+    "main": 691,
+    "byte_queries": 354,
+    "arithmetic_cells_at_40_inter": 8772,
+    "qualification": "source model only; source SSA/range/binding/branch selectors and actual padding not implemented"
+  },
+  "sparse_cells": {
+    "current32row_with_frontier": 14772,
+    "candidate12direct_rows_plus4scaled_coeff_rows_plus20frontier": 11584,
+    "scale_row_bound": 418,
+    "scope": "conditional source-shape estimate; no provider or AIR admission"
+  },
+  "heavy_active_cost": {
+    "calls": 84,
+    "pairs": 336,
+    "source_validated_g2_cache_entries": 87,
+    "original_homogeneous_preparation_arithmetic_cells": 101212668,
+    "subgroup_arithmetic_cells": 77360400,
+    "seeded_miller_dense_tail_sparse_cells": 421668576,
+    "subtotal": 600241644,
+    "excluded": [
+      "canonical public-input and hint frontiers",
+      "G1/G2 curve checks and psi terminal4coords",
+      "branch/infinity/unsupported denominator selectors",
+      "point-cache proof closure across worker shards",
+      "actual role padding and all fixed cells",
+      "remaining CPU retirements",
+      "GKR facts/memory",
+      "recursion openings/graph and whole wall time"
+    ]
+  },
+  "source_pin": {
+    "opstack/kona/vendor/ark-bn254/src/curves/mod.rs": "274aeb949f0a8660e5dbbbba3f23172ebcdd38805acb9408f21de27de439d4a1",
+    "opstack/kona/src/precompiles/pairing_miller.rs": "ae8474495815b1d97d9002307ac82b3f13dc778613bab44e55629d726fe2b838",
+    "opstack/kona/src/precompiles/pairing_residue.rs": "b716a44bef56b18f1c791663ddf900af6b7540cde6e7bb3e691e0765a1844faa",
+    "opstack/kona/src/precompiles/pairing.rs": "385ae7b04cd855e6f5a587a7270a0a570fd5f903fdf61f25a14cbd849d86f004",
+    "opstack/kona/src/precompiles/pairing_hint_stream.rs": "590c5429601aedeb30d45941455bb5126ac318ec5ceaa9e761ee1d41f39edf64",
+    "opstack/kona/vendor/ark-bn254/src/curves/g2.rs": "d8423e33bc3aafb2511769ed946450d4d7454357908ba6de9a64fba48586fc02",
+    "opstack/kona/vendor/ark-bn254/src/fields/fq6.rs": "e41425906891a632b132bda0a635d241de03a30849e38aa0e75c603fc6b4c549",
+    "opstack/kona/vendor/ark-bn254/src/fields/fq12.rs": "16e5643f3fcfabe2c1c8b6478f4e8c341d1eba1ca8bc4eb3f2413a9cf7f61cbd"
+  },
+  "carry_source_sha256": "2878110afca1e76bae9291f073ea56703ac9c8cd5ccd03a98bcbed904c23c410",
+  "eight_call_private_cache_model": {
+    "batches": [
+      {
+        "first_call": 0,
+        "calls": 8,
+        "private_validated_g2_points": 11,
+        "padded_arithmetic_cells": 113922048
+      },
+      {
+        "first_call": 8,
+        "calls": 8,
+        "private_validated_g2_points": 11,
+        "padded_arithmetic_cells": 113922048
+      },
+      {
+        "first_call": 16,
+        "calls": 8,
+        "private_validated_g2_points": 11,
+        "padded_arithmetic_cells": 113922048
+      },
+      {
+        "first_call": 24,
+        "calls": 8,
+        "private_validated_g2_points": 11,
+        "padded_arithmetic_cells": 113922048
+      },
+      {
+        "first_call": 32,
+        "calls": 8,
+        "private_validated_g2_points": 11,
+        "padded_arithmetic_cells": 113922048
+      },
+      {
+        "first_call": 40,
+        "calls": 8,
+        "private_validated_g2_points": 11,
+        "padded_arithmetic_cells": 113922048
+      },
+      {
+        "first_call": 48,
+        "calls": 8,
+        "private_validated_g2_points": 11,
+        "padded_arithmetic_cells": 113922048
+      },
+      {
+        "first_call": 56,
+        "calls": 8,
+        "private_validated_g2_points": 11,
+        "padded_arithmetic_cells": 113922048
+      },
+      {
+        "first_call": 64,
+        "calls": 8,
+        "private_validated_g2_points": 11,
+        "padded_arithmetic_cells": 113922048
+      },
+      {
+        "first_call": 72,
+        "calls": 8,
+        "private_validated_g2_points": 11,
+        "padded_arithmetic_cells": 113922048
+      },
+      {
+        "first_call": 80,
+        "calls": 4,
+        "private_validated_g2_points": 7,
+        "padded_arithmetic_cells": 63809536
+      }
+    ],
+    "role_totals": {
+      "point_double": {
+        "active_rows": 179712,
+        "padded_arithmetic_cells": 185106432,
+        "log_histogram": {
+          "15": 10,
+          "14": 1
+        }
+      },
+      "point_add": {
+        "active_rows": 59202,
+        "padded_arithmetic_cells": 57286656,
+        "log_histogram": {
+          "13": 10,
+          "12": 1
+        }
+      },
+      "subgroup": {
+        "active_rows": 182520,
+        "padded_arithmetic_cells": 196116480,
+        "log_histogram": {
+          "15": 10,
+          "14": 1
+        }
+      },
+      "sparse": {
+        "active_rows": 350784,
+        "padded_arithmetic_cells": 503021568,
+        "log_histogram": {
+          "16": 10,
+          "15": 1
+        }
+      },
+      "dense_square": {
+        "active_rows": 64512,
+        "padded_arithmetic_cells": 62877696,
+        "log_histogram": {
+          "13": 10,
+          "12": 1
+        }
+      },
+      "dense_multiply": {
+        "active_rows": 26208,
+        "padded_arithmetic_cells": 47953920,
+        "log_histogram": {
+          "12": 10,
+          "11": 1
+        }
+      },
+      "line_scaling": {
+        "active_rows": 116928,
+        "padded_arithmetic_cells": 150667264,
+        "log_histogram": {
+          "15": 11
+        }
+      }
+    },
+    "total_private_g2_validations": 117,
+    "padded_arithmetic_cells": 1203030016,
+    "largest_source_checkpoint_fact_bytes_52": 1799356416,
+    "scope": "conditional role padding / inherited range model, NOT a whole-worker memory budget; excludes frontiers/fixed/branches/global closure and recursion"
+  }
+}
