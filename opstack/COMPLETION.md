@@ -40,8 +40,8 @@ replacing the qualified execution controls above. Its records are in
 | Service-local GKR | Actual Kona120794432 completes native suite3 and a 683,432-byte R6 root, with separate source-only acceptance and policy/output refusal; explicit suite3 additionally closes a complete synthetic CPU + Miller native bundle, two recursive leaves and one fold, with physical adversaries | Actual full-height Miller and heavy resource-derived physical sharding. The small Kona block has zero Miller calls; the synthetic fixture is not a Kona block or a heavy performance result |
 | Bounded truth planning | Source-derived checkpoint/whole-worker estimator refuses heavy log18 Keccak and admits log16/4,518-permutation shards under the declared 8 GiB worker limit | Resource-derived shard-plan integration is present; physical heavy qualification remains open. Estimates are requested bytes, not measured RSS |
 | Retained source custody | Small native bundle remains byte-identical with CPU advice parking and post-seal LS/SHIFT auxiliary retirement; witness-free ledger reproduces capture and event payloads exactly | Model excludes scratch/mappings; 27.46 GB CPU seal payload is not whole-worker admission or measured RSS |
-| Narrow sponge research | Five serialized roles preserve complete RAM14/IO11/OWNER19 tuples at degree3; standalone native PCS + local GKR freshly verify with independent source authority. Role opening width is 467, excluding shared providers; cells/facts increase | Detached CPU frontier, complete native and recursive integration; suite sponge admission remains closed |
-| Native recursive dot product | Seven-role physical R7 PCS freshly verifies with joint Var/range closure and scalar/SIMD/storage parity; live DEEP source lowering preserves legacy refusal | Actual CPU-leaf and recursive/root integration. Padding must improve before admission; modeled heavy cell reductions are not measured block speedups |
+| Detached sponge and CPU frontier | Four-worker physical native fixture closes two CPU shards, detached sponge and Keccak truth under one manifest, with independently rebuilt keys and canonical direct/sponge call IDs. Typed CPU frontier also has a physical recursive leaf and fresh source verification | Complete execution inventory, recursive root and independent receiver admission; suite sponge admission remains closed. These are short fixtures, not block speedups |
+| Native recursive dot product | Eight-role R7 CPU leaf for actual Kona120794432: 217,378,816 cells versus R6 264,302,592 (17.75% fewer), 681,484-byte physical proof, fresh independent source/key acceptance; recursive statement and source-owned pending parents also qualified | Complete execution root with native coverage, adjacency, global and terminal admission. The 17.907s leaf qualification is not a complete-root or controlled speedup result |
 | Immutable outer Miller setup | Bounded producer and independent verifier caches reproduce/accept the same physical root with cached and forced-fallback keys; class barrier, request binding, adversarial checks and zero final heap | Repeated-class complete-execution performance; no process-global cache or unbudgeted retention |
 | Complete heavy performance | Matched D2 native + M6 root baseline 3,328.446 seconds | At most 332.845 seconds for the same heavy block, through a complete recursive root; **not achieved** |
 
@@ -79,6 +79,34 @@ seconds of cold source construction and27.057 milliseconds of root verification,
 with zero final heap/external retention. Dropping the independent suite policy
 or changing the externally expected output rejects. These are qualification
 runs during concurrent engineering, not a controlled speed comparison.
+
+## Latest bounded qualifications
+
+The current eight-role R7 heavy source model uses321,908,736 cells versus
+415,756,288 for each of two retained source classes (22.57% fewer). This
+supersedes the historical seven-role projection: it includes the genuine QM31
+input producer required for physical source closure. No heavy proof was rerun.
+See the [current source model](../vectors/reports/rv64-opstack-cpu-20261109/native-dot/heavy-class-source-v2.json)
+and [actual small leaf](../vectors/reports/rv64-opstack-cpu-20261109/native-dot/actual-small-cpu-physical-v2.json).
+Pending recursive parents prove their independently admitted children, but do
+not yet establish complete execution inventory or anchored OP validity.
+
+The default-off producer Miller setup cache is now integrated through an
+explicit proving-capability barrier. Cached and forced-fallback runs reproduce
+the same complete693,812-byte CPU+Miller fixture root, all recursive nodes and
+sidecars. A separate source-only receiver accepts with physical native proof
+bytes absent and rejects the retained adversarial cases. This fixture contains
+only one Miller leaf, so it establishes ownership and parity, not amortized
+setup savings. See [producer cache qualification](../vectors/reports/rv64-opstack-performance-20261109/miller-local-gkr/producer-cache-root-v1.json).
+
+Authenticated capture of a new recent transition159321793→159321794 is in
+progress. Header, transaction and receipt roots, account/storage proofs and
+code hashes are independently checked before reuse. Bounded native host runs
+have reached target execution, but have not produced a complete accepted
+witness. This does not replace the missing historical input or establish a
+physical derivation proof. All79 OP Python tests pass on the integrated tree;
+shared circuit builder R1/R5 ReleaseSafe parity targets also pass. Broader CI
+qualification remains separate.
 
 ## Working rules
 
