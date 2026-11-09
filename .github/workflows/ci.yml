@@ -298,12 +298,15 @@ jobs:
                   return [str(binary), 'verify', '--proof', str(path), '--request', str(out / 'request.json')]
               def coded(code):
                   return ('{"schema":"circuit_decode_rejection_v1","provider":"stwo_circuit_recursion_wire","origin":"circuit_serialize.deserializeProof","code":' + str(code) + ',"class":"invalid_input"}\n').encode()
+              import struct
+              request_words = body["request"]["preprocessed_root"] + body["request"]["output_digest"]
+              output_words = struct.unpack("<8I", hashlib.blake2s(struct.pack("<16I", *request_words)).digest())
               cases = [
-                  ('success', verify(proof_path), 0, ('accepted: output digest ' + ''.join(f'{word:08x}' for word in body['request']['output_digest']) + '\n').encode(), b''),
+                  ('success', verify(proof_path), 0, ('accepted: output digest ' + ''.join(f'{word:08x}' for word in output_words) + '\n').encode(), b''),
                   ('empty', verify(out / 'empty.bin'), 3, b'rejected at deserialize: NotEnoughData\n', coded(20481)),
                   ('noncanonical', verify(out / 'noncanonical.bin'), 3, b'rejected at deserialize: ValueOutOfRange\n', coded(20482)),
                   ('usage', [str(binary), '--bad'], 2, b'', b'error: UnknownCommand\n' + usage),
-                  ('missing-input', [str(binary), 'verify', '--proof', str(proof_path), '--request', str(out / 'missing.json')], 1, b'', b'error: FileNotFound\n'),
+                  ('missing-input', [str(binary), 'verify', '--proof', str(proof_path), '--request', str(out / 'missing.json')], 1, b'', (f'error: cannot read {out / "missing.json"}: FileNotFound\nerror: FileNotFound\n').encode()),
               ]
               for name, command, expected_exit, expected_stdout, expected_stderr in cases:
                   timed_out = False

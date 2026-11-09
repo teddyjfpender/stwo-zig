@@ -35,7 +35,7 @@ class CiTests(unittest.TestCase):
         usage_source = (ROOT / "src/products/cairo/recursion/cpu/cli.zig").read_text()
         usage = "\n".join(line.lstrip()[2:] for line in usage_source.split("pub const usage =\n", 1)[1].split("\n;", 1)[0].splitlines()).encode()
         outputs = {
-            "success": (0, ("accepted: output digest " + "".join(f"{word:08x}" for word in fixture["request"]["output_digest"]) + "\n").encode(), b""),
+            "success": (0, b"accepted: output digest c196ecb3c253ca01b483b6ac9c725aa83555423ea253ec7af8a5a05bb43cb836\n", b""),
             "empty": (3, b"rejected at deserialize: NotEnoughData\n", b'{"schema":"circuit_decode_rejection_v1","provider":"stwo_circuit_recursion_wire","origin":"circuit_serialize.deserializeProof","code":20481,"class":"invalid_input"}\n'),
             "noncanonical": (3, b"rejected at deserialize: ValueOutOfRange\n", b'{"schema":"circuit_decode_rejection_v1","provider":"stwo_circuit_recursion_wire","origin":"circuit_serialize.deserializeProof","code":20482,"class":"invalid_input"}\n'),
             "usage": (2, b"", b"error: UnknownCommand\n" + usage),
@@ -43,7 +43,7 @@ class CiTests(unittest.TestCase):
         }
         binary = ROOT / "zig-out/bin/stwo-circuit-recursion-cpu"
         read_bytes = Path.read_bytes
-        for fault in (None, "wrong-code", "wrong-exit", "leaked-receipt", "timeout"):
+        for fault in (None, "wrong-code", "wrong-exit", "leaked-receipt", "timeout", "claimed-digest", "missing-read-diagnostic"):
             with self.subTest(fault=fault), tempfile.TemporaryDirectory() as temp:
                 calls = []
                 def run(command, **kwargs):
@@ -52,6 +52,10 @@ class CiTests(unittest.TestCase):
                     name = list(outputs)[len(calls)]
                     calls.append(command)
                     exit_code, stdout, stderr = outputs[name]
+                    if name == "success" and fault == "claimed-digest":
+                        stdout = ("accepted: output digest " + "".join(f"{word:08x}" for word in fixture["request"]["output_digest"]) + "\n").encode()
+                    if name == "missing-input" and fault != "missing-read-diagnostic":
+                        stderr = (f"error: cannot read {command[-1]}: FileNotFound\n").encode() + stderr
                     if name == "empty" and fault == "wrong-code":
                         stderr = outputs["noncanonical"][2]
                     if name == "empty" and fault == "wrong-exit":
