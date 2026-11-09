@@ -1,0 +1,20 @@
+{
+  "format": "concatenate supplemental gzip tar LFS parts in manifest order; prior refs retained",
+  "source_snapshot_commit": "27c6e93880c3a04e03cd54c926914faaca2e4ff5",
+  "parts": [
+    {
+      "name": "delivery-evidence.tar.gz.part000",
+      "bytes": 33554432,
+      "sha256": "5c740fa47bd9bbf802bd1455cfb34502b6cbd7d7daafc65a78a5ac1d1bd0b793"
+    },
+    {
+      "name": "delivery-evidence.tar.gz.part001",
+      "bytes": 22162626,
+      "sha256": "0df38f209b52ad31bcf1148410846cf19c22715272faf03394854610ab47ff55"
+    }
+  ],
+  "checkpoints": [
+    "27c6e93880c3-cm31-20261109T100645Z"
+  ],
+  "classification": "Exact-main and restored-inline current source fail the same frozen first-circle-fold digest only in ReleaseFast under Zig 0.15.2 hosted Linux. Debug/ReleaseSafe and current noinline pass. Standalone exact pair and local full-loop reduction pass: these are controls, not a minimized failing repro. Scalar canonical bounds rule out required machine wrapping in the audited path; upstream invalid data, other undefined behavior and compiler defects remain under investigation. All binaries, IR, source snapshots and rejected invocations retained. ReleaseFast proofs suspect; no GPU, timing or full-proof qualification."
+}
