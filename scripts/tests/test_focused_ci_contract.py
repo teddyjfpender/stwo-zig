@@ -11,7 +11,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from scripts.repo import ci_scope_plan, ci_scope_push, ci_scope_run
+from scripts.repo import ci_scope_plan, ci_scope_push, ci_scope_run, zig_serial_build
 from scripts.tests.focused_ci_fixtures import catalog_fixture, product
 
 
@@ -481,6 +481,28 @@ def runner_policy(commands: list[list[str]], host: str | None = None) -> dict[st
 
 
 class RunnerReceiptTests(unittest.TestCase):
+    def test_local_build_preserves_limits_and_runtime_args_while_serializing(self) -> None:
+        for jobs in (["-j2"], ["-j", "2"], ["-j"]):
+            command = [
+                "zig", "build", *jobs, "test", "-Doptimize=ReleaseFast",
+                "--maxrss", "4294967296", "--", "-j8",
+            ]
+            original = list(command)
+            local = ci_scope_run.local_build_command(command)
+            with mock.patch.object(zig_serial_build, "default_maxrss", return_value=1024):
+                _, rss, count, _, forwarded = zig_serial_build.parse(local[2:])
+            self.assertEqual((4294967296, 1), (rss, count))
+            self.assertEqual(["test", "-Doptimize=ReleaseFast", "--", "-j8"], forwarded)
+            self.assertEqual(original, command)
+        self.assertEqual(["tool"], ci_scope_run.local_build_command(["tool"]))
+
+    def test_local_build_keeps_invalid_job_counts_rejected(self) -> None:
+        for jobs in (["-j0"], ["-j", "0"]):
+            local = ci_scope_run.local_build_command(["zig", "build", *jobs, "test"])
+            with mock.patch.object(zig_serial_build, "default_maxrss", return_value=1024):
+                with self.assertRaises(ValueError):
+                    zig_serial_build.parse(local[2:])
+
     def fake_run(
         self,
         command_results: list[tuple[int, bytes, bytes]],
@@ -706,7 +728,7 @@ class RunnerReceiptTests(unittest.TestCase):
                 )
 
     def test_macos_can_run_linux_compatible_lane_only_when_explicit(self) -> None:
-        policy = runner_policy([["tool"]], host="linux")
+        policy = runner_policy([["zig", "build", "test", "-Doptimize=ReleaseFast", "-j2"]], host="linux")
         captured: list[tuple[list[str], dict[str, object]]] = []
         with tempfile.TemporaryDirectory() as raw:
             with (
@@ -739,6 +761,10 @@ class RunnerReceiptTests(unittest.TestCase):
                 )
         self.assertEqual("macos", receipt["host"])
         self.assertEqual("linux", receipt["required_host"])
+        self.assertEqual(
+            [sys.executable, "scripts/repo/zig_serial_build.py", "-j1", "test", "-Doptimize=ReleaseFast"],
+            captured[0][0],
+        )
 
 
 if __name__ == "__main__":

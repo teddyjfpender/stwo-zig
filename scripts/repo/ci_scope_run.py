@@ -36,6 +36,33 @@ def expand(command: list[str], output_dir: Path, commit: str) -> list[str]:
     return expanded
 
 
+def local_build_command(command: list[str]) -> list[str]:
+    """Use the serial build-lock owner locally without changing the CI recipe."""
+    if command[:2] != ["zig", "build"]:
+        return command
+    result = [sys.executable, "scripts/repo/zig_serial_build.py", "-j1"]
+    index = 2
+    while index < len(command):
+        argument = command[index]
+        if argument == "--":
+            result.extend(command[index:])
+            break
+        if argument == "-j":
+            if index + 1 < len(command) and command[index + 1].isdigit():
+                if int(command[index + 1]) > 0:
+                    index += 2
+                    continue
+            else:
+                index += 1
+                continue
+        if argument.startswith("-j") and argument[2:].isdigit() and int(argument[2:]) > 0:
+            index += 1
+            continue
+        result.append(argument)
+        index += 1
+    return result
+
+
 def run_lane(
     *, root: Path, policy: dict[str, Any], lane: str, output: Path,
     cache_mode: str, cache_root: Path | None, local_compatible: bool = False,
@@ -98,6 +125,8 @@ def run_lane(
     try:
         for ordinal, raw in enumerate(spec["commands"]):
             argv = expand(raw, output_dir, commit)
+            if local_compatible:
+                argv = local_build_command(argv)
             command_started = time.monotonic_ns()
             result = subprocess.run(
                 argv, cwd=root, env=environment, check=False, capture_output=True,
@@ -153,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cache-root", type=Path)
     parser.add_argument(
         "--local-compatible", action="store_true",
-        help="permit Linux product lanes on a macOS development host",
+        help="permit Linux lanes on macOS and serialize local Zig builds",
     )
     args = parser.parse_args(argv)
     try:

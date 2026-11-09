@@ -968,6 +968,25 @@
     },
     {
       "prefixes": [
+        "src/products/native/cpu"
+      ],
+      "lanes": [
+        "native_cpu"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/products/native/cpu/capabilities.zig"
+      ],
+      "lanes": [
+        "native_cpu",
+        "native_metal",
+        "aggregate_cpu",
+        "aggregate_metal"
+      ]
+    },
+    {
+      "prefixes": [
         "build_support/products/riscv_cpu.zig",
         "build_support/products/riscv_refinement.zig",
         "build_support/products/riscv_sail_oracle_tests.zig"
