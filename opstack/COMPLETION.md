@@ -42,7 +42,7 @@ replacing the qualified execution controls above. Its records are in
 | Retained source custody | Small native bundle remains byte-identical with CPU advice parking and post-seal LS/SHIFT auxiliary retirement; witness-free ledger reproduces capture and event payloads exactly | Model excludes scratch/mappings; 27.46 GB CPU seal payload is not whole-worker admission or measured RSS |
 | Detached sponge and CPU frontier | Actual selected796k guest and alternate1.317M guest complete fresh native proof production and independent receivers, with global closure and all typed callbacks. Selected guest includes CPU, detached sponge, local Keccak and classic SHA | Production source-suite admission remains closed; representative heavy/resource and broader regression qualification still required |
 | Native recursive dot product | Complete actual Kona120794432 R7 root,680,116bytes, fresh source-only receiver and full execution/terminal/global admission; CPU217,378,816cells versus R6 264,302,592 | All-fresh and matched timing;164.625s incremental qualification reuses one verified CPU leaf and uses classic truths, so it is not comparable to the local-GKR R6 control |
-| Direct native groups | COMPLETE selected small OP execution:750,068B root, four native members in one group, no intermediate wraps/folds; fresh source-only receiver with native file absent; eight physical/debt/metadata attacks reject;93.373s node prove/persist/check | Actual multi-group fold runtime gate, resource-derived heavy group sizing and controlled performance. Existing proof paths/defaults remain unchanged |
+| Direct native groups | Selected small execution closes four native members in one group; R6 and R7 final-only B2 proofs and two-group/one-fold roots freshly verify without native proof files | Resource-derived heavy group sizing and controlled performance. Larger groups trade peak memory against additional folds; existing defaults remain unchanged |
 | Immutable outer Miller setup | Bounded producer and independent verifier caches reproduce/accept the same physical root with cached and forced-fallback keys; class barrier, request binding, adversarial checks and zero final heap | Repeated-class complete-execution performance; no process-global cache or unbudgeted retention |
 | Complete heavy performance | Matched D2 native + M6 root baseline 3,328.446 seconds | At most 332.845 seconds for the same heavy block, through a complete recursive root; **not achieved** |
 
@@ -120,8 +120,8 @@ No heavy proving was rerun. See the [physical group receipt](../vectors/reports/
 The detached source inventory now owns its exact lookup/GKR/PCS/global security
 ledger; source-derived preflight runs before wide keys and exact checks remain
 mandatory afterwards. The security label remains a target under documented
-assumptions, not certification. The complete detached native runtime gate is
-in progress; source-suite admission remains closed.
+assumptions, not certification. The complete selected-small detached native runtime gate passes;
+production source-suite admission remains closed.
 
 ## Working rules
 
@@ -187,20 +187,68 @@ case or call an execution-only proof an OP validity proof.
 
 ## Complete grouped small execution
 
-The selected796,406-instruction Kona execution now closes CPU/frontier,
-detached sponge, local Keccak and classic SHA through ONE physical proof.
-All native proofs/global claims and independently pinned terminal43bytes pass
-before root publication. Source-only reception with `detached-op.bin` absent
-accepts, and eight retained physical/root/metadata/balanced-debt attacks reject.
-Prove/persist/check93.373s; root producer121.133s includes cold source and native
-re-verification, while original native production is additional. A separate CLI
-receiver takes22.609s deriving source keys and30.151ms reading/verifying the root.
-Requested peak18.885GB under32GiB, with zero final heap/external custody.
-No matched quiet speed ratio or heavy-block gain is claimed.
+The selected 796,406-instruction Kona execution closes CPU/frontier, detached
+sponge, local Keccak and classic SHA through one physical root. Native bundle
+identity is unchanged across these terminal experiments. Source-only reception
+with `detached-op.bin` absent accepts; physical corruption, source/output,
+coverage/order and balanced-debt attacks reject. Original native production is
+additional to every row below.
 
-The exact model is830,730,240cells. A joint eight-role R7 direct-group SOURCE
-experiment uses643,035,136cells with the SAME canonical public root; its physical
-proof is not yet established. The existing final-only b2/q144 profile is being
-qualified separately, with native b4 profiles unchanged. See the
-[grouped block receipt](../vectors/reports/rv64-opstack-cpu-20261109/direct-native-group-actual-small-v1.json)
-and [R7 source model](../vectors/reports/rv64-opstack-performance-20261109/native-dot-r7-group-selected-v1.json).
+| Terminal construction | Groups / folds | Node proof time | Producer total | Peak requested memory | Root bytes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| R6, Poseidon2 B4 | 1 / 0 | 93.373 s | 121.133 s | 18.885 GB | 750,068 |
+| R6, Poseidon2 B2 | 1 / 0 | 46.589 s | 62.630 s | 13.313 GB | 1,341,688 |
+| R7, Poseidon2 B2 | 1 / 0 | 37.757 s | 51.743 s | 8.965 GB | 1,324,724 |
+| R6, Poseidon2 B2 | 2 / 1 | 76.210 s summed | 100.110 s | 10.071 GB | 1,228,888 |
+| R7, Poseidon2 B2 | 2 / 1 | 80.099 s summed | 106.125 s | 7.413 GB | 1,211,984 |
+| R6, terminal Blake experiment | 1 / 0 | 19.078 s | 37.097 s | 12.983 GB | 1,278,096 |
+
+These are qualification observations during engineering, **not quiet matched
+A/B runs**. Producer totals include native fresh verification and cold source
+setup. The Blake row includes both genuine Poseidon2 FIXED construction and
+separate Blake FIXED construction; neither is hidden. Its fresh source receiver
+needs 15.377 s for source and both setups, then 9.489 ms for root read/verify.
+All paths finish with zero retained heap/external custody.
+
+R7 reduces the direct-group source model from 830,730,240 to 643,035,136 cells.
+This does not guarantee an improvement for every group: the CPU+sponge subgroup
+pads worse in R7. The two-group results demonstrate a real memory/latency trade,
+not a universal reason to use smaller groups or R7 everywhere.
+
+Final-only B2 uses an independently pinned outer profile; native B4 proofs are
+unchanged. The shared OM31 compact-domain host-view repair has compact/full
+storage byte-parity controls for both B2 and the original B4 path.
+
+The terminal Blake route remains test-only with distinct identity, domain and
+wire magic. Valid same-output Poseidon2 and Blake roots reject under the other's
+format. It has **no production or settlement admission**. Its hash/Fiat-Shamir
+union accounting must be reviewed before promotion; the label remains
+“128-bit security target under documented assumptions,” not certification.
+
+Receipts: [R6 B2](../vectors/reports/rv64-opstack-cpu-20261109/grouped-terminal-b2-actual-small-v1.json),
+[R7 B2](../vectors/reports/rv64-opstack-cpu-20261109/grouped-r7-terminal-b2-actual-small-v1.json),
+[R6 two groups](../vectors/reports/rv64-opstack-cpu-20261109/grouped-max2-terminal-b2-actual-small-v1.json),
+[R7 two groups](../vectors/reports/rv64-opstack-cpu-20261109/grouped-r7-max2-terminal-b2-actual-small-v1.json),
+and [terminal Blake](../vectors/reports/rv64-opstack-cpu-20261109/terminal-blake-actual-selected-small-v1.json).
+
+## Anchored guest work and its limits
+
+The new retained transition has independently accepted native replay and
+negative controls; **no complete new RV64 transition or physical derivation
+STARK exists yet**. Canonical Fr255, lazy Brotli allocation and bulk-memory
+forwarding remain explicit guest candidates, with selected ELF/defaults unchanged.
+
+- Canonical Fr255 removes repeated representation conversions through the
+  existing arith256 service. The dense diagnostic drops 2,650,944 to 2,375,230
+  instructions with independent Unicorn agreement. This is not a block timing.
+- Brotli demand allocation initializes only requested cells under the original
+  per-type live caps. A tiny golden diagnostic finishes in 48,493 instructions
+  while the eager control is unfinished at four million. Bulk forwarding brings
+  it to 39,112 instructions. These setup-heavy probes are not full-transition
+  speedups; actual-channel four-million-step prefixes remain unfinished.
+- Raw-container conversion preserves the exact claim and witness body, and the
+  independent native host accepts it. The historical fastest 3.072-billion-step
+  replay already used uncompressed input, so raw conversion is not an additional
+  saving against that baseline.
+
+The heavy complete-root target remains **unachieved** and was not rerun.
