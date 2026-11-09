@@ -1,0 +1,47 @@
+{
+  "format": "concatenate named parts in order, then extract gzip tar",
+  "source_PR_commit": "78d5c7a6d60541619887610348266ae1fb8c2e23",
+  "parts": [
+    {
+      "name": "delivery-evidence.tar.gz.part000",
+      "bytes": 41943040,
+      "sha256": "a81e08b9290cadf34c45a2716e9013219efc99f1d8de547e12c7ad5bdded4f7c"
+    },
+    {
+      "name": "delivery-evidence.tar.gz.part001",
+      "bytes": 41943040,
+      "sha256": "95b6f1b7369a805879195091662c2e1fa09b61f8e93f2bf2337e0d0f80a11493"
+    },
+    {
+      "name": "delivery-evidence.tar.gz.part002",
+      "bytes": 41943040,
+      "sha256": "5fe8ff8db0fc98dad18f7a97321c6c39b30f7cb30803e8f0a4e20ada5ce47a51"
+    },
+    {
+      "name": "delivery-evidence.tar.gz.part003",
+      "bytes": 24817468,
+      "sha256": "92ed17c0eba91438bd14e425214bc40cadbdf8768b1ad62107539f8f097a1c2a"
+    }
+  ],
+  "checkpoints": [
+    "11ea0b07f945",
+    "33768a138811",
+    "44b7c7a06b42",
+    "58c18b4e2973",
+    "6cc51490c964",
+    "71f34e68d198",
+    "85fb0ced83da",
+    "8a54e3a502ef",
+    "9beb3b948649",
+    "9e503a222bcb",
+    "aa9667a730c7",
+    "c1f3c90d1f3e",
+    "d53b0963e570",
+    "d5edffd7b421",
+    "d6a2040c5032",
+    "ec16f89c08e3",
+    "f2ef3334f06d",
+    "f8ee67d33382"
+  ],
+  "classification": "Preserved raw local evidence; results retain their original scope, failures and limitations."
+}
