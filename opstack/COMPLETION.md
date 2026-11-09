@@ -14,7 +14,7 @@ latency figures are not CPU acceptance criteria.
 | Gate | Current qualification | Required closure |
 | --- | --- | --- |
 | Kona execution | Three complete local native execution bundles, including selected heavy block 121065789 with 91 CPU and 24 service proofs; fresh receivers and physical corruption rejection | Extend representative execution coverage without weakening expected-output binding |
-| Anchored derivation | Native and RV64 accept transition 159257841 → 159257842; KZG/anchor/root mutations reject | Complete physical STARK proof with independently pinned OD output and retained authenticated input |
+| Anchored derivation | Historical native/RV64 transition and new159321793→159321794 independently native-accepted; canonical authenticated input retained in-repo; actual anchor/root/blob/proof mutations reject | Complete physical derivation STARK with independently pinned OD output; new witness has not run under RV64 |
 | Capacity and continuity | Fastest retained anchored replay needs at least 733 CPU proofs before services; native cap is 256 | Reviewed versioned segmentation binding PC, registers, clocks, memory, services and final output; no blind cap increase |
 | Recursive closure | Complete small grouped roots plus original B2 heavy root (126 leaves/64 folds) and selected D2 heavy root (115 leaves/58 folds); final executable accepts both and rejects physical attacks | Reduce heavy latency; extend closure to an actual anchored derivation proof |
 | Joined statement | Receiver-side OD/OP join and synthetic ordered folds exist | Actual recursive root authenticating both matching programs, exact outputs, order and complete native closure |
@@ -41,7 +41,8 @@ replacing the qualified execution controls above. Its records are in
 | Bounded truth planning | Source-derived checkpoint/whole-worker estimator refuses heavy log18 Keccak and admits log16/4,518-permutation shards under the declared 8 GiB worker limit | Resource-derived shard-plan integration is present; physical heavy qualification remains open. Estimates are requested bytes, not measured RSS |
 | Retained source custody | Small native bundle remains byte-identical with CPU advice parking and post-seal LS/SHIFT auxiliary retirement; witness-free ledger reproduces capture and event payloads exactly | Model excludes scratch/mappings; 27.46 GB CPU seal payload is not whole-worker admission or measured RSS |
 | Detached sponge and CPU frontier | Four-worker physical native fixture closes two CPU shards, detached sponge and Keccak truth under one manifest, with independently rebuilt keys and canonical direct/sponge call IDs. Typed CPU frontier and detached sponge each have physical recursive leaves; the four-member pending root freshly verifies, with exact source masses and global closure | Production source-suite/runtime and actual OP-block receiver admission; suite sponge admission remains closed. These are short fixtures, not block speedups |
-| Native recursive dot product | Eight-role R7 CPU leaf for actual Kona120794432: 217,378,816 cells versus R6 264,302,592 (17.75% fewer), 681,484-byte physical proof, fresh independent source/key acceptance; recursive statement and source-owned pending parents also qualified | Complete execution root with native coverage, adjacency, global and terminal admission. The 17.907s leaf qualification is not a complete-root or controlled speedup result |
+| Native recursive dot product | Complete actual Kona120794432 R7 root,680,116bytes, fresh source-only receiver and full execution/terminal/global admission; CPU217,378,816cells versus R6 264,302,592 | All-fresh and matched timing;164.625s incremental qualification reuses one verified CPU leaf and uses classic truths, so it is not comparable to the local-GKR R6 control |
+| Direct native groups | Four original native verifiers in ONE physical circuit, no recursive children or intermediate folds:416,800,768cells versus1,274,831,872for the old seven nodes;711,340B root,44.984s proving, fresh independent authority and physical attacks | Complete execution integration, canonical mixed-size spans, resource-derived grouping and whole-block performance. Fixture only; production admission closed |
 | Immutable outer Miller setup | Bounded producer and independent verifier caches reproduce/accept the same physical root with cached and forced-fallback keys; class barrier, request binding, adversarial checks and zero final heap | Repeated-class complete-execution performance; no process-global cache or unbudgeted retention |
 | Complete heavy performance | Matched D2 native + M6 root baseline 3,328.446 seconds | At most 332.845 seconds for the same heavy block, through a complete recursive root; **not achieved** |
 
@@ -99,14 +100,28 @@ bytes absent and rejects the retained adversarial cases. This fixture contains
 only one Miller leaf, so it establishes ownership and parity, not amortized
 setup savings. See [producer cache qualification](../vectors/reports/rv64-opstack-performance-20261109/miller-local-gkr/producer-cache-root-v1.json).
 
-Authenticated capture of a new recent transition159321793→159321794 is in
-progress. Header, transaction and receipt roots, account/storage proofs and
-code hashes are independently checked before reuse. All15 reconstructed blob sidecars pass standard C-KZG; code provenance survives authenticated cache resume. Bounded native host runs
-have reached target execution, but have not produced a complete accepted
-witness. This does not replace the missing historical input or establish a
-physical derivation proof. All87 OP Python tests pass on the integrated tree;
-shared circuit builder R1/R5 ReleaseSafe parity targets also pass. Broader CI
-qualification remains separate.
+Authenticated capture of recent transition159321793→159321794 is complete.
+The own native client accepts both original and pruned witnesses with the exact
+43-byte OD result. The canonical13,882,081-byte input is retained once, as a
+hash-pinned deterministic gzip in `tests/fixtures/transition-159321794/`.
+All15 sidecars pass standard C-KZG. Actual native anchor/root/blob/proof/order
+negative controls reject. Fresh native replay from the in-repo fixture takes
+0.211seconds; this is native host execution, **not RV64 or STARK proving**.
+The historical input remains unavailable. See the [complete receipt](../vectors/reports/rv64-opstack-performance-20261109/transition-recent-mainnet-complete-v1.json).
+
+The direct four-member group proves the exact canonical root previously
+established by four wrapped native proofs plus three folds. Its source-derived
+cell count is3.059x smaller; requested peak9.297GB under32GiB and final live
+allocation zero.44.984seconds excludes12.920seconds cold producer setup and
+11.440seconds independently rebuilt receiver setup. The old156.261second node
+sum comes from an earlier concurrent qualification, **not a quiet matched A/B**.
+No heavy proving was rerun. See the [physical group receipt](../vectors/reports/rv64-opstack-cpu-20261109/direct-native-group4-physical-v1.json).
+
+The detached source inventory now owns its exact lookup/GKR/PCS/global security
+ledger; source-derived preflight runs before wide keys and exact checks remain
+mandatory afterwards. The security label remains a target under documented
+assumptions, not certification. The complete detached native runtime gate is
+in progress; source-suite admission remains closed.
 
 ## Working rules
 
