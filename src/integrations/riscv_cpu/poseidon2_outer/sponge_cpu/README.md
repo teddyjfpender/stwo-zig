@@ -272,3 +272,25 @@ GKR output claims, and balanced claim edits across CPU proofs, reject. Missing
 or swapped workers, wrong execution identity, and whole-byte cap violations
 reject too. The unchanged restored bundle verifies afterward. No guest or proof
 is rerun by this attack gate; its live/external reservations return to zero.
+
+
+## Explicit executable route
+
+The existing native tool now exposes this experimental source family with an
+independent operator selector; incoming bundle/configuration fields cannot turn
+it on. Historical commands/defaults retain their original route.
+
+```sh
+zig build rv64-op-native rv64-op-group-root -Doptimize=ReleaseFast -j1
+rv64-op-native prove CONFIG NATIVE --detached-sponge
+rv64-op-native verify CONFIG NATIVE --detached-sponge
+rv64-op-group-root prove CONFIG NATIVE ROOT 4 --terminal-outer=b2-q144 --arithmetization=r7
+rv64-op-group-root verify CONFIG SOURCE_ONLY ROOT 4 --terminal-outer=b2-q144 --arithmetization=r7
+```
+
+The detached selector uses the new typed runtime and its explicit local truth/
+Miller policy. Mixing it with old `--truth-local-gkr`/`--miller-local-gkr`, duplicate
+selectors, or capture/prepare modes refuses. A fresh executable accepts the
+retained selected4-member native bundle; the unmodified old suite3 bundle also
+still accepts under its original selectors. Both finish with zero heap/external
+custody. This does not promote `SourceSuite.sponge` or certify security.

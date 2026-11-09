@@ -801,7 +801,12 @@ pub fn main() !void {
     const profile = Profile.op_target_b4_q72_p0_fold4_v1;
     const source_suite: ?SourceSuite = if (command.miller_local_gkr) .{ .truth = if (command.truth_local_gkr) .local_gkr else .classic, .miller = .local_gkr } else null;
     const legacy_truth = command.truth_local_gkr and source_suite == null;
-    if (std.mem.eql(u8, command.mode, "verify")) try verifyDirectoryWithOptions(a, config.value, command.directory, profile, resources, .{ .truth_local_gkr = legacy_truth, .source_suite = source_suite }, .{}) else try produceDirectoryMode(a, config.value, command.directory, profile, resources, if (std.mem.eql(u8, command.mode, "capture")) .capture else if (std.mem.eql(u8, command.mode, "prepare")) .prepare else .prove, null, legacy_truth, source_suite);
+    if (command.detached_sponge) {
+        const detached = @import("sponge_cpu/runtime.zig");
+        if (std.mem.eql(u8, command.mode, "verify")) try detached.verifyDirectory(a, config.value, command.directory, profile, resources) else try detached.produceDirectory(a, config.value, command.directory, profile, resources);
+    } else {
+        if (std.mem.eql(u8, command.mode, "verify")) try verifyDirectoryWithOptions(a, config.value, command.directory, profile, resources, .{ .truth_local_gkr = legacy_truth, .source_suite = source_suite }, .{}) else try produceDirectoryMode(a, config.value, command.directory, profile, resources, if (std.mem.eql(u8, command.mode, "capture")) .capture else if (std.mem.eql(u8, command.mode, "prepare")) .prepare else .prove, null, legacy_truth, source_suite);
+    }
     const final = budget.snapshot();
     if (final.live_bytes != 0) return error.OpNativeRuntimeCustodyLeak;
     std.debug.print("OP_NATIVE_TEARDOWN heap={} external={} peak={} exceeded={}\n", .{ final.host_live_bytes, final.external_live_bytes, final.peak_live_bytes, final.exceeded });
