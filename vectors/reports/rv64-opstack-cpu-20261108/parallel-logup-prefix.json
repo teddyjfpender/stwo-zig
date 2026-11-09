@@ -1,0 +1,232 @@
+{
+  "schema": "stwo.opstack.parallel-logup-prefix.v1",
+  "scope": "CPU producer scheduling/storage only; original lookup/AIR/transcript and receiver authorities unchanged",
+  "algorithm": {
+    "logical_chunk_rows": 4096,
+    "max_secure_coordinates": 8,
+    "scratch": "one chunk total per coordinate, no whole-column permutation arrays",
+    "waves": [
+      "independent in-place shifted local prefixes",
+      "exclusive chunk totals applied in physical order"
+    ]
+  },
+  "tests": {
+    "air": 180,
+    "circuit_parallel_and_witness": 16,
+    "workers": [
+      2,
+      3,
+      5
+    ],
+    "coordinate_widths": [
+      4,
+      8
+    ],
+    "logs": [
+      13,
+      15
+    ],
+    "allocation_failure_before_mutation": true
+  },
+  "kernel_abba": {
+    "scope": "Preliminary kernel timing; full native proof workload overlaps, not a quiet benchmark",
+    "results": [
+      {
+        "kernel": "columns",
+        "log": 20,
+        "width": 1,
+        "threads": 4,
+        "reps": 3,
+        "min_ns": 38601959,
+        "median_ns": 39335875,
+        "ns_per_row": 37.5136137008667,
+        "ns_per_fraction": 37.5136137008667,
+        "sha256": "e0e87661152453b83e76629068ed99a62573c3d0cc83f26e0fea6aa243b7dbff",
+        "implementation": "control"
+      },
+      {
+        "kernel": "columns",
+        "log": 20,
+        "width": 1,
+        "threads": 4,
+        "reps": 3,
+        "min_ns": 10089583,
+        "median_ns": 10238166,
+        "ns_per_row": 9.763875961303711,
+        "ns_per_fraction": 9.763875961303711,
+        "sha256": "e0e87661152453b83e76629068ed99a62573c3d0cc83f26e0fea6aa243b7dbff",
+        "implementation": "parallel"
+      },
+      {
+        "kernel": "columns",
+        "log": 20,
+        "width": 1,
+        "threads": 4,
+        "reps": 3,
+        "min_ns": 12635333,
+        "median_ns": 15168333,
+        "ns_per_row": 14.465649604797363,
+        "ns_per_fraction": 14.465649604797363,
+        "sha256": "e0e87661152453b83e76629068ed99a62573c3d0cc83f26e0fea6aa243b7dbff",
+        "implementation": "parallel"
+      },
+      {
+        "kernel": "columns",
+        "log": 20,
+        "width": 1,
+        "threads": 4,
+        "reps": 3,
+        "min_ns": 33370375,
+        "median_ns": 34237084,
+        "ns_per_row": 32.65102767944336,
+        "ns_per_fraction": 32.65102767944336,
+        "sha256": "e0e87661152453b83e76629068ed99a62573c3d0cc83f26e0fea6aa243b7dbff",
+        "implementation": "control"
+      }
+    ]
+  },
+  "m6": {
+    "produce": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "recurse-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-m6-parallel-prefix",
+        "2147483648",
+        "42949672960"
+      ],
+      "wall_ns": 29585228958,
+      "peak_rss_bytes": 28288237568,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 322.954373,
+      "system_cpu_s": 12.381259,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "receive": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "verify-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/small-m6-parallel-prefix",
+        "2147483648",
+        "25769803776"
+      ],
+      "wall_ns": 3683052042,
+      "peak_rss_bytes": 7412400128,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 20.763091,
+      "system_cpu_s": 0.732723,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "proof_hashes": {
+      "leaf-000001.proof": "df09bdf115f10a9f9058ef92999f9e903ba0ef06a566abcb87ac5a7fa3ceff5a",
+      "fold-000003.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91",
+      "leaf-000000.proof": "797a56a58a4017398c208fe7c6399ce4dbd88e9f5c099a605310ac508ad57884",
+      "leaf-000002.proof": "2f3c39af1732cdaa0621bd374ea16d29d3e2b69e3a56ff9ad6fa06b9b680809a",
+      "root.proof": "83f6fbacca42332cddabc67472e33e8713b73b5f82e0005b211636feb160cb91"
+    },
+    "all_original_proof_files_byte_identical": true,
+    "fresh_accepted": true,
+    "profile": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
+    "stage_sums": {
+      "outer_witness": 0.8263849999999999,
+      "outer_main_commit": 3.411332,
+      "outer_interaction_witness": 4.140168,
+      "eq": 0.006178,
+      "logup_rows": 3.7040009999999994,
+      "logup_prefix": 0.37123600000000007,
+      "qm31_ops": 0.5248060000000001,
+      "triple_xor": 0.129405,
+      "m_31_to_u_32": 0.082781,
+      "blake_g_gate": 3.008381,
+      "verify_bitwise_xor_8": 0.00516,
+      "verify_bitwise_xor_12": 0.317573,
+      "verify_bitwise_xor_4": 0.000151,
+      "verify_bitwise_xor_7": 0.0022719999999999997,
+      "verify_bitwise_xor_9": 0.009972,
+      "range_check_16": 0.0037079999999999995,
+      "outer_interaction_commit": 6.37318,
+      "owned_commit_prepare": 2.914365,
+      "interpolate_columns": 0.750788,
+      "evaluate_extended_domain": 2.163554,
+      "merkle_commit": 3.458792,
+      "draw_random_coeff": 1.4e-05,
+      "composition_trace_extract": 2.4e-05,
+      "composition_evaluation": 5.319587,
+      "composition_interpolate_and_split": 0.170059,
+      "composition_commit": 0.716729,
+      "oods_point_and_mask_points": 0.000292,
+      "sampled_value_evaluation": 0.878257,
+      "sampled_value_channel_mix": 0.000216,
+      "fri_quotient_build_and_commit": 2.644909,
+      "proof_of_work": 0.00617,
+      "fri_decommit": 0.15883699999999998,
+      "trace_decommit": 0.026945,
+      "constraint_check_and_assembly": 0.00037799999999999997
+    }
+  },
+  "m7_group": {
+    "produce": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "recurse-grouped-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/group-m7-parallel-prefix",
+        "2147483648",
+        "51539607552"
+      ],
+      "wall_ns": 22286652834,
+      "peak_rss_bytes": 40696954880,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 207.436965,
+      "system_cpu_s": 14.079263,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "receive": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "verify-grouped-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/group-m7-parallel-prefix",
+        "2147483648",
+        "25769803776"
+      ],
+      "wall_ns": 2877633458,
+      "peak_rss_bytes": 10217979904,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 15.086177,
+      "system_cpu_s": 0.989277,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3",
+    "old_root_byte_identical": true,
+    "mutations": [
+      {
+        "label": "root-byte",
+        "returncode": 1
+      },
+      {
+        "label": "root-missing",
+        "returncode": 1
+      }
+    ]
+  },
+  "limitations": [
+    "Microbenchmark overlaps native workload and is not a quiet whole-prover result.",
+    "M6 is one complete-root qualification; earlier repeated median was 35.766 seconds, with no controlled paired whole-root attribution yet.",
+    "M7 grouped proof remains about 22 seconds; no whole-root improvement is established there.",
+    "No GPU execution or protocol/security change."
+  ]
+}

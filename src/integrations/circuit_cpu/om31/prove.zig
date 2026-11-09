@@ -288,7 +288,7 @@ fn proveImpl(a: std.mem.Allocator, key: *const Authority, values: []const Q, own
     const elements = draw(&channel);
     var interaction_scope = try StageCapture.Scope.begin(recorder, "outer_interaction_witness", "Circuit lookup interaction witness");
     defer interaction_scope.end();
-    var interaction = try W.writeReleasing(a, &base, key.pp, elements.z, elements.alpha);
+    var interaction = try W.writeReleasingWithRecorder(a, &base, key.pp, elements.z, elements.alpha, recorder);
     interaction_scope.end();
     defer interaction.deinit();
     channel.mixFelts(&interaction.claimed_sums.toArray());

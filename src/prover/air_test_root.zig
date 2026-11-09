@@ -1,4 +1,5 @@
 test {
+    _ = @import("air/logup_prefix.zig");
     _ = @import("air/component_pool_exclusive_test.zig");
     _ = @import("air/component_queue_test.zig");
     _ = @import("cooperative_queue.zig");

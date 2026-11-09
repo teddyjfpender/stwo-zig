@@ -62,6 +62,18 @@ stages, including whole-process counters. Each proof owns its recorder; no
 profile enters the transcript or receiver authority. Nested or overlapping
 counter intervals must not be added. Profiling is off by default.
 
+The CPU LogUp builder now computes large final prefixes in two joined waves:
+independent logical chunks, then exclusive chunk offsets applied in physical
+order. It fuses the claim shift and avoids whole-column permutation buffers.
+Serial and small inputs retain the previous calculation. This is a storage
+and scheduling change; all five real M6 leaf/fold/root proof files and the
+GROUP2 root remain byte-identical. The [qualification receipt](../vectors/reports/rv64-opstack-cpu-20261108/parallel-logup-prefix.json)
+records a 29.59 s M6 complete-root run with fresh acceptance, versus the earlier
+35.77 s repeated median. That comparison is not a controlled paired speedup.
+The opt-in M6 interaction profile now separates each component's fraction/
+inverse/scatter work from its shifted prefix, without sharing recorders across
+worker threads.
+
 The explicitly selected outer profile
 `m7_outer_gkr_k4_cap3_r1_b2_q108_p20_fold4_v1` also has a complete CPU
 producer. Its hybrid lookup section, MAIN binding and fresh native/in-circuit

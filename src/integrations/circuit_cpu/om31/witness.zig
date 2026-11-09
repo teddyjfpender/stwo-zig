@@ -12,6 +12,7 @@ const List = circuit.common.component_list;
 const C = circuit.witness.components;
 const L = prover.air.logup_columns.ForField(O);
 const Col = prover.pcs.ColumnEvaluation;
+const Profile = prover.stage_profile;
 pub const Claims = List.PerComponent(O);
 pub const Elements = struct {
     z: O,
@@ -87,12 +88,15 @@ pub fn lookupSum(outputs: []const Q, claims: Claims, elements: *const Elements) 
 /// Atomic ownership: no MAIN plane is retired until all eleven new INTER
 /// components, independent public closure and output headers exist.
 pub fn write(a: std.mem.Allocator, base: *T.BaseTrace, pp: *const circuit.common.preprocessed.PreprocessedCircuit, z: O, alpha: O) !Interaction {
-    return writeImpl(a, base, pp, z, alpha, false);
+    return writeImpl(a, base, pp, z, alpha, false, null);
 }
 pub fn writeReleasing(a: std.mem.Allocator, base: *T.BaseTrace, pp: *const circuit.common.preprocessed.PreprocessedCircuit, z: O, alpha: O) !Interaction {
-    return writeImpl(a, base, pp, z, alpha, true);
+    return writeImpl(a, base, pp, z, alpha, true, null);
 }
-fn writeImpl(a: std.mem.Allocator, base: *T.BaseTrace, pp: *const circuit.common.preprocessed.PreprocessedCircuit, z: O, alpha: O, release: bool) !Interaction {
+pub fn writeReleasingWithRecorder(a: std.mem.Allocator, base: *T.BaseTrace, pp: *const circuit.common.preprocessed.PreprocessedCircuit, z: O, alpha: O, recorder: ?*Profile.Recorder) !Interaction {
+    return writeImpl(a, base, pp, z, alpha, true, recorder);
+}
+fn writeImpl(a: std.mem.Allocator, base: *T.BaseTrace, pp: *const circuit.common.preprocessed.PreprocessedCircuit, z: O, alpha: O, release: bool, recorder: ?*Profile.Recorder) !Interaction {
     const rows = try T.RawLookupRows.init(base.columns, pp);
     const elements = Elements.init(z, alpha);
     var outputs: [List.N_COMPONENTS]?L.Output = @splat(null);
@@ -100,7 +104,9 @@ fn writeImpl(a: std.mem.Allocator, base: *T.BaseTrace, pp: *const circuit.common
     var total: usize = 0;
     var claims: [List.N_COMPONENTS]O = undefined;
     for (std.enums.values(List.ComponentList), base.log_sizes.toArray(), 0..) |kind, log, i| {
-        const out = try L.build(a, log, (T.RawLookupRows.count(kind) + 1) / 2, Row{ .raw = &rows, .kind = kind, .elements = &elements }, Row.fill);
+        var scope = try Profile.StageScope.begin(recorder, @tagName(kind), @tagName(kind));
+        defer scope.end();
+        const out = try L.buildWithRecorder(a, log, (T.RawLookupRows.count(kind) + 1) / 2, Row{ .raw = &rows, .kind = kind, .elements = &elements }, Row.fill, recorder);
         outputs[i] = out;
         if (out.columns.len != 8 * ((T.RawLookupRows.count(kind) + 1) / 2)) return error.InvalidOm31InteractionWidth;
         claims[i] = out.claimed_sum;
