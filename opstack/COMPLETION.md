@@ -202,6 +202,7 @@ additional to every row below.
 | R6, Poseidon2 B2 | 2 / 1 | 76.210 s summed | 100.110 s | 10.071 GB | 1,228,888 |
 | R7, Poseidon2 B2 | 2 / 1 | 80.099 s summed | 106.125 s | 7.413 GB | 1,211,984 |
 | R6, terminal Blake experiment | 1 / 0 | 19.078 s | 37.097 s | 12.983 GB | 1,278,096 |
+| R7, terminal Blake experiment | 1 / 0 | 15.647 s | 31.552 s | 8.667 GB | 1,263,064 |
 
 These are qualification observations during engineering, **not quiet matched
 A/B runs**. Producer totals include native fresh verification and cold source
@@ -229,7 +230,8 @@ Receipts: [R6 B2](../vectors/reports/rv64-opstack-cpu-20261109/grouped-terminal-
 [R7 B2](../vectors/reports/rv64-opstack-cpu-20261109/grouped-r7-terminal-b2-actual-small-v1.json),
 [R6 two groups](../vectors/reports/rv64-opstack-cpu-20261109/grouped-max2-terminal-b2-actual-small-v1.json),
 [R7 two groups](../vectors/reports/rv64-opstack-cpu-20261109/grouped-r7-max2-terminal-b2-actual-small-v1.json),
-and [terminal Blake](../vectors/reports/rv64-opstack-cpu-20261109/terminal-blake-actual-selected-small-v1.json).
+[R6 terminal Blake](../vectors/reports/rv64-opstack-cpu-20261109/terminal-blake-actual-selected-small-v1.json),
+and [R7 terminal Blake](../vectors/reports/rv64-opstack-cpu-20261109/terminal-blake-r7-actual-selected-small-v1.json).
 
 ## Anchored guest work and its limits
 
@@ -252,3 +254,10 @@ forwarding remain explicit guest candidates, with selected ELF/defaults unchange
   saving against that baseline.
 
 The heavy complete-root target remains **unachieved** and was not rerun.
+
+The separate dense BN254 reuse experiment illustrates why guest instruction
+count alone is insufficient. Square+multiply drops 19,344 to 8,988 instructions
+with independent native/VM/Unicorn agreement, but active field cells rise
+53,220 to 88,632. Conditional heavy padding saves only about 10.3% field cells
+and doubles Miller leaf count. It stays opt-in; a dedicated fused tower provider
+is the next experiment. See the [full cost review](../design/riscv-proving-stack/op-bn254-dense-reuse-cost.md).
