@@ -19,15 +19,9 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
     for (elements.powers, 0..) |p, i| for (p.toM31Array(), 0..) |m, j| {
         parameter_words[8 + 8 * i + j] = m.v;
     };
-    var parameters = if (owner.device_fs_parameters) |lease| lease else try ctx.allocate(56, 0);
-    defer if (owner.device_fs_parameters == null) ctx.release(&parameters) catch {};
-    if (owner.device_fs_parameters == null) {
-        try ctx.upload(try ctx.borrow(parameters), &parameter_words);
-    } else {
-        _ = try ctx.borrow(parameters);
-        if (parameters.count != 56) return error.InvalidOuterDeviceFsParameters;
-        std.debug.print("GPU_OUTER_DEVICE_FS inter_consumed ordinal={} parameter_words=56 host_parameter_upload_words=0\n", .{owner.scope.ordinal});
-    }
+    var parameters = try ctx.allocate(56, 0);
+    defer ctx.release(&parameters) catch {};
+    try ctx.upload(try ctx.borrow(parameters), &parameter_words);
     // M6 enqueue: every copy, clear and kernel of this stage is ordered on
     // lane 0 (the context stream, which also carries the staged uploads), so
     // no host join is needed between components. The eleven claims and the

@@ -7,8 +7,6 @@
     "CUDA_MODULE_LOADING": "EAGER",
     "LD_PRELOAD": "{library}:{observer}:{sparse}",
     "LD_LIBRARY_PATH": "{library_dir}:/usr/local/cuda/lib64",
-    "STWO_RV64_TRUTH_SPARSE_LIBRARY": "{sparse}",
-    "STWO_RV64_PROCESS_MEMORY_LIBRARY": "{observer}",
     "STWO_RV64_PROCESS_MEMORY_OBSERVE": "1",
     "STWO_RV64_OUTER_PROFILE": "m6_outer_diet_k4_cap3_r1_b2_q108_p20_fold4_v1",
     "STWO_RV64_NATIVE_VERSION": "v1-flat",
@@ -23,17 +21,14 @@
     "STWO_RV64_OUTER_OWNER_CONTROLLER": "1",
     "STWO_RV64_PCS_ROLLING_BETA2": "1",
     "STWO_RV64_PHASE_CACHE_TRIM": "1",
-    "STWO_RV64_OUTER_DEVICE_FS": "0",
     "STWO_ZIG_RV64_SETUP_CACHE": ""
   },
   "arms": {
     "baseline": {
-      "STWO_RV64_DEVICE_ARENA": "auto",
-      "STWO_RV64_TRUTH_SPARSE_RC": "0"
+      "STWO_RV64_DEVICE_ARENA": "auto"
     },
     "fullstack": {
       "STWO_RV64_DEVICE_ARENA": "auto",
-      "STWO_RV64_TRUTH_SPARSE_RC": "0",
       "STWO_RV64_M8_JOBS": "1",
       "STWO_RV64_M8_GPU_NATIVE": "1",
       "STWO_RV64_M8_GPU_NATIVE_REUSE": "1",

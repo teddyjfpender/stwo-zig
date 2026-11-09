@@ -265,13 +265,7 @@ pub const Context = struct {
             const bytes = artifact.program.inputs.len * @sizeOf(@import("stwo_prover_engine").air.secure_polynomial_program_v2.Input) + artifact.program.roots.len * 4 + artifact.parameter_slots.len * 4;
             if (bytes > self.metadata_cap_bytes - @min(self.metadata_cap_bytes, self.metadata_bytes)) return error.OuterMetadataBudgetExceeded;
             try self.entries.ensureUnusedCapacity(self.allocator, 1);
-            const metadata = blk: {
-                var chunks = try @import("outer_chunks_runtime.zig").Runtime.init(self.allocator, @intCast(id), &artifact.program);
-                errdefer if (chunks) |*value| value.deinit();
-                var result = try RC.KernelMetadata.fromProgram(self.allocator, &artifact.program, &artifact.parameter_slots);
-                result.chunks = chunks;
-                break :blk result;
-            };
+            const metadata = try RC.KernelMetadata.fromProgram(self.allocator, &artifact.program, &artifact.parameter_slots);
             self.entries.appendAssumeCapacity(.{ .group = group, .metadata = metadata });
             self.metadata_bytes += metadata.bytes();
         }
@@ -356,7 +350,7 @@ pub const Context = struct {
         owner.main = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 1, .columns = owner.main_columns });
         owner.scope.main = owner.main.?.root;
         if (fixed) |setup| try setup.promote(owner.scope);
-        return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .channel_observer = try @import("device_fs_check.zig").create(a, self.service, owner.scope, key.identity, Dev.class_is_leaf), .fixed = if (fixed) |setup| setup.tree else null, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
+        return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .channel_observer = null, .fixed = if (fixed) |setup| setup.tree else null, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
     }
 };
 pub const Owner = struct {
@@ -379,7 +373,6 @@ pub const Owner = struct {
     z: Outer.protocol.O = undefined,
     alpha: Outer.protocol.O = undefined,
     inter_ready: bool = false,
-    device_fs_parameters: ?Native.Lease = null,
     pcs: D.Stage,
     composition_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage,
     failure: ?anyerror = null,
@@ -422,7 +415,6 @@ pub const Owner = struct {
         if (self.inter_ready or key != self.key or !std.meta.eql(scope, self.scope)) return error.InvalidOuterInteractionScope;
         self.z = z;
         self.alpha = alpha;
-        self.device_fs_parameters = try @import("device_fs_check.zig").interactionParameters(self.backend.service, scope);
         try self.run(@import("outer_source_interaction.zig").generate);
         // INTER generation has joined all readers. Its commitment consumes only
         // INTER evaluations; MAIN coefficients already have independent custody.

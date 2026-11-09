@@ -1615,35 +1615,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_OUTER_DEVICE_FS": {
-      "owner": "src/integrations/riscv_cuda/rv64/device_fs_check.zig",
-      "default": "null",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cuda/rv64/device_fs_check.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/device_fs_check.zig",
-        "text": "    const option = std.posix.getenv(\"STWO_RV64_OUTER_DEVICE_FS\") orelse return null;\n    if (std.mem.eql(u8, option, \"0\")) return null;\n    if (!std.mem.eql(u8, option, \"check\")) return error.OuterDeviceFsModeNotQualified;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_OUTER_FS_OPS_LIBRARY": {
-      "owner": "src/integrations/riscv_cuda/rv64/device_fs_check.zig",
-      "default": "error.MissingOuterDeviceFsAddon",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/device_fs_check.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/device_fs_check.zig",
-        "text": "    const addon_path = std.posix.getenv(\"STWO_RV64_OUTER_FS_OPS_LIBRARY\") orelse return error.MissingOuterDeviceFsAddon;\n    var addon = try std.DynLib.open(addon_path);\n    errdefer addon.close();\n    _ = try sym(LookupParams, &addon, \"stwo_rv64_outer_fs_lookup_params_on\");\n    _ = try sym(Powers, &addon, \"stwo_rv64_outer_fs_powers_on\");\n    const self = try a.create(Recorder);\n    self.* = .{ .a = a, .service = service, .scope = scope, .class = class orelse @splat(0), .is_leaf = is_leaf, .addon = addon };\n    return .{ .context = self, .start = Recorder.start, .record = Recorder.record, .before_pcs = Recorder.before, .finish = Recorder.finish, .destroy = Recorder.destroy };"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_OUTER_OWNER_CONTROLLER": {
       "owner": "src/integrations/riscv_cuda/rv64/outer_source.zig",
       "default": "null",
@@ -1844,21 +1815,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_PROCESS_MEMORY_LIBRARY": {
-      "owner": "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig",
-      "default": "absent (no optional process-memory observer addon)",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig",
-        "text": "        if (std.posix.getenv(\"STWO_RV64_PROCESS_MEMORY_LIBRARY\")) |observer| {\n            memory_library = try std.DynLib.open(observer);\n            memory_snapshot = memory_library.?.lookup(@TypeOf(memory_snapshot.?), \"stwo_rv64_process_memory_snapshot_on\") orelse return error.MissingProcessMemoryObserver;\n        }\n        return .{ .allocator = a, .plan = plan, .cache = cache, .library = lib, .lde = lib.lookup(LdeCall, \"stwo_rv64_rc_sparse_lde_on\") orelse return error.MissingSparseCompositionSymbol, .memory_library = memory_library, .memory_snapshot = memory_snapshot, .group = lib.lookup(GroupCall, \"stwo_rv64_rc_sparse_group_on\") orelse return error.MissingSparseCompositionSymbol };\n    }\n    pub fn selection(self: *const Runtime) Contract.Selection {\n        return .{ .source = self.plan.source, .plan = self.plan.identity };"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_PROCESS_MEMORY_OBSERVE": {
       "owner": "tests/cuda/rv64/native/rv64/process_memory_observer.cu",
       "default": "false",
@@ -1871,34 +1827,6 @@
       "default_evidence": {
         "path": "tests/cuda/rv64/native/rv64/process_memory_observer.cu",
         "text": "  const char*enabled=std::getenv(\"STWO_RV64_PROCESS_MEMORY_OBSERVE\");\n  if(!enabled||enabled[0]!='1'||enabled[1])return;\n  const int status=int(cudaGetDeviceCount(&devices));\n  if(status){std::fprintf(stderr,\"GPU_PROCESS_MEMORY_INIT status=%d\\n\",status);devices=0;return;}\n  int previous=0;(void)cudaGetDevice(&previous);\n  std::fprintf(stderr,\"GPU_PROCESS_MEMORY_INIT preloaded=%d eager=%d devices=%d\\n\",std::getenv(\"LD_PRELOAD\")!=nullptr,std::getenv(\"CUDA_MODULE_LOADING\")&&std::getenv(\"CUDA_MODULE_LOADING\")[0]=='E',devices);\n  for(int device=0;device<devices;++device){\n    if(cudaSetDevice(device)!=cudaSuccess||cudaFree(nullptr)!=cudaSuccess){std::fprintf(stderr,\"GPU_PROCESS_MEMORY_INIT device=%d status=failed\\n\",device);continue;}"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_RC_OUTER_CHUNKS": {
-      "owner": "src/integrations/riscv_cuda/rv64/outer_chunks_runtime.zig",
-      "default": "null",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/outer_chunks_runtime.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/outer_chunks_runtime.zig",
-        "text": "        const flag = std.posix.getenv(\"STWO_RV64_RC_OUTER_CHUNKS\") orelse return null;\n        if (!std.mem.eql(u8, flag, \"1\") or (role != 4 and role != 5)) return null;\n        const path = std.posix.getenv(\"STWO_RV64_RC_OUTER_CHUNKS_LIBRARY\") orelse return error.MissingOuterChunksLibrary;\n        var plan = try P.init(a, program, 32);\n        errdefer plan.deinit(a);\n        try plan.validate(a, program);\n        if (plan.terms.len != program.roots.len) return error.OuterChunkRootSplit;\n        for (plan.terms, program.roots, 0..) |term, node, i| {"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_RC_OUTER_CHUNKS_LIBRARY": {
-      "owner": "src/integrations/riscv_cuda/rv64/outer_chunks_runtime.zig",
-      "default": "error.MissingOuterChunksLibrary",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/outer_chunks_runtime.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/outer_chunks_runtime.zig",
-        "text": "        const path = std.posix.getenv(\"STWO_RV64_RC_OUTER_CHUNKS_LIBRARY\") orelse return error.MissingOuterChunksLibrary;\n        var plan = try P.init(a, program, 32);\n        errdefer plan.deinit(a);\n        try plan.validate(a, program);\n        if (plan.terms.len != program.roots.len) return error.OuterChunkRootSplit;\n        for (plan.terms, program.roots, 0..) |term, node, i| {\n            if (term.negative or term.root != i or term.node != node) return error.OuterChunkRootCoverMismatch;\n        }"
       },
       "expires": "2026-12-09"
     },
@@ -2030,36 +1958,6 @@
       "default_evidence": {
         "path": "tests/cuda/rv64/gkr_loop_smoke.cu",
         "text": "      if (std::getenv(\"STWO_RV64_TEST_BATCH_TAIL\") && left <= 4) {\n        std::vector<StwoRv64BatchTailOracle> jobs;\n        for (uint32_t j = 0; j < l.active; ++j) {"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_TRUTH_SPARSE_LIBRARY": {
-      "owner": "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig",
-      "default": "error.MissingSparseCompositionLibrary",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig",
-        "text": "        const path = std.posix.getenv(\"STWO_RV64_TRUTH_SPARSE_LIBRARY\") orelse return error.MissingSparseCompositionLibrary;\n        var plan = try P.init(a, program, 512);\n        errdefer plan.deinit(a);\n        try plan.validate(a, program);\n        var cache = try P.cache(a, &plan, 1024);\n        errdefer cache.deinit(a);\n        try cache.validate(a, &plan);\n        var lib = try std.DynLib.open(path);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_TRUTH_SPARSE_RC": {
-      "owner": "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig",
-      "default": "null",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/composition_sparse_runtime.zig",
-        "text": "        const value = std.posix.getenv(\"STWO_RV64_TRUTH_SPARSE_RC\") orelse return null;\n        if (!std.mem.eql(u8, value, \"1\")) return null;\n        const path = std.posix.getenv(\"STWO_RV64_TRUTH_SPARSE_LIBRARY\") orelse return error.MissingSparseCompositionLibrary;\n        var plan = try P.init(a, program, 512);\n        errdefer plan.deinit(a);\n        try plan.validate(a, program);\n        var cache = try P.cache(a, &plan, 1024);\n        errdefer cache.deinit(a);"
       },
       "expires": "2026-12-09"
     },

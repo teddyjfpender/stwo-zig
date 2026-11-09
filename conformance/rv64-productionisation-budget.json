@@ -1002,6 +1002,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue #332: remove owner-local optional filesystem diagnostics with no maintained setter or live artifact consumer. Keep fingerprint computation and all proof/negative assertions; retain direct typed class-plan writing, complete worker destruction and rejected-request cleanup. No protocol, ceiling, test-root or qualification parameter changes."
+    },
+    {
+      "id": "c1_retire_default_disabled_composition_owners",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #332: retire complete selected-column/reusable-workspace execution branches and unused outer-chunk loader after their owner-local controls folded to the maintained defaults. Preserve the exact default per-role arena allocation, capability checks, stream ordering, join/release/cancellation paths and all live proof tests; no artifact/security setting changes or GPU-native promotion. No new API, launcher or larger ceiling. Retire sparse truth and old device-FS recorder adapters whose maintained modes are explicitly zero; preserve the default host-parameter upload/release and CPU-derived composition powers. Keep all preload assets, binary/source pins, physical sampling, actual GPU-native checks/encoding and default hybrid owners unchanged."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
