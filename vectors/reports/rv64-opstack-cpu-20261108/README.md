@@ -398,3 +398,13 @@ increases 0.71%; the 2,048-node mixed program increases 0.27%, while the real
 177-node receiver-pinned AIR costs 1,064,808 gas. All 24 default settlement
 tests pass; three external large-fixture tests remain explicitly skipped.
 This is a component improvement, not a practical complete settlement claim.
+
+The [complete heavy D2 native qualification](heavy-d2-native.json) admits the
+same selected guest and all 115 native workers under the existing blowup-4,
+query-54 construction. Fresh verification and both corruption controls pass.
+Native production takes **1,586.092 s** and fresh reception **53.803 s**; its
+trace cell counts are unchanged, while physical proof bytes fall from
+332,950,620 to 200,502,208. This is a larger-domain tradeoff for fewer recursive
+openings, **not a native speedup**. It uses one 16-worker lane and an explicit
+8 GiB fixed-key admission; the 4 GiB refusal remains recorded. Defaults stay
+unchanged. Full native-plus-recursive timing decides its adoption.
