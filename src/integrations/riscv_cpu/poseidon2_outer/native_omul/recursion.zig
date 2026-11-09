@@ -322,6 +322,9 @@ const Session = struct {
     }
 };
 pub fn proveDirectory(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, native_directory: []const u8, profile: Protocol.Profile, resources: Runtime.Resources, limits: Limits) !Result {
+    return proveDirectoryWithOptions(a, config, native_directory, profile, resources, .{}, limits);
+}
+pub fn proveDirectoryWithOptions(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, native_directory: []const u8, profile: Protocol.Profile, resources: Runtime.Resources, options: Runtime.Options, limits: Limits) !Result {
     if (limits.members == 0 or limits.members > 256 or limits.proof_bytes == 0 or limits.sidecar_bytes == 0 or limits.sidecar_bytes > 64 << 20) return error.InvalidOpRecursionLimits;
     var session = Session{ .allocator = a, .profile = profile, .limits = limits, .started = try std.time.Timer.start() };
     defer session.deinit();
@@ -331,7 +334,7 @@ pub fn proveDirectory(a: std.mem.Allocator, config: @import("../../rv64_ethereum
     }
     // Keys are borrowed by pending nodes: pin the SourceLeaf array before any callback.
     try session.source_leaves.ensureTotalCapacity(a, limits.members);
-    try Runtime.verifyDirectoryWithHooks(a, config, native_directory, profile, resources, .{ .context = &session, .complete = Session.complete, .fragments = .{ .context = &session, .cpu = Session.cpu, .truth = Session.truth, .truth_local = Session.localTruth, .miller = Session.miller } });
+    try Runtime.verifyDirectoryWithOptions(a, config, native_directory, profile, resources, options, .{ .context = &session, .complete = Session.complete, .fragments = .{ .context = &session, .cpu = Session.cpu, .truth = Session.truth, .truth_local = Session.localTruth, .miller = Session.miller } });
     const result = session.result orelse return error.OpRecursiveExecutionIncomplete;
     session.result = null;
     return result;

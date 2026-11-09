@@ -114,26 +114,36 @@ fn validateLimits(limits: Limits) !void {
     if (limits.proof_bytes == 0 or limits.proof_bytes > 2 << 20 or limits.sidecar_bytes == 0 or limits.sidecar_bytes > 64 << 20) return error.OpRootInputBudget;
 }
 pub fn verifyBytes(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, limits: Limits, root: []const u8, sidecar: []const u8, templates: []const u8) !Verified {
-    return verifyBytesMode(a, config, source_directory, profile, resources, limits, root, sidecar, templates, false);
+    return verifyBytesMode(a, config, source_directory, profile, resources, .{}, limits, root, sidecar, templates, false);
 }
-fn verifyBytesMode(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, limits: Limits, root: []const u8, sidecar: []const u8, templates: []const u8, qualification: bool) !Verified {
+pub fn verifyBytesWithOptions(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, options: Runtime.Options, limits: Limits, root: []const u8, sidecar: []const u8, templates: []const u8) !Verified {
+    return verifyBytesMode(a, config, source_directory, profile, resources, options, limits, root, sidecar, templates, false);
+}
+fn verifyBytesMode(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, options: Runtime.Options, limits: Limits, root: []const u8, sidecar: []const u8, templates: []const u8, qualification: bool) !Verified {
     try validateLimits(limits);
     if (root.len == 0 or root.len > limits.proof_bytes or templates.len > Templates.MAX_BYTES) return error.OpRootInputBudget;
     _ = try Templates.preflight(templates);
     var metadata = try Sidecar.decode(a, sidecar, .{ .bytes = limits.sidecar_bytes });
     defer metadata.deinit(a);
     var context = Context{ .profile = profile, .metadata = metadata.metadata, .root = root, .templates = templates, .timer = try std.time.Timer.start(), .qualification = qualification };
-    try Runtime.withSourceDirectory(a, config, source_directory, profile, resources, &context, Context.receive);
+    try Runtime.withSourceDirectoryWithOptions(a, config, source_directory, profile, resources, options, &context, Context.receive);
     return context.verified orelse error.OpRootSourceIncomplete;
 }
 pub fn verifyDirectory(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, root_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, limits: Limits) !Verified {
-    return verifyDirectoryMode(a, config, source_directory, root_directory, profile, resources, limits, false);
+    return verifyDirectoryMode(a, config, source_directory, root_directory, profile, resources, .{}, limits, false);
 }
 pub fn qualifyDirectory(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, root_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, limits: Limits) !Verified {
     if (!@import("builtin").is_test) return error.OpRootQualificationIsTestOnly;
-    return verifyDirectoryMode(a, config, source_directory, root_directory, profile, resources, limits, true);
+    return verifyDirectoryMode(a, config, source_directory, root_directory, profile, resources, .{}, limits, true);
 }
-fn verifyDirectoryMode(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, root_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, limits: Limits, qualification: bool) !Verified {
+pub fn verifyDirectoryWithOptions(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, root_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, options: Runtime.Options, limits: Limits) !Verified {
+    return verifyDirectoryMode(a, config, source_directory, root_directory, profile, resources, options, limits, false);
+}
+pub fn qualifyDirectoryWithOptions(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, root_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, options: Runtime.Options, limits: Limits) !Verified {
+    if (!@import("builtin").is_test) return error.OpRootQualificationIsTestOnly;
+    return verifyDirectoryMode(a, config, source_directory, root_directory, profile, resources, options, limits, true);
+}
+fn verifyDirectoryMode(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, root_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, options: Runtime.Options, limits: Limits, qualification: bool) !Verified {
     try validateLimits(limits);
     var dir = try std.fs.cwd().openDir(root_directory, .{});
     defer dir.close();
@@ -143,7 +153,7 @@ fn verifyDirectoryMode(a: std.mem.Allocator, config: @import("../../rv64_ethereu
     defer a.free(sidecar);
     const templates = try dir.readFileAlloc(a, "root-gkr-shapes.bin", Templates.MAX_BYTES);
     defer a.free(templates);
-    return verifyBytesMode(a, config, source_directory, profile, resources, limits, proof, sidecar, templates, qualification);
+    return verifyBytesMode(a, config, source_directory, profile, resources, options, limits, proof, sidecar, templates, qualification);
 }
 
 test "OP pure P2 root reader rejects invalid caps before filesystem access" {

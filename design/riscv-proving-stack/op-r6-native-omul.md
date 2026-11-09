@@ -117,3 +117,30 @@ other work. This is not a statistically repeated A/B or a heavy-block result.
 Source and stage evidence is in
 `vectors/reports/rv64-opstack-cpu-20261109/pure-p2-r6-actual-cpu-leaf-v1.json`.
 The 10x complete heavy-block requirement remains unqualified.
+
+## Explicit truth-local admission
+
+The R6 producer and final-root receiver expose `*WithOptions` entrypoints taking
+`pure_p2_op_runtime.Options`. The caller must explicitly select
+`truth_local_gkr=true` for schema2 source declarations; default wrappers retain
+schema1. No sidecar field can silently choose the native protocol. Schema2 uses
+local GKR for eligible Keccak/secp workers and preserves classic SHA and other
+truths. Inventory derives each expected statement/key from independent source
+keys. Service-local receipts are authenticated in the service leaf's public
+frame; they remain outside the pre-challenge manifest's CPU-only local receipt
+field because these service proofs are drawn after that manifest.
+
+The complete physical gate is opt-in with `STWO_OP_R6_TRUTH_LOCAL=1`, alongside
+`STWO_OP_R6_ROOT_CONFIG`, `STWO_OP_R6_ROOT_NATIVE`, and a fresh
+`STWO_OP_R6_ROOT_OUT` directory. After persisting every node and final root, it
+copies only `native-op.json` and `cells.bin` into `source-only`, checks that no
+native proof file exists there, and reconstructs/qualifies the final root from
+that source-only handoff. A flipped schema policy must reject before key setup.
+The existing full terminal, ordered coverage, source-key substitution and
+balanced-global-claim controls run on this same retained root.
+
+Current measured CPU and isolated338-call Keccak leaves do not establish the
+heavy tenfold target. Multiplying30-second CPU wraps by57 CPU shards and adding
+folds would already exceed332 seconds. The complete-root gate must be followed
+by real full-height class costing and an equal-security/workload comparison to
+the retained M6/M7 route; pure P2 is not assumed to be the best CPU architecture.
