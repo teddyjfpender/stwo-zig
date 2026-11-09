@@ -159,7 +159,11 @@ pub const Captured = struct {
         const words = if (direct_second) &HOLE_WORDS else &WORDS;
         const program = try a.create(Program);
         errdefer a.destroy(program);
-        program.* = try Program.initWithProfile(a, .{ .base = 4096, .words = words }, profile);
+        // Preserve the original generic ROM authority for Ethereum fixtures;
+        // their session/tape executes v3 services, while CpuSetup.initProgram
+        // independently derives the historical default ROM identity. OP has
+        // its own explicit ROM profile and must never erase that distinction.
+        program.* = if (profile == .ethereum_services_op_v1) try Program.initWithProfile(a, .{ .base = 4096, .words = words }, profile) else try Program.init(a, .{ .base = 4096, .words = words });
         errdefer program.deinit();
         var memory = rv.memory.Memory.init(a, .{});
         defer memory.deinit();
