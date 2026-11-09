@@ -82,7 +82,7 @@ test "OP schema2 actual Keccak338 CPU and SHA join with fresh closure and strict
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     const profile = Profile.op_target_b4_q72_p0_fold4_v1;
-    const resources = Runtime.Resources{ .park_cpu_metadata = std.posix.getenv("STWO_OP_NATIVE_METADATA_PARKING") != null };
+    const resources = Runtime.Resources{ .park_cpu_metadata = std.posix.getenv("STWO_OP_NATIVE_METADATA_PARKING") != null, .retire_source_auxiliaries = std.posix.getenv("STWO_OP_NATIVE_SOURCE_RETIREMENT") != null };
     const options = Runtime.Options{ .truth_local_gkr = true };
     try Runtime.produceDirectoryWithOptions(alloc, parsed.value, output, profile, resources, options);
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);

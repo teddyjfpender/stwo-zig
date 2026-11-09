@@ -35,6 +35,7 @@ pub const Limits = struct {
     consume_memory_events: bool = false,
     /// Bounded producer advice custody, no protocol or verifier change.
     park_cpu_metadata: bool = false,
+    retire_source_auxiliaries: bool = false,
     fn recorder(self: Limits, i: usize) ?*Stage.Recorder {
         return if (self.recorders.len == 0) null else self.recorders[i];
     }
@@ -146,6 +147,7 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
         done += 1;
         source_scope.end();
         stages[i] = try sealAndPark(a, &workers[i], inventory.workers[i], store, limits.recorder(i));
+        if (limits.retire_source_auxiliaries) _ = try @import("pure_p2_source_auxiliary_retirement.zig").retire(&workers[i].cpu.source);
         if (metadata[i]) |*token| try token.retireRestored(&workers[i].cpu.source.core.cpu);
     }
     for (truths, truth_keys, 0..) |truth, key, j| {

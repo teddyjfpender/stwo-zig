@@ -193,7 +193,15 @@ pub const Provider = struct {
                 const tuple = B.shift_word_experiment.table.tupleAt(at);
                 var v: [6]M = undefined;
                 for (tuple, &v) |value, *d| d.* = M.fromCanonical(value);
-                const n = s.shift.shift_counts[at] + (if (s.tails.shift) |tail| tail.shift_counts[at] else 0);
+                const n = if (s.shift.shift_counts.len == 0) blk: {
+                    // Pure-P2 post-seal retirement keeps the already committed
+                    // packed multiplicity plane (main_ownership.copied). The
+                    // provider reads exactly its physical/logical layout.
+                    if (s.tails.shift) |tail| if (tail.shift_counts.len != 0) return error.LocalGkrMetadataRetired;
+                    const table = B.shift_word_packed_experiment.table;
+                    if (s.shift_table.main.len != 16 * table.SIZE) return error.LocalGkrMetadataRetired;
+                    break :blk s.shift_table.main[lane * table.SIZE + X.layout.physical(i, table.LOG)].v;
+                } else s.shift.shift_counts[at] + (if (s.tails.shift) |tail| tail.shift_counts[at] else 0);
                 sink.emitBase(.shift, v, (try count(n)).neg());
             },
             .selection => for (0..2) |parity| {

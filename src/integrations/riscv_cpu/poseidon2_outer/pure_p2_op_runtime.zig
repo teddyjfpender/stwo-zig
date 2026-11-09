@@ -52,6 +52,7 @@ pub const Options = struct {
 pub const Resources = struct {
     /// Producer-only bounded inactive CPU advice parking; proof bytes unchanged.
     park_cpu_metadata: bool = false,
+    retire_source_auxiliaries: bool = false,
     consume_memory_events: bool = true,
     live_bytes: usize = 32 << 30,
     disk_bytes: usize = 192 << 30,
@@ -662,6 +663,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     var bundle = try Producer.produce(a, &inventory, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, captured.native, &captured.advice, &store, .{
         .consume_memory_events = resources.consume_memory_events,
         .park_cpu_metadata = resources.park_cpu_metadata,
+        .retire_source_auxiliaries = resources.retire_source_auxiliaries,
         .truth_local_gkr_bytes = resources.gkr_bytes,
         .recorders = observations.pointers,
         .timing = &phases,

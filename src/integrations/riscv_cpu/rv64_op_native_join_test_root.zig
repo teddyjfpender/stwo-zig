@@ -1,5 +1,7 @@
 test {
     _ = @import("poseidon2_outer/root_cli_options.zig");
+    _ = @import("poseidon2_outer/pure_p2_source_auxiliary_retirement.zig");
+    _ = @import("poseidon2_outer/pure_p2_source_memory_layout_test.zig");
     _ = @import("poseidon2_outer/pure_p2_cpu_metadata_parking.zig");
     _ = @import("poseidon2_outer/pure_p2_cpu_seal_plan_test.zig");
     _ = @import("poseidon2_outer/pure_p2_truth_local_plan.zig");
