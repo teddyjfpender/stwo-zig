@@ -1,7 +1,9 @@
 # RFC draft: five waist packages at 1.0.0-rc.1
 
-Status: exact transaction prepared for the user-directed D1 target; final 1.0.0
-and Phase 1 exit remain unapproved and incomplete. Slice: [#354](https://github.com/teddyjfpender/stwo-zig/issues/354).
+Status: exact transaction approved by the coordinating implementation delegate
+under the user-directed D1 target: [decision](https://github.com/teddyjfpender/stwo-zig/issues/355#issuecomment-6750334735).
+This records the delegate decision, not a new user signature. Final 1.0.0 and
+Phase 1 exit remain unapproved and incomplete. Slice: [#354](https://github.com/teddyjfpender/stwo-zig/issues/354).
 RFC: [#355](https://github.com/teddyjfpender/stwo-zig/issues/355).
 Owner roles: `protocol-core`, `backend-contracts`, `prover-api`, `proof-wire`,
 `circuit-recursion`; named accountable owner for every role: `@teddyjfpender`.
@@ -89,7 +91,8 @@ Version readers found in the repository:
   contracts for names, public module roots and local dependency paths; they do
   not resolve versions or introduce version constraints.
 - Existing package-workspace/release/downstream tests exercise these readers.
-  Their generic `0.1.0`/`0.0.0` fixtures stay valid and unchanged.
+  Generic `0.1.0`/`0.0.0` fixtures stay valid; the two explicit core archive-prefix
+  assertions change from `stwo_core-0.1.0` to `stwo_core-1.0.0-rc.1`.
 
 ## Frozen ledger identities
 

@@ -11,7 +11,7 @@ bytes the Rust would write for it.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `1.0.0-rc.1` |
 | Layer | `interchange` |
 | Owner | `circuit-recursion` |
 | Public Zig module | `stwo_circuit_recursion_wire` |

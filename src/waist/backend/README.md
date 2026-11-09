@@ -7,7 +7,7 @@ implementations; it contains contracts, not a working backend.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `1.0.0-rc.1` |
 | Layer | `contract` |
 | Owner | `backend-contracts` |
 | Public Zig module | `stwo_backend_contracts` |
