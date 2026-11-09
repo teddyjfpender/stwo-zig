@@ -43,3 +43,31 @@ The security label remains **128-bit security target under documented
 assumptions**, `security_qualified=false`; production admission remains closed.
 Pending gates are source-shard census, actual recursive leaf, fold/root and
 fresh durable receiver, then matched full-block native-plus-root timings.
+
+## Actual small-block CPU gate
+
+The actual OP 120794432 CPU leaf now passes with a 689,252-byte six-component
+proof. Its source has 3,992,911 QM31 rows (log22) and 132,725 independent native
+products (log18), 264,302,592 total native source cells versus the R5 control's
+400,355,328. The proof is persisted with stage telemetry before a separately
+rebuilt source key verifies it; changed expected output is rejected.
+
+The measured proof stage sum is 30.836 s versus retained R5 57.408 s, an observed
+1.862x reduction on this source shape. Producer proof time is 30.934 s, immutable
+source setup 7.452 s, fresh setup 7.829 s and fresh proof verification 35.67 ms.
+MAIN is 8.935 versus 16.322 s, INTER commit 8.502 versus 16.300 s, composition
+5.084 versus 7.719 s and FRI quotient 2.309 versus 6.795 s. Compact coefficient
+storage costs trace decommit time (0.629 versus 0.042 s) while retaining exact
+proof byte parity against its full-LDE control. Observed process peak is
+7.081 GB; lifecycle differences prevent a controlled memory multiplier claim.
+These are single runs against retained controls, not a heavy-block speed claim.
+
+`native_omul/fold.zig` now verifies all six source components in-circuit; the
+actual two-child numerical graph and independently source-derived trace agree.
+The new topology, producer, root-only runtime and adversarial adapter are an
+explicit R6 fork of the qualified R5 control, semantically checked but awaiting
+their actual complete-root physical gate. R5 is preserved for comparison. Once
+R6 passes complete source authority/closure/terminal and durable-root tests, the
+adapters should replace rather than accumulate parallel production routes.
+The next physical gate is service-local GKR plus R6 Keccak, followed by the real
+three-leaf CPU/Keccak/SHA root; neither is claimed complete here.

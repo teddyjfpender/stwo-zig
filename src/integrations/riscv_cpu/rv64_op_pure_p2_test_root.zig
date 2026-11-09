@@ -31,3 +31,11 @@ test {
 test {
     _ = @import("poseidon2_outer/native_omul/source_census_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/native_omul/fold_test.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/native_omul/root_test.zig");
+}

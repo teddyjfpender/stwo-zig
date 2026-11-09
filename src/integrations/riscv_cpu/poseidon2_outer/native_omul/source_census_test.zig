@@ -50,6 +50,7 @@ fn cpu(_: ?*anyopaque, a: std.mem.Allocator, v: Bundle.CpuVerified) !void {
     defer owner.deinit();
     try std.testing.expect(try owner.isCircuitValid());
     try report(a, "CPU", v.ordinal, &owner);
+    try @import("source_physical.zig").maybe(a, "CPU", source, &owner);
 }
 fn truth(_: ?*anyopaque, a: std.mem.Allocator, v: Bundle.TruthVerified) !void {
     var native = try Protocol.W.Wire.decodeProofBytesBinary(a, v.encoded.bytes);
@@ -65,6 +66,7 @@ fn truth(_: ?*anyopaque, a: std.mem.Allocator, v: Bundle.TruthVerified) !void {
     defer owner.deinit();
     try std.testing.expect(try owner.isCircuitValid());
     try report(a, @tagName(v.truth.family()), v.ordinal, &owner);
+    try @import("source_physical.zig").maybe(a, @tagName(v.truth.family()), source, &owner);
 }
 fn miller(_: ?*anyopaque, a: std.mem.Allocator, v: Bundle.MillerVerified) !void {
     var native = try Protocol.W.Wire.decodeProofBytesBinary(a, v.encoded.bytes);
@@ -80,6 +82,7 @@ fn miller(_: ?*anyopaque, a: std.mem.Allocator, v: Bundle.MillerVerified) !void 
     defer owner.deinit();
     try std.testing.expect(try owner.isCircuitValid());
     try report(a, "Miller", v.ordinal, &owner);
+    try @import("source_physical.zig").maybe(a, "Miller", source, &owner);
 }
 test "OP R6 actual source census without outer proofs" {
     const config_path = std.posix.getenv("STWO_OP_R6_CONFIG") orelse return error.SkipZigTest;
