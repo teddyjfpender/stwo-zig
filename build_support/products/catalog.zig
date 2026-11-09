@@ -37,6 +37,8 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-poseidon-matched-blake-census", .description = "Matched source/geometry complete all-Blake CPU graph control", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-poseidon-pure-leaf-census", .description = "Source-exact full P2 CPU candidate AST census; no native parity", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-poseidon-full-leaf-census", .description = "Exact complete mixed P2 CPU recursive leaf census", .scope = .riscv_cpu },
+    .{ .name = "check-riscv64-op-native-group", .description = "Type-check closed OP direct-native source groups", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-op-native-group", .description = "Direct native group numerical/source and padding-cost qualification", .scope = .riscv_cpu },
     .{ .name = "check-riscv64-op-pure-p2", .description = "Type-check OP P2 reference gates without code generation", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-tower-recursion", .description = "OP Miller truth complete recursive statement and physical leaf", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-pure-p2", .description = "OP pure-P2 local numerical/physical gates, production admission closed", .scope = .riscv_cpu },

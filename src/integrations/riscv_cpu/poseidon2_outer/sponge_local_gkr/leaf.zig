@@ -32,6 +32,21 @@ pub const View = struct {
     pub fn buildForProving(self: View, a: std.mem.Allocator) !P.PoseidonContext {
         return self.buildMode(a, false, false);
     }
+    /// Append this complete native verifier to an already active context.
+    /// The caller owns structural/native-multiply scopes and finalizes once.
+    pub fn emitInto(self: View, a: std.mem.Allocator, ctx: *C.Context, trace_only: bool) !@import("../pure_p2_source_emission.zig").Emission {
+        _ = try P.sidecar(ctx);
+        const proof = try V.proof.guess(ctx, self.values, self.shape);
+        var frame = Public.Frame.init(ctx);
+        var statement = try Statement.Statement.init(&frame, self.key, self.geometry, self.ordinal, self.manifest, self.claims, .{ .fixed = proof.commitments[0], .main = proof.commitments[1] }, self.child);
+        defer statement.deinit(ctx);
+        _ = try V.verify(ctx, self.shape, &proof, &statement);
+        const output = try frame.finish();
+        if (!trace_only) for (output, try self.expectedOutput(a)) |port, value| if (!ctx.get(port).eql(value)) return error.DetachedSpongePublicFrameMismatch;
+        const last = statement.pending.artifact.claims_to_verify_by_instance.len - 1;
+        const mutants = [_]C.Var{ proof.sampled_values[1][0][0].c0.v, statement.pending.artifact.claims_to_verify_by_instance[last][0].c0.v, statement.claims[0][2].c0.v, output[8] };
+        return .{ .output = output, .mutation_ports = mutants };
+    }
     fn buildMode(self: View, a: std.mem.Allocator, trace_only: bool, qualify: bool) !P.PoseidonContext {
         var structural = @import("../../rv64_recursion/circuit_lane.zig").StructuralScope.init();
         defer structural.deinit();
@@ -41,22 +56,15 @@ pub const View = struct {
         var active = true;
         defer if (active) P.finish() catch {};
         const ctx = owner.algebra();
-        const proof = try V.proof.guess(ctx, self.values, self.shape);
-        var frame = Public.Frame.init(ctx);
-        var statement = try Statement.Statement.init(&frame, self.key, self.geometry, self.ordinal, self.manifest, self.claims, .{ .fixed = proof.commitments[0], .main = proof.commitments[1] }, self.child);
-        defer statement.deinit(ctx);
-        _ = try V.verify(ctx, self.shape, &proof, &statement);
-        const output = try frame.finish();
-        if (!trace_only) for (output, try self.expectedOutput(a)) |port, value| if (!ctx.get(port).eql(value)) return error.DetachedSpongePublicFrameMismatch;
+        const emitted = try self.emitInto(a, ctx, trace_only);
+        const output = emitted.output;
         try P.finish();
         active = false;
         try owner.setOutputs(&output);
         try owner.finalize();
         if (!trace_only and qualify) {
             if (!try owner.isCircuitValid()) return error.CircuitCheckFailure;
-            const last = statement.pending.artifact.claims_to_verify_by_instance.len - 1;
-            const mutants = [_]C.Var{ proof.sampled_values[1][0][0].c0.v, statement.pending.artifact.claims_to_verify_by_instance[last][0].c0.v, statement.claims[0][2].c0.v, output[8] };
-            for (mutants) |port| {
+            for (emitted.mutation_ports) |port| {
                 const old = ctx.get(port);
                 ctx.value_table.items[port.idx] = old.add(C.Q.one());
                 const accepted = try owner.isCircuitValid();

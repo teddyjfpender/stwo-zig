@@ -253,7 +253,6 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     const detached_ns = phase_timer.lap();
     defer fragment.deinit(a);
     if (!hole and !local_truth and !typed_manifest) try std.testing.expectEqualStrings("8be51254f5dc66c7ab29f442b029c005726e96fd9052068c0e9728eb7eaa2023", &hash(fragment.bytes));
-    if (comptime Hook != void and @hasDecl(Hook, "detached")) try Hook.detached(a, &detached, &fragment, manifest, detached_main);
     try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, truth_worker.completeSealed(.{ .manifest = manifest, .main = Base.hashWords(&.{ 991, 3 }) }));
     var truth_proof = try truth_worker.completeSealed(.{ .manifest = manifest, .main = truth_stage.main });
     defer truth_proof.deinit(a);
@@ -331,6 +330,7 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     var fresh_detached = try DKey.initDigest(a, profile, geometry);
     defer fresh_detached.deinit();
     claims[2] = try Detached.verify(a, geometry, &fresh_detached, 2, manifest, detached_main, &fragment);
+    if (comptime Hook != void and @hasDecl(Hook, "detached")) try Hook.detached(a, &detached, &fragment, manifest, detached_main);
     // An absent-family slot cannot inject debt into aggregate closure even
     // when the original proof and transcript otherwise remain unchanged.
     fragment.claims[0][1] = O.one();

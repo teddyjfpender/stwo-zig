@@ -219,3 +219,7 @@ test {
 test {
     _ = @import("poseidon2_outer/sponge_cpu/mixed_root_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/native_group/census_test.zig");
+}
