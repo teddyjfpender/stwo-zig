@@ -4,8 +4,8 @@ const std = @import("std");
 const provider = @import("sha256_compression_rows.zig");
 const source = @import("sha256_packed_source.zig");
 const caller = @import("sha256_memory_caller.zig");
-pub fn AirsForRecipe(comptime local_zero: bool) @TypeOf(.{ source, provider.Schedule, provider.Round, provider.FeedForward, if (local_zero) @import("sha256_caller_local_zero_v1.zig") else caller }) {
-    return .{ source, provider.Schedule, provider.Round, provider.FeedForward, if (local_zero) @import("sha256_caller_local_zero_v1.zig") else caller };
+pub fn AirsForRecipe(comptime local_zero: bool) @TypeOf(.{ source, provider.Schedule, provider.Round, provider.FeedForward, if (local_zero) @import("sha256_caller_local_zero.zig") else caller }) {
+    return .{ source, provider.Schedule, provider.Round, provider.FeedForward, if (local_zero) @import("sha256_caller_local_zero.zig") else caller };
 }
 pub const Airs = AirsForRecipe(false);
 pub const LocalZeroAirs = AirsForRecipe(true);

@@ -311,6 +311,18 @@ class ConsumerMetadataGrammarTests(unittest.TestCase):
     def parse(self, payload):
         return subject.ci_package_graph.parse_contract_metadata(payload, "fixture")
 
+    def test_duplicate_json_fields_are_rejected_for_both_supported_schemas(self):
+        import json
+        for schema in ("stwo-zig-package-contract-v2", "stwo-zig-package-contract-v3"):
+            payload = self.payload(schema)
+            encoded = json.dumps(payload)
+            duplicate = encoded.replace('"schema": ' + json.dumps(schema), '"schema": ' + json.dumps(schema) + ', "schema": ' + json.dumps(schema), 1)
+            with TemporaryDirectory() as raw:
+                path = Path(raw) / "package.contract.json"
+                path.write_text(duplicate)
+                with self.subTest(schema=schema), self.assertRaisesRegex(ValueError, "duplicate contract field"):
+                    subject.load_contract(path)
+
     def test_closed_v2_is_retained_without_extension_metadata(self):
         actual = self.parse(self.payload("stwo-zig-package-contract-v2"))
         self.assertEqual((), actual.consumers)
@@ -401,13 +413,16 @@ class ConsumerMetadataGrammarTests(unittest.TestCase):
         payload.pop("budget")
         self.assertIsNone(self.parse(payload).budget)
 
-    def test_schema_checkpoint_does_not_activate_unvalidated_v3_workspace_reading(self):
+    def test_v3_shape_loading_is_separate_from_source_and_execution_admission(self):
         import json
         with TemporaryDirectory() as raw:
             path = Path(raw) / "package.contract.json"
             path.write_text(json.dumps(self.payload()))
-            with self.assertRaises(ValueError):
-                subject.load_contract(path)
+            loaded = subject.load_contract(path)
+            self.assertIsNotNone(loaded.metadata)
+            failures = subject.ci_package_graph.validate_package_consumer_sources(Path(raw), loaded, loaded.metadata, {loaded.package: loaded}, set())
+            self.assertTrue(failures)
+
 
 class ProductDeclarationSourceTests(unittest.TestCase):
     """Literal source facts, distinct from fresh build/catalog qualification."""

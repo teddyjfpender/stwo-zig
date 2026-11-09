@@ -10,9 +10,9 @@ const air = struct {
     pub const linear_ops_witness = @import("linear_ops_witness.zig");
     pub const linear_ops = @import("linear_ops.zig");
     pub const qm31_inv = @import("qm31_inv.zig");
-    pub const qm31_mul_add_v1 = @import("qm31_mul_add_v1.zig");
+    pub const qm31_mul_add_v1 = @import("qm31_mul_add.zig");
     pub const detached_arithmetic_fusion_plan = @import("detached_arithmetic_fusion_plan.zig");
-    pub const detached_opening_accumulate4_v1 = @import("detached_opening_accumulate4_v1.zig");
+    pub const detached_opening_accumulate4_v1 = @import("detached_opening_accumulate4.zig");
     pub const detached_opening_accumulation_plan = @import("detached_opening_accumulation_plan.zig");
 };
 pub const Rows = struct {
@@ -31,8 +31,8 @@ pub const Rows = struct {
         self.* = undefined;
     }
 };
-const Direct = @import("blake3_direct_cohort_columns_v1.zig");
-const FixedColumns = @import("arithmetic_fusion_fixed_columns_v1.zig");
+const Direct = @import("blake3_direct_cohort_columns.zig");
+const FixedColumns = @import("arithmetic_fusion_fixed_columns.zig");
 pub const Fixed = FixedColumns.Fixed;
 const Stats = struct { dot4_matches: usize, fma_matches: usize };
 const RowSink = struct {

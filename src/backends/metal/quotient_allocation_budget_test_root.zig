@@ -1,6 +1,6 @@
 const std = @import("std");
 const budget = @import("stwo_prover_engine").host_budget_allocator;
-const impl = @import("runtime/quotient_allocation_budget_v1.zig");
+const impl = @import("runtime/quotient_allocation_budget.zig");
 const Scope = impl.Scope;
 
 test "quotient allocation: callback admits before factory and a failed growth is sticky" {

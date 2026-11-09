@@ -65,7 +65,7 @@ pub const AUTHENTICATED_TEMPORAL_V2 = false;
 pub const COMPLETE_PARENT_CAPABILITY = false;
 pub const SUCCESSFUL_VERIFIER_TRANSACTION_REQUIRED = true;
 
-pub const Error = pair_node.Error || global_closure.Error || @import("canonical_proof_identity_v1.zig").Error || error{
+pub const Error = pair_node.Error || global_closure.Error || @import("canonical_proof_identity.zig").Error || error{
     AliasedDestination,
     CapabilityEscalation,
     CohortAuthorityMismatch,
@@ -99,14 +99,14 @@ pub const ProofEncodingV1 = enum(u8) {
 /// absorbs it before the byte limbs. Callers with a stream whose length is not
 /// known a priori must perform a count pass, then feed the exact second pass to
 /// `CanonicalProofIdentityStreamV1`.
-pub const CanonicalProofIdentityV1 = @import("canonical_proof_identity_v1.zig").CanonicalProofIdentityV1;
+pub const CanonicalProofIdentityV1 = @import("canonical_proof_identity.zig").CanonicalProofIdentityV1;
 
 /// Writer-compatible incremental identity authority. SHA-256 receives the
 /// raw byte stream. The native proof ID receives the same stream through the
 /// protocol's injective `[byte length, little-endian u16 limbs]` encoding.
 /// Arbitrary writer chunk boundaries, including a split two-byte limb, are
 /// intentionally semantics-free.
-pub const CanonicalProofIdentityStreamV1 = @import("canonical_proof_identity_v1.zig").CanonicalProofIdentityStreamV1;
+pub const CanonicalProofIdentityStreamV1 = @import("canonical_proof_identity.zig").CanonicalProofIdentityStreamV1;
 
 /// Pointer-free proof identity staged while the successful verifier still
 /// owns the canonical proof bytes and the independently reconstructed cohort.
@@ -634,9 +634,9 @@ const IdentityHasher = struct {
     }
 };
 
-const requireNativeDigest = @import("canonical_proof_identity_v1.zig").requireNativeDigest;
+const requireNativeDigest = @import("canonical_proof_identity.zig").requireNativeDigest;
 
-const requireSha256Digest = @import("canonical_proof_identity_v1.zig").requireSha256Digest;
+const requireSha256Digest = @import("canonical_proof_identity.zig").requireSha256Digest;
 
 fn rejectDestinationAliases(
     destination: *VerifiedBinaryClosurePublicationV2,

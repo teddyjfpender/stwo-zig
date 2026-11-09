@@ -118,6 +118,20 @@
           "src/waist/core/build.zig",
           "-Doptimize=ReleaseFast",
           "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-core",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-cdc-stwo-core",
+          "-Doptimize=ReleaseFast",
+          "-j2"
         ]
       ]
     },
@@ -1902,8 +1916,8 @@
     },
     {
       "prefixes": [
-        "src/frontends/riscv/recursion/tests/segment_leaf_local_projection_v3_test.zig",
-        "src/frontends/riscv/recursion/tests/vm_composition_program_v2_test.zig",
+        "src/frontends/riscv/recursion/tests/segment_leaf_local_projection_test.zig",
+        "src/frontends/riscv/recursion/tests/vm_composition_program_test.zig",
         "src/frontends/riscv/retained_transcript_contract_test_root.zig",
         "src/frontends/riscv/retained_typed_component_test_root.zig"
       ],

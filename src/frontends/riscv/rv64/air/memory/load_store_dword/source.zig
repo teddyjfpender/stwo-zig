@@ -6,7 +6,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const R = @import("../closed_ram/mod.zig");
-const V2 = @import("../load_store_v2/mod.zig");
+const V2 = @import("../load_store/mod.zig");
 const L = @import("layout.zig");
 const T = @import("types.zig");
 const M = T.M;
@@ -54,7 +54,7 @@ pub const Source = struct {
         const n = try sizeForLog(log);
         // Every present instance keeps one inactive terminal row.
         if (events.len >= n) return error.LsCapacityExceeded;
-        _ = try @import("../../word16_v1/function_bus.zig").admitPositiveMass(&.{ L.LOGICAL_U16.len * @as(u64, @intCast(n)), L.LOGICAL_U8.len * @as(u64, @intCast(n)) });
+        _ = try @import("../../word16/function_bus.zig").admitPositiveMass(&.{ L.LOGICAL_U16.len * @as(u64, @intCast(n)), L.LOGICAL_U8.len * @as(u64, @intCast(n)) });
         for (events) |e| try validate(e);
         const geometry = try fixed(a, log);
         errdefer a.free(geometry);

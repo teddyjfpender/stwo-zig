@@ -9,8 +9,8 @@ const Graph = @import("../composition_circuit.zig");
 const Pack = @import("../qm31_pack_wire.zig");
 const Boundary = @import("../blake3_boundary.zig");
 const Scalar = @import("../scalar_wire_source.zig");
-const Direct = @import("../blake3_direct_cohort_columns_v1.zig");
-const View = @import("../blake3_recursive_column_rows_v1.zig");
+const Direct = @import("../blake3_direct_cohort_columns.zig");
+const View = @import("../blake3_recursive_column_rows.zig");
 const Inventory = @import("../blake3_parent_input_inventory.zig");
 const storage = @import("../blake3_parent_row_storage.zig");
 

@@ -15,7 +15,7 @@ pub const ro = @import("readonly_consistency.zig");
 pub const adapter = @import("readonly_input.zig");
 const projection = @import("blake3_projection_links.zig");
 const PACK_CIRCUIT: u32 = 5_000_001;
-pub const Columns = @import("blake3_upstream_source_columns_v1.zig").ForSlots(.{ 2, 10, 11, 16, 17 });
+pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{ 2, 10, 11, 16, 17 });
 pub const Prepared = struct {
     sources: []Source,
     source_allocator: ?std.mem.Allocator = null,

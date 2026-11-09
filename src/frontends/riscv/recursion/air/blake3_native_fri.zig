@@ -11,7 +11,7 @@ const scalar = @import("scalar_wire_source.zig");
 const lower = @import("verifier_arithmetic_lowering.zig");
 const M31 = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
-const Direct = @import("blake3_pcs_source_columns_v1.zig");
+const Direct = @import("blake3_pcs_source_columns.zig");
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     graph: fri.Circuit,

@@ -50,7 +50,7 @@ pub fn xor5Accessors(comptime S: type, state: anytype, parity: anytype, event: u
     tuple[5] = parity.at(event);
     return tuple;
 }
-/// Throughput five-output chi row `(y,z)` (`keccakf_throughput_tables_v1.zig`):
+/// Throughput five-output chi row `(y,z)` (`keccakf_throughput_tables.zig`):
 /// tuple[0] packs the five theta values base 28 (`28^5 * 2 < p`) plus the iota
 /// bit at `28^5`; tuple[1..6] are the five next-state cells `x = 0..4`.
 /// `scale(value, constant)` multiplies by a small canonical constant.

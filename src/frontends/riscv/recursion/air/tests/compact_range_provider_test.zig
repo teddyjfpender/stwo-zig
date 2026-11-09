@@ -24,7 +24,7 @@ test "compact range provider constraints signed relations and adversarial limbs"
         defer d.deinit();
         const binding = try @import("../universal_relation_binding.zig").Binding(Air).authenticate(&d);
         const direct = try @import("../direct_constraint_program.zig").authenticate(&d.arena, Air.SEMANTIC_DIGEST, Air.LOGICAL_INPUT_COUNT);
-        var exported = try @import("../framework_polynomial_export_v1.zig").exportLocalPrepared(Air, a, &direct, &binding);
+        var exported = try @import("../framework_polynomial_export.zig").exportLocalPrepared(Air, a, &direct, &binding);
         defer exported.deinit();
         for ([_]usize{ 0, 1, 255, 256, schema.size(kind) - 1 }) |index| {
             const tuple = try schema.tupleAt(kind, index);

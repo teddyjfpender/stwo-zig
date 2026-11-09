@@ -5,7 +5,7 @@ const pcs = @import("pcs_deep_circuit.zig");
 const graph = @import("composition_circuit.zig");
 const opening = @import("detached_opening_accumulation_plan.zig");
 const lowering = @import("verifier_arithmetic_lowering.zig");
-const component = @import("detached_pcs_opening4_v1.zig");
+const component = @import("detached_pcs_opening4.zig");
 
 pub const Candidate = struct {
     opening: opening.Match,

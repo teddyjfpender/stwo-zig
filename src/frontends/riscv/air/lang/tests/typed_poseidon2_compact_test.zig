@@ -1,9 +1,9 @@
 //! Independent typed compact lowering checks, including deliberately off-trace rows.
 const std = @import("std");
 const typed = @import("../typed_poseidon2_compact.zig");
-const layout = @import("../../memory_commitment/poseidon2_universal_layout_v1.zig");
-const specialized = @import("../../memory_commitment/poseidon2_universal_equations_v1.zig");
-const witness = @import("../../memory_commitment/poseidon2_universal_degree3_v1.zig");
+const layout = @import("../../memory_commitment/poseidon2_universal_layout.zig");
+const specialized = @import("../../memory_commitment/poseidon2_universal_equations.zig");
+const witness = @import("../../memory_commitment/poseidon2_universal_degree3.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 

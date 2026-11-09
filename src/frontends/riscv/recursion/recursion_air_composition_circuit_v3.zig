@@ -14,12 +14,12 @@
 //! the authenticated graph/input view.  It deliberately does not mutate or
 //! reinterpret `recursion_air_composition_circuit.zig` (V2).
 
-const shard_0 = @import("recursion_air_composition_circuit_v3_canonical_empty_program_v3.zig");
-const shard_1 = @import("recursion_air_composition_circuit_v3_program_roster_v3.zig");
-const shard_2 = @import("recursion_air_composition_circuit_v3_circuit_view_v3.zig");
-const shard_3 = @import("recursion_air_composition_circuit_v3_heterogeneous_session_v3.zig");
-const shard_4 = @import("recursion_air_composition_circuit_v3_write_inputs_from_validated_profile_and_policy.zig");
-const authority_validation = @import("recursion_air_composition_circuit_v3_authority_validation.zig");
+const shard_0 = @import("recursion_air_composition_circuit_canonical_empty_program.zig");
+const shard_1 = @import("recursion_air_composition_circuit_program_roster.zig");
+const shard_2 = @import("recursion_air_composition_circuit_circuit_view.zig");
+const shard_3 = @import("recursion_air_composition_circuit_heterogeneous_session.zig");
+const shard_4 = @import("recursion_air_composition_circuit_write_inputs_from_validated_profile_and_policy.zig");
+const authority_validation = @import("recursion_air_composition_circuit_authority_validation.zig");
 
 pub const capture_layout_v3 = shard_0.capture_layout_v3;
 pub const segment_recorder_v3 = shard_0.segment_recorder_v3;

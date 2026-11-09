@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const projection = @import("air/guest_precompile/keccakf_adaptive_corpus_projection_v1.zig");
+const projection = @import("air/guest_precompile/keccakf_adaptive_corpus_projection.zig");
 
 const maximum_journal_bytes: usize = 64 << 20;
 const maximum_executable_bytes: usize = 256 << 20;

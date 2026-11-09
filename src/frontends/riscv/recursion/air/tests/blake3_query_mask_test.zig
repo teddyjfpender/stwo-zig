@@ -12,7 +12,7 @@ test "BLAKE3 raw query masking pins semantics and preserves native u32 boundarie
     defer d.deinit();
     const plan = try binding.Binding(mask).authenticate(&d);
     const direct = try @import("../direct_constraint_program.zig").authenticate(&d.arena, mask.SEMANTIC_DIGEST, mask.LOGICAL_INPUT_COUNT);
-    var exported = try @import("../framework_polynomial_export_v1.zig").exportLocalPrepared(mask, a, &direct, &plan);
+    var exported = try @import("../framework_polynomial_export.zig").exportLocalPrepared(mask, a, &direct, &plan);
     defer exported.deinit();
     const words = [_]u32{ 0, 1, 0x7ffffffe, 0x7fffffff, 0x80000000, 0xfffffffe, 0xffffffff, 0x12345678 };
     for (0..32) |log| for (words) |word| {

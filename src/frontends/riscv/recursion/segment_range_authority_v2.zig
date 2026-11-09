@@ -19,7 +19,7 @@ const relation = @import("../air/lang/relation.zig");
 const range_bridge = @import("air/range_check_8_8_bridge.zig");
 const shared_provider = @import("air/universal_shared_provider.zig");
 const universal = @import("air/universal_challenges.zig");
-const manifest_v2 = @import("air/segment_outer_adapter_manifest_v2.zig");
+const manifest_v2 = @import("air/segment_outer_adapter_manifest.zig");
 const statement = @import("segment_statement_outer_source_v2.zig");
 
 pub const Digest = statement.Digest;

@@ -1,8 +1,8 @@
 //! Complete binary subtree from authenticated payload words, then an upper path.
 //! Caller supplies canonical word producers with the returned payload use counts.
 const std = @import("std");
-const Nonhash = @import("blake3_nonhash_emission_v1.zig");
-const DirectFrame = @import("blake3_frame_nonhash_v1.zig");
+const Nonhash = @import("blake3_nonhash_emission.zig");
+const DirectFrame = @import("blake3_frame_nonhash.zig");
 const core = @import("stwo_core");
 const frame = @import("blake3_frame_witness.zig");
 const routing = @import("blake3_frame_route.zig");

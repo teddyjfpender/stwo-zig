@@ -26,12 +26,12 @@ pub const ethereum_segment_orchestration =
 pub const ethereum_segment_transcript_extension =
     @import("ethereum_segment_transcript_extension.zig");
 pub const ethereum_native_provider_omit_protocol_v1 =
-    @import("../memory_provider_shards/ethereum_omit_protocol_v1.zig");
+    @import("../memory_provider_shards/ethereum_omit_protocol.zig");
 pub const ethereum_native_provider_omit_proof_v1 =
-    @import("../memory_provider_shards/ethereum_omit_provider_proof_v1.zig");
+    @import("../memory_provider_shards/ethereum_omit_provider_proof.zig");
 pub const ethereum_segment_verifier = @import("ethereum_segment_verifier.zig");
 pub const ethereum_leaf_matched_ab_execution_profile_v1 =
-    @import("ethereum_leaf_matched_ab_execution_profile_v1.zig");
+    @import("ethereum_leaf_matched_ab_execution_profile.zig");
 pub const orchestration = @import("orchestration.zig");
 pub const verifier = @import("verifier.zig");
 /// Research-only split PCS prepare/manifest boundary. This retains real

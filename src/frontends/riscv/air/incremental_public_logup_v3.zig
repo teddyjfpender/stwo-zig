@@ -424,7 +424,7 @@ test "incremental public V3 does not double count an ordinary RW transition" {
 }
 
 test "incremental public V3 retains roots but removes sparse tree leaves" {
-    const support = @import("public_data_v2_test_support.zig");
+    const support = @import("public_data_test_support.zig");
     var fixture = try support.Fixture.init();
     const source = fixture.rightSource();
     const words = try support.encode(std.testing.allocator, &source);

@@ -415,3 +415,33 @@ pub const public_package_roots = &.{
     "dependency:../src/waist/recursion_wire:mod.zig",
     "dependency:../src/waist/recursion_wire:postcard/mod.zig",
 };
+
+const std = @import("std");
+const ownership = @import("../graph/package_ownership.zig");
+
+pub const Consumer = struct {
+    id: []const u8,
+    root: []const u8,
+    route: []const u8,
+    imports: []const []const u8,
+    tests: []const []const u8,
+};
+
+pub fn coreConsumers(b: *std.Build) []const Consumer {
+    const bytes = std.fs.cwd().readFileAlloc(b.allocator, b.pathFromRoot("src/waist/core/package.contract.json"), 1 << 20) catch @panic("read core consumer metadata");
+    const parsed = std.json.parseFromSlice(std.json.Value, b.allocator, bytes, .{}) catch @panic("parse core consumer metadata");
+    const rows = parsed.value.object.get("consumers") orelse @panic("core consumer metadata missing");
+    return (std.json.parseFromValue([]Consumer, b.allocator, rows, .{}) catch @panic("invalid core consumer records")).value;
+}
+
+pub fn withCoreConsumerRoots(b: *std.Build, roots: []const []const u8) []const []const u8 {
+    const consumers = coreConsumers(b);
+    const result = b.allocator.alloc([]const u8, roots.len + consumers.len) catch @panic("OOM");
+    @memcpy(result[0..roots.len], roots);
+    for (consumers, result[roots.len..]) |consumer, *destination| {
+        const owner = ownership.resolve(consumer.root) orelse @panic("unowned core consumer");
+        const directory = consumer.root[0 .. consumer.root.len - owner.sub_path.len - 1];
+        destination.* = b.fmt("dependency:../{s}:{s}", .{ directory, owner.sub_path });
+    }
+    return result;
+}

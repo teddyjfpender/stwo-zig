@@ -1,7 +1,7 @@
 //! Internal pair node authority shard; use pair_node.zig publicly.
 
 const dependency_0 = @import("pair_node_contract.zig");
-const dependency_1 = @import("pair_node_child_evidence_v1.zig");
+const dependency_1 = @import("pair_node_child_evidence.zig");
 
 const AUTHENTICATION_PERMUTATION_CALL_TREE_V1 = dependency_0.AUTHENTICATION_PERMUTATION_CALL_TREE_V1;
 const AUTHORITY_CONTEXT_PREIMAGE_WORD_COUNT = dependency_0.AUTHORITY_CONTEXT_PREIMAGE_WORD_COUNT;

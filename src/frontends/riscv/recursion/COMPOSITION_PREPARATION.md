@@ -83,7 +83,7 @@ python3 scripts/repo/zig_serial_build.py --cwd src/integrations/riscv_cpu \
 
 Each new row consumes `(segment statement scope, canonical root-word index,
 root value)` through the existing statement-word relation.
-`statement_input_roots_v3.zig` provides a separately sealed provider AIR and
+`statement_input_roots.zig` provides a separately sealed provider AIR and
 fixed routing schedule: the two canonical root words each have one extra
 segment-scope emission. It uses the same AIR builder as V2; the legacy branch
 retains its exact semantic and static-profile identities. The extra column is

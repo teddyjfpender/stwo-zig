@@ -990,6 +990,20 @@
       "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
     },
     {
+      "id": "c2_p003_source_path_compatibility",
+      "net_code_budget": 16,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue333 allowance: retain the source-pinned P003 matrix unchanged through one13-line nine-export forwarding facade to the canonical implementation. Preserve nominal identities and the immutable blocked receipt without re-pinning; retire only with the owner-reviewed source-binding migration. No duplicate implementation, runtime flag or launcher."
+    },
+    {
+      "id": "c2_canonical_formatting",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue333 comment6752084383: apply pinned Zig0.15.2 canonical whitespace after path shortening. All changed Zig files are checked; only one declaration-array alignment differs. Preserve line counts, non-whitespace source bytes, literal strings and all protocol/source pins; no implementation or optimization change. Existing13-line P003 facade retains its separate16-line allowance."
+    },
+    {
       "id": "waist_consumer_contracts_366_367",
       "net_code_budget": 2400,
       "validator_build_code_budget": 650,

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Mapping
@@ -61,6 +62,7 @@ class Package:
     name: str
     directory: str
     dependencies: frozenset[str]
+    consumer_roots: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -162,9 +164,10 @@ def load_packages(root: Path) -> dict[str, Package]:
     """
     directories: dict[str, str] = {}
     raw: dict[str, dict[str, str]] = {}
+    consumer_roots: dict[str, tuple[str, ...]] = {}
     for contract_path in sorted((root / CONTRACT_ROOT).rglob(CONTRACT_NAME)):
         try:
-            payload = json.loads(contract_path.read_text(encoding="utf-8"))
+            payload = load_contract_payload(contract_path)
         except (OSError, json.JSONDecodeError) as error:
             raise GraphError(f"unreadable package contract {contract_path}: {error}") from error
         if not isinstance(payload, dict):
@@ -183,6 +186,8 @@ def load_packages(root: Path) -> dict[str, Package]:
         directory = _posix(contract_path.parent, root)
         directories[name] = directory
         raw[name] = dict(dependencies)
+        extensions = parse_contract_metadata(payload, str(contract_path)) if "consumers" in payload or "budget" in payload or payload.get("schema") == "stwo-zig-package-contract-v3" else ContractMetadata()
+        consumer_roots[name] = tuple(row.root for row in extensions.consumers)
 
     if not directories:
         raise GraphError(f"no package contracts found under {root / CONTRACT_ROOT}")
@@ -202,7 +207,7 @@ def load_packages(root: Path) -> dict[str, Package]:
                     f"package {name} depends on {relative}, which is not a package directory"
                 )
             resolved.add(dependency)
-        packages[name] = Package(name, directories[name], frozenset(resolved))
+        packages[name] = Package(name, directories[name], frozenset(resolved), consumer_roots[name])
     return packages
 
 
@@ -309,6 +314,7 @@ def selection(
     Unowned paths are returned rather than ignored: the caller decides the
     fail-open policy for them.
     """
+    changed_paths = tuple(changed_paths)
     seeds: set[str] = set()
     unowned: set[str] = set()
     for path in changed_paths:
@@ -321,6 +327,7 @@ def selection(
         return frozenset(), frozenset(unowned)
     affected = reverse_closure(packages, seeds)
     lanes = {lane for lane, package in bindings.items() if package in affected}
+    lanes |= {lane for lane, package in bindings.items() if set(changed_paths) & set(packages[package].consumer_roots)}
     return frozenset(lanes), frozenset(unowned)
 
 
@@ -472,4 +479,44 @@ def validate_package_consumer_sources(repository: Path, provider: Any, metadata:
                 raise GraphError("consumer test discovery differs from the exact registration")
         except (ValueError, OSError) as error:
             failures.append(f"{provider.package} CDC {entry.id}: {error}")
+    return failures
+
+
+def load_contract_payload(path: Path) -> dict[str, Any]:
+    def unique(pairs):
+        result = dict(pairs)
+        if len(result) != len(pairs):
+            raise GraphError(f"{path}: duplicate contract field")
+        return result
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique)
+
+
+def tracked_regular_sources(repository: Path) -> set[str]:
+    output = subprocess.check_output(["git", "ls-files", "--stage", "-z"], cwd=repository, text=True, timeout=10)
+    records = [value.split("\t", 1) for value in output.split("\0") if value]
+    return {path for header, path in records if header.split()[0] in {"100644", "100755"} and header.split()[2] == "0"}
+
+
+def consumer_ci_errors(provider: Any, policy: Mapping[str, Any]) -> list[str]:
+    commands = policy.get("lanes", {}).get(provider.ci_lane, {}).get("commands", [])
+    target = "test-cdc-" + provider.package.replace("_", "-")
+    return [f"{provider.package}: missing executed {mode} consumer command" for mode in ("Debug", "ReleaseFast")
+            if ["zig", "build", target, "-Doptimize=" + mode, "-j2"] not in commands]
+
+
+def validate_registered_consumers(repository: Path, contracts: Mapping[str, Any]) -> list[str]:
+    active = [contract for contract in contracts.values() if contract.metadata is not None]
+    if not active:
+        return []
+    try:
+        tracked = tracked_regular_sources(repository)
+        policy = json.loads((repository / "conformance/ci-touchpoints-v1.json").read_text())
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        return [f"CDC source/policy inventory failed: {error}"]
+    failures = []
+    for provider in active:
+        if not provider.metadata.consumers:
+            failures.append(f"{provider.package}: v3 provider has no registered consumer tests")
+        failures.extend(validate_package_consumer_sources(repository, provider, provider.metadata, contracts, tracked))
+        failures.extend(consumer_ci_errors(provider, policy))
     return failures

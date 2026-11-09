@@ -1,5 +1,5 @@
 {
-  "schema": "stwo-zig-package-contract-v2",
+  "schema": "stwo-zig-package-contract-v3",
   "package": "stwo_core",
   "version": "0.1.0",
   "layer": "protocol",
@@ -60,5 +60,21 @@
       "-Doptimize=ReleaseFast",
       "-j2"
     ]
-  }
+  },
+  "consumers": [
+    {
+      "id": "package:stwo_cpu_backend",
+      "root": "src/backends/cpu_scalar/contract_tests/stwo_core_test.zig",
+      "route": "dependency:stwo_core",
+      "imports": [
+        "stwo_core",
+        "stwo_cpu_backend"
+      ],
+      "tests": [
+        "cdc: CPU batch inverse cleans every allocation failure",
+        "cdc: CPU batch inverse owns canonical exact results without changing input",
+        "cdc: CPU batch inverse zero refusal preserves input and releases output"
+      ]
+    }
+  ]
 }

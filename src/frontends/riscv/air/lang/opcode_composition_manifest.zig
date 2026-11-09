@@ -245,7 +245,7 @@ pub const PlacementCursor = struct {
     }
     pub fn appendForRecipe(self: *PlacementCursor, family: Family, declared_main_columns: usize, local_zero: bool) Error!Placement {
         var item = descriptor(family).*;
-        if (local_zero) item.main_columns = @import("../x0_native_envelope_v1.zig").mainColumnCount(family) catch return error.MainColumnCountMismatch;
+        if (local_zero) item.main_columns = @import("../x0_native_envelope.zig").mainColumnCount(family) catch return error.MainColumnCountMismatch;
         if (declared_main_columns != item.main_columns)
             return error.MainColumnCountMismatch;
 

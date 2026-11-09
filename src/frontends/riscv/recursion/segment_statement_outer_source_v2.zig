@@ -15,7 +15,7 @@
 //! can be published as a recursive proof.
 const shard_0 = @import("segment_statement_outer_source_v2_contract.zig");
 const shard_1 = @import("segment_statement_outer_source_v2_prepared_v2.zig");
-const shard_2 = @import("segment_statement_outer_source_v2_prepare_into.zig");
+const shard_2 = @import("segment_statement_outer_source_prepare_into.zig");
 
 pub const Digest = shard_0.Digest;
 pub const Sha256Digest = shard_0.Sha256Digest;

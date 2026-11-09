@@ -159,3 +159,12 @@ When changing this package:
 - [Package-workspace release audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 - [Package release and versioning policy](../../../design/repository/zig-package-release-policy.md)
 - [API parity policy](../../../conformance/api-parity.md)
+
+## Consumer-owned contracts
+
+The closed v3 contract registers the scalar CPU consumer's Core batch-inverse
+contract. Its root is `src/backends/cpu_scalar/contract_tests/stwo_core_test.zig`.
+Run it through `scripts/dev_test.py` or `zig build test-cdc-stwo-core` with
+`-Doptimize=Debug` and `-Doptimize=ReleaseFast`. The provider lane retains raw
+execution receipts and binaries. Other consumer rows remain open in
+[RFC #367](https://github.com/teddyjfpender/stwo-zig/issues/367).

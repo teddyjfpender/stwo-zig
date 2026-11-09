@@ -458,7 +458,7 @@ comptime {
 }
 
 const backend_programs = @import("stwo_prover_engine").air.component_prover;
-const framework_export = @import("framework_polynomial_export_v1.zig");
+const framework_export = @import("framework_polynomial_export.zig");
 const direct_program = @import("direct_constraint_program.zig");
 
 /// Cold export from the already admitted native range component. Its typed

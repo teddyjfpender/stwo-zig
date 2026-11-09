@@ -47,8 +47,8 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             steps=("test-blake3-proof-contracts", "test"),
         )
         package = ROOT / "src/integrations/riscv_cpu"
-        self.assertIn('_ = @import("recursive_segment_v2_detached_child_transcript.zig");', (package / "mod.zig").read_text())
-        self.assertIn('.{ .step = "test-detached-child-capture", .root = "recursive_segment_v2_detached_child_transcript.zig", .minimum = 1 }', (package / "build.zig").read_text())
+        self.assertIn('_ = @import("recursive_segment_detached_child_transcript.zig");', (package / "mod.zig").read_text())
+        self.assertIn('.{ .step = "test-detached-child-capture", .root = "recursive_segment_detached_child_transcript.zig", .minimum = 1 }', (package / "build.zig").read_text())
 
     def test_circuit_provider_runs_existing_cpu_receiver_contracts_first(self):
         commands = self.policy["lanes"]["circuit_cpu_integration"]["commands"]

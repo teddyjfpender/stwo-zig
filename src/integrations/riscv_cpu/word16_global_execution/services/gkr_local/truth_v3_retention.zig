@@ -1,7 +1,7 @@
 //! Source-derived V3 retained payload. Requested bytes, not total PCS/RSS.
 const std = @import("std");
 const R = @import("../roster.zig");
-const C = @import("truth_v3_catalog.zig");
+const C = @import("truth_catalog.zig");
 const W = @import("worker_protocol.zig");
 const Worker = @import("truth_v3_worker.zig");
 const Plan = @import("retention_plan.zig").RetentionPlan;

@@ -256,6 +256,53 @@ jobs:
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/${{ matrix.lane }}" \
             --output "$RUNNER_TEMP/focused-ci/${{ matrix.lane }}.json"
 
+      - name: Retain Core consumer execution receipts
+        if: matrix.lane == 'core'
+        timeout-minutes: 6
+        shell: bash
+        run: |
+          python3 - <<'PYCDC'
+          import hashlib, json, os, shutil, subprocess
+          from pathlib import Path
+          from scripts.repo.check_package_workspace import load_contract
+          root = Path.cwd()
+          out = Path(os.environ['RUNNER_TEMP']) / 'focused-ci/core-consumer-contracts'
+          out.mkdir(parents=True, exist_ok=False)
+          provider = load_contract(root / 'src/waist/core/package.contract.json')
+          receipt = {'schema': 'core-consumer-execution-v1', 'status': 'FAIL', 'scope': 'registered CPU consumer Core contracts', 'cases': []}
+          def digest(path):
+              return hashlib.sha256(path.read_bytes()).hexdigest()
+          try:
+              receipt.update(source_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True, timeout=10).strip(), source_tree=subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True, timeout=10).strip(), zig_version=subprocess.check_output(['zig', 'version'], text=True, timeout=10).strip())
+              assert receipt['source_commit'] == os.environ['GITHUB_SHA']
+              assert not subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=no'], text=True, timeout=10).strip()
+              receipt['provider_contract_sha256'] = digest(root / 'src/waist/core/package.contract.json')
+              for consumer in provider.metadata.consumers:
+                  for mode in ('Debug', 'ReleaseFast'):
+                      name = 'cdc-stwo-core-' + consumer.id.removeprefix('package:') + '-' + mode
+                      binary = root / 'zig-out/bin' / name
+                      row = {'consumer': consumer.id, 'mode': mode, 'binary_sha256': digest(binary), 'root_sha256': digest(root / consumer.root), 'command_timeout_seconds': 120}
+                      shutil.copy2(binary, out / name)
+                      with (out / (name + '.stdout')).open('wb') as stdout, (out / (name + '.stderr')).open('wb') as stderr:
+                          try:
+                              row['exit'] = subprocess.run([str(binary)], cwd=root, stdout=stdout, stderr=stderr, timeout=120, check=False).returncode
+                          except subprocess.TimeoutExpired:
+                              row['exit'] = None
+                      raw = (out / (name + '.stdout')).read_bytes() + (out / (name + '.stderr')).read_bytes()
+                      row.update(stdout_sha256=digest(out / (name + '.stdout')), stderr_sha256=digest(out / (name + '.stderr')))
+                      row['registered_tests'] = list(consumer.tests)
+                      row['executed_name_counts'] = {test: raw.count(test.encode()) for test in consumer.tests}
+                      row['status'] = 'PASS' if row['exit'] == 0 and all(count == 1 for count in row['executed_name_counts'].values()) and digest(binary) == row['binary_sha256'] else 'FAIL'
+                      (out / (name + '.json')).write_text(json.dumps(row, indent=2) + '\n')
+                      receipt['cases'].append(row)
+              assert receipt['cases'] and all(row['status'] == 'PASS' for row in receipt['cases']), 'Core consumer execution failed; inspect raw receipts'
+              assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True, timeout=10).strip() == receipt['source_commit']
+              assert not subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=no'], text=True, timeout=10).strip()
+              receipt['status'] = 'PASS'
+          finally:
+              (out / 'matrix.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PYCDC
+
       - name: Compare fresh Native CPU proof with the frozen golden
         if: matrix.lane == 'native_cpu'
         shell: bash

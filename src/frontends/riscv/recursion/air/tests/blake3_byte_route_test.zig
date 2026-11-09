@@ -12,7 +12,7 @@ test "BLAKE3 byte route pins typed semantics and rejects selected byte mutations
     defer d.deinit();
     const plan = try @import("../universal_relation_binding.zig").Binding(route).authenticate(&d);
     const direct = try @import("../direct_constraint_program.zig").authenticate(&d.arena, route.SEMANTIC_DIGEST, route.LOGICAL_INPUT_COUNT);
-    var exported = try @import("../framework_polynomial_export_v1.zig").exportLocalPrepared(route, a, &direct, &plan);
+    var exported = try @import("../framework_polynomial_export.zig").exportLocalPrepared(route, a, &direct, &plan);
     defer exported.deinit();
     const schedule = route.Schedule{ .sources = .{ .{ .circuit = 1, .wire = 3 }, .{ .circuit = 2, .wire = 7 } }, .destination = .{ .circuit = 8, .wire = 9 }, .uses = 14, .bytes = .{ .{ .source = .{ .word = 0, .byte = 3 } }, .{ .source = .{ .word = 1, .byte = 0 } }, .{ .constant = 71 }, .{ .source = .{ .word = 0, .byte = 1 } } } };
     const row = try route.logicalRow(schedule, .{ 0x12345678, 0xaabbccdd });

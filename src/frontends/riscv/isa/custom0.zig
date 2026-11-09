@@ -74,7 +74,7 @@ pub inline fn decode(profile: ExecutionProfile, word: u32) DecodeError!Decoded {
             .{ .opcode = .keccakf_1600_permute_in_place_v1, .rs1 = rs1 }
         else
             error.InvalidPrecompileEncoding,
-        .rv32im_zkvm_ethereum_sha_v1 => if (word == @import("sha256_compression_v1.zig").encode(rs1, @truncate(word >> 20)))
+        .rv32im_zkvm_ethereum_sha_v1 => if (word == @import("sha256_compression.zig").encode(rs1, @truncate(word >> 20)))
             .{ .opcode = .sha256_compress_v1, .rs1 = rs1, .rs2 = @truncate(word >> 20) }
         else
             decode(.rv32im_zkvm_ethereum_v1, word),

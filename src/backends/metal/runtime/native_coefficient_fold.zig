@@ -3,7 +3,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const shared = @import("../shared_runtime.zig");
-const admission = @import("external_allocation_admission_v1.zig");
+const admission = @import("external_allocation_admission.zig");
 const telemetry = @import("../telemetry.zig");
 
 const Source = extern struct {
