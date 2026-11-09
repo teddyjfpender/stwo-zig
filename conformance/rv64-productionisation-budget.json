@@ -984,10 +984,17 @@
     },
     {
       "id": "phase0_workspace_contracts_blocking",
-      "net_code_budget": 100,
+      "net_code_budget": 140,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
+      "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations. The pre-edit incremental downstream installed-receipt/canonical archive repair allowance was recorded in #339 before implementation; cumulative bound140, measured code122. This ledger correction records that decision, not a new post-hoc allowance."
+    },
+    {
+      "id": "aggregate_metal_existing_source_leaf_closure",
+      "net_code_budget": 15,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue348 pre-edit allowance: declare exactly the eleven existing Metal source leaves reported outside the aggregate manifest, preserving every prefix grant and dynamic-link requirement/refusal. Actual source graph and per-leaf holdouts protect isolation; no runtime, shader/proof pin, flag or launcher change."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
