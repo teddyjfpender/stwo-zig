@@ -344,6 +344,23 @@ pub fn verifyDirectoryWithHooks(a: std.mem.Allocator, config: Request.Config, pa
 pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
     return produceDirectoryMode(a, config, path, profile, resources, .prove);
 }
+/// Scalar-only diagnostics: geometry classes may share physical FIXED roots.
+/// This never trusts producer roots or hashes/reconstructs any fixed witness.
+pub fn fixedRootCounts(keys: []const *const Key) struct { poseidon: usize, legacy: usize } {
+    return .{ .poseidon = uniqueFixedRoots(keys, "root"), .legacy = uniqueFixedRoots(keys, "source_root") };
+}
+fn uniqueFixedRoots(keys: []const *const Key, comptime field: []const u8) usize {
+    var unique: usize = 0;
+    for (keys, 0..) |key, i| {
+        var seen = false;
+        for (keys[0..i]) |prior| if (std.mem.eql(u8, &@field(prior, field), &@field(key, field))) {
+            seen = true;
+            break;
+        };
+        if (!seen) unique += 1;
+    }
+    return unique;
+}
 const ProduceMode = enum { capture, prepare, prove };
 fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, mode: ProduceMode) !void {
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
@@ -441,6 +458,8 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
             .truth_workers = truth_declarations.len,
             .miller_workers = tower.items.len,
             .cpu_fixed_classes = authority.key_owners.items.len,
+            .unique_poseidon_fixed_roots = uniqueFixedRoots(authority.cpu_keys, "root"),
+            .unique_legacy_fixed_roots = uniqueFixedRoots(authority.cpu_keys, "source_root"),
             .actual_immutable_fixed_disk_bytes = store.reserved,
             .actual_fixed_mapping_bytes = store.mapped,
             .planned_combined_disk_upper_bytes = cost.combined_disk_upper_bytes,
@@ -519,4 +538,7 @@ pub fn main() !void {
     defer binding.deinit();
     const profile = Profile.op_target_b4_q72_p0_fold4_v1;
     if (std.mem.eql(u8, args[1], "verify")) try verifyDirectory(a, config.value, args[3], profile, resources) else try produceDirectoryMode(a, config.value, args[3], profile, resources, if (std.mem.eql(u8, args[1], "capture")) .capture else if (std.mem.eql(u8, args[1], "prepare")) .prepare else .prove);
+    const final = budget.snapshot();
+    if (final.live_bytes != 0) return error.OpNativeRuntimeCustodyLeak;
+    std.debug.print("OP_NATIVE_TEARDOWN heap={} external={} peak={} exceeded={}\n", .{ final.host_live_bytes, final.external_live_bytes, final.peak_live_bytes, final.exceeded });
 }
