@@ -24,7 +24,6 @@ const Toy = @import("miller_local_gkr/fixture_image.zig");
 const Manifest = @import("pure_p2_manifest.zig");
 const Protocol = @import("pure_p2_worker_protocol.zig");
 const W = Protocol.W;
-const a = std.testing.allocator;
 const ADDRESS: u64 = 0x8000000000000fe0;
 const marker: u8 = 0;
 fn initialWords() [Service.WORDS]u64 {
@@ -81,12 +80,15 @@ pub fn exercise(comptime Hook: type) !void {
     return exerciseWithLayout(Hook, false);
 }
 pub fn exerciseWithLayout(comptime Hook: type, comptime compact: bool) !void {
-    return exerciseProvider(Hook, compact, ClassicTruth, false);
+    return exerciseProvider(Hook, compact, ClassicTruth, false, false);
 }
 pub fn exerciseLocal(comptime Hook: type) !void {
-    return exerciseProvider(Hook, true, LocalTruth, true);
+    return exerciseProvider(Hook, true, LocalTruth, true, false);
 }
-fn exerciseProvider(comptime Hook: type, comptime compact: bool, comptime Truth: type, comptime toy: bool) !void {
+fn exerciseProvider(comptime Hook: type, comptime compact: bool, comptime Truth: type, comptime toy: bool, comptime use_producer: bool) !void {
+    const budget: ?*engine.host_budget_allocator.SharedHostBudget = if (use_producer) try engine.host_budget_allocator.SharedHostBudget.create(std.testing.allocator, 2 << 30) else null;
+    defer if (budget) |owner| owner.destroy();
+    const a = if (budget) |owner| owner.allocator() else std.testing.allocator;
     var pool: engine.work_pool.WorkPool = .{};
     try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
     defer pool.deinit();
@@ -142,13 +144,6 @@ fn exerciseProvider(comptime Hook: type, comptime compact: bool, comptime Truth:
     defer a.free(receiver_instances);
     const cpu_expected = try authority(&setup, request, span, ids, &key, instances);
     const receiver_expected = try authority(&fresh, request, span, ids, &receiver_key, receiver_instances);
-    var source = try Pipeline.buildCpuSourceForOp(a, &setup, request, span, &native, &advice, 0, ids, false, null);
-    try std.testing.expectError(error.LocalGkrBudgetExceeded, CPU.Worker.initForOp(a, &setup, request, span, source, cpu_expected, ids, &key, .{ .gkr_bytes = 1, .global_bytes = 1 << 30 }));
-    var worker = CPU.Worker.initForOp(a, &setup, request, span, source, cpu_expected, ids, &key, .{ .gkr_bytes = 1 << 30, .global_bytes = 1 << 30 }) catch |err| {
-        source.deinit();
-        return err;
-    };
-    defer worker.deinit();
     var truth_key = try Truth.Key.init(a, profile, 8, 15);
     defer truth_key.deinit();
     var fresh_truth = try Truth.Key.init(a, profile, 8, 15);
@@ -158,9 +153,6 @@ fn exerciseProvider(comptime Hook: type, comptime compact: bool, comptime Truth:
     const fresh_truth_expected = try fresh_truth.expected(truth_span, 1);
     var input: A.crypto.bn254_tower.narrow.trace.Input = undefined;
     for (&input, 0..) |*value, i| value.* = @as(u256, before[4 * i]) | (@as(u256, before[4 * i + 1]) << 64) | (@as(u256, before[4 * i + 2]) << 128) | (@as(u256, before[4 * i + 3]) << 192);
-    const truth_limits = if (Truth == LocalTruth) Truth.Limits{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 1 << 20, .gkr_bytes = 512 << 20 } else Truth.Limits{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 1 << 20 };
-    var truth = try Truth.Worker.init(a, &truth_key, truth_span, truth_expected, &.{input}, truth_limits);
-    defer truth.deinit();
     var inventory: @import("pure_p2_op_inventory.zig").Inventory = undefined;
     defer if (toy) inventory.deinit();
     if (toy) {
@@ -183,6 +175,39 @@ fn exerciseProvider(comptime Hook: type, comptime compact: bool, comptime Truth:
         } else |_| {}
         try std.testing.expectError(error.OpMillerSourceSuitePolicy, Inv.Inventory.initForSourceSuite(a, profile, &.{&fresh}, &.{request}, &.{span}, &.{&receiver_key}, &.{}, &.{}, &.{decl}, exp, &.{}, .{}));
     }
+    if (use_producer) {
+        const Prod = @import("pure_p2_op_producer.zig");
+        const BW = @import("pure_p2_op_bundle.zig");
+        var temporary = std.testing.tmpDir(.{});
+        defer temporary.cleanup();
+        const path = try temporary.dir.realpathAlloc(a, ".");
+        defer a.free(path);
+        var store = try @import("pure_p2_retained_main.zig").Store.init(a, path, 1 << 30, 512 << 20);
+        defer store.deinit();
+        const decl = @import("pure_p2_op_inventory.zig").MillerDeclaration{ .key = &fresh_truth.base, .local_key = &fresh_truth, .span = truth_span };
+        const limits = Prod.Limits{ .cpu = .{ .gkr_bytes = 512 << 20, .global_bytes = 1 << 30 }, .truth = .{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 1 << 20 }, .miller = .{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 1 << 20 }, .miller_local_gkr_bytes = 512 << 20 };
+        try std.testing.expectError(error.OpSourceSuiteRequiresExplicitProducer, Prod.produce(a, &inventory, &.{&fresh}, &.{request}, &.{span}, &.{&receiver_key}, &.{}, &.{}, &.{decl}, &.{&native}, &advice, &store, limits));
+        var produced = try Prod.produceForSourceSuite(a, &inventory, &.{&fresh}, &.{request}, &.{span}, &.{&receiver_key}, &.{}, &.{}, &.{decl}, &.{&native}, &advice, &store, limits, .{ .miller = .local_gkr });
+        defer produced.deinit(a);
+        var closed = try produced.verifyWithHooksForSourceSuite(a, &inventory, &.{&fresh}, &.{request}, &.{span}, &.{&receiver_key}, &.{}, &.{}, &.{decl}, .{ .miller = .local_gkr }, .{});
+        defer closed.deinit(a);
+        try std.testing.expectEqualSlices(u8, &toy_image.expected_output, &try @import("../word16_global_execution/ethereum/terminal.zig").require(&toy_image, request.base.cpu, advice.terminal));
+        try std.testing.expectEqual(@as(usize, 0), store.mapped);
+        const encoded = try BW.encodeForSuite(a, &produced, .{ .bytes = 64 << 20, .proof_bytes = 32 << 20 }, .{ .miller = .local_gkr });
+        defer a.free(encoded);
+        std.debug.print("OP_SOURCE_SUITE_PRODUCER bytes={} parked_peak={} heap_peak={} full_native_receiver=true\n", .{ encoded.len, store.peak_mapped, budget.?.snapshot().peak_live_bytes });
+        return;
+    }
+    var source = try Pipeline.buildCpuSourceForOp(a, &setup, request, span, &native, &advice, 0, ids, false, null);
+    try std.testing.expectError(error.LocalGkrBudgetExceeded, CPU.Worker.initForOp(a, &setup, request, span, source, cpu_expected, ids, &key, .{ .gkr_bytes = 1, .global_bytes = 1 << 30 }));
+    var worker = CPU.Worker.initForOp(a, &setup, request, span, source, cpu_expected, ids, &key, .{ .gkr_bytes = 1 << 30, .global_bytes = 1 << 30 }) catch |err| {
+        source.deinit();
+        return err;
+    };
+    defer worker.deinit();
+    const truth_limits = if (Truth == LocalTruth) Truth.Limits{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 1 << 20, .gkr_bytes = 512 << 20 } else Truth.Limits{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 1 << 20 };
+    var truth = try Truth.Worker.init(a, &truth_key, truth_span, truth_expected, &.{input}, truth_limits);
+    defer truth.deinit();
     const stages = [_]Manifest.StageOne{ try worker.seal(a), try truth.seal() };
     const expected = [_]Manifest.Expected{ cpu_expected, truth_expected };
     const receiver_authority = [_]Manifest.Expected{ receiver_expected, fresh_truth_expected };
@@ -289,4 +314,8 @@ test "OP compact actual Miller CPU GKR freshly closes all packet RAM and Wire" {
 
 test "OP local Miller source suite CPU GKR physically closes packet RAM Wire and terminal" {
     try exerciseLocal(struct {});
+}
+
+test "OP source suite native producer parks restores and freshly closes local Miller" {
+    try exerciseProvider(struct {}, true, LocalTruth, true, true);
 }
