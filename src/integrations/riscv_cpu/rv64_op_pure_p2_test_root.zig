@@ -110,3 +110,7 @@ test {
 test {
     _ = @import("poseidon2_outer/pure_p2_source_suite_security.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/pure_p2_op_runtime.zig");
+}

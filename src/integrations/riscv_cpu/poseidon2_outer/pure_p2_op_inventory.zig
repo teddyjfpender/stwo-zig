@@ -17,6 +17,7 @@ const TruthLocal = @import("truth_local_gkr/worker.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
 const MillerLocal = @import("miller_local_gkr/worker.zig");
 const Suite = @import("pure_p2_source_suite.zig").Suite;
+const SuiteSecurity = @import("pure_p2_source_suite_security.zig");
 const Profile = @import("pure_p2_worker_protocol.zig").Profile;
 pub const MillerDeclaration = struct { key: *const Miller.Key, span: Miller.Span, local_key: ?*const MillerLocal.Key = null };
 pub const Inventory = struct {
@@ -30,6 +31,7 @@ pub const Inventory = struct {
     /// Borrowed source keys. Empty is the original classic truth protocol.
     truth_local_keys: []const ?*const TruthLocal.Key = &.{},
     source_suite: ?Suite = null,
+    source_security: ?SuiteSecurity.Checked = null,
     pub fn deinit(self: *Inventory) void {
         for (self.workers) |worker| if (worker.local_instances) |instances| self.allocator.free(instances);
         self.allocator.free(self.workers);
@@ -78,6 +80,7 @@ pub const Inventory = struct {
         }
         var bounds = try Bounds.deriveForOp(a, setups[0].materials.program.log_size, declarations, truth_declarations, requests, spans, tower_declarations);
         errdefer bounds.deinit();
+        const source_security = if (source_suite) |suite| try SuiteSecurity.check(profile, &bounds, truth_declarations, tower_declarations, suite) else null;
         const workers = try a.alloc(Manifest.Expected, setups.len + truths.len + miller.len);
         errdefer a.free(workers);
         var done: usize = 0;
@@ -127,7 +130,7 @@ pub const Inventory = struct {
             h.update(&worker.fixed_identity);
             h.update(&worker.fixed);
         }
-        return .{ .allocator = a, .workers = workers, .first_ids = ids, .bounds = bounds, .execution = h.finalResult(), .cpu_count = setups.len, .truth_count = truths.len, .truth_local_keys = truth_local_keys, .source_suite = source_suite };
+        return .{ .allocator = a, .workers = workers, .first_ids = ids, .bounds = bounds, .execution = h.finalResult(), .cpu_count = setups.len, .truth_count = truths.len, .truth_local_keys = truth_local_keys, .source_suite = source_suite, .source_security = source_security };
     }
 };
 fn mix(h: *std.crypto.hash.sha2.Sha256, word: u64) void {
