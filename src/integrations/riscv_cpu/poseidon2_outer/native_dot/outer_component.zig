@@ -162,8 +162,6 @@ pub const Component = struct {
     }
     fn evaluatePackedDomain(self: *const @This(), trace: *const PC.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
         const Lane = @import("outer_domain_lane.zig");
-        const MF = Core.fields.m31;
-        const Packed = Core.fields.packed_om31;
         const a = acc.allocator;
         const log_ = self.log();
         const eval_log = log_ + 1;
@@ -173,43 +171,66 @@ pub const Component = struct {
         const domain = Canonic.new(eval_log).circleDomain();
         var prepared = try Prepared.init(a, trace, eval_log, self.widths(), self.offsets());
         defer prepared.deinit();
-        const fixed_columns = prepared.polys[0..R.FIXED];
-        const main_columns = prepared.polys[R.FIXED..][0..R.MAIN];
-        const inter_columns = prepared.polys[R.FIXED + R.MAIN ..];
         const lane = Lane.Prepared.init(self.elements, self.claim.mulM31(try M.fromU64(self.key.dot_rows).inv()), output.random_coeff_powers);
         var inverse: [2]M = undefined;
         for (&inverse, 0..) |*value, half| {
             const r = half * (domain.size() / 2);
             value.* = try Core.constraints.cosetVanishing(M, Canonic.new(log_).coset(), domain.at(Core.utils.bitReverseIndex(r, eval_log))).inv();
         }
-        var r: usize = 0;
-        while (r < domain.size()) : (r += Lane.WIDTH) {
-            var fixed: [R.FIXED]Lane.Base = undefined;
-            var main: [R.MAIN]Lane.Base = undefined;
-            var previous_main: [8]Lane.Base = undefined;
-            for (&fixed, fixed_columns) |*v, poly| v.* = .{ .v = MF.loadPacked(poly.values[r..].ptr) };
-            for (&main, main_columns) |*v, poly| v.* = .{ .v = MF.loadPacked(poly.values[r..].ptr) };
-            for (&previous_main, 0..) |*v, j| inline for (0..Lane.WIDTH) |k| {
-                const prior = Core.utils.offsetBitReversedCircleDomainIndex(r + k, log_, eval_log, -1);
-                v.v[k] = main_columns[R.ACC + j].values[prior].v;
-            };
-            var current: [3]Lane.Secure = undefined;
-            var previous: [8]MF.PackedM31 = undefined;
-            for (&current, 0..) |*v, i| {
-                var coordinates: [8]MF.PackedM31 = undefined;
-                for (&coordinates, 0..) |*coordinate, j| {
-                    const poly = inter_columns[8 * i + j];
-                    coordinate.* = MF.loadPacked(poly.values[r..].ptr);
-                    if (i == 2) inline for (0..Lane.WIDTH) |k| {
-                        const prior = Core.utils.offsetBitReversedCircleDomainIndex(r + k, log_, eval_log, -1);
-                        previous[j][k] = poly.values[prior].v;
-                    };
-                }
-                v.* = Packed.fromCoordinates(coordinates);
-            }
-            const sum = (try lane.accumulate(&main, &previous_main, &fixed, &current, Packed.fromCoordinates(previous))).mulBase(@as(MF.PackedM31, @splat(inverse[r / (domain.size() / 2)].v)));
-            inline for (0..Lane.WIDTH) |k| output.accumulate(r + k, Packed.lane(sum, k));
-        }
+        const rows = PackedRows{ .polys = prepared.polys, .lane = &lane, .output = output.*, .inverse = inverse, .log = log_, .count = domain.size() };
+        try @import("domain_tiles.zig").run(PackedRows, &rows, domain.size(), Lane.WIDTH);
     }
+    const PackedRows = struct {
+        polys: []const Engine.air.component_trace.Poly,
+        lane: *const @import("outer_domain_lane.zig").Prepared,
+        output: Domain.ColumnAccumulator,
+        inverse: [2]M,
+        log: u32,
+        count: usize,
+        pub fn runRange(self: *const @This(), first: usize, end: usize) !void {
+            const Lane = @import("outer_domain_lane.zig");
+            const MF = Core.fields.m31;
+            const Packed = Core.fields.packed_om31;
+            const log_ = self.log;
+            const eval_log = log_ + 1;
+            const fixed_columns = self.polys[0..R.FIXED];
+            const main_columns = self.polys[R.FIXED..][0..R.MAIN];
+            const inter_columns = self.polys[R.FIXED + R.MAIN ..];
+            const lane = self.lane;
+            const inverse = self.inverse;
+            // One copy per range, writing disjoint indices into the zeroed or
+            // previously accumulated bucket; no shared fresh-index mutation.
+            var output = self.output;
+            output.next_fresh_index = null;
+            var r = first;
+            while (r < end) : (r += Lane.WIDTH) {
+                var fixed: [R.FIXED]Lane.Base = undefined;
+                var main: [R.MAIN]Lane.Base = undefined;
+                var previous_main: [8]Lane.Base = undefined;
+                for (&fixed, fixed_columns) |*v, poly| v.* = .{ .v = MF.loadPacked(poly.values[r..].ptr) };
+                for (&main, main_columns) |*v, poly| v.* = .{ .v = MF.loadPacked(poly.values[r..].ptr) };
+                for (&previous_main, 0..) |*v, j| inline for (0..Lane.WIDTH) |k| {
+                    const prior = Core.utils.offsetBitReversedCircleDomainIndex(r + k, log_, eval_log, -1);
+                    v.v[k] = main_columns[R.ACC + j].values[prior].v;
+                };
+                var current: [3]Lane.Secure = undefined;
+                var previous: [8]MF.PackedM31 = undefined;
+                for (&current, 0..) |*v, i| {
+                    var coordinates: [8]MF.PackedM31 = undefined;
+                    for (&coordinates, 0..) |*coordinate, j| {
+                        const poly = inter_columns[8 * i + j];
+                        coordinate.* = MF.loadPacked(poly.values[r..].ptr);
+                        if (i == 2) inline for (0..Lane.WIDTH) |k| {
+                            const prior = Core.utils.offsetBitReversedCircleDomainIndex(r + k, log_, eval_log, -1);
+                            previous[j][k] = poly.values[prior].v;
+                        };
+                    }
+                    v.* = Packed.fromCoordinates(coordinates);
+                }
+                const sum = (try lane.accumulate(&main, &previous_main, &fixed, &current, Packed.fromCoordinates(previous))).mulBase(@as(MF.PackedM31, @splat(inverse[r / (self.count / 2)].v)));
+                inline for (0..Lane.WIDTH) |k| output.accumulate(r + k, Packed.lane(sum, k));
+            }
+        }
+    };
 };
 const Prepared = @import("polynomials.zig").Prepared;

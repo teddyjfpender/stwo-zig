@@ -130,7 +130,6 @@ pub const Component = struct {
     fn packedDomain(self: *const @This(), trace: *const PC.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
         const MF = Core.fields.m31;
         const Packed = Core.fields.packed_om31;
-        const Base = @import("../domain_lane.zig").Base;
         const a = acc.allocator;
         const log = self.key.input_log;
         const eval_log = log + 1;
@@ -144,25 +143,49 @@ pub const Component = struct {
         for (&inverse, 0..) |*v, half| v.* = try Core.constraints.cosetVanishing(M, Canonic.new(log).coset(), domain.at(Core.utils.bitReverseIndex(half * (domain.size() / 2), eval_log))).inv();
         const shift = Packed.splat(self.claim.mulM31(try M.fromU64(self.key.input_rows).inv()));
         const coefficient = Packed.splat(output.random_coeff_powers[0]);
-        var row: usize = 0;
-        while (row < domain.size()) : (row += MF.PACK_WIDTH) {
-            var fixed: [R.FIXED]Base = undefined;
-            var main: [R.MAIN]Base = undefined;
-            for (&fixed, prepared.polys[0..R.FIXED]) |*v, poly| v.* = .{ .v = MF.loadPacked(poly.values[row..].ptr) };
-            for (&main, prepared.polys[R.FIXED..][0..R.MAIN]) |*v, poly| v.* = .{ .v = MF.loadPacked(poly.values[row..].ptr) };
-            const port = R.portFor(Base, &main, &fixed);
-            var denominator = Packed.splat(self.elements.z.neg());
-            for (port.tuple, self.elements.powers) |v, power| denominator = denominator.add(Packed.splat(power).mulBase(v.v));
-            var current: [8]MF.PackedM31 = undefined;
-            var previous: [8]MF.PackedM31 = undefined;
-            for (&current, &previous, prepared.polys[R.FIXED + R.MAIN ..]) |*v, *p, poly| {
-                v.* = MF.loadPacked(poly.values[row..].ptr);
-                inline for (0..MF.PACK_WIDTH) |k| p[k] = poly.values[Core.utils.offsetBitReversedCircleDomainIndex(row + k, log, eval_log, -1)].v;
-            }
-            const delta = Packed.fromCoordinates(current).sub(Packed.fromCoordinates(previous)).add(shift);
-            const root = Packed.mul(denominator, delta).add(Packed.splat(O.one()).mulBase(fixed[1].v));
-            const sum = Packed.mul(root, coefficient).mulBase(@as(MF.PackedM31, @splat(inverse[row / (domain.size() / 2)].v)));
-            inline for (0..MF.PACK_WIDTH) |k| output.accumulate(row + k, Packed.lane(sum, k));
-        }
+        const rows = PackedRows{ .polys = prepared.polys, .elements = self.elements, .output = output.*, .inverse = inverse, .shift = shift, .coefficient = coefficient, .log = log, .count = domain.size() };
+        try @import("domain_tiles.zig").run(PackedRows, &rows, domain.size(), MF.PACK_WIDTH);
     }
+    const PackedRows = struct {
+        polys: []const Engine.air.component_trace.Poly,
+        elements: W.Elements,
+        output: Domain.ColumnAccumulator,
+        inverse: [2]M,
+        shift: Core.fields.packed_om31.PackedOM31,
+        coefficient: Core.fields.packed_om31.PackedOM31,
+        log: u32,
+        count: usize,
+        pub fn runRange(self: *const @This(), first: usize, end: usize) !void {
+            const MF = Core.fields.m31;
+            const Packed = Core.fields.packed_om31;
+            const Base = @import("../domain_lane.zig").Base;
+            const log = self.log;
+            const eval_log = log + 1;
+            const inverse = self.inverse;
+            const shift = self.shift;
+            const coefficient = self.coefficient;
+            var output = self.output;
+            output.next_fresh_index = null;
+            var row = first;
+            while (row < end) : (row += MF.PACK_WIDTH) {
+                var fixed: [R.FIXED]Base = undefined;
+                var main: [R.MAIN]Base = undefined;
+                for (&fixed, self.polys[0..R.FIXED]) |*v, poly| v.* = .{ .v = MF.loadPacked(poly.values[row..].ptr) };
+                for (&main, self.polys[R.FIXED..][0..R.MAIN]) |*v, poly| v.* = .{ .v = MF.loadPacked(poly.values[row..].ptr) };
+                const port = R.portFor(Base, &main, &fixed);
+                var denominator = Packed.splat(self.elements.z.neg());
+                for (port.tuple, self.elements.powers) |v, power| denominator = denominator.add(Packed.splat(power).mulBase(v.v));
+                var current: [8]MF.PackedM31 = undefined;
+                var previous: [8]MF.PackedM31 = undefined;
+                for (&current, &previous, self.polys[R.FIXED + R.MAIN ..]) |*v, *p, poly| {
+                    v.* = MF.loadPacked(poly.values[row..].ptr);
+                    inline for (0..MF.PACK_WIDTH) |k| p[k] = poly.values[Core.utils.offsetBitReversedCircleDomainIndex(row + k, log, eval_log, -1)].v;
+                }
+                const delta = Packed.fromCoordinates(current).sub(Packed.fromCoordinates(previous)).add(shift);
+                const root = Packed.mul(denominator, delta).add(Packed.splat(O.one()).mulBase(fixed[1].v));
+                const sum = Packed.mul(root, coefficient).mulBase(@as(MF.PackedM31, @splat(inverse[row / (self.count / 2)].v)));
+                inline for (0..MF.PACK_WIDTH) |k| output.accumulate(row + k, Packed.lane(sum, k));
+            }
+        }
+    };
 };
