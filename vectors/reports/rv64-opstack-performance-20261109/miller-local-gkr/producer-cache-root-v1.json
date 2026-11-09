@@ -1,0 +1,106 @@
+{
+  "schema": "op-miller-producer-cache-complete-root/v1",
+  "default_enabled": false,
+  "limits_field": "native_omul.recursion.Limits.miller_cache_bytes",
+  "cli_option": "--miller-prover-cache-mib=N (0..8192, explicit R6 Miller proving only)",
+  "scope": "Complete synthetic CPU+Miller execution root; one Miller class and leaf. Not a Kona block, heavy speedup or repeated-class timing.",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "root_bytes": 693812,
+  "root_sha256": "edd53de28a56bdb2272f165cb9977a5b658427e82b0082d4d64e72e47fa06c32",
+  "qualifications": {
+    "cached": {
+      "cap_bytes": 1073741824,
+      "classes": 1,
+      "hits": 0,
+      "misses": 1,
+      "borrowed_leaves": 1,
+      "peak_requested_bytes": 647619750,
+      "exact_control_files": [
+        "native-op.bin",
+        "root.bin",
+        "root-sidecar.bin",
+        "root-gkr-shapes.bin",
+        "node-000000.bin",
+        "node-000001.bin",
+        "node-000002.bin"
+      ],
+      "root_total_ns": 47143302459,
+      "directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/miller-local-source-suite-cached-root-v1",
+      "fallbacks": 0
+    },
+    "forced_fallback": {
+      "cap_bytes": 4096,
+      "classes": 0,
+      "hits": 0,
+      "misses": 0,
+      "borrowed_leaves": 0,
+      "fallbacks": 1,
+      "peak_requested_bytes": 2564,
+      "exact_control_files": [
+        "native-op.bin",
+        "root.bin",
+        "root-sidecar.bin",
+        "root-gkr-shapes.bin",
+        "node-000000.bin",
+        "node-000001.bin",
+        "node-000002.bin"
+      ],
+      "root_total_ns": 47686613250,
+      "directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/miller-local-source-suite-cache-fallback-root-v1"
+    }
+  },
+  "fresh_receiver": {
+    "separate_process": true,
+    "native_proof_physically_absent": true,
+    "source_files": [
+      "cells.bin",
+      "fixture-source.json"
+    ],
+    "source_ns": 9480243708,
+    "root_and_adversaries_ns": 269689208,
+    "complete": true,
+    "adversarial_controls": "wrong valid VK, balanced Wire, missing/duplicate/order, terminal, receipt and physical corruption"
+  },
+  "ownership": {
+    "producer_root_parent_budget_bytes": 12884901888,
+    "root_fixture_asserts_final_heap_external_zero": true,
+    "lease_lifecycle_unit_passed": true,
+    "shared_source_miss_hit_unit_passed": true,
+    "direct_proving_lease_release_covered_by_physical_cache_control": true,
+    "all_pending_source_key_pointers_pinned": true,
+    "per_leaf_capability_downgrade": true,
+    "prover_data_retired_once_per_class_before_folds": true,
+    "verifier_leases_preserved_until_topology_teardown": true,
+    "source_leaves_released_before_cache": true,
+    "independent_review": "No blocking ownership/policy issue; capacity-only fallback, stable heap Entry addresses and pinned source array reviewed"
+  },
+  "checks": {
+    "filtered_ReleaseSafe_cache_family": "passed",
+    "ReleaseFast_complete_cached_root": "passed",
+    "ReleaseFast_complete_forced_fallback_root": "passed",
+    "separate_ReleaseFast_fresh_root_and_adversaries": "passed",
+    "standalone_ReleaseSafe_CLI_parser_tests": 4,
+    "ReleaseFast_production_root_binary_build": "passed",
+    "production_CLI_wrong_cap_mode_and_conflicting_flags": "rejected before filesystem access",
+    "OP_Python_regressions": 46
+  },
+  "source_files_sha256": {
+    "src/integrations/riscv_cpu/poseidon2_outer/miller_local_gkr/outer_key_cache.zig": "bc2edc38d27a8e9e1c0dff23c09ad4110decdece19f5fb51c110ab297cd0d6a8",
+    "src/integrations/riscv_cpu/poseidon2_outer/miller_local_gkr/outer_key_cache_test.zig": "34fcd48f0eb788aeb8a2c0a108ce987a4b418020b38be641a5e8e66198e35f70",
+    "src/integrations/riscv_cpu/poseidon2_outer/miller_local_gkr/root_test.zig": "4b4c5623fdf3e7ce0bee7076591e7e022b180a705ede3f501be3dc24718d8e4a",
+    "src/integrations/riscv_cpu/poseidon2_outer/native_omul/recursion.zig": "8e5a91dc0a8979d26ae4e08afae423aefa316a43babb6a064d99472ede1de7dc",
+    "src/integrations/riscv_cpu/poseidon2_outer/native_omul/topology.zig": "424e677b431560a2928909edee0aa1bc6a4a05c3eeb7c7b09b3be52b71ae0c7f",
+    "src/integrations/riscv_cpu/poseidon2_outer/root_cli_options.zig": "4fb1356b58a44e65a3d9b84cebf8e9ef20c77f61a8dba2d7b807d9b549ce1dee",
+    "src/integrations/riscv_cpu/rv64_op_root_main.zig": "b358e45de6bc35b799f98627d3598fc576c40fc32fa88ba974595f4feeb4a754"
+  },
+  "measurement": "Single concurrent correctness qualifications, not quiet speed benchmarks. One Miller leaf has no repeated-class proving hit; no amortized wall saving established.",
+  "heavy_execution_or_proof_rerun": false,
+  "ethereum_defaults_changed": false,
+  "remaining": [
+    "Repeated-class whole-execution timing is unmeasured",
+    "Heavy tenfold target remains unproven; no heavy rerun",
+    "Actual R7 CPU/root admission and detached sponge Suite/runtime/root integration",
+    "Anchored derivation, joined checkpoint, accumulator and practical settlement"
+  ]
+}

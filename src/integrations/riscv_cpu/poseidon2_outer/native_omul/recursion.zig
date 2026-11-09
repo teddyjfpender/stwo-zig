@@ -21,6 +21,7 @@ const GkrTemplate = @import("../pure_p2_gkr_template.zig");
 const TemplateWire = @import("../pure_p2_gkr_templates_wire.zig");
 const Sidecar = @import("../pure_p2_root_sidecar.zig");
 const Receiver = @import("../pure_p2_op_root_receiver.zig");
+const MillerCache = @import("../miller_local_gkr/outer_key_cache.zig");
 const Node = struct {
     /// Borrowed from source_leaves or the independently rebuilt Topology.
     key: *const Authority,
@@ -83,7 +84,8 @@ const FoldSource = struct {
         return self.view.expectedOutput();
     }
 };
-pub const Limits = struct { members: usize = 256, proof_bytes: usize = 2 << 20, sidecar_bytes: usize = 64 << 20, artifact_directory: ?[]const u8 = null };
+pub const Limits = struct { members: usize = 256, proof_bytes: usize = 2 << 20, sidecar_bytes: usize = 64 << 20, artifact_directory: ?[]const u8 = null, miller_cache_bytes: usize = 0 };
+pub const CacheUsage = struct { classes: usize, hits: usize, misses: usize, borrowed_leaves: usize, fallbacks: usize, peak_requested_bytes: usize };
 pub const Result = struct {
     allocator: std.mem.Allocator,
     proof: []u8,
@@ -93,6 +95,7 @@ pub const Result = struct {
     members: usize,
     reductions: usize,
     total_ns: u64,
+    miller_cache: ?CacheUsage = null,
     pub fn deinit(self: *Result) void {
         self.allocator.free(self.proof);
         self.allocator.free(self.sidecar);
@@ -113,6 +116,9 @@ const Session = struct {
     started: std.time.Timer,
     directory: ?std.fs.Dir = null,
     produced_nodes: usize = 0,
+    miller_cache: ?MillerCache.Cache = null,
+    cached_leaves: usize = 0,
+    cache_fallbacks: usize = 0,
     fn deinit(self: *Session) void {
         if (self.directory) |*dir| dir.close();
         for (self.nodes.items) |*node| node.deinit(self.allocator);
@@ -120,6 +126,7 @@ const Session = struct {
         self.templates.deinit(self.allocator);
         for (self.source_leaves.items) |*source| source.deinit();
         self.source_leaves.deinit(self.allocator);
+        if (self.miller_cache) |*cache| cache.deinit() catch unreachable;
         for (self.claims.items) |claims| self.allocator.free(claims);
         self.nodes.deinit(self.allocator);
         self.leaves.deinit(self.allocator);
@@ -128,6 +135,24 @@ const Session = struct {
     }
     fn from(context: ?*anyopaque) !*Session {
         return @ptrCast(@alignCast(context orelse return error.MissingOpRecursionSession));
+    }
+    fn initCache(self: *Session) !void {
+        if (self.limits.miller_cache_bytes == 0) return;
+        self.miller_cache = MillerCache.Cache.init(self.allocator, self.limits.miller_cache_bytes, self.limits.members) catch |err| switch (err) {
+            error.OutOfMemory => blk: {
+                self.cache_fallbacks += 1;
+                break :blk null;
+            },
+            else => return err,
+        };
+    }
+    fn cacheUsage(self: *Session) ?CacheUsage {
+        if (self.limits.miller_cache_bytes == 0) return null;
+        if (self.miller_cache) |*cache| {
+            const snap = cache.snapshot();
+            return .{ .classes = snap.classes, .hits = snap.hits, .misses = snap.misses, .borrowed_leaves = self.cached_leaves, .fallbacks = self.cache_fallbacks, .peak_requested_bytes = snap.bytes.peak_live_bytes };
+        }
+        return .{ .classes = 0, .hits = 0, .misses = 0, .borrowed_leaves = 0, .fallbacks = self.cache_fallbacks, .peak_requested_bytes = 0 };
     }
     fn prove(self: *Session, source: anytype, kind: []const u8, key: *const Authority) !Node {
         const a = self.allocator;
@@ -182,20 +207,26 @@ const Session = struct {
     fn append(self: *Session, ordinal: usize, main: [36]u8, receipt: ?[36]u8, claims: []const C.O, source: anytype, kind: []const u8) !void {
         if (ordinal != self.leaves.items.len or ordinal >= self.limits.members) return error.OpRecursiveLeafCoverage;
         var source_leaf = try source.sourceLeaf(self.allocator);
+        return self.appendOwned(ordinal, main, receipt, claims, source, kind, &source_leaf);
+    }
+    /// Always consumes the source leaf, including every failure path.
+    fn appendOwned(self: *Session, ordinal: usize, main: [36]u8, receipt: ?[36]u8, claims: []const C.O, source: anytype, kind: []const u8, source_leaf: *Topology.SourceLeaf) !void {
         var installed = false;
         errdefer if (!installed) source_leaf.deinit();
-        self.source_leaves.appendAssumeCapacity(source_leaf);
+        if (ordinal != self.leaves.items.len or ordinal >= self.limits.members) return error.OpRecursiveLeafCoverage;
+        self.source_leaves.appendAssumeCapacity(source_leaf.*);
         installed = true;
         errdefer {
             self.source_leaves.items[self.source_leaves.items.len - 1].deinit();
             self.source_leaves.items.len -= 1;
         }
-        const key = &self.source_leaves.items[self.source_leaves.items.len - 1].authority;
+        const leaf = &self.source_leaves.items[self.source_leaves.items.len - 1];
+        const key = try leaf.key();
         var node = try self.prove(source, kind, key);
         errdefer node.deinit(self.allocator);
-        // This worker's outer key is not a shared proving cache: its only
-        // production use is complete. Later folds need verifier metadata only.
-        @import("verifier_key.zig").retireProverData(key);
+        // Cached classes retain proving data until the common phase barrier;
+        // this leaf keeps only a verification lease for the later fold tree.
+        try leaf.finishProving();
         const owned_claims = try self.allocator.dupe(C.O, claims);
         errdefer self.allocator.free(owned_claims);
         try self.nodes.ensureUnusedCapacity(self.allocator, 1);
@@ -268,7 +299,15 @@ const Session = struct {
         const instances = try geometry.instances();
         const template = try GkrTemplate.fromProofFor(a, &instances, &local.proof);
         errdefer a.free(template);
-        try self.append(v.ordinal, main, v.encoded.receipt, &v.encoded.claims, source, "Miller-local-GKR");
+        if (self.miller_cache) |*cache| {
+            var leaf = Topology.SourceLeaf.initLocalMillerCachedForProving(a, source.view, cache) catch |err| blk: {
+                if (err != error.OutOfMemory and err != error.MillerOuterCacheEntryLimit) return err;
+                self.cache_fallbacks += 1;
+                break :blk try source.sourceLeaf(a);
+            };
+            if (leaf.borrowed != null) self.cached_leaves += 1;
+            try self.appendOwned(v.ordinal, main, v.encoded.receipt, &v.encoded.claims, source, "Miller-local-GKR", &leaf);
+        } else try self.append(v.ordinal, main, v.encoded.receipt, &v.encoded.claims, source, "Miller-local-GKR");
         try self.templates.append(a, template);
     }
     fn miller(context: ?*anyopaque, a: std.mem.Allocator, v: Bundle.MillerVerified) !void {
@@ -286,6 +325,7 @@ const Session = struct {
     fn complete(context: ?*anyopaque, a: std.mem.Allocator, v: Runtime.CompleteVerified) !void {
         const self = try from(context);
         if (self.result != null or self.nodes.items.len != v.inventory.workers.len) return error.OpRecursiveLeafCoverage;
+        if (self.miller_cache) |*cache| try cache.finishProvingWithVerificationLeases();
         const metadata = Receiver.Metadata{ .execution = v.inventory.execution, .manifest = v.native.manifest.digest, .leaves = self.leaves.items };
         var plan = try Receiver.prepare(a, .{ .source_suite = v.source_suite, .image = v.image, .profile = self.profile, .setups = v.setups, .requests = v.requests, .spans = v.metadata.spans, .cpu_keys = v.cpu_keys, .truths = v.truths, .truth_keys = v.truth_keys, .truth_local_keys = v.inventory.truth_local_keys, .miller = v.miller, .expected = v.expected, .output = .{ .address = v.output_address, .bytes = v.output } }, metadata);
         defer plan.deinit();
@@ -332,14 +372,14 @@ const Session = struct {
             try write(dir, "root.bin", root.encoded);
             try write(dir, "root-sidecar.bin", encoded_sidecar);
             try write(dir, "root-gkr-shapes.bin", encoded_templates);
-            const completion = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-p2-r6-complete-root/v1", .members = members, .reductions = reductions, .bytes = root.encoded.len, .profile = self.profile, .security_qualified = false, .total_ns = self.started.read() }, .{});
+            const completion = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-p2-r6-complete-root/v1", .members = members, .reductions = reductions, .bytes = root.encoded.len, .profile = self.profile, .security_qualified = false, .total_ns = self.started.read(), .miller_cache = self.cacheUsage() }, .{});
             defer a.free(completion);
             // Completion marker is synced LAST; receivers still establish completion
             // from the source inventory and root proof, never from this marker.
             try write(dir, "root.json", completion);
             try std.posix.fsync(dir.fd);
         }
-        self.result = .{ .allocator = a, .proof = try a.dupe(u8, root.encoded), .root = root.output, .sidecar = encoded_sidecar, .templates = encoded_templates, .members = members, .reductions = reductions, .total_ns = self.started.read() };
+        self.result = .{ .allocator = a, .proof = try a.dupe(u8, root.encoded), .root = root.output, .sidecar = encoded_sidecar, .templates = encoded_templates, .members = members, .reductions = reductions, .total_ns = self.started.read(), .miller_cache = self.cacheUsage() };
         std.debug.print("OP_P2_RECURSIVE_ROOT accepted=true complete=true members={} reductions={} root_bytes={} total_ns={} security_qualified=false production_admitted=false\n", .{ members, reductions, root.encoded.len, self.started.read() });
         root.deinit(a);
         self.nodes.clearRetainingCapacity();
@@ -350,8 +390,10 @@ pub fn proveDirectory(a: std.mem.Allocator, config: @import("../../rv64_ethereum
 }
 pub fn proveDirectoryWithOptions(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, native_directory: []const u8, profile: Protocol.Profile, resources: Runtime.Resources, options: Runtime.Options, limits: Limits) !Result {
     if (limits.members == 0 or limits.members > 256 or limits.proof_bytes == 0 or limits.sidecar_bytes == 0 or limits.sidecar_bytes > 64 << 20) return error.InvalidOpRecursionLimits;
+    try validateCache(limits, options.source_suite);
     var session = Session{ .allocator = a, .profile = profile, .limits = limits, .started = try std.time.Timer.start() };
     defer session.deinit();
+    try session.initCache();
     if (limits.artifact_directory) |path| {
         try std.fs.cwd().makeDir(path);
         session.directory = try std.fs.cwd().openDir(path, .{});
@@ -371,8 +413,10 @@ pub fn proveFixture(a: std.mem.Allocator, source: Runtime.SourceDirectory, bundl
     if (!@import("builtin").is_test) return error.OpRootFixtureOnly;
     const suite = source.source_suite orelse return error.OpSourceSuiteRequiresExplicitReceiver;
     if (limits.members == 0 or limits.members > 256 or limits.proof_bytes == 0 or limits.sidecar_bytes == 0 or limits.sidecar_bytes > 64 << 20) return error.InvalidOpRecursionLimits;
+    try validateCache(limits, suite);
     var session = Session{ .allocator = a, .profile = source.metadata.profile, .limits = limits, .started = try std.time.Timer.start() };
     defer session.deinit();
+    try session.initCache();
     if (limits.artifact_directory) |path| {
         try std.fs.cwd().makeDir(path);
         session.directory = try std.fs.cwd().openDir(path, .{});
@@ -386,4 +430,17 @@ pub fn proveFixture(a: std.mem.Allocator, source: Runtime.SourceDirectory, bundl
     const result = session.result orelse return error.OpRecursiveExecutionIncomplete;
     session.result = null;
     return result;
+}
+
+fn validateCache(limits: Limits, suite: ?@import("../pure_p2_source_suite.zig").Suite) !void {
+    if (limits.miller_cache_bytes > 8 << 30) return error.InvalidOpRecursionLimits;
+    if (limits.miller_cache_bytes != 0 and (suite == null or suite.?.miller != .local_gkr)) return error.OpMillerCacheRequiresLocalSuite;
+}
+
+test "Miller outer cache producer requires explicit local suite and bounded resources" {
+    try validateCache(.{}, null);
+    try std.testing.expectError(error.InvalidOpRecursionLimits, validateCache(.{ .miller_cache_bytes = (8 << 30) + 1 }, .{ .miller = .local_gkr }));
+    try std.testing.expectError(error.OpMillerCacheRequiresLocalSuite, validateCache(.{ .miller_cache_bytes = 1 << 30 }, null));
+    try std.testing.expectError(error.OpMillerCacheRequiresLocalSuite, validateCache(.{ .miller_cache_bytes = 1 << 30 }, .{}));
+    try validateCache(.{ .miller_cache_bytes = 1 << 30 }, .{ .miller = .local_gkr });
 }

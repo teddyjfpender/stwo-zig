@@ -8,7 +8,7 @@ const Receiver = @import("poseidon2_outer/pure_p2_op_root_runtime.zig");
 const R6 = @import("poseidon2_outer/native_omul/recursion.zig");
 const R6Receiver = @import("poseidon2_outer/native_omul/root_runtime.zig");
 const Options = @import("poseidon2_outer/root_cli_options.zig");
-const usage = "usage: rv64-op-root [--r6] [--truth-local-gkr] [--miller-local-gkr] [--miller-cache-mib=N] <prove|verify> config.json source-directory root-directory [resources.json]\n";
+const usage = "usage: rv64-op-root [--r6] [--truth-local-gkr] [--miller-local-gkr] [--miller-cache-mib=N|--miller-prover-cache-mib=N] <prove|verify> config.json source-directory root-directory [resources.json]\n";
 
 pub fn main() !void {
     const base = std.heap.smp_allocator;
@@ -57,8 +57,9 @@ pub fn main() !void {
             // The source directory includes native proofs on this path. All
             // pending nodes and the final root/sidecar/templates are retained.
             if (command.r6) {
-                var result = try R6.proveDirectoryWithOptions(a, config.value, command.source, profile, resources, native_options, .{ .artifact_directory = command.root });
+                var result = try R6.proveDirectoryWithOptions(a, config.value, command.source, profile, resources, native_options, .{ .artifact_directory = command.root, .miller_cache_bytes = command.miller_prover_cache_bytes });
                 defer result.deinit();
+                if (result.miller_cache) |cache| std.debug.print("OP_ROOT_MILLER_PROVER_CACHE limit_bytes={} classes={} hits={} misses={} borrowed_leaves={} fallbacks={} peak_requested_bytes={}\n", .{ command.miller_prover_cache_bytes, cache.classes, cache.hits, cache.misses, cache.borrowed_leaves, cache.fallbacks, cache.peak_requested_bytes });
             } else {
                 var result = try Recursion.proveDirectory(a, config.value, command.source, profile, resources, .{ .artifact_directory = command.root });
                 defer result.deinit();
@@ -67,7 +68,8 @@ pub fn main() !void {
             // This path loads source declarations and public RAM cells only;
             // it neither opens nor verifies native-op.bin.
             if (command.r6) {
-                _ = try R6Receiver.verifyDirectoryWithOptions(a, config.value, command.source, command.root, profile, resources, native_options, .{ .miller_cache_bytes = command.miller_cache_bytes });
+                const result = try R6Receiver.verifyDirectoryWithOptions(a, config.value, command.source, command.root, profile, resources, native_options, .{ .miller_cache_bytes = command.miller_cache_bytes });
+                if (result.miller_cache) |cache| std.debug.print("OP_ROOT_MILLER_VERIFIER_CACHE limit_bytes={} classes={} hits={} misses={} borrowed_leaves={} fallbacks={} peak_requested_bytes={}\n", .{ command.miller_cache_bytes, cache.classes, cache.hits, cache.misses, cache.borrowed_leaves, cache.fallbacks, cache.peak_requested_bytes });
             } else {
                 _ = try Receiver.verifyDirectory(a, config.value, command.source, command.root, profile, resources, .{});
             }

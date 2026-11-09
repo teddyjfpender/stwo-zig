@@ -25,6 +25,9 @@ pub const SourceLeaf = struct {
         // Never retire or destroy another owner's authority through this view.
         if (self.borrowed == null) @import("verifier_key.zig").retireProverData(&self.authority);
     }
+    pub fn finishProving(self: *SourceLeaf) !void {
+        if (self.borrowed) |*lease| try lease.releaseProving() else self.retireProverData();
+    }
     fn finish(a: std.mem.Allocator, profile: Profile, binding: Binding, produced: @import("../context.zig").Context) !SourceLeaf {
         var trace = produced;
         defer trace.deinit();
@@ -98,18 +101,26 @@ pub const SourceLeaf = struct {
         return finish(a, source.key.base.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .miller }, try normalized.build(a, true));
     }
     pub fn initLocalMillerCachedForVerification(a: std.mem.Allocator, source: @import("../miller_local_gkr/leaf_test.zig").View, cache: *@import("../miller_local_gkr/outer_key_cache.zig").Cache) !SourceLeaf {
+        return initLocalMillerCached(a, source, cache, false);
+    }
+    pub fn initLocalMillerCachedForProving(a: std.mem.Allocator, source: @import("../miller_local_gkr/leaf_test.zig").View, cache: *@import("../miller_local_gkr/outer_key_cache.zig").Cache) !SourceLeaf {
+        return initLocalMillerCached(a, source, cache, true);
+    }
+    fn initLocalMillerCached(a: std.mem.Allocator, source: @import("../miller_local_gkr/leaf_test.zig").View, cache: *@import("../miller_local_gkr/outer_key_cache.zig").Cache, proving: bool) !SourceLeaf {
         try @import("../miller_local_gkr/worker.zig").validateExpected(source.key, source.span, source.expected);
         if (source.values.cap_log != 0) return error.OpRootLeafCapVariant;
-        if (cache.snapshot().phase != .verification) return error.MillerOuterCacheVerificationOnly;
+        if (proving) {
+            if (cache.snapshot().phase != .proving) return error.MillerOuterCacheProvingClosed;
+        } else if (cache.snapshot().phase != .verification) return error.MillerOuterCacheVerificationOnly;
         var arena = std.heap.ArenaAllocator.init(a);
         defer arena.deinit();
         const instances = try (try source.key.geometry(source.span)).instances();
         const lengths = try @import("../pure_p2_gkr_template.zig").fromProofFor(arena.allocator(), &instances, source.local);
-        var lease = try cache.acquireForVerification(source.key, source.span, source.expected.ordinal, lengths);
+        var lease = if (proving) try cache.acquireForProving(source.key, source.span, source.expected.ordinal, lengths) else try cache.acquireForVerification(source.key, source.span, source.expected.ordinal, lengths);
         errdefer lease.release() catch unreachable;
         try lease.requireView(source);
-        const authority = try lease.key();
-        if (authority.base.fixed_tree != null or authority.base.fixed.values.len != 0 or authority.base.usage.len != 0) return error.MillerOuterCacheVerificationOnly;
+        const authority = if (proving) try lease.proverKey() else try lease.key();
+        if (!proving and (authority.base.fixed_tree != null or authority.base.fixed.values.len != 0 or authority.base.usage.len != 0)) return error.MillerOuterCacheVerificationOnly;
         return .{ .borrowed = lease, .binding = .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .miller } };
     }
     pub fn initMiller(a: std.mem.Allocator, source: @import("../pure_p2_tower_leaf_test.zig").View) !SourceLeaf {

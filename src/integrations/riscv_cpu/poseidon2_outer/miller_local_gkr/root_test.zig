@@ -42,8 +42,18 @@ fn produce(a: std.mem.Allocator, v: Fixture.VerifiedJoinFor(ML), path: []const u
     var claims = v.truth_encoded.claims;
     var proofs = [_]Bundle.Proof{ .{ .bytes = v.encoded.bytes, .claims = v.encoded.claims }, .{ .bytes = envelope, .claims = &claims } };
     const bundle = Bundle.Bundle{ .source_suite = Source.SUITE, .stage_one = stage_bytes, .proofs = &proofs };
-    var result = try Root.proveFixture(a, view, &bundle, .{ .members = 2, .artifact_directory = path });
+    const cache_bytes = if (std.posix.getenv("STWO_OP_SUITE_ROOT_MILLER_CACHE_BYTES")) |value| try std.fmt.parseInt(usize, value, 10) else 0;
+    if (cache_bytes != 0 and cache_bytes != 4096 and cache_bytes != 1 << 30) return error.InvalidMillerCacheFixtureCap;
+    var result = try Root.proveFixture(a, view, &bundle, .{ .members = 2, .artifact_directory = path, .miller_cache_bytes = cache_bytes });
     defer result.deinit();
+    if (cache_bytes != 0) {
+        const cache = result.miller_cache orelse return error.MissingMillerProverCacheReport;
+        const admitted: usize = if (cache_bytes == 4096) 0 else 1;
+        try std.testing.expectEqual(admitted, cache.classes);
+        try std.testing.expectEqual(admitted, cache.borrowed_leaves);
+        try std.testing.expectEqual(1 - admitted, cache.fallbacks);
+        std.debug.print("OP_MILLER_PROVER_CACHE classes={} hits={} misses={} borrowed_leaves={} fallbacks={} peak_requested_bytes={}\n", .{ cache.classes, cache.hits, cache.misses, cache.borrowed_leaves, cache.fallbacks, cache.peak_requested_bytes });
+    }
     try std.testing.expectEqual(@as(usize, 2), result.members);
     try std.testing.expectEqual(@as(usize, 1), result.reductions);
     var dir = try std.fs.cwd().openDir(path, .{});

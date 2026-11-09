@@ -1,6 +1,6 @@
 # Miller immutable outer source-key cache
 
-The opt-in `miller_local_gkr/outer_key_cache.zig` prototype constructs one R6 authority per immutable Miller source class. It keeps each request's span, ordinal, statement, transcript and nine-word expected output separate. The R6 root source receiver can opt in to verifier-only reuse. There is no prover Session integration or CPU cache generalization.
+The opt-in `miller_local_gkr/outer_key_cache.zig` cache constructs one R6 authority per immutable Miller source class. It keeps each request's span, ordinal, statement, transcript and nine-word expected output separate. The R6 root producer and source receiver can opt in independently. CPU cache generalization remains separate.
 
 `Cache.init(backing, byte_limit, max_entries)` owns a retaining SharedHostBudget. The budget covers cache state, entries, source-only circuit construction scratch, independently constructed fixed keys and retained authority. It enforces the requested byte cap numerically. Caller native keys, actual leaf witness/prover scratch, serialized proofs and pool stacks are outside this cache cap and require the surrounding request budget. There is no global cache or eviction. A full class roster refuses another class before constructing it.
 
@@ -14,7 +14,7 @@ The small physical qualification builds the cached source with first_id=1 and pr
 
 The lifecycle gate records one miss for two distinct request spans, refuses premature retirement/destruction, separates changed coefficient-length classes, and reconstructs the same receiver key independently. Its tiny 8/15 class peaks at 647,619,742 requested bytes while constructing source authority; after retirement the cache retains 47,979 requested bytes. These are memory measurements from the source/lifecycle fixture. Correctness proving overlapped another task, so no wall-time improvement or heavy-block speedup is claimed. Security remains the 128-bit target under documented assumptions, with `security_qualified=false`.
 
-Integration must preserve source-only factories, per-request public framing and independent final receiver authority. The verifier-only ownership adapter and complete-root gate below are now qualified. Producer integration remains separate: Session's existing per-leaf retirement must become a class lifetime barrier before a producer can borrow shared keys. Copying the owned `SourceLeaf.authority` value would double-own its buffers.
+Integration must preserve source-only factories, per-request public framing and independent final receiver authority. The verifier-only ownership adapter and producer class barrier below are qualified. Copying the owned `SourceLeaf.authority` value would double-own its buffers; both adapters instead retain linear leases.
 
 
 ## Verifier-only root integration
@@ -35,3 +35,37 @@ transcript. The default remains zero; the total caller budget still applies.
 Root topology construction uses that accessor. It owns any new parent authorities, and never destroys a child cache entry. Cleanup destroys topology parents, releases every source leaf, and then destroys the cache. Source guards and template validation run before acquisition. Only `OutOfMemory` and the cache's entry-cap refusal can fall back to the independently constructed uncached source path; profile, expected-statement, cap-variant, template and class failures propagate. The cache cannot turn a failed policy check into alternate admission.
 
 The retained complete CPU+Miller root is accepted unchanged with a 1 GiB cache cap and with a deliberately insufficient 4 KiB cap that forces uncached fallback. Its 693,812 bytes have SHA256 `edd53de28a56bdb2272f165cb9977a5b658427e82b0082d4d64e72e47fa06c32`. Fresh source-only reception reads no `native-op.bin`; the cached path also passes the existing wrong-VK, balanced service debt, receipt, membership, terminal-policy and corruption controls. Both contexts release all heap/external budget custody. This is a correctness gate, not a cache speed benchmark: the fixture has one Miller leaf and has no repeated-class hit to amortize.
+
+## Producer class barrier
+
+The producer separately enables `native_omul.recursion.Limits.miller_cache_bytes`
+(default0, maximum8GiB), or `--miller-prover-cache-mib=N` with
+`--r6 --miller-local-gkr prove`. Verification and proving cache flags are
+mutually exclusive resource choices. Neither changes the proof protocol.
+
+Each cached source leaf holds a proving lease while generating and proving its
+actual assignment. After physical capture/verification it calls
+`Lease.releaseProving()`: this irreversibly drops the proving capability but
+preserves a read-only key lease. Later leaves may still acquire the same class
+for proving. Once every native callback has completed, the Session calls
+`finishProvingWithVerificationLeases()`. That barrier refuses any remaining
+proving lease, retires large proving data once per class, and closes further
+proving acquisition. Read-only leases keep the immutable key alive through the
+fold tree. The historical `finishProving()` still refuses every live lease;
+destruction also retains that stronger rule.
+
+Pending nodes point into heap-owned cache entries or the preallocated source
+leaf array. Cleanup destroys nodes, releases source leaves, then destroys the
+cache; topology parents end before their child metadata disappears. Acquisition
+errors fall back only for memory/class capacity, never source-policy errors.
+
+The complete synthetic CPU+Miller root was produced with a1GiB cache and with
+a4KiB cap forcing uncached fallback. All native proof bytes, three recursive
+nodes, the final root and both sidecars match the uncached control exactly.
+A separate source-only receiver accepts the cached result and rejects physical,
+membership, wrong-key, balanced-debt and terminal substitutions. Lifecycle and
+physical tests cover shared-class hits, direct proving-lease release, one-way
+downgrade and retained verifier metadata. The fixture has only one Miller leaf:
+its47.143s /47.687s qualifications do not establish an amortized speedup. The
+[receipt](../../vectors/reports/rv64-opstack-performance-20261109/miller-local-gkr/producer-cache-root-v1.json)
+records exact hashes, resource scope and coverage. No heavy block was rerun.

@@ -1,7 +1,8 @@
 //! Opt-in, Miller-only immutable R6 source keys. No process-global state and no
 //! proposed outer VK is accepted. Requests retain separate statements/spans.
 //! Cache operations are externally serialized; const leases may be read while
-//! live. Retirement and destruction refuse live leases.
+//! live. Destruction refuses every live lease; the explicit production barrier
+//! may retire prover data only after all proving capabilities are released.
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const Budget = engine.host_budget_allocator.SharedHostBudget;
@@ -24,6 +25,7 @@ const State = struct {
     max_entries: usize,
     phase: Phase,
     leases: usize = 0,
+    proving_leases: usize = 0,
     hits: usize = 0,
     misses: usize = 0,
 };
@@ -100,14 +102,26 @@ pub const Lease = struct {
         if (!self.live) return error.MillerOuterCacheLeaseReleased;
         if (!self.proving or self.state.phase != .proving) return error.MillerOuterCacheProvingClosed;
     }
+    /// Keep immutable verifier metadata alive for folds, but irrevocably end
+    /// this leaf's use of the shared class's large proving buffers.
+    pub fn releaseProving(self: *Lease) !void {
+        try self.requireProving();
+        std.debug.assert(self.state.proving_leases != 0);
+        self.state.proving_leases -= 1;
+        self.proving = false;
+    }
     pub fn release(self: *Lease) !void {
         if (!self.live) return error.MillerOuterCacheLeaseReleased;
         std.debug.assert(self.state.leases > 0);
+        if (self.proving) {
+            std.debug.assert(self.state.proving_leases != 0);
+            self.state.proving_leases -= 1;
+        }
         self.state.leases -= 1;
         self.live = false;
     }
 };
-pub const Snapshot = struct { bytes: Budget.Snapshot, classes: usize, leases: usize, hits: usize, misses: usize, phase: Phase };
+pub const Snapshot = struct { bytes: Budget.Snapshot, classes: usize, leases: usize, proving_leases: usize, hits: usize, misses: usize, phase: Phase };
 pub const Cache = struct {
     state: *State,
     pub fn init(a: std.mem.Allocator, byte_limit: usize, max_entries: usize) !Cache {
@@ -128,7 +142,7 @@ pub const Cache = struct {
     }
     pub fn snapshot(self: *const Cache) Snapshot {
         const s = self.state;
-        return .{ .bytes = s.budget.snapshot(), .classes = s.entries.items.len, .leases = s.leases, .hits = s.hits, .misses = s.misses, .phase = s.phase };
+        return .{ .bytes = s.budget.snapshot(), .classes = s.entries.items.len, .leases = s.leases, .proving_leases = s.proving_leases, .hits = s.hits, .misses = s.misses, .phase = s.phase };
     }
     pub fn acquireForProving(self: *Cache, key: *const Native.Key, span: Native.Span, ordinal: u32, lengths: []const u8) !Lease {
         if (self.state.phase != .proving) return error.MillerOuterCacheProvingClosed;
@@ -158,7 +172,10 @@ pub const Cache = struct {
             s.misses += 1;
             found = entry;
         } else s.hits += 1;
-        s.leases = try std.math.add(usize, s.leases, 1);
+        const next_leases = try std.math.add(usize, s.leases, 1);
+        const next_proving = if (proving) try std.math.add(usize, s.proving_leases, 1) else s.proving_leases;
+        s.leases = next_leases;
+        s.proving_leases = next_proving;
         return .{ .state = s, .entry = found.?, .span = span, .expected = expected, .proving = proving };
     }
     /// Explicit end-of-proving barrier. A lease can no longer accidentally
@@ -166,6 +183,14 @@ pub const Cache = struct {
     pub fn finishProving(self: *Cache) !void {
         const s = self.state;
         if (s.leases != 0) return error.MillerOuterCacheLiveLeases;
+        return self.finishProvingWithVerificationLeases();
+    }
+    /// Session barrier after every leaf has relinquished its proving use.
+    /// Read-only leases still pin the immutable key through topology/folding.
+    /// The historical finishProving() API retains its stricter refusal rule.
+    pub fn finishProvingWithVerificationLeases(self: *Cache) !void {
+        const s = self.state;
+        if (s.proving_leases != 0) return error.MillerOuterCacheLiveProvingLeases;
         if (s.phase == .verification) return;
         for (s.entries.items) |entry| Retire.retireProverData(&entry.authority);
         s.phase = .verification;

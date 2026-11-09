@@ -10,6 +10,7 @@ pub const Command = struct {
     truth_local_gkr: bool,
     miller_local_gkr: bool,
     miller_cache_bytes: usize = 0,
+    miller_prover_cache_bytes: usize = 0,
 };
 /// Arguments exclude the executable name. Historical positional commands keep
 /// their exact R5/classic selection; every new protocol choice is explicit.
@@ -20,6 +21,7 @@ pub fn parse(args: []const []const u8) !Command {
     var local = false;
     var miller = false;
     var cache_bytes: ?usize = null;
+    var prover_cache_bytes: ?usize = null;
     for (args) |arg| {
         if (std.mem.eql(u8, arg, "--r6")) {
             if (r6) return error.DuplicateOpRootOption;
@@ -32,12 +34,10 @@ pub fn parse(args: []const []const u8) !Command {
             miller = true;
         } else if (std.mem.startsWith(u8, arg, "--miller-cache-mib=")) {
             if (cache_bytes != null) return error.DuplicateOpRootOption;
-            const value = arg["--miller-cache-mib=".len..];
-            if (value.len == 0) return error.InvalidOpRootMillerCache;
-            for (value) |digit| if (digit < '0' or digit > '9') return error.InvalidOpRootMillerCache;
-            const mib = std.fmt.parseInt(usize, value, 10) catch return error.InvalidOpRootMillerCache;
-            if (mib > 8192) return error.InvalidOpRootMillerCache;
-            cache_bytes = mib * (1 << 20);
+            cache_bytes = try cacheBytes(arg["--miller-cache-mib=".len..]);
+        } else if (std.mem.startsWith(u8, arg, "--miller-prover-cache-mib=")) {
+            if (prover_cache_bytes != null) return error.DuplicateOpRootOption;
+            prover_cache_bytes = try cacheBytes(arg["--miller-prover-cache-mib=".len..]);
         } else {
             if (std.mem.startsWith(u8, arg, "--")) return error.UnknownOpRootOption;
             if (count == positional.len) return error.ExpectedOpRootModeConfigSourceAndRootDirectory;
@@ -48,8 +48,17 @@ pub fn parse(args: []const []const u8) !Command {
     if (count < 4) return error.ExpectedOpRootModeConfigSourceAndRootDirectory;
     const mode: @FieldType(Command, "mode") = if (std.mem.eql(u8, positional[0], "prove")) .prove else if (std.mem.eql(u8, positional[0], "verify")) .verify else return error.ExpectedOpRootModeConfigSourceAndRootDirectory;
     if ((local or miller) and !r6) return error.OpRootLocalGkrRequiresR6;
+    if (cache_bytes != null and prover_cache_bytes != null) return error.ConflictingOpRootCacheModes;
     if (cache_bytes != null and (mode != .verify or !r6 or !miller)) return error.OpRootMillerCacheRequiresLocalVerification;
-    return .{ .mode = mode, .config = positional[1], .source = positional[2], .root = positional[3], .resources = if (count == 5) positional[4] else null, .r6 = r6, .truth_local_gkr = local, .miller_local_gkr = miller, .miller_cache_bytes = cache_bytes orelse 0 };
+    if (prover_cache_bytes != null and (mode != .prove or !r6 or !miller)) return error.OpRootMillerCacheRequiresLocalProving;
+    return .{ .mode = mode, .config = positional[1], .source = positional[2], .root = positional[3], .resources = if (count == 5) positional[4] else null, .r6 = r6, .truth_local_gkr = local, .miller_local_gkr = miller, .miller_cache_bytes = cache_bytes orelse 0, .miller_prover_cache_bytes = prover_cache_bytes orelse 0 };
+}
+fn cacheBytes(value: []const u8) !usize {
+    if (value.len == 0) return error.InvalidOpRootMillerCache;
+    for (value) |digit| if (digit < '0' or digit > '9') return error.InvalidOpRootMillerCache;
+    const mib = std.fmt.parseInt(usize, value, 10) catch return error.InvalidOpRootMillerCache;
+    if (mib > 8192) return error.InvalidOpRootMillerCache;
+    return mib * (1 << 20);
 }
 test "OP root CLI defaults preserve classic authority and require explicit R6 local admission" {
     const classic = try parse(&.{ "prove", "config.json", "native", "root" });
@@ -90,4 +99,17 @@ test "OP root CLI bounded Miller cache is an explicit verifier-only resource cho
     try std.testing.expectError(error.DuplicateOpRootOption, parse(&(prefix ++ .{ "--miller-cache-mib=0", "--miller-cache-mib=0" })));
     try std.testing.expectError(error.OpRootMillerCacheRequiresLocalVerification, parse(&.{ "--r6", "--miller-local-gkr", "prove", "c", "s", "r", "--miller-cache-mib=1024" }));
     try std.testing.expectError(error.OpRootMillerCacheRequiresLocalVerification, parse(&.{ "--r6", "verify", "c", "s", "r", "--miller-cache-mib=1024" }));
+}
+
+test "OP root CLI producer cache is independently bounded and cannot select verification policy" {
+    const prefix = .{ "--r6", "--miller-local-gkr", "prove", "c", "s", "r" };
+    const selected = try parse(&(prefix ++ .{"--miller-prover-cache-mib=1024"}));
+    try std.testing.expectEqual(@as(usize, 1 << 30), selected.miller_prover_cache_bytes);
+    try std.testing.expectEqual(@as(usize, 0), selected.miller_cache_bytes);
+    try std.testing.expectEqual(@as(usize, 0), (try parse(&prefix)).miller_prover_cache_bytes);
+    try std.testing.expectError(error.InvalidOpRootMillerCache, parse(&(prefix ++ .{"--miller-prover-cache-mib=8193"})));
+    try std.testing.expectError(error.DuplicateOpRootOption, parse(&(prefix ++ .{ "--miller-prover-cache-mib=1", "--miller-prover-cache-mib=2" })));
+    try std.testing.expectError(error.ConflictingOpRootCacheModes, parse(&(prefix ++ .{ "--miller-prover-cache-mib=0", "--miller-cache-mib=0" })));
+    try std.testing.expectError(error.OpRootMillerCacheRequiresLocalProving, parse(&.{ "--r6", "--miller-local-gkr", "verify", "c", "s", "r", "--miller-prover-cache-mib=1" }));
+    try std.testing.expectError(error.OpRootMillerCacheRequiresLocalProving, parse(&.{ "--r6", "prove", "c", "s", "r", "--miller-prover-cache-mib=1" }));
 }
