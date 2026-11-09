@@ -95,8 +95,6 @@ pub const CM31 = struct {
     }
 
     // Keep the three-product expression behind a call boundary in nested callers.
-    // LLVM 20 SLP wrong-code: https://github.com/llvm/llvm-project/issues/240372
-    // Remove only after the pinned two-row and full FRI byte checks pass.
     pub noinline fn mul(lhs: CM31, rhs: CM31) CM31 {
         // Karatsuba: 3 base-field multiplies instead of 4.
         // real = ac - bd
