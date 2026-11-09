@@ -400,6 +400,9 @@ test "dense SSA chain six source GKR instances separate relation closure" {
     var forged_proof = decoded.proof;
     forged_proof.output_claims_by_instance = &pair_views;
     try std.testing.expectError(error.UnclosedLocalGkr, Join.close(a, &forged_proof));
+    var missing_writer = w;
+    missing_writer.initial[0][0] = 0;
+    try std.testing.expectError(error.UnclosedLocalGkr, Join.prove(a, scope, &missing_writer));
     // Shape is fully source-derived, including mixed row and lane dimensions.
     for (Join.INSTANCES, pending.artifact.n_variables_by_instance) |i, v| try std.testing.expectEqual(try i.variables(), v);
     // Scope changes the independently drawn BYTE and SSA transcript, so the old

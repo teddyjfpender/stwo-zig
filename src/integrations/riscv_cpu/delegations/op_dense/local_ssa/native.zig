@@ -57,6 +57,9 @@ pub fn statement(public: *const [24]u256, output: [12]u256) [32]u8 {
     h.update(&D.sourceDigest());
     h.update(&C.sourceDigest());
     h.update(@embedFile("native.zig"));
+    h.update(@embedFile("component.zig"));
+    h.update(@embedFile("projection.zig"));
+    h.update(@embedFile("trace.zig"));
     for (public) |v| {
         var b: [32]u8 = undefined;
         std.mem.writeInt(u256, &b, v, .little);
