@@ -10,6 +10,7 @@ const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const graph_install = @import("../graph/install.zig");
 const policy = @import("../graph/product.zig");
+const registration = @import("cairo_cuda_registration.zig").For(descriptor, toolchain_requirement, protocol_features);
 
 const protocol_features =
     "cairo-stwo-v1+cuda-resident-proof-v1+strict-aot-v1";
@@ -478,29 +479,11 @@ fn createProductModule(
     return root;
 }
 
-fn registerMissingToolchain(b: *std.Build) void {
-    const unavailable = b.addFail(toolchain_requirement);
-    b.step(descriptor.build_step, toolchain_requirement).dependOn(&unavailable.step);
-    b.step(descriptor.test_step.?, toolchain_requirement).dependOn(&unavailable.step);
-    b.step(descriptor.benchmark_step.?, toolchain_requirement).dependOn(&unavailable.step);
-    registerResidentUnavailable(b, toolchain_requirement);
-}
+const registerMissingToolchain = registration.registerMissingToolchain;
 
-fn registerResidentUnavailable(b: *std.Build, reason: []const u8) void {
-    const unavailable = b.addFail(reason);
-    b.step("benchmark-circuit-cuda-resident", reason).dependOn(&unavailable.step);
-    b.step("circuit-recursion-cuda-resident", reason).dependOn(&unavailable.step);
-}
+const registerResidentUnavailable = registration.registerResidentUnavailable;
 
-fn product(role: graph.Role) graph.Product {
-    return .{
-        .name = "stwo-cairo-cuda",
-        .frontend = .cairo,
-        .backend = .cuda,
-        .role = role,
-        .protocol_features = protocol_features,
-    };
-}
+const product = registration.product;
 
 test "Cairo CUDA is staged only for explicit Linux construction" {
     try descriptor.validate();
