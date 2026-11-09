@@ -163,3 +163,15 @@ See [delivery gates](COMPLETION.md) and the
 [native-dot receipt](../vectors/reports/rv64-opstack-cpu-20261109/native-dot/standalone-physical.json).
 The next architecture should reduce verification work and leaf count together;
 neither a larger padding threshold nor additional CPU lanes establishes that.
+
+The actual suite3 small-block root's five serial node profiles locate the next
+CPU bottleneck: MAIN commitment33.749 seconds, INTER commitment31.382 seconds,
+composition commitment20.086 seconds, but composition evaluation only4.323
+seconds. Nested streaming Merkle work accounts for55.876 seconds; streaming
+preparation is9.255 seconds (including7.372 seconds extended-domain evaluation).
+Those nested numbers are included in their parent commitments, not additional
+wall time. Full recursion takes140.855 seconds including source construction and
+collector overhead. This qualification was not a quiet performance A/B. It
+motivates improving P2 hashing and lowering committed volume before pursuing
+another composition-only optimization; proof identities must remain unchanged
+for an operational hash-kernel improvement.

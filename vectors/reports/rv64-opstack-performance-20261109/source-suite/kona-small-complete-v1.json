@@ -44,7 +44,34 @@
     "sha256": "de1ca53bb01adddf9cf63626026ba924a68d94ffbbef98fac4b39ebe63197c91",
     "peak_requested_bytes": 5991067332,
     "final_heap_external_zero": true,
-    "native_production_additional": true
+    "native_production_additional": true,
+    "stage_seconds_summed_across_five_serial_nodes": {
+      "op_p2.main_generation": 2.758979,
+      "op_p2.main_commit": 33.749143,
+      "op_p2.interaction_generation": 1.156201,
+      "op_p2.interaction_commit": 31.381665,
+      "draw_random_coeff": 3.7e-05,
+      "composition_trace_extract": 6.7e-05,
+      "composition_evaluation": 4.323146,
+      "composition_interpolate_and_split": 0.138208,
+      "composition_commit": 20.085503,
+      "oods_point_and_mask_points": 0.000282,
+      "sampled_value_evaluation": 0.425316,
+      "sampled_value_channel_mix": 0.003445,
+      "fri_quotient_build_and_commit": 10.57102,
+      "proof_of_work": 3.4e-05,
+      "fri_decommit": 0.445766,
+      "trace_decommit": 2.736582,
+      "constraint_check_and_assembly": 0.000553
+    },
+    "selected_nested_seconds_not_additive_to_parents": {
+      "streaming_commit_prepare": 9.254983,
+      "streaming_transform": 9.023483,
+      "interpolate_columns": 1.651011,
+      "evaluate_extended_domain": 7.371696,
+      "merkle_commit": 55.875517
+    },
+    "stage_profile_scope": "Summed serial proof scopes, not complete process wall. Source-key construction and native receive/collector overhead are additional. Nested timings are not additive to parent scopes."
   },
   "fresh_root_receiver": {
     "separate_process": true,
@@ -110,5 +137,10 @@
     "Native-dot lowering and detached sponge CPU/inventory/root integration",
     "Heavy tenfold native-plus-root target unproven; heavy rerun not authorized",
     "Anchored derivation, recursive OD/OP join, checkpoint accumulation and practical full settlement"
-  ]
+  ],
+  "integrated_python_tests": {
+    "command": "python -m unittest discover -s opstack/tests",
+    "passed": 46,
+    "seconds": 0.237
+  }
 }

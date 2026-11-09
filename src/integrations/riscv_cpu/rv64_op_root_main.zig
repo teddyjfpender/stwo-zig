@@ -8,17 +8,17 @@ const Receiver = @import("poseidon2_outer/pure_p2_op_root_runtime.zig");
 const R6 = @import("poseidon2_outer/native_omul/recursion.zig");
 const R6Receiver = @import("poseidon2_outer/native_omul/root_runtime.zig");
 const Options = @import("poseidon2_outer/root_cli_options.zig");
-const usage = "usage: rv64-op-root [--r6] [--truth-local-gkr] [--miller-local-gkr] <prove|verify> config.json source-directory root-directory [resources.json]\n";
+const usage = "usage: rv64-op-root [--r6] [--truth-local-gkr] [--miller-local-gkr] [--miller-cache-mib=N] <prove|verify> config.json source-directory root-directory [resources.json]\n";
 
 pub fn main() !void {
     const base = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, args);
-    if (args.len < 5 or args.len > 9) {
+    if (args.len < 5 or args.len > 10) {
         std.debug.print(usage, .{});
         return error.ExpectedOpRootModeConfigSourceAndRootDirectory;
     }
-    var words: [8][]const u8 = undefined;
+    var words: [9][]const u8 = undefined;
     for (args[1..], words[0 .. args.len - 1]) |arg, *word| word.* = arg;
     const command = Options.parse(words[0 .. args.len - 1]) catch |err| {
         std.debug.print(usage, .{});
@@ -67,7 +67,7 @@ pub fn main() !void {
             // This path loads source declarations and public RAM cells only;
             // it neither opens nor verifies native-op.bin.
             if (command.r6) {
-                _ = try R6Receiver.verifyDirectoryWithOptions(a, config.value, command.source, command.root, profile, resources, native_options, .{});
+                _ = try R6Receiver.verifyDirectoryWithOptions(a, config.value, command.source, command.root, profile, resources, native_options, .{ .miller_cache_bytes = command.miller_cache_bytes });
             } else {
                 _ = try Receiver.verifyDirectory(a, config.value, command.source, command.root, profile, resources, .{});
             }

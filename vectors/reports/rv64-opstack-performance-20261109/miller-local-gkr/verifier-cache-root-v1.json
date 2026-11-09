@@ -57,8 +57,28 @@
   "security_label": "128-bit security target under documented assumptions",
   "timing_speedup_claim": false,
   "remaining": [
-    "opt-in integration review",
     "prover/session cache still separate pending class-lifetime adapter",
     "heavy tenfold target remains unmeasured; no heavy rerun"
-  ]
+  ],
+  "cli": {
+    "option": "--miller-cache-mib=N",
+    "valid_range_mib": [
+      0,
+      8192
+    ],
+    "only_with": "--r6 --miller-local-gkr verify",
+    "standalone_parser_tests_passed": 3,
+    "production_ReleaseFast_build": true,
+    "bad_cap_and_prover_mode_reject_before_filesystem": true,
+    "actual_small_Kona_source_only_receiver": {
+      "block": 120794432,
+      "cap_mib": 4,
+      "root_bytes": 683432,
+      "sha256": "de1ca53bb01adddf9cf63626026ba924a68d94ffbbef98fac4b39ebe63197c91",
+      "source_ns": 30817529917,
+      "root_verify_ns": 26847458,
+      "zero_heap_external": true,
+      "scope": "Wiring and owned-key regression; this block has zero Miller calls. Cached Miller coverage is the separate physical fixture above. No timing speedup claim."
+    }
+  }
 }

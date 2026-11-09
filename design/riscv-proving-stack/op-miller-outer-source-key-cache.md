@@ -14,12 +14,23 @@ The small physical qualification builds the cached source with first_id=1 and pr
 
 The lifecycle gate records one miss for two distinct request spans, refuses premature retirement/destruction, separates changed coefficient-length classes, and reconstructs the same receiver key independently. Its tiny 8/15 class peaks at 647,619,742 requested bytes while constructing source authority; after retirement the cache retains 47,979 requested bytes. These are memory measurements from the source/lifecycle fixture. Correctness proving overlapped another task, so no wall-time improvement or heavy-block speedup is claimed. Security remains the 128-bit target under documented assumptions, with `security_qualified=false`.
 
-Integration must preserve source-only factories, per-request public framing and independent final receiver authority. Session's existing per-leaf retirement must become a class lifetime barrier before this cache is used. Borrowed cache leases also need an explicit topology ownership adapter: copying the owned `SourceLeaf.authority` value would double-own its buffers. No live integration should precede those changes and a complete root gate.
+Integration must preserve source-only factories, per-request public framing and independent final receiver authority. The verifier-only ownership adapter and complete-root gate below are now qualified. Producer integration remains separate: Session's existing per-leaf retirement must become a class lifetime barrier before a producer can borrow shared keys. Copying the owned `SourceLeaf.authority` value would double-own its buffers.
 
 
 ## Verifier-only root integration
 
 `RootRuntime.Limits.miller_cache_bytes` defaults to zero and accepts at most 8 GiB. A nonzero value creates a verification-only child cache charged to the caller's request budget. The cached authority has already released fixed/prover buffers before a `SourceLeaf` may borrow it. The leaf owns only its source binding metadata and a linear lease; `SourceLeaf.key()` provides the shared immutable authority. The legacy `.authority` value is reserved for owned constructors and is never populated by the borrowed constructor.
+
+The root CLI exposes this resource choice as `--miller-cache-mib=N` (0..8192),
+only with `--r6 --miller-local-gkr verify`. It rejects the flag on proving or
+classic verification rather than silently ignoring it. For example:
+
+```sh
+rv64-op-root --r6 --truth-local-gkr --miller-local-gkr --miller-cache-mib=1024 verify CONFIG SOURCE_ONLY ROOT
+```
+
+This changes retention within one receiver request, not its statement, suite or
+transcript. The default remains zero; the total caller budget still applies.
 
 Root topology construction uses that accessor. It owns any new parent authorities, and never destroys a child cache entry. Cleanup destroys topology parents, releases every source leaf, and then destroys the cache. Source guards and template validation run before acquisition. Only `OutOfMemory` and the cache's entry-cap refusal can fall back to the independently constructed uncached source path; profile, expected-statement, cap-variant, template and class failures propagate. The cache cannot turn a failed policy check into alternate admission.
 
