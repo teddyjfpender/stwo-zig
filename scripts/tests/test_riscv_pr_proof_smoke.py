@@ -200,7 +200,11 @@ class RiscVPrProofSmokeTests(unittest.TestCase):
             return subprocess.CompletedProcess(argv, 0, json.dumps(receipt).encode(), b""), 1
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(smoke, "run_command", side_effect=run):
             admission = smoke.riscv_cli_admission.Admission("promoted", "release_gated", False)
-            smoke.run_workload(Path("/fake-cli"), workload, Path(tmp), report["implementation_commit"], False, admission)
+            row = smoke.run_workload(Path("/fake-cli"), workload, Path(tmp), report["implementation_commit"], False, admission)
+            self.assertEqual("experimental_full_width", row["proof_release_status"])
+            self.assertEqual(report["statement_blake3"], row["statement_digest"])
+            self.assertNotIn("statement_sha256", row)
+            self.assertEqual((report["schema"], receipt["schema"]), (row["prove_schema"], row["verify_schema"]))
             calls.clear()
             with mock.patch.object(smoke, "sha256_file", side_effect=lambda p: "0" * 64 if p.name.endswith(".proof.json") else original_sha(p)):
                 with self.assertRaisesRegex(smoke.SmokeError, "retained artifact differs"):
@@ -211,6 +215,24 @@ class RiscVPrProofSmokeTests(unittest.TestCase):
         self.assertEqual(2, len(calls))
         self.assertIn("verify", calls[1])
         self.assertEqual(str(smoke.ROOT / workload.input_path), calls[1][calls[1].index("--input") + 1])
+
+    def test_functional_pass_does_not_relabel_experimental_proof_as_release_gated(self):
+        row = {"proof_release_status": "experimental_full_width"}
+        admission = smoke.riscv_cli_admission.Admission("promoted", "release_gated", False)
+        with tempfile.TemporaryDirectory() as tmp:
+            cli, out = Path(tmp) / "cli", Path(tmp) / "report.json"
+            cli.touch()
+            with mock.patch.object(smoke.riscv_cli_admission, "resolve", return_value=admission), \
+                 mock.patch.object(smoke, "run_command", return_value=(subprocess.CompletedProcess([], 0, COMMIT.encode(), b""), 1)), \
+                 mock.patch.object(smoke, "run_workload", return_value=row):
+                self.assertEqual(0, smoke.main(["--cli", str(cli), "--artifact-dir", str(Path(tmp) / "proofs"),
+                    "--report-out", str(out), "--workload", "branch_fib"]))
+            report = json.loads(out.read_text())
+        self.assertEqual({"release_status": "release_gated", "experimental": False}, report["cli_admission"])
+        self.assertEqual("functional_cpu_proof_verification", report["acceptance_scope"])
+        self.assertNotIn("release_status", report)
+        self.assertNotIn("experimental", report)
+        self.assertEqual("experimental_full_width", report["workloads"][0]["proof_release_status"])
 
     def test_step_drift_is_rejected(self) -> None:
         workload = smoke.WORKLOADS[0]

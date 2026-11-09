@@ -994,7 +994,7 @@
       "net_code_budget": 280,
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
-      "positive_growth_justification": "Strict private CPU smoke consumers for retained legacy schema pairs and the actual full-width BLAKE3 producer/verifier, source-pinned hosted report fixtures, identity/PCS/phase/ambiguity negatives and independent workload-input binding. No producer, public API, proof suite/default, pin, corpus, floor or timeout changes. Issue #349."
+      "positive_growth_justification": "Strict private CPU smoke consumers for retained legacy schema pairs and the actual full-width BLAKE3 producer/verifier, source-pinned hosted report fixtures, identity/PCS/phase/ambiguity negatives, separate CLI admission/proof release metadata and independent workload-input binding. No producer, public API, proof suite/default, pin, corpus, floor or timeout changes. Issue #349."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

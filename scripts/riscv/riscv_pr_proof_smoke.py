@@ -362,7 +362,10 @@ def run_workload(
         "input": workload.input_path,
         "input_sha256": sha256_file(input_path) if input_path is not None else None,
         "expected_steps": workload.expected_steps,
-        "statement_sha256": statement,
+        "proof_release_status": report["release_status"],
+        "prove_schema": report["schema"],
+        "verify_schema": receipt["schema"],
+        "statement_digest": statement,
         "proof_artifact_sha256": sha256_file(proof_path),
         "proof_bytes_sha256": receipt["proof_sha256"],
         "prove_duration_ns": prove_duration_ns,
@@ -416,8 +419,8 @@ def main(argv: list[str] | None = None) -> int:
             "cli": str(cli),
             "cli_sha256": sha256_file(cli),
             "protocol": "functional",
-            "release_status": admission.release_status,
-            "experimental": admission.experimental,
+            "cli_admission": {"release_status": admission.release_status, "experimental": admission.experimental},
+            "acceptance_scope": "functional_cpu_proof_verification",
             "oracle_boundary": (
                 "independent Zig artifact verification plus separately gated pinned "
                 "Sail/Spike corpus evidence; finite ISA agreement is not universal "
