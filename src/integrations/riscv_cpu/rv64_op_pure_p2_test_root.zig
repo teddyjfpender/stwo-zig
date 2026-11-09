@@ -53,3 +53,12 @@ test {
     _ = @import("poseidon2_outer/miller_local_gkr/native.zig");
     _ = @import("poseidon2_outer/miller_local_gkr/projection.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/equations.zig");
+    _ = @import("poseidon2_outer/miller_local_gkr/witness.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/global_witness.zig");
+}

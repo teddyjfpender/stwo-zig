@@ -205,6 +205,16 @@ test "Miller local GKR actual source child proves and rejects changed manifest a
     defer checked.deinit(a);
     try std.testing.expect(checked.eta.eql(proof.eta));
     try std.testing.expectEqual(@as(usize, 4), checked.artifact.n_variables_by_instance.len);
+    var binding = try @import("witness.zig").Witness.init(a, g, &checked.challenges, Input.Provider{ .frontier = &frontier, .arithmetic = &arithmetic }, &checked.artifact, checked.eta);
+    defer binding.deinit();
+    const expected_rows = [_]usize{ 32768, 32768, 32768, 256 };
+    for (binding.columns, expected_rows) |data, rows| try std.testing.expectEqual(16 * rows, data.len);
+    // The source-bound binding prefix must refuse a forged terminal marginal,
+    // even when the GKR mechanics alone have already returned pending data.
+    const original = checked.artifact.claims_to_verify_by_instance[0][0];
+    checked.artifact.claims_to_verify_by_instance[0][0] = original.add(O.one());
+    try std.testing.expectError(error.UnboundLocalGkrInput, @import("witness.zig").Witness.init(a, g, &checked.challenges, Input.Provider{ .frontier = &frontier, .arithmetic = &arithmetic }, &checked.artifact, checked.eta));
+    checked.artifact.claims_to_verify_by_instance[0][0] = original;
     var wrong_receipt = proof.digest;
     wrong_receipt[0] ^= 1;
     try std.testing.expectError(error.LocalGkrReceiptMismatch, verifyPending(a, scope, g, &decoded.proof, wrong_receipt));
