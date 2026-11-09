@@ -1,0 +1,15 @@
+{
+  "format": "extract gzip tar; supplemental checkpoint for the original evidence backup",
+  "source_PR_commit": "a72245eced92c075dbe80133ff2144835acc45af",
+  "parts": [
+    {
+      "name": "delivery-evidence.tar.gz.part000",
+      "bytes": 222231,
+      "sha256": "2a5eb1a5db3778f96e542b6b71063fd0cacba8e5fe54868fb7bd72a5b62ae9a4"
+    }
+  ],
+  "checkpoints": [
+    "509403a33fec-hosted-cpu"
+  ],
+  "classification": "Mixed pinned CPU logs retain their individual source IDs. Native interop passed at 1b488c488; other fixes awaiting hosted acceptance. Generator runner shutdown: no candidate/corpus qualification. Source/workspace 103/392. No GPU, full CPU CI, block, release, physical memory or qualified timing claim."
+}
