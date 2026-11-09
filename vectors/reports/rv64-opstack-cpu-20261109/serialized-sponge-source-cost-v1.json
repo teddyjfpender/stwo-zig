@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "status": "source-prototype-admission-closed",
+  "source_class": {
+    "ordinal": 3,
+    "calls": 74,
+    "old_call_log": 7,
+    "state_log": 11,
+    "maximum_gkr_layers": 26
+  },
+  "columns": {
+    "old_call": 1161,
+    "descriptor": 133,
+    "state": 97,
+    "old_whole_sponge": 2513,
+    "partial_whole_sponge": 1582,
+    "old_whole_cpu": 5896,
+    "partial_whole_cpu": 4965
+  },
+  "modeled_native_cells": {
+    "old": 148608,
+    "candidate": 215680
+  },
+  "padded_local_facts": {
+    "old": 16384,
+    "candidate": 139264
+  },
+  "recursive_gkr_kernel_only": {
+    "scope": "synthetic-dimensions-no-binding-PCS-or-permutation",
+    "old": {
+      "raw": [
+        790,
+        83073,
+        58,
+        3272,
+        65536
+      ],
+      "native_mul": 2536
+    },
+    "candidate": {
+      "raw": [
+        793,
+        87879,
+        58,
+        3456,
+        65536
+      ],
+      "native_mul": 3053
+    }
+  },
+  "source_binding_tuple_coordinates": {
+    "old": 105,
+    "descriptor": 533,
+    "state": 55
+  },
+  "physical_proof_qualified": false,
+  "security_qualified": false
+}

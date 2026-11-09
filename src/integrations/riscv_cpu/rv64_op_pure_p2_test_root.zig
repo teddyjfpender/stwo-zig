@@ -74,4 +74,5 @@ test {
 
 test {
     _ = @import("poseidon2_outer/miller_local_gkr/worker.zig");
+    _ = @import("poseidon2_outer/native_omul/sponge_gkr_cost_test.zig");
 }
