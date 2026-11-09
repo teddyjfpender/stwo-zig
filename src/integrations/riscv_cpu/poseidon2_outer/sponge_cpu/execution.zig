@@ -42,6 +42,7 @@ pub const Limits = struct {
 pub const Inputs = struct {
     /// Optional tokens parked by the capture owner, borrowed through completion.
     captured_metadata: ?[]?MetadataParking.Token = null,
+    captured_events: ?[]?@import("event_custody.zig").Token = null,
     cpus: []const I.Cpu,
     detached: []const I.Detached,
     catalog: []const I.Catalog,
@@ -156,6 +157,9 @@ pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inpu
     // Current capture is a single immutable flattened suffix. Multi-worker
     // partitioning must provide separate source slices, never duplicate it.
     if (inputs.detached.len > 1) return error.DetachedSourcePartitionRequired;
+    if (inputs.captured_events) |tokens| {
+        if (!limits.consume_memory_events or tokens.len != inputs.cpus.len) return error.OpCaptureCustodyCoverage;
+    }
     const workers = try a.alloc(Worker, inventory.workers.len);
     defer a.free(workers);
     var made: usize = 0;
@@ -186,9 +190,15 @@ pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inpu
         var source_scope = try Stage.StageScope.begin(limits.recorder(ordinal), "source_construction", "Construct worker witness and narrow metadata once");
         defer source_scope.end();
         if (metadata[ordinal]) |*token| try token.restore(if (n.cpu) |*value| value else return error.PreparedExecutionConsumed);
+        if (inputs.captured_events) |tokens| {
+            if (tokens[ordinal]) |*token| {
+                try token.restore(inputs.advice.allocator, try @import("capture_custody.zig").Owner.eventDescriptor(n, ordinal), &inputs.advice.events[ordinal]);
+            } else if (n.raw_counts.memory != 0 or inputs.advice.events[ordinal].len != 0) return error.OpCaptureCustodyCoverage;
+        }
         var source = try Pipeline.buildCpuSourceForOp(a, cpu.setup, cpu.request, cpu.span, n, inputs.advice, ordinal, inventory.first_ids[ordinal], limits.consume_memory_events, null);
         var source_owned = true;
         defer if (source_owned) source.deinit();
+        if (inputs.captured_events) |tokens| if (tokens[ordinal]) |*token| try token.consumed(inputs.advice.events[ordinal]);
         var frontier = try Frontier.initCalls(a, inputs.advice.sponge[ordinal].calls, cpu.request.sponge.calls, cpu.key.frontier_log, @intCast(cpu.request.base.epoch), @intCast(ordinal));
         var frontier_owned = true;
         defer if (frontier_owned) frontier.deinit();

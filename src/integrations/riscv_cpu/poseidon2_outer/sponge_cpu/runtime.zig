@@ -205,6 +205,7 @@ fn ensureBudget(a: std.mem.Allocator, resources: Resources) !void {
 }
 pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
     try ensureBudget(a, resources);
+    if (resources.park_memory_events and !resources.consume_memory_events) return error.OpEventCustodyRequiresConsumption;
     var timer = try std.time.Timer.start();
     try std.fs.cwd().makePath(path);
     var dir = try std.fs.cwd().openDir(path, .{});
@@ -213,9 +214,9 @@ pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []co
     defer a.free(parked);
     var store = try Store.init(a, parked, resources.disk_bytes, resources.mapped_bytes);
     defer store.deinit();
-    var custody = @import("capture_custody.zig").Owner{ .store = &store };
+    var custody = @import("capture_custody.zig").Owner{ .store = &store, .park_metadata = resources.park_cpu_metadata, .park_events = resources.park_memory_events };
     defer custody.deinit();
-    var capture = try CapturePlan.Owner.init(a, config, profile, .{ .local_truth = true, .truth_limits = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .gkr_bytes = resources.gkr_bytes }, .detached_sponge = true, .extra_workers = 1, .capture_hooks = if (resources.park_cpu_metadata) custody.hooks() else .{} }, &timer);
+    var capture = try CapturePlan.Owner.init(a, config, profile, .{ .local_truth = true, .truth_limits = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .gkr_bytes = resources.gkr_bytes }, .detached_sponge = true, .extra_workers = 1, .capture_hooks = custody.hooks() }, &timer);
     defer capture.deinit();
     const logs = try a.alloc(u32, capture.requests.len);
     defer a.free(logs);
@@ -266,7 +267,7 @@ pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []co
         recorder.task_recorder.example = "op_detached_native_physical";
     }
     const setup_done = timer.read();
-    var bundle = try Execution.produce(a, &inventory, .{ .captured_metadata = if (resources.park_cpu_metadata) custody.slice() else null, .cpus = authority.cpu, .detached = authority.detached, .catalog = authority.catalogs, .towers = authority.catalog.miller, .native = capture.captured.native, .advice = &capture.captured.advice, .calls = flat_calls, .words = flat_words }, &store, .{ .recorders = observations.pointers, .consume_memory_events = resources.consume_memory_events, .park_cpu_metadata = resources.park_cpu_metadata, .retire_source_auxiliaries = resources.retire_source_auxiliaries, .cpu = .{ .gkr_bytes = resources.gkr_bytes, .global_bytes = resources.global_bytes }, .truth = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .advice_bytes = resources.truth_advice_bytes }, .truth_gkr_bytes = resources.gkr_bytes, .detached_live_bytes = resources.truth_live_bytes, .detached_gkr_bytes = resources.gkr_bytes, .global_bytes = resources.global_bytes, .miller = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .advice_bytes = resources.truth_advice_bytes }, .miller_gkr_bytes = resources.gkr_bytes });
+    var bundle = try Execution.produce(a, &inventory, .{ .captured_metadata = if (resources.park_cpu_metadata) custody.slice() else null, .captured_events = if (resources.park_memory_events) custody.eventSlice() else null, .cpus = authority.cpu, .detached = authority.detached, .catalog = authority.catalogs, .towers = authority.catalog.miller, .native = capture.captured.native, .advice = &capture.captured.advice, .calls = flat_calls, .words = flat_words }, &store, .{ .recorders = observations.pointers, .consume_memory_events = resources.consume_memory_events, .park_cpu_metadata = resources.park_cpu_metadata, .retire_source_auxiliaries = resources.retire_source_auxiliaries, .cpu = .{ .gkr_bytes = resources.gkr_bytes, .global_bytes = resources.global_bytes }, .truth = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .advice_bytes = resources.truth_advice_bytes }, .truth_gkr_bytes = resources.gkr_bytes, .detached_live_bytes = resources.truth_live_bytes, .detached_gkr_bytes = resources.gkr_bytes, .global_bytes = resources.global_bytes, .miller = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .advice_bytes = resources.truth_advice_bytes }, .miller_gkr_bytes = resources.gkr_bytes });
     defer bundle.deinit(a);
     const prove_done = timer.read();
     const bytes = try Codec.encode(a, bundle, .{ .bytes = resources.bundle_bytes, .proof_bytes = resources.proof_bytes });
@@ -279,7 +280,7 @@ pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []co
         for (observations.pointers, 0..) |_, ordinal| try profiling.finish(a, ordinal);
     }
     const output = try Terminal.require(capture.image, capture.requests[capture.requests.len - 1].base.cpu, capture.captured.advice.terminal);
-    try @import("../../word16_execution/driver.zig").writeJson(a, dir, "detached-op-timing.json", .{ .steps = capture.captured.steps, .output = output, .security = security, .cpu = authority.cpu.len, .detached = authority.detached.len, .truth = authority.catalogs.len, .total_ns = timer.read(), .capture_and_plan_ns = capture_done, .setup_ns = setup_done - capture_done, .prove_ns = prove_done - setup_done, .native_bytes = bytes.len, .capture_parked_metadata_bytes = custody.bytes, .peak_parked_mapping_bytes = store.peak_mapped, .runtime_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(), .profile_stages = config.profile_stages, .production_admission = false });
+    try @import("../../word16_execution/driver.zig").writeJson(a, dir, "detached-op-timing.json", .{ .steps = capture.captured.steps, .output = output, .security = security, .cpu = authority.cpu.len, .detached = authority.detached.len, .truth = authority.catalogs.len, .total_ns = timer.read(), .capture_and_plan_ns = capture_done, .setup_ns = setup_done - capture_done, .prove_ns = prove_done - setup_done, .native_bytes = bytes.len, .capture_parked_metadata_bytes = custody.bytes, .capture_parked_event_bytes = custody.event_bytes, .peak_parked_mapping_bytes = store.peak_mapped, .runtime_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(), .profile_stages = config.profile_stages, .production_admission = false });
 }
 
 /// Borrowed source authority only. The output is public and unauthenticated

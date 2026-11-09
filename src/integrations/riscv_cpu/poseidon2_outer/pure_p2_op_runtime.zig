@@ -118,6 +118,8 @@ pub const Options = struct {
 pub const Resources = struct {
     /// Producer-only bounded inactive CPU advice parking; proof bytes unchanged.
     park_cpu_metadata: bool = false,
+    /// Explicit detached-source producer only; classic routes refuse this flag.
+    park_memory_events: bool = false,
     retire_source_auxiliaries: bool = false,
     consume_memory_events: bool = true,
     live_bytes: usize = 32 << 30,
@@ -596,6 +598,7 @@ fn uniqueFixedRoots(keys: []const *const Key, comptime field: []const u8) usize 
 }
 const ProduceMode = enum { capture, prepare, prove };
 fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, mode: ProduceMode, cache: ?*SetupCache, truth_local_gkr: bool, source_suite: ?SourceSuite) !void {
+    if (resources.park_memory_events) return error.OpEventCustodyRequiresDetached;
     try validateOptions(.{ .truth_local_gkr = truth_local_gkr, .source_suite = source_suite });
     const local_truth = if (source_suite) |suite| suite.truth == .local_gkr else truth_local_gkr;
     var session = if (cache) |owner| try owner.enterRequest(a, resources.disk_bytes, resources.mapped_bytes) else null;

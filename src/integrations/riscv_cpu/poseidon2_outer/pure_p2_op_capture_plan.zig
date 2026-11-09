@@ -77,6 +77,7 @@ pub const Owner = struct {
         var next: u32 = 1;
         var total: [T.FAMILIES]u32 = @splat(0);
         for (captured.native, 0..) |n, i| {
+            if (options.capture_hooks.prepare_events) |prepare| try prepare(options.capture_hooks.context, i, n, &captured.advice.events[i]);
             declarations[i] = try Plan.cpuForSegment(n, &captured.advice, i, count, captured.advice.initial.len, Plan.CpuLayout.forOpGkr());
             // Only the explicit detached planner removes this original
             // provider. Classical admission and source modes stay unchanged.
@@ -89,6 +90,9 @@ pub const Owner = struct {
             try Coordinator.routeDword(&req[i], declarations[i].bridges, captured.advice.events[i]);
             for (&total, req[i].calls) |*sum, value| sum.* = try std.math.add(u32, sum.*, value);
             total[0] = try std.math.add(u32, total[0], req[i].sponge.perms);
+            // On an error above, captured.deinit still owns the current restored
+            // slice. Successful planning retires it before the next shard.
+            if (options.capture_hooks.release_events) |release| try release(options.capture_hooks.context, i, n, &captured.advice.events[i]);
         }
         try Coordinator.assignSpongeIds(req);
         for (req, compact) |r, *out| out.* = Wire.CompactRequest.from(r);

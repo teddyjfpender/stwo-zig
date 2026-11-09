@@ -15,9 +15,17 @@ const Coverage = @import("../word16_execution/coverage.zig");
 /// Producer-only custody hook, after chronological advice owns every event and
 /// raw CPU capture rows have been retired. It cannot supply public authority.
 /// The current prepared shard is borrowed synchronously; failure aborts capture.
+pub const Events = A.memory.load_store_v2.native.Event;
 pub const Hooks = struct {
     context: ?*anyopaque = null,
     completed: ?*const fn (?*anyopaque, usize, *Native) anyerror!void = null,
+    events: ?*const fn (?*anyopaque, usize, *Native, *[]Events) anyerror!void = null,
+    prepare_events: ?*const fn (?*anyopaque, usize, *Native, *[]Events) anyerror!void = null,
+    release_events: ?*const fn (?*anyopaque, usize, *Native, *[]Events) anyerror!void = null,
+    pub fn validate(self: Hooks) !void {
+        const count = @as(u2, @intFromBool(self.events != null)) + @as(u2, @intFromBool(self.prepare_events != null)) + @as(u2, @intFromBool(self.release_events != null));
+        if (count != 0 and count != 3) return error.OpCaptureCustodyCallbacks;
+    }
 };
 pub const Owner = struct {
     allocator: std.mem.Allocator,
@@ -39,6 +47,7 @@ pub const Owner = struct {
         return initWithHooks(a, config, image, program, .{});
     }
     pub fn initWithHooks(a: std.mem.Allocator, config: Config.Config, image: *const Image.Owner, program: *const Program, hooks: Hooks) !Owner {
+        try hooks.validate();
         try Config.validateBudgetForOp(config);
         if (program.profile != .ethereum_services_op_v1) return error.UnqualifiedOpSetup;
         const elf = try std.fs.cwd().readFileAlloc(a, config.elf, 64 << 20);
@@ -96,6 +105,7 @@ pub const Owner = struct {
             // Projection retains its independent 56-byte CPU metadata; raw
             // records are no longer needed, exactly as on the v3 capture path.
             n.cpu.?.releaseCaptureRecords();
+            if (hooks.events) |events| try events(hooks.context, native.items.len, n, &builder.shards.items[native.items.len].events);
             if (hooks.completed) |completed| try completed(hooks.context, native.items.len, n);
             try native.append(a, n);
         }

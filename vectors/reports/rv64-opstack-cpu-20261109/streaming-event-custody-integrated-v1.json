@@ -1,0 +1,51 @@
+{
+  "schema": "op-streaming-event-custody-integrated-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "scope": "producer-only opt-in event/cpu custody; complete small one/two CPU native qualification",
+  "checks": {
+    "one_cpu_16_workers_native_metadata_cells_exact_control_bytes": true,
+    "two_cpu_8_workers_native_metadata_cells_exact_control_bytes": true,
+    "fresh_receivers_and_typed_callbacks": true,
+    "intentional_after_event_and_metadata_park_failure_cleanup": true,
+    "real_zero_event_then_nonzero_LD_ordinal_null_coverage": true,
+    "missing_nonzero_token_rejected": true,
+    "planning_error_after_restore_and_before_release_cleanup": true,
+    "final_heap_external_and_disk_reservation_zero": true,
+    "shared_MAIN_disk_quota": true,
+    "callback_group_fail_closed": true,
+    "classic_producer_refuses_event_flag": true,
+    "ReleaseSafe_CLI_sema_exit": 0,
+    "both_ReleaseFast_complete_and_failure_gates_exit": 0
+  },
+  "runs": {
+    "one_cpu_16": {
+      "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-event-one-cpu-16-workers-v1",
+      "native_sha256": "4e7c5dc1ca425a57754eae3f913932da9e69c8fab7a920dcb08a279b0b00e17f",
+      "native_bytes": 5045776,
+      "producer_ns": 11441893834,
+      "prove_ns": 8900054708,
+      "parked_event_encoded_bytes": 19452114,
+      "parked_cpu_metadata_rounded_bytes": 44613632,
+      "requested_peak_bytes": 3127961991
+    },
+    "two_cpu_8": {
+      "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-event-two-cpu-8-workers-v1",
+      "native_sha256": "8e887225f69aa64fba796ad513240686a941a27f26b78492a5f2a1c5ce4244db",
+      "native_bytes": 6315160,
+      "producer_ns": 28266980459,
+      "prove_ns": 22296417125,
+      "parked_event_encoded_bytes": 19452114,
+      "parked_cpu_metadata_rounded_bytes": 44613632,
+      "requested_peak_bytes": 3301750878
+    }
+  },
+  "security_qualified": false,
+  "production_admission": false,
+  "defaults_unchanged": true,
+  "caveats": [
+    "Optional event parking adds encode/I/O and two restores; it is not advertised as a latency optimization",
+    "Requested peak includes mappings and differs from RSS",
+    "No full heavy block or anchored derivation reproof; worker cap remains256"
+  ]
+}

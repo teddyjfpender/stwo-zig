@@ -34,11 +34,11 @@ test "detached actual small native producer and independent receiver" {
     const budget = try E.host_budget_allocator.SharedHostBudget.create(std.heap.smp_allocator, 32 << 30);
     defer budget.destroy();
     var pool: E.work_pool.WorkPool = .{};
-    try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
+    try pool.initInPlaceWithOptions(.{ .worker_count = if (parsed.value.workers != 0) parsed.value.workers else 8 });
     defer pool.deinit();
     var bind = try E.work_pool.ScopedPoolBinding.init(&pool);
     defer bind.deinit();
-    const resources = Runtime.Resources{ .park_cpu_metadata = std.posix.getenv("STWO_OP_NATIVE_METADATA_PARKING") != null, .retire_source_auxiliaries = std.posix.getenv("STWO_OP_NATIVE_SOURCE_RETIREMENT") != null };
+    const resources = Runtime.Resources{ .park_memory_events = std.posix.getenv("STWO_OP_NATIVE_EVENT_PARKING") != null, .park_cpu_metadata = std.posix.getenv("STWO_OP_NATIVE_METADATA_PARKING") != null, .retire_source_auxiliaries = std.posix.getenv("STWO_OP_NATIVE_SOURCE_RETIREMENT") != null };
     try Runtime.produceDirectory(budget.allocator(), parsed.value, out, .op_target_b4_q72_p0_fold4_v1, resources);
     try Runtime.verifyDirectory(budget.allocator(), parsed.value, out, .op_target_b4_q72_p0_fold4_v1, .{});
     var hooks = HookState{};
@@ -76,6 +76,21 @@ test "detached retained actual native bundle adversarial fresh source receiver" 
 
 const FailedCapture = struct {
     custody: *@import("capture_custody.zig").Owner,
+    fn events(raw: ?*anyopaque, ordinal: usize, native: *@import("../../word16_execution/prepared.zig").Prepared, value: *[]@import("event_custody.zig").Event) !void {
+        const self: *FailedCapture = @ptrCast(@alignCast(raw.?));
+        const hooks = self.custody.hooks();
+        try hooks.events.?(hooks.context, ordinal, native, value);
+    }
+    fn prepareEvents(raw: ?*anyopaque, ordinal: usize, native: *@import("../../word16_execution/prepared.zig").Prepared, value: *[]@import("event_custody.zig").Event) !void {
+        const self: *FailedCapture = @ptrCast(@alignCast(raw.?));
+        const hooks = self.custody.hooks();
+        try hooks.prepare_events.?(hooks.context, ordinal, native, value);
+    }
+    fn releaseEvents(raw: ?*anyopaque, ordinal: usize, native: *@import("../../word16_execution/prepared.zig").Prepared, value: *[]@import("event_custody.zig").Event) !void {
+        const self: *FailedCapture = @ptrCast(@alignCast(raw.?));
+        const hooks = self.custody.hooks();
+        try hooks.release_events.?(hooks.context, ordinal, native, value);
+    }
     fn completed(raw: ?*anyopaque, ordinal: usize, native: *@import("../../word16_execution/prepared.zig").Prepared) !void {
         const self: *FailedCapture = @ptrCast(@alignCast(raw.?));
         const hooks = self.custody.hooks();
@@ -101,13 +116,14 @@ test "detached actual small native capture failure releases parked metadata" {
         defer a.free(temporary);
         var store = try @import("../pure_p2_retained_main.zig").Store.init(a, temporary, 1 << 30, 1 << 30);
         defer store.deinit();
-        var custody = @import("capture_custody.zig").Owner{ .store = &store };
+        var custody = @import("capture_custody.zig").Owner{ .store = &store, .park_events = true };
         defer custody.deinit();
         var failed = FailedCapture{ .custody = &custody };
         var timer = try std.time.Timer.start();
-        try std.testing.expectError(error.IntentionalCaptureCustodyFailure, @import("../pure_p2_op_capture_plan.zig").Owner.init(a, parsed.value, .op_target_b4_q72_p0_fold4_v1, .{ .local_truth = true, .truth_limits = .{ .live_bytes = 8 << 30, .main_bytes = 2 << 30, .interaction_bytes = 4 << 30, .gkr_bytes = 12 << 30 }, .detached_sponge = true, .capture_hooks = .{ .context = &failed, .completed = FailedCapture.completed } }, &timer));
+        try std.testing.expectError(error.IntentionalCaptureCustodyFailure, @import("../pure_p2_op_capture_plan.zig").Owner.init(a, parsed.value, .op_target_b4_q72_p0_fold4_v1, .{ .local_truth = true, .truth_limits = .{ .live_bytes = 8 << 30, .main_bytes = 2 << 30, .interaction_bytes = 4 << 30, .gkr_bytes = 12 << 30 }, .detached_sponge = true, .capture_hooks = .{ .context = &failed, .completed = FailedCapture.completed, .events = FailedCapture.events, .prepare_events = FailedCapture.prepareEvents, .release_events = FailedCapture.releaseEvents } }, &timer));
         try std.testing.expectEqual(@as(usize, 1), custody.count);
         try std.testing.expect(custody.bytes > 0);
+        try std.testing.expectEqual(@as(usize, 1), custody.event_count);
         custody.deinit();
         try std.testing.expectEqual(@as(usize, 0), store.reserved);
     }

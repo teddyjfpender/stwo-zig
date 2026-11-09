@@ -230,6 +230,7 @@ test {
     _ = @import("poseidon2_outer/native_group/plan.zig");
     _ = @import("poseidon2_outer/sponge_cpu/root_admission.zig");
     _ = @import("poseidon2_outer/sponge_cpu/runtime_test.zig");
+    _ = @import("poseidon2_outer/sponge_cpu/capture_custody_test.zig");
 }
 
 test {
