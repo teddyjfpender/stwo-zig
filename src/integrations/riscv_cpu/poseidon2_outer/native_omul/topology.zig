@@ -160,8 +160,9 @@ pub const Topology = struct {
     }
     fn initMode(a: std.mem.Allocator, profile: Profile, execution: [32]u8, sources: []const SourceLeaf, verifier_only: bool) !Topology {
         if (sources.len == 0 or sources.len > 256) return error.InvalidOpRootTopologyCount;
+        const first_key = try sources[0].key();
         const bindings = try a.alloc(Binding, sources.len);
-        var self = Topology{ .allocator = a, .execution = execution, .leaf_count = sources.len, .leaf_bindings = bindings, .leaf_fingerprint = undefined, .profile = profile, .final = try sources[0].key() };
+        var self = Topology{ .allocator = a, .execution = execution, .leaf_count = sources.len, .leaf_bindings = bindings, .leaf_fingerprint = undefined, .profile = profile, .final = first_key };
         errdefer self.deinit();
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update("OP_SOURCE_FOLD_TOPOLOGY_R6_V1");
@@ -184,8 +185,8 @@ pub const Topology = struct {
         }
         hash.final(&self.leaf_fingerprint);
         const level = try a.alloc(*const Authority, sources.len);
-        for (sources, level) |*source, *slot| slot.* = try source.key();
         defer a.free(level);
+        for (sources, level) |*source, *slot| slot.* = try source.key();
         var n = level.len;
         while (n > 1) {
             var next: usize = 0;

@@ -117,3 +117,13 @@ test "Miller cached root-only source receiver preserves retained root and capaci
     }
     if (budget.snapshot().live_bytes != 0 or budget.snapshot().external_live_bytes != 0) return error.OpRootFixtureLeak;
 }
+
+test "R6 topology released borrowed key rejects before allocating bindings" {
+    const Topology = @import("../native_omul/topology.zig").Topology;
+    // A released lease never reads state/entry/authority. No live cache owner is
+    // fabricated or destroyed by this guard-only invalid-input control.
+    const released = Leaf{ .borrowed = .{ .state = undefined, .entry = undefined, .span = .{ .calls = 1, .first_id = 1 }, .expected = undefined, .proving = false, .live = false }, .binding = .{ .ordinal = 0, .native_identity = @splat(0), .kind = .miller } };
+    const profile = @import("../op_profile.zig").Profile.op_target_b4_q72_p0_fold4_v1;
+    try std.testing.expectError(error.MillerOuterCacheLeaseReleased, Topology.initForVerification(std.testing.failing_allocator, profile, @splat(0), &.{released}));
+    try std.testing.expectError(error.MillerOuterCacheLeaseReleased, Topology.initForVerification(std.testing.allocator, profile, @splat(0), &.{released}));
+}
