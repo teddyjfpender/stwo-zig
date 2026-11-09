@@ -15,6 +15,12 @@ pub const MAX_COEFFICIENT_LENGTHS = MAX_LAYERS * (MAX_LAYERS - 1) / 2;
 pub fn countFor(instances: anytype) !usize {
     return countImpl(instances);
 }
+pub fn validateFor(instances: anytype, lengths: []const u8) !void {
+    return validateImpl(instances, lengths);
+}
+pub fn fromProofFor(a: std.mem.Allocator, instances: anytype, proof: *const GV.GkrBatchProof) ![]u8 {
+    return fromProofImpl(a, instances, proof);
+}
 pub fn skeletonFor(a: std.mem.Allocator, instances: anytype, lengths: []const u8) !GV.GkrBatchProof {
     return skeletonImpl(a, instances, lengths);
 }

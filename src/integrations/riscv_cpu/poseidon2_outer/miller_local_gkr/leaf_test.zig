@@ -110,16 +110,15 @@ const Hook = struct {
         defer a.free(stage_bytes);
         try write(dir, "stages.json", stage_bytes);
         // Artifacts are durable before constructing an independent source key.
-        var fresh_trace = try view.build(a, true);
-        defer fresh_trace.deinit();
-        var fresh = try Authority.init(a, &fresh_trace, key.base.profile);
-        defer fresh.deinit();
-        @import("../native_omul/verifier_key.zig").retireProverData(&fresh);
+        var fresh_leaf = try @import("../native_omul/topology.zig").SourceLeaf.initLocalMiller(a, view);
+        defer fresh_leaf.deinit();
+        const fresh = &fresh_leaf.authority;
+        @import("../native_omul/verifier_key.zig").retireProverData(fresh);
         try std.testing.expectEqualSlices(u8, &authority.base.identity, &fresh.base.identity);
-        try Proof.verify(a, &fresh, &output, bytes);
+        try Proof.verify(a, fresh, &output, bytes);
         var wrong = output;
         wrong[8] = wrong[8].add(C.Q.one());
-        try std.testing.expect(std.meta.isError(Proof.verify(a, &fresh, &wrong, bytes)));
+        try std.testing.expect(std.meta.isError(Proof.verify(a, fresh, &wrong, bytes)));
         var digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
         const receipt = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-miller-local-gkr-r6-physical-v1", .calls = span.calls, .frontier_log = key.base.frontier_log, .arithmetic_log = key.base.arithmetic_log, .bytes = bytes.len, .sha256 = std.fmt.bytesToHex(digest, .lower), .source_identity = std.fmt.bytesToHex(fresh.base.identity, .lower), .raw = try owner.rawCounts(), .native_om_calls = owner.native_mul_calls.items.len, .mul_rows = fresh.mul_rows, .fresh_source = true, .ninth_word_mutation_rejected = true, .execution_accepted = false, .production_admission = false }, .{});

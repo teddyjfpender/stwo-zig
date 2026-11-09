@@ -1,0 +1,36 @@
+{
+  "schema": "op-miller-local-gkr-r6-source-factory-v2",
+  "scope": "one-call physical worker and R6 source-key factory; no execution-inventory admission",
+  "calls": 1,
+  "logs": [
+    8,
+    15
+  ],
+  "native_envelope_bytes": 435240,
+  "native_envelope_sha256": "fe093ad002962f56e0c8b30d211cccda0be335eab891e7b0386592e7a67a8924",
+  "leaf_bytes": 629628,
+  "leaf_sha256": "24f758dfcdb26370e2ebc73a85f166b51cd66018ac65b0db3a6ce5bb69b4931b",
+  "source_identity": "a0aef772b3a102d63425bbc0e361f47591b5cdd32df2e30d8c0810a05b0d4b78",
+  "native_and_leaf_exact_parity_with_prior_gate": true,
+  "source_factory": "native_omul/topology.zig.SourceLeaf.initLocalMiller",
+  "authority_checks": [
+    "Exact independent key/span expected statement",
+    "Cap variants refused",
+    "Geometry rebuilt from independently owned key rather than supplied view shape",
+    "R6 trace rebuilt under explicit native-multiplication scope",
+    "Fresh physical verification after retiring prover-only key data"
+  ],
+  "ninth_output_mutation_rejected": true,
+  "heap_leak_check": "std.testing.allocator",
+  "command": "STWO_OP_MILLER_R6_OUT=<new-directory> zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='Miller local GKR complete recursive source statement' -j1",
+  "raw_log": "/private/tmp/op-miller-local-source-factory-v2.log",
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/miller-local-gkr-r6-factory-v2",
+  "security_qualified": false,
+  "production_admission": false,
+  "heavy_execution_or_proof_rerun": false,
+  "remaining": [
+    "Explicit native source-suite planning/codec/security admission",
+    "Recursive collector and shape advice",
+    "Independent root-only source inventory/global closure"
+  ]
+}

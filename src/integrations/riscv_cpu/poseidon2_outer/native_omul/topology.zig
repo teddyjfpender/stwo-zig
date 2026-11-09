@@ -74,6 +74,18 @@ pub const SourceLeaf = struct {
         defer scope.deinit();
         return finish(a, source.key.base.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .catalog }, try normalized.build(a, true));
     }
+    pub fn initLocalMiller(a: std.mem.Allocator, source: @import("../miller_local_gkr/leaf_test.zig").View) !SourceLeaf {
+        try @import("../miller_local_gkr/worker.zig").validateExpected(source.key, source.span, source.expected);
+        if (source.values.cap_log != 0) return error.OpRootLeafCapVariant;
+        var arena = std.heap.ArenaAllocator.init(a);
+        defer arena.deinit();
+        const shape = try @import("../miller_local_gkr/statement.zig").geometry(arena.allocator(), source.key, source.span);
+        var normalized = source;
+        normalized.shape = &shape;
+        var scope = @import("scope.zig").begin();
+        defer scope.deinit();
+        return finish(a, source.key.base.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .miller }, try normalized.build(a, true));
+    }
     pub fn initMiller(a: std.mem.Allocator, source: @import("../pure_p2_tower_leaf_test.zig").View) !SourceLeaf {
         try source.key.validateSpan(source.span);
         const expected = try source.key.expected(source.span, source.expected.ordinal);
