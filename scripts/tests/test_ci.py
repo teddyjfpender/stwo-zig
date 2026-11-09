@@ -317,6 +317,7 @@ class CiTests(unittest.TestCase):
         self.assertTrue(any("zig fmt --check" in line for line in flattened))
         self.assertTrue(any("check_upstream_pins" in line for line in flattened))
         self.assertTrue(any("check_source_conformance" in line for line in flattened))
+        self.assertTrue(any("check_package_workspace" in line for line in flattened))
         self.assertFalse(any("unittest discover" in line for line in flattened))
         self.assertIn("unittest", command_plan(False, "ReleaseFast")[0])
 
@@ -538,9 +539,9 @@ class CiTests(unittest.TestCase):
         focused = workflow.split("  focused-plan:", 1)[1].split(
             "  release-gate:", 1
         )[0]
-        self.assertEqual(3, focused.count("use-cache: false"))
+        self.assertEqual(4, focused.count("use-cache: false"))
         self.assertEqual(2, focused.count("fetch-depth: 1"))
-        self.assertEqual(2, focused.count("fetch-depth: 0"))
+        self.assertEqual(3, focused.count("fetch-depth: 0"))
         self.assertIn("if: matrix.lane != 'static'", focused)
         self.assertNotIn(
             "hashFiles('build.zig.zon', 'conformance/ci-touchpoints-v1.json')",

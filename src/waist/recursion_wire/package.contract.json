@@ -17,6 +17,7 @@
   "api_surface": [
     "blake2_felt252",
     "cairo_serialize",
+    "checkpoint",
     "circuit_felt_stream",
     "circuit_serialize",
     "json_text",

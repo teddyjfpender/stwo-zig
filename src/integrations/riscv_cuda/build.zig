@@ -27,6 +27,8 @@ pub fn build(b: *std.Build) void {
     // These two concrete native families share the package-owned wire module;
     // Zig must not instantiate the same proof-wire source twice in one binary.
     circuit_cpu.addImport("stwo_proof_wire", cpu_integration.import_table.get("stwo_proof_wire") orelse @panic("native CPU module is missing proof wire"));
+    // Declare API ownership while retaining CPU's canonical module below.
+    _ = b.dependency("stwo_prover_api", options);
     const integration = b.addModule("stwo_riscv_cuda_integration", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
