@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
-  "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-09T03:09:18.481403+00:00",
+  "status": "IN_PROGRESS_CPU_COMPONENT_ACCEPTANCE_FULL_SUITE_OPEN_GPU_EXCLUDED",
+  "updated_utc": "2026-11-09T07:31:39.279196+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv/rv64-gpu-hygiene.md",
@@ -3527,6 +3527,270 @@
       },
       "qualification": "macOS CPU component compilation, complete focused discovery and owner execution only. Existing unavailable-Sail and opt-in measurement skips remain explicit. No whole CPU CI, Linux CI, full recursive proof, complete block, GPU, physical-memory certification or qualified timing claim.",
       "evidence": "External local/delivery-20261108 archive keyed by the receipt tree, with baseline and clean plans/logs, exact ordered case corpora, pinned direct and actual-owner binaries, metadata-only query source/results, controlled floor negatives, cancelled root-selector experiment, and causal profile diagnostic sources/binaries."
+    },
+    "bounded-observer-journal-ownership": {
+      "source_commit": "5fc54e9734f65ac4cbfcbf81e89b5b2594687802",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 1936,
+            "removed": 1981,
+            "net": -45
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 30,
+            "removed": 0,
+            "net": 30
+          },
+          "config": {
+            "added": 28,
+            "removed": 1,
+            "net": 27
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "HOSTED_COMMANDS_0_1_PASS_FULL_LANE_FAIL",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    },
+    "cm31_direct_product_candidate": {
+      "source_commit": "27131545f9a768e7f81a439e50f2f91863f26788",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 19,
+            "removed": 12,
+            "net": 7
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 20,
+            "removed": 0,
+            "net": 20
+          },
+          "config": {
+            "added": 7,
+            "removed": 0,
+            "net": 7
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "REJECTED_UNINSTRUMENTED_FRI_DIGEST",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    },
+    "memcpy_admission_journal_owner": {
+      "source_commit": "5fb2339249ae254c4aa9bd00c8b45497fea4761b",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 646,
+            "removed": 736,
+            "net": -90
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 13,
+            "removed": 0,
+            "net": 13
+          },
+          "config": {
+            "added": 8,
+            "removed": 0,
+            "net": 8
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "HOSTED_COMMANDS_0_1_PASS_FULL_LANE_FAIL",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    },
+    "cm31_call_boundary_candidate": {
+      "source_commit": "8baa745e369568ec32f2212b728822ee18209daa",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 14,
+            "removed": 6,
+            "net": 8
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 18,
+            "removed": 0,
+            "net": 18
+          },
+          "config": {
+            "added": 15,
+            "removed": 8,
+            "net": 7
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "CORE_DEBUG_RELEASEFAST_AND_FULL_FRONTEND_PASS_PERFORMANCE_UNQUALIFIED",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    },
+    "sail_candidate_fresh_air_inputs": {
+      "source_commit": "597d748333419acc52b95ba71804a6f6aae98c0f",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 12,
+            "removed": 0,
+            "net": 12
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 18,
+            "removed": 0,
+            "net": 18
+          },
+          "config": {
+            "added": 22,
+            "removed": 0,
+            "net": 22
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "FRESH_AIR_EXPORT_PASS_LIVE_REGENERATION_PENDING",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
+    },
+    "bounded_observer_developer_ci_ownership": {
+      "source_commit": "95b7f329ddd79e1c26622b225d5e71a30f4eda88",
+      "actual": {
+        "lines": {
+          "code": {
+            "added": 24,
+            "removed": 1,
+            "net": 23
+          },
+          "generated": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          },
+          "docs": {
+            "added": 9,
+            "removed": 0,
+            "net": 9
+          },
+          "config": {
+            "added": 22,
+            "removed": 1,
+            "net": 21
+          },
+          "receipts": {
+            "added": 0,
+            "removed": 0,
+            "net": 0
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 0,
+          "removed": 0
+        },
+        "moves": 0
+      },
+      "status": "130_LOCAL_PYTHON_CONTRACTS_AND_REAL_DEV_ENTRYPOINT_DEFER_PASS",
+      "relocation_accounting": "Gross line additions/removals include partial relocations; commit report separately excludes unchanged relocated source. Net is unchanged; moves earn no retirement credit."
     }
   },
   "post_merge_hygiene": {
@@ -3607,5 +3871,288 @@
     "gpu_native_default": false,
     "gpu_work_started": false,
     "goal_complete": false
+  },
+  "hosted_cpu_results_20261109": {
+    "status": "PARTIAL_COMPONENT_ACCEPTANCE_FULL_PRODUCTIONISATION_INCOMPLETE",
+    "recorded_source_commit": "95b7f329ddd79e1c26622b225d5e71a30f4eda88",
+    "gpu_work_authorized": false,
+    "gpu_work_performed": false,
+    "phase_complete": false,
+    "core_call_boundary": {
+      "run": 42578150823,
+      "receipt": {
+        "cache_mode": "warm",
+        "clean": true,
+        "commands": [
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test-fields",
+              "--build-file",
+              "src/waist/core/build.zig",
+              "-Doptimize=Debug",
+              "-j2"
+            ],
+            "duration_ns": 4293587686,
+            "exit_code": 0,
+            "ordinal": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test-stwo-core",
+              "identity-stwo-core",
+              "-Doptimize=ReleaseFast",
+              "-j2"
+            ],
+            "duration_ns": 38247183702,
+            "exit_code": 0,
+            "ordinal": 1,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "39e03b62b21f3e7b9d66fd7493b5481efe3e3476452970e7599fb83dfe560aa0"
+          },
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test",
+              "--build-file",
+              "src/waist/core/build.zig",
+              "-Doptimize=ReleaseFast",
+              "-j2"
+            ],
+            "duration_ns": 60127574248,
+            "exit_code": 0,
+            "ordinal": 2,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "commit": "8baa745e369568ec32f2212b728822ee18209daa",
+        "duration_ns": 103208663312,
+        "host": "linux",
+        "host_machine": "x86_64",
+        "lane": "core",
+        "required_host": "linux",
+        "schema": "stwo-focused-ci-timing-v1",
+        "status": "PASS",
+        "tree": "0c54b6b8b94e4368334964a885b5172fa37d1f07"
+      }
+    },
+    "circuit_frontend_call_boundary": {
+      "run": 42578155076,
+      "receipt": {
+        "cache_mode": "warm",
+        "clean": true,
+        "commands": [
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test",
+              "--build-file",
+              "src/frontends/circuit/build.zig",
+              "-Doptimize=ReleaseFast",
+              "-j2"
+            ],
+            "duration_ns": 137218435004,
+            "exit_code": 0,
+            "ordinal": 0,
+            "stderr_sha256": "ded3053ac42d3f46ac8015586124935d46565764d2c5973d3444cf740d7df761",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "commit": "8baa745e369568ec32f2212b728822ee18209daa",
+        "duration_ns": 137477287524,
+        "host": "linux",
+        "host_machine": "x86_64",
+        "lane": "circuit_frontend",
+        "required_host": "linux",
+        "schema": "stwo-focused-ci-timing-v1",
+        "status": "PASS",
+        "tree": "0c54b6b8b94e4368334964a885b5172fa37d1f07"
+      }
+    },
+    "four_observer_commands": {
+      "run": 42577960769,
+      "receipt": {
+        "cache_mode": "warm",
+        "clean": true,
+        "commands": [
+          {
+            "argv": [
+              "zig",
+              "build",
+              "stwo-zig-riscv-cpu",
+              "test-riscv-observation-contracts",
+              "riscv-pc-hotspot-observer",
+              "riscv-memcpy-hotspot-observer",
+              "riscv-function-value-observer",
+              "riscv-memcpy-admission-observer",
+              "-Doptimize=ReleaseFast",
+              "-j2"
+            ],
+            "duration_ns": 480397461419,
+            "exit_code": 0,
+            "ordinal": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test-riscv-observation-contracts",
+              "-Doptimize=Debug",
+              "-j2"
+            ],
+            "duration_ns": 1519313462,
+            "exit_code": 0,
+            "ordinal": 1,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "argv": [
+              "zig",
+              "build",
+              "test-riscv-profile-partition",
+              "stwo-zig-riscv-cpu",
+              "-Doptimize=ReleaseFast",
+              "-j2"
+            ],
+            "duration_ns": 203924284933,
+            "exit_code": 1,
+            "ordinal": 2,
+            "stderr_sha256": "e460f28b138c3df33667a68012f3221c841a9c2b203dc9bde863ece565d8f6b9",
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "commit": "5fb2339249ae254c4aa9bd00c8b45497fea4761b",
+        "duration_ns": 686118887258,
+        "host": "linux",
+        "host_machine": "x86_64",
+        "lane": "riscv_cpu",
+        "required_host": "linux",
+        "schema": "stwo-focused-ci-timing-v1",
+        "status": "FAIL",
+        "tree": "231f46b1eddc85eaa42b5149f81d894e7265b2b5"
+      },
+      "named_contract_floor": 13,
+      "scope": "Actual CPU CLI and all four observation commands build; contract root passes ReleaseFast and Debug. Unchanged timing/pool tests fail next; proof-smoke and trace-vector commands after that failure were not reached."
+    },
+    "rejected_schoolbook_candidate": {
+      "source_commit": "27131545f9a768e7f81a439e50f2f91863f26788",
+      "run": 42577304199,
+      "status": "FAIL_426_OF_427_CORE_PACKAGE_TESTS",
+      "expected_first_fold_digest": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+      "observed_first_fold_digest": "8601fda9c9a9dbee57e77e346a193f0b48b9802dd2d12311f1734478ea4ebd62",
+      "production_action": "Restore original three-product expression; retain independent tests and negative receipt."
+    },
+    "sail_regeneration": {
+      "prior_run": 42565644911,
+      "prior_source": "8cd0efadc12104c8675ad4928af8a8630a013135",
+      "prior_status": "BACKEND_GENERATED_CANDIDATE_FAILED_MISSING_AIR_INPUT",
+      "current_run": 42578512273,
+      "current_source": "597d748333419acc52b95ba71804a6f6aae98c0f",
+      "current_status": "FRESH_AIR_EXPORT_PASSED_PROVISIONING_LIVE_AT_OBSERVATION",
+      "accepted_candidate": false,
+      "publication_or_release_receipt_minted": false
+    },
+    "source_audit": {
+      "findings_before_observer_consolidation": 102,
+      "findings_after": 97,
+      "workspace_findings": 392,
+      "new_observer_findings": 0,
+      "zero_finding_target_met": false,
+      "live_flags": 249,
+      "fewer_than_60_target_met": false
+    },
+    "budget_coverage": {
+      "base_commit": "6393b14eb",
+      "recorded_head": "95b7f329ddd79e1c26622b225d5e71a30f4eda88",
+      "delivery_commits": 65,
+      "budget_bearing_commits": 65,
+      "missing": [],
+      "overall": {
+        "lines": {
+          "code": {
+            "added": 29046,
+            "removed": 11440,
+            "net": 17606
+          },
+          "generated": {
+            "added": 143,
+            "removed": 143,
+            "net": 0
+          },
+          "docs": {
+            "added": 1831,
+            "removed": 6,
+            "net": 1825
+          },
+          "config": {
+            "added": 1358,
+            "removed": 320,
+            "net": 1038
+          },
+          "receipts": {
+            "added": 5352,
+            "removed": 1912,
+            "net": 3440
+          }
+        },
+        "flags": {
+          "added": 0,
+          "removed": 0,
+          "live": 249
+        },
+        "scripts": {
+          "added": 2,
+          "removed": 0
+        },
+        "moves": 1
+      }
+    },
+    "remote_raw_evidence": {
+      "ref": "refs/heads/backup/delivery-evidence-cpu-results-20261109",
+      "commit": "54e342793b7f004ebd24fd8d3aa40f08206eb18e",
+      "source_commit": "95b7f329ddd79e1c26622b225d5e71a30f4eda88",
+      "remote_ref_verified": true,
+      "all_LFS_objects_download_hash_verified": true,
+      "parts": [
+        {
+          "name": "delivery-evidence.tar.gz.part000",
+          "bytes": 480235,
+          "sha256": "abc53ed8a5901223911e651406a60bc4b7222e5f3910e31535978aa9bcd63199"
+        }
+      ],
+      "prepush_pod_gate_exit": 2,
+      "created_utc": "2026-11-09T07:30:03.103753+00:00"
+    },
+    "remaining": [
+      "Complete CPU CI acceptance, including original timing/pool contracts and integration dependencies",
+      "Approved owner RFCs for contract transactions; no decisions inferred",
+      "Fresh accepted Sail and circuit-owner regeneration; current pins remain enforced",
+      "Canonical recursion shape reconciliation; all sixteen fresh shapes currently rejected",
+      "Blocking boundary audit with zero findings",
+      "Ethereum statement package and generic RV64 pipeline",
+      "RISC-V subpackage split and version collapse",
+      "Fewer than sixty live flags",
+      "Waist contracts, consumer-driven tests and error model",
+      "Branch-count target and remaining active external ownership",
+      "All ordered GPU comparison/setup-miss/basket/promotion/deletion gates remain unrun under user no-GPU scope",
+      "Qualified performance and physical-memory evidence"
+    ],
+    "claim_limits": [
+      "No compiler-level root cause established for layout-sensitive arithmetic",
+      "Call-boundary CPU cost unmeasured",
+      "No component result proves full-block, security, formal-publication or productionisation completion",
+      "Earlier historical sections retain their original dated scopes and metrics"
+    ]
   }
 }

@@ -778,6 +778,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Close the observed dev_test unowned-source failure by routing four bounded observer directories and the shared contracts to their existing complete RISC-V CPU lane. Mark that heavy lane hosted so the developer entrypoint and prepush cannot launch complete proof builds on the laptop. Verify normal/check modes defer without a tool probe; preserve every CI command and discovery floor."
+    },
+    {
+      "id": "hosted_cpu_result_receipt_20261109",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Receipt-only checkpoint of exact hosted component positives, retained arithmetic and timing negatives, independent source/workspace counts, measured commit budgets and a downloaded/hash-verified remote evidence archive. Preserve every incomplete full-suite/formal/GPU/performance gate and all historical receipt sections."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
