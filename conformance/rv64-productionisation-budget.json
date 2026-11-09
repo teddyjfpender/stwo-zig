@@ -911,6 +911,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Reuse the existing hosted failed-binary evidence step for one bounded CPU debugger replay under the shared build/test lock. Preserve the lane failure, stack admission, complete test discovery and production source. Pin binary and transcript digests; record unavailable debugger or timeout explicitly. Workflow diagnostics only, no launcher or runtime flag. The first replay records gdb unavailable; provision it only in this existing CPU failure-evidence step and retain its exact executable hash and version. No production toolchain change."
+    },
+    {
+      "id": "bounded_debug_cyclic_denominator_slots",
+      "net_code_budget": 20,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "A source/binary-pinned gdb replay proves the Debug helper faults in the 628608-byte cyclic denominator stack probe below the unchanged worker admission. Move the byte-identical four-slot equations into a private per-slot helper: Debug never-inline, optimized always-inline. Preserve slot order, common bases, field operations, output shape, all residual/parity/drain tests and stack ceilings. Rollback restores the exact original equations as one body; no public API or GPU change."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

@@ -384,7 +384,7 @@ jobs:
               frames = []
               for line in symbols.splitlines():
                   parts = line.split(maxsplit=3)
-                  if len(parts) != 4 or not any(token in parts[3] for token in ("parallel.Job.", "packed_rows.", "full.component.ComponentFor(", "evaluation.PackedSink.emitImpl")):
+                  if len(parts) != 4 or not any(token in parts[3] for token in ("parallel.Job.", "packed_rows.", "full.component.ComponentFor(", "evaluation.PackedSink.emitImpl", "state_cyclic.", "state_cyclic_denominators.")):
                       continue
                   address, size, _, name = parts
                   start = int(address, 16)
