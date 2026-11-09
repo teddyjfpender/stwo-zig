@@ -1,0 +1,372 @@
+{
+  "schema": "stwo.opstack.packed-outer-tuple-projection.v1",
+  "scope": "M7 CPU lookup projection only; same GKR rosters, tuples, frame and receiver authority",
+  "change": "Native-width SIMD combines original RawLookupRows; real facts are written once, with initialization limited to padding lanes",
+  "medians": {
+    "scalar": {
+      "wall_median_s": 19.7301839375,
+      "lookup_projection_median_s": 1.008606,
+      "peak_rss_median_bytes": 40697020416.0
+    },
+    "packed": {
+      "wall_median_s": 19.6864717705,
+      "lookup_projection_median_s": 0.5713185000000001,
+      "peak_rss_median_bytes": 40696913920.0
+    }
+  },
+  "records": [
+    {
+      "experiment": "m7-packed",
+      "case": "scalar",
+      "exe_sha256": "01c49b6c4bff13d4a1da0fad0872196a8b01080f03bbc07fafe1376b8e2c9795",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/sparse-new-recursion-prover",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-grouped-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-4-scalar",
+          "2147483648",
+          "51539607552"
+        ],
+        "wall_ns": 19731359917,
+        "peak_rss_bytes": 40697020416,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 186.946109,
+        "system_cpu_s": 12.605198,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/sparse-new-recursion-prover",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-grouped-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-4-scalar",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 2972434542,
+        "peak_rss_bytes": 10218045440,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 15.703041,
+        "system_cpu_s": 0.949944,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3",
+      "original_proof_bytes_identical": true,
+      "fresh_accepted": true,
+      "stage_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-4-scalar-stages",
+      "stage_seconds": {
+        "outer_witness": 0.375184,
+        "outer_main_commit": 2.106766,
+        "outer_classic_witness": 0.350434,
+        "outer_gkr_inputs": 1.00731,
+        "outer_gkr_prove": 3.303017,
+        "outer_gkr_verify": 0.000798,
+        "outer_binding_witness": 0.684516,
+        "outer_interaction_commit": 1.345655,
+        "owned_commit_prepare": 0.394466,
+        "merkle_commit": 0.951173,
+        "draw_random_coeff": 3e-06,
+        "composition_trace_extract": 1.5e-05,
+        "composition_evaluation": 3.532168,
+        "composition_interpolate_and_split": 0.131296,
+        "composition_commit": 0.489894,
+        "oods_point_and_mask_points": 9.7e-05,
+        "sampled_value_evaluation": 0.345641,
+        "sampled_value_channel_mix": 4.4e-05,
+        "fri_quotient_build_and_commit": 2.292178,
+        "proof_of_work": 0.002627,
+        "fri_decommit": 0.13382,
+        "trace_decommit": 0.005439,
+        "constraint_check_and_assembly": 0.000718
+      }
+    },
+    {
+      "experiment": "m7-packed",
+      "case": "packed",
+      "exe_sha256": "da81672643e82455963723cac17e07e05b75fbd400cc1d52b6e48e8038bfab27",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-projection-final-prover",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-grouped-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-5-packed",
+          "2147483648",
+          "51539607552"
+        ],
+        "wall_ns": 20054331791,
+        "peak_rss_bytes": 40696922112,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 188.693907,
+        "system_cpu_s": 13.251769,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-projection-final-prover",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-grouped-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-5-packed",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 2998828166,
+        "peak_rss_bytes": 10217947136,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 15.678286,
+        "system_cpu_s": 0.951353,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3",
+      "original_proof_bytes_identical": true,
+      "fresh_accepted": true,
+      "stage_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-5-packed-stages",
+      "stage_seconds": {
+        "outer_witness": 0.378975,
+        "outer_main_commit": 2.082075,
+        "outer_classic_witness": 0.354731,
+        "outer_gkr_inputs": 0.582202,
+        "outer_gkr_prove": 3.307648,
+        "outer_gkr_verify": 0.000801,
+        "outer_binding_witness": 0.688797,
+        "outer_interaction_commit": 1.340521,
+        "owned_commit_prepare": 0.395351,
+        "merkle_commit": 0.945154,
+        "draw_random_coeff": 4e-06,
+        "composition_trace_extract": 1.3e-05,
+        "composition_evaluation": 3.532167,
+        "composition_interpolate_and_split": 0.130076,
+        "composition_commit": 0.489298,
+        "oods_point_and_mask_points": 0.000111,
+        "sampled_value_evaluation": 0.344431,
+        "sampled_value_channel_mix": 4.5e-05,
+        "fri_quotient_build_and_commit": 2.408911,
+        "proof_of_work": 0.001482,
+        "fri_decommit": 0.133109,
+        "trace_decommit": 0.005496,
+        "constraint_check_and_assembly": 0.000725
+      }
+    },
+    {
+      "experiment": "m7-packed",
+      "case": "packed",
+      "exe_sha256": "da81672643e82455963723cac17e07e05b75fbd400cc1d52b6e48e8038bfab27",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-projection-final-prover",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-grouped-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-6-packed",
+          "2147483648",
+          "51539607552"
+        ],
+        "wall_ns": 19318611750,
+        "peak_rss_bytes": 40696905728,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 187.096929,
+        "system_cpu_s": 13.119525,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/packed-projection-final-prover",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-grouped-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-6-packed",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 2998098083,
+        "peak_rss_bytes": 10217930752,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 15.678018,
+        "system_cpu_s": 0.969202,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3",
+      "original_proof_bytes_identical": true,
+      "fresh_accepted": true,
+      "stage_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-6-packed-stages",
+      "stage_seconds": {
+        "outer_witness": 0.364927,
+        "outer_main_commit": 2.111706,
+        "outer_classic_witness": 0.356238,
+        "outer_gkr_inputs": 0.560435,
+        "outer_gkr_prove": 3.328133,
+        "outer_gkr_verify": 0.000797,
+        "outer_binding_witness": 0.678943,
+        "outer_interaction_commit": 1.338222,
+        "owned_commit_prepare": 0.397585,
+        "merkle_commit": 0.940624,
+        "draw_random_coeff": 4e-06,
+        "composition_trace_extract": 1.4e-05,
+        "composition_evaluation": 3.543349,
+        "composition_interpolate_and_split": 0.130302,
+        "composition_commit": 0.486774,
+        "oods_point_and_mask_points": 9.6e-05,
+        "sampled_value_evaluation": 0.345673,
+        "sampled_value_channel_mix": 4.7e-05,
+        "fri_quotient_build_and_commit": 2.278492,
+        "proof_of_work": 0.001472,
+        "fri_decommit": 0.136598,
+        "trace_decommit": 0.005399,
+        "constraint_check_and_assembly": 0.00072
+      }
+    },
+    {
+      "experiment": "m7-packed",
+      "case": "scalar",
+      "exe_sha256": "01c49b6c4bff13d4a1da0fad0872196a8b01080f03bbc07fafe1376b8e2c9795",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/sparse-new-recursion-prover",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-grouped-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-7-scalar",
+          "2147483648",
+          "51539607552"
+        ],
+        "wall_ns": 19729007958,
+        "peak_rss_bytes": 40697020416,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 186.524914,
+        "system_cpu_s": 12.498495,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/sparse-new-recursion-prover",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-grouped-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-7-scalar",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 2992974709,
+        "peak_rss_bytes": 10218045440,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 15.683749,
+        "system_cpu_s": 0.9690129999999999,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3",
+      "original_proof_bytes_identical": true,
+      "fresh_accepted": true,
+      "stage_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/optimization-paired-7-scalar-stages",
+      "stage_seconds": {
+        "outer_witness": 0.385207,
+        "outer_main_commit": 2.09333,
+        "outer_classic_witness": 0.348648,
+        "outer_gkr_inputs": 1.009902,
+        "outer_gkr_prove": 3.321703,
+        "outer_gkr_verify": 0.000799,
+        "outer_binding_witness": 0.684617,
+        "outer_interaction_commit": 1.337826,
+        "owned_commit_prepare": 0.39426,
+        "merkle_commit": 0.943551,
+        "draw_random_coeff": 7e-06,
+        "composition_trace_extract": 1.1e-05,
+        "composition_evaluation": 3.525414,
+        "composition_interpolate_and_split": 0.131271,
+        "composition_commit": 0.488514,
+        "oods_point_and_mask_points": 9e-05,
+        "sampled_value_evaluation": 0.345457,
+        "sampled_value_channel_mix": 4.4e-05,
+        "fri_quotient_build_and_commit": 2.312299,
+        "proof_of_work": 0.001482,
+        "fri_decommit": 0.137544,
+        "trace_decommit": 0.005655,
+        "constraint_check_and_assembly": 0.000738
+      }
+    }
+  ],
+  "all_root_proof_bytes_identical": true,
+  "fresh_receivers_accept": true,
+  "tests": [
+    "Scalar parity for tuple lengths zero through six, including zero coordinates and all eight challenge coordinates",
+    "Actual raw witness, all eight lane groups, padded class and zero/two/three-worker pools",
+    "Complete hybrid physical proof, false-fact mutations and in-circuit child verifier suite"
+  ],
+  "limitations": [
+    "No established complete-root speedup; paired median wall difference is below one percent.",
+    "Two samples per variant. Both controls include the subsequently rejected sparse-inversion experiment; final production qualification is recorded separately.",
+    "GPU and default M6 policy unchanged."
+  ],
+  "final_clean_qualification": {
+    "produce": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "recurse-grouped-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/group-m7-packed-clean-final",
+        "2147483648",
+        "51539607552"
+      ],
+      "wall_ns": 18839960542,
+      "peak_rss_bytes": 40696938496,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 176.522327,
+      "system_cpu_s": 11.978781,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "receive": {
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+        "--security-profile",
+        "d2_native_b4_q54_p20_fold4",
+        "verify-grouped-recursion-candidate",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+        "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/group-m7-packed-clean-final",
+        "2147483648",
+        "25769803776"
+      ],
+      "wall_ns": 2807745625,
+      "peak_rss_bytes": 10217947136,
+      "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+      "user_cpu_s": 15.066839,
+      "system_cpu_s": 0.807013,
+      "returncode": 0,
+      "timed_out": false
+    },
+    "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3",
+    "fresh_accepted": true,
+    "corruption_and_missing_root_reject": [
+      {
+        "label": "root-byte",
+        "returncode": 1
+      },
+      {
+        "label": "root-missing",
+        "returncode": 1
+      }
+    ],
+    "sparse_inversion_experiment_removed": true
+  }
+}

@@ -14,6 +14,7 @@ const M = core.fields.m31.M31;
 const T = circuit.witness.trace;
 const L = engine.air.logup_columns.ForField(O);
 const Col = engine.pcs.ColumnEvaluation;
+const PackedProjection = @import("cpu_tuple_projection.zig");
 
 const Fill = struct {
     raw: *const T.RawLookupRows,
@@ -21,6 +22,8 @@ const Fill = struct {
     inputs: *S.Inputs,
     elements: *const Outer.witness.Elements,
     kind: P.Component,
+    projection: PackedProjection.Elements,
+    packed_enabled: bool,
     mutex: std.Thread.Mutex = .{},
     failure: ?anyerror = null,
     pub fn runRange(self: *@This(), _: usize, first: usize, end: usize) void {
@@ -31,6 +34,34 @@ const Fill = struct {
         };
     }
     fn fill(self: *@This(), first: usize, end: usize) !void {
+        if (!self.packed_enabled) return self.fillScalar(first, end);
+        const rows = @as(usize, 1) << @intCast(self.class.row_logs[@intFromEnum(self.kind)]);
+        var row = first;
+        while (end - row >= PackedProjection.LANES) : (row += PackedProjection.LANES) {
+            var storage: PackedProjection.Rows = undefined;
+            var count: usize = 0;
+            inline for (0..PackedProjection.LANES) |r| {
+                const filled = try self.raw.fill(@enumFromInt(@intFromEnum(self.kind)), row + r, &storage[r]);
+                if (r != 0 and filled.len != count) return error.OuterGkrTupleShape;
+                count = filled.len;
+            }
+            var start: usize = 0;
+            for (self.class.instances, 0..) |inst, group| {
+                if (inst.component != self.kind) continue;
+                for (0..inst.lanes_used) |lane| {
+                    const index = lane * rows + row;
+                    const denominator = try self.projection.combine(&storage, start + lane);
+                    core.fields.packed_om31.storeNative(self.inputs.denominators[group][index..], denominator);
+                    inline for (0..PackedProjection.LANES) |r|
+                        self.inputs.numerators[group][index + r] = storage[r][start + lane].numerator;
+                }
+                start += inst.lanes_used;
+            }
+            if (start != count) return error.OuterGkrTupleShape;
+        }
+        try self.fillScalar(row, end);
+    }
+    fn fillScalar(self: *@This(), first: usize, end: usize) !void {
         const rows = @as(usize, 1) << @intCast(self.class.row_logs[@intFromEnum(self.kind)]);
         for (first..end) |row| {
             var storage: [T.RawLookupRows.MAX_LOOKUPS]circuit.witness.components.Lookup = undefined;
@@ -52,6 +83,13 @@ const Fill = struct {
 };
 
 pub fn inputs(a: std.mem.Allocator, class: *const P.Class, raw: *const T.RawLookupRows, elements: *const Outer.witness.Elements) !S.Inputs {
+    return inputsImpl(a, class, raw, elements, true);
+}
+/// Independent retained scalar projection for qualification and diagnostics.
+pub fn inputsReference(a: std.mem.Allocator, class: *const P.Class, raw: *const T.RawLookupRows, elements: *const Outer.witness.Elements) !S.Inputs {
+    return inputsImpl(a, class, raw, elements, false);
+}
+fn inputsImpl(a: std.mem.Allocator, class: *const P.Class, raw: *const T.RawLookupRows, elements: *const Outer.witness.Elements, use_simd: bool) !S.Inputs {
     try class.validate();
     var out = S.Inputs{ .numerators = try a.alloc([]M, class.instances.len), .denominators = undefined };
     errdefer a.free(out.numerators);
@@ -67,8 +105,12 @@ pub fn inputs(a: std.mem.Allocator, class: *const P.Class, raw: *const T.RawLook
         const n = try a.alloc(M, count);
         errdefer a.free(n);
         const d = try a.alloc(O, count);
-        @memset(n, M.zero());
-        @memset(d, O.one());
+        // Joined projection overwrites every used row exactly once. Initialize
+        // only padding, avoiding a serial first-touch/write of the complete
+        // multi-gigabyte fact set. Failed jobs never publish these owners.
+        const initialized_from = if (use_simd) (@as(usize, inst.lanes_used) << @intCast(inst.row_log)) else 0;
+        @memset(n[initialized_from..], M.zero());
+        @memset(d[initialized_from..], O.one());
         out.numerators[i] = n;
         out.denominators[i] = d;
         made += 1;
@@ -76,7 +118,7 @@ pub fn inputs(a: std.mem.Allocator, class: *const P.Class, raw: *const T.RawLook
     for (0..P.N_COMPONENTS) |i| {
         const kind: P.Component = @enumFromInt(i);
         if (!P.gkrBound(kind)) continue;
-        var fill = Fill{ .raw = raw, .class = class, .inputs = &out, .elements = elements, .kind = kind };
+        var fill = Fill{ .raw = raw, .class = class, .inputs = &out, .elements = elements, .kind = kind, .projection = PackedProjection.Elements.init(elements), .packed_enabled = use_simd };
         _ = engine.lookups.row_work.forEachRange(@as(usize, 1) << @intCast(class.row_logs[i]), &fill, .{ .min_rows_per_shard = 512 });
         if (fill.failure) |err| return err;
     }

@@ -124,6 +124,18 @@ Current active-row savings do not reduce the real fixture's padded arithmetic
 height, so no further whole-root speedup is claimed. The fast qualification
 command is `zig build test-riscv64-structural-arithmetic -Doptimize=ReleaseFast`.
 
+M7's CPU input adapter projects the original scalar lookup tuples in native SIMD
+packs and writes real fact rows once. Only padding lanes are initialized before
+projection. The retained scalar adapter is the qualification reference; tuple
+lengths, all eight field coordinates, padded classes and multiple worker counts
+agree. The [paired measurement](../vectors/reports/rv64-opstack-cpu-20261108/packed-outer-tuple-projection.json)
+reduces lookup projection from 1.009 to 0.571 s, while complete-root median wall
+time remains within noise. A final clean qualification takes 18.840 s plus
+2.808 s fresh reception, preserving the original GROUP2 root bytes and rejecting
+corruption and a missing root. One sub-19-second run is not a repeated median.
+Native proving remains additional. The sparse-inversion experiment was rejected
+and removed because its complete-root measurement did not improve.
+
 The receiver operator supplies the canonical L1 anchor, previously admitted L2
 checkpoint and next claim, the trusted runner and the request files with the
 independent ELF and input hashes. Choose the outer profile used by both proof
