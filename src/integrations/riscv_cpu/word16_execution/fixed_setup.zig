@@ -136,18 +136,39 @@ pub const WideFixedKey = struct {
         self.* = undefined;
     }
 };
-/// Receiver-derived source identity of an entry: the trusted source key's
-/// root (a binding commitment to its coefficients), suite and column count.
-/// It is never producer metadata.
+/// Receiver-derived source identity. A lifted Merkle root does not bind an
+/// individual constant column's native height: ordered geometry is required.
+/// These tags are internal metadata, never producer-selected authority.
 pub const SourceTag = struct {
     root: [32]u8,
     pcs: core.pcs.PcsConfig,
     columns: usize,
+    geometry: [32]u8,
+    fn geometryHasher(count: usize) std.crypto.hash.sha2.Sha256 {
+        var h = std.crypto.hash.sha2.Sha256.init(.{});
+        h.update("rv64-fixed-source-column-geometry/v1\x00");
+        var bytes: [8]u8 = undefined;
+        std.mem.writeInt(u64, &bytes, count, .little);
+        h.update(&bytes);
+        return h;
+    }
+    fn geometryLog(h: *std.crypto.hash.sha2.Sha256, log: u32) void {
+        var bytes: [4]u8 = undefined;
+        std.mem.writeInt(u32, &bytes, log, .little);
+        h.update(&bytes);
+    }
     pub fn of(source: anytype) SourceTag {
-        return .{ .root = source.root, .pcs = source.suite.config(), .columns = source.tree.columns.len };
+        var h = geometryHasher(source.tree.columns.len);
+        for (source.tree.columns) |column| geometryLog(&h, column.log_size);
+        return .{ .root = source.root, .pcs = source.suite.config(), .columns = source.tree.columns.len, .geometry = h.finalResult() };
+    }
+    pub fn fromLogs(root: [32]u8, pcs: core.pcs.PcsConfig, logs: []const u32) SourceTag {
+        var h = geometryHasher(logs.len);
+        for (logs) |log| geometryLog(&h, log);
+        return .{ .root = root, .pcs = pcs, .columns = logs.len, .geometry = h.finalResult() };
     }
     fn eql(self: SourceTag, other: SourceTag) bool {
-        return std.mem.eql(u8, &self.root, &other.root) and std.meta.eql(self.pcs, other.pcs) and self.columns == other.columns;
+        return std.mem.eql(u8, &self.root, &other.root) and std.meta.eql(self.pcs, other.pcs) and self.columns == other.columns and std.mem.eql(u8, &self.geometry, &other.geometry);
     }
 };
 const Entry = struct { key: WideFixedKey, source: ?SourceTag = null };

@@ -10,6 +10,7 @@ pub const Binding = struct {
     source_root: [32]u8,
     source_suite: SourceKey.Suite,
     source_columns: usize,
+    source_geometry: [32]u8,
     fixed_identity: [32]u8,
     fixed_root: [32]u8,
     source_coefficient_cells: usize,
@@ -24,7 +25,7 @@ pub const Binding = struct {
         errdefer lease.deinit();
         // Constant key metadata, also for restored root-only verifier keys.
         const cells = lease.key.cells;
-        return .{ .lease = lease, .source_root = source.root, .source_suite = source.suite, .source_columns = source.tree.columns.len, .fixed_identity = lease.key.identity, .fixed_root = lease.key.root, .source_coefficient_cells = cells, .profile = profile };
+        return .{ .lease = lease, .source_root = source.root, .source_suite = source.suite, .source_columns = source.tree.columns.len, .source_geometry = Fixed.SourceTag.of(source).geometry, .fixed_identity = lease.key.identity, .fixed_root = lease.key.root, .source_coefficient_cells = cells, .profile = profile };
     }
     pub fn retain(self: *const Binding) Binding {
         var out = self.*;
@@ -38,13 +39,13 @@ pub const Binding = struct {
     pub fn root(self: *const Binding) [32]u8 {
         return self.fixed_root;
     }
-    /// Constant-size checks against a previously validated, sealed trusted
+    /// Metadata-only checks against a previously validated, sealed trusted
     /// source. This does NOT detect body mutation with an unchanged root. The
     /// cached candidate coefficients are independently owned and immutable;
     /// source setup must remain frozen. Producer bytes never supply this key.
     pub fn matchesSource(self: *const Binding, source: *const SourceKey) bool {
         return self.source_suite.eql(source.suite) and self.source_columns == source.tree.columns.len and
-            std.mem.eql(u8, &self.source_root, &source.root) and std.mem.eql(u8, &self.source_root, &source.tree.root());
+            std.mem.eql(u8, &self.source_root, &source.root) and std.mem.eql(u8, &self.source_root, &source.tree.root()) and std.mem.eql(u8, &self.source_geometry, &Fixed.SourceTag.of(source).geometry);
     }
     pub fn require(self: *const Binding, source: *const SourceKey, config: W.PcsConfig) !void {
         try W.validateCandidateConfig(config);

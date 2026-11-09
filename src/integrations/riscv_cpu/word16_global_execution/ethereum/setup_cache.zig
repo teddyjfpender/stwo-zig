@@ -659,7 +659,7 @@ const Artifact = struct {
             .identity = self.vk.identity,
             .root = self.vk.root,
             .cells = self.vk.cells,
-            .source = .{ .root = self.vk.source_root, .pcs = pcs, .columns = self.vk.source_logs.len },
+            .source = Fixed.SourceTag.fromLogs(self.vk.source_root, pcs, self.vk.source_logs),
             .tree = tree,
             .root_only = self.digests.len == 0,
             .column_digests = self.digests,

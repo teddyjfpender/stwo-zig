@@ -144,9 +144,10 @@ pub fn gkrExecutionIdentity(base: [32]u8, config: W.PcsConfig) ![32]u8 {
 
 const Acquired = struct { binding: F.Binding, validated: bool };
 fn acquireUnique(existing: []const F.Binding, cache: *const F.Fixed.Cache, source: anytype, config: W.PcsConfig) !Acquired {
-    // A trusted original sealed Merkle root/suite/count is the immutable source
-    // authority, not its pointer. Equivalent independently rebuilt source keys
-    // can reuse the same validated candidate lease within this ordered set.
+    // A trusted sealed root, suite and ordered column geometry identify the
+    // immutable source, not its pointer. A lifted root alone can coincide for
+    // constant columns of different heights. Equivalent rebuilt keys may reuse
+    // the same validated candidate lease within this ordered set.
     for (existing) |*binding| if (binding.matchesSource(source)) {
         try binding.require(source, config);
         return .{ .binding = binding.retain(), .validated = false };
