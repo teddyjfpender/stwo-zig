@@ -12,7 +12,10 @@ pub fn Layout(comptime role: S.Role) type {
     return struct {
         pub const LOCAL_INSTANCES = if (role == .arithmetic) 3 else 1;
         pub const WIRE_FIRST = LOCAL_INSTANCES * B.INTERACTION_COLUMNS;
-        pub const INTERACTION = WIRE_FIRST + 8;
+        pub const INTERACTION = Frame.interactionWidth(role);
+        comptime {
+            if (INTERACTION != WIRE_FIRST + 8) @compileError("Miller binding width mismatch");
+        }
         pub const MAIN = S.mainWidth(role);
         pub const FIXED = S.FIXED;
         pub const CONSTRAINTS = N.equations.LayoutForField(role, @import("stwo_core").fields.om31.OM31).MAIN_CONSTRAINTS + LOCAL_INSTANCES * B.CONSTRAINTS + 1;

@@ -1,0 +1,43 @@
+{
+  "schema": "op-miller-local-gkr-worker-v1",
+  "production_admission_open": false,
+  "security_qualified": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "scope": "one-call fragment with synthetic pending manifest; no Inventory acceptance",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "geometry": {
+    "calls": 1,
+    "first_id": 7,
+    "frontier_log": 8,
+    "arithmetic_log": 15
+  },
+  "native_bytes": 395540,
+  "local_gkr_bytes": 39576,
+  "worker_peak_requested_bytes": 292056088,
+  "worker_retained_requested_bytes_after_complete": 0,
+  "hard_worker_limit_bytes": 2147483648,
+  "hard_child_limit_bytes": 536870912,
+  "excluded_caller_ownership": [
+    "immutable FIXED setup",
+    "input capture",
+    "returned encoded bytes",
+    "pool stacks and allocator metadata"
+  ],
+  "qualified": [
+    "legacy source identity refused",
+    "source-derived child cap refused before construction",
+    "owned MAIN transfer and repeated-phase refusal",
+    "owned INTER with exact4 terminal bindings and2 global Wire debts",
+    "complete GKR+PCS and durable codec round trip",
+    "independently reconstructed key and fresh physical receiver",
+    "balanced forged Wire claims rejected",
+    "codec all-allocation-failure sweep",
+    "noncanonical count/header/cap rejection before allocation"
+  ],
+  "remaining": [
+    "recursive source Statement/View and R6 numerical/physical gates",
+    "independent Inventory/manifest/source security accounting before explicit runtime flavor",
+    "small representative measurement; no heavy rerun authorized"
+  ],
+  "performance_claim": "No timing or whole-prover speedup is claimed."
+}

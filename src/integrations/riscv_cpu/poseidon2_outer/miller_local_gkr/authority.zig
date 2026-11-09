@@ -5,6 +5,13 @@ const core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
 const N = A.crypto.bn254_tower.narrow;
 const S = N.source;
+const O = core.fields.om31.OM31;
+comptime {
+    if (N.micro.BYTE_QUERIES != 97 or N.micro.CARRY_QUERIES != 31 or N.dag.OPERANDS != 7) @compileError("Miller local-GKR roster must be reviewed after source expression changes");
+}
+pub fn interactionWidth(role: S.Role) usize {
+    return 16 * @as(usize, if (role == .arithmetic) 3 else 1) + 8;
+}
 pub const production_admission_open = false;
 pub const security_qualified = false;
 pub const DOMAIN = "op-pure-p2-miller-local-gkr/v1";
@@ -59,8 +66,12 @@ pub const Geometry = struct {
     }
 };
 pub const Cost = struct {
-    old_interaction_columns: usize = 576,
-    new_interaction_columns: usize = 80,
+    old_interaction_columns: usize = 0,
+    new_interaction_columns: usize = 0,
+    old_lifted_columns: usize = 0,
+    new_lifted_columns: usize = 0,
+    old_opening_samples: usize = 0,
+    new_opening_samples: usize = 0,
     old_cells: u64 = 0,
     new_cells: u64 = 0,
     padded_facts: u64 = 0,
@@ -68,12 +79,24 @@ pub const Cost = struct {
 };
 pub fn cost(g: Geometry) !Cost {
     const instances = try g.instances();
-    const f: u64 = @as(u64, 1) << @intCast(g.frontier_log);
-    const a: u64 = @as(u64, 1) << @intCast(g.arithmetic_log);
-    var result = Cost{
-        .old_cells = f * (S.FIXED + 33 + 16) + a * (S.FIXED + 370 + 560),
-        .new_cells = f * (S.FIXED + 33 + 24) + a * (S.FIXED + 370 + 56),
-    };
+    var result = Cost{};
+    inline for (.{ S.Role.frontier, S.Role.arithmetic }) |role| {
+        const Original = N.ForField(O).Component(role);
+        const old = Original.L.widths();
+        const next = [3]usize{ S.FIXED, S.mainWidth(role), interactionWidth(role) };
+        const log = if (role == .frontier) g.frontier_log else g.arithmetic_log;
+        const rows: u64 = @as(u64, 1) << @intCast(log);
+        result.old_interaction_columns += old[2];
+        result.new_interaction_columns += next[2];
+        for (0..3) |tree| {
+            result.old_cells += rows * old[tree];
+            result.new_cells += rows * next[tree];
+            result.old_lifted_columns += old[tree];
+            result.new_lifted_columns += next[tree];
+            for (0..old[tree]) |column| result.old_opening_samples += 1 + @as(usize, @intFromBool(Original.previousMask(tree, column)));
+            result.new_opening_samples += next[tree] + (if (tree == 1) @as(usize, 1) else if (tree == 2) next[2] else 0);
+        }
+    }
     for (instances) |instance| result.padded_facts += try instance.facts();
     result.checkpoint_working_bytes = result.padded_facts * @import("../../word16_global_execution/services/gkr_local/resource.zig").SOURCE_CHECKPOINT_BYTES_PER_FACT;
     return result;
@@ -84,6 +107,8 @@ test "Miller local GKR source roster and cost are independently sized and bounde
     try std.testing.expectEqual(@as(usize, 80), c.new_interaction_columns);
     try std.testing.expectEqual(@as(u64, 176685056), c.padded_facts);
     try std.testing.expect(c.new_cells < c.old_cells);
+    try std.testing.expectEqual(@as(usize, 496), c.old_lifted_columns - c.new_lifted_columns);
+    try std.testing.expectEqual(@as(usize, 456), c.old_opening_samples - c.new_opening_samples);
     try std.testing.expect(c.checkpoint_working_bytes > 8 << 30);
     try std.testing.expectError(error.TowerGeometry, (Geometry{ .calls = 22185, .first_id = 1, .frontier_log = 18, .arithmetic_log = 20 }).instances());
     try std.testing.expectError(error.TowerMassBound, (Geometry{ .calls = core.fields.m31.Modulus, .first_id = 1, .frontier_log = 22, .arithmetic_log = 22 }).instances());
