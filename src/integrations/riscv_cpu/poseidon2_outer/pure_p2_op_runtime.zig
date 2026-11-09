@@ -132,7 +132,7 @@ pub const Resources = struct {
     proof_bytes: usize = 64 << 20,
     bundle_bytes: usize = 2 << 30,
 };
-const Authority = struct {
+pub const Authority = struct {
     allocator: std.mem.Allocator,
     native_truth: Keys.Owner,
     program_metadata: ProgramMetadata.Cache,
@@ -148,7 +148,7 @@ const Authority = struct {
     truth_local_owners: std.ArrayList(*TruthLocal.Key) = .empty,
     miller_owners: std.ArrayList(*Miller.Key) = .empty,
     miller_local_owners: std.ArrayList(*MillerLocal.Key) = .empty,
-    fn deinit(self: *Authority) void {
+    pub fn deinit(self: *Authority) void {
         const a = self.allocator;
         for (self.key_owners.items) |key| {
             key.deinit();
@@ -192,12 +192,22 @@ const Authority = struct {
         self.* = undefined;
     }
     fn init(a: std.mem.Allocator, image: *const Image.Owner, m: Metadata, fixed_store: ?*Store, cache: ?*SetupCache, source_suite: ?SourceSuite) !Authority {
+        return initMode(a, image, m, fixed_store, cache, source_suite, false);
+    }
+    /// Independently pinned catalog authority shared by the explicit detached
+    /// runtime. CPU setup/key ownership belongs to that runtime, never to a
+    /// producer-supplied key or an unused legacy CPU key.
+    pub fn initCatalog(a: std.mem.Allocator, image: *const Image.Owner, m: Metadata, source_suite: ?SourceSuite) !Authority {
+        return initMode(a, image, m, null, null, source_suite, true);
+    }
+    fn initMode(a: std.mem.Allocator, image: *const Image.Owner, m: Metadata, fixed_store: ?*Store, cache: ?*SetupCache, source_suite: ?SourceSuite, catalog_only: bool) !Authority {
         try m.validate();
+        const cpu_declarations = if (catalog_only) m.cpus[0..0] else m.cpus;
         if ((m.schema == 3) != (source_suite != null)) return error.OpSourceSuitePolicyMismatch;
         if (source_suite) |suite| try suite.validate();
-        const setups = try a.alloc(*const R.CpuSetup, m.cpus.len);
+        const setups = try a.alloc(*const R.CpuSetup, cpu_declarations.len);
         errdefer a.free(setups);
-        const cpu_keys = try a.alloc(*const Key, m.cpus.len);
+        const cpu_keys = try a.alloc(*const Key, cpu_declarations.len);
         errdefer a.free(cpu_keys);
         const truth_keys = try a.alloc(*const Truth.Key, m.truths.len);
         errdefer a.free(truth_keys);
@@ -247,9 +257,9 @@ const Authority = struct {
             self.truth_owners.deinit(a);
             self.miller_owners.deinit(a);
         }
-        for (m.cpus, 0..) |d, i| {
+        for (cpu_declarations, 0..) |d, i| {
             var reused = false;
-            for (m.cpus[0..i], 0..) |prior, j| if (std.meta.eql(prior, d)) {
+            for (cpu_declarations[0..i], 0..) |prior, j| if (std.meta.eql(prior, d)) {
                 setups[i] = setups[j];
                 cpu_keys[i] = cpu_keys[j];
                 reused = true;
