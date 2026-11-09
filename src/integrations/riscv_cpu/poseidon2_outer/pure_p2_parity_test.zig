@@ -240,3 +240,89 @@ test "OP pure P2 packed leaves nodes continuation and lifting match scalar" {
         try std.testing.expectEqualSlices(u8, &scalar.finalize(), &lifted[lane]);
     }
 }
+
+test "OP pure P2 manifest authenticates full roots source roster and shared draws" {
+    const Manifest = @import("pure_p2_manifest.zig");
+    const MCircuit = @import("pure_p2_manifest_circuit.zig");
+    const Old = @import("../word16_global_execution/services/gkr_local/manifest.zig");
+    const s = Native.Scope{ .statement = scope().statement, .fixed = scope().fixed, .main = scope().main, .ordinal = 0 };
+    var produced = try Native.proveUnbound(a, s, &instances, Provider{});
+    defer produced.deinit(a);
+    const expected = [_]Manifest.Expected{.{ .kind = .cpu, .ordinal = 0, .global_relations = .{ .ram = true, .kio = true, .wire = true }, .mass = .{ .ram = 10, .kio = 10, .wire = 10 }, .statement = s.statement, .fixed_identity = [_]u8{0xde} ** 32, .fixed = s.fixed, .profile = .op_target_b4_q72_p0_fold4_v1, .local_instances = &instances }};
+    const stages = [_]Manifest.StageOne{.{ .main = s.main, .local = .{ .proof = &produced.result.proof, .receipt = produced.digest } }};
+    const execution = [_]u8{0xf7} ** 32;
+    var sealed = try Manifest.verifyAndSeal(a, execution, &expected, &stages);
+    defer sealed.deinit(a);
+    try sealed.checkPhysicalRoots(0, s.fixed, s.main);
+    const zero = C.O.zero();
+    try sealed.checkGlobalClosure(&.{.{ .ram = zero, .kio = zero, .wire = zero }});
+    try std.testing.expectError(error.UnclosedGlobalGkrRam, sealed.checkGlobalClosure(&.{.{ .ram = C.O.one(), .kio = zero, .wire = zero }}));
+    var wrong = s.main;
+    wrong[32] ^= 1;
+    try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, sealed.checkPhysicalRoots(0, s.fixed, wrong));
+    var forged_expected = expected;
+    forged_expected[0].fixed = wrong;
+    try std.testing.expectError(error.InvalidSumcheck, Manifest.verifyAndSeal(a, execution, &forged_expected, &stages));
+    forged_expected = expected;
+    forged_expected[0].mass.ram = core.fields.m31.Modulus;
+    try std.testing.expectError(error.GlobalGkrCharacteristicBound, Manifest.verifyAndSeal(a, execution, &forged_expected, &stages));
+    // Full roster accounting is relation-separated, including truth workers.
+    var roster = [_]Manifest.Expected{ expected[0], expected[0], expected[0] };
+    roster[1].kind = .keccak;
+    roster[1].ordinal = 1;
+    roster[1].local_instances = null;
+    roster[1].global_relations = .{ .ram = false, .kio = true, .wire = false };
+    roster[1].mass = .{ .ram = 0, .kio = 10, .wire = 0 };
+    roster[2].kind = .secp_add;
+    roster[2].ordinal = 2;
+    roster[2].local_instances = null;
+    roster[2].global_relations = .{ .ram = false, .kio = false, .wire = true };
+    roster[2].mass = .{ .ram = 0, .kio = 0, .wire = 10 };
+    const all_stages = [_]Manifest.StageOne{ stages[0], .{ .main = Native.hashWords(&.{77}), .local = null }, .{ .main = Native.hashWords(&.{88}), .local = null } };
+    var complete = try Manifest.verifyAndSeal(a, execution, &roster, &all_stages);
+    defer complete.deinit(a);
+    const one = C.O.one();
+    try complete.checkGlobalClosure(&.{ .{ .ram = zero, .kio = one, .wire = one }, .{ .ram = zero, .kio = one.neg(), .wire = zero }, .{ .ram = zero, .kio = zero, .wire = one.neg() } });
+    try std.testing.expectError(error.NonzeroAbsentGlobalGkrClaim, complete.checkGlobalClosure(&.{ .{ .ram = zero, .kio = one, .wire = zero }, .{ .ram = one.neg(), .kio = zero, .wire = zero }, .{ .ram = zero, .kio = zero, .wire = zero } }));
+    try std.testing.expectError(error.GlobalGkrManifestRoster, Manifest.verifyAndSeal(a, execution, &roster, all_stages[0..2]));
+    std.mem.swap(Manifest.Expected, &roster[1], &roster[2]);
+    try std.testing.expectError(error.GlobalGkrManifestOrdinal, Manifest.verifyAndSeal(a, execution, &roster, &all_stages));
+    var owner = try C.PoseidonContext.init(a, 9);
+    defer owner.deinit();
+    C.begin(&owner);
+    var active = true;
+    defer if (active) C.finish() catch {};
+    const ctx = owner.algebra();
+    const wire_scope = Child.Scope{ .statement = try digest(ctx, s.statement), .fixed = try root(ctx, s.fixed), .main = try root(ctx, s.main), .ordinal = try B.wrappers.guessU32(Q, ctx, B.wrappers.u32Value(Q, 0)) };
+    const wire = try G.wireProof(ctx, &produced.result.proof);
+    var child = try Child.verify(ctx, wire_scope, &instances, &wire);
+    defer child.artifact.deinit(a);
+    // Native receiver owns non-witness metadata; public ports carry full IDs
+    // and roots. A future complete leaf must bind these to its physical proof.
+    const AuthorityView = struct { kind: Old.Kind, global_relations: Old.Relations, mass: Old.Mass, profile: @import("op_profile.zig").Profile, fixed_identity: @import("full_p2_frame.zig").Digest };
+    const CircuitEntry = struct { authority: AuthorityView, scope: Child.Scope, local: ?struct { digest: C.Hash } };
+    const views = [_]CircuitEntry{.{ .authority = .{ .kind = .cpu, .global_relations = expected[0].global_relations, .mass = expected[0].mass, .profile = expected[0].profile, .fixed_identity = try digest(ctx, expected[0].fixed_identity) }, .scope = wire_scope, .local = .{ .digest = child.receipt } }};
+    const manifest_root = try MCircuit.digest(ctx, try digest(ctx, execution), &views);
+    for (manifest_root, try core.crypto.poseidon2_m31_sponge.decode(sealed.digest)) |actual, value| try std.testing.expect(ctx.get(actual).eql(Q.fromBase(value)));
+    const shared = try MCircuit.drawShared(ctx, manifest_root);
+    try std.testing.expect(shared.ram.offset.value().eql(sealed.shared.ram.offset));
+    for (shared.ram.coefficients, sealed.shared.ram.coefficients) |actual, value| try std.testing.expect(actual.value().eql(value));
+    inline for (.{ "kio", "wire" }) |name| {
+        const actual = @field(shared, name);
+        const value = @field(sealed.shared, name);
+        inline for (std.meta.fields(@TypeOf(value))) |field| {
+            const left = @field(actual, field.name);
+            const right = @field(value, field.name);
+            if (@typeInfo(@TypeOf(right)) == .array) {
+                for (left, right) |x, y| try std.testing.expect(x.value().eql(y));
+            } else try std.testing.expect(left.value().eql(right));
+        }
+    }
+    try C.finish();
+    active = false;
+    try owner.setOutputs(&manifest_root);
+    try owner.finalize();
+    try std.testing.expect(try owner.isCircuitValid());
+    try std.testing.expectEqual(@as(usize, 0), ctx.circuit.blake_g_gate.items.len);
+    std.debug.print("OP_PURE_P2_MANIFEST_PARITY permutations={} roster_cases=cpu_keccak_secp all_RAM_KIO_Wire_coordinates_exact=true native_execution_acceptance=false\n", .{owner.calls.items.len});
+}

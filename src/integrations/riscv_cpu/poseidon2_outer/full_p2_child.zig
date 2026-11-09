@@ -75,11 +75,11 @@ const Checks = struct {
 };
 /// Typed receipt: canonical fields/roots never expand to four byte columns.
 /// Raw u32s still use checked 16-bit halves and never reduce modulo M31.
-const Writer = struct {
+pub const ReceiptWriter = struct {
     ctx: *C.Context,
     sponge: @import("sponge.zig").ForContext(@import("context.zig").Context),
     failure: ?anyerror = null,
-    fn init(ctx: *C.Context) !@This() {
+    pub fn init(ctx: *C.Context) !@This() {
         return .{ .ctx = ctx, .sponge = try @import("sponge.zig").ForContext(@import("context.zig").Context).init(try C.sidecar(ctx), .words) };
     }
     pub fn tag(self: *@This(), value: u32) void {
@@ -130,7 +130,7 @@ const Writer = struct {
         const lanes = B.simd.Simd.fromPacked(&[2]C.Var{ value.c0.v, value.c1.v }, 8);
         for (0..8) |i| try self.sponge.absorb(try B.simd.unpackIdx(C.Q, self.ctx, lanes, i));
     }
-    fn finish(self: *@This()) !C.Hash {
+    pub fn finish(self: *@This()) !C.Hash {
         if (self.failure) |err| return err;
         return self.sponge.finish();
     }
@@ -152,7 +152,7 @@ pub fn verify(ctx: *C.Context, scope: Scope, instances: []const Frame.Instance, 
         inv.* = pair[1].inv();
     }
     try Closure.closeFor(C.F, proof.output_claims_by_instance, inverses, Checks{ .ctx = ctx });
-    var writer = try Writer.init(ctx);
+    var writer = try ReceiptWriter.init(ctx);
     try @import("pure_p2_framing.zig").emit(scope, instances, proof, artifact.claims_to_verify_by_instance, &writer);
     const receipt = try writer.finish();
     const eta = channel.drawSecureFelt();

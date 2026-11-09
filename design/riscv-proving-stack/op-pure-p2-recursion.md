@@ -160,3 +160,22 @@ zig build-exe -O ReleaseFast --dep core \
 
 This removes most of the scalar P2 penalty; it does not make native P2 cheaper
 than the optimized BLAKE control. Full native-plus-root cost remains the gate.
+
+## Pure manifest and shared-challenge gate
+
+The OP candidate now has a separately typed two-phase native manifest using
+nine-limb FIXED, MAIN, child receipt and manifest roots throughout. Expected
+worker kind, ordinal, relation presence, characteristic-bounded mass, exact
+source identity/profile and external statement/execution IDs all enter one
+shared native/circuit visitor. The source-owned legacy roster validation is
+reused only for kind/order/mass/instance invariants; no nine-limb root is
+converted to a 32-byte commitment. Local terminal marginals already enter the
+checked child receipt and are not redundantly expanded into the manifest.
+
+Numerical and constrained manifest roots and every RAM14/KIO11/Wire35 challenge
+coordinate agree. Tests reject changed source FIXED roots, ninth-limb MAIN
+mutations, mass at the characteristic, missing truth workers, reordered worker
+kinds, nonzero absent relation claims and cross-relation cancellation. A balanced
+CPU+Keccak+secp roster closes each relation independently. The return type remains
+`Pending`: actual physical terminal projections, complete execution boundaries,
+coverage and fresh source authority are still required for execution acceptance.
