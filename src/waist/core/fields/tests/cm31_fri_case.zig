@@ -174,3 +174,8 @@ test "cm31 FRI case: standalone first-fold reduction control" {
         &std.fmt.bytesToHex(hasher.finalResult(), .lower),
     );
 }
+
+// C entry retains the same fold context in build-obj optimized-IR reproductions.
+export fn reduced_fri_fold(src: *const [256]QM31, dst: *[128]QM31, inverse: *const [128]u32) void {
+    reducedFold(dst, src, field(&.{ 5, 7, 11, 13 }), inverse);
+}
