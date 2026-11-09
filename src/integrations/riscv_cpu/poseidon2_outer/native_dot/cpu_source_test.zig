@@ -12,7 +12,7 @@ const R6 = @import("../native_omul/census.zig");
 const L = @import("../layout.zig");
 const MR = @import("../native_omul/row.zig");
 const D = @import("row.zig");
-const Counts = struct {
+pub const Counts = struct {
     raw: [7]u64,
     rows: [7]usize,
     logs: [7]u32,
@@ -22,7 +22,7 @@ const Counts = struct {
     total_native_cells: u64 = 0,
     dot_calls: usize,
     dot_terms: usize,
-    fn derive(owner: *const V.common.PoseidonContext) !Counts {
+    pub fn derive(owner: *const V.common.PoseidonContext) !Counts {
         const raw = try owner.rawCountsForNativeDot();
         var out = Counts{ .raw = raw, .rows = undefined, .logs = undefined, .dot_calls = owner.native_dot_calls.items.len, .dot_terms = 0 };
         for (owner.native_dot_calls.items) |call| out.dot_terms += call.terms.len;

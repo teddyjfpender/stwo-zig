@@ -136,3 +136,23 @@ Heavier source classes may cross the padding boundary and win, as the earlier
 frozen source model predicts, but must be checked independently. A production
 choice between R6 and R7 must be source-derived and receiver-authorized;
 producer-selected geometry or a blanket switch is insufficient.
+
+## Frozen heavy source classes cross the threshold
+
+[heavy-class-source.json](heavy-class-source.json) checks classes 3 and 20 with
+actual R7 lowering rather than subtracting estimated costs. The fixture pins
+both config/metadata hashes and the independently derived native source keys.
+A borrowed-class callback shares the existing fixture's image, setup, key and
+legal-width-four skeleton construction. Its original R6 counters remain exact.
+
+| Class | R6 generic rows | R7 generic rows | Dot rows | Generic padded log | Total native cells |
+|---|---:|---:|---:|---|---|
+| 3 | 4,809,612 | 2,549,964 | 566,208 | 23 → 22 | 415,756,288 → 318,238,720 |
+| 20 | 4,554,842 | 2,450,138 | 527,184 | 23 → 22 | 415,756,288 → 318,238,720 |
+
+Both save **97,517,568 cells (23.46%)** despite adding the dot component at log
+20. Peak allocation was 3.66 GB under a 12 GiB cap, with zero final live bytes.
+This is **witness-free source construction only**: it supplies a legal skeleton,
+not an actual native proof. It executes no guest, proves no block/outer leaf,
+and establishes no proving-time speedup. The small-class regression remains;
+these two wider classes do not justify enabling R7 for every request.

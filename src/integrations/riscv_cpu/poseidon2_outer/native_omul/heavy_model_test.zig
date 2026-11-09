@@ -16,7 +16,10 @@ const C = V.common;
 const Request = @import("../../rv64_ethereum_request.zig");
 const Image = @import("../../word16_execution/expected_image.zig");
 const Old = @import("../../word16_global_execution/services/gkr_local/cpu_worker.zig");
-fn run(a: std.mem.Allocator, config: Request.Config, metadata: Runtime.Metadata, index: usize) !void {
+/// Borrowed only for the callback; no execution or proof is accepted here.
+pub const BorrowedClass = struct { view: CPU.ShapeView, metadata: *const Runtime.Metadata, ordinal: usize, setup_ns: u64 };
+pub const ClassHook = *const fn (?*anyopaque, std.mem.Allocator, BorrowedClass) anyerror!void;
+pub fn withClass(a: std.mem.Allocator, config: Request.Config, metadata: Runtime.Metadata, index: usize, context: ?*anyopaque, hook: ClassHook) !void {
     if (index >= metadata.cpus.len or metadata.requests.len != metadata.cpus.len or metadata.spans.len != metadata.cpus.len) return error.InvalidHeavyModelSource;
     const d = metadata.cpus[index];
     if (d.geometry.cpu_log != 22 or index == 0 or index + 1 == metadata.cpus.len) return error.HeavyModelNeedsFullHeightInterior;
@@ -54,6 +57,23 @@ fn run(a: std.mem.Allocator, config: Request.Config, metadata: Runtime.Metadata,
     const claims = try arena.allocator().alloc(C.O, plan.claim_count);
     @memset(claims, C.O.zero());
     const view = CPU.ShapeView{ .op_span = span, .setup = &setup, .request = request, .first = first, .expected = expected, .key = &key, .manifest = @splat(0), .main = @splat(0), .receipt = @splat(0), .claims = claims, .child = &local, .shape = &shape, .values = &values };
+    try hook(context, a, .{ .view = view, .metadata = &metadata, .ordinal = index, .setup_ns = setup_ns });
+}
+fn run(a: std.mem.Allocator, config: Request.Config, metadata: Runtime.Metadata, index: usize) !void {
+    var timer = try std.time.Timer.start();
+    try withClass(a, config, metadata, index, &timer, oldReport);
+}
+fn oldReport(context: ?*anyopaque, a: std.mem.Allocator, item: BorrowedClass) !void {
+    const timer: *std.time.Timer = @ptrCast(@alignCast(context.?));
+    const view = item.view;
+    const index = item.ordinal;
+    const metadata = item.metadata.*;
+    const d = metadata.cpus[index];
+    const span = metadata.spans[index];
+    const key = view.key;
+    const shape = view.shape.*;
+    const instances = view.expected.local_instances.?;
+    const setup_ns = item.setup_ns;
     var scope = @import("scope.zig").begin();
     defer scope.deinit();
     var phases: CPU.CompleteCounts = .{};
@@ -67,7 +87,7 @@ fn run(a: std.mem.Allocator, config: Request.Config, metadata: Runtime.Metadata,
         n.* = 0;
         for (masks) |offsets| n.* += offsets.len;
     }
-    const report = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-r6-heavy-source-class-model-v1", .ordinal = index, .source_native_key = std.fmt.bytesToHex(key.identity, .lower), .native_declaration = d, .request = metadata.requests[index], .span = span, .native_columns = widths, .native_oods_samples = samples, .native_gkr_instances = instances.len, .gkr_layers = try Local.layers(instances), .coefficient_lengths = lengths.len, .gkr_shape = "legal-width4-every-round-not-an-actual-native-proof", .census = census, .phases = phases, .setup_ns = setup_ns, .source_trace_ns = timer.read(), .execution_verified = false, .native_proof_supplied = false, .outer_proof_produced = false, .security_qualified = false }, .{});
+    const report = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-r6-heavy-source-class-model-v1", .ordinal = index, .source_native_key = std.fmt.bytesToHex(key.identity, .lower), .native_declaration = d, .request = metadata.requests[index], .span = span, .native_columns = widths, .native_oods_samples = samples, .native_gkr_instances = instances.len, .gkr_layers = try Local.layers(instances), .coefficient_lengths = try Local.count(instances), .gkr_shape = "legal-width4-every-round-not-an-actual-native-proof", .census = census, .phases = phases, .setup_ns = setup_ns, .source_trace_ns = timer.*.read(), .execution_verified = false, .native_proof_supplied = false, .outer_proof_produced = false, .security_qualified = false }, .{});
     defer a.free(report);
     std.debug.print("OP_R6_HEAVY_SOURCE_MODEL {s}\n", .{report});
 }
