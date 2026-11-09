@@ -254,3 +254,11 @@ test {
 test {
     _ = @import("recursive_test.zig");
 }
+
+test {
+    _ = @import("execution_test.zig");
+}
+
+test {
+    _ = @import("execution_mixed_test.zig");
+}

@@ -1,0 +1,84 @@
+//! Fast explicit R6-service/R7-CPU format interoperability before a real root.
+const std = @import("std");
+const Core = @import("stwo_core");
+const E = @import("stwo_prover_engine");
+const C = @import("../../rv64_recursion/om31_poseidon/common.zig");
+const Fixture = @import("recursive_test.zig");
+const Keys = @import("execution_keys.zig");
+const Fold = @import("fold.zig");
+const K7 = @import("outer_authority.zig").Key;
+const K6 = @import("../native_omul/authority.zig").Key;
+const profile = @import("../op_profile.zig").Profile.op_target_b4_q72_p0_fold4_v1;
+fn legacy(a: std.mem.Allocator, trace: bool) !C.PoseidonContext {
+    var owner = if (trace) try C.PoseidonContext.initTraceOnly(a, 9) else try C.PoseidonContext.init(a, 9);
+    errdefer owner.deinit();
+    var structural = C.lane.StructuralScope.init();
+    defer structural.deinit();
+    var scope = @import("../native_omul/scope.zig").begin();
+    defer scope.deinit();
+    C.begin(&owner);
+    var active = true;
+    defer if (active) C.finish() catch {};
+    const x = try C.F.guess(owner.algebra(), Core.fields.om31.OM31.fromBase(Core.fields.m31.M31.fromCanonical(37)));
+    const y = try C.F.guess(owner.algebra(), Core.fields.om31.OM31.fromBase(Core.fields.m31.M31.fromCanonical(11)));
+    const product = x.mul(y);
+    var sponge = try @import("../sponge.zig").ForContext(C.PoseidonContext).init(&owner, .words);
+    try sponge.absorbConstU32(104);
+    try sponge.absorbMany(&.{ product.c0.v, product.c1.v });
+    const output = try sponge.finish();
+    try C.finish();
+    active = false;
+    try owner.setOutputs(&output);
+    try owner.finalize();
+    return owner;
+}
+test "OP R7 mixed known child formats preserve claims and refuse crossed captures" {
+    const budget = try E.host_budget_allocator.SharedHostBudget.create(std.heap.smp_allocator, 16 << 30);
+    defer budget.destroy();
+    {
+        const a = budget.allocator();
+        var pool: E.work_pool.WorkPool = .{};
+        try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
+        defer pool.deinit();
+        var binding = try E.work_pool.ScopedPoolBinding.init(&pool);
+        defer binding.deinit();
+        var c7 = try Fixture.source(a, 7, 3, false);
+        defer c7.deinit();
+        var c6 = try legacy(a, false);
+        defer c6.deinit();
+        const o7 = Fixture.outputs(&c7);
+        const o6 = Fixture.outputs(&c6);
+        var k7 = try K7.init(a, &c7, profile);
+        defer k7.deinit();
+        var k6 = try K6.init(a, &c6, profile);
+        defer k6.deinit();
+        const b7 = try Keys.P7.prove(a, &c7, &k7, &o7);
+        defer a.free(b7);
+        const b6 = try Keys.P6.prove(a, &c6, &k6, &o6);
+        defer a.free(b6);
+        var f7 = try Fixture.source(a, 7, 3, true);
+        defer f7.deinit();
+        var f6 = try legacy(a, true);
+        defer f6.deinit();
+        var r7 = try K7.init(a, &f7, profile);
+        defer r7.deinit();
+        var r6 = try K6.init(a, &f6, profile);
+        defer r6.deinit();
+        var p7 = try Keys.P7.verifyCaptured(a, &r7, &o7, b7);
+        defer p7.deinit(a);
+        var p6 = try Keys.P6.verifyCaptured(a, &r6, &o6, b6);
+        defer p6.deinit(a);
+        const pair = Fold.Source{ .children = .{ .{ .key = .{ .r7 = &r7 }, .verified = .{ .r7 = &p7 }, .output = o7 }, .{ .key = .{ .r6 = &r6 }, .verified = .{ .r6 = &p6 }, .output = o6 } } };
+        var parent = try pair.build(a, false);
+        defer parent.deinit();
+        try std.testing.expect(try parent.isCircuitValid());
+        var trace = try (Fold.TraceSource{ .keys = .{ .{ .r7 = &r7 }, .{ .r6 = &r6 } } }).build(a);
+        defer trace.deinit();
+        try std.testing.expectEqualDeep(try parent.rawCountsForNativeDot(), try trace.rawCountsForNativeDot());
+        var crossed = pair;
+        crossed.children[0].verified = .{ .r6 = &p6 };
+        try std.testing.expectError(error.R7ChildFormatMismatch, crossed.build(a, false));
+        std.debug.print("OP_R7_MIXED_SOURCE raw={any} claims=8+6 trace_equal=true\n", .{try parent.rawCountsForNativeDot()});
+    }
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
+}

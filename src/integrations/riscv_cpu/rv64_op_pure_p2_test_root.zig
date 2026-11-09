@@ -213,6 +213,7 @@ test {
     _ = @import("poseidon2_outer/sponge_local_gkr/worker.zig");
     _ = @import("poseidon2_outer/pure_p2_native_source_hooks_test.zig");
     _ = @import("poseidon2_outer/pure_p2_root_source_view.zig");
+    _ = @import("poseidon2_outer/root_cli_options.zig");
 }
 
 test {

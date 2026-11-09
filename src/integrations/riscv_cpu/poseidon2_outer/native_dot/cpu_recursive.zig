@@ -28,7 +28,7 @@ pub fn run(a: std.mem.Allocator, view: CPU.ShapeView, path: []const u8) !void {
     defer tiny.deinit();
     var tiny_capture = try P.verifyCaptured(a, &tiny, &tiny_output, tiny_bytes);
     defer tiny_capture.deinit(a);
-    const pair = Fold.Source{ .children = .{ .{ .key = &actual.authority, .verified = &captured, .output = actual_output }, .{ .key = &tiny, .verified = &tiny_capture, .output = tiny_output } } };
+    const pair = Fold.Source{ .children = .{ .{ .key = .{ .r7 = &actual.authority }, .verified = .{ .r7 = &captured }, .output = actual_output }, .{ .key = .{ .r7 = &tiny }, .verified = .{ .r7 = &tiny_capture }, .output = tiny_output } } };
     var parent = try pair.buildForProving(a);
     defer parent.deinit();
     try std.testing.expect(try parent.isCircuitValid());
@@ -45,7 +45,7 @@ pub fn run(a: std.mem.Allocator, view: CPU.ShapeView, path: []const u8) !void {
     key.deinit();
     owns_key = false;
     // Fresh source authority depends only on the two admitted source keys.
-    var fresh = try (Fold.TraceSource{ .keys = .{ &actual.authority, &tiny } }).build(a);
+    var fresh = try (Fold.TraceSource{ .keys = .{ .{ .r7 = &actual.authority }, .{ .r7 = &tiny } } }).build(a);
     defer fresh.deinit();
     var receiver = try K.init(a, &fresh, view.key.profile);
     defer receiver.deinit();

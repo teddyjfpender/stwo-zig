@@ -1,4 +1,4 @@
-> Current closed protocol is R7-v2 with eight roles; earlier seven-role sections are historical. No R7 production/root admission.
+> Current experimental protocol is R7-v2 with eight roles; earlier seven-role sections are historical. No R7 production/root admission.
 
 # Experimental OM31-by-M31 dot accumulator
 
@@ -218,8 +218,8 @@ source` test. Omitting the last variable retains the source-only gate. The
 separate `OP R7 persisted CPU physical artifact opening census` test reads
 `STWO_OP_R7_CPU_AUDIT` and only decodes existing artifacts; it never re-proves.
 
-R7 recursive statement/fold/root admission and its composed source ledger
-remain closed. The old R6 golden proof remains separately byte-qualified;
+The original CPU-only slice left root admission closed; the complete-root
+qualification below supersedes that status. The old R6 golden stays byte-qualified;
 R7 intentionally uses a distinct eight-role authority and wire protocol.
 
 ### Current eight-role frozen heavy source model
@@ -267,5 +267,45 @@ statement` test; without it the gate stops after numerical/source checks.
 The retained actual pair uses `STWO_OP_R7_CPU_FOLD`, `STWO_OP_R7_CPU_LEAF` and
 `STWO_OP_R7_TINY_LEAF` alongside the existing small CPU config/native paths.
 Neither pair authenticates complete execution coverage, adjacency, terminal
-state or manifest closure. These are pending parents. Final execution-root
-admission and composed security accounting remain closed.
+state or manifest closure. These are pending parents. At that slice, final execution-root admission remained closed; see the later
+complete-root qualification. Composed security certification remains unclaimed.
+
+### Complete actual small execution root (R7 opt-in)
+
+`complete-small-execution-root-v2.json` supersedes the earlier **pending pair**
+status. Block 120,794,432 (796,406 instructions) now closes its entire admitted
+inventory: one R7 CPU leaf, the existing R6 Keccak and SHA leaves, and two R7
+parents. The final root is **680,116 bytes**. A fresh receiver reconstructs
+source authority from pinned ELF/input/ABI and source metadata/public RAM only;
+its directory contains no `native-op.bin`. Missing, duplicate and reordered
+leaves, balanced service debt, terminal/halt/length/PC changes, canonical root
+claim corruption and a valid same-profile proof of an unrelated circuit are
+rejected. This is complete functional execution authentication, not a pending
+pair or a claim of security certification.
+
+This run uses the **CLASSIC native truth bundle (metadata schema 1)**. The
+current 139-second R6 control uses schema 2/3 local-truth GKR, so no full-root
+R7/R6 speed ratio is claimed.
+
+The qualification deliberately reuses the previously proved 681,484-byte CPU
+outer leaf, fresh-verifying its exact source key, manifest and nine public
+words. The two service leaves and two parents are newly proved. Incremental
+recursive production is 164.625 s; it starts with an existing native bundle
+and one retained CPU outer proof, so it **is not full fresh block latency**.
+The classic Keccak wrapper alone spends 60.115 summed stage seconds (18.241 s
+MAIN commit, 19.060 s INTER commit), versus 27.493 s for SHA and 17.196/17.072 s
+for the two parents. These are qualification timings, not a controlled A/B.
+
+Fresh source-only reception and all attack controls pass in ReleaseSafe, with
+39.721 s source reconstruction and 0.382 s root verification plus controls.
+The ReleaseFast CLI independently accepts the same root in 30.97 s wall;
+accounted peak is 5.583 GB under 32 GiB, with zero live/external teardown.
+The existing 687,908-byte R6 root and its full attack corpus still pass.
+
+Use `rv64-op-root --r7 prove ...` and `rv64-op-root --r7 verify ...` explicitly.
+Historical commands and `--r6` retain their previous authority. Combining
+`--r6` with `--r7`, selecting unsupported cache flags, or passing a proof for a
+different source is rejected. Native SourceSuite remains the v3 control;
+detached-sponge admission is a separate workstream. Whole-protocol security
+composition, matched heavy-block measurements and performance promotion remain
+unclaimed; no heavy execution or proving was rerun.

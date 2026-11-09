@@ -7,6 +7,7 @@ pub const Command = struct {
     root: []const u8,
     resources: ?[]const u8,
     r6: bool,
+    r7: bool = false,
     truth_local_gkr: bool,
     miller_local_gkr: bool,
     miller_cache_bytes: usize = 0,
@@ -18,6 +19,7 @@ pub fn parse(args: []const []const u8) !Command {
     var positional: [5][]const u8 = undefined;
     var count: usize = 0;
     var r6 = false;
+    var r7 = false;
     var local = false;
     var miller = false;
     var cache_bytes: ?usize = null;
@@ -26,6 +28,9 @@ pub fn parse(args: []const []const u8) !Command {
         if (std.mem.eql(u8, arg, "--r6")) {
             if (r6) return error.DuplicateOpRootOption;
             r6 = true;
+        } else if (std.mem.eql(u8, arg, "--r7")) {
+            if (r7) return error.DuplicateOpRootOption;
+            r7 = true;
         } else if (std.mem.eql(u8, arg, "--truth-local-gkr")) {
             if (local) return error.DuplicateOpRootOption;
             local = true;
@@ -47,11 +52,13 @@ pub fn parse(args: []const []const u8) !Command {
     }
     if (count < 4) return error.ExpectedOpRootModeConfigSourceAndRootDirectory;
     const mode: @FieldType(Command, "mode") = if (std.mem.eql(u8, positional[0], "prove")) .prove else if (std.mem.eql(u8, positional[0], "verify")) .verify else return error.ExpectedOpRootModeConfigSourceAndRootDirectory;
-    if ((local or miller) and !r6) return error.OpRootLocalGkrRequiresR6;
+    if (r6 and r7) return error.ConflictingOpRootProtocol;
+    if (r7 and (cache_bytes != null or prover_cache_bytes != null)) return error.OpRootR7CacheUnsupported;
+    if ((local or miller) and !r6 and !r7) return error.OpRootLocalGkrRequiresR6;
     if (cache_bytes != null and prover_cache_bytes != null) return error.ConflictingOpRootCacheModes;
     if (cache_bytes != null and (mode != .verify or !r6 or !miller)) return error.OpRootMillerCacheRequiresLocalVerification;
     if (prover_cache_bytes != null and (mode != .prove or !r6 or !miller)) return error.OpRootMillerCacheRequiresLocalProving;
-    return .{ .mode = mode, .config = positional[1], .source = positional[2], .root = positional[3], .resources = if (count == 5) positional[4] else null, .r6 = r6, .truth_local_gkr = local, .miller_local_gkr = miller, .miller_cache_bytes = cache_bytes orelse 0, .miller_prover_cache_bytes = prover_cache_bytes orelse 0 };
+    return .{ .mode = mode, .config = positional[1], .source = positional[2], .root = positional[3], .resources = if (count == 5) positional[4] else null, .r6 = r6, .r7 = r7, .truth_local_gkr = local, .miller_local_gkr = miller, .miller_cache_bytes = cache_bytes orelse 0, .miller_prover_cache_bytes = prover_cache_bytes orelse 0 };
 }
 fn cacheBytes(value: []const u8) !usize {
     if (value.len == 0) return error.InvalidOpRootMillerCache;
@@ -72,7 +79,7 @@ test "OP root CLI defaults preserve classic authority and require explicit R6 lo
     try std.testing.expectError(error.OpRootLocalGkrRequiresR6, parse(&.{ "prove", "c", "s", "r", "--truth-local-gkr" }));
     try std.testing.expectError(error.DuplicateOpRootOption, parse(&.{ "prove", "c", "s", "r", "--r6", "--r6" }));
     try std.testing.expectError(error.DuplicateOpRootOption, parse(&.{ "verify", "c", "s", "r", "--r6", "--truth-local-gkr", "--truth-local-gkr" }));
-    try std.testing.expectError(error.UnknownOpRootOption, parse(&.{ "prove", "c", "s", "r", "--r7" }));
+    try std.testing.expectError(error.UnknownOpRootOption, parse(&.{ "prove", "c", "s", "r", "--r8" }));
     try std.testing.expectError(error.ExpectedOpRootModeConfigSourceAndRootDirectory, parse(&.{"verify"}));
     try std.testing.expectError(error.ExpectedOpRootModeConfigSourceAndRootDirectory, parse(&.{ "verify", "c", "s", "r", "resources", "extra" }));
 }
@@ -112,4 +119,16 @@ test "OP root CLI producer cache is independently bounded and cannot select veri
     try std.testing.expectError(error.ConflictingOpRootCacheModes, parse(&(prefix ++ .{ "--miller-prover-cache-mib=0", "--miller-cache-mib=0" })));
     try std.testing.expectError(error.OpRootMillerCacheRequiresLocalProving, parse(&.{ "--r6", "--miller-local-gkr", "verify", "c", "s", "r", "--miller-prover-cache-mib=1" }));
     try std.testing.expectError(error.OpRootMillerCacheRequiresLocalProving, parse(&.{ "--r6", "prove", "c", "s", "r", "--miller-prover-cache-mib=1" }));
+}
+
+test "OP root CLI R7 is explicit and cannot override R6 or cache policy" {
+    const old = try parse(&.{ "verify", "c", "s", "r" });
+    try std.testing.expect(!old.r6 and !old.r7);
+    const r7 = try parse(&.{ "--r7", "verify", "c", "s", "r" });
+    try std.testing.expect(r7.r7 and !r7.r6);
+    const local = try parse(&.{ "--r7", "--truth-local-gkr", "--miller-local-gkr", "prove", "c", "s", "r" });
+    try std.testing.expect(local.r7 and local.truth_local_gkr and local.miller_local_gkr);
+    try std.testing.expectError(error.ConflictingOpRootProtocol, parse(&.{ "--r6", "--r7", "verify", "c", "s", "r" }));
+    try std.testing.expectError(error.DuplicateOpRootOption, parse(&.{ "--r7", "--r7", "verify", "c", "s", "r" }));
+    try std.testing.expectError(error.OpRootR7CacheUnsupported, parse(&.{ "--r7", "--miller-local-gkr", "--miller-cache-mib=1", "verify", "c", "s", "r" }));
 }

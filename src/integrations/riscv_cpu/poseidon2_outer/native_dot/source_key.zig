@@ -26,7 +26,7 @@ pub const SourceKey = struct {
     }
     pub fn initFold(a: std.mem.Allocator, profile: @import("../op_profile.zig").Profile, left: *const SourceKey, right: *const SourceKey) !SourceKey {
         if (left.authority.core.base.profile != profile or right.authority.core.base.profile != profile) return error.R7FoldProfileMismatch;
-        var trace = try (@import("fold.zig").TraceSource{ .keys = .{ &left.authority, &right.authority } }).build(a);
+        var trace = try (@import("fold.zig").TraceSource{ .keys = .{ .{ .r7 = &left.authority }, .{ .r7 = &right.authority } } }).build(a);
         defer trace.deinit();
         return .{ .authority = try K.init(a, &trace, profile), .binding = .{ .fold = .{ left.authority.core.base.identity, right.authority.core.base.identity } } };
     }

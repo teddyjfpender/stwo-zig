@@ -95,7 +95,7 @@ test "OP R7 recursive eight claim statement numerical two children and lifted ne
         defer p0.deinit(a);
         var p1 = try P.verifyCaptured(a, &r1, &out1, b1);
         defer p1.deinit(a);
-        const pair = Fold.Source{ .children = .{ .{ .key = &r0, .verified = &p0, .output = out0 }, .{ .key = &r1, .verified = &p1, .output = out1 } } };
+        const pair = Fold.Source{ .children = .{ .{ .key = .{ .r7 = &r0 }, .verified = .{ .r7 = &p0 }, .output = out0 }, .{ .key = .{ .r7 = &r1 }, .verified = .{ .r7 = &p1 }, .output = out1 } } };
         var parent = try pair.build(a, false);
         defer parent.deinit();
         try std.testing.expect(try parent.isCircuitValid());
@@ -105,7 +105,7 @@ test "OP R7 recursive eight claim statement numerical two children and lifted ne
         if (std.posix.getenv("STWO_OP_R7_RECURSIVE_ARTIFACTS") == null) return;
         // Independent source-only composition: no claimed roots or child proof
         // bytes participate in the fresh key's construction.
-        var fresh = try (Fold.TraceSource{ .keys = .{ &r0, &r1 } }).build(a);
+        var fresh = try (Fold.TraceSource{ .keys = .{ .{ .r7 = &r0 }, .{ .r7 = &r1 } } }).build(a);
         defer fresh.deinit();
         var receiver = try K.init(a, &fresh, profile);
         defer receiver.deinit();
@@ -126,7 +126,7 @@ test "OP R7 recursive eight claim statement numerical two children and lifted ne
         // Ordered source keys and all9 digest limbs remain independent authority.
         const swapped = try Fold.digest(out1, out0);
         try std.testing.expect(std.meta.isError(P.verify(a, &receiver, &swapped, bytes)));
-        var missing = try (Fold.TraceSource{ .keys = .{ &r0, &r0 } }).build(a);
+        var missing = try (Fold.TraceSource{ .keys = .{ .{ .r7 = &r0 }, .{ .r7 = &r0 } } }).build(a);
         defer missing.deinit();
         var missing_key = try K.init(a, &missing, profile);
         defer missing_key.deinit();
@@ -137,11 +137,11 @@ test "OP R7 recursive eight claim statement numerical two children and lifted ne
         var altered = p0;
         altered.claims[5] = altered.claims[5].add(O.one());
         altered.claims[6] = altered.claims[6].sub(O.one());
-        const bad_pair = Fold.Source{ .children = .{ .{ .key = &r0, .verified = &altered, .output = out0 }, pair.children[1] } };
+        const bad_pair = Fold.Source{ .children = .{ .{ .key = .{ .r7 = &r0 }, .verified = .{ .r7 = &altered }, .output = out0 }, pair.children[1] } };
         try rejectParent(a, bad_pair, &receiver, "balanced_claims");
-        const bad_frames = Fold.Source{ .children = .{ .{ .key = &r0, .verified = &p0, .output = out1 }, .{ .key = &r1, .verified = &p1, .output = out0 } } };
+        const bad_frames = Fold.Source{ .children = .{ .{ .key = .{ .r7 = &r0 }, .verified = .{ .r7 = &p0 }, .output = out1 }, .{ .key = .{ .r7 = &r1 }, .verified = .{ .r7 = &p1 }, .output = out0 } } };
         try rejectParent(a, bad_frames, &receiver, "swapped_frames");
-        const missing_frame = Fold.Source{ .children = .{ pair.children[0], .{ .key = &r1, .verified = &p1, .output = @splat(Q.zero()) } } };
+        const missing_frame = Fold.Source{ .children = .{ pair.children[0], .{ .key = .{ .r7 = &r1 }, .verified = .{ .r7 = &p1 }, .output = @splat(Q.zero()) } } };
         try rejectParent(a, missing_frame, &receiver, "missing_second_frame");
         p0.proof.commitment_scheme_proof.commitments.items[1][0] ^= 1;
         {

@@ -1,0 +1,539 @@
+{
+  "schema": "op-r7-complete-execution-root-v2",
+  "members": 3,
+  "reductions": 2,
+  "retained_verified_leaves": 1,
+  "total_ns": 164624759666,
+  "security_qualified": false,
+  "full_fresh_production_latency": false,
+  "scope": "complete actual OP block120794432,796406 retired instructions; native sourceformat control;32GiB host cap",
+  "artifact_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/pure-p2-r7-complete-small-v1",
+  "root_bytes": 680116,
+  "root_sha256": "8e2362f09c4ae059725cb08ab7f083c1f065e7296d0870cd0b715772770da1f0",
+  "producer_note": "Incremental qualification uses one independently fresh-verified retained CPU leaf from the exact same native bundle/source/manifest/public9words; no CPU reprove and no complete fresh-production latency claim.",
+  "nodes": [
+    {
+      "file": "node-000000.bin",
+      "format": "r7",
+      "source_identity": "612e27325c59ed2b715cf582f9cfa1f0fe10638d8f83e7611bce390921e79138",
+      "bytes": 681484,
+      "retained_verified_leaf": true,
+      "summed_stage_seconds": 0,
+      "stages": []
+    },
+    {
+      "file": "node-000001.bin",
+      "format": "r6",
+      "source_identity": "60fe2b9f14587f5bfe5d3b40bc0af64b0d4208c95a5db2d695e7950bdf539413",
+      "bytes": 716764,
+      "retained_verified_leaf": false,
+      "summed_stage_seconds": 60.115444,
+      "stages": [
+        {
+          "id": "op_p2.main_generation",
+          "wall_seconds": 1.087416,
+          "user_seconds": 1.061228,
+          "system_seconds": 0.025274
+        },
+        {
+          "id": "op_p2.main_commit",
+          "wall_seconds": 18.240524,
+          "user_seconds": 139.792856,
+          "system_seconds": 1.983535
+        },
+        {
+          "id": "op_p2.interaction_generation",
+          "wall_seconds": 0.850276,
+          "user_seconds": 6.136679,
+          "system_seconds": 0.109169
+        },
+        {
+          "id": "op_p2.interaction_commit",
+          "wall_seconds": 19.060204,
+          "user_seconds": 143.151826,
+          "system_seconds": 2.15012
+        },
+        {
+          "id": "draw_random_coeff",
+          "wall_seconds": 1.4e-05,
+          "user_seconds": 3e-06,
+          "system_seconds": 8e-06
+        },
+        {
+          "id": "composition_trace_extract",
+          "wall_seconds": 1.7e-05,
+          "user_seconds": 6e-06,
+          "system_seconds": 9e-06
+        },
+        {
+          "id": "composition_evaluation",
+          "wall_seconds": 2.476104,
+          "user_seconds": 9.071589,
+          "system_seconds": 0.554489
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "wall_seconds": 0.070216,
+          "user_seconds": 0.533904,
+          "system_seconds": 0.00635
+        },
+        {
+          "id": "composition_commit",
+          "wall_seconds": 9.11856,
+          "user_seconds": 55.15591,
+          "system_seconds": 1.0632
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "wall_seconds": 7.8e-05,
+          "user_seconds": 5.8e-05,
+          "system_seconds": 1.8e-05
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "wall_seconds": 0.171918,
+          "user_seconds": 1.211807,
+          "system_seconds": 0.027798
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "wall_seconds": 0.000995,
+          "user_seconds": 0.00095,
+          "system_seconds": 1.7e-05
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "wall_seconds": 7.241896,
+          "user_seconds": 30.657866,
+          "system_seconds": 0.755483
+        },
+        {
+          "id": "proof_of_work",
+          "wall_seconds": 8e-06,
+          "user_seconds": 4e-06,
+          "system_seconds": 1e-06
+        },
+        {
+          "id": "fri_decommit",
+          "wall_seconds": 0.281488,
+          "user_seconds": 1.394228,
+          "system_seconds": 0.070528
+        },
+        {
+          "id": "trace_decommit",
+          "wall_seconds": 1.515317,
+          "user_seconds": 2.826925,
+          "system_seconds": 0.04792
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "wall_seconds": 0.000413,
+          "user_seconds": 0.000404,
+          "system_seconds": 7e-06
+        }
+      ]
+    },
+    {
+      "file": "node-000002.bin",
+      "format": "r6",
+      "source_identity": "4a48cb9d2d5fbcf54fa4a9daca8acb44cde8da5133a31bd3c836a14e0b3469cd",
+      "bytes": 688736,
+      "retained_verified_leaf": false,
+      "summed_stage_seconds": 27.493439,
+      "stages": [
+        {
+          "id": "op_p2.main_generation",
+          "wall_seconds": 0.548008,
+          "user_seconds": 0.537327,
+          "system_seconds": 0.010327
+        },
+        {
+          "id": "op_p2.main_commit",
+          "wall_seconds": 8.980582,
+          "user_seconds": 70.367525,
+          "system_seconds": 0.284125
+        },
+        {
+          "id": "op_p2.interaction_generation",
+          "wall_seconds": 0.482359,
+          "user_seconds": 3.478813,
+          "system_seconds": 0.038354
+        },
+        {
+          "id": "op_p2.interaction_commit",
+          "wall_seconds": 8.771421,
+          "user_seconds": 67.871966,
+          "system_seconds": 0.280238
+        },
+        {
+          "id": "draw_random_coeff",
+          "wall_seconds": 7e-06,
+          "user_seconds": 3e-06,
+          "system_seconds": 3e-06
+        },
+        {
+          "id": "composition_trace_extract",
+          "wall_seconds": 1.7e-05,
+          "user_seconds": 6e-06,
+          "system_seconds": 9e-06
+        },
+        {
+          "id": "composition_evaluation",
+          "wall_seconds": 1.11157,
+          "user_seconds": 4.057883,
+          "system_seconds": 0.231818
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "wall_seconds": 0.032162,
+          "user_seconds": 0.244617,
+          "system_seconds": 0.000696
+        },
+        {
+          "id": "composition_commit",
+          "wall_seconds": 4.226245,
+          "user_seconds": 26.461476,
+          "system_seconds": 0.185596
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "wall_seconds": 7.6e-05,
+          "user_seconds": 5.8e-05,
+          "system_seconds": 1.5e-05
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "wall_seconds": 0.08797,
+          "user_seconds": 0.620164,
+          "system_seconds": 0.010724
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "wall_seconds": 0.000848,
+          "user_seconds": 0.000844,
+          "system_seconds": 2e-06
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "wall_seconds": 2.417658,
+          "user_seconds": 13.990327,
+          "system_seconds": 0.211272
+        },
+        {
+          "id": "proof_of_work",
+          "wall_seconds": 7e-06,
+          "user_seconds": 4e-06,
+          "system_seconds": 1e-06
+        },
+        {
+          "id": "fri_decommit",
+          "wall_seconds": 0.126818,
+          "user_seconds": 0.589994,
+          "system_seconds": 0.027547
+        },
+        {
+          "id": "trace_decommit",
+          "wall_seconds": 0.707306,
+          "user_seconds": 1.644243,
+          "system_seconds": 0.034869
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "wall_seconds": 0.000385,
+          "user_seconds": 0.000369,
+          "system_seconds": 1.2e-05
+        }
+      ]
+    },
+    {
+      "file": "node-000003.bin",
+      "format": "r7",
+      "source_identity": "b05b48de03a0a70985958d6691c41b975fb6628c51015a28c1316bc7b0b32640",
+      "bytes": 684268,
+      "retained_verified_leaf": false,
+      "summed_stage_seconds": 17.195733,
+      "stages": [
+        {
+          "id": "op_p2.main_generation",
+          "wall_seconds": 0.801561,
+          "user_seconds": 0.785698,
+          "system_seconds": 0.015427
+        },
+        {
+          "id": "op_p2.main_commit",
+          "wall_seconds": 5.631394,
+          "user_seconds": 44.857476,
+          "system_seconds": 0.236765
+        },
+        {
+          "id": "op_p2.interaction_generation",
+          "wall_seconds": 0.407655,
+          "user_seconds": 2.947266,
+          "system_seconds": 0.042775
+        },
+        {
+          "id": "op_p2.interaction_commit",
+          "wall_seconds": 5.189026,
+          "user_seconds": 41.724935,
+          "system_seconds": 0.3032
+        },
+        {
+          "id": "draw_random_coeff",
+          "wall_seconds": 9e-06,
+          "user_seconds": 2e-06,
+          "system_seconds": 4e-06
+        },
+        {
+          "id": "composition_trace_extract",
+          "wall_seconds": 2e-05,
+          "user_seconds": 6e-06,
+          "system_seconds": 1.2e-05
+        },
+        {
+          "id": "composition_evaluation",
+          "wall_seconds": 1.152943,
+          "user_seconds": 4.001057,
+          "system_seconds": 0.22801
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "wall_seconds": 0.015487,
+          "user_seconds": 0.114234,
+          "system_seconds": 0.001608
+        },
+        {
+          "id": "composition_commit",
+          "wall_seconds": 2.132849,
+          "user_seconds": 13.183696,
+          "system_seconds": 0.09626
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "wall_seconds": 7.6e-05,
+          "user_seconds": 6e-05,
+          "system_seconds": 1.3e-05
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "wall_seconds": 0.073226,
+          "user_seconds": 0.504792,
+          "system_seconds": 0.006778
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "wall_seconds": 0.000937,
+          "user_seconds": 0.000923,
+          "system_seconds": 1.1e-05
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "wall_seconds": 1.268726,
+          "user_seconds": 7.302429,
+          "system_seconds": 0.138843
+        },
+        {
+          "id": "proof_of_work",
+          "wall_seconds": 7e-06,
+          "user_seconds": 4e-06,
+          "system_seconds": 2e-06
+        },
+        {
+          "id": "fri_decommit",
+          "wall_seconds": 0.071814,
+          "user_seconds": 0.301112,
+          "system_seconds": 0.015246
+        },
+        {
+          "id": "trace_decommit",
+          "wall_seconds": 0.449594,
+          "user_seconds": 1.095592,
+          "system_seconds": 0.019317
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "wall_seconds": 0.000409,
+          "user_seconds": 0.000398,
+          "system_seconds": 9e-06
+        }
+      ]
+    },
+    {
+      "file": "node-000004.bin",
+      "format": "r7",
+      "source_identity": "47a3c85bf8bb7c79ec79ec7bf3a1502d6f4b0587a2a83b96f4c323eaba72e1ee",
+      "bytes": 680116,
+      "retained_verified_leaf": false,
+      "summed_stage_seconds": 17.072214,
+      "stages": [
+        {
+          "id": "op_p2.main_generation",
+          "wall_seconds": 0.817436,
+          "user_seconds": 0.805774,
+          "system_seconds": 0.01123
+        },
+        {
+          "id": "op_p2.main_commit",
+          "wall_seconds": 5.585684,
+          "user_seconds": 44.81567,
+          "system_seconds": 0.244754
+        },
+        {
+          "id": "op_p2.interaction_generation",
+          "wall_seconds": 0.412252,
+          "user_seconds": 2.996598,
+          "system_seconds": 0.034335
+        },
+        {
+          "id": "op_p2.interaction_commit",
+          "wall_seconds": 5.112773,
+          "user_seconds": 41.483552,
+          "system_seconds": 0.187788
+        },
+        {
+          "id": "draw_random_coeff",
+          "wall_seconds": 7e-06,
+          "user_seconds": 2e-06,
+          "system_seconds": 4e-06
+        },
+        {
+          "id": "composition_trace_extract",
+          "wall_seconds": 1.8e-05,
+          "user_seconds": 5e-06,
+          "system_seconds": 1e-05
+        },
+        {
+          "id": "composition_evaluation",
+          "wall_seconds": 1.136543,
+          "user_seconds": 3.998782,
+          "system_seconds": 0.187378
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "wall_seconds": 0.016171,
+          "user_seconds": 0.114488,
+          "system_seconds": 0.000234
+        },
+        {
+          "id": "composition_commit",
+          "wall_seconds": 2.122709,
+          "user_seconds": 13.179957,
+          "system_seconds": 0.097966
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "wall_seconds": 7.1e-05,
+          "user_seconds": 6.1e-05,
+          "system_seconds": 7e-06
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "wall_seconds": 0.073894,
+          "user_seconds": 0.517334,
+          "system_seconds": 0.008657
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "wall_seconds": 0.000931,
+          "user_seconds": 0.000917,
+          "system_seconds": 1.1e-05
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "wall_seconds": 1.277438,
+          "user_seconds": 7.297324,
+          "system_seconds": 0.135446
+        },
+        {
+          "id": "proof_of_work",
+          "wall_seconds": 7e-06,
+          "user_seconds": 4e-06,
+          "system_seconds": 2e-06
+        },
+        {
+          "id": "fri_decommit",
+          "wall_seconds": 0.069486,
+          "user_seconds": 0.308961,
+          "system_seconds": 0.015605
+        },
+        {
+          "id": "trace_decommit",
+          "wall_seconds": 0.446386,
+          "user_seconds": 1.092087,
+          "system_seconds": 0.020994
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "wall_seconds": 0.000408,
+          "user_seconds": 0.000399,
+          "system_seconds": 7e-06
+        }
+      ]
+    }
+  ],
+  "fresh_source_only": {
+    "native_op_bin_present": false,
+    "source_seconds": 39.721184417,
+    "verify_plus_all_attack_controls_seconds": 0.381879042,
+    "accounted_peak_bytes": 5582537081,
+    "final_live_bytes": 0,
+    "hard_cap_bytes": 34359738368,
+    "attacks": [
+      "canonical physical root claim corruption",
+      "valid same-profile wrong-source R7 proof positive control",
+      "missing leaf",
+      "duplicate ordinal",
+      "reordered leaves",
+      "balanced native service debt with aggregate sums closed",
+      "halt flag",
+      "output length",
+      "terminal PC",
+      "terminal RAM/output binding"
+    ],
+    "wrong_source_fixture": "Explicit constrained empty DOT retained; production zero-DOT authority refusal was not weakened."
+  },
+  "cli": {
+    "build": "rv64-op-root ReleaseFast",
+    "explicit_selector": "--r7",
+    "fresh_source_only_accepted": true,
+    "wall_seconds": 30.97,
+    "user_seconds": 237.66,
+    "system_seconds": 2.18,
+    "max_rss_bytes": 5565988864,
+    "accounted_peak_bytes": 5582537081,
+    "final_live_bytes": 0,
+    "final_external_bytes": 0,
+    "parser_tests": 5,
+    "default_r5_r6_policy_unchanged": true,
+    "both_protocol_flags_refused": true,
+    "unsupported_r7_cache_flags_refused": true
+  },
+  "r6_regression": {
+    "existing_root_bytes": 687908,
+    "unchanged_source_identities": true,
+    "fresh_source_only_and_full_shared_attack_corpus_pass": true,
+    "root_verify_plus_controls_seconds": 0.39936425
+  },
+  "controls_are_not_certification": true,
+  "no_heavy_execution_or_proving": true,
+  "controlled_speed_measurement": false,
+  "remaining": [
+    "Whole-protocol R7 security composition under documented assumptions",
+    "Matched complete heavy-block timing remains intentionally unrun",
+    "Use local-GKR/frontier routes to reduce classic Keccak wrapper cost; no shortcut swaps across manifests",
+    "R7 immutable outer setup caching and provider sizing improvements remain optimization work"
+  ],
+  "starts_from_preexisting_native_bundle": true,
+  "fresh_guest_execution_and_native_proving_included": false,
+  "native_truth_control": {
+    "mode": "CLASSIC native truth bundle",
+    "metadata_schema": 1,
+    "truth_local_gkr": false,
+    "same_manifest_as_retained_cpu": true,
+    "not_apples_to_apples_with_current_r6_control": "Current139s R6 control uses schema2/3 local-truth GKR; no full-root speed ratio claimed."
+  },
+  "same_source_cpu_leaf_only": {
+    "native_cells_saved_fraction": 0.17753808483270572,
+    "qualified_prove_seconds": 17.907312042,
+    "different_scope_from_complete_root": true
+  }
+}
