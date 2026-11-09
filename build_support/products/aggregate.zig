@@ -55,6 +55,17 @@ const common_allowed_prefixes = [_][]const u8{
 // withheld reports exactly the files that grant must restore.
 const metal_allowed_files = common_allowed_files ++ .{
     metal_facade,
+    "src/backends/metal/circle_lde_output_parity.zig",
+    "src/backends/metal/execution_policy.zig",
+    "src/backends/metal/fri_fold_parity.zig",
+    "src/backends/metal/hash_domain.zig",
+    "src/backends/metal/quotient_internal_parity.zig",
+    "src/backends/metal/quotient_output_parity.zig",
+    "src/backends/metal/shaders/abi_declaration_digest.zig",
+    "src/backends/metal/shaders/abi_declaration_digests.zig",
+    "src/backends/metal/shaders/aot_profile.zig",
+    "src/backends/metal/shaders/ethereum_fixed_program_narrow_v1_exports.zig",
+    "src/backends/metal/shaders/recursive_framework_v1_exports.zig",
     // Also the `stwo_metal_backend` named-import source, which the closure
     // checker honours on its own. Listed anyway so this leaf enumeration
     // answers "which Metal sources does the product carry?" completely,
@@ -73,7 +84,7 @@ const metal_allowed_files = common_allowed_files ++ .{
     "src/backends/metal/recovery.zig",
     "src/backends/metal/resident_arena.zig",
     "src/backends/metal/runtime.zig",
-    // The three shader-tree sources the closure actually reaches. The former
+    // Shader-tree sources are explicit leaves. The former
     // `src/backends/metal/shaders` prefix additionally granted the deferred
     // `cairo/` shader tree and `runtime_initialization_contract_test.zig`,
     // which the closure does not reach.
