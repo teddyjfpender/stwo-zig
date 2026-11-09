@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 from tempfile import TemporaryDirectory
 from pathlib import Path
 
@@ -229,6 +230,37 @@ const owned = @import(
             subject._validate_imports(contract, {}, failures)
             self.assertEqual(1, len(failures))
             self.assertIn("embedded file escapes owner", failures[0])
+
+    def test_generated_embeds_require_declaration_and_unambiguous_owned_asset(self):
+        with TemporaryDirectory() as raw:
+            root = Path(raw).resolve()
+            owner = root / "src/owned"
+            owner.mkdir(parents=True)
+            (root / "build_support").mkdir()
+            (root / "vectors").mkdir()
+            asset = root / "vectors/air.bin"
+            asset.write_bytes(b"pinned AIR fixture")
+            producer = root / "build_support/producer.zig"
+            binding = '.{ .name = "generated_air", .path = "vectors/air.bin" },'
+            producer.write_text("const embedded_assets = [_]struct { name: []const u8, path: []const u8 }{\n" + binding + "\n};\n")
+            (owner / "mod.zig").write_text('pub const air = @embedFile("generated_air");\n')
+            contract = replace(subject.load_contract(ROOT / "src/backends/cuda/package.contract.json"), directory=owner, injected_modules=frozenset({"generated_air"}))
+            assets = subject.ci_package_graph.generated_embedded_assets(root)
+            self.assertEqual({"generated_air": asset}, assets)
+            failures = []
+            subject._validate_imports(contract, {}, failures, assets)
+            self.assertEqual([], failures)
+            for candidate, sources in ((replace(contract, injected_modules=frozenset()), assets), (contract, {})):
+                failures = []
+                subject._validate_imports(candidate, {}, failures, sources)
+                self.assertIn("embedded file is missing", failures[0])
+            other = root / "vectors/other.bin"
+            other.write_bytes(b"other")
+            producer.write_text("const embedded_assets = [_]struct { name: []const u8, path: []const u8 }{\n" + binding + '\n.{ .name = "generated_air", .path = "vectors/other.bin" },\n};\n')
+            self.assertEqual({}, subject.ci_package_graph.generated_embedded_assets(root))
+            producer.write_text("const embedded_assets = [_]struct { name: []const u8, path: []const u8 }{\n" + binding + "\n};\n")
+            asset.unlink()
+            self.assertEqual({}, subject.ci_package_graph.generated_embedded_assets(root))
 
     def test_package_readme_is_required(self) -> None:
         with TemporaryDirectory() as directory:

@@ -18,6 +18,7 @@
     "stwo_prover_engine": "../../engine/prover"
   },
   "injected_modules": [
+    "circuit_composition_cpu_aot",
     "circuit_provers_under_test",
     "circuit_testing"
   ],
