@@ -179,6 +179,15 @@ class PlannerContractTests(unittest.TestCase):
         selected = self.lanes_for("src/frontends/riscv/releasefast_acceptance_test_root.zig")
         self.assertTrue({lane, "riscv_frontend_releasefast"}.issubset(selected))
 
+    def test_main_releasefast_baseline_pins_source_and_identical_command(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        baseline = workflow.split("  frontend-main-baseline:", 1)[1].split("  focused-macos:", 1)[0]
+        command, = self.policy["lanes"]["riscv_frontend_releasefast"]["commands"]
+        self.assertIn("argv = " + json.dumps(command), baseline)
+        self.assertEqual(2, baseline.count("4e260db9605d16fef5d405cc3c280e3042b22e35"))
+        self.assertIn("timeout-minutes: 90", baseline)
+        self.assertIn("absent tests are not passing evidence", baseline)
+
     def test_cairo_frontend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/frontends/cairo/air/components/add_ap.zig")
         self.assertTrue(

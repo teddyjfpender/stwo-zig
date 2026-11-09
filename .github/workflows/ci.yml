@@ -40,7 +40,7 @@ jobs:
       github.event_name == 'pull_request' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       github.event_name == 'schedule' ||
-      (github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu')
+      (github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu' && inputs.cpu_lane != 'main_releasefast_baseline')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -525,6 +525,54 @@ jobs:
         with:
           name: focused-ci-linux-${{ matrix.lane }}-${{ github.sha }}
           path: ${{ runner.temp }}/focused-ci/
+          if-no-files-found: error
+          retention-days: 30
+
+  frontend-main-baseline:
+    name: Main frontend ReleaseFast baseline
+    if: github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu' && inputs.cpu_lane == 'main_releasefast_baseline'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    continue-on-error: true
+    steps:
+      - name: Checkout exact main baseline
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          ref: 4e260db9605d16fef5d405cc3c280e3042b22e35
+          fetch-depth: 0
+      - name: Setup Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.15.2
+          use-cache: false
+      - name: Run identical full frontend ReleaseFast command
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, shutil, subprocess, time
+          from pathlib import Path
+          source = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          assert source == "4e260db9605d16fef5d405cc3c280e3042b22e35"
+          out = Path(os.environ["RUNNER_TEMP"]) / "main-frontend-releasefast"
+          out.mkdir(parents=True, exist_ok=True)
+          argv = ["zig", "build", "test", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2", "--verbose", "--summary", "all"]
+          receipt = {"status": "STARTED", "source_commit": source, "argv": argv, "zig_sha256": hashlib.sha256(Path(shutil.which("zig")).read_bytes()).hexdigest(), "scope": "identical main baseline; absent tests are not passing evidence"}
+          path = out / "receipt.json"
+          path.write_text(json.dumps(receipt, indent=2) + "\n")
+          started = time.monotonic()
+          with (out / "stdout").open("wb") as stdout, (out / "stderr").open("wb") as stderr:
+              result = subprocess.run(argv, stdout=stdout, stderr=stderr, check=False)
+          receipt.update(status="PASS" if result.returncode == 0 else "FAIL", exit_code=result.returncode, duration_seconds=time.monotonic() - started)
+          path.write_text(json.dumps(receipt, indent=2) + "\n")
+          print(json.dumps(receipt), flush=True)
+          raise SystemExit(result.returncode)
+          PY
+      - name: Retain exact main baseline
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: main-frontend-releasefast-4e260db96
+          path: ${{ runner.temp }}/main-frontend-releasefast/
           if-no-files-found: error
           retention-days: 30
 
