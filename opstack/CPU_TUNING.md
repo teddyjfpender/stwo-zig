@@ -154,7 +154,7 @@ The current structural work is:
 
 | Change | Concrete evidence | Remaining production gate |
 | --- | --- | --- |
-| Native DEEP dot accumulator | Independently closed standalone physical proof and degree3/2n AIR; source-count model reduces the relevant outer cells by 23.5% | Live recursive source lowering, common Var closure, roster and fresh complete-root qualification |
+| Native DEEP dot accumulator | Independently closed standalone physical proof and degree3/2n AIR; live DEEP lowering with joint source usage and legacy-key refusal; source-count model reduces relevant outer cells by 23.5% | Physical R7 common Var closure, roster and fresh complete-root qualification |
 | Serialized sponge | Five independently sized roles, full RAM/IO/OWNER closure and fresh physical PCS/GKR reception | A narrow authenticated CPU frontier and complete inventory/root integration; no admission from an isolated zero local claim |
 | Immutable outer Miller setup | Bounded source-owned cache gives identical physical proof bytes while binding each request separately | Root verifier lifetime/lease integration, then separately qualified producer ownership |
 | Guest Miller packet retention | Independent tiny RV64 probe and host packet-equivalence tests | Explicit opt-in candidate and representative qualification; modeled copy savings are not proof-time savings |
