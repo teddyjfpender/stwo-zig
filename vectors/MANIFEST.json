@@ -922,13 +922,13 @@
     },
     {
       "path": "vectors/cairo/official/witness_programs_v1.compiler-receipt.json",
-      "sha256": "76d414e061bf5eae7b44c96c5254128a89090738ae0f5df8520b537d2fd10db1",
+      "sha256": "7ec0e31d7622ac86caa6a2e9786c895fb1261b0665191d289d3e6b3dca6ae035",
       "bytes": 2431,
       "group": "vectors/cairo/official"
     },
     {
       "path": "vectors/cairo/official/witness_programs_v1.provenance.json",
-      "sha256": "494024d003c198171c9bccdeb5313a371e47f9a741f7dd6ba3a10dd8ad16ea51",
+      "sha256": "43e84ded74d9e8c61fed0807dfeac0b03271a50075ed13940f62bc06fb3c79b8",
       "bytes": 6425,
       "group": "vectors/cairo/official"
     },
