@@ -40,6 +40,9 @@ pub(super) fn run_skipping(groups: &[Group], seed: Option<(&Fq12, &Fq12)>, skip:
     let mut value = seed.map_or(Fq12::ONE, |(w, _)| *w);
     let mut line = 0;
     let mut evaluate = |value: &mut Fq12| {
+        #[cfg(feature = "pairing-packet-batching")]
+        super::sparse::miller_lines(value, groups, line, skip);
+        #[cfg(not(feature = "pairing-packet-batching"))]
         for (i, (point, _, prepared)) in groups.iter().enumerate() {
             if point.is_zero() || (skip != 0 && (skip >> i) & 1 != 0) {
                 continue;

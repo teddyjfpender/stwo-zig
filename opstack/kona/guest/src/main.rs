@@ -2,6 +2,11 @@
 #![no_std]
 #![no_main]
 extern crate alloc;
+#[cfg(all(
+    feature = "pairing-packet-probe",
+    any(feature = "blob-eval-probe", feature = "transition-program")
+))]
+compile_error!("pairing packet diagnostic cannot be combined with another guest mode");
 #[cfg(all(feature = "blob-eval-probe", feature = "transition-program"))]
 compile_error!("blob evaluation diagnostic and transition are distinct programs");
 #[rustfmt::skip]
@@ -23,7 +28,11 @@ use core::{
     arch::{asm, global_asm},
     ptr,
 };
-#[cfg(not(any(feature = "transition-program", feature = "blob-eval-probe")))]
+#[cfg(not(any(
+    feature = "transition-program",
+    feature = "blob-eval-probe",
+    feature = "pairing-packet-probe"
+)))]
 use stwo_kona_execution::{
     execution::execute,
     witness::{Validation, Witness},
@@ -74,7 +83,11 @@ extern "C" fn guest_main() -> ! {
         assert!(len <= ptr::addr_of!(__input_end) as usize - start as usize - 4);
         core::slice::from_raw_parts(start.add(4), len)
     };
-    #[cfg(not(any(feature = "transition-program", feature = "blob-eval-probe")))]
+    #[cfg(not(any(
+        feature = "transition-program",
+        feature = "blob-eval-probe",
+        feature = "pairing-packet-probe"
+    )))]
     let mode = if cfg!(feature = "eager-preimages") {
         Validation::Eager
     } else {
@@ -82,13 +95,22 @@ extern "C" fn guest_main() -> ! {
     };
     #[cfg(all(feature = "precompile-services", not(feature = "pairing-hints")))]
     assert!(stwo_kona_execution::precompiles::install());
-    #[cfg(feature = "pairing-hints")]
+    #[cfg(all(feature = "pairing-hints", not(feature = "pairing-packet-probe")))]
     let input = stwo_kona_execution::precompiles::install_hinted(input)
         .expect("invalid pairing hint stream");
-    #[cfg(not(any(feature = "transition-program", feature = "blob-eval-probe")))]
+    #[cfg(not(any(
+        feature = "transition-program",
+        feature = "blob-eval-probe",
+        feature = "pairing-packet-probe"
+    )))]
     let output = execute(&Witness::parse(input, mode).expect("invalid OP witness"))
         .expect("OP execution rejected")
         .public_output();
+    #[cfg(feature = "pairing-packet-probe")]
+    let output = {
+        assert_eq!(input, b"PKT1");
+        stwo_kona_execution::precompiles::pairing_packet_probe()
+    };
     #[cfg(feature = "blob-eval-probe")]
     let output = stwo_kona_execution::anchored_blobs::evaluation_probe(input)
         .expect("blob evaluation diagnostic rejected");

@@ -1,0 +1,104 @@
+{
+  "schema": "stwo.opstack.miller-packet-batching.v1",
+  "candidate_only": true,
+  "selected_guest_promoted": false,
+  "production_feature": "pairing-packet-batching",
+  "diagnostic_feature": "pairing-packet-probe",
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/guest-packet-batch-v1",
+  "heavy_candidate_executed": false,
+  "physical_proving_speedup_measured": false,
+  "service_abi": {
+    "tag": "0x00040001",
+    "input_words": 80,
+    "output_words": 48,
+    "readonly_tail_words": 32,
+    "call_count_and_order_changed": false
+  },
+  "host_tests": {
+    "debug": 17,
+    "release": 17,
+    "packet_matrix": {
+      "groups": 16,
+      "all_prepared_lines": true,
+      "masks": [
+        0,
+        1,
+        32768,
+        21845,
+        65535
+      ],
+      "infinity_and_empty": true,
+      "checks": "Full packet equality at each call against per-group reference; final accumulator equality."
+    },
+    "classic_sparse_without_batching": 16
+  },
+  "synthetic_rv64": {
+    "control": {
+      "elf_sha256": "d8b402da784bb85eb1df346787b69e013baf45b9c2059872f107813ba3cc18cc",
+      "instructions": 20039,
+      "loads": 3361,
+      "stores": 6646
+    },
+    "batched": {
+      "elf_sha256": "c72e577b9541348618c973226fb780eadf224f8163d934d73c70371e6573db9f",
+      "instructions": 19395,
+      "loads": 3097,
+      "stores": 6356
+    },
+    "instructions_removed": 644,
+    "miller_calls_each": 5,
+    "service_ram_transitions_unchanged": true,
+    "output_identical": true,
+    "oracle": "Unicorn2.1.4 plus independent Python integer service formulas; exact steps, output, all registers, endpoint and call counts",
+    "scope": "Synthetic field coordinates test packet semantics, not a valid pairing or OP execution proof."
+  },
+  "retained_heavy_copy_work": {
+    "elf_sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930",
+    "instructions": 238226172,
+    "full_profile_retirements": 238226172,
+    "outside_profile": 0,
+    "line_evaluations": 7395,
+    "primitive_calls": 22185,
+    "wrapper_self_instructions": 7584486,
+    "old_accumulator_copy_instructions": 4259520,
+    "maximum_new_accumulator_copy_instructions": 1419840,
+    "removed_copy_instruction_lower_bound": 2839680,
+    "limit": "Copy-work model only; excludes changed loop codegen, padding and proving cost. No heavy candidate execution.",
+    "execution_sha256": "ae536438c1b053716fdb2f5d89d0d864648a557170b2927726bf7f6dac31dbb5"
+  },
+  "negative_controls": [
+    "Diagnostic output rejected by normal OP and blob-probe oracle scopes",
+    "Existing V3 executor refuses first OP packet with UnsupportedService"
+  ],
+  "remaining": [
+    "Heavy candidate execution and physical proof are intentionally not run.",
+    "No service call count reduction: larger gains require the separate full-Miller frontier and provider work.",
+    "Existing small OP correctness fixture has zero Miller calls; it does not exercise this optimization."
+  ],
+  "candidate_build": {
+    "elf_sha256": "1062dee9e4ae79a20c326c2b449998381c8b091e65e49882095042e5ccab41dd",
+    "text_bytes": 2577948,
+    "rom_log": 20,
+    "symbols": {
+      "input_start": 8388608,
+      "input_end": 25165824,
+      "halt_flag": 25165824,
+      "output_len": 25165828,
+      "output_data": 25165832,
+      "output_end": 29360128,
+      "stack_bottom": 29360128,
+      "stack_top": 46137344,
+      "heap_start": 46286640,
+      "heap_end": 268435456
+    },
+    "production_feature": "pairing-packet-batching",
+    "compile_flags": "RUSTFLAGS=-C passes=lower-atomic -C opt-level=3; frontier fat LTO; build-std=core,alloc; compiler-builtins-mem; all selected production services plus explicit pairing-packet-batching"
+  },
+  "real_small_control": {
+    "block": 120794432,
+    "instructions": 796994,
+    "miller_calls": 0,
+    "native_and_unicorn_agree": true,
+    "coverage_limit": "Correctness of production ELF only; does not exercise Miller batching."
+  }
+}

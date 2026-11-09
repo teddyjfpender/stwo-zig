@@ -282,3 +282,9 @@ pub(super) fn start_census() {
 pub(super) fn finish_census() -> Vec<CensusRow> {
     CACHE.lock().census.take().unwrap_or_default()
 }
+
+#[cfg(feature = "pairing-packet-probe")]
+#[path = "pairing_packet_probe.rs"]
+mod packet_probe_impl;
+#[cfg(feature = "pairing-packet-probe")]
+pub(super) use packet_probe_impl::run as packet_probe;

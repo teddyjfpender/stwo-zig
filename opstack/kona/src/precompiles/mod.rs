@@ -87,3 +87,9 @@ pub fn collect_pairing_census(
     let rows = pairing::finish_census();
     result.map(|_| rows)
 }
+
+/// Synthetic packet ABI qualification, separate from OP execution admission.
+#[cfg(feature = "pairing-packet-probe")]
+pub fn pairing_packet_probe() -> [u8; 43] {
+    pairing::packet_probe()
+}

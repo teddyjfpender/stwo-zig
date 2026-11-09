@@ -150,3 +150,10 @@ through blanket inlining. A bounded local field microprogram that removes
 repeated canonicalization and global RAM crossings remains the structural
 next step, with explicit range bounds and the semantic gates in the Miller
 design. These negative results prevent repeating low-yield compiler tweaks.
+
+The [packet batching candidate](packet-batching/README.md) retains canonical
+accumulator words across the groups of each Miller line, behind explicit
+`pairing-packet-batching`. A five-call synthetic RV64/independent-oracle probe
+measures 20,039 → 19,395 instructions. The retained heavy PC model bounds
+removed accumulator copy work at 2.84M instructions; no heavy candidate run or
+physical speedup is claimed, and the selected guest remains unchanged.

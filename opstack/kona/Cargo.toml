@@ -27,6 +27,10 @@ pairing-cache = ["precompile-services", "dep:ark-bn254", "dep:ark-ec", "dep:ark-
 
 pairing-hints = ["pairing-cache"]
 pairing-sparse-service = ["pairing-hints"]
+# Synthetic packet qualification only; never an execution witness variant.
+pairing-packet-probe = ["pairing-packet-batching"]
+# Candidate only; the selected sparse client keeps per-group marshaling.
+pairing-packet-batching = ["pairing-sparse-service"]
 
 [dependencies]
 miniz_oxide = { version = "=0.9.1", default-features = false, features = ["with-alloc"], optional = true }
