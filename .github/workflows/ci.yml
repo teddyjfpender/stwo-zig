@@ -609,6 +609,10 @@ jobs:
           zig version > "$OUT/zig-version.txt"
           /usr/bin/time -v zig build riscv-recursion-shape-inspector -Doptimize=ReleaseFast -j2 > "$OUT/build.log" 2>&1
           sha256sum zig-out/bin/stwo-zig-riscv-recursion-shape-inspector > "$OUT/inspector-binary.sha256"
+          cp zig-out/bin/stwo-zig-riscv-recursion-shape-inspector "$OUT/"
+          zig-out/bin/stwo-zig-riscv-recursion-shape-inspector \
+            --elf vectors/riscv_csp/guests/sha256.elf --input vectors/riscv_csp/inputs/msg_128.bin \
+            --report-out "$OUT/first-case.json" > "$OUT/first-case.stdout" 2> "$OUT/first-case.stderr"
           /usr/bin/time -v python3 scripts/riscv/riscv_recursion_csp_benchmark.py audit-shapes \
             --inspector zig-out/bin/stwo-zig-riscv-recursion-shape-inspector \
             --output "$OUT/recursion-shape-audit-v2.json" > "$OUT/audit.log" 2>&1
@@ -617,7 +621,6 @@ jobs:
           git diff --exit-code
           git status --porcelain=v1 --untracked-files=all > "$OUT/worktree-status.txt"
           test ! -s "$OUT/worktree-status.txt"
-          cp zig-out/bin/stwo-zig-riscv-recursion-shape-inspector "$OUT/"
           printf '%s\n' 'Proof-independent shape inspection only; no proof or timing qualification.' > "$OUT/qualification-scope.txt"
 
       - name: Preserve raw generation results even after rejection

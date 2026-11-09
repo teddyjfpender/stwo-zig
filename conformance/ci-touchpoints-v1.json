@@ -879,6 +879,7 @@
         "build.zig.zon",
         "build_support/graph",
         "build_support/products/catalog.zig",
+        "build_support/products/step_catalog.zig",
         "build_support/products/catalog_manifest.zig",
         "build_support/products/matrix.zig",
         "build_support/products/product_specs.zig",

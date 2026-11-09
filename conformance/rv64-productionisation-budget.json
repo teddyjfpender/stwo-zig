@@ -668,6 +668,13 @@
       "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
     },
     {
+      "id": "delivery_measured_configure_catalog_batch",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reconcile measured configure dependencies for retained core/prover/native tests, canonical interop modules and the existing broad public SDK facade without changing runtime dependencies or checks. Give package exports an exact independent root inventory instead of the focused prover-only list. Move the unchanged typed step table to a coherent sub-500-line owner, preserving its forwarding API, CI fanout and formal source-hash coverage; moves receive no subtraction credit. Keep the CUDA missing-step rejection unresolved. Preserve the CPU shape inspector binary and first-case stderr before its live-owner rejection, with no receipt restamping."
+    },
+    {
       "id": "delivery_live_cpu_shape_audit_candidate",
       "net_code_budget": 30,
       "flags_added_budget": 0,

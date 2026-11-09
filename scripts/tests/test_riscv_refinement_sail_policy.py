@@ -214,7 +214,7 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
             ROOT / "build_support/products/riscv_refinement.zig"
         ).read_text(encoding="utf-8")
         catalog = (
-            ROOT / "build_support/products/catalog.zig"
+            ROOT / "build_support/products/step_catalog.zig"
         ).read_text(encoding="utf-8")
         workflow = (
             ROOT / ".github/workflows/riscv-sail-formal.yml"

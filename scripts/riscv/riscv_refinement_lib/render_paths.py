@@ -11,6 +11,7 @@ SOURCE_PATHS = (
     "build_support/graph/delegation.zig",
     "build_support/internal_build.zig",
     "build_support/products/catalog.zig",
+    "build_support/products/step_catalog.zig",
     "build_support/products/matrix.zig",
     "build_support/products/package_dependencies.zig",
     "build_support/products/product_specs.zig",
