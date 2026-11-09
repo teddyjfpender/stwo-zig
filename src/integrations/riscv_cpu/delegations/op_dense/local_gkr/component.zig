@@ -14,16 +14,21 @@ const Point = core.circle.CirclePoint(O);
 const Air = core.air.components.ForField(O);
 const CP = engine.air.component_prover.ForField(O);
 const Acc = engine.air.accumulation.ForField(O);
-pub const INTER = 24;
+pub fn interactionWidth(comptime role: N.Role) usize {
+    return if (role == .arithmetic) 24 else 16;
+}
 fn secure(comptime F: type, v: anytype, start: usize, comptime shift: i32) E.SecureFor(F) {
     var c: [8]F = undefined;
     for (&c, 0..) |*x, i| x.* = v.interactionAt(start + i, shift);
     return E.secureFromCoordinatesForField(O, F, c);
 }
-pub fn Component(comptime operation: D.spec.Kind) type {
+pub fn Component(comptime operation: D.spec.Kind, comptime role: N.Role) type {
     return struct {
         const Self = @This();
         const R = D.row.Layout(operation);
+        const FIXED = if (role == .arithmetic) D.air.FIXED else 1;
+        const MAIN = if (role == .arithmetic) R.MAIN else 1;
+        const INTER = interactionWidth(role);
         pub const DOMAIN_BINDINGS = 1;
         input: *const [D.spec.inputs(operation)]u256,
         data: *const P.Data,
@@ -33,16 +38,16 @@ pub fn Component(comptime operation: D.spec.Kind) type {
         offsets: [3]usize = .{ 0, 0, 0 },
         kind: enum { dense } = .dense,
         pub fn validate(self: *const Self) !void {
-            if (self.log_size != 8 or self.data.weights.len != 512 or self.data.point.n != 8) return error.DenseProjectionShape;
+            if (self.log_size < 8 or self.log_size > 10 or (role == .table and self.log_size != 8) or self.data.instance.role != role or self.data.instance.row_log != self.log_size or self.data.weights.len != @as(usize, if (role == .arithmetic) 512 else 1) or self.data.point.n != self.log_size) return error.DenseProjectionShape;
         }
         pub fn widths(_: *const Self) [3]usize {
-            return .{ D.air.FIXED, R.MAIN, INTER };
+            return .{ FIXED, MAIN, INTER };
         }
         pub fn nConstraints(_: *const Self) usize {
-            return D.air.constraints(operation) + B.CONSTRAINTS + 1;
+            return (if (role == .arithmetic) D.air.constraints(operation) + 2 else 0) + B.CONSTRAINTS;
         }
-        pub fn maxConstraintLogDegreeBound(_: *const Self) u32 {
-            return 9;
+        pub fn maxConstraintLogDegreeBound(self: *const Self) u32 {
+            return self.log_size + 1;
         }
         pub fn compositionLogSplit(_: *const Self) u32 {
             return 1;
@@ -67,19 +72,19 @@ pub fn Component(comptime operation: D.spec.Kind) type {
             errdefer for (trees[0..n]) |v| a.free(v);
             for (trees, self.widths()) |*v, width| {
                 v.* = try a.alloc(u32, width);
-                @memset(v.*, 8);
+                @memset(v.*, self.log_size);
                 n += 1;
             }
             return Air.TraceLogDegreeBounds.initOwned(trees);
         }
-        pub fn preprocessedColumnIndices(_: *const Self, a: std.mem.Allocator) ![]usize {
-            const v = try a.alloc(usize, D.air.FIXED);
-            for (v, 0..) |*x, i| x.* = i;
+        pub fn preprocessedColumnIndices(self: *const Self, a: std.mem.Allocator) ![]usize {
+            const v = try a.alloc(usize, FIXED);
+            for (v, 0..) |*x, i| x.* = self.offsets[0] + i;
             return v;
         }
         pub fn maskPoints(self: *const Self, a: std.mem.Allocator, point: Point, global_log: u32) !Air.MaskPoints {
             try self.validate();
-            _ = try A.geometry.localPointFor(O, point, global_log, 8);
+            _ = try A.geometry.localPointFor(O, point, global_log, self.log_size);
             const trees = try a.alloc([][]Point, 3);
             errdefer a.free(trees);
             var done: usize = 0;
@@ -111,8 +116,8 @@ pub fn Component(comptime operation: D.spec.Kind) type {
         }
         pub fn emitForWithWorkspace(self: *const Self, comptime F: type, samples: anytype, sink: *E.SinkFor(F), _: *Workspace(F)) !void {
             const View = struct {
-                fixed_values: [D.air.FIXED]F,
-                main_values: [R.MAIN]F,
+                fixed_values: [FIXED]F,
+                main_values: [MAIN]F,
                 current: [INTER]F,
                 shifted: [INTER]F,
                 pub fn fixed(v: *const @This(), c: usize) F {
@@ -132,27 +137,32 @@ pub fn Component(comptime operation: D.spec.Kind) type {
                 now.* = try samples.get(2, c, 0);
                 shifted.* = try samples.get(2, c, if (c < 8) 2 else -1);
             }
-            D.air.emit(operation, F, &v, self.input, sink);
-            const projected = try P.evaluate(operation, F, &v, self.data.beta, self.data.weights);
+            if (role == .arithmetic) {
+                D.air.emit(operation, F, &v, self.input, sink);
+                sink.emit(v.main(R.MULT));
+            }
+            const projected = try P.evaluate(operation, role, F, &v, self.data.beta, self.data.weights);
             const combined = projected[0].add(E.splatFor(F, self.data.eta).mul(projected[1]));
             B.emitFor(F, .{ .eq = secure(F, &v, 0, 0), .eq_next2 = secure(F, &v, 0, 2), .prefix = secure(F, &v, 8, 0), .prefix_previous = secure(F, &v, 8, -1) }, try samples.auxAt(0), combined, E.splatFor(F, self.data.target), sink);
-            const delta = secure(F, &v, 16, 0).sub(secure(F, &v, 16, -1)).add(E.splatFor(F, self.claim.mulM31(try N.M.fromCanonical(256).inv())));
-            const ch = D.fixture_component.Challenges{ .byte = self.data.beta, .wire = self.wire };
-            sink.emit(delta.mul(D.fixture_component.outputDenominator(operation, F, &v, ch)).sub(E.liftFor(F, v.main(0))));
+            if (role == .arithmetic) {
+                const delta = secure(F, &v, 16, 0).sub(secure(F, &v, 16, -1)).add(E.splatFor(F, self.claim.mulM31(try N.M.fromCanonical(@as(u32, 1) << @intCast(self.log_size)).inv())));
+                const ch = D.fixture_component.Challenges{ .byte = self.data.beta, .wire = self.wire };
+                sink.emit(delta.mul(D.fixture_component.outputDenominator(operation, F, &v, ch)).sub(E.liftFor(F, v.main(0))));
+            }
         }
         pub fn evaluateConstraintQuotientsOnDomain(self: *const Self, trace: *const CP.Trace, acc: *Acc.DomainEvaluationAccumulator) !void {
             return @import("../../../word16_global_execution/services/gkr_local/truth_role_domain.zig").evaluate(self, trace, acc);
         }
         pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, masks: *const Air.MaskValues, acc: *core.air.accumulation.ForField(O).PointEvaluationAccumulator, global_log: u32) !void {
             try self.validate();
-            const local = try A.geometry.localPointFor(O, point, global_log, 8);
+            const local = try A.geometry.localPointFor(O, point, global_log, self.log_size);
             const Samples = struct {
                 owner: *const Self,
                 masks: *const Air.MaskValues,
                 point: Point,
                 pub fn get(s: @This(), tree: usize, c: usize, shift: i32) !O {
-                    if (tree >= s.masks.items.len or c >= s.masks.items[tree].len) return error.DenseProjectionMask;
-                    const values = s.masks.items[tree][c];
+                    if (tree >= s.masks.items.len or s.owner.offsets[tree] + c >= s.masks.items[tree].len) return error.DenseProjectionMask;
+                    const values = s.masks.items[tree][s.owner.offsets[tree] + c];
                     const shifts_ = s.owner.shifts(tree, c);
                     if (values.len != shifts_.len) return error.DenseProjectionMask;
                     for (values, shifts_) |v, w| if (shift == w) return v;
@@ -161,12 +171,12 @@ pub fn Component(comptime operation: D.spec.Kind) type {
                 pub fn auxAt(s: @This(), index: usize) !B.AuxFor(O) {
                     if (index != 0) return error.DenseProjectionShape;
                     const p = &s.owner.data.point;
-                    const anchors = try P.MP.evalAnchorsFor(O, 8, s.point);
+                    const anchors = try P.MP.evalAnchorsFor(O, s.owner.log_size, s.point);
                     return .{ .first = anchors[0], .second = anchors[1], .carry = try P.MP.evalCarryQuotientFor(O, p, s.point), .eq0 = p.eq0, .eq1 = p.eq1 };
                 }
             };
             var workspace: Workspace(O) = undefined;
-            var sink = E.SinkFor(O){ .accumulator = acc, .scale = try A.geometry.denominatorInverseFor(O, point, global_log, 8) };
+            var sink = E.SinkFor(O){ .accumulator = acc, .scale = try A.geometry.denominatorInverseFor(O, point, global_log, self.log_size) };
             try self.emitForWithWorkspace(O, Samples{ .owner = self, .masks = masks, .point = local }, &sink, &workspace);
             std.debug.assert(sink.count == self.nConstraints());
         }

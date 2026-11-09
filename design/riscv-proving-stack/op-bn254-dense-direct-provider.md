@@ -132,3 +132,29 @@ provider at log8 from arithmetic at log9, with a shared local challenge and
 cross-instance closure, so a lifted-domain mask error cannot hide behind equal
 geometry. Production joins, recursive authority and security admission remain
 closed throughout.
+
+## Mixed-height BYTE binding gate
+
+The BYTE provider is now an independent log8 component with1 MAIN multiplicity
+column and16 Eq/prefix binding columns. Arithmetic keeps355→512 lanes; its old
+embedded multiplicity is constrained zero. Both instances share one beta and
+close **together**; each individual numerator is nonzero in the qualified cases.
+Both source projections are physically authenticated, using the verifier-derived
+local row point on the global lifted PCS domain. Two components remain one proof.
+The experimental payload is explicitly DENSELG2; old equal-log artifacts retain
+their qualified DENSELG1 commit and are not silently reinterpreted.
+
+Actual complete native+GKR proof sizes are137,624B for multiply8/table8,
+144,744B for multiply9/table8, and108,328B for square9/table8. The latter cases
+exercise genuine mixed-height masks; they are not timing comparisons against a
+different geometry. Fresh receivers reject arithmetic/table Eq and prefix
+mutations, output mutation, a deliberately wrong row-MLE point, a different table
+beta, wrong public input, corrupt child and producer geometry substitution.
+Complete degree≤3 checks cover both roles/classes and public auxiliary
+polynomials. Main/interaction cells and exact hashes are in
+`guest/dense-byte-local-gkr-mixed-v1.json`.
+
+Splitting adds17 log8 columns (4,352 cells per proof) to the prior planned ledger;
+this amortized table cost must be counted. Production opening-width estimates
+become805/1189 for square/multiply, with the input frontier included. Runtime
+admission, typed SSA/global joins, recursion and wall-time claims remain closed.
