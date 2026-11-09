@@ -40,6 +40,7 @@ test {
     _ = @import("composition_columns.zig");
     _ = @import("trace_input_reuse.zig");
     _ = @import("composition_cost.zig");
+    _ = @import("runtime_memory.zig");
     _ = samples;
     _ = fri;
     _ = @import("tests/fri_test.zig");
