@@ -31,6 +31,16 @@ pub fn emit(scope: anytype, instances: []const Frame.Instance, proof: anytype, m
         writer.integer(instance.fixed_offset);
         writer.integer(instance.main_offset);
     }
+    var variables: [MAX_INSTANCES]u32 = undefined;
+    for (instances, variables[0..instances.len]) |instance, *n| n.* = try instance.variables();
+    try emitPayload(proof, variables[0..instances.len], marginals, writer);
+}
+/// Shared typed GKR payload encoding. Each protocol independently binds its
+/// source-owned instance descriptions before entering this exact authority.
+/// Extracting this body preserves every existing CPU receipt byte.
+pub fn emitPayload(proof: anytype, variables: []const u32, marginals: anytype, writer: anytype) !void {
+    if (variables.len == 0 or variables.len > MAX_INSTANCES or marginals.len != variables.len or proof.output_claims_by_instance.len != variables.len or proof.layer_masks_by_instance.len != variables.len or proof.sumcheck_proofs.len > 30) return error.LocalGkrReceiptShape;
+    for (variables) |n| if (n == 0 or n > 30) return error.LocalGkrReceiptShape;
     writer.integer(proof.sumcheck_proofs.len);
     for (proof.sumcheck_proofs) |sumcheck| {
         if (sumcheck.round_polys.len > 30) return error.LocalGkrReceiptShape;
@@ -40,8 +50,8 @@ pub fn emit(scope: anytype, instances: []const Frame.Instance, proof: anytype, m
             try vector(writer, polynomial.coeffsSlice());
         }
     }
-    for (proof.layer_masks_by_instance, instances) |masks, instance| {
-        if (masks.len != try instance.variables()) return error.LocalGkrReceiptShape;
+    for (proof.layer_masks_by_instance, variables) |masks, variable_count| {
+        if (masks.len != variable_count) return error.LocalGkrReceiptShape;
         writer.integer(masks.len);
         for (masks) |mask| {
             if (mask.columns.len != 2) return error.LocalGkrReceiptShape;

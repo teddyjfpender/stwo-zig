@@ -1,4 +1,7 @@
 test {
+    _ = @import("poseidon2_outer/truth_local_gkr/native.zig");
+    _ = @import("poseidon2_outer/truth_local_gkr/authority.zig");
+    _ = @import("poseidon2_outer/truth_local_gkr/source_inputs.zig");
     _ = @import("poseidon2_outer/pure_p2_gkr_template.zig");
     _ = @import("poseidon2_outer/pure_p2_gkr_templates_wire.zig");
     _ = @import("poseidon2_outer/om31_actual_census_test.zig");
