@@ -1,0 +1,23 @@
+op sumcheck	-1.224150374965916e2	0	2e1
+op sumcheck	-1.19607682574534e2	0	1e0
+witness batch gamma	-1.2399999999731276e2	0	1e0
+witness batch sumcheck	-1.2299999999731276e2	0	2.2e1
+witness batch sumcheck	-1.1947643804125575e2	0	1e0
+witness L0 gamma	-1.2399999999731276e2	0	2e0
+witness L0 proximity x2	-1.6512528089407655e2	0	1e0
+witness L0 OOD collision (list 4)	-1.169556058779543e2	0	1e0
+witness L0 lambda	-1.1606926265974987e2	0	1e0
+witness L0 inner batch	-1.2399999999731276e2	0	1e0
+witness L0 inner sumcheck	-1.2299999999731276e2	0	1.6e1
+witness L0 queries (122 at 0.563)	-1.012691498240379e2	20	1e0
+witness L1 gamma	-1.2399999999731276e2	0	2e0
+witness L1 proximity x2	-1.7116534973174748e2	0	1e0
+witness L1 OOD collision (list 6)	-1.1592318440026193e2	0	1e0
+witness L1 lambda	-1.1675207248386917e2	0	1e0
+witness L1 inner batch	-1.2399999999731276e2	0	1e0
+witness L1 inner sumcheck	-1.2299999999731276e2	0	1.3e1
+witness L1 queries (76 at 0.412)	-9.709817597842995e1	20	1e0
+witness L2 gamma	-1.2399999999731276e2	0	2e0
+witness L2 proximity x2	-1.7510091708899427e2	0	1e0
+witness L2 OOD collision (list 7)	-1.1570079197892548e2	0	1e0
+witness L2 queries (76 at 0.404)	-9.93589740763779e1	20	1e0

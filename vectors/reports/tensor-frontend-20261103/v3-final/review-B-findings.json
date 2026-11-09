@@ -1,0 +1,222 @@
+[
+ {
+  "id": "LM-1",
+  "verdict": "CONFIRMED",
+  "severity": "High (semantic mismatch / misleading claim). Overlaps P1 only in that the publics come from the prover. The distinct defect is that no Emb exists in the key or in any descriptor, so even a verifier-built statement cannot compute Emb[x || y].",
+  "reason": "weightInfos (lm.zig:120-138) appends only the layer weights and TensorInfo.mat(log_d, log_vocab), the LM head. buildModel takes x_in as raw i32 embeddings, and lm.zig:437 registers them as a public that the lineq ties to the layer-0 witness. Nothing relates that public to tokens. For log_out > 0, nothing forces window rows T-P+t+1 to equal Emb[y_t]: the existing lm test uses random inputs unrelated to the claimed y and verifies. The test 'different public prompt -> reject' only shows that the public is absorbed. serving.md:119-120 and the lm.zig header ('X = Emb[window] ... bound by a lineq') overstate this.",
+  "fix": "Add Emb [V, D] to weightInfos and the key. Make the token ids the public input and prove X = Emb[window] with a one-hot exact einsum or a lookup against the committed Emb, with the window built as x || y[0..P-2]. Add a verifier-side requestStatement(cfg, prompt_tokens, y) that builds every public (window, Sel, Lt, RoPE, mask, tables), so verifyRequest never takes publics from the prover. Correct the header and serving.md 1.2 until then.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "LM-2",
+  "verdict": "CONFIRMED",
+  "severity": "Medium. Part (a) is new and stands even after P1 is fixed. Part (b) is the P1 symptom (prover-supplied Sel/Lt) and is resolved by a verifier-side builder.",
+  "reason": "The reviewer's tests pass: the honest prover with no unchecked flag produces a verifying proof for Sel = 0, Lt = 1 (y = V) with m = max + 1, and for Sel = onehot(5), Lt = 0 on a 2/5 tie, and for a two-hot Sel. The only y >= V guard is prover-side (lm.zig:262). The existing 'out-of-vocab' test (lm.zig:696-697) returns prover_refused from greedyCheck before the unchecked flag applies, so it never exercises the verifier. That makes serving.md:129-132 ('an unchecked prover's proof is rejected by the verifier' for out-of-vocab) false for that case.",
+  "fix": "In the verifier-side Sel/Lt builder, reject any y_t >= V before building the tensors. Add a verifier-side test: an out-of-vocab y given to verifyRequest is refused. Remove the out-of-vocab case from serving.md's 'unchecked prover rejected' sentence until that test exists. Alternatively, derive Sel and Lt in-circuit from one public token column with a range key y < V.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "LM-3",
+  "verdict": "CONFIRMED",
+  "severity": "Medium (model-binding gap; fully closed only together with the P1 / verifier-side statement fix)",
+  "reason": "Gains come from a per-call seed: transformer.zig:556-563 (2 per layer) and lm.zig:485-489 (final norm), registered with b.public and absorbed as statement data only. They are not covered by key.root. New skeptic test: buildModel with seeds 3 and 4 on the same key and the same input differs in exactly 3 log_d-sized publics (2 layer norms + final norm), and both proto.prove/verify succeed under one WeightKey. A server can therefore change the norm gains per request without changing the key. FlashProve has no learned norm gains, and every parameter is in the committed M.",
+  "fix": "Commit the gains as weight tensors (a [1, D] row per norm, read via weight claims), or fix them in a verifier-held model descriptor whose digest is mixed into key.root and the request transcript. Make buildModel take them from the WeightStore, not a seed. Document in serving.md exactly which parameters key.root covers.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SERVE-1",
+  "verdict": "CONFIRMED",
+  "severity": "Low (proof malleability; soundness-neutral). The own-slot 'w unchecked' sub-claim is REFUTED in practice: the full-point equality pins w except with probability about 2^-124.",
+  "reason": "The reviewer's test passes: a length-3 unreferenced point appended to slot 0 and a length-1 one appended to slot 1 are absorbed by batchTranscript (serve.zig:156-174), and both verifiers accept. verifySharedOpening checks shapes only for referenced points (serve.zig:382-387), and the own-slot check compares only the count, full points and values (serve.zig:397-410). This gives non-unique accepted SharedOpenings and a free transcript knob that needs no request-proof recomputation. Under round-by-round analysis this is the same as choosing other slots.",
+  "fix": "Verifier i rebuilds its own slot with claimSet(digest, own claims) from VerifierWeightClaims and compares it byte for byte (points in first-use order, point_of, w, values). For every slot, require each point to be referenced and the points to be distinct and in first-use order (canonical form).",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SERVE-2",
+  "verdict": "CONFIRMED",
+  "severity": "Low (the doc contract exists: Request.salt says 'fresh uniform'. The defect is that the reference harness and API make misuse the default, and neither 'secret' nor 'never reused' is stated)",
+  "reason": "The reviewer's test passes: with testSalt(j), the guess seed 10 reproduces batch.shared.requests[1].digest and seed 11 does not. bench.zig:677 uses testSalt(seed*1000+j), and no production salt source exists (serve.zig:445 comment only). The serving.md 1.1 leakage bullet ('pseudo-random to this client') holds only for secret salts.",
+  "fix": "Have BatchProver.add draw the salt from std.crypto.random by default, with a test-only override. Switch bench to the default. State in Request.salt and serving.md 1.1 that the salt must be 256-bit, secret and never reused. Longer term, use FlashProve-style salted batch-tree leaves so a client never sees other slots in the clear.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SERVE-3",
+  "verdict": "CONFIRMED",
+  "severity": "Low (availability coupling and verifier cost; soundness-neutral, partly by design)",
+  "reason": "The reviewer's test passes: a server-fabricated, true slot with an arbitrary digest is accepted by verifier 0, so R and batch membership are unattested. The existing serve tests already show that one bad slot makes every verifier reject. The verifier allocates and evaluates O(n_all * log|W|) items (serve.zig:381-427) before any bound. This is linear in the downloaded bytes, so it is not an amplification, but 'verify flat in R' (serving.md:293-294) holds only for honest, small slots.",
+  "fix": "Bound claims and points per slot by a statement- or config-derived maximum before allocating. Document in serving.md that one bad slot fails the whole batch and that the per-client download and verify cost is O(sum of slot sizes). Optionally, commit the slots in a salted Merkle tree, derive the gammas from its root, and send each client its leaf, a path and the aggregate data the reduction needs.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "DOC-1",
+  "verdict": "CONFIRMED",
+  "severity": "Info",
+  "reason": "serving.md:80-83 already says the calculator omits the 1/|F| and 2 log|W|/|F| terms, so that part is disclosed rather than hidden. The grinding paragraph (serving.md:50-53, 'one hash per attempt, same exposure') is imprecise: SERVE-1 junk points give attempts that need no proof recomputation, even inside the victim's own slot. Soundness still follows from a round-by-round bound on the batch transcript, but the doc frames it as a grinding-cost argument.",
+  "fix": "Add 1/|F| + 2*log|W|/|F| to security.accountProof for serving proofs. Rewrite the grinding paragraph as a round-by-round statement: the error per Fiat-Shamir query times the prover's query budget, independent of slot content.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "ZK-1",
+  "verdict": "CONFIRMED",
+  "severity": "high",
+  "reason": "zk.zig:329 and zk.zig:341 size each pad as vec(min(PAD_LOG, logSize)), so a scalar gets a 1-cell pad. checkClaims (zk.zig:633-638) reveals the hat (1-g)\u00b7coeff\u00b7T~(loc) + g\u00b7coeff\u00b7P~(padPoint) for every check that reads T, and makePlan never counts the hats per pad. Test 'review zk-1' recovers the secret scalar a=1234567 exactly from two product hats, using a=(h1g2-h2g1)/(g2-g1). Test 'review zk-1b' (log size 1, 3 hats) builds the null vector of the 2x3 pad-functional matrix. It shows that \u03a3l_i\u00b7hat_i, computed from the proof, equals \u03a3l_i(1-g_i)x~(r_i), computed from the witness, and that this value is non-zero. Both proofs verify. zk.md:622 says 'Every pad tensor has 16 cells', which the code contradicts. The same pads also enter the batched PCS opening claims, which only adds revealed functionals. This is reachable with any tensor of log size < 4 that more than 2^logSize checks read (small rows, scalars, per-row norm values with small T), and also with 17 or more reads of a larger tensor.",
+  "fix": "Give each (tensor, check) hat its own pad tensor, so the pad functional is g\u00b7P_own~(pt) and each pad has exactly one functional. Pad point coordinates can still come from padPoint/r; when n=0 a 1-cell dedicated pad is enough. Alternatively, keep shared pads but size them to at least max(16, ceilPow2(uses+1)) cells, independent of the tensor's size. In that case take the pad point from fresh sumcheck coordinates plus g, not only from loc's tail, because a small tensor has fewer than plog local coordinates. Add a makePlan assertion that, for each pad, the functionals it serves (hats, ext hats, \u00c2/Q uses, opening claims) are at most its cell count. Add a test that builds A_P for the MLP and decoder fixtures and checks it has full row rank. Fix zk.md \u00a74.5.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "ZK-2",
+  "verdict": "CONFIRMED",
+  "severity": "high",
+  "reason": "The blinder is vec(0), a single M31 cell (zk.zig:413). It is drawn as rng.m31() (zk.zig:1821) and enters the leaf as QM31.fromBase (zk.zig:2859). So d_0 = rho\u00b7D(witness keys) with rho in M31*, which pins D down to its coset in QM31*/M31* (about 2^93 cosets). Test 'review zk-2' (range8, 16 values) checks that d_0/D(true multiset) is in M31, and that the same ratio for a multiset with one entry changed, and for the all-zero hypothesis, is not. That is an efficient distinguisher between any two candidate witnesses whose key histograms differ. zk_logup_gkr defaults to true, so this applies to every hiding proof with range, requant, lookup, glu or ext keys, in both tagged and separate trees. zk.md:490 ('d_0 ... uniform in F*') is false.",
+  "fix": "Make the blinder uniform in QM31*: commit 4 M31 limb cells, use \u03a3_k e_k\u00b7rho_k as the leaf denominator, and re-draw while all limbs are zero. In the leaf claim (zk.zig:2756), replace the single blinder term with 4 terms whose coefficients are omg\u00b7blk\u00b7e_k, each on its own limb cell. Each limb cell needs its own pad or hat accounting, as in ZK-1. Add a regression test that d_0/D(witness) is not in M31.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "ZK-3",
+  "verdict": "CONFIRMED",
+  "severity": "high",
+  "reason": "WPAD_ROWS=4 (zk.zig:48), and each W hat's pad term is c_pad\u00b7\u03a3_{k<4} eq(s,k)\u00b7R_W[k]~(cp) (zk.zig:658, zk.zig:2444). All matmuls whose output dimension is at least key.log_cols share cp (weightGroupCount, zk.zig:2395-2407). So within one proof every such hat lies in a 4-dimensional span of the pad functionals. Test 'review zk-3' (5 matmuls, wlc 4) gets the proof to verify, finds the null vector of the 4x5 matrix g_i\u00b7eq(s_i,k), and shows \u03a3l_i\u00b7hat_W_i, computed from the proof, equals \u03a3l_i(1-g_i)\u00b7scale_i\u00b7W_i~(local_i), computed from the weights, with the value non-zero. I raise this to high because the library default weight_log_cols=10 is documented as '<= min log N over matmuls', which puts every matmul at the shared cp. Any hiding proof with 5 or more matmuls under library defaults (one decoder layer has 7) leaks a fresh weight functional each proof, because cp comes from per-proof rho. The weights are the long-lived secret, so the leaks add up across proofs. Only the zk_bench default min(ld+2,14) happens to avoid this. zk.md:169 and zk.md:635 ('4\u00b7C_w ... never binds') are wrong: the limit is 4 hats per column point per proof, not 4\u00b7C_w.",
+  "fix": "Preferred: put a dedicated, fresh-per-proof pad row for each W hat in the per-proof weight mask table (wmask, already 4 rows per group), and drop the shared R_W from the hat functional. This also removes the long-lived R_W exposure. Alternative: size WPAD_ROWS at key creation to ceilPow2(max W hats per column point + 1), take s from that many fresh sumcheck coordinates, and have makePlan refuse any statement whose hats at one cp exceed WPAD_ROWS. Correct zk.md \u00a73.4 and \u00a74.5.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "ZK-4",
+  "verdict": "PLAUSIBLE",
+  "severity": "low",
+  "reason": "Budget.charge (zk_pcs.zig:143-156) reads and updates count and the opened bitset with no synchronization. It is reached through a const pointer to a heap-allocated Budget (zk_pcs.zig:168, zk_pcs.zig:480, zk_pcs2.zig:277). Two concurrent zk.prove calls on the same ZkWeights would race: a data race, and possibly opened columns beyond slots/2 without OpeningBudgetExceeded firing, which breaks Lemma 1 for the weight table. No current caller proves concurrently on one ZkWeights (serve.zig does not use hiding), so I did not reproduce it. The const-pointer API makes sharing look safe. Minor point: charge allocates a temporary hashmap from page_allocator on every call.",
+  "fix": "Protect Budget with a std.Thread.Mutex. Hold it across charge and any later rollback, and also around budgetLeft and budgetUsed. Or change zk.prove to take *ZkWeights and document weight commitments as single-writer.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "ZK-5",
+  "verdict": "CONFIRMED",
+  "severity": "low",
+  "reason": "In zkp.commit, the only rate check is std.debug.assert(shape.msgLen() <= E/2) (zk_pcs.zig:221). makePlan, prove and verifyOpening (zk_pcs.zig:509-521) never return an error for it. msgLen = C+S with S >= 1, so cfg.pcs.log_blowup <= 1 with hiding on always breaks the precondition: ReleaseSafe and Debug panic, and ReleaseFast commits at rate > 1/2. zk_bench exposes lb as a CLI argument, so this is reachable from the bench. commitWeights refuses the same condition with error.WeightMaskSlots (zk.zig:1063); the witness and aux path does not. I confirmed this by reading the code, not by running it. I did not run the ReleaseFast 'verifies fine' half, because the assert would abort the shared test runner. Hiding (Lemma 1) still holds, but the soundness and query-count argument assumes the stated rate.",
+  "fix": "In makePlan (prover and verifier both), and in verifyOpening for every shape, return an error (error.OpeningShape or a new config error) when C + S > E/2. This matches commitWeights. Add a test that a hiding config with log_blowup=1 is rejected on both sides.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SEC-1",
+  "verdict": "CONFIRMED",
+  "severity": "low",
+  "reason": "FlashProve docs/limits.md:418-423 and figures.tsv (whole-bound-with/without-work) define 126.21/96.23 as the compiled per-hash number (N/2^L), with 'all rounds added' as a separate row (119.38/92.42). security.md:34 calls our sum_* the 'whole bound (FlashProve 126.21/96.23)', the security.zig:7-8 header says the same, and 6.4 (lines 307-310) compares 113.5 and 97 against 126.21 and 96.23. Our sum_* sums every term of request and key, which is FlashProve's 'all rounds added'. compiledLevel (tested at 126.21 for w=128) is their compiled metric. The mislabel actually understates us: like-for-like is 113.5 vs 119.38 with work and 96.8 vs 92.42 without, where 96.8 is a better figure than 92.42 and not just 'comparable'. So this is a misleading claim, not an inflated one, and I lowered it to low.",
+  "fix": "In security.md section 1, the security.zig header and section 6.4: call sum_* 'all rounds added' (FlashProve 119.38/92.42) and call rbr_compiled 'the whole bound as one number, N/2^L' (FlashProve 126.21/96.23). Redo the toy and MLP comparisons on that basis. Optionally add a no-hash reading that uses the verifier's own hash count (FlashProve 108.32/76.55).",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SEC-2",
+  "verdict": "CONFIRMED",
+  "severity": "low",
+  "reason": "I reproduced it: the test 'a rejected weight-key proof is still accounted' passes in revb-sec (prints sum_with=12.05 after weight_key.verify rejected the proof). In security.zig:446-524 only proto.verifyInfo runs. Key terms come from kinf (cfg) and from the GKR shape, and only the alpha count is checked. Reachability is limited: the only caller that passes a key proof (bench.zig:246 then :300) runs weight_key.verify first, so this is a public-API defect and contradicts the doc's 'rejected proof is not accounted' (security.md:12). Reading the parameters from the proof is not needed: weight_key.verify already checks the key against keyConfig(cfg), so once it accepts, cfg's parameters are the proof's.",
+  "fix": "In accountProof, when key_proof != null, call `try weight_key.verify(a, cfg, key, kp)` before building kacc. That makes the cfg-derived kinf correct. Turn the review test into a test that expects the error.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SEC-3",
+  "verdict": "CONFIRMED",
+  "severity": "low",
+  "reason": "I reproduced it: the test 'no key proof, weights still credited at delta_key' passes (delta_key=0.175, a 'weights L0 queries' term at rho+delta_key, no weight proximity term, no key terms, finite total). The weight opening is opened with with_proximity=false (security.zig:470), so with key_proof=null nothing proves proximity at delta_key. The layer bench (bench.zig:488) and the product bench (:357) pass null and print 'total' as if it were complete. The product toy has no weight claims (winf2 null), so 6.1 is unaffected. The layer rows in 6.3 are labelled 'request only' in the doc, which is why I lowered this to low. The JSON field 'total' is still unconditional.",
+  "fix": "When key_proof == null and info.weight_shape != null, either return error.NoKeyProof or set a `conditional_on_key: true` flag and leave out (or rename) `total` in writeReport. In the layer bench, prove and verify a key (as the mlp bench does) or print the conditional flag.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SEC-4",
+  "verdict": "CONFIRMED",
+  "severity": "low",
+  "reason": "I reproduced it (max numerator charged 8, needed 11 at mlp 4/6/7). protocol.zig:1914-1948: the matmul (and batched-matmul) acc value at the GKR point pt over k.log_size = lt+ln variables is checked against sum_k X~W~. That is a Schwartz-Zippel test of the committed r + 2^s y - XW at pt. GKR soundness covers r~(pt) but not this matmul identity, and accountSumcheck charges only lk+1. The same holds for requant einsum (rho = g.ood tail, n_out variables). In ext.zig:1481-1486, lineq draws rho (l.n variables) and checks verifyExpr==0 with no sumcheck, so accountProof never sees it. lineq is reachable through lm.zig:281 and :440. Each missing term is about 2^-120, so the totals move by under 0.1 bit.",
+  "fix": "Record a claim dimension per op sumcheck in VerifyInfo (k.log_size for matmul and requant, e.n_out for einsum) and charge max(rounds+1, dim)/|F|. Record the count and l.n of each lineq op in VerifyInfo and add l.n/|F| for each.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SEC-5",
+  "verdict": "CONFIRMED",
+  "severity": "low",
+  "reason": "Confirmed by reading the code; not reproduced dynamically. security.zig:404 charges rp.coeffsSlice().len - 1. UnivariatePoly trims trailing zeros (src/prover/lookups/utils.zig:193-199), and degree() returns 0 for len 0 while len-1 underflows. verifier_kernel.zig:41 rejects only degree > MAX_DEGREE=3. A cheating round polynomial of degree d<3 still disagrees with a true degree-3 polynomial at up to 3 points, so charging d/|F| undercounts. An accepting proof with an empty round polynomial needs that round's claim to be 0, which is reachable only by an adversarial transcript. Honest LogUp layers have degree 3, so the current numbers are unchanged.",
+  "fix": "In accountGkr, charge `@floatFromInt(MAX_DEGREE)` (3) for each round polynomial, using only sp.round_polys.len from the proof, and never coeffsSlice().len.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SEC-6",
+  "verdict": "CONFIRMED",
+  "severity": "low",
+  "reason": "security.zig:160 computes compiled = compiledLevel(-mw), where mw is the largest withWork() term. For inner levels that term is the mean-value lambda (log2(t log G) - LOG2_F) or the interactive query term, not the per-round (Markov) form that the Fiat-Shamir compiled level assumes. The doc's own toy row shows round w/ 115.7 against rbr w/ 115.6, so `compiled` exceeds the RBR-based value by about 0.1 bit there. The effect is cosmetic, but `compiled` is described as FlashProve's compiled level.",
+  "fix": "Define `compiled` as compiledLevel(rbr_round_with) (that is, drop the mean-value version), or remove `compiled` and keep only rbr_compiled. Update security.md:36.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SEC-7",
+  "verdict": "CONFIRMED",
+  "severity": "low",
+  "reason": "serve.zig:413-427 draws n_all gammas (1/|F| for the combination) and runs sc.verify over log_total variables with degree 2 (2 log|W|/|F|). Neither is in accountProof, as serving.md:79-82 states openly. No report exists for serve mode, and nothing addresses FlashProve's per-request versus batch-joint reading (log2 N bits on per-request rounds). The gap is documented and small in bits, but per-request soundness of a served batch has no stated bound.",
+  "fix": "Add security.accountServe(request_info, shared_info, n_requests) that adds 1/|F| + 2*log_total/|F| for the shared reduction plus the shared weight opening, and states its reading. For the bound on 'some request in the batch is false', add log2(n_requests) to the per-request terms, or argue why per-request is the right unit, as FlashProve's SO-1.4 does.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ },
+ {
+  "id": "SEC-8",
+  "verdict": "CONFIRMED",
+  "severity": "low",
+  "reason": "zk_bench.zig:40-44 computes provenBits as -t log2(1-delta) + pow only, and prints it as 'proven_bits' at lines 144 and 248. pcs.zig:45-49 does the same for inner levels. Missing: the proximity term R(E+1)/|F| for each prox row (about 2^-97 to 2^-100 with one row, which caps the real bound) and every protocol term. zk.md:338-341 says that hiding mode reports only the unique-decoding query bits, so this is a labelling problem, not a hidden one. A 'proven_bits' of 128 is still not a bound.",
+  "fix": "Rename the fields to `query_bits_unique` (in zk_bench JSON and in Params.provenBits), or add the prox term -log2(R*(E+1)/|F|) and print a min. Add a note that this is not a protocol bound until security.zig covers hiding openings.",
+  "title": "",
+  "file_line": "",
+  "scenario": "",
+  "evidence": ""
+ }
+]

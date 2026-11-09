@@ -165,7 +165,7 @@ pub const QM31 = struct {
         };
     }
 
-    pub inline fn mul(lhs: QM31, rhs: QM31) QM31 {
+    pub fn mul(lhs: QM31, rhs: QM31) QM31 {
         @setEvalBranchQuota(8_000);
         // Domain evaluators promote committed M31 columns into QM31 so they
         // can share one constraint API with OODS evaluation. Preserve that
@@ -178,20 +178,43 @@ pub const QM31 = struct {
             if (lhs.isBase()) return rhs.mulM31(lhs.c0.a);
         }
 
-        // Karatsuba over CM31:
-        // (a + bu) * (c + du) = (ac + rbd) + ((a+b)(c+d)-ac-bd)u.
-        const ac = lhs.c0.mul(rhs.c0);
-        const bd = lhs.c1.mul(rhs.c1);
-        const lhs_sum = lhs.c0.add(lhs.c1);
-        const rhs_sum = rhs.c0.add(rhs.c1);
-        var cross = lhs_sum.mul(rhs_sum);
-        cross = cross.sub(ac);
-        cross = cross.sub(bd);
-        const rbd = mulByR(bd);
-        return .{
-            .c0 = ac.add(rbd),
-            .c1 = cross,
-        };
+        // Schoolbook product with lazy reduction. `mul` is deliberately not
+        // `inline`: with the lazy body inlined, Zig 0.15.2 ReleaseFast
+        // miscompiled sumcheck callers (tests pass in Debug/ReleaseSafe and
+        // with a non-inline mul; no measurable cost).
+        const P: u64 = m31_mod.Modulus;
+        const a0: u64 = lhs.c0.a.v;
+        const a1: u64 = lhs.c0.b.v;
+        const a2: u64 = lhs.c1.a.v;
+        const a3: u64 = lhs.c1.b.v;
+        const b0: u64 = rhs.c0.a.v;
+        const b1: u64 = rhs.c0.b.v;
+        const b2: u64 = rhs.c1.a.v;
+        const b3: u64 = rhs.c1.b.v;
+        const pr = struct {
+            inline fn f(x: u64, y: u64) u64 {
+                const t = x * y;
+                return (t & P) + (t >> 31);
+            }
+        }.f;
+        const p22 = pr(a2, b2);
+        const p33 = pr(a3, b3);
+        const p23 = pr(a2, b3);
+        const p32 = pr(a3, b2);
+        const bias = P << 6;
+        const o0 = pr(a0, b0) + 2 * p22 + bias - (pr(a1, b1) + 2 * p33 + p23 + p32);
+        const o1 = pr(a0, b1) + pr(a1, b0) + p22 + 2 * (p23 + p32) + bias - p33;
+        const o2 = pr(a0, b2) + pr(a2, b0) + bias - (pr(a1, b3) + pr(a3, b1));
+        const o3 = pr(a0, b3) + pr(a1, b2) + pr(a2, b1) + pr(a3, b0);
+        return fromU32Unchecked(lazyReduce(o0), lazyReduce(o1), lazyReduce(o2), lazyReduce(o3));
+    }
+
+    inline fn lazyReduce(x: u64) u32 {
+        const P: u64 = m31_mod.Modulus;
+        var t: u64 = (x & P) + (x >> 31);
+        t = (t & P) + (t >> 31);
+        const r: u32 = @intCast(t);
+        return @min(r, r -% @as(u32, @intCast(P)));
     }
 
     pub inline fn mulM31(lhs: QM31, rhs: M31) QM31 {

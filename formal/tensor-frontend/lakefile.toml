@@ -1,0 +1,16 @@
+name = "tensor-frontend"
+version = "0.1.0"
+defaultTargets = ["TensorFrontend"]
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[lean_lib]]
+name = "TensorFrontend"
+# every module under TensorFrontend/, imported or not, plus the root
+globs = ["TensorFrontend", "TensorFrontend.+"]
+
+[[lean_exe]]
+name = "tensor-security-check"
+root = "Main"

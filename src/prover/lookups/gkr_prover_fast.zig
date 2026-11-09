@@ -162,14 +162,34 @@ pub fn ForField(comptime S: type) type {
             secure: []S,
         };
 
+        /// A LogUp singles input given by a function instead of a column:
+        /// `fill(ctx, out, start)` writes den[start .. start + out.len] of the
+        /// 2^log_len input column. The input column and the first two
+        /// generic layers are never kept: layer n-2 is built straight from
+        /// `fill`, the lower layers live in one block of 2^n entries, and that
+        /// block is refilled with layer n-1 (for the step that reads it) and
+        /// then with the input column (the last step). Peak layer memory:
+        /// about 3 n|S| (column + every generic layer) -> n|S|, for any
+        /// allocator. Every value is recomputed with the same operations, so
+        /// the proof is unchanged. Such an input has `den = &.{}`,
+        /// `num = .ones`, `owned = false`.
+        pub const Regen = struct {
+            ctx: *const anyopaque,
+            fill: *const fn (ctx: *const anyopaque, out: []S, start: usize) void,
+            log_len: u32,
+        };
+
         /// `owned` inputs are folded in place and freed with `allocator`;
         /// borrowed inputs are only read.
         pub const Input = struct {
             num: Numerators,
             den: []S,
             owned: bool,
+            /// See `Regen`.
+            regen: ?Regen = null,
 
             fn nVariables(self: Input) usize {
+                if (self.regen) |r| return r.log_len;
                 return std.math.log2_int(usize, self.den.len);
             }
             fn free(self: Input, a: std.mem.Allocator) void {
@@ -204,11 +224,18 @@ pub fn ForField(comptime S: type) type {
             den: []S,
             num_buf: Buf = .none,
             den_buf: ?[]S = null,
+            /// num and den are views into a regen instance's arena block (owned by
+            /// the prover, not the layer): fold in place, never free.
+            in_spare: bool = false,
             const Buf = union(enum) { none, base: []const M31, secure: []S };
             fn empty() Layer {
                 return .{ .num = .ones, .den = &.{} };
             }
             fn free(self: *Layer, a: std.mem.Allocator) void {
+                if (self.in_spare) {
+                    self.* = empty();
+                    return;
+                }
                 switch (self.num_buf) {
                     .none => {},
                     .base => |n| a.free(n),
@@ -263,6 +290,35 @@ pub fn ForField(comptime S: type) type {
                 .secure => |n| n[2 * i].mul(d1).add(d0.mul(n[2 * i + 1])),
             };
             den[i] = d0.mul(d1);
+        }
+
+        fn regenChunk(rg: Regen, d: []S, start: usize, end: usize, _: usize) void {
+            rg.fill(rg.ctx, d[start..end], start);
+        }
+
+        /// Entries [start, end) of generic layer n - `up` (up = 1 or 2) of a
+        /// regen input, built from the source through a small stack window
+        /// with the same `nextChunk` arithmetic as a materialised build.
+        fn regenLayerChunk(rg: Regen, up: u32, num: []S, den: []S, start: usize, end: usize, _: usize) void {
+            const W = 512; // outputs per window
+            var src: [4 * W]S = undefined;
+            var mid_num: [2 * W]S = undefined;
+            var mid_den: [2 * W]S = undefined;
+            var o = start;
+            while (o < end) {
+                const m: usize = @min(W, end - o);
+                const w_in = m << @intCast(up);
+                rg.fill(rg.ctx, src[0..w_in], o << @intCast(up));
+                const l0 = Layer{ .num = .ones, .den = src[0..w_in] };
+                if (up == 1) {
+                    nextChunk(&l0, num[o..], den[o..], 0, m, 0);
+                } else {
+                    nextChunk(&l0, &mid_num, &mid_den, 0, 2 * m, 0);
+                    const l1 = Layer{ .num = .{ .secure = mid_num[0 .. 2 * m] }, .den = mid_den[0 .. 2 * m] };
+                    nextChunk(&l1, num[o..], den[o..], 0, m, 0);
+                }
+                o += m;
+            }
         }
 
         fn nextChunk(src: *const Layer, num: []S, den: []S, start: usize, end: usize, _: usize) void {
@@ -595,6 +651,10 @@ pub fn ForField(comptime S: type) type {
             const n_inst = inputs.len;
             if (n_inst == 0) return error.InvalidBatch;
             for (inputs) |input| {
+                if (input.regen) |r| {
+                    if (r.log_len < 1 or r.log_len > 40 or input.owned or input.num != .ones or input.den.len != 0) return error.InvalidInputShape;
+                    continue;
+                }
                 if (input.den.len < 2 or !std.math.isPowerOfTwo(input.den.len)) return error.InvalidInputShape;
                 switch (input.num) {
                     .ones => {},
@@ -621,6 +681,13 @@ pub fn ForField(comptime S: type) type {
                 for (ls) |*l| l.free(a);
                 a.free(ls);
             };
+            // Regen instances: the input column's block, which holds the layers
+            // below the first generic one and then the refilled input column.
+            const spare = try a.alloc(?[]S, n_inst);
+            defer a.free(spare);
+            @memset(spare, null);
+            defer for (spare) |b| if (b) |x| a.free(x);
+            var arena_used: usize = 0;
             var n_layers: usize = 0;
             var layer_bytes: u64 = 0;
             for (inputs, 0..) |input, i| {
@@ -641,8 +708,40 @@ pub fn ForField(comptime S: type) type {
                 };
                 adopted = i + 1;
                 var k = n_vars[i];
+                if (input.regen) |rg| {
+                    if (k < 3) {
+                        // small: materialise the column, then the usual build
+                        const d = try a.alloc(S, @as(usize, 1) << @intCast(k));
+                        layers[i][k].den = d;
+                        layers[i][k].den_buf = d;
+                        rg.fill(rg.ctx, d, 0);
+                    } else {
+                        // layer n-2 from the source, into the block's front half
+                        const blk = try a.alloc(S, @as(usize, 1) << @intCast(k));
+                        spare[i] = blk;
+                        const size = @as(usize, 1) << @intCast(k - 2);
+                        const num = blk[0..size];
+                        const den = blk[size .. 2 * size];
+                        ctx.run(size, regenLayerChunk, .{ rg, 2, num, den });
+                        layers[i][k - 2] = .{ .num = .{ .secure = num }, .den = den, .in_spare = true };
+                        layer_bytes += 2 * size * @sizeOf(S);
+                        arena_used = 2 * size;
+                        k -= 2;
+                    }
+                }
                 while (k > 0) : (k -= 1) {
                     const size = @as(usize, 1) << @intCast(k - 1);
+                    if (spare[i]) |arena| {
+                        // layers below n-2: carved from the same block
+                        // (2^(n-1) + 2^(n-1) - 2 < 2^n entries in all)
+                        const num = arena[arena_used .. arena_used + size];
+                        const den = arena[arena_used + size .. arena_used + 2 * size];
+                        arena_used += 2 * size;
+                        layers[i][k - 1] = .{ .num = .{ .secure = num }, .den = den, .in_spare = true };
+                        layer_bytes += 2 * size * @sizeOf(S);
+                        ctx.run(size, nextChunk, .{ &layers[i][k], num, den });
+                        continue;
+                    }
                     const num = try a.alloc(S, size);
                     const den = a.alloc(S, size) catch |err| {
                         a.free(num);
@@ -679,6 +778,16 @@ pub fn ForField(comptime S: type) type {
             defer ood.deinit(a);
             const partial = try a.alloc([2]S, options.threads * 4 + 1);
             defer a.free(partial);
+            // Per-instance partial sums, so the round work of all instances can
+            // be dispatched to the pool at once (one barrier per round instead
+            // of one per instance and round).
+            const p_stride = options.threads * 4 + 1;
+            const partials = try a.alloc([2]S, n_inst * p_stride);
+            defer a.free(partials);
+            const jobs = try a.alloc(FoldJob, n_inst);
+            defer a.free(jobs);
+            const sum_jobs = try a.alloc(SumJob, n_inst);
+            defer a.free(sum_jobs);
             // Per active instance state (indexed by active slot).
             const active = try a.alloc(usize, n_inst);
             defer a.free(active);
@@ -716,6 +825,27 @@ pub fn ForField(comptime S: type) type {
                     pending[n_active] = null;
                     n_active += 1;
                 };
+                for (0..n_active) |s| {
+                    // regen instances: refill the block with the layer this step reads
+                    const i = active[s];
+                    const rg = inputs[i].regen orelse continue;
+                    const lvl = nv[s] + 1;
+                    if (n_vars[i] < 3 or lvl + 1 < n_vars[i]) continue;
+                    const blk = spare[i] orelse return error.InvalidLayerStructure;
+                    // every block layer was consumed (and emptied) by an earlier
+                    // step; the output layer 0 was read at the first step only
+                    for (layers[i][1..]) |l| if (l.in_spare) return error.InvalidLayerStructure;
+                    layers[i][0] = Layer.empty();
+                    if (lvl + 1 == n_vars[i]) {
+                        const h = blk.len / 2;
+                        ctx.run(h, regenLayerChunk, .{ rg, 1, blk[0..h], blk[h..] });
+                        layers[i][lvl] = .{ .num = .{ .secure = blk[0..h] }, .den = blk[h..], .in_spare = true };
+                    } else {
+                        ctx.run(blk.len, regenChunk, .{ rg, blk });
+                        spare[i] = null;
+                        layers[i][lvl] = .{ .num = .ones, .den = blk, .den_buf = blk };
+                    }
+                }
                 const n_sc_vars = layer_idx;
                 for (0..n_active) |s| sc_claim[s] = utils.mulBaseFor(S, sc_claim[s], pow2(n_sc_vars - nv[s]));
                 var round_polys = std.ArrayList(Poly).empty;
@@ -729,14 +859,21 @@ pub fn ForField(comptime S: type) type {
                     const n_remaining_rounds = n_sc_vars - round;
                     var made: usize = 0;
                     defer for (polys[0..made]) |*p| p.deinit(a);
+                    {
+                        // Round sums not already produced by a fused fold: all instances in one dispatch.
+                        var n_sj: usize = 0;
+                        for (0..n_active) |s| {
+                            if (nv[s] != n_remaining_rounds or pending[s] != null) continue;
+                            const layer = &layers[active[s]][layer_idx - (n_layers - n_vars[active[s]]) + 1];
+                            sum_jobs[n_sj] = .{ .layer = layer, .n_terms = @as(usize, 1) << @intCast(nv[s] - 1), .partial = partials[s * p_stride ..][0..p_stride], .s = s };
+                            n_sj += 1;
+                        }
+                        runSumJobs(ctx, sum_jobs[0..n_sj], eq, lambda);
+                        for (sum_jobs[0..n_sj]) |j| pending[j.s] = reduce(j.partial[0..ctx.chunks(j.n_terms)]);
+                    }
                     for (0..n_active) |s| {
                         if (nv[s] == n_remaining_rounds) {
-                            const layer = &layers[active[s]][layer_idx - (n_layers - n_vars[active[s]]) + 1];
-                            const n_terms = @as(usize, 1) << @intCast(nv[s] - 1);
-                            const sums = pending[s] orelse blk: {
-                                ctx.run(n_terms, sumChunk, .{ layer, @as([]const S, eq), n_terms, lambda, partial });
-                                break :blk reduce(partial[0..ctx.chunks(n_terms)]);
-                            };
+                            const sums = pending[s].?;
                             pending[s] = null;
                             polys[s] = try PF.correctSumAsPolyInFirstVariable(a, sums[0].mul(correction[s]), sums[1].mul(correction[s]), sc_claim[s], ood.items, nv[s]);
                         } else {
@@ -770,15 +907,29 @@ pub fn ForField(comptime S: type) type {
                     channel.mixFelts(acc.coeffsSlice());
                     const r = channel.drawSecureFelt();
                     try assignment.append(a, r);
+                    var n_jobs: usize = 0;
+                    errdefer for (jobs[0..n_jobs]) |j| foldAbort(a, j);
                     for (0..n_active) |s| {
                         sc_claim[s] = polys[s].evalAtPoint(r);
                         if (nv[s] != n_remaining_rounds) continue;
                         const layer = &layers[active[s]][layer_idx - (n_layers - n_vars[active[s]]) + 1];
                         const z0 = ood.items[ood.items.len - nv[s]];
                         correction[s] = correction[s].mul(eqOne(r, z0));
-                        try foldLayer(a, ctx, layer, r, if (nv[s] >= 2) .{ .eq = eq, .lambda = lambda, .partial = partial } else null, &pending[s]);
+                        if (nv[s] >= 2) {
+                            // fused fold + next sums: deferred to one dispatch below
+                            jobs[n_jobs] = try foldPrepare(a, layer, partials[s * p_stride ..][0..p_stride], s);
+                            n_jobs += 1;
+                        } else {
+                            try foldLayer(a, ctx, layer, r, null, &pending[s]);
+                        }
                         nv[s] -= 1;
                     }
+                    runFoldJobs(ctx, jobs[0..n_jobs], r, eq, lambda);
+                    for (jobs[0..n_jobs]) |j| {
+                        pending[j.s] = reduce(j.partial[0..ctx.chunks(j.half / 4)]);
+                        foldFinish(a, j);
+                    }
+                    n_jobs = 0;
                 }
                 try sumcheck_proofs.append(a, .{ .round_polys = try round_polys.toOwnedSlice(a) });
 
@@ -861,18 +1012,102 @@ pub fn ForField(comptime S: type) type {
 
         const NextSum = struct { eq: []const S, lambda: S, partial: [][2]S };
 
+        /// A layer fold whose fused next-round sums run in a batched dispatch.
+        const FoldJob = struct {
+            layer: *Layer,
+            dst: Folded,
+            half: usize,
+            den_in_place: bool,
+            num_in_place: bool,
+            partial: [][2]S,
+            s: usize,
+        };
+
+        const SumJob = struct { layer: *const Layer, n_terms: usize, partial: [][2]S, s: usize };
+
+        fn foldPrepare(a: std.mem.Allocator, layer: *Layer, partial: [][2]S, s: usize) !FoldJob {
+            const half = layer.den.len / 2;
+            const den_in_place = layer.den_buf != null or layer.in_spare;
+            const den_dst: []S = if (den_in_place) layer.den[0..half] else try a.alloc(S, half);
+            errdefer if (!den_in_place) a.free(den_dst);
+            const num_in_place = layer.num == .secure and (layer.num_buf == .secure or layer.in_spare);
+            const num_dst: ?[]S = switch (layer.num) {
+                .ones => null,
+                .secure => |n| if (num_in_place) n[0..half] else try a.alloc(S, half),
+                .base => try a.alloc(S, half),
+            };
+            return .{ .layer = layer, .dst = .{ .num = num_dst, .den = den_dst }, .half = half, .den_in_place = den_in_place, .num_in_place = num_in_place, .partial = partial, .s = s };
+        }
+
+        /// Releases a prepared job's fresh buffers (error path; the layer is untouched).
+        fn foldAbort(a: std.mem.Allocator, j: FoldJob) void {
+            if (!j.den_in_place) a.free(j.dst.den);
+            if (j.dst.num) |n| if (!j.num_in_place) a.free(n);
+        }
+
+        /// Layer bookkeeping after the job's fold ran (same as foldLayer's tail).
+        fn foldFinish(a: std.mem.Allocator, j: FoldJob) void {
+            const layer = j.layer;
+            if (!j.den_in_place) layer.den_buf = j.dst.den;
+            layer.den = j.dst.den;
+            if (j.dst.num) |n| {
+                if (!j.num_in_place) {
+                    switch (layer.num_buf) {
+                        .none => {},
+                        .base => |b| a.free(b),
+                        .secure => |x| a.free(x),
+                    }
+                    layer.num_buf = .{ .secure = n };
+                }
+                layer.num = .{ .secure = n };
+            }
+        }
+
+        /// Runs every job's chunks (same chunking as `Ctx.run`) behind one barrier.
+        fn runFoldJobs(ctx: Ctx, js: []const FoldJob, r: S, eq: []const S, lambda: S) void {
+            var wg = std.Thread.WaitGroup{};
+            var spawned = false;
+            for (js) |*j| {
+                const n = j.half / 4;
+                const k = ctx.chunks(n);
+                if (k <= 1) continue;
+                spawned = true;
+                for (0..k) |c| ctx.pool.?.spawnWg(&wg, foldSumChunk, .{ @as(*const Layer, j.layer), j.dst, j.half, r, eq, lambda, j.partial, n * c / k, n * (c + 1) / k, c });
+            }
+            for (js) |*j| {
+                const n = j.half / 4;
+                if (ctx.chunks(n) <= 1) foldSumChunk(j.layer, j.dst, j.half, r, eq, lambda, j.partial, 0, n, 0);
+            }
+            if (spawned) ctx.pool.?.waitAndWork(&wg);
+        }
+
+        fn runSumJobs(ctx: Ctx, js: []const SumJob, eq: []const S, lambda: S) void {
+            var wg = std.Thread.WaitGroup{};
+            var spawned = false;
+            for (js) |*j| {
+                const k = ctx.chunks(j.n_terms);
+                if (k <= 1) continue;
+                spawned = true;
+                for (0..k) |c| ctx.pool.?.spawnWg(&wg, sumChunk, .{ j.layer, eq, j.n_terms, lambda, j.partial, j.n_terms * c / k, j.n_terms * (c + 1) / k, c });
+            }
+            for (js) |*j| {
+                if (ctx.chunks(j.n_terms) <= 1) sumChunk(j.layer, eq, j.n_terms, lambda, j.partial, 0, j.n_terms, 0);
+            }
+            if (spawned) ctx.pool.?.waitAndWork(&wg);
+        }
+
         /// Folds one layer by `r`. Borrowed storage is never written: the
         /// first fold of a borrowed (or base-numerator) layer writes a new
         /// half-size layer. With `next`, the next round's sums are computed
         /// in the same pass into `pending`.
         fn foldLayer(a: std.mem.Allocator, ctx: Ctx, layer: *Layer, r: S, next: ?NextSum, pending: *?[2]S) !void {
             const half = layer.den.len / 2;
-            const den_in_place = layer.den_buf != null;
+            const den_in_place = layer.den_buf != null or layer.in_spare;
             const den_dst: []S = if (den_in_place) layer.den[0..half] else try a.alloc(S, half);
             errdefer if (!den_in_place) a.free(den_dst);
             // Secure owned numerators fold in place; borrowed or base ones
             // fold into a fresh secure buffer.
-            const num_in_place = layer.num == .secure and layer.num_buf == .secure;
+            const num_in_place = layer.num == .secure and (layer.num_buf == .secure or layer.in_spare);
             const num_dst: ?[]S = switch (layer.num) {
                 .ones => null,
                 .secure => |n| if (num_in_place) n[0..half] else try a.alloc(S, half),
