@@ -8,17 +8,17 @@ const Receiver = @import("poseidon2_outer/pure_p2_op_root_runtime.zig");
 const R6 = @import("poseidon2_outer/native_omul/recursion.zig");
 const R6Receiver = @import("poseidon2_outer/native_omul/root_runtime.zig");
 const Options = @import("poseidon2_outer/root_cli_options.zig");
-const usage = "usage: rv64-op-root [--r6] [--truth-local-gkr] <prove|verify> config.json source-directory root-directory [resources.json]\n";
+const usage = "usage: rv64-op-root [--r6] [--truth-local-gkr] [--miller-local-gkr] <prove|verify> config.json source-directory root-directory [resources.json]\n";
 
 pub fn main() !void {
     const base = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, args);
-    if (args.len < 5 or args.len > 8) {
+    if (args.len < 5 or args.len > 9) {
         std.debug.print(usage, .{});
         return error.ExpectedOpRootModeConfigSourceAndRootDirectory;
     }
-    var words: [7][]const u8 = undefined;
+    var words: [8][]const u8 = undefined;
     for (args[1..], words[0 .. args.len - 1]) |arg, *word| word.* = arg;
     const command = Options.parse(words[0 .. args.len - 1]) catch |err| {
         std.debug.print(usage, .{});
@@ -28,6 +28,11 @@ pub fn main() !void {
     defer base.free(raw);
     const config = try std.json.parseFromSlice(Request.Config, base, raw, .{});
     defer config.deinit();
+    const source_suite: ?@import("poseidon2_outer/pure_p2_source_suite.zig").Suite = if (command.miller_local_gkr)
+        .{ .truth = if (command.truth_local_gkr) .local_gkr else .classic, .miller = .local_gkr }
+    else
+        null;
+    const native_options = Native.Options{ .source_suite = source_suite, .truth_local_gkr = source_suite == null and command.truth_local_gkr };
     var resources: Native.Resources = .{};
     var parsed_resources: ?std.json.Parsed(Native.Resources) = null;
     defer if (parsed_resources) |*parsed| parsed.deinit();
@@ -52,7 +57,7 @@ pub fn main() !void {
             // The source directory includes native proofs on this path. All
             // pending nodes and the final root/sidecar/templates are retained.
             if (command.r6) {
-                var result = try R6.proveDirectoryWithOptions(a, config.value, command.source, profile, resources, .{ .truth_local_gkr = command.truth_local_gkr }, .{ .artifact_directory = command.root });
+                var result = try R6.proveDirectoryWithOptions(a, config.value, command.source, profile, resources, native_options, .{ .artifact_directory = command.root });
                 defer result.deinit();
             } else {
                 var result = try Recursion.proveDirectory(a, config.value, command.source, profile, resources, .{ .artifact_directory = command.root });
@@ -62,7 +67,7 @@ pub fn main() !void {
             // This path loads source declarations and public RAM cells only;
             // it neither opens nor verifies native-op.bin.
             if (command.r6) {
-                _ = try R6Receiver.verifyDirectoryWithOptions(a, config.value, command.source, command.root, profile, resources, .{ .truth_local_gkr = command.truth_local_gkr }, .{});
+                _ = try R6Receiver.verifyDirectoryWithOptions(a, config.value, command.source, command.root, profile, resources, native_options, .{});
             } else {
                 _ = try Receiver.verifyDirectory(a, config.value, command.source, command.root, profile, resources, .{});
             }
