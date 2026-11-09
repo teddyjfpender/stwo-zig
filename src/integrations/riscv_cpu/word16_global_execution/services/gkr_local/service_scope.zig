@@ -111,11 +111,12 @@ test "Zbb profile and component fail closed on the GKR route" {
     try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, @import("v2_scope.zig").geometry(.{ .cpu_log = 23, .cpu_fused_tail = true }));
 }
 
-test "v3 GKR CPU statement bridge projection excludes only the appended Zbb log" {
+test "v3 GKR CPU statement bridge projection excludes appended Zbb and OP logs" {
     const std = @import("std");
     const names = @import("cpu_worker.zig").V3_STATEMENT_BRIDGES;
     const fields = std.meta.fields(T.Logs);
-    try std.testing.expectEqual(fields.len, names.len + 1);
+    try std.testing.expectEqual(fields.len, names.len + 2);
     inline for (names, 0..) |name, i| try std.testing.expectEqualStrings(fields[i].name, name);
     try std.testing.expectEqualStrings("zbb", fields[names.len].name);
+    try std.testing.expectEqualStrings("tower", fields[names.len + 1].name);
 }
