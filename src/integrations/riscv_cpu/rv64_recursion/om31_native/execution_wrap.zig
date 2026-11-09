@@ -433,7 +433,6 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     const metadata = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, frames, .{});
     const prepared = PreparedExecution{ .allocator = a, .setups = setups, .truths = truths, .bundle = bundle, .expected = expected, .config = config, .fixed = fixed, .dir = dir, .allow_resume = allow_resume, .inventory = &inventory, .stages = &stages, .manifest = &manifest, .words = words, .frames = frames, .timer = &timer, .existing_only = existing_only, .factory = factory };
     if (parallel) |options| return runPreparedParallel(prepared, options, null, arity);
-    if (!existing_only and factory == null) if (try CpuLanes.fromEnv(a)) |count| return runPreparedCpuParallel(prepared, arity, count);
     // m3 k-ary trees use the plan-driven path; binary r1 keeps the original
     // streaming carry below byte for byte.
     if (arity != 2) return runPreparedSequential(prepared, arity);
@@ -581,12 +580,12 @@ pub fn foldArity() !usize {
 /// Process-entry policy check (driver and receiver): every recursion policy
 /// env value parses, or the process exits with a clean error (corpus P03).
 pub fn checkPolicyEnv() !void {
+    if (std.posix.getenv("STWO_RV64_RECURSION_CPU_LANES") != null) return error.CpuRecursionLaneExperimentRetired;
     _ = try @import("stwo_circuit_cpu_integration").om31.protocol.checkEnv();
     _ = try Outer.checkShapeEnv();
     _ = try foldArity();
 }
 const Pools = @import("stwo_prover_engine").work_pool;
-const CpuLanes = @import("cpu_lanes.zig");
 const PreparedExecution = struct {
     allocator: std.mem.Allocator,
     setups: []const *const R.CpuSetup,
@@ -614,8 +613,6 @@ const Outcome = struct { pending: Pending, restored: bool, retired_bytes: usize,
 const ParallelExecution = struct {
     input: PreparedExecution,
     options: ParallelOptions,
-    cpu_owner: ?*CpuLanes.Owner = null,
-    cpu_caller_pool: ?*Pools.WorkPool = null,
     plan: *const Dag.Plan,
     dispatch: Dag.Dispatcher,
     nodes: []Node,
@@ -627,48 +624,23 @@ const ParallelExecution = struct {
     restored_folds: usize = 0,
     retired_bytes: usize = 0,
     fn runLane(self: *ParallelExecution, lane: usize) void {
-        const value = self.options.lanes[lane];
-        self.runBoundLane(lane, value.pool, value.factory, value.physical_device);
-    }
-    fn runCpuLane(self: *ParallelExecution, lane: usize) void {
-        self.runBoundLane(lane, &self.cpu_owner.?.pools[lane], null, null);
-    }
-    fn runBoundLane(self: *ParallelExecution, lane: usize, pool: *Pools.WorkPool, factory: ?Outer.Device.Factory, device: ?u32) void {
-        var binding: ?Pools.ScopedPoolBinding = if (self.cpu_owner == null) Pools.ScopedPoolBinding.init(pool) catch |err| {
+        var binding = Pools.ScopedPoolBinding.init(self.options.lanes[lane].pool) catch |err| {
             self.dispatch.stop(err);
             return;
-        } else null;
-        defer if (binding) |*value| value.deinit();
+        };
+        defer binding.deinit();
         while (self.dispatch.take() catch return) |id| {
             const taken_ns = std.time.nanoTimestamp();
-            const outcome = blk: {
-                const cpu = self.cpu_owner;
-                const fold = !self.plan.nodes[id].isLeaf();
-                const selected_pool = if (cpu != null and fold) self.cpu_caller_pool.? else pool;
-                const workers = selected_pool.workerCount();
-                if (cpu) |owner| owner.gate.enter(workers);
-                defer if (cpu) |owner| owner.gate.leave(workers);
-                var job_binding: ?Pools.ScopedPoolBinding = if (cpu != null) Pools.ScopedPoolBinding.init(selected_pool) catch |err| {
-                    self.dispatch.fail(id, err);
-                    return;
-                } else null;
-                defer if (job_binding) |*value| value.deinit();
-                break :blk self.prove(id, factory) catch |err| {
-                    self.dispatch.fail(id, err);
-                    return;
-                };
+            const outcome = self.prove(id, self.options.lanes[lane].factory) catch |err| {
+                self.dispatch.fail(id, err);
+                return;
             };
             var publication = Publication{ .execution = self, .outcome = outcome };
             self.dispatch.publish(id, &publication, Publication.apply);
             // Log-only per-node timeline (absolute CLOCK_REALTIME ns, comparable
             // across lanes and with Nsight Systems); proof bytes are unaffected.
             const spec = self.plan.nodes[id];
-            if (device) |physical| {
-                std.debug.print("RECURSION_NODE_TIMELINE node={d} kind={s} first_leaf={d} leaf_count={d} lane={d} device={d} taken_unix_ns={d} graph_ns={d} wrap_ns={d} serialize_ns={d} write_ns={d} published_unix_ns={d} restored={}\n", .{ id, if (spec.isLeaf()) "leaf" else "fold", spec.first_leaf, spec.leaf_count, lane, physical, taken_ns, outcome.graph_ns, outcome.wrap_only_ns, outcome.serialize_ns, outcome.write_ns, std.time.nanoTimestamp(), outcome.restored });
-            } else {
-                const workers = if (spec.isLeaf()) pool.workerCount() else self.cpu_caller_pool.?.workerCount();
-                std.debug.print("RECURSION_CPU_NODE_TIMELINE node={d} kind={s} first_leaf={d} leaf_count={d} lane={d} pool_workers={d} taken_unix_ns={d} graph_ns={d} wrap_ns={d} serialize_ns={d} write_ns={d} published_unix_ns={d} restored={}\n", .{ id, if (spec.isLeaf()) "leaf" else "fold", spec.first_leaf, spec.leaf_count, lane, workers, taken_ns, outcome.graph_ns, outcome.wrap_only_ns, outcome.serialize_ns, outcome.write_ns, std.time.nanoTimestamp(), outcome.restored });
-            }
+            std.debug.print("RECURSION_NODE_TIMELINE node={d} kind={s} first_leaf={d} leaf_count={d} lane={d} device={d} taken_unix_ns={d} graph_ns={d} wrap_ns={d} serialize_ns={d} write_ns={d} published_unix_ns={d} restored={}\n", .{ id, if (spec.isLeaf()) "leaf" else "fold", spec.first_leaf, spec.leaf_count, lane, self.options.lanes[lane].physical_device, taken_ns, outcome.graph_ns, outcome.wrap_only_ns, outcome.serialize_ns, outcome.write_ns, std.time.nanoTimestamp(), outcome.restored });
         }
     }
     const Publication = struct {
@@ -811,40 +783,6 @@ fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions, pipel
     for (threads[0..launched]) |thread| thread.join();
     try shared.dispatch.result();
     return finishPlanned(&shared, &plan, "cuda_trace_only", .{ .options = options, .budget = budget });
-}
-/// Explicit CPU experiment, never inferred from producer proof metadata. The
-/// strict receiver ignores scheduling and restores every original physical node.
-fn runPreparedCpuParallel(input: PreparedExecution, arity: usize, count: usize) !Report {
-    // Binary streaming uses historical node IDs; no scheduling experiment may
-    // silently select a different durable tree. Planned k-ary profiles only.
-    if (arity == 2) return error.CpuRecursionRequiresPlannedTree;
-    const a = input.allocator;
-    const budget = try @import("../../rv64_recursion_budget.zig").require(SharedBudget, a);
-    const caller = Pools.currentScopedPool() orelse return error.MissingCpuRecursionPool;
-    const workers = caller.workerCount();
-    const owner = try CpuLanes.Owner.create(budget, .{ .lanes = count, .workers = workers, .stack_size = caller.stackSize() });
-    defer owner.destroy();
-    const plan = try Dag.Plan.initArity(input.inventory.workers.len, arity);
-    const nodes = try a.alloc(Node, plan.count);
-    defer a.free(nodes);
-    var shared = ParallelExecution{ .input = input, .options = .{ .lanes = &.{}, .pool_worker_budget = workers }, .cpu_owner = owner, .cpu_caller_pool = caller, .plan = &plan, .dispatch = .{ .queue = try Dag.Queue.init(&plan, count, plan.minimumLimit(count)) }, .nodes = nodes };
-    defer for (shared.proofs[0..plan.count]) |proof| if (proof) |value| value.deinit(a);
-    var threads: [4]std.Thread = undefined;
-    var launched: usize = 0;
-    for (0..count) |lane| {
-        threads[lane] = std.Thread.spawn(.{ .stack_size = 8 << 20 }, ParallelExecution.runCpuLane, .{ &shared, lane }) catch |err| {
-            shared.dispatch.stop(err);
-            break;
-        };
-        launched += 1;
-    }
-    for (threads[0..launched]) |thread| thread.join();
-    try shared.dispatch.result();
-    const report = try finishPlanned(&shared, &plan, "cpu_parallel", null);
-    const receipt = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .backend = "cpu_parallel", .lanes = count, .workers = workers, .serialized_folds = true, .full_pool_folds = true, .peak_authority_slots = shared.dispatch.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
-    defer a.free(receipt);
-    try @import("publication.zig").write(input.dir, "scheduler-cpu.json", receipt);
-    return report;
 }
 const SchedulerInfo = struct { options: ParallelOptions, budget: *SharedBudget };
 /// tree.json for every planned route. Binary trees keep schema 2 byte for

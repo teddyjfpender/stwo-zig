@@ -14,9 +14,5 @@ test "rv64 recursion: transcript walkers compile and the digest is Blake2s of th
 }
 
 test {
-    _ = @import("rv64_recursion/om31_native/cpu_lanes.zig");
-}
-
-test {
     _ = @import("word16_global_execution/ethereum/receiver_budget.zig");
 }

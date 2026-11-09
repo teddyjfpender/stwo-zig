@@ -152,7 +152,7 @@ pub fn addProduct(context: Context) void {
         .{ "poseidon-simd", "src/integrations/riscv_cpu/rv64_poseidon_simd_test_root.zig", 4 },
         .{ "pcs-commit", "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig", 2 },
         .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 4 },
-        .{ "recursion", "src/integrations/riscv_cpu/rv64_recursion_test_root.zig", 7 },
+        .{ "recursion", "src/integrations/riscv_cpu/rv64_recursion_test_root.zig", 3 },
         .{ "composition-ir", "src/integrations/riscv_cpu/rv64_composition_ir_test_root.zig", 1 },
         .{ "composition-ir-services", "src/integrations/riscv_cpu/rv64_composition_ir_services_test_root.zig", 1 },
         .{ "composition-ir-truths", "src/integrations/riscv_cpu/rv64_composition_ir_truths_test_root.zig", 1 },

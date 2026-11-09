@@ -347,5 +347,16 @@
     "cache_bytes_outside_live": true,
     "security_label": "128-bit security target under documented assumptions"
   },
-  "raw_artifacts": "rv64-proof-artifacts/20261108/opstack-cpu/cpu-{lanes,recycler}-small-* (retained outside git)"
+  "raw_artifacts": "rv64-proof-artifacts/20261108/opstack-cpu/cpu-{lanes,recycler}-small-* (retained outside git)",
+  "decision": "CPU fanout removed after the complete heavy case: no wall-time improvement and about 26% higher peak RSS. Bounded recycler control remains separately measured; no defaults changed.",
+  "heavy_comparison": {
+    "serial_produce_ns": 1781673505041,
+    "parallel_produce_ns": 1790027186875,
+    "serial_peak_rss_bytes": 33411940352,
+    "parallel_peak_rss_bytes": 42003333120,
+    "all_recursive_proofs_byte_identical": true,
+    "fresh_receivers_accept": true,
+    "native_members": 115,
+    "recursive_nodes": 173
+  }
 }

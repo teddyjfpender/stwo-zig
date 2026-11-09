@@ -408,3 +408,14 @@ trace cell counts are unchanged, while physical proof bytes fall from
 openings, **not a native speedup**. It uses one 16-worker lane and an explicit
 8 GiB fixed-key admission; the 4 GiB refusal remains recorded. Defaults stay
 unchanged. Full native-plus-recursive timing decides its adoption.
+
+The [complete heavy recursion comparison](heavy-d2-recursion-comparison.json)
+closes all **115 native members and 173 recursive nodes** of the selected D2
+bundle. Serial production takes **1,781.674 s**, additional to **1,586.092 s**
+native production; fresh native-plus-recursive reception takes **171.860 s**.
+Two proof lanes take **1,790.027 s** at **39.119 GiB** versus serial
+**31.117 GiB**, with every physical proof byte identical and both strict fresh
+receivers accepting. Fanout is removed from production; its [patch](rejected-cpu-recursion-lanes.patch)
+and bounded-admission tests remain recoverable. The native two-lane schedule is
+a different mechanism and keeps its earlier complete-block qualification.
+These are one-run development qualifications, not a controlled repeated speedup.

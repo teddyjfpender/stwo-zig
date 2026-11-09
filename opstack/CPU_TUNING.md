@@ -18,31 +18,29 @@ There are two cold trials per variant, in balanced order. These are small observ
 changes, not a large-block multiplier or a new small-block record. All eight
 complete roots, every physical recursive proof and the tree bytes match exactly.
 Every separate strict receiver accepts. Defaults remain serial with a 64 MiB
-CPU wrap cache.
+CPU wrap cache. The fanout experiment below is now rejected.
 
-## CPU lane ownership
+## Full-block result: CPU fanout rejected
 
-`STWO_RV64_RECURSION_CPU_LANES=2` enables the experimental CPU route for an
-explicit planned three- or four-child profile. Values 2–4 are admitted if the
-caller's existing worker budget supplies at least two workers per lane. The
-worker count comes from the request, rather than creating additional active
-workers above that budget.
+The complete selected heavy block reproduces every physical recursive proof
+under both schedules. Serial recursion takes **1,781.674 s**, at **31.117 GiB**
+RSS. Two proof lanes take **1,790.027 s**, at **39.119 GiB**. Both strict fresh
+receivers accept all 115 native proofs and 173 recursive nodes. The small
+fixture's apparent 2.6% gain does not carry over; measured peak RSS increases
+by about 26% on the heavy block.
 
-Each lane has a distinct, stably owned pool. Leaves partition the worker budget;
-folds wait for active leaves to drain and then use the original complete pool.
-A waiting fold blocks new leaves, preventing starvation. The existing DAG
-retains dependency, ordered-coverage, publication and root checks. Its authority
-slot bound is derived from the carry plan and lane count. Metadata, witnesses,
-proofs and helper/coordinator stack reservations share the existing hard host
-allocation budget. Allocation or spawn failures join started workers and refuse
-root acceptance. Historical binary streaming trees explicitly refuse this
-option rather than changing their durable node IDs.
+The CPU fanout route is removed from production. Its [recoverable patch](../vectors/reports/rv64-opstack-cpu-20261108/rejected-cpu-recursion-lanes.patch)
+and measurements remain available for research on other hardware. The patch
+contains bounded pool ownership, dependency-safe dispatch, full-pool folds,
+stack accounting and refusal tests; apply with `git apply --unidiff-zero`.
+Supplying the retired `STWO_RV64_RECURSION_CPU_LANES` selector now refuses,
+so an old script cannot silently benchmark serial execution as parallel.
+The established GPU DAG route is unchanged.
 
-`RECURSION_CPU_NODE_TIMELINE` records CPU pool width per node. GPU factories,
-device admission and the established GPU timeline remain separate. The producer
-writes `scheduler-cpu.json` with the actual lane/worker policy and budget snapshot.
-The strict receiver ignores scheduling hints and reconstructs/checks the original
-physical proofs and complete execution closure; it has no proving fallback.
+This result concerns **outer recursive proofs**. The native execution/service
+scheduler is separate: its existing two lanes of eight workers improved the
+heavy native qualification from 1,723 to 1,428 s before guest improvements.
+Do not infer one layer's scaling from the other.
 
 ## Freed-block cache
 
@@ -60,7 +58,6 @@ operator-sized host:
 ```sh
 STWO_RV64_OUTER_PROFILE=m6_outer_diet_k3_r1_b2_q108_p20_fold4_v1 \
 STWO_RV64_FOLD_ARITY=3 \
-STWO_RV64_RECURSION_CPU_LANES=2 \
 STWO_RV64_CPU_WRAP_RECYCLE_BYTES=1073741824 \
 STWO_ZIG_RV64_RECEIVER_IDENTITY_ONLY_CPU=1 \
 STWO_ZIG_RV64_RECEIVER_SETUP_THREADS=2 \
@@ -82,7 +79,7 @@ assumptions**, with `security_qualified=false`. This is an execution-only root,
 not authenticated L1 derivation, a portable root-only checkpoint, checkpoint
 accumulation or a complete Solidity settlement proof.
 
-Fast ownership, admission and cleanup checks:
+Fast bounded-cache admission checks:
 
 ```sh
 zig build test-riscv64-recursion -Doptimize=ReleaseSafe -j1
