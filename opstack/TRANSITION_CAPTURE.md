@@ -278,3 +278,32 @@ It is decoded from the authenticated Jovian L1-info deposit at transaction zero,
 checks the fixed depositor/predeploy and L1-info source-hash domain, and appears
 in the authenticated parent chain from the selected L1 anchor. This completes
 claim framing, not derivation or proving acceptance.
+
+### Native KV sidecars and standard KZG
+
+`transition_kv_export.py` treats the native namespaces separately. It authenticates
+Keccak/SHA entries, reconstructs each blob's4096field elements using Kona's exact
+bit-reversed roots, retrieves the standard proof from the separate4096th proof
+slot, rejects unowned/missing/noncanonical fields, and runs the independent
+`capture_host/blob_check` native checker before publishing sidecars. It removes
+only exact, identified blob-oracle helper preimages from ordinary records.
+The resulting material still requires the independent native transition verifier;
+removing an actually needed preimage cannot yield acceptance.
+
+```sh
+cargo +1.95 build --offline --locked --release \
+  --manifest-path opstack/capture_host/blob_check/Cargo.toml \
+  --target-dir /tmp/op-capture-kzg
+$PY opstack/transition_kv_export.py --kv /path/to/native-capture/kv \
+  --checker /tmp/op-capture-kzg/release/op-capture-kzg \
+  --trusted-setup /path/to/c-kzg-2.1.8/src/trusted_setup.txt \
+  --output /new/path/exported-material
+```
+
+The checker verifies the standard trusted-setup SHA before parsing those same
+bytes, recomputes every blob commitment, and verifies every standard EIP-4844
+proof. All15actual captured blobs passed. Flipped blob/proof bytes, swapped
+otherwise valid proofs, truncation, excess count, duplicate commitment and a
+changed setup byte were rejected. No RV64 execution or STARK proof is involved.
+The exported material has55770ordinary records and15sidecars; complete-witness,
+derivation and physical-proof acceptance remain separate gates.
