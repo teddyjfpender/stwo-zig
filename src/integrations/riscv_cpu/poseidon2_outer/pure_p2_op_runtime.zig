@@ -342,9 +342,10 @@ pub fn verifyDirectoryWithHooks(a: std.mem.Allocator, config: Request.Config, pa
 }
 
 pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
-    return produceDirectoryMode(a, config, path, profile, resources, false);
+    return produceDirectoryMode(a, config, path, profile, resources, .prove);
 }
-fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, capture_only: bool) !void {
+const ProduceMode = enum { capture, prepare, prove };
+fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, mode: ProduceMode) !void {
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     try Request.validateBudgetForOp(config);
     var timer = try std.time.Timer.start();
@@ -407,7 +408,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     var native_payload: usize = 0;
     for (captured.native) |n| native_payload = try std.math.add(usize, native_payload, Ownership.native(n).total());
     const advice_payload = Ownership.advice(&captured.advice);
-    if (capture_only) {
+    if (mode == .capture) {
         try std.fs.cwd().makePath(path);
         var out = try std.fs.cwd().openDir(path, .{});
         defer out.close();
@@ -430,6 +431,33 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
     defer inventory.deinit();
+    if (mode == .prepare) {
+        try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-prepare.json", .{
+            .schema = "op-native-source-prepare/v1",
+            .proof_verified = false,
+            .production_admitted = false,
+            .steps = captured.steps,
+            .cpu_workers = count,
+            .truth_workers = truth_declarations.len,
+            .miller_workers = tower.items.len,
+            .cpu_fixed_classes = authority.key_owners.items.len,
+            .actual_immutable_fixed_disk_bytes = store.reserved,
+            .actual_fixed_mapping_bytes = store.mapped,
+            .planned_combined_disk_upper_bytes = cost.combined_disk_upper_bytes,
+            .max_cpu_main_restore_bytes = cost.max_cpu_restore_bytes,
+            .capture_heap = capture_heap,
+            .prepared_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(),
+            .declared_limits = resources,
+            .source_cells = bounds.base.shape.native_trace_cells,
+            .image_ns = image_ns,
+            .program_ns = program_ns,
+            .capture_ns = capture_ns,
+            .setup_and_admission_ns = timer.read() - captured_at,
+            .caveat = "Source and immutable-setup admission only; no MAIN, GKR or execution proof. Active source/prover scratch remains subject to hard budgets. Parked files are retired on exit.",
+        });
+        std.debug.print("OP_NATIVE_PREPARE admitted_source=true proof_verified=false steps={} CPU={} truth={} miller={} fixed_classes={} fixed_disk={} mapped={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, authority.key_owners.items.len, store.reserved, store.mapped });
+        return;
+    }
     var observations = try @import("../word16_global_execution/ethereum/observations.zig").Owner.init(a, if (config.profile_stages) inventory.workers.len else 0);
     defer observations.deinit();
     var phases: Producer.Timing = .{};
@@ -466,7 +494,7 @@ pub fn main() !void {
     const base = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, args);
-    if (args.len < 4 or args.len > 5 or (!std.mem.eql(u8, args[1], "prove") and !std.mem.eql(u8, args[1], "verify") and !std.mem.eql(u8, args[1], "capture"))) return error.ExpectedOpNativeModeConfigDirectoryAndOptionalResources;
+    if (args.len < 4 or args.len > 5 or (!std.mem.eql(u8, args[1], "prove") and !std.mem.eql(u8, args[1], "verify") and !std.mem.eql(u8, args[1], "capture") and !std.mem.eql(u8, args[1], "prepare"))) return error.ExpectedOpNativeModeConfigDirectoryAndOptionalResources;
     const raw = try std.fs.cwd().readFileAlloc(base, args[2], 16384);
     defer base.free(raw);
     const config = try std.json.parseFromSlice(Request.Config, base, raw, .{});
@@ -490,5 +518,5 @@ pub fn main() !void {
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     const profile = Profile.op_target_b4_q72_p0_fold4_v1;
-    if (std.mem.eql(u8, args[1], "verify")) try verifyDirectory(a, config.value, args[3], profile, resources) else try produceDirectoryMode(a, config.value, args[3], profile, resources, std.mem.eql(u8, args[1], "capture"));
+    if (std.mem.eql(u8, args[1], "verify")) try verifyDirectory(a, config.value, args[3], profile, resources) else try produceDirectoryMode(a, config.value, args[3], profile, resources, if (std.mem.eql(u8, args[1], "capture")) .capture else if (std.mem.eql(u8, args[1], "prepare")) .prepare else .prove);
 }

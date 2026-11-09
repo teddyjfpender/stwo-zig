@@ -1,0 +1,62 @@
+{
+  "schema": "op-native-source-prepare/v1",
+  "proof_verified": false,
+  "production_admitted": false,
+  "steps": 796406,
+  "cpu_workers": 1,
+  "truth_workers": 2,
+  "miller_workers": 0,
+  "cpu_fixed_classes": 1,
+  "actual_immutable_fixed_disk_bytes": 181469184,
+  "actual_fixed_mapping_bytes": 0,
+  "planned_combined_disk_upper_bytes": 1144343020,
+  "max_cpu_main_restore_bytes": 577005148,
+  "capture_heap": {
+    "live_bytes": 860722178,
+    "peak_live_bytes": 995820053,
+    "host_live_bytes": 860722178,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 995820053,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "prepared_heap": {
+    "live_bytes": 918704144,
+    "peak_live_bytes": 2374677116,
+    "host_live_bytes": 918704144,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 2374677116,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "declared_limits": {
+    "consume_memory_events": true,
+    "live_bytes": 34359738368,
+    "disk_bytes": 206158430208,
+    "mapped_bytes": 12884901888,
+    "gkr_bytes": 12884901888,
+    "global_bytes": 2147483648,
+    "truth_live_bytes": 8589934592,
+    "truth_main_bytes": 2147483648,
+    "truth_interaction_bytes": 4294967296,
+    "truth_advice_bytes": 268435456,
+    "proof_bytes": 67108864,
+    "bundle_bytes": 2147483648
+  },
+  "source_cells": [
+    40973696,
+    84990432,
+    99202560
+  ],
+  "image_ns": 358831125,
+  "program_ns": 266224125,
+  "capture_ns": 54702500,
+  "setup_and_admission_ns": 2981004959,
+  "caveat": "Source and immutable-setup admission only; no MAIN, GKR or execution proof. Active source/prover scratch remains subject to hard budgets. Parked files are retired on exit.",
+  "qualification": "actual-small-source-prepare-only",
+  "process_exit_code": 0,
+  "final_budget_cleanup": "SharedHostBudget.destroy rejects nonzero heap or external reservations; process exited successfully",
+  "execution_proof_accepted": false
+}
