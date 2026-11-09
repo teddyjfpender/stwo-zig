@@ -10,6 +10,7 @@ must be declared below with an owner and purpose.
 from __future__ import annotations
 
 import re
+import ast
 import unittest
 from pathlib import Path
 
@@ -114,10 +115,17 @@ TOP_LEVEL_ENTRY_POINTS = frozenset(
 
 
 class ScriptReachabilityTest(unittest.TestCase):
+    def test_root_package_marker_contains_only_its_docstring(self):
+        body = ast.parse((SCRIPTS / "__init__.py").read_text()).body
+        self.assertEqual(1, len(body))
+        self.assertIsInstance(body[0], ast.Expr)
+        self.assertIsInstance(body[0].value, ast.Constant)
+        self.assertIsInstance(body[0].value.value, str)
+
     def test_top_level_holds_only_entry_points(self) -> None:
         loose = sorted(
             p.name for p in SCRIPTS.iterdir()
-            if p.is_file() and p.name not in TOP_LEVEL_ENTRY_POINTS
+            if p.is_file() and p.name not in TOP_LEVEL_ENTRY_POINTS and p.name != "__init__.py"
         )
         self.assertEqual(
             loose, [], f"move these into a scripts/<area>/ package: {loose}"
@@ -126,7 +134,7 @@ class ScriptReachabilityTest(unittest.TestCase):
     def test_every_script_is_reachable_or_declared(self) -> None:
         # Entry points live at the top of scripts/; everything else lives in
         # one scripts/<area>/ package. Basenames are unique across areas.
-        paths = {p.name: p for p in SCRIPTS.glob("*.py")}
+        paths = {p.name: p for p in SCRIPTS.glob("*.py") if p.name != "__init__.py"}
         areas = [
             p for p in SCRIPTS.iterdir()
             if p.is_dir() and p.name not in ("tests", "__pycache__")

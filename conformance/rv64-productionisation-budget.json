@@ -582,6 +582,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 1,
       "positive_growth_justification": "Restore the repository scripts package marker so an installed regular package cannot hijack namespace resolution. Add a real subprocess regression with a hostile foreign scripts package. Reconcile the existing closed tooling inventory with four already tracked owners and the existing circuit-recursion-wire consumer lane; retain exact root equality, every caller check and bounded lane equality. No new tool, lane, launcher, feature flag, proof check, pin or test exclusion is introduced. The one added Python file is the explicitly requested package initializer, with no executable entrypoint."
+    },
+    {
+      "id": "delivery_hosted_compile_owner_bindings",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair concrete hosted compiler/import failures at existing owners. Resolve the moved Metal probe header and the prover-API Python working directory. Bind aggregate RISC-V generation to the same full-width BLAKE3 engine as the focused product while retaining the historical verifier route and every existing rejection. Give direct protocol commands the already-exported circuit-recursion-wire node and the exact two scalar authorities shared by the SDK/Cairo frontend, checking their declared injection ownership and preserving CPU-only exclusion. Model the explicitly requested root Python package initializer as a docstring-only marker rather than an executable launcher; keep every other reachability/discovery check. Tests protect moved header resolution, Python gate CWD, shared module identity, declared injections and marker content. No proof equation, pin, ledger, rejection class, feature flag, new script or launcher changes."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

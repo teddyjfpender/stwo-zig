@@ -20,6 +20,7 @@ PROTOCOL_PACKAGES = (
     "stwo_prover_api",
     "stwo_prover_engine",
     "stwo_proof_wire",
+    "stwo_circuit_recursion_wire",
     "stwo_artifact_store",
     "stwo_metal_session",
     "stwo_cpu_backend",
@@ -35,6 +36,12 @@ PROTOCOL_PACKAGES = (
     "stwo_cairo_cuda_integration",
 )
 
+
+# These two packages share the same injected scalar serializers in the SDK.
+INJECTED_AUTHORITIES = {
+    name: ("interop_felt_json", "interop_cairo_prover_parameters")
+    for name in ("stwo_cairo_frontend", "stwo_circuit_recursion_wire")
+}
 
 @dataclass(frozen=True)
 class PackageModule:
@@ -60,6 +67,8 @@ def protocol_package_modules() -> tuple[PackageModule, ...]:
             or not isinstance(dependencies, dict)
         ):
             raise ValueError(f"{contract}: malformed public module contract")
+        if not set(INJECTED_AUTHORITIES.get(package, ())) <= set(payload.get("injected_modules", ())):
+            raise ValueError(f"{contract}: scalar authorities are not declared injections")
         module_name, relative_source = next(iter(public_modules.items()))
         if module_name != package or not isinstance(relative_source, str):
             raise ValueError(
@@ -122,6 +131,11 @@ SUPPORT_MODULES = (
     PackageModule("stwo_std_shims", "src/support/shims/mod.zig",
                   ("stwo_core", "stwo_native_examples", "stwo_proof_wire"), SUPPORT_CONTRACT),
 )
+INTEROP_AUTHORITIES = tuple(
+    PackageModule(name, f"src/frontends/cairo/interop/{source}.zig", ("stwo_core",), SUPPORT_CONTRACT)
+    for name, source in (("interop_felt_json", "felt_json"),
+                         ("interop_cairo_prover_parameters", "cairo_prover_parameters"))
+)
 CPU_PROTOCOL_PACKAGES = (
     "stwo_core", "stwo_backend_contracts", "stwo_prover_api",
     "stwo_prover_engine", "stwo_proof_wire", "stwo_cpu_backend",
@@ -160,19 +174,21 @@ def _modules(cpu_only: bool = False, extra_packages: tuple[str, ...] = ()) -> tu
         if not set(module.dependencies) <= names:
             raise ValueError(f"{module.name}: missing selected dependencies")
     names.add(POSTCARD_MODULE.name)
+    authorities = INTEROP_AUTHORITIES if names.intersection(INJECTED_AUTHORITIES) else ()
+    names.update(module.name for module in authorities)
     support = []
     for module in SUPPORT_MODULES:
         if set(module.dependencies) <= names:
             support.append(module)
             names.add(module.name)
-    return (*selected, POSTCARD_MODULE, *support)
+    return (*selected, POSTCARD_MODULE, *authorities, *support)
 
 
 def _package_module_args(optimize: str | None = None, strip: bool | None = None,
                          cpu: str | None = None, *, modules: tuple[PackageModule, ...] | None = None) -> list[str]:
     arguments: list[str] = []
     for module in modules if modules is not None else _modules():
-        arguments.extend(_dependency_args(module.dependencies))
+        arguments.extend(_dependency_args(module.dependencies + INJECTED_AUTHORITIES.get(module.name, ())))
         arguments.extend(_compile_options(optimize, strip, cpu))
         arguments.append(f"-M{module.name}={module.source}")
     return arguments
@@ -281,6 +297,7 @@ def source_contract() -> tuple[Path, ...]:
         Path(__file__).resolve(),
         ROOT / "src/products/stwo/root.zig",
         ROOT / POSTCARD_MODULE.source,
+        *(ROOT / module.source for module in INTEROP_AUTHORITIES),
         *(module.contract for module in modules),
         *(ROOT / module.source for module in modules),
     )

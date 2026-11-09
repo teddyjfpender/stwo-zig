@@ -13,6 +13,8 @@ from scripts.repo.zig_protocol_lib.command import (
     protocol_package_modules,
     test_command as build_test_command,
     SUPPORT_MODULES,
+    INJECTED_AUTHORITIES,
+    INTEROP_AUTHORITIES,
 )
 
 
@@ -20,6 +22,9 @@ def support_names(selected: set[str]) -> list[str]:
     """Support leaves that `_modules` appends for a selected package set."""
     names = set(selected) | {"interop_postcard"}
     chosen = []
+    if selected.intersection(INJECTED_AUTHORITIES):
+        chosen.extend(module.name for module in INTEROP_AUTHORITIES)
+        names.update(chosen)
     for module in SUPPORT_MODULES:
         if set(module.dependencies) <= names:
             chosen.append(module.name)
@@ -28,6 +33,18 @@ def support_names(selected: set[str]) -> list[str]:
 
 
 class ZigProtocolCommandTests(unittest.TestCase):
+    def test_cairo_and_wire_reuse_exact_declared_scalar_authorities(self):
+        command = protocol_module_args("src/products/stwo/root.zig")
+        for module in INTEROP_AUTHORITIES:
+            self.assertEqual(1, command.count(f"-M{module.name}={module.source}"))
+        for module in protocol_package_modules():
+            if module.name in INJECTED_AUTHORITIES:
+                import json
+                declared = json.loads(module.contract.read_text())["injected_modules"]
+                self.assertTrue(set(INJECTED_AUTHORITIES[module.name]) <= set(declared))
+        cpu = protocol_module_args("focused.zig", cpu_only=True)
+        self.assertFalse(any("src/frontends/cairo/interop/" in arg for arg in cpu))
+
     def test_protocol_modules_are_wired_in_dependency_order(self) -> None:
         arguments = protocol_module_args("src/products/native/tests/deep_root.zig")
         modules = protocol_package_modules()
@@ -58,7 +75,7 @@ class ZigProtocolCommandTests(unittest.TestCase):
             end = arguments.index(module_flag, cursor)
             scoped = arguments[cursor:end]
             self.assertEqual(
-                [item for dependency in module.dependencies for item in ("--dep", dependency)],
+                [item for dependency in module.dependencies + INJECTED_AUTHORITIES.get(module.name, ()) for item in ("--dep", dependency)],
                 scoped,
                 module.name,
             )

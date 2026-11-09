@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#import "../../backends/metal/runtime/compile_options.h"
+#import "../../runtime/compile_options.h"
 
 static void write_error(char *destination, size_t length, NSString *message) {
     if (destination == NULL || length == 0u) return;

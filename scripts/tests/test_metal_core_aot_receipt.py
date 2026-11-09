@@ -1,4 +1,5 @@
 import hashlib
+import re
 import json
 import shutil
 import tempfile
@@ -137,6 +138,13 @@ def admission_argv(
 
 
 class MetalCoreAotReceiptTests(unittest.TestCase):
+    def test_probe_local_headers_resolve_from_the_moved_tool_owner(self):
+        probe = Path(__file__).resolve().parents[2] / "src/backends/metal/tools/core_aot/probe.m"
+        headers = re.findall(r'^#(?:import|include) "([^"\n]+)"', probe.read_text(), re.M)
+        self.assertTrue(headers)
+        for header in headers:
+            self.assertTrue((probe.parent / header).resolve().is_file(), header)
+
     def test_bundle_validation_and_reproducibility_bind_every_file(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

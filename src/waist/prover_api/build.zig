@@ -13,7 +13,7 @@ pub fn build(b: *std.Build) void {
     });
     api.addImport("stwo_core", core);
 
-    const repository_root = b.path("../..");
+    const repository_root = b.path("../../..");
     const source_authority = b.addSystemCommand(&.{
         "python3",
         "-m",

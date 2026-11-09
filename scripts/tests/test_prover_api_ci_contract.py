@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import re
 
 from scripts.repo import ci_scope_plan
 from scripts.tests.test_focused_ci_contract import ROOT, catalog_fixture
@@ -13,6 +14,18 @@ class ProverApiCiContractTests(unittest.TestCase):
             ROOT / "conformance/ci-touchpoints-v1.json"
         )
         cls.catalog = catalog_fixture()
+
+    def test_python_gates_resolve_the_repository_package_from_their_workdir(self):
+        build = ROOT / "src/waist/prover_api/build.zig"
+        source = build.read_text()
+        relative = re.search(r'const repository_root = b.path\("([^"\n]+)"\)', source)[1]
+        directory = (build.parent / relative).resolve()
+        self.assertEqual(ROOT, directory)
+        self.assertTrue((directory / "scripts/__init__.py").is_file())
+        owners = re.findall(r'const (\w+) = b.addSystemCommand', source)
+        self.assertTrue(owners)
+        for owner in owners:
+            self.assertIn(f"{owner}.setCwd(repository_root)", source)
 
     def test_prover_api_has_an_independent_package_lane(self) -> None:
         selected, _ = ci_scope_plan.select_lanes(
