@@ -1,0 +1,201 @@
+{
+  "schema": "op-full-M15-Miller-CPU-grouped-R7-root-v1",
+  "scope": "Synthetic real RV64/Machine primitive loop, not an OP block, complete pairing, or EVM-validity claim",
+  "actual_calls": 1023,
+  "actual_retirements": 3090,
+  "native_workers": {
+    "CPU": 1,
+    "local_GKR_Miller": 1,
+    "detached": 0,
+    "other_truth": 0
+  },
+  "native_profile": "op_target_b4_q72_p0_fold4_v1",
+  "outer_profile": "op_control_b2_q144_p0_fold4_v1",
+  "arithmetization": "genuine eight-role R7",
+  "hash": "Poseidon2 native and outer control",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "miller_span": {
+    "calls": 1023,
+    "first_id": 1,
+    "frontier_log": 15,
+    "arithmetic_log": 15
+  },
+  "workers": 16,
+  "optimize": "ReleaseSafe",
+  "hard_cap_bytes": 34359738368,
+  "groups": 1,
+  "folds": 0,
+  "root_bytes": 1218596,
+  "root_sha256": "ae9b0034bfaf5f34461e9bbc4983587e19ab9f57933da2f53dd4dfdca05cf069",
+  "source_identity": "51c7ec353343c4ee0ad6692ee928afa812e7cd9a6ee4c4c42dc626b0a17f89e2",
+  "canonical_public_root": "1813db6103072006bbde3300802b0a144d4ba815bed3496bedf65155f04e2275cc8b5874",
+  "source_model_cells": 150269952,
+  "timing": {
+    "node_prove_persist_verify_ns": 5094945458,
+    "whole_root_test_with_native_reception_and_fresh_receiver_OS_seconds": {
+      "wall": 8.25,
+      "user": 89.53,
+      "system": 0.66
+    },
+    "fresh_source_key_ns": 1276938167,
+    "fresh_root_read_verify_ns": 61270167,
+    "separate_restored_positive_source_key_ns": 1263763417,
+    "separate_restored_positive_root_read_verify_ns": 60626125
+  },
+  "stages": {
+    "op_p2.main_generation": 0.499299,
+    "op_p2.main_commit": 1.312297,
+    "op_p2.interaction_generation": 0.185931,
+    "op_p2.interaction_commit": 1.208581,
+    "draw_random_coeff": 8e-06,
+    "composition_trace_extract": 2.3e-05,
+    "composition_evaluation": 0.549376,
+    "composition_interpolate_and_split": 0.013209,
+    "composition_commit": 0.436082,
+    "oods_point_and_mask_points": 7.3e-05,
+    "sampled_value_evaluation": 0.036653,
+    "sampled_value_channel_mix": 0.000826,
+    "fri_quotient_build_and_commit": 0.345347,
+    "proof_of_work": 6e-06,
+    "fri_decommit": 0.029487,
+    "trace_decommit": 0.392949,
+    "constraint_check_and_assembly": 0.000351
+  },
+  "memory": {
+    "source_only_requested_peak_bytes": 908974443,
+    "native_requested_peak_bytes": 411418468,
+    "root_requested_peak_bytes": 1966512301,
+    "root_OS_max_RSS_bytes": 1978646528,
+    "fresh_qualifier_requested_peak_bytes": 905484851,
+    "final_live": 0,
+    "final_external": 0
+  },
+  "qualification": {
+    "realMachineSession_generated_all_calls_and_tapes": true,
+    "actual_capture_all_registers_PC_and_1023_before_after_packets_match_independent_Python": true,
+    "symbols_read_from_new_ELF_and_packet_permissions_pinned": true,
+    "source_security_resource_admission_before_native_and_root": true,
+    "full_height_active_prefix_and_mixed_CPU12_Tower15_geometry": true,
+    "CPU_OWNER_RAM160_per_call_Wire32_per_call_local_Miller_GKR_closes": true,
+    "full_manifest_image_and_terminal43B_closed_before_root_publish": true,
+    "independently_rebuilt_grouped_R7_source_key_accepts_root": true,
+    "source_only_native_proof_file_absent": true,
+    "existing_generic_root_controls": 7,
+    "additional_Miller_specific_controls": 9,
+    "positive_controls_before_and_after_service_specific_mutations": 2,
+    "balanced_Wire_metadata_passes_global_sum_then_physical_root_rejects": "PoseidonGlobalLookupSum",
+    "original_root_artifact_unchanged": true,
+    "all_focused_tests_pass": 65,
+    "no_root_or_native_proof_regenerated_for_attacks": true,
+    "heavy_guest_execution_or_heavy_proof_rerun": false
+  },
+  "additional_controls": [
+    {
+      "case": "missing_miller",
+      "returncode": 1,
+      "errors": [
+        "InvalidOpTowerCoverage"
+      ],
+      "physical_root_authority_reached": false
+    },
+    {
+      "case": "duplicate_miller",
+      "returncode": 1,
+      "errors": [
+        "InvalidOpTowerCoverage"
+      ],
+      "physical_root_authority_reached": false
+    },
+    {
+      "case": "truncated_span",
+      "returncode": 1,
+      "errors": [
+        "InvalidOpTowerCoverage"
+      ],
+      "physical_root_authority_reached": false
+    },
+    {
+      "case": "shifted_first_id",
+      "returncode": 1,
+      "errors": [
+        "InvalidOpTowerCoverage"
+      ],
+      "physical_root_authority_reached": false
+    },
+    {
+      "case": "extra_call",
+      "returncode": 1,
+      "errors": [
+        "TowerGeometry"
+      ],
+      "physical_root_authority_reached": false
+    },
+    {
+      "case": "missing_Miller_receipt",
+      "returncode": 1,
+      "errors": [
+        "OpRootLeafOrder"
+      ],
+      "physical_root_authority_reached": false
+    },
+    {
+      "case": "wrong_vm_profile",
+      "returncode": 1,
+      "errors": [
+        "UnsupportedEthereumExecutionProfile"
+      ],
+      "physical_root_authority_reached": false
+    },
+    {
+      "case": "wrong_terminal_output",
+      "returncode": 1,
+      "errors": [
+        "EthereumOutputMismatch"
+      ],
+      "physical_root_authority_reached": false
+    },
+    {
+      "case": "balanced_CPU_Miller_Wire",
+      "returncode": 1,
+      "errors": [
+        "PoseidonGlobalLookupSum"
+      ],
+      "physical_root_authority_reached": true
+    }
+  ],
+  "adversarial_scope": "Source-admission/framing and independent root-verifier rejections, not all AIR mutations",
+  "input_contract": {
+    "before_values": "arbitrary byte-bounded u256 modulo Fq; fixture starts canonical",
+    "VM_not_rejecting_noncanonical_before": true,
+    "after_values": "AIR-constrained canonical Fq via integer carries and distance/borrow identities",
+    "no_new_before_canonicality_assumption": true
+  },
+  "notes": [
+    "A bounded qualification, not a representative OP-block benchmark.",
+    "Fresh source-only verification reads cells+metadata and retained recursive root; no native proof or proposed verifier key is imported.",
+    "Source-admission/framing refusals are distinguished from physical-root rejection; not every negative is an AIR mutation.",
+    "Root producer wall is not separately isolated from the fresh receiver in this fixture test; only node timing and whole test are reported.",
+    "No claim of certified whole-protocol 128-bit security or default production promotion."
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/miller-capacity-1023-v1",
+  "reproduce": {
+    "generator": "python3 opstack/tools/miller_capacity_fixture.py NEW_DIRECTORY",
+    "test_target": "test-riscv64-op-pure-p2",
+    "filter": "OP Miller full span actual Machine",
+    "environment": [
+      "STWO_OP_MILLER_CAPACITY_CONFIG=.../config.json",
+      "STWO_OP_MILLER_CAPACITY_REFERENCE=.../reference.json",
+      "STWO_OP_MILLER_CAPACITY_MODE=plan|native|source|root|verify"
+    ],
+    "adversarial": "python3 opstack/tools/miller_capacity_adversarial.py DIRECTORY --binary CACHED_TEST_BINARY --cwd WORKTREE"
+  },
+  "logs": [
+    "/private/tmp/op-miller-capacity-plan.log",
+    "/private/tmp/op-miller-capacity-native.log",
+    "/private/tmp/op-miller-capacity-group-source.log",
+    "/private/tmp/op-miller-capacity-group-root.log",
+    "/private/tmp/op-miller-capacity-adversarial.log"
+  ]
+}
