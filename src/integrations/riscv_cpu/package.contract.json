@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_riscv_cpu_integration",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "layer": "integration",
   "owner": "riscv-cpu-integration",
   "public_modules": {
@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "stwo_artifact_store": "../../engine/artifact_store",
+    "stwo_circuit_cpu_integration": "../circuit_cpu",
+    "stwo_circuit_frontend": "../../frontends/circuit",
     "stwo_core": "../../waist/core",
     "stwo_cpu_backend": "../../backends/cpu_scalar",
     "stwo_prover_api": "../../waist/prover_api",

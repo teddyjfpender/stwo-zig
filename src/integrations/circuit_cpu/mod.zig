@@ -27,6 +27,24 @@ test "invariant: both profiles commit with the plain Blake2s Merkle hasher" {
     try std.testing.expect(prove.Internal.Channel != prove.Root.Channel);
 }
 
+test "api signature: OM31 CPU proof and wire preserve field authority" {
+    const P = om31.protocol;
+    comptime @import("stwo_prover_api").assertProverEngine(P.Engine);
+    try @import("std").testing.expect(P.Proof == @import("stwo_core").proof.ForField(P.O).StarkProof(P.H));
+    try @import("std").testing.expect(@TypeOf(@as(om31.wire.Owned, undefined).proof) == P.Proof);
+    const verify_fn = @typeInfo(@TypeOf(om31.prove.verify)).@"fn";
+    try @import("std").testing.expect(verify_fn.params[4].type.? == *const P.Proof);
+}
+
+test "invariant: OM31 retains its concrete transcript and rejects unknown profiles" {
+    const core = @import("stwo_core");
+    const P = om31.protocol;
+    try @import("std").testing.expect(P.O == core.fields.om31.OM31);
+    try @import("std").testing.expect(P.H == core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher);
+    try @import("std").testing.expect(P.Channel == core.channel.raw_mod_m31.Om31Channel);
+    try @import("std").testing.expectError(error.UnknownOm31OuterProfile, P.Profile.parse("unregistered-outer-profile"));
+}
+
 test {
     _ = air;
     _ = prove;

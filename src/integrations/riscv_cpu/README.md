@@ -2,7 +2,7 @@
 
 | Fact | Value |
 | --- | --- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `integration` |
 | Owner | `riscv-cpu-integration` |
 | Focused CI host | Linux |
@@ -154,6 +154,9 @@ boundary can be considered closed.
 
 ## Dependencies
 
+- `stwo_circuit_frontend`: shared circuit program and preprocessing authorities.
+- `stwo_circuit_cpu_integration`: existing OM31 fold/root proof and wire provider.
+
 The declared package dependencies are:
 
 | Package | Boundary used |
@@ -209,3 +212,11 @@ obligations; no complete-block or performance result follows from this guide.
 - [Restructure plan](../../../design/repository/restructure-plan.md)
 - [RISC-V frontend owner guide](../../frontends/riscv/README.md)
 - [RV64 delivery contract](../../../design/riscv/rv64-gpu-hygiene.md)
+
+RFC [#324](https://github.com/teddyjfpender/stwo-zig/issues/324) declares the
+existing OM31 CPU collaboration boundary. The circuit provider owns program,
+proof, wire and allocation teardown; the RISC-V consumer owns receiver policy,
+tree coverage and publication. Canonical package modules share field and engine
+identity. OM31 retains its existing **prefixed** Blake2s Merkle hasher and raw-mod
+transcript; the older circuit profiles retain their existing plain family.
+No hash family, wire bytes, profile admission or device qualification changes.

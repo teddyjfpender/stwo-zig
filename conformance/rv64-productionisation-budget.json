@@ -890,6 +890,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "RFC #326 authorizes only the exact runtime-profile expected digest and an existing-test process-usage mutation. Preserve all eight cases and complete-source rejection; null restoration and fresh admission verify ownership without production hashing or schema changes. Rollback restores this test-only transaction."
+    },
+    {
+      "id": "approved_cpu_circuit_boundary_rfc324",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "RFC #324 declares exactly three existing collaboration edges and the OM31 namespace. Provider tests pin concrete field/hash/transcript and proof/wire type identity; existing VK/root consumer tests run in the provider lane. Reuse canonical dependency modules, preserving teardown and all refusal cases. Revert the additive transaction for rollback; no device or protocol changes."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

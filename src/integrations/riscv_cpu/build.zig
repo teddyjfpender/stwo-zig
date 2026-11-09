@@ -31,6 +31,7 @@ pub fn build(b: *std.Build) void {
         dependency_options,
     ).module("stwo_cpu_backend");
     const circuit_frontend = b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend");
+    const circuit_cpu = b.dependency("stwo_circuit_cpu_integration", dependency_options).module("stwo_circuit_cpu_integration");
     const frontend_dependency = b.dependency(
         "stwo_riscv_frontend",
         dependency_options,
@@ -51,6 +52,7 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_riscv_frontend", frontend);
     integration.addImport("stwo_circuit_frontend", circuit_frontend);
+    integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     integration.addImport("interop_postcard", postcard);
 
     for ([_]struct { step: []const u8, root: []const u8, minimum: usize }{

@@ -306,6 +306,43 @@
         [
           "zig",
           "build",
+          "test-riscv64-m5-vk-table",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-riscv64-m5-rootverify",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-riscv64-m5-vk-table",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-riscv64-m5-rootverify",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
+          "test-circuit-om31",
+          "--build-file",
+          "src/integrations/circuit_cpu/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ],
+        [
+          "zig",
+          "build",
           "test",
           "--build-file",
           "src/integrations/circuit_cpu/build.zig",

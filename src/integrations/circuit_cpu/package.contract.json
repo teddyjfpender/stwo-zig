@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_circuit_cpu_integration",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "layer": "integration",
   "owner": "circuit-cpu-integration",
   "public_modules": {
@@ -13,6 +13,7 @@
     "stwo_circuit_recursion_wire": "../../waist/recursion_wire",
     "stwo_core": "../../waist/core",
     "stwo_cpu_backend": "../../backends/cpu_scalar",
+    "stwo_proof_wire": "../../waist/proof_wire",
     "stwo_prover_api": "../../waist/prover_api",
     "stwo_prover_engine": "../../engine/prover"
   },
@@ -25,6 +26,7 @@
     "Root",
     "air",
     "cairo_verifier_proof",
+    "om31",
     "prove",
     "recursion",
     "verifier_proof",
@@ -32,9 +34,11 @@
   ],
   "api_contract": {
     "signature_tests": [
+      "mod.zig::api signature: OM31 CPU proof and wire preserve field authority",
       "mod.zig::api signature: both channel profiles bind the CPU engine"
     ],
     "invariant_tests": [
+      "mod.zig::invariant: OM31 retains its concrete transcript and rejects unknown profiles",
       "mod.zig::invariant: both profiles commit with the plain Blake2s Merkle hasher"
     ]
   },

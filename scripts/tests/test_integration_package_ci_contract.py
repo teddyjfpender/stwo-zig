@@ -47,6 +47,13 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
             steps=("test-blake3-proof-contracts", "test"),
         )
 
+    def test_circuit_provider_runs_existing_cpu_receiver_contracts_first(self):
+        commands = self.policy["lanes"]["circuit_cpu_integration"]["commands"]
+        expected = [["zig", "build", step, "-Doptimize=" + mode, "-j2"] for mode in ("Debug", "ReleaseFast") for step in ("test-riscv64-m5-vk-table", "test-riscv64-m5-rootverify")]
+        self.assertEqual(expected, commands[:4])
+        self.assertEqual(["test-circuit-om31", "test"], [command[2] for command in commands[4:]])
+        self.assertTrue(all("src/integrations/circuit_cpu/build.zig" in command for command in commands[4:]))
+
     def test_cpu_blake3_corpus_has_exact_named_discovery_and_no_frontend_backend(self):
         integration = ROOT / "src/integrations/riscv_cpu"
         corpus = integration / "blake3_proof_contract_test_root.zig"

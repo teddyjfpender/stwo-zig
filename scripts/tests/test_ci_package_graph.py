@@ -24,7 +24,7 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
 EXPECTED_PACKAGES = 27
-EXPECTED_EDGES = 97
+EXPECTED_EDGES = 100
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
@@ -191,7 +191,7 @@ class RepositoryGraphTest(unittest.TestCase):
         }))
         self.assertEqual(unowned, frozenset())
 
-    def test_cairo_only_change_avoids_riscv_and_native_lanes(self) -> None:
+    def test_cairo_change_reaches_declared_cpu_circuit_consumers(self) -> None:
         lanes, _ = graph.selection(["src/frontends/cairo/air.zig"], self.packages, self.bindings)
         self.assertEqual(
             lanes,
@@ -203,14 +203,14 @@ class RepositoryGraphTest(unittest.TestCase):
                     "cairo_cuda_integration",
                     # The circuit prover evaluates the circuit AIR with the
                     # Cairo frontend's captured-AIR component.
+                    "riscv_cpu_integration",
+                    "riscv_metal_integration",
                     "circuit_cpu_integration",
                     "circuit_metal_integration",
                 }
             ),
         )
         self.assertNotIn("riscv_frontend", lanes)
-        self.assertNotIn("riscv_cpu_integration", lanes)
-        self.assertNotIn("riscv_metal_integration", lanes)
         self.assertNotIn("cuda_backend", lanes)
         self.assertNotIn("native_examples", lanes)
 

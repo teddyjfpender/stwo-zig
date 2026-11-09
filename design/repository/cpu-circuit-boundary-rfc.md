@@ -1,6 +1,7 @@
-# Draft RFC: explicit CPU circuit collaboration boundary
+# Approved RFC: explicit CPU circuit collaboration boundary
 
-Status: draft; no issue, invariant-owner approval or contract edit is recorded.
+Status: approved in [RFC #324](https://github.com/teddyjfpender/stwo-zig/issues/324).
+Owner decision: [approved, recorded by delegate](https://github.com/teddyjfpender/stwo-zig/issues/324#issuecomment-6739250749).
 Owners: `riscv-cpu-integration`, `circuit-cpu-integration`; consult `proof-wire`.
 
 ## Problem and exact decision requested
@@ -75,7 +76,8 @@ separately. The positive allowance owns explicit provider/consumer contracts and
 canonical module identity. Rollback reverts the additive binding and ledgers;
 no historical artifact reader or proof format is retired.
 
-ENGINEERING_STANDARDS.md BC-R2 and AC-1 require an approved RFC issue for these
-dependency/API changes. This draft requests an owner decision and separate
-authorization to open the RFC issue and record that decision. It records no
-approval and applies none of the proposed contract changes.
+The repository owner approved this exact transaction and opening the RFC on
+2026-11-09. Inspection pins OM31's existing prefixed Blake2s hasher; the older
+circuit profiles use the plain family. The draft's plain-family wording does
+not authorize changing OM31's implementation. Hosted provider and consumer
+acceptance remains pending; every original full-package command is retained.

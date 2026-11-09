@@ -15,7 +15,7 @@ prover, `recursion` folds leaf proofs into a root exactly as
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `integration` |
 | Owner | `circuit-cpu-integration` |
 | Public Zig module | `stwo_circuit_cpu_integration` |
@@ -66,6 +66,8 @@ The integration owns only composition:
   with the plain Blake2s Merkle hasher, so one preprocessed tree serves both.
 
 ## Public API
+
+- `om31`: existing native OM31 program, proof, transcript and bounded wire authorities.
 
 ```zig
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
@@ -118,6 +120,8 @@ The product `stwo-circuit-recursion-cpu leaf-wrap`
 `leaf-prover`'s `expected_output.json` byte for byte.
 
 ## Dependencies
+
+- `stwo_proof_wire`: owned field-specific proof codecs used by OM31 transport.
 
 - `stwo_cairo_frontend`: the captured-AIR component and `STWZEVA/1` bundle
   reader (`proving.air.component`, `witness.composition_bundle`).
@@ -302,3 +306,11 @@ milestone M11 work (design §9), not parity issues.
 - [Rust porting map](../../../design/starknet/recursion/01-rust-map.md)
 - [Circuit frontend](../../frontends/circuit/README.md)
 - [Circuit oracle](../../../tools/stwo-circuit-oracle-rs/README.md)
+
+RFC [#324](https://github.com/teddyjfpender/stwo-zig/issues/324) declares the
+existing OM31 CPU collaboration boundary. The circuit provider owns program,
+proof, wire and allocation teardown; the RISC-V consumer owns receiver policy,
+tree coverage and publication. Canonical package modules share field and engine
+identity. OM31 retains its existing **prefixed** Blake2s Merkle hasher and raw-mod
+transcript; the older circuit profiles retain their existing plain family.
+No hash family, wire bytes, profile admission or device qualification changes.
