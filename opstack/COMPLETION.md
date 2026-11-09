@@ -23,6 +23,37 @@ latency figures are not CPU acceptance criteria.
 | Security | 128-bit security target under documented assumptions; `security_qualified=false` | Bounded composed accounting for the concrete derivation, segmentation, recursive and settlement construction; no certification claim |
 | Regression hygiene | Fixed-source geometry repair; both heavy profiles accepted by final executable; 24 settlement tests pass, three external-fixture skips | Keep formats/defaults stable; resolve outstanding broader CI failures and qualify new shared changes independently |
 
+## Current optimization branch: explicit pure-P2 execution
+
+The CPU continuation is developing a separate construction rather than silently
+replacing the qualified execution controls above. Its records are in
+[`rv64-opstack-cpu-20261109`](../vectors/reports/rv64-opstack-cpu-20261109/) and
+[`rv64-opstack-performance-20261109`](../vectors/reports/rv64-opstack-performance-20261109/).
+
+| New construction gate | Established evidence | Still required |
+| --- | --- | --- |
+| Selected OP guest | Three real blocks agree with independent execution; heavy block runs 238,226,172 instructions, down from 380,167,068 | Complete native and recursive proofs of that selected heavy execution |
+| Compact native route | Actual block 120794432, CPU + Keccak + SHA, exact 43-byte result; retained 7,048,980-byte bundle and fresh receiver | Complete selected heavy execution; do not substitute preparation or replay for proving |
+| Bounded immutable setup | Two fresh heavy captures reuse all 36 setup classes with no new misses; all roots, public cells and final states match; 28.068 GB peak requested memory under 32 GiB; final heap/external counters zero | Uninterrupted warm end-to-end proving measurements; both preparation timers were interrupted |
+| R5 portable root-only handoff | Actual small block: three physical leaves, two folds, 667,304-byte root; fresh receiver derives source authority and verifies only the root | Practical performance: 305.567 seconds additional recursion remains too slow; not a default promotion |
+| R6 independent OM31 multiplication | Same actual small-block CPU wrapper: 57.847 → 30.934 seconds, 689,252-byte proof, fresh verification; source-only keys retire prover buffers with physical/recursive parity | Combined service-local GKR leaf, complete physical root and fresh root-only receiver; actual full-height heavy classes |
+| Service-local GKR | Native Keccak/secp fragments and recursive numerical authority; physical secp wrapper; source-owned inventory/receipt/framing integration | Regenerated whole native bundle, actual Keccak wrapper, complete recursive root and adversarial receiver; no fragment swapping across changed manifests |
+| Complete heavy performance | Matched D2 native + M6 root baseline 3,328.446 seconds | At most 332.845 seconds for the same heavy block, through a complete recursive root; **not achieved** |
+
+R5's source-only receiver loads source declarations and public cells, not native
+proof bytes. It retains exact expected program/image/output, terminal and global
+closure checks; a small final proof does not eliminate cold source-key setup.
+R6's receiver additionally discards prover-only FIXED buffers after independently
+constructing each source key. This is a retention improvement, not avoidance of
+the initial commitment or a certified security claim.
+
+The current `rv64-op-native` and `rv64-op-root` commands expose only their explicit
+experimental route; they do not switch the historical Ethereum driver or its
+profiles. Admission of service-local GKR requires the receiver's independent
+protocol selection and complete physical gates. The production security label
+remains **128-bit security target under documented assumptions** with
+`security_qualified=false`.
+
 ## Working rules
 
 The [CPU continuation receipt](../vectors/reports/rv64-opstack-cpu-20261108/README.md)
