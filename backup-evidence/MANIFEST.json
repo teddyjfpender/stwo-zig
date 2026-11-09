@@ -1,0 +1,591 @@
+{
+  "schema": "stwo-delivery-evidence-backup-v1",
+  "source_snapshot_commit": "bdb8ad3871d82f5121868865c77b3409685aed0c",
+  "created_utc": "2026-11-09T14:27:08.567781+00:00",
+  "native_execution_source_commit": "d5c93e3ab25326dd29ea480ab31c70890ef60dbd",
+  "scope": "Native CPU AVX512 isolated failure and production noinline acceptance on EPYC 9V45; retained negative/partial formal and CPU contract output; no GPU or full-proof/timing qualification",
+  "parts": [
+    {
+      "name": "evidence.tar.gz.part000",
+      "bytes": 2552496,
+      "sha256": "ac78dff418c9a708647a0fb839f12ee6e50f7f750923c491f76197c3fc970f5b"
+    }
+  ],
+  "files": [
+    {
+      "path": "stwo-a1-runtime-65-terminal.log",
+      "bytes": 213124,
+      "sha256": "2d2185ce67369ef216f3e58cd9958e4db86d89754bc8a59460f15abfc5e8b37a"
+    },
+    {
+      "path": "stwo-a1-standalone-runtime-65/native_cuda_static-0.stderr",
+      "bytes": 494,
+      "sha256": "d3258eadcd3d711f41cd218a0bc3e84deb3f925371a813a70bb0092b8f7e33a8"
+    },
+    {
+      "path": "stwo-a1-standalone-runtime-65/native_cuda_static-0.stdout",
+      "bytes": 126,
+      "sha256": "21cbdea799baabacfe363a0d8f7ae3a99a27090fc00c2c46f91d28ff7f1a0fda"
+    },
+    {
+      "path": "stwo-a1-standalone-runtime-65/native_cuda_static-1.stderr",
+      "bytes": 9127,
+      "sha256": "408ac15ad7fb2022540d3ee399dff3a481b0e0383f8b6e3141ee9defa5683219"
+    },
+    {
+      "path": "stwo-a1-standalone-runtime-65/native_cuda_static-1.stdout",
+      "bytes": 246,
+      "sha256": "9bcd7004e6efdc3c00519f954e49088a3b705dddb981fac40b7fa84ff13b8fae"
+    },
+    {
+      "path": "stwo-a1-standalone-runtime-65/native_cuda_static.json",
+      "bytes": 1000,
+      "sha256": "0545b8395caac82aebe9f5bc64fac5a6ff4742feb4c3a7ad7adef87e6e2a6dd7"
+    },
+    {
+      "path": "stwo-a3-core-d5-terminal.log",
+      "bytes": 290952,
+      "sha256": "6b89bf5b6757a7e6c0890748e606bf4cc6595d3971405bb82d5ec531235cb473"
+    },
+    {
+      "path": "stwo-child-owner-e325-terminal/child-capture-fixture/claims.json",
+      "bytes": 4188,
+      "sha256": "015e062b1e0b582b0d812ac496a6d94f1ede83aeaca99421eedfcd1af8db0efa"
+    },
+    {
+      "path": "stwo-child-owner-e325-terminal/child-capture-fixture/key.json",
+      "bytes": 2808542,
+      "sha256": "e5fb45e1b74c32219af17cda598e1fbd56ed61055be19dde260a03d2d0b015a2"
+    },
+    {
+      "path": "stwo-child-owner-e325-terminal/child-capture-fixture.json",
+      "bytes": 1182,
+      "sha256": "597b09134875ee93dc6ffd673d0f1b8d779114903b40f7aaeb2c0921959510c0"
+    },
+    {
+      "path": "stwo-child-owner-e325-terminal/riscv_cpu_integration-0.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-child-owner-e325-terminal/riscv_cpu_integration-0.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-child-owner-e325-terminal/riscv_cpu_integration-1.stderr",
+      "bytes": 1616,
+      "sha256": "f0bbe2c6e2aabd31a54fd2d0db62608c53e7e1e2e8e497c316443788ff4ed8a7"
+    },
+    {
+      "path": "stwo-child-owner-e325-terminal/riscv_cpu_integration-1.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/SELECTED.json",
+      "bytes": 16776,
+      "sha256": "257a9b89dcc21f912856e9cc7af46ed21d0cc751406b71baf93374bb440f5850"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/comparison.json",
+      "bytes": 38220,
+      "sha256": "ee1c02dd405d650de78d1fd57de6545e74ff6d325c1a5daa7a0cfa3256bd06bd"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/cpuinfo.txt",
+      "bytes": 5952,
+      "sha256": "125c2446c94ffc2f1f02adf2d7c713ef7830731f25f190fb6014793c8ef5dce2"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current/src/waist/core/package.contract.json",
+      "bytes": 1198,
+      "sha256": "5af0a2c856d81f218ee9080c770a862bec947e9cc631181e402464f1b419ccca"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-Debug.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-ReleaseFast.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-ReleaseSafe.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline/package.contract.json",
+      "bytes": 1198,
+      "sha256": "5af0a2c856d81f218ee9080c770a862bec947e9cc631181e402464f1b419ccca"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-Debug.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-ReleaseFast.stderr",
+      "bytes": 1015,
+      "sha256": "907cbc2f97ec2d37366003fcfe7653a5201435e02c1c76510dbccd986541ef45"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-ReleaseSafe.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-checked/package.contract.json",
+      "bytes": 1198,
+      "sha256": "5af0a2c856d81f218ee9080c770a862bec947e9cc631181e402464f1b419ccca"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-checked-Debug.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-checked-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-checked-ReleaseFast.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-checked-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-checked-ReleaseSafe.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-checked-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-fold-only-ReleaseFast.stderr",
+      "bytes": 776,
+      "sha256": "e77bd0a7697047a5f641cf2925bdcda28b68b1172548d286f85d94a178f6c6da"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/current-inline-fold-only-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v3-Debug.stderr",
+      "bytes": 85,
+      "sha256": "9b81f47f3bec1ce57b0a85fb87effae6f372cc24e0213eb224a2204c58036fa9"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v3-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v3-ReleaseFast.stderr",
+      "bytes": 85,
+      "sha256": "9b81f47f3bec1ce57b0a85fb87effae6f372cc24e0213eb224a2204c58036fa9"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v3-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v3-ReleaseSafe.stderr",
+      "bytes": 85,
+      "sha256": "9b81f47f3bec1ce57b0a85fb87effae6f372cc24e0213eb224a2204c58036fa9"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v3-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v4-Debug.stderr",
+      "bytes": 85,
+      "sha256": "9b81f47f3bec1ce57b0a85fb87effae6f372cc24e0213eb224a2204c58036fa9"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v4-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v4-ReleaseFast.stderr",
+      "bytes": 668,
+      "sha256": "be5161d805d71c2705f8d0b72ab612c4aad4870b48bd3d8b3be26e1f59a2b557"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v4-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v4-ReleaseSafe.stderr",
+      "bytes": 85,
+      "sha256": "9b81f47f3bec1ce57b0a85fb87effae6f372cc24e0213eb224a2204c58036fa9"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-x86_64_v4-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-znver4-Debug.stderr",
+      "bytes": 85,
+      "sha256": "9b81f47f3bec1ce57b0a85fb87effae6f372cc24e0213eb224a2204c58036fa9"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-znver4-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-znver4-ReleaseFast",
+      "bytes": 2509968,
+      "sha256": "6aceaf3f93bd4b2f4783fcd7b712318987be3ddab8de730ec352da6e985f121b"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-znver4-ReleaseFast.ll",
+      "bytes": 14351888,
+      "sha256": "6cfbbedcceb4a9eedb1e6bf766ec7cafc77c182b1270e3cc004223fd3d5717f9"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-znver4-ReleaseFast.stderr",
+      "bytes": 665,
+      "sha256": "e9d59a09b8295f277620ae440edd893f5a0c1eb7c168ea48a0e1f738fe7f5935"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-znver4-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-znver4-ReleaseSafe.stderr",
+      "bytes": 85,
+      "sha256": "9b81f47f3bec1ce57b0a85fb87effae6f372cc24e0213eb224a2204c58036fa9"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/isolated-minimal-znver4-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/isolated-minimal/minimal.zig",
+      "bytes": 6115,
+      "sha256": "615f72e52f9d93a1c803a95165a258203ace7cefd984003654aa84be4377dde2"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/lscpu.txt",
+      "bytes": 3362,
+      "sha256": "9e4b12c784c42c427436ccf7cee76f48c7cabb56fc17fefb5e682ff1a67bc73c"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main/src/core/package.contract.json",
+      "bytes": 1192,
+      "sha256": "bdf75085ddb8ee92e9399ecbd2dd5abedef0f92e97e873d11848780742376896"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-Debug.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-ReleaseFast.stderr",
+      "bytes": 1005,
+      "sha256": "fec317c4ca4e6638cbc3d8f1c74e29de52e3fafe2036f0f7d7278d237829a55c"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-ReleaseSafe.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v3-Debug.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v3-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v3-ReleaseFast.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v3-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v3-ReleaseSafe.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v3-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v4-Debug.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v4-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v4-ReleaseFast.stderr",
+      "bytes": 1024,
+      "sha256": "fe63c7d0058a112ab70df5f323155db6604cb1edd444f5678b8da4654de766aa"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v4-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v4-ReleaseSafe.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-x86_64_v4-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-znver4-Debug.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-znver4-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-znver4-ReleaseFast.stderr",
+      "bytes": 1021,
+      "sha256": "599235f2410f202ff63848054b79225ba79c1d34675c960bcbd5bbd20b3fa080"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-znver4-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-znver4-ReleaseSafe.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-explicit-znver4-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-fold-only-ReleaseFast.stderr",
+      "bytes": 766,
+      "sha256": "d5a700e25432b1c03c461fdcb498c3a9659b15b0d3637f3467345b0044445e6a"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/main-fold-only-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/rejected-schoolbook/src/waist/core/package.contract.json",
+      "bytes": 1198,
+      "sha256": "5af0a2c856d81f218ee9080c770a862bec947e9cc631181e402464f1b419ccca"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/rejected-schoolbook-Debug.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/rejected-schoolbook-Debug.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/rejected-schoolbook-ReleaseFast.stderr",
+      "bytes": 1020,
+      "sha256": "6e5e48676cbab8ec504ef34eb7b279fa321193d82f67d319545162812b718e90"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/rejected-schoolbook-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/rejected-schoolbook-ReleaseSafe.stderr",
+      "bytes": 362,
+      "sha256": "af683015b3e1b3d7340a58730385f16021768731fd8a73410ec52d1a433ec214"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/rejected-schoolbook-ReleaseSafe.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/rejected-schoolbook-fold-only-ReleaseFast.stderr",
+      "bytes": 781,
+      "sha256": "7e822ab49b0abac2f5249622527c77b37ae2c486e17a6d5dd12d13613dd6764d"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/cm31-main-comparison/rejected-schoolbook-fold-only-ReleaseFast.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core-0.stderr",
+      "bytes": 197,
+      "sha256": "e5a85aa0a68f7409e2b1b29b304b54a9fdc871b58e6e938d3ecd687b72e05bb6"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core-0.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core-1.stderr",
+      "bytes": 197,
+      "sha256": "e5a85aa0a68f7409e2b1b29b304b54a9fdc871b58e6e938d3ecd687b72e05bb6"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core-1.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core-2.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core-2.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core-3.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core-3.stdout",
+      "bytes": 146,
+      "sha256": "1127dd3ebd5f3420e0f2f0353323d30d0dc110c459a7ee46ace67e89374121e4"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core-4.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core-4.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-d5/core.json",
+      "bytes": 2167,
+      "sha256": "31f8c9af10a40dd0eb2e15d28333331ae095a46c6112104bab09c1ef80552df5"
+    },
+    {
+      "path": "stwo-cm31-native-avx512-upstream-comment.md",
+      "bytes": 1680,
+      "sha256": "29af1b71f9cfc5b540c91a25ae5a5b6be9fa8804ddc7416ae565dccc4374c8c5"
+    },
+    {
+      "path": "stwo-formal-branch-bootstrap-source-audit.json",
+      "bytes": 4405,
+      "sha256": "fe229ccfddd1e9fdf9575661046a35f399ce89b067122fb56743a12261626c4f"
+    },
+    {
+      "path": "stwo-formal-branch-candidate-semantic-comparison.json",
+      "bytes": 14741,
+      "sha256": "572b941c00ff054070cee694d9db8e6309fd831eb74691f860adab007f6db734"
+    },
+    {
+      "path": "stwo-formal-cc5-terminal.log",
+      "bytes": 22121,
+      "sha256": "c4b59cbc402e05b9587bf483fdaaba2ce2598439269c7eb4cbc28b19b8a9f7a3"
+    },
+    {
+      "path": "stwo-restored-contracts-c293-terminal/riscv_retained_contracts-0.stderr",
+      "bytes": 3760,
+      "sha256": "38c696ecdada5dca8bcd7b1201b41ec3d29df840725a647f979558a55bf4269f"
+    },
+    {
+      "path": "stwo-restored-contracts-c293-terminal/riscv_retained_contracts-0.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
