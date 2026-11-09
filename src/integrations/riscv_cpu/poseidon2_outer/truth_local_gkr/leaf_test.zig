@@ -70,7 +70,7 @@ pub const View = struct {
 };
 const Hook = struct {
     pub fn run(backing: std.mem.Allocator, key: *const Native.Key, truth: R.Truth, expected: Manifest.Expected, pending: *const Manifest.Pending, encoded: *const Native.Encoded, capture: anytype) !void {
-        const budget = try @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.createRetainingParent(backing, 8 << 30);
+        const budget = try @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.createRetainingParent(backing, if (std.posix.getenv("STWO_OP_TRUTH_LOCAL_GKR_PHYSICAL") != null) 12 << 30 else 8 << 30);
         defer budget.destroy();
         const a = budget.allocator();
         var proof = try Protocol.W.Wire.decodeProofBytesBinary(a, encoded.bytes);

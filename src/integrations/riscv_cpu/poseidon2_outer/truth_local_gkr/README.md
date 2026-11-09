@@ -47,7 +47,10 @@ The pre-extraction classic Keccak/secp proof envelopes are pinned byte-for-byte
 in `legacy_parity_test.zig`; both old fresh receivers accept those proofs.
 
 Complete recursive numerical and adversarial gates pass for Keccak and secp.
-Physical recursive qualification is separate. Whole-execution admission,
+The secp R5 physical leaf is qualified. The larger Keccak R5 leaf refuses
+8/12 GiB allocator caps; its physical gate remains pending. Combining the
+explicit R6 multiplication lane and its compact storage is the next gate.
+No retained R5 authority or proof source file is changed. Whole-execution admission,
 source-only recursive topology/factory integration,
 complete-block qualification and controlled performance measurements remain
 separate gates. A smaller native trace does not itself establish a faster

@@ -158,5 +158,34 @@
       "p2_permutations": 15466,
       "forged_terminal_MAIN_global_claim_ninth_output_rejected": true
     }
+  ],
+  "recursive_physical_fixtures": [
+    {
+      "kind": "secp_add",
+      "roster": "R5",
+      "bytes": 611976,
+      "fresh_source_key": true,
+      "wrong_ninth_output_rejected": true,
+      "allocator_cap_bytes": 8589934592,
+      "qualified": true
+    },
+    {
+      "kind": "keccak",
+      "roster": "R5",
+      "qualified": false,
+      "results": [
+        {
+          "allocator_cap_bytes": 8589934592,
+          "error": "OutOfMemory"
+        },
+        {
+          "allocator_cap_bytes": 12884901888,
+          "error": "OutOfMemory"
+        }
+      ],
+      "native_and_recursive_numerical_passed": true,
+      "physical_proof_accepted": false,
+      "next_gate": "R6 native OM multiplication plus compact storage; do not rekey retained R5 authority or raise caps without a new measured resource plan"
+    }
   ]
 }
