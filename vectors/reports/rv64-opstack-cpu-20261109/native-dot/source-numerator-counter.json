@@ -1,0 +1,173 @@
+{
+  "schema": "op-native-dot-numerator-counter/v1",
+  "witness_free_source_models_only": true,
+  "heavy_execution": false,
+  "native_or_recursive_proof_produced": false,
+  "counter_changes_restored_before_commit": true,
+  "control_native_source_identities_equal": true,
+  "control_complete_raw_censuses_equal": true,
+  "control_all_phase_counts_equal": true,
+  "baseline": "vectors/reports/rv64-opstack-cpu-20261109/pure-p2-r6-heavy-source-class-model-v1.json",
+  "classes": [
+    {
+      "ordinal": 3,
+      "source_native_key": "b9c4fc6bbd7aa514a7a70f512aed206a3bab04c15f475584754e85497af9442d",
+      "native_columns": [
+        216,
+        3664,
+        2016,
+        16
+      ],
+      "native_oods_samples": [
+        202,
+        3855,
+        2808,
+        16
+      ],
+      "census": {
+        "raw": [
+          36418,
+          4809612,
+          2522,
+          80066,
+          65536,
+          174158
+        ],
+        "rows": [
+          65536,
+          8388608,
+          4096,
+          131072,
+          65536,
+          262144
+        ],
+        "logs": [
+          16,
+          23,
+          12,
+          17,
+          16,
+          18
+        ],
+        "main_cells": 169689088,
+        "interaction_cells": 166821888,
+        "fixed_cells": 79245312,
+        "total_native_cells": 415756288
+      },
+      "dot_numerator": {
+        "queries": 72,
+        "dots": 2520,
+        "terms": 566208,
+        "empty_dots": 0,
+        "min_dot_length": 8,
+        "max_dot_length": 5898,
+        "qm31_rows": 2259648,
+        "qm31_add": 1127304,
+        "qm31_sub": 0,
+        "qm31_mul": 1132344,
+        "native_full_mul": 0,
+        "zero_weight_c0": 72,
+        "zero_weight_c1": 0,
+        "one_weight_c0": 0,
+        "one_weight_c1": 0,
+        "scalar_zero_id": 0,
+        "scalar_one_id": 0,
+        "accumulator_zero_c0": 2592,
+        "accumulator_zero_c1": 2520,
+        "scalar_input_type_is_base_wrapper": true,
+        "numerical_nonbase_slots_checked": false
+      },
+      "whole_deep_phase": {
+        "eq": 2590,
+        "arithmetic": 2363395,
+        "m31_to_u32": 0,
+        "poseidon": 0,
+        "variables": 2460336,
+        "guessed_variables": 2555
+      }
+    },
+    {
+      "ordinal": 20,
+      "source_native_key": "229cc42b39b4a8f8e540deb99b23eea4453a6d726a976ba73255e146b416b666",
+      "native_columns": [
+        206,
+        3370,
+        1888,
+        16
+      ],
+      "native_oods_samples": [
+        192,
+        3546,
+        2640,
+        16
+      ],
+      "census": {
+        "raw": [
+          35736,
+          4554842,
+          2474,
+          76886,
+          65536,
+          167853
+        ],
+        "rows": [
+          65536,
+          8388608,
+          4096,
+          131072,
+          65536,
+          262144
+        ],
+        "logs": [
+          16,
+          23,
+          12,
+          17,
+          16,
+          18
+        ],
+        "main_cells": 169689088,
+        "interaction_cells": 166821888,
+        "fixed_cells": 79245312,
+        "total_native_cells": 415756288
+      },
+      "dot_numerator": {
+        "queries": 72,
+        "dots": 1944,
+        "terms": 527184,
+        "empty_dots": 0,
+        "min_dot_length": 8,
+        "max_dot_length": 5466,
+        "qm31_rows": 2104704,
+        "qm31_add": 1050408,
+        "qm31_sub": 0,
+        "qm31_mul": 1054296,
+        "native_full_mul": 0,
+        "zero_weight_c0": 72,
+        "zero_weight_c1": 0,
+        "one_weight_c0": 0,
+        "one_weight_c1": 0,
+        "scalar_zero_id": 0,
+        "scalar_one_id": 0,
+        "accumulator_zero_c0": 2016,
+        "accumulator_zero_c1": 1944,
+        "scalar_input_type_is_base_wrapper": true,
+        "numerical_nonbase_slots_checked": false
+      },
+      "whole_deep_phase": {
+        "eq": 1998,
+        "arithmetic": 2194803,
+        "m31_to_u32": 0,
+        "poseidon": 0,
+        "variables": 2284650,
+        "guessed_variables": 1971
+      }
+    }
+  ],
+  "notes": [
+    "Counter reads existing builder operation counters around numerator.mulInner/add only; no gates, variables or transcript calls are emitted.",
+    "Mask offset vectors contain implicit periodicity entries beyond their simple sum: SamplePlan.init duplicates each two-mask column at its periodicity shift.",
+    "Base scalar wrapper type is known; no numerical nonbase-input claim follows from trace-only placeholder values.",
+    "No production source hook, roster, DEEP emitter, R5 or R6 defaults were changed."
+  ]
+}
