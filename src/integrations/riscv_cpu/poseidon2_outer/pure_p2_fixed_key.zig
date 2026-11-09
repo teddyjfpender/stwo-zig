@@ -9,6 +9,7 @@ pub const Key = struct {
     allocator: std.mem.Allocator,
     profile: P.Profile,
     source_root: [32]u8,
+    source_geometry: [32]u8,
     identity: [32]u8,
     root: W.H.Hash,
     tree: W.Scheme.CommittedTree,
@@ -32,24 +33,8 @@ pub const Key = struct {
         h.update(&setup.materials.program.identity);
         h.update(&setup.key.root);
         h.update(&root);
-        const geometry = try std.json.Stringify.valueAlloc(a, .{ .geometry = setup.materials.geometry, .bridges = setup.bridges }, .{});
-        defer a.free(geometry);
-        h.update(geometry);
-        // Complete ordered source geometry, including the reduced local bindings.
-        var plan = try @import("../word16_global_execution/services/gkr_local/cpu_components.zig").Plan.init(a, setup);
-        defer plan.deinit();
-        for (0..3) |index| {
-            const logs = if (index < 2) try setup.logs(a, index) else try plan.interLogs(a);
-            defer a.free(logs);
-            var bytes: [4]u8 = undefined;
-            std.mem.writeInt(u32, &bytes, @intCast(logs.len), .little);
-            h.update(&bytes);
-            for (logs) |log| {
-                std.mem.writeInt(u32, &bytes, log, .little);
-                h.update(&bytes);
-            }
-        }
-        return .{ .allocator = a, .profile = profile, .source_root = setup.key.root, .identity = h.finalResult(), .root = root, .tree = tree };
+        const source_geometry = try geometryIdentity(a, setup, &h);
+        return .{ .allocator = a, .profile = profile, .source_root = setup.key.root, .source_geometry = source_geometry, .identity = h.finalResult(), .root = root, .tree = tree };
     }
     pub fn deinit(self: *Key) void {
         self.tree.deinit(self.allocator);
@@ -57,6 +42,7 @@ pub const Key = struct {
     }
     pub fn require(self: *const Key, setup: *const R.CpuSetup, profile: P.Profile) !void {
         if (profile != self.profile or !std.mem.eql(u8, &self.source_root, &setup.key.root) or !std.mem.eql(u8, &self.root, &self.tree.root())) return error.PoseidonNativeFixedAuthorityMismatch;
+        if (!std.mem.eql(u8, &self.source_geometry, &try geometryIdentity(self.allocator, setup, null))) return error.PoseidonNativeFixedGeometryMismatch;
     }
     pub fn statement(self: *const Key, setup: *const R.CpuSetup, request: anytype, first: anytype) [32]u8 {
         var h = std.crypto.hash.sha2.Sha256.init(.{});
@@ -79,3 +65,32 @@ pub const Key = struct {
         try scheme.appendCommittedTree(a, tree, ch);
     }
 };
+
+fn geometryIdentity(a: std.mem.Allocator, setup: *const R.CpuSetup, identity: ?*std.crypto.hash.sha2.Sha256) ![32]u8 {
+    var geometry_hash = std.crypto.hash.sha2.Sha256.init(.{});
+    geometry_hash.update("opstack-pure-p2/source-ordered-geometry/v1\x00");
+    geometry_hash.update(&setup.materials.program.identity);
+    geometry_hash.update(&setup.key.root);
+    const geometry = try std.json.Stringify.valueAlloc(a, .{ .geometry = setup.materials.geometry, .bridges = setup.bridges }, .{});
+    defer a.free(geometry);
+    mixGeometry(&geometry_hash, identity, geometry);
+    // Complete ordered source geometry, including the reduced local bindings.
+    var plan = try @import("../word16_global_execution/services/gkr_local/cpu_components.zig").Plan.init(a, setup);
+    defer plan.deinit();
+    for (0..3) |index| {
+        const logs = if (index < 2) try setup.logs(a, index) else try plan.interLogs(a);
+        defer a.free(logs);
+        var bytes: [4]u8 = undefined;
+        std.mem.writeInt(u32, &bytes, @intCast(logs.len), .little);
+        mixGeometry(&geometry_hash, identity, &bytes);
+        for (logs) |log| {
+            std.mem.writeInt(u32, &bytes, log, .little);
+            mixGeometry(&geometry_hash, identity, &bytes);
+        }
+    }
+    return geometry_hash.finalResult();
+}
+fn mixGeometry(hash: *std.crypto.hash.sha2.Sha256, identity: ?*std.crypto.hash.sha2.Sha256, bytes: []const u8) void {
+    hash.update(bytes);
+    if (identity) |other| other.update(bytes);
+}

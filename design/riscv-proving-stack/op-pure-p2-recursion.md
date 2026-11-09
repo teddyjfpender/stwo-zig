@@ -235,3 +235,23 @@ The committed receipt is `pure-p2-actual-cpu-circuit-v1.json` in this report fol
 Physical outer proving, independently rebuilt authority and pure folds remain
 the next gates. The scalar OM31 P2 domain evaluator is an identified large-log
 performance risk; base-field SIMD domain evaluation is the concrete follow-up.
+
+## Actual CPU physical outer gate and geometry guard
+
+The complete actual CPU circuit now proves physically in ReleaseFast: 670,028
+bytes; circuit build 0.133s, source-key/prover/destruction 30.756s, fresh trace-only
+source reconstruction/key/receiver 5.640s. Whole build/test peak RSS is
+8,566,407,168 bytes. The producer context and key are destroyed before the fresh
+receiver, which binds the independently expected nine-limb public frame. Circuit
+MAIN sample, terminal and ninth-output mutations reject; outer ninth-output and
+claimed-sum proof-byte mutations reject. This is a correctness gate, not a fast
+OP block result. Opt in with `STWO_OP_P2_FULL_CPU_PHYSICAL=1`.
+
+Source FIXED roots alone cannot establish native geometry: differently sized
+zero columns can share a lifted root. The new pure CPU key now retains and
+rechecks a lightweight source fingerprint over program/source identity, geometry,
+bridges and the complete ordered FIXED/MAIN/INTER logs. It does not rebuild a
+FIXED tree on each request. The existing key-identity byte stream is unchanged;
+its geometry emitter also computes the separate fingerprint. A changed CPU log
+with unchanged source root/key now rejects explicitly, and existing native
+fixture proofs remain byte-identical. Production default suites are unchanged.

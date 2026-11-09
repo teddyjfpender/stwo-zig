@@ -1,0 +1,32 @@
+{
+  "bytes": 670028,
+  "build_ns": 133300875,
+  "prove_ns": 30755956375,
+  "fresh_receive_ns": 5639628416,
+  "sha256": "90f49523c5da87e29f052b2461a24ddf5ebe6fbe542f7172a30b4eb75f157f3b",
+  "schema": "stwo.opstack.pure-p2-actual-cpu-physical.v1",
+  "scope": "actual firstCPU of independently admitted twoCPU five-retirement fixture; complete native source AIR/PCS/GKR/publicframe verification wrapped in physical P2 STARK",
+  "optimize": "ReleaseFast",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "peak_rss_bytes": 8566407168,
+  "peak_scope": "whole build/test command child highwater; includes native/source/circuit/outer proof; not a per-stage bound",
+  "production_admission_open": false,
+  "security_qualified": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "fresh_receiver": "producer context and authority destroyed, independently reconstruct trace-only source graph/key identity, verify expected nine-limb public frame",
+  "mutants": [
+    "MAIN OODS circuit coordinate",
+    "local GKR terminal circuit coordinate",
+    "ninth output circuit coordinate",
+    "ninth output physical claim",
+    "physical claimed-sum proof byte",
+    "setup geometry changed with unchanged source FIXED root"
+  ],
+  "remaining": [
+    "full-size native geometry/source-roster qualification",
+    "all service truth families",
+    "durable manifest codec and independent root receiver",
+    "pure folds and adjacency/global coverage",
+    "matched heavy native+root <=332.845s"
+  ]
+}

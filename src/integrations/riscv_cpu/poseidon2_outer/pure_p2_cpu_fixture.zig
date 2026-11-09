@@ -58,6 +58,11 @@ pub fn exerciseWithAllocator(a: std.mem.Allocator, comptime Hook: type) !void {
         key_count += 1;
         try std.testing.expectEqualSlices(u8, &key.root, &receiver.root);
         try std.testing.expectEqualSlices(u8, &key.identity, &receiver.identity);
+        var altered = setup_ptrs[i].*;
+        altered.materials.geometry.cpu_log += 1;
+        // Source FIXED root and key object are unchanged; native geometry is not.
+        try std.testing.expectEqualSlices(u8, &setup_ptrs[i].key.root, &altered.key.root);
+        try std.testing.expectError(error.PoseidonNativeFixedGeometryMismatch, key.require(&altered, profile));
     }
     const natives = [_]*@import("../word16_global_execution/services/../../word16_execution/prepared.zig").Prepared{ &captured.native[0], &captured.native[1] };
     var requests: [2]P.Request = undefined;
