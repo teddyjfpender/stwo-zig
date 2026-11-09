@@ -30,6 +30,7 @@ pub fn build(b: *std.Build) void {
         "stwo_cpu_backend",
         dependency_options,
     ).module("stwo_cpu_backend");
+    const circuit_frontend = b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend");
     const frontend_dependency = b.dependency(
         "stwo_riscv_frontend",
         dependency_options,
@@ -49,6 +50,7 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_riscv_frontend", frontend);
+    integration.addImport("stwo_circuit_frontend", circuit_frontend);
     integration.addImport("interop_postcard", postcard);
 
     for ([_]struct { step: []const u8, root: []const u8, minimum: usize }{
@@ -110,7 +112,7 @@ pub fn build(b: *std.Build) void {
     const d2_circuit_root = b.createModule(.{ .root_source_file = b.path("rv64_d2_circuit_test_root.zig"), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
     var d2_circuit_imports = native_gkr_root.import_table.iterator();
     while (d2_circuit_imports.next()) |entry| d2_circuit_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
-    d2_circuit_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend"));
+    d2_circuit_root.addImport("stwo_circuit_frontend", circuit_frontend);
     const d2_circuit_tests = b.addTest(.{ .root_module = d2_circuit_root, .filters = &.{"D2 actual native CPU recursive"} });
     b.step("test-d2-circuit-census", "Construct and census actual native default/D2 CPU recursive verifier graphs").dependOn(testDependency(b, d2_circuit_tests, check_only, 0));
     const census_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_census_main.zig"), .target = target, .optimize = optimize });
@@ -121,7 +123,7 @@ pub fn build(b: *std.Build) void {
     const native_gkr_circuit_root = b.createModule(.{ .root_source_file = b.path("rv64_native_gkr_circuit_test_root.zig"), .target = target, .optimize = optimize });
     var native_gkr_imports = native_gkr_root.import_table.iterator();
     while (native_gkr_imports.next()) |entry| native_gkr_circuit_root.addImport(entry.key_ptr.*, entry.value_ptr.*);
-    native_gkr_circuit_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend"));
+    native_gkr_circuit_root.addImport("stwo_circuit_frontend", circuit_frontend);
     const native_gkr_circuit_tests = b.addTest(.{ .root_module = native_gkr_circuit_root, .filters = if (native_gkr_filter) |filter| &.{filter} else &.{} });
     b.step("test-native-gkr-circuit", "Test recursion-owned native GKR circuit and PCS statement adapters").dependOn(testDependency(b, native_gkr_circuit_tests, check_only, 0));
 

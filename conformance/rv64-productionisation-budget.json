@@ -668,6 +668,13 @@
       "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
     },
     {
+      "id": "delivery_existing_circuit_dependency_binding",
+      "net_code_budget": 10,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Bind the canonical circuit frontend already present in the CPU integration's build manifest and focused roots to its main test module, where five real compiler errors currently report it missing. Resolve that existing module once and reuse it for all three roots. No new dependency edge, public API ledger, filter, test floor, source admission or implementation change. Fresh full CPU integration acceptance remains required."
+    },
+    {
       "id": "delivery_measured_configure_catalog_batch",
       "net_code_budget": 100,
       "flags_added_budget": 0,
