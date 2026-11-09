@@ -109,6 +109,18 @@ class ComputeSummaryTests(unittest.TestCase):
         self.assertEqual(panic, self.mod.REJECTION_CLASS_ROBUSTNESS)
         self.assertEqual(signal, self.mod.REJECTION_CLASS_ROBUSTNESS)
 
+    def test_authenticated_preprocessing_error_is_semantic_without_masking_crashes(self):
+        message = "error: InvalidPreprocessedCommitment"
+        self.assertEqual(self.mod.REJECTION_CLASS_VERIFIER,
+                         self.mod.classify_rejection("", message, return_code=1))
+        for status in (-6, 101):
+            self.assertEqual(self.mod.REJECTION_CLASS_ROBUSTNESS,
+                             self.mod.classify_rejection("", message, return_code=status))
+        self.assertEqual(self.mod.REJECTION_CLASS_ROBUSTNESS,
+                         self.mod.classify_rejection("", message + "\npanicked at verifier", return_code=1))
+        self.assertEqual(self.mod.REJECTION_CLASS_OTHER,
+                         self.mod.classify_rejection("", "error: UnknownFailure", return_code=1))
+
     def test_controlled_verifier_error_remains_semantic_rejection(self) -> None:
         rejection = self.mod.classify_rejection(
             "",

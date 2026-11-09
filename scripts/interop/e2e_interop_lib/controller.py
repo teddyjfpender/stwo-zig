@@ -231,6 +231,7 @@ def classify_rejection(
         "proofofwork",
         "invalidstructure", "shapemismatch",
         "emptysampledset", "emptytrees",
+        "invalidpreprocessedcommitment",
         "invalidpreprocessedtree", "querypositionoutofrange",
         "columnindexoutofbounds", "divisionbyzero",
         "degenerateline", "noncanonical",

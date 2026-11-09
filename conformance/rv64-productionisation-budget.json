@@ -603,6 +603,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Move the complete concrete CPU proof corpus into its declared CPU integration owner while retaining generic frontend helpers. Preserve every test body and negative assertion, add a mandatory exact-name discovery guard and run the corpus through existing focused CI/developer entrypoints; rollback is the source-preserving relocation receipt. No dependency or API ledger widening."
+    },
+    {
+      "id": "delivery_exact_script_contract_owners",
+      "net_code_budget": 80,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Classify the existing unqualified circuit Metal integration as internal without expanding published packages, follow the exact relocated test-only legacy oracle owner, and recognize the existing authenticated preprocessing-root rejection as semantic while proving panic/signal precedence and unknown failures remain strict. No proof acceptance, expected mutation class, published status or API/dependency ledger is relaxed."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

@@ -33,6 +33,7 @@ class PackageReleaseTests(unittest.TestCase):
             name for name, entry in self.policy.items() if entry["status"] == "published"
         }
         self.assertEqual(17, len(published))
+        self.assertEqual("internal", self.policy["stwo_circuit_metal_integration"]["status"])
 
     def test_every_published_dependency_closure_is_publishable(self) -> None:
         for package, entry in self.policy.items():

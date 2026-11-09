@@ -422,7 +422,17 @@ class PreflightTest(unittest.TestCase):
 
 
 class RunFailClosedTest(unittest.TestCase):
-    def test_missing_workspace_is_red_and_names_what_was_not_checked(self) -> None:
+    def test_pin_drift_precedes_toolchain_and_cannot_be_relabelled_unavailable(self):
+        with mock.patch.object(gate.check_upstream_pins, "validate_repository", return_value=["fixture pin mismatch"]) as pins, mock.patch.object(
+            gate.formal_tools, "resolve_sail_compiler", side_effect=AssertionError("toolchain must not run"),
+        ), contextlib.redirect_stderr(io.StringIO()) as stderr:
+            status = gate.run_gate(Path("/missing-fixture-workspace"), None, False, 1, None, None)
+        pins.assert_called_once_with(ROOT)
+        self.assertEqual(gate.EXIT_FAIL, status)
+        self.assertIn("fixture pin mismatch", stderr.getvalue())
+
+    @mock.patch.object(gate.check_upstream_pins, "validate_repository", return_value=[])
+    def test_missing_workspace_is_red_and_names_what_was_not_checked(self, pins) -> None:
         # Regardless of whether this host has the pinned Sail compiler, an
         # absent workspace must be the unavailability exit code with the
         # not-checked inventory -- never a pass and never a silent skip.
@@ -438,6 +448,7 @@ class RunFailClosedTest(unittest.TestCase):
                     report_out=None,
                 )
         self.assertEqual(returncode, gate.EXIT_TOOLCHAIN_UNAVAILABLE)
+        pins.assert_called_once_with(ROOT)
         output = stderr.getvalue()
         self.assertIn("did NOT run", output)
         committed = json.loads(
@@ -448,7 +459,8 @@ class RunFailClosedTest(unittest.TestCase):
             output,
         )
 
-    def test_an_unavailable_toolchain_refuses_to_warm_the_next_run(self) -> None:
+    @mock.patch.object(gate.check_upstream_pins, "validate_repository", return_value=[])
+    def test_an_unavailable_toolchain_refuses_to_warm_the_next_run(self, pins) -> None:
         # The workflow's save step keys on this receipt. A cache entry is
         # immutable once written under its key, so publishing the workspace
         # of a run whose toolchain never came up would hand every later run a
@@ -466,6 +478,7 @@ class RunFailClosedTest(unittest.TestCase):
                     github_output=receipts,
                 )
             self.assertEqual(returncode, gate.EXIT_TOOLCHAIN_UNAVAILABLE)
+            pins.assert_called_once_with(ROOT)
             self.assertEqual(
                 "differential_ran=false\ntoolchain_state=unavailable\n",
                 receipts.read_text(encoding="utf-8"),
