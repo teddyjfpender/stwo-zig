@@ -1,0 +1,47 @@
+{
+  "schema": "stwo.opstack.native-dot-live-source.v1",
+  "stage": "R7 source lowering only",
+  "production_admitted": false,
+  "r7_joint_physical_proof_qualified": false,
+  "heavy_executed_or_proved": false,
+  "hook": {
+    "file": "src/integrations/riscv_cpu/rv64_recursion/om31_native/deep.zig",
+    "scope": "Whole per-query per-sample-batch DEEP numerator dot; default-null, no generic mulInner interception",
+    "signature": "fn(*Context, []const OM31Lane, []const Var) anyerror!OM31Lane"
+  },
+  "source": {
+    "owner": "poseidon2_outer.Context",
+    "term": "weight[2] QM31 Var IDs plus one M31-embedded complete Var ID",
+    "output": "two fresh QM31 Var producers per call",
+    "empty": "one zero-weight/zero-scalar physical row; three literal-zero consumers and two fresh zero outputs",
+    "capability": "finalizeForNativeDot sets native_dot_finalized=true and leaves legacy finalized=false; all mutation APIs share isClosed()",
+    "usage": "Generic gates+P2+native OM31mul+dot consumers/yields recomputed jointly; per-wire and whole characteristic bounds before legacy counters"
+  },
+  "qualification": {
+    "release_safe_named_tests": 5,
+    "checks": [
+      "Actual DEEP friInput entrypoint numerical parity, two queries/two columns",
+      "Mixed P2+OMUL+dot numerical and trace-only source parity",
+      "All source variables have exactly one producer and cached usage equals recomputation",
+      "R5/R6 key rejection with a failing allocator proves zero allocations",
+      "Legacy omission, duplicate producer and second/mixed finalization refusal",
+      "Nested and failed hook scopes restore prior/default callback",
+      "Wrong context/arity and hidden scalar coordinates refused",
+      "Exhaustive allocation failures release owned terms and restore scope",
+      "Changed dot output rejected by complete graph arithmetic validator"
+    ],
+    "command": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP R7'",
+    "legacy_r6_source_regression": "OP R6 native OM31 sidecar removes full product rows and keeps exact source fanout: ReleaseSafe passed"
+  },
+  "prior_cost": {
+    "path": "vectors/reports/rv64-opstack-cpu-20261109/native-dot/candidate-cost.json",
+    "sha256": "528e0a84c8268fe5e5c1758264acfac1c16ecbdfa8ac800eba3a51849b8f8a3f",
+    "status": "Previously frozen source-only model, not rerun or claimed measured R7 performance"
+  },
+  "remaining": [
+    "Build source-derived seven-role R7 FIXED/MAIN/INTER authority and ordered mask geometry",
+    "Add seventh physical component to one shared Var-bus transcript and verify full closure with distinct R7 identity",
+    "Source-owned recursive receiver/root integration after joint native physical/adversarial gates",
+    "No R6 topology/root_runtime or protected R5 authority/op_profile/component/witness/proof edits"
+  ]
+}

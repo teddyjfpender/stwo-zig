@@ -45,3 +45,26 @@ Run `zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -j1 -Driscv-test-f
 - A named protocol/receiver/recursive-source authority change before any production admission. Current R5/R6 defaults stay unchanged.
 
 Run `zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP native dot isolated'`. Set `STWO_OP_DOT_COST_OUTPUT` to persist the source-fed cost JSON.
+
+## Live source lowering, still closed for proof admission
+
+[live-source.json](live-source.json) records the next R7 source milestone.
+An explicit thread-local scope replaces only the **whole DEEP numerator dot**.
+With no scope, DEEP emits the original arithmetic. Scalars keep complete
+`(id, value, 0, 0, 0)` Var tuples in the physical dot, not unrestricted QM31
+multipliers. Context records every input, owns its term list, reserves exactly
+two output producers, and derives usage jointly with generic, P2 and OMUL gates.
+An empty dot still owns an explicit zero row and zero outputs.
+
+R7 finalization is a separate capability. It sets `native_dot_finalized` while
+leaving legacy `finalized` false; protected R5 and R6 key constructors therefore
+refuse **before any allocation**. Every shared mutation/close API checks either
+capability. No legacy source API can publish a finalized graph omitting dot debt.
+
+Five focused ReleaseSafe tests qualify the actual DEEP front door against
+ordinary arithmetic, numerical/trace-only source parity, unique producers,
+joint fanout, legacy omission/duplicate producer attacks, hidden scalar limbs,
+nested/error scope restoration, and allocation-failure custody. This does not
+qualify a live R7 proof: the seven-role key, shared PCS/Var closure, transcript,
+physical receiver and recursive root are separate remaining gates. The prior
+heavy source model remains a model; no heavy execution/proof was rerun.

@@ -27,6 +27,9 @@ pub const Context = struct {
     base: Algebra,
     calls: std.ArrayList(L.Gate) = .empty,
     native_mul_calls: std.ArrayList(@import("native_omul/row.zig").Gate) = .empty,
+    native_dot_calls: std.ArrayList(@import("native_dot/authority.zig").Call) = .empty,
+    /// Separate capability: legacy R5/R6 keys reject before any allocation.
+    native_dot_finalized: bool = false,
     usage: ?Usage = null,
     finalized: bool = false,
     poisoned: bool = false,
@@ -47,11 +50,13 @@ pub const Context = struct {
         if (self.usage) |*u| u.deinit();
         self.calls.deinit(self.allocator);
         self.native_mul_calls.deinit(self.allocator);
+        for (self.native_dot_calls.items) |call| self.allocator.free(call.terms);
+        self.native_dot_calls.deinit(self.allocator);
         self.base.deinit();
         self.* = undefined;
     }
     pub fn permute(self: *Context, inputs: [24]Var) ![24]Var {
-        if (self.poisoned or self.finalized) return error.PoseidonContextClosed;
+        if (self.isClosed()) return error.PoseidonContextClosed;
         errdefer self.poisoned = true;
         var state: P.State = @splat(M.zero());
         for (inputs, 0..) |input, i| {
@@ -76,7 +81,7 @@ pub const Context = struct {
     /// Opt-in R6 product. Reserved outputs have exactly one sidecar producer;
     /// they are never guessed self-yields in the generic arithmetic table.
     pub fn nativeOmul(self: *Context, inputs: [4]Var) B.context.Error![2]Var {
-        if (self.poisoned or self.finalized) return error.InvalidWitnessOrigin;
+        if (self.isClosed()) return error.InvalidWitnessOrigin;
         errdefer self.poisoned = true;
         for (inputs) |input| if (input.idx >= self.base.circuit.n_vars) return error.InvalidWitnessOrigin;
         const O = Core.fields.om31.OM31;
@@ -87,7 +92,41 @@ pub const Context = struct {
         try self.native_mul_calls.append(self.allocator, .{ .inputs = .{ inputs[0].idx, inputs[1].idx, inputs[2].idx, inputs[3].idx }, .outputs = .{ outputs[0].idx, outputs[1].idx } });
         return outputs;
     }
+    pub fn isClosed(self: *const Context) bool {
+        return self.poisoned or self.finalized or self.native_dot_finalized;
+    }
+    /// R7-only complete dot. Every term owns three complete Var ports; empty
+    /// dots retain one explicit zero row and two unique zero-output producers.
+    pub fn nativeDot(self: *Context, terms: []const @import("native_dot/authority.zig").Term) B.context.Error![2]Var {
+        if (self.isClosed()) return error.InvalidWitnessOrigin;
+        errdefer self.poisoned = true;
+        if (terms.len >= Core.fields.m31.Modulus / 3) return error.InvalidWitnessOrigin;
+        const O = Core.fields.om31.OM31;
+        var sum = O.zero();
+        for (terms) |term| {
+            for ([_]u32{ term.weight[0], term.weight[1], term.scalar }) |id| if (id >= self.base.circuit.n_vars) return error.InvalidWitnessOrigin;
+            if (!self.base.trace_only) {
+                const scalar = self.base.get(.{ .idx = term.scalar }).toM31Array();
+                for (scalar[1..]) |v| if (!v.isZero()) return error.InvalidWitnessOrigin;
+                const weight = O{ .c0 = self.base.get(.{ .idx = term.weight[0] }), .c1 = self.base.get(.{ .idx = term.weight[1] }) };
+                sum = sum.add(weight.mulM31(scalar[0]));
+            }
+        }
+        const owned = try self.allocator.dupe(@import("native_dot/authority.zig").Term, terms);
+        errdefer self.allocator.free(owned);
+        const outputs = [2]Var{ try self.base.newVar(sum.c0), try self.base.newVar(sum.c1) };
+        try self.native_dot_calls.append(self.allocator, .{ .terms = owned, .outputs = .{ outputs[0].idx, outputs[1].idx } });
+        return outputs;
+    }
     pub fn sourceMultiplicities(self: *const Context, a: std.mem.Allocator) !B.circuit.Multiplicities {
+        if (self.native_dot_finalized or self.native_dot_calls.items.len != 0) return error.NativeDotRequiresR7;
+        return self.sourceMultiplicitiesMode(a, false);
+    }
+    pub fn sourceMultiplicitiesForNativeDot(self: *const Context, a: std.mem.Allocator) !B.circuit.Multiplicities {
+        try self.requireRoster(false, true);
+        return self.sourceMultiplicitiesMode(a, true);
+    }
+    fn sourceMultiplicitiesMode(self: *const Context, a: std.mem.Allocator, native_dot: bool) !B.circuit.Multiplicities {
         var counts = try self.base.circuit.computeMultiplicities(a);
         errdefer counts.deinit(a);
         for (self.calls.items) |gate| {
@@ -110,13 +149,26 @@ pub const Context = struct {
                 counts.n_yields[output] = 1;
             }
         }
+        if (native_dot) for (self.native_dot_calls.items) |call| {
+            if (call.terms.len == 0) {
+                counts.n_uses[0] = try std.math.add(u32, counts.n_uses[0], 3);
+            } else for (call.terms) |term| for ([_]u32{ term.weight[0], term.weight[1], term.scalar }) |input| {
+                if (input >= counts.n_uses.len) return error.InvalidPoseidonPortAddress;
+                counts.n_uses[input] = try std.math.add(u32, counts.n_uses[input], 1);
+            };
+            for (call.outputs) |output| {
+                if (output >= counts.n_yields.len or counts.n_yields[output] != 0) return error.PoseidonProducerConflict;
+                counts.n_yields[output] = 1;
+            }
+        };
         return counts;
     }
     pub fn setOutputs(self: *Context, outputs: []const Var) !void {
-        if (self.poisoned or self.finalized) return error.PoseidonContextClosed;
+        if (self.isClosed()) return error.PoseidonContextClosed;
         try self.base.setOutputs(outputs);
     }
-    fn requireRoster(self: *const Context, mixed: bool) !void {
+    fn requireRoster(self: *const Context, mixed: bool, native_dot: bool) !void {
+        if (!native_dot and self.native_dot_calls.items.len != 0) return error.NativeDotRequiresR7;
         const c = &self.base.circuit;
         if (!self.base.record_gates or (!mixed and (c.blake_g_gate.items.len != 0 or c.triple_xor.items.len != 0 or c.permutation.len() != 0))) return error.UnsupportedPoseidonRosterOperation;
         if (c.n_vars >= Core.fields.m31.Modulus) return error.InvalidPoseidonSourceUsage;
@@ -126,23 +178,29 @@ pub const Context = struct {
         total = try std.math.add(u64, total, try std.math.mul(u64, L.WIDTH, self.calls.items.len));
         if (mixed) total = try std.math.add(u64, total, 6 * c.blake_g_gate.items.len + 3 * c.triple_xor.items.len + c.permutation.nTerms());
         total = try std.math.add(u64, total, try std.math.mul(u64, 6, self.native_mul_calls.items.len));
+        if (native_dot) for (self.native_dot_calls.items) |call| {
+            total = try std.math.add(u64, total, try std.math.add(u64, try std.math.mul(u64, 3, @max(1, call.terms.len)), 2));
+        };
         if (total >= Core.fields.m31.Modulus) return error.InvalidPoseidonSourceUsage;
     }
     pub fn finalize(self: *Context) !void {
-        return self.finalizeMode(false);
+        return self.finalizeMode(false, false);
     }
     /// Diagnostic twelve-roster graph only. Explicitly refused by the five-
     /// roster Authority and census; this does not create a mixed AIR prover.
     pub fn finalizeForMixedCensus(self: *Context) !void {
-        return self.finalizeMode(true);
+        return self.finalizeMode(true, false);
     }
-    fn finalizeMode(self: *Context, mixed: bool) !void {
-        if (self.poisoned or self.finalized) return error.PoseidonContextClosed;
+    pub fn finalizeForNativeDot(self: *Context) !void {
+        return self.finalizeMode(false, true);
+    }
+    fn finalizeMode(self: *Context, mixed: bool, native_dot: bool) !void {
+        if (self.isClosed()) return error.PoseidonContextClosed;
         errdefer self.poisoned = true;
-        try self.requireRoster(mixed);
+        try self.requireRoster(mixed, native_dot);
         try self.base.finalize(false);
-        try self.requireRoster(mixed);
-        var counts = try self.sourceMultiplicities(self.allocator);
+        try self.requireRoster(mixed, native_dot);
+        var counts = try self.sourceMultiplicitiesMode(self.allocator, native_dot);
         defer counts.deinit(self.allocator);
         for (counts.n_yields) |count| if (count != 1) return error.PoseidonMissingProducer;
         const owned = try self.allocator.dupe(u32, counts.n_uses);
@@ -155,7 +213,8 @@ pub const Context = struct {
         }
         if (total >= Core.fields.m31.Modulus) return error.InvalidPoseidonSourceUsage;
         self.usage = .{ .allocator = self.allocator, .counts = owned, .total = total, .max_per_wire = maximum };
-        self.finalized = true;
+        self.finalized = !native_dot;
+        self.native_dot_finalized = native_dot;
         self.mixed_census_only = mixed;
     }
     pub fn fixedRows(self: *const Context, a: std.mem.Allocator) ![]L.Fixed {
@@ -172,11 +231,19 @@ pub const Context = struct {
         const g = self.base.gate_counts;
         return .{ g.eq, g.qm31_ops, g.m31_to_u32, self.calls.items.len, 1 << 16 };
     }
+    /// R7 roster counts are unavailable through the legacy five-role API.
+    pub fn rawCountsForNativeDot(self: *const Context) ![7]u64 {
+        if (!self.native_dot_finalized or self.finalized or self.poisoned or self.mixed_census_only) return error.NativeDotContextNotFinalized;
+        var dot_rows: u64 = 0;
+        for (self.native_dot_calls.items) |call| dot_rows = try std.math.add(u64, dot_rows, @max(1, call.terms.len));
+        const g = self.base.gate_counts;
+        return .{ g.eq, g.qm31_ops, g.m31_to_u32, self.calls.items.len, 1 << 16, self.native_mul_calls.items.len, dot_rows };
+    }
     pub fn census(self: *const Context, poseidon_hybrid: bool) !L.Census {
         return L.census(try self.rawCounts(), poseidon_hybrid);
     }
     pub fn isCircuitValid(self: *const Context) !bool {
-        if (!self.finalized or self.poisoned or self.base.trace_only) return error.PoseidonContextNotFinalized;
+        if ((!self.finalized and !self.native_dot_finalized) or self.poisoned or self.base.trace_only) return error.PoseidonContextNotFinalized;
         if (!try self.base.isCircuitValid()) return false;
         for (self.calls.items) |gate| {
             var state: P.State = undefined;
@@ -194,6 +261,16 @@ pub const Context = struct {
             const b = O{ .c0 = self.base.get(.{ .idx = gate.inputs[2] }), .c1 = self.base.get(.{ .idx = gate.inputs[3] }) };
             const product = a.mul(b);
             if (!self.base.get(.{ .idx = gate.outputs[0] }).eql(product.c0) or !self.base.get(.{ .idx = gate.outputs[1] }).eql(product.c1)) return false;
+        }
+        for (self.native_dot_calls.items) |call| {
+            var sum = Core.fields.om31.OM31.zero();
+            for (call.terms) |term| {
+                const scalar = self.base.get(.{ .idx = term.scalar }).toM31Array();
+                for (scalar[1..]) |v| if (!v.isZero()) return false;
+                const weight = Core.fields.om31.OM31{ .c0 = self.base.get(.{ .idx = term.weight[0] }), .c1 = self.base.get(.{ .idx = term.weight[1] }) };
+                sum = sum.add(weight.mulM31(scalar[0]));
+            }
+            if (!self.base.get(.{ .idx = call.outputs[0] }).eql(sum.c0) or !self.base.get(.{ .idx = call.outputs[1] }).eql(sum.c1)) return false;
         }
         return true;
     }

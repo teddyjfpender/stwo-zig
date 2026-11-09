@@ -3,6 +3,7 @@
 const circuit = @import("stwo_circuit_frontend");
 const C = @import("common.zig");
 const Shape = @import("shape.zig");
+const Dot = @import("deep_dot.zig");
 const F = C.F;
 const Q = C.Q;
 const Inner = C.Inner;
@@ -51,9 +52,18 @@ pub fn friInput(ctx: *C.Context, plan: *const Shape.SamplePlan, oods: C.Point, s
         var answer = F.zero();
         for (batches) |batch| {
             var numerator = F.zero();
-            for (batch.weights, batch.columns) |weight, col| {
-                if (col[0] >= queried.len or col[1] >= queried[col[0]].len or query >= queried[col[0]][col[1]].len) return error.ShapeMismatch;
-                numerator = numerator.add(weight.mulInner(Inner.wire(queried[col[0]][col[1]][query].get())));
+            if (Dot.current()) |lower| {
+                const scalars = try a.alloc(C.Var, batch.columns.len);
+                for (batch.columns, scalars) |col, *scalar| {
+                    if (col[0] >= queried.len or col[1] >= queried[col[0]].len or query >= queried[col[0]][col[1]].len) return error.ShapeMismatch;
+                    scalar.* = queried[col[0]][col[1]][query].get();
+                }
+                numerator = try lower(ctx, batch.weights, scalars);
+            } else {
+                for (batch.weights, batch.columns) |weight, col| {
+                    if (col[0] >= queried.len or col[1] >= queried[col[0]].len or query >= queried[col[0]][col[1]].len) return error.ShapeMismatch;
+                    numerator = numerator.add(weight.mulInner(Inner.wire(queried[col[0]][col[1]][query].get())));
+                }
             }
             numerator = numerator.sub(batch.a.mulInner(y).add(batch.b));
             const p = batch.point;
