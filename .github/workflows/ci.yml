@@ -197,9 +197,11 @@ jobs:
       - name: Compare frozen FRI arithmetic against exact main and current sources
         if: always() && github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu' && inputs.cpu_lane == 'core'
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
-          import hashlib, io, json, os, platform, re, shutil, subprocess, tarfile
+          import base64, hashlib, io, json, os, platform, re, shutil, subprocess, tarfile, urllib.request
           from pathlib import Path
           out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci/cm31-main-comparison"
           out.mkdir(parents=True, exist_ok=True)
@@ -266,6 +268,41 @@ jobs:
                   for stream in ("stdout", "stderr"):
                       (out / (label + "." + stream)).write_bytes(getattr(result, stream))
                   records.append({"variant": "main-explicit-" + target, "mode": mode, "argv": argv, "exit": result.returncode, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
+          archive_oid = "39a6fa782eef1f842a5823b9f0bae35aae539f08add8090f79ab6f3169597bc7"
+          archive_size = 11344996
+          batch = {"operation": "download", "transfers": ["basic"], "objects": [{"oid": archive_oid, "size": archive_size}]}
+          auth = base64.b64encode(("x-access-token:" + os.environ["GH_TOKEN"]).encode()).decode()
+          request = urllib.request.Request("https://github.com/teddyjfpender/stwo-zig.git/info/lfs/objects/batch", json.dumps(batch).encode(), {"Accept": "application/vnd.git-lfs+json", "Content-Type": "application/vnd.git-lfs+json", "Authorization": "Basic " + auth}, method="POST")
+          with urllib.request.urlopen(request, timeout=60) as response:
+              item, = json.load(response)["objects"]
+          assert item["oid"] == archive_oid and item["size"] == archive_size and "error" not in item
+          action = item["actions"]["download"]
+          assert action["href"].startswith("https://")
+          with urllib.request.urlopen(urllib.request.Request(action["href"], headers=action.get("header", {})), timeout=60) as response:
+              archive = response.read(archive_size + 1)
+          assert len(archive) == archive_size and hashlib.sha256(archive).hexdigest() == archive_oid
+          isolated = out / "isolated-minimal"
+          isolated.mkdir()
+          minimal = isolated / "minimal.zig"
+          with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+              member, = [member for member in tar if member.name.endswith("/stwo-cm31-minimal/minimal.zig")]
+              assert member.isfile()
+              minimal.write_bytes(tar.extractfile(member).read())
+          minimal_hash = hashlib.sha256(minimal.read_bytes()).hexdigest()
+          assert minimal_hash == "615f72e52f9d93a1c803a95165a258203ace7cefd984003654aa84be4377dde2"
+          for target in ("x86_64_v3", "x86_64_v4", "znver4"):
+              supported = "avx2" in cpuinfo if target.endswith("v3") else all(flag in cpuinfo for flag in ("avx512f", "avx512bw", "avx512dq", "avx512vl", "avx512cd"))
+              if not supported:
+                  records.append({"variant": "isolated-minimal-" + target, "exit": 0, "status": "UNRUN_HOST_ISA_UNAVAILABLE"})
+                  continue
+              for mode in ("Debug", "ReleaseSafe", "ReleaseFast"):
+                  label = "isolated-minimal-" + target + "-" + mode
+                  binary, ir = isolated / label, isolated / (label + ".ll")
+                  argv = ["zig", "test", str(minimal), "-O" + mode, "-mcpu=" + target, "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
+                  result = subprocess.run(argv, capture_output=True, timeout=120)
+                  for stream in ("stdout", "stderr"):
+                      (isolated / (label + "." + stream)).write_bytes(getattr(result, stream))
+                  records.append({"variant": "isolated-minimal-" + target, "mode": mode, "argv": argv, "exit": result.returncode, "source_sha256": minimal_hash, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
           report = {"scope": "source-pinned arithmetic diagnosis; no timing or full-proof qualification", "main_commit": main, "current_commit": current, "rejected_schoolbook_commit": rejected, "zig_version": subprocess.check_output(["zig", "version"], text=True).strip(), "host": platform.platform(), "probe_sha256": hashlib.sha256(probe.read_bytes()).hexdigest(), "runs": records}
           (out / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
           print(json.dumps(report, indent=2))
