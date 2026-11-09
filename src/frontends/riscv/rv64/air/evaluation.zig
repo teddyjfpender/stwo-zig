@@ -244,6 +244,11 @@ pub const PackedSink = struct {
     /// Mixed base/secure equations share one emission counter and one reverse
     /// random-power sequence. Base residuals never perform a secure product.
     pub inline fn emit(self: *PackedSink, value: anytype) void {
+        // Repeated unoptimized packed products must not share one caller frame.
+        // Optimized builds retain the original mandatory arithmetic inlining.
+        return @call(if (comptime @import("builtin").mode == .Debug) .never_inline else .always_inline, emitImpl, .{ self, value });
+    }
+    fn emitImpl(self: *PackedSink, value: anytype) void {
         @setEvalBranchQuota(1_000_000);
         const F = @TypeOf(value);
         if (F != PackedBase and F != PackedSecure) @compileError("packed sink requires a packed base or secure residual");

@@ -862,6 +862,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "The coordinator retains checked scratch-payload selection and passes tagged pointers to workers. Remove two Debug active-union payload copies proven by source-pinned disassembly to exceed the unchanged worker stack. Keep allocation, arithmetic, lifetime and failures intact. Run the existing bounded Debug falsifier first and retain compiler-frame evidence on pass or fail."
+    },
+    {
+      "id": "bounded_debug_packed_emission_frames",
+      "net_code_budget": 25,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "After source-pinned assembly proves the worker frame shrinks from 1202512 to 368 bytes, the same Debug falsifier reaches a deeper emitter fault. Put the unchanged packed accumulation body behind a Debug-only never-inline boundary; retain mandatory always-inline in optimized builds and every stack/semantic gate. Extend existing bounded frame diagnostics; no arithmetic or public contract change."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

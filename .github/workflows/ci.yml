@@ -215,7 +215,7 @@ jobs:
               frames = []
               for line in symbols.splitlines():
                   parts = line.split(maxsplit=3)
-                  if len(parts) != 4 or not parts[3].endswith(("Job.runSimd", "packed_rows.evaluate", "packed_rows.Scratch.initialize")):
+                  if len(parts) != 4 or not any(token in parts[3] for token in ("parallel.Job.", "packed_rows.", "full.component.ComponentFor(", "evaluation.PackedSink.emitImpl")):
                       continue
                   address, size, _, name = parts
                   start = int(address, 16)
