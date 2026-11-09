@@ -47,5 +47,5 @@ do not retain it, avoiding an ownership cycle. Retain is atomic and non-reentran
 under the Store mutex; release runs outside it so the final cache destructor can
 release templates and the Store safely. The focused lease/allocation-failure
 gate confirms balanced callbacks, including zero callbacks from template
-custody and refusal paths. Cache integration separately tests derived views
+custody and refusal paths. Cache integration must separately test derived views
 surviving release of all request and cache handles.
