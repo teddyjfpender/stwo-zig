@@ -448,8 +448,8 @@ cache speedup or a new default**. Native production is additional.
 | Sampled values | 44.717 | 12.09 |
 
 These root-level serial intervals total 1,507.328 s across all stages; nested
-scopes are not added to that total. INTER contains 235.031 s Merkle hashing
-and 174.260 s preparation; BLAKE gate rows consume 185.100 s of interaction
+scopes are not added to that total. INTER contains 235.028 s Merkle hashing
+and 174.262 s preparation; BLAKE gate rows consume 185.096 s of interaction
 generation. Remaining wall includes 59.008 s initial setup, 28.521 s graph
 construction and uninstrumented per-wrap/fold overhead. CPU counters cover all
 process threads; different M5 core classes are not equal-throughput workers.
