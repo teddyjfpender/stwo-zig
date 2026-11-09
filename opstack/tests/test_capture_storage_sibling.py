@@ -59,3 +59,18 @@ class StorageSibling(unittest.TestCase):
         source=str(Path(__file__).resolve().parents[1])
         result=subprocess.run([sys.executable,'-I','-c',f'import sys;sys.path.insert(0,{source!r});from capture_host.storage_repair import Repair'],capture_output=True,timeout=5)
         self.assertEqual(result.returncode,0,result.stderr.decode())
+
+    def test_offset_bounds_and_disjoint_window_ledger(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            helper=Path(directory)/'search';helper.write_text('#!/bin/sh\necho \'{"candidate":0,"attempts":1}\'\n');helper.chmod(0o700)
+            for offset in(-1,1<<64):
+                with self.assertRaisesRegex(ValueError,'offset'):R.helper_slot(helper,'b3',1,offset)
+            with self.assertRaisesRegex(ValueError,'advice bounds'):R.helper_slot(helper,'b3',1,1<<28)
+            with patch.object(R,'helper_slot',side_effect=[R.SearchExhausted(1<<28),(bytes(32),7)])as mock:
+                _,_,ledger=R.helper_windows(helper,'b3',5,start=1<<28,windows=2)
+                self.assertEqual(ledger['exhausted_intervals'],[[1<<28,2<<28]])
+                self.assertEqual(ledger['selected_interval'],[2<<28,3<<28])
+                self.assertEqual(ledger['cumulative_hashes'],(1<<28)+7)
+                self.assertEqual([x.args[3]for x in mock.call_args_list],[1<<28,2<<28])
+            with self.assertRaisesRegex(ValueError,'disjoint'):R.helper_windows(helper,'b3',5,windows=5)

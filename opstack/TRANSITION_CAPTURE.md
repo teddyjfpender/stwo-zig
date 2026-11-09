@@ -449,3 +449,13 @@ The pinned SHA3 dependency enables its `asm` feature: its runtime-detected
 AArch64 SHA3 path accelerates Keccak while retaining the generic fallback.
 Five complete 32-byte-input digest vectors are checked independently against
 Python Keccak; all returned slot advice still undergoes the Python rehash.
+
+If a complete range was actually exhausted, the offline recovery CLI accepts
+explicit `--search-start` and `--search-windows` (1–4). Each window contains at
+most 2^28 globally shared candidates; all selected windows share ONE search
+deadline of at most 60 seconds, and stop on the first candidate. Successful
+receipts include exhausted intervals, the selected interval and cumulative hash
+work. Fully exhausted/incomplete failure work is journaled separately; a partial
+window is never mislabeled exhausted. Offset addition and returned candidate
+ranges are checked independently. The on-demand adapter keeps its one-window
+policy unless an offline recovery explicitly selects further disjoint work.

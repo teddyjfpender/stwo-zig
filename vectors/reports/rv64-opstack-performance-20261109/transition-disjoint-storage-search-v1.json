@@ -1,0 +1,41 @@
+{
+  "schema": "op-disjoint-storage-search-qualification-v1",
+  "block_hash": "3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+  "state_root": "7e77c23c053933fd100f7a5fd28de93d854c1c10d8e0ededbfb0b3a9681900a2",
+  "address": "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+  "target": "5a97201c371439f5412d2ff157dfba7fcc78c8f4cf9769f01e66c2ec47321c0a",
+  "prefix": "5ab8d2a",
+  "slot": "000000000000000000000000000000000000000000000000000000001617dbb9",
+  "search_attempts": 102227741,
+  "search_work": {
+    "exhausted_intervals": [],
+    "selected_interval": [
+      268435456,
+      536870912
+    ],
+    "cumulative_hashes": 102227741,
+    "shared_seconds_cap": 60
+  },
+  "search_helper_sha256": "77dd8d4efc21f91c6c543b4b6032adb25f54deafc31c91ebdccf82d81b8e4fc9",
+  "verified_nodes": 16,
+  "rpc": "https://mainnet.optimism.io",
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false,
+  "prior_exhausted_intervals": [
+    [
+      0,
+      268435456
+    ]
+  ],
+  "cumulative_including_prior_hashes": 370663197,
+  "prior_interval_receipt": "transition-hardware-keccak-search-v1.json",
+  "proof_sha256": "763e6e2c43c69c493a20bc1cfe08f9042eeddc67844c2517d3de3ce7d4aba1f8",
+  "records_sha256": "6fe5a76216b575dab1e625521bbb85a40c3331ebc158c3008d3f71050927e669",
+  "node_sha256": "711bcb3df3a1569696658d3db9cb750a26b9a6c9ae7b8c87b8150302cb2d774b",
+  "global_hash_cap_per_window": 268435456,
+  "maximum_additional_windows": 4,
+  "shared_search_seconds_cap": 60,
+  "offset_overflow_and_advice_guards": true,
+  "focused_python_tests": 54
+}
