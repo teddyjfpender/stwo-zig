@@ -1048,6 +1048,9 @@ pub const TruthSource = union(enum) {
         }
     }
     pub fn columns(self: *const TruthSource, a: std.mem.Allocator, tree: usize) ![]Col {
+        // FIXED authority belongs to the immutable truth setup. Source adapters
+        // expose MAIN/INTER only; several otherwise treat tree0 as INTER.
+        if (tree != 1 and tree != 2) return error.InvalidTruthTree;
         return switch (self.*) {
             inline else => |s| s.columns(a, tree),
         };
@@ -1147,4 +1150,11 @@ fn appendTrace(out: []@import("stwo_prover_api").device_pcs.TraceColumn, at: *us
         out[at.*] = .{ .log_size = log, .encoding = .evaluations, .host = data[i * n ..][0..n] };
         at.* += 1;
     }
+}
+
+test "OP truth source rejects unsupported trees before allocation or union access" {
+    const source: TruthSource = undefined;
+    try std.testing.expectError(error.InvalidTruthTree,source.columns(std.testing.failing_allocator,0));
+    try std.testing.expectError(error.InvalidTruthTree,source.columns(std.testing.failing_allocator,3));
+    try std.testing.expectError(error.InvalidTruthTree,source.columns(std.testing.failing_allocator,std.math.maxInt(usize)));
 }
