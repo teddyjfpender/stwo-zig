@@ -215,3 +215,23 @@ local-fractions fixture. It still does not qualify a heavy OP block, a complete
 pure-P2 recursive leaf, service truths, durable manifest codec or a root fold.
 Production admission remains closed. Full-size resource bounds and stage timings
 must be established before invoking the new worker on a real OP segment.
+
+## Complete actual CPU verifier circuit
+
+The actual native CPU proof now passes the new constrained verifier with exact
+native assignments, source-derived ordered geometry, every original AIR/OODS
+residual and lifted mask, local GKR terminal projections, physical PCS/FRI/FS
+and nine-limb public-frame projection. The expected frame has 444 source-owned
+public words. MAIN OODS, local terminal and ninth public-limb circuit mutations
+reject. There are zero BLAKE or XOR gates. This is no longer AST placeholder
+census material.
+
+The real five-retirement fixture costs 34,266 P2 permutations, 2,117,856 arithmetic
+gates and 2,942,014 variables. Padding yields 200,734,720 trace cells:
+81,731,584 MAIN, 38,475,776 FIXED and 80,527,360 INTER. The arithmetic component
+is log22 and P2 is log16. This is much larger than the early local-child fixture;
+no full-block speedup follows from the early 10x mixed-height measurement.
+The committed receipt is `pure-p2-actual-cpu-circuit-v1.json` in this report folder.
+Physical outer proving, independently rebuilt authority and pure folds remain
+the next gates. The scalar OM31 P2 domain evaluator is an identified large-log
+performance risk; base-field SIMD domain evaluation is the concrete follow-up.

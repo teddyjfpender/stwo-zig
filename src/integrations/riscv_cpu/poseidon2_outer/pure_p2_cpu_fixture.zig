@@ -114,7 +114,7 @@ pub fn exerciseWithAllocator(a: std.mem.Allocator, comptime Hook: type) !void {
     var forged = proofs[0];
     forged.bytes = changed_bytes;
     try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, Worker.verify(a, receiver_ptrs[0], requests[0], receiver_inventory.workers[0], receiver_inventory.first_ids[0], &receiver, 0, &receiver_keys[0], &forged, null));
-    if (comptime @hasDecl(Hook, "run")) try Hook.run(a, &receiver_ptrs, &requests, &receiver_keys, &receiver_inventory, &receiver, &proofs, &capture);
+    if (comptime @hasDecl(Hook, "run")) try Hook.run(a, &receiver_ptrs, &requests, &receiver_keys, &receiver_inventory, &receiver, &proofs, &capture, &stages);
     var hashes: [2][32]u8 = undefined;
     for (proofs, &hashes) |proof, *hash| std.crypto.hash.sha2.Sha256.hash(proof.bytes, hash, .{});
     std.debug.print("OP_PURE_P2_CPU_PHYSICAL workers=2 steps=5 local_gkr=P2v2 manifest=P2v2 physical=P2v2 profile={s} fresh_source_receiver=true global_RAM_KIO_Wire_closed=true proofs_bytes=[{},{}] sha256={s},{s} recursive_execution_acceptance=false\n", .{ @tagName(profile), proofs[0].bytes.len, proofs[1].bytes.len, std.fmt.bytesToHex(hashes[0], .lower), std.fmt.bytesToHex(hashes[1], .lower) });
