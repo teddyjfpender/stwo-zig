@@ -600,6 +600,7 @@
           "zig",
           "build",
           "stwo-zig-riscv-cpu",
+          "test-riscv64-parallel",
           "test-riscv-observation-contracts",
           "riscv-pc-hotspot-observer",
           "riscv-memcpy-hotspot-observer",
@@ -613,6 +614,7 @@
           "zig",
           "build",
           "test-riscv-observation-contracts",
+          "test-riscv64-parallel",
           "-Doptimize=Debug",
           "-j2"
         ],

@@ -243,6 +243,14 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("--artifact-dir", proof_commands[0])
         self.assertIn("--report-out", proof_commands[0])
 
+    def test_riscv_parallel_residual_and_drain_contracts_run_in_both_modes(self) -> None:
+        commands = self.policy["lanes"]["riscv_cpu"]["commands"]
+        for mode in ("Debug", "ReleaseFast"):
+            self.assertTrue(any(
+                "test-riscv64-parallel" in command and f"-Doptimize={mode}" in command
+                for command in commands
+            ), mode)
+
     def test_riscv_auxiliary_build_owners_select_only_cpu_consumers(self) -> None:
         expected = {"static", "build_graph", "riscv_cpu", "aggregate_cpu", "aggregate_metal"}
         paths = ("build_support/products/riscv_refinement.zig",

@@ -820,6 +820,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Regenerate the one changed row-local audit binding only after exact normalization reproduces the previously trusted CM31 source and the unchanged owner checks all 2981888 table rows, Poseidon materializations and negative controls. Preserve every other pin and all proof/security/timing exclusions; generated receipt records the exact binding map."
+    },
+    {
+      "id": "rv64_parallel_separate_worker_frames",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Separate SIMD and scalar worker call frames without changing arithmetic, admitted stacks, scheduling, allocation or drain lifetimes. Require existing residual/parity/failure tests in hosted Debug and ReleaseFast. Roll back the internal split if hosted parity fails; no protocol or public API change."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

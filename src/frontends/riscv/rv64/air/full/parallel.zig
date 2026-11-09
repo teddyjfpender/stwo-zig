@@ -133,12 +133,17 @@ const Job = struct {
     start: usize,
     end: usize,
     fn run(self: *Job) void {
-        if (self.simd) {
-            self.scratch.simd.initialize();
-            var first = true;
-            while (self.nextTile(&first)) |tile| packed_rows.evaluate(self.component, self.evaluation, &self.scratch.simd, self.part, tile.start, tile.end, self.previous_main, self.previous_interaction, &self.output, self.inverse);
-            return;
-        }
+        if (self.simd) return self.runSimd();
+        return self.runScalar();
+    }
+    // Keep the unused scalar oracle's Debug temporaries out of SIMD workers.
+    // Each path owns its frame without changing the admitted stack budget.
+    noinline fn runSimd(self: *Job) void {
+        self.scratch.simd.initialize();
+        var first = true;
+        while (self.nextTile(&first)) |tile| packed_rows.evaluate(self.component, self.evaluation, &self.scratch.simd, self.part, tile.start, tile.end, self.previous_main, self.previous_interaction, &self.output, self.inverse);
+    }
+    noinline fn runScalar(self: *Job) void {
         const scratch = &self.scratch.scalar;
         const component = self.component;
         const evaluation = self.evaluation;
