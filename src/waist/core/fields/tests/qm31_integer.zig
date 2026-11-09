@@ -41,8 +41,22 @@ noinline fn detachedProduct(a: QM31, b: QM31) QM31 {
     return a.mul(b);
 }
 
+fn integerComplex(a: [4]u32, b: [4]u32) [2]u32 {
+    return .{
+        @intCast((@as(u64, a[0]) * b[0] % modulus + modulus - @as(u64, a[1]) * b[1] % modulus) % modulus),
+        @intCast((@as(u64, a[0]) * b[1] % modulus + @as(u64, a[1]) * b[0] % modulus) % modulus),
+    };
+}
+
 fn checkContexts(a: *const QM31, b: *const QM31) !void {
     const expected = integerProduct(words(a), words(b));
+    const expected_complex = integerComplex(words(a), words(b));
+    const complex = a.c0.mul(b.c0);
+    const complex_reverse = b.c0.mul(a.c0);
+    const complex_words = [_]u32{ complex.a.v, complex.b.v };
+    const reverse_words = [_]u32{ complex_reverse.a.v, complex_reverse.b.v };
+    try std.testing.expectEqualSlices(u32, &expected_complex, &complex_words);
+    try std.testing.expectEqualSlices(u32, &expected_complex, &reverse_words);
     const direct = a.mul(b.*);
     const reverse = b.mul(a.*);
     const detached = detachedProduct(a.*, b.*);

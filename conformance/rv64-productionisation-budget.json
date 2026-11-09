@@ -743,6 +743,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Consolidate three identical V3 prefix-journal parsers with one explicit internal owner. Preserve per-command radix/count admission, strict function-value regular-file admission, execution/teardown and existing wire bodies. New named contracts cover identity, bounds, prefix lifetime and every parser allocation failure. Build all three commands and execute the contract root in hosted ReleaseFast and Debug CPU CI; relocation receives no subtraction credit."
+    },
+    {
+      "id": "cm31_direct_product_candidate",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Simpler equivalent CM31 schoolbook expression targets the observed full-frontend complex ac disagreement; independent integer regressions check both complex and extension products without changed oracle expectations. No performance claim; four base products replace three. Existing full CPU frontend and core owners must accept the candidate."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
