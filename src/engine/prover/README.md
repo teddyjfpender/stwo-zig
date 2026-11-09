@@ -96,6 +96,8 @@ physical-worker concurrency and busy time remain absent when a
 to join prover execution with the typed-AIR static profile. Receipts publish
 only after their producer-defined transaction succeeds.
 
+The current primary module also exports `chunked_sha256`, `file_backed_allocator`, `shared_external_memory`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
+
 ## Dependencies
 
 - `stwo_core` — protocol types and verifier-compatible proof structures.

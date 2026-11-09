@@ -24,6 +24,8 @@ This package binds the backend-neutral typed RV32IM frontend to the CPU prover e
 
 The public module is [`mod.zig`](mod.zig). Its supported surface consists of `CpuProverEngine`, native proof and verification entry points, the Poseidon2 guest profile, the CSP-compatible Ethereum guest proof artifact, and the generic recursive FRI outer verifier. The Ethereum guest profile remains because CSP ECDSA uses it. It is distinct from the archived Ethereum **block** proving experiment.
 
+The existing build also consumes `stwo_circuit_recursion_wire`. Their providers stay explicit in the package manifest; injected aliases do not replace these concrete dependency edges.
+
 ## Build, test, and run
 
 The CPU package also builds four detached SegmentV2 tools. They prove and verify bounded execution leaves and parent nodes; they do not claim whole-block memory/provider closure:
@@ -102,55 +104,115 @@ Consumers import the declared module rather than relative source files:
 const riscv = @import("stwo_riscv_cpu_integration");
 ```
 
-The names below reproduce the existing `api_surface` ledger in
-[`package.contract.json`](package.contract.json); this documentation does not
-change that ledger or certify every exported experimental path. Workspace
-validation still reports undeclared circuit dependencies and additional source
-exports. The Ethereum experiment and archived-block distinction described above
-must be reconciled through the contract-change process before the product
-boundary can be considered closed.
+The following ledger is regenerated from the existing top-level public exports
+of `mod.zig`. This corrects stale declarations without adding implementation
+symbols or changing proof bytes. An exported experimental path is not a claim
+of release qualification: independent proof acceptance and each product's
+published admission gates remain authoritative. Product-specific source moves
+are tracked separately from this metadata reconciliation.
 
-### Proving, verification and support
-
-`CpuProverEngine`, `Poseidon2InteractionClaim`, `Poseidon2ProveOutput`, `bulk_memcpy_current_selected_segment_authority_v1`,
-`bulk_memcpy_retained_journal_v1`, `bulk_memcpy_retained_microproof_command_v1`, `bulk_memcpy_retained_microproof_receipt_v1`, `bulk_memcpy_retained_microproof_receipt_v2`,
-`bulk_memcpy_retained_microproof_v1`, `bulk_memcpy_retained_observation_v1`, `bulk_memcpy_retained_replay_v1`, `bulk_memcpy_statement_artifact_v1`,
-`bulk_memcpy_tape_artifact_v1`, `diagnoseRiscVRelations`, `poseidon2_proof_artifact`, `proveAndVerifyElf`,
-`proveEthereumBlock`, `provePoseidon2WithPublicData`, `proveRiscV`, `proveRiscVSegmentV2`,
-`proveRiscVWithPublicData`, `proveRiscVWithPublicDataAndExecution`, `proveRiscVWithRecorder`, `resource_usage`,
-`verifyPoseidon2`, `verifyRiscV`, `verifyRiscVSegmentV2`.
-
-### Ethereum artifacts and experiments
-
-`ethereum_block_compact_replay`, `ethereum_block_compact_replay_receipt`, `ethereum_block_leaf_compact_manifest`, `ethereum_block_leaf_contract`,
-`ethereum_block_leaf_evidence`, `ethereum_block_leaf_materializer`, `ethereum_block_leaf_producer`, `ethereum_block_leaf_support`,
-`ethereum_block_leaf_verifier`, `ethereum_candidate_combined_execution_capture_command_v1`, `ethereum_candidate_combined_execution_capture_receipt_v1`, `ethereum_candidate_combined_execution_capture_v1`,
-`ethereum_candidate_combined_execution_replay_command_v1`, `ethereum_candidate_combined_execution_replay_receipt_v1`, `ethereum_candidate_combined_execution_replay_v1`, `ethereum_candidate_degree5_provider_batch_execution_v1`,
-`ethereum_candidate_degree5_provider_order_batch_v1`, `ethereum_candidate_degree5_provider_prepared_batch_v1`, `ethereum_degree5_provider_proof_artifact_v1`, `ethereum_guest_pc_profile`,
-`ethereum_incremental_capture_materializer_v3`, `ethereum_incremental_capture_materializer_v4`, `ethereum_incremental_capture_postprocess_command_v4`, `ethereum_incremental_full_leaf_replay_command_v4`,
-`ethereum_incremental_full_leaf_throughput_execution_v1`, `ethereum_incremental_native_leaf_profile_v3`, `ethereum_incremental_native_leaf_proof_artifact_v3`, `ethereum_incremental_native_leaf_proof_v3`,
-`ethereum_matched_ab_geometry_audit_v1`, `ethereum_matched_ab_leaf_request_v1`, `ethereum_matched_ab_rematerialization_authority_v1`, `ethereum_matched_ab_rematerialization_command_v1`,
-`ethereum_matched_ab_rematerialization_controller_v1`, `ethereum_poseidon_leaf_geometry_command`, `ethereum_poseidon_leaf_geometry_snapshot`, `ethereum_poseidon_leaf_matched_ab_baseline_command_v1`,
-`ethereum_poseidon_leaf_matched_ab_result_v1`, `ethereum_poseidon_leaf_product_contract`, `ethereum_poseidon_leaf_product_producer`, `ethereum_poseidon_leaf_product_request`,
-`ethereum_poseidon_leaf_product_verifier`, `ethereum_poseidon_leaf_profile_receipt`, `ethereum_poseidon_provider_call_artifact_v1`, `ethereum_poseidon_provider_combined_v1`,
-`ethereum_poseidon_provider_fused_v1`, `ethereum_poseidon_provider_hpc_benchmark_v1`, `ethereum_poseidon_provider_prepared_capture_receipt_v1`, `ethereum_poseidon_provider_prepared_capture_v1`,
-`ethereum_poseidon_provider_proof_artifact_v1`, `ethereum_poseidon_provider_proof_artifact_v2`, `ethereum_poseidon_provider_raw_batch_benchmark_v2`, `ethereum_poseidon_provider_raw_pair_benchmark_v1`,
-`ethereum_poseidon_provider_resource_plan_v1`, `ethereum_poseidon_provider_retained_batch_receipt_v3`, `ethereum_poseidon_provider_retained_batch_v3`, `ethereum_poseidon_provider_retention_admission_v2`,
-`ethereum_poseidon_provider_retention_sweep_v1`, `ethereum_poseidon_provider_stage_a_checkpoint_v1`, `ethereum_poseidon_provider_stage_b_lifecycle_v1`, `ethereum_poseidon_provider_stage_b_prefix_v2`,
-`ethereum_poseidon_provider_topology_sweep_v1`, `ethereum_precompile_artifact_io`, `ethereum_proof_artifact`, `ethereum_provider_omitted_leaf_bundle_v1`,
-`ethereum_segment_proof_artifact`, `ethereum_segment_source_wire`, `ethereum_unoptimized_baseline_admission_receipt_v1`, `ethereum_unoptimized_baseline_admission_v1`.
-
-### Recursive protocols and artifacts
-
-`recursive_circuit_registry_v1`, `recursive_common_ethereum_incremental_leaf_field_public_v4`, `recursive_common_ethereum_incremental_leaf_input_v4`, `recursive_common_fold_field_public_v2`,
-`recursive_common_fold_input_v1`, `recursive_common_fold_input_v2`, `recursive_common_real_omitted_leaf_input_v1`, `recursive_common_wrapper_authority_v1`,
-`recursive_common_wrapper_authority_v2`, `recursive_common_wrapper_manifest_v1`, `recursive_common_wrapper_padding_v1`, `recursive_field_node_public_v2`,
-`recursive_fri_outer`, `recursive_node_artifact_store_v1`, `recursive_node_artifact_store_v2`, `recursive_node_artifact_v2`,
-`recursive_pipeline_worker_protocol_v1`, `recursive_pipeline_worker_v1`.
-
-### RV64 profiles
-
-`rv64`, `rv64_full`.
+- `Blake3Execution`
+- `CpuProverEngine`
+- `Poseidon2InteractionClaim`
+- `Poseidon2ProveOutput`
+- `diagnoseRiscVRelations`
+- `ethereum_proof_artifact`
+- `poseidon2_proof_artifact`
+- `proveAndVerifyElf`
+- `provePoseidon2WithPublicData`
+- `proveRiscV`
+- `proveRiscVSegmentV2`
+- `proveRiscVWithPublicData`
+- `proveRiscVWithPublicDataAndExecution`
+- `proveRiscVWithRecorder`
+- `recursive_fri_outer`
+- `resource_usage`
+- `rv64`
+- `rv64_cpu_source`
+- `rv64_device_core_headers`
+- `rv64_device_main`
+- `rv64_device_pcs`
+- `rv64_device_source_stage`
+- `rv64_ethereum_canon_rungs`
+- `rv64_ethereum_capture`
+- `rv64_ethereum_capture_options`
+- `rv64_ethereum_direct`
+- `rv64_ethereum_gkr_main`
+- `rv64_ethereum_keys`
+- `rv64_ethereum_plan`
+- `rv64_ethereum_receiver`
+- `rv64_ethereum_request`
+- `rv64_ethereum_terminal`
+- `rv64_expected_image`
+- `rv64_family_input`
+- `rv64_full`
+- `rv64_gkr_bundle_wire`
+- `rv64_gkr_chain`
+- `rv64_gkr_child`
+- `rv64_gkr_constraints`
+- `rv64_gkr_coordinator`
+- `rv64_gkr_cpu_components`
+- `rv64_gkr_cpu_replay`
+- `rv64_gkr_cpu_worker`
+- `rv64_gkr_execution`
+- `rv64_gkr_fixed_authority`
+- `rv64_gkr_fixed_authority_set`
+- `rv64_gkr_global_cpu`
+- `rv64_gkr_local_roster`
+- `rv64_gkr_manifest`
+- `rv64_gkr_manifest_wire`
+- `rv64_gkr_native_provider`
+- `rv64_gkr_receipt`
+- `rv64_gkr_source`
+- `rv64_gkr_source_bounds`
+- `rv64_gkr_truth_device_composition`
+- `rv64_gkr_truth_device_source`
+- `rv64_gkr_truth_products`
+- `rv64_gkr_truth_role`
+- `rv64_gkr_truth_v3_catalog`
+- `rv64_gkr_truth_v3_role`
+- `rv64_gkr_wire`
+- `rv64_gkr_worker_protocol`
+- `rv64_large_block_recycler`
+- `rv64_memory_input`
+- `rv64_native_gkr_cpu`
+- `rv64_native_gkr_roster`
+- `rv64_native_gkr_section`
+- `rv64_native_gkr_v2`
+- `rv64_native_policy`
+- `rv64_om31_cpu_leaf`
+- `rv64_om31_execution_wrap`
+- `rv64_om31_outer`
+- `rv64_om31_outer_wrap`
+- `rv64_om31_ready_dag`
+- `rv64_om31_security_candidate`
+- `rv64_om31_services_root`
+- `rv64_om31_typed_fold`
+- `rv64_om31_typed_summary`
+- `rv64_outer_gkr_binding`
+- `rv64_outer_gkr_profile`
+- `rv64_outer_gkr_section`
+- `rv64_outer_hybrid_air`
+- `rv64_outer_hybrid_child`
+- `rv64_outer_hybrid_device`
+- `rv64_outer_hybrid_receiver`
+- `rv64_outer_hybrid_wire`
+- `rv64_outer_mle_point`
+- `rv64_pcs_suite`
+- `rv64_program`
+- `rv64_program_metadata`
+- `rv64_provider_tails`
+- `rv64_recursion_budget`
+- `rv64_replay_capture`
+- `rv64_root_verify`
+- `rv64_root_verify_main`
+- `rv64_services_collector`
+- `rv64_services_roster`
+- `rv64_services_types`
+- `rv64_vk_table`
+- `verifyPoseidon2`
+- `verifyRiscV`
+- `verifyRiscVSegmentV2`
 
 ## Dependencies
 

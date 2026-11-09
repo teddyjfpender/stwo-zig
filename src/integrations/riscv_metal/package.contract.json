@@ -16,6 +16,7 @@
     "stwo_riscv_cpu_integration": "../riscv_cpu"
   },
   "injected_modules": [
+    "blake3_runtime",
     "keccakf_proof_harness",
     "metal_aot_config",
     "secp256k1_proof_harness",
