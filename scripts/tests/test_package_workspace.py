@@ -514,5 +514,42 @@ class ConsumerSourceOwnershipTests(unittest.TestCase):
         self.assertIsNone(subject.ci_package_graph.package_owner(contracts, ROOT / "scripts/dev_test.py"))
 
 
+class ConstructedProductDeclarationTests(unittest.TestCase):
+    def test_sdk_resolves_through_maintained_scope_and_actual_recorded_product(self):
+        actual = subject.ci_package_graph.read_product_declarations(ROOT, include_constructed=True)
+        self.assertEqual("package", actual["stwo"]["scope"])
+        self.assertEqual("products/libraries.addProducts", actual["stwo"]["constructor"])
+        self.assertEqual("build_support/products/libraries.zig", actual["stwo"]["builder_source"])
+        self.assertEqual("build_support/products/libraries.zig", actual["stwo"]["identity_source"])
+        self.assertEqual("build_support/products/core.zig", actual["stwo-core"]["builder_source"])
+
+    def test_constructed_identity_requires_real_scope_builder_and_observer_call(self):
+        from unittest import mock
+        cases = [("products/catalog.zig", '.product_id = "stwo",', '.product_id = "forged-sdk",'),
+                 ("products/catalog.zig", '"products/libraries.addProducts"', '"products/missing.addProducts"'),
+                 ("internal_build.zig", '@import("products/libraries.zig").addProducts', '@import("products/libraries.zig").other'),
+                 ("products/libraries.zig", 'construction_observer.recordProduct(context.b, sdkProduct());', '_ = sdkProduct;'),
+                 ("products/libraries.zig", '.name = "stwo",', '.name = "other-sdk",'),
+                 ("products/libraries.zig", '@import("../graph/construction_observer.zig")', '@import("../graph/modules.zig")')]
+        original = Path.read_text
+        for relative, before, after in cases:
+            path = ROOT / "build_support" / relative
+            text = original(path)
+            self.assertIn(before, text)
+            with self.subTest(relative=relative, before=before), mock.patch.object(
+                Path, "read_text", lambda p, *a, **k: text.replace(before, after, 1) if p == path else original(p, *a, **k),
+            ), self.assertRaises(subject.ci_package_graph.GraphError):
+                subject.ci_package_graph.read_product_declarations(ROOT, include_constructed=True)
+
+    def test_graph_metadata_import_and_literal_product_resolution_do_not_run_builds(self):
+        from unittest import mock
+        import subprocess
+        from scripts.repo import check_build_configure_closure
+        with mock.patch.object(subprocess, "run", side_effect=AssertionError("source-only stage")), mock.patch.object(
+            subprocess, "check_output", side_effect=AssertionError("no output catalog"),
+        ):
+            self.assertIn("stwo", check_build_configure_closure.read_product_declarations(ROOT, include_constructed=True))
+
+
 if __name__ == "__main__":
     unittest.main()
