@@ -1,0 +1,15 @@
+{
+  "format": "supplemental gzip tar in LFS; prior evidence refs remain retained",
+  "source_snapshot_commit": "f91ee63c0101f3754fb56ede9f1a03c2c7f50fa7",
+  "parts": [
+    {
+      "name": "delivery-evidence.tar.gz.part000",
+      "bytes": 1934916,
+      "sha256": "8f4705b10817b9e19e8d6ab687e60e83c7ff64e4f011b9991374b26d1a22c720"
+    }
+  ],
+  "checkpoints": [
+    "f91ee63c0101-cpu-validation-20261109T061405Z"
+  ],
+  "classification": "Mixed source-pinned CPU acceptance and negative evidence. Core field tests pass in Debug/ReleaseFast at 003b0510e; recursion CPU and instrumented circuit frontend pass at 7a0a6cd0b. Preserve the earlier exact FRI multiplication failure; no production arithmetic correction is claimed. Fresh shape owner builds but rejects UnknownCanonicalShape. Archive-first retirement of 146 branches is remotely verified. Complete CPU CI, latest formal regeneration, block/GPU/release and qualified performance remain open."
+}
