@@ -353,6 +353,46 @@ pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []co
 pub fn produceDirectoryWithCache(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, cache: *SetupCache) !void {
     return produceDirectoryMode(a, config, path, profile, resources, .prove, cache);
 }
+pub fn prepareDirectoryWithCache(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, cache: *SetupCache) !void {
+    return produceDirectoryMode(a, config, path, profile, resources, .prepare, cache);
+}
+pub const FixedRootRecord = struct {
+    cpu_ordinal: usize,
+    identity: [32]u8,
+    geometry: [32]u8,
+    poseidon_root: @import("pure_p2_worker_protocol.zig").W.H.Hash,
+    legacy_blake_root: [32]u8,
+};
+fn fixedRootRecords(a: std.mem.Allocator, keys: []const *const Key) ![]FixedRootRecord {
+    var records: std.ArrayList(FixedRootRecord) = .empty;
+    errdefer records.deinit(a);
+    for (keys, 0..) |key, ordinal| {
+        var seen = false;
+        for (records.items) |record| if (std.mem.eql(u8, &record.identity, &key.identity)) {
+            seen = true;
+            break;
+        };
+        if (!seen) try records.append(a, .{ .cpu_ordinal = ordinal, .identity = key.identity, .geometry = key.source_geometry, .poseidon_root = key.root, .legacy_blake_root = key.source_root });
+    }
+    return records.toOwnedSlice(a);
+}
+fn cellsDigest(cells: []const @import("../word16_execution/memory/statement.zig").Cell) [32]u8 {
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("opstack-pure-p2/canonical-public-cells/v1\x00");
+    var count: [8]u8 = undefined;
+    std.mem.writeInt(u64, &count, cells.len, .little);
+    hash.update(&count);
+    for (cells) |cell| {
+        var bytes: [23]u8 = undefined;
+        std.mem.writeInt(u64, bytes[0..8], cell.address, .little);
+        std.mem.writeInt(u64, bytes[8..16], cell.state.value, .little);
+        std.mem.writeInt(u16, bytes[16..18], cell.state.epoch, .little);
+        std.mem.writeInt(u32, bytes[18..22], cell.state.tick, .little);
+        bytes[22] = cell.state.rights;
+        hash.update(&bytes);
+    }
+    return hash.finalResult();
+}
 /// Scalar-only diagnostics: geometry classes may share physical FIXED roots.
 /// This never trusts producer roots or hashes/reconstructs any fixed witness.
 pub fn fixedRootCounts(keys: []const *const Key) struct { poseidon: usize, legacy: usize } {
@@ -464,6 +504,22 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
     defer inventory.deinit();
     if (mode == .prepare) {
+        const admitted_ns = timer.read();
+        const cache_snapshot = if (cache) |owner| owner.snapshot() else null;
+        const fixed_disk = store.reserved + (if (cache_snapshot) |snapshot| snapshot.parked_bytes else 0);
+        const fixed_mapped = store.mapped + (if (cache_snapshot) |snapshot| snapshot.mapped_bytes else 0);
+        const fixed_classes = authority.key_owners.items.len + authority.cpu_leases.items.len;
+        const root_records = try fixedRootRecords(a, authority.cpu_keys);
+        defer a.free(root_records);
+        const metadata_bytes = try std.json.Stringify.valueAlloc(a, metadata, .{});
+        defer a.free(metadata_bytes);
+        var metadata_digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(metadata_bytes, &metadata_digest, .{});
+        const initial_digest = cellsDigest(captured.advice.initial);
+        const terminal_digest = cellsDigest(captured.advice.terminal);
+        const output = try Terminal.require(&image, req[req.len - 1].base.cpu, captured.advice.terminal);
+        const prepared_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot();
+        try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-prepare-metadata.json", metadata);
         try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-prepare.json", .{
             .schema = "op-native-source-prepare/v1",
             .proof_verified = false,
@@ -472,24 +528,37 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
             .cpu_workers = count,
             .truth_workers = truth_declarations.len,
             .miller_workers = tower.items.len,
-            .cpu_fixed_classes = authority.key_owners.items.len + authority.cpu_leases.items.len,
+            .cpu_fixed_classes = fixed_classes,
+            .fixed_root_distribution = root_records,
+            .metadata_sha256 = metadata_digest,
+            .initial_cells_sha256 = initial_digest,
+            .terminal_cells_sha256 = terminal_digest,
+            .final_pc = captured.final_pc,
+            .final_registers = captured.final_registers,
+            .output = output,
+            .immutable_cache = cache_snapshot,
+            .cache_limits = if (cache) |owner| owner.configuredLimits() else null,
             .unique_poseidon_fixed_roots = uniqueFixedRoots(authority.cpu_keys, "root"),
             .unique_legacy_fixed_roots = uniqueFixedRoots(authority.cpu_keys, "source_root"),
-            .actual_immutable_fixed_disk_bytes = store.reserved,
-            .actual_fixed_mapping_bytes = store.mapped,
+            .actual_immutable_fixed_disk_bytes = fixed_disk,
+            .actual_fixed_mapping_bytes = fixed_mapped,
             .planned_combined_disk_upper_bytes = cost.combined_disk_upper_bytes,
+            .admitted_combined_disk_upper_bytes = if (cache) |owner| try std.math.add(u64, cost.disk_upper_bytes, owner.configuredLimits().disk_bytes) else cost.combined_disk_upper_bytes,
+            .request_main_disk_limit = main_disk_limit,
+            .request_main_mapped_limit = main_mapped_limit,
             .max_cpu_main_restore_bytes = cost.max_cpu_restore_bytes,
             .capture_heap = capture_heap,
-            .prepared_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(),
+            .prepared_heap = prepared_heap,
             .declared_limits = resources,
             .source_cells = bounds.base.shape.native_trace_cells,
             .image_ns = image_ns,
             .program_ns = program_ns,
             .capture_ns = capture_ns,
-            .setup_and_admission_ns = timer.read() - captured_at,
-            .caveat = "Source and immutable-setup admission only; no MAIN, GKR or execution proof. Active source/prover scratch remains subject to hard budgets. Parked files are retired on exit.",
+            .setup_and_admission_ns = admitted_ns - captured_at,
+            .diagnostics_and_publish_ns = timer.read() - admitted_ns,
+            .caveat = "Source and immutable-setup admission only; no MAIN, GKR or execution proof. Active source/prover scratch remains subject to hard budgets. Uncached parked files retire on return; source-owned cache entries survive until cache teardown.",
         });
-        std.debug.print("OP_NATIVE_PREPARE admitted_source=true proof_verified=false steps={} CPU={} truth={} miller={} fixed_classes={} fixed_disk={} mapped={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, authority.key_owners.items.len, store.reserved, store.mapped });
+        std.debug.print("OP_NATIVE_PREPARE admitted_source=true proof_verified=false steps={} CPU={} truth={} miller={} fixed_classes={} fixed_disk={} mapped={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, fixed_classes, fixed_disk, fixed_mapped });
         return;
     }
     var observations = try @import("../word16_global_execution/ethereum/observations.zig").Owner.init(a, if (config.profile_stages) inventory.workers.len else 0);

@@ -1,0 +1,260 @@
+{
+  "schema": "op-native-immutable-fixed-root-distribution/v1",
+  "block": 121065789,
+  "source_only": true,
+  "classes": [
+    {
+      "cpu_ordinal": 0,
+      "identity": "1fe55c0f0d90a2a8219e227c7712b4593c2fadc1ab963c27b2ea48fae1080bd1",
+      "geometry": "2db3df0c7939c8e3d803414c6cd28c28f0256f89d3edd8e5190d2a3f6cbd230e",
+      "poseidon_root": "cc55f05bde48ad21a6b49904e2fbec3f2e3a7f0164906632efa78962327ff14cd75e5a1e",
+      "legacy_blake_root": "225bbae92db660d752cae688b610a899700aa565828ef853e3458818224f7fe2"
+    },
+    {
+      "cpu_ordinal": 1,
+      "identity": "ae88dd62d94c2da8def9db685c5d064645ec51b03310367cdde4b6668f647dec",
+      "geometry": "df89764be65ee1e5d5fdbd2c2926d21ad1b8980ef8ca08e4e7191af07dadbfff",
+      "poseidon_root": "9f17535c9d20794982c56526ac34d036e5315030357ec003b0ea530d1a55df71b4c4e658",
+      "legacy_blake_root": "752a75e24eb7480db82a8be1e3e76b7c85467f57381edad8226440ea6cca7636"
+    },
+    {
+      "cpu_ordinal": 2,
+      "identity": "5071775c9236323403a74229a3a7267e6f5419ba6a7f0524f804ce01de5309c5",
+      "geometry": "c896678e3a0cba2909ce19b91165fe73872a5e12e1bd0722b47037c3b8352e67",
+      "poseidon_root": "5366fd75a8c604464399b3098a36bb42883cc70f2a68bc3d099ff978b9415435de560526",
+      "legacy_blake_root": "b7a67bbaaafb5327096fa6c8b75e07f8835b412ca9467d0bdc875a425a5d1c1f"
+    },
+    {
+      "cpu_ordinal": 3,
+      "identity": "b9c4fc6bbd7aa514a7a70f512aed206a3bab04c15f475584754e85497af9442d",
+      "geometry": "54161dec046cfb161a4ef55ee2d5d0bb5be261c6299543f317c472c5372d69db",
+      "poseidon_root": "050aec6ecfa8cf7d74b2ef70f0dca85c2e2ac711495c0b35f0799617c95fb954bc6d801b",
+      "legacy_blake_root": "af9e48aa61f2beb7771c1bd5752faa0bb132c4a96f7d356ca1b9b2e6fc0f61dc"
+    },
+    {
+      "cpu_ordinal": 4,
+      "identity": "736d808a88deef1345204bd59f80483f2198dbfa55297f70ed70fa67f81725c8",
+      "geometry": "0ed913f81609d8f542781ac2ff7b08a1bc6213cc9d238e6b7f6d6a57b1cd0a2f",
+      "poseidon_root": "b779dc2aceb2ff0bc4877038f175943281f6183e13b7a1150d830b012ff2af677b027801",
+      "legacy_blake_root": "97ef2993ef090b8388533bae45dd760e3cf1369fd30ac1e17bbcb951d7bb34cc"
+    },
+    {
+      "cpu_ordinal": 5,
+      "identity": "93390454495a569b4f0bf4591a4bc48dc5e473bb32483401c535b877bee1e127",
+      "geometry": "23976b0db5f1608c3fb8139baed6f6f238806c13f3fc01c7ff16f636defd7073",
+      "poseidon_root": "87ca8772ebb86620bbfbf25e5dbbe477b291ad56cae1503602d5a03e0f930d4c9443fd33",
+      "legacy_blake_root": "8cf775a7e32ac427d07eed6c1cde75ad5c50899734cb7283cea0a59503857fcb"
+    },
+    {
+      "cpu_ordinal": 6,
+      "identity": "a404b7165a0bf9ad2fb89a320c2f8db2f8913caffb94dfe5725480e63bcd3feb",
+      "geometry": "2a2e115c38625daee93a1ce38fb120b9e1b250723507f539ae7daccae667a2c5",
+      "poseidon_root": "8a2ea837ab855c397452bb0505b82f203a840f0390583952033ea856720a3679b6db5316",
+      "legacy_blake_root": "c5b5d3eb786676df88db4c85360e7838edfe84cd2950a350c187c3f39a5cb125"
+    },
+    {
+      "cpu_ordinal": 7,
+      "identity": "5763a9047a183b80cc3324c6d1faa9a68df02745c15c4f115a6c9ddc25c9ce04",
+      "geometry": "605b48fa377e1956ba3765fc96371e91a85a3ef5d7a5428d39b62a26582f5b5c",
+      "poseidon_root": "986a421d4717b85acc60c5305cb08966bb1966404d9b8331ac1bc4629cf9fd6df6923678",
+      "legacy_blake_root": "55c441dc15da0ea33336fc0c725f886ec1b9f7d5433a4049b4ea048e036a68b5"
+    },
+    {
+      "cpu_ordinal": 8,
+      "identity": "a75f2fe3a2b9d56ce2e7517ffb0cee2479d4a035418e00df73d6517a617f5736",
+      "geometry": "58a6ce38b849163202fad9c36a369ad89eb82ee1bb3d3831d2f1f2d56741217c",
+      "poseidon_root": "2b9fcd61e0a998490f59a672bcbf9c063ced8433376ca425dc439e7fc2671378187a5c09",
+      "legacy_blake_root": "742eb04ec0400c51734a0e76a46d7668b756faeb0d5a6158b64a7fb8e349a35b"
+    },
+    {
+      "cpu_ordinal": 9,
+      "identity": "03bdccfc2dd9f7b254495360e967284d2171650506b583f61a6b764e10a930eb",
+      "geometry": "686bc3b0bfb747ac2632011b18ebf495081fa04996b2a655f87876eed51afe50",
+      "poseidon_root": "16ea3d004633c175aed36506fdc3e765ba577532d45d770e4882832d766b33157a32dd52",
+      "legacy_blake_root": "86b6e443f9cda65b5481b10aebe1e3ac8dc9b56e4d0bf296011aac9946a5fe89"
+    },
+    {
+      "cpu_ordinal": 10,
+      "identity": "474099a1514662d560f43719d6c3d10dab9b4d4d6972c7d656b978bc5d080048",
+      "geometry": "2fa9eca6cff41be6566e4a460063c918c8e85011c9aee8874df12c50b8a6ac03",
+      "poseidon_root": "0fd38c3d20909013b13ce5521da47c33f524975ceac870255d2c25645b998b65e76e592f",
+      "legacy_blake_root": "29d354485e157d88395adaeaae79f03ea14e56b0b6d523b87cb81c40ec7ca9d0"
+    },
+    {
+      "cpu_ordinal": 11,
+      "identity": "10cd23611cdee1065999368e10c5e4c343f2db2112d6f029944c734d4e439d34",
+      "geometry": "472c00e0a81a912e324973440966588fcee4cd24f2b20ee8da3f05a7990f0146",
+      "poseidon_root": "37308817060bf75e6ea9e614d30e6e4559b6045d44a6e65e11faba093384781d87342e79",
+      "legacy_blake_root": "8f90b46fc687f3d92f2dfc756da95820226643295b9a8b07824b4a62d393a68d"
+    },
+    {
+      "cpu_ordinal": 12,
+      "identity": "8bd553df175b33ab5ab8854f5178117e15374f59fcab0a8fcf3f5d28e72b97aa",
+      "geometry": "794d9eb438c9715ff5af4ce44d153a6c5101c1aa19d71d722c52bb43059cba57",
+      "poseidon_root": "454aea60f6d9584517d7fb60332c225c3511be005245fc6c9858b5071128b9691087825e",
+      "legacy_blake_root": "ca7fac2c305061eb6afe6ff6f8fd26a1bfedb5ecbd339c2b0ac9974fd8dbdda2"
+    },
+    {
+      "cpu_ordinal": 14,
+      "identity": "1db9fe7b3c1b337438f213fa23aa7caef50eb5a37d477f9a9828a23551ec8a91",
+      "geometry": "63267bfaa14233640d34748a5d418b71c541b5e7a1a741c4ebc16f3e4e956ebb",
+      "poseidon_root": "91ccdc516a5279105309ac2d1cdcb962a6f78e081006a002cd89ad383c064445b7052f0e",
+      "legacy_blake_root": "fd5d9dc819da4ce5cb9c1f9db997a2e4600dd612cad44499b17924d161889490"
+    },
+    {
+      "cpu_ordinal": 15,
+      "identity": "a6675b471cea2826bf026592aca39548ffa9a3215abc38dd7d51911339d2fbb4",
+      "geometry": "9dd92e512a48cd16a7e74da789786304f99f09cf4d303c4f19188ce77222838d",
+      "poseidon_root": "2f7f9f7eeb1c772210735a3b8ea3e85e4cc6c31fadd7031279fc8e30e866b46b880f1c2c",
+      "legacy_blake_root": "e90477db4241df002e7794f239c0dc85c48bb3a92360fbbc6335609a3281149f"
+    },
+    {
+      "cpu_ordinal": 16,
+      "identity": "8ffcece2b3107e242377632a9a3becfa00a495be86f6498e0c5c9b957ef17b81",
+      "geometry": "49a96024708bb6118026d3614bb61315c2a99d852356f92d61a61c3fd6f89f20",
+      "poseidon_root": "a09db36863fd091a295e4b592531ea5bc21dbf55374afa4d3c18076a20cfea6579a89c00",
+      "legacy_blake_root": "30a1ad6705f8fae754308c5aa61bb0bef8e3035fc25e645bce913433a82a90a3"
+    },
+    {
+      "cpu_ordinal": 17,
+      "identity": "d53d4c696cf2563ec0b39a106cbb7acdfd03d66fde87f8848aa4c9d08aed6eb7",
+      "geometry": "4cf5b64b4be322a3f130c83bf251a9be1ed7ecc0995d8eb285da56311f1b7cae",
+      "poseidon_root": "5e63c0619440ea4027e05a6008bea96aa76e1d078656d93b3229382ee529e9345832b71e",
+      "legacy_blake_root": "a39c225ae9fcaa188d6636243be842d0c131cb1903e4329b7d1a1507ea584f4f"
+    },
+    {
+      "cpu_ordinal": 18,
+      "identity": "3639f7d3535ec5d0ff2688aa2f11951d9c74e27a47b3565c88157b49bcbd4a72",
+      "geometry": "94282e380411d631b132994a350f42466679d617fd94d55cf972b012d78f54a2",
+      "poseidon_root": "9180f53c2de524697e48224f6f91a3006cacb15f3845d36f72cdc70e786d4521a71b1a6f",
+      "legacy_blake_root": "c36e0759ecbf0762fa40df634eeebbc0c297d1859123b9134f9f3186e50fe140"
+    },
+    {
+      "cpu_ordinal": 19,
+      "identity": "03a1fc29699383c282bf2f2daef2483731d498928e4086ecf3a4d1c80189b8f3",
+      "geometry": "2780b067bbc95ca441792721eebb9f21469ea9712cc806fcbe78ce9ad985499c",
+      "poseidon_root": "0e0a091a9b79fc3d8d563e2e43675c4acdff06404821047bfdf5a330160d711bfb376f19",
+      "legacy_blake_root": "5da279c7e705015e7ddd7bfe55c8edf1eb0bc6f3f5827c29b3294ada612c0cf2"
+    },
+    {
+      "cpu_ordinal": 20,
+      "identity": "229cc42b39b4a8f8e540deb99b23eea4453a6d726a976ba73255e146b416b666",
+      "geometry": "13124cbb9dc2ace1d3b4b433fe000ddbc4ec719db5d594d1e83b8f3200539e81",
+      "poseidon_root": "e161820562c7a81b963d8d13a5d55d57eddb9f4620e32c7afc57db12ab229b51f14dbb6a",
+      "legacy_blake_root": "d4bcc4ea1a9364b7b07e6945ef2bb0f952e38317b0c792b0ba0a1d149a84effc"
+    },
+    {
+      "cpu_ordinal": 21,
+      "identity": "8b1e30b044ce95a51f343fef9455dd8dae060872158c7dc22bb5f2206c563299",
+      "geometry": "ca7505befed73f2f88a11166d580707aa446802d9be23ba0dfd305c2096b3158",
+      "poseidon_root": "5fdf5365c6c9a43b2f545d2d53586b41e51d9133c3223672304d603d464f486c6e34440c",
+      "legacy_blake_root": "f3cf04db343cc240d34297f4d8058eb8b3e23a928b393688d1123f307630dd2d"
+    },
+    {
+      "cpu_ordinal": 28,
+      "identity": "98fd1c342113fc4be6ceaa35ec2c31f3c2b83d78766b2779796ab0167690046a",
+      "geometry": "abbceb7362c685385686664d81ca26ac1fc16ca52639d4d95424c2ee2621c25f",
+      "poseidon_root": "2ab7c371319dc37838b7906dc7d94907c3e66155287f485ce51671631eea784726fea627",
+      "legacy_blake_root": "38eeec587a296b7ea72fdde31586331c0db538dc5282cbb90c932f22c68e9663"
+    },
+    {
+      "cpu_ordinal": 29,
+      "identity": "486da34d0053e31bb4c5257538a480e09905dc6c1e6dec580a23872e02a1469e",
+      "geometry": "df007eb259888ad63bdab05255f8c8302dc6979359bfffb74a75adcb25fd4a90",
+      "poseidon_root": "e51add4767b3de0d59ff9b32cd35755d5420a16d71695579ed0a751d93e8ef0a51740d5b",
+      "legacy_blake_root": "e044c71ef2db4bdbc0a345ac842d487a5cbb854e0d1e156b5ec1d643a6b17182"
+    },
+    {
+      "cpu_ordinal": 34,
+      "identity": "7d1ca8510ffb509c571a4699f64ee7a06b9bb613bda9babe2ab6ace7b3de9271",
+      "geometry": "5788bb60888380afa2bcff4883a74d768e21407d772ab1f45ea9e7ea48d93484",
+      "poseidon_root": "37118e57b99e7b50100d3468280cd5192de6990ddf72ed0725b6dc66e606ac4cc64f812f",
+      "legacy_blake_root": "b88abd9779afbc13ff1326cec4d6db7211d7ba89f2eadab151bd940dd8a31407"
+    },
+    {
+      "cpu_ordinal": 35,
+      "identity": "6ed6afde4b540a1997000a9fe78249d880804c4f6ee11abc5098c6959e040444",
+      "geometry": "bcd1fc4daf9aadd56e41d1a187489bd69a2b0f5b048cd4682e93d04e2bd6fbb4",
+      "poseidon_root": "e691a220fc3ed470711de00d03061c0e54b57b5319ba9d545cb0e56990231c20fbffbc45",
+      "legacy_blake_root": "8806e0286bc10495495bc2e97dc7505be4520e3b95d8c9f959f63c5d163320cd"
+    },
+    {
+      "cpu_ordinal": 36,
+      "identity": "0ea61b9d556d63f63c5284dc47e60c26d1580d02a8fcbd4c0539bd67cffb1cc8",
+      "geometry": "e7f22386ed47aa7c402a21426d6864e8bf09bb2ea3c8ca1be3d0a1f3b9f5d1d0",
+      "poseidon_root": "a3447318c8d51d32b361b022f1e119705076c12f8b831c67a4adbb51e64fb631ef77fc7a",
+      "legacy_blake_root": "b2778254218ed30c8f5cb2cea7c91c8c58be97f8ce0757b00d8ceb22f9cd42d8"
+    },
+    {
+      "cpu_ordinal": 37,
+      "identity": "a54065f4bac8352488257d29764cabf7ffff4d5b86bdf005c7489f4ffb4296fc",
+      "geometry": "d5e580a866d3309670af17e7328ee2be5eb4352e59b8c41758293af9ea7a1096",
+      "poseidon_root": "65b8137d2e7b5010f64387208bb3d2174e8e1326ed35630fcb7218101edecc35dc9d446d",
+      "legacy_blake_root": "e939b9d387c9e3526b9c527c217bb505ecf37c69ff00023a2c29d428f73a9134"
+    },
+    {
+      "cpu_ordinal": 43,
+      "identity": "6e368521881ed5db68d542d264efaae46629681423acfa1499c3e10e029a6d4d",
+      "geometry": "dccfa6b8ed615951fa125bb6c23ad389ffaf2beee2448a6aa2ce656ecfa5be40",
+      "poseidon_root": "e24ab62c84b52c2e1204bc43c010977fa61e3139747f7f252b2a9329be7ced01a2100f5b",
+      "legacy_blake_root": "575bd718b2725635d755f9be6b055730f12fe1b0e4bba40885c159a7976c9a36"
+    },
+    {
+      "cpu_ordinal": 45,
+      "identity": "f960015671373ae6c8549ba0eecb51d221eba75981a9c1d7677d11e8747c2534",
+      "geometry": "6bf1a91b6140f50dab9f3debc249db83aac7dc547618b14d881f1a2ca3fe51fc",
+      "poseidon_root": "e84cb53712462d1a1d1d037741495e3ca497682bf8259c61cbc93e08fcaa8e3b47a5987d",
+      "legacy_blake_root": "21e41eb2afe17c6a45f51139c48f78f40c4c3a17ae2eeecad7b5d12270847cbb"
+    },
+    {
+      "cpu_ordinal": 46,
+      "identity": "205f241131637caa9c6af24c7a1e56ca7bf2c6bcf98a19cf22b0c761e2803370",
+      "geometry": "9333e0673fce225bb6bdfd1f916266d80ea4365c3e919a45c25391908dc5c7fa",
+      "poseidon_root": "3759026a5a7636751a165e0df6f4f808e068e0136587c879add1f449b8e1827a3e7abe13",
+      "legacy_blake_root": "079306bd4d1a804beb302f54d1f8279a2d92864ab363b96b5f0959f663b6f10d"
+    },
+    {
+      "cpu_ordinal": 47,
+      "identity": "c2c56f72168b1577615df90e30426b072079e55386bb03b128d080cf94ba8252",
+      "geometry": "b6063a3d9304c45e357125629910ea3599c48e00c73dc4e046e25343014aad44",
+      "poseidon_root": "cb686173d4f3ce79a48a8e1b91bb7c17904232058136ca10a9ab3805f8ba5f7ad0810528",
+      "legacy_blake_root": "267de044b9c874605d520aa182e1ec430bfe67594e49936b2fe240f10f12323f"
+    },
+    {
+      "cpu_ordinal": 48,
+      "identity": "4940ed97b410c825d1817280c481c8433f1293240c606e5647eb040e4b1afebf",
+      "geometry": "8583170a94547bf0e86db7e4e9e93e4ab2d9b5988490787113f40aeed882d295",
+      "poseidon_root": "1902b03431a39965e0467364e5aea82c6a7989120598e6708eca33517dfe156cb66d3e1c",
+      "legacy_blake_root": "0eea0f04f2c062f76468b45d3e9b23c8cdad7a171236bcff27162d91af88cccb"
+    },
+    {
+      "cpu_ordinal": 50,
+      "identity": "e4da4c15c80a3a5180095f26ddf6fa4b6b8b04ccd74f0409b10d085193bb60c0",
+      "geometry": "97eaf22163bf64c9e65b118f53d2d20453f278545126e995833fd8a98c79257f",
+      "poseidon_root": "5d72c1782275ae6796491d2df0499356c005833194df06276b1e1e34e9dd294d64eb1e2f",
+      "legacy_blake_root": "0f52ba9562318a73edde4ca2d5928774425f8fd541d7a5f09ea1a326c9acbefb"
+    },
+    {
+      "cpu_ordinal": 52,
+      "identity": "e8055c478c79e8f5955a7b9e772a5aad164410ef8f0f99a6f375b6bf71356d86",
+      "geometry": "ef8090514789061bcf7e75594968df50146d71df335c451f1330ada9a319b57e",
+      "poseidon_root": "200bdd4787e84869d2351953ac37e81544c0eb66812a917342a85c1a991b097e7778511e",
+      "legacy_blake_root": "cbe1ae147719fccdc49d7c9253c86eb44885337277f6ec9f302529b250825843"
+    },
+    {
+      "cpu_ordinal": 55,
+      "identity": "1f4d9514a18ab0bda7b69336bde2fcdd45f1d598d68dbd5afe8852453b59fac6",
+      "geometry": "552580ec30b05d8961c93d02f834361d6512d16512bb212bb93689ea74bd54d9",
+      "poseidon_root": "8b0c7c6f1803ea7b65006b5520577379c3446d0bc9dbab5b2718331fefeaca6c6098fe5c",
+      "legacy_blake_root": "9561ba5ce47c62eb308800e65364541b1b5055d4ebb36182e6e33ccd514b1d26"
+    },
+    {
+      "cpu_ordinal": 56,
+      "identity": "50a37f1e9850a32f7514cec5970b4d14035d6e3d2ae7d324cc9eafbbb221fc36",
+      "geometry": "086f64223033d797b2c9de54f9135b03518042d84fea68dc736eab02c723a7f6",
+      "poseidon_root": "6568666c3343d3766601e63769b0387229508024efce983f4a03c80f550fbb2b47fcc704",
+      "legacy_blake_root": "105f3026ffc469dff51fe5532726fbbac3b41adff283fb9da915776ffdb9df25"
+    }
+  ],
+  "byte_encoding": "lowercase hexadecimal in original byte order"
+}
