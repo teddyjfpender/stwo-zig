@@ -27,6 +27,17 @@
   "unfiltered_command": "zig build test-riscv64-op-native-join -Doptimize=ReleaseSafe -j1",
   "unfiltered_tests_passed": 86,
   "unfiltered_tests_failed": 0,
+  "compact_miller_join": {
+    "command": "zig build test-riscv64-op-native-join -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP compact actual Miller CPU'",
+    "steps": 1,
+    "cpu_native_bytes": 570728,
+    "miller_native_bytes": 559408,
+    "owner_gkr_verified": true,
+    "all_80_packet_ram_words_bound": true,
+    "ram_wire_closed": true,
+    "fresh_source_receiver": true,
+    "recursive_execution_acceptance": false
+  },
   "notes": [
     "The first broad run found a stale field-count test; the corrected test explicitly excludes appended Zbb and OP fields from the unchanged legacy V3 statement projection.",
     "Compact source programs are prepared before capture and reconstructed independently at reception.",

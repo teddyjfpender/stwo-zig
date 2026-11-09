@@ -69,6 +69,9 @@ pub const VerifiedJoin = struct {
     truth_encoded: *const Truth.Encoded,
 };
 pub fn exercise(comptime Hook: type) !void {
+    return exerciseWithLayout(Hook, false);
+}
+pub fn exerciseWithLayout(comptime Hook: type, comptime compact: bool) !void {
     var pool: engine.work_pool.WorkPool = .{};
     try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
     defer pool.deinit();
@@ -78,6 +81,7 @@ pub fn exercise(comptime Hook: type) !void {
     const profile = Protocol.Profile.op_target_b4_q72_p0_fold4_v1;
     var program = try Program.initWithProfile(a, .{ .base = 4096, .words = &.{0x73} }, .ethereum_services_op_v1);
     defer program.deinit();
+    if (compact) try program.makeCompact();
     var tape = try front.rv64.compact_tape.Tape.init(a, 1, 4096, 0, .ethereum_services_op_v1);
     defer tape.deinit();
     const before = initialWords();
@@ -90,11 +94,22 @@ pub fn exercise(comptime Hook: type) !void {
     defer advice.deinit();
     var geometry = try native.geometry();
     geometry.boundary_log = 7; // all 80 packet words, including readonly tail.
-    const bridges = T.Logs{ .tower = 5 };
+    var bridges = T.Logs{ .tower = 5 };
+    if (compact) {
+        const Plan = @import("../word16_global_execution/ethereum/plan.zig");
+        const declaration = try Plan.cpuForSegment(&native, &advice, 0, 1, advice.initial.len, Plan.CpuLayout.forOpGkr());
+        geometry = declaration.geometry;
+        bridges = declaration.bridges;
+        bridges.tower = 5;
+    }
     var setup = try R.CpuSetup.initForOpProgram(a, .{ .base = 4096, .words = &.{0x73} }, geometry, bridges);
     defer setup.deinit();
     var fresh = try R.CpuSetup.initForOpProgram(a, .{ .base = 4096, .words = &.{0x73} }, geometry, bridges);
     defer fresh.deinit();
+    if (compact) {
+        try std.testing.expect(setup.materials.program.compact and fresh.materials.program.compact);
+        try std.testing.expect(geometry.cpu_compact_decode and geometry.cpu_u8_pairs and geometry.cpu_fused_tail);
+    }
     var key = try Key.initForOp(a, &setup, profile);
     defer key.deinit();
     var receiver_key = try Key.initForOp(a, &fresh, profile);
@@ -170,9 +185,12 @@ pub fn exercise(comptime Hook: type) !void {
     try std.testing.expect(std.meta.isError(CPU.verifyForOp(a, &fresh, request, span, receiver_expected, ids, &receiver, 0, &receiver_key, &proof, null)));
     receiver.digest = digest;
     if (comptime @hasDecl(Hook, "run")) try Hook.run(a, VerifiedJoin{ .setup = &fresh, .request = request, .span = span, .first_ids = ids, .key = &receiver_key, .expected = receiver_expected, .manifest = &receiver, .encoded = &proof, .capture = &capture, .stage_one = stages[0], .truth_key = &fresh_truth, .truth_span = truth_span, .truth_expected = fresh_truth_expected, .truth_encoded = &truth_proof });
-    std.debug.print("OP_CPU_TOWER_JOIN steps=1 profile={s} CPU_bytes={} truth_bytes={} local_OWNER=GKR RAM_Wire=closed fresh_source_receiver=true production_admitted=false\n", .{ @tagName(profile), proof.bytes.len, truth_proof.bytes.len });
+    std.debug.print("OP_CPU_TOWER_JOIN steps=1 compact={} profile={s} CPU_bytes={} truth_bytes={} local_OWNER=GKR RAM_Wire=closed fresh_source_receiver=true production_admitted=false\n", .{ compact, @tagName(profile), proof.bytes.len, truth_proof.bytes.len });
 }
 
 test "OP actual Miller CPU GKR physical proof freshly closes RAM Wire and manifest gates" {
     try exercise(struct {});
+}
+test "OP compact actual Miller CPU GKR freshly closes all packet RAM and Wire" {
+    try exerciseWithLayout(struct {}, true);
 }
