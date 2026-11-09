@@ -42,9 +42,10 @@ reuses native-height prefixes, and extra trees add authentication paths.
 
 The security label remains **128-bit security target under documented
 assumptions**, `security_qualified=false`; production admission remains closed.
-Pending gates are full-height heavy source-shard census, combined service-local
-GKR recursive leaf, complete fold/root and fresh durable receiver, then matched
-full-block native-plus-root timings.
+The actual small combined service-local GKR leaf, complete fold/root and fresh
+durable receiver now pass as detailed below. Remaining gates are full-height
+heavy source-shard census, equal-security architecture comparison and matched
+complete-heavy-block native-plus-root timings.
 
 ## Actual small-block CPU gate
 
