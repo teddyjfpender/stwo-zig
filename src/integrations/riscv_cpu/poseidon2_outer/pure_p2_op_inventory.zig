@@ -13,6 +13,7 @@ const Manifest = @import("pure_p2_manifest.zig");
 const CPU = @import("pure_p2_cpu_worker.zig");
 const Key = @import("pure_p2_fixed_key.zig").Key;
 const Truth = @import("pure_p2_truth_worker.zig");
+const TruthLocal = @import("truth_local_gkr/worker.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
 const Profile = @import("pure_p2_worker_protocol.zig").Profile;
 pub const MillerDeclaration = struct { key: *const Miller.Key, span: Miller.Span };
@@ -24,6 +25,8 @@ pub const Inventory = struct {
     execution: [32]u8,
     cpu_count: usize,
     truth_count: usize,
+    /// Borrowed source keys. Empty is the original classic truth protocol.
+    truth_local_keys: []const ?*const TruthLocal.Key = &.{},
     pub fn deinit(self: *Inventory) void {
         for (self.workers) |worker| if (worker.local_instances) |instances| self.allocator.free(instances);
         self.allocator.free(self.workers);
@@ -32,6 +35,12 @@ pub const Inventory = struct {
         self.* = undefined;
     }
     pub fn init(a: std.mem.Allocator, profile: Profile, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, cpu_keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const MillerDeclaration, expected: P.Expected) !Inventory {
+        return initForTruthLocal(a, profile, setups, requests, spans, cpu_keys, truths, truth_keys, miller, expected, &.{});
+    }
+    /// A nonempty parallel vector is an explicit new truth protocol selection;
+    /// it is supplied by independently rebuilt source authority, not the bundle.
+    pub fn initForTruthLocal(a: std.mem.Allocator, profile: Profile, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, cpu_keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const MillerDeclaration, expected: P.Expected, truth_local_keys: []const ?*const TruthLocal.Key) !Inventory {
+        if (truth_local_keys.len != 0 and truth_local_keys.len != truths.len) return error.InvalidOpTruthLocalInventory;
         if (profile == .reference_b2_q24_p0 or setups.len == 0 or setups.len != cpu_keys.len or setups.len != spans.len or setups.len != requests.len or truths.len != truth_keys.len or setups.len + truths.len + miller.len > Manifest.MAX_WORKERS) return error.InvalidOpNativeInventory;
         _ = try P.admitForOp(a, setups, truths, requests, expected, spans);
         const declarations = try a.alloc(Wire.CpuDeclaration, setups.len);
@@ -65,7 +74,12 @@ pub const Inventory = struct {
         for (truths, truth_keys, 0..) |truth, key, i| {
             if (key.profile != profile) return error.InvalidOpNativeProfile;
             try key.require(truth);
-            workers[done] = try key.expected(truth, @intCast(setups.len + i));
+            if (if (truth_local_keys.len == 0) null else truth_local_keys[i]) |local| {
+                if (truth != .keccak and truth != .secp) return error.InvalidOpTruthLocalInventory;
+                try local.require(truth);
+                if (local.base.profile != profile or !std.mem.eql(u8, &local.base.identity, &key.identity) or !std.mem.eql(u8, &local.base.root, &key.root)) return error.InvalidOpTruthLocalInventory;
+                workers[done] = try local.expected(truth, @intCast(setups.len + i));
+            } else workers[done] = try key.expected(truth, @intCast(setups.len + i));
             done += 1;
         }
         for (miller) |item| {
@@ -88,7 +102,7 @@ pub const Inventory = struct {
             h.update(&worker.fixed_identity);
             h.update(&worker.fixed);
         }
-        return .{ .allocator = a, .workers = workers, .first_ids = ids, .bounds = bounds, .execution = h.finalResult(), .cpu_count = setups.len, .truth_count = truths.len };
+        return .{ .allocator = a, .workers = workers, .first_ids = ids, .bounds = bounds, .execution = h.finalResult(), .cpu_count = setups.len, .truth_count = truths.len, .truth_local_keys = truth_local_keys };
     }
 };
 fn mix(h: *std.crypto.hash.sha2.Sha256, word: u64) void {

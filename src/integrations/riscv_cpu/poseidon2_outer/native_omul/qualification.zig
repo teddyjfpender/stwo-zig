@@ -24,12 +24,12 @@ fn rejectPrepareExact(expected: anyerror, result: anyerror!Receiver.Plan) !void 
 }
 fn reframe(a: std.mem.Allocator, policy: Receiver.Authority, metadata: Receiver.Metadata) !Receiver.Metadata {
     const Inventory = @import("../pure_p2_op_inventory.zig").Inventory;
-    var inventory = try Inventory.init(a, policy.profile, policy.setups, policy.requests, policy.spans, policy.cpu_keys, policy.truths, policy.truth_keys, policy.miller, policy.expected);
+    var inventory = try Inventory.initForTruthLocal(a, policy.profile, policy.setups, policy.requests, policy.spans, policy.cpu_keys, policy.truths, policy.truth_keys, policy.miller, policy.expected, policy.truth_local_keys);
     defer inventory.deinit();
     return .{ .execution = inventory.execution, .manifest = try Receiver.manifestFor(a, &inventory, metadata.leaves), .leaves = metadata.leaves };
 }
 fn authority(source: Runtime.SourceDirectory) Receiver.Authority {
-    return .{ .image = source.image, .output = .{ .address = source.output_address, .bytes = source.output }, .profile = source.metadata.profile, .setups = source.setups, .requests = source.requests, .spans = source.metadata.spans, .cpu_keys = source.cpu_keys, .truths = source.truths, .truth_keys = source.truth_keys, .miller = source.miller, .expected = source.expected };
+    return .{ .image = source.image, .output = .{ .address = source.output_address, .bytes = source.output }, .profile = source.metadata.profile, .setups = source.setups, .requests = source.requests, .spans = source.metadata.spans, .cpu_keys = source.cpu_keys, .truths = source.truths, .truth_keys = source.truth_keys, .truth_local_keys = source.inventory.truth_local_keys, .miller = source.miller, .expected = source.expected };
 }
 pub fn run(a: std.mem.Allocator, source: Runtime.SourceDirectory, metadata: Receiver.Metadata, plan: *const Receiver.Plan, topology: *const Topology, root: []const u8) !void {
     if (!@import("builtin").is_test) return error.OpRootQualificationIsTestOnly;
@@ -105,9 +105,11 @@ pub fn run(a: std.mem.Allocator, source: Runtime.SourceDirectory, metadata: Rece
     defer a.free(cclaims);
     const tclaims = try a.dupe(O, leaves[truth].claims);
     defer a.free(tclaims);
-    if (offset >= cclaims.len or tclaims.len != 5) return error.OpRootQualificationClaimShape;
+    const local_truth = source.inventory.truth_local_keys.len != 0 and source.inventory.truth_local_keys[truth - source.setups.len] != null;
+    if (offset >= cclaims.len or tclaims.len != (if (local_truth) @as(usize, 2) else 5)) return error.OpRootQualificationClaimShape;
     cclaims[offset] = cclaims[offset].add(O.one());
-    tclaims[3] = tclaims[3].sub(O.one());
+    const debt: usize = if (local_truth) 0 else 3;
+    tclaims[debt] = tclaims[debt].sub(O.one());
     leaves[cpu].claims = cclaims;
     leaves[truth].claims = tclaims;
     var balanced = try Receiver.prepare(a, authority(source), changed);

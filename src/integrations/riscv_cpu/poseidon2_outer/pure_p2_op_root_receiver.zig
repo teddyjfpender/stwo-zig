@@ -31,6 +31,7 @@ pub const Authority = struct {
     cpu_keys: []const *const Key,
     truths: []const R.Truth,
     truth_keys: []const *const Truth.Key,
+    truth_local_keys: []const ?*const @import("truth_local_gkr/worker.zig").Key = &.{},
     miller: []const Inventory.MillerDeclaration,
     expected: P.Expected,
 };
@@ -88,12 +89,13 @@ fn canonical(claims: []const O) !void {
 fn fillEntries(inventory: *const Inventory.Inventory, leaves: []const Leaf, entries: []Entry) !void {
     if (leaves.len != inventory.workers.len or entries.len != leaves.len) return error.OpRootLeafCoverage;
     for (leaves, inventory.workers, entries, 0..) |leaf, expected, *entry, i| {
-        if (leaf.ordinal != i or expected.ordinal != i or (leaf.receipt != null) != (expected.kind == .cpu)) return error.OpRootLeafOrder;
+        const service_local = i >= inventory.cpu_count and i < inventory.cpu_count + inventory.truth_count and inventory.truth_local_keys.len != 0 and inventory.truth_local_keys[i - inventory.cpu_count] != null;
+        if (leaf.ordinal != i or expected.ordinal != i or (leaf.receipt != null) != (expected.kind == .cpu or service_local)) return error.OpRootLeafOrder;
         _ = try core.crypto.poseidon2_m31_sponge.decode(leaf.main);
         if (leaf.receipt) |receipt| _ = try core.crypto.poseidon2_m31_sponge.decode(receipt);
         if (leaf.claims.len > 4096) return error.OpRootClaimLimit;
         try canonical(leaf.claims);
-        entry.* = .{ .authority = expected, .scope = .{ .ordinal = expected.ordinal, .statement = expected.statement, .fixed = expected.fixed, .main = leaf.main }, .local = if (leaf.receipt) |receipt| .{ .digest = receipt } else null, .global_relations = expected.global_relations };
+        entry.* = .{ .authority = expected, .scope = .{ .ordinal = expected.ordinal, .statement = expected.statement, .fixed = expected.fixed, .main = leaf.main }, .local = if (expected.kind == .cpu) .{ .digest = leaf.receipt.? } else null, .global_relations = expected.global_relations };
     }
 }
 /// Metadata commitment only; callers still require source admission, public
@@ -122,7 +124,7 @@ pub fn prepareForFixture(a: std.mem.Allocator, authority: Authority, metadata: M
 }
 fn prepareMode(a: std.mem.Allocator, authority: Authority, metadata: Metadata, allow_fixture: bool) !Plan {
     if (authority.image == null and !allow_fixture) return error.OpRootTerminalPolicyMissing;
-    var inventory = try Inventory.Inventory.init(a, authority.profile, authority.setups, authority.requests, authority.spans, authority.cpu_keys, authority.truths, authority.truth_keys, authority.miller, authority.expected);
+    var inventory = try Inventory.Inventory.initForTruthLocal(a, authority.profile, authority.setups, authority.requests, authority.spans, authority.cpu_keys, authority.truths, authority.truth_keys, authority.miller, authority.expected, authority.truth_local_keys);
     errdefer inventory.deinit();
     if (!std.mem.eql(u8, &inventory.execution, &metadata.execution)) return error.OpRootExecutionAuthority;
     if (metadata.leaves.len != inventory.workers.len) return error.OpRootLeafCoverage;
@@ -163,6 +165,14 @@ fn prepareMode(a: std.mem.Allocator, authority: Authority, metadata: Metadata, a
     for (authority.truths, authority.truth_keys, 0..) |truth, key, j| {
         const i = authority.setups.len + j;
         const leaf = metadata.leaves[i];
+        if (if (authority.truth_local_keys.len == 0) null else authority.truth_local_keys[j]) |local_key| {
+            if (leaf.claims.len != 2 or leaf.receipt == null or (truth == .keccak and !leaf.claims[1].isZero())) return error.OpRootLocalTruthClosure;
+            global[i] = .{ .ram = O.zero(), .kio = if (truth == .keccak) leaf.claims[0] else O.zero(), .wire = if (truth == .secp) leaf.claims[0].add(leaf.claims[1]) else O.zero() };
+            const words = try @import("truth_local_gkr/statement.zig").expectedWords(a, local_key, truth, inventory.workers[i], manifest, leaf.main, leaf.receipt.?, leaf.claims[0..2].*);
+            defer a.free(words);
+            outputs[i] = N.hashWords(words);
+            continue;
+        }
         if (truth == .keccak or truth == .secp) {
             if (leaf.claims.len != 5 or !leaf.claims[0].add(leaf.claims[1]).add(leaf.claims[2]).isZero() or (truth == .keccak and !leaf.claims[4].isZero())) return error.OpRootLocalTruthClosure;
             global[i] = try @import("../word16_global_execution/services/gkr_local/truth_worker.zig").claimsResult(truth, leaf.claims);

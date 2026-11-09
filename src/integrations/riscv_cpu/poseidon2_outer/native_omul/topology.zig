@@ -61,6 +61,19 @@ pub const SourceLeaf = struct {
         defer scope.deinit();
         return finish(a, source.key.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .catalog }, try normalized.build(a, true));
     }
+    pub fn initLocalCatalog(a: std.mem.Allocator, source: @import("../truth_local_gkr/leaf_test.zig").View) !SourceLeaf {
+        try source.key.require(source.truth);
+        const expected = try source.key.expected(source.truth, source.expected.ordinal);
+        if (!std.meta.eql(expected, source.expected) or source.values.cap_log != 0) return error.OpRootLeafSourceAuthority;
+        var arena = std.heap.ArenaAllocator.init(a);
+        defer arena.deinit();
+        const shape = try @import("../truth_local_gkr/statement.zig").geometry(arena.allocator(), source.key, source.truth);
+        var normalized = source;
+        normalized.shape = &shape;
+        var scope = @import("scope.zig").begin();
+        defer scope.deinit();
+        return finish(a, source.key.base.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .catalog }, try normalized.build(a, true));
+    }
     pub fn initMiller(a: std.mem.Allocator, source: @import("../pure_p2_tower_leaf_test.zig").View) !SourceLeaf {
         try source.key.validateSpan(source.span);
         const expected = try source.key.expected(source.span, source.expected.ordinal);

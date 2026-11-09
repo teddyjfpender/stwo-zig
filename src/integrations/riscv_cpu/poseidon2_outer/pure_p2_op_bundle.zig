@@ -10,6 +10,7 @@ const MW = @import("pure_p2_manifest_wire.zig");
 const CPU = @import("pure_p2_cpu_worker.zig");
 const Key = @import("pure_p2_fixed_key.zig").Key;
 const Truth = @import("pure_p2_truth_worker.zig");
+const TruthLocal = @import("truth_local_gkr/worker.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
 const R = @import("../word16_global_execution/services/roster.zig");
 const P = @import("../word16_global_execution/services/protocol.zig");
@@ -49,6 +50,16 @@ pub const TruthVerified = struct {
     capture: *const Capture,
     stage_one: Manifest.StageOne,
 };
+pub const LocalTruthVerified = struct {
+    truth: R.Truth,
+    key: *const TruthLocal.Key,
+    expected: Manifest.Expected,
+    manifest: *const Manifest.Pending,
+    ordinal: usize,
+    encoded: *const TruthLocal.Encoded,
+    capture: *const Capture,
+    stage_one: Manifest.StageOne,
+};
 pub const MillerVerified = struct {
     span: Miller.Span,
     key: *const Miller.Key,
@@ -63,6 +74,7 @@ pub const Hooks = struct {
     context: ?*anyopaque = null,
     cpu: ?*const fn (?*anyopaque, std.mem.Allocator, CpuVerified) anyerror!void = null,
     truth: ?*const fn (?*anyopaque, std.mem.Allocator, TruthVerified) anyerror!void = null,
+    truth_local: ?*const fn (?*anyopaque, std.mem.Allocator, LocalTruthVerified) anyerror!void = null,
     miller: ?*const fn (?*anyopaque, std.mem.Allocator, MillerVerified) anyerror!void = null,
 };
 /// Complete native closure, still pending the application's independently
@@ -93,6 +105,11 @@ pub const Bundle = struct {
         defer closed.deinit(a);
     }
     pub fn verifyWithHooks(self: *const Bundle, a: std.mem.Allocator, inventory: *const Inventory.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inventory.MillerDeclaration, hooks: Hooks) !Closed {
+        if (inventory.truth_local_keys.len != 0) return error.OpTruthLocalRequiresExplicitReceiver;
+        return self.verifyWithHooksForTruthLocal(a, inventory, setups, requests, spans, keys, truths, truth_keys, miller, hooks);
+    }
+    pub fn verifyWithHooksForTruthLocal(self: *const Bundle, a: std.mem.Allocator, inventory: *const Inventory.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inventory.MillerDeclaration, hooks: Hooks) !Closed {
+        if (inventory.truth_local_keys.len != 0 and inventory.truth_local_keys.len != truths.len) return error.InvalidOpTruthLocalInventory;
         if (setups.len != inventory.cpu_count or requests.len != setups.len or keys.len != setups.len or spans.len != setups.len or truths.len != inventory.truth_count or truths.len != truth_keys.len or self.proofs.len != inventory.workers.len or setups.len + truths.len + miller.len != self.proofs.len) return error.InvalidOpNativeBundle;
         var stages = try MW.decode(a, inventory.execution, inventory.workers, self.stage_one);
         errdefer stages.deinit();
@@ -111,6 +128,18 @@ pub const Bundle = struct {
         }
         for (truths, truth_keys, 0..) |truth, key, j| {
             const i = setups.len + j;
+            if (if (inventory.truth_local_keys.len == 0) null else inventory.truth_local_keys[j]) |local_key| {
+                var local = try TruthLocal.decode(a, self.proofs[i].bytes, self.proofs[i].bytes.len);
+                defer local.deinit(a);
+                if (self.proofs[i].claims.len != 2 or !std.meta.eql(self.proofs[i].claims[0..2].*, local.claims)) return error.OpTruthLocalClaimEnvelope;
+                if (hooks.truth_local) |hook| {
+                    var capture: Capture = undefined;
+                    claims[i] = try TruthLocal.verifyWithCapture(a, local_key, truth, inventory.workers[i], &pending, i, &local, &capture);
+                    defer capture.deinit(a);
+                    try hook(hooks.context, a, .{ .truth = truth, .key = local_key, .expected = inventory.workers[i], .manifest = &pending, .ordinal = i, .encoded = &local, .capture = &capture, .stage_one = stages.stages[i] });
+                } else claims[i] = try TruthLocal.verify(a, local_key, truth, inventory.workers[i], &pending, i, &local);
+                continue;
+            }
             const proof = Truth.Encoded{ .bytes = self.proofs[i].bytes, .claims = self.proofs[i].claims };
             if (hooks.truth) |hook| {
                 var capture: Capture = undefined;

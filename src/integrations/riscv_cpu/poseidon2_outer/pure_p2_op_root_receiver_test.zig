@@ -48,6 +48,10 @@ test "OP pure P2 root preparation binds complete source inventory and boundary c
     const expected = F.expectedFor(captured.program.identity, captured.loaded);
     var inventory = try Inventory.init(a, profile, &.{ &setups[0], &setups[1] }, &requests, &spans, &.{ &keys[0], &keys[1] }, &truths, &.{ &tk0, &tk1 }, &.{}, expected);
     defer inventory.deinit();
+    var unsupported_local = @import("truth_local_gkr/worker.zig").Key{ .base = tk0, .identity = @splat(0) };
+    try std.testing.expectError(error.InvalidOpTruthLocalInventory, Inventory.initForTruthLocal(a, profile, &.{ &setups[0], &setups[1] }, &requests, &spans, &.{ &keys[0], &keys[1] }, &truths, &.{ &tk0, &tk1 }, &.{}, expected, &.{ &unsupported_local, null }));
+    try std.testing.expectError(error.InvalidOpTruthLocalInventory, Inventory.initForTruthLocal(a, profile, &.{ &setups[0], &setups[1] }, &requests, &spans, &.{ &keys[0], &keys[1] }, &truths, &.{ &tk0, &tk1 }, &.{}, expected, &.{null}));
+
     const original = @import("../word16_global_execution/services/arith256_fixture.zig").initialWords();
     var output: Receiver.Output = .{ .address = F.AR_PACKET + 32, .bytes = undefined };
     for (&output.bytes, 0..) |*byte, i| byte.* = @truncate(original[(32 + i) / 8] >> @as(u6, @intCast(((32 + i) % 8) * 8)));
