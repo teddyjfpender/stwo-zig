@@ -56,25 +56,41 @@ impl Packet {
     }
 
     #[inline(always)]
-    fn result(&self) -> Option<Fq12> {
-        let mut at = 0;
-        let mut read = || {
-            let value = Fq::from_bigint(BigInt(self.0[at]));
-            at += 1;
-            value
+    // OP profile authority: the service's physical field writer constrains
+    // every output < p. As in the admitted canonical Fp2 client, decode those
+    // canonical words without duplicating twelve modulus checks in the guest.
+    // Admission still requires the full service/RAM/receiver joins; this is
+    // never an unchecked host hint or a fallback for legacy v3.
+    fn write_result(&self, a: &mut Fq12) {
+        #[cfg(target_arch = "riscv64")]
+        const {
+            assert!(<ark_bn254::FqConfig as ark_ff::MontConfig<4>>::CANONICAL_REPRESENTATION);
+        }
+        // Host packet tests use ordinary Montgomery Fq; their independent
+        // conversion must retain that representation. Native guest execution
+        // itself uses the original software Miller path, not this service.
+        let field = |index: usize| {
+            #[cfg(target_arch = "riscv64")]
+            {
+                Fq::new_unchecked(BigInt(self.0[index]))
+            }
+            #[cfg(not(target_arch = "riscv64"))]
+            {
+                Fq::from_bigint(BigInt(self.0[index])).expect("canonical test packet")
+            }
         };
-        Some(Fq12::new(
-            Fq6::new(
-                Fq2::new(read()?, read()?),
-                Fq2::new(read()?, read()?),
-                Fq2::new(read()?, read()?),
-            ),
-            Fq6::new(
-                Fq2::new(read()?, read()?),
-                Fq2::new(read()?, read()?),
-                Fq2::new(read()?, read()?),
-            ),
-        ))
+        a.c0.c0.c0 = field(0);
+        a.c0.c0.c1 = field(1);
+        a.c0.c1.c0 = field(2);
+        a.c0.c1.c1 = field(3);
+        a.c0.c2.c0 = field(4);
+        a.c0.c2.c1 = field(5);
+        a.c1.c0.c0 = field(6);
+        a.c1.c0.c1 = field(7);
+        a.c1.c1.c0 = field(8);
+        a.c1.c1.c1 = field(9);
+        a.c1.c2.c0 = field(10);
+        a.c1.c2.c1 = field(11);
     }
 }
 
@@ -95,7 +111,7 @@ pub(super) fn miller_line(a: &mut Fq12, c0: &Fq2, c3: &Fq2, c4: &Fq2, x: &Fq, y:
         unsafe {
             core::arch::asm!("ecall", in("a0") packet.0.as_mut_ptr(), in("a7") TAG, options(nostack));
         }
-        *a = packet.result().expect("noncanonical OP sparse034 output");
+        packet.write_result(a);
     }
     #[cfg(not(target_arch = "riscv64"))]
     {
@@ -131,7 +147,9 @@ mod tests {
         for (i, word) in packet.0.iter().enumerate() {
             assert_eq!(*word, [i as u64 + 1, 0, 0, 0]);
         }
-        assert_eq!(packet.result(), Some(a));
+        let mut decoded = Fq12::ZERO;
+        packet.write_result(&mut decoded);
+        assert_eq!(decoded, a);
         let line = packet.0[12..].to_vec();
         let mut expected = a;
         let mut c0 = q(13);
@@ -150,9 +168,8 @@ mod tests {
             &Fq::from(20),
         );
         packet.0[..12].copy_from_slice(&output.0[..12]);
-        assert_eq!(packet.result(), Some(expected));
+        packet.write_result(&mut decoded);
+        assert_eq!(decoded, expected);
         assert_eq!(packet.0[12..], line);
-        packet.0[11] = Fq::MODULUS.0;
-        assert!(packet.result().is_none());
     }
 }

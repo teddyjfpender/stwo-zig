@@ -114,3 +114,20 @@ limbs and does not assume a particular zero representation.
 
 A separate forced Fp6-multiply inlining experiment was rejected: it saved only
 0.37% of instructions while expanding text past 4 MiB and doubling ROM size.
+
+
+## Canonical output authority
+
+[Direct output qualification](canonical-line-output.json) binds the next
+client cut to the narrow provider's physical canonical writers: each final
+Fq has range-checked bytes, a modulus-distance equation, Boolean borrows and
+no final carry. With that authority, the explicitly gated OP client writes
+each result coordinate directly without repeating twelve modulus checks.
+RV64 asserts canonical field representation; host tests retain checked
+conversion into their ordinary Montgomery representation.
+
+Heavy instructions fall **240,511,227 → 238,226,172**, with identical service
+RAM and call counts. Fifteen host tests and three real-block native/Unicorn
+agreements pass. A returned Fq12 variant regressed through aggregate copies and
+was rejected. Complete CPU/RAM/receiver qualification is still required before
+OP-profile admission; none of these guest receipts admits unproved host advice.
