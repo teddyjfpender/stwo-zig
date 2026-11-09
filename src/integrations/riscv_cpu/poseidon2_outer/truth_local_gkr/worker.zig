@@ -16,6 +16,9 @@ const Shapes = @import("authority.zig");
 const N = @import("native.zig");
 const Components = @import("components.zig");
 const Budget = engine.host_budget_allocator.SharedHostBudget;
+pub const SealedScope = Base.SealedScope;
+/// All APIs below return pending physical claims; only a source-owned complete
+/// inventory can admit an execution.
 pub const Limits = struct { live_bytes: usize, main_bytes: usize, interaction_bytes: usize, gkr_bytes: usize };
 pub const Encoded = struct {
     bytes: []u8,
@@ -167,6 +170,13 @@ pub const Worker = struct {
         if (!self.sealed or self.consumed) return error.OpTruthLocalPhase;
         try checkPending(self.expected, pending, index);
         try pending.checkPhysicalRoots(index, self.key.base.root, self.scheme.trees.items[1].root());
+        return self.completeSealed(.{ .manifest = pending.digest, .main = self.scheme.trees.items[1].root() });
+    }
+    pub fn completeSealed(self: *Worker, sealed: SealedScope) !Encoded {
+        if (!self.sealed or self.consumed) return error.OpTruthLocalPhase;
+        try validateExpected(self.key, self.truth, self.expected);
+        if (!std.mem.eql(u8, &sealed.main, &self.scheme.trees.items[1].root())) return error.GlobalGkrPhysicalRootMismatch;
+        const shared = try Manifest.drawShared(sealed.manifest);
         self.consumed = true;
         const a = self.allocator;
         const shapes = try Shapes.shapes(self.truth);
@@ -174,7 +184,7 @@ pub const Worker = struct {
         const child_owner = try Budget.createRetainingParent(a, self.limits.gkr_bytes);
         defer child_owner.destroy();
         const child_a = child_owner.allocator();
-        const scope = scopeFor(self.expected, self.scheme.trees.items[1].root(), pending.digest);
+        const scope = scopeFor(self.expected, self.scheme.trees.items[1].root(), sealed.manifest);
         var local_stage = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "truth_local_gkr", "Source-streamed truth local GKR");
         defer local_stage.end();
         var child = try N.proveUnboundWithOptions(child_a, scope, shapes, metadata, self.gkr_options);
@@ -185,14 +195,14 @@ pub const Worker = struct {
         const checked = child.terminal();
         var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Truth terminal binding and unchanged global LogUp");
         defer generation.end();
-        const generated = try Components.generate(a, &self.source.?, shapes, metadata, checked, pending.shared, self.limits.interaction_bytes);
+        const generated = try Components.generate(a, &self.source.?, shapes, metadata, checked, shared, self.limits.interaction_bytes);
         var owns_inter = true;
         defer if (owns_inter) generated.commit.deinit(a);
-        var components = try Components.Components.init(a, self.truth, checked, pending.shared, generated.claims);
+        var components = try Components.Components.init(a, self.truth, checked, shared, generated.claims);
         defer components.deinit();
         const handles = components.provers();
         generation.end();
-        mixClaims(&self.channel, pending.digest, child.digest, generated.claims);
+        mixClaims(&self.channel, sealed.manifest, child.digest, generated.claims);
         owns_inter = false;
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, generated.commit.columns, generated.commit.backings, 64, self.native_recorder, &self.channel);
         self.source.?.deinit();
@@ -211,17 +221,25 @@ pub fn verify(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: M
 pub fn verifyWithCapture(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, pending: *const Manifest.Pending, index: usize, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
     try validateExpected(key, truth, expected);
     try checkPending(expected, pending, index);
+    return verifySealedWithCapture(a, key, truth, expected, .{ .manifest = pending.digest, .main = pending.entries[index].scope.main }, encoded, output_capture);
+}
+pub fn verifySealed(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, sealed: SealedScope, encoded: *const Encoded) !Manifest.Claims {
+    return verifySealedWithCapture(a, key, truth, expected, sealed, encoded, null);
+}
+pub fn verifySealedWithCapture(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, sealed: SealedScope, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
+    try validateExpected(key, truth, expected);
+    const shared = try Manifest.drawShared(sealed.manifest);
     const shapes = try Shapes.shapes(truth);
     var proof = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
     defer proof.deinit(a);
     const roots = proof.commitment_scheme_proof.commitments.items;
     if (roots.len != 4 or !std.meta.eql(proof.commitment_scheme_proof.config, key.base.profile.config()) or proof.commitment_scheme_proof.revision_config != null or !std.mem.eql(u8, &roots[0], &key.base.root)) return error.OpTruthLocalProofShape;
-    try pending.checkPhysicalRoots(index, key.base.root, roots[1]);
+    if (!std.mem.eql(u8, &sealed.main, &roots[1])) return error.GlobalGkrPhysicalRootMismatch;
     var local = try N.decode(a, shapes, encoded.local);
     defer local.deinit();
-    var checked = try N.verifyPending(a, scopeFor(expected, roots[1], pending.digest), shapes, &local.proof, encoded.receipt);
+    var checked = try N.verifyPending(a, scopeFor(expected, roots[1], sealed.manifest), shapes, &local.proof, encoded.receipt);
     defer checked.deinit(a);
-    var components = try Components.Components.init(a, truth, checked.terminal(), pending.shared, encoded.claims);
+    var components = try Components.Components.init(a, truth, checked.terminal(), shared, encoded.claims);
     defer components.deinit();
     const handles = components.verifiers();
     var channel = Protocol.begin(key.base.profile, expected, key.identity, key.base.root);
@@ -232,7 +250,7 @@ pub fn verifyWithCapture(a: std.mem.Allocator, key: *const Key, truth: R.Truth, 
         defer a.free(tree_logs);
         try receiver.commit(a, roots[tree], tree_logs, &channel);
     }
-    mixClaims(&channel, pending.digest, encoded.receipt, encoded.claims);
+    mixClaims(&channel, sealed.manifest, encoded.receipt, encoded.claims);
     const inter_logs = try components.logs(a, 2);
     defer a.free(inter_logs);
     try receiver.commit(a, roots[2], inter_logs, &channel);
