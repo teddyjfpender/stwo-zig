@@ -196,3 +196,22 @@ ordered geometry and claims. Fresh receivers, existing mutants and the explicit
 post-owner-release data test pass. The compact comparison receipt is
 `vectors/reports/rv64-opstack-cpu-20261109/checked-terminal-legacy-parity-v1.json`.
 The new pure suite may consume this API without changing legacy AIR semantics.
+
+## Actual complete CPU physical gate
+
+The new native worker now runs the complete source CPU AIR, local GKR terminal
+projection, public RAM boundary checks and shared RAM/KIO/Wire argument using
+P2-v2 for physical PCS/FRI, local GKR and manifest/challenge framing. FIXED is
+independently rebuilt from source, retained once, and keyed by ordered geometry.
+Expected statement/execution IDs remain exact external 32-byte admission IDs;
+all internal roots and receipts remain nine limbs. No BLAKE conversion of a P2
+root is used. Source profile/key identity mismatches and ninth-root changes reject.
+
+The actual two-shard, five-retirement fixture passes ReleaseFast and ReleaseSafe:
+703,072 and 701,476 proof bytes, identical between optimization modes, independently
+admitted setup/endpoint/key/child replay, original AIR plus terminal constraints,
+physical PCS verification and global closure. This advances beyond the synthetic
+local-fractions fixture. It still does not qualify a heavy OP block, a complete
+pure-P2 recursive leaf, service truths, durable manifest codec or a root fold.
+Production admission remains closed. Full-size resource bounds and stage timings
+must be established before invoking the new worker on a real OP segment.
