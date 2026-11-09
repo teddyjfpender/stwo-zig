@@ -362,6 +362,10 @@ jobs:
         if: always() && matrix.lane == 'riscv_cpu'
         shell: bash
         run: |
+          if ! command -v gdb >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends gdb
+          fi
           python3 - <<'PY'
           import hashlib, json, os, re, shutil, subprocess
           from pathlib import Path
@@ -405,6 +409,7 @@ jobs:
                   path = out / f"worker-debugger-{binary.parent.name}.txt"
                   path.write_bytes(transcript)
                   diagnosis.update(argv=argv, transcript=path.name, transcript_sha256=hashlib.sha256(transcript).hexdigest())
+                  diagnosis.update(debugger=debugger, debugger_sha256=hashlib.sha256(Path(debugger).read_bytes()).hexdigest(), debugger_version=subprocess.check_output([debugger, "--version"], text=True).splitlines()[0])
               records.append({"binary": str(binary.relative_to(cache)), "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "frames": frames, "debugger_diagnosis": diagnosis})
           (out / "rv64-worker-frames.json").write_text(json.dumps(records, indent=2) + "\n")
           PY
