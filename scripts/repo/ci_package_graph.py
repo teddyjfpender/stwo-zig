@@ -21,6 +21,7 @@ package names that package's ``build.zig`` in its ``--build-file`` argument.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Mapping
@@ -218,3 +219,61 @@ def selection(
     affected = reverse_closure(packages, seeds)
     lanes = {lane for lane, package in bindings.items() if package in affected}
     return frozenset(lanes), frozenset(unowned)
+
+
+OWNER_ENTRY_RE = re.compile(
+    r'\.\{\s*\.prefix\s*=\s*"([^"]+)"\s*,\s*'
+    r"\.package\s*=\s*\.[A-Za-z_][A-Za-z0-9_]*\s*,\s*"
+    r'\.dependency_name\s*=\s*"([^"]+)"\s*\}',
+    re.DOTALL,
+)
+def check_ownership_projection(expected: Mapping[str, str], source: str) -> list[str]:
+    failures = []
+    actual: dict[str, str] = {}
+    for prefix, package in OWNER_ENTRY_RE.findall(source):
+        if prefix in actual:
+            failures.append(f"package workspace: duplicate ownership prefix {prefix!r}")
+        actual[prefix] = package
+    if actual != expected:
+        failures.append("package workspace: ownership projection differs from package "
+                        f"contracts: expected={expected}, actual={actual}")
+    return failures
+
+
+def check_owner_roles(repository: Path, expected: Mapping[str, set[str]]) -> list[str]:
+    """Exact CODEOWNERS routing; this is not an RFC or branch-protection decision."""
+    path = repository / ".github/CODEOWNERS"
+    try:
+        source = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        return [f"package workspace: CODEOWNERS unavailable: {error}"]
+    failures = []
+    role = None
+    routes: dict[str, dict[str, tuple[str, ...]]] = {}
+    seen_paths = set()
+    account = re.compile(r"@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9_.-]+)?$")
+    for line_number, line in enumerate(source.splitlines(), 1):
+        line = line.strip()
+        if line.startswith("# owner-role:"):
+            role = line.removeprefix("# owner-role:").strip()
+            if role in routes:
+                failures.append(f"package workspace: repeated CODEOWNERS role {role!r}")
+            routes.setdefault(role, {})
+        elif line and not line.startswith("#"):
+            fields = line.split()
+            if role is None or len(fields) < 2 or any(not account.fullmatch(v) for v in fields[1:]):
+                failures.append(f"package workspace: invalid CODEOWNERS route at line {line_number}")
+                continue
+            if fields[0] in seen_paths:
+                failures.append(f"package workspace: duplicate CODEOWNERS path {fields[0]!r}")
+            seen_paths.add(fields[0])
+            routes[role][fields[0]] = tuple(fields[1:])
+    if set(routes) != set(expected):
+        failures.append(f"package workspace: CODEOWNERS roles differ: missing={sorted(set(expected) - set(routes))}, added={sorted(set(routes) - set(expected))}")
+    for role, paths in expected.items():
+        actual = routes.get(role, {})
+        if set(actual) != paths:
+            failures.append(f"package workspace: CODEOWNERS scope differs for {role!r}")
+        if len(set(actual.values())) != 1:
+            failures.append(f"package workspace: CODEOWNERS accounts differ or are absent for {role!r}")
+    return failures

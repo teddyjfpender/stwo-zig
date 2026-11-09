@@ -666,6 +666,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
+    },
+    {
+      "id": "delivery_invariant_owner_review_routing",
+      "net_code_budget": 180,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Resolve all existing invariant-owner roles to explicit repository-maintainer review routing in CODEOWNERS, with exact contract/build-manifest coverage. Extend existing package graph/workspace owners to reject missing/unknown roles, malformed accounts and duplicate or wildcard override paths. Reuse the ownership projection parser in the shared graph library instead of growing the 850-line checker. No collaborators are added, branch protection or RFC approval claimed, public API ledger changed or top-level launcher introduced."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

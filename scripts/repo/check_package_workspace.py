@@ -62,12 +62,6 @@ PATH_DEPENDENCY_RE = re.compile(
 BUILD_DEPENDENCY_RE = re.compile(r'b\.dependency\(\s*"([^"]+)"', re.DOTALL)
 VERSION_RE = re.compile(r'\.version\s*=\s*"([^"]+)"')
 TEST_RE = re.compile(r'^test\s+"((?:[^"\\]|\\.)*)"\s*\{', re.MULTILINE)
-OWNER_ENTRY_RE = re.compile(
-    r'\.\{\s*\.prefix\s*=\s*"([^"]+)"\s*,\s*'
-    r"\.package\s*=\s*\.[A-Za-z_][A-Za-z0-9_]*\s*,\s*"
-    r'\.dependency_name\s*=\s*"([^"]+)"\s*\}',
-    re.DOTALL,
-)
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]+\]\(([^)\s]+)\)")
 REQUIRED_README_HEADINGS = (
     "## Public API",
@@ -740,6 +734,14 @@ def _validate_ownership_projection(
     contracts: list[Contract],
     failures: list[str],
 ) -> None:
+    role_paths = {"repository-maintainer": {
+        "/.github/CODEOWNERS", "/ENGINEERING_STANDARDS.md",
+        "/conformance/rv64-productionisation-budget.json",
+    }}
+    for contract in contracts:
+        base = "/" + contract.directory.relative_to(repository).as_posix()
+        role_paths.setdefault(contract.owner, set()).update({base + "/package.contract.json", base + "/build.zig.zon"})
+    failures.extend(ci_package_graph.check_owner_roles(repository, role_paths))
     projection = repository / "build_support/graph/package_ownership.zig"
     if not projection.is_file():
         failures.append("package workspace: ownership projection is missing")
@@ -749,21 +751,9 @@ def _validate_ownership_projection(
         contract.package
         for contract in contracts
     }
-    matches = OWNER_ENTRY_RE.findall(
-        strip_comments(projection.read_text(encoding="utf-8"))
+    failures.extend(ci_package_graph.check_ownership_projection(
+        expected, strip_comments(projection.read_text(encoding="utf-8")))
     )
-    actual: dict[str, str] = {}
-    for prefix, package in matches:
-        if prefix in actual:
-            failures.append(
-                f"package workspace: duplicate ownership prefix {prefix!r}"
-            )
-        actual[prefix] = package
-    if actual != expected:
-        failures.append(
-            "package workspace: ownership projection differs from package "
-            f"contracts: expected={expected}, actual={actual}"
-        )
 
 
 def check_repository(repository: Path) -> list[str]:
