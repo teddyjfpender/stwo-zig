@@ -274,3 +274,7 @@ test {
 test {
     _ = @import("poseidon2_outer/miller_local_gkr/capacity_runtime_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/heavy_prefix_test.zig");
+}
