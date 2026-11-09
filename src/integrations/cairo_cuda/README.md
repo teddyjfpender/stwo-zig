@@ -206,6 +206,8 @@ source before integrating. The top-level contractual surface is:
 | Parity fixtures | `eval_parity_fixture`, `relation_sn2_parity_fixture` |
 | Diagnostics | `diagnostic_sn2`, `executor` |
 
+The current primary module also exports `canonical_eval_aot`, `canonical_feeds`, `canonical_protocol`, `canonical_source`, `canonical_verify`, `eval_codegen_parity`, `parametric_eval`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
+
 ## Dependencies
 
 - `stwo_backend_contracts`

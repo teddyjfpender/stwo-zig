@@ -14,7 +14,10 @@
   },
   "injected_modules": [],
   "api_surface": [
-    "CpuBackend"
+    "CommitmentOptions",
+    "CpuBackend",
+    "Om31FriBackend",
+    "configured"
   ],
   "api_contract": {
     "signature_tests": [
