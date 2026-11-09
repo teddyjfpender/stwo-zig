@@ -137,13 +137,19 @@ pub const Component = struct {
         defer a.free(slots);
         const output = &slots[0];
         const domain = Canonic.new(eval_log).circleDomain();
-        var prepared = try Prepared.init(a, trace, eval_log, .{ R.FIXED, R.MAIN, R.INTER }, .{ K.INPUT_FIXED_START, K.INPUT_MAIN_START, K.INPUT_INTER_START });
+        var prepared = blk: {
+            var scope = try @import("domain_profile.zig").begin("op_r7.input_prepare", "R7 input column preparation");
+            defer scope.end();
+            break :blk try Prepared.init(a, trace, eval_log, .{ R.FIXED, R.MAIN, R.INTER }, .{ K.INPUT_FIXED_START, K.INPUT_MAIN_START, K.INPUT_INTER_START });
+        };
         defer prepared.deinit();
         var inverse: [2]M = undefined;
         for (&inverse, 0..) |*v, half| v.* = try Core.constraints.cosetVanishing(M, Canonic.new(log).coset(), domain.at(Core.utils.bitReverseIndex(half * (domain.size() / 2), eval_log))).inv();
         const shift = Packed.splat(self.claim.mulM31(try M.fromU64(self.key.input_rows).inv()));
         const coefficient = Packed.splat(output.random_coeff_powers[0]);
         const rows = PackedRows{ .polys = prepared.polys, .elements = self.elements, .output = output.*, .inverse = inverse, .shift = shift, .coefficient = coefficient, .log = log, .count = domain.size() };
+        var row_scope = try @import("domain_profile.zig").begin("op_r7.input_rows", "R7 input packed rows");
+        defer row_scope.end();
         try @import("domain_tiles.zig").run(PackedRows, &rows, domain.size(), MF.PACK_WIDTH);
     }
     const PackedRows = struct {

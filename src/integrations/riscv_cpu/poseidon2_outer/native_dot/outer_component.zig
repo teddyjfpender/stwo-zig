@@ -169,7 +169,11 @@ pub const Component = struct {
         defer a.free(slots);
         const output = &slots[0];
         const domain = Canonic.new(eval_log).circleDomain();
-        var prepared = try Prepared.init(a, trace, eval_log, self.widths(), self.offsets());
+        var prepared = blk: {
+            var scope = try @import("domain_profile.zig").begin("op_r7.dot_prepare", "R7 dot column preparation");
+            defer scope.end();
+            break :blk try Prepared.init(a, trace, eval_log, self.widths(), self.offsets());
+        };
         defer prepared.deinit();
         const lane = Lane.Prepared.init(self.elements, self.claim.mulM31(try M.fromU64(self.key.dot_rows).inv()), output.random_coeff_powers);
         var inverse: [2]M = undefined;
@@ -178,6 +182,8 @@ pub const Component = struct {
             value.* = try Core.constraints.cosetVanishing(M, Canonic.new(log_).coset(), domain.at(Core.utils.bitReverseIndex(r, eval_log))).inv();
         }
         const rows = PackedRows{ .polys = prepared.polys, .lane = &lane, .output = output.*, .inverse = inverse, .log = log_, .count = domain.size() };
+        var row_scope = try @import("domain_profile.zig").begin("op_r7.dot_rows", "R7 dot packed rows");
+        defer row_scope.end();
         try @import("domain_tiles.zig").run(PackedRows, &rows, domain.size(), Lane.WIDTH);
     }
     const PackedRows = struct {

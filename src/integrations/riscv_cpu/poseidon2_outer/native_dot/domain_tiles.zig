@@ -1,4 +1,5 @@
-//! Bounded disjoint row ranges on the caller's existing proof pool. Helpers
+//! Bounded disjoint ranges on the caller's existing proof pool. Row kernels
+//! use packed alignment; independent column jobs use unit alignment. Helpers
 //! never discover a second pool or recursively wait for a saturated lease.
 const std = @import("std");
 const E = @import("stwo_prover_engine");

@@ -266,3 +266,7 @@ test {
 test {
     _ = @import("poseidon2_outer/native_dot/domain_tiles_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/native_dot/polynomials_test.zig");
+}
