@@ -12,6 +12,10 @@ test "native tape wire preserves full64bit advice and service packets independen
         defer temp.cleanup();
         const file = try temp.dir.createFile("tape", .{ .read = true });
         defer file.close();
+        if (profile == .ethereum_services_op_v1) {
+            try std.testing.expectError(error.OpTowerTapeWireNotQualified, W.write(file, &tape));
+            continue;
+        }
         try W.write(file, &tape);
         try std.testing.expectEqual(try W.encodedBytes(&tape), try file.getEndPos());
         try file.seekTo(0);
@@ -152,7 +156,7 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
             try tape.appendSecp(call);
         }
     }
-    if (rv.execution_profile.isV3(profile)) {
+    if (rv.execution_profile.hasV3Services(profile)) {
         for (0..3) |i| {
             var call = rv.ethereum_services.Arith256ModCall{ .call_id = 1 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
             for (&call.before, 0..) |*w, index| w.* = 0x0badc0ffee000000 +% index *% 0x9e3779b97f4a7c15;

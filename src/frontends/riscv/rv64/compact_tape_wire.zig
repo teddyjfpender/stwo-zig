@@ -36,6 +36,9 @@ pub fn encodedBytes(tape: *const T.Tape) !usize {
     return size(try header(tape));
 }
 fn header(tape: *const T.Tape) !Header {
+    // The OP extension needs its own bounded envelope. Never silently write
+    // a payload-bearing OP execution using the legacy tape layout.
+    if (tape.execution_profile == .ethereum_services_op_v1 or tape.tower_calls.items.len != 0) return error.OpTowerTapeWireNotQualified;
     if (tape.len == 0 or tape.len > T.MAX_STEPS or tape.len > tape.storage.len or tape.memory_before.items.len > tape.len or tape.service_calls.items.len > tape.len or tape.secp_calls.items.len > tape.len - tape.service_calls.items.len or tape.sha256_calls.items.len > tape.len - tape.service_calls.items.len - tape.secp_calls.items.len or tape.arith256_mod_calls.items.len > tape.len - tape.service_calls.items.len - tape.secp_calls.items.len - tape.sha256_calls.items.len or tape.curve_calls.items.len > tape.len - tape.service_calls.items.len - tape.secp_calls.items.len - tape.sha256_calls.items.len - tape.arith256_mod_calls.items.len) return error.InvalidTapeWireGeometry;
     return .{ .steps = @intCast(tape.len), .memory = @intCast(tape.memory_before.items.len), .keccak = @intCast(tape.service_calls.items.len), .secp = @intCast(tape.secp_calls.items.len), .sha256 = @intCast(tape.sha256_calls.items.len), .arith256_mod = @intCast(tape.arith256_mod_calls.items.len), .curves = @intCast(tape.curve_calls.items.len), .execution = tape.execution_profile, .pc = tape.initial_pc, .clock = tape.initial_clock };
 }
@@ -132,6 +135,7 @@ pub fn readTail(a: std.mem.Allocator, file: std.fs.File, limits: Limits) !T.Tape
     try exact(file, &raw);
     if (!std.mem.eql(u8, raw[0..8], MAGIC)) return error.InvalidTapeWireHeader;
     const execution = std.meta.intToEnum(profile.Profile, get(u32, raw[8..12])) catch return error.InvalidTapeWireProfile;
+    if (execution == .ethereum_services_op_v1) return error.OpTowerTapeWireNotQualified;
     if (!profile.isV3(execution) and get(u32, raw[28..32]) != 0) return error.InvalidTapeWireHeader;
     const sha_word = get(u32, raw[28..32]);
     const extended_v3 = sha_word & V3_EXTENSION_FLAG != 0;

@@ -81,6 +81,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-execution-prepared", .description = "One native CPU witness with grouped weighted provider geometry", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-combined-services", .description = "One CPU per shard joins all LE services with shared RAM and bounded truths", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-curves-truth", .description = "BN254/BLS12-381 curve and field truth AIRs: big-integer oracle, group law and adversarial rows", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-op-runtime", .description = "Qualify bounded OP-only Miller runtime events and legacy rejection", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-tower", .description = "OP-only sparse BN254 tower candidate: independent algebra and carried truth", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-tower-proof", .description = "OP-only sparse tower physical truth and fresh receiver qualification", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-arith256-truth", .description = "arith256_mod truth AIR: big-integer known answers, edge values and adversarial rows", .scope = .riscv_cpu },

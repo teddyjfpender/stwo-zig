@@ -145,6 +145,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-zbb-services", "src/integrations/riscv_cpu/rv64_word16_zbb_services_test_root.zig", 4 },
         .{ "arith256-truth", "src/frontends/riscv/rv64_arith256_truth_test_root.zig", 8 },
         .{ "curves-truth", "src/frontends/riscv/rv64_curves_truth_test_root.zig", 14 },
+        .{ "op-runtime", "src/frontends/riscv/rv64_op_runtime_test_root.zig", 3 },
         .{ "op-tower", "src/frontends/riscv/rv64_op_tower_test_root.zig", 3 },
         .{ "op-tower-proof", "src/integrations/riscv_cpu/rv64_op_tower_physical_test_root.zig", 1 },
         .{ "keccak", "src/integrations/riscv_cpu/delegations/keccak/test_root.zig", 54 },

@@ -53,6 +53,9 @@ pub const Tape = struct {
     /// Admitted v3 curve/field calls (all ops, chronological); empty below v3.
     curve_calls: std.ArrayList(ethereum.CurveCall) = .empty,
     last_curve_ids: [ethereum.curves.COUNT]?u64 = @splat(null),
+    /// OP packets are separately sized; legacy calls never pay this payload.
+    tower_calls: std.ArrayList(ethereum.TowerCall) = .empty,
+    last_tower_id: ?u64 = null,
     initial_pc: u64,
     initial_clock: u64,
     execution_profile: profile.Profile,
@@ -69,13 +72,14 @@ pub const Tape = struct {
         self.sha256_calls.deinit(self.allocator);
         self.arith256_mod_calls.deinit(self.allocator);
         self.curve_calls.deinit(self.allocator);
+        self.tower_calls.deinit(self.allocator);
         self.* = undefined;
     }
     pub fn steps(self: *const Tape) []const Step {
         return self.storage[0..self.len];
     }
     pub fn retainedBytes(self: *const Tape) usize {
-        return self.storage.len * @sizeOf(Step) + self.memory_before.capacity * @sizeOf(u64) + self.service_calls.capacity * @sizeOf(services.Call) + self.secp_calls.capacity * @sizeOf(ethereum.SecpCall) + self.sha256_calls.capacity * @sizeOf(ethereum.Sha256Call) + self.arith256_mod_calls.capacity * @sizeOf(ethereum.Arith256ModCall) + self.curve_calls.capacity * @sizeOf(ethereum.CurveCall);
+        return self.storage.len * @sizeOf(Step) + self.memory_before.capacity * @sizeOf(u64) + self.service_calls.capacity * @sizeOf(services.Call) + self.secp_calls.capacity * @sizeOf(ethereum.SecpCall) + self.sha256_calls.capacity * @sizeOf(ethereum.Sha256Call) + self.arith256_mod_calls.capacity * @sizeOf(ethereum.Arith256ModCall) + self.curve_calls.capacity * @sizeOf(ethereum.CurveCall) + self.tower_calls.capacity * @sizeOf(ethereum.TowerCall);
     }
     /// Start the adjacent batch with already allocated buffers. This does not
     /// establish a public continuation relation; the proof coordinator must bind
@@ -92,6 +96,8 @@ pub const Tape = struct {
         self.arith256_mod_calls.clearRetainingCapacity();
         self.curve_calls.clearRetainingCapacity();
         self.last_curve_ids = @splat(null);
+        self.tower_calls.clearRetainingCapacity();
+        self.last_tower_id = null;
     }
     /// Allocation and validation precede tape publication. The caller retains
     /// ownership of `record` on failure and may retry without executing again.
@@ -112,7 +118,7 @@ pub const Tape = struct {
     pub fn appendSecp(self: *Tape, call: ethereum.SecpCall) !void {
         const expected_format: profile.SecpPacketFormat = switch (self.execution_profile) {
             .ethereum_services_v1 => .big_endian_bytes_v1,
-            .ethereum_services_v2, .ethereum_services_v3, .ethereum_services_v3_zbb => .little_endian_words_v2,
+            .ethereum_services_v2, .ethereum_services_v3, .ethereum_services_v3_zbb, .ethereum_services_op_v1 => .little_endian_words_v2,
             else => return error.InvalidTapeService,
         };
         if (call.packet_format != expected_format or call.call_id == 0) return error.InvalidTapeService;
@@ -130,11 +136,11 @@ pub const Tape = struct {
     /// clock) is the whole call; the prover replays it on its RAM ledger.
     /// Not counted by serviceCount; the tape wire needs no new section.
     pub fn appendBulk(self: *Tape, call: BulkCall) !void {
-        if (!profile.isV3(self.execution_profile) or !profile.isBulkTag(call.tag)) return error.InvalidTapeService;
+        if (!profile.hasV3Services(self.execution_profile) or !profile.isBulkTag(call.tag)) return error.InvalidTapeService;
         try self.appendRecord(call.retirement());
     }
     pub fn appendSha256(self: *Tape, call: ethereum.Sha256Call) !void {
-        if (!profile.isV3(self.execution_profile) or call.call_id == 0) return error.InvalidTapeService;
+        if (!profile.hasV3Services(self.execution_profile) or call.call_id == 0) return error.InvalidTapeService;
         if (self.len == self.storage.len) return error.TapeFull;
         if (self.sha256_calls.getLastOrNull()) |previous| {
             if (previous.call_id == std.math.maxInt(u64) or call.call_id != previous.call_id + 1) return error.InvalidTapeService;
@@ -144,7 +150,7 @@ pub const Tape = struct {
         self.sha256_calls.appendAssumeCapacity(call);
     }
     pub fn appendArith256Mod(self: *Tape, call: ethereum.Arith256ModCall) !void {
-        if (!profile.isV3(self.execution_profile) or call.call_id == 0) return error.InvalidTapeService;
+        if (!profile.hasV3Services(self.execution_profile) or call.call_id == 0) return error.InvalidTapeService;
         if (self.len == self.storage.len) return error.TapeFull;
         if (self.arith256_mod_calls.getLastOrNull()) |previous| {
             if (previous.call_id == std.math.maxInt(u64) or call.call_id != previous.call_id + 1) return error.InvalidTapeService;
@@ -157,11 +163,11 @@ pub const Tape = struct {
     /// (pointer, tag, clock) is the whole call and provers replay it on their
     /// RAM ledger. Not counted by serviceCount; the tape wire is unchanged.
     pub fn appendSponge(self: *Tape, call: ethereum.keccak_sponge.Call) !void {
-        if (!profile.isV3(self.execution_profile)) return error.InvalidTapeService;
+        if (!profile.hasV3Services(self.execution_profile)) return error.InvalidTapeService;
         try self.appendRecord(call.retirement());
     }
     pub fn appendCurve(self: *Tape, call: ethereum.CurveCall) !void {
-        if (!profile.isV3(self.execution_profile) or call.call_id == 0) return error.InvalidTapeService;
+        if (!profile.hasV3Services(self.execution_profile) or call.call_id == 0) return error.InvalidTapeService;
         if (self.len == self.storage.len) return error.TapeFull;
         const k = ethereum.curves.index(call.op);
         if (self.last_curve_ids[k]) |previous| {
@@ -173,7 +179,21 @@ pub const Tape = struct {
         self.last_curve_ids[k] = call.call_id;
     }
     pub fn appendEvent(self: *Tape, event: ethereum.Event) !void {
-        switch (event) {
+        try self.appendEventRef(&event);
+    }
+    pub fn appendTower(self: *Tape, call: *const ethereum.TowerCall) !void {
+        if (self.execution_profile != .ethereum_services_op_v1 or call.call_id == 0) return error.InvalidTapeService;
+        if (self.last_tower_id) |previous| {
+            if (previous == std.math.maxInt(u64) or call.call_id != previous + 1) return error.InvalidTapeService;
+        }
+        if (self.len == self.storage.len) return error.TapeFull;
+        try self.tower_calls.ensureUnusedCapacity(self.allocator, 1);
+        try self.appendRecord(call.retirement());
+        self.tower_calls.appendAssumeCapacity(call.*);
+        self.last_tower_id = call.call_id;
+    }
+    pub fn appendEventRef(self: *Tape, event: *const ethereum.Event) !void {
+        switch (event.*) {
             .sponge => |e| try self.appendSponge(e.call),
             .keccak => |call| try self.appendService(call),
             .secp => |call| try self.appendSecp(call),
@@ -181,11 +201,12 @@ pub const Tape = struct {
             .arith256_mod => |call| try self.appendArith256Mod(call),
             .bulk => |e| try self.appendBulk(e.call),
             .curve => |call| try self.appendCurve(call),
+            .tower => |*call| try self.appendTower(call),
         }
     }
     /// Every service retirement recorded in this tape (all families).
     pub fn serviceCount(self: *const Tape) usize {
-        return self.service_calls.items.len + self.secp_calls.items.len + self.sha256_calls.items.len + self.arith256_mod_calls.items.len + self.curve_calls.items.len;
+        return self.service_calls.items.len + self.secp_calls.items.len + self.sha256_calls.items.len + self.arith256_mod_calls.items.len + self.curve_calls.items.len + self.tower_calls.items.len;
     }
     fn appendRecord(self: *Tape, record: machine.Retirement) !void {
         if (self.len == self.storage.len) return error.TapeFull;
