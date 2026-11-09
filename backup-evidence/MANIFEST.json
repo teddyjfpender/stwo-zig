@@ -1,0 +1,15 @@
+{
+  "format": "supplemental gzip tar in LFS; prior evidence refs remain retained",
+  "source_snapshot_commit": "a8041cf9edea5ec7f60a748e344f4bfcca25c599",
+  "parts": [
+    {
+      "name": "delivery-evidence.tar.gz.part000",
+      "bytes": 968846,
+      "sha256": "3c26fb979fbdd186df00794dc82d9927bde2b7965f93b493c044eb64948e8e08"
+    }
+  ],
+  "checkpoints": [
+    "a8041cf9edea-cpu-worker-20261109T091316Z"
+  ],
+  "classification": "Supplemental source-pinned CPU/static positives and preserved negatives. OM31 Debug/ReleaseFast core run 42582198183 passes. Five actual observers and mandatory contracts pass ReleaseFast/Debug at 28819eb95, but original six adapter/pool assertions keep that lane red. Worker candidate 17afedbdd passes ReleaseFast and faults in Debug; 2ce7c9c55 disassembly proves a 1202512-byte SIMD frame with two 601056-byte union copies exceeding its unchanged 1048576-byte stack. Source a8041cf9e hands off tagged scratch pointers; its hosted acceptance is pending, local 123 contracts/AST/format pass. Full Python at older PR f967a29eb reports 2300 tests, eight failures, fifty-four errors and fifty-seven skips. Reviewed row-local audit passes 2981888 rows and 28 sources; toolchain declarations pass seven static checks; all 568 retained manifest rows match. Full CPU CI, formal acceptance and productionisation remain incomplete. No GPU work, release, physical-memory or qualified timing claim."
+}
