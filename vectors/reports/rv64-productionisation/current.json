@@ -2534,6 +2534,78 @@
       "tooling_surface_check": "FAIL_5_PREEXISTING_SUBTEST_FINDINGS; separate planning/inventory repair needed",
       "qualification": "Current-source CPU row-local constructive certificate only. No proof-wire verification, bus closure, cross-row or global LogUp soundness, full product, GPU, security or timing qualification.",
       "evidence": "External local archive keyed by final commit tree; stwo-delivery-poseidon-acceptance.json and row-local-report.json"
+    },
+    "delivery_native_cpu_product_closure_and_stdout": {
+      "baseline_commit": "1d9d036492cf532628a46968f44f598c4662f3d9",
+      "tested_commit": "f60f24c225cba2589bf785fe6b14978fdd41509c",
+      "tested_tree": "07f752691e0b87e85ac344c24f09d759d9f0a9a2",
+      "status": "PASS_NATIVE_CPU_PRODUCT_BOTH_MODES_AND_SECURE_CLI_SUBSET",
+      "code": {
+        "added": 117,
+        "removed": 9,
+        "net": 108,
+        "budget": 120
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "native_product_tests": {
+        "ReleaseFast": 238,
+        "Debug": 238,
+        "fresh_artifacts_per_mode": 7,
+        "entry_point_tests_before": 0,
+        "entry_point_tests_after": 6,
+        "required_existing_named_entry_point_cases": 5,
+        "existing_poseidon2_suite_added_to_aggregate": 10
+      },
+      "empty_selection_negative": "PASS_EXPECTED_FAILURE_TestUnexpectedResult",
+      "closed_sources": 448,
+      "closed_source_sha256": "55bc8410d43ecacd06575cd65fe4493500a556907ac41c5ba72d0b8a6376e301",
+      "exact_module_bindings_added": 3,
+      "exact_barrel_or_test_files_admitted": 5,
+      "directory_prefixes_and_forbidden_links_unchanged": true,
+      "secure_profile_fresh_cli_examples": [
+        "wide_fibonacci",
+        "xor",
+        "plonk",
+        "state_machine",
+        "poseidon"
+      ],
+      "secure_profile_parameters": {
+        "pow_bits": 26,
+        "n_queries": 70
+      },
+      "proof_rejection_classes": {
+        "root": "OodsNotMatching",
+        "sample": "OodsNotMatching",
+        "nonce": "ProofOfWork",
+        "noncanonical": "NonCanonicalM31",
+        "config": "ProofConfigMismatch",
+        "security": "InsufficientSecurityPolicy",
+        "upstream": "UnsupportedUpstreamCommit"
+      },
+      "publication_rejection_classes": {
+        "duplicate-proof": "OutputAlreadyExists",
+        "duplicate-report": "OutputAlreadyExists"
+      },
+      "untrusted_inputs_and_existing_outputs_unchanged": true,
+      "blake_standard_admission": "EXPECTED_CommittedCellBudgetExceeded; no proof/report published; no larger profile attempted",
+      "related_python": {
+        "tests": 45,
+        "passed": 44,
+        "errors": 1,
+        "remaining_error": "pre-existing detached PCS preparation reaches frontend BLAKE3 fixture with undeclared CPU backend"
+      },
+      "source_conformance_errors": 103,
+      "developer_entrypoint_followup": "--dry-run Native CPU main fails: no Zig package owns changed path; canonical native_cpu CI lane exists but source path rule is missing",
+      "qualification": "Pinned native macOS component/product-gate correctness, exact linker/source closure and small secure-profile CLI fixtures only. Fresh receivers use the same implementation in new processes. No external Rust oracle, 128-bit-security claim, Linux runtime, complete-block, whole-repository release, GPU, physical GPU memory or qualified timing evidence.",
+      "evidence": "External archive keyed by receipt commit tree; complete native-product acceptance, proof files, mutant files, reports, fourteen test images and two CLI images."
     }
   },
   "post_merge_hygiene": {
