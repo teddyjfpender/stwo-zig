@@ -67,7 +67,7 @@ pub fn main() !void {
         &run.rw_memory,
         public.data,
     );
-    const selected_profile = try profile_registry.select(.{
+    const selected_profile = profile_registry.select(.{
         .component_count = facts.component_count,
         .infrastructure_count = facts.infrastructure_count,
         .preprocessed_column_count = facts.preprocessed_column_count,
