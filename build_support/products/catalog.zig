@@ -84,6 +84,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-op-runtime", .description = "Qualify bounded OP-only Miller runtime events and legacy rejection", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-tower", .description = "OP-only sparse BN254 tower candidate: independent algebra and carried truth", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-op-tower-proof", .description = "OP-only sparse tower physical truth and fresh receiver qualification", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-op-native-join", .description = "Closed OP Miller CPU local GKR, truth and global RAM/Wire join", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-arith256-truth", .description = "arith256_mod truth AIR: big-integer known answers, edge values and adversarial rows", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-v3-services", .description = "ethereum_services_v3 SHA-256 + arith256_mod + bulk memory in one bundle: fresh receiver and closure rejections", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-bulk-services", .description = "ethereum_services_v3 bulk-memory bridges: real CPU proofs, fresh wire receiver, closure rejections", .scope = .riscv_cpu },

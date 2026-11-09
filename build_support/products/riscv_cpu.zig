@@ -148,6 +148,7 @@ pub fn addProduct(context: Context) void {
         .{ "op-runtime", "src/frontends/riscv/rv64_op_runtime_test_root.zig", 3 },
         .{ "op-tower", "src/frontends/riscv/rv64_op_tower_test_root.zig", 3 },
         .{ "op-tower-proof", "src/integrations/riscv_cpu/rv64_op_tower_physical_test_root.zig", 1 },
+        .{ "op-native-join", "src/integrations/riscv_cpu/rv64_op_native_join_test_root.zig", 1 },
         .{ "keccak", "src/integrations/riscv_cpu/delegations/keccak/test_root.zig", 54 },
         .{ "keccak-pair2n", "src/integrations/riscv_cpu/delegations/keccak/pair2n_test_root.zig", 12 },
         .{ "keccak-quartet", "src/integrations/riscv_cpu/delegations/keccak/quartet_test_root.zig", 6 },
