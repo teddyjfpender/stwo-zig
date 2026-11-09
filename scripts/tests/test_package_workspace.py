@@ -409,5 +409,71 @@ class ConsumerMetadataGrammarTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 subject.load_contract(path)
 
+class ProductDeclarationSourceTests(unittest.TestCase):
+    """Literal source facts, distinct from fresh build/catalog qualification."""
+
+    def resolve(self):
+        return subject.ci_package_graph.read_product_declarations(ROOT)
+
+    def test_real_primary_declarations_follow_aliases_and_actual_builders(self):
+        actual = self.resolve()
+        self.assertEqual("build_support/products/aggregate_cli.zig", actual["stwo-zig"]["builder_source"])
+        self.assertEqual("build_support/graph/product_spec.zig", actual["stwo-core"]["identity_source"])
+        self.assertEqual("build_support/products/prover.zig", actual["stwo-prover"]["builder_source"])
+        self.assertEqual("build_support/products/riscv_cpu_executables.zig", actual["stwo-riscv-cpu"]["identity_source"])
+        self.assertEqual("native_cpu", actual["stwo-native-cpu"]["scope"])
+        self.assertEqual("build_support/products/native_cpu.zig", actual["stwo-native-cpu"]["builder_source"])
+        self.assertEqual("unavailable", actual["stwo-riscv-cuda"]["constructor"])
+        self.assertIsNone(actual["stwo-riscv-cuda"]["builder_source"])
+        self.assertNotIn("stwo", actual)  # SDK is a constructed scope product, not a primary descriptor.
+
+    def test_comment_string_and_unrelated_product_names_do_not_create_identities(self):
+        from unittest import mock
+        path = ROOT / "build_support/products/native_cpu.zig"
+        original = Path.read_text
+        extra = '\n// .name = "comment-forgery"\nconst ignored = "string-forgery";\nconst unrelated = .{ .name = "unreachable-forgery" };\n'
+        with mock.patch.object(Path, "read_text", lambda p, *a, **k: original(p, *a, **k) + extra if p == path else original(p, *a, **k)):
+            actual = self.resolve()
+        for name in ("comment-forgery", "string-forgery", "unreachable-forgery"):
+            self.assertNotIn(name, actual)
+        self.assertIn("stwo-native-cpu", actual)
+
+    def test_unsupported_identity_aliases_builders_and_paths_fail_with_source_location(self):
+        from unittest import mock
+        cases = [
+            ("product_specs.zig", ".descriptor = native_cpu.descriptor(.cli)", ".descriptor = core.descriptor"),
+            ("product_specs.zig", ".constructor = .native_cpu,", ".constructor = .foreign,"),
+            ("product_specs.zig", '.scope = .native_cpu,', '.scope = "native_cpu",'),
+            ("product_specs.zig", '@import("native_cpu.zig")', '@import("missing.zig")'),
+            ("product_specs.zig", '@import("native_cpu.zig")', '@import("../../../../outside.zig")'),
+            ("native_cpu.zig", '.name = "stwo-native-cpu"', '.name = external_name'),
+            ("native_cpu.zig", ".product = product(role),", ".product = product(role) + 1,"),
+            ("native_cpu.zig", 'fn product(role: graph.Role) graph.Product {\n    return .{', 'fn product(role: graph.Role) graph.Product {\n    return product(role);\n}\nfn unused() graph.Product {\n    return .{'),
+            ("native_cpu.zig", 'pub fn addProduct(context: Context)', 'fn addProduct(context: Context)'),
+            ("matrix.zig", '.native_cpu => native_cpu.addProduct', '.native_cpu => missing.addProduct'),
+        ]
+        original = Path.read_text
+        for relative, before, after in cases:
+            path = ROOT / "build_support/products" / relative
+            text = original(path)
+            self.assertIn(before, text)
+            with self.subTest(relative=relative, before=before), mock.patch.object(
+                Path, "read_text", lambda p, *a, **k: text.replace(before, after, 1) if p == path else original(p, *a, **k),
+            ), self.assertRaisesRegex(subject.ci_package_graph.GraphError, r"\.zig::"):
+                self.resolve()
+
+    def test_source_declaration_reading_never_runs_a_compiler_or_uses_catalog_outputs(self):
+        from unittest import mock
+        import subprocess
+        original = Path.read_text
+        def read(path, *args, **kwargs):
+            self.assertNotIn("zig-out", path.parts)
+            return original(path, *args, **kwargs)
+        with mock.patch.object(Path, "read_text", new=read), mock.patch.object(
+            subprocess, "run", side_effect=AssertionError("source reading must not compile"),
+        ), mock.patch.object(subprocess, "check_output", side_effect=AssertionError("no generated catalog")):
+            self.assertIn("stwo-native-cpu", self.resolve())
+
+
 if __name__ == "__main__":
     unittest.main()
