@@ -122,6 +122,13 @@ fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Author
         break :blk try W.interaction(a, key, main.values, outputs, &elements);
     };
     defer interaction.deinit();
+    // The PCS owns coefficient storage after MAIN commitment; interaction
+    // generation is the final consumer of these raw evaluations. The explicit
+    // full-storage control retains them for differential ownership checks.
+    if (compact) {
+        main.deinit();
+        main = .{ .allocator = a, .values = &.{} };
+    }
     if (mutation == .claim_balanced) {
         interaction.claims[0] = interaction.claims[0].add(O.one());
         interaction.claims[5] = interaction.claims[5].sub(O.one());
@@ -137,6 +144,13 @@ fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Author
         var span = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.interaction_commit", "P2 interaction commitment");
         defer span.end();
         if (control) try scheme.commit(a, interaction.columns, &channel) else try scheme.commitBorrowedStreamingWithRecorder(a, interaction.columns, 64, recorder, &channel);
+    }
+    // No component borrows raw INTER evaluations: claims are scalar values and
+    // the committed tree retains the polynomials. Keep the deferred owner valid
+    // on every later error, without retaining the whole raw witness during FRI.
+    if (compact) {
+        @import("stwo_circuit_frontend").witness.trace.freeColumns(a, interaction.columns);
+        interaction.columns = &.{};
     }
     const fixed_logs = try key.treeLogs(a, 0);
     defer a.free(fixed_logs);
