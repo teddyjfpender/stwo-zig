@@ -1,4 +1,5 @@
-//! AST-only P2 GKR/shared/receipt candidate; numerical proof is NOT qualified.
+//! Pure-P2 local child verifier. Numerical transcript parity is tested separately;
+//! complete execution/physical terminal binding remains a required obligation.
 //! SAME local GKR transcript, closure and canonical receipt as native CPU.
 //! Still a pending obligation: caller must verify cpu_oods' terminal binding
 //! and all original physical AIRs under the native PCS before accepting.
@@ -52,6 +53,7 @@ const Channel = struct {
 };
 fn begin(ctx: *C.Context, scope: Scope, instances: []const Frame.Instance) !Channel {
     var ch = try C.Channel.init(ctx);
+    try ch.mixConstU32s(ctx, &@import("pure_p2_native.zig").LOCAL_DOMAIN);
     try ch.mixU32s(ctx, &.{ try B.wrappers.constU32(C.Q, ctx, if (Frame.v3Instances(instances)) 0x53474b33 else 0x53474b31), try B.wrappers.constU32(C.Q, ctx, 8), scope.ordinal });
     try ch.mixU32s(ctx, &scope.statement);
     try ch.mixRoot(ctx, scope.fixed);
@@ -71,45 +73,30 @@ const Checks = struct {
         try C.eq(self.ctx, left, right);
     }
 };
-/// Byte-exact Blake2s writer. Native receipt's 31-byte prefix deliberately
-/// leaves every subsequent word unaligned. Byte range and packing constraints
-/// preserve this encoding instead of rounding or reducing words modulo M31.
+/// Typed receipt: canonical fields/roots never expand to four byte columns.
+/// Raw u32s still use checked 16-bit halves and never reduce modulo M31.
 const Writer = struct {
     ctx: *C.Context,
-    data: std.ArrayList(C.Var) = .empty,
+    sponge: @import("sponge.zig").ForContext(@import("context.zig").Context),
     failure: ?anyerror = null,
-    fn byteConstant(self: *@This(), value: u8) !void {
-        try self.data.append(self.ctx.scratch(), try self.ctx.constant(C.Q.fromU32Unchecked(value, 0, 0, 0)));
+    fn init(ctx: *C.Context) !@This() {
+        return .{ .ctx = ctx, .sponge = try @import("sponge.zig").ForContext(@import("context.zig").Context).init(try C.sidecar(ctx), .words) };
+    }
+    pub fn tag(self: *@This(), value: u32) void {
+        if (self.failure != null) return;
+        self.sponge.absorbConstU32(value) catch |err| {
+            self.failure = err;
+        };
     }
     fn word(self: *@This(), value: Public.Word) !void {
-        const native = if (self.ctx.trace_only) 0 else B.ivalue.unpackU32(C.Q, self.ctx.get(value.get()));
-        var octets: [4]C.Var = undefined;
-        for (&octets, 0..) |*byte, i| {
-            const n: u8 = @truncate(native >> @intCast(i * 8));
-            byte.* = (try B.wrappers.guessU16(C.Q, self.ctx, .newUnsafe(C.Q.fromU32Unchecked(n, 0, 0, 0)))).get();
-            const complement = (try B.wrappers.guessU16(C.Q, self.ctx, .newUnsafe(C.Q.fromU32Unchecked(255 - n, 0, 0, 0)))).get();
-            try self.ctx.noteWitnessByte(byte.*, value.get(), @intCast(i), false);
-            try self.ctx.noteWitnessByte(complement, value.get(), @intCast(i), true);
-            try self.ctx.eq(try self.ctx.add(byte.*, complement), try self.ctx.constant(C.Q.fromU32Unchecked(255, 0, 0, 0)));
-        }
-        const k = try self.ctx.constant(C.Q.fromU32Unchecked(256, 0, 0, 0));
-        const low = try self.ctx.add(octets[0], try self.ctx.mul(octets[1], k));
-        const high = try self.ctx.add(octets[2], try self.ctx.mul(octets[3], k));
-        const imag = try self.ctx.constant(C.Q.fromU32Unchecked(0, 1, 0, 0));
-        try self.ctx.eq(value.get(), try self.ctx.add(low, try self.ctx.mul(high, imag)));
-        try self.data.appendSlice(self.ctx.scratch(), &octets);
-    }
-    fn rootField(self: *@This(), value: C.Var) !void {
-        try self.word(try B.blake.m31ToU32(C.Q, self.ctx, value));
-    }
-    pub fn bytes(self: *@This(), values: anytype) void {
-        if (self.failure != null) return;
-        for (values) |v| {
-            const result = if (@TypeOf(v) == u8) self.byteConstant(v) else if (@TypeOf(v) == C.Var) self.rootField(v) else self.word(v);
-            result catch |err| {
-                self.failure = err;
-                return;
-            };
+        const lanes = B.simd.Simd.fromPacked(&[1]C.Var{value.get()}, 4);
+        for (0..4) |i| {
+            const part = try B.simd.unpackIdx(C.Q, self.ctx, lanes, i);
+            if (i < 2) {
+                const checked = try self.ctx.guessU16(if (self.ctx.trace_only) B.ivalue.placeholder(C.Q) else self.ctx.get(part));
+                try self.ctx.eq(part, checked);
+                try self.sponge.absorb(checked);
+            } else try self.ctx.eq(part, self.ctx.zero());
         }
     }
     pub fn integer(self: *@This(), value: anytype) void {
@@ -119,25 +106,33 @@ const Writer = struct {
                 self.failure = err;
                 return;
             };
-            for (0..4) |_| self.byteConstant(0) catch |err| {
+            self.sponge.absorbConstU32(0) catch |err| {
                 self.failure = err;
-                return;
             };
-        } else {
-            const n: u64 = @intCast(value);
-            for (0..8) |i| self.byteConstant(@truncate(n >> @intCast(8 * i))) catch |err| {
-                self.failure = err;
-                return;
-            };
-        }
+        } else self.sponge.absorbConstU64(@intCast(value)) catch |err| {
+            self.failure = err;
+        };
+    }
+    pub fn rawDigest(self: *@This(), words: Public.Digest) void {
+        if (self.failure != null) return;
+        for (words) |value| self.word(value) catch |err| {
+            self.failure = err;
+            return;
+        };
+    }
+    pub fn root(self: *@This(), values: C.Hash) void {
+        if (self.failure != null) return;
+        self.sponge.absorbMany(&values) catch |err| {
+            self.failure = err;
+        };
     }
     pub fn field(self: *@This(), value: C.F) !void {
-        const words = try B.blake.unpackQm31sToU32Words(C.Q, self.ctx, &.{ value.c0.v, value.c1.v });
-        for (words) |w| try self.word(w);
+        const lanes = B.simd.Simd.fromPacked(&[2]C.Var{ value.c0.v, value.c1.v }, 8);
+        for (0..8) |i| try self.sponge.absorb(try B.simd.unpackIdx(C.Q, self.ctx, lanes, i));
     }
     fn finish(self: *@This()) !C.Hash {
         if (self.failure) |err| return err;
-        return @import("full_p2_hash.zig").bytes(self.ctx, self.data.items);
+        return self.sponge.finish();
     }
 };
 pub fn verify(ctx: *C.Context, scope: Scope, instances: []const Frame.Instance, proof: *const G.Proof) !Pending {
@@ -157,8 +152,8 @@ pub fn verify(ctx: *C.Context, scope: Scope, instances: []const Frame.Instance, 
         inv.* = pair[1].inv();
     }
     try Closure.closeFor(C.F, proof.output_claims_by_instance, inverses, Checks{ .ctx = ctx });
-    var writer = Writer{ .ctx = ctx };
-    try Receipt.emitCanonical(scope, instances, proof, artifact.claims_to_verify_by_instance, &writer);
+    var writer = try Writer.init(ctx);
+    try @import("pure_p2_framing.zig").emit(scope, instances, proof, artifact.claims_to_verify_by_instance, &writer);
     const receipt = try writer.finish();
     const eta = channel.drawSecureFelt();
     try channel.finish();

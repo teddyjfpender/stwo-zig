@@ -24,6 +24,7 @@ pub const MAIN_COUNT = 497;
 pub const INTER_COUNT = 248;
 pub const OLD_SLOTS = [4]usize{ 0, 1, 3, 10 };
 pub const NEW_SLOTS = [4]usize{ 0, 1, 2, 4 };
+pub const Profile = @import("op_profile.zig").Profile;
 pub fn config() !Core.pcs.ForField(O).PcsConfig {
     // Reference correctness gate only. Production security policy is separate.
     return .{ .pow_bits = 0, .fri_config = try Core.fri.ForField(O).FriConfig.init(0, 1, 24) };
@@ -68,6 +69,7 @@ pub const Columns = struct {
 };
 pub const Authority = struct {
     allocator: std.mem.Allocator,
+    profile: Profile = .reference_b2_q24_p0,
     logs: [5]u32,
     rows: [5]usize,
     raw: [5]usize,
@@ -75,11 +77,15 @@ pub const Authority = struct {
     original_vars: usize,
     usage: []u32,
     fixed: Columns,
+    fixed_tree: ?E.Scheme.CommittedTree,
     bound: OldAir.Bundle,
     fixed_root: H.Hash,
     identity: [32]u8,
     gather_mass: u64,
     pub fn init(a: std.mem.Allocator, ctx: *const C.Context) !Authority {
+        return initForProfile(a, ctx, .reference_b2_q24_p0);
+    }
+    pub fn initForProfile(a: std.mem.Allocator, ctx: *const C.Context, profile: Profile) !Authority {
         if (!ctx.finalized or ctx.poisoned or ctx.usage == null or ctx.mixed_census_only) return error.PoseidonContextNotFinalized;
         // Recompute topology counts rather than trusting the Context's cached
         // Usage payload. This includes every P2 sidecar consumer and producer.
@@ -197,17 +203,25 @@ pub const Authority = struct {
                 } else return error.InvalidPoseidonFixedRebase;
             }
         }
-        var scheme = try E.init(a, try config());
+        var scheme = try E.init(a, profile.config());
         defer scheme.deinit(a);
         var channel = MC.Channel.init();
-        try scheme.commit(a, fixed.values, &channel);
+        const control = try @import("op_profile.zig").monolithicControl();
+        if (control) try scheme.commit(a, fixed.values, &channel) else try scheme.commitBorrowedStreaming(a, fixed.values, 64, &channel);
         const root = scheme.trees.items[0].root();
+        var fixed_tree: ?E.Scheme.CommittedTree = null;
+        if (!control) {
+            try scheme.trees.items[0].share(a);
+            fixed_tree = scheme.trees.items[0].retainShared();
+        }
+        errdefer if (fixed_tree) |*tree| tree.deinit(a);
         var h = std.crypto.hash.sha2.Sha256.init(.{});
-        h.update("stwo/rv64/p2-five-roster/reference-om31-v2/classic-logup/v1\x00");
+        h.update(profile.domain());
         h.update(&MC.identity());
         h.update(&Row.sourceIdentity());
         h.update(OldAir.bundle_sha256);
         h.update(@embedFile("authority.zig"));
+        h.update(@embedFile("op_profile.zig"));
         h.update(@embedFile("component.zig"));
         h.update(@embedFile("witness.zig"));
         h.update(@embedFile("proof.zig"));
@@ -220,9 +234,10 @@ pub const Authority = struct {
         var b: [8]u8 = undefined;
         std.mem.writeInt(u64, &b, ctx.base.circuit.output.items.len - 1, .little);
         h.update(&b);
-        return .{ .allocator = a, .logs = logs, .rows = rows, .raw = raw, .n_outputs = ctx.base.circuit.output.items.len - 1, .original_vars = c.n_vars, .usage = usage, .fixed = fixed, .bound = bound, .fixed_root = root, .identity = h.finalResult(), .gather_mass = mass };
+        return .{ .allocator = a, .profile = profile, .logs = logs, .rows = rows, .raw = raw, .n_outputs = ctx.base.circuit.output.items.len - 1, .original_vars = c.n_vars, .usage = usage, .fixed = fixed, .fixed_tree = fixed_tree, .bound = bound, .fixed_root = root, .identity = h.finalResult(), .gather_mass = mass };
     }
     pub fn deinit(self: *Authority) void {
+        if (self.fixed_tree) |*tree| tree.deinit(self.allocator);
         self.fixed.deinit();
         self.bound.deinit();
         self.allocator.free(self.usage);

@@ -23,7 +23,7 @@ const HEADER = 8 + 32 + 5 * 8 * 4;
 fn begin(a: std.mem.Allocator, key: *const Authority, outputs: []const Q) !Channel {
     if (outputs.len != key.n_outputs) return error.InvalidPoseidonOutputCount;
     var channel = Channel.init();
-    (try A.config()).mixInto(&channel);
+    key.profile.config().mixInto(&channel);
     const words = try a.alloc(u32, 9 + 4 * outputs.len);
     defer a.free(words);
     for (0..8) |i| words[i] = std.mem.readInt(u32, key.identity[4 * i ..][0..4], .little);
@@ -74,12 +74,23 @@ pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Au
         else => {},
     }
     var channel = try begin(a, key, outputs);
-    var scheme = try A.E.init(a, try A.config());
+    var scheme = try A.E.init(a, key.profile.config());
     var owned = true;
     defer if (owned) scheme.deinit(a);
-    try scheme.commit(a, key.fixed.values, &channel);
+    const control = try @import("op_profile.zig").monolithicControl();
+    if (control) {
+        try scheme.commit(a, key.fixed.values, &channel);
+        try scheme.commit(a, main.values, &channel);
+    } else {
+        // Immutable FIXED was constructed once by independently derived key.
+        try scheme.trees.ensureUnusedCapacity(a, 1);
+        scheme.trees.appendAssumeCapacity((key.fixed_tree orelse return error.PoseidonProverDataNotRetained).retainShared());
+        MC.mixRoot(&channel, key.fixed_root);
+        // Absorb native-height prefixes once rather than flat-rehashing the
+        // entire roster at its largest range-table height.
+        try scheme.commitBorrowedStreaming(a, main.values, 64, &channel);
+    }
     if (!std.mem.eql(u8, &scheme.trees.items[0].root(), &key.fixed_root)) return error.UntrustedPoseidonFixedCommitment;
-    try scheme.commit(a, main.values, &channel);
     const elements = W.Elements.init(channel.drawSecureFelt(), channel.drawSecureFelt());
     var interaction = try W.interaction(a, key, main.values, outputs, &elements);
     defer interaction.deinit();
@@ -93,7 +104,7 @@ pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Au
         @constCast(interaction.columns[col].values)[5] = interaction.columns[col].values[5].add(M.one());
     }
     channel.mixFelts(&interaction.claims);
-    try scheme.commit(a, interaction.columns, &channel);
+    if (control) try scheme.commit(a, interaction.columns, &channel) else try scheme.commitBorrowedStreaming(a, interaction.columns, 64, &channel);
     const fixed_logs = try key.treeLogs(a, 0);
     defer a.free(fixed_logs);
     const ls = try legacy(a, key, elements, interaction.claims, fixed_logs);
@@ -130,10 +141,10 @@ pub fn verify(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, e
     var owned = true;
     defer if (owned) proof.deinit(a);
     const pcs = &proof.commitment_scheme_proof;
-    if (pcs.commitments.items.len != 4 or !std.meta.eql(pcs.config, try A.config())) return error.InvalidPoseidonFiveShape;
+    if (pcs.commitments.items.len != 4 or !std.meta.eql(pcs.config, key.profile.config())) return error.InvalidPoseidonFiveShape;
     if (!std.mem.eql(u8, &pcs.commitments.items[0], &key.fixed_root)) return error.UntrustedPoseidonFixedCommitment;
     var channel = try begin(a, key, outputs);
-    var receiver = try Core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(H, MC).init(a, try A.config());
+    var receiver = try Core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(H, MC).init(a, key.profile.config());
     defer receiver.deinit(a);
     const fixed_logs = try key.treeLogs(a, 0);
     defer a.free(fixed_logs);

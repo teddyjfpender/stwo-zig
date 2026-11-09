@@ -1,0 +1,154 @@
+{
+  "scope": "local numerical GKR circuit physical STARK, not full CPU leaf/execution",
+  "runs": [
+    {
+      "mode": 0,
+      "metrics": {
+        "wall_ns": 2334575166,
+        "peak_rss_bytes": 182747136,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 5.38242,
+        "system_cpu_s": 0.098392,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof": {
+        "bytes": "511876",
+        "produce_ns": "1979534625",
+        "fresh_receive_ns": "191174000",
+        "sha256": "659f827999363b23339a9e6b9caa873e06925f9e234794bf6ddfabc85be4aac5"
+      }
+    },
+    {
+      "mode": 1,
+      "metrics": {
+        "wall_ns": 25902885542,
+        "peak_rss_bytes": 180682752,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 25.706091,
+        "system_cpu_s": 0.118101,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof": {
+        "bytes": "511876",
+        "produce_ns": "22119512291",
+        "fresh_receive_ns": "2482947875",
+        "sha256": "659f827999363b23339a9e6b9caa873e06925f9e234794bf6ddfabc85be4aac5"
+      }
+    },
+    {
+      "mode": 1,
+      "metrics": {
+        "wall_ns": 26240653666,
+        "peak_rss_bytes": 180666368,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 26.078145,
+        "system_cpu_s": 0.129462,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof": {
+        "bytes": "511876",
+        "produce_ns": "22484764125",
+        "fresh_receive_ns": "2486332792",
+        "sha256": "659f827999363b23339a9e6b9caa873e06925f9e234794bf6ddfabc85be4aac5"
+      }
+    },
+    {
+      "mode": 0,
+      "metrics": {
+        "wall_ns": 2515255917,
+        "peak_rss_bytes": 182697984,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 5.498485,
+        "system_cpu_s": 0.103763,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof": {
+        "bytes": "511876",
+        "produce_ns": "2159676625",
+        "fresh_receive_ns": "223654000",
+        "sha256": "659f827999363b23339a9e6b9caa873e06925f9e234794bf6ddfabc85be4aac5"
+      }
+    },
+    {
+      "mode": 0,
+      "metrics": {
+        "wall_ns": 2560668833,
+        "peak_rss_bytes": 182714368,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 5.492678,
+        "system_cpu_s": 0.104111,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof": {
+        "bytes": "511876",
+        "produce_ns": "2157521333",
+        "fresh_receive_ns": "223210167",
+        "sha256": "659f827999363b23339a9e6b9caa873e06925f9e234794bf6ddfabc85be4aac5"
+      }
+    },
+    {
+      "mode": 1,
+      "metrics": {
+        "wall_ns": 26221056750,
+        "peak_rss_bytes": 180666368,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 26.068041,
+        "system_cpu_s": 0.12823099999999998,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "proof": {
+        "bytes": "511876",
+        "produce_ns": "22474200541",
+        "fresh_receive_ns": "2484844959",
+        "sha256": "659f827999363b23339a9e6b9caa873e06925f9e234794bf6ddfabc85be4aac5"
+      }
+    }
+  ],
+  "proof_byte_parity": true,
+  "schema": "stwo.opstack.pure-p2-local-physical.v1",
+  "production_admission_open": false,
+  "security_qualified": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "cpu": "Apple M5 Max",
+  "configuration": "ReleaseFast; same frozen executable; cold processes in balanced 0,1,1,0,0,1 order",
+  "control": "1: monolithic commit/reconstructed FIXED; 0: bounded-prefix streaming/retained immutable FIXED",
+  "summary": {
+    "0": {
+      "produce_ns": 2157521333.0,
+      "fresh_receive_ns": 223210167.0
+    },
+    "1": {
+      "produce_ns": 22474200541.0,
+      "fresh_receive_ns": 2484844959.0
+    },
+    "producer_speedup": 10.416675931426353,
+    "fresh_receiver_speedup": 11.132310827938227
+  },
+  "census": {
+    "byte_framed_cells": 3216384,
+    "typed_framed_cells": 1630144,
+    "typed_rows": [
+      256,
+      16384,
+      64,
+      512,
+      65536
+    ],
+    "typed_poseidon_permutations": 426,
+    "byte_poseidon_permutations": 694
+  },
+  "remaining_gates": [
+    "actual CPU source and terminal/mask binding",
+    "pure P2 manifest and RAM/KIO/Wire global closure",
+    "all service families",
+    "pure P2 recursive fold/root receiver",
+    "matched heavy native+root 10x target",
+    "dense equal-height native P2 hash performance"
+  ]
+}
