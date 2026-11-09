@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-09T01:04:02.349661+00:00",
+  "updated_utc": "2026-11-09T01:17:35.159476+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv/rv64-gpu-hygiene.md",
@@ -575,8 +575,8 @@
     "historical_non_stwo_flags_removed": 3
   },
   "latest_goal_turn": {
-    "classification": "PROGRESS_CPU_ONLY_CAIRO_BUNDLE_REGENERATED",
-    "evidence": "Clean compiler generation reproduces all existing Cairo witness bundle bytes under unchanged bounded guards. Seven orchestrator and forty rewriter tests pass. Cairo upstream pin findings close; five unrelated circuit findings, 393 workspace findings and 103 source-size errors remain. No GPU work, publication or phase completion."
+    "classification": "PROGRESS_CPU_ONLY_DETACHED_PREPARATION_CLOSURE",
+    "evidence": "Exact AIR owner imports remove an unintended CPU proof-fixture dependency from detached preparation. All 45 closure tests and 260 retained-authority runtime cases pass; the floor is raised to the full 260-case census. Package inventory passes both modes. No GPU work or phase completion; 103 source errors and 393 workspace findings remain."
   },
   "budget_results": {
     "worktree_consolidation": {
@@ -2745,6 +2745,94 @@
       "retained_negative": "plain-private registry attempt fails E0603 cross-module imports; pub(crate) correction preserves crate imports; prior time/memory stops retained",
       "qualification": "Authenticated host artifact regeneration only. Exact existing bytes, evaluator, serializer and all release blockers preserved. No full native/SIMD proof, independent official verifier, complete Cairo product, GPU, physical device memory, release or qualified timing claim.",
       "evidence": "External archive keyed by receipt commit tree; clean source pin, complete generated bundle/receipt, retained exporter binary, rewriter tests, negative attempt and audit logs."
+    },
+    "delivery_detached_preparation_air_imports": {
+      "baseline_commit": "f0acac7ec",
+      "tested_execution_commit": "ade0e3439abac34b94d3cfdf8778972c2273b9f6",
+      "tested_execution_tree": "3d16134066cda068a686dfd1ee7ef324bb16146d",
+      "status": "PASS_DETACHED_SOURCE_CLOSURE_AND_RETAINED_AUTHORITY_CENSUS",
+      "code": {
+        "added": 265,
+        "removed": 269,
+        "net": -4,
+        "budget": 0,
+        "formatter_only_blank_lines_removed": 4
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "moves": 0,
+      "exact_same_owner_substitutions": 245,
+      "direct_barrel_importers_repaired": 14,
+      "unused_internal_forwarders_removed": 4,
+      "public_facades_and_contract_ledgers_unchanged": true,
+      "all_existing_test_names_and_assertions_retained": true,
+      "test_manifest_exact_codec_files_admitted": 4,
+      "directory_prefixes_and_backend_exclusions_unchanged": true,
+      "related_product_closure_tests": {
+        "tests": 45,
+        "passed": 45
+      },
+      "detached_preparation_closure": {
+        "backend_and_integration_sources": 0,
+        "sources": 1743,
+        "source_digest": "57d2ade6b0ba2efc7c31b02a460b822acbcee3d2ac6999ed1ae28e991e0641bf"
+      },
+      "authority_runtime": {
+        "tests": 260,
+        "passed": 260,
+        "discovery_floor_before": 30,
+        "discovery_floor_after": 260,
+        "new_required_case": "segment-leaf claim projection keeps shared provider out of prefix",
+        "binary": "/Users/theodorepender/Coding/stwo-zig/src/frontends/riscv/.zig-cache/o/01786b2b58495cc18521134419fdaac7/test",
+        "binary_sha256": "e07e97529171d695f383bdb2267bca30633b006044de4d36e347f32b1ad9fc9f"
+      },
+      "test_inventory": {
+        "Debug": "PASS",
+        "ReleaseFast": "PASS"
+      },
+      "authority_Debug": "UNQUALIFIED_PRIOR_MEMORY_GUARD_NOT_RETRIED",
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "bounded_clean_full_floor": [
+        {
+          "label": "clean-full-260-discovery-floor",
+          "argv": [
+            "uv",
+            "run",
+            "--offline",
+            "--python",
+            "3.13",
+            "--no-project",
+            "python",
+            "scripts/repo/zig_serial_build.py",
+            "--no-lock",
+            "--cwd",
+            "src/frontends/riscv",
+            "test-retained-authority-contracts",
+            "-Doptimize=ReleaseFast",
+            "--verbose"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 681967616,
+          "wall_seconds": 5.354998875001911
+        }
+      ],
+      "qualification": "Host frontend source-closure correctness, mechanical same-owner substitutions and retained authority runtime/negative cases. No full recursive proof, end-to-end RISC-V product, complete block, GPU, security or timing qualification.",
+      "evidence": "External archive keyed by receipt tree, including exact edit admission, baseline/intermediate negatives, source closure, clean source pins, 260 case names, test image and all gate/audit logs."
     }
   },
   "post_merge_hygiene": {
