@@ -59,6 +59,12 @@ pub const CpuLayout = struct {
         // cpuCompactFor, main_only `.cpu_compact`): 37 instead of 47 CPU MAIN columns.
         return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .compact_decode = v3 };
     }
+    /// Explicit OP-only GKR representation. This selects qualified query
+    /// encodings, never legacy protocol/profile admission. Compact programs
+    /// must be prepared before capture on both producer and receiver.
+    pub fn forOpGkr() CpuLayout {
+        return .{ .reserve_arithmetic_row = true, .fused_tail = true, .u8_pairs = true, .ls_dword = true, .compact_decode = true };
+    }
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = @import("stwo_riscv_frontend").rv64.execution_profile.isV3(profile);
         // Compact decode is proven with the RV64IM opcode set only; the Zbb

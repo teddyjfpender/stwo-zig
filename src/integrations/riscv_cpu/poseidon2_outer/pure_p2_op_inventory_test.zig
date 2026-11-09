@@ -14,14 +14,15 @@ const Truth = @import("pure_p2_truth_worker.zig");
 const Inventory = @import("pure_p2_op_inventory.zig").Inventory;
 const Manifest = @import("pure_p2_manifest.zig");
 const a = std.testing.allocator;
-test "OP complete mixed native inventory fresh receiver closes all shards and providers" {
+const Plan = @import("../word16_global_execution/ethereum/plan.zig");
+fn exercise(comptime compact: bool) !void {
     var pool: engine.work_pool.WorkPool = .{};
     try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
     defer pool.deinit();
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     const profile = @import("pure_p2_worker_protocol.zig").Profile.op_target_b4_q72_p0_fold4_v1;
-    var captured = try F.Captured.initForOp(a);
+    var captured = try F.Captured.initForOpWithLayout(a, compact);
     defer captured.deinit();
     var setups: [2]R.CpuSetup = undefined;
     var fresh: [2]R.CpuSetup = undefined;
@@ -34,11 +35,18 @@ test "OP complete mixed native inventory fresh receiver closes all shards and pr
         setups[i].deinit();
         fresh[i].deinit();
     };
+    var declarations: [2]@import("../word16_global_execution/services/wire.zig").CpuDeclaration = undefined;
     for (0..2) |i| {
         var geometry = try captured.native[i].geometry();
         geometry.boundary_log = F.BOUNDARY_LOG;
-        setups[i] = try R.CpuSetup.initForOpProgram(a, .{ .base = 4096, .words = &F.WORDS }, geometry, F.BRIDGES[i]);
-        fresh[i] = try R.CpuSetup.initForOpProgram(a, .{ .base = 4096, .words = &F.WORDS }, geometry, F.BRIDGES[i]);
+        declarations[i] = if (compact) try Plan.cpuForSegment(&captured.native[i], &captured.advice, i, 2, captured.advice.initial.len, Plan.CpuLayout.forOpGkr()) else .{ .geometry = geometry, .bridges = F.BRIDGES[i] };
+        setups[i] = try R.CpuSetup.initForOpProgram(a, .{ .base = 4096, .words = &F.WORDS }, declarations[i].geometry, declarations[i].bridges);
+        fresh[i] = try R.CpuSetup.initForOpProgram(a, .{ .base = 4096, .words = &F.WORDS }, declarations[i].geometry, declarations[i].bridges);
+        if (compact) {
+            try std.testing.expect(setups[i].materials.program.compact);
+            try std.testing.expect(declarations[i].geometry.cpu_compact_decode);
+            try std.testing.expect(declarations[i].geometry.cpu_u8_pairs and declarations[i].geometry.cpu_fused_tail);
+        }
         keys[i] = try Key.initForOp(a, &setups[i], profile);
         fresh_keys[i] = try Key.initForOp(a, &fresh[i], profile);
         made += 1;
@@ -59,6 +67,12 @@ test "OP complete mixed native inventory fresh receiver closes all shards and pr
     const Native = @import("../word16_execution/prepared.zig").Prepared;
     const natives = [_]*Native{ &captured.native[0], &captured.native[1] };
     var requests = [_]P.Request{ try Coordinator.requestView(&natives, &captured.advice, 0), try Coordinator.requestView(&natives, &captured.advice, 1) };
+    for (&requests, declarations, 0..) |*request, declaration, i| try Coordinator.routeDword(request, declaration.bridges, captured.advice.events[i]);
+    if (compact) {
+        var dword: u64 = 0;
+        for (requests) |request| dword += request.ls_dword;
+        try std.testing.expect(dword > 0);
+    }
     try Coordinator.assignSpongeIds(&requests);
     const spans = [_]T.OpTowerSpan{ .{}, .{} };
     const expected = F.expectedFor(captured.program.identity, captured.loaded);
@@ -148,4 +162,11 @@ test "OP complete mixed native inventory fresh receiver closes all shards and pr
     durable.proofs[0].claims[0] = saved;
     try std.testing.expectError(error.GlobalGkrManifestRoster, fresh_pending.checkGlobalClosure(claims[0..3]));
     std.debug.print("OP_MIXED_COMPLETE steps={} CPU=2 truth=2 SHA=2 ARITH=2 bulk=2 native_bytes={} closure=RAM_Wire fresh=true\n", .{ F.STEPS, c0.bytes.len + c1.bytes.len + t0.bytes.len + t1.bytes.len });
+}
+
+test "OP complete mixed native inventory fresh receiver closes all shards and providers" {
+    try exercise(false);
+}
+test "OP compact GKR byte pairs and LS-D64 close a complete mixed execution" {
+    try exercise(true);
 }

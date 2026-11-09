@@ -136,6 +136,9 @@ pub const Captured = struct {
     pub fn initForOp(a: std.mem.Allocator) !Captured {
         return initMode(a, false, true);
     }
+    pub fn initForOpWithLayout(a: std.mem.Allocator, compact_decode: bool) !Captured {
+        return initMode(a, compact_decode, true);
+    }
     fn initMode(a: std.mem.Allocator, compact_decode: bool, op_only: bool) !Captured {
         const profile: rv.execution_profile.Profile = if (op_only) .ethereum_services_op_v1 else .ethereum_services_v3;
         const program = try a.create(Program);
