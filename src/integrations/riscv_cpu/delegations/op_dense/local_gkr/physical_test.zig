@@ -273,3 +273,142 @@ fn checkDegree(comptime kind: D.spec.Kind, comptime role: N.Role) !void {
 test "direct dense split GKR complete equations degree three both roles and classes" {
     inline for (.{ D.spec.Kind.multiply, D.spec.Kind.square }) |kind| inline for (.{ N.Role.arithmetic, N.Role.table }) |role| try checkDegree(kind, role);
 }
+
+fn chainRowsValid(w: *const D.chain.Witness) !bool {
+    var residuals: [D.air.constraints(.multiply)]Q = undefined;
+    for (0..32) |r| {
+        const v = w.view(.initial, r);
+        var sink = A.evaluation.SinkFor(Q){ .values = &residuals };
+        D.chain.emitInitial(Q, &v, &sink);
+        for (residuals[0..sink.count]) |x| if (!x.isZero()) return false;
+    }
+    inline for (.{ D.chain.Role.square, D.chain.Role.multiply }) |role| for (0..12) |r| {
+        const v = w.view(role, r);
+        const kind: D.spec.Kind = if (role == .square) .square else .multiply;
+        var sink = A.evaluation.SinkFor(Q){ .values = &residuals };
+        D.air.emitInherited(kind, Q, &v, &sink);
+        try std.testing.expectEqual(D.air.constraints(kind), sink.count);
+        for (residuals[0..sink.count]) |x| if (!x.isZero()) return false;
+    };
+    return true;
+}
+test "dense SSA chain immutable writers inherited reads and coherent noncanonical temporary" {
+    const Chain = D.chain;
+    var a: [12]u256 = undefined;
+    var b: [12]u256 = undefined;
+    for (&a, &b, 0..) |*x, *y, i| {
+        x.* = @as(u256, 0x123456789abcdef) * (i + 1);
+        y.* = @as(u256, 0x987654321) * (i + 19);
+    }
+    a[0] = std.math.maxInt(u256); // initial authority permits raw u256 operands
+    var w = Chain.Witness.init(a, b);
+    var channel = core.channel.poseidon2_m31.Om31ChannelV2.init();
+    channel.mixU32s(&.{ 0x44535341, 1 });
+    const beta = channel.drawSecureFelt();
+    const ssa = Chain.Wire.draw(&channel);
+    try std.testing.expect(try chainRowsValid(&w));
+    try std.testing.expect((try w.ssaSum(ssa)).isZero());
+    try std.testing.expect((try w.byteSum(beta)).isZero());
+    const tmp = D.reference(a, a);
+    try std.testing.expectEqual(D.reference(tmp, b), w.output);
+    // Full source-owned writer/fanout ledger: unique IDs and acyclic reads.
+    var writes: [36]u32 = @splat(0);
+    var reads: [36]u32 = @splat(0);
+    inline for (.{ Chain.Role.initial, Chain.Role.square, Chain.Role.multiply }) |role| {
+        for (0..if (role == .initial) @as(usize, 32) else 12) |r| for (0..Chain.lanes(role)) |lane| {
+            if (Chain.edge(role, r, lane)) |edge| {
+                try std.testing.expect(edge.id <= Chain.MAX_ID);
+                if (edge.weight > 0) {
+                    try std.testing.expectEqual(@as(u32, 0), writes[edge.id]);
+                    writes[edge.id] = @intCast(edge.weight);
+                } else reads[edge.id] += @intCast(-edge.weight);
+            }
+        };
+    }
+    try std.testing.expectEqual(writes, reads);
+    var mass: u32 = 0;
+    for (writes) |x| mass += x;
+    try std.testing.expectEqual(@as(u32, Chain.SSA_POSITIVE_MASS), mass);
+    // Altering a single Mul read passes no public-equality gate: SSA must reject.
+    var forged = w;
+    forged.multiply[0][D.row.Layout(.multiply).INPUT] ^= 1;
+    try std.testing.expect(!(try forged.ssaSum(ssa)).isZero());
+    // Missing initial writer is caught independently by source public ROM and SSA.
+    forged = w;
+    forged.initial[0][0] = 0;
+    try std.testing.expect(!try chainRowsValid(&forged));
+    try std.testing.expect(!(try forged.ssaSum(ssa)).isZero());
+    // Wrong ID and wrong fanout cannot be disguised as a change of a free
+    // witness column: they disagree with the immutable ROM rational ledger.
+    const initial_view = w.view(.initial, 0);
+    const original = Chain.fraction(.initial, Q, &initial_view, ssa, 0);
+    var initial_bytes: [32]Q = undefined;
+    for (&initial_bytes, 0..) |*x, i| x.* = initial_view.main(1 + i);
+    const wrong_id = Chain.denominator(Q, Q.fromBase(M.fromCanonical(35)), initial_bytes, ssa);
+    const changed_id_debt = original[0].mul(try wrong_id.inv()).sub(original[0].mul(try original[1].inv()));
+    try std.testing.expect(!changed_id_debt.isZero());
+    try std.testing.expect(!(try original[1].inv()).isZero()); // a +/-1 fanout error
+    // Coherent tmp+p: all input reads follow the forged canonical-looking byte
+    // vector, all integer carries and BYTE/SSA rational sums remain valid, and
+    // final modular output is unchanged. Only canonical-write authority rejects.
+    forged = w;
+    forged.square[0] = D.row.Layout(.square).congruentForgeryForTesting(0, &a);
+    var m_input: [24]u256 = undefined;
+    @memcpy(m_input[0..12], &tmp);
+    @memcpy(m_input[12..], &b);
+    m_input[0] += D.spec.B.BN254_P;
+    inline for (0..12) |coordinate| forged.multiply[coordinate] = D.row.Layout(.multiply).fill(coordinate, &m_input);
+    forged.recount();
+    try std.testing.expect((try forged.ssaSum(ssa)).isZero());
+    try std.testing.expect((try forged.byteSum(beta)).isZero());
+    try std.testing.expect(D.row.Layout(.square).carriedValid(0, &forged.square[0]));
+    try std.testing.expect(D.row.Layout(.square).rangeValid(&forged.square[0]));
+    try std.testing.expect(!try chainRowsValid(&forged));
+    inline for (0..12) |coordinate| try std.testing.expectEqual(w.output[coordinate], D.row.Layout(.multiply).output(coordinate, &m_input));
+}
+
+test "dense SSA chain six source GKR instances separate relation closure" {
+    const Join = @import("../local_ssa/native.zig");
+    const a = std.testing.allocator;
+    const w = D.chain.Witness.init(@splat(17), @splat(29));
+    const scope = Join.Scope{ .statement = Join.statement(&w.public, w.output), .fixed = @splat(71), .main = @splat(83) };
+    var child = try Join.prove(a, scope, &w);
+    defer child.deinit(a);
+    const encoded = try Join.encode(a, &child.result.proof);
+    defer a.free(encoded);
+    var decoded = try Join.decode(a, encoded);
+    defer decoded.deinit();
+    var pending = try Join.verify(a, scope, &decoded.proof);
+    defer pending.deinit(a);
+    try std.testing.expectEqual(child.digest, pending.digest);
+    try std.testing.expectEqual(child.beta, pending.beta);
+    try std.testing.expectEqual(child.ssa, pending.ssa);
+    try std.testing.expectEqual(@as(usize, 18), pending.artifact.ood_point.len);
+    var facts: usize = 0;
+    for (Join.INSTANCES) |i| facts += i.facts();
+    try std.testing.expectEqual(@as(usize, 413984), facts);
+    // A balanced transfer between BYTE and SSA would fool a single aggregate
+    // closure. Each typed relation must close separately.
+    var pairs: [6][2]Q = undefined;
+    var pair_views: [6][]Q = undefined;
+    for (&pairs, &pair_views, decoded.proof.output_claims_by_instance) |*pair, *view, original| {
+        @memcpy(pair, original);
+        view.* = pair;
+    }
+    pairs[0][0] = pairs[0][0].add(pairs[0][1]);
+    pairs[3][0] = pairs[3][0].sub(pairs[3][1]);
+    var forged_proof = decoded.proof;
+    forged_proof.output_claims_by_instance = &pair_views;
+    try std.testing.expectError(error.UnclosedLocalGkr, Join.close(a, &forged_proof));
+    // Shape is fully source-derived, including mixed row and lane dimensions.
+    for (Join.INSTANCES, pending.artifact.n_variables_by_instance) |i, v| try std.testing.expectEqual(try i.variables(), v);
+    // Scope changes the independently drawn BYTE and SSA transcript, so the old
+    // child cannot be transplanted to a different public input/MAIN/ROM frame.
+    var wrong = scope;
+    wrong.main[0] ^= 1;
+    if (Join.verify(a, wrong, &decoded.proof)) |*accepted_value| {
+        var accepted = accepted_value.*;
+        accepted.deinit(a);
+        return error.AcceptedWrongSsaScope;
+    } else |_| {}
+}

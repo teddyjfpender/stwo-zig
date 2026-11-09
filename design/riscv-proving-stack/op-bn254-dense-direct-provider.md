@@ -158,3 +158,11 @@ Splitting adds17 log8 columns (4,352 cells per proof) to the prior planned ledge
 this amortized table cost must be counted. Production opening-width estimates
 become805/1189 for square/multiply, with the input frontier included. Runtime
 admission, typed SSA/global joins, recursion and wall-time claims remain closed.
+
+### Two-operation local SSA authority (research, not admitted)
+
+`bn254_dense/chain.zig` fixes square(A) → temporary followed by multiply(temporary, B) → public output. A separate log-5 producer pins 24 initial raw-u256 values in its immutable FIXED columns. Arithmetic rows call `air.emitInherited`; they contain no equality to a public input list. Local SSA carries all 32 bytes, using typed `(family, call_id, value_id, bytes32)` tuples. IDs 0–23 are initial values and 24–35 are the square outputs. Each source-owned writer has fanout 12; positive and negative SSA mass are exactly 432. The square's strict canonical write, rather than a constructor assertion, supplies the multiply's intermediate range authority.
+
+The source-GKR fixture has six independently sized instances: BYTE square/multiply/table and SSA initial/square/multiply, with 413,984 padded facts. BYTE and SSA use independent challenges and close separately. A balanced transfer of debt between their groups is rejected. The coherent `temporary+p` test propagates the forged byte vector into every multiply row, recomputes BYTE multiplicities, and preserves the final modular output: BYTE and SSA still close, while the original square canonical-write equations reject it.
+
+The actual binding width is 16 M31 columns per local instance. Consequently this chain uses initial 16 INTER, square 32, multiply 40 (including the final eight-column public output debt), and BYTE table 16. The earlier BYTE-only arithmetic fixture's 24 INTER was 16 binding plus eight output columns. Physical terminal binding of this two-operation chain is a separate pending gate; these source tests do not authorize a service or claim a proving speedup.

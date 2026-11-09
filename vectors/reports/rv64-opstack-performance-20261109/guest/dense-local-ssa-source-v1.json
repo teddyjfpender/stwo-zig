@@ -1,0 +1,49 @@
+{
+  "status": "source-and-streamed-GKR-qualified; physical terminal binding pending",
+  "production_admitted": false,
+  "security_qualified": false,
+  "scope": "closed square(A)->temporary; multiply(temporary,B)->public-output fixture, not VM/global-RAM integration",
+  "arithmetic_input_semantics": "raw u256 modulo BN254 p; intermediate square writes must be canonical",
+  "source_authority": {
+    "initial_ids": [0, 23],
+    "temporary_ids": [24, 35],
+    "call_id": 1,
+    "writer_fanout": 12,
+    "positive_ssa_mass": 432,
+    "negative_ssa_mass": 432,
+    "byte_query_mass": 8496,
+    "tuple": "family,call_id,value_id,32 full bytes; independently challenged from BYTE",
+    "initial_public_producer": "only component with public-byte equality; source-owned FIXED bytes and IDs",
+    "arithmetic": "inherited-input emitter has no public-input equality; original bounded carries and canonical-output equations retained"
+  },
+  "instances": [
+    {"family":"BYTE","role":"square","row_log":8,"lane_log":9,"facts":131072},
+    {"family":"BYTE","role":"multiply","row_log":9,"lane_log":9,"facts":262144},
+    {"family":"BYTE","role":"table","row_log":8,"lane_log":0,"facts":256},
+    {"family":"SSA","role":"initial","row_log":5,"lane_log":0,"facts":32},
+    {"family":"SSA","role":"square","row_log":8,"lane_log":4,"facts":4096},
+    {"family":"SSA","role":"multiply","row_log":9,"lane_log":5,"facts":16384}
+  ],
+  "facts_total": 413984,
+  "interaction_ledger": {
+    "binding_columns_per_instance":16,
+    "initial":16,
+    "square":32,
+    "multiply":40,
+    "byte_table":16,
+    "multiply_final_wire_columns":8,
+    "note":"24 in earlier BYTE fixture was 16 BYTE binding plus 8 output debt; binding itself remains 16"
+  },
+  "passed": [
+    "independent nested tower square then multiply output comparison",
+    "immutable unique writers, exact fanout and topological SSA ID census",
+    "missing writer and one-side temporary mutation reject rational closure",
+    "wrong ID and +/-1 fanout produce nonzero typed debt",
+    "coherent temporary+p propagated into every multiply row closes BYTE and SSA and preserves final output but rejects canonical square writer",
+    "six-instance fixed4 checkpointed source GKR proof, bounded codec and fresh verifier",
+    "BYTE and SSA separately close; balanced cross-family forged debt rejected",
+    "wrong MAIN scope rejects the source-GKR proof"
+  ],
+  "validation": "zig build test-riscv64-op-dense-local-gkr -Doptimize=ReleaseFast -Driscv-test-filter='dense SSA chain'",
+  "next_gate":"physical committed source bindings, fresh receiver and adversarial mixed-height proofs; no whole-prover speed claim"
+}

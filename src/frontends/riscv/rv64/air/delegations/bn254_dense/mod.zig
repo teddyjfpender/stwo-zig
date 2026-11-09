@@ -2,6 +2,7 @@
 pub const spec = @import("spec.zig");
 pub const row = @import("row.zig");
 pub const air = @import("air.zig");
+pub const chain = @import("chain.zig");
 
 pub const fixture_component = @import("fixture_component.zig");
 pub const fixture_trace = @import("fixture_trace.zig");

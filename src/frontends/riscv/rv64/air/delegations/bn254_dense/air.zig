@@ -67,6 +67,21 @@ pub fn emit(comptime kind: S.Kind, comptime F: type, v: anytype, input: *const [
     // immutable one-call ROM. The producer cannot choose an operation/coordinate.
     sink.emit(active.sub(v.fixed(FIX_ACTIVE)));
     for (input, 0..) |value, i| for (0..32) |b| sink.emit(v.main(L.INPUT + 32 * i + b).sub(active.mul(k(F, S.B.limbOf(value, b)))));
+    emitBody(kind, F, v, sink);
+}
+/// Arithmetic rows consume input byte authority through an exact local SSA bus.
+/// No public packet equality is inserted here. Inactive inputs are uniquely zero.
+/// The caller must bind every active read to a source-owned canonical/raw writer.
+pub fn emitInherited(comptime kind: S.Kind, comptime F: type, v: anytype, sink: *E.SinkFor(F)) void {
+    const L = R.Layout(kind);
+    const active = v.main(0);
+    sink.emit(active.sub(v.fixed(FIX_ACTIVE)));
+    for (0..32 * S.inputs(kind)) |i| sink.emit(F.one().sub(active).mul(v.main(L.INPUT + i)));
+    emitBody(kind, F, v, sink);
+}
+fn emitBody(comptime kind: S.Kind, comptime F: type, v: anytype, sink: *E.SinkFor(F)) void {
+    const L = R.Layout(kind);
+    const active = v.main(0);
     for (L.OUTPUT..L.MULT) |c| sink.emit(F.one().sub(active).mul(v.main(c)));
     for (0..15) |i| E.booleanFor(F, sink, v.main(L.BORROW + i));
     for (0..16) |i| {
