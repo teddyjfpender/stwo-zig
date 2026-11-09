@@ -395,6 +395,9 @@ pub const Worker = struct {
     }
 };
 pub fn verify(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, pending: *const Manifest.Pending, index: usize, encoded: *const Encoded) !Manifest.Claims {
+    return verifyWithCapture(a, key, truth, expected, pending, index, encoded, null);
+}
+pub fn verifyWithCapture(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, pending: *const Manifest.Pending, index: usize, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
     try validateExpected(key, truth, expected);
     try checkPending(expected, pending, index);
     var proof = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
@@ -419,8 +422,10 @@ pub fn verify(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: M
     const logs = try components.logs(a, 2);
     defer a.free(logs);
     try receiver.commit(a, roots[2], logs, &channel);
-    var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H) = undefined;
-    try core.verifier.ForField(O).verifyBorrowedWithProofCapture(W.H, W.MC, a, handles, &channel, &receiver, &proof, &capture);
-    capture.deinit(a);
+    if (comptime @TypeOf(output_capture) == @TypeOf(null)) {
+        var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H) = undefined;
+        try core.verifier.ForField(O).verifyBorrowedWithProofCapture(W.H, W.MC, a, handles, &channel, &receiver, &proof, &capture);
+        capture.deinit(a);
+    } else try core.verifier.ForField(O).verifyBorrowedWithProofCapture(W.H, W.MC, a, handles, &channel, &receiver, &proof, output_capture);
     return if (classic(truth)) Old.claimsResult(truth, encoded.claims) else .{ .ram = O.zero(), .kio = O.zero(), .wire = encoded.claims[0] };
 }

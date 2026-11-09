@@ -71,6 +71,9 @@ fn build(_: *const anyopaque, alloc: std.mem.Allocator, truth: R.Truth) !R.Truth
     };
 }
 fn run(truth: R.Truth) !void {
+    return runWithHook(truth, void);
+}
+pub fn runWithHook(truth: R.Truth, comptime Hook: type) !void {
     const profile = Protocol.Profile.op_target_b4_q72_p0_fold4_v1;
     var key = try T.Key.init(a, truth, profile);
     defer key.deinit();
@@ -102,7 +105,10 @@ fn run(truth: R.Truth) !void {
     var received = try T.decode(a, bytes, 1 << 28);
     defer received.deinit(a);
     try std.testing.expectEqual(@as(usize, 0), worker.budget_owner.snapshot().live_bytes);
-    const claim = try T.verify(a, &receiver_key, truth, fresh_expected, &pending, 0, &received);
+    var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(Protocol.W.H) = undefined;
+    const claim = try T.verifyWithCapture(a, &receiver_key, truth, fresh_expected, &pending, 0, &received, &capture);
+    defer capture.deinit(a);
+    if (Hook != void) try Hook.run(a, &receiver_key, truth, fresh_expected, &pending, &received, &capture);
     try std.testing.expect(claim.ram.isZero());
     if (truth == .keccak) try std.testing.expect(claim.wire.isZero()) else try std.testing.expect(claim.kio.isZero());
     try std.testing.expectError(error.OpTruthEnvelope, T.decode(a, bytes, bytes.len - 1));
