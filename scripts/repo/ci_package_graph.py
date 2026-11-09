@@ -63,6 +63,92 @@ class Package:
     dependencies: frozenset[str]
 
 
+@dataclass(frozen=True)
+class ConsumerContract:
+    id: str
+    root: str
+    route: str
+    imports: tuple[str, ...]
+    tests: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ContractMetadata:
+    """Parsed shape only, never source ownership, coverage or execution evidence."""
+
+    consumers: tuple[ConsumerContract, ...] = ()
+    budget: dict[str, int] | None = None
+
+
+def parse_contract_metadata(payload: Any, label: str) -> ContractMetadata:
+    """Extension shape only; base validation and workspace v3 admission stay separate."""
+    required = {"schema", "package", "version", "layer", "owner", "public_modules",
+                "dependencies", "injected_modules", "api_surface", "api_contract", "ci"}
+    optional = {"consumer_subdirs"}
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label}: contract must be an object")
+    schema = payload.get("schema")
+    if schema == "stwo-zig-package-contract-v3":
+        required.add("consumers")
+        optional.add("budget")
+    elif schema != "stwo-zig-package-contract-v2":
+        raise ValueError(f"{label}: unknown contract schema {schema!r}")
+    if not required <= payload.keys() or payload.keys() - required - optional:
+        raise ValueError(f"{label}: contract fields differ")
+    if schema == "stwo-zig-package-contract-v2":
+        return ContractMetadata()
+
+    def strings(value: Any, field: str) -> tuple[str, ...]:
+        if (not isinstance(value, list) or not value
+                or any(not isinstance(v, str) or not v.strip() or v != v.strip()
+                       or any(ord(c) < 32 for c in v) for v in value)
+                or value != sorted(set(value))):
+            raise ValueError(f"{label}: {field} must be nonempty, sorted and unique")
+        return tuple(value)
+
+    raw = payload["consumers"]
+    if not isinstance(raw, list):
+        raise ValueError(f"{label}: consumers must be an array")
+    consumers = []
+    for row in raw:
+        if not isinstance(row, dict) or set(row) != {"id", "root", "route", "imports", "tests"}:
+            raise ValueError(f"{label}: consumer fields differ")
+        identity, root, route = row["id"], row["root"], row["route"]
+        if not isinstance(identity, str) or not re.fullmatch(
+            r"(?:package:[a-z][a-z0-9_]*|product:[a-z][a-z0-9_-]*)", identity,
+        ):
+            raise ValueError(f"{label}: invalid consumer identity")
+        if (not isinstance(root, str) or not root.startswith("src/") or not root.endswith(".zig")
+                or "\\" in root or any(part in {".", "..", ""} for part in root.split("/"))
+                or any(ord(c) < 32 for c in root)):
+            raise ValueError(f"{label}: invalid consumer root")
+        if identity.startswith("product:"):
+            valid_route = route == identity
+        else:
+            valid_route = isinstance(route, str) and re.fullmatch(
+                r"(?:dependency|injected):[a-z][a-z0-9_]*", route,
+            )
+        if not valid_route:
+            raise ValueError(f"{label}: invalid consumer route")
+        imports = strings(row["imports"], "consumer imports")
+        if any(name == "std" or not re.fullmatch(r"[a-z][a-z0-9_]*", name) for name in imports):
+            raise ValueError(f"{label}: invalid named consumer import")
+        consumers.append(ConsumerContract(identity, root, route, imports, strings(row["tests"], "consumer tests")))
+    identities = [row.id for row in consumers]
+    if identities != sorted(set(identities)):
+        raise ValueError(f"{label}: consumer identities must be sorted and unique")
+    budget = None
+    if "budget" in payload:
+        budget = payload["budget"]
+        keys = {"code_files", "code_lines", "generated_code_files", "generated_code_lines",
+                "script_files", "api_entries", "dependencies", "rv64_registry_flags", "versioned_files"}
+        if (not isinstance(budget, dict) or set(budget) != keys
+                or any(type(value) is not int or value < 0 for value in budget.values())):
+            raise ValueError(f"{label}: budget must contain exactly nine nonnegative integer maxima")
+        budget = dict(budget)
+    return ContractMetadata(tuple(consumers), budget)
+
+
 def _posix(path: Path, root: Path) -> str:
     return PurePosixPath(path.relative_to(root)).as_posix()
 

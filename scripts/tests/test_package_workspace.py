@@ -293,5 +293,121 @@ const owned = @import(
             )
 
 
+class ConsumerMetadataGrammarTests(unittest.TestCase):
+    """Shape-only checkpoint; source ownership and execution are separate gates."""
+
+    def payload(self, schema="stwo-zig-package-contract-v3"):
+        import json
+        value = json.loads((ROOT / "src/waist/backend/package.contract.json").read_text())
+        value["schema"] = schema
+        if schema.endswith("v3"):
+            value["consumers"] = [{"id": "package:stwo_cpu_backend",
+                                   "root": "src/backends/cpu_scalar/contract_tests/stwo_backend_contracts_test.zig",
+                                   "route": "dependency:stwo_backend_contracts",
+                                   "imports": ["stwo_backend_contracts", "stwo_core"],
+                                   "tests": ["cdc: CPU column contract preserves field ownership"]}]
+        return value
+
+    def parse(self, payload):
+        return subject.ci_package_graph.parse_contract_metadata(payload, "fixture")
+
+    def test_closed_v2_is_retained_without_extension_metadata(self):
+        actual = self.parse(self.payload("stwo-zig-package-contract-v2"))
+        self.assertEqual((), actual.consumers)
+        self.assertIsNone(actual.budget)
+        for key, value in (("consumers", []), ("budget", {}), ("unknown", 0)):
+            payload = self.payload("stwo-zig-package-contract-v2")
+            payload[key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                self.parse(payload)
+
+    def test_v3_registration_preserves_exact_owned_metadata_without_claiming_execution(self):
+        actual = self.parse(self.payload())
+        self.assertEqual("package:stwo_cpu_backend", actual.consumers[0].id)
+        self.assertEqual(("stwo_backend_contracts", "stwo_core"), actual.consumers[0].imports)
+        self.assertEqual(("cdc: CPU column contract preserves field ownership",), actual.consumers[0].tests)
+        self.assertIsNone(actual.budget)
+        payload = self.payload()
+        payload["consumers"] = []
+        self.assertEqual((), self.parse(payload).consumers)  # shape only, not live-census coverage
+        payload["consumers"] = [{**self.payload()["consumers"][0], "id": "product:stwo-native-cpu", "route": "product:stwo-native-cpu"}]
+        self.assertEqual("product:stwo-native-cpu", self.parse(payload).consumers[0].id)
+
+    def test_unknown_schema_extra_missing_fields_and_wrong_containers_fail(self):
+        for key, value in (("schema", "stwo-zig-package-contract-v4"), ("schema", None),
+                           ("unknown", []), ("consumers", {}), ("consumers", [None])):
+            payload = self.payload()
+            payload[key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                self.parse(payload)
+        for key in ("consumers", "api_contract", "owner"):
+            payload = self.payload()
+            del payload[key]
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                self.parse(payload)
+        for payload in (None, [], "v3"):
+            with self.subTest(payload=payload), self.assertRaises(ValueError):
+                self.parse(payload)
+
+    def test_consumer_records_are_closed_unique_sorted_and_nonempty(self):
+        original = self.payload()["consumers"][0]
+        for key, value in (("id", "unknown:cpu"), ("id", "package:../cpu"), ("id", ""),
+                           ("route", "unknown:backend"), ("route", "product:stwo-native-cpu"),
+                           ("imports", []), ("imports", ["std"]), ("imports", ["private.zig"]),
+                           ("imports", ["stwo_core", "stwo_backend_contracts"]),
+                           ("imports", ["stwo_core", "stwo_core"]), ("tests", []),
+                           ("tests", [" "]), ("tests", ["b", "a"]), ("tests", ["a", "a"]),
+                           ("tests", ["bad\nname"]), ("root", "/tmp/test.zig"),
+                           ("root", "src/../outside/test.zig"), ("root", "src//test.zig"),
+                           ("root", "src/owner/test.py"), ("root", "src\\owner\\test.zig"),
+                           ("extra", True)):
+            payload = self.payload()
+            payload["consumers"] = [{**original, key: value}]
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                self.parse(payload)
+        for key in original:
+            payload = self.payload()
+            del payload["consumers"][0][key]
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                self.parse(payload)
+        for records in ([original, original], [{**original, "id": "package:zzz"}, original]):
+            payload = self.payload()
+            payload["consumers"] = records
+            with self.subTest(records=records), self.assertRaises(ValueError):
+                self.parse(payload)
+        payload = self.payload()
+        payload["consumers"][0].update(id="product:stwo-native-cpu", route="product:other")
+        with self.assertRaises(ValueError):
+            self.parse(payload)
+
+    def test_nine_budget_dimensions_are_closed_integer_maxima_and_absence_is_distinct(self):
+        keys = ("code_files", "code_lines", "generated_code_files", "generated_code_lines",
+                "script_files", "api_entries", "dependencies", "rv64_registry_flags", "versioned_files")
+        payload = self.payload()
+        payload["budget"] = dict.fromkeys(keys, 0)
+        self.assertEqual(dict.fromkeys(keys, 0), self.parse(payload).budget)
+        for key in keys:
+            for value in (-1, True, False, 0.5, "1", None):
+                payload["budget"] = {**dict.fromkeys(keys, 0), key: value}
+                with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                    self.parse(payload)
+            payload["budget"] = {k: 0 for k in keys if k != key}
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                self.parse(payload)
+        for value in (None, [], {**dict.fromkeys(keys, 0), "unmeasured_metric": 1}):
+            payload["budget"] = value
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.parse(payload)
+        payload.pop("budget")
+        self.assertIsNone(self.parse(payload).budget)
+
+    def test_schema_checkpoint_does_not_activate_unvalidated_v3_workspace_reading(self):
+        import json
+        with TemporaryDirectory() as raw:
+            path = Path(raw) / "package.contract.json"
+            path.write_text(json.dumps(self.payload()))
+            with self.assertRaises(ValueError):
+                subject.load_contract(path)
+
 if __name__ == "__main__":
     unittest.main()

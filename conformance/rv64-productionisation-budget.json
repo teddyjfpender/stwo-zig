@@ -988,6 +988,20 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
+    },
+    {
+      "id": "waist_consumer_contracts_366_367",
+      "net_code_budget": 2400,
+      "validator_build_code_budget": 650,
+      "consumer_negative_test_code_budget": 1750,
+      "initial_metadata_stage_net_budget": 300,
+      "runtime_public_api_added_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "top_level_scripts_added_budget": 0,
+      "positive_growth_justification": "Approved RFC367 consumer-owned waist behavior, strict v2/v3 metadata and real source ownership/module identity/discovery gates; initial schema-only checkpoint does not admit unvalidated v3 registrations. Full D3 and populated/enforced D5 remain open.",
+      "scope": "Existing metadata/build/CI owners and consumer test roots only. Preserve provider commands/versions, proof bytes, actual rejection checks and all D2/D4 gates; no GPU execution or new launcher.",
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/367#issuecomment-6752608217"
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
