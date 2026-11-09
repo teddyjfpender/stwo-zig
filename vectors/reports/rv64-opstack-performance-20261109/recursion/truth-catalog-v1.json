@@ -1,0 +1,163 @@
+{
+  "scope": "native physical fragment -> source-derived complete PCS/FRI/OODS recursive statement and nine-coordinate expected frame",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission_open": false,
+  "complete_execution_accepted": false,
+  "source_equations": "existing truth_role.emitShape and truth_v3_role emitMainWithSpan/emitGlobalWithParameters",
+  "numeric_catalog_passed": 14,
+  "filtered_tests_passed": 7,
+  "mutations_per_case": [
+    "sampled MAIN",
+    "claim",
+    "ordinal",
+    "statement word",
+    "ninth manifest coordinate",
+    "calls",
+    "first_id",
+    "ninth output coordinate"
+  ],
+  "cases": [
+    {
+      "family": "sha256",
+      "native_proof_bytes": 1915752,
+      "poseidon_permutations": 56304,
+      "recursive_trace_cells": 351330048,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "keccak",
+      "native_proof_bytes": 2777376,
+      "poseidon_permutations": 69863,
+      "recursive_trace_cells": 400014848,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "arith256_mod",
+      "native_proof_bytes": 494268,
+      "poseidon_permutations": 19158,
+      "recursive_trace_cells": 62922496,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "bn254_g1_add",
+      "native_proof_bytes": 1091936,
+      "poseidon_permutations": 31717,
+      "recursive_trace_cells": 100671232,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "bn254_g1_double",
+      "native_proof_bytes": 1038960,
+      "poseidon_permutations": 30352,
+      "recursive_trace_cells": 100671232,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "bn254_fp2_mul",
+      "native_proof_bytes": 628028,
+      "poseidon_permutations": 21799,
+      "recursive_trace_cells": 100671232,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "bls12_381_fp2_mul",
+      "native_proof_bytes": 1101180,
+      "poseidon_permutations": 31792,
+      "recursive_trace_cells": 100671232,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "arith384_mont",
+      "native_proof_bytes": 705228,
+      "poseidon_permutations": 23240,
+      "recursive_trace_cells": 100671232,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "bls12_381_g1_add",
+      "native_proof_bytes": 1798880,
+      "poseidon_permutations": 46677,
+      "recursive_trace_cells": 200449792,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "bls12_381_g1_double",
+      "native_proof_bytes": 1921260,
+      "poseidon_permutations": 48196,
+      "recursive_trace_cells": 200449792,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "secp_row_add",
+      "native_proof_bytes": 2277716,
+      "poseidon_permutations": 56683,
+      "recursive_trace_cells": 200449792,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "secp_row_double",
+      "native_proof_bytes": 1772592,
+      "poseidon_permutations": 46599,
+      "recursive_trace_cells": 200449792,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "classic_secp_add",
+      "native_proof_bytes": 635464,
+      "poseidon_permutations": 21851,
+      "recursive_trace_cells": 100679168,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    },
+    {
+      "family": "classic_secp_double",
+      "native_proof_bytes": 624476,
+      "poseidon_permutations": 21851,
+      "recursive_trace_cells": 100679168,
+      "numeric_valid": true,
+      "mutations_rejected": true,
+      "blake_gates": 0
+    }
+  ],
+  "physical_representatives": [
+    {
+      "family": "sha256",
+      "proof_bytes": 700516,
+      "build_ns": 294118834,
+      "prove_ns": 98162753083,
+      "fresh_receive_ns": 10065907708,
+      "worker_count": 1,
+      "controlled_performance_measurement": false,
+      "independent_trace_only_authority": true,
+      "ninth_output_mutation_rejected": true,
+      "proof_byte_mutation_rejected": true
+    }
+  ]
+}

@@ -69,6 +69,13 @@ fn physicalRequested(truth: @import("../word16_global_execution/services/roster.
 }
 const Hook = struct {
     pub fn run(a: std.mem.Allocator, key: *const Native.Key, truth: @import("../word16_global_execution/services/roster.zig").Truth, expected: Manifest.Expected, pending: *const Manifest.Pending, encoded: *const Native.Encoded, capture: anytype) !void {
+        const Pool = @import("stwo_prover_engine").work_pool;
+        var pool: Pool.WorkPool = .{};
+        const needs_pool = Pool.currentScopedPool() == null;
+        if (needs_pool) try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
+        defer if (needs_pool) pool.deinit();
+        var pool_binding: ?Pool.ScopedPoolBinding = if (needs_pool) try Pool.ScopedPoolBinding.init(&pool) else null;
+        defer if (pool_binding) |*binding| binding.deinit();
         var proof = try Protocol.W.Wire.decodeProofBytesBinary(a, encoded.bytes);
         defer proof.deinit(a);
         var arena = std.heap.ArenaAllocator.init(a);
