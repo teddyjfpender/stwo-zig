@@ -4154,5 +4154,266 @@
       "No component result proves full-block, security, formal-publication or productionisation completion",
       "Earlier historical sections retain their original dated scopes and metrics"
     ]
+  },
+  "cm31_optimizer_diagnosis_20261109": {
+    "status": "REDUCED_LLVM20_SLP_DEFECT_IDENTIFIED_FULL_PROOF_QUALIFICATION_INCOMPLETE",
+    "recorded_source_commit": "2a8d6af4f77fa409211786adb6642365c6fafc0c",
+    "recorded_utc": "2026-11-09T10:29:38.212910+00:00",
+    "classification": "The standalone canonical first-fold failure is an LLVM 20.1.8 SLP optimizer miscompilation. It is consistent with the preserved original full-owner target/inlining failure. This is not a certification that all upstream callers are UB-free.",
+    "proof_policy": {
+      "releasefast_proof_outputs_suspect": true,
+      "frozen_byte_identity_required_before_timing": true,
+      "full_frozen_proof_gate_passed": false,
+      "gpu_work_performed": false,
+      "phase_complete": false,
+      "production_noinline_cm31_mitigation_retained": true,
+      "production_toolchain_pin_changed": false,
+      "production_isa_restriction_added": false
+    },
+    "standalone": {
+      "path": "src/waist/core/fields/tests/cm31_fri_case.zig",
+      "sha256": "afc23056f8e7c54c47eb40b4a74fb94d0002e080f3299be7facaa5fe6d1630db",
+      "generated_control_source_identical": true,
+      "c_entry": "reduced_fri_fold",
+      "alpha": [
+        5,
+        7,
+        11,
+        13
+      ],
+      "first_partner": [
+        1303640556,
+        459797465,
+        1763438021,
+        535549304
+      ],
+      "expected_complex": [
+        1152136878,
+        687052982
+      ],
+      "expected_extension": [
+        1502722113,
+        2034726791,
+        546122166,
+        519690011
+      ],
+      "frozen_fold_sha256": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+      "repository_imports_required": false
+    },
+    "canonical_bounds": {
+      "modulus": 2147483647,
+      "scalar_add_max": 4294967292,
+      "scalar_product_max": 4611686009837453316,
+      "karatsuba_subtraction_owner": "canonical M31.sub, no required modulo-2^64 subtraction",
+      "overflow_control": "Explicit wrapping diagnostic arithmetic preserves the same wrong optimized AVX512 digest; runtime safety instrumentation masks it without a panic."
+    },
+    "optimizer_controls": {
+      "same_unoptimized_input_sha256": "a4cabf87ba5bda4bcaefaa25ad4014bf303c9c2f9214c72d5876af08cca1cbed",
+      "source_compiler": "Zig 0.15.2 / Homebrew LLVM 20.1.8",
+      "comparator": "LLVM 22.1.6; diagnostic only",
+      "portable_execution": "Extract mathematical exports, remove target attributes/debug/unused alias metadata, compile all variants to the same AArch64 target at O0; preserve original complete IR and extraction commands. No x86 target-specific intrinsic is used in extracted math.",
+      "runs": [
+        {
+          "variant": "x86_64_v3",
+          "compile_exit": 0,
+          "fold_sha256": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+          "frozen_digest_matches": true,
+          "optimized_ir_sha256": "96515e2a0ca2a35ab270a5703c5b17313608cfafdff3c08e8c3b91368a63d651",
+          "portable_ir_sha256": "09c34cf29a554ffc3ecb272d64612879dbc690323d12e0921f920350f4388734"
+        },
+        {
+          "variant": "x86_64_v4",
+          "compile_exit": 0,
+          "fold_sha256": "1d02316c6e125d87a600924fd34eebdb0c0e6ab841a08db868d56327d0b08e9c",
+          "frozen_digest_matches": false,
+          "optimized_ir_sha256": "8d3926281a70c98510b115784c1c05a897fee3678da9ed1a9ed7d2a680b0d31e",
+          "portable_ir_sha256": "ae33cf9e9aab8f3d8b72be4d678239ff6a2e1718a38f4418ae74df4de62a6106"
+        },
+        {
+          "variant": "znver4",
+          "compile_exit": 0,
+          "fold_sha256": "1d02316c6e125d87a600924fd34eebdb0c0e6ab841a08db868d56327d0b08e9c",
+          "frozen_digest_matches": false,
+          "optimized_ir_sha256": "a0584192667b0fec1813d24922011906770fab953d0239ae8307fc7fd543c99b",
+          "portable_ir_sha256": "ef91654cc810b2bb632fe41ae1f86dc6403abd0fc152295dedd80ad1f71b6efb"
+        },
+        {
+          "variant": "llvm20-default",
+          "compile_exit": 0,
+          "fold_sha256": "1d02316c6e125d87a600924fd34eebdb0c0e6ab841a08db868d56327d0b08e9c",
+          "frozen_digest_matches": false,
+          "optimized_ir_sha256": "b76a9efb928b5d4befe90adfc05cdad827c94cf6aaec278426f13b6c15accaee",
+          "portable_ir_sha256": "ef91654cc810b2bb632fe41ae1f86dc6403abd0fc152295dedd80ad1f71b6efb"
+        },
+        {
+          "variant": "llvm20-no-slp",
+          "compile_exit": 0,
+          "fold_sha256": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+          "frozen_digest_matches": true,
+          "optimized_ir_sha256": "810192bad4b9f4a8e68b025dd90f5ace86941f42e84183648634ad366063c705",
+          "portable_ir_sha256": "d3696ce679cf789615e00e0d76c76f3cf0af05f984c7e663203b7dded12591a9"
+        },
+        {
+          "variant": "llvm20-no-vector-combine",
+          "compile_exit": 0,
+          "fold_sha256": "1d02316c6e125d87a600924fd34eebdb0c0e6ab841a08db868d56327d0b08e9c",
+          "frozen_digest_matches": false,
+          "optimized_ir_sha256": "e2148861aaf2270c6f9cc0a2490451d3e2ea71fc3fb7a0fc31ef255f0679b07b",
+          "portable_ir_sha256": "151536dbfdecf88821d78c95a2d9885abd668083344352f3d2a288033bf08525"
+        },
+        {
+          "variant": "llvm22-optimized",
+          "compile_exit": 0,
+          "fold_sha256": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+          "frozen_digest_matches": true,
+          "optimized_ir_sha256": "10439e1ca027e609a136ad5abbd5cb280f17d99351481ca1221b1e4de41e7cbb",
+          "portable_ir_sha256": "c6f5ecf1493869b4d6a30ab81864ceab99971a9cc7a213459d7813000b1712e2"
+        },
+        {
+          "variant": "explicit-wrapping",
+          "compile_exit": 0,
+          "fold_sha256": "1d02316c6e125d87a600924fd34eebdb0c0e6ab841a08db868d56327d0b08e9c",
+          "frozen_digest_matches": false,
+          "optimized_ir_sha256": "02fff30c0c81526596e91d7c35fec68472039990370bada553200ff2f133bb0f",
+          "portable_ir_sha256": "50decf9cdbe4596d9a610bf1a3dd6e46bb63a3fe9c3baeb1a46184bb9ad66ff3"
+        }
+      ],
+      "reduced_mismatching_limbs": 468,
+      "reduced_total_limbs": 512,
+      "first_difference": {
+        "output_index": 0,
+        "limb": 2,
+        "expected": 546122179,
+        "observed": 546122187
+      },
+      "runtime_safety_variant": "PASS without panic after preserved diagnostic panic-to-trap adaptation; instrumentation masks the case.",
+      "interpreter": "Original attempt rejected unsupported freeze. Identity handling for freeze on non-poison control agrees with AVX2 pass/AVX512 failure; this transformation is explicit and preserved.",
+      "llvm22_warnings": "Three negative feature names unsupported by LLVM22; stderr retained.",
+      "unsupported_attempts_preserved": [
+        "Zig cc rejects IR input language",
+        "initial portable safety extraction missing panic/alias declarations",
+        "original interpreter unsupported freeze"
+      ]
+    },
+    "hosted_exact_main": {
+      "main_commit": "4e260db9605d16fef5d405cc3c280e3042b22e35",
+      "failure_predates_restructure": true,
+      "failed_run": 42595578418,
+      "failed_source": "71d7a5351110d631bf49389277fd1aa610581f02",
+      "failed_target": "znver4 with AVX512/GFNI enabled",
+      "main_and_restored_inline_releasefast": "FAIL same frozen first-fold digest; direct/seeded/discovery cases pass",
+      "observed_fold_sha256": "3bf571832ee1c5ee23ee00295acb5591cc2cd31dfa82281737e5f2a1bd68dba9",
+      "main_debug_and_releasesafe": "PASS",
+      "current_noinline_all_three_modes": "PASS",
+      "avx2_followups": [
+        {
+          "run": 42596345275,
+          "source": "f64af3531ca33aae5258579dc90d2b2ce9e0c29b",
+          "cases_passed": 12
+        },
+        {
+          "run": 42597987836,
+          "source": "27c6e93880c3a04e03cd54c926914faaca2e4ff5",
+          "cases_passed": 18
+        }
+      ],
+      "avx2_followups_qualification": "PASS on AVX512-disabled runners, no closure of AVX512 failure"
+    },
+    "remote_evidence": {
+      "original_failed_owner": {
+        "ref": "refs/heads/backup/delivery-evidence-cm31-20261109",
+        "commit": "5fb583432ae26114051180b145be68f7d18594fb",
+        "source_commit": "27c6e93880c3a04e03cd54c926914faaca2e4ff5",
+        "remote_ref_verified": true,
+        "all_LFS_objects_download_hash_verified": true,
+        "parts": [
+          {
+            "name": "delivery-evidence.tar.gz.part000",
+            "bytes": 33554432,
+            "sha256": "5c740fa47bd9bbf802bd1455cfb34502b6cbd7d7daafc65a78a5ac1d1bd0b793"
+          },
+          {
+            "name": "delivery-evidence.tar.gz.part001",
+            "bytes": 22162626,
+            "sha256": "0df38f209b52ad31bcf1148410846cf19c22715272faf03394854610ab47ff55"
+          }
+        ],
+        "prepush_pod_gate_exit": 2,
+        "created_utc": "2026-11-09T10:07:45.790691+00:00"
+      },
+      "optimizer_diagnosis": {
+        "ref": "refs/heads/backup/delivery-evidence-cm31-optimizer-20261109",
+        "commit": "bcb3c66d5ad54aef5714bfdabd31d2257699a788",
+        "source_commit": "2a8d6af4f77fa409211786adb6642365c6fafc0c",
+        "remote_ref_verified": true,
+        "all_LFS_objects_download_hash_verified": true,
+        "parts": [
+          {
+            "name": "delivery-evidence.tar.gz.part000",
+            "bytes": 33554432,
+            "sha256": "f6069fe0eee7c8066fb125cf18e102a39b7c1e07c695fbe2e0b66592b4445189"
+          },
+          {
+            "name": "delivery-evidence.tar.gz.part001",
+            "bytes": 10802366,
+            "sha256": "517e74c1157a01c03290869274fedd3f9ada1a3835dc0180c09107528ce164f7"
+          }
+        ],
+        "prepush_pod_gate_exit": 2,
+        "created_utc": "2026-11-09T10:27:40.098695+00:00"
+      }
+    },
+    "static_findings": {
+      "source_commit": "2a8d6af4f77fa409211786adb6642365c6fafc0c",
+      "source_findings": 97,
+      "workspace_findings": 392,
+      "status": "FAIL_OPEN_FINDINGS",
+      "workspace_first": [
+        "stwo_cpu_backend: public API differs: missing=[], added=['CommitmentOptions', 'Om31FriBackend', 'configured']",
+        "stwo_cuda_backend: undeclared named import 'stwo_core' in runtime/secure_polynomial_v1.zig",
+        "stwo_cuda_backend: undeclared named import 'stwo_prover_engine' in runtime/secure_polynomial_v1.zig",
+        "stwo_cuda_backend: undeclared named import 'stwo_prover_engine' in secure_polynomial_codegen_v1.zig",
+        "stwo_cuda_backend: undeclared named import 'stwo_prover_engine' in secure_polynomial_codegen_v1.zig",
+        "stwo_cuda_backend: public API differs: missing=[], added=['rv64_numerical_sources']",
+        "stwo_metal_backend: public API differs: missing=[], added=['secure_polynomial_v1']",
+        "stwo_prover_engine: public API differs: missing=[], added=['chunked_sha256', 'file_backed_allocator', 'shared_external_memory']"
+      ]
+    },
+    "formal_followup": {
+      "run": 42578512273,
+      "source": "597d748333419acc52b95ba71804a6f6aae98c0f",
+      "status": "FAIL",
+      "lean_theorems": "PASS",
+      "exact_sail_backend_generation": "PASS",
+      "refinement_artifacts_generated": 60,
+      "failure": "source-bound generation check failed building generated Sail Lean decoder bridge",
+      "current_source_qualified": false,
+      "other_run": 42590995006,
+      "other_status_at_record": "RUNNING theorem build; older source; not current-source acceptance"
+    },
+    "remaining": [
+      "full frozen proof byte-identity and fresh CPU/negative corpus acceptance",
+      "complete current-source hosted CPU CI",
+      "live source-bound Sail/Lean acceptance",
+      "392 package-workspace and 97 source-conformance findings",
+      "reviewed waist/proof-wire/runtime-profile contract decisions",
+      "249 live flags; fewer-than-60 target remains open",
+      "GPU ordered promotion/deletion gates excluded by user instruction"
+    ],
+    "controlled_hosted_targets": {
+      "run": 42599041368,
+      "source": "3ea2214a6ad66878ea9d861a8a48200dc654a528",
+      "qualification": "native and supported-target tests only; unsupported controls explicitly unrun",
+      "executed_cases": 21,
+      "executed_failed_cases": 0,
+      "unrun_targets": [
+        "main-explicit-x86_64_v4",
+        "main-explicit-znver4"
+      ],
+      "native_safety_subset_cases": 18,
+      "explicit_x86_64_v3_cases": 3,
+      "raw_comparison_sha256": "b205dc5ebbebf13129178f78dc51fb9d8cd097293adbecbc1a5ff31edc8d7683",
+      "artifact_url": "https://github.com/teddyjfpender/stwo-zig/actions/runs/42599041368"
+    }
   }
 }
