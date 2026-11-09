@@ -482,3 +482,9 @@ establishes neither an RV64 execution nor a STARK/recursive proof of this new
 fixture. Anchor finality remains externally pinned. Recovering the original
 159257842 archive is still a separate open task; the new fixture does not replace
 that historical reproduction claim.
+
+The complete canonical recent input is now retained in the repository at
+`tests/fixtures/transition-159321794/input.opd.gz` with its manifest and native-only
+replay instructions. `capture_host/unpack_fixture.py` authenticates the exact
+compressed bytes, decompresses those same bytes under a 16 MiB bound, and checks
+the raw OPD hash before writing it. Native replay is optional and explicit.
