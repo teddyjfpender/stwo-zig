@@ -214,3 +214,10 @@ Cold ABBA peak RSS falls 39.16 → 37.90 GiB. Wall medians 20.44 → 20.71 s do
 not establish a speed gain. The large M7 four-child fold still refuses at the
 same node under its live cap; this change does not solve that shape's memory
 requirement. The separately qualified M6 ternary heavy root remains available.
+
+The final current-source [balanced grouped repeat](../vectors/reports/rv64-opstack-cpu-20261108/final-small-group-repeat.json)
+qualifies nine more complete roots with fresh reception and exact prior-root
+bytes. GROUP1 and GROUP2 medians are **21.466 / 21.881 s**; GROUP2's historical
+18.840 s result is not a repeatable median. Both retain the same 2^24 arithmetic
+padding. GROUP1 remains the default; GROUP2's smaller active trace and proof
+bytes do not establish a wall speedup.

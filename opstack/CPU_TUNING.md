@@ -20,6 +20,19 @@ complete roots, every physical recursive proof and the tree bytes match exactly.
 Every separate strict receiver accepts. Defaults remain serial with a 64 MiB
 CPU wrap cache. The fanout experiment below is now rejected.
 
+## Current-source small-group repeat
+
+The final [balanced repeat](../vectors/reports/rv64-opstack-cpu-20261108/final-small-group-repeat.json)
+produces and freshly verifies nine complete roots, all matching their prior
+same-variant proof bytes. Classic GROUP1 takes **21.466 s median** and
+structural GROUP2 **21.881 s median** in three balanced trials per variant;
+fresh reception takes **2.859 / 2.878 s**. The earlier 18.840 s GROUP2 sample
+remains a single qualification, not a repeated median. Both variants still
+pad arithmetic to 2^24 rows despite fewer GROUP2 active rows. GROUP1 remains
+the default; GROUP2 is an explicitly qualified arithmetic experiment, with
+smaller root bytes and no demonstrated wall speedup. None of these grouped
+results admits more than four native members.
+
 ## Full-block result: CPU fanout rejected
 
 The complete selected heavy block reproduces every physical recursive proof

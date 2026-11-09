@@ -469,3 +469,15 @@ heavy bundle with **126 native members and all 190 recursive nodes**, under
 its original 4 GiB fixed-key admission. Both source modes and both native
 profiles are thus exercised after the geometry repair. These checks establish
 compatibility/refusal behavior, not a controlled receiver speed improvement.
+
+The [current-source small-group repeat](final-small-group-repeat.json) freshly
+produces and verifies **nine** complete small-block roots. A standalone GROUP2
+repeat takes 21.555 / 22.734 / 22.440 s. In the subsequent balanced comparison
+(three trials per variant), classic GROUP1 has a **21.466 s** median versus
+structural GROUP2 **21.881 s**, with **2.859 / 2.878 s** fresh reception.
+Every same-variant root matches its earlier accepted bytes. GROUP2 removes
+active arithmetic rows 12,018,112 → 10,757,366 but both pad to **16,777,216**;
+its root bytes fall 783,396 → 764,132 without a demonstrated wall gain.
+GROUP1 stays the default and GROUP2 remains opt-in. The historical 18.840 s
+qualification is valid but **does not establish a repeatable sub-19-second
+median**. These tiny complete blocks do not predict heavy-block recursion cost.

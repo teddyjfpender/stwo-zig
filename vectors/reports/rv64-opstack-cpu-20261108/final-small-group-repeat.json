@@ -1,0 +1,432 @@
+{
+  "schema": "stwo.opstack.current-group-arithmetic-ab.v1",
+  "scope": "Complete OP 120794432 D2 execution-only grouped root; current executable, same native bundle, 16 workers, no competing own builds/proofs; cold per-command processes; native production additional",
+  "order": [
+    "classic",
+    "structural",
+    "structural",
+    "classic",
+    "classic",
+    "structural"
+  ],
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "records": [
+    {
+      "index": 0,
+      "variant": "classic",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-grouped-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/00-classic",
+          "2147483648",
+          "51539607552"
+        ],
+        "wall_ns": 20834051625,
+        "peak_rss_bytes": 40699117568,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 204.878838,
+        "system_cpu_s": 13.890783,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-grouped-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/00-classic",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 2858703834,
+        "peak_rss_bytes": 10208919552,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 15.323858,
+        "system_cpu_s": 0.945278,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "root_sha256": "f1af701ec373b6305bed95827ea4da5b440710cdb245c5329aab094e4a401977"
+    },
+    {
+      "index": 1,
+      "variant": "structural",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-grouped-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/01-structural",
+          "2147483648",
+          "51539607552"
+        ],
+        "wall_ns": 21880914208,
+        "peak_rss_bytes": 40696971264,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 217.1114,
+        "system_cpu_s": 14.931896,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-grouped-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/01-structural",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 2857553375,
+        "peak_rss_bytes": 10218012672,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 15.277536,
+        "system_cpu_s": 0.940086,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3"
+    },
+    {
+      "index": 2,
+      "variant": "structural",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-grouped-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/02-structural",
+          "2147483648",
+          "51539607552"
+        ],
+        "wall_ns": 22065844666,
+        "peak_rss_bytes": 40696971264,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 219.637256,
+        "system_cpu_s": 15.184969,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-grouped-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/02-structural",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 2937766208,
+        "peak_rss_bytes": 10218012672,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 15.361213,
+        "system_cpu_s": 0.9615769999999999,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3"
+    },
+    {
+      "index": 3,
+      "variant": "classic",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-grouped-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/03-classic",
+          "2147483648",
+          "51539607552"
+        ],
+        "wall_ns": 21716996708,
+        "peak_rss_bytes": 40699117568,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 215.255047,
+        "system_cpu_s": 14.958906,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-grouped-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/03-classic",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 2894767125,
+        "peak_rss_bytes": 10208919552,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 15.265888,
+        "system_cpu_s": 0.9304969999999999,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "root_sha256": "f1af701ec373b6305bed95827ea4da5b440710cdb245c5329aab094e4a401977"
+    },
+    {
+      "index": 4,
+      "variant": "classic",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-grouped-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/04-classic",
+          "2147483648",
+          "51539607552"
+        ],
+        "wall_ns": 21466011833,
+        "peak_rss_bytes": 40699117568,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 211.506122,
+        "system_cpu_s": 14.849353,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-grouped-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/04-classic",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 2858081500,
+        "peak_rss_bytes": 10208919552,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 15.293329,
+        "system_cpu_s": 0.918126,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "root_sha256": "f1af701ec373b6305bed95827ea4da5b440710cdb245c5329aab094e4a401977"
+    },
+    {
+      "index": 5,
+      "variant": "structural",
+      "produce": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "recurse-grouped-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/05-structural",
+          "2147483648",
+          "51539607552"
+        ],
+        "wall_ns": 21371873917,
+        "peak_rss_bytes": 40696971264,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 211.303105,
+        "system_cpu_s": 14.549785,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "receive": {
+        "command": [
+          "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+          "--security-profile",
+          "d2_native_b4_q54_p20_fold4",
+          "verify-grouped-recursion-candidate",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+          "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-arithmetic-ab/05-structural",
+          "2147483648",
+          "25769803776"
+        ],
+        "wall_ns": 2877909666,
+        "peak_rss_bytes": 10218012672,
+        "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+        "user_cpu_s": 15.312448,
+        "system_cpu_s": 0.96409,
+        "returncode": 0,
+        "timed_out": false
+      },
+      "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3"
+    }
+  ],
+  "medians": {
+    "classic": {
+      "produce_s": 21.466011833,
+      "receive_s": 2.858703834,
+      "peak_rss_bytes": 40699117568
+    },
+    "structural": {
+      "produce_s": 21.880914208,
+      "receive_s": 2.877909666,
+      "peak_rss_bytes": 40696971264
+    }
+  },
+  "all_same_variant_roots_match_prior_accepted_roots": true,
+  "limitations": "Three trials per variant, one machine; balanced order reduces but does not eliminate thermal/OS drift. Variants use distinct authenticated GROUP1/GROUP2 wire domains, not byte parity across domains. The earlier 18.840 s structural result remains one historical qualification; these repeats do not establish a sub-19-second median.",
+  "decision": "No demonstrated structural-GROUP2 wall gain. Keep GROUP1 classic as default and GROUP2 opt-in; fewer active rows do not cross the padded arithmetic height.",
+  "active_arithmetic_rows": {
+    "classic": 12018112,
+    "structural": 10757366
+  },
+  "padded_arithmetic_rows_both": 16777216,
+  "root_bytes": {
+    "classic": 783396,
+    "structural": 764132
+  },
+  "independent_structural_repeat": {
+    "records": [
+      {
+        "trial": 0,
+        "produce": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "recurse-grouped-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-0",
+            "2147483648",
+            "51539607552"
+          ],
+          "wall_ns": 21554914708,
+          "peak_rss_bytes": 40696971264,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 212.875648,
+          "system_cpu_s": 14.488412,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "verify-grouped-recursion-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-0",
+            "2147483648",
+            "25769803776"
+          ],
+          "wall_ns": 2927732916,
+          "peak_rss_bytes": 10218012672,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 15.441139,
+          "system_cpu_s": 0.940446,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3"
+      },
+      {
+        "trial": 1,
+        "produce": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "recurse-grouped-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-1",
+            "2147483648",
+            "51539607552"
+          ],
+          "wall_ns": 22733851917,
+          "peak_rss_bytes": 40696971264,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 227.605616,
+          "system_cpu_s": 15.605628,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "verify-grouped-recursion-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-1",
+            "2147483648",
+            "25769803776"
+          ],
+          "wall_ns": 2868939750,
+          "peak_rss_bytes": 10218012672,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 15.325402,
+          "system_cpu_s": 0.940299,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3"
+      },
+      {
+        "trial": 2,
+        "produce": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "recurse-grouped-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-2",
+            "2147483648",
+            "51539607552"
+          ],
+          "wall_ns": 22439871959,
+          "peak_rss_bytes": 40696971264,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 224.377295,
+          "system_cpu_s": 15.277016,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "receive": {
+          "command": [
+            "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/rv64-word16-ethereum-gkr-recursion",
+            "--security-profile",
+            "d2_native_b4_q54_p20_fold4",
+            "verify-grouped-recursion-candidate",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/d2-recursion-workers16.json",
+            "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/final-small-group-2",
+            "2147483648",
+            "25769803776"
+          ],
+          "wall_ns": 2862335291,
+          "peak_rss_bytes": 10218012672,
+          "peak_rss_scope": "wait4 per child; measured high-water RSS, not a memory cap",
+          "user_cpu_s": 15.288493,
+          "system_cpu_s": 0.943259,
+          "returncode": 0,
+          "timed_out": false
+        },
+        "root_sha256": "1e2dcf9d7de85625dd62efbab508d15ca7fe722dfe2d42e4379a2918e65036b3"
+      }
+    ],
+    "median_produce_s": 22.439871959,
+    "median_receive_s": 2.86893975,
+    "median_peak_rss_bytes": 40696971264,
+    "every_root_matches_prior_accepted_root": true
+  }
+}
