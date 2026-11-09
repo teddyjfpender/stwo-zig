@@ -52,7 +52,23 @@ fn boundary() A.word16_execution.types.Boundary {
 fn authority(setup: *const R.CpuSetup, request: P.Request, span: T.OpTowerSpan, ids: [T.FAMILIES]u32, key: *const Key, instances: anytype) !Manifest.Expected {
     return .{ .kind = .cpu, .ordinal = 0, .statement = try key.statementForOp(setup, request, ids, span), .fixed = key.scope(), .fixed_identity = key.identity, .profile = key.profile, .local_instances = instances, .mass = try CPU.cpuMass(setup, request, span), .global_relations = .{ .ram = true, .kio = false, .wire = true } };
 }
-test "OP actual Miller CPU GKR physical proof freshly closes RAM Wire and manifest gates" {
+pub const VerifiedJoin = struct {
+    setup: *const R.CpuSetup,
+    request: P.Request,
+    span: T.OpTowerSpan,
+    first_ids: [T.FAMILIES]u32,
+    key: *const Key,
+    expected: Manifest.Expected,
+    manifest: *const Manifest.Pending,
+    encoded: *const CPU.Encoded,
+    capture: *const core.pcs.ForField(W.O).verifier.VerifiedProofCapture(W.H),
+    stage_one: Manifest.StageOne,
+    truth_key: *const Truth.Key,
+    truth_span: Truth.Span,
+    truth_expected: Manifest.Expected,
+    truth_encoded: *const Truth.Encoded,
+};
+pub fn exercise(comptime Hook: type) !void {
     var pool: engine.work_pool.WorkPool = .{};
     try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
     defer pool.deinit();
@@ -122,7 +138,9 @@ test "OP actual Miller CPU GKR physical proof freshly closes RAM Wire and manife
     defer proof.deinit(a);
     var truth_proof = try truth.complete(&sender, 1);
     defer truth_proof.deinit(a);
-    const cpu_claims = try CPU.verifyForOp(a, &fresh, request, span, receiver_expected, ids, &receiver, 0, &receiver_key, &proof, null);
+    var capture: core.pcs.ForField(W.O).verifier.VerifiedProofCapture(W.H) = undefined;
+    const cpu_claims = try CPU.verifyForOp(a, &fresh, request, span, receiver_expected, ids, &receiver, 0, &receiver_key, &proof, &capture);
+    defer capture.deinit(a);
     const truth_claims = try Truth.verify(a, &fresh_truth, truth_span, fresh_truth_expected, &receiver, 1, &truth_proof);
     try receiver.checkGlobalClosure(&.{ cpu_claims, truth_claims });
     try std.testing.expectError(error.GlobalGkrManifestRoster, receiver.checkGlobalClosure(&.{cpu_claims}));
@@ -151,5 +169,10 @@ test "OP actual Miller CPU GKR physical proof freshly closes RAM Wire and manife
     receiver.digest[0] ^= 1;
     try std.testing.expect(std.meta.isError(CPU.verifyForOp(a, &fresh, request, span, receiver_expected, ids, &receiver, 0, &receiver_key, &proof, null)));
     receiver.digest = digest;
+    if (comptime @hasDecl(Hook, "run")) try Hook.run(a, VerifiedJoin{ .setup = &fresh, .request = request, .span = span, .first_ids = ids, .key = &receiver_key, .expected = receiver_expected, .manifest = &receiver, .encoded = &proof, .capture = &capture, .stage_one = stages[0], .truth_key = &fresh_truth, .truth_span = truth_span, .truth_expected = fresh_truth_expected, .truth_encoded = &truth_proof });
     std.debug.print("OP_CPU_TOWER_JOIN steps=1 profile={s} CPU_bytes={} truth_bytes={} local_OWNER=GKR RAM_Wire=closed fresh_source_receiver=true production_admitted=false\n", .{ @tagName(profile), proof.bytes.len, truth_proof.bytes.len });
+}
+
+test "OP actual Miller CPU GKR physical proof freshly closes RAM Wire and manifest gates" {
+    try exercise(struct {});
 }
