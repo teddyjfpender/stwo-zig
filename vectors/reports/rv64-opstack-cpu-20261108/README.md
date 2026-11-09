@@ -1,5 +1,24 @@
 # CPU-first OP continuation on Apple M5 Max
 
+The latest [complete native heavy-block comparison](heavy-cpu-scheduling-and-guest.json)
+qualifies the existing bounded two-lane schedule and selected guest inlining
+on OP 121065789. Every fresh receiver accepts and both corruption controls
+reject. The two-lane control preserves every original proof byte.
+
+| Configuration | Instructions | CPU / service proofs | Native production | Fresh receiver | Peak RSS |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Original guest, one lane of 8 | 425,537,671 | 102 / 24 | 1,723.236 s | 38.325 s | 46.932 GiB |
+| Original guest, two lanes of 8 | 425,537,671 | 102 / 24 | 1,428.146 s | 27.917 s | 48.922 GiB |
+| Selected inlining, two lanes of 8 | 380,167,068 | 91 / 24 | 1,298.007 s | 37.047 s | 47.876 GiB |
+
+The combined production reduction is 24.7%; the guest alone reduces retired
+instructions by 10.66% and represented MAIN/INTER cells by about 10.1%.
+These are one-run qualification timings with development overlap, not quiet
+paired performance claims. Stage one remains mostly serial at the chosen
+16 GiB transient scheduler cap; stage two benefits from overlap but its summed
+worker time increases from contention. No memory multiplier is established.
+Recursion and authenticated L1 derivation are additional work.
+
 The [heavy execution recursion receipt](heavy-recursion-ternary.json) closes OP
 121065789: 102 CPU and 24 service proofs, 126 wraps and 64 ternary folds. A
 separate strict receiver accepts and both physical leaf corruption and a missing

@@ -1,6 +1,6 @@
 # OP Stack CPU delivery gates
 
-Updated 2026-11-08. This is the completion checklist for PR #322, not a claim
+Updated 2026-11-09. This is the completion checklist for PR #322, not a claim
 that the unchecked gates already work. Receipts, source and fresh receivers
 are the authority. Historical plans in `DESIGN.md` and the feasibility study
 predate the anchored transition implementation.
@@ -37,6 +37,9 @@ strict acceptance and physical corruption/missing-node rejection. Its 42.3-minut
 recursion is a functionality and memory milestone, not a speed target. The
 strict receiver still needs all native and recursive proofs. Anchored transition,
 joined checkpoint, accumulation and settlement acceptance remain open.
+The [selected guest and bounded schedule](../vectors/reports/rv64-opstack-cpu-20261108/heavy-cpu-scheduling-and-guest.json)
+also complete the heavy block's native proof in 1,298 s, with 91 CPU and 24
+service proofs and fresh reception. This measurement excludes recursion.
 
 - Replay is not a proof. A native bundle is not a recursive root. A receiver-side
   join is not an in-circuit join. A PCS replay is not a complete checkpoint verifier.
