@@ -110,53 +110,61 @@ test "R0: FRI fold_step 4 folds match the oracle digests" {
     try std.testing.expect(values[0].eql(QM31.fromU32Unchecked(1266552422, 1856893702, 1654478679, 295175920)));
 }
 
-// The scalar path deliberately avoids QM31 vector arithmetic and batch inversion.
-// It distinguishes a wrong fold from a wrong digest/projection without repinning.
+// The reference avoids field helpers, vector arithmetic and batch inversion.
+// Authenticate it against the oracle before using it to diagnose optimized code.
 fn expectScalarCircleFold(input: []const QM31, actual: []const QM31, domain: stwo_core.poly.circle.domain.CircleDomain, alpha: QM31) !void {
-    const M31 = stwo_core.fields.m31.M31;
-    const a = [_]M31{ alpha.c0.a, alpha.c0.b, alpha.c1.a, alpha.c1.b };
+    const a = [_]u64{ alpha.c0.a.v, alpha.c0.b.v, alpha.c1.a.v, alpha.c1.b.v };
     const reference = try std.testing.allocator.alloc(QM31, actual.len);
     defer std.testing.allocator.free(reference);
-    for (actual, 0..) |*value, i| {
+    for (reference, 0..) |*value, i| {
         const point = domain.at(stwo_core.utils.bitReverseIndex(i << 1, domain.logSize()));
-        const inverse_y = try point.y.inv();
+        try std.testing.expect(point.y.v != 0);
+        var exponent: u64 = modulus - 2;
+        var base: u64 = point.y.v;
+        var inverse: u64 = 1;
+        while (exponent != 0) : (exponent >>= 1) {
+            if (exponent & 1 != 0) inverse = inverse * base % modulus;
+            base = base * base % modulus;
+        }
         const left = &input[2 * i];
         const right = &input[2 * i + 1];
-        const x = [_]M31{ left.c0.a, left.c0.b, left.c1.a, left.c1.b };
-        const y = [_]M31{ right.c0.a, right.c0.b, right.c1.a, right.c1.b };
-        var sum: [4]M31 = undefined;
-        var difference: [4]M31 = undefined;
+        const x = [_]u64{ left.c0.a.v, left.c0.b.v, left.c1.a.v, left.c1.b.v };
+        const y = [_]u64{ right.c0.a.v, right.c0.b.v, right.c1.a.v, right.c1.b.v };
+        var sum: [4]u64 = undefined;
+        var difference: [4]u64 = undefined;
         for (0..4) |j| {
-            sum[j] = x[j].add(y[j]);
-            difference[j] = x[j].sub(y[j]).mul(inverse_y);
+            sum[j] = (x[j] + y[j]) % modulus;
+            difference[j] = (x[j] + modulus - y[j]) % modulus * inverse % modulus;
         }
         const product = scalarProduct(a, difference);
         var expected: [4]u32 = undefined;
-        for (0..4) |j| expected[j] = sum[j].add(product[j]).v;
-        reference[i] = QM31.fromU32Unchecked(expected[0], expected[1], expected[2], expected[3]);
-        const stored = [_]u32{ value.c0.a.v, value.c0.b.v, value.c1.a.v, value.c1.b.v };
-        if (!std.mem.eql(u32, &expected, &stored))
-            std.debug.print("FRI scalar differential index={d} y={d} inverse={d}\n", .{ i, point.y.v, inverse_y.v });
-        try std.testing.expectEqualSlices(u32, &expected, &stored);
-        // Also guard the by-value canonical projection used by digest consumers.
-        try std.testing.expectEqualSlices(u32, &stored, &@import("stwo_circuit_frontend").builder.ivalue.limbs(value.*));
+        for (0..4) |j| expected[j] = @intCast((sum[j] + product[j]) % modulus);
+        value.* = QM31.fromU32Unchecked(expected[0], expected[1], expected[2], expected[3]);
     }
     try expectValuesDigest("012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec", reference);
+    for (reference, actual, 0..) |*expected_value, *value, i| {
+        const expected = [_]u32{ expected_value.c0.a.v, expected_value.c0.b.v, expected_value.c1.a.v, expected_value.c1.b.v };
+        const stored = [_]u32{ value.c0.a.v, value.c0.b.v, value.c1.a.v, value.c1.b.v };
+        if (!std.mem.eql(u32, &expected, &stored)) std.debug.print("FRI integer differential index={d}\n", .{i});
+        try std.testing.expectEqualSlices(u32, &expected, &stored);
+        try std.testing.expectEqualSlices(u32, &stored, &@import("stwo_circuit_frontend").builder.ivalue.limbs(value.*));
+    }
 }
 
-fn scalarProduct(a: [4]stwo_core.fields.m31.M31, b: [4]stwo_core.fields.m31.M31) [4]stwo_core.fields.m31.M31 {
+const modulus: u64 = 2147483647;
+fn scalarProduct(a: [4]u64, b: [4]u64) [4]u64 {
     // (a0+a1*i) + (a2+a3*i)*u, with i^2=-1 and u^2=2+i.
     const ac = scalarComplex(a[0..2].*, b[0..2].*);
     const bd = scalarComplex(a[2..4].*, b[2..4].*);
-    const cross = scalarComplex(.{ a[0].add(a[2]), a[1].add(a[3]) }, .{ b[0].add(b[2]), b[1].add(b[3]) });
+    const cross = scalarComplex(.{ (a[0] + a[2]) % modulus, (a[1] + a[3]) % modulus }, .{ (b[0] + b[2]) % modulus, (b[1] + b[3]) % modulus });
     return .{
-        ac[0].add(bd[0].add(bd[0]).sub(bd[1])),
-        ac[1].add(bd[1].add(bd[1]).add(bd[0])),
-        cross[0].sub(ac[0]).sub(bd[0]),
-        cross[1].sub(ac[1]).sub(bd[1]),
+        (ac[0] + 2 * bd[0] + modulus - bd[1]) % modulus,
+        (ac[1] + 2 * bd[1] + bd[0]) % modulus,
+        (cross[0] + 2 * modulus - ac[0] - bd[0]) % modulus,
+        (cross[1] + 2 * modulus - ac[1] - bd[1]) % modulus,
     };
 }
 
-fn scalarComplex(a: [2]stwo_core.fields.m31.M31, b: [2]stwo_core.fields.m31.M31) [2]stwo_core.fields.m31.M31 {
-    return .{ a[0].mul(b[0]).sub(a[1].mul(b[1])), a[0].mul(b[1]).add(a[1].mul(b[0])) };
+fn scalarComplex(a: [2]u64, b: [2]u64) [2]u64 {
+    return .{ (a[0] * b[0] % modulus + modulus - a[1] * b[1] % modulus) % modulus, (a[0] * b[1] % modulus + a[1] * b[0] % modulus) % modulus };
 }
