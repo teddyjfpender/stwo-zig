@@ -141,7 +141,8 @@ jobs:
       (github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu')) &&
       needs.focused-plan.outputs.linux_count != '0'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Owner-approved infrastructure allowance; commands, floors and audits stay unchanged.
+    timeout-minutes: ${{ matrix.lane == 'riscv_frontend_releasefast' && 90 || 30 }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.focused-plan.outputs.linux_matrix) }}

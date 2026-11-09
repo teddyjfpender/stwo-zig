@@ -100,6 +100,7 @@
       "stwo_exec_context_nvtx_pop",
       "stwo_exec_context_nvtx_push",
       "stwo_exec_context_pool_current",
+      "stwo_exec_context_pool_trim",
       "stwo_exec_context_stream",
       "stwo_exec_context_sync",
       "stwo_exec_context_validate_allocation",
@@ -369,5 +370,81 @@
     }
   ],
   "schema": "stwo-zig-cuda-product-closure-v1",
-  "source_authority_sha256": "99f8b738f505fe450c8ff37ec2ea389df248f56a8cc770b02fc9cf070e872065"
+  "source_authority_sha256": "99f8b738f505fe450c8ff37ec2ea389df248f56a8cc770b02fc9cf070e872065",
+  "temporary_native_ambient_reads": {
+    "owner": "cuda-backend",
+    "reason": "Preserve existing legacy flag behavior until GPU-native promotion and the flag sweep; no permanent policy ABI is approved.",
+    "expiry": "GPU-native promotion + flag sweep",
+    "issue": 329,
+    "files": [
+      {
+        "path": "native/circuit/base_witness.cu",
+        "sha256": "02dfb6a7bbb001662612765d694edf85cf5323372a46433816af6701deafb0d3"
+      },
+      {
+        "path": "native/commitment/merkle_fused.cuh",
+        "sha256": "0789a436d9b974a30d084c67a27d0ad9417cd0af66b72c760f52cfcb3af90820"
+      },
+      {
+        "path": "native/runtime/context.cu",
+        "sha256": "7f3cbce783521a33cfca253ecf3dbf0cdc929eae83129b17bec02a5806216670"
+      },
+      {
+        "path": "native/runtime/device_arena_runtime.cuh",
+        "sha256": "45244a61ba58b2a6dcad9dcffa65477c00281cc01bbd3d2e3a8209b924d48f2a"
+      },
+      {
+        "path": "native/rv64/batch.cu",
+        "sha256": "b921fe535cdd6d6651bf605c1381382ed5aba3dbb326e48e636bead973734539"
+      },
+      {
+        "path": "native/rv64/bridge_witness.cu",
+        "sha256": "613f0a306a481842b0d6527bb52cce5a6f947513e29ccd9156b69c9e2b7ce4a5"
+      },
+      {
+        "path": "native/rv64/circuit_fill_chain.cu",
+        "sha256": "7e69cdd29c3b9f7587dbc628ec22fe5e7374495f47de8eaf9c4a918dcb24a68f"
+      },
+      {
+        "path": "native/rv64/deep.cu",
+        "sha256": "47ebd2fd4409de5140f2294527cd9837a8630f0df0b062d1e2b80d8ce2765a7b"
+      },
+      {
+        "path": "native/rv64/deep_lazy.cuh",
+        "sha256": "076a259b1f74aac22e2266a05accd39d9344269e4372c327af6220f003e00fd0"
+      },
+      {
+        "path": "native/rv64/jobs/pcs_enqueue.cu",
+        "sha256": "009e2f0adb9f77b2ae99ca8861b207e784cd4321ce566e082f18c01853bf5627"
+      },
+      {
+        "path": "native/rv64/keccak_witness.cu",
+        "sha256": "6b163fee886554908f84c152a6321e13e0e71054dc24f29e8fc576ee1ad8eeb0"
+      },
+      {
+        "path": "native/rv64/logup_t8.h",
+        "sha256": "7cf0af77afdf86ee44339cd27e364038748a3b47be07c45638c2433d8befd26d"
+      },
+      {
+        "path": "native/rv64/pcs_native.cu",
+        "sha256": "bec0237757027c8021a9d17b8e5f018b58559fda422aaf97f9e05a1ccb63b13b"
+      },
+      {
+        "path": "native/rv64/pcs_pipeline.cuh",
+        "sha256": "8dba79af1fce27d4f030eabe2d313af7146eff81b1c31346c83cfbc7111977f9"
+      },
+      {
+        "path": "native/transform/b2n_fused.cuh",
+        "sha256": "2d41510d2f039b946a0d29a8d36ce9dcd16109910ffbafc5a2807b67a4c1fed6"
+      },
+      {
+        "path": "native/transform/fft_small.cuh",
+        "sha256": "efc6e7206234f09a7de54182d6209bb4dc1bd96a6a28df1fe76e5c6abecca782"
+      },
+      {
+        "path": "native/transform/n2b_smem.cuh",
+        "sha256": "1261bf81868ee0393715381c925a68f66357801252168292783d29f67f062848"
+      }
+    ]
+  }
 }

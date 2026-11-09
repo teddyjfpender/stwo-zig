@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tempfile
+import hashlib
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -33,6 +34,43 @@ NATIVE = CUDA_ROOT / "native"
 
 
 class CudaProductClosureTests(unittest.TestCase):
+    def test_ambient_exception_is_exact_content_bound_and_token_specific(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "existing.cu"
+            payload = b'const char *v = getenv("EXISTING");\n'
+            source.write_bytes(payload)
+            policy = self.policy()
+            policy["forbidden_product_tokens"] = ["getenv(", "nvrtc"]
+            entry = {"path": "native/existing.cu", "sha256": hashlib.sha256(payload).hexdigest()}
+            policy["temporary_native_ambient_reads"] = {
+                "owner": "cuda-backend", "reason": "Preserve legacy flags pending retirement",
+                "expiry": "GPU-native promotion + flag sweep", "issue": 329, "files": [entry],
+            }
+            with mock.patch.object(closure, "NATIVE", root):
+                closure.validate_product_policy(policy, [], [source])
+                source.write_bytes(payload + b'getenv("NEW");\n')
+                with self.assertRaisesRegex(closure.ProductClosureError, "exception is stale"):
+                    closure.validate_product_policy(policy, [], [source])
+                source.write_bytes(payload)
+                other = root / "new.cu"
+                other.write_bytes(payload)
+                with self.assertRaisesRegex(closure.ProductClosureError, "native/new.cu:getenv"):
+                    closure.validate_product_policy(policy, [], [source, other])
+                source.write_bytes(payload + b"nvrtc\n")
+                entry["sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+                with self.assertRaisesRegex(closure.ProductClosureError, "native/existing.cu:nvrtc"):
+                    closure.validate_product_policy(policy, [], [source])
+                source.write_bytes(payload)
+                entry["sha256"] = hashlib.sha256(payload).hexdigest()
+                for field in ("owner", "reason", "expiry"):
+                    exception = policy["temporary_native_ambient_reads"]
+                    value = exception[field]
+                    exception[field] = ""
+                    with self.assertRaisesRegex(closure.ProductClosureError, "owner, reason or expiry"):
+                        closure.validate_product_policy(policy, [], [source])
+                    exception[field] = value
+
     def test_standalone_program_cannot_enter_product_archive(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -78,6 +78,35 @@ def validate_product_policy(
     if not isinstance(forbidden_tokens, list) or not forbidden_tokens:
         raise ProductClosureError("forbidden CUDA product tokens are absent")
 
+    ambient_allowed: set[str] = set()
+    exception = product.get("temporary_native_ambient_reads")
+    if exception is not None:
+        if (
+            not isinstance(exception, dict)
+            or set(exception) != {"owner", "reason", "expiry", "issue", "files"}
+            or exception.get("owner") != "cuda-backend"
+            or exception.get("expiry") != "GPU-native promotion + flag sweep"
+            or exception.get("issue") != 329
+            or not isinstance(exception.get("reason"), str)
+            or not exception["reason"].strip()
+            or not isinstance(exception.get("files"), list)
+            or not exception["files"]
+        ):
+            raise ProductClosureError("temporary native ambient-read exception lacks its owner, reason or expiry")
+        native_paths = {closure_path(path): path for path in native_files}
+        for entry in exception["files"]:
+            if not isinstance(entry, dict) or set(entry) != {"path", "sha256"}:
+                raise ProductClosureError("temporary native ambient-read exception entry is malformed")
+            name = entry["path"]
+            if not isinstance(name, str) or not name.startswith("native/") or name not in native_paths or name in ambient_allowed:
+                raise ProductClosureError("temporary native ambient-read exception is not an exact native file")
+            payload = native_paths[name].read_bytes()
+            if hashlib.sha256(payload).hexdigest() != entry["sha256"] or b"getenv(" not in payload:
+                raise ProductClosureError(f"temporary native ambient-read exception is stale: {name}")
+            ambient_allowed.add(name)
+        if [entry["path"] for entry in exception["files"]] != sorted(ambient_allowed):
+            raise ProductClosureError("temporary native ambient-read exception files must be sorted and unique")
+
     token_hits: list[str] = []
     for path in closure_files:
         payload = path.read_text(encoding="utf-8", errors="strict")
@@ -85,6 +114,7 @@ def validate_product_policy(
             f"{closure_path(path)}:{token}"
             for token in forbidden_tokens
             if str(token) in payload
+            and not (token == "getenv(" and closure_path(path) in ambient_allowed)
         )
     if token_hits:
         raise ProductClosureError(

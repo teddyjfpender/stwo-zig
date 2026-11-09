@@ -30,6 +30,7 @@ from scripts.cuda.cuda_build_lib.builder import (  # noqa: E402
 )
 from scripts.cuda.cuda_device_smoke import compile_command, run_command  # noqa: E402
 from scripts.cuda.cuda_build import parser as build_parser  # noqa: E402
+from scripts.cuda import cuda_product_closure as product_policy
 from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
 
 
@@ -107,6 +108,30 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
         "decommit/sparse_parents.cu",
         "decommit/trace.cu",
     },
+    "riscv_and_shared_extensions": set("""
+        rv64/arith256_witness.cu rv64/arithmetic_witness.cu rv64/batch.cu
+        rv64/batch_oracles.cu rv64/binding.cu rv64/bridge_witness.cu
+        rv64/bulk_witness.cu rv64/channel.cu rv64/circuit_assignment.cu
+        rv64/circuit_fill_chain.cu rv64/circuit_interaction.cu rv64/closure.cu
+        rv64/composition_finalize.cu rv64/cpu_witness.cu rv64/curve_witness.cu
+        rv64/deep.cu rv64/events.cu rv64/family_witness.cu
+        rv64/fri.cu rv64/fused_blake2s.cu rv64/gkr.cu
+        rv64/gkr_loop.cu rv64/global.cu rv64/jobs/channel_ops.cu
+        rv64/jobs/native_composition.cu rv64/jobs/native_encode_checks.cu rv64/jobs/native_encode_oods.cu
+        rv64/jobs/native_encode_proof.cu rv64/jobs/native_gkr_wire.cu rv64/jobs/native_leaf_wire.cu
+        rv64/jobs/native_manifest_wire.cu rv64/jobs/native_parity.cu rv64/jobs/native_seal_chi.cu
+        rv64/jobs/native_witness_stage1.cu rv64/jobs/oods_points.cu rv64/jobs/outer_checks.cu
+        rv64/jobs/outer_encode.cu rv64/jobs/outer_graph.cu rv64/jobs/outer_packed_class.cu
+        rv64/jobs/outer_rc_params.cu rv64/jobs/outer_seed.cu rv64/jobs/pcs_enqueue.cu
+        rv64/jobs/peer_ops.cu rv64/jobs/runtime.cu rv64/jobs/truth_oods.cu
+        rv64/jobs/truth_ops.cu rv64/keccak_witness.cu rv64/ls_dword_witness.cu
+        rv64/m9_class_unpack.cu rv64/memory_witness.cu rv64/outer_fs_ops.cu
+        rv64/outer_gkr_binding.cu rv64/outer_gkr_projected.cu rv64/parameters.cu
+        rv64/pcs.cu rv64/pcs_native.cu rv64/rc_sparse_lde.cu
+        rv64/round.cu rv64/sample_order.cu rv64/samples.cu
+        rv64/secp_witness.cu rv64/sha256_witness.cu rv64/sponge_witness.cu
+        rv64/tail.cu rv64/trace.cu
+    """.split()),
 }
 
 
@@ -266,7 +291,11 @@ class CudaBuildTests(unittest.TestCase):
         self.assertNotIn("#include <nvrtc", sources.lower())
         self.assertNotIn("nvrtccompile", sources.lower())
         self.assertNotIn("fallback(", sources.lower())
-        self.assertNotIn("getenv(", sources)
+        policy = product_policy.read_json(PRODUCT)
+        self.assertEqual(17, len(policy["temporary_native_ambient_reads"]["files"]))
+        product_policy.validate_product_policy(
+            policy, [], [NATIVE / entry["path"] for entry in closure["files"]],
+        )
         self.assertNotIn("system(", sources)
 
     def test_fused_transforms_are_structural_exact_and_telemetry_bound(self) -> None:

@@ -1,7 +1,17 @@
-# Draft RFC: explicit Native CUDA runtime policy installation
+# RFC #329: rejected ABI proposal; approved temporary source exception
 
-Status: proposed in [RFC #329](https://github.com/teddyjfpender/stwo-zig/issues/329),
-not approved or implemented. Tracking: A1 issue #327.
+Status: ABI proposal rejected by the owner on 2026-11-09. An expiring source
+exception is approved instead in [RFC #329](https://github.com/teddyjfpender/stwo-zig/issues/329).
+Tracking: A1 issue #327. No ABI or package-version change is authorized.
+
+The product manifest declares exactly the 17 current native ambient-read files,
+with content hashes, owner `cuda-backend`, a reason and expiry
+`GPU-native promotion + flag sweep`. Only `getenv(` is excepted; every other
+forbidden token and every undeclared or changed file still fails. Delete this
+exception with the promotion/flag sweep. Surviving policy may receive a small
+typed boundary only through a later owner decision.
+
+The original proposal below is retained as rejected history, not an implementation plan.
 Invariant owners: `cuda-backend`, `riscv-cuda-integration`; consult the Native
 and Cairo product owners. This proposal does not qualify GPU execution.
 
