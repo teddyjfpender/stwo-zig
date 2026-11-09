@@ -167,7 +167,8 @@ pub fn build(b: *std.Build) void {
         .name = "rv64-prefix-bank-tests",
         .root_module = b.createModule(.{ .target = b.graph.host, .optimize = optimize }),
     });
-    prefix_tests.addCSourceFile(.{ .file = b.path("../../backends/cuda/native/rv64/prefix_banks_test.cpp"), .flags = &.{"-std=c++17"} });
+    prefix_tests.addCSourceFile(.{ .file = b.path("../../../tests/cuda/rv64/native/rv64/prefix_banks_test.cpp"), .flags = &.{"-std=c++17"} });
+    prefix_tests.addIncludePath(b.path("../../backends/cuda/native/rv64"));
     prefix_tests.linkLibC();
     prefix_tests.linkLibCpp();
     const run_prefix_tests = b.addRunArtifact(prefix_tests);
@@ -182,7 +183,8 @@ pub fn build(b: *std.Build) void {
         .name = "rv64-pcs-idle-cache-tests",
         .root_module = b.createModule(.{ .target = b.graph.host, .optimize = optimize }),
     });
-    idle_cache_tests.addCSourceFile(.{ .file = b.path("../../backends/cuda/native/rv64/pcs_idle_cache_test.cpp"), .flags = &.{ "-std=c++17", "-Wall", "-Wextra", "-Werror" } });
+    idle_cache_tests.addCSourceFile(.{ .file = b.path("../../../tests/cuda/rv64/native/rv64/pcs_idle_cache_test.cpp"), .flags = &.{ "-std=c++17", "-Wall", "-Wextra", "-Werror" } });
+    idle_cache_tests.addIncludePath(b.path("../../backends/cuda/native/rv64"));
     idle_cache_tests.linkLibC();
     idle_cache_tests.linkLibCpp();
     b.step("test-pcs-idle-cache", "Check optional upper PCS cache parsing, scoped phase custody and failure ledgers without CUDA").dependOn(&b.addRunArtifact(idle_cache_tests).step);
