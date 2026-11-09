@@ -904,6 +904,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Move the existing bridge subprocess boundary into the existing process owner, bringing the bridge below its 850-line ceiling. Preserve labelled stdout/stderr tails within 8000 detail characters, with existing failure regression for empty, short and oversized streams. Preserve success output, exception classification, timeouts, commands, theorem targets and every pin. Growth owns observable failure evidence only; rollback returns the private helper and tests together."
+    },
+    {
+      "id": "bounded_failed_cpu_worker_debugger_receipt",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reuse the existing hosted failed-binary evidence step for one bounded CPU debugger replay under the shared build/test lock. Preserve the lane failure, stack admission, complete test discovery and production source. Pin binary and transcript digests; record unavailable debugger or timeout explicitly. Workflow diagnostics only, no launcher or runtime flag."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

@@ -363,8 +363,9 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import hashlib, json, os, re, subprocess
+          import hashlib, json, os, re, shutil, subprocess
           from pathlib import Path
+          from scripts.repo.zig_serial_build import build_lock
           out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci"
           cache = Path(os.environ["RUNNER_TOOL_CACHE"]) / "stwo-zig/focused/riscv_cpu"
           binaries = set()
@@ -389,7 +390,22 @@ jobs:
                   path = out / f"worker-frame-{binary.parent.name}-{len(frames)}.txt"
                   path.write_bytes(assembly)
                   frames.append({"symbol": name, "address": address, "size": size, "assembly": path.name, "assembly_sha256": hashlib.sha256(assembly).hexdigest()})
-              records.append({"binary": str(binary.relative_to(cache)), "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "frames": frames})
+              debugger = shutil.which("gdb")
+              diagnosis = {"status": "UNRUN", "reason": "gdb unavailable"}
+              if debugger:
+                  argv = [debugger, "--batch", "-ex", "set pagination off", "-ex", "set print frame-arguments none", "-ex", "run", "-ex", "thread apply all bt 12", "-ex", "info registers rsp rbp rip", "-ex", "x/12i $pc-16", "--args", str(binary)]
+                  with build_lock(label="rv64-failed-worker-diagnosis"):
+                      try:
+                          result = subprocess.run(argv, cwd=Path.cwd(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180)
+                          transcript = result.stdout
+                          diagnosis = {"status": "RECORDED", "debugger_exit_code": result.returncode}
+                      except subprocess.TimeoutExpired as exc:
+                          transcript = exc.stdout or b""
+                          diagnosis = {"status": "TIMEOUT", "timeout_seconds": 180}
+                  path = out / f"worker-debugger-{binary.parent.name}.txt"
+                  path.write_bytes(transcript)
+                  diagnosis.update(argv=argv, transcript=path.name, transcript_sha256=hashlib.sha256(transcript).hexdigest())
+              records.append({"binary": str(binary.relative_to(cache)), "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "frames": frames, "debugger_diagnosis": diagnosis})
           (out / "rv64-worker-frames.json").write_text(json.dumps(records, indent=2) + "\n")
           PY
 
