@@ -855,6 +855,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Reconcile two already-reviewed file metadata rows, one retired unconsumed receipt row and stale retirement group counts. Preserve all fixture bytes, proof pins and exact retained hashes. Verify the complete manifest and hierarchical census and archived receipt bytes; no generator or GPU execution."
+    },
+    {
+      "id": "rv64_coordinator_resolves_worker_scratch_variant",
+      "net_code_budget": 35,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "The coordinator retains checked scratch-payload selection and passes tagged pointers to workers. Remove two Debug active-union payload copies proven by source-pinned disassembly to exceed the unchanged worker stack. Keep allocation, arithmetic, lifetime and failures intact. Run the existing bounded Debug falsifier first and retain compiler-frame evidence on pass or fail."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

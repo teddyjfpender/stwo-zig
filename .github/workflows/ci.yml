@@ -194,8 +194,8 @@ jobs:
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/${{ matrix.lane }}" \
             --output "$RUNNER_TEMP/focused-ci/${{ matrix.lane }}.json"
 
-      - name: Retain failed RV64 worker frame evidence
-        if: failure() && matrix.lane == 'riscv_cpu'
+      - name: Retain RV64 worker frame evidence
+        if: always() && matrix.lane == 'riscv_cpu'
         shell: bash
         run: |
           python3 - <<'PY'
@@ -204,7 +204,7 @@ jobs:
           out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci"
           cache = Path(os.environ["RUNNER_TOOL_CACHE"]) / "stwo-zig/focused/riscv_cpu"
           binaries = set()
-          for log in out.glob("riscv_cpu-*.stderr"):
+          for log in (*out.glob("riscv_cpu-*.stderr"), *out.glob("riscv_cpu-*.stdout")):
               for raw in re.findall(rb"(?m)^(/[^\r\n]+/test) --cache-dir", log.read_bytes()):
                   binary = Path(os.fsdecode(raw)).resolve(strict=True)
                   if binary.is_relative_to(cache.resolve()):
@@ -226,7 +226,7 @@ jobs:
                   path.write_bytes(assembly)
                   frames.append({"symbol": name, "address": address, "size": size, "assembly": path.name, "assembly_sha256": hashlib.sha256(assembly).hexdigest()})
               records.append({"binary": str(binary.relative_to(cache)), "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "frames": frames})
-          (out / "failed-rv64-worker-frames.json").write_text(json.dumps(records, indent=2) + "\n")
+          (out / "rv64-worker-frames.json").write_text(json.dumps(records, indent=2) + "\n")
           PY
 
       - name: Retain lane timing receipt

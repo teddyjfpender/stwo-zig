@@ -599,6 +599,14 @@
         [
           "zig",
           "build",
+          "test-riscv64-parallel",
+          "-Doptimize=Debug",
+          "-j2",
+          "--verbose"
+        ],
+        [
+          "zig",
+          "build",
           "stwo-zig-riscv-cpu",
           "test-riscv64-parallel",
           "test-riscv-observation-contracts",

@@ -234,7 +234,8 @@ class PlannerContractTests(unittest.TestCase):
 
     def test_riscv_lane_produces_and_independently_verifies_real_proofs(self) -> None:
         commands = self.policy["lanes"]["riscv_cpu"]["commands"]
-        self.assertIn("stwo-zig-riscv-cpu", commands[0])
+        self.assertEqual(["zig", "build", "test-riscv64-parallel", "-Doptimize=Debug", "-j2", "--verbose"], commands[0])
+        self.assertIn("stwo-zig-riscv-cpu", commands[1])
         proof_commands = [
             command for command in commands
             if "scripts/riscv/riscv_pr_proof_smoke.py" in command
@@ -243,8 +244,8 @@ class PlannerContractTests(unittest.TestCase):
         self.assertIn("--artifact-dir", proof_commands[0])
         self.assertIn("--report-out", proof_commands[0])
         proof_index = commands.index(proof_commands[0])
-        self.assertEqual(1, proof_index)
-        self.assertLess(proof_index, next(i for i, command in enumerate(commands) if "-Doptimize=Debug" in command))
+        self.assertEqual(2, proof_index)
+        self.assertLess(proof_index, next(i for i, command in enumerate(commands) if "test-riscv-observation-contracts" in command and "-Doptimize=Debug" in command))
         self.assertLess(proof_index, next(i for i, command in enumerate(commands) if "test-riscv-profile-partition" in command))
 
     def test_riscv_parallel_residual_and_drain_contracts_run_in_both_modes(self) -> None:
