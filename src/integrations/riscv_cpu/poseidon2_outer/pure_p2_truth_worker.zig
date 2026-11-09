@@ -25,6 +25,9 @@ const Commit = @import("../word16_execution/main_ownership.zig").Commit;
 pub const Encoded = Old.TruthEncoded;
 const Budget = engine.host_budget_allocator.SharedHostBudget;
 pub const Limits = struct { live_bytes: usize, main_bytes: usize, interaction_bytes: usize, advice_bytes: usize };
+/// A pending fragment scope, never inventory or execution acceptance. The caller
+/// independently admits all stage-one workers before providing this manifest.
+pub const SealedScope = struct { manifest: [36]u8, main: [36]u8 };
 /// A factory produces untrusted advice inside the worker's allocator. Its
 /// returned kind/geometry is checked and every column is physically proved.
 /// The immutable key and original input inventory remain caller-owned.
@@ -373,19 +376,32 @@ pub const Worker = struct {
         if (!self.sealed or self.consumed) return error.OpTruthPhase;
         try checkPending(self.expected, pending, index);
         try pending.checkPhysicalRoots(index, self.key.root, self.scheme.trees.items[1].root());
+        return self.completeBound(pending.digest, pending.shared);
+    }
+    /// New source flavors share this truth pipeline without forged old rosters.
+    /// The scope authenticates no other worker; complete global admission is an
+    /// explicit caller obligation and remains closed in production selectors.
+    pub fn completeSealed(self: *Worker, sealed: SealedScope) !Encoded {
+        if (!self.sealed or self.consumed) return error.OpTruthPhase;
+        try validateExpected(self.key, self.truth, self.expected);
+        _ = try core.crypto.poseidon2_m31_sponge.decode(sealed.main);
+        if (!std.mem.eql(u8, &sealed.main, &self.scheme.trees.items[1].root())) return error.GlobalGkrPhysicalRootMismatch;
+        return self.completeBound(sealed.manifest, try Manifest.drawShared(sealed.manifest));
+    }
+    fn completeBound(self: *Worker, manifest: [36]u8, shared: Manifest.Shared) !Encoded {
         self.consumed = true;
-        const local = drawLocal(self.truth, &self.channel, pending.digest);
+        const local = drawLocal(self.truth, &self.channel, manifest);
         var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Inherited truth interaction generation");
         defer generation.end();
-        const generated = try generate(self.allocator, self.truth, &self.source.?, local, pending.shared, self.budget);
+        const generated = try generate(self.allocator, self.truth, &self.source.?, local, shared, self.budget);
         defer self.allocator.free(generated.claims);
         var owns_inter = true;
         defer if (owns_inter) generated.commit.deinit(self.allocator);
-        var components = try Components.init(self.truth, local, pending.shared, generated.claims);
+        var components = try Components.init(self.truth, local, shared, generated.claims);
         const handles = try components.provers(self.allocator);
         defer self.allocator.free(handles);
         generation.end();
-        Protocol.mixManifestAndClaims(&self.channel, pending.digest, generated.claims);
+        Protocol.mixManifestAndClaims(&self.channel, manifest, generated.claims);
         owns_inter = false; // owned commit consumes every backing on all paths.
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, generated.commit.columns, generated.commit.backings, 64, self.native_recorder, &self.channel);
         self.source.?.deinit();
@@ -404,11 +420,20 @@ pub fn verify(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: M
 pub fn verifyWithCapture(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, pending: *const Manifest.Pending, index: usize, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
     try validateExpected(key, truth, expected);
     try checkPending(expected, pending, index);
+    return verifyBound(a, key, truth, expected, .{ .manifest = pending.digest, .main = pending.entries[index].scope.main }, pending.shared, encoded, output_capture);
+}
+/// Verifies one source-owned truth fragment only; no whole inventory acceptance.
+pub fn verifySealed(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, sealed: SealedScope, encoded: *const Encoded) !Manifest.Claims {
+    try validateExpected(key, truth, expected);
+    _ = try core.crypto.poseidon2_m31_sponge.decode(sealed.main);
+    return verifyBound(a, key, truth, expected, sealed, try Manifest.drawShared(sealed.manifest), encoded, null);
+}
+fn verifyBound(a: std.mem.Allocator, key: *const Key, truth: R.Truth, expected: Manifest.Expected, sealed: SealedScope, shared: Manifest.Shared, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
     var proof = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
     defer proof.deinit(a);
     const roots = proof.commitment_scheme_proof.commitments.items;
     if (roots.len != 4 or !std.meta.eql(proof.commitment_scheme_proof.config, key.profile.config()) or proof.commitment_scheme_proof.revision_config != null or !std.mem.eql(u8, &roots[0], &key.root)) return error.OpTruthProofShape;
-    try pending.checkPhysicalRoots(index, key.root, roots[1]);
+    if (!std.mem.eql(u8, &sealed.main, &roots[1])) return error.GlobalGkrPhysicalRootMismatch;
     var channel = Protocol.begin(key.profile, expected, key.identity, key.root);
     var receiver = try core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(W.H, W.MC).init(a, key.profile.config());
     defer receiver.deinit(a);
@@ -418,11 +443,11 @@ pub fn verifyWithCapture(a: std.mem.Allocator, key: *const Key, truth: R.Truth, 
         defer a.free(logs);
         try receiver.commit(a, roots[tree], logs, &channel);
     }
-    const local = drawLocal(truth, &channel, pending.digest);
-    var components = try Components.init(truth, local, pending.shared, encoded.claims);
+    const local = drawLocal(truth, &channel, sealed.manifest);
+    var components = try Components.init(truth, local, shared, encoded.claims);
     const handles = try components.verifiers(a);
     defer a.free(handles);
-    Protocol.mixManifestAndClaims(&channel, pending.digest, encoded.claims);
+    Protocol.mixManifestAndClaims(&channel, sealed.manifest, encoded.claims);
     const logs = try components.logs(a, 2);
     defer a.free(logs);
     try receiver.commit(a, roots[2], logs, &channel);

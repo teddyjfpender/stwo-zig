@@ -181,3 +181,15 @@ test {
 test {
     _ = @import("poseidon2_outer/sponge_cpu/metadata_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/semantic.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/join_test.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/pure_p2_truth_catalog_test.zig");
+}

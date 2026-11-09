@@ -19,37 +19,12 @@ const O = core.fields.om31.OM31;
 const M = core.fields.m31.M31;
 const Kind = enum(u32) { sponge_fragment = 0x53504752, detached_sponge_fragment = 0x53504753 };
 const Expected = struct { kind: Kind = .sponge_fragment, ordinal: u32 = 0, statement: [32]u8 };
-fn columns(data: []const M, log: u32, out: []engine.pcs.ColumnEvaluation) void {
-    const rows = @as(usize, 1) << @intCast(log);
-    std.debug.assert(data.len == rows * out.len);
-    for (out, 0..) |*c, i| c.* = .{ .log_size = log, .values = data[i * rows ..][0..rows] };
-}
-fn tupleTypes(comptime Data: bool, comptime detached: bool) type {
-    comptime var types: [8]type = undefined;
-    inline for (comptime R.rolesFor(detached), 0..) |role, i| types[i] = if (Data) Component.Data(role) else Component.Component(role);
-    return std.meta.Tuple(&types);
-}
-fn globalDraw(manifest: [36]u8) !Eq.GlobalFor(O) {
-    const shared = try @import("../pure_p2_manifest.zig").drawShared(manifest);
-    return .{ .ram = .{ .offset = shared.ram.offset, .coefficients = shared.ram.coefficients }, .io = .{ .offset = shared.kio.offset, .coefficients = shared.kio.coefficients }, .wire = shared.wire };
-}
-fn mix(channel: *W.Channel, scope: anytype, receipt: [36]u8, owner: O, claims: [8][3]O) void {
-    const detached = comptime !@hasField(@TypeOf(scope), "boundary");
-    channel.mixU32s(if (detached) &.{ 0x53504753, 1, 9, 24 } else &.{ 0x53504752, 1, 9, 17 });
-    channel.mixRoot(scope.manifest);
-    channel.mixRoot(receipt);
-    if (!detached) channel.mixFelts(&.{owner});
-    for (claims) |pair| channel.mixFelts(pair[0..if (detached) 3 else 2]);
-}
-fn totalWidth(tree: usize, comptime detached: bool) usize {
-    var count: usize = 0;
-    inline for (comptime R.rolesFor(detached)) |role| count += switch (tree) {
-        0 => R.fixedWidth(role),
-        1 => R.mainWidth(role),
-        else => R.interactionWidth(role),
-    };
-    return count;
-}
+const Stages = @import("stages.zig");
+const columns = Stages.columns;
+const tupleTypes = Stages.tupleTypes;
+const globalDraw = Stages.globalDraw;
+const mix = Stages.mix;
+const totalWidth = Stages.totalWidth;
 test "serialized sponge complete physical source binding and fresh receiver" {
     try exercise(false);
 }

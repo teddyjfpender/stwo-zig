@@ -1,0 +1,119 @@
+{
+  "schema": "rv64-op-detached-sponge-native-join-v1",
+  "date": "2026-11-09",
+  "scope": "Closed native source integration fixture; not a real-block benchmark or recursive qualification",
+  "production_admission_open": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "fixture": {
+    "actual_OP_execution": true,
+    "steps": 11,
+    "CPU_shards": 2,
+    "sponge_calls": 3,
+    "sponge_permutations": 5,
+    "direct_keccak_calls": 1,
+    "truth_keccak_calls": 6,
+    "fresh_finalize_and_continuation": true,
+    "cross_CPU_message_reuse": true
+  },
+  "physical_proofs": {
+    "CPU_columns_fixed_main_inter": [
+      [
+        136,
+        551,
+        360
+      ],
+      [
+        130,
+        485,
+        312
+      ]
+    ],
+    "CPU_native_MAIN_INTER_cells": [
+      5548736,
+      5545088
+    ],
+    "proof_bytes_order_CPU0_CPU1_detached_Keccak": [
+      584340,
+      550916,
+      415184,
+      2782764
+    ],
+    "proof_sha256_same_order": [
+      "6869b235e3c1a14f8e8db6304e2430b603e890d83955d06683b996f427d78f5e",
+      "d141f7d076b68ccda9bdfe203b5d1ce9152f89e7abd17748b113f4feb26aec20",
+      "c03f458363659cbab2f94f3abfa44aeaa6aac55ddb1a964bb4b33ae608aaa984",
+      "bb59c4663d28bd18fcc1b3fd9e0ee1efb9f1e15f8a4596eceb4a6b3f5e8f0789"
+    ],
+    "old_sponge_CPU_tables_present": false,
+    "frontier_columns_fixed_main_inter": [
+      3,
+      8,
+      24
+    ]
+  },
+  "measurement": {
+    "qualification_only": true,
+    "quiet_AB": false,
+    "CPU_complete_ns": [
+      602465042,
+      594158958
+    ],
+    "detached_complete_ns": 482452167,
+    "Keccak_complete_ns": 645730833,
+    "producer_total_ns_includes_seal_source_and_setup": 3797768958,
+    "requested_peak_bytes": 385401149,
+    "hard_parent_byte_cap": 4294967296,
+    "hardware": "local CPU; shared engineering machine",
+    "not_RSS": true
+  },
+  "qualified": {
+    "all_MAIN_before_manifest": true,
+    "fresh_CPU_fixed_source_keys": true,
+    "fresh_detached_fixed_source_key": true,
+    "fresh_Keccak_fixed_source_key": true,
+    "physical_local_GKR_terminal_bindings": true,
+    "all_global_RAM_KIO_Wire_zero": true,
+    "exact_CPU_epoch_ordinal_binding": true,
+    "exact_per_CPU_OWNER_call_consumption": true,
+    "CPU_Wire_claim_tamper_rejected": true,
+    "detached_Wire_claim_tamper_rejected": true,
+    "balanced_opposed_Wire_debt_numeric_closure_not_sufficient": true,
+    "CPU_adjacency_tamper_rejected": true,
+    "truth_sealed_MAIN_manifest_key_family_substitutions_rejected": true,
+    "legacy_Pending_vs_SealedScope_exact_proof_claim_parity_13_truth_cases": true,
+    "legacy_serialized_boundary_and_detached_golden_proofs_unchanged": true
+  },
+  "controls": {
+    "boundary_fragment_sha256": "7b664a04002cb4f5321614a5366474822ca820ebe59424c7bedfd58959b70b11",
+    "detached_fragment_sha256": "bc6ef41f1afea46d179b89917c40497983db127f301a38f3ac6f341eb4b32996",
+    "two_join_runs_proof_bytes_identical": true
+  },
+  "checks": [
+    "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='sponge CPU' -j1",
+    "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='serialized sponge' -j1",
+    "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='OP catalog pure P2' -j1"
+  ],
+  "artifacts": {
+    "directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-sponge-native-join-v2",
+    "metadata_sha256": "5c1ad2bf0a236f9e95e507d5a243a00a1f7b18d893d352699501a86d6bd0e9e6",
+    "proofs_local_GKR_and_complete_manifest_claim_frames_retained": true
+  },
+  "remaining_gates": [
+    "Production source-suite flavor/codec/runtime/planner admission and complete byte budgets",
+    "Receiver-owned direct/detached KIO ID allocation across arbitrary CPU runs; this fixture uses contiguous Sponge IDs2..6",
+    "New frontier and detached native constraint authorities in recursive leaf/source-only root reception",
+    "Full retained-block source census and representative source-qualified recursive probes; no complete heavy re-prove authorized",
+    "Whole-protocol bounded assumption/security accounting for the new inventory"
+  ],
+  "heavy_source_model_only": {
+    "retained_source_CPU_columns": 5896,
+    "old_sponge_columns": 2513,
+    "new_frontier_columns": 35,
+    "modeled_new_CPU_columns": 3418,
+    "columns_reduction_percent": 42.028493894165535,
+    "not_measured_recursive_gates_or_speed": true
+  },
+  "hard_10x_goal_achieved": false
+}

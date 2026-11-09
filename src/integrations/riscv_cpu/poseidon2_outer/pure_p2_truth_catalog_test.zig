@@ -100,6 +100,17 @@ pub fn runWithHook(truth: R.Truth, comptime Hook: type) !void {
     const pending = Manifest.Pending{ .entries = &entries, .digest = digest, .shared = try Manifest.drawShared(digest) };
     var proof = try worker.complete(&pending, 0);
     defer proof.deinit(a);
+    // The new pending-fragment scope shares the exact old producer body.
+    // Independent source construction must preserve every proof and claim byte.
+    var scoped_worker = try T.Worker.init(a, &key, truth, builder, expected, limits);
+    defer scoped_worker.deinit();
+    const scoped_stage = try scoped_worker.seal();
+    try std.testing.expectEqualSlices(u8, &stage.main, &scoped_stage.main);
+    var scoped_proof = try scoped_worker.completeSealed(.{ .manifest = digest, .main = scoped_stage.main });
+    defer scoped_proof.deinit(a);
+    try std.testing.expectEqualSlices(u8, proof.bytes, scoped_proof.bytes);
+    try std.testing.expectEqualSlices(O, proof.claims, scoped_proof.claims);
+    _ = try T.verifySealed(a, &receiver_key, truth, fresh_expected, .{ .manifest = digest, .main = stage.main }, &scoped_proof);
     const bytes = try T.encode(a, &proof);
     defer a.free(bytes);
     var received = try T.decode(a, bytes, 1 << 28);
