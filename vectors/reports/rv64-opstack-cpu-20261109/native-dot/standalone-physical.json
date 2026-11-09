@@ -1,0 +1,53 @@
+{
+  "schema": "op-native-dot-standalone-physical/v1",
+  "complete_execution_or_r7_admission": false,
+  "heavy_execution_or_proof_rerun": false,
+  "physical_stark_produced": true,
+  "fresh_independent_source_receiver": true,
+  "native_proof_bytes": 38956,
+  "dot_log": 4,
+  "independent_auxiliary_log": 6,
+  "max_constraint_degree": 3,
+  "quotient_domain_per_component": "2n",
+  "dot_widths": {
+    "fixed": 10,
+    "main": 17,
+    "interaction": 24
+  },
+  "dot_nonfixed_mask_samples": {
+    "main": 25,
+    "interaction": 32
+  },
+  "budget_limit_bytes": 2147483648,
+  "peak_requested_allocator_bytes": 423029,
+  "final_host_and_external_bytes": 0,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "immutable_source_identity_separate_from_request_statement": true,
+  "public_values_do_not_derive_from_main": true,
+  "external_var_debt_closure": "receiver computes signed full-QM31 tuple sum from independently pinned source IDs, source fanouts and external input/output values",
+  "controls": {
+    "truncated_proof": "rejected",
+    "reordered_calls": "NativeDotPhysicalAuthority",
+    "wrong_source_identity": "NativeDotPhysicalAuthority",
+    "noncanonical_claim": "NativeDotNoncanonicalClaim",
+    "missing_external_input": "NativeDotExternalCoverage",
+    "duplicate_external_input": "NativeDotExternalOrder",
+    "different_statement_replay": "NativeDotPhysicalStatement",
+    "locally_consistent_wrong_input": "physical STARK accepted as pending fragment; complete receiver rejects NativeDotExternalVarDebt",
+    "hidden_scalar_high_coordinate": "physical STARK accepted as pending fragment; complete receiver rejects NativeDotExternalVarDebt",
+    "accumulator": "ConstraintsNotSatisfied",
+    "empty_unused_output_with_closed_var_debt": "ConstraintsNotSatisfied",
+    "prefix": "ConstraintsNotSatisfied",
+    "auxiliary_column": "ConstraintsNotSatisfied"
+  },
+  "ownership": "one final column-major MAIN construction via row iterator; raw MAIN retired after local fraction generation and INTER after commitment; compact PCS owns coefficients",
+  "qualification": "full OP native dot filtered family passed ReleaseSafe including numerical authority/multiset/degree/cost and physical controls",
+  "production_changes": {
+    "R5": false,
+    "R6": false,
+    "DEEP": false,
+    "runtime": false,
+    "receiver_cli": false
+  },
+  "remaining": "explicit R7 joint source producer/consumer census, new live roster/protocol/source security accounting and representative integration proof; no prover speedup claim"
+}

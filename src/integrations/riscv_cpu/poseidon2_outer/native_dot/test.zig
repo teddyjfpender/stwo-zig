@@ -246,3 +246,7 @@ test "OP native dot isolated paired prefix witness closes cyclic sum and rejects
 test {
     _ = @import("cost.zig");
 }
+
+test {
+    _ = @import("physical_test.zig");
+}

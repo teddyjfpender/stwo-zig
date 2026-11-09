@@ -1,6 +1,6 @@
 # Experimental OM31-by-M31 dot accumulator
 
-This isolated prototype targets the DEEP numerator `sum(weight * queried_base_value)`. No live DEEP emitter, Context hook, source roster, receiver, protocol or R6 default uses it. It has no physical STARK qualification yet.
+This isolated prototype targets the DEEP numerator `sum(weight * queried_base_value)`. No live DEEP emitter, Context hook, source roster, receiver, protocol or R6 default uses it. Its standalone physical STARK gate is now qualified; it remains outside every live R5/R6 roster and is not R7 admission.
 
 The row has 17 MAIN, 10 FIXED and 24 OM31 interaction base columns. Eight weight coordinates, one base scalar and eight inclusive sums are committed. Source-owned fixed columns hold three input IDs, two last-output IDs, their independently supplied whole-graph use counts, enabled/first/last selectors. Every call resets on its first row and exposes the last inclusive sum as two complete QM31 Var tuples. A zero-length call has one explicit zero-input row and two fresh zero outputs. Scalar membership is `(GateTag, id, scalar, 0, 0, 0)`; higher coordinates cannot be silently ignored.
 
@@ -23,11 +23,23 @@ Under the isolated replacement model, generic arithmetic falls from log 23 to 22
 
 The added chip contributes 57 nonfixed OODS samples: 17 current MAIN plus eight previous accumulators, and 24 current interaction plus eight previous-prefix coordinates. It also adds ten fixed columns. Thus it does not make the opening vector narrower on its own. The prospective maximum commitment log drops 23→22 for these two classes; whether that wins after lifting, hashing and recursion must be measured.
 
+## Standalone physical qualification
+
+The source-pinned dot/Var-debt gate produces a 38,956-byte proof with dot log 4 and a separate nonconstant auxiliary chip at log 6. A fresh independently constructed source key and typed external statement accept it after the producer key is destroyed. The mixed-height adapter exercises eight previous-MAIN accumulator masks and eight previous-prefix coordinate masks; explicit mask counts are 25 MAIN and 32 INTER samples. Each component evaluates on 2n, with degree at most three. The complete allocation/proving/reception/mutation fixture runs under a 2 GiB hard numerical budget, peaks at 423,029 requested bytes, and retires all heap/external ownership. This is not RSS or a performance benchmark.
+
+External Var debt is computed by the receiver from source-fixed input/output IDs, independently derived fanouts and canonical caller-pinned full QM31 values. The witness's MAIN is never its own authority. Internal Var IDs cancel through that same relation. Missing/duplicate bindings fail source admission. Both request and immutable identity enter the transcript, but request values do not change immutable setup identity; replay under a changed statement is rejected.
+
+A locally consistent wrong-input witness and a hidden high-coordinate scalar statement each produce STARK fragments that a test-only checker validates **with debt explicitly pending**. The complete receiver rejects both against its independently pinned debt. The pending checker is unavailable in production builds. An altered empty-dot output with zero fanout preserves Var debt but fails the arithmetic constraints, proving that lookup closure alone is insufficient. Mutated accumulator, prefix and auxiliary-column witnesses likewise fail `ConstraintsNotSatisfied`. Truncation, reordered calls, wrong source identity, noncanonical claims and statement replay are rejected.
+
+Physical MAIN uses the same bounded row iterator as the numerical witness tests and writes directly into final column-major allocations. Raw MAIN is retired after fraction generation and raw INTER after its commitment; no wide logical-row copy is kept for proving.
+
+Run `zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -j1 -Driscv-test-filter='OP native dot'` for this family, or filter `OP native dot physical standalone` for the actual STARK gate.
+
 ## Remaining gates
 
 - Explicit Context/source-multiplicity hook with no generic QM31 duplicate rows, complete producer coverage and independently derived source keys.
-- Component domain/OODS adapter with correctly scaled previous-row masks on mixed-height/lifted domains; never copy a component's index shifts blindly.
-- Physical proof + fresh source receiver and adversarial Var/global-claim controls, including zero dots and nonbase scalar attempts.
+- Bind the qualified standalone component/domain/OODS authority into the explicit R7 roster with independently derived global column offsets and source geometry.
+- Physical proof of the joined R7 source graph and fresh receiver, beyond the already-qualified standalone external-statement fixture.
 - Actual source-class graph/cell/opening census, then a short representative physical benchmark. No heavy complete proof is authorized by this prototype.
 - Source-bound/security-ledger accounting for the new relation family, including characteristic masses and complete lookup scope.
 - A named protocol/receiver/recursive-source authority change before any production admission. Current R5/R6 defaults stay unchanged.
