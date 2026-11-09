@@ -235,3 +235,7 @@ test {
 test {
     _ = @import("poseidon2_outer/sponge_cpu/source_view_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/root_admission_test.zig");
+}
