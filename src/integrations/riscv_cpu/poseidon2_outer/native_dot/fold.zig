@@ -11,9 +11,18 @@ const Keys = @import("execution_keys.zig");
 const Statement = @import("statement.zig").Statement;
 pub const Digest = [9]C.Q;
 pub const Child = struct { key: Keys.Ref, verified: Keys.Borrowed, output: Digest };
+const R7_TAGS = [3]u32{ 0x4f504637, 2, 2 };
+// Source-owned canonical native_group domain; never selected by proof bytes.
+const CANONICAL_TAGS = [3]u32{ 0x4f504632, 1, 2 };
 pub fn digest(left: Digest, right: Digest) !Digest {
+    return digestMode(left, right, R7_TAGS);
+}
+pub fn canonicalDigest(left: Digest, right: Digest) !Digest {
+    return digestMode(left, right, CANONICAL_TAGS);
+}
+fn digestMode(left: Digest, right: Digest, comptime tags: [3]u32) !Digest {
     var sponge = Core.crypto.poseidon2_m31_sponge.Sponge.init(.words);
-    for ([_]u32{ 0x4f504637, 2, 2 }) |word| sponge.absorbU32(word);
+    for (tags) |word| sponge.absorbU32(word);
     for ([_]Digest{ left, right }) |root| for (root) |word| {
         const limbs = word.toM31Array();
         for (limbs[1..]) |limb| if (!limb.isZero()) return error.NonBaseFoldDigest;
@@ -23,18 +32,37 @@ pub fn digest(left: Digest, right: Digest) !Digest {
     for (&out, sponge.finish()) |*port, value| port.* = C.Q.fromBase(value);
     return out;
 }
+/// Test-only observations of already emitted verifier ports. Recording these
+/// IDs adds no variables, gates or source semantics to either protocol variant.
+pub const MutationPorts = struct {
+    outputs: [2][9]C.Var = undefined,
+    fixed: [2][9]C.Var = undefined,
+    claims: [2][8][2]C.Var = undefined,
+    claim_counts: [2]usize = @splat(0),
+    samples: [2]C.Var = undefined,
+};
 pub const Source = struct {
     children: [2]Child,
     pub fn expectedOutput(self: Source) !Digest {
         return digest(self.children[0].output, self.children[1].output);
     }
     pub fn build(self: Source, a: std.mem.Allocator, trace_only: bool) !Context {
-        return self.buildMode(a, trace_only, true);
+        return self.buildMode(a, trace_only, true, R7_TAGS, null);
     }
     pub fn buildForProving(self: Source, a: std.mem.Allocator) !Context {
-        return self.buildMode(a, false, false);
+        return self.buildMode(a, false, false, R7_TAGS, null);
     }
-    fn buildMode(self: Source, a: std.mem.Allocator, trace_only: bool, qualify: bool) !Context {
+    pub fn expectedCanonicalOutput(self: Source) !Digest {
+        return canonicalDigest(self.children[0].output, self.children[1].output);
+    }
+    pub fn buildCanonicalTree(self: Source, a: std.mem.Allocator, trace_only: bool) !Context {
+        return self.buildMode(a, trace_only, true, CANONICAL_TAGS, null);
+    }
+    pub fn buildCanonicalTreeWithPortsForTest(self: Source, a: std.mem.Allocator, ports: *MutationPorts) !Context {
+        if (!@import("builtin").is_test) return error.R7QualificationOnly;
+        return self.buildMode(a, false, true, CANONICAL_TAGS, ports);
+    }
+    fn buildMode(self: Source, a: std.mem.Allocator, trace_only: bool, qualify: bool, comptime tags: [3]u32, ports: ?*MutationPorts) !Context {
         var arena = std.heap.ArenaAllocator.init(a);
         defer arena.deinit();
         var views: [2]View = undefined;
@@ -54,7 +82,7 @@ pub const Source = struct {
                 },
             }
         }
-        return buildViews(a, trace_only, qualify, views);
+        return buildViews(a, trace_only, qualify, views, tags, ports);
     }
 };
 const View = struct { key: Keys.Ref, shape: *const V.Shape, values: *const V.Captured, output: Digest, claims: union(enum) { r6: [6]V.common.O, r7: [8]V.common.O } };
@@ -63,6 +91,12 @@ const View = struct { key: Keys.Ref, shape: *const V.Shape, values: *const V.Cap
 pub const TraceSource = struct {
     keys: [2]Keys.Ref,
     pub fn build(self: TraceSource, a: std.mem.Allocator) !Context {
+        return self.buildMode(a, R7_TAGS);
+    }
+    pub fn buildCanonicalTree(self: TraceSource, a: std.mem.Allocator) !Context {
+        return self.buildMode(a, CANONICAL_TAGS);
+    }
+    fn buildMode(self: TraceSource, a: std.mem.Allocator, comptime tags: [3]u32) !Context {
         var arena = std.heap.ArenaAllocator.init(a);
         defer arena.deinit();
         var views: [2]View = undefined;
@@ -77,10 +111,10 @@ pub const TraceSource = struct {
                 .r7 => .{ .r7 = @splat(V.common.O.zero()) },
             } };
         }
-        return buildViews(a, true, false, views);
+        return buildViews(a, true, false, views, tags, null);
     }
 };
-fn buildViews(a: std.mem.Allocator, trace_only: bool, qualify: bool, views: [2]View) !Context {
+fn buildViews(a: std.mem.Allocator, trace_only: bool, qualify: bool, views: [2]View, comptime tags: [3]u32, ports: ?*MutationPorts) !Context {
     var structural = @import("../../rv64_recursion/circuit_lane.zig").StructuralScope.init();
     defer structural.deinit();
     var native_scope = @import("../native_omul/scope.zig").begin();
@@ -94,26 +128,39 @@ fn buildViews(a: std.mem.Allocator, trace_only: bool, qualify: bool, views: [2]V
     defer if (active) V.common.finish() catch {};
     const ctx = parent.algebra();
     var roots: [2]DigestPorts = undefined;
-    for (views, &roots) |child, *root| {
+    for (views, &roots, 0..) |child, *root, index| {
         const wire = try V.proof.guess(ctx, child.values, child.shape);
         for (root, child.output) |*port, value| port.* = try ctx.guess(value);
+        if (ports) |p| {
+            p.outputs[index] = root.*;
+            p.fixed[index] = wire.commitments[0];
+            p.samples[index] = wire.sampled_values[1][0][0].c0.v;
+        }
         switch (child.key) {
             .r7 => |key| {
                 var claims: [8]C.F = undefined;
                 for (&claims, child.claims.r7) |*claim, value| claim.* = try C.F.guess(ctx, value);
+                if (ports) |p| {
+                    p.claim_counts[index] = 8;
+                    for (claims, 0..) |claim, j| p.claims[index][j] = .{ claim.c0.v, claim.c1.v };
+                }
                 var statement = Statement{ .key = key, .fixed = wire.commitments[0], .outputs = root, .claims = claims };
                 _ = try V.verify(ctx, child.shape, &wire, &statement);
             },
             .r6 => |key| {
                 var claims: [6]C.F = undefined;
                 for (&claims, child.claims.r6) |*claim, value| claim.* = try C.F.guess(ctx, value);
+                if (ports) |p| {
+                    p.claim_counts[index] = 6;
+                    for (claims, 0..) |claim, j| p.claims[index][j] = .{ claim.c0.v, claim.c1.v };
+                }
                 var statement = @import("../native_omul/statement.zig").Statement{ .key = key, .fixed = wire.commitments[0], .outputs = root, .claims = claims };
                 _ = try V.verify(ctx, child.shape, &wire, &statement);
             },
         }
     }
     var sponge = try Sponge.init(&parent, .words);
-    for ([_]u32{ 0x4f504637, 2, 2 }) |word| try sponge.absorbConstU32(word);
+    for (tags) |word| try sponge.absorbConstU32(word);
     for (roots) |root| try sponge.absorbMany(&root);
     const output = try sponge.finish();
     try V.common.finish();
@@ -121,7 +168,7 @@ fn buildViews(a: std.mem.Allocator, trace_only: bool, qualify: bool, views: [2]V
     try parent.setOutputs(&output);
     try parent.finalizeForNativeDot();
     if (!trace_only) {
-        for (output, try digest(views[0].output, views[1].output)) |port, value| if (!ctx.get(port).eql(value)) return error.FoldOutputMismatch;
+        for (output, try digestMode(views[0].output, views[1].output, tags)) |port, value| if (!ctx.get(port).eql(value)) return error.FoldOutputMismatch;
         if (!qualify) return parent;
         if (!try parent.isCircuitValid()) return error.FoldCircuitInvalid;
         const saved = ctx.get(roots[0][8]);

@@ -1,0 +1,62 @@
+{
+  "schema": "stwo.op.native-group-typed-key-canonical-fold-seams.v1",
+  "scope": "source/numerical seam qualification using retained child and parent proofs; no new physical outer proof",
+  "production_admission": false,
+  "typed_key_owner": {
+    "existing_ref_and_captured_dispatch": true,
+    "source_only_stream_constructors": true,
+    "no_generic_graph_or_proposed_VK_constructor": true,
+    "explicit_outer_profile_independent_from_native_profile": true,
+    "reference_profile_rejected_before_allocation": true,
+    "numerical_stream_rejected_before_allocation": true,
+    "nine_output_fold_guard_before_allocation": true,
+    "retire_idempotent_identity_stable_and_verification_retained": true
+  },
+  "fold_domains": {
+    "default_R7": [
+      1330660919,
+      2,
+      2
+    ],
+    "canonical_native_group_R6": [
+      1330660914,
+      1,
+      2
+    ],
+    "shared_verifier_and_finalizer": true,
+    "canonical_matches_R6_host_digest": true,
+    "default_domain_remains_distinct": true,
+    "canonical_source_key_matches_numerical_source_key": true
+  },
+  "numerical_mutations": {
+    "total": 70,
+    "every_child_output_coordinate": 18,
+    "every_child_FIXED_root_coordinate": 18,
+    "all8_claims_both_QM31_coordinates_per_child": 32,
+    "MAIN_OODS_sample_per_child": 2,
+    "all_rejected_and_restored_positive": true
+  },
+  "retained_default_parent": {
+    "artifact": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/pure-p2-r7-parent-v2",
+    "bytes": 680332,
+    "source_identity": "0cc52cbfefe753b04f15c9ce4462b498bf61e4d6fed79476aa500486d72b281c",
+    "fresh_independently_replayed_key_exact": true,
+    "proof_verified": true
+  },
+  "budgets": {
+    "host_bytes": 25769803776,
+    "workers": 8,
+    "final_live_bytes": 0,
+    "final_external_bytes": 0
+  },
+  "qualification_tests": [
+    "R7 canonical typed group key constructors reject numerical sources and reference policy before allocation",
+    "R7 canonical fold host digest matches native group and keeps default domain distinct",
+    "R7 canonical shared fold source numeric all child inputs and typed owner retirement"
+  ],
+  "pending": [
+    "Complete old actual R7 execution-root source replay (no reproof).",
+    "Receiver-pinned typed group/fold runtime integration on terminal-profile foundation.",
+    "Actual selected R7+B2 physical grouped root and independent source-only reception."
+  ]
+}
