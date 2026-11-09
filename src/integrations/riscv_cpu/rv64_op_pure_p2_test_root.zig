@@ -118,3 +118,7 @@ test {
 test {
     _ = @import("poseidon2_outer/pure_p2_op_cpu_fixture.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/fixture_source.zig");
+}
