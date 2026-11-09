@@ -143,7 +143,7 @@ fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Author
     const ls = try legacy(a, key, elements, interaction.claims, fixed_logs);
     const p2 = P2{ .key = &key.base, .elements = elements, .claim = interaction.claims[3] };
     const native_mul = Mul{ .key = key, .elements = elements, .claim = interaction.claims[5] };
-    const components = [_]PC.ComponentProver{ ls[0].asProverComponent(), ls[1].asProverComponent(), ls[2].asProverComponent(), P2.Adapter.asProverComponent(&p2), ls[3].asProverComponent(), Mul.Adapter.asProverComponent(&native_mul) };
+    const components = [_]PC.ComponentProver{ ls[0].asProverComponent(), ls[1].asProverComponent(), ls[2].asProverComponent(), @import("p2_domain.zig").adapter(&p2), ls[3].asProverComponent(), Mul.Adapter.asProverComponent(&native_mul) };
     owned = false;
     var produced = try A.E.prove(a, &components, &channel, scheme, .{ .recorder = recorder });
     defer produced.deinit(a);

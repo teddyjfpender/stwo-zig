@@ -69,6 +69,20 @@ test "OP R6 physical six-component proof closes complete Var and range relations
     const full_control = try Proof.proveFullStorageControl(a, &owner, &full_key, &expected);
     defer a.free(full_control);
     try std.testing.expectEqualSlices(u8, full_control, proof);
+    // The R6 execution adapter evaluates the same packed P2 equations on
+    // disjoint row intervals after bounded parallel coefficient expansion.
+    // Compare the entire transcript and proof, not just a valid receiver.
+    {
+        const Engine = @import("stwo_prover_engine");
+        var pool: Engine.work_pool.WorkPool = .{};
+        try pool.initInPlaceWithOptions(.{ .worker_count = 2 });
+        defer pool.deinit();
+        var binding = try Engine.work_pool.ScopedPoolBinding.init(&pool);
+        defer binding.deinit();
+        const parallel = try Proof.prove(a, &owner, &key, &expected);
+        defer a.free(parallel);
+        try std.testing.expectEqualSlices(u8, proof, parallel);
+    }
     // Rebuild source geometry/FIXED under a distinct trace owner.
     var fresh = try fixture(true);
     defer fresh.deinit();

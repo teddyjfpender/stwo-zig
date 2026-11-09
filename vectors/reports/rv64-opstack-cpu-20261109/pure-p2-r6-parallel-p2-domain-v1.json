@@ -1,0 +1,58 @@
+{
+  "schema": "op-r6-parallel-p2-domain-v1",
+  "scope": "Same actual OP120794432 CPU leaf from retained schema1 native bundle; R6 semantic authority and byte encoding unchanged",
+  "changes": [
+    "Expand required coefficient columns in one bounded pool wave",
+    "Evaluate existing packed P2 equations on disjoint16-row-aligned intervals in a second joined wave",
+    "Keep OODS, masks, vanishing polynomial, random coefficient order and scalar/no-pool controls unchanged"
+  ],
+  "qualification": {
+    "tiny_physical_proof_bytes": 530608,
+    "two_worker_vs_no_pool_entire_proof_parity": true,
+    "actual_physical_proof_bytes": 689252,
+    "actual_entire_proof_parity": true,
+    "sha256": "e80751cd103b4dca9e602590d21bb1b65771993f1a897ad2b0cc5aced90f88c6",
+    "fresh_source_receiver": true,
+    "wrong_output_rejected": true
+  },
+  "actual_prove_ns": {
+    "retained_r6": 30933552333,
+    "parallel_p2": 29249600292
+  },
+  "composition_s": {
+    "retained_r6": 5.083531,
+    "parallel_p2": 3.472163
+  },
+  "composition_cpu_s": {
+    "retained_r6": 6.175134000000001,
+    "parallel_p2": 6.357287
+  },
+  "unmodified_stage_checks_s": {
+    "op_p2.main_commit": {
+      "retained": 8.935399,
+      "parallel": 8.889644
+    },
+    "op_p2.interaction_commit": {
+      "retained": 8.502428,
+      "parallel": 8.527504
+    },
+    "fri_quotient_build_and_commit": {
+      "retained": 2.308824,
+      "parallel": 2.300542
+    }
+  },
+  "configuration": {
+    "optimize": "ReleaseSafe",
+    "pool_workers": 8,
+    "host_admission_bytes": 34359738368
+  },
+  "caveats": [
+    "Single sequential development runs, not repeated paired medians",
+    "Complete schema2 root and heavy-block latency not remeasured for this execution-only adapter",
+    "Remaining composition is still underutilized; no whole-stage8x claim"
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/pure-p2-r6-cpu-parallel-domain-v1",
+  "r5_component_source_changed": false,
+  "ethereum_protocol_changed": false,
+  "security_qualified": false
+}
