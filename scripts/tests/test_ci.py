@@ -311,6 +311,7 @@ class CiTests(unittest.TestCase):
             self.assertNotIn("focused-cpu", job)
         self.assertIn('SCOPE_ARGS+=(--manual-cpu-lane "$MANUAL_CPU_LANE")', source)
         self.assertIn('MANUAL_CPU_LANE: ${{ inputs.cpu_lane }}', source)
+        self.assertIn("${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}", source)
 
     def test_hosted_ci_requires_fail_closed_cuda_device_evidence(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

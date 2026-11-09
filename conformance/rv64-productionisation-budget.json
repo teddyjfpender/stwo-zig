@@ -631,6 +631,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Correct the full circuit generation allocation preflight from topology-only memory to a 32 GiB minimum accounting for fold-tree\u2019s documented roughly 22 GB per reduction. The first hosted attempt terminated at that owner; refuse another undersized host rather than weaken or omit the full parity workload. No laptop build, larger paid runner or GPU is started."
+    },
+    {
+      "id": "delivery_independent_manual_cpu_cancellation",
+      "net_code_budget": 5,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Give independent manual CPU lane requests distinct CI concurrency identities. The first dispatch batch proved that branch-only grouping cancels a pending different lane even with active-run cancellation disabled. Preserve frozen source and existing automatic cancellation policy; no additional lane, launcher or runtime switch."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
