@@ -99,6 +99,23 @@ pub const Key = struct {
         if (!std.mem.eql(u8, &self.source_geometry, &authority.geometry)) return error.PoseidonNativeFixedGeometryMismatch;
         if (!std.mem.eql(u8, &self.identity, &authority.identity)) return error.PoseidonNativeFixedAuthorityMismatch;
     }
+    /// Retain receiver-derived legacy source authority, not a second obsolete
+    /// commitment. All fallible checks precede publication of the root-only key.
+    pub fn retireLegacySetup(self: *const Key, setup: *R.CpuSetup) !void {
+        const a = self.allocator;
+        const SourceFixed = @import("../word16_global_execution/keccak/shared/key.zig").Key;
+        try self.requireForOp(setup, self.profile);
+        if (setup.key.root_only) return error.OpSourceFixedAlreadyRetired;
+        const logs = try a.alloc(u32, setup.key.tree.columns.len);
+        defer a.free(logs);
+        for (setup.key.tree.columns, logs) |column, *log| log.* = column.log_size;
+        var digest = try SourceFixed.rootOnly(a, setup.key.suite, setup.key.root, logs);
+        errdefer digest.deinit();
+        try setup.releaseFixedWitness();
+        var old = setup.key;
+        setup.key = digest;
+        old.deinit();
+    }
     pub fn statement(self: *const Key, setup: *const R.CpuSetup, request: anytype, first: anytype) [32]u8 {
         var h = std.crypto.hash.sha2.Sha256.init(.{});
         h.update("opstack-pure-p2/source-worker-statement/v1\x00");

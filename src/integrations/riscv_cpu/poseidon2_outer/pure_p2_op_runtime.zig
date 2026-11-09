@@ -18,7 +18,6 @@ const Plan = @import("../word16_global_execution/ethereum/plan.zig");
 const Receiver = @import("../word16_global_execution/ethereum/receiver.zig");
 const Terminal = @import("../word16_global_execution/ethereum/terminal.zig");
 const ProgramMetadata = @import("../word16_execution/program_metadata.zig");
-const SourceKey = @import("../word16_global_execution/keccak/shared/key.zig").Key;
 const Keys = @import("../word16_global_execution/ethereum/keys.zig");
 const Key = @import("pure_p2_fixed_key.zig").Key;
 const Truth = @import("pure_p2_truth_worker.zig");
@@ -27,6 +26,7 @@ const Inv = @import("pure_p2_op_inventory.zig");
 const Bundle = @import("pure_p2_op_bundle.zig");
 const Producer = @import("pure_p2_op_producer.zig");
 const Store = @import("pure_p2_retained_main.zig").Store;
+pub const SetupCache = @import("pure_p2_setup_cache.zig").Cache;
 const Cells = @import("../word16_execution/cells_wire.zig");
 const Profile = @import("pure_p2_worker_protocol.zig").Profile;
 pub const Metadata = struct {
@@ -65,6 +65,7 @@ const Authority = struct {
     truth_keys: []*const Truth.Key,
     miller: []Inv.MillerDeclaration,
     cpu_owners: std.ArrayList(*R.CpuSetup) = .empty,
+    cpu_leases: std.ArrayList(@import("pure_p2_setup_cache.zig").Lease) = .empty,
     key_owners: std.ArrayList(*Key) = .empty,
     truth_owners: std.ArrayList(*Truth.Key) = .empty,
     miller_owners: std.ArrayList(*Miller.Key) = .empty,
@@ -86,6 +87,8 @@ const Authority = struct {
             key.deinit();
             a.destroy(key);
         }
+        for (self.cpu_leases.items) |*lease| lease.deinit();
+        self.cpu_leases.deinit(a);
         self.key_owners.deinit(a);
         self.cpu_owners.deinit(a);
         self.truth_owners.deinit(a);
@@ -98,7 +101,7 @@ const Authority = struct {
         self.program_metadata.deinit();
         self.* = undefined;
     }
-    fn init(a: std.mem.Allocator, image: *const Image.Owner, m: Metadata, fixed_store: ?*Store) !Authority {
+    fn init(a: std.mem.Allocator, image: *const Image.Owner, m: Metadata, fixed_store: ?*Store, cache: ?*SetupCache) !Authority {
         try m.validate();
         const setups = try a.alloc(*const R.CpuSetup, m.cpus.len);
         errdefer a.free(setups);
@@ -132,6 +135,8 @@ const Authority = struct {
                 k.deinit();
                 a.destroy(k);
             }
+            for (self.cpu_leases.items) |*lease| lease.deinit();
+            self.cpu_leases.deinit(a);
             self.key_owners.deinit(a);
             self.cpu_owners.deinit(a);
             self.truth_owners.deinit(a);
@@ -146,6 +151,14 @@ const Authority = struct {
                 break;
             };
             if (reused) continue;
+            if (cache) |owner| {
+                try self.cpu_leases.ensureUnusedCapacity(a, 1);
+                const lease = try owner.acquire(&image.authority, d.geometry, d.bridges, m.profile);
+                setups[i] = lease.setup();
+                cpu_keys[i] = lease.key();
+                self.cpu_leases.appendAssumeCapacity(lease);
+                continue;
+            }
             try self.cpu_owners.ensureUnusedCapacity(a, 1);
             try self.key_owners.ensureUnusedCapacity(a, 1);
             const setup = try a.create(R.CpuSetup);
@@ -162,7 +175,7 @@ const Authority = struct {
             };
             self.key_owners.appendAssumeCapacity(key);
             cpu_keys[i] = key;
-            try retireLegacyCpu(a, setup, key);
+            try key.retireLegacySetup(setup);
         }
         for (self.native_truth.truths, 0..) |truth, i| {
             var reused = false;
@@ -203,22 +216,6 @@ const Authority = struct {
         return self;
     }
 };
-/// P2 is the sole prover FIXED commitment here. Preserve the independently
-/// derived legacy source digest/suite/logshape without retaining its obsolete
-/// Blake nodes or original wide fixed witness. Legacy append fails closed.
-fn retireLegacyCpu(a: std.mem.Allocator, setup: *R.CpuSetup, key: *const Key) !void {
-    try key.requireForOp(setup, key.profile);
-    if (setup.key.root_only) return error.OpSourceFixedAlreadyRetired;
-    const logs = try a.alloc(u32, setup.key.tree.columns.len);
-    defer a.free(logs);
-    for (setup.key.tree.columns, logs) |column, *log| log.* = column.log_size;
-    var digest = try SourceKey.rootOnly(a, setup.key.suite, setup.key.root, logs);
-    errdefer digest.deinit();
-    try setup.releaseFixedWitness();
-    var old = setup.key;
-    setup.key = digest;
-    old.deinit();
-}
 fn requests(a: std.mem.Allocator, m: Metadata, cells: Cells.Owned) ![]P.Request {
     const out = try a.alloc(P.Request, m.requests.len);
     for (m.requests, out, 0..) |r, *v, i| v.* = r.expand(if (i == 0) cells.initial else &.{}, if (i + 1 == out.len) cells.terminal else &.{});
@@ -275,6 +272,11 @@ pub const SourceDirectory = struct {
 /// native PCS/GKR. The callback must verify its own root/proofs before treating
 /// public cells as authenticated. No borrowed pointer may outlive callback.
 pub fn withSourceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, context: ?*anyopaque, callback: *const fn (?*anyopaque, std.mem.Allocator, SourceDirectory) anyerror!void) !void {
+    return withSourceDirectoryWithCache(a, config, path, profile, resources, null, context, callback);
+}
+pub fn withSourceDirectoryWithCache(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, cache: ?*SetupCache, context: ?*anyopaque, callback: *const fn (?*anyopaque, std.mem.Allocator, SourceDirectory) anyerror!void) !void {
+    var session = if (cache) |owner| try owner.enterRequest(a, resources.disk_bytes, resources.mapped_bytes) else null;
+    defer if (session) |*lease| lease.deinit();
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     const budget = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?;
     if (resources.live_bytes == 0 or budget.snapshot().limit > resources.live_bytes) return error.OpSourceBudgetMismatch;
@@ -304,7 +306,7 @@ pub fn withSourceDirectory(a: std.mem.Allocator, config: Request.Config, path: [
     defer a.free(req);
     var bounds = try Bounds.deriveForOp(a, program.log_size, m.cpus, m.truths, req, m.spans, m.miller);
     defer bounds.deinit();
-    var authority = try Authority.init(a, &image, m, null);
+    var authority = try Authority.init(a, &image, m, null, cache);
     defer authority.deinit();
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
@@ -341,8 +343,15 @@ pub fn verifyDirectoryWithHooks(a: std.mem.Allocator, config: Request.Config, pa
     return withSourceDirectory(a, config, path, profile, resources, &context, NativeReception.run);
 }
 
+pub fn verifyDirectoryWithCache(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, cache: *SetupCache) !void {
+    var context = NativeReception{ .path = path, .profile = profile, .resources = resources, .hooks = .{}, .timer = try std.time.Timer.start() };
+    return withSourceDirectoryWithCache(a, config, path, profile, resources, cache, &context, NativeReception.run);
+}
 pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
-    return produceDirectoryMode(a, config, path, profile, resources, .prove);
+    return produceDirectoryMode(a, config, path, profile, resources, .prove, null);
+}
+pub fn produceDirectoryWithCache(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, cache: *SetupCache) !void {
+    return produceDirectoryMode(a, config, path, profile, resources, .prove, cache);
 }
 /// Scalar-only diagnostics: geometry classes may share physical FIXED roots.
 /// This never trusts producer roots or hashes/reconstructs any fixed witness.
@@ -362,7 +371,9 @@ fn uniqueFixedRoots(keys: []const *const Key, comptime field: []const u8) usize 
     return unique;
 }
 const ProduceMode = enum { capture, prepare, prove };
-fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, mode: ProduceMode) !void {
+fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, mode: ProduceMode, cache: ?*SetupCache) !void {
+    var session = if (cache) |owner| try owner.enterRequest(a, resources.disk_bytes, resources.mapped_bytes) else null;
+    defer if (session) |*lease| lease.deinit();
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     try Request.validateBudgetForOp(config);
     var timer = try std.time.Timer.start();
@@ -434,16 +445,20 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         std.debug.print("OP_NATIVE_CAPTURE complete=true proof_verified=false steps={} CPU={} truth={} miller={} cells={any} capture_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bounds.base.shape.native_trace_cells, capture_ns });
         return;
     }
-    if (cost.combined_disk_upper_bytes > resources.disk_bytes) return error.OpCombinedParkingDiskPlanExceeded;
+    const main_disk_limit = if (session) |lease| lease.disk_bytes else resources.disk_bytes;
+    const main_mapped_limit = if (session) |lease| lease.mapped_bytes else resources.mapped_bytes;
+    if (session != null) {
+        if (cost.disk_upper_bytes > main_disk_limit) return error.OpCombinedParkingDiskPlanExceeded;
+    } else if (cost.combined_disk_upper_bytes > resources.disk_bytes) return error.OpCombinedParkingDiskPlanExceeded;
     try std.fs.cwd().makePath(path);
     var dir = try std.fs.cwd().openDir(path, .{});
     defer dir.close();
     const parking = try std.fs.path.join(a, &.{ path, "parked-main" });
     defer a.free(parking);
     try std.fs.cwd().makePath(parking);
-    var store = try Store.init(a, parking, resources.disk_bytes, resources.mapped_bytes);
+    var store = try Store.init(a, parking, main_disk_limit, main_mapped_limit);
     defer store.deinit();
-    var authority = try Authority.init(a, &image, metadata, &store);
+    var authority = try Authority.init(a, &image, metadata, &store, cache);
     defer authority.deinit();
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
@@ -457,7 +472,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
             .cpu_workers = count,
             .truth_workers = truth_declarations.len,
             .miller_workers = tower.items.len,
-            .cpu_fixed_classes = authority.key_owners.items.len,
+            .cpu_fixed_classes = authority.key_owners.items.len + authority.cpu_leases.items.len,
             .unique_poseidon_fixed_roots = uniqueFixedRoots(authority.cpu_keys, "root"),
             .unique_legacy_fixed_roots = uniqueFixedRoots(authority.cpu_keys, "source_root"),
             .actual_immutable_fixed_disk_bytes = store.reserved,
@@ -482,7 +497,8 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     var phases: Producer.Timing = .{};
     const ready_ns = timer.read();
     const setup_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot();
-    const immutable_fixed_disk_bytes = store.reserved;
+    const immutable_cache = if (cache) |owner| owner.snapshot() else null;
+    const immutable_fixed_disk_bytes = store.reserved + (if (immutable_cache) |snapshot| snapshot.parked_bytes else 0);
     var bundle = try Producer.produce(a, &inventory, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, captured.native, &captured.advice, &store, .{
         .consume_memory_events = resources.consume_memory_events,
         .recorders = observations.pointers,
@@ -503,7 +519,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         const profiling = @import("../word16_global_execution/services/profiling.zig").Options{ .recorders = observations.pointers, .directory = dir };
         for (observations.pointers, 0..) |_, i| try profiling.finish(a, i);
     }
-    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - captured_at, .setup_heap = setup_heap, .immutable_fixed_classes = authority.key_owners.items.len, .immutable_fixed_disk_bytes = immutable_fixed_disk_bytes, .peak_parked_mapping_bytes = store.peak_mapped, .runtime_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(), .planned_combined_disk_upper_bytes = cost.combined_disk_upper_bytes, .seal_and_park_ns = phases.stage_one_ns, .manifest_ns = phases.manifest_ns, .stage_two_prove_ns = phases.stage_two_ns, .prove_ns = prove_ns, .publish_payload_ns = timer.read() - publish_start, .total_before_receipt_ns = timer.read(), .production_admitted = false });
+    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - captured_at, .setup_heap = setup_heap, .immutable_fixed_classes = authority.key_owners.items.len + authority.cpu_leases.items.len, .immutable_fixed_cache = immutable_cache, .immutable_fixed_disk_bytes = immutable_fixed_disk_bytes, .peak_parked_mapping_bytes = store.peak_mapped, .runtime_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(), .planned_combined_disk_upper_bytes = cost.combined_disk_upper_bytes, .seal_and_park_ns = phases.stage_one_ns, .manifest_ns = phases.manifest_ns, .stage_two_prove_ns = phases.stage_two_ns, .prove_ns = prove_ns, .publish_payload_ns = timer.read() - publish_start, .total_before_receipt_ns = timer.read(), .production_admitted = false });
     try std.posix.fsync(dir.fd);
     std.debug.print("OP_NATIVE_PRODUCER complete=true steps={} CPU={} truth={} miller={} bytes={} capture_ns={} prove_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bytes.len, capture_ns, prove_ns });
 }
@@ -537,7 +553,7 @@ pub fn main() !void {
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     const profile = Profile.op_target_b4_q72_p0_fold4_v1;
-    if (std.mem.eql(u8, args[1], "verify")) try verifyDirectory(a, config.value, args[3], profile, resources) else try produceDirectoryMode(a, config.value, args[3], profile, resources, if (std.mem.eql(u8, args[1], "capture")) .capture else if (std.mem.eql(u8, args[1], "prepare")) .prepare else .prove);
+    if (std.mem.eql(u8, args[1], "verify")) try verifyDirectory(a, config.value, args[3], profile, resources) else try produceDirectoryMode(a, config.value, args[3], profile, resources, if (std.mem.eql(u8, args[1], "capture")) .capture else if (std.mem.eql(u8, args[1], "prepare")) .prepare else .prove, null);
     const final = budget.snapshot();
     if (final.live_bytes != 0) return error.OpNativeRuntimeCustodyLeak;
     std.debug.print("OP_NATIVE_TEARDOWN heap={} external={} peak={} exceeded={}\n", .{ final.host_live_bytes, final.external_live_bytes, final.peak_live_bytes, final.exceeded });
