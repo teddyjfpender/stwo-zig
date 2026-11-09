@@ -4,12 +4,15 @@ const E = @import("program.zig");
 const P = @import("protocol.zig");
 const Air = @import("../air.zig");
 fn get(_: *const anyopaque, tree: u8, col: u32, offset: i32) !P.O {
-    const seed = @as(u32, tree) * 173 + col * 19 + @as(u32, @bitCast(offset));
+    const seed = @as(u32, tree) *% 173 +% col *% 19 +% @as(u32, @bitCast(offset));
     var coordinates: [8]P.M = undefined;
     for (&coordinates, 0..) |*c, i| c.* = P.M.fromU64(@as(u64, seed) + i * 1777 + 13);
     return P.O.fromM31Array(coordinates);
 }
 test "outer OM31 GPU polynomial groups exactly match all original native AIR roots" {
+    const context: u8 = 0;
+    const negative_offset = try get(&context, 2, 0, -1);
+    try std.testing.expectEqual(P.M.fromU64(358), negative_offset.toM31Array()[0]);
     const a = std.testing.allocator;
     const bytes = try std.fs.cwd().readFileAlloc(a, Air.bundle_path, 64 << 20);
     defer a.free(bytes);
