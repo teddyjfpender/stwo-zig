@@ -152,9 +152,44 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     var truth_setup = try KR.TruthSetup.init(a, Fixture.KECCAK_LOG);
     defer truth_setup.deinit();
     const truth = R.Truth{ .keccak = .{ .setup = &truth_setup, .first_id = 1, .calls = kio.total() } };
+    const metadata_setups = [_]*const R.CpuSetup{ &setups[0], &setups[1] };
+    const metadata_spans = [_]T.OpTowerSpan{ .{}, .{} };
+    const metadata_logs = [_]u32{ 5, 5 };
+    // Existing admission must continue to refuse a missing classic sponge
+    // bridge; only the explicit detached gate understands the new source.
+    try std.testing.expectError(error.InvalidCombinedBridgePresence, P.admitForOp(a, &metadata_setups, &.{truth}, &requests, expected, &metadata_spans));
+    const admitted = try P.admitForOpDetached(a, &metadata_setups, &.{truth}, &requests, expected, &metadata_spans, &metadata_logs);
+    try std.testing.expectEqual(@as(u32, if (hole) 2 else 1), admitted[0]);
+    var wrong_metadata = requests;
+    wrong_metadata[1].base.cpu.initial_pc += 4;
+    try std.testing.expectError(error.GlobalCpuBoundaryMismatch, P.admitForOpDetached(a, &metadata_setups, &.{truth}, &wrong_metadata, expected, &metadata_spans, &metadata_logs));
+    var wrong_truth = truth;
+    wrong_truth.keccak.calls -= 1;
+    if (P.admitForOpDetached(a, &metadata_setups, &.{wrong_truth}, &requests, expected, &metadata_spans, &metadata_logs)) |_| return error.AcceptedDetachedTruthOmission else |_| {}
+
     var truth_key = try TruthAPI.Key.init(a, truth, profile);
     defer truth_key.deinit();
     const truth_expected = try truth_key.expected(truth, 3);
+    const SourceInventory = @import("inventory.zig");
+    const cpu_sources = [_]SourceInventory.Cpu{
+        .{ .setup = &setups[0], .request = requests[0], .span = .{}, .key = &keys[0] },
+        .{ .setup = &setups[1], .request = requests[1], .span = .{}, .key = &keys[1] },
+    };
+    const detached_sources = [_]SourceInventory.Detached{.{ .key = &detached_key, .geometry = geometry }};
+    const catalog_sources = [_]SourceInventory.Catalog{.{ .truth = truth, .key = if (local_truth) &truth_key.base else &truth_key, .local_key = if (local_truth) &truth_key else null }};
+    var inventory = try SourceInventory.Inventory.init(a, profile, &cpu_sources, &detached_sources, &catalog_sources, &.{}, expected);
+    defer inventory.deinit();
+    try std.testing.expectEqual(@as(usize, 4), inventory.workers.len);
+    for (inventory.workers[0..2], workers) |source, worker| try std.testing.expectEqualSlices(u8, &worker.expected.statement, &source.authority.statement);
+    try std.testing.expectEqualSlices(u8, &detached.expected.statement, &inventory.workers[2].authority.statement);
+    try std.testing.expectEqualSlices(u8, &truth_expected.statement, &inventory.workers[3].authority.statement);
+    var wrong_detached = detached_sources;
+    wrong_detached[0].geometry.first_id += 1;
+    try std.testing.expectError(error.DetachedInventoryCoverage, SourceInventory.Inventory.init(a, profile, &cpu_sources, &wrong_detached, &catalog_sources, &.{}, expected));
+    var discontinuous = cpu_sources;
+    discontinuous[1].request.base.cpu.initial_pc += 4;
+    try std.testing.expectError(error.GlobalCpuBoundaryMismatch, SourceInventory.Inventory.init(a, profile, &discontinuous, &detached_sources, &catalog_sources, &.{}, expected));
+
     var truth_worker = if (local_truth) try TruthAPI.Worker.initWithGkrOptions(a, &truth_key, truth, Truth.SourceBuilder.fromAdvice(&captured.advice), truth_expected, .{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .gkr_bytes = 512 << 20 }, .{ .coefficient_encoding = .fixed4 }) else try TruthAPI.Worker.init(a, &truth_key, truth, Truth.SourceBuilder.fromAdvice(&captured.advice), truth_expected, .{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 16 << 20 });
     defer truth_worker.deinit();
     const truth_stage = try truth_worker.seal();

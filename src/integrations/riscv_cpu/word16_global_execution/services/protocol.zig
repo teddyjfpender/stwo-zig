@@ -90,7 +90,8 @@ const KS = A.crypto.keccak_sponge;
 /// per permutation (18 message word reads); U16/U8 gain their unconditional
 /// per-row counts; IO11 gains 50 per call (links, final output) and 50 per
 /// permutation (input, previous output).
-pub fn admitSponge(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, range16: u64, range8: u64, io: u64 } {
+const SpongeAdmission = struct { ram: u64, range16: u64, range8: u64, io: u64 };
+pub fn admitSponge(setup: *const R.CpuSetup, r: Request) !SpongeAdmission {
     const logs = setup.bridges.sponge;
     var range16: u64 = 0;
     var range8: u64 = 0;
@@ -116,6 +117,22 @@ pub fn admitSponge(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, ran
         if (8 * binary_rows + (@as(u64, KS.layout.andCount(.perm)) << @intCast(l)) >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
     }
     return .{ .ram = 58 * @as(u64, r.sponge.calls) + 36 * @as(u64, r.sponge.perms), .range16 = range16, .range8 = range8, .io = 50 * (@as(u64, r.sponge.calls) + r.sponge.perms) };
+}
+
+/// Explicit detached OP source geometry. This is metadata admission only:
+/// the separate source inventory must authenticate the frontier and detached
+/// worker, its local GKR mass and complete shared RAM/KIO/Wire obligations.
+fn admitDetachedSponge(setup: *const R.CpuSetup, r: Request, ordinal: u32, log: u32) !SpongeAdmission {
+    if (!setup.op_only or setup.bridges.sponge.any()) return error.InvalidDetachedSpongeSetup;
+    try KS.serialized.frontier.validatePublic(r.sponge.calls, log, r.base.epoch, ordinal);
+    if ((r.sponge.calls == 0) != (r.sponge.perms == 0) or r.sponge.perms < r.sponge.calls or @as(u64, r.sponge.perms) > @as(u64, r.sponge.calls) * (KS.types.Native.MAX_LEN / 136 + 1)) return error.InvalidCombinedServiceCount;
+    if (r.sponge.any() and r.sponge.first_id == 0) return error.InvalidCombinedTruthSpan;
+    if (!r.sponge.any() and r.sponge.first_id != 0) return error.InvalidCombinedBridgePresence;
+    const rows = @as(u64, 1) << @intCast(log);
+    // Only the frontier clock low/high issue CPU U16/U8 queries. Descriptor,
+    // state and message RAM/IO are owned by the separately admitted worker;
+    // include their conservative mass in the complete-execution checks below.
+    return .{ .ram = 58 * @as(u64, r.sponge.calls) + 36 * @as(u64, r.sponge.perms), .range16 = rows, .range8 = rows, .io = 50 * (@as(u64, r.sponge.calls) + r.sponge.perms) };
 }
 
 /// Admitted Zbb BINARY component of one CPU proof (profile
@@ -146,16 +163,27 @@ pub fn firstIds(requests: []const Request, index: usize) ![T.FAMILIES]u32 {
     return out;
 }
 pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const Request, expected: Expected) ![T.FAMILIES]u32 {
-    return admitMode(a, setups, truths, requests, expected, null);
+    return admitMode(a, setups, truths, requests, expected, null, null);
 }
 /// Explicit OP metadata admission. The complete receiver additionally checks
 /// Miller truth coverage and source-owned local/global bounds with deriveForOp.
 /// Old entrypoints never erase OP flags or project away packet obligations.
 pub fn admitForOp(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const Request, expected: Expected, spans: []const T.OpTowerSpan) ![T.FAMILIES]u32 {
     if (spans.len != setups.len) return error.InvalidCombinedInventory;
-    return admitMode(a, setups, truths, requests, expected, spans);
+    return admitMode(a, setups, truths, requests, expected, spans, null);
 }
-fn admitMode(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const Request, expected: Expected, op_spans: ?[]const T.OpTowerSpan) ![T.FAMILIES]u32 {
+/// Closed detached-source metadata gate. It shares exact service/truth
+/// coverage, CPU adjacency, boundary/image and terminal admission with the
+/// original route, without inventing old bridge logs or erasing sponge calls.
+/// Per-CPU Sponge P/first-ID spans are framed planning metadata. The new
+/// frontier authenticates CALL tuples; aggregate detached P/global IO supply
+/// physical authority. This gate does not prove that advisory partition.
+/// This alone never selects a new source suite or accepts a physical proof.
+pub fn admitForOpDetached(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const Request, expected: Expected, spans: []const T.OpTowerSpan, frontier_logs: []const u32) ![T.FAMILIES]u32 {
+    if (setups.len > 256 or spans.len != setups.len or frontier_logs.len != setups.len) return error.InvalidCombinedInventory;
+    return admitMode(a, setups, truths, requests, expected, spans, frontier_logs);
+}
+fn admitMode(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const Request, expected: Expected, op_spans: ?[]const T.OpTowerSpan, frontier_logs: ?[]const u32) ![T.FAMILIES]u32 {
     if (setups.len == 0 or setups.len > 65535 or truths.len > 65535 - setups.len or setups.len != requests.len) return error.InvalidCombinedInventory;
     const suite = setups[0].materials.suite;
     try suite.validate();
@@ -184,7 +212,11 @@ fn admitMode(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
         if (op_spans) |spans| service_calls = try std.math.add(u64, service_calls, spans[index].calls);
         if (service_calls > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
         const bulk = try admitBulk(setup, req);
-        const sponge = try admitSponge(setup, req);
+        const sponge = if (frontier_logs) |logs| try admitDetachedSponge(setup, req, @intCast(index), logs[index]) else try admitSponge(setup, req);
+        if (frontier_logs != null) {
+            // Positive CPU frontier plus negative detached OWNER transfer.
+            op_wire = try std.math.add(u64, op_wire, 2 * @as(u64, req.sponge.calls));
+        }
         const dword = try admitDword(setup, req);
         const zbb_and = try admitZbb(setup);
         // The AND relation of this CPU proof (BINARY, every byte-pair consumer

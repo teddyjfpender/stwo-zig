@@ -1,6 +1,9 @@
 //! Bounded view of the EXISTING canonical proof ID policy: all direct Keccak
 //! calls in CPU order, then Sponge permutations in CPU/call order. Execution
 //! retirement IDs are deliberately not this proof-local permutation space.
+//! This is a deterministic producer/receiver planning convention, not an AIR
+//! theorem about each CPU's permutation count. In the detached construction
+//! only per-CPU call tuples and aggregate P/global IO are physical authority.
 const std = @import("std");
 const core = @import("stwo_core");
 const P = @import("../../word16_global_execution/services/protocol.zig");

@@ -164,3 +164,25 @@ key cannot supply a producer tree. The complete native fixture exercises both
 paths and preserves all seven original physical/local proof artifacts exactly.
 This reduces retention rather than avoiding initial source construction; class
 caching and whole-block memory measurements remain separate qualifications.
+
+
+`inventory.zig` builds pending source authority from independent CPU, detached,
+catalog and Miller keys and requests. It owns only bounded rosters/IDs/plan
+metadata. The explicit shared `admitForOpDetached` path preserves original
+CPU adjacency, program/image, boundary, service and truth coverage checks while
+admitting the tiny frontier's range queries. Classic entrypoints still reject
+missing original sponge bridges; no source suite is automatically selected.
+Fresh physical native joining, bad CPU adjacency, detached gaps and missing
+truth coverage are qualified. The original Ethereum sponge wire/fresh-receiver
+and adversarial test also passes after restoring its historical fixture ROM
+identity; its default production profile is unchanged.
+
+The frontier authenticates each CPU's CALL count and full OWNER tuple, including
+clock and epoch. Per-CPU permutation counts and first-ID spans are deterministic
+scheduler metadata; this AIR does not prove that partition. Semantic authority
+is aggregate detached P, full global KIO coverage and RAM/Wire closure. If a
+future external statement needs per-CPU permutation spans as an authenticated
+output, it needs an additional binding relation. Current execution semantics do
+not require extra columns merely to canonicalize those opaque IDs. Local-GKR
+security/resource accounting, runtime/wire admission and complete recursive
+receiver integration remain gates before production promotion.
