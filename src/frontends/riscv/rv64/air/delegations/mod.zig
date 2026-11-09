@@ -13,4 +13,5 @@ pub const multiplication = @import("multiplication/mod.zig");
 pub const registry = @import("registry.zig");
 
 /// Closed-admission OP-only candidate, never appended to the v3 roster.
+pub const bn254_dense = @import("bn254_dense/mod.zig");
 pub const bn254_tower = @import("bn254_tower/mod.zig");

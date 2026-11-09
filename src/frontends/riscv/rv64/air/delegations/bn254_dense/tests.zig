@@ -114,3 +114,8 @@ test "all dense basis monomials and common source carry envelope" {
         };
     }
 }
+
+/// Independent nested tower control for physical fixture output authority.
+pub fn reference(a: [12]F, b: [12]F) [12]F {
+    return flat(m12(unflat(&a), unflat(&b)));
+}

@@ -73,3 +73,26 @@ Next gates: source-ROM degree testing; bounded BYTE/multiplicity and SSA physica
 closure; complete public frontier and forged input/output/call/ROM controls;
 fresh proof receiver and recursive source factory. No selected guest change is
 justified until total native+recursive cost is measured.
+
+## Closed physical arithmetic gate
+
+`test-riscv64-op-dense-proof` now produces a real237,192-byte OM31 proof for one
+multiply call/log8 and a fresh independently rebuilt FIXED key. The one-call
+source ROM fixes the active prefix and all twelve output coordinates. Inputs are
+receiver-pinned public parameters mixed into the transcript and constrained byte
+by byte; expected outputs come from the independent nested-tower reference.
+This deliberately avoids claiming the future SSA/global-memory frontier exists.
+
+The complete classic BYTE argument uses committed MAIN multiplicities; all
+inactive arithmetic private cells are zero, while provider multiplicities may
+occupy inactive rows of the immutable256-byte table. MAIN1075/INTER1432 is a
+correctness reference, not the planned32-column GKR projection. All constraints
+have degree≤3, including ROM and interaction clearing; packed and scalar domain
+emitters agree. Fresh reception rejects altered opened output/quotient/carry/
+provider values and wrong public input/output. A coherent provider multiplicity
+change also fails BYTE closure. The allocator has a2GiB hard cap.
+
+This uses **q12/P0 correctness-only** settings. It establishes neither a128-bit
+security profile nor an execution/RAM/service join. The square class, local GKR,
+recursive source factory, mass/resource ledger and full production frontiers are
+still pending. Exact source/proof hashes are in `guest/dense-direct-physical-v1.json`.

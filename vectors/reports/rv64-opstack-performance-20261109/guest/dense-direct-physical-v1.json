@@ -1,0 +1,55 @@
+{
+  "schema": "op-dense-direct-physical-v1",
+  "scope": "one arbitrary Fq12 multiply call, explicit public-packet authority; no production SSA/RAM/Wire joins",
+  "profile": {
+    "purpose": "correctness only",
+    "pow_bits": 0,
+    "queries": 12,
+    "log_blowup": 1,
+    "field": "OM31"
+  },
+  "security_qualified": false,
+  "production_admission_open": false,
+  "geometry": {
+    "calls": 1,
+    "arithmetic_rows": 12,
+    "log": 8,
+    "main": 1075,
+    "inter": 1432,
+    "fixed": 14,
+    "maximum_degree": 3,
+    "composition_split": 1
+  },
+  "proof_bytes": 237192,
+  "proof_sha256": "e7a40744a21becf6023e1265b78672db35489db1912fc4640588bcf4c8aa3dd4",
+  "artifact": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/dense-direct-physical-v1/proof.bin",
+  "hard_allocator_cap_bytes": 2147483648,
+  "qualified": [
+    "native complete arithmetic plus BYTE closure numeric validity",
+    "degree<=3 includes source ROM and interaction denominators",
+    "packed/scalar domain emitter parity",
+    "real PCS/STARK proof",
+    "fresh receiver independently rebuilds immutable FIXED root without witness math",
+    "receiver-pinned rawu256 input and independently nested-tower expected output",
+    "opened output/quotient/carry/provider mutations rejected",
+    "wrong expected input and output rejected",
+    "coherent committed provider multiplicity change fails range closure",
+    "std.testing allocator ownership teardown"
+  ],
+  "source_sha256": {
+    "spec.zig": "a03d54ce62b6a57c7acdd7a379cceee5b8f051fcd6794b2442d45037bd0d2059",
+    "row.zig": "1165749cde8355615eb5d0bda033af240583ad48ea88e512ce8f0ccbf7ec043c",
+    "air.zig": "d7b7d22db8ce8972e872c5f044ff851daf21c116b7ad29e2df73d8ba04b5b9cf",
+    "fixture_component.zig": "80ed7db0457473237d1a32837a34ef22c064905eded176445916fb4849d8ff68",
+    "fixture_trace.zig": "f3d8d0ebd24c9775328297384989333211151ca03bc5300fca7f0bb7f7431cd6"
+  },
+  "pending": [
+    "physical square class",
+    "source-owned typed SSA and global authenticated frontiers",
+    "local-GKR binding/degree/source-mask qualification",
+    "recursive concrete source factory",
+    "full security/characteristic/resource ledger",
+    "runtime ABI/profile/selector decision",
+    "measured native+recursive performance"
+  ]
+}
