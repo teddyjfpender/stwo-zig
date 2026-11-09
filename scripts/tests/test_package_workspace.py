@@ -551,5 +551,51 @@ class ConstructedProductDeclarationTests(unittest.TestCase):
             self.assertIn("stwo", check_build_configure_closure.read_product_declarations(ROOT, include_constructed=True))
 
 
+class ConsumerRootBindingTests(unittest.TestCase):
+    def exercise(self, mutation=None):
+        import json
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            provider = replace(subject.load_contract(ROOT / "src/waist/core/package.contract.json"), directory=root / "src/provider")
+            owner = replace(subject.load_contract(ROOT / "src/backends/cpu_scalar/package.contract.json"), directory=root / "src/consumer", dependencies={"stwo_core": "../provider"}, consumer_subdirs=())
+            relative = "src/consumer/contract_tests/stwo_core_test.zig"
+            row = {"id": "package:stwo_cpu_backend", "root": relative, "route": "dependency:stwo_core", "imports": ["stwo_core", "stwo_cpu_backend"], "tests": ["cdc: one", "cdc: two"]}
+            source = 'const std = @import("std"); const core = @import("stwo_core"); const witness = @import("stwo_cpu_backend");\ntest "cdc: one" {}\ntest "cdc: two" {}\n'
+            tracked = {relative}
+            if mutation:
+                row, source, owner, tracked = mutation(row, source, owner, tracked)
+            path = root / row["root"]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(source)
+            payload = json.loads((ROOT / "src/waist/core/package.contract.json").read_text())
+            payload.update(schema="stwo-zig-package-contract-v3", consumers=[row])
+            metadata = subject.ci_package_graph.parse_contract_metadata(payload, "fixture")
+            return subject.ci_package_graph.validate_package_consumer_sources(root, provider, metadata, {provider.package: provider, owner.package: owner}, tracked)
+
+    def test_actual_owner_route_imports_and_named_tests_are_source_consistent(self):
+        self.assertEqual([], self.exercise())
+        extra = '\n// @import("forged"); test "forged" {}\nconst ignored = "test \\"forged\\" {}";\n\\\\ @import("also_forged"); test "not_a_test" {}\n'
+        self.assertEqual([], self.exercise(lambda r, s, o, t: (r, s + extra, o, t)))
+
+    def test_source_mutations_reject_private_unregistered_or_disconnected_contracts(self):
+        mutations = [lambda r,s,o,t: (r,s,o,set()),
+                     lambda r,s,o,t: ({**r,"id":"package:unknown"},s,o,t),
+                     lambda r,s,o,t: (r,s,replace(o,dependencies={"stwo_core":"../other"}),t),
+                     lambda r,s,o,t: (r,s,replace(o,consumer_subdirs=("contract_tests",)),t),
+                     lambda r,s,o,t: (r,s.replace('@import("stwo_core")','@import("../private.zig")'),o,t),
+                     lambda r,s,o,t: (r,s.replace('@import("stwo_cpu_backend")','@import("other_consumer")'),o,t),
+                     lambda r,s,o,t: (r,s.replace('test "cdc: two"','test "cdc: one"'),o,t),
+                     lambda r,s,o,t: (r,s.replace('test "cdc: two" {}','const nested = struct { test "cdc: two" {} };'),o,t),
+                     lambda r,s,o,t: (r,s.replace('test "cdc: two"','test'),o,t),
+                     lambda r,s,o,t: ({**r,"route":"injected:stwo_core"},s,o,t),
+                     lambda r,s,o,t: ({**r,"route":"injected:stwo_core"},s,replace(o,injected_modules=frozenset({"stwo_core"})),t)]
+        for index, mutation in enumerate(mutations):
+            with self.subTest(index=index):
+                self.assertTrue(self.exercise(mutation))
+
+    def test_unimplemented_product_owner_routes_fail_closed(self):
+        self.assertTrue(self.exercise(lambda r,s,o,t: ({**r,"id":"product:stwo-native-cpu","route":"product:stwo-native-cpu"},s,o,t)))
+
+
 if __name__ == "__main__":
     unittest.main()

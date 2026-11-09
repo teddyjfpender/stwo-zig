@@ -409,3 +409,67 @@ def read_product_declarations(repository: Path, *, include_constructed: bool = F
         return construction.read_product_declarations(repository, include_constructed=include_constructed)
     except construction.ProductDeclarationError as error:
         raise GraphError(str(error)) from error
+
+
+def validate_package_consumer_sources(repository: Path, provider: Any, metadata: ContractMetadata,
+                                      contracts: Mapping[str, Any], tracked: set[str]) -> list[str]:
+    """Static root consistency only; never builder/Module identity or execution proof.
+
+    tracked is the caller's authoritative regular-file inventory for this source.
+    Unsupported product/injected routes remain errors until their full validation exists.
+    """
+    from scripts.repo import check_build_configure_closure as construction
+    repository = repository.resolve()
+    failures = []
+    waist_modules = {module for contract in contracts.values()
+                     if contract.layer in {"protocol", "contract", "api", "interchange"}
+                     for module in contract.public_modules}
+    for entry in metadata.consumers:
+        try:
+            if not entry.id.startswith("package:"):
+                raise GraphError("product owner/closure validation is pending")
+            owner = contracts.get(entry.id.removeprefix("package:"))
+            if owner is None:
+                raise GraphError("unknown consumer package")
+            source = repository / entry.root
+            if (entry.root not in tracked or source.is_symlink() or not source.is_file()
+                    or source.resolve() != source or not source.is_relative_to(repository)):
+                raise GraphError("consumer root is not a canonical tracked regular source")
+            if package_owner(contracts, source) is not owner:
+                raise GraphError("consumer source belongs to another or excluded owner")
+            if source.relative_to(owner.directory.resolve()).as_posix() != f"contract_tests/{provider.package}_test.zig":
+                raise GraphError("consumer root does not use its provider-owned test basename")
+            route, module = entry.route.split(":", 1)
+            if module not in provider.public_modules:
+                raise GraphError("route does not name this public provider")
+            if route == "injected":
+                if module not in owner.injected_modules:
+                    raise GraphError("undeclared provider injection")
+                raise GraphError("injected provider builder binding validation is pending")
+            relative = owner.dependencies.get(module)
+            if route != "dependency" or relative is None or (owner.directory / relative).resolve() != provider.directory.resolve():
+                raise GraphError("consumer does not declare this provider dependency")
+            allowed = (set(owner.dependencies) | set(owner.injected_modules)) & waist_modules
+            allowed |= set(owner.public_modules)  # Only the owning public module may be a type witness.
+            if module not in entry.imports or not set(entry.imports) <= allowed:
+                raise GraphError("consumer imports undeclared or nonpublic provider/witness modules")
+            tokens = construction.source_tokens(source.read_text(encoding="utf-8"))
+            imports, tests, depth = [], [], 0
+            for index, token in enumerate(tokens):
+                if tokens[index:index + 3] == ["@", "import", "("]:
+                    value = tokens[index + 3:index + 5]
+                    if len(value) != 2 or not value[0].startswith('"') or value[1] != ")":
+                        raise GraphError("consumer import must be a literal public module")
+                    imports.append(json.loads(value[0]))
+                if depth == 0 and token == "test":
+                    if index + 2 >= len(tokens) or not tokens[index + 1].startswith('"') or tokens[index + 2] != "{":
+                        raise GraphError("consumer tests must be named top-level cases")
+                    tests.append(json.loads(tokens[index + 1]))
+                depth += (token == "{") - (token == "}")
+            if set(imports) != set(entry.imports) | {"std"}:
+                raise GraphError("consumer imports differ from the exact registration")
+            if tuple(sorted(tests)) != entry.tests or len(tests) != len(set(tests)):
+                raise GraphError("consumer test discovery differs from the exact registration")
+        except (ValueError, OSError) as error:
+            failures.append(f"{provider.package} CDC {entry.id}: {error}")
+    return failures

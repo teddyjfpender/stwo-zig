@@ -476,6 +476,12 @@ def main() -> int:
     return 0
 
 
+def source_tokens(text: str) -> list[str]:
+    pattern = r'//[^\n]*|/\*.*?\*/|\\\\[^\n]*|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|[A-Za-z_][A-Za-z0-9_]*|[^\s]'
+    return [m.group() for m in re.finditer(pattern, text, re.DOTALL)
+              if not m.group().startswith(("//", "/*"))]
+
+
 class ProductDeclarationError(ValueError):
     pass
 
@@ -511,9 +517,7 @@ class _ProductSource:
         if path in self.cache:
             return self.cache[path]
         text = path.read_text(encoding="utf-8")
-        pattern = r'//[^\n]*|/\*.*?\*/|\\\\[^\n]*|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|[A-Za-z_][A-Za-z0-9_]*|[^\s]'
-        tokens = [m.group() for m in re.finditer(pattern, text, re.DOTALL)
-                  if not m.group().startswith(("//", "/*"))]
+        tokens = source_tokens(text)
         declarations = {}
         for statement in self.split(tokens, ";"):
             # Function bodies have no top-level semicolon, so scan their closing braces too.
