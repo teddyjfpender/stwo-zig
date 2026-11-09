@@ -24,6 +24,7 @@ const Truth = @import("pure_p2_truth_worker.zig");
 const TruthLocal = @import("truth_local_gkr/worker.zig");
 const TruthLocalSecurity = @import("pure_p2_truth_local_security.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
+const SourceSuite = @import("pure_p2_source_suite.zig").Suite;
 const Inv = @import("pure_p2_op_inventory.zig");
 const Bundle = @import("pure_p2_op_bundle.zig");
 const Producer = @import("pure_p2_op_producer.zig");
@@ -48,6 +49,7 @@ pub const Options = struct {
     cache: ?*SetupCache = null,
     /// Schema2 is an explicit protocol authority, never an implicit fallback.
     truth_local_gkr: bool = false,
+    source_suite: ?SourceSuite = null,
 };
 pub const Resources = struct {
     /// Producer-only bounded inactive CPU advice parking; proof bytes unchanged.
@@ -273,6 +275,7 @@ fn requests(a: std.mem.Allocator, m: Metadata, cells: Cells.Owned) ![]P.Request 
 /// Borrowed only during complete(): all native proofs and zero-sum relations
 /// plus independently pinned terminal output have passed before this callback.
 pub const CompleteVerified = struct {
+    source_suite: ?SourceSuite = null,
     image: *const Image.Owner,
     metadata: Metadata,
     requests: []const P.Request,
@@ -300,6 +303,7 @@ pub fn verifyDirectory(a: std.mem.Allocator, config: Request.Config, path: []con
     return verifyDirectoryWithHooks(a, config, path, profile, resources, .{});
 }
 pub const SourceDirectory = struct {
+    source_suite: ?SourceSuite = null,
     /// Borrowed source-policy authority only. Public cells/output are NOT
     /// authenticated execution until the consumer verifies its root/proofs.
     image: *const Image.Owner,
@@ -353,6 +357,7 @@ pub fn withSourceDirectoryWithOptions(a: std.mem.Allocator, config: Request.Conf
     defer parsed.deinit();
     const m = parsed.value;
     try m.validate();
+    if (options.source_suite != null) return error.OpSourceSuiteWireNotImplemented;
     if ((m.schema == 2) != options.truth_local_gkr) return error.OpNativeSchemaPolicy;
     if (m.profile != profile) return error.InvalidOpNativeProfile;
     const compact = m.cpus[0].geometry.cpu_compact_decode;
@@ -415,6 +420,7 @@ pub fn verifyDirectoryWithOptions(a: std.mem.Allocator, config: Request.Config, 
     return withSourceDirectoryWithOptions(a, config, path, profile, resources, options, &context, NativeReception.run);
 }
 pub fn produceDirectoryWithOptions(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, options: Options) !void {
+    if (options.source_suite != null) return error.OpSourceSuiteWireNotImplemented;
     return produceDirectoryMode(a, config, path, profile, resources, .prove, options.cache, options.truth_local_gkr);
 }
 pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {

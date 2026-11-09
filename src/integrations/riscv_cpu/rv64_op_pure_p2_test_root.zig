@@ -93,3 +93,11 @@ test {
 test {
     _ = @import("poseidon2_outer/miller_local_gkr/security.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/pure_p2_source_suite.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/pure_p2_op_inventory.zig");
+}

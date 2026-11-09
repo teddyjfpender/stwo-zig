@@ -12,6 +12,7 @@ const Key = @import("pure_p2_fixed_key.zig").Key;
 const Truth = @import("pure_p2_truth_worker.zig");
 const TruthLocal = @import("truth_local_gkr/worker.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
+const MillerLocal = @import("miller_local_gkr/worker.zig");
 const R = @import("../word16_global_execution/services/roster.zig");
 const P = @import("../word16_global_execution/services/protocol.zig");
 const T = @import("../word16_global_execution/services/types.zig");
@@ -70,12 +71,23 @@ pub const MillerVerified = struct {
     capture: *const Capture,
     stage_one: Manifest.StageOne,
 };
+pub const MillerLocalVerified = struct {
+    span: MillerLocal.Span,
+    key: *const MillerLocal.Key,
+    expected: Manifest.Expected,
+    manifest: *const Manifest.Pending,
+    ordinal: usize,
+    encoded: *const MillerLocal.Encoded,
+    capture: *const Capture,
+    stage_one: Manifest.StageOne,
+};
 pub const Hooks = struct {
     context: ?*anyopaque = null,
     cpu: ?*const fn (?*anyopaque, std.mem.Allocator, CpuVerified) anyerror!void = null,
     truth: ?*const fn (?*anyopaque, std.mem.Allocator, TruthVerified) anyerror!void = null,
     truth_local: ?*const fn (?*anyopaque, std.mem.Allocator, LocalTruthVerified) anyerror!void = null,
     miller: ?*const fn (?*anyopaque, std.mem.Allocator, MillerVerified) anyerror!void = null,
+    miller_local: ?*const fn (?*anyopaque, std.mem.Allocator, MillerLocalVerified) anyerror!void = null,
 };
 /// Complete native closure, still pending the application's independently
 /// expected terminal/output policy. Owns all stage-one/local proof custody.
@@ -109,6 +121,7 @@ pub const Bundle = struct {
         return self.verifyWithHooksForTruthLocal(a, inventory, setups, requests, spans, keys, truths, truth_keys, miller, hooks);
     }
     pub fn verifyWithHooksForTruthLocal(self: *const Bundle, a: std.mem.Allocator, inventory: *const Inventory.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inventory.MillerDeclaration, hooks: Hooks) !Closed {
+        if (inventory.source_suite != null) return error.OpSourceSuiteRequiresExplicitReceiver;
         if (inventory.truth_local_keys.len != 0 and inventory.truth_local_keys.len != truths.len) return error.InvalidOpTruthLocalInventory;
         if (setups.len != inventory.cpu_count or requests.len != setups.len or keys.len != setups.len or spans.len != setups.len or truths.len != inventory.truth_count or truths.len != truth_keys.len or self.proofs.len != inventory.workers.len or setups.len + truths.len + miller.len != self.proofs.len) return error.InvalidOpNativeBundle;
         var stages = try MW.decode(a, inventory.execution, inventory.workers, self.stage_one);

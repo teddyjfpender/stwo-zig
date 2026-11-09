@@ -105,6 +105,7 @@ fn sealAndPark(a: std.mem.Allocator, worker: *Worker, expected: Manifest.Expecte
     return out;
 }
 pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const Inv.MillerDeclaration, native: []const *Native, advice: *const Advice, store: *Store, limits: Limits) !B.Bundle {
+    if (inventory.source_suite != null) return error.OpSourceSuiteWireNotImplemented;
     if (!Budget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     if (limits.consume_memory_events and !@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
     if (setups.len != inventory.cpu_count or requests.len != setups.len or spans.len != setups.len or keys.len != setups.len or native.len != setups.len or advice.tower.len != setups.len or truths.len != inventory.truth_count or truth_keys.len != truths.len or setups.len + truths.len + miller.len != inventory.workers.len) return error.InvalidOpNativeInventory;

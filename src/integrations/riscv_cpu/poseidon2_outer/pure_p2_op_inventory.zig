@@ -15,8 +15,10 @@ const Key = @import("pure_p2_fixed_key.zig").Key;
 const Truth = @import("pure_p2_truth_worker.zig");
 const TruthLocal = @import("truth_local_gkr/worker.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
+const MillerLocal = @import("miller_local_gkr/worker.zig");
+const Suite = @import("pure_p2_source_suite.zig").Suite;
 const Profile = @import("pure_p2_worker_protocol.zig").Profile;
-pub const MillerDeclaration = struct { key: *const Miller.Key, span: Miller.Span };
+pub const MillerDeclaration = struct { key: *const Miller.Key, span: Miller.Span, local_key: ?*const MillerLocal.Key = null };
 pub const Inventory = struct {
     allocator: std.mem.Allocator,
     workers: []Manifest.Expected,
@@ -27,6 +29,7 @@ pub const Inventory = struct {
     truth_count: usize,
     /// Borrowed source keys. Empty is the original classic truth protocol.
     truth_local_keys: []const ?*const TruthLocal.Key = &.{},
+    source_suite: ?Suite = null,
     pub fn deinit(self: *Inventory) void {
         for (self.workers) |worker| if (worker.local_instances) |instances| self.allocator.free(instances);
         self.allocator.free(self.workers);
@@ -40,6 +43,24 @@ pub const Inventory = struct {
     /// A nonempty parallel vector is an explicit new truth protocol selection;
     /// it is supplied by independently rebuilt source authority, not the bundle.
     pub fn initForTruthLocal(a: std.mem.Allocator, profile: Profile, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, cpu_keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const MillerDeclaration, expected: P.Expected, truth_local_keys: []const ?*const TruthLocal.Key) !Inventory {
+        return initForSourceSuite(a, profile, setups, requests, spans, cpu_keys, truths, truth_keys, miller, expected, truth_local_keys, null);
+    }
+    /// Explicit independently selected source suite. Legacy constructors never
+    /// infer a new flavor from an incoming key, proof or metadata declaration.
+    pub fn initForSourceSuite(a: std.mem.Allocator, profile: Profile, setups: []const *const R.CpuSetup, requests: []const P.Request, spans: []const T.OpTowerSpan, cpu_keys: []const *const Key, truths: []const R.Truth, truth_keys: []const *const Truth.Key, miller: []const MillerDeclaration, expected: P.Expected, truth_local_keys: []const ?*const TruthLocal.Key, source_suite: ?Suite) !Inventory {
+        if (source_suite) |suite| {
+            try suite.validate();
+            if (suite.truth == .local_gkr and truth_local_keys.len != truths.len) return error.InvalidOpTruthLocalInventory;
+            if (suite.truth == .classic and truth_local_keys.len != 0) return error.InvalidOpTruthLocalInventory;
+        }
+        for (miller) |item| {
+            const wants_local = if (source_suite) |suite| suite.miller == .local_gkr else false;
+            if (wants_local != (item.local_key != null)) return error.OpMillerSourceSuitePolicy;
+            if (item.local_key) |key| {
+                _ = try key.geometry(item.span);
+                if (key.base.profile != profile or !std.mem.eql(u8, &key.base.identity, &item.key.identity) or !std.mem.eql(u8, &key.base.root, &item.key.root)) return error.OpMillerSourceSuitePolicy;
+            }
+        }
         if (truth_local_keys.len != 0 and truth_local_keys.len != truths.len) return error.InvalidOpTruthLocalInventory;
         if (profile == .reference_b2_q24_p0 or setups.len == 0 or setups.len != cpu_keys.len or setups.len != spans.len or setups.len != requests.len or truths.len != truth_keys.len or setups.len + truths.len + miller.len > Manifest.MAX_WORKERS) return error.InvalidOpNativeInventory;
         _ = try P.admitForOp(a, setups, truths, requests, expected, spans);
@@ -74,6 +95,7 @@ pub const Inventory = struct {
         for (truths, truth_keys, 0..) |truth, key, i| {
             if (key.profile != profile) return error.InvalidOpNativeProfile;
             try key.require(truth);
+            if (source_suite) |suite| if (suite.truth == .local_gkr and (truth == .keccak or truth == .secp) and truth_local_keys[i] == null) return error.InvalidOpTruthLocalInventory;
             if (if (truth_local_keys.len == 0) null else truth_local_keys[i]) |local| {
                 if (truth != .keccak and truth != .secp) return error.InvalidOpTruthLocalInventory;
                 try local.require(truth);
@@ -83,14 +105,17 @@ pub const Inventory = struct {
             done += 1;
         }
         for (miller) |item| {
-            workers[done] = try item.key.expected(item.span, @intCast(done));
+            workers[done] = if (item.local_key) |key| try key.expected(item.span, @intCast(done)) else try item.key.expected(item.span, @intCast(done));
             done += 1;
         }
         try Manifest.validateExpected(workers);
         // Every request statement and key is already framed by Manifest. This
         // domain additionally binds receiver-selected genesis/terminal authority.
         var h = std.crypto.hash.sha2.Sha256.init(.{});
-        h.update("op-native-pure-p2-complete-execution/v1\x00");
+        if (source_suite) |suite| {
+            h.update("op-native-pure-p2-complete-execution/source-suite/v1\x00");
+            h.update(&try suite.encode());
+        } else h.update("op-native-pure-p2-complete-execution/v1\x00");
         h.update(&profile.identity());
         h.update(&expected.program_identity);
         h.update(&expected.admission.image_identity);
@@ -102,11 +127,24 @@ pub const Inventory = struct {
             h.update(&worker.fixed_identity);
             h.update(&worker.fixed);
         }
-        return .{ .allocator = a, .workers = workers, .first_ids = ids, .bounds = bounds, .execution = h.finalResult(), .cpu_count = setups.len, .truth_count = truths.len, .truth_local_keys = truth_local_keys };
+        return .{ .allocator = a, .workers = workers, .first_ids = ids, .bounds = bounds, .execution = h.finalResult(), .cpu_count = setups.len, .truth_count = truths.len, .truth_local_keys = truth_local_keys, .source_suite = source_suite };
     }
 };
 fn mix(h: *std.crypto.hash.sha2.Sha256, word: u64) void {
     var bytes: [8]u8 = undefined;
     std.mem.writeInt(u64, &bytes, word, .little);
     h.update(&bytes);
+}
+
+test "OP inventory source suite is explicit and legacy constructors fail closed" {
+    const a = std.testing.allocator;
+    const profile = Profile.op_target_b4_q72_p0_fold4_v1;
+    var local = try MillerLocal.Key.init(a, profile, 8, 15);
+    defer local.deinit();
+    const declarations = [_]MillerDeclaration{.{ .key = &local.base, .local_key = &local, .span = .{ .calls = 1, .first_id = 1 } }};
+    // Empty CPU roster prevents any proof admission. These controls exercise
+    // protocol-policy selection before source keys can enter an inventory.
+    try std.testing.expectError(error.OpMillerSourceSuitePolicy, Inventory.initForTruthLocal(a, profile, &.{}, &.{}, &.{}, &.{}, &.{}, &.{}, &declarations, undefined, &.{}));
+    try std.testing.expectError(error.OpMillerSourceSuitePolicy, Inventory.initForSourceSuite(a, profile, &.{}, &.{}, &.{}, &.{}, &.{}, &.{}, &declarations, undefined, &.{}, Suite{}));
+    try std.testing.expectError(error.InvalidOpNativeInventory, Inventory.initForSourceSuite(a, profile, &.{}, &.{}, &.{}, &.{}, &.{}, &.{}, &declarations, undefined, &.{}, Suite.millerGkr()));
 }
