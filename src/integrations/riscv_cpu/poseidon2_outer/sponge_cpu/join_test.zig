@@ -159,8 +159,8 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     // Existing admission must continue to refuse a missing classic sponge
     // bridge; only the explicit detached gate understands the new source.
     try std.testing.expectError(error.InvalidCombinedBridgePresence, P.admitForOp(a, &metadata_setups, &.{truth}, &requests, expected, &metadata_spans));
-    const admitted = try P.admitForOpDetached(a, &metadata_setups, &.{truth}, &requests, expected, &metadata_spans, &metadata_logs);
-    try std.testing.expectEqual(@as(u32, if (hole) 2 else 1), admitted[0]);
+    const admitted_counts = try P.admitForOpDetached(a, &metadata_setups, &.{truth}, &requests, expected, &metadata_spans, &metadata_logs);
+    try std.testing.expectEqual(@as(u32, if (hole) 2 else 1), admitted_counts[0]);
     var wrong_metadata = requests;
     wrong_metadata[1].base.cpu.initial_pc += 4;
     try std.testing.expectError(error.GlobalCpuBoundaryMismatch, P.admitForOpDetached(a, &metadata_setups, &.{truth}, &wrong_metadata, expected, &metadata_spans, &metadata_logs));
