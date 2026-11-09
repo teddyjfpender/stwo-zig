@@ -44,14 +44,24 @@ pub(super) fn run_skipping(groups: &[Group], seed: Option<(&Fq12, &Fq12)>, skip:
             if point.is_zero() || (skip != 0 && (skip >> i) & 1 != 0) {
                 continue;
             }
-            let (mut c0, mut c1, c2) = prepared.ell_coeffs[line];
-            // BN254's D twist uses the sparse 034 line placement.
-            c0.mul_assign_by_fp(&point.y);
-            c1.mul_assign_by_fp(&point.x);
+            let coefficients = &prepared.ell_coeffs[line];
+            // BN254's D twist scales c0 by y and c1 by x before sparse034.
             #[cfg(feature = "pairing-sparse-service")]
-            super::sparse::mul_by_034(value, &c0, &c1, &c2);
+            super::sparse::miller_line(
+                value,
+                &coefficients.0,
+                &coefficients.1,
+                &coefficients.2,
+                &point.x,
+                &point.y,
+            );
             #[cfg(not(feature = "pairing-sparse-service"))]
-            value.mul_by_034(&c0, &c1, &c2);
+            {
+                let (mut c0, mut c1, c2) = *coefficients;
+                c0.mul_assign_by_fp(&point.y);
+                c1.mul_assign_by_fp(&point.x);
+                value.mul_by_034(&c0, &c1, &c2);
+            }
         }
         line += 1;
     };

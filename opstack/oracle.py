@@ -77,34 +77,51 @@ def bn254_fp2(packet):
     ).to_bytes(32, "little")
 
 
-def bn254_sparse034(packet):
-    """Independent schoolbook reduction in i²=-1, u³=9+i, w²=u.
+def _bn254_tower_sparse(accumulator, line, scales):
+    """Schoolbook triple products, independently reduced only at the end."""
+    p = 21888242871839275222246405745257275088696311157297823662689037894645226208583
+    out = [0] * 12
 
-    Inputs are 18 plain u256 words, with the last six in positions 0,3,4
-    of the Fq2 sparse multiplier. Only the first 12 result words are returned.
-    This deliberately does not share the provider's staged/carry equations.
-    """
+    def term(i, u, w, value):
+        if w >= 2:
+            term(i, u + 1, w - 2, value)
+        elif u >= 3:
+            term(i, u - 3, w, 9 * value)
+            term(i + 1, u - 3, w, value)
+        elif i >= 2:
+            term(i - 2, u, w, -value)
+        else:
+            out[i + 2 * u + 6 * w] += value
+
+    for a, x in enumerate(accumulator):
+        for b, y, scale in zip((0, 1, 6, 7, 8, 9), line, scales):
+            if x and y and scale:
+                term((a % 2) + (b % 2), (a // 2) % 3 + (b // 2) % 3,
+                     a // 6 + b // 6, x * y * scale)
+    return b"".join((x % p).to_bytes(32, "little") for x in out)
+
+
+def bn254_sparse034(packet):
+    """Pure mathematical sparse product, retained as a reference test helper."""
     if len(packet) != 576:
         raise ValueError("BN254 sparse034 packet size")
-    p = 21888242871839275222246405745257275088696311157297823662689037894645226208583
-    words = [int.from_bytes(packet[i:i+32], "little") for i in range(0,576,32)]
-    out = [0] * 12
-    sparse = [0] * 12
-    for at, value in zip((0,1,6,7,8,9),words[12:]): sparse[at] = value
-    def term(i,u,w,value):
-        if w >= 2:
-            term(i,u+1,w-2,value)
-        elif u >= 3:
-            term(i,u-3,w,9*value)
-            term(i+1,u-3,w,value)
-        elif i >= 2:
-            term(i-2,u,w,-value)
-        else:
-            out[i+2*u+6*w] += value
-    for a,x in enumerate(words[:12]):
-        for b,y in enumerate(sparse):
-            if x and y: term((a%2)+(b%2),(a//2)%3+(b//2)%3,a//6+b//6,x*y)
-    return b"".join((x%p).to_bytes(32,"little") for x in out)
+    words = [int.from_bytes(packet[i:i + 32], "little") for i in range(0, 576, 32)]
+    return _bn254_tower_sparse(words[:12], words[12:], [1] * 6)
+
+
+def bn254_miller_line(packet):
+    """OP640-byte line: c0*=G1y, c3*=G1x, c4 unchanged, then sparse034.
+
+    This uses direct schoolbook triple products, not the provider's private
+    scaled-coordinate witnesses or staged/carry equations. Inputs may be full
+    u256 representatives. Only the leading 12 output Fq coordinates are returned.
+    Tower: i²=-1, u³=9+i, w²=u.
+    """
+    if len(packet) != 640:
+        raise ValueError("BN254 Miller-line packet size")
+    words = [int.from_bytes(packet[i:i + 32], "little") for i in range(0, 640, 32)]
+    x, y = words[18:]
+    return _bn254_tower_sparse(words[:12], words[12:18], [y, y, x, x, 1, 1])
 
 
 def jumpdest_bitmap(code):
@@ -342,8 +359,8 @@ def execute(config, expected_steps, timeout=600, *, output_kind="op"):
                 elif tag == 0x0004_0001 and config.get("execution_profile") == "ethereum_services_op_v1":
                     if pointer % 32:
                         raise ValueError("unaligned OP sparse034 packet")
-                    packet = bytes(uc.mem_read(pointer, 576))
-                    uc.mem_write(pointer, bn254_sparse034(packet))
+                    packet = bytes(uc.mem_read(pointer, 640))
+                    uc.mem_write(pointer, bn254_miller_line(packet))
                     service_counts["op_sparse034_calls"] += 1
                 elif tag == 0x30121:
                     if pointer % 32:

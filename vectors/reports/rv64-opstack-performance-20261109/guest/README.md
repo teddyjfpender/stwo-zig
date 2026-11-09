@@ -33,19 +33,23 @@ Raw run outputs and frozen ELFs remain in
 their hashes. Major remaining work is genuine variable pairing arithmetic;
 full-request memoization is not a path to the 10× target.
 
-## Sparse034 client prototype (admission closed)
+## Miller-line client prototype (admission closed)
 
 [Client ABI and gates](sparse-client-prototype.json) pin the explicit
 `canonical-glv-hinted-sparse` build. It uses **0x0004_0001** in the new OP
-namespace, never the existing Keccak sponge tag. The inline576-byte packet
-contains 12 accumulator and six sparse-line Fq coordinates, with only the first
-384 bytes overwritten. Serialization names each coordinate; it does not cast
+namespace, never the existing Keccak sponge tag. The inline640-byte packet
+contains 12 accumulator, six raw line and two G1 point Fq coordinates, with only
+the first384 bytes overwritten. The service includes c0*y and c3*x point
+scaling before sparse034, removing four separate arith256 calls per line. Serialization names each coordinate; it does not cast
 Ark object layout. RV64 requires the canonical BN254 client; native reference
 execution retains the original software path.
 
 The old `ethereum_services_v3` VM refuses the actual new ELF at the first new
 call with `UnsupportedService`. The independent Python interpreter only admits
 this tag under `ethereum_services_op_v1` and uses schoolbook ring reduction.
-Fifteen host tests and 42 OP Python tests pass. The OP native/provider/RAM/wire
+Fifteen host tests and 43 OP Python tests pass. The OP native/provider/RAM/wire
 and physical-proof joins must qualify before production admission; neither
 execution completion nor proving speedup is claimed from this prototype.
+
+The earlier576-byte client was a closed control and is superseded before any
+OPv1 admission. There is one current variant, one OP profile, and one new tag.

@@ -1,19 +1,19 @@
 {
   "schema": "stwo.opstack.sparse034-client-prototype.v1",
   "status": "Built and unit-tested; existing v3 refuses; OP physical proof admission remains closed",
-  "source_parent": "50d597a72",
+  "source_parent": "6fa6a9174",
   "guest": {
-    "bytes": 3640096,
-    "sha256": "a9ee26a0bf2f8f25a5984d523a24eb1e284f2f6f5fdbc2bdb6601e4a5aa606ad"
+    "bytes": 3637288,
+    "sha256": "2b00b4094102e8d72f553debdc1fd688a9b8fa280d526af68d2dde147467b701"
   },
-  "executable_load_bytes": 2583688,
+  "executable_load_bytes": 2582356,
   "variant": "canonical-glv-hinted-sparse",
   "required_execution_profile": "ethereum_services_op_v1",
   "extra_service_tag": 262145,
   "abi": {
-    "packet_bytes": 576,
+    "packet_bytes": 640,
     "alignment": 32,
-    "inputs_fq": 18,
+    "inputs_fq": 20,
     "output_fq": 12,
     "fq_encoding": "plain canonical little-endian u256 as4u64 words; no Rust field-layout cast",
     "accumulator_order": [
@@ -38,20 +38,25 @@
       "c4.re",
       "c4.im"
     ],
-    "output_location": "overwrite first384bytes; final192linebytes unchanged",
-    "tower": "i^2=-1,u^3=9+i,w^2=u"
+    "output_location": "overwrite first384bytes; readonly final256bytes/8Fq",
+    "tower": "i^2=-1,u^3=9+i,w^2=u",
+    "point_order": {
+      "G1x": 18,
+      "G1y": 19
+    },
+    "point_scaling": "c0*=G1y; c3*=G1x; c4 unchanged, then sparse034"
   },
   "client_scope": "Miller sparse034 only, explicit opt-in. Canonical BN254 required on RV64; native host uses original Ark software. Default v3 guests/profiles unchanged.",
-  "independent_oracle": "Python schoolbook polynomial reduction, separately implemented from staged provider carry equations; arbitraryu256 representatives accepted and outputs reduced moduloBN254p. Newtag recognized only in OP profile.",
+  "independent_oracle": "Direct schoolbook triple products accumulator*line*point coordinate, reduced only after full tower multiplication; independent of private scaled witnesses/stagedcarryequations. Pure576-bytesparse product exists only as a reference test helper, not an admitted service.",
   "tests": {
     "release_host_pairing_sparse_unit_tests": 15,
-    "python_opstack_tests": 42,
+    "python_opstack_tests": 43,
     "failed": 0,
     "packet_checks": [
       "explicit order",
       "size/alignment",
       "12coordinate output decoding",
-      "sixlinecoordinatespreserved",
+      "eightreadonlyline/pointcoordinatespreserved",
       "noncanonicaloutputrefused"
     ],
     "independent_python_checks": [
@@ -68,9 +73,9 @@
     "status": "trap",
     "stop_error": "UnsupportedService",
     "verified_output": false,
-    "instructions_before_refusal": 15731539,
+    "instructions_before_refusal": 15731280,
     "a7": 262145,
-    "raw_report_sha256": "e5370c807305e10230e4875caa54d2928e8de06e81df716bdcce5c568b5325d3"
+    "raw_report_sha256": "51f0ec30e08465b3db608ebc94252485f492f4fe55578e71ecc9d5a591f3b5fb"
   },
   "open_gates": [
     "New OP VM session/compact capture/packet wire",
@@ -79,5 +84,14 @@
     "Physical proof, receiver, mutation and full cost qualification",
     "Production admission and newprofile security accounting"
   ],
-  "proving_speedup_claim": false
+  "proving_speedup_claim": false,
+  "op_service_abi": "bn254-miller-line-640/v1",
+  "superseded_closed_control": {
+    "guest": {
+      "bytes": 3640096,
+      "sha256": "a9ee26a0bf2f8f25a5984d523a24eb1e284f2f6f5fdbc2bdb6601e4a5aa606ad"
+    },
+    "packet_bytes": 576,
+    "status": "Never admitted; replaced before OPv1 production qualification by the640-byte boundary including point scaling."
+  }
 }

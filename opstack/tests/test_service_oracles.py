@@ -2,7 +2,7 @@
 
 import unittest
 
-from opstack.oracle import bn254_affine, bn254_fp2, bn254_sparse034, jumpdest_bitmap
+from opstack.oracle import bn254_affine, bn254_fp2, bn254_sparse034, bn254_miller_line, jumpdest_bitmap
 
 P = 21888242871839275222246405745257275088696311157297823662689037894645226208583
 
@@ -56,6 +56,19 @@ class ServiceOracles(unittest.TestCase):
         self.assertEqual(bn254_sparse034(packet(*a,0,P+1,0,0,0,0)),packet(*expected))
         with self.assertRaisesRegex(ValueError,"size"):
             bn254_sparse034(bytes(575))
+
+    def test_miller_line_scales_the_correct_coordinates_before_the_tower_product(self):
+        import random
+        rng = random.Random(0x40001)
+        for x, y in [(0, 0), (0, 1), (1, 0), (1, 1), (P-1, P-1), ((1<<256)-1, P+1)]:
+            words = [rng.getrandbits(256) for _ in range(18)]
+            scaled = words.copy()
+            for i in (12, 13): scaled[i] = scaled[i] * y % P
+            for i in (14, 15): scaled[i] = scaled[i] * x % P
+            self.assertEqual(bn254_miller_line(packet(*words, x, y)),
+                             bn254_sparse034(packet(*scaled)))
+        with self.assertRaisesRegex(ValueError, "size"):
+            bn254_miller_line(bytes(639))
 
     def test_jumpdest_push_payload_and_word_boundaries(self):
         self.assertEqual(jumpdest_bitmap(b""), b"")

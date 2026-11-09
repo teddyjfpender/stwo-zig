@@ -144,7 +144,7 @@ physical proving qualification; no AIR, tag, packet, or security profile changes
 **0x0004_0001** tag for BN254 Miller accumulator updates. Its build report
 requires `ethereum_services_op_v1`. The existing v3 VM refuses the new call.
 The [prototype ABI receipt](../vectors/reports/rv64-opstack-performance-20261109/guest/sparse-client-prototype.json)
-specifies the 576-byte inline packet and independently implemented Python
+specifies the final640-byte inline packet (accumulator, raw line and G1x/y) and independently implemented Python
 schoolbook oracle. This does not enlarge the existing generic curve packet or
 change default variants. The new VM, compact capture, provider, RAM bridge,
 receiver and security gates must pass before this profile can prove a block.

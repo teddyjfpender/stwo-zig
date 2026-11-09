@@ -1,4 +1,4 @@
-//! Explicit prototype client for the OP-only sparse034 service. The new
+//! Explicit prototype client for the OP-only Miller-line service. The new
 //! execution/profile admission stays separate from the established v3 client.
 use ark_bn254::{Fq, Fq2, Fq6, Fq12};
 use ark_ff::{BigInt, PrimeField};
@@ -8,11 +8,11 @@ pub(super) const TAG: usize = 0x0004_0001;
 /// Arrays have a specified contiguous layout; no Ark field object is cast to
 /// wire bytes. Each inner row is one canonical, little-endian u256 Fq value.
 #[repr(C, align(32))]
-struct Packet([[u64; 4]; 18]);
+struct Packet([[u64; 4]; 20]);
 
 impl Packet {
     #[inline(always)]
-    fn prepare(a: &Fq12, c0: &Fq2, c3: &Fq2, c4: &Fq2) -> Self {
+    fn prepare(a: &Fq12, c0: &Fq2, c3: &Fq2, c4: &Fq2, x: &Fq, y: &Fq) -> Self {
         Self([
             a.c0.c0.c0.into_bigint().0,
             a.c0.c0.c1.into_bigint().0,
@@ -32,6 +32,8 @@ impl Packet {
             c3.c1.into_bigint().0,
             c4.c0.into_bigint().0,
             c4.c1.into_bigint().0,
+            x.into_bigint().0,
+            y.into_bigint().0,
         ])
     }
 
@@ -59,16 +61,16 @@ impl Packet {
 }
 
 #[inline(always)]
-pub(super) fn mul_by_034(a: &mut Fq12, c0: &Fq2, c3: &Fq2, c4: &Fq2) {
+pub(super) fn miller_line(a: &mut Fq12, c0: &Fq2, c3: &Fq2, c4: &Fq2, x: &Fq, y: &Fq) {
     #[cfg(target_arch = "riscv64")]
     {
         use ark_ff::MontConfig;
         const {
             assert!(ark_bn254::FqConfig::CANONICAL_REPRESENTATION);
         }
-        let mut packet = Packet::prepare(a, c0, c3, c4);
-        // SAFETY: a unique initialized 576-byte, 32-aligned inline packet.
-        // OP sparse034 reads all 18 Fq inputs, overwrites only the leading
+        let mut packet = Packet::prepare(a, c0, c3, c4, x, y);
+        // SAFETY: a unique initialized 640-byte, 32-aligned inline packet.
+        // OP sparse034 reads all 20 Fq inputs, overwrites only the leading
         // 12 Fq outputs, and constrains those outputs canonical. Its explicit
         // profile must be selected; legacy v3 refuses this new namespace.
         unsafe {
@@ -77,7 +79,13 @@ pub(super) fn mul_by_034(a: &mut Fq12, c0: &Fq2, c3: &Fq2, c4: &Fq2) {
         *a = packet.result().expect("noncanonical OP sparse034 output");
     }
     #[cfg(not(target_arch = "riscv64"))]
-    a.mul_by_034(c0, c3, c4);
+    {
+        let mut c0 = *c0;
+        let mut c3 = *c3;
+        c0.mul_assign_by_fp(y);
+        c3.mul_assign_by_fp(x);
+        a.mul_by_034(&c0, &c3, c4);
+    }
 }
 
 #[cfg(test)]
@@ -87,19 +95,30 @@ mod tests {
 
     #[test]
     fn packet_is_explicit_canonical_order_and_keeps_line_inputs() {
-        assert_eq!(core::mem::size_of::<Packet>(), 576);
+        assert_eq!(core::mem::size_of::<Packet>(), 640);
         assert_eq!(core::mem::align_of::<Packet>(), 32);
         let q = |x| Fq2::new(Fq::from(x), Fq::from(x + 1));
         let a = Fq12::new(Fq6::new(q(1), q(3), q(5)), Fq6::new(q(7), q(9), q(11)));
-        let mut packet = Packet::prepare(&a, &q(13), &q(15), &q(17));
+        let mut packet = Packet::prepare(&a, &q(13), &q(15), &q(17), &Fq::from(19), &Fq::from(20));
         for (i, word) in packet.0.iter().enumerate() {
             assert_eq!(*word, [i as u64 + 1, 0, 0, 0]);
         }
         assert_eq!(packet.result(), Some(a));
         let line = packet.0[12..].to_vec();
         let mut expected = a;
-        expected.mul_by_034(&q(13), &q(15), &q(17));
-        let output = Packet::prepare(&expected, &Fq2::ZERO, &Fq2::ZERO, &Fq2::ZERO);
+        let mut c0 = q(13);
+        let mut c3 = q(15);
+        c0.mul_assign_by_fp(&Fq::from(20));
+        c3.mul_assign_by_fp(&Fq::from(19));
+        expected.mul_by_034(&c0, &c3, &q(17));
+        let output = Packet::prepare(
+            &expected,
+            &Fq2::ZERO,
+            &Fq2::ZERO,
+            &Fq2::ZERO,
+            &Fq::from(19),
+            &Fq::from(20),
+        );
         packet.0[..12].copy_from_slice(&output.0[..12]);
         assert_eq!(packet.result(), Some(expected));
         assert_eq!(packet.0[12..], line);

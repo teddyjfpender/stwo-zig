@@ -289,6 +289,8 @@ def main():
         "variant": args.variant,
         "required_execution_profile": "ethereum_services_op_v1"
         if args.variant == "canonical-glv-hinted-sparse" else None,
+        "op_service_abi": "bn254-miller-line-640/v1"
+        if args.variant == "canonical-glv-hinted-sparse" else None,
         "extra_service_tags": [0x0004_0001]
         if args.variant == "canonical-glv-hinted-sparse" else [],
         "guest_opt_level": args.guest_opt_level,
