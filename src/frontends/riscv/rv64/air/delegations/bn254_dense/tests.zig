@@ -119,3 +119,17 @@ test "all dense basis monomials and common source carry envelope" {
 pub fn reference(a: [12]F, b: [12]F) [12]F {
     return flat(m12(unflat(&a), unflat(&b)));
 }
+
+test "congruent noncanonical dense output closes carries but fails canonical writer" {
+    inline for (.{ S.Kind.square, S.Kind.multiply }) |kind| {
+        const L = R.Layout(kind);
+        const zero: [S.inputs(kind)]F = @splat(0);
+        inline for (0..12) |coordinate| {
+            const forged = L.congruentForgeryForTesting(coordinate, &zero);
+            try std.testing.expect(L.rangeValid(&forged));
+            try std.testing.expect(L.carriedValid(coordinate, &forged));
+            try std.testing.expectEqual(@as(S.B.Big, P), L.read(&forged, L.OUTPUT, 32));
+            try std.testing.expect(!L.valid(coordinate, &forged));
+        }
+    }
+}

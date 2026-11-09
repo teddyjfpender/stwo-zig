@@ -55,10 +55,17 @@ pub fn Layout(comptime kind: S.Kind) type {
             return total;
         }
         pub fn fill(comptime coordinate: usize, input: *const [S.inputs(kind)]u256) Row {
+            return fillWithOutput(coordinate, input, output(coordinate, input));
+        }
+        /// Coherent algebraic forgery control, excluded from non-test builds.
+        pub fn congruentForgeryForTesting(comptime coordinate: usize, input: *const [S.inputs(kind)]u256) Row {
+            if (!@import("builtin").is_test) @compileError("test-only congruent forgery");
+            return fillWithOutput(coordinate, input, output(coordinate, input) + B.BN254_P);
+        }
+        fn fillWithOutput(comptime coordinate: usize, input: *const [S.inputs(kind)]u256, value: u256) Row {
             var row: Row = @splat(0);
             row[ACTIVE] = 1;
             for (input, 0..) |v, i| put(&row, INPUT + 32 * i, 32, v);
-            const value = output(coordinate, input);
             put(&row, OUTPUT, 32, value);
             var pos: B.Big = G.kp;
             var neg: B.Big = value;
@@ -83,7 +90,7 @@ pub fn Layout(comptime kind: S.Kind) type {
                 std.debug.assert(encoded >= 0 and encoded < (@as(i64, 1) << @intCast(G.carry_bits)));
                 put(&row, CARRY + group * G.carry_bytes, G.carry_bytes, @intCast(encoded));
             }
-            put(&row, DISTANCE, 32, B.BN254_P - 1 - value);
+            put(&row, DISTANCE, 32, B.BN254_P - 1 -% value);
             var borrow: u32 = 0;
             for (0..15) |i| {
                 const sum = row[OUTPUT + 2 * i] + 256 * row[OUTPUT + 2 * i + 1] + row[DISTANCE + 2 * i] + 256 * row[DISTANCE + 2 * i + 1] + borrow + @intFromBool(i == 0);
@@ -102,13 +109,17 @@ pub fn Layout(comptime kind: S.Kind) type {
             for (row[BORROW..MULT]) |v| if (v > 1) return false;
             return row[ACTIVE] <= 1;
         }
-        pub fn valid(comptime coordinate: usize, row: *const Row) bool {
-            if (!rangeValid(row)) return false;
+        pub fn carriedValid(comptime coordinate: usize, row: *const Row) bool {
             for (0..G.groups) |n| {
                 const previous: i64 = if (n == 0) 0 else @as(i64, @intCast(read(row, CARRY + (n - 1) * G.carry_bytes, G.carry_bytes))) - @as(i64, @intCast(G.carry_offset)) * row[ACTIVE];
                 const next: i64 = if (n == G.carries) 0 else @as(i64, @intCast(read(row, CARRY + n * G.carry_bytes, G.carry_bytes))) - @as(i64, @intCast(G.carry_offset)) * row[ACTIVE];
                 if (coefficient(coordinate, row, n) + previous - 256 * next != 0) return false;
             }
+            return true;
+        }
+        pub fn valid(comptime coordinate: usize, row: *const Row) bool {
+            if (!rangeValid(row)) return false;
+            if (!carriedValid(coordinate, row)) return false;
             for (0..16) |i| {
                 var residual: @TypeOf(@as(i64, 0)) = @as(i64, row[OUTPUT + 2 * i]) + 256 * @as(i64, row[OUTPUT + 2 * i + 1]) + row[DISTANCE + 2 * i] + 256 * @as(i64, row[DISTANCE + 2 * i + 1]) - @as(i64, @intCast((B.BN254_P >> @intCast(16 * i)) & 0xffff)) * row[ACTIVE];
                 if (i == 0) residual += row[ACTIVE];

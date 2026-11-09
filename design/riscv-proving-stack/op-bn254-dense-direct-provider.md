@@ -45,22 +45,22 @@ need implementation and physical adversarial qualification.
 
 ## Cost before adoption
 
-| Class | Main/row | Planned bindings/row | Arithmetic rows/call | Planned active cells incl frontier |
+| Class | Main/row | Planned inter/row | Arithmetic rows/call | Planned active cells incl frontier |
 | --- | ---: | ---: | ---: | ---: |
-| Square |691|32|12|9,360|
-| Multiply |1075|32|12|14,652|
+| Square |691|40|12|9,456|
+| Multiply |1075|40|12|14,748|
 
 These are proposed local-GKR costs, not an implemented prover. They assume
 frontier33 MAIN+24 INTER, and two arithmetic instances (BYTE512 padded lanes,
-SSA16/32) adding32 binding columns. Each arithmetic row has354 byte queries;
+SSA16/32) adding32 binding columns plus8 global Wire columns. Each arithmetic row has354 byte queries;
 input ranges are inherited only after qualification of the stated frontier.
-Square+multiply would be24,012 cells, versus53,220 classic Fp2 cells or88,632
+Square+multiply would be24,204 cells, versus53,220 classic Fp2 cells or88,632
 three-sparse reuse cells. Padded GKR facts are6,348/6,552 per call, versus16,188
-for three sparse calls. Opening width rises:780/1164 total columns per new class
+for three sparse calls. Opening width rises:788/1172 total columns per new class
 versus483 for the existing sparse class; fewer leaves must compensate for that.
 
 A conditional1023-call shard model gives6 square leaves and2 multiply leaves,
-with107,102,208 committed cells for5439squares+1764multiplies. This cap is a
+with108,052,480 committed cells for5439squares+1764multiplies. This cap is a
 comparison assumption, **not a qualified resource policy**; actual GKR buffers,
 fixed trees, retention and recursion can change the preferred class. Both
 families may share one composite PCS/leaf with independently sized components;
@@ -68,6 +68,9 @@ component count must not imply a proof per coordinate. Packet RAM events are48
 for square/96 for multiply, versus240 per three-sparse product; Wire messages
 are24/36 versus96. These packet identities require complete new joins before
 any runtime admission.
+
+The planned cost ledger is corrected in `guest/dense-direct-source-v2.json`: the
+initial v1 model omitted8 global Wire columns per arithmetic row.
 
 Next gates: source-ROM degree testing; bounded BYTE/multiplicity and SSA physical
 closure; complete public frontier and forged input/output/call/ROM controls;
@@ -96,3 +99,12 @@ This uses **q12/P0 correctness-only** settings. It establishes neither a128-bit
 security profile nor an execution/RAM/service join. The square class, local GKR,
 recursive source factory, mass/resource ledger and full production frontiers are
 still pending. Exact source/proof hashes are in `guest/dense-direct-physical-v1.json`.
+
+The follow-up physical gate covers **both** classes: multiply237,192B (exact
+prior proof bytes) and noncyclotomic square203,304B. Both fresh receivers also
+reject a mutated source-ROM FIXED root. A stronger canonicality control replaces
+the result by result+p and coherently adjusts quotient/carries: all integer
+carried identities and byte ranges still pass, but the strict canonical writer
+rejects all24 cases. This rules out relying on algebraic congruence alone.
+See `guest/dense-direct-physical-v2.json`. BYTE-local-GKR projection is next;
+production SSA/frontier joins and recursive admission remain closed.
