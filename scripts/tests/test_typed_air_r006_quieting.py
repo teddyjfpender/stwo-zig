@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.typed_air_r006_capture_lib.codec import content_digest
-from scripts.typed_air_r006_capture_lib.model import CaptureError
-from scripts.typed_air_r006_capture_lib.orchestration import host_preflight
-from scripts.typed_air_r006_capture_lib.post_capture_quieting import (
+from scripts.typed_air.typed_air_r006_capture_lib.codec import content_digest
+from scripts.typed_air.typed_air_r006_capture_lib.model import CaptureError
+from scripts.typed_air.typed_air_r006_capture_lib.orchestration import host_preflight
+from scripts.typed_air.typed_air_r006_capture_lib.post_capture_quieting import (
     POST_CAPTURE_QUIETING_POLICY,
     await_admitted_post_capture_preflight,
 )

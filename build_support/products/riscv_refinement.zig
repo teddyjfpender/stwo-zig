@@ -97,7 +97,7 @@ pub fn addPilot(
     pilot_program_export_run.step.dependOn(&clear_pilot_program_ir.step);
     const verify = b.addSystemCommand(&.{
         "python3",
-        "scripts/riscv_refinement.py",
+        "scripts/riscv/riscv_refinement.py",
         "verify",
         "--no-export-air",
         "--air-ir-dir",

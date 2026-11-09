@@ -392,7 +392,7 @@ must remain unchanged; a base execution regression outside its measured noise
 interval blocks activation. The predeclared numerical thresholds, paired
 sampling schedule, A/A admission rule, and `FAIL`/`NO_VERDICT` policy are the
 normative M6 entry in
-[`m5-m9-protocol-v1.json`](../performance/m5-m9-protocol-v1.json); changing
+[`m5-m9-protocol-v1.json`](../../../conformance/typed-air/m5-m9-protocol-v1.json); changing
 them after candidate results are visible requires a new reviewed protocol
 version and a fresh capture.
 

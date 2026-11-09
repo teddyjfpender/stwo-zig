@@ -75,7 +75,7 @@ the more explicit transaction modules in `stwo_cairo_cpu_integration` or
 - `stwo_backend_contracts`
 - `stwo_prover_api`
 - `stwo_prover_engine`
-- `interop_felt_json` (injected, `src/interop/felt_json.zig`): the streaming
+- `interop_felt_json` (injected, `src/frontends/cairo/interop/felt_json.zig`): the streaming
   felt JSON writer behind `proof.cairo_serde`, shared with circuit recursion
 
 The frontend has no CPU, Metal, or CUDA backend dependency.
@@ -158,7 +158,7 @@ pipeline compilation; subsequent processes reuse the bounded archive cache.
 
 ### Performance qualification (retained measurements)
 
-Use [benchmark_cairo.py](../../../scripts/benchmark_cairo.py) to record complete
+Use [benchmark_cairo.py](../../../scripts/cairo/benchmark_cairo.py) to record complete
 process wall time, proving time, peak process RSS, Darwin product physical
 footprint (including Metal allocations), proof hashes, stage reports,
 and acceptance by the official Rust verifier. All recorded proofs must use
@@ -170,7 +170,7 @@ excludes the adapter child; missing platform measurements remain null.
 Every trial is recorded, including cold-start costs.
 
 ```sh
-python3 scripts/benchmark_cairo.py \
+python3 scripts/cairo/benchmark_cairo.py \
   --product zig-out/bin/stwo-cairo-cpu \
   --oracle tools/stwo-cairo-official-verifier-rs/target/debug/stwo-cairo-official-verifier \
   --program tools/stwo-cairo-vm-adapter-rs/resources/fibonacci_pie.zip \
@@ -208,7 +208,7 @@ keeps the canonical tree inside the existing 2 GiB directory budget. Cold
 setup and cache hits are both reported above. Its proof
 SHA-256 is `ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545`;
 the baseline and optimized proofs are byte-identical. Receipts and stage
-breakdowns are in [the local research record](../../../autoresearch/notes/2026-09-27-cairo-completion).
+breakdowns are in [the local research record](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion).
 All four SN PIEs qualified on CPU and Metal in the September 2026 matrix;
 the retained results and receipts appear below. The early warm SN2 Metal trial
 is 5.48× faster than the original CPU baseline and 1.86× faster than its contemporary
@@ -222,7 +222,7 @@ CPU and Metal Fibonacci PIE proofs have SHA-256
 The Metal PIE uses 40 device composition components and 2 declared host
 components, with 118 total Metal dispatches. Shared canonical Felt252 inversion
 is 342× faster in the isolated paired benchmark; that is not an end-to-end
-speedup. See [the paired receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/felt-inverse-pair.json).
+speedup. See [the paired receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/felt-inverse-pair.json).
 
 Focused input checks can run without repeating the complete frontend suite:
 
@@ -234,7 +234,7 @@ zig build test --build-file src/frontends/cairo/build.zig \
 The pinned diverse benchmark suite is available with:
 
 ```sh
-python3 scripts/benchmark_cairo_suite.py --cpu zig-out/bin/stwo-cairo-cpu \
+python3 scripts/cairo/benchmark_cairo_suite.py --cpu zig-out/bin/stwo-cairo-cpu \
   --metal zig-out/bin/stwo-cairo-metal \
   --oracle tools/stwo-cairo-official-verifier-rs/target/debug/stwo-cairo-official-verifier \
   --tier all --pie-dir /path/to/pie-archives --trials 3 --out /path/to/new-results
@@ -245,7 +245,7 @@ execution/proving timings, measured peak process RSS, cache evidence, failures,
 CPU/Metal proof parity and pinned official verification. The manifest contains
 15 workloads; missing external PIEs fail their selected cases. Worker-width
 sweeps use `--workers 4 8 16`. See the
-[September suite results and limitations](../../../autoresearch/notes/2026-09-27-cairo-completion/README.md).
+[September suite results and limitations](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/README.md).
 
 ## Contract and invariants
 
@@ -267,12 +267,12 @@ acceptance by the pinned official Rust verifier.
 
 ## Related documentation
 
-- [Cairo production-port goal](../../../conformance/2026-07-26-stwo-cairo-production-port-goal.md)
+- [Cairo production-port goal](../../../design/decisions/2026-07-26-stwo-cairo-production-port-goal.md)
 - [CPU integration](../../integrations/cairo_cpu/README.md)
 - [Metal integration](../../integrations/cairo_metal/README.md)
 - [CUDA integration and H200 qualification](../../integrations/cairo_cuda/README.md)
 - [Repository Cairo guide](../../../README.md#cairo-frontend)
-- [Package-workspace audit](../../../conformance/2026-07-28-zig-package-workspace-release-audit.md)
+- [Package-workspace audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 
 ## Retained optimization history (September 2026)
 
@@ -299,7 +299,7 @@ CPU-reference proof bytes and official acceptance, not paired medians.
 Committed-column openings also enable the resident raw-quotient route;
 SN1 opening and FRI costs fall to 1.585 s and 2.199 s. Memory remains a target.
 Full receipts and failed/cancelled experiments are recorded in the
-[Cairo completion research note](../../../autoresearch/notes/2026-09-27-cairo-completion/README.md).
+[Cairo completion research note](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/README.md).
 
 Authenticated preprocessed hash reuse now qualifies six SN2 proofs with exact
 bytes and zero runtime fallbacks. Its three-pair process comparison is roughly
@@ -319,7 +319,7 @@ exactly and pass the pinned official verifier; the initial control cache miss
 is retained. Interaction generation itself falls from 1.839 to 1.438 s. SN PIE
 1 confirms the direction with two pairs: 33.038 → 31.251 s complete process and
 3.607 → 3.235 s interaction generation. These results are recorded in the
-[Cairo research notes](../../../autoresearch/notes/2026-09-27-cairo-completion/README.md).
+[Cairo research notes](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/README.md).
 Fresh fixed-data Merkle compaction also keeps SN2's product physical peak at
 about **37.15 GB on first use**, extending the earlier 4 GB saving beyond
 cache hits. Physical footprint includes Metal memory and is reported
@@ -332,7 +332,7 @@ coverage observations, not replacements for paired medians. Small warm
 workloads range from roughly 0.43 to 0.79 s, and canonical all-builtins is
 3.800 s. Both initial and subsequent trials, physical memory and exact
 identities are preserved in the
-[v22 qualification receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/cairo-suite-qualification-v22.json).
+[v22 qualification receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/cairo-suite-qualification-v22.json).
 
 
 Wide native witness programs now use bounded row tiles for inputs, outputs
@@ -341,13 +341,13 @@ and lookup channels. Three canonical SN PIE 2 pairs measure **15.299 →
 witness generation**, with the initial candidate artifact miss retained.
 Physical peak remains **37.153 GB**. All six proofs match the existing CPU
 proof bytes and pass the pinned official verifier without runtime fallback.
-[Paired receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/sn2-native-row-tiles-v24-summary.json).
+[Paired receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/sn2-native-row-tiles-v24-summary.json).
 
 The complete 15-workload matrix also qualifies twice. Subsequent individual
 observations are SN1 **29.723 s**, SN2 **14.620 s**, SN3 **27.648 s** and
 SN4 **18.149 s** process; these observations do not replace the isolated paired
 result. Every proof retains canonical security and exact prior bytes.
-[Full v24 receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/cairo-suite-qualification-v24.json).
+[Full v24 receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/cairo-suite-qualification-v24.json).
 
 ### Norm-based LogUp qualification (v31)
 
@@ -356,13 +356,13 @@ inversion by default. Three controlled SN PIE 2 pairs measured **12.951 →
 12.608 s end to end**, **10.555 → 10.267 s proving**, and **1.435 → 1.286 s
 interaction**, with an unchanged **37.153 GB** product physical peak. The
 canonical 70-query / 26-bit PoW settings and exact proof bytes were preserved.
-See the [paired receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/sn2-norm-logup-v31-summary.json).
+See the [paired receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/sn2-norm-logup-v31-summary.json).
 
 The complete 15-workload matrix qualified all 30 proofs with official
 verification and no fallback. Its subsequent SN PIE 2 observation was
 **13.247 s end to end / 10.816 s proving**; the initial trial was 13.198 s.
 These are retained-cache process measurements on the M5 Max; the official
-verifier runs separately. The [full receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/cairo-suite-qualification-v31.json)
+verifier runs separately. The [full receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/cairo-suite-qualification-v31.json)
 records every trial. Set `STWO_CAIRO_NORM_LOGUP=0` only to compare with the
 prior inversion algorithm.
 
@@ -375,7 +375,7 @@ ZIP-to-proof process (1.911×)**. All six proofs retain exact bytes and pass
 the pinned official verifier, which runs separately. These are CPU results;
 Metal results above have their own qualification. Security remains plain
 BLAKE2s PCS, 70 queries and 26 PoW bits.
-[Paired receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/sn2-cpu-native-paired-v55-summary.json).
+[Paired receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/sn2-cpu-native-paired-v55-summary.json).
 
 The largest CPU workload, SN PIE 3, now has a separate three-pair qualification:
 **62.082 → 26.340 s proving (2.357×)** and **66.435 → 30.647 s full process
@@ -384,7 +384,7 @@ The CPU product samples committed evaluations directly, matching Metal's
 storage policy, instead of retaining a second coefficient representation.
 All six canonical proofs are byte-identical and officially accepted. This
 establishes a 2× improvement for SN PIE 3 in this comparison. See the
-[SN PIE 3 paired receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/sn3-cpu-retention-paired-v67-summary.json).
+[SN PIE 3 paired receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/sn3-cpu-retention-paired-v67-summary.json).
 
 The retained observations use the unchanged **v76 CPU baseline** and
 **v77 Metal**. The v76 matrix qualified 60 CPU/Metal proofs; v77 adds 30 Metal
@@ -411,15 +411,15 @@ Physical footprint is each product process's lifetime peak, including Metal
 allocations and compressed-memory accounting. Adapter child memory is excluded
 from that metric. The official verifier runs separately from the timed product.
 CPU and Metal timings here use the same security and proof bytes.
-[CPU baseline receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/cairo-suite-both-v76-summary.json),
-[v77 Metal suite and recorded CPU parity](../../../autoresearch/notes/2026-09-27-cairo-completion/cairo-suite-metal-v77-summary.json).
+[CPU baseline receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/cairo-suite-both-v76-summary.json),
+[v77 Metal suite and recorded CPU parity](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/cairo-suite-metal-v77-summary.json).
 
 Three alternating SN PIE 3 Metal pairs qualify bounded LDE coefficient epochs
 and tiled quotient numerators: **18.663 → 16.873 s proving**, **23.004 →
 21.652 s full process**, and **59.004 → 54.099 GB peak physical footprint**
 (8.31% lower). The v73 matrix also releases composition staging before FRI;
 its subsequent 53.614 GB SN3 peak is an observation, not a separate paired
-claim. [Paired memory receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/sn3-metal-memory-paired-v72-summary.json).
+claim. [Paired memory receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/sn3-metal-memory-paired-v72-summary.json).
 
 Large Metal commitments now retain upper Merkle layers and reconstruct bounded
 query subtrees through the same engine reader as CPU commitments. Source arenas
@@ -429,7 +429,7 @@ populated, measure **53.629 → 50.669 GB peak physical footprint** (5.52% lower
 **16.125 → 16.200 s proving** (+0.46%), and **20.574 → 20.598 s complete process**.
 Timings are approximately maintained; this is a memory qualification, not a
 speedup claim. Initial cache misses and setup proofs remain recorded separately.
-[Final paired receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/sn3-metal-query-subtree-warm-paired-v76-summary.json).
+[Final paired receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/sn3-metal-query-subtree-warm-paired-v76-summary.json).
 
 Segmented Metal quotients now reduce shorter columns at their native height
 before lifting them, across arbitrary source runs, with a 256 MiB partial cap.
@@ -439,7 +439,7 @@ and **20.933 → 20.097 s complete process** (3.99% less time). Peak physical
 footprint is **50.668 → 50.848 GB** (+0.35%): this is a speed improvement, not a
 memory reduction. All six proofs have identical bytes and official acceptance,
 with zero fallback. The initial v77 trial's two public-cache misses are included.
-[Paired receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/sn3-metal-native-segment-paired-v77-summary.json).
+[Paired receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/sn3-metal-native-segment-paired-v77-summary.json).
 
 The expanded SN PIE 3 trace still retains about 43 GB. Further memory reduction
 requires bounded polynomial/evaluation storage. The Metal product currently uses
@@ -452,7 +452,7 @@ nine-product QM31 multiplication and canonical Mersenne reductions. Its first
 SN2 use required 77.865 s of pipeline compilation (88.274 s proving total);
 that earlier cold observation is retained separately and is not represented by
 the warm table above. Each subsequent library use records archive admission.
-[Cold/warm Metal receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/sn2-metal-shapes-v58-summary.json).
+[Cold/warm Metal receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/sn2-metal-shapes-v58-summary.json).
 Prepared public coefficient/evaluation caching remains experimental and opt-in.
 
 ### Compact storage experiments (v84; opt-in CPU only)
@@ -492,13 +492,13 @@ selective FFT openings, hybrid bounded quotients, cached layers and terminal
 hash-block continuation pass 17 focused tests. Metal coefficient storage and
 GPU reconstruction remain unimplemented. Complete receipts, cache evidence
 and frozen product identities are in the
-[v84 qualification](../../../autoresearch/notes/2026-09-27-cairo-completion/sn3-cpu-compact-storage-v84-summary.json).
+[v84 qualification](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/sn3-cpu-compact-storage-v84-summary.json).
 
 A separate unchanged-storage native Metal SN PIE3 observation on the same
 frozen v84 products verifies in **15.202 s**, with **50.848 GB** peak physical
 footprint, 344 Metal dispatches and zero CPU fallbacks. This is a qualification
 observation, not a paired GPU speedup claim; see the
-[Metal receipt](../../../autoresearch/notes/2026-09-27-cairo-completion/sn3-metal-default-v84-summary.json).
+[Metal receipt](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/sn3-metal-default-v84-summary.json).
 
 ### Memory-table placement and peak diagnosis (v85)
 
@@ -533,7 +533,7 @@ peak at the opening boundary, and 50.847 GB by completion. Its AIR staging copie
 excluded from performance comparisons. The larger opportunity remains native
 coefficient storage with GPU AIR reconstruction, coefficient-folded quotients
 and selective openings; temporary-table removal cannot shrink retained traces.
-[Complete v85 receipts and diagnosis](../../../autoresearch/notes/2026-09-27-cairo-completion/cairo-direct-memory-v85-summary.json).
+[Complete v85 receipts and diagnosis](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/cairo-direct-memory-v85-summary.json).
 
 ### Compact Metal memory experiment (v88)
 
@@ -546,7 +546,7 @@ memory but is 2.285× slower, so it remains experimental; the speed-preserving
 memory target has not passed. CPU SN3 remains **23.15 s / 50.30 GB** (v85).
 
 Full receipts and focused qualification logs are in
-[the Cairo research notes](../../../autoresearch/notes/2026-09-27-cairo-completion/README.md).
+[the Cairo research notes](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/README.md).
 
 ### Compact Metal follow-up (v90–v91; experimental)
 
@@ -600,13 +600,13 @@ proof parity and zero fallback. Single qualification trials: SN1 **17.31 s /
 51.53 GB**, SN2 **11.09 s / 32.20 GB**, SN3 **15.57 s / 50.85 GB**,
 SN4 **12.71 s / 40.44 GB**. These are not paired speedup claims. Complete
 measurements, focused tests, and the pause checkpoint are recorded in
-[the research notes](../../../autoresearch/notes/2026-09-27-cairo-completion/README.md).
-The [GPU cost thesis](../../../autoresearch/notes/2026-09-27-cairo-completion/gpu-economics-thesis-v1.md)
+[the research notes](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/README.md).
+The [GPU cost thesis](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-27-cairo-completion/gpu-economics-thesis-v1.md)
 distinguishes unified-memory footprint from CUDA VRAM and makes no NVIDIA
 performance prediction. Further optimization is paused for the GPU discussion.
 
 
-The [28 September CUDA diagnostic](../../../autoresearch/notes/2026-09-28-cairo-cuda-runpod/README.md)
+The [28 September CUDA diagnostic](https://github.com/teddyjfpender/stwo-zig/tree/archive/pre-restructure-20261108/autoresearch/notes/2026-09-28-cairo-cuda-runpod/README.md)
 predates the accepted H200 proofs. Its failed FRI verdict and 81.72 GB sampled
 device use describe that earlier implementation, not the later qualified
 CUDA path. The [30 September qualification](../../integrations/cairo_cuda/README.md#nvidia-qualification-30-september-2026)

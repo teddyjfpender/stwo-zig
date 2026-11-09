@@ -27,15 +27,14 @@ const transcript_source_mod = @import("segment_transcript_outer_source.zig");
 const statement_source = @import("segment_statement_outer_source.zig");
 const public_source = @import("segment_public_outer_source.zig");
 
-const air = @import("air/mod.zig");
-const manifest_mod = air.universal_adapter_manifest;
-const relation_interaction = air.relation_interaction;
-const roster = air.universal_roster;
-const schedule = air.verifier_schedule;
-const shared_provider = air.universal_shared_provider;
-const universal = air.universal_challenges;
-const universal_manifest = air.universal_manifest;
-const lowering = air.verifier_arithmetic_lowering;
+const manifest_mod = @import("air/universal_adapter_manifest.zig");
+const relation_interaction = @import("air/relation_interaction.zig");
+const roster = @import("air/universal_roster.zig");
+const schedule = @import("air/verifier_schedule.zig");
+const shared_provider = @import("air/universal_shared_provider.zig");
+const universal = @import("air/universal_challenges.zig");
+const universal_manifest = @import("air/universal_manifest.zig");
+const lowering = @import("air/verifier_arithmetic_lowering.zig");
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const FIRST_PREFIX_ROW: usize = @intFromEnum(roster.Component.control);

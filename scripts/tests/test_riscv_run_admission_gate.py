@@ -1,7 +1,7 @@
 """The run-admission gate has one definition and every sibling path calls it.
 
 `src/integrations/riscv_cpu/proof_adapter.zig` fail-closed on a non-provable
-completion reason; `src/tools/riscv/bench/runner.zig` had no equivalent, accepted
+completion reason; `src/products/riscv/tools/bench/runner.zig` had no equivalent, accepted
 an ECALL-terminated trace, and died deep inside the prover (issue #152 item 5).
 The fix hoists the rule into `src/frontends/riscv/prover.zig`. This gate is what
 stops the copies coming back: a behavioural test can prove the shared function
@@ -29,11 +29,11 @@ SRC = ROOT / "src"
 GATE = ROOT / "src" / "frontends" / "riscv" / "prover.zig"
 CALLERS = {
     "production ELF adapter": (
-        ROOT / "src" / "integrations" / "riscv_cpu" / "proof_adapter.zig",
-        "prover.admitRunForProving(&run_result)",
+        ROOT / "src" / "integrations" / "riscv_cpu" / "proof_adapter" / "blake3_execution_request.zig",
+        "prover.admitRunForProving(base_run)",
     ),
     "benchmark runner": (
-        ROOT / "src" / "tools" / "riscv" / "bench" / "runner.zig",
+        ROOT / "src" / "products" / "riscv" / "tools" / "bench" / "runner.zig",
         "riscv_prover.classifyRunAdmission(&run_result)",
     ),
     # The third path, missed when the rule was hoisted for the first two: it runs
@@ -93,6 +93,12 @@ def _encloser(text: str, offset: int) -> str:
 
 
 class RunAdmissionGateTest(unittest.TestCase):
+    def test_aggregate_adapter_reuses_the_canonical_cpu_verifier_backend(self):
+        source = read(ROOT / "build_support/prove_cli.zig")
+        self.assertIn('context.stwo_module.import_table.get("stwo_cpu_backend")', source)
+        self.assertIn('canonical aggregate graph is missing the CPU backend', source)
+        self.assertNotIn('graph.cpuBackend(', source)
+
     def test_the_gate_is_declared_once_in_the_frontend(self) -> None:
         text = read(GATE)
         for declaration in (
@@ -154,6 +160,12 @@ class RunAdmissionGateTest(unittest.TestCase):
         for label, (path, call) in CALLERS.items():
             with self.subTest(label):
                 self.assertIn(call, read(path), f"{path} must route through the gate")
+
+    def test_production_adapter_reaches_the_request_owner(self) -> None:
+        owner = ROOT / "src/integrations/riscv_cpu"
+        self.assertIn('profile_router.run(Engine, backend,', read(owner / "proof_adapter.zig"))
+        self.assertIn('"blake3_execution_product.zig").runForProfile(', read(owner / "proof_adapter/profile_router.zig"))
+        self.assertIn('request.execute(Engine,', read(owner / "proof_adapter/blake3_execution_product.zig"))
 
     def test_no_sibling_keeps_a_private_completion_test(self) -> None:
         for label, (path, _) in CALLERS.items():

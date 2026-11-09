@@ -27,7 +27,7 @@ pub fn addProducts(context: Context) void {
         return;
     }
 
-    const metal_arena_plan_module = consumer(context, "src/metal_arena_plan_cli.zig");
+    const metal_arena_plan_module = consumer(context, "src/backends/metal/tools/arena_plan/main.zig");
     metal_arena_plan_module.addImport("stwo", stwo_module);
     const metal_arena_plan = b.addExecutable(.{
         .name = "metal-arena-plan",
@@ -38,7 +38,7 @@ pub fn addProducts(context: Context) void {
     const metal_arena_plan_step = b.step("metal-arena-plan", "Build sparse Metal arena planner");
     metal_arena_plan_step.dependOn(&install_metal_arena_plan.step);
 
-    const metal_arena_session_module = consumer(context, "src/tools/metal_prover_session/main.zig");
+    const metal_arena_session_module = consumer(context, "src/backends/metal/tools/prover_session/main.zig");
     metal_arena_session_module.addImport("stwo", stwo_module);
     metal_arena_session_module.addImport("one_shot", metal_arena_plan_module);
     const metal_arena_session = b.addExecutable(.{
@@ -53,7 +53,7 @@ pub fn addProducts(context: Context) void {
     );
     metal_arena_session_step.dependOn(&install_metal_arena_session.step);
 
-    const metal_arena_session_test_module = consumer(context, "src/tools/metal_prover_session/main.zig");
+    const metal_arena_session_test_module = consumer(context, "src/backends/metal/tools/prover_session/main.zig");
     metal_arena_session_test_module.addImport("stwo", stwo_module);
     metal_arena_session_test_module.addImport("one_shot", metal_arena_plan_module);
     const metal_arena_session_tests = b.addTest(.{
@@ -68,7 +68,7 @@ pub fn addProducts(context: Context) void {
     metal_arena_session_test_step.dependOn(&run_metal_arena_session_tests.step);
     if (test_step) |aggregate_test| aggregate_test.dependOn(&run_metal_arena_session_tests.step);
 
-    const metal_recovery_bench_module = consumer(context, "src/bench/metal/recovery.zig");
+    const metal_recovery_bench_module = consumer(context, "src/backends/metal/bench/recovery.zig");
     metal_recovery_bench_module.addImport("stwo", stwo_module);
     const metal_recovery_bench = b.addExecutable(.{
         .name = "metal-recovery-bench",
@@ -78,7 +78,7 @@ pub fn addProducts(context: Context) void {
     const metal_recovery_bench_step = b.step("metal-recovery-bench", "Build Metal recovery storage benchmark");
     metal_recovery_bench_step.dependOn(&install_metal_recovery_bench.step);
 
-    const metal_ec_op_bench_module = consumer(context, "src/bench/metal/ec_op.zig");
+    const metal_ec_op_bench_module = consumer(context, "src/backends/metal/bench/ec_op.zig");
     metal_ec_op_bench_module.addImport("stwo", stwo_module);
     const metal_ec_op_bench = b.addExecutable(.{
         .name = "metal-ec-op-bench",
@@ -89,7 +89,7 @@ pub fn addProducts(context: Context) void {
     const metal_ec_op_bench_step = b.step("metal-ec-op-bench", "Build resident Metal EC-op benchmark");
     metal_ec_op_bench_step.dependOn(&install_metal_ec_op_bench.step);
 
-    const metal_compact_bench_module = consumer(context, "src/bench/metal/compaction.zig");
+    const metal_compact_bench_module = consumer(context, "src/backends/metal/bench/compaction.zig");
     metal_compact_bench_module.addImport("stwo", stwo_module);
     const metal_compact_bench = b.addExecutable(.{
         .name = "metal-compact-bench",
@@ -102,7 +102,7 @@ pub fn addProducts(context: Context) void {
 
     const cairo_streaming_commitment_bench_module = consumer(
         context,
-        "src/bench/cairo_metal/streaming_commitment.zig",
+        "src/integrations/cairo_metal/bench/streaming_commitment.zig",
     );
     cairo_streaming_commitment_bench_module.addImport("stwo", stwo_module);
     const cairo_streaming_commitment_bench = b.addExecutable(.{
@@ -119,7 +119,7 @@ pub fn addProducts(context: Context) void {
 
     const cairo_streaming_commitment_test_module = consumer(
         context,
-        "src/bench/cairo_metal/streaming_commitment.zig",
+        "src/integrations/cairo_metal/bench/streaming_commitment.zig",
     );
     cairo_streaming_commitment_test_module.addImport("stwo", stwo_module);
     const cairo_streaming_commitment_tests = b.addTest(.{ .root_module = cairo_streaming_commitment_test_module });
@@ -131,7 +131,7 @@ pub fn addProducts(context: Context) void {
     );
     cairo_streaming_commitment_test_step.dependOn(&run_cairo_streaming_commitment_tests.step);
 
-    const metal_eval_prepare_module = consumer(context, "src/tools/cairo_metal_codegen/eval_prepare.zig");
+    const metal_eval_prepare_module = consumer(context, "src/products/cairo/tools/metal_codegen/eval_prepare.zig");
     metal_eval_prepare_module.addImport("stwo", stwo_module);
     const metal_eval_prepare = b.addExecutable(.{
         .name = "metal-eval-prepare",
@@ -142,7 +142,7 @@ pub fn addProducts(context: Context) void {
     const metal_eval_prepare_step = b.step("metal-eval-prepare", "Compile exact SN Cairo AIR programs for Metal");
     metal_eval_prepare_step.dependOn(&install_metal_eval_prepare.step);
 
-    const metal_eval_source_module = consumer(context, "src/tools/cairo_metal_codegen/eval_source.zig");
+    const metal_eval_source_module = consumer(context, "src/products/cairo/tools/metal_codegen/eval_source.zig");
     metal_eval_source_module.addImport("stwo_cairo_frontend", context.cairo_frontend);
     metal_eval_source_module.addImport("stwo_cairo_metal_integration", context.cairo_metal_integration);
     const metal_eval_source = b.addExecutable(.{
@@ -156,7 +156,7 @@ pub fn addProducts(context: Context) void {
     );
     metal_eval_source_step.dependOn(&install_metal_eval_source.step);
 
-    const metal_witness_source_module = consumer(context, "src/tools/cairo_metal_codegen/witness_source.zig");
+    const metal_witness_source_module = consumer(context, "src/products/cairo/tools/metal_codegen/witness_source.zig");
     metal_witness_source_module.addImport("stwo", stwo_module);
     const metal_witness_source = b.addExecutable(.{
         .name = "metal-witness-source",
@@ -170,7 +170,7 @@ pub fn addProducts(context: Context) void {
     );
     metal_witness_source_step.dependOn(&install_metal_witness_source.step);
 
-    const metal_test_module = consumer(context, "src/tests.zig");
+    const metal_test_module = consumer(context, "src/backends/metal/tests/system/root.zig");
     metal_test_module.addImport("stwo_cpu_backend", context.cpu_backend);
     metal_test_module.addImport("stwo_metal_backend", context.metal_backend);
     metal_test_module.addImport("stwo_cairo_frontend", context.cairo_frontend);
@@ -221,7 +221,7 @@ pub fn addProducts(context: Context) void {
         "Compile and link resident Metal backend tests without executing them",
     );
     metal_check_step.dependOn(&metal_tests.step);
-    const resident_decommit_module = consumer(context, "src/tests.zig");
+    const resident_decommit_module = consumer(context, "src/backends/metal/tests/system/root.zig");
     resident_decommit_module.addImport("stwo_cpu_backend", context.cpu_backend);
     resident_decommit_module.addImport("stwo_metal_backend", context.metal_backend);
     resident_decommit_module.addImport("stwo_cairo_frontend", context.cairo_frontend);
@@ -249,7 +249,7 @@ pub fn addProducts(context: Context) void {
     );
     resident_decommit_step.dependOn(&run_resident_decommit_tests.step);
 
-    const metal_bench_module = consumer(context, "src/bench/metal/commitment.zig");
+    const metal_bench_module = consumer(context, "src/backends/metal/bench/commitment.zig");
     metal_bench_module.addImport("stwo", stwo_module);
     const metal_bench = b.addExecutable(.{
         .name = "metal-bench",
@@ -260,7 +260,7 @@ pub fn addProducts(context: Context) void {
     const metal_bench_step = b.step("metal-bench", "Build resident Metal commitment benchmark");
     metal_bench_step.dependOn(&install_metal_bench.step);
 
-    const circle_lde_bench_module = consumer(context, "src/bench/metal/circle_lde.zig");
+    const circle_lde_bench_module = consumer(context, "src/backends/metal/bench/circle_lde.zig");
     circle_lde_bench_module.addImport("stwo", stwo_module);
     const circle_lde_bench = b.addExecutable(.{
         .name = "metal-circle-lde-bench",

@@ -5,7 +5,6 @@ const metal = @import("../backends/metal.zig");
 const graph_identity = @import("../graph/identity.zig");
 const identity_receipt = @import("../graph/identity/receipt.zig");
 const graph = @import("../graph/modules.zig");
-const integration_graph = @import("../graph/integrations.zig");
 const closure_gate = @import("../gates/product_closure.zig");
 const prove_cli = @import("../prove_cli.zig");
 const aggregate = @import("aggregate.zig");
@@ -25,16 +24,16 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
     const protocol = graph.createPrivateProtocolModules(b, target, optimize);
     const resource_admission = graph.create(b, .{
         .product = aggregate.product(metal_enabled),
-        .root_source_file = "src/prover/native/resource_admission.zig",
+        .root_source_file = "src/engine/prover/native/resource_admission.zig",
         .target = target,
         .optimize = optimize,
     });
     const stwo = graph.create(b, .{
         .product = aggregate.product(metal_enabled),
         .root_source_file = if (metal_enabled)
-            "src/stwo_aggregate_metal.zig"
+            "src/products/cairo/aggregate/metal.zig"
         else
-            "src/stwo_aggregate_cpu.zig",
+            "src/products/cairo/aggregate/cpu.zig",
         .target = target,
         .optimize = optimize,
     });
@@ -76,7 +75,7 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         )
     else
         null;
-    const riscv_frontend = graph.addRiscVFrontendImport(
+    _ = graph.addRiscVFrontendImport(
         b,
         protocol,
         aggregate.product(metal_enabled),
@@ -84,20 +83,19 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         optimize,
         stwo,
     );
-    _ = integration_graph.addRiscVCpuImport(
+    graph.addFacadeSupportImports(
         b,
         protocol,
         aggregate.product(metal_enabled),
         target,
         optimize,
-        cpu_backend,
-        riscv_frontend,
         stwo,
+        .{ .atomic_file = true, .postcard = true, .native_artifact = true, .riscv_artifact = true },
     );
     const runner = libraries.consumer(b, protocol, .{
         .root_source_file = graph.source(
             b,
-            "src/prover/native/runner.zig",
+            "src/engine/prover/native/runner.zig",
             target,
             optimize,
         ),
@@ -109,9 +107,9 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
 
     const aggregate_tests = libraries.consumer(b, protocol, .{
         .root_source_file = b.path(if (metal_enabled)
-            "src/stwo_aggregate_metal.zig"
+            "src/products/cairo/aggregate/metal.zig"
         else
-            "src/stwo_aggregate_cpu.zig"),
+            "src/products/cairo/aggregate/cpu.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -133,7 +131,7 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         test_proof_wire,
         aggregate_tests,
     );
-    const test_riscv_frontend = graph.addRiscVFrontendImport(
+    _ = graph.addRiscVFrontendImport(
         b,
         protocol,
         aggregate.product(metal_enabled),
@@ -142,15 +140,14 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         aggregate_tests,
     );
     aggregate_tests.addImport("stwo_cpu_backend", cpu_backend);
-    _ = integration_graph.addRiscVCpuImport(
+    graph.addFacadeSupportImports(
         b,
         protocol,
         aggregate.product(metal_enabled),
         target,
         optimize,
-        cpu_backend,
-        test_riscv_frontend,
         aggregate_tests,
+        .{ .atomic_file = true, .postcard = true, .native_artifact = true, .riscv_artifact = true },
     );
     if (metal_backend) |backend|
         aggregate_tests.addImport("stwo_metal_backend", backend);
@@ -163,7 +160,7 @@ pub fn addProduct(b: *std.Build, metal_enabled: bool) void {
         .root_module = libraries.consumer(b, protocol, .{
             .root_source_file = graph.source(
                 b,
-                "src/prover/native/runner.zig",
+                "src/engine/prover/native/runner.zig",
                 target,
                 optimize,
             ),

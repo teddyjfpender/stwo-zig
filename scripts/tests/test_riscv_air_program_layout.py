@@ -6,8 +6,8 @@ import copy
 import unittest
 from unittest import mock
 
-from scripts.riscv_refinement_lib import air_program_layout
-from scripts.riscv_refinement_lib.air_program_contract import OPCODES
+from scripts.riscv.riscv_refinement_lib import air_program_layout
+from scripts.riscv.riscv_refinement_lib.air_program_contract import OPCODES
 
 
 REVISION = "1" * 40

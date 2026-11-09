@@ -2,7 +2,7 @@
 
 `bench/` is the presentation boundary for committed stwo-zig performance
 evidence. Raw reports, deltas, and proof bundles remain immutable under
-`vectors/reports/benchmark_history/`; the site contains only a deterministic,
+`bench/history/`; the site contains only a deterministic,
 bounded projection of that archive.
 
 ## Layout
@@ -49,8 +49,8 @@ but it must not present that observation as judged promotion evidence.
 ## Commands
 
 ```sh
-python3 scripts/benchmark_pages.py
-python3 scripts/benchmark_pages.py --validate
+python3 scripts/bench/benchmark_pages.py
+python3 scripts/bench/benchmark_pages.py --validate
 python3 -m http.server 8000 --directory bench/site
 ```
 

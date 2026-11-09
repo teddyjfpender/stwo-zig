@@ -1,6 +1,5 @@
 //! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
 
-pub const rv64_poseidon2_outer = @import("poseidon2_outer/mod.zig");
 pub const rv64_outer_mle_point = @import("logup_gkr/mle_point.zig");
 pub const rv64_outer_hybrid_device = @import("outer_gkr/hybrid_device.zig");
 pub const rv64_outer_hybrid_air = @import("outer_gkr/hybrid_air.zig");
@@ -12,7 +11,6 @@ pub const rv64_outer_gkr_section = @import("outer_gkr/section.zig");
 pub const rv64_outer_gkr_binding = @import("outer_gkr/binding.zig");
 pub const rv64_services_roster = @import("word16_global_execution/services/roster.zig");
 pub const rv64_services_types = @import("word16_global_execution/services/types.zig");
-pub const rv64_services_pipeline = @import("word16_global_execution/services/pipeline.zig");
 pub const rv64_device_core_headers = @import("word16_execution/device_headers.zig");
 pub const rv64_provider_tails = @import("word16_execution/provider_tails.zig");
 pub const rv64_memory_input = @import("word16_execution/memory_input.zig");
@@ -32,7 +30,6 @@ pub const rv64_ethereum_gkr_main = @import("word16_global_execution/ethereum/gkr
 pub const rv64_gkr_truth_v3_role = @import("word16_global_execution/services/gkr_local/truth_v3_role.zig");
 pub const rv64_gkr_truth_v3_catalog = @import("word16_global_execution/services/gkr_local/truth_v3_catalog.zig");
 pub const rv64_gkr_truth_role = @import("word16_global_execution/services/gkr_local/truth_role.zig");
-pub const rv64_native_gkr_truth = @import("word16_global_execution/services/native_gkr/truth_authority.zig");
 pub const rv64_native_gkr_roster = @import("word16_global_execution/services/native_gkr/native_roster.zig");
 pub const rv64_native_gkr_cpu = @import("word16_global_execution/services/native_gkr/cpu_component.zig");
 pub const rv64_native_gkr_section = @import("word16_global_execution/services/native_gkr/section.zig");
@@ -80,7 +77,6 @@ pub const rv64_gkr_execution = @import("word16_global_execution/services/gkr_loc
 pub const rv64_gkr_fixed_authority = @import("word16_global_execution/services/gkr_local/fixed_authority.zig");
 pub const rv64_gkr_fixed_authority_set = @import("word16_global_execution/services/gkr_local/fixed_authority_set.zig");
 pub const rv64_gkr_local_roster = @import("word16_global_execution/services/gkr_local/roster.zig");
-pub const rv64_services_protocol = @import("word16_global_execution/services/protocol.zig");
 pub const rv64_native_policy = @import("word16_execution/native_policy.zig");
 pub const rv64_pcs_suite = @import("word16_execution/pcs_suite.zig");
 pub const rv64_om31_security_candidate = @import("word16_execution/om31_security_candidate.zig");
@@ -367,3 +363,35 @@ pub const rv64_root_verify_main = @import("rv64_recursion/root_verify_main.zig")
 /// Exact production allocator adapter, also used by ready-lane budget admission.
 pub const rv64_large_block_recycler = @import("rv64_large_block_recycler.zig");
 pub const rv64_recursion_budget = @import("rv64_recursion_budget.zig");
+
+// Retained tests for live modules; restored from the pre-restructure source.
+test {
+    _ = @import("recursive_segment_v2_detached_leaf_options_test.zig");
+    _ = @import("recursive_segment_v2_detached_parent_prepared_test.zig");
+    _ = @import("recursive_segment_v2_detached_routing_test.zig");
+    _ = @import("recursive_segment_v2_leaf_outer_test.zig");
+    _ = @import("recursive_segment_v2_single_root_test.zig");
+    _ = @import("word16_execution/om31_compress_corpus_test.zig");
+}
+
+// Restored live authority, division and services regressions.
+test {
+    _ = @import("word16_execution/division_product_integration_test.zig");
+    _ = @import("word16_execution/optional_division_test.zig");
+    _ = @import("word16_global_execution/services/gkr_local/metadata_test.zig");
+    _ = @import("word16_global_execution/services/gkr_local/truth_test.zig");
+    _ = @import("word16_global_execution/services/gkr_local/truth_worker_test.zig");
+    _ = @import("division_contract_test_root.zig");
+    _ = @import("services_truth_contract_test_root.zig");
+}
+
+// Retained image/program authority and distributed barrier proof regressions.
+test {
+    _ = @import("word16_image_program_contract_test_root.zig");
+    _ = @import("distributed_binary_contract_test_root.zig");
+}
+
+// Concrete CPU proof tests are owned here; generic frontend helpers stay neutral.
+test {
+    _ = @import("blake3_proof_contract_test_root.zig");
+}

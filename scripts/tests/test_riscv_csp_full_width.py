@@ -7,8 +7,8 @@ import struct
 import unittest
 from types import SimpleNamespace
 
-from scripts.riscv_csp_benchmark_lib import full_width as fw
-from scripts.riscv_csp_benchmark_lib.contract import BenchmarkError, SECURE_PCS_CONFIG, sha256_bytes
+from scripts.riscv.riscv_csp_benchmark_lib import full_width as fw
+from scripts.riscv.riscv_csp_benchmark_lib.contract import BenchmarkError, SECURE_PCS_CONFIG, sha256_bytes
 
 
 class FullWidthTests(unittest.TestCase):

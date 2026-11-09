@@ -6,9 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import check_build_monorepo_baseline as baseline
-
-
+from scripts.repo import check_build_monorepo_baseline as baseline
 class BuildMonorepoBaselineTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

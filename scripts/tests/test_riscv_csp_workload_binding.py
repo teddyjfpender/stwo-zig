@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_csp_benchmark as csp
-from scripts.riscv_csp_benchmark_lib.evidence import EvidenceRun, prove_negative_case
-from scripts.riscv_csp_benchmark_lib.validation import validate_workload_binding
+from scripts.riscv import riscv_csp_benchmark as csp
+from scripts.riscv.riscv_csp_benchmark_lib.evidence import EvidenceRun, prove_negative_case
+from scripts.riscv.riscv_csp_benchmark_lib.validation import validate_workload_binding
 
 
 from scripts.tests.riscv_csp_provenance_fixture import artifact_workload

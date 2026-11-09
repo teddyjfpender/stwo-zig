@@ -67,7 +67,7 @@ fn evaluatePartImpl(component: *const Component, evaluation: *const Evaluation, 
     defer evaluation.allocator.free(native);
     var jobs: [work.MAX_WORKERS]Job = undefined;
     if (workers == 1) {
-        jobs[0] = .{ .component = component, .evaluation = evaluation, .scratch = &scratch[0], .native = native[0..per_worker], .simd = simd, .part = part, .output = output.*, .previous_main = previous_main[0..n_previous_main], .previous_interaction = previous_interaction[0..n_previous_interaction], .inverse = inverse, .start = 0, .end = evaluation.size };
+        jobs[0] = .{ .component = component, .evaluation = evaluation, .scratch = if (simd) .{ .simd = &scratch[0].simd } else .{ .scalar = &scratch[0].scalar }, .native = native[0..per_worker], .part = part, .output = output.*, .previous_main = previous_main[0..n_previous_main], .previous_interaction = previous_interaction[0..n_previous_interaction], .inverse = inverse, .start = 0, .end = evaluation.size };
         jobs[0].run();
         output.* = jobs[0].output;
         return;
@@ -91,7 +91,7 @@ fn evaluatePartImpl(component: *const Component, evaluation: *const Evaluation, 
     // sharing the sequential fresh-index cursor while retaining prior terms.
     output.next_fresh_index = null;
     for (jobs[0..workers], 0..) |*job, i| {
-        job.* = .{ .component = component, .evaluation = evaluation, .scratch = &scratch[i], .native = native[i * per_worker ..][0..per_worker], .simd = simd, .part = part, .output = output.*, .previous_main = previous_main[0..n_previous_main], .previous_interaction = previous_interaction[0..n_previous_interaction], .inverse = inverse, .counter = if (dynamic) &counter else null, .tile_rows = tile_rows, .start = evaluation.size * i / workers, .end = evaluation.size * (i + 1) / workers };
+        job.* = .{ .component = component, .evaluation = evaluation, .scratch = if (simd) .{ .simd = &scratch[i].simd } else .{ .scalar = &scratch[i].scalar }, .native = native[i * per_worker ..][0..per_worker], .part = part, .output = output.*, .previous_main = previous_main[0..n_previous_main], .previous_interaction = previous_interaction[0..n_previous_interaction], .inverse = inverse, .counter = if (dynamic) &counter else null, .tile_rows = tile_rows, .start = evaluation.size * i / workers, .end = evaluation.size * (i + 1) / workers };
     }
     for (jobs[1..workers], 0..) |*job, submitted| {
         if (comptime @import("builtin").is_test) {
@@ -120,8 +120,9 @@ const PreviousSource = packed_rows.PreviousSource;
 const Job = struct {
     component: *const Component,
     evaluation: *const Evaluation,
-    scratch: *Scratch,
-    simd: bool,
+    // Resolve the large payload union on the coordinator. Workers borrow only
+    // a tagged pointer, so Debug's active-field checks never copy that payload.
+    scratch: union(enum) { scalar: *ScalarScratch, simd: *packed_rows.Scratch },
     native: []M,
     part: usize,
     output: Column,
@@ -133,13 +134,19 @@ const Job = struct {
     start: usize,
     end: usize,
     fn run(self: *Job) void {
-        if (self.simd) {
-            self.scratch.simd.initialize();
-            var first = true;
-            while (self.nextTile(&first)) |tile| packed_rows.evaluate(self.component, self.evaluation, &self.scratch.simd, self.part, tile.start, tile.end, self.previous_main, self.previous_interaction, &self.output, self.inverse);
-            return;
+        switch (self.scratch) {
+            .simd => |scratch| self.runSimd(scratch),
+            .scalar => |scratch| self.runScalar(scratch),
         }
-        const scratch = &self.scratch.scalar;
+    }
+    // Keep the unused scalar oracle's Debug temporaries out of SIMD workers.
+    // Each path owns its frame without changing the admitted stack budget.
+    noinline fn runSimd(self: *Job, scratch: *packed_rows.Scratch) void {
+        scratch.initialize();
+        var first = true;
+        while (self.nextTile(&first)) |tile| packed_rows.evaluate(self.component, self.evaluation, scratch, self.part, tile.start, tile.end, self.previous_main, self.previous_interaction, &self.output, self.inverse);
+    }
+    noinline fn runScalar(self: *Job, scratch: *ScalarScratch) void {
         const component = self.component;
         const evaluation = self.evaluation;
         const values = evaluation.current_values;

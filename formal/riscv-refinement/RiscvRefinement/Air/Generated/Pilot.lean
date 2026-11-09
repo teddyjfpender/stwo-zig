@@ -1,6 +1,6 @@
 -- GENERATED FILE. DO NOT EDIT.
--- Generator: scripts/riscv_refinement.py
--- Regenerate: python3 scripts/riscv_refinement.py generate
+-- Generator: scripts/riscv/riscv_refinement.py
+-- Regenerate: python3 scripts/riscv/riscv_refinement.py generate
 -- Production binding: symbolic collector plus exact structural validation.
 -- Boundary: normalized predicate; LUI AIR IR v2 is bound in LuiProgram.lean.
 
@@ -10,9 +10,9 @@ namespace RiscvRefinement.Air.Generated
 
 open RiscvRefinement
 
-def luiAirDigest : String := "ac7730689f380f2856d62857e13314f4787aeacadac7bebfbbd134a31eb6103a"
+def luiAirDigest : String := "429f5628321d9c19dacb8bca1236a6a4d529fae0ce68a21849b18b82851114a6"
 
-def addiAirDigest : String := "ec5f670f5bb757adc414168d1433c909c65676b3b4a6b303668d08ed95f6ab82"
+def addiAirDigest : String := "3ac992056077b05c14633666f5d41bdc3de9dbb4513563585ebbc5a872df52c8"
 
 def luiImmediate
     (imm0 : BitVec 4)

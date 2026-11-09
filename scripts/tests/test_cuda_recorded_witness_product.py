@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from cuda_recorded_witness_product import (  # noqa: E402
+from scripts.cuda.cuda_recorded_witness_product import (  # noqa: E402
     EXPECTED_SOURCES,
     recorded_entries,
     verify,

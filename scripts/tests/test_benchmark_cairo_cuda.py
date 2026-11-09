@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from benchmark_cairo_cuda import CAIRO_REVISION, SECURITY, STWO_REVISION, check_receipts
+from scripts.cairo.benchmark_cairo_cuda import CAIRO_REVISION, SECURITY, STWO_REVISION, check_receipts
 
 
 class CanonicalCudaReceiptTests(unittest.TestCase):

@@ -61,7 +61,7 @@ pub const Profile = enum {
     /// 128-bit CONJECTURED security (ethSTARK-style FRI accounting, owner
     /// decision 2026-11-02): blowup 2, 108 queries, 20-bit PoW, fold-4.
     /// Conjectured FRI bits = 1*108 + 20 = 128. Not a proven bound; see
-    /// design/riscv-proving-stack/rv64-gkr-conjectured128-profile.md.
+    /// design/riscv/rv64-gkr-conjectured128-profile.md.
     conjectured128_b2_q108_p20_fold4,
     /// Explicit experimental D2 runtime profile. Defaults are unchanged.
     d2_native_b4_q54_p20_fold4,
@@ -374,7 +374,7 @@ pub fn requireWholeProtocolPromotion(reviews: Reviews) !void {
 // = moving it into the layer's admitted registry (native: `Profile`; outer /
 // compress: `circuit_cpu/om31/protocol.zig`, owner canon-vk/compress) together
 // with fresh-receiver acceptance and the reviewed note
-// design/riscv-proving-stack/rv64-m7-profiles.md.
+// design/riscv/rv64-m7-profiles.md.
 //
 // `fold_step` is the LOG2 FRI folding arity per layer (core/fri: positions >>=
 // fold_step). Today's "fold4" therefore already folds 16-to-1 per FRI layer;

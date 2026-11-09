@@ -16,7 +16,7 @@ const fixed_profile = @import("../fixed_profile.zig");
 const channel = @import("../poseidon2_channel.zig");
 const schedule = @import("../air/verifier_schedule.zig");
 const segment_v2 = @import("../segment_statement_v2.zig");
-const scheduled = @import("../scheduled_channel_v2.zig");
+const scheduled = @import("scheduled_channel_test_support.zig");
 const transcript = @import("../transcript_program_v2.zig");
 
 test "recording channel preserves native transcript and rejects corrupt trace coordinates" {

@@ -2,7 +2,7 @@
 //! remain external. Direct-source eligibility and cold FIXED misses are inputs
 //! that must be frozen and validated by the production adapter before admission.
 const std = @import("std");
-const A = @import("global_admission.zig");
+const A = @import("footprint_types.zig");
 pub const Auxiliary = enum { none, last, hc };
 pub const Column = struct { log: u32, direct: bool };
 pub const Sparse = @import("composition_sparse_contract.zig");

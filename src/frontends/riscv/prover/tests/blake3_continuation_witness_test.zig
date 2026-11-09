@@ -41,6 +41,9 @@ test "BLAKE3 memory update proves runner snapshot conversion agrees with full ro
         var wrong = full.root;
         wrong.bytes[31] ^= 0x80;
         try std.testing.expectError(error.UntrustedMemoryUpdateChain, memory.prepareContinuation(a, side, &data, admission, wrong, 100000, 99999));
+        var untrusted = admission;
+        untrusted.expected_id[0] ^= 1;
+        try std.testing.expectError(error.UntrustedCommitmentPlan, memory.prepareContinuation(a, side, &data, untrusted, full.root, 100000, 99999));
     }
 }
 

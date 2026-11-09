@@ -15,8 +15,6 @@ const Native = @import("pcs_native_abi.zig");
 const SC = @import("session_context.zig");
 const Abi = @import("abi.zig");
 const Prefix = @import("prefix_plan.zig");
-const Admission = @import("admission_runtime.zig");
-const InteractionCost = @import("native_interaction_cost.zig");
 const O = core.fields.om31.OM31;
 const M = core.fields.m31.M31;
 pub const Launch = *const fn (*anyopaque, u32, [*]const u32, [*]const u32, [*]const u32, [*]u32, [*]u32, [*]u32, u32) callconv(.c) c_int;
@@ -100,28 +98,6 @@ pub const Context = struct {
     pub fn stage(self: *Context) DG.Stage {
         return .{ .context = self, .generate = generate };
     }
-    pub const ClassAllocations = struct { generation_peak: @import("global_admission.zig").Footprint = .{}, outputs: @import("global_admission.zig").Footprint = .{}, retained: @import("global_admission.zig").Footprint = .{} };
-    pub fn cpuClassAllocationPlan(self: *Context, a: std.mem.Allocator, setup: *const @import("stwo_riscv_cpu_integration").rv64_services_roster.CpuSetup) !ClassAllocations {
-        var components = try @import("stwo_riscv_cpu_integration").rv64_gkr_cpu_components.Plan.init(a, setup);
-        defer components.deinit();
-        var result = ClassAllocations{};
-        for (components.slots) |slot| {
-            if (G.Authority.Global.claimCount(slot.origin) == 0) continue;
-            const descriptor = G.Source.Descriptor{ .origin = slot.origin };
-            const shape = try G.Authority.shape(descriptor);
-            self.mutex.lock();
-            const artifact = self.entry(descriptor) catch |err| {
-                self.mutex.unlock();
-                return err;
-            };
-            self.mutex.unlock();
-            const plan = try InteractionCost.init(.{ .log = slot.log, .fixed_columns = shape.fixed, .main_columns = shape.main, .host_fixed_columns = shape.fixed, .parameters = artifact.artifact.parameter_slots.len, .pairs = artifact.artifact.ram_pairs + artifact.artifact.other_pairs, .groups = 1 + @as(usize, @intFromBool(artifact.artifact.other_pairs != 0)) });
-            result.generation_peak = result.generation_peak.max(try result.retained.add(plan.temporary));
-            result.outputs = try result.outputs.add(plan.output);
-            result.retained = try result.retained.add(plan.retained);
-        }
-        return result;
-    }
     fn entry(self: *Context, descriptor: G.Source.Descriptor) !*Entry {
         for (self.entries.items) |e| if (std.meta.eql(e.artifact.descriptor, descriptor)) return e;
         const a = std.heap.page_allocator;
@@ -145,7 +121,6 @@ pub const Context = struct {
             return err;
         };
         // Entries are immutable and never evicted before Context.deinit.
-        // Physical admission must happen without this cache mutex held.
         self.mutex.unlock();
         const shape = try G.Authority.shape(item.descriptor);
         if (item.fixed.len != shape.fixed or item.main.len != shape.main) return error.InvalidGlobalGeometry;
@@ -169,36 +144,11 @@ pub const Context = struct {
     /// fresh parameters from their original CPU or truth constraint authority.
     /// This routine never selects a relation or invents a challenge/claim.
     pub fn generateRational(self: *Context, a: std.mem.Allocator, request: Request) !DG.Witness {
-        var permit = try self.reserve(request);
-        defer if (permit) |*p| if (!p.closed) p.finish(.{}) catch {
-            p.endpoint.planner.poisonPhysical(p.endpoint.physical);
-        };
         self.mutex.lock();
-        var result = self.generateRationalLocked(a, request, if (permit) |*p| p else null) catch |err| {
-            self.mutex.unlock();
-            return err;
-        };
-        self.mutex.unlock();
-        errdefer result.deinit();
-        if (permit) |*p| try self.service.completeAdmission(p, request.scope, p.demand.successor);
-        return result;
+        defer self.mutex.unlock();
+        return self.generateRationalLocked(a, request);
     }
-    fn reserve(self: *Context, request: Request) !?Admission.Permit {
-        const endpoint = self.service.admission orelse return null;
-        _ = try self.service.armGlobalAdmission(request.scope);
-        var cold_fixed: usize = 0;
-        for (request.fixed) |column| if (column.device == null) {
-            cold_fixed = try std.math.add(usize, cold_fixed, 1);
-        };
-        const plan = try InteractionCost.init(.{ .log = request.log_size, .fixed_columns = request.fixed.len, .main_columns = request.main.len, .host_fixed_columns = cold_fixed, .parameters = request.parameters.len, .pairs = try std.math.add(usize, request.groups[0], request.groups[1]), .groups = 1 + @as(usize, @intFromBool(request.groups[1] != 0)) });
-        // The registered whole-class envelope includes remaining INTER outputs
-        // and its consuming TC/RC/PCS phases. A missing class refuses before
-        // launch; guessing zero here could deadlock on our own retained rows.
-        const successor = try self.service.admissionSuccessor(request.scope, .interaction);
-        const demand = @import("global_admission.zig").Demand{ .progress_key = @import("global_admission.zig").progressKey(request.scope), .owner = .{ .request = std.mem.readInt(u64, request.scope.statement[0..8], .little), .domain = .native_packet, .ordinal = request.scope.ordinal }, .stage = .interaction, .temporary = plan.temporary, .stage_retained_upper = plan.retained, .successor = successor, .known = true, .host_known = false };
-        return if (try self.service.takeGlobalAdmissionDrain(request.scope)) try endpoint.reserveDrain(demand) else try endpoint.reserve(demand);
-    }
-    fn generateRationalLocked(self: *Context, a: std.mem.Allocator, request: Request, permit: ?*Admission.Permit) !DG.Witness {
+    fn generateRationalLocked(self: *Context, a: std.mem.Allocator, request: Request) !DG.Witness {
         const log = request.log_size;
         if (log >= self.twiddles.len or log < 5 or log > (if (request.public_boundary) @as(u32, DG.MAX_PUBLIC_BOUNDARY_LOG) else @as(u32, 22)) or request.fixed.len == 0 or request.main.len == 0 or request.parameters.len == 0 or request.parameters.len > 65536 or request.groups[0] == 0 or request.groups[0] > 640 or request.groups[1] > 640) return error.InvalidGlobalGeometry;
         if (request.layout == .cumulative_batches and self.cumulative == null) return error.MissingResidentCumulativeCapability;
@@ -227,12 +177,12 @@ pub const Context = struct {
         errdefer a.free(columns);
         const claims = try a.alloc(O, groups);
         errdefer a.free(claims);
-        owner.* = .{ .allocator = a, .service = self.service, .sync = self.api.sync, .columns = columns, .claims = claims };
+        owner.* = .{ .allocator = a, .service = self.service, .columns = columns, .claims = claims };
         errdefer if (owner.output.words != null) {
             _ = self.service.submit(self.service.session, Owner.releaseDevice, owner);
         };
         if (self.twiddles[log] == null) self.twiddles[log] = try engine.poly.twiddles.precomputeM31(std.heap.page_allocator, core.poly.circle.canonic.CanonicCoset.new(log).circleDomain().half_coset);
-        var job = Job{ .backend = self, .scope = request.scope, .request = request, .owner = owner, .permit = permit };
+        var job = Job{ .backend = self, .scope = request.scope, .request = request, .owner = owner };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try checkedAt(@src().line, status);
@@ -242,21 +192,18 @@ pub const Context = struct {
 const Owner = struct {
     allocator: std.mem.Allocator,
     service: *Service.Context,
-    sync: Native.Sync,
     output: Native.Lease = .{},
     columns: []D.TraceColumn,
     claims: []O,
     fn releaseDevice(native_context: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(raw.?));
         if (self.service.lease_release(self.service.session, &self.output) != 0) return 1;
-        return if (self.service.admission != null) self.sync(native_context) else 0;
+        _ = native_context;
+        return 0;
     }
     fn release(raw: *anyopaque) void {
         const self: *Owner = @ptrCast(@alignCast(raw));
-        const status = self.service.submit(self.service.session, releaseDevice, self);
-        if (self.service.admission) |endpoint| {
-            if (status != 0) endpoint.planner.poisonPhysical(endpoint.physical) else endpoint.planner.notifyResourceRelease();
-        }
+        _ = self.service.submit(self.service.session, releaseDevice, self);
         self.allocator.free(self.columns);
         self.allocator.free(self.claims);
         self.allocator.destroy(self);
@@ -268,7 +215,6 @@ const Job = struct {
     request: Request,
     owner: *Owner,
     failure: ?anyerror = null,
-    permit: ?*Admission.Permit = null,
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(data.?));
         var observed = @import("allocation_observer.zig").Range.begin(&self.backend.service.library, raw, self.scope, 2, .inter_witness, 0) catch |err| {
@@ -276,19 +222,7 @@ const Job = struct {
             return 1;
         };
         defer observed.deinit();
-        if (self.permit) |p| p.enterOwner(raw) catch |err| {
-            self.failure = err;
-            return 1;
-        };
         self.run(raw, token) catch |err| {
-            self.failure = err;
-            if (self.permit) |p| {
-                p.leaveOwner(raw) catch {};
-                p.endpoint.planner.poisonPhysical(p.endpoint.physical);
-            }
-            return 1;
-        };
-        if (self.permit) |p| p.leaveOwner(raw) catch |err| {
             self.failure = err;
             return 1;
         };

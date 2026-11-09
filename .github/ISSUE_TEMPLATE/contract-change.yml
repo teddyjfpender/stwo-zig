@@ -1,0 +1,61 @@
+name: Contract change (RFC)
+description: Propose a change to a package contract, golden vector, error model or compatibility rule (ENGINEERING_STANDARDS.md section 6).
+title: "RFC: "
+labels: ["rfc", "contract-change"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Contracts are the collaboration surface. Keep this short and structured.
+        Discuss here and in the team's discussion channel; record the decision as a comment on this issue.
+  - type: input
+    id: owner
+    attributes:
+      label: Invariant owner
+      description: The `owner` role from the affected package.contract.json.
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: Affected contract
+      description: Package(s), public symbols, schemas, error codes or golden vectors that change.
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Problem and proposed change
+      description: Why the current contract is insufficient and what replaces it. Include rejected alternatives that keep the contract unchanged.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and versioning
+      description: Backward-compatible, versioned side-by-side, or breaking? Semver bump per package. Consumers affected.
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Contract tests first
+      description: The contract, consumer-driven, property or golden tests that are added or changed before the implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: deprecation
+    attributes:
+      label: Deprecation and removal plan
+      description: How the old form is deprecated, when it is removed, and how removal is verified (no remaining consumers).
+    validations:
+      required: true
+  - type: textarea
+    id: budget
+    attributes:
+      label: Complexity budget
+      description: Expected code, flag and script deltas, and the invariant that justifies any growth.
+  - type: markdown
+    attributes:
+      value: |
+        **Decision** (added by the invariant owner as a comment): approved / rejected / deferred, with reasons.

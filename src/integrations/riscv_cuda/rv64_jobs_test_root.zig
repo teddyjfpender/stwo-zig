@@ -10,10 +10,10 @@ test {
     _ = @import("rv64/jobs/lint.zig");
     _ = @import("rv64/jobs/scheduler.zig");
     _ = @import("rv64/jobs/mod.zig");
-    _ = @import("rv64/jobs/provider.zig");
     _ = @import("rv64/jobs/gpu_native.zig");
     _ = @import("rv64/jobs/driver.zig");
     _ = @import("rv64/jobs/driver_request.zig");
+    _ = @import("rv64/jobs/driver_service_test.zig");
     _ = @import("rv64/jobs/driver_dag.zig");
     _ = @import("rv64/jobs/driver_memory.zig");
     _ = @import("rv64/m8_capture_stream.zig");

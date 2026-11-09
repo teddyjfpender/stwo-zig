@@ -43,7 +43,6 @@ const NO = @import("native_encode_oods.zig");
 const Seed = @import("outer_seed_device.zig");
 const LF = @import("native_leaf_wire.zig");
 const Gl = @import("native_global.zig");
-const HJ = @import("native_hybrid_jobs.zig");
 const TF = @import("truth_factory.zig");
 const TJ = @import("truth_job.zig");
 
@@ -101,7 +100,7 @@ pub const Binding = struct {
     s2_sym: S2.Symbols,
     truth_sym: ?TJ.Symbols,
     events: Events,
-    timing: HJ.Timing = undefined,
+    timing: @import("job_timing.zig").Timing = undefined,
     registry: S1.Registry,
     stage2: S2.Factory,
     truth: ?TF.Factory,

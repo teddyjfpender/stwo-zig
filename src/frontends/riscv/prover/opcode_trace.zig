@@ -219,7 +219,7 @@ pub fn generate(
             const old_width = trace.nColumnsForFamily(family);
             var cells: [trace.MAX_FAMILY_COLUMNS]M31 = undefined;
             for (columns.columns[0..old_width], cells[0..old_width]) |column, *cell| cell.* = column[physical];
-            try local_zero.normalizePredecessors(family, cells[0..old_width], &work.old_programs[@intFromEnum(family)].?);
+            try runtime_program.normalizeX0Predecessors(family, cells[0..old_width], &work.old_programs[@intFromEnum(family)].?);
             try local_zero.fillHints(family, cells[0..old_width], cells[old_width..columns.n_columns]);
             var lifted: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
             for (columns.columns[0..columns.n_columns], cells[0..columns.n_columns], lifted[0..columns.n_columns]) |column, cell, *value| {

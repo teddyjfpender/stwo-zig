@@ -1,2 +1,0 @@
-15/15 outer_gkr.tests.test.outer GKR binding columns: shared lane-major row point, prefix boundary equals the GKR terminal claims, tampers break it...OK
-All 15 tests passed.

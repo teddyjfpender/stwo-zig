@@ -23,8 +23,6 @@ pub const lookups = @import("lookups/mod.zig");
 pub const lookup_physical_manifest_v2 =
     @import("lang/lookup_physical_manifest_v2.zig");
 pub const lookup_batch_execution = @import("lang/lookup_batch_execution.zig");
-pub const lookup_polynomial_program_v2 =
-    @import("lang/lookup_polynomial_program_v2.zig");
 pub const memory_commitment = @import("memory_commitment/mod.zig");
 pub const typed_poseidon2_authority = @import("lang/typed_poseidon2_authority.zig");
 pub const typed_poseidon2_degree_bounded_candidate =
@@ -45,10 +43,6 @@ pub const public_data = @import("public_data.zig");
 pub const public_data_v2 = @import("public_data_v2.zig");
 pub const public_logup = @import("public_logup.zig");
 pub const public_logup_v2 = @import("public_logup_v2.zig");
-pub const incremental_public_logup_v3 =
-    @import("incremental_public_logup_v3.zig");
-pub const incremental_public_logup_v4 =
-    @import("incremental_public_logup_v4.zig");
 pub const program = @import("program/mod.zig");
 pub const relation_challenges = @import("relation_challenges.zig");
 pub const relation = @import("lang/relation.zig");

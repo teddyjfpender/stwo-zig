@@ -82,20 +82,20 @@ jobs:
           ROLE: ${{ matrix.role }}
         run: |
           bundle="$RUNNER_TEMP/native-oracle-bundle-$ROLE"
-          python3 scripts/architecture_native_oracle.py build \
+          python3 scripts/architecture/architecture_native_oracle.py build \
             --binary tools/stwo-interop-rs/target/release/stwo-interop-rs \
             --root . \
             --output "$bundle" \
             --producer "$RUNNER_TEMP/native-oracle-producer.json" \
             --authority-root .
-          python3 scripts/architecture_native_oracle.py verify \
+          python3 scripts/architecture/architecture_native_oracle.py verify \
             --bundle "$bundle" \
             --root . \
             --role "$ROLE" \
             --protected \
             --expected-producer "$RUNNER_TEMP/native-oracle-producer.json" \
             --authority-root .
-          python3 scripts/architecture_native_oracle_transport.py pack \
+          python3 scripts/architecture/architecture_native_oracle_transport.py pack \
             --bundle "$bundle" \
             --output "$RUNNER_TEMP/native-oracle-$ROLE.tar"
 

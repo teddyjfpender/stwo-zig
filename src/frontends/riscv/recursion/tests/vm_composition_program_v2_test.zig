@@ -29,15 +29,6 @@ const ethereum_relations = @import("../ethereum_composition_relations_v2.zig");
 const extension_geometry =
     @import("../ethereum_composition_extension_geometry_v2.zig");
 const program_v2 = @import("../ethereum_vm_composition_program_v2.zig");
-const program_field_authority =
-    @import("../ethereum_vm_program_field_authority_v1.zig");
-const verified_program_descriptor =
-    @import("../ethereum_vm_verified_program_descriptor_v1.zig");
-const provider_authority =
-    @import("../../prover/memory_provider_shards/authority.zig");
-const provider_program = @import("../provider_shard_composition_program_v1.zig");
-const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
-const shard_planner = @import("stwo_prover_engine").pcs.residency_shard_plan;
 
 test "authenticated VM AIR ProfileV2 composition geometry is cold-derived" {
     const allocator = std.testing.allocator;
@@ -74,55 +65,6 @@ test "authenticated VM AIR ProfileV2 composition geometry is cold-derived" {
     try std.testing.expectError(
         error.InvalidProfileAuthority,
         geometry.validateAgainst(&fixture.profile),
-    );
-}
-
-test "authenticated VM AIR ProfileV2 provider shard program cold-reopens typed plan" {
-    const allocator = std.testing.allocator;
-    const calls = try providerCalls(allocator, 33);
-    defer allocator.free(calls);
-    var plan = try provider_authority.ProviderShardPlanV1.create(
-        allocator,
-        [_]u8{0x5a} ** 32,
-        calls,
-        providerResidencyRequest(calls.len),
-    );
-    defer plan.deinit(allocator);
-    const input = provider_program.CompilerInputV1{
-        .plan = &plan,
-        .calls = calls,
-        .shard_index = 1,
-    };
-    var program = try provider_program.compile(allocator, input);
-    defer program.deinit();
-    try program.validateAgainst(input);
-    try std.testing.expectEqual(@as(u64, 16), program.geometry.first_call);
-    try std.testing.expectEqual(@as(u32, 16), program.geometry.call_count);
-    try std.testing.expectEqual(@as(u32, 4), program.geometry.log_size);
-    try std.testing.expectEqual(
-        @as(u32, provider_program.SAMPLED_VALUE_COUNT),
-        program.input_profile.sampled_value_count,
-    );
-    try std.testing.expectEqual(
-        @as(u32, provider_program.CLAIMED_SUM_COUNT),
-        program.input_profile.claimed_sum_count,
-    );
-
-    var mutated = false;
-    for (program.nodes) |*node| switch (node.op) {
-        .constant => |*words| {
-            words[0] +%= 1;
-            mutated = true;
-            break;
-        },
-        else => {},
-    };
-    try std.testing.expect(mutated);
-    try provider_program.testing.reseal(&program);
-    try program.validate();
-    try std.testing.expectError(
-        error.ProviderShardVerifierProgramMismatch,
-        program.validateAgainst(input),
     );
 }
 
@@ -387,110 +329,6 @@ test "authenticated VM AIR ProfileV2 cold-compiles the Ethereum verifier program
     );
 }
 
-test "authenticated VM AIR ProfileV2 has a cold-recompiled field-native authority" {
-    const allocator = std.testing.allocator;
-    var fixture = try Fixture.init(allocator);
-    defer fixture.deinit();
-    const extension = try ethereum_statement.Statement.canonical(
-        &fixture.statement,
-        0,
-        0,
-        support.emptySecpShapes(),
-    );
-    const input = program_v2.CompilerInputV2{
-        .core_statement = &fixture.statement,
-        .extension_statement = &extension,
-        .lookup_manifest = &fixture.manifest,
-        .authenticated_lookup = &fixture.authenticated,
-        .base_profile = &fixture.profile,
-    };
-    var program = try program_v2.compile(allocator, input);
-    defer program.deinit();
-    const authority = try program_field_authority.compile(
-        allocator,
-        &program,
-        input,
-    );
-    try authority.validateAgainst(allocator, &program, input);
-    try std.testing.expect(authority.program_word_count > program.nodes.len);
-    try std.testing.expect(authority.manifest_word_count > fixture.profile.entries.len);
-
-    var changed_program = authority;
-    changed_program.verifier_program_authority[0] +%= 1;
-    try std.testing.expectError(
-        error.InvalidEthereumVmFieldAuthority,
-        changed_program.validateAgainst(allocator, &program, input),
-    );
-    var changed_manifest = authority;
-    changed_manifest.component_manifest_authority[0] +%= 1;
-    try std.testing.expectError(
-        error.InvalidEthereumVmFieldAuthority,
-        changed_manifest.validateAgainst(allocator, &program, input),
-    );
-}
-
-test "authenticated VM AIR ProfileV2 descriptor transports compiler and Tree0 custody" {
-    const allocator = std.testing.allocator;
-    var fixture = try Fixture.init(allocator);
-    defer fixture.deinit();
-    const extension = try ethereum_statement.Statement.canonical(
-        &fixture.statement,
-        0,
-        0,
-        support.emptySecpShapes(),
-    );
-    const input = program_v2.CompilerInputV2{
-        .core_statement = &fixture.statement,
-        .extension_statement = &extension,
-        .lookup_manifest = &fixture.manifest,
-        .authenticated_lookup = &fixture.authenticated,
-        .base_profile = &fixture.profile,
-    };
-    var program = try program_v2.compile(allocator, input);
-    defer program.deinit();
-
-    const tree0 = [_]u32{ 1, 2, 3, 4, 5, 6, 7, 8 };
-    const proof_capture = [_]u8{0x5a} ** 32;
-    const capture_identity = [_]u8{0xa5} ** 32;
-    const descriptor = verified_program_descriptor.project(
-        &program,
-        tree0,
-        proof_capture,
-        capture_identity,
-    );
-    try descriptor.validateAgainstProgram(&program);
-    const encoded = try descriptor.encodeCanonical();
-    const decoded = try verified_program_descriptor.DescriptorV1
-        .decodeCanonical(&encoded);
-    try std.testing.expectEqualDeep(descriptor, decoded);
-
-    var changed_tree0 = tree0;
-    changed_tree0[0] += 1;
-    const changed = verified_program_descriptor.project(
-        &program,
-        changed_tree0,
-        proof_capture,
-        capture_identity,
-    );
-    try std.testing.expect(!std.mem.eql(
-        u8,
-        &descriptor.instance_sha256,
-        &changed.instance_sha256,
-    ));
-    try std.testing.expect(!std.mem.eql(
-        u8,
-        &descriptor.descriptor_sha256,
-        &changed.descriptor_sha256,
-    ));
-
-    var corrupted = encoded;
-    corrupted[64] ^= 1;
-    try std.testing.expectError(
-        error.InvalidVerifiedProgramDescriptor,
-        verified_program_descriptor.DescriptorV1.decodeCanonical(&corrupted),
-    );
-}
-
 const CountingSink = struct {
     count: usize = 0,
 
@@ -626,34 +464,6 @@ fn expectPair(expected: anytype, actual: anytype) !void {
     try std.testing.expect(expected.d1.eql(actual.d1));
     try std.testing.expect(expected.n2.eql(actual.n2));
     try std.testing.expect(expected.d2.eql(actual.d2));
-}
-
-fn providerCalls(
-    allocator: std.mem.Allocator,
-    count: usize,
-) ![]poseidon2_air.Call {
-    const result = try allocator.alloc(poseidon2_air.Call, count);
-    for (result, 0..) |*call, index| call.* =
-        poseidon2_air.Call.narrowWithOutput(
-            @intCast(index + 1),
-            @intCast(index + 2),
-            @intCast(index + 3),
-        );
-    return result;
-}
-
-fn providerResidencyRequest(count: usize) shard_planner.Request {
-    return .{
-        .logical_row_count = @intCast(count),
-        .column_count = provider_authority.main_column_count,
-        .min_shard_log_size = 4,
-        .max_shard_log_size = 4,
-        .log_blowup_factor = 1,
-        .retention_policy = .never,
-        .host_byte_budget = 1024 * 1024 * 1024,
-        .reserved_host_bytes = 0,
-        .requested_parallel_shards = 1,
-    };
 }
 
 test "authenticated VM AIR ProfileV2 schema5 compiles fixed program and narrow Poseidon through active Ethereum program" {

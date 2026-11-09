@@ -47,10 +47,10 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from scripts import air_satisfaction
-from scripts.air_satisfaction_lib import dump as dump_mod
-from scripts.air_satisfaction_lib import field, logup, rows
-from scripts.riscv_air_ir_lib import ir
+from scripts.riscv import air_satisfaction
+from scripts.riscv.air_satisfaction_lib import dump as dump_mod
+from scripts.riscv.air_satisfaction_lib import field, logup, rows
+from scripts.riscv.riscv_air_ir_lib import ir
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPORTS = ROOT / "zig-out" / "committed-trace"

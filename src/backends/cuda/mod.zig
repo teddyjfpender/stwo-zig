@@ -11,8 +11,6 @@ pub const aot = struct {
     pub const secure_polynomial_v1 = @import("aot/secure_polynomial_registry_v1.zig");
 };
 pub const product_aot = aot.product_registry;
-pub const secure_polynomial_codegen_v1 = @import("secure_polynomial_codegen_v1.zig");
-pub const secure_polynomial_resident_codegen_v1 = @import("secure_polynomial_resident_codegen_v1.zig");
 pub const frontend_contract = @import("frontend_contract.zig");
 pub const runtime = @import("runtime/mod.zig");
 /// Cold AOT exporters authenticate the numerical headers they compile against.

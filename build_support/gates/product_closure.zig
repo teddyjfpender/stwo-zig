@@ -21,7 +21,7 @@ pub fn addCheck(inputs: Inputs) *std.Build.Step.Run {
     const closure = descriptor.source_closure.?;
     const check = inputs.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_product_closure.py",
+        "scripts/repo/check_product_closure.py",
         "--product",
         descriptor.product.name,
     });

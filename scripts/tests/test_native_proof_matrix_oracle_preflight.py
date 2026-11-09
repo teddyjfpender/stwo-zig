@@ -7,8 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from scripts.native_proof_matrix_lib import artifacts, controller
-from scripts.native_proof_matrix_lib.model import (
+from scripts.native.native_proof_matrix_lib import artifacts, controller
+from scripts.native.native_proof_matrix_lib.model import (
     AIR_PROTOCOLS,
     INTEROP_UPSTREAM_COMMIT,
     MatrixError,

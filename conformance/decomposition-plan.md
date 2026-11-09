@@ -34,7 +34,7 @@ still fail immediately, and cleanup changes must shrink this list.
 | `tools/stwo-cairo-verifier-rs/src/lib.rs` | verifier facade plus framing, support, verification, and test modules |
 | `tools/stwo-cairo-verifier-rs/src/compact_codec.rs` | codec facade plus protocol, statement, reconstruction, proof-codec, and test modules |
 | `src/integrations/cairo_metal/arena_binding.zig` | facade plus composition recipe, decommitment, prepared proof/validation, proof assembly, and streaming commitment modules |
-| `src/tools/metal_arena_plan/main.zig` | public facade plus geometry/cache, liveness plan, Metal session, base/interaction/protocol execution, timing, reporting, and test owners |
+| `src/backends/metal/tools/arena_plan/main.zig` | public facade plus geometry/cache, liveness plan, Metal session, base/interaction/protocol execution, timing, reporting, and test owners |
 
 ## Future policy
 

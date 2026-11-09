@@ -9,7 +9,6 @@ const types = @import("../../lang/types.zig");
 
 test {
     _ = @import("identity_test.zig");
-    std.testing.refAllDeclsRecursive(@import("../production_adapter.zig"));
 }
 
 test "guest relation registry is appended only for the extension profile" {

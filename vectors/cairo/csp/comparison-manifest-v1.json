@@ -7,7 +7,7 @@
     "manifest_schema": "stwo_riscv_csp_suite_v2",
     "upstream_commit": "269c43cc32d3127e3d9ce74d20652887d894cca3",
     "retained_report": {
-      "path": "vectors/reports/riscv_csp_benchmark_report.json",
+      "path": "vectors/riscv/csp/historical-benchmark-report.json",
       "sha256": "b1c9c5673f315cf4a9e8abd3da617fb3ab47342961b2672f68364fbed357e655",
       "schema": "stwo_riscv_csp_benchmark_v2",
       "measurement_commit": "ed573380db2f7ee1bc364a091cf6c82a00500ec3",

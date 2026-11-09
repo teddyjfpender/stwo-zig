@@ -1,0 +1,40 @@
+name: Feature / vertical slice
+description: A thin, continuously integrated slice of behavior, specified by executable tests first (ENGINEERING_STANDARDS.md section 8).
+labels: ["slice"]
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Behavior
+      description: The user-visible or consumer-visible behavior this slice delivers.
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: Executable specification
+      description: The failing tests, golden vectors or gate receipts that define done. Write these first.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Boundaries touched
+      description: Packages and contracts involved. If any contract changes, link the RFC issue.
+    validations:
+      required: true
+  - type: textarea
+    id: budget
+    attributes:
+      label: Complexity budget
+      description: Expected code lines, flags and scripts added/removed. Positive growth needs an invariant justification.
+  - type: textarea
+    id: flags
+    attributes:
+      label: Flags and rollback
+      description: Flag (owner, default, removal date) if the slice lands dark, and the rollback plan.
+  - type: textarea
+    id: followups
+    attributes:
+      label: Out of scope / follow-ups
+      description: Future improvements to track as separate issues rather than leaving in the code.

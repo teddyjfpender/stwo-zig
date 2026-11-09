@@ -2,7 +2,7 @@
 //! rv64-m8-gpu-native.md §3.1, §3.2, inventory H4/H9; contract gpu_native.zig
 //! NativeFactory.shape).
 //!
-//! The legacy hybrid path (native_hybrid.zig) built, PER SEGMENT OF EVERY
+//! The retired native hybrid path built, PER SEGMENT OF EVERY
 //! REQUEST, from a CpuWorker:
 //!   Stage 1  NG.Plan.init(scope, instances, native source, FIXED host
 //!            coefficients, MAIN columns, byte_cap) + NB.Plan (prove, l.589)
@@ -54,7 +54,6 @@ const NGl = @import("native_global.zig");
 const NP = @import("native_pcs.zig");
 const NComp = @import("native_composition.zig");
 const NE = @import("native_encode.zig");
-const HJ = @import("native_hybrid_jobs.zig");
 const FC = @import("native_framing_cache.zig");
 const Sources = @import("../gkr_sources.zig");
 const JP = @import("../joined_parameters.zig");
@@ -259,7 +258,7 @@ pub const Class = struct {
     total: u32,
     mask_log: u32,
     claim_count: u32,
-    slots: []HJ.Slot = &.{},
+    slots: []NGl.Slot = &.{},
     gplans: std.ArrayListUnmanaged(NGl.Plan) = .empty,
     /// Per global plan: the artifact parameter slots (patch derivation).
     gslots: [][]const u32 = &.{},
@@ -540,7 +539,7 @@ fn buildStage2(env: *const Env, in: Inputs, cl: *Class) !void {
     cl.mask_log = @intCast(mask_log);
 
     // ---- hybrid buildFraming ----
-    cl.slots = try a.alloc(HJ.Slot, plan.slots.len);
+    cl.slots = try a.alloc(NGl.Slot, plan.slots.len);
     try cl.gplans.ensureTotalCapacity(a, plan.slots.len);
     cl.gslots = try a.alloc([]const u32, plan.slots.len);
     var n_globals: usize = 0;
@@ -1051,7 +1050,7 @@ pub fn compare(x: *const Fingerprint, y: *const Fingerprint, out: []Mismatch) !u
 // ---------------------------------------------------------------------------
 
 /// The legacy Stage-1 class of one segment, from exactly the request the
-/// hybrid prove() received (native_hybrid.zig l.589: NG.Plan.init on the
+/// hybrid prove() received (retired native hybrid, l.589: NG.Plan.init on the
 /// request's scope, instances, native source, FIXED host and MAIN device
 /// columns, byte cap; NB.Plan on its instances and traversal layers). Only
 /// the Stage-1 fields are set; fingerprint it with `Fingerprint.ofStage1`.

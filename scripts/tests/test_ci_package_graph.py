@@ -15,10 +15,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import ci_package_graph as graph
-from scripts import ci_scope_plan
-
-
+from scripts.repo import ci_package_graph as graph
+from scripts.repo import ci_scope_plan
 ROOT = Path(__file__).resolve().parents[2]
 POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(encoding="utf-8"))
 
@@ -26,7 +24,7 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
 EXPECTED_PACKAGES = 27
-EXPECTED_EDGES = 97
+EXPECTED_EDGES = 100
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
@@ -173,19 +171,19 @@ class RepositoryGraphTest(unittest.TestCase):
         self.assertEqual(len(self.packages), EXPECTED_PACKAGES)
         self.assertEqual(graph.edge_count(self.packages), EXPECTED_EDGES)
 
-    def test_every_package_has_exactly_one_focused_lane(self) -> None:
+    def test_every_package_has_its_lane_and_frontend_has_releasefast_companion(self) -> None:
         bound = sorted(self.bindings.values())
-        self.assertEqual(bound, sorted(self.packages))
+        self.assertEqual(bound, sorted([*self.packages, "stwo_riscv_frontend", "stwo_riscv_frontend", "stwo_riscv_frontend"]))
 
     def test_core_change_selects_every_dependent_package_lane(self) -> None:
-        lanes, _ = graph.selection(["src/core/fields/m31.zig"], self.packages, self.bindings)
+        lanes, _ = graph.selection(["src/waist/core/fields/m31.zig"], self.packages, self.bindings)
         # Every package except the two with no path to stwo_core.
         detached = {"metal_session", "artifact_store"}
         self.assertEqual(lanes, frozenset(set(self.bindings) - detached))
 
     def test_artifact_store_change_reaches_its_consuming_integrations(self) -> None:
         lanes, unowned = graph.selection(
-            ["src/artifact_store/mod.zig"], self.packages, self.bindings
+            ["src/engine/artifact_store/mod.zig"], self.packages, self.bindings
         )
         self.assertEqual(lanes, frozenset({
             "artifact_store", "metal_session", "cairo_metal_integration",
@@ -193,7 +191,7 @@ class RepositoryGraphTest(unittest.TestCase):
         }))
         self.assertEqual(unowned, frozenset())
 
-    def test_cairo_only_change_avoids_riscv_and_native_lanes(self) -> None:
+    def test_cairo_change_reaches_declared_cpu_circuit_consumers(self) -> None:
         lanes, _ = graph.selection(["src/frontends/cairo/air.zig"], self.packages, self.bindings)
         self.assertEqual(
             lanes,
@@ -205,14 +203,14 @@ class RepositoryGraphTest(unittest.TestCase):
                     "cairo_cuda_integration",
                     # The circuit prover evaluates the circuit AIR with the
                     # Cairo frontend's captured-AIR component.
+                    "riscv_cpu_integration",
+                    "riscv_metal_integration",
                     "circuit_cpu_integration",
                     "circuit_metal_integration",
                 }
             ),
         )
         self.assertNotIn("riscv_frontend", lanes)
-        self.assertNotIn("riscv_cpu_integration", lanes)
-        self.assertNotIn("riscv_metal_integration", lanes)
         self.assertNotIn("cuda_backend", lanes)
         self.assertNotIn("native_examples", lanes)
 
@@ -222,6 +220,9 @@ class RepositoryGraphTest(unittest.TestCase):
             lanes,
             frozenset({
                 "riscv_frontend",
+                "riscv_frontend_releasefast",
+                "riscv_frontend_acceptance",
+                "riscv_witness_benchmarks",
                 "riscv_cpu_integration",
                 "riscv_cuda_integration",
                 "riscv_metal_integration",
@@ -240,10 +241,10 @@ class RepositoryGraphTest(unittest.TestCase):
         )
 
     def test_backend_contracts_reach_transitive_integration_lanes(self) -> None:
-        """The drift this resolver removes: these three reach src/backend only
+        """The drift this resolver removes: these three reach src/waist/backend only
         through cpu_backend or metal_backend, and the superseded hand-written
         rule omitted them."""
-        lanes, _ = graph.selection(["src/backend/mod.zig"], self.packages, self.bindings)
+        lanes, _ = graph.selection(["src/waist/backend/mod.zig"], self.packages, self.bindings)
         for expected in ("riscv_cpu_integration", "cairo_cpu_integration", "riscv_metal_integration"):
             self.assertIn(expected, lanes)
 
@@ -290,10 +291,6 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_always_lanes_are_the_documentation_floor(self) -> None:
         self.assertEqual(self.select("README.md"), set(POLICY["always_lanes"]))
-        self.assertEqual(
-            self.select("autoresearch/notes/2026-07-28-x/note.md"),
-            set(POLICY["always_lanes"]),
-        )
         self.assertEqual(self.select("docs/deep/nested/page.md"), set(POLICY["always_lanes"]))
 
     def test_static_floor_is_fast_and_complete_script_tests_are_separate(self) -> None:
@@ -311,7 +308,7 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_new_script_and_build_helper_paths_use_bounded_owner_contracts(self) -> None:
         self.assertEqual(
-            self.select("scripts/riscv_poseidon_table_uniqueness.py"),
+            self.select("scripts/riscv/riscv_poseidon_table_uniqueness.py"),
             {"static", "script_contracts"},
         )
         self.assertEqual(
@@ -355,13 +352,13 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_core_change_selects_more_lanes_than_a_leaf_change(self) -> None:
         self.assertGreater(
-            len(self.select("src/core/fields/m31.zig")),
+            len(self.select("src/waist/core/fields/m31.zig")),
             len(self.select("src/integrations/cairo_cpu/mod.zig")),
         )
 
     def test_scheduled_full_matrix_selects_every_hosted_lane(self) -> None:
         lanes, reasons = ci_scope_plan.select_lanes(
-            ["autoresearch/notes/x/note.md"],
+            ["docs/x/note.md"],
             self.catalog,
             POLICY,
             self.packages,
@@ -377,7 +374,7 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_scheduled_full_matrix_spares_unselected_self_hosted_lanes(self) -> None:
         lanes, reasons = ci_scope_plan.select_lanes(
-            ["autoresearch/notes/x/note.md"],
+            ["docs/x/note.md"],
             self.catalog,
             POLICY,
             self.packages,
@@ -438,10 +435,10 @@ class PlanIntegrationTest(unittest.TestCase):
 
     def test_plan_is_deterministic(self) -> None:
         first = ci_scope_plan.select_lanes(
-            ["src/core/a.zig", "README.md"], self.catalog, POLICY, self.packages
+            ["src/waist/core/a.zig", "README.md"], self.catalog, POLICY, self.packages
         )
         second = ci_scope_plan.select_lanes(
-            ["README.md", "src/core/a.zig"], self.catalog, POLICY, self.packages
+            ["README.md", "src/waist/core/a.zig"], self.catalog, POLICY, self.packages
         )
         self.assertEqual(first, second)
 

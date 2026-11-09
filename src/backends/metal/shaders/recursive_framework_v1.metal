@@ -1,5 +1,5 @@
 // Generated recursive framework profile v1. Shared field helpers come from core_v2.
-// Generator: src/tests/riscv/recursive_framework_aot_test.zig
+// Generator: src/products/riscv/cpu/tests/recursive_framework_aot_test.zig
 // Regenerate: STWO_RECURSIVE_FRAMEWORK_AOT_GENERATE=<directory> zig build test-riscv-metal-recursive-aot
 kernel void stwo_zig_framework_poly_v1_28c894d8ba19e7e67cb9ba7c42e105eed5ca58a59c4ceca0c7408f52594c95b8(
     device const uint *tree0 [[buffer(0)]],

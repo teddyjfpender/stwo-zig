@@ -40,7 +40,7 @@ pub fn addProduct(context: Context) void {
     inline for (.{
         .{ "security-policy", "src/integrations/riscv_cpu/rv64_security_policy_test_root.zig", 23 },
         .{ "om-classic-control", "src/integrations/riscv_cpu/rv64_om_classic_control_test_root.zig", 1 },
-        .{ "services-gkr-local", "src/integrations/riscv_cpu/rv64_services_gkr_local_test_root.zig", 40 },
+        .{ "services-gkr-local", "src/integrations/riscv_cpu/rv64_services_gkr_local_test_root.zig", 38 },
         .{ "native-gkr", "src/integrations/riscv_cpu/rv64_native_gkr_test_root.zig", 15 },
         .{ "logup-gkr-prototype", "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_test_root.zig", 22 },
         .{ "selective-openings", "src/integrations/riscv_cpu/rv64_selective_opening_test_root.zig", 7 },
@@ -52,7 +52,7 @@ pub fn addProduct(context: Context) void {
         .{ "program", "src/frontends/riscv/rv64_program_test_root.zig", 9 },
         .{ "classic-witness", "src/integrations/riscv_cpu/rv64_classic_witness_test_root.zig", 8 },
         .{ "truth-parallel", "src/integrations/riscv_cpu/rv64_truth_parallel_test_root.zig", 8 },
-        .{ "truth-gkr", "src/integrations/riscv_cpu/rv64_truth_gkr_test_root.zig", 28 },
+        .{ "truth-gkr", "src/integrations/riscv_cpu/rv64_truth_gkr_test_root.zig", 8 },
         .{ "main-merkle-parking", "src/integrations/riscv_cpu/rv64_main_merkle_parking_test_root.zig", 17 },
         .{ "wide-fixed-setup", "src/integrations/riscv_cpu/rv64_wide_fixed_setup_test_root.zig", 6 },
         .{ "simd-fields", "src/frontends/riscv/rv64_simd_fields_test_root.zig", 8 },
@@ -63,9 +63,6 @@ pub fn addProduct(context: Context) void {
         .{ "multiplication", "src/integrations/riscv_cpu/delegations/multiplication/test_root.zig", 6 },
         .{ "keccak-cpu", "src/integrations/riscv_cpu/delegations/keccak/cpu_test_root.zig", 11 },
         .{ "ethereum-chain", "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig", 12 },
-        .{ "distributed-functional", "src/integrations/riscv_cpu/rv64_distributed_manifest_test_root.zig", 16 },
-        .{ "word16-global-memory", "src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig", 4 },
-        .{ "word16-optional-division", "src/integrations/riscv_cpu/rv64_word16_optional_arithmetic_test_root.zig", 6 },
         .{ "word16-execution-prepared", "src/integrations/riscv_cpu/rv64_word16_execution_prepared_test_root.zig", 14 },
         .{ "word16-combined-services", "src/integrations/riscv_cpu/rv64_word16_combined_services_test_root.zig", 24 },
         .{ "word16-bulk-memory", "src/frontends/riscv/rv64_word16_bulk_memory_test_root.zig", 2 },
@@ -81,7 +78,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-retained-parking", "src/integrations/riscv_cpu/rv64_word16_retained_parking_test_root.zig", 27 },
         .{ "word16-retained-storage", "src/integrations/riscv_cpu/rv64_word16_retained_storage_test_root.zig", 6 },
         .{ "word16-ethereum-terminal", "src/integrations/riscv_cpu/rv64_word16_ethereum_terminal_test_root.zig", 12 },
-        .{ "m5-canon-native", "src/integrations/riscv_cpu/rv64_m5_canon_native_test_root.zig", 10 },
+        .{ "m5-canon-native", "src/integrations/riscv_cpu/rv64_m5_canon_native_test_root.zig", 9 },
         .{ "word16-global-execution", "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig", 18 },
         .{ "word16-shift-weighted", "src/integrations/riscv_cpu/rv64_word16_shift_weighted_test_root.zig", 6 },
         .{ "word16-shift-native-fill", "src/integrations/riscv_cpu/rv64_word16_shift_native_fill_test_root.zig", 5 },
@@ -113,18 +110,16 @@ pub fn addProduct(context: Context) void {
         .{ "word16-rom-lookup", "src/frontends/riscv/rv64_rom_lookup_test_root.zig", 4 },
         .{ "word16-native-projection", "src/integrations/riscv_cpu/rv64_word16_native_projection_test_root.zig", 3 },
         .{ "work-packet", "src/integrations/riscv_cpu/rv64_work_packet_test_root.zig", 11 },
-        .{ "word16-cpu", "src/integrations/riscv_cpu/rv64_word16_cpu_test_root.zig", 3 },
         .{ "word16-weighted-binary", "src/integrations/riscv_cpu/rv64_word16_weighted_binary_test_root.zig", 4 },
         .{ "word16-binary-source", "src/frontends/riscv/rv64_word16_binary_source_test_root.zig", 13 },
         .{ "word16-weighted-alu", "src/integrations/riscv_cpu/rv64_word16_weighted_alu_test_root.zig", 4 },
         .{ "word16-execution", "src/integrations/riscv_cpu/rv64_word16_execution_test_root.zig", 25 },
         .{ "word16-execution-source", "src/integrations/riscv_cpu/rv64_word16_execution_source_test_root.zig", 7 },
-        .{ "word16-execution-coordinator", "src/integrations/riscv_cpu/rv64_word16_execution_coordinator_test_root.zig", 41 },
+        .{ "word16-execution-coordinator", "src/integrations/riscv_cpu/rv64_word16_execution_coordinator_test_root.zig", 18 },
         .{ "word16-alu", "src/frontends/riscv/rv64_word16_alu_test_root.zig", 29 },
         .{ "word16-alu-proof", "src/integrations/riscv_cpu/rv64_word16_alu_proof_test_root.zig", 2 },
         .{ "word16-thin-cpu", "src/integrations/riscv_cpu/rv64_word16_thin_cpu_test_root.zig", 14 },
-        .{ "distributed-execution", "src/integrations/riscv_cpu/rv64_distributed_execution_test_root.zig", 10 },
-        .{ "ethereum-chip-plan", "src/integrations/riscv_cpu/rv64_ethereum_chip_plan_test_root.zig", 8 },
+        .{ "distributed-execution", "src/integrations/riscv_cpu/rv64_distributed_execution_test_root.zig", 3 },
         .{ "verifier-cache", "src/integrations/riscv_cpu/rv64_verifier_cache_test_root.zig", 3 },
         .{ "point-evaluation", "src/integrations/riscv_cpu/rv64_point_evaluation_test_root.zig", 3 },
         .{ "cpu-degree-diagnostic", "src/integrations/riscv_cpu/rv64_cpu_degree_diagnostic_test_root.zig", 2 },
@@ -132,7 +127,7 @@ pub fn addProduct(context: Context) void {
         .{ "lean-proof", "src/integrations/riscv_cpu/rv64_lean_test_root.zig", 3 },
         .{ "division", "src/integrations/riscv_cpu/delegations/division/test_root.zig", 10 },
         .{ "authenticated-execution", "src/integrations/riscv_cpu/rv64_authenticated_test_root.zig", 1 },
-        .{ "ram", "src/integrations/riscv_cpu/rv64_ram_test_root.zig", 1 },
+        .{ "ram", "src/integrations/riscv_cpu/rv64_ram_test_root.zig", 0 },
         .{ "program-proof", "src/integrations/riscv_cpu/rv64_program_proof_test_root.zig", 3 },
         .{ "providers", "src/integrations/riscv_cpu/rv64_providers_test_root.zig", 8 },
         .{ "main-arena", "src/integrations/riscv_cpu/rv64_main_arena_test_root.zig", 12 },
@@ -153,10 +148,9 @@ pub fn addProduct(context: Context) void {
         .{ "pcs-commit", "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig", 2 },
         .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 4 },
         .{ "recursion", "src/integrations/riscv_cpu/rv64_recursion_test_root.zig", 1 },
-        .{ "composition-ir", "src/integrations/riscv_cpu/rv64_composition_ir_test_root.zig", 1 },
+        .{ "composition-ir", "src/integrations/riscv_cpu/rv64_composition_ir_test_root.zig", 0 },
         .{ "composition-ir-services", "src/integrations/riscv_cpu/rv64_composition_ir_services_test_root.zig", 1 },
         .{ "composition-ir-truths", "src/integrations/riscv_cpu/rv64_composition_ir_truths_test_root.zig", 1 },
-        .{ "composition-ir-honest", "src/integrations/riscv_cpu/rv64_composition_ir_honest_test_root.zig", 1 },
     }) |suite| {
         context.b.step("test-riscv64-" ++ suite[0], "Test RV64 independent provider architecture").dependOn(test_filter.addSuites(context.b, &.{.{
             .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), suite[1], &.{}),
@@ -279,42 +273,7 @@ pub fn addProduct(context: Context) void {
     const install_host_trace = context.b.addInstallArtifact(host_trace, .{});
     const trace_step = context.b.step("riscv-trace-dump", "Build RISC-V trace dumper CLI");
     trace_step.dependOn(&install_host_trace.step);
-    const pc_hotspot = executables.addObserver(context, context.target, context.optimize, .pc_hotspot);
-    const install_pc_hotspot = context.b.addInstallArtifact(pc_hotspot, .{});
-    context.b.step(
-        "riscv-pc-hotspot-observer",
-        "Build the bounded RISC-V retirement PC-hotspot observer",
-    ).dependOn(&install_pc_hotspot.step);
-    const function_value = executables.addObserver(context, context.target, context.optimize, .function_value);
-    const install_function_value = context.b.addInstallArtifact(function_value, .{});
-    context.b.step(
-        "riscv-function-value-observer",
-        "Build the bounded RISC-V function-load value observer",
-    ).dependOn(&install_function_value.step);
-    const analyze_legacy_semantic = executables.addObserver(context, context.target, context.optimize, .legacy_semantics);
-    const install_analyze_legacy_semantic = context.b.addInstallArtifact(
-        analyze_legacy_semantic,
-        .{},
-    );
-    context.b.step(
-        "riscv-analyze-legacy-semantic-observer",
-        "Build the bounded Revm-42 analyze_legacy semantic observer",
-    ).dependOn(&install_analyze_legacy_semantic.step);
-    const memcpy_hotspot = executables.addObserver(context, context.target, context.optimize, .memcpy_hotspot);
-    const install_memcpy_hotspot = context.b.addInstallArtifact(memcpy_hotspot, .{});
-    context.b.step(
-        "riscv-memcpy-hotspot-observer",
-        "Build the bounded RISC-V memcpy-call hotspot observer",
-    ).dependOn(&install_memcpy_hotspot.step);
-    const memcpy_admission = executables.addObserver(context, context.target, context.optimize, .memcpy_admission);
-    const install_memcpy_admission = context.b.addInstallArtifact(
-        memcpy_admission,
-        .{},
-    );
-    context.b.step(
-        "riscv-memcpy-admission-observer",
-        "Build the exact RISC-V bulk-memcpy admission observer",
-    ).dependOn(&install_memcpy_admission.step);
+    executables.addObserverProducts(context);
     riscv_poseidon2_pair.add(context, product);
     const host_step = context.b.step(
         "stwo-zig-riscv-cpu",
@@ -322,25 +281,7 @@ pub fn addProduct(context: Context) void {
     );
     host_step.dependOn(&install_host.step);
 
-    const recursive_csp_producer = executables.addRecursiveCspProducer(context);
-    const install_recursive_csp_producer = context.b.addInstallArtifact(
-        recursive_csp_producer,
-        .{},
-    );
-    context.b.step(
-        "riscv-recursion-csp-producer",
-        "Build the canonical one-workload recursive CSP producer",
-    ).dependOn(&install_recursive_csp_producer.step);
-
-    const recursion_shape_inspector = executables.addRecursionShapeInspector(context);
-    const install_recursion_shape_inspector = context.b.addInstallArtifact(
-        recursion_shape_inspector,
-        .{},
-    );
-    context.b.step(
-        "riscv-recursion-shape-inspector",
-        "Build the proof-independent canonical workload shape inspector",
-    ).dependOn(&install_recursion_shape_inspector.step);
+    executables.addRecursiveDiagnostics(context);
 
     const static_target = context.b.resolveTargetQuery(.{
         .cpu_arch = .x86_64,
@@ -377,6 +318,7 @@ pub fn addProduct(context: Context) void {
     static_step.dependOn(&install_static_trace.step);
 
     const test_context = testContext(context);
+    riscv_cpu_tests.addObservationContracts(test_context);
 
     const core_prover_tests = riscv_cpu_tests.addCoreProverTests(test_context);
     const exhaustive_tests = riscv_cpu_tests.addExhaustiveTests(test_context);
@@ -435,7 +377,7 @@ pub fn addProduct(context: Context) void {
         .{
             .tests = riscv_cpu_tests.addFocusedTestRoot(
                 test_context,
-                "src/tests/riscv/main_trace_planned_proof_test.zig",
+                "src/products/riscv/cpu/tests/main_trace_planned_proof_test.zig",
                 &.{
                     "one proof-scoped pool preserves exact N=1/2/4 proof identity",
                     "five-region phase meter covers one real independently verified proof",
@@ -454,7 +396,7 @@ pub fn addProduct(context: Context) void {
         "Prove and verify one RISC-V leaf under the recursion Poseidon2 protocol",
     ).dependOn(test_filter.addRun(context.b, riscv_cpu_tests.addFocusedTestRoot(
         test_context,
-        "src/tests/riscv/recursion_poseidon_leaf_test.zig",
+        "src/products/riscv/cpu/tests/recursion_poseidon_leaf_test.zig",
         &.{"recursion Poseidon2 native leaf"},
     )));
     context.b.step(
@@ -471,21 +413,10 @@ pub fn addProduct(context: Context) void {
     ).dependOn(test_filter.addSuites(context.b, &.{.{
         .tests = riscv_cpu_tests.addFocusedTestRoot(
             test_context,
-            "src/frontends/riscv/blake3_memory_path_proof_test_root.zig",
+            "src/integrations/riscv_cpu/blake3_memory_path_proof_test_root.zig",
             &.{"BLAKE3 memory path proves"},
         ),
         .minimum = 2,
-    }}));
-    context.b.step(
-        "test-riscv-blake3-identities",
-        "Prove paired BLAKE3 Span identities with trusted preprocessing",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/blake3_span_identity_proof_test_root.zig",
-            &.{"BLAKE3 paired Span identities"},
-        ),
-        .minimum = 1,
     }}));
 
     context.b.step(
@@ -493,7 +424,7 @@ pub fn addProduct(context: Context) void {
         "Validate production-derived recursive public ingress without proving",
     ).dependOn(test_filter.addRun(context.b, riscv_cpu_tests.addFocusedTestRoot(
         test_context,
-        "src/tests/riscv/recursion_ingress_real_guest_test.zig",
+        "src/products/riscv/cpu/tests/recursion_ingress_real_guest_test.zig",
         &.{"recursive public ingress accepts production-derived self-loop guest"},
     )));
     context.b.step(
@@ -533,14 +464,14 @@ pub fn addProduct(context: Context) void {
     riscv_refinement.addPilot(context.b, context.target, context.optimize, context.protocol);
     const refinement_contract = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/riscv_opcode_coverage.py",
+        "scripts/riscv/riscv_opcode_coverage.py",
         "check",
     });
     test_step.dependOn(&refinement_contract.step);
 
     const csp_benchmark = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/riscv_csp_benchmark.py",
+        "scripts/riscv/riscv_csp_benchmark.py",
     });
     csp_benchmark.step.dependOn(&install_host.step);
     csp_benchmark.step.dependOn(&install_host_trace.step);
@@ -558,7 +489,7 @@ pub fn addProduct(context: Context) void {
     test_step.dependOn(&closure_check.step);
     const marker_check = context.b.addSystemCommand(&.{
         "python3",
-        "scripts/check_riscv_cpu_product.py",
+        "scripts/riscv/check_riscv_cpu_product.py",
     });
     test_step.dependOn(&marker_check.step);
 }

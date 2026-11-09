@@ -11,11 +11,11 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from cuda_build_lib.aot_pack import ABI_SCHEMAS, write_aot_carriers, write_aot_pack
-from cuda_build_lib.errors import BuildError
-from cuda_build_lib.product_selection import validate_aot_manifest
-from cuda_build_lib.secure_identity import HELPERS, KINDS, LEGACY_KINDS, key_for, roster_authority
-from cuda_build_lib.secure_product import Limits, stage_secure_product
+from scripts.cuda.cuda_build_lib.aot_pack import ABI_SCHEMAS, write_aot_carriers, write_aot_pack
+from scripts.cuda.cuda_build_lib.errors import BuildError
+from scripts.cuda.cuda_build_lib.product_selection import validate_aot_manifest
+from scripts.cuda.cuda_build_lib.secure_identity import HELPERS, KINDS, LEGACY_KINDS, key_for, roster_authority
+from scripts.cuda.cuda_build_lib.secure_product import Limits, stage_secure_product
 
 
 def sha(payload: bytes) -> str:

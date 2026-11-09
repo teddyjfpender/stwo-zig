@@ -4,7 +4,6 @@ const engine = @import("stwo_prover_engine");
 const M = @import("manifest.zig");
 const T = M.T;
 const W = @import("wire.zig");
-const RW = @import("receipt_wire.zig");
 const a = std.testing.allocator;
 const Felt = core.fields.m31.M31;
 const logs = [_]u32{5} ** 14;
@@ -150,17 +149,11 @@ test "distributed manifest owns copied metadata and every allocation failure bal
     fixture.receipts[0].shared.value[0] ^= 1;
     try manifest.validateUnchanged();
 }
-test "distributed canonical root-only and complete-manifest frames roundtrip without trace values" {
+test "distributed canonical complete-manifest frames roundtrip without trace values" {
     var fixture = try Fixture.init();
     defer fixture.deinit();
     var temp = std.testing.tmpDir(.{});
     defer temp.cleanup();
-    const receipt_file = try temp.dir.createFile("root", .{ .read = true });
-    defer receipt_file.close();
-    try RW.write(receipt_file, context(), fixture.specs[0], fixture.receipts[0]);
-    try std.testing.expectEqual(@as(u64, 548 + 14 * 4), try receipt_file.getEndPos());
-    try receipt_file.seekTo(0);
-    try std.testing.expectEqualDeep(fixture.receipts[0], try RW.read(receipt_file, context(), fixture.specs[0]));
     var manifest = try M.Manifest.init(a, fixture.expected(), &fixture.receipts);
     defer manifest.deinit();
     const file = try temp.dir.createFile("manifest", .{ .read = true });

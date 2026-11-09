@@ -6,16 +6,16 @@ import subprocess
 from pathlib import Path
 from unittest import mock
 
-from scripts.typed_air_r006_capture_lib import contract as r006_contract
-from scripts.typed_air_r006_capture_lib import orchestration
-from scripts.typed_air_r006_capture_lib.codec import canonical_bytes, content_digest
-from scripts.typed_air_r006_capture_lib.controller import ProcessResult
-from scripts.typed_air_r006_capture_lib.model import (
+from scripts.typed_air.typed_air_r006_capture_lib import contract as r006_contract
+from scripts.typed_air.typed_air_r006_capture_lib import orchestration
+from scripts.typed_air.typed_air_r006_capture_lib.codec import canonical_bytes, content_digest
+from scripts.typed_air.typed_air_r006_capture_lib.controller import ProcessResult
+from scripts.typed_air.typed_air_r006_capture_lib.model import (
     GENERATED_WORKLOADS,
     GENERATED_WORKLOAD_PARAMETERS,
     CaptureError,
 )
-from scripts.typed_air_r006_capture_lib.orchestration import (
+from scripts.typed_air.typed_air_r006_capture_lib.orchestration import (
     INSTALL_SCHEMA,
     SNAPSHOT_CLASSIFICATION,
     SmokeSettings,
@@ -23,7 +23,7 @@ from scripts.typed_air_r006_capture_lib.orchestration import (
     install_candidate,
     installed_v4_smoke,
 )
-from scripts.typed_air_r006_capture_lib.preflight import validate_host_preflight
+from scripts.typed_air.typed_air_r006_capture_lib.preflight import validate_host_preflight
 from scripts.tests.test_typed_air_r006_capture import (
     R006Fixture,
     preflight_host,
@@ -570,7 +570,7 @@ class OrchestrationTests(R006Fixture):
         path.write_bytes(canonical_bytes(receipt))
         command = (
             "python3",
-            "scripts/typed_air_r006_capture.py",
+            "scripts/typed_air/typed_air_r006_capture.py",
             "validate-host-preflight",
             str(path),
         )

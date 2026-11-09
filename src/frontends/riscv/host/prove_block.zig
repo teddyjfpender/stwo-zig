@@ -79,7 +79,7 @@ pub fn proveEthereumBlockWithEngine(
     // Fail closed through the *one* definition of "this run may be proved".
     // `prover_mod.admitRunForProving` is the same function the production ELF
     // adapter (`src/integrations/riscv_cpu/proof_adapter.zig`) and the benchmark
-    // runner (`src/tools/riscv/bench/runner.zig`) call; this path ran a real
+    // runner (`src/products/riscv/tools/bench/runner.zig`) call; this path ran a real
     // guest and handed the result straight on, so an unbindable run surfaced as
     // an unrelated-looking failure deep inside the prover instead of here
     // (issue #152 item 5).

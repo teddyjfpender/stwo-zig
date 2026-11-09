@@ -7,8 +7,8 @@ of passing unit tests behind.  These tests therefore drive
 rev-parse, executables' published registries, host capture, and per-case
 prove/verify -- so every production gate runs its real implementation over the
 real committed fixtures and a deleted call turns a test red. Legacy Stark-V
-timing comparisons live under ``autoresearch/`` and have their own optional
-test suite.
+timing comparisons were retired with the research tree
+(``archive/pre-restructure-20261108``).
 """
 
 from __future__ import annotations
@@ -23,9 +23,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_csp_benchmark as csp
-from scripts.riscv_csp_benchmark_lib import build_identity as csp_build_identity
-from scripts.riscv_csp_benchmark_lib import host as csp_host
+from scripts.riscv import riscv_csp_benchmark as csp
+from scripts.riscv.riscv_csp_benchmark_lib import build_identity as csp_build_identity
+from scripts.riscv.riscv_csp_benchmark_lib import host as csp_host
 from scripts.tests.riscv_csp_provenance_fixture import (
     FOREIGN_COMMIT,
     HEAD,

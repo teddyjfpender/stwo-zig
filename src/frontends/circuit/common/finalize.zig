@@ -5,7 +5,7 @@
 //! (https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230); the ZK half is
 //! `zk_blinding.zig`. `ComponentSizes` is the one size struct of the circuit
-//! lane: registry `LogSizes` (`src/interop/circuit_recursion`) maps into it by field name,
+//! lane: registry `LogSizes` (`src/waist/recursion_wire`) maps into it by field name,
 //! because the two declare their fields in different orders. Padding appends
 //! real gates through the builder API, so the constants it requests after
 //! `finalize` take upstream's path (the zero word of `pad_triple_xor` and

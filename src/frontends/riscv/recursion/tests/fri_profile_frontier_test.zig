@@ -1,10 +1,6 @@
 //! Exact, non-promotional gates for the recursion FRI cost frontier.
 
 const std = @import("std");
-const circuit_mod = @import("../air/fri_verifier_circuit.zig");
-const input_witness = @import("../air/fri_verifier_input_witness.zig");
-const lowering = @import("../air/fri_verifier_lowering.zig");
-const fixed_profile = @import("../fixed_profile.zig");
 const frontier_mod = @import("../fri_profile_frontier.zig");
 const protocol = @import("../protocol.zig");
 
@@ -66,74 +62,4 @@ test "R-012 FRI frontier is allocation free failure closed and nondominated" {
     var corrupted = frontier;
     corrupted.candidates[0].n_queries -= 1;
     try std.testing.expectError(error.InvalidFrontier, corrupted.validate());
-}
-
-test "R-012 FRI frontier exact recursive arithmetic measurement" {
-    const allocator = std.testing.allocator;
-    const enabled = std.process.getEnvVarOwned(
-        allocator,
-        "STWO_RECURSION_FRI_CIRCUIT_FRONTIER",
-    ) catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return error.SkipZigTest,
-        else => return err,
-    };
-    defer allocator.free(enabled);
-
-    const column_log_degree: u32 = 20;
-    const frontier = try frontier_mod.v1Comparison(column_log_degree);
-    for (frontier.active()) |candidate| {
-        var config = protocol.PCS_CONFIG.fri_config;
-        config.log_blowup_factor = candidate.log_blowup_factor;
-        config.n_queries = candidate.n_queries;
-        const schedule = try fixed_profile.FriSchedule.init(
-            column_log_degree,
-            config,
-        );
-        var fold_widths: [circuit_mod.MAX_FRI_LAYERS]u32 = undefined;
-        for (schedule.active(), fold_widths[0..schedule.count]) |
-            round,
-            *width,
-        | width.* = round.fold_width;
-        const profile = circuit_mod.Profile{
-            .lifting_log_size = try std.math.add(
-                u32,
-                column_log_degree,
-                candidate.log_blowup_factor,
-            ),
-            .log_blowup_factor = candidate.log_blowup_factor,
-            .log_last_layer_degree_bound = config.log_last_layer_degree_bound,
-            .fold_widths = fold_widths[0..schedule.count],
-            .query_count = candidate.n_queries,
-        };
-
-        var circuits: [3]circuit_mod.Circuit = undefined;
-        var circuit_count: usize = 0;
-        defer for (circuits[0..circuit_count]) |*circuit| circuit.deinit();
-        while (circuit_count < circuits.len) : (circuit_count += 1)
-            circuits[circuit_count] = try circuit_mod.build(allocator, profile);
-        const reference = try input_witness.Reference.seal(.{
-            .{ .verifier_id = 0, .circuit_id = 301, .circuit = &circuits[0] },
-            .{ .verifier_id = 1, .circuit_id = 302, .circuit = &circuits[1] },
-            .{ .verifier_id = 2, .circuit_id = 303, .circuit = &circuits[2] },
-        });
-        var plan = try lowering.Plan.init(allocator, reference);
-        defer plan.deinit();
-        const counts = plan.counts(.segment_leaf);
-        std.debug.print(
-            "\n  A1_CIRCUIT blowup_log={d} queries={d} nodes={d} " ++
-                "inputs={d} outputs={d} mul={d} inv={d} linear={d} " ++
-                "public={d}\n",
-            .{
-                candidate.log_blowup_factor,
-                candidate.n_queries,
-                circuits[0].nodes.len,
-                circuits[0].bindings.len,
-                circuits[0].outputs.len,
-                counts.multiply,
-                counts.inverse,
-                counts.linear,
-                counts.public,
-            },
-        );
-    }
 }

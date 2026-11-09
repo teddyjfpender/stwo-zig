@@ -1,9 +1,0 @@
-test-d2-native
-+- run test stderr
-NATIVE_CPU_MINI profile=d2_native_b4_q54_p20_fold4 beta=2 q=54 pow=20 fold=4 physical=2 fresh_authority=true wire_reload=true tamper=3 accepted=true certified=false
-
-Build Summary: 3/3 steps succeeded; 7/7 tests passed
-test-d2-native success
-+- run test 7 passed 6s MaxRSS:420M
-   +- compile test ReleaseFast x86_64-linux-gnu success 3m MaxRSS:2G
-

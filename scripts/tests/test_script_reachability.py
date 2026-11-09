@@ -2,15 +2,15 @@
 
 A production script earns its place through an installed workflow, build edge,
 machine-readable policy, current owner guide, hook, or another reachable
-script. Historical conformance prose and ``autoresearch/`` are deliberately
-not roots: mentioning retired code must not keep it alive forever, and research
-utilities belong under their own tree. Human-only production/soundness tools
+script. Historical conformance prose is deliberately not a root: mentioning
+retired code must not keep it alive forever. Human-only production/soundness tools
 must be declared below with an owner and purpose.
 """
 
 from __future__ import annotations
 
 import re
+import ast
 import unittest
 from pathlib import Path
 
@@ -59,25 +59,27 @@ ENTRY_POINT_GLOBS = (
     "README.md",
     "SECURITY.md",
     ".githooks/*",
-    "soundness/**/*.md",
+    "design/soundness/**/*.md",
     "src/**/README.md",
     "vectors/**/README.md",
     "formal/**/*.md",
 )
 
-REFERENCE_RE = re.compile(r"scripts/([a-z_0-9]+\.py)|\"([a-z_0-9]+\.py)\"")
+REFERENCE_RE = re.compile(
+    r"scripts/(?:[a-z_0-9]+/)*([a-z_0-9]+\.py)|\"(?:[a-z_0-9]+/)?([a-z_0-9]+\.py)\""
+)
 # A test module invoked directly by an entry point (e.g. hosted CI running
 # scripts.tests.test_x as the gate) anchors its subject script.
 TEST_MODULE_RE = re.compile(r"scripts\.tests\.test_([a-z_0-9]+)")
 IMPORT_RE = re.compile(
-    r"^\s*(?:import|from)\s+(?:scripts\.)?([a-z_0-9]+)", re.MULTILINE
+    r"^\s*(?:import|from)\s+(?:scripts\.(?:[a-z_0-9]+\.)?)?([a-z_0-9]+)", re.MULTILINE
 )
 FROM_SCRIPTS_GROUP_RE = re.compile(
-    r"^\s*from\s+scripts\s+import\s*\((.*?)^\s*\)",
+    r"^\s*from\s+scripts(?:\.[a-z_0-9]+)?\s+import\s*\((.*?)^\s*\)",
     re.MULTILINE | re.DOTALL,
 )
 FROM_SCRIPTS_LINE_RE = re.compile(
-    r"^\s*from\s+scripts\s+import\s+([^\n(]+)$",
+    r"^\s*from\s+scripts(?:\.[a-z_0-9]+)?\s+import\s+([^\n#(]+)(?:#.*)?$",
     re.MULTILINE,
 )
 
@@ -105,9 +107,44 @@ def _references(text: str, universe: set[str]) -> set[str]:
     return found
 
 
+# The only files allowed directly under scripts/; everything else belongs in a
+# scripts/<area>/ package.
+TOP_LEVEL_ENTRY_POINTS = frozenset(
+    {"README.md", "ci.py", "dev_test.py", "rv64_gate.sh", "rv64_m8_bench15.py"}
+)
+
+
 class ScriptReachabilityTest(unittest.TestCase):
+    def test_root_package_marker_contains_only_its_docstring(self):
+        body = ast.parse((SCRIPTS / "__init__.py").read_text()).body
+        self.assertEqual(1, len(body))
+        self.assertIsInstance(body[0], ast.Expr)
+        self.assertIsInstance(body[0].value, ast.Constant)
+        self.assertIsInstance(body[0].value.value, str)
+
+    def test_top_level_holds_only_entry_points(self) -> None:
+        loose = sorted(
+            p.name for p in SCRIPTS.iterdir()
+            if p.is_file() and p.name not in TOP_LEVEL_ENTRY_POINTS and p.name != "__init__.py"
+        )
+        self.assertEqual(
+            loose, [], f"move these into a scripts/<area>/ package: {loose}"
+        )
+
     def test_every_script_is_reachable_or_declared(self) -> None:
-        universe = {p.name for p in SCRIPTS.glob("*.py")}
+        # Entry points live at the top of scripts/; everything else lives in
+        # one scripts/<area>/ package. Basenames are unique across areas.
+        paths = {p.name: p for p in SCRIPTS.glob("*.py") if p.name != "__init__.py"}
+        areas = [
+            p for p in SCRIPTS.iterdir()
+            if p.is_dir() and p.name not in ("tests", "__pycache__")
+        ]
+        for area in areas:
+            for p in area.glob("*.py"):
+                if p.name != "__init__.py":
+                    self.assertNotIn(p.name, paths, f"duplicate script basename {p}")
+                    paths[p.name] = p
+        universe = set(paths)
 
         seeds: set[str] = set()
         for pattern in ENTRY_POINT_GLOBS:
@@ -128,9 +165,8 @@ class ScriptReachabilityTest(unittest.TestCase):
         # still detected below.
         frontier = list(seeds | declared)
         lib_dirs = [
-            p for p in SCRIPTS.iterdir()
-            if p.is_dir() and p.name not in ("tests", "__pycache__")
-            and any(p.rglob("*.py"))
+            p for area in areas for p in area.iterdir()
+            if p.is_dir() and p.name != "__pycache__" and any(p.rglob("*.py"))
         ]
         # Library packages transitively extend the frontier: a lib used by a
         # reachable script may itself dispatch further scripts (e.g. the
@@ -145,14 +181,14 @@ class ScriptReachabilityTest(unittest.TestCase):
         visited_libs: set[str] = set()
         while frontier:
             current = frontier.pop()
-            text = (SCRIPTS / current).read_text(encoding="utf-8", errors="ignore")
+            text = paths[current].read_text(encoding="utf-8", errors="ignore")
             new = _references(text, universe) - reachable - declared
             library_frontier: list[str] = []
             for lib_name, lib_text in lib_texts.items():
                 if lib_name in visited_libs:
                     continue
                 if re.search(
-                    rf"(?:import|from)\s+(?:scripts\.)?{lib_name}\b", text
+                    rf"(?:import|from)\s+(?:scripts\.[a-z_0-9]+\.)?{lib_name}\b", text
                 ):
                     visited_libs.add(lib_name)
                     library_frontier.append(lib_name)
@@ -164,7 +200,7 @@ class ScriptReachabilityTest(unittest.TestCase):
                     if dependency in visited_libs:
                         continue
                     if re.search(
-                        rf"(?:import|from)\s+(?:scripts\.)?{dependency}\b",
+                        rf"(?:import|from)\s+(?:scripts\.[a-z_0-9]+\.)?{dependency}\b",
                         lib_text,
                     ):
                         visited_libs.add(dependency)

@@ -151,7 +151,7 @@ test "full execution concrete component roster matches every immutable physical 
         try std.testing.expectEqualDeep(plogs.items, vlogs.items);
         for (plogs.items, shape.widths) |columns, width| try std.testing.expectEqual(width, columns.len);
     }
-    const measured = try @import("../word16_execution/measurement.zig").inspect(a, &components);
+    const measured = try @import("../word16_execution/measurement_test_support.zig").inspect(a, &components);
     for (measured.components) |component| {
         if (!component.present) continue;
         try std.testing.expectEqual(@as(u32, 1), component.composition_log_split);

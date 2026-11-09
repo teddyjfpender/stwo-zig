@@ -1,1 +1,0 @@
-{"argv": ["/workspace/m3/build/m5-native-gkr/census/bin/rv64-native-gkr-tool", "verify", "census-24628607.json", "cpu-6", "sec/607-cpu-6.bin"], "exit": 0, "wall_s": 58.77, "max_rss_gib": 2.991, "load1": "7.49"}

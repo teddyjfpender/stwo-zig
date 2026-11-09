@@ -2,7 +2,7 @@
 
 The production core schema5 uses one78-MAIN/60-INTER DIV row with180 residuals
 of degree at most3, on native2n (trimmed from82/76/192; see
-`design/riscv-proving-stack/rv64-div-canonical-input-trims.md`). The previous independently sized DIV row had
+`design/riscv/rv64-div-canonical-input-trims.md`). The previous independently sized DIV row had
 1135 MAIN/8 INTER columns and1567 residuals. Integer division is reduced to
 canonical limb arithmetic and two ordinary unsigned MUL/MULHU FUNCTION requests.
 There is no new execution profile, ECALL, accepted hint or instruction semantic.

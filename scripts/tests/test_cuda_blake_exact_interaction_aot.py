@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.cuda_build_lib.aot_identity import source_closure_identity
+from scripts.cuda.cuda_build_lib.aot_identity import source_closure_identity
 from scripts.tests import test_cuda_blake_aot as oracle
 
 

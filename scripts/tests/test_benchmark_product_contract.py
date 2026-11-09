@@ -7,16 +7,16 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.benchmark_product_contract_lib import (
+from scripts.bench.benchmark_product_contract_lib import (
     ProductEvidenceError,
     build_receipt,
     validate_product_identity,
     validate_receipt,
 )
-from scripts.benchmark_product_contract_lib.identity import canonical_identity_sha256
-from scripts.product_identity_lib import validate_canonical_identity
-from scripts import benchmark_delta
-from scripts.check_benchmark_product_contract import validate as validate_policy
+from scripts.bench.benchmark_product_contract_lib.identity import canonical_identity_sha256
+from scripts.repo.product_identity_lib import validate_canonical_identity
+from scripts.bench import benchmark_delta
+from scripts.bench.check_benchmark_product_contract import validate as validate_policy
 from scripts.tests.native_proof_matrix_support import product_identity
 from scripts.tests.test_benchmark_delta import write_json
 from scripts.tests.test_native_matrix_phase1_evidence import native_v4_report

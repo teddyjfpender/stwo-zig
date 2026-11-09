@@ -30,8 +30,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import riscv_sail_gate as gate
-
+from scripts.riscv import riscv_sail_gate as gate
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW_PATH = Path(".github/workflows/riscv-sail-differential.yml")
 CONTRACT_PATH = Path("conformance/riscv-sail-differential-gate.md")
@@ -167,8 +166,8 @@ class ScopeTest(unittest.TestCase):
             "vectors/riscv_elfs/alu_test.elf",
             "conformance/riscv/rv32im-sail-profile.json",
             "conformance/upstream.md",
-            "scripts/riscv_equivalence.py",
-            "scripts/riscv_trace_vectors_lib/corpus.py",
+            "scripts/riscv/riscv_equivalence.py",
+            "scripts/riscv/riscv_trace_vectors_lib/corpus.py",
             "src/frontends/riscv/isa/authority.zig",
             "src/frontends/riscv/runner/trace_dump.zig",
             ".github/workflows/riscv-sail-differential.yml",
@@ -187,18 +186,18 @@ class ScopeTest(unittest.TestCase):
             "build_support/products/riscv_cpu.zig",
             "build_support/products/riscv_sail_oracle_tests.zig",
             "build_support/products/riscv_test_filter.zig",
-            "scripts/riscv_sail_oracle.py",
-            "src/tests.zig",
-            "src/tests/riscv/trace_test.zig",
-            "src/tests/riscv/committed_forgery_harness.zig",
-            "src/tests/riscv/committed_row_layout.zig",
-            "src/tests/riscv/guest_elf_fixture.zig",
-            "src/tests/riscv/row_admissibility.zig",
-            "src/tests/riscv/malicious_prover_harness.zig",
-            "src/tests/riscv/malicious_prover_completion_test.zig",
-            "src/tests/riscv/malicious_prover_forged_output_test.zig",
-            "src/tests/riscv/malicious_prover_skipped_test.zig",
-            "src/tests/riscv/malicious_prover_stale_read_test.zig",
+            "scripts/riscv/riscv_sail_oracle.py",
+            "src/products/riscv/cpu/test_root.zig",
+            "src/products/riscv/cpu/tests/trace_test.zig",
+            "src/products/riscv/cpu/tests/committed_forgery_harness.zig",
+            "src/products/riscv/cpu/tests/committed_row_layout.zig",
+            "src/products/riscv/cpu/tests/guest_elf_fixture.zig",
+            "src/products/riscv/cpu/tests/row_admissibility.zig",
+            "src/products/riscv/cpu/tests/malicious_prover_harness.zig",
+            "src/products/riscv/cpu/tests/malicious_prover_completion_test.zig",
+            "src/products/riscv/cpu/tests/malicious_prover_forged_output_test.zig",
+            "src/products/riscv/cpu/tests/malicious_prover_skipped_test.zig",
+            "src/products/riscv/cpu/tests/malicious_prover_stale_read_test.zig",
             "src/frontends/riscv/sail_oracle_test_root.zig",
         ):
             required, matched = gate.live_scope([path])
@@ -209,7 +208,7 @@ class ScopeTest(unittest.TestCase):
         required, matched = gate.live_scope(
             [
                 "README.md",
-                "src/core/fields/m31.zig",
+                "src/waist/core/fields/m31.zig",
                 "src/frontends/riscv/air/component.zig",
             ]
         )
@@ -217,15 +216,15 @@ class ScopeTest(unittest.TestCase):
         self.assertEqual(matched, {})
 
     def test_unrelated_riscv_test_edits_do_not_buy_the_60_minute_job(self) -> None:
-        # The narrow file list is the whole point: `src/tests/riscv` wholesale
+        # The narrow file list is the whole point: `src/products/riscv/cpu/tests` wholesale
         # would fire a pinned-toolchain build plus corpus differential on every
         # RISC-V test edit, most of which cannot change what Sail would say.
         required, matched = gate.live_scope(
             [
-                "src/tests/riscv/metal_backend_test.zig",
-                "src/tests/riscv/witness_rigidity_test.zig",
-                "src/tests/riscv/uniqueness_ir_test.zig",
-                "src/tests/riscv/prover_test.zig",
+                "src/products/riscv/cpu/tests/metal_backend_test.zig",
+                "src/products/riscv/cpu/tests/witness_rigidity_test.zig",
+                "src/products/riscv/cpu/tests/uniqueness_ir_test.zig",
+                "src/products/riscv/cpu/tests/prover_test.zig",
             ]
         )
         self.assertFalse(required)
@@ -239,7 +238,7 @@ class ScopeTest(unittest.TestCase):
 
     def test_sail_oracle_build_owner_is_inside_the_cpu_marker_gate(self) -> None:
         marker_gate = (
-            ROOT / "scripts/check_riscv_cpu_product.py"
+            ROOT / "scripts/riscv/check_riscv_cpu_product.py"
         ).read_text(encoding="utf-8")
         self.assertIn(
             'ROOT / "build_support/products/riscv_sail_oracle_tests.zig"',
@@ -423,7 +422,17 @@ class PreflightTest(unittest.TestCase):
 
 
 class RunFailClosedTest(unittest.TestCase):
-    def test_missing_workspace_is_red_and_names_what_was_not_checked(self) -> None:
+    def test_pin_drift_precedes_toolchain_and_cannot_be_relabelled_unavailable(self):
+        with mock.patch.object(gate.check_upstream_pins, "validate_repository", return_value=["fixture pin mismatch"]) as pins, mock.patch.object(
+            gate.formal_tools, "resolve_sail_compiler", side_effect=AssertionError("toolchain must not run"),
+        ), contextlib.redirect_stderr(io.StringIO()) as stderr:
+            status = gate.run_gate(Path("/missing-fixture-workspace"), None, False, 1, None, None)
+        pins.assert_called_once_with(ROOT)
+        self.assertEqual(gate.EXIT_FAIL, status)
+        self.assertIn("fixture pin mismatch", stderr.getvalue())
+
+    @mock.patch.object(gate.check_upstream_pins, "validate_repository", return_value=[])
+    def test_missing_workspace_is_red_and_names_what_was_not_checked(self, pins) -> None:
         # Regardless of whether this host has the pinned Sail compiler, an
         # absent workspace must be the unavailability exit code with the
         # not-checked inventory -- never a pass and never a silent skip.
@@ -439,6 +448,7 @@ class RunFailClosedTest(unittest.TestCase):
                     report_out=None,
                 )
         self.assertEqual(returncode, gate.EXIT_TOOLCHAIN_UNAVAILABLE)
+        pins.assert_called_once_with(ROOT)
         output = stderr.getvalue()
         self.assertIn("did NOT run", output)
         committed = json.loads(
@@ -449,7 +459,8 @@ class RunFailClosedTest(unittest.TestCase):
             output,
         )
 
-    def test_an_unavailable_toolchain_refuses_to_warm_the_next_run(self) -> None:
+    @mock.patch.object(gate.check_upstream_pins, "validate_repository", return_value=[])
+    def test_an_unavailable_toolchain_refuses_to_warm_the_next_run(self, pins) -> None:
         # The workflow's save step keys on this receipt. A cache entry is
         # immutable once written under its key, so publishing the workspace
         # of a run whose toolchain never came up would hand every later run a
@@ -467,6 +478,7 @@ class RunFailClosedTest(unittest.TestCase):
                     github_output=receipts,
                 )
             self.assertEqual(returncode, gate.EXIT_TOOLCHAIN_UNAVAILABLE)
+            pins.assert_called_once_with(ROOT)
             self.assertEqual(
                 "differential_ran=false\ntoolchain_state=unavailable\n",
                 receipts.read_text(encoding="utf-8"),
@@ -570,7 +582,7 @@ class WorkflowContractTest(unittest.TestCase):
             "conformance/riscv/sail-rvfi-zkvm-entry.patch",
             "conformance/riscv/sail-rv32im-override.json",
             "conformance/riscv/sail-rv32im-tagged-options.json",
-            "scripts/riscv_formal_tools.py",
+            "scripts/riscv/riscv_formal_tools.py",
         ):
             with self.subTest(ingredient=ingredient):
                 self.assertIn(ingredient, keys[0])

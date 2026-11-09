@@ -8,9 +8,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts import architecture_external_authority as authority
-from scripts import architecture_native_oracle_selection as native_selection
-from scripts.build_architecture_receipt_lib.model import ReceiptError
+from scripts.architecture import architecture_external_authority as authority
+from scripts.architecture import architecture_native_oracle_selection as native_selection
+from scripts.architecture.build_architecture_receipt_lib.model import ReceiptError
 
 
 AUTHORITY = "a" * 40

@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
-CLI_ROOT = ROOT / "autoresearch" / "cli"
+CLI_ROOT = ROOT / "tools" / "perf"
 if str(CLI_ROOT) not in sys.path:
     sys.path.insert(0, str(CLI_ROOT))
 

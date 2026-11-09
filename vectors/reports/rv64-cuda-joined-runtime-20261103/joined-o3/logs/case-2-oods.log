@@ -1,8 +1,0 @@
-ptxas info    : 0 bytes gmem
-ptxas info    : Compiling entry function 'rv64_joined_oods_2' for 'sm_120'
-ptxas info    : Function properties for rv64_joined_oods_2
-    576 bytes stack frame, 624 bytes spill stores, 2036 bytes spill loads
-ptxas info    : Used 255 registers, used 0 barriers, 576 bytes cumulative stack size
-ptxas info    : Compile time = 3069.734 ms
-ptxas info    : Function properties for _ZN45_INTERNAL_0b49c217_14_case_2_oods_cu_153805fd4stwo4cuda4rv648oods_mulENS2_4OM31ES3_
-    0 bytes stack frame, 24 bytes spill stores, 24 bytes spill loads

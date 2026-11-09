@@ -8,9 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
-from scripts import package_release as subject
-
-
+from scripts.release import package_release as subject
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -35,6 +33,7 @@ class PackageReleaseTests(unittest.TestCase):
             name for name, entry in self.policy.items() if entry["status"] == "published"
         }
         self.assertEqual(17, len(published))
+        self.assertEqual("internal", self.policy["stwo_circuit_metal_integration"]["status"])
 
     def test_every_published_dependency_closure_is_publishable(self) -> None:
         for package, entry in self.policy.items():
@@ -74,7 +73,7 @@ class PackageReleaseTests(unittest.TestCase):
             self.assertIn("stwo_core-0.1.0/PACKAGE-RELEASE.json", names)
             self.assertIn("stwo_core-0.1.0/src/core/build.zig.zon", names)
             self.assertFalse(any(name.endswith(".rs") for name in names))
-            self.assertFalse(any("/autoresearch/" in name for name in names))
+            self.assertFalse(any("/guests/" in name for name in names))
             self.assertFalse(any("/formal/" in name for name in names))
             self.assertFalse(any("/vectors/" in name for name in names))
 

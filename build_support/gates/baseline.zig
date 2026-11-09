@@ -5,7 +5,7 @@ const std = @import("std");
 pub fn addGate(b: *std.Build) void {
     const check = b.addSystemCommand(&.{
         "python3",
-        "scripts/check_build_monorepo_baseline.py",
+        "scripts/repo/check_build_monorepo_baseline.py",
     });
     const step = b.step(
         "build-monorepo-baseline",

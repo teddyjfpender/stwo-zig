@@ -4,13 +4,13 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 PREPARED_STATE_CACHE = (
-    ROOT / "src" / "tools" / "metal_arena_plan" / "prepared_state_cache.zig"
+    ROOT / "src" / "backends" / "metal" / "tools" / "arena_plan" / "prepared_state_cache.zig"
 )
 PREPARED_GEOMETRY_CACHE = (
-    ROOT / "src" / "tools" / "metal_arena_plan" / "prepared_geometry_cache.zig"
+    ROOT / "src" / "backends" / "metal" / "tools" / "arena_plan" / "prepared_geometry_cache.zig"
 )
 PREPARED_CACHE_TESTS = (
-    ROOT / "src" / "tools" / "metal_arena_plan" / "prepared_cache_tests.zig"
+    ROOT / "src" / "backends" / "metal" / "tools" / "arena_plan" / "prepared_cache_tests.zig"
 )
 MULTIPLICITY_FEEDS = (
     ROOT
@@ -21,7 +21,7 @@ MULTIPLICITY_FEEDS = (
     / "lookups"
     / "multiplicity_feeds.zig"
 )
-SESSION_CLI = ROOT / "src" / "tools" / "metal_prover_session" / "app.zig"
+SESSION_CLI = ROOT / "src" / "backends" / "metal" / "tools" / "prover_session" / "app.zig"
 
 
 def ordered(source: str, *fragments: str) -> None:

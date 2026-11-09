@@ -4,7 +4,7 @@ This isolated development tool runs StarkWare's circuit recursion crates from
 `https://github.com/starkware-libs/proving` at
 `5a7c5ede4299c91a61df19a07cba4f7502c14230` and emits the checkpoints the Zig
 port's parity ladder compares against (design:
-`design/starknet-proving-pipeline/recursion/02-design.md` §8). Released Zig
+`design/starknet/recursion/02-design.md` §8). Released Zig
 products never build, invoke, or distribute it.
 
 Every subcommand but `fold-tree` runs in seconds. Most only build circuits or hash data;
@@ -68,7 +68,7 @@ log size 21, log blowup 3) is far over that budget. The oracle does not prove it
 `multiverifier-inputs` writes its inputs, and the Zig circuit prover must
 reproduce the committed `proof.bin` from them (1 s, 4.1 GB peak for the
 oracle). `verify-circuit` checks proofs written by the Zig prover
-(`STWO_CIRCUIT_R7_EMIT_DIR`); `scripts/generate_circuit_oracle_vectors.py
+(`STWO_CIRCUIT_R7_EMIT_DIR`); `scripts/interop/generate_circuit_oracle_vectors.py
 --zig-emit-dir DIR` regenerates the committed verdicts from such a directory
 and otherwise keeps them.
 
@@ -81,7 +81,7 @@ committed in `abi_fixture.rs`, across their two Stwo pins. It likewise compiles 
 trace digests it shares with `tools/stwo-cairo-trace-oracle` (`src/columns.rs`
 only adds the circuit domains). Outputs are written atomically and never replace
 an existing file. The committed fixtures are regenerated only through
-`python3 scripts/generate_circuit_oracle_vectors.py`, which locates the checkout
+`python3 scripts/interop/generate_circuit_oracle_vectors.py`, which locates the checkout
 Cargo resolved and records provenance; `vectors/circuit/README.md` describes the
 fixtures and their contracts.
 
@@ -113,6 +113,6 @@ The oracle aborts instead of emitting a checkpoint when:
 The manifest has no path dependencies, patches or replacements. Every upstream
 crate is a git dependency on the pinned revision, and `Cargo.lock` was seeded
 from the upstream workspace lock, so every registry package has the version and
-checksum `proving@5a7c5ed` itself locks. `scripts/check_upstream_pins.py`
+checksum `proving@5a7c5ed` itself locks. `scripts/repo/check_upstream_pins.py`
 validates the manifest, lock, toolchain, source constants, and the committed
 fixtures against the Circuit Recursion Lane of `conformance/upstream.md`.

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import textwrap
 
-from scripts import riscv_refinement_publication as publication
+from scripts.riscv import riscv_refinement_publication as publication
 from scripts.tests.riscv_refinement_test_support import *
 
 
@@ -25,6 +26,85 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
                     "RiscvRefinement.Memory",
                     "RiscvRefinement.Publication.TeamA.Pilots",
                 ], sail_lean_bridge._formal_bridge_targets(Paths(root)))
+
+    def test_hosted_sail_candidate_keeps_normal_admission_and_owner_checks(self):
+        source = (ROOT / ".github/workflows/riscv-sail-formal.yml").read_text()
+        self.assertIn("default: false", source)
+        for name in ("Fail fast on committed generated-artifact drift",
+                     "Run the Sail-present 46-opcode FV-1/FV-2 publication gate",
+                     "Mint the live-evidence refinement receipt"):
+            step = source.split("- name: " + name, 1)[1].split("      - name:", 1)[0]
+            self.assertIn("if: inputs.regenerate_bindings != true", step)
+        for token in ("lake build", "prepare-sail", "riscv_formal_tools.py prepare",
+                      'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+                      "git diff --exit-code -- src scripts conformance .github",
+                      "--no-export-air", "--sail-riscv-dir", "--sail-bin",
+                      "baseline-check-exit.txt", "generated-bindings.patch",
+                      "if: always() && inputs.regenerate_bindings == true"):
+            self.assertIn(token, source)
+        self.assertNotIn("git push", source)
+        self.assertNotIn("--reuse-committed-sail-evidence", source.split("- name: Regenerate source-bound candidate with the live pinned owner", 1)[1].split("      - name:", 1)[0])
+
+    def test_candidate_exports_exact_inputs_before_expensive_provisioning(self):
+        source = (ROOT / ".github/workflows/riscv-sail-formal.yml").read_text()
+        export = source.split("- name: Export fresh candidate AIR before provisioning", 1)[1].split("      - name:", 1)[0]
+        self.assertIn("if: inputs.regenerate_bindings == true", export)
+        self.assertIn("zig build riscv-refinement-ir", export)
+        self.assertIn('test -s "$OUT/family-air/div.json"', export)
+        self.assertIn('= 17', export)
+        self.assertIn('= 46', export)
+        self.assertLess(source.index("- name: Export fresh candidate AIR"), source.index("- name: Setup Lean"))
+        generation = source.split("- name: Regenerate source-bound candidate with the live pinned owner", 1)[1].split("      - name:", 1)[0]
+        self.assertEqual(2, generation.count('--air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air"'))
+
+    def test_candidate_runs_team_b_live_and_limits_source_edits_to_the_pin(self):
+        source = (ROOT / ".github/workflows/riscv-sail-formal.yml").read_text()
+        step = source.split("- name: Refresh Team B with the exact live candidate inputs", 1)[1].split("      - name:", 1)[0]
+        for token in ("if: inputs.regenerate_bindings == true", "riscv_team_b_refresh.py --write",
+                      '--air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air"',
+                      "--sail-riscv-dir", "--sail-bin", "set -euo pipefail"):
+            self.assertIn(token, step)
+        self.assertNotIn("--reuse-committed-sail-evidence", step)
+        self.assertIn('assert normalized[0] == normalized[1]', source)
+        self.assertIn('"AUDITED_THEOREMS"', source)
+
+    def test_candidate_pin_guard_accepts_only_inventory_changes(self):
+        workflow = (ROOT / ".github/workflows/riscv-sail-formal.yml").read_text()
+        guard = textwrap.dedent(workflow.split("python3 - <<'PY'\n", 1)[1].split("          PY", 1)[0])
+        from scripts.riscv.riscv_refinement_lib import audited_inventory
+        before = (ROOT / "scripts/riscv/riscv_refinement_lib/audited_inventory.py").read_text()
+        changed = before.replace(audited_inventory.parse_source(before)[0], "RiscvRefinement.Repinned", 1)
+        for candidate, rejected in ((changed, False), (changed + "\nUNREVIEWED = True\n", True)):
+            with mock.patch("subprocess.check_output", return_value=before), mock.patch.object(Path, "read_text", return_value=candidate):
+                if rejected:
+                    with self.assertRaisesRegex(AssertionError, "outside the audited theorem pin"):
+                        exec(guard, {})
+                else:
+                    exec(guard, {})
+
+    def test_generation_owns_full_live_preparation_and_preserves_explicit_inputs(self):
+        paths = Paths(ROOT)
+        for prepare_live, carried, generated_file in ((True, False, None), (False, False, None), (True, True, None), (True, False, Path("exact.lean"))):
+            args = Namespace(no_export_air=False, reuse_committed_sail_evidence=carried,
+                             sail_generated_file=generated_file, sail_riscv_dir=None if carried else Path("model"), sail_bin=None if carried else Path("sail"))
+            qualified = object()
+            with mock.patch.object(render, "export_air") as export, mock.patch.object(
+                sail, "prepare_exact_backend", return_value=qualified,
+            ) as prepare, mock.patch.object(riscv_refinement, "evidence", return_value=qualified) as evidence, mock.patch.object(
+                render, "artifacts", return_value={},
+            ) as artifacts:
+                self.assertEqual(({}, qualified), riscv_refinement._prepared_outputs_with_evidence(args, paths, prepare_live=prepare_live))
+            export.assert_called_once_with(paths)
+            artifacts.assert_called_once_with(paths, qualified)
+            if prepare_live and not carried and generated_file is None:
+                prepare.assert_called_once_with(ROOT, Path("model"), Path("sail"), False)
+                evidence.assert_not_called()
+            else:
+                prepare.assert_not_called()
+                evidence.assert_called_once_with(args, paths)
+        source = (ROOT / ".github/workflows/riscv-sail-formal.yml").read_text()
+        step = source.split("- name: Generate the exact RV32IM Sail theorem backend", 1)[1].split("      - name:", 1)[0]
+        self.assertIn("if: inputs.regenerate_bindings != true", step)
 
     def test_pilot_composition_digests_follow_generated_air(self) -> None:
         composition = (
@@ -196,7 +276,7 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
             ROOT / "build_support/products/riscv_refinement.zig"
         ).read_text(encoding="utf-8")
         catalog = (
-            ROOT / "build_support/products/catalog.zig"
+            ROOT / "build_support/products/step_catalog.zig"
         ).read_text(encoding="utf-8")
         workflow = (
             ROOT / ".github/workflows/riscv-sail-formal.yml"

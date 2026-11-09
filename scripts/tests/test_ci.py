@@ -1,20 +1,108 @@
 import os
 import re
+import json
+import signal
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
+from unittest import mock
 from pathlib import Path
 
-from scripts.ci import FAST_PLAN, command_plan
-from scripts.check_build_configure_closure import validate_actual_construction
-from scripts.release_evidence import gate_steps
+from scripts.ci import FAST_PLAN, TOOLCHAIN_PLAN, command_plan, main
+from scripts.repo.check_build_configure_closure import validate_actual_construction
+from scripts.release.release_evidence import gate_steps
+from scripts.tests.test_focused_ci_contract import runner_policy
 
 ROOT = Path(__file__).resolve().parents[2]
 PINNED_ACTION_RE = re.compile(r"^\s*uses:\s*[^@\s]+@[0-9a-f]{40}(?:\s+#.*)?$")
 
 
 class CiTests(unittest.TestCase):
+    def test_cpu_golden_check_rejects_changed_proof_without_verifying_or_passing(self):
+        from scripts.cuda.cuda_proof_parity_gate import UPSTREAM_COMMIT, EXCHANGE_MODE, EXPECTED_CONFIG
+        source = (ROOT / ".github/workflows/ci.yml").read_text().split("- name: Compare fresh Native CPU proof with the frozen golden", 1)[1]
+        code = textwrap.dedent(source.split("python3 - <<'PYCPU'\n", 1)[1].split("          PYCPU", 1)[0])
+        relative = Path("conformance/evidence/cuda/native-bringup-sm89/product-parity-receipt.json")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            reference = root / relative
+            reference.parent.mkdir(parents=True)
+            reference.write_bytes((ROOT / relative).read_bytes())
+            calls = []
+            def prove(argv, **kwargs):
+                calls.append(argv)
+                self.assertEqual(60, kwargs["timeout"])
+                self.assertTrue(kwargs["check"])
+                self.assertEqual("prove", argv[1])
+                Path(argv[-1]).write_text(json.dumps({
+                    "schema_version": 1, "upstream_commit": UPSTREAM_COMMIT,
+                    "exchange_mode": EXCHANGE_MODE, "example": "wide_fibonacci",
+                    "pcs_config": EXPECTED_CONFIG, "wide_fibonacci_statement": {"log_n_rows": 5, "sequence_len": 8},
+                    "proof_bytes_hex": "00" * 8390,
+                }))
+            with mock.patch.object(Path, "cwd", return_value=root), mock.patch.dict(os.environ, {"RUNNER_TEMP": str(root / "out")}), mock.patch("subprocess.run", side_effect=prove):
+                with self.assertRaisesRegex(AssertionError, "differs from the frozen golden"):
+                    exec(code, {})
+            self.assertEqual(1, len(calls))
+            self.assertFalse(list(root.rglob("native-cpu-frozen-parity.json")))
+
+    def test_killed_runner_preserves_unfinished_output_without_acceptance(self):
+        command = [sys.executable, "-c", "import os,signal; os.write(1,b'compiler-progress\\n'); os.write(2,b'before-cancel\\n'); os.kill(os.getppid(),signal.SIGTERM)"]
+        policy = runner_policy([command])
+        policy["lanes"]["focused"]["host"] = "macos" if sys.platform == "darwin" else "linux"
+        launcher = "from pathlib import Path; import json,sys; from scripts.repo.ci_scope_run import run_lane; run_lane(root=Path.cwd(),policy=json.loads(sys.argv[2]),lane='focused',output=Path(sys.argv[1]),cache_mode='inherit',cache_root=None)"
+        with tempfile.TemporaryDirectory() as raw:
+            output = Path(raw) / "receipt.json"
+            result = subprocess.run([sys.executable, "-c", launcher, str(output), json.dumps(policy)], cwd=ROOT, capture_output=True, timeout=10)
+            self.assertEqual(-signal.SIGTERM, result.returncode, result.stderr)
+            self.assertFalse(output.exists())
+            self.assertEqual(b"compiler-progress\n", (output.parent / "focused-0.stdout").read_bytes())
+            self.assertEqual(b"before-cancel\n", (output.parent / "focused-0.stderr").read_bytes())
+            started = json.loads((output.parent / "focused-0.started.json").read_text())
+            self.assertEqual("STARTED", started["state"])
+            self.assertEqual(command, started["argv"])
+            self.assertEqual([], started["completed_commands"])
+            self.assertNotIn("exit_code", started)
+
+    def test_circuit_regeneration_is_manual_cpu_only_and_preserves_failed_results(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        job = workflow.split("\n  circuit-oracle-regeneration:\n", 1)[1]
+        self.assertIn("if: github.event_name == 'workflow_dispatch' && (inputs.gate == 'regenerate-circuit-vectors' || inputs.gate == 'regenerate-recursion-shapes')", job)
+        self.assertIn("if: inputs.gate == 'regenerate-circuit-vectors'", job)
+        self.assertIn("if: inputs.gate == 'regenerate-recursion-shapes'", job)
+        self.assertIn("python3 scripts/repo/zig_serial_build.py -j2 riscv-recursion-shape-inspector -Doptimize=ReleaseFast", job)
+        self.assertIn("scripts/riscv/riscv_recursion_csp_benchmark.py audit-shapes", job)
+        self.assertIn("scripts/riscv/riscv_recursion_csp_benchmark.py validate-shapes", job)
+        self.assertIn('test ! -s "$OUT/worktree-status.txt"', job)
+        self.assertLess(job.index('cp zig-out/bin/stwo-zig-riscv-recursion-shape-inspector'), job.index('scripts/riscv/riscv_recursion_csp_benchmark.py audit-shapes'))
+        self.assertIn('for ordinal, case in enumerate(cases):', job)
+        self.assertIn('raise SystemExit("canonical shape probes rejected: "', job)
+        self.assertIn("runs-on: ubuntu-latest", job)
+        self.assertIn('CARGO_BUILD_JOBS: "1"', job)
+        self.assertLess(job.index("size < 32 * (1 << 30)"), job.index("/usr/bin/time -v python3"))
+        self.assertIn("nightly-2026-01-15", job)
+        self.assertIn("python3 scripts/interop/generate_circuit_oracle_vectors.py", job)
+        self.assertIn("git diff --exit-code -- src tools scripts .github conformance", job)
+        self.assertIn('exit "$STATUS"', job)
+        self.assertIn("if: always()", job)
+        self.assertIn("if-no-files-found: error", job)
+        self.assertNotIn("git push", job)
+
+    def test_repository_scripts_package_wins_over_foreign_installed_package(self):
+        with tempfile.TemporaryDirectory() as raw:
+            foreign = Path(raw) / "scripts"
+            foreign.mkdir()
+            (foreign / "__init__.py").write_text('raise RuntimeError("foreign scripts package selected")\n')
+            result = subprocess.run(
+                [sys.executable, "-c", "import pathlib, scripts; print(pathlib.Path(scripts.__file__).resolve())"],
+                cwd=ROOT, env=dict(os.environ, PYTHONPATH=raw),
+                capture_output=True, text=True, timeout=10,
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(str(ROOT / "scripts/__init__.py"), result.stdout.strip())
+
     def construction_fixture(self) -> tuple[dict[str, object], dict[str, dict[str, object]]]:
         manifest: dict[str, object] = {
             "scope_role": "product",
@@ -203,6 +291,13 @@ class CiTests(unittest.TestCase):
             plan[1],
         )
 
+    def test_explicit_toolchain_gate_uses_only_the_shared_static_owner(self) -> None:
+        self.assertIn(TOOLCHAIN_PLAN[0], FAST_PLAN)
+        self.assertEqual([sys.executable, "-m", "unittest", "scripts.tests.test_toolchain_pins"], TOOLCHAIN_PLAN[0])
+        with mock.patch("scripts.ci.run_plan", return_value=19) as run:
+            self.assertEqual(19, main(["--check-toolchains"]))
+        run.assert_called_once_with(TOOLCHAIN_PLAN)
+
     def test_strict_plan_selects_strict_gate(self) -> None:
         self.assertEqual("release-gate-strict", command_plan(True, "ReleaseSafe")[1][2])
 
@@ -231,6 +326,11 @@ class CiTests(unittest.TestCase):
         self.assertIn("run: python3 scripts/ci.py\n", workflow)
         self.assertIn("run: python3 scripts/ci.py --strict\n", workflow)
         self.assertIn("inputs.gate == 'strict'", workflow)
+
+    def test_frontend_releasefast_has_only_the_approved_timeout_exception(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        focused_linux = workflow.split("  focused-linux:", 1)[1].split("  focused-macos:", 1)[0]
+        self.assertIn("timeout-minutes: ${{ matrix.lane == 'riscv_frontend_releasefast' && 90 || 30 }}", focused_linux)
 
     def test_focused_cairo_cpu_primes_its_offline_cargo_build(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -269,9 +369,21 @@ class CiTests(unittest.TestCase):
         self.assertIn("focused-macos:", workflow)
         self.assertIn("focused-cuda:", workflow)
         self.assertIn("focused-verdict:", workflow)
-        self.assertIn("python3 scripts/ci_scope_plan.py", workflow)
-        self.assertIn("python3 scripts/ci_scope_run.py", workflow)
+        self.assertIn("python3 scripts/repo/ci_scope_plan.py", workflow)
+        self.assertIn("python3 scripts/repo/ci_scope_run.py", workflow)
         self.assertIn("architecture-diagnostic:", workflow)
+
+    def test_manual_cpu_diagnostics_cannot_dispatch_device_or_production_gates(self):
+        source = (ROOT / ".github/workflows/ci.yml").read_text()
+        for owner, end in (("focused-plan", "focused-linux"), ("focused-linux", "focused-macos")):
+            job = source.split("  " + owner + ":", 1)[1].split("  " + end + ":", 1)[0]
+            self.assertIn("inputs.gate == 'focused-cpu'", job)
+        for owner, end in (("focused-macos", "focused-cuda"), ("focused-cuda", "focused-verdict"), ("focused-verdict", "release-gate")):
+            job = source.split("  " + owner + ":", 1)[1].split("  " + end + ":", 1)[0]
+            self.assertNotIn("focused-cpu", job)
+        self.assertIn('SCOPE_ARGS+=(--manual-cpu-lane "$MANUAL_CPU_LANE")', source)
+        self.assertIn('MANUAL_CPU_LANE: ${{ inputs.cpu_lane }}', source)
+        self.assertIn("${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}", source)
 
     def test_hosted_ci_requires_fail_closed_cuda_device_evidence(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -375,16 +487,16 @@ class CiTests(unittest.TestCase):
         build_graph = build + verification_products
         full_test_command = '&.{ "zig", "build", "test", build_optimize }'
         self.assertEqual(2, build_graph.count(full_test_command))
-        self.assertEqual(3, build_graph.count('"scripts/zig_protocol_test.py"'))
+        self.assertEqual(3, build_graph.count('"scripts/repo/zig_protocol_test.py"'))
         gate_archive = "zig-out/release-evidence/native/interop-history"
         self.assertEqual(2, build_graph.count(gate_archive))
         self.assertEqual(2, build_graph.count('"--archive-dir"'))
         transitive_commands = {
             '&.{ "zig", "build", "test-riscv", build_optimize }': 2,
             '&.{ "zig", "build", "test-riscv-prover", build_optimize }': 2,
-            '&.{ "python3", "scripts/riscv_trace_vectors.py" }': 3,
+            '&.{ "python3", "scripts/riscv/riscv_trace_vectors.py" }': 3,
             # One additional standalone public API-parity build target is expected.
-            '&.{ "python3", "scripts/check_api_parity.py" }': 2,
+            '&.{ "python3", "scripts/repo/check_api_parity.py" }': 2,
         }
         for command, expected_count in transitive_commands.items():
             self.assertEqual(expected_count, build_graph.count(command))
@@ -406,7 +518,7 @@ class CiTests(unittest.TestCase):
 
     def test_pre_push_and_hosted_main_are_focused(self) -> None:
         pre_push = (ROOT / ".githooks/pre-push").read_text(encoding="utf-8")
-        self.assertIn("exec python3 scripts/ci_scope_push.py", pre_push)
+        self.assertIn("exec python3 scripts/repo/ci_scope_push.py", pre_push)
         self.assertNotIn("zig build", pre_push)
 
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -416,7 +528,6 @@ class CiTests(unittest.TestCase):
         self.assertEqual(1, focused.count("SCOPE_ARGS+=(--full-matrix)"))
         self.assertIn('elif [ "${{ github.event_name }}" = "schedule" ]', focused)
         self.assertNotIn("PR6 fail-closed correctness smoke", focused)
-        self.assertNotIn("autoresearch.tests.test_manifest", focused)
         self.assertIn("run: python3 scripts/ci.py\n", workflow)
 
     def test_hosted_ci_cancels_stale_runs_and_avoids_duplicate_caches(self) -> None:
@@ -474,7 +585,7 @@ class CiTests(unittest.TestCase):
         )
         self.assertIn("run: zig build metal-check -Doptimize=ReleaseSafe", workflow)
         self.assertNotIn("run: zig build metal-test", workflow)
-        self.assertIn("python3 scripts/metal_core_aot_receipt.py build", workflow)
+        self.assertIn("python3 scripts/metal/metal_core_aot_receipt.py build", workflow)
         self.assertIn("--builder zig-out/bin/metal-core-aot", workflow)
         self.assertIn("--output-dir \"$RUNNER_TEMP/native-metal-core-aot-acceptance\"", workflow)
         self.assertIn(
@@ -545,7 +656,7 @@ class CiTests(unittest.TestCase):
         self.assertIn("options.languageVersion = MTLLanguageVersion3_1;", policy)
 
         sources = (
-            ROOT / "src/tools/metal_core_aot/probe.m",
+            ROOT / "src/backends/metal/tools/core_aot/probe.m",
             ROOT / "src/backends/metal/runtime/initialization.m",
             ROOT / "src/backends/metal/runtime/dynamic_evaluation.m",
         )

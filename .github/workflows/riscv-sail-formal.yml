@@ -9,7 +9,7 @@
 # theorem backend, runs the Sail-bound 46-opcode FV-1/FV-2 publication gate
 # (`zig build riscv-refinement-pilot`), and mints the live-evidence
 # refinement receipt. Command-to-claim mapping and the macOS story:
-# soundness/SAIL_PROVISIONING.md.
+# design/soundness/SAIL_PROVISIONING.md.
 #
 # Trigger policy: schedule + workflow_dispatch + push to main ONLY, never on
 # every pull request. A cold run builds the Sail simulator, Spike, the Sail
@@ -19,7 +19,9 @@
 # riscv-refinement.yml; this job is the capability that makes the
 # Sail-present run hosted instead of a laptop prerequisite.
 #
-# Fail-closed contract: there is no skip path anywhere in this workflow. A
+# Fail-closed verification contract: normal mode has no skipped proof leg.
+# Explicit candidate regeneration reproduces source-bound artifacts for review;
+# it never runs the publication admission or mints a release receipt. A
 # Sail release that cannot be downloaded or fails its sha256 check, an
 # unbuildable workspace, a Lean toolchain that cannot be provisioned, digest
 # drift between the committed artifacts and the freshly generated Sail
@@ -36,6 +38,11 @@ on:
     # clean-room so the three heavy formal jobs do not contend.
     - cron: "41 3 * * *"
   workflow_dispatch:
+    inputs:
+      regenerate_bindings:
+        description: Produce a fresh source-bound candidate; never mint a release receipt
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -48,7 +55,7 @@ concurrency:
 
 jobs:
   sail-present-refinement:
-    name: Sail-present 46-opcode FV-1/FV-2 publication gate
+    name: ${{ inputs.regenerate_bindings && 'Candidate Sail binding regeneration' || 'Sail-present 46-opcode FV-1/FV-2 publication gate' }}
     runs-on: ubuntu-latest
     # Cold path: Sail simulator cmake build + Spike build (~30 min), Sail
     # --lean backend generation (bounded at 30 min inside prepare-sail),
@@ -59,6 +66,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
@@ -74,9 +83,43 @@ jobs:
       # publication gate below is expensive, while committed manifest drift is
       # deterministic and can be rejected from the carried evidence immediately.
       - name: Fail fast on committed generated-artifact drift
+        if: inputs.regenerate_bindings != true
         run: >-
-          python3 scripts/riscv_refinement.py check-generated
+          python3 scripts/riscv/riscv_refinement.py check-generated
           --reuse-committed-sail-evidence
+
+      # Candidate mode reproduces the owner after an explicit source repair.
+      # It records the old receipt rejection; normal verification still refuses it.
+      - name: Record immutable candidate source and baseline rejection
+        if: inputs.regenerate_bindings == true
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          mkdir -p "$OUT"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain=v1)"
+          git rev-parse HEAD > "$OUT/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/source-tree.txt"
+          cat /proc/meminfo > "$OUT/host-memory.txt"
+          printf '%s\n' "Candidate source reproduction only; no publication or release receipt is minted." > "$OUT/qualification-scope.txt"
+          set +e
+          python3 scripts/riscv/riscv_refinement.py check-generated --no-export-air --reuse-committed-sail-evidence > "$OUT/baseline-check.log" 2>&1
+          STATUS=$?
+          set -e
+          printf '%s\n' "$STATUS" > "$OUT/baseline-check-exit.txt"
+
+      - name: Export fresh candidate AIR before provisioning
+        if: inputs.regenerate_bindings == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          zig build riscv-refinement-ir \
+            -Driscv-refinement-ir-dir="$OUT/family-air" \
+            -Driscv-air-program-ir-dir="$OUT/opcode-air"
+          test -s "$OUT/family-air/div.json"
+          test "$(find "$OUT/family-air" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = 17
+          test "$(find "$OUT/opcode-air" -maxdepth 1 -type f -name '*.unsigned.json' | wc -l | tr -d ' ')" = 46
 
       - name: Setup Lean at the pinned toolchain
         uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9  # v1.5.0
@@ -161,7 +204,7 @@ jobs:
       - name: Provision the pinned formal workspace
         run: |
           set -euo pipefail
-          python3 scripts/riscv_formal_tools.py prepare \
+          python3 scripts/riscv/riscv_formal_tools.py prepare \
             --workspace "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal" \
             --sail-compiler "$RUNNER_TEMP/sail/bin/sail" \
             | tee "$RUNNER_TEMP/riscv-formal-tools-receipt.json"
@@ -171,7 +214,7 @@ jobs:
       # library which import RiscvRefinement.Memory through LEAN_PATH; a cold
       # checkout therefore needs that olean closure before the bridge check.
       # The pilot and receipt gates below re-run `lake build` through
-      # scripts/riscv_refinement.py, where this becomes an incremental no-op.
+      # scripts/riscv/riscv_refinement.py, where this becomes an incremental no-op.
       - name: Build every Lean theorem
         run: |
           set -euo pipefail
@@ -184,9 +227,10 @@ jobs:
       # theorem backend from that exact configuration, and kernel-checks the
       # cross-project bridge against the theorem library built above.
       - name: Generate the exact RV32IM Sail theorem backend
+        if: inputs.regenerate_bindings != true
         run: |
           set -euo pipefail
-          python3 scripts/riscv_refinement.py prepare-sail \
+          python3 scripts/riscv/riscv_refinement.py prepare-sail \
             --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
             --sail-bin "$RUNNER_TEMP/sail/bin/sail"
 
@@ -197,7 +241,34 @@ jobs:
       # hashes), coverage, negative controls, Python unit tests, Lean
       # build, proof-escape scan, and the axiom audit.
       #
+      - name: Regenerate source-bound candidate with the live pinned owner
+        if: inputs.regenerate_bindings == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          python3 scripts/riscv/riscv_refinement.py generate --no-export-air \
+            --air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air" \
+            --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
+            --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/generation.log"
+          python3 scripts/riscv/riscv_refinement.py check-generated --no-export-air \
+            --air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air" \
+            --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
+            --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/check-generated.log"
+
+      - name: Refresh Team B with the exact live candidate inputs
+        if: inputs.regenerate_bindings == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          python3 scripts/riscv/riscv_team_b_refresh.py --write \
+            --air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air" \
+            --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
+            --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/team-b-refresh.log"
+
       - name: Run the Sail-present 46-opcode FV-1/FV-2 publication gate
+        if: inputs.regenerate_bindings != true
         env:
           STWO_SAIL_RISCV_DIR: ${{ runner.tool_cache }}/stwo-zig/riscv-formal/source/sail-riscv
           SAIL: ${{ runner.temp }}/sail/bin/sail
@@ -208,13 +279,14 @@ jobs:
       # the pinned compiler and simulator binary digests. The committed
       # receipt is deleted first so the artifact uploaded below can only
       # ever be one minted by THIS run, never the stale committed copy
-      # (scripts/riscv_refinement.py excludes the receipt path from its
+      # (scripts/riscv/riscv_refinement.py excludes the receipt path from its
       # clean-repository check, so the deletion does not trip it).
       - name: Mint the live-evidence refinement receipt
+        if: inputs.regenerate_bindings != true
         run: |
           set -euo pipefail
           rm -f formal/riscv-refinement/refinement-receipt.json
-          python3 scripts/riscv_refinement.py receipt \
+          python3 scripts/riscv/riscv_refinement.py receipt \
             --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
             --sail-bin "$RUNNER_TEMP/sail/bin/sail"
           cp formal/riscv-refinement/refinement-receipt.json \
@@ -222,6 +294,35 @@ jobs:
 
       # Save even after a red run: a drift investigation needs the warm
       # toolchain far more than a green run does.
+      - name: Retain candidate owner output even after rejection
+        if: always() && inputs.regenerate_bindings == true
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          mkdir -p "$OUT"
+          git diff --exit-code -- src scripts conformance .github \
+            ':!scripts/riscv/riscv_refinement_lib/audited_inventory.py'
+          python3 - <<'PY'
+          import ast, subprocess
+          from pathlib import Path
+          from scripts.riscv.riscv_refinement_lib import audited_inventory
+          pin = Path("scripts/riscv/riscv_refinement_lib/audited_inventory.py")
+          before = subprocess.check_output(["git", "show", f"HEAD:{pin}"], text=True)
+          normalized = []
+          for text in (before, pin.read_text()):
+              audited_inventory.parse_source(text)
+              tree = ast.parse(text)
+              assignments = [node for node in tree.body if isinstance(node, ast.Assign)
+                             and any(isinstance(t, ast.Name) and t.id == "AUDITED_THEOREMS" for t in node.targets)]
+              assert len(assignments) == 1
+              assignments[0].value = ast.Constant(None)
+              normalized.append(ast.dump(tree))
+          assert normalized[0] == normalized[1], "candidate changed code outside the audited theorem pin"
+          PY
+          git diff --binary -- formal/riscv-refinement \
+            scripts/riscv/riscv_refinement_lib/audited_inventory.py > "$OUT/generated-bindings.patch"
+          git status --porcelain=v1 > "$OUT/worktree-status.txt"
+
       - name: Save pinned formal toolchain workspace
         if: always()
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
@@ -237,9 +338,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
-          name: riscv-sail-refinement-receipt-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: riscv-sail-${{ inputs.regenerate_bindings && 'candidate' || 'refinement' }}-receipt-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/refinement-receipt.json
             ${{ runner.temp }}/riscv-formal-tools-receipt.json
+            ${{ runner.temp }}/riscv-sail-binding-candidate
           if-no-files-found: warn
           retention-days: 90

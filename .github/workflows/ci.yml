@@ -16,14 +16,21 @@ on:
           - standard
           - strict
           - architecture
+          - regenerate-circuit-vectors
+          - regenerate-recursion-shapes
+          - focused-cpu
         default: standard
+      cpu_lane:
+        description: Existing CPU lane for focused-cpu diagnostics only
+        type: string
+        default: circuit_frontend
 
 permissions:
   actions: read
   contents: read
 
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.gate }}-${{ inputs.cpu_lane }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
 
 jobs:
@@ -32,7 +39,8 @@ jobs:
     if: >-
       github.event_name == 'pull_request' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'schedule'
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu' && inputs.cpu_lane != 'main_releasefast_baseline')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -62,6 +70,8 @@ jobs:
 
       - name: Select affected product lanes
         id: scope
+        env:
+          MANUAL_CPU_LANE: ${{ inputs.cpu_lane }}
         run: |
           # For PRs, diff against the live merge-base — the event's base.sha
           # can lag the base branch, which would count already-merged main
@@ -71,7 +81,10 @@ jobs:
           # hosted matrix catches selection drift without serializing every
           # merge behind unrelated products.
           SCOPE_ARGS=()
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BASE="$GITHUB_SHA"
+            SCOPE_ARGS+=(--manual-cpu-lane "$MANUAL_CPU_LANE")
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="$(git merge-base "origin/${{ github.base_ref }}" HEAD)"
           elif [ "${{ github.event_name }}" = "schedule" ]; then
             BASE="$(git rev-parse HEAD^)"
@@ -79,7 +92,7 @@ jobs:
           else
             BASE="${{ github.event.before }}"
           fi
-          python3 scripts/ci_scope_plan.py \
+          python3 scripts/repo/ci_scope_plan.py \
             --base "$BASE" \
             --head "${{ github.sha }}" \
             --output "$RUNNER_TEMP/focused-ci-plan.json" \
@@ -124,10 +137,14 @@ jobs:
     if: >-
       (github.event_name == 'pull_request' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'schedule') &&
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu')) &&
       needs.focused-plan.outputs.linux_count != '0'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Owner-approved infrastructure allowance; commands, floors and audits stay unchanged.
+    timeout-minutes: ${{ matrix.lane == 'riscv_frontend_releasefast' && 90 || 30 }}
+    # Owner-directed performance diagnostics never determine PR acceptance.
+    continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.focused-plan.outputs.linux_matrix) }}
@@ -171,14 +188,338 @@ jobs:
             focused-v1-${{ runner.os }}-${{ matrix.lane }}-${{ hashFiles('build.zig.zon') }}-
             focused-v1-${{ runner.os }}-${{ matrix.lane }}-
 
+      - name: Install admitted CPU child-capture fixture
+        if: matrix.lane == 'riscv_cpu_integration'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          from scripts.riscv.riscv_recursive_product import ADMISSION, ADMISSION_SHA256, OTHER_ADMISSION, OTHER_ADMISSION_SHA256, sha256
+          if sha256(ADMISSION) != ADMISSION_SHA256:
+              raise RuntimeError("independent recursive admission drifted")
+          leaves = json.loads(ADMISSION.read_text())["leaves"]
+          leaf = leaves[0]
+          expected = (ADMISSION.parent / leaf["expected"]["path"]).resolve(strict=True)
+          if sha256(expected) != leaf["expected"]["sha256"]:
+              raise RuntimeError("independent expected statement drifted")
+          if sha256(OTHER_ADMISSION) != OTHER_ADMISSION_SHA256:
+              raise RuntimeError("independent negative admission drifted")
+          other_leaf = json.loads(OTHER_ADMISSION.read_text())["leaves"][0]
+          other_expected = (OTHER_ADMISSION.parent / other_leaf["expected"]["path"]).resolve(strict=True)
+          if sha256(other_expected) != other_leaf["expected"]["sha256"] or other_expected.read_bytes() == expected.read_bytes() or len(json.loads(other_expected.read_text())) != len(json.loads(expected.read_text())):
+              raise RuntimeError("independent negative statement drifted, duplicates the accepted statement or has different geometry")
+          archive = "51897dc265593df7580c4abf0b232909fc105e34"
+          source = "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-air-fusion/leaves/child-0"
+          fixture = Path(os.environ["RUNNER_TEMP"]) / "focused-ci/child-capture-fixture"
+          fixture.mkdir(parents=True, exist_ok=False)
+          files = {}
+          for name in ("key.json", "claims.json", "proof.bin"):
+              data = subprocess.check_output(["git", "show", archive + ":" + source + "/" + name])
+              (fixture / name).write_bytes(data)
+              files[name] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+          if files["key.json"]["sha256"] != leaf["key"]["sha256"]:
+              raise RuntimeError("archived fixture differs from the independent admitted key")
+          claims = json.loads((fixture / "claims.json").read_text())
+          if claims["proof_bytes"] != files["proof.bin"]["bytes"] or bytes(claims["proof_sha256"]).hex() != files["proof.bin"]["sha256"]:
+              raise RuntimeError("archived proof transport identity drifted")
+          if files["proof.bin"]["sha256"] != "8ef19db0aa78f425149522db8ae7861e96db753b71595f6da45d191b46c949ea":
+              raise RuntimeError("archived proof differs from the frozen CPU fixture")
+          receipt = {"source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "archive_commit": archive, "archive_directory": source, "admission_sha256": ADMISSION_SHA256, "expected_statement_sha256": leaf["expected"]["sha256"], "other_admission_sha256": OTHER_ADMISSION_SHA256, "other_expected_statement_sha256": other_leaf["expected"]["sha256"], "files": files, "scope": "archived CPU proof input; fresh capture verification is still required"}
+          (fixture.parent / "child-capture-fixture.json").write_text(json.dumps(receipt, indent=2) + "\n")
+          with open(os.environ["GITHUB_ENV"], "a") as env:
+              for key, value in {"STWO_SEGMENT_V2_CHILD_BUNDLE": fixture, "STWO_SEGMENT_V2_CHILD_KEY_SHA256": leaf["key"]["sha256"], "STWO_SEGMENT_V2_CHILD_EXPECTED_WIRE": expected, "STWO_SEGMENT_V2_CHILD_OTHER_EXPECTED_WIRE": other_expected}.items():
+                  env.write(f"{key}={value}\n")
+          PY
+
       - name: Run focused lane
         run: |
           mkdir -p "$RUNNER_TEMP/focused-ci"
-          python3 scripts/ci_scope_run.py \
+          python3 scripts/repo/ci_scope_run.py \
             --lane "${{ matrix.lane }}" \
             --cache-mode warm \
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/${{ matrix.lane }}" \
             --output "$RUNNER_TEMP/focused-ci/${{ matrix.lane }}.json"
+
+      - name: Compare fresh Native CPU proof with the frozen golden
+        if: matrix.lane == 'native_cpu'
+        shell: bash
+        run: |
+          python3 - <<'PYCPU'
+          import hashlib, json, os, subprocess
+          from argparse import Namespace
+          from pathlib import Path
+          from scripts.cuda.cuda_proof_parity_gate import challenge_from_args, validate_artifact
+          root = Path.cwd()
+          binary = root / "zig-out/bin/stwo-zig-native-cpu"
+          reference = root / "conformance/evidence/cuda/native-bringup-sm89/product-parity-receipt.json"
+          assert hashlib.sha256(reference.read_bytes()).hexdigest() == "c538bf7b017aee5b2edb3999b8608e36cf06e50aae228642a6ab7652bd5e70c2", "frozen CPU reference bytes drifted"
+          historical_cpu = json.loads(reference.read_text())["proofs"]["cpu"]
+          assert historical_cpu["proof_bytes"] == 8390 and historical_cpu["proof_sha256"] == "452fb396032380b7c031fc95f0b7c00d0a3c6e05622321f84f06cb3a801e3b2c", "frozen CPU reference drifted"
+          challenge = challenge_from_args(Namespace(air="wide_fibonacci", log_n_rows=5, sequence_len=8, log_n_instances=None, initial_x=None, initial_y=None))
+          out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci/native-cpu-frozen"
+          out.mkdir(parents=True)
+          artifact = out / "fresh-proof.json"
+          commands = [
+              [str(binary), "prove", "--example", "wide_fibonacci", "--log-n-rows", "5", "--sequence-len", "8", "--protocol", "functional", "--output", str(artifact)],
+              [str(binary), "verify", "--artifact", str(artifact), "--protocol", "functional"],
+          ]
+          with (out / "prove.stdout").open("wb") as stdout, (out / "prove.stderr").open("wb") as stderr:
+              subprocess.run(commands[0], check=True, timeout=60, stdout=stdout, stderr=stderr)
+          actual = validate_artifact(artifact, challenge)
+          assert actual["proof_bytes"] == historical_cpu["proof_bytes"] and actual["proof_sha256"] == historical_cpu["proof_sha256"], "fresh Native CPU proof differs from the frozen golden"
+          with (out / "verify.stdout").open("wb") as stdout, (out / "verify.stderr").open("wb") as stderr:
+              subprocess.run(commands[1], check=True, timeout=60, stdout=stdout, stderr=stderr)
+          receipt = {"status": "PASS", "scope": "fresh ReleaseFast Native CPU proof bytes and independent-process verification; no GPU or timing qualification", "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "reference": str(reference.relative_to(root)), "reference_sha256": hashlib.sha256(reference.read_bytes()).hexdigest(), "proof_bytes": actual["proof_bytes"], "proof_sha256": actual["proof_sha256"], "byte_identical": True, "command_timeout_seconds": 60, "commands": commands}
+          (out / "native-cpu-frozen-parity.json").write_text(json.dumps(receipt, indent=2) + "\n")
+          PYCPU
+
+      - name: Compare frozen FRI arithmetic against exact main and current sources
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu' && inputs.cpu_lane == 'core'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, io, json, os, platform, re, shutil, subprocess, tarfile, urllib.request
+          from pathlib import Path
+          from scripts.repo.zig_serial_build import build_lock
+          out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci/cm31-main-comparison"
+          out.mkdir(parents=True, exist_ok=True)
+          main = "4e260db9605d16fef5d405cc3c280e3042b22e35"
+          rejected = "27131545f9a768e7f81a439e50f2f91863f26788"
+          current = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          roots = {}
+          for name, commit, path in (("main", main, "src/core"), ("current", current, "src/waist/core"), ("rejected-schoolbook", rejected, "src/waist/core")):
+              archive = subprocess.check_output(["git", "archive", commit, path])
+              with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+                  tar.extractall(out / name, filter="data")
+              roots[name] = out / name / path
+          roots["current-inline"] = out / "current-inline"
+          shutil.copytree(roots["current"], roots["current-inline"])
+          cm31 = roots["current-inline"] / "fields/cm31.zig"
+          original = cm31.read_text()
+          normalized = original.replace("    // Keep the three-product expression behind a call boundary in nested callers.\n", "").replace("pub noinline fn mul(lhs: CM31", "pub inline fn mul(lhs: CM31")
+          assert normalized != original and normalized == (roots["main"] / "fields/cm31.zig").read_text()
+          cm31.write_text(normalized)
+          roots["current-inline-checked"] = out / "current-inline-checked"
+          shutil.copytree(roots["current-inline"], roots["current-inline-checked"])
+          for filename in ("m31.zig", "cm31.zig", "qm31.zig"):
+              checked = roots["current-inline-checked"] / "fields" / filename
+              text = re.sub(r"(?m)(^[ \t]*(?:pub[ \t]+)?(?:(?:inline|noinline)[ \t]+)?fn[ \t]+\w+\([\s\S]*?\{)", lambda match: match[0] + "\n        @setRuntimeSafety(true);", checked.read_text())
+              text = text.replace("std.debug.assert(", "cm31DiagnosisAssert(")
+              text += '\nfn cm31DiagnosisAssert(ok: bool) void { if (!ok) @panic("checked field invariant failed"); }\n'
+              if filename == "m31.zig":
+                  for operation in ("add", "sub", "mul"):
+                      marker = "pub inline fn " + operation + "(a: M31, b: M31) M31 {\n        @setRuntimeSafety(true);"
+                      assert text.count(marker) == 1
+                      text = text.replace(marker, marker + '\n        if (a.v >= Modulus or b.v >= Modulus) @panic("noncanonical checked arithmetic input");')
+              checked.write_text(text)
+          for field in ("m31.zig", "qm31.zig"):
+              assert (roots["main"] / "fields" / field).read_bytes() == (roots["current"] / "fields" / field).read_bytes()
+          probe = out / "pinned-fri-probe.zig"
+          probe.write_bytes((roots["rejected-schoolbook"] / "fields/tests/qm31_integer.zig").read_bytes())
+          assert hashlib.sha256(probe.read_bytes()).hexdigest() == "a062a47ce8ad8a262489c602d611d414f0cddfe960ceadb44d50d2ba8ad10571"
+          records = []
+          cases = [(name, root, mode, "qm31 integer:") for name, root in roots.items() for mode in ("Debug", "ReleaseSafe", "ReleaseFast")]
+          cases += [(name + "-fold-only", roots[name], "ReleaseFast", "qm31 integer: first circle fold without stage instrumentation") for name in ("main", "current-inline", "rejected-schoolbook")]
+          for name, root, mode, selected in cases:
+                  label = name + "-" + mode
+                  binary, ir = out / label, out / (label + ".ll")
+                  argv = ["zig", "test", "-O" + mode, "--test-filter", selected, "--dep", "stwo_core", "-Mroot=" + str(probe), "-O" + mode, "-Mstwo_core=" + str(root / "mod.zig"), "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
+                  if name == "main" and mode == "ReleaseFast":
+                      argv.append("--verbose-llvm-ir=" + str(out / "main-ReleaseFast-unoptimized.ll"))
+                  with build_lock(label="cm31-source-pinned-diagnosis"):
+                      result = subprocess.run(argv, capture_output=True, timeout=120)
+                  for stream in ("stdout", "stderr"):
+                      (out / (label + "." + stream)).write_bytes(getattr(result, stream))
+                  records.append({"variant": name, "mode": mode, "argv": argv, "exit": result.returncode, "field_source_sha256": {field: hashlib.sha256((root / "fields" / field).read_bytes()).hexdigest() for field in ("m31.zig", "cm31.zig", "qm31.zig")}, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
+          cpuinfo = Path("/proc/cpuinfo").read_text()
+          (out / "cpuinfo.txt").write_text(cpuinfo)
+          (out / "lscpu.txt").write_text(subprocess.check_output(["lscpu"], text=True))
+          for target in ("x86_64_v3", "x86_64_v4", "znver4"):
+              supported = "avx2" in cpuinfo if target.endswith("v3") else all(flag in cpuinfo for flag in ("avx512f", "avx512bw", "avx512dq", "avx512vl", "avx512cd"))
+              if not supported:
+                  records.append({"variant": "main-explicit-" + target, "exit": 0, "status": "UNRUN_HOST_ISA_UNAVAILABLE"})
+                  continue
+              for mode in ("Debug", "ReleaseSafe", "ReleaseFast"):
+                  label = "main-explicit-" + target + "-" + mode
+                  binary, ir = out / label, out / (label + ".ll")
+                  argv = ["zig", "test", "-O" + mode, "-mcpu=" + target, "--test-filter", "qm31 integer:", "--dep", "stwo_core", "-Mroot=" + str(probe), "-O" + mode, "-mcpu=" + target, "-Mstwo_core=" + str(roots["main"] / "mod.zig"), "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
+                  with build_lock(label="cm31-source-pinned-diagnosis"):
+                      result = subprocess.run(argv, capture_output=True, timeout=120)
+                  for stream in ("stdout", "stderr"):
+                      (out / (label + "." + stream)).write_bytes(getattr(result, stream))
+                  records.append({"variant": "main-explicit-" + target, "mode": mode, "argv": argv, "exit": result.returncode, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
+          archive_oid = "39a6fa782eef1f842a5823b9f0bae35aae539f08add8090f79ab6f3169597bc7"
+          archive_size = 11344996
+          batch = {"operation": "download", "transfers": ["basic"], "objects": [{"oid": archive_oid, "size": archive_size}]}
+          auth = base64.b64encode(("x-access-token:" + os.environ["GH_TOKEN"]).encode()).decode()
+          request = urllib.request.Request("https://github.com/teddyjfpender/stwo-zig.git/info/lfs/objects/batch", json.dumps(batch).encode(), {"Accept": "application/vnd.git-lfs+json", "Content-Type": "application/vnd.git-lfs+json", "Authorization": "Basic " + auth}, method="POST")
+          with urllib.request.urlopen(request, timeout=60) as response:
+              item, = json.load(response)["objects"]
+          assert item["oid"] == archive_oid and item["size"] == archive_size and "error" not in item
+          action = item["actions"]["download"]
+          assert action["href"].startswith("https://")
+          with urllib.request.urlopen(urllib.request.Request(action["href"], headers=action.get("header", {})), timeout=60) as response:
+              archive = response.read(archive_size + 1)
+          assert len(archive) == archive_size and hashlib.sha256(archive).hexdigest() == archive_oid
+          isolated = out / "isolated-minimal"
+          isolated.mkdir()
+          minimal = isolated / "minimal.zig"
+          with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+              member, = [member for member in tar if member.name.endswith("/stwo-cm31-minimal/minimal.zig")]
+              assert member.isfile()
+              minimal.write_bytes(tar.extractfile(member).read())
+          minimal_hash = hashlib.sha256(minimal.read_bytes()).hexdigest()
+          assert minimal_hash == "615f72e52f9d93a1c803a95165a258203ace7cefd984003654aa84be4377dde2"
+          for target in ("x86_64_v3", "x86_64_v4", "znver4"):
+              supported = "avx2" in cpuinfo if target.endswith("v3") else all(flag in cpuinfo for flag in ("avx512f", "avx512bw", "avx512dq", "avx512vl", "avx512cd"))
+              if not supported:
+                  records.append({"variant": "isolated-minimal-" + target, "exit": 0, "status": "UNRUN_HOST_ISA_UNAVAILABLE"})
+                  continue
+              for mode in ("Debug", "ReleaseSafe", "ReleaseFast"):
+                  label = "isolated-minimal-" + target + "-" + mode
+                  binary, ir = isolated / label, isolated / (label + ".ll")
+                  argv = ["zig", "test", str(minimal), "-O" + mode, "-mcpu=" + target, "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
+                  with build_lock(label="cm31-source-pinned-diagnosis"):
+                      result = subprocess.run(argv, capture_output=True, timeout=120)
+                  for stream in ("stdout", "stderr"):
+                      (isolated / (label + "." + stream)).write_bytes(getattr(result, stream))
+                  records.append({"variant": "isolated-minimal-" + target, "mode": mode, "argv": argv, "exit": result.returncode, "source_sha256": minimal_hash, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
+          report = {"scope": "source-pinned arithmetic diagnosis; no timing or full-proof qualification", "main_commit": main, "current_commit": current, "rejected_schoolbook_commit": rejected, "zig_version": subprocess.check_output(["zig", "version"], text=True).strip(), "host": platform.platform(), "probe_sha256": hashlib.sha256(probe.read_bytes()).hexdigest(), "runs": records}
+          (out / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
+          print(json.dumps(report, indent=2))
+          raise SystemExit(any(record["exit"] != 0 for record in records))
+          PY
+
+      - name: Retain fresh CPU verification of rejected full-width reports
+        if: failure() && matrix.lane == 'riscv_cpu'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          from scripts.riscv.riscv_pr_proof_smoke import WORKLOADS, COMMAND_TIMEOUT_SECONDS, sha256_file, sha256_bytes, strict_json_file, strict_json_bytes, require_sha256
+          out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci"
+          cli = Path("zig-out/bin/stwo-zig-riscv-cpu").resolve()
+          records = []
+          for workload in WORKLOADS:
+              report_path = out / "riscv-pr-proof-smoke" / f"{workload.name}.prove.json"
+              if not report_path.is_file():
+                  continue
+              report = strict_json_file(report_path, "rejected producer report")
+              if report.get("schema") != "riscv_full_width_execution_v2":
+                  continue
+              artifact = report_path.with_name(f"{workload.name}.proof.json")
+              elf, inp = Path(workload.elf), Path(workload.input_path) if workload.input_path else None
+              input_hash = sha256_file(inp) if inp else sha256_bytes(b"")
+              expected = require_sha256(report.get("statement_blake3"), "candidate statement")
+              bindings = {"implementation_commit": os.environ["GITHUB_SHA"], "implementation_dirty": False, "executable_sha256": sha256_file(cli), "elf_sha256": sha256_file(elf), "input_sha256": input_hash, "proof_sha256": sha256_file(artifact), "proof_bytes": artifact.stat().st_size, "total_steps": workload.expected_steps}
+              assert all(report.get(key) == value for key, value in bindings.items()), "candidate source/artifact binding drift"
+              argv = [str(cli), "verify", "--artifact", str(artifact), "--elf", str(elf), "--protocol", "functional", "--expect-statement-digest", expected]
+              if inp:
+                  argv += ["--input", str(inp)]
+              result = subprocess.run(argv, capture_output=True, timeout=COMMAND_TIMEOUT_SECONDS)
+              (out / f"{workload.name}.fresh-verify.stdout").write_bytes(result.stdout)
+              (out / f"{workload.name}.fresh-verify.stderr").write_bytes(result.stderr)
+              assert result.returncode == 0, "candidate fresh CPU verification failed"
+              receipt = strict_json_bytes(result.stdout, "candidate fresh verifier receipt")
+              identity = {"schema": "riscv_full_width_verify_v1", "status": "verified", "artifact_magic": "B3RVART1", "proof_suite": "blake3", "execution_profile": "rv32im_zkvm_v1", "release_status": "experimental_full_width", "security_policy": "functional", "statement_blake3": expected, "transcript_digest_blake3": report["transcript_digest_blake3"]}
+              assert all(receipt.get(key) == value for key, value in {**bindings, **identity}.items()), "candidate verifier binding drift"
+              wrong = ("0" if expected[0] != "0" else "1") + expected[1:]
+              rejected_argv = list(argv)
+              rejected_argv[rejected_argv.index("--expect-statement-digest") + 1] = wrong
+              rejected = subprocess.run(rejected_argv, capture_output=True, timeout=COMMAND_TIMEOUT_SECONDS)
+              (out / f"{workload.name}.wrong-statement.stdout").write_bytes(rejected.stdout)
+              (out / f"{workload.name}.wrong-statement.stderr").write_bytes(rejected.stderr)
+              assert rejected.returncode != 0 and b"UntrustedExecutionManifest" in rejected.stderr, "wrong statement did not retain its expected rejection"
+              records.append({"workload": workload.name, "scope": "DIAGNOSTIC_ONLY_ORIGINAL_SMOKE_REJECTION_PRESERVED", "bindings": bindings, "fresh_verifier": receipt, "wrong_statement_exit": rejected.returncode, "wrong_statement_stderr_sha256": sha256_bytes(rejected.stderr)})
+          (out / "rejected-report-fresh-cpu-verification.json").write_text(json.dumps(records, indent=2) + "\n")
+          PY
+
+      - name: Retain RV64 worker frame evidence
+        if: always() && matrix.lane == 'riscv_cpu'
+        shell: bash
+        run: |
+          if ! command -v gdb >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends gdb
+          fi
+          python3 - <<'PY'
+          import hashlib, json, os, re, shutil, subprocess
+          from pathlib import Path
+          from scripts.repo.zig_serial_build import build_lock
+          out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci"
+          cache = Path(os.environ["RUNNER_TOOL_CACHE"]) / "stwo-zig/focused/riscv_cpu"
+          binaries = set()
+          for log in (*out.glob("riscv_cpu-*.stderr"), *out.glob("riscv_cpu-*.stdout")):
+              for raw in re.findall(rb"(?m)^(/[^\r\n]+/test) --cache-dir", log.read_bytes()):
+                  binary = Path(os.fsdecode(raw)).resolve(strict=True)
+                  if binary.is_relative_to(cache.resolve()):
+                      binaries.add(binary)
+          records = []
+          for binary in sorted(binaries):
+              symbols = subprocess.run(["nm", "-S", "--defined-only", str(binary)], check=True, capture_output=True, text=True).stdout
+              frames = []
+              for line in symbols.splitlines():
+                  parts = line.split(maxsplit=3)
+                  if len(parts) != 4 or not any(token in parts[3] for token in ("parallel.Job.", "packed_rows.", "full.component.ComponentFor(", "evaluation.PackedSink.emitImpl", "state_cyclic.", "state_cyclic_denominators.")):
+                      continue
+                  address, size, _, name = parts
+                  start = int(address, 16)
+                  stop = start + min(int(size, 16), 512)
+                  argv = ["objdump", "-d", "--demangle", f"--start-address={start}", f"--stop-address={stop}", str(binary)]
+                  assembly = subprocess.run(argv, check=True, capture_output=True).stdout
+                  path = out / f"worker-frame-{binary.parent.name}-{len(frames)}.txt"
+                  path.write_bytes(assembly)
+                  frames.append({"symbol": name, "address": address, "size": size, "assembly": path.name, "assembly_sha256": hashlib.sha256(assembly).hexdigest()})
+              debugger = shutil.which("gdb")
+              diagnosis = {"status": "UNRUN", "reason": "gdb unavailable"}
+              if debugger:
+                  argv = [debugger, "--batch", "-ex", "set pagination off", "-ex", "set print frame-arguments none", "-ex", "run", "-ex", "thread apply all bt 12", "-ex", "info registers rsp rbp rip", "-ex", "x/12i $pc-16", "--args", str(binary)]
+                  with build_lock(label="rv64-failed-worker-diagnosis"):
+                      try:
+                          result = subprocess.run(argv, cwd=Path.cwd(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180)
+                          transcript = result.stdout
+                          diagnosis = {"status": "RECORDED", "debugger_exit_code": result.returncode}
+                      except subprocess.TimeoutExpired as exc:
+                          transcript = exc.stdout or b""
+                          diagnosis = {"status": "TIMEOUT", "timeout_seconds": 180}
+                  path = out / f"worker-debugger-{binary.parent.name}.txt"
+                  path.write_bytes(transcript)
+                  diagnosis.update(argv=argv, transcript=path.name, transcript_sha256=hashlib.sha256(transcript).hexdigest())
+                  diagnosis.update(debugger=debugger, debugger_sha256=hashlib.sha256(Path(debugger).read_bytes()).hexdigest(), debugger_version=subprocess.check_output([debugger, "--version"], text=True).splitlines()[0])
+              records.append({"binary": str(binary.relative_to(cache)), "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "frames": frames, "debugger_diagnosis": diagnosis})
+          (out / "rv64-worker-frames.json").write_text(json.dumps(records, indent=2) + "\n")
+          PY
+
+      - name: Retain frontend acceptance binary and assembly
+        if: always() && matrix.lane == 'riscv_frontend_acceptance'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, re, shutil, subprocess
+          from pathlib import Path
+          out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci"
+          cache = (Path(os.environ["RUNNER_TOOL_CACHE"]) / "stwo-zig/focused/riscv_frontend_acceptance").resolve()
+          binaries = set()
+          for log in out.glob("riscv_frontend_acceptance-*.stderr"):
+              for raw in re.findall(rb"(?m)^(/[^\r\n]+/test) --cache-dir", log.read_bytes()):
+                  binary = Path(os.fsdecode(raw)).resolve(strict=True)
+                  if not binary.is_relative_to(cache):
+                      raise RuntimeError("frontend diagnostic binary escapes its compiler cache")
+                  binaries.add(binary)
+          records = []
+          for binary in sorted(binaries):
+              saved = out / ("frontend-test-" + binary.parent.name)
+              shutil.copyfile(binary, saved)
+              assembly = saved.with_suffix(".asm")
+              with assembly.open("wb") as stream:
+                  subprocess.run(["objdump", "-d", "--demangle", str(binary)], check=True, timeout=60, stdout=stream)
+              records.append({"binary": saved.name, "binary_sha256": hashlib.sha256(saved.read_bytes()).hexdigest(), "assembly": assembly.name, "assembly_sha256": hashlib.sha256(assembly.read_bytes()).hexdigest()})
+          (out / "frontend-binaries.json").write_text(json.dumps({"source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "binaries": records, "scope": "diagnostic assembly only; complete frontend suite remains mandatory"}, indent=2) + "\n")
+          PY
 
       - name: Retain lane timing receipt
         if: always()
@@ -186,6 +527,54 @@ jobs:
         with:
           name: focused-ci-linux-${{ matrix.lane }}-${{ github.sha }}
           path: ${{ runner.temp }}/focused-ci/
+          if-no-files-found: error
+          retention-days: 30
+
+  frontend-main-baseline:
+    name: Main frontend ReleaseFast baseline
+    if: github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu' && inputs.cpu_lane == 'main_releasefast_baseline'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    continue-on-error: true
+    steps:
+      - name: Checkout exact main baseline
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          ref: 4e260db9605d16fef5d405cc3c280e3042b22e35
+          fetch-depth: 0
+      - name: Setup Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.15.2
+          use-cache: false
+      - name: Run identical full frontend ReleaseFast command
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, shutil, subprocess, time
+          from pathlib import Path
+          source = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          assert source == "4e260db9605d16fef5d405cc3c280e3042b22e35"
+          out = Path(os.environ["RUNNER_TEMP"]) / "main-frontend-releasefast"
+          out.mkdir(parents=True, exist_ok=True)
+          argv = ["zig", "build", "test", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=ReleaseFast", "-j2", "--verbose", "--summary", "all"]
+          receipt = {"status": "STARTED", "source_commit": source, "argv": argv, "zig_sha256": hashlib.sha256(Path(shutil.which("zig")).read_bytes()).hexdigest(), "scope": "identical main baseline; absent tests are not passing evidence"}
+          path = out / "receipt.json"
+          path.write_text(json.dumps(receipt, indent=2) + "\n")
+          started = time.monotonic()
+          with (out / "stdout").open("wb") as stdout, (out / "stderr").open("wb") as stderr:
+              result = subprocess.run(argv, stdout=stdout, stderr=stderr, check=False)
+          receipt.update(status="PASS" if result.returncode == 0 else "FAIL", exit_code=result.returncode, duration_seconds=time.monotonic() - started)
+          path.write_text(json.dumps(receipt, indent=2) + "\n")
+          print(json.dumps(receipt), flush=True)
+          raise SystemExit(result.returncode)
+          PY
+      - name: Retain exact main baseline
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: main-frontend-releasefast-4e260db96
+          path: ${{ runner.temp }}/main-frontend-releasefast/
           if-no-files-found: error
           retention-days: 30
 
@@ -238,7 +627,7 @@ jobs:
       - name: Run focused lane
         run: |
           mkdir -p "$RUNNER_TEMP/focused-ci"
-          python3 scripts/ci_scope_run.py \
+          python3 scripts/repo/ci_scope_run.py \
             --lane "${{ matrix.lane }}" \
             --cache-mode warm \
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/${{ matrix.lane }}" \
@@ -306,7 +695,7 @@ jobs:
       - name: Run fail-closed Native CUDA product and oracle lane
         run: |
           mkdir -p "$RUNNER_TEMP/focused-ci"
-          python3 scripts/ci_scope_run.py \
+          python3 scripts/repo/ci_scope_run.py \
             --lane native_cuda_device \
             --cache-mode warm \
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/native_cuda_device" \
@@ -465,7 +854,7 @@ jobs:
       - name: Capture reproducible Full-Xcode AOT build receipt
         run: |
           zig build metal-core-aot -Doptimize=ReleaseSafe
-          python3 scripts/metal_core_aot_receipt.py build \
+          python3 scripts/metal/metal_core_aot_receipt.py build \
             --builder zig-out/bin/metal-core-aot \
             --output-dir "$RUNNER_TEMP/native-metal-core-aot-acceptance" \
             --receipt-out "$RUNNER_TEMP/native-metal-core-aot-acceptance/receipt.json" \
@@ -501,7 +890,7 @@ jobs:
           persist-credentials: false
       - name: Emit explicit non-authoritative status
         run: >-
-          python3 scripts/architecture_candidate_diagnostic.py
+          python3 scripts/architecture/architecture_candidate_diagnostic.py
           --output "$RUNNER_TEMP/architecture-candidate-diagnostic.json"
       - name: Retain candidate diagnostic
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
@@ -510,3 +899,127 @@ jobs:
           path: ${{ runner.temp }}/architecture-candidate-diagnostic.json
           if-no-files-found: error
           retention-days: 7
+
+  circuit-oracle-regeneration:
+    name: Pinned CPU artifact regeneration
+    if: github.event_name == 'workflow_dispatch' && (inputs.gate == 'regenerate-circuit-vectors' || inputs.gate == 'regenerate-recursion-shapes')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      CARGO_BUILD_JOBS: "1"
+    steps:
+      - name: Checkout the requested immutable source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          fetch-depth: 0
+
+      - name: Setup pinned Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.13"
+
+      - name: Install the oracle's pinned Rust toolchain
+        if: inputs.gate == 'regenerate-circuit-vectors'
+        run: rustup toolchain install nightly-2026-01-15 --profile minimal
+
+      - name: Setup pinned Zig for shape inspection
+        if: inputs.gate == 'regenerate-recursion-shapes'
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.15.2
+
+      - name: Run the existing authenticated circuit generator
+        if: inputs.gate == 'regenerate-circuit-vectors'
+        shell: bash
+        run: |
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/circuit-oracle-target"
+          OUT="$RUNNER_TEMP/circuit-oracle-regeneration"
+          mkdir -p "$OUT"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git rev-parse HEAD > "$OUT/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/source-tree.txt"
+          cargo +nightly-2026-01-15 --version > "$OUT/cargo-version.txt"
+          rustc +nightly-2026-01-15 -Vv > "$OUT/rustc-version.txt"
+          cat /proc/meminfo > "$OUT/host-memory.txt"
+          python3 - <<'PYMEM'
+          import os
+          from pathlib import Path
+          size = os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
+          cgroup = Path("/sys/fs/cgroup/memory.max")
+          if cgroup.is_file() and cgroup.read_text().strip().isdigit():
+              size = min(size, int(cgroup.read_text().strip()))
+          if size < 32 * (1 << 30):
+              raise SystemExit("circuit regeneration requires a hosted CPU allocation of at least 32 GiB")
+          PYMEM
+          set +e
+          /usr/bin/time -v python3 scripts/interop/generate_circuit_oracle_vectors.py 2>&1 | tee "$OUT/generation.log"
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$STATUS" > "$OUT/generator-exit.txt"
+          printf '%s\n' "Candidate reproduction only. Default generation retains committed verifier verdicts; no fresh Zig-to-Rust negative corpus is claimed." > "$OUT/qualification-scope.txt"
+          git diff --exit-code -- src tools scripts .github conformance
+          git add -N -- vectors/circuit
+          git diff --binary -- vectors/circuit > "$OUT/generated-vectors.patch"
+          git status --porcelain=v1 > "$OUT/worktree-status.txt"
+          if test -f "$CARGO_TARGET_DIR/release/stwo-circuit-oracle"; then
+            cp "$CARGO_TARGET_DIR/release/stwo-circuit-oracle" "$OUT/stwo-circuit-oracle"
+            sha256sum "$OUT/stwo-circuit-oracle" > "$OUT/oracle-binary.sha256"
+          fi
+          if test -f vectors/circuit/provenance.json; then
+            cp vectors/circuit/provenance.json "$OUT/candidate-provenance.json"
+          fi
+          exit "$STATUS"
+
+      - name: Reproduce the canonical proof-independent shape audit
+        if: inputs.gate == 'regenerate-recursion-shapes'
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/recursion-shape-audit-regeneration"
+          mkdir -p "$OUT"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          git rev-parse HEAD > "$OUT/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/source-tree.txt"
+          zig version > "$OUT/zig-version.txt"
+          /usr/bin/time -v python3 scripts/repo/zig_serial_build.py -j2 riscv-recursion-shape-inspector -Doptimize=ReleaseFast > "$OUT/build.log" 2>&1
+          sha256sum zig-out/bin/stwo-zig-riscv-recursion-shape-inspector > "$OUT/inspector-binary.sha256"
+          cp zig-out/bin/stwo-zig-riscv-recursion-shape-inspector "$OUT/"
+          python3 - "$OUT" <<'PYSHAPES'
+          from pathlib import Path
+          import subprocess, sys
+          from scripts.riscv.riscv_csp_benchmark_lib.contract import validate_manifest
+          root, output = Path.cwd(), Path(sys.argv[1])
+          _, cases, _ = validate_manifest((root / "vectors/riscv_csp/manifest-v2.json").resolve())
+          failed = []
+          for ordinal, case in enumerate(cases):
+              prefix = output / f"probe-{ordinal:03d}"
+              command = ["zig-out/bin/stwo-zig-riscv-recursion-shape-inspector",
+                         "--elf", case.guest_path.relative_to(root).as_posix(),
+                         "--input", case.input_path.relative_to(root).as_posix(),
+                         "--report-out", str(prefix.with_suffix(".json"))]
+              with prefix.with_suffix(".stdout").open("xb") as stdout, prefix.with_suffix(".stderr").open("xb") as stderr:
+                  result = subprocess.run(command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, timeout=120)
+              if result.returncode:
+                  failed.append(f"{case.target}/{case.input_size}: {result.returncode}")
+          if failed:
+              raise SystemExit("canonical shape probes rejected: " + "; ".join(failed))
+          PYSHAPES
+          /usr/bin/time -v python3 scripts/riscv/riscv_recursion_csp_benchmark.py audit-shapes \
+            --inspector zig-out/bin/stwo-zig-riscv-recursion-shape-inspector \
+            --output "$OUT/recursion-shape-audit-v2.json" > "$OUT/audit.log" 2>&1
+          python3 scripts/riscv/riscv_recursion_csp_benchmark.py validate-shapes \
+            --audit "$OUT/recursion-shape-audit-v2.json" > "$OUT/validation.log" 2>&1
+          git diff --exit-code
+          git status --porcelain=v1 --untracked-files=all > "$OUT/worktree-status.txt"
+          test ! -s "$OUT/worktree-status.txt"
+          printf '%s\n' 'Proof-independent shape inspection only; no proof or timing qualification.' > "$OUT/qualification-scope.txt"
+
+      - name: Preserve raw generation results even after rejection
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ inputs.gate == 'regenerate-circuit-vectors' && 'circuit-oracle-regeneration' || 'recursion-shape-audit-regeneration' }}-${{ github.sha }}
+          path: ${{ runner.temp }}/${{ inputs.gate == 'regenerate-circuit-vectors' && 'circuit-oracle-regeneration' || 'recursion-shape-audit-regeneration' }}
+          if-no-files-found: error
+          retention-days: 30

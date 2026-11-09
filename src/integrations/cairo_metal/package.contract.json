@@ -8,12 +8,12 @@
     "stwo_cairo_metal_integration": "mod.zig"
   },
   "dependencies": {
-    "stwo_backend_contracts": "../../backend",
+    "stwo_backend_contracts": "../../waist/backend",
     "stwo_cairo_frontend": "../../frontends/cairo",
-    "stwo_core": "../../core",
+    "stwo_core": "../../waist/core",
     "stwo_metal_backend": "../../backends/metal",
-    "stwo_metal_session": "../../tools/metal_session",
-    "stwo_prover_engine": "../../prover"
+    "stwo_metal_session": "../../backends/metal/session",
+    "stwo_prover_engine": "../../engine/prover"
   },
   "injected_modules": [],
   "api_surface": [
@@ -59,5 +59,8 @@
       "-Doptimize=ReleaseSafe",
       "-j2"
     ]
-  }
+  },
+  "consumer_subdirs": [
+    "bench"
+  ]
 }

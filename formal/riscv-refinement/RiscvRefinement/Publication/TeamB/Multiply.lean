@@ -959,7 +959,7 @@ theorem mul_programIdentity :
       Programs.mul.source.opcodeSelector.manifestId = 37 ∧
       Programs.mul.source.opcodeSelector.mnemonic = "mul" ∧
       Programs.mul.source.contentDigest =
-        "b4b5c89065934e24f8b030e142190f3ac1436fa1a985d860dbfc874a1d103ce6" ∧
+        "209cbb505b4d93b8b3650644f1aa9dd373696dda09a52d2ac969a24adee1dce3" ∧
       Programs.mul.source.columns.size = 39 ∧
       Programs.mul.source.nodes.size = 120 ∧
       Programs.mul.source.events.size = 33 := by
@@ -988,7 +988,7 @@ structure SelectorAdmission : Prop where
         mnemonic := "mul"
         family := .mul
         contentDigest :=
-          "b4b5c89065934e24f8b030e142190f3ac1436fa1a985d860dbfc874a1d103ce6"
+          "209cbb505b4d93b8b3650644f1aa9dd373696dda09a52d2ac969a24adee1dce3"
       }
 
 theorem mul_selectorAdmission : SelectorAdmission := by

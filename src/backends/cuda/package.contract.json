@@ -8,7 +8,7 @@
     "stwo_cuda_backend": "mod.zig"
   },
   "dependencies": {
-    "stwo_backend_contracts": "../../backend"
+    "stwo_backend_contracts": "../../waist/backend"
   },
   "injected_modules": [],
   "api_surface": [
@@ -41,5 +41,8 @@
       "-Doptimize=ReleaseFast",
       "-j2"
     ]
-  }
+  },
+  "consumer_subdirs": [
+    "tests"
+  ]
 }

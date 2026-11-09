@@ -3,7 +3,7 @@ import struct
 import tempfile
 import unittest
 from pathlib import Path
-from scripts.riscv64_csp_compare import ROOT, elf_info
+from scripts.rv64.riscv64_csp_compare import ROOT, elf_info
 
 
 class ElfBoundaryTests(unittest.TestCase):

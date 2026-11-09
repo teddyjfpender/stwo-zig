@@ -13,7 +13,6 @@ test {
     _ = @import("air/guest_precompile/tests/secp256k1_recovery_direct_test.zig");
     _ = @import("air/guest_precompile/tests/secp256k1_recovery_caller_test.zig");
     _ = @import("air/guest_precompile/tests/secp256k1_component_test.zig");
-    _ = @import("air/guest_precompile/tests/secp256k1_adaptive_profile_test.zig");
     _ = @import("air/guest_precompile/tests/ethereum_statement_test.zig");
     _ = @import("air/guest_precompile/ethereum_lookup_registration.zig");
     _ = @import("prover/guest_precompile/ethereum_witness.zig");

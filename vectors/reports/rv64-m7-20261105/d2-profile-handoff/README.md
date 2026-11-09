@@ -1,3 +1,0 @@
-Native CPU/truth composition previously committed at Context default beta1 regardless of the selected PCS config. Additive per-invocation callbacks carry the source-owned worker scheme beta; legacy callbacks fail closed for beta!=1. The AIR role evaluation domain remains maxConstraintLogDegreeBound. Only final composition coefficients are extended for commitment at the selected beta. Beta2 uses bounded compact LDE and independently retired commitment scratch.
-
-CPU gate7/7 PASS, including actual P20/q54/fold4 two-CPU proof/fresh authority/wire reload/three mutants and CPU/truth beta adapter cases. This does not qualify the GPU composition change; matched production build/fresh receiver remains pending.

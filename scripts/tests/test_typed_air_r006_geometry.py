@@ -7,8 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from scripts.typed_air_r006_capture_lib.codec import content_digest
-from scripts.typed_air_r006_capture_lib.contract import (
+from scripts.typed_air.typed_air_r006_capture_lib.codec import content_digest
+from scripts.typed_air.typed_air_r006_capture_lib.contract import (
     PlanSettings,
     WorkloadPaths,
     _validate_generated_input,
@@ -16,12 +16,12 @@ from scripts.typed_air_r006_capture_lib.contract import (
     materialized_poseidon_input,
     validate_plan,
 )
-from scripts.typed_air_r006_capture_lib.model import (
+from scripts.typed_air.typed_air_r006_capture_lib.model import (
     GENERATED_INPUT_GEOMETRY_SCHEMA,
     GENERATED_WORKLOAD_PARAMETERS,
     CaptureError,
 )
-from scripts.typed_air_r006_capture_lib.workload_profile import is_guest_workload
+from scripts.typed_air.typed_air_r006_capture_lib.workload_profile import is_guest_workload
 from scripts.tests.test_typed_air_r006_capture import R006Fixture
 
 
@@ -144,7 +144,7 @@ class GeneratedGeometryTests(R006Fixture):
         output = self.scratch / "materialized"
         command = (
             sys.executable,
-            str(self.repository / "scripts/typed_air_r006_capture.py"),
+            str(self.repository / "scripts/typed_air/typed_air_r006_capture.py"),
             "--repository",
             str(self.repository),
             "materialize-inputs",

@@ -117,7 +117,7 @@ pub const SemanticComponent = struct {
         allocator: std.mem.Allocator,
     ) anyerror!@import("stwo_prover_engine").air.composition_work.ComponentProfile {
         const self: *const SemanticComponent = @ptrCast(@alignCast(ctx));
-        var program = if (self.mask_binding.local_zero) try local_zero.directProgram(allocator, self.family) else try runtime_program.build(allocator, self.family);
+        var program = if (self.mask_binding.local_zero) try runtime_program.buildLocalZero(allocator, self.family) else try runtime_program.build(allocator, self.family);
         defer program.deinit();
         return composition_work_support.baseProgramProfile(
             allocator,
@@ -143,7 +143,7 @@ pub const SemanticComponent = struct {
         allocator: std.mem.Allocator,
     ) !prover_component.OwnedBasePolynomialProgram {
         const self: *const SemanticComponent = @ptrCast(@alignCast(ctx));
-        return if (self.mask_binding.local_zero) local_zero.directProgram(allocator, self.family) else runtime_program.build(allocator, self.family);
+        return if (self.mask_binding.local_zero) runtime_program.buildLocalZero(allocator, self.family) else runtime_program.build(allocator, self.family);
     }
 
     pub fn mainColumnCount(self: *const @This()) usize {

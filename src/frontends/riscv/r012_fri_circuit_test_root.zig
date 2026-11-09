@@ -1,7 +1,5 @@
 test {
     _ = @import("recursion/air/tests/fri_verifier_circuit_test.zig");
-    _ = @import("recursion/air/fri_verifier_lowering.zig");
-    _ = @import("recursion/air/tests/fri_verifier_lowering_test.zig");
     _ = @import("recursion/air/fri_verifier_input_witness.zig");
     _ = @import("recursion/air/merkle_path.zig");
     _ = @import("recursion/air/merkle_path_witness.zig");

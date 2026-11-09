@@ -216,10 +216,7 @@ fn digest(label: []const u8) span.Digest {
     return channel.hashBytes(label, 0x4c50_5633); // "LPV3"
 }
 
-test "leaf-local V3: shared canonical projection preserves native and AIR words" {
-    const link_program = @import("../ethereum_leaf_link_program_v1.zig");
-    const source_air = @import("../air/ethereum_leaf_link_source_v1.zig");
-    const leaf_v2 = @import("../segment_leaf_authority_v2.zig");
+test "leaf-local V3: shared canonical projection preserves native words and source classes" {
     const metadata = try largePositionMetadata();
     const global = try span.SpanStatement.fromCanonicalWords(&metadata.base_statement_words);
     const executed = global.body.executed;
@@ -237,37 +234,16 @@ test "leaf-local V3: shared canonical projection preserves native and AIR words"
     try std.testing.expectEqual(@as(u16, 1), projection_v3.CANONICAL_WORD_MAP_VERSION);
     try std.testing.expect(metadata.global_cycle_start > std.math.maxInt(u32));
 
-    var program = try link_program.ProgramV1.init(std.testing.allocator);
-    defer program.deinit();
-    const metadata_words = try metadata.identityWords();
     var source_counts = [_]usize{0} ** 3;
-    for (expected_words, 0..) |expected_word, index| {
-        const row = program.projection_rows[span.SPAN_STATEMENT_CANONICAL_WORDS + index];
-        try std.testing.expectEqual(@as(u32, 1), row.local_statement_mask);
-        try std.testing.expectEqual(leaf_v2.WIRE_SCOPE, row.statement_scope);
-        try std.testing.expectEqual(@as(u32, @intCast(segment_v2.fixed_layout.base_statement + index)), row.statement_index);
-        if (row.raw_mask == 1) {
-            try std.testing.expectEqual(source_air.METADATA_SCOPE, row.raw_scope);
-            try std.testing.expectEqual(expected_word, metadata_words[row.raw_index]);
-        } else {
-            try std.testing.expectEqual(@as(u32, 1), row.constant_source_mask);
-            try std.testing.expectEqual(M31.zero(), expected_word);
-            try std.testing.expectEqual(@as(u32, 0), row.expected);
-        }
-        switch (try projection_v3.canonicalWordSourceV1(index)) {
-            .global_word => source_counts[0] += 1,
-            .local_cycle_count_limb => source_counts[1] += 1,
-            .zero => source_counts[2] += 1,
-        }
-    }
+    for (expected_words, 0..) |_, index| switch (try projection_v3.canonicalWordSourceV1(index)) {
+        .global_word => source_counts[0] += 1,
+        .local_cycle_count_limb => source_counts[1] += 1,
+        .zero => source_counts[2] += 1,
+    };
     try std.testing.expectEqualDeep([_]usize{ 400, 4, 8 }, source_counts);
-    // Exact existing routing geometry/claim and hash schedules remain unchanged.
-    try std.testing.expectEqual(@as(usize, 42), link_program.TRANSCRIPT_CLAIM_COUNT);
-    try std.testing.expectEqual(@as(usize, 84), link_program.POSEIDON_CALL_COUNT);
 }
 
-test "leaf-local V3: shared canonical projection rejects position and route mutations" {
-    const link_program = @import("../ethereum_leaf_link_program_v1.zig");
+test "leaf-local V3: shared canonical projection rejects position and map-index mutations" {
     const metadata = try largePositionMetadata();
     var changed = metadata;
     changed.global_cycle_start += 1;
@@ -277,18 +253,6 @@ test "leaf-local V3: shared canonical projection rejects position and route muta
     changed.global_cycle_end += 1;
     try std.testing.expectError(error.GlobalPositionMismatch, projection_v3.localStatementFromMetadata(&changed));
     try std.testing.expectError(error.LocalProjectionMismatch, projection_v3.canonicalWordSourceV1(span.SPAN_STATEMENT_CANONICAL_WORDS));
-
-    var program = try link_program.ProgramV1.init(std.testing.allocator);
-    defer program.deinit();
-    const row_index = span.SPAN_STATEMENT_CANONICAL_WORDS + span.canonical_layout.total_cycles_start;
-    const original = program.projection_rows[row_index];
-    // A global count word cannot substitute for the bounded native local count.
-    program.projection_rows[row_index].raw_index = link_program.METADATA_BASE_START + span.canonical_layout.total_cycles_start;
-    try std.testing.expectError(error.InvalidEthereumLeafLinkProgram, program.validate());
-    program.projection_rows[row_index] = original;
-    const count_source = link_program.METADATA_LOCAL_COUNT_START;
-    program.source_rows[count_source].use_count -= 1;
-    try std.testing.expectError(error.InvalidEthereumLeafLinkProgram, program.validate());
 }
 
 fn largePositionMetadata() !global_v3.MetadataV3 {

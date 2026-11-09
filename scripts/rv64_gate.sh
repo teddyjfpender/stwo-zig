@@ -3,4 +3,4 @@
 # the GPU lock; do not wrap this script in another GPU flock.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-exec python3 scripts/rv64_gate.py "$@"
+exec python3 scripts/rv64/rv64_gate.py "$@"

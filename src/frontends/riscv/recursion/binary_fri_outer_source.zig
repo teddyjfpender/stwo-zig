@@ -24,9 +24,6 @@ const shard_3 = @import("binary_fri_outer_source_fri_rows_authority.zig");
 const shard_4 = @import("binary_fri_outer_source_arithmetic_rows_authority.zig");
 const shard_5 = @import("binary_fri_outer_source_source_for_boundary.zig");
 const shard_6 = @import("binary_fri_outer_source_retain_non_path_poseidon_calls.zig");
-const shard_7 = @import("binary_fri_outer_source_materialize_child_paths.zig");
-const shard_8 = @import("binary_fri_outer_source_composition_source_value.zig");
-const shard_9 = @import("binary_fri_outer_source_validate_captured_against_wire.zig");
 
 pub const FORMAT_VERSION = shard_0.FORMAT_VERSION;
 pub const FIRST_ROW = shard_0.FIRST_ROW;

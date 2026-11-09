@@ -54,6 +54,13 @@ to the official tree, orchestrator, rewriter, or support sources changes that
 identity and forces the staged prover crate to rebuild once; identical-closure
 runs retain Cargo's warm path.
 
+The generation overlay keeps all native modules and test sources but exposes
+only the recording exporter through its module registries. Both registry inputs
+are hash-admitted before any visibility change. Rust still type-checks the
+native sources, while their unrelated public exports no longer require machine
+code in the recording library. Support installation for differential overlays
+keeps the original visibility. Cargo builds run with one compiler job.
+
 The compiler is not part of proof generation. `stwo-cairo-cpu` and
 `stwo-cairo-metal` read only authenticated artifacts already present in the
 repository. They must never shell out to Cargo, Git, Rust tools, or an upstream

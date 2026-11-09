@@ -216,7 +216,7 @@ Run the owned package gate from the repository root:
 
 ```sh
 zig build test --build-file src/frontends/sm83/build.zig -Doptimize=ReleaseFast -j2
-python3 scripts/sm83_frontend_gate.py
+python3 scripts/sm83/sm83_frontend_gate.py
 ```
 
 Use the narrowest local command that owns the change:
@@ -224,42 +224,42 @@ Use the narrowest local command that owns the change:
 ```sh
 zig build test-isa --build-file src/frontends/sm83/build.zig -Doptimize=ReleaseSafe
 zig build test-runner --build-file src/frontends/sm83/build.zig -Doptimize=ReleaseSafe
-python3 scripts/sm83_frontend_gate.py --opcode 80
-python3 scripts/sm83_frontend_gate.py --opcode cb:11
-python3 scripts/sm83_frontend_gate.py --family increment_decrement8
-python3 scripts/sm83_frontend_gate.py --family increment_decrement8 --proof
-python3 scripts/sm83_frontend_gate.py --family load8 --proof
-python3 scripts/sm83_frontend_gate.py --family alu8
-python3 scripts/sm83_frontend_gate.py --family alu8 --proof
-python3 scripts/sm83_frontend_gate.py --family increment_decrement8 --proof --metal
-python3 scripts/sm83_frontend_gate.py --cartridge
-python3 scripts/sm83_frontend_gate.py --cartridge-proof
-python3 scripts/sm83_frontend_gate.py --joypad
-python3 scripts/sm83_frontend_gate.py --environment
-python3 scripts/sm83_frontend_gate.py --scheduler
-python3 scripts/sm83_frontend_gate.py --ppu
-python3 scripts/sm83_frontend_gate.py --dma
+python3 scripts/sm83/sm83_frontend_gate.py --opcode 80
+python3 scripts/sm83/sm83_frontend_gate.py --opcode cb:11
+python3 scripts/sm83/sm83_frontend_gate.py --family increment_decrement8
+python3 scripts/sm83/sm83_frontend_gate.py --family increment_decrement8 --proof
+python3 scripts/sm83/sm83_frontend_gate.py --family load8 --proof
+python3 scripts/sm83/sm83_frontend_gate.py --family alu8
+python3 scripts/sm83/sm83_frontend_gate.py --family alu8 --proof
+python3 scripts/sm83/sm83_frontend_gate.py --family increment_decrement8 --proof --metal
+python3 scripts/sm83/sm83_frontend_gate.py --cartridge
+python3 scripts/sm83/sm83_frontend_gate.py --cartridge-proof
+python3 scripts/sm83/sm83_frontend_gate.py --joypad
+python3 scripts/sm83/sm83_frontend_gate.py --environment
+python3 scripts/sm83/sm83_frontend_gate.py --scheduler
+python3 scripts/sm83/sm83_frontend_gate.py --ppu
+python3 scripts/sm83/sm83_frontend_gate.py --dma
 zig build test-apu-binding --build-file src/frontends/sm83/build.zig \
   -Doptimize=ReleaseFast -j2
-python3 scripts/sm83_frontend_gate.py --mooneye-focused
-python3 scripts/sm83_frontend_gate.py --mooneye-focused --mooneye-rom acceptance/ei_timing.gb
-python3 scripts/sm83_frontend_gate.py --pokemon-fixture
-python3 scripts/sm83_frontend_gate.py --pokemon-fixture --proof-fast
-python3 scripts/sm83_frontend_gate.py --pokemon-proof
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --proof-fast --smoke
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --proof-fast
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --proof-fast --metal
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --proof-fast-chunk 1 --smoke
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --proof-fast-chunk 2 --smoke
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --start-release
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --battle-chunk 1
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --battle-chunk 2
-python3 scripts/sm83_frontend_gate.py --pokemon-battle-chain
-python3 scripts/sm83_frontend_gate.py --pokemon-battle-chain --chain-chunks 17 --smoke
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --smoke
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --start-release --metal
-python3 scripts/sm83_frontend_gate.py --pokemon-proof --smoke --metal
-python3 scripts/sm83_frontend_gate.py --mooneye-dma-live
+python3 scripts/sm83/sm83_frontend_gate.py --mooneye-focused
+python3 scripts/sm83/sm83_frontend_gate.py --mooneye-focused --mooneye-rom acceptance/ei_timing.gb
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-fixture
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-fixture --proof-fast
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --proof-fast --smoke
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --proof-fast
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --proof-fast --metal
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --proof-fast-chunk 1 --smoke
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --proof-fast-chunk 2 --smoke
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --start-release
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --battle-chunk 1
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --battle-chunk 2
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-battle-chain
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-battle-chain --chain-chunks 17 --smoke
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --smoke
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --start-release --metal
+python3 scripts/sm83/sm83_frontend_gate.py --pokemon-proof --smoke --metal
+python3 scripts/sm83/sm83_frontend_gate.py --mooneye-dma-live
 zig build test-mooneye-ppu-live --build-file src/frontends/sm83/build.zig \
   -Doptimize=Debug -- /path/to/mts-20260714-0944-31510e1
 zig build test-mooneye-dma-live --build-file src/frontends/sm83/build.zig \
@@ -270,7 +270,7 @@ zig build test-sameboy-replay --build-file src/frontends/sm83/build.zig \
   -Doptimize=ReleaseSafe -- /path/to/PE-AGI/v1
 zig build test-pokemon-fixture --build-file src/frontends/sm83/build.zig \
   -Doptimize=ReleaseFast -- /path/to/PE-AGI/v1
-python3 scripts/sm83_frontend_gate.py --precommit
+python3 scripts/sm83/sm83_frontend_gate.py --precommit
 zig build test-machine-environment --build-file src/integrations/sm83_cpu/build.zig -Doptimize=Debug
 zig build test-machine-environment --build-file src/integrations/sm83_metal/build.zig -Doptimize=Debug
 zig build test-pokemon-checkpoint --build-file src/integrations/sm83_cpu/build.zig \
@@ -656,7 +656,7 @@ M-cycles. Its 16-event game-logic transcript matches the visual ROM at digest
 Run the secure CPU/SIMD gate and emit a machine-readable receipt with:
 
 ```sh
-python3 scripts/sm83_pokemon_benchmark.py \
+python3 scripts/sm83/sm83_pokemon_benchmark.py \
   --pokemon-dir ../PE-AGI/v1 --backend cpu
 ```
 

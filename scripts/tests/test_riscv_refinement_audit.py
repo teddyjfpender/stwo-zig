@@ -31,7 +31,7 @@ class RefinementAuditPinTest(unittest.TestCase):
             shutil.copyfile(
                 ROOT
                 / "scripts"
-                / "riscv_refinement_lib"
+                / "riscv/riscv_refinement_lib"
                 / "audited_inventory.py",
                 pin_file,
             )

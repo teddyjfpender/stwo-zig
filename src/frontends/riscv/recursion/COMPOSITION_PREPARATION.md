@@ -29,7 +29,7 @@ data projections, not independently serializable proof authority.
 Run the small ownership loop from the repository root:
 
 ```sh
-python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+python3 scripts/repo/zig_serial_build.py --cwd src/frontends/riscv \
   test-recursion-preparation -Doptimize=ReleaseSafe --summary all
 ```
 
@@ -40,7 +40,7 @@ not prove an Ethereum wrapper. The retained genuine-input integration gate is:
 ```sh
 STWO_ROLE0_STAGE101_REPLAY_DIR="$PWD/.git/local-ethereum/role0-genuine-stage101-canonical-io" \
 STWO_ROLE0_GENUINE_WORKER_COUNT=1 \
-python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+python3 scripts/repo/zig_serial_build.py --cwd src/integrations/riscv_cpu \
   test-ethereum-incremental-leaf-materializer-custody-v4-replay \
   -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all
 ```
@@ -48,7 +48,7 @@ python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
 For the broader VM profile and field-publisher compatibility gate:
 
 ```sh
-python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+python3 scripts/repo/zig_serial_build.py --cwd src/frontends/riscv \
   test-vm-air-profile-v2 -Doptimize=ReleaseSafe -Dprofile-test-strip=true \
   --summary all
 ```
@@ -76,7 +76,7 @@ rejects a change to either root without changing its graph identity:
 ```sh
 STWO_ROLE0_STAGE101_REPLAY_PATH="$PWD/.git/local-ethereum/role0-genuine-stage101-canonical-io/fb15a6064ae68884f64ef138987b0f5053f18df708162b29336091e14db94e6b.bin" \
 STWO_ROLE0_STAGE101_REPLAY_SHA256=fb15a6064ae68884f64ef138987b0f5053f18df708162b29336091e14db94e6b \
-python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+python3 scripts/repo/zig_serial_build.py --cwd src/integrations/riscv_cpu \
   test-ethereum-statement-root-replay -Doptimize=ReleaseSafe \
   -Dethereum-proof-strip=true --summary all
 ```
@@ -123,7 +123,7 @@ The replay now reports bounded unmatched tuple provenance:
 ```sh
 STWO_ROLE0_STAGE101_REPLAY_DIR="$PWD/.git/local-ethereum/role0-genuine-stage101-canonical-io" \
 STWO_ROLE0_GENUINE_WORKER_COUNT=1 \
-python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+python3 scripts/repo/zig_serial_build.py --cwd src/integrations/riscv_cpu \
   test-ethereum-statement-root-cohort-replay -Doptimize=ReleaseSafe \
   -Dethereum-proof-strip=true --summary all
 ```
@@ -203,7 +203,7 @@ From the repository root, with the retained SHA-pinned corpus available:
 ```sh
 STWO_ETHEREUM_PROOF_CORPUS="$PWD/.git/local-ethereum" \
 STWO_ROLE0_GENUINE_WORKER_COUNT=1 \
-python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+python3 scripts/repo/zig_serial_build.py --cwd src/integrations/riscv_cpu \
   test-ethereum-complete-proof -Doptimize=ReleaseSafe \
   -Dethereum-proof-strip=true --summary all
 ```
@@ -286,7 +286,7 @@ To independently reopen a retained wrapper, replace the placeholders and run:
 
 ```sh
 STWO_ETHEREUM_WRAPPER_REPLAY_DIR="<corpus>/wrapper-replays/<triplet-sha256>" \
-python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+python3 scripts/repo/zig_serial_build.py --cwd src/integrations/riscv_cpu \
   test-ethereum-wrapper-replay -Doptimize=ReleaseSafe \
   -Dethereum-proof-strip=true --summary all
 ```
@@ -309,7 +309,7 @@ The explicit native producer command now passes its complete native lifecycle:
 ```sh
 STWO_ETHEREUM_PROOF_CORPUS="$PWD/.git/local-ethereum" \
 STWO_ROLE0_GENUINE_WORKER_COUNT=1 \
-python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+python3 scripts/repo/zig_serial_build.py --cwd src/integrations/riscv_cpu \
   test-ethereum-native-base-bound-producer -Doptimize=ReleaseSafe \
   -Dethereum-proof-strip=true --summary all
 ```
@@ -326,7 +326,8 @@ result is a historical snapshot, before the latest clock, alias and cancellation
 changes. The focused 52/53 header mismatch has an implemented eight-limb fix
 awaiting rerun. The schema-4 public-sum endpoint and schema-6 row-16 canonical
 claim routing also await combined proof-level verification. The evidence receipt
-is `autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/recursive-segment-v2-io-progress.json`.
+is `autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/recursive-segment-v2-io-progress.json`
+on the `archive/pre-restructure-20261108` branch.
 
 ## Bounded admission and tagged native transcript checkpoint
 
@@ -419,8 +420,8 @@ reconstruction receipt remains separate from current gates.
 Run these focused checks from the repository root:
 
 ```sh
-python3 scripts/zig_serial_build.py --cwd src/frontends/riscv test-recursion-schedule-admission -Doptimize=ReleaseSafe --summary all
-python3 scripts/zig_serial_build.py --cwd src/frontends/riscv test-recursion-quotient-domains -Doptimize=ReleaseSafe --summary all
+python3 scripts/repo/zig_serial_build.py --cwd src/frontends/riscv test-recursion-schedule-admission -Doptimize=ReleaseSafe --summary all
+python3 scripts/repo/zig_serial_build.py --cwd src/frontends/riscv test-recursion-quotient-domains -Doptimize=ReleaseSafe --summary all
 ```
 
 Retained receipts pass 15/15 schedule tests and 6/6 quotient-domain tests. The

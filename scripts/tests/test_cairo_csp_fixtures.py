@@ -10,9 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import cairo_csp_fixtures as fixtures
-
-
+from scripts.cairo import cairo_csp_fixtures as fixtures
 ROOT = Path(__file__).resolve().parents[2]
 PROVENANCE = ROOT / "vectors/cairo/csp/fixture-provenance-v1.json"
 

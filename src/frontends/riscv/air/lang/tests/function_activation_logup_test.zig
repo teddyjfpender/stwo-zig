@@ -684,8 +684,6 @@ test "F-014 live activation is the sole function LogUp lowering authority" {
     const activation_source = @embedFile("../function_activation_logup.zig");
     const declaration_source = @embedFile("../functions.zig");
     const frame_source = @embedFile("../function_frames.zig");
-    const inline_source = @embedFile("../function_body_lowering.zig");
-    const inline_compiler_source = @embedFile("../function_body_lowering_compiler.zig");
     const activation_authority_source = @embedFile("../function_activation_authority.zig");
     const language_source = @embedFile("../mod.zig");
 
@@ -702,25 +700,15 @@ test "F-014 live activation is the sole function LogUp lowering authority" {
         activation_authority_source,
         "drawSecureFelts",
     ) != null);
-    for ([_][]const u8{ declaration_source, frame_source, inline_source }) |retired| {
+    for ([_][]const u8{ declaration_source, frame_source }) |retired| {
         try std.testing.expect(std.mem.indexOf(u8, retired, "drawSecureFelts") == null);
         try std.testing.expect(std.mem.indexOf(u8, retired, "RowPair.single") == null);
         try std.testing.expect(std.mem.indexOf(u8, retired, "FNACTV01") == null);
     }
     try std.testing.expect(std.mem.indexOf(
         u8,
-        inline_compiler_source,
-        "return error.RelationBackedCall;",
-    ) != null);
-    try std.testing.expect(std.mem.indexOf(
-        u8,
         activation_source,
         "@import(\"function_activation_authority.zig\")",
-    ) != null);
-    try std.testing.expect(std.mem.indexOf(
-        u8,
-        inline_source,
-        "@import(\"function_body_lowering_compiler.zig\")",
     ) != null);
     try std.testing.expect(std.mem.indexOf(
         u8,

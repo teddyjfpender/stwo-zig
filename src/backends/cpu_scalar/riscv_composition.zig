@@ -65,28 +65,13 @@ pub const TelemetrySnapshot = struct {
     max_scratch_bytes_per_worker: u64 = 0,
 
     pub fn delta(after: TelemetrySnapshot, before: TelemetrySnapshot) TelemetrySnapshot {
-        return .{
-            .attempts = after.attempts -| before.attempts,
-            .admissions = after.admissions -| before.admissions,
-            .declines = after.declines -| before.declines,
-            .eligible_pairs = after.eligible_pairs -| before.eligible_pairs,
-            .fallback_components = after.fallback_components -| before.fallback_components,
-            .prepared_fallback_components = after.prepared_fallback_components -|
-                before.prepared_fallback_components,
-            .coordinator_fallback_components = after.coordinator_fallback_components -|
-                before.coordinator_fallback_components,
-            .distinct_buckets = after.distinct_buckets -| before.distinct_buckets,
-            .row_tiles = after.row_tiles -| before.row_tiles,
-            .execution_lanes = after.execution_lanes -| before.execution_lanes,
-            .structured_executions = after.structured_executions -| before.structured_executions,
-            .pool_lease_declines = after.pool_lease_declines -| before.pool_lease_declines,
-            .finite_budget_rejections = after.finite_budget_rejections -|
-                before.finite_budget_rejections,
-            .unprepared_fallback_rejections = after.unprepared_fallback_rejections -|
-                before.unprepared_fallback_rejections,
-            .max_graph_peak_active = after.max_graph_peak_active,
-            .max_scratch_bytes_per_worker = after.max_scratch_bytes_per_worker,
-        };
+        var result = after;
+        inline for (comptime std.meta.fieldNames(TelemetrySnapshot)) |name| {
+            if (comptime !std.mem.eql(u8, name, "max_graph_peak_active") and
+                !std.mem.eql(u8, name, "max_scratch_bytes_per_worker"))
+                @field(result, name) -|= @field(before, name);
+        }
+        return result;
     }
 };
 
@@ -145,24 +130,10 @@ pub const ExecutionOptions = struct {
 };
 
 pub fn telemetrySnapshot() TelemetrySnapshot {
-    return .{
-        .attempts = telemetry.attempts.load(.monotonic),
-        .admissions = telemetry.admissions.load(.monotonic),
-        .declines = telemetry.declines.load(.monotonic),
-        .eligible_pairs = telemetry.eligible_pairs.load(.monotonic),
-        .fallback_components = telemetry.fallback_components.load(.monotonic),
-        .prepared_fallback_components = telemetry.prepared_fallback_components.load(.monotonic),
-        .coordinator_fallback_components = telemetry.coordinator_fallback_components.load(.monotonic),
-        .distinct_buckets = telemetry.distinct_buckets.load(.monotonic),
-        .row_tiles = telemetry.row_tiles.load(.monotonic),
-        .execution_lanes = telemetry.execution_lanes.load(.monotonic),
-        .structured_executions = telemetry.structured_executions.load(.monotonic),
-        .pool_lease_declines = telemetry.pool_lease_declines.load(.monotonic),
-        .finite_budget_rejections = telemetry.finite_budget_rejections.load(.monotonic),
-        .unprepared_fallback_rejections = telemetry.unprepared_fallback_rejections.load(.monotonic),
-        .max_graph_peak_active = telemetry.max_graph_peak_active.load(.monotonic),
-        .max_scratch_bytes_per_worker = telemetry.max_scratch_bytes_per_worker.load(.monotonic),
-    };
+    var result: TelemetrySnapshot = undefined;
+    inline for (comptime std.meta.fieldNames(TelemetrySnapshot)) |name|
+        @field(result, name) = @field(telemetry, name).load(.monotonic);
+    return result;
 }
 
 fn recordMax(counter: *AtomicCounter, value: u64) void {

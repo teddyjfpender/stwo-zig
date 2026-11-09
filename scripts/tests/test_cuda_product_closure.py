@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import tempfile
+import hashlib
+import copy
+from dataclasses import replace
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -11,8 +14,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import cuda_product_closure as closure  # noqa: E402
-from cuda_build_lib.builder import (  # noqa: E402
+from scripts.cuda import cuda_product_closure as closure  # noqa: E402
+from scripts.cuda import cuda_cumetal_audit
+from scripts.cuda.cuda_build_lib.builder import (  # noqa: E402
     BuildConfig,
     Toolchain,
     build_plan,
@@ -20,6 +24,9 @@ from cuda_build_lib.builder import (  # noqa: E402
     load_source_closure,
 )
 from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
+from scripts.cuda.cuda_build_lib.native_closure import load_native_closure, provider_cuda_sources
+from scripts.cuda.cuda_build_lib import cumetal_builder
+from scripts.cuda.cuda_build_lib.errors import BuildError
 
 
 CUDA_ROOT = ROOT / "src/backends/cuda"
@@ -31,6 +38,114 @@ NATIVE = CUDA_ROOT / "native"
 
 
 class CudaProductClosureTests(unittest.TestCase):
+    def test_provider_disposition_cannot_hide_an_existing_translation_obligation(self) -> None:
+        import json
+        support_path = CUDA_ROOT / "cumetal/frontend_support.json"
+        original_read = Path.read_text
+        support = json.loads(support_path.read_text())
+        for owner in ("native", "cairo"):
+            edited = copy.deepcopy(support)
+            moved = edited["frontends"][owner]["runtime_cuda_sources"].pop()
+            target = edited["frontends"]["riscv"]["runtime_cuda_sources"]
+            target.append(moved)
+            target.sort()
+            def read(path, *args, **kwargs):
+                return json.dumps(edited) if path == support_path else original_read(path, *args, **kwargs)
+            with mock.patch.object(Path, "read_text", read):
+                with self.assertRaises(cuda_cumetal_audit.AuditError):
+                    cuda_cumetal_audit.read_ledger(cuda_cumetal_audit.DEFAULT_LEDGER)
+
+    def test_provider_runtime_ownership_is_complete_and_rejects_new_or_duplicate_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "common.cu").write_text("// common\n")
+            (root / "riscv.cu").write_text("// unavailable RISC-V\n")
+            support = {"frontends": {
+                "native": {"runtime_cuda_sources": ["common.cu"]},
+                "cairo": {"runtime_cuda_sources": []},
+                "riscv": {"runtime_cuda_sources": ["riscv.cu"]},
+            }}
+            self.assertEqual([root / "common.cu"], provider_cuda_sources(root, support)["native"])
+            for replacement in ([], ["common.cu"], ["absent.cu"]):
+                edited = copy.deepcopy(support)
+                edited["frontends"]["riscv"]["runtime_cuda_sources"] = replacement
+                with self.assertRaises(BuildError):
+                    provider_cuda_sources(root, edited)
+            (root / "undeclared.cu").write_text("// new source\n")
+            with self.assertRaisesRegex(BuildError, "ownership is incomplete"):
+                provider_cuda_sources(root, support)
+
+    def test_cumetal_native_plan_owns_the_audited_subset_and_refuses_unavailable_riscv(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            config = cumetal_builder.Config(
+                source_root=SOURCE, source_manifest=CUDA_ROOT / "active_source_manifest.json",
+                product_manifest=CUDA_ROOT / "product_manifest.json", native_root=NATIVE,
+                native_aot_root=native_aot_root(), support_manifest=CUDA_ROOT / "cumetal/frontend_support.json",
+                output_dir=Path(temporary), frontend="native",
+                toolchain=cumetal_builder.Toolchain(*([Path("/unavailable/tool")] * 8), jobs=1),
+            )
+            support, _ = cumetal_builder._load_support(config)
+            checkout = {"patch_sha256": support["toolchain"]["compatibility_patch_sha256"]}
+            with mock.patch.object(cumetal_builder, "verify_checkout", return_value=checkout):
+                plan = cumetal_builder.build_plan(config, probe_tools=False)
+                self.assertTrue(plan["available"])
+                self.assertEqual(33, plan["runtime_cuda_source_count"])
+                self.assertFalse(cumetal_builder.build_plan(replace(config, frontend="riscv"), probe_tools=False)["available"])
+            selected = provider_cuda_sources(NATIVE, support)
+            self.assertEqual(68, len(selected["riscv"]))
+            self.assertEqual(1, len(selected["cairo"]))
+            self.assertEqual(102, sum(map(len, selected.values())))
+
+    def test_ambient_exception_is_exact_content_bound_and_token_specific(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "existing.cu"
+            payload = b'const char *v = getenv("EXISTING");\n'
+            source.write_bytes(payload)
+            policy = self.policy()
+            policy["forbidden_product_tokens"] = ["getenv(", "nvrtc"]
+            entry = {"path": "native/existing.cu", "sha256": hashlib.sha256(payload).hexdigest()}
+            policy["temporary_native_ambient_reads"] = {
+                "owner": "cuda-backend", "reason": "Preserve legacy flags pending retirement",
+                "expiry": "GPU-native promotion + flag sweep", "issue": 329, "files": [entry],
+            }
+            with mock.patch.object(closure, "NATIVE", root):
+                closure.validate_product_policy(policy, [], [source])
+                source.write_bytes(payload + b'getenv("NEW");\n')
+                with self.assertRaisesRegex(closure.ProductClosureError, "exception is stale"):
+                    closure.validate_product_policy(policy, [], [source])
+                source.write_bytes(payload)
+                other = root / "new.cu"
+                other.write_bytes(payload)
+                with self.assertRaisesRegex(closure.ProductClosureError, "native/new.cu:getenv"):
+                    closure.validate_product_policy(policy, [], [source, other])
+                source.write_bytes(payload + b"nvrtc\n")
+                entry["sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+                with self.assertRaisesRegex(closure.ProductClosureError, "native/existing.cu:nvrtc"):
+                    closure.validate_product_policy(policy, [], [source])
+                source.write_bytes(payload)
+                entry["sha256"] = hashlib.sha256(payload).hexdigest()
+                for field in ("owner", "reason", "expiry"):
+                    exception = policy["temporary_native_ambient_reads"]
+                    value = exception[field]
+                    exception[field] = ""
+                    with self.assertRaisesRegex(closure.ProductClosureError, "owner, reason or expiry"):
+                        closure.validate_product_policy(policy, [], [source])
+                    exception[field] = value
+
+    def test_standalone_program_cannot_enter_product_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "fixture.cpp").write_text("int main() { return 0; }\n")
+            with self.assertRaisesRegex(BuildError, "standalone program cannot enter"):
+                load_native_closure(root)
+
+    def test_product_archive_owns_runtime_and_excludes_standalone_programs(self) -> None:
+        native = load_native_closure(NATIVE)
+        self.assertEqual([NATIVE.resolve() / "aot_loader.cpp"], native["host_sources"])
+        self.assertFalse(any("bench" in path.relative_to(NATIVE.resolve()).parts for path in native["sources"]))
+        self.assertNotIn(NATIVE.resolve() / "rv64/process_memory_observer.cu", native["sources"])
+
     def fixture(self, root: Path, *, define_active: bool) -> dict[str, Path]:
         paths = {
             "abi": root / "abi",
@@ -184,7 +299,7 @@ class CudaProductClosureTests(unittest.TestCase):
             )
             plan = build_plan(config, probe_tools=False)
             with mock.patch(
-                "cuda_build_lib.builder.run_parallel"
+                "scripts.cuda.cuda_build_lib.builder.run_parallel"
             ) as run_parallel:
                 compile_native_cuda(config, source_closure, plan, output)
 

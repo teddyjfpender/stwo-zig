@@ -4,7 +4,7 @@
 //! from those the compiler actually analyses — an unreferenced file-scope
 //! `pub const x = @import("...")` is analysed lazily, i.e. never, which is
 //! why `runner/mod.zig`'s long-standing `pub const sail_oracle` did not make
-//! them run. Every RISC-V product test step roots at `src/tests.zig` and
+//! them run. Every RISC-V product test step roots at `src/products/riscv/cpu/test_root.zig` and
 //! reaches this package as a module *dependency*, and dependency modules
 //! contribute no tests at all, so the oracle self-check and the forged-trace
 //! rejection ran in no build step until 2026-07-29.

@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-from scripts.check_cairo_metal_report import validate
+from scripts.cairo.check_cairo_metal_report import validate
 
 
 class CairoMetalReportTest(unittest.TestCase):

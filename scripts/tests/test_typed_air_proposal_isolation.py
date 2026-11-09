@@ -2,24 +2,24 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.source_conformance_lib import typed_air_proposals
-from scripts.product_closure.graph import inspect_sources
-from scripts.product_closure.model import Manifest, NamedImport
+from scripts.repo.source_conformance_lib import typed_air_proposals
+from scripts.repo.product_closure.graph import inspect_sources
+from scripts.repo.product_closure.model import Manifest, NamedImport
 
 
 class TypedAirProposalIsolationTests(unittest.TestCase):
     def test_shared_polynomial_compiler_excludes_proposal_and_witness_authority(self) -> None:
-        from scripts.source_conformance_lib.typed_air_proposals import AUTHORING_FILES
+        from scripts.repo.source_conformance_lib.typed_air_proposals import AUTHORING_FILES
         root = Path(__file__).resolve().parents[2]
         owners = ("direct_polynomial_graph.zig", "direct_polynomial_program.zig",
                   "fixed_polynomial_program.zig", "typed_poseidon2_fixed_polynomials.zig")
         manifest = Manifest(
             product="shared-polynomial-compiler",
             entry_roots=tuple("src/frontends/riscv/air/lang/" + owner for owner in owners),
-            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            named_imports=(NamedImport("stwo_core", "src/waist/core/mod.zig"),),
             generated_imports=frozenset({"std", "builtin"}),
             allowed_files=frozenset(),
-            allowed_prefixes=("src/core", "src/frontends/riscv/air"),
+            allowed_prefixes=("src/waist/core", "src/frontends/riscv/air"),
         )
         for path in inspect_sources(root, manifest).relative_sources():
             self.assertNotIn(Path(path).name, AUTHORING_FILES)
@@ -63,7 +63,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                 "src/frontends/riscv/build.zig": (
                     'const artifact_name = "typed_air_h009_artifacts";\n'
                 ),
-                "src/tests/riscv/proposal_test.zig": (
+                "src/products/riscv/cpu/tests/proposal_test.zig": (
                     "const policy = frontend.air.lang.cost_aware_materializer;\n"
                 ),
                 "src/frontends/riscv/air/lang/tests/typed_poseidon2_frontier_artifact_test.zig": (
@@ -107,7 +107,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                     "typed-air-proposal-consumer:frontends/riscv/prover/layout.zig",
                     "typed-air-proposal-consumer:frontends/riscv/prover/layout_validate.zig",
                     "typed-air-proposal-consumer:frontends/riscv/prover/production.zig",
-                    "typed-air-proposal-consumer:tests/riscv/proposal_test.zig",
+                    "typed-air-proposal-consumer:products/riscv/cpu/tests/proposal_test.zig",
                 },
                 {finding.key for finding in findings},
             )
@@ -157,7 +157,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
             source.write_text(
                 'const vectors = @import("typed_air_h010_artifacts");\n'
                 'const bypass = @embedFile('
-                '"../../../../design/typed-air/artifacts/'
+                '"../air/lang/artifacts/'
                 'h010-poseidon-layout-v1/vector-log10.stwairb");\n',
                 encoding="utf-8",
             )

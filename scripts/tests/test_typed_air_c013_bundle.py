@@ -7,10 +7,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from scripts.typed_air_c013_capture_lib import bundle as bundle_module
-from scripts.typed_air_c013_capture_lib import schedule
-from scripts.typed_air_c013_capture_lib.bundle import validate_bundle
-from scripts.typed_air_c013_capture_lib.child_report import (
+from scripts.typed_air.typed_air_c013_capture_lib import bundle as bundle_module
+from scripts.typed_air.typed_air_c013_capture_lib import schedule
+from scripts.typed_air.typed_air_c013_capture_lib.bundle import validate_bundle
+from scripts.typed_air.typed_air_c013_capture_lib.child_report import (
     BACKGROUND,
     CALIBRATION_SCHEMA,
     POSEIDON_SCHEMA,
@@ -18,17 +18,17 @@ from scripts.typed_air_c013_capture_lib.child_report import (
     SECURE_PCS,
     command_for_attempt,
 )
-from scripts.typed_air_c013_capture_lib.codec import (
+from scripts.typed_air.typed_air_c013_capture_lib.codec import (
     canonical_bytes,
     content_digest,
     sha256_bytes,
 )
-from scripts.typed_air_c013_capture_lib.model import (
+from scripts.typed_air.typed_air_c013_capture_lib.model import (
     CORPUS_DIGESTS,
     CaptureError,
     SCHEDULE_SHA256,
 )
-from scripts.typed_air_c013_capture_lib.statistics import (
+from scripts.typed_air.typed_air_c013_capture_lib.statistics import (
     calibration_gate,
     evaluate_calibration,
 )

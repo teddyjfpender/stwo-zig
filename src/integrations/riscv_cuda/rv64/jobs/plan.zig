@@ -1,6 +1,6 @@
 //! Per-class memory policy for the job runtime (spec §3.7; frontier-delta §4 item 3).
 //!
-//! The policy is GENERATED from a measured sweep (scripts/rv64_m8_plan_sweep.py:
+//! The policy is GENERATED from a measured sweep (scripts/rv64/rv64_m8_plan_sweep.py:
 //! every job class through a real DeviceWorker with STWO_RV64_M8_JOBS_PLAN_DIR)
 //! and committed under vectors/reports/rv64-m8-20261106/memory-plan/. A worker
 //! loads it at start (STWO_RV64_M8_JOBS_PLAN=<policy.json>); unset keeps today's

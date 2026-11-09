@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 
-SCRIPT = Path(__file__).parents[1] / "check_build_configure_closure.py"
+SCRIPT = Path(__file__).parents[1] / "repo/check_build_configure_closure.py"
 SPEC = importlib.util.spec_from_file_location("configure_closure", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -16,6 +16,23 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ConfigureClosureTests(unittest.TestCase):
+    def test_all_scope_rejections_are_reported_without_install_or_pass_receipt(self):
+        with tempfile.TemporaryDirectory() as raw, ExitStack() as stack:
+            root = Path(raw)
+            receipt = root / "receipt.json"
+            stack.enter_context(mock.patch.object(MODULE.sys, "argv", [str(SCRIPT), "--repo", raw, "--receipt", str(receipt)]))
+            stack.enter_context(mock.patch.object(MODULE, "read_product_catalog", return_value=({}, {"z": {}, "core": {}, "a": {}}, "digest")))
+            scope = stack.enter_context(mock.patch.object(MODULE, "check_scope", side_effect=[SystemExit("first rejection"), {"scope": "core"}, SystemExit("second rejection")]))
+            install = stack.enter_context(mock.patch.object(MODULE, "exercise_install"))
+            unknown = stack.enter_context(mock.patch.object(MODULE, "check_unknown_scope"))
+            with self.assertRaises(SystemExit) as raised:
+                MODULE.main()
+            self.assertEqual("a: first rejection\nz: second rejection", str(raised.exception))
+            self.assertEqual(["a", "core", "z"], [call.args[1] for call in scope.call_args_list])
+            install.assert_not_called()
+            unknown.assert_not_called()
+            self.assertFalse(receipt.exists())
+
     def test_configure_only_skips_install_exercise_and_default_retains_it(self) -> None:
         for configure_only in (True, False):
             for platform, explicit_receipt in product(("linux", "darwin"), (True, False)):

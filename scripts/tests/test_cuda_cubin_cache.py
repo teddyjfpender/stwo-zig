@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from cuda_build_lib import aot_cache
+from scripts.cuda.cuda_build_lib import aot_cache
 
 
 class CubinCacheTests(unittest.TestCase):
@@ -66,8 +66,8 @@ class CubinCacheTests(unittest.TestCase):
 
 class PartialCompilerProgress(unittest.TestCase):
     def test_completed_cubin_survives_another_compiler_failure(self):
-        from scripts.cuda_build_lib.builder import run_parallel
-        from scripts.cuda_build_lib.errors import BuildError
+        from scripts.cuda.cuda_build_lib.builder import run_parallel
+        from scripts.cuda.cuda_build_lib.errors import BuildError
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             good, bad = root / 'good.cubin', root / 'bad.cubin'

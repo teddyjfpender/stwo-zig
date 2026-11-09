@@ -11,8 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import riscv_team_b_witnesses as witnesses
-
+from scripts.riscv import riscv_team_b_witnesses as witnesses
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 EXPORT_DIRECTORY = REPOSITORY_ROOT / "zig-out/team-b-ir"
 
@@ -37,7 +36,7 @@ def export_air() -> Path:
     root = Path(directory.name)
     try:
         subprocess.run(
-            [sys.executable, "scripts/zig_serial_build.py", "riscv-refinement-ir",
+            [sys.executable, "scripts/repo/zig_serial_build.py", "riscv-refinement-ir",
              f"-Driscv-refinement-ir-dir={root / 'symbolic'}",
              f"-Driscv-air-program-ir-dir={root / 'program'}"],
             cwd=REPOSITORY_ROOT, check=True, timeout=900,

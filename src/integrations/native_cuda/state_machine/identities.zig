@@ -19,7 +19,7 @@ pub const Artifact = struct {
 
 pub const zig_artifact = Artifact{
     .authority = "stwo-zig repository source closure",
-    .revision = "src/examples/state_machine/{input,statement,interaction,component}.zig",
+    .revision = "src/products/native/examples/state_machine/{input,statement,interaction,component}.zig",
     .trace_recipe = digest(
         "stwo-zig/state-machine-v2:mixed-height-x-n,y-n-1:main[4]:v2",
     ),

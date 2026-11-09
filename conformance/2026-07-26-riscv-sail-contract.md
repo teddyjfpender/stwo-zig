@@ -147,7 +147,7 @@ to operand bit 31 and constrains the complete eight-byte two's-complement
 product recurrence.
 
 The machine-proof implementation plan for this universal implication is
-[`soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
+[`design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md`](../design/soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md).
 It closes only the local AIR-to-Sail premise; the accepted-proof reduction and
 independent proof-system validation remain separate obligations.
 
@@ -189,7 +189,7 @@ Two script entry points make the pinned model consumable outside the
 release corpus gate, and both refuse to answer rather than substitute a
 weaker authority when the pinned binary is absent (exit 3, UNAVAILABLE):
 
-- `scripts/riscv_sail_oracle.py` asks one question -- does pinned Sail
+- `scripts/riscv/riscv_sail_oracle.py` asks one question -- does pinned Sail
   agree with a runner retirement trace? -- with the four-verdict contract
   EQUIVALENT/DIVERGENT/ERROR/UNAVAILABLE that `runner/sail_oracle.zig`
   consumes from tests. UNAVAILABLE stays a visible skip there by default,
@@ -199,17 +199,17 @@ weaker authority when the pinned binary is absent (exit 3, UNAVAILABLE):
   the disagreement error. Only a job that has provisioned the pinned
   workspace may set it; the `differential` job of
   `.github/workflows/riscv-sail-differential.yml` is currently the only one.
-- `scripts/riscv_operand_classes.py` derives the operand classes the ISA
+- `scripts/riscv/riscv_operand_classes.py` derives the operand classes the ISA
   admits and the AIR's limb structure distinguishes, executes one case per
   class on pinned Sail over RVFI-DII, and commits Sail's architectural
-  results to `src/tests/riscv/operand_class_corpus/` for guest-building
+  results to `src/products/riscv/cpu/tests/operand_class_corpus/` for guest-building
   tests (`operand_classes.zig`, the class sweep, the rigidity corpus). Its
   `check` mode regenerates and requires byte identity with the committed
   data; its `audit` mode measures which enumerated classes an existing
   trace corpus touches and lists the pairs it never does.
 
 The corpus differential itself is a fail-closed hosted CI gate:
-`scripts/riscv_sail_gate.py` binds the committed evidence to the committed
+`scripts/riscv/riscv_sail_gate.py` binds the committed evidence to the committed
 corpus on every PR and re-derives it against live pinned Sail/Spike whenever
 its meaning can change, per
 [riscv-sail-differential-gate.md](riscv-sail-differential-gate.md).

@@ -288,6 +288,699 @@
       "top_level_scripts_added_budget": 0,
       "scope": "The full optimized package exposed that its committed policy test previously skipped from the wrong working directory. Route the full package test through the existing jobTestStep owner so broad and focused tests use the same package cwd and check-only policy. Keep the missing-fixture failure and all tests.",
       "validation_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
+    },
+    {
+      "id": "post_merge_source_contract_definition_owners",
+      "net_code_budget": 50,
+      "positive_growth_justification": "Repair source-contract readers to inspect current definition owners and exact facade reexports, retaining all mutation/duplicate checks. Authenticate memory helper delegation and scope sparse Merkle claims to the actual selected profile. Baseline bounded owner checks fail; no runtime behavior, proof checks or rejection classifications change.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_metal_test_package_owners",
+      "net_code_budget": 100,
+      "positive_growth_justification": "Preserve eighty Metal resource contracts and four AOT authority tests under concrete package and focused developer owners. Reuse canonical frontend/backend APIs and platform linkage; preserve exporter CLI and all assertions. Replace orphan top-level roots with actual owning package roots. Moves receive zero deletion credit; no runtime behavior or flags change.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_installation_lifetime_owner",
+      "net_code_budget": 60,
+      "positive_growth_justification": "Transfer the complete existing installation resource lifetime into stable embedded Owner storage while Driver retains request scheduling/publication and drains before teardown. Preserve current warm/probe algorithms and validation order. Verify cache callback address stability; cover and fix the concrete partial peer-table allocator rollback gap without changing GPU algorithm/default behavior. Moves receive zero deletion credit.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_historical_receipt_retirement",
+      "net_code_budget": -1,
+      "positive_growth_justification": "Reapply only the previously audited evidence retirement and maintained-fixture ownership slice after independent current-byte and published-tag revalidation. Seven path-only consumers retain SHA pins; thirty-four live fixtures move byte-identically into the maintained209-file union. Retire7004 historical evidence files after exact blob/SHA verification. No runtime/setup/default changes, no code credit for evidence or embedded historical snapshots.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_developer_policy_routing",
+      "net_code_budget": 180,
+      "positive_growth_justification": "Make the documented no-argument developer loop use the existing authoritative CI path/lane policy, including maintained fixture validation, real tracked-deletion evidence and unknown-source rejection. Reuse shared policy predicates instead of a second ignore/routing registry; preserve hermetic fixture setup and all live validation triggers. Large archived-report removals must not fall into nonexistent Zig packages. Independent review reproduced nonexistent owned-path typos and raw hosted CI templates with unexpanded output placeholders. Validate all input paths against the filesystem/Git retirement evidence, and delegate non-package lanes to existing CI host/expansion owners with explicit deferred status; preserve broad fallback tests using real owners.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_unreachable_metal_compile_wrappers",
+      "net_code_budget": -246,
+      "positive_growth_justification": "Delete only five archive-byte-verified compile-body wrappers with no live build/import/symbol/shader consumer. Real runtime and budget owners and all eighty-four package tests/exporter remain live and hash-preserved. Literal file list only, no source scan exclusions or replacements.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_native_class_protocol_owners",
+      "net_code_budget": 60,
+      "positive_growth_justification": "Give the complete immutable proof/wire protocol and sealed class/cache lifetime real leaf owners, keeping exact public aliases and field/default/layout identity. Move the existing DeviceBuffer declaration to the pure resource owner to remove class/API dependency cycles. Fix the concrete builder-plan leak on map insertion OOM with destructor-once failure coverage. Include package-owned focused leaf tests and type identity checks. No GPU algorithm/flag/default change; moves receive zero deletion credit.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_driver_test_fixture_owners",
+      "net_code_budget": 35,
+      "positive_growth_justification": "Preserve all current request and installation/service tests under actual scenario owners sharing one canonical fake-world fixture. Retain allocator-failure and cache-address assertions, normalized body/name preservation and mandatory root/focused discovery. No future GPU candidate cases or runtime changes are imported; moves receive zero deletion credit.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_x0_runtime_adapter_ownership",
+      "net_code_budget": 25,
+      "positive_growth_justification": "Move three prover-returning X0 adapters from the generic envelope into the existing runtime extraction owner; migrate six real callers and runtime geometry assertions together. Preserve pure envelope assertions and add a source dependency mutation regression. No allowlist/baseline/format/default changes; moves receive zero deletion credit.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_closure_definition_refresh",
+      "net_code_budget": 15,
+      "positive_growth_justification": "Repair two reproduced stale source-closure definitions: inspect the actual CPU build owner and name the already-used std-only identity-digest module explicitly. Keep the same core/statement-only dependency boundary, with an injected backend import required to fail. No wildcard/prefix expansion, source exclusion, runtime change or baseline update.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "post_merge_recursion_contract_test_owner",
+      "net_code_budget": 10,
+      "positive_growth_justification": "Separate the complete recursion dependency-contract test family into its real test owner after added regressions exposed the existing aggregate test-file ceiling. Preserve every class body/assertion and old module discovery through one concrete TestCase import; the helper is not independently glob-discovered, preventing duplicate execution. Existing source/linkage/CLI tests remain in their actual owner. No runtime or policy boundary changes; moves receive zero deletion credit. Allow the exact imported dependency set and ordinary module spacing; source assertions remain byte-identical.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_live_test_coverage",
+      "net_code_budget": 6000,
+      "positive_growth_justification": "Restore archived tests whose subject modules and relative import closure remain live. Preserve package ownership and mandatory discovery via existing inventories. Expose the existing inventory invariant as a focused package step through dev_test.py; no retired production implementations, new launcher, flags, ceilings or proof-policy changes. Benefit: 94 restored lexical regression blocks and independently executable completeness checks. Rollback restores the archived test batch together with its inventory entries; it must never silently lower coverage floors.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_named_authority_and_cpu_tests",
+      "net_code_budget": 6000,
+      "positive_growth_justification": "Restore seven named live regression families and rehome four retired helper adapters under explicit test-only ownership. Preserve the exact live authority, hostile mutation, OOM, division closure and GKR services checks. Existing developer entrypoint selects focused roots, with executable test-count floors to reject missing discovery. Runtime defaults, proof checks, public contracts and production algorithms remain unchanged. Benefit: recovered live semantic rejection coverage; rollback archives test and support owners together, never lowers a floor to pass.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_cairo_generator_toolchain_selection",
+      "net_code_budget": 20,
+      "positive_growth_justification": "Ensure Rustup selects the rewriter crate toolchain by executing Cargo in its owning crate directory, with a focused regression protecting that directory and binary destination. Regenerate provenance through authenticated pinned-source generators; preserve layouts, artifact bytes, proof pins and validators. Runtime proof algorithms are unchanged. Benefit: deterministic tool selection. Rollback reverts generator and regenerated provenance together. Unsuccessful compiler-schedule experiments are retired with their tests.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_core_borrowed_proof_capture_tests",
+      "net_code_budget": 400,
+      "positive_growth_justification": "Restore two deleted tests protecting live borrowed proof capture and transactional publication after rejection or allocation failure. Share the existing exact-test-identity guard with the component geometry suite; run all five recovered cases through a focused owner and the default core package step. No runtime implementation, public API, test identity, proof check, flag or launcher changes. Benefit: executable immutability and failure-lifetime coverage. Rollback archives the recovered test owner and its wiring together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_bounded_lt_comparator_kernel_proof",
+      "net_code_budget": 100,
+      "positive_growth_justification": "Replace exhaustive byte-pair decision proofs with bounded canonical arithmetic, a small kernel-checked coprimality table and a quotient/remainder proof of the exact inverse-of-32 shift-mask encoding. Share the established comparator normalization in LtReg. Preserve public theorem statements, assumptions, downstream proofs and the existing axiom audit. No native evaluation, new axiom, sorry, pin bypass, runtime code, flag or launcher. Benefit: bounded CPU proof checks under the diagnostic guards. Full build and live axiom audit remain required before formal pin refresh. Rollback restores the prior proof bodies and helper imports together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_transcript_parity_contracts",
+      "net_code_budget": 1000,
+      "positive_growth_justification": "Restore the named transcript-program parity and hostile-mutation tests, with their scheduled-channel reference under an explicit test-only owner. Preserve all four original checks and mandatory discovery in the package inventory and focused catalog. Production transcript implementation, proof bytes, public APIs, pins and runtime flags are unchanged. Benefit: recovered canonical challenge/transcript equivalence and rejection coverage. Rollback archives the tests and test-only reference together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_typed_component_contracts",
+      "net_code_budget": 1900,
+      "positive_growth_justification": "Recover all fourteen named typed component regression checks with their original assertions. Split the oversized test owner by adapter authority and quotient lifecycle; keep shared fixtures and the retained lowering oracle under test ownership. Benefit: explicit manifest, transcript, polynomial, allocator rollback and cancellation checks. No public API, production proof, flag, pin or test-floor changes. Rollback archives the restored tests and test-only support together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_preserve_carried_sail_artifact_identity",
+      "net_code_budget": 10,
+      "positive_growth_justification": "Restore the authentic sealed pre-restructure manifest and original Sail capsule header before normal regeneration. Retain the historical header in the renderer because carried Sail evidence may only reproduce byte-identical artifacts. No integrity validator, pin, theorem or receipt is relaxed or fabricated. Benefit: recover existing validated Sail evidence without claiming a live Sail build. Rollback restores the prior files together and returns the gate to its explicit invalid-seal failure.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_bounded_shift_publication_owners",
+      "net_code_budget": 300,
+      "positive_growth_justification": "Split the time-guarded shift publication proof into bounded model, constraints, lookup, arithmetic, movement, acceptance and publication owners. Existing public theorem statements and proof bodies are preserved exactly; moves receive zero deletion credit. Only helpers needed across files become named proof dependencies and enter the unchanged full axiom inventory. No runtime API, native evaluator, axiom or guard relaxation. Benefit: independently checkable incremental proof modules. Rollback concatenates the recorded moved bodies and restores private helper visibility together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_source_metadata_formal_guard_rebind",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Zero-growth reference repair: validate every old and newly generated AIR content seal, current source closures and exact equality of all ordered semantic payload fields outside source_identity/content_digest. Rebind only the corresponding quoted canonical digests in ordinary formal guards; reversing that map must recover the exact prior file. Preserve every guard, assumption, proof body and negative check. Do not modify the historical generated-Sail bridge or receipt; a fresh kernel rebuild remains mandatory. Repoint the exact twenty-path Lean LUI decoder allowlist by relocating only its three existing field owners to src/waist/core/fields and sorting; preserve cardinality, exact matching, normalized paths and digest checks."
+    },
+    {
+      "id": "delivery_restore_image_program_and_binary_tests",
+      "net_code_budget": 1000,
+      "positive_growth_justification": "Recover twenty-three live CPU test cases across image, program, distributed manifest and binary worker owners. Diagnostic and false-prover helpers remain test-only; the larger root includes the existing division contracts so its shared measurement helper routes to every consumer. Retire only root-only receipt assertions alongside their already-retired receipt_wire subject; retain the live complete-manifest wire assertions. Preserve immutable authority, fresh verification, polynomial rejection, allocation failure and open-debt checks. Keep mandatory default discovery and focused floors of twenty-three and seven. No production implementation, flag, launcher or proof-check changes. Benefit: recovered rejection/lifetime coverage. Rollback archives restored tests, support and build wiring together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_live_fri_frontier_contracts",
+      "net_code_budget": 100,
+      "positive_growth_justification": "Restore the two live FRI-frontier configured-security ledger and fail-closed/non-domination checks with unchanged assertions and comparison digest. Keep the opt-in arithmetic measurement archived with its retired lowering implementation; do not reintroduce its environment flag or runtime authority. Use mandatory inventory discovery and a focused floor of two. Benefit: recovered ledger and rejection coverage without a new launcher or production path. Rollback archives the retained tests and their focused wiring together.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_restore_pruned_discovery_floors",
+      "net_code_budget": 10,
+      "positive_growth_justification": "Restore the six pre-restructure minimum-test discovery gates, including three silently reduced to the default zero. Retained coverage may not claim green by lowering its discovery backstop. Keep unmet floors or resource stops explicit until their owner is validated; no floor or assertion is relaxed. Benefit: make missing live coverage a hard failure. Rollback requires an owner decision on the retired subject and executable discovery evidence, not an empty-suite pass.",
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0
+    },
+    {
+      "id": "delivery_refinement_entrypoint_identity_probe_path",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Zero-growth correction to the direct-entrypoint subprocess test after the scripts move: put the actual scripts/riscv directory on sys.path and load the entrypoint under its bare name, as the test originally specified. Preserve exception-class identity, catching behavior, neutral working directory and the prohibition on bare library imports. No production module alias or assertion is added or removed."
+    },
+    {
+      "id": "delivery_proof_wire_existing_family_checks",
+      "net_code_budget": 150,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "RFC #325 approves declaring the existing ForHasher/wireToProofFor exports at version 0.2.0 after provider tests. The +150 total test allowance includes the prior +132 candidate and bounded signature/CI-order checks. Preserve exact six-family framing, all coordinates, rejection before allocation, input immutability and independent ownership at every allocation-failure point. No production codec code, golden byte, error or protocol change. Rollback reverts this additive transaction as a whole before publication."
+    },
+    {
+      "id": "delivery_cpu_fixture_entrypoint_routing",
+      "net_code_budget": 20,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Route existing package-owned small proof fixtures through the established developer entrypoint instead of the broad integration fallback. Strengthen the typed-adapter target from one selected leaf case to all three retained cases with a minimum-three discovery gate; wire its already-declared prover API dependency that the newly compiled mixed case requires. Preserve all assertions and original test bodies. No new runtime algorithm, launcher, flag or API ledger. The attempted secp256k1 hash-family split did not pass the local memory guard and was fully reverted; no growth credit is taken for it. Rollback removes routing and restores the prior filtered target, but does not justify claiming the unrun cases as validated."
+    },
+    {
+      "id": "delivery_restore_secondary_live_contracts",
+      "net_code_budget": 1900,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Recover twenty-four original live regression cases for function-activation LogUp, SHA memory caller, BLAKE3 draw witnesses and distributed functional/projection contracts. Keep two archived fixtures under explicit test ownership; do not restore retired production subjects. All live assertions and named cases remain; only the mixed activation source test leaves two import assertions and three token checks on the retired inline-lowering source archived with that source, with mandatory inventories and focused floors increased from twelve/seven to thirty/thirteen. No runtime API, flag, launcher, golden byte, ceiling or proof-check change. Rollback archives the restored tests and support together, retaining an explicit unqualified coverage status. Focused runs explicitly execute on every invocation, matching the default package lane and preserving executable discovery metadata rather than relying on cached execution."
+    },
+    {
+      "id": "delivery_workspace_path_helper_dedup",
+      "net_code_budget": -8,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Subtract duplicate lexical path helpers by using pathlib.is_relative_to and the existing qualified CI owns matcher. Preserve the private helper entrypoints where used and require byte-equivalent ordered checker findings before/after, plus the existing negative-fixture tests. No policy, allowed dependency, API ledger, classification, baseline, gate or ceiling change. Rollback restores the prior duplicate helper bodies."
+    },
+    {
+      "id": "delivery_root_recursion_wire_binding",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair an existing documented thin-waist export that currently has no named-module binding. Use the existing circuit-recursion constructor with the same Cairo injected felt/parameter modules in both SDK construction paths. Reuse one canonical consumer fixture for the external dependency and SDK product checks, pin protocol/type authority identity, exercise actual canonical parsing and preserve malformed-input rejection. Fixture moves receive zero deletion credit. No API ledger, version, wire bytes, runtime algorithm, runtime flag or launcher changes; rollback restores the prior missing-binding failure without claiming qualification."
+    },
+    {
+      "id": "delivery_cpu_check_mode_execution_owner",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Fix the existing developer --check contract: focused CPU proof targets ignored the accepted check-only option and constructed real proof executions. Centralize test scheduling so semantic mode never requests a Run artifact or emitted binary; default mode still runs the same roots, filters and count floors freshly. The already-routed fixture receiver also honors semantic-only mode without installation. Preserve all imports, workload bodies and verifier rejection logic. No new flag, API ledger, version or launcher. Rollback restores the documented unsafe execution reproduction, which must not be reported as a semantic-only check. Successful developer output explicitly labels semantic checks separately from test execution."
+    },
+    {
+      "id": "delivery_blake_arithmetic_consolidation",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Zero-growth-or-negative consolidation of duplicate scalar/SIMD BLAKE2s rotates and G arithmetic into the existing internal parallel arithmetic owner. Preserve message/round schedules, constants, counters, dispatch, nonce policy, codec bytes and public facade; the interleaved four-G schedule stays exact. A small all-shift differential rotation test is mandatory. Moved bodies receive no deletion credit. Require native Debug/ReleaseFast independent-oracle tests and exact deterministic CPU fixture byte equality; no backend, security, gate or timing qualification is inferred. Rollback restores the original arithmetic bodies together."
+    },
+    {
+      "id": "delivery_cpu_telemetry_field_authority",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Replace duplicated snapshot/load and delta field lists with the existing snapshot type as internal field authority. Preserve the exact field declaration order, monotonic load ordering, saturating counters and two absolute process-lifetime high-water fields. Require the unchanged native composition suites plus a counter-reset/high-water regression in Debug and ReleaseFast. No API, layout, scheduler, allocation, error, proof, policy ceiling or runtime flag changes; rollback restores both explicit field lists."
+    },
+    {
+      "id": "delivery_poseidon_table_source_owners",
+      "net_code_budget": 150,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Restore the existing CPU row-local Poseidon/table constructive certificate after equation and schema ownership extraction and earlier reviewed generic relation refactors. Retain all prior source paths, every semantic anchor obligation, full table enumeration, negative controls and exclusions. Add exact digest bindings for the active layout/equation/verifier helpers and explicit forwarding/instantiation checks; update source identities only with complete rerun acceptance. Extra code owns current-source admission and mutation regressions, not a broader theorem or waived pin. No production algorithm, public API, golden data, wire, source ceiling or launcher changes."
+    },
+    {
+      "id": "delivery_native_cpu_product_closure_and_stdout",
+      "net_code_budget": 120,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Finish the existing Native CPU product gate after actual ReleaseFast execution passed all 222 tests but rejected missing canonical module bindings. Declare the exact existing atomic/postcard/native-artifact roots; admit only the Native artifact barrel, its existing test owner and three already-mandatory proof-wire test owners exposed by those exact bindings, retaining every directory prefix and forbidden-link rule. Fix reproduced positional stdout overwriting by streaming the existing applications writer. Extend the existing product checker with one optional positional binary path and actual append-offset/registry validation; retain default source-marker behavior. Negative tests protect overwritten, invalid and failed output. No package API/dependency ledger, runtime flag, new launcher, protocol, security policy or proof check change. Include the existing omitted Poseidon2 proof root in aggregate validation and force all seven existing product test runs to execute freshly, retaining roots, filters, cases and standalone steps. The pinned per-artifact run exposed a zero-case main root; explicitly collect its application/parser/identity/registry owners and require their five existing names from the compiler test list in an anonymous, unfilterable guard."
+    },
+    {
+      "id": "delivery_native_cpu_developer_path_owner",
+      "net_code_budget": 90,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair missing CI/developer selection for the moved Native CPU product source directory by mapping it to the existing native_cpu lane. Preserve its commands, Linux host policy and explicit macOS local-compatibility semantics; private CPU sources do not select GPU lanes, and no package contract is invented. Regression tests require exact CPU lane selection, deduplication and semantic-only deferral without compiler or prover execution. No production algorithm, protocol, API/dependency ledger, flag, script launcher, ceiling or rejection change. Local-compatible Zig builds use the existing serial wrapper and its build-lock owner, overriding only valid compiler job counts while preserving optimization, explicit limits, runtime arguments after -- and invalid-job rejection. Normal CI execution remains unchanged. The external diagnostic guard remains 4 GiB and 180 seconds. A regenerated real product catalog confirms capabilities.zig is shared: retain its exact Native/aggregate CPU and Metal consumer fanout in classification metadata, without executing the Metal lanes. The related static CI test retains the already-declared Circuit Metal prover-engine consumer in its expected set; the dependency ledger, planner behavior and Metal implementation are unchanged."
+    },
+    {
+      "id": "delivery_cairo_recording_export_visibility",
+      "net_code_budget": 120,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Keep every upstream module and test source in the authenticated generation-only Cairo overlay, while making native prover module exports private so recording compilation need not emit unrelated externally reachable native code. Authenticate both registry inputs before any visibility mutation; preserve the public witness recording exporter path and all source/module declarations. Full support installation and differential overlays remain unchanged. Existing Cargo owners compile serially. Require exact existing bundle bytes/hash, full 64-program emission and fail-closed registry tests under unchanged 4 GiB/180-second guards before any provenance refresh. No public package API, runtime algorithm, golden byte, gate, ceiling, rejection, launcher or new flag changes. Rollback restores export visibility and leaves regeneration unqualified."
+    },
+    {
+      "id": "delivery_detached_preparation_air_imports",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Subtractive internal frontend import repair. Fourteen detached-preparation source owners pull the complete recursive AIR barrel and its concrete CPU proof fixture into an existing backend-free closure. Replace only exact barrel field references with the same file owners, and remove four unused forwarding aliases in internal shards. Preserve all public facade/ledger files, every function equation, source/test file, test discovery, gate, rejection rule and allowed source prefix. Round-trip every substitution against the canonical barrel mapping; require the unchanged full product-closure suite and bounded fresh CPU acceptance. Admit only the four mandatory family helper/test files beneath the already-declared generic proof-wire module, preserving every directory prefix, backend/frontend exclusion and parser/rejection test; no broad allowance is added. No contract, backend algorithm, wire, golden byte, flag or launcher change. Rollback restores the eighteen aliases and the explicit closure failure. Add one small existing-owner runtime regression pinning row-17 public claims and the exclusion of row-35 shared-provider claims from the prefix; raise the existing authority discovery floor from thirty to the full observed two hundred sixty cases, including dependencies. The eighteen removed aliases pay for this test and the four exact generic-codec admissions, retaining zero net code growth."
+    },
+    {
+      "id": "delivery_frontend_focused_discovery_census",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Strengthen twelve existing CPU-only frontend targets whose default zero discovery floor permits missing suites to pass. Bind floors to complete observed test metadata in Debug/ReleaseFast, preserve all roots/filters/check-only behavior and retain the two existing failing pin/layout negatives as failures. Restore four existing V2 transcript named cases to their focused root, which previously ran only its anonymous import case; require those four names from the compiler test table in the anonymous filter-resistant guard. Execute an intentional unmatched-filter negative to prove missing cases fail closed. Growth owns test-discovery invariants only; no runtime/proof implementation, pin, ledger, wire, ceiling, rejection classification, flag or launcher change. Prior near-cap Debug compiler diagnostics remain sampled host evidence, not physical memory certification. Count discovered cases separately from verdicts: the restored transcript image has 235 passes and one unchanged opt-in sparse-Merkle benchmark skip in both modes; all four required transcript regressions execute. No skip is introduced or promoted to a pass."
+    },
+    {
+      "id": "delivery_frontend_catalog_developer_roots",
+      "net_code_budget": 80,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Derive exact frontend test-root developer routing from the existing standalone catalog after the restored transcript root still deferred to full-package CI. Route only one unambiguous test-prefixed target with a positive declared discovery floor. Preserve all existing explicit source/subsystem overrides, ambiguous/unfloored/workload fallback, CI policy, filters, count floors, optimization and semantic-only behavior. Remove six duplicate manual root mappings already owned by that catalog. Tests cover actual planner commands without tool/compiler execution, exact path matching, ambiguity, missing/zero floors, missing catalogs and workload rejection. Growth owns safe developer execution selection, not a new launcher, runtime/proof algorithm, API ledger, flag, allowance, pin or gate relaxation. Normal focused CLI builds delegate to the existing shared serial build-lock wrapper; an inherited canonical lock marker preserves parent ownership, while foreign markers do not waive the shared lock. Planning remains side-effect-free and CI lane execution is unchanged."
+    },
+    {
+      "id": "delivery_complete_frontend_partition_ownership",
+      "net_code_budget": 200,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Keep complete focused AIR and guest-precompile test scope after both full roots hit the unchanged local 4 GiB guard. Move all original literal imports in their original order into four mandatory test-only roots per owner, with the original complete root importing all four. Count import movement as no code removal. Every image runs freshly; check-only compiles every image. The existing discovery owner retains single-image counting and checks unique metadata names across all partition images, so shared dependency tests cannot compensate for omitted scope. Raise global inventory floor for the eight new test-only roots. Bind seventeen other existing targets to their complete observed counts, retaining every existing skip and failure. Developer routing selects the complete catalog owner for each partition root. No production implementation, dependency/API ledger, golden pin, assertion, rejection class, ceiling, runtime flag or launcher changes. Rollback restores full roots and leaves local compiler acceptance unqualified."
+    },
+    {
+      "id": "delivery_python_package_and_tool_contracts",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 1,
+      "positive_growth_justification": "Restore the repository scripts package marker so an installed regular package cannot hijack namespace resolution. Add a real subprocess regression with a hostile foreign scripts package. Reconcile the existing closed tooling inventory with four already tracked owners and the existing circuit-recursion-wire consumer lane; retain exact root equality, every caller check and bounded lane equality. No new tool, lane, launcher, feature flag, proof check, pin or test exclusion is introduced. The one added Python file is the explicitly requested package initializer, with no executable entrypoint."
+    },
+    {
+      "id": "delivery_hosted_compile_owner_bindings",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair concrete hosted compiler/import failures at existing owners. Resolve the moved Metal probe header and the prover-API Python working directory. Bind aggregate RISC-V generation to the same full-width BLAKE3 engine as the focused product while retaining the historical verifier route and every existing rejection. Give direct protocol commands the already-exported circuit-recursion-wire node and the exact two scalar authorities shared by the SDK/Cairo frontend, checking their declared injection ownership and preserving CPU-only exclusion. Model the explicitly requested root Python package initializer as a docstring-only marker rather than an executable launcher; keep every other reachability/discovery check. Tests protect moved header resolution, Python gate CWD, shared module identity, declared injections and marker content. No proof equation, pin, ledger, rejection class, feature flag, new script or launcher changes."
+    },
+    {
+      "id": "delivery_hosted_circuit_regeneration",
+      "net_code_budget": 25,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Use the existing CI workflow and existing pinned circuit-oracle generator for owner reproduction that exceeds the laptop budget. Add one manually selected CPU-only dispatch choice, serial Cargo compilation, an allocation preflight, immutable source/binary/toolchain receipts, a source-mutation rejection and always-retained raw logs plus a binary candidate patch. Preserve the generator exit classification and all pin checks; no generated vector is applied or promoted automatically. Tests protect manual dispatch isolation, CPU runner selection, pinned/serial ownership and failure artifact retention. No local compiler, GPU run, new launcher, public API ledger, pin waiver or new runtime flag."
+    },
+    {
+      "id": "delivery_cpu_proof_fixture_owner",
+      "net_code_budget": 200,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Move the complete concrete CPU proof corpus into its declared CPU integration owner while retaining generic frontend helpers. Preserve every test body and negative assertion, add a mandatory exact-name discovery guard and run the corpus through existing focused CI/developer entrypoints; rollback is the source-preserving relocation receipt. No dependency or API ledger widening."
+    },
+    {
+      "id": "delivery_exact_script_contract_owners",
+      "net_code_budget": 80,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Classify the existing unqualified circuit Metal integration as internal without expanding published packages, follow the exact relocated test-only legacy oracle owner, and recognize the existing authenticated preprocessing-root rejection as semantic while proving panic/signal precedence and unknown failures remain strict. No proof acceptance, expected mutation class, published status or API/dependency ledger is relaxed."
+    },
+    {
+      "id": "delivery_fri_scalar_differential",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Add an independent per-limb scalar differential for the observed hosted FRI first-fold oracle mismatch. Preserve the pinned digest and all existing multi-fold checks. Separate coordinate generation, batch inversion, butterfly arithmetic, optimized extension multiplication and canonical value projection without a new launcher or protocol/golden change."
+    },
+    {
+      "id": "delivery_hosted_cpu_diagnostics",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Run the existing focused CPU lane owners from immutable backup refs so CPU regressions can be compiled off-laptop without cancelling PR evidence. Explicit manual selection is diagnostic only, restricted to a reviewed CPU-only lane set, and cannot change automatic PR/scheduled scope, instantiate a device lane or replace the production PR verdict. Reuse the existing planner, runner and CI jobs; no top-level launcher."
+    },
+    {
+      "id": "delivery_circuit_generator_allocation_preflight",
+      "net_code_budget": 5,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Correct the full circuit generation allocation preflight from topology-only memory to a 32 GiB minimum accounting for fold-tree\u2019s documented roughly 22 GB per reduction. The first hosted attempt terminated at that owner; refuse another undersized host rather than weaken or omit the full parity workload. No laptop build, larger paid runner or GPU is started."
+    },
+    {
+      "id": "delivery_independent_manual_cpu_cancellation",
+      "net_code_budget": 5,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Give independent manual CPU lane requests distinct CI concurrency identities. The first dispatch batch proved that branch-only grouping cancels a pending different lane even with active-run cancellation disabled. Preserve frozen source and existing automatic cancellation policy; no additional lane, launcher or runtime switch."
+    },
+    {
+      "id": "delivery_exact_support_module_identity",
+      "net_code_budget": 50,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair the FRI regression\u2019s duplicate relative module import by using the existing named circuit frontend export. Bind the aggregate lexical closure to the exact support modules already injected by its real compiler graph, retaining leaf ownership and all rejection checks. Make the exhaustive Merkle allocation-fault sequence deterministic by refusing backing resizes, retaining all failure/leak checks. Compose the aggregate legacy CPU engine through its existing generic frontend constructor instead of importing unrelated RV64 recursion services. No dependency/API ledger, directory prefix, proof bytes or compiler assertion is widened."
+    },
+    {
+      "id": "delivery_fri_independent_integer_reference",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Strengthen the FRI differential to use independent u64 remainder arithmetic and authenticate the complete reference against the pinned oracle digest before comparing optimized outputs. The first run showed disagreement in both the field-based reference and optimized output; do not infer an implementation correction from an unvalidated reference. Existing oracle digest, all 128 outputs and seven subsequent folds remain required."
+    },
+    {
+      "id": "delivery_live_sail_binding_regeneration",
+      "net_code_budget": 80,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Rebind two internal Lean composition source identities to canonical current AIR exports, with source-file hashes verified first, then use the existing pinned Sail/Lean workflow and generator to produce a kernel-checked candidate. Default verification still requires committed artifacts, full publication and clean live receipt minting. Explicit regeneration retains baseline rejection, immutable source and candidate diff without promoting receipts or weakening proof/axiom/pin rules; no local compiler or new launcher."
+    },
+    {
+      "id": "delivery_fri_stage_differential",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
+    },
+    {
+      "id": "delivery_existing_cpu_embedded_asset_roots",
+      "net_code_budget": 10,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Complete the measured CPU configure inventory with the two existing embedded circuit AIR binaries. These exact files are already created as anonymous asset modules by the CPU recursion tools and remain authenticated by existing circuit provenance; no directory prefix, artifact pin, runtime graph, test discovery or validation rule changes. Keep unrelated GPU-scope failures rejected."
+    },
+    {
+      "id": "delivery_exact_riscv_cpu_configure_inventory",
+      "net_code_budget": 240,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Give the complete RISC-V CPU constructor an independent exact 214-root source inventory rather than the stale 17-root list. Every admitted file already exists and is recorded in immutable hosted construction; the five removed records name absent files with no remaining build/test/tool reference. No advertised step or runtime module graph changes. Use a coherent sub-500-line owner and retain exact CI fanout and formal source-hash coverage. Positive growth is explicit source ownership metadata, not new runtime implementation, relaxed source prefixes or discovery."
+    },
+    {
+      "id": "delivery_exact_configure_helpers_and_shape_rejection",
+      "net_code_budget": 60,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reconcile only the observed native test roots, retained SDK support modules and existing CPU circuit-composition generated root in configure metadata. Preserve CUDA missing-step and Metal protocol-identity rejections. Keep exact shape-registry admission unchanged while printing rejected dimensions to stderr and retaining raw diagnostic output for every canonical input in the existing hosted CPU owner. Any rejected case prevents the unchanged collector from minting a candidate. No public API, registry, golden, source prefix, new flag or launcher changes."
+    },
+    {
+      "id": "delivery_existing_circuit_dependency_binding",
+      "net_code_budget": 10,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Bind the canonical circuit frontend already present in the CPU integration's build manifest and focused roots to its main test module, where five real compiler errors currently report it missing. Resolve that existing module once and reuse it for all three roots. No new dependency edge, public API ledger, filter, test floor, source admission or implementation change. Fresh full CPU integration acceptance remains required."
+    },
+    {
+      "id": "delivery_measured_configure_catalog_batch",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reconcile measured configure dependencies for retained core/prover/native tests, canonical interop modules and the existing broad public SDK facade without changing runtime dependencies or checks. Give package exports an exact independent root inventory instead of the focused prover-only list. Move the unchanged typed step table to a coherent sub-500-line owner, preserving its forwarding API, CI fanout and formal source-hash coverage; moves receive no subtraction credit. Keep the CUDA missing-step rejection unresolved. Preserve the CPU shape inspector binary and first-case stderr before its live-owner rejection, with no receipt restamping."
+    },
+    {
+      "id": "delivery_live_cpu_shape_audit_candidate",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Extend the existing pinned CPU artifact-regeneration workflow to run the maintained proof-independent recursion shape inspector and collector against immutable clean source and all sixteen canonical inputs. Retain the exact binary/source hashes, validation and candidate artifact instead of restamping stale source evidence. Circuit regeneration and its 32 GiB preflight remain independently selected. No proof, timing, hardware, golden expectation or acceptance-rule changes, and no new script or launcher."
+    },
+    {
+      "id": "delivery_complete_configure_scope_rejection",
+      "net_code_budget": 50,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Retain all exact configure rejection rules while reporting every failed scope in one existing hosted lane invocation, so independent drift is repaired in a measured batch rather than one-failure rebuild loops. A regression requires all scopes to be observed, all rejections reported, no installation and no passing receipt after any rejection. Record only the two Cairo interop dependency roots already observed in the hosted constructor. No new acceptance exception, source prefix, launcher or device execution."
+    },
+    {
+      "id": "delivery_independent_field_context_and_catalog_projection",
+      "net_code_budget": 180,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Project exact named roots already admitted by product source-closure descriptors into configure manifests instead of manually granting implementation directories. Add schoolbook integer QM31 multiplication regressions using runtime edge/random operands in direct, reversed and detached call contexts; the staged FRI test changed from failing to passing without production arithmetic edits, so preserve that negative evidence and strengthen falsification. Wire the new named root through mandatory test-fields and add Debug field execution beside existing ReleaseFast CI. No arithmetic implementation, public API, golden, ceiling, rejection or launcher changes."
+    },
+    {
+      "id": "delivery_cpu_closure_and_complex_differential",
+      "net_code_budget": 120,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reconcile aggregate configure roots with actual canonical CPU composition and the existing circuit recursion CPU proof-wire injection. Admit only its four measured definition/test leaves, without new dependency edges or wildcard source prefixes. Decompose the authenticated FRI extension-product failure into exact independent complex ac, bd and cross comparisons before changing production field arithmetic. Existing product linkage checks, ceilings, goldens and rejection gates remain unchanged."
+    },
+    {
+      "id": "delivery_invariant_owner_review_routing",
+      "net_code_budget": 180,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Resolve all existing invariant-owner roles to explicit repository-maintainer review routing in CODEOWNERS, with exact contract/build-manifest coverage. Extend existing package graph/workspace owners to reject missing/unknown roles, malformed accounts and duplicate or wildcard override paths. Reuse the ownership projection parser in the shared graph library instead of growing the 850-line checker. No collaborators are added, branch protection or RFC approval claimed, public API ledger changed or top-level launcher introduced."
+    },
+    {
+      "id": "bounded-observer-journal-ownership",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Consolidate three identical V3 prefix-journal parsers with one explicit internal owner. Preserve per-command radix/count admission, strict function-value regular-file admission, execution/teardown and existing wire bodies. New named contracts cover identity, bounds, prefix lifetime and every parser allocation failure. Build all three commands and execute the contract root in hosted ReleaseFast and Debug CPU CI; relocation receives no subtraction credit."
+    },
+    {
+      "id": "cm31_direct_product_candidate",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Simpler equivalent CM31 schoolbook expression targets the observed full-frontend complex ac disagreement; independent integer regressions check both complex and extension products without changed oracle expectations. No performance claim; four base products replace three. Existing full CPU frontend and core owners must accept the candidate."
+    },
+    {
+      "id": "memcpy_admission_journal_owner",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reuse the identical journal parser for the fourth bounded observer, preserve its exact execution/wire bodies and every classifier rejection class, and promote its previously embedded classifier test to mandatory hosted execution. Separate legacy-semantics admission remains unchanged because its completion/summary requirements differ. Net source reduction required; moves earn no removal credit."
+    },
+    {
+      "id": "cm31_call_boundary_candidate",
+      "net_code_budget": 10,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reject the direct-schoolbook candidate after the retained uninstrumented FRI digest fails despite full frontend acceptance. Restore the original three-product arithmetic and test an explicit noinline boundary without changing oracle expectations. Execute the existing Debug field command before ReleaseFast so its evidence is retained even when an optimized command fails. Every existing core command remains required."
+    },
+    {
+      "id": "sail_candidate_fresh_air_inputs",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair the observed hosted candidate failure on missing AIR export by invoking the existing exact production export owner before expensive provisioning, retaining all 46 opcode inputs and binding both candidate generation/check to those same fresh paths. Add workflow ordering/input coverage; keep normal publication and receipt admission unchanged."
+    },
+    {
+      "id": "bounded_observer_developer_ci_ownership",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Close the observed dev_test unowned-source failure by routing four bounded observer directories and the shared contracts to their existing complete RISC-V CPU lane. Mark that heavy lane hosted so the developer entrypoint and prepush cannot launch complete proof builds on the laptop. Verify normal/check modes defer without a tool probe; preserve every CI command and discovery floor."
+    },
+    {
+      "id": "hosted_cpu_result_receipt_20261109",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Receipt-only checkpoint of exact hosted component positives, retained arithmetic and timing negatives, independent source/workspace counts, measured commit budgets and a downloaded/hash-verified remote evidence archive. Preserve every incomplete full-suite/formal/GPU/performance gate and all historical receipt sections."
+    },
+    {
+      "id": "legacy_observer_complete_discovery",
+      "net_code_budget": 20,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Make all six existing legacy semantic observer contracts mandatory in the shared named discovery root and build the fifth real command through the existing hosted CPU lane. Preserve the exact source-file bytes because the observer binds that file into its output; its distinct strict completion and summary parser is unchanged. No structural-completion or code-removal credit is claimed."
+    },
+    {
+      "id": "complete_om31_dual_mode_discovery",
+      "net_code_budget": 45,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Execute the thirteen existing OM31 polynomial-oracle, inversion, ring, Frobenius, encoding and packed/batch atomicity properties through both the normal core product and package field roots. Add exact-name discovery in the collector, not arithmetic changes or a protocol selection. Preserve every existing test body, dedicated step and source-bound Sail production closure."
+    },
+    {
+      "id": "retained_host_contract_repairs",
+      "net_code_budget": 35,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair the malformed synthetic SSZ positive fixture exposed by newly mandatory execution: actual body/witness ends are 49/29, not 44/36. Preserve decoder bytes and explicitly require rejection of each old offset. Require that test by name and raise the discovery floor. Follow the canonical catalog forwarding edge for an existing step uniqueness check while retaining every count and identity assertion; no GPU implementation, pins or expectations change."
+    },
+    {
+      "id": "live_generation_preparation_owner",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Move complete exact backend preparation into live generation so candidate mode does not perform the same full kernel verification in a redundant prior process. Preserve prepare_exact_backend and every kernel/pin check unchanged, preserve explicit generated-file and carried-evidence behavior, and retain independent check-generated verification. No proof-result caching, new CLI flag or admission bypass."
+    },
+    {
+      "id": "reviewed_cm31_table_binding_refresh",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Regenerate the one changed row-local audit binding only after exact normalization reproduces the previously trusted CM31 source and the unchanged owner checks all 2981888 table rows, Poseidon materializations and negative controls. Preserve every other pin and all proof/security/timing exclusions; generated receipt records the exact binding map."
+    },
+    {
+      "id": "rv64_parallel_separate_worker_frames",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Separate SIMD and scalar worker call frames without changing arithmetic, admitted stacks, scheduling, allocation or drain lifetimes. Require existing residual/parity/failure tests in hosted Debug and ReleaseFast. Roll back the internal split if hosted parity fails; no protocol or public API change."
+    },
+    {
+      "id": "explicit_compile_free_toolchain_gate",
+      "net_code_budget": 70,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Expose the planned CI toolchain check through the existing entrypoint and reuse its static tests in the fast tier. Validate exact Rust crate/guest inventories and Sail authority and count every Zig/Python installer despite trailing comments. One CI selector, no runtime flags or launchers; no installation, binary-digest or device claim."
+    },
+    {
+      "id": "failed_cpu_worker_frame_evidence",
+      "net_code_budget": 10,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Retain exact command output and inspect only failed test binaries inside the existing CPU cache. Existing hosted workflow records binary hashes and bounded worker/evaluator prologues before teardown. Diagnostics leave failure status, timeouts, stack limits and production logic unchanged; no launcher or runtime flag."
+    },
+    {
+      "id": "fresh_cpu_proof_before_profile_diagnostics",
+      "net_code_budget": 10,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "The existing ReleaseFast CLI build remains first; unchanged proof production, fresh verification and trace commands precede independent Debug/profile diagnostics. Preserve every exact command, check and fail-fast result. Discovery test pins this ownership order; no gate is skipped or reclassified."
+    },
+    {
+      "id": "reviewed_vector_index_metadata_reconciliation",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reconcile two already-reviewed file metadata rows, one retired unconsumed receipt row and stale retirement group counts. Preserve all fixture bytes, proof pins and exact retained hashes. Verify the complete manifest and hierarchical census and archived receipt bytes; no generator or GPU execution."
+    },
+    {
+      "id": "rv64_coordinator_resolves_worker_scratch_variant",
+      "net_code_budget": 35,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "The coordinator retains checked scratch-payload selection and passes tagged pointers to workers. Remove two Debug active-union payload copies proven by source-pinned disassembly to exceed the unchanged worker stack. Keep allocation, arithmetic, lifetime and failures intact. Run the existing bounded Debug falsifier first and retain compiler-frame evidence on pass or fail."
+    },
+    {
+      "id": "bounded_debug_packed_emission_frames",
+      "net_code_budget": 25,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "After source-pinned assembly proves the worker frame shrinks from 1202512 to 368 bytes, the same Debug falsifier reaches a deeper emitter fault. Put the unchanged packed accumulation body behind a Debug-only never-inline boundary; retain mandatory always-inline in optimized builds and every stack/semantic gate. Extend existing bounded frame diagnostics; no arithmetic or public contract change."
+    },
+    {
+      "id": "fresh_cpu_receiver_for_rejected_full_width_report",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Existing hosted workflow freshly verifies retained BLAKE3 candidate artifacts and rejects a wrong caller statement ID under the existing timeout and exact source/executable/workload/artifact hashes. At most 55 workflow diagnostic lines, reported separately. Original smoke schema/release rejection and lane failure remain mandatory; no new acceptance path, launcher or protocol change."
+    },
+    {
+      "id": "cm31_pinned_standalone_and_main_diagnosis",
+      "net_code_budget": 200,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "User-requested standalone pinned FRI pair with explicit canonical runtime guards and independent frozen expected limbs, plus hosted exact-main/current source comparisons and LLVM IR. Preserve production arithmetic and every golden; distinguish a passing reduced case from reproducing the full failure. No new launcher or runtime flag; no timing trust before byte identity."
+    },
+    {
+      "id": "approved_runtime_profile_fixture_rfc326",
+      "net_code_budget": 20,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "RFC #326 authorizes only the exact runtime-profile expected digest and an existing-test process-usage mutation. Preserve all eight cases and complete-source rejection; null restoration and fresh admission verify ownership without production hashing or schema changes. Rollback restores this test-only transaction."
+    },
+    {
+      "id": "approved_cpu_circuit_boundary_rfc324",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "RFC #324 declares exactly three existing collaboration edges and the OM31 namespace. Provider tests pin concrete field/hash/transcript and proof/wire type identity; existing VK/root consumer tests run in the provider lane. Reuse canonical dependency modules, preserving teardown and all refusal cases. Revert the additive transaction for rollback; no device or protocol changes."
+    },
+    {
+      "id": "formal_bridge_bounded_dual_stream_diagnostics",
+      "net_code_budget": 32,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Move the existing bridge subprocess boundary into the existing process owner, bringing the bridge below its 850-line ceiling. Preserve labelled stdout/stderr tails within 8000 detail characters, with existing failure regression for empty, short and oversized streams. Preserve success output, exception classification, timeouts, commands, theorem targets and every pin. Growth owns observable failure evidence only; rollback returns the private helper and tests together."
+    },
+    {
+      "id": "bounded_failed_cpu_worker_debugger_receipt",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reuse the existing hosted failed-binary evidence step for one bounded CPU debugger replay under the shared build/test lock. Preserve the lane failure, stack admission, complete test discovery and production source. Pin binary and transcript digests; record unavailable debugger or timeout explicitly. Workflow diagnostics only, no launcher or runtime flag. The first replay records gdb unavailable; provision it only in this existing CPU failure-evidence step and retain its exact executable hash and version. No production toolchain change."
+    },
+    {
+      "id": "bounded_debug_cyclic_denominator_slots",
+      "net_code_budget": 20,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Source/binary-pinned gdb proves Debug stack-probe faults in the 628608-byte denominator owner and, after its dispatcher shrinks to 25872 bytes, beneath the 557616-byte terms owner. Extract byte-identical slot and grouped-term expressions into private Debug never-inline / optimized always-inline helpers. Preserve common bases, term count, operation/result order, tuple authority, residual/parity/drain tests and stack ceilings. The original three-element result arity remains a compile-time invariant. Combined helper allowance stays +20, no new API, flags, scripts or GPU change."
+    },
+    {
+      "id": "admitted_cpu_child_capture_fixture_installation",
+      "net_code_budget": 2,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Provision the existing mandatory child-capture test with an archived CPU proof whose key and expected statement exactly match the unchanged committed admission. CI owns installation from an immutable archive commit, checks independent admission/key/expected/proof pins and records all input digests before execution. Preserve missing-input rejection, required test discovery and all production interfaces. No producer-derived key authority, new golden bytes, runtime flags or launcher. Two catalog/routing lines collect the same required case with minimum-one discovery before the long package suite, preserving the dedicated BLAKE3 corpus and original full command. This keeps RFC #324 cumulative code at +37 of +40 and makes missing/invalid fixture rejection immediate."
+    },
+    {
+      "id": "remaining_handover_native_projection_vm_regressions",
+      "net_code_budget": 1000,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Restore eleven explicitly handed-over regressions whose production subjects remain live: four native V3 projection cases and seven VM composition cases. Keep whole live VM bodies verbatim; mixed native/AIR tests retain all native semantics and source-class counts while retired circuit-program checks remain in immutable archive with their subjects. Relation-summary and three retired VM cases remain archived. Reuse existing focused roots, raise floors by eleven, retain default inventory and full package gate; serialize diagnostic compilation. No production algorithm, protocol, pin, API, runtime flag or launcher change. Rollback archives restored tests and discovery together, never claims unrun semantics."
+    },
+    {
+      "id": "a1_configure_closure_fail_closed_registration",
+      "net_code_budget": 20,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Restore missing unavailable-toolchain and host rejection steps and declare the existing portable test and observed product identity; preserve exact build configure closure without device execution."
+    },
+    {
+      "id": "a3_mandatory_two_row_cm31_regression",
+      "net_code_budget": 60,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pin both rows of the isolated CM31 SLP fold regression using actual production QM31 arithmetic and independent modular integer results, with exact test discovery in mandatory Debug and ReleaseFast core commands."
+    },
+    {
+      "id": "a1_native_archive_standalone_program_ownership",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Preserve and explicitly collect four pure host policy regressions while removing standalone tests, benchmarks and opt-in diagnostic overlays from the product archive; reject future standalone entrypoints without relaxing live CUDA policy."
+    },
+    {
+      "id": "a_cpu_ci_unfinished_command_evidence",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Preserve source-pinned unfinished command streams and prior completion records across cancellation, and protect complete-package required child discovery while eliminating duplicate execution."
+    },
+    {
+      "id": "a3_nonblocking_typed_witness_benchmarks",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Explicit owner steering for #330: park 976ca18b1 on its remote benchmark branch and restore all eight production writers. Move the identical eight timing assertion bodies, helpers and thresholds to the existing frontend catalog's non-blocking benchmark lane; keep correctness, byte parity, binding, alias/padding and rejection cases in mandatory coverage. Share existing test fixtures rather than copying them. Declare the separate benchmark roots in the inventory checker and retain an eight-case discovery floor; the four correctness cases retain their own mandatory floor. No performance-derived merge requirement, public API, runtime flag, launcher or golden change. Fragment moves receive no subtraction credit."
+    },
+    {
+      "id": "a3_restored_frontend_negative_contracts",
+      "net_code_budget": 50,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #330: repair four observed acceptance failures without changing protocol bytes, capacities, proof pins or throughput thresholds. Exercise an actually invalid direct graph after positively admitting a valid relation-only layout; pin the already-shipped version-six BLAKE3 codec and reject versions two/four/five; derive the existing six hint columns from their envelope owner and retain the exact capacity; normalize only the private subtree endpoint error to the existing continuation boundary's tested rejection, with independent admission-error propagation coverage. Existing assertions, complete suite and wrong-root rejection remain mandatory. No new API, flag or launcher; rollback reverts this bounded repair and retains failing evidence."
+    },
+    {
+      "id": "a3_focused_releasefast_acceptance_diagnostic",
+      "net_code_budget": 110,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #330: reuse the existing frontend test catalog, floor checker and hosted CPU lane to isolate the twelve unchanged failures from the complete ReleaseFast run. Literal leaf imports and exact filters retain original assertions; error traces improve diagnosis. Preserve complete mandatory suite, floors, golden pins and throughput thresholds. No copied tests, runtime flags or new launcher. Diagnostic result never substitutes for the complete gate; rollback removes the selection and lane together."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

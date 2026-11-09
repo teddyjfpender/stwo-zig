@@ -2,7 +2,7 @@
 
 `stwo_circuit_metal_integration` is the circuit prover of
 `stwo_circuit_cpu_integration` on the Metal backend (milestone M12 of the
-[recursion design](../../../design/starknet-proving-pipeline/recursion/02-design.md),
+[recursion design](../../../design/starknet/recursion/02-design.md),
 §4.6). It proves the same transcript (`crates/circuit_prover/src/prover.rs`
 of [starkware-libs/proving](https://github.com/starkware-libs/proving) at
 commit `5a7c5ede4299c91a61df19a07cba4f7502c14230`) with `MetalCommitBackend`,
@@ -125,7 +125,7 @@ recursion product's, each with `circuit_provers_under_test` bound to
 
 ## Related documentation
 
-- [Recursion design](../../../design/starknet-proving-pipeline/recursion/02-design.md)
+- [Recursion design](../../../design/starknet/recursion/02-design.md)
 - [Circuit CPU integration](../circuit_cpu/README.md)
 - [Cairo Metal integration](../cairo_metal/README.md)
 - [Metal backend](../../backends/metal/README.md)

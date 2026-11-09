@@ -11,7 +11,7 @@ from collections.abc import Iterable
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "scripts/sn_pie_composition_bundle.py"
+SCRIPT = ROOT / "scripts/cairo/sn_pie_composition_bundle.py"
 TEMPLATE = ROOT / "vectors/cairo/sn_pie_2_composition.bin"
 METALLIB = ROOT / "vectors/cairo/sn_pie_2_composition.metallib"
 METALLIB_OVERRIDE = "STWO_ZIG_COMPOSITION_METALLIB"

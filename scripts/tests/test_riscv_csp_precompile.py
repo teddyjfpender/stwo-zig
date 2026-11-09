@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
-from scripts.riscv_csp_benchmark_lib import precompile as p
-from scripts.riscv_csp_benchmark_lib.contract import validate_manifest, SECURE_PCS_CONFIG, BenchmarkError, sha256_bytes
+from scripts.riscv.riscv_csp_benchmark_lib import precompile as p
+from scripts.riscv.riscv_csp_benchmark_lib.contract import validate_manifest, SECURE_PCS_CONFIG, BenchmarkError, sha256_bytes
 
 
 class PrecompileTests(unittest.TestCase):

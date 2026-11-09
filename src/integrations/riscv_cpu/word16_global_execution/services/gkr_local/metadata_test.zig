@@ -67,7 +67,7 @@ test "actual K ADD DOUBLE metadata equals physical MAIN fractions and survives o
                 for (m[0..mw], 0..) |*v, c| v.* = O.fromBase(main[instance.main_offset + c].values[p]);
                 var expected = Sample{ .instance = instance, .logical = logical, .n = undefined, .d = undefined };
                 var raw = Input.RowSink{ .challenges = &challenges, .numerator = expected.n[0..instance.terms], .denominator = expected.d[0..instance.terms] };
-                try @import("dispatch.zig").emitFor(O, instance.origin, f[0..fw], m[0..mw], O.fromBase(M.fromCanonical(@intCast(shard + 1))), boundary, &raw);
+                try @import("dispatch_test_support.zig").emitFor(O, instance.origin, f[0..fw], m[0..mw], O.fromBase(M.fromCanonical(@intCast(shard + 1))), boundary, &raw);
                 var actual = Sample{ .instance = instance, .logical = logical, .n = undefined, .d = undefined };
                 var metadata = Input.RowSink{ .challenges = &challenges, .numerator = actual.n[0..instance.terms], .denominator = actual.d[0..instance.terms] };
                 try provider.emit(instance, logical, &metadata);
