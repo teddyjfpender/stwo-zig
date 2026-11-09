@@ -63,6 +63,8 @@ pub fn ForArithmetic(comptime kind: Kind) type {
             return Self.proveRecorded(a, ctx, key, outputs, null, mutation);
         }
         fn proveRecorded(a: std.mem.Allocator, ctx: *const Context, key: *const K.Key, outputs: []const Q, recorder: ?*Engine.stage_profile.Recorder, mutation: @import("arithmetic.zig").Mutation) ![]u8 {
+            var domain_profile = @import("../../native_dot/domain_profile.zig").Scope.init(if (kind == .r7) recorder else null);
+            defer domain_profile.deinit();
             if (kind == .r7 and !Engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.NativeDotR7BudgetRequired;
             if (key.fixed_tree == null or Arith.base(&key.inner).fixed.values.len != Arith.FIXED_COUNT or Arith.base(&key.inner).usage.len == 0) return error.TerminalBlakeProverDataRetired;
             var main = blk: {
