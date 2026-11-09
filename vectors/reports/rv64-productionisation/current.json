@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-09T01:55:56.676924+00:00",
+  "updated_utc": "2026-11-09T03:09:18.481403+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv/rv64-gpu-hygiene.md",
@@ -575,8 +575,8 @@
     "historical_non_stwo_flags_removed": 3
   },
   "latest_goal_turn": {
-    "classification": "PROGRESS_CPU_ONLY_CATALOG_DEVELOPER_ROUTING",
-    "evidence": "Forty-five exact frontend roots gain catalog-owned focused routes, with all prior explicit rules and fallback safeguards retained. Eighty-eight contracts pass; clean actual developer semantic/runtime transcript commands pass under explicit shared build-lock ownership. Parent-lock retention and teardown are observed. No GPU work; global failures remain open."
+    "classification": "PROGRESS_CPU_ONLY_COMPLETE_FOCUSED_DISCOVERY",
+    "evidence": "All 79 focused targets now have positive measured floors. Seventeen clean target owners pass; both semantic modes and inventory/legacy checks pass. All eight direct partition images compile under unchanged guards; complete warm guest owner passes while AIR retains six throughput failures. Two first aggregate commands hit the unchanged time guard. Runtime-profile pin cause is established without changing its golden or source admission. Global findings remain 103/393, no GPU work."
   },
   "budget_results": {
     "worktree_consolidation": {
@@ -3220,6 +3220,313 @@
       "existing_profile_digest_and_framework_layout_failures": "UNCHANGED_FROM_FOCUSED_CENSUS; no pin/rejection changes",
       "qualification": "Native macOS developer routing, semantic/runtime dispatch and shared build-lock ownership only. One unchanged opt-in benchmark skip remains explicit. No whole CPU CI, full recursive proof, complete block, GPU, physical memory or qualified timing claim.",
       "evidence": "External archive keyed by receipt tree, containing all policy/contract checks, actual semantic/runtime CLI logs, retained runtime image and named corpus, borrowed-owner/teardown probes, clean source pin and ordered audits."
+    },
+    "delivery_complete_frontend_partition_ownership": {
+      "baseline_commit": "36c28dda6fb17610026fda77af5e9cdd6ba7d5c5",
+      "tested_execution_commit": "ced9dfe12b62c8711d9371305d53c5aefabdf26e",
+      "tested_execution_tree": "27c84c966d357198194b13541695549a7e91bdeb",
+      "clean": true,
+      "status": "COMPLETE_FOCUSED_DISCOVERY_GUEST_OWNER_PASS_AIR_THROUGHPUT_FAILURES_RETAINED",
+      "code": {
+        "added": 145,
+        "removed": 38,
+        "net": 107,
+        "budget": 200
+      },
+      "raw_code_text_diff": {
+        "added": 294,
+        "removed": 187,
+        "net": 107
+      },
+      "relocated_import_lines_no_subtraction_credit": 149,
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "file_moves": 0,
+      "catalog_specs": 79,
+      "unfloored_before": 19,
+      "unfloored_after": 0,
+      "mandatory_partition_roots": 8,
+      "original_import_scope": {
+        "air_semantics": {
+          "imports": 125,
+          "exact_ordered_union": true,
+          "distinct": 125
+        },
+        "guest_precompile": {
+          "imports": 24,
+          "exact_ordered_union": true,
+          "distinct": 24
+        }
+      },
+      "global_inventory_floor": {
+        "before": 1084,
+        "after": 1092
+      },
+      "filtered_legacy_floor": {
+        "before": 5,
+        "after": 17,
+        "ReleaseFast": "PASS_17_CASES",
+        "Debug": "PASS"
+      },
+      "developer_routing_unit_tests": {
+        "passed": 37,
+        "new_partition_root_plans_checked": 8
+      },
+      "other_17_targets": {
+        "clean_owner_runs_passed": 17,
+        "same_pinned_images_as_executed_baseline_corpora": true,
+        "matrix": [
+          {
+            "label": "test-runner-ReleaseFast",
+            "discovered": 436,
+            "passed": 429,
+            "skipped": 7
+          },
+          {
+            "label": "test-recursion-pair-node-ReleaseFast",
+            "discovered": 194,
+            "passed": 193,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-temporal-pair-ReleaseFast",
+            "discovered": 325,
+            "passed": 323,
+            "skipped": 2
+          },
+          {
+            "label": "test-recursion-vm-composition-ReleaseFast",
+            "discovered": 228,
+            "passed": 227,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-composition-recorder-ReleaseFast",
+            "discovered": 18,
+            "passed": 18,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-segment-leaf-outer-v2-ReleaseFast",
+            "discovered": 301,
+            "passed": 300,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-segment-transcript-source-v2-ReleaseFast",
+            "discovered": 254,
+            "passed": 253,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-segment-transcript-components-v2-ReleaseFast",
+            "discovered": 264,
+            "passed": 263,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-segment-public-components-v2-ReleaseFast",
+            "discovered": 250,
+            "passed": 249,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-segment-outer-manifest-v2-ReleaseFast",
+            "discovered": 248,
+            "passed": 247,
+            "skipped": 1
+          },
+          {
+            "label": "test-recursion-segment-outer-cohort-v2-ReleaseFast",
+            "discovered": 204,
+            "passed": 204,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-segment-boundary-components-v2-ReleaseFast",
+            "discovered": 98,
+            "passed": 98,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-fri-profile-measurements-ReleaseFast",
+            "discovered": 51,
+            "passed": 51,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-parent-transcript-source-ReleaseFast",
+            "discovered": 64,
+            "passed": 64,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-parent-statement-source-ReleaseFast",
+            "discovered": 70,
+            "passed": 70,
+            "skipped": 0
+          },
+          {
+            "label": "test-recursion-binary-closure-ReleaseFast",
+            "discovered": 28,
+            "passed": 28,
+            "skipped": 0
+          },
+          {
+            "label": "test-poseidon-universal-degree3-ReleaseFast",
+            "discovered": 182,
+            "passed": 181,
+            "skipped": 1
+          }
+        ],
+        "skips": "Seven unavailable Sail-oracle cases in runner; remaining skips are existing opt-in measurements. Case totals overlap across targets."
+      },
+      "direct_partition_diagnostics": {
+        "images": 8,
+        "all_compiled_within_guards": true,
+        "AIR_unique_names": 835,
+        "AIR_occurrences": 1165,
+        "AIR_failed_occurrences": 7,
+        "AIR_skipped_occurrences": 1,
+        "guest_unique_names": 466,
+        "guest_occurrences": 1147,
+        "guest_failed_occurrences": 0,
+        "guest_skipped_occurrences": 4,
+        "classification": "ReleaseFast component diagnostics; timing assertions retained, no timing qualification"
+      },
+      "clean_entrypoint_runs": {
+        "jobs": 25,
+        "passed": 23,
+        "time_guard_stops": 2,
+        "semantic_only_both_owners": "PASS_NO_TEST_EXECUTION",
+        "inventory_and_filtered_legacy_both_modes": "PASS",
+        "aggregate_first_commands": "Both hit unchanged 180-second guard while compiling their complete image sets; not passing cold full-target acceptance"
+      },
+      "warm_complete_owner_runs": [
+        {
+          "label": "test-air-semantics-warm-complete-owner-ReleaseFast",
+          "argv": [
+            "uv",
+            "run",
+            "--offline",
+            "--python",
+            "3.13",
+            "--no-project",
+            "python",
+            "scripts/repo/zig_serial_build.py",
+            "--no-lock",
+            "--cwd",
+            ".",
+            "test-air-semantics",
+            "--build-file",
+            "src/frontends/riscv/build.zig",
+            "-Doptimize=ReleaseFast",
+            "--verbose"
+          ],
+          "exit_code": 1,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 3098083328,
+          "wall_seconds": 143.30893233395182
+        },
+        {
+          "label": "test-guest-precompile-warm-complete-owner-ReleaseFast",
+          "argv": [
+            "uv",
+            "run",
+            "--offline",
+            "--python",
+            "3.13",
+            "--no-project",
+            "python",
+            "scripts/repo/zig_serial_build.py",
+            "--no-lock",
+            "--cwd",
+            ".",
+            "test-guest-precompile",
+            "--build-file",
+            "src/frontends/riscv/build.zig",
+            "-Doptimize=ReleaseFast",
+            "--verbose"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 4035313664,
+          "wall_seconds": 81.6554869589745
+        }
+      ],
+      "warm_AIR": {
+        "status": "FAIL_EXISTING_THROUGHPUT_ASSERTIONS",
+        "occurrences": 1165,
+        "passed": 1158,
+        "skipped": 1,
+        "failed": 6,
+        "failed_names": [
+          "air.lang.tests.typed_mul_witness_test.test.typed MUL hot rows retain paired legacy throughput and linear scaling",
+          "air.lang.tests.typed_shifts_reg_witness_performance_test.test.typed SHIFTS_REG hot rows retain paired legacy throughput and scaling",
+          "air.lang.tests.typed_jalr_authority_test.test.JALR production direct and lookup evaluators retain legacy throughput",
+          "air.lang.tests.typed_jalr_witness_test.test.typed JALR authority hot rows retain paired legacy throughput and scaling",
+          "air.lang.tests.typed_jal_authority_test.test.JAL production direct and lookup evaluators retain legacy throughput",
+          "air.lang.tests.typed_jal_witness_test.test.typed JAL hot rows retain paired legacy throughput in every build mode"
+        ],
+        "unique_names": 835,
+        "floor_make": "NOT_EXECUTED_AFTER_CHILD_FAILURE; no green floor claim"
+      },
+      "warm_guest": {
+        "status": "PASS_COMPLETE_UNIQUE_DISCOVERY_FLOOR",
+        "unique_names": 466,
+        "occurrences": 1147,
+        "passed": 1143,
+        "skipped": 4,
+        "failed": 0
+      },
+      "actual_owner_metadata": {
+        "images": 8,
+        "zig": "0.15.2",
+        "names_and_order_equal_direct_executed_corpora": true,
+        "query_executes_tests": false,
+        "protocol": "Pinned Zig client query_test_metadata then exit; no run_test message"
+      },
+      "discovery_negatives": {
+        "complete_union": "PASS",
+        "single_image_behavior": "PASS",
+        "duplicate_image_compensation": "REJECTED",
+        "sum_instead_of_unique_union": "REJECTED",
+        "missing_metadata": "REJECTED",
+        "child_failure": "REJECTED"
+      },
+      "runtime_profile_causality": {
+        "classification": "DIAGNOSTIC_ONLY_NOT_REPAIRED_GATE",
+        "modes": [
+          "Debug",
+          "ReleaseFast"
+        ],
+        "passed_cases_each_mode": 4,
+        "cause_commit": "5b8be3eb11",
+        "cause": "Optional StageNode.process_usage is reflected into the complete typed source hash even when null; historical field projection exactly recovers the old pin",
+        "expected_unchanged": "427aa2e4f024e7996734808f58255c7a23aba58402b26f218f82398c213db38f",
+        "current": "f215072722d632f872f3ce0fb3fa123c6160e0e8e80604424aef1faf201f0c60",
+        "normal_current_admission_rejects_legacy_projection": true,
+        "non_null_usage_binding_mutation_checks": "PASS",
+        "proposal": "design/repository/runtime-profile-pin-rfc.md",
+        "approval": "NONE_NO_ISSUE_NO_PIN_EDIT"
+      },
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "qualification": "macOS CPU component compilation, complete focused discovery and owner execution only. Existing unavailable-Sail and opt-in measurement skips remain explicit. No whole CPU CI, Linux CI, full recursive proof, complete block, GPU, physical-memory certification or qualified timing claim.",
+      "evidence": "External local/delivery-20261108 archive keyed by the receipt tree, with baseline and clean plans/logs, exact ordered case corpora, pinned direct and actual-owner binaries, metadata-only query source/results, controlled floor negatives, cancelled root-selector experiment, and causal profile diagnostic sources/binaries."
     }
   },
   "post_merge_hygiene": {
