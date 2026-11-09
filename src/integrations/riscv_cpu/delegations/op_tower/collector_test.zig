@@ -81,6 +81,19 @@ test "OP tower collector binds all80words through readonly tail and cross-shard 
     tapes[0].tower_calls.items[0].before[Tower.WORDS - 1] ^= 1;
     try std.testing.expectError(error.InvalidWord16SecpPredecessor, C.collect(a, &.{ &natives[0], &natives[1] }, &.{ &tapes[0], &tapes[1] }, image()));
     tapes[0].tower_calls.items[0].before[Tower.WORDS - 1] ^= 1;
+    const original_tower = tapes[0].tower_calls.items[0];
+    tapes[0].tower_calls.items.len = 0;
+    try std.testing.expectError(error.InvalidCombinedServiceRoster, C.collect(a, &.{ &natives[0], &natives[1] }, &.{ &tapes[0], &tapes[1] }, image()));
+    tapes[0].tower_calls.items.len = 1;
+    try tapes[0].tower_calls.append(a, original_tower);
+    try std.testing.expectError(error.InvalidCombinedServiceRoster, C.collect(a, &.{ &natives[0], &natives[1] }, &.{ &tapes[0], &tapes[1] }, image()));
+    tapes[0].tower_calls.items.len = 1;
+    tapes[0].tower_calls.items[0].clock += 1;
+    try std.testing.expectError(error.InvalidCombinedServiceOwner, C.collect(a, &.{ &natives[0], &natives[1] }, &.{ &tapes[0], &tapes[1] }, image()));
+    tapes[0].tower_calls.items[0] = original_tower;
+    tapes[0].execution_profile = .ethereum_services_v3;
+    try std.testing.expectError(error.UnqualifiedCombinedServiceTag, C.collect(a, &.{ &natives[0], &natives[1] }, &.{ &tapes[0], &tapes[1] }, image()));
+    tapes[0].execution_profile = .ethereum_services_op_v1;
     // Existing setup/worker APIs must fail closed on the optional OP block.
     const R = @import("../../word16_global_execution/services/roster.zig");
     const Pipeline = @import("../../word16_global_execution/services/pipeline.zig");

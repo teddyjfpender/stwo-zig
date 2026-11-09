@@ -173,3 +173,11 @@ fn SourceForCall(comptime CallType: type) type {
         }
     };
 }
+
+/// Test-only untrusted-row producer seam. Physical adversarial fixtures must
+/// bypass native advice validation to exercise the accepting AIR itself.
+/// This helper grants no verifier authority and cannot be called in a binary.
+pub fn generateRowsForTest(source: anytype, challenges: T.Challenges, dictionary16: []const T.Q, dictionary8: []const T.Q) !T.Claims {
+    if (!@import("builtin").is_test) @compileError("untrusted packet-row generator is test-only");
+    return @import("interaction.zig").generate(source, challenges, dictionary16, dictionary8);
+}

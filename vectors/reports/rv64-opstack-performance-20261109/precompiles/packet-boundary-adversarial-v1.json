@@ -1,0 +1,28 @@
+{
+  "production_admitted": false,
+  "security_qualified": false,
+  "scope": "native guard bypass / actual AIR and physical correctness",
+  "packet_bytes": 640,
+  "read_words": 80,
+  "written_words": 48,
+  "last_legal_aligned_pointer": "0xfffffffffffffd80",
+  "positive_physical": "last legal packet, read-only tail; full proof encoded and fresh fixed-root receiver accepts",
+  "malicious_physical": "coherent wrapped pointers and addresses, Boolean carries, native source validation deliberately bypassed; actual physical prover rejects ConstraintsNotSatisfied",
+  "numeric_air_rejections": [
+    "wrapped pointer with honest overflow carry",
+    "wrapped pointer with overflow carry hidden",
+    "written word without write permission",
+    "any packet word without read permission",
+    "write flag on read-only tail",
+    "changed value on read-only tail"
+  ],
+  "collector_rejections": [
+    "dropped Tower payload",
+    "extra Tower payload",
+    "clock outside owning CPU step",
+    "legacy v3 profile carrying OP payload",
+    "captured tail inconsistent with expected RAM image"
+  ],
+  "clock_authority": "read-only tail transitions retain value/rights and update epoch/tick through same global RAM relation",
+  "profile": "physical fixture uses12queries/noPoW; not128-bit security qualification"
+}
