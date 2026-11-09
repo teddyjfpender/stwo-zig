@@ -43,3 +43,21 @@ the bounded control. This is **not** a whole-transition or proving multiplier.
 The completed native real-transition channel checks remain the semantic control;
 a full RV64 transition was intentionally not executed. Receipt:
 `brotli-lazy-rv64-v1.json` in the same report directory.
+
+## Existing bulk-memory service (opt-in)
+
+The main guest now exposes `memory-service`, forwarding only the existing
+`stwo-rv64-mem/admitted-bulk` capability. `brotli-lazy-bulk` selects it for the
+same diagnostic. No decompressor copy or backreference algorithm is changed:
+forward-repetition LZ semantics are preserved. Nine existing memory-library
+alignment/overlap/bounds tests pass. Tiny probes take 39,112 / 39,122 / 37,606
+instructions, with exact Unicorn output, state, steps and service counts.
+
+A genuine 649,905-byte channel was profiled for four million instructions only.
+Lazy alone spends 1,071,120 instructions in memset; bulk removes that hotspot and
+reaches 3,237,042 ProcessCommands instructions versus 2,167,345. The latter emits
+105 memset calls covering 4,883,624 bytes and 19 copy calls covering 4,856 bytes.
+Both prefixes remain incomplete, so these are work attribution, not complete
+channel/transition performance. Native eager/lazy × Montgomery/canonical-Fr
+variants all accept the same complete transition; independent C channel outputs
+match. Receipt: `brotli-lazy-bulk-v1.json`.

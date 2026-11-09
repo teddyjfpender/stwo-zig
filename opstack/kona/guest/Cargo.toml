@@ -5,6 +5,7 @@ edition = "2024"
 publish = false
 
 [features]
+memory-service = ["stwo-rv64-mem/admitted-bulk"]
 brotli-probe = ["stwo-kona-execution/brotli-probe"]
 lazy-brotli = ["stwo-kona-execution/lazy-brotli"]
 canonical-fr = ["stwo-kona-execution/canonical-fr"]

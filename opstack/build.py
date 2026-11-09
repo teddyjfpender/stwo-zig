@@ -20,6 +20,7 @@ VARIANTS = {
     "software": None,
     "brotli-probe": "brotli-probe",
     "brotli-lazy": "brotli-probe,lazy-brotli",
+    "brotli-lazy-bulk": "brotli-probe,lazy-brotli,memory-service",
     "keccak": "keccak-service",
     "services": "services-v3",
     "sponge": "sponge-service",
