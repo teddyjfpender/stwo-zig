@@ -165,3 +165,33 @@ files remain in the root directory. Omit `--truth-local-gkr` only for an explici
 classic-service R6 control. Local GKR without `--r6`, duplicate flags, unknown
 flags and a receiver/schema mismatch reject. Neither flag changes Ethereum
 profiles or imports a producer verifier key.
+## Complete schema2 root qualification
+
+The real OP120794432 schema2 run now passes end to end:796,406 retirements,
+1CPU proof,338-call Keccak local-GKR truth and34-call classic SHA truth, followed
+by3physical recursive leaves and2folds. All native fragments were regenerated
+under the same new manifest. The final root is687,908 bytes, sidecar1,036 bytes
+and bounded GKR shape advice568 bytes. Every pending node and final artifact is
+retained under `pure-p2-r6-truth-local-root-v1`.
+
+Recursion ingress is198.102s versus the retained R5 route's305.567s (1.54x,
+single different-schema runs). Native producer before receipt is17.788s, of
+which13.975s is proving; producer plus recursion is215.890s. CPU, Keccak and SHA
+recursive production take31.612/29.122/29.713s; folds31.827/31.827s. The source
+cell counts are264.303M/207.929M/207.921M, not complete-heavy-block forecasts.
+Process cumulative peak recorded in node profiles is8.054GB; no controlled
+memory multiplier is claimed.
+
+A separately constructed receiver reads only the copied `native-op.json` and
+`cells.bin`, with `native-op.bin` physically absent. It derives all native and
+outer source keys, source-only local-GKR shapes, exact inventory, public RAM
+claims, global RAM/KIO/Wire closure and the full pinned terminal policy. Cold
+source construction takes46.385s in the ReleaseSafe qualification; final root
+verification plus the complete adversarial list takes0.386s. Valid same-profile
+wrong-key proof, balanced service debt, missing/duplicate/reordered leaves,
+reframed HALT/length/PC changes, root corruption and flipped schema policy all
+reject. These are completed acceptance gates, not the heavy tenfold target.
+
+The next decision gate is a source-owned full-height heavy CPU class census and
+an equal-security/workload M6/M7 comparison. Current30-second CPU wrappers and
+similar folds cannot satisfy the332.845s heavy total by multiplication alone.

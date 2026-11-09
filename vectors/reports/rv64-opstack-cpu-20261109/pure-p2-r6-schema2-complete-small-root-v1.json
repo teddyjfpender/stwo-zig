@@ -1,0 +1,578 @@
+{
+  "schema": "op-r6-schema2-complete-small-root-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "native_schema": 2,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admitted": false,
+  "complete": true,
+  "native": {
+    "cpu": 1,
+    "local_keccak_calls": 338,
+    "classic_sha_calls": 34,
+    "miller": 0,
+    "bundle_bytes": 5317432,
+    "prove_ns": 13975405667,
+    "producer_before_receipt_ns": 17787880417
+  },
+  "root": {
+    "members": 3,
+    "reductions": 2,
+    "bytes": 687908,
+    "ingress_ns": 198101767791,
+    "sidecar_bytes": 1036,
+    "shape_advice_bytes": 568,
+    "sha256": "e41c915d27b140a7ac75de9946c5ba1749fe29b0f884d04b1f0d5166fd0c24ff"
+  },
+  "producer_plus_recursion_ns": 215889648208,
+  "fresh_source_only": {
+    "source_ns": 46384865417,
+    "root_and_adversaries_ns": 386310291,
+    "native_proof_file_absent": true,
+    "native_PCS_GKR_reverified": false
+  },
+  "source_classes": [
+    {
+      "kind": "cpu",
+      "ordinal": 0,
+      "raw": [
+        30606,
+        3992911,
+        2258,
+        68060,
+        65536
+      ],
+      "legacy_component_cells": {
+        "rows": [
+          32768,
+          4194304,
+          4096,
+          131072,
+          65536
+        ],
+        "main_cells": 112934912,
+        "fixed_cells": 43266048,
+        "interaction_cells": 93159424,
+        "total_trace_cells": 249360384,
+        "poseidon_hybrid": false,
+        "production_qualified": false
+      },
+      "native_mul_rows": 262144,
+      "logs": [
+        15,
+        22,
+        12,
+        17,
+        16
+      ],
+      "immutable_setup_ns": 7427666667,
+      "source_identity": "08b8ba82d49d15b413a4a8aac76671dcb0f0712a0f6211bb22f1972173eb0d91",
+      "total_native_cells": 264302592
+    },
+    {
+      "kind": "catalog",
+      "ordinal": 1,
+      "raw": [
+        15338,
+        3787133,
+        276,
+        38624,
+        65536
+      ],
+      "legacy_component_cells": {
+        "rows": [
+          16384,
+          4194304,
+          512,
+          65536,
+          65536
+        ],
+        "main_cells": 81659904,
+        "fixed_cells": 38438400,
+        "interaction_cells": 80359424,
+        "total_trace_cells": 200457728,
+        "poseidon_hybrid": false,
+        "production_qualified": false
+      },
+      "native_mul_rows": 131072,
+      "logs": [
+        14,
+        22,
+        9,
+        16,
+        16
+      ],
+      "immutable_setup_ns": 7608473584,
+      "source_identity": "79d38a9ad5e019eecd176cdc2b864030c801e5c34c33a6ce84727f26979d211f",
+      "total_native_cells": 207928832
+    },
+    {
+      "kind": "catalog",
+      "ordinal": 2,
+      "raw": [
+        8291,
+        3908995,
+        183,
+        56952,
+        65536
+      ],
+      "legacy_component_cells": {
+        "rows": [
+          16384,
+          4194304,
+          256,
+          65536,
+          65536
+        ],
+        "main_cells": 81658880,
+        "fixed_cells": 38437632,
+        "interaction_cells": 80353280,
+        "total_trace_cells": 200449792,
+        "poseidon_hybrid": false,
+        "production_qualified": false
+      },
+      "native_mul_rows": 131072,
+      "logs": [
+        14,
+        22,
+        8,
+        16,
+        16
+      ],
+      "immutable_setup_ns": 7770893208,
+      "source_identity": "4a48cb9d2d5fbcf54fa4a9daca8acb44cde8da5133a31bd3c836a14e0b3469cd",
+      "total_native_cells": 207920896
+    }
+  ],
+  "nodes": [
+    {
+      "ordinal": 0,
+      "kind": "CPU",
+      "bytes": 685844,
+      "source_prove_ns": 31611648750,
+      "native_verify_ns": 36297708,
+      "identity": "08b8ba82d49d15b413a4a8aac76671dcb0f0712a0f6211bb22f1972173eb0d91",
+      "sha256": "c320741dba21a8e39727dbbb22fbee8484c7a6da5a270e8986aad65d54df42c0",
+      "stage_sum_s": 31.297712,
+      "stages": [
+        {
+          "id": "op_p2.main_generation",
+          "seconds": 0.610771
+        },
+        {
+          "id": "op_p2.main_commit",
+          "seconds": 8.993409
+        },
+        {
+          "id": "op_p2.interaction_generation",
+          "seconds": 0.485355
+        },
+        {
+          "id": "op_p2.interaction_commit",
+          "seconds": 8.804565
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 4e-06
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.9e-05
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 5.07723
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.026805
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 4.06143
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 9.2e-05
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.094625
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 0.000792
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 2.339788
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 7e-06
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.119848
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.682606
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000366
+        }
+      ],
+      "process_peak_resident_bytes_at_end": 6571540480
+    },
+    {
+      "ordinal": 1,
+      "kind": "keccak",
+      "bytes": 684464,
+      "source_prove_ns": 29121985125,
+      "native_verify_ns": 36112125,
+      "identity": "79d38a9ad5e019eecd176cdc2b864030c801e5c34c33a6ce84727f26979d211f",
+      "sha256": "e6a954baf2db87a5f96b4cac04ab1d6b3c696cb3d60e3561f639b6d9aa2e5b6b",
+      "stage_sum_s": 28.862339,
+      "stages": [
+        {
+          "id": "op_p2.main_generation",
+          "seconds": 0.39827
+        },
+        {
+          "id": "op_p2.main_commit",
+          "seconds": 8.426946
+        },
+        {
+          "id": "op_p2.interaction_generation",
+          "seconds": 0.423629
+        },
+        {
+          "id": "op_p2.interaction_commit",
+          "seconds": 8.334847
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 4e-06
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1e-05
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 3.908946
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.027963
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 4.182333
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 7e-05
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.08327
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 0.000822
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 2.334029
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 7e-06
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.117658
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.623171
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000364
+        }
+      ],
+      "process_peak_resident_bytes_at_end": 6571540480
+    },
+    {
+      "ordinal": 2,
+      "kind": "sha256",
+      "bytes": 691652,
+      "source_prove_ns": 29712557667,
+      "native_verify_ns": 38127541,
+      "identity": "4a48cb9d2d5fbcf54fa4a9daca8acb44cde8da5133a31bd3c836a14e0b3469cd",
+      "sha256": "560e2225e5cd303a52130dbbad9c4b382b38991ab6838f8f2a3d85b474ac264a",
+      "stage_sum_s": 29.415842,
+      "stages": [
+        {
+          "id": "op_p2.main_generation",
+          "seconds": 0.40386
+        },
+        {
+          "id": "op_p2.main_commit",
+          "seconds": 8.613875
+        },
+        {
+          "id": "op_p2.interaction_generation",
+          "seconds": 0.438308
+        },
+        {
+          "id": "op_p2.interaction_commit",
+          "seconds": 8.476301
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 5e-06
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.5e-05
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 4.00856
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.029938
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 4.224107
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 7.5e-05
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.08732
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 0.000855
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 2.370604
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 7e-06
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.119023
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.642591
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000398
+        }
+      ],
+      "process_peak_resident_bytes_at_end": 6904954880
+    },
+    {
+      "ordinal": 3,
+      "kind": "fold",
+      "bytes": 687980,
+      "source_prove_ns": 31827426208,
+      "native_verify_ns": 38308959,
+      "identity": "57b0fed5ebc809323bb331dbae202c5d8992d43b6c85e01192bc9b82de467b41",
+      "sha256": "a3c36b83e92b85600c3944f009dfbf9cb4addc44dca05747fc424360dc441774",
+      "stage_sum_s": 31.546083,
+      "stages": [
+        {
+          "id": "op_p2.main_generation",
+          "seconds": 0.614163
+        },
+        {
+          "id": "op_p2.main_commit",
+          "seconds": 9.322061
+        },
+        {
+          "id": "op_p2.interaction_generation",
+          "seconds": 0.441308
+        },
+        {
+          "id": "op_p2.interaction_commit",
+          "seconds": 8.826798
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 5e-06
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.6e-05
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 4.794122
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.030433
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 4.261169
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 6.7e-05
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.095809
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 0.000889
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 2.34709
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 7e-06
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.127284
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.684488
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000374
+        }
+      ],
+      "process_peak_resident_bytes_at_end": 8053702656
+    },
+    {
+      "ordinal": 4,
+      "kind": "fold",
+      "bytes": 687908,
+      "source_prove_ns": 31826532584,
+      "native_verify_ns": 36418125,
+      "identity": "b3aaf0838b3bf0fd733cb47687b2faf60e9d76debc8dfff9ca2eab03d15a5c1a",
+      "sha256": "e41c915d27b140a7ac75de9946c5ba1749fe29b0f884d04b1f0d5166fd0c24ff",
+      "stage_sum_s": 31.555298,
+      "stages": [
+        {
+          "id": "op_p2.main_generation",
+          "seconds": 0.61841
+        },
+        {
+          "id": "op_p2.main_commit",
+          "seconds": 9.30627
+        },
+        {
+          "id": "op_p2.interaction_generation",
+          "seconds": 0.441034
+        },
+        {
+          "id": "op_p2.interaction_commit",
+          "seconds": 8.816914
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 4e-06
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.5e-05
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 4.8134
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.032078
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 4.266332
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 5.8e-05
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.097343
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 0.000851
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 2.360402
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 8e-06
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.124777
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.677034
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000368
+        }
+      ],
+      "process_peak_resident_bytes_at_end": 8053866496
+    }
+  ],
+  "controls": {
+    "valid_same_profile_wrong_key": true,
+    "balanced_local_service_global_debt": true,
+    "missing_duplicate_reordered_leaf": true,
+    "reframed_halt_length_pc_exact_errors": true,
+    "physical_corruption": true,
+    "flipped_schema_policy": true
+  },
+  "retained_r5_control": {
+    "source_commit": "bf90b4567",
+    "root_ingress_ns": 305566557250,
+    "native_producer_ns": 17050000000,
+    "single_run_caveat": "different outer schema and native truth protocol; not repeated controlled A/B"
+  },
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/pure-p2-r6-truth-local-root-v1",
+  "raw_log": "/private/tmp/op-r6-schema2-full-root.log",
+  "remaining": [
+    "actual heavy full-height source-class census",
+    "equal-security M6/M7 CPU comparison",
+    "heavy native-plus-root <=332.845 seconds target remains unmet",
+    "source-class key reuse and bounded online folding for heavy execution"
+  ]
+}
