@@ -57,4 +57,21 @@ test "Miller local GKR source class1023 cost without math replay" {
     try std.testing.expectEqualDeep(one.native_mul_calls.items, two.native_mul_calls.items);
     try std.testing.expectEqualDeep(one.calls.items, two.calls.items);
     try std.testing.expectEqualSlices(u32, one.usage.?.counts, two.usage.?.counts);
+    var old_arena = std.heap.ArenaAllocator.init(a);
+    defer old_arena.deinit();
+    const old_a = old_arena.allocator();
+    const old_shape = try @import("../pure_p2_tower_statement.zig").geometry(old_a, &key.base);
+    const old_values = try Skeleton.init(old_a, &old_shape);
+    const span = W.Span{ .calls = 1023, .first_id = 1 };
+    const root = @import("../pure_p2_native.zig").hashWords(&.{});
+    const old_view = @import("../pure_p2_tower_leaf_test.zig").View{ .key = &key.base, .span = span, .expected = try key.base.expected(span, 0), .manifest = root, .main = root, .claims = @splat(V.common.O.zero()), .shape = &old_shape, .values = &old_values };
+    var old_scope = @import("../native_omul/scope.zig").begin();
+    defer old_scope.deinit();
+    var old = try old_view.build(a, true);
+    defer old.deinit();
+    const old_census = try old.census(false);
+    const old_mul_rows = try std.math.ceilPowerOfTwo(usize, @max(16, old.native_mul_calls.items.len));
+    const old_cells = old_census.total_trace_cells + old_mul_rows * (NativeRow.FIXED + NativeRow.MAIN + NativeRow.INTER);
+    try std.testing.expect(total < old_cells);
+    std.debug.print("OP_MILLER_GKR_SOURCE_COMPARE classic_raw={any} classic_native_om={d} classic_six_cells={d} candidate_six_cells={d} source_only=true proving_speedup_claim=false\n", .{ try old.rawCounts(), old.native_mul_calls.items.len, old_cells, total });
 }
