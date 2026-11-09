@@ -37,10 +37,12 @@ replacing the qualified execution controls above. Its records are in
 | Bounded immutable setup | Two fresh heavy captures reuse all 36 setup classes with no new misses; all roots, public cells and final states match; 28.068 GB peak requested memory under 32 GiB; final heap/external counters zero | Uninterrupted warm end-to-end proving measurements; both preparation timers were interrupted |
 | R5 portable root-only handoff | Actual small block: three physical leaves, two folds, 667,304-byte root; fresh receiver derives source authority and verifies only the root | Practical performance: 305.567 seconds additional recursion remains too slow; not a default promotion |
 | R6 independent OM31 multiplication | Actual small execution closes all three leaves and two folds: 687,908-byte root: original Safe run 198.102 seconds; subsequent Fast run 138.898 seconds with every node/root/sidecar byte-identical and fresh source-only acceptance; native production is additional | Actual full-height heavy classes and complete heavy native-plus-root performance; no extrapolation from the small block |
-| Service-local GKR | Regenerated CPU/Keccak/SHA native bundle, actual 338-call Keccak physical wrapper, complete small recursive root and source-only adversarial receiver; original RAM/KIO/Wire and terminal policy close | Heavy resource-derived sharding and complete inventory; isolated Miller local GKR has a 629,628-byte R6 physical wrapper with fresh source acceptance, but is not admitted into the complete inventory |
+| Service-local GKR | Regenerated CPU/Keccak/SHA native bundle and complete small recursive root; explicit suite3 additionally closes a complete synthetic CPU + Miller native bundle, two recursive leaves and one fold, with an independent source-only receiver and physical adversaries | Actual Kona suite3 qualification and heavy resource-derived physical sharding. The synthetic fixture is not a Kona block or a heavy performance result |
 | Bounded truth planning | Source-derived checkpoint/whole-worker estimator refuses heavy log18 Keccak and admits log16/4,518-permutation shards under the declared 8 GiB worker limit | Resource-derived shard-plan integration is present; physical heavy qualification remains open. Estimates are requested bytes, not measured RSS |
 | Retained source custody | Small native bundle remains byte-identical with CPU advice parking and post-seal LS/SHIFT auxiliary retirement; witness-free ledger reproduces capture and event payloads exactly | Model excludes scratch/mappings; 27.46 GB CPU seal payload is not whole-worker admission or measured RSS |
-| Narrow sponge research | Descriptor/state prototype preserves complete RAM14/IO11/OWNER19 tuples and degree3; call opening width 1,161→230, with explicit increased cells/facts and GKR cost | Message/permutation serialization, physical source binding, complete native and recursive integration; production admission closed |
+| Narrow sponge research | Five serialized roles preserve complete RAM14/IO11/OWNER19 tuples at degree3; standalone native PCS + local GKR freshly verify with independent source authority. Role opening width is 467, excluding shared providers; cells/facts increase | Detached CPU frontier, complete native and recursive integration; suite sponge admission remains closed |
+| Native recursive dot product | Standalone physical accumulator proof freshly verifies under independent source authority, with balanced false-input and hidden-coordinate debt rejection | Live DEEP projection and R6 roster integration. Modeled 23.5% relevant outer-cell reduction is not a measured block speedup |
+| Immutable outer Miller setup | Bounded source-key cache reproduces the exact physical Miller leaf under independent request bindings and fresh verifier keys | Verifier-only root integration, then separately qualified producer ownership; no process-global cache or unbudgeted retention |
 | Complete heavy performance | Matched D2 native + M6 root baseline 3,328.446 seconds | At most 332.845 seconds for the same heavy block, through a complete recursive root; **not achieved** |
 
 R5's source-only receiver loads source declarations and public cells, not native
@@ -56,6 +58,17 @@ profiles. Admission of service-local GKR requires the receiver's independent
 protocol selection and complete physical gates. The production security label
 remains **128-bit security target under documented assumptions** with
 `security_qualified=false`.
+
+The [complete Miller fixture](../vectors/reports/rv64-opstack-performance-20261109/source-suite/complete-recursive-fixture-v1.json)
+is a one-retirement test program with an actual Miller service packet. Its
+693,812-byte root covers two leaves and one fold; recursive production took
+45.630 seconds in one qualification run, additional to native proof production.
+A separate process reconstructs code, input, CPU/Miller keys and outer authority
+without `native-op.bin`. It rejects physical corruption, a valid wrong-key proof,
+missing/duplicated/reordered leaves, changed suite policy, balanced forged Wire
+claims, a substituted late Miller receipt and coherently changed terminal state.
+This closes whole-root fixture framing and closure, not anchored derivation or
+the heavy-block tenfold performance target.
 
 ## Working rules
 
