@@ -42,3 +42,11 @@ pub fn monolithicControl() !bool {
     if (std.mem.eql(u8, value, "1")) return true;
     return error.InvalidOpPoseidonCommitControl;
 }
+
+/// Exact reference evaluator control; never selects a different protocol.
+pub fn scalarDomainControl() !bool {
+    const value = std.posix.getenv("STWO_OP_P2_SCALAR_DOMAIN_CONTROL") orelse return false;
+    if (value.len == 0 or std.mem.eql(u8, value, "0")) return false;
+    if (std.mem.eql(u8, value, "1")) return true;
+    return error.InvalidOpPoseidonDomainControl;
+}

@@ -92,11 +92,13 @@ const Hook = struct {
         const Proof = @import("proof.zig");
         const outputs = try source.expectedOutput(a);
         var identity: [32]u8 = undefined;
+        var recorder = @import("stwo_prover_engine").stage_profile.Recorder.initWithOptions(a, "cpu", "op_pure_p2_actual_cpu_leaf", .{ .capture_tasks = false, .capture_process_usage = true });
+        defer recorder.deinit();
         const outer = blk: {
             var key = try Authority.initForProfile(a, &owner, keys[0].profile);
             defer key.deinit();
             identity = key.identity;
-            break :blk try Proof.prove(a, &owner, &key, &outputs);
+            break :blk try Proof.proveProfiled(a, &owner, &key, &outputs, &recorder);
         };
         defer a.free(outer);
         owner.deinit();
@@ -118,6 +120,11 @@ const Hook = struct {
         try std.testing.expectError(error.PoseidonGlobalLookupSum, Proof.verify(a, &receiver, &outputs, corrupted));
         var hash: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(outer, &hash, .{});
+        var profile = try recorder.snapshot(a);
+        defer profile.deinit(a);
+        const profile_json = try std.json.Stringify.valueAlloc(a, profile, .{});
+        defer a.free(profile_json);
+        std.debug.print("OP_PURE_P2_COMPLETE_CPU_STAGES {s}\n", .{profile_json});
         std.debug.print("OP_PURE_P2_COMPLETE_CPU_PHYSICAL bytes={} build_ns={} prove_ns={} fresh_receive_ns={} sha256={s} production_admission_open=false\n", .{ outer.len, build_ns, prove_ns, receive_ns, std.fmt.bytesToHex(hash, .lower) });
     }
 };

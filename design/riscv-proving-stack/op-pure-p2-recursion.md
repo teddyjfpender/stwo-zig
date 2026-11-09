@@ -255,3 +255,28 @@ FIXED tree on each request. The existing key-identity byte stream is unchanged;
 its geometry emitter also computes the separate fingerprint. A changed CPU log
 with unchanged source root/key now rejects explicitly, and existing native
 fixture proofs remain byte-identical. Production default suites are unchanged.
+
+## Base-field SIMD domain and measured bottleneck
+
+The dedicated permutation now evaluates MAIN/FIXED constraints in native packed
+M31, with packed OM31 reserved for lookup compression and random-coefficient
+accumulation. Scalar OM31 remains the OODS authority. Two base-field vanishing
+inverses replace per-row OM31 inversion: on the canonical 2n quotient domain the
+source n-coset vanishing value is constant on each bit-reversed half. Random
+nonzero full-row/LogUp differential tests match the scalar authority; exhaustive
+vanishing checks cover every row at logs5–11. ReleaseSafe and ReleaseFast pass.
+
+A frozen-executable physical comparison has identical 671,660-byte proofs and
+SHA-256 in both modes. Composition falls 5.632s to 3.071s (1.83x), while whole
+producer falls 29.404s to 27.811s (5.4%). Receiver is unchanged and measured
+5.400s/5.720s. Peak RSS is 8,566,620,160 bytes. This is one matched pair, not a
+quiet-run median or full OP block comparison. `STWO_OP_P2_SCALAR_DOMAIN_CONTROL=1`
+retains the exact scalar reference; malformed controls reject.
+
+The new stage recorder makes the remaining cost explicit: MAIN commit~6s,
+INTER commit~6s, composition commit~4s and quotient~2s. Composition SIMD removes
+one wall, but those commitments dominate this complete leaf. The committed
+`pure-p2-base-simd-domain-ab-v1.json` records stage and process counters. Further
+structural work must reduce actual circuit cells or securely choose a cheaper
+profile across the complete fold tree; the early small-child multiplier does
+not describe complete CPU leaf proving.

@@ -46,10 +46,20 @@ pub const Mutation = enum { none, x2, x5, port_extension, range_multiplicity, in
 pub fn prove(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q) ![]u8 {
     return proveMutation(a, ctx, key, outputs, .none);
 }
+pub fn proveProfiled(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, recorder: *Engine.stage_profile.Recorder) ![]u8 {
+    return proveRecorded(a, ctx, key, outputs, .none, recorder);
+}
 /// Falsification harness only: successful proofs still pass the same engine
 /// self-check and receiver. No receiver accepts a mutation selector.
 pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, mutation: Mutation) ![]u8 {
-    var main = try W.main(a, ctx, key);
+    return proveRecorded(a, ctx, key, outputs, mutation, null);
+}
+fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, mutation: Mutation, recorder: ?*Engine.stage_profile.Recorder) ![]u8 {
+    var main = blk: {
+        var span = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.main_generation", "P2 MAIN generation");
+        defer span.end();
+        break :blk try W.main(a, ctx, key);
+    };
     defer main.deinit();
     switch (mutation) {
         .x2, .x5 => {
@@ -78,6 +88,8 @@ pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Au
     var owned = true;
     defer if (owned) scheme.deinit(a);
     const control = try @import("op_profile.zig").monolithicControl();
+    var main_commit = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.main_commit", "P2 MAIN commitment");
+    defer main_commit.end();
     if (control) {
         try scheme.commit(a, key.fixed.values, &channel);
         try scheme.commit(a, main.values, &channel);
@@ -88,11 +100,16 @@ pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Au
         MC.mixRoot(&channel, key.fixed_root);
         // Absorb native-height prefixes once rather than flat-rehashing the
         // entire roster at its largest range-table height.
-        try scheme.commitBorrowedStreaming(a, main.values, 64, &channel);
+        try scheme.commitBorrowedStreamingWithRecorder(a, main.values, 64, recorder, &channel);
     }
+    main_commit.end();
     if (!std.mem.eql(u8, &scheme.trees.items[0].root(), &key.fixed_root)) return error.UntrustedPoseidonFixedCommitment;
     const elements = W.Elements.init(channel.drawSecureFelt(), channel.drawSecureFelt());
-    var interaction = try W.interaction(a, key, main.values, outputs, &elements);
+    var interaction = blk: {
+        var span = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.interaction_generation", "P2 interaction generation");
+        defer span.end();
+        break :blk try W.interaction(a, key, main.values, outputs, &elements);
+    };
     defer interaction.deinit();
     if (mutation == .claim_balanced) {
         interaction.claims[0] = interaction.claims[0].add(O.one());
@@ -104,14 +121,18 @@ pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Au
         @constCast(interaction.columns[col].values)[5] = interaction.columns[col].values[5].add(M.one());
     }
     channel.mixFelts(&interaction.claims);
-    if (control) try scheme.commit(a, interaction.columns, &channel) else try scheme.commitBorrowedStreaming(a, interaction.columns, 64, &channel);
+    {
+        var span = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.interaction_commit", "P2 interaction commitment");
+        defer span.end();
+        if (control) try scheme.commit(a, interaction.columns, &channel) else try scheme.commitBorrowedStreamingWithRecorder(a, interaction.columns, 64, recorder, &channel);
+    }
     const fixed_logs = try key.treeLogs(a, 0);
     defer a.free(fixed_logs);
     const ls = try legacy(a, key, elements, interaction.claims, fixed_logs);
     const p2 = P2{ .key = key, .elements = elements, .claim = interaction.claims[3] };
     const components = [_]PC.ComponentProver{ ls[0].asProverComponent(), ls[1].asProverComponent(), ls[2].asProverComponent(), P2.Adapter.asProverComponent(&p2), ls[3].asProverComponent() };
     owned = false;
-    var produced = try A.E.prove(a, &components, &channel, scheme, .{});
+    var produced = try A.E.prove(a, &components, &channel, scheme, .{ .recorder = recorder });
     defer produced.deinit(a);
     const body = try Wire.encodeProofBytesBinary(a, produced.proof);
     defer a.free(body);

@@ -176,6 +176,10 @@ pub const Component = struct {
         }
     };
     pub fn evaluateConstraintQuotientsOnDomain(self: *const @This(), trace: *const PC.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
+        if (try @import("op_profile.zig").scalarDomainControl()) return self.evaluateScalarDomain(trace, acc);
+        return self.evaluatePackedDomain(trace, acc);
+    }
+    fn evaluateScalarDomain(self: *const @This(), trace: *const PC.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
         const a = acc.allocator;
         const log = self.key.logs[3];
         const eval_log = log + 1;
@@ -209,6 +213,56 @@ pub const Component = struct {
             var value = O.zero();
             for (try self.roots(&main, &fixed, &current, O.fromPartialEvals(previous)), 0..) |root, i| value = value.add(root.mul(output.random_coeff_powers[ROOTS - 1 - i]));
             output.accumulate(r, value.mul(inv));
+        }
+    }
+    fn evaluatePackedDomain(self: *const @This(), trace: *const PC.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
+        const Lane = @import("domain_lane.zig");
+        const MF = Core.fields.m31;
+        const Packed = Core.fields.packed_om31;
+        const a = acc.allocator;
+        const log = self.key.logs[3];
+        const eval_log = log + 1;
+        const slots = try acc.columns(a, &.{.{ .log_size = eval_log, .n_cols = ROOTS }});
+        defer a.free(slots);
+        const output = &slots[0];
+        const domain = Canonic.new(eval_log).circleDomain();
+        var prepared = try QuotientColumns.init(a, trace, eval_log);
+        defer prepared.deinit();
+        const fixed_columns = prepared.columns[0..L.FIXED_COLUMNS];
+        const main_columns = prepared.columns[L.FIXED_COLUMNS..][0..L.MAIN_COLUMNS];
+        const inter_columns = prepared.columns[L.FIXED_COLUMNS + L.MAIN_COLUMNS ..];
+        const lane = Lane.Prepared.init(self.elements, self.claim.mulM31(try M.fromU64(self.key.rows[3]).inv()), output.random_coeff_powers);
+        // On the canonical 2n quotient domain, the n-coset vanishing value is
+        // constant on each contiguous bit-reversed half. Derive both values
+        // from the same source polynomial, in M31, once rather than invert an
+        // OM31 value on every row. OODS evaluation remains unchanged.
+        var inverse: [2]M = undefined;
+        for (&inverse, 0..) |*value, half| {
+            const row = half * (domain.size() / 2);
+            value.* = try Core.constraints.cosetVanishing(M, Canonic.new(log).coset(), domain.at(Core.utils.bitReverseIndex(row, eval_log))).inv();
+        }
+        var row: usize = 0;
+        while (row < domain.size()) : (row += Lane.WIDTH) {
+            var fixed: [L.FIXED_COLUMNS]Lane.Base = undefined;
+            var main: [L.MAIN_COLUMNS]Lane.Base = undefined;
+            for (&fixed, fixed_columns) |*value, poly| value.* = .{ .v = MF.loadPacked(poly.values[row..].ptr) };
+            for (&main, main_columns) |*value, poly| value.* = .{ .v = MF.loadPacked(poly.values[row..].ptr) };
+            var current: [24]Lane.Secure = undefined;
+            var previous: [8]MF.PackedM31 = undefined;
+            for (&current, 0..) |*value, i| {
+                var coords: [8]MF.PackedM31 = undefined;
+                for (&coords, 0..) |*coordinate, j| {
+                    const poly = inter_columns[8 * i + j];
+                    coordinate.* = MF.loadPacked(poly.values[row..].ptr);
+                    if (i == 23) inline for (0..Lane.WIDTH) |k| {
+                        const index = Core.utils.offsetBitReversedCircleDomainIndex(row + k, log, eval_log, -1);
+                        previous[j][k] = poly.values[index].v;
+                    };
+                }
+                value.* = Packed.fromCoordinates(coords);
+            }
+            const sum = (try lane.accumulate(&main, &fixed, &current, Packed.fromCoordinates(previous))).mulBase(@as(MF.PackedM31, @splat(inverse[row / (domain.size() / 2)].v)));
+            inline for (0..Lane.WIDTH) |k| output.accumulate(row + k, Packed.lane(sum, k));
         }
     }
 };

@@ -360,3 +360,66 @@ test "OP pure P2 checked terminal view preserves legacy data and owns copied poi
     const after = next.point.eq0.add(next.point.eq1).add(next.point.hc0[0]).add(next.lane_weights[0]).add(next.target_per_row);
     try std.testing.expect(before.eql(after));
 }
+
+fn seededOm(seed: usize) C.O {
+    var coordinates: [8]M = undefined;
+    for (&coordinates, 0..) |*coordinate, i| coordinate.* = M.fromCanonical(@intCast((seed * 113 + i * 99991) % core.fields.m31.Modulus));
+    return C.O.fromM31Array(coordinates);
+}
+test "OP pure P2 base SIMD domain roots equal secure scalar authority and vanishing halves" {
+    const Layout = @import("layout.zig");
+    const Lane = @import("domain_lane.zig");
+    const Packed = core.fields.packed_om31;
+    const Component = @import("component.zig").Component;
+    var produced = try Native.proveUnbound(a, scope(), &instances, Provider{});
+    defer produced.deinit(a);
+    var owner = try localGraph(&produced, scope(), false);
+    defer owner.deinit();
+    var key = try @import("authority.zig").Authority.initForProfile(a, &owner, .op_target_b4_q72_p0_fold4_v1);
+    defer key.deinit();
+    const elements = @import("witness.zig").Elements.init(seededOm(1), seededOm(2));
+    const component = Component{ .key = &key, .elements = elements, .claim = seededOm(3) };
+    var coefficients: [Lane.ROOTS]C.O = undefined;
+    for (&coefficients, 0..) |*value, i| value.* = seededOm(100 + i);
+    const prepared = Lane.Prepared.init(elements, component.claim.mulM31(try M.fromU64(key.rows[3]).inv()), &coefficients);
+    var main: [Layout.MAIN_COLUMNS]Lane.Base = undefined;
+    var fixed: [Layout.FIXED_COLUMNS]Lane.Base = undefined;
+    for (&main, 0..) |*value, i| inline for (0..Lane.WIDTH) |k| {
+        value.v[k] = @intCast((i * 1223 + k * 19 + 77) % core.fields.m31.Modulus);
+    };
+    for (&fixed, 0..) |*value, i| inline for (0..Lane.WIDTH) |k| {
+        value.v[k] = @intCast((i * 333 + k * 23 + 55) % core.fields.m31.Modulus);
+    };
+    var current: [24]Lane.Secure = undefined;
+    for (&current, 0..) |*value, i| {
+        var coords: [8]core.fields.m31.PackedM31 = undefined;
+        for (&coords, 0..) |*coordinate, j| inline for (0..Lane.WIDTH) |k| {
+            coordinate.*[k] = seededOm(300 + i + 99 * k).toM31Array()[j].v;
+        };
+        value.* = Packed.fromCoordinates(coords);
+    }
+    const previous = Packed.splat(seededOm(991));
+    const actual = try prepared.accumulate(&main, &fixed, &current, previous);
+    inline for (0..Lane.WIDTH) |k| {
+        var scalar_main: [Layout.MAIN_COLUMNS]C.O = undefined;
+        var scalar_fixed: [Layout.FIXED_COLUMNS]C.O = undefined;
+        var scalar_current: [24]C.O = undefined;
+        for (&scalar_main, main) |*value, packed_value| value.* = C.O.fromBase(M.fromCanonical(packed_value.v[k]));
+        for (&scalar_fixed, fixed) |*value, packed_value| value.* = C.O.fromBase(M.fromCanonical(packed_value.v[k]));
+        for (&scalar_current, current) |*value, packed_value| value.* = Packed.lane(packed_value, k);
+        var expected = C.O.zero();
+        for (try component.roots(&scalar_main, &scalar_fixed, &scalar_current, Packed.lane(previous, k)), 0..) |root_value, i| expected = expected.add(root_value.mul(coefficients[Lane.ROOTS - 1 - i]));
+        try std.testing.expect(expected.eql(Packed.lane(actual, k)));
+    }
+    const Canonic = core.poly.circle.canonic.CanonicCoset;
+    for (5..12) |log_usize| {
+        const log: u32 = @intCast(log_usize);
+        const domain = Canonic.new(log + 1).circleDomain();
+        var expected: [2]M = undefined;
+        for (&expected, 0..) |*value, half| value.* = core.constraints.cosetVanishing(M, Canonic.new(log).coset(), domain.at(core.utils.bitReverseIndex(half * domain.size() / 2, log + 1)));
+        for (0..domain.size()) |row| {
+            const value = core.constraints.cosetVanishing(M, Canonic.new(log).coset(), domain.at(core.utils.bitReverseIndex(row, log + 1)));
+            try std.testing.expect(value.eql(expected[row / (domain.size() / 2)]));
+        }
+    }
+}
