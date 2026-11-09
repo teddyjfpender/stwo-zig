@@ -235,3 +235,7 @@ test {
     _ = @import("poseidon2_outer/sponge_cpu/wire.zig");
     _ = @import("poseidon2_outer/native_group/plan.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/root_admission.zig");
+}
