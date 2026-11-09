@@ -50,6 +50,7 @@ const Context = struct {
             const metadata = self.metadata.leaves[i];
             const view = CPU.ShapeView{ .op_span = span, .setup = setup, .request = request, .first = plan.inventory.first_ids[i], .expected = expected, .key = key, .manifest = plan.manifest, .main = metadata.main, .receipt = metadata.receipt orelse return error.MissingOpRootLocalAuthority, .claims = metadata.claims, .child = &local, .shape = &shape, .values = &values };
             leaves[made] = try Topology.SourceLeaf.initCpu(a, view);
+            @import("verifier_key.zig").retireProverData(&leaves[made].authority);
             made += 1;
         }
         for (source.truths, source.truth_keys, 0..) |truth, key, j| {
@@ -61,6 +62,7 @@ const Context = struct {
             const metadata = self.metadata.leaves[i];
             const view = Catalog.View{ .key = key, .truth = truth, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .claims = metadata.claims, .shape = &shape, .values = &values };
             leaves[made] = try Topology.SourceLeaf.initCatalog(a, view);
+            @import("verifier_key.zig").retireProverData(&leaves[made].authority);
             made += 1;
         }
         for (source.miller, 0..) |miller, j| {
@@ -73,9 +75,10 @@ const Context = struct {
             if (metadata.claims.len != 4) return error.OpRootTruthClaims;
             const view = Miller.View{ .key = miller.key, .span = miller.span, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .claims = metadata.claims[0..4].*, .shape = &shape, .values = &values };
             leaves[made] = try Topology.SourceLeaf.initMiller(a, view);
+            @import("verifier_key.zig").retireProverData(&leaves[made].authority);
             made += 1;
         }
-        var topology = try Topology.Topology.init(a, self.profile, plan.inventory.execution, leaves);
+        var topology = try Topology.Topology.initForVerification(a, self.profile, plan.inventory.execution, leaves);
         defer topology.deinit();
         const source_ns = self.timer.read();
         try @import("receiver.zig").verifyPlan(a, &plan, &topology, self.root);

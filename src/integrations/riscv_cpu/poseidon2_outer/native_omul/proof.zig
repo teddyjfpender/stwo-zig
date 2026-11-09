@@ -60,6 +60,9 @@ pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Au
     return proveRecorded(a, ctx, key, outputs, mutation, null, true);
 }
 fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, mutation: Mutation, recorder: ?*Engine.stage_profile.Recorder, compact: bool) ![]u8 {
+    // A verifier-only authority has deliberately released its witness data.
+    // Reject it before witness generation, including monolithic controls.
+    if (key.base.fixed_tree == null or key.base.fixed.values.len != K.FIXED_COUNT or key.base.usage.len == 0) return error.PoseidonProverDataNotRetained;
     var main = blk: {
         var span = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.main_generation", "P2 MAIN generation");
         defer span.end();

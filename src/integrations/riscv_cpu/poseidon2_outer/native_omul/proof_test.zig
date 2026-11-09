@@ -79,6 +79,20 @@ test "OP R6 physical six-component proof closes complete Var and range relations
     var captured = try Proof.verifyCaptured(a, &receiver, &expected, proof);
     defer captured.deinit(a);
     try std.testing.expectEqual(@as(usize, 6), captured.claims.len);
+    // Receiver retention must not keep prover FIXED columns/trees or usages.
+    // The physical proof and the subsequent recursive verifier use the same
+    // independently rebuilt identity after that memory has been released.
+    const receiver_identity = receiver.base.identity;
+    const receiver_root = receiver.base.fixed_root;
+    @import("verifier_key.zig").retireProverData(&receiver);
+    @import("verifier_key.zig").retireProverData(&receiver);
+    try std.testing.expectEqualSlices(u8, &receiver_identity, &receiver.base.identity);
+    try std.testing.expectEqualSlices(u8, &receiver_root, &receiver.base.fixed_root);
+    try std.testing.expect(receiver.base.fixed_tree == null);
+    try std.testing.expectEqual(@as(usize, 0), receiver.base.fixed.values.len);
+    try std.testing.expectEqual(@as(usize, 0), receiver.base.usage.len);
+    try Proof.verify(a, &receiver, &expected, proof);
+    try std.testing.expectError(error.PoseidonProverDataNotRetained, Proof.prove(a, &owner, &receiver, &expected));
     // The recursive verifier consumes the same source-authorized six-component
     // geometry and equations. No native result is trusted as a circuit oracle.
     {

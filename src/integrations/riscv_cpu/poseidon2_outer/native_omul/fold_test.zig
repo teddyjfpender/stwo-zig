@@ -62,6 +62,8 @@ test "OP R6 source exact six-component children fold and trace parity" {
         leaf.* = try Proof.verifyCaptured(a, &key, &out, encoded);
         made += 1;
     }
+    // Both actual and source-only parent circuits need only verifier metadata.
+    @import("verifier_key.zig").retireProverData(&key);
     const view = Fold.Source{ .children = .{ .{ .key = &key, .verified = &leaves[0], .output = outputs[0] }, .{ .key = &key, .verified = &leaves[1], .output = outputs[1] } } };
     var parent = try view.build(a, false);
     defer parent.deinit();

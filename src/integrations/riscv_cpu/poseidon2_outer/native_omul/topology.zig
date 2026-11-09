@@ -100,6 +100,14 @@ pub const Topology = struct {
     /// Leaves must be derived by trusted CPU/catalog/Miller source constructors;
     /// they are borrowed until this handle is destroyed (one-leaf case).
     pub fn init(a: std.mem.Allocator, profile: Profile, execution: [32]u8, sources: []const SourceLeaf) !Topology {
+        return initMode(a, profile, execution, sources, false);
+    }
+    /// Receiver-only construction retires each derived parent's prover buffers
+    /// before building the next parent. Independently derived roots and AIR stay.
+    pub fn initForVerification(a: std.mem.Allocator, profile: Profile, execution: [32]u8, sources: []const SourceLeaf) !Topology {
+        return initMode(a, profile, execution, sources, true);
+    }
+    fn initMode(a: std.mem.Allocator, profile: Profile, execution: [32]u8, sources: []const SourceLeaf, verifier_only: bool) !Topology {
         if (sources.len == 0 or sources.len > 256) return error.InvalidOpRootTopologyCount;
         const bindings = try a.alloc(Binding, sources.len);
         var self = Topology{ .allocator = a, .execution = execution, .leaf_count = sources.len, .leaf_bindings = bindings, .leaf_fingerprint = undefined, .profile = profile, .final = &sources[0].authority };
@@ -145,6 +153,7 @@ pub const Topology = struct {
                     a.destroy(authority);
                     return err;
                 };
+                if (verifier_only) @import("verifier_key.zig").retireProverData(authority);
                 level[next] = authority;
                 next += 1;
             }

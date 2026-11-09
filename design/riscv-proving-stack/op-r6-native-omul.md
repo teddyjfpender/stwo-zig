@@ -71,3 +71,23 @@ R6 passes complete source authority/closure/terminal and durable-root tests, the
 adapters should replace rather than accumulate parallel production routes.
 The next physical gate is service-local GKR plus R6 Keccak, followed by the real
 three-leaf CPU/Keccak/SHA root; neither is claimed complete here.
+
+## Receiver-only key retention
+
+The R6 source-only receiver releases each independently constructed key's raw
+FIXED values, committed FIXED tree and witness-use array immediately after
+source admission. It retains the source-derived semantic identity, FIXED root,
+all geometry, output arity and bound constraint system. Parent topology
+construction applies the same transition after each parent key is derived;
+producer topology construction retains its proving data. This reduces retained
+memory across many leaf classes but does not avoid the initial FIXED commitment
+or claim a cold setup speedup.
+
+`native_omul/verifier_key.zig` owns this explicit, idempotent transition. Native
+verification and recursive statement construction consume the resulting narrow
+key. Attempting to prove with it fails before witness allocation, including the
+monolithic control path. R5 authority and proof sources remain untouched.
+The focused physical proof gate verifies after retirement, exercises recursive
+verification and rejects altered outputs and claims with the retired key. The
+fold gate derives identical actual and source-only parent graphs from retired
+child keys. Complete-block memory qualification remains a separate gate.
