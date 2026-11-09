@@ -7,7 +7,7 @@ validation head, change its merge bar or claim a completed product package.
 - Slice: https://github.com/teddyjfpender/stwo-zig/issues/336
 - Contract RFC: https://github.com/teddyjfpender/stwo-zig/issues/352
 - Stable PR head/base for this checkpoint: `b167250a425101262805bdb79cfbf4f1e57f93e8`.
-- Material tree before this runbook: `e25d7cc6a897fef0bc251f9e07527edfb5ac57c9`.
+- Material tree before this runbook: `bceb119ab47cd16baef77a73d77ce274fec70fe9`.
 - Owner for every new role/contract/manifest route: @teddyjfpender.
 - Backup ref: `backup/c4-product-ownership-partial-20261110`.
 
@@ -37,8 +37,8 @@ service/product cuts remain unfinished. Do not merge or use this as proof output
 
 ## Actual validation boundaries
 
-The actual strict checker on the material tree is **FAIL:1603 findings**:
-24 product-placement,331 relative owner escapes,1247 relative owner ingresses,
+The actual strict checker on the material tree is **FAIL: 896 findings**:
+24 product-placement, 331 relative owner escapes, 540 relative owner ingresses,
 and one embedded-file owner escape. The missing real package and unresolved
 cross-owner sources are not baselined, allowlisted or suppressed.
 The source/code remains subject to all existing ceilings and negative checks.
@@ -77,6 +77,28 @@ Approved decisions (none approves unlisted namespace/API changes):
 - concrete component Module identity: https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6751560683
 - BUILD-only floor helper/composition: https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6751983117
 - closed layout and source-field/method transaction: https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6752037480
+
+## Existing-provider import repair checkpoint
+
+This second partial checkpoint rewires 707 literal imports in 141 product
+files to 148 already-published whole-module neutral providers. The exact
+source target and published path were resolved from the pinned public tree;
+no new provider API, runtime behavior or module namespace was added.
+Code is +702/-702/net 0. Zig formatter/AST checks pass for all 141 files;
+these checks establish syntax only. The actual strict findings fell from
+1603 to 896, all 707 removed findings being relative owner ingresses.
+
+Forty-six occurrences with only testing-oriented published paths remain
+deferred. Production code must not import testing hooks to clear ownership
+checks. C3's real child providers and the remaining member/exclusive-owner
+cuts are still required; no 86 temporary umbrella bridge exports are added.
+The real product build/module DAG, metadata/native authority cycle, legacy
+composition and actual test-root execution remain incomplete.
+
+The stable PR head remains b167250a425101262805bdb79cfbf4f1e57f93e8.
+This ref is PARTIAL and must not be treated as mergeable or green. All
+full type/runtime/CPU/proof/negative acceptance is UNRUN here. The mandatory
+rv64 gate invocation before backup push remains subject to pod-only refusal.
 
 ## Original-to-product ownership map
 

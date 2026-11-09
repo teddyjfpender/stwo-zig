@@ -2,10 +2,10 @@
 const std = @import("std");
 const CPU = @import("stwo_riscv_cpu_integration");
 const Native = @import("../../../../integrations/riscv_cuda/rv64/pcs_native.zig");
-const Gkr = @import("../../../../integrations/riscv_cuda/rv64/gkr_stage.zig");
-const TraceCommit = @import("../../../../integrations/riscv_cuda/rv64/trace_commit.zig");
-const CpuProjection = @import("../../../../integrations/riscv_cuda/rv64/cpu_projection.zig");
-const ResidentComposition = @import("../../../../integrations/riscv_cuda/rv64/resident_composition.zig");
+const Gkr = @import("stwo_riscv_cuda_integration").rv64.gkr_stage;
+const TraceCommit = @import("stwo_riscv_cuda_integration").rv64.trace_commit;
+const CpuProjection = @import("stwo_riscv_cuda_integration").rv64.cpu_projection;
+const ResidentComposition = @import("stwo_riscv_cuda_integration").rv64.resident_composition;
 const H = @import("../../../../integrations/riscv_cuda/rv64/hybrid_pcs.zig");
 const Composition = @import("../../../../integrations/riscv_cuda/rv64/real_composition.zig");
 pub fn main() !void {
@@ -79,12 +79,12 @@ pub fn main() !void {
             defer global_interaction.deinit();
             var projection = try CpuProjection.Context.init(&native);
             defer projection.deinit();
-            var core_source = try @import("../../../../integrations/riscv_cuda/rv64/core_witness.zig").Context.init(&native, &projection);
-            var bridge = try @import("../../../../integrations/riscv_cuda/rv64/bridge_witness.zig").Context.init(&native);
+            var core_source = try @import("stwo_riscv_cuda_integration").rv64.core_witness.Context.init(&native, &projection);
+            var bridge = try @import("stwo_riscv_cuda_integration").rv64.bridge_witness.Context.init(&native);
             var bulk_sponge = try @import("../../../../integrations/riscv_cuda/rv64/bulk_sponge.zig").Context.init(&native);
-            const contributors = [_]@import("../../../../integrations/riscv_cuda/rv64/device_source.zig").Contributor{ bridge.contributor(), bulk_sponge.contributor() };
-            var source = @import("../../../../integrations/riscv_cuda/rv64/device_source.zig").Context{ .core = &core_source, .contributors = &contributors };
-            var truth_source = try @import("../../../../integrations/riscv_cuda/rv64/truth_source.zig").Context.init(a, &native, &trace, &global_interaction);
+            const contributors = [_]@import("stwo_riscv_cuda_integration").rv64.device_source.Contributor{ bridge.contributor(), bulk_sponge.contributor() };
+            var source = @import("stwo_riscv_cuda_integration").rv64.device_source.Context{ .core = &core_source, .contributors = &contributors };
+            var truth_source = try @import("stwo_riscv_cuda_integration").rv64.truth_source.Context.init(a, &native, &trace, &global_interaction);
             defer truth_source.deinit();
             const truth_composition = try composition.truthStage();
             try CPU.rv64_ethereum_gkr_main.mainWithResidentPipeline(.{ .source = source.stage(), .truth_source = truth_source.stage(), .truth_composition = truth_composition, .truth_pcs = &native_stage, .pcs = &native_stage, .numerical = &gkr_stage, .resident_composition = &resident_composition_stage, .trace_commit = &trace_stage, .global_interaction = global_interaction.stage(), .cpu_projection = projection.stage() });

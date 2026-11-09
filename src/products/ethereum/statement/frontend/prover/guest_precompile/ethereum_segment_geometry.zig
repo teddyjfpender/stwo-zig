@@ -7,18 +7,18 @@
 const std = @import("std");
 const prover_engine = @import("stwo_prover_engine");
 const residency_estimate = prover_engine.pcs.residency_estimate;
-const lookup_physical_v2 = @import("../../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const public_data_v2 = @import("../../../../../../frontends/riscv/air/public_data_v2.zig");
+const lookup_physical_v2 = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const public_data_v2 = @import("stwo_riscv_frontend").air.public_data_v2;
 const statement_v2 = @import("../../../../../../frontends/riscv/air/statement_v2.zig");
 const proof_admission = @import("../../air/guest_precompile/ethereum_proof_admission.zig");
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
-const poseidon2_air = @import("../../../../../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
-const candidate = @import("../../../../../../frontends/riscv/air/lang/typed_poseidon2_degree_bounded_candidate.zig");
+const poseidon2_air = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2_air;
+const candidate = @import("stwo_riscv_frontend").air.typed_poseidon2_degree_bounded_candidate;
 const candidate_residency = @import("../../../../../../frontends/riscv/air/lang/typed_poseidon2_degree_bounded_residency.zig");
-const keccak_calls_mod = @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_call_buffer.zig");
-const keccak_rows_mod = @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_v1.zig");
-const recovery_calls_mod = @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const recovery_rows_mod = @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_v1.zig");
+const keccak_calls_mod = @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_call_buffer;
+const keccak_rows_mod = @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_v1;
+const recovery_calls_mod = @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_call_buffer;
+const recovery_rows_mod = @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_v1;
 const runner_result = @import("../../runner/result.zig");
 const commitment_witness = @import("../../../../../../frontends/riscv/prover/commitment_witness.zig");
 const proof_workspace = @import("../../../../../../frontends/riscv/prover/proof_workspace.zig");
@@ -461,7 +461,7 @@ pub const RemovedPoseidonColumns = struct {
 
 fn removeLegacyPoseidonColumnsInternal(
     allocator: std.mem.Allocator,
-    core: *const @import("../../../../../../frontends/riscv/air/statement.zig").RiscVStatement,
+    core: *const @import("stwo_riscv_frontend").air.statement.RiscVStatement,
     tree1_log_sizes: []const u32,
 ) !RemovedPoseidonColumns {
     const base_main_column_count: usize = @intCast(core.nMainColumns());
@@ -542,7 +542,7 @@ fn candidateEstimateInternal(
 }
 
 fn validateClockAuthority(
-    trace: *const @import("../../../../../../frontends/riscv/runner/trace.zig").Trace,
+    trace: *const @import("stwo_riscv_frontend").runner.trace.Trace,
     keccak_calls: usize,
     keccak_rows: usize,
     recovery_calls: usize,
@@ -569,7 +569,7 @@ fn validateClockAuthority(
 pub const testing = struct {
     pub fn removeLegacyPoseidonColumns(
         allocator: std.mem.Allocator,
-        core: *const @import("../../../../../../frontends/riscv/air/statement.zig").RiscVStatement,
+        core: *const @import("stwo_riscv_frontend").air.statement.RiscVStatement,
         tree1_log_sizes: []const u32,
     ) !RemovedPoseidonColumns {
         return removeLegacyPoseidonColumnsInternal(

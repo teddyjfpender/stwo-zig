@@ -3,11 +3,11 @@
 //! input lane and packet bridge. Equations and widths come from their typed AIRs.
 //! This contract admits geometry; it does not establish a complete proof.
 const std = @import("std");
-const base = @import("../../../../../../frontends/riscv/recursion/air/universal_adapter_manifest.zig");
-const universal = @import("../../../../../../frontends/riscv/recursion/air/universal_manifest.zig");
+const base = @import("stwo_riscv_frontend").recursion.air.universal_adapter_manifest;
+const universal = @import("stwo_riscv_frontend").recursion.air.universal_manifest;
 const profile = @import("../incremental_ethereum_composition_profile_v4.zig");
 const typed = @import("../../../../../../frontends/riscv/recursion/air/universal_typed_geometry.zig");
-const relation = @import("../../../../../../frontends/riscv/air/lang/relation.zig");
+const relation = @import("stwo_riscv_frontend").air.relation;
 pub const LaneAir = @import("ethereum_initial_input_lane_v1.zig");
 pub const PacketAir = @import("ethereum_initial_input_packet_v1.zig");
 pub const COMPONENT_COUNT = base.COMPONENT_COUNT + 2;

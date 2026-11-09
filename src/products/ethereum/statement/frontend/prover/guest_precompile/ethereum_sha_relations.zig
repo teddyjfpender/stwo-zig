@@ -1,7 +1,7 @@
 //! One extension draw order for Ethereum and SHA, sharing native VM buses.
 const std = @import("std");
 const core = @import("stwo_core");
-const universal = @import("../../../../../../frontends/riscv/recursion/air/universal_challenges.zig");
+const universal = @import("stwo_riscv_frontend").recursion.air.universal_challenges;
 const providers = @import("../../../../../../frontends/riscv/recursion/air/universal_provider_relations.zig");
 const ethereum = @import("ethereum_transcript.zig");
 const sha = @import("../../../../../../frontends/riscv/air/guest_precompile/sha256_relations.zig");

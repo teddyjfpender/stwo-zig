@@ -3,9 +3,9 @@
 //! then the sole segment-active parameter. CSP retains its original ordering.
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const legacy = @import("../../../../../../frontends/riscv/recursion/air/vm_public_claim_hash.zig");
+const legacy = @import("stwo_riscv_frontend").recursion.air.vm_public_claim_hash;
 const ir = @import("../../../../../../frontends/riscv/air/lang/ir.zig");
-const digest = @import("../../../../../../frontends/riscv/air/lang/digest.zig");
+const digest = @import("stwo_riscv_frontend").recursion.detached_segment_verifier_components_v1.manifest_mod.digest;
 const types = @import("../../../../../../frontends/riscv/air/lang/types.zig");
 
 pub const STABLE_NAME = "recursion.ethereum_publication_hash.v1";
@@ -19,7 +19,7 @@ pub const MAXIMUM_CONSTRAINT_DEGREE = legacy.MAXIMUM_CONSTRAINT_DEGREE;
 pub const LOOKUP_BATCH_SIZE = legacy.LOOKUP_BATCH_SIZE;
 pub const INTERACTION_BATCH_COUNT = legacy.INTERACTION_BATCH_COUNT;
 pub const INTERACTION_COLUMN_COUNT = legacy.INTERACTION_COLUMN_COUNT;
-pub const Relation = @import("../../../../../../frontends/riscv/recursion/air/universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_frontend").recursion.air.universal_relation_binding.Binding(@This());
 pub const SEMANTIC_DIGEST_HEX = "5ca22b7fd0a6e08537c18b391a148900182a827aca4ec8056251dabce6f483c3";
 pub const SEMANTIC_DIGEST: digest.Digest = blk: {
     var bytes: digest.Digest = undefined;

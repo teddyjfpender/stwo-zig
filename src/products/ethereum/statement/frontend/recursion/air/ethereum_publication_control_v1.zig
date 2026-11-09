@@ -3,7 +3,7 @@
 //! to preprocessing; none of the statement or digest values is a circuit constant.
 const std = @import("std");
 const lang = @import("../../../../../../frontends/riscv/air/lang/mod.zig");
-const effects = @import("../../../../../../frontends/riscv/recursion/air/relation_effect.zig");
+const effects = @import("stwo_riscv_frontend").recursion.air.relation_effect;
 const M31 = @import("stwo_core").fields.m31.M31;
 const Id = lang.types.ValueId;
 pub const STABLE_NAME = "recursion.ethereum_publication_control.v1";
@@ -17,7 +17,7 @@ pub const LOOKUP_BATCH_SIZE: u8 = 2;
 pub const INTERACTION_BATCH_COUNT: usize = 7;
 pub const INTERACTION_COLUMN_COUNT: usize = 28;
 pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 4;
-pub const Relation = @import("../../../../../../frontends/riscv/recursion/air/universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_frontend").recursion.air.universal_relation_binding.Binding(@This());
 pub const SEMANTIC_DIGEST_HEX = "c57c74c861342ddeb224ccd32a56feba18f60b11c8e671708a227b1b1355b238";
 pub const SEMANTIC_DIGEST = blk: {
     var bytes: [32]u8 = undefined;
@@ -107,8 +107,8 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
     const zero_byte = try arena.constantUnsigned(.byte, 0, span);
     _ = try arena.assertZero("word.admitted_constant", try arena.mul(try arena.mul(pp[30], segment, span), try arena.sub(value, pp[31], span), span), null, .semantic, span);
     const raw_scope = try arena.constantField(1114, span);
-    const public_scope = try arena.constantField(@import("../../../../../../frontends/riscv/recursion/air/field_public_word_v3.zig").PUBLIC_SCOPE, span);
-    const digest_kind = try arena.constantField(@import("../../../../../../frontends/riscv/recursion/air/field_public_word_v3.zig").DIGEST_INPUT_KIND, span);
+    const public_scope = try arena.constantField(@import("stwo_riscv_frontend").recursion.air.field_public_word_v3.PUBLIC_SCOPE, span);
+    const digest_kind = try arena.constantField(@import("stwo_riscv_frontend").recursion.air.field_public_word_v3.DIGEST_INPUT_KIND, span);
     const events = try effects.appendGroup(RELATION_EVENT_COUNT, &arena, .{
         .{ .domain = .recursion_step, .role = .consume, .values = &.{ pp[2], pp[3], pp[4], pp[5], pp[6], pp[7], pp[8] }, .weight = control_active },
         .{ .domain = .recursion_statement_word, .role = .consume, .values = &.{ pp[11], pp[12], value }, .weight = try arena.mul(word_active, pp[10], span) },

@@ -5,12 +5,12 @@ const legacy = @import("../../../../../../../frontends/riscv/recursion/air/trans
 const clocks = @import("../../../../../../../frontends/riscv/recursion/air/transcript_payload_clocks_v2.zig");
 const raw = @import("../ethereum_transcript_payload_raw_v1.zig");
 const hash_air = @import("../ethereum_publication_hash_v1.zig");
-const hash_witness = @import("../../../../../../../frontends/riscv/recursion/air/vm_public_claim_hash_witness.zig");
-const interaction = @import("../../../../../../../frontends/riscv/recursion/air/relation_interaction.zig");
-const relation = @import("../../../../../../../frontends/riscv/air/lang/relation.zig");
-const types = @import("../../../../../../../frontends/riscv/air/lang/types.zig");
-const support = @import("../../../../../../../frontends/riscv/recursion/air/test_support.zig");
-const channel = @import("../../../../../../../frontends/riscv/recursion/poseidon2_channel.zig");
+const hash_witness = @import("stwo_riscv_frontend").recursion.air.vm_public_claim_hash_witness;
+const interaction = @import("stwo_riscv_frontend").recursion.air.relation_interaction;
+const relation = @import("stwo_riscv_frontend").air.relation;
+const types = @import("stwo_riscv_frontend").testing.blake3_proof.air_lang.types;
+const support = @import("stwo_riscv_frontend").testing.blake3_proof.test_support;
+const channel = @import("stwo_riscv_frontend").recursion.poseidon2_channel;
 
 test "Ethereum raw transcript export preserves legacy seals and pins opt-in identity" {
     try std.testing.expectEqualDeep(legacy.SEMANTIC_DIGEST, (try legacy.identity(std.testing.allocator)).bytes);
@@ -67,7 +67,7 @@ test "Ethereum raw transcript export preserves constraints clock routing and dis
 
 test "Ethereum raw transcript and native wire hash require identical payload words" {
     const words = [_]M31{ M31.fromCanonical(75), M31.fromCanonical(65535), M31.fromCanonical(917) };
-    const domain = @import("../../../../../../../frontends/riscv/recursion/segment_statement_v2.zig").WIRE_ID_DOMAIN;
+    const domain = @import("stwo_riscv_frontend").recursion.segment_statement_v2.WIRE_ID_DOMAIN;
     const metadata = try hash_witness.expectedRow(words.len, 1, 0);
     var state = [_]M31{M31.zero()} ** hash_witness.STATE_WIDTH;
     state[state.len - 1] = M31.fromCanonical(domain);
@@ -140,7 +140,7 @@ test "Ethereum raw transcript root topology closes two raw uses without duplicat
     const router_plan = try router_air.Relation.authenticate(&router_definition);
     const hash_count = (words.len + 1 + hash_witness.RATE - 1) / hash_witness.RATE;
     var hashes: [hash_count]hash_air.Relation.Row = undefined;
-    const domain = @import("../../../../../../../frontends/riscv/recursion/segment_statement_v2.zig").WIRE_ID_DOMAIN;
+    const domain = @import("stwo_riscv_frontend").recursion.segment_statement_v2.WIRE_ID_DOMAIN;
     var state = [_]M31{M31.zero()} ** hash_witness.STATE_WIDTH;
     state[state.len - 1] = M31.fromCanonical(domain);
     for (&hashes, 0..) |*row, index| {

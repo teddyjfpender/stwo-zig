@@ -1,14 +1,14 @@
 //! Combined-profile dispatch over independent Keccak and signer-recovery tapes.
 
-const custom0 = @import("../../../../../../frontends/riscv/isa/custom0.zig");
-const execution_profile = @import("../../../../../../frontends/riscv/isa/execution_profile.zig");
-const Cpu = @import("../../../../../../frontends/riscv/runner/cpu.zig").Cpu;
-const Memory = @import("../../../../../../frontends/riscv/runner/memory.zig").Memory;
-const MemoryLayout = @import("../../../../../../frontends/riscv/runner/memory_state.zig").MemoryLayout;
-const StateChainTracker = @import("../../../../../../frontends/riscv/runner/state_chain.zig").StateChainTracker;
-const Trace = @import("../../../../../../frontends/riscv/runner/trace.zig").Trace;
-const keccakf_v1 = @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_v1.zig");
-const secp256k1_recover_v1 = @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_v1.zig");
+const custom0 = @import("stwo_riscv_frontend").isa.custom0;
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
+const Cpu = @import("stwo_riscv_frontend").runner.cpu.Cpu;
+const Memory = @import("stwo_riscv_frontend").runner.memory.Memory;
+const MemoryLayout = @import("stwo_riscv_frontend").runner.memory_state.MemoryLayout;
+const StateChainTracker = @import("stwo_riscv_frontend").runner.state_chain.StateChainTracker;
+const Trace = @import("stwo_riscv_frontend").runner.trace.Trace;
+const keccakf_v1 = @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_v1;
+const secp256k1_recover_v1 = @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_v1;
 const session_state = @import("session_state.zig");
 
 pub const ExecutionProfile = execution_profile.ExecutionProfile;

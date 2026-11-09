@@ -13,12 +13,12 @@ const verifier_types = stwo_core.verifier_types;
 
 const base_assembly = @import("../../../../../frontends/riscv/prover/base_component_assembly.zig");
 const circuit = @import("../prover/ethereum_circuit_profile_v1.zig");
-const lookup_physical_v2 = @import("../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const relation_challenges = @import("../../../../../frontends/riscv/air/relation_challenges.zig");
+const lookup_physical_v2 = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const relation_challenges = @import("stwo_riscv_frontend").air.relation_challenges;
 const registry = @import("../../../../../frontends/riscv/recursion/vm_air_profile_v2_registry.zig");
-const semantic_eval = @import("../../../../../frontends/riscv/air/semantic_eval.zig");
-const statement_mod = @import("../../../../../frontends/riscv/air/statement.zig");
-const transcript_claims = @import("../../../../../frontends/riscv/air/transcript/claims.zig");
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
+const statement_mod = @import("stwo_riscv_frontend").air.statement;
+const transcript_claims = @import("stwo_riscv_frontend").air.transcript.claims;
 
 const identity = @import("vm_air_profile_v2_identity.zig");
 
@@ -80,7 +80,7 @@ pub const OpcodeSemanticKeyV2 = struct {
 };
 
 pub const OpcodeLookupKeyV2 = struct {
-    family: @import("../../../../../frontends/riscv/runner/trace.zig").OpcodeFamily,
+    family: @import("stwo_riscv_frontend").runner.trace.OpcodeFamily,
     typed_authority_identity: [32]u8,
     component_identity: [32]u8,
     partition_identity: [32]u8,

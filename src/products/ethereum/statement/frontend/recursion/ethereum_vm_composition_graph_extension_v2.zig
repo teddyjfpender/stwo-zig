@@ -4,23 +4,23 @@
 //! expressions are evaluated by the production generic evaluators over the
 //! canonical recording scalar.
 
-const logup = @import("../../../../../frontends/riscv/air/logup.zig");
+const logup = @import("stwo_riscv_frontend").air.logup;
 const ethereum_statement =
     @import("../air/guest_precompile/ethereum_statement.zig");
 const keccak_row = @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_row.zig");
 const keccak_relations =
-    @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_relations.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.keccakf_relations;
 const keccak_table =
-    @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_table_component.zig");
-const keccak_tables = @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_tables.zig");
-const keccak_trace = @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_trace.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.keccakf_table_component;
+const keccak_tables = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_tables;
+const keccak_trace = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_trace;
 const keccak_witness = @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_witness.zig");
 const secp_bundle =
-    @import("../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_bundle.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_bundle;
 const secp_config =
-    @import("../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_config.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_config;
 const secp_trace =
-    @import("../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_trace.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_trace;
 
 const geometry_mod =
     @import("ethereum_composition_extension_geometry_v2.zig");

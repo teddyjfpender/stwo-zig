@@ -2,20 +2,20 @@
 
 const std = @import("std");
 
-const custom0 = @import("../../../../../../frontends/riscv/isa/custom0.zig");
+const custom0 = @import("stwo_riscv_frontend").isa.custom0;
 const authority_mod =
     @import("../../isa/ethereum_candidate_combined_authority_v1.zig");
-const Cpu = @import("../../../../../../frontends/riscv/runner/cpu.zig").Cpu;
-const Memory = @import("../../../../../../frontends/riscv/runner/memory.zig").Memory;
-const MemoryLayout = @import("../../../../../../frontends/riscv/runner/memory_state.zig").MemoryLayout;
-const StateChainTracker = @import("../../../../../../frontends/riscv/runner/state_chain.zig").StateChainTracker;
-const Trace = @import("../../../../../../frontends/riscv/runner/trace.zig").Trace;
+const Cpu = @import("stwo_riscv_frontend").runner.cpu.Cpu;
+const Memory = @import("stwo_riscv_frontend").runner.memory.Memory;
+const MemoryLayout = @import("stwo_riscv_frontend").runner.memory_state.MemoryLayout;
+const StateChainTracker = @import("stwo_riscv_frontend").runner.state_chain.StateChainTracker;
+const Trace = @import("stwo_riscv_frontend").runner.trace.Trace;
 const bulk_call_buffer = @import("../../../../../../frontends/riscv/runner/guest_precompile/bulk_memcpy_call_buffer_v1.zig");
-const bulk_runner = @import("../../../../../../frontends/riscv/runner/guest_precompile/bulk_memcpy_v1.zig");
+const bulk_runner = @import("stwo_riscv_frontend").runner.guest_precompile.bulk_memcpy_v1;
 const bulk_tape = @import("../../../../../../frontends/riscv/runner/guest_precompile/bulk_memcpy_session_tape_v1.zig");
 const dispatcher_mod = @import("ethereum_candidate_combined_dispatch_v1.zig");
-const keccakf_v1 = @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_v1.zig");
-const recovery_v1 = @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_v1.zig");
+const keccakf_v1 = @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_v1;
+const recovery_v1 = @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_v1;
 const session_state = @import("session_state.zig");
 const swap_runner = @import("../../../../../../frontends/riscv/runner/guest_precompile/stack_swap_v1.zig");
 const swap_tape = @import("../../../../../../frontends/riscv/runner/guest_precompile/stack_swap_session_tape_v1.zig");

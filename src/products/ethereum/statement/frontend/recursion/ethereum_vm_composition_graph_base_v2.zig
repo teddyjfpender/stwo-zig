@@ -4,26 +4,26 @@
 //! lookup batches are lowered by the authenticated selected-batch compiler;
 //! infrastructure and semantic constraints reuse their production evaluators.
 
-const clock_component = @import("../../../../../frontends/riscv/air/clock_update_component.zig");
-const clock_interaction = @import("../../../../../frontends/riscv/air/clock_update_interaction.zig");
-const logup = @import("../../../../../frontends/riscv/air/logup.zig");
-const memory_interaction = @import("../../../../../frontends/riscv/air/memory_commitment/interaction.zig");
+const clock_component = @import("stwo_riscv_frontend").air.clock_update_component;
+const clock_interaction = @import("stwo_riscv_frontend").air.clock_update_interaction;
+const logup = @import("stwo_riscv_frontend").air.logup;
+const memory_interaction = @import("stwo_riscv_frontend").air.memory_commitment.interaction;
 const MemoryBoundaryPolicy = @import("../../../../../frontends/riscv/air/component.zig").MemoryBoundaryPolicy;
-const merkle_node = @import("../../../../../frontends/riscv/air/memory_commitment/merkle_node.zig");
+const merkle_node = @import("stwo_riscv_frontend").air.memory_commitment.merkle_node;
 const circuit_profile_mod = @import("../prover/ethereum_circuit_profile_v1.zig");
 const poseidon2_narrow = @import("../../../../../frontends/riscv/air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
-const poseidon2_air = @import("../../../../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
-const program_commitment = @import("../../../../../frontends/riscv/air/program/commitment.zig");
-const program_interaction = @import("../../../../../frontends/riscv/air/program/interaction.zig");
-const semantic_eval = @import("../../../../../frontends/riscv/air/semantic_eval.zig");
-const statement_mod = @import("../../../../../frontends/riscv/air/statement.zig");
-const table_interaction = @import("../../../../../frontends/riscv/air/lookups/tables/interaction.zig");
-const table_schema = @import("../../../../../frontends/riscv/air/lookups/tables/schema.zig");
-const trace = @import("../../../../../frontends/riscv/runner/trace.zig");
+const poseidon2_air = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2_air;
+const program_commitment = @import("stwo_riscv_frontend").air.program.commitment;
+const program_interaction = @import("stwo_riscv_frontend").air.program.interaction;
+const semantic_eval = @import("stwo_riscv_frontend").air.semantic_eval;
+const statement_mod = @import("stwo_riscv_frontend").air.statement;
+const table_interaction = @import("stwo_riscv_frontend").air.lookups.tables.interaction;
+const table_schema = @import("stwo_riscv_frontend").air.lookups.tables.schema;
+const trace = @import("stwo_riscv_frontend").runner.trace;
 
 const support = @import("ethereum_vm_composition_graph_support_v2.zig");
-const circuit = @import("../../../../../frontends/riscv/recursion/vm_air_composition_circuit.zig");
-const lookup_manifest = @import("../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
+const circuit = @import("stwo_riscv_frontend").recursion.vm_air_composition_circuit;
+const lookup_manifest = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
 const lookup_compiler = @import("../../../../../frontends/riscv/recursion/vm_selected_lookup_compiler_v2.zig");
 const profile_mod = @import("vm_air_profile_v2.zig");
 
@@ -511,7 +511,7 @@ test "authenticated VM AIR ProfileV2 schema5 infrastructure recording equals nat
     defer circuit.uninstallBuilder();
     const z = QM31.fromU32Unchecked(41, 5, 8, 2);
     const alpha = QM31.fromU32Unchecked(7, 3, 1, 6);
-    const relation_mod = @import("../../../../../frontends/riscv/air/relation_challenges.zig");
+    const relation_mod = @import("stwo_riscv_frontend").air.relation_challenges;
     var native_relations: relation_mod.Relations = undefined;
     inline for (std.meta.fields(relation_mod.Relations)) |field|
         @field(native_relations, field.name) = @TypeOf(@field(native_relations, field.name)).init(z, alpha);

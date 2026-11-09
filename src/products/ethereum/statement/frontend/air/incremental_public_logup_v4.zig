@@ -7,13 +7,13 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const execution_profile = @import("../../../../../frontends/riscv/isa/execution_profile.zig");
-const public_data = @import("../../../../../frontends/riscv/air/public_data.zig");
-const public_data_v2 = @import("../../../../../frontends/riscv/air/public_data_v2.zig");
-const public_logup = @import("../../../../../frontends/riscv/air/public_logup.zig");
-const public_logup_v2 = @import("../../../../../frontends/riscv/air/public_logup_v2.zig");
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
+const public_data = @import("stwo_riscv_frontend").air.public_data;
+const public_data_v2 = @import("stwo_riscv_frontend").air.public_data_v2;
+const public_logup = @import("stwo_riscv_frontend").air.public_logup;
+const public_logup_v2 = @import("stwo_riscv_frontend").air.public_logup_v2;
 const incremental_v3 = @import("../../../../../frontends/riscv/air/incremental_public_logup_v3.zig");
-const relation_challenges = @import("../../../../../frontends/riscv/air/relation_challenges.zig");
+const relation_challenges = @import("stwo_riscv_frontend").air.relation_challenges;
 const CircuitProfile = @import("../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1;
 const statement_v2 = @import("../../../../../frontends/riscv/air/statement_v2.zig");
 
@@ -383,7 +383,7 @@ test "incremental public V4 adds one actual nonfinal program fetch" {
 
 test "incremental public V4 decodes boundary CUSTOM-0 under Ethereum profile" {
     const support = @import("../../../../../frontends/riscv/air/public_data_v2_test_support.zig");
-    const custom0 = @import("../../../../../frontends/riscv/isa/custom0.zig");
+    const custom0 = @import("stwo_riscv_frontend").isa.custom0;
     var fixture = try support.Fixture.init();
     const source = fixture.leftSource();
     const words = try support.encode(std.testing.allocator, &source);

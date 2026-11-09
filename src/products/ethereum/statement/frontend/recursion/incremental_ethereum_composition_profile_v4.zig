@@ -1,9 +1,9 @@
 //! Compiler admission inputs for incremental Ethereum composition.
 //! The statement-root profile accepts geometry separately from root values;
 //! native and recursive callers use these types without importing a recorder.
-const statement_mod = @import("../../../../../frontends/riscv/air/statement.zig");
+const statement_mod = @import("stwo_riscv_frontend").air.statement;
 const ethereum_statement = @import("../air/guest_precompile/ethereum_statement.zig");
-const lookup_manifest = @import("../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
+const lookup_manifest = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
 const profile_mod = @import("vm_air_profile_v2.zig");
 const bridge_external = @import("../../../../../frontends/riscv/prover/incremental_bridge_external_v3.zig");
 
@@ -55,7 +55,7 @@ pub const ClaimRoutingPlan = struct {
     pub const CANONICAL_TRANSCRIPT_USE_COUNT: u32 = 2;
     pub const SCHEMA_VERSION: u32 = 1;
     pub const ALIAS_COUNT: u32 = 3;
-    pub const BASE_CANONICAL_COUNT: u32 = @import("../../../../../frontends/riscv/air/transcript/claims.zig").COMPONENT_COUNT;
+    pub const BASE_CANONICAL_COUNT: u32 = @import("stwo_riscv_frontend").air.transcript.claims.COMPONENT_COUNT;
     pub const Error = error{ InvalidEthereumClaimRouting, ArithmeticOverflow };
     pub const Route = union(enum) { detailed: u32, canonical: u32 };
     pub const Alias = struct { logical: u32, canonical: u32 };
@@ -125,7 +125,7 @@ pub const ClaimRoutingPlan = struct {
         };
     }
 
-    pub fn sourceForWord(self: ClaimRoutingPlan, logical: u32, limb: u32) Error!@import("../../../../../frontends/riscv/recursion/air/composition_circuit.zig").VmSource {
+    pub fn sourceForWord(self: ClaimRoutingPlan, logical: u32, limb: u32) Error!@import("stwo_riscv_frontend").recursion.air.composition_circuit.VmSource {
         if (limb >= 4) return error.InvalidEthereumClaimRouting;
         return switch (try self.route(logical)) {
             .detailed => |item| .{ .claimed_sum = .{ .item_index = item, .word_index = limb } },
@@ -162,7 +162,7 @@ pub const PublicationHashProvider = @import("air/ethereum_publication_hash_v1.zi
 pub const ClaimInputProvider = @import("air/ethereum_vm_public_claim_input_v1.zig");
 pub const ClockPayloadProvider = @import("air/ethereum_transcript_payload_raw_v1.zig");
 pub const StatementRootOuterCatalog = struct {
-    const base = @import("../../../../../frontends/riscv/recursion/air/universal_catalog.zig");
+    const base = @import("stwo_riscv_frontend").recursion.air.universal_catalog;
     pub const LOGICAL_ROWS = blk: {
         var rows: [base.LOGICAL_COUNT]base.Entry = undefined;
         for (base.LOGICAL_ROWS, 0..) |entry, index| {
@@ -195,7 +195,7 @@ pub const StatementRoutingOuterCatalog = struct {
 
 /// One identity encoding for the legacy and statement-root input profiles.
 /// Appending the opt-in marker leaves every zero-count legacy preimage intact.
-pub fn hashInputProfile(hash: anytype, profile: @import("../../../../../frontends/riscv/recursion/air/composition_circuit.zig").InputProfile) void {
+pub fn hashInputProfile(hash: anytype, profile: @import("stwo_riscv_frontend").recursion.air.composition_circuit.InputProfile) void {
     const words = [_]u32{ profile.sampled_value_count, profile.claimed_sum_count, profile.relation_challenge_count, profile.transcript_claimed_sum_count, profile.public_wire_boundary_count };
     for (words) |word| hashWord(hash, word);
     @import("../../../../../frontends/riscv/recursion/air/vm_statement_roots.zig").hashProfileExtension(hash, profile.vm_statement_root_count);

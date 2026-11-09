@@ -4,8 +4,8 @@ const engine = @import("stwo_prover_engine");
 const SetupCache = @import("setup_cache.zig");
 const KeyModule = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig");
 const Key = KeyModule.Key;
-const Fixed = @import("../../../../../../integrations/riscv_cpu/word16_execution/fixed_setup.zig");
-const OmScheme = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig").Scheme;
+const Fixed = @import("stwo_riscv_cpu_integration").rv64_gkr_fixed_authority.Fixed;
+const OmScheme = @import("stwo_riscv_cpu_integration").rv64_gkr_worker_protocol.Scheme;
 const M = core.fields.m31.M31;
 
 const Fixture = struct {

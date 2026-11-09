@@ -7,17 +7,17 @@
 //! preprocessed commitment root before publishing a verified-node descriptor.
 
 const std = @import("std");
-const graph_mod = @import("../../../../../frontends/riscv/recursion/air/composition_circuit.zig");
-const component_order = @import("../../../../../frontends/riscv/air/component_order.zig");
+const graph_mod = @import("stwo_riscv_frontend").recursion.air.composition_circuit;
+const component_order = @import("stwo_riscv_frontend").air.component_order;
 const ethereum_statement =
     @import("../air/guest_precompile/ethereum_statement.zig");
-const lookup_manifest = @import("../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const statement_mod = @import("../../../../../frontends/riscv/air/statement.zig");
-const transcript_claims = @import("../../../../../frontends/riscv/air/transcript/claims.zig");
+const lookup_manifest = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const statement_mod = @import("stwo_riscv_frontend").air.statement;
+const transcript_claims = @import("stwo_riscv_frontend").air.transcript.claims;
 
 const base_geometry_mod = @import("vm_composition_base_geometry_v2.zig");
 const base_graph = @import("ethereum_vm_composition_graph_base_v2.zig");
-const circuit = @import("../../../../../frontends/riscv/recursion/vm_air_composition_circuit.zig");
+const circuit = @import("stwo_riscv_frontend").recursion.vm_air_composition_circuit;
 const extension_geometry_mod =
     @import("ethereum_composition_extension_geometry_v2.zig");
 const extension_graph =
@@ -25,7 +25,7 @@ const extension_graph =
 const relations_mod = @import("ethereum_composition_relations_v2.zig");
 const selected_lookup = @import("../../../../../frontends/riscv/recursion/vm_selected_lookup_compiler_v2.zig");
 const profile_mod = @import("vm_air_profile_v2.zig");
-const protocol = @import("../../../../../frontends/riscv/recursion/protocol.zig");
+const protocol = @import("stwo_riscv_frontend").recursion.protocol;
 const support = @import("ethereum_vm_composition_graph_support_v2.zig");
 
 const Sha256 = std.crypto.hash.sha2.Sha256;

@@ -6,7 +6,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const legacy = @import("../../../../../../frontends/riscv/recursion/air/transcript_payload.zig");
 const clocks = @import("../../../../../../frontends/riscv/recursion/air/transcript_payload_clocks_v2.zig");
 const ir = @import("../../../../../../frontends/riscv/air/lang/ir.zig");
-const digest = @import("../../../../../../frontends/riscv/air/lang/digest.zig");
+const digest = @import("stwo_riscv_frontend").recursion.detached_segment_verifier_components_v1.manifest_mod.digest;
 const types = @import("../../../../../../frontends/riscv/air/lang/types.zig");
 const routing = @import("../ethereum_publication_routing_v1.zig");
 
@@ -24,7 +24,7 @@ pub const MAXIMUM_CONSTRAINT_DEGREE = clocks.MAXIMUM_CONSTRAINT_DEGREE;
 pub const LOOKUP_BATCH_SIZE = clocks.LOOKUP_BATCH_SIZE;
 pub const INTERACTION_BATCH_COUNT = clocks.INTERACTION_BATCH_COUNT + 1;
 pub const INTERACTION_COLUMN_COUNT = clocks.INTERACTION_COLUMN_COUNT + 4;
-pub const Relation = @import("../../../../../../frontends/riscv/recursion/air/universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_frontend").recursion.air.universal_relation_binding.Binding(@This());
 // Pinned by the isolated frontend semantic-identity gate before selection.
 pub const SEMANTIC_DIGEST_HEX = "991e77a54fc6e135eba0d8a2776a687d344675b3e307c61303e2624e387bdc74";
 pub const SEMANTIC_DIGEST: digest.Digest = blk: {

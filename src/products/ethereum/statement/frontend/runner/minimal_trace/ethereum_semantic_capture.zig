@@ -8,13 +8,13 @@
 //! this additive seam first establishes byte-for-byte compact parity.
 
 const std = @import("std");
-const custom0 = @import("../../../../../../frontends/riscv/isa/custom0.zig");
-const execution_profile = @import("../../../../../../frontends/riscv/isa/execution_profile.zig");
-const recovery_abi = @import("../../../../../../frontends/riscv/isa/secp256k1_recovery_memory_abi.zig");
-const decode = @import("../../../../../../frontends/riscv/runner/decode.zig");
+const custom0 = @import("stwo_riscv_frontend").isa.custom0;
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
+const recovery_abi = @import("stwo_riscv_frontend").isa.secp256k1_recovery_memory_abi;
+const decode = @import("stwo_riscv_frontend").runner.decode;
 const result_mod = @import("../result.zig");
-const trace_mod = @import("../../../../../../frontends/riscv/runner/trace.zig");
-const replay = @import("../../../../../../frontends/riscv/runner/minimal_trace/replay.zig");
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
+const replay = @import("stwo_riscv_frontend").runner.minimal_trace.replay;
 const types = @import("ethereum_types.zig");
 const compatibility = @import("ethereum_capture.zig");
 
@@ -272,9 +272,9 @@ fn completionFromSegment(
 }
 
 fn findSnapshotWord(
-    words: []const @import("../../../../../../frontends/riscv/runner/memory_state.zig").WordState,
+    words: []const @import("stwo_riscv_frontend").runner.memory_state.WordState,
     address: u32,
-) ?@import("../../../../../../frontends/riscv/runner/memory_state.zig").WordState {
+) ?@import("stwo_riscv_frontend").runner.memory_state.WordState {
     var low: usize = 0;
     var high = words.len;
     while (low < high) {

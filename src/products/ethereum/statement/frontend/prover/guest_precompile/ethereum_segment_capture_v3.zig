@@ -4,7 +4,7 @@ const std = @import("std");
 const statement_v2 = @import("../../../../../../frontends/riscv/air/statement_v2.zig");
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
 const global_v3 = @import("../../../../../../frontends/riscv/recursion/segment_leaf_local_authority_v3.zig");
-const verified_link_v3 = @import("../../../../../../frontends/riscv/recursion/segment_leaf_local_verified_link_v3.zig");
+const verified_link_v3 = @import("stwo_riscv_frontend").recursion.segment_leaf_local_verified_link_v3;
 const ethereum_context = @import("../../recursion/ethereum_leaf_context_v1.zig");
 const base_geometry_v2 =
     @import("../../recursion/vm_composition_base_geometry_v2.zig");

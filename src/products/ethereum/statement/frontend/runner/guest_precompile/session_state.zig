@@ -2,13 +2,13 @@
 
 const std = @import("std");
 const generic_state = @import("../../../../../../frontends/riscv/runner/guest_precompile/generic_session_state.zig");
-const execution_profile = @import("../../../../../../frontends/riscv/isa/execution_profile.zig");
-const call_buffer = @import("../../../../../../frontends/riscv/runner/guest_precompile/call_buffer.zig");
-const keccakf_call_buffer = @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_call_buffer.zig");
-const keccakf_v1 = @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_v1.zig");
-const poseidon2_v1 = @import("../../../../../../frontends/riscv/runner/guest_precompile/poseidon2_v1.zig");
-const secp256k1_recover_call_buffer = @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const secp256k1_recover_v1 = @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_v1.zig");
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
+const call_buffer = @import("stwo_riscv_frontend").runner.guest_precompile.call_buffer;
+const keccakf_call_buffer = @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_call_buffer;
+const keccakf_v1 = @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_v1;
+const poseidon2_v1 = @import("stwo_riscv_frontend").runner.guest_precompile.poseidon2_v1;
+const secp256k1_recover_call_buffer = @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_call_buffer;
+const secp256k1_recover_v1 = @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_v1;
 
 pub const ExecutionProfile = execution_profile.ExecutionProfile;
 

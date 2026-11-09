@@ -1,7 +1,7 @@
 //! Fail-closed pre-transcript admission for the combined Ethereum profile.
 
 const statement_mod = @import("ethereum_statement.zig");
-const base_statement = @import("../../../../../../frontends/riscv/air/statement.zig");
+const base_statement = @import("stwo_riscv_frontend").air.statement;
 const statement_v2 = @import("../../../../../../frontends/riscv/air/statement_v2.zig");
 const statement_validation = @import("../../../../../../frontends/riscv/prover/statement_validation.zig");
 const prover_types = @import("../../../../../../frontends/riscv/prover/types.zig");

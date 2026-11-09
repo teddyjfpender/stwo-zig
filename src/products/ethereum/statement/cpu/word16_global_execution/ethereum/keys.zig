@@ -1,7 +1,7 @@
 //! Request-independent setup cache scoped to one independently loaded image.
 //! Geometry selects cost, never software identity or statement authority.
 const std = @import("std");
-const R = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/roster.zig");
+const R = @import("stwo_riscv_cpu_integration").rv64_services_roster;
 const W = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/wire.zig");
 const K = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/keccak/shared/roster.zig");
 const S = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/secp/roster.zig");
@@ -9,8 +9,8 @@ const H = @import("../../../../../../integrations/riscv_cpu/word16_global_execut
 const Ar = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/arith256/roster.zig");
 const Cv = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/curves/roster.zig");
 const SR = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/secp/row_roster.zig");
-const Types = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
-const Suite = @import("../../../../../../integrations/riscv_cpu/word16_execution/pcs_suite.zig").Suite;
+const Types = @import("stwo_riscv_cpu_integration").rv64_services_types;
+const Suite = @import("stwo_riscv_cpu_integration").rv64_pcs_suite.Suite;
 const ImmutableCaches = @import("../../../../../../integrations/riscv_cpu/word16_execution/setup.zig").ImmutableCaches;
 const NativeCache = @import("../../../../../../integrations/riscv_cpu/word16_execution/fixed_native_cache.zig");
 const Image = @import("../../../../../../integrations/riscv_cpu/word16_execution/expected_image.zig");

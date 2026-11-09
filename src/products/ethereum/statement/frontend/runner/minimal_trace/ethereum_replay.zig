@@ -1,23 +1,23 @@
 //! Independent typed replay of one compact Ethereum leaf.
 
 const std = @import("std");
-const isa_profile = @import("../../../../../../frontends/riscv/isa/profile.zig");
-const custom0 = @import("../../../../../../frontends/riscv/isa/custom0.zig");
-const execution_profile = @import("../../../../../../frontends/riscv/isa/execution_profile.zig");
-const recovery_abi = @import("../../../../../../frontends/riscv/isa/secp256k1_recovery_memory_abi.zig");
-const Cpu = @import("../../../../../../frontends/riscv/runner/cpu.zig").Cpu;
-const DecodedInst = @import("../../../../../../frontends/riscv/runner/decode.zig").DecodedInst;
-const decode = @import("../../../../../../frontends/riscv/runner/decode.zig");
-const generated = @import("../../../../../../frontends/riscv/runner/generated_retirement.zig");
+const isa_profile = @import("stwo_riscv_frontend").isa.profile;
+const custom0 = @import("stwo_riscv_frontend").isa.custom0;
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
+const recovery_abi = @import("stwo_riscv_frontend").isa.secp256k1_recovery_memory_abi;
+const Cpu = @import("stwo_riscv_frontend").runner.cpu.Cpu;
+const DecodedInst = @import("stwo_riscv_frontend").runner.decode.DecodedInst;
+const decode = @import("stwo_riscv_frontend").runner.decode;
+const generated = @import("stwo_riscv_frontend").runner.generated_retirement;
 const ethereum_v1 = @import("../guest_precompile/ethereum_v1.zig");
 const session_state = @import("../guest_precompile/session_state.zig");
-const Memory = @import("../../../../../../frontends/riscv/runner/memory.zig").Memory;
-const MemoryLayout = @import("../../../../../../frontends/riscv/runner/memory_state.zig").MemoryLayout;
+const Memory = @import("stwo_riscv_frontend").runner.memory.Memory;
+const MemoryLayout = @import("stwo_riscv_frontend").runner.memory_state.MemoryLayout;
 const segment_capacity = @import("../../../../../../frontends/riscv/runner/segment_capacity.zig");
-const StateChainTracker = @import("../../../../../../frontends/riscv/runner/state_chain.zig").StateChainTracker;
-const Trace = @import("../../../../../../frontends/riscv/runner/trace.zig").Trace;
-const trace_mod = @import("../../../../../../frontends/riscv/runner/trace.zig");
-const base_replay = @import("../../../../../../frontends/riscv/runner/minimal_trace/replay.zig");
+const StateChainTracker = @import("stwo_riscv_frontend").runner.state_chain.StateChainTracker;
+const Trace = @import("stwo_riscv_frontend").runner.trace.Trace;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
+const base_replay = @import("stwo_riscv_frontend").runner.minimal_trace.replay;
 const types = @import("ethereum_types.zig");
 
 pub const RequestV1 = struct {
@@ -44,10 +44,10 @@ pub const ResultV1 = struct {
     execution_trace: Trace,
     state_chain_tracker: StateChainTracker,
     touched_memory: Memory,
-    keccakf_calls: @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_call_buffer.zig").Frozen,
-    keccakf_execution_rows: @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_v1.zig").FrozenExecutionRows,
-    signer_recovery_calls: @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_call_buffer.zig").Frozen,
-    signer_recovery_execution_rows: @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_v1.zig").FrozenExecutionRows,
+    keccakf_calls: @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_call_buffer.Frozen,
+    keccakf_execution_rows: @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_v1.FrozenExecutionRows,
+    signer_recovery_calls: @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_call_buffer.Frozen,
+    signer_recovery_execution_rows: @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_v1.FrozenExecutionRows,
 
     pub fn deinit(self: *ResultV1) void {
         self.keccakf_calls.deinit();
@@ -195,7 +195,7 @@ pub fn replay(
 
         const instruction = DecodedInst.decode(inst_word) catch
             return error.InvalidProgramInstruction;
-        if (@import("../../../../../../frontends/riscv/runner/minimal_trace/types.zig").isUnretiredSelfLoop(instruction, cpu))
+        if (@import("stwo_riscv_frontend").runner.minimal_trace.types.isUnretiredSelfLoop(instruction, cpu))
             return error.UnretiredSelfLoop;
         if (decode.isLoad(instruction.opcode) or decode.isStore(instruction.opcode)) {
             const address = cpu.readReg(instruction.rs1) +%
@@ -288,7 +288,7 @@ fn validateCompletion(
                 return error.CompletionObservationMismatch;
             const instruction = DecodedInst.decode(inst_word) catch
                 return error.CompletionObservationMismatch;
-            if (!@import("../../../../../../frontends/riscv/runner/minimal_trace/types.zig").isUnretiredSelfLoop(instruction, cpu) or
+            if (!@import("stwo_riscv_frontend").runner.minimal_trace.types.isUnretiredSelfLoop(instruction, cpu) or
                 value.address != cpu.pc or value.value != inst_word or
                 value.clock != 0)
             {

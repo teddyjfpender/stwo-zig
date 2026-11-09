@@ -5,7 +5,7 @@ const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const Request = @import("../../rv64_ethereum_request.zig");
 const Image = @import("../../../../../../integrations/riscv_cpu/word16_execution/expected_image.zig");
-const Program = @import("../../../../../../integrations/riscv_cpu/word16_execution/program.zig").Program;
+const Program = @import("stwo_riscv_cpu_integration").rv64_program.Program;
 const Driver = @import("../../../../../../integrations/riscv_cpu/word16_execution/driver.zig");
 const Capture = @import("capture.zig").Owner;
 const CaptureOptions = @import("capture_options.zig").Options;
@@ -13,10 +13,10 @@ const DirectCapture = @import("direct.zig");
 pub const EarlyCPU = @import("early_cpu0.zig");
 pub const EarlySegments = @import("early_segments.zig");
 const CpuPrestage = struct {
-    stage: @import("../../../../../../integrations/riscv_cpu/word16_execution/cpu_source.zig").ProjectionStage,
+    stage: @import("stwo_riscv_cpu_integration").rv64_cpu_source.ProjectionStage,
     image_identity: [32]u8 = undefined,
     first_pass: bool = false,
-    fn firstPass(raw: *anyopaque, source: *const @import("../../../../../../integrations/riscv_cpu/word16_execution/cpu_source.zig").FirstPass) void {
+    fn firstPass(raw: *anyopaque, source: *const @import("stwo_riscv_cpu_integration").rv64_cpu_source.FirstPass) void {
         const self: *CpuPrestage = @ptrCast(@alignCast(raw));
         self.stage.prestage_first_pass.?(self.stage.context, source, self.image_identity);
     }
@@ -36,20 +36,20 @@ const Keys = @import("keys.zig").Owner;
 const Admission = @import("receiver.zig");
 const Receiver = @import("gkr_receiver.zig");
 const C = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig");
-const W = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/bundle_wire.zig");
-const Worker = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig");
+const W = @import("stwo_riscv_cpu_integration").rv64_gkr_bundle_wire;
+const Worker = @import("stwo_riscv_cpu_integration").rv64_gkr_worker_protocol;
 const P = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/protocol.zig");
 const Store = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/retained_main_store.zig").Store;
 const Schedule = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/schedule.zig");
-const Suite = @import("../../../../../../integrations/riscv_cpu/word16_execution/pcs_suite.zig").Suite;
+const Suite = @import("stwo_riscv_cpu_integration").rv64_pcs_suite.Suite;
 const NativeCache = @import("../../../../../../integrations/riscv_cpu/word16_execution/fixed_native_cache.zig");
-const MetadataCache = @import("../../../../../../integrations/riscv_cpu/word16_execution/program_metadata.zig");
-pub const Recycler = @import("../../../../../../integrations/riscv_cpu/rv64_large_block_recycler.zig").LargeBlockRecycler;
+const MetadataCache = @import("stwo_riscv_cpu_integration").rv64_program_metadata;
+pub const Recycler = @import("stwo_riscv_cpu_integration").rv64_large_block_recycler.LargeBlockRecycler;
 const ReceiverBudget = @import("receiver_budget.zig");
-const FixedAuthority = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority.zig");
+const FixedAuthority = @import("stwo_riscv_cpu_integration").rv64_gkr_fixed_authority;
 const FixedSet = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig").Set;
-const Candidate = @import("../../../../../../integrations/riscv_cpu/word16_execution/om31_security_candidate.zig");
-const SourceBounds = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/source_bounds.zig");
+const Candidate = @import("stwo_riscv_cpu_integration").rv64_om31_security_candidate;
+const SourceBounds = @import("stwo_riscv_cpu_integration").rv64_gkr_source_bounds;
 const SetupCache = @import("setup_cache.zig");
 /// Producer-owned trusted setup acceleration; forbidden to fresh receivers.
 const SETUP_CACHE_ENV = "STWO_ZIG_RV64_SETUP_CACHE";
@@ -270,30 +270,30 @@ pub fn main() !void {
 pub fn mainWithPcs(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage) !void {
     return mainWithStages(device_pcs_stage, null);
 }
-pub fn mainWithStages(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage, om31_composition_stage: ?*const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig").CompositionStage) !void {
+pub fn mainWithStages(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage, om31_composition_stage: ?*const @import("stwo_riscv_cpu_integration").rv64_gkr_cpu_worker.CompositionStage) !void {
     return mainWithDeviceStages(device_pcs_stage, om31_composition_stage, null);
 }
-pub fn mainWithDeviceStages(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage, om31_composition_stage: ?*const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig").CompositionStage, numerical_gkr_stage: ?*const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig").NumericalStage) !void {
+pub fn mainWithDeviceStages(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage, om31_composition_stage: ?*const @import("stwo_riscv_cpu_integration").rv64_gkr_cpu_worker.CompositionStage, numerical_gkr_stage: ?*const @import("stwo_riscv_cpu_integration").rv64_gkr_child.NumericalStage) !void {
     return mainWithResidentStages(device_pcs_stage, om31_composition_stage, numerical_gkr_stage, null);
 }
-pub fn mainWithResidentStages(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage, om31_composition_stage: ?*const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig").CompositionStage, numerical_gkr_stage: ?*const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig").NumericalStage, resident_composition_stage: ?*const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig").ResidentCompositionStage) !void {
+pub fn mainWithResidentStages(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage, om31_composition_stage: ?*const @import("stwo_riscv_cpu_integration").rv64_gkr_cpu_worker.CompositionStage, numerical_gkr_stage: ?*const @import("stwo_riscv_cpu_integration").rv64_gkr_child.NumericalStage, resident_composition_stage: ?*const @import("stwo_riscv_cpu_integration").rv64_gkr_cpu_worker.ResidentCompositionStage) !void {
     return mainWithResidentPipeline(.{ .pcs = device_pcs_stage, .composition = om31_composition_stage, .numerical = numerical_gkr_stage, .resident_composition = resident_composition_stage });
 }
 pub const ResidentStages = struct {
     early_memory: ?EarlyCPU.MemoryAdmission = null,
     early_segments: ?EarlySegments.StageProvider = null,
-    cpu_replay: ?@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_replay.zig").Stage = null,
+    cpu_replay: ?@import("stwo_riscv_cpu_integration").rv64_gkr_cpu_replay.Stage = null,
     source: ?@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/pipeline.zig").DeviceSourceStage = null,
-    truth_source: ?@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_device_source.zig").Stage = null,
-    truth_composition: ?@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_device_composition.zig").Stage = null,
-    global_interaction: ?@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig").DeviceGlobal.Stage = null,
+    truth_source: ?@import("stwo_riscv_cpu_integration").rv64_gkr_truth_device_source.Stage = null,
+    truth_composition: ?@import("stwo_riscv_cpu_integration").rv64_gkr_truth_device_composition.Stage = null,
+    global_interaction: ?@import("stwo_riscv_cpu_integration").rv64_gkr_cpu_worker.DeviceGlobal.Stage = null,
     pcs: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
     truth_pcs: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
-    composition: ?*const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig").CompositionStage = null,
-    numerical: ?*const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig").NumericalStage = null,
-    resident_composition: ?*const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig").ResidentCompositionStage = null,
+    composition: ?*const @import("stwo_riscv_cpu_integration").rv64_gkr_cpu_worker.CompositionStage = null,
+    numerical: ?*const @import("stwo_riscv_cpu_integration").rv64_gkr_child.NumericalStage = null,
+    resident_composition: ?*const @import("stwo_riscv_cpu_integration").rv64_gkr_cpu_worker.ResidentCompositionStage = null,
     trace_commit: ?*const @import("stwo_prover_api").device_pcs.TraceCommitStage = null,
-    cpu_projection: ?@import("../../../../../../integrations/riscv_cpu/word16_execution/cpu_source.zig").ProjectionStage = null,
+    cpu_projection: ?@import("stwo_riscv_cpu_integration").rv64_cpu_source.ProjectionStage = null,
     /// M8 native-hybrid stage-two seam (coordinator.NativeStageTwo); null = legacy.
     native_stage_two: ?@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig").NativeStageTwo = null,
     pub fn requireFullyResident(self: ResidentStages) !void {
@@ -345,7 +345,7 @@ pub fn mainWithResidentPipelineAndRecursion(stages: ResidentStages, factory: @im
 /// Operational selection only; never enters AIR, proof profile or transcript.
 pub const CombinedRecursion = struct {
     factory: ?@import("stwo_circuit_cpu_integration").om31.device_prove.Factory = null,
-    ready: ?@import("../../../../../../integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig").ParallelOptions = null,
+    ready: ?@import("stwo_riscv_cpu_integration").rv64_om31_execution_wrap.ParallelOptions = null,
     physical_devices: []const u32 = &.{},
     producer_manifest_sha256: ?[32]u8 = null,
     /// Derive telemetry from the installed callbacks, never the manifest flag.
@@ -363,7 +363,7 @@ pub const CombinedRecursion = struct {
     pub fn validate(self: CombinedRecursion) !void {
         if (self.ready) |ready| {
             if (self.factory != null or ready.lanes.len != self.physical_devices.len) return error.InvalidCombinedRecursionSelection;
-            try @import("../../../../../../integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig").validateLanes(ready);
+            try @import("stwo_riscv_cpu_integration").rv64_om31_execution_wrap.validateLanes(ready);
             for (ready.lanes, self.physical_devices) |lane, device| if (lane.physical_device != device) return error.InvalidCombinedRecursionSelection;
         } else if (self.factory == null or self.physical_devices.len > 1) return error.InvalidCombinedRecursionSelection;
         _ = try self.usesDeviceFixed();
@@ -399,7 +399,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const process_start = try std.time.Instant.now();
     // canon-vk M5: outer profile / shape / fold arity env must parse, or the
     // process exits with a clean error before any work (never a panic, P03).
-    try @import("../../../../../../integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig").checkPolicyEnv();
+    try @import("stwo_riscv_cpu_integration").rv64_om31_execution_wrap.checkPolicyEnv();
     const recursion_factory = if (enable_recursion) recursion_execution.factory else {};
     const base = recycler.allocator();
     const device_pcs_stage = stages.pcs;
@@ -481,7 +481,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var native_stacks = engine.host_budget_allocator.SharedHostBudget.ExternalReservation.empty();
     defer native_stacks.deinit();
     if (ready != null) {
-        const owner = try @import("../../../../../../integrations/riscv_cpu/rv64_recursion_budget.zig").require(engine.host_budget_allocator.SharedHostBudget, base);
+        const owner = try @import("stwo_riscv_cpu_integration").rv64_recursion_budget.require(engine.host_budget_allocator.SharedHostBudget, base);
         native_stacks = try owner.reserveExternal(try std.math.mul(usize, native_workers - 1, ReceiverBudget.WORKER_STACK_BYTES));
     }
     var pool: engine.work_pool.WorkPool = .{};
@@ -539,7 +539,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (early_segments and (early_cpu or old_first or early_main)) return error.ConflictingEarlyCpuModes;
     if (early_main and (!combined or !candidate or !direct_capture or count != 0 or session == null or stages.early_memory == null or capture_options.execution_workers == 0 or !@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled())) return error.EarlyMainRequiresAdmittedResidentFirstPass;
     if (early_segments and (!combined or !candidate or !direct_capture or count != 0 or session == null or stages.early_memory == null or stages.early_segments == null or capture_options.execution_workers == 0 or !@import("../../rv64_ethereum_segments.zig").ramFirstPassEnabled())) return error.EarlySegmentsRequireAdmittedResidentFirstPass;
-    const early_host_budget = if (early_main or early_segments) try @import("../../../../../../integrations/riscv_cpu/rv64_recursion_budget.zig").require(engine.host_budget_allocator.SharedHostBudget, base) else null;
+    const early_host_budget = if (early_main or early_segments) try @import("stwo_riscv_cpu_integration").rv64_recursion_budget.require(engine.host_budget_allocator.SharedHostBudget, base) else null;
 
     if (early_cpu and (!direct_capture or !combined or stages.cpu_projection == null)) return error.CpuPrestageRequiresDirectResidentCombined;
     const early_first = if (std.posix.getenv("STWO_RV64_CPU0_FIRST_PASS_PRESTAGE")) |v| std.mem.eql(u8, v, "1") else false;
@@ -589,7 +589,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         const setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = setup_ns - fixed_setup_start_ns, .other_ns = native_keys_start_ns - image_load_ns - program_ns };
         if (inspect_schedule) {
             if (comptime !enable_recursion) return error.RecursionProductRequired;
-            const inspection = try @import("../../../../../../integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig").inspectLeafSchedule(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, inspection_ordinal);
+            const inspection = try @import("stwo_riscv_cpu_integration").rv64_om31_execution_wrap.inspectLeafSchedule(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, inspection_ordinal);
             return emit(a, .{ .schema = "rv64-recursion-schedule-inspection/v1", .diagnostic = true, .accepted = false, .scope = "Selected native leaf capture and original graph schedule census only; no complete-block or recursive-root acceptance", .selected_native_leaf_verified = true, .recursion_proof_generated = false, .gpu_context_created = false, .profile = selected_profile, .security_qualified = false, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .inspection = inspection, .task_kind_order = .{ "add", "sub", "mul", "pointwise_mul", "triple_xor", "m31_to_u32", "blake_g", "permutation", "hint" }, .hint_kind_order = .{ "seed", "inverse", "divide", "pointwise_inverse_or_zero", "pointwise_lsb", "byte", "byte_complement", "is_nonzero", "zero" }, .width_bucket_upper_bounds = @import("../../../../../../integrations/riscv_cpu/rv64_recursion/om31_native/schedule_census.zig").bucket_upper_bounds, .receiver_requested_live_cap_bytes = @import("schedule_inspection.zig").live_bytes, .receiver_budget = receiver_budget.?.snapshot(), .fixed_cache_cap_bytes = fixed_setup_bytes, .fixed_cache_is_subset_of_live_cap = true, .recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .recycler_cached_bytes_outside_requested_live_cap = true, .requested_live_plus_recycler_cap_bytes = @import("schedule_inspection.zig").live_bytes + ReceiverBudget.RECYCLER_CACHE_BYTES, .budget_scope = "Requested live 24 GiB includes fixed cache 12 GiB and native/metadata caches; up to 4 GiB freed recycler blocks plus worker stacks outside live count; not an RSS cap", .worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(native_workers), .operational_workers = native_workers, .device_capacity_values_are_estimates_only = true });
         }
         if (recurse) {
@@ -606,7 +606,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
                 _ = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
                 var recursive_dir = try dir.openDir("recursion-om31", .{});
                 defer recursive_dir.close();
-                const recursion = try @import("../../../../../../integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig").verifyExisting(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir);
+                const recursion = try @import("stwo_riscv_cpu_integration").rv64_om31_execution_wrap.verifyExisting(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir);
                 return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domainName(), .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .shared_fresh_native_authority = true, .native_verified_before_recursion = true, .existing_recursive_proofs_only = true, .trace_only_recursive_graphs = true, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .native_verify_ns = native_verify_ns, .total_after_setup_ns = timer.read() - setup_ns, .native = .{ .accepted = true, .completed_ethereum_block = true, .security_profile = security_profile.name(), .profile = selected_profile, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .verify_ns = native_verify_ns }, .recursive = recursion });
             }
             dir.makeDir("recursion-om31") catch |err| {
@@ -618,7 +618,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             const output = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
             // Reject an unexpected Ethereum endpoint before producing durable
             // recursive proofs or an accepted execution-root report.
-            const recursion = try @import("../../../../../../integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, resume_recursion, recursion_factory);
+            const recursion = try @import("stwo_riscv_cpu_integration").rv64_om31_execution_wrap.run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, resume_recursion, recursion_factory);
             return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domainName(), .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .recursive = recursion });
         }
         const output = try Receiver.verifyWithAuthority(a, &image, &keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, verify, pcs, if (fixed_set) |*authority| authority else null);
@@ -657,7 +657,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
                 .config = request.value,
                 .pcs = pcs,
                 .layout = cpu_layout,
-                .strict_roster = (try @import("../../../../../../integrations/riscv_cpu/word16_execution/native_policy.zig").current()).strictRoster(),
+                .strict_roster = (try @import("stwo_riscv_cpu_integration").rv64_native_policy.current()).strictRoster(),
                 .canonical_rungs = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false,
                 .caches = caches,
                 .setup_cache = &shared.setup.?,
@@ -674,7 +674,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
                 .config = request.value,
                 .pcs = pcs,
                 .layout = cpu_layout,
-                .strict_roster = (try @import("../../../../../../integrations/riscv_cpu/word16_execution/native_policy.zig").current()).strictRoster(),
+                .strict_roster = (try @import("stwo_riscv_cpu_integration").rv64_native_policy.current()).strictRoster(),
                 .canonical_rungs = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false,
                 .caches = caches,
                 .setup_cache = &shared.setup.?,
@@ -744,7 +744,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     // admitted geometries; the receiver policy is unchanged.
     // M6 native-format: rv64-m6-native/v2 (strict roster) ALWAYS pads every
     // declaration to exactly its class rung vector (fails closed otherwise).
-    const strict_roster = (try @import("../../../../../../integrations/riscv_cpu/word16_execution/native_policy.zig").current()).strictRoster();
+    const strict_roster = (try @import("stwo_riscv_cpu_integration").rv64_native_policy.current()).strictRoster();
     const canon_flag = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false;
     if (strict_roster or canon_flag) {
         const Rungs = @import("canon_native_rungs.zig");
@@ -869,11 +869,11 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     defer a.free(worker_timings);
     // This CLI owns capture; both snapshots occur outside worker activity.
     const capture_before_proving = captured.ownership();
-    var gkr_tree_policy = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig").TreePolicy{};
+    var gkr_tree_policy = @import("stwo_riscv_cpu_integration").rv64_gkr_child.TreePolicy{};
     // sched M6 streaming handoff (scheduling only; STWO_RV64_RECURSION_STREAM=0
     // restores the M5 sequential handoff): recursion leaves prep as soon as
     // their native proof is final; device recursion waits for nativeDone.
-    const Streaming = if (enable_recursion) @import("../../../../../../integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig").Streaming else void;
+    const Streaming = if (enable_recursion) @import("stwo_riscv_cpu_integration").rv64_om31_execution_wrap.Streaming else void;
     var early_recursive_dir: ?std.fs.Dir = null;
     defer if (early_recursive_dir) |*d| d.close();
     const streaming: if (enable_recursion) ?*Streaming else ?void = if (comptime enable_recursion) (if (combined and ready != null and Streaming.enabled()) blk: {
@@ -940,7 +940,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         var recursive_dir = try dir.openDir("recursion-om31", .{});
         defer recursive_dir.close();
         const recursion_start_ns = timer.read();
-        const Recursive = @import("../../../../../../integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig");
+        const Recursive = @import("stwo_riscv_cpu_integration").rv64_om31_execution_wrap;
         var recursion = if (streaming) |stream| blk: {
             break :blk try stream.join();
         } else if (ready) |options|

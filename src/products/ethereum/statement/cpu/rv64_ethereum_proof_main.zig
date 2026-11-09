@@ -10,7 +10,7 @@ const Receipt = @import("rv64_ethereum_batch_receipt.zig");
 const Terminal = @import("../../../../integrations/riscv_cpu/rv64_ram_terminal.zig");
 // Large column buffers are recycled across batch proofs instead of being
 // mapped and page-faulted again for every batch.
-const Recycler = @import("../../../../integrations/riscv_cpu/rv64_large_block_recycler.zig").LargeBlockRecycler;
+const Recycler = @import("stwo_riscv_cpu_integration").rv64_large_block_recycler.LargeBlockRecycler;
 var recycler = Recycler.init(std.heap.smp_allocator, 16 * 1024 * 1024 * 1024);
 const base: std.mem.Allocator = .{ .ptr = &recycler, .vtable = &Recycler.vtable };
 pub fn main() !void {

@@ -1,12 +1,12 @@
 //! Ethereum coefficient admission for full-width BLAKE3 execution providers.
 //! Hash geometry is verifier-derived from the admitted commitment schedules.
 const std = @import("std");
-const native_mod = @import("../../../../../frontends/riscv/air/statement.zig");
+const native_mod = @import("stwo_riscv_frontend").air.statement;
 const ethereum = @import("../air/guest_precompile/ethereum_statement.zig");
 const common = @import("../../../../../frontends/riscv/prover/blake3_extension_bounds.zig");
 const plans = @import("../../../../../frontends/riscv/prover/blake3_commitment_plan.zig");
-const roster = @import("../../../../../frontends/riscv/prover/blake3_commitment_components.zig");
-const tables = @import("../../../../../frontends/riscv/air/lookups/tables/schema.zig");
+const roster = @import("stwo_riscv_frontend").prover_mod.blake3_commitment_components;
+const tables = @import("stwo_riscv_frontend").air.lookups.tables.schema;
 pub const Statement = ethereum.Statement;
 pub const HashLogs = [roster.Airs.len]u32;
 
@@ -24,9 +24,9 @@ pub fn validate(extension: *const Statement, native: *const native_mod.Blake3Exe
 
 pub fn validateExtensionGeometry(extension: *const Statement, total_steps: u32) !void {
     try extension.validateGeometry(total_steps);
-    const maximum = @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_trace.zig").maximum_log_size;
+    const maximum = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_trace.maximum_log_size;
     const rows = extension.components[0].n_rows;
-    const min_log = @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_trace.zig").minimum_log_size;
+    const min_log = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_trace.minimum_log_size;
     const log = if (rows == 0) min_log else @max(min_log, std.math.log2_int_ceil(u32, rows));
     if (log > maximum or extension.components[0].log_size != log) return error.InvalidComponentGeometry;
 }

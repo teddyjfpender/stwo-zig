@@ -63,7 +63,7 @@ test "Ethereum immutable ROM profile rejects writable executable segments before
     try std.testing.expectError(error.MutableExecutable, contract.load(failing.allocator(), symbols, &bytes, &.{1}));
     try std.testing.expectEqual(@as(usize, 0), failing.alloc_index);
     // Generic execution still admits self-modifying RV64 code explicitly.
-    var native = try @import("../../../../../../frontends/riscv/rv64/elf.zig").loadImage(a, &bytes, .{});
+    var native = try @import("stwo_riscv_frontend").rv64.elf.loadImage(a, &bytes, .{});
     defer native.deinit();
     try native.memory.store(0x1000, 4, 0x00100093);
     try std.testing.expectEqual(@as(u32, 0x00100093), try native.memory.fetch(0x1000));

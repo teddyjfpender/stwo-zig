@@ -6,11 +6,11 @@
 
 const std = @import("std");
 
-const graph_mod = @import("../../../../../frontends/riscv/recursion/air/composition_circuit.zig");
-const circuit = @import("../../../../../frontends/riscv/recursion/vm_air_composition_circuit.zig");
+const graph_mod = @import("stwo_riscv_frontend").recursion.air.composition_circuit;
+const circuit = @import("stwo_riscv_frontend").recursion.vm_air_composition_circuit;
 const base_geometry_mod = @import("vm_composition_base_geometry_v2.zig");
 const base_graph = @import("ethereum_vm_composition_graph_base_v2.zig");
-const component_order = @import("../../../../../frontends/riscv/air/component_order.zig");
+const component_order = @import("stwo_riscv_frontend").air.component_order;
 const ethereum_statement =
     @import("../air/guest_precompile/ethereum_statement.zig");
 const extension_geometry_mod =
@@ -19,14 +19,14 @@ const extension_graph =
     @import("ethereum_vm_composition_graph_extension_v2.zig");
 const bridge = @import("../../../../../frontends/riscv/air/memory_commitment/incremental_bridge_v2.zig");
 const bridge_external = @import("../../../../../frontends/riscv/prover/incremental_bridge_external_v3.zig");
-const lookup_manifest = @import("../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
+const lookup_manifest = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
 const profile_mod = @import("vm_air_profile_v2.zig");
-const protocol = @import("../../../../../frontends/riscv/recursion/protocol.zig");
+const protocol = @import("stwo_riscv_frontend").recursion.protocol;
 const relations_mod = @import("ethereum_composition_relations_v2.zig");
 const selected_lookup = @import("../../../../../frontends/riscv/recursion/vm_selected_lookup_compiler_v2.zig");
-const statement_mod = @import("../../../../../frontends/riscv/air/statement.zig");
+const statement_mod = @import("stwo_riscv_frontend").air.statement;
 const support = @import("ethereum_vm_composition_graph_support_v2.zig");
-const transcript_claims = @import("../../../../../frontends/riscv/air/transcript/claims.zig");
+const transcript_claims = @import("stwo_riscv_frontend").air.transcript.claims;
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 const Scalar = support.Scalar;
@@ -590,7 +590,7 @@ const SplitSampleLayoutV4 = struct {
     allocator: std.mem.Allocator,
     base_and_ethereum: []Scalar,
     bridge_values: [BRIDGE_SAMPLED_VALUE_COUNT]Scalar,
-    fixed_program_values: ?[@import("../../../../../frontends/riscv/air/program/interaction.zig").FIXED_COLUMN_COUNT]Scalar = null,
+    fixed_program_values: ?[@import("stwo_riscv_frontend").air.program.interaction.FIXED_COLUMN_COUNT]Scalar = null,
 
     fn init(
         allocator: std.mem.Allocator,
@@ -605,7 +605,7 @@ const SplitSampleLayoutV4 = struct {
         );
         if (all.len != @as(
             usize,
-            @intCast(try add(try add(compact_count, BRIDGE_SAMPLED_VALUE_COUNT), if (fixed_program) @import("../../../../../frontends/riscv/air/program/interaction.zig").FIXED_COLUMN_COUNT else 0)),
+            @intCast(try add(try add(compact_count, BRIDGE_SAMPLED_VALUE_COUNT), if (fixed_program) @import("stwo_riscv_frontend").air.program.interaction.FIXED_COLUMN_COUNT else 0)),
         ))
             return error.InvalidBridgeSampleLayout;
         const compact = try allocator.alloc(Scalar, compact_count);
@@ -633,7 +633,7 @@ const SplitSampleLayoutV4 = struct {
             source_at = ordinary_end;
             compact_at = compact_end;
             if (tree == 0 and fixed_program) {
-                const count = @import("../../../../../frontends/riscv/air/program/interaction.zig").FIXED_COLUMN_COUNT;
+                const count = @import("stwo_riscv_frontend").air.program.interaction.FIXED_COLUMN_COUNT;
                 if (source_at + count > all.len) return error.InvalidBridgeSampleLayout;
                 result.fixed_program_values = all[source_at..][0..count].*;
                 source_at += count;
@@ -814,7 +814,7 @@ fn transcriptComponentForInfra(
 }
 
 fn fixedProgramSampleCount(profile: *const profile_mod.ProfileV2) u32 {
-    return if (profile.circuit_profile.programPolicy() == .fixed_decoded_table_v1) @import("../../../../../frontends/riscv/air/program/interaction.zig").FIXED_COLUMN_COUNT else 0;
+    return if (profile.circuit_profile.programPolicy() == .fixed_decoded_table_v1) @import("stwo_riscv_frontend").air.program.interaction.FIXED_COLUMN_COUNT else 0;
 }
 
 fn bridgePrefix(

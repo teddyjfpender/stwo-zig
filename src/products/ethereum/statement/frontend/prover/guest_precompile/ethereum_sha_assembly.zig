@@ -25,7 +25,7 @@ pub fn Assembly(comptime direction: ethereum.Direction) type {
         handles: [ethereum.max_handles + sha.Airs.len]Handle,
         len: usize,
 
-        pub fn createBlake3WithRanges(a: std.mem.Allocator, native: *const @import("../../../../../../frontends/riscv/air/statement.zig").Blake3ExecutionStatement, statement: *const Statement, pin: @import("../../../../../../frontends/riscv/prover/blake3_commitment_plan.zig").Admission, logs: @import("../blake3_ethereum_statement.zig").HashLogs, relations: *const Relations, prefix: []const Handle, claims: *const Claim, ranges: ?@import("../../../../../../frontends/riscv/recursion/air/compact_range_geometry.zig").Plan) !*Self {
+        pub fn createBlake3WithRanges(a: std.mem.Allocator, native: *const @import("stwo_riscv_frontend").air.statement.Blake3ExecutionStatement, statement: *const Statement, pin: @import("../../../../../../frontends/riscv/prover/blake3_commitment_plan.zig").Admission, logs: @import("../blake3_ethereum_statement.zig").HashLogs, relations: *const Relations, prefix: []const Handle, claims: *const Claim, ranges: ?@import("../../../../../../frontends/riscv/recursion/air/compact_range_geometry.zig").Plan) !*Self {
             try claims.validate(statement);
             const self = try a.create(Self);
             errdefer a.destroy(self);

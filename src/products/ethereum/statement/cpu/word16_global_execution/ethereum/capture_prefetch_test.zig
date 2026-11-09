@@ -2,7 +2,7 @@ const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const Capture = @import("capture.zig");
 const Image = @import("../../../../../../integrations/riscv_cpu/word16_execution/expected_image.zig");
-const Program = @import("../../../../../../integrations/riscv_cpu/word16_execution/program.zig").Program;
+const Program = @import("stwo_riscv_cpu_integration").rv64_program.Program;
 const Collect = @import("../../rv64_ethereum_native_prepare.zig");
 const Request = @import("../../rv64_ethereum_request.zig");
 const a = std.testing.allocator;
@@ -743,7 +743,7 @@ const ReadinessBorrow = struct {
     mutex: std.Thread.Mutex = .{},
     changed: std.Thread.Condition = .{},
     thread: ?std.Thread = null,
-    metadata: []const @import("../../../../../../integrations/riscv_cpu/word16_execution/cpu_source.zig").Metadata = &.{},
+    metadata: []const @import("stwo_riscv_cpu_integration").rv64_cpu_source.Metadata = &.{},
     expected_row: u32 = 0,
     released: bool = false,
     may_read: bool = false,
@@ -822,7 +822,7 @@ test "whole fast-pass RAM INITIAL equals final collector including zero-valued w
 }
 
 test "sealed capture shares immutable CPU metadata with independent retirement" {
-    const Replay = @import("../../../../../../integrations/riscv_cpu/word16_execution/replay_capture.zig");
+    const Replay = @import("stwo_riscv_cpu_integration").rv64_replay_capture;
     var fixture = try Fixture.init();
     defer fixture.deinit();
     const config = fixture.config();
@@ -855,7 +855,7 @@ test "sealed capture shares immutable CPU metadata with independent retirement" 
         try std.testing.expectEqualDeep(native.cpu.?.metadata, view.value.cpu.?.metadata);
     }
     // Actual CPU metadata retirement must release only its own reference.
-    const CPU = @import("../../../../../../integrations/riscv_cpu/word16_execution/cpu_source.zig");
+    const CPU = @import("stwo_riscv_cpu_integration").rv64_cpu_source;
     const sample = native.cpu.?.metadata[0];
     var retained = try native.cpu.?.borrowSealed(a, seal);
     defer retained.deinit();

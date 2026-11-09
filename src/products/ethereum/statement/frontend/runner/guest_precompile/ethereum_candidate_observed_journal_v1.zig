@@ -9,7 +9,7 @@
 
 const std = @import("std");
 
-const execution_profile = @import("../../../../../../frontends/riscv/isa/execution_profile.zig");
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
 const capability_mod = @import("ethereum_candidate_execution_capability_v1.zig");
 const journal_mod = @import("ethereum_candidate_execution_journal_v1.zig");
 const combined_result = @import("../ethereum_candidate_combined_result_v1.zig");

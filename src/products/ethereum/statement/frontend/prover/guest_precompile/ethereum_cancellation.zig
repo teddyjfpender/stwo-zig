@@ -1,17 +1,17 @@
 //! One global LogUp closure for the base plus combined Ethereum components.
 
 const std = @import("std");
-const logup = @import("../../../../../../frontends/riscv/air/logup.zig");
-const public_logup = @import("../../../../../../frontends/riscv/air/public_logup.zig");
+const logup = @import("stwo_riscv_frontend").air.logup;
+const public_logup = @import("stwo_riscv_frontend").air.public_logup;
 const statement_v2 = @import("../../../../../../frontends/riscv/air/statement_v2.zig");
-const lookup_physical_v2 = @import("../../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const base_statement = @import("../../../../../../frontends/riscv/air/statement.zig");
-const base_claims = @import("../../../../../../frontends/riscv/air/transcript/claims.zig");
+const lookup_physical_v2 = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const base_statement = @import("stwo_riscv_frontend").air.statement;
+const base_claims = @import("stwo_riscv_frontend").air.transcript.claims;
 const base_types = @import("../../../../../../frontends/riscv/prover/types.zig");
 const ethereum_transcript = @import("ethereum_transcript.zig");
 const ethereum_types = @import("ethereum_types.zig");
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
-const poseidon2_air = @import("../../../../../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
+const poseidon2_air = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2_air;
 const statement_geometry = @import("../../../../../../frontends/riscv/prover/statement_geometry.zig");
 const statement_validation = @import("../../../../../../frontends/riscv/prover/statement_validation.zig");
 const native_provider_omit = @import("../../../../../../frontends/riscv/prover/memory_provider_shards/native_provider_omit_v1.zig");

@@ -4,7 +4,7 @@ const std = @import("std");
 const CPU = @import("stwo_riscv_cpu_integration");
 const Pool = @import("../../../../integrations/riscv_cuda/rv64/resident_pool.zig").Pool;
 const Router = @import("../../../../integrations/riscv_cuda/rv64/resident_router.zig");
-const Outer = @import("../../../../integrations/riscv_cuda/rv64/outer_source.zig");
+const Outer = @import("stwo_riscv_cuda_integration").rv64.outer_source;
 fn env(a: std.mem.Allocator, name: []const u8) !?[]u8 {
     return std.process.getEnvVarOwned(a, name) catch |err| switch (err) {
         error.EnvironmentVariableNotFound => null,

@@ -2,10 +2,10 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const keccak_component = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_component.zig");
-const secp_bundle = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_component = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component.zig");
-const secp_config = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_config.zig");
+const keccak_component = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_component;
+const secp_bundle = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_bundle;
+const secp_component = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component;
+const secp_config = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_config;
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
 const base_types = @import("../../../../../../frontends/riscv/prover/types.zig");
 
@@ -55,7 +55,7 @@ pub const ExtensionClaim = struct {
         {
             return error.InvalidClaim;
         }
-        try self.keccak_shard.validateWithMaximumLogSize(@import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_trace.zig").ethereum_maximum_log_size);
+        try self.keccak_shard.validateWithMaximumLogSize(@import("stwo_riscv_frontend").air.guest_precompile.keccakf_trace.ethereum_maximum_log_size);
         try expectDescriptor(
             self.keccak_shard.log_size,
             self.keccak_shard.n_rows,

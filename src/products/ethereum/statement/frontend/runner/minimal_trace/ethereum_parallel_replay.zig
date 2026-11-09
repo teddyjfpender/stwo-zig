@@ -7,10 +7,10 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const memory_state = @import("../../../../../../frontends/riscv/runner/memory_state.zig");
+const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
 const ethereum_replay = @import("ethereum_replay.zig");
 const ethereum_types = @import("ethereum_types.zig");
-const base_replay = @import("../../../../../../frontends/riscv/runner/minimal_trace/replay.zig");
+const base_replay = @import("stwo_riscv_frontend").runner.minimal_trace.replay;
 
 pub const MAX_WORKERS: usize = 32;
 pub const DEFAULT_STACK_SIZE: usize = 16 << 20;
@@ -269,6 +269,6 @@ pub fn validateCollection(
     return result;
 }
 
-fn cpuEqual(left: @import("../../../../../../frontends/riscv/runner/cpu.zig").Cpu, right: @import("../../../../../../frontends/riscv/runner/cpu.zig").Cpu) bool {
+fn cpuEqual(left: @import("stwo_riscv_frontend").runner.cpu.Cpu, right: @import("stwo_riscv_frontend").runner.cpu.Cpu) bool {
     return left.pc == right.pc and std.mem.eql(u32, &left.regs, &right.regs);
 }

@@ -3,9 +3,9 @@
 //! claim words and bytes consumed by the role-source arithmetic graph.
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const legacy = @import("../../../../../../frontends/riscv/recursion/air/vm_public_claim_input.zig");
+const legacy = @import("stwo_riscv_frontend").recursion.air.vm_public_claim_input;
 const ir = @import("../../../../../../frontends/riscv/air/lang/ir.zig");
-const digest = @import("../../../../../../frontends/riscv/air/lang/digest.zig");
+const digest = @import("stwo_riscv_frontend").recursion.detached_segment_verifier_components_v1.manifest_mod.digest;
 const types = @import("../../../../../../frontends/riscv/air/lang/types.zig");
 
 pub const PROFILE_VERSION: u16 = 2;
@@ -20,7 +20,7 @@ pub const MAXIMUM_CONSTRAINT_DEGREE = legacy.MAXIMUM_CONSTRAINT_DEGREE;
 pub const LOOKUP_BATCH_SIZE = legacy.LOOKUP_BATCH_SIZE;
 pub const INTERACTION_BATCH_COUNT = legacy.INTERACTION_BATCH_COUNT;
 pub const INTERACTION_COLUMN_COUNT = legacy.INTERACTION_COLUMN_COUNT;
-pub const Relation = @import("../../../../../../frontends/riscv/recursion/air/universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_frontend").recursion.air.universal_relation_binding.Binding(@This());
 pub const SEMANTIC_DIGEST_HEX = "064801f229b955638e49c848d704cc91691e493038d6461898936e3f0b989bc6";
 pub const SEMANTIC_DIGEST: digest.Digest = blk: {
     var bytes: digest.Digest = undefined;

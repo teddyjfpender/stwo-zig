@@ -6,10 +6,10 @@ const Image = @import("../../../../../../integrations/riscv_cpu/word16_execution
 const Packet = @import("../../../../../../integrations/riscv_cpu/word16_execution/packet.zig");
 const C = @import("../../../../../../integrations/riscv_cpu/word16_execution/coordinator.zig");
 const Native = @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared;
-const Program = @import("../../../../../../integrations/riscv_cpu/word16_execution/program.zig").Program;
+const Program = @import("stwo_riscv_cpu_integration").rv64_program.Program;
 const Coverage = @import("../../../../../../integrations/riscv_cpu/word16_execution/coverage.zig");
 const Memory = @import("../../../../../../integrations/riscv_cpu/word16_execution/memory/statement.zig");
-const Collector = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig");
+const Collector = @import("stwo_riscv_cpu_integration").rv64_services_collector;
 const LS = @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2;
 pub const Options = @import("capture_prefetch.zig").Options;
 pub const MAX_INFLIGHT = @import("capture_prefetch.zig").MAX_INFLIGHT;
@@ -47,7 +47,7 @@ pub const Ready = struct {
     cancel: ?*const fn (*anyopaque) void = null,
     /// Runs before source.next waits for traced CPU0. Borrowed for this call
     /// only, not until Owner.deinit; asynchronous readers must own a copy.
-    first_pass: ?*const fn (*anyopaque, *const @import("../../../../../../integrations/riscv_cpu/word16_execution/cpu_source.zig").FirstPass) void = null,
+    first_pass: ?*const fn (*anyopaque, *const @import("stwo_riscv_cpu_integration").rv64_cpu_source.FirstPass) void = null,
     /// Whole first-pass GLOBAL INITIAL, derived from the pinned initial image.
     /// Called on a bounded one-request helper; data borrowed for this call only.
     global_ram: ?*const fn (*anyopaque, []const @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell, GlobalRamInfo) void = null,
@@ -218,7 +218,7 @@ pub const Ordered = struct {
         // MAIN/INTER generation retains its separate CPU metadata.
         n.cpu.?.releaseCaptureRecords();
         if (self.on_ready) |ready| {
-            if (ready.seal_native) _ = try @import("../../../../../../integrations/riscv_cpu/word16_execution/replay_capture.zig").sealCaptured(n);
+            if (ready.seal_native) _ = try @import("stwo_riscv_cpu_integration").rv64_replay_capture.sealCaptured(n);
             ready.call(ready.context, self.next_index, n, self.collector.lastEvents(), ledger_end);
             if (ready.native_segment) |call| call(ready.context, self.next_index, n, try self.collector.lastShard(), ledger_end);
         }

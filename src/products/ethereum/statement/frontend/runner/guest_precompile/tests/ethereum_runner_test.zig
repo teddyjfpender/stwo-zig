@@ -1,10 +1,10 @@
 //! End-to-end combined Ethereum profile and continuation custody.
 
 const std = @import("std");
-const keccak_authority = @import("../../../../../../../frontends/riscv/air/guest_precompile/keccakf_authority.zig");
-const execution_profile = @import("../../../../../../../frontends/riscv/isa/execution_profile.zig");
+const keccak_authority = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_authority;
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
 const runner = @import("../../../../../../../frontends/riscv/runner/mod.zig");
-const test_elf = @import("../../../../../../../frontends/riscv/runner/guest_precompile/test_elf.zig");
+const test_elf = @import("stwo_riscv_frontend").testing.guest_precompile_test_elf;
 
 fn descriptorOffset(elf: []const u8) usize {
     return std.mem.indexOf(u8, elf, execution_profile.admission.descriptor_magic) orelse

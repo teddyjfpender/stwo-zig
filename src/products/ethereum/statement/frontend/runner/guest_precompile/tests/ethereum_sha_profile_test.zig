@@ -1,7 +1,7 @@
 const std = @import("std");
-const profile = @import("../../../../../../../frontends/riscv/isa/execution_profile.zig");
+const profile = @import("stwo_riscv_frontend").isa.execution_profile;
 const sha = @import("../../../../../../../frontends/riscv/isa/sha256_compression_v1.zig");
-const fixture = @import("../../../../../../../frontends/riscv/runner/guest_precompile/test_elf.zig");
+const fixture = @import("stwo_riscv_frontend").testing.guest_precompile_test_elf;
 const runner = @import("../../../../../../../frontends/riscv/runner/mod.zig");
 
 test "SHA profile exact admission and declared program operands preserve legacy identities" {
@@ -22,7 +22,7 @@ test "SHA profile exact admission and declared program operands preserve legacy 
     invalid = elf;
     invalid[descriptor + 24] ^= 1;
     try std.testing.expectError(error.EthereumShaSemanticDigestMismatch, @import("../../../../../../../frontends/riscv/runner/elf_admission.zig").parseAfterIdentityValidation(&invalid));
-    const program = @import("../../../../../../../frontends/riscv/air/program/decode.zig");
+    const program = @import("stwo_riscv_frontend").air.program.decode;
     for (0..32) |s| for (0..32) |b| {
         const word = sha.encode(@intCast(s), @intCast(b));
         try std.testing.expectEqualDeep(program.ProgramValues{ 50, 0, @intCast(s), @intCast(b) }, try program.decodeProgramWordForProfile(.rv32im_zkvm_ethereum_sha_v1, word));

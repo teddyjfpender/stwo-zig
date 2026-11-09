@@ -65,18 +65,18 @@ pub const CpuLayout = struct {
 /// One source-derived class declaration. Whole-inventory planning and early
 /// local class admission share this exact geometry/census authority. The RAM
 /// INITIAL count must be the complete first-pass/collector set, never a guess.
-pub fn cpuForSegment(n: *const @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared, advice: *const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig").Advice, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
+pub fn cpuForSegment(n: *const @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared, advice: *const @import("stwo_riscv_cpu_integration").rv64_services_collector.Advice, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
     return cpuForSegmentAt(n, advice, ordinal, ordinal, total_segments, initial_count, layout);
 }
 /// The same source class from one already ordered ledger shard, before the
 /// complete Advice inventory exists. Only the global boundary ordinal differs.
-pub fn cpuForShard(n: *const @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared, shard: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig").Shard, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
-    const Collector = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig");
+pub fn cpuForShard(n: *const @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared, shard: @import("stwo_riscv_cpu_integration").rv64_services_collector.Shard, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
+    const Collector = @import("stwo_riscv_cpu_integration").rv64_services_collector;
     var view = Collector.OneShardView.init(shard);
     var advice = view.advice(n.allocator, &.{}, &.{});
     return cpuForSegmentAt(n, &advice, 0, ordinal, total_segments, initial_count, layout);
 }
-fn cpuForSegmentAt(n: *const @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared, advice: *const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig").Advice, advice_index: usize, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
+fn cpuForSegmentAt(n: *const @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared, advice: *const @import("stwo_riscv_cpu_integration").rv64_services_collector.Advice, advice_index: usize, ordinal: usize, total_segments: usize, initial_count: usize, layout: CpuLayout) !W.CpuDeclaration {
     if (total_segments == 0 or ordinal >= total_segments or advice_index >= advice.events.len) return error.CanonRosterMismatch;
     const boundary = try Coverage.minimalBoundaryLog(@intCast(initial_count));
     var result: W.CpuDeclaration = undefined;
@@ -138,7 +138,7 @@ fn cpuForSegmentAt(n: *const @import("../../../../../../integrations/riscv_cpu/w
     const arith = advice.arith256_mod[advice_index].len;
     if (arith != 0) d.bridges.arith256_mod = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod), arith)));
     // v3 curve/field families: coordinates rows per call each.
-    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
     for (advice.curves[advice_index], ST.FIRST_CURVE..) |calls, f| if (calls.len != 0) {
         const family: ST.Family = @enumFromInt(f);
         d.bridges.set(family, try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(ST.bridgeKind(family)), calls.len))));
@@ -241,7 +241,7 @@ pub fn truthSplitEnabled() bool {
 }
 /// Same predicate gkr_main uses to pad declarations to canonical rungs.
 fn canonRungsEnabled() bool {
-    return @import("../../../../../../integrations/riscv_cpu/word16_execution/native_policy.zig").strictRoster() or envFlag("STWO_RV64_CANON_RUNGS");
+    return @import("stwo_riscv_cpu_integration").rv64_native_policy.strictRoster() or envFlag("STWO_RV64_CANON_RUNGS");
 }
 pub fn keccakTruthPolicyFor(options: KeccakTruthOptions, log: u32) KeccakPolicy {
     if (!options.v3) return .triple_v2;
@@ -434,7 +434,7 @@ pub fn secpRcbCells(kind: A.crypto.secp256k1.program.Kind, calls_total: u32) !u6
 pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
     if (options.one_per_family and options.coalesce_families) return error.ConflictingTruthFamilyPlans;
     if (options.one_per_family or options.coalesce_families) {
-        const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+        const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
         var total: [ST.FAMILIES]u32 = @splat(0);
         for (captured.advice.keccak, captured.advice.secp, captured.advice.sha256, captured.advice.arith256_mod, captured.advice.curves, captured.advice.sponge) |keccak, secp, sha256, arith, curves, sponge| {
             total[0] = try std.math.add(u32, total[0], try std.math.add(u32, @intCast(keccak.len), @intCast(sponge.inputs.len)));
@@ -482,7 +482,7 @@ pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options
     }
     // Curve/field families 5..11: one call per row plus a padding row
     // (>= 256 rows for the local BYTE table); bounded log16 spans.
-    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
     const CR = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/curves/roster.zig");
     const curve_capacity: u32 = (@as(u32, 1) << @intCast(CR.MAX_LOG)) - 1;
     for (0..ST.CURVES) |c| {
@@ -501,9 +501,9 @@ pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options
 /// Producer geometry only: complete family spans start at1. Existing source
 /// receiver admission is applied before returning; capacity failure never
 /// silently restores a split roster. CPU geometry/authority is unchanged.
-pub fn oneTruthPerFamily(a: std.mem.Allocator, total: [@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").FAMILIES]u32, options: KeccakTruthOptions) ![]W.TruthDeclaration {
+pub fn oneTruthPerFamily(a: std.mem.Allocator, total: [@import("stwo_riscv_cpu_integration").rv64_services_types.FAMILIES]u32, options: KeccakTruthOptions) ![]W.TruthDeclaration {
     if (!options.v3) return error.OneTruthPerFamilyRequiresV3;
-    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
     var out: std.ArrayList(W.TruthDeclaration) = .empty;
     errdefer out.deinit(a);
     for (std.enums.values(ST.Family), total) |family, calls| {
@@ -524,8 +524,8 @@ pub fn oneTruthPerFamily(a: std.mem.Allocator, total: [@import("../../../../../.
 }
 /// Wire logs of one non-Keccak V3 truth over `calls` (the single-truth sizing
 /// of `oneTruthPerFamily`; source caps return OneTruthPerFamilySourceCapacity).
-fn nonKeccakLogs(family: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").Family, calls: u32) ![2]u32 {
-    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+fn nonKeccakLogs(family: @import("stwo_riscv_cpu_integration").rv64_services_types.Family, calls: u32) ![2]u32 {
+    const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
     return switch (family) {
         .keccak => error.NotV3Truth,
         .add, .double => .{ try SecpRow.logSize(if (family == .add) .add else .double, calls), SecpRow.PROFILE_WORD },
@@ -543,7 +543,7 @@ fn nonKeccakLogs(family: @import("../../../../../../integrations/riscv_cpu/word1
     };
 }
 /// Source cap (roster MAX_LOG) of one V3 truth of `family`.
-fn sourceMaxLog(family: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").Family) u32 {
+fn sourceMaxLog(family: @import("stwo_riscv_cpu_integration").rv64_services_types.Family) u32 {
     return switch (family) {
         .keccak => 22,
         .sha256 => @import("../../../../../../integrations/riscv_cpu/word16_global_execution/sha256/roster.zig").MAX_LOG,
@@ -553,7 +553,7 @@ fn sourceMaxLog(family: @import("../../../../../../integrations/riscv_cpu/word16
     };
 }
 /// Top canonical rung log of `family` with wire aux `aux` (null: no entry).
-pub fn topRungLog(table: anytype, family: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").Family, aux: u32) ?u32 {
+pub fn topRungLog(table: anytype, family: @import("stwo_riscv_cpu_integration").rv64_services_types.Family, aux: u32) ?u32 {
     const canon = Canon.Family.truth(family);
     for (table.TRUTH) |e| {
         if (e.family == canon and e.aux == aux) return e.logs[e.logs.len - 1];
@@ -564,7 +564,7 @@ pub fn topRungLog(table: anytype, family: @import("../../../../../../integration
 /// refuses it: source capacity, V3 shape/geometry, or (rung_bound) no
 /// admissible canonical rung. The returned declaration is exactly the one
 /// `oneTruthPerFamily` emits.
-fn admittedSingle(family: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").Family, calls: u32, rung_bound: bool) ?W.TruthDeclaration {
+fn admittedSingle(family: @import("stwo_riscv_cpu_integration").rv64_services_types.Family, calls: u32, rung_bound: bool) ?W.TruthDeclaration {
     const logs = nonKeccakLogs(family, calls) catch return null;
     const declaration = W.TruthDeclaration{ .family = family, .first_id = 1, .calls = calls, .logs = logs };
     @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/service_scope.zig").truthDeclaration(declaration) catch return null;
@@ -579,7 +579,7 @@ fn admittedSingle(family: @import("../../../../../../integrations/riscv_cpu/word
 /// by the family's top canonical rung when `rung_bound`), then the remainder
 /// at its own smallest log. Each span is an ordinary admitted V3 geometry
 /// (validated by the same `truthDeclaration` the single truth passes).
-pub fn appendSplitFamily(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), family: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").Family, calls: u32, rung_bound: bool) !void {
+pub fn appendSplitFamily(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), family: @import("stwo_riscv_cpu_integration").rv64_services_types.Family, calls: u32, rung_bound: bool) !void {
     var cap = sourceMaxLog(family);
     if (rung_bound) {
         // Every non-Keccak V3 truth has wire aux 0.
@@ -601,7 +601,7 @@ pub fn appendSplitFamily(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclar
 }
 /// Preserve Keccak's admitted bounded shards; combine each other family into
 /// one physical proof. This explicit partial plan does not claim one Keccak proof.
-pub fn coalesceTruthFamilies(a: std.mem.Allocator, total: [@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").FAMILIES]u32, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
+pub fn coalesceTruthFamilies(a: std.mem.Allocator, total: [@import("stwo_riscv_cpu_integration").rv64_services_types.FAMILIES]u32, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
     if (!options.v3) return error.OneTruthPerFamilyRequiresV3;
     var out: std.ArrayList(W.TruthDeclaration) = .empty;
     errdefer out.deinit(a);
@@ -610,7 +610,7 @@ pub fn coalesceTruthFamilies(a: std.mem.Allocator, total: [@import("../../../../
         // Per family, in family order (the receiver's span order): the single
         // admitted truth where the profile plans it today, bounded spans only
         // where it refuses.
-        const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+        const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
         for (std.enums.values(ST.Family)[1..], total[1..]) |family, calls| {
             if (calls == 0) continue;
             if (admittedSingle(family, calls, options.rung_bound)) |declaration| {
@@ -634,14 +634,14 @@ test "one truth per family producer resource mapping preserves the selected part
     try std.testing.expect(selected.v3 and selected.uniform_throughput and selected.coalesce_families and !selected.one_per_family);
     const defaults = KeccakTruthOptions.fromResources(true, true, @as(?R, null));
     try std.testing.expect(!defaults.coalesce_families and !defaults.one_per_family);
-    var total: [@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").FAMILIES]u32 = @splat(0);
+    var total: [@import("stwo_riscv_cpu_integration").rv64_services_types.FAMILIES]u32 = @splat(0);
     @memcpy(total[0..5], &[_]u32{ 29998, 10358, 9751, 2901, 319 });
     const declarations = try coalesceTruthFamilies(std.testing.allocator, total, selected, 18);
     defer std.testing.allocator.free(declarations);
     try std.testing.expectEqual(@as(usize, 7), declarations.len);
 }
 test "one truth per family partial coalescing preserves bounded Keccak and admitted secp spans" {
-    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
     for ([_][5]u32{ .{ 20994, 14855, 14001, 3157, 25 }, .{ 29998, 10358, 9751, 2901, 319 } }) |counts| {
         var total: [ST.FAMILIES]u32 = @splat(0);
         @memcpy(total[0..5], &counts);
@@ -664,7 +664,7 @@ test "one truth per family partial coalescing preserves bounded Keccak and admit
     }
 }
 test "truth split leaves every plan the coalesced profile admits unchanged" {
-    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
     for ([_][5]u32{ .{ 20994, 14855, 14001, 3157, 25 }, .{ 29998, 10358, 9751, 2901, 319 }, .{ 1, 1, 1, 1, 1 }, .{ 40000, 0, 0, 8191, 32767 } }) |counts| {
         var total: [ST.FAMILIES]u32 = @splat(0);
         @memcpy(total[0..5], &counts);
@@ -685,8 +685,8 @@ test "truth split leaves every plan the coalesced profile admits unchanged" {
 }
 /// Receiver span rule (services/protocol.zig): family order, contiguous IDs
 /// from 1, exact coverage, non-empty spans.
-fn expectReceiverSpans(truth: []const W.TruthDeclaration, total: [@import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").FAMILIES]u32) !void {
-    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+fn expectReceiverSpans(truth: []const W.TruthDeclaration, total: [@import("stwo_riscv_cpu_integration").rv64_services_types.FAMILIES]u32) !void {
+    const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
     var next: [ST.FAMILIES]u32 = @splat(1);
     var previous: u8 = 0;
     for (truth) |d| {
@@ -698,7 +698,7 @@ fn expectReceiverSpans(truth: []const W.TruthDeclaration, total: [@import("../..
     for (next, total) |n, t| try std.testing.expectEqual(t + 1, n);
 }
 test "truth split plans refused coalesced families as bounded admitted spans" {
-    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
     var total: [ST.FAMILIES]u32 = @splat(0);
     // sha256 > 2^13-1 (OneTruthPerFamilySourceCapacity), secp rows > 2^16-1
     // (V3TruthShapeExceeded), arith256 log16 (source ok, no log16 rung).
@@ -743,7 +743,7 @@ test "truth split plans refused coalesced families as bounded admitted spans" {
     try std.testing.expectEqual(@as(usize, 1), arith);
 }
 test "truth split plans the M3 basket family totals the coalesced profile refuses" {
-    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
     // Per-family call totals of the M3 basket bundles (runs/integrate/<block>-2gpu-*/
     // bundle.json): families 0..4 then the curve families 5..9; refused = the
     // bench15-1 D2 coalesced refusal (24697070 is the admitted control).
@@ -787,7 +787,7 @@ test "truth split plans the M3 basket family totals the coalesced profile refuse
     }
 }
 test "one truth per family preserves exact dev call spans within existing source authority" {
-    const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+    const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
     for ([_][5]u32{ .{ 20994, 14855, 14001, 3157, 25 }, .{ 29998, 10358, 9751, 2901, 319 } }) |counts| {
         var total: [ST.FAMILIES]u32 = @splat(0);
         @memcpy(total[0..5], &counts);

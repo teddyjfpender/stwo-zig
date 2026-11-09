@@ -44,7 +44,7 @@ fn run(profile: rv.execution_profile.Profile) !void {
     defer reused.deinit();
     try std.testing.expectEqualSlices(u8, &setup.root, &reused.root);
     try std.testing.expectEqualSlices(u8, &setup.cacheIdentity(), &reused.cacheIdentity());
-    const Full = @import("../../../../../integrations/riscv_cpu/rv64_full.zig");
+    const Full = @import("stwo_riscv_cpu_integration").rv64_full;
     var authority = try Full.ProgramAuthority.init(a, public.statement.program, profile);
     defer authority.deinit();
     var incompatible = public;
@@ -59,7 +59,7 @@ fn run(profile: rv.execution_profile.Profile) !void {
     defer a.free(borrowed_fixed);
     try std.testing.expectEqual(owned_fixed.len, borrowed_fixed.len);
     for (owned_fixed, borrowed_fixed) |owned, view| try std.testing.expectEqualSlices(@import("stwo_core").fields.m31.M31, owned.values, view.values);
-    const batch = @import("../../../../../integrations/riscv_cpu/rv64_full.zig").Trace.CallBatch{ .keccak = kcalls, .secp = scalls };
+    const batch = @import("stwo_riscv_cpu_integration").rv64_full.Trace.CallBatch{ .keccak = kcalls, .secp = scalls };
     var trace = try Service.Trace.initEthereum(a, records, batch, public, &setup.materials);
     defer trace.deinit();
     try std.testing.expectEqual(@as(u32, 28), trace.cpu.secp.?.rows[1][0].previous_clocks[0]);

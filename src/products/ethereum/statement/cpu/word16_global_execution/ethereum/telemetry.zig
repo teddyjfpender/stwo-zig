@@ -4,7 +4,7 @@ const std = @import("std");
 const Keys = @import("keys.zig").Owner;
 const Capture = @import("capture.zig").Owner;
 const Driver = @import("../../../../../../integrations/riscv_cpu/word16_execution/driver.zig");
-const T = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+const T = @import("stwo_riscv_cpu_integration").rv64_services_types;
 pub const Cost = struct {
     columns: [3]u64 = @splat(0),
     native_cells: [3]u64 = @splat(0),
@@ -45,7 +45,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, keys: *const Keys, captured:
             try measure(logs, cost, tree);
         }
     }
-    const Active = struct { retirements: u32, alu_facts: usize, binary_facts: usize, shift_facts: usize, ram_events: usize, keccak_calls: usize, add_calls: usize, double_calls: usize, sha256_calls: usize, arith256_mod_calls: usize, curve_calls: [T.CURVES]usize, bulk: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").BulkCounts, sponge: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig").SpongeCounts };
+    const Active = struct { retirements: u32, alu_facts: usize, binary_facts: usize, shift_facts: usize, ram_events: usize, keccak_calls: usize, add_calls: usize, double_calls: usize, sha256_calls: usize, arith256_mod_calls: usize, curve_calls: [T.CURVES]usize, bulk: @import("stwo_riscv_cpu_integration").rv64_services_types.BulkCounts, sponge: @import("stwo_riscv_cpu_integration").rv64_services_types.SpongeCounts };
     const active = try a.alloc(Active, captured.native.items.len);
     defer a.free(active);
     for (captured.native.items, active, 0..) |n, *out, i| out.* = .{ .retirements = (n.cpu orelse return error.PreparedExecutionConsumed).public.steps, .alu_facts = n.alu.facts.len, .binary_facts = n.binary.facts.len, .shift_facts = n.shift.len, .ram_events = captured.advice.events[i].len, .keccak_calls = captured.advice.keccak[i].len, .add_calls = captured.advice.secp[i][0].len, .double_calls = captured.advice.secp[i][1].len, .sha256_calls = captured.advice.sha256[i].len, .arith256_mod_calls = captured.advice.arith256_mod[i].len, .curve_calls = curveCounts(&captured.advice, i), .bulk = captured.advice.bulk[i].counts(), .sponge = captured.advice.sponge[i].counts() };
@@ -54,7 +54,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, keys: *const Keys, captured:
     const roles = try a.alloc([Roles.COUNT]Roles.Row, keys.cpus.len);
     defer a.free(roles);
     for (keys.cpus, captured.native.items, roles, 0..) |setup, native, *out, i| {
-        const ST = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+        const ST = @import("stwo_riscv_cpu_integration").rv64_services_types;
         var calls: [ST.FAMILIES]usize = @splat(0);
         calls[@intFromEnum(ST.Family.keccak)] = captured.advice.keccak[i].len;
         calls[@intFromEnum(ST.Family.add)] = captured.advice.secp[i][0].len;

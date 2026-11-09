@@ -2,7 +2,7 @@
 //! Immutable program/setup is borrowed and intentionally excluded.
 const std = @import("std");
 const Native = @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared;
-const Advice = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig").Advice;
+const Advice = @import("stwo_riscv_cpu_integration").rv64_services_collector.Advice;
 fn bytes(values: anytype) usize {
     return std.mem.sliceAsBytes(values).len;
 }

@@ -8,9 +8,9 @@ const ethereum_statement =
 const ethereum_context =
     @import("../../recursion/ethereum_leaf_context_v1.zig");
 const lookup_physical_v2 =
-    @import("../../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
+    @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
 const poseidon2_air =
-    @import("../../../../../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
+    @import("stwo_riscv_frontend").air.memory_commitment.poseidon2_air;
 const base_verifier = @import("../../../../../../frontends/riscv/prover/verifier.zig");
 const provider_authority =
     @import("../../../../../../frontends/riscv/prover/memory_provider_shards/authority.zig");

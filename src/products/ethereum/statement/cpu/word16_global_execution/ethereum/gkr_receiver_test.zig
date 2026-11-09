@@ -1,10 +1,10 @@
 const std = @import("std");
 const F = @import("terminal_fixture.zig");
-const Program = @import("../../../../../../integrations/riscv_cpu/word16_execution/program.zig").Program;
+const Program = @import("stwo_riscv_cpu_integration").rv64_program.Program;
 const Native = @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared;
 const Memory = @import("../../../../../../integrations/riscv_cpu/word16_execution/memory/statement.zig");
 const Driver = @import("../../../../../../integrations/riscv_cpu/word16_execution/driver.zig");
-const Collector = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig");
+const Collector = @import("stwo_riscv_cpu_integration").rv64_services_collector;
 const Coordinator = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig");
 const Config = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator_fixture.zig").config;
 const P = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/protocol.zig");
@@ -13,9 +13,9 @@ const Receiver = @import("gkr_receiver.zig");
 const Admission = @import("receiver.zig");
 const a = std.testing.allocator;
 test "wide GKR Ethereum receiver authenticates terminal RAM and never promotes prefix completion" {
-    const Fixed = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority.zig").Fixed;
+    const Fixed = @import("stwo_riscv_cpu_integration").rv64_gkr_fixed_authority.Fixed;
     const FixedSet = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority_set.zig").Set;
-    const Candidate = @import("../../../../../../integrations/riscv_cpu/word16_execution/om31_security_candidate.zig");
+    const Candidate = @import("stwo_riscv_cpu_integration").rv64_om31_security_candidate;
     for ([_]bool{ false, true }) |candidate| {
         const config = if (candidate) Candidate.config() else try Config();
         for ([_]F.Mode{ .honest, .wrong_halt, .wrong_length, .wrong_output, .early }) |mode| {

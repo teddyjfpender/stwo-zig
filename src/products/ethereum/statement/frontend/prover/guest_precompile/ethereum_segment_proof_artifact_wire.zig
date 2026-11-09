@@ -2,10 +2,10 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const lookup_physical_v2 = @import("../../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
+const lookup_physical_v2 = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
 const statement_v2 = @import("../../../../../../frontends/riscv/air/statement_v2.zig");
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
-const execution_profile = @import("../../../../../../frontends/riscv/isa/execution_profile.zig");
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
 const global_v3 = @import("../../../../../../frontends/riscv/recursion/segment_leaf_local_authority_v3.zig");
 const base_wire = @import("../../../../../../frontends/riscv/prover/guest_precompile/proof_artifact_wire.zig");
 const ethereum_wire = @import("ethereum_proof_artifact_wire.zig");

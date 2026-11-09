@@ -18,9 +18,9 @@ const Blake2sChannel = @import("stwo_core").channel.blake2s.Blake2sChannel;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const shard_planner = @import("stwo_prover_engine").pcs.residency_shard_plan;
 
-const poseidon2_air = @import("../../../../../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
+const poseidon2_air = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2_air;
 const authority = @import("../../../../../../frontends/riscv/prover/memory_provider_shards/authority.zig");
-const harness = @import("../../../../../../frontends/riscv/prover/memory_provider_shards/proof_harness.zig");
+const harness = @import("stwo_riscv_frontend").testing.component_proof.support;
 const protocol = @import("ethereum_omit_protocol_v1.zig");
 
 /// The manifest, its records, and their identities are hashes of plan data and

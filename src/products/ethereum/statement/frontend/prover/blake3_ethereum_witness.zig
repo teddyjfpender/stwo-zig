@@ -2,8 +2,8 @@
 //! This owns preparation only. It is not an extension proof or admission key.
 const std = @import("std");
 const runner = @import("../../../../../frontends/riscv/runner/mod.zig");
-const public = @import("../../../../../frontends/riscv/air/public_data.zig");
-const memory_mod = @import("../../../../../frontends/riscv/prover/blake3_commitment_witness.zig");
+const public = @import("stwo_riscv_frontend").air.public_data;
+const memory_mod = @import("stwo_riscv_frontend").prover_mod.blake3_execution.commitment_witness;
 const plan_mod = @import("../../../../../frontends/riscv/prover/blake3_commitment_plan.zig");
 const Native = @import("../../../../../frontends/riscv/prover/blake3_execution_trace.zig").Owner;
 const Hashes = @import("../../../../../frontends/riscv/prover/blake3_commitment_columns.zig").Owner;
@@ -126,12 +126,12 @@ pub fn ForSha(comptime include_sha: bool) type {
             phase.end();
             phase = try stage_profile.StageScope.begin(diagnostic, "witness.memory", "Memory commitment plan");
             var bound = data;
-            const profile: @import("../../../../../frontends/riscv/isa/execution_profile.zig").ExecutionProfile = if (include_sha) .rv32im_zkvm_ethereum_sha_v1 else .rv32im_zkvm_ethereum_v1;
+            const profile: @import("stwo_riscv_frontend").isa.execution_profile.ExecutionProfile = if (include_sha) .rv32im_zkvm_ethereum_sha_v1 else .rv32im_zkvm_ethereum_v1;
             const execution_sources = if (include_sha) .{ run.base.execution_trace.rows.items, keccak_rows, signer_rows, sha_calls } else .{ run.base.execution_trace.rows.items, keccak_rows, signer_rows };
             var memory = if (sparse_program)
-                try memory_mod.buildSparse(a, @import("../../../../../frontends/riscv/air/program/commitment.zig").DeclaredDecodeAuthority{ .profile = profile }, execution_sources, &run.base.rw_memory, @import("../../../../../frontends/riscv/prover/commitment_program_witness.zig").completionFetch(bound.completion), 100)
+                try memory_mod.buildSparse(a, @import("stwo_riscv_frontend").air.program.commitment.DeclaredDecodeAuthority{ .profile = profile }, execution_sources, &run.base.rw_memory, @import("../../../../../frontends/riscv/prover/commitment_program_witness.zig").completionFetch(bound.completion), 100)
             else
-                try memory_mod.build(a, @import("../../../../../frontends/riscv/air/program/commitment.zig").DeclaredDecodeAuthority{ .profile = profile }, execution_sources, &run.base.rw_memory, @import("../../../../../frontends/riscv/prover/commitment_program_witness.zig").completionFetch(bound.completion), 100);
+                try memory_mod.build(a, @import("stwo_riscv_frontend").air.program.commitment.DeclaredDecodeAuthority{ .profile = profile }, execution_sources, &run.base.rw_memory, @import("../../../../../frontends/riscv/prover/commitment_program_witness.zig").completionFetch(bound.completion), 100);
             errdefer memory.deinit();
             try memory.bindPublic(&bound);
             var plan = try memory.plan(a);

@@ -3,11 +3,11 @@
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
-const base_statement = @import("../../../../../frontends/riscv/air/statement.zig");
+const base_statement = @import("stwo_riscv_frontend").air.statement;
 const ethereum_statement = @import("../air/guest_precompile/ethereum_statement.zig");
-const secp_bundle = @import("../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_component = @import("../../../../../frontends/riscv/air/guest_precompile/secp256k1_component.zig");
-const secp_config = @import("../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_config.zig");
+const secp_bundle = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_bundle;
+const secp_component = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component;
+const secp_config = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_config;
 const ethereum_types = @import("../prover/guest_precompile/ethereum_types.zig");
 
 pub fn emptySecpShapes() ethereum_statement.SecpShapes {
@@ -101,13 +101,13 @@ fn zeroSecpClaim(
 }
 
 pub fn retainedSegmentZeroCore() base_statement.RiscVStatement {
-    const component_order = @import("../../../../../frontends/riscv/air/component_order.zig");
-    const lookup_table_schema = @import("../../../../../frontends/riscv/air/lookups/tables/schema.zig");
-    const merkle_node = @import("../../../../../frontends/riscv/air/memory_commitment/merkle_node.zig");
-    const poseidon2_air = @import("../../../../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
-    const program_commitment = @import("../../../../../frontends/riscv/air/program/commitment.zig");
-    const infra = @import("../../../../../frontends/riscv/infra_trace.zig");
-    const trace = @import("../../../../../frontends/riscv/runner/trace.zig");
+    const component_order = @import("stwo_riscv_frontend").air.component_order;
+    const lookup_table_schema = @import("stwo_riscv_frontend").air.lookups.tables.schema;
+    const merkle_node = @import("stwo_riscv_frontend").air.memory_commitment.merkle_node;
+    const poseidon2_air = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2_air;
+    const program_commitment = @import("stwo_riscv_frontend").air.program.commitment;
+    const infra = @import("stwo_riscv_frontend").infra_trace;
+    const trace = @import("stwo_riscv_frontend").runner.trace;
     var core: base_statement.RiscVStatement = undefined;
     core.n_components = 0;
     core.component_descs = undefined;
@@ -179,7 +179,7 @@ fn infraDescriptor(
 }
 
 fn retainedSegmentZeroRows(
-    family: @import("../../../../../frontends/riscv/runner/trace.zig").OpcodeFamily,
+    family: @import("stwo_riscv_frontend").runner.trace.OpcodeFamily,
 ) u32 {
     return switch (family) {
         .auipc => 9,

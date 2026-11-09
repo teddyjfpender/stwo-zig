@@ -2,7 +2,7 @@
 //! mandatory, separately from whole-request/global-planner qualification.
 const std = @import("std");
 const Pipeline = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/pipeline.zig");
-const W = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig");
+const W = @import("stwo_riscv_cpu_integration").rv64_gkr_worker_protocol;
 const engine = @import("stwo_prover_engine");
 pub const FLAG = "STWO_RV64_EARLY_NATIVE_MAIN";
 pub const STACK_BYTES: usize = 2 << 20;
@@ -28,20 +28,20 @@ pub const MemoryAdmission = struct {
     reserve: *const fn (*anyopaque, std.mem.Allocator, Pipeline.DeviceSourceStage.Request, W.PcsConfig, *engine.host_budget_allocator.SharedHostBudget) anyerror!Ticket,
 };
 
-const Collector = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig");
+const Collector = @import("stwo_riscv_cpu_integration").rv64_services_collector;
 const Capture = @import("capture.zig");
 const Native = @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared;
-const Replay = @import("../../../../../../integrations/riscv_cpu/word16_execution/replay_capture.zig").Capture;
+const Replay = @import("stwo_riscv_cpu_integration").rv64_replay_capture.Capture;
 const Plan = @import("plan.zig");
 const Keys = @import("keys.zig").Owner;
 const SetupCache = @import("setup_cache.zig");
-const Fixed = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/fixed_authority.zig");
-const Worker = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig");
-const Execution = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/execution.zig");
+const Fixed = @import("stwo_riscv_cpu_integration").rv64_gkr_fixed_authority;
+const Worker = @import("stwo_riscv_cpu_integration").rv64_gkr_cpu_worker;
+const Execution = @import("stwo_riscv_cpu_integration").rv64_gkr_execution;
 const Coordinator = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig");
 const Manifest = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest.zig");
 const P = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/protocol.zig");
-const T = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+const T = @import("stwo_riscv_cpu_integration").rv64_services_types;
 const D = @import("stwo_prover_api").device_pcs;
 const Cell = @import("stwo_riscv_frontend").rv64_air.memory.closed_ram.types.Cell;
 pub const Options = struct {
@@ -57,10 +57,10 @@ pub const Options = struct {
     fixed_cache: *const Fixed.Fixed.Cache,
     memory: MemoryAdmission,
     source: Pipeline.DeviceSourceStage,
-    projection: @import("../../../../../../integrations/riscv_cpu/word16_execution/cpu_source.zig").ProjectionStage,
+    projection: @import("stwo_riscv_cpu_integration").rv64_cpu_source.ProjectionStage,
     trace_commit: *const D.TraceCommitStage,
     pcs_stage: *const D.Stage,
-    numerical: *const @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig").NumericalStage,
+    numerical: *const @import("stwo_riscv_cpu_integration").rv64_gkr_child.NumericalStage,
     composition: *const Worker.ResidentCompositionStage,
     gkr_budget: usize,
 };
@@ -159,7 +159,7 @@ pub const Owner = struct {
         var declaration = try Plan.cpuForSegment(&local_native, &self.advice, 0, @intCast(segments), cells.len, o.layout);
         if (o.strict_roster or o.canonical_rungs) _ = try Plan.canonicalCpuForSegment(&local_native, self.advice.events[0], o.layout, &declaration, 0, @intCast(segments), @import("canon_native_rungs.zig"), o.strict_roster);
         self.declaration = declaration;
-        self.keys = try Keys.initResident(a, o.image, &.{declaration}, &.{}, true, @import("../../../../../../integrations/riscv_cpu/word16_execution/pcs_suite.zig").Suite.experimentalFold4(), o.caches, o.setup_cache);
+        self.keys = try Keys.initResident(a, o.image, &.{declaration}, &.{}, true, @import("stwo_riscv_cpu_integration").rv64_pcs_suite.Suite.experimentalFold4(), o.caches, o.setup_cache);
         const setup = self.keys.?.cpus[0];
         self.binding = try Fixed.Binding.acquire(o.fixed_cache, &setup.key, o.pcs);
         var request = try Coordinator.requestView(&.{&local_native}, &self.advice, 0);

@@ -4,8 +4,8 @@ const std = @import("std");
 const A = @import("stwo_riscv_frontend").rv64_air;
 const G = @import("../../../../../../integrations/riscv_cpu/word16_execution/geometry.zig");
 const Prepared = @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared;
-const R = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/roster.zig");
-const T = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+const R = @import("stwo_riscv_cpu_integration").rv64_services_roster;
+const T = @import("stwo_riscv_cpu_integration").rv64_services_types;
 /// Core roles, one row per service family bridge, then the six v3
 /// bulk-memory components (desc, copy, set, ucopy, cdesc, cmp) and the two v3 Keccak-sponge
 /// components (call, perm), then the v3 LS-D64 head and tail instances and

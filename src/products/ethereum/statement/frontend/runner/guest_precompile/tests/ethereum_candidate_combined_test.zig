@@ -8,7 +8,7 @@ const combined_decode =
     @import("../../../prover/guest_precompile/ethereum_candidate_combined_decode_v1.zig");
 const receipt_mod = @import("../ethereum_candidate_combined_elf_receipt_v1.zig");
 const segment_session = @import("../../segment_session.zig");
-const test_elf = @import("../../../../../../../frontends/riscv/runner/guest_precompile/test_elf.zig");
+const test_elf = @import("stwo_riscv_frontend").testing.guest_precompile_test_elf;
 
 test "combined candidate retires ordered bulk and SWAP under one authority" {
     const elf = test_elf.buildEthereumCombinedCandidate();

@@ -5,8 +5,8 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
 const global_v3 = @import("../../../../../../frontends/riscv/recursion/segment_leaf_local_authority_v3.zig");
-const segment_v2 = @import("../../../../../../frontends/riscv/recursion/segment_statement_v2.zig");
-const span = @import("../../../../../../frontends/riscv/recursion/span_statement.zig");
+const segment_v2 = @import("stwo_riscv_frontend").recursion.segment_statement_v2;
+const span = @import("stwo_riscv_frontend").recursion.span_statement;
 const runner_result = @import("../../runner/result.zig");
 const base_wire = @import("../../../../../../frontends/riscv/prover/guest_precompile/proof_artifact_wire.zig");
 

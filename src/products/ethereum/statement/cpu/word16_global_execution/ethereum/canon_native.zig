@@ -14,7 +14,7 @@
 //! padded declaration is mixed and verified exactly as any admitted geometry.
 const std = @import("std");
 const W = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/wire.zig");
-const T = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/types.zig");
+const T = @import("stwo_riscv_cpu_integration").rv64_services_types;
 const Blake = std.crypto.hash.blake2.Blake2s256;
 
 pub const VERSION_NAME = "rv64-m5-native-chi-chain/v1";

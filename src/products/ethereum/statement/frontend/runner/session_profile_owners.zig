@@ -15,12 +15,12 @@ const ethereum_bulk_memcpy_authority =
     @import("../isa/ethereum_bulk_memcpy_candidate_v1.zig");
 const ethereum_stack_swap_authority =
     @import("../isa/ethereum_stack_swap_candidate_v1.zig");
-const execution_profile = @import("../../../../../frontends/riscv/isa/execution_profile.zig");
-const access_clock = @import("../../../../../frontends/riscv/access_clock.zig");
-const Cpu = @import("../../../../../frontends/riscv/runner/cpu.zig").Cpu;
-const Memory = @import("../../../../../frontends/riscv/runner/memory.zig").Memory;
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
+const access_clock = @import("stwo_riscv_frontend").access_clock;
+const Cpu = @import("stwo_riscv_frontend").runner.cpu.Cpu;
+const Memory = @import("stwo_riscv_frontend").runner.memory.Memory;
 const decode_cache = @import("../../../../../frontends/riscv/runner/decode_cache.zig");
-const elf_loader = @import("../../../../../frontends/riscv/runner/elf_loader.zig");
+const elf_loader = @import("stwo_riscv_frontend").runner.elf_loader;
 const ethereum_candidate_combined_state =
     @import("guest_precompile/ethereum_candidate_combined_v1.zig");
 const ethereum_bulk_memcpy_state =
@@ -29,10 +29,10 @@ const ethereum_stack_swap_state =
     @import("guest_precompile/ethereum_stack_swap_candidate_v1.zig");
 const extension_state = @import("guest_precompile/session_state.zig");
 const host_mod = @import("../../../../../frontends/riscv/host/interface.zig");
-const trace = @import("../../../../../frontends/riscv/runner/trace.zig");
-const state_chain = @import("../../../../../frontends/riscv/runner/state_chain.zig");
+const trace = @import("stwo_riscv_frontend").runner.trace;
+const state_chain = @import("stwo_riscv_frontend").runner.state_chain;
 const segment_capacity = @import("../../../../../frontends/riscv/runner/segment_capacity.zig");
-const memory_state = @import("../../../../../frontends/riscv/runner/memory_state.zig");
+const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
 const result_mod = @import("result.zig");
 const ethereum_candidate_combined_result =
     @import("ethereum_candidate_combined_result_v1.zig");

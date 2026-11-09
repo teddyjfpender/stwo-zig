@@ -14,9 +14,9 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const lang = @import("../../../../../../frontends/riscv/air/lang/mod.zig");
-const effects = @import("../../../../../../frontends/riscv/recursion/air/relation_effect.zig");
-const qm31 = @import("../../../../../../frontends/riscv/recursion/air/qm31_mul.zig");
-const claim = @import("../../../../../../frontends/riscv/recursion/vm_public_claim.zig");
+const effects = @import("stwo_riscv_frontend").recursion.air.relation_effect;
+const qm31 = @import("stwo_riscv_frontend").recursion.air.qm31_mul;
+const claim = @import("stwo_riscv_frontend").recursion.vm_public_claim;
 const Id = lang.types.ValueId;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -42,14 +42,14 @@ pub const PROGRAM_WORD_COUNT: usize = 18;
 pub const ROLE_HASH_SCOPE: u32 = 1100;
 pub const RANGE_REQUEST_COUNT: usize = 5;
 const RANGE_MAIN_PAIRS = [RANGE_REQUEST_COUNT][2]?u8{ .{ 0, 1 }, .{ 2, 3 }, .{ 10, 11 }, .{ 12, 13 }, .{ 15, null } };
-pub const CLAIM_SOURCE_SCOPE = @import("../../../../../../frontends/riscv/recursion/air/vm_public_claim_input.zig").VM_PUBLIC_LOGUP_SCOPE;
+pub const CLAIM_SOURCE_SCOPE = @import("stwo_riscv_frontend").recursion.air.vm_public_claim_input.VM_PUBLIC_LOGUP_SCOPE;
 pub const SEMANTIC_DIGEST_HEX = "487faca476d9d26334696c03adc9f7d814ceaffc0e77868b3f41994e949e49f8";
 pub const SEMANTIC_DIGEST: lang.digest.Digest = blk: {
     var value: lang.digest.Digest = undefined;
     _ = std.fmt.hexToBytes(&value, SEMANTIC_DIGEST_HEX) catch unreachable;
     break :blk value;
 };
-pub const Relation = @import("../../../../../../frontends/riscv/recursion/air/universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_frontend").recursion.air.universal_relation_binding.Binding(@This());
 pub const Row = [LOGICAL_INPUT_COUNT]M31;
 const span = lang.source.SourceSpan.generated();
 pub const Definition = struct {

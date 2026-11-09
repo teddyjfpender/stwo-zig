@@ -6,19 +6,19 @@
 //! provider planning, closure, and proof authority remain outside this API.
 
 const std = @import("std");
-const component_order = @import("../../../../../../frontends/riscv/air/component_order.zig");
-const base_statement = @import("../../../../../../frontends/riscv/air/statement.zig");
-const lookup_table_schema = @import("../../../../../../frontends/riscv/air/lookups/tables/schema.zig");
-const merkle_node = @import("../../../../../../frontends/riscv/air/memory_commitment/merkle_node.zig");
-const poseidon2_air = @import("../../../../../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
-const sparse_merkle = @import("../../../../../../frontends/riscv/air/memory_commitment/sparse_merkle.zig");
-const program_commitment = @import("../../../../../../frontends/riscv/air/program/commitment.zig");
-const execution_profile = @import("../../../../../../frontends/riscv/isa/profile.zig");
-const infra = @import("../../../../../../frontends/riscv/infra_trace.zig");
-const memory_state = @import("../../../../../../frontends/riscv/runner/memory_state.zig");
+const component_order = @import("stwo_riscv_frontend").air.component_order;
+const base_statement = @import("stwo_riscv_frontend").air.statement;
+const lookup_table_schema = @import("stwo_riscv_frontend").air.lookups.tables.schema;
+const merkle_node = @import("stwo_riscv_frontend").air.memory_commitment.merkle_node;
+const poseidon2_air = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2_air;
+const sparse_merkle = @import("stwo_riscv_frontend").air.memory_commitment.sparse_merkle;
+const program_commitment = @import("stwo_riscv_frontend").air.program.commitment;
+const execution_profile = @import("stwo_riscv_frontend").isa.profile;
+const infra = @import("stwo_riscv_frontend").infra_trace;
+const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
 const runner_result = @import("../../runner/result.zig");
-const trace_mod = @import("../../../../../../frontends/riscv/runner/trace.zig");
-const segment_v2 = @import("../../../../../../frontends/riscv/recursion/segment_statement_v2.zig");
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
+const segment_v2 = @import("stwo_riscv_frontend").recursion.segment_statement_v2;
 const statement_validation = @import("../../../../../../frontends/riscv/prover/statement_validation.zig");
 const base_types = @import("../../../../../../frontends/riscv/prover/types.zig");
 

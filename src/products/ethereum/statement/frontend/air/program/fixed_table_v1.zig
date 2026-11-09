@@ -2,9 +2,9 @@
 //! a caller-authored table: the verifier must independently derive its source.
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const infra = @import("../../../../../../frontends/riscv/infra_trace.zig");
-const commitment = @import("../../../../../../frontends/riscv/air/program/commitment.zig");
-const interaction = @import("../../../../../../frontends/riscv/air/program/interaction.zig");
+const infra = @import("stwo_riscv_frontend").infra_trace;
+const commitment = @import("stwo_riscv_frontend").air.program.commitment;
+const interaction = @import("stwo_riscv_frontend").air.program.interaction;
 pub const COLUMN_COUNT = interaction.FIXED_COLUMN_COUNT;
 /// Serializable circuit metadata only; independent ELF admission supplies
 /// the corresponding fixed columns. No descriptor can authenticate itself.

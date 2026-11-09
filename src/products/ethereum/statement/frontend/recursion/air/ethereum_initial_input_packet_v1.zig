@@ -5,7 +5,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const lang = @import("../../../../../../frontends/riscv/air/lang/mod.zig");
-const effects = @import("../../../../../../frontends/riscv/recursion/air/relation_effect.zig");
+const effects = @import("stwo_riscv_frontend").recursion.air.relation_effect;
 const arithmetic = @import("../../../../../../frontends/riscv/recursion/arithmetic_circuit.zig");
 pub const lane = @import("ethereum_initial_input_lane_v1.zig");
 const M31 = core.fields.m31.M31;
@@ -32,7 +32,7 @@ pub const SEMANTIC_DIGEST: lang.digest.Digest = blk: {
     _ = std.fmt.hexToBytes(&value, SEMANTIC_DIGEST_HEX) catch unreachable;
     break :blk value;
 };
-pub const Relation = @import("../../../../../../frontends/riscv/recursion/air/universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_frontend").recursion.air.universal_relation_binding.Binding(@This());
 pub const Row = [LOGICAL_INPUT_COUNT]M31;
 pub const Preprocessing = [PREPROCESSED_COLUMN_COUNT]M31;
 pub const Definition = struct {

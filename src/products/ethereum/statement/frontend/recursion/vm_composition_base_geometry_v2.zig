@@ -9,8 +9,8 @@ const std = @import("std");
 const qm31 = @import("stwo_core").fields.qm31;
 const verifier_types = @import("stwo_core").verifier_types;
 const lookup_physical_v2 =
-    @import("../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const statement_mod = @import("../../../../../frontends/riscv/air/statement.zig");
+    @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const statement_mod = @import("stwo_riscv_frontend").air.statement;
 const profile_mod = @import("vm_air_profile_v2.zig");
 const base_assembly = @import("../../../../../frontends/riscv/prover/base_component_assembly.zig");
 const circuit = @import("../prover/ethereum_circuit_profile_v1.zig");

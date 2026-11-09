@@ -3,7 +3,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const base = @import("../../../../../frontends/riscv/prover/blake3_execution_protocol.zig");
 const admission = @import("blake3_ethereum_sha_statement.zig");
-const Native = @import("../../../../../frontends/riscv/air/statement.zig").Blake3ExecutionStatement;
+const Native = @import("stwo_riscv_frontend").air.statement.Blake3ExecutionStatement;
 const Pin = @import("../../../../../frontends/riscv/prover/blake3_commitment_plan.zig").Admission;
 pub fn mixWithAllocator(a: std.mem.Allocator, channel: anytype, config: core.pcs.PcsConfig, native: *const Native, extension: *const admission.Statement, pin: Pin, logs: admission.HashLogs) !void {
     try extension.mix(a, channel, config, native, pin, logs);
@@ -12,7 +12,7 @@ pub fn identityWithAllocator(a: std.mem.Allocator, config: core.pcs.PcsConfig, n
     var channel = core.proof_suites.Blake3.Channel{};
     channel.mixU32s(&.{ 0x4233534b, 1 }); // B3SK
     try mixWithAllocator(a, &channel, config, native, extension, pin, logs);
-    inline for (@import("../../../../../frontends/riscv/prover/blake3_commitment_components.zig").Airs, 0..) |Air, i| {
+    inline for (@import("stwo_riscv_frontend").prover_mod.blake3_commitment_components.Airs, 0..) |Air, i| {
         base.mixDigest(&channel, Air.SEMANTIC_DIGEST);
         channel.mixU32s(&.{ logs[i], Air.PREPROCESSED_COLUMN_COUNT, Air.PHYSICAL_MAIN_COLUMN_COUNT, Air.INTERACTION_COLUMN_COUNT, Air.DIRECT_CONSTRAINT_COUNT });
     }

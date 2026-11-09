@@ -2,9 +2,9 @@
 //! Whole-execution proof validity and Ethereum completion are distinct checks.
 const std = @import("std");
 const Image = @import("../../../../../../integrations/riscv_cpu/word16_execution/expected_image.zig");
-const Program = @import("../../../../../../integrations/riscv_cpu/word16_execution/program.zig").Program;
+const Program = @import("stwo_riscv_cpu_integration").rv64_program.Program;
 const C = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig");
-const W = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig");
+const W = @import("stwo_riscv_cpu_integration").rv64_gkr_worker_protocol;
 const Keys = @import("keys.zig");
 const Receiver = @import("receiver.zig");
 const Terminal = @import("terminal.zig");

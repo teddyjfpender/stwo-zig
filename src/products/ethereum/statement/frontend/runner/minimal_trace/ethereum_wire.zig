@@ -7,10 +7,10 @@
 //! bind the complete file bytes in its create-only manifest.
 
 const std = @import("std");
-const recovery_abi = @import("../../../../../../frontends/riscv/isa/secp256k1_recovery_memory_abi.zig");
-const Cpu = @import("../../../../../../frontends/riscv/runner/cpu.zig").Cpu;
-const base_replay = @import("../../../../../../frontends/riscv/runner/minimal_trace/replay.zig");
-const base_types = @import("../../../../../../frontends/riscv/runner/minimal_trace/types.zig");
+const recovery_abi = @import("stwo_riscv_frontend").isa.secp256k1_recovery_memory_abi;
+const Cpu = @import("stwo_riscv_frontend").runner.cpu.Cpu;
+const base_replay = @import("stwo_riscv_frontend").runner.minimal_trace.replay;
+const base_types = @import("stwo_riscv_frontend").runner.minimal_trace.types;
 const types = @import("ethereum_types.zig");
 
 pub const MAGIC = "STWEMT01";

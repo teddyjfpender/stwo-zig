@@ -1,10 +1,10 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const legacy = @import("../../../../../../../frontends/riscv/recursion/air/vm_public_claim_hash.zig");
+const legacy = @import("stwo_riscv_frontend").recursion.air.vm_public_claim_hash;
 const air = @import("../ethereum_publication_hash_v1.zig");
-const binding = @import("../../../../../../../frontends/riscv/recursion/air/universal_relation_binding.zig");
-const types = @import("../../../../../../../frontends/riscv/air/lang/types.zig");
-const support = @import("../../../../../../../frontends/riscv/recursion/air/test_support.zig");
+const binding = @import("stwo_riscv_frontend").recursion.air.universal_relation_binding;
+const types = @import("stwo_riscv_frontend").testing.blake3_proof.air_lang.types;
+const support = @import("stwo_riscv_frontend").testing.blake3_proof.test_support;
 
 test "ethereum publication hash identity preserves legacy seal" {
     const original = try legacy.identity(std.testing.allocator);

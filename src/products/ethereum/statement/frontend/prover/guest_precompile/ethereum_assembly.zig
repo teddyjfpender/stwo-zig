@@ -3,22 +3,22 @@
 const std = @import("std");
 const core_component = @import("stwo_core").air.components.Component;
 const prover_component = @import("stwo_prover_engine").air.component_prover.ComponentProver;
-const keccak_component = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_component.zig");
-const keccak_table_component = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_table_component.zig");
-const secp_bundle = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_component = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component.zig");
-const secp_config = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_config.zig");
-const secp_trace = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_trace.zig");
-const component_order = @import("../../../../../../frontends/riscv/air/component_order.zig");
-const merkle_node = @import("../../../../../../frontends/riscv/air/memory_commitment/merkle_node.zig");
-const poseidon2_air = @import("../../../../../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
-const lookup_physical_v2 = @import("../../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const program_commitment = @import("../../../../../../frontends/riscv/air/program/commitment.zig");
-const base_statement = @import("../../../../../../frontends/riscv/air/statement.zig");
+const keccak_component = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_component;
+const keccak_table_component = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_table_component;
+const secp_bundle = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_bundle;
+const secp_component = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component;
+const secp_config = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_config;
+const secp_trace = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_trace;
+const component_order = @import("stwo_riscv_frontend").air.component_order;
+const merkle_node = @import("stwo_riscv_frontend").air.memory_commitment.merkle_node;
+const poseidon2_air = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2_air;
+const lookup_physical_v2 = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const program_commitment = @import("stwo_riscv_frontend").air.program.commitment;
+const base_statement = @import("stwo_riscv_frontend").air.statement;
 const statement_v2 = @import("../../../../../../frontends/riscv/air/statement_v2.zig");
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
-const infra = @import("../../../../../../frontends/riscv/infra_trace.zig");
-const trace_mod = @import("../../../../../../frontends/riscv/runner/trace.zig");
+const infra = @import("stwo_riscv_frontend").infra_trace;
+const trace_mod = @import("stwo_riscv_frontend").runner.trace;
 const proof_workspace = @import("../../../../../../frontends/riscv/prover/proof_workspace.zig");
 const relations_mod = @import("ethereum_transcript.zig");
 const types = @import("ethereum_types.zig");
@@ -437,7 +437,7 @@ const Placements = struct {
 /// Extension placement follows native execution and the full BLAKE3 roster.
 pub fn blake3Offsets(native: *const base_statement.Blake3ExecutionStatement) !PlacementDescriptor {
     var result = PlacementDescriptor{ .preprocessed_offset = native.nPreprocessedColumns(), .main_offset = native.nMainColumns(), .interaction_offset = native.nInteractionColumns() };
-    inline for (@import("../../../../../../frontends/riscv/prover/blake3_commitment_components.zig").Airs) |Air| {
+    inline for (@import("stwo_riscv_frontend").prover_mod.blake3_commitment_components.Airs) |Air| {
         result.preprocessed_offset = try add(result.preprocessed_offset, Air.PREPROCESSED_COLUMN_COUNT);
         result.main_offset = try add(result.main_offset, Air.PHYSICAL_MAIN_COLUMN_COUNT);
         result.interaction_offset = try add(result.interaction_offset, Air.INTERACTION_COLUMN_COUNT);

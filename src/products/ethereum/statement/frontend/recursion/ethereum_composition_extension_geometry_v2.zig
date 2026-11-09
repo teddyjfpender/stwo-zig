@@ -11,26 +11,26 @@ const circle = stwo_core.circle;
 const canonic = stwo_core.poly.circle.canonic;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-const logup = @import("../../../../../frontends/riscv/air/logup.zig");
+const logup = @import("stwo_riscv_frontend").air.logup;
 const ethereum_statement =
     @import("../air/guest_precompile/ethereum_statement.zig");
 const keccak_component =
-    @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_component.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.keccakf_component;
 const keccak_relations =
-    @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_relations.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.keccakf_relations;
 const keccak_table =
-    @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_table_component.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.keccakf_table_component;
 const keccak_tables =
-    @import("../../../../../frontends/riscv/air/guest_precompile/keccakf_tables.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.keccakf_tables;
 const secp_bundle =
-    @import("../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_bundle.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_bundle;
 const secp_component =
-    @import("../../../../../frontends/riscv/air/guest_precompile/secp256k1_component.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component;
 const secp_config =
-    @import("../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_config.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_config;
 const secp_relations =
-    @import("../../../../../frontends/riscv/air/guest_precompile/secp256k1_relations.zig");
-const base_statement = @import("../../../../../frontends/riscv/air/statement.zig");
+    @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_relations;
+const base_statement = @import("stwo_riscv_frontend").air.statement;
 const profile_mod = @import("vm_air_profile_v2.zig");
 
 const Sha256 = std.crypto.hash.sha2.Sha256;

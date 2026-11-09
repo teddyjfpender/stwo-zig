@@ -9,9 +9,9 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const aggregation_hash = @import("../../../../../../frontends/riscv/aggregation/hash.zig");
 const statement_v2 = @import("../../../../../../frontends/riscv/air/statement_v2.zig");
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
-const poseidon2_air = @import("../../../../../../frontends/riscv/air/memory_commitment/poseidon2_air.zig");
-const lookup_physical_v2 = @import("../../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const statement = @import("../../../../../../frontends/riscv/air/statement.zig");
+const poseidon2_air = @import("stwo_riscv_frontend").air.memory_commitment.poseidon2_air;
+const lookup_physical_v2 = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const statement = @import("stwo_riscv_frontend").air.statement;
 const statement_geometry = @import("../../../../../../frontends/riscv/prover/statement_geometry.zig");
 const statement_validation = @import("../../../../../../frontends/riscv/prover/statement_validation.zig");
 const ethereum_transcript = @import("../guest_precompile/ethereum_transcript.zig");
@@ -27,7 +27,7 @@ pub const ACTIVATES_PRODUCTION_PROOF = false;
 pub const OMIT_RECOMPUTE_CORE_IMPLEMENTED = true;
 pub const FRESH_PROVIDER_CLOSURE_REQUIRED = true;
 pub const Digest = aggregation_hash.Digest;
-const interaction_pow_bits = @import("../../../../../../frontends/riscv/air/transcript/mod.zig").INTERACTION_POW_BITS;
+const interaction_pow_bits = @import("stwo_riscv_frontend").air.transcript.INTERACTION_POW_BITS;
 
 /// The one place this module decides how the complete ordered call corpus is
 /// readmitted. `null` keeps the historical rehash; a token readmits the exact

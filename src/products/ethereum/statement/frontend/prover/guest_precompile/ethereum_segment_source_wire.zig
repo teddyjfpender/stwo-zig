@@ -6,8 +6,8 @@
 //! the same leaf. It contains no witness or proof material.
 
 const std = @import("std");
-const execution_profile = @import("../../../../../../frontends/riscv/isa/execution_profile.zig");
-const lookup_physical_v2 = @import("../../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
+const lookup_physical_v2 = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
 const global_v3 = @import("../../../../../../frontends/riscv/recursion/segment_leaf_local_authority_v3.zig");
 const base_wire = @import("../../../../../../frontends/riscv/prover/guest_precompile/proof_artifact_wire.zig");
 const metadata_wire = @import("ethereum_segment_artifact_metadata_wire.zig");

@@ -86,7 +86,7 @@ pub fn Job(comptime Image: type, comptime Keys: type, comptime Bundle: type, com
         }
 
         fn recyclerBudget(a: std.mem.Allocator) ?*engine.host_budget_allocator.SharedHostBudget {
-            return @import("../../../../../../integrations/riscv_cpu/rv64_recursion_budget.zig").require(engine.host_budget_allocator.SharedHostBudget, a) catch null;
+            return @import("stwo_riscv_cpu_integration").rv64_recursion_budget.require(engine.host_budget_allocator.SharedHostBudget, a) catch null;
         }
     };
 }

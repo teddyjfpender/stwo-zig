@@ -1,8 +1,8 @@
 const std = @import("std");
 const eth = @import("../../../../../../frontends/riscv/rv64/ethereum_services/session.zig");
-const profile = @import("../../../../../../frontends/riscv/rv64/execution_profile.zig");
-const memory = @import("../../../../../../frontends/riscv/rv64/memory.zig");
-const machine = @import("../../../../../../frontends/riscv/rv64/machine.zig");
+const profile = @import("stwo_riscv_frontend").rv64.execution_profile;
+const memory = @import("stwo_riscv_frontend").rv64.memory;
+const machine = @import("stwo_riscv_frontend").rv64.machine;
 const Base = @import("../../../../../../frontends/riscv/rv64/session.zig");
 const a = std.testing.allocator;
 fn setup(allocator: std.mem.Allocator, writable: bool) !memory.Memory {
@@ -71,9 +71,9 @@ test "Ethereum services: old profiles stay trapping and bad requests cannot publ
     var ordinary = try Base.Session.init(a, cpu(profile.SECP_ADD_TAG), &mem, .{ .cache_entries = 1 });
     defer ordinary.deinit();
     try std.testing.expectError(error.EnvironmentCall, ordinary.step());
-    var old = try @import("../../../../../../frontends/riscv/rv64/service_session.zig").Session.init(a, cpu(profile.SECP_ADD_TAG), &mem, .{ .cache_entries = 1 });
+    var old = try @import("stwo_riscv_frontend").rv64.services.Session.init(a, cpu(profile.SECP_ADD_TAG), &mem, .{ .cache_entries = 1 });
     defer old.deinit();
-    var old_call: @import("../../../../../../frontends/riscv/rv64/service_session.zig").Call = undefined;
+    var old_call: @import("stwo_riscv_frontend").rv64.services.Call = undefined;
     try std.testing.expectError(error.UnsupportedService, old.step(&old_call));
     var event: eth.Event = undefined;
     try std.testing.expectError(error.AccessDenied, session.step(&event));

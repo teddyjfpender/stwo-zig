@@ -9,10 +9,10 @@
 
 const std = @import("std");
 
-const program_commitment = @import("../../../../../../frontends/riscv/air/program/commitment.zig");
-const custom0 = @import("../../../../../../frontends/riscv/isa/custom0.zig");
+const program_commitment = @import("stwo_riscv_frontend").air.program.commitment;
+const custom0 = @import("stwo_riscv_frontend").isa.custom0;
 const authority_mod = @import("../../isa/ethereum_stack_swap_candidate_v1.zig");
-const memory_state = @import("../../../../../../frontends/riscv/runner/memory_state.zig");
+const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
 const segment_session = @import("../segment_session.zig");
 const combined_decode =
     @import("../../prover/guest_precompile/ethereum_stack_swap_candidate_decode_v1.zig");

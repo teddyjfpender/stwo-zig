@@ -7,12 +7,12 @@
 //! a typed witness.
 
 const std = @import("std");
-const execution_profile = @import("../../../../../../frontends/riscv/isa/execution_profile.zig");
-const ethereum_abi = @import("../../../../../../frontends/riscv/isa/secp256k1_recovery_memory_abi.zig");
-const Cpu = @import("../../../../../../frontends/riscv/runner/cpu.zig").Cpu;
-const keccak_calls = @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_call_buffer.zig");
-const recovery_calls = @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const base_types = @import("../../../../../../frontends/riscv/runner/minimal_trace/types.zig");
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
+const ethereum_abi = @import("stwo_riscv_frontend").isa.secp256k1_recovery_memory_abi;
+const Cpu = @import("stwo_riscv_frontend").runner.cpu.Cpu;
+const keccak_calls = @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_call_buffer;
+const recovery_calls = @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_call_buffer;
+const base_types = @import("stwo_riscv_frontend").runner.minimal_trace.types;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;

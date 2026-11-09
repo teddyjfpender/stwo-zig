@@ -3,10 +3,10 @@
 const std = @import("std");
 const execution_boundary = @import("../../../../../frontends/riscv/runner/execution_boundary.zig");
 const base_result = @import("../../../../../frontends/riscv/runner/base_result.zig");
-const Cpu = @import("../../../../../frontends/riscv/runner/cpu.zig").Cpu;
-const trace = @import("../../../../../frontends/riscv/runner/trace.zig");
-const state_chain = @import("../../../../../frontends/riscv/runner/state_chain.zig");
-const memory_state = @import("../../../../../frontends/riscv/runner/memory_state.zig");
+const Cpu = @import("stwo_riscv_frontend").runner.cpu.Cpu;
+const trace = @import("stwo_riscv_frontend").runner.trace;
+const state_chain = @import("stwo_riscv_frontend").runner.state_chain;
+const memory_state = @import("stwo_riscv_frontend").runner.memory_state;
 const guest_precompile = @import("../../../../../frontends/riscv/runner/guest_precompile/mod.zig");
 
 pub const CompletionReason = execution_boundary.CompletionReason;

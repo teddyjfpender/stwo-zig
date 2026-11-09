@@ -8,13 +8,13 @@ const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const Request = @import("../../rv64_ethereum_request.zig");
 const Image = @import("../../../../../../integrations/riscv_cpu/word16_execution/expected_image.zig");
-const Program = @import("../../../../../../integrations/riscv_cpu/word16_execution/program.zig").Program;
+const Program = @import("stwo_riscv_cpu_integration").rv64_program.Program;
 const Capture = @import("capture.zig").Owner;
 const CaptureOptions = @import("capture_options.zig").Options;
 const DirectCapture = @import("direct.zig");
 const Plan = @import("plan.zig");
-const MetadataCache = @import("../../../../../../integrations/riscv_cpu/word16_execution/program_metadata.zig");
-const Recycler = @import("../../../../../../integrations/riscv_cpu/rv64_large_block_recycler.zig").LargeBlockRecycler;
+const MetadataCache = @import("stwo_riscv_cpu_integration").rv64_program_metadata;
+const Recycler = @import("stwo_riscv_cpu_integration").rv64_large_block_recycler.LargeBlockRecycler;
 const ReceiverBudget = @import("receiver_budget.zig");
 
 const Resources = struct {

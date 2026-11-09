@@ -1,6 +1,6 @@
 //! Software Ethereum guest ABI v0. Execution only; no proof capability.
 const std = @import("std");
-const elf = @import("../../../../../frontends/riscv/rv64/elf.zig");
+const elf = @import("stwo_riscv_frontend").rv64.elf;
 pub const Symbols = struct {
     input_start: u64,
     input_end: u64,

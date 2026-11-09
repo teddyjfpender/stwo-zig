@@ -12,21 +12,21 @@ const pcs_verifier = @import("stwo_core").pcs.verifier;
 const prover_pcs = @import("stwo_prover_engine").pcs;
 const m31 = @import("stwo_core").fields.m31;
 const fixed_program_table = @import("../air/program/fixed_table_v1.zig");
-const program_commitment = @import("../../../../../frontends/riscv/air/program/commitment.zig");
+const program_commitment = @import("stwo_riscv_frontend").air.program.commitment;
 const base_assembly = @import("../../../../../frontends/riscv/prover/base_component_assembly.zig");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
-const logup = @import("../../../../../frontends/riscv/air/logup.zig");
+const logup = @import("stwo_riscv_frontend").air.logup;
 const lookup_physical_v2 =
-    @import("../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const statement = @import("../../../../../frontends/riscv/air/statement.zig");
-const public_data_v2 = @import("../../../../../frontends/riscv/air/public_data_v2.zig");
+    @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const statement = @import("stwo_riscv_frontend").air.statement;
+const public_data_v2 = @import("stwo_riscv_frontend").air.public_data_v2;
 const statement_v2 = @import("../../../../../frontends/riscv/air/statement_v2.zig");
-const public_data_v1 = @import("../../../../../frontends/riscv/air/public_data.zig");
+const public_data_v1 = @import("stwo_riscv_frontend").air.public_data;
 const incremental_public = @import("../air/incremental_public_logup_v4.zig");
 const ethereum_statement =
     @import("../air/guest_precompile/ethereum_statement.zig");
-const transcript = @import("../../../../../frontends/riscv/air/transcript/mod.zig");
+const transcript = @import("stwo_riscv_frontend").air.transcript;
 const ethereum_context = @import("../recursion/ethereum_leaf_context_v1.zig");
 const incremental_bridge = @import("../../../../../frontends/riscv/prover/incremental_bridge_external_v3.zig");
 const ethereum_assembly = @import("guest_precompile/ethereum_assembly.zig");
@@ -928,7 +928,7 @@ fn transcriptIdentity(
     hashInt(&hash, u64, base_claim.interaction_pow);
     hashQm31(&hash, extension_claim.componentSum());
     hashQm31(&hash, bridge_claim);
-    var base_draws: [@import("../../../../../frontends/riscv/air/relation_challenges.zig").DRAW_COUNT]QM31 =
+    var base_draws: [@import("stwo_riscv_frontend").air.relation_challenges.DRAW_COUNT]QM31 =
         undefined;
     relations.base.writeDraws(&base_draws) catch unreachable;
     for (base_draws) |draw| hashQm31(&hash, draw);

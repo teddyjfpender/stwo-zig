@@ -7,19 +7,19 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const component_order = @import("../../../../../../frontends/riscv/air/component_order.zig");
-const execution_profile = @import("../../../../../../frontends/riscv/isa/execution_profile.zig");
-const keccak_component = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_component.zig");
-const keccak_table_component = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_table_component.zig");
-const keccak_tables = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_tables.zig");
-const keccak_trace = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_trace.zig");
+const component_order = @import("stwo_riscv_frontend").air.component_order;
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
+const keccak_component = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_component;
+const keccak_table_component = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_table_component;
+const keccak_tables = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_tables;
+const keccak_trace = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_trace;
 const keccak_witness = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_witness.zig");
-const secp_bundle = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_component = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component.zig");
-const secp_config = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_config.zig");
-const secp_trace = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_trace.zig");
-const poseidon_statement = @import("../../../../../../frontends/riscv/air/guest_precompile/statement.zig");
-const base_statement = @import("../../../../../../frontends/riscv/air/statement.zig");
+const secp_bundle = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_bundle;
+const secp_component = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component;
+const secp_config = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_config;
+const secp_trace = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_trace;
+const poseidon_statement = @import("stwo_riscv_frontend").air.guest_precompile.statement;
+const base_statement = @import("stwo_riscv_frontend").air.statement;
 const statement_v2 = @import("../../../../../../frontends/riscv/air/statement_v2.zig");
 
 pub const schema_version: u16 = 1;
@@ -660,7 +660,7 @@ fn memoryRelationTerms(
 
 fn addDemand(
     bounds: *[fixed_table_count]u64,
-    kind: @import("../../../../../../frontends/riscv/air/lookups/tables/schema.zig").Kind,
+    kind: @import("stwo_riscv_frontend").air.lookups.tables.schema.Kind,
     rows: u32,
     per_row: u32,
 ) Error!void {

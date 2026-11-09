@@ -4,7 +4,7 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 const rv = frontend.rv64;
 const R = frontend.rv64_air.memory;
-const Full = @import("../../../../integrations/riscv_cpu/rv64_full.zig");
+const Full = @import("stwo_riscv_cpu_integration").rv64_full;
 pub const Config = struct {
     elf: []const u8,
     input: []const u8,

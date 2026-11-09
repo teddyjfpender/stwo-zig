@@ -7,7 +7,7 @@
 const std = @import("std");
 
 const bulk = @import("../../../../../frontends/riscv/isa/bulk_memcpy_candidate_v1.zig");
-const execution_profile = @import("../../../../../frontends/riscv/isa/execution_profile.zig");
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
 const private_registry = @import("../../../../../frontends/riscv/isa/bulk_memcpy_private_registry_v1.zig");
 
 pub const production_active = false;

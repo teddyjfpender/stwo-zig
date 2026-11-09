@@ -4,21 +4,21 @@ const std = @import("std");
 const session = @import("session_state.zig");
 const ethereum = @import("ethereum_v1.zig");
 const sha = @import("../../../../../../frontends/riscv/runner/guest_precompile/sha256_compression_v1.zig");
-const custom0 = @import("../../../../../../frontends/riscv/isa/custom0.zig");
-const Cpu = @import("../../../../../../frontends/riscv/runner/cpu.zig").Cpu;
-const Memory = @import("../../../../../../frontends/riscv/runner/memory.zig").Memory;
-const Layout = @import("../../../../../../frontends/riscv/runner/memory_state.zig").MemoryLayout;
-const Tracker = @import("../../../../../../frontends/riscv/runner/state_chain.zig").StateChainTracker;
-const Trace = @import("../../../../../../frontends/riscv/runner/trace.zig").Trace;
+const custom0 = @import("stwo_riscv_frontend").isa.custom0;
+const Cpu = @import("stwo_riscv_frontend").runner.cpu.Cpu;
+const Memory = @import("stwo_riscv_frontend").runner.memory.Memory;
+const Layout = @import("stwo_riscv_frontend").runner.memory_state.MemoryLayout;
+const Tracker = @import("stwo_riscv_frontend").runner.state_chain.StateChainTracker;
+const Trace = @import("stwo_riscv_frontend").runner.trace.Trace;
 
 pub const production_active = sha.production_active;
 
 /// Proof-owned tapes. Freezing moves their backing allocations unchanged.
 pub const Frozen = struct {
-    keccakf_calls: @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_call_buffer.zig").Frozen,
-    keccakf_execution_rows: @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_v1.zig").FrozenExecutionRows,
-    signer_recovery_calls: @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_call_buffer.zig").Frozen,
-    signer_recovery_execution_rows: @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_v1.zig").FrozenExecutionRows,
+    keccakf_calls: @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_call_buffer.Frozen,
+    keccakf_execution_rows: @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_v1.FrozenExecutionRows,
+    signer_recovery_calls: @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_call_buffer.Frozen,
+    signer_recovery_execution_rows: @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_v1.FrozenExecutionRows,
     sha_calls: sha.Frozen,
 
     pub fn deinit(self: *Frozen) void {

@@ -26,11 +26,11 @@ const Image = @import("../../../../../../integrations/riscv_cpu/word16_execution
 const Packet = @import("../../../../../../integrations/riscv_cpu/word16_execution/packet.zig");
 const Header = @import("../../../../../../integrations/riscv_cpu/rv64_work_packet_header.zig");
 const Native = @import("../../../../../../integrations/riscv_cpu/word16_execution/prepared.zig").Prepared;
-const Program = @import("../../../../../../integrations/riscv_cpu/word16_execution/program.zig").Program;
+const Program = @import("stwo_riscv_cpu_integration").rv64_program.Program;
 const Capture = @import("capture.zig");
 const Walk = @import("../../rv64_ethereum_native_prepare.zig").Walk;
 const Segments = @import("../../rv64_ethereum_segments.zig");
-const Collector = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig");
+const Collector = @import("stwo_riscv_cpu_integration").rv64_services_collector;
 /// M8 capture concurrency overrides (`STWO_RV64_M8_CAPTURE_INFLIGHT`,
 /// `STWO_RV64_M8_CAPTURE_WORKERS`; unset = the caller's options). Producer
 /// scheduling only. Measured A/B [M, rv64-capture-bench, pod load 11-38,
@@ -114,7 +114,7 @@ const ReadyTap = struct {
         const self: *ReadyTap = @ptrCast(@alignCast(raw));
         if (self.inner) |hook| if (hook.terminal_ready) |invoke| invoke(hook.context, cells);
     }
-    fn nativeSegment(raw: *anyopaque, index: usize, native: *const Native, shard: @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig").Shard, at_ns: u64) void {
+    fn nativeSegment(raw: *anyopaque, index: usize, native: *const Native, shard: @import("stwo_riscv_cpu_integration").rv64_services_collector.Shard, at_ns: u64) void {
         const self: *ReadyTap = @ptrCast(@alignCast(raw));
         if (self.inner) |hook| if (hook.native_segment) |invoke| invoke(hook.context, index, native, shard, at_ns);
     }
@@ -161,8 +161,8 @@ const Job = struct {
     fn run(self: *Job) void {
         // The first batch gates the whole ordered ledger: its CPU capture
         // takes all its range helpers (M6; `STWO_RV64_CAPTURE_CRITICAL=0` off).
-        if (self.index == 0 and criticalFirst()) @import("../../../../../../integrations/riscv_cpu/word16_execution/cpu_source.zig").critical_capture = true;
-        defer @import("../../../../../../integrations/riscv_cpu/word16_execution/cpu_source.zig").critical_capture = false;
+        if (self.index == 0 and criticalFirst()) @import("stwo_riscv_cpu_integration").rv64_cpu_source.critical_capture = true;
+        defer @import("stwo_riscv_cpu_integration").rv64_cpu_source.critical_capture = false;
         lowerJobPriority();
         var timer = std.time.Timer.start() catch null;
         const tape = self.tape.?;
@@ -180,13 +180,13 @@ const Job = struct {
         // Seal alongside the parallel capture work. Ordered publication only
         // reads this cached seal, so hashing cannot serialize every segment's
         // ledger or add a second scan before early MAIN starts.
-        if (self.seal_native) _ = @import("../../../../../../integrations/riscv_cpu/word16_execution/replay_capture.zig").sealCaptured(self.native.?) catch |err| {
+        if (self.seal_native) _ = @import("stwo_riscv_cpu_integration").rv64_replay_capture.sealCaptured(self.native.?) catch |err| {
             self.err = err;
             return;
         };
         if (timer) |*t| self.seal_ns = t.read() - self.narrow_ns;
         // Best effort: on failure the ordered ledger allocates as before.
-        self.events = @import("../../../../../../integrations/riscv_cpu/word16_global_execution/services/collector.zig").prepareEvents(self.allocator, self.native.?) catch null;
+        self.events = @import("stwo_riscv_cpu_integration").rv64_services_collector.prepareEvents(self.allocator, self.native.?) catch null;
         if (timer) |*t| self.events_ns = t.read() - self.narrow_ns - self.seal_ns;
         if (self.start) |cp| {
             // Phase 1 of the two-phase ledger; on any failure the ordered
@@ -575,7 +575,7 @@ fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program,
             .final_registers = minimal.final.regs,
             .register_clocks = minimal.trace.clocks,
         };
-        const first = @import("../../../../../../integrations/riscv_cpu/word16_execution/cpu_source.zig").FirstPass{
+        const first = @import("stwo_riscv_cpu_integration").rv64_cpu_source.FirstPass{
             .program = program,
             .public = public,
             .epoch = 1,

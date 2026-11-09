@@ -10,15 +10,15 @@ const pcs_core = @import("stwo_core").pcs;
 const prover_api = @import("stwo_prover_api");
 const stage_profile = prover_api.stage_profile;
 const work_pool = @import("stwo_prover_engine").work_pool;
-const lookup_physical_v2 = @import("../../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const public_data_v2 = @import("../../../../../../frontends/riscv/air/public_data_v2.zig");
+const lookup_physical_v2 = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const public_data_v2 = @import("stwo_riscv_frontend").air.public_data_v2;
 const statement_v2 = @import("../../../../../../frontends/riscv/air/statement_v2.zig");
 const proof_admission = @import("../../air/guest_precompile/ethereum_proof_admission.zig");
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
-const keccak_calls_mod = @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_call_buffer.zig");
-const keccak_rows_mod = @import("../../../../../../frontends/riscv/runner/guest_precompile/keccakf_v1.zig");
-const recovery_calls_mod = @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const recovery_rows_mod = @import("../../../../../../frontends/riscv/runner/guest_precompile/secp256k1_recover_v1.zig");
+const keccak_calls_mod = @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_call_buffer;
+const keccak_rows_mod = @import("stwo_riscv_frontend").runner.guest_precompile.keccakf_v1;
+const recovery_calls_mod = @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_call_buffer;
+const recovery_rows_mod = @import("stwo_riscv_frontend").runner.guest_precompile.secp256k1_recover_v1;
 const runner_result = @import("../../runner/result.zig");
 const commitment_witness = @import("../../../../../../frontends/riscv/prover/commitment_witness.zig");
 const base_orchestration = @import("../../../../../../frontends/riscv/prover/orchestration.zig");
@@ -625,7 +625,7 @@ pub fn proveWithEngineUsingChannelAndExecutionInternal(
 }
 
 fn validateClockAuthority(
-    trace: *const @import("../../../../../../frontends/riscv/runner/trace.zig").Trace,
+    trace: *const @import("stwo_riscv_frontend").runner.trace.Trace,
     keccak_calls: usize,
     keccak_rows: usize,
     recovery_calls: usize,

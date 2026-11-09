@@ -3,9 +3,9 @@ const std = @import("std");
 const core = @import("stwo_core");
 const base = @import("../../../../../frontends/riscv/prover/blake3_execution_protocol.zig");
 const admission = @import("blake3_ethereum_statement.zig");
-const Native = @import("../../../../../frontends/riscv/air/statement.zig").Blake3ExecutionStatement;
+const Native = @import("stwo_riscv_frontend").air.statement.Blake3ExecutionStatement;
 const Pin = @import("../../../../../frontends/riscv/prover/blake3_commitment_plan.zig").Admission;
-const Airs = @import("../../../../../frontends/riscv/prover/blake3_commitment_components.zig").Airs;
+const Airs = @import("stwo_riscv_frontend").prover_mod.blake3_commitment_components.Airs;
 pub fn mix(channel: anytype, config: core.pcs.PcsConfig, native: *const Native, extension: *const admission.Statement, pin: Pin, logs: admission.HashLogs) !void {
     try base.validateConfig(config);
     try admission.validate(extension, native, pin, logs);

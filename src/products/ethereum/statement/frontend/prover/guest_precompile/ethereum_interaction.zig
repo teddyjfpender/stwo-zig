@@ -4,17 +4,17 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const work_pool = @import("stwo_prover_engine").work_pool;
-const keccak_component = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_component.zig");
-const keccak_interaction = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_interaction.zig");
-const keccak_table_interaction = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_table_interaction.zig");
-const keccak_tables = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_tables.zig");
-const secp_bundle = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_component = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component.zig");
-const secp_config = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_config.zig");
-const secp_interaction = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_component_interaction.zig");
-const opcode_interaction = @import("../../../../../../frontends/riscv/air/lookups/opcode_interaction.zig");
-const lookup_physical_v2 = @import("../../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const base_statement = @import("../../../../../../frontends/riscv/air/statement.zig");
+const keccak_component = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_component;
+const keccak_interaction = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_interaction;
+const keccak_table_interaction = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_table_interaction;
+const keccak_tables = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_tables;
+const secp_bundle = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_bundle;
+const secp_component = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component;
+const secp_config = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_config;
+const secp_interaction = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_component_interaction;
+const opcode_interaction = @import("stwo_riscv_frontend").air.lookups.opcode_interaction;
+const lookup_physical_v2 = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const base_statement = @import("stwo_riscv_frontend").air.statement;
 const commitment_witness = @import("../../../../../../frontends/riscv/prover/commitment_witness.zig");
 const lookup_sources = @import("../../../../../../frontends/riscv/prover/lookup_sources.zig");
 const proof_workspace = @import("../../../../../../frontends/riscv/prover/proof_workspace.zig");
@@ -423,7 +423,7 @@ pub fn generate(allocator: std.mem.Allocator, extension: *const ethereum_witness
 
     const signer_empty = extension.signerCount() == 0;
     const claim = ethereum_types.ExtensionClaim{
-        .keccak_shard = try keccak_component.Claim.canonicalWithMaximumLogSize(&extension.keccak_shard, k0.claims, @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_trace.zig").ethereum_maximum_log_size),
+        .keccak_shard = try keccak_component.Claim.canonicalWithMaximumLogSize(&extension.keccak_shard, k0.claims, @import("stwo_riscv_frontend").air.guest_precompile.keccakf_trace.ethereum_maximum_log_size),
         .keccak_chi_table = k1.claim,
         .keccak_xor5_table = k2.claim,
         .product_base = try secp_component.Claim(secp_bundle.ProductBase).canonicalLogical(&extension.secp.product_base, logicalRows(&extension.secp.product_base, signer_empty), s0.claims),
@@ -658,7 +658,7 @@ fn callerClaim(extension: *const @import("ethereum_witness.zig").Witness, claims
     return secp_component.Claim(secp_config.RecoveryCaller).canonicalLogical(&extension.recovery_caller, logicalRows(&extension.recovery_caller, empty), claims);
 }
 
-fn generateCallerInteraction(a: std.mem.Allocator, extension: *const ethereum_witness.Witness, relations: *const @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_relations.zig").Relations, pool: *work_pool.WorkPool) !secp_interaction.Result(secp_config.RecoveryCaller) {
+fn generateCallerInteraction(a: std.mem.Allocator, extension: *const ethereum_witness.Witness, relations: *const @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_relations.Relations, pool: *work_pool.WorkPool) !secp_interaction.Result(secp_config.RecoveryCaller) {
     if (extension.recovery_caller_local_zero) |*owned| {
         const generated = try secp_interaction.generate(secp_config.RecoveryCallerLocalZero, a, owned, relations, pool);
         // Same semantic batch count; every owned buffer moves into the stable

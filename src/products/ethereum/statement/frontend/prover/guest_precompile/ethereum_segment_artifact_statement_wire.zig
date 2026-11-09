@@ -4,10 +4,10 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
-const public_data_v2 = @import("../../../../../../frontends/riscv/air/public_data_v2.zig");
-const statement = @import("../../../../../../frontends/riscv/air/statement.zig");
+const public_data_v2 = @import("stwo_riscv_frontend").air.public_data_v2;
+const statement = @import("stwo_riscv_frontend").air.statement;
 const statement_v2 = @import("../../../../../../frontends/riscv/air/statement_v2.zig");
-const segment_v2 = @import("../../../../../../frontends/riscv/recursion/segment_statement_v2.zig");
+const segment_v2 = @import("stwo_riscv_frontend").recursion.segment_statement_v2;
 const base_wire = @import("../../../../../../frontends/riscv/prover/guest_precompile/proof_artifact_wire.zig");
 
 pub const schema_version: u16 = 1;

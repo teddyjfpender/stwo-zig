@@ -2,12 +2,12 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const transcript = @import("../../../../../../frontends/riscv/air/transcript/mod.zig");
-const base_relations = @import("../../../../../../frontends/riscv/air/relation_challenges.zig");
-const keccak_relations = @import("../../../../../../frontends/riscv/air/guest_precompile/keccakf_relations.zig");
-const secp_relations = @import("../../../../../../frontends/riscv/air/guest_precompile/secp256k1_relations.zig");
-const lookup_physical_v2 = @import("../../../../../../frontends/riscv/air/lang/lookup_physical_manifest_v2.zig");
-const base_statement = @import("../../../../../../frontends/riscv/air/statement.zig");
+const transcript = @import("stwo_riscv_frontend").air.transcript;
+const base_relations = @import("stwo_riscv_frontend").air.relation_challenges;
+const keccak_relations = @import("stwo_riscv_frontend").air.guest_precompile.keccakf_relations;
+const secp_relations = @import("stwo_riscv_frontend").air.guest_precompile.secp256k1_relations;
+const lookup_physical_v2 = @import("stwo_riscv_frontend").air.lookup_physical_manifest_v2;
+const base_statement = @import("stwo_riscv_frontend").air.statement;
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
 const types = @import("ethereum_types.zig");
 

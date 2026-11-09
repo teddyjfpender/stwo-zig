@@ -7,7 +7,7 @@
 
 const std = @import("std");
 
-const execution_profile = @import("../../../../../frontends/riscv/isa/execution_profile.zig");
+const execution_profile = @import("stwo_riscv_frontend").isa.execution_profile;
 const private_registry = @import("../../../../../frontends/riscv/isa/stack_swap_private_registry_v1.zig");
 const stack_swap = @import("../../../../../frontends/riscv/isa/stack_swap_candidate_v1.zig");
 

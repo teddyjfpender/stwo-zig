@@ -1,9 +1,9 @@
 //! Ethereum role-input routing: one constrained value supplies arithmetic and publication hashing.
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const legacy = @import("../../../../../../frontends/riscv/recursion/air/vm_public_logup_input.zig");
+const legacy = @import("stwo_riscv_frontend").recursion.air.vm_public_logup_input;
 const ir = @import("../../../../../../frontends/riscv/air/lang/ir.zig");
-const digest = @import("../../../../../../frontends/riscv/air/lang/digest.zig");
+const digest = @import("stwo_riscv_frontend").recursion.detached_segment_verifier_components_v1.manifest_mod.digest;
 const types = @import("../../../../../../frontends/riscv/air/lang/types.zig");
 pub const STABLE_NAME = "recursion.ethereum_public_logup_input.v1";
 pub const PHYSICAL_MAIN_COLUMN_COUNT = legacy.PHYSICAL_MAIN_COLUMN_COUNT;
@@ -16,7 +16,7 @@ pub const MAXIMUM_CONSTRAINT_DEGREE = legacy.MAXIMUM_CONSTRAINT_DEGREE;
 pub const LOOKUP_BATCH_SIZE = legacy.LOOKUP_BATCH_SIZE;
 pub const INTERACTION_BATCH_COUNT = legacy.INTERACTION_BATCH_COUNT + 1;
 pub const INTERACTION_COLUMN_COUNT = legacy.INTERACTION_COLUMN_COUNT + 4;
-pub const Relation = @import("../../../../../../frontends/riscv/recursion/air/universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_frontend").recursion.air.universal_relation_binding.Binding(@This());
 pub const SEMANTIC_DIGEST_HEX = "fdeacd0daf651b507d28664714d131fa9837e4a701bcb00e41cf84b9c815b8fd";
 pub const SEMANTIC_DIGEST: digest.Digest = blk: {
     var bytes: digest.Digest = undefined;
