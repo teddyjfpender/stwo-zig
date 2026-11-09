@@ -71,13 +71,19 @@ pub(super) fn run_skipping(groups: &[Group], seed: Option<(&Fq12, &Fq12)>, skip:
     let count = Config::ATE_LOOP_COUNT;
     for i in (1..count.len()).rev() {
         if seed.is_some() || i != count.len() - 1 {
+            #[cfg(feature = "pairing-dense-service")]
+            super::dense::square(&mut value);
+            #[cfg(not(feature = "pairing-dense-service"))]
             value.square_in_place();
         }
         evaluate(&mut value);
         let digit = count[i - 1];
         if digit != 0 {
             if let Some((w, inverse)) = seed {
-                value *= if digit == 1 { w } else { inverse };
+                #[cfg(feature = "pairing-dense-service")]
+                super::dense::multiply(&mut value, if digit == 1 { w } else { inverse });
+                #[cfg(not(feature = "pairing-dense-service"))]
+                { value *= if digit == 1 { w } else { inverse }; }
             }
             evaluate(&mut value);
         }

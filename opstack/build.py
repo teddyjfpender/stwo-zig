@@ -102,6 +102,11 @@ LEAN_VARIANTS["canonical-glv-hinted-sparse"] = (
     [*LEAN_VARIANTS["canonical-glv-hinted-inline"][1], "pairing-sparse-service"],
 )
 
+LEAN_VARIANTS["canonical-glv-hinted-sparse-dense"] = (
+    "frontier",
+    [*LEAN_VARIANTS["canonical-glv-hinted-sparse"][1], "pairing-dense-service"],
+)
+
 BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
 
 
@@ -304,11 +309,11 @@ def main():
         "schema": "stwo.opstack.build.v1",
         "variant": args.variant,
         "required_execution_profile": "ethereum_services_op_v1"
-        if args.variant == "canonical-glv-hinted-sparse" else None,
+        if args.variant.startswith("canonical-glv-hinted-sparse") else None,
         "op_service_abi": "bn254-miller-line-640/v1"
-        if args.variant == "canonical-glv-hinted-sparse" else None,
+        if args.variant.startswith("canonical-glv-hinted-sparse") else None,
         "extra_service_tags": [0x0004_0001]
-        if args.variant == "canonical-glv-hinted-sparse" else [],
+        if args.variant.startswith("canonical-glv-hinted-sparse") else [],
         "guest_opt_level": args.guest_opt_level,
         "bulk_threshold_bytes": bulk_thresholds,
         "eager": args.eager,

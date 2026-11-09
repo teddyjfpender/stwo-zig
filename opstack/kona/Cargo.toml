@@ -36,6 +36,8 @@ pairing-sparse-service = ["pairing-hints"]
 pairing-packet-probe = ["pairing-packet-batching"]
 # Candidate only; the selected sparse client keeps per-group marshaling.
 pairing-packet-batching = ["pairing-sparse-service"]
+# Guest-only decomposition into three existing sparse calls; defaults unchanged.
+pairing-dense-service = ["pairing-sparse-service"]
 
 [dependencies]
 miniz_oxide = { version = "=0.9.1", default-features = false, features = ["with-alloc"], optional = true }

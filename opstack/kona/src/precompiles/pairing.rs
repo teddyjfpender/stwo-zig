@@ -16,6 +16,9 @@ mod residue;
 #[cfg(feature = "pairing-sparse-service")]
 #[path = "pairing_sparse.rs"]
 mod sparse;
+#[cfg(feature = "pairing-dense-service")]
+#[path = "pairing_dense.rs"]
+mod dense;
 use ark_ec::{AffineRepr, pairing::Pairing};
 use ark_ff::{BigInt, PrimeField, Zero};
 use revm_precompile::{Crypto, DefaultCrypto, PrecompileHalt};
