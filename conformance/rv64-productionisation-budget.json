@@ -827,6 +827,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Separate SIMD and scalar worker call frames without changing arithmetic, admitted stacks, scheduling, allocation or drain lifetimes. Require existing residual/parity/failure tests in hosted Debug and ReleaseFast. Roll back the internal split if hosted parity fails; no protocol or public API change."
+    },
+    {
+      "id": "explicit_compile_free_toolchain_gate",
+      "net_code_budget": 70,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Expose the planned CI toolchain check through the existing entrypoint and reuse its static tests in the fast tier. Validate exact Rust crate/guest inventories and Sail authority and count every Zig/Python installer despite trailing comments. One CI selector, no runtime flags or launchers; no installation, binary-digest or device claim."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

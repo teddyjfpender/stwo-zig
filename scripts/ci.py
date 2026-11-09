@@ -30,10 +30,13 @@ SCRIPT_TESTS = [
     "test_*.py",
 ]
 
+TOOLCHAIN_PLAN = [[sys.executable, "-m", "unittest", "scripts.tests.test_toolchain_pins"]]
+
 # The fast tier: static, interpretation-only checks that reject a broken
 # tree in seconds. No `zig build` step is permitted here — compilation
 # belongs to the standard and strict tiers.
 FAST_PLAN: list[list[str]] = [
+    *TOOLCHAIN_PLAN,
     ["zig", "fmt", "--check", "build.zig", "build_support", "src", "tools"],
     [sys.executable, "scripts/repo/check_upstream_pins.py"],
     [sys.executable, "scripts/repo/check_source_conformance.py"],
@@ -81,6 +84,10 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="static checks only; no compilation (seconds, not minutes)",
     )
+    tier.add_argument(
+        "--check-toolchains", action="store_true",
+        help="check declared toolchain versions without compiling or installing",
+    )
     parser.add_argument(
         "--optimize",
         choices=("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall"),
@@ -88,7 +95,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    plan = FAST_PLAN if args.fast else command_plan(args.strict, args.optimize)
+    plan = TOOLCHAIN_PLAN if args.check_toolchains else (
+        FAST_PLAN if args.fast else command_plan(args.strict, args.optimize)
+    )
     return run_plan(plan)
 
 

@@ -4,9 +4,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
-from scripts.ci import FAST_PLAN, command_plan
+from scripts.ci import FAST_PLAN, TOOLCHAIN_PLAN, command_plan, main
 from scripts.repo.check_build_configure_closure import validate_actual_construction
 from scripts.release.release_evidence import gate_steps
 
@@ -239,6 +240,13 @@ class CiTests(unittest.TestCase):
             ["zig", "build", "release-gate", "-Doptimize=ReleaseFast"],
             plan[1],
         )
+
+    def test_explicit_toolchain_gate_uses_only_the_shared_static_owner(self) -> None:
+        self.assertIn(TOOLCHAIN_PLAN[0], FAST_PLAN)
+        self.assertEqual([sys.executable, "-m", "unittest", "scripts.tests.test_toolchain_pins"], TOOLCHAIN_PLAN[0])
+        with mock.patch("scripts.ci.run_plan", return_value=19) as run:
+            self.assertEqual(19, main(["--check-toolchains"]))
+        run.assert_called_once_with(TOOLCHAIN_PLAN)
 
     def test_strict_plan_selects_strict_gate(self) -> None:
         self.assertEqual("release-gate-strict", command_plan(True, "ReleaseSafe")[1][2])

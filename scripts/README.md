@@ -14,7 +14,7 @@ The top level holds only the developer entry points:
 | Entry point | Purpose |
 |---|---|
 | `dev_test.py` | local developer test runner |
-| `ci.py` | CI driver (`--fast` is the static lane) |
+| `ci.py` | CI driver (`--fast` is the static lane; `--check-toolchains` checks declared versions without installation or compilation) |
 | `rv64_gate.sh` | RV64 / CUDA gate on the pod (implementation in `rv64/rv64_gate.py`) |
 | `rv64_m8_bench15.py` | 15-block RV64 benchmark |
 
