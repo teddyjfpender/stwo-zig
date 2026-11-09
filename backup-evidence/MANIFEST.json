@@ -1,0 +1,15 @@
+{
+  "format": "supplemental gzip tar in LFS; prior evidence refs remain retained",
+  "source_snapshot_commit": "95b7f329ddd79e1c26622b225d5e71a30f4eda88",
+  "parts": [
+    {
+      "name": "delivery-evidence.tar.gz.part000",
+      "bytes": 480235,
+      "sha256": "abc53ed8a5901223911e651406a60bc4b7222e5f3910e31535978aa9bcd63199"
+    }
+  ],
+  "checkpoints": [
+    "95b7f329ddd7-cpu-results-20261109T072952Z"
+  ],
+  "classification": "Mixed source-pinned CPU positives and negatives. Four actual observer commands and thirteen contracts pass ReleaseFast/Debug at 5fb233924; original six timing/pool tests keep that lane red. Direct-schoolbook CM31 candidate 27131545f is rejected by the uninstrumented core FRI digest despite frontend/Native acceptance. Restored three-product noinline candidate 8baa745e3 passes full circuit frontend and all Debug/ReleaseFast core commands; compiler root cause and timing remain unqualified. Sail candidate 8cd0efadc generated its backend but failed on absent AIR inputs; corrected fresh-input run at 597d74833 is still pending. Full CPU CI, workspace, source zero, flags, formal regeneration and complete productionisation remain open. No GPU work or release/performance qualification."
+}
