@@ -1,0 +1,79 @@
+{
+  "schema": "stwo.op.detached-native-selected-small-qualification.v1",
+  "block": 120794432,
+  "scope": "selected guest actual native control, including captured sponge, local Keccak and classic SHA",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "optimize": "ReleaseSafe",
+  "workers": 8,
+  "instructions": 796406,
+  "CPU": 1,
+  "detached": 1,
+  "truth": [
+    {
+      "family": "keccak",
+      "first_id": 1,
+      "calls": 338,
+      "logs": [
+        13,
+        0
+      ]
+    },
+    {
+      "family": "sha256",
+      "first_id": 1,
+      "calls": 34,
+      "logs": [
+        6,
+        0
+      ]
+    }
+  ],
+  "frontier_logs": [
+    7
+  ],
+  "native_bytes": 5045776,
+  "timing_ns": {
+    "capture_and_plan_ns": 759483833,
+    "setup_ns": 4053588459,
+    "prove_ns": 20382529791,
+    "total_ns": 25197076000
+  },
+  "qualification": {
+    "selected_ELF_input_ABI_unchanged": true,
+    "fresh_independent_receiver": true,
+    "RAM_KIO_Wire_closed": true,
+    "expected43B_terminal": true,
+    "callback_failure_no_complete": true,
+    "zero_final_live_external_bytes": true,
+    "all4_typed_captures_then_complete": true
+  },
+  "whole_test_os_metrics": {
+    "wall_seconds": 41.15,
+    "user_seconds": 258.39,
+    "system_seconds": 1.96,
+    "max_RSS_bytes": 3253010432,
+    "peak_footprint_bytes": 2960609288,
+    "major_faults": 0,
+    "scope": "producer plus two independent receivers plus failing-callback receiver; not proving latency"
+  },
+  "performance_claim": false,
+  "production_admission": false,
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-native-zero-small-v1",
+  "files": {
+    "detached-op.bin": {
+      "bytes": 5045776,
+      "sha256": "4e7c5dc1ca425a57754eae3f913932da9e69c8fab7a920dcb08a279b0b00e17f"
+    },
+    "detached-op.json": {
+      "bytes": 4042,
+      "sha256": "6ef3077ffb7409768399df97dfa3d8348c8f97311a979ad9c46a8840ca566c15"
+    },
+    "cells.bin": {
+      "bytes": 1374680,
+      "sha256": "c2cd4380c4b9f6a168182837c2741540cf302ae74e0683b9353bb53f070fcea7"
+    }
+  },
+  "sponge_calls": 124,
+  "sponge_permutations": 338,
+  "correction": "Both frozen legacy native metadata directories also contain124sponge calls/338permutations. The earlier sponge0 assumption was stale; no capture transformation or guest promotion occurred."
+}
