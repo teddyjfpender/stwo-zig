@@ -229,3 +229,39 @@ without an empty provider proof. The CPU frontier's inactive/padding lookup
 queries remain counted. Nonzero calls with no detached source, or a nonempty
 detached source against zero aggregate counts, fail before report allocation.
 Both empty and nonempty report constructors pass allocation-failure cleanup.
+
+### Complete experimental native runtime
+
+`runtime.zig` now shares the independently pinned image/capture planner and
+catalog source constructor with the existing OP runtime. It has its own typed
+CPU frontier keys, detached keys, manifest, and `OPDSNG01` durable codec. No old
+CPU Frame or Pending is fabricated. Local Keccak/secp and Miller GKR are a fixed
+receiver policy, and metadata cannot downgrade them. The production SourceSuite
+selector remains closed.
+
+Source bounds, conservative conditional security, and local-child resource
+limits are checked before constructing wide FIXED keys; exact typed roster
+accounting is repeated afterward. The receiver independently reconstructs keys
+from the pinned ELF/input/image and source geometry, verifies every native
+proof, closes RAM/KIO/Wire, and requires the pinned 43-byte terminal output.
+`withSourceDirectory` reads no native proof and grants source authority only.
+
+`verifyDirectoryWithHooks` exposes borrowed typed captures. Fragment callbacks
+are pending and all buffers expire on callback return. The completion callback
+runs only after every proof, global closure, and terminal checks. A callback
+failure tears down source/proof custody and cannot publish acceptance.
+
+The first actual nonzero-sponge qualification uses block120794432 with a separate
+`sponge` guest:1,317,255 instructions,124 calls/338 permutations, two CPU proofs,
+one detached proof, one local Keccak proof, and a3,243,228-byte native bundle.
+Native and independent Unicorn execution agree on all registers, PC, steps,
+service calls, and output. This guest omits selected SHA/bulk/lean options and the
+proof run uses ReleaseSafe, so its timings are functional qualification rather
+than a matched performance comparison. See the committed qualification receipt.
+
+The common32GiB allocator and worker/MAIN-store caps remain mandatory. The
+current source producer supports one bounded flattened detached suffix and
+fails closed when it would require multiple source slices; it cannot silently
+reuse the same advice for several providers. Heavy-block source partitioning,
+retained-capture bounds, and complete recursive root qualification are separate
+admission gates. No heavy execution or proof was rerun for this qualification.
