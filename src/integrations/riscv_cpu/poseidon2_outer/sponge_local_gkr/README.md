@@ -108,21 +108,40 @@ independently constructed, epoch/ordinal-bound frontier tuple. Wrong Wire claim,
 wrong mode/magic, same-fixed-root flavor substitution and firstID changes reject.
 Legacy mode refuses any nonzero Wire claim even though its old transcript stays
 byte-identical. All recorded detached equations also pass the degree3 IR gate.
-This is not yet a proof of an actual CPU/frontier/detached execution join.
+The subsequent `sponge_cpu/join_test.zig` gate now proves the actual two-CPU
+frontier + detached fragment + Keccak inventory: all MAIN roots precede the
+manifest, independently rebuilt keys receive all four proofs, and global
+RAM/KIO/Wire close. The interleaved-retirement fixture preserves the existing
+canonical proof-order KIO allocation. Its source policy is still opt-in only.
 
-Production join gates still required:
+The recursive child now verifies the exact detached transcript and all eight
+source terminals, challenge eta and nine-limb receipt. The complete statement
+uses the original eight source equation emitters at their lifted global masks,
+then verifies the original PCS/FRI. Physical relation claims remain explicit.
+Every absent RAM/KIO/Wire slot is canonical zero both natively and in-circuit;
+the native component already rejects such slots, and the new circuit must preserve
+that source policy rather than merely prove the physically used equations.
+A test-only coherent phantom proof checks that raw AIR/PCS validity alone does
+not establish this policy.
 
-- A closed new CPU flavor replaces the two old sponge slots with the frontier,
-  includes its exact local OWNER/range facts and binds its public counts/epoch/
-  ordinal. Existing Frame origins and protected AIR authority stay unchanged.
-- Stage1 commits all CPU/frontier/detached MAIN and table multiplicities before
-  the common manifest draws RAM/KIO/Wire. Calls batch independently across CPU
-  shards; exact per-CPU call counts and global permutation-ID spans must match.
-- A fresh complete receiver derives the new flavor/key/geometry independently,
-  authenticates every local terminal and physical claim, and closes global
-  RAM/KIO/Wire. Missing/duplicate/cross-CPU calls, changed ordinal/epoch/tag,
-  message/state aliases and terminal-output mutations require physical joins.
-- New source-owned recursive statement/capture/leaf and R6 topology/receiver
-  admission must qualify. Native source width is not a recursive timing result.
+Immutable source geometry and masks are derived from the independently owned
+key and role roster, never from the submitted proof. Request counts, ordinal,
+first permutation ID, MAIN, manifest, complete local receipt and all claims enter
+the authenticated public frame. SourceLeaf.initDetachedSponge is an additive
+R6 factory with a strict zero-cap guard; it does not register the new kind in
+production runtime admission.
 
+Remaining gates are full new-suite runtime/source inventory, exact bounded
+resource/mass accounting, and a complete mixed recursive root with receiver-owned
+CPU/detached/Keccak coverage, genesis/image/terminal policy and global closure.
+Native width and tiny recursive probes are not a measured heavy-block speedup.
 `sourceSuite.sponge0` and all production admission remain closed.
+
+The complete detached R6 leaf physically passes on the11-step joined fixture:
+662884 bytes,19.665s proof generation, fresh source-key verification and
+balanced Wire frame mutation rejection. Peak outer requested memory2.114GB
+under8GiB (combined2.388GB under10GiB); native fixture remains4GiB. These are
+correctness-only tiny-fixture measurements. The native fragment retains its
+original SHA; sourceSuite/runtime admission remains closed. Exact identities,
+controls and remaining gates are recorded in
+`vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-complete-recursive-leaf-v1.json`.

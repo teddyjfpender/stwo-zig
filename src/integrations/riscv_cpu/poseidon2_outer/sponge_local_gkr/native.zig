@@ -82,7 +82,7 @@ pub fn emitReceipt(scope: anytype, geometry: Authority.Geometry, proof: anytype,
     writer.integer(8);
     writer.integer(if (@hasField(@TypeOf(scope), "calls")) scope.calls else geometry.calls);
     writer.integer(if (@hasField(@TypeOf(scope), "first_id")) scope.first_id else geometry.first_id);
-    writer.integer(geometry.permutations);
+    writer.integer(if (@hasField(@TypeOf(scope), "permutations")) scope.permutations else geometry.permutations);
     var variables: [8]u32 = undefined;
     for (try geometry.instances(), &variables) |instance, *n| {
         n.* = try instance.variables();

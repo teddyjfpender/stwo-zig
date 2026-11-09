@@ -4,7 +4,7 @@ const std = @import("std");
 const Fold = @import("fold.zig");
 const Authority = @import("authority.zig").Key;
 const Profile = @import("../op_profile.zig").Profile;
-pub const Binding = struct { ordinal: u32, native_identity: [32]u8, kind: enum { cpu, catalog, miller, sponge_cpu } };
+pub const Binding = struct { ordinal: u32, native_identity: [32]u8, kind: enum { cpu, catalog, miller, sponge_cpu, detached_sponge } };
 /// No raw-Authority constructor: each leaf key is derived by a concrete source
 /// verifier builder, normalizing PCS geometry from its independently owned key.
 pub const SourceLeaf = struct {
@@ -76,6 +76,20 @@ pub const SourceLeaf = struct {
         var scope = @import("scope.zig").begin();
         defer scope.deinit();
         return finish(a, source.key.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .sponge_cpu }, try normalized.build(a, true));
+    }
+    pub fn initDetachedSponge(a: std.mem.Allocator, source: @import("../sponge_local_gkr/leaf.zig").View) !SourceLeaf {
+        if (!source.geometry.detached or source.values.cap_log != 0) return error.OpRootLeafSourceAuthority;
+        try source.key.require(source.geometry);
+        _ = try source.key.statementDetached(source.geometry);
+        try @import("../sponge_local_gkr/worker.zig").requireClaims(source.claims);
+        var arena = std.heap.ArenaAllocator.init(a);
+        defer arena.deinit();
+        const shape = try @import("../sponge_local_gkr/capture.zig").geometry(arena.allocator(), source.geometry, source.key);
+        var normalized = source;
+        normalized.shape = &shape;
+        var scope = @import("scope.zig").begin();
+        defer scope.deinit();
+        return finish(a, source.key.profile, .{ .ordinal = source.ordinal, .native_identity = source.key.identity, .kind = .detached_sponge }, try normalized.build(a, true));
     }
     pub fn initCatalog(a: std.mem.Allocator, source: @import("../pure_p2_truth_leaf_test.zig").View) !SourceLeaf {
         try source.key.require(source.truth);

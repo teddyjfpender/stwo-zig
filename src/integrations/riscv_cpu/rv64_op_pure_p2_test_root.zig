@@ -208,4 +208,7 @@ test {
 
 test {
     _ = @import("poseidon2_outer/sponge_cpu/manifest_test.zig");
+    _ = @import("poseidon2_outer/sponge_local_gkr/child_test.zig");
+    _ = @import("poseidon2_outer/sponge_local_gkr/leaf_test.zig");
+    _ = @import("poseidon2_outer/sponge_local_gkr/worker.zig");
 }

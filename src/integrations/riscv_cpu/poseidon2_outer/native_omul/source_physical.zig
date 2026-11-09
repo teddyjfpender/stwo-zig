@@ -9,6 +9,7 @@ const Catalog = @import("../pure_p2_truth_leaf_test.zig");
 const LocalCatalog = @import("../truth_local_gkr/leaf_test.zig");
 fn key(a: std.mem.Allocator, source: anytype) !Topology.SourceLeaf {
     const V = @TypeOf(source);
+    if (V == @import("../sponge_local_gkr/leaf.zig").View) return Topology.SourceLeaf.initDetachedSponge(a, source);
     if (V == @import("../sponge_cpu/leaf.zig").View) return Topology.SourceLeaf.initSpongeCpu(a, source);
     return if (V == CPU.ShapeView) Topology.SourceLeaf.initCpu(a, source) else if (V == Catalog.View) Topology.SourceLeaf.initCatalog(a, source) else if (V == LocalCatalog.View) Topology.SourceLeaf.initLocalCatalog(a, source) else Topology.SourceLeaf.initMiller(a, source);
 }
@@ -79,5 +80,12 @@ fn frameClaimMutation(a: std.mem.Allocator, source: anytype, receiver: *const To
         // aggregate numeric sum; it cannot preserve this authenticated frame.
         try std.testing.expect(std.meta.isError(Proof.verify(a, &receiver.authority, &altered, proof)));
         std.debug.print("OP_SPONGE_CPU_PHYSICAL balanced_debt_frame_rejected=true retained_proof=true\n", .{});
+    } else if (comptime @TypeOf(source) == @import("../sponge_local_gkr/leaf.zig").View) {
+        var changed = source;
+        changed.claims[0][2] = changed.claims[0][2].add(C.O.one());
+        const altered = try changed.expectedOutput(a);
+        try std.testing.expect(!std.mem.eql(u8, std.mem.asBytes(outputs), std.mem.asBytes(&altered)));
+        try std.testing.expect(std.meta.isError(Proof.verify(a, &receiver.authority, &altered, proof)));
+        std.debug.print("OP_DETACHED_PHYSICAL balanced_debt_frame_rejected=true\n", .{});
     }
 }

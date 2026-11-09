@@ -53,6 +53,8 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     const parent = try engine.host_budget_allocator.SharedHostBudget.createRetainingParent(backing, 4 << 30);
     defer parent.destroy();
     const a = parent.allocator();
+    const local_truth = if (comptime Hook != void and @hasDecl(Hook, "local_truth")) Hook.local_truth else false;
+    const TruthAPI = if (local_truth) @import("../truth_local_gkr/worker.zig") else Truth;
     var full_timer = try std.time.Timer.start();
     var pool: engine.work_pool.WorkPool = .{};
     try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
@@ -143,16 +145,16 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     var truth_setup = try KR.TruthSetup.init(a, Fixture.KECCAK_LOG);
     defer truth_setup.deinit();
     const truth = R.Truth{ .keccak = .{ .setup = &truth_setup, .first_id = 1, .calls = kio.total() } };
-    var truth_key = try Truth.Key.init(a, truth, profile);
+    var truth_key = try TruthAPI.Key.init(a, truth, profile);
     defer truth_key.deinit();
     const truth_expected = try truth_key.expected(truth, 3);
-    var truth_worker = try Truth.Worker.init(a, &truth_key, truth, Truth.SourceBuilder.fromAdvice(&captured.advice), truth_expected, .{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 16 << 20 });
+    var truth_worker = if (local_truth) try TruthAPI.Worker.initWithGkrOptions(a, &truth_key, truth, Truth.SourceBuilder.fromAdvice(&captured.advice), truth_expected, .{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .gkr_bytes = 512 << 20 }, .{ .coefficient_encoding = .fixed4 }) else try TruthAPI.Worker.init(a, &truth_key, truth, Truth.SourceBuilder.fromAdvice(&captured.advice), truth_expected, .{ .live_bytes = 1 << 30, .main_bytes = 128 << 20, .interaction_bytes = 128 << 20, .advice_bytes = 16 << 20 });
     defer truth_worker.deinit();
     const truth_stage = try truth_worker.seal();
     var entries: [4]Entry = undefined;
     for (workers, stages, entries[0..2], 0..) |worker, stage, *entry, ordinal| entry.* = .{ .authority = .{ .kind = .sponge_cpu, .global_relations = .{ .ram = true, .kio = requests[ordinal].calls[0] != 0, .wire = true }, .mass = .{ .ram = 65536, .kio = 65536, .wire = requests[ordinal].sponge.calls }, .profile = profile, .fixed_identity = worker.key.identity }, .scope = .{ .statement = worker.expected.statement, .fixed = worker.key.root, .main = stage.main, .ordinal = @intCast(ordinal) }, .local = .{ .digest = stage.receipt } };
     entries[2] = .{ .authority = .{ .kind = .detached, .global_relations = .{ .ram = true, .kio = true, .wire = true }, .mass = .{ .ram = 65536, .kio = 65536, .wire = geometry.calls }, .profile = profile, .fixed_identity = detached_key.identity }, .scope = .{ .statement = detached.expected.statement, .fixed = detached_key.root, .main = detached_main, .ordinal = 2 }, .local = null };
-    entries[3] = .{ .authority = .{ .kind = .keccak, .global_relations = truth_expected.global_relations, .mass = truth_expected.mass, .profile = profile, .fixed_identity = truth_key.identity }, .scope = .{ .statement = truth_expected.statement, .fixed = truth_key.root, .main = truth_stage.main, .ordinal = 3 }, .local = null };
+    entries[3] = .{ .authority = .{ .kind = .keccak, .global_relations = truth_expected.global_relations, .mass = truth_expected.mass, .profile = profile, .fixed_identity = truth_key.identity }, .scope = .{ .statement = truth_expected.statement, .fixed = if (local_truth) truth_key.base.root else truth_key.root, .main = truth_stage.main, .ordinal = 3 }, .local = null };
     var execution_hash = std.crypto.hash.sha2.Sha256.init(.{});
     execution_hash.update("op-detached-sponge-two-cpu-closed-join/v1");
     execution_hash.update(&captured.program.identity);
@@ -178,6 +180,8 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     var fragment = try detached.complete(manifest);
     const detached_ns = phase_timer.lap();
     defer fragment.deinit(a);
+    if (!hole and !local_truth) try std.testing.expectEqualStrings("8be51254f5dc66c7ab29f442b029c005726e96fd9052068c0e9728eb7eaa2023", &hash(fragment.bytes));
+    if (comptime Hook != void and @hasDecl(Hook, "detached")) try Hook.detached(a, &detached, &fragment, manifest, detached_main);
     try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, truth_worker.completeSealed(.{ .manifest = manifest, .main = Base.hashWords(&.{ 991, 3 }) }));
     var truth_proof = try truth_worker.completeSealed(.{ .manifest = manifest, .main = truth_stage.main });
     defer truth_proof.deinit(a);
@@ -255,23 +259,46 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     var fresh_detached = try DKey.init(a, profile, geometry);
     defer fresh_detached.deinit();
     claims[2] = try Detached.verify(a, geometry, &fresh_detached, 2, manifest, detached_main, &fragment);
+    // An absent-family slot cannot inject debt into aggregate closure even
+    // when the original proof and transcript otherwise remain unchanged.
+    fragment.claims[0][1] = O.one();
+    try std.testing.expectError(error.SpongeAbsentGlobalClaim, Detached.verify(a, geometry, &fresh_detached, 2, manifest, detached_main, &fragment));
+    fragment.claims[0][1] = O.zero();
+    if (comptime Hook == void and !hole) {
+        var phantom_worker = try Detached.Worker.init(a, geometry, &fresh_detached, 2, &calls, words, 128 << 20);
+        defer phantom_worker.deinit();
+        const phantom_main = try phantom_worker.seal();
+        try std.testing.expectEqualSlices(u8, &detached_main, &phantom_main);
+        var phantom = try phantom_worker.completePhantomForTest(manifest);
+        defer phantom.deinit(a);
+        const raw = try Detached.verifyPhantomPhysicalForTest(a, geometry, &fresh_detached, 2, manifest, phantom_main, &phantom);
+        try std.testing.expect(raw.ram.eql(claims[2].ram.add(O.one())));
+        try std.testing.expectError(error.SpongeAbsentGlobalClaim, Detached.verify(a, geometry, &fresh_detached, 2, manifest, phantom_main, &phantom));
+        std.debug.print("OP_DETACHED_PHANTOM raw_STARK_valid=true full_worker_rejected=true\n", .{});
+    }
     var fresh_truth_setup = try KR.TruthSetup.init(a, Fixture.KECCAK_LOG);
     defer fresh_truth_setup.deinit();
     const fresh_truth = R.Truth{ .keccak = .{ .setup = &fresh_truth_setup, .first_id = 1, .calls = kio.total() } };
-    var fresh_truth_key = try Truth.Key.init(a, fresh_truth, profile);
+    var fresh_truth_key = try TruthAPI.Key.init(a, fresh_truth, profile);
     defer fresh_truth_key.deinit();
-    claims[3] = try Truth.verifySealed(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), .{ .manifest = manifest, .main = truth_stage.main }, &truth_proof);
+    if (comptime Hook != void and @hasDecl(Hook, "truth")) {
+        var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(@import("../pure_p2_worker_protocol.zig").W.H) = undefined;
+        claims[3] = try TruthAPI.verifySealedWithCapture(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), .{ .manifest = manifest, .main = truth_stage.main }, &truth_proof, &capture);
+        defer capture.deinit(a);
+        try Hook.truth(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), manifest, truth_stage.main, &truth_proof, &capture);
+    } else claims[3] = try TruthAPI.verifySealed(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), .{ .manifest = manifest, .main = truth_stage.main }, &truth_proof);
     try close(&claims);
+    if (comptime Hook != void and @hasDecl(Hook, "complete")) try Hook.complete(a, manifest, &claims);
     var changed_scope = Truth.SealedScope{ .manifest = manifest, .main = Base.hashWords(&.{ 991, 3 }) };
-    try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, Truth.verifySealed(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), changed_scope, &truth_proof));
+    try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, TruthAPI.verifySealed(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), changed_scope, &truth_proof));
     changed_scope = .{ .manifest = Base.hashWords(&.{ 992, 4 }), .main = truth_stage.main };
-    if (Truth.verifySealed(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), changed_scope, &truth_proof)) |_| return error.AcceptedChangedTruthManifest else |_| {}
+    if (TruthAPI.verifySealed(a, &fresh_truth_key, fresh_truth, try fresh_truth_key.expected(fresh_truth, 3), changed_scope, &truth_proof)) |_| return error.AcceptedChangedTruthManifest else |_| {}
     var wrong_key = fresh_truth_key; // Borrowed test view; do not deinit twice.
     wrong_key.identity[0] ^= 1;
-    if (Truth.verifySealed(a, &wrong_key, fresh_truth, try wrong_key.expected(fresh_truth, 3), .{ .manifest = manifest, .main = truth_stage.main }, &truth_proof)) |_| return error.AcceptedSubstitutedTruthKey else |_| {}
+    if (TruthAPI.verifySealed(a, &wrong_key, fresh_truth, try wrong_key.expected(fresh_truth, 3), .{ .manifest = manifest, .main = truth_stage.main }, &truth_proof)) |_| return error.AcceptedSubstitutedTruthKey else |_| {}
     var wrong_family = try fresh_truth_key.expected(fresh_truth, 3);
     wrong_family.kind = .secp_add;
-    try std.testing.expectError(error.OpTruthExpected, Truth.verifySealed(a, &fresh_truth_key, fresh_truth, wrong_family, .{ .manifest = manifest, .main = truth_stage.main }, &truth_proof));
+    try std.testing.expectError(if (local_truth) error.OpTruthLocalExpected else error.OpTruthExpected, TruthAPI.verifySealed(a, &fresh_truth_key, fresh_truth, wrong_family, .{ .manifest = manifest, .main = truth_stage.main }, &truth_proof));
     // Opposed debt preserves the numeric sum but cannot alter either committed
     // physical proof. Coverage/closure alone never authenticates components.
     var balanced = claims;

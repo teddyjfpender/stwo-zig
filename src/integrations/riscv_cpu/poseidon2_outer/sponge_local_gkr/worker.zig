@@ -79,6 +79,15 @@ pub const Worker = struct {
         return self.scheme.trees.items[1].root();
     }
     pub fn complete(self: *Worker, manifest: [36]u8) !Encoded {
+        return self.completeMode(manifest, false);
+    }
+    /// Test-only producer of a valid physical STARK with a phantom unused
+    /// claim: this demonstrates why policy rejection is required separately.
+    pub fn completePhantomForTest(self: *Worker, manifest: [36]u8) !Encoded {
+        if (!@import("builtin").is_test) @compileError("test-only phantom control");
+        return self.completeMode(manifest, true);
+    }
+    fn completeMode(self: *Worker, manifest: [36]u8, comptime phantom: bool) !Encoded {
         if (!self.sealed or self.consumed) return error.PoseidonNativePhase;
         const a = self.allocator;
         const scope = Native.DetachedScope{ .statement = self.expected.statement, .fixed = self.key.root, .main = self.scheme.trees.items[1].root(), .manifest = manifest, .ordinal = self.expected.ordinal };
@@ -119,6 +128,7 @@ pub const Worker = struct {
             offsets[1] += R.mainWidth(role);
             offsets[2] += width;
         }
+        if (comptime phantom) claims[5][0] = O.one();
         Stages.mix(&self.channel, scope, child.digest, O.zero(), claims);
         try self.scheme.commitBorrowedStreamingWithRecorder(a, &columns, 64, null, &self.channel);
         self.consumed = true;
@@ -138,7 +148,18 @@ pub const Worker = struct {
     }
 };
 pub fn verify(a: std.mem.Allocator, g: R.Geometry, key: *const Key, ordinal: u32, manifest: [36]u8, main: [36]u8, encoded: *const Encoded) !Manifest.Claims {
+    return verifyWithCapture(a, g, key, ordinal, manifest, main, encoded, null);
+}
+pub fn verifyWithCapture(a: std.mem.Allocator, g: R.Geometry, key: *const Key, ordinal: u32, manifest: [36]u8, main: [36]u8, encoded: *const Encoded, captured: ?*core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H)) !Manifest.Claims {
+    return verifyMode(a, g, key, ordinal, manifest, main, encoded, captured, true);
+}
+pub fn verifyPhantomPhysicalForTest(a: std.mem.Allocator, g: R.Geometry, key: *const Key, ordinal: u32, manifest: [36]u8, main: [36]u8, encoded: *const Encoded) !Manifest.Claims {
+    if (!@import("builtin").is_test) @compileError("test-only raw physical control");
+    return verifyMode(a, g, key, ordinal, manifest, main, encoded, null, false);
+}
+fn verifyMode(a: std.mem.Allocator, g: R.Geometry, key: *const Key, ordinal: u32, manifest: [36]u8, main: [36]u8, encoded: *const Encoded, captured: ?*core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H), comptime policy: bool) !Manifest.Claims {
     if (!g.detached) return error.SpongeLocalScopeFlavor;
+    if (comptime policy) try requireClaims(encoded.claims);
     const expected = Expected{ .ordinal = ordinal, .statement = try key.statementDetached(g) };
     var proof = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
     defer proof.deinit(a);
@@ -161,6 +182,14 @@ pub fn verify(a: std.mem.Allocator, g: R.Geometry, key: *const Key, ordinal: u32
         data[i] = try Component.Data(role).init(a, g, pending.terminal());
         initialized += 1;
         components[i] = .{ .log_size = instances[i].row_log, .public = .{ .calls = g.calls, .permutations = g.permutations, .first_id = g.first_id }, .data = &data[i], .challenges = pending.challenges, .global_challenges = shared, .global_claims = encoded.claims[i], .offsets = offsets };
+        if (comptime !policy) {
+            // Remove ONLY the native component's existing absent-slot policy
+            // for the raw-AIR positive control. The transcript still commits
+            // the phantom claim, and no present relation is changed.
+            if (comptime @import("equations.zig").globalCount(role, false) == 0) components[i].global_claims[0] = O.zero();
+            if (comptime @import("equations.zig").globalCount(role, true) == 0) components[i].global_claims[1] = O.zero();
+            if (comptime role != .detached_descriptor) components[i].global_claims[2] = O.zero();
+        }
         verifiers[i] = components[i].asVerifierComponent();
         offsets[0] += R.fixedWidth(role);
         offsets[1] += R.mainWidth(role);
@@ -186,7 +215,7 @@ pub fn verify(a: std.mem.Allocator, g: R.Geometry, key: *const Key, ordinal: u32
     }
     var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H) = undefined;
     try core.verifier.ForField(O).verifyBorrowedWithProofCapture(W.H, W.MC, a, &verifiers, &channel, &receiver, &proof, &capture);
-    capture.deinit(a);
+    if (captured) |out| out.* = capture else capture.deinit(a);
     var claims = Manifest.Claims{ .ram = O.zero(), .kio = O.zero(), .wire = O.zero() };
     for (encoded.claims) |c| {
         claims.ram = claims.ram.add(c[0]);
@@ -194,4 +223,25 @@ pub fn verify(a: std.mem.Allocator, g: R.Geometry, key: *const Key, ordinal: u32
         claims.wire = claims.wire.add(c[2]);
     }
     return claims;
+}
+
+/// A role with no physical relation cannot contribute aggregate debt. These
+/// slots are still explicitly framed, and must be canonical zero on reception.
+pub fn requireClaims(claims: [8][3]O) !void {
+    inline for (R.detached_roles, 0..) |role, i| {
+        if (comptime @import("equations.zig").globalCount(role, false) == 0) if (!claims[i][0].isZero()) return error.SpongeAbsentGlobalClaim;
+        if (comptime @import("equations.zig").globalCount(role, true) == 0) if (!claims[i][1].isZero()) return error.SpongeAbsentGlobalClaim;
+        if (comptime role != .detached_descriptor) if (!claims[i][2].isZero()) return error.SpongeAbsentGlobalClaim;
+    }
+}
+test "detached sponge absent global slots cannot carry aggregate debt" {
+    var claims: [8][3]O = @splat(@splat(O.zero()));
+    try requireClaims(claims);
+    inline for (R.detached_roles, 0..) |role, i| {
+        inline for (0..3) |r| if (comptime (r == 0 and @import("equations.zig").globalCount(role, false) == 0) or (r == 1 and @import("equations.zig").globalCount(role, true) == 0) or (r == 2 and role != .detached_descriptor)) {
+            claims[i][r] = O.one();
+            try std.testing.expectError(error.SpongeAbsentGlobalClaim, requireClaims(claims));
+            claims[i][r] = O.zero();
+        };
+    }
 }
