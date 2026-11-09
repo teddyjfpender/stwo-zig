@@ -13,6 +13,9 @@ mod miller;
 #[cfg(feature = "pairing-hints")]
 #[path = "pairing_residue.rs"]
 mod residue;
+#[cfg(feature = "pairing-sparse-service")]
+#[path = "pairing_sparse.rs"]
+mod sparse;
 use ark_ec::{AffineRepr, pairing::Pairing};
 use ark_ff::{BigInt, PrimeField, Zero};
 use revm_precompile::{Crypto, DefaultCrypto, PrecompileHalt};

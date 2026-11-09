@@ -28,6 +28,7 @@ precompile-services = ["stwo-kona-execution/precompile-services"]
 pairing-cache = ["precompile-services", "stwo-kona-execution/pairing-cache"]
 extension-inline = ["stwo-kona-execution/extension-inline"]
 pairing-hints = ["pairing-cache", "stwo-kona-execution/pairing-hints"]
+pairing-sparse-service = ["pairing-hints", "bn254-canonical", "stwo-kona-execution/pairing-sparse-service"]
 jumpdest-service = ["dep:revm-bytecode", "revm-bytecode/stwo-jumpdest-service"]
 
 [dependencies]

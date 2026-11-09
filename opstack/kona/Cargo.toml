@@ -26,6 +26,7 @@ bn254-glv = ["precompile-services"]
 pairing-cache = ["precompile-services", "dep:ark-bn254", "dep:ark-ec", "dep:ark-ff", "dep:spin"]
 
 pairing-hints = ["pairing-cache"]
+pairing-sparse-service = ["pairing-hints"]
 
 [dependencies]
 miniz_oxide = { version = "=0.9.1", default-features = false, features = ["with-alloc"], optional = true }

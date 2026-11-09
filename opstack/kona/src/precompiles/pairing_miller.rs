@@ -48,6 +48,9 @@ pub(super) fn run_skipping(groups: &[Group], seed: Option<(&Fq12, &Fq12)>, skip:
             // BN254's D twist uses the sparse 034 line placement.
             c0.mul_assign_by_fp(&point.y);
             c1.mul_assign_by_fp(&point.x);
+            #[cfg(feature = "pairing-sparse-service")]
+            super::sparse::mul_by_034(value, &c0, &c1, &c2);
+            #[cfg(not(feature = "pairing-sparse-service"))]
             value.mul_by_034(&c0, &c1, &c2);
         }
         line += 1;

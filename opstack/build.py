@@ -91,6 +91,12 @@ LEAN_VARIANTS["canonical-glv-hinted-inline"] = (
     [*LEAN_VARIANTS["canonical-glv-hinted"][1], "extension-inline"],
 )
 
+# Prototype only: the VM and proof receiver separately admit the new OP tag.
+LEAN_VARIANTS["canonical-glv-hinted-sparse"] = (
+    "frontier",
+    [*LEAN_VARIANTS["canonical-glv-hinted-inline"][1], "pairing-sparse-service"],
+)
+
 BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
 
 
@@ -281,6 +287,10 @@ def main():
     report = {
         "schema": "stwo.opstack.build.v1",
         "variant": args.variant,
+        "required_execution_profile": "ethereum_services_op_v1"
+        if args.variant == "canonical-glv-hinted-sparse" else None,
+        "extra_service_tags": [0x0004_0001]
+        if args.variant == "canonical-glv-hinted-sparse" else [],
         "guest_opt_level": args.guest_opt_level,
         "bulk_threshold_bytes": bulk_thresholds,
         "eager": args.eager,

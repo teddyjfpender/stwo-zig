@@ -1,0 +1,83 @@
+{
+  "schema": "stwo.opstack.sparse034-client-prototype.v1",
+  "status": "Built and unit-tested; existing v3 refuses; OP physical proof admission remains closed",
+  "source_parent": "50d597a72",
+  "guest": {
+    "bytes": 3640096,
+    "sha256": "a9ee26a0bf2f8f25a5984d523a24eb1e284f2f6f5fdbc2bdb6601e4a5aa606ad"
+  },
+  "executable_load_bytes": 2583688,
+  "variant": "canonical-glv-hinted-sparse",
+  "required_execution_profile": "ethereum_services_op_v1",
+  "extra_service_tag": 262145,
+  "abi": {
+    "packet_bytes": 576,
+    "alignment": 32,
+    "inputs_fq": 18,
+    "output_fq": 12,
+    "fq_encoding": "plain canonical little-endian u256 as4u64 words; no Rust field-layout cast",
+    "accumulator_order": [
+      "c0.c0.re",
+      "c0.c0.im",
+      "c0.c1.re",
+      "c0.c1.im",
+      "c0.c2.re",
+      "c0.c2.im",
+      "c1.c0.re",
+      "c1.c0.im",
+      "c1.c1.re",
+      "c1.c1.im",
+      "c1.c2.re",
+      "c1.c2.im"
+    ],
+    "line_order": [
+      "c0.re",
+      "c0.im",
+      "c3.re",
+      "c3.im",
+      "c4.re",
+      "c4.im"
+    ],
+    "output_location": "overwrite first384bytes; final192linebytes unchanged",
+    "tower": "i^2=-1,u^3=9+i,w^2=u"
+  },
+  "client_scope": "Miller sparse034 only, explicit opt-in. Canonical BN254 required on RV64; native host uses original Ark software. Default v3 guests/profiles unchanged.",
+  "independent_oracle": "Python schoolbook polynomial reduction, separately implemented from staged provider carry equations; arbitraryu256 representatives accepted and outputs reduced moduloBN254p. Newtag recognized only in OP profile.",
+  "tests": {
+    "release_host_pairing_sparse_unit_tests": 15,
+    "python_opstack_tests": 42,
+    "failed": 0,
+    "packet_checks": [
+      "explicit order",
+      "size/alignment",
+      "12coordinate output decoding",
+      "sixlinecoordinatespreserved",
+      "noncanonicaloutputrefused"
+    ],
+    "independent_python_checks": [
+      "identity",
+      "w and u basis relations",
+      "nonresidue9+i",
+      "i^2=-1",
+      "fullu256representatives",
+      "packetlength"
+    ]
+  },
+  "legacy_refusal": {
+    "execution_profile": "ethereum_services_v3",
+    "status": "trap",
+    "stop_error": "UnsupportedService",
+    "verified_output": false,
+    "instructions_before_refusal": 15731539,
+    "a7": 262145,
+    "raw_report_sha256": "e5370c807305e10230e4875caa54d2928e8de06e81df716bdcce5c568b5325d3"
+  },
+  "open_gates": [
+    "New OP VM session/compact capture/packet wire",
+    "Authenticated provider owner and global RAM joins",
+    "Complete native execution and independent Unicorn comparison",
+    "Physical proof, receiver, mutation and full cost qualification",
+    "Production admission and newprofile security accounting"
+  ],
+  "proving_speedup_claim": false
+}

@@ -57,7 +57,7 @@ def main():
     )
     parser.add_argument("--isolated-only", action="store_true")
     parser.add_argument(
-        "--profile", choices=("software", "ethereum_services_v3"), default="software"
+        "--profile", choices=("software", "ethereum_services_v3", "ethereum_services_op_v1"), default="software"
     )
     args = parser.parse_args()
     if args.blocks is None:
@@ -161,6 +161,7 @@ def main():
             if (
                 record.get("status") != "completed"
                 or record.get("verified_output") is not True
+                or record.get("execution_profile") != args.profile
             ):
                 raise ValueError(
                     "production RV64 execution did not complete with expected output"
@@ -171,7 +172,7 @@ def main():
             proof_config = {k: v for k, v in config.items() if k not in ("engine",)}
             proof_config.update(
                 terminal_pc=record["pc"],
-                execution_profile="ethereum_services_v3",
+                execution_profile=args.profile if args.profile != "software" else "ethereum_services_v3",
                 batch_steps=4_194_303,
                 max_steps=record["instructions"] + 1,
                 output_directory=str((args.artifacts / f"{name}-proof").resolve()),

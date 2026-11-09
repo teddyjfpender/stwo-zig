@@ -137,3 +137,14 @@ The guest uses 361,804,837 instructions and 619,553 Fp2 service calls, versus
 380,167,068 / 678,888 in the selected control. Three native/Unicorn execution
 checks pass and the rebuilt ELF is deterministic. This new ELF still needs its
 physical proving qualification; no AIR, tag, packet, or security profile changes.
+
+## OP sparse034 prototype: separate admission
+
+`build.py --variant canonical-glv-hinted-sparse` emits the new OP-only
+**0x0004_0001** tag for BN254 Miller accumulator updates. Its build report
+requires `ethereum_services_op_v1`. The existing v3 VM refuses the new call.
+The [prototype ABI receipt](../vectors/reports/rv64-opstack-performance-20261109/guest/sparse-client-prototype.json)
+specifies the 576-byte inline packet and independently implemented Python
+schoolbook oracle. This does not enlarge the existing generic curve packet or
+change default variants. The new VM, compact capture, provider, RAM bridge,
+receiver and security gates must pass before this profile can prove a block.

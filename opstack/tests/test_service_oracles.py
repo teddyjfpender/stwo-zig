@@ -2,7 +2,7 @@
 
 import unittest
 
-from opstack.oracle import bn254_affine, bn254_fp2, jumpdest_bitmap
+from opstack.oracle import bn254_affine, bn254_fp2, bn254_sparse034, jumpdest_bitmap
 
 P = 21888242871839275222246405745257275088696311157297823662689037894645226208583
 
@@ -38,6 +38,24 @@ class ServiceOracles(unittest.TestCase):
             self.assertEqual(actual, packet((a * c - b * d) % P, (a * d + b * c) % P))
         with self.assertRaisesRegex(ValueError, "size"):
             bn254_fp2(bytes(127))
+
+    def test_sparse034_basis_placement_and_full_width_reduction(self):
+        # Multiplication by 1 preserves every accumulator coordinate.
+        a = list(range(1,13))
+        self.assertEqual(bn254_sparse034(packet(*a,1,0,0,0,0,0)),packet(*a))
+        # w * (u*w) = u², and u² * (u*w) = (9+i)*w.
+        a = [0]*12; a[6]=1
+        expected = [0]*12; expected[4]=1
+        self.assertEqual(bn254_sparse034(packet(*a,0,0,0,0,1,0)),packet(*expected))
+        a = [0]*12; a[4]=1
+        expected = [0]*12; expected[6]=9; expected[7]=1
+        self.assertEqual(bn254_sparse034(packet(*a,0,0,0,0,1,0)),packet(*expected))
+        # i²=-1, including representatives at and above p.
+        a=[0]*12; a[1]=(1<<256)-1
+        expected=[0]*12; expected[0]=(-a[1]*(P+1))%P
+        self.assertEqual(bn254_sparse034(packet(*a,0,P+1,0,0,0,0)),packet(*expected))
+        with self.assertRaisesRegex(ValueError,"size"):
+            bn254_sparse034(bytes(575))
 
     def test_jumpdest_push_payload_and_word_boundaries(self):
         self.assertEqual(jumpdest_bitmap(b""), b"")
