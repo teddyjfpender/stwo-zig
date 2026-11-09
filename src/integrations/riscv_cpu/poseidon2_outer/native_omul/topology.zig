@@ -4,7 +4,7 @@ const std = @import("std");
 const Fold = @import("fold.zig");
 const Authority = @import("authority.zig").Key;
 const Profile = @import("../op_profile.zig").Profile;
-pub const Binding = struct { ordinal: u32, native_identity: [32]u8, kind: enum { cpu, catalog, miller } };
+pub const Binding = struct { ordinal: u32, native_identity: [32]u8, kind: enum { cpu, catalog, miller, sponge_cpu } };
 /// No raw-Authority constructor: each leaf key is derived by a concrete source
 /// verifier builder, normalizing PCS geometry from its independently owned key.
 pub const SourceLeaf = struct {
@@ -60,6 +60,22 @@ pub const SourceLeaf = struct {
         defer a.free(json);
         std.debug.print("OP_P2_SOURCE_CPU_PHASES ordinal={} {s}\n", .{ source.expected.ordinal, json });
         return finish(a, source.key.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .cpu }, trace);
+    }
+    /// Explicit new source flavor; existing root inventories do not admit its
+    /// binding kind until their independent whole-execution policy is extended.
+    pub fn initSpongeCpu(a: std.mem.Allocator, source: @import("../sponge_cpu/leaf.zig").View) !SourceLeaf {
+        try source.key.require(source.setup);
+        const expected = try source.key.statement(source.setup, source.request, source.first, source.span, source.expected.ordinal);
+        if (source.expected.kind != .sponge_cpu or !std.mem.eql(u8, &source.expected.statement, &expected)) return error.OpRootLeafSourceAuthority;
+        if (source.values.cap_log != 0) return error.OpRootLeafCapVariant;
+        var arena = std.heap.ArenaAllocator.init(a);
+        defer arena.deinit();
+        const shape = try @import("../sponge_cpu/capture.zig").geometry(arena.allocator(), source.setup, source.key);
+        var normalized = source;
+        normalized.shape = &shape;
+        var scope = @import("scope.zig").begin();
+        defer scope.deinit();
+        return finish(a, source.key.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .sponge_cpu }, try normalized.build(a, true));
     }
     pub fn initCatalog(a: std.mem.Allocator, source: @import("../pure_p2_truth_leaf_test.zig").View) !SourceLeaf {
         try source.key.require(source.truth);

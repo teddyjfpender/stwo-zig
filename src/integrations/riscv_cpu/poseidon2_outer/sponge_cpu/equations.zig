@@ -23,8 +23,24 @@ pub const Layout = struct {
         return &.{ 0, -1 };
     }
 };
-pub const Public = struct { calls: u32, epoch: u16, ordinal: u32 };
-pub const Binding = struct { weights: [4]O, eta: O, target: O };
+pub fn PublicFor(comptime C: type) type {
+    return struct { calls: E.CountFor(C), epoch: E.CountFor(C), ordinal: E.CountFor(C), nonempty: E.FlagFor(C) = E.flagDefault(C) };
+}
+pub const Public = PublicFor(O);
+pub fn BindingFor(comptime C: type) type {
+    return struct { weights: [4]C, eta: C, target: C };
+}
+pub const Binding = BindingFor(O);
+// Preserve the original native/symbolic expression order and IR identity.
+// External verifier lanes use the caller's authenticated public wires.
+inline fn countFor(comptime F: type, value: E.CountFor(E.ConstFor(F))) F {
+    if (comptime E.isExternalLane(F)) return value;
+    return E.qFor(F, value);
+}
+inline fn nonemptyFor(comptime F: type, public: PublicFor(E.ConstFor(F))) !F {
+    if (comptime E.isExternalLane(F)) return public.nonempty orelse error.MissingRv64LaneFlag;
+    return E.qFor(F, @intFromBool(public.calls != 0));
+}
 pub fn secure(comptime F: type, view: anytype, start: usize, comptime shift: i32) E.SecureFor(F) {
     var values: [8]F = undefined;
     for (&values, 0..) |*v, c| v.* = view.interactionAt(start + c, shift);
@@ -57,7 +73,7 @@ pub fn emitLocal(comptime F: type, main: *const [Ftr.MAIN]F, ordinal: F, sink: a
     var adapter = Adapter{ .target = sink };
     Ftr.emitRaw(F, main, ordinal, &adapter);
 }
-pub fn emit(comptime F: type, view: anytype, public: Public, local: @import("provider.zig").Challenges, wire: A.crypto.secp256k1.equations.WireFor(O), binding: Binding, aux: B.AuxFor(E.SecureFor(F)), claim: O, sink: *E.SinkFor(F)) !void {
+pub fn emit(comptime F: type, view: anytype, public: PublicFor(E.ConstFor(F)), local: @import("../../word16_global_execution/services/gkr_local/challenges.zig").For(E.ConstFor(F)), wire: A.crypto.secp256k1.equations.WireFor(E.ConstFor(F)), binding: BindingFor(E.ConstFor(F)), aux: B.AuxFor(E.SecureFor(F)), claim: E.ConstFor(F), sink: *E.SinkFor(F)) !void {
     var fixed: [Ftr.FIXED]F = undefined;
     var main: [Ftr.MAIN]F = undefined;
     for (&fixed, 0..) |*v, c| v.* = view.fixed(c);
@@ -69,14 +85,14 @@ pub fn emit(comptime F: type, view: anytype, public: Public, local: @import("pro
         }
     };
     var main_sink = MainSink{ .target = sink };
-    Ftr.emitMain(F, &fixed, &main, view.previousMain(Ftr.c.active), E.qFor(F, public.calls), E.qFor(F, @intFromBool(public.calls != 0)), E.qFor(F, public.epoch), E.qFor(F, public.ordinal), &main_sink);
+    Ftr.emitMain(F, &fixed, &main, view.previousMain(Ftr.c.active), countFor(F, public.calls), try nonemptyFor(F, public), countFor(F, public.epoch), countFor(F, public.ordinal), &main_sink);
     var weights: [4]E.SecureFor(F) = undefined;
     for (binding.weights, &weights) |v, *out| out.* = E.splatFor(F, v);
     var projection = B.ProjectionFor(F){ .challenges = &local, .lane_weights = &weights, .terms = Ftr.LOCAL_QUERIES };
-    emitLocal(F, &main, E.qFor(F, public.ordinal), &projection);
+    emitLocal(F, &main, countFor(F, public.ordinal), &projection);
     try projection.finish();
     B.emitFor(F, .{ .eq = secure(F, view, 0, 0), .eq_next2 = secure(F, view, 0, 2), .prefix = secure(F, view, 8, 0), .prefix_previous = secure(F, view, 8, -1) }, aux, projection.combine(E.splatFor(F, binding.eta)), E.splatFor(F, binding.target), sink);
-    Ftr.emitWireFor(false, F, &main, E.qFor(F, public.ordinal), fixed[1], secure(F, view, 16, 0), secure(F, view, 16, -1), claim, wire, sink);
+    Ftr.emitWireFor(false, F, &main, countFor(F, public.ordinal), fixed[1], secure(F, view, 16, 0), secure(F, view, 16, -1), claim, wire, sink);
 }
 comptime {
     std.debug.assert(Layout.INTERACTION == 24);

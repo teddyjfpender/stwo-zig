@@ -110,3 +110,22 @@ existing Suite selector or replace its complete security review.
 See `vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-native-join-v1.json`.
 
 Canonical policy/hole receipt: `vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-canonical-kio-v1.json`.
+
+The complete frontier CPU recursive leaf is now physically qualified under an
+explicit 8GiB outer cap and shared 10GiB ancestor (native fixture remains4GiB).
+The new typed child owns its full GKR artifact, receipt and eta; the shared CPU
+body borrows only the genuine verified legacy prefix. The frontier's MAIN,
+local terminal binding and global Wire claim enter the original PCS/FRI and
+complete public frame. A fresh independently normalized R6 source key verifies
+the retained660292-byte leaf; changed Wire debt rejects even if another
+fragment offsets the aggregate numeric debt. Peak outer requested memory was
+2.13GB; proof generation19.72s on the11-step fixture is correctness evidence,
+not a block speed estimate.
+
+The old CPU public/OODS body was extracted without changing its operation order,
+native transcript or immutable source identity. The native CPU golden remains
+exact, and the retained actual three-leaf root still passes the fresh source-only
+receiver with its original source identities and all adversarial controls.
+Detached sponge recursion and full new-suite root/runtime admission remain
+closed. See the recursive-leaf receipt for exact identities and limitations:
+`vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-cpu-recursive-leaf-v1.json`.

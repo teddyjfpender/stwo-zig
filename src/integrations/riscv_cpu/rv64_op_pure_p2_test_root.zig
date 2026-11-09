@@ -197,3 +197,11 @@ test {
 test {
     _ = @import("poseidon2_outer/sponge_cpu/kio_plan.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/child_test.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/leaf_test.zig");
+}

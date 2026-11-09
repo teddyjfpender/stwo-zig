@@ -39,13 +39,18 @@ fn close(claims: []const Manifest.Claims) !void {
     if (!sum.wire.isZero()) return error.SpongeJoinWire;
 }
 test "sponge CPU complete two-shard detached physical join fresh keys and all global closure" {
-    try exercise(false);
+    try exerciseWithHook(false, void);
 }
 test "sponge CPU interleaved-retirement KIO hole physical join uses canonical proof order" {
-    try exercise(true);
+    try exerciseWithHook(true, void);
 }
-fn exercise(comptime hole: bool) !void {
-    const parent = try engine.host_budget_allocator.SharedHostBudget.createRetainingParent(std.testing.allocator, 4 << 30);
+pub fn exerciseWithHook(comptime hole: bool, comptime Hook: type) !void {
+    return exerciseWithHookBacking(hole, Hook, std.testing.allocator);
+}
+/// A caller may bound independent outer qualification allocations with a
+/// common ancestor. This native fixture always retains its unchanged4GiB cap.
+pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing: std.mem.Allocator) !void {
+    const parent = try engine.host_budget_allocator.SharedHostBudget.createRetainingParent(backing, 4 << 30);
     defer parent.destroy();
     const a = parent.allocator();
     var full_timer = try std.time.Timer.start();
@@ -98,6 +103,7 @@ fn exercise(comptime hole: bool) !void {
         owns_source = false;
         made[2] += 1;
         stage.* = try worker.seal();
+        if (comptime Hook != void and @hasDecl(Hook, "cpu")) try Hook.cpu(a, worker, stage.*);
     }
     const expected = Fixture.expectedForSteps(captured.program.identity, captured.loaded, execution_steps);
     const materials = [_]*const @import("../../word16_execution/setup.zig").Materials{ &setups[0].materials, &setups[1].materials };
@@ -235,7 +241,12 @@ fn exercise(comptime hole: bool) !void {
         var key = try Key.init(a, &fresh, profile, 5);
         defer key.deinit();
         try std.testing.expectEqualSlices(u8, &setup.materials.program.identity, &fresh.materials.program.identity);
-        claim.* = try CPU.verify(a, &fresh, request, .{}, ids, @intCast(ordinal), &key, manifest, stage.main, proof);
+        if (comptime Hook != void and @hasDecl(Hook, "verified")) {
+            var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(@import("../pure_p2_worker_protocol.zig").W.H) = undefined;
+            claim.* = try CPU.verifyWithCapture(a, &fresh, request, .{}, ids, @intCast(ordinal), &key, manifest, stage.main, proof, &capture);
+            defer capture.deinit(a);
+            try Hook.verified(a, &fresh, request, ids, @intCast(ordinal), &key, manifest, stage.main, proof, &capture);
+        } else claim.* = try CPU.verify(a, &fresh, request, .{}, ids, @intCast(ordinal), &key, manifest, stage.main, proof);
         const previous = proof.claims[proof.claims.len - 1];
         proof.claims[proof.claims.len - 1] = previous.add(O.one());
         try std.testing.expectError(error.OodsNotMatching, CPU.verify(a, &fresh, request, .{}, ids, @intCast(ordinal), &key, manifest, stage.main, proof));

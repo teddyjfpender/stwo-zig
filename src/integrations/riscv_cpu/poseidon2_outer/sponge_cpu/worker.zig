@@ -193,6 +193,9 @@ fn takeMain(a: std.mem.Allocator, source: *R.Sources, frontier: *Source.Source, 
     return .{ .columns = columns, .backings = backings };
 }
 pub fn verify(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, span: T.OpTowerSpan, first: [T.FAMILIES]u32, ordinal: u32, key: *const Key, manifest: [36]u8, main: [36]u8, encoded: *const Encoded) !Manifest.Claims {
+    return verifyWithCapture(a, setup, request, span, first, ordinal, key, manifest, main, encoded, null);
+}
+pub fn verifyWithCapture(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, span: T.OpTowerSpan, first: [T.FAMILIES]u32, ordinal: u32, key: *const Key, manifest: [36]u8, main: [36]u8, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
     const expected = Expected{ .ordinal = ordinal, .statement = try key.statement(setup, request, first, span, ordinal) };
     var roster = try Frame.Roster.init(a, setup, request.sponge.calls, key.frontier_log, request.base.epoch, ordinal);
     defer roster.deinit();
@@ -236,9 +239,11 @@ pub fn verify(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request
         if (tree == 2) Protocol.mixManifestAndClaims(&channel, manifest, encoded.claims);
         try receiver.commit(a, roots[tree], logs, &channel);
     }
-    var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H) = undefined;
-    try core.verifier.ForField(O).verifyBorrowedWithProofCapture(W.H, W.MC, a, handles, &channel, &receiver, &proof, &capture);
-    capture.deinit(a);
+    if (comptime @TypeOf(output_capture) == @TypeOf(null)) {
+        var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H) = undefined;
+        try core.verifier.ForField(O).verifyBorrowedWithProofCapture(W.H, W.MC, a, handles, &channel, &receiver, &proof, &capture);
+        capture.deinit(a);
+    } else try core.verifier.ForField(O).verifyBorrowedWithProofCapture(W.H, W.MC, a, handles, &channel, &receiver, &proof, output_capture);
     var claims = try Parts.Set.aggregate(&plan, encoded.claims[0..plan.claim_count]);
     claims.wire = claims.wire.add(encoded.claims[plan.claim_count]);
     return claims;

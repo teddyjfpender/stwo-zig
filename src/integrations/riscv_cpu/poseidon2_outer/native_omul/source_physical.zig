@@ -9,6 +9,7 @@ const Catalog = @import("../pure_p2_truth_leaf_test.zig");
 const LocalCatalog = @import("../truth_local_gkr/leaf_test.zig");
 fn key(a: std.mem.Allocator, source: anytype) !Topology.SourceLeaf {
     const V = @TypeOf(source);
+    if (V == @import("../sponge_cpu/leaf.zig").View) return Topology.SourceLeaf.initSpongeCpu(a, source);
     return if (V == CPU.ShapeView) Topology.SourceLeaf.initCpu(a, source) else if (V == Catalog.View) Topology.SourceLeaf.initCatalog(a, source) else if (V == LocalCatalog.View) Topology.SourceLeaf.initLocalCatalog(a, source) else Topology.SourceLeaf.initMiller(a, source);
 }
 pub fn maybe(a: std.mem.Allocator, kind: []const u8, source: anytype, owner: *const C.PoseidonContext) !void {
@@ -44,6 +45,7 @@ pub fn maybe(a: std.mem.Allocator, kind: []const u8, source: anytype, owner: *co
     var wrong = outputs;
     wrong[8] = wrong[8].add(C.Q.one());
     try std.testing.expect(std.meta.isError(Proof.verify(a, &receiver.authority, &wrong, proof)));
+    try frameClaimMutation(a, source, &receiver, proof, &outputs);
     var sha: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(proof, &sha, .{});
     const receipt = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-r6-actual-source-physical-v1", .kind = kind, .bytes = proof.len, .key_ns = key_ns, .prove_ns = prove_ns, .fresh_setup_ns = receiver_setup_ns, .fresh_verify_ns = verify_ns, .sha256 = std.fmt.bytesToHex(sha, .lower), .source_identity = std.fmt.bytesToHex(receiver.authority.base.identity, .lower), .raw = try owner.rawCounts(), .logs = receiver.authority.base.logs, .mul_log = receiver.authority.mul_log, .native_mul_calls = owner.native_mul_calls.items.len, .fresh_source = true, .wrong_output_rejected = true, .complete_execution = false, .production_admission = false }, .{});
@@ -51,4 +53,31 @@ pub fn maybe(a: std.mem.Allocator, kind: []const u8, source: anytype, owner: *co
     try write(dir, "leaf.json", receipt);
     try std.posix.fsync(dir.fd);
     std.debug.print("OP_R6_ACTUAL_PHYSICAL {s}\n", .{receipt});
+}
+/// Reuse durable source proofs for added receiver controls; never reprove them.
+pub fn verifyRetained(a: std.mem.Allocator, source: anytype, directory: []const u8) !void {
+    var dir = try std.fs.cwd().openDir(directory, .{});
+    defer dir.close();
+    const bytes = try dir.readFileAlloc(a, "leaf.bin", 2 << 20);
+    defer a.free(bytes);
+    var receiver = try key(a, source);
+    defer receiver.deinit();
+    const outputs = try source.expectedOutput(a);
+    try Proof.verify(a, &receiver.authority, &outputs, bytes);
+    try frameClaimMutation(a, source, &receiver, bytes, &outputs);
+}
+fn frameClaimMutation(a: std.mem.Allocator, source: anytype, receiver: *const Topology.SourceLeaf, proof: []const u8, outputs: *const [9]C.Q) !void {
+    if (comptime @TypeOf(source) == @import("../sponge_cpu/leaf.zig").View) {
+        const claims = try a.dupe(C.O, source.claims);
+        defer a.free(claims);
+        claims[claims.len - 1] = claims[claims.len - 1].add(C.O.one());
+        var changed = source;
+        changed.claims = claims;
+        const altered = try changed.expectedOutput(a);
+        try std.testing.expect(!std.mem.eql(u8, std.mem.asBytes(outputs), std.mem.asBytes(&altered)));
+        // An opposite change in the detached fragment could preserve the
+        // aggregate numeric sum; it cannot preserve this authenticated frame.
+        try std.testing.expect(std.meta.isError(Proof.verify(a, &receiver.authority, &altered, proof)));
+        std.debug.print("OP_SPONGE_CPU_PHYSICAL balanced_debt_frame_rejected=true retained_proof=true\n", .{});
+    }
 }
