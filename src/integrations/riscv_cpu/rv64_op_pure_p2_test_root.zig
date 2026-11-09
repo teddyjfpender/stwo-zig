@@ -223,4 +223,6 @@ test {
 test {
     _ = @import("poseidon2_outer/native_group/census_test.zig");
     _ = @import("poseidon2_outer/pure_p2_op_capture_plan_test.zig");
+    _ = @import("poseidon2_outer/sponge_cpu/security.zig");
+    _ = @import("poseidon2_outer/sponge_cpu/security_test.zig");
 }

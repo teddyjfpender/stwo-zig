@@ -20,6 +20,8 @@ const Mass = @import("mass_authority.zig");
 const Global = @import("global_cpu.zig");
 const Manifest = @import("manifest.zig");
 const MODULUS = core.fields.m31.Modulus;
+const DetachedSource = @import("../../../poseidon2_outer/sponge_local_gkr/authority.zig");
+const FrontierSource = A.crypto.keccak_sponge.serialized.frontier;
 /// Reporting identity for the source-derived lookup accountant, not a new
 /// Fiat-Shamir/profile identifier or a whole-protocol security certificate.
 pub const ACCOUNTING_PROFILE = "rv64-source-derived-services-v3-lookup/v1";
@@ -144,8 +146,52 @@ pub const OpReport = struct {
         self.* = undefined;
     }
 };
-const OpInventory = struct { cpu_spans: []const Types.OpTowerSpan, truths: []const OpTowerTruthDeclaration, scopes: []OpTruthScope };
+pub const DetachedRelation = enum { owner, and_, u16, u8 };
+pub const DetachedScope = struct { relations: [4]Bound };
+pub const DetachedOpReport = struct {
+    op: OpReport,
+    detached_scopes: []DetachedScope,
+    pub fn deinit(self: *@This()) void {
+        self.op.base.allocator.free(self.detached_scopes);
+        self.op.deinit();
+        self.* = undefined;
+    }
+};
+const DetachedInventory = struct { logs: []const u32, workers: []const DetachedSource.Geometry, scopes: []DetachedScope };
+const OpInventory = struct { cpu_spans: []const Types.OpTowerSpan, truths: []const OpTowerTruthDeclaration, scopes: []OpTruthScope, detached: ?DetachedInventory = null };
 pub fn deriveForOp(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDeclaration, truth: []const Wire.TruthDeclaration, requests: []const P.Request, cpu_spans: []const Types.OpTowerSpan, miller: []const OpTowerTruthDeclaration) !OpReport {
+    return deriveForOpMode(a, program_log, cpu, truth, requests, cpu_spans, miller, null);
+}
+/// Explicit source equations and geometry, not a projection through fake legacy
+/// Frame origins or erased request counts. Inventory admission is separate.
+pub fn deriveForOpDetached(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDeclaration, truth: []const Wire.TruthDeclaration, requests: []const P.Request, cpu_spans: []const Types.OpTowerSpan, miller: []const OpTowerTruthDeclaration, frontier_logs: []const u32, detached: []const DetachedSource.Geometry) !DetachedOpReport {
+    if (frontier_logs.len != cpu.len) return error.InvalidDetachedSourceInventory;
+    _ = try validateInventory(cpu.len, try std.math.add(usize, try std.math.add(usize, truth.len, miller.len), detached.len));
+    if (requests.len != cpu.len or cpu_spans.len != cpu.len) return error.InvalidDetachedSourceInventory;
+    var calls: u64 = 0;
+    var permutations: u64 = 0;
+    var first: u64 = 1;
+    for (requests) |request| {
+        calls = try plus(calls, request.sponge.calls);
+        permutations = try plus(permutations, request.sponge.perms);
+        first = try plus(first, request.calls[0]);
+        if ((request.sponge.calls == 0) != (request.sponge.perms == 0) or request.sponge.perms < request.sponge.calls) return error.InvalidDetachedSourceInventory;
+    }
+    var actual_calls: u64 = 0;
+    var actual_permutations: u64 = 0;
+    for (detached) |geometry| {
+        if (!geometry.detached or geometry.first_id != first) return error.InvalidDetachedSourceInventory;
+        _ = try geometry.instances();
+        actual_calls = try plus(actual_calls, geometry.calls);
+        actual_permutations = try plus(actual_permutations, geometry.permutations);
+        first = try plus(first, geometry.permutations);
+    }
+    if (actual_calls != calls or actual_permutations != permutations) return error.InvalidDetachedSourceInventory;
+    const scopes = try a.alloc(DetachedScope, detached.len);
+    errdefer a.free(scopes);
+    return .{ .op = try deriveForOpMode(a, program_log, cpu, truth, requests, cpu_spans, miller, .{ .logs = frontier_logs, .workers = detached, .scopes = scopes }), .detached_scopes = scopes };
+}
+fn deriveForOpMode(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDeclaration, truth: []const Wire.TruthDeclaration, requests: []const P.Request, cpu_spans: []const Types.OpTowerSpan, miller: []const OpTowerTruthDeclaration, detached: ?DetachedInventory) !OpReport {
     if (cpu_spans.len != cpu.len or requests.len != cpu.len) return error.InvalidOpTowerInventory;
     var next_cpu: u64 = 1;
     for (cpu, requests, cpu_spans) |declaration, request, span| {
@@ -172,7 +218,7 @@ pub fn deriveForOp(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.Cpu
     if (next_cpu != next_truth) return error.InvalidOpTowerCoverage;
     const scopes = try a.alloc(OpTruthScope, miller.len);
     errdefer a.free(scopes);
-    return .{ .base = try deriveMode(a, program_log, cpu, truth, requests, .{ .cpu_spans = cpu_spans, .truths = miller, .scopes = scopes }), .op_truth_scopes = scopes };
+    return .{ .base = try deriveMode(a, program_log, cpu, truth, requests, .{ .cpu_spans = cpu_spans, .truths = miller, .scopes = scopes, .detached = detached }), .op_truth_scopes = scopes };
 }
 fn plus(a: u64, b: u64) !u64 {
     return std.math.add(u64, a, b);
@@ -291,9 +337,145 @@ pub fn validateInventory(cpu: usize, truth: usize) !usize {
 pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDeclaration, truth: []const Wire.TruthDeclaration, requests: []const P.Request) !Report {
     return deriveMode(a, program_log, cpu, truth, requests, null);
 }
+fn crossNamespaces(degrees: *ConditionalDegrees, relations: []const Bound) !void {
+    // A joint rational sum must also charge collisions BETWEEN independently
+    // domain-labeled namespaces. Their offsets are independent, so no
+    // deterministic cross-namespace cancellation is assumed. Charging the sum
+    // of arities is conservative even though each offset collision is linear.
+    for (relations, 0..) |left, i| for (relations[i + 1 ..]) |right| {
+        const pairs = try std.math.mul(u128, left.denominator_slots, right.denominator_slots);
+        const weight = try std.math.mul(u128, pairs, left.arity + right.arity);
+        degrees.tuple_collision = try std.math.add(u128, degrees.tuple_collision, weight);
+    };
+}
+fn addFrontier(shape: *Shape, scope: *CpuScope, global: *Mass.Globals, global_slots: *[3]u64, columns: *usize, constraints: *usize, instances: *usize, request: P.Request, ordinal: u32, log: u32) !void {
+    try FrontierSource.validatePublic(request.sponge.calls, log, request.base.epoch, ordinal);
+    const count = try rows(log);
+    const L = @import("../../../poseidon2_outer/sponge_cpu/equations.zig").Layout;
+    try shape.includeCells(log, L.widths());
+    for (L.widths()) |width| columns.* = try std.math.add(usize, columns.*, width);
+    constraints.* = try std.math.add(usize, constraints.*, L.CONSTRAINTS);
+    instances.* = try std.math.add(usize, instances.*, 1);
+    shape.max_trace_log = @max(shape.max_trace_log, log);
+    shape.max_air_degree = @max(shape.max_air_degree, 3);
+    shape.max_samples_per_column = @max(shape.max_samples_per_column, 2);
+    shape.max_gkr_variables = @max(shape.max_gkr_variables, log + 2);
+    // Exact new local recipe: negative OWNER19 consumption plus unconditional
+    // U16/U8 low/high clock queries, including zero-weight/padding denominators.
+    const owner = &scope.relations[@intFromEnum(F.Relation.owner)];
+    owner.unit_negative_mass = try plus(owner.unit_negative_mass, request.sponge.calls);
+    owner.denominator_slots = try plus(owner.denominator_slots, count);
+    inline for (.{ F.Relation.range16, F.Relation.range8 }) |relation| {
+        const bound = &scope.relations[@intFromEnum(relation)];
+        bound.unit_consumer_mass = try plus(bound.unit_consumer_mass, count);
+        bound.denominator_slots = try plus(bound.denominator_slots, count);
+    }
+    global_slots[2] = try plus(global_slots[2], count);
+    try global.add(.{ .wire = .{ .positive = request.sponge.calls } });
+}
+/// Metadata comes from the SAME concrete emitter as witness/projection code.
+/// No invented Frame origin or duplicated per-role fraction-count constants.
+fn detachedQueries(comptime role: DetachedSource.Role) ![4]u64 {
+    const S = @import("../../../poseidon2_outer/sponge_local_gkr/source.zig");
+    const K = A.crypto.keccak_sponge.equations;
+    const M31 = core.fields.m31.M31;
+    const Counter = struct {
+        counts: [4]u64 = @splat(0),
+        failure: bool = false,
+        pub fn emit(self: *@This(), relation: usize, tuple: anytype, _: M31) void {
+            if (tuple.len == 14 or tuple.len == 11 or tuple.len == 35) {
+                const expected = if (tuple.len == 14) K.RAM else if (tuple.len == 11) K.IO else FrontierSource.WIRE;
+                if (relation != expected) self.failure = true;
+                return;
+            }
+            const i: usize = switch (tuple.len) {
+                19 => if (relation == K.OWNER) @intFromEnum(DetachedRelation.owner) else {
+                    self.failure = true;
+                    return;
+                },
+                3 => if (relation == K.AND) @intFromEnum(DetachedRelation.and_) else {
+                    self.failure = true;
+                    return;
+                },
+                1 => if (relation == K.RANGE16) @intFromEnum(DetachedRelation.u16) else if (relation == K.RANGE8) @intFromEnum(DetachedRelation.u8) else {
+                    self.failure = true;
+                    return;
+                },
+                else => {
+                    self.failure = true;
+                    return;
+                },
+            };
+            self.counts[i] += 1;
+        }
+    };
+    var counter = Counter{};
+    const fixed: [DetachedSource.fixedWidth(role)]M31 = @splat(M31.one());
+    const main: [DetachedSource.mainWidth(role)]M31 = @splat(M31.one());
+    S.emitRaw(role, M31, &fixed, &main, @as(u32, 1), &counter);
+    var n: u64 = 0;
+    for (counter.counts) |v| n += v;
+    if (counter.failure or n != DetachedSource.localQueries(role)) return error.DetachedSourceRelationShape;
+    return counter.counts;
+}
+fn addDetached(shape: *Shape, scope: *DetachedScope, degrees: *ConditionalDegrees, global: *Mass.Globals, global_slots: *[3]u64, geometry: DetachedSource.Geometry) !void {
+    if (!geometry.detached) return error.SpongeLocalScopeFlavor;
+    const Eq = @import("../../../poseidon2_outer/sponge_local_gkr/equations.zig");
+    const parts = try geometry.instances();
+    scope.* = .{ .relations = .{
+        .{ .model = .unit_consistency, .arity = 19 },
+        .{ .arity = 3 },
+        .{ .arity = 1 },
+        .{ .arity = 1 },
+    } };
+    var columns: usize = 0;
+    var constraints: usize = 0;
+    inline for (DetachedSource.detached_roles, 0..) |role, i| {
+        const instance = parts[i];
+        const n = try rows(instance.row_log);
+        const query_counts = try detachedQueries(role);
+        for (&scope.relations, query_counts, 0..) |*bound, queries, j| {
+            const slots = try times(n, queries);
+            bound.denominator_slots = try plus(bound.denominator_slots, slots);
+            const provider = role == .u16 or role == .u8 or role == .and_;
+            if (provider) bound.valid_provider_support = try plus(bound.valid_provider_support, slots) else if (j == @intFromEnum(DetachedRelation.owner)) {
+                // Every OWNER source weight is a sum/difference of constrained
+                // Boolean flags, with absolute value at most2. Conservatively
+                // charge both signs; no finite-characteristic cancellation.
+                bound.unit_positive_mass = try plus(bound.unit_positive_mass, try times(2, slots));
+                bound.unit_negative_mass = try plus(bound.unit_negative_mass, try times(2, slots));
+            } else bound.unit_consumer_mass = try plus(bound.unit_consumer_mass, slots);
+        }
+        const L = Eq.Layout(role);
+        try shape.includeCells(instance.row_log, L.widths());
+        for (L.widths()) |width| columns = try std.math.add(usize, columns, width);
+        constraints = try std.math.add(usize, constraints, L.CONSTRAINTS);
+        shape.max_trace_log = @max(shape.max_trace_log, instance.row_log);
+        shape.max_gkr_variables = @max(shape.max_gkr_variables, try instance.variables());
+        global_slots[0] = try plus(global_slots[0], try times(n, Eq.globalCount(role, false)));
+        global_slots[1] = try plus(global_slots[1], try times(n, Eq.globalCount(role, true)));
+        if (role == .detached_descriptor) global_slots[2] = try plus(global_slots[2], n);
+    }
+    for (scope.relations) |bound| {
+        try bound.validate();
+        try degrees.add(bound);
+    }
+    try crossNamespaces(degrees, &scope.relations);
+    shape.max_samples_per_column = @max(shape.max_samples_per_column, 2);
+    shape.max_air_degree = @max(shape.max_air_degree, 3);
+    shape.max_tuple_arity = @max(shape.max_tuple_arity, 35);
+    try finishProof(shape, columns, constraints, 8, 1);
+    const words = try plus(try times(29, geometry.calls), try times(18, geometry.permutations));
+    try global.add(.{
+        .ram = .{ .positive = words, .negative = words },
+        .kio = .{ .positive = try times(25, geometry.calls), .negative = try plus(try times(25, geometry.calls), try times(50, geometry.permutations)) },
+        .wire = .{ .negative = geometry.calls },
+    });
+}
 fn deriveMode(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDeclaration, truth: []const Wire.TruthDeclaration, requests: []const P.Request, op: ?OpInventory) !Report {
     const truth_count = try std.math.add(usize, truth.len, if (op) |inventory| inventory.truths.len else 0);
-    const count = try validateInventory(cpu.len, truth_count);
+    const detached = if (op) |inventory| inventory.detached else null;
+    const count = try validateInventory(cpu.len, try std.math.add(usize, truth_count, if (detached) |d| d.workers.len else 0));
     if (requests.len != cpu.len) return error.CandidateSourceShapeExceeded;
     _ = try rows(program_log);
     const cpus = try a.alloc(CpuScope, cpu.len);
@@ -377,7 +559,10 @@ fn deriveMode(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
                 try globalSlots(&global_slots, origin, log);
             }
         }
-        for (Types.sponge_kinds) |kind| {
+        if (detached) |d| {
+            if (declaration.bridges.sponge.any()) return error.SpongeCpuRequiresDetachedSetup;
+            try addFrontier(&shape, scope, &global, &global_slots, &columns, &constraints, &instances, request, @intCast(ordinal), d.logs[ordinal]);
+        } else for (Types.sponge_kinds) |kind| {
             const optional = declaration.bridges.sponge.at(kind);
             const active = request.sponge.rows(kind);
             if (!P.presenceAdmitted(optional != null, active != 0)) return error.InvalidCombinedBridgePresence;
@@ -416,7 +601,13 @@ fn deriveMode(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
             try degrees.add(bound);
             shape.max_tuple_arity = @max(shape.max_tuple_arity, bound.arity);
         }
-        try global.add(try Mass.cpu(request));
+        if (detached != null) {
+            // Only the old source event formula loses its sponge contribution;
+            // requests and source geometry retain their actual call counts.
+            var counts = try Mass.cpuCounts(request);
+            counts.sponge = .{ 0, 0 };
+            try global.add(try Mass.evaluateCpuCounts(counts));
+        } else try global.add(try Mass.cpu(request));
     }
     for (truth, truths) |declaration, *scope| {
         try Scope.truthDeclaration(declaration);
@@ -531,6 +722,14 @@ fn deriveMode(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
             try global.add(.{ .wire = .{ .positive = try times(12, declaration.calls), .negative = try times(20, declaration.calls) } });
         }
     }
+    if (detached) |d| for (d.workers, d.scopes) |geometry, *scope| {
+        try addDetached(&shape, scope, &degrees, &global, &global_slots, geometry);
+    };
+    if (detached != null) {
+        for (cpus) |scope| try crossNamespaces(&degrees, &scope.relations);
+        for (truths) |scope| try crossNamespaces(&degrees, &scope.relations);
+        if (op) |inventory| for (inventory.scopes) |scope| try crossNamespaces(&degrees, &.{ scope.bytes, scope.carries, scope.ssa });
+    }
     // Global namespaces remain independently closed, with ordinary signed
     // bounds including readonly program-use multiplicity. No field residue sum.
     inline for (.{ "ram", "kio", "wire" }) |name| {
@@ -550,7 +749,7 @@ fn deriveMode(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
     // Necessary lookup-only budget; all omitted protocol terms remain explicit
     // false qualifications in Report, never a whole-protocol certificate.
     try degrees.requireLookupOnlyBits(Policy.TARGET_BITS);
-    return .{ .accounting_profile = if (op != null) "rv64-source-derived-op-miller-lookup/v1" else ACCOUNTING_PROFILE, .allocator = a, .shape = shape, .cpu_scopes = cpus, .truth_scopes = truths, .global_signed = global, .global_denominator_slots = global_slots, .conditional_degrees = degrees };
+    return .{ .accounting_profile = if (detached != null) "rv64-source-derived-op-detached-lookup/v1" else if (op != null) "rv64-source-derived-op-miller-lookup/v1" else ACCOUNTING_PROFILE, .allocator = a, .shape = shape, .cpu_scopes = cpus, .truth_scopes = truths, .global_signed = global, .global_denominator_slots = global_slots, .conditional_degrees = degrees };
 }
 
 test "weighted JUMPDEST OWNER support is partitioned from unit token mass and characteristic checked" {
@@ -582,4 +781,15 @@ test "public boundary log23 source summary needs typed boundary provenance" {
     try shape.validate();
     shape.max_public_boundary_log = 24;
     try std.testing.expectError(error.CandidateSourceShapeExceeded, shape.validate());
+}
+
+test "detached security namespace collision union includes cross relation pairs" {
+    const relations = [_]Bound{ .{ .arity = 1, .denominator_slots = 3 }, .{ .arity = 19, .denominator_slots = 5 } };
+    var degrees = ConditionalDegrees{};
+    for (relations) |b| try degrees.add(b);
+    const before = degrees.tuple_collision;
+    try crossNamespaces(&degrees, &relations);
+    try std.testing.expectEqual(before + 3 * 5 * (1 + 19), degrees.tuple_collision);
+    try std.testing.expectEqual(@as(u128, 8), degrees.local_rational_identity);
+    try std.testing.expectEqual(@as(u128, 8), degrees.poles);
 }

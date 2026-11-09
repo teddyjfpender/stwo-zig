@@ -204,3 +204,28 @@ are opaque labels. No extra AIR is added solely to canonicalize those labels.
 Production inventory, actual OP-block reception and explicit source-suite
 admission remain separate gates. Exact scope and proof hashes are in
 `vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-four-member-root-v1.json`.
+
+
+
+The typed source security ledger now has an explicit `deriveForOpDetached` path.
+It accounts for actual frontier equations/queries and all eight detached roles,
+with query counts checked against the shared source emitter. It retains real
+request counts, moves sponge event ownership to the detached source, charges
+all padding denominators and includes collision pairs between independently
+domain-labeled local namespaces. Local integer masses stay per worker; global
+RAM/KIO/Wire bounds join the whole execution. Weighted valid-provider support
+is not mislabeled as ordinary negative integer mass.
+
+`security.check` keeps the original conservative algebraic cap ledger and adds
+typed CPU/detached GKR plus selected truth/Miller local terms. The source-only
+fixture passes the151-bit conditional envelope used for the128-bit assumption
+target, with allocation-failure cleanup and unchanged legacy metadata goldens.
+It generates no new GKR or physical proof. This does not certify hash, FRI,
+Fiat-Shamir or recursion assumptions; security/production admission remainfalse.
+See `vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-source-security-v1.json`.
+
+Zero aggregate sponge calls/permutations permits an empty detached roster,
+without an empty provider proof. The CPU frontier's inactive/padding lookup
+queries remain counted. Nonzero calls with no detached source, or a nonempty
+detached source against zero aggregate counts, fail before report allocation.
+Both empty and nonempty report constructors pass allocation-failure cleanup.

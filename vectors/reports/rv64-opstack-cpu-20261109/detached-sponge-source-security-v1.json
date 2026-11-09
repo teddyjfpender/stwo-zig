@@ -1,0 +1,131 @@
+{
+  "scope": "source_only_no_STARK_or_GKR",
+  "shape": {
+    "native_proofs": 4,
+    "max_trace_log": 16,
+    "max_public_boundary_log": 8,
+    "max_columns": 7371,
+    "max_constraints": 6128,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 17,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 20,
+    "native_trace_cells": [
+      4537408,
+      3075712,
+      11376128
+    ]
+  },
+  "cpu_and_detached": {
+    "scopes": 3,
+    "instances": 41,
+    "max_variables": 20,
+    "sumcheck_rounds": 500,
+    "sumcheck_degree_weight": 21690,
+    "instance_mix_degree_weight": 900,
+    "late_binding_degree_weight": 41,
+    "degenerate_point_degree_weight": 660
+  },
+  "conditional_degrees": {
+    "tuple_collision": 12630278521200,
+    "rational_identity": 3041504,
+    "local_rational_identity": 3035648,
+    "global_rational_identity": 5856,
+    "poles": 3041504
+  },
+  "detached_relations": [
+    {
+      "model": "unit_consistency",
+      "arity": 19,
+      "consumer_sign": "positive",
+      "unit_consumer_mass": 0,
+      "valid_provider_support": 0,
+      "unit_positive_mass": 5312,
+      "unit_negative_mass": 5312,
+      "denominator_slots": 2656
+    },
+    {
+      "model": "unit_membership_valid_support",
+      "arity": 3,
+      "consumer_sign": "positive",
+      "unit_consumer_mass": 1024,
+      "valid_provider_support": 65536,
+      "unit_positive_mass": 0,
+      "unit_negative_mass": 0,
+      "denominator_slots": 66560
+    },
+    {
+      "model": "unit_membership_valid_support",
+      "arity": 1,
+      "consumer_sign": "positive",
+      "unit_consumer_mass": 4320,
+      "valid_provider_support": 65536,
+      "unit_positive_mass": 0,
+      "unit_negative_mass": 0,
+      "denominator_slots": 69856
+    },
+    {
+      "model": "unit_membership_valid_support",
+      "arity": 1,
+      "consumer_sign": "positive",
+      "unit_consumer_mass": 5888,
+      "valid_provider_support": 256,
+      "unit_positive_mass": 0,
+      "unit_negative_mass": 0,
+      "denominator_slots": 6144
+    }
+  ],
+  "global_signed": {
+    "ram": {
+      "positive": 345,
+      "negative": 345
+    },
+    "kio": {
+      "positive": 375,
+      "negative": 375
+    },
+    "wire": {
+      "positive": 3,
+      "negative": 3
+    }
+  },
+  "security_qualified": false,
+  "production_admission": false,
+  "schema": "op-detached-source-security-ledger-v1",
+  "security_label": "128-bit security target under documented assumptions",
+  "raw_modulo_envelope_bits": 151,
+  "qualification": {
+    "actual_two_CPU_source_metadata_without_dynamic_trace_witness_GKR_or_STARK": true,
+    "complete_detached_eight_role_emitter_query_counts": true,
+    "all_padding_and_zero_weight_denominator_slots_counted": true,
+    "cross_namespace_tuple_collision_union_explicit": true,
+    "independent_local_integer_mass_not_summed_across_workers": true,
+    "global_signed_mass_joined_across_all_workers": true,
+    "selected_truth_and_Miller_local_GKR_additive_terms_supported": true,
+    "full_existing_cap_algebraic_envelope_retained": true,
+    "reference_profile_rejected": true,
+    "invalid_detached_prefix_rejected_before_allocation": true,
+    "all_report_allocation_failures_clean": true,
+    "legacy_source_admission_metadata_goldens_pass": true,
+    "old_entrypoints_refuse_new_source_as_legacy": true,
+    "zero_sponge_accepts_no_detached_worker_without_empty_provider": true,
+    "zero_and_nonzero_report_allocation_failures_clean": true,
+    "positive_counts_with_no_detached_or_zero_counts_with_nonempty_detached_rejected": true,
+    "strict_actual_relation_ids_and_arities_checked_by_metadata_sink": true
+  },
+  "model_notes": [
+    "CPU frontier is an explicit new role: no fake legacy Frame.Origin and no erased request call counts",
+    "Only the old CPU signed-event topology excludes sponge events; separate detached source owns those exact pending RAM/KIO/Wire obligations",
+    "Detached OWNER signs conservatively charge2 per query per side; weighted range/AND provider support is distinct from ordinary negative integer mass",
+    "Proof column/cell shape retains conservative classic truth interactions even when local-GKR is selected; these are security bounds, not performance estimates",
+    "P2/hash/Fiat-Shamir/PCS/FRI and recursive assumptions remain separately documented, not certified by this native algebraic ledger",
+    "Zero aggregate C/P uses no detached worker; CPU frontier padding denominators remain counted and source profile remains explicitly typed."
+  ],
+  "remaining": [
+    "Independent source Inventory owns report+Checked and invokes preflight before wide source-key setup",
+    "Explicit complete runtime/native/root admission and terminal image policy",
+    "Bounded composed review includes source suite and recursion; no whole-protocol certificate"
+  ],
+  "physical_proofs_generated_for_this_ledger": false
+}
