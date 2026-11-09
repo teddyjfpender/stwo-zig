@@ -1,0 +1,15 @@
+{
+  "format": "concatenate supplemental gzip tar LFS parts in manifest order; prior refs retained",
+  "source_snapshot_commit": "2d8a0c9b563649c7bbd1213ded19add8d78b02c5",
+  "parts": [
+    {
+      "name": "delivery-evidence.tar.gz.part000",
+      "bytes": 11344996,
+      "sha256": "39a6fa782eef1f842a5823b9f0bae35aae539f08add8090f79ab6f3169597bc7"
+    }
+  ],
+  "checkpoints": [
+    "2d8a0c9b5636-cm31-minimal-20261109T103911Z"
+  ],
+  "classification": "147-line isolated two-row source reproduces optimized-IR first-limb corruption; an additional co-retained entry masks it by outlining and is preserved as a passing reduction control. Hosted run 42600848507 same-host explicit AVX2 passes while explicit AVX512 targets fail only ReleaseFast; current noinline and runtime-safety instrumentation pass. Reduced canonical first-fold failure classified as LLVM 20.1.8 SLP miscompilation: same preoptimization input/AVX512 target defaults wrong, SLP disabled right, VectorCombine disabled wrong, LLVM22 default right; explicit wrapping preserves wrong digest. Portable IR and interpreter controls retain their transformations and limitations. Full exact-main owner failure predates restructure; all passing AVX2 hosted runs do not erase failing AVX512 evidence. Production noinline mitigation retained; full frozen proof, fresh CPU and semantic negative gates remain open. No GPU, physical-memory, release or timing qualification."
+}
