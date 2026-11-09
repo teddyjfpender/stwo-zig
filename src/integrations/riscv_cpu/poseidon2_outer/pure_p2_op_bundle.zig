@@ -156,23 +156,32 @@ fn word(a: std.mem.Allocator, out: *std.ArrayList(u8), n: usize) !void {
 }
 pub fn encode(a: std.mem.Allocator, bundle: *const Bundle, limits: Limits) ![]u8 {
     if (bundle.proofs.len == 0 or bundle.proofs.len > Manifest.MAX_WORKERS or bundle.stage_one.len > MW.MAX_BYTES) return error.OpNativeBundleLimit;
+    // Determine the complete wire size before acquiring a potentially large
+    // buffer. Grow-and-copy would retain two block-sized buffers transiently.
+    var size = try std.math.add(usize, MAGIC.len + 8, bundle.stage_one.len);
+    for (bundle.proofs) |proof| {
+        if (proof.bytes.len == 0 or proof.bytes.len > limits.proof_bytes or proof.claims.len > limits.claims or proof.bytes.len > std.math.maxInt(u32) or proof.claims.len > std.math.maxInt(u32)) return error.OpNativeBundleLimit;
+        const claim_bytes = try std.math.mul(usize, proof.claims.len, 8 * @sizeOf(u32));
+        size = try std.math.add(usize, size, try std.math.add(usize, 8, try std.math.add(usize, claim_bytes, proof.bytes.len)));
+        if (size > limits.bytes) return error.OpNativeBundleLimit;
+        for (proof.claims) |claim| for (claim.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalOpNativeClaim;
+    }
     var out = std.ArrayList(u8).empty;
     errdefer out.deinit(a);
+    try out.ensureTotalCapacityPrecise(a, size);
     try out.appendSlice(a, MAGIC);
     try word(a, &out, bundle.proofs.len);
     try word(a, &out, bundle.stage_one.len);
     try out.appendSlice(a, bundle.stage_one);
     for (bundle.proofs) |proof| {
-        if (proof.bytes.len == 0 or proof.bytes.len > limits.proof_bytes or proof.claims.len > limits.claims) return error.OpNativeBundleLimit;
         try word(a, &out, proof.claims.len);
         try word(a, &out, proof.bytes.len);
         for (proof.claims) |claim| for (claim.toM31Array()) |v| {
-            if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalOpNativeClaim;
             try word(a, &out, v.v);
         };
         try out.appendSlice(a, proof.bytes);
-        if (out.items.len > limits.bytes) return error.OpNativeBundleLimit;
     }
+    std.debug.assert(out.items.len == size);
     return out.toOwnedSlice(a);
 }
 /// Validate ALL lengths, count, canonical claims and trailing bytes before any
@@ -220,4 +229,25 @@ pub fn decode(a: std.mem.Allocator, bytes: []const u8, count: usize, limits: Lim
         done += 1;
     }
     return .{ .stage_one = stage_one, .proofs = proofs };
+}
+
+test "OP bundle encoding preflights the whole byte cap before allocation" {
+    const a = std.testing.allocator;
+    var claim = [_]O{O.one()};
+    var payload = [_]u8{ 1, 2, 3 };
+    var stage = [_]u8{0x81};
+    var proofs = [_]Proof{.{ .bytes = &payload, .claims = &claim }};
+    const bundle = Bundle{ .stage_one = &stage, .proofs = &proofs };
+    const limits = Limits{ .bytes = 60, .proof_bytes = 3, .claims = 1 };
+    try std.testing.expectError(error.OpNativeBundleLimit, encode(std.testing.failing_allocator, &bundle, .{ .bytes = 59, .proof_bytes = 3, .claims = 1 }));
+    try std.testing.expectError(error.OpNativeBundleLimit, encode(std.testing.failing_allocator, &bundle, .{ .bytes = 60, .proof_bytes = 2, .claims = 1 }));
+    try std.testing.expectError(error.OpNativeBundleLimit, encode(std.testing.failing_allocator, &bundle, .{ .bytes = 60, .proof_bytes = 3, .claims = 0 }));
+    const wire = try encode(a, &bundle, limits);
+    defer a.free(wire);
+    try std.testing.expectEqual(@as(usize, 60), wire.len);
+    var decoded = try decode(a, wire, 1, limits);
+    defer decoded.deinit(a);
+    try std.testing.expectEqualSlices(u8, &stage, decoded.stage_one);
+    try std.testing.expectEqualSlices(u8, &payload, decoded.proofs[0].bytes);
+    try std.testing.expect(decoded.proofs[0].claims[0].eql(claim[0]));
 }
