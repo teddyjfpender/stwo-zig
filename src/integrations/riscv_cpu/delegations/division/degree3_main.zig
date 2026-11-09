@@ -2,7 +2,7 @@
 const std = @import("std");
 const F = @import("degree3_fixture.zig");
 const rv = @import("stwo_riscv_frontend").rv64_air;
-const Receipt = @import("../../rv64_ethereum_batch_receipt.zig");
+const Receipt = @import("../../exclusive_file.zig");
 pub fn main() !void {
     const a = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(a);

@@ -7,7 +7,7 @@ const E = @import("execution.zig");
 const Image = @import("expected_image.zig");
 const Memory = @import("memory/statement.zig");
 const Cells = @import("cells_wire.zig");
-const Receipt = @import("../rv64_ethereum_batch_receipt.zig");
+const Receipt = @import("../exclusive_file.zig");
 pub const Bundle = struct {
     schema: u32 = P.SCHEMA,
     geometry: Mat.Geometry,

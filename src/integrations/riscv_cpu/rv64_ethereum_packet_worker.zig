@@ -7,7 +7,7 @@ const Expected = @import("rv64_ethereum_worker_expected.zig");
 const Packet = @import("rv64_prepared_work_packet.zig");
 const Batch = @import("rv64_ethereum_prove_batch.zig");
 const Chain = @import("rv64_ethereum_chain.zig");
-const Receipt = @import("rv64_ethereum_batch_receipt.zig");
+const Receipt = @import("exclusive_file.zig");
 pub const Result = struct {
     index: u32,
     physical_fragment_verified: bool = true,
