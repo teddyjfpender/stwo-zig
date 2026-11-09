@@ -136,7 +136,7 @@ def jumpdest_bitmap(code):
     return bytes(bitmap)
 
 
-def execute(config, expected_steps, timeout=600, *, output_kind="op"):
+def execute(config, expected_steps, timeout=600, *, output_kind="op", entry_probes=None):
     import unicorn as U
     from unicorn import riscv_const as R
 
@@ -497,6 +497,24 @@ def execute(config, expected_steps, timeout=600, *, output_kind="op"):
                 uc.emu_stop()
 
         uc.hook_add(U.UC_HOOK_INTR, service)
+    # Optional diagnostic probes observe arguments/return addresses only. They
+    # do not change execution or become proof authority. Return-PC attribution
+    # includes tail-call forwarding and is not a complete call stack.
+    call_census = {}
+    if entry_probes:
+        for probe_pc, label in entry_probes.items():
+            if (type(probe_pc) is not int or probe_pc % 4 or not isinstance(label, str)
+                or not any(a <= probe_pc < a + size and flags & 1
+                           for a, size, _, flags in segments)):
+                raise ValueError("entry probe outside executable image")
+            def observe_call(uc, address, size, label):
+                return_pc = uc.reg_read(R.UC_RISCV_REG_RA)
+                length = uc.reg_read(R.UC_RISCV_REG_A2)
+                a0 = uc.reg_read(R.UC_RISCV_REG_A0) & 7
+                a1 = uc.reg_read(R.UC_RISCV_REG_A1) & 7
+                key = (label, return_pc, length, a0, a1)
+                call_census[key] = call_census.get(key, 0) + 1
+            uc.hook_add(U.UC_HOOK_CODE, observe_call, user_data=label, begin=probe_pc, end=probe_pc)
     start = time.monotonic_ns()
     uc.emu_start(entry, 0, timeout=timeout * 1_000_000, count=expected_steps - 1)
     if service_error:
@@ -510,7 +528,7 @@ def execute(config, expected_steps, timeout=600, *, output_kind="op"):
         raise ValueError(service_error[0])
     if not completed or length != 43 or value != expected:
         raise ValueError("output/count mismatch")
-    return {
+    result = {
         "schema": "stwo.opstack.unicorn.v1",
         "oracle": "Unicorn2.1.4",
         "output_kind": output_kind,
@@ -531,3 +549,11 @@ def execute(config, expected_steps, timeout=600, *, output_kind="op"):
         ],
         "oracle_source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     }
+
+    if entry_probes:
+        result["entry_call_census"] = [
+            {"callee": label, "return_pc": pc, "length": length,
+             "a0_mod8": a0, "a1_mod8": a1, "calls": count}
+            for (label, pc, length, a0, a1), count in sorted(call_census.items())
+        ]
+    return result
