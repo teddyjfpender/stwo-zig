@@ -589,6 +589,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Repair concrete hosted compiler/import failures at existing owners. Resolve the moved Metal probe header and the prover-API Python working directory. Bind aggregate RISC-V generation to the same full-width BLAKE3 engine as the focused product while retaining the historical verifier route and every existing rejection. Give direct protocol commands the already-exported circuit-recursion-wire node and the exact two scalar authorities shared by the SDK/Cairo frontend, checking their declared injection ownership and preserving CPU-only exclusion. Model the explicitly requested root Python package initializer as a docstring-only marker rather than an executable launcher; keep every other reachability/discovery check. Tests protect moved header resolution, Python gate CWD, shared module identity, declared injections and marker content. No proof equation, pin, ledger, rejection class, feature flag, new script or launcher changes."
+    },
+    {
+      "id": "delivery_hosted_circuit_regeneration",
+      "net_code_budget": 25,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Use the existing CI workflow and existing pinned circuit-oracle generator for owner reproduction that exceeds the laptop budget. Add one manually selected CPU-only dispatch choice, serial Cargo compilation, an allocation preflight, immutable source/binary/toolchain receipts, a source-mutation rejection and always-retained raw logs plus a binary candidate patch. Preserve the generator exit classification and all pin checks; no generated vector is applied or promoted automatically. Tests protect manual dispatch isolation, CPU runner selection, pinned/serial ownership and failure artifact retention. No local compiler, GPU run, new launcher, public API ledger, pin waiver or new runtime flag."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

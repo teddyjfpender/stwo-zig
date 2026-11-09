@@ -16,6 +16,7 @@ on:
           - standard
           - strict
           - architecture
+          - regenerate-circuit-vectors
         default: standard
 
 permissions:
@@ -510,3 +511,74 @@ jobs:
           path: ${{ runner.temp }}/architecture-candidate-diagnostic.json
           if-no-files-found: error
           retention-days: 7
+
+  circuit-oracle-regeneration:
+    name: Pinned circuit oracle regeneration (CPU)
+    if: github.event_name == 'workflow_dispatch' && inputs.gate == 'regenerate-circuit-vectors'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      CARGO_BUILD_JOBS: "1"
+    steps:
+      - name: Checkout the requested immutable source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          fetch-depth: 0
+
+      - name: Setup pinned Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.13"
+
+      - name: Install the oracle's pinned Rust toolchain
+        run: rustup toolchain install nightly-2026-01-15 --profile minimal
+
+      - name: Run the existing authenticated circuit generator
+        shell: bash
+        run: |
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/circuit-oracle-target"
+          OUT="$RUNNER_TEMP/circuit-oracle-regeneration"
+          mkdir -p "$OUT"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git rev-parse HEAD > "$OUT/source-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/source-tree.txt"
+          cargo +nightly-2026-01-15 --version > "$OUT/cargo-version.txt"
+          rustc +nightly-2026-01-15 -Vv > "$OUT/rustc-version.txt"
+          cat /proc/meminfo > "$OUT/host-memory.txt"
+          python3 - <<'PYMEM'
+          import os
+          from pathlib import Path
+          size = os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
+          cgroup = Path("/sys/fs/cgroup/memory.max")
+          if cgroup.is_file() and cgroup.read_text().strip().isdigit():
+              size = min(size, int(cgroup.read_text().strip()))
+          if size < 12 * (1 << 30):
+              raise SystemExit("circuit regeneration requires a hosted CPU allocation of at least 12 GiB")
+          PYMEM
+          set +e
+          /usr/bin/time -v python3 scripts/interop/generate_circuit_oracle_vectors.py 2>&1 | tee "$OUT/generation.log"
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$STATUS" > "$OUT/generator-exit.txt"
+          printf '%s\n' "Candidate reproduction only. Default generation retains committed verifier verdicts; no fresh Zig-to-Rust negative corpus is claimed." > "$OUT/qualification-scope.txt"
+          git diff --exit-code -- src tools scripts .github conformance
+          git add -N -- vectors/circuit
+          git diff --binary -- vectors/circuit > "$OUT/generated-vectors.patch"
+          git status --porcelain=v1 > "$OUT/worktree-status.txt"
+          if test -f "$CARGO_TARGET_DIR/release/stwo-circuit-oracle"; then
+            cp "$CARGO_TARGET_DIR/release/stwo-circuit-oracle" "$OUT/stwo-circuit-oracle"
+            sha256sum "$OUT/stwo-circuit-oracle" > "$OUT/oracle-binary.sha256"
+          fi
+          if test -f vectors/circuit/provenance.json; then
+            cp vectors/circuit/provenance.json "$OUT/candidate-provenance.json"
+          fi
+          exit "$STATUS"
+
+      - name: Preserve raw generation results even after rejection
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: circuit-oracle-regeneration-${{ github.sha }}
+          path: ${{ runner.temp }}/circuit-oracle-regeneration
+          if-no-files-found: error
+          retention-days: 30

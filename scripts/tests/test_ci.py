@@ -15,6 +15,20 @@ PINNED_ACTION_RE = re.compile(r"^\s*uses:\s*[^@\s]+@[0-9a-f]{40}(?:\s+#.*)?$")
 
 
 class CiTests(unittest.TestCase):
+    def test_circuit_regeneration_is_manual_cpu_only_and_preserves_failed_results(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        job = workflow.split("\n  circuit-oracle-regeneration:\n", 1)[1]
+        self.assertIn("if: github.event_name == 'workflow_dispatch' && inputs.gate == 'regenerate-circuit-vectors'", job)
+        self.assertIn("runs-on: ubuntu-latest", job)
+        self.assertIn('CARGO_BUILD_JOBS: "1"', job)
+        self.assertIn("nightly-2026-01-15", job)
+        self.assertIn("python3 scripts/interop/generate_circuit_oracle_vectors.py", job)
+        self.assertIn("git diff --exit-code -- src tools scripts .github conformance", job)
+        self.assertIn('exit "$STATUS"', job)
+        self.assertIn("if: always()", job)
+        self.assertIn("if-no-files-found: error", job)
+        self.assertNotIn("git push", job)
+
     def test_repository_scripts_package_wins_over_foreign_installed_package(self):
         with tempfile.TemporaryDirectory() as raw:
             foreign = Path(raw) / "scripts"
