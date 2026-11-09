@@ -38,7 +38,8 @@ test "detached actual small native producer and independent receiver" {
     defer pool.deinit();
     var bind = try E.work_pool.ScopedPoolBinding.init(&pool);
     defer bind.deinit();
-    try Runtime.produceDirectory(budget.allocator(), parsed.value, out, .op_target_b4_q72_p0_fold4_v1, .{});
+    const resources = Runtime.Resources{ .park_cpu_metadata = std.posix.getenv("STWO_OP_NATIVE_METADATA_PARKING") != null, .retire_source_auxiliaries = std.posix.getenv("STWO_OP_NATIVE_SOURCE_RETIREMENT") != null };
+    try Runtime.produceDirectory(budget.allocator(), parsed.value, out, .op_target_b4_q72_p0_fold4_v1, resources);
     try Runtime.verifyDirectory(budget.allocator(), parsed.value, out, .op_target_b4_q72_p0_fold4_v1, .{});
     var hooks = HookState{};
     try Runtime.verifyDirectoryWithHooks(budget.allocator(), parsed.value, out, .op_target_b4_q72_p0_fold4_v1, .{}, hooks.hooks());

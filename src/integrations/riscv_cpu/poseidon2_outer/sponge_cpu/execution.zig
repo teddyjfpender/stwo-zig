@@ -20,7 +20,11 @@ const OldM = @import("../pure_p2_manifest.zig");
 const W = @import("../pure_p2_worker_protocol.zig").W;
 const Store = @import("../pure_p2_retained_main.zig").Store;
 const B = @import("wire.zig");
+const MetadataParking = @import("../pure_p2_cpu_metadata_parking.zig");
 pub const Limits = struct {
+    consume_memory_events: bool = false,
+    park_cpu_metadata: bool = false,
+    retire_source_auxiliaries: bool = false,
     cpu: @import("../pure_p2_cpu_worker.zig").Limits,
     truth: Truth.Limits,
     truth_gkr_bytes: usize,
@@ -124,6 +128,7 @@ fn expected(source: I.Catalog, ordinal: u32) !OldM.Expected {
     return if (source.local_key) |key| key.expected(source.truth, ordinal) else source.key.expected(source.truth, ordinal);
 }
 pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inputs, store: *Store, limits: Limits) !B.Bundle {
+    if (limits.consume_memory_events and !@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, inputs.advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     if (inputs.cpus.len != inventory.cpu_count or inputs.detached.len != inventory.detached_count or inputs.catalog.len != inventory.truth_count or inputs.native.len != inputs.cpus.len or inputs.advice.sponge.len != inputs.cpus.len or inputs.cpus.len + inputs.detached.len + inputs.catalog.len + inputs.towers.len != inventory.workers.len) return error.DetachedInventoryRoster;
     // Current capture is a single immutable flattened suffix. Multi-worker
@@ -136,8 +141,21 @@ pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inpu
     defer for (workers[retired..made]) |*worker| worker.deinit();
     const stages = try a.alloc(M.StageOne, workers.len);
     defer a.free(stages);
+    const metadata = try a.alloc(?MetadataParking.Token, inputs.cpus.len);
+    defer a.free(metadata);
+    @memset(metadata, null);
+    defer for (metadata) |*token| if (token.*) |*owner| owner.deinit();
+    if (limits.park_cpu_metadata) {
+        // Same bounded immutable custody as the classic OP producer. This is
+        // advice storage, never a replacement for physical MAIN/GKR authority.
+        var total: usize = 0;
+        for (inputs.native) |n| total = try std.math.add(usize, total, try MetadataParking.roundedBytes(if (n.cpu) |*cpu| cpu else return error.PreparedExecutionConsumed));
+        if (total > store.disk_limit - store.reserved) return error.OpParkingDiskLimit;
+        for (inputs.native, metadata) |n, *token| token.* = try MetadataParking.park(store, if (n.cpu) |*cpu| cpu else return error.PreparedExecutionConsumed);
+    }
     for (inputs.cpus, inputs.native, 0..) |cpu, n, ordinal| {
-        var source = try Pipeline.buildCpuSourceForOp(a, cpu.setup, cpu.request, cpu.span, n, inputs.advice, ordinal, inventory.first_ids[ordinal], false, null);
+        if (metadata[ordinal]) |*token| try token.restore(if (n.cpu) |*value| value else return error.PreparedExecutionConsumed);
+        var source = try Pipeline.buildCpuSourceForOp(a, cpu.setup, cpu.request, cpu.span, n, inputs.advice, ordinal, inventory.first_ids[ordinal], limits.consume_memory_events, null);
         var source_owned = true;
         defer if (source_owned) source.deinit();
         var frontier = try Frontier.initCalls(a, inputs.advice.sponge[ordinal].calls, cpu.request.sponge.calls, cpu.key.frontier_log, @intCast(cpu.request.base.epoch), @intCast(ordinal));
@@ -149,6 +167,8 @@ pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inpu
         made += 1;
         stages[ordinal] = try workers[ordinal].seal();
         _ = try store.parkBound(workers[ordinal].allocator(), &workers[ordinal].scheme().trees.items[1], .{ .setup = inventory.workers[ordinal].authority.fixed_identity, .statement = inventory.workers[ordinal].authority.statement });
+        if (limits.retire_source_auxiliaries) _ = try @import("../pure_p2_source_auxiliary_retirement.zig").retire(&workers[ordinal].cpu.source);
+        if (metadata[ordinal]) |*token| try token.retireRestored(&workers[ordinal].cpu.source.core.cpu);
     }
     for (inputs.detached, 0..) |source, j| {
         const ordinal = inputs.cpus.len + j;
@@ -198,6 +218,7 @@ pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inpu
     var completed: usize = 0;
     errdefer for (fragments[0..completed]) |*fragment| fragment.deinit(a);
     for (workers, 0..) |*worker, ordinal| {
+        if (ordinal < metadata.len) if (metadata[ordinal]) |*token| try token.restore(&worker.cpu.source.core.cpu);
         _ = try store.restoreBound(&worker.scheme().trees.items[1], .{ .setup = inventory.workers[ordinal].authority.fixed_identity, .statement = inventory.workers[ordinal].authority.statement });
         try pending.checkPhysicalRoots(ordinal, inventory.workers[ordinal].authority.fixed, stages[ordinal].main);
         fragments[ordinal] = try worker.complete(a, pending.digest, stages[ordinal].main);
