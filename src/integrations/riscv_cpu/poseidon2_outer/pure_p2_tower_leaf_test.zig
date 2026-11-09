@@ -8,7 +8,7 @@ const Full = @import("pure_p2_tower_statement.zig");
 const Native = @import("pure_p2_tower_worker.zig");
 const Manifest = @import("pure_p2_manifest.zig");
 const Protocol = @import("pure_p2_worker_protocol.zig");
-const View = struct {
+pub const View = struct {
     key: *const Native.Key,
     span: Native.Span,
     expected: Manifest.Expected,
@@ -17,7 +17,7 @@ const View = struct {
     claims: [4]C.O,
     shape: *const V.Shape,
     values: *const V.Captured,
-    fn expectedOutput(self: View, a: std.mem.Allocator) ![9]C.Q {
+    pub fn expectedOutput(self: View, a: std.mem.Allocator) ![9]C.Q {
         const words = try Full.expectedWords(a, self.key, self.span, self.expected, self.manifest, self.main, self.claims);
         defer a.free(words);
         const digest = @import("pure_p2_native.zig").hashWords(words);
@@ -25,7 +25,7 @@ const View = struct {
         for (&out, try core.crypto.poseidon2_m31_sponge.decode(digest)) |*wire, value| wire.* = C.Q.fromBase(value);
         return out;
     }
-    fn build(self: View, a: std.mem.Allocator, trace_only: bool) !C.PoseidonContext {
+    pub fn build(self: View, a: std.mem.Allocator, trace_only: bool) !C.PoseidonContext {
         var structural = @import("../rv64_recursion/circuit_lane.zig").StructuralScope.init();
         defer structural.deinit();
         var owner = if (trace_only) try C.PoseidonContext.initTraceOnly(a, 9) else try C.PoseidonContext.init(a, 9);
