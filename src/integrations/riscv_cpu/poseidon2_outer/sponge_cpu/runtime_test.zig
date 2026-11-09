@@ -49,3 +49,26 @@ test "detached actual small native producer and independent receiver" {
     try std.testing.expect(!failing.completed);
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
 }
+
+test "detached retained actual native bundle adversarial fresh source receiver" {
+    const path = std.posix.getenv("STWO_OP_DETACHED_CONFIG") orelse return error.SkipZigTest;
+    const out = std.posix.getenv("STWO_OP_DETACHED_OUT") orelse return error.MissingOpNativeDirectory;
+    const raw = try std.fs.cwd().readFileAlloc(std.testing.allocator, path, 16384);
+    defer std.testing.allocator.free(raw);
+    const parsed = try std.json.parseFromSlice(@import("../../rv64_ethereum_request.zig").Config, std.testing.allocator, raw, .{});
+    defer parsed.deinit();
+    if (parsed.value.max_steps > 10_000_000) return error.SmallCapturePlanControlRequired;
+    const budget = try E.host_budget_allocator.SharedHostBudget.create(std.heap.smp_allocator, 32 << 30);
+    defer budget.destroy();
+    var pool: E.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
+    defer pool.deinit();
+    var bind = try E.work_pool.ScopedPoolBinding.init(&pool);
+    defer bind.deinit();
+    var state = @import("runtime_attacks.zig").State{ .path = out };
+    try Runtime.withSourceDirectory(budget.allocator(), parsed.value, out, .op_target_b4_q72_p0_fold4_v1, .{}, &state, @import("runtime_attacks.zig").State.run);
+    try std.testing.expectEqual(@as(u32, 7), state.controls);
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
+    std.debug.print("OP_DETACHED_ATTACKS controls={} restored_positive=true live=0 external=0 peak={}\n", .{ state.controls, budget.snapshot().peak_live_bytes });
+}

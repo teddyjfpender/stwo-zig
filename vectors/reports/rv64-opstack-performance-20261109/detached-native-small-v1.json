@@ -38,7 +38,8 @@
     "all4_captures_ordered_then_complete": true,
     "fragment_callback_failure_no_complete": true,
     "zero_final_live_bytes": true,
-    "zero_final_external_reservations": true
+    "zero_final_external_reservations": true,
+    "retained_bundle_adversarial_fresh_source_gate": true
   },
   "budgets_bytes": {
     "common_host": 34359738368,
@@ -112,7 +113,6 @@
   },
   "production_admission": false,
   "remaining": [
-    "Retained-bundle physical sample/GKR/claim mutations are a separate follow-up gate.",
     "Actual zero-detached selected-guest control (including classic SHA) is separate.",
     "New complete recursive root and fresh source-only root receiver remain separate.",
     "Large detached source partitioning and heavy memory/latency qualification remain closed; no heavy rerun."
@@ -131,5 +131,24 @@
       "bytes": 1411388,
       "sha256": "836c60ed27230823ff366e8817984437bf0681ce16132b1d83c341c8e6ca4582"
     }
+  },
+  "adversarial_controls": {
+    "count": 7,
+    "physical": [
+      "MAIN OODS sample changed and native proof re-encoded canonically",
+      "CPU GKR output claim changed and child proof re-encoded canonically",
+      "equal/opposite claim edits across CPU0/CPU1 cannot hide physical debt"
+    ],
+    "framing": [
+      "missing worker",
+      "swapped worker order",
+      "wrong execution identity",
+      "whole-byte cap refusal before allocation"
+    ],
+    "restored_positive_same_source_keys": true,
+    "no_guest_execution_or_reproof": true,
+    "fresh_gate_peak_live_bytes": 2558632441,
+    "fresh_gate_final_live_bytes": 0,
+    "fresh_gate_final_external_bytes": 0
   }
 }

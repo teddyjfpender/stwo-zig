@@ -251,17 +251,24 @@ are pending and all buffers expire on callback return. The completion callback
 runs only after every proof, global closure, and terminal checks. A callback
 failure tears down source/proof custody and cannot publish acceptance.
 
-The first actual nonzero-sponge qualification uses block120794432 with a separate
-`sponge` guest:1,317,255 instructions,124 calls/338 permutations, two CPU proofs,
-one detached proof, one local Keccak proof, and a3,243,228-byte native bundle.
+The first actual nonzero-sponge qualification uses block 120794432 with a separate
+`sponge` guest: 1,317,255 instructions, 124 calls / 338 permutations, two CPU proofs,
+one detached proof, one local Keccak proof, and a 3,243,228-byte native bundle.
 Native and independent Unicorn execution agree on all registers, PC, steps,
 service calls, and output. This guest omits selected SHA/bulk/lean options and the
 proof run uses ReleaseSafe, so its timings are functional qualification rather
 than a matched performance comparison. See the committed qualification receipt.
 
-The common32GiB allocator and worker/MAIN-store caps remain mandatory. The
+The common 32 GiB allocator and worker/MAIN-store caps remain mandatory. The
 current source producer supports one bounded flattened detached suffix and
 fails closed when it would require multiple source slices; it cannot silently
 reuse the same advice for several providers. Heavy-block source partitioning,
 retained-capture bounds, and complete recursive root qualification are separate
 admission gates. No heavy execution or proof was rerun for this qualification.
+
+The retained actual bundle also passes seven adversarial controls using one
+freshly reconstructed source-key set. Canonically re-encoded OODS samples and
+GKR output claims, and balanced claim edits across CPU proofs, reject. Missing
+or swapped workers, wrong execution identity, and whole-byte cap violations
+reject too. The unchanged restored bundle verifies afterward. No guest or proof
+is rerun by this attack gate; its live/external reservations return to zero.
