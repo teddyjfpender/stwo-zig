@@ -166,7 +166,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig",
-        "text": "    const artifact_dir = std.process.getEnvVarOwned(a, \"STWO_RV64_DIVISION_ARTIFACT_DIR\") catch null;\n    defer if (artifact_dir) |path| a.free(path);\n    const config = if (artifact_dir != null) rv.protocol.config() else core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 12) };\n    const work = engine.work_pool;\n    const workers_env = std.process.getEnvVarOwned(a, \"STWO_RV64_DIVISION_WORKERS\") catch null;\n    defer if (workers_env) |value| a.free(value);\n    var pool: work.WorkPool = .{};\n    var owns_pool = false;"
+        "text": "    const artifact_dir = std.process.getEnvVarOwned(a, \"STWO_RV64_DIVISION_ARTIFACT_DIR\") catch null;\n    defer if (artifact_dir) |path| a.free(path);\n    const config = if (artifact_dir != null) rv.protocol.config() else core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 12) };\n    const reference = std.process.hasEnvVarConstant(\"STWO_RV64_DIVISION_REFERENCE\");\n    const requests = tests.fixtures();\n    var trace = try D.trace.Trace.init(a, &requests);\n    defer trace.deinit();\n    var fixed: [D.layout.FIXED]engine.pcs.ColumnEvaluation = undefined;"
       },
       "expires": "2026-12-09"
     },
@@ -181,20 +181,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig",
         "text": "    const reference = std.process.hasEnvVarConstant(\"STWO_RV64_DIVISION_REFERENCE\");\n    const requests = tests.fixtures();\n    var trace = try D.trace.Trace.init(a, &requests);\n    defer trace.deinit();\n    var fixed: [D.layout.FIXED]engine.pcs.ColumnEvaluation = undefined;\n    var main: [D.layout.MAIN]engine.pcs.ColumnEvaluation = undefined;\n    var interaction: [D.layout.INTERACTION]engine.pcs.ColumnEvaluation = undefined;\n    columns(trace.fixed, trace.log_size, &fixed);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_DIVISION_WORKERS": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig",
-      "default": "existing work pool (no test-owned pool when unset)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig",
-        "text": "    const workers_env = std.process.getEnvVarOwned(a, \"STWO_RV64_DIVISION_WORKERS\") catch null;\n    defer if (workers_env) |value| a.free(value);\n    var pool: work.WorkPool = .{};\n    var owns_pool = false;\n    defer if (owns_pool) pool.deinit();\n    var binding: ?work.ScopedPoolBinding = null;\n    defer if (binding) |*value| value.deinit();\n    if (workers_env) |value| {"
       },
       "expires": "2026-12-09"
     },
@@ -707,20 +693,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_KECCAK_CPU_WORKERS": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig",
-      "default": "existing work pool (no test-owned pool when unset)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_keccak_cpu_proof_test.zig",
-        "text": "    const workers = std.process.getEnvVarOwned(a, \"STWO_RV64_KECCAK_CPU_WORKERS\") catch null;\n    defer if (workers) |text| a.free(text);\n    var pool: work.WorkPool = .{};\n    var owns_pool = false;\n    defer if (owns_pool) pool.deinit();\n    var binding: ?work.ScopedPoolBinding = null;\n    defer if (binding) |*scope| scope.deinit();\n    if (workers) |text| {"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_KECCAK_WITNESS": {
       "owner": "tests/cuda/rv64/cpu_witness_smoke.cu",
       "date": "2026-11-08",
@@ -759,20 +731,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_LEAN_WORKERS": {
-      "owner": "src/integrations/riscv_cpu/tests/rv64_lean_proof_test.zig",
-      "default": "existing work pool (no test-owned pool when unset)",
-      "status": "qualification",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/tests/rv64_lean_proof_test.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/tests/rv64_lean_proof_test.zig",
-        "text": "    const workers_env = std.process.getEnvVarOwned(a, \"STWO_RV64_LEAN_WORKERS\") catch null;\n    defer if (workers_env) |value| a.free(value);\n    var pool: work.WorkPool = .{};\n    var owns_pool = false;\n    defer if (owns_pool) pool.deinit();\n    var binding: ?work.ScopedPoolBinding = null;\n    defer if (binding) |*value| value.deinit();\n    if (workers_env) |value| {"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_M8_AOT_REGISTER_SCHEDULE": {
       "owner": "scripts/rv64/rv64_m8_aot_register_relink.py",
       "default": "true in generated dual-catalogue dispatcher (unset or empty selects schedule)",
@@ -785,34 +743,6 @@
       "default_evidence": {
         "path": "scripts/rv64/rv64_m8_aot_register_relink.py",
         "text": "FLAG = \"STWO_RV64_M8_AOT_REGISTER_SCHEDULE\"\nADMITTED_TRUTH_TU = \"tests/cuda/rv64/truth_composition_native.cu\"\nADMITTED_CORE_TU = \"core_composition_dispatch.cu\"  # generated by rv64_cuda_resident_image_build.py"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_ASSIGNMENT_DUMP": {
-      "owner": "src/backends/cuda/native/rv64/circuit_fill_chain.cu",
-      "default": "disabled (no dump directory)",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/backends/cuda/native/rv64/circuit_fill_chain.cu"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/rv64/circuit_fill_chain.cu",
-        "text": "  const char* dir = std::getenv(\"STWO_RV64_M8_ASSIGNMENT_DUMP\");\n  if (!dir || !*dir) return 0;\n  const char* min_text = std::getenv(\"STWO_RV64_M8_ASSIGNMENT_DUMP_MIN_LEVELS\");\n  const unsigned long min_levels = min_text ? std::strtoul(min_text, nullptr, 10) : 100000ul;\n  if (g.ends < min_levels || taken.exchange(1)) return 0;\n  if (const auto rc = cudaStreamSynchronize(stream)) return int(rc);\n  std::vector<uint32_t> host;\n  char path[4096];"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_ASSIGNMENT_DUMP_MIN_LEVELS": {
-      "owner": "src/backends/cuda/native/rv64/circuit_fill_chain.cu",
-      "default": "100000",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/backends/cuda/native/rv64/circuit_fill_chain.cu"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/rv64/circuit_fill_chain.cu",
-        "text": "  const char* min_text = std::getenv(\"STWO_RV64_M8_ASSIGNMENT_DUMP_MIN_LEVELS\");\n  const unsigned long min_levels = min_text ? std::strtoul(min_text, nullptr, 10) : 100000ul;\n  if (g.ends < min_levels || taken.exchange(1)) return 0;\n  if (const auto rc = cudaStreamSynchronize(stream)) return int(rc);\n  std::vector<uint32_t> host;\n  char path[4096];\n  std::snprintf(path, sizeof path, \"%s/assignment-node.bin\", dir);\n  FILE* f = std::fopen(path, \"wb\");"
       },
       "expires": "2026-12-09"
     },
@@ -1175,35 +1105,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/plan.zig",
         "text": "pub const env_plan_dir = \"STWO_RV64_M8_JOBS_PLAN_DIR\";\n/// Worker channel state (Channel.state_words = 32) occupies one granule.\npub const state_granule: usize = W.Arena.granule;\n\npub const Allocator = enum { lifo, reuse };\n\npub const Gpu = struct {\n    /// Static arena per GPU (words, granule-aligned).\n    arena_words: u64,\n    /// Pool for class-persistent regions (0 = today's per-key allocations, never evicted)."
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_JOBS_PLAN_OUT": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-      "default": "disabled (no output path)",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/mod.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/mod.zig",
-        "text": "        if (std.posix.getenv(\"STWO_RV64_M8_JOBS_PLAN_OUT\")) |path| writePlans(a, self.slice(), path) catch |err| std.log.err(\"M8 class plan output failed: {s}\", .{@errorName(err)});\n        self.stopWorkers();\n        a.destroy(self);\n    }\n};\n\n/// Measured class plans of every worker (declared vs measured peak words).\npub fn writePlans(a: std.mem.Allocator, workers: []const *worker.Worker, path: []const u8) !void {"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_NATIVE_REJECT_DUMP": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/driver_request.zig",
-      "default": "disabled (no diagnostic output path)",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/driver_request.zig",
-        "src/integrations/riscv_cuda/rv64/native_request_inputs.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/driver_request.zig",
-        "text": "        const path = std.posix.getenv(\"STWO_RV64_M8_NATIVE_REJECT_DUMP\") orelse return;\n        try std.fs.cwd().makePath(path);\n        var dir = try std.fs.cwd().openDir(path, .{});\n        defer dir.close();\n        for (self.layout.?.segments, mirrors) |segment, mirror| {\n            var name_buf: [128]u8 = undefined;\n            const name = try std.fmt.bufPrint(&name_buf, \"rejected-{d}-{d}-{d}.bin\", .{ self.req.block, self.req.id, segment.device });\n            try dir.writeFile(.{ .sub_path = name, .data = std.mem.sliceAsBytes(mirror) });"
       },
       "expires": "2026-12-09"
     },
@@ -1811,20 +1712,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_P2_NATIVE_OUT_DIR": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/fixture.zig",
-      "default": "disabled (no output directory)",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/fixture.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/services/poseidon2_native/fixture.zig",
-        "text": "    if (std.posix.getenv(\"STWO_RV64_P2_NATIVE_OUT_DIR\")) |path| {\n        var dir = try std.fs.cwd().makeOpenPath(path, .{ .iterate = true });\n        defer dir.close();\n        try dir.writeFile(.{ .sub_path = \"manifest.raw-blake.binary\", .data = manifest_bytes });\n        for (proofs, 0..) |proof, i| {\n            var name_buf: [64]u8 = undefined;\n            const name = try std.fmt.bufPrint(&name_buf, \"cpu-{}.p2v2.binary\", .{i});\n            try dir.writeFile(.{ .sub_path = name, .data = proof.bytes });"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_PACKED_FULL_ARTIFACT_DIR": {
       "owner": "src/integrations/riscv_cpu/tests/rv64_packed_full_proof_test.zig",
       "default": "disabled (no artifact output directory)",
@@ -2143,20 +2030,6 @@
       "default_evidence": {
         "path": "tests/cuda/rv64/gkr_loop_smoke.cu",
         "text": "      if (std::getenv(\"STWO_RV64_TEST_BATCH_TAIL\") && left <= 4) {\n        std::vector<StwoRv64BatchTailOracle> jobs;\n        for (uint32_t j = 0; j < l.active; ++j) {"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_TOPOLOGY_DUMP_DIR": {
-      "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/topology_fingerprint.zig",
-      "default": "disabled (no directory)",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/rv64_recursion/om31_native/topology_fingerprint.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/topology_fingerprint.zig",
-        "text": "    const dir_path = std.posix.getenv(\"STWO_RV64_TOPOLOGY_DUMP_DIR\") orelse return;\n    dump(ctx, dir_path, label, stage) catch |err| std.debug.print(\"TOPOLOGY_CENSUS dump_error={s}\\n\", .{@errorName(err)});\n}\n\nfn dump(ctx: *const C.Context, dir_path: []const u8, label: []const u8, stage: []const u8) !void {\n    var dir = try std.fs.cwd().makeOpenPath(dir_path, .{});\n    defer dir.close();\n    var name_buffer: [160]u8 = undefined;"
       },
       "expires": "2026-12-09"
     },

@@ -995,6 +995,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue #332 continuation: fold default-only preset values and dormant scheduling controls; remove obsolete passthrough keys and parsing branches. Preserve typed policies, all proof algorithms and negative tests, allocation-plan and device-selection controls, artifact controls that select stronger protocol settings, and deferred GPU-native promotion. No new launcher, ABI or proof-format boundary; remaining live-count debt is explicit."
+    },
+    {
+      "id": "c1_retire_disabled_report_outputs",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #332: remove owner-local optional filesystem diagnostics with no maintained setter or live artifact consumer. Keep fingerprint computation and all proof/negative assertions; retain direct typed class-plan writing, complete worker destruction and rejected-request cleanup. No protocol, ceiling, test-root or qualification parameter changes."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

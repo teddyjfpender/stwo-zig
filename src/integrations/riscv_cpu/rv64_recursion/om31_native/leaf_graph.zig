@@ -72,8 +72,7 @@ fn context(a: std.mem.Allocator, trace_only: bool) !*C.Context {
 fn binding(value: ?*const Fixed.Binding) ?V.frame.Binding {
     return if (value) |b| .{ .identity = b.fixed_identity, .root = b.fixed_root, .profile = b.profile } else null;
 }
-const Census = @import("topology_fingerprint.zig");
-fn finish(a: std.mem.Allocator, ctx: *C.Context, output: C.Hash, words: []const u32, label: []const u8) !Graph {
+fn finish(a: std.mem.Allocator, ctx: *C.Context, output: C.Hash, words: []const u32, _: []const u8) !Graph {
     // Exactly eight raw-u32 outputs. They commit all exposed frame words; the
     // execution receiver must independently admit the words and their topology.
     var output_vars: [8]circuit.builder.Var = undefined;
@@ -92,7 +91,6 @@ fn finish(a: std.mem.Allocator, ctx: *C.Context, output: C.Hash, words: []const 
         if (actual != std.mem.readInt(u32, digest[4 * i ..][0..4], .little)) return error.CurrentOm31FrameDigest;
     };
     try C.lane.finish();
-    Census.report(ctx, label, "pre_finalize");
     try ctx.finalize(false);
     if (!ctx.trace_only and !try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
     return .{ .allocator = a, .ctx = ctx, .words = try a.dupe(u32, words), .digest = digest };

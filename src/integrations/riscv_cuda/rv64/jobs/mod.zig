@@ -34,13 +34,6 @@ fn envBytes(name: []const u8, default: usize) !usize {
     return std.fmt.parseUnsigned(usize, text, 10) catch error.InvalidM8JobsEnvironment;
 }
 
-fn envFlag(name: []const u8, default: bool) !bool {
-    const text = std.posix.getenv(name) orelse return default;
-    if (std.mem.eql(u8, text, "1")) return true;
-    if (std.mem.eql(u8, text, "0")) return false;
-    return error.InvalidM8JobsEnvironment;
-}
-
 pub const Config = struct {
     devices: [8]u32 = undefined,
     device_count: usize = 0,
@@ -218,7 +211,6 @@ pub const WorkerSet = struct {
         self.libs.close();
     }
     pub fn stop(self: *WorkerSet, a: std.mem.Allocator) void {
-        if (std.posix.getenv("STWO_RV64_M8_JOBS_PLAN_OUT")) |path| writePlans(a, self.slice(), path) catch |err| std.log.err("M8 class plan output failed: {s}", .{@errorName(err)});
         self.stopWorkers();
         a.destroy(self);
     }

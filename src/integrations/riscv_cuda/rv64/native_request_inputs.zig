@@ -145,19 +145,6 @@ pub const Binding = struct {
                 program.* = try LB.cpu(a, .{ .wire_words = leaf.wire_words, .image_words = leaf.image_words, .tail_seeds = leaf.tail_seeds }, c.spec.gkr, &c.section, &fr.program, try self.recursion_classes.coefficients(number, i), words, fr.claim_count);
                 input.leaf_program = program;
                 try cacheLeaf(cache, program);
-                if (input.oods_diagnostic) {
-                    const path = std.posix.getenv("STWO_RV64_M8_NATIVE_REJECT_DUMP") orelse return error.GpuNativeDiagnosticPathMissing;
-                    try std.fs.cwd().makePath(path);
-                    var dir = try std.fs.cwd().openDir(path, .{});
-                    defer dir.close();
-                    var name_buf: [96]u8 = undefined;
-                    const name = try std.fmt.bufPrint(&name_buf, "oods-{d}-{d}.json", .{ number, i });
-                    const diagnostic_words = S2.oodsDiagnosticWords(&fr);
-                    if (program.words[10] < diagnostic_words) return error.GpuNativeLeafImageShape;
-                    const metadata = try std.json.Stringify.valueAlloc(a, .{ .scope = "diagnostic only; no accepted proof or timing qualification", .descriptor = fr.oods.?, .static_table = fr.composition.table, .roles = fr.composition.roles, .patches = fr.comp_patches, .region_offset = program.words[10] - diagnostic_words, .diagnostic_words = diagnostic_words }, .{});
-                    defer a.free(metadata);
-                    try dir.writeFile(.{ .sub_path = name, .data = metadata });
-                }
             }
             for (b.truths, 0..) |*truth, i| {
                 const leaf = try self.recursion_classes.leaf(number, rec.keys.len + i);
@@ -318,7 +305,7 @@ pub const Binding = struct {
             if (r.block == wb.block) break r;
         } else return error.GpuNativeInventoryMissing;
         for (b.native_inputs, inv.requests, 0..) |*out, request, i| out.* = .{
-            .oods_diagnostic = std.posix.getenv("STWO_RV64_M8_NATIVE_REJECT_DUMP") != null,
+            .oods_diagnostic = false,
             .initial_tuples = try boundaryTuples(a, request.base.memory.initial, true),
             .terminal_tuples = try boundaryTuples(a, request.base.memory.terminal, false),
             .public = rec.public_inputs[i],

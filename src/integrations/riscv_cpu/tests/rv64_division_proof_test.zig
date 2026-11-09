@@ -21,20 +21,6 @@ test "division native artifact proves all eight operations and receiver rejects 
     const artifact_dir = std.process.getEnvVarOwned(a, "STWO_RV64_DIVISION_ARTIFACT_DIR") catch null;
     defer if (artifact_dir) |path| a.free(path);
     const config = if (artifact_dir != null) rv.protocol.config() else core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 12) };
-    const work = engine.work_pool;
-    const workers_env = std.process.getEnvVarOwned(a, "STWO_RV64_DIVISION_WORKERS") catch null;
-    defer if (workers_env) |value| a.free(value);
-    var pool: work.WorkPool = .{};
-    var owns_pool = false;
-    defer if (owns_pool) pool.deinit();
-    var binding: ?work.ScopedPoolBinding = null;
-    defer if (binding) |*value| value.deinit();
-    if (workers_env) |value| {
-        const workers = try std.fmt.parseInt(usize, value, 10);
-        try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024, .backing_allocator = a });
-        owns_pool = true;
-        binding = try work.ScopedPoolBinding.init(&pool);
-    }
     const reference = std.process.hasEnvVarConstant("STWO_RV64_DIVISION_REFERENCE");
     const requests = tests.fixtures();
     var trace = try D.trace.Trace.init(a, &requests);

@@ -382,10 +382,6 @@
         "sha256": "81743a1202d7d06cc2d026e646f8f8bcb3487e7f9f5a5659d3c44a99e137a76a"
       },
       {
-        "path": "native/rv64/circuit_fill_chain.cu",
-        "sha256": "611249d4db003157fcfd29a600557fb15092b49be955fff710f60a1c922ce34e"
-      },
-      {
         "path": "native/rv64/deep_lazy.cuh",
         "sha256": "076a259b1f74aac22e2266a05accd39d9344269e4372c327af6220f003e00fd0"
       },

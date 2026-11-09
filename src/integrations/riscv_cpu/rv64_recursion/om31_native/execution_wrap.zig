@@ -830,14 +830,7 @@ const Pipe = struct {
         prep_pool_workers: usize,
         /// Leaves taken for prep that have not yet reached a device lane.
         prep_ahead: usize,
-        fn envUsize(a: std.mem.Allocator, name: []const u8, default: usize) !usize {
-            const text = std.process.getEnvVarOwned(a, name) catch |err| switch (err) {
-                error.EnvironmentVariableNotFound => return default,
-                else => return err,
-            };
-            defer a.free(text);
-            return std.fmt.parseUnsigned(usize, text, 10) catch error.InvalidRecursionPipelineOption;
-        }
+
         pub fn fromEnv(_: std.mem.Allocator, options: ParallelOptions) !?Options {
             const lanes = options.lanes.len;
             const result = Options{

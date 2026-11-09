@@ -2,8 +2,7 @@
 //! authority identity. Separates the structural gate graph of a recursive
 //! verifier circuit from its interned constant VALUES and its witness-origin
 //! shape, so the producer/receiver can see why two nodes have distinct
-//! authorities. Enabled by STWO_RV64_TOPOLOGY_CENSUS=1; optional
-//! STWO_RV64_TOPOLOGY_DUMP_DIR receives the constant table per node.
+//! authorities. Callers own any reporting or publication of the returned data.
 const std = @import("std");
 const circuit = @import("stwo_circuit_frontend");
 const C = @import("common.zig");
@@ -62,33 +61,4 @@ pub fn compute(ctx: *const C.Context) Fingerprint {
         }
     }
     return .{ .gates = g.finalResult(), .constants = k.finalResult(), .origins = o.finalResult(), .n_vars = c.n_vars, .n_constants = ctx.constants.count(), .n_origins = n_origins };
-}
-
-pub fn enabled() bool {
-    return false;
-}
-
-/// Logs one line per node; `label` is e.g. "leaf-cpu-0003" or "fold-[0,4)".
-pub fn report(ctx: *const C.Context, label: []const u8, stage: []const u8) void {
-    if (!enabled()) return;
-    const f = compute(ctx);
-    std.debug.print("TOPOLOGY_CENSUS label={s} stage={s} n_vars={d} n_constants={d} n_origins={d} gates={x} constants={x} origins={x}\n", .{ label, stage, f.n_vars, f.n_constants, f.n_origins, f.gates, f.constants, f.origins });
-    const dir_path = std.posix.getenv("STWO_RV64_TOPOLOGY_DUMP_DIR") orelse return;
-    dump(ctx, dir_path, label, stage) catch |err| std.debug.print("TOPOLOGY_CENSUS dump_error={s}\n", .{@errorName(err)});
-}
-
-fn dump(ctx: *const C.Context, dir_path: []const u8, label: []const u8, stage: []const u8) !void {
-    var dir = try std.fs.cwd().makeOpenPath(dir_path, .{});
-    defer dir.close();
-    var name_buffer: [160]u8 = undefined;
-    const name = try std.fmt.bufPrint(&name_buffer, "{s}.{s}.constants.bin", .{ label, stage });
-    var file = try dir.createFile(name, .{});
-    defer file.close();
-    // Record: u128 key, u32 var id (little-endian), first-use order.
-    for (ctx.constants.keys(), ctx.constants.values()) |key, v| {
-        var buf: [20]u8 = undefined;
-        std.mem.writeInt(u128, buf[0..16], key, .little);
-        std.mem.writeInt(u32, buf[16..20], v.idx, .little);
-        try file.writeAll(&buf);
-    }
 }
