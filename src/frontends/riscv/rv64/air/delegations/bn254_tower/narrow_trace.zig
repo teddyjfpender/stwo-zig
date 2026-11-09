@@ -167,6 +167,27 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
                 return if (self.row) |values| M.fromCanonical(values[c]) else self.source.main[c * self.source.size() + self.physical];
             }
         };
+        /// Read the original source fraction from retained advice after MAIN
+        /// ownership transfer. The local-GKR adapter does not evaluate the DAG
+        /// again or invent a second tuple-expression authority.
+        pub fn fractionsAt(self: *const Self, index: usize, ch: NE.ChallengesFor(Q), comptime family: Eq.Family, first: usize, numerator: []Q, denominator: []Q) !void {
+            if (self.advice_retired) return error.TowerAdviceRetired;
+            if (index >= self.size() or numerator.len != denominator.len) return error.TowerGeometry;
+            const count = switch (family) {
+                .range => L.RANGE_FRACTIONS,
+                .ssa => L.SSA_FRACTIONS,
+                .wire => 1,
+            };
+            if (first > count or numerator.len > count - first) return error.TowerGeometry;
+            var row: [L.MAIN]u32 = undefined;
+            var preprocessing: [S.FIXED]u32 = undefined;
+            const view = self.viewAt(index, &row, &preprocessing);
+            for (numerator, denominator, 0..) |*n, *d, query| {
+                const fraction = Eq.fraction(Q, &view, self.public(), ch, family, first + query);
+                n.* = fraction[0];
+                d.* = fraction[1];
+            }
+        }
         pub fn generateInteraction(self: *Self, ch: NE.ChallengesFor(Q)) !NE.ClaimsFor(Q) {
             return self.generateInteractionImpl(ch, true);
         }

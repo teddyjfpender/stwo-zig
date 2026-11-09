@@ -1,0 +1,13 @@
+# Isolated Miller local-GKR foundation
+
+This candidate has no production admission and does not alter schema2. Security remains a **128-bit security target under documented assumptions**, with `security_qualified=false`.
+
+The four source-owned instances, in immutable order, are BYTE98, U15-32, arithmetic SSA8 and frontier SSA1. BYTE and U15 close separately; arithmetic and frontier share one SSA challenge and close together. Original arithmetic/frontier `fraction` and MAIN authorities remain the only expressions. Streaming reads reconstruct a retained source row once per row chunk, including after owned MAIN transfer, without reevaluating the DAG or field divisions. Padded lanes are exactly `(0,1)`.
+
+The isolated native child is bound to statement, all nine limbs of FIXED/MAIN/manifest roots, worker ordinal, call span, and both independent row logs. Its magic and transcript namespace differ from the completed truth-local protocol. A successful `verifyPending` leaves all terminal-source and global Wire obligations pending. It does not accept execution.
+
+The proposed physical interaction widths are frontier24 and arithmetic56 base columns: one16-column terminal binding per local instance plus one8-column global Wire accumulator per component. Against classic16+560 this removes496 lifted interaction columns. The physical wrapper, new global Wire prefix, recursive leaf, durable frame and whole-manifest join are still required before admitting the candidate.
+
+For the existing1023-call/log15+15 worker, padded facts are5,537,792 and the reviewed52-byte/fact numerical envelope is287,965,184 bytes. A hypothetical whole-block22185-call/log19+20 provider would instead have176,685,056 facts and require9.19GB for that numerical envelope alone; it is not the existing sharded plan. Cell savings are a model, not measured whole-prover speedups.
+
+Focused ReleaseSafe gates cover source geometry/mass rejection, bounded partial reads and padding, exact real-witness fractions before/after MAIN transfer, independently closing ranges and cross-component SSA, lane-weighted terminal projections, and a real one-call streamed GKR proof under a1GiB numerical allocator. A fresh native child verifier accepts the encoded proof and rejects changed manifest/receipt and the other service protocol's wire magic. These gates do not yet authenticate the projected source through a physical PCS.

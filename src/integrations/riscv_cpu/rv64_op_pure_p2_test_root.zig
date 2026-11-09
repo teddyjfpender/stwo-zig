@@ -43,3 +43,13 @@ test {
 test {
     _ = @import("poseidon2_outer/native_omul/root_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/authority.zig");
+    _ = @import("poseidon2_outer/miller_local_gkr/source_inputs.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/native.zig");
+    _ = @import("poseidon2_outer/miller_local_gkr/projection.zig");
+}
