@@ -1,0 +1,417 @@
+{
+  "schema": "op-heavy-conditional-prefix-packed-p2-tail-comparison/v1",
+  "implementation": {
+    "fix_original": "854b4ee7f",
+    "fix_local": "02ac0045d",
+    "baseline_qualified_receipt": "4900e21fd",
+    "fixture_source": "dc42345b3",
+    "changes": "Native-four bounded-tail dispatch and exactP2v2 prefix reuse defaults; unchanged96MiB cap. No hash/domain/transcript/AIR/profile/geometry/guest changes."
+  },
+  "scope": "One same real4,000,000-retirement CPU22 conditional fragment reproof; not whole238M heavy execution/proof or complete block/root acceptance.",
+  "baseline_artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-v1",
+  "candidate_artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261110/opstack-cpu/heavy-prefix-4m-p2-tail-v1",
+  "same_configuration": {
+    "optimization": "ReleaseFast",
+    "workers": 16,
+    "host_cap_bytes": 34359738368,
+    "gkr_child_cap_bytes": 12884901888,
+    "profile": "op_target_b4_q72_p0_fold4_v1",
+    "elf_sha256": "72c234488ca510aa864d0bae8d86d4001f5ccd30993be1883bafb3baabc3e930",
+    "input_sha256": "3390379dcdc3661c7746a2d2b64a1f20f54a9c2adaf2ac01c92e72201ae7743e",
+    "retirements": 4000000,
+    "source_cells": 564103680,
+    "source_padded_gkr_facts": 149605184,
+    "INIT_scope": "67,326 prefix-touched cells/log17, not original full-heavy touched-set INITlog20",
+    "terminal_provider": "absent; all outstanding RAM/Wire debt recorded unchanged"
+  },
+  "qualification": {
+    "exact_PC_all32_registers_match_independent_Unicorn": true,
+    "same_source_key_statement_MAIN_receipt_manifest_claims": true,
+    "PCS_and_GKR_entire_bytes_identical": true,
+    "fresh_source_digest_key_receiver_passes": true,
+    "all66focusedtests_pass": true,
+    "no_major_faults_or_swaps": true,
+    "heap_external_zero_after_teardown": true,
+    "complete_execution_or_block_or_root_accepted": false,
+    "security": "128-bit security target under documented assumptions; unchanged, not certified"
+  },
+  "proofs": {
+    "cpu.pcs.bin": {
+      "bytes": 1333204,
+      "entire_file_byte_identical": true,
+      "sha256": "db731dc7bc725b68eca35ed7462cd3550dc691c42dab73a06ffe76f8301b8a70"
+    },
+    "cpu.gkr.bin": {
+      "bytes": 113288,
+      "entire_file_byte_identical": true,
+      "sha256": "38f598eafe195d74e0af1a210826b6dd90c986a1f4aa8b3d75298515a5337ab3"
+    }
+  },
+  "totals": {
+    "native_seal_plus_complete": {
+      "baseline_seconds": 74.731790459,
+      "candidate_seconds": 23.931348833,
+      "speedup": 3.1227571408741075,
+      "reduction_percent": 67.97701662704117
+    },
+    "full_fixture_including_both_independent_FIXED_keys_capture_and_freshverify": {
+      "baseline_seconds": 89.43167,
+      "candidate_seconds": 30.684386583,
+      "speedup": 2.9145660043778623
+    },
+    "seal": {
+      "baseline_seconds": 45.55537825,
+      "candidate_seconds": 11.680274291
+    },
+    "complete": {
+      "baseline_seconds": 29.176412209,
+      "candidate_seconds": 12.251074542
+    },
+    "fresh_physical_verify": {
+      "baseline_seconds": 0.067763542,
+      "candidate_seconds": 0.064435417
+    },
+    "MAIN_INTER_Merkle": {
+      "baseline_seconds": 59.340547,
+      "candidate_seconds": 9.619973,
+      "speedup": 6.168473341869047,
+      "baseline_share_of_native": 0.7940469060828393,
+      "candidate_share_of_native": 0.4019820640754938
+    }
+  },
+  "stages": [
+    {
+      "stage": "MAIN_merkle",
+      "baseline": {
+        "stage": "MAIN_merkle",
+        "wall_seconds": 39.245148,
+        "user_seconds": 621.83403,
+        "system_seconds": 0.996939,
+        "mean_busy_cores": 15.870266790687094,
+        "minor_faults": 80717,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "MAIN_merkle",
+        "wall_seconds": 5.792132,
+        "user_seconds": 92.01202,
+        "system_seconds": 0.401774,
+        "mean_busy_cores": 15.955056618184809,
+        "minor_faults": 80717,
+        "major_faults": 0
+      },
+      "wall_speedup": 6.7755962743942995
+    },
+    {
+      "stage": "local_gkr",
+      "baseline": {
+        "stage": "local_gkr",
+        "wall_seconds": 3.863519,
+        "user_seconds": 47.388354,
+        "system_seconds": 2.123876,
+        "mean_busy_cores": 12.815319401819947,
+        "minor_faults": 813527,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "local_gkr",
+        "wall_seconds": 3.515078,
+        "user_seconds": 42.835654,
+        "system_seconds": 1.988399,
+        "mean_busy_cores": 12.751936941370861,
+        "minor_faults": 813405,
+        "major_faults": 0
+      },
+      "wall_speedup": 1.0991275300292056
+    },
+    {
+      "stage": "interaction_generation",
+      "baseline": {
+        "stage": "interaction_generation",
+        "wall_seconds": 0.460269,
+        "user_seconds": 5.727542,
+        "system_seconds": 0.267502,
+        "mean_busy_cores": 13.02508750317749,
+        "minor_faults": 46112,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "interaction_generation",
+        "wall_seconds": 0.426779,
+        "user_seconds": 5.359522,
+        "system_seconds": 0.221413,
+        "mean_busy_cores": 13.076873510646026,
+        "minor_faults": 45998,
+        "major_faults": 0
+      },
+      "wall_speedup": 1.0784715274181718
+    },
+    {
+      "stage": "INTER_merkle",
+      "baseline": {
+        "stage": "INTER_merkle",
+        "wall_seconds": 20.095399,
+        "user_seconds": 319.615424,
+        "system_seconds": 0.805852,
+        "mean_busy_cores": 15.945006914269282,
+        "minor_faults": 80705,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "INTER_merkle",
+        "wall_seconds": 3.827841,
+        "user_seconds": 60.608232,
+        "system_seconds": 0.359131,
+        "mean_busy_cores": 15.927349908211966,
+        "minor_faults": 80706,
+        "major_faults": 0
+      },
+      "wall_speedup": 5.249799821883929
+    },
+    {
+      "stage": "composition_evaluation",
+      "baseline": {
+        "stage": "composition_evaluation",
+        "wall_seconds": 1.92439,
+        "user_seconds": 13.47657,
+        "system_seconds": 0.397456,
+        "mean_busy_cores": 7.209570825040663,
+        "minor_faults": 263170,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "composition_evaluation",
+        "wall_seconds": 1.803029,
+        "user_seconds": 12.67207,
+        "system_seconds": 0.391078,
+        "mean_busy_cores": 7.245112530081324,
+        "minor_faults": 263195,
+        "major_faults": 0
+      },
+      "wall_speedup": 1.067309510828722
+    },
+    {
+      "stage": "composition_interpolate_and_split",
+      "baseline": {
+        "stage": "composition_interpolate_and_split",
+        "wall_seconds": 0.029253,
+        "user_seconds": 0.223086,
+        "system_seconds": 0.000375,
+        "mean_busy_cores": 7.638908829863603,
+        "minor_faults": 7,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "composition_interpolate_and_split",
+        "wall_seconds": 0.027742,
+        "user_seconds": 0.205759,
+        "system_seconds": 0.00031,
+        "mean_busy_cores": 7.428051330113186,
+        "minor_faults": 7,
+        "major_faults": 0
+      },
+      "wall_speedup": 1.0544661524042969
+    },
+    {
+      "stage": "composition_commit",
+      "baseline": {
+        "stage": "composition_commit",
+        "wall_seconds": 1.833577,
+        "user_seconds": 27.687737,
+        "system_seconds": 0.333836,
+        "mean_busy_cores": 15.282463185347547,
+        "minor_faults": 155700,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "composition_commit",
+        "wall_seconds": 1.68539,
+        "user_seconds": 25.702205,
+        "system_seconds": 0.307276,
+        "mean_busy_cores": 15.432321895822334,
+        "minor_faults": 155703,
+        "major_faults": 0
+      },
+      "wall_speedup": 1.0879244566539497
+    },
+    {
+      "stage": "sampled_value_evaluation",
+      "baseline": {
+        "stage": "sampled_value_evaluation",
+        "wall_seconds": 0.130279,
+        "user_seconds": 1.66379,
+        "system_seconds": 0.011499,
+        "mean_busy_cores": 12.859240552967094,
+        "minor_faults": 63,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "sampled_value_evaluation",
+        "wall_seconds": 0.12306,
+        "user_seconds": 1.555495,
+        "system_seconds": 0.016778,
+        "mean_busy_cores": 12.776474890297417,
+        "minor_faults": 67,
+        "major_faults": 0
+      },
+      "wall_speedup": 1.0586624410856493
+    },
+    {
+      "stage": "fri_quotient_build_and_commit",
+      "baseline": {
+        "stage": "fri_quotient_build_and_commit",
+        "wall_seconds": 2.5028,
+        "user_seconds": 25.680259,
+        "system_seconds": 1.715967,
+        "mean_busy_cores": 10.946230621703691,
+        "minor_faults": 569571,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "fri_quotient_build_and_commit",
+        "wall_seconds": 2.315889,
+        "user_seconds": 23.896028,
+        "system_seconds": 1.649158,
+        "mean_busy_cores": 11.030401716144429,
+        "minor_faults": 564039,
+        "major_faults": 0
+      },
+      "wall_speedup": 1.0807080995678118
+    },
+    {
+      "stage": "fri_decommit",
+      "baseline": {
+        "stage": "fri_decommit",
+        "wall_seconds": 0.057348,
+        "user_seconds": 0.559604,
+        "system_seconds": 0.052343,
+        "mean_busy_cores": 10.67076445560438,
+        "minor_faults": 35036,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "fri_decommit",
+        "wall_seconds": 0.054873,
+        "user_seconds": 0.545451,
+        "system_seconds": 0.049255,
+        "mean_busy_cores": 10.837861972190332,
+        "minor_faults": 35048,
+        "major_faults": 0
+      },
+      "wall_speedup": 1.0451041495817617
+    },
+    {
+      "stage": "trace_decommit",
+      "baseline": {
+        "stage": "trace_decommit",
+        "wall_seconds": 0.918532,
+        "user_seconds": 2.865752,
+        "system_seconds": 0.180269,
+        "mean_busy_cores": 3.3161838673013024,
+        "minor_faults": 45757,
+        "major_faults": 0
+      },
+      "candidate": {
+        "stage": "trace_decommit",
+        "wall_seconds": 0.868667,
+        "user_seconds": 2.697447,
+        "system_seconds": 0.16533,
+        "mean_busy_cores": 3.29559773768314,
+        "minor_faults": 45794,
+        "major_faults": 0
+      },
+      "wall_speedup": 1.0574040455088083
+    },
+    {
+      "stage": "MAIN_prepare",
+      "baseline": {
+        "stage": "MAIN_prepare",
+        "wall_seconds": 2.438293,
+        "user_seconds": 4.449124,
+        "system_seconds": 0.419877,
+        "minor_faults": 415143,
+        "major_faults": 0,
+        "mean_busy_cores": 1.9968892171695527
+      },
+      "candidate": {
+        "stage": "MAIN_prepare",
+        "wall_seconds": 2.365843,
+        "user_seconds": 4.298073,
+        "system_seconds": 0.415703,
+        "minor_faults": 415130,
+        "major_faults": 0,
+        "mean_busy_cores": 1.9924297597093297
+      },
+      "wall_speedup": 1.030623333839143
+    },
+    {
+      "stage": "INTER_prepare",
+      "baseline": {
+        "stage": "INTER_prepare",
+        "wall_seconds": 1.156433,
+        "user_seconds": 2.426571,
+        "system_seconds": 0.22226200000000002,
+        "minor_faults": 211547,
+        "major_faults": 0,
+        "mean_busy_cores": 2.290520073363524
+      },
+      "candidate": {
+        "stage": "INTER_prepare",
+        "wall_seconds": 1.059405,
+        "user_seconds": 2.262472,
+        "system_seconds": 0.215588,
+        "minor_faults": 211655,
+        "major_faults": 0,
+        "mean_busy_cores": 2.3391054412618404
+      },
+      "wall_speedup": 1.0915872588858841
+    }
+  ],
+  "process_time": {
+    "baseline": {
+      "wall_seconds": 89.46,
+      "user_seconds": 1269.91,
+      "system_seconds": 9.78,
+      "minor_faults": 3493777,
+      "major_faults": 0,
+      "rss_peak_bytes": 10099392512
+    },
+    "candidate": {
+      "wall_seconds": 30.71,
+      "user_seconds": 345.58,
+      "system_seconds": 8.07,
+      "minor_faults": 3481611,
+      "major_faults": 0,
+      "rss_peak_bytes": 10099294208
+    }
+  },
+  "resource": {
+    "baseline": {
+      "live_bytes": 0,
+      "peak_live_bytes": 10093072140,
+      "host_live_bytes": 0,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 10093072140,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    },
+    "candidate": {
+      "live_bytes": 0,
+      "peak_live_bytes": 10093072140,
+      "host_live_bytes": 0,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 10093072140,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    }
+  },
+  "interpretation": [
+    "MAIN and INTER Merkle hashing improved6.775x and5.250x, respectively. Native seal+complete improved3.123x with exact proof bytes and exactly unchanged requested peak.",
+    "MAIN+INTER hashing remains40.2% of native time; GKR14.7%, FRI quotient9.7%, composition evaluation7.5%, composition commitment7.0%.",
+    "This was one bounded same-source qualification A/B, not a repeated statistical benchmark. Small changes in unrelated GKR/composition timing should not be attributed to the tail patch.",
+    "Full fixture time includes resident producer FIXED and independently reconstructed digest-only receiver FIXED, rather than representing a standard producer-only request.",
+    "No complete heavy execution/proof was rerun. No aggregate full-block or hard10x achievement follows from this conditional fragment."
+  ]
+}
