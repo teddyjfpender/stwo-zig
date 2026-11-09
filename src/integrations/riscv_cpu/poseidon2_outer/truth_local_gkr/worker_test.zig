@@ -43,7 +43,7 @@ pub fn runWithHook(truth: R.Truth, comptime Hook: type) !void {
     const builder = Base.SourceBuilder{ .context = &marker, .build = build };
     var tiny = limits;
     tiny.live_bytes = 1;
-    try std.testing.expectError(error.OutOfMemory, T.Worker.init(a, &key, truth, builder, expected, tiny));
+    try std.testing.expectError(error.OpTruthLocalBudget, T.Worker.init(a, &key, truth, builder, expected, tiny));
     tiny = limits;
     tiny.interaction_bytes = 1;
     try std.testing.expectError(error.OpTruthLocalBudget, T.Worker.init(a, &key, truth, builder, expected, tiny));

@@ -124,6 +124,8 @@ pub const Worker = struct {
     pub fn initWithGkrOptions(backing: std.mem.Allocator, key: *const Key, truth: R.Truth, builder: Base.SourceBuilder, expected: Manifest.Expected, limits: Limits, gkr_options: N.ProverOptions) !Worker {
         try validateExpected(key, truth, expected);
         const shapes = try Shapes.shapes(truth);
+        const resources = try @import("resource.zig").derive(@import("../../word16_global_execution/services/wire.zig").TruthDeclaration.from(truth), key.base.profile.config());
+        try resources.admit(limits);
         if (limits.live_bytes == 0 or limits.gkr_bytes == 0) return error.OpTruthLocalBudget;
         var main_bytes: usize = 0;
         var interaction_bytes: usize = 0;

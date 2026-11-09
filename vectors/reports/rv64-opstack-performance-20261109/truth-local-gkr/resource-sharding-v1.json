@@ -1,0 +1,56 @@
+{
+  "schema": "op-truth-local-gkr-source-resource/v1",
+  "numeric_allocator_only_not_RSS": true,
+  "source_storage": "opaque raw bottom + stride-two secure checkpoints",
+  "reviewed_working_bytes_per_padded_fact": 52,
+  "review_source": "services/gkr_local/resource.zig SOURCE_CHECKPOINT_BYTES_PER_FACT; engine gkr_prover_field.buildSourceCheckpointed",
+  "limits": {
+    "worker_live": 8589934592,
+    "child_gkr": 12884901888,
+    "main": 2147483648,
+    "inter": 4294967296
+  },
+  "derived_max_keccak": {
+    "log": 16,
+    "calls": 4518,
+    "padded_facts": 134226944,
+    "checkpoint_bank_bytes": 2863508160,
+    "first_secure_checkpoint_bytes": 2147483648,
+    "numerical_working_bytes": 6979801088,
+    "numerical_metadata_bytes": 3735552,
+    "child_peak_bytes": 6983536640,
+    "main_bytes": 504139776,
+    "interaction_bytes": 59310080,
+    "binding_bytes": 4784128,
+    "durable_metadata_bytes": 40726616,
+    "resident_main_bytes": 564376980,
+    "whole_peak_bytes": 7547913620,
+    "pcs_phase_payload_bytes": 2133479436
+  },
+  "heavy_source": {
+    "calls": 15121,
+    "original_log": 18,
+    "unsharded_refused": true,
+    "derived_contiguous_shards": [
+      4518,
+      4518,
+      4518,
+      1567
+    ],
+    "minimal_logs": [
+      16,
+      16,
+      16,
+      15
+    ]
+  },
+  "gates": [
+    "child cap refusal",
+    "whole-worker cap refusal",
+    "main/inter caps",
+    "maximal admitted geometry derived without allocation",
+    "checkpoint bank and first upper represented separately within52B envelope",
+    "existing actual338 fragment unchanged except early admission"
+  ],
+  "exclusions": "Immutable FIXED setup, caller capture/advice, allocator bookkeeping and thread stacks require separate coordinator reservations. PCS envelope is a conservative represented-payload model; mandatory numerical allocator cap remains authoritative."
+}
