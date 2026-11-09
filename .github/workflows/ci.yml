@@ -199,7 +199,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import hashlib, io, json, os, platform, shutil, subprocess, tarfile
+          import hashlib, io, json, os, platform, re, shutil, subprocess, tarfile
           from pathlib import Path
           out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci/cm31-main-comparison"
           out.mkdir(parents=True, exist_ok=True)
@@ -219,21 +219,35 @@ jobs:
           normalized = original.replace("    // Keep the three-product expression behind a call boundary in nested callers.\n", "").replace("pub noinline fn mul(lhs: CM31", "pub inline fn mul(lhs: CM31")
           assert normalized != original and normalized == (roots["main"] / "fields/cm31.zig").read_text()
           cm31.write_text(normalized)
+          roots["current-inline-checked"] = out / "current-inline-checked"
+          shutil.copytree(roots["current-inline"], roots["current-inline-checked"])
+          for filename in ("m31.zig", "cm31.zig", "qm31.zig"):
+              checked = roots["current-inline-checked"] / "fields" / filename
+              text = re.sub(r"(?m)(^[ \t]*(?:pub[ \t]+)?(?:(?:inline|noinline)[ \t]+)?fn[ \t]+\w+\([\s\S]*?\{)", lambda match: match[0] + "\n        @setRuntimeSafety(true);", checked.read_text())
+              text = text.replace("std.debug.assert(", "cm31DiagnosisAssert(")
+              text += '\nfn cm31DiagnosisAssert(ok: bool) void { if (!ok) @panic("checked field invariant failed"); }\n'
+              if filename == "m31.zig":
+                  for operation in ("add", "sub", "mul"):
+                      marker = "pub inline fn " + operation + "(a: M31, b: M31) M31 {\n        @setRuntimeSafety(true);"
+                      assert text.count(marker) == 1
+                      text = text.replace(marker, marker + '\n        if (a.v >= Modulus or b.v >= Modulus) @panic("noncanonical checked arithmetic input");')
+              checked.write_text(text)
           for field in ("m31.zig", "qm31.zig"):
               assert (roots["main"] / "fields" / field).read_bytes() == (roots["current"] / "fields" / field).read_bytes()
           probe = out / "pinned-fri-probe.zig"
           probe.write_bytes(Path("src/waist/core/fields/tests/qm31_integer.zig").read_bytes())
           assert probe.read_bytes() == (roots["rejected-schoolbook"] / "fields/tests/qm31_integer.zig").read_bytes()
           records = []
-          for name, root in roots.items():
-              for mode in ("Debug", "ReleaseSafe", "ReleaseFast"):
+          cases = [(name, root, mode, "qm31 integer:") for name, root in roots.items() for mode in ("Debug", "ReleaseSafe", "ReleaseFast")]
+          cases += [(name + "-fold-only", roots[name], "ReleaseFast", "qm31 integer: first circle fold without stage instrumentation") for name in ("main", "current-inline", "rejected-schoolbook")]
+          for name, root, mode, selected in cases:
                   label = name + "-" + mode
                   binary, ir = out / label, out / (label + ".ll")
-                  argv = ["zig", "test", "-O" + mode, "--test-filter", "qm31 integer:", "--dep", "stwo_core", "-Mroot=" + str(probe), "-O" + mode, "-Mstwo_core=" + str(root / "mod.zig"), "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
+                  argv = ["zig", "test", "-O" + mode, "--test-filter", selected, "--dep", "stwo_core", "-Mroot=" + str(probe), "-O" + mode, "-Mstwo_core=" + str(root / "mod.zig"), "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
                   result = subprocess.run(argv, capture_output=True, timeout=120)
                   for stream in ("stdout", "stderr"):
                       (out / (label + "." + stream)).write_bytes(getattr(result, stream))
-                  records.append({"variant": name, "mode": mode, "argv": argv, "exit": result.returncode, "cm31_sha256": hashlib.sha256((root / "fields/cm31.zig").read_bytes()).hexdigest(), "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
+                  records.append({"variant": name, "mode": mode, "argv": argv, "exit": result.returncode, "field_source_sha256": {field: hashlib.sha256((root / "fields" / field).read_bytes()).hexdigest() for field in ("m31.zig", "cm31.zig", "qm31.zig")}, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
           report = {"scope": "source-pinned arithmetic diagnosis; no timing or full-proof qualification", "main_commit": main, "current_commit": current, "rejected_schoolbook_commit": rejected, "zig_version": subprocess.check_output(["zig", "version"], text=True).strip(), "host": platform.platform(), "probe_sha256": hashlib.sha256(probe.read_bytes()).hexdigest(), "runs": records}
           (out / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
           print(json.dumps(report, indent=2))
