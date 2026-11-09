@@ -90,11 +90,11 @@ pub fn registerRepeated(comptime Air: type, plan: *const binding.Binding(Air).Pl
         counters: @TypeOf(counters),
         scale: M31,
         pub fn accepts(_: *@This(), id: anytype) bool {
-            const relation = @import("stwo_riscv_frontend").modules.compat_air_lang_mod.relation;
+            const relation = @import("../relation.zig");
             return id == relation.id(.bitwise) or id == relation.id(.range_check_8_8);
         }
         pub fn visit(self: *@This(), id: anytype, numerator: M31, tuple: []const M31) !void {
-            const relation = @import("stwo_riscv_frontend").modules.compat_air_lang_mod.relation;
+            const relation = @import("../relation.zig");
             const index: usize = if (id == relation.id(.bitwise)) 0 else 1;
             const target = if (comptime @TypeOf(counters) == *@import("../shared/air/lookups/tables/counter.zig").Set)
                 self.counters.get(if (index == 0) .bitwise else .range_check_8_8)

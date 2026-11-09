@@ -16,7 +16,7 @@ const memory_boundary = @import("stwo_riscv_memory").air_boundary;
 const program_commitment = @import("../air/program/commitment.zig");
 const program_table = @import("../air/program/table.zig");
 const authority = @import("stwo_riscv_isa").authority;
-const runner = @import("stwo_riscv_frontend").modules.runner_mod;
+const runner = @import("../runner/base_result.zig");
 const witness_layout = @import("../witness_layout.zig");
 
 pub const SCHEMA = "riscv-public-values-diagnostic-v1";

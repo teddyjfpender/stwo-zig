@@ -19,7 +19,7 @@ const Writer = dependency_0.Writer;
 const clockWithinBoundary = dependency_0.clockWithinBoundary;
 const memory_poseidon2 = dependency_0.memory_poseidon2;
 const memory_state = @import("stwo_riscv_isa").runner_memory_state;
-const runner_result = @import("stwo_riscv_frontend").modules.runner_result;
+const runner_result = @import("stwo_riscv_isa").runner_execution_boundary;
 const std = dependency_0.std;
 const validateRegisterClocks = dependency_0.validateRegisterClocks;
 

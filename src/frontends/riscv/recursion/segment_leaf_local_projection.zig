@@ -15,7 +15,7 @@
 
 const std = @import("std");
 
-const runner_result = @import("stwo_riscv_frontend").modules.runner_result;
+const runner_result = @import("stwo_riscv_rv32").runner_base_result;
 const span = @import("stwo_riscv_rv32").recursion_span_statement;
 const canonical_segment_v2_440fbb = @import("stwo_riscv_memory").primitives_recursion_poseidon2_channel;
 const canonical_segment_v2_be5e22 = @import("stwo_riscv_rv32").recursion_segment_statement_source;

@@ -5,7 +5,7 @@ const trace = @import("trace.zig");
 const memory_state = @import("stwo_riscv_isa").runner_memory_state;
 const state_chain = @import("stwo_riscv_isa").runner_state_chain;
 const HostInterface = @import("stwo_riscv_isa").host_interface.HostInterface;
-const SegmentClockFrame = @import("stwo_riscv_frontend").modules.runner_result.SegmentClockFrame;
+const SegmentClockFrame = @import("stwo_riscv_isa").runner_execution_boundary.SegmentClockFrame;
 
 /// Controls whether a resumable session retains the whole execution trace or
 /// transfers each completed range directly to its `SegmentResult`.

@@ -2,7 +2,7 @@
 //! Global ordering is authenticated by the recursive Span, not local clocks.
 const std = @import("std");
 const public = @import("../air/public_data.zig");
-const Segment = @import("stwo_riscv_frontend").modules.runner_result.SegmentResult;
+const Segment = @import("../runner/base_result.zig").SegmentResult;
 const Memory = @import("blake3_commitment_witness.zig");
 const Native = @import("blake3_execution_trace.zig").Owner;
 const Hashes = @import("blake3_commitment_columns.zig").Owner;
@@ -27,13 +27,13 @@ pub const Owner = struct {
         return initWithIo(a, segment, io, compact);
     }
     /// The completed runner result is borrowed only during construction.
-    pub fn initRun(a: std.mem.Allocator, run: *const @import("stwo_riscv_frontend").modules.runner_result.RunResult) !Owner {
+    pub fn initRun(a: std.mem.Allocator, run: *const @import("../runner/base_result.zig").RunResult) !Owner {
         return initRunMode(a, run, false);
     }
-    pub fn initCompactRun(a: std.mem.Allocator, run: *const @import("stwo_riscv_frontend").modules.runner_result.RunResult) !Owner {
+    pub fn initCompactRun(a: std.mem.Allocator, run: *const @import("../runner/base_result.zig").RunResult) !Owner {
         return initRunMode(a, run, true);
     }
-    fn initRunMode(a: std.mem.Allocator, run: *const @import("stwo_riscv_frontend").modules.runner_result.RunResult, compact: bool) !Owner {
+    fn initRunMode(a: std.mem.Allocator, run: *const @import("../runner/base_result.zig").RunResult, compact: bool) !Owner {
         var io = try @import("blake3_segment_public.zig").Owned.initRun(a, run);
         errdefer io.deinit();
         return initWithIo(a, run, io, compact);

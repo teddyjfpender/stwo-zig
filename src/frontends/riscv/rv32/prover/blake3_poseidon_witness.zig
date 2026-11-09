@@ -1,7 +1,7 @@
 //! Guest Poseidon witness joined to full-width BLAKE3 program/memory providers.
 //! Guest permutation rows are retained; no prover-owned Poseidon tree is built.
 const std = @import("std");
-const runner = @import("stwo_riscv_frontend").modules.runner_mod;
+const runner = @import("../runner/base_result.zig");
 const memory_mod = @import("blake3_commitment_witness.zig");
 const plan_mod = @import("blake3_commitment_plan.zig");
 const Native = @import("blake3_execution_trace.zig").Owner;
