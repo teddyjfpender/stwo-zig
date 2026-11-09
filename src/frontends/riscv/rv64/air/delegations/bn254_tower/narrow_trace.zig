@@ -100,6 +100,17 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
             }
         };
         pub fn generateInteraction(self: *Self, ch: NE.ChallengesFor(Q)) !NE.ClaimsFor(Q) {
+            return self.generateInteractionImpl(ch, true);
+        }
+        pub fn generateInteractionScalarForTesting(self: *Self, ch: NE.ChallengesFor(Q)) !NE.ClaimsFor(Q) {
+            if (!@import("builtin").is_test) @compileError("scalar reference is test-only");
+            return self.generateInteractionImpl(ch, false);
+        }
+        // Bounded independent fraction inversions; prefix order and all bytes
+        // remain the scalar reference's exact order. No full tuple plane.
+        const CHUNK_ROWS = 128;
+        const FRACTIONS = L.SSA_FRACTIONS + 1;
+        fn generateInteractionImpl(self: *Self, ch: NE.ChallengesFor(Q), comptime batched: bool) !NE.ClaimsFor(Q) {
             if (self.interaction.len != 0) return error.TowerInteractionAlreadyGenerated;
             const n = self.size();
             const out = try self.allocator.alloc(M, L.INTERACTION * n);
@@ -108,46 +119,92 @@ pub fn SourceForField(comptime role: S.Role, comptime Q: type) type {
             const carries = try self.allocator.alloc(Q, if (role == .arithmetic) Micro.CARRY_LIMIT else 0);
             defer self.allocator.free(carries);
             if (role == .arithmetic) {
-                for (&bytes, 0..) |*value, index| value.* = try ch.bytes.sub(Q.fromBase(M.fromCanonical(@intCast(index)))).inv();
-                for (carries, 0..) |*value, index| value.* = try ch.carries.sub(Q.fromBase(M.fromCanonical(@intCast(index)))).inv();
+                if (batched) {
+                    const denominators = try self.allocator.alloc(Q, Micro.CARRY_LIMIT);
+                    defer self.allocator.free(denominators);
+                    for (denominators[0..256], 0..) |*value, index| value.* = ch.bytes.sub(Q.fromBase(M.fromCanonical(@intCast(index))));
+                    try core.fields.batchInverseInPlace(Q, denominators[0..256], &bytes);
+                    for (denominators, 0..) |*value, index| value.* = ch.carries.sub(Q.fromBase(M.fromCanonical(@intCast(index))));
+                    try core.fields.batchInverseInPlace(Q, denominators, carries);
+                } else {
+                    for (&bytes, 0..) |*value, index| value.* = try ch.bytes.sub(Q.fromBase(M.fromCanonical(@intCast(index)))).inv();
+                    for (carries, 0..) |*value, index| value.* = try ch.carries.sub(Q.fromBase(M.fromCanonical(@intCast(index)))).inv();
+                }
             }
             var range_total = Q.zero();
             var ssa_total = Q.zero();
             var wire_total = Q.zero();
-            for (0..n) |index| {
-                const physical = R.trace.physical(index, self.log_size);
-                const view = View{ .source = self, .physical = physical };
-                if (role == .arithmetic) {
-                    for (0..L.RANGE_BATCHES) |batch| {
-                        for (0..2) |lane| {
-                            const query = 2 * batch + lane;
-                            if (query < Micro.BYTE_QUERIES) {
-                                if (index < self.inputs.len * D.STEPS) {
-                                    const column = if (query < 32) Micro.RESULT + query else if (query < 32 + Micro.G.q_bytes) Micro.QUOTIENT + query - 32 else Micro.DISTANCE + query - 32 - Micro.G.q_bytes;
-                                    range_total = range_total.add(bytes[self.main[column * n + physical].v]);
+            const scratch = try self.allocator.alloc(Q, if (batched) 3 * CHUNK_ROWS * FRACTIONS else 0);
+            defer self.allocator.free(scratch);
+            var chunk_start: usize = 0;
+            while (chunk_start < n) : (chunk_start += CHUNK_ROWS) {
+                const chunk_end = @min(n, chunk_start + CHUNK_ROWS);
+                const count = (chunk_end - chunk_start) * FRACTIONS;
+                const denominators = if (batched) scratch[0..count] else scratch;
+                const inverses = if (batched) scratch[count .. 2 * count] else scratch;
+                const numerators = if (batched) scratch[2 * count .. 3 * count] else scratch;
+                if (batched) {
+                    for (chunk_start..chunk_end) |index| {
+                        const view = View{ .source = self, .physical = R.trace.physical(index, self.log_size) };
+                        for (0..FRACTIONS) |slot| {
+                            const fraction = if (slot < L.SSA_FRACTIONS) Eq.fraction(Q, &view, self.public(), ch, .ssa, slot) else Eq.fraction(Q, &view, self.public(), ch, .wire, 0);
+                            const at = (index - chunk_start) * FRACTIONS + slot;
+                            numerators[at] = fraction[0];
+                            // A zero-weight term has no inversion obligation in
+                            // the scalar producer. Preserve its pole behavior.
+                            denominators[at] = if (fraction[0].isZero()) Q.one() else fraction[1];
+                        }
+                    }
+                    try core.fields.batchInverseInPlace(Q, denominators, inverses);
+                }
+                for (chunk_start..chunk_end) |index| {
+                    const physical = R.trace.physical(index, self.log_size);
+                    const view = View{ .source = self, .physical = physical };
+                    if (role == .arithmetic) {
+                        for (0..L.RANGE_BATCHES) |batch| {
+                            for (0..2) |lane| {
+                                const query = 2 * batch + lane;
+                                if (query < Micro.BYTE_QUERIES) {
+                                    if (index < self.inputs.len * D.STEPS) {
+                                        const column = if (query < 32) Micro.RESULT + query else if (query < 32 + Micro.G.q_bytes) Micro.QUOTIENT + query - 32 else Micro.DISTANCE + query - 32 - Micro.G.q_bytes;
+                                        range_total = range_total.add(bytes[self.main[column * n + physical].v]);
+                                    }
+                                } else if (query == Micro.BYTE_QUERIES) {
+                                    range_total = range_total.sub(bytes[index % 256].mul(Q.fromBase(self.main[L.BYTE_MULT * n + physical])));
+                                } else {
+                                    const carry = query - Micro.BYTE_QUERIES - 1;
+                                    if (carry < Micro.G.carries) {
+                                        if (index < self.inputs.len * D.STEPS) range_total = range_total.add(carries[self.main[(Micro.CARRY + carry) * n + physical].v]);
+                                    } else if (carry == Micro.G.carries) range_total = range_total.sub(carries[index % Micro.CARRY_LIMIT].mul(Q.fromBase(self.main[L.CARRY_MULT * n + physical])));
                                 }
-                            } else if (query == Micro.BYTE_QUERIES) {
-                                range_total = range_total.sub(bytes[index % 256].mul(Q.fromBase(self.main[L.BYTE_MULT * n + physical])));
+                            }
+                            store(out, n, physical, L.COORDINATES * batch, range_total);
+                        }
+                    }
+                    for (0..L.SSA_BATCHES) |batch| {
+                        for (0..2) |lane| {
+                            const slot = 2 * batch + lane;
+                            if (batched) {
+                                if (slot < L.SSA_FRACTIONS) {
+                                    const at = (index - chunk_start) * FRACTIONS + slot;
+                                    ssa_total = ssa_total.add(numerators[at].mul(inverses[at]));
+                                }
                             } else {
-                                const carry = query - Micro.BYTE_QUERIES - 1;
-                                if (carry < Micro.G.carries) {
-                                    if (index < self.inputs.len * D.STEPS) range_total = range_total.add(carries[self.main[(Micro.CARRY + carry) * n + physical].v]);
-                                } else if (carry == Micro.G.carries) range_total = range_total.sub(carries[index % Micro.CARRY_LIMIT].mul(Q.fromBase(self.main[L.CARRY_MULT * n + physical])));
+                                const f = Eq.fraction(Q, &view, self.public(), ch, .ssa, 2 * batch + lane);
+                                if (!f[0].isZero()) ssa_total = ssa_total.add(f[0].mul(try f[1].inv()));
                             }
                         }
-                        store(out, n, physical, L.COORDINATES * batch, range_total);
+                        store(out, n, physical, L.SSA_FIRST + L.COORDINATES * batch, ssa_total);
                     }
-                }
-                for (0..L.SSA_BATCHES) |batch| {
-                    for (0..2) |lane| {
-                        const f = Eq.fraction(Q, &view, self.public(), ch, .ssa, 2 * batch + lane);
-                        if (!f[0].isZero()) ssa_total = ssa_total.add(f[0].mul(try f[1].inv()));
+                    if (batched) {
+                        const at = (index - chunk_start) * FRACTIONS + L.SSA_FRACTIONS;
+                        wire_total = wire_total.add(numerators[at].mul(inverses[at]));
+                    } else {
+                        const wire = Eq.fraction(Q, &view, self.public(), ch, .wire, 0);
+                        if (!wire[0].isZero()) wire_total = wire_total.add(wire[0].mul(try wire[1].inv()));
                     }
-                    store(out, n, physical, L.SSA_FIRST + L.COORDINATES * batch, ssa_total);
+                    store(out, n, physical, L.WIRE_FIRST, wire_total);
                 }
-                const wire = Eq.fraction(Q, &view, self.public(), ch, .wire, 0);
-                if (!wire[0].isZero()) wire_total = wire_total.add(wire[0].mul(try wire[1].inv()));
-                store(out, n, physical, L.WIRE_FIRST, wire_total);
             }
             if (!range_total.isZero()) return error.TowerRangeClaimNotClosed;
             for (0..L.SSA_BATCHES) |batch| center(out, n, L.SSA_FIRST + L.COORDINATES * batch, ssa_total);

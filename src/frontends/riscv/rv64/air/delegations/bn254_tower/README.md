@@ -87,3 +87,14 @@ This is correctness evidence, not production 128-bit qualification. Both
 independently sized components remain in one PCS/proof. The row scheduler is
 shared with existing components and tests all eight OM31 coordinates plus
 failure draining without changing legacy scheduling.
+
+### Bounded interaction inversions
+
+The narrow trace batches SSA/Wire denominator inversions in 128-row chunks,
+using the existing packed QM31/OM31 inverter. Range-table inverses are batched
+once per table. Scratch is bounded independently of the trace height, and zero
+weight terms preserve the scalar producer's pole behavior. Prefix accumulation
+and claim centering retain their exact order. A test-only scalar reference checks
+every interaction cell and claim in both fields, with five calls crossing a
+chunk boundary and including the padded provider rows. This removes per-fraction
+inversion work; no whole-block speedup is inferred from this unit qualification.

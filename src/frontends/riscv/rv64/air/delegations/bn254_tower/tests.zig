@@ -494,3 +494,36 @@ test "narrow complete classic equations have degree at most three including fixe
         }
     }
 }
+
+test "narrow QM31 and OM31 bounded inversion chunks preserve every scalar interaction cell" {
+    const Trace = @import("narrow_trace.zig");
+    const Eq = @import("narrow_equations.zig");
+    const Source = @import("narrow_source.zig");
+    const a = std.testing.allocator;
+    // Five calls cross a128-row arithmetic chunk; the last partial chunk and
+    // all padded range-provider rows remain covered in both field families.
+    var inputs: [5]Trace.Input = undefined;
+    for (&inputs, 0..) |*input, call| for (input, 0..) |*value, coordinate| {
+        value.* = (@as(u256, 1) << 248) + (call + 1) * (coordinate + 3);
+    };
+    inline for (.{ core.fields.qm31.QM31, core.fields.om31.OM31 }) |Field| {
+        const degree = @import("../../evaluation.zig").extensionDegree(Field);
+        var coordinates: [degree]core.fields.m31.M31 = undefined;
+        for (&coordinates, 0..) |*value, k| value.* = core.fields.m31.M31.fromCanonical(@intCast(k + 11));
+        const seed = Field.fromM31Array(coordinates);
+        const wire = @import("../curves/equations.zig").WireFor(Field){ .offset = seed, .coefficients = @splat(seed.add(Field.one())) };
+        const ch = Eq.ChallengesFor(Field){ .bytes = seed, .carries = seed.add(seed), .ssa = wire, .wire = wire };
+        inline for (.{ Source.Role.frontier, Source.Role.arithmetic }) |role| {
+            const log: u32 = if (role == .frontier) 8 else 15;
+            var scalar = try Trace.SourceForField(role, Field).init(a, &inputs, 7, log);
+            defer scalar.deinit();
+            var batched = try Trace.SourceForField(role, Field).init(a, &inputs, 7, log);
+            defer batched.deinit();
+            const expected = try scalar.generateInteractionScalarForTesting(ch);
+            const actual = try batched.generateInteraction(ch);
+            try std.testing.expect(expected.ssa.eql(actual.ssa));
+            try std.testing.expect(expected.wire.eql(actual.wire));
+            try std.testing.expectEqualSlices(core.fields.m31.M31, scalar.interaction, batched.interaction);
+        }
+    }
+}
