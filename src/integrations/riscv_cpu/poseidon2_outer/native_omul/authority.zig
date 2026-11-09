@@ -72,6 +72,12 @@ pub const Key = struct {
         self.* = undefined;
     }
     pub fn init(a: std.mem.Allocator, ctx: *const C.Context, profile: A.Profile) !Key {
+        return initStorage(a, ctx, profile, true);
+    }
+    pub fn initFullStorageControl(a: std.mem.Allocator, ctx: *const C.Context, profile: A.Profile) !Key {
+        return initStorage(a, ctx, profile, false);
+    }
+    fn initStorage(a: std.mem.Allocator, ctx: *const C.Context, profile: A.Profile, compact: bool) !Key {
         if (!ctx.finalized or ctx.poisoned or ctx.usage == null or ctx.mixed_census_only) return error.PoseidonContextNotFinalized;
         var counts = try ctx.sourceMultiplicities(a);
         defer counts.deinit(a);
@@ -185,6 +191,7 @@ pub const Key = struct {
         var scheme = try A.E.init(a, profile.config());
         defer scheme.deinit(a);
         scheme.reuse_bounded_merkle_tail = true;
+        if (compact) scheme.setCompactPolynomialStorage(1);
         var channel = A.MC.Channel.init();
         try scheme.commitBorrowedStreaming(a, fixed.values, 64, &channel);
         const root = scheme.trees.items[0].root();

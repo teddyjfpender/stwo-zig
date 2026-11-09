@@ -44,19 +44,22 @@ fn legacy(a: std.mem.Allocator, key: *const Authority, elements: W.Elements, cla
     }
     return out;
 }
+pub fn proveFullStorageControl(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q) ![]u8 {
+    return proveRecorded(a, ctx, key, outputs, .none, null, false);
+}
 pub const Mutation = enum { none, x2, x5, port_extension, range_multiplicity, inter_prefix, claim_balanced, native_result, native_prefix };
 pub fn prove(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q) ![]u8 {
     return proveMutation(a, ctx, key, outputs, .none);
 }
 pub fn proveProfiled(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, recorder: *Engine.stage_profile.Recorder) ![]u8 {
-    return proveRecorded(a, ctx, key, outputs, .none, recorder);
+    return proveRecorded(a, ctx, key, outputs, .none, recorder, true);
 }
 /// Falsification harness only: successful proofs still pass the same engine
 /// self-check and receiver. No receiver accepts a mutation selector.
 pub fn proveMutation(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, mutation: Mutation) ![]u8 {
-    return proveRecorded(a, ctx, key, outputs, mutation, null);
+    return proveRecorded(a, ctx, key, outputs, mutation, null, true);
 }
-fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, mutation: Mutation, recorder: ?*Engine.stage_profile.Recorder) ![]u8 {
+fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Authority, outputs: []const Q, mutation: Mutation, recorder: ?*Engine.stage_profile.Recorder, compact: bool) ![]u8 {
     var main = blk: {
         var span = try Engine.stage_profile.StageScope.begin(recorder, "op_p2.main_generation", "P2 MAIN generation");
         defer span.end();
@@ -89,6 +92,7 @@ fn proveRecorded(a: std.mem.Allocator, ctx: *const C.Context, key: *const Author
     var channel = try begin(a, key, outputs);
     var scheme = try A.E.init(a, key.base.profile.config());
     scheme.reuse_bounded_merkle_tail = true;
+    if (compact) scheme.setCompactPolynomialStorage(1);
     var owned = true;
     defer if (owned) scheme.deinit(a);
     const control = try @import("../op_profile.zig").monolithicControl();

@@ -62,6 +62,13 @@ test "OP R6 physical six-component proof closes complete Var and range relations
     const expected = outputs();
     const proof = try Proof.prove(a, &owner, &key, &expected);
     defer a.free(proof);
+    var full_key = try K.Key.initFullStorageControl(a, &trace, .op_target_b4_q72_p0_fold4_v1);
+    defer full_key.deinit();
+    try std.testing.expectEqualSlices(u8, &full_key.base.identity, &key.base.identity);
+    try std.testing.expectEqualSlices(u8, &full_key.base.fixed_root, &key.base.fixed_root);
+    const full_control = try Proof.proveFullStorageControl(a, &owner, &full_key, &expected);
+    defer a.free(full_control);
+    try std.testing.expectEqualSlices(u8, full_control, proof);
     // Rebuild source geometry/FIXED under a distinct trace owner.
     var fresh = try fixture(true);
     defer fresh.deinit();

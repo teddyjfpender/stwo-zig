@@ -18,6 +18,7 @@ const LogUp = Engine.air.logup_columns.ForField(O);
 pub const Elements = Base.Elements;
 pub const Claims = [6]O;
 pub fn main(a: std.mem.Allocator, ctx: *const Context, key: *const K.Key) !A.Columns {
+    if (ctx.native_mul_calls.items.len != key.mul_raw) return error.NativeOmulSourceCountMismatch;
     var core = try Base.main(a, ctx, &key.base);
     defer core.deinit();
     const values = try a.alloc(A.Col, K.MAIN_COUNT);
