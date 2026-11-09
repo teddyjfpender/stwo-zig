@@ -539,7 +539,7 @@
       ]
     },
     "vectors/riscv/csp": {
-      "files": 2,
+      "files": 1,
       "consumers": []
     },
     "vectors/riscv/fixtures": {
@@ -559,7 +559,7 @@
       ]
     },
     "vectors/riscv/rv64": {
-      "files": 23,
+      "files": 20,
       "consumers": [
         "conformance/rv64im-foundations-v1.json",
         "scripts/rv64/riscv64_foundations_benchmark.py",
@@ -910,8 +910,8 @@
     },
     {
       "path": "vectors/cairo/official/witness_feed_topology_v1.json",
-      "sha256": "366c12c942d267940e3b85376873fc3624684be4416d98c244ddcfc25ce1af63",
-      "bytes": 444938,
+      "sha256": "763e2ad61cd1d0824c240b8af481efb23b01c327058ae9131ee868ab8f1a5361",
+      "bytes": 444944,
       "group": "vectors/cairo/official"
     },
     {
@@ -3010,8 +3010,8 @@
     },
     {
       "path": "vectors/riscv/fixtures/rv64-validation-fixtures.json",
-      "sha256": "50287d61a8ec69ac1e74009d79153e7405ebac96d17ce5e9c70f212939b1b50b",
-      "bytes": 77776,
+      "sha256": "eee035e9af58f8bb0060ef8ba290c02e12f092287588e3f409b3ee9a29adde7e",
+      "bytes": 92911,
       "group": "vectors/riscv/fixtures"
     },
     {
@@ -3288,12 +3288,6 @@
       "path": "vectors/riscv/rv64/m3-basket/summary.json",
       "sha256": "3d724044839c7caca66935d879354f21be0dda2828fb92c4d815061e8d0b1845",
       "bytes": 19861,
-      "group": "vectors/riscv/rv64"
-    },
-    {
-      "path": "vectors/riscv/rv64/qualification-csp-full-parallel.json",
-      "sha256": "c357daf368a0eb56a30368adf50887558676375ccd29bd7c2e7f96b54f1700d0",
-      "bytes": 35664,
       "group": "vectors/riscv/rv64"
     },
     {

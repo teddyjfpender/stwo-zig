@@ -848,6 +848,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "The existing ReleaseFast CLI build remains first; unchanged proof production, fresh verification and trace commands precede independent Debug/profile diagnostics. Preserve every exact command, check and fail-fast result. Discovery test pins this ownership order; no gate is skipped or reclassified."
+    },
+    {
+      "id": "reviewed_vector_index_metadata_reconciliation",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Reconcile two already-reviewed file metadata rows, one retired unconsumed receipt row and stale retirement group counts. Preserve all fixture bytes, proof pins and exact retained hashes. Verify the complete manifest and hierarchical census and archived receipt bytes; no generator or GPU execution."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
