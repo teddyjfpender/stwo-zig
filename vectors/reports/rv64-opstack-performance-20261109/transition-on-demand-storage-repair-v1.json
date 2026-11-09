@@ -1,0 +1,74 @@
+{
+  "schema": "op-on-demand-storage-repair-qualification-v1",
+  "actual_native_repairs": [
+    {
+      "target": "6138431d0ea02026f1f9e5256ef6a187f9b8c097c91124d1cb637e5ba534038a",
+      "block_hash": "3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+      "state_root": "7e77c23c053933fd100f7a5fd28de93d854c1c10d8e0ededbfb0b3a9681900a2",
+      "helper_sha256": "e5f6fc528e5c8f99d499a4909e3ccfc3cf5b43efc78970d9b7927f3ef9fbfa3c",
+      "attempt": 1,
+      "limit": 8,
+      "status": "verified",
+      "address": "0x8f6a9ea8304fe2c16a6a11f31aba71f2c526cfd9",
+      "prefix": "50282",
+      "slot": "00000000000000000000000000000000000000000000000000000000000a6b2f",
+      "search_attempts": 682800,
+      "verified_nodes": 15,
+      "proof_sha256": "16fa315557bfcc27c532100a30d97a32ec03f3fe7b1b8828f7c45c9d155dadcb",
+      "records_sha256": "37c1845f9931ea393bcd32f37a9a950ac8eb74d2b0acb515571064f924af1060"
+    },
+    {
+      "target": "5c927441f63ba972fbe9ec5f212961ee9f1e16a58ae492c15b86639bb6017701",
+      "block_hash": "3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+      "state_root": "7e77c23c053933fd100f7a5fd28de93d854c1c10d8e0ededbfb0b3a9681900a2",
+      "helper_sha256": "e5f6fc528e5c8f99d499a4909e3ccfc3cf5b43efc78970d9b7927f3ef9fbfa3c",
+      "attempt": 2,
+      "limit": 8,
+      "status": "verified",
+      "address": "0x4857db576ee0e45f10525ec59527bfd10beec60b",
+      "prefix": "97db7",
+      "slot": "00000000000000000000000000000000000000000000000000000000000c026a",
+      "search_attempts": 787051,
+      "verified_nodes": 15,
+      "proof_sha256": "e9833adad38967dfbd1574faa0b7793006e3c7d707d327fb1d075505dd73c070",
+      "records_sha256": "dbf27cec8a9eb398c4a4976ff09e15684aa10a23547d82f5b9a52516724d7b6e"
+    }
+  ],
+  "subsequent_refusal": {
+    "target": "5a97201c371439f5412d2ff157dfba7fcc78c8f4cf9769f01e66c2ec47321c0a",
+    "block_hash": "3635b3687b9098244a390e6c1f02e9c15eb5e6167e2a5e878ba4777183bfe4b0",
+    "state_root": "7e77c23c053933fd100f7a5fd28de93d854c1c10d8e0ededbfb0b3a9681900a2",
+    "helper_sha256": "e5f6fc528e5c8f99d499a4909e3ccfc3cf5b43efc78970d9b7927f3ef9fbfa3c",
+    "attempt": 3,
+    "limit": 8,
+    "status": "failed",
+    "error_type": "ValueError",
+    "reason": "7-nibble prefix exceeds original24bit search geometry"
+  },
+  "capture_acceptance": false,
+  "engineering_followups_fixed": {
+    "repair_journals_use_sibling_directory": true,
+    "isolated_import_preflight_before_kv_copy": true,
+    "seven_nibble_supported_without_raising_global_search_caps": true,
+    "native_search_threads": {
+      "default": 4,
+      "maximum": 8,
+      "global_candidate_cap": 268435456,
+      "wall_cap_seconds": 60
+    }
+  },
+  "limits": {
+    "native_seconds": 180,
+    "repairs": 8,
+    "aggregate_proof_record_journal_bytes": 16777216,
+    "decoded_KV_bytes": 67108864,
+    "allocated_KV_bytes": 4294967296
+  },
+  "focused_python_tests": 53,
+  "native_helper_independent_checks": 9,
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false,
+  "guest_executed": false,
+  "security_qualified": false
+}

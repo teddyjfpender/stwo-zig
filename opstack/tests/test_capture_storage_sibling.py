@@ -20,7 +20,7 @@ class StorageSibling(unittest.TestCase):
     def test_slot_search_is_genuine_keccak_and_bounded(self):
         slot,n=R.find_slot('b3',seconds=1,limit=4096)
         self.assertTrue(C.keccak(slot).hex().startswith('b3'));self.assertEqual(int.from_bytes(slot,'big')+1,n)
-        for prefix in('g','1234567'):
+        for prefix in('g','12345678'):
             with self.assertRaises(ValueError):R.find_slot(prefix)
         with self.assertRaises(ValueError):R.find_slot('',seconds=61)
         with self.assertRaisesRegex(ValueError,'exhausted'):R.find_slot('ffffff',seconds=1,limit=1)
@@ -34,3 +34,28 @@ class StorageSibling(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Keccak'):R.helper_slot(helper,wrong,1)
             helper.write_text('#!/bin/sh\necho \'{"candidate":268435456,"attempts":268435457}\'\n')
             with self.assertRaisesRegex(ValueError,'bounds'):R.helper_slot(helper,actual,1)
+
+    def test_on_demand_requires_exact_node_and_bounded_failure_ledger(self):
+        import sys,time,types,zlib
+        sys.path.insert(0,str(Path(__file__).parents[1]))
+        from capture_host.storage_repair import Repair
+        adapter=R.A.Adapter('https://example.invalid')
+        target=C.keccak(b'wanted')
+        adapter.storage_repair=lambda key:{C.keccak(b'other'):b'other'}
+        with self.assertRaisesRegex(ValueError,'omitted'):adapter.dispatch('debug_dbGet',['0x'+target.hex()])
+        self.assertFalse(adapter.records)
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory);header=base/'header';helper=base/'helper';helper.write_bytes(b'unused')
+            header.write_bytes(C.rlp([b'']*15))
+            stub=types.SimpleNamespace(deadline=time.monotonic()+1,code_proofs={})
+            repair=Repair(stub,base,header,helper,base/'repairs',limit=1)
+            with self.assertRaisesRegex(ValueError,'known storage owner'):repair(target)
+            self.assertTrue((base/'repairs/1/failure.json').exists())
+            with self.assertRaisesRegex(ValueError,'count'):repair(C.keccak(b'second'))
+            with self.assertRaisesRegex(ValueError,'count cap'):Repair(stub,base,header,helper,base/'r',limit=9)
+
+    def test_repair_import_isolated_from_test_search_path(self):
+        import subprocess,sys
+        source=str(Path(__file__).resolve().parents[1])
+        result=subprocess.run([sys.executable,'-I','-c',f'import sys;sys.path.insert(0,{source!r});from capture_host.storage_repair import Repair'],capture_output=True,timeout=5)
+        self.assertEqual(result.returncode,0,result.stderr.decode())

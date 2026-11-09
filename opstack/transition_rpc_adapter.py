@@ -219,6 +219,7 @@ class Adapter:
         self.code_proofs = {}
         self.code_proof_bytes = 0
         self.missing_preimages = {}
+        self.storage_repair = None
         self.method_counts = {}
         self.failures = []
         self.failure_count = 0
@@ -436,6 +437,11 @@ class Adapter:
                 raise ValueError("invalid database key")
             if key in self.records:
                 return "0x" + self.records[key].hex()
+            if key not in self.code_accounts and self.storage_repair is not None:
+                repaired=self.storage_repair(key)
+                if key not in repaired:raise ValueError('repair omitted requested node')
+                self.retain(repaired)
+                return '0x'+self.records[key].hex()
             if key not in self.code_accounts:
                 if key.hex() in self.missing_preimages or len(self.missing_preimages) < 256:
                     self.missing_preimages[key.hex()] = self.missing_preimages.get(key.hex(), 0) + 1
@@ -544,6 +550,10 @@ def main():
     signal.signal(signal.SIGTERM, stop)
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--rpc", required=True)
+    p.add_argument("--storage-repair-kv",type=Path)
+    p.add_argument("--storage-repair-header",type=Path)
+    p.add_argument("--storage-repair-helper",type=Path)
+    p.add_argument("--deadline-monotonic",type=float)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--block", help="fetch/authenticate raw header+receipts once instead of serving")
     p.add_argument("--port", type=int, default=18545)
@@ -562,6 +572,15 @@ def main():
     adapter = Adapter(a.rpc, header_window=a.header_window, transport_cache=a.transport_cache, cache_claim=a.cache_claim, code_provenance=a.code_provenance, provenance_block=a.provenance_block, pooled_rpc=a.pooled_rpc, rpc_min_interval=a.rpc_min_interval_seconds)
     import time
     adapter.deadline = time.monotonic() + a.seconds
+    if a.deadline_monotonic is not None:
+        import math
+        if not math.isfinite(a.deadline_monotonic):raise ValueError('invalid shared deadline')
+        adapter.deadline=min(adapter.deadline,a.deadline_monotonic)
+    repair_args=(a.storage_repair_kv,a.storage_repair_header,a.storage_repair_helper)
+    if any(repair_args):
+        if not all(repair_args):raise ValueError('all storage repair inputs required')
+        from capture_host.storage_repair import Repair
+        adapter.storage_repair=Repair(adapter,*repair_args,a.output.with_name(a.output.name+'-storage-repairs'))
     try:
         if a.block:
             adapter.dispatch("debug_getRawHeader", [a.block])

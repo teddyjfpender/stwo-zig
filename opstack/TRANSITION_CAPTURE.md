@@ -418,7 +418,7 @@ For a missing storage trie node (including deletion siblings),
 `capture_host/recover_storage_sibling.py` takes the pinned prior `--header`,
 reauthenticated account `--provenance`, the contract `--address`, `--target` node
 hash and retained `--kv`. It finds the exact subtree prefix by traversing cached
-nodes from that authenticated storage root. For prefixes up to 24 bits, it searches
+nodes from that authenticated storage root. For prefixes up to 28 bits, it searches
 at most 2^26 numeric slots / 60 seconds for a genuine Keccak key entering that
 subtree, then sends one standard `eth_getProof` query. Inclusion or absence is
 verified normally; the exact requested node must occur in the verified proof.
@@ -432,3 +432,16 @@ limited to 2^28 candidates / 60 seconds. Its result is untrusted advice: Python
 checks the numeric bounds and independently hashes the resulting 32-byte slot
 with Keccak before making the one standard proof query. Helper executable hashes
 enter the recovery receipt; the ordinary Python path remains available.
+
+For a resumed capture, `capture_host/run.py --storage-repair-helper PATH` enables
+this exact repair only for the L2 adapter. It shares the parent's absolute
+180-second native deadline, limits helper time to the remaining budget (maximum
+60 seconds), and permits at most eight missing-node attempts plus 16 MiB of repair
+proof/record journals. Every successful or failed repair gets an immutable entry.
+Unknown owners, nonreachable paths, unqualified proofs and exceeded limits refuse;
+only exact verified nodes may answer `debug_dbGet`. The default adapter retains
+its explicit unsupported-node behavior.
+The native search helper defaults to four CPU threads (optional third argument
+selects 1–8); counter chunks are disjoint, and 2^28 is the total across all threads.
+Previously retained candidate slots should be checked first. An exhausted search
+is an explicit recovery limit, never evidence that the requested state is absent.

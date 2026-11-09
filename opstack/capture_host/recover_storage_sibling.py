@@ -15,7 +15,7 @@ import time
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import transition_capture as C
 import transition_rpc_adapter as A
-from cache_refresh import read_hash
+from capture_host.cache_refresh import read_hash
 
 
 def missing_path(kv,root,target):
@@ -42,12 +42,12 @@ def missing_path(kv,root,target):
         else:raise ValueError('storage node framing')
     walk(root,[])
     if len(found)!=1:raise ValueError('missing node must have one authenticated reachable path')
-    if len(found[0])>6:raise ValueError('search prefix exceeds24bit cap')
+    if len(found[0])>7:raise ValueError('search prefix exceeds28bit cap')
     return ''.join(format(n,'x')for n in found[0])
 
 
 def find_slot(prefix,seconds=60,start=0,limit=1<<26):
-    if not isinstance(prefix,str)or any(c not in'0123456789abcdef'for c in prefix)or len(prefix)>6:raise ValueError('bounded slot prefix')
+    if not isinstance(prefix,str)or any(c not in'0123456789abcdef'for c in prefix)or len(prefix)>7:raise ValueError('bounded slot prefix')
     if not 0<seconds<=60 or not 0<=start<1<<64 or not 0<limit<=1<<26 or start+limit>1<<64:raise ValueError('slot search bounds')
     deadline=time.monotonic()+seconds
     # Integer mask avoids hexadecimal allocation on every candidate.
@@ -60,11 +60,11 @@ def find_slot(prefix,seconds=60,start=0,limit=1<<26):
 
 
 def helper_slot(helper,prefix,seconds):
-    if not 1<=seconds<=60 or not 1<=len(prefix)<=6 or any(c not in'0123456789abcdef'for c in prefix):raise ValueError('bounded helper search')
+    if not 1<=seconds<=60 or not 1<=len(prefix)<=7 or any(c not in'0123456789abcdef'for c in prefix):raise ValueError('bounded helper search')
     completed=subprocess.run([str(helper),prefix,str(seconds)],capture_output=True,timeout=seconds+1,env={'PATH':'/usr/bin:/bin'})
     if completed.returncode!=0 or len(completed.stdout)>4096:raise ValueError('bounded native slot search failed')
     result=json.loads(completed.stdout);candidate=result['candidate'];attempts=result['attempts']
-    if type(candidate)is not int or not 0<=candidate<1<<28 or attempts!=candidate+1:raise ValueError('native slot advice bounds')
+    if type(candidate)is not int or not 0<=candidate<1<<28 or type(attempts)is not int or not 1<=attempts<=1<<28:raise ValueError('native slot advice bounds')
     slot=candidate.to_bytes(32,'big')
     if not C.keccak(slot).hex().startswith(prefix):raise ValueError('native slot advice independent Keccak mismatch')
     return slot,attempts
