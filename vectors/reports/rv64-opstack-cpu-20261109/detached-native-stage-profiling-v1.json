@@ -47,7 +47,159 @@
         "trace_decommit": 0.369208,
         "constraint_check_and_assembly": 0.002294
       },
-      "process_peak_RSS_observed_bytes": 3220717568
+      "process_peak_RSS_observed_bytes": 3220717568,
+      "process_usage_summed_by_stage_id": {
+        "source_construction": {
+          "user_seconds": 0.332512,
+          "system_seconds": 0.062269,
+          "minor_faults": 30219,
+          "major_faults": 0
+        },
+        "stage_one_seal": {
+          "user_seconds": 35.382014,
+          "system_seconds": 0.537389,
+          "minor_faults": 265428,
+          "major_faults": 0
+        },
+        "streaming_commit_prepare": {
+          "user_seconds": 1.460239,
+          "system_seconds": 0.16011400000000003,
+          "minor_faults": 153583,
+          "major_faults": 0
+        },
+        "streaming_transform": {
+          "user_seconds": 1.4437600000000002,
+          "system_seconds": 0.138647,
+          "minor_faults": 123581,
+          "major_faults": 0
+        },
+        "interpolate_columns": {
+          "user_seconds": 0.27330999999999994,
+          "system_seconds": 0.009433999999999998,
+          "minor_faults": 965,
+          "major_faults": 0
+        },
+        "evaluate_extended_domain": {
+          "user_seconds": 1.1703489999999999,
+          "system_seconds": 0.128782,
+          "minor_faults": 122616,
+          "major_faults": 0
+        },
+        "merkle_commit": {
+          "user_seconds": 47.751744,
+          "system_seconds": 0.313315,
+          "minor_faults": 50555,
+          "major_faults": 0
+        },
+        "local_gkr": {
+          "user_seconds": 8.299291,
+          "system_seconds": 0.291252,
+          "minor_faults": 154146,
+          "major_faults": 0
+        },
+        "retained_main_park": {
+          "user_seconds": 0.100189,
+          "system_seconds": 0.023444,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "retained_main_restore": {
+          "user_seconds": 0.099084,
+          "system_seconds": 0.006733,
+          "minor_faults": 17795,
+          "major_faults": 0
+        },
+        "stage_two_prove": {
+          "user_seconds": 38.930868,
+          "system_seconds": 0.745211,
+          "minor_faults": 359700,
+          "major_faults": 0
+        },
+        "interaction_generation": {
+          "user_seconds": 1.384297,
+          "system_seconds": 0.057185,
+          "minor_faults": 13869,
+          "major_faults": 0
+        },
+        "draw_random_coeff": {
+          "user_seconds": 2e-06,
+          "system_seconds": 2e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "composition_trace_extract": {
+          "user_seconds": 9e-06,
+          "system_seconds": 9e-06,
+          "minor_faults": 14,
+          "major_faults": 0
+        },
+        "composition_evaluation": {
+          "user_seconds": 2.975808,
+          "system_seconds": 0.100839,
+          "minor_faults": 76320,
+          "major_faults": 0
+        },
+        "composition_interpolate_and_split": {
+          "user_seconds": 0.043864,
+          "system_seconds": 0.001334,
+          "minor_faults": 10,
+          "major_faults": 0
+        },
+        "composition_commit": {
+          "user_seconds": 6.112734,
+          "system_seconds": 0.060819,
+          "minor_faults": 38957,
+          "major_faults": 0
+        },
+        "oods_point_and_mask_points": {
+          "user_seconds": 0.000109,
+          "system_seconds": 3.1e-05,
+          "minor_faults": 20,
+          "major_faults": 0
+        },
+        "sampled_value_evaluation": {
+          "user_seconds": 0.403926,
+          "system_seconds": 0.003757,
+          "minor_faults": 22,
+          "major_faults": 0
+        },
+        "sampled_value_channel_mix": {
+          "user_seconds": 0.00207,
+          "system_seconds": 7.7e-05,
+          "minor_faults": 7,
+          "major_faults": 0
+        },
+        "fri_quotient_build_and_commit": {
+          "user_seconds": 4.903129,
+          "system_seconds": 0.218907,
+          "minor_faults": 114890,
+          "major_faults": 0
+        },
+        "proof_of_work": {
+          "user_seconds": 3e-06,
+          "system_seconds": 2e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "fri_decommit": {
+          "user_seconds": 0.1447,
+          "system_seconds": 0.011069,
+          "minor_faults": 8796,
+          "major_faults": 0
+        },
+        "trace_decommit": {
+          "user_seconds": 0.820683,
+          "system_seconds": 0.052667,
+          "minor_faults": 12761,
+          "major_faults": 0
+        },
+        "constraint_check_and_assembly": {
+          "user_seconds": 0.002218,
+          "system_seconds": 7.1e-05,
+          "minor_faults": 7,
+          "major_faults": 0
+        }
+      }
     },
     "detached_sponge": {
       "stage_seconds": {
@@ -77,7 +229,159 @@
         "trace_decommit": 0.006071,
         "constraint_check_and_assembly": 0.000524
       },
-      "process_peak_RSS_observed_bytes": 3220717568
+      "process_peak_RSS_observed_bytes": 3220717568,
+      "process_usage_summed_by_stage_id": {
+        "source_construction": {
+          "user_seconds": 0.006685,
+          "system_seconds": 0.000254,
+          "minor_faults": 427,
+          "major_faults": 0
+        },
+        "stage_one_seal": {
+          "user_seconds": 0.487603,
+          "system_seconds": 0.021424,
+          "minor_faults": 6027,
+          "major_faults": 0
+        },
+        "streaming_commit_prepare": {
+          "user_seconds": 0.046702,
+          "system_seconds": 0.007729999999999999,
+          "minor_faults": 6118,
+          "major_faults": 0
+        },
+        "streaming_transform": {
+          "user_seconds": 0.046164,
+          "system_seconds": 0.007042,
+          "minor_faults": 5126,
+          "major_faults": 0
+        },
+        "interpolate_columns": {
+          "user_seconds": 0.009204,
+          "system_seconds": 0.001329,
+          "minor_faults": 125,
+          "major_faults": 0
+        },
+        "evaluate_extended_domain": {
+          "user_seconds": 0.036943000000000004,
+          "system_seconds": 0.005651,
+          "minor_faults": 5001,
+          "major_faults": 0
+        },
+        "merkle_commit": {
+          "user_seconds": 1.138529,
+          "system_seconds": 0.037753999999999996,
+          "minor_faults": 7489,
+          "major_faults": 0
+        },
+        "retained_main_park": {
+          "user_seconds": 0.008903,
+          "system_seconds": 0.002775,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "retained_main_restore": {
+          "user_seconds": 0.00911,
+          "system_seconds": 0.000581,
+          "minor_faults": 1576,
+          "major_faults": 0
+        },
+        "stage_two_prove": {
+          "user_seconds": 1.955755,
+          "system_seconds": 0.075099,
+          "minor_faults": 31715,
+          "major_faults": 0
+        },
+        "local_gkr": {
+          "user_seconds": 0.363766,
+          "system_seconds": 0.014169,
+          "minor_faults": 6415,
+          "major_faults": 0
+        },
+        "interaction_generation": {
+          "user_seconds": 0.106746,
+          "system_seconds": 0.002784,
+          "minor_faults": 818,
+          "major_faults": 0
+        },
+        "draw_random_coeff": {
+          "user_seconds": 1e-06,
+          "system_seconds": 2e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "composition_trace_extract": {
+          "user_seconds": 2e-06,
+          "system_seconds": 2e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "composition_evaluation": {
+          "user_seconds": 0.112471,
+          "system_seconds": 0.006841,
+          "minor_faults": 3906,
+          "major_faults": 0
+        },
+        "composition_interpolate_and_split": {
+          "user_seconds": 0.002286,
+          "system_seconds": 0.000116,
+          "minor_faults": 7,
+          "major_faults": 0
+        },
+        "composition_commit": {
+          "user_seconds": 0.372455,
+          "system_seconds": 0.00363,
+          "minor_faults": 2470,
+          "major_faults": 0
+        },
+        "oods_point_and_mask_points": {
+          "user_seconds": 7.4e-05,
+          "system_seconds": 2e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "sampled_value_evaluation": {
+          "user_seconds": 0.016823,
+          "system_seconds": 0.000711,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "sampled_value_channel_mix": {
+          "user_seconds": 0.000484,
+          "system_seconds": 1e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "fri_quotient_build_and_commit": {
+          "user_seconds": 0.252652,
+          "system_seconds": 0.017118,
+          "minor_faults": 9059,
+          "major_faults": 0
+        },
+        "proof_of_work": {
+          "user_seconds": 2e-06,
+          "system_seconds": 2e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "fri_decommit": {
+          "user_seconds": 0.009707,
+          "system_seconds": 0.001191,
+          "minor_faults": 550,
+          "major_faults": 0
+        },
+        "trace_decommit": {
+          "user_seconds": 0.019484,
+          "system_seconds": 0.002879,
+          "minor_faults": 724,
+          "major_faults": 0
+        },
+        "constraint_check_and_assembly": {
+          "user_seconds": 0.000518,
+          "system_seconds": 3e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        }
+      }
     },
     "local_keccak": {
       "stage_seconds": {
@@ -107,7 +411,159 @@
         "trace_decommit": 0.007705,
         "constraint_check_and_assembly": 0.001293
       },
-      "process_peak_RSS_observed_bytes": 3220717568
+      "process_peak_RSS_observed_bytes": 3220717568,
+      "process_usage_summed_by_stage_id": {
+        "source_construction": {
+          "user_seconds": 0.119234,
+          "system_seconds": 0.087829,
+          "minor_faults": 15616,
+          "major_faults": 0
+        },
+        "stage_one_seal": {
+          "user_seconds": 2.042427,
+          "system_seconds": 0.032306,
+          "minor_faults": 20471,
+          "major_faults": 0
+        },
+        "streaming_commit_prepare": {
+          "user_seconds": 0.148004,
+          "system_seconds": 0.028237,
+          "minor_faults": 22235,
+          "major_faults": 0
+        },
+        "streaming_transform": {
+          "user_seconds": 0.14577299999999999,
+          "system_seconds": 0.025557999999999997,
+          "minor_faults": 18633,
+          "major_faults": 0
+        },
+        "interpolate_columns": {
+          "user_seconds": 0.028303000000000005,
+          "system_seconds": 0.003439,
+          "minor_faults": 248,
+          "major_faults": 0
+        },
+        "evaluate_extended_domain": {
+          "user_seconds": 0.11740900000000003,
+          "system_seconds": 0.021598000000000006,
+          "minor_faults": 18383,
+          "major_faults": 0
+        },
+        "merkle_commit": {
+          "user_seconds": 2.174771,
+          "system_seconds": 0.013312999999999998,
+          "minor_faults": 933,
+          "major_faults": 0
+        },
+        "retained_main_park": {
+          "user_seconds": 0.02325,
+          "system_seconds": 0.006418,
+          "minor_faults": 3,
+          "major_faults": 0
+        },
+        "retained_main_restore": {
+          "user_seconds": 0.023098,
+          "system_seconds": 0.00144,
+          "minor_faults": 3993,
+          "major_faults": 0
+        },
+        "stage_two_prove": {
+          "user_seconds": 7.463226,
+          "system_seconds": 0.251529,
+          "minor_faults": 124001,
+          "major_faults": 0
+        },
+        "truth_local_gkr": {
+          "user_seconds": 3.838326,
+          "system_seconds": 0.218457,
+          "minor_faults": 109192,
+          "major_faults": 0
+        },
+        "interaction_generation": {
+          "user_seconds": 0.8094,
+          "system_seconds": 0.004139,
+          "minor_faults": 1369,
+          "major_faults": 0
+        },
+        "draw_random_coeff": {
+          "user_seconds": 1e-06,
+          "system_seconds": 2e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "composition_trace_extract": {
+          "user_seconds": 7e-06,
+          "system_seconds": 7e-06,
+          "minor_faults": 12,
+          "major_faults": 0
+        },
+        "composition_evaluation": {
+          "user_seconds": 2.138823,
+          "system_seconds": 0.012544,
+          "minor_faults": 8278,
+          "major_faults": 0
+        },
+        "composition_interpolate_and_split": {
+          "user_seconds": 0.000475,
+          "system_seconds": 0.000132,
+          "minor_faults": 7,
+          "major_faults": 0
+        },
+        "composition_commit": {
+          "user_seconds": 0.058121,
+          "system_seconds": 0.000961,
+          "minor_faults": 510,
+          "major_faults": 0
+        },
+        "oods_point_and_mask_points": {
+          "user_seconds": 0.000693,
+          "system_seconds": 8.5e-05,
+          "minor_faults": 13,
+          "major_faults": 0
+        },
+        "sampled_value_evaluation": {
+          "user_seconds": 0.137146,
+          "system_seconds": 0.000622,
+          "minor_faults": 39,
+          "major_faults": 0
+        },
+        "sampled_value_channel_mix": {
+          "user_seconds": 0.005802,
+          "system_seconds": 2.6e-05,
+          "minor_faults": 18,
+          "major_faults": 0
+        },
+        "fri_quotient_build_and_commit": {
+          "user_seconds": 0.138394,
+          "system_seconds": 0.002178,
+          "minor_faults": 1299,
+          "major_faults": 0
+        },
+        "proof_of_work": {
+          "user_seconds": 2e-06,
+          "system_seconds": 2e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "fri_decommit": {
+          "user_seconds": 0.001515,
+          "system_seconds": 0.000102,
+          "minor_faults": 22,
+          "major_faults": 0
+        },
+        "trace_decommit": {
+          "user_seconds": 0.051979,
+          "system_seconds": 0.000755,
+          "minor_faults": 218,
+          "major_faults": 0
+        },
+        "constraint_check_and_assembly": {
+          "user_seconds": 0.001251,
+          "system_seconds": 3.9e-05,
+          "minor_faults": 9,
+          "major_faults": 0
+        }
+      }
     },
     "classic_sha": {
       "stage_seconds": {
@@ -136,7 +592,153 @@
         "trace_decommit": 0.002354,
         "constraint_check_and_assembly": 0.001792
       },
-      "process_peak_RSS_observed_bytes": 3220717568
+      "process_peak_RSS_observed_bytes": 3220717568,
+      "process_usage_summed_by_stage_id": {
+        "source_construction": {
+          "user_seconds": 0.001017,
+          "system_seconds": 0.000104,
+          "minor_faults": 124,
+          "major_faults": 0
+        },
+        "stage_one_seal": {
+          "user_seconds": 0.055868,
+          "system_seconds": 0.003433,
+          "minor_faults": 1006,
+          "major_faults": 0
+        },
+        "streaming_commit_prepare": {
+          "user_seconds": 0.0035300000000000054,
+          "system_seconds": 0.0030739999999999977,
+          "minor_faults": 921,
+          "major_faults": 0
+        },
+        "streaming_transform": {
+          "user_seconds": 0.003226999999999994,
+          "system_seconds": 0.0025589999999999996,
+          "minor_faults": 687,
+          "major_faults": 0
+        },
+        "interpolate_columns": {
+          "user_seconds": 0.0007040000000000007,
+          "system_seconds": 0.0008210000000000003,
+          "minor_faults": 175,
+          "major_faults": 0
+        },
+        "evaluate_extended_domain": {
+          "user_seconds": 0.0024020000000000014,
+          "system_seconds": 0.0013299999999999996,
+          "minor_faults": 511,
+          "major_faults": 0
+        },
+        "merkle_commit": {
+          "user_seconds": 0.052427,
+          "system_seconds": 0.000222,
+          "minor_faults": 61,
+          "major_faults": 0
+        },
+        "retained_main_park": {
+          "user_seconds": 0.009388,
+          "system_seconds": 0.003875,
+          "minor_faults": 11,
+          "major_faults": 0
+        },
+        "retained_main_restore": {
+          "user_seconds": 0.000765,
+          "system_seconds": 8.7e-05,
+          "minor_faults": 117,
+          "major_faults": 0
+        },
+        "stage_two_prove": {
+          "user_seconds": 0.024516,
+          "system_seconds": 0.004734,
+          "minor_faults": 2400,
+          "major_faults": 0
+        },
+        "interaction_generation": {
+          "user_seconds": 0.0006,
+          "system_seconds": 3.7e-05,
+          "minor_faults": 4,
+          "major_faults": 0
+        },
+        "draw_random_coeff": {
+          "user_seconds": 1e-06,
+          "system_seconds": 0.0,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "composition_trace_extract": {
+          "user_seconds": 2.3e-05,
+          "system_seconds": 2.9e-05,
+          "minor_faults": 44,
+          "major_faults": 0
+        },
+        "composition_evaluation": {
+          "user_seconds": 0.0042,
+          "system_seconds": 0.000405,
+          "minor_faults": 271,
+          "major_faults": 0
+        },
+        "composition_interpolate_and_split": {
+          "user_seconds": 2.3e-05,
+          "system_seconds": 0.000104,
+          "minor_faults": 7,
+          "major_faults": 0
+        },
+        "composition_commit": {
+          "user_seconds": 0.00038,
+          "system_seconds": 5e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "oods_point_and_mask_points": {
+          "user_seconds": 0.000235,
+          "system_seconds": 6.1e-05,
+          "minor_faults": 67,
+          "major_faults": 0
+        },
+        "sampled_value_evaluation": {
+          "user_seconds": 0.003432,
+          "system_seconds": 0.000105,
+          "minor_faults": 55,
+          "major_faults": 0
+        },
+        "sampled_value_channel_mix": {
+          "user_seconds": 0.005079,
+          "system_seconds": 1.2e-05,
+          "minor_faults": 15,
+          "major_faults": 0
+        },
+        "fri_quotient_build_and_commit": {
+          "user_seconds": 0.001924,
+          "system_seconds": 0.000365,
+          "minor_faults": 287,
+          "major_faults": 0
+        },
+        "proof_of_work": {
+          "user_seconds": 3e-06,
+          "system_seconds": 1e-06,
+          "minor_faults": 0,
+          "major_faults": 0
+        },
+        "fri_decommit": {
+          "user_seconds": 2.8e-05,
+          "system_seconds": 3e-06,
+          "minor_faults": 2,
+          "major_faults": 0
+        },
+        "trace_decommit": {
+          "user_seconds": 0.005275,
+          "system_seconds": 0.002825,
+          "minor_faults": 998,
+          "major_faults": 0
+        },
+        "constraint_check_and_assembly": {
+          "user_seconds": 0.00165,
+          "system_seconds": 0.000137,
+          "minor_faults": 17,
+          "major_faults": 0
+        }
+      }
     }
   },
   "checks": {
