@@ -100,3 +100,43 @@ test {
     // which roots a test artifact at the file itself.
     _ = @import("runner/sail_oracle.zig");
 }
+
+test "api signature: fixed primitive providers expose the approved canonical surface" {
+    const recovery = isa.secp256k1_recovery_memory_abi;
+    const node = air.memory_commitment.binary_node9;
+    const expected_recovery = .{
+        "schema_version",     "alignment",         "digest_offset",     "r_offset",          "s_offset",
+        "recovery_id_offset", "public_key_offset", "status_offset",     "record_size",       "digest_size",
+        "scalar_size",        "public_key_size",   "input_word_count",  "output_word_count", "memory_word_count",
+        "success_status",     "inputWordAddress",  "outputWordAddress", "wordFromBytes",     "bytesFromWord",
+    };
+    const expected_node = .{
+        "SCHEMA_VERSION",  "RATE",        "CAPACITY",              "DIGEST_WORDS",          "CALLS",               "DIGEST_COLUMN",
+        "N_MAIN_COLUMNS",  "N_SUMS",      "N_INTERACTION_COLUMNS", "N_LINK_CONSTRAINTS",    "N_CONSTRAINTS",       "Digest",
+        "Kind",            "DOMAIN",      "Row",                   "build",                 "providerCalls",       "liftRow",
+        "columns",         "fromColumns", "rowPairsGeneric",       "evaluateCallerGeneric", "generateInteraction", "evaluateGeneric",
+        "absorptionWords",
+    };
+    comptime {
+        for (expected_recovery) |name| if (!@hasDecl(recovery, name)) @compileError("recovery provider removed an approved member");
+        for (expected_node) |name| if (!@hasDecl(node, name)) @compileError("binary-node provider removed an approved member");
+        if (@typeInfo(recovery).@"struct".decls.len != expected_recovery.len) @compileError("recovery provider surface requires an RFC decision");
+        if (@typeInfo(node).@"struct".decls.len != expected_node.len) @compileError("binary-node provider surface requires an RFC decision");
+        if (recovery != @import("isa/secp256k1_recovery_memory_abi.zig")) @compileError("recovery provider duplicated its implementation");
+        if (node != @import("air/memory_commitment/binary_node9.zig")) @compileError("binary-node provider duplicated its implementation");
+    }
+}
+
+test "api invariant: fixed primitive providers preserve framing and rejection" {
+    const std = @import("std");
+    const recovery = isa.secp256k1_recovery_memory_abi;
+    const node = air.memory_commitment.binary_node9;
+    try std.testing.expectEqual(@as(u32, 168), recovery.record_size);
+    try std.testing.expectEqual(@as(u32, 1), recovery.success_status);
+    try std.testing.expectEqual(@as(u32, 0x20a4), recovery.outputWordAddress(0x2000, 16));
+    try std.testing.expectEqual(@as(u32, 0x4554_4e30), node.DOMAIN);
+    try std.testing.expectEqual(@as(usize, 4), node.CALLS);
+    const invalid: node.Digest = .{@import("stwo_core").fields.m31.Modulus} ** node.DIGEST_WORDS;
+    const zero: node.Digest = .{0} ** node.DIGEST_WORDS;
+    try std.testing.expectError(error.NonCanonicalDigest, node.build(.memory, 0, invalid, zero));
+}

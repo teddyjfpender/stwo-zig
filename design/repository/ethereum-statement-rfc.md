@@ -33,3 +33,11 @@ they do not perform Ethereum guest admission. No domain parameter, second
 implementation, new security claim or public provider surface is introduced.
 The retained node test directly imports its existing canonical permutation
 table instead of the upper infra-trace facade.
+
+The exact two primitive module providers are approved in RFC352 decision
+https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6750858196.
+Their complete existing twenty/twenty-five-name public surfaces are pinned by
+reachable signature tests, with framing/rejection invariants. This retains the
+node's existing inferred delegated error behavior; it adds no catch-all or
+claim of a new finite error set. The frontend major version is staged as1.0.0
+for the same approved C4 transaction. Product API transfers remain unfinished.

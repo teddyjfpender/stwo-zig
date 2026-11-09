@@ -1,5 +1,7 @@
 //! Oracle-exact RISC-V ordinary RW-memory commitment construction.
 
+pub const binary_node9 = @import("binary_node9.zig");
+
 pub const boundary = @import("boundary.zig");
 pub const hash_component = @import("hash_component.zig");
 pub const hash_runtime_program = @import("hash_runtime_program.zig");
