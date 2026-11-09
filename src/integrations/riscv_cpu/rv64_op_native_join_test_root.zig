@@ -1,4 +1,5 @@
 test {
+    _ = @import("poseidon2_outer/pure_p2_truth_local_runtime_test.zig");
     _ = @import("poseidon2_outer/pure_p2_setup_cache_heavy_test.zig");
     _ = @import("poseidon2_outer/pure_p2_setup_cache_test.zig");
     _ = @import("poseidon2_outer/pure_p2_op_hooks_test.zig");

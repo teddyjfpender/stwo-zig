@@ -1,0 +1,111 @@
+{
+  "schema": "op-native-schema2-truth-local-join/v1",
+  "status": "qualified-real-native-functional-closure-and-adversarial-framing",
+  "production_admitted": false,
+  "security": "128-bit target under documented assumptions; additive schema2 source-security review pending",
+  "block": 120794432,
+  "instructions": 796406,
+  "cpu_workers": 1,
+  "local_truth": {
+    "kind": "Keccak",
+    "calls": 338,
+    "honest_coefficient_encoding": "fixed4",
+    "manifest_entry_local": null,
+    "global_claims": 2,
+    "receipt_framing": "inside native worker envelope after manifest"
+  },
+  "classic_truth": {
+    "kind": "SHA256",
+    "calls": 34
+  },
+  "all_native_proofs_regenerated_under_new_manifest": true,
+  "native_bytes": 5317432,
+  "native_sha256": "c18d85864cead50203bc0354f86c91048ec29dd7750add7d2651fc2d2967abbf",
+  "classic_control_bytes": 7048980,
+  "fresh_receiver_accepted": true,
+  "global_closure": [
+    "RAM",
+    "KIO",
+    "Wire"
+  ],
+  "pinned_terminal_output_bytes": 43,
+  "typed_callbacks": {
+    "cpu": 1,
+    "classic_SHA": 1,
+    "local_Keccak": 1,
+    "complete_after_global_and_terminal_checks": true
+  },
+  "controls": {
+    "schema2_rejected_by_default_classic_receiver": true,
+    "schema1_rejected_by_explicit_schema2_receiver": true,
+    "duplicated_global_claim_mismatch_rejected": "OpTruthLocalClaimEnvelope",
+    "last_receipt_byte_flip_rejected": "LocalGkrReceiptMismatch",
+    "classic_CPU_native_proof_substituted_into_new_manifest_rejected": true,
+    "final_common_heap_bytes": 0,
+    "final_common_external_bytes": 0
+  },
+  "timing": {
+    "schema": "op-pure-p2-native-block/v1",
+    "complete": true,
+    "steps": 796406,
+    "cpu": 1,
+    "truth": 2,
+    "miller": 0,
+    "native_bytes": 5317432,
+    "image_ns": 360400417,
+    "program_ns": 264233083,
+    "capture_ns": 97216583,
+    "setup_and_admission_ns": 3083568125,
+    "setup_heap": {
+      "live_bytes": 918706961,
+      "peak_live_bytes": 2374677133,
+      "host_live_bytes": 918706961,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 2374677133,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    },
+    "immutable_fixed_classes": 1,
+    "immutable_fixed_cache": null,
+    "immutable_fixed_disk_bytes": 181469184,
+    "peak_parked_mapping_bytes": 475365376,
+    "runtime_heap": {
+      "live_bytes": 850583161,
+      "peak_live_bytes": 2962540163,
+      "host_live_bytes": 850583161,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 2687280103,
+      "peak_external_bytes": 475365376,
+      "limit": 34359738368,
+      "exceeded": false
+    },
+    "planned_combined_disk_upper_bytes": 1144343020,
+    "seal_and_park_ns": 5360167792,
+    "manifest_ns": 20750000,
+    "stage_two_prove_ns": 8594350083,
+    "prove_ns": 13975405667,
+    "publish_payload_ns": 7056375,
+    "total_before_receipt_ns": 17787880417,
+    "production_admitted": false
+  },
+  "fresh_receiver_observed": {
+    "image_ns": 367454708,
+    "program_ns": 149539000,
+    "setup_and_decode_ns": 3145008292,
+    "native_verify_ns": 1100222583,
+    "total_ns": 4762224625
+  },
+  "timing_caveat": "Functional qualification with other engineering active. This establishes complete native acceptance and smaller proof bytes, not a controlled native prover speedup. No recursive time is included.",
+  "artifacts": {
+    "root": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small-truth-local-v1",
+    "config": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small.config.json",
+    "raw_log": "/private/tmp/op-truth-local-actual-native.log"
+  },
+  "checks": [
+    "check-rv64-op-native ReleaseFast semantic pass",
+    "ReleaseFast filtered actual schema2 CPU+Keccak338+SHA gate exited0",
+    "independently reconstructed source keys/fresh native verification",
+    "four negative framing/policy classes plus old CPU proof substitution"
+  ]
+}
