@@ -9,10 +9,11 @@ use ark_ff::BigInt;
 pub(super) fn product(a: &Fq2, b: &Fq2) -> Fq2 {
     // The generic formulas win for scalar-only operands and preserve cheap zero
     // and unit products through the base-field shortcuts.
-    if (a.c1.0 .0[0] | a.c1.0 .0[1] | a.c1.0 .0[2] | a.c1.0 .0[3]) == 0
-        || (b.c1.0 .0[0] | b.c1.0 .0[1] | b.c1.0 .0[2] | b.c1.0 .0[3]) == 0
-    {
-        return Fq2::new(a.c0 * b.c0 - a.c1 * b.c1, a.c0 * b.c1 + a.c1 * b.c0);
+    if (a.c1.0 .0[0] | a.c1.0 .0[1] | a.c1.0 .0[2] | a.c1.0 .0[3]) == 0 {
+        return Fq2::new(a.c0 * b.c0, a.c0 * b.c1);
+    }
+    if (b.c1.0 .0[0] | b.c1.0 .0[1] | b.c1.0 .0[2] | b.c1.0 .0[3]) == 0 {
+        return Fq2::new(a.c0 * b.c0, a.c1 * b.c0);
     }
     product_full(a, b)
 }

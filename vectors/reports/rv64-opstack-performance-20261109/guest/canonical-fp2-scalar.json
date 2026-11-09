@@ -1,0 +1,85 @@
+{
+  "schema": "stwo.opstack.canonical-fp2-scalar-cut.v1",
+  "status": "native and independent execution qualified; OP proof admission unchanged",
+  "description": "Canonical Fp2 multiplication by a base-field scalar uses its two necessary base products directly. Avoid the redundant zero products and field add/sub that the previous generic fallback evaluated. The general full Fp2 service path and its tag/packet are unchanged.",
+  "baseline_instructions": 252009830,
+  "candidate_instructions": 247343716,
+  "instruction_savings": 4666114,
+  "text_bytes": 2540116,
+  "rom_log": 20,
+  "elf_sha256": "e1a3f65b51e4f570fb27cb74b4cbb9488a7663f05ced81482ad6508620a9d255",
+  "candidate_service_ram_word_transitions": 16807677,
+  "candidate_fp2_calls": 331163,
+  "candidate_arith256_calls": 33117,
+  "qualification": {
+    "canonical_differential": "128 deterministic full-width field samples; both scalar sides, zero/one/minus-one, standard Montgomery reference; field inverse/square/serialization tests retained",
+    "blocks": [
+      {
+        "block": 121065789,
+        "instructions": 247343716,
+        "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+        "native_unicorn_agreement": [
+          "exact steps",
+          "output",
+          "all32registers",
+          "terminalPC",
+          "all service counters"
+        ],
+        "whole_final_ram_snapshot_compared": false
+      },
+      {
+        "block": 120794432,
+        "instructions": 796409,
+        "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+        "native_unicorn_agreement": [
+          "exact steps",
+          "output",
+          "all32registers",
+          "terminalPC",
+          "all service counters"
+        ],
+        "whole_final_ram_snapshot_compared": false
+      },
+      {
+        "block": 121057303,
+        "instructions": 5926276,
+        "output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+        "native_unicorn_agreement": [
+          "exact steps",
+          "output",
+          "all32registers",
+          "terminalPC",
+          "all service counters"
+        ],
+        "whole_final_ram_snapshot_compared": false
+      }
+    ]
+  },
+  "sources": {
+    "op-kona-scalar-cut-heavy.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-scalar-cut-heavy.native.json",
+      "sha256": "5747dc677edead9fd179194822d7cc28c60f8192fc0ac53e11a7a2a7604fd9a4"
+    },
+    "op-kona-scalar-cut-121065789.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-scalar-cut-121065789.oracle.json",
+      "sha256": "aba14d1a090b417f4902f82cb89c7408718aa47d38f8d5a20fa479ae089e0144"
+    },
+    "op-kona-scalar-cut-120794432.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-scalar-cut-120794432.native.json",
+      "sha256": "97d7c68ddec82d6f45bddaebff9b026e3934ecb830649affc77030cb643fbcde"
+    },
+    "op-kona-scalar-cut-120794432.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-scalar-cut-120794432.oracle.json",
+      "sha256": "77f397e606ffba027e2a75628baffb84eaeb97c44f342faf4c36b8b5f68d4a1c"
+    },
+    "op-kona-scalar-cut-121057303.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-scalar-cut-121057303.native.json",
+      "sha256": "34883de99a2d2ea0ef77a73ab4bc9c2bf298e8149b0526ac00c0a321c05878cb"
+    },
+    "op-kona-scalar-cut-121057303.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-scalar-cut-121057303.oracle.json",
+      "sha256": "f26b19b6f8033a89dcefb9b9f7a947ff198acf7f40052a6cd933d3559c19a357"
+    }
+  },
+  "limitation": "Instruction and execution qualification only. Concurrent native runs provide no controlled proving timing; the new OP provider and cross-shard proof admission remain closed."
+}

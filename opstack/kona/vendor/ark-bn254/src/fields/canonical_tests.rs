@@ -79,5 +79,18 @@ fn canonical_constants_conversion_serialization_and_field_operations() {
         same2(c.square(), e.square());
         same2(c.inverse().unwrap(), e.inverse().unwrap());
         same2(c * Fq2::new(b, Fq::zero()), e * Ref2::new(y, Ref::zero()));
+        // Both scalar positions use the specialized two-product path.
+        same2(Fq2::new(b, Fq::zero()) * c, Ref2::new(y, Ref::zero()) * e);
+        for scalar in [Fq::zero(), Fq::ONE, -Fq::ONE] {
+            let reference = Ref::from_bigint(scalar.into_bigint()).unwrap();
+            same2(
+                c * Fq2::new(scalar, Fq::zero()),
+                e * Ref2::new(reference, Ref::zero()),
+            );
+            same2(
+                Fq2::new(scalar, Fq::zero()) * c,
+                Ref2::new(reference, Ref::zero()) * e,
+            );
+        }
     }
 }

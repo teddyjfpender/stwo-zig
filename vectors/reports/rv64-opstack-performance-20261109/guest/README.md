@@ -86,3 +86,16 @@ proving speedup.
 The rejected targeted Fp2 Add/Sub inlining experiment increased instructions
 by 599,008 and was reverted. The [Miller program design](../../../../design/riscv-proving-stack/op-bn254-miller-program.md)
 costs the next arithmetic boundary; it emits no new service.
+
+
+## Canonical Fp2 scalar arithmetic
+
+[Scalar-path qualification](canonical-fp2-scalar.json) specializes each
+scalar-only operand case to two necessary base-field products. The previous
+fallback evaluated redundant zero products and field add/sub scaffolding.
+General Fp2 service packets and all arithmetic service counts are unchanged.
+Heavy retirements fall **252,009,830 → 247,343,716** (another 1.85%) and text
+shrinks by 42,220 bytes, retaining ROM log 20. Canonical-field differential
+tests cover both scalar positions, zero, one and minus one against ordinary
+Montgomery arithmetic. Three real fixtures have exact native/Unicorn agreement.
+This is an execution saving, not a qualified proving-time speedup.
