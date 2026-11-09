@@ -421,3 +421,35 @@ standalone fresh root-only handoff. That separate receiver must reconstruct all
 source templates from bounded metadata without native PCS/GKR re-verification.
 Receipt:`pure-p2-real-small-root-v1.json`. Actual source-class counts will be
 obtained by trace-only reconstruction rather than re-running this long proof.
+
+### Source-only fresh handoff (engineering gate pending)
+
+`pure_p2_op_root_runtime` now has a distinct root-only path. It reads the pinned
+image, bounded native source declarations/public cells, a canonical root-facing
+metadata sidecar and a bounded GKR shape-template file. It never opens
+`native-op.bin` or re-verifies a native PCS/GKR proof. Every native PCS wire shape
+is reconstructed from source keys, with zero advice for trace-only construction.
+For local GKR, instance/layer/round/mask/output dimensions come from the trusted
+instance roster; the only shape advice is the original legal0..4 coefficient
+vector length for each source-derived round. The flat pattern is at most435bytes
+per CPU shard and enters the immutable leaf topology through the emitted graph.
+
+The polynomial producer's normalizing constructor and the native wire decoder
+must be distinguished. `gkr_local/wire.zig` deliberately preserves declared
+coefficient-vector lengths, including trailing zeros, because the transcript
+hashes the exact vector. Both the native kernel and circuit accept that same
+bounded representation. A direct native/circuit zero-polynomial sumcheck test
+checks declared length2, transcript challenge parity and coefficient mutation
+rejection. Fresh templates preserve the same lengths; they neither add rounds
+nor silently pad or trim messages.
+
+The reference coordinator now reuses each independently trace-derived immutable
+leaf/fold setup for assignment proving and captured verification. The earlier
+three leaf FIXED constructions are removed. Fresh root reception still derives
+its source authorities independently. Completed provisional nodes are synced
+with proof bytes, source identity, public output and stage profile. Final root,
+metadata and GKR templates are synced before a completion record. Acceptance
+always comes from the complete inventory and root verifier, never the marker.
+The opt-in physical gate requires an artifact directory; later positive and
+negative receiver checks reuse it. Standalone fresh handoff and this setup reuse
+remain physically unqualified until the next persisted complete-block run.

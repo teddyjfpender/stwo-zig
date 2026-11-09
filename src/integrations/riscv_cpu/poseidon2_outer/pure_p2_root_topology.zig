@@ -17,7 +17,13 @@ pub const SourceLeaf = struct {
     fn finish(a: std.mem.Allocator, profile: Profile, binding: Binding, produced: @import("context.zig").Context) !SourceLeaf {
         var trace = produced;
         defer trace.deinit();
-        return .{ .authority = try Authority.initForProfile(a, &trace, profile), .binding = binding };
+        var timer = try std.time.Timer.start();
+        var authority = try Authority.initForProfile(a, &trace, profile);
+        errdefer authority.deinit();
+        const json = try std.json.Stringify.valueAlloc(a, .{ .kind = @tagName(binding.kind), .ordinal = binding.ordinal, .raw = try trace.rawCounts(), .native_cells = try trace.census(false), .logs = authority.logs, .immutable_setup_ns = timer.read(), .source_identity = std.fmt.bytesToHex(authority.identity, .lower) }, .{});
+        defer a.free(json);
+        std.debug.print("OP_P2_SOURCE_CLASS {s}\n", .{json});
+        return .{ .authority = authority, .binding = binding };
     }
     pub fn initCpu(a: std.mem.Allocator, source: @import("pure_p2_cpu_leaf_test.zig").ShapeView) !SourceLeaf {
         _ = source.op_span orelse return error.OpRootRequiresOpCpuSource;
@@ -29,7 +35,15 @@ pub const SourceLeaf = struct {
         const shape = try @import("../rv64_recursion/om31_native/cpu_capture.zig").geometryForOp(arena.allocator(), source.setup, source.key.profile.config());
         var normalized = source;
         normalized.shape = &shape;
-        return finish(a, source.key.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .cpu }, try normalized.build(a, true, null));
+        var phases: @import("pure_p2_cpu_leaf_test.zig").CompleteCounts = .{};
+        var trace = try normalized.build(a, true, &phases);
+        const json = std.json.Stringify.valueAlloc(a, phases, .{}) catch |err| {
+            trace.deinit();
+            return err;
+        };
+        defer a.free(json);
+        std.debug.print("OP_P2_SOURCE_CPU_PHASES ordinal={} {s}\n", .{ source.expected.ordinal, json });
+        return finish(a, source.key.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .cpu }, trace);
     }
     pub fn initCatalog(a: std.mem.Allocator, source: @import("pure_p2_truth_leaf_test.zig").View) !SourceLeaf {
         try source.key.require(source.truth);
