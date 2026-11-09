@@ -18,6 +18,7 @@ pub const Options = struct {
     /// Internal source planner choice; production suite validation is separate.
     detached_sponge: bool = false,
     extra_workers: usize = 0,
+    capture_hooks: Capture.Hooks = .{},
 };
 pub const Timing = struct { image_ns: u64, program_ns: u64, capture_ns: u64, captured_at: u64 };
 pub const Owner = struct {
@@ -61,7 +62,7 @@ pub const Owner = struct {
         try program.makeCompact();
         const program_ns = timer.read() - image_ns;
         const capture_start = timer.read();
-        var captured = try Capture.Owner.init(a, config, image, program);
+        var captured = try Capture.Owner.initWithHooks(a, config, image, program, options.capture_hooks);
         errdefer captured.deinit();
         const captured_at = timer.read();
         const count = captured.native.len;

@@ -12,6 +12,13 @@ const Native = @import("../word16_execution/prepared.zig").Prepared;
 const Collector = @import("../word16_global_execution/services/collector.zig");
 const Memory = @import("../word16_execution/memory/statement.zig");
 const Coverage = @import("../word16_execution/coverage.zig");
+/// Producer-only custody hook, after chronological advice owns every event and
+/// raw CPU capture rows have been retired. It cannot supply public authority.
+/// The current prepared shard is borrowed synchronously; failure aborts capture.
+pub const Hooks = struct {
+    context: ?*anyopaque = null,
+    completed: ?*const fn (?*anyopaque, usize, *Native) anyerror!void = null,
+};
 pub const Owner = struct {
     allocator: std.mem.Allocator,
     native: []*Native,
@@ -29,6 +36,9 @@ pub const Owner = struct {
         self.* = undefined;
     }
     pub fn init(a: std.mem.Allocator, config: Config.Config, image: *const Image.Owner, program: *const Program) !Owner {
+        return initWithHooks(a, config, image, program, .{});
+    }
+    pub fn initWithHooks(a: std.mem.Allocator, config: Config.Config, image: *const Image.Owner, program: *const Program, hooks: Hooks) !Owner {
         try Config.validateBudgetForOp(config);
         if (program.profile != .ethereum_services_op_v1) return error.UnqualifiedOpSetup;
         const elf = try std.fs.cwd().readFileAlloc(a, config.elf, 64 << 20);
@@ -86,6 +96,7 @@ pub const Owner = struct {
             // Projection retains its independent 56-byte CPU metadata; raw
             // records are no longer needed, exactly as on the v3 capture path.
             n.cpu.?.releaseCaptureRecords();
+            if (hooks.completed) |completed| try completed(hooks.context, native.items.len, n);
             try native.append(a, n);
         }
         var advice = try builder.finish();

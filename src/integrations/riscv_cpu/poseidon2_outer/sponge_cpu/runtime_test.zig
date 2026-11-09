@@ -73,3 +73,44 @@ test "detached retained actual native bundle adversarial fresh source receiver" 
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
     std.debug.print("OP_DETACHED_ATTACKS controls={} restored_positive=true live=0 external=0 peak={}\n", .{ state.controls, budget.snapshot().peak_live_bytes });
 }
+
+const FailedCapture = struct {
+    custody: *@import("capture_custody.zig").Owner,
+    fn completed(raw: ?*anyopaque, ordinal: usize, native: *@import("../../word16_execution/prepared.zig").Prepared) !void {
+        const self: *FailedCapture = @ptrCast(@alignCast(raw.?));
+        const hooks = self.custody.hooks();
+        try hooks.completed.?(hooks.context, ordinal, native);
+        return error.IntentionalCaptureCustodyFailure;
+    }
+};
+
+test "detached actual small native capture failure releases parked metadata" {
+    const path = std.posix.getenv("STWO_OP_DETACHED_CONFIG") orelse return error.SkipZigTest;
+    const raw = try std.fs.cwd().readFileAlloc(std.testing.allocator, path, 16384);
+    defer std.testing.allocator.free(raw);
+    const parsed = try std.json.parseFromSlice(@import("../../rv64_ethereum_request.zig").Config, std.testing.allocator, raw, .{});
+    defer parsed.deinit();
+    if (parsed.value.max_steps > 10_000_000) return error.SmallCapturePlanControlRequired;
+    const budget = try E.host_budget_allocator.SharedHostBudget.create(std.heap.smp_allocator, 32 << 30);
+    defer budget.destroy();
+    {
+        const a = budget.allocator();
+        var tmp = std.testing.tmpDir(.{});
+        defer tmp.cleanup();
+        const temporary = try tmp.dir.realpathAlloc(a, ".");
+        defer a.free(temporary);
+        var store = try @import("../pure_p2_retained_main.zig").Store.init(a, temporary, 1 << 30, 1 << 30);
+        defer store.deinit();
+        var custody = @import("capture_custody.zig").Owner{ .store = &store };
+        defer custody.deinit();
+        var failed = FailedCapture{ .custody = &custody };
+        var timer = try std.time.Timer.start();
+        try std.testing.expectError(error.IntentionalCaptureCustodyFailure, @import("../pure_p2_op_capture_plan.zig").Owner.init(a, parsed.value, .op_target_b4_q72_p0_fold4_v1, .{ .local_truth = true, .truth_limits = .{ .live_bytes = 8 << 30, .main_bytes = 2 << 30, .interaction_bytes = 4 << 30, .gkr_bytes = 12 << 30 }, .detached_sponge = true, .capture_hooks = .{ .context = &failed, .completed = FailedCapture.completed } }, &timer));
+        try std.testing.expectEqual(@as(usize, 1), custody.count);
+        try std.testing.expect(custody.bytes > 0);
+        custody.deinit();
+        try std.testing.expectEqual(@as(usize, 0), store.reserved);
+    }
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
+}

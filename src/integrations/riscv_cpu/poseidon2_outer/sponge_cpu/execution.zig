@@ -35,6 +35,8 @@ pub const Limits = struct {
     miller_gkr_bytes: usize,
 };
 pub const Inputs = struct {
+    /// Optional tokens parked by the capture owner, borrowed through completion.
+    captured_metadata: ?[]?MetadataParking.Token = null,
     cpus: []const I.Cpu,
     detached: []const I.Detached,
     catalog: []const I.Catalog,
@@ -141,11 +143,18 @@ pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inpu
     defer for (workers[retired..made]) |*worker| worker.deinit();
     const stages = try a.alloc(M.StageOne, workers.len);
     defer a.free(stages);
-    const metadata = try a.alloc(?MetadataParking.Token, inputs.cpus.len);
-    defer a.free(metadata);
-    @memset(metadata, null);
-    defer for (metadata) |*token| if (token.*) |*owner| owner.deinit();
-    if (limits.park_cpu_metadata) {
+    if (inputs.captured_metadata) |tokens| {
+        if (!limits.park_cpu_metadata or tokens.len != inputs.cpus.len) return error.OpCaptureCustodyCoverage;
+        for (tokens) |token| if (token == null) return error.OpCaptureCustodyCoverage;
+    }
+    const owns_metadata = inputs.captured_metadata == null;
+    const metadata = inputs.captured_metadata orelse try a.alloc(?MetadataParking.Token, inputs.cpus.len);
+    defer if (owns_metadata) a.free(metadata);
+    if (owns_metadata) @memset(metadata, null);
+    defer if (owns_metadata) {
+        for (metadata) |*token| if (token.*) |*owner| owner.deinit();
+    };
+    if (limits.park_cpu_metadata and owns_metadata) {
         // Same bounded immutable custody as the classic OP producer. This is
         // advice storage, never a replacement for physical MAIN/GKR authority.
         var total: usize = 0;
