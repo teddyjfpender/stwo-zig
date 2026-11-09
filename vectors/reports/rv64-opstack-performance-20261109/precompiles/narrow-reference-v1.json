@@ -1,0 +1,66 @@
+{
+  "status": "standalone_composite_physical_correctness_qualified",
+  "production_admitted": false,
+  "security_qualified": false,
+  "security": "toyphysical12queries/noPoW; does not qualify128-bit production",
+  "native_abi": {
+    "tag": "0x00040001",
+    "packet_bytes": 640,
+    "input_words": 80,
+    "output_words": 48
+  },
+  "immutable_program": {
+    "arithmetic_rows_per_call": 32,
+    "frontier_rows_per_call": 20,
+    "input_values": 20,
+    "arithmetic_writes": 32,
+    "ssa_values": 52,
+    "ssa_reads_per_call": 172,
+    "fanouts": "source-derived; all reads unit weight; topological compile-time audit",
+    "carry_limb_bits": 15,
+    "strict_m31_residual_bounds": true
+  },
+  "heavy22185calls": {
+    "frontier_log": 19,
+    "arithmetic_log": 20,
+    "frontier_main": 33,
+    "frontier_om31_interaction_base_columns": 16,
+    "arithmetic_main": 370,
+    "arithmetic_om31_interaction_base_columns": 560,
+    "combined_lifted_main_and_interaction_columns": 979,
+    "combined_main_and_interaction_native_cells": 1000865792,
+    "reference_wide_lifted_columns": 20832,
+    "reference_wide_native_cells": 682622976,
+    "qualification_limit": "cost model; no whole-block or recursion timing yet"
+  },
+  "local_gkr_follow_on": {
+    "arithmetic_byte_consumers": 97,
+    "arithmetic_byte_provider": 1,
+    "arithmetic_u15_consumers": 31,
+    "arithmetic_u15_provider": 1,
+    "arithmetic_ssa_fractions": 8,
+    "frontier_ssa_fractions": 1,
+    "authority": "narrow_source.emitLocal and emitRangeProviders; distinct range challenge domains, shared arithmetic/frontier SSA challenge"
+  },
+  "physical": {
+    "proof_with_claim_frame_bytes": 101072,
+    "arithmetic_log": 15,
+    "frontier_log": 8,
+    "one_composite_proof": true,
+    "fresh_reconstructed_fixed_root": true,
+    "mutation_rejections": [
+      "wrongcallid",
+      "wrongexpectedoutput",
+      "changedOODSsample",
+      "unclosedSSAclaim"
+    ]
+  },
+  "tests": [
+    "filterednarrowunits:8tests pass",
+    "filterednarrowphysical:2tests pass",
+    "all32DAGsteps eachcarry/result/quotient/distance/borrowforgeries",
+    "arbitraryu256representatives andindependentwidepolynomialagreement",
+    "exactlocalSSAledger rejects self-consistentorphanoperand",
+    "strict characteristic mass/geometry rejection"
+  ]
+}

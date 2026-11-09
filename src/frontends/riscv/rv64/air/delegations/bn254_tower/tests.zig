@@ -192,3 +192,305 @@ test "OP sparse034 packet bridge keeps legacy captures narrow and validates ever
         try std.testing.expectError(error.InvalidWord16SecpPredecessor, B.source.validateTower(.bn254_sparse034, bad));
     }
 }
+
+test "immutable narrow tower DAG agrees on arbitrary representatives and has exact fanout" {
+    const D = @import("dag.zig");
+    const X = @import("../../../ethereum_services/bn254_tower.zig");
+    const Bounds = @import("../curves/spec.zig");
+    var random = std.Random.DefaultPrng.init(0x40_0001_32);
+    for (0..24) |trial| {
+        var input: [20]u256 = undefined;
+        for (&input, 0..) |*x, i| x.* = switch (trial) {
+            0 => 0,
+            1 => std.math.maxInt(u256),
+            2 => Bounds.BN254_P,
+            3 => if (i % 2 == 0) Bounds.BN254_P - 1 else 1,
+            else => random.random().int(u256),
+        };
+        const values = D.evaluate(&input);
+        const expected = X.compute(&input);
+        try std.testing.expectEqualSlices(u256, &expected, values[34..46]);
+        for (values[20..]) |x| try std.testing.expect(x < Bounds.BN254_P);
+    }
+    var read_counts: [D.VALUES]u8 = @splat(0);
+    for (D.PROGRAM) |instruction| for (instruction.operands()) |id| {
+        if (id < D.VALUES) read_counts[id] += 1;
+    };
+    try std.testing.expectEqualSlices(u8, &D.FANOUT, &read_counts);
+    try std.testing.expect(D.READS > 0);
+}
+
+const Micro = @import("micro.zig");
+const MicroView = struct {
+    row: *const Micro.Row,
+    preprocessing: [Micro.FIXED]u32,
+    pub fn main(self: *const @This(), column: usize) Q {
+        return Q.fromBase(core.fields.m31.M31.fromCanonical(self.row[column]));
+    }
+    pub fn fixed(self: *const @This(), column: usize) Q {
+        return Q.fromBase(core.fields.m31.M31.fromCanonical(self.preprocessing[column]));
+    }
+};
+fn microAccepted(step: usize, row: *const Micro.Row) bool {
+    const E = @import("../../evaluation.zig");
+    const view = MicroView{ .row = row, .preprocessing = Micro.fixed(step) };
+    var residuals: [512]Q = undefined;
+    var sink = E.Sink{ .values = &residuals };
+    Micro.emitMain(Q, &view, &sink);
+    for (residuals[0..sink.count]) |residual| if (!residual.isZero()) {
+        return false;
+    };
+    for (0..Micro.RANGE_QUERIES) |index| if (Micro.rangeQuery(row, index) >= Micro.rangeQueryLimit(index)) {
+        return false;
+    };
+    return true;
+}
+test "narrow tower arithmetic rows bind every carry and canonical writer" {
+    const D = @import("dag.zig");
+    try std.testing.expect(Micro.G.residual_positive_bound < Base.M31);
+    try std.testing.expect(Micro.G.residual_negative_bound < Base.M31);
+    try std.testing.expect(Micro.MAIN < 600);
+    var random = std.Random.DefaultPrng.init(0x1536_40001);
+    for (0..8) |trial| {
+        var input: [20]u256 = undefined;
+        for (&input) |*x| x.* = if (trial == 0) std.math.maxInt(u256) else random.random().int(u256);
+        const values = D.evaluate(&input);
+        for (0..D.STEPS) |step| {
+            const honest = Micro.fill(step, &values);
+            try std.testing.expect(microAccepted(step, &honest));
+            try std.testing.expectEqual(values[D.PROGRAM[step].output], Micro.read(&honest, Micro.RESULT));
+            for ([_]usize{ Micro.RESULT, Micro.QUOTIENT, Micro.DISTANCE, Micro.BORROW }) |column| {
+                var forged = honest;
+                forged[column] ^= 1;
+                try std.testing.expect(!microAccepted(step, &forged));
+            }
+            for (0..Micro.G.carries) |carry| {
+                var forged = honest;
+                forged[Micro.CARRY + carry] ^= 1;
+                try std.testing.expect(!microAccepted(step, &forged));
+            }
+        }
+    }
+    try Micro.validateMass(22_185);
+    try std.testing.expectError(error.TowerMassBound, Micro.validateMass(0));
+    try std.testing.expectError(error.TowerMassBound, Micro.validateMass(Base.M31));
+    std.debug.print("OP_TOWER_NARROW main={d} range_queries={d} steps={d} SSA_reads={d} group={d} carry_bits={d}\n", .{ Micro.MAIN, Micro.RANGE_QUERIES, D.STEPS, D.READS, Micro.G.group, Micro.G.carry_bits });
+}
+
+test "narrow full packet schedule has exact source-owned characteristic mass" {
+    const Schedule = @import("schedule.zig");
+    const D = @import("dag.zig");
+    Schedule.checkSchedule();
+    const measured = try Schedule.mass(22_185);
+    try std.testing.expectEqual(@as(u64, 22_185 * 2 * D.READS), measured.local_ssa);
+    try std.testing.expectEqual(@as(u64, 22_185 * 64), measured.global_wire);
+    try Schedule.validateGeometry(22_185, 1, 21);
+    try std.testing.expectError(error.TowerGeometry, Schedule.validateGeometry(22_185, 1, 20));
+    try std.testing.expectError(error.TowerGeometry, Schedule.validateGeometry(2, Base.M31 - 1, 8));
+    try std.testing.expectError(error.TowerMassBound, Schedule.mass(Base.M31));
+    try std.testing.expectError(error.TowerMassBound, (Schedule.Mass{ .local_ssa = Base.M31, .local_range = 0, .global_wire = 0 }).validate());
+}
+
+const NarrowSource = @import("narrow_source.zig");
+const SourceView = struct {
+    values: []const u32,
+    preprocessing: [NarrowSource.FIXED]u32,
+    previous: u32,
+    pub fn main(self: *const @This(), c: usize) Q {
+        return Q.fromBase(core.fields.m31.M31.fromCanonical(self.values[c]));
+    }
+    pub fn fixed(self: *const @This(), c: usize) Q {
+        return Q.fromBase(core.fields.m31.M31.fromCanonical(self.preprocessing[c]));
+    }
+    pub fn previousActive(self: *const @This()) Q {
+        return Q.fromBase(core.fields.m31.M31.fromCanonical(self.previous));
+    }
+};
+const SourceLedger = struct {
+    const Item = struct { key: [35]u32, weight: i64 };
+    entries: [512]Item = undefined,
+    count: usize = 0,
+    valid_ranges: bool = true,
+    pub fn byte(self: *@This(), value: Q, weight: Q) void {
+        if (weight.isZero()) return;
+        const x = value.tryIntoM31() catch {
+            self.valid_ranges = false;
+            return;
+        };
+        self.valid_ranges = self.valid_ranges and x.v < 256;
+    }
+    pub fn carry(self: *@This(), value: Q, weight: Q) void {
+        if (weight.isZero()) return;
+        const x = value.tryIntoM31() catch {
+            self.valid_ranges = false;
+            return;
+        };
+        self.valid_ranges = self.valid_ranges and x.v < Micro.CARRY_LIMIT;
+    }
+    pub fn ssa(self: *@This(), tuple: [35]Q, weight: Q) void {
+        const numerator = weight.tryIntoM31() catch unreachable;
+        if (numerator.v == 0) return;
+        var key: [35]u32 = undefined;
+        for (&key, tuple) |*x, field| x.* = (field.tryIntoM31() catch unreachable).v;
+        self.entries[self.count] = .{ .key = key, .weight = if (numerator.v < Base.M31 / 2) numerator.v else @as(i64, numerator.v) - Base.M31 };
+        self.count += 1;
+    }
+    fn less(_: void, a: Item, b: Item) bool {
+        for (a.key, b.key) |x, y| if (x != y) {
+            return x < y;
+        };
+        return false;
+    }
+    fn closed(self: *@This()) bool {
+        std.mem.sort(Item, self.entries[0..self.count], {}, less);
+        var at: usize = 0;
+        while (at < self.count) {
+            const key = self.entries[at].key;
+            var total: i64 = 0;
+            while (at < self.count and std.mem.eql(u32, &key, &self.entries[at].key)) : (at += 1) total += self.entries[at].weight;
+            if (total != 0) return false;
+        }
+        return self.valid_ranges;
+    }
+};
+fn sourceMainAccepted(comptime role: NarrowSource.Role, index: usize, data: []const u32) bool {
+    const E = @import("../../evaluation.zig");
+    const view = SourceView{ .values = data, .preprocessing = NarrowSource.fixedRow(role, index, 8), .previous = @intFromBool(index > 0) };
+    var residuals: [512]Q = undefined;
+    var sink = E.Sink{ .values = &residuals };
+    NarrowSource.emitMain(role, Q, &view, .{ .calls = 1, .first_id = 17 }, &sink);
+    for (residuals[0..sink.count]) |x| if (!x.isZero()) {
+        return false;
+    };
+    return true;
+}
+test "narrow separate frontier and arithmetic source authority closes SSA and rejects orphan operands" {
+    const D = @import("dag.zig");
+    var input: [20]u256 = undefined;
+    for (&input, 0..) |*value, i| value.* = std.math.maxInt(u256) - @as(u256, i) * 317;
+    const values = D.evaluate(&input);
+    var honest = SourceLedger{};
+    var forged = SourceLedger{};
+    for (0..D.INPUTS) |step| {
+        const row = NarrowSource.frontierRow(&input, step);
+        try std.testing.expect(sourceMainAccepted(.frontier, step, &row));
+        const view = SourceView{ .values = &row, .preprocessing = NarrowSource.fixedRow(.frontier, step, 8), .previous = @intFromBool(step > 0) };
+        NarrowSource.emitLocal(.frontier, Q, &view, .{ .calls = 1, .first_id = 17 }, &honest);
+        NarrowSource.emitLocal(.frontier, Q, &view, .{ .calls = 1, .first_id = 17 }, &forged);
+        const wire = NarrowSource.globalFraction(.frontier, Q, &view, .{ .calls = 1, .first_id = 17 });
+        try std.testing.expectEqual(@as(u32, @intCast(step)), (wire.tuple[2].tryIntoM31() catch unreachable).v);
+        try std.testing.expectEqual(Q.one().neg(), wire.weight);
+    }
+    for (0..D.STEPS) |step| {
+        const row = Micro.fill(step, &values);
+        try std.testing.expect(sourceMainAccepted(.arithmetic, step, &row));
+        const view = SourceView{ .values = &row, .preprocessing = NarrowSource.fixedRow(.arithmetic, step, 8), .previous = @intFromBool(step > 0) };
+        NarrowSource.emitLocal(.arithmetic, Q, &view, .{ .calls = 1, .first_id = 17 }, &honest);
+        // A self-consistent arithmetic row is insufficient. Change one operand
+        // and recompute all its advice: the local edge ledger must still fail.
+        var forged_values = values;
+        const changed = D.PROGRAM[step].operands()[0];
+        if (step == 0) forged_values[changed] -%= 1;
+        const bad_row = Micro.fill(step, &forged_values);
+        try std.testing.expect(microAccepted(step, &bad_row));
+        const bad_view = SourceView{ .values = &bad_row, .preprocessing = NarrowSource.fixedRow(.arithmetic, step, 8), .previous = @intFromBool(step > 0) };
+        NarrowSource.emitLocal(.arithmetic, Q, &bad_view, .{ .calls = 1, .first_id = 17 }, &forged);
+    }
+    try std.testing.expect(honest.closed());
+    try std.testing.expect(!forged.closed());
+    const budget = try NarrowSource.cost(.{ .calls = 22_185, .first_id = 1 });
+    try std.testing.expectEqual(@as(u32, 19), budget.frontier_log);
+    try std.testing.expectEqual(@as(u32, 20), budget.arithmetic_log);
+    std.debug.print("OP_TOWER_NARROW_ROSTER {any}\n", .{budget});
+}
+
+test "narrow classic shape stays degree three and under one thousand lifted columns" {
+    const Eq = @import("narrow_equations.zig");
+    const A = Eq.Layout(.arithmetic);
+    const F = Eq.Layout(.frontier);
+    try std.testing.expectEqual(@as(usize, 370), A.MAIN);
+    try std.testing.expectEqual(@as(usize, 280), A.INTERACTION);
+    try std.testing.expectEqual(@as(usize, 33), F.MAIN);
+    try std.testing.expectEqual(@as(usize, 8), F.INTERACTION);
+    try std.testing.expectEqual(@as(u8, 3), @as(u8, A.DEGREE));
+    const lifted = A.MAIN + A.INTERACTION * 2 + F.MAIN + F.INTERACTION * 2;
+    try std.testing.expect(lifted < 1000);
+    const cells = @as(u64, A.MAIN + A.INTERACTION * 2) * (1 << 20) + @as(u64, F.MAIN + F.INTERACTION * 2) * (1 << 19);
+    std.debug.print("OP_TOWER_NARROW_CLASSIC lifted_columns={d} cells={d} frontier={d}/{d} arithmetic={d}/{d}\n", .{ lifted, cells, F.MAIN, F.INTERACTION * 2, A.MAIN, A.INTERACTION * 2 });
+    try A.validateGeometry(22_185, 1, 20);
+    try std.testing.expectError(error.TowerGeometry, A.validateGeometry(1, 1, 14));
+    // Force semantic instantiation of all source expression / classic AIR code.
+    const front: NarrowSource.FrontierRow = @splat(0);
+    const view = SourceView{ .values = &front, .preprocessing = NarrowSource.fixedRow(.frontier, 0, 8), .previous = 0 };
+    const q = Q.fromBase(core.fields.m31.M31.fromCanonical(123456));
+    const wire = @import("../curves/equations.zig").Wire{ .offset = q, .coefficients = @splat(q) };
+    const challenges = Eq.Challenges{ .bytes = q, .carries = q, .ssa = wire, .wire = wire };
+    const E = @import("../../evaluation.zig");
+    var sink = E.Sink{ .values = null };
+    Eq.Equations(.frontier).emitMain(Q, &view, .{ .calls = 1, .first_id = 1 }, &sink);
+    try std.testing.expectEqual(F.MAIN_CONSTRAINTS, sink.count);
+    _ = Eq.Equations(.frontier).fraction(Q, &view, .{ .calls = 1, .first_id = 1 }, challenges, .ssa, 0);
+    _ = Eq.Equations(.frontier).fraction(Q, &view, .{ .calls = 1, .first_id = 1 }, challenges, .wire, 0);
+}
+
+test "narrow frontier column source commits source-owned shape and complete prefix" {
+    const T = @import("narrow_trace.zig");
+    const a = std.testing.allocator;
+    const input: T.Input = @splat(17);
+    var source = try T.Source(.frontier).init(a, &.{input}, 7, 8);
+    defer source.deinit();
+    const q = Q.fromBase(core.fields.m31.M31.fromCanonical(123456));
+    const wire = @import("../curves/equations.zig").Wire{ .offset = q, .coefficients = @splat(q) };
+    const NE = @import("narrow_equations.zig");
+    const claims = try source.generateInteraction(.{ .bytes = q, .carries = q, .ssa = wire, .wire = wire });
+    try std.testing.expect(!claims.ssa.isZero());
+    try std.testing.expect(!claims.wire.isZero());
+    const Component = @import("narrow_component.zig").Component(.frontier);
+    const component = Component{ .log_size = 8, .public = source.public(), .claims = claims, .challenges = .{ .bytes = q, .carries = q, .ssa = wire, .wire = wire } };
+    _ = component.asVerifierComponent();
+    _ = component.asProverComponent();
+    try std.testing.expectEqual(NE.Layout(.frontier).CONSTRAINTS, component.nConstraints());
+}
+
+test "narrow complete classic equations have degree at most three including fixed ROM" {
+    const NE = @import("narrow_equations.zig");
+    const E = @import("../../evaluation.zig");
+    const View = struct {
+        values: []const Q,
+        width: usize,
+        pub fn fixed(self: *const @This(), index: usize) Q {
+            return self.values[index];
+        }
+        pub fn main(self: *const @This(), index: usize) Q {
+            return self.values[NarrowSource.FIXED + index];
+        }
+        pub fn previousActive(self: *const @This()) Q {
+            return self.values[self.values.len - 1];
+        }
+        pub fn interaction(self: *const @This(), index: usize) Q {
+            return self.values[NarrowSource.FIXED + self.width + index];
+        }
+        pub fn previousInteraction(self: *const @This(), index: usize) Q {
+            return self.values[NarrowSource.FIXED + self.width + index].add(Q.one());
+        }
+    };
+    const chq = Q.fromU32Unchecked(11, 17, 23, 29);
+    const wire = @import("../curves/equations.zig").Wire{ .offset = chq, .coefficients = @splat(chq) };
+    const challenges = NE.Challenges{ .bytes = chq, .carries = chq.add(Q.one()), .ssa = wire, .wire = wire };
+    inline for (.{ NarrowSource.Role.frontier, NarrowSource.Role.arithmetic }) |role| {
+        const L = NE.Layout(role);
+        var values: [NarrowSource.FIXED + L.MAIN + L.INTERACTION + 1]Q = undefined;
+        var residuals: [5][L.CONSTRAINTS]Q = undefined;
+        for (0..5) |step| {
+            for (&values, 0..) |*value, index| value.* = Q.fromU32Unchecked(@intCast(index + 1), 2, 3, 4).add(Q.fromU32Unchecked(5, @intCast(index + 7), 11, 13).mulM31(core.fields.m31.M31.fromCanonical(@intCast(step))));
+            const view = View{ .values = &values, .width = L.MAIN };
+            var sink = E.Sink{ .values = &residuals[step] };
+            NE.Equations(role).emit(Q, &view, .{ .calls = 1, .first_id = 7 }, .{ .ssa = chq, .wire = chq }, challenges, &sink);
+            try std.testing.expectEqual(L.CONSTRAINTS, sink.count);
+        }
+        for (0..L.CONSTRAINTS) |constraint| {
+            const fourth = residuals[0][constraint].sub(residuals[1][constraint].mulM31(core.fields.m31.M31.fromCanonical(4))).add(residuals[2][constraint].mulM31(core.fields.m31.M31.fromCanonical(6))).sub(residuals[3][constraint].mulM31(core.fields.m31.M31.fromCanonical(4))).add(residuals[4][constraint]);
+            try std.testing.expect(fourth.isZero());
+        }
+    }
+}
