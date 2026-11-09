@@ -1,0 +1,116 @@
+{
+  "schema": "stwo.opstack.wordwise-field-zero.v1",
+  "status": "three-fixture independent execution qualification",
+  "description": "Under the existing selected RV64 extension feature only, compare field representation to configured P::ZERO using OR of limbwise XOR. It returns true exactly when every limb agrees, preserving configured zero even if a custom representation were nonzero. Other targets/features retain original equality.",
+  "baseline": {
+    "instructions": 247343716,
+    "service_ram_word_transitions": 16807677,
+    "bulk_memcmp_calls": 206985,
+    "bulk_memcmp_bytes": 1987056,
+    "curve_calls": [
+      19465,
+      31908,
+      331163,
+      0,
+      0,
+      0,
+      0
+    ],
+    "arith256_mod_calls": 33117
+  },
+  "candidate": {
+    "instructions": 240511227,
+    "service_ram_word_transitions": 15867083,
+    "bulk_memcmp_calls": 53770,
+    "bulk_memcmp_bytes": 701384,
+    "curve_calls": [
+      19465,
+      31908,
+      331163,
+      0,
+      0,
+      0,
+      0
+    ],
+    "arith256_mod_calls": 33117
+  },
+  "text_bytes": 2575612,
+  "rom_log": 20,
+  "elf_sha256": "7cfa90d9e4aa71bd81eba675c7b0aac59b33eaeca476757a886f25d59d8e8335",
+  "rejected_controls": {
+    "force_inline_fp6_multiply": {
+      "instructions": 246428499,
+      "text_bytes": 4256148,
+      "rom_log": 21,
+      "reason": "Only0.37% fewer instructions but text exceeds4MiB and doubles ROM geometry; restored"
+    }
+  },
+  "qualification": [
+    {
+      "block": 121065789,
+      "instructions": 240511227,
+      "output": "ffbeba1675ae90c8343e4bffeee114cc043c7f6d623e2b831e1849f4de212546010a000000000000004f50",
+      "native_unicorn_agreement": [
+        "exact steps",
+        "output",
+        "all32registers",
+        "terminalPC",
+        "all service counters"
+      ],
+      "whole_final_ram_snapshot_compared": false
+    },
+    {
+      "block": 120794432,
+      "instructions": 796406,
+      "output": "66f9d141264cde479da8e8aef876d54cf1181935742c28543ed966ba8d83b6cb010a000000000000004f50",
+      "native_unicorn_agreement": [
+        "exact steps",
+        "output",
+        "all32registers",
+        "terminalPC",
+        "all service counters"
+      ],
+      "whole_final_ram_snapshot_compared": false
+    },
+    {
+      "block": 121057303,
+      "instructions": 5926435,
+      "output": "aab82bbe2cc8f35f9187061fd2645d9fb96a0be8daebcec03977ab710ecda289010a000000000000004f50",
+      "native_unicorn_agreement": [
+        "exact steps",
+        "output",
+        "all32registers",
+        "terminalPC",
+        "all service counters"
+      ],
+      "whole_final_ram_snapshot_compared": false
+    }
+  ],
+  "sources": {
+    "op-kona-word-zero-heavy.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-word-zero-heavy.native.json",
+      "sha256": "b6ed7d49f5e94ee67a0af069e49e23f983d72beab94c7acc78a42ea46679f9c4"
+    },
+    "op-kona-word-zero-121065789.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-word-zero-121065789.oracle.json",
+      "sha256": "45f8bfdf7398c0f618f8aed1c1d2176a5797697ac5b06b7d5eb801493a429900"
+    },
+    "op-kona-word-zero-120794432.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-word-zero-120794432.native.json",
+      "sha256": "7c6da6e2e2b754fa882689c3ef910a4063dba688f711eec89dffcfa4b6403c3e"
+    },
+    "op-kona-word-zero-120794432.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-word-zero-120794432.oracle.json",
+      "sha256": "db55b38380d087603952e0080af5c8f23b0280ed6ec8919f72c796e70b2287ce"
+    },
+    "op-kona-word-zero-121057303.native.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-word-zero-121057303.native.json",
+      "sha256": "3d383bca980689fc6c0339878aa827984e8424b57b53b913857f156e3d18a815"
+    },
+    "op-kona-word-zero-121057303.oracle.json": {
+      "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/op-kona-word-zero-121057303.oracle.json",
+      "sha256": "7f9786a1be2f060ac637b4f6a691d1d9a3b82ae5938fc378bc97a468cd663b69"
+    }
+  },
+  "limitation": "No controlled physical proving timing and no change to OP service admission; native timings under concurrent engineering are qualification only."
+}

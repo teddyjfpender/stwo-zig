@@ -99,3 +99,18 @@ shrinks by 42,220 bytes, retaining ROM log 20. Canonical-field differential
 tests cover both scalar positions, zero, one and minus one against ordinary
 Montgomery arithmetic. Three real fixtures have exact native/Unicorn agreement.
 This is an execution saving, not a qualified proving-time speedup.
+
+
+## Wordwise field-zero checks
+
+[Zero-check qualification](wordwise-field-zero.json) replaces small-array
+memcmp calls with a wordwise OR of XOR differences against the configured zero
+representation under the existing selected RV64 feature. Heavy instructions
+fall **247,343,716 → 240,511,227** and service RAM transitions
+**16,807,677 → 15,867,083**. Bulk memcmp calls fall from 206,985 to 53,770.
+Text grows by 35,496 bytes, keeping ROM log 20. Three real fixtures retain
+exact native/Unicorn agreement. The simple equality identity preserves all
+limbs and does not assume a particular zero representation.
+
+A separate forced Fp6-multiply inlining experiment was rejected: it saved only
+0.37% of instructions while expanding text past 4 MiB and doubling ROM size.

@@ -168,7 +168,17 @@ impl<P: FpConfig<N>, const N: usize> Zero for Fp<P, N> {
 
     #[inline]
     fn is_zero(&self) -> bool {
-        *self == P::ZERO
+        #[cfg(all(feature = "stwo-inline-extensions", target_arch = "riscv64"))]
+        {
+            // Preserve the configured zero representation while avoiding an
+            // out-of-line memcmp for a small fixed limb array on RV64.
+            self.0.0.iter().zip(P::ZERO.0.0)
+                .fold(0u64, |mask, (a, b)| mask | (a ^ b)) == 0
+        }
+        #[cfg(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")))]
+        {
+            *self == P::ZERO
+        }
     }
 }
 
