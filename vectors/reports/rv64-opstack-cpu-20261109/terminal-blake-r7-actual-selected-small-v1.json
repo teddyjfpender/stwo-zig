@@ -1,0 +1,172 @@
+{
+  "schema": "op-terminal-blake-r7-actual-selected-small-v1",
+  "block": 120794432,
+  "instructions": 796406,
+  "native_profile": "op_target_b4_q72_p0_fold4_v1",
+  "terminal_profile": "op_control_b2_q144_p0_fold4_v1",
+  "arithmetic": "genuine eight-role R7",
+  "hash": "plain Blake2s-256 terminal-only",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "native_members": {
+    "CPU": 1,
+    "detached_sponge": 1,
+    "local_GKR_Keccak": 1,
+    "classic_SHA256": 1
+  },
+  "native_bundle_bytes": 5045776,
+  "root_bytes": 1263064,
+  "root_sha256": "8cc0c6259801fd7939c94ac4fd8b44bcb519adf3876f86b47cd39f3ce8773d63",
+  "p2_source_identity": "358e7e117a751de780f25f65b4de31d84ccb1d24cd2c3b12dfa4ce2d30ca4aa5",
+  "terminal_identity": "782ce12ef2301366a673e05a2c209f273bff731c5a8bed736256f2fd540846fb",
+  "canonical_public_root": "1ad68e7f5072665ce26106685b2a8d4af0636f31b1db881bea370918ef0f602b80793f2d",
+  "model": {
+    "raw": [
+      73080,
+      5173527,
+      3451,
+      173939,
+      65536,
+      321145,
+      1515168,
+      335498
+    ],
+    "rows": [
+      131072,
+      8388608,
+      4096,
+      262144,
+      65536,
+      524288,
+      2097152,
+      524288
+    ],
+    "logs": [
+      17,
+      23,
+      12,
+      18,
+      16,
+      19,
+      21,
+      19
+    ],
+    "fixed_cells": 113324032,
+    "main_cells": 276381696,
+    "interaction_cells": 253329408,
+    "total_cells": 643035136,
+    "dot_calls": 3384,
+    "dot_terms": 1515168
+  },
+  "timing": {
+    "prove_ns": 15647032458,
+    "self_verify_ns": 13493708,
+    "producer_ns_including_native_reception_and_both_cold_FIXED_setups": 31551963667,
+    "real_P2_source_and_FIXED_ns": 8953689791,
+    "additional_Blake_FIXED_ns": 1278758209,
+    "fresh_source_only_total_ns": 15351093875,
+    "fresh_source_walk_and_both_FIXED_setups_ns": 10628568917,
+    "fresh_P2_source_and_FIXED_ns": 9093787583,
+    "fresh_additional_Blake_FIXED_ns": 1333207000,
+    "fresh_root_read_verify_ns": 14234583,
+    "whole_producer_test_OS_seconds": {
+      "wall": 31.56,
+      "user": 155.71,
+      "system": 2.12
+    }
+  },
+  "stage_seconds": {
+    "terminal_blake.main_generation": 1.436072,
+    "terminal_blake.main_commit": 1.964955,
+    "terminal_blake.interaction_generation": 1.148262,
+    "terminal_blake.interaction_commit": 2.21843,
+    "draw_random_coeff": 8e-06,
+    "composition_trace_extract": 1.2e-05,
+    "composition_evaluation": 5.557198,
+    "composition_interpolate_and_split": 0.05427,
+    "composition_commit": 0.588827,
+    "oods_point_and_mask_points": 7e-05,
+    "sampled_value_evaluation": 0.223979,
+    "sampled_value_channel_mix": 0.000124,
+    "fri_quotient_build_and_commit": 1.440885,
+    "proof_of_work": 5e-06,
+    "fri_decommit": 0.120047,
+    "trace_decommit": 0.81494,
+    "constraint_check_and_assembly": 0.000381
+  },
+  "memory": {
+    "cap_bytes": 34359738368,
+    "workers": 8,
+    "producer_peak_requested_bytes": 8667031932,
+    "producer_max_RSS_bytes": 8667316224,
+    "fresh_source_only_peak_requested_bytes": 4510553430,
+    "final_live": 0,
+    "final_external": 0
+  },
+  "qualification": {
+    "source_and_numeric_eight_role_cost_and_registries_equal": true,
+    "complete_native_RAM_KIO_Wire_terminal43B_before_publish": true,
+    "actual_retained_native_bundle_reverified_without_regeneration": true,
+    "fresh_independent_source_key_without_native_proof_file": true,
+    "same_canonical_public_root_as_P2_R7_B2": true,
+    "nine_controls_pass_and_restored_positive": true,
+    "retained_valid_same_public_root_P2_R7_B2_proof_accepts_under_inner_source_key": true,
+    "valid_P2_R7_proof_rejected_by_R7_Blake_receiver": true,
+    "valid_R7_Blake_proof_rejected_by_P2_R7_receiver": true,
+    "extracted_shared_harness_R6_retained_actual_root_and_nine_controls_pass": true,
+    "R6_engine_original_tiny_proof_byte_exact": true,
+    "R7_actual_semantic_and_AOT_checks_pass": true,
+    "focused_runtime_tests": {
+      "passed": 61,
+      "skipped": 1,
+      "failed": 0
+    }
+  },
+  "controls": [
+    "changed public output",
+    "corrupt proof body",
+    "changed terminal key identity",
+    "missing leaf metadata",
+    "reordered leaves",
+    "missing late receipt",
+    "balanced opposite CPU/detached Wire debts",
+    "valid same-statement P2 proof presented to Blake verifier",
+    "valid Blake proof presented to P2 verifier"
+  ],
+  "controls_note": "Corpus includes physical proof verification, framing refusals, and source-admission rejection; not every negative is an AIR mutation. Engine tiny coherent eight-role mutation gates are recorded separately.",
+  "retained_R6_harness_control": {
+    "root_bytes": 1278096,
+    "source_setup_ns": 17913800959,
+    "read_verify_ns": 13992750,
+    "controls": 9,
+    "final_live": 0
+  },
+  "scope": [
+    "Single ReleaseSafe actual-small qualification; not a controlled benchmark.",
+    "Native runtime proofs and guest execution were NOT regenerated.",
+    "Real P2 FIXED construction remains counted before additional Blake FIXED construction; no setup cost hidden.",
+    "R6 and R7 share one concrete qualification harness; existing R6 aliases/domain/proof bytes remain unchanged.",
+    "No production Runtime/Topology integration or hash-security certificate is claimed.",
+    "No heavy execution/proving or GPU run."
+  ],
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/direct-group-selected-small-r7-terminal-blake-physical-v1",
+  "logs": [
+    "/private/tmp/op-terminal-r7-actual-physical.log",
+    "/private/tmp/op-terminal-r7-actual-fresh.log",
+    "/private/tmp/op-terminal-shared-r6-retained.log"
+  ],
+  "reproduce": {
+    "target": "test-riscv64-op-pure-p2",
+    "optimize": "ReleaseSafe",
+    "filter": "actual selected four native source root and receiver",
+    "environment_prefix": "STWO_OP_TERMINAL_BLAKE_R7_",
+    "variables": [
+      "CONFIG",
+      "NATIVE",
+      "OUT",
+      "MODE=prove|verify",
+      "P2_CONTROL (required for verify)"
+    ]
+  }
+}

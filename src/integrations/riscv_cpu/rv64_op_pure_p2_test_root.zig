@@ -257,3 +257,7 @@ test {
 test {
     _ = @import("poseidon2_outer/native_group/terminal_blake/actual_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/native_group/terminal_blake/actual_r7_test.zig");
+}
