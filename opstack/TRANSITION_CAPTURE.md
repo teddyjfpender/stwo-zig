@@ -392,3 +392,24 @@ The next official-endpoint capture uses0.30seconds to avoid the faster keepalive
 path bursting into rate limits. The capture deadline also bounds queued requests;
 validation failures remain fail-fast. Pacing and endpoint choices are included in
 the capture receipt. No provider throughput or proving-time guarantee is implied.
+
+After the native capture succeeds, `capture_host/verify_export.py` provides the
+separate offline acceptance gate. Supply explicit trusted `--host`, `--checker`
+and `--trusted-setup` executables/data, `--candidate`, authenticated full
+`--block-json`, captured `--kv`, reconstructed `--exported` directory, and a new
+`--output` directory. It reconstructs the target header, checks transaction-root
+and L1-info origin authentication plus L1 ancestry, checks the independently
+selected claim, verifies standard KZG sidecars, and packs an OPD. The native
+`run-transition` command must then derive that exact next block/root. Only after
+that succeeds does the tool prune to the native read trace, repack, and require
+another native acceptance with identical statement and 43-byte OD output. Both
+native passes share a maximum 180-second deadline; child process groups are
+terminated on timeout. Failed or partial captures never produce `verified.json`.
+Executable hashes and both input hashes enter the successful receipt. This is
+native derivation acceptance, not RV64 execution or a physical STARK proof.
+
+The public-output encoder is independently checked against the retained historic
+43-byte OD vector. Claim fields, origin, block hash, schema and exact JSON field
+set are independently expected; the payload commitment is recomputed by the
+native verifier. Historical reproduction remains a separate gate even when a
+new recent transition completes.
