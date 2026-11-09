@@ -18,7 +18,7 @@
 //! present for both children.
 
 const shard_0 = @import("binary_fri_outer_source_claims.zig");
-const shard_1 = @import("binary_fri_outer_source_trusted_composition_profile_v1.zig");
+const shard_1 = @import("binary_fri_outer_source_trusted_composition_profile.zig");
 const shard_2 = @import("binary_fri_outer_source_composition_rows_authority.zig");
 const shard_3 = @import("binary_fri_outer_source_fri_rows_authority.zig");
 const shard_4 = @import("binary_fri_outer_source_arithmetic_rows_authority.zig");

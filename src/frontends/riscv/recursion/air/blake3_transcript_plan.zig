@@ -94,7 +94,7 @@ fn fingerprint(config: Config, data: *const t.Prepared) [32]u8 {
         } else {
             const slot = comptime .{ 2, 6, 7, 8, 14, 15 }[cohort - 2];
             const index = comptime blk: {
-                for (@import("blake3_nonhash_emission_v1.zig").slots, 0..) |candidate, i| if (candidate == slot) break :blk i;
+                for (@import("blake3_nonhash_emission.zig").slots, 0..) |candidate, i| if (candidate == slot) break :blk i;
                 @compileError("invalid transcript source slot");
             };
             if (data.nonhash_fixed) |*owner| {

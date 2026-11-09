@@ -155,7 +155,7 @@ test "SHA memory caller compiles and exports exact base and secure machine expre
     var definition = try air.build(std.testing.allocator);
     defer definition.deinit();
     std.debug.print("SHA_CALLER_COMPILER arena_nodes={d}\n", .{definition.arena.nodeCount()});
-    try @import("../../../recursion/air/tests/framework_polynomial_export_v1_test.zig").exercise(air, &definition);
+    try @import("../../../recursion/air/tests/framework_polynomial_export_test.zig").exercise(air, &definition);
     const runtime = @import("../../../recursion/air/relation_interaction.zig");
     try std.testing.expectError(error.InvalidInputGeometry, runtime.Runtime(air.LOGICAL_INPUT_COUNT, air.RELATION_EVENT_COUNT, air.LOOKUP_BATCH_SIZE).authenticate(&definition.arena, air.SEMANTIC_DIGEST, definition.events));
 }

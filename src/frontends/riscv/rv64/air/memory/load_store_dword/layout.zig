@@ -5,7 +5,7 @@ const std = @import("std");
 const E = @import("../../evaluation.zig");
 const Specs = @import("../../memory_constraints.zig");
 const V = @import("../load_store_v1/layout.zig");
-const V2 = @import("../load_store_v2/layout.zig");
+const V2 = @import("../load_store/layout.zig");
 pub const LOGICAL_MAIN = 79;
 /// Committed logical coordinates, ascending. Everything else is virtual.
 /// RAM transition (27 of 28: owner tick 3 and address limb 4 are virtual),

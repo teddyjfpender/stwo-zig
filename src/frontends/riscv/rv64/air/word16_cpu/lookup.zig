@@ -2,7 +2,7 @@
 //! in the one-PCS coordinator, after every participating main commitment.
 const E = @import("../evaluation.zig");
 const Profile = @import("profile.zig");
-const Function = @import("../word16_v1/function_bus.zig");
+const Function = @import("../word16/function_bus.zig");
 pub const FunctionChallenges = Function.Challenges;
 pub fn RegisterChallengesFor(comptime C: type) type {
     return struct {

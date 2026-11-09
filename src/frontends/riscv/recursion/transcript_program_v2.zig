@@ -13,8 +13,8 @@
 //! constraining the exposed calls and payload-source relations in the outer
 //! AIR, never from trusting an identity as a MAC.
 const shard_0 = @import("transcript_program_v2_contract.zig");
-const shard_1 = @import("transcript_program_v2_program.zig");
-const shard_2 = @import("transcript_program_v2_execute.zig");
+const shard_1 = @import("transcript_program_program.zig");
+const shard_2 = @import("transcript_program_execute.zig");
 
 pub const FORMAT_VERSION = shard_0.FORMAT_VERSION;
 pub const SCHEMA_VERSION = shard_0.SCHEMA_VERSION;

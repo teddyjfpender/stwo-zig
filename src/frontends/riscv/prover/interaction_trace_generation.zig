@@ -8,7 +8,7 @@ const clock_update_interaction = @import("../air/clock_update_interaction.zig");
 const component_order = @import("../air/component_order.zig");
 const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
-const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
+const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const memory_interaction = @import("../air/memory_commitment/interaction.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
@@ -21,7 +21,7 @@ const proof_workspace = @import("proof_workspace.zig");
 const statement_geometry = @import("statement_geometry.zig");
 const tree2_main_source = @import("tree2_main_source.zig");
 const types = @import("types.zig");
-const native_provider_omit = @import("memory_provider_shards/native_provider_omit_v1.zig");
+const native_provider_omit = @import("memory_provider_shards/native_provider_omit.zig");
 
 const M31 = m31.M31;
 const CommitmentWitness = commitment_witness.CommitmentWitness;

@@ -10,9 +10,9 @@ pub const control_relation = @import("control_relation.zig");
 pub const control_slice_witness = @import("control_slice_witness.zig");
 pub const control_witness = @import("control_witness.zig");
 pub const direct_constraint_program = @import("direct_constraint_program.zig");
-pub const field_public_word_v3 = @import("field_public_word_v3.zig");
-pub const fixed_wire_v3 = @import("fixed_wire_v3.zig");
-pub const field_statement_word_v3 = @import("field_statement_word_v3.zig");
+pub const field_public_word_v3 = @import("field_public_word.zig");
+pub const fixed_wire_v3 = @import("fixed_wire.zig");
+pub const field_statement_word_v3 = @import("field_statement_word.zig");
 pub const fri_merkle_anchor = @import("fri_merkle_anchor.zig");
 pub const fri_merkle_anchor_witness = @import("fri_merkle_anchor_witness.zig");
 pub const fri_merkle_leaf = @import("fri_merkle_leaf.zig");
@@ -50,9 +50,9 @@ pub const pow_frame_witness = @import("pow_frame_witness.zig");
 pub const qm31_inv = @import("qm31_inv.zig");
 pub const qm31_inv_witness = @import("qm31_inv_witness.zig");
 pub const qm31_mul = @import("qm31_mul.zig");
-pub const qm31_mul_add_v1 = @import("qm31_mul_add_v1.zig");
+pub const qm31_mul_add_v1 = @import("qm31_mul_add.zig");
 pub const detached_arithmetic_fusion_plan = @import("detached_arithmetic_fusion_plan.zig");
-pub const detached_opening_accumulate4_v1 = @import("detached_opening_accumulate4_v1.zig");
+pub const detached_opening_accumulate4_v1 = @import("detached_opening_accumulate4.zig");
 pub const detached_opening_accumulation_plan = @import("detached_opening_accumulation_plan.zig");
 pub const qm31_mul_full = @import("qm31_mul_full.zig");
 pub const qm31_mul_full_witness = @import("qm31_mul_full_witness.zig");
@@ -73,13 +73,13 @@ pub const statement_input_witness = @import("statement_input_witness.zig");
 pub const statement_semantics_input = @import("statement_semantics_input.zig");
 pub const statement_semantics_input_relation = @import("statement_semantics_input_relation.zig");
 pub const statement_semantics_input_witness = @import("statement_semantics_input_witness.zig");
-pub const segment_boundary_components_v2 = @import("segment_boundary_components_v2.zig");
-pub const segment_outer_adapter_manifest_v2 = @import("segment_outer_adapter_manifest_v2.zig");
-pub const segment_outer_typed_catalog_v2 = @import("segment_outer_typed_catalog_v2.zig");
+pub const segment_boundary_components_v2 = @import("segment_boundary_components.zig");
+pub const segment_outer_adapter_manifest_v2 = @import("segment_outer_adapter_manifest.zig");
+pub const segment_outer_typed_catalog_v2 = @import("segment_outer_typed_catalog.zig");
 pub const segment_publication_input_provider_component_v2 =
-    @import("segment_publication_input_provider_component_v2.zig");
+    @import("segment_publication_input_provider_component.zig");
 pub const segment_publication_input_provider_v2 =
-    @import("segment_publication_input_provider_v2.zig");
+    @import("segment_publication_input_provider.zig");
 pub const trace_merkle = @import("trace_merkle.zig");
 pub const trace_merkle_relation = @import("trace_merkle_relation.zig");
 pub const trace_merkle_witness = @import("trace_merkle_witness.zig");
@@ -96,7 +96,7 @@ pub const transcript_word = @import("transcript_word.zig");
 pub const transcript_word_witness = @import("transcript_word_witness.zig");
 pub const universal_challenges = @import("universal_challenges.zig");
 pub const vm_public_logup_control_witness_v2 =
-    @import("vm_public_logup_control_witness_v2.zig");
+    @import("vm_public_logup_control_witness.zig");
 pub const universal_catalog = @import("universal_catalog.zig");
 pub const universal_adapter_manifest = @import("universal_adapter_manifest.zig");
 pub const universal_manifest = @import("universal_manifest.zig");
@@ -131,12 +131,12 @@ pub const wire_interaction = @import("wire_interaction.zig");
 
 // Opt-in companion bridge; no selected manifest/default changes.
 
-pub const detached_graph_input_v1 = @import("detached_graph_input_v1.zig");
-pub const detached_poseidon_graph_v1 = @import("detached_poseidon_graph_v1.zig");
+pub const detached_graph_input_v1 = @import("detached_graph_input.zig");
+pub const detached_poseidon_graph_v1 = @import("detached_poseidon_graph.zig");
 
-pub const detached_parent_catalog_v1 = @import("detached_parent_catalog_v1.zig");
-pub const segment_leaf_catalog_v2 = @import("segment_leaf_catalog_v2.zig");
-pub const framework_polynomial_export_v1 = @import("framework_polynomial_export_v1.zig");
+pub const detached_parent_catalog_v1 = @import("detached_parent_catalog.zig");
+pub const segment_leaf_catalog_v2 = @import("segment_leaf_catalog.zig");
+pub const framework_polynomial_export_v1 = @import("framework_polynomial_export.zig");
 
 pub const query_bits_profile = @import("query_bits_profile.zig");
 
@@ -144,7 +144,7 @@ pub const verifier_component_parameters = @import("verifier_component_parameters
 
 pub const proof_kind = @import("proof_kind.zig");
 
-pub const segment_outer_manifest_contract_v2 = @import("segment_outer_manifest_contract_v2.zig");
+pub const segment_outer_manifest_contract_v2 = @import("segment_outer_manifest_contract.zig");
 
 pub const verifier_wire_claims = @import("verifier_wire_claims.zig");
 

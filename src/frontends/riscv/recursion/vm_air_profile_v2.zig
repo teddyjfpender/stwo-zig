@@ -12,15 +12,15 @@ const m31 = stwo_core.fields.m31;
 const verifier_types = stwo_core.verifier_types;
 
 const base_assembly = @import("../prover/base_component_assembly.zig");
-const circuit = @import("../prover/ethereum_circuit_profile_v1.zig");
-const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
+const circuit = @import("../prover/ethereum_circuit_profile.zig");
+const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");
-const registry = @import("vm_air_profile_v2_registry.zig");
+const registry = @import("vm_air_profile_registry.zig");
 const semantic_eval = @import("../air/semantic_eval.zig");
 const statement_mod = @import("../air/statement.zig");
 const transcript_claims = @import("../air/transcript/claims.zig");
 
-const identity = @import("vm_air_profile_v2_identity.zig");
+const identity = @import("vm_air_profile_identity.zig");
 
 pub const FORMAT_VERSION: u16 = 2;
 pub const SCHEMA_VERSION: u16 = 1;

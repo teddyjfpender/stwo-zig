@@ -2,14 +2,14 @@ const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 const lookup_physical_v2 =
-    @import("../../air/lang/lookup_physical_manifest_v2.zig");
+    @import("../../air/lang/lookup_physical_manifest.zig");
 const public_data_v2 = @import("../../air/public_data_v2.zig");
-const public_support = @import("../../air/public_data_v2_test_support.zig");
+const public_support = @import("../../air/public_data_test_support.zig");
 const relations_mod = @import("../../air/relation_challenges.zig");
 const statement = @import("../../air/statement.zig");
 const statement_v2 = @import("../../air/statement_v2.zig");
 const profile_v2 = @import("../vm_air_profile_v2.zig");
-const support = @import("../ethereum_leaf_context_v1_test_support.zig");
+const support = @import("../ethereum_leaf_context_test_support.zig");
 const subject = @import("../vm_leaf_context_v2.zig");
 
 test "Ethereum selected base claim admission shares context order and binds mutations" {
@@ -275,7 +275,7 @@ const Fixture = struct {
 
     fn captureAuthority(self: *const Fixture) !subject.CaptureAuthority {
         const base_sampled_value_count = try @import(
-            "../vm_composition_base_geometry_v2.zig",
+            "../vm_composition_base_geometry.zig",
         ).expectedSampledValueCount(&self.native.core, &self.manifest);
         return .{
             .full_sampled_value_count = try std.math.add(

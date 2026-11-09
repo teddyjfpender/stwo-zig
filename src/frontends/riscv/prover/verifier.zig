@@ -19,7 +19,7 @@ const diagnostic_hints = @import("../air/diagnostic_hints.zig");
 /// reporting without reaching across the frontend package boundary.
 pub const diagnostic_wiring_source = @embedFile("verifier.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
-const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
+const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest.zig");
 const logup = @import("../air/logup.zig");
 const statement_v2 = @import("../air/statement_v2.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");

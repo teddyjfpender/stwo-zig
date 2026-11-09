@@ -196,8 +196,8 @@ fn multiplicityBound(comptime Air: type, comptime local_zero: bool, arena: *cons
         }),
         .input => blk: {
             const index = lang.types.idIndex(id);
-            if (local_zero and Air.PHYSICAL_MAIN_COLUMN_COUNT == @import("sha256_caller_local_zero_v1.zig").PHYSICAL_MAIN_COLUMN_COUNT and
-                std.mem.eql(u8, &Air.SEMANTIC_DIGEST, &@import("sha256_caller_local_zero_v1.zig").SEMANTIC_DIGEST) and
+            if (local_zero and Air.PHYSICAL_MAIN_COLUMN_COUNT == @import("sha256_caller_local_zero.zig").PHYSICAL_MAIN_COLUMN_COUNT and
+                std.mem.eql(u8, &Air.SEMANTIC_DIGEST, &@import("sha256_caller_local_zero.zig").SEMANTIC_DIGEST) and
                 (index == @import("sha256_memory_caller.zig").PHYSICAL_MAIN_COLUMN_COUNT or index == @import("sha256_memory_caller.zig").PHYSICAL_MAIN_COLUMN_COUNT + 2))
                 // Only authenticated Boolean nz hints have this public upper
                 // bound. Addresses, inverses and arbitrary main inputs remain

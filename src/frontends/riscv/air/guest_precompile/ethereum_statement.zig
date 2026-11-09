@@ -29,9 +29,9 @@ pub fn localZeroSemanticDigest() [32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
     h.update("stwo-zig/ethereum/caller-local-zero/v1\x00");
     h.update(&execution_profile.ethereum_semantic_digest);
-    h.update(&@import("x0_caller_envelope_v1.zig").abiId(.keccak));
-    h.update(&@import("x0_caller_envelope_v1.zig").abiId(.signer));
-    h.update(&@import("sha256_caller_local_zero_v1.zig").SEMANTIC_DIGEST);
+    h.update(&@import("x0_caller_envelope.zig").abiId(.keccak));
+    h.update(&@import("x0_caller_envelope.zig").abiId(.signer));
+    h.update(&@import("sha256_caller_local_zero.zig").SEMANTIC_DIGEST);
     return h.finalResult();
 }
 pub const component_count: usize = 14;
@@ -150,7 +150,7 @@ pub const Statement = struct {
         return canonicalV2WithCircuitProfileV1(native, keccak_calls, signer_calls, secp, .legacy_v4);
     }
 
-    pub fn canonicalV2WithCircuitProfileV1(native: *const statement_v2.RiscVStatementV2, keccak_calls: u32, signer_calls: u32, secp: SecpShapes, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!Statement {
+    pub fn canonicalV2WithCircuitProfileV1(native: *const statement_v2.RiscVStatementV2, keccak_calls: u32, signer_calls: u32, secp: SecpShapes, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!Statement {
         native.validate() catch return error.InvalidSegmentV2Boundary;
         const result = try initCanonical(
             keccak_calls,
@@ -169,7 +169,7 @@ pub const Statement = struct {
         return canonicalWithAdmissionForCircuitProfileV1(keccak_calls, signer_calls, secp, admission, .legacy_v4);
     }
 
-    pub fn canonicalWithAdmissionForCircuitProfileV1(keccak_calls: u32, signer_calls: u32, secp: SecpShapes, admission: Admission, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!Statement {
+    pub fn canonicalWithAdmissionForCircuitProfileV1(keccak_calls: u32, signer_calls: u32, secp: SecpShapes, admission: Admission, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!Statement {
         var result = try initCanonical(keccak_calls, signer_calls, secp, admission, circuit_profile.keccakMaximumLogSize());
         if (circuit_profile.localZeroCustody()) {
             result.version = local_zero_schema_version;
@@ -183,7 +183,7 @@ pub const Statement = struct {
     }
 
     /// Explicit allocation/receiver geometry policy; legacy callers retain16.
-    pub fn validateGeometryWithCircuitProfileV1(self: *const Statement, total_steps: u32, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!void {
+    pub fn validateGeometryWithCircuitProfileV1(self: *const Statement, total_steps: u32, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!void {
         try self.validateGeometryForRecipe(total_steps, circuit_profile.localZeroCustody());
         try self.validateKeccakMaximumLogSize(circuit_profile.keccakMaximumLogSize());
     }
@@ -241,7 +241,7 @@ pub const Statement = struct {
         return self.validateV2WithCircuitProfileV1(native, .legacy_v4);
     }
 
-    pub fn validateV2WithCircuitProfileV1(self: *const Statement, native: *const statement_v2.RiscVStatementV2, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!void {
+    pub fn validateV2WithCircuitProfileV1(self: *const Statement, native: *const statement_v2.RiscVStatementV2, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!void {
         native.validate() catch return error.InvalidSegmentV2Boundary;
         try self.validateStructure(&native.core);
         try self.validateKeccakMaximumLogSize(circuit_profile.keccakMaximumLogSize());
@@ -351,7 +351,7 @@ pub const Statement = struct {
         self.mixValidatedInto(channel);
     }
 
-    pub fn mixIntoV2WithCircuitProfileV1(self: *const Statement, native: *const statement_v2.RiscVStatementV2, channel: anytype, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!void {
+    pub fn mixIntoV2WithCircuitProfileV1(self: *const Statement, native: *const statement_v2.RiscVStatementV2, channel: anytype, circuit_profile: @import("../../prover/ethereum_circuit_profile.zig").CircuitProfileV1) Error!void {
         try self.validateV2WithCircuitProfileV1(native, circuit_profile);
         self.mixValidatedInto(channel);
     }

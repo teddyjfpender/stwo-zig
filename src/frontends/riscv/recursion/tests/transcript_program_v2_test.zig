@@ -8,19 +8,19 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const PcsConfig = stwo_core.pcs.PcsConfig;
 const opcode_interaction = @import("../../air/lookups/opcode_interaction.zig");
 const public_data_v2 = @import("../../air/public_data_v2.zig");
-const support = @import("../../air/public_data_v2_test_support.zig");
+const support = @import("../../air/public_data_test_support.zig");
 const relation_challenges = @import("../../air/relation_challenges.zig");
 const statement_v1 = @import("../../air/statement.zig");
 const statement_v2 = @import("../../air/statement_v2.zig");
 const fixed_profile = @import("../fixed_profile.zig");
 const channel = @import("../poseidon2_channel.zig");
 const schedule = @import("../air/verifier_schedule.zig");
-const segment_v2 = @import("../segment_statement_v2.zig");
+const segment_v2 = @import("../segment_statement.zig");
 const scheduled = @import("scheduled_channel_test_support.zig");
 const transcript = @import("../transcript_program_v2.zig");
 
 test "recording channel preserves native transcript and rejects corrupt trace coordinates" {
-    const recording = @import("../recording_poseidon_channel_v4.zig");
+    const recording = @import("../recording_poseidon_channel.zig");
     var recorder = recording.Channel.init(std.testing.allocator);
     defer recorder.deinit();
     var native = channel.Channel{};

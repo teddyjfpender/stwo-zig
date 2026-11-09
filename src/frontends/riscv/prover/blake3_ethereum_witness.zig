@@ -184,7 +184,7 @@ pub fn ForSha(comptime include_sha: bool) type {
     };
 }
 
-fn validateShaDisjoint(sha_calls: []const @import("../runner/guest_precompile/sha256_compression_v1.zig").Entry, other_calls: anytype) !void {
+fn validateShaDisjoint(sha_calls: []const @import("../runner/guest_precompile/sha256_compression.zig").Entry, other_calls: anytype) !void {
     var other: usize = 0;
     for (sha_calls) |entry| {
         while (other < other_calls.len and other_calls[other].execution_clock < entry.call.execution_clock) : (other += 1) {}

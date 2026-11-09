@@ -17,9 +17,9 @@ pub const main_trace_plan_execution_production =
     @import("prover/main_trace_plan_execution_production.zig");
 /// Fixed joined Ethereum Tree0 derivation; accepts no candidate proof root.
 pub const deriveIncrementalEthereumPreprocessedRootWithFixedProgramV1 =
-    @import("prover/incremental_ethereum_verifier_v3.zig").deriveExpectedPreprocessedRootWithFixedProgramV1;
+    @import("prover/incremental_ethereum_verifier.zig").deriveExpectedPreprocessedRootWithFixedProgramV1;
 pub const deriveIncrementalEthereumPreprocessedRootV4 =
-    @import("prover/incremental_ethereum_verifier_v3.zig").deriveExpectedPreprocessedRoot;
+    @import("prover/incremental_ethereum_verifier.zig").deriveExpectedPreprocessedRoot;
 pub const ethereum_native_provider_omit_protocol_v1 =
     guest_precompile.ethereum_native_provider_omit_protocol_v1;
 pub const ethereum_native_provider_omit_proof_v1 =
@@ -516,7 +516,7 @@ pub fn diagnoseRiscVRelationsWithEngineAndPublicData(
 
 const verifier = @import("prover/verifier.zig");
 const verifier_lookup_v1 = @import(
-    "prover/verifier_lookup_v1_compatibility.zig",
+    "prover/verifier_lookup_compatibility.zig",
 );
 pub const verifier_diagnostic_wiring_source = verifier.diagnostic_wiring_source;
 pub const QueryCapture = verifier.QueryCapture;

@@ -10,7 +10,7 @@ const prover_pcs = @import("stwo_prover_engine").pcs;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const table_counter = @import("../../air/lookups/tables/counter.zig");
 const base_relations = @import("../../air/relation_challenges.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest_v2.zig");
+const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
 const state_chain = @import("../../runner/state_chain.zig");
 const trace_mod = @import("../../runner/trace.zig");
 const commitment_witness = @import("../commitment_witness.zig");
@@ -22,7 +22,7 @@ const proof_workspace = @import("../proof_workspace.zig");
 const statement_geometry = @import("../statement_geometry.zig");
 const tree2_main_source = @import("../tree2_main_source.zig");
 const types = @import("../types.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit_v1.zig");
+const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
 
 const CommitmentWitness = commitment_witness.CommitmentWitness;
 const Geometry = statement_geometry.Geometry;

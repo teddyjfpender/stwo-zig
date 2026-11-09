@@ -93,11 +93,11 @@ test {
 }
 
 test {
-    _ = @import("rv64/air/word16_v1/alu_merged_prefix_test.zig");
+    _ = @import("rv64/air/word16/alu_merged_prefix_test.zig");
 }
 
 test {
-    _ = @import("rv64/air/word16_v1/shift_word_merged_test.zig");
+    _ = @import("rv64/air/word16/shift_word_merged_test.zig");
     _ = @import("rv64/air/delegations/arith256/mod.zig");
     _ = @import("rv64/air/delegations/arith256/tests.zig");
     _ = @import("rv64/air/delegations/bulk_memory/tests.zig");
@@ -112,28 +112,28 @@ test {
     _ = @import("rv64/air/delegations/sha256/native.zig");
     _ = @import("rv64/air/delegations/sha256/tests.zig");
     _ = @import("rv64/air/memory/load_store_dword/tests.zig");
-    _ = @import("rv64/air/memory/load_store_v2/boundary_source.zig");
+    _ = @import("rv64/air/memory/load_store/boundary_source.zig");
     _ = @import("rv64/air/native_output_pages.zig");
     _ = @import("rv64/air/providers/parallel_rows_test.zig");
     _ = @import("rv64/air/tests/packed_om_fields_test.zig");
     _ = @import("rv64/air/word16_cpu/rom_lookup_test.zig");
     _ = @import("rv64/air/word16_index_control/authority_test.zig");
-    _ = @import("rv64/air/word16_v1/alu_interaction_test.zig");
-    _ = @import("rv64/air/word16_v1/alu_packed_rows_test.zig");
-    _ = @import("rv64/air/word16_v1/alu_source_test.zig");
-    _ = @import("rv64/air/word16_v1/alu_test.zig");
-    _ = @import("rv64/air/word16_v1/binary_packed_rows_test.zig");
-    _ = @import("rv64/air/word16_v1/binary_source_test.zig");
-    _ = @import("rv64/air/word16_v1/binary_test.zig");
-    _ = @import("rv64/air/word16_v1/binary_zbb_test.zig");
-    _ = @import("rv64/air/word16_v1/shift_byte_packed_rows_test.zig");
-    _ = @import("rv64/air/word16_v1/shift_byte_test.zig");
-    _ = @import("rv64/air/word16_v1/shift_word_interaction_test.zig");
-    _ = @import("rv64/air/word16_v1/shift_word_packed_rows_test.zig");
-    _ = @import("rv64/air/word16_v1/shift_word_packed_table_test.zig");
-    _ = @import("rv64/air/word16_v1/shift_word_source_test.zig");
-    _ = @import("rv64/air/word16_v1/shift_word_test.zig");
-    _ = @import("rv64/air/word16_v1/u16_source_test.zig");
+    _ = @import("rv64/air/word16/alu_interaction_test.zig");
+    _ = @import("rv64/air/word16/alu_packed_rows_test.zig");
+    _ = @import("rv64/air/word16/alu_source_test.zig");
+    _ = @import("rv64/air/word16/alu_test.zig");
+    _ = @import("rv64/air/word16/binary_packed_rows_test.zig");
+    _ = @import("rv64/air/word16/binary_source_test.zig");
+    _ = @import("rv64/air/word16/binary_test.zig");
+    _ = @import("rv64/air/word16/binary_zbb_test.zig");
+    _ = @import("rv64/air/word16/shift_byte_packed_rows_test.zig");
+    _ = @import("rv64/air/word16/shift_byte_test.zig");
+    _ = @import("rv64/air/word16/shift_word_interaction_test.zig");
+    _ = @import("rv64/air/word16/shift_word_packed_rows_test.zig");
+    _ = @import("rv64/air/word16/shift_word_packed_table_test.zig");
+    _ = @import("rv64/air/word16/shift_word_source_test.zig");
+    _ = @import("rv64/air/word16/shift_word_test.zig");
+    _ = @import("rv64/air/word16/u16_source_test.zig");
     _ = @import("rv64/candidate_isa_test.zig");
     _ = @import("rv64/ethereum_contract.zig");
     _ = @import("rv64/ethereum_execution.zig");

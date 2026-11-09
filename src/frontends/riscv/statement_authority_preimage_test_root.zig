@@ -3,7 +3,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const statement = @import("air/statement_geometry.zig");
 const channel = @import("recursion/poseidon2_channel.zig");
-const owner = @import("air/statement_v2_authority_preimage.zig");
+const owner = @import("air/statement_authority_preimage.zig");
 const Input = owner.Input;
 const write = owner.write;
 const hash = owner.hash;
@@ -22,7 +22,7 @@ test "native authority preimage preserves legacy split encoding and hash" {
 }
 
 test "native authority preimage matches native adjacent statement authorities" {
-    const support = @import("air/public_data_v2_test_support.zig");
+    const support = @import("air/public_data_test_support.zig");
     const native = @import("air/statement_v2.zig");
     const public_data = @import("air/public_data_v2.zig");
     const fixture = try support.Fixture.init();

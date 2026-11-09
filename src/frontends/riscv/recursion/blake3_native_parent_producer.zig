@@ -7,7 +7,7 @@ const suite = @import("blake3_engine_protocol.zig");
 const native_protocol = @import("blake3_native_parent_protocol.zig");
 const artifact = @import("blake3_native_parent_artifact.zig");
 const native = @import("air/blake3_native_parent_rows.zig");
-const FixedGuard = @import("blake3_parent_fixed_row_guard_v1.zig");
+const FixedGuard = @import("blake3_parent_fixed_row_guard.zig");
 const Roster = @import("air/blake3_native_parent_roster.zig").Roster;
 const row_columns = @import("air/blake3_row_columns.zig");
 const binding = @import("air/universal_relation_binding.zig");
@@ -35,7 +35,7 @@ pub fn PlanForProtocolScopedAdmission(comptime Backend: type, comptime protocol:
     return PlanKernel(Backend, protocol, true);
 }
 fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_admission: bool) type {
-    const Borrow = @import("blake3_parent_admission_borrow_v1.zig").For(protocol.Admission);
+    const Borrow = @import("blake3_parent_admission_borrow.zig").For(protocol.Admission);
     return struct {
         const Self = @This();
         const Scheme = engine.pcs.CommitmentSchemeProver(Backend, suite.Hasher, suite.MerkleChannel);

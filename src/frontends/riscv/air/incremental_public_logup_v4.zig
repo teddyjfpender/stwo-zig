@@ -14,7 +14,7 @@ const public_logup = @import("public_logup.zig");
 const public_logup_v2 = @import("public_logup_v2.zig");
 const incremental_v3 = @import("incremental_public_logup_v3.zig");
 const relation_challenges = @import("relation_challenges.zig");
-const CircuitProfile = @import("../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1;
+const CircuitProfile = @import("../prover/ethereum_circuit_profile.zig").CircuitProfileV1;
 const statement_v2 = @import("statement_v2.zig");
 
 pub const PRODUCTION_ACTIVE = false;
@@ -345,7 +345,7 @@ fn hashQm31(hash: anytype, value: QM31) void {
 }
 
 test "incremental public V4 adds one actual nonfinal program fetch" {
-    const support = @import("public_data_v2_test_support.zig");
+    const support = @import("public_data_test_support.zig");
     var fixture = try support.Fixture.init();
     const source = fixture.leftSource();
     const words = try support.encode(std.testing.allocator, &source);
@@ -382,7 +382,7 @@ test "incremental public V4 adds one actual nonfinal program fetch" {
 }
 
 test "incremental public V4 decodes boundary CUSTOM-0 under Ethereum profile" {
-    const support = @import("public_data_v2_test_support.zig");
+    const support = @import("public_data_test_support.zig");
     const custom0 = @import("../isa/custom0.zig");
     var fixture = try support.Fixture.init();
     const source = fixture.leftSource();
@@ -439,7 +439,7 @@ test "incremental public V4 decodes boundary CUSTOM-0 under Ethereum profile" {
 }
 
 test "incremental public V4 surviving fractions match scalar replacement by domain" {
-    const support = @import("public_data_v2_test_support.zig");
+    const support = @import("public_data_test_support.zig");
     const M31 = @import("stwo_core").fields.m31.M31;
     var fixture = try support.Fixture.init();
     // Include initial/nonfinal, resumed/final and truly empty sparse sections.
@@ -475,7 +475,7 @@ test "incremental public V4 surviving fractions match scalar replacement by doma
 }
 
 test "incremental public V4 still rejects zero denominators in removed sparse terms" {
-    const support = @import("public_data_v2_test_support.zig");
+    const support = @import("public_data_test_support.zig");
     const M31 = @import("stwo_core").fields.m31.M31;
     var fixture = try support.Fixture.init();
     const source = fixture.leftSource();

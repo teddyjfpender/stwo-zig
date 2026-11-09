@@ -1,6 +1,6 @@
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
-const Scope = @import("runtime/external_allocation_admission_v1.zig").Scope;
+const Scope = @import("runtime/external_allocation_admission.zig").Scope;
 const Budget = engine.host_budget_allocator.SharedHostBudget;
 
 const Factory = struct {

@@ -100,7 +100,7 @@ pub const State = struct {
             break :blk try planned.emit(a);
         };
         errdefer self.prepared.deinit();
-        self.composition = try @import("vm_air_composition_prepared_v2.zig").prepare(a, capture, config);
+        self.composition = try @import("vm_air_composition_prepared.zig").prepare(a, capture, config);
         errdefer self.composition.deinit();
         self.payloads = try @import("air/blake3_native_payload_links.zig").prepareColumns(a, &self.composition, &self.prepared, 1500);
         errdefer self.payloads.deinit();

@@ -12,7 +12,7 @@ const access_clock = @import("../../access_clock.zig");
 const logup = @import("../logup.zig");
 const call_buffer = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
 const custom0 = @import("../../isa/custom0.zig");
-const runner = @import("../../runner/guest_precompile/keccakf_v1.zig");
+const runner = @import("../../runner/guest_precompile/keccakf.zig");
 const relations_mod = @import("keccakf_relations.zig");
 const witness = @import("keccakf_witness.zig");
 

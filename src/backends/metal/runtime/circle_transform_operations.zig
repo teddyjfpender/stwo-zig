@@ -1,8 +1,8 @@
 //! Circle transforms, LDE dispatch, and recurrence composition.
 
 const std = @import("std");
-const admission_v1 = @import("external_allocation_admission_v1.zig");
-const fri_error = @import("fri_error_v1.zig");
+const admission_v1 = @import("external_allocation_admission.zig");
+const fri_error = @import("fri_error.zig");
 const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
 const runtime = @import("../runtime.zig");
 const ffi = @import("bindings.zig");

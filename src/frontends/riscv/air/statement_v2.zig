@@ -20,9 +20,9 @@ const relation_challenges = @import("relation_challenges.zig");
 const sparse_merkle = @import("memory_commitment/sparse_merkle.zig");
 const statement_v1 = @import("statement.zig");
 const channel = @import("../recursion/poseidon2_channel.zig");
-const segment_v2 = @import("../recursion/segment_statement_v2.zig");
+const segment_v2 = @import("../recursion/segment_statement.zig");
 const runner_result = @import("../runner/result.zig");
-pub const authority_preimage = @import("statement_v2_authority_preimage.zig");
+pub const authority_preimage = @import("statement_authority_preimage.zig");
 
 pub const FORMAT_VERSION: u16 = authority_preimage.FORMAT_VERSION;
 pub const SCHEMA_VERSION: u16 = authority_preimage.SCHEMA_VERSION;
@@ -521,7 +521,7 @@ pub fn nativePublicTermCounts(
 /// Canonical compatibility projection used only by existing geometry, witness,
 /// and commitment helpers.  It is never transcript-mixed and never supplies
 /// public LogUp compensation in a V2 proof.
-pub const canonicalCorePublicData = @import("statement_v2_public_projection.zig").canonicalCorePublicData;
+pub const canonicalCorePublicData = @import("statement_public_projection.zig").canonicalCorePublicData;
 
 fn authenticatedView(
     data: *const public_data_v2.PublicDataV2,

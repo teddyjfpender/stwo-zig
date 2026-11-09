@@ -107,7 +107,7 @@ test "channel profile: the profile channel grinds in the proving@5a7c5ed SIMD or
 
 test "channel profile: profiles are the Merkle channel of the PCS verifier" {
     const pcs_verifier = @import("../pcs/verifier.zig");
-    const config_v2 = @import("../pcs/config_v2.zig");
+    const config_v2 = @import("../pcs/config.zig");
     const alloc = std.testing.allocator;
     const root = [_]u8{7} ** 32;
     inline for (.{ proving_5a7c5ed.Blake2sMerkleChannel, proving_5a7c5ed.Blake2sM31MerkleChannel }) |Profile| {

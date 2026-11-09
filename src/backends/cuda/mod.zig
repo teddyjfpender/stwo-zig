@@ -8,7 +8,7 @@ pub const abi = @import("abi/mod.zig");
 pub const aot = struct {
     pub const module_globals = @import("aot/module_globals.zig");
     pub const product_registry = @import("aot/product_registry.zig");
-    pub const secure_polynomial_v1 = @import("aot/secure_polynomial_registry_v1.zig");
+    pub const secure_polynomial_v1 = @import("aot/secure_polynomial_registry.zig");
 };
 pub const product_aot = aot.product_registry;
 pub const frontend_contract = @import("frontend_contract.zig");
