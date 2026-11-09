@@ -79,6 +79,22 @@
       "commands": [
         [
           "zig",
+          "test",
+          "src/waist/core/fields/tests/cm31_fri_case.zig",
+          "-ODebug",
+          "-femit-bin={output_dir}/cm31-fri-case-Debug",
+          "-femit-llvm-ir={output_dir}/cm31-fri-case-Debug.ll"
+        ],
+        [
+          "zig",
+          "test",
+          "src/waist/core/fields/tests/cm31_fri_case.zig",
+          "-OReleaseFast",
+          "-femit-bin={output_dir}/cm31-fri-case-ReleaseFast",
+          "-femit-llvm-ir={output_dir}/cm31-fri-case-ReleaseFast.ll"
+        ],
+        [
+          "zig",
           "build",
           "test-fields",
           "--build-file",

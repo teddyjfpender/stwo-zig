@@ -194,6 +194,50 @@ jobs:
             --cache-root "$RUNNER_TOOL_CACHE/stwo-zig/focused/${{ matrix.lane }}" \
             --output "$RUNNER_TEMP/focused-ci/${{ matrix.lane }}.json"
 
+      - name: Compare frozen FRI arithmetic against exact main and current sources
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu' && inputs.cpu_lane == 'core'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, io, json, os, platform, shutil, subprocess, tarfile
+          from pathlib import Path
+          out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci/cm31-main-comparison"
+          out.mkdir(parents=True, exist_ok=True)
+          main = "4e260db9605d16fef5d405cc3c280e3042b22e35"
+          current = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          roots = {}
+          for name, commit, path in (("main", main, "src/core"), ("current", current, "src/waist/core")):
+              archive = subprocess.check_output(["git", "archive", commit, path])
+              with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+                  tar.extractall(out / name, filter="data")
+              roots[name] = out / name / path
+          roots["current-inline"] = out / "current-inline"
+          shutil.copytree(roots["current"], roots["current-inline"])
+          cm31 = roots["current-inline"] / "fields/cm31.zig"
+          original = cm31.read_text()
+          normalized = original.replace("    // Keep the three-product expression behind a call boundary in nested callers.\n", "").replace("pub noinline fn mul(lhs: CM31", "pub inline fn mul(lhs: CM31")
+          assert normalized != original and normalized == (roots["main"] / "fields/cm31.zig").read_text()
+          cm31.write_text(normalized)
+          for field in ("m31.zig", "qm31.zig"):
+              assert (roots["main"] / "fields" / field).read_bytes() == (roots["current"] / "fields" / field).read_bytes()
+          probe = out / "pinned-fri-probe.zig"
+          probe.write_bytes(Path("src/waist/core/fields/tests/qm31_integer.zig").read_bytes())
+          records = []
+          for name, root in roots.items():
+              for mode in ("Debug", "ReleaseSafe", "ReleaseFast"):
+                  label = name + "-" + mode
+                  binary, ir = out / label, out / (label + ".ll")
+                  argv = ["zig", "test", "-O" + mode, "--test-filter", "qm31 integer:", "--dep", "stwo_core", "-Mroot=" + str(probe), "-O" + mode, "-Mstwo_core=" + str(root / "mod.zig"), "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
+                  result = subprocess.run(argv, capture_output=True, timeout=120)
+                  for stream in ("stdout", "stderr"):
+                      (out / (label + "." + stream)).write_bytes(getattr(result, stream))
+                  records.append({"variant": name, "mode": mode, "argv": argv, "exit": result.returncode, "cm31_sha256": hashlib.sha256((root / "fields/cm31.zig").read_bytes()).hexdigest(), "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
+          report = {"scope": "source-pinned arithmetic diagnosis; no timing or full-proof qualification", "main_commit": main, "current_commit": current, "zig_version": subprocess.check_output(["zig", "version"], text=True).strip(), "host": platform.platform(), "probe_sha256": hashlib.sha256(probe.read_bytes()).hexdigest(), "runs": records}
+          (out / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
+          print(json.dumps(report, indent=2))
+          raise SystemExit(any(record["exit"] != 0 for record in records))
+          PY
+
       - name: Retain fresh CPU verification of rejected full-width reports
         if: failure() && matrix.lane == 'riscv_cpu'
         shell: bash

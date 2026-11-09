@@ -4,6 +4,7 @@ test {
     _ = @import("fields/mod.zig");
     _ = @import("fields/qm31.zig");
     _ = @import("fields/om31_test.zig");
+    _ = @import("fields/tests/cm31_fri_case.zig");
 }
 
 test "field root: complete OM31 property discovery" {

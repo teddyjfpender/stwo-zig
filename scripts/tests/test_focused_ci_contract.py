@@ -256,6 +256,11 @@ class PlannerContractTests(unittest.TestCase):
                 for command in commands
             ), mode)
 
+    def test_core_retains_standalone_fri_case_and_ir_in_both_modes(self) -> None:
+        commands = self.policy["lanes"]["core"]["commands"]
+        for mode in ("Debug", "ReleaseFast"):
+            self.assertTrue(any("src/waist/core/fields/tests/cm31_fri_case.zig" in command and "-O" + mode in command and any(arg.startswith("-femit-llvm-ir=") for arg in command) for command in commands), mode)
+
     def test_riscv_auxiliary_build_owners_select_only_cpu_consumers(self) -> None:
         expected = {"static", "build_graph", "riscv_cpu", "aggregate_cpu", "aggregate_metal"}
         paths = ("build_support/products/riscv_refinement.zig",

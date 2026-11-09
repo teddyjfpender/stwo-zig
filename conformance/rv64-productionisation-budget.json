@@ -876,6 +876,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Existing hosted workflow freshly verifies retained BLAKE3 candidate artifacts and rejects a wrong caller statement ID under the existing timeout and exact source/executable/workload/artifact hashes. At most 55 workflow diagnostic lines, reported separately. Original smoke schema/release rejection and lane failure remain mandatory; no new acceptance path, launcher or protocol change."
+    },
+    {
+      "id": "cm31_pinned_standalone_and_main_diagnosis",
+      "net_code_budget": 200,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "User-requested standalone pinned FRI pair with explicit canonical runtime guards and independent frozen expected limbs, plus hosted exact-main/current source comparisons and LLVM IR. Preserve production arithmetic and every golden; distinguish a passing reduced case from reproducing the full failure. No new launcher or runtime flag; no timing trust before byte identity."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
