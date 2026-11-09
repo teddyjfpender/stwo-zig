@@ -40,9 +40,9 @@ replacing the qualified execution controls above. Its records are in
 | Service-local GKR | Actual Kona120794432 completes native suite3 and a 683,432-byte R6 root, with separate source-only acceptance and policy/output refusal; explicit suite3 additionally closes a complete synthetic CPU + Miller native bundle, two recursive leaves and one fold, with physical adversaries | Actual full-height Miller and heavy resource-derived physical sharding. The small Kona block has zero Miller calls; the synthetic fixture is not a Kona block or a heavy performance result |
 | Bounded truth planning | Source-derived checkpoint/whole-worker estimator refuses heavy log18 Keccak and admits log16/4,518-permutation shards under the declared 8 GiB worker limit | Resource-derived shard-plan integration is present; physical heavy qualification remains open. Estimates are requested bytes, not measured RSS |
 | Retained source custody | Small native bundle remains byte-identical with CPU advice parking and post-seal LS/SHIFT auxiliary retirement; witness-free ledger reproduces capture and event payloads exactly | Model excludes scratch/mappings; 27.46 GB CPU seal payload is not whole-worker admission or measured RSS |
-| Detached sponge and CPU frontier | Four-worker physical native fixture closes two CPU shards, detached sponge and Keccak truth under one manifest, with independently rebuilt keys and canonical direct/sponge call IDs. Typed CPU frontier and detached sponge each have physical recursive leaves; the four-member pending root freshly verifies, with exact source masses and global closure | Production source-suite/runtime and actual OP-block receiver admission; suite sponge admission remains closed. These are short fixtures, not block speedups |
+| Detached sponge and CPU frontier | Actual selected796k guest and alternate1.317M guest complete fresh native proof production and independent receivers, with global closure and all typed callbacks. Selected guest includes CPU, detached sponge, local Keccak and classic SHA | Production source-suite admission remains closed; representative heavy/resource and broader regression qualification still required |
 | Native recursive dot product | Complete actual Kona120794432 R7 root,680,116bytes, fresh source-only receiver and full execution/terminal/global admission; CPU217,378,816cells versus R6 264,302,592 | All-fresh and matched timing;164.625s incremental qualification reuses one verified CPU leaf and uses classic truths, so it is not comparable to the local-GKR R6 control |
-| Direct native groups | Four original native verifiers in ONE physical circuit, no recursive children or intermediate folds:416,800,768cells versus1,274,831,872for the old seven nodes;711,340B root,44.984s proving, fresh independent authority and physical attacks | Complete execution integration, canonical mixed-size spans, resource-derived grouping and whole-block performance. Fixture only; production admission closed |
+| Direct native groups | COMPLETE selected small OP execution:750,068B root, four native members in one group, no intermediate wraps/folds; fresh source-only receiver with native file absent; eight physical/debt/metadata attacks reject;93.373s node prove/persist/check | Actual multi-group fold runtime gate, resource-derived heavy group sizing and controlled performance. Existing proof paths/defaults remain unchanged |
 | Immutable outer Miller setup | Bounded producer and independent verifier caches reproduce/accept the same physical root with cached and forced-fallback keys; class barrier, request binding, adversarial checks and zero final heap | Repeated-class complete-execution performance; no process-global cache or unbudgeted retention |
 | Complete heavy performance | Matched D2 native + M6 root baseline 3,328.446 seconds | At most 332.845 seconds for the same heavy block, through a complete recursive root; **not achieved** |
 
@@ -183,3 +183,24 @@ are not in Git and were not found in this checkout or local artifact store.
 Their location is needed for physical replay of the same transition. Until
 recovered, keep the transition gate open; do not replace it with a synthetic
 case or call an execution-only proof an OP validity proof.
+
+
+## Complete grouped small execution
+
+The selected796,406-instruction Kona execution now closes CPU/frontier,
+detached sponge, local Keccak and classic SHA through ONE physical proof.
+All native proofs/global claims and independently pinned terminal43bytes pass
+before root publication. Source-only reception with `detached-op.bin` absent
+accepts, and eight retained physical/root/metadata/balanced-debt attacks reject.
+Prove/persist/check93.373s; root producer121.133s includes cold source and native
+re-verification, while original native production is additional. A separate CLI
+receiver takes22.609s deriving source keys and30.151ms reading/verifying the root.
+Requested peak18.885GB under32GiB, with zero final heap/external custody.
+No matched quiet speed ratio or heavy-block gain is claimed.
+
+The exact model is830,730,240cells. A joint eight-role R7 direct-group SOURCE
+experiment uses643,035,136cells with the SAME canonical public root; its physical
+proof is not yet established. The existing final-only b2/q144 profile is being
+qualified separately, with native b4 profiles unchanged. See the
+[grouped block receipt](../vectors/reports/rv64-opstack-cpu-20261109/direct-native-group-actual-small-v1.json)
+and [R7 source model](../vectors/reports/rv64-opstack-performance-20261109/native-dot-r7-group-selected-v1.json).
