@@ -326,13 +326,14 @@ pub inline fn writeActiveRow(columns: anytype, row_index: usize, row: TraceRow) 
     const rd_next = limbs(row.rd_val);
     const rs1_value = limbs(row.rs1_val);
     const rs2_value = limbs(row.rs2_val);
-    const derived = derive(row);
     const rd = fromUnsigned(row.rd);
     const rs1 = fromUnsigned(row.rs1);
     const rs2 = fromUnsigned(row.rs2);
     const rd_nonzero = row.rd != 0;
 
-    inline for (CANONICAL_RECIPE, 0..) |source, column| {
+    // Finish raw stores before constructing the division hint aggregate.
+    const first_derived = @intFromEnum(RowSource.zero_divisor);
+    inline for (CANONICAL_RECIPE[0..first_derived], 0..) |source, column| {
         columns[column][row_index] = switch (source) {
             .clock => fromUnsigned(row.clk),
             .pc => fromUnsigned(row.pc),
@@ -358,6 +359,12 @@ pub inline fn writeActiveRow(columns: anytype, row_index: usize, row: TraceRow) 
             .rs2_prev_2, .rs2_next_2 => rs2_value[2],
             .rs2_prev_3, .rs2_next_3 => rs2_value[3],
             .rs2_clock_prev => fromUnsigned(row.rs2_prev_clk),
+            else => @compileError("division recipe crossed its raw/derived boundary"),
+        };
+    }
+    const derived = derive(row);
+    inline for (CANONICAL_RECIPE[first_derived..], first_derived..) |source, column| {
+        columns[column][row_index] = switch (source) {
             .zero_divisor => bit(derived.zero_divisor),
             .r_zero => bit(derived.r_zero),
             .q_0 => derived.quotient[0],
@@ -393,6 +400,7 @@ pub inline fn writeActiveRow(columns: anytype, row_index: usize, row: TraceRow) 
             .opcode_remu_flag => bit(row.opcode == .REMU),
             .rd_nonzero => bit(rd_nonzero),
             .rd_inv => if (rd_nonzero) rd.invUncheckedNonZero() else M31.zero(),
+            else => @compileError("division recipe crossed its raw/derived boundary"),
         };
     }
 }
@@ -466,7 +474,11 @@ fn validateRow(row: TraceRow) ExecutionError!void {
 }
 
 inline fn fromUnsigned(value: anytype) M31 {
-    return M31.fromU64(@intCast(value));
+    // One Mersenne fold suffices for every RV32 word, including 0xffffffff.
+    const word: u32 = @intCast(value);
+    const modulus = @import("stwo_core").fields.m31.Modulus;
+    const folded = (word & modulus) + (word >> 31);
+    return M31.fromCanonical(if (folded >= modulus) folded - modulus else folded);
 }
 
 inline fn bit(value: bool) M31 {

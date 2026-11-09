@@ -6,6 +6,44 @@ const support = @import("../typed_fence_witness_test_support.zig");
 const typed_fence = @import("../typed_fence.zig");
 const witness = @import("../typed_fence_witness.zig");
 
+test "typed witness unsigned words retain exact M31 reduction at u32 boundaries" {
+    var words: [136]u32 = undefined;
+    const edges = [_]u32{ 0, 1, 0x7fff_fffd, 0x7fff_fffe, 0x7fff_ffff, 0x8000_0000, 0xffff_fffe, 0xffff_ffff };
+    @memcpy(words[0..edges.len], &edges);
+    var prng = std.Random.DefaultPrng.init(0x5752_4954_4552_3332);
+    for (words[edges.len..]) |*word| word.* = prng.random().int(u32);
+    inline for (.{
+        .{ witness, .FENCE, 1 },
+        .{ @import("../typed_branch_eq_witness.zig"), .BEQ, 0 },
+        .{ @import("../typed_branch_lt_witness.zig"), .BLTU, 0 },
+        .{ @import("../typed_div_witness.zig"), .DIVU, 0 },
+        .{ @import("../typed_load_store_witness.zig"), .LW, 0 },
+        .{ @import("../typed_lt_imm_witness.zig"), .SLTIU, 0 },
+        .{ @import("../typed_lt_reg_witness.zig"), .SLTU, 0 },
+        .{ @import("../typed_shifts_imm_witness.zig"), .SRLI, 0 },
+    }) |case| {
+        const Writer = case[0];
+        var storage: [Writer.MAIN_COLUMN_COUNT][1]M31 = undefined;
+        var columns: [Writer.MAIN_COLUMN_COUNT][]M31 = undefined;
+        for (&storage, &columns) |*cell, *column| column.* = cell;
+        for (words) |word| {
+            var row = std.mem.zeroes(Writer.TraceRow);
+            row.opcode = case[1];
+            row.clk = word;
+            row.pc = word;
+            row.rd = 1;
+            row.rs1_val = word;
+            row.rs2_val = 3;
+            row.mem_addr = 0x1000;
+            row.is_load = row.opcode == .LW;
+            Writer.writeActiveRow(&columns, 0, row);
+            const expected = word % @import("stwo_core").fields.m31.Modulus;
+            try std.testing.expectEqual(expected, columns[case[2]][0].v);
+            try std.testing.expectEqual(expected, columns[case[2] + 1][0].v);
+        }
+    }
+}
+
 test "typed FENCE witness binding is exact source-independent and self-contained" {
     var generated = try typed_fence.build(std.testing.allocator, .generated);
     var moved = try typed_fence.build(std.testing.allocator, .{ .file = .{

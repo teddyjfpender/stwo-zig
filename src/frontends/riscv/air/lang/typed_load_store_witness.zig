@@ -334,7 +334,7 @@ pub inline fn writeActiveRow(columns: anytype, row_index: usize, row: TraceRow) 
     }
 }
 
-fn derive(row: TraceRow) RowValues {
+inline fn derive(row: TraceRow) RowValues {
     const byte_op = row.opcode == .LB or row.opcode == .LBU or row.opcode == .SB;
     const half_op = row.opcode == .LH or row.opcode == .LHU or row.opcode == .SH;
     const offset = row.mem_addr & 3;
@@ -396,7 +396,11 @@ pub fn validateTraceRow(row: TraceRow) ExecutionError!void {
 }
 
 inline fn fromUnsigned(value: anytype) M31 {
-    return M31.fromU64(@intCast(value));
+    // One Mersenne fold suffices for every RV32 word, including 0xffffffff.
+    const word: u32 = @intCast(value);
+    const modulus = @import("stwo_core").fields.m31.Modulus;
+    const folded = (word & modulus) + (word >> 31);
+    return M31.fromCanonical(if (folded >= modulus) folded - modulus else folded);
 }
 
 inline fn fromSigned(value: i32) M31 {

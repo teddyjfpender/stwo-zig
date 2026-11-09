@@ -160,13 +160,14 @@ class PlannerContractTests(unittest.TestCase):
             self.assertTrue({parent, companion}.issubset(selected))
             self.assertIn(companion, ci_scope_plan.MANUAL_CPU_LANES)
 
-    def test_releasefast_failure_diagnostic_retains_twelve_real_cases_and_full_gate(self):
+    def test_releasefast_failure_diagnostic_retains_cases_and_unsigned_boundary_check(self):
         package = ROOT / "src/frontends/riscv"
         catalog = (package / "build_focused_tests.zig").read_text()
-        spec = catalog.split('.step = "test-releasefast-acceptance",', 1)[1].split('.minimum = 12,', 1)[0]
+        spec = catalog.split('.step = "test-releasefast-acceptance",', 1)[1].split('.minimum = 13,', 1)[0]
         filters = re.findall(r'"([^"\n]+)"', spec.split('.filters = &.{', 1)[1])
         imports = re.findall(r'@import\("([^"]+)"\)', (package / "releasefast_acceptance_test_root.zig").read_text())
-        self.assertEqual(12, len(set(filters)))
+        self.assertEqual(13, len(set(filters)))
+        self.assertIn("typed witness unsigned words retain exact M31 reduction at u32 boundaries", filters)
         self.assertEqual(12, len(set(imports)))
         declared = [name for path in imports for name in re.findall(r'test "([^"]+)"', (package / path).read_text())]
         self.assertTrue(all(sum(name == selected for name in declared) == 1 for selected in filters))

@@ -25,6 +25,7 @@ pub const specs = [_]Spec{
         .strip = false,
         .error_tracing = true,
         .filters = &.{
+            "typed witness unsigned words retain exact M31 reduction at u32 boundaries",
             "range framework admission rejects selector claim shape identity and malformed source",
             "typed BRANCH_EQ hot rows retain paired legacy throughput and scaling",
             "typed BRANCH_LT hot rows retain paired legacy throughput and scaling",
@@ -38,7 +39,7 @@ pub const specs = [_]Spec{
             "BLAKE3 Span public program authenticates complete ROM and emits no hash rows",
             "BLAKE3 memory update proves runner snapshot conversion agrees with full roots",
         },
-        .minimum = 12,
+        .minimum = 13,
     },
     .{
         .step = "test-retained-fri-frontier",

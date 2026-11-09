@@ -229,7 +229,11 @@ fn validateRow(row: TraceRow) ExecutionError!void {
 }
 
 inline fn fromUnsigned(value: anytype) M31 {
-    return M31.fromU64(@intCast(value));
+    // One Mersenne fold suffices for every RV32 word, including 0xffffffff.
+    const word: u32 = @intCast(value);
+    const modulus = @import("stwo_core").fields.m31.Modulus;
+    const folded = (word & modulus) + (word >> 31);
+    return M31.fromCanonical(if (folded >= modulus) folded - modulus else folded);
 }
 
 fn hashInt(hash: anytype, comptime T: type, value: T) void {

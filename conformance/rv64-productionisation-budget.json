@@ -962,6 +962,13 @@
       "positive_growth_justification": "Preserve source-pinned unfinished command streams and prior completion records across cancellation, and protect complete-package required child discovery while eliminating duplicate execution."
     },
     {
+      "id": "a3_bound_live_typed_witness_values",
+      "net_code_budget": 180,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #330: retained hosted assembly identifies excessive live trace values and aggregate traffic in eight failed typed/legacy throughput gates. Commit raw recipe columns before derived comparison/inversion hints; inline the load/store aggregate owner; specialize private RV32 conversions to one bounded Mersenne fold. Add an independent integer-modulo property across all eight writers and u32 boundary/random words. Preserve recipe identities, binding digests, exact output, alias/rejection/padding invariants, original throughput/scaling assertions and golden bytes. Existing complete parity suites remain mandatory. No public field API, flag or launcher; performance is unqualified until hosted diagnostics and complete acceptance pass. Rollback reverts the bounded writer changes while retaining failure evidence and coverage."
+    },
+    {
       "id": "a3_restored_frontend_negative_contracts",
       "net_code_budget": 50,
       "flags_added_budget": 0,

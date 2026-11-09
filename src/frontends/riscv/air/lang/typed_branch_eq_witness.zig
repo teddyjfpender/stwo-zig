@@ -410,39 +410,47 @@ inline fn decodeRow(row: TraceRow) DecodedRow {
 
 pub inline fn writeActiveRow(columns: anytype, row_index: usize, row: TraceRow) void {
     @setEvalBranchQuota(10_000);
-    const decoded = decodeRow(row);
-    inline for (CANONICAL_RECIPE, 0..) |row_source, column| {
+    // Commit raw columns before derived hints to bound live values across inversions.
+    const first_derived = @intFromEnum(RowSource.hint_difference_inverse_0);
+    inline for (CANONICAL_RECIPE[0..first_derived], 0..) |row_source, column| {
         columns[column][row_index] = switch (row_source) {
-            .trace_clock => decoded.clock,
-            .trace_pc => decoded.pc,
-            .trace_rs1_address => decoded.rs1,
-            .trace_rs1_previous_byte_0 => decoded.rs1_value[0],
-            .trace_rs1_previous_byte_1 => decoded.rs1_value[1],
-            .trace_rs1_previous_byte_2 => decoded.rs1_value[2],
-            .trace_rs1_previous_byte_3 => decoded.rs1_value[3],
-            .trace_rs1_previous_clock => decoded.rs1_previous_clock,
-            .trace_rs1_next_byte_0 => decoded.rs1_value[0],
-            .trace_rs1_next_byte_1 => decoded.rs1_value[1],
-            .trace_rs1_next_byte_2 => decoded.rs1_value[2],
-            .trace_rs1_next_byte_3 => decoded.rs1_value[3],
-            .trace_rs2_address => decoded.rs2,
-            .trace_rs2_previous_byte_0 => decoded.rs2_value[0],
-            .trace_rs2_previous_byte_1 => decoded.rs2_value[1],
-            .trace_rs2_previous_byte_2 => decoded.rs2_value[2],
-            .trace_rs2_previous_byte_3 => decoded.rs2_value[3],
-            .trace_rs2_previous_clock => decoded.rs2_previous_clock,
-            .trace_rs2_next_byte_0 => decoded.rs2_value[0],
-            .trace_rs2_next_byte_1 => decoded.rs2_value[1],
-            .trace_rs2_next_byte_2 => decoded.rs2_value[2],
-            .trace_rs2_next_byte_3 => decoded.rs2_value[3],
-            .trace_signed_immediate => decoded.immediate,
-            .derived_branch_decision => flag(decoded.taken),
+            .trace_clock => fromUnsigned(row.clk),
+            .trace_pc => fromUnsigned(row.pc),
+            .trace_rs1_address => fromUnsigned(row.rs1),
+            .trace_rs1_previous_byte_0 => fromUnsigned((row.rs1_val >> 0) & 0xff),
+            .trace_rs1_previous_byte_1 => fromUnsigned((row.rs1_val >> 8) & 0xff),
+            .trace_rs1_previous_byte_2 => fromUnsigned((row.rs1_val >> 16) & 0xff),
+            .trace_rs1_previous_byte_3 => fromUnsigned((row.rs1_val >> 24) & 0xff),
+            .trace_rs1_previous_clock => fromUnsigned(row.rs1_prev_clk),
+            .trace_rs1_next_byte_0 => fromUnsigned((row.rs1_val >> 0) & 0xff),
+            .trace_rs1_next_byte_1 => fromUnsigned((row.rs1_val >> 8) & 0xff),
+            .trace_rs1_next_byte_2 => fromUnsigned((row.rs1_val >> 16) & 0xff),
+            .trace_rs1_next_byte_3 => fromUnsigned((row.rs1_val >> 24) & 0xff),
+            .trace_rs2_address => fromUnsigned(row.rs2),
+            .trace_rs2_previous_byte_0 => fromUnsigned((row.rs2_val >> 0) & 0xff),
+            .trace_rs2_previous_byte_1 => fromUnsigned((row.rs2_val >> 8) & 0xff),
+            .trace_rs2_previous_byte_2 => fromUnsigned((row.rs2_val >> 16) & 0xff),
+            .trace_rs2_previous_byte_3 => fromUnsigned((row.rs2_val >> 24) & 0xff),
+            .trace_rs2_previous_clock => fromUnsigned(row.rs2_prev_clk),
+            .trace_rs2_next_byte_0 => fromUnsigned((row.rs2_val >> 0) & 0xff),
+            .trace_rs2_next_byte_1 => fromUnsigned((row.rs2_val >> 8) & 0xff),
+            .trace_rs2_next_byte_2 => fromUnsigned((row.rs2_val >> 16) & 0xff),
+            .trace_rs2_next_byte_3 => fromUnsigned((row.rs2_val >> 24) & 0xff),
+            .trace_signed_immediate => fromSigned(row.imm),
+            .derived_branch_decision => flag(if (row.opcode == .BEQ) row.rs1_val == row.rs2_val else row.rs1_val != row.rs2_val),
+            else => @compileError("witness recipe crossed its raw/derived boundary"),
+        };
+    }
+    const decoded = decodeRow(row);
+    inline for (CANONICAL_RECIPE[first_derived..], first_derived..) |row_source, column| {
+        columns[column][row_index] = switch (row_source) {
             .hint_difference_inverse_0 => decoded.inverse_markers[0],
             .hint_difference_inverse_1 => decoded.inverse_markers[1],
             .hint_difference_inverse_2 => decoded.inverse_markers[2],
             .hint_difference_inverse_3 => decoded.inverse_markers[3],
             .derived_beq_flag => decoded.flags[0],
             .derived_bne_flag => decoded.flags[1],
+            else => @compileError("witness recipe crossed its raw/derived boundary"),
         };
     }
 }
@@ -566,7 +574,11 @@ inline fn flag(value: bool) M31 {
 }
 
 inline fn fromUnsigned(value: anytype) M31 {
-    return M31.fromU64(@intCast(value));
+    // One Mersenne fold suffices for every RV32 word, including 0xffffffff.
+    const word: u32 = @intCast(value);
+    const modulus = @import("stwo_core").fields.m31.Modulus;
+    const folded = (word & modulus) + (word >> 31);
+    return M31.fromCanonical(if (folded >= modulus) folded - modulus else folded);
 }
 
 inline fn fromSigned(value: i32) M31 {
