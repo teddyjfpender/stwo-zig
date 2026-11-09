@@ -53,3 +53,14 @@ execution completion nor proving speedup is claimed from this prototype.
 
 The earlier576-byte client was a closed control and is superseded before any
 OPv1 admission. There is one current variant, one OP profile, and one new tag.
+
+The final640-byte guest now completes **three real blocks** under the prototype
+OP VM. Native execution and independent Unicorn agree on exact instructions,
+43-byte output, all registers, terminal PC and all service counts. Heavy
+121065789 uses **253,185,635 instructions**, **22,185 Miller-line calls**,
+331,163 legacy Fp2 calls and33,117 arith256 calls. That removes exactly
+**4 × 22,185** arith256 crossings versus the LRU guest. Service RAM word
+transitions fall **26,347,061 → 20,423,872**. Smaller cases use796,313 and
+5,927,325 instructions. These execution gains do not qualify native proving
+speed or production proof admission; physical provider/RAM/receiver gates
+remain open. The complete post-fusion census is pinned in the receipt.
