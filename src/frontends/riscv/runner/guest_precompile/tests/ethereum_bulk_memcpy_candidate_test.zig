@@ -3,7 +3,7 @@
 const std = @import("std");
 
 const execution_profile = @import("../../../isa/execution_profile.zig");
-const authority_mod = @import("../../../isa/ethereum_bulk_memcpy_candidate_v1.zig");
+const authority_mod = @import("../../../isa/ethereum_bulk_memcpy_candidate.zig");
 const segment_session = @import("../../segment_session.zig");
 const test_elf = @import("../test_elf.zig");
 

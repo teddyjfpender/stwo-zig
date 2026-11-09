@@ -6,9 +6,9 @@
 
 const std = @import("std");
 const keccak_calls_mod = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
-const keccak_rows_mod = @import("../../runner/guest_precompile/keccakf_v1.zig");
+const keccak_rows_mod = @import("../../runner/guest_precompile/keccakf.zig");
 const recovery_calls_mod = @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const recovery_rows_mod = @import("../../runner/guest_precompile/secp256k1_recover_v1.zig");
+const recovery_rows_mod = @import("../../runner/guest_precompile/secp256k1_recover.zig");
 const keccak_caller = @import("../../air/guest_precompile/keccakf_caller.zig");
 const keccak_counters = @import("../../air/guest_precompile/keccakf_multiplicities.zig");
 const keccak_trace = @import("../../air/guest_precompile/keccakf_trace.zig");
@@ -26,7 +26,7 @@ pub const Witness = struct {
     secp: secp_bundle.Bundle,
     recovery_caller: secp_bundle.RecoveryCallerTrace,
     recovery_caller_local_zero: ?secp_bundle.RecoveryCallerLocalZeroTrace = null,
-    circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1 = .legacy_v4,
+    circuit_profile: @import("../ethereum_circuit_profile.zig").CircuitProfileV1 = .legacy_v4,
     /// Column-staged witnesses own no affine construction tape. Their logical
     /// count comes from the independently retained, root-recommitted statement.
     staged_signer_count: ?u32 = null,
@@ -49,7 +49,7 @@ pub const Witness = struct {
         recovery_calls: []const recovery_calls_mod.Record,
         recovery_rows: []const recovery_rows_mod.ExecutionRow,
         total_steps: u32,
-        circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+        circuit_profile: @import("../ethereum_circuit_profile.zig").CircuitProfileV1,
     ) !Witness {
         try keccak_caller.preflight(keccak_calls, keccak_rows, total_steps);
         try recovery_caller.preflight(recovery_calls, recovery_rows, total_steps);

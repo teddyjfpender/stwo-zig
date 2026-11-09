@@ -1,7 +1,7 @@
 //! Internal outer parent child admission authority shard; use outer_parent_child_admission.zig publicly.
 
 const dependency_0 = @import("outer_parent_child_admission_contract.zig");
-const dependency_1 = @import("outer_parent_child_admission_binary_pair_candidate_v1.zig");
+const dependency_1 = @import("outer_parent_child_admission_binary_pair_candidate.zig");
 
 const BinaryPairCandidateV1 = dependency_1.BinaryPairCandidateV1;
 const ByteWriter = dependency_0.ByteWriter;

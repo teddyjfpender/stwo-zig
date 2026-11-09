@@ -26,7 +26,7 @@ const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 const row_window = @import("lang/row_window.zig");
 const runtime_program = @import("extract/runtime_program.zig");
 const semantic_eval = @import("semantic_eval.zig");
-const local_zero = @import("x0_native_envelope_v1.zig");
+const local_zero = @import("x0_native_envelope.zig");
 const checked_recovery = @import("../recursion/air/universal_typed_component_contract.zig");
 const trace = @import("../runner/trace.zig");
 

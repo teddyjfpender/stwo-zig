@@ -61,7 +61,7 @@ pub fn Entries(comptime S: type) type {
         ) anyerror!void {
             @setEvalBranchQuota(100_000);
             if (columns.len != trace.nColumnsForFamily(family)) {
-                result.* = try @import("../x0_native_envelope_v1.zig").Builder(S).lookups(family, columns);
+                result.* = try @import("../x0_native_envelope.zig").Builder(S).lookups(family, columns);
                 return;
             }
             if (family == .branch_eq)

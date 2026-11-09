@@ -9,7 +9,7 @@ const Cpu = @import("../cpu.zig").Cpu;
 const DecodedInst = @import("../decode.zig").DecodedInst;
 const decode = @import("../decode.zig");
 const generated = @import("../generated_retirement.zig");
-const ethereum_v1 = @import("../guest_precompile/ethereum_v1.zig");
+const ethereum_v1 = @import("../guest_precompile/ethereum.zig");
 const session_state = @import("../guest_precompile/session_state.zig");
 const Memory = @import("../memory.zig").Memory;
 const MemoryLayout = @import("../memory_state.zig").MemoryLayout;
@@ -45,9 +45,9 @@ pub const ResultV1 = struct {
     state_chain_tracker: StateChainTracker,
     touched_memory: Memory,
     keccakf_calls: @import("../guest_precompile/keccakf_call_buffer.zig").Frozen,
-    keccakf_execution_rows: @import("../guest_precompile/keccakf_v1.zig").FrozenExecutionRows,
+    keccakf_execution_rows: @import("../guest_precompile/keccakf.zig").FrozenExecutionRows,
     signer_recovery_calls: @import("../guest_precompile/secp256k1_recover_call_buffer.zig").Frozen,
-    signer_recovery_execution_rows: @import("../guest_precompile/secp256k1_recover_v1.zig").FrozenExecutionRows,
+    signer_recovery_execution_rows: @import("../guest_precompile/secp256k1_recover.zig").FrozenExecutionRows,
 
     pub fn deinit(self: *ResultV1) void {
         self.keccakf_calls.deinit();

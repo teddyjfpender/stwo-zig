@@ -3,7 +3,7 @@ const E = @import("../evaluation.zig");
 const M = @import("stwo_core").fields.m31.M31;
 pub const Q = E.Q;
 pub const Boundary = @import("../word16_cpu/public.zig").Public;
-pub const OwnerChallengesFor = @import("../memory/load_store_v2/types.zig").OwnerChallengesFor;
+pub const OwnerChallengesFor = @import("../memory/load_store/types.zig").OwnerChallengesFor;
 pub const OwnerChallenges = OwnerChallengesFor(Q);
 pub fn InputsFor(comptime C: type) type {
     E.assertConstLane(C);

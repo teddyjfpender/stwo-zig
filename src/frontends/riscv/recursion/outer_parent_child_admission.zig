@@ -19,7 +19,7 @@
 //! canonical wire, transcript-continuation audit, and pair-child identity that
 //! such a proof must cross after independent native verification.
 const shard_0 = @import("outer_parent_child_admission_contract.zig");
-const shard_1 = @import("outer_parent_child_admission_binary_pair_candidate_v1.zig");
+const shard_1 = @import("outer_parent_child_admission_binary_pair_candidate.zig");
 const shard_2 = @import("outer_parent_child_admission_admit.zig");
 
 pub const FORMAT_VERSION = shard_0.FORMAT_VERSION;

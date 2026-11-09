@@ -105,7 +105,7 @@ class SourceClosureTest(unittest.TestCase):
             allowed_prefixes=("src/waist/core", "src/frontends/riscv"),
         )
         sources = inspect_sources(root, manifest).relative_sources()
-        self.assertIn("src/frontends/riscv/air/x0_native_envelope_v1.zig", sources)
+        self.assertIn("src/frontends/riscv/air/x0_native_envelope.zig", sources)
         for source in sources:
             self.assertNotIn("legacy_test_oracle", source)
             if source.startswith("src/frontends/riscv/"):
@@ -117,7 +117,7 @@ class SourceClosureTest(unittest.TestCase):
                 })
 
     def test_typed_opcode_authority_rejects_a_prover_dependency(self) -> None:
-        owner = Path(__file__).resolve().parents[2] / "src/frontends/riscv/air/x0_native_envelope_v1.zig"
+        owner = Path(__file__).resolve().parents[2] / "src/frontends/riscv/air/x0_native_envelope.zig"
         read_text = Path.read_text
 
         def mutated_text(path: Path, *args: object, **kwargs: object) -> str:
@@ -125,7 +125,7 @@ class SourceClosureTest(unittest.TestCase):
             return text + '\nconst forbidden = @import("stwo_prover_engine");\n' if path == owner else text
 
         with mock.patch.object(Path, "read_text", mutated_text):
-            with self.assertRaisesRegex(ClosureError, "x0_native_envelope_v1.zig: undeclared named import 'stwo_prover_engine'"):
+            with self.assertRaisesRegex(ClosureError, "x0_native_envelope.zig: undeclared named import 'stwo_prover_engine'"):
                 self.test_typed_opcode_production_excludes_retired_evaluators()
 
     def test_resolves_relative_and_named_imports(self) -> None:

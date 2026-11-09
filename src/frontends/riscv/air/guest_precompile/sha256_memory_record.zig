@@ -4,7 +4,7 @@
 const std = @import("std");
 const sha = @import("sha256_compression.zig");
 const clock = @import("../../access_clock.zig");
-const contract = @import("../../isa/sha256_compression_v1.zig");
+const contract = @import("../../isa/sha256_compression.zig");
 pub const word_count = 24;
 pub const address_limit: u32 = 1 << 30;
 pub const Record = struct {

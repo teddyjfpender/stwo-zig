@@ -2,7 +2,7 @@
 //! compact metadata handles for its AIR public values and native transcript.
 const C = @import("common.zig");
 const Public = @import("frame.zig");
-const Summary = @import("node_summary_v3.zig");
+const Summary = @import("node_summary.zig");
 const Counter = @import("typed_root.zig").Counter;
 const Integer = @import("typed_integer.zig");
 const Table = @import("../vk_table.zig");

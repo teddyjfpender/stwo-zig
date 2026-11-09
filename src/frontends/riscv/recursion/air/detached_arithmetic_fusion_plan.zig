@@ -3,7 +3,7 @@
 //! only when its sole consumer is the matching add/subtract operation.
 const std = @import("std");
 const graph = @import("composition_circuit.zig");
-const fused = @import("qm31_mul_add_v1.zig");
+const fused = @import("qm31_mul_add.zig");
 pub const Match = struct {
     multiply_node: u32,
     output_node: u32,

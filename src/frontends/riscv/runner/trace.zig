@@ -354,7 +354,7 @@ pub const Trace = struct {
 /// that own composition geometry.  Keeping this as a compile-time constant
 /// preserves fixed stack storage in every hot trace/prover consumer.
 /// Capacity includes canonical local-zero hints; legacy family widths are unchanged.
-pub const MAX_FAMILY_COLUMNS: usize = composition_manifest.MAX_MAIN_COLUMNS + @import("../air/x0_native_envelope_v1.zig").MAX_HINT_COLUMNS;
+pub const MAX_FAMILY_COLUMNS: usize = composition_manifest.MAX_MAIN_COLUMNS + @import("../air/x0_native_envelope.zig").MAX_HINT_COLUMNS;
 
 pub const TraceColumns = struct {
     columns: [MAX_FAMILY_COLUMNS][]M31,

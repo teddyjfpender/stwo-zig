@@ -10,16 +10,16 @@
 const std = @import("std");
 const runner = @import("../runner/mod.zig");
 const execution_profile = @import("../isa/execution_profile.zig");
-const bulk_registry = @import("../isa/bulk_memcpy_private_registry_v1.zig");
-const stack_swap = @import("../isa/stack_swap_candidate_v1.zig");
+const bulk_registry = @import("../isa/bulk_memcpy_private_registry.zig");
+const stack_swap = @import("../isa/stack_swap_candidate.zig");
 const candidate_capability = @import(
-    "../runner/guest_precompile/ethereum_candidate_execution_capability_v1.zig",
+    "../runner/guest_precompile/ethereum_candidate_execution_capability.zig",
 );
 const memory_state = @import("../runner/memory_state.zig");
 const result_mod = @import("../runner/result.zig");
 const trace_mod = @import("../runner/trace.zig");
 const witness_layout = @import("../witness_layout.zig");
-const segment_statement_v2 = @import("../recursion/segment_statement_v2.zig");
+const segment_statement_v2 = @import("../recursion/segment_statement.zig");
 
 pub const HEADER_SCHEMA = "stwo.riscv.segmented-execution-header.v3";
 pub const SEGMENT_SCHEMA = "stwo.riscv.segmented-execution-segment.v3";

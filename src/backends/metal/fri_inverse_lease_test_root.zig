@@ -2,7 +2,7 @@
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const Budget = engine.host_budget_allocator.SharedHostBudget;
-const Inverses = @import("runtime/fri_inverse_cache_budget_v1.zig");
+const Inverses = @import("runtime/fri_inverse_cache_budget.zig");
 const Key = Inverses.Key;
 const Counter = std.atomic.Value(usize);
 const Resource = struct {

@@ -13,7 +13,7 @@ const component_registry = @import("../../air/guest_precompile/component_registr
 const guest_main_trace = @import("../../air/guest_precompile/main_trace.zig");
 const guest_statement = @import("../../air/guest_precompile/statement.zig");
 const call_buffer = @import("../../runner/guest_precompile/call_buffer.zig");
-const guest_runner = @import("../../runner/guest_precompile/poseidon2_v1.zig");
+const guest_runner = @import("../../runner/guest_precompile/poseidon2.zig");
 const aggregation_hash = @import("../../aggregation/hash.zig");
 
 pub const RESEARCH_ONLY = true;

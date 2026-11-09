@@ -1,6 +1,6 @@
 const E = @import("../../../evaluation.zig");
 const R = @import("../../../memory/closed_ram/mod.zig");
-const Owner = @import("../../../memory/load_store_v2/types.zig");
+const Owner = @import("../../../memory/load_store/types.zig");
 const K = @import("../equations.zig");
 const Scalar = @import("../../../providers/scalar_range.zig");
 pub const Q = E.Q;
@@ -21,7 +21,7 @@ pub const Claims = struct {
     }
 };
 pub fn validateGeometry(calls: usize, first_id: u32, log: u32) !usize {
-    const n = try @import("../../../memory/load_store_v2/source.zig").sizeForLog(log);
+    const n = try @import("../../../memory/load_store/source.zig").sizeForLog(log);
     if (calls > (n - 1) / 25 or first_id == 0 or first_id >= @import("stwo_core").fields.m31.Modulus or calls > @import("stwo_core").fields.m31.Modulus - first_id) return error.InvalidWord16KeccakGeometry;
     if (22 * @as(u64, n) >= @import("stwo_core").fields.m31.Modulus or 19 * @as(u64, n) >= @import("stwo_core").fields.m31.Modulus) return error.Word16KeccakMassBound;
     return n;

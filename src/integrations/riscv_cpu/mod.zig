@@ -28,7 +28,7 @@ pub const rv64_gkr_cpu_replay = @import("word16_global_execution/services/gkr_lo
 pub const rv64_gkr_native_provider = @import("word16_global_execution/services/gkr_local/native_provider.zig");
 pub const rv64_ethereum_gkr_main = @import("word16_global_execution/ethereum/gkr_main.zig");
 pub const rv64_gkr_truth_v3_role = @import("word16_global_execution/services/gkr_local/truth_v3_role.zig");
-pub const rv64_gkr_truth_v3_catalog = @import("word16_global_execution/services/gkr_local/truth_v3_catalog.zig");
+pub const rv64_gkr_truth_v3_catalog = @import("word16_global_execution/services/gkr_local/truth_catalog.zig");
 pub const rv64_gkr_truth_role = @import("word16_global_execution/services/gkr_local/truth_role.zig");
 pub const rv64_native_gkr_roster = @import("word16_global_execution/services/native_gkr/native_roster.zig");
 pub const rv64_native_gkr_cpu = @import("word16_global_execution/services/native_gkr/cpu_component.zig");
@@ -333,15 +333,15 @@ pub fn proveAndVerifyElf(
 test {
     std.testing.refAllDecls(@This());
     // Internal detached modules remain in the test inventory without widening the API.
-    _ = @import("recursive_segment_v2_detached_boundary.zig");
-    _ = @import("recursive_segment_v2_detached_child_transcript.zig");
-    _ = @import("recursive_segment_v2_detached_composition.zig");
-    _ = @import("recursive_segment_v2_detached_parent_statement.zig");
-    _ = @import("recursive_segment_v2_detached_pcs_rows.zig");
-    _ = @import("recursive_segment_v2_detached_prefix.zig");
-    _ = @import("recursive_segment_v2_detached_transcript.zig");
-    _ = @import("recursive_segment_v2_public_inputs.zig");
-    _ = @import("recursive_segment_v2_verifier_components.zig");
+    _ = @import("recursive_segment_detached_boundary.zig");
+    _ = @import("recursive_segment_detached_child_transcript.zig");
+    _ = @import("recursive_segment_detached_composition.zig");
+    _ = @import("recursive_segment_detached_parent_statement.zig");
+    _ = @import("recursive_segment_detached_pcs_rows.zig");
+    _ = @import("recursive_segment_detached_prefix.zig");
+    _ = @import("recursive_segment_detached_transcript.zig");
+    _ = @import("recursive_segment_public_inputs.zig");
+    _ = @import("recursive_segment_verifier_components.zig");
 
     _ = @import("guest_precompile_proof_test.zig");
     _ = @import("split_pcs_prepare_test.zig");
@@ -353,7 +353,7 @@ pub const rv64_om31_cpu_leaf = @import("rv64_recursion/om31_native/cpu_leaf.zig"
 pub const rv64_om31_services_root = @import("rv64_recursion/om31_native/services_root.zig");
 pub const rv64_om31_ready_dag = @import("rv64_recursion/om31_native/ready_dag.zig");
 pub const rv64_om31_typed_fold = @import("rv64_recursion/om31_native/typed_fold.zig");
-pub const rv64_om31_typed_summary = @import("rv64_recursion/om31_native/node_summary_v3.zig");
+pub const rv64_om31_typed_summary = @import("rv64_recursion/om31_native/node_summary.zig");
 pub const rv64_vk_table = @import("rv64_recursion/vk_table.zig");
 
 pub const rv64_om31_execution_wrap = @import("rv64_recursion/om31_native/execution_wrap.zig");
@@ -366,11 +366,11 @@ pub const rv64_recursion_budget = @import("rv64_recursion_budget.zig");
 
 // Retained tests for live modules; restored from the pre-restructure source.
 test {
-    _ = @import("recursive_segment_v2_detached_leaf_options_test.zig");
-    _ = @import("recursive_segment_v2_detached_parent_prepared_test.zig");
-    _ = @import("recursive_segment_v2_detached_routing_test.zig");
-    _ = @import("recursive_segment_v2_leaf_outer_test.zig");
-    _ = @import("recursive_segment_v2_single_root_test.zig");
+    _ = @import("recursive_segment_detached_leaf_options_test.zig");
+    _ = @import("recursive_segment_detached_parent_prepared_test.zig");
+    _ = @import("recursive_segment_detached_routing_test.zig");
+    _ = @import("recursive_segment_leaf_outer_test.zig");
+    _ = @import("recursive_segment_single_root_test.zig");
     _ = @import("word16_execution/om31_compress_corpus_test.zig");
 }
 

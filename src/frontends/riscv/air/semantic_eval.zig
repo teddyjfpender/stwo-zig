@@ -18,7 +18,7 @@ pub fn Eval(comptime S: type) type {
 
         pub const MAX_CONSTRAINTS: usize = program.MAX_DIRECT_CONSTRAINTS;
         pub const Evaluation = program.DirectConstraints;
-        pub const RecipeEvaluation = @import("x0_native_envelope_v1.zig").Builder(S).Direct;
+        pub const RecipeEvaluation = @import("x0_native_envelope.zig").Builder(S).Direct;
 
         pub fn mainColumnCount(family: trace.OpcodeFamily) usize {
             return program.mainColumnCount(family);
@@ -46,7 +46,7 @@ pub fn Eval(comptime S: type) type {
                 @memcpy(result.values[0..result.len], original.values[0..original.len]);
                 return;
             }
-            const evaluated = try @import("x0_native_envelope_v1.zig").Builder(S).direct(family, columns, is_active);
+            const evaluated = try @import("x0_native_envelope.zig").Builder(S).direct(family, columns, is_active);
             result.len = evaluated.len;
             @memcpy(result.values[0..result.len], evaluated.values[0..evaluated.len]);
         }

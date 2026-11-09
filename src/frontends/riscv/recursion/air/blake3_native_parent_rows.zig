@@ -140,7 +140,7 @@ fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator
     const graphs = source.graphs();
     const values = source.evaluations();
     // Replacements are selected once, before constructing any row roster.
-    const source_direct = @import("blake3_direct_source_columns_v1.zig");
+    const source_direct = @import("blake3_direct_source_columns.zig");
     var source_counts = source_direct.Counts{};
     try appendSources(source, &source_counts);
     try appendSelectorInputs(a, source, graphs, values, &source_counts);
@@ -157,9 +157,9 @@ fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator
     if (release_rows) |release| release.call(release.context);
     @import("stwo_prover_engine").measurement.process_usage.reportStage("assembly.row_sources_released");
     // Selector-use scratch was released before the separate input audit.
-    const packed_rows = try @import("blake3_recursive_column_rows_v1.zig").ForAir(Airs[11]).init(main[11], fixed[11]);
-    const scalar_rows = try @import("blake3_recursive_column_rows_v1.zig").ForAir(Airs[12]).init(main[12], fixed[12]);
-    const boundary_rows = try @import("blake3_recursive_column_rows_v1.zig").ForAir(Airs[2]).init(main[2], fixed[2]);
+    const packed_rows = try @import("blake3_recursive_column_rows.zig").ForAir(Airs[11]).init(main[11], fixed[11]);
+    const scalar_rows = try @import("blake3_recursive_column_rows.zig").ForAir(Airs[12]).init(main[12], fixed[12]);
+    const boundary_rows = try @import("blake3_recursive_column_rows.zig").ForAir(Airs[2]).init(main[2], fixed[2]);
     const input_count = if (comptime @hasDecl(@TypeOf(source), "externalInputs")) blk: {
         const external = try source.externalInputs(a);
         defer a.free(external);
@@ -190,7 +190,7 @@ fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator
         for (plan.public_terms) |term| if (term.active_in == .segment) {
             public_count = try std.math.add(usize, public_count, 1);
         };
-        var boundaries = try @import("blake3_direct_cohort_columns_v1.zig").ForAir(Airs[2]).init(a, try std.math.add(usize, boundary_rows.rowCount(), public_count));
+        var boundaries = try @import("blake3_direct_cohort_columns.zig").ForAir(Airs[2]).init(a, try std.math.add(usize, boundary_rows.rowCount(), public_count));
         defer boundaries.deinit();
         for (0..boundary_rows.rowCount()) |index| try boundaries.append(boundary_rows.rowAt(index));
         // Inventory no longer owns a dense boundary roster. Release the

@@ -3,10 +3,10 @@
 const std = @import("std");
 
 const authority_mod =
-    @import("../../../isa/ethereum_candidate_combined_authority_v1.zig");
+    @import("../../../isa/ethereum_candidate_combined_authority.zig");
 const combined_decode =
-    @import("../../../prover/guest_precompile/ethereum_candidate_combined_decode_v1.zig");
-const receipt_mod = @import("../ethereum_candidate_combined_elf_receipt_v1.zig");
+    @import("../../../prover/guest_precompile/ethereum_candidate_combined_decode.zig");
+const receipt_mod = @import("../ethereum_candidate_combined_elf_receipt.zig");
 const segment_session = @import("../../segment_session.zig");
 const test_elf = @import("../test_elf.zig");
 

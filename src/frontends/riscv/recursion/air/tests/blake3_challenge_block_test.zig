@@ -14,7 +14,7 @@ test "BLAKE3 challenge block pins typed reduction rejection and framework export
     defer d.deinit();
     const plan = try binding.Binding(block).authenticate(&d);
     const direct = try @import("../direct_constraint_program.zig").authenticate(&d.arena, block.SEMANTIC_DIGEST, block.LOGICAL_INPUT_COUNT);
-    var exported = try @import("../framework_polynomial_export_v1.zig").exportLocalPrepared(block, a, &direct, &plan);
+    var exported = try @import("../framework_polynomial_export.zig").exportLocalPrepared(block, a, &direct, &plan);
     defer exported.deinit();
     var degrees = try lang.degree.analyze(a, &d.arena);
     defer degrees.deinit();

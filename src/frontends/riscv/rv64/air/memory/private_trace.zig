@@ -17,7 +17,7 @@ const PA = @import("policy_air.zig");
 const Capture = @import("openings.zig");
 pub const sameAllocator = @import("ownership.zig").same;
 const physical = @import("../witness.zig").physical;
-const universal = @import("../../../air/memory_commitment/poseidon2_universal_degree3_v1.zig");
+const universal = @import("../../../air/memory_commitment/poseidon2_universal_degree3.zig");
 const M = core.fields.m31.M31;
 pub const Shapes = struct {
     chunk: CA.Shape,

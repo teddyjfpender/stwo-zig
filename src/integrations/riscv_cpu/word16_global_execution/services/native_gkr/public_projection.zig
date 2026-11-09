@@ -113,7 +113,7 @@ pub fn forTruth(d: @import("../wire.zig").TruthDeclaration) !TruthPolicy {
         const pair_rows: u32 = @intCast(policy.geometry().rowsPerPair());
         return .{ .max_calls = 2 * (rows / pair_rows), .max_first_id = modulus - 1, .max_end_id = modulus, .rows_per_pair = pair_rows };
     }
-    _ = try @import("../gkr_local/truth_v3_catalog.zig").descriptorForDeclaration(d);
+    _ = try @import("../gkr_local/truth_catalog.zig").descriptorForDeclaration(d);
     return .{ .max_calls = rows - 1, .max_first_id = modulus - 1, .max_end_id = modulus };
 }
 test "native truth public capacity uses original paired Keccak and one-row V3 geometry" {

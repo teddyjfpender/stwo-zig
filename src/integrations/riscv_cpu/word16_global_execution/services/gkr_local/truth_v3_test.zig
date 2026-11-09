@@ -1,7 +1,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
-const C = @import("truth_v3_catalog.zig");
+const C = @import("truth_catalog.zig");
 const R = @import("../roster.zig");
 const Role = @import("truth_v3_role.zig");
 test "V3 secure readers instantiate all eight coordinates and original equations" {
@@ -142,7 +142,7 @@ test "V3 secp ADD DOUBLE physical OM 4n proofs and fresh receivers" {
     }
 }
 fn witnessAllocationCase(a: std.mem.Allocator, source: *const R.TruthSource, wire: A.crypto.sha256.equations.WireFor(core.fields.om31.OM31), bytes: core.fields.om31.OM31) !void {
-    var w = try @import("truth_v3_witness.zig").generate(a, source, wire, bytes, 256 << 20);
+    var w = try @import("truth_witness.zig").generate(a, source, wire, bytes, 256 << 20);
     defer w.deinit();
     const commit = try w.take(a);
     defer commit.deinit(a);
@@ -159,7 +159,7 @@ test "V3 bounded interaction publication ownership and every allocation failure"
     var source = R.TruthSource{ .arith256_mod = .{ .source = native } };
     defer source.deinit();
     try std.testing.checkAllAllocationFailures(a, witnessAllocationCase, .{ &source, wire, bytes });
-    try std.testing.expectError(error.V3TruthBudgetExceeded, @import("truth_v3_witness.zig").generate(a, &source, wire, bytes, 0));
+    try std.testing.expectError(error.V3TruthBudgetExceeded, @import("truth_witness.zig").generate(a, &source, wire, bytes, 0));
     try source.arith256_mod.source.releaseMain();
     try witnessAllocationCase(a, &source, wire, bytes);
 }

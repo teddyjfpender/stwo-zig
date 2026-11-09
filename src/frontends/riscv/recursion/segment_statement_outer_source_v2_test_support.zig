@@ -5,12 +5,12 @@ const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const PcsConfig = stwo_core.pcs.PcsConfig;
 const public_data_v2 = @import("../air/public_data_v2.zig");
-const support = @import("../air/public_data_v2_test_support.zig");
+const support = @import("../air/public_data_test_support.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");
 const statement_v1 = @import("../air/statement.zig");
-const air_v2 = @import("segment_leaf_outer_air_v2.zig");
+const air_v2 = @import("segment_leaf_outer_air.zig");
 const source_v2 = @import("segment_leaf_authority_v2.zig");
-const boundary_v2 = @import("segment_leaf_outer_authority_v2.zig");
+const boundary_v2 = @import("segment_leaf_outer_authority.zig");
 const range_authority_v2 = @import("segment_range_authority_v2.zig");
 const transcript_source_v2 = @import("segment_transcript_outer_source_v2.zig");
 const transcript = @import("transcript_program_v2.zig");
@@ -21,15 +21,15 @@ const universal = @import("air/universal_challenges.zig");
 const shared_provider = @import("air/universal_shared_provider.zig");
 const universal_manifest = @import("air/universal_manifest.zig");
 const universal_roster = @import("air/universal_roster.zig");
-const manifest_v2 = @import("air/segment_outer_adapter_manifest_v2.zig");
-const catalog_v2 = @import("air/segment_outer_typed_catalog_v2.zig");
+const manifest_v2 = @import("air/segment_outer_adapter_manifest.zig");
+const catalog_v2 = @import("air/segment_outer_typed_catalog.zig");
 const range_bridge = @import("air/range_check_8_8_bridge.zig");
-const statement_components_v2 = @import("segment_statement_outer_components_v2.zig");
+const statement_components_v2 = @import("segment_statement_outer_components.zig");
 const subject = @import("segment_statement_outer_source_v2.zig");
 const row17_witness_v2 =
-    @import("air/vm_public_logup_control_witness_v2.zig");
+    @import("air/vm_public_logup_control_witness.zig");
 const provider_authority =
-    @import("segment_publication_input_provider_authority_v2.zig");
+    @import("segment_publication_input_provider_authority.zig");
 
 const config = PcsConfig{
     .pow_bits = 0,

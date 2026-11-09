@@ -2,9 +2,9 @@
 //! Producer and receiver independently construct the same pinned public roster.
 const std = @import("std");
 const Q = @import("stwo_core").fields.qm31.QM31;
-const F = @import("rv64_distributed_v1/functional.zig");
-const D = @import("rv64_distributed_v1/manifest.zig");
-const W = @import("rv64_distributed_v1/wire.zig");
+const F = @import("rv64_distributed/functional.zig");
+const D = @import("rv64_distributed/manifest.zig");
+const W = @import("rv64_distributed/wire.zig");
 fn hash(bytes: []const u8) [32]u8 {
     var digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});

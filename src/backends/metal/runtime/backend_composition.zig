@@ -8,7 +8,7 @@ const prover = @import("stwo_prover_engine");
 const work_profile = @import("stwo_prover_api").work_profile;
 const base_polynomial = @import("base_polynomial_composition.zig");
 const secure_composition = @import("secure_composition.zig");
-const typed_secure = @import("secure_polynomial_composition_v1.zig");
+const typed_secure = @import("secure_polynomial_composition.zig");
 const composition_work = prover.air.composition_work;
 const composition_execution = prover.air.composition_execution;
 

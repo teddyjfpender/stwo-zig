@@ -167,7 +167,7 @@ pub fn cpu(request: Request) !Globals {
 pub fn truth(d: Declaration) !Globals {
     var out = Globals{};
     if (d.family != .keccak and (@intFromEnum(d.family) >= 3 or d.logs[1] == 0)) {
-        _ = try @import("truth_v3_catalog.zig").descriptorForDeclaration(d);
+        _ = try @import("truth_catalog.zig").descriptorForDeclaration(d);
         const kind = @import("../types.zig").bridgeKind(d.family);
         out.wire.positive = try std.math.mul(u64, d.calls, A.crypto.secp256k1.word16_bridge.types.written(kind));
         out.wire.negative = try std.math.mul(u64, d.calls, A.crypto.secp256k1.word16_bridge.types.coordinates(kind));

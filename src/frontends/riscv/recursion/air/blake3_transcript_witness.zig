@@ -1,8 +1,8 @@
 //! Compile native absorption and secure draws into authenticated dataflow.
 //! Operation order determines state links, draw counters and absorption resets.
 const std = @import("std");
-const Nonhash = @import("blake3_nonhash_emission_v1.zig");
-const DirectFrame = @import("blake3_frame_nonhash_v1.zig");
+const Nonhash = @import("blake3_nonhash_emission.zig");
+const DirectFrame = @import("blake3_frame_nonhash.zig");
 const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const Metadata = @import("blake3_hash_metadata.zig");
