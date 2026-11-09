@@ -192,6 +192,9 @@ const Session = struct {
         const key = &self.source_leaves.items[self.source_leaves.items.len - 1].authority;
         var node = try self.prove(source, kind, key);
         errdefer node.deinit(self.allocator);
+        // This worker's outer key is not a shared proving cache: its only
+        // production use is complete. Later folds need verifier metadata only.
+        @import("verifier_key.zig").retireProverData(key);
         const owned_claims = try self.allocator.dupe(C.O, claims);
         errdefer self.allocator.free(owned_claims);
         try self.nodes.ensureUnusedCapacity(self.allocator, 1);
@@ -287,6 +290,7 @@ const Session = struct {
                 const right = &self.nodes.items[i + 1];
                 const source = FoldSource{ .view = .{ .children = .{ .{ .key = left.key, .verified = &left.verified, .output = left.output }, .{ .key = right.key, .verified = &right.verified, .output = right.output } } } };
                 const parent = try self.prove(source, "fold", topology.owned.items[reductions]);
+                @import("verifier_key.zig").retireProverData(topology.owned.items[reductions]);
                 next.appendAssumeCapacity(parent);
                 reductions += 1;
             }
