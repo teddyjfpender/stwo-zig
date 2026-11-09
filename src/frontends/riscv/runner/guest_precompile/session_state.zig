@@ -4,10 +4,10 @@ const std = @import("std");
 const execution_profile = @import("../../isa/execution_profile.zig");
 const call_buffer = @import("call_buffer.zig");
 const keccakf_call_buffer = @import("keccakf_call_buffer.zig");
-const keccakf_v1 = @import("keccakf_v1.zig");
-const poseidon2_v1 = @import("poseidon2_v1.zig");
+const keccakf_v1 = @import("keccakf.zig");
+const poseidon2_v1 = @import("poseidon2.zig");
 const secp256k1_recover_call_buffer = @import("secp256k1_recover_call_buffer.zig");
-const secp256k1_recover_v1 = @import("secp256k1_recover_v1.zig");
+const secp256k1_recover_v1 = @import("secp256k1_recover.zig");
 
 pub const ExecutionProfile = execution_profile.ExecutionProfile;
 

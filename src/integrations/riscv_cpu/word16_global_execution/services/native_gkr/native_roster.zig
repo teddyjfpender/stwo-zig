@@ -7,7 +7,7 @@ const CPU = @import("cpu_component.zig");
 const Legacy = @import("../gkr_local/cpu_components.zig");
 const Setup = @import("../roster.zig").CpuSetup;
 const Wire = @import("../wire.zig");
-const Catalog = @import("../gkr_local/truth_v3_catalog.zig");
+const Catalog = @import("../gkr_local/truth_catalog.zig");
 pub const Span = struct { fixed_offset: usize, main_offset: usize, inter_offset: usize, fixed: usize, main: usize, constraints: usize, degree: u8, split: u8, max_main_samples: u8 };
 pub const Plan = struct {
     allocator: std.mem.Allocator,

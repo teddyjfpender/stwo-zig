@@ -272,7 +272,7 @@ pub fn verifierPointCase(comptime Component: type) !void {
     try std.testing.expect(!reversed.finalize().isZero());
 }
 
-pub const RawQuotientAir = @import("../ethereum_transcript_payload_raw_v1.zig");
+pub const RawQuotientAir = @import("../ethereum_transcript_payload_raw.zig");
 pub const RawQuotientAdapter = adapter.Component(RawQuotientAir, RawQuotientAir.Relation);
 
 pub fn runRawQuotientStorage(

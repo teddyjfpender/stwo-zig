@@ -47,7 +47,7 @@ pub fn releaseOwnerWindow() void {
 /// Exact-size reuse retains the allocation charge, and matches the runtime and
 /// original allocator identity. This owner is shared by native composition and
 /// streaming BLAKE3 commitments.
-const ResidentPool = @import("composition_resident_pool_v1.zig").Pool(metal_runtime.ResidentBuffer, MAX_POOLED_RESIDENTS, MAX_CACHED_RESIDENT_BYTES);
+const ResidentPool = @import("composition_resident_pool.zig").Pool(metal_runtime.ResidentBuffer, MAX_POOLED_RESIDENTS, MAX_CACHED_RESIDENT_BYTES);
 var resident_pool: ResidentPool = .{};
 pub const PoolSnapshotV1 = ResidentPool.Snapshot;
 pub fn poolSnapshot() PoolSnapshotV1 {

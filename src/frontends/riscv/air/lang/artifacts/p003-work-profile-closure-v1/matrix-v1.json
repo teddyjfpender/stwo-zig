@@ -168,7 +168,7 @@
         "src/engine/prover/air/component_prover.zig",
         "src/engine/prover/air/composition_execution.zig",
         "src/engine/prover/air/composition_work.zig",
-        "src/engine/prover/air/lookup_polynomial_v2.zig",
+        "src/engine/prover/air/lookup_polynomial.zig",
         "src/engine/prover/prove.zig",
         "src/frontends/riscv/air/clock_update_component.zig",
         "src/frontends/riscv/air/component.zig",

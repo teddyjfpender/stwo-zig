@@ -5,7 +5,7 @@
 //! module root itself is nested inside that directory.
 
 const std = @import("std");
-const components = @import("recursion/segment_statement_outer_components_v2.zig");
+const components = @import("recursion/segment_statement_outer_components.zig");
 
 test {
     _ = @import("recursion/tests/segment_statement_outer_source_v2_test.zig");

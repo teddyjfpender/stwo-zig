@@ -2,9 +2,9 @@
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const Budget = engine.host_budget_allocator.SharedHostBudget;
-const Extent = @import("runtime/fri_budget_v1.zig");
-const Arena = @import("runtime/fri_reservation_owner_v1.zig");
-const Inverses = @import("runtime/fri_inverse_cache_budget_v1.zig");
+const Extent = @import("runtime/fri_budget.zig");
+const Arena = @import("runtime/fri_reservation_owner.zig");
+const Inverses = @import("runtime/fri_inverse_cache_budget.zig");
 const Key = Inverses.Key;
 const Resource = struct {
     id: usize,
@@ -241,7 +241,7 @@ test "FRI budget: failed checked completion cannot publish a generated inverse" 
 
 test "FRI budget: domain admission rejects active poles and matches scalar coordinates" {
     const core = @import("stwo_core");
-    const domain = @import("runtime/fri_domain_admission_v1.zig");
+    const domain = @import("runtime/fri_domain_admission.zig");
     for (1..8) |log| {
         const count = @as(u32, 1) << @intCast(log);
         const coset = core.circle.Coset.halfOdds(@intCast(log));
@@ -446,7 +446,7 @@ test "FRI budget: concurrent arena references keep a single external charge" {
 }
 
 test "FRI budget: explicit ordinary policy preserves original allocator and source ownership" {
-    const policy = @import("runtime/fri_allocation_policy_v1.zig");
+    const policy = @import("runtime/fri_allocation_policy.zig");
     const a = std.testing.allocator;
     const source = try a.alloc(u8, 31);
     defer a.free(source);
@@ -469,7 +469,7 @@ test "FRI budget: explicit ordinary policy preserves original allocator and sour
 }
 
 test "FRI budget: explicit ordinary option cannot bypass a supplied shared cap" {
-    const policy = @import("runtime/fri_allocation_policy_v1.zig");
+    const policy = @import("runtime/fri_allocation_policy.zig");
     const owner = try Budget.create(std.testing.allocator, 16);
     defer owner.destroy();
     const binding = try policy.Binding.init(owner.allocator(), .explicit_unbudgeted);
@@ -483,7 +483,7 @@ test "FRI budget: explicit ordinary option cannot bypass a supplied shared cap" 
 }
 
 test "FRI budget: uncapped owner binds extent and source allocator independently" {
-    const policy = @import("runtime/fri_allocation_policy_v1.zig");
+    const policy = @import("runtime/fri_allocation_policy.zig");
     var first_bytes: [64]u8 = undefined;
     var second_bytes: [64]u8 = undefined;
     var first = std.heap.FixedBufferAllocator.init(&first_bytes);
@@ -506,7 +506,7 @@ test "FRI budget: uncapped owner binds extent and source allocator independently
 }
 
 test "FRI budget: ordinary inverse buffers are ephemeral after checked completion" {
-    const Transient = @import("runtime/fri_inverse_transient_v1.zig").Transient(Resource);
+    const Transient = @import("runtime/fri_inverse_transient.zig").Transient(Resource);
     var created: usize = 0;
     var destroyed: usize = 0;
     var terminal = true;
@@ -528,7 +528,7 @@ test "FRI budget: ordinary inverse buffers are ephemeral after checked completio
 }
 
 test "FRI budget: ephemeral inverse failure and cancellation release only after terminal work" {
-    const Transient = @import("runtime/fri_inverse_transient_v1.zig").Transient(Resource);
+    const Transient = @import("runtime/fri_inverse_transient.zig").Transient(Resource);
     var created: usize = 0;
     var destroyed: usize = 0;
     var terminal = true;
@@ -547,7 +547,7 @@ test "FRI budget: ephemeral inverse failure and cancellation release only after 
 }
 
 test "FRI budget: ephemeral inverse route rejects shared budgets and active poles before factory" {
-    const Transient = @import("runtime/fri_inverse_transient_v1.zig").Transient(Resource);
+    const Transient = @import("runtime/fri_inverse_transient.zig").Transient(Resource);
     const owner = try Budget.create(std.testing.allocator, 64);
     defer owner.destroy();
     var created: usize = 0;
@@ -563,7 +563,7 @@ test "FRI budget: ephemeral inverse route rejects shared budgets and active pole
 }
 
 test "FRI budget: host compatibility ingress requires ordinary exact coordinate shape" {
-    const policy = @import("runtime/fri_allocation_policy_v1.zig");
+    const policy = @import("runtime/fri_allocation_policy.zig");
     try std.testing.expectEqual(@as(usize, 8), try policy.ordinaryHostIngress(std.testing.allocator, false, .{ 8, 8, 8, 8 }));
     try std.testing.expectError(error.InvalidFriResidentOwner, policy.ordinaryHostIngress(std.testing.allocator, false, .{ 8, 8, 7, 8 }));
     try std.testing.expectError(error.InvalidFriBudgetGeometry, policy.ordinaryHostIngress(std.testing.allocator, false, .{ 3, 3, 3, 3 }));

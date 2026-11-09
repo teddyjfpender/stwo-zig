@@ -17,7 +17,7 @@ pub fn Namespace(comptime context: type) type {
         pub const stwo_core = @import("stwo_core");
         pub const CpuBackend = context.d_Backend;
         pub const frontend = struct {
-            pub const recursion = @import("detached_fri_core_dependencies_v2.zig");
+            pub const recursion = @import("detached_fri_core_dependencies.zig");
             pub const air = struct {
                 pub const memory_commitment = struct {
                     pub const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");

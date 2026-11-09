@@ -14,14 +14,14 @@ const QM31 = stwo_core.fields.qm31.QM31;
 
 const component_order = @import("../air/component_order.zig");
 const lookup_physical_v2 =
-    @import("../air/lang/lookup_physical_manifest_v2.zig");
+    @import("../air/lang/lookup_physical_manifest.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");
 const statement = @import("../air/statement.zig");
 const statement_v2 = @import("../air/statement_v2.zig");
 const transcript_claims = @import("../air/transcript/claims.zig");
 const proof_capture_sha256 = @import("../prover/proof_capture_sha256.zig");
 const profile_v2 = @import("vm_air_profile_v2.zig");
-const base_geometry_v2 = @import("vm_composition_base_geometry_v2.zig");
+const base_geometry_v2 = @import("vm_composition_base_geometry.zig");
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 

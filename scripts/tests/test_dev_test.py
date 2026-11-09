@@ -30,7 +30,7 @@ class DevTestPlanTests(unittest.TestCase):
 
     def test_catalog_roots_select_bounded_commands_without_tool_probes(self):
         for filename, step in (
-            ("transcript_v2_test_root.zig", "test-recursion-transcript-v2"),
+            ("transcript_test_root.zig", "test-recursion-transcript-v2"),
             ("main_trace_plan_execution_test_root.zig", "test-main-trace-plan-execution"),
             ("air_static_profile_registry_test_root.zig", "test-air-static-profile-registry"),
             ("air_semantics_partition_0_test_root.zig", "test-air-semantics"),
@@ -201,7 +201,7 @@ class DevTestPlanTests(unittest.TestCase):
                 self.assertEqual(count, sum(line.startswith('test "') for line in (ROOT / path).read_text().splitlines()))
         self.assertIn("test_step.dependOn(resource_step);", build)
         self.assertIn("else &b.addRunArtifact(resource_tests).step", build)
-        (command,) = dev_test.commands_for_paths(ROOT, ["src/backends/metal/runtime/fri_inverse_cache_budget_v1.zig"])
+        (command,) = dev_test.commands_for_paths(ROOT, ["src/backends/metal/runtime/fri_inverse_cache_budget.zig"])
         self.assertEqual(command[2], "test-resource-contracts")
         (command,) = dev_test.commands_for_paths(ROOT, ["src/backends/metal/runtime.zig"])
         self.assertEqual(command[2], "test")
@@ -254,8 +254,8 @@ class DevTestPlanTests(unittest.TestCase):
             ("src/integrations/riscv_cpu/word16_image_program_contract_test_root.zig", "test-word16-image-program-contracts"),
             ("src/integrations/riscv_cpu/distributed_binary_contract_test_root.zig", "test-distributed-binary-contracts"),
             ("src/frontends/riscv/retained_typed_component_test_root.zig", "test-retained-typed-components"),
-            ("src/frontends/riscv/recursion/tests/segment_leaf_local_projection_v3_test.zig", "test-retained-transcript-contracts"),
-            ("src/frontends/riscv/recursion/tests/vm_composition_program_v2_test.zig", "test-retained-typed-components"),
+            ("src/frontends/riscv/recursion/tests/segment_leaf_local_projection_test.zig", "test-retained-transcript-contracts"),
+            ("src/frontends/riscv/recursion/tests/vm_composition_program_test.zig", "test-retained-typed-components"),
             ("src/frontends/riscv/retained_transcript_contract_test_root.zig", "test-retained-transcript-contracts"),
             ("src/waist/core/air_components_test_root.zig", "test-air-components"),
             ("src/waist/core/tests/borrowed_proof_capture_root.zig", "test-proof-capture"),

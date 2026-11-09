@@ -3,14 +3,14 @@
 const std = @import("std");
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const relation_challenges = @import("../air/relation_challenges.zig");
-const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
+const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest.zig");
 const commitment_witness = @import("commitment_witness.zig");
 const lookup_sources = @import("lookup_sources.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const statement_geometry = @import("statement_geometry.zig");
 const tree2_main_source = @import("tree2_main_source.zig");
 const types = @import("types.zig");
-const native_provider_omit = @import("memory_provider_shards/native_provider_omit_v1.zig");
+const native_provider_omit = @import("memory_provider_shards/native_provider_omit.zig");
 
 pub fn Ops(comptime Generation: type) type {
     return struct {

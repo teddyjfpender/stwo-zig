@@ -23,14 +23,14 @@ pub fn Ops(comptime Backend: type) type {
             var staged: ?@import("stwo_prover_engine").secure_column.SecureColumnByCoords = null;
             defer if (staged) |*column| column.deinit(a);
             const source_storage = source.resident_storage orelse blk: {
-                const acquired_source = try @import("runtime/fri_columns_v1.zig").fromHostOrdinary(a, source);
+                const acquired_source = try @import("runtime/fri_columns.zig").fromHostOrdinary(a, source);
                 staged = acquired_source;
                 break :blk staged.?.resident_storage orelse unreachable;
             };
             const coset = domain.half_coset;
             var lease = try shared_runtime.acquire();
             defer lease.deinit();
-            const result = try @import("runtime/fri_resident_fold_v1.zig").foldWithPolicy(a, lease.runtime, source_storage, destination.resident_storage orelse return error.InvalidColumns, @intCast(source.len()), .circle, @intCast(coset.initial_index.v), @intCast(coset.step_size.v), alpha, @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(a));
+            const result = try @import("runtime/fri_resident_fold.zig").foldWithPolicy(a, lease.runtime, source_storage, destination.resident_storage orelse return error.InvalidColumns, @intCast(source.len()), .circle, @intCast(coset.initial_index.v), @intCast(coset.step_size.v), alpha, @import("runtime/fri_allocation_policy.zig").ordinaryMetal(a));
             if (ledger) |active| active.observe(.{ .kind = .circle_to_line, .initial_count = source.len(), .fold_count = 1, .domain_log_size = coset.logSize(), .domain_initial_index = @intCast(coset.initial_index.v), .domain_step_size = @intCast(coset.step_size.v), .inverse_path = if (result.inverse_generated) .metal_direct else .retained, .alpha_squares = 0, .domain_doubles = 0, .optimized_zero_accumulator = true });
             telemetry.record(.metal_fri_circle_fold_dispatch);
         }
@@ -221,7 +221,7 @@ pub fn Ops(comptime Backend: type) type {
                 const coset = current.domain().coset();
                 var lease = try shared_runtime.acquire();
                 defer lease.deinit();
-                const result = try @import("runtime/fri_resident_fold_v1.zig").foldWithPolicy(allocator, lease.runtime, current.resident_storage orelse return error.InvalidColumns, next.resident_storage orelse return error.InvalidColumns, @intCast(current.len()), .line, @intCast(coset.initial_index.v), @intCast(coset.step_size.v), current_alpha, @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(allocator));
+                const result = try @import("runtime/fri_resident_fold.zig").foldWithPolicy(allocator, lease.runtime, current.resident_storage orelse return error.InvalidColumns, next.resident_storage orelse return error.InvalidColumns, @intCast(current.len()), .line, @intCast(coset.initial_index.v), @intCast(coset.step_size.v), current_alpha, @import("runtime/fri_allocation_policy.zig").ordinaryMetal(allocator));
                 const gpu_ms = result.gpu_ms;
                 if (ledger) |active| active.observe(.{ .kind = .line, .initial_count = current.len(), .fold_count = 1, .domain_log_size = current.domain().logSize(), .domain_initial_index = @intCast(coset.initial_index.v), .domain_step_size = @intCast(coset.step_size.v), .inverse_path = if (result.inverse_generated) .metal_direct else .retained, .alpha_squares = 1, .domain_doubles = 1 });
                 telemetry.record(.metal_fri_line_fold_dispatch);
@@ -388,7 +388,7 @@ pub fn Ops(comptime Backend: type) type {
             const inverse_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(inverse_values));
             var lease = try shared_runtime.acquire();
             defer lease.deinit();
-            const result = try @import("runtime/fri_fold_commit_budgeted_v1.zig").foldFriLineAndCommitForHashWithPolicy(
+            const result = try @import("runtime/fri_fold_commit_budgeted.zig").foldFriLineAndCommitForHashWithPolicy(
                 allocator,
                 lease.runtime,
                 source_storage.?.handle,
@@ -401,7 +401,7 @@ pub fn Ops(comptime Backend: type) type {
                 domain.?.node_seed,
                 domain.?.domain_prefix_bytes,
                 @intFromEnum(domain.?.family),
-                @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(allocator),
+                @import("runtime/fri_allocation_policy.zig").ordinaryMetal(allocator),
             );
             const tree = try MerkleTree(H).fromSharedRuntime(result.tree);
             telemetry.record(.metal_fri_fold_commit_epoch);

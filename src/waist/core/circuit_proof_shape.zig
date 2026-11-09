@@ -11,7 +11,7 @@
 
 const std = @import("std");
 const fri = @import("fri.zig");
-const FriConfigV2 = @import("pcs/config_v2.zig").FriConfigV2;
+const FriConfigV2 = @import("pcs/config.zig").FriConfigV2;
 
 /// Committed trees: preprocessed, trace, interaction, composition.
 pub const n_traces: usize = 4;

@@ -11,7 +11,7 @@ const scalar = @import("scalar_wire_source.zig");
 const lower = @import("verifier_arithmetic_lowering.zig");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
-pub const Columns = @import("blake3_upstream_source_columns_v1.zig").ForSlots(.{12});
+pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{12});
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     /// Replaces the composition-only challenge routes, adding OODS fanout.

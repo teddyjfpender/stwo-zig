@@ -259,7 +259,7 @@ test "recursive framework AOT matches complete current typed and native provider
     var directory = try std.fs.cwd().makeOpenPath(directory_path, .{});
     defer directory.close();
     try directory.writeFile(.{ .sub_path = "recursive_framework_v1.metal", .data = generated.source });
-    try directory.writeFile(.{ .sub_path = "recursive_framework_v1_exports.zig", .data = generated.inventory });
+    try directory.writeFile(.{ .sub_path = "recursive_framework_exports.zig", .data = generated.inventory });
     try directory.writeFile(.{ .sub_path = "recursive_framework_v1_coverage.json", .data = generated.coverage });
     std.debug.print("RECURSIVE_FRAMEWORK_AOT covered_leaf=39/39 covered_parent=31/31 native_fixed_tables=6/6 recursive_composition_coverage_complete=true native_composition_coverage_complete=false strict_coverage_complete=false bytes={}\n", .{generated.source.len});
 }

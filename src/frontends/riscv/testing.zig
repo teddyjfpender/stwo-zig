@@ -77,7 +77,7 @@ pub const typed_mulh = @import("air/lang/typed_mulh.zig");
 pub const typed_mulh_witness = @import("air/lang/typed_mulh_witness.zig");
 pub const mulh_legacy_test_oracle =
     @import("runner/witness/mulh_legacy_test_oracle.zig");
-pub const public_data_v2_test_support = @import("air/public_data_v2_test_support.zig");
+pub const public_data_v2_test_support = @import("air/public_data_test_support.zig");
 pub const guest_precompile_test_elf =
     @import("runner/guest_precompile/test_elf.zig");
 pub const guest_precompile_corpus_elf =
@@ -85,7 +85,7 @@ pub const guest_precompile_corpus_elf =
 pub const guest_precompile_main_trace_support =
     @import("air/guest_precompile/main_trace_test_support.zig");
 pub const bulk_memcpy_word_candidate_v1 =
-    @import("air/guest_precompile/bulk_memcpy_word_candidate_v1.zig");
+    @import("air/guest_precompile/bulk_memcpy_word_candidate.zig");
 pub const EthereumStackSwapCandidateExecutionSessionV1 =
     @import("runner/segment_session.zig").EthereumStackSwapCandidateExecutionSessionV1;
 pub const EthereumBulkMemcpyCandidateExecutionSessionV1 =
@@ -93,13 +93,13 @@ pub const EthereumBulkMemcpyCandidateExecutionSessionV1 =
 pub const EthereumCombinedCandidateExecutionSessionV1 =
     @import("runner/segment_session.zig").EthereumCombinedCandidateExecutionSessionV1;
 pub const ethereum_candidate_execution_capability_v1 = @import(
-    "runner/guest_precompile/ethereum_candidate_execution_capability_v1.zig",
+    "runner/guest_precompile/ethereum_candidate_execution_capability.zig",
 );
 pub const ethereum_candidate_execution_journal_v1 = @import(
-    "runner/guest_precompile/ethereum_candidate_execution_journal_v1.zig",
+    "runner/guest_precompile/ethereum_candidate_execution_journal.zig",
 );
 pub const ethereum_candidate_observed_journal_v1 = @import(
-    "runner/guest_precompile/ethereum_candidate_observed_journal_v1.zig",
+    "runner/guest_precompile/ethereum_candidate_observed_journal.zig",
 );
 pub const split_leaf_prepare =
     @import("prover/guest_precompile/split_leaf_prepare.zig");
@@ -124,15 +124,15 @@ test {
 /// Backend-neutral authorities consumed by cross-backend component proof tests.
 /// Concrete engines and serialized proof transactions belong to src/products/riscv/cpu/tests.
 pub const component_proof = struct {
-    pub const narrow_air = @import("air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
-    pub const universal_air = @import("air/memory_commitment/poseidon2_universal_degree3_v1.zig");
+    pub const narrow_air = @import("air/memory_commitment/poseidon2_narrow_degree3.zig");
+    pub const universal_air = @import("air/memory_commitment/poseidon2_universal_degree3.zig");
     pub const poseidon_air = @import("air/memory_commitment/poseidon2_air.zig");
-    pub const narrow_component = @import("air/memory_commitment/poseidon2_narrow_component_v1.zig");
-    pub const universal_component = @import("air/memory_commitment/poseidon2_universal_component_v1.zig");
-    pub const narrow_backend = @import("air/memory_commitment/poseidon2_narrow_backend_v1.zig");
+    pub const narrow_component = @import("air/memory_commitment/poseidon2_narrow_component.zig");
+    pub const universal_component = @import("air/memory_commitment/poseidon2_universal_component.zig");
+    pub const narrow_backend = @import("air/memory_commitment/poseidon2_narrow_backend.zig");
     pub const program_commitment = @import("air/program/commitment.zig");
     pub const program_interaction = @import("air/program/interaction.zig");
-    pub const fixed_program_table = @import("air/program/fixed_table_v1.zig");
+    pub const fixed_program_table = @import("air/program/fixed_table.zig");
     pub const trace_component = @import("air/component.zig");
     pub const relations = @import("air/relation_challenges.zig");
     pub const support = @import("prover/memory_provider_shards/proof_harness.zig");

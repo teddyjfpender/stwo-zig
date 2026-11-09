@@ -10,7 +10,7 @@ pub const PcsConfig = stwo_core.pcs.PcsConfig;
 pub const permutation = @import("../air/memory_commitment/poseidon2.zig");
 pub const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 pub const lookup_physical_v2 =
-    @import("../air/lang/lookup_physical_manifest_v2.zig");
+    @import("../air/lang/lookup_physical_manifest.zig");
 pub const public_data_v2 = @import("../air/public_data_v2.zig");
 pub const relation_challenges = @import("../air/relation_challenges.zig");
 pub const statement_v1 = @import("../air/statement.zig");

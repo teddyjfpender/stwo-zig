@@ -3,8 +3,8 @@ const std = @import("std");
 const Q = @import("stwo_core").fields.qm31.QM31;
 const M = @import("stwo_core").fields.m31.M31;
 const deep = @import("blake3_native_deep.zig");
-const old = @import("detached_opening_accumulate4_v1.zig");
-const native = @import("native_pcs_opening4_v1.zig");
+const old = @import("detached_opening_accumulate4.zig");
+const native = @import("native_pcs_opening4.zig");
 const scalar = @import("scalar_wire_source.zig");
 const opening = @import("detached_opening_accumulation_plan.zig");
 const matcher = @import("detached_pcs_opening_plan.zig");
@@ -49,7 +49,7 @@ pub const Rows = struct {
         self.* = undefined;
     }
 };
-const Direct = @import("blake3_direct_cohort_columns_v1.zig");
+const Direct = @import("blake3_direct_cohort_columns.zig");
 const Stats = struct { opening: usize = 0, native: usize = 0, scalars: usize = 0 };
 const CountSink = struct {
     counts: Stats = .{},
@@ -370,7 +370,7 @@ fn checkBorrowedMatcherAllocation(a: std.mem.Allocator, g: @import("composition_
     var source = try Direct.ForAir(scalar).init(a, scalars.len);
     defer source.deinit();
     for (scalars) |value| try source.append(value);
-    const borrowed = try @import("blake3_recursive_column_rows_v1.zig").ForAir(scalar).init(source.main, source.fixed);
+    const borrowed = try @import("blake3_recursive_column_rows.zig").ForAir(scalar).init(source.main, source.fixed);
     var columns = try materializeGraphColumns(a, g, bindings, values, &.{row}, borrowed);
     defer columns.deinit();
     // Both count and emission borrow one immutable original owner. Fused

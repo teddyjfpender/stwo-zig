@@ -11,7 +11,7 @@
 //! where the eventual recursion root pins that identity to the reviewed
 //! aggregator VK, resolving self-reference without circular setup.
 const shard_0 = @import("pair_node_contract.zig");
-const shard_1 = @import("pair_node_child_evidence_v1.zig");
+const shard_1 = @import("pair_node_child_evidence.zig");
 const shard_2 = @import("pair_node_authenticate_root_with_prepared_context.zig");
 
 pub const Digest = shard_0.Digest;

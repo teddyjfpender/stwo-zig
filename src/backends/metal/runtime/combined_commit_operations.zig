@@ -4,7 +4,7 @@ const std = @import("std");
 const runtime = @import("../runtime.zig");
 const ffi = @import("bindings.zig");
 const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
-const resident_budget = @import("resident_budget_v1.zig");
+const resident_budget = @import("resident_budget.zig");
 
 const M31 = @import("stwo_core").fields.m31.M31;
 const MetalError = runtime.MetalError;

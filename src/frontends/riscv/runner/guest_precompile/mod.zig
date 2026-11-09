@@ -1,13 +1,13 @@
 //! Runner-owned guest precompile execution state.
 
 pub const call_buffer = @import("call_buffer.zig");
-pub const bulk_memcpy_v1 = @import("bulk_memcpy_v1.zig");
-pub const ethereum_v1 = @import("ethereum_v1.zig");
+pub const bulk_memcpy_v1 = @import("bulk_memcpy.zig");
+pub const ethereum_v1 = @import("ethereum.zig");
 pub const keccakf_call_buffer = @import("keccakf_call_buffer.zig");
-pub const keccakf_v1 = @import("keccakf_v1.zig");
-pub const poseidon2_v1 = @import("poseidon2_v1.zig");
+pub const keccakf_v1 = @import("keccakf.zig");
+pub const poseidon2_v1 = @import("poseidon2.zig");
 pub const secp256k1_recover_call_buffer = @import("secp256k1_recover_call_buffer.zig");
-pub const secp256k1_recover_v1 = @import("secp256k1_recover_v1.zig");
+pub const secp256k1_recover_v1 = @import("secp256k1_recover.zig");
 pub const session_state = @import("session_state.zig");
 
 test {

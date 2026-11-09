@@ -10,7 +10,7 @@ const encoding = @import("blake3_field_bytes.zig");
 const lower = @import("verifier_arithmetic_lowering.zig");
 const payload_rows = @import("blake3_scalar_payload_rows.zig");
 pub const PACK_CIRCUIT: u32 = 5_000_010;
-pub const Columns = @import("blake3_upstream_source_columns_v1.zig").ForSlots(.{ 12, 11, 10 });
+pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{ 12, 11, 10 });
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     nodes: [][4]u32,

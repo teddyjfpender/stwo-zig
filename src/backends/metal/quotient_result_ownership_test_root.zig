@@ -1,6 +1,6 @@
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
-const impl = @import("runtime/quotient_result_ownership_v1.zig");
+const impl = @import("runtime/quotient_result_ownership.zig");
 const Budget = engine.host_budget_allocator.SharedHostBudget;
 const Tree = struct {
     id: usize,

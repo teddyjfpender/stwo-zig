@@ -11,7 +11,7 @@ const program_commitment = @import("../program/commitment.zig");
 const program_decode = @import("../program/decode.zig");
 const program_table = @import("../program/table.zig");
 const memory_state = @import("../../runner/memory_state.zig");
-const guest_runner = @import("../../runner/guest_precompile/poseidon2_v1.zig");
+const guest_runner = @import("../../runner/guest_precompile/poseidon2.zig");
 const trace = @import("../../runner/trace.zig");
 const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
 

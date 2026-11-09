@@ -11,7 +11,7 @@ const statement_v1 = @import("../../air/statement.zig");
 const statement_v2 = @import("../../air/statement_v2.zig");
 const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
 const relation = @import("../../air/lang/relation.zig");
-const support = @import("../../air/public_data_v2_test_support.zig");
+const support = @import("../../air/public_data_test_support.zig");
 const frozen_v1 = @import("../segment_leaf_authority.zig");
 
 test "segment leaf V2 publishes every authenticated wire and native context word" {

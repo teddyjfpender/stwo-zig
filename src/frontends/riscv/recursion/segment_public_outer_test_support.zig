@@ -5,7 +5,7 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 const public_data_v2 = @import("../air/public_data_v2.zig");
-const public_data_support = @import("../air/public_data_v2_test_support.zig");
+const public_data_support = @import("../air/public_data_test_support.zig");
 const native_relations = @import("../air/relation_challenges.zig");
 const statement_v1 = @import("../air/statement.zig");
 const statement_v2 = @import("../air/statement_v2.zig");

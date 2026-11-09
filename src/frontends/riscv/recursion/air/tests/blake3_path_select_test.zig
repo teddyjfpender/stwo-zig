@@ -10,7 +10,7 @@ test "BLAKE3 path selector pins typed semantics and authenticates both direction
     defer d.deinit();
     const plan = try @import("../universal_relation_binding.zig").Binding(select).authenticate(&d);
     const direct = try @import("../direct_constraint_program.zig").authenticate(&d.arena, select.SEMANTIC_DIGEST, select.LOGICAL_INPUT_COUNT);
-    var exported = try @import("../framework_polynomial_export_v1.zig").exportLocalPrepared(select, a, &direct, &plan);
+    var exported = try @import("../framework_polynomial_export.zig").exportLocalPrepared(select, a, &direct, &plan);
     defer exported.deinit();
     const schedule = select.Schedule{ .bit = .{ .circuit = 1, .wire = 7 }, .current = .{ .circuit = 2, .wire = 8 }, .sibling = .{ .circuit = 3, .wire = 9 }, .destination_circuit = 4, .left_wire = 10, .right_wire = 11, .left_uses = 2, .right_uses = 1 };
     const fixed = try select.fixedRow(schedule);

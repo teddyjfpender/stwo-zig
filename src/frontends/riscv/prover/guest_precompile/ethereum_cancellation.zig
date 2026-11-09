@@ -4,7 +4,7 @@ const std = @import("std");
 const logup = @import("../../air/logup.zig");
 const public_logup = @import("../../air/public_logup.zig");
 const statement_v2 = @import("../../air/statement_v2.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest_v2.zig");
+const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
 const base_statement = @import("../../air/statement.zig");
 const base_claims = @import("../../air/transcript/claims.zig");
 const base_types = @import("../types.zig");
@@ -14,7 +14,7 @@ const ethereum_statement = @import("../../air/guest_precompile/ethereum_statemen
 const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
 const statement_geometry = @import("../statement_geometry.zig");
 const statement_validation = @import("../statement_validation.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit_v1.zig");
+const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
 const provider_authority = @import("../memory_provider_shards/authority.zig");
 
 pub fn verifyDetailed(

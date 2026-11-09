@@ -374,8 +374,8 @@ fn computeQuotientsConfigured(
     commitment: ?QuotientCommitConfig,
     comptime capture_work: bool,
 ) (MetalError || std.mem.Allocator.Error)!QuotientComputeResult {
-    const quotient_budget = @import("quotient_allocation_budget_v1.zig");
-    var allocation_scope = quotient_budget.Scope.init(allocator) catch |err| return @import("fri_error_v1.zig").translate(err);
+    const quotient_budget = @import("quotient_allocation_budget.zig");
+    var allocation_scope = quotient_budget.Scope.init(allocator) catch |err| return @import("fri_error.zig").translate(err);
     defer allocation_scope.deinit();
     var retained_external_bytes: usize = 0;
     var total_timer = try std.time.Timer.start();
@@ -521,8 +521,8 @@ fn computeQuotientsConfigured(
         null;
     defer if (fri_tree_handles) |handles| allocator.free(handles);
     if (fri_tree_handles) |handles| @memset(handles, null);
-    const arena_owner = @import("fri_reservation_owner_v1.zig");
-    const inverse_cache = @import("fri_inverse_cache_v1.zig");
+    const arena_owner = @import("fri_reservation_owner.zig");
+    const inverse_cache = @import("fri_inverse_cache.zig");
     var fri_arena: ?arena_owner.Ref = null;
     defer if (fri_arena) |*arena| arena.deinit();
     var fri_inverses: ?inverse_cache.Transaction = null;
@@ -530,19 +530,19 @@ fn computeQuotientsConfigured(
     var fri_retained_bytes: usize = 0;
     var expected_inverse_mask: u32 = 0;
     if (fri_config) |config| {
-        const allocation_policy = @import("fri_allocation_policy_v1.zig");
-        const binding = allocation_policy.Binding.init(allocator, allocation_policy.ordinaryMetal(allocator)) catch |err| return @import("fri_error_v1.zig").translate(err);
-        const extent = @import("fri_budget_v1.zig").cascade(row_count / 2, config.coordinates.len) catch |err| return @import("fri_error_v1.zig").translate(err);
-        var reservation = binding.reserve(extent.peak_bytes) catch |err| return @import("fri_error_v1.zig").translate(err);
+        const allocation_policy = @import("fri_allocation_policy.zig");
+        const binding = allocation_policy.Binding.init(allocator, allocation_policy.ordinaryMetal(allocator)) catch |err| return @import("fri_error.zig").translate(err);
+        const extent = @import("fri_budget.zig").cascade(row_count / 2, config.coordinates.len) catch |err| return @import("fri_error.zig").translate(err);
+        var reservation = binding.reserve(extent.peak_bytes) catch |err| return @import("fri_error.zig").translate(err);
         defer reservation.deinit();
-        var acquired_arena = arena_owner.Owner.createWithPolicy(allocator, &reservation, binding.policy) catch |err| return @import("fri_error_v1.zig").translate(err);
+        var acquired_arena = arena_owner.Owner.createWithPolicy(allocator, &reservation, binding.policy) catch |err| return @import("fri_error.zig").translate(err);
         fri_arena = acquired_arena.take();
         fri_retained_bytes = extent.retained_bytes;
         const line_key = inverse_cache.Key{ .runtime = @intFromPtr(self.handle), .count = @intCast(row_count / 2), .layers = @intCast(config.coordinates.len), .initial = config.domain_initial_index, .step = config.domain_step_size, .kind = .line };
         var circle_key = line_key;
         circle_key.kind = .circle;
         circle_key.layers = 1;
-        var acquired_inverses = inverse_cache.beginWithPolicy(allocator, self, .{ circle_key, line_key }, binding.policy) catch |err| return @import("fri_error_v1.zig").translate(err);
+        var acquired_inverses = inverse_cache.beginWithPolicy(allocator, self, .{ circle_key, line_key }, binding.policy) catch |err| return @import("fri_error.zig").translate(err);
         fri_inverses = acquired_inverses.take();
         expected_inverse_mask = @as(u32, @intFromBool(fri_inverses.?.needsGeneration(.circle))) | (@as(u32, @intFromBool(fri_inverses.?.needsGeneration(.line))) << 1);
     }
@@ -702,7 +702,7 @@ fn computeQuotientsConfigured(
     var fri_result: ?FriLineCascadeResult = null;
     if (fri_config) |config| {
         if (fri_inverse_generation_mask != expected_inverse_mask) return MetalError.QuotientFailed;
-        fri_arena.?.owner.?.reservation.resize(fri_retained_bytes) catch |err| return @import("fri_error_v1.zig").translate(err);
+        fri_arena.?.owner.?.reservation.resize(fri_retained_bytes) catch |err| return @import("fri_error.zig").translate(err);
         const trees = try allocator.alloc(Tree, config.coordinates.len);
         var initialized_trees: usize = 0;
         errdefer {
@@ -710,7 +710,7 @@ fn computeQuotientsConfigured(
             allocator.free(trees);
         }
         for (trees, fri_tree_handles.?, 0..) |*tree, handle, stage| {
-            var arena_ref = fri_arena.?.retain() catch |err| return @import("fri_error_v1.zig").translate(err);
+            var arena_ref = fri_arena.?.retain() catch |err| return @import("fri_error.zig").translate(err);
             errdefer arena_ref.deinit();
             tree.* = .{
                 .handle = handle orelse return MetalError.CommitmentFailed,
@@ -724,7 +724,7 @@ fn computeQuotientsConfigured(
             initialized_trees += 1;
             adopted_fri_handles += 1;
         }
-        if (fri_inverses) |*inverses| inverses.complete() catch |err| return @import("fri_error_v1.zig").translate(err);
+        if (fri_inverses) |*inverses| inverses.complete() catch |err| return @import("fri_error.zig").translate(err);
         fri_result = .{
             .stats = fri_stats,
             .trees = trees,
