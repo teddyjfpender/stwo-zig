@@ -11,6 +11,7 @@ const CPU = @import("../pure_p2_cpu_leaf_test.zig");
 const Catalog = @import("../pure_p2_truth_leaf_test.zig");
 const Miller = @import("../pure_p2_tower_leaf_test.zig");
 const LocalCatalog = @import("../truth_local_gkr/leaf_test.zig");
+const LocalMiller = @import("../miller_local_gkr/leaf_test.zig");
 const Protocol = @import("../pure_p2_worker_protocol.zig");
 const Authority = @import("authority.zig").Key;
 const Proof = @import("proof.zig");
@@ -53,7 +54,7 @@ fn ViewSource(comptime View: type) type {
     return struct {
         view: View,
         pub fn sourceLeaf(self: @This(), a: std.mem.Allocator) !Topology.SourceLeaf {
-            return if (View == Catalog.View) Topology.SourceLeaf.initCatalog(a, self.view) else if (View == LocalCatalog.View) Topology.SourceLeaf.initLocalCatalog(a, self.view) else Topology.SourceLeaf.initMiller(a, self.view);
+            return if (View == Catalog.View) Topology.SourceLeaf.initCatalog(a, self.view) else if (View == LocalCatalog.View) Topology.SourceLeaf.initLocalCatalog(a, self.view) else if (View == LocalMiller.View) Topology.SourceLeaf.initLocalMiller(a, self.view) else Topology.SourceLeaf.initMiller(a, self.view);
         }
         pub fn buildForProving(self: @This(), a: std.mem.Allocator) !C.PoseidonContext {
             var scope = @import("scope.zig").begin();
@@ -251,6 +252,25 @@ const Session = struct {
         try self.append(v.ordinal, main, v.encoded.receipt, &v.encoded.claims, source, @tagName(v.truth.family()));
         try self.templates.append(a, template);
     }
+    fn localMiller(context: ?*anyopaque, a: std.mem.Allocator, v: Bundle.MillerLocalVerified) !void {
+        const self = try from(context);
+        var native = try Protocol.W.Wire.decodeProofBytesBinary(a, v.encoded.bytes);
+        defer native.deinit(a);
+        const geometry = try v.key.geometry(v.span);
+        var local = try @import("../miller_local_gkr/native.zig").decode(a, geometry, v.encoded.local);
+        defer local.deinit();
+        var arena = std.heap.ArenaAllocator.init(a);
+        defer arena.deinit();
+        const shape = try @import("../miller_local_gkr/statement.zig").geometry(arena.allocator(), v.key, v.span);
+        const values = try V.proof.fromNative(arena.allocator(), &native, v.capture, &shape);
+        const main = native.commitment_scheme_proof.commitments.items[1];
+        const source = ViewSource(LocalMiller.View){ .view = .{ .key = v.key, .span = v.span, .expected = v.expected, .manifest = v.manifest.digest, .main = main, .receipt = v.encoded.receipt, .claims = v.encoded.claims, .local = &local.proof, .shape = &shape, .values = &values } };
+        const instances = try geometry.instances();
+        const template = try GkrTemplate.fromProofFor(a, &instances, &local.proof);
+        errdefer a.free(template);
+        try self.append(v.ordinal, main, v.encoded.receipt, &v.encoded.claims, source, "Miller-local-GKR");
+        try self.templates.append(a, template);
+    }
     fn miller(context: ?*anyopaque, a: std.mem.Allocator, v: Bundle.MillerVerified) !void {
         const self = try from(context);
         var native = try Protocol.W.Wire.decodeProofBytesBinary(a, v.encoded.bytes);
@@ -267,7 +287,7 @@ const Session = struct {
         const self = try from(context);
         if (self.result != null or self.nodes.items.len != v.inventory.workers.len) return error.OpRecursiveLeafCoverage;
         const metadata = Receiver.Metadata{ .execution = v.inventory.execution, .manifest = v.native.manifest.digest, .leaves = self.leaves.items };
-        var plan = try Receiver.prepare(a, .{ .image = v.image, .profile = self.profile, .setups = v.setups, .requests = v.requests, .spans = v.metadata.spans, .cpu_keys = v.cpu_keys, .truths = v.truths, .truth_keys = v.truth_keys, .truth_local_keys = v.inventory.truth_local_keys, .miller = v.miller, .expected = v.expected, .output = .{ .address = v.output_address, .bytes = v.output } }, metadata);
+        var plan = try Receiver.prepare(a, .{ .source_suite = v.source_suite, .image = v.image, .profile = self.profile, .setups = v.setups, .requests = v.requests, .spans = v.metadata.spans, .cpu_keys = v.cpu_keys, .truths = v.truths, .truth_keys = v.truth_keys, .truth_local_keys = v.inventory.truth_local_keys, .miller = v.miller, .expected = v.expected, .output = .{ .address = v.output_address, .bytes = v.output } }, metadata);
         defer plan.deinit();
         for (plan.expected_outputs, self.nodes.items) |expected, node| {
             const fields = try Core.crypto.poseidon2_m31_sponge.decode(expected);
@@ -338,7 +358,7 @@ pub fn proveDirectoryWithOptions(a: std.mem.Allocator, config: @import("../../rv
     }
     // Keys are borrowed by pending nodes: pin the SourceLeaf array before any callback.
     try session.source_leaves.ensureTotalCapacity(a, limits.members);
-    try Runtime.verifyDirectoryWithOptions(a, config, native_directory, profile, resources, options, .{ .context = &session, .complete = Session.complete, .fragments = .{ .context = &session, .cpu = Session.cpu, .truth = Session.truth, .truth_local = Session.localTruth, .miller = Session.miller } });
+    try Runtime.verifyDirectoryWithOptions(a, config, native_directory, profile, resources, options, .{ .context = &session, .complete = Session.complete, .fragments = .{ .context = &session, .cpu = Session.cpu, .truth = Session.truth, .truth_local = Session.localTruth, .miller = Session.miller, .miller_local = Session.localMiller } });
     const result = session.result orelse return error.OpRecursiveExecutionIncomplete;
     session.result = null;
     return result;

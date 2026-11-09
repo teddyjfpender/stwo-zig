@@ -1,0 +1,41 @@
+{
+  "schema": "op-miller-suite-root-wiring-v1",
+  "admission": "closed-until-native-suite-wire-and-physical-inventory-gates",
+  "wired": [
+    "R6 collector consumes native-verified Miller local-GKR fragments and retains bounded shape advice",
+    "Independent source-key factory and source-normalized native geometry",
+    "Root-only receiver derives template count/rosters from receiver-selected suite and independently built keys",
+    "Miller local receipt is authenticated in leaf frame, never injected into pre-challenge manifest",
+    "Two physical global Wire claims close at execution root; local BYTE/U15/SSA obligations belong to the source-bound GKR leaf",
+    "Existing root sidecar format retains canonical ordered leaf framing",
+    "Explicit final shape-advice consumption check"
+  ],
+  "passed": [
+    "ReleaseFast semantic checks of standalone root CLI and complete OP pure-P2 test root",
+    "Fresh source-only reception of retained legacy schema2 small root; no native proof file read"
+  ],
+  "legacy_regression": {
+    "root_bytes": 687908,
+    "root_sha256": "e41c915d27b140a7ac75de9946c5ba1749fe29b0f884d04b1f0d5166fd0c24ff",
+    "members": 3,
+    "source_ns": 31365123625,
+    "root_verify_ns": 27636708,
+    "peak_requested_bytes": 3447736448,
+    "final_heap_external_zero": true,
+    "log": "/private/tmp/op-miller-suite-legacy-root-regression.log"
+  },
+  "pending": [
+    "Native source-suite wire/producer/receiver integration remains fail-closed",
+    "Miller suite complete execution/root positive qualification",
+    "Execute new independent-suite, balanced-Miller-Wire and substituted late-receipt root adversaries",
+    "Actual OP block containing Miller services; no heavy rerun authorized"
+  ],
+  "new_attack_checks_written_but_not_yet_executed": [
+    "Drop/swap independently selected source suite",
+    "Balanced opposite Miller claims preserving aggregate Wire sum",
+    "Canonical wrong late Miller receipt preserving the manifest"
+  ],
+  "security_qualified": false,
+  "production_admitted": false,
+  "heavy_execution_or_proof_rerun": false
+}

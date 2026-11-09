@@ -24,12 +24,12 @@ fn rejectPrepareExact(expected: anyerror, result: anyerror!Receiver.Plan) !void 
 }
 fn reframe(a: std.mem.Allocator, policy: Receiver.Authority, metadata: Receiver.Metadata) !Receiver.Metadata {
     const Inventory = @import("../pure_p2_op_inventory.zig").Inventory;
-    var inventory = try Inventory.initForTruthLocal(a, policy.profile, policy.setups, policy.requests, policy.spans, policy.cpu_keys, policy.truths, policy.truth_keys, policy.miller, policy.expected, policy.truth_local_keys);
+    var inventory = try Inventory.initForSourceSuite(a, policy.profile, policy.setups, policy.requests, policy.spans, policy.cpu_keys, policy.truths, policy.truth_keys, policy.miller, policy.expected, policy.truth_local_keys, policy.source_suite);
     defer inventory.deinit();
     return .{ .execution = inventory.execution, .manifest = try Receiver.manifestFor(a, &inventory, metadata.leaves), .leaves = metadata.leaves };
 }
 fn authority(source: Runtime.SourceDirectory) Receiver.Authority {
-    return .{ .image = source.image, .output = .{ .address = source.output_address, .bytes = source.output }, .profile = source.metadata.profile, .setups = source.setups, .requests = source.requests, .spans = source.metadata.spans, .cpu_keys = source.cpu_keys, .truths = source.truths, .truth_keys = source.truth_keys, .truth_local_keys = source.inventory.truth_local_keys, .miller = source.miller, .expected = source.expected };
+    return .{ .source_suite = source.source_suite, .image = source.image, .output = .{ .address = source.output_address, .bytes = source.output }, .profile = source.metadata.profile, .setups = source.setups, .requests = source.requests, .spans = source.metadata.spans, .cpu_keys = source.cpu_keys, .truths = source.truths, .truth_keys = source.truth_keys, .truth_local_keys = source.inventory.truth_local_keys, .miller = source.miller, .expected = source.expected };
 }
 pub fn run(a: std.mem.Allocator, source: Runtime.SourceDirectory, metadata: Receiver.Metadata, plan: *const Receiver.Plan, topology: *const Topology, root: []const u8) !void {
     if (!@import("builtin").is_test) return error.OpRootQualificationIsTestOnly;
@@ -74,6 +74,40 @@ pub fn run(a: std.mem.Allocator, source: Runtime.SourceDirectory, metadata: Rece
         try reject(Receiver.prepare(a, authority(source), changed));
         leaves[1] = leaves[0];
         leaves[0] = first;
+    }
+    if (source.source_suite) |suite| {
+        var wrong_policy = authority(source);
+        wrong_policy.source_suite = null;
+        try reject(Receiver.prepare(a, wrong_policy, metadata));
+        var swapped = suite;
+        swapped.miller = if (suite.miller == .local_gkr) .classic else .local_gkr;
+        wrong_policy.source_suite = swapped;
+        try reject(Receiver.prepare(a, wrong_policy, metadata));
+    }
+    // Late Miller receipts and both Wire claims are authenticated by leaf
+    // frames, even when the manifest and every aggregate claim stay unchanged.
+    for (source.miller, 0..) |item, j| {
+        if (item.local_key == null) continue;
+        const i = source.setups.len + source.truths.len + j;
+        const changed_leaves = try a.dupe(Receiver.Leaf, metadata.leaves);
+        defer a.free(changed_leaves);
+        const pair = try a.dupe(O, metadata.leaves[i].claims);
+        defer a.free(pair);
+        if (pair.len != 2) return error.OpRootQualificationClaimShape;
+        pair[0] = pair[0].add(O.one());
+        pair[1] = pair[1].sub(O.one());
+        changed_leaves[i].claims = pair;
+        var attack = metadata;
+        attack.leaves = changed_leaves;
+        var balanced_wire = try Receiver.prepare(a, authority(source), attack);
+        defer balanced_wire.deinit();
+        try reject(@import("receiver.zig").verifyPlan(a, &balanced_wire, topology, root));
+        changed_leaves[i].claims = metadata.leaves[i].claims;
+        changed_leaves[i].receipt = @import("../pure_p2_native.zig").hashWords(&.{0x4241444d});
+        var changed_receipt = try Receiver.prepare(a, authority(source), attack);
+        defer changed_receipt.deinit();
+        try reject(@import("receiver.zig").verifyPlan(a, &changed_receipt, topology, root));
+        break;
     }
     // Balanced service debt keeps every aggregate sum closed. It must still
     // alter authenticated leaf frames and fail against the OLD valid root.

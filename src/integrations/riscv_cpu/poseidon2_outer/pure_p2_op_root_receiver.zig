@@ -21,6 +21,7 @@ pub const Digest = [36]u8;
 /// construction, never from the root bundle or its proposed verifier key.
 pub const Output = struct { address: u64, bytes: [43]u8 };
 pub const Authority = struct {
+    source_suite: ?@import("pure_p2_source_suite.zig").Suite = null,
     /// Freshly constructed from independently pinned ELF/input/ABI policy.
     image: ?*const @import("../word16_execution/expected_image.zig").Owner = null,
     output: Output,
@@ -90,7 +91,9 @@ fn fillEntries(inventory: *const Inventory.Inventory, leaves: []const Leaf, entr
     if (leaves.len != inventory.workers.len or entries.len != leaves.len) return error.OpRootLeafCoverage;
     for (leaves, inventory.workers, entries, 0..) |leaf, expected, *entry, i| {
         const service_local = i >= inventory.cpu_count and i < inventory.cpu_count + inventory.truth_count and inventory.truth_local_keys.len != 0 and inventory.truth_local_keys[i - inventory.cpu_count] != null;
-        if (leaf.ordinal != i or expected.ordinal != i or (leaf.receipt != null) != (expected.kind == .cpu or service_local)) return error.OpRootLeafOrder;
+        const miller_local = i >= inventory.cpu_count + inventory.truth_count and
+            (if (inventory.source_suite) |suite| suite.miller == .local_gkr else false);
+        if (leaf.ordinal != i or expected.ordinal != i or (leaf.receipt != null) != (expected.kind == .cpu or service_local or miller_local)) return error.OpRootLeafOrder;
         _ = try core.crypto.poseidon2_m31_sponge.decode(leaf.main);
         if (leaf.receipt) |receipt| _ = try core.crypto.poseidon2_m31_sponge.decode(receipt);
         if (leaf.claims.len > 4096) return error.OpRootClaimLimit;
@@ -124,7 +127,7 @@ pub fn prepareForFixture(a: std.mem.Allocator, authority: Authority, metadata: M
 }
 fn prepareMode(a: std.mem.Allocator, authority: Authority, metadata: Metadata, allow_fixture: bool) !Plan {
     if (authority.image == null and !allow_fixture) return error.OpRootTerminalPolicyMissing;
-    var inventory = try Inventory.Inventory.initForTruthLocal(a, authority.profile, authority.setups, authority.requests, authority.spans, authority.cpu_keys, authority.truths, authority.truth_keys, authority.miller, authority.expected, authority.truth_local_keys);
+    var inventory = try Inventory.Inventory.initForSourceSuite(a, authority.profile, authority.setups, authority.requests, authority.spans, authority.cpu_keys, authority.truths, authority.truth_keys, authority.miller, authority.expected, authority.truth_local_keys, authority.source_suite);
     errdefer inventory.deinit();
     if (!std.mem.eql(u8, &inventory.execution, &metadata.execution)) return error.OpRootExecutionAuthority;
     if (metadata.leaves.len != inventory.workers.len) return error.OpRootLeafCoverage;
@@ -187,6 +190,17 @@ fn prepareMode(a: std.mem.Allocator, authority: Authority, metadata: Metadata, a
     for (authority.miller, 0..) |item, j| {
         const i = authority.setups.len + authority.truths.len + j;
         const leaf = metadata.leaves[i];
+        if (item.local_key) |local_key| {
+            if (leaf.claims.len != 2 or leaf.receipt == null) return error.OpRootLocalMillerClosure;
+            // BYTE, U15 and cross-component SSA closure is proved inside the
+            // independently authorized local-GKR leaf. Only global Wire debt
+            // remains for the complete execution closure here.
+            global[i] = .{ .ram = O.zero(), .kio = O.zero(), .wire = leaf.claims[0].add(leaf.claims[1]) };
+            const words = try @import("miller_local_gkr/statement.zig").expectedWords(a, local_key, item.span, inventory.workers[i], manifest, leaf.main, leaf.receipt.?, leaf.claims[0..2].*);
+            defer a.free(words);
+            outputs[i] = N.hashWords(words);
+            continue;
+        }
         if (leaf.claims.len != 4 or !leaf.claims[0].add(leaf.claims[2]).isZero()) return error.OpRootLocalMillerClosure;
         global[i] = .{ .ram = O.zero(), .kio = O.zero(), .wire = leaf.claims[1].add(leaf.claims[3]) };
         const words = try @import("pure_p2_tower_statement.zig").expectedWords(a, item.key, item.span, inventory.workers[i], manifest, leaf.main, leaf.claims[0..4].*);

@@ -15,6 +15,7 @@ const CPU = @import("../pure_p2_cpu_leaf_test.zig");
 const Catalog = @import("../pure_p2_truth_leaf_test.zig");
 const Miller = @import("../pure_p2_tower_leaf_test.zig");
 const LocalCatalog = @import("../truth_local_gkr/leaf_test.zig");
+const LocalMiller = @import("../miller_local_gkr/leaf_test.zig");
 pub const Limits = struct { proof_bytes: usize = 2 << 20, sidecar_bytes: usize = 64 << 20 };
 pub const Verified = struct { members: usize, root_bytes: usize, source_ns: u64, root_verify_ns: u64, total_ns: u64 };
 const Context = struct {
@@ -28,11 +29,19 @@ const Context = struct {
     fn receive(raw: ?*anyopaque, a: std.mem.Allocator, source: Runtime.SourceDirectory) !void {
         const self: *@This() = @ptrCast(@alignCast(raw orelse return error.MissingOpRootSession));
         if (self.verified != null) return error.DuplicateOpRootSourceCallback;
-        var plan = try Receiver.prepare(a, .{ .image = source.image, .output = .{ .address = source.output_address, .bytes = source.output }, .profile = self.profile, .setups = source.setups, .requests = source.requests, .spans = source.metadata.spans, .cpu_keys = source.cpu_keys, .truths = source.truths, .truth_keys = source.truth_keys, .truth_local_keys = source.inventory.truth_local_keys, .miller = source.miller, .expected = source.expected }, self.metadata);
+        var plan = try Receiver.prepare(a, .{ .source_suite = source.source_suite, .image = source.image, .output = .{ .address = source.output_address, .bytes = source.output }, .profile = self.profile, .setups = source.setups, .requests = source.requests, .spans = source.metadata.spans, .cpu_keys = source.cpu_keys, .truths = source.truths, .truth_keys = source.truth_keys, .truth_local_keys = source.inventory.truth_local_keys, .miller = source.miller, .expected = source.expected }, self.metadata);
         defer plan.deinit();
         var local_count: usize = 0;
         for (source.inventory.truth_local_keys) |key| {
             if (key != null) local_count += 1;
+        }
+        const allow_local_miller = if (source.source_suite) |suite| blk: {
+            try suite.validate();
+            break :blk suite.miller == .local_gkr;
+        } else false;
+        for (source.miller) |item| {
+            if ((item.local_key != null) != allow_local_miller) return error.OpRootLeafSourceAuthority;
+            if (item.local_key != null) local_count += 1;
         }
         var templates = try Templates.decode(a, self.templates, source.setups.len + local_count);
         defer templates.deinit(a);
@@ -90,15 +99,29 @@ const Context = struct {
             const i = source.setups.len + source.truths.len + j;
             var arena = std.heap.ArenaAllocator.init(a);
             defer arena.deinit();
+            const metadata = self.metadata.leaves[i];
+            if (miller.local_key) |key| {
+                const instances = try (try key.geometry(miller.span)).instances();
+                const local = try Gkr.skeletonFor(arena.allocator(), &instances, templates.shapes[template_index]);
+                template_index += 1;
+                const shape = try @import("../miller_local_gkr/statement.zig").geometry(arena.allocator(), key, miller.span);
+                const values = try Skeleton.init(arena.allocator(), &shape);
+                if (metadata.claims.len != 2) return error.OpRootTruthClaims;
+                const view = LocalMiller.View{ .key = key, .span = miller.span, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .receipt = metadata.receipt orelse return error.MissingOpRootLocalAuthority, .claims = metadata.claims[0..2].*, .local = &local, .shape = &shape, .values = &values };
+                leaves[made] = try Topology.SourceLeaf.initLocalMiller(a, view);
+                @import("verifier_key.zig").retireProverData(&leaves[made].authority);
+                made += 1;
+                continue;
+            }
             const shape = try @import("../pure_p2_tower_statement.zig").geometry(arena.allocator(), miller.key);
             const values = try Skeleton.init(arena.allocator(), &shape);
-            const metadata = self.metadata.leaves[i];
             if (metadata.claims.len != 4) return error.OpRootTruthClaims;
             const view = Miller.View{ .key = miller.key, .span = miller.span, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .claims = metadata.claims[0..4].*, .shape = &shape, .values = &values };
             leaves[made] = try Topology.SourceLeaf.initMiller(a, view);
             @import("verifier_key.zig").retireProverData(&leaves[made].authority);
             made += 1;
         }
+        if (template_index != templates.shapes.len) return error.OpRootTemplateCoverage;
         var topology = try Topology.Topology.initForVerification(a, self.profile, plan.inventory.execution, leaves);
         defer topology.deinit();
         const source_ns = self.timer.read();
