@@ -271,25 +271,7 @@ pub const metal_tools_package_roots = &.{
     "dependency:../src/backends/metal/session:mod.zig",
 };
 
-pub const riscv_cpu_protocol_package_roots = &.{
-    "dependency:../src/waist/backend:mod.zig",
-    "dependency:../src/backends/cpu_scalar:mod.zig",
-    "dependency:../src/waist/core:mod.zig",
-    "dependency:../src/frontends/riscv:mod.zig",
-    "dependency:../src/frontends/riscv:refinement_ir_export_test.zig",
-    "dependency:../src/frontends/riscv:refinement_program_export_test.zig",
-    "dependency:../src/frontends/riscv:sail_oracle_test_root.zig",
-    "dependency:../src/integrations/riscv_cpu:degree5_poseidon_proof_test.zig",
-    "dependency:../src/integrations/riscv_cpu:degree5_provider_proof_v1_test.zig",
-    "dependency:../src/integrations/riscv_cpu:degree_bounded_poseidon_proof_test.zig",
-    "dependency:../src/integrations/riscv_cpu:memory_provider_shard_benchmark.zig",
-    "dependency:../src/integrations/riscv_cpu:memory_provider_shard_proof_test.zig",
-    "dependency:../src/integrations/riscv_cpu:mod.zig",
-    "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
-    "dependency:../src/waist/proof_wire:mod.zig",
-    "dependency:../src/engine/prover:mod.zig",
-    "dependency:../src/waist/prover_api:mod.zig",
-};
+pub const riscv_cpu_protocol_package_roots = @import("riscv_cpu_dependencies.zig").roots;
 
 pub const riscv_metal_protocol_package_roots = &.{
     "dependency:../src/waist/backend:mod.zig",

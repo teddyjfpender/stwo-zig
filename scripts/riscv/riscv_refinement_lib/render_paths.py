@@ -14,6 +14,7 @@ SOURCE_PATHS = (
     "build_support/products/step_catalog.zig",
     "build_support/products/matrix.zig",
     "build_support/products/package_dependencies.zig",
+    "build_support/products/riscv_cpu_dependencies.zig",
     "build_support/products/product_specs.zig",
     "build_support/products/riscv_cpu.zig",
     "build_support/products/riscv_refinement.zig",

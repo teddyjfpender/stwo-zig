@@ -668,6 +668,13 @@
       "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
     },
     {
+      "id": "delivery_exact_riscv_cpu_configure_inventory",
+      "net_code_budget": 240,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Give the complete RISC-V CPU constructor an independent exact 214-root source inventory rather than the stale 17-root list. Every admitted file already exists and is recorded in immutable hosted construction; the five removed records name absent files with no remaining build/test/tool reference. No advertised step or runtime module graph changes. Use a coherent sub-500-line owner and retain exact CI fanout and formal source-hash coverage. Positive growth is explicit source ownership metadata, not new runtime implementation, relaxed source prefixes or discovery."
+    },
+    {
       "id": "delivery_exact_configure_helpers_and_shape_rejection",
       "net_code_budget": 60,
       "flags_added_budget": 0,

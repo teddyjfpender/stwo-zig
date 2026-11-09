@@ -883,6 +883,7 @@
         "build_support/products/catalog_manifest.zig",
         "build_support/products/matrix.zig",
         "build_support/products/product_specs.zig",
+        "build_support/products/riscv_cpu_dependencies.zig",
         "build_support/internal_build.zig",
         "build_support/root_dispatcher.zig"
       ],
