@@ -260,6 +260,12 @@ pub const Prepared = struct {
         if (A.word16_execution.features.zbbProfile(tape.execution_profile) != A.word16_execution.features.zbbProfile(program.profile)) return error.UnqualifiedWord16ServiceOwners;
         return captureInternal(a, program, public, epoch, cpu_log, tape, options, .combined_words_v3);
     }
+    /// Closed OP producer seam. This permits witness construction only; the
+    /// Ethereum request/receiver admission remains independently fail-closed.
+    pub fn captureForOpServices(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        if (tape.execution_profile != .ethereum_services_op_v1 or program.profile != .ethereum_services_op_v1) return error.UnqualifiedWord16ServiceOwners;
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .combined_words_op);
+    }
     /// Either admitted combined profile, selected by the tape's own profile.
     pub fn captureForCombinedServices(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
         return if (Execution.isV3(tape.execution_profile)) captureForCombinedServicesV3(a, program, public, epoch, cpu_log, tape, options) else captureForCombinedServicesLEv2(a, program, public, epoch, cpu_log, tape, options);
@@ -270,7 +276,7 @@ pub const Prepared = struct {
         try result.ensureCpuMain(program, cpu_log);
         return result;
     }
-    pub const Service = enum { none, keccak, secp_words, combined_words, combined_words_v3 };
+    pub const Service = enum { none, keccak, secp_words, combined_words, combined_words_v3, combined_words_op };
     /// Capture route selection (producer scheduling only; every route
     /// returns the same Prepared). `chunks` null = `CPU.Source.capture`'s
     /// own range count; `recorder` = STWO_RV64_M8_CAPTURE_RECORDER.
@@ -288,6 +294,7 @@ pub const Prepared = struct {
                 .secp_words => call.tag == 0x20011 or call.tag == 0x20012,
                 .combined_words => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012,
                 .combined_words_v3 => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012 or call.tag == 0x30010 or call.tag == 0x30021 or call.tag == 0x30001 or call.tag == 0x30002 or call.tag == 0x30040 or call.tag == 0x30003 or call.tag == 0x30130 or @import("stwo_riscv_frontend").rv64.execution_profile.isCurveTag(call.tag),
+                .combined_words_op => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012 or call.tag == 0x30010 or call.tag == 0x30021 or call.tag == 0x30001 or call.tag == 0x30002 or call.tag == 0x30040 or call.tag == 0x30003 or call.tag == 0x30130 or @import("stwo_riscv_frontend").rv64.execution_profile.isCurveTag(call.tag) or call.tag == 0x40001,
             };
             if (!valid) return error.UnqualifiedWord16ServiceOwners;
         }
