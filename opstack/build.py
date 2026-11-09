@@ -86,6 +86,11 @@ LEAN_VARIANTS["canonical-glv-hinted"] = (
     [*LEAN_VARIANTS["canonical-glv"][1], "pairing-hints"],
 )
 
+LEAN_VARIANTS["canonical-glv-hinted-inline"] = (
+    "frontier",
+    [*LEAN_VARIANTS["canonical-glv-hinted"][1], "extension-inline"],
+)
+
 BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
 
 
@@ -192,7 +197,7 @@ def main():
                 "--release",
                 "--features",
                 "host,pairing-hints"
-                if args.variant == "canonical-glv-hinted"
+                if args.variant.startswith("canonical-glv-hinted")
                 else "host,blob-eval-probe"
                 if args.variant.startswith("blob-eval")
                 else "host,transition-program"

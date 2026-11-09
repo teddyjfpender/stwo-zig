@@ -640,7 +640,8 @@ impl<P: QuadExtConfig> Div<&QuadExtField<P>> for QuadExtField<P> {
 }
 
 impl<P: QuadExtConfig> AddAssign<&Self> for QuadExtField<P> {
-    #[inline]
+    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
+    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
     fn add_assign(&mut self, other: &Self) {
         self.c0 += &other.c0;
         self.c1 += &other.c1;
@@ -659,7 +660,8 @@ impl_additive_ops_from_ref!(QuadExtField, QuadExtConfig);
 impl_multiplicative_ops_from_ref!(QuadExtField, QuadExtConfig);
 
 impl<P: QuadExtConfig> MulAssign<&Self> for QuadExtField<P> {
-    #[inline]
+    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
+    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
     fn mul_assign(&mut self, other: &Self) {
         if let Some(result) = P::mul_specialized(self, other) {
             *self = result;

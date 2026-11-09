@@ -39,6 +39,8 @@ serde_derive.workspace = true
 hex.workspace = true
 
 [features]
+# Explicit RV64 code-generation experiment; formulas and native builds unchanged.
+stwo-inline-extensions = []
 stwo-montgomery-services = []
 default = []
 std = [ "ark-std/std", "ark-serialize/std" ]

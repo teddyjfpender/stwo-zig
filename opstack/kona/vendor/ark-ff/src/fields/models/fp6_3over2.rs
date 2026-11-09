@@ -106,6 +106,8 @@ impl<P: Fp6Config> Fp6<P> {
         self.c2 = b_b;
     }
 
+    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
+    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
     pub fn mul_by_01(&mut self, c0: &Fp2<P::Fp2Config>, c1: &Fp2<P::Fp2Config>) {
         let mut a_a = self.c0;
         let mut b_b = self.c1;

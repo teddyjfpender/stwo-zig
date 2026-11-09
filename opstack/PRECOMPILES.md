@@ -96,3 +96,20 @@ back into the combined accumulator. Shared squaring and sparse line
 multiplication distribute over this product, so both seeded and ordinary
 Miller values are identical to the uncached loop. Eviction can only increase
 the work. The cache also applies when the supplied residue fails its check.
+
+
+## Pairing extension code-generation experiment
+
+`build.py --variant canonical-glv-hinted-inline` explicitly forces inlining of
+quadratic/cubic add/multiply and the sparse Fp6/Fp12 products, on RV64 only.
+Formulas, field storage, packets and service tags are unchanged. Native builds
+keep the original compiler policy. The flag remains off in existing variants.
+
+The heavy OP 121065789 census attributes most instructions to pairing extension
+helpers. A fresh control reproduces 425,537,671 instructions; the inline guest
+uses 372,009,211 (12.58% fewer), with all 678,888 Fp2 calls unchanged. Native
+Kona and independent Unicorn agree on exact steps, PC, all registers, service
+counts and output. Two no-pairing blocks also agree, but retire 658 and 949 more
+instructions respectively (under 0.1%); this is not a universal speedup. No
+complete proof-time gain for the new ELF is established yet. See the
+[receipt](../vectors/reports/rv64-opstack-cpu-20261108/extension-inlining.json).
