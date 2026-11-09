@@ -11,6 +11,8 @@ test {
     _ = @import("memcpy_hotspot/options.zig");
     _ = @import("function_value/options.zig");
     _ = @import("function_value/input.zig");
+    _ = @import("memcpy_admission/options.zig");
+    _ = @import("memcpy_admission/classifier.zig");
 }
 
 test "observation journal: selected prefix owns its segments" {
@@ -74,6 +76,9 @@ test "observation contracts: required named discovery" {
         "options accept exact hex PCs and instruction words",
         "function-value options retain bounded sample admission",
         "function-value input rejects oversized and nonregular files",
+        "memcpy-admission options retain prefix count and radix admission",
+        "classifier matches aligned-word candidate boundary",
+        "memcpy classifier retains every rejection class",
     }) |required| {
         var found = false;
         for (@import("builtin").test_functions) |entry| {

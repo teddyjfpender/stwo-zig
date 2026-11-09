@@ -85,7 +85,7 @@ pub fn addObserver(
         .target = target,
         .optimize = optimize,
     });
-    if (observer == .pc_hotspot or observer == .memcpy_hotspot or observer == .function_value) {
+    if (observer == .pc_hotspot or observer == .memcpy_hotspot or observer == .function_value or observer == .memcpy_admission) {
         root.addImport("observation_journal", graph.create(b, .{
             .product = product,
             .root_source_file = "src/products/riscv/tools/observations/journal.zig",

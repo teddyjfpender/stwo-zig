@@ -604,6 +604,7 @@
           "riscv-pc-hotspot-observer",
           "riscv-memcpy-hotspot-observer",
           "riscv-function-value-observer",
+          "riscv-memcpy-admission-observer",
           "-Doptimize=ReleaseFast",
           "-j2"
         ],
