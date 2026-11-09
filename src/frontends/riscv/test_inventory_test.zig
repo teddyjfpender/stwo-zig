@@ -19,6 +19,11 @@ const INVENTORY = @embedFile("test_inventory.zig") ++ @embedFile("rv64_test_inve
 
 /// Files that hold tests and are deliberately absent from the inventory.
 const excluded = [_]struct { path: []const u8, why: []const u8 }{
+    .{ .path = "air/lang/tests/typed_base_alu_imm_witness_performance_test.zig", .why = "unchanged shared-runner throughput assertion collected by non-blocking test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_base_alu_reg_witness_performance_test.zig", .why = "unchanged shared-runner throughput assertion collected by non-blocking test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_mulh_witness_performance_test.zig", .why = "unchanged shared-runner throughput assertion collected by non-blocking test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_shifts_reg_witness_performance_test.zig", .why = "unchanged shared-runner throughput assertion collected by non-blocking test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_legacy_benchmark_registration_test.zig", .why = "unchanged shared-runner throughput assertion collected by non-blocking test-typed-witness-benchmarks (#330)" },
     .{ .path = "typed_witness_benchmark_test_root.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
     .{ .path = "air/lang/tests/typed_branch_eq_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
     .{ .path = "air/lang/tests/typed_branch_lt_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },

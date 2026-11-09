@@ -8,4 +8,9 @@ test {
     _ = @import("air/lang/tests/typed_lt_imm_witness_performance_test.zig");
     _ = @import("air/lang/tests/typed_lt_reg_witness_performance_test.zig");
     _ = @import("air/lang/tests/typed_shifts_imm_witness_performance_test.zig");
+    _ = @import("air/lang/tests/typed_base_alu_imm_witness_performance_test.zig");
+    _ = @import("air/lang/tests/typed_base_alu_reg_witness_performance_test.zig");
+    _ = @import("air/lang/tests/typed_mulh_witness_performance_test.zig");
+    _ = @import("air/lang/tests/typed_shifts_reg_witness_performance_test.zig");
+    _ = @import("air/lang/tests/typed_legacy_benchmark_registration_test.zig");
 }

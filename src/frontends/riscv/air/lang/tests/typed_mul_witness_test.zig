@@ -124,7 +124,7 @@ test "typed MUL prepared executor validates before mutation and zeroes padding" 
     try std.testing.expectEqualDeep(snapshot, storage);
 }
 
-test "typed MUL hot rows retain paired legacy throughput and linear scaling" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
 
     const allocator = std.testing.allocator;

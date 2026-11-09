@@ -289,7 +289,7 @@ test "BRANCH_EQ authority construction releases every allocation failure" {
     );
 }
 
-test "BRANCH_EQ production direct and lookup evaluators retain legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const row_count = 1 << 10;
     const rows = try std.testing.allocator.alloc(

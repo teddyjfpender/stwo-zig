@@ -361,7 +361,7 @@ test "E-018 typed LUI fixed witness facade is exact and rejection atomic" {
     try actual.expectAll(sentinel);
 }
 
-test "E-018 typed LUI fixed direct and lookup hot paths retain production throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const executor = try authenticatedAuthority();
 

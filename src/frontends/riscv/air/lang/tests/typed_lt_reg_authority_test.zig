@@ -243,7 +243,7 @@ test "LT_REG authority rejects forged rows atomically and releases allocation fa
     );
 }
 
-test "LT_REG fixed direct and lookup evaluators retain legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const admitted = try authenticatedAuthority();
     const row_count = 1 << 10;

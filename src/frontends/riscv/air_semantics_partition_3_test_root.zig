@@ -13,7 +13,6 @@ test {
     _ = @import("air/lang/tests/typed_mulh_authority_test.zig");
     _ = @import("air/lang/tests/typed_mulh_witness_test.zig");
     _ = @import("air/lang/tests/typed_mulh_witness_adversarial_test.zig");
-    _ = @import("air/lang/tests/typed_mulh_witness_performance_test.zig");
     _ = @import("air/lang/tests/typed_opcode_production_authority_test.zig");
     _ = @import("air/lang/tests/typed_shifts_imm_test.zig");
     _ = @import("air/lang/typed_shifts_imm_authority.zig");
@@ -25,7 +24,6 @@ test {
     _ = @import("air/lang/tests/typed_shifts_reg_authority_test.zig");
     _ = @import("air/lang/tests/typed_shifts_reg_witness_test.zig");
     _ = @import("air/lang/tests/typed_shifts_reg_witness_adversarial_test.zig");
-    _ = @import("air/lang/tests/typed_shifts_reg_witness_performance_test.zig");
     _ = @import("air/lang/tests/typed_lui_adversarial_test.zig");
     _ = @import("air/lang/tests/typed_lui_authority_test.zig");
     _ = @import("air/lang/tests/typed_lui_test.zig");

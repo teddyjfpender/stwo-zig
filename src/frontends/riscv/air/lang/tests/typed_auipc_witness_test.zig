@@ -183,7 +183,7 @@ test "typed AUIPC direct hot authority is allocation-free and recipe-static" {
         try std.testing.expectEqualSlices(M31, expected, actual);
 }
 
-test "typed AUIPC hot rows retain paired legacy throughput in every build mode" {
+pub fn benchmarkLegacyThroughput() !void {
     const allocator = std.testing.allocator;
     const log_rows = switch (builtin.mode) {
         .Debug => [_]u32{ 9, 12, 15 },

@@ -254,7 +254,7 @@ test "SHIFTS_REG authority rejects forged rows atomically and releases allocatio
     );
 }
 
-test "SHIFTS_REG fixed direct and lookup evaluators retain legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const admitted = try authenticatedAuthority();
     const row_count = 1 << 10;

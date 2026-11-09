@@ -127,7 +127,7 @@ test "E-020 BASE_ALU_IMM one authority owns every result x0 witness and AIR row"
     );
 }
 
-test "E-020 BASE_ALU_IMM fixed direct evaluator retains legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const admitted = try authenticatedAuthority();
     const row_count = 1 << 10;

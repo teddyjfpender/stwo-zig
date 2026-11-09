@@ -421,7 +421,7 @@ test "LOAD_STORE authority rejects forged rows atomically and releases allocatio
     );
 }
 
-test "LOAD_STORE fixed direct and lookup evaluators strictly preserve legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const admitted = try authenticatedAuthority();
     const row_count = 1 << 9;

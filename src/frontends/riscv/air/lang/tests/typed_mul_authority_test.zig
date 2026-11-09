@@ -368,7 +368,7 @@ test "MUL authority construction releases every allocation failure" {
     );
 }
 
-test "MUL fixed direct evaluator strictly preserves legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const admitted = try authenticatedAuthority();
     const row_count = 1 << 9;

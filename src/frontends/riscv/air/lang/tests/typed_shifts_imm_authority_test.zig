@@ -288,7 +288,7 @@ test "SHIFTS_IMM authority construction releases every allocation failure" {
     );
 }
 
-test "SHIFTS_IMM fixed direct and lookup evaluators preserve legacy throughput" {
+pub fn benchmarkLegacyThroughput() !void {
     if (builtin.mode != .ReleaseFast) return;
     const admitted = try authenticatedAuthority();
     const row_count = 1 << 9;
