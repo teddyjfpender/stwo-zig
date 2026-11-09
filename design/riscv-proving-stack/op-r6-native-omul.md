@@ -196,3 +196,30 @@ reject. These are completed acceptance gates, not the heavy tenfold target.
 The next decision gate is a source-owned full-height heavy CPU class census and
 an equal-security/workload M6/M7 comparison. Current30-second CPU wrappers and
 similar folds cannot satisfy the332.845s heavy total by multiplication alone.
+
+## Heavy full-height source model
+
+Two actual retained heavy geometries were bootstrapped independently, without
+an execution witness or outer proof: widest ordinal3 and Miller-heavy ordinal20,
+each with4,194,303 retirements at CPUlog22. The CPU-local GKR template uses the
+source-legal coefficient width4 in every round, not an asserted actual proof.
+Ordinal3 has5,896 native fixed/main/inter columns (216/3664/2016), including2,513
+sponge columns; ordinal20 has5,464 (206/3370/1888). Program/input pins and exact
+metadata hashes are retained in the model receipt.
+
+The new outer graph requires4,809,612 and4,554,842 QM31 rows respectively, with
+174,158/167,853 native OM31 products. Both pad the arithmetic table back tolog23
+and415,756,288 total native source cells. This reverses the small-source CPU
+padding advantage. Ordinal3's DEEP phase alone is2.363M QM31 rows; its Merkle
+phase invokes49,536 P2 permutations. These are source counts, not heavy timings
+or execution acceptance. Source graph construction is roughly0.1s; independently
+bootstrapping the native source key is recorded separately.
+
+Sponge call and permutation bridges contribute1,667 MAIN and840 INTER columns,
+42.6% of the widest native opening vector. Including service/tower bridges gives
+3,583 columns (60.8%). A serialized representation can trade more narrow native
+rows for much less recursive opening work. It must preserve complete RAM14,
+IO11 and OWNER19 tuples, ABI limits, packet/state/message ownership, first/last
+permutation links and exact call spans. No schema2 switch is authorized by this
+cost model. The current reviewed streamed truth-local GKR resource estimator is
+52B/fact and budgeted sharding; the old dense136B/fact estimate is not that path.

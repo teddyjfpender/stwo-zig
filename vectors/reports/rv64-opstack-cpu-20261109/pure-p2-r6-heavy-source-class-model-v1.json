@@ -1,0 +1,497 @@
+{
+  "schema": "op-r6-heavy-source-class-model-v1",
+  "block": 121065789,
+  "total_steps": 238226172,
+  "cpu_workers": 57,
+  "legacy_truth_workers": 13,
+  "miller_workers": 22,
+  "selection": "ordinal3 is widest retained nativePCS opening vector; ordinal20 representative Miller-heavy",
+  "config_sha256": "024b95f333c623a59748ba3e7dcef830e6541591690c29e444a9ed5ad41c641d",
+  "metadata_sha256": "60bf99b17f88c02537e78bbbca2fbe182e22d4ff95a29b8d0f7aa6076e20865d",
+  "config_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-heavy.config.json",
+  "metadata_path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-heavy-immutable-session/cold/native-op-prepare-metadata.json",
+  "source_classes": [
+    {
+      "schema": "op-r6-heavy-source-class-model-v1",
+      "ordinal": 3,
+      "source_native_key": "b9c4fc6bbd7aa514a7a70f512aed206a3bab04c15f475584754e85497af9442d",
+      "native_declaration": {
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 19,
+          "alu_tail_log": 18,
+          "binary_log": 17,
+          "binary_tail_log": 15,
+          "shift_log": 17,
+          "shift_tail_log": 12,
+          "jalr_log": 15,
+          "division_log": 8,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 17,
+          "ls_tail_log": 15,
+          "boundary_log": 5,
+          "initial_log": 5,
+          "terminal_log": 5,
+          "cpu_fused_tail": true,
+          "cpu_u8_pairs": true,
+          "cpu_compact_decode": true
+        },
+        "bridges": {
+          "keccak": null,
+          "add": null,
+          "double": null,
+          "arith256_mod": 13,
+          "bn254_g1_add": 10,
+          "bn254_g1_double": 10,
+          "bn254_fp2_mul": 16,
+          "bulk": {
+            "desc": 12,
+            "copy": 16,
+            "set": 12,
+            "ucopy": 13,
+            "cdesc": 11,
+            "cmp": 11,
+            "jdesc": 5,
+            "jscan": 6,
+            "jtab": 14
+          },
+          "sponge": {
+            "call": 7,
+            "perm": 8
+          },
+          "ls_dword": 21,
+          "tower": 14
+        }
+      },
+      "span": {
+        "calls": 348,
+        "first_id": 1
+      },
+      "native_columns": [
+        216,
+        3664,
+        2016,
+        16
+      ],
+      "native_oods_samples": [
+        202,
+        3855,
+        2808,
+        16
+      ],
+      "native_gkr_instances": 36,
+      "gkr_layers": 26,
+      "coefficient_lengths": 325,
+      "gkr_shape": "legal-width4-every-round-not-an-actual-native-proof",
+      "census": {
+        "raw": [
+          36418,
+          4809612,
+          2522,
+          80066,
+          65536,
+          174158
+        ],
+        "rows": [
+          65536,
+          8388608,
+          4096,
+          131072,
+          65536,
+          262144
+        ],
+        "logs": [
+          16,
+          23,
+          12,
+          17,
+          16,
+          18
+        ],
+        "main_cells": 169689088,
+        "interaction_cells": 166821888,
+        "fixed_cells": 79245312,
+        "total_native_cells": 415756288
+      },
+      "phases": {
+        "proof_inputs": {
+          "eq": 0,
+          "arithmetic": 4,
+          "m31_to_u32": 0,
+          "poseidon": 0,
+          "variables": 554007,
+          "guessed_variables": 554002
+        },
+        "statement": {
+          "public_scope": {
+            "eq": 9,
+            "arithmetic": 23,
+            "m31_to_u32": 27,
+            "poseidon": 0,
+            "variables": 7873,
+            "guessed_variables": 7811
+          },
+          "local_gkr": {
+            "eq": 892,
+            "arithmetic": 255235,
+            "m31_to_u32": 0,
+            "poseidon": 10048,
+            "variables": 543193,
+            "guessed_variables": 76
+          },
+          "claims_shared": {
+            "eq": 0,
+            "arithmetic": 1146,
+            "m31_to_u32": 225,
+            "poseidon": 74,
+            "variables": 3212,
+            "guessed_variables": 54
+          },
+          "source_publics": {
+            "eq": 1460,
+            "arithmetic": 25367,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 52510,
+            "guessed_variables": 2134
+          },
+          "cpu_oods": {
+            "eq": 7926,
+            "arithmetic": 265719,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 445226,
+            "guessed_variables": 7926
+          },
+          "pcs_oods_and_transcript": {
+            "eq": 55,
+            "arithmetic": 1108,
+            "m31_to_u32": 0,
+            "poseidon": 49,
+            "variables": 2352,
+            "guessed_variables": 27
+          },
+          "pcs_sampled_mix_and_queries": {
+            "eq": 586,
+            "arithmetic": 161406,
+            "m31_to_u32": 0,
+            "poseidon": 4621,
+            "variables": 272919,
+            "guessed_variables": 562
+          },
+          "pcs_merkle": {
+            "eq": 9504,
+            "arithmetic": 726624,
+            "m31_to_u32": 0,
+            "poseidon": 49536,
+            "variables": 1915488,
+            "guessed_variables": 0
+          },
+          "deep": {
+            "eq": 2590,
+            "arithmetic": 2363395,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 2460336,
+            "guessed_variables": 2555
+          },
+          "fri": {
+            "eq": 10692,
+            "arithmetic": 425022,
+            "m31_to_u32": 0,
+            "poseidon": 15624,
+            "variables": 812562,
+            "guessed_variables": 1332
+          }
+        },
+        "frame": {
+          "eq": 2704,
+          "arithmetic": 6079,
+          "m31_to_u32": 0,
+          "poseidon": 114,
+          "variables": 10170,
+          "guessed_variables": 1352
+        },
+        "finalization": {
+          "eq": 0,
+          "arithmetic": 578484,
+          "m31_to_u32": 2270,
+          "poseidon": 0,
+          "variables": 2174,
+          "guessed_variables": 0
+        }
+      },
+      "setup_ns": 16349781250,
+      "source_trace_ns": 99884333,
+      "execution_verified": false,
+      "native_proof_supplied": false,
+      "outer_proof_produced": false,
+      "security_qualified": false,
+      "request_summary": {
+        "epoch": 4,
+        "memory_epoch": 4,
+        "ls_count": 161140,
+        "ls_dword": 1742781,
+        "steps": 4194303,
+        "initial_pc": 2564644,
+        "final_pc": 2488404
+      },
+      "sponge_native_columns": [
+        6,
+        1667,
+        840
+      ],
+      "all_bridge_native_columns": [
+        40,
+        670,
+        360
+      ]
+    },
+    {
+      "schema": "op-r6-heavy-source-class-model-v1",
+      "ordinal": 20,
+      "source_native_key": "229cc42b39b4a8f8e540deb99b23eea4453a6d726a976ba73255e146b416b666",
+      "native_declaration": {
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 19,
+          "alu_tail_log": 16,
+          "binary_log": 16,
+          "binary_tail_log": 15,
+          "shift_log": 16,
+          "shift_tail_log": 13,
+          "jalr_log": 14,
+          "division_log": 10,
+          "omit_empty_division": false,
+          "multiplication_log": 14,
+          "ls_log": 18,
+          "ls_tail_log": 15,
+          "boundary_log": 5,
+          "initial_log": 5,
+          "terminal_log": 5,
+          "cpu_fused_tail": true,
+          "cpu_u8_pairs": true,
+          "cpu_compact_decode": true
+        },
+        "bridges": {
+          "keccak": null,
+          "add": null,
+          "double": null,
+          "arith256_mod": 12,
+          "bn254_g1_add": 11,
+          "bn254_g1_double": 11,
+          "bn254_fp2_mul": 15,
+          "bulk": {
+            "desc": 12,
+            "copy": 16,
+            "set": 14,
+            "ucopy": 12,
+            "cdesc": 10,
+            "cmp": 11
+          },
+          "sponge": {
+            "call": 8,
+            "perm": 8
+          },
+          "ls_dword": 20,
+          "ls_dword_tail": 19,
+          "tower": 14
+        }
+      },
+      "span": {
+        "calls": 321,
+        "first_id": 7249
+      },
+      "native_columns": [
+        206,
+        3370,
+        1888,
+        16
+      ],
+      "native_oods_samples": [
+        192,
+        3546,
+        2640,
+        16
+      ],
+      "native_gkr_instances": 34,
+      "gkr_layers": 26,
+      "coefficient_lengths": 325,
+      "gkr_shape": "legal-width4-every-round-not-an-actual-native-proof",
+      "census": {
+        "raw": [
+          35736,
+          4554842,
+          2474,
+          76886,
+          65536,
+          167853
+        ],
+        "rows": [
+          65536,
+          8388608,
+          4096,
+          131072,
+          65536,
+          262144
+        ],
+        "logs": [
+          16,
+          23,
+          12,
+          17,
+          16,
+          18
+        ],
+        "main_cells": 169689088,
+        "interaction_cells": 166821888,
+        "fixed_cells": 79245312,
+        "total_native_cells": 415756288
+      },
+      "phases": {
+        "proof_inputs": {
+          "eq": 0,
+          "arithmetic": 4,
+          "m31_to_u32": 0,
+          "poseidon": 0,
+          "variables": 521929,
+          "guessed_variables": 521924
+        },
+        "statement": {
+          "public_scope": {
+            "eq": 9,
+            "arithmetic": 23,
+            "m31_to_u32": 27,
+            "poseidon": 0,
+            "variables": 7745,
+            "guessed_variables": 7683
+          },
+          "local_gkr": {
+            "eq": 886,
+            "arithmetic": 251336,
+            "m31_to_u32": 0,
+            "poseidon": 9860,
+            "variables": 534397,
+            "guessed_variables": 74
+          },
+          "claims_shared": {
+            "eq": 0,
+            "arithmetic": 1132,
+            "m31_to_u32": 217,
+            "poseidon": 74,
+            "variables": 3187,
+            "guessed_variables": 52
+          },
+          "source_publics": {
+            "eq": 1422,
+            "arithmetic": 24105,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 49365,
+            "guessed_variables": 2092
+          },
+          "cpu_oods": {
+            "eq": 7936,
+            "arithmetic": 259559,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 435182,
+            "guessed_variables": 7936
+          },
+          "pcs_oods_and_transcript": {
+            "eq": 55,
+            "arithmetic": 1086,
+            "m31_to_u32": 0,
+            "poseidon": 49,
+            "variables": 2330,
+            "guessed_variables": 27
+          },
+          "pcs_sampled_mix_and_queries": {
+            "eq": 586,
+            "arithmetic": 150692,
+            "m31_to_u32": 0,
+            "poseidon": 4296,
+            "variables": 254405,
+            "guessed_variables": 562
+          },
+          "pcs_merkle": {
+            "eq": 9504,
+            "arithmetic": 695520,
+            "m31_to_u32": 0,
+            "poseidon": 46872,
+            "variables": 1820448,
+            "guessed_variables": 0
+          },
+          "deep": {
+            "eq": 1998,
+            "arithmetic": 2194803,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 2284650,
+            "guessed_variables": 1971
+          },
+          "fri": {
+            "eq": 10692,
+            "arithmetic": 425022,
+            "m31_to_u32": 0,
+            "poseidon": 15624,
+            "variables": 812562,
+            "guessed_variables": 1332
+          }
+        },
+        "frame": {
+          "eq": 2648,
+          "arithmetic": 5953,
+          "m31_to_u32": 0,
+          "poseidon": 111,
+          "variables": 9944,
+          "guessed_variables": 1324
+        },
+        "finalization": {
+          "eq": 0,
+          "arithmetic": 545607,
+          "m31_to_u32": 2230,
+          "poseidon": 0,
+          "variables": 2130,
+          "guessed_variables": 0
+        }
+      },
+      "setup_ns": 16719488292,
+      "source_trace_ns": 96344083,
+      "execution_verified": false,
+      "native_proof_supplied": false,
+      "outer_proof_produced": false,
+      "security_qualified": false,
+      "request_summary": {
+        "epoch": 21,
+        "memory_epoch": 21,
+        "ls_count": 283362,
+        "ls_dword": 1459834,
+        "steps": 4194303,
+        "initial_pc": 227260,
+        "final_pc": 2293312
+      },
+      "sponge_native_columns": [
+        6,
+        1667,
+        840
+      ],
+      "all_bridge_native_columns": [
+        40,
+        670,
+        360
+      ]
+    }
+  ],
+  "execution_verified": false,
+  "native_proof_supplied": false,
+  "outer_proof_produced": false,
+  "limitations": [
+    "Legal coefficient-width4 source-class model, not the actual unknown heavy proof polynomial-length pattern",
+    "No heavy proving time or tenfold end-to-end qualification",
+    "Current streamed/checkpointed truth resource estimator52B/fact is separate from thisCPUclass model; dense136B/fact estimator is not current heavy admission policy"
+  ],
+  "result": "Bothclasses require QM log23 and415756288 sourcecells; the smallCPUlog22 speedup cannot be extrapolated",
+  "next": "narrow serialized sponge bridge preserving completeRAM14/IO11/OWNER19 tuples and physicalsourceauthority"
+}

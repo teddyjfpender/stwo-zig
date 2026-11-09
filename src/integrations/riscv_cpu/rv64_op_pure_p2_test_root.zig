@@ -69,4 +69,5 @@ test {
 
 test {
     _ = @import("poseidon2_outer/miller_local_gkr/physical_test.zig");
+    _ = @import("poseidon2_outer/native_omul/heavy_model_test.zig");
 }
