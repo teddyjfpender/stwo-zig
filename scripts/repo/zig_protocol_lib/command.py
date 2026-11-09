@@ -28,6 +28,8 @@ PROTOCOL_PACKAGES = (
     "stwo_metal_backend",
     "stwo_riscv_frontend",
     "stwo_cairo_frontend",
+    "stwo_circuit_frontend",
+    "stwo_circuit_cpu_integration",
     "stwo_native_examples",
     "stwo_riscv_cpu_integration",
     "stwo_cairo_cpu_integration",
