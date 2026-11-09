@@ -211,4 +211,6 @@ test {
     _ = @import("poseidon2_outer/sponge_local_gkr/child_test.zig");
     _ = @import("poseidon2_outer/sponge_local_gkr/leaf_test.zig");
     _ = @import("poseidon2_outer/sponge_local_gkr/worker.zig");
+    _ = @import("poseidon2_outer/pure_p2_native_source_hooks_test.zig");
+    _ = @import("poseidon2_outer/pure_p2_root_source_view.zig");
 }

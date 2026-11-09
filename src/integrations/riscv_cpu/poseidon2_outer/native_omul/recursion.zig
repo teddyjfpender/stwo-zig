@@ -19,6 +19,8 @@ const Fold = @import("fold.zig");
 const Topology = @import("topology.zig");
 const GkrTemplate = @import("../pure_p2_gkr_template.zig");
 const TemplateWire = @import("../pure_p2_gkr_templates_wire.zig");
+const Views = @import("../pure_p2_root_source_view.zig");
+const NativeHooks = @import("../pure_p2_native_source_hooks.zig");
 const Sidecar = @import("../pure_p2_root_sidecar.zig");
 const Receiver = @import("../pure_p2_op_root_receiver.zig");
 const MillerCache = @import("../miller_local_gkr/outer_key_cache.zig");
@@ -236,91 +238,27 @@ const Session = struct {
         self.leaves.appendAssumeCapacity(.{ .ordinal = @intCast(ordinal), .main = main, .receipt = receipt, .claims = owned_claims });
         self.claims.appendAssumeCapacity(owned_claims);
     }
-    fn cpu(context: ?*anyopaque, a: std.mem.Allocator, v: Bundle.CpuVerified) !void {
+    fn acceptView(context: ?*anyopaque, a: std.mem.Allocator, pending: Views.Pending) !void {
         const self = try from(context);
-        var native = try Protocol.W.Wire.decodeProofBytesBinary(a, v.encoded.bytes);
-        defer native.deinit(a);
-        var arena = std.heap.ArenaAllocator.init(a);
-        defer arena.deinit();
-        const shape = try @import("../../rv64_recursion/om31_native/cpu_capture.zig").geometryForOp(arena.allocator(), v.setup, v.key.profile.config());
-        const values = try V.proof.fromNative(arena.allocator(), &native, v.capture, &shape);
-        const main = native.commitment_scheme_proof.commitments.items[1];
-        const local = v.stage_one.local orelse return error.MissingOpRecursiveReceipt;
-        const source = CpuSource{ .view = .{ .op_span = v.span, .setup = v.setup, .request = v.request, .first = v.first_ids, .expected = v.expected, .key = v.key, .manifest = v.manifest.digest, .main = main, .receipt = local.receipt, .claims = v.encoded.claims, .child = local.proof, .shape = &shape, .values = &values } };
-        const template = try GkrTemplate.fromProof(a, v.expected.local_instances orelse return error.MissingOpRecursiveReceipt, local.proof);
-        errdefer a.free(template);
-        try self.append(v.ordinal, main, local.receipt, v.encoded.claims, source, "CPU");
-        try self.templates.append(a, template);
-    }
-    fn truth(context: ?*anyopaque, a: std.mem.Allocator, v: Bundle.TruthVerified) !void {
-        const self = try from(context);
-        var native = try Protocol.W.Wire.decodeProofBytesBinary(a, v.encoded.bytes);
-        defer native.deinit(a);
-        var arena = std.heap.ArenaAllocator.init(a);
-        defer arena.deinit();
-        const shape = try @import("../pure_p2_truth_statement.zig").geometry(arena.allocator(), v.key, v.truth);
-        const values = try V.proof.fromNative(arena.allocator(), &native, v.capture, &shape);
-        const main = native.commitment_scheme_proof.commitments.items[1];
-        const source = ViewSource(Catalog.View){ .view = .{ .key = v.key, .truth = v.truth, .expected = v.expected, .manifest = v.manifest.digest, .main = main, .claims = v.encoded.claims, .shape = &shape, .values = &values } };
-        try self.append(v.ordinal, main, null, v.encoded.claims, source, @tagName(v.truth.family()));
-    }
-    fn localTruth(context: ?*anyopaque, a: std.mem.Allocator, v: Bundle.LocalTruthVerified) !void {
-        const self = try from(context);
-        var native = try Protocol.W.Wire.decodeProofBytesBinary(a, v.encoded.bytes);
-        defer native.deinit(a);
-        const shapes = try @import("../truth_local_gkr/authority.zig").shapes(v.truth);
-        var local = try @import("../truth_local_gkr/native.zig").decode(a, shapes, v.encoded.local);
-        defer local.deinit();
-        var arena = std.heap.ArenaAllocator.init(a);
-        defer arena.deinit();
-        const shape = try @import("../truth_local_gkr/statement.zig").geometry(arena.allocator(), v.key, v.truth);
-        const values = try V.proof.fromNative(arena.allocator(), &native, v.capture, &shape);
-        const main = native.commitment_scheme_proof.commitments.items[1];
-        const source = ViewSource(LocalCatalog.View){ .view = .{ .key = v.key, .truth = v.truth, .expected = v.expected, .manifest = v.manifest.digest, .main = main, .receipt = v.encoded.receipt, .claims = v.encoded.claims, .local = &local.proof, .shape = &shape, .values = &values } };
-        const instances = @import("../truth_local_gkr/native.zig").instances(shapes);
-        const template = try GkrTemplate.Truth.fromProof(a, &instances, &local.proof);
-        errdefer a.free(template);
-        try self.append(v.ordinal, main, v.encoded.receipt, &v.encoded.claims, source, @tagName(v.truth.family()));
-        try self.templates.append(a, template);
-    }
-    fn localMiller(context: ?*anyopaque, a: std.mem.Allocator, v: Bundle.MillerLocalVerified) !void {
-        const self = try from(context);
-        var native = try Protocol.W.Wire.decodeProofBytesBinary(a, v.encoded.bytes);
-        defer native.deinit(a);
-        const geometry = try v.key.geometry(v.span);
-        var local = try @import("../miller_local_gkr/native.zig").decode(a, geometry, v.encoded.local);
-        defer local.deinit();
-        var arena = std.heap.ArenaAllocator.init(a);
-        defer arena.deinit();
-        const shape = try @import("../miller_local_gkr/statement.zig").geometry(arena.allocator(), v.key, v.span);
-        const values = try V.proof.fromNative(arena.allocator(), &native, v.capture, &shape);
-        const main = native.commitment_scheme_proof.commitments.items[1];
-        const source = ViewSource(LocalMiller.View){ .view = .{ .key = v.key, .span = v.span, .expected = v.expected, .manifest = v.manifest.digest, .main = main, .receipt = v.encoded.receipt, .claims = v.encoded.claims, .local = &local.proof, .shape = &shape, .values = &values } };
-        const instances = try geometry.instances();
-        const template = try GkrTemplate.fromProofFor(a, &instances, &local.proof);
-        errdefer a.free(template);
-        if (self.miller_cache) |*cache| {
-            var leaf = Topology.SourceLeaf.initLocalMillerCachedForProving(a, source.view, cache) catch |err| blk: {
-                if (err != error.OutOfMemory and err != error.MillerOuterCacheEntryLimit) return err;
-                self.cache_fallbacks += 1;
-                break :blk try source.sourceLeaf(a);
-            };
-            if (leaf.borrowed != null) self.cached_leaves += 1;
-            try self.appendOwned(v.ordinal, main, v.encoded.receipt, &v.encoded.claims, source, "Miller-local-GKR", &leaf);
-        } else try self.append(v.ordinal, main, v.encoded.receipt, &v.encoded.claims, source, "Miller-local-GKR");
-        try self.templates.append(a, template);
-    }
-    fn miller(context: ?*anyopaque, a: std.mem.Allocator, v: Bundle.MillerVerified) !void {
-        const self = try from(context);
-        var native = try Protocol.W.Wire.decodeProofBytesBinary(a, v.encoded.bytes);
-        defer native.deinit(a);
-        var arena = std.heap.ArenaAllocator.init(a);
-        defer arena.deinit();
-        const shape = try @import("../pure_p2_tower_statement.zig").geometry(arena.allocator(), v.key);
-        const values = try V.proof.fromNative(arena.allocator(), &native, v.capture, &shape);
-        const main = native.commitment_scheme_proof.commitments.items[1];
-        const source = ViewSource(Miller.View){ .view = .{ .key = v.key, .span = v.span, .expected = v.expected, .manifest = v.manifest.digest, .main = main, .claims = v.encoded.claims, .shape = &shape, .values = &values } };
-        try self.append(v.ordinal, main, null, &v.encoded.claims, source, "Miller");
+        // Reserve before append so template custody cannot transfer on failure.
+        if (pending.template.bytes != null) try self.templates.ensureUnusedCapacity(a, 1);
+        switch (pending.view) {
+            .cpu => |view| try self.append(pending.ordinal, pending.main, pending.receipt, pending.claims, CpuSource{ .view = view }, pending.kind),
+            .local_miller => |view| {
+                const source = ViewSource(LocalMiller.View){ .view = view };
+                if (self.miller_cache) |*cache| {
+                    var leaf = Topology.SourceLeaf.initLocalMillerCachedForProving(a, view, cache) catch |err| blk: {
+                        if (err != error.OutOfMemory and err != error.MillerOuterCacheEntryLimit) return err;
+                        self.cache_fallbacks += 1;
+                        break :blk try source.sourceLeaf(a);
+                    };
+                    if (leaf.borrowed != null) self.cached_leaves += 1;
+                    try self.appendOwned(pending.ordinal, pending.main, pending.receipt, pending.claims, source, pending.kind, &leaf);
+                } else try self.append(pending.ordinal, pending.main, pending.receipt, pending.claims, source, pending.kind);
+            },
+            inline else => |view| try self.append(pending.ordinal, pending.main, pending.receipt, pending.claims, ViewSource(@TypeOf(view)){ .view = view }, pending.kind),
+        }
+        if (pending.template.take()) |bytes| self.templates.appendAssumeCapacity(bytes);
     }
     fn complete(context: ?*anyopaque, a: std.mem.Allocator, v: Runtime.CompleteVerified) !void {
         const self = try from(context);
@@ -400,7 +338,8 @@ pub fn proveDirectoryWithOptions(a: std.mem.Allocator, config: @import("../../rv
     }
     // Keys are borrowed by pending nodes: pin the SourceLeaf array before any callback.
     try session.source_leaves.ensureTotalCapacity(a, limits.members);
-    try Runtime.verifyDirectoryWithOptions(a, config, native_directory, profile, resources, options, .{ .context = &session, .complete = Session.complete, .fragments = .{ .context = &session, .cpu = Session.cpu, .truth = Session.truth, .truth_local = Session.localTruth, .miller = Session.miller, .miller_local = Session.localMiller } });
+    var sink = Views.Sink{ .context = &session, .accept = Session.acceptView };
+    try Runtime.verifyDirectoryWithOptions(a, config, native_directory, profile, resources, options, .{ .context = &session, .complete = Session.complete, .fragments = NativeHooks.hooks(&sink) });
     const result = session.result orelse return error.OpRecursiveExecutionIncomplete;
     session.result = null;
     return result;
@@ -422,7 +361,8 @@ pub fn proveFixture(a: std.mem.Allocator, source: Runtime.SourceDirectory, bundl
         session.directory = try std.fs.cwd().openDir(path, .{});
     }
     try session.source_leaves.ensureTotalCapacity(a, limits.members);
-    var closed = try bundle.verifyWithHooksForSourceSuite(a, source.inventory, source.setups, source.requests, source.metadata.spans, source.cpu_keys, source.truths, source.truth_keys, source.miller, suite, .{ .context = &session, .cpu = Session.cpu, .truth = Session.truth, .truth_local = Session.localTruth, .miller = Session.miller, .miller_local = Session.localMiller });
+    var sink = Views.Sink{ .context = &session, .accept = Session.acceptView };
+    var closed = try bundle.verifyWithHooksForSourceSuite(a, source.inventory, source.setups, source.requests, source.metadata.spans, source.cpu_keys, source.truths, source.truth_keys, source.miller, suite, NativeHooks.hooks(&sink));
     defer closed.deinit(a);
     const output = try @import("../../word16_global_execution/ethereum/terminal.zig").require(source.image, source.requests[source.requests.len - 1].base.cpu, source.terminal);
     if (!std.mem.eql(u8, &output, &source.output)) return error.OpRootOutputAuthority;

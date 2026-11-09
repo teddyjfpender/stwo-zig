@@ -53,14 +53,18 @@ pub const Plan = struct {
     expected_outputs: []Digest,
     /// Canonical ordered tree; an odd node carries unchanged. Count/order are
     /// fixed by this independently admitted Inventory, never by root metadata.
-    pub fn expectedRoot(self: *const Plan, a: std.mem.Allocator) !@import("pure_p2_fold.zig").Digest {
-        const Fold = @import("pure_p2_fold.zig");
-        const leaves = try a.alloc(Fold.Digest, self.expected_outputs.len);
-        defer a.free(leaves);
+    pub fn expectedLeaves(self: *const Plan, a: std.mem.Allocator) ![]@import("pure_p2_fold.zig").Digest {
+        const leaves = try a.alloc(@import("pure_p2_fold.zig").Digest, self.expected_outputs.len);
+        errdefer a.free(leaves);
         for (leaves, self.expected_outputs) |*leaf, encoded| {
             for (leaf, try core.crypto.poseidon2_m31_sponge.decode(encoded)) |*coordinate, value| coordinate.* = core.fields.qm31.QM31.fromBase(value);
         }
-        return Fold.treeDigest(a, leaves);
+        return leaves;
+    }
+    pub fn expectedRoot(self: *const Plan, a: std.mem.Allocator) !@import("pure_p2_fold.zig").Digest {
+        const leaves = try self.expectedLeaves(a);
+        defer a.free(leaves);
+        return @import("pure_p2_fold.zig").treeDigest(a, leaves);
     }
     /// Completes authentication with ONE physical root proof. Topology has no
     /// bundle-key decoder: its leaf authorities are built by concrete source

@@ -22,6 +22,33 @@ pub const Verified = struct { members: usize, root_bytes: usize, source_ns: u64,
 fn cacheCapacityError(err: anyerror) bool {
     return err == error.OutOfMemory or err == error.MillerOuterCacheEntryLimit;
 }
+const SourceWalk = @import("../pure_p2_root_source_walk.zig");
+const Views = @import("../pure_p2_root_source_view.zig");
+const SourceLeaves = struct {
+    leaves: []Topology.SourceLeaf,
+    made: usize = 0,
+    cache: ?*@import("../miller_local_gkr/outer_key_cache.zig").Cache,
+    fallbacks: *usize,
+    cached: *usize,
+    fn accept(raw: ?*anyopaque, a: std.mem.Allocator, ordinal: usize, view: Views.View) !void {
+        const self: *@This() = @ptrCast(@alignCast(raw orelse return error.MissingOpRootSession));
+        if (ordinal != self.made or ordinal >= self.leaves.len) return error.OpRootLeafCoverage;
+        self.leaves[self.made] = switch (view) {
+            .cpu => |v| try Topology.SourceLeaf.initCpu(a, v),
+            .catalog => |v| try Topology.SourceLeaf.initCatalog(a, v),
+            .local_catalog => |v| try Topology.SourceLeaf.initLocalCatalog(a, v),
+            .miller => |v| try Topology.SourceLeaf.initMiller(a, v),
+            .local_miller => |v| if (self.cache) |cache| Topology.SourceLeaf.initLocalMillerCachedForVerification(a, v, cache) catch |err| blk: {
+                if (!cacheCapacityError(err)) return err;
+                self.fallbacks.* += 1;
+                break :blk try Topology.SourceLeaf.initLocalMiller(a, v);
+            } else try Topology.SourceLeaf.initLocalMiller(a, v),
+        };
+        if (self.leaves[self.made].borrowed != null) self.cached.* += 1;
+        self.leaves[self.made].retireProverData();
+        self.made += 1;
+    }
+};
 const Context = struct {
     profile: @import("../op_profile.zig").Profile,
     metadata: Receiver.Metadata,
@@ -37,19 +64,7 @@ const Context = struct {
         if (self.verified != null) return error.DuplicateOpRootSourceCallback;
         var plan = try Receiver.prepare(a, .{ .source_suite = source.source_suite, .image = source.image, .output = .{ .address = source.output_address, .bytes = source.output }, .profile = self.profile, .setups = source.setups, .requests = source.requests, .spans = source.metadata.spans, .cpu_keys = source.cpu_keys, .truths = source.truths, .truth_keys = source.truth_keys, .truth_local_keys = source.inventory.truth_local_keys, .miller = source.miller, .expected = source.expected }, self.metadata);
         defer plan.deinit();
-        var local_count: usize = 0;
-        for (source.inventory.truth_local_keys) |key| {
-            if (key != null) local_count += 1;
-        }
-        const allow_local_miller = if (source.source_suite) |suite| blk: {
-            try suite.validate();
-            break :blk suite.miller == .local_gkr;
-        } else false;
-        for (source.miller) |item| {
-            if ((item.local_key != null) != allow_local_miller) return error.OpRootLeafSourceAuthority;
-            if (item.local_key != null) local_count += 1;
-        }
-        var templates = try Templates.decode(a, self.templates, source.setups.len + local_count);
+        var templates = try SourceWalk.decodeTemplates(a, source, &plan, self.templates);
         defer templates.deinit(a);
         // Declared child cap is charged to the surrounding request budget. A
         // cache allocation refusal is an optimization miss, never new admission.
@@ -62,90 +77,12 @@ const Context = struct {
         var cache_fallbacks: usize = 0;
         var cached_leaves: usize = 0;
         const leaves = try a.alloc(Topology.SourceLeaf, plan.inventory.workers.len);
-        var made: usize = 0;
+        var built = SourceLeaves{ .leaves = leaves, .cache = if (miller_cache) |*cache| cache else null, .fallbacks = &cache_fallbacks, .cached = &cached_leaves };
         defer {
-            for (leaves[0..made]) |*leaf| leaf.deinit();
+            for (leaves[0..built.made]) |*leaf| leaf.deinit();
             a.free(leaves);
         }
-        for (source.setups, source.requests, source.metadata.spans, source.cpu_keys, templates.shapes[0..source.setups.len], 0..) |setup, request, span, key, shape_advice, i| {
-            var arena = std.heap.ArenaAllocator.init(a);
-            defer arena.deinit();
-            const expected = plan.inventory.workers[i];
-            const instances = expected.local_instances orelse return error.MissingOpRootLocalAuthority;
-            // Only coefficient-vector lengths vary. Every other dimension is
-            // independently derived from this exact trusted instance roster.
-            const local = try Gkr.skeleton(arena.allocator(), instances, shape_advice);
-            const shape = try @import("../../rv64_recursion/om31_native/cpu_capture.zig").geometryForOp(arena.allocator(), setup, self.profile.config());
-            const values = try Skeleton.init(arena.allocator(), &shape);
-            const metadata = self.metadata.leaves[i];
-            const view = CPU.ShapeView{ .op_span = span, .setup = setup, .request = request, .first = plan.inventory.first_ids[i], .expected = expected, .key = key, .manifest = plan.manifest, .main = metadata.main, .receipt = metadata.receipt orelse return error.MissingOpRootLocalAuthority, .claims = metadata.claims, .child = &local, .shape = &shape, .values = &values };
-            leaves[made] = try Topology.SourceLeaf.initCpu(a, view);
-            leaves[made].retireProverData();
-            made += 1;
-        }
-        var template_index = source.setups.len;
-        for (source.truths, source.truth_keys, 0..) |truth, key, j| {
-            const i = source.setups.len + j;
-            var arena = std.heap.ArenaAllocator.init(a);
-            defer arena.deinit();
-            if (if (source.inventory.truth_local_keys.len == 0) null else source.inventory.truth_local_keys[j]) |local_key| {
-                const shapes = try @import("../truth_local_gkr/authority.zig").shapes(truth);
-                const instances = @import("../truth_local_gkr/native.zig").instances(shapes);
-                const local = try Gkr.Truth.skeleton(arena.allocator(), &instances, templates.shapes[template_index]);
-                template_index += 1;
-                const shape = try @import("../truth_local_gkr/statement.zig").geometry(arena.allocator(), local_key, truth);
-                const values = try Skeleton.init(arena.allocator(), &shape);
-                const metadata = self.metadata.leaves[i];
-                if (metadata.claims.len != 2) return error.OpRootTruthClaims;
-                const view = LocalCatalog.View{ .key = local_key, .truth = truth, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .receipt = metadata.receipt orelse return error.MissingOpRootLocalAuthority, .claims = metadata.claims[0..2].*, .local = &local, .shape = &shape, .values = &values };
-                leaves[made] = try Topology.SourceLeaf.initLocalCatalog(a, view);
-                leaves[made].retireProverData();
-                made += 1;
-                continue;
-            }
-            const shape = try @import("../pure_p2_truth_statement.zig").geometry(arena.allocator(), key, truth);
-            const values = try Skeleton.init(arena.allocator(), &shape);
-            const metadata = self.metadata.leaves[i];
-            const view = Catalog.View{ .key = key, .truth = truth, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .claims = metadata.claims, .shape = &shape, .values = &values };
-            leaves[made] = try Topology.SourceLeaf.initCatalog(a, view);
-            leaves[made].retireProverData();
-            made += 1;
-        }
-        for (source.miller, 0..) |miller, j| {
-            const i = source.setups.len + source.truths.len + j;
-            var arena = std.heap.ArenaAllocator.init(a);
-            defer arena.deinit();
-            const metadata = self.metadata.leaves[i];
-            if (miller.local_key) |key| {
-                const instances = try (try key.geometry(miller.span)).instances();
-                const local = try Gkr.skeletonFor(arena.allocator(), &instances, templates.shapes[template_index]);
-                template_index += 1;
-                const shape = try @import("../miller_local_gkr/statement.zig").geometry(arena.allocator(), key, miller.span);
-                const values = try Skeleton.init(arena.allocator(), &shape);
-                if (metadata.claims.len != 2) return error.OpRootTruthClaims;
-                const view = LocalMiller.View{ .key = key, .span = miller.span, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .receipt = metadata.receipt orelse return error.MissingOpRootLocalAuthority, .claims = metadata.claims[0..2].*, .local = &local, .shape = &shape, .values = &values };
-                leaves[made] = if (miller_cache) |*cache|
-                    Topology.SourceLeaf.initLocalMillerCachedForVerification(a, view, cache) catch |err| blk: {
-                        if (!cacheCapacityError(err)) return err;
-                        cache_fallbacks += 1;
-                        break :blk try Topology.SourceLeaf.initLocalMiller(a, view);
-                    }
-                else
-                    try Topology.SourceLeaf.initLocalMiller(a, view);
-                if (leaves[made].borrowed != null) cached_leaves += 1;
-                leaves[made].retireProverData();
-                made += 1;
-                continue;
-            }
-            const shape = try @import("../pure_p2_tower_statement.zig").geometry(arena.allocator(), miller.key);
-            const values = try Skeleton.init(arena.allocator(), &shape);
-            if (metadata.claims.len != 4) return error.OpRootTruthClaims;
-            const view = Miller.View{ .key = miller.key, .span = miller.span, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .claims = metadata.claims[0..4].*, .shape = &shape, .values = &values };
-            leaves[made] = try Topology.SourceLeaf.initMiller(a, view);
-            leaves[made].retireProverData();
-            made += 1;
-        }
-        if (template_index != templates.shapes.len) return error.OpRootTemplateCoverage;
+        try SourceWalk.visit(a, source, self.profile, &plan, self.metadata, &templates, .{ .context = &built, .accept = SourceLeaves.accept });
         var topology = try Topology.Topology.initForVerification(a, self.profile, plan.inventory.execution, leaves);
         defer topology.deinit();
         const source_ns = self.timer.read();
