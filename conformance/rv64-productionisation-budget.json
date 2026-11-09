@@ -540,6 +540,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Repair missing CI/developer selection for the moved Native CPU product source directory by mapping it to the existing native_cpu lane. Preserve its commands, Linux host policy and explicit macOS local-compatibility semantics; private CPU sources do not select GPU lanes, and no package contract is invented. Regression tests require exact CPU lane selection, deduplication and semantic-only deferral without compiler or prover execution. No production algorithm, protocol, API/dependency ledger, flag, script launcher, ceiling or rejection change. Local-compatible Zig builds use the existing serial wrapper and its build-lock owner, overriding only valid compiler job counts while preserving optimization, explicit limits, runtime arguments after -- and invalid-job rejection. Normal CI execution remains unchanged. The external diagnostic guard remains 4 GiB and 180 seconds. A regenerated real product catalog confirms capabilities.zig is shared: retain its exact Native/aggregate CPU and Metal consumer fanout in classification metadata, without executing the Metal lanes. The related static CI test retains the already-declared Circuit Metal prover-engine consumer in its expected set; the dependency ledger, planner behavior and Metal implementation are unchanged."
+    },
+    {
+      "id": "delivery_cairo_recording_export_visibility",
+      "net_code_budget": 120,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Keep every upstream module and test source in the authenticated generation-only Cairo overlay, while making native prover module exports private so recording compilation need not emit unrelated externally reachable native code. Authenticate both registry inputs before any visibility mutation; preserve the public witness recording exporter path and all source/module declarations. Full support installation and differential overlays remain unchanged. Existing Cargo owners compile serially. Require exact existing bundle bytes/hash, full 64-program emission and fail-closed registry tests under unchanged 4 GiB/180-second guards before any provenance refresh. No public package API, runtime algorithm, golden byte, gate, ceiling, rejection, launcher or new flag changes. Rollback restores export visibility and leaves regeneration unqualified."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

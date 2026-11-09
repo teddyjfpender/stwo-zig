@@ -22,6 +22,12 @@ OFFICIAL_TREE = "2b06286971d87c6d3e834de622d3777f1ff9f41f"
 OFFICIAL_WITNESS_MOD_SHA256 = (
     "e0113af8099143ea2770312bff24bc1e2fa5329933b272bac0fdae815b0de448"
 )
+OFFICIAL_LIB_SHA256 = (
+    "c29e8405aeb81181627409ddafeb8d522d6514d771b0fe71bae389f5eac73529"
+)
+INSTALLED_WITNESS_MOD_SHA256 = (
+    "7ad2de16fde605eebb78e7916b63d82e17cb27815273d0b642afc676dc01c9fc"
+)
 EXPECTED_BUNDLE_SHA256 = (
     "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6"
 )
@@ -269,6 +275,7 @@ def _build_rewriter() -> Path:
             "build",
             "--release",
             "--locked",
+            "-j1",
             "--manifest-path",
             REWRITER / "Cargo.toml",
         ],
@@ -330,6 +337,34 @@ def _install_support(staged: Path) -> None:
     patch_module_registry(staged / "crates/prover/src/witness/mod.rs")
 
 
+def _isolate_recording_export(staged: Path) -> None:
+    """Keep every source module, with only the bundle exporter reachable publicly.
+
+    This generation-only overlay still type-checks the native prover sources,
+    but avoids exporting their machine code from the recording library. Full
+    support/differential overlays retain their original public modules.
+    """
+    root = staged / "crates/prover/src"
+    registries = (
+        (root / "lib.rs", OFFICIAL_LIB_SHA256, "witness"),
+        (root / "witness/mod.rs", INSTALLED_WITNESS_MOD_SHA256, "recording_export"),
+    )
+    replacements: list[tuple[Path, str]] = []
+    for path, expected_hash, public_module in registries:
+        original = path.read_bytes()
+        if hashlib.sha256(original).hexdigest() != expected_hash:
+            raise RuntimeError(f"recording export registry hash mismatch: {path}")
+        text = "".join(
+            "pub(crate) " + line.removeprefix("pub ")
+            if line.startswith("pub mod ") and line != f"pub mod {public_module};\n"
+            else line
+            for line in original.decode("utf-8").splitlines(keepends=True)
+        )
+        replacements.append((path, text))
+    for path, text in replacements:
+        path.write_text(text)
+
+
 def _compile_bundle(staged: Path, artifact: Path) -> None:
     env = os.environ.copy()
     cargo_target = ROOT / "target" / "official-source"
@@ -380,6 +415,7 @@ def _compile_bundle(staged: Path, artifact: Path) -> None:
             "run",
             "--release",
             "--locked",
+            "-j1",
             "-p",
             "stwo-cairo-prover",
             "--bin",
@@ -475,6 +511,7 @@ def generate_bundle(
             _extract_authenticated_source(source, staged_next)
             components = _rewrite_components(staged_next, emitted)
             _install_support(staged_next)
+            _isolate_recording_export(staged_next)
             _normalize_mtimes(staged_next, _build_identity_timestamp())
             shutil.rmtree(staged, ignore_errors=True)
             os.replace(staged_next, staged)
