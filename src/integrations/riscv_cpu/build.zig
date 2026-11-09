@@ -41,6 +41,8 @@ pub fn build(b: *std.Build) void {
         @panic("canonical RISC-V frontend is missing interop_postcard");
     const proof_wire = circuit_cpu.import_table.get("stwo_proof_wire") orelse @panic("canonical circuit CPU provider is missing proof wire");
     postcard.addImport("stwo_proof_wire", proof_wire);
+    // Declare the wire provider, reusing circuit CPU's canonical module identity.
+    _ = b.dependency("stwo_circuit_recursion_wire", dependency_options);
     const integration = b.addModule("stwo_riscv_cpu_integration", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -55,6 +57,7 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_riscv_frontend", frontend);
     integration.addImport("stwo_circuit_frontend", circuit_frontend);
     integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    integration.addImport("stwo_circuit_recursion_wire", circuit_cpu.import_table.get("stwo_circuit_recursion_wire") orelse @panic("canonical circuit CPU provider is missing recursion wire"));
     integration.addImport("interop_postcard", postcard);
 
     for ([_]struct { step: []const u8, root: []const u8, minimum: usize }{

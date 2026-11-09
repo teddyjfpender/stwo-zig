@@ -178,6 +178,15 @@ class PlannerContractTests(unittest.TestCase):
         selected = self.lanes_for("src/frontends/riscv/releasefast_acceptance_test_root.zig")
         self.assertTrue({lane, "riscv_frontend_releasefast"}.issubset(selected))
 
+    def test_package_workspace_has_a_dedicated_failing_pr_gate(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        job = workflow.split("  package-workspace:", 1)[1].split("  focused-plan:", 1)[0]
+        self.assertIn("name: Package workspace contracts", job)
+        self.assertIn("github.event_name == 'pull_request'", job)
+        self.assertIn("run: python3 scripts/repo/check_package_workspace.py", job)
+        self.assertNotIn("continue-on-error", job)
+        self.assertNotIn("|| true", job)
+
     def test_main_releasefast_baseline_pins_source_and_identical_command(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         baseline = workflow.split("  frontend-main-baseline:", 1)[1].split("  focused-macos:", 1)[0]

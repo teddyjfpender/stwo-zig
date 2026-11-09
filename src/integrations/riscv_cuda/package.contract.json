@@ -9,12 +9,18 @@
   },
   "dependencies": {
     "stwo_backend_contracts": "../../waist/backend",
-    "stwo_cuda_backend": "../../backends/cuda",
-    "stwo_riscv_frontend": "../../frontends/riscv",
+    "stwo_circuit_cpu_integration": "../circuit_cpu",
+    "stwo_circuit_frontend": "../../frontends/circuit",
     "stwo_core": "../../waist/core",
-    "stwo_prover_engine": "../../engine/prover"
+    "stwo_cuda_backend": "../../backends/cuda",
+    "stwo_prover_api": "../../waist/prover_api",
+    "stwo_prover_engine": "../../engine/prover",
+    "stwo_riscv_cpu_integration": "../riscv_cpu",
+    "stwo_riscv_frontend": "../../frontends/riscv"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "rv64_ready_dag"
+  ],
   "api_surface": [
     "FormalEvidence",
     "Prepared",

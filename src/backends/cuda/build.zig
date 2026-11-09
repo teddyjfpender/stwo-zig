@@ -9,12 +9,16 @@ pub fn build(b: *std.Build) void {
         "stwo_backend_contracts",
         dependency_options,
     ).module("stwo_backend_contracts");
+    const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
+    const prover = b.dependency("stwo_prover_engine", dependency_options).module("stwo_prover_engine");
     const backend = b.addModule("stwo_cuda_backend", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
         .optimize = optimize,
     });
     backend.addImport("stwo_backend_contracts", backend_contracts);
+    backend.addImport("stwo_core", core);
+    backend.addImport("stwo_prover_engine", prover);
 
     const filters: []const []const u8 = if (b.option([]const u8, "test-filter", "Run CUDA backend tests whose names contain this text")) |filter| &.{filter} else &.{};
     // Test-only C stubs must not mutate the exported production module. The
@@ -25,6 +29,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     test_root.addImport("stwo_backend_contracts", backend_contracts);
+    test_root.addImport("stwo_core", core);
+    test_root.addImport("stwo_prover_engine", prover);
     const tests = b.addTest(.{ .root_module = test_root, .filters = filters });
     tests.addCSourceFile(.{
         .file = b.path("runtime/stages/test_stubs.c"),

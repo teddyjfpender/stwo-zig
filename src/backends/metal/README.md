@@ -72,6 +72,8 @@ submodules. Low-level runtime APIs require explicit lifecycle, ownership, and
 telemetry handling.
 
 
+The current primary module also exports `secure_polynomial_v1`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
+
 ## Dependencies
 
 - `stwo_core`

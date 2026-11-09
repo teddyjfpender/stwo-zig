@@ -981,6 +981,20 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue #330: reuse the existing frontend test catalog, floor checker and hosted CPU lane to isolate the twelve unchanged failures from the complete ReleaseFast run. Literal leaf imports and exact filters retain original assertions; error traces improve diagnosis. Preserve complete mandatory suite, floors, golden pins and throughput thresholds. No copied tests, runtime flags or new launcher. Diagnostic result never substitutes for the complete gate; rollback removes the selection and lane together."
+    },
+    {
+      "id": "phase0_workspace_contracts_blocking",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
+    },
+    {
+      "id": "source_ceiling_bounded_ownership_checkpoint",
+      "net_code_budget": 500,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 4,
+      "positive_growth_justification": "Issue343 bounded checkpoint narrows the previously announced2500-line sweep allowance to500 after stopping at15 repaired violations (98to83). Actual net394 lines retain100 Python AST bodies, full Metal source bytes and existing kernel/source pins. Four private Python owner modules, no launcher; remaining83 violations are explicit follow-up, never baselined or suppressed. File moves receive no removal credit."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

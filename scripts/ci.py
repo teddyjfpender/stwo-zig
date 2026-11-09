@@ -38,6 +38,7 @@ TOOLCHAIN_PLAN = [[sys.executable, "-m", "unittest", "scripts.tests.test_toolcha
 FAST_PLAN: list[list[str]] = [
     *TOOLCHAIN_PLAN,
     ["zig", "fmt", "--check", "build.zig", "build_support", "src", "tools"],
+    [sys.executable, "scripts/repo/check_package_workspace.py"],
     [sys.executable, "scripts/repo/check_upstream_pins.py"],
     [sys.executable, "scripts/repo/check_source_conformance.py"],
 ]
