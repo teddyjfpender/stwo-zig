@@ -1,5 +1,7 @@
 test {
     _ = @import("poseidon2_outer/root_cli_options.zig");
+    _ = @import("poseidon2_outer/pure_p2_truth_local_plan.zig");
+    _ = @import("poseidon2_outer/pure_p2_op_cli.zig");
     _ = @import("poseidon2_outer/pure_p2_truth_local_runtime_test.zig");
     _ = @import("poseidon2_outer/pure_p2_setup_cache_heavy_test.zig");
     _ = @import("poseidon2_outer/pure_p2_setup_cache_test.zig");

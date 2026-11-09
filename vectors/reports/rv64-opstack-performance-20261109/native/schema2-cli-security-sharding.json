@@ -1,0 +1,118 @@
+{
+  "schema": "op-native-schema2-cli-resource-security/v1",
+  "status": "qualified-explicit-cli-source-budget-and-framing",
+  "production_admitted": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "selector": "--truth-local-gkr",
+  "selector_modes": [
+    "prove",
+    "verify"
+  ],
+  "unsupported_selector_modes": [
+    "capture",
+    "prepare"
+  ],
+  "default_schema": 1,
+  "selected_schema": 2,
+  "classic_default_fresh_control_accepts": true,
+  "schema2_cli_prove_and_fresh_verify_accept": true,
+  "mode_policy_opposites_reject": "OpNativeSchemaPolicy",
+  "native_bundle_bytes": 5317432,
+  "native_bundle_sha256": "c18d85864cead50203bc0354f86c91048ec29dd7750add7d2651fc2d2967abbf",
+  "exact_bytes_match_pre_selector_schema2_fixture": true,
+  "native_prove_seconds": 12.29054525,
+  "native_process_cleanup": {
+    "heap": 0,
+    "external": 0,
+    "peak_requested_bytes": 2962540167,
+    "exceeded": false
+  },
+  "source_conditional_security": {
+    "added": {
+      "accounting_profile": "op-truth-local-gkr-additive-source-bounds/v1",
+      "scopes": 1,
+      "instances": 3,
+      "max_variables": 24,
+      "max_positive_mass_per_scope": 15728640,
+      "sumcheck_rounds": 276,
+      "sumcheck_degree_weight": 2484,
+      "instance_mix_degree_weight": 120,
+      "late_binding_degree_weight": 3,
+      "degenerate_point_degree_weight": 72,
+      "retired_interaction_cells": 41877504,
+      "security_qualified": false
+    },
+    "conditional_degree_weight": [
+      6051712637319095229185808,
+      10995154624672,
+      12886177076,
+      11008040801820,
+      42764724,
+      998520,
+      32771,
+      16777216,
+      9007199254740992,
+      18014398509481984,
+      142970992295527055360
+    ],
+    "raw_modulo_envelope_bits": 151,
+    "security_qualified": false,
+    "scope": "conditional native algebraic envelope only; existing PCS/FRI/hash/FS/binding assumptions and recursion review remain"
+  },
+  "security_caveat": "The guard retains independent source lookup/characteristic validation, augments maxima, and adds existing exact lookup degrees plus new truth-local GKR terms into the full conservative native ledger. Its151-bit raw-modulo algebraic envelope is conditional; it does not establish the separate Poseidon/FS, actual FRI, binding or recursive theorems, and creates no certificate.",
+  "resource_sharding": {
+    "source": "reviewed streamed/checkpointed52bytes-per-padded-fact envelope plus numerical metadata, first secure/checkpoint bank, MAIN/INTER/Merkle/durable/binding/PCS phase bounds",
+    "limits": {
+      "worker_live_bytes": 8589934592,
+      "child_gkr_bytes": 12884901888,
+      "main_bytes": 2147483648,
+      "interaction_bytes": 4294967296
+    },
+    "unsharded_heavy_15121_log18_refused_before_allocation": true,
+    "selected_max_log": 16,
+    "selected_capacity": 4518,
+    "largest_child_peak_bytes": 6983536640,
+    "largest_whole_worker_peak_bytes": 7547913620,
+    "heavy_calls": [
+      4518,
+      4518,
+      4518,
+      1567
+    ],
+    "heavy_logs": [
+      16,
+      16,
+      16,
+      15
+    ],
+    "contiguous_first_ids": [
+      1,
+      4519,
+      9037,
+      13555
+    ],
+    "all_other_truth_declarations_identical_to_classic_plan": true,
+    "all_selected_local_secp_plans_preflight_admitted": true,
+    "total_heavy_workers": 95,
+    "max_workers": 256,
+    "no_automatic_limit_raise": true,
+    "heavy_native_proof_run": false
+  },
+  "checks": [
+    "ReleaseSafe standalone native CLI parser tests",
+    "ReleaseSafe selected-heavy resource-shard planner with exactother-family/ID parity and quota negatives",
+    "ReleaseFast whole native CLI build",
+    "actual CLI schema2prove byte-identical to retained fixture",
+    "actual CLI schema2freshverify with independent conditionalsecurity guard",
+    "default classic freshverify and wrongmode CLI refusals"
+  ],
+  "artifacts": {
+    "root": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small-truth-local-cli-v1",
+    "prove_log": "/private/tmp/op-native-cli-local-prove.log",
+    "verify_log": "/private/tmp/op-native-cli-local-verify.log",
+    "classic_control_log": "/private/tmp/op-native-cli-classic-control.log",
+    "planner_log": "/private/tmp/op-truth-local-runtime-shards.log"
+  },
+  "timing_caveat": "Qualification only; no controlled native/whole-root speedup is claimed."
+}

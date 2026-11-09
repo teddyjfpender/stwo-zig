@@ -22,6 +22,7 @@ const Keys = @import("../word16_global_execution/ethereum/keys.zig");
 const Key = @import("pure_p2_fixed_key.zig").Key;
 const Truth = @import("pure_p2_truth_worker.zig");
 const TruthLocal = @import("truth_local_gkr/worker.zig");
+const TruthLocalSecurity = @import("pure_p2_truth_local_security.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
 const Inv = @import("pure_p2_op_inventory.zig");
 const Bundle = @import("pure_p2_op_bundle.zig");
@@ -276,6 +277,7 @@ pub const CompleteVerified = struct {
     cpu_keys: []const *const Key,
     truth_keys: []const *const Truth.Key,
     truth_local_keys: []const ?*const TruthLocal.Key = &.{},
+    truth_local_security: ?TruthLocalSecurity.Checked = null,
     output_address: u64,
     setups: []const *const R.CpuSetup,
     truths: []const R.Truth,
@@ -305,6 +307,7 @@ pub const SourceDirectory = struct {
     truths: []const R.Truth,
     truth_keys: []const *const Truth.Key,
     truth_local_keys: []const ?*const TruthLocal.Key = &.{},
+    truth_local_security: ?TruthLocalSecurity.Checked = null,
     miller: []const Inv.MillerDeclaration,
     inventory: *const Inv.Inventory,
     expected: P.Expected,
@@ -358,13 +361,18 @@ pub fn withSourceDirectoryWithOptions(a: std.mem.Allocator, config: Request.Conf
     defer a.free(req);
     var bounds = try Bounds.deriveForOp(a, program.log_size, m.cpus, m.truths, req, m.spans, m.miller);
     defer bounds.deinit();
+    const truth_local_security = if (m.schema == 2) try TruthLocalSecurity.check(profile, &bounds, m.truths) else null;
     var authority = try Authority.init(a, &image, m, null, cache);
     defer authority.deinit();
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.initForTruthLocal(a, profile, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected, authority.truth_local_keys);
     defer inventory.deinit();
+    if (truth_local_security) |checked| {
+        checked.added.augmentShape(&inventory.bounds.base.shape);
+        try inventory.bounds.base.shape.validate();
+    }
     const output = try Terminal.require(&image, req[req.len - 1].base.cpu, cells.terminal);
-    try callback(context, a, .{ .image = &image, .metadata = m, .requests = req, .setups = authority.setups, .cpu_keys = authority.cpu_keys, .truths = authority.native_truth.truths, .truth_keys = authority.truth_keys, .truth_local_keys = authority.truth_local_keys, .miller = authority.miller, .inventory = &inventory, .expected = expected, .output = output, .output_address = image.symbols.output_data, .initial = cells.initial, .terminal = cells.terminal, .image_ns = image_ns, .program_ns = program_ns });
+    try callback(context, a, .{ .image = &image, .metadata = m, .requests = req, .setups = authority.setups, .cpu_keys = authority.cpu_keys, .truths = authority.native_truth.truths, .truth_keys = authority.truth_keys, .truth_local_keys = authority.truth_local_keys, .truth_local_security = truth_local_security, .miller = authority.miller, .inventory = &inventory, .expected = expected, .output = output, .output_address = image.symbols.output_data, .initial = cells.initial, .terminal = cells.terminal, .image_ns = image_ns, .program_ns = program_ns });
 }
 const NativeReception = struct {
     path: []const u8,
@@ -386,7 +394,7 @@ const NativeReception = struct {
         // Recheck AFTER native physical/global verification and callbacks. The
         // source-only helper's earlier policy check authenticates no RAM.
         const output = try Terminal.require(source.image, source.requests[source.requests.len - 1].base.cpu, source.terminal);
-        if (self.hooks.complete) |complete| try complete(self.hooks.context, a, .{ .image = source.image, .metadata = source.metadata, .requests = source.requests, .expected = source.expected, .cpu_keys = source.cpu_keys, .truth_keys = source.truth_keys, .truth_local_keys = source.truth_local_keys, .output_address = source.output_address, .setups = source.setups, .truths = source.truths, .miller = source.miller, .inventory = source.inventory, .native = &closed, .output = output });
+        if (self.hooks.complete) |complete| try complete(self.hooks.context, a, .{ .image = source.image, .metadata = source.metadata, .requests = source.requests, .expected = source.expected, .cpu_keys = source.cpu_keys, .truth_keys = source.truth_keys, .truth_local_keys = source.truth_local_keys, .truth_local_security = source.truth_local_security, .output_address = source.output_address, .setups = source.setups, .truths = source.truths, .miller = source.miller, .inventory = source.inventory, .native = &closed, .output = output });
         std.debug.print("OP_NATIVE_RECEIVER accepted=true complete=true steps={} CPU={} truth={} miller={} profile={s} image_ns={} program_ns={} setup_and_decode_ns={} verify_ns={} total_ns={}\n", .{ source.expected.total_steps, source.setups.len, source.truths.len, source.miller.len, @tagName(self.profile), source.image_ns, source.program_ns, verify_start - source.image_ns - source.program_ns, self.timer.read() - verify_start, self.timer.read() });
     }
 };
@@ -513,8 +521,6 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     }
     try Coordinator.assignSpongeIds(req);
     for (req, compact) |r, *out| out.* = Wire.CompactRequest.from(r);
-    const truth_declarations = try Plan.truthsForServiceCounts(a, total, .{}, 18);
-    defer a.free(truth_declarations);
     var tower = std.ArrayList(Bounds.OpTowerTruthDeclaration).empty;
     defer tower.deinit(a);
     var first: u32 = 1;
@@ -524,10 +530,18 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         try tower.append(a, .{ .calls = calls, .first_id = first, .frontier_log = log, .arithmetic_log = log });
         first += calls;
     }
+    const reserved_workers = try std.math.add(usize, count, tower.items.len);
+    if (reserved_workers > @import("pure_p2_manifest.zig").MAX_WORKERS) return error.InvalidOpNativeInventory;
+    const truth_declarations = if (truth_local_gkr)
+        try @import("pure_p2_truth_local_plan.zig").declarations(a, total, profile.config(), .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .gkr_bytes = resources.gkr_bytes }, @import("pure_p2_manifest.zig").MAX_WORKERS - reserved_workers)
+    else
+        try Plan.truthsForServiceCounts(a, total, .{}, 18);
+    defer a.free(truth_declarations);
     const metadata = Metadata{ .schema = if (truth_local_gkr) 2 else 1, .profile = profile, .cpus = declarations, .requests = compact, .spans = spans, .truths = truth_declarations, .miller = tower.items, .memory_words = @intCast(captured.advice.initial.len) };
     try metadata.validate();
     var bounds = try Bounds.deriveForOp(a, program.log_size, declarations, truth_declarations, req, spans, tower.items);
     defer bounds.deinit();
+    const truth_local_security = if (truth_local_gkr) try TruthLocalSecurity.check(profile, &bounds, truth_declarations) else null;
     var cost = try @import("pure_p2_op_cost.zig").derive(a, &program, declarations, req, spans, captured.native, &captured.advice, truth_declarations, tower.items, bounds.base.shape.native_trace_cells[1], profile.config().fri_config.log_blowup_factor);
     defer cost.deinit();
     const capture_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot();
@@ -562,6 +576,10 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.initForTruthLocal(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected, authority.truth_local_keys);
     defer inventory.deinit();
+    if (truth_local_security) |checked| {
+        checked.added.augmentShape(&inventory.bounds.base.shape);
+        try inventory.bounds.base.shape.validate();
+    }
     if (mode == .prepare) {
         const admitted_ns = timer.read();
         const cache_snapshot = if (cache) |owner| owner.snapshot() else null;
@@ -581,6 +599,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-prepare-metadata.json", metadata);
         try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-prepare.json", .{
             .schema = "op-native-source-prepare/v1",
+            .truth_local_security = truth_local_security,
             .proof_verified = false,
             .production_admitted = false,
             .steps = captured.steps,
@@ -648,7 +667,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         const profiling = @import("../word16_global_execution/services/profiling.zig").Options{ .recorders = observations.pointers, .directory = dir };
         for (observations.pointers, 0..) |_, i| try profiling.finish(a, i);
     }
-    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - captured_at, .setup_heap = setup_heap, .immutable_fixed_classes = authority.key_owners.items.len + authority.cpu_leases.items.len, .immutable_fixed_cache = immutable_cache, .immutable_fixed_disk_bytes = immutable_fixed_disk_bytes, .peak_parked_mapping_bytes = store.peak_mapped, .runtime_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(), .planned_combined_disk_upper_bytes = cost.combined_disk_upper_bytes, .seal_and_park_ns = phases.stage_one_ns, .manifest_ns = phases.manifest_ns, .stage_two_prove_ns = phases.stage_two_ns, .prove_ns = prove_ns, .publish_payload_ns = timer.read() - publish_start, .total_before_receipt_ns = timer.read(), .production_admitted = false });
+    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .truth_local_security = truth_local_security, .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - captured_at, .setup_heap = setup_heap, .immutable_fixed_classes = authority.key_owners.items.len + authority.cpu_leases.items.len, .immutable_fixed_cache = immutable_cache, .immutable_fixed_disk_bytes = immutable_fixed_disk_bytes, .peak_parked_mapping_bytes = store.peak_mapped, .runtime_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(), .planned_combined_disk_upper_bytes = cost.combined_disk_upper_bytes, .seal_and_park_ns = phases.stage_one_ns, .manifest_ns = phases.manifest_ns, .stage_two_prove_ns = phases.stage_two_ns, .prove_ns = prove_ns, .publish_payload_ns = timer.read() - publish_start, .total_before_receipt_ns = timer.read(), .production_admitted = false });
     try std.posix.fsync(dir.fd);
     std.debug.print("OP_NATIVE_PRODUCER complete=true steps={} CPU={} truth={} miller={} bytes={} capture_ns={} prove_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bytes.len, capture_ns, prove_ns });
 }
@@ -658,16 +677,16 @@ pub fn main() !void {
     const base = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, args);
-    if (args.len < 4 or args.len > 5 or (!std.mem.eql(u8, args[1], "prove") and !std.mem.eql(u8, args[1], "verify") and !std.mem.eql(u8, args[1], "capture") and !std.mem.eql(u8, args[1], "prepare"))) return error.ExpectedOpNativeModeConfigDirectoryAndOptionalResources;
-    const raw = try std.fs.cwd().readFileAlloc(base, args[2], 16384);
+    const command = try @import("pure_p2_op_cli.zig").parse(args);
+    const raw = try std.fs.cwd().readFileAlloc(base, command.config, 16384);
     defer base.free(raw);
     const config = try std.json.parseFromSlice(Request.Config, base, raw, .{});
     defer config.deinit();
     var resources: Resources = .{};
     var owner: ?std.json.Parsed(Resources) = null;
     defer if (owner) |*v| v.deinit();
-    if (args.len == 5) {
-        const bytes = try std.fs.cwd().readFileAlloc(base, args[4], 16384);
+    if (command.resources) |resource_path| {
+        const bytes = try std.fs.cwd().readFileAlloc(base, resource_path, 16384);
         defer base.free(bytes);
         owner = try std.json.parseFromSlice(Resources, base, bytes, .{});
         resources = owner.?.value;
@@ -682,7 +701,7 @@ pub fn main() !void {
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     const profile = Profile.op_target_b4_q72_p0_fold4_v1;
-    if (std.mem.eql(u8, args[1], "verify")) try verifyDirectory(a, config.value, args[3], profile, resources) else try produceDirectoryMode(a, config.value, args[3], profile, resources, if (std.mem.eql(u8, args[1], "capture")) .capture else if (std.mem.eql(u8, args[1], "prepare")) .prepare else .prove, null, false);
+    if (std.mem.eql(u8, command.mode, "verify")) try verifyDirectoryWithOptions(a, config.value, command.directory, profile, resources, .{ .truth_local_gkr = command.truth_local_gkr }, .{}) else try produceDirectoryMode(a, config.value, command.directory, profile, resources, if (std.mem.eql(u8, command.mode, "capture")) .capture else if (std.mem.eql(u8, command.mode, "prepare")) .prepare else .prove, null, command.truth_local_gkr);
     const final = budget.snapshot();
     if (final.live_bytes != 0) return error.OpNativeRuntimeCustodyLeak;
     std.debug.print("OP_NATIVE_TEARDOWN heap={} external={} peak={} exceeded={}\n", .{ final.host_live_bytes, final.external_live_bytes, final.peak_live_bytes, final.exceeded });
