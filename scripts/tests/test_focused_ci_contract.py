@@ -202,6 +202,16 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual([["zig", "build", "test-typed-witness-benchmarks", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=" + mode, "-j2", "--verbose", "--summary", "all"] for mode in ("ReleaseFast", "Debug")], commands)
         self.assertIn("continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' }}", (ROOT / ".github/workflows/ci.yml").read_text())
 
+    def test_benchmark_admission_is_exact_and_never_applies_to_correctness_lanes(self):
+        arguments = dict(root=ROOT, output=Path("unused"), cache_mode="unreached", cache_root=None, local_compatible=True)
+        with self.assertRaisesRegex(ci_scope_plan.PlanError, "invalid cache mode"):
+            ci_scope_run.run_lane(policy=self.policy, lane="riscv_witness_benchmarks", **arguments)
+        for lane, target in (("riscv_frontend_acceptance", "test-typed-witness-benchmarks"), ("riscv_witness_benchmarks", "benchmark-whole-block")):
+            policy = json.loads(json.dumps(self.policy))
+            policy["lanes"][lane]["commands"] = [["zig", "build", target]]
+            with self.assertRaisesRegex(ci_scope_plan.PlanError, "contains workload targets"):
+                ci_scope_run.run_lane(policy=policy, lane=lane, **arguments)
+
     def test_cairo_frontend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/frontends/cairo/air/components/add_ap.zig")
         self.assertTrue(

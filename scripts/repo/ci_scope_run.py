@@ -82,7 +82,8 @@ def run_lane(
         targets = {argument for argument in command if not argument.startswith("-")}
         forbidden = sorted(
             target for target in targets
-            if "benchmark" in target or ("profile" in target and not target.startswith("test-"))
+            if ("benchmark" in target or ("profile" in target and not target.startswith("test-")))
+            and not (lane == "riscv_witness_benchmarks" and target == "test-typed-witness-benchmarks")
         )
         if forbidden:
             raise PlanError(f"focused lane {lane} contains workload targets: {forbidden}")
