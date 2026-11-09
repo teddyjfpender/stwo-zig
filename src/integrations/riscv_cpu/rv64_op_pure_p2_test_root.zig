@@ -149,3 +149,11 @@ test {
 test {
     _ = @import("poseidon2_outer/miller_local_gkr/root_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/outer_key_cache_test.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/outer_key_cache_physical_test.zig");
+}

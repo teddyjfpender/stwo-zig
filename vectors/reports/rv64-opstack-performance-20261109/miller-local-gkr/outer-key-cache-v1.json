@@ -1,0 +1,56 @@
+{
+  "schema": "op-miller-outer-key-cache/v1",
+  "production_integrated": false,
+  "scope": "Miller-only opt-in immutable source-key cache; no Session/topology edits",
+  "class_authority": [
+    "trusted native key identity/full36-byte root/profile",
+    "canonical source logs",
+    "source-derived instance/round counts plus bounded0..4 coefficient lengths",
+    "embedded semantic source authority"
+  ],
+  "request_binding": [
+    "calls/first_id",
+    "ordinal/statement",
+    "manifest/main/receipt/claims and independently derived nine-word output remain outside immutable cache"
+  ],
+  "source_lifecycle": {
+    "hits_for_two_request_spans": 1,
+    "misses": 1,
+    "source_build_peak_requested_bytes": 647619742,
+    "verification_retained_requested_bytes": 47979,
+    "cap_bytes": 8589934592,
+    "retirement": "explicit after all leases released",
+    "fresh_receiver": "new native key plus new verification-only cache, no outer key import"
+  },
+  "physical": {
+    "canonical_setup_span": {
+      "calls": 1,
+      "first_id": 1
+    },
+    "actual_proved_span": {
+      "calls": 1,
+      "first_id": 7
+    },
+    "bytes": 629628,
+    "sha256": "24f758dfcdb26370e2ebc73a85f166b51cd66018ac65b0db3a6ce5bb69b4931b",
+    "exact_concrete_source_factory_key_and_proof_parity": true,
+    "fresh_receiver_accepts": true,
+    "wrong_request_and_ninth_output_reject": true
+  },
+  "checks": [
+    "source lifecycle fixture passes",
+    "byte cap failure publishes zero classes/leases and releases ownership",
+    "maxclass limit rejects alternate coefficient template",
+    "live leases block retirement/destruction",
+    "released leases and post-retirement proving reject",
+    "complete OP semantic suite passes"
+  ],
+  "remaining": [
+    "Session borrowed-key ownership adapter",
+    "class retirement barrier replacing per-leaf retirement",
+    "full root qualification before promotion"
+  ],
+  "security_qualified": false,
+  "execution_accepted": false,
+  "performance_speedup_claim": false
+}
