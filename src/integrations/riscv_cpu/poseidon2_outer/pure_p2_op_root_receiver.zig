@@ -21,6 +21,8 @@ pub const Digest = [36]u8;
 /// construction, never from the root bundle or its proposed verifier key.
 pub const Output = struct { address: u64, bytes: [43]u8 };
 pub const Authority = struct {
+    /// Freshly constructed from independently pinned ELF/input/ABI policy.
+    image: ?*const @import("../word16_execution/expected_image.zig").Owner = null,
     output: Output,
     profile: @import("op_profile.zig").Profile,
     setups: []const *const R.CpuSetup,
@@ -47,6 +49,33 @@ pub const Plan = struct {
     inventory: Inventory.Inventory,
     manifest: Digest,
     expected_outputs: []Digest,
+    /// Canonical ordered tree; an odd node carries unchanged. Count/order are
+    /// fixed by this independently admitted Inventory, never by root metadata.
+    pub fn expectedRoot(self: *const Plan, a: std.mem.Allocator) !@import("pure_p2_fold.zig").Digest {
+        const Fold = @import("pure_p2_fold.zig");
+        const leaves = try a.alloc(Fold.Digest, self.expected_outputs.len);
+        defer a.free(leaves);
+        for (leaves, self.expected_outputs) |*leaf, encoded| {
+            for (leaf, try core.crypto.poseidon2_m31_sponge.decode(encoded)) |*coordinate, value| coordinate.* = core.fields.qm31.QM31.fromBase(value);
+        }
+        return Fold.treeDigest(a, leaves);
+    }
+    /// Completes authentication with ONE physical root proof. Topology has no
+    /// bundle-key decoder: its leaf authorities are built by concrete source
+    /// factories and its fold key is independently derived from those keys.
+    /// Neither native child PCS nor local-GKR proofs are reverified here.
+    pub fn verifyRoot(self: *const Plan, a: std.mem.Allocator, topology: *const @import("pure_p2_root_topology.zig").Topology, bytes: []const u8) !void {
+        if (!std.mem.eql(u8, &topology.execution, &self.inventory.execution) or topology.leaf_count != self.inventory.workers.len or topology.leaf_bindings.len != self.inventory.workers.len) return error.OpRootTopologyCoverage;
+        if (topology.profile != self.inventory.workers[0].profile) return error.OpRootTopologyProfile;
+        for (topology.leaf_bindings, self.inventory.workers, 0..) |binding, expected, i| {
+            const kind: @FieldType(@import("pure_p2_root_topology.zig").Binding, "kind") = if (i < self.inventory.cpu_count) .cpu else if (i < self.inventory.cpu_count + self.inventory.truth_count) .catalog else .miller;
+            if (binding.ordinal != i or binding.kind != kind or !std.mem.eql(u8, &binding.native_identity, &expected.fixed_identity)) return error.OpRootLeafSourceAuthority;
+        }
+        const source_key = topology.key();
+        if (source_key.n_outputs != 9 or source_key.profile != topology.profile) return error.OpRootTopologyProfile;
+        const expected_root = try self.expectedRoot(a);
+        try @import("proof.zig").verify(a, source_key, &expected_root, bytes);
+    }
     pub fn deinit(self: *Plan) void {
         self.allocator.free(self.expected_outputs);
         self.inventory.deinit();
@@ -62,6 +91,7 @@ fn fillEntries(inventory: *const Inventory.Inventory, leaves: []const Leaf, entr
         if (leaf.ordinal != i or expected.ordinal != i or (leaf.receipt != null) != (expected.kind == .cpu)) return error.OpRootLeafOrder;
         _ = try core.crypto.poseidon2_m31_sponge.decode(leaf.main);
         if (leaf.receipt) |receipt| _ = try core.crypto.poseidon2_m31_sponge.decode(receipt);
+        if (leaf.claims.len > 4096) return error.OpRootClaimLimit;
         try canonical(leaf.claims);
         entry.* = .{ .authority = expected, .scope = .{ .ordinal = expected.ordinal, .statement = expected.statement, .fixed = expected.fixed, .main = leaf.main }, .local = if (leaf.receipt) |receipt| .{ .digest = receipt } else null, .global_relations = expected.global_relations };
     }
@@ -82,11 +112,29 @@ pub fn manifestFor(a: std.mem.Allocator, inventory: *const Inventory.Inventory, 
 /// Native public boundary checks remain explicit here; they are not assumed to
 /// follow from a zero sum or from independently valid component proofs.
 pub fn prepare(a: std.mem.Allocator, authority: Authority, metadata: Metadata) !Plan {
+    return prepareMode(a, authority, metadata, false);
+}
+/// Explicit closed fixture path. Production always requires the full pinned
+/// image terminal policy; this cannot be used by non-test binaries.
+pub fn prepareForFixture(a: std.mem.Allocator, authority: Authority, metadata: Metadata) !Plan {
+    if (!@import("builtin").is_test) return error.OpRootFixtureOnly;
+    return prepareMode(a, authority, metadata, true);
+}
+fn prepareMode(a: std.mem.Allocator, authority: Authority, metadata: Metadata, allow_fixture: bool) !Plan {
+    if (authority.image == null and !allow_fixture) return error.OpRootTerminalPolicyMissing;
     var inventory = try Inventory.Inventory.init(a, authority.profile, authority.setups, authority.requests, authority.spans, authority.cpu_keys, authority.truths, authority.truth_keys, authority.miller, authority.expected);
     errdefer inventory.deinit();
     if (!std.mem.eql(u8, &inventory.execution, &metadata.execution)) return error.OpRootExecutionAuthority;
     if (metadata.leaves.len != inventory.workers.len) return error.OpRootLeafCoverage;
-    try checkOutput(authority.output, authority.requests[authority.requests.len - 1].base.memory.terminal);
+    const final_request = authority.requests[authority.requests.len - 1];
+    if (authority.image) |image| {
+        if (!std.mem.eql(u8, &image.identity, &authority.expected.admission.image_identity)) return error.OpRootImageAuthority;
+        if (authority.output.address != image.symbols.output_data or !std.mem.eql(u8, &authority.output.bytes, &image.expected_output)) return error.OpRootOutputAuthority;
+        // This repeats the source-owned terminal policy in the ROOT receiver,
+        // independently of any earlier native completion/capture hook.
+        _ = try @import("../word16_global_execution/ethereum/terminal.zig").require(image, final_request.base.cpu, final_request.base.memory.terminal);
+    }
+    try checkOutput(authority.output, final_request.base.memory.terminal);
     const entries = try a.alloc(Entry, metadata.leaves.len);
     defer a.free(entries);
     try fillEntries(&inventory, metadata.leaves, entries);
