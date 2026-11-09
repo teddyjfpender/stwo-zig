@@ -132,3 +132,34 @@ See the [metadata custody review](../vectors/reports/rv64-opstack-performance-20
 and [auxiliary consumer review](../vectors/reports/rv64-opstack-performance-20261109/native/source-auxiliary-retirement.md)
 for refusal rules, consumer citations and qualification scope. The user-requested
 heavy rerun remains off the measurement schedule.
+
+## Larger segments and smaller recursive statements
+
+Larger **native execution segments** and larger **outer recursive traces** are
+different changes. At the selected guest's retained 238,226,172 instructions,
+ceil-dividing by nominal capacities of 2^22, 2^23 and 2^24 gives 57, 29 and 15
+CPU leaves. These are planning counts, not admitted requests or measured speedups:
+`rv64_ethereum_request.validateBudgetForOp` currently refuses batches at or
+above 2^22. Service leaf counts do not fall automatically with the CPU count.
+Clock/range authority, authenticated GKR geometry, independent source setup,
+memory admission and endpoint/continuity tests must qualify a changed protocol
+before the loader can admit a larger segment. Do not remove the guard alone.
+
+The grouped experiment above is a useful counterexample: fewer active
+arithmetic rows did not improve repeated wall time because both variants still
+padded that component to 2^24. Instance sizing should follow actual per-component
+work and memory, rather than forcing CPU, arithmetic and services to that height.
+
+The current structural work is:
+
+| Change | Concrete evidence | Remaining production gate |
+| --- | --- | --- |
+| Native DEEP dot accumulator | Independently closed standalone physical proof and degree3/2n AIR; source-count model reduces the relevant outer cells by 23.5% | Live recursive source lowering, common Var closure, roster and fresh complete-root qualification |
+| Serialized sponge | Five independently sized roles, full RAM/IO/OWNER closure and fresh physical PCS/GKR reception | A narrow authenticated CPU frontier and complete inventory/root integration; no admission from an isolated zero local claim |
+| Immutable outer Miller setup | Bounded source-owned cache gives identical physical proof bytes while binding each request separately | Root verifier lifetime/lease integration, then separately qualified producer ownership |
+| Guest Miller packet retention | Independent tiny RV64 probe and host packet-equivalence tests | Explicit opt-in candidate and representative qualification; modeled copy savings are not proof-time savings |
+
+See [delivery gates](COMPLETION.md) and the
+[native-dot receipt](../vectors/reports/rv64-opstack-cpu-20261109/native-dot/standalone-physical.json).
+The next architecture should reduce verification work and leaf count together;
+neither a larger padding threshold nor additional CPU lanes establishes that.

@@ -37,7 +37,7 @@ replacing the qualified execution controls above. Its records are in
 | Bounded immutable setup | Two fresh heavy captures reuse all 36 setup classes with no new misses; all roots, public cells and final states match; 28.068 GB peak requested memory under 32 GiB; final heap/external counters zero | Uninterrupted warm end-to-end proving measurements; both preparation timers were interrupted |
 | R5 portable root-only handoff | Actual small block: three physical leaves, two folds, 667,304-byte root; fresh receiver derives source authority and verifies only the root | Practical performance: 305.567 seconds additional recursion remains too slow; not a default promotion |
 | R6 independent OM31 multiplication | Actual small execution closes all three leaves and two folds: 687,908-byte root: original Safe run 198.102 seconds; subsequent Fast run 138.898 seconds with every node/root/sidecar byte-identical and fresh source-only acceptance; native production is additional | Actual full-height heavy classes and complete heavy native-plus-root performance; no extrapolation from the small block |
-| Service-local GKR | Regenerated CPU/Keccak/SHA native bundle and complete small recursive root; explicit suite3 additionally closes a complete synthetic CPU + Miller native bundle, two recursive leaves and one fold, with an independent source-only receiver and physical adversaries | Actual Kona suite3 qualification and heavy resource-derived physical sharding. The synthetic fixture is not a Kona block or a heavy performance result |
+| Service-local GKR | Actual Kona120794432 completes native suite3 and a 683,432-byte R6 root, with separate source-only acceptance and policy/output refusal; explicit suite3 additionally closes a complete synthetic CPU + Miller native bundle, two recursive leaves and one fold, with physical adversaries | Actual full-height Miller and heavy resource-derived physical sharding. The small Kona block has zero Miller calls; the synthetic fixture is not a Kona block or a heavy performance result |
 | Bounded truth planning | Source-derived checkpoint/whole-worker estimator refuses heavy log18 Keccak and admits log16/4,518-permutation shards under the declared 8 GiB worker limit | Resource-derived shard-plan integration is present; physical heavy qualification remains open. Estimates are requested bytes, not measured RSS |
 | Retained source custody | Small native bundle remains byte-identical with CPU advice parking and post-seal LS/SHIFT auxiliary retirement; witness-free ledger reproduces capture and event payloads exactly | Model excludes scratch/mappings; 27.46 GB CPU seal payload is not whole-worker admission or measured RSS |
 | Narrow sponge research | Five serialized roles preserve complete RAM14/IO11/OWNER19 tuples at degree3; standalone native PCS + local GKR freshly verify with independent source authority. Role opening width is 467, excluding shared providers; cells/facts increase | Detached CPU frontier, complete native and recursive integration; suite sponge admission remains closed |
@@ -69,6 +69,16 @@ missing/duplicated/reordered leaves, changed suite policy, balanced forged Wire
 claims, a substituted late Miller receipt and coherently changed terminal state.
 This closes whole-root fixture framing and closure, not anchored derivation or
 the heavy-block tenfold performance target.
+
+The [actual suite3 Kona qualification](../vectors/reports/rv64-opstack-performance-20261109/source-suite/kona-small-complete-v1.json)
+also completes block120794432: 796,406 instructions, CPU + Keccak + SHA, a
+5,553,784-byte native bundle and a 683,432-byte three-leaf/two-fold root.
+Native production records15.873 seconds before its receipt; recursion takes
+140.855 seconds additional. The separate source-only receiver records32.020
+seconds of cold source construction and27.057 milliseconds of root verification,
+with zero final heap/external retention. Dropping the independent suite policy
+or changing the externally expected output rejects. These are qualification
+runs during concurrent engineering, not a controlled speed comparison.
 
 ## Working rules
 
