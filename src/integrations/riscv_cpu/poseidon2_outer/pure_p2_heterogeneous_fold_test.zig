@@ -99,7 +99,7 @@ const Hook = struct {
         parent.deinit();
         live = false;
         const producer_ns = timer.lap();
-        var trace = try source.build(a, true);
+        var trace = try (Fold.TraceSource{ .keys = .{ &left.key, &right.key } }).build(a);
         defer trace.deinit();
         var receiver = try Authority.initForProfile(a, &trace, join.key.profile);
         defer receiver.deinit();

@@ -1,4 +1,5 @@
 test {
+    _ = @import("poseidon2_outer/pure_p2_op_recursion_test.zig");
     _ = @import("poseidon2_outer/pure_p2_op_root_receiver_test.zig");
     _ = @import("poseidon2_outer/pure_p2_truth_leaf_test.zig");
     _ = @import("poseidon2_outer/pure_p2_tower_leaf_test.zig");

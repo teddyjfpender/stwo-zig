@@ -33,6 +33,13 @@ pub const ShapeView = struct {
         return outputs;
     }
     pub fn build(self: @This(), a: std.mem.Allocator, trace_only: bool, census: ?*CompleteCounts) !C.PoseidonContext {
+        return self.buildMode(a, trace_only, census, true);
+    }
+    /// Same constrained topology; adversarial assignment scans belong to qualification.
+    pub fn buildForProving(self: @This(), a: std.mem.Allocator) !C.PoseidonContext {
+        return self.buildMode(a, false, null, false);
+    }
+    fn buildMode(self: @This(), a: std.mem.Allocator, trace_only: bool, census: ?*CompleteCounts, qualify: bool) !C.PoseidonContext {
         var structural = @import("../rv64_recursion/circuit_lane.zig").StructuralScope.init();
         defer structural.deinit();
         var owner = if (trace_only) try C.PoseidonContext.initTraceOnly(a, 9) else try C.PoseidonContext.init(a, 9);
@@ -60,7 +67,7 @@ pub const ShapeView = struct {
         try owner.setOutputs(&output);
         try owner.finalize();
         if (census) |counts| counts.finalization = Phase.Counts.take(&owner).sub(before_finalization);
-        if (!trace_only) {
+        if (!trace_only and qualify) {
             try std.testing.expect(try owner.isCircuitValid());
             const mutants = [_]C.Var{ proof.sampled_values[1][0][0].c0.v, statement.pending.artifact.claims_to_verify_by_instance[0][0].c0.v, output[8] };
             for (mutants) |port| {
