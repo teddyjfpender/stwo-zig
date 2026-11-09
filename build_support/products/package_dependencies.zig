@@ -139,6 +139,8 @@ pub const cairo_cpu_protocol_package_roots = &.{
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/waist/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/frontends/cairo:interop/felt_json.zig",
+    "dependency:../src/frontends/cairo:interop/cairo_prover_parameters.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/engine/prover:mod.zig",
     "dependency:../src/waist/prover_api:mod.zig",

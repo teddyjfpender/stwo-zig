@@ -424,10 +424,14 @@ def main() -> int:
     nested_cache_preexisting = nested_cache.exists()
 
     products, scopes, catalog_receipt_sha256 = read_product_catalog(repository)
-    receipts = [
-        check_scope(repository, scope, spec, products, scopes)
-        for scope, spec in sorted(scopes.items())
-    ]
+    receipts, failures = [], []
+    for scope, spec in sorted(scopes.items()):
+        try:
+            receipts.append(check_scope(repository, scope, spec, products, scopes))
+        except SystemExit as error:
+            failures.append(f"{scope}: {error}")
+    if failures:
+        raise SystemExit("\n".join(failures))
     check_unknown_scope(repository)
     check_install_ownership(repository)
     installs = []

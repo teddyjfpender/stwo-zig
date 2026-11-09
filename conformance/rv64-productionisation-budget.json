@@ -668,6 +668,13 @@
       "positive_growth_justification": "The independent integer reference authenticates against the unchanged oracle while optimized FRI differs. Add stage-level exact comparisons for field subtraction/addition, inverse, base scaling, extension multiplication and FFT butterfly to isolate the implementation/code-generation defect before changing production arithmetic. Retain all existing folds/digests and no public API or launcher."
     },
     {
+      "id": "delivery_complete_configure_scope_rejection",
+      "net_code_budget": 50,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Retain all exact configure rejection rules while reporting every failed scope in one existing hosted lane invocation, so independent drift is repaired in a measured batch rather than one-failure rebuild loops. A regression requires all scopes to be observed, all rejections reported, no installation and no passing receipt after any rejection. Record only the two Cairo interop dependency roots already observed in the hosted constructor. No new acceptance exception, source prefix, launcher or device execution."
+    },
+    {
       "id": "delivery_independent_field_context_and_catalog_projection",
       "net_code_budget": 180,
       "flags_added_budget": 0,
