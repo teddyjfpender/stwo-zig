@@ -15,6 +15,19 @@ PINNED_ACTION_RE = re.compile(r"^\s*uses:\s*[^@\s]+@[0-9a-f]{40}(?:\s+#.*)?$")
 
 
 class CiTests(unittest.TestCase):
+    def test_repository_scripts_package_wins_over_foreign_installed_package(self):
+        with tempfile.TemporaryDirectory() as raw:
+            foreign = Path(raw) / "scripts"
+            foreign.mkdir()
+            (foreign / "__init__.py").write_text('raise RuntimeError("foreign scripts package selected")\n')
+            result = subprocess.run(
+                [sys.executable, "-c", "import pathlib, scripts; print(pathlib.Path(scripts.__file__).resolve())"],
+                cwd=ROOT, env=dict(os.environ, PYTHONPATH=raw),
+                capture_output=True, text=True, timeout=10,
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(str(ROOT / "scripts/__init__.py"), result.stdout.strip())
+
     def construction_fixture(self) -> tuple[dict[str, object], dict[str, dict[str, object]]]:
         manifest: dict[str, object] = {
             "scope_role": "product",

@@ -575,6 +575,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Keep complete focused AIR and guest-precompile test scope after both full roots hit the unchanged local 4 GiB guard. Move all original literal imports in their original order into four mandatory test-only roots per owner, with the original complete root importing all four. Count import movement as no code removal. Every image runs freshly; check-only compiles every image. The existing discovery owner retains single-image counting and checks unique metadata names across all partition images, so shared dependency tests cannot compensate for omitted scope. Raise global inventory floor for the eight new test-only roots. Bind seventeen other existing targets to their complete observed counts, retaining every existing skip and failure. Developer routing selects the complete catalog owner for each partition root. No production implementation, dependency/API ledger, golden pin, assertion, rejection class, ceiling, runtime flag or launcher changes. Rollback restores full roots and leaves local compiler acceptance unqualified."
+    },
+    {
+      "id": "delivery_python_package_and_tool_contracts",
+      "net_code_budget": 40,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 1,
+      "positive_growth_justification": "Restore the repository scripts package marker so an installed regular package cannot hijack namespace resolution. Add a real subprocess regression with a hostile foreign scripts package. Reconcile the existing closed tooling inventory with four already tracked owners and the existing circuit-recursion-wire consumer lane; retain exact root equality, every caller check and bounded lane equality. No new tool, lane, launcher, feature flag, proof check, pin or test exclusion is introduced. The one added Python file is the explicitly requested package initializer, with no executable entrypoint."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

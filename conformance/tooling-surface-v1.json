@@ -29,7 +29,7 @@
       "role": "independent-vector-generator",
       "required_for": "Independent upstream AIR derive parity vectors",
       "live_callers": ["scripts/repo/parity_air_derive.py"],
-      "pr_lanes": ["static", "script_contracts"],
+      "pr_lanes": ["static", "script_contracts", "circuit_recursion_wire"],
       "extraction": "replace with committed Zig cases or an immutable native-oracle bundle"
     },
     "stwo-cairo-air-compiler": {
@@ -77,7 +77,7 @@
       "role": "independent-vector-generator",
       "required_for": "Independent constraint-framework expression parity",
       "live_callers": ["scripts/repo/parity_constraint_expr.py"],
-      "pr_lanes": ["static", "script_contracts"],
+      "pr_lanes": ["static", "script_contracts", "circuit_recursion_wire"],
       "extraction": "consolidate into the external native-oracle workspace"
     },
     "stwo-circuit-oracle-rs": {
@@ -88,7 +88,7 @@
         "scripts/interop/generate_circuit_oracle_vectors.py",
         "scripts/repo/upstream_pins_lib/circuit_recursion.py"
       ],
-      "pr_lanes": ["static", "script_contracts"],
+      "pr_lanes": ["static", "script_contracts", "circuit_recursion_wire"],
       "extraction": "externalize once checkpoint regeneration is authenticated and clean-room reproducible"
     },
     "stwo-cuda-adapter-rs": {
@@ -134,8 +134,61 @@
       "role": "independent-vector-generator",
       "required_for": "Independent upstream field parity vectors",
       "live_callers": ["scripts/repo/parity_fields.py"],
-      "pr_lanes": ["static", "script_contracts"],
+      "pr_lanes": ["static", "script_contracts", "circuit_recursion_wire"],
       "extraction": "consolidate into the external native-oracle workspace"
+    },
+    "rv64-cuda-callsites": {
+      "owner": "rv64-performance",
+      "role": "performance-tooling",
+      "required_for": "Retained driver-callsite attribution for the ordered RV64 resource census; inventory declaration does not qualify hardware measurements",
+      "live_callers": [
+        "tools/rv64-cuda-callsites/rv64_cuda_callsites.c"
+      ],
+      "pr_lanes": [
+        "static",
+        "script_contracts"
+      ],
+      "extraction": "Consolidate under the existing tools/perf owner with the retained counter shim; preserve source and external measurement build references during that move"
+    },
+    "rv64-cuda-counters": {
+      "owner": "rv64-performance",
+      "role": "performance-tooling",
+      "required_for": "Retained driver-call counts consumed by the RV64 measurement owner",
+      "live_callers": [
+        "scripts/rv64/rv64_measure.py"
+      ],
+      "pr_lanes": [
+        "static",
+        "script_contracts"
+      ],
+      "extraction": "Consolidate under tools/perf after the measurement owner verifies its source/build references; no hardware qualification follows from this inventory"
+    },
+    "starknet-aggregator-rs": {
+      "owner": "starknet-execution",
+      "role": "execution-sidecar",
+      "required_for": "Build the pinned Starknet aggregator CairoPie from ordered public preimages for the existing fixture pipeline",
+      "live_callers": [
+        "tools/starknet-block-collector/prove_pipeline.py"
+      ],
+      "pr_lanes": [
+        "static",
+        "script_contracts"
+      ],
+      "extraction": "Publish as a pinned optional execution sidecar when the Starknet product owns authenticated aggregator fixtures"
+    },
+    "starknet-block-collector": {
+      "owner": "starknet-execution",
+      "role": "fixture-generator",
+      "required_for": "Collect and assemble replayable Starknet OS inputs and drive the existing leaf/aggregator fixture pipeline",
+      "live_callers": [
+        "tools/starknet-block-collector/prove_pipeline.py",
+        "tools/starknet-block-collector/collector.py"
+      ],
+      "pr_lanes": [
+        "static",
+        "script_contracts"
+      ],
+      "extraction": "Externalize network collection behind immutable fixtures once the Starknet product has an authenticated offline regeneration owner"
     }
   }
 }
