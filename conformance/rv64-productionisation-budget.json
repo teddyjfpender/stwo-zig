@@ -988,6 +988,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
+    },
+    {
+      "id": "riscv_live_profile_partition_contracts",
+      "net_code_budget": 80,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue368: retain five connected live full-width timing, cleanup, independent verification, deterministic sampling and publication contracts in place of retired source fixtures; preserve discovery floors and exact pool identity assertions, with bounded failure-only receipt diagnostics. Retired implementation and tests remain together under archive/profiled-adapter-before-full-width-20261110. No runtime, protocol, proof pin or performance policy change; rollback restores the bounded test/catalog transaction."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

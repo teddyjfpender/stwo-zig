@@ -76,7 +76,10 @@ pub fn compareExecutionWidths(
         const audited = try runAuditedArm(allocator, guest, width);
         const planned = audited.arm;
         defer planned.deinit(allocator);
-        try expectProofPoolAudit(audited.audit, width, true, false);
+        expectProofPoolAudit(audited.audit, width, true, false) catch |err| {
+            std.debug.print("proof-pool audit width={d}: {any}\n", .{ width, audited.audit });
+            return err;
+        };
         try expectEqualStatement(predecessor.statement, planned.statement);
         try expectEqualClaim(
             predecessor.statement,
