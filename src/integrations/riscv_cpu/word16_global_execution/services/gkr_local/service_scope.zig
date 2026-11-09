@@ -37,6 +37,16 @@ pub fn setup(s: *const R.CpuSetup) !void {
     try geometry(s.materials.geometry);
     try bridges(s.bridges);
 }
+/// Explicit OP producer/receiver scope. Legacy setup/declaration entrypoints
+/// remain closed; OP framing must bind the optional span and whole closure.
+pub fn setupForOp(s: *const R.CpuSetup) !void {
+    if (!s.op_only or s.materials.program.profile != .ethereum_services_op_v1) return error.UnqualifiedOpProtocol;
+    try geometry(s.materials.geometry);
+    var old = s.bridges;
+    old.tower = null;
+    try bridges(old);
+    if (s.bridges.tower) |log| _ = try A.crypto.secp256k1.word16_bridge.types.validateGeometry(.bn254_sparse034, 0, 1, log);
+}
 pub fn declaration(d: @import("../wire.zig").CpuDeclaration) !void {
     try geometry(d.geometry);
     try bridges(d.bridges);

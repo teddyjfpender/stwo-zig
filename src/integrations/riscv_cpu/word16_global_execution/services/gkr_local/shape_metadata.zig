@@ -20,6 +20,11 @@ pub fn forOrigin(origin: Frame.Origin) !Descriptor {
     const global = Global.layout(origin);
     const max_samples = @import("role_geometry.zig").MAX_SAMPLES_PER_COLUMN;
     switch (origin) {
+        .tower => {
+            const Tower = @import("op_tower_projection.zig");
+            const shape = Tower.MAIN_SHAPE;
+            return .{ .widths = .{ shape.fixed, shape.main, binding_columns + global.width() }, .constraints = shape.constraints + @import("binding.zig").CONSTRAINTS + global.constraints(), .degree = 3, .max_samples = max_samples, .local_terms = Tower.LOCAL_TERMS };
+        },
         .sponge => |kind| {
             const Sponge = @import("sponge_role.zig");
             const shape = Sponge.mainShapeFor(kind);

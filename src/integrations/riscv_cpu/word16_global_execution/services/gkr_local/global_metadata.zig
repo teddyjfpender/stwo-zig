@@ -151,6 +151,19 @@ pub const Provider = struct {
                 },
                 else => return error.MissingWideGlobalRole,
             },
+            .tower => {
+                const src = self.source.tower orelse return error.MissingLocalGkrBridge;
+                if (src.kind != .bn254_sparse034 or src.log_size != self.log_size) return error.InvalidWideGlobalMetadata;
+                const coords = A.crypto.secp256k1.word16_bridge.types.coordinates(src.kind);
+                const coord = logical % coords;
+                const index = logical / coords;
+                const row = A.crypto.secp256k1.word16_bridge.source.nativeTowerRow(src.kind, if (index < src.calls.len) src.calls[index] else null, coord, src.first_id + @as(u32, @intCast(index)));
+                var fixed: [8]O = @splat(O.zero());
+                fixed[3] = O.fromBase(M.fromCanonical(@intCast(coord)));
+                fixed[6] = O.fromBase(M.fromCanonical(@intFromBool(A.crypto.secp256k1.word16_bridge.types.isWritten(src.kind, coord))));
+                fixed[7] = O.fromBase(M.fromCanonical(if (A.crypto.secp256k1.word16_bridge.types.isWritten(src.kind, coord)) A.crypto.secp256k1.word16_bridge.types.outputWire(src.kind, coord) else 0));
+                try G.queriesFor(O, self.origin, &fixed, &lift(row), &sink);
+            },
             .bridge => |family| switch (family) {
                 .keccak => {
                     const src = self.source.keccak orelse return error.MissingLocalGkrBridge;

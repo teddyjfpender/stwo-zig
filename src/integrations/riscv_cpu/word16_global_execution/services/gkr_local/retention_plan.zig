@@ -102,6 +102,7 @@ fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Reque
     for (plan.slots) |slot| {
         const n = try rows(slot.log);
         switch (slot.origin) {
+            .tower => return error.UnqualifiedOpRetentionPlan,
             .dword => {
                 out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(n, @sizeOf(A.memory.load_store_dword.source.Metadata)));
                 out.bulk_local_metadata_bytes = try add(out.bulk_local_metadata_bytes, try add(try mul(n, 3 * 4), (65536 + 256) * @sizeOf(u64)));

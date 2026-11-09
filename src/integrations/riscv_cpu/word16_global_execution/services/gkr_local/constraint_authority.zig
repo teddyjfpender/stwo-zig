@@ -54,6 +54,7 @@ pub fn previousMain(d: Source.Descriptor, column: usize) bool {
     if (!hasLocal(d)) return column == 0;
     return switch (d.origin) {
         .core => |role| if (@import("role.zig").mainRoleFor(role, d.cpu_compact_decode)) |r| Main.previousMain(r, column) else |_| false,
+        .tower => A.crypto.secp256k1.word16_bridge.layout.previousMainFor(.bridge, column),
         .bridge => |family| if (family == .keccak) A.crypto.keccak.word16_bridge.layout.previousMainFor(.bridge, column) else A.crypto.secp256k1.word16_bridge.layout.previousMainFor(.bridge, column),
         .bulk => |kind| A.crypto.bulk_memory.layout.previousMainFor(kind, column),
         .sponge => |kind| A.crypto.keccak_sponge.layout.previousMainFor(kind, column),
@@ -89,6 +90,7 @@ pub fn emitMain(d: Source.Descriptor, comptime F: type, public: PublicFor(E.Cons
                 if (kind != .and_table) try Table.emitMainFor(kind, F, fixed, main, previous, sink);
             }
         },
+        .tower => @import("op_tower_projection.zig").emitMainFor(F, fixed, main, previous, public.span, sink),
         .bridge => |family| {
             if (family == .keccak) A.crypto.keccak.word16_bridge.equations.emitMainFor(F, fixed, main, previous, public.span, sink) else A.crypto.secp256k1.word16_bridge.equations.emitMainFor(F, Source.Types.bridgeKind(family), fixed, main, previous, public.span, sink);
         },

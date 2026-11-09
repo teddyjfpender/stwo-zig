@@ -33,6 +33,17 @@ pub const Provider = struct {
         if (logical >= try instance.rows()) return error.LocalGkrMetadataShape;
         var base_sink = BaseSink{ .target = sink };
         switch (instance.origin) {
+            .tower => {
+                const src = self.source.tower orelse return error.MissingLocalGkrBridge;
+                if (src.kind != .bn254_sparse034 or src.log_size != instance.row_log or instance.terms != @import("op_tower_projection.zig").LOCAL_TERMS) return error.LocalGkrMetadataShape;
+                const coords = A.crypto.secp256k1.word16_bridge.types.coordinates(src.kind);
+                const coord = logical % coords;
+                const call = logical / coords;
+                const row = A.crypto.secp256k1.word16_bridge.source.nativeTowerRow(src.kind, if (call < src.calls.len) src.calls[call] else null, coord, src.first_id + @as(u32, @intCast(call)));
+                var fixed: [8]M = @splat(M.zero());
+                fixed[4] = M.fromCanonical(@intFromBool(coord == 0));
+                @import("op_tower_projection.zig").emitLocalFor(M, &fixed, &row, &base_sink);
+            },
             .dword => |index| {
                 const src = &(self.source.ls_dword[index] orelse return error.MissingLocalGkrBridge);
                 if (src.log_size != instance.row_log or instance.terms != @import("dword_projection.zig").LOCAL_TERMS or src.metadata.len != try instance.rows()) return error.LocalGkrMetadataShape;

@@ -47,6 +47,7 @@ pub const Descriptor = struct {
         if (self.arithmetic()) |role| return Main.shape(role);
         return switch (self.origin) {
             .core => |role| Table.mainShapeForMode(try Table.kindForRole(role), self.cpu_u8_pairs),
+            .tower => @import("op_tower_projection.zig").MAIN_SHAPE,
             .bridge => |family| @import("service_role.zig").mainShapeFor(family),
             .bulk => |kind| @import("bulk_role.zig").mainShapeFor(kind),
             .sponge => |kind| @import("sponge_role.zig").mainShapeFor(kind),
@@ -61,6 +62,7 @@ pub const Descriptor = struct {
                 .and_table => Fractions.andTableTerms(self.cpu_u8_pairs),
                 else => Roster.terms(role),
             },
+            .tower => @import("op_tower_projection.zig").LOCAL_TERMS,
             .bridge => |family| Roster.bridgeTerms(family),
             .bulk => |kind| @import("bulk_projection.zig").localTerms(kind),
             .sponge => |kind| @import("sponge_projection.zig").localTerms(kind),
@@ -97,6 +99,7 @@ pub const Descriptor = struct {
                 },
                 else => Table.emitLocalFor(try Table.kindForRole(role), null, F, fixed, main, sink),
             },
+            .tower => @import("op_tower_projection.zig").emitLocalFor(F, fixed, main, sink),
             .bridge => |family| {
                 if (family == .keccak) Fractions.keccakBridgeFor(F, fixed, main, sink) else Fractions.secpBridgeFor(F, Types.bridgeKind(family), fixed, main, sink);
             },

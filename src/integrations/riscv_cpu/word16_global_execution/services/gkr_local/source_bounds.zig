@@ -154,6 +154,7 @@ pub fn addCpuRoleMode(scope: *CpuScope, origin: Frame.Origin, log: u32, pairs: b
         .sponge => |kind| Q.SPONGE[@intFromEnum(kind)],
         .core => |kind| if (pairs and kind == .cpu) Q.PAIRED_CPU else if (pairs and kind == .and_table) Q.PAIRED_AND else Q.CORE[@intFromEnum(kind)],
         .bridge => |kind| Q.BRIDGES[@intFromEnum(kind)],
+        .tower => Q.TOWER,
     };
     for (std.enums.values(F.Relation), fractions, &scope.relations) |relation, queries, *bound| {
         if (queries == 0) continue;
