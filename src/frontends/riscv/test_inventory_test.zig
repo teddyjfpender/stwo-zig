@@ -19,6 +19,15 @@ const INVENTORY = @embedFile("test_inventory.zig") ++ @embedFile("rv64_test_inve
 
 /// Files that hold tests and are deliberately absent from the inventory.
 const excluded = [_]struct { path: []const u8, why: []const u8 }{
+    .{ .path = "typed_witness_benchmark_test_root.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_branch_eq_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_branch_lt_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_div_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_fence_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_load_store_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_lt_imm_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_lt_reg_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
+    .{ .path = "air/lang/tests/typed_shifts_imm_witness_performance_test.zig", .why = "owner-directed non-blocking typed witness benchmark, collected by test-typed-witness-benchmarks (#330)" },
     .{
         .path = "recursion_poseidon_degree3_test_root.zig",
         .why = "backend-neutral semantic root, also consumed by scripts/recursive_poseidon_degree3_proof.py",

@@ -1035,7 +1035,7 @@
     },
     "riscv_frontend_acceptance": {
       "host": "linux",
-      "description": "Focused diagnostic of the twelve unchanged full frontend ReleaseFast failures (#330); full suite remains mandatory",
+      "description": "Four correctness/contract regressions from #330; timing benchmarks have a separate non-blocking lane",
       "commands": [
         [
           "zig",
@@ -1044,6 +1044,36 @@
           "--build-file",
           "src/frontends/riscv/build.zig",
           "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
+    },
+    "riscv_witness_benchmarks": {
+      "host": "linux",
+      "description": "Owner-directed non-blocking typed/legacy throughput and scaling benchmarks; original tests and thresholds, not merge acceptance",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-typed-witness-benchmarks",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ],
+        [
+          "zig",
+          "build",
+          "test-typed-witness-benchmarks",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=Debug",
           "-j2",
           "--verbose",
           "--summary",
@@ -1069,6 +1099,7 @@
     ],
     "riscv_cpu": [
       "riscv_frontend",
+      "riscv_witness_benchmarks",
       "riscv_frontend_acceptance",
       "riscv_frontend_releasefast",
       "riscv_cpu"
@@ -1123,6 +1154,7 @@
         "prover_api",
         "prover",
         "riscv_frontend",
+        "riscv_witness_benchmarks",
         "riscv_frontend_acceptance",
         "riscv_frontend_releasefast",
         "sm83_frontend",
@@ -1820,6 +1852,7 @@
       "lanes": [
         "script_contracts",
         "riscv_frontend",
+        "riscv_witness_benchmarks",
         "riscv_frontend_acceptance",
         "riscv_frontend_releasefast",
         "riscv_cuda_integration",

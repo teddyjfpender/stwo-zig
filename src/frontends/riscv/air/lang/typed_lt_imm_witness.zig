@@ -442,38 +442,31 @@ pub inline fn writeActiveRow(
     row_index: usize,
     row: TraceRow,
 ) void {
-    // Commit raw columns before derived hints to bound live values across inversions.
-    const first_derived = @intFromEnum(RowSource.derived_comparison_result);
-    inline for (CANONICAL_RECIPE[0..first_derived], 0..) |row_source, column| {
-        columns[column][row_index] = switch (row_source) {
-            .trace_clock => fromUnsigned(row.clk),
-            .trace_pc => fromUnsigned(row.pc),
-            .trace_rd_address => fromUnsigned(row.rd),
-            .trace_rd_previous_byte_0 => fromUnsigned((row.rd_prev_val >> 0) & 0xff),
-            .trace_rd_previous_byte_1 => fromUnsigned((row.rd_prev_val >> 8) & 0xff),
-            .trace_rd_previous_byte_2 => fromUnsigned((row.rd_prev_val >> 16) & 0xff),
-            .trace_rd_previous_byte_3 => fromUnsigned((row.rd_prev_val >> 24) & 0xff),
-            .trace_rd_previous_clock => fromUnsigned(row.rd_prev_clk),
-            .trace_rd_next_byte_0 => fromUnsigned((row.rd_val >> 0) & 0xff),
-            .trace_rd_next_byte_1 => fromUnsigned((row.rd_val >> 8) & 0xff),
-            .trace_rd_next_byte_2 => fromUnsigned((row.rd_val >> 16) & 0xff),
-            .trace_rd_next_byte_3 => fromUnsigned((row.rd_val >> 24) & 0xff),
-            .trace_rs1_address => fromUnsigned(row.rs1),
-            .trace_rs1_value_previous_byte_0 => fromUnsigned((row.rs1_val >> 0) & 0xff),
-            .trace_rs1_value_previous_byte_1 => fromUnsigned((row.rs1_val >> 8) & 0xff),
-            .trace_rs1_value_previous_byte_2 => fromUnsigned((row.rs1_val >> 16) & 0xff),
-            .trace_rs1_value_previous_byte_3 => fromUnsigned((row.rs1_val >> 24) & 0xff),
-            .trace_rs1_previous_clock => fromUnsigned(row.rs1_prev_clk),
-            .trace_rs1_value_next_byte_0 => fromUnsigned((row.rs1_val >> 0) & 0xff),
-            .trace_rs1_value_next_byte_1 => fromUnsigned((row.rs1_val >> 8) & 0xff),
-            .trace_rs1_value_next_byte_2 => fromUnsigned((row.rs1_val >> 16) & 0xff),
-            .trace_rs1_value_next_byte_3 => fromUnsigned((row.rs1_val >> 24) & 0xff),
-            else => @compileError("witness recipe crossed its raw/derived boundary"),
-        };
-    }
     const d = decodeRow(row);
-    inline for (CANONICAL_RECIPE[first_derived..], first_derived..) |row_source, column| {
+    inline for (CANONICAL_RECIPE, 0..) |row_source, column| {
         columns[column][row_index] = switch (row_source) {
+            .trace_clock => d.clock,
+            .trace_pc => d.pc,
+            .trace_rd_address => d.rd,
+            .trace_rd_previous_byte_0 => d.rd_previous[0],
+            .trace_rd_previous_byte_1 => d.rd_previous[1],
+            .trace_rd_previous_byte_2 => d.rd_previous[2],
+            .trace_rd_previous_byte_3 => d.rd_previous[3],
+            .trace_rd_previous_clock => d.rd_previous_clock,
+            .trace_rd_next_byte_0 => d.rd_next[0],
+            .trace_rd_next_byte_1 => d.rd_next[1],
+            .trace_rd_next_byte_2 => d.rd_next[2],
+            .trace_rd_next_byte_3 => d.rd_next[3],
+            .trace_rs1_address => d.rs1,
+            .trace_rs1_value_previous_byte_0 => d.rs1_value[0],
+            .trace_rs1_value_previous_byte_1 => d.rs1_value[1],
+            .trace_rs1_value_previous_byte_2 => d.rs1_value[2],
+            .trace_rs1_value_previous_byte_3 => d.rs1_value[3],
+            .trace_rs1_previous_clock => d.rs1_previous_clock,
+            .trace_rs1_value_next_byte_0 => d.rs1_value[0],
+            .trace_rs1_value_next_byte_1 => d.rs1_value[1],
+            .trace_rs1_value_next_byte_2 => d.rs1_value[2],
+            .trace_rs1_value_next_byte_3 => d.rs1_value[3],
             .derived_comparison_result => flag(d.comparison.less),
             .derived_rs1_most_significant_limb => d.comparison.lhs_most_significant,
             .trace_signed_immediate_low_byte => d.immediate_low,
@@ -489,7 +482,6 @@ pub inline fn writeActiveRow(
             .hint_rd_nonzero => d.destination_nonzero,
             .hint_rd_inverse_or_zero => d.destination_inverse,
             .derived_immediate_most_significant_limb => d.comparison.rhs_most_significant,
-            else => @compileError("witness recipe crossed its raw/derived boundary"),
         };
     }
 }
@@ -676,11 +668,7 @@ inline fn flag(value: bool) M31 {
 }
 
 inline fn fromUnsigned(value: anytype) M31 {
-    // One Mersenne fold suffices for every RV32 word, including 0xffffffff.
-    const word: u32 = @intCast(value);
-    const modulus = @import("stwo_core").fields.m31.Modulus;
-    const folded = (word & modulus) + (word >> 31);
-    return M31.fromCanonical(if (folded >= modulus) folded - modulus else folded);
+    return M31.fromU64(@intCast(value));
 }
 
 inline fn fromSigned(value: i32) M31 {

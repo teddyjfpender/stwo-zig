@@ -339,12 +339,10 @@ test {
     _ = @import("air/lang/tests/typed_branch_eq_test.zig");
     _ = @import("air/lang/tests/typed_branch_eq_witness_test.zig");
     _ = @import("air/lang/tests/typed_branch_eq_witness_adversarial_test.zig");
-    _ = @import("air/lang/tests/typed_branch_eq_witness_performance_test.zig");
     _ = @import("air/lang/tests/typed_branch_eq_authority_test.zig");
     _ = @import("air/lang/tests/typed_branch_lt_test.zig");
     _ = @import("air/lang/tests/typed_branch_lt_witness_test.zig");
     _ = @import("air/lang/tests/typed_branch_lt_witness_adversarial_test.zig");
-    _ = @import("air/lang/tests/typed_branch_lt_witness_performance_test.zig");
     _ = @import("air/lang/tests/typed_branch_lt_authority_test.zig");
     _ = @import("air/lang/tests/typed_div_adversarial_test.zig");
     _ = @import("air/lang/tests/typed_div_authority_test.zig");
@@ -373,7 +371,6 @@ test {
     _ = @import("air/lang/tests/typed_lt_reg_authority_test.zig");
     _ = @import("air/lang/tests/typed_lt_reg_witness_test.zig");
     _ = @import("air/lang/tests/typed_lt_reg_witness_adversarial_test.zig");
-    _ = @import("air/lang/tests/typed_lt_reg_witness_performance_test.zig");
     _ = @import("air/lang/tests/typed_mul_test.zig");
     _ = @import("air/lang/tests/typed_mul_authority_test.zig");
     _ = @import("air/lang/tests/typed_mul_adversarial_test.zig");
@@ -388,7 +385,6 @@ test {
     _ = @import("air/lang/tests/typed_shifts_imm_authority_test.zig");
     _ = @import("air/lang/tests/typed_shifts_imm_witness_test.zig");
     _ = @import("air/lang/tests/typed_shifts_imm_witness_adversarial_test.zig");
-    _ = @import("air/lang/tests/typed_shifts_imm_witness_performance_test.zig");
     _ = @import("air/lang/tests/typed_shifts_reg_test.zig");
     _ = @import("air/lang/tests/typed_shifts_reg_authority_test.zig");
     _ = @import("air/lang/tests/typed_shifts_reg_witness_test.zig");

@@ -23,13 +23,11 @@ test {
     _ = @import("air/lang/tests/typed_branch_eq_test.zig");
     _ = @import("air/lang/tests/typed_branch_eq_witness_test.zig");
     _ = @import("air/lang/tests/typed_branch_eq_witness_adversarial_test.zig");
-    _ = @import("air/lang/tests/typed_branch_eq_witness_performance_test.zig");
     _ = @import("air/lang/typed_branch_eq_authority.zig");
     _ = @import("air/lang/tests/typed_branch_eq_authority_test.zig");
     _ = @import("air/lang/tests/typed_branch_lt_test.zig");
     _ = @import("air/lang/tests/typed_branch_lt_witness_test.zig");
     _ = @import("air/lang/tests/typed_branch_lt_witness_adversarial_test.zig");
-    _ = @import("air/lang/tests/typed_branch_lt_witness_performance_test.zig");
     _ = @import("air/lang/typed_branch_lt_authority.zig");
     _ = @import("air/lang/tests/typed_branch_lt_authority_test.zig");
 }

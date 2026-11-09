@@ -160,15 +160,14 @@ class PlannerContractTests(unittest.TestCase):
             self.assertTrue({parent, companion}.issubset(selected))
             self.assertIn(companion, ci_scope_plan.MANUAL_CPU_LANES)
 
-    def test_releasefast_failure_diagnostic_retains_cases_and_unsigned_boundary_check(self):
+    def test_releasefast_failure_diagnostic_retains_four_correctness_cases_and_full_gate(self):
         package = ROOT / "src/frontends/riscv"
         catalog = (package / "build_focused_tests.zig").read_text()
-        spec = catalog.split('.step = "test-releasefast-acceptance",', 1)[1].split('.minimum = 13,', 1)[0]
+        spec = catalog.split('.step = "test-releasefast-acceptance",', 1)[1].split('.minimum = 4,', 1)[0]
         filters = re.findall(r'"([^"\n]+)"', spec.split('.filters = &.{', 1)[1])
         imports = re.findall(r'@import\("([^"]+)"\)', (package / "releasefast_acceptance_test_root.zig").read_text())
-        self.assertEqual(13, len(set(filters)))
-        self.assertIn("typed witness unsigned words retain exact M31 reduction at u32 boundaries", filters)
-        self.assertEqual(12, len(set(imports)))
+        self.assertEqual(4, len(set(filters)))
+        self.assertEqual(4, len(set(imports)))
         declared = [name for path in imports for name in re.findall(r'test "([^"]+)"', (package / path).read_text())]
         self.assertTrue(all(sum(name == selected for name in declared) == 1 for selected in filters))
         self.assertIn('.error_tracing = true,', spec)
@@ -187,6 +186,21 @@ class PlannerContractTests(unittest.TestCase):
         self.assertEqual(2, baseline.count("4e260db9605d16fef5d405cc3c280e3042b22e35"))
         self.assertIn("timeout-minutes: 90", baseline)
         self.assertIn("absent tests are not passing evidence", baseline)
+
+    def test_timing_benchmarks_are_separate_and_nonblocking(self):
+        package = ROOT / "src/frontends/riscv"
+        catalog = (package / "build_focused_tests.zig").read_text()
+        spec = catalog.split('.step = "test-typed-witness-benchmarks",', 1)[1].split('.minimum = 8,', 1)[0]
+        filters = re.findall(r'"([^"\n]+)"', spec.split('.filters = &.{', 1)[1])
+        imports = re.findall(r'@import\("([^"]+)"\)', (package / "typed_witness_benchmark_test_root.zig").read_text())
+        self.assertEqual(8, len(set(filters)))
+        self.assertEqual(8, len(set(imports)))
+        for path in imports:
+            self.assertNotIn('@import("' + path + '")', (package / "test_inventory.zig").read_text())
+            self.assertIn('.path = "' + path + '"', (package / "test_inventory_test.zig").read_text())
+        commands = self.policy["lanes"]["riscv_witness_benchmarks"]["commands"]
+        self.assertEqual([["zig", "build", "test-typed-witness-benchmarks", "--build-file", "src/frontends/riscv/build.zig", "-Doptimize=" + mode, "-j2", "--verbose", "--summary", "all"] for mode in ("ReleaseFast", "Debug")], commands)
+        self.assertIn("continue-on-error: ${{ matrix.lane == 'riscv_witness_benchmarks' }}", (ROOT / ".github/workflows/ci.yml").read_text())
 
     def test_cairo_frontend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/frontends/cairo/air/components/add_ap.zig")

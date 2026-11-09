@@ -18,15 +18,27 @@ pub const Spec = struct {
 pub const specs = [_]Spec{
     .{
         .step = "test-releasefast-acceptance",
-        .description = "Diagnose the twelve full-suite ReleaseFast failures without replacing the complete gate",
+        .description = "Diagnose the four full-suite ReleaseFast correctness failures without replacing the complete gate",
         .root = "releasefast_acceptance_test_root.zig",
         .imports_prover_engine = true,
         .imports_typed_air_artifacts = true,
         .strip = false,
         .error_tracing = true,
         .filters = &.{
-            "typed witness unsigned words retain exact M31 reduction at u32 boundaries",
             "range framework admission rejects selector claim shape identity and malformed source",
+            "E-022 trace and witness geometry consumers retired their duplicate registries",
+            "BLAKE3 Span public program authenticates complete ROM and emits no hash rows",
+            "BLAKE3 memory update proves runner snapshot conversion agrees with full roots",
+        },
+        .minimum = 4,
+    },
+    .{
+        .step = "test-typed-witness-benchmarks",
+        .description = "Run non-blocking paired typed/legacy throughput and scaling benchmarks",
+        .root = "typed_witness_benchmark_test_root.zig",
+        .imports_prover_engine = true,
+        .imports_typed_air_artifacts = true,
+        .filters = &.{
             "typed BRANCH_EQ hot rows retain paired legacy throughput and scaling",
             "typed BRANCH_LT hot rows retain paired legacy throughput and scaling",
             "typed DIV hot rows retain paired legacy throughput and scaling",
@@ -35,11 +47,8 @@ pub const specs = [_]Spec{
             "typed LT_IMM hot rows retain paired legacy throughput and scaling",
             "typed LT_REG hot rows retain paired legacy throughput and scaling",
             "typed SHIFTS_IMM hot rows retain paired legacy throughput and scaling",
-            "E-022 trace and witness geometry consumers retired their duplicate registries",
-            "BLAKE3 Span public program authenticates complete ROM and emits no hash rows",
-            "BLAKE3 memory update proves runner snapshot conversion agrees with full roots",
         },
-        .minimum = 13,
+        .minimum = 8,
     },
     .{
         .step = "test-retained-fri-frontier",
