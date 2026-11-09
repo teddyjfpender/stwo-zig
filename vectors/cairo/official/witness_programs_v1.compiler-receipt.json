@@ -73,7 +73,7 @@
     "revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
     "tree": "2b06286971d87c6d3e834de622d3777f1ff9f41f"
   },
-  "orchestrator_sha256": "0cd8def1afd45353fe4a7051113665275f3c30f166acc99c62fb85184dacbdb2",
+  "orchestrator_sha256": "544952e78bcdaff213cde2dae769b1e065e2dffa24d70ee3e89de955ff343f16",
   "program_count": 64,
   "rewriter_closure_sha256": "df7e29795fcc4f44492cbdc026306f4b83ac7c1789a71acb8f762d53017dee18",
   "schema": "stwo_zig_cairo_witness_compiler_receipt_v1",

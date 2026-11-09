@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-08T23:11:34.034571+00:00",
+  "updated_utc": "2026-11-09T01:04:02.349661+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv/rv64-gpu-hygiene.md",
@@ -575,8 +575,8 @@
     "historical_non_stwo_flags_removed": 3
   },
   "latest_goal_turn": {
-    "classification": "PROGRESS",
-    "evidence": "Factored class/protocol/resource contracts without wire/default changes, fixed cache-mapOOM plan destruction, preserved28driver tests, separatedX0runtime adapters and retained strictsource boundaries.60fakeconsumer entries+4leaf tests+15targetedclosurePASS. Static123to121, no newbaseline/ceiling. User requests stop after committed backup."
+    "classification": "PROGRESS_CPU_ONLY_CAIRO_BUNDLE_REGENERATED",
+    "evidence": "Clean compiler generation reproduces all existing Cairo witness bundle bytes under unchanged bounded guards. Seven orchestrator and forty rewriter tests pass. Cairo upstream pin findings close; five unrelated circuit findings, 393 workspace findings and 103 source-size errors remain. No GPU work, publication or phase completion."
   },
   "budget_results": {
     "worktree_consolidation": {
@@ -2657,6 +2657,94 @@
       },
       "qualification": "Native macOS local-compatible routing/execution correctness. CI lane recipes, Linux host requirements and PR selections are preserved; this is not Linux execution, GPU, full release or timing qualification.",
       "evidence": "External archive keyed by receipt commit tree; native-route acceptance, complete CI receipt, installed binary and contract/audit logs."
+    },
+    "delivery_cairo_recording_export_visibility": {
+      "baseline_commit": "97051eeec",
+      "tested_execution_commit": "8f4ffc56c2aef048d3ef8503bb613a7632207dd1",
+      "tested_execution_tree": "6393f70c6c226b95d0dff61e24fe1bcec9bc4e6f",
+      "status": "PASS_HOST_FULL_WITNESS_BUNDLE_BYTE_IDENTITY",
+      "code": {
+        "added": 91,
+        "removed": 0,
+        "net": 91,
+        "budget": 120
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "moves": 0,
+      "orchestrator_tests": {
+        "tests": 7,
+        "passed": 7
+      },
+      "rewriter_tests": {
+        "tests": 40,
+        "passed": 40,
+        "ignored": 0
+      },
+      "upstream_related_tests": {
+        "tests": 19,
+        "passed": 18,
+        "failed": 1,
+        "remaining_failure": "repository pin carrier assertion retains five existing circuit provenance/artifact-set findings"
+      },
+      "official_regular_files_retained": 700,
+      "all_module_declarations_and_test_sources_retained": true,
+      "full_support_differential_overlay_visibility_unchanged": true,
+      "bundle": {
+        "bytes": 2527495,
+        "sha256": "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6",
+        "programs": 64,
+        "instructions": 157733,
+        "byte_identical_to_checked_in": true
+      },
+      "receipt_provenance": "REFRESHED_FROM_ACTUAL_CLEAN_OWNER_GENERATION",
+      "upstream_pins": {
+        "before": 6,
+        "after": 5,
+        "cairo_errors": 0,
+        "other_ordered_errors_unchanged": true
+      },
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "bounded_generation": {
+        "label": "authenticated-full-witness-generation",
+        "argv": [
+          "uv",
+          "run",
+          "--offline",
+          "--python",
+          "3.13",
+          "--no-project",
+          "python",
+          "tools/cairo-witness-compiler/generate.py",
+          "--source",
+          "/tmp/stwo-delivery-upstream/stwo-cairo",
+          "--output",
+          "/tmp/stwo-delivery-cairo-export-clean.bin",
+          "--receipt",
+          "/tmp/stwo-delivery-cairo-export-clean-compiler.json"
+        ],
+        "exit_code": 0,
+        "stopped_for": null,
+        "observed_group_peak_rss_bytes": 3227844608,
+        "wall_seconds": 100.39587549999123
+      },
+      "retained_negative": "plain-private registry attempt fails E0603 cross-module imports; pub(crate) correction preserves crate imports; prior time/memory stops retained",
+      "qualification": "Authenticated host artifact regeneration only. Exact existing bytes, evaluator, serializer and all release blockers preserved. No full native/SIMD proof, independent official verifier, complete Cairo product, GPU, physical device memory, release or qualified timing claim.",
+      "evidence": "External archive keyed by receipt commit tree; clean source pin, complete generated bundle/receipt, retained exporter binary, rewriter tests, negative attempt and audit logs."
     }
   },
   "post_merge_hygiene": {
