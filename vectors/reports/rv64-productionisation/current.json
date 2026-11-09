@@ -1,7 +1,7 @@
 {
   "schema": "rv64-productionisation-current/v1",
   "status": "IN_PROGRESS_POST_MERGE_HYGIENE_HOST_VERIFIED_HARDWARE_PENDING",
-  "updated_utc": "2026-11-09T01:39:09.850565+00:00",
+  "updated_utc": "2026-11-09T01:55:56.676924+00:00",
   "canonical_checkout": "/Users/theodorepender/Coding/stwo-zig",
   "branch": "codex/rv64-post-merge-hygiene",
   "contract": "design/riscv/rv64-gpu-hygiene.md",
@@ -575,8 +575,8 @@
     "historical_non_stwo_flags_removed": 3
   },
   "latest_goal_turn": {
-    "classification": "PROGRESS_CPU_ONLY_FOCUSED_FRONTEND_DISCOVERY",
-    "evidence": "Twelve formerly unfloored frontend targets now bind their complete observed case census. Four transcript regressions are explicitly discovered and an unmatched filter fails the anonymous guard. Twenty of twenty-four clean Debug/ReleaseFast gates pass; two existing target failures persist in both modes. Inventory passes; 103 source errors and 393 workspace findings remain."
+    "classification": "PROGRESS_CPU_ONLY_CATALOG_DEVELOPER_ROUTING",
+    "evidence": "Forty-five exact frontend roots gain catalog-owned focused routes, with all prior explicit rules and fallback safeguards retained. Eighty-eight contracts pass; clean actual developer semantic/runtime transcript commands pass under explicit shared build-lock ownership. Parent-lock retention and teardown are observed. No GPU work; global failures remain open."
   },
   "budget_results": {
     "worktree_consolidation": {
@@ -3110,6 +3110,116 @@
       "developer_root_route": "DEFERRED_FULL_PACKAGE; derive exact root routing from the existing catalog as a separate follow-up",
       "qualification": "Pinned native macOS component/discovery evidence. Passed, skipped and failed cases remain distinct; source cases overlap across targets. No whole CPU CI, full recursive proof, complete block, GPU, physical memory or qualified timing claim. The initial Debug main-trace compile sampled 4293836800 bytes against the unchanged 4294967296-byte guard; this sampling is not a hard physical-memory ceiling.",
       "evidence": "External archive keyed by receipt tree, retaining twenty-four pinned test images, all named cases in both modes, the filtered rejection image, baseline/clean matrix and audit logs."
+    },
+    "delivery_frontend_catalog_developer_roots": {
+      "baseline_commit": "2eb05eceb",
+      "tested_execution_commit": "9c5f35f13890ec08550eb24923883859f59d056c",
+      "tested_execution_tree": "1db627c80e44f7ad513a81301f128add0925b9ce",
+      "clean": true,
+      "status": "PASS_CATALOG_OWNED_DEVELOPER_ROOTS_AND_BUILD_LOCK_LIFETIME",
+      "code": {
+        "added": 83,
+        "removed": 8,
+        "net": 75,
+        "budget": 80
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "moves": 0,
+      "planning_and_CI_contract_tests": {
+        "tests": 88,
+        "passed": 88
+      },
+      "existing_frontend_explicit_rules_preserved": 28,
+      "new_exact_root_routes": 45,
+      "manual_catalog_root_rows_removed": 6,
+      "canonical_CI_policy_unchanged": true,
+      "qualification_rules": "Exactly one catalog root owner, test-prefixed step and positive discovery floor; prior explicit overrides remain authoritative; other roots retain broad fallback.",
+      "actual_semantic_mode": "PASS_SEMANTIC_ONLY_NO_TEST_EXECUTION",
+      "actual_runtime": {
+        "discovered": 236,
+        "passed": 235,
+        "skipped": 1,
+        "failed": 0,
+        "required_transcript_cases_passed": 4,
+        "same_named_corpus_as_pinned_census": true
+      },
+      "normal_build_lock_owner": "scripts/repo/zig_serial_build.py",
+      "borrowed_canonical_parent_owner": "PRESERVED_AND_OBSERVED_HELD_AFTER_CHILD_EXIT",
+      "shared_lock_after_parent_exit": "AVAILABLE_NONBLOCKING_PROBE_PASSED",
+      "foreign_marker": "DOES_NOT_WAIVE_SHARED_WRAPPER; unit-tested",
+      "runtime_image": {
+        "attribution": "unique new test image in the frozen single-root execution window",
+        "plan_mtime": 1794188990.4335468,
+        "execution_log_mtime": 1794189034.1431956,
+        "image": {
+          "path": "/Users/theodorepender/Coding/stwo-zig/src/frontends/riscv/.zig-cache/o/29738d7b8291162f62148aa30a31ef2f/test",
+          "mtime": 1794189033.6933432,
+          "bytes": 2270168,
+          "sha256": "30f4787535b4b21228510d0a567144b159d4a9b861a489b1e4ba219c7253b7a4"
+        }
+      },
+      "execution": [
+        {
+          "label": "actual-semantic-only-transcript-check",
+          "argv": [
+            "uv",
+            "run",
+            "--offline",
+            "--python",
+            "3.13",
+            "--no-project",
+            "python",
+            "scripts/dev_test.py",
+            "--check",
+            "--optimize",
+            "ReleaseFast",
+            "src/frontends/riscv/transcript_v2_test_root.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 1340325888,
+          "wall_seconds": 7.1275627500144765
+        },
+        {
+          "label": "actual-focused-transcript-runtime",
+          "argv": [
+            "uv",
+            "run",
+            "--offline",
+            "--python",
+            "3.13",
+            "--no-project",
+            "python",
+            "scripts/dev_test.py",
+            "--optimize",
+            "ReleaseFast",
+            "src/frontends/riscv/transcript_v2_test_root.zig"
+          ],
+          "exit_code": 0,
+          "stopped_for": null,
+          "observed_group_peak_rss_bytes": 2713239552,
+          "wall_seconds": 36.663810374971945
+        }
+      ],
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "existing_profile_digest_and_framework_layout_failures": "UNCHANGED_FROM_FOCUSED_CENSUS; no pin/rejection changes",
+      "qualification": "Native macOS developer routing, semantic/runtime dispatch and shared build-lock ownership only. One unchanged opt-in benchmark skip remains explicit. No whole CPU CI, full recursive proof, complete block, GPU, physical memory or qualified timing claim.",
+      "evidence": "External archive keyed by receipt tree, containing all policy/contract checks, actual semantic/runtime CLI logs, retained runtime image and named corpus, borrowed-owner/teardown probes, clean source pin and ordered audits."
     }
   },
   "post_merge_hygiene": {
