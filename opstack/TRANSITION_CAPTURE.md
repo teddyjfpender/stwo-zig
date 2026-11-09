@@ -459,3 +459,26 @@ work. Fully exhausted/incomplete failure work is journaled separately; a partial
 window is never mislabeled exhausted. Offset addition and returned candidate
 ranges are checked independently. The on-demand adapter keeps its one-window
 policy unless an offline recovery explicitly selects further disjoint work.
+
+## Completed new anchored mainnet transition
+
+`transition-recent-mainnet-complete-v1.json` records real OP Mainnet
+159321793 → 159321794 (102 transactions, 27,875,465 gas), anchored at Ethereum
+26378629. The pinned official native Kona client completed derivation. All 15
+standard blob sidecars independently passed C-KZG. Our native `run-transition`
+then accepted the exported input, and accepted its read-trace-pruned form with
+identical claim, payload commitment, block hash and 43-byte OD output.
+
+The canonical pruned OPD contains 38,981 authenticated preimages and 15 sidecars:
+13,882,081 bytes, SHA-256
+`9ee0a1f7b425d90c12d705212502dc135773af8d60f63c494a83500214c14031`.
+Native rejection controls cover changed anchor, changed output root, changed
+consumed blob, changed proof and swapped valid proofs. The reusable
+`capture_host/qualify_export.py` reruns those bounded controls against the pinned
+native executable; timeouts never count as successful rejections.
+
+This establishes complete witness recovery and native anchored derivation. It
+establishes neither an RV64 execution nor a STARK/recursive proof of this new
+fixture. Anchor finality remains externally pinned. Recovering the original
+159257842 archive is still a separate open task; the new fixture does not replace
+that historical reproduction claim.
