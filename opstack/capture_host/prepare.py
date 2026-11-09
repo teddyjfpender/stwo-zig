@@ -22,7 +22,11 @@ def validate_tree(root, pin):
         relative = Path(name)
         if relative.is_absolute() or '..' in relative.parts or not relative.parts:
             raise ValueError('unsafe pinned source path')
-        path = root / relative
+        path = root
+        for part in relative.parts:
+            path = path / part
+            if path.is_symlink():
+                raise ValueError('upstream source hash mismatch')
         if path.is_symlink() or digest(path.read_bytes()) != expected:
             raise ValueError('upstream source hash mismatch')
 
@@ -40,6 +44,9 @@ def prepare(source, destination):
     validate_tree(destination, pin)
     subprocess.run(['git', '-C', str(destination), 'apply', '--check', str(patch)], check=True, capture_output=True)
     subprocess.run(['git', '-C', str(destination), 'apply', str(patch)], check=True, capture_output=True)
+    for name, expected in pin['patched_files'].items():
+        if digest((destination / name).read_bytes()) != expected:
+            raise ValueError('patched source hash mismatch')
     result = {'revision': revision, 'patch_sha256': pin['patch_sha256'], 'host_only': True,
               'patched_files': {name: digest((destination / name).read_bytes()) for name in pin['original_files']},
               'built': False, 'client_executed': False}

@@ -186,15 +186,21 @@ def verified_proof(block, address, slots, proof):
 
 
 class Adapter:
-    def __init__(self, upstream, record_limit=MAX_RECORD_BYTES):
+    def __init__(self, upstream, record_limit=MAX_RECORD_BYTES, header_window=1):
         C.endpoint_label(upstream)
         if not 1 <= record_limit <= MAX_RECORD_BYTES:
             raise ValueError("invalid record budget")
+        if not 1 <= header_window <= 32:
+            raise ValueError("header window invalid")
         self.upstream, self.record_limit = upstream, record_limit
+        self.header_window = header_window
+        self.prefetched_headers = 0
         self.records, self.record_bytes = {}, 0
         self.headers = OrderedDict()
         self.header_bytes = 0
         self.code_accounts = {}
+        self.missing_preimages = {}
+        self.method_counts = {}
 
     def retain(self, records):
         added = 0
@@ -209,6 +215,47 @@ class Adapter:
             raise ValueError("retained preimage budget exceeded")
         self.records.update(records)
         self.record_bytes += added
+
+    def cache_header(self, block):
+        encoded = C.header_rlp(block)
+        self.retain({C.keccak(encoded): encoded})
+        size = len(json.dumps(block))
+        if size > 8 << 20:
+            raise ValueError("header cache entry byte cap exceeded")
+        old = self.headers.get(block["hash"])
+        if old is not None:
+            self.header_bytes -= len(json.dumps(old))
+        self.headers[block["hash"]] = block
+        self.header_bytes += size
+        while len(self.headers) > 128 or self.header_bytes > 8 << 20:
+            _, removed = self.headers.popitem(last=False)
+            self.header_bytes -= len(json.dumps(removed))
+
+    def prefetch_parents(self, head):
+        # Readahead is optional transport scheduling. Every cached parent must
+        # form an exact authenticated chain from the independently requested
+        # head; a failed fetch cannot authorize a fork or fake cache entry.
+        from concurrent.futures import ThreadPoolExecutor
+        number = int(head["number"], 16)
+        numbers = list(range(number - 1, max(-1, number - self.header_window), -1))
+        if not numbers:
+            return
+        def fetch(n):
+            try:
+                block = C.rpc(self.upstream, "eth_getBlockByNumber", [hex(n), False], cap=MAX_RESPONSE, timeout=4)
+                C.header_rlp(block)
+                return block if int(block["number"], 16) == n else None
+            except (C.RpcFailure, ValueError, KeyError, TypeError):
+                return None
+        with ThreadPoolExecutor(max_workers=min(8, len(numbers))) as pool:
+            parents = list(pool.map(fetch, numbers))
+        expected = head["parentHash"]
+        for parent in parents:
+            if parent is None or C.unhex(parent["hash"], 32) != C.unhex(expected, 32):
+                break
+            self.cache_header(parent)
+            self.prefetched_headers += 1
+            expected = parent["parentHash"]
 
     def block(self, identifier):
         if not isinstance(identifier, str):
@@ -228,22 +275,15 @@ class Adapter:
             raise ValueError("requested header hash mismatch")
         if not is_hash and identifier.startswith("0x") and integer(block["number"]) != integer(identifier):
             raise ValueError("requested header number mismatch")
-        self.retain({C.keccak(encoded): encoded})
         # Cache immutable hash aliases only; never retain a moving safe/latest tag.
-        size = len(json.dumps(block))
-        if size > 8 << 20:
-            raise ValueError("header cache entry byte cap exceeded")
-        old = self.headers.get(block["hash"])
-        if old is not None:
-            self.header_bytes -= len(json.dumps(old))
-        self.headers[block["hash"]] = block
-        self.header_bytes += size
-        while len(self.headers) > 128 or self.header_bytes > 8 << 20:
-            _, removed = self.headers.popitem(last=False)
-            self.header_bytes -= len(json.dumps(removed))
+        self.cache_header(block)
+        if self.header_window > 1:
+            self.prefetch_parents(block)
         return block
 
     def dispatch(self, method, params):
+        if method in {"debug_getRawHeader", "debug_getRawReceipts", "eth_getProof", "debug_dbGet", "eth_chainId", "eth_getBlockByHash", "eth_getBlockByNumber", "debug_executePayload"}:
+            self.method_counts[method] = self.method_counts.get(method, 0) + 1
         if not isinstance(params, list):
             raise ValueError("invalid RPC params")
         if method in ("debug_getRawHeader", "debug_getRawReceipts"):
@@ -289,6 +329,8 @@ class Adapter:
             if key in self.records:
                 return "0x" + self.records[key].hex()
             if key not in self.code_accounts:
+                if key.hex() in self.missing_preimages or len(self.missing_preimages) < 256:
+                    self.missing_preimages[key.hex()] = self.missing_preimages.get(key.hex(), 0) + 1
                 raise UnsupportedMethod("unknown authenticated preimage; no guessed sibling/code")
             address, block = self.code_accounts[key]
             raw = C.unhex(C.rpc(self.upstream, "eth_getCode", [address, {"blockHash": block, "requireCanonical": True}], cap=2 << 20))
@@ -306,7 +348,7 @@ class Adapter:
     def export(self, directory):
         directory.mkdir(parents=True, exist_ok=False)
         C.write_new(directory / "records.json", (json.dumps([(k.hex(), v.hex()) for k, v in sorted(self.records.items())]) + "\n").encode())
-        C.write_new(directory / "capture.json", (json.dumps({"records": len(self.records), "bytes": self.record_bytes, "preimage_hashes_verified": True, "complete_witness": False, "derivation_accepted": False, "proof_verified": False}, indent=2) + "\n").encode())
+        C.write_new(directory / "capture.json", (json.dumps({"records": len(self.records), "bytes": self.record_bytes, "preimage_hashes_verified": True, "complete_witness": False, "derivation_accepted": False, "proof_verified": False, "missing_preimages": self.missing_preimages, "method_counts": self.method_counts, "prefetched_headers": self.prefetched_headers}, indent=2) + "\n").encode())
 
 
 def serve(adapter, port, max_requests, seconds):
@@ -351,6 +393,10 @@ def serve(adapter, port, max_requests, seconds):
 
 
 def main():
+    import signal
+    def stop(*_):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, stop)
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--rpc", required=True)
     p.add_argument("--output", type=Path, required=True)
@@ -358,10 +404,11 @@ def main():
     p.add_argument("--port", type=int, default=18545)
     p.add_argument("--seconds", type=int, default=180)
     p.add_argument("--max-requests", type=int, default=10000)
+    p.add_argument("--header-window", type=int, default=1)
     a = p.parse_args()
     if not 1 <= a.seconds <= 180 or not 1 <= a.max_requests <= 10000 or not 1024 <= a.port <= 65535:
         raise ValueError("adapter limits invalid")
-    adapter = Adapter(a.rpc)
+    adapter = Adapter(a.rpc, header_window=a.header_window)
     try:
         if a.block:
             adapter.dispatch("debug_getRawHeader", [a.block])
@@ -376,6 +423,8 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+    except KeyboardInterrupt:
+        print(json.dumps({'status': 'adapter_stopped', 'complete_witness': False}))
     except (ValueError, OSError, KeyError, TypeError, C.RpcFailure) as error:
         print(json.dumps({"status": "adapter_failed", "error_type": type(error).__name__}))
         raise SystemExit(1) from None

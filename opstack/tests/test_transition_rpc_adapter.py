@@ -104,6 +104,25 @@ class AdapterTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'duplicate'):adapter.dispatch('eth_getProof',['0x'+'00'*20,['0x0','0x'+'00'*32],'latest'])
             rpc.assert_not_called()
 
+    def test_readahead_authenticates_parent_chain_and_reuses_hash_cache(self):
+        head,parent=json.loads((Path(__file__).parent/'fixtures/transition-159257842-headers.json').read_text())
+        adapter=A.Adapter('https://example.invalid',header_window=2)
+        with patch.object(C,'rpc',side_effect=[head,parent]) as rpc:
+            self.assertEqual(adapter.block(head['hash'])['hash'],head['hash'])
+            self.assertEqual(adapter.block(parent['hash'])['hash'],parent['hash'])
+            self.assertEqual(rpc.call_count,2)
+        self.assertEqual(adapter.prefetched_headers,1)
+        fork=copy.deepcopy(parent);fork['gasUsed']='0x0'
+        fields=C.decode_rlp(C.header_rlp(parent));fields[10]=b''
+        fork['hash']='0x'+C.keccak(C.rlp(fields)).hex()
+        C.header_rlp(fork)  # Internally valid header on a different ancestry.
+        adapter=A.Adapter('https://example.invalid',header_window=2)
+        with patch.object(C,'rpc',side_effect=[head,fork]):adapter.block(head['hash'])
+        self.assertNotIn(fork['hash'],adapter.headers)
+        self.assertEqual(adapter.prefetched_headers,0)
+        for window in (0,33):
+            with self.assertRaises(ValueError):A.Adapter('https://example.invalid',header_window=window)
+
     def test_real_header_and_unknown_hash_guard(self):
         block=json.loads((Path(__file__).parent/'fixtures/transition-159257842-headers.json').read_text())[0]
         adapter=A.Adapter('https://example.invalid')

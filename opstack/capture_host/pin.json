@@ -6,5 +6,9 @@
     "rust/kona/bin/host/src/single/cfg.rs": "9190d79ea367daa2b7ad680d03796a7a018d17a833e924062a2a811a77c46243",
     "rust/kona/bin/host/src/backend/online.rs": "c5586465ff398f7d9754be5cf87514ae6797ac86d934a605424d71cba89a82ad"
   },
-  "scope": "host-only opt-in disable optional prefetch; no guest/client/verification changes"
+  "scope": "host-only opt-in disable optional prefetch; no guest/client/verification changes",
+  "patched_files": {
+    "rust/kona/bin/host/src/single/cfg.rs": "b5b1642cfe14cb6ba2d6fb3227f61384c6152cd33669055db3070e6473bf8e68",
+    "rust/kona/bin/host/src/backend/online.rs": "aa4ec9b7507199026fc03c7d60b7109f2996b3541b5936cb25e20a09db1de22c"
+  }
 }

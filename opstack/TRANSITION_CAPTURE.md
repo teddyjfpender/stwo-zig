@@ -206,3 +206,36 @@ $PY opstack/capture_host/prepare.py --source /path/to/pinned/optimism   --output
 cd /new/path/owned-kona-capture/rust
 cargo +1.95 test --locked -p kona-host --no-default-features --features single   --lib explicitly_ignored_prefetch_keeps_authenticated_fine_grained_path
 ```
+
+### Bounded native capture
+
+The separately named `capture_host/run.py` **does run the official native Kona
+client and oracle**, for at most180seconds. It never runs an RV64 guest or STARK
+prover. It requires the exact pinned, patched source and an already built native
+host, reauthenticates the candidate headers/output-root preimages, launches two
+loopback adapters with a minimal child environment, monitors decoded-KV/log
+limits, and stops whole process groups. Normal interruption exports authenticated
+adapter progress; a timeout is explicitly incomplete.
+
+```sh
+cargo +1.95 build --offline --locked -p kona-host --no-default-features \
+  --features single --bin kona-host
+$PY opstack/capture_host/run.py --source /path/to/owned-kona-capture \
+  --candidate /path/to/recent-candidate --l1-rpc https://rpc.flashbots.net \
+  --l2-rpc https://mainnet.optimism.io \
+  --beacon https://ethereum-beacon-api.publicnode.com \
+  --header-window 32 --seconds 180 --output /new/path/native-capture
+```
+
+The default header window remains1. Optional readahead fetches at most32 parents
+with8threads, retaining only an exact authenticated parent chain from the
+requested header. Internally valid headers from another fork are rejected from
+that chain. Cache and record caps still apply. `--resume /path/to/previous-run`
+requires identical source/patch/executable/candidate identities and copies bounded
+Keccak/SHA-authenticated KV progress into a NEW output directory; it never
+mutates the prior artifacts. No deadline is raised for a resumed attempt.
+
+The first bounded native attempt retained4532 authenticated records,103 L1 and104
+L2 headers, then hit its180second deadline with zero unknown-preimage errors.
+It did not reach native acceptance. See the native-capture receipt for subsequent
+attempts; filesystem allocation and decoded witness bytes are reported separately.
