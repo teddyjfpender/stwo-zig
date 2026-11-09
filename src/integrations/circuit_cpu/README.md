@@ -15,7 +15,7 @@ prover, `recursion` folds leaf proofs into a root exactly as
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.2.0` |
+| Version | `0.3.0` |
 | Layer | `integration` |
 | Owner | `circuit-cpu-integration` |
 | Public Zig module | `stwo_circuit_cpu_integration` |
@@ -314,3 +314,6 @@ tree coverage and publication. Canonical package modules share field and engine
 identity. OM31 retains its existing **prefixed** Blake2s Merkle hasher and raw-mod
 transcript; the older circuit profiles retain their existing plain family.
 No hash family, wire bytes, profile admission or device qualification changes.
+
+Binary decode rejections preserve their stage/reason and optionally carry the
+origin-owned `wire_failure` diagnostic; allocation failure still propagates.

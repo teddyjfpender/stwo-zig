@@ -11,7 +11,7 @@ bytes the Rust would write for it.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `interchange` |
 | Owner | `circuit-recursion` |
 | Public Zig module | `stwo_circuit_recursion_wire` |
@@ -166,3 +166,7 @@ from the repository root and round-trips the upstream goldens copied into
 - [Rust porting map](../../../design/starknet/recursion/01-rust-map.md)
 - [Circuit recursion fixtures](../../../vectors/circuit/README.md)
 - [Proof interchange package](../proof_wire/README.md)
+
+`error_codes` maps only `circuit_serialize.DecodeError` at its owned binary
+decode origin: 0x5001/0x5002, with null lookup for unknown codes. Other boundaries
+remain unmapped; wire bytes, error tags and trailing-byte policy are unchanged.

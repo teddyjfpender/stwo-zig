@@ -1,7 +1,9 @@
 # RFC draft: origin-specific waist error codes at real boundaries
 
-Status: proposal only; no provider, serializer, version or error behavior is
-implemented or approved by this draft. Slice: [#359](https://github.com/teddyjfpender/stwo-zig/issues/359).
+Status: the exact first-consumer transaction was approved by the coordinating
+implementation delegate under the user-directed D2 scope: [decision](https://github.com/teddyjfpender/stwo-zig/issues/360#issuecomment-6750967254).
+This records a delegate decision, not a new owner/user signature. Full D2 remains
+incomplete; all remaining coverage obligations below are retained. Slice: [#359](https://github.com/teddyjfpender/stwo-zig/issues/359).
 RFC: [#360](https://github.com/teddyjfpender/stwo-zig/issues/360).
 Census source: `27ed1d34894c554fcdaf91af3c4eae331ea242ac`.
 Owners for the first transaction: `protocol-core`, `circuit-recursion` and

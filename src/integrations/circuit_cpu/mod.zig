@@ -54,3 +54,7 @@ test {
     _ = verify;
     _ = recursion;
 }
+
+test {
+    _ = verify;
+}

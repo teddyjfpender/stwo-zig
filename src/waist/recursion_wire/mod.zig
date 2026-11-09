@@ -4,6 +4,7 @@
 //! producers. See README.md for the format map.
 
 const std = @import("std");
+pub const error_codes = @import("error_codes.zig");
 
 /// `CircuitSerialize`: binary circuit proofs, sized by a `ProofConfig`.
 pub const circuit_serialize = @import("circuit_serialize.zig");

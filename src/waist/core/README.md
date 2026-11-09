@@ -7,7 +7,7 @@ contains no prover orchestration and has no dependency on a compute backend.
 
 | Property | Value |
 | :--- | :--- |
-| Version | `0.1.0` |
+| Version | `0.2.0` |
 | Layer | `protocol` |
 | Owner | `protocol-core` |
 | Public Zig module | `stwo_core` |
@@ -159,3 +159,6 @@ When changing this package:
 - [Package-workspace release audit](../../../design/decisions/2026-07-28-zig-package-workspace-release-audit.md)
 - [Package release and versioning policy](../../../design/repository/zig-package-release-policy.md)
 - [API parity policy](../../../conformance/api-parity.md)
+
+`error_codes` provides shared diagnostic `Class` and u16 `Entry` metadata only;
+provider mappings and full D2 coverage remain separately declared.

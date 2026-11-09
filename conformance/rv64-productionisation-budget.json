@@ -988,6 +988,14 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
+    },
+    {
+      "id": "typed_circuit_decode_errors_359_360",
+      "net_code_budget": 320,
+      "runtime_table_plumbing_max": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Two origin-specific stable decoder codes, immediately consumed by the circuit verifier and existing CPU CLI, with exact code/class/unknown/foreign-origin/OOM/diagnostic-failure contracts. All remaining five-waist D2 boundaries remain explicit; no global anyerror mapping or proof-byte/error/exit change. Approved RFC360."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

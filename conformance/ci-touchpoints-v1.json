@@ -97,6 +97,7 @@
           "zig",
           "build",
           "test-fields",
+          "test-revision",
           "--build-file",
           "src/waist/core/build.zig",
           "-Doptimize=Debug",
@@ -575,6 +576,15 @@
       "host": "linux",
       "description": "Circuit recursion wire-format package",
       "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/waist/recursion_wire/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ],
         [
           "zig",
           "build",

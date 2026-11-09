@@ -43,7 +43,7 @@ pub const Stage = enum {
 pub const Verdict = union(enum) {
     /// The verifier's output digest (its reserved output wires).
     accepted: [8]u32,
-    rejected: struct { stage: Stage, reason: anyerror },
+    rejected: struct { stage: Stage, reason: anyerror, wire_failure: ?core.error_codes.Entry = null },
 
     pub fn isAccepted(self: Verdict) bool {
         return self == .accepted;
@@ -75,10 +75,7 @@ pub fn verifyProofBytes(
         };
         break :blk proof_config.shape();
     };
-    var decoded = wire.circuit_serialize.deserializeProof(gpa, proof_bytes, shape) catch |err| switch (err) {
-        error.OutOfMemory => return error.OutOfMemory,
-        else => return reject(.deserialize, err),
-    };
+    var decoded = wire.circuit_serialize.deserializeProof(gpa, proof_bytes, shape) catch |err| return rejectCircuitDecode(err);
     defer decoded.deinit();
     const values = verifier_proof.circuitVerifierValues(arena, &decoded.proof, shape) catch |err| switch (err) {
         error.OutOfMemory => return error.OutOfMemory,
@@ -99,6 +96,17 @@ pub fn verifyProofBytes(
     };
     defer ctx.deinit();
     return .{ .accepted = try outputDigest(&ctx) };
+}
+
+// Only the owned binary-decoder catch calls this typed boundary.
+fn rejectCircuitDecode(reason: (wire.circuit_serialize.DecodeError || wire.circuit_serialize.ConfigError || std.mem.Allocator.Error)) std.mem.Allocator.Error!Verdict {
+    const entry = switch (reason) {
+        error.OutOfMemory => return error.OutOfMemory,
+        error.NotEnoughData => wire.error_codes.fromCircuitDecode(error.NotEnoughData),
+        error.ValueOutOfRange => wire.error_codes.fromCircuitDecode(error.ValueOutOfRange),
+        else => return reject(.deserialize, reason),
+    };
+    return .{ .rejected = .{ .stage = .deserialize, .reason = reason, .wire_failure = entry } };
 }
 
 fn reject(stage: Stage, reason: anyerror) Verdict {
@@ -123,4 +131,23 @@ fn outputDigest(ctx: anytype) std.mem.Allocator.Error![8]u32 {
         word.* = limbs[0].v | (limbs[1].v << 16);
     }
     return digest;
+}
+
+test "coded decoder rejection preserves origin reason and allocation failure" {
+    for ([_]wire.circuit_serialize.DecodeError{ error.NotEnoughData, error.ValueOutOfRange }, [_]u16{ 0x5001, 0x5002 }) |err, code| {
+        const verdict = try rejectCircuitDecode(err);
+        try std.testing.expect(!verdict.isAccepted());
+        try std.testing.expectEqual(Stage.deserialize, verdict.rejected.stage);
+        try std.testing.expectEqual(err, verdict.rejected.reason);
+        try std.testing.expectEqual(code, verdict.rejected.wire_failure.?.code);
+    }
+    // Same stage/tag from a different catch is deliberately NOT classified.
+    const foreign = reject(.deserialize, error.ValueOutOfRange);
+    try std.testing.expect(foreign.rejected.wire_failure == null);
+    try std.testing.expectEqual(error.ValueOutOfRange, foreign.rejected.reason);
+    const config = try rejectCircuitDecode(error.InvalidProofShape);
+    try std.testing.expect(config.rejected.wire_failure == null);
+    try std.testing.expectEqual(error.InvalidProofShape, config.rejected.reason);
+    try std.testing.expectError(error.OutOfMemory, rejectCircuitDecode(error.OutOfMemory));
+    try std.testing.expect((Verdict{ .accepted = @splat(0) }).isAccepted());
 }

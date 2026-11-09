@@ -1,7 +1,7 @@
 {
   "schema": "stwo-zig-package-contract-v2",
   "package": "stwo_core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "layer": "protocol",
   "owner": "protocol-core",
   "public_modules": {
@@ -20,6 +20,7 @@
     "constraint_framework",
     "constraints",
     "crypto",
+    "error_codes",
     "fft",
     "fields",
     "fraction",
@@ -42,6 +43,7 @@
   ],
   "api_contract": {
     "signature_tests": [
+      "error_codes.zig::api signature: boundary metadata uses u16 codes and stable class tags",
       "mod.zig::api signature: core vector constructors preserve element types"
     ],
     "invariant_tests": [
