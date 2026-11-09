@@ -40,7 +40,7 @@ replacing the qualified execution controls above. Its records are in
 | Service-local GKR | Actual Kona120794432 completes native suite3 and a 683,432-byte R6 root, with separate source-only acceptance and policy/output refusal; explicit suite3 additionally closes a complete synthetic CPU + Miller native bundle, two recursive leaves and one fold, with physical adversaries | Actual full-height Miller and heavy resource-derived physical sharding. The small Kona block has zero Miller calls; the synthetic fixture is not a Kona block or a heavy performance result |
 | Bounded truth planning | Source-derived checkpoint/whole-worker estimator refuses heavy log18 Keccak and admits log16/4,518-permutation shards under the declared 8 GiB worker limit | Resource-derived shard-plan integration is present; physical heavy qualification remains open. Estimates are requested bytes, not measured RSS |
 | Retained source custody | Small native bundle remains byte-identical with CPU advice parking and post-seal LS/SHIFT auxiliary retirement; witness-free ledger reproduces capture and event payloads exactly | Model excludes scratch/mappings; 27.46 GB CPU seal payload is not whole-worker admission or measured RSS |
-| Detached sponge and CPU frontier | Four-worker physical native fixture closes two CPU shards, detached sponge and Keccak truth under one manifest, with independently rebuilt keys and canonical direct/sponge call IDs. Typed CPU frontier also has a physical recursive leaf and fresh source verification | Complete execution inventory, recursive root and independent receiver admission; suite sponge admission remains closed. These are short fixtures, not block speedups |
+| Detached sponge and CPU frontier | Four-worker physical native fixture closes two CPU shards, detached sponge and Keccak truth under one manifest, with independently rebuilt keys and canonical direct/sponge call IDs. Typed CPU frontier and detached sponge each have physical recursive leaves; the four-member pending root freshly verifies, with exact source masses and global closure | Production source-suite/runtime and actual OP-block receiver admission; suite sponge admission remains closed. These are short fixtures, not block speedups |
 | Native recursive dot product | Eight-role R7 CPU leaf for actual Kona120794432: 217,378,816 cells versus R6 264,302,592 (17.75% fewer), 681,484-byte physical proof, fresh independent source/key acceptance; recursive statement and source-owned pending parents also qualified | Complete execution root with native coverage, adjacency, global and terminal admission. The 17.907s leaf qualification is not a complete-root or controlled speedup result |
 | Immutable outer Miller setup | Bounded producer and independent verifier caches reproduce/accept the same physical root with cached and forced-fallback keys; class barrier, request binding, adversarial checks and zero final heap | Repeated-class complete-execution performance; no process-global cache or unbudgeted retention |
 | Complete heavy performance | Matched D2 native + M6 root baseline 3,328.446 seconds | At most 332.845 seconds for the same heavy block, through a complete recursive root; **not achieved** |
@@ -101,10 +101,10 @@ setup savings. See [producer cache qualification](../vectors/reports/rv64-opstac
 
 Authenticated capture of a new recent transition159321793→159321794 is in
 progress. Header, transaction and receipt roots, account/storage proofs and
-code hashes are independently checked before reuse. Bounded native host runs
+code hashes are independently checked before reuse. All15 reconstructed blob sidecars pass standard C-KZG; code provenance survives authenticated cache resume. Bounded native host runs
 have reached target execution, but have not produced a complete accepted
 witness. This does not replace the missing historical input or establish a
-physical derivation proof. All79 OP Python tests pass on the integrated tree;
+physical derivation proof. All87 OP Python tests pass on the integrated tree;
 shared circuit builder R1/R5 ReleaseSafe parity targets also pass. Broader CI
 qualification remains separate.
 
