@@ -41,3 +41,25 @@ Default tests only check bounded decompression and hashes. They run neither
 native execution nor RV64, STARK or recursion proving. This receipt establishes
 native anchored derivation, **not a physical proof**; anchor finality remains an
 external input. The missing older 159257842 archive remains a separate gate.
+
+
+For guest benchmarking, the existing uncompressed `STWOPD01` container avoids
+inflating its body inside the guest. The canonical fixture remains the single
+hash-pinned compressed source above. An explicit bounded conversion produces
+23,452,688bytes, SHA256
+`6037c7df72f4deb15f7309ab312c39e95ea909bdecf5cda86060e2c4d4bf45ee`.
+It preserves the exact claim/preimages/sidecars and passes fresh native replay
+with the same43-byte OD. Use a guest/input capacity of at least that size (the
+transition's existing cap is32MiB−4); independently re-pin input SHA/initial
+image and regenerate ABI symbols from the actual ELF. No guest/proving speedup
+is established by container conversion.
+
+```sh
+python3 opstack/capture_host/raw_input.py \
+  --manifest opstack/tests/fixtures/transition-159321794/manifest.json \
+  --output /tmp/op-transition-159321794/input-raw.opd
+```
+
+The optional `--native-host PATH` independently repeats native transition
+verification. Defaults perform only bounded framing/hash checks, never network,
+RV64, STARK or recursion work. Existing packer defaults and formats are unchanged.

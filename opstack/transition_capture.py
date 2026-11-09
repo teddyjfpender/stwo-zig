@@ -102,7 +102,8 @@ def claim_header(claim):
     return bytes(out)
 
 
-def inspect_container(data, claim):
+def unpack_container(data, claim):
+    """Validate framing and return the bounded body once; no hash/KZG authority."""
     if not HEADER <= len(data) <= MAX_INPUT or data[:8] not in (b"STWOPD01", b"STWOPDZ1"):
         raise ValueError("invalid bounded OPD envelope")
     if data[8:168] != claim_header(claim):
@@ -113,7 +114,10 @@ def inspect_container(data, claim):
         raise ValueError("transition body cap exceeded")
     if data[:8] == b"STWOPDZ1":
         decoder = zlib.decompressobj()
-        body = decoder.decompress(data[HEADER:], expected + 1)
+        try:
+            body = decoder.decompress(data[HEADER:], expected + 1)
+        except zlib.error:
+            raise ValueError("invalid bounded OPD zlib body") from None
         if len(body) != expected or not decoder.eof or decoder.unused_data or decoder.unconsumed_tail:
             raise ValueError("non-exact bounded OPD decompression")
     else:
@@ -146,7 +150,12 @@ def inspect_container(data, claim):
         previous = commitment
     return {"bytes": len(data), "sha256": sha(data), "records": records, "sidecars": count,
             "container_validated": True, "preimage_hashes_verified": False,
-            "kzg_verified": False, "derivation_accepted": False, "proof_verified": False}
+            "kzg_verified": False, "derivation_accepted": False, "proof_verified": False}, body
+
+
+def inspect_container(data, claim):
+    info, _ = unpack_container(data, claim)
+    return info
 
 
 def recover(roots, output=None, max_files=1000000):
