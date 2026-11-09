@@ -242,7 +242,7 @@ pub const Key = struct {
     pub fn expected(self: *const Key, truth: R.Truth, ordinal: u32) !Manifest.Expected {
         return .{ .kind = kind(truth), .ordinal = ordinal, .profile = self.profile, .fixed_identity = self.identity, .fixed = self.root, .statement = try self.statement(truth), .mass = try mass(truth), .global_relations = relations(truth), .local_instances = null };
     }
-    fn append(self: *const Key, a: std.mem.Allocator, scheme: *W.Scheme, channel: *W.Channel) !void {
+    pub fn append(self: *const Key, a: std.mem.Allocator, scheme: *W.Scheme, channel: *W.Channel) !void {
         if (scheme.trees.items.len != 0 or !std.meta.eql(scheme.config, self.profile.config())) return error.OpTruthPhase;
         var tree = self.tree.retainShared();
         errdefer tree.deinit(self.allocator);
@@ -264,7 +264,7 @@ fn admit(truth: R.Truth, budget: usize) !void {
 fn requireAllocator(a: std.mem.Allocator, other: std.mem.Allocator) !void {
     if (!@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, other)) return error.OpTruthSourceAllocator;
 }
-fn validateAllocator(a: std.mem.Allocator, source: *const R.TruthSource) !void {
+pub fn validateAllocator(a: std.mem.Allocator, source: *const R.TruthSource) !void {
     switch (source.*) {
         .sha256 => |s| try requireAllocator(a, s.source.allocator),
         .arith256_mod => |s| try requireAllocator(a, s.source.allocator),

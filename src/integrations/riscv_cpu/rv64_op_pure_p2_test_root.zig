@@ -1,4 +1,11 @@
 test {
+    _ = @import("poseidon2_outer/truth_local_gkr/projection.zig");
+    _ = @import("poseidon2_outer/truth_local_gkr/leaf_test.zig");
+    _ = @import("poseidon2_outer/truth_local_gkr/legacy_parity_test.zig");
+    _ = @import("word16_global_execution/services/roster.zig");
+    _ = @import("poseidon2_outer/truth_local_gkr/worker_test.zig");
+    _ = @import("poseidon2_outer/truth_local_gkr/child_test.zig");
+    _ = @import("poseidon2_outer/truth_local_gkr/fixture_test.zig");
     _ = @import("poseidon2_outer/truth_local_gkr/native.zig");
     _ = @import("poseidon2_outer/truth_local_gkr/authority.zig");
     _ = @import("poseidon2_outer/truth_local_gkr/source_inputs.zig");

@@ -23,7 +23,7 @@ pub const Pending = struct {
     eta: C.F,
     receipt: C.Hash,
 };
-const Channel = struct {
+pub const Channel = struct {
     ctx: *C.Context,
     channel: C.Channel,
     failure: ?anyerror = null,
@@ -46,7 +46,7 @@ const Channel = struct {
             return C.F.zero();
         };
     }
-    fn finish(self: *@This()) !void {
+    pub fn finish(self: *@This()) !void {
         if (self.failure) |err| return err;
         try C.lane.check();
     }
@@ -67,7 +67,7 @@ fn begin(ctx: *C.Context, scope: Scope, instances: []const Frame.Instance) !Chan
     }
     return .{ .ctx = ctx, .channel = ch };
 }
-const Checks = struct {
+pub const Checks = struct {
     ctx: *C.Context,
     pub fn requireEq(self: @This(), left: C.F, right: C.F, _: anytype) !void {
         try C.eq(self.ctx, left, right);

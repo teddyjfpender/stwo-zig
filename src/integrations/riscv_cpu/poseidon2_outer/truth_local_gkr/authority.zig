@@ -8,6 +8,8 @@ const Roles = @import("../../word16_global_execution/services/gkr_local/truth_co
 const Frame = @import("../../word16_global_execution/services/gkr_local/truth_frame.zig");
 const Classic = @import("../../word16_global_execution/services/gkr_local/truth_classic.zig");
 const B = @import("../../word16_global_execution/services/gkr_local/binding.zig");
+pub const production_admission_open = false;
+pub const security_qualified = false;
 pub const DOMAIN = "op-pure-p2-truth-local-gkr/v1";
 pub const Shape = struct {
     original: Legacy.Shape,
@@ -93,6 +95,9 @@ test "OP truth local GKR shape removes local interaction width and preserves sou
     const c = try cost(s);
     try std.testing.expectEqual([3]usize{ 46, 1925, 5368 }, c.old_widths);
     try std.testing.expectEqual([3]usize{ 46, 1925, 256 }, c.new_widths);
+    try std.testing.expectEqual(@as(u64, 59949056), c.old_cells);
+    try std.testing.expectEqual(@as(u64, 18071552), c.new_cells);
+    try std.testing.expectEqual(@as(u64, 16786432), c.padded_facts);
     try std.testing.expectEqual(@as(usize, 13774), c.old_samples);
     try std.testing.expectEqual(@as(usize, 8686), c.new_samples);
     try std.testing.expectEqualSlices(i32, &.{ 0, 2 }, s[0].shifts(2, 0));

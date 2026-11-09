@@ -14,6 +14,18 @@ const S = core.crypto.poseidon2_m31_sponge;
 const O = core.fields.om31.OM31;
 const GP = engine.lookups.gkr_prover.ForField(O);
 const GV = engine.lookups.gkr_verifier.ForField(O);
+pub const Wire = @import("../../word16_global_execution/services/gkr_local/wire.zig");
+pub const WIRE_MAGIC = "OPTLGKR1";
+pub fn encode(a: std.mem.Allocator, shapes: [3]Authority.Shape, proof: *const GV.GkrBatchProof) ![]u8 {
+    try Authority.validate(shapes);
+    const frames = instances(shapes);
+    return Wire.encodeFor(a, &frames, proof, WIRE_MAGIC);
+}
+pub fn decode(a: std.mem.Allocator, shapes: [3]Authority.Shape, bytes: []const u8) !Wire.Owned {
+    try Authority.validate(shapes);
+    const frames = instances(shapes);
+    return Wire.decodeFor(a, &frames, bytes, WIRE_MAGIC);
+}
 pub const Channel = Base.Channel;
 pub const Challenges = TF.ChallengesFor(O);
 pub const Scope = struct { statement: [32]u8, fixed: S.Digest, main: S.Digest, manifest: S.Digest, ordinal: u32 };
@@ -49,8 +61,13 @@ pub fn begin(scope: Scope, shapes: [3]Authority.Shape) !Channel {
 /// The scope and each source policy are typed independently of the CPU receipt;
 /// only the canonical bounded proof payload is shared.
 pub fn receipt(scope: Scope, shapes: [3]Authority.Shape, proof: *const GV.GkrBatchProof, marginals: []const []const O) !S.Digest {
-    try Authority.validate(shapes);
     var writer = Base.ReceiptWriter{};
+    try emitReceipt(scope, shapes, proof, marginals, &writer);
+    return writer.finish();
+}
+/// One typed receipt authority for native and in-circuit values.
+pub fn emitReceipt(scope: anytype, shapes: [3]Authority.Shape, proof: anytype, marginals: anytype, writer: anytype) !void {
+    try Authority.validate(shapes);
     for (DOMAIN) |tag| writer.tag(tag);
     writer.rawDigest(scope.statement);
     writer.root(scope.fixed);
@@ -68,8 +85,7 @@ pub fn receipt(scope: Scope, shapes: [3]Authority.Shape, proof: *const GV.GkrBat
         writer.integer(@intFromEnum(instance.keccak_policy));
         writer.integer(@intFromEnum(instance.byte_policy));
     }
-    try Framing.emitPayload(proof, &variables, marginals, &writer);
-    return writer.finish();
+    try Framing.emitPayload(proof, &variables, marginals, writer);
 }
 /// The common mixed-height verifier point uses suffix variables per instance.
 pub fn splitPoint(instance: Frame.Instance, point: []const O, variables: usize) !struct { row: []const O, lane: []const O } {
@@ -77,11 +93,17 @@ pub fn splitPoint(instance: Frame.Instance, point: []const O, variables: usize) 
     const local = point[point.len - variables ..];
     return .{ .row = local[0..instance.row_log], .lane = local[instance.row_log..] };
 }
+/// Borrowed terminal data only. Even a verifier-derived view is pending its
+/// authenticated source AIR; this handle grants no execution acceptance.
+pub const Terminal = struct { artifact: *const GV.GkrArtifact, challenges: Challenges, eta: O };
 pub const Pending = struct {
     artifact: GV.GkrArtifact,
     challenges: Challenges,
     eta: O,
     digest: S.Digest,
+    pub fn terminal(self: *const @This()) Terminal {
+        return .{ .artifact = &self.artifact, .challenges = self.challenges, .eta = self.eta };
+    }
     pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
         self.artifact.deinit(a);
         self.* = undefined;
@@ -104,6 +126,9 @@ pub const Unbound = struct {
     challenges: Challenges,
     eta: O,
     digest: S.Digest,
+    pub fn terminal(self: *const @This()) Terminal {
+        return .{ .artifact = &self.result.artifact, .challenges = self.challenges, .eta = self.eta };
+    }
     pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
         self.result.deinit(a);
         self.* = undefined;
@@ -137,7 +162,11 @@ test "OP truth local GKR native source proof binds manifest and ninth receipt co
     const a = std.testing.allocator;
     var proof = try proveUnbound(a, scope, shapes, Provider{});
     defer proof.deinit(a);
-    var pending = try verifyPending(a, scope, shapes, &proof.result.proof, proof.digest);
+    const bytes = try encode(a, shapes, &proof.result.proof);
+    defer a.free(bytes);
+    var decoded = try decode(a, shapes, bytes);
+    defer decoded.deinit();
+    var pending = try verifyPending(a, scope, shapes, &decoded.proof, proof.digest);
     defer pending.deinit(a);
     try std.testing.expect(proof.eta.eql(pending.eta));
     try std.testing.expectEqualSlices(O, proof.result.artifact.ood_point, pending.artifact.ood_point);

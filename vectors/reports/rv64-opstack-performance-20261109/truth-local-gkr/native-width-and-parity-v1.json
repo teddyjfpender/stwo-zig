@@ -1,0 +1,162 @@
+{
+  "scope": "opt_in_truth_local_gkr_native_fragments_and_shared_classic_parity",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission_open": false,
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "field": "OM31",
+  "crypto": "Poseidon2-M31-v2 full nine-limb digests",
+  "new_native_fixtures": [
+    {
+      "kind": "keccak",
+      "calls": 2,
+      "crypto_log": 5,
+      "table_logs": [
+        13,
+        10
+      ],
+      "pcs_bytes": 1105344,
+      "local_gkr_bytes": 21120,
+      "envelope_bytes": 1126588,
+      "peak_worker_requested_bytes": 19854616,
+      "physical_columns": [
+        46,
+        1925,
+        256
+      ],
+      "fresh_fixed_receiver": true
+    },
+    {
+      "kind": "secp_add",
+      "calls": 1,
+      "pcs_bytes": 282156,
+      "local_gkr_bytes": 14604,
+      "envelope_bytes": 296884,
+      "peak_worker_requested_bytes": 1765585,
+      "physical_columns": [
+        33,
+        520,
+        112
+      ],
+      "fresh_fixed_receiver": true
+    }
+  ],
+  "legacy_parity": {
+    "base": "6dd31a959",
+    "same_profile": true,
+    "same_fixture": true,
+    "exact_proof_bytes": true,
+    "fresh_receivers_accept": true,
+    "controls": [
+      {
+        "kind": "keccak",
+        "envelope_bytes": 2777556,
+        "sha256": "7d016c87d09fa24ddfe2516b80840025c3c16cd01430e3be5e1ec9458542ec38"
+      },
+      {
+        "kind": "secp_add",
+        "envelope_bytes": 635644,
+        "sha256": "057eb42d0bfeba92f06f7d6135b73f2b84ca3af0e77ebce4cc08bbd548e0f3c6"
+      }
+    ]
+  },
+  "source_derived_small_block_keccak_model": {
+    "calls": 338,
+    "crypto_log": 13,
+    "table_logs": [
+      13,
+      10
+    ],
+    "classic_columns": [
+      46,
+      1925,
+      5368
+    ],
+    "new_columns": [
+      46,
+      1925,
+      256
+    ],
+    "classic_trace_cells": 59949056,
+    "new_trace_cells": 18071552,
+    "classic_opening_samples_excluding_composition": 13774,
+    "new_opening_samples_excluding_composition": 8686,
+    "padded_local_gkr_facts": 16786432,
+    "measured_total_speedup": null
+  },
+  "qualified_checks": [
+    "original Keccak MAIN and KIO physical proof",
+    "original canonical secp product/linear and Wire physical proof",
+    "independent FIXED key receiver",
+    "durable source-bounded GKR codec and PCS envelope",
+    "manifest and ninth receipt mutations",
+    "wrong expected ordinal and old authority rejection",
+    "physical global-claim mutation rejection",
+    "source partial query/row/padded interval bounds",
+    "whole-worker and child allocator caps",
+    "codec allocation-failure cleanup",
+    "CPU native/constrained receipt parity after shared payload extraction",
+    "truth native/constrained child eta/point/marginal/receipt parity",
+    "classic before/after proof-envelope parity"
+  ],
+  "performance_caveat": "Tiny correctness fixtures under concurrent workload; no timing comparison or whole-prover speedup claim. Trace-cell contraction excludes local GKR work and recursion overhead.",
+  "remaining": [
+    "complete recursive physical leaf qualification",
+    "fresh source-only topology/root catalog integration",
+    "whole-execution inventory and cross-shard closure qualification",
+    "actual-block retention admission and controlled end-to-end native/recursive benchmarking"
+  ],
+  "recursive_numerical_fixtures": [
+    {
+      "kind": "keccak",
+      "crypto_log": 5,
+      "table_logs": [
+        13,
+        10
+      ],
+      "raw_counts": [
+        14990,
+        4279584,
+        276,
+        37264,
+        65536
+      ],
+      "padded_rows": [
+        16384,
+        8388608,
+        512,
+        65536,
+        65536
+      ],
+      "main_cells": 131991552,
+      "fixed_cells": 71992832,
+      "interaction_cells": 147468288,
+      "total_trace_cells": 351452672,
+      "p2_permutations": 37264,
+      "forged_terminal_MAIN_global_claim_ninth_output_rejected": true
+    },
+    {
+      "kind": "secp_add",
+      "raw_counts": [
+        10000,
+        761532,
+        276,
+        15466,
+        65536
+      ],
+      "padded_rows": [
+        16384,
+        1048576,
+        512,
+        16384,
+        65536
+      ],
+      "main_cells": 20514816,
+      "fixed_cells": 9684480,
+      "interaction_cells": 20590592,
+      "total_trace_cells": 50789888,
+      "p2_permutations": 15466,
+      "forged_terminal_MAIN_global_claim_ninth_output_rejected": true
+    }
+  ]
+}
