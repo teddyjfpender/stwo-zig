@@ -21,6 +21,7 @@ class CiTests(unittest.TestCase):
         self.assertIn("if: github.event_name == 'workflow_dispatch' && inputs.gate == 'regenerate-circuit-vectors'", job)
         self.assertIn("runs-on: ubuntu-latest", job)
         self.assertIn('CARGO_BUILD_JOBS: "1"', job)
+        self.assertLess(job.index("size < 32 * (1 << 30)"), job.index("/usr/bin/time -v python3"))
         self.assertIn("nightly-2026-01-15", job)
         self.assertIn("python3 scripts/interop/generate_circuit_oracle_vectors.py", job)
         self.assertIn("git diff --exit-code -- src tools scripts .github conformance", job)
@@ -299,6 +300,17 @@ class CiTests(unittest.TestCase):
         self.assertIn("python3 scripts/repo/ci_scope_plan.py", workflow)
         self.assertIn("python3 scripts/repo/ci_scope_run.py", workflow)
         self.assertIn("architecture-diagnostic:", workflow)
+
+    def test_manual_cpu_diagnostics_cannot_dispatch_device_or_production_gates(self):
+        source = (ROOT / ".github/workflows/ci.yml").read_text()
+        for owner, end in (("focused-plan", "focused-linux"), ("focused-linux", "focused-macos")):
+            job = source.split("  " + owner + ":", 1)[1].split("  " + end + ":", 1)[0]
+            self.assertIn("inputs.gate == 'focused-cpu'", job)
+        for owner, end in (("focused-macos", "focused-cuda"), ("focused-cuda", "focused-verdict"), ("focused-verdict", "release-gate")):
+            job = source.split("  " + owner + ":", 1)[1].split("  " + end + ":", 1)[0]
+            self.assertNotIn("focused-cpu", job)
+        self.assertIn('SCOPE_ARGS+=(--manual-cpu-lane "$MANUAL_CPU_LANE")', source)
+        self.assertIn('MANUAL_CPU_LANE: ${{ inputs.cpu_lane }}', source)
 
     def test_hosted_ci_requires_fail_closed_cuda_device_evidence(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

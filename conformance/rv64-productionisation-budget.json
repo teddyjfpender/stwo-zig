@@ -610,6 +610,27 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Classify the existing unqualified circuit Metal integration as internal without expanding published packages, follow the exact relocated test-only legacy oracle owner, and recognize the existing authenticated preprocessing-root rejection as semantic while proving panic/signal precedence and unknown failures remain strict. No proof acceptance, expected mutation class, published status or API/dependency ledger is relaxed."
+    },
+    {
+      "id": "delivery_fri_scalar_differential",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Add an independent per-limb scalar differential for the observed hosted FRI first-fold oracle mismatch. Preserve the pinned digest and all existing multi-fold checks. Separate coordinate generation, batch inversion, butterfly arithmetic, optimized extension multiplication and canonical value projection without a new launcher or protocol/golden change."
+    },
+    {
+      "id": "delivery_hosted_cpu_diagnostics",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Run the existing focused CPU lane owners from immutable backup refs so CPU regressions can be compiled off-laptop without cancelling PR evidence. Explicit manual selection is diagnostic only, restricted to a reviewed CPU-only lane set, and cannot change automatic PR/scheduled scope, instantiate a device lane or replace the production PR verdict. Reuse the existing planner, runner and CI jobs; no top-level launcher."
+    },
+    {
+      "id": "delivery_circuit_generator_allocation_preflight",
+      "net_code_budget": 5,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Correct the full circuit generation allocation preflight from topology-only memory to a 32 GiB minimum accounting for fold-tree\u2019s documented roughly 22 GB per reduction. The first hosted attempt terminated at that owner; refuse another undersized host rather than weaken or omit the full parity workload. No laptop build, larger paid runner or GPU is started."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

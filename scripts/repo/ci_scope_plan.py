@@ -352,6 +352,23 @@ def emit_github_summary(path: Path, plan: dict[str, Any], policy: dict[str, Any]
         stream.write("\n")
 
 
+# Explicit diagnostics use the same maintained lane commands; they prove only
+# the selected owner and never substitute for automatic PR/scheduled coverage.
+MANUAL_CPU_LANES = frozenset({
+    "core", "prover", "cpu_backend", "proof_wire", "prover_api",
+    "riscv_frontend", "riscv_cpu_integration", "riscv_cpu",
+    "circuit_frontend", "circuit_cpu_integration", "circuit_recursion_wire",
+    "native_cpu", "native_oracle", "script_contracts", "package", "static",
+})
+
+
+def manual_cpu_selection(lane: str, policy: dict[str, Any]) -> tuple[list[str], dict[str, list[str]]]:
+    spec = policy["lanes"].get(lane)
+    if lane not in MANUAL_CPU_LANES or spec is None or spec["host"] != "linux" or not spec.get("hosted", True):
+        raise PlanError(f"manual diagnostic requires an admitted hosted CPU lane: {lane}")
+    return [lane], {lane: ["explicit manual CPU diagnostic; not automatic PR scope"]}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT)
@@ -363,7 +380,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--github-summary", type=Path)
-    parser.add_argument(
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--manual-cpu-lane", help="run one admitted hosted CPU owner for explicit diagnostics")
+    selection.add_argument(
         "--full-matrix",
         action="store_true",
         help="select every hosted lane regardless of the diff (scheduled safety net)",
@@ -374,11 +393,17 @@ def main(argv: list[str] | None = None) -> int:
         validate_policy(policy)
         validate_rule_prefixes_exist(policy, args.root)
         catalog = strict_json(args.catalog)
-        changed = args.changed_file or git_changed_paths(
-            args.root, args.base or f"{args.head}^", args.head,
-        )
-        packages = ci_package_graph.load_packages(args.root)
-        lanes, reasons = select_lanes(changed, catalog, policy, packages, args.full_matrix)
+        if args.manual_cpu_lane:
+            if args.changed_file:
+                raise PlanError("manual diagnostics cannot claim changed-path coverage")
+            changed = []
+            lanes, reasons = manual_cpu_selection(args.manual_cpu_lane, policy)
+        else:
+            changed = args.changed_file or git_changed_paths(
+                args.root, args.base or f"{args.head}^", args.head,
+            )
+            packages = ci_package_graph.load_packages(args.root)
+            lanes, reasons = select_lanes(changed, catalog, policy, packages, args.full_matrix)
         head, tree = source_identity(args.root, args.head)
         plan = {
             "schema": "ci-scope-plan-v1",

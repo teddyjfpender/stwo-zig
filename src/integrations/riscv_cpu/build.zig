@@ -58,7 +58,7 @@ pub fn build(b: *std.Build) void {
         .{ .step = "test-division-contracts", .root = "division_contract_test_root.zig", .minimum = 7 },
         .{ .step = "test-services-truth-contracts", .root = "services_truth_contract_test_root.zig", .minimum = 22 },
     }) |spec| {
-        const root = b.createModule(.{ .root_source_file = b.path(spec.root), .target = target, .optimize = optimize });
+        const root = b.createModule(.{ .root_source_file = b.path(spec.root), .target = target, .optimize = optimize, .strip = false, .error_tracing = true });
         var imports = integration.import_table.iterator();
         while (imports.next()) |entry| root.addImport(entry.key_ptr.*, entry.value_ptr.*);
         const tests = b.addTest(.{ .root_module = root });

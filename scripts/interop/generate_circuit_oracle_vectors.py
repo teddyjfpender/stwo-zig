@@ -8,8 +8,9 @@ that `scripts/repo/check_upstream_pins.py` authenticates. Every subcommand build
 circuits, hashes data or proves small instances: `prove-small` proves the small
 `prover_test.rs` circuits under the oracle's default memory budget, and
 `adapt-program` and `prove-cairo` run and prove small Cairo programs (seconds
-and 2-4 GB each). The heaviest (`topology`) peaks at about 7.1 GB resident. On
-a shared host run it under the heavy-command wrapper.
+and 2-4 GB each). Topology documents about 7.1 GB resident, but recursive
+`fold-tree` documents about 22 GB per reduction. Full generation requires a
+host allocation of at least 32 GiB; on a shared host use the heavy-command wrapper.
 
 The provenance names only host-independent inputs: the toolchain, the oracle's
 `Cargo.lock` digest and the digest of every oracle source.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import contextlib
 import json
 import os
 import subprocess
@@ -29,6 +30,37 @@ class PlannerContractTests(unittest.TestCase):
     def lanes_for(self, *paths: str) -> set[str]:
         lanes, _ = ci_scope_plan.select_lanes(paths, self.catalog, self.policy)
         return set(lanes)
+
+    def test_manual_cpu_selection_is_exact_and_refuses_device_or_foreign_lanes(self):
+        for lane in ci_scope_plan.MANUAL_CPU_LANES:
+            lanes, reasons = ci_scope_plan.manual_cpu_selection(lane, self.policy)
+            self.assertEqual([lane], lanes)
+            self.assertIn("not automatic PR scope", reasons[lane][0])
+        for lane in ("native_cuda_device", "native_cuda_static", "native_metal", "cairo_metal", "unknown", "core; echo injected"):
+            with self.assertRaises(ci_scope_plan.PlanError):
+                ci_scope_plan.manual_cpu_selection(lane, self.policy)
+        for field, value in (("host", "cuda"), ("hosted", False)):
+            policy = json.loads(json.dumps(self.policy))
+            policy["lanes"]["core"][field] = value
+            with self.assertRaises(ci_scope_plan.PlanError):
+                ci_scope_plan.manual_cpu_selection("core", policy)
+
+    def test_manual_cli_emits_pinned_diagnostic_without_diff_or_package_scope(self):
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            catalog = directory / "catalog.json"
+            catalog.write_text(json.dumps(self.catalog))
+            output = directory / "plan.json"
+            arguments = ["--root", str(ROOT), "--catalog", str(catalog),
+                         "--manual-cpu-lane", "circuit_frontend", "--output", str(output)]
+            with mock.patch.object(ci_scope_plan, "source_identity", return_value=(COMMIT, TREE)), mock.patch.object(
+                ci_scope_plan, "git_changed_paths", side_effect=AssertionError("diagnostic is not diff coverage"),
+            ), mock.patch.object(ci_scope_plan.ci_package_graph, "load_packages", side_effect=AssertionError("no automatic package scope")), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(0, ci_scope_plan.main(arguments))
+            plan = json.loads(output.read_text())
+            self.assertEqual(["circuit_frontend"], plan["lanes"])
+            self.assertEqual([], plan["changed_paths"])
+            self.assertEqual((COMMIT, TREE), (plan["head"], plan["tree"]))
 
     def test_documentation_only_change_runs_only_always_lanes(self) -> None:
         self.assertEqual({"static"}, self.lanes_for("docs/focused-ci.md"))

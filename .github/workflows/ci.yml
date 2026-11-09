@@ -17,7 +17,12 @@ on:
           - strict
           - architecture
           - regenerate-circuit-vectors
+          - focused-cpu
         default: standard
+      cpu_lane:
+        description: Existing CPU lane for focused-cpu diagnostics only
+        type: string
+        default: circuit_frontend
 
 permissions:
   actions: read
@@ -33,7 +38,8 @@ jobs:
     if: >-
       github.event_name == 'pull_request' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'schedule'
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -63,6 +69,8 @@ jobs:
 
       - name: Select affected product lanes
         id: scope
+        env:
+          MANUAL_CPU_LANE: ${{ inputs.cpu_lane }}
         run: |
           # For PRs, diff against the live merge-base — the event's base.sha
           # can lag the base branch, which would count already-merged main
@@ -72,7 +80,10 @@ jobs:
           # hosted matrix catches selection drift without serializing every
           # merge behind unrelated products.
           SCOPE_ARGS=()
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BASE="$GITHUB_SHA"
+            SCOPE_ARGS+=(--manual-cpu-lane "$MANUAL_CPU_LANE")
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="$(git merge-base "origin/${{ github.base_ref }}" HEAD)"
           elif [ "${{ github.event_name }}" = "schedule" ]; then
             BASE="$(git rev-parse HEAD^)"
@@ -125,7 +136,8 @@ jobs:
     if: >-
       (github.event_name == 'pull_request' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'schedule') &&
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.gate == 'focused-cpu')) &&
       needs.focused-plan.outputs.linux_count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -552,8 +564,8 @@ jobs:
           cgroup = Path("/sys/fs/cgroup/memory.max")
           if cgroup.is_file() and cgroup.read_text().strip().isdigit():
               size = min(size, int(cgroup.read_text().strip()))
-          if size < 12 * (1 << 30):
-              raise SystemExit("circuit regeneration requires a hosted CPU allocation of at least 12 GiB")
+          if size < 32 * (1 << 30):
+              raise SystemExit("circuit regeneration requires a hosted CPU allocation of at least 32 GiB")
           PYMEM
           set +e
           /usr/bin/time -v python3 scripts/interop/generate_circuit_oracle_vectors.py 2>&1 | tee "$OUT/generation.log"
