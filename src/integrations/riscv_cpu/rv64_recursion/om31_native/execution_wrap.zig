@@ -713,7 +713,10 @@ const ParallelExecution = struct {
         const proof = try a.create(Outer.Wrapped);
         errdefer a.destroy(proof);
         const wrap_start = timer.read();
-        proof.* = try Outer.wrapGraphOrLoadWithFactory(a, ctx, digest, encoded, @intCast(id), factory);
+        proof.* = if (factory == null)
+            try Outer.wrapDisposableCpuGraphOrLoad(a, ctx, digest, encoded, @intCast(id))
+        else
+            try Outer.wrapGraphOrLoadWithFactory(a, ctx, digest, encoded, @intCast(id), factory);
         errdefer proof.deinit();
         const wrapped = timer.read();
         var serialized = wrapped;

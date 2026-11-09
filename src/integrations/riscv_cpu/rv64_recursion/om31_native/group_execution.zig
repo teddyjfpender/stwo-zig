@@ -84,7 +84,7 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     const qm31_rows = graph.ctx.circuit.nQm31OpsRows();
     const blake_rows = graph.ctx.circuit.blake_g_gate.items.len;
     const padding_targets = try Outer.paddingTargets(graph.ctx);
-    var proof = try Outer.wrapGraphOrLoad(a, graph.ctx, graph.digest, encoded);
+    var proof = try Outer.wrapDisposableCpuGraphOrLoad(a, graph.ctx, graph.digest, encoded, 0);
     defer proof.deinit();
     if (proof.restored != existing_only) return error.NativeGroupReceiverProving;
     // Reclose the authenticated metadata before publication. There is no

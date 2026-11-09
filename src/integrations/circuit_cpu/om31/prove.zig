@@ -248,6 +248,16 @@ pub fn bind(a: std.mem.Allocator, key: *const Authority, z: O, alpha: O, claims:
     return out;
 }
 pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Produced {
+    return proveImpl(a, key, values, null);
+}
+/// Consumes the builder assignment on success and failure. After MAIN and its
+/// public outputs own their values, no later stage may read the assignment.
+/// The context remains safe for deinit only; reusable callers use prove().
+pub fn proveDisposableContext(a: std.mem.Allocator, key: *const Authority, ctx: *circuit.builder.Context(Q)) !Produced {
+    defer ctx.value_table.clearAndFree(ctx.gpa);
+    return proveImpl(a, key, ctx.values(), ctx);
+}
+fn proveImpl(a: std.mem.Allocator, key: *const Authority, values: []const Q, owner: ?*circuit.builder.Context(Q)) !Produced {
     try key.requireProverData();
     if (key.fixed == null) return error.Om31CircuitDeviceFixedRequiresDeviceProver;
     var capture = try StageCapture.Capture.init(a);
@@ -261,6 +271,7 @@ pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Pr
     if (!std.meta.eql(base.log_sizes, key.logs)) return error.InvalidOm31CircuitGeometry;
     const outputs = try a.dupe(Q, base.output_values);
     errdefer a.free(outputs);
+    if (owner) |ctx| ctx.value_table.clearAndFree(ctx.gpa);
     var channel = try begin(a, key, outputs);
     var scheme = try P.Engine.init(a, try P.targetConfig());
     var owns = true;

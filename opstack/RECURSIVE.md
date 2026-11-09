@@ -171,3 +171,21 @@ STWO_OP_FOLD_MAX_BYTES=34359738368 zig build test-riscv64-op-public-fold -Doptim
 
 The budget is an admission cap, not a measured fit. With no explicit budget the
 same target runs the public output admission test and skips the full proof trial.
+
+
+## CPU builder lifetimes
+
+Explicit disposable CPU graph calls release gate arrays and scratch after PP
+owns the topology, and release the builder assignment after MAIN and copied
+public outputs own all needed values. This applies to both classic and hybrid
+outer CPU proofs. Reusable borrowed entry points retain their old behavior;
+disposable contexts are only safe to deinitialize after the call, including
+errors. Device factories retain their original lifetime contract.
+
+The [ownership qualification](../vectors/reports/rv64-opstack-cpu-20261108/recursion-consumed-assignment.json)
+preserves the exact GROUP2 root bytes, accepts fresh receivers and earlier
+GROUP1/M7 tree proofs, and covers assignment consumption on early errors.
+Cold ABBA peak RSS falls 39.16 → 37.90 GiB. Wall medians 20.44 → 20.71 s do
+not establish a speed gain. The large M7 four-child fold still refuses at the
+same node under its live cap; this change does not solve that shape's memory
+requirement. The separately qualified M6 ternary heavy root remains available.

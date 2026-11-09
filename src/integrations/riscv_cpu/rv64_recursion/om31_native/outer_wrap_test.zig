@@ -81,10 +81,18 @@ test "OM31 native PCS outer wrapper produces actual proof fresh receiver bounded
     defer a.free(retired_bytes);
     try std.testing.expectEqualSlices(u8, bytes, retired_bytes);
 
+    {
+        var failed = try C.Context.init(a, circuit.common.component_list.N_RESERVED);
+        defer failed.deinit();
+        try std.testing.expect(failed.value_table.capacity != 0);
+        try std.testing.expectError(error.Om31CircuitProverDataRetired, @import("stwo_circuit_cpu_integration").om31.prove.proveDisposableContext(a, wrapped.authority, &failed));
+        try std.testing.expectEqual(@as(usize, 0), failed.value_table.capacity);
+    }
     var disposable = try Wrap.wrapDisposableCpuGraph(a, &ctx, digest, 0);
     defer disposable.deinit();
     const disposable_bytes = try disposable.serialize(a);
     defer a.free(disposable_bytes);
     try std.testing.expectEqualSlices(u8, bytes, disposable_bytes);
     try std.testing.expectEqual(@as(usize, 0), ctx.circuit.output.items.len);
+    try std.testing.expectEqual(@as(usize, 0), ctx.value_table.capacity);
 }

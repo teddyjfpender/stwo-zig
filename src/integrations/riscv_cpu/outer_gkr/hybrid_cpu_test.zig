@@ -50,6 +50,40 @@ test "outer GKR CPU physical proof receiver and mutations" {
     };
     defer proof.deinit();
     const prove_ns = timer.lap();
+    // The consumed-assignment route must retain exact protocol bytes. Its
+    // MAIN/output owners survive immediately releasing the source assignment.
+    {
+        var disposable = try circuit.builder.Context(Outer.protocol.Q).init(a, 1);
+        defer disposable.deinit();
+        const dx = try disposable.guess(Outer.protocol.Q.fromU32Unchecked(3, 1, 2, 4));
+        const dy = try disposable.guess(Outer.protocol.Q.fromU32Unchecked(7, 2, 3, 5));
+        const dp = try disposable.mul(dx, dy);
+        try disposable.setOutputs(&.{dp});
+        try disposable.finalize(true);
+        try circuit.common.finalize.padToTargets(Outer.protocol.Q, &disposable, circuit.common.finalize.computePaddedSizes(.fromBuilder(&disposable.circuit)));
+        var owned = try CPU.proveDisposableContext(a, &key, &disposable, &expected);
+        defer owned.deinit();
+        try std.testing.expectEqual(@as(usize, 0), disposable.value_table.capacity);
+        const wire = @import("hybrid_wire.zig");
+        const before = try wire.encode(a, &key, proof.base.outputs, proof.base.claims, &proof.section, &proof.base.proof.proof);
+        defer a.free(before);
+        const after = try wire.encode(a, &key, owned.base.outputs, owned.base.claims, &owned.section, &owned.base.proof.proof);
+        defer a.free(after);
+        try std.testing.expectEqualSlices(u8, before, after);
+        var checked = try key.verify(a, owned.base.outputs, owned.base.claims, &owned.section, &owned.base.proof.proof);
+        checked.deinit(a);
+    }
+
+    {
+        var failed = try circuit.builder.Context(Outer.protocol.Q).init(a, 1);
+        defer failed.deinit();
+        const old_retired = source.retired;
+        source.retired = true;
+        defer source.retired = old_retired;
+        try std.testing.expect(failed.value_table.capacity != 0);
+        try std.testing.expectError(error.Om31CircuitProverDataRetired, CPU.proveDisposableContext(a, &key, &failed, &expected));
+        try std.testing.expectEqual(@as(usize, 0), failed.value_table.capacity);
+    }
     var independent = try R.Key.init(a, &source, 256);
     defer independent.deinit();
     var capture = independent.verify(a, proof.base.outputs, proof.base.claims, &proof.section, &proof.base.proof.proof) catch |err| {

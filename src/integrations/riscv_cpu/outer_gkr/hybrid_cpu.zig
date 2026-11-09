@@ -17,13 +17,19 @@ const Metrics = @import("cpu_metrics.zig");
 pub const Produced = @import("hybrid_device.zig").Produced;
 
 pub fn prove(a: std.mem.Allocator, key: *const R.Key, values: []const Outer.protocol.Q, expected: []const Outer.protocol.Q) !Produced {
-    return proveImpl(a, key, values, expected, null);
+    return proveImpl(a, key, values, expected, null, null);
 }
 pub fn proveWithInputsForTesting(a: std.mem.Allocator, key: *const R.Key, values: []const Outer.protocol.Q, expected: []const Outer.protocol.Q, mutate: *const fn (*S.Inputs) anyerror!void) !Produced {
     if (!@import("builtin").is_test) return error.TestOnly;
-    return proveImpl(a, key, values, expected, mutate);
+    return proveImpl(a, key, values, expected, mutate, null);
 }
-fn proveImpl(a: std.mem.Allocator, key: *const R.Key, values: []const Outer.protocol.Q, expected: []const Outer.protocol.Q, mutate: ?*const fn (*S.Inputs) anyerror!void) !Produced {
+/// MAIN and output values become independent before the assignment is freed.
+/// Consumes assignment on every path; the context is safe for deinit only.
+pub fn proveDisposableContext(a: std.mem.Allocator, key: *const R.Key, ctx: *circuit.builder.Context(Outer.protocol.Q), expected: []const Outer.protocol.Q) !Produced {
+    defer ctx.value_table.clearAndFree(ctx.gpa);
+    return proveImpl(a, key, ctx.values(), expected, null, ctx);
+}
+fn proveImpl(a: std.mem.Allocator, key: *const R.Key, values: []const Outer.protocol.Q, expected: []const Outer.protocol.Q, mutate: ?*const fn (*S.Inputs) anyerror!void, owner: ?*circuit.builder.Context(Outer.protocol.Q)) !Produced {
     if (!key.profile.hybrid()) return error.HybridCpuRequiresM7Profile;
     try key.source.requireProverData();
     if (key.source.fixed == null or key.source.device_fixed) return error.HybridCpuRequiresHostFixed;
@@ -39,6 +45,7 @@ fn proveImpl(a: std.mem.Allocator, key: *const R.Key, values: []const Outer.prot
     for (expected, base.output_values) |want, actual| if (!want.eql(actual)) return error.HybridCpuOutputMismatch;
     const outputs = try a.dupe(Outer.protocol.Q, expected);
     errdefer a.free(outputs);
+    if (owner) |ctx| ctx.value_table.clearAndFree(ctx.gpa);
     var channel = try key.begin(a, outputs);
     var scheme = try Outer.protocol.Engine.init(a, key.config);
     var owns = true;
