@@ -10,6 +10,7 @@ const MW = @import("pure_p2_manifest_wire.zig");
 const Manifest = @import("pure_p2_manifest.zig");
 const CPU = @import("pure_p2_cpu_worker.zig");
 const Truth = @import("pure_p2_truth_worker.zig");
+const TruthLocal = @import("truth_local_gkr/worker.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
 const Key = @import("pure_p2_fixed_key.zig").Key;
 const Store = @import("pure_p2_retained_main.zig").Store;
@@ -26,6 +27,7 @@ pub const Limits = struct {
     cpu: CPU.Limits,
     truth: Truth.Limits,
     miller: Miller.Limits,
+    truth_local_gkr_bytes: usize = 0,
     recorders: []const ?*Stage.Recorder = &.{},
     timing: ?*Timing = null,
     /// Destructive source handoff only; metadata/requests already admitted.
@@ -37,6 +39,7 @@ pub const Limits = struct {
 const Worker = union(enum) {
     cpu: CPU.Worker,
     truth: Truth.Worker,
+    truth_local: TruthLocal.Worker,
     miller: Miller.Worker,
     fn deinit(self: *Worker) void {
         switch (self.*) {
@@ -69,6 +72,13 @@ const Worker = union(enum) {
                 const out = try v.complete(pending, index);
                 break :block .{ .bytes = out.bytes, .claims = out.claims };
             },
+            .truth_local => |*v| block: {
+                var out = try v.complete(pending, index);
+                defer out.deinit(a);
+                const bytes = try TruthLocal.encode(a, &out);
+                errdefer a.free(bytes);
+                break :block .{ .bytes = bytes, .claims = try a.dupe(W.O, &out.claims) };
+            },
             .miller => |*v| block: {
                 var out = try v.complete(pending, index);
                 errdefer out.deinit(a);
@@ -95,6 +105,8 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
     if (limits.consume_memory_events and !@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
     if (setups.len != inventory.cpu_count or requests.len != setups.len or spans.len != setups.len or keys.len != setups.len or native.len != setups.len or advice.tower.len != setups.len or truths.len != inventory.truth_count or truth_keys.len != truths.len or setups.len + truths.len + miller.len != inventory.workers.len) return error.InvalidOpNativeInventory;
     if (limits.recorders.len != 0 and limits.recorders.len != inventory.workers.len) return error.InvalidOpNativeTimings;
+    if (inventory.truth_local_keys.len != 0 and inventory.truth_local_keys.len != truths.len) return error.InvalidOpTruthLocalInventory;
+    for (inventory.truth_local_keys) |key| if (key != null and limits.truth_local_gkr_bytes == 0) return error.OpTruthLocalBudget;
     var timer = try std.time.Timer.start();
     const workers = try a.alloc(Worker, inventory.workers.len);
     defer a.free(workers);
@@ -120,7 +132,11 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
         const i = setups.len + j;
         var source_scope = try Stage.StageScope.begin(limits.recorder(i), "source_construction", "Construct inherited truth witness once");
         defer source_scope.end();
-        workers[done] = .{ .truth = try Truth.Worker.init(a, key, truth, Truth.SourceBuilder.fromAdvice(advice), inventory.workers[i], limits.truth) };
+        const local = if (inventory.truth_local_keys.len == 0) null else inventory.truth_local_keys[j];
+        workers[done] = if (local) |local_key|
+            .{ .truth_local = try TruthLocal.Worker.initWithGkrOptions(a, local_key, truth, Truth.SourceBuilder.fromAdvice(advice), inventory.workers[i], .{ .live_bytes = limits.truth.live_bytes, .main_bytes = limits.truth.main_bytes, .interaction_bytes = limits.truth.interaction_bytes, .gkr_bytes = limits.truth_local_gkr_bytes }, .{ .coefficient_encoding = .fixed4 }) }
+        else
+            .{ .truth = try Truth.Worker.init(a, key, truth, Truth.SourceBuilder.fromAdvice(advice), inventory.workers[i], limits.truth) };
         done += 1;
         source_scope.end();
         stages[i] = try sealAndPark(a, &workers[i], inventory.workers[i], store, limits.recorder(i));

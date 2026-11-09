@@ -21,6 +21,7 @@ const ProgramMetadata = @import("../word16_execution/program_metadata.zig");
 const Keys = @import("../word16_global_execution/ethereum/keys.zig");
 const Key = @import("pure_p2_fixed_key.zig").Key;
 const Truth = @import("pure_p2_truth_worker.zig");
+const TruthLocal = @import("truth_local_gkr/worker.zig");
 const Miller = @import("pure_p2_tower_worker.zig");
 const Inv = @import("pure_p2_op_inventory.zig");
 const Bundle = @import("pure_p2_op_bundle.zig");
@@ -39,8 +40,13 @@ pub const Metadata = struct {
     miller: []const Bounds.OpTowerTruthDeclaration,
     memory_words: u32,
     fn validate(self: Metadata) !void {
-        if (self.schema != 1 or self.profile == .reference_b2_q24_p0 or self.cpus.len == 0 or self.cpus.len != self.requests.len or self.cpus.len != self.spans.len or self.cpus.len + self.truths.len + self.miller.len > 256 or self.memory_words >= 1 << 23) return error.InvalidOpNativeMetadata;
+        if ((self.schema != 1 and self.schema != 2) or self.profile == .reference_b2_q24_p0 or self.cpus.len == 0 or self.cpus.len != self.requests.len or self.cpus.len != self.spans.len or self.cpus.len + self.truths.len + self.miller.len > 256 or self.memory_words >= 1 << 23) return error.InvalidOpNativeMetadata;
     }
+};
+pub const Options = struct {
+    cache: ?*SetupCache = null,
+    /// Schema2 is an explicit protocol authority, never an implicit fallback.
+    truth_local_gkr: bool = false,
 };
 pub const Resources = struct {
     consume_memory_events: bool = true,
@@ -63,11 +69,13 @@ const Authority = struct {
     setups: []*const R.CpuSetup,
     cpu_keys: []*const Key,
     truth_keys: []*const Truth.Key,
+    truth_local_keys: []?*const TruthLocal.Key,
     miller: []Inv.MillerDeclaration,
     cpu_owners: std.ArrayList(*R.CpuSetup) = .empty,
     cpu_leases: std.ArrayList(@import("pure_p2_setup_cache.zig").Lease) = .empty,
     key_owners: std.ArrayList(*Key) = .empty,
     truth_owners: std.ArrayList(*Truth.Key) = .empty,
+    truth_local_owners: std.ArrayList(*TruthLocal.Key) = .empty,
     miller_owners: std.ArrayList(*Miller.Key) = .empty,
     fn deinit(self: *Authority) void {
         const a = self.allocator;
@@ -91,11 +99,17 @@ const Authority = struct {
         self.cpu_leases.deinit(a);
         self.key_owners.deinit(a);
         self.cpu_owners.deinit(a);
+        for (self.truth_local_owners.items) |key| {
+            key.deinit();
+            a.destroy(key);
+        }
+        self.truth_local_owners.deinit(a);
         self.truth_owners.deinit(a);
         self.miller_owners.deinit(a);
         a.free(self.setups);
         a.free(self.cpu_keys);
         a.free(self.truth_keys);
+        a.free(self.truth_local_keys);
         a.free(self.miller);
         self.native_truth.deinit();
         self.program_metadata.deinit();
@@ -109,13 +123,16 @@ const Authority = struct {
         errdefer a.free(cpu_keys);
         const truth_keys = try a.alloc(*const Truth.Key, m.truths.len);
         errdefer a.free(truth_keys);
+        const truth_local_keys = try a.alloc(?*const TruthLocal.Key, if (m.schema == 2) m.truths.len else 0);
+        errdefer a.free(truth_local_keys);
+        @memset(truth_local_keys, null);
         const miller = try a.alloc(Inv.MillerDeclaration, m.miller.len);
         errdefer a.free(miller);
         var native_truth = try Keys.Owner.init(a, image, &.{}, m.truths);
         errdefer native_truth.deinit();
         var metadata = try ProgramMetadata.Cache.init(a, 256 << 20);
         errdefer metadata.deinit();
-        var self = Authority{ .allocator = a, .native_truth = native_truth, .program_metadata = metadata, .setups = setups, .cpu_keys = cpu_keys, .truth_keys = truth_keys, .miller = miller };
+        var self = Authority{ .allocator = a, .native_truth = native_truth, .program_metadata = metadata, .setups = setups, .cpu_keys = cpu_keys, .truth_keys = truth_keys, .truth_local_keys = truth_local_keys, .miller = miller };
         // Child-owner cleanup only on error; outer arrays/native_truth retain
         // the preceding error guards until successful return.
         errdefer {
@@ -139,6 +156,11 @@ const Authority = struct {
             self.cpu_leases.deinit(a);
             self.key_owners.deinit(a);
             self.cpu_owners.deinit(a);
+            for (self.truth_local_owners.items) |key| {
+                key.deinit();
+                a.destroy(key);
+            }
+            self.truth_local_owners.deinit(a);
             self.truth_owners.deinit(a);
             self.miller_owners.deinit(a);
         }
@@ -178,6 +200,29 @@ const Authority = struct {
             try key.retireLegacySetup(setup);
         }
         for (self.native_truth.truths, 0..) |truth, i| {
+            if (m.schema == 2 and (truth == .keccak or truth == .secp)) {
+                var found: ?*TruthLocal.Key = null;
+                for (self.truth_local_owners.items) |key| {
+                    key.require(truth) catch continue;
+                    found = key;
+                    break;
+                }
+                if (found == null) {
+                    try self.truth_local_owners.ensureUnusedCapacity(a, 1);
+                    const key = try a.create(TruthLocal.Key);
+                    key.* = TruthLocal.Key.init(a, truth, m.profile) catch |err| {
+                        a.destroy(key);
+                        return err;
+                    };
+                    self.truth_local_owners.appendAssumeCapacity(key);
+                    found = key;
+                }
+                truth_local_keys[i] = found.?;
+                // The base is source/geometry authority only. Expected worker
+                // identity and statement always come from the local key.
+                truth_keys[i] = &found.?.base;
+                continue;
+            }
             var reused = false;
             for (self.truth_owners.items) |key| {
                 key.require(truth) catch continue;
@@ -230,6 +275,7 @@ pub const CompleteVerified = struct {
     expected: P.Expected,
     cpu_keys: []const *const Key,
     truth_keys: []const *const Truth.Key,
+    truth_local_keys: []const ?*const TruthLocal.Key = &.{},
     output_address: u64,
     setups: []const *const R.CpuSetup,
     truths: []const R.Truth,
@@ -258,6 +304,7 @@ pub const SourceDirectory = struct {
     cpu_keys: []const *const Key,
     truths: []const R.Truth,
     truth_keys: []const *const Truth.Key,
+    truth_local_keys: []const ?*const TruthLocal.Key = &.{},
     miller: []const Inv.MillerDeclaration,
     inventory: *const Inv.Inventory,
     expected: P.Expected,
@@ -275,6 +322,10 @@ pub fn withSourceDirectory(a: std.mem.Allocator, config: Request.Config, path: [
     return withSourceDirectoryWithCache(a, config, path, profile, resources, null, context, callback);
 }
 pub fn withSourceDirectoryWithCache(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, cache: ?*SetupCache, context: ?*anyopaque, callback: *const fn (?*anyopaque, std.mem.Allocator, SourceDirectory) anyerror!void) !void {
+    return withSourceDirectoryWithOptions(a, config, path, profile, resources, .{ .cache = cache }, context, callback);
+}
+pub fn withSourceDirectoryWithOptions(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, options: Options, context: ?*anyopaque, callback: *const fn (?*anyopaque, std.mem.Allocator, SourceDirectory) anyerror!void) !void {
+    const cache = options.cache;
     var session = if (cache) |owner| try owner.enterRequest(a, resources.disk_bytes, resources.mapped_bytes) else null;
     defer if (session) |*lease| lease.deinit();
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
@@ -296,6 +347,7 @@ pub fn withSourceDirectoryWithCache(a: std.mem.Allocator, config: Request.Config
     defer parsed.deinit();
     const m = parsed.value;
     try m.validate();
+    if ((m.schema == 2) != options.truth_local_gkr) return error.OpNativeSchemaPolicy;
     if (m.profile != profile) return error.InvalidOpNativeProfile;
     const compact = m.cpus[0].geometry.cpu_compact_decode;
     for (m.cpus) |cpu| if (cpu.geometry.cpu_compact_decode != compact) return error.MixedOpProgramRepresentations;
@@ -309,10 +361,10 @@ pub fn withSourceDirectoryWithCache(a: std.mem.Allocator, config: Request.Config
     var authority = try Authority.init(a, &image, m, null, cache);
     defer authority.deinit();
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
-    var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
+    var inventory = try Inv.Inventory.initForTruthLocal(a, profile, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected, authority.truth_local_keys);
     defer inventory.deinit();
     const output = try Terminal.require(&image, req[req.len - 1].base.cpu, cells.terminal);
-    try callback(context, a, .{ .image = &image, .metadata = m, .requests = req, .setups = authority.setups, .cpu_keys = authority.cpu_keys, .truths = authority.native_truth.truths, .truth_keys = authority.truth_keys, .miller = authority.miller, .inventory = &inventory, .expected = expected, .output = output, .output_address = image.symbols.output_data, .initial = cells.initial, .terminal = cells.terminal, .image_ns = image_ns, .program_ns = program_ns });
+    try callback(context, a, .{ .image = &image, .metadata = m, .requests = req, .setups = authority.setups, .cpu_keys = authority.cpu_keys, .truths = authority.native_truth.truths, .truth_keys = authority.truth_keys, .truth_local_keys = authority.truth_local_keys, .miller = authority.miller, .inventory = &inventory, .expected = expected, .output = output, .output_address = image.symbols.output_data, .initial = cells.initial, .terminal = cells.terminal, .image_ns = image_ns, .program_ns = program_ns });
 }
 const NativeReception = struct {
     path: []const u8,
@@ -329,12 +381,12 @@ const NativeReception = struct {
         var bundle = try Bundle.decode(a, bytes, source.inventory.workers.len, .{ .bytes = self.resources.bundle_bytes, .proof_bytes = self.resources.proof_bytes });
         defer bundle.deinit(a);
         const verify_start = self.timer.read();
-        var closed = try bundle.verifyWithHooks(a, source.inventory, source.setups, source.requests, source.metadata.spans, source.cpu_keys, source.truths, source.truth_keys, source.miller, self.hooks.fragments);
+        var closed = if (source.metadata.schema == 2) try bundle.verifyWithHooksForTruthLocal(a, source.inventory, source.setups, source.requests, source.metadata.spans, source.cpu_keys, source.truths, source.truth_keys, source.miller, self.hooks.fragments) else try bundle.verifyWithHooks(a, source.inventory, source.setups, source.requests, source.metadata.spans, source.cpu_keys, source.truths, source.truth_keys, source.miller, self.hooks.fragments);
         defer closed.deinit(a);
         // Recheck AFTER native physical/global verification and callbacks. The
         // source-only helper's earlier policy check authenticates no RAM.
         const output = try Terminal.require(source.image, source.requests[source.requests.len - 1].base.cpu, source.terminal);
-        if (self.hooks.complete) |complete| try complete(self.hooks.context, a, .{ .image = source.image, .metadata = source.metadata, .requests = source.requests, .expected = source.expected, .cpu_keys = source.cpu_keys, .truth_keys = source.truth_keys, .output_address = source.output_address, .setups = source.setups, .truths = source.truths, .miller = source.miller, .inventory = source.inventory, .native = &closed, .output = output });
+        if (self.hooks.complete) |complete| try complete(self.hooks.context, a, .{ .image = source.image, .metadata = source.metadata, .requests = source.requests, .expected = source.expected, .cpu_keys = source.cpu_keys, .truth_keys = source.truth_keys, .truth_local_keys = source.truth_local_keys, .output_address = source.output_address, .setups = source.setups, .truths = source.truths, .miller = source.miller, .inventory = source.inventory, .native = &closed, .output = output });
         std.debug.print("OP_NATIVE_RECEIVER accepted=true complete=true steps={} CPU={} truth={} miller={} profile={s} image_ns={} program_ns={} setup_and_decode_ns={} verify_ns={} total_ns={}\n", .{ source.expected.total_steps, source.setups.len, source.truths.len, source.miller.len, @tagName(self.profile), source.image_ns, source.program_ns, verify_start - source.image_ns - source.program_ns, self.timer.read() - verify_start, self.timer.read() });
     }
 };
@@ -347,14 +399,21 @@ pub fn verifyDirectoryWithCache(a: std.mem.Allocator, config: Request.Config, pa
     var context = NativeReception{ .path = path, .profile = profile, .resources = resources, .hooks = .{}, .timer = try std.time.Timer.start() };
     return withSourceDirectoryWithCache(a, config, path, profile, resources, cache, &context, NativeReception.run);
 }
+pub fn verifyDirectoryWithOptions(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, options: Options, hooks: ReceptionHooks) !void {
+    var context = NativeReception{ .path = path, .profile = profile, .resources = resources, .hooks = hooks, .timer = try std.time.Timer.start() };
+    return withSourceDirectoryWithOptions(a, config, path, profile, resources, options, &context, NativeReception.run);
+}
+pub fn produceDirectoryWithOptions(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, options: Options) !void {
+    return produceDirectoryMode(a, config, path, profile, resources, .prove, options.cache, options.truth_local_gkr);
+}
 pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
-    return produceDirectoryMode(a, config, path, profile, resources, .prove, null);
+    return produceDirectoryMode(a, config, path, profile, resources, .prove, null, false);
 }
 pub fn produceDirectoryWithCache(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, cache: *SetupCache) !void {
-    return produceDirectoryMode(a, config, path, profile, resources, .prove, cache);
+    return produceDirectoryMode(a, config, path, profile, resources, .prove, cache, false);
 }
 pub fn prepareDirectoryWithCache(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, cache: *SetupCache) !void {
-    return produceDirectoryMode(a, config, path, profile, resources, .prepare, cache);
+    return produceDirectoryMode(a, config, path, profile, resources, .prepare, cache, false);
 }
 pub const FixedRootRecord = struct {
     cpu_ordinal: usize,
@@ -411,7 +470,7 @@ fn uniqueFixedRoots(keys: []const *const Key, comptime field: []const u8) usize 
     return unique;
 }
 const ProduceMode = enum { capture, prepare, prove };
-fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, mode: ProduceMode, cache: ?*SetupCache) !void {
+fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, mode: ProduceMode, cache: ?*SetupCache, truth_local_gkr: bool) !void {
     var session = if (cache) |owner| try owner.enterRequest(a, resources.disk_bytes, resources.mapped_bytes) else null;
     defer if (session) |*lease| lease.deinit();
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
@@ -465,7 +524,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         try tower.append(a, .{ .calls = calls, .first_id = first, .frontier_log = log, .arithmetic_log = log });
         first += calls;
     }
-    const metadata = Metadata{ .profile = profile, .cpus = declarations, .requests = compact, .spans = spans, .truths = truth_declarations, .miller = tower.items, .memory_words = @intCast(captured.advice.initial.len) };
+    const metadata = Metadata{ .schema = if (truth_local_gkr) 2 else 1, .profile = profile, .cpus = declarations, .requests = compact, .spans = spans, .truths = truth_declarations, .miller = tower.items, .memory_words = @intCast(captured.advice.initial.len) };
     try metadata.validate();
     var bounds = try Bounds.deriveForOp(a, program.log_size, declarations, truth_declarations, req, spans, tower.items);
     defer bounds.deinit();
@@ -501,7 +560,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     var authority = try Authority.init(a, &image, metadata, &store, cache);
     defer authority.deinit();
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
-    var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
+    var inventory = try Inv.Inventory.initForTruthLocal(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected, authority.truth_local_keys);
     defer inventory.deinit();
     if (mode == .prepare) {
         const admitted_ns = timer.read();
@@ -570,6 +629,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     const immutable_fixed_disk_bytes = store.reserved + (if (immutable_cache) |snapshot| snapshot.parked_bytes else 0);
     var bundle = try Producer.produce(a, &inventory, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, captured.native, &captured.advice, &store, .{
         .consume_memory_events = resources.consume_memory_events,
+        .truth_local_gkr_bytes = resources.gkr_bytes,
         .recorders = observations.pointers,
         .timing = &phases,
         .cpu = .{ .gkr_bytes = resources.gkr_bytes, .global_bytes = resources.global_bytes },
@@ -622,7 +682,7 @@ pub fn main() !void {
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     const profile = Profile.op_target_b4_q72_p0_fold4_v1;
-    if (std.mem.eql(u8, args[1], "verify")) try verifyDirectory(a, config.value, args[3], profile, resources) else try produceDirectoryMode(a, config.value, args[3], profile, resources, if (std.mem.eql(u8, args[1], "capture")) .capture else if (std.mem.eql(u8, args[1], "prepare")) .prepare else .prove, null);
+    if (std.mem.eql(u8, args[1], "verify")) try verifyDirectory(a, config.value, args[3], profile, resources) else try produceDirectoryMode(a, config.value, args[3], profile, resources, if (std.mem.eql(u8, args[1], "capture")) .capture else if (std.mem.eql(u8, args[1], "prepare")) .prepare else .prove, null, false);
     const final = budget.snapshot();
     if (final.live_bytes != 0) return error.OpNativeRuntimeCustodyLeak;
     std.debug.print("OP_NATIVE_TEARDOWN heap={} external={} peak={} exceeded={}\n", .{ final.host_live_bytes, final.external_live_bytes, final.peak_live_bytes, final.exceeded });
