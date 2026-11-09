@@ -1,9 +1,9 @@
 //! Cairo CUDA missing-toolchain registration and product identity.
 
 const std = @import("std");
-const graph = @import("../graph/modules.zig");
+const graph = @import("../graph/product_spec.zig");
 
-pub fn For(comptime descriptor: anytype, comptime toolchain_requirement: []const u8, comptime protocol_features: []const u8) type {
+pub fn For(comptime descriptor: anytype, comptime toolchain_requirement: []const u8) type {
     return struct {
         pub fn registerMissingToolchain(b: *std.Build) void {
             const unavailable = b.addFail(toolchain_requirement);
@@ -18,15 +18,15 @@ pub fn For(comptime descriptor: anytype, comptime toolchain_requirement: []const
             b.step("benchmark-circuit-cuda-resident", reason).dependOn(&unavailable.step);
             b.step("circuit-recursion-cuda-resident", reason).dependOn(&unavailable.step);
         }
+    };
+}
 
-        pub fn product(role: graph.Role) graph.Product {
-            return .{
-                .name = "stwo-cairo-cuda",
-                .frontend = .cairo,
-                .backend = .cuda,
-                .role = role,
-                .protocol_features = protocol_features,
-            };
-        }
+pub fn product(comptime protocol_features: []const u8, role: graph.Role) graph.Product {
+    return .{
+        .name = "stwo-cairo-cuda",
+        .frontend = .cairo,
+        .backend = .cuda,
+        .role = role,
+        .protocol_features = protocol_features,
     };
 }

@@ -10,7 +10,7 @@ const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const graph_install = @import("../graph/install.zig");
 const policy = @import("../graph/product.zig");
-const registration = @import("cairo_cuda_registration.zig").For(descriptor, toolchain_requirement, protocol_features);
+const registration = @import("cairo_cuda_registration.zig");
 
 const protocol_features =
     "cairo-stwo-v1+cuda-resident-proof-v1+strict-aot-v1";
@@ -479,11 +479,13 @@ fn createProductModule(
     return root;
 }
 
-const registerMissingToolchain = registration.registerMissingToolchain;
+const registerMissingToolchain = registration.For(descriptor, toolchain_requirement).registerMissingToolchain;
 
-const registerResidentUnavailable = registration.registerResidentUnavailable;
+const registerResidentUnavailable = registration.For(descriptor, toolchain_requirement).registerResidentUnavailable;
 
-const product = registration.product;
+fn product(role: graph.Role) graph.Product {
+    return registration.product(protocol_features, role);
+}
 
 test "Cairo CUDA is staged only for explicit Linux construction" {
     try descriptor.validate();
