@@ -19,8 +19,16 @@ pub const Key = struct {
     identity: [32]u8,
     geometry: [32]u8,
     root: [36]u8,
-    tree: W.Scheme.CommittedTree,
+    tree: ?W.Scheme.CommittedTree,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, profile: Protocol.Profile, log: u32) !Key {
+        return initMode(a, setup, profile, log, true);
+    }
+    /// Independently reconstruct FIXED, then retain only source authority.
+    /// This receiver key can never append a FIXED tree to a producer PCS.
+    pub fn initDigest(a: std.mem.Allocator, setup: *const R.CpuSetup, profile: Protocol.Profile, log: u32) !Key {
+        return initMode(a, setup, profile, log, false);
+    }
+    fn initMode(a: std.mem.Allocator, setup: *const R.CpuSetup, profile: Protocol.Profile, log: u32, resident: bool) !Key {
         if (profile == .reference_b2_q24_p0) return error.InvalidOpPurePoseidonProfile;
         var roster = try Frame.Roster.init(a, setup, 0, log, 1, 0);
         defer roster.deinit();
@@ -48,14 +56,17 @@ pub const Key = struct {
         try scheme.commitBorrowedStreaming(a, columns, 64, &channel);
         var tree = scheme.trees.pop().?;
         errdefer tree.deinit(a);
-        try tree.share(a);
+        if (resident) try tree.share(a);
         const root = tree.root();
         const geometry = try geometryIdentity(a, setup, log);
-        return .{ .allocator = a, .profile = profile, .frontier_log = log, .geometry = geometry, .identity = identity(profile, geometry, root), .root = root, .tree = tree };
+        const out = Key{ .allocator = a, .profile = profile, .frontier_log = log, .geometry = geometry, .identity = identity(profile, geometry, root), .root = root, .tree = if (resident) tree else null };
+        if (!resident) tree.deinit(a);
+        return out;
     }
     pub fn require(self: *const Key, setup: *const R.CpuSetup) !void {
+        if (self.tree) |tree| if (!std.mem.eql(u8, &self.root, &tree.root())) return error.SpongeCpuFixedAuthority;
         const derived = try geometryIdentity(self.allocator, setup, self.frontier_log);
-        if (!std.mem.eql(u8, &derived, &self.geometry) or !std.mem.eql(u8, &self.root, &self.tree.root()) or !std.mem.eql(u8, &self.identity, &identity(self.profile, derived, self.root))) return error.SpongeCpuFixedAuthority;
+        if (!std.mem.eql(u8, &derived, &self.geometry) or !std.mem.eql(u8, &self.identity, &identity(self.profile, derived, self.root))) return error.SpongeCpuFixedAuthority;
     }
     pub fn statement(self: *const Key, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, span: T.OpTowerSpan, ordinal: u32) ![32]u8 {
         try self.require(setup);
@@ -74,8 +85,18 @@ pub const Key = struct {
         h.update(&words);
         return h.finalResult();
     }
+    pub fn retainFixedTree(self: *const Key) !W.Scheme.CommittedTree {
+        const tree = self.tree orelse return error.SpongeDigestOnlyKeyCannotProve;
+        return tree.retainShared();
+    }
+    /// Safe after every producer has retained its own shared-tree lease.
+    /// Source identity/root and recursive verifier geometry remain available.
+    pub fn retireProverData(self: *Key) void {
+        if (self.tree) |*tree| tree.deinit(self.allocator);
+        self.tree = null;
+    }
     pub fn deinit(self: *Key) void {
-        self.tree.deinit(self.allocator);
+        self.retireProverData();
         self.* = undefined;
     }
 };

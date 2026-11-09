@@ -1,0 +1,67 @@
+{
+  "schema": "op-detached-sponge-digest-keys-v1",
+  "scope": "Bounded native four-worker fixture, no production admission or block speed claim",
+  "production_admission": false,
+  "security_qualified": false,
+  "changes": [
+    "CPU/frontier and detached source keys can independently derive FIXED and retain digest authority only",
+    "Producer keys retire duplicate FIXED references after workers retain their own shared leases",
+    "Retirement is idempotent and digest-only keys refuse producer tree retention",
+    "Adversarial coherent phantom proof uses separate independently rebuilt resident producer key, then digest-only receiver"
+  ],
+  "checks": {
+    "command": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='sponge CPU complete two-shard detached physical join' -j1",
+    "exit": 0,
+    "physical_fresh_source_join": true,
+    "RAM_KIO_Wire_closed": true,
+    "raw_phantom_STARK_valid_and_full_policy_rejected": true,
+    "requested_live_peak_bytes": 385401189,
+    "native_parent_cap_bytes": 4294967296
+  },
+  "artifact_control": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-sponge-native-canonical-kio-v1",
+  "artifacts": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/detached-sponge-digest-keys-v1",
+  "proof_and_local_child_parity": [
+    {
+      "file": "cpu-0.bin",
+      "bytes": 588120,
+      "identical": true,
+      "sha256": "13d5fabb5e847915e6753d781aca9f753bfa44a9e2ffe70770ae32915a642bcc"
+    },
+    {
+      "file": "cpu-0.local.bin",
+      "bytes": 49376,
+      "identical": true,
+      "sha256": "86a93afa9dde8c9049caf589c4dab38fbbb0563a2a7d8919a38c5548f3d17d79"
+    },
+    {
+      "file": "cpu-1.bin",
+      "bytes": 556052,
+      "identical": true,
+      "sha256": "e1f585665eec1ec9c29d36b8653df62bfdadb37f89945b07e921e9c1a28f8714"
+    },
+    {
+      "file": "cpu-1.local.bin",
+      "bytes": 47900,
+      "identical": true,
+      "sha256": "624773c290a9c05a438b2ab2f4bbba1387cf858a25122b1d4284eba5a6220aa4"
+    },
+    {
+      "file": "detached.bin",
+      "bytes": 411248,
+      "identical": true,
+      "sha256": "8be51254f5dc66c7ab29f442b029c005726e96fd9052068c0e9728eb7eaa2023"
+    },
+    {
+      "file": "detached.local.bin",
+      "bytes": 29012,
+      "identical": true,
+      "sha256": "21145d05edb158621b61e73b9f559b5916acb571b69413ec9cea160efe4067d3"
+    },
+    {
+      "file": "keccak.bin",
+      "bytes": 2785968,
+      "identical": true,
+      "sha256": "c7ae12f25ee21a283fb08894a58a33e6d06e25ffa004cc801cc9c6353c31274e"
+    }
+  ]
+}

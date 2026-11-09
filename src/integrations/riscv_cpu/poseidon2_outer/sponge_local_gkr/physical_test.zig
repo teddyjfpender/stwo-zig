@@ -54,7 +54,7 @@ fn exercise(comptime detached: bool) !void {
     defer if (owns) scheme.deinit(a);
     scheme.setCompactPolynomialStorage(1);
     var channel = Protocol.begin(profile, expected, key.identity, key.root);
-    var shared = key.tree.retainShared();
+    var shared = try key.retainFixedTree();
     scheme.appendCommittedTree(a, shared, &channel) catch |err| {
         shared.deinit(a);
         return err;

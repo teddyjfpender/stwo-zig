@@ -105,6 +105,11 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
         owns_source = false;
         made[2] += 1;
         stage.* = try worker.seal();
+        // Producer PCS owns its shared lease; recursive/source authority must
+        // not retain a duplicate wide FIXED tree through all later proofs.
+        key.retireProverData();
+        key.retireProverData();
+        try std.testing.expectError(error.SpongeDigestOnlyKeyCannotProve, key.retainFixedTree());
         if (comptime Hook != void and @hasDecl(Hook, "cpu")) try Hook.cpu(a, worker, stage.*);
     }
     const expected = Fixture.expectedForSteps(captured.program.identity, captured.loaded, execution_steps);
@@ -142,6 +147,8 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     var detached = try Detached.Worker.init(a, geometry, &detached_key, 2, &calls, words, 128 << 20);
     defer detached.deinit();
     const detached_main = try detached.seal();
+    detached_key.retireProverData();
+    try std.testing.expectError(error.SpongeDigestOnlyKeyCannotProve, detached_key.retainFixedTree());
     var truth_setup = try KR.TruthSetup.init(a, Fixture.KECCAK_LOG);
     defer truth_setup.deinit();
     const truth = R.Truth{ .keccak = .{ .setup = &truth_setup, .first_id = 1, .calls = kio.total() } };
@@ -242,7 +249,7 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     for (&setups, requests, first_ids, stages, &encoded, claims[0..2], 0..) |*setup, request, ids, stage, *proof, *claim, ordinal| {
         var fresh = try R.CpuSetup.initForOpProgram(a, .{ .base = 4096, .words = program_words }, setup.materials.geometry, setup.bridges);
         defer fresh.deinit();
-        var key = try Key.init(a, &fresh, profile, 5);
+        var key = try Key.initDigest(a, &fresh, profile, 5);
         defer key.deinit();
         try std.testing.expectEqualSlices(u8, &setup.materials.program.identity, &fresh.materials.program.identity);
         if (comptime Hook != void and @hasDecl(Hook, "verified")) {
@@ -256,7 +263,7 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
         try std.testing.expectError(error.OodsNotMatching, CPU.verify(a, &fresh, request, .{}, ids, @intCast(ordinal), &key, manifest, stage.main, proof));
         proof.claims[proof.claims.len - 1] = previous;
     }
-    var fresh_detached = try DKey.init(a, profile, geometry);
+    var fresh_detached = try DKey.initDigest(a, profile, geometry);
     defer fresh_detached.deinit();
     claims[2] = try Detached.verify(a, geometry, &fresh_detached, 2, manifest, detached_main, &fragment);
     // An absent-family slot cannot inject debt into aggregate closure even
@@ -265,7 +272,13 @@ pub fn exerciseWithHookBacking(comptime hole: bool, comptime Hook: type, backing
     try std.testing.expectError(error.SpongeAbsentGlobalClaim, Detached.verify(a, geometry, &fresh_detached, 2, manifest, detached_main, &fragment));
     fragment.claims[0][1] = O.zero();
     if (comptime Hook == void and !hole) {
-        var phantom_worker = try Detached.Worker.init(a, geometry, &fresh_detached, 2, &calls, words, 128 << 20);
+        // The fresh receiver is intentionally digest-only. This adversarial
+        // re-prover must derive a separate resident producer authority.
+        var phantom_key = try DKey.init(a, profile, geometry);
+        defer phantom_key.deinit();
+        try std.testing.expectEqualSlices(u8, &fresh_detached.identity, &phantom_key.identity);
+        try std.testing.expectEqualSlices(u8, &fresh_detached.root, &phantom_key.root);
+        var phantom_worker = try Detached.Worker.init(a, geometry, &phantom_key, 2, &calls, words, 128 << 20);
         defer phantom_worker.deinit();
         const phantom_main = try phantom_worker.seal();
         try std.testing.expectEqualSlices(u8, &detached_main, &phantom_main);

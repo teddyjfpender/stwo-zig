@@ -86,7 +86,7 @@ pub const Worker = struct {
         if (self.sealed or self.consumed) return error.PoseidonNativePhase;
         self.consumed = true;
         try self.frontier.mergeInto(&self.source);
-        var tree = self.key.tree.retainShared();
+        var tree = try self.key.retainFixedTree();
         self.scheme.appendCommittedTree(self.allocator, tree, &self.channel) catch |err| {
             tree.deinit(self.allocator);
             return err;

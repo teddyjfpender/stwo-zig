@@ -16,8 +16,15 @@ pub const Key = struct {
     detached: bool,
     identity: [32]u8,
     root: [36]u8,
-    tree: W.Scheme.CommittedTree,
+    tree: ?W.Scheme.CommittedTree,
     pub fn init(a: std.mem.Allocator, profile: Protocol.Profile, g: R.Geometry) !Key {
+        return initMode(a, profile, g, true);
+    }
+    /// Derive the same FIXED root from source, then release wide prover data.
+    pub fn initDigest(a: std.mem.Allocator, profile: Protocol.Profile, g: R.Geometry) !Key {
+        return initMode(a, profile, g, false);
+    }
+    fn initMode(a: std.mem.Allocator, profile: Protocol.Profile, g: R.Geometry, resident: bool) !Key {
         if (profile == .reference_b2_q24_p0) return error.InvalidOpPurePoseidonProfile;
         const instances = try g.instances();
         var storage: [8][]M = undefined;
@@ -49,7 +56,7 @@ pub const Key = struct {
         try scheme.commitBorrowedStreaming(a, columns, 64, &channel);
         var tree = scheme.trees.pop().?;
         errdefer tree.deinit(a);
-        try tree.share(a);
+        if (resident) try tree.share(a);
         const root = tree.root();
         var h = std.crypto.hash.sha2.Sha256.init(.{});
         h.update(R.domain(g.detached));
@@ -67,13 +74,24 @@ pub const Key = struct {
             std.mem.writeInt(u32, words[12..16], @intCast(R.interactionWidth(instance.role)), .little);
             h.update(&words);
         }
-        return .{ .allocator = a, .profile = profile, .logs = logs, .detached = g.detached, .identity = h.finalResult(), .root = root, .tree = tree };
+        const out = Key{ .allocator = a, .profile = profile, .logs = logs, .detached = g.detached, .identity = h.finalResult(), .root = root, .tree = if (resident) tree else null };
+        if (!resident) tree.deinit(a);
+        return out;
+    }
+    pub fn retainFixedTree(self: *const Key) !W.Scheme.CommittedTree {
+        const tree = self.tree orelse return error.SpongeDigestOnlyKeyCannotProve;
+        return tree.retainShared();
+    }
+    pub fn retireProverData(self: *Key) void {
+        if (self.tree) |*tree| tree.deinit(self.allocator);
+        self.tree = null;
     }
     pub fn deinit(self: *Key) void {
-        self.tree.deinit(self.allocator);
+        self.retireProverData();
         self.* = undefined;
     }
     pub fn require(self: *const Key, g: R.Geometry) !void {
+        if (self.tree) |tree| if (!std.mem.eql(u8, &self.root, &tree.root())) return error.SpongeLocalFixedGeometry;
         if (g.detached != self.detached) return error.SpongeLocalFixedGeometry;
         for (try g.instances(), self.logs) |instance, log| if (instance.row_log != log) return error.SpongeLocalFixedGeometry;
     }

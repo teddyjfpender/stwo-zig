@@ -155,3 +155,12 @@ continuity and KIO coverage, and verify all physical workers plus terminal/outpu
 policy. Source-suite admission remains closed. The existing actual two-shard
 source test exercises authenticated CPU child/receipt framing without another
 VM execution or STARK proof.
+
+Both frontier and detached source keys now offer `initDigest`: the receiver
+independently constructs the same FIXED commitment and identity, then releases
+its wide tree. Producer keys may call idempotent `retireProverData` after seal;
+each native PCS already owns its separate shared-tree lease. A retired/digest
+key cannot supply a producer tree. The complete native fixture exercises both
+paths and preserves all seven original physical/local proof artifacts exactly.
+This reduces retention rather than avoiding initial source construction; class
+caching and whole-block memory measurements remain separate qualifications.
