@@ -93,6 +93,8 @@ supplies its trace/constraint programs and statement binding through an
 integration package; the backend owns residency, PCS stages, scheduling,
 telemetry, strict-AOT loading, and teardown.
 
+The current primary module also exports `rv64_numerical_sources`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
+
 ## Dependencies
 
 - `stwo_backend_contracts` — architectural capability vocabulary.
@@ -105,6 +107,8 @@ CUDA evidence.
 
 The narrow dependency is deliberate. Protocol/frontends enter only through
 integration packages so the resident runtime can be audited separately.
+
+The existing build also consumes `stwo_core`, `stwo_prover_engine`. Their providers stay explicit in the package manifest; injected aliases do not replace these concrete dependency edges.
 
 ## Build, test, and run
 
