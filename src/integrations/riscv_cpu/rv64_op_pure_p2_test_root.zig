@@ -231,4 +231,7 @@ test {
     _ = @import("delegations/op_tower/pure_p2_worker_test.zig");
 }
 
-test { _ = @import("poseidon2_outer/sponge_cpu/wire.zig"); }
+test {
+    _ = @import("poseidon2_outer/sponge_cpu/wire.zig");
+    _ = @import("poseidon2_outer/native_group/plan.zig");
+}

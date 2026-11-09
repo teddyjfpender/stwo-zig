@@ -1,0 +1,62 @@
+{
+  "schema": "op-native-group-canonical-plan-v1",
+  "scope": "source-only topology; no proofs, keys, witness or protocol changes",
+  "limits": {
+    "leaves_min": 1,
+    "leaves_max": 256,
+    "maximum_groups": [
+      1,
+      2,
+      4
+    ],
+    "nodes_max": 511
+  },
+  "canonical_rule": "split at largest power of two strictly less than subtree count; group only aligned complete subtrees within selected maximum",
+  "qualification": {
+    "all_768_count_and_group_modes_match_existing_Fold_treeDigest": true,
+    "each_leaf_covered_exactly_once": true,
+    "deterministic_postorder_adjacent_edges": true,
+    "invalid_count_maximum_alignment_span_overflow_coverage_root_edges_rejected": true
+  },
+  "mixed_7_group_4": {
+    "groups": [
+      [
+        0,
+        4
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        6,
+        1
+      ]
+    ],
+    "postorder_fold_edges": [
+      [
+        1,
+        2
+      ],
+      [
+        0,
+        3
+      ]
+    ],
+    "root": "F(root4,F(root2,leaf6))",
+    "nodes": 5
+  },
+  "count_256": {
+    "group1_nodes": 511,
+    "group2_nodes": 255,
+    "group4_nodes": 127
+  },
+  "command": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='native group' -j1",
+  "security_qualified": false,
+  "production_admission": false,
+  "notes": [
+    "Maximum group is an explicit scheduling/source-shape input, not a claim that group4 is optimal for every class.",
+    "No dynamic proof-selected edges or duplicate-last padding.",
+    "Does not independently establish native execution or global claim closure."
+  ]
+}
