@@ -28,3 +28,11 @@ Another LS metadata parking extension would remove much of the remaining 9.87 GB
 The test `OP retained source layout manifest uses compiled owner ABI sizes only` writes ABI sizes to `STWO_OP_SOURCE_LAYOUT_OUTPUT`. The test `OP retained truth planner manifest needs no setup witness or execution` reads `STWO_OP_SOURCE_FROZEN_PLAN` and writes source-derived schema-2 resource plans to `STWO_OP_SOURCE_TRUTH_OUTPUT`. Both passed ReleaseSafe. Neither constructs wide immutable keys, witnesses or proofs.
 
 Run `python3 scripts/rv64_op_retained_source_report.py --plan FROZEN/native-op-plan.json --cost FROZEN/native-op-cost.json --seal cpu-seal-plan.json --sizes source-owner-abi-sizes.json --truths source-owner-schema2-truth-plans.json --output report.json`. The source report's native/event exact-equality checks fail closed on mismatched accounting.
+
+The committed model also pins SHA-256 for all five input files. Root integration
+reproduced every existing numeric field exactly with Python `-O`. Length,
+coverage, order, request steps, commitment geometry and reviewed source origins
+are checked with explicit errors; disabling Python assertions cannot silently
+truncate the model's `zip` walks or remove its exact-payload checks. Six mutated
+inputs (truncated requests, reordered seals, unknown owner, wrong native/event
+payloads and mismatched commitment geometry) were refused without guest replay.

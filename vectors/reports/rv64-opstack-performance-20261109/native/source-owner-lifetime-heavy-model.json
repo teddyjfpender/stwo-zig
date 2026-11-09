@@ -2542,5 +2542,12 @@
     "Generated provider metadata replaces freed capture family facts; LS metadata replaces consumed events.",
     "Service advice remains captured for truth producers; copied CPU bridge advice is additional.",
     "Only LS/D64 fixed masks and SHIFT semantic histograms use the qualified postseal auxiliary retirement."
-  ]
+  ],
+  "input_sha256": {
+    "plan": "5342850f24d95f3c81c1dbd113a013f390766d72da113eca1c1d99638ce7a3a4",
+    "cost": "3519a290a3d9a62ae878fd0c82ea946bb9c675822c24ee128eb3fd591a43c225",
+    "seal": "30974a0ea5deebfbd62752689c89f064e4928e3667621d402df9e7ba45c0fef2",
+    "sizes": "c4e236cad5bc9f8110194cfd338de81072c77eb9c40cb2d1bea7d9f192c7de76",
+    "truths": "2f5e540470adefca39e50c38a422f4a87cba45d1ea8458a4e2dee906b6e7c522"
+  }
 }

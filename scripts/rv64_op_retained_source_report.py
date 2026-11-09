@@ -6,6 +6,7 @@ manifest. Reported payloads are not RSS/admission: prover/FFT scratch, child pro
 artifacts, allocation capacities and some transient source construction coexist.
 """
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -16,7 +17,40 @@ def load(path):
 
 def derive(plan, costs, seal, sizes, truths):
     metadata = plan['metadata']
-    assert len(metadata['cpus']) == len(costs['cpus']) == len(seal['cpus'])
+    count = len(metadata['cpus'])
+    if count == 0 or any(len(rows) != count for rows in
+                         (metadata['requests'], metadata['spans'], costs['cpus'], seal['cpus'])):
+        raise ValueError('CPU declarations, requests, spans, costs and seal records must have equal nonzero lengths')
+    if sum(row['steps'] for row in costs['cpus']) != plan['steps']:
+        raise ValueError('CPU cost steps do not cover the frozen execution')
+    for ordinal, (cost, child) in enumerate(zip(costs['cpus'], seal['cpus'])):
+        if cost['ordinal'] != ordinal or child['ordinal'] != ordinal:
+            raise ValueError('CPU cost/seal records are reordered or duplicated')
+        if metadata['requests'][ordinal]['cpu']['steps'] != cost['steps']:
+            raise ValueError('CPU request/cost step counts differ')
+        if child['main_coefficients'] != cost['main_coefficient_bytes'] or child['main_merkle_upper'] != cost['merkle_node_bytes']:
+            raise ValueError('CPU seal/cost commitment geometry differs')
+    known_origins = {
+        'core': {'alu', 'alu_tail', 'and_table', 'binary', 'binary_tail', 'boundary', 'cpu',
+                 'division', 'initial', 'jalr', 'ls', 'ls_tail', 'multiplication', 'range16',
+                 'range8', 'rom', 'selection', 'shift', 'shift_table', 'shift_tail', 'terminal'},
+        'bridge': {'keccak', 'add', 'double', 'sha256', 'arith256_mod', 'bn254_g1_add',
+                   'bn254_g1_double', 'bn254_fp2_mul', 'bls12_381_fp2_mul', 'arith384_mont',
+                   'bls12_381_g1_add', 'bls12_381_g1_double'},
+        'bulk': {'cdesc', 'cmp', 'copy', 'desc', 'jdesc', 'jscan', 'jtab', 'set', 'ucopy'},
+        'sponge': {'call', 'perm'}, 'dword': {0, 1},
+    }
+    for cost in costs['cpus']:
+        for role in cost['roles']:
+            origin = role['origin']
+            if len(origin) != 1:
+                raise ValueError('Role must have exactly one source origin')
+            kind, name = next(iter(origin.items()))
+            if not ((kind == 'tower' and name == {}) or
+                    (kind in known_origins and not isinstance(name, (dict, list)) and name in known_origins[kind])):
+                raise ValueError(f'Unreviewed retained source owner: {origin!r}')
+            if not 0 <= role['log'] < 32 or not 0 <= role['active_rows'] <= (1 << role['log']) or len(role['widths']) != 3:
+                raise ValueError('Role geometry is malformed')
     histogram = 8 * (65536 + 256)
     source_fixed_roles = {'alu', 'alu_tail', 'binary', 'binary_tail', 'shift', 'shift_tail',
                           'jalr', 'division', 'multiplication', 'ls', 'ls_tail', 'initial', 'terminal', 'selection'}
@@ -133,8 +167,10 @@ def derive(plan, costs, seal, sizes, truths):
                        'cpu_metadata_active': cost['steps'] * sizes['cpu_metadata'], 'moved_capture_counts_and_jalr': moved,
                        'main_coefficients': cost['main_coefficient_bytes'], 'main_merkle_upper': cost['merkle_node_bytes'],
                        'interaction_payload': cost['interaction_bytes'], 'local_gkr_peak': child['source_checkpoint_plan']['peak_bytes']})
-    assert native_total == costs['native_capture_payload_bytes'], (native_total, costs['native_capture_payload_bytes'])
-    assert sum(x['retired_capture_payload']['ordinary_capture_events'] for x in result) == costs['advice_capture_payload']['ordinary_events']
+    if native_total != costs['native_capture_payload_bytes']:
+        raise ValueError(f"Native capture payload mismatch: {native_total} != {costs['native_capture_payload_bytes']}")
+    if sum(x['retired_capture_payload']['ordinary_capture_events'] for x in result) != costs['advice_capture_payload']['ordinary_events']:
+        raise ValueError('Ordinary capture event payload mismatch')
     baseline = seal['measured_retained_capture_and_setup_baseline']
     live = baseline - all_cpu_metadata
     timeline = []
@@ -197,6 +233,10 @@ def main():
         p.add_argument('--' + key, required=True)
     a = p.parse_args()
     report = derive(load(a.plan), load(a.cost), load(a.seal), load(a.sizes), load(a.truths))
+    report['input_sha256'] = {
+        key: hashlib.sha256(Path(getattr(a, key)).read_bytes()).hexdigest()
+        for key in ['plan', 'cost', 'seal', 'sizes', 'truths']
+    }
     Path(a.output).write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: report[k] for k in ['exact_reconstructed_native_capture_payload', 'cpu_barrier_payload_upper', 'maximum_seal_payload_upper', 'maximum_interaction_commit_payload_upper']}))
 
