@@ -1,0 +1,230 @@
+diff --git a/src/integrations/circuit_cpu/om31/witness.zig b/src/integrations/circuit_cpu/om31/witness.zig
+index 0dd89e8b1..e41f1a250 100644
+--- a/src/integrations/circuit_cpu/om31/witness.zig
++++ b/src/integrations/circuit_cpu/om31/witness.zig
+@@ -107,6 +107,7 @@ fn writeImpl(a: std.mem.Allocator, base: *T.BaseTrace, pp: *const circuit.common
+         var scope = try Profile.StageScope.begin(recorder, @tagName(kind), @tagName(kind));
+         defer scope.end();
+         const out = try L.buildWithRecorder(a, log, (T.RawLookupRows.count(kind) + 1) / 2, Row{ .raw = &rows, .kind = kind, .elements = &elements }, Row.fill, recorder);
++        if (recorder != null) std.debug.print("OM31_INTERACTION_WORK component={s} fractions={d} nonzero={d} inverted={d}\n", .{ @tagName(kind), out.work.fractions, out.work.nonzero, out.work.inverted });
+         outputs[i] = out;
+         if (out.columns.len != 8 * ((T.RawLookupRows.count(kind) + 1) / 2)) return error.InvalidOm31InteractionWidth;
+         claims[i] = out.claimed_sum;
+diff --git a/src/prover/air/logup_columns_family.zig b/src/prover/air/logup_columns_family.zig
+index 7b10be106..8ff808127 100644
+--- a/src/prover/air/logup_columns_family.zig
++++ b/src/prover/air/logup_columns_family.zig
+@@ -29,6 +29,7 @@ pub fn ForField(comptime Secure: type) type {
+         pub const Output = struct {
+             columns: []prover_pcs.ColumnEvaluation,
+             claimed_sum: Secure,
++            work: struct { fractions: usize = 0, nonzero: usize = 0, inverted: usize = 0 } = .{},
+         };
+ 
+         pub fn build(
+@@ -120,6 +121,12 @@ pub fn ForField(comptime Secure: type) type {
+ 
+             var claimed_sum = Secure.zero();
+             for (partials) |partial| claimed_sum = claimed_sum.add(partial);
++            var nonzero: usize = 0;
++            var inverted: usize = 0;
++            for (workers) |worker| {
++                nonzero += worker.nonzero;
++                inverted += worker.inverted;
++            }
+             rows_scope.end();
+ 
+             var prefix_scope = try Profile.StageScope.begin(recorder, "logup_prefix", "LogUp shifted coset prefix");
+@@ -132,7 +139,7 @@ pub fn ForField(comptime Secure: type) type {
+                 for (values) |*value| value.* = value.sub(shift_coordinates[coordinate]);
+                 try inclusivePrefixSum(allocator, values);
+             };
+-            return .{ .columns = columns, .claimed_sum = claimed_sum };
++            return .{ .columns = columns, .claimed_sum = claimed_sum, .work = .{ .fractions = row_count * secure_columns, .nonzero = nonzero, .inverted = inverted } };
+         }
+ 
+         /// Rows one worker fills and inverts as a batch.
+@@ -159,6 +166,8 @@ pub fn ForField(comptime Secure: type) type {
+                     denominators: []Secure,
+                     inverses: []Secure,
+                     err: ?anyerror = null,
++                    nonzero: usize = 0,
++                    inverted: usize = 0,
+ 
+                     fn init(allocator: std.mem.Allocator, shared: *Self) !Worker {
+                         const len = shared.chunk_rows * shared.secure_columns;
+@@ -194,23 +203,44 @@ pub fn ForField(comptime Secure: type) type {
+                         const shared = self.shared;
+                         const width = shared.secure_columns;
+                         const first_row = index * shared.chunk_rows;
++                        var active: usize = 0;
+                         for (0..shared.chunk_rows) |offset| {
+                             const row_fractions = self.fractions[offset * width ..][0..width];
+                             try fillRow(shared.context, first_row + offset, row_fractions);
+                             for (row_fractions) |fraction| {
+                                 if (fraction.denominator.isZero()) return error.DegenerateDenominator;
++                                // Keep the same denominator-degeneracy refusal,
++                                // including for zero weights. Only their zero
++                                // contribution is omitted from the inverter.
++                                if (!fraction.numerator.isZero()) {
++                                    self.denominators[active] = fraction.denominator;
++                                    active += 1;
++                                }
+                             }
+                         }
+-                        for (self.fractions, self.denominators) |fraction, *denominator| denominator.* = fraction.denominator;
+-                        try fields.batchInverseInPlace(Secure, self.denominators, self.inverses);
++                        self.nonzero += active;
++                        if (active != 0) {
++                            // Preserve the packed inverse path for arbitrary
++                            // sparse lengths. Padding uses identity elements
++                            // only; they are never read as real fractions.
++                            const padded = @min(self.denominators.len, std.mem.alignForward(usize, active, 32));
++                            @memset(self.denominators[active..padded], Secure.one());
++                            try fields.batchInverseInPlace(Secure, self.denominators[0..padded], self.inverses[0..padded]);
++                            self.inverted += padded;
++                        }
+ 
+                         var partial = Secure.zero();
++                        var inverse_at: usize = 0;
+                         for (0..shared.chunk_rows) |offset| {
+                             const row = first_row + offset;
+                             var cumulative = Secure.zero();
+                             for (0..width) |batch| {
+                                 const at = offset * width + batch;
+-                                cumulative = cumulative.add(self.fractions[at].numerator.mul(self.inverses[at]));
++                                const numerator = self.fractions[at].numerator;
++                                if (!numerator.isZero()) {
++                                    cumulative = cumulative.add(numerator.mul(self.inverses[inverse_at]));
++                                    inverse_at += 1;
++                                }
+                                 const coordinates = cumulative.toM31Array();
+                                 for (coordinates, 0..) |coordinate, coordinate_index| {
+                                     @constCast(shared.columns[DEGREE * batch + coordinate_index].values)[row] = coordinate;
+@@ -218,6 +248,7 @@ pub fn ForField(comptime Secure: type) type {
+                             }
+                             partial = partial.add(cumulative);
+                         }
++                        std.debug.assert(inverse_at == active);
+                         shared.partials[index] = partial;
+                     }
+                 };
+diff --git a/src/prover/air_test_root.zig b/src/prover/air_test_root.zig
+index f9e11b2cd..360bb5d87 100644
+--- a/src/prover/air_test_root.zig
++++ b/src/prover/air_test_root.zig
+@@ -1,5 +1,6 @@
+ test {
+     _ = @import("air/logup_prefix.zig");
++    _ = @import("air/logup_sparse_test.zig");
+     _ = @import("air/component_pool_exclusive_test.zig");
+     _ = @import("air/component_queue_test.zig");
+     _ = @import("cooperative_queue.zig");
+diff --git a/src/prover/air/logup_sparse_test.zig b/src/prover/air/logup_sparse_test.zig
+new file mode 100644
+index 000000000..a2f606e05
+--- /dev/null
++++ b/src/prover/air/logup_sparse_test.zig
+@@ -0,0 +1,102 @@
++const std = @import("std");
++const core = @import("stwo_core");
++const M = core.fields.m31.M31;
++const Builder = @import("logup_columns_family.zig").ForField;
++const Col = @import("../pcs/mod.zig").ColumnEvaluation;
++const work = @import("../work_pool.zig");
++
++fn qualify(comptime F: type) !void {
++    const a = std.testing.allocator;
++    const B = Builder(F);
++    const degree = F.one().toM31Array().len;
++    const log = 13;
++    const n = 1 << log;
++    const width = 3;
++    const Context = struct {
++        mode: usize,
++        bad: bool = false,
++        denominators: [8]F,
++        fn fill(self: @This(), row: usize, fractions: []B.Fraction) !void {
++            for (fractions, 0..) |*fraction, c| {
++                const nonzero = switch (self.mode) {
++                    0 => false,
++                    1 => (row + c) % 2 == 0,
++                    2 => (row * width + c) % 33 == 0,
++                    else => true,
++                };
++                fraction.* = .{
++                    .numerator = if (nonzero) F.fromBase(M.fromU64(row + c + 1)) else F.zero(),
++                    .denominator = if (self.bad and row == 64) F.zero() else self.denominators[(3 * row + c) % 8],
++                };
++            }
++        }
++    };
++    var denominators: [8]F = undefined;
++    var inverses: [8]F = undefined;
++    for (&denominators, &inverses, 0..) |*d, *inverse, i| {
++        var coordinates: [degree]M = undefined;
++        for (&coordinates, 0..) |*v, c| v.* = M.fromU64(17 + 131 * i + c);
++        d.* = F.fromM31Array(coordinates);
++        inverse.* = try d.inv();
++    }
++    var pool: work.WorkPool = undefined;
++    try pool.initInPlaceWithOptions(.{ .worker_count = 3 });
++    defer pool.deinit();
++    var binding = try work.ScopedPoolBinding.init(&pool);
++    defer binding.deinit();
++    for (0..4) |mode| {
++        const ctx = Context{ .mode = mode, .denominators = denominators };
++        const out = try B.build(a, log, width, ctx, Context.fill);
++        defer {
++            for (out.columns) |column| a.free(column.values);
++            a.free(out.columns);
++        }
++        const expected = try a.alloc(F, width * n);
++        defer a.free(expected);
++        var claim = F.zero();
++        var active: usize = 0;
++        for (0..n) |row| {
++            var fractions: [width]B.Fraction = undefined;
++            try ctx.fill(row, &fractions);
++            var sum = F.zero();
++            for (fractions, 0..) |fraction, c| {
++                // Independent scalar oracle inverts all eight denominator
++                // values, including those used only by zero-weight fractions.
++                sum = sum.add(fraction.numerator.mul(inverses[(3 * row + c) % 8]));
++                expected[c * n + row] = sum;
++                if (!fraction.numerator.isZero()) active += 1;
++            }
++            claim = claim.add(sum);
++        }
++        try std.testing.expect(claim.eql(out.claimed_sum));
++        try std.testing.expectEqual(n * width, out.work.fractions);
++        try std.testing.expectEqual(active, out.work.nonzero);
++        try std.testing.expect(out.work.inverted >= active and out.work.inverted <= n * width);
++        if (mode == 0) try std.testing.expectEqual(@as(usize, 0), out.work.inverted);
++        const shift = claim.mulM31(try M.fromU64(n).inv());
++        const last = expected[(width - 1) * n ..];
++        for (last) |*value| value.* = value.sub(shift);
++        core.utils.bitReverse(F, last);
++        const coset = try core.utils.circleDomainOrderToCosetOrder(F, a, last);
++        defer a.free(coset);
++        var sum = F.zero();
++        for (coset) |*value| {
++            sum = sum.add(value.*);
++            value.* = sum;
++        }
++        const circle = try core.utils.cosetOrderToCircleDomainOrder(F, a, coset);
++        defer a.free(circle);
++        core.utils.bitReverse(F, circle);
++        @memcpy(last, circle);
++        for (0..width) |c| for (expected[c * n ..][0..n], 0..) |value, row|
++            for (value.toM31Array(), 0..) |coordinate, j|
++                try std.testing.expectEqual(coordinate, out.columns[c * degree + j].values[row]);
++    }
++    // A zero numerator must never hide a forbidden denominator.
++    try std.testing.expectError(error.DegenerateDenominator, B.build(a, log, width, Context{ .mode = 0, .bad = true, .denominators = denominators }, Context.fill));
++}
++
++test "sparse LogUp inversion preserves every QM31 and OM31 trace coordinate" {
++    try qualify(core.fields.qm31.QM31);
++    try qualify(core.fields.om31.OM31);
++}
