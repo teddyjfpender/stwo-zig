@@ -39,6 +39,8 @@ pub fn build(b: *std.Build) void {
     const frontend = frontend_dependency.module("stwo_riscv_frontend");
     const postcard = frontend.import_table.get("interop_postcard") orelse
         @panic("canonical RISC-V frontend is missing interop_postcard");
+    const proof_wire = circuit_cpu.import_table.get("stwo_proof_wire") orelse @panic("canonical circuit CPU provider is missing proof wire");
+    postcard.addImport("stwo_proof_wire", proof_wire);
     const integration = b.addModule("stwo_riscv_cpu_integration", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -47,7 +49,7 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_artifact_store", artifact_store);
     integration.addImport("stwo_core", core);
     integration.addImport("stwo_prover_api", prover_api);
-    integration.addImport("stwo_proof_wire", postcard.import_table.get("stwo_proof_wire") orelse @panic("canonical postcard module is missing proof wire"));
+    integration.addImport("stwo_proof_wire", proof_wire);
     integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_riscv_frontend", frontend);
