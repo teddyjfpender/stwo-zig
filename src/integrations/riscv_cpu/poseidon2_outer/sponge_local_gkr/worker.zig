@@ -32,6 +32,7 @@ pub const Encoded = struct {
 };
 pub const Worker = struct {
     allocator: std.mem.Allocator,
+    native_recorder: ?*@import("stwo_prover_api").stage_profile.Recorder = null,
     geometry: R.Geometry,
     key: *const Key,
     expected: Expected,
@@ -71,7 +72,7 @@ pub const Worker = struct {
             Stages.columns(self.source.main[i], instances[i].row_log, columns[offset..][0..R.mainWidth(role)]);
             offset += R.mainWidth(role);
         }
-        try self.scheme.commitBorrowedStreamingWithRecorder(self.allocator, &columns, 64, null, &self.channel);
+        try self.scheme.commitBorrowedStreamingWithRecorder(self.allocator, &columns, 64, self.native_recorder, &self.channel);
         // Source metadata is itself MAIN and will serve the checkpoint reader.
         // It stays live until complete; never rebuild a second wide witness.
         self.sealed = true;
@@ -92,8 +93,13 @@ pub const Worker = struct {
         const a = self.allocator;
         const scope = Native.DetachedScope{ .statement = self.expected.statement, .fixed = self.key.root, .main = self.scheme.trees.items[1].root(), .manifest = manifest, .ordinal = self.expected.ordinal };
         const provider = Fraction.Provider{ .source = &self.source };
+        var local_gkr = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "local_gkr", "Detached sponge local source-streamed GKR");
+        defer local_gkr.end();
         var child = try Native.proveDetachedUnboundWithOptions(a, scope, self.geometry, provider, .{ .coefficient_encoding = .fixed4 });
         defer child.deinit(a);
+        local_gkr.end();
+        var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Detached terminal binding and original global RAM KIO Wire");
+        defer generation.end();
         var binding = try Binding.Witness.init(a, self.geometry, &child.challenges, provider, &child.result.artifact, child.eta);
         defer binding.deinit();
         const shared = try Stages.globalDraw(manifest);
@@ -129,13 +135,14 @@ pub const Worker = struct {
             offsets[2] += width;
         }
         if (comptime phantom) claims[5][0] = O.one();
+        generation.end();
         Stages.mix(&self.channel, scope, child.digest, O.zero(), claims);
-        try self.scheme.commitBorrowedStreamingWithRecorder(a, &columns, 64, null, &self.channel);
+        try self.scheme.commitBorrowedStreamingWithRecorder(a, &columns, 64, self.native_recorder, &self.channel);
         self.consumed = true;
         const scheme = self.scheme;
         self.owns_scheme = false;
         self.scheme = undefined;
-        var proof = try W.Prover.prove(a, &provers, &self.channel, scheme, .{});
+        var proof = try W.Prover.prove(a, &provers, &self.channel, scheme, .{ .recorder = self.native_recorder });
         defer proof.deinit(a);
         const bytes = try W.Wire.encodeProofBytesBinary(a, proof.proof);
         errdefer a.free(bytes);

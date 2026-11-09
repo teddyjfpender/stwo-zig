@@ -1,6 +1,7 @@
 //! One typed stage-one barrier and complete physical proof set. This route is
 //! explicit and experimental; it never constructs an old CPU Frame/Pending.
 const std = @import("std");
+const Stage = @import("stwo_prover_api").stage_profile;
 const engine = @import("stwo_prover_engine");
 const R = @import("../../word16_global_execution/services/roster.zig");
 const Advice = @import("../../word16_global_execution/services/collector.zig").Advice;
@@ -22,6 +23,7 @@ const Store = @import("../pure_p2_retained_main.zig").Store;
 const B = @import("wire.zig");
 const MetadataParking = @import("../pure_p2_cpu_metadata_parking.zig");
 pub const Limits = struct {
+    recorders: []const ?*Stage.Recorder = &.{},
     consume_memory_events: bool = false,
     park_cpu_metadata: bool = false,
     retire_source_auxiliaries: bool = false,
@@ -33,6 +35,9 @@ pub const Limits = struct {
     global_bytes: usize,
     miller: Miller.Limits,
     miller_gkr_bytes: usize,
+    fn recorder(self: Limits, ordinal: usize) ?*Stage.Recorder {
+        return if (self.recorders.len == 0) null else self.recorders[ordinal];
+    }
 };
 pub const Inputs = struct {
     /// Optional tokens parked by the capture owner, borrowed through completion.
@@ -126,12 +131,27 @@ const Worker = union(enum) {
         }
     }
 };
+fn sealAndPark(worker: *Worker, expected_worker: M.Expected, store: *Store, recorder: ?*Stage.Recorder) !M.StageOne {
+    switch (worker.*) {
+        .detached => |*v| v.value.native_recorder = recorder,
+        inline else => |*v| v.native_recorder = recorder,
+    }
+    var seal = try Stage.StageScope.begin(recorder, "stage_one_seal", "Native MAIN and local GKR sealing");
+    defer seal.end();
+    const out = try worker.seal();
+    seal.end();
+    var park = try Stage.StageScope.begin(recorder, "retained_main_park", "Write already committed coefficients and Merkle layers");
+    defer park.end();
+    _ = try store.parkBound(worker.allocator(), &worker.scheme().trees.items[1], .{ .setup = expected_worker.authority.fixed_identity, .statement = expected_worker.authority.statement });
+    return out;
+}
 fn expected(source: I.Catalog, ordinal: u32) !OldM.Expected {
     return if (source.local_key) |key| key.expected(source.truth, ordinal) else source.key.expected(source.truth, ordinal);
 }
 pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inputs, store: *Store, limits: Limits) !B.Bundle {
     if (limits.consume_memory_events and !@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, inputs.advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
+    if (limits.recorders.len != 0 and limits.recorders.len != inventory.workers.len) return error.InvalidOpNativeTimings;
     if (inputs.cpus.len != inventory.cpu_count or inputs.detached.len != inventory.detached_count or inputs.catalog.len != inventory.truth_count or inputs.native.len != inputs.cpus.len or inputs.advice.sponge.len != inputs.cpus.len or inputs.cpus.len + inputs.detached.len + inputs.catalog.len + inputs.towers.len != inventory.workers.len) return error.DetachedInventoryRoster;
     // Current capture is a single immutable flattened suffix. Multi-worker
     // partitioning must provide separate source slices, never duplicate it.
@@ -163,6 +183,8 @@ pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inpu
         for (inputs.native, metadata) |n, *token| token.* = try MetadataParking.park(store, if (n.cpu) |*cpu| cpu else return error.PreparedExecutionConsumed);
     }
     for (inputs.cpus, inputs.native, 0..) |cpu, n, ordinal| {
+        var source_scope = try Stage.StageScope.begin(limits.recorder(ordinal), "source_construction", "Construct worker witness and narrow metadata once");
+        defer source_scope.end();
         if (metadata[ordinal]) |*token| try token.restore(if (n.cpu) |*value| value else return error.PreparedExecutionConsumed);
         var source = try Pipeline.buildCpuSourceForOp(a, cpu.setup, cpu.request, cpu.span, n, inputs.advice, ordinal, inventory.first_ids[ordinal], limits.consume_memory_events, null);
         var source_owned = true;
@@ -174,33 +196,39 @@ pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inpu
         source_owned = false;
         frontier_owned = false;
         made += 1;
-        stages[ordinal] = try workers[ordinal].seal();
-        _ = try store.parkBound(workers[ordinal].allocator(), &workers[ordinal].scheme().trees.items[1], .{ .setup = inventory.workers[ordinal].authority.fixed_identity, .statement = inventory.workers[ordinal].authority.statement });
+        source_scope.end();
+        stages[ordinal] = try sealAndPark(&workers[ordinal], inventory.workers[ordinal], store, limits.recorder(ordinal));
         if (limits.retire_source_auxiliaries) _ = try @import("../pure_p2_source_auxiliary_retirement.zig").retire(&workers[ordinal].cpu.source);
         if (metadata[ordinal]) |*token| try token.retireRestored(&workers[ordinal].cpu.source.core.cpu);
     }
     for (inputs.detached, 0..) |source, j| {
         const ordinal = inputs.cpus.len + j;
+        var source_scope = try Stage.StageScope.begin(limits.recorder(ordinal), "source_construction", "Construct worker witness and narrow metadata once");
+        defer source_scope.end();
         const budget = try engine.host_budget_allocator.SharedHostBudget.createRetainingParent(a, limits.detached_live_bytes);
         var owns_budget = true;
         defer if (owns_budget) budget.destroy();
         workers[ordinal] = .{ .detached = .{ .value = try D.Worker.init(budget.allocator(), source.geometry, source.key, @intCast(ordinal), inputs.calls, inputs.words, limits.global_bytes), .budget = budget } };
         owns_budget = false;
         made += 1;
-        stages[ordinal] = try workers[ordinal].seal();
-        _ = try store.parkBound(workers[ordinal].allocator(), &workers[ordinal].scheme().trees.items[1], .{ .setup = inventory.workers[ordinal].authority.fixed_identity, .statement = inventory.workers[ordinal].authority.statement });
+        source_scope.end();
+        stages[ordinal] = try sealAndPark(&workers[ordinal], inventory.workers[ordinal], store, limits.recorder(ordinal));
     }
     for (inputs.catalog, 0..) |source, j| {
         const ordinal = inputs.cpus.len + inputs.detached.len + j;
+        var source_scope = try Stage.StageScope.begin(limits.recorder(ordinal), "source_construction", "Construct worker witness and narrow metadata once");
+        defer source_scope.end();
         const exp = try expected(source, @intCast(ordinal));
         workers[ordinal] = if (source.local_key) |key| .{ .local = try LocalTruth.Worker.initWithGkrOptions(a, key, source.truth, Truth.SourceBuilder.fromAdvice(inputs.advice), exp, .{ .live_bytes = limits.truth.live_bytes, .main_bytes = limits.truth.main_bytes, .interaction_bytes = limits.truth.interaction_bytes, .gkr_bytes = limits.truth_gkr_bytes }, .{ .coefficient_encoding = .fixed4 }) } else .{ .truth = try Truth.Worker.init(a, source.key, source.truth, Truth.SourceBuilder.fromAdvice(inputs.advice), exp, limits.truth) };
         made += 1;
-        stages[ordinal] = try workers[ordinal].seal();
-        _ = try store.parkBound(workers[ordinal].allocator(), &workers[ordinal].scheme().trees.items[1], .{ .setup = inventory.workers[ordinal].authority.fixed_identity, .statement = inventory.workers[ordinal].authority.statement });
+        source_scope.end();
+        stages[ordinal] = try sealAndPark(&workers[ordinal], inventory.workers[ordinal], store, limits.recorder(ordinal));
     }
     const TowerInput = @import("stwo_riscv_frontend").rv64_air.crypto.bn254_tower.narrow.trace.Input;
     for (inputs.towers, 0..) |item, j| {
         const ordinal = inputs.cpus.len + inputs.detached.len + inputs.catalog.len + j;
+        var source_scope = try Stage.StageScope.begin(limits.recorder(ordinal), "source_construction", "Construct worker witness and narrow metadata once");
+        defer source_scope.end();
         const exp = if (item.local_key) |key| try key.expected(item.span, @intCast(ordinal)) else try item.key.expected(item.span, @intCast(ordinal));
         const input = try a.alloc(TowerInput, item.span.calls);
         defer a.free(input);
@@ -217,8 +245,8 @@ pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inpu
         if (filled != input.len) return error.InvalidOpTowerCoverage;
         workers[ordinal] = if (item.local_key) |key| .{ .miller_local = try LocalMiller.Worker.init(a, key, item.span, exp, input, .{ .live_bytes = limits.miller.live_bytes, .main_bytes = limits.miller.main_bytes, .interaction_bytes = limits.miller.interaction_bytes, .advice_bytes = limits.miller.advice_bytes, .gkr_bytes = limits.miller_gkr_bytes }) } else .{ .miller = try Miller.Worker.init(a, item.key, item.span, exp, input, limits.miller) };
         made += 1;
-        stages[ordinal] = try workers[ordinal].seal();
-        _ = try store.parkBound(workers[ordinal].allocator(), &workers[ordinal].scheme().trees.items[1], .{ .setup = inventory.workers[ordinal].authority.fixed_identity, .statement = inventory.workers[ordinal].authority.statement });
+        source_scope.end();
+        stages[ordinal] = try sealAndPark(&workers[ordinal], inventory.workers[ordinal], store, limits.recorder(ordinal));
     }
     var pending = try M.verifyAndSeal(a, inventory.execution, inventory.workers, stages);
     defer pending.deinit(a);
@@ -228,9 +256,15 @@ pub fn produce(a: std.mem.Allocator, inventory: *const I.Inventory, inputs: Inpu
     errdefer for (fragments[0..completed]) |*fragment| fragment.deinit(a);
     for (workers, 0..) |*worker, ordinal| {
         if (ordinal < metadata.len) if (metadata[ordinal]) |*token| try token.restore(&worker.cpu.source.core.cpu);
+        var restore = try Stage.StageScope.begin(limits.recorder(ordinal), "retained_main_restore", "Map and integrity-check sealed source payload");
+        defer restore.end();
         _ = try store.restoreBound(&worker.scheme().trees.items[1], .{ .setup = inventory.workers[ordinal].authority.fixed_identity, .statement = inventory.workers[ordinal].authority.statement });
+        restore.end();
         try pending.checkPhysicalRoots(ordinal, inventory.workers[ordinal].authority.fixed, stages[ordinal].main);
+        var complete = try Stage.StageScope.begin(limits.recorder(ordinal), "stage_two_prove", "Manifest-bound native interaction and physical proof");
+        defer complete.end();
         fragments[ordinal] = try worker.complete(a, pending.digest, stages[ordinal].main);
+        complete.end();
         completed += 1;
         worker.deinit();
         retired += 1;

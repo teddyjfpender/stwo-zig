@@ -42,6 +42,7 @@ pub const Encoded = struct {
 };
 pub const Worker = struct {
     allocator: std.mem.Allocator,
+    native_recorder: ?*@import("stwo_prover_api").stage_profile.Recorder = null,
     setup: *const R.CpuSetup,
     request: P.Request,
     span: T.OpTowerSpan,
@@ -92,8 +93,10 @@ pub const Worker = struct {
             return err;
         };
         const main = try takeMain(self.allocator, &self.source, &self.frontier, self.setup);
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, main.columns, main.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         const root = self.scheme.trees.items[1].root();
+        var local_gkr = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "local_gkr", "CPU local source-streamed GKR");
+        defer local_gkr.end();
         self.child = try Native.proveUnbound(self.budget.allocator(), self.scope(root), self.roster.instances, self.provider());
         self.sealed = true;
         self.consumed = false;
@@ -107,6 +110,8 @@ pub const Worker = struct {
         const pending = Native.Pending{ .artifact = child.result.artifact, .challenges = child.challenges, .eta = child.eta, .digest = child.digest };
         var prefix: engine.lookups.gkr_verifier.ForField(O).GkrArtifact = undefined;
         const terminal = try pending.checkedLegacy(self.roster.legacy.len, &prefix);
+        var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "CPU terminal binding and shared global relations");
+        defer generation.end();
         var binding = try @import("../../word16_global_execution/services/gkr_local/witness.zig").Witness.initFromProvider(a, self.budget.allocator(), self.roster.legacy, &child.challenges, @import("../../word16_global_execution/services/gkr_local/native_provider.zig").Provider{ .source = &self.source }, &prefix, child.eta);
         defer binding.deinit();
         const witnesses = try a.alloc(?Classic.Witness, self.plan.slots.len);
@@ -148,13 +153,14 @@ pub const Worker = struct {
             if (w) |v| fillColumns(v.data, slot.log, columns[offset..][0..v.width()]);
         }
         fillColumns(frontier_binding.data, self.frontier.log, columns[self.plan.inter_columns..]);
+        generation.end();
         Protocol.mixManifestAndClaims(&self.channel, manifest, claims);
-        try self.scheme.commitBorrowedStreamingWithRecorder(a, columns, 64, null, &self.channel);
+        try self.scheme.commitBorrowedStreamingWithRecorder(a, columns, 64, self.native_recorder, &self.channel);
         self.consumed = true;
         const scheme = self.scheme;
         self.owns_scheme = false;
         self.scheme = undefined;
-        var proof = try W.Prover.prove(a, handles, &self.channel, scheme, .{});
+        var proof = try W.Prover.prove(a, handles, &self.channel, scheme, .{ .recorder = self.native_recorder });
         defer proof.deinit(a);
         const bytes = try W.Wire.encodeProofBytesBinary(a, proof.proof);
         errdefer a.free(bytes);
