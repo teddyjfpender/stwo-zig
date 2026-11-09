@@ -22,6 +22,7 @@
     "composition_eval_arena",
     "composition_prewarm",
     "composition_stage",
+    "eval_abi",
     "eval_codegen",
     "interaction_executor",
     "memory_trace",

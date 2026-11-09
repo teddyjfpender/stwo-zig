@@ -102,6 +102,8 @@ Proof objects own nested allocations according to the deinitialization
 contracts on their concrete types; callers should not copy an owning proof and
 deinitialize both copies.
 
+The current primary module also exports `proof_suites`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
+
 ## Dependencies
 
 `stwo_core` has no first-party package dependencies. This is enforced by its

@@ -60,6 +60,8 @@ The transaction exposes runtime initialization, telemetry/lifecycle snapshots,
 fixture proving, verification/consumption, and shutdown. Production callers
 must retain telemetry evidence proving that no fallback path completed.
 
+The current primary module also exports `eval_abi`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
+
 ## Dependencies
 
 - `stwo_backend_contracts`

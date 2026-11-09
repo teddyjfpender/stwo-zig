@@ -33,6 +33,23 @@ BUILD_FILE_FLAG = "--build-file"
 BUILD_FILE_NAME = "build.zig"
 
 
+def generated_embedded_assets(repository: Path) -> dict[str, Path]:
+    """Resolve literal embedded_assets records owned by existing product builders."""
+    bindings: dict[str, set[Path]] = {}
+    for source in (repository / "build_support").rglob("*.zig"):
+        text = re.sub(r"/\*.*?\*/|//[^\n]*", "", source.read_text(encoding="utf-8"), flags=re.DOTALL)
+        for body in re.findall(r"const embedded_assets = [^\n]+\n(.*?)\n\};", text, re.DOTALL):
+            for name, relative in re.findall(r'\.name\s*=\s*"([^\"]+)"\s*,\s*\.path\s*=\s*"([^\"]+)"', body):
+                bindings.setdefault(name, set()).add((repository / relative).resolve())
+    result = {}
+    for name, paths in bindings.items():
+        if len(paths) == 1:
+            path, = paths
+            if path.is_relative_to(repository) and path.is_file():
+                result[name] = path
+    return result
+
+
 class GraphError(ValueError):
     """A package graph or lane binding that cannot be trusted for selection."""
 

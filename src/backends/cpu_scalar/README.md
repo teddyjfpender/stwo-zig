@@ -49,10 +49,12 @@ comptime contracts.assertBackend(Backend);
 const M31Column = Backend.ColumnType(@import("stwo_core").fields.m31.M31);
 ```
 
-The sole top-level contractual export is `CpuBackend`. Its namespace provides
+`CpuBackend` provides
 the column, field, interpolation, commitment, Merkle, FRI, recovery, and
 optional profiling hooks consumed by `stwo_prover_engine`. Those methods are
 backend protocol, not independent application entry points.
+
+The current primary module also exports `CommitmentOptions`, `Om31FriBackend`, `configured`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
 
 ## Dependencies
 

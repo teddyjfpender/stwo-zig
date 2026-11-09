@@ -98,6 +98,8 @@ Decoders return a value together with the arena that owns its slices; call
 `deinit` on it. Writers take a `*std.Io.Writer` and never allocate, except
 `serializeProofAlloc`.
 
+The current primary module also exports `checkpoint`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
+
 ## Dependencies
 
 - `stwo_core` — M31 and QM31 field types and `FriConfigV2` of the

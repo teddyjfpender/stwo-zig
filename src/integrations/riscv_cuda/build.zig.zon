@@ -5,6 +5,7 @@
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{
+        .stwo_prover_api = .{ .path = "../../waist/prover_api" },
         .stwo_circuit_cpu_integration = .{ .path = "../circuit_cpu" },
         .stwo_circuit_frontend = .{ .path = "../../frontends/circuit" },
         .stwo_riscv_cpu_integration = .{ .path = "../riscv_cpu" },
