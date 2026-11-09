@@ -68,6 +68,8 @@ impl<'a> Witness<'a> {
     }
 
     fn parse_bounded(bytes: &'a [u8], validation: Validation, limit: usize) -> Result<Self, Error> {
+        #[cfg(feature = "host-phase-census")]
+        let _phase = crate::phase_census::Scope::enter(crate::phase_census::Phase::WitnessParse);
         if bytes.len() < HEADER {
             return Err(Error::Length);
         }
@@ -140,6 +142,15 @@ impl<'a> Witness<'a> {
         let value = &self.payload[offset..offset + u32_at(d, 36)];
         let mask = 1u64 << (index % 64);
         if self.verified.borrow()[index / 64] & mask == 0 {
+            #[cfg(feature = "host-phase-census")]
+            let _phase =
+                crate::phase_census::Scope::enter(crate::phase_census::Phase::PreimageHash);
+            #[cfg(feature = "host-phase-census")]
+            crate::phase_census::note(|c| {
+                c.preimage_hashes += 1;
+                c.preimage_bytes += value.len() as u64;
+                c.preimage_keccak_permutations += (value.len() / 136 + 1) as u64;
+            });
             if keccak256(value).as_slice() != &d[..32] {
                 return Err(Error::Hash);
             }

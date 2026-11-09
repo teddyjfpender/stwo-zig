@@ -51,6 +51,8 @@ pub struct TransitionInput<'a> {
 
 impl<'a> TransitionInput<'a> {
     pub fn parse(input: &'a [u8]) -> Result<Self, InputError> {
+        #[cfg(feature = "host-phase-census")]
+        let _phase = crate::phase_census::Scope::enter(crate::phase_census::Phase::InputDecode);
         if !(HEADER..=MAX_INPUT).contains(&input.len()) {
             return Err(InputError::Length);
         }

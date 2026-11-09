@@ -149,6 +149,8 @@ fn compress_g1(point: &G1Affine) -> [u8; 48] {
 }
 
 fn parse_g1(bytes: &[u8; 48]) -> Option<G1Affine> {
+    #[cfg(feature = "host-phase-census")]
+    let _phase = crate::phase_census::Scope::enter(crate::phase_census::Phase::G1Decode);
     let point = G1Affine::deserialize_compressed(bytes.as_slice()).ok()?;
     // Require the canonical encoding, including for the point at infinity.
     (compress_g1(&point) == *bytes).then_some(point)
@@ -158,6 +160,8 @@ fn parse_g1(bytes: &[u8; 48]) -> Option<G1Affine> {
 /// compute_r_powers_for_verify_kzg_proof_batch. Order is fixed by the
 /// witness's versioned hashes. Verify once before any blob reaches Kona.
 fn verify_sidecar_batch<'a>(mut sidecars: impl ExactSizeIterator<Item = BlobSidecar<'a>>) -> bool {
+    #[cfg(feature = "host-phase-census")]
+    let _phase = crate::phase_census::Scope::enter(crate::phase_census::Phase::BlobBatch);
     let count = sidecars.len();
     if count < 2 {
         return sidecars
@@ -205,10 +209,16 @@ fn verify_sidecar_batch<'a>(mut sidecars: impl ExactSizeIterator<Item = BlobSide
 
     // Pair e(Σ r^i P_i, τ G2) with
     // e(Σ r^i (C_i + z_i P_i - y_i G1), -G2).
+    #[cfg(feature = "host-phase-census")]
+    let phase_msm = crate::phase_census::Scope::enter(crate::phase_census::Phase::G1Msm);
     let proof = G1Projective::msm_unchecked(&proofs, &powers);
     let commitment = G1Projective::msm_unchecked(&commitments, &powers)
         + G1Projective::msm_unchecked(&proofs, &weighted_z)
         - G1Affine::generator().mul_bigint(weighted_y.into_bigint());
+    #[cfg(feature = "host-phase-census")]
+    drop(phase_msm);
+    #[cfg(feature = "host-phase-census")]
+    let _phase = crate::phase_census::Scope::enter(crate::phase_census::Phase::KzgFinalProof);
     // Reuse the admitted trusted setup and pairing routine at point (0, 0).
     revm_precompile::kzg_point_evaluation::arkworks::verify_kzg_proof(
         &compress_g1(&commitment.into_affine()),
@@ -223,6 +233,15 @@ fn evaluation_roots() -> &'static [Fr; FIELD_ELEMENTS] {
 }
 
 fn evaluate_blob(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
+    #[cfg(feature = "host-phase-census")]
+    let _phase = crate::phase_census::Scope::enter(crate::phase_census::Phase::BlobEvaluation);
+    #[cfg(feature = "host-phase-census")]
+    crate::phase_census::note(|c| {
+        c.blobs += 1;
+        c.blob_scalars += 4096;
+    });
+    #[cfg(feature = "host-phase-census")]
+    let phase_decode = crate::phase_census::Scope::enter(crate::phase_census::Phase::FrDecode);
     // EIP-4844 evaluations are in bit-reversed order, so each adjacent pair
     // lives at (w, -w). Fold the even and odd interpolation polynomials:
     //   2 f_z(w^2) = a + b + (z / w) (a - b).
@@ -241,6 +260,8 @@ fn evaluate_blob(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
         // domain point. No on-domain shortcut may bypass canonical admission.
         values.push(Fr::from_bigint(BigInt(limbs))?);
     }
+    #[cfg(feature = "host-phase-census")]
+    drop(phase_decode);
     // Sparse or heavily padded blobs can make the streaming recurrence cheaper.
     // It needs four multiplies per nonzero value; folding needs at most 2N.
     // Choose conservatively by authenticated values, never an external hint.
@@ -254,12 +275,24 @@ fn evaluate_blob(blob: &Blob, z: Fr, roots: &[Fr]) -> Option<Fr> {
         return Some(values[index.reverse_bits() >> (usize::BITS - FIELD_ELEMENTS.ilog2())]);
     }
     if nonzero <= FIELD_ELEMENTS / 2 {
+        #[cfg(feature = "host-phase-census")]
+        crate::phase_census::note(|c| {
+            c.sparse_blobs += 1;
+            c.sparse_multiplications += (4 * nonzero + 3) as u64;
+            c.sparse_inversions += 1;
+        });
         return evaluate_blob_sparse(&values, z, z_to_n, roots);
     }
+    #[cfg(feature = "host-phase-census")]
+    crate::phase_census::note(|c| c.dense_blobs += 1);
     evaluate_blob_folded(&mut values, z, roots)
 }
 
 fn evaluate_blob_folded(values: &mut [Fr], z: Fr, roots: &[Fr]) -> Option<Fr> {
+    #[cfg(feature = "host-phase-census")]
+    let _phase = crate::phase_census::Scope::enter(crate::phase_census::Phase::FrFold);
+    #[cfg(feature = "host-phase-census")]
+    let mut multiplications = 1u64;
     let mut count = FIELD_ELEMENTS;
     let mut point = z;
     while count > 1 {
@@ -269,6 +302,10 @@ fn evaluate_blob_folded(values: &mut [Fr], z: Fr, roots: &[Fr]) -> Option<Fr> {
             let difference = a - b;
             let mut folded = a + b;
             if difference != Fr::ZERO {
+                #[cfg(feature = "host-phase-census")]
+                {
+                    multiplications += 2;
+                }
                 // rev_logN(2j) already includes the 2^stage factor; the
                 // same public root prefix serves every fold depth.
                 let index = (2 * j).reverse_bits() >> (usize::BITS - FIELD_ELEMENTS.ilog2());
@@ -280,10 +317,17 @@ fn evaluate_blob_folded(values: &mut [Fr], z: Fr, roots: &[Fr]) -> Option<Fr> {
         point.square_in_place();
         count /= 2;
     }
+    #[cfg(feature = "host-phase-census")]
+    crate::phase_census::note(|c| {
+        c.dense_fold_multiplications += multiplications;
+        c.dense_fold_squares += 12;
+    });
     Some(values[0] * INV_DOMAIN)
 }
 
 fn evaluate_blob_sparse(values: &[Fr], z: Fr, z_to_n: Fr, roots: &[Fr]) -> Option<Fr> {
+    #[cfg(feature = "host-phase-census")]
+    let _phase = crate::phase_census::Scope::enter(crate::phase_census::Phase::FrSparse);
     let mut numerator = Fr::ZERO;
     let mut denominator = Fr::ONE;
     for (i, value) in values.iter().copied().enumerate() {

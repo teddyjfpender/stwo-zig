@@ -13,6 +13,10 @@ mod transition;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     match args.get(1).map(String::as_str) {
+        #[cfg(feature = "host-phase-census")]
+        Some("run-transition-phase-census") if args.len() == 4 => {
+            transition::run_phase_census(&args[2], &args[3])?;
+        }
         #[cfg(feature = "blob-eval-probe")]
         Some("blob-eval-probe") if args.len() == 3 => {
             let output =

@@ -504,3 +504,26 @@ instructions or proving time. A short native phase census should separate L1
 preimage authentication, blob field evaluation, batch pairing and EVM execution
 before choosing another service. Existing dense folding, roots and witness
 verified-bit caches should not be proposed again as missing optimizations.
+
+## Explicit native phase/field diagnostics
+
+Build the native host with `--features host-phase-census` and run
+`stwo-kona-host run-transition-phase-census INPUT.opd NEW_REPORT.json`. This is
+native-only; enabling the field diagnostic for RV64 is a compile error. Default
+features and guest arithmetic remain unchanged. Scopes record inclusive and
+exclusive native time for parsing, derivation, preimage hashing, scalar decoding
+and folds, G1 decoding/MSMs, final KZG proof, and EVM/output-root execution.
+
+The accompanying N4/N6 operation census models the existing RV64 Montgomery
+client's zero/one branches; it does not issue ECALLs on the host. A conversion is
+counted once, suppressing its native internal multiplier. Optimized native SOPs
+model the service branch's individual products. Native timings and modeled
+packet counts are neither RV64 cycles nor proving benchmarks.
+
+The actual retained fixture reproduces its exact statement and yields 184,521
+modeled N4 packets (122,635 multiplies, 360 squares, 61,526 conversions), and
+131,399 N6 packets. A canonical Fr255 candidate could remove those 61,526
+conversions and route 122,995 remaining products through the admitted arith256_mod
+relation. Both existing packet layouts are 160 bytes; narrowing that packet is
+not a claimed saving. Its configuration, roots and guest probes require separate
+qualification before any promotion.

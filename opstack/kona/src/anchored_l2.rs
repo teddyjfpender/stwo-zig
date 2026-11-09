@@ -128,6 +128,8 @@ impl<'a> AnchoredL2<'a> {
             NoopTrieHinter,
             Sealed::new_unchecked(parent.clone(), *parent_hash),
         );
+        #[cfg(feature = "host-phase-census")]
+        let phase_execution = crate::phase_census::Scope::enter(crate::phase_census::Phase::Evm);
         let outcome = builder
             .build_block(attributes)
             .map_err(|error| AnchorError::Execution(error.to_string()))?;
@@ -137,6 +139,8 @@ impl<'a> AnchoredL2<'a> {
         let output = builder
             .compute_output_root()
             .map_err(|error| AnchorError::OutputRootComputation(error.to_string()))?;
+        #[cfg(feature = "host-phase-census")]
+        drop(phase_execution);
         if output != next_root {
             return Err(AnchorError::OutputRoot);
         }

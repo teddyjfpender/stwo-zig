@@ -171,6 +171,8 @@ async fn verify_transition<B: BlobProvider + Send + Sync + Clone + core::fmt::De
     l1_config: Arc<L1ChainConfig>,
     blobs: B,
 ) -> Result<VerifiedTransition, TransitionError> {
+    #[cfg(feature = "host-phase-census")]
+    let _phase = crate::phase_census::Scope::enter(crate::phase_census::Phase::Derivation);
     if claim.previous_number.checked_add(1) != Some(claim.next_number) {
         return Err(AnchorError::Ancestry.into());
     }

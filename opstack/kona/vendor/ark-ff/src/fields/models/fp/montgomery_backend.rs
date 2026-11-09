@@ -1,6 +1,6 @@
 use super::{Fp, FpConfig};
 use crate::{
-    biginteger::arithmetic as fa, BigInt, BigInteger, PrimeField, SqrtPrecomputation, Zero,
+    BigInt, BigInteger, PrimeField, SqrtPrecomputation, Zero, biginteger::arithmetic as fa,
 };
 use ark_ff_macros::unroll_for_loops;
 use ark_std::marker::PhantomData;
@@ -389,11 +389,7 @@ pub trait MontConfig<const N: usize>: 'static + Sync + Send + Sized {
             }
         }
 
-        if u == one {
-            Some(b)
-        } else {
-            Some(c)
-        }
+        if u == one { Some(b) } else { Some(c) }
     }
 
     fn from_bigint(r: BigInt<N>) -> Option<Fp<MontBackend<Self, N>, N>> {
@@ -582,8 +578,8 @@ pub const fn can_use_no_carry_square_optimization<T: MontConfig<N>, const N: usi
     top_two_bits_are_zero && !all_remaining_bits_are_one
 }
 
-pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>(
-) -> Option<SqrtPrecomputation<Fp<MontBackend<T, N>, N>>> {
+pub const fn sqrt_precomputation<const N: usize, T: MontConfig<N>>()
+-> Option<SqrtPrecomputation<Fp<MontBackend<T, N>, N>>> {
     match T::MODULUS.mod_4() {
         3 => match T::MODULUS_PLUS_ONE_DIV_FOUR.as_ref() {
             Some(BigInt(modulus_plus_one_div_four)) => Some(SqrtPrecomputation::Case3Mod4 {
@@ -709,26 +705,54 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
     /// zero bit in the rest of the modulus.
     #[inline]
     fn mul_assign(a: &mut Fp<Self, N>, b: &Fp<Self, N>) {
+        #[cfg(feature = "stwo-operation-census")]
+        if (N == 4 || N == 6)
+            && !T::CANONICAL_REPRESENTATION
+            && T::MODULUS.0[0] & 1 == 1
+            && crate::operation_census::product(&a.0.0, &b.0.0, &T::R.0)
+        {
+            crate::operation_census::record(&T::MODULUS.0, crate::operation_census::Op::Mul);
+        }
+
         #[cfg(all(feature = "stwo-montgomery-services", target_arch = "riscv64"))]
         if (N == 4 || N == 6) && !T::CANONICAL_REPRESENTATION && T::MODULUS.0[0] & 1 == 1 {
-            if service::equal(&a.0 .0, &[0; N]) || service::equal(&b.0 .0, &[0; N]) {
+            if service::equal(&a.0.0, &[0; N]) || service::equal(&b.0.0, &[0; N]) {
                 a.0 = BigInt([0; N]);
                 return;
             }
-            if service::equal(&a.0 .0, &T::R.0) {
+            if service::equal(&a.0.0, &T::R.0) {
                 *a = *b;
                 return;
             }
-            if service::equal(&b.0 .0, &T::R.0) {
+            if service::equal(&b.0.0, &T::R.0) {
                 return;
             }
-            a.0 .0 = service::product(&a.0 .0, &b.0 .0, &T::MODULUS.0);
+            a.0.0 = service::product(&a.0.0, &b.0.0, &T::MODULUS.0);
             return;
         }
         T::mul_assign(a, b)
     }
 
     fn sum_of_products<const M: usize>(a: &[Fp<Self, N>; M], b: &[Fp<Self, N>; M]) -> Fp<Self, N> {
+        // Native optimized SOP bypasses the public multiply wrapper. Model the
+        // guest's per-product service calls only for that branch; the fallback
+        // invokes mul_assign itself and is already counted there.
+        #[cfg(feature = "stwo-operation-census")]
+        if (N == 4 || N == 6)
+            && !T::CANONICAL_REPRESENTATION
+            && T::MODULUS.0[0] & 1 == 1
+            && (T::MODULUS.const_num_bits() as usize) < 64 * N - 1
+        {
+            for (lhs, rhs) in a.iter().zip(b) {
+                if crate::operation_census::product(&lhs.0.0, &rhs.0.0, &T::R.0) {
+                    crate::operation_census::record(
+                        &T::MODULUS.0,
+                        crate::operation_census::Op::Mul,
+                    );
+                }
+            }
+        }
+
         #[cfg(all(feature = "stwo-montgomery-services", target_arch = "riscv64"))]
         if (N == 4 || N == 6) && !T::CANONICAL_REPRESENTATION && T::MODULUS.0[0] & 1 == 1 {
             let mut result = Fp::<Self, N>::zero();
@@ -744,22 +768,50 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
 
     #[inline]
     fn square_in_place(a: &mut Fp<Self, N>) {
+        #[cfg(feature = "stwo-operation-census")]
+        if (N == 4 || N == 6)
+            && !T::CANONICAL_REPRESENTATION
+            && T::MODULUS.0[0] & 1 == 1
+            && crate::operation_census::product(&a.0.0, &a.0.0, &T::R.0)
+        {
+            crate::operation_census::record(&T::MODULUS.0, crate::operation_census::Op::Square);
+        }
+
         #[cfg(all(feature = "stwo-montgomery-services", target_arch = "riscv64"))]
         if (N == 4 || N == 6) && !T::CANONICAL_REPRESENTATION && T::MODULUS.0[0] & 1 == 1 {
-            if service::equal(&a.0 .0, &[0; N]) || service::equal(&a.0 .0, &T::R.0) {
+            if service::equal(&a.0.0, &[0; N]) || service::equal(&a.0.0, &T::R.0) {
                 return;
             }
-            a.0 .0 = service::product(&a.0 .0, &a.0 .0, &T::MODULUS.0);
+            a.0.0 = service::product(&a.0.0, &a.0.0, &T::MODULUS.0);
             return;
         }
         T::square_in_place(a)
     }
 
     fn inverse(a: &Fp<Self, N>) -> Option<Fp<Self, N>> {
+        #[cfg(feature = "stwo-operation-census")]
+        if (N == 4 || N == 6)
+            && !T::CANONICAL_REPRESENTATION
+            && T::MODULUS.0[0] & 1 == 1
+            && !a.0.is_zero()
+        {
+            crate::operation_census::record(&T::MODULUS.0, crate::operation_census::Op::Inverse);
+        }
+
         T::inverse(a)
     }
 
     fn from_bigint(r: BigInt<N>) -> Option<Fp<Self, N>> {
+        #[cfg(feature = "stwo-operation-census")]
+        if (N == 4 || N == 6)
+            && !T::CANONICAL_REPRESENTATION
+            && T::MODULUS.0[0] & 1 == 1
+            && r < T::MODULUS
+            && !r.is_zero()
+        {
+            crate::operation_census::record(&T::MODULUS.0, crate::operation_census::Op::Decode);
+        }
+
         #[cfg(all(feature = "stwo-montgomery-services", target_arch = "riscv64"))]
         if (N == 4 || N == 6) && !T::CANONICAL_REPRESENTATION && T::MODULUS.0[0] & 1 == 1 {
             if r >= T::MODULUS {
@@ -775,6 +827,10 @@ impl<T: MontConfig<N>, const N: usize> FpConfig<N> for MontBackend<T, N> {
                 &T::MODULUS.0,
             ))));
         }
+        // Native conversion calls the public multiplier internally, whereas
+        // the RV64 service branch above emits one direct conversion packet.
+        #[cfg(feature = "stwo-operation-census")]
+        let _native_conversion = crate::operation_census::pause();
         T::from_bigint(r)
     }
 
@@ -854,11 +910,7 @@ impl<T: MontConfig<N>, const N: usize> Fp<MontBackend<T, N>, N> {
             repr.0[i] = limbs[i];
         });
         let res = Self::new(repr);
-        if is_positive {
-            res
-        } else {
-            res.const_neg()
-        }
+        if is_positive { res } else { res.const_neg() }
     }
 
     const fn mul_without_cond_subtract(mut self, other: &Self) -> (bool, Self) {

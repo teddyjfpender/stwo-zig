@@ -141,3 +141,16 @@ pub fn run(path: &str, trace_path: Option<&str>) -> Result<(), Box<dyn Error>> {
     );
     Ok(())
 }
+
+#[cfg(feature = "host-phase-census")]
+pub fn run_phase_census(path: &str, output: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let (result, report) = stwo_kona_execution::phase_census::record(|| run(path, None));
+    result?;
+    use std::io::Write;
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(output)?
+        .write_all(&serde_json::to_vec_pretty(&report)?)?;
+    Ok(())
+}

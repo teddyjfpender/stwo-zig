@@ -12,6 +12,7 @@ resolver = "2"
 [features]
 default = []
 host = ["dep:kona-registry"]
+host-phase-census = ["host", "transition-program", "ark-ff/stwo-operation-census"]
 transition-program = ["blob-derivation", "dep:kona-registry", "dep:miniz_oxide"]
 derivation = ["dep:alloy-eips", "dep:async-trait", "dep:kona-derive", "dep:kona-protocol", "dep:op-alloy-consensus", "dep:thiserror", "dep:spin"]
 blob-derivation = ["derivation", "dep:ark-bls12-381", "dep:ark-ec", "dep:ark-ff", "dep:ark-serialize", "dep:revm-precompile"]

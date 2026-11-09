@@ -14,8 +14,8 @@
 #[macro_use]
 pub mod biginteger;
 pub use biginteger::{
-    signed_mod_reduction, BigInt, BigInteger, BigInteger128, BigInteger256, BigInteger320,
-    BigInteger384, BigInteger448, BigInteger64, BigInteger768, BigInteger832,
+    BigInt, BigInteger, BigInteger64, BigInteger128, BigInteger256, BigInteger320, BigInteger384,
+    BigInteger448, BigInteger768, BigInteger832, signed_mod_reduction,
 };
 
 #[macro_use]
@@ -39,9 +39,14 @@ pub use ark_std::vec;
 
 pub mod prelude {
     pub use crate::{
+        One, Zero,
         biginteger::BigInteger,
         fields::{Field, PrimeField},
-        One, Zero,
     };
     pub use ark_std::UniformRand;
 }
+
+#[cfg(all(feature = "stwo-operation-census", target_arch = "riscv64"))]
+compile_error!("operation census is a native-only diagnostic");
+#[cfg(feature = "stwo-operation-census")]
+pub mod operation_census;
