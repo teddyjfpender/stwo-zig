@@ -75,14 +75,30 @@ source key/family/statement and sealed MAIN are checked independently; the full
 manifest is absorbed before challenges. The existing Pending wrappers retain
 all prior authority checks and invoke exactly the same stage body.
 
-General cross-CPU KIO allocation is a required runtime design step. Legacy IDs
-interleave direct Keccak and Sponge ranges per CPU; concatenating Sponge records
-from arbitrary CPUs need not yield a contiguous ID interval. A new suite must
-either allocate all direct ranges then detached ranges with the receiver owning
-the exact truth order, or authenticate explicit run/call ID spans. It must not
-silently concatenate old ranges under one `first_id`. The current join proves
-a contiguous interval2..6 only. OWNER/Wire identity remains original epoch/tick,
-and the detached provider, rather than the CPU row, proves permutation chaining.
+Canonical cross-CPU KIO allocation is already correct in the existing proof
+stack: `services/gkr_local/coordinator.zig:820` assigns all direct calls first,
+then Sponge permutations; `services/protocol.zig:239` checks those prefixes;
+`services/roster.zig:854` constructs truth inputs in precisely that order. An
+earlier warning confused execution-session retirement IDs with proof IDs.
+Only this prototype's provisional per-CPU assignment needed correction.
+
+`kio_plan.Plan.init` now preflights integer counts/limits and invokes the existing
+allocator on a bounded shallow request copy. It exposes exact direct/Sponge
+spans, validates canonical persisted requests and the CPU bridge's separate
+first-ID vector, rejects duplicate/gapped truth partitions, and resolves truth
+inputs to `(direct|sponge,cpu,index)` with zero copied state words. Actual advice
+lengths must match authenticated request counts. `emit` binds the same complete
+plan into the candidate's typed execution/manifest identity.
+
+Both original and real retirement-hole OP fixtures now physically pass. In the
+15-step hole fixture, CPU1 retires another direct Keccak call after CPU0's
+Sponge. Its proof ID is nevertheless2; both direct calls precede detached
+Sponge IDs3..7. All four MAIN roots precede the manifest, the unchanged truth
+builder supplies that exact canonical order, fresh keys verify, and global
+RAM/KIO/Wire close. Producer time was3.84s and peak requested386.0MB under the
+4GiB cap (correctness-only, not a block benchmark). Default source constructors
+and policy remain unchanged; production integration must call the same plan
+from receiver-owned authenticated counts before accepting its new source kind.
 
 Production must also derive whole-worker and per-relation integer mass bounds
 from the source roster and g.calls/g.permutations, admit exact ordered coverage,
@@ -92,3 +108,5 @@ existing native genesis/CPU/memory-boundary authority; it does not activate any
 existing Suite selector or replace its complete security review.
 
 See `vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-native-join-v1.json`.
+
+Canonical policy/hole receipt: `vectors/reports/rv64-opstack-cpu-20261109/detached-sponge-canonical-kio-v1.json`.
