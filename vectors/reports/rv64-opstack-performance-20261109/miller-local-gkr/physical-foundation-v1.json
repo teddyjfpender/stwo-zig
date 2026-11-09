@@ -1,0 +1,83 @@
+{
+  "schema": "op-miller-local-gkr-physical-v1",
+  "scope": "isolated one-call foundation, not execution acceptance",
+  "production_admission_open": false,
+  "security_qualified": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "geometry": {
+    "calls": 1,
+    "first_id": 7,
+    "frontier_log": 8,
+    "arithmetic_log": 15,
+    "instance_order": [
+      "BYTE98",
+      "U15-32",
+      "arithmetic-SSA8",
+      "frontier-SSA1"
+    ],
+    "main_columns": [
+      33,
+      370
+    ],
+    "interaction_columns": [
+      24,
+      56
+    ],
+    "quotient_extension": 1,
+    "max_constraint_degree": 3
+  },
+  "source_authority": {
+    "main_and_fraction": "original bn254_tower/narrow_source.zig and narrow_equations.zig emitters",
+    "byte_provider": {
+      "main_column": 368,
+      "expression": "-MAIN[BYTE_MULT] / (alpha_byte - FIXED[BYTE_VALUE])",
+      "instance_query": 97
+    },
+    "carry_provider": {
+      "main_column": 369,
+      "expression": "-MAIN[CARRY_MULT] / (alpha_u15 - FIXED[CARRY_VALUE])",
+      "instance_query": 31,
+      "original_range_query": 129
+    },
+    "global_wire": "unchanged original Wire35 tuples and both frontier/arithmetic debts",
+    "table_values": "source-derived periodic FIXED values; multiplicities physically committed in arithmetic MAIN"
+  },
+  "physical": {
+    "native_bytes": 400616,
+    "local_gkr_bytes": 39576,
+    "native_sha256": "cc580f83d4f35c55ac7bb16f6d7eb50b0a64bebaa5fd99879c02fc0aa948f524",
+    "hard_requested_budget_bytes": 2147483648,
+    "peak_requested_bytes": 325128348,
+    "fresh_fixed_and_gkr_receiver_accepted": true,
+    "execution_accepted": false
+  },
+  "qualifications": [
+    "20 focused ReleaseSafe tests pass",
+    "source spans, per-relation mass and geometry refuse malformed inputs before allocation",
+    "source fractions identical before/after owned MAIN transfer",
+    "separate BYTE and U15 closure; shared arithmetic/frontier SSA closure",
+    "coherent MAIN+retained table-count mutations rejected by terminal source-prefix construction",
+    "forged terminal marginal and local/global prefix cells reject",
+    "balanced forged global Wire claims reject complete physical receiver",
+    "complete native GKR+PCS accepts fresh source-built receiver under2GiB",
+    "original global Wire prefix byte parity",
+    "classic Keccak and secp full envelope byte parity after shared domain extension"
+  ],
+  "classic_controls": {
+    "keccak": {
+      "bytes": 2777556,
+      "sha256": "7d016c87d09fa24ddfe2516b80840025c3c16cd01430e3be5e1ec9458542ec38"
+    },
+    "secp": {
+      "bytes": 635644,
+      "sha256": "057eb42d0bfeba92f06f7d6135b73f2b84ca3af0e77ebce4cc08bbd548e0f3c6"
+    }
+  },
+  "remaining": [
+    "production-capable bounded worker/key/codec with explicit optional source flavor",
+    "source-derived recursive statement/View and R6 physical wrapper",
+    "independent whole-Inventory/manifest/source-bound accounting and durable root acceptance",
+    "small representative measurement before any heavy production adoption"
+  ],
+  "performance_claim": "No whole-prover speedup claimed; no heavy block was proved in this qualification."
+}

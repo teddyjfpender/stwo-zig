@@ -207,6 +207,12 @@ test "Miller local GKR actual source child proves and rejects changed manifest a
     try std.testing.expectEqual(@as(usize, 4), checked.artifact.n_variables_by_instance.len);
     var binding = try @import("witness.zig").Witness.init(a, g, &checked.challenges, Input.Provider{ .frontier = &frontier, .arithmetic = &arithmetic }, &checked.artifact, checked.eta);
     defer binding.deinit();
+    var physical_data = try @import("component.zig").Data(.arithmetic).init(a, g, checked.terminal());
+    defer physical_data.deinit();
+    const physical_component = @import("component.zig").Component(.arithmetic){ .log_size = 15, .public = .{ .calls = 1, .first_id = 7 }, .data = &physical_data, .challenges = checked.challenges, .global_claim = O.zero() };
+    _ = physical_component.asProverComponent();
+    _ = physical_component.asVerifierComponent();
+    try physical_component.validate();
     const expected_rows = [_]usize{ 32768, 32768, 32768, 256 };
     for (binding.columns, expected_rows) |data, rows| try std.testing.expectEqual(16 * rows, data.len);
     // The source-bound binding prefix must refuse a forged terminal marginal,
@@ -215,6 +221,19 @@ test "Miller local GKR actual source child proves and rejects changed manifest a
     checked.artifact.claims_to_verify_by_instance[0][0] = original.add(O.one());
     try std.testing.expectError(error.UnboundLocalGkrInput, @import("witness.zig").Witness.init(a, g, &checked.challenges, Input.Provider{ .frontier = &frontier, .arithmetic = &arithmetic }, &checked.artifact, checked.eta));
     checked.artifact.claims_to_verify_by_instance[0][0] = original;
+    // Coherently forge BOTH the physical MAIN provider multiplicity and its
+    // retained metadata. A source-terminal prefix still cannot authenticate
+    // that altered table debt against the already verified child marginal.
+    const provider_row = A.witness.physical(0, 15);
+    inline for (.{ N.source.BYTE_MULT, N.source.CARRY_MULT }) |column| {
+        const at = column * arithmetic.size() + provider_row;
+        const original_cell = arithmetic.main[at];
+        arithmetic.main[at] = original_cell.add(core.fields.m31.M31.one());
+        if (column == N.source.BYTE_MULT) arithmetic.byte_counts[0] += 1 else arithmetic.carry_counts[0] += 1;
+        try std.testing.expectError(error.UnboundLocalGkrInput, @import("witness.zig").Witness.init(a, g, &checked.challenges, Input.Provider{ .frontier = &frontier, .arithmetic = &arithmetic }, &checked.artifact, checked.eta));
+        arithmetic.main[at] = original_cell;
+        if (column == N.source.BYTE_MULT) arithmetic.byte_counts[0] -= 1 else arithmetic.carry_counts[0] -= 1;
+    }
     var wrong_receipt = proof.digest;
     wrong_receipt[0] ^= 1;
     try std.testing.expectError(error.LocalGkrReceiptMismatch, verifyPending(a, scope, g, &decoded.proof, wrong_receipt));

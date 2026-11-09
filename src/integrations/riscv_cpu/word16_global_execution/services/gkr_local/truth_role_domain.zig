@@ -73,12 +73,18 @@ fn Samples(comptime Owner: type) type {
         row: usize,
         shifts: *const ShiftMap,
         pub fn aux(s: @This()) !@import("binding.zig").AuxFor(E.SecureFor(F)) {
+            return s.auxAt(0);
+        }
+        pub fn auxAt(s: @This(), binding: usize) !@import("binding.zig").AuxFor(E.SecureFor(F)) {
+            const count = comptime bindingCount(Owner);
+            if (binding >= count) return error.InvalidWideTruthBinding;
             const width = s.owner.widths();
-            const at = width[0] + width[1] + width[2];
+            const at = width[0] + width[1] + width[2] + 10 * binding;
             var carry: [8]F = undefined;
             for (&carry, 0..) |*v, c| v.* = F.load(s.evaluation.current_values[at + c].ptr + s.row);
-            const S = E.SecureFor(F);
-            return .{ .first = S.fromBase(F.load(s.evaluation.current_values[at + 8].ptr + s.row)), .second = S.fromBase(F.load(s.evaluation.current_values[at + 9].ptr + s.row)), .carry = E.secureFromCoordinatesForField(O, F, carry), .eq0 = S.splat(s.owner.data.point.eq0), .eq1 = S.splat(s.owner.data.point.eq1) };
+            const Secure = E.SecureFor(F);
+            const point = bindingPoint(s.owner, binding);
+            return .{ .first = Secure.fromBase(F.load(s.evaluation.current_values[at + 8].ptr + s.row)), .second = Secure.fromBase(F.load(s.evaluation.current_values[at + 9].ptr + s.row)), .carry = E.secureFromCoordinatesForField(O, F, carry), .eq0 = Secure.splat(point.eq0), .eq1 = Secure.splat(point.eq1) };
         }
         pub fn last(s: @This()) !F {
             return F.load(s.evaluation.current_values[s.evaluation.sources.len - 1].ptr + s.row);
@@ -106,10 +112,22 @@ fn Samples(comptime Owner: type) type {
         }
     };
 }
+/// An explicit bounded hook lets an independently sized component bind up to
+/// three local instances without a copied FFT/scatter/domain implementation.
+fn bindingCount(comptime Owner: type) usize {
+    const count = if (@hasDecl(Owner, "DOMAIN_BINDINGS")) Owner.DOMAIN_BINDINGS else if (@hasField(Owner, "data")) @as(usize, 1) else 0;
+    if (count > 3) @compileError("at most three source-owned local bindings per component");
+    return count;
+}
+fn bindingPoint(owner: anytype, index: usize) *const @import("../../../logup_gkr/mle_point.zig").MleEvalPointFor(O) {
+    const Owner = @typeInfo(@TypeOf(owner)).pointer.child;
+    return if (@hasDecl(Owner, "domainBindingPoint")) owner.domainBindingPoint(index) else &owner.data.point;
+}
 pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAccumulator) !void {
     try self.validate();
     const Owner = @typeInfo(@TypeOf(self)).pointer.child;
-    const aux_count: usize = if (@hasField(Owner, "data")) 10 else 0;
+    const binding_count = comptime bindingCount(Owner);
+    const aux_count: usize = 10 * binding_count;
     const profile = std.process.hasEnvVarConstant("STWO_ZIG_PROFILE_OM_DOMAIN");
     var timer: ?std.time.Timer = if (profile) try std.time.Timer.start() else null;
     var fft_ns: u64 = 0;
@@ -119,8 +137,13 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
     const native_total = widths[0] + widths[1] + widths[2];
     const total = native_total + aux_count + 1;
     var aux: [aux_count]engine.poly.circle.CircleCoefficients = undefined;
-    if (comptime aux_count != 0) aux = try @import("public_aux.zig").init(acc.allocator, &self.data.point, logSize(self), engine.work_pool.currentScopedPool());
-    defer for (&aux) |*coefficient| coefficient.deinit(acc.allocator);
+    var aux_done: usize = 0;
+    defer for (aux[0..aux_done]) |*coefficient| coefficient.deinit(acc.allocator);
+    if (comptime binding_count != 0) for (0..binding_count) |index| {
+        const values = try @import("public_aux.zig").init(acc.allocator, bindingPoint(self, index), logSize(self), engine.work_pool.currentScopedPool());
+        aux[index * 10 ..][0..10].* = values;
+        aux_done += 10;
+    };
     const columns = try a.alloc(P.Poly, total);
     defer a.free(columns);
     const previous = try a.alloc(bool, total);

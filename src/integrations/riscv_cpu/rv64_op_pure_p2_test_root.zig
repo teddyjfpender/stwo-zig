@@ -62,3 +62,11 @@ test {
 test {
     _ = @import("poseidon2_outer/miller_local_gkr/global_witness.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/component.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/physical_test.zig");
+}
