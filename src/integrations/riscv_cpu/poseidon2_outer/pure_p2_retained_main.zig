@@ -44,6 +44,22 @@ pub const Store = struct {
         self.backing.deinit();
         self.* = undefined;
     }
+    /// Raw advice custody shares the exact MAIN/FIXED disk quota. Callers must
+    /// retain the Store until every reservation has released.
+    pub fn reserveAdvice(self: *Store, bytes: usize) !usize {
+        const rounded = try Reserved.roundedLength(bytes);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (rounded > self.disk_limit - self.reserved) return error.OpParkingDiskLimit;
+        self.reserved += rounded;
+        return rounded;
+    }
+    pub fn releaseAdvice(self: *Store, rounded: usize) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        std.debug.assert(rounded <= self.reserved);
+        self.reserved -= rounded;
+    }
     /// The Store must remain at a stable address until every tree token releases.
     /// Unbound custody is a test control; OP producers must supply source authority.
     pub fn park(self: *Store, a: std.mem.Allocator, tree: *Tree) !usize {

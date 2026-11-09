@@ -50,6 +50,8 @@ pub const Options = struct {
     truth_local_gkr: bool = false,
 };
 pub const Resources = struct {
+    /// Producer-only bounded inactive CPU advice parking; proof bytes unchanged.
+    park_cpu_metadata: bool = false,
     consume_memory_events: bool = true,
     live_bytes: usize = 32 << 30,
     disk_bytes: usize = 192 << 30,
@@ -573,6 +575,17 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     defer store.deinit();
     var authority = try Authority.init(a, &image, metadata, &store, cache);
     defer authority.deinit();
+    var cpu_metadata_disk_bytes: u64 = 0;
+    if (resources.park_cpu_metadata and mode == .prove) {
+        const Parking = @import("pure_p2_cpu_metadata_parking.zig");
+        for (captured.native) |n| cpu_metadata_disk_bytes = try std.math.add(u64, cpu_metadata_disk_bytes, try Parking.roundedBytes(if (n.cpu) |*cpu| cpu else return error.PreparedExecutionConsumed));
+        // FIXED templates were built from independent source authority. Their
+        // actual reservation and conservative remaining MAIN+advice share this
+        // same Store, while a cache's separate enforced growth reservation was
+        // already removed from main_disk_limit by its request lease.
+        const remaining = try std.math.add(u64, cost.disk_upper_bytes, cpu_metadata_disk_bytes);
+        if (remaining > store.disk_limit - store.reserved) return error.OpCombinedParkingDiskPlanExceeded;
+    }
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.initForTruthLocal(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected, authority.truth_local_keys);
     defer inventory.deinit();
@@ -648,6 +661,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     const immutable_fixed_disk_bytes = store.reserved + (if (immutable_cache) |snapshot| snapshot.parked_bytes else 0);
     var bundle = try Producer.produce(a, &inventory, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, captured.native, &captured.advice, &store, .{
         .consume_memory_events = resources.consume_memory_events,
+        .park_cpu_metadata = resources.park_cpu_metadata,
         .truth_local_gkr_bytes = resources.gkr_bytes,
         .recorders = observations.pointers,
         .timing = &phases,
@@ -667,7 +681,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         const profiling = @import("../word16_global_execution/services/profiling.zig").Options{ .recorders = observations.pointers, .directory = dir };
         for (observations.pointers, 0..) |_, i| try profiling.finish(a, i);
     }
-    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .truth_local_security = truth_local_security, .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - captured_at, .setup_heap = setup_heap, .immutable_fixed_classes = authority.key_owners.items.len + authority.cpu_leases.items.len, .immutable_fixed_cache = immutable_cache, .immutable_fixed_disk_bytes = immutable_fixed_disk_bytes, .peak_parked_mapping_bytes = store.peak_mapped, .runtime_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(), .planned_combined_disk_upper_bytes = cost.combined_disk_upper_bytes, .seal_and_park_ns = phases.stage_one_ns, .manifest_ns = phases.manifest_ns, .stage_two_prove_ns = phases.stage_two_ns, .prove_ns = prove_ns, .publish_payload_ns = timer.read() - publish_start, .total_before_receipt_ns = timer.read(), .production_admitted = false });
+    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .truth_local_security = truth_local_security, .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - captured_at, .setup_heap = setup_heap, .immutable_fixed_classes = authority.key_owners.items.len + authority.cpu_leases.items.len, .immutable_fixed_cache = immutable_cache, .immutable_fixed_disk_bytes = immutable_fixed_disk_bytes, .peak_parked_mapping_bytes = store.peak_mapped, .runtime_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(), .cpu_metadata_disk_bytes = cpu_metadata_disk_bytes, .planned_combined_disk_upper_bytes = cost.combined_disk_upper_bytes, .seal_and_park_ns = phases.stage_one_ns, .manifest_ns = phases.manifest_ns, .stage_two_prove_ns = phases.stage_two_ns, .prove_ns = prove_ns, .publish_payload_ns = timer.read() - publish_start, .total_before_receipt_ns = timer.read(), .production_admitted = false });
     try std.posix.fsync(dir.fd);
     std.debug.print("OP_NATIVE_PRODUCER complete=true steps={} CPU={} truth={} miller={} bytes={} capture_ns={} prove_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bytes.len, capture_ns, prove_ns });
 }

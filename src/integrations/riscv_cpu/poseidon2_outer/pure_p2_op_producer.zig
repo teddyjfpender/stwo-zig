@@ -21,6 +21,7 @@ const Advice = @import("../word16_global_execution/services/collector.zig").Advi
 const Pipeline = @import("../word16_global_execution/services/pipeline.zig");
 const Native = @import("../word16_execution/prepared.zig").Prepared;
 const W = @import("pure_p2_worker_protocol.zig").W;
+const MetadataParking = @import("pure_p2_cpu_metadata_parking.zig");
 const Stage = @import("stwo_prover_api").stage_profile;
 pub const Timing = struct { stage_one_ns: u64 = 0, manifest_ns: u64 = 0, stage_two_ns: u64 = 0 };
 pub const Limits = struct {
@@ -32,6 +33,8 @@ pub const Limits = struct {
     timing: ?*Timing = null,
     /// Destructive source handoff only; metadata/requests already admitted.
     consume_memory_events: bool = false,
+    /// Bounded producer advice custody, no protocol or verifier change.
+    park_cpu_metadata: bool = false,
     fn recorder(self: Limits, i: usize) ?*Stage.Recorder {
         return if (self.recorders.len == 0) null else self.recorders[i];
     }
@@ -115,7 +118,23 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
     defer for (workers[retired..done]) |*worker| worker.deinit();
     const stages = try a.alloc(Manifest.StageOne, workers.len);
     defer a.free(stages);
+    const metadata = try a.alloc(?MetadataParking.Token, setups.len);
+    defer a.free(metadata);
+    @memset(metadata, null);
+    defer for (metadata) |*token| if (token.*) |*owner| owner.deinit();
+    if (limits.park_cpu_metadata) {
+        // Requests, source geometry and source counts were admitted already.
+        // No consumer accesses these inactive capture rows before restoration.
+        var total: usize = 0;
+        for (native) |n| total = try std.math.add(usize, total, try MetadataParking.roundedBytes((if (n.cpu) |*cpu| cpu else return error.PreparedExecutionConsumed)));
+        if (total > store.disk_limit - store.reserved) return error.OpParkingDiskLimit;
+        for (native, metadata) |n, *token| token.* = try MetadataParking.park(store, (if (n.cpu) |*cpu| cpu else return error.PreparedExecutionConsumed));
+    }
+
     for (setups, requests, spans, keys, native, 0..) |setup, request, span, key, n, i| {
+        if (metadata[i]) |*token| {
+            try token.restore((if (n.cpu) |*cpu| cpu else return error.PreparedExecutionConsumed));
+        }
         var source_scope = try Stage.StageScope.begin(limits.recorder(i), "source_construction", "Construct CPU witness and narrow metadata once");
         defer source_scope.end();
         var source = try Pipeline.buildCpuSourceForOp(a, setup, request, span, n, advice, i, inventory.first_ids[i], limits.consume_memory_events, limits.recorder(i));
@@ -127,6 +146,7 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
         done += 1;
         source_scope.end();
         stages[i] = try sealAndPark(a, &workers[i], inventory.workers[i], store, limits.recorder(i));
+        if (metadata[i]) |*token| try token.retireRestored(&workers[i].cpu.source.core.cpu);
     }
     for (truths, truth_keys, 0..) |truth, key, j| {
         const i = setups.len + j;
@@ -175,6 +195,9 @@ pub fn produce(a: std.mem.Allocator, inventory: *const Inv.Inventory, setups: []
     var completed: usize = 0;
     errdefer for (proofs[0..completed]) |*proof| proof.deinit(a);
     for (workers, 0..) |*worker, i| {
+        if (i < metadata.len) if (metadata[i]) |*token| {
+            try token.restore(&worker.cpu.source.core.cpu);
+        };
         var restore = try Stage.StageScope.begin(limits.recorder(i), "retained_main_restore", "Map and integrity-check sealed source payload");
         defer restore.end();
         _ = try store.restoreBound(&worker.scheme().trees.items[1], .{ .setup = inventory.workers[i].fixed_identity, .statement = inventory.workers[i].statement });

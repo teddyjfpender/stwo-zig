@@ -1,0 +1,53 @@
+{
+  "schema": "op-pure-p2-cpu-metadata-parking/v1",
+  "complete_small_native_verified": true,
+  "heavy_proof_rerun": false,
+  "block": 120794432,
+  "steps": 796406,
+  "cpu_proofs": 1,
+  "truth_proofs": 2,
+  "native_bytes": 5317432,
+  "native_sha256": "c18d85864cead50203bc0354f86c91048ec29dd7750add7d2651fc2d2967abbf",
+  "byte_identical_to_original_schema2": true,
+  "postseal_metadata_digest_equal": true,
+  "ordinary_source_and_fresh_verifier": true,
+  "closure": [
+    "RAM",
+    "KIO",
+    "Wire",
+    "terminal43"
+  ],
+  "controls": [
+    "wrong schema",
+    "mutated duplicate global claim",
+    "mutated local GKR receipt",
+    "swapped old CPU proof",
+    "exclusive/sealed ownership refusal",
+    "disk quota",
+    "wrong source descriptor",
+    "restore allocation failure preserves custody",
+    "file truncation",
+    "file corruption",
+    "postseal metadata mutation"
+  ],
+  "metadata_disk_bytes": 44613632,
+  "native_prove_ns_qualification_only": 14335325375,
+  "fresh_native_verify_ns_qualification_only": 1219152834,
+  "peak_requested_heap_plus_mapped_bytes": 2962540975,
+  "final_host_and_external_bytes": 0,
+  "heavy_model": {
+    "steps": 238226172,
+    "metadata_payload_bytes": 13340665632,
+    "metadata_rounded_disk_bytes": 13340672000,
+    "maximum_one_active_metadata_bytes": 234880968,
+    "previous_diagnostic_payload": 35917033298,
+    "parked_diagnostic_payload": 22811248634,
+    "still_excludes": "source construction/PCS scratch/fixed leases and changing normalized advice retirement",
+    "no_heavy_proof_or_execution": true
+  },
+  "resources_default_enabled": false,
+  "same_disk_quota_as_main_and_fixed": true,
+  "cache_growth_reservation_preserved": true,
+  "speedup_claim": false,
+  "artifact_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small-metadata-parked-v1"
+}
