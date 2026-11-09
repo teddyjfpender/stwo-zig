@@ -144,3 +144,24 @@ heavy tenfold target. Multiplying30-second CPU wraps by57 CPU shards and adding
 folds would already exceed332 seconds. The complete-root gate must be followed
 by real full-height class costing and an equal-security/workload comparison to
 the retained M6/M7 route; pure P2 is not assumed to be the best CPU architecture.
+
+## Explicit command-line reproduction
+
+The root CLI retains R5/classic admission without flags. After producing a
+schema2 native bundle with the explicitly selected service-local GKR protocol,
+use the matching R6 root mode:
+
+```sh
+zig build rv64-op-root -Doptimize=ReleaseFast -j1
+zig-out/bin/rv64-op-root --r6 --truth-local-gkr prove config.json native-directory root-directory
+zig-out/bin/rv64-op-root --r6 --truth-local-gkr verify config.json source-only-directory root-directory
+```
+
+An optional final `resources.json` sets the common hard requested-live cap and
+native source preparation limits. The root output directory must be new when
+proving. A source-only directory needs only `native-op.json` and `cells.bin`;
+verification never opens `native-op.bin`. The R6 proof, sidecar and GKR shape
+files remain in the root directory. Omit `--truth-local-gkr` only for an explicit
+classic-service R6 control. Local GKR without `--r6`, duplicate flags, unknown
+flags and a receiver/schema mismatch reject. Neither flag changes Ethereum
+profiles or imports a producer verifier key.

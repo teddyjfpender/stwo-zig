@@ -1,28 +1,38 @@
-//! Explicit experimental OP R5 physical-root producer and root-only receiver.
+//! Explicit experimental OP physical-root producer and root-only receiver.
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const Request = @import("rv64_ethereum_request.zig");
 const Native = @import("poseidon2_outer/pure_p2_op_runtime.zig");
 const Recursion = @import("poseidon2_outer/pure_p2_op_recursion.zig");
 const Receiver = @import("poseidon2_outer/pure_p2_op_root_runtime.zig");
+const R6 = @import("poseidon2_outer/native_omul/recursion.zig");
+const R6Receiver = @import("poseidon2_outer/native_omul/root_runtime.zig");
+const Options = @import("poseidon2_outer/root_cli_options.zig");
+const usage = "usage: rv64-op-root [--r6] [--truth-local-gkr] <prove|verify> config.json source-directory root-directory [resources.json]\n";
 
 pub fn main() !void {
     const base = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, args);
-    if (args.len < 5 or args.len > 6 or (!std.mem.eql(u8, args[1], "prove") and !std.mem.eql(u8, args[1], "verify"))) {
-        std.debug.print("usage: rv64-op-root <prove|verify> config.json source-directory root-directory [resources.json]\n", .{});
+    if (args.len < 5 or args.len > 8) {
+        std.debug.print(usage, .{});
         return error.ExpectedOpRootModeConfigSourceAndRootDirectory;
     }
-    const raw = try std.fs.cwd().readFileAlloc(base, args[2], 16384);
+    var words: [7][]const u8 = undefined;
+    for (args[1..], words[0 .. args.len - 1]) |arg, *word| word.* = arg;
+    const command = Options.parse(words[0 .. args.len - 1]) catch |err| {
+        std.debug.print(usage, .{});
+        return err;
+    };
+    const raw = try std.fs.cwd().readFileAlloc(base, command.config, 16384);
     defer base.free(raw);
     const config = try std.json.parseFromSlice(Request.Config, base, raw, .{});
     defer config.deinit();
     var resources: Native.Resources = .{};
     var parsed_resources: ?std.json.Parsed(Native.Resources) = null;
     defer if (parsed_resources) |*parsed| parsed.deinit();
-    if (args.len == 6) {
-        const bytes = try std.fs.cwd().readFileAlloc(base, args[5], 16384);
+    if (command.resources) |path| {
+        const bytes = try std.fs.cwd().readFileAlloc(base, path, 16384);
         defer base.free(bytes);
         parsed_resources = try std.json.parseFromSlice(Native.Resources, base, bytes, .{});
         resources = parsed_resources.?.value;
@@ -38,15 +48,24 @@ pub fn main() !void {
         var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
         defer binding.deinit();
         const profile = @import("poseidon2_outer/op_profile.zig").Profile.op_target_b4_q72_p0_fold4_v1;
-        if (std.mem.eql(u8, args[1], "prove")) {
+        if (command.mode == .prove) {
             // The source directory includes native proofs on this path. All
             // pending nodes and the final root/sidecar/templates are retained.
-            var result = try Recursion.proveDirectory(a, config.value, args[3], profile, resources, .{ .artifact_directory = args[4] });
-            defer result.deinit();
+            if (command.r6) {
+                var result = try R6.proveDirectoryWithOptions(a, config.value, command.source, profile, resources, .{ .truth_local_gkr = command.truth_local_gkr }, .{ .artifact_directory = command.root });
+                defer result.deinit();
+            } else {
+                var result = try Recursion.proveDirectory(a, config.value, command.source, profile, resources, .{ .artifact_directory = command.root });
+                defer result.deinit();
+            }
         } else {
             // This path loads source declarations and public RAM cells only;
             // it neither opens nor verifies native-op.bin.
-            _ = try Receiver.verifyDirectory(a, config.value, args[3], args[4], profile, resources, .{});
+            if (command.r6) {
+                _ = try R6Receiver.verifyDirectoryWithOptions(a, config.value, command.source, command.root, profile, resources, .{ .truth_local_gkr = command.truth_local_gkr }, .{});
+            } else {
+                _ = try Receiver.verifyDirectory(a, config.value, command.source, command.root, profile, resources, .{});
+            }
         }
     }
     const final = budget.snapshot();

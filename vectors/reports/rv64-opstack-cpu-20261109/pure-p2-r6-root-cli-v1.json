@@ -1,0 +1,33 @@
+{
+  "schema": "op-r6-root-cli-qualification-v1",
+  "profile": "op_target_b4_q72_p0_fold4_v1",
+  "block": 120794432,
+  "native_schema": 2,
+  "root_bytes": 687908,
+  "root_sha256": "e41c915d27b140a7ac75de9946c5ba1749fe29b0f884d04b1f0d5166fd0c24ff",
+  "binary_sha256": "e2d3a150c93f8861bd8e0d7f518440bec36e7f9b02af174d34528f3e58f61b48",
+  "config_sha256": "4fea61d0e5976b78d80d2ffcc92b144bb7cd403c6a169e14d44bf5cb0d07b639",
+  "optimization": "ReleaseFast",
+  "source_only_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/pure-p2-r6-truth-local-root-v1/source-only",
+  "native_proof_absent": true,
+  "source_ns": 31261666834,
+  "root_verify_ns": 26996125,
+  "process_wall_s": 32.71,
+  "process_user_s": 250.71,
+  "process_system_s": 1.6,
+  "peak_requested_bytes": 3447736448,
+  "peak_resident_bytes": 3425304576,
+  "final_heap_external_zero": true,
+  "wrong_native_schema_policy_rejected_before_outer_bootstrap": true,
+  "local_without_r6_rejected_before_filesystem": true,
+  "parser_tests": "historical default, resources, explicit R6/local, duplicate flags, unknown flags, missing/excess arguments",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admitted": false,
+  "caveat": "Fresh CLI reception of the retained complete small execution root. No heavy-block throughput or default R5 repeat measurement. Cold source construction remains part of wall cost.",
+  "artifacts": {
+    "root_directory": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/pure-p2-r6-truth-local-root-v1",
+    "log": "/private/tmp/op-root-r6-cli-fresh-verify.log",
+    "policy_log": "/private/tmp/op-root-r6-cli-wrong-policy.log"
+  }
+}
