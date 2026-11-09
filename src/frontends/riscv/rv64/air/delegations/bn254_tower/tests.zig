@@ -527,3 +527,20 @@ test "narrow QM31 and OM31 bounded inversion chunks preserve every scalar intera
         }
     }
 }
+
+test "narrow cost honors physical provider widths and minimum range table geometry" {
+    const NE = @import("narrow_equations.zig");
+    const source = @import("narrow_source.zig");
+    for ([_]u32{ 1, 12, 13, 20, 1023, 1024, 22_185 }) |calls| {
+        const budget = try source.cost(.{ .calls = calls, .first_id = 1 });
+        try NE.Layout(.frontier).validateGeometry(calls, 1, budget.frontier_log);
+        try NE.Layout(.arithmetic).validateGeometry(calls, 1, budget.arithmetic_log);
+        const expected = (@as(u64, NE.Layout(.frontier).MAIN) << @intCast(budget.frontier_log)) + (@as(u64, NE.Layout(.arithmetic).MAIN) << @intCast(budget.arithmetic_log));
+        try std.testing.expectEqual(expected, budget.committed_main_cells);
+        try std.testing.expectEqual(NE.Layout(.frontier).MAIN + NE.Layout(.arithmetic).MAIN, budget.lifted_main_columns);
+    }
+    try std.testing.expectEqual(@as(u32, 8), (try source.cost(.{ .calls = 1, .first_id = 1 })).frontier_log);
+    try std.testing.expectEqual(@as(u32, 15), (try source.cost(.{ .calls = 1, .first_id = 1 })).arithmetic_log);
+    try std.testing.expectEqual(@as(u32, 15), (try source.cost(.{ .calls = 1023, .first_id = 1 })).arithmetic_log);
+    try std.testing.expectEqual(@as(u32, 16), (try source.cost(.{ .calls = 1024, .first_id = 1 })).arithmetic_log);
+}

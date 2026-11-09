@@ -21,7 +21,7 @@ pub fn LayoutForField(comptime role: S.Role, comptime C: type) type {
     return struct {
         pub const COORDINATES = E.extensionDegree(C);
         pub const ROLE = role;
-        pub const MAIN = S.mainWidth(role) + if (role == .arithmetic) @as(usize, 2) else 0;
+        pub const MAIN = S.mainWidth(role);
         pub const BYTE_MULT = S.BYTE_MULT;
         pub const CARRY_MULT = S.CARRY_MULT;
         pub const RANGE_FRACTIONS = if (role == .arithmetic) M.RANGE_QUERIES + 2 else 0;

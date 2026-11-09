@@ -35,11 +35,14 @@ pub const FRONTIER_MAIN = 33;
 pub const FrontierRow = [FRONTIER_MAIN]u32;
 pub const MIN_LOG = 8;
 pub const MAX_LOG = 22;
+pub fn minimumLog(role: Role) u32 {
+    return if (role == .arithmetic) @max(MIN_LOG, Micro.G.carry_bits) else MIN_LOG;
+}
 pub fn period(role: Role) usize {
     return if (role == .frontier) D.INPUTS else D.STEPS;
 }
 pub fn mainWidth(role: Role) usize {
-    return if (role == .frontier) FRONTIER_MAIN else Micro.MAIN;
+    return if (role == .frontier) FRONTIER_MAIN else Micro.MAIN + 2;
 }
 pub fn fixedRow(role: Role, index: usize, log: u32) [FIXED]u32 {
     const rows = @as(usize, 1) << @intCast(log);
@@ -76,7 +79,7 @@ pub fn fixedRow(role: Role, index: usize, log: u32) [FIXED]u32 {
 pub fn validate(role: Role, public: Public, log: u32) !void {
     _ = try Schedule.mass(public.calls);
     if (public.first_id == 0 or public.first_id >= B.M31 or public.calls > B.M31 - public.first_id) return error.TowerGeometry;
-    if (log < MIN_LOG or log > MAX_LOG or public.calls > ((@as(u64, 1) << @intCast(log)) - 1) / period(role)) return error.TowerGeometry;
+    if (log < minimumLog(role) or log > MAX_LOG or public.calls > ((@as(u64, 1) << @intCast(log)) - 1) / period(role)) return error.TowerGeometry;
 }
 pub fn frontierRow(input: *const [D.INPUTS]u256, step: usize) FrontierRow {
     std.debug.assert(step < D.INPUTS);
@@ -159,8 +162,8 @@ pub fn emitMain(comptime role: Role, comptime F: type, v: anytype, public: E.Cal
 }
 pub const Cost = struct { frontier_log: u32, arithmetic_log: u32, committed_main_cells: u64, lifted_main_columns: usize, local_byte_facts_padded: u64, local_carry_facts_padded: u64, local_ssa_facts_padded: u64 };
 pub fn cost(public: Public) !Cost {
-    const frontier_log: u32 = @intCast(std.math.log2_int_ceil(u64, @as(u64, public.calls) * D.INPUTS + 1));
-    const arithmetic_log: u32 = @intCast(std.math.log2_int_ceil(u64, @as(u64, public.calls) * D.STEPS + 1));
+    const frontier_log: u32 = @max(minimumLog(.frontier), @as(u32, @intCast(std.math.log2_int_ceil(u64, @as(u64, public.calls) * D.INPUTS + 1))));
+    const arithmetic_log: u32 = @max(minimumLog(.arithmetic), @as(u32, @intCast(std.math.log2_int_ceil(u64, @as(u64, public.calls) * D.STEPS + 1))));
     try validate(.frontier, public, frontier_log);
     try validate(.arithmetic, public, arithmetic_log);
     const f: u64 = @as(u64, 1) << @intCast(frontier_log);
@@ -168,8 +171,8 @@ pub fn cost(public: Public) !Cost {
     return .{
         .frontier_log = frontier_log,
         .arithmetic_log = arithmetic_log,
-        .committed_main_cells = f * FRONTIER_MAIN + a * Micro.MAIN,
-        .lifted_main_columns = FRONTIER_MAIN + Micro.MAIN,
+        .committed_main_cells = f * mainWidth(.frontier) + a * mainWidth(.arithmetic),
+        .lifted_main_columns = mainWidth(.frontier) + mainWidth(.arithmetic),
         .local_byte_facts_padded = 128 * a,
         .local_carry_facts_padded = 32 * a,
         .local_ssa_facts_padded = 8 * a + f,
