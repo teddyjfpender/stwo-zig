@@ -1,0 +1,15 @@
+{
+  "format": "supplemental gzip tar in LFS; prior evidence refs retained",
+  "source_snapshot_commit": "6517b25d17d57fb9c61d233f8b7a0415f3be0b17",
+  "parts": [
+    {
+      "name": "delivery-evidence.tar.gz.part000",
+      "bytes": 18797921,
+      "sha256": "21781d3857412602d902e262be34eeb8e57b36df50ed2f6b16f83649f552aec6"
+    }
+  ],
+  "checkpoints": [
+    "6517b25d17d5-cm31-native-20261109T110634Z"
+  ],
+  "classification": "Native isolated 147-line repro passes Debug/ReleaseSafe/ReleaseFast on two AVX2 AMD EPYC 7763 allocations (runs 42603424027 and 42604585782) at source 6517b25d1. AVX512/znver4 native isolated execution remains explicitly UNRUN; these passes do not erase prior same-host AVX512 full-owner failures or optimizer controls. Original core/prover/circuit provider checks pass on identical PR merge tree; broader CI and formal acceptance remain incomplete. Owned 75116 KiB temporary compiler caches removed after source/binary/IR backup, with shared build lock; no local compiler remains. No GPU, physical-memory or timing qualification."
+}
