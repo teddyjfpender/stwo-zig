@@ -1,0 +1,35 @@
+{
+  "schema": "op-miller-sealed-fragment-parity-v1",
+  "scope": "pending fragments only; no execution admission",
+  "security_label": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "production_admission": false,
+  "command": "zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseSafe -Driscv-test-filter='OP Miller sealed pending' -j1",
+  "qualification": {
+    "classic_pending_and_sealed_PCS_bytes_identical": true,
+    "local_pending_and_sealed_PCS_GKR_receipt_claims_identical": true,
+    "fresh_source_keys": true,
+    "changed_MAIN_manifest_span_key_rejected": true,
+    "mutated_Pending_shared_rejected_before_projection": true,
+    "failed_MAIN_does_not_consume_stage": true,
+    "repeated_completion_rejected": true,
+    "allocator_phase_cleanup_live_bytes": 0
+  },
+  "classic": {
+    "proof_bytes": 558184,
+    "peak_requested_bytes": 499410100,
+    "limit_bytes": 1073741824
+  },
+  "local_gkr": {
+    "proof_bytes": 395540,
+    "local_bytes": 39576,
+    "peak_requested_bytes": 292056088,
+    "limit_bytes": 2147483648
+  },
+  "notes": [
+    "SealedScope carries only manifest digest and sealed MAIN root; key/span/expected remain independently supplied and checked.",
+    "Both verifier paths return pending global Wire debt; they do not establish manifest inventory or global closure.",
+    "Classic Pending now rejects a shared challenge value differing from drawShared(digest); valid transcript and proof bytes are unchanged.",
+    "Bounded qualification overlapped other engineering; no performance claim."
+  ]
+}

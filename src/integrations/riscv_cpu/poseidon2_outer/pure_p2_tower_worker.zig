@@ -185,13 +185,16 @@ pub const Key = struct {
         try scheme.appendCommittedTree(a, tree, channel);
     }
 };
+/// Pending fragment framing only. A complete independently admitted inventory
+/// owns worker coverage and must close the returned physical global claims.
+pub const SealedScope = @import("pure_p2_truth_worker.zig").SealedScope;
 fn validate(key: *const Key, span: Span, expected: Manifest.Expected) !void {
     if (!std.meta.eql(expected, try key.expected(span, expected.ordinal))) return error.OpTowerStatementMismatch;
 }
 fn checkPending(key: *const Key, span: Span, expected: Manifest.Expected, pending: *const Manifest.Pending, index: usize) !void {
     try validate(key, span, expected);
     if (index != expected.ordinal or index >= pending.entries.len) return error.OpTowerOrdinal;
-    if (!std.meta.eql(pending.entries[index].authority, expected) or pending.entries[index].local != null) return error.OpTowerManifestMismatch;
+    if (!std.meta.eql(pending.entries[index].authority, expected) or pending.entries[index].local != null or !std.meta.eql(pending.shared, try Manifest.drawShared(pending.digest))) return error.OpTowerManifestMismatch;
 }
 fn drawLocal(channel: *W.Channel, manifest: W.H.Hash, shared: Manifest.Shared) E.ChallengesFor(O) {
     channel.mixU32s(&.{ 0x4f50544c, 1, 9, 35 });
@@ -284,8 +287,15 @@ pub const Worker = struct {
         if (!self.sealed or self.consumed) return error.OpTowerPhase;
         try checkPending(self.key, self.span, self.expected, pending, index);
         try pending.checkPhysicalRoots(index, self.key.root, self.scheme.trees.items[1].root());
+        return self.completeSealed(.{ .manifest = pending.digest, .main = self.scheme.trees.items[1].root() });
+    }
+    pub fn completeSealed(self: *Worker, sealed: SealedScope) !Encoded {
+        if (!self.sealed or self.consumed) return error.OpTowerPhase;
+        try validate(self.key, self.span, self.expected);
+        if (!std.mem.eql(u8, &sealed.main, &self.scheme.trees.items[1].root())) return error.GlobalGkrPhysicalRootMismatch;
+        const shared = try Manifest.drawShared(sealed.manifest);
         self.consumed = true;
-        const ch = drawLocal(&self.channel, pending.digest, pending.shared);
+        const ch = drawLocal(&self.channel, sealed.manifest, shared);
         var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Miller SSA, range and global Wire interaction generation");
         defer generation.end();
         const fclaims = try self.frontier.generateInteraction(ch);
@@ -293,7 +303,7 @@ pub const Worker = struct {
         const claims = [4]O{ fclaims.ssa, fclaims.wire, aclaims.ssa, aclaims.wire };
         try checkClaims(claims);
         generation.end();
-        Protocol.mixManifestAndClaims(&self.channel, pending.digest, &claims);
+        Protocol.mixManifestAndClaims(&self.channel, sealed.manifest, &claims);
         const interaction = try self.takeColumns(.interaction);
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, interaction.columns, interaction.backings, 64, self.native_recorder, &self.channel);
         try self.frontier.releaseAdvice();
@@ -315,12 +325,20 @@ pub fn verify(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manif
 }
 pub fn verifyWithCapture(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manifest.Expected, pending: *const Manifest.Pending, index: usize, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
     try checkPending(key, span, expected, pending, index);
+    return verifySealedWithCapture(a, key, span, expected, .{ .manifest = pending.digest, .main = pending.entries[index].scope.main }, encoded, output_capture);
+}
+pub fn verifySealed(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manifest.Expected, sealed: SealedScope, encoded: *const Encoded) !Manifest.Claims {
+    return verifySealedWithCapture(a, key, span, expected, sealed, encoded, null);
+}
+pub fn verifySealedWithCapture(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manifest.Expected, sealed: SealedScope, encoded: *const Encoded, output_capture: anytype) !Manifest.Claims {
+    try validate(key, span, expected);
+    const shared = try Manifest.drawShared(sealed.manifest);
     try checkClaims(encoded.claims);
     var proof = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
     defer proof.deinit(a);
     const roots = proof.commitment_scheme_proof.commitments.items;
     if (roots.len != 4 or !std.meta.eql(proof.commitment_scheme_proof.config, key.profile.config()) or proof.commitment_scheme_proof.revision_config != null or !std.mem.eql(u8, &roots[0], &key.root)) return error.OpTowerProofShape;
-    try pending.checkPhysicalRoots(index, key.root, roots[1]);
+    if (!std.mem.eql(u8, &sealed.main, &roots[1])) return error.GlobalGkrPhysicalRootMismatch;
     var channel = Protocol.begin(key.profile, expected, key.identity, key.root);
     var receiver = try core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(W.H, W.MC).init(a, key.profile.config());
     defer receiver.deinit(a);
@@ -329,8 +347,8 @@ pub fn verifyWithCapture(a: std.mem.Allocator, key: *const Key, span: Span, expe
         defer a.free(logs);
         try receiver.commit(a, roots[tree], logs, &channel);
     }
-    const ch = drawLocal(&channel, pending.digest, pending.shared);
-    Protocol.mixManifestAndClaims(&channel, pending.digest, &encoded.claims);
+    const ch = drawLocal(&channel, sealed.manifest, shared);
+    Protocol.mixManifestAndClaims(&channel, sealed.manifest, &encoded.claims);
     const logs = try key.logs(a, 2);
     defer a.free(logs);
     try receiver.commit(a, roots[2], logs, &channel);

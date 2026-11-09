@@ -226,3 +226,7 @@ test {
     _ = @import("poseidon2_outer/sponge_cpu/security.zig");
     _ = @import("poseidon2_outer/sponge_cpu/security_test.zig");
 }
+
+test {
+    _ = @import("delegations/op_tower/pure_p2_worker_test.zig");
+}

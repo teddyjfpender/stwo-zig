@@ -71,6 +71,7 @@ pub const Key = struct {
         return out;
     }
 };
+pub const SealedScope = Classic.SealedScope;
 pub const Limits = struct { live_bytes: usize, main_bytes: usize, interaction_bytes: usize, advice_bytes: usize, gkr_bytes: usize };
 pub const Resources = struct {
     main_bytes: usize,
@@ -251,6 +252,13 @@ pub const Worker = struct {
         if (!self.sealed or self.consumed) return error.OpTowerPhase;
         try checkPending(self.key, self.span, self.expected, pending, ordinal);
         try pending.checkPhysicalRoots(ordinal, self.key.base.root, self.scheme.trees.items[1].root());
+        return self.completeSealed(.{ .manifest = pending.digest, .main = self.scheme.trees.items[1].root() });
+    }
+    pub fn completeSealed(self: *Worker, sealed: SealedScope) !Encoded {
+        if (!self.sealed or self.consumed) return error.OpTowerPhase;
+        try validateExpected(self.key, self.span, self.expected);
+        if (!std.mem.eql(u8, &sealed.main, &self.scheme.trees.items[1].root())) return error.GlobalGkrPhysicalRootMismatch;
+        const shared = try Manifest.drawShared(sealed.manifest);
         self.consumed = true;
         const a = self.allocator;
         const geometry = try self.key.geometry(self.span);
@@ -259,21 +267,21 @@ pub const Worker = struct {
         const ga = child_budget.allocator();
         var gkr_scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "local_gkr", "Miller local BYTE, U15 and shared SSA GKR");
         defer gkr_scope.end();
-        var child = try Native.proveUnboundWithOptions(ga, scopeFor(self.expected, self.scheme.trees.items[1].root(), pending.digest), geometry, Input.Provider{ .frontier = &self.frontier, .arithmetic = &self.arithmetic }, .{ .coefficient_encoding = .fixed4 });
+        var child = try Native.proveUnboundWithOptions(ga, scopeFor(self.expected, self.scheme.trees.items[1].root(), sealed.manifest), geometry, Input.Provider{ .frontier = &self.frontier, .arithmetic = &self.arithmetic }, .{ .coefficient_encoding = .fixed4 });
         defer child.deinit(ga);
         gkr_scope.end();
         var binding = try Binding.Witness.init(a, geometry, &child.challenges, Input.Provider{ .frontier = &self.frontier, .arithmetic = &self.arithmetic }, &child.result.artifact, child.eta);
         defer binding.deinit();
         var ch = child.challenges;
-        ch.wire = pending.shared.wire;
+        ch.wire = shared.wire;
         var fg = try Global.generate(.frontier, a, &self.frontier, ch, self.limits.interaction_bytes);
         defer fg.deinit();
         var ag = try Global.generate(.arithmetic, a, &self.arithmetic, ch, self.limits.interaction_bytes);
         defer ag.deinit();
         const claims = [2]O{ fg.claim, ag.claim };
-        var set = try Set.init(a, self.key, self.span, child.terminal(), pending.shared, claims);
+        var set = try Set.init(a, self.key, self.span, child.terminal(), shared, claims);
         defer set.deinit();
-        mixClaims(&self.channel, pending.digest, child.digest, claims);
+        mixClaims(&self.channel, sealed.manifest, child.digest, claims);
         const inter = try takeInter(a, geometry, &binding, &fg, &ag);
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 64, self.native_recorder, &self.channel);
         const handles = [_]engine.air.component_prover.ForField(O).ComponentProver{ set.front.asProverComponent(), set.arith.asProverComponent() };
@@ -298,25 +306,33 @@ pub fn verify(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manif
 }
 pub fn verifyWithCapture(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manifest.Expected, pending: *const Manifest.Pending, ordinal: usize, encoded: *const Encoded, capture_output: anytype) !Manifest.Claims {
     try checkPending(key, span, expected, pending, ordinal);
+    return verifySealedWithCapture(a, key, span, expected, .{ .manifest = pending.digest, .main = pending.entries[ordinal].scope.main }, encoded, capture_output);
+}
+pub fn verifySealed(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manifest.Expected, sealed: SealedScope, encoded: *const Encoded) !Manifest.Claims {
+    return verifySealedWithCapture(a, key, span, expected, sealed, encoded, null);
+}
+pub fn verifySealedWithCapture(a: std.mem.Allocator, key: *const Key, span: Span, expected: Manifest.Expected, sealed: SealedScope, encoded: *const Encoded, capture_output: anytype) !Manifest.Claims {
+    try validateExpected(key, span, expected);
+    const shared = try Manifest.drawShared(sealed.manifest);
     for (encoded.claims) |claim| for (claim.toM31Array()) |coordinate| if (coordinate.v >= core.fields.m31.Modulus) return error.MillerLocalClaim;
     _ = try core.crypto.poseidon2_m31_sponge.decode(encoded.receipt);
     var proof = try W.Wire.decodeProofBytesBinary(a, encoded.bytes);
     defer proof.deinit(a);
     const roots = proof.commitment_scheme_proof.commitments.items;
     if (roots.len != 4 or !std.meta.eql(proof.commitment_scheme_proof.config, key.base.profile.config()) or proof.commitment_scheme_proof.revision_config != null or !std.mem.eql(u8, &roots[0], &key.base.root)) return error.OpTowerProofShape;
-    try pending.checkPhysicalRoots(ordinal, key.base.root, roots[1]);
+    if (!std.mem.eql(u8, &sealed.main, &roots[1])) return error.GlobalGkrPhysicalRootMismatch;
     const geometry = try key.geometry(span);
     var local = try Native.decode(a, geometry, encoded.local);
     defer local.deinit();
-    var checked = try Native.verifyPending(a, scopeFor(expected, roots[1], pending.digest), geometry, &local.proof, encoded.receipt);
+    var checked = try Native.verifyPending(a, scopeFor(expected, roots[1], sealed.manifest), geometry, &local.proof, encoded.receipt);
     defer checked.deinit(a);
-    var set = try Set.init(a, key, span, checked.terminal(), pending.shared, encoded.claims);
+    var set = try Set.init(a, key, span, checked.terminal(), shared, encoded.claims);
     defer set.deinit();
     var channel = Protocol.begin(key.base.profile, expected, key.identity, key.base.root);
     var receiver = try core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(W.H, W.MC).init(a, key.base.profile.config());
     defer receiver.deinit(a);
     for (0..3) |tree| {
-        if (tree == 2) mixClaims(&channel, pending.digest, encoded.receipt, encoded.claims);
+        if (tree == 2) mixClaims(&channel, sealed.manifest, encoded.receipt, encoded.claims);
         const logs = try key.logs(a, tree);
         defer a.free(logs);
         try receiver.commit(a, roots[tree], logs, &channel);
@@ -370,6 +386,9 @@ pub fn decode(a: std.mem.Allocator, bytes: []const u8, max_bytes: usize) !Encode
 }
 
 pub fn runWithHook(a: std.mem.Allocator, comptime Hook: type) !void {
+    return runMode(a, Hook, false);
+}
+fn runMode(a: std.mem.Allocator, comptime Hook: type, comptime sealed_parity: bool) !void {
     var key = try Key.init(a, .op_target_b4_q72_p0_fold4_v1, 8, 15);
     defer key.deinit();
     const span = Span{ .calls = 1, .first_id = 7 };
@@ -404,6 +423,43 @@ pub fn runWithHook(a: std.mem.Allocator, comptime Hook: type) !void {
     var capture: core.pcs.ForField(O).verifier.VerifiedProofCapture(W.H) = undefined;
     const claims = try verifyWithCapture(a, &fresh, span, expected, &pending, 0, &restored, &capture);
     defer capture.deinit(a);
+    if (sealed_parity) {
+        const sealed = SealedScope{ .manifest = digest, .main = stage.main };
+        const checked = try verifySealed(a, &fresh, span, expected, sealed, &restored);
+        try std.testing.expectEqualDeep(claims, checked);
+        var other = try Worker.init(a, &key, span, expected, &input, limits);
+        defer other.deinit();
+        const second_stage = try other.seal();
+        try std.testing.expectEqualSlices(u8, &stage.main, &second_stage.main);
+        var bad = sealed;
+        bad.main = @import("../pure_p2_native.zig").hashWords(&.{777});
+        try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, other.completeSealed(bad));
+        var bad_pending = pending;
+        bad_pending.shared.wire.offset = bad_pending.shared.wire.offset.add(O.one());
+        try std.testing.expectError(error.MillerLocalManifest, other.complete(&bad_pending, 0));
+        try std.testing.expect(!other.consumed);
+        var second = try other.completeSealed(sealed);
+        defer second.deinit(a);
+        try std.testing.expectError(error.OpTowerPhase, other.completeSealed(sealed));
+        try std.testing.expectEqualSlices(u8, encoded.bytes, second.bytes);
+        try std.testing.expectEqualSlices(u8, encoded.local, second.local);
+        try std.testing.expectEqualSlices(u8, &encoded.receipt, &second.receipt);
+        try std.testing.expectEqualDeep(encoded.claims, second.claims);
+        try std.testing.expectEqual(@as(usize, 0), other.budget.snapshot().live_bytes);
+        try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, verifySealed(a, &fresh, span, expected, bad, &restored));
+        bad = sealed;
+        bad.manifest = @import("../pure_p2_native.zig").hashWords(&.{778});
+        try std.testing.expect(std.meta.isError(verifySealed(a, &fresh, span, expected, bad, &restored)));
+        try std.testing.expectError(error.MillerLocalManifest, verify(a, &fresh, span, expected, &bad_pending, 0, &restored));
+        const changed_span = Span{ .calls = 1, .first_id = 8 };
+        try std.testing.expectError(error.MillerLocalExpected, verifySealed(a, &fresh, changed_span, expected, sealed, &restored));
+        try std.testing.expect(std.meta.isError(verifySealed(a, &fresh, changed_span, try fresh.expected(changed_span, 0), sealed, &restored)));
+        var wrong_key = fresh; // Borrowed base; never deinit twice.
+        wrong_key.identity[0] ^= 1;
+        try std.testing.expectError(error.MillerLocalExpected, verifySealed(a, &wrong_key, span, expected, sealed, &restored));
+        try std.testing.expect(std.meta.isError(verifySealed(a, &wrong_key, span, try wrong_key.expected(span, 0), sealed, &restored)));
+        std.debug.print("OP_MILLER_SEALED local=true exact_PCS_GKR_receipt_claims=true fresh_key=true phase_cleanup=true negative_MAIN_manifest_span_key_shared=true\n", .{});
+    }
     if (comptime Hook != void) try Hook.run(a, &fresh, span, expected, &pending, &restored, &capture);
     std.debug.print("OP_MILLER_GKR_WORKER native_bytes={d} local_bytes={d} peak_requested={d} retained_requested={d} source_expected=true fresh_receiver=true inventory_accepted=false\n", .{ restored.bytes.len, restored.local.len, worker.budget.snapshot().peak_live_bytes, worker.budget.snapshot().live_bytes });
     try std.testing.expect(claims.wire.eql(restored.claims[0].add(restored.claims[1])));
@@ -446,4 +502,8 @@ test "Miller local GKR envelope failures are bounded canonical and allocation at
     std.mem.writeInt(u32, envelope[60..64], 0, .little);
     envelope[0] ^= 1;
     try std.testing.expectError(error.MillerLocalEnvelope, decode(std.testing.failing_allocator, envelope, 4096));
+}
+
+test "OP Miller sealed pending local GKR fragment exact physical parity and authority guards" {
+    try runMode(std.testing.allocator, void, true);
 }
