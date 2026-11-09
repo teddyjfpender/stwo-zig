@@ -280,3 +280,28 @@ one wall, but those commitments dominate this complete leaf. The committed
 structural work must reduce actual circuit cells or securely choose a cheaper
 profile across the complete fold tree; the early small-child multiplier does
 not describe complete CPU leaf proving.
+
+## Immutable arithmetic lowering and phase census
+
+The actual new CPU leaf now explicitly enables the existing immutable-only
+structural arithmetic scope. Known constant/zero/base wires and the equivalent
+seven-row OM31 product replace the legacy nine-row lowering; no witness-value
+zero/one test is used. The same scope reconstructs receiver topology. Native CPU
+proofs and their statement semantics are unchanged.
+
+Actual arithmetic rows fall 2,117,856 to 1,938,903, crossing log22 to log21.
+Padded total cells fall 200,734,720 to 125,237,248. The physical leaf passes with
+637,792 bytes, 0.127s graph build, 14.020s key/producer/destruction and 2.769s fresh
+source-key receiver, compared with the previous 27.811s/5.720s single runs. This
+is approximately 2x on the complete small CPU leaf, not a heavy-block result.
+The structural receipt records the actual source-frame/PCS/GKR/OODS mutants.
+
+Per-phase topology counters identify the remaining arithmetic: DEEP689,812;
+Merkle326,736; FRI306,054; CPU OODS205,918; local GKR136,723; source publics30,411.
+A further191,139 rows materialize deferred guesses/constants during finalization,
+mostly queried input values; those are reported separately rather than silently
+missing from the accounting. Public-output materialization is included with
+finalization in the current observer. Native PCS/FRI, lookup and public framing
+remain fully constrained. The optional observer changes no graph when absent;
+existing P2 query/gadget regressions pass. Standard CPU constructors explicitly
+refuse a future OP tower slot until its separate span/plan framing is implemented.

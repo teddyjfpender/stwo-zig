@@ -9,6 +9,8 @@ const Full = @import("pure_p2_cpu_statement.zig");
 const Protocol = @import("pure_p2_worker_protocol.zig");
 const Native = @import("pure_p2_native.zig");
 const Manifest = @import("pure_p2_manifest.zig");
+const Phase = @import("phase_census.zig");
+const CompleteCounts = struct { proof_inputs: Phase.Counts = .{}, statement: Phase.Parts = .{}, frame: Phase.Counts = .{}, finalization: Phase.Counts = .{} };
 const ShapeView = struct {
     setup: *const @import("../word16_global_execution/services/roster.zig").CpuSetup,
     request: @import("../word16_global_execution/services/protocol.zig").Request,
@@ -29,24 +31,32 @@ const ShapeView = struct {
         for (&outputs, try core.crypto.poseidon2_m31_sponge.decode(Native.hashWords(words))) |*output, value| output.* = C.Q.fromBase(value);
         return outputs;
     }
-    fn build(self: @This(), a: std.mem.Allocator, trace_only: bool) !C.PoseidonContext {
+    fn build(self: @This(), a: std.mem.Allocator, trace_only: bool, census: ?*CompleteCounts) !C.PoseidonContext {
+        var structural = @import("../rv64_recursion/circuit_lane.zig").StructuralScope.init();
+        defer structural.deinit();
         var owner = if (trace_only) try C.PoseidonContext.initTraceOnly(a, 9) else try C.PoseidonContext.init(a, 9);
         errdefer owner.deinit();
         C.begin(&owner);
         var active = true;
         defer if (active) C.finish() catch {};
         const ctx = owner.algebra();
+        const before_proof = Phase.Counts.take(&owner);
         const proof = try V.proof.guess(ctx, self.values, self.shape);
+        const after_proof = Phase.Counts.take(&owner);
         var frame = Public.Frame.init(ctx);
         var statement = try Full.Statement.init(&frame, self.setup, self.request, self.first, self.expected, self.manifest, self.claims, .{ .fixed = proof.commitments[0], .main = proof.commitments[1], .fixed_source = self.key.root }, self.child, self.key.profile.config(), .{ .identity = self.key.identity, .root = self.key.root, .profile = self.key.profile });
         defer statement.deinit(ctx);
         _ = try V.verify(ctx, self.shape, &proof, &statement);
+        const before_frame = Phase.Counts.take(&owner);
         const output = try frame.finish();
+        if (census) |counts| counts.* = .{ .proof_inputs = after_proof.sub(before_proof), .statement = statement.phase, .frame = Phase.Counts.take(&owner).sub(before_frame) };
         if (!trace_only) for (output, try self.expectedOutput(a)) |port, value| try std.testing.expect(ctx.get(port).eql(value));
         try C.finish();
         active = false;
+        const before_finalization = Phase.Counts.take(&owner);
         try owner.setOutputs(&output);
         try owner.finalize();
+        if (census) |counts| counts.finalization = Phase.Counts.take(&owner).sub(before_finalization);
         if (!trace_only) {
             try std.testing.expect(try owner.isCircuitValid());
             const mutants = [_]C.Var{ proof.sampled_values[1][0][0].c0.v, statement.pending.artifact.claims_to_verify_by_instance[0][0].c0.v, output[8] };
@@ -80,11 +90,12 @@ const Hook = struct {
         const source = ShapeView{ .setup = setups[0], .request = requests[0], .first = inventory.first_ids[0], .expected = inventory.workers[0], .key = &keys[0], .manifest = pending.digest, .main = native.commitment_scheme_proof.commitments.items[1], .receipt = stages[0].local.?.receipt, .claims = encoded[0].claims, .child = stages[0].local.?.proof, .shape = &shape, .values = &values };
         const physical = try physicalRequested();
         var timer = try std.time.Timer.start();
-        var owner = try source.build(a, false);
+        var phases: CompleteCounts = .{};
+        var owner = try source.build(a, false, &phases);
         var owns_owner = true;
         defer if (owns_owner) owner.deinit();
         const build_ns = timer.lap();
-        const json = try std.json.Stringify.valueAlloc(a, .{ .scope = "actualCPU_source_AIR_OODS_masks_terminal_PCS_GKR_FS_publicframe", .raw = try owner.rawCounts(), .cells = try owner.census(false), .permutations = owner.calls.items.len, .variables = owner.algebra().circuit.n_vars, .native_assignment_exact = true, .production_admission_open = false, .recursive_execution_acceptance = false }, .{});
+        const json = try std.json.Stringify.valueAlloc(a, .{ .scope = "actualCPU_source_AIR_OODS_masks_terminal_PCS_GKR_FS_publicframe", .arithmetic_mode = "immutable_structural_v1", .phases = phases, .raw = try owner.rawCounts(), .cells = try owner.census(false), .permutations = owner.calls.items.len, .variables = owner.algebra().circuit.n_vars, .native_assignment_exact = true, .production_admission_open = false, .recursive_execution_acceptance = false }, .{});
         defer a.free(json);
         std.debug.print("OP_PURE_P2_COMPLETE_CPU_CIRCUIT {s}\n", .{json});
         if (!physical) return;
@@ -104,7 +115,7 @@ const Hook = struct {
         owner.deinit();
         owns_owner = false;
         const prove_ns = timer.lap();
-        var receiver_source = try source.build(a, true);
+        var receiver_source = try source.build(a, true, null);
         defer receiver_source.deinit();
         var receiver = try Authority.initForProfile(a, &receiver_source, keys[0].profile);
         defer receiver.deinit();

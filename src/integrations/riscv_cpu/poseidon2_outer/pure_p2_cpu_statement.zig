@@ -1,5 +1,5 @@
 //! Complete source-bound CPU equations for the actual OP pure-P2 native suite.
-//! Complete CPU statement equations over explicit scope digests for mixed P2 census.
+//! Original CPU AIR, typed full-root frames and independently admitted source geometry.
 //! The caller admits immutable setup/topology and the root authenticates the
 //! returned public frame against its independently reconstructed request,
 //! manifest, local receipt and physical-claim vector. This module is not a
@@ -23,6 +23,7 @@ const WorkerCircuit = @import("pure_p2_worker_circuit.zig");
 const W = @import("../word16_global_execution/services/gkr_local/worker_protocol.zig");
 const T = @import("../word16_global_execution/services/types.zig");
 const F = C.F;
+const Phase = @import("phase_census.zig");
 fn flag(ctx: *C.Context, count: F, native: u32) !F {
     const nonzero = try F.guess(ctx, if (ctx.trace_only or native == 0) C.O.zero() else C.O.one());
     const inverse = try F.guess(ctx, if (ctx.trace_only or native == 0) C.O.zero() else try C.O.fromBase(core.fields.m31.M31.fromCanonical(native)).inv());
@@ -70,6 +71,8 @@ pub const Statement = struct {
     pending: Child.Pending,
     publics: []const Oods.PublicFor(F),
     chain_inputs: ChainInputs,
+    phase: Phase.Parts,
+    last_phase: Phase.Counts = .{},
 
     /// Native input is witness assignment only. Every request scalar consumed
     /// by an equation is a guessed public word in `frame`; none becomes a
@@ -77,8 +80,12 @@ pub const Statement = struct {
     /// independently admitted immutable topology.
     pub fn init(frame: *Public.Frame, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, expected: M.Expected, manifest: [36]u8, native_claims: []const C.O, physical: struct { fixed: C.Hash, main: C.Hash, fixed_source: [36]u8 }, native_child: anytype, config: core.pcs.PcsConfig, binding: WorkerCircuit.Binding) !Statement {
         const ctx = frame.ctx;
+        const phase_start = Phase.Counts.take(try C.sidecar(ctx));
         const a = ctx.scratch();
         if (expected.kind != .cpu) return error.WideCpuProofShape;
+        if (comptime @hasField(@TypeOf(setup.bridges), "tower")) {
+            if (setup.bridges.tower != null) return error.UnsupportedOpPurePoseidonStatement;
+        }
         if (!std.meta.eql(config, binding.profile.config()) or expected.profile != binding.profile or !std.mem.eql(u8, &binding.identity, &expected.fixed_identity)) return error.UnsupportedWideServicesConfig;
         if (!std.mem.eql(u8, &binding.root, &expected.fixed) or !std.mem.eql(u8, &physical.fixed_source, &expected.fixed)) return error.WideCpuStatementMismatch;
         const derived_instances = try @import("../word16_global_execution/services/gkr_local/roster.zig").fromSetup(a, setup);
@@ -93,12 +100,15 @@ pub const Statement = struct {
         for (&manifest_words, try core.crypto.poseidon2_m31_sponge.decode(manifest)) |*port, value| port.* = try ctx.guess(C.Q.fromBase(value));
         _ = try exposeRoot(frame, manifest_words);
         const child_proof = try Gkr.wireProof(ctx, native_child);
+        const before_local = Phase.Counts.take(try C.sidecar(ctx));
         var pending = try Child.verify(ctx, scope, expected.local_instances orelse return error.WideCpuLocalRequired, &child_proof);
         errdefer pending.artifact.deinit(ctx.gpa);
+        const after_local = Phase.Counts.take(try C.sidecar(ctx));
         _ = try exposeRoot(frame, pending.receipt);
         const claims = try a.alloc(F, native_claims.len);
         for (claims, native_claims) |*wire, value| wire.* = try frame.guessOm(value);
         const shared = try @import("pure_p2_manifest_circuit.zig").drawShared(ctx, manifest_words);
+        const after_shared = Phase.Counts.take(try C.sidecar(ctx));
         const cpu = request.base.cpu;
         const steps_word = try frame.guessU32(cpu.steps);
         const epoch_word = try frame.guessU32(request.base.epoch);
@@ -171,7 +181,9 @@ pub const Statement = struct {
                 },
                 .bulk => |kind| rows_native = request.bulk.rows(kind),
                 .sponge => |kind| rows_native = request.sponge.rows(kind),
-                .dword => |index| rows_native = dword_counts[index],
+                else => {
+                    if (slot.origin == .dword) rows_native = dword_counts[slot.origin.dword] else return error.UnsupportedOpPurePoseidonStatement;
+                },
             }
             const row_word = try frame.guessU32(rows_native);
             const call_word = try frame.guessU32(calls_native);
@@ -193,7 +205,7 @@ pub const Statement = struct {
                 .local = if (slot.binding_index) |index| try Oods.localFromArtifact(F, a, instances[index], index, pending.artifact, pending.challenges, pending.eta) else null,
             };
         }
-        return .{ .setup = setup, .plan = plan, .config = config, .binding = binding, .ordinal = ordinal.word, .statement = statement, .manifest = manifest_words, .fixed = physical.fixed, .claims = claims, .pending = pending, .publics = publics, .chain_inputs = chain_inputs };
+        return .{ .setup = setup, .plan = plan, .config = config, .binding = binding, .ordinal = ordinal.word, .statement = statement, .manifest = manifest_words, .fixed = physical.fixed, .claims = claims, .pending = pending, .publics = publics, .chain_inputs = chain_inputs, .phase = .{ .public_scope = before_local.sub(phase_start), .local_gkr = after_local.sub(before_local), .claims_shared = after_shared.sub(after_local), .source_publics = Phase.Counts.take(try C.sidecar(ctx)).sub(after_shared) } };
     }
     pub fn deinit(self: *Statement, ctx: *C.Context) void {
         self.pending.artifact.deinit(ctx.gpa);
@@ -209,12 +221,28 @@ pub const Statement = struct {
         try WorkerCircuit.mixManifestAndClaims(ctx, channel, self.manifest, self.claims);
     }
     pub fn evalComposition(self: *Statement, ctx: *C.Context, point: V.Point, sampled: []const []const []const F, alpha: F, _: void) !F {
+        const phase_before = Phase.Counts.take(try C.sidecar(ctx));
         var accumulator = E.lane.PointAccumulator(F).init(alpha);
         for (self.plan.slots, self.publics) |slot, public| {
             const descriptor = Oods.Authority.Source.Descriptor{ .origin = slot.origin, .cpu_u8_pairs = self.setup.materials.geometry.cpu_u8_pairs, .cpu_compact_decode = self.setup.materials.geometry.cpu_compact_decode };
             _ = try Oods.evaluateRole(F, ctx.scratch(), descriptor, slot, public, .{ .x = point.x, .y = point.y }, self.globalLog(), sampled, &accumulator);
         }
-        return accumulator.finalize();
+        const result = accumulator.finalize();
+        self.phase.cpu_oods = self.phase.cpu_oods.add(Phase.Counts.take(try C.sidecar(ctx)).sub(phase_before));
+        return result;
+    }
+    pub fn notePcsPhase(self: *Statement, ctx: *C.Context, phase: @import("../rv64_recursion/om31_poseidon/mod.zig").PcsPhase) !void {
+        const now = Phase.Counts.take(try C.sidecar(ctx));
+        const delta = now.sub(self.last_phase);
+        switch (phase) {
+            .begin => {},
+            .oods => self.phase.pcs_oods_and_transcript = delta.sub(self.phase.cpu_oods),
+            .transcript => self.phase.pcs_sampled_mix_and_queries = delta,
+            .merkle => self.phase.pcs_merkle = delta,
+            .deep => self.phase.deep = delta,
+            .fri => self.phase.fri = delta,
+        }
+        self.last_phase = now;
     }
     fn globalLog(self: *const Statement) u32 {
         var log: u32 = 0;
@@ -228,6 +256,9 @@ pub const Statement = struct {
 /// boundary and global closure validation. No producer-declared scalar is an
 /// authority merely because this encoder can serialize it.
 pub fn expectedWords(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first: [T.FAMILIES]u32, expected: M.Expected, manifest: [36]u8, main_root: [36]u8, receipt: [36]u8, claims: []const C.O) ![]u32 {
+    if (comptime @hasField(@TypeOf(setup.bridges), "tower")) {
+        if (setup.bridges.tower != null) return error.UnsupportedOpPurePoseidonStatement;
+    }
     var words: std.ArrayList(u32) = .empty;
     errdefer words.deinit(a);
     try words.append(a, expected.ordinal);
@@ -276,7 +307,9 @@ pub fn expectedWords(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.
             },
             .bulk => |kind| rows = request.bulk.rows(kind),
             .sponge => |kind| rows = request.sponge.rows(kind),
-            .dword => |index| rows = dword[index],
+            else => {
+                if (slot.origin == .dword) rows = dword[slot.origin.dword] else return error.UnsupportedOpPurePoseidonStatement;
+            },
         }
         try words.appendSlice(a, &.{ rows, calls, first_id });
     }
