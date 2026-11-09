@@ -13,6 +13,7 @@ from typing import Any
 
 from . import air_program_contract, codec
 from .model import LEAN_TOOLCHAIN, Paths, RefinementError
+from .process import _run_bridge as _run
 
 SCHEMA_VERSION = "stwo-generated-sail-monad-bridge-v1"
 BRIDGE_DIRECTORY = Path("formal/riscv-refinement/generated-sail-bridge")
@@ -371,46 +372,6 @@ _AXIOM_LINE = re.compile(
 _PROOF_ESCAPES = re.compile(
     r"\b(?:sorry|admit|axiom|native_decide)\b"
 )
-
-
-def _run(
-    argv: list[str],
-    cwd: Path,
-    *,
-    env: dict[str, str] | None = None,
-    timeout: int = 1800,
-) -> str:
-    try:
-        completed = subprocess.run(
-            argv,
-            cwd=cwd,
-            env=env,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=timeout,
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise RefinementError(
-            f"generated Sail Lean bridge command timed out after {timeout}s: "
-            + " ".join(argv)
-        ) from exc
-    except subprocess.CalledProcessError as exc:
-        detail = (exc.stderr or exc.stdout or "").strip()
-        if len(detail) > 8000:
-            detail = "... " + detail[-8000:]
-        raise RefinementError(
-            f"generated Sail Lean bridge command exited {exc.returncode}: "
-            + " ".join(argv)
-            + (f": {detail}" if detail else "")
-        ) from exc
-    except OSError as exc:
-        raise RefinementError(
-            "generated Sail Lean bridge command could not start: "
-            + " ".join(argv)
-        ) from exc
-    return completed.stdout.strip()
 
 
 def _project(generated_file: Path) -> Path:

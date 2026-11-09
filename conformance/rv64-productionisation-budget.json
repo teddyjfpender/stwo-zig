@@ -897,6 +897,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "RFC #324 declares exactly three existing collaboration edges and the OM31 namespace. Provider tests pin concrete field/hash/transcript and proof/wire type identity; existing VK/root consumer tests run in the provider lane. Reuse canonical dependency modules, preserving teardown and all refusal cases. Revert the additive transaction for rollback; no device or protocol changes."
+    },
+    {
+      "id": "formal_bridge_bounded_dual_stream_diagnostics",
+      "net_code_budget": 32,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Move the existing bridge subprocess boundary into the existing process owner, bringing the bridge below its 850-line ceiling. Preserve labelled stdout/stderr tails within 8000 detail characters, with existing failure regression for empty, short and oversized streams. Preserve success output, exception classification, timeouts, commands, theorem targets and every pin. Growth owns observable failure evidence only; rollback returns the private helper and tests together."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"
