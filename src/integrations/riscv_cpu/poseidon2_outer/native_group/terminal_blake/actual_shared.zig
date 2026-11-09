@@ -258,7 +258,9 @@ pub fn ForArithmetic(comptime format: Format) type {
             const input = std.posix.getenv(env_prefix ++ "NATIVE") orelse return error.MissingTerminalBlakeInput;
             const out = std.posix.getenv(env_prefix ++ "OUT") orelse return error.MissingTerminalBlakeOutput;
             const mode = std.posix.getenv(env_prefix ++ "MODE") orelse "source";
-            const physical = std.mem.eql(u8, mode, "prove");
+            const from_guest = std.mem.eql(u8, mode, "from-guest");
+            if (from_guest and format != .r7) return error.TerminalBlakeR7EndToEndOnly;
+            const physical = from_guest or std.mem.eql(u8, mode, "prove");
             const verify = std.mem.eql(u8, mode, "verify");
             if (!physical and !verify and !std.mem.eql(u8, mode, "source")) return error.TerminalBlakeMode;
             const raw = try std.fs.cwd().readFileAlloc(std.testing.allocator, config_path, 16384);
@@ -266,14 +268,22 @@ pub fn ForArithmetic(comptime format: Format) type {
             const parsed = try std.json.parseFromSlice(@import("../../../rv64_ethereum_request.zig").Config, std.testing.allocator, raw, .{});
             defer parsed.deinit();
             if (parsed.value.max_steps > 10_000_000) return error.TerminalBlakeSmallOnly;
+            if (from_guest) try @import("path_preflight.zig").requireFreshDisjoint(std.testing.allocator, input, out);
             const budget = try E.host_budget_allocator.SharedHostBudget.create(std.heap.smp_allocator, 32 << 30);
             defer budget.destroy();
             var pool: E.work_pool.WorkPool = .{};
-            try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
+            try pool.initInPlaceWithOptions(.{ .worker_count = if (parsed.value.workers != 0) parsed.value.workers else 8 });
             defer pool.deinit();
             var bind = try E.work_pool.ScopedPoolBinding.init(&pool);
             defer bind.deinit();
             var timer = try std.time.Timer.start();
+            var native_produce_ns: u64 = 0;
+            if (from_guest) {
+                try Runtime.produceDirectory(budget.allocator(), parsed.value, input, native_profile, .{ .park_cpu_metadata = true, .park_memory_events = true, .retire_source_auxiliaries = true });
+                native_produce_ns = timer.read();
+                try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
+                try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
+            }
             if (!verify) {
                 try std.fs.cwd().makeDir(out);
                 var producer = Producer{ .a = budget.allocator(), .dir = try std.fs.cwd().openDir(out, .{}), .physical = physical };
@@ -285,6 +295,13 @@ pub fn ForArithmetic(comptime format: Format) type {
                 var receiver = Reception{ .path = out, .p2_path = p2_path };
                 try Runtime.withSourceDirectory(budget.allocator(), parsed.value, input, native_profile, .{}, &receiver, Reception.run);
                 if (!receiver.passed) return error.TerminalBlakeSelectedCoverage;
+            }
+            if (from_guest) {
+                const total_ns = timer.read();
+                var dir = try std.fs.cwd().openDir(out, .{});
+                defer dir.close();
+                try @import("../../../word16_execution/driver.zig").writeJson(budget.allocator(), dir, "end-to-end.json", .{ .schema = "op-selected-terminal-end-to-end/v1", .scope = "Fresh selected guest execution and native proving, native fresh verification, grouped root source and both FIXED builds, root proving and self-verification in one process; independent final receiver additional", .native_produce_ns = native_produce_ns, .root_producer_ns = total_ns - native_produce_ns, .total_producer_ns = total_ns, .workers = if (parsed.value.workers != 0) parsed.value.workers else 8, .requested_peak_bytes = budget.snapshot().peak_live_bytes, .security_label = "128-bit security target under documented assumptions", .security_qualified = false, .production_admission = false });
+                std.debug.print("OP_TERMINAL_BLAKE_END_TO_END native_produce_ns={} root_producer_ns={} total_producer_ns={} native_generated=true one_process=true production_admission=false\n", .{ native_produce_ns, total_ns - native_produce_ns, total_ns });
             }
             try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
             try std.testing.expectEqual(@as(usize, 0), budget.snapshot().external_live_bytes);
