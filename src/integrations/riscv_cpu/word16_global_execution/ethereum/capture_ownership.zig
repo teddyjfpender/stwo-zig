@@ -40,7 +40,7 @@ pub const AdvicePayload = struct {
     }
 };
 pub fn advice(a: *const Advice) AdvicePayload {
-    var result = AdvicePayload{ .public_cells = bytes(a.initial) + bytes(a.terminal), .outer_slice_headers = bytes(a.events) + bytes(a.keccak) + bytes(a.secp) + bytes(a.sha256) + bytes(a.arith256_mod) + bytes(a.curves) + bytes(a.bulk) + bytes(a.sponge) };
+    var result = AdvicePayload{ .public_cells = bytes(a.initial) + bytes(a.terminal), .outer_slice_headers = bytes(a.events) + bytes(a.keccak) + bytes(a.secp) + bytes(a.sha256) + bytes(a.arith256_mod) + bytes(a.curves) + bytes(a.bulk) + bytes(a.sponge) + bytes(a.tower) };
     for (a.events) |events| result.ordinary_events += bytes(events);
     for (a.keccak) |calls| result.service_calls += bytes(calls);
     for (a.secp) |families| for (families) |calls| {
@@ -51,6 +51,7 @@ pub fn advice(a: *const Advice) AdvicePayload {
     for (a.curves) |families| for (families) |calls| {
         result.service_calls += bytes(calls);
     };
+    for (a.tower) |calls| result.service_calls += bytes(calls);
     for (a.bulk) |shard| result.service_calls += bytes(shard.calls) + bytes(shard.words);
     for (a.sponge) |shard| result.service_calls += bytes(shard.calls) + bytes(shard.words) + bytes(shard.inputs);
     return result;

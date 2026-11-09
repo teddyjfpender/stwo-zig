@@ -227,7 +227,31 @@ pub const ReceptionHooks = struct {
 pub fn verifyDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
     return verifyDirectoryWithHooks(a, config, path, profile, resources, .{});
 }
-pub fn verifyDirectoryWithHooks(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, hooks: ReceptionHooks) !void {
+pub const SourceDirectory = struct {
+    /// Borrowed source-policy authority only. Public cells/output are NOT
+    /// authenticated execution until the consumer verifies its root/proofs.
+    image: *const Image.Owner,
+    metadata: Metadata,
+    requests: []const P.Request,
+    setups: []const *const R.CpuSetup,
+    cpu_keys: []const *const Key,
+    truths: []const R.Truth,
+    truth_keys: []const *const Truth.Key,
+    miller: []const Inv.MillerDeclaration,
+    inventory: *const Inv.Inventory,
+    expected: P.Expected,
+    output: [43]u8,
+    output_address: u64,
+    initial: []const @import("../word16_execution/memory/statement.zig").Cell,
+    terminal: []const @import("../word16_execution/memory/statement.zig").Cell,
+    image_ns: u64,
+    program_ns: u64,
+};
+/// Shared bounded source admission, NEVER reads native-op.bin or verifies
+/// native PCS/GKR. The callback must verify its own root/proofs before treating
+/// public cells as authenticated. No borrowed pointer may outlive callback.
+pub fn withSourceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, context: ?*anyopaque, callback: *const fn (?*anyopaque, std.mem.Allocator, SourceDirectory) anyerror!void) !void {
+    if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     try Request.validateBudgetForOp(config);
     var timer = try std.time.Timer.start();
     var image = try Image.Owner.initForOp(a, config);
@@ -259,16 +283,37 @@ pub fn verifyDirectoryWithHooks(a: std.mem.Allocator, config: Request.Config, pa
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
     defer inventory.deinit();
-    const raw = try dir.readFileAlloc(a, "native-op.bin", resources.bundle_bytes);
-    defer a.free(raw);
-    var bundle = try Bundle.decode(a, raw, inventory.workers.len, .{ .bytes = resources.bundle_bytes, .proof_bytes = resources.proof_bytes });
-    defer bundle.deinit(a);
-    const verify_start = timer.read();
-    var closed = try bundle.verifyWithHooks(a, &inventory, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, hooks.fragments);
-    defer closed.deinit(a);
+    _ = resources;
     const output = try Terminal.require(&image, req[req.len - 1].base.cpu, cells.terminal);
-    if (hooks.complete) |complete| try complete(hooks.context, a, .{ .image = &image, .metadata = m, .requests = req, .expected = expected, .cpu_keys = authority.cpu_keys, .truth_keys = authority.truth_keys, .output_address = image.symbols.output_data, .setups = authority.setups, .truths = authority.native_truth.truths, .miller = authority.miller, .inventory = &inventory, .native = &closed, .output = output });
-    std.debug.print("OP_NATIVE_RECEIVER accepted=true complete=true steps={} CPU={} truth={} miller={} profile={s} image_ns={} program_ns={} setup_and_decode_ns={} verify_ns={} total_ns={}\n", .{ expected.total_steps, m.cpus.len, m.truths.len, m.miller.len, @tagName(profile), image_ns, program_ns, verify_start - image_ns - program_ns, timer.read() - verify_start, timer.read() });
+    try callback(context, a, .{ .image = &image, .metadata = m, .requests = req, .setups = authority.setups, .cpu_keys = authority.cpu_keys, .truths = authority.native_truth.truths, .truth_keys = authority.truth_keys, .miller = authority.miller, .inventory = &inventory, .expected = expected, .output = output, .output_address = image.symbols.output_data, .initial = cells.initial, .terminal = cells.terminal, .image_ns = image_ns, .program_ns = program_ns });
+}
+const NativeReception = struct {
+    path: []const u8,
+    profile: Profile,
+    resources: Resources,
+    hooks: ReceptionHooks,
+    timer: std.time.Timer,
+    fn run(raw: ?*anyopaque, a: std.mem.Allocator, source: SourceDirectory) !void {
+        const self: *NativeReception = @ptrCast(@alignCast(raw.?));
+        var dir = try std.fs.cwd().openDir(self.path, .{});
+        defer dir.close();
+        const bytes = try dir.readFileAlloc(a, "native-op.bin", self.resources.bundle_bytes);
+        defer a.free(bytes);
+        var bundle = try Bundle.decode(a, bytes, source.inventory.workers.len, .{ .bytes = self.resources.bundle_bytes, .proof_bytes = self.resources.proof_bytes });
+        defer bundle.deinit(a);
+        const verify_start = self.timer.read();
+        var closed = try bundle.verifyWithHooks(a, source.inventory, source.setups, source.requests, source.metadata.spans, source.cpu_keys, source.truths, source.truth_keys, source.miller, self.hooks.fragments);
+        defer closed.deinit(a);
+        // Recheck AFTER native physical/global verification and callbacks. The
+        // source-only helper's earlier policy check authenticates no RAM.
+        const output = try Terminal.require(source.image, source.requests[source.requests.len - 1].base.cpu, source.terminal);
+        if (self.hooks.complete) |complete| try complete(self.hooks.context, a, .{ .image = source.image, .metadata = source.metadata, .requests = source.requests, .expected = source.expected, .cpu_keys = source.cpu_keys, .truth_keys = source.truth_keys, .output_address = source.output_address, .setups = source.setups, .truths = source.truths, .miller = source.miller, .inventory = source.inventory, .native = &closed, .output = output });
+        std.debug.print("OP_NATIVE_RECEIVER accepted=true complete=true steps={} CPU={} truth={} miller={} profile={s} image_ns={} program_ns={} setup_and_decode_ns={} verify_ns={} total_ns={}\n", .{ source.expected.total_steps, source.setups.len, source.truths.len, source.miller.len, @tagName(self.profile), source.image_ns, source.program_ns, verify_start - source.image_ns - source.program_ns, self.timer.read() - verify_start, self.timer.read() });
+    }
+};
+pub fn verifyDirectoryWithHooks(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, hooks: ReceptionHooks) !void {
+    var context = NativeReception{ .path = path, .profile = profile, .resources = resources, .hooks = hooks, .timer = try std.time.Timer.start() };
+    return withSourceDirectory(a, config, path, profile, resources, &context, NativeReception.run);
 }
 
 pub fn produceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources) !void {
@@ -330,10 +375,18 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     try metadata.validate();
     var bounds = try Bounds.deriveForOp(a, program.log_size, declarations, truth_declarations, req, spans, tower.items);
     defer bounds.deinit();
+    var cost = try @import("pure_p2_op_cost.zig").derive(a, &program, declarations, req, spans, captured.native, &captured.advice, truth_declarations, tower.items, bounds.base.shape.native_trace_cells[1], profile.config().fri_config.log_blowup_factor);
+    defer cost.deinit();
+    const capture_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot();
+    const Ownership = @import("../word16_global_execution/ethereum/capture_ownership.zig");
+    var native_payload: usize = 0;
+    for (captured.native) |n| native_payload = try std.math.add(usize, native_payload, Ownership.native(n).total());
+    const advice_payload = Ownership.advice(&captured.advice);
     if (capture_only) {
         try std.fs.cwd().makePath(path);
         var out = try std.fs.cwd().openDir(path, .{});
         defer out.close();
+        try @import("../word16_execution/driver.zig").writeJson(a, out, "native-op-cost.json", .{ .schema = "op-native-capture-cost/v1", .admitted_complete_runtime = false, .main_coefficient_bytes = cost.main_coefficient_bytes, .merkle_node_upper_bytes = cost.merkle_node_upper_bytes, .disk_upper_bytes = cost.disk_upper_bytes, .max_cpu_restore_bytes = cost.max_cpu_restore_bytes, .declared_limits = resources, .capture_heap = capture_heap, .native_capture_payload_bytes = native_payload, .advice_capture_payload = advice_payload, .cpus = cost.cpus, .truths = cost.truths, .miller = cost.miller, .caveat = "Truth Merkle floor16 is conservative; fixed setup, GKR/source temporaries and allocator/stack RSS need actual runtime admission. This capture report grants no execution proof acceptance." });
         try @import("../word16_execution/driver.zig").writeJson(a, out, "native-op-plan.json", .{ .proof_verified = false, .complete_execution = true, .steps = captured.steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers, .metadata = metadata, .cells = bounds.base.shape.native_trace_cells, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns });
         std.debug.print("OP_NATIVE_CAPTURE complete=true proof_verified=false steps={} CPU={} truth={} miller={} cells={any} capture_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bounds.base.shape.native_trace_cells, capture_ns });
         return;
