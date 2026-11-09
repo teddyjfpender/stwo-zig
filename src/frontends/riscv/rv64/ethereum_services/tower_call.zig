@@ -31,6 +31,7 @@ pub const Call = struct {
 /// Rights, shape, computation and atomic store all precede CPU/counter changes.
 pub fn execute(cpu: *machine.Cpu, mem: *memory.Memory, count: *u64) !Call {
     if (count.* == std.math.maxInt(u64)) return error.ServiceCounterOverflow;
+    const next_clock = std.math.add(u64, cpu.retired, 1) catch return error.ServiceCounterOverflow;
     const pointer = cpu.read(profile.POINTER_REGISTER);
     if (pointer & 31 != 0) return error.MisalignedAddress;
     _ = try memory.endAddress(pointer, math.PACKET_BYTES);
@@ -40,9 +41,9 @@ pub fn execute(cpu: *machine.Cpu, mem: *memory.Memory, count: *u64) !Call {
     for (&before, 0..) |*word, i| word.* = try mem.load(pointer + 8 * i, 8);
     const after = try math.execute(&before);
     try mem.storeWords(pointer, after[0..math.WRITTEN_WORDS]);
-    const result = Call{ .call_id = count.* + 1, .clock = cpu.retired + 1, .pc = cpu.pc, .pointer = pointer, .before = before, .output = after[0..math.WRITTEN_WORDS].* };
+    const result = Call{ .call_id = count.* + 1, .clock = next_clock, .pc = cpu.pc, .pointer = pointer, .before = before, .output = after[0..math.WRITTEN_WORDS].* };
     cpu.pc +%= 4;
-    cpu.retired += 1;
+    cpu.retired = next_clock;
     count.* += 1;
     return result;
 }

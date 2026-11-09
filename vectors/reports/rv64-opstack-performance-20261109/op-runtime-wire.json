@@ -1,0 +1,48 @@
+{
+  "schema": "stwo.opstack.op-runtime-wire.v1",
+  "profile": "ethereum_services_op_v1",
+  "tag": "0x00040001",
+  "execution_only": true,
+  "production_proof_admission": false,
+  "wire": {
+    "legacy_magic": "RV64TP01",
+    "op_magic": "RV64TP02",
+    "header_bytes": 48,
+    "op_section_header_bytes": 8,
+    "op_record_bytes": 1064,
+    "before_words": 80,
+    "output_words": 48,
+    "readonly_tail_words": 32,
+    "count_and_bytes_bounded_before_sidecar_allocation": true,
+    "canonical_version_profile_pairing": true
+  },
+  "qualification": {
+    "ReleaseSafe": {
+      "tests": 44,
+      "passed": 44
+    },
+    "ReleaseFast": {
+      "tests": 44,
+      "passed": 44
+    },
+    "controls": [
+      "legacy and OP exact roundtrip and spare-capacity poison",
+      "allocation failure cleanup at every allocation",
+      "version/profile mismatch",
+      "section and record reserved bytes",
+      "invalid operation",
+      "zero/skipped call identity",
+      "clock/PC/pointer binding",
+      "oversized count and byte budget",
+      "truncation and trailing bytes",
+      "legacy runtime tag refusal",
+      "counter and clock overflow atomicity",
+      "read-only output and pointer errors atomicity"
+    ]
+  },
+  "limits": [
+    "Advice codec does not establish arithmetic truth",
+    "Provider and RAM join plus physical fresh receiver remain required",
+    "No heavy-block proving-time speedup established"
+  ]
+}

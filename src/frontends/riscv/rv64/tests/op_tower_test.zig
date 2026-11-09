@@ -91,7 +91,11 @@ test "OP tower bad pointers, output rights and counter overflow do not publish s
     session.keccak.base.cpu.regs[P.POINTER_REGISTER] = pointer;
     session.op_sparse034_calls = std.math.maxInt(u64);
     try std.testing.expectError(error.ServiceCounterOverflow, session.step(&event));
-    try std.testing.expectEqual(@as(u64, 0), session.keccak.base.cpu.retired);
+    session.op_sparse034_calls = 0;
+    session.keccak.base.cpu.retired = std.math.maxInt(u64);
+    // Session rejects its step limit first; direct executor must also be atomic.
+    try std.testing.expectError(error.ServiceCounterOverflow, E.tower.execute(&session.keccak.base.cpu, &mem, &session.op_sparse034_calls));
+    try std.testing.expectEqual(std.math.maxInt(u64), session.keccak.base.cpu.retired);
     try std.testing.expectEqual(@as(u64, 0x1000), session.keccak.base.cpu.pc);
     try std.testing.expectEqual(@as(u64, 1), try mem.load(pointer, 8));
 }

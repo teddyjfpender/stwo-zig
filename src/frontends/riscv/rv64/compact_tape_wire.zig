@@ -8,6 +8,8 @@ const profile = @import("execution_profile.zig");
 const K = @import("service_session.zig");
 const S = @import("ethereum_services/session.zig");
 pub const MAGIC = "RV64TP01";
+/// OP-only envelope; legacy profiles retain exactly RV64TP01.
+pub const MAGIC_OP = "RV64TP02";
 pub const HEADER_BYTES = 48;
 pub const Limits = struct { steps: u32 = T.MAX_STEPS, bytes: usize = 1024 * 1024 * 1024 };
 /// raw[28..32] was reserved-zero; v3 tapes store the SHA-256 record count
@@ -21,7 +23,7 @@ pub const Limits = struct { steps: u32 = T.MAX_STEPS, bytes: usize = 1024 * 1024
 /// pre-curve one. Canonical section order: steps, memory, Keccak, secp,
 /// SHA-256, [extension, arith256_mod, curves]. Bulk memory has no tape section
 /// (the ECALL step's lhs/rhs carry pointer and tag).
-const Header = struct { steps: u32, memory: u32, keccak: u32, secp: u32, sha256: u32 = 0, arith256_mod: u32 = 0, curves: u32 = 0, execution: profile.Profile, pc: u64, clock: u64 };
+const Header = struct { steps: u32, memory: u32, keccak: u32, secp: u32, sha256: u32 = 0, arith256_mod: u32 = 0, curves: u32 = 0, tower: u32 = 0, execution: profile.Profile, pc: u64, clock: u64 };
 const SHA256_RECORD = 32 + 96 + 96;
 const V3_EXTENSION_FLAG: u32 = 1 << 31;
 const V3_EXTENSION = 8;
@@ -29,6 +31,7 @@ const ARITH256_RECORD = 32 + 160 + 160;
 /// u32 op, u32 zero, id/clock/pc/pointer, 24 before and 24 after words
 /// (words beyond the op's packet are zero).
 const CURVE_RECORD = 8 + 32 + 192 + 192;
+const TOWER_RECORD = 8 + 32 + 8 * (S.tower.math.WORDS + S.tower.math.WRITTEN_WORDS);
 comptime {
     if (@sizeOf(T.Step) != 48 or @offsetOf(T.Step, "next_pc") != 0 or @offsetOf(T.Step, "lhs") != 8 or @offsetOf(T.Step, "rhs") != 16 or @offsetOf(T.Step, "previous_rd") != 24 or @offsetOf(T.Step, "result") != 32 or @offsetOf(T.Step, "memory_index") != 40 or @offsetOf(T.Step, "flags") != 44) @compileError("native tape layout needs an explicit wire migration");
 }
@@ -36,16 +39,16 @@ pub fn encodedBytes(tape: *const T.Tape) !usize {
     return size(try header(tape));
 }
 fn header(tape: *const T.Tape) !Header {
-    // The OP extension needs its own bounded envelope. Never silently write
-    // a payload-bearing OP execution using the legacy tape layout.
-    if (tape.execution_profile == .ethereum_services_op_v1 or tape.tower_calls.items.len != 0) return error.OpTowerTapeWireNotQualified;
+    if (tape.execution_profile != .ethereum_services_op_v1 and tape.tower_calls.items.len != 0) return error.InvalidTapeWireService;
     if (tape.len == 0 or tape.len > T.MAX_STEPS or tape.len > tape.storage.len or tape.memory_before.items.len > tape.len or tape.service_calls.items.len > tape.len or tape.secp_calls.items.len > tape.len - tape.service_calls.items.len or tape.sha256_calls.items.len > tape.len - tape.service_calls.items.len - tape.secp_calls.items.len or tape.arith256_mod_calls.items.len > tape.len - tape.service_calls.items.len - tape.secp_calls.items.len - tape.sha256_calls.items.len or tape.curve_calls.items.len > tape.len - tape.service_calls.items.len - tape.secp_calls.items.len - tape.sha256_calls.items.len - tape.arith256_mod_calls.items.len) return error.InvalidTapeWireGeometry;
-    return .{ .steps = @intCast(tape.len), .memory = @intCast(tape.memory_before.items.len), .keccak = @intCast(tape.service_calls.items.len), .secp = @intCast(tape.secp_calls.items.len), .sha256 = @intCast(tape.sha256_calls.items.len), .arith256_mod = @intCast(tape.arith256_mod_calls.items.len), .curves = @intCast(tape.curve_calls.items.len), .execution = tape.execution_profile, .pc = tape.initial_pc, .clock = tape.initial_clock };
+    if (tape.tower_calls.items.len > tape.len - (tape.serviceCount() - tape.tower_calls.items.len)) return error.InvalidTapeWireGeometry;
+    return .{ .tower = @intCast(tape.tower_calls.items.len), .steps = @intCast(tape.len), .memory = @intCast(tape.memory_before.items.len), .keccak = @intCast(tape.service_calls.items.len), .secp = @intCast(tape.secp_calls.items.len), .sha256 = @intCast(tape.sha256_calls.items.len), .arith256_mod = @intCast(tape.arith256_mod_calls.items.len), .curves = @intCast(tape.curve_calls.items.len), .execution = tape.execution_profile, .pc = tape.initial_pc, .clock = tape.initial_clock };
 }
 fn size(h: Header) !usize {
     var result: usize = HEADER_BYTES;
     for ([_]usize{ h.steps, h.memory, h.keccak, h.secp, h.sha256 }, [_]usize{ 48, 8, 432, 424, SHA256_RECORD }) |count, width| result = try std.math.add(usize, result, try std.math.mul(usize, count, width));
     if (h.arith256_mod != 0 or h.curves != 0) result = try std.math.add(usize, result, try std.math.add(usize, V3_EXTENSION, try std.math.add(usize, try std.math.mul(usize, h.arith256_mod, ARITH256_RECORD), try std.math.mul(usize, h.curves, CURVE_RECORD))));
+    if (h.execution == .ethereum_services_op_v1) result = try std.math.add(usize, result, try std.math.add(usize, 8, try std.math.mul(usize, h.tower, TOWER_RECORD)));
     return result;
 }
 /// Caller owns the file and its atomic/durable publication. A valid tape is
@@ -55,7 +58,7 @@ pub fn write(file: std.fs.File, tape: *const T.Tape) !void {
     const h = try header(tape);
     try validate(tape);
     var raw: [HEADER_BYTES]u8 = @splat(0);
-    @memcpy(raw[0..8], MAGIC);
+    @memcpy(raw[0..8], if (h.execution == .ethereum_services_op_v1) MAGIC_OP else MAGIC);
     put(u32, raw[8..12], @intFromEnum(h.execution));
     put(u32, raw[12..16], h.steps);
     put(u32, raw[16..20], h.memory);
@@ -127,19 +130,33 @@ pub fn write(file: std.fs.File, tape: *const T.Tape) !void {
         for (call.after, 0..) |word, i| put(u64, encoded[232 + 8 * i ..][0..8], word);
         try file.writeAll(&encoded);
     }
+    if (h.execution == .ethereum_services_op_v1) {
+        var extension: [8]u8 = @splat(0);
+        put(u32, extension[0..4], h.tower);
+        try file.writeAll(&extension);
+        for (tape.tower_calls.items) |*call| {
+            var encoded: [TOWER_RECORD]u8 = @splat(0);
+            put(u32, encoded[0..4], @intFromEnum(call.op));
+            for ([_]u64{ call.call_id, call.clock, call.pc, call.pointer }, 0..) |word, i| put(u64, encoded[8 + 8 * i ..][0..8], word);
+            for (call.before, 0..) |word, i| put(u64, encoded[40 + 8 * i ..][0..8], word);
+            for (call.output, 0..) |word, i| put(u64, encoded[40 + 8 * S.tower.math.WORDS + 8 * i ..][0..8], word);
+            try file.writeAll(&encoded);
+        }
+    }
 }
 /// Counts and byte budget are admitted before allocation. Consumes through EOF
 /// and rejects trailing bytes; a work-packet container must put this section last.
 pub fn readTail(a: std.mem.Allocator, file: std.fs.File, limits: Limits) !T.Tape {
     var raw: [HEADER_BYTES]u8 = undefined;
     try exact(file, &raw);
-    if (!std.mem.eql(u8, raw[0..8], MAGIC)) return error.InvalidTapeWireHeader;
+    const op_envelope = std.mem.eql(u8, raw[0..8], MAGIC_OP);
+    if (!op_envelope and !std.mem.eql(u8, raw[0..8], MAGIC)) return error.InvalidTapeWireHeader;
     const execution = std.meta.intToEnum(profile.Profile, get(u32, raw[8..12])) catch return error.InvalidTapeWireProfile;
-    if (execution == .ethereum_services_op_v1) return error.OpTowerTapeWireNotQualified;
-    if (!profile.isV3(execution) and get(u32, raw[28..32]) != 0) return error.InvalidTapeWireHeader;
+    if (op_envelope != (execution == .ethereum_services_op_v1)) return error.InvalidTapeWireHeader;
+    if (!profile.hasV3Services(execution) and get(u32, raw[28..32]) != 0) return error.InvalidTapeWireHeader;
     const sha_word = get(u32, raw[28..32]);
     const extended_v3 = sha_word & V3_EXTENSION_FLAG != 0;
-    const h = Header{ .execution = execution, .steps = get(u32, raw[12..16]), .memory = get(u32, raw[16..20]), .keccak = get(u32, raw[20..24]), .secp = get(u32, raw[24..28]), .sha256 = sha_word & ~V3_EXTENSION_FLAG, .pc = get(u64, raw[32..40]), .clock = get(u64, raw[40..48]) };
+    var h = Header{ .execution = execution, .steps = get(u32, raw[12..16]), .memory = get(u32, raw[16..20]), .keccak = get(u32, raw[20..24]), .secp = get(u32, raw[24..28]), .sha256 = sha_word & ~V3_EXTENSION_FLAG, .pc = get(u64, raw[32..40]), .clock = get(u64, raw[40..48]) };
     if (h.steps == 0 or h.steps > T.MAX_STEPS or h.steps > limits.steps or h.memory > h.steps or h.keccak > h.steps or h.secp > h.steps - h.keccak or h.sha256 > h.steps - h.keccak - h.secp or (h.execution == .rv64im and h.keccak != 0) or ((h.execution == .rv64im or h.execution == .keccak_service_v1) and h.secp != 0) or try size(h) > limits.bytes) return error.InvalidTapeWireGeometry;
     var tape = try T.Tape.init(a, h.steps, h.pc, h.clock, h.execution);
     errdefer tape.deinit();
@@ -191,6 +208,7 @@ pub fn readTail(a: std.mem.Allocator, file: std.fs.File, limits: Limits) !T.Tape
         extended.arith256_mod = count;
         extended.curves = curve_count;
         if ((count == 0 and curve_count == 0) or count > h.steps - h.keccak - h.secp - h.sha256 or curve_count > h.steps - h.keccak - h.secp - h.sha256 - count or try size(extended) > limits.bytes) return error.InvalidTapeWireGeometry;
+        h = extended;
         try tape.arith256_mod_calls.ensureTotalCapacityPrecise(a, count);
         for (0..count) |_| {
             var encoded: [ARITH256_RECORD]u8 = undefined;
@@ -212,11 +230,29 @@ pub fn readTail(a: std.mem.Allocator, file: std.fs.File, limits: Limits) !T.Tape
             tape.curve_calls.appendAssumeCapacity(call);
         }
     }
+    if (op_envelope) {
+        var extension: [8]u8 = undefined;
+        try exact(file, &extension);
+        h.tower = get(u32, extension[0..4]);
+        if (get(u32, extension[4..8]) != 0) return error.InvalidTapeWireHeader;
+        if (h.tower > h.steps - h.keccak - h.secp - h.sha256 - h.arith256_mod - h.curves or try size(h) > limits.bytes) return error.InvalidTapeWireGeometry;
+        try tape.tower_calls.ensureTotalCapacityPrecise(a, h.tower);
+        for (0..h.tower) |_| {
+            var encoded: [TOWER_RECORD]u8 = undefined;
+            try exact(file, &encoded);
+            if (get(u32, encoded[0..4]) != @intFromEnum(S.tower.math.Kind.mul034) or get(u32, encoded[4..8]) != 0) return error.InvalidTapeWireService;
+            var call = S.TowerCall{ .call_id = get(u64, encoded[8..16]), .clock = get(u64, encoded[16..24]), .pc = get(u64, encoded[24..32]), .pointer = get(u64, encoded[32..40]), .before = undefined, .output = undefined };
+            for (&call.before, 0..) |*word, i| word.* = get(u64, encoded[40 + 8 * i ..][0..8]);
+            for (&call.output, 0..) |*word, i| word.* = get(u64, encoded[40 + 8 * S.tower.math.WORDS + 8 * i ..][0..8]);
+            tape.tower_calls.appendAssumeCapacity(call);
+        }
+    }
     var trailing: [1]u8 = undefined;
     if (try file.read(&trailing) != 0) return error.TrailingTapeWireData;
     try validate(&tape);
     for (tape.secp_calls.items) |call| tape.last_secp_ids[@intFromEnum(call.kind) - 1] = call.call_id;
     for (tape.curve_calls.items) |call| tape.last_curve_ids[S.curves.index(call.op)] = call.call_id;
+    if (tape.tower_calls.items.len != 0) tape.last_tower_id = tape.tower_calls.items[tape.tower_calls.items.len - 1].call_id;
     return tape;
 }
 /// Decoded-tape invariants `readTail` enforces; also applied to in-process
@@ -252,7 +288,7 @@ pub fn validate(tape: *const T.Tape) !void {
         previous_clock = call.clock;
         ids[family] = call.call_id;
     }
-    if (!profile.isV3(tape.execution_profile) and tape.sha256_calls.items.len != 0) return error.InvalidTapeWireService;
+    if (!profile.hasV3Services(tape.execution_profile) and tape.sha256_calls.items.len != 0) return error.InvalidTapeWireService;
     var previous_sha: ?S.Sha256Call = null;
     for (tape.sha256_calls.items) |call| {
         if (previous_sha) |prior| if (prior.clock >= call.clock or prior.call_id == std.math.maxInt(u64) or call.call_id != prior.call_id + 1) return error.InvalidTapeWireService;
@@ -261,7 +297,7 @@ pub fn validate(tape: *const T.Tape) !void {
         try service(tape, call.clock, call.pc, call.pointer, call.tag(), call.call_id);
         previous_sha = call;
     }
-    if (!profile.isV3(tape.execution_profile) and tape.arith256_mod_calls.items.len != 0) return error.InvalidTapeWireService;
+    if (!profile.hasV3Services(tape.execution_profile) and tape.arith256_mod_calls.items.len != 0) return error.InvalidTapeWireService;
     var previous_arith: ?S.Arith256ModCall = null;
     for (tape.arith256_mod_calls.items) |call| {
         if (previous_arith) |prior| if (prior.clock >= call.clock or prior.call_id == std.math.maxInt(u64) or call.call_id != prior.call_id + 1) return error.InvalidTapeWireService;
@@ -270,7 +306,7 @@ pub fn validate(tape: *const T.Tape) !void {
         try service(tape, call.clock, call.pc, call.pointer, call.tag(), call.call_id);
         previous_arith = call;
     }
-    if (!profile.isV3(tape.execution_profile) and tape.curve_calls.items.len != 0) return error.InvalidTapeWireService;
+    if (!profile.hasV3Services(tape.execution_profile) and tape.curve_calls.items.len != 0) return error.InvalidTapeWireService;
     var curve_clock: u64 = 0;
     var curve_ids: [S.curves.COUNT]?u64 = @splat(null);
     for (tape.curve_calls.items) |call| {
@@ -283,6 +319,15 @@ pub fn validate(tape: *const T.Tape) !void {
         try service(tape, call.clock, call.pc, call.pointer, call.tag(), call.call_id);
         curve_clock = call.clock;
         curve_ids[k] = call.call_id;
+    }
+    var tower_clock: u64 = 0;
+    var tower_id: ?u64 = null;
+    for (tape.tower_calls.items) |*call| {
+        if (call.op != .mul034 or call.clock <= tower_clock or call.pointer & 31 != 0 or call.pointer > std.math.maxInt(u64) - S.tower.math.PACKET_BYTES) return error.InvalidTapeWireService;
+        if (tower_id) |prior| if (prior == std.math.maxInt(u64) or call.call_id != prior + 1) return error.InvalidTapeWireService;
+        try service(tape, call.clock, call.pc, call.pointer, profile.OP_TOWER_TAG, call.call_id);
+        tower_clock = call.clock;
+        tower_id = call.call_id;
     }
 }
 fn service(tape: *const T.Tape, clock: u64, pc: u64, pointer: u64, tag: u64, id: u64) !void {
