@@ -172,9 +172,8 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
         )
 
     def test_prover_diff_selects_only_the_link_reach(self) -> None:
-        # The circuit frontend commits preprocessed roots through the
-        # prover's PCS path, and the circuit CPU integration proves through
-        # it, so prover edits reach both lanes too.
+        # The circuit frontend and both CPU/Metal integrations declare prover
+        # engine dependencies, so its link reach retains all three lanes.
         changed = [
             "src/engine/prover/pcs/quotient_tile_executor.zig",
             "src/engine/prover/vcs_lifted/prover.zig",
@@ -191,7 +190,7 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
                 "cairo_cpu_integration", "cairo_cuda_integration",
                 "cairo_frontend", "cairo_metal",
                 "cairo_metal_integration", "circuit_cpu_integration",
-                "circuit_frontend", "cpu_backend",
+                "circuit_frontend", "circuit_metal_integration", "cpu_backend",
                 "metal_backend", "native_cpu",
                 "native_cuda_device", "native_cuda_integration", "native_cuda_static",
                 "native_examples", "native_metal",
