@@ -11,3 +11,31 @@ The owner retains the original budget until the detached tree and mapping are re
 Focused ReleaseSafe tests pass for exact coefficients/root, disk/mapped caps, wrong setup and statement, changed native/column logs, changed ninth root word, malformed token size, payload corruption, truncated and extended files, combined heap/mapping budget refusal, successful external reservation, and moved-tree teardown after releasing the caller's budget lease. The independently rerun two-CPU/two-truth physical inventory test passes with bound identities: 19 retirements, two SHA calls, two ARITH calls, two bulk calls, 3,915,744 native proof bytes (unchanged), fresh durable receiver acceptance and exact RAM/Wire closure. All four parked mappings and file reservations return to zero. Three filtered physical tests pass in ReleaseSafe.
 
 This host custody improvement does not change the protocol security claim: 128-bit security target under documented assumptions; security_qualified=false.
+
+## Immutable FIXED templates and request leases
+
+The store additionally supports an exclusively parked immutable template.
+`shapeBound` copies only root/column/coefficient/layer descriptors for stage one;
+it maps no data. `leaseBound` creates independent read-only descriptors and a
+mapping for a worker's physical proof. Both bind the complete source identity,
+ordered logs and all nine root coordinates. No shared tree is mutated and no
+commitment is rebuilt or remixed. Caller code must validate a pending shape and
+acquire its full replacement before releasing the shape or starting evaluation.
+
+Each request view retains the file owner. A shape retains its request allocator
+through a zero-byte external reservation; a mapped lease reserves its complete
+rounded payload in that request's SharedHostBudget and the shared mapped cap.
+Destroying the original template leaves existing views valid. The file, disk
+reservation and original budget survive until the last view releases. Store
+address/lifetime and exclusive-template-acquisition requirements remain explicit.
+
+Independent source review found no ownership defect. Focused ReleaseSafe tests
+pass for separate request budgets, two mappings, descriptor separation, exact
+coefficients and roots, template-before-view teardown, caller-budget-before-view
+teardown, mapped/disk/budget refusal, and every descriptor-allocation failure.
+The shape test also checks zero mapped bytes and rejects opening before any
+allocation. PCS decommit now refuses parked trees before coefficient-opening
+scratch construction. The prior MAIN restore/custody regression passes.
+
+This is the storage primitive qualification. Complete parked-FIXED worker proof
+parity and the heavy-block memory qualification are separate integration gates.

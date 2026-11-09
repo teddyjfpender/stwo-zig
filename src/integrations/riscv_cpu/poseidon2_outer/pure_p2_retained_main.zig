@@ -41,7 +41,7 @@ pub const Store = struct {
     }
     /// Exclusive tree ownership; all fallible work precedes publication.
     fn parkInner(self: *Store, a: std.mem.Allocator, tree: *Tree, binding: ?Binding) !usize {
-        if (!tree.compact_polynomials or tree.shared_owner != null or tree.backing_teardown != null or tree.commitment.layer_values_borrowed or tree.commitment.layers_parked) return error.InvalidOpParkingTree;
+        if (!tree.compact_polynomials or tree.shared_owner != null or tree.backing_teardown != null or tree.column_backing_buffers != null or tree.streaming_column_backings != null or tree.commitment.layer_values_borrowed or tree.commitment.layers_parked) return error.InvalidOpParkingTree;
         const coefficients = tree.coefficients orelse return error.InvalidOpParkingTree;
         if (coefficients.len == 0 or coefficients.len != tree.columns.len or tree.commitment.layers.len == 0) return error.InvalidOpParkingTree;
         var bytes: usize = 0;
@@ -145,9 +145,65 @@ pub const Store = struct {
     pub fn restoreBound(self: *Store, tree: *Tree, binding: Binding) !usize {
         return self.restoreInner(tree, binding);
     }
-    fn restoreInner(self: *Store, tree: *Tree, binding: ?Binding) !usize {
+    /// Read-only request lease of one immutable parked FIXED template. Only
+    /// descriptors are copied. The template stays parked and may be destroyed
+    /// before this lease; its file and budget custody survive until last release.
+    pub fn leaseBound(self: *Store, a: std.mem.Allocator, template: *const Tree, binding: Binding) !Tree {
+        return self.requestView(a, template, binding, true);
+    }
+    /// Stage-one root and geometry only. This cannot evaluate or open values;
+    /// the worker must replace it with a full admitted lease before proving.
+    pub fn shapeBound(self: *Store, a: std.mem.Allocator, template: *const Tree, binding: Binding) !Tree {
+        return self.requestView(a, template, binding, false);
+    }
+    fn requestView(self: *Store, a: std.mem.Allocator, template: *const Tree, binding: Binding, comptime mapped: bool) !Tree {
         self.mutex.lock();
         defer self.mutex.unlock();
+        const owner = try self.validateOwnerLocked(template, binding);
+        if (owner.mapping != null) return error.OpParkingTemplateNotParked;
+        if (try owner.file.file.getEndPos() != owner.file.size) return error.OpParkingIntegrity;
+        if (mapped and owner.file.size > self.mapped_limit - self.mapped) return error.OpParkingMappedLimit;
+        const references = try std.math.add(usize, owner.references, 1);
+        const budget = Budget.fromAllocator(a);
+        if (budget == null and !@import("builtin").is_test) return error.OpParkingLeaseRequiresBudget;
+        var reservation: Budget.ExternalReservation = if (budget) |b| try b.reserveExternal(if (mapped) owner.file.size else 0) else .empty();
+        errdefer reservation.deinit();
+        const columns = try a.dupe(@TypeOf(template.columns[0]), template.columns);
+        errdefer a.free(columns);
+        const coefficients = try a.dupe(@TypeOf(template.coefficients.?[0]), template.coefficients.?);
+        errdefer a.free(coefficients);
+        const layers = try a.dupe([]Hash, template.commitment.layers);
+        errdefer a.free(layers);
+        const lease = try a.create(Lease);
+        errdefer a.destroy(lease);
+        const memory: ?[]align(std.heap.page_size_min) u8 = if (mapped) try owner.file.map(true) else null;
+        errdefer if (memory) |values| std.posix.munmap(values);
+        if (memory) |values| {
+            var digest: [32]u8 = undefined;
+            std.crypto.hash.sha2.Sha256.hash(values[0..owner.payload_bytes], &digest, .{});
+            if (!std.mem.eql(u8, &digest, &owner.digest)) return error.OpParkingIntegrity;
+            for (coefficients, columns, owner.columns) |*coefficient, *column, descriptor| {
+                const cells: []M = @alignCast(std.mem.bytesAsSlice(M, values[descriptor.offset..][0 .. descriptor.count * @sizeOf(M)]));
+                coefficient.coeffs = cells;
+                column.coefficient_values = cells;
+            }
+            for (layers, owner.layers) |*layer, descriptor| layer.* = std.mem.bytesAsSlice(Hash, values[descriptor.offset..][0 .. descriptor.count * @sizeOf(Hash)]);
+        }
+        lease.* = .{ .allocator = a, .owner = owner, .memory = memory, .reservation = reservation.take() };
+        var result = template.*;
+        result.columns = columns;
+        result.coefficients = coefficients;
+        result.commitment.layers = layers;
+        result.commitment.layer_allocator = a;
+        result.commitment.layers_parked = !mapped;
+        result.backing_teardown = engine.pcs.BackingTeardownToken.init(lease, owner.file.size, Lease.release);
+        owner.references = references;
+        if (mapped) self.mapped += owner.file.size;
+        self.peak_mapped = @max(self.peak_mapped, self.mapped);
+        return result;
+    }
+    // Caller holds mutex and a live exclusive template reference.
+    fn validateOwnerLocked(self: *Store, tree: *const Tree, binding: ?Binding) !*Owner {
         const token = tree.backing_teardown orelse return error.InvalidOpParkingTree;
         if (token.release_fn != Owner.release) return error.InvalidOpParkingTree;
         const context = token.context orelse return error.InvalidOpParkingTree;
@@ -159,7 +215,7 @@ pub const Store = struct {
         if (token.value != owner.file.size) return error.InvalidOpParkingTree;
         if (!std.meta.eql(owner.binding, binding)) return error.OpParkingBindingMismatch;
         const coefficients = tree.coefficients orelse return error.InvalidOpParkingTree;
-        if (!tree.compact_polynomials or tree.shared_owner != null or tree.coefficient_backing_buffers != null or !tree.commitment.layer_values_borrowed or
+        if (!tree.compact_polynomials or tree.shared_owner != null or tree.coefficient_backing_buffers != null or tree.column_backing_buffers != null or tree.streaming_column_backings != null or !tree.commitment.layer_values_borrowed or
             owner.descriptors != @intFromPtr(coefficients.ptr) or owner.tree_columns != @intFromPtr(tree.columns.ptr) or owner.tree_layers != @intFromPtr(tree.commitment.layers.ptr) or
             coefficients.len != owner.columns.len or tree.columns.len != owner.columns.len or tree.commitment.layers.len != owner.layers.len or
             !std.mem.eql(u8, &tree.root(), &owner.root[0])) return error.InvalidOpParkingTree;
@@ -185,6 +241,13 @@ pub const Store = struct {
             offset = try std.math.add(usize, offset, try std.math.mul(usize, d.count, @sizeOf(Hash)));
         }
         if (offset != owner.payload_bytes or try Reserved.roundedLength(offset) != owner.file.size or tree.commitment.layers_parked != (owner.mapping == null)) return error.InvalidOpParkingTree;
+        return owner;
+    }
+    fn restoreInner(self: *Store, tree: *Tree, binding: ?Binding) !usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const owner = try self.validateOwnerLocked(tree, binding);
+        const coefficients = tree.coefficients.?;
         if (owner.mapping != null) return 0;
         if (try owner.file.file.getEndPos() != owner.file.size) return error.OpParkingIntegrity;
         if (owner.file.size > self.mapped_limit - self.mapped) return error.OpParkingMappedLimit;
@@ -210,6 +273,7 @@ pub const Store = struct {
     }
 };
 const Owner = struct {
+    references: usize = 1,
     binding: ?Binding,
     budget: ?*Budget,
     mapping_reservation: Budget.ExternalReservation = .empty(),
@@ -229,25 +293,59 @@ const Owner = struct {
     fn release(context: ?*anyopaque, bytes: u64) void {
         const self: *Owner = @ptrCast(@alignCast(context.?));
         const store = self.store;
-        const a = store.allocator;
-        const budget = self.budget;
         var reservation = self.mapping_reservation.take();
         std.debug.assert(bytes == self.file.size);
         store.mutex.lock();
-        if (self.previous) |p| p.next = self.next else store.head = self.next;
-        if (self.next) |n| n.previous = self.previous;
         if (self.mapping) |m| {
             std.posix.munmap(m);
             store.mapped -= self.file.size;
         }
-        store.reserved -= self.file.size;
+        self.mapping = null;
+        const last = self.dropLocked();
         store.mutex.unlock();
+        if (last) self.destroy();
+        reservation.deinit();
+    }
+    fn dropLocked(self: *Owner) bool {
+        std.debug.assert(self.references != 0);
+        self.references -= 1;
+        if (self.references != 0) return false;
+        const store = self.store;
+        if (self.previous) |p| p.next = self.next else store.head = self.next;
+        if (self.next) |n| n.previous = self.previous;
+        store.reserved -= self.file.size;
+        return true;
+    }
+    fn destroy(self: *Owner) void {
+        const a = self.store.allocator;
+        const budget = self.budget;
         self.file.deinit();
         a.free(self.columns);
         a.free(self.layers);
         a.destroy(self);
-        reservation.deinit();
         if (budget) |b| b.destroy();
+    }
+};
+const Lease = struct {
+    allocator: std.mem.Allocator,
+    owner: *Owner,
+    memory: ?[]align(std.heap.page_size_min) u8,
+    reservation: Budget.ExternalReservation,
+    fn release(context: ?*anyopaque, bytes: u64) void {
+        const self: *Lease = @ptrCast(@alignCast(context.?));
+        const owner = self.owner;
+        const store = owner.store;
+        const a = self.allocator;
+        var reservation = self.reservation.take();
+        std.debug.assert(bytes == owner.file.size);
+        if (self.memory) |memory| std.posix.munmap(memory);
+        store.mutex.lock();
+        if (self.memory != null) store.mapped -= owner.file.size;
+        const last = owner.dropLocked();
+        store.mutex.unlock();
+        if (last) owner.destroy();
+        a.destroy(self);
+        reservation.deinit();
     }
 };
 fn contains(outer: []const M, inner: []const M) bool {
@@ -362,4 +460,110 @@ test "OP parking retains nine-coordinate roots exact coefficients and bounded in
     try std.testing.expectEqual(@as(usize, 0), store.mapped);
     try std.testing.expectEqual(@as(usize, 0), store.reserved);
     try std.testing.expect(store.head == null);
+}
+
+test "OP immutable FIXED leases retain parked custody with independent request budgets" {
+    const a = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try tmp.dir.realpathAlloc(a, ".");
+    defer a.free(path);
+    var store = try Store.init(a, path, 1 << 20, 1 << 20);
+    defer store.deinit();
+    const template_budget = try Budget.create(a, 1 << 24);
+    defer template_budget.destroy();
+    const b = template_budget.allocator();
+    var scheme = try W.Prover.init(b, @import("pure_p2_worker_protocol.zig").Profile.op_target_b4_q72_p0_fold4_v1.config());
+    defer scheme.deinit(b);
+    scheme.setStorePolynomialsCoefficients();
+    scheme.setCompactPolynomialStorage(1);
+    var data: [64]M = undefined;
+    for (&data, 0..) |*v, i| v.* = M.fromCanonical(@intCast(i * 19 + 7));
+    var channel = W.Channel.init();
+    try scheme.commitBorrowedStreaming(b, &.{ .{ .log_size = 5, .values = data[0..32] }, .{ .log_size = 5, .values = data[32..64] } }, 64, &channel);
+    var template = scheme.trees.pop().?;
+    var template_live = true;
+    defer if (template_live) template.deinit(b);
+    const original = try a.dupe(M, template.coefficients.?[0].coefficients());
+    defer a.free(original);
+    const root = template.root();
+    const binding: Binding = .{ .setup = @splat(23), .statement = @splat(41) };
+    const bytes = try store.parkBound(b, &template, binding);
+    var wrong = binding;
+    wrong.setup[31] ^= 1;
+    try std.testing.expectError(error.OpParkingBindingMismatch, store.leaseBound(a, &template, wrong));
+    const owner = store.head.?;
+    try owner.file.file.setEndPos(owner.file.size - 1);
+    try std.testing.expectError(error.OpParkingIntegrity, store.leaseBound(a, &template, binding));
+    try owner.file.file.setEndPos(owner.file.size);
+    try std.testing.checkAllAllocationFailures(a, leaseAndRelease, .{ &store, &template, binding });
+    try std.testing.expectEqual(@as(usize, 0), store.mapped);
+    try std.testing.expectEqual(@as(usize, 1), owner.references);
+    const request_budget = try Budget.create(a, 1 << 20);
+    var request_live = true;
+    defer if (request_live) request_budget.destroy();
+    const r = request_budget.allocator();
+    request_budget.limit = bytes - 1;
+    try std.testing.expectError(error.OutOfMemory, store.leaseBound(r, &template, binding));
+    try std.testing.expectEqual(@as(usize, 0), request_budget.snapshot().live_bytes);
+    request_budget.limit = 1 << 20;
+    var pending = try store.shapeBound(r, &template, binding);
+    var pending_live = true;
+    defer if (pending_live) pending.deinit(r);
+    try std.testing.expectEqual(@as(usize, 0), store.mapped);
+    try std.testing.expectEqual(@as(usize, 0), request_budget.snapshot().external_live_bytes);
+    try std.testing.expect(pending.commitment.layers_parked and pending.coefficients.?[0].coeffs.len == 0);
+    try std.testing.expectEqualSlices(u8, &root, &pending.root());
+    try std.testing.expectError(error.InvalidColumnSize, pending.decommit(std.testing.failing_allocator, &.{0}));
+    try std.testing.checkAllAllocationFailures(a, shapeAndRelease, .{ &store, &template, binding });
+    var first = try store.leaseBound(r, &template, binding);
+    var first_live = true;
+    defer if (first_live) first.deinit(r);
+    try std.testing.expectEqual(bytes, request_budget.snapshot().external_live_bytes);
+    store.mapped_limit = bytes;
+    try std.testing.expectError(error.OpParkingMappedLimit, store.leaseBound(r, &template, binding));
+    store.mapped_limit = 1 << 20;
+    const second_budget = try Budget.create(a, 1 << 20);
+    var second_budget_live = true;
+    defer if (second_budget_live) second_budget.destroy();
+    const s = second_budget.allocator();
+    var second = try store.leaseBound(s, &template, binding);
+    var second_live = true;
+    defer if (second_live) second.deinit(s);
+    try std.testing.expectEqual(2 * bytes, store.mapped);
+    try std.testing.expectEqual(bytes, request_budget.snapshot().external_live_bytes);
+    try std.testing.expectEqual(bytes, second_budget.snapshot().external_live_bytes);
+    try std.testing.expect(first.columns.ptr != second.columns.ptr and first.columns.ptr != template.columns.ptr);
+    try std.testing.expect(first.coefficients.?[0].coeffs.ptr != second.coefficients.?[0].coeffs.ptr);
+    try std.testing.expect(template.commitment.layers_parked and template.coefficients.?[0].coeffs.len == 0);
+    try std.testing.expectEqualSlices(M, original, first.coefficients.?[0].coefficients());
+    try std.testing.expectEqualSlices(u8, &root, &second.root());
+    // Template destruction must not close a file still leased by two workers.
+    template.deinit(b);
+    template_live = false;
+    try std.testing.expectEqual(bytes, store.reserved);
+    try std.testing.expectEqualSlices(M, original, second.coefficients.?[0].coefficients());
+    pending.deinit(r);
+    pending_live = false;
+    request_budget.destroy();
+    request_live = false;
+    first.deinit(r);
+    first_live = false;
+    try std.testing.expectEqual(bytes, store.mapped);
+    try std.testing.expectEqual(bytes, second_budget.snapshot().external_live_bytes);
+    second_budget.destroy();
+    second_budget_live = false;
+    second.deinit(s);
+    second_live = false;
+    try std.testing.expectEqual(@as(usize, 0), store.mapped);
+    try std.testing.expectEqual(@as(usize, 0), store.reserved);
+    try std.testing.expect(store.head == null);
+}
+fn leaseAndRelease(a: std.mem.Allocator, store: *Store, tree: *const Tree, binding: Binding) !void {
+    var lease = try store.leaseBound(a, tree, binding);
+    defer lease.deinit(a);
+}
+fn shapeAndRelease(a: std.mem.Allocator, store: *Store, tree: *const Tree, binding: Binding) !void {
+    var shape = try store.shapeBound(a, tree, binding);
+    defer shape.deinit(a);
 }
