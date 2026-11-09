@@ -1,7 +1,7 @@
 //! Explicit lookup clearing policy; default v2 remains triple.
 //! `throughput_v1` reinterprets the same MAIN witness through the RV32
 //! throughput tables (one chi lookup per five-lane row, one xor5 lookup per
-//! three parity positions; `keccakf_throughput_tables_v1.zig`). Its identity is
+//! three parity positions; `keccakf_throughput_tables.zig`). Its identity is
 //! mixed before roots by every owner that selects it.
 const L = @import("layout.zig");
 const authority = @import("../../../../air/guest_precompile/keccakf_authority.zig");

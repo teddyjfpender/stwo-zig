@@ -210,7 +210,7 @@ fn selectionFixed(a: std.mem.Allocator) ![]M {
     return out;
 }
 
-pub const T = @import("../rv64_distributed_v1/manifest.zig").T;
+pub const T = @import("../rv64_distributed/manifest.zig").T;
 /// Complete immutable physical-roster fixed-key owner. Request counts, RAM
 /// boundary contents, register endpoints and epoch never enter these columns.
 pub const Setup = struct {

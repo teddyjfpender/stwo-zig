@@ -72,7 +72,7 @@ pub const Owner = struct {
         self.statement.initializeDescriptorStorage();
         self.statement.n_components = 0;
         self.statement.n_infra = 0;
-        self.statement.x0_local_custody_version = if (local_zero) @import("../air/x0_local_custody_v1.zig").VERSION else 0;
+        self.statement.x0_local_custody_version = if (local_zero) @import("../air/x0_local_custody.zig").VERSION else 0;
         self.statement.initial_pc = data.initial_pc;
         self.statement.final_pc = data.final_pc;
         self.statement.total_steps = data.clock;
@@ -83,7 +83,7 @@ pub const Owner = struct {
             while (remaining != 0) {
                 if (self.statement.n_components == statement_mod.MAX_COMPONENTS) return error.TooManyOpcodeShards;
                 const n = @min(remaining, opcode.MAX_OPCODE_SHARD_ROWS);
-                self.statement.component_descs[self.statement.n_components] = .{ .family = family, .log_size = logSize(n), .n_rows = @intCast(n), .n_columns = if (local_zero) @intCast(try @import("../air/x0_native_envelope_v1.zig").mainColumnCount(family)) else opcode.nCommittedColumnsForFamily(family) };
+                self.statement.component_descs[self.statement.n_components] = .{ .family = family, .log_size = logSize(n), .n_rows = @intCast(n), .n_columns = if (local_zero) @intCast(try @import("../air/x0_native_envelope.zig").mainColumnCount(family)) else opcode.nCommittedColumnsForFamily(family) };
                 self.statement.n_components += 1;
                 remaining -= n;
             }

@@ -9,7 +9,7 @@ const ir_type_rules = @import("ir_type_rules.zig");
 const program = @import("program.zig");
 const source_mod = @import("source.zig");
 const types = @import("types.zig");
-const window_ir_v2 = @import("window_ir_v2.zig");
+const window_ir_v2 = @import("window_ir.zig");
 
 /// Append-only physical expressions over authenticated current/previous-row
 /// samples. Keeping this outside the frozen logical V1 node union preserves

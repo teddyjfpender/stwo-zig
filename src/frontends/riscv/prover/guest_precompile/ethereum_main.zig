@@ -16,7 +16,7 @@ const proof_workspace = @import("../proof_workspace.zig");
 const statement_geometry = @import("../statement_geometry.zig");
 const external_tree = @import("external_profile_tree.zig");
 const ethereum_witness = @import("ethereum_witness.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit_v1.zig");
+const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
 
 const CommitmentWitness = commitment_witness.CommitmentWitness;
 const Geometry = statement_geometry.Geometry;

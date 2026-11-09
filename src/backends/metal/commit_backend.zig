@@ -40,11 +40,11 @@ pub fn shutdown() MetalCommitBackend.ShutdownError!void {
 }
 
 pub const MetalCommitBackend = struct {
-    pub const RamLaneResident = @import("runtime/ram_lanes_producer_v1.zig");
+    pub const RamLaneResident = @import("runtime/ram_lanes_producer.zig");
     /// Explicit independently pinned typed-secure AOT installation. Runtime
     /// core initialization must already be authenticated; no JIT fallback.
-    pub const installSecurePolynomialAot = @import("runtime/secure_polynomial_composition_v1.zig").install;
-    pub const SecureCompositionLimits = @import("runtime/secure_polynomial_composition_v1.zig").Limits;
+    pub const installSecurePolynomialAot = @import("runtime/secure_polynomial_composition.zig").install;
+    pub const SecureCompositionLimits = @import("runtime/secure_polynomial_composition.zig").Limits;
     pub const supportsFrameworkInteractions = @import("runtime/framework_interaction_host_bridge.zig").available;
     pub const supportsFrameworkInteractionProgram = @import("runtime/framework_interaction_host_bridge.zig").availableFor;
     pub const generateFrameworkInteractionInto = @import("runtime/framework_interaction_host_bridge.zig").generateInto;
@@ -328,7 +328,7 @@ pub const MetalCommitBackend = struct {
     pub fn shutdown() ShutdownError!void {
         // Completed inverse caches own resident resources and budget leases.
         // Drain them before runtime admission; a live transaction returns busy.
-        try @import("runtime/fri_inverse_cache_v1.zig").drainAllForShutdown();
+        try @import("runtime/fri_inverse_cache.zig").drainAllForShutdown();
         // Pooled composition-domain scratch buffers belong to the live runtime;
         // release them before the runtime itself can be torn down.
         try base_polynomial_composition.releasePooledCompositionScratch();
@@ -364,24 +364,24 @@ pub const MetalCommitBackend = struct {
     /// Historical general Metal APIs accept ordinary allocators explicitly
     /// uncapped. Supplied shared budgets always retain strict aggregate charge.
     pub fn allocateSecureColumnWithAllocator(a: std.mem.Allocator, count: usize) !@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
-        return @import("runtime/fri_columns_v1.zig").allocateSecureColumnWithPolicy(a, count, @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(a));
+        return @import("runtime/fri_columns.zig").allocateSecureColumnWithPolicy(a, count, @import("runtime/fri_allocation_policy.zig").ordinaryMetal(a));
     }
     pub fn allocateLineEvaluationWithAllocator(a: std.mem.Allocator, domain: @import("stwo_core").poly.line.LineDomain) !@import("stwo_prover_engine").line.LineEvaluation {
-        return @import("runtime/fri_columns_v1.zig").allocateLineEvaluationWithPolicy(a, domain, @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(a));
+        return @import("runtime/fri_columns.zig").allocateLineEvaluationWithPolicy(a, domain, @import("runtime/fri_allocation_policy.zig").ordinaryMetal(a));
     }
     pub fn secureColumnFromLineWithAllocator(a: std.mem.Allocator, value: @import("stwo_prover_engine").line.LineEvaluation) !@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
-        return @import("runtime/fri_columns_v1.zig").secureColumnFromLineWithPolicy(a, value, @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(a));
+        return @import("runtime/fri_columns.zig").secureColumnFromLineWithPolicy(a, value, @import("runtime/fri_allocation_policy.zig").ordinaryMetal(a));
     }
-    pub const drainBudgetedFriCaches = @import("runtime/fri_inverse_cache_v1.zig").drain;
+    pub const drainBudgetedFriCaches = @import("runtime/fri_inverse_cache.zig").drain;
 
     pub fn allocateSecureColumn(column_len: usize) !@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
-        return @import("runtime/fri_columns_v1.zig").allocateSecureColumnWithPolicy(std.heap.page_allocator, column_len, .explicit_unbudgeted);
+        return @import("runtime/fri_columns.zig").allocateSecureColumnWithPolicy(std.heap.page_allocator, column_len, .explicit_unbudgeted);
     }
 
     pub fn allocateLineEvaluation(
         domain: @import("stwo_core").poly.line.LineDomain,
     ) !@import("stwo_prover_engine").line.LineEvaluation {
-        return @import("runtime/fri_columns_v1.zig").allocateLineEvaluationWithPolicy(std.heap.page_allocator, domain, .explicit_unbudgeted);
+        return @import("runtime/fri_columns.zig").allocateLineEvaluationWithPolicy(std.heap.page_allocator, domain, .explicit_unbudgeted);
     }
 
     pub fn secureColumnFromLine(
@@ -636,7 +636,7 @@ pub const MetalCommitBackend = struct {
                 domain.domain_prefix_bytes,
                 @intFromEnum(domain.family),
             );
-            const accepted = try @import("runtime/quotient_result_ownership_v1.zig").acceptReceipt(allocator, provider, &profiled);
+            const accepted = try @import("runtime/quotient_result_ownership.zig").acceptReceipt(allocator, provider, &profiled);
             break :blk .{ .gpu_ms = accepted.gpu_ms, .tree = accepted.tree };
         } else try lease.runtime.computeQuotientsAndCommitForHash(
             allocator,

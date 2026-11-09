@@ -108,7 +108,7 @@ pub const specs = [_]Spec{
     .{
         .step = "test-vm-air-profile-authority-v2",
         .description = "Check VM profile identity and authority without composition-program or provider-shard tests",
-        .root = "vm_air_profile_authority_v2_test_root.zig",
+        .root = "vm_air_profile_authority_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{"authenticated VM AIR ProfileV2"},
         .minimum = 6, // Three authority checks plus three import-discovery tests.
@@ -329,7 +329,7 @@ pub const specs = [_]Spec{
     .{
         .step = "test-lookup-polynomial-v2-edit",
         .description = "Run the lightweight variable-partition polynomial-authority edit loop",
-        .root = "lookup_polynomial_v2_edit_test_root.zig",
+        .root = "lookup_polynomial_edit_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{"lookup polynomial v2:"},
         .minimum = 4,
@@ -418,7 +418,7 @@ pub const specs = [_]Spec{
     .{
         .step = "test-recursion-transcript-v2",
         .description = "Run exact generic-channel V2 scheduled transcript parity tests",
-        .root = "transcript_v2_test_root.zig",
+        .root = "transcript_test_root.zig",
         .imports_prover_engine = true,
         .minimum = 236,
     },
@@ -453,28 +453,28 @@ pub const specs = [_]Spec{
     .{
         .step = "test-recursion-segment-leaf-outer-v2",
         .description = "Run the authenticated V2 segment-leaf outer authority tests",
-        .root = "segment_leaf_outer_authority_v2_test_root.zig",
+        .root = "segment_leaf_outer_authority_test_root.zig",
         .minimum = 301,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-segment-transcript-source-v2",
         .description = "Run the V2 scheduled-transcript outer source tests",
-        .root = "segment_transcript_outer_source_v2_test_root.zig",
+        .root = "segment_transcript_outer_source_test_root.zig",
         .minimum = 254,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-segment-transcript-components-v2",
         .description = "Run the V2 rows 0 through 9 component and tree-writer gates",
-        .root = "segment_transcript_outer_components_v2_test_root.zig",
+        .root = "segment_transcript_outer_components_test_root.zig",
         .minimum = 264,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-segment-statement-v2",
         .description = "Run only SegmentV2 boundary and continuation-root tests",
-        .root = "segment_statement_v2_test_root.zig",
+        .root = "segment_statement_test_root.zig",
         .filters = &.{ "segment statement V2", "V2 transcript layout", "native authority preimage", "access clock:" },
         .minimum = 23,
     },
@@ -489,7 +489,7 @@ pub const specs = [_]Spec{
     .{
         .step = "test-recursion-segment-public-source-v2",
         .description = "Run the V2 rows 12 through 17 public-spine source gates",
-        .root = "segment_public_outer_source_v2_test_root.zig",
+        .root = "segment_public_outer_source_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{ "V2 public spine", "V2 public-spine" },
         .minimum = 5,
@@ -497,7 +497,7 @@ pub const specs = [_]Spec{
     .{
         .step = "test-recursion-segment-native-sum-v2",
         .description = "Run the SegmentV2 native-sum graph and register-input authority gates",
-        .root = "segment_public_native_sum_authority_v2_test_root.zig",
+        .root = "segment_public_native_sum_authority_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{ "SegmentV2 native-sum", "SegmentV2 publication provider plan" },
         .minimum = 9,
@@ -505,14 +505,14 @@ pub const specs = [_]Spec{
     .{
         .step = "test-recursion-segment-public-components-v2",
         .description = "Run the V2 public-spine typed AIR and component gates",
-        .root = "segment_public_outer_components_v2_test_root.zig",
+        .root = "segment_public_outer_components_test_root.zig",
         .minimum = 250,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-segment-publication-provider-v2",
         .description = "Run the committed SegmentV2 verifier-input provider authority tests",
-        .root = "segment_publication_input_provider_authority_v2_test_root.zig",
+        .root = "segment_publication_input_provider_authority_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{ "publication-input provider", "capture-backed provider", "committed provider", "both authenticated inputs", "publication provider" },
         .minimum = 10,
@@ -520,21 +520,21 @@ pub const specs = [_]Spec{
     .{
         .step = "test-recursion-segment-outer-manifest-v2",
         .description = "Run the versioned 38-component segment outer manifest tests",
-        .root = "segment_outer_adapter_manifest_v2_test_root.zig",
+        .root = "segment_outer_adapter_manifest_test_root.zig",
         .minimum = 248,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-segment-outer-cohort-v2",
         .description = "Run the strict 38-row SegmentV2 cohort and shared-schedule gates",
-        .root = "segment_outer_cohort_v2_test_root.zig",
+        .root = "segment_outer_cohort_test_root.zig",
         .minimum = 204,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-segment-outer-noncore-audits-v2",
         .description = "Run exact-domain custody for SegmentV2 non-core Tree-2 rows",
-        .root = "segment_outer_noncore_audits_v2_test_root.zig",
+        .root = "segment_outer_noncore_audits_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{ "non-core custody", "family and domain mutations" },
         .minimum = 5,
@@ -542,7 +542,7 @@ pub const specs = [_]Spec{
     .{
         .step = "test-recursion-segment-boundary-components-v2",
         .description = "Run the concrete V2 boundary source component adapter tests",
-        .root = "segment_boundary_components_v2_test_root.zig",
+        .root = "segment_boundary_components_test_root.zig",
         .minimum = 98,
         .imports_prover_engine = true,
     },

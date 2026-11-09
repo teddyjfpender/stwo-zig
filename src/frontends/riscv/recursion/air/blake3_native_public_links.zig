@@ -9,7 +9,7 @@ const payload_mod = @import("blake3_native_payload_links.zig");
 const claims = @import("../../air/transcript/claims.zig");
 const scalar = @import("scalar_wire_source.zig");
 const arithmetic = @import("../arithmetic_circuit.zig");
-const authority = @import("../segment_public_native_sum_authority_v2.zig");
+const authority = @import("../segment_public_native_sum_authority.zig");
 const lower = @import("verifier_arithmetic_lowering.zig");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
@@ -17,7 +17,7 @@ pub const CLAIM_WORDS = claims.COMPONENT_COUNT * 4;
 pub const TOTAL_INPUTS = CLAIM_WORDS + 4;
 pub const BOUNDARY_CIRCUIT: u32 = 1506;
 pub const TOTAL_CIRCUIT: u32 = 1508;
-pub const Columns = @import("blake3_upstream_source_columns_v1.zig").ForSlots(.{12});
+pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{12});
 const TOTAL_ROWS = vm_links.COUNT + 32 + CLAIM_WORDS + 4 + TOTAL_INPUTS;
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,

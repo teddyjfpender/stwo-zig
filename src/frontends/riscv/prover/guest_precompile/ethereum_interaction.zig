@@ -13,7 +13,7 @@ const secp_component = @import("../../air/guest_precompile/secp256k1_component.z
 const secp_config = @import("../../air/guest_precompile/secp256k1_component_config.zig");
 const secp_interaction = @import("../../air/guest_precompile/secp256k1_component_interaction.zig");
 const opcode_interaction = @import("../../air/lookups/opcode_interaction.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest_v2.zig");
+const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
 const base_statement = @import("../../air/statement.zig");
 const commitment_witness = @import("../commitment_witness.zig");
 const lookup_sources = @import("../lookup_sources.zig");
@@ -23,7 +23,7 @@ const external_tree = @import("external_profile_tree.zig");
 const ethereum_transcript = @import("ethereum_transcript.zig");
 const ethereum_types = @import("ethereum_types.zig");
 const ethereum_witness = @import("ethereum_witness.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit_v1.zig");
+const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
 
 const BaseClaim = base_statement.RiscVInteractionClaim;
 

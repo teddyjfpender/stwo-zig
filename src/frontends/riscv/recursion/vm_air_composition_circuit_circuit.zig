@@ -31,7 +31,7 @@ const countInputNodes = dependency_2.countInputNodes;
 const circuitDigest = dependency_2.circuitDigest;
 const transcriptComponentForInfra = dependency_2.transcriptComponentForInfra;
 const fresh_prepared_v4 =
-    @import("vm_air_composition_circuit_prepared_fresh_v4.zig");
+    @import("vm_air_composition_circuit_prepared_fresh.zig");
 
 pub const CircuitStorageV3 = fresh_prepared_v4.CircuitStorageV3;
 

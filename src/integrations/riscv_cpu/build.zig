@@ -62,7 +62,7 @@ pub fn build(b: *std.Build) void {
 
     for ([_]struct { step: []const u8, root: []const u8, minimum: usize }{
         .{ .step = "test-blake3-proof-contracts", .root = "blake3_proof_contract_test_root.zig", .minimum = 22 },
-        .{ .step = "test-detached-child-capture", .root = "recursive_segment_v2_detached_child_transcript.zig", .minimum = 1 },
+        .{ .step = "test-detached-child-capture", .root = "recursive_segment_detached_child_transcript.zig", .minimum = 1 },
         .{ .step = "test-word16-image-program-contracts", .root = "word16_image_program_contract_test_root.zig", .minimum = 23 },
         .{ .step = "test-distributed-binary-contracts", .root = "distributed_binary_contract_test_root.zig", .minimum = 13 },
         .{ .step = "test-division-contracts", .root = "division_contract_test_root.zig", .minimum = 7 },
@@ -172,7 +172,7 @@ pub fn build(b: *std.Build) void {
         .dependOn(testDependency(b, keccak_tests, check_only, 0));
 
     const segment_root = b.createModule(.{
-        .root_source_file = b.path("segment_v2_native_proof_test.zig"),
+        .root_source_file = b.path("segment_native_proof_test.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -214,7 +214,7 @@ pub fn build(b: *std.Build) void {
     leaf_verifier_root.addImport("stwo_core", core);
     leaf_verifier_root.addImport("interop_postcard", postcard);
     const leaf_verifier_runner = b.createModule(.{
-        .root_source_file = b.path("recursive_segment_v2_detached_verifier_runner.zig"),
+        .root_source_file = b.path("recursive_segment_detached_verifier_runner.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -234,7 +234,7 @@ pub fn build(b: *std.Build) void {
     parent_verifier_root.addImport("stwo_core", core);
     parent_verifier_root.addImport("interop_postcard", postcard);
     const parent_verifier_runner = b.createModule(.{
-        .root_source_file = b.path("recursive_segment_v2_detached_parent_verifier_runner.zig"),
+        .root_source_file = b.path("recursive_segment_detached_parent_verifier_runner.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -247,7 +247,7 @@ pub fn build(b: *std.Build) void {
         .dependOn(&b.addInstallArtifact(parent_verifier, .{}).step);
 
     const leaf_producer_root = b.addModule("stwo_riscv_detached_leaf_runner", .{
-        .root_source_file = b.path("recursive_segment_v2_detached_leaf_runner.zig"),
+        .root_source_file = b.path("recursive_segment_detached_leaf_runner.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -265,7 +265,7 @@ pub fn build(b: *std.Build) void {
         .dependOn(&b.addInstallArtifact(leaf_producer, .{}).step);
 
     const parent_producer_owner = b.addModule("stwo_riscv_detached_parent_producer", .{
-        .root_source_file = b.path("recursive_segment_v2_detached_parent_producer.zig"),
+        .root_source_file = b.path("recursive_segment_detached_parent_producer.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -276,7 +276,7 @@ pub fn build(b: *std.Build) void {
     parent_producer_owner.addImport("stwo_prover_engine", prover);
     parent_producer_owner.addImport("interop_postcard", postcard);
     const parent_producer_runner = b.createModule(.{
-        .root_source_file = b.path("recursive_segment_v2_detached_parent_producer_runner.zig"),
+        .root_source_file = b.path("recursive_segment_detached_parent_producer_runner.zig"),
         .target = target,
         .optimize = optimize,
     });

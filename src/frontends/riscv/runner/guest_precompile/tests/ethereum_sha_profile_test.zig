@@ -1,6 +1,6 @@
 const std = @import("std");
 const profile = @import("../../../isa/execution_profile.zig");
-const sha = @import("../../../isa/sha256_compression_v1.zig");
+const sha = @import("../../../isa/sha256_compression.zig");
 const fixture = @import("../test_elf.zig");
 const runner = @import("../../mod.zig");
 

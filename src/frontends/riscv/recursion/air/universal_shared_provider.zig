@@ -16,7 +16,7 @@ const relation = @import("../../air/lang/relation.zig");
 const poseidon_air = @import("../../air/memory_commitment/poseidon2_air.zig");
 const poseidon_component = @import("../../air/memory_commitment/hash_component.zig");
 const poseidon_compat = @import("../../air/lang/typed_poseidon2_compat.zig");
-const compact_identity = @import("../../air/memory_commitment/poseidon2_universal_identity_v2.zig");
+const compact_identity = @import("../../air/memory_commitment/poseidon2_universal_identity.zig");
 const table_component = @import("../../air/lookups/tables/component.zig");
 const range_bridge = @import("range_check_8_8_bridge.zig");
 const manifest_mod = @import("universal_adapter_manifest.zig");
@@ -96,8 +96,8 @@ pub fn Poseidon2Degree3AdapterWithCompatibility(comptime manifest_contract: type
 
 fn Poseidon2AdapterForLayout(comptime manifest_contract: type, comptime compact: bool, comptime compatibility: compact_identity.Compatibility) type {
     const Geometry = geometry.PoseidonForManifest(manifest_contract, compact, compatibility);
-    const selected_air = if (compact) @import("../../air/memory_commitment/poseidon2_universal_equations_v1.zig") else poseidon_air;
-    const Component = if (compact) @import("../../air/memory_commitment/poseidon2_universal_component_v1.zig").Component else poseidon_component.HashComponent;
+    const selected_air = if (compact) @import("../../air/memory_commitment/poseidon2_universal_equations.zig") else poseidon_air;
+    const Component = if (compact) @import("../../air/memory_commitment/poseidon2_universal_component.zig").Component else poseidon_component.HashComponent;
     return struct {
         const Self = @This();
         pub const Air = selected_air;

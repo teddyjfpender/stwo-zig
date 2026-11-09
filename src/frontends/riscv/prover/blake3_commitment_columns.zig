@@ -233,7 +233,7 @@ pub const Owner = struct {
     fn deviceAvailable(self: *Owner, comptime Backend: type, comptime Air: type, comptime i: usize) !bool {
         if (self.device_programs[i] == null) {
             const direct = try @import("../recursion/air/direct_constraint_program.zig").authenticate(&self.definitions[i].arena, Air.SEMANTIC_DIGEST, Air.LOGICAL_INPUT_COUNT);
-            self.device_programs[i] = try @import("../recursion/air/framework_polynomial_export_v1.zig").exportLocalPrepared(Air, self.allocator, &direct, &self.plans[i]);
+            self.device_programs[i] = try @import("../recursion/air/framework_polynomial_export.zig").exportLocalPrepared(Air, self.allocator, &direct, &self.plans[i]);
         }
         return Backend.supportsFrameworkInteractionProgram(self.allocator, &self.device_programs[i].?, &.{ Air.PREPROCESSED_COLUMN_COUNT, Air.PHYSICAL_MAIN_COLUMN_COUNT, Air.INTERACTION_COLUMN_COUNT });
     }

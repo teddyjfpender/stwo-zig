@@ -2,7 +2,7 @@
 // Keep the import reachable when selecting one named test with --test-filter.
 test {
     _ = @import("air/lang/tests/typed_poseidon2_compact_test.zig");
-    _ = @import("air/memory_commitment/poseidon2_universal_identity_v2.zig");
+    _ = @import("air/memory_commitment/poseidon2_universal_identity.zig");
     _ = @import("air/logup.zig");
     _ = @import("air/lang/tests/typed_poseidon2_identity_test.zig");
     _ = @import("air/lang/typed_poseidon2_identity_codec.zig");
@@ -12,7 +12,7 @@ const std = @import("std");
 const provider = @import("recursion/air/universal_shared_provider.zig");
 const manifest_mod = @import("recursion/air/universal_adapter_manifest.zig");
 const universal = @import("recursion/air/universal_challenges.zig");
-const identity = @import("air/memory_commitment/poseidon2_universal_identity_v2.zig");
+const identity = @import("air/memory_commitment/poseidon2_universal_identity.zig");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const Canonical = provider.Poseidon2Degree3AdapterForManifest(manifest_mod);
 const Compatible = provider.Poseidon2Degree3AdapterWithCompatibility(manifest_mod, .allow_reviewed_legacy);
@@ -69,12 +69,12 @@ test "canonical recursive provider rejects forged identities geometry and borrow
 }
 
 test "canonical parent preparation rejects retired identities and preserves admitted snapshots" {
-    const prepared = try @import("recursion/detached_parent_prepared_v1.zig").testSnapshotAdmission();
+    const prepared = try @import("recursion/detached_parent_prepared.zig").testSnapshotAdmission();
     defer prepared.deinit();
 }
 
 test "parent definition owner releases partial construction on allocation failure" {
-    const Definitions = @import("recursion/detached_parent_definitions_v1.zig").Definitions;
+    const Definitions = @import("recursion/detached_parent_definitions.zig").Definitions;
     // Exercise cleanup before and after completed definitions, including the
     // current multiplication definition and the shared range table contract.
     for ([_]usize{ 0, 1, 8, 32, 128, 512, 2048 }) |fail_index| {
@@ -85,7 +85,7 @@ test "parent definition owner releases partial construction on allocation failur
             fn run(owner: *Definitions) !void {
                 try owner.initLogical(0);
                 try owner.initLogical(1);
-                try owner.initLogical(@import("recursion/detached_parent_components_v1.zig").logicalIndex(30));
+                try owner.initLogical(@import("recursion/detached_parent_components.zig").logicalIndex(30));
                 try owner.initRange();
             }
         };
@@ -98,9 +98,9 @@ test "parent definition owner releases partial construction on allocation failur
 }
 
 test "parent collections agree on canonical geometry and reject retired AIR and identities" {
-    const prepared = try @import("recursion/detached_parent_prepared_v1.zig").testSnapshotAdmission();
+    const prepared = try @import("recursion/detached_parent_prepared.zig").testSnapshotAdmission();
     defer prepared.deinit();
-    const producer = @import("recursion/detached_parent_components_v1.zig");
+    const producer = @import("recursion/detached_parent_components.zig");
     for (0..5) |variant| {
         var builder = manifest_mod.Builder{};
         for (prepared.manifest().roster_rows[0..prepared.manifest().roster_count]) |row| {
@@ -124,7 +124,7 @@ test "parent collections agree on canonical geometry and reject retired AIR and 
             // A valid new seal is insufficient to admit an alternative AIR.
             try manifest.validate();
             try std.testing.expectError(error.DetachedParentManifestMismatch, parameters.validate(&manifest));
-            const verifier = @import("recursion/detached_parent_verifier_components_v1.zig");
+            const verifier = @import("recursion/detached_parent_verifier_components.zig");
             const relations = universal.UniversalRelations.dummy();
             const claims = producer.ClaimsV1{ .values = @splat(QM31.zero()), .poseidon_partials = @splat(QM31.zero()) };
             try std.testing.expectError(error.DetachedParentManifestMismatch, producer.OwnedComponentsV1.init(std.testing.allocator, &manifest, parameters, &relations, claims));
@@ -133,9 +133,9 @@ test "parent collections agree on canonical geometry and reject retired AIR and 
     }
 }
 
-fn compareParentCollections(manifest: *const manifest_mod.Manifest, parameters: @import("recursion/detached_parent_contract_v1.zig").ParametersV1) !void {
-    const producer = @import("recursion/detached_parent_components_v1.zig");
-    const verifier = @import("recursion/detached_parent_verifier_components_v1.zig");
+fn compareParentCollections(manifest: *const manifest_mod.Manifest, parameters: @import("recursion/detached_parent_contract.zig").ParametersV1) !void {
+    const producer = @import("recursion/detached_parent_components.zig");
+    const verifier = @import("recursion/detached_parent_verifier_components.zig");
     const relations = universal.UniversalRelations.dummy();
     const claims = producer.ClaimsV1{ .values = @splat(QM31.zero()), .poseidon_partials = @splat(QM31.zero()) };
     const full = try producer.OwnedComponentsV1.init(std.testing.allocator, manifest, parameters, &relations, claims);

@@ -1,9 +1,9 @@
 //! Fresh-process control for ACTUAL six-instruction register-only BINARY CPU.
 //! Three physical proofs. No RAM/general RV64/Ethereum execution is claimed.
 const std = @import("std");
-const A = @import("rv64_distributed_execution_v1/aggregate.zig");
-const Native = @import("rv64_distributed_execution_v1/native_fixture.zig");
-const Receipt = @import("rv64_distributed_execution_v1/receipt.zig");
+const A = @import("rv64_distributed_execution/aggregate.zig");
+const Native = @import("rv64_distributed_execution/native_fixture.zig");
+const Receipt = @import("rv64_distributed_execution/receipt.zig");
 const Rom = @import("stwo_riscv_frontend").rv64_air.word16_cpu.rom;
 fn hash(bytes: []const u8) [32]u8 {
     var digest: [32]u8 = undefined;

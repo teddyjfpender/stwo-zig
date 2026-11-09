@@ -1,8 +1,8 @@
 const std = @import("std");
 
 const lookup_physical_v2 =
-    @import("../../air/lang/lookup_physical_manifest_v2.zig");
-const support = @import("../ethereum_leaf_context_v1_test_support.zig");
+    @import("../../air/lang/lookup_physical_manifest.zig");
+const support = @import("../ethereum_leaf_context_test_support.zig");
 const subject = @import("../vm_air_profile_v2.zig");
 
 const SAMPLED_VALUE_COUNT: u32 = 317;
@@ -10,8 +10,8 @@ const MUL_LOOKUP_INDEX: usize = 19;
 
 test "authenticated VM AIR ProfileV2 binds fixed program and narrow Poseidon as an explicit circuit" {
     const allocator = std.testing.allocator;
-    const geometry = @import("../vm_composition_base_geometry_v2.zig");
-    const narrow = @import("../../air/memory_commitment/poseidon2_narrow_component_v1.zig");
+    const geometry = @import("../vm_composition_base_geometry.zig");
+    const narrow = @import("../../air/memory_commitment/poseidon2_narrow_component.zig");
     const program = @import("../../air/program/interaction.zig");
     var statement = support.retainedSegmentZeroCore();
     var manifest = lookup_physical_v2.Manifest.native();
@@ -25,7 +25,7 @@ test "authenticated VM AIR ProfileV2 binds fixed program and narrow Poseidon as 
 
     for (statement.infra_descs[0..statement.n_infra]) |*descriptor| {
         if (descriptor.kind == .poseidon2)
-            descriptor.n_columns = @import("../../air/memory_commitment/poseidon2_narrow_degree3_v1.zig").N_MAIN_COLUMNS;
+            descriptor.n_columns = @import("../../air/memory_commitment/poseidon2_narrow_degree3.zig").N_MAIN_COLUMNS;
     }
     authenticated = try lookup_physical_v2.AuthenticatedStatement.init(&statement, &manifest);
     try std.testing.expectError(error.InvalidColumnGeometry, geometry.expectedSampledValueCount(&statement, &manifest));

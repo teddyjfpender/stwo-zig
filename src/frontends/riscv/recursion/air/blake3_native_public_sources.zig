@@ -3,7 +3,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const statement = @import("../../air/statement_v2.zig");
-const bytes = @import("../segment_register_byte_layout_v1.zig");
+const bytes = @import("../segment_register_byte_layout.zig");
 const public = @import("blake3_native_public_boundary.zig");
 const transcript_mod = @import("blake3_native_transcript.zig");
 const recorder = @import("blake3_native_recorder.zig");
@@ -12,7 +12,7 @@ const scalar = @import("scalar_wire_source.zig");
 const CIRCUIT = @import("blake3_native_public_links.zig").BOUNDARY_CIRCUIT;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
-pub const Columns = @import("blake3_upstream_source_columns_v1.zig").ForSlots(.{ 2, 12 });
+pub const Columns = @import("blake3_upstream_source_columns.zig").ForSlots(.{ 2, 12 });
 pub const Prepared = struct {
     arena: std.heap.ArenaAllocator,
     rows: []boundary.Row,

@@ -6,7 +6,7 @@ const lang = @import("../lang/definition.zig");
 const relation = @import("../lang/relation.zig");
 const effects = @import("../../recursion/air/relation_effect.zig");
 const graph = @import("sha256_compression_graph.zig");
-const contract = @import("../../isa/sha256_compression_v1.zig");
+const contract = @import("../../isa/sha256_compression.zig");
 const record_mod = @import("sha256_memory_record.zig");
 const clocks = @import("../../access_clock.zig");
 const M = core.fields.m31.M31;
@@ -220,7 +220,7 @@ fn buildForRecipe(a: std.mem.Allocator, local_zero: bool) !Definition {
     var events: [RELATION_EVENT_COUNT]lang.types.EffectId = undefined;
     for (&events, 0..) |*event, i| event.* = @enumFromInt(i);
     const result = Definition{ .arena = o.arena, .events = events };
-    if (local_zero and o.arena.constraintsView().len != DIRECT_CONSTRAINT_COUNT + 2 * @import("../x0_local_custody_v1.zig").CONSTRAINT_COUNT) return error.InvalidShaCallerGeometry;
+    if (local_zero and o.arena.constraintsView().len != DIRECT_CONSTRAINT_COUNT + 2 * @import("../x0_local_custody.zig").CONSTRAINT_COUNT) return error.InvalidShaCallerGeometry;
     return result;
 }
 fn writeBytes(result: *Row, at: usize, value: u32) void {

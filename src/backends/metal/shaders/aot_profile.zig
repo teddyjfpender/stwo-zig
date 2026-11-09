@@ -3,13 +3,13 @@
 const std = @import("std");
 const manifest = @import("manifest.zig");
 const abi = @import("abi_contract.zig");
-const generated = @import("ethereum_fixed_program_narrow_v1_exports.zig");
-const recursive_generated = @import("recursive_framework_v1_exports.zig");
+const generated = @import("ethereum_fixed_program_narrow_exports.zig");
+const recursive_generated = @import("recursive_framework_exports.zig");
 pub const maximum_additional_exports = @max(generated.entries.len, recursive_generated.entries.len);
-pub const recursive_inventory_source = @embedFile("recursive_framework_v1_exports.zig");
+pub const recursive_inventory_source = @embedFile("recursive_framework_exports.zig");
 pub const recursive_extension_source = @embedFile("recursive_framework_v1.metal");
 pub const recursive_coverage_source = @embedFile("recursive_framework_v1_coverage.json");
-pub const ethereum_inventory_source = @embedFile("ethereum_fixed_program_narrow_v1_exports.zig");
+pub const ethereum_inventory_source = @embedFile("ethereum_fixed_program_narrow_exports.zig");
 pub const ethereum_extension_source = @embedFile("ethereum_fixed_program_narrow_v1.metal");
 const core_source = manifest.native_amalgamated_source[0 .. manifest.native_amalgamated_source.len - 1];
 const ethereum_source = core_source ++ "\n" ++ ethereum_extension_source;

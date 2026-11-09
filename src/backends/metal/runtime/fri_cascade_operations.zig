@@ -104,14 +104,14 @@ pub fn foldFriCircleLineCascadeForSuite(
     channel_state: *[if (blake3) 11 else 10]u32,
     capture_inverse_generation: bool,
 ) (MetalError || std.mem.Allocator.Error)!FriLineCascadeResult {
-    return foldFriCircleLineCascadeForSuiteWithPolicy(blake3, self, allocator, @import("fri_allocation_policy_v1.zig").ordinaryMetal(allocator), source, source_count, circle_source, circle_alpha, inverse_x, domain_initial_index, domain_step_size, coordinates, final_destination, leaf_seed, node_seed, domain_prefix_bytes, channel_state, capture_inverse_generation);
+    return foldFriCircleLineCascadeForSuiteWithPolicy(blake3, self, allocator, @import("fri_allocation_policy.zig").ordinaryMetal(allocator), source, source_count, circle_source, circle_alpha, inverse_x, domain_initial_index, domain_step_size, coordinates, final_destination, leaf_seed, node_seed, domain_prefix_bytes, channel_state, capture_inverse_generation);
 }
 
 pub fn foldFriCircleLineCascadeForSuiteWithPolicy(
     comptime blake3: bool,
     self: *Runtime,
     allocator: std.mem.Allocator,
-    policy: @import("fri_allocation_policy_v1.zig").Policy,
+    policy: @import("fri_allocation_policy.zig").Policy,
     source: *anyopaque,
     source_count: u32,
     circle_source: ?*anyopaque,
@@ -127,7 +127,7 @@ pub fn foldFriCircleLineCascadeForSuiteWithPolicy(
     channel_state: *[if (blake3) 11 else 10]u32,
     capture_inverse_generation: bool,
 ) (MetalError || std.mem.Allocator.Error)!FriLineCascadeResult {
-    const binding = @import("fri_allocation_policy_v1.zig").Binding.init(allocator, policy) catch |err| return @import("fri_error_v1.zig").translate(err);
+    const binding = @import("fri_allocation_policy.zig").Binding.init(allocator, policy) catch |err| return @import("fri_error.zig").translate(err);
     if ((circle_source == null) != (circle_alpha == null) or
         source_count < 2 or coordinates.len == 0 or coordinates.len >= 31 or
         source_count & (source_count - 1) != 0 or
@@ -151,17 +151,17 @@ pub fn foldFriCircleLineCascadeForSuiteWithPolicy(
     // supplied host inverse table uses a distinct diagnostic API, never a
     // silently uncharged or CPU-prepared canonical cache route.
     if (inverse_x != null) return MetalError.InvalidColumns;
-    const extent = @import("fri_budget_v1.zig").cascade(source_count, coordinates.len) catch |err| return @import("fri_error_v1.zig").translate(err);
-    var reservation = binding.reserve(extent.peak_bytes) catch |err| return @import("fri_error_v1.zig").translate(err);
+    const extent = @import("fri_budget.zig").cascade(source_count, coordinates.len) catch |err| return @import("fri_error.zig").translate(err);
+    var reservation = binding.reserve(extent.peak_bytes) catch |err| return @import("fri_error.zig").translate(err);
     defer reservation.deinit();
-    var arena = @import("fri_reservation_owner_v1.zig").Owner.createWithPolicy(allocator, &reservation, binding.policy) catch |err| return @import("fri_error_v1.zig").translate(err);
+    var arena = @import("fri_reservation_owner.zig").Owner.createWithPolicy(allocator, &reservation, binding.policy) catch |err| return @import("fri_error.zig").translate(err);
     defer arena.deinit();
-    const cache = @import("fri_inverse_cache_v1.zig");
+    const cache = @import("fri_inverse_cache.zig");
     const key = cache.Key{ .runtime = @intFromPtr(self.handle), .count = source_count, .layers = layer_count, .initial = domain_initial_index, .step = domain_step_size, .kind = .line };
     var circle_key = key;
     circle_key.layers = 1;
     circle_key.kind = .circle;
-    var inverses = cache.beginWithPolicy(allocator, self, .{ if (circle_source != null) circle_key else null, key }, binding.policy) catch |err| return @import("fri_error_v1.zig").translate(err);
+    var inverses = cache.beginWithPolicy(allocator, self, .{ if (circle_source != null) circle_key else null, key }, binding.policy) catch |err| return @import("fri_error.zig").translate(err);
     defer inverses.abort();
     const trees = try allocator.alloc(Tree, coordinates.len);
     errdefer allocator.free(trees);
@@ -214,17 +214,17 @@ pub fn foldFriCircleLineCascadeForSuiteWithPolicy(
     errdefer for (handles[initialized..]) |handle| if (handle) |value| @import("resident_data.zig").stwo_zig_metal_tree_destroy(value);
     const expected_mask: u32 = @as(u32, @intFromBool(inverses.needsGeneration(.circle))) | (@as(u32, @intFromBool(inverses.needsGeneration(.line))) << 1);
     if (inverse_generation_mask != expected_mask) return MetalError.CommitmentFailed;
-    arena.owner.?.reservation.resize(extent.retained_bytes) catch |err| return @import("fri_error_v1.zig").translate(err);
+    arena.owner.?.reservation.resize(extent.retained_bytes) catch |err| return @import("fri_error.zig").translate(err);
     for (trees, handles, 0..) |*tree, handle, stage| {
         tree.* = .{
             .handle = handle orelse unreachable,
             .runtime_handle = self.handle,
             .log_size = std.math.log2_int(u32, source_count >> @intCast(stage)),
-            .shared_external_reservation = arena.retain() catch |err| return @import("fri_error_v1.zig").translate(err),
+            .shared_external_reservation = arena.retain() catch |err| return @import("fri_error.zig").translate(err),
         };
         initialized += 1;
     }
-    inverses.complete() catch |err| return @import("fri_error_v1.zig").translate(err);
+    inverses.complete() catch |err| return @import("fri_error.zig").translate(err);
     return .{
         .stats = stats,
         .trees = trees,
