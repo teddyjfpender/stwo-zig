@@ -132,3 +132,31 @@ zig build test-riscv64-op-pure-p2 -Doptimize=ReleaseFast -j1
 `STWO_OP_P2_MONOLITHIC_CONTROL=1` selects only the explicit reference scheduling
 control of this unadmitted prototype. It cannot select a different cryptographic
 profile or weaken receiver checks; malformed values refuse.
+
+## Native independent-state SIMD
+
+The scalar permutation was still a measured native bottleneck after eliminating
+mixed-height lifted rehashing. The new four-state sponge transposes independent
+hashes into the existing four-lane M31 arithmetic. It retains the exact w24
+permutation, r12/c12 domain state, additive absorption, mandatory final pad and
+nine canonical output limbs. Lifted leaves, streaming continuations and parent
+nodes use the same API, including a scalar fallback for different rate offsets.
+Parent-node decoding preserves unconditional canonical-root rejection.
+
+All scalar/packed differential cases and the physical proof pass in ReleaseSafe
+and ReleaseFast. The complete physical proof is byte-identical to the prior
+scalar implementation. The retained local-component producer takes 0.726s and
+fresh receiver 0.121s in one post-SIMD ReleaseFast run; this is not a controlled
+block timing. Seven equal-width leaf-hash samples are in
+`vectors/reports/rv64-opstack-cpu-20261109/pure-p2-packed-hash-v1.json`.
+Reproduce the standalone hash probe from the repository root:
+
+```sh
+zig build-exe -O ReleaseFast --dep core \
+  -Mroot=src/integrations/riscv_cpu/poseidon2_outer/hash_benchmark.zig \
+  -Mcore=src/core/mod.zig -femit-bin=/tmp/op-p2-hash-benchmark
+/tmp/op-p2-hash-benchmark
+```
+
+This removes most of the scalar P2 penalty; it does not make native P2 cheaper
+than the optimized BLAKE control. Full native-plus-root cost remains the gate.

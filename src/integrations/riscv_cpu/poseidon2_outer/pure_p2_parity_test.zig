@@ -186,3 +186,57 @@ test "OP pure P2 local verifier physical proof freshly verifies target profile a
     const proof_sha256 = std.fmt.bytesToHex(proof_digest, .lower);
     std.debug.print("OP_PURE_P2_LOCAL_PHYSICAL bytes={} produce_ns={} fresh_receive_ns={} rows={any} profile={s} sha256={s} native_execution_acceptance=false\n", .{ encoded.len, produce_ns, receive_ns, receiver.rows, @tagName(profile), proof_sha256 });
 }
+
+test "OP pure P2 packed leaves nodes continuation and lifting match scalar" {
+    const H = core.vcs.poseidon2_m31_merkle.Poseidon2M31MerkleHasherV2;
+    const modulus = core.fields.m31.Modulus;
+    var values: [497][4]M = undefined;
+    var columns: [497]struct { values: []const M, log_size: u32 } = undefined;
+    var bytes: [4][497 * 4]u8 = undefined;
+    for (&values, &columns, 0..) |*row, *column, i| {
+        for (row, 0..) |*value, lane| {
+            value.* = M.fromCanonical(@intCast((i * 1234567 + lane * 999999 + if (lane == 3) @as(u64, modulus - 1) else 0) % modulus));
+            std.mem.writeInt(u32, bytes[lane][4 * i ..][0..4], value.v, .little);
+        }
+        column.* = .{ .values = row, .log_size = 2 };
+    }
+    var children: [8]H.Hash = undefined;
+    for ([_]usize{ 0, 1, 11, 12, 13, 24, 53, 128, 497 }) |count| {
+        var messages: [4][]const u8 = undefined;
+        for (&messages, 0..) |*message, lane| message.* = bytes[lane][0 .. 4 * count];
+        const actual = H.hashPackedLeavesWithSeed4(H.leafSeed(), &messages);
+        var continued = [_]H{H.defaultWithInitialState()} ** 4;
+        for (0..count) |i| H.updateM31Columns4(&continued, columns[i..][0..1], 0);
+        const finished = H.finalize4(&continued);
+        for (0..4) |lane| {
+            var scalar = H.defaultWithInitialState();
+            for (0..count) |i| scalar.updateLeaf(values[i][lane..][0..1]);
+            try std.testing.expectEqualSlices(u8, &scalar.finalize(), &actual[lane]);
+            try std.testing.expectEqualSlices(u8, &actual[lane], &finished[lane]);
+            children[2 * lane] = actual[lane];
+            children[2 * lane + 1] = finished[(lane + 1) % 4];
+        }
+        const nodes = H.hashChildrenWithSeed4(H.nodeSeed(), &children);
+        for (0..4) |lane| try std.testing.expectEqualSlices(u8, &H.hashChildren(.{ .left = children[2 * lane], .right = children[2 * lane + 1] }), &nodes[lane]);
+    }
+    // Mixed offsets exercise the scalar fallback without altering each stream.
+    var mixed = [_]H{H.defaultWithInitialState()} ** 4;
+    for (0..4) |lane| mixed[lane].updateLeaf(values[0][0..lane]);
+    var expected = mixed;
+    H.updateM31Columns4(&mixed, columns[1..3], 0);
+    for (0..4) |lane| for (1..3) |i| expected[lane].updateLeaf(values[i][lane..][0..1]);
+    const mixed_final = H.finalize4(&mixed);
+    for (0..4) |lane| try std.testing.expectEqualSlices(u8, &expected[lane].finalize(), &mixed_final[lane]);
+    // Lower-height columns repeat lifted pairs, not adjacent scalar rows.
+    columns[0].log_size = 1;
+    const lifted = H.hashDirectLiftedM31LeavesWithSeed4(H.leafSeed(), columns[0..3], 0, 2);
+    for (0..4) |lane| {
+        var scalar = H.defaultWithInitialState();
+        for (columns[0..3]) |column| {
+            const shift: std.math.Log2Int(usize) = @intCast(2 - column.log_size + 1);
+            const index = ((lane >> shift) << 1) + (lane & 1);
+            scalar.updateLeaf(column.values[index..][0..1]);
+        }
+        try std.testing.expectEqualSlices(u8, &scalar.finalize(), &lifted[lane]);
+    }
+}
