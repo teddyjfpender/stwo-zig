@@ -238,7 +238,7 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
                 "native_examples", "native_metal",
                 "native_oracle", "package", "prover", "riscv_cpu",
                 "riscv_cpu_integration", "riscv_cuda_integration",
-                "riscv_frontend", "riscv_metal",
+                "riscv_frontend", "riscv_frontend_releasefast", "riscv_metal",
                 "riscv_metal_integration", "sm83_cpu_integration",
                 "sm83_frontend", "sm83_metal_integration", "static",
             ],

@@ -141,12 +141,23 @@ class PlannerContractTests(unittest.TestCase):
                 "aggregate_metal",
             }.issubset(selected)
         )
-        commands = self.policy["lanes"]["riscv_frontend"]["commands"]
+        commands = self.policy["lanes"]["riscv_frontend"]["commands"] + self.policy["lanes"]["riscv_frontend_releasefast"]["commands"]
         self.assertEqual(4, len(commands))
-        self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-retained-transcript-contracts", "test-retained-typed-components", f"-Doptimize={mode}", "-j1", "--summary", "all", "--verbose"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_retained_contracts"]["commands"])
+        self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-retained-transcript-contracts", "test-retained-typed-components", f"-Doptimize={mode}", "-j1", "--summary", "all", "--verbose"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_retained_contracts"]["commands"] + self.policy["lanes"]["riscv_retained_contracts_releasefast"]["commands"])
         self.assertEqual([["python3", "scripts/repo/zig_serial_build.py", "--cwd", "src/frontends/riscv", "test-air-runtime-profile", f"-Doptimize={mode}", "-j2", "--summary", "all"] for mode in ("Debug", "ReleaseFast")], self.policy["lanes"]["riscv_runtime_profile"]["commands"])
-        for command, step, mode in zip(commands, ("test-air-runtime-profile", "test-air-runtime-profile", "test", "test"), ("Debug", "ReleaseFast", "ReleaseFast", "Debug"), strict=True):
+        for command, step, mode in zip(commands, ("test-air-runtime-profile", "test-air-runtime-profile", "test", "test"), ("Debug", "ReleaseFast", "Debug", "ReleaseFast"), strict=True):
             self.assertEqual(["zig", "build", step, "--build-file", "src/frontends/riscv/build.zig", f"-Doptimize={mode}", "-j2"] + (["--verbose", "--summary", "all"] if step == "test" else []), command)
+
+    def test_releasefast_companions_keep_every_parent_trigger(self) -> None:
+        for parent in ("riscv_frontend", "riscv_retained_contracts"):
+            companion = parent + "_releasefast"
+            for rule in self.policy["rules"]:
+                self.assertEqual(parent in rule["lanes"], companion in rule["lanes"])
+            for lanes in self.policy["product_scope_lanes"].values():
+                self.assertEqual(parent in lanes, companion in lanes)
+            selected = self.lanes_for("src/frontends/riscv/retained_typed_component_test_root.zig")
+            self.assertTrue({parent, companion}.issubset(selected))
+            self.assertIn(companion, ci_scope_plan.MANUAL_CPU_LANES)
 
     def test_cairo_frontend_has_an_independent_package_lane(self) -> None:
         selected = self.lanes_for("src/frontends/cairo/air/components/add_ap.zig")

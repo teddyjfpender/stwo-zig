@@ -171,9 +171,9 @@ class RepositoryGraphTest(unittest.TestCase):
         self.assertEqual(len(self.packages), EXPECTED_PACKAGES)
         self.assertEqual(graph.edge_count(self.packages), EXPECTED_EDGES)
 
-    def test_every_package_has_exactly_one_focused_lane(self) -> None:
+    def test_every_package_has_its_lane_and_frontend_has_releasefast_companion(self) -> None:
         bound = sorted(self.bindings.values())
-        self.assertEqual(bound, sorted(self.packages))
+        self.assertEqual(bound, sorted([*self.packages, "stwo_riscv_frontend"]))
 
     def test_core_change_selects_every_dependent_package_lane(self) -> None:
         lanes, _ = graph.selection(["src/waist/core/fields/m31.zig"], self.packages, self.bindings)
@@ -220,6 +220,7 @@ class RepositoryGraphTest(unittest.TestCase):
             lanes,
             frozenset({
                 "riscv_frontend",
+                "riscv_frontend_releasefast",
                 "riscv_cpu_integration",
                 "riscv_cuda_integration",
                 "riscv_metal_integration",

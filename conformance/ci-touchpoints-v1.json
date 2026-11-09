@@ -202,18 +202,6 @@
           "test",
           "--build-file",
           "src/frontends/riscv/build.zig",
-          "-Doptimize=ReleaseFast",
-          "-j2",
-          "--verbose",
-          "--summary",
-          "all"
-        ],
-        [
-          "zig",
-          "build",
-          "test",
-          "--build-file",
-          "src/frontends/riscv/build.zig",
           "-Doptimize=Debug",
           "-j2",
           "--verbose",
@@ -1005,7 +993,31 @@
           "--summary",
           "all",
           "--verbose"
-        ],
+        ]
+      ]
+    },
+    "riscv_frontend_releasefast": {
+      "host": "linux",
+      "description": "Mandatory independent ReleaseFast companion to riscv_frontend; unchanged commands and discovery floors",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/riscv/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2",
+          "--verbose",
+          "--summary",
+          "all"
+        ]
+      ]
+    },
+    "riscv_retained_contracts_releasefast": {
+      "host": "linux",
+      "description": "Mandatory independent ReleaseFast companion to riscv_retained_contracts; unchanged commands and discovery floors",
+      "commands": [
         [
           "python3",
           "scripts/repo/zig_serial_build.py",
@@ -1039,6 +1051,7 @@
     ],
     "riscv_cpu": [
       "riscv_frontend",
+      "riscv_frontend_releasefast",
       "riscv_cpu"
     ],
     "cairo_cpu": [
@@ -1091,6 +1104,7 @@
         "prover_api",
         "prover",
         "riscv_frontend",
+        "riscv_frontend_releasefast",
         "sm83_frontend",
         "riscv_cpu_integration",
         "sm83_cpu_integration",
@@ -1786,6 +1800,7 @@
       "lanes": [
         "script_contracts",
         "riscv_frontend",
+        "riscv_frontend_releasefast",
         "riscv_cuda_integration",
         "static"
       ],
@@ -1839,7 +1854,8 @@
         "src/frontends/riscv/retained_typed_component_test_root.zig"
       ],
       "lanes": [
-        "riscv_retained_contracts"
+        "riscv_retained_contracts",
+        "riscv_retained_contracts_releasefast"
       ]
     }
   ],
