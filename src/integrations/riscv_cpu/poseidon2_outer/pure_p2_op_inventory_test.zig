@@ -72,6 +72,12 @@ test "OP complete mixed native inventory fresh receiver closes all shards and pr
     var bad_endpoint = expected;
     bad_endpoint.final_pc += 4;
     try std.testing.expect(std.meta.isError(Inventory.init(a, profile, &.{ &fresh[0], &fresh[1] }, &requests, &spans, &.{ &fresh_keys[0], &fresh_keys[1] }, &truths, &.{ &fk0, &fk1 }, &.{}, bad_endpoint)));
+    var temp = std.testing.tmpDir(.{});
+    defer temp.cleanup();
+    const path = try temp.dir.realpathAlloc(a, ".");
+    defer a.free(path);
+    var store = try @import("pure_p2_retained_main.zig").Store.init(a, path, 1 << 30, 128 << 20);
+    defer store.deinit();
     var cpus: [2]CPU.Worker = undefined;
     var count: usize = 0;
     defer for (cpus[0..count]) |*worker| worker.deinit();
@@ -89,18 +95,28 @@ test "OP complete mixed native inventory fresh receiver closes all shards and pr
     var tw1 = try Truth.Worker.init(a, &tk1, truths[1], Truth.SourceBuilder.fromAdvice(&captured.advice), inventory.workers[3], limits);
     defer tw1.deinit();
     const stages = [_]Manifest.StageOne{ try cpus[0].seal(a), try cpus[1].seal(a), try tw0.seal(), try tw1.seal() };
+    for (&cpus) |*worker| _ = try store.park(a, &worker.scheme.trees.items[1]);
+    _ = try store.park(tw0.allocator, &tw0.scheme.trees.items[1]);
+    _ = try store.park(tw1.allocator, &tw1.scheme.trees.items[1]);
+    try std.testing.expectEqual(@as(usize, 0), store.mapped);
     var pending = try Manifest.verifyAndSeal(a, inventory.execution, inventory.workers, &stages);
     defer pending.deinit(a);
     var fresh_pending = try Manifest.verifyAndSeal(a, receiver.execution, receiver.workers, &stages);
     defer fresh_pending.deinit(a);
+    _ = try store.restore(&cpus[0].scheme.trees.items[1]);
     var c0 = try cpus[0].complete(a, &pending, 0);
     defer c0.deinit(a);
+    _ = try store.restore(&cpus[1].scheme.trees.items[1]);
     var c1 = try cpus[1].complete(a, &pending, 1);
     defer c1.deinit(a);
+    _ = try store.restore(&tw0.scheme.trees.items[1]);
     var t0 = try tw0.complete(&pending, 2);
     defer t0.deinit(a);
+    _ = try store.restore(&tw1.scheme.trees.items[1]);
     var t1 = try tw1.complete(&pending, 3);
     defer t1.deinit(a);
+    try std.testing.expectEqual(@as(usize, 0), store.mapped);
+    try std.testing.expectEqual(@as(usize, 0), store.reserved);
     const claims = [_]Manifest.Claims{
         try CPU.verifyForOp(a, &fresh[0], requests[0], spans[0], receiver.workers[0], receiver.first_ids[0], &fresh_pending, 0, &fresh_keys[0], &c0, null),
         try CPU.verifyForOp(a, &fresh[1], requests[1], spans[1], receiver.workers[1], receiver.first_ids[1], &fresh_pending, 1, &fresh_keys[1], &c1, null),
