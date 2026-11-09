@@ -1,0 +1,10 @@
+{
+  "upstream": "https://github.com/ethereum-optimism/optimism",
+  "revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+  "patch_sha256": "2442649ee5790fd9c38fbbf5790735b8ea4c5b0bbb2fda3a894a77aedbd7a233",
+  "original_files": {
+    "rust/kona/bin/host/src/single/cfg.rs": "9190d79ea367daa2b7ad680d03796a7a018d17a833e924062a2a811a77c46243",
+    "rust/kona/bin/host/src/backend/online.rs": "c5586465ff398f7d9754be5cf87514ae6797ac86d934a605424d71cba89a82ad"
+  },
+  "scope": "host-only opt-in disable optional prefetch; no guest/client/verification changes"
+}

@@ -1,0 +1,73 @@
+{
+  "schema": "op-standard-rpc-proof-code-v1",
+  "date": "2026-11-09",
+  "complete_witness": false,
+  "derivation_accepted": false,
+  "proof_verified": false,
+  "native_capture_executed": false,
+  "actual_recent": {
+    "number": 159321793,
+    "account_nodes": 9,
+    "storage_nodes": [
+      5,
+      6,
+      4
+    ],
+    "storage_slots": [
+      0,
+      1,
+      2
+    ],
+    "storage_values": [
+      "0x0",
+      "0x8ab2",
+      "0x0"
+    ],
+    "code_bytes": 2055,
+    "account_and_storage_authenticated": true,
+    "code_hash_verified": true,
+    "retained_records": 24
+  },
+  "bounds": {
+    "query_slots_max": 64,
+    "proof_nodes_max": 64,
+    "node_bytes_max": 4096,
+    "code_bytes_max": 1048576,
+    "code_provenance_entries_max": 8192,
+    "records_bytes_max": 67108864
+  },
+  "validation": {
+    "combined_python_tests_passed": 26,
+    "host_rust_tests_passed": 1,
+    "host_test_name": "backend::online::tests::explicitly_ignored_prefetch_keeps_authenticated_fine_grained_path",
+    "host_cli_build": "passed; locked pinned official upstream,1.95 toolchain",
+    "source_prepare_apply": "passed in independent new detached worktree"
+  },
+  "host_patch": {
+    "revision": "a271fd6b3feb76e49f3453e5a27be4b33a3c7211",
+    "patch_sha256": "2442649ee5790fd9c38fbbf5790735b8ea4c5b0bbb2fda3a894a77aedbd7a233",
+    "host_only": true,
+    "patched_files": {
+      "rust/kona/bin/host/src/single/cfg.rs": "b5b1642cfe14cb6ba2d6fb3227f61384c6152cd33669055db3070e6473bf8e68",
+      "rust/kona/bin/host/src/backend/online.rs": "aa4ec9b7507199026fc03c7d60b7109f2996b3541b5936cb25e20a09db1de22c"
+    },
+    "built": false,
+    "client_executed": false
+  },
+  "native_host": {
+    "path": "/private/tmp/stwo-kona-native-capture-upstream/rust/target/debug/kona-host",
+    "bytes": 32305080,
+    "sha256": "862556839311e69c180eb998b190edb45aec23706fbb5a0174e96309a4e39bbd"
+  },
+  "control_flow_correction": "High-level hint failures are retried before fine-grained hints, but the same loop DOES then try fine-grained fallback. Disable flag removes repeated failed prefetch calls; it does not replace verification.",
+  "remaining": [
+    "unknown deletion sibling/code preimages explicitly refuse",
+    "driven native capture and complete sidecar export still pending",
+    "historical archive witness remains missing"
+  ],
+  "artifacts": {
+    "path": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-transition-recovery/recent-storage-code.json",
+    "bytes": 29117,
+    "sha256": "b83e41a099f09bbd0fda1584fcb305937c84497d4e15c66f46205a2ecf425259"
+  }
+}

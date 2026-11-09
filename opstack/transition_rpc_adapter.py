@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Bounded loopback Kona RPC compatibility: authenticated headers and receipts.
 
-Only standard read-only upstream RPC is used. Unsupported state/code/witness
-methods fail explicitly; there is no fake empty execution witness. This adapter
+Only standard read-only upstream RPC is used. State/code is sourced from
+authenticated account/storage proofs and verified bytecode hashes; unknown
+preimages and execution-witness methods fail explicitly. This adapter
 is capture tooling, not an OP acceptance receiver or a consensus/finality oracle.
 """
 from __future__ import annotations
@@ -142,6 +143,48 @@ def ordered_receipts(block, receipts):
     return raw, records
 
 
+def storage_slot(value):
+    if isinstance(value, str) and len(value) == 66:
+        return C.unhex(value, 32)
+    raw = integer(value, 256)
+    return raw.rjust(32, b"\x00")
+
+
+def verified_proof(block, address, slots, proof):
+    """Authenticate every account/storage node before caching any preimage."""
+    C.header_rlp(block)
+    address = C.unhex(address, 20)
+    if C.unhex(proof["address"], 20) != address:
+        raise ValueError("proof address mismatch")
+    raw = C.verify_trie_value(C.unhex(block["stateRoot"], 32), C.keccak(address), proof["accountProof"], allow_absence=True)
+    empty_root = C.keccak(C.rlp(b""))
+    empty_code = C.keccak(b"")
+    if raw is None:
+        account = [b"", b"", empty_root, empty_code]
+    else:
+        account = C.decode_rlp(raw)
+        if not isinstance(account, list) or len(account) != 4 or any(not isinstance(v, bytes) for v in account):
+            raise ValueError("invalid account encoding")
+    nonce, balance, storage, code = account
+    if (nonce and nonce[0] == 0) or (balance and balance[0] == 0) or len(nonce) > 8 or len(balance) > 32:
+        raise ValueError("invalid account integer")
+    if nonce != integer(proof["nonce"]) or balance != integer(proof["balance"], 256) or storage != C.unhex(proof["storageHash"], 32) or code != C.unhex(proof["codeHash"], 32):
+        raise ValueError("proof fields differ from authenticated account")
+    proofs = proof["storageProof"]
+    if not isinstance(proofs, list) or len(proofs) != len(slots):
+        raise ValueError("storage proof count mismatch")
+    records = {C.keccak(C.unhex(v)): C.unhex(v) for v in proof["accountProof"]}
+    for expected, item in zip(slots, proofs):
+        if storage_slot(item["key"]) != expected:
+            raise ValueError("storage proof slot mismatch")
+        encoded = C.verify_trie_value(storage, C.keccak(expected), item["proof"], allow_absence=True)
+        value = b"" if encoded is None else C.decode_rlp(encoded)
+        if not isinstance(value, bytes) or len(value) > 32 or (value and value[0] == 0) or value != integer(item["value"], 256):
+            raise ValueError("storage value differs from authenticated trie")
+        records.update({C.keccak(C.unhex(v)): C.unhex(v) for v in item["proof"]})
+    return records, code if raw is not None else None
+
+
 class Adapter:
     def __init__(self, upstream, record_limit=MAX_RECORD_BYTES):
         C.endpoint_label(upstream)
@@ -151,6 +194,7 @@ class Adapter:
         self.records, self.record_bytes = {}, 0
         self.headers = OrderedDict()
         self.header_bytes = 0
+        self.code_accounts = {}
 
     def retain(self, records):
         added = 0
@@ -212,10 +256,50 @@ class Adapter:
             raw, records = ordered_receipts(block, receipts)
             self.retain(records)
             return ["0x" + r.hex() for r in raw]
+        if method == "eth_getProof":
+            if len(params) != 3 or not isinstance(params[1], list) or len(params[1]) > 64:
+                raise ValueError("bounded proof params invalid")
+            address = "0x" + C.unhex(params[0], 20).hex()
+            slots = [storage_slot(s) for s in params[1]]
+            if len(set(slots)) != len(slots):
+                raise ValueError("duplicate proof slots")
+            identifier = params[2]
+            if isinstance(identifier, dict):
+                if set(identifier) - {"blockHash", "requireCanonical"} or identifier.get("requireCanonical", True) is not True:
+                    raise ValueError("invalid canonical proof block")
+                identifier = identifier["blockHash"]
+            block = self.block(identifier)
+            result = C.rpc(self.upstream, method, [address, ["0x" + s.hex() for s in slots],
+                           {"blockHash": block["hash"], "requireCanonical": True}], cap=MAX_RESPONSE)
+            records, code = verified_proof(block, address, slots, result)
+            if code is not None and code not in self.code_accounts and len(self.code_accounts) >= 8192:
+                raise ValueError("code provenance count budget exceeded")
+            self.retain(records)
+            if code is not None:
+                self.code_accounts[code] = (address, block["hash"])
+            return result
+        if method == "debug_dbGet":
+            if len(params) != 1:
+                raise ValueError("invalid database params")
+            key = C.unhex(params[0])
+            if len(key) == 33 and key[0] == ord("c"):
+                key = key[1:]
+            if len(key) != 32:
+                raise ValueError("invalid database key")
+            if key in self.records:
+                return "0x" + self.records[key].hex()
+            if key not in self.code_accounts:
+                raise UnsupportedMethod("unknown authenticated preimage; no guessed sibling/code")
+            address, block = self.code_accounts[key]
+            raw = C.unhex(C.rpc(self.upstream, "eth_getCode", [address, {"blockHash": block, "requireCanonical": True}], cap=2 << 20))
+            if len(raw) > 1 << 20 or C.keccak(raw) != key:
+                raise ValueError("code hash mismatch")
+            self.retain({key: raw})
+            return "0x" + raw.hex()
         # These ordinary calls are only transport passthrough, not proof caches.
         # The host/receiver must still authenticate their contents. No generic
         # debug_dbGet or execution-witness passthrough exists.
-        if method in ("eth_chainId", "eth_getBlockByHash", "eth_getBlockByNumber", "eth_getProof"):
+        if method in ("eth_chainId", "eth_getBlockByHash", "eth_getBlockByNumber"):
             return C.rpc(self.upstream, method, params, cap=MAX_RESPONSE)
         raise UnsupportedMethod("unsupported capture method; no fabricated preimage/witness")
 

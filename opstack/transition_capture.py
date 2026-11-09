@@ -234,7 +234,7 @@ def rpc(url, method, params, *, cap=2 << 20, timeout=12):
     # Read-only metadata/proof fetches. The payload-method capability probe has
     # deliberately invalid empty parameters and cannot execute a payload.
     # No debug trace, transaction submission, eth_call or proving method enters.
-    metadata = {"eth_chainId", "eth_getBlockByHash", "eth_getBlockByNumber", "eth_getProof", "eth_getBlockReceipts", "debug_getRawHeader", "debug_getRawReceipts", "debug_dbGet"}
+    metadata = {"eth_chainId", "eth_getBlockByHash", "eth_getBlockByNumber", "eth_getProof", "eth_getBlockReceipts", "debug_getRawHeader", "debug_getRawReceipts", "debug_dbGet", "eth_getCode"}
     if method not in metadata and not (method == "debug_executePayload" and params == []):
         raise ValueError("RPC method outside capture scope")
     request = urllib.request.Request(url, json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode(), {"Content-Type": "application/json"})
@@ -403,14 +403,16 @@ def decode_rlp(data):
     return value
 
 
-def verify_trie_value(root, key, proof):
+def verify_trie_value(root, key, proof, *, allow_absence=False):
     """Verify an inclusion proof under an independently authenticated root.
 
-    This deliberately does not implement absence/storage proof generalization.
-    No RPC account field or returned node supplies the expected trie root.
+    Absence is opt-in and authenticated by an empty root/branch or compact-path
+    mismatch. No RPC account field/node supplies the expected trie root.
     """
-    if len(root) != 32 or len(key) != 32 or not isinstance(proof, list) or not 1 <= len(proof) <= 64:
+    if len(root) != 32 or len(key) != 32 or not isinstance(proof, list) or not 0 <= len(proof) <= 64:
         raise ValueError("invalid bounded trie proof")
+    if allow_absence and not proof and root == keccak(rlp(b"")):
+        return None
     nodes, used = {}, set()
     for encoded in proof:
         raw = unhex(encoded)
@@ -438,10 +440,13 @@ def verify_trie_value(root, key, proof):
             raise ValueError("invalid trie node")
         if len(node) == 17:
             if cursor == len(path):
-                value = node[16]
+                value = node[16] or None
                 break
             reference = node[path[cursor]]
             cursor += 1
+            if reference == b"":
+                value = None
+                break
         elif len(node) == 2 and isinstance(node[0], bytes) and node[0]:
             nibbles = [n for byte in node[0] for n in (byte >> 4, byte & 15)]
             flag = nibbles[0]
@@ -449,11 +454,17 @@ def verify_trie_value(root, key, proof):
                 raise ValueError("noncanonical trie compact path")
             part = nibbles[1 if flag & 1 else 2:]
             if path[cursor:cursor + len(part)] != part:
-                raise ValueError("trie inclusion path mismatch")
+                if not allow_absence:
+                    raise ValueError("trie inclusion path mismatch")
+                value = None
+                break
             cursor += len(part)
             if flag & 2:
                 if cursor != len(path):
-                    raise ValueError("truncated trie leaf path")
+                    if not allow_absence:
+                        raise ValueError("truncated trie leaf path")
+                    value = None
+                    break
                 value = node[1]
                 break
             if not part:
@@ -463,7 +474,7 @@ def verify_trie_value(root, key, proof):
             raise ValueError("invalid trie arity")
     else:
         raise ValueError("trie traversal cap exceeded")
-    if not isinstance(value, bytes) or not value or used != set(nodes):
+    if used != set(nodes) or not ((isinstance(value, bytes) and value) or (value is None and allow_absence)):
         raise ValueError("invalid or extraneous trie proof")
     return value
 

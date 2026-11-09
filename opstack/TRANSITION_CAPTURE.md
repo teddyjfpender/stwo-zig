@@ -164,10 +164,45 @@ It has no native-host launcher, guest runner or proving entrypoint.
 The remaining prefetch issue is concrete: the pinned upstream host registers
 `L2PayloadWitness` as a high-level hint. `backend/online.rs` retries a failed high-
 level hint before fine-grained retrieval, while `backend/util.rs` propagates an
-unsupported `debug_executePayload`. Therefore the executor comment describing
-this prefetch as optional does not make it optional in this host. Public-only
-capture needs an explicit **host-only** prefetch-disable mode, followed by
+unsupported `debug_executePayload`. The same loop **does** then try the fine-
+grained hint; an unsupported high-level call does not prevent that fallback.
+An explicit **host-only** prefetch-disable mode avoids repeating failed network
+calls. Public-only capture additionally needs
 address/slot-driven account/storage proof collection and authenticated
 code-hash-to-address mapping. Unknown deletion siblings still require actual
 preimages and must fail explicitly. Supplying an empty execution witness would
 hide this missing capability and is intentionally unsupported here.
+
+### Authenticated account/storage and code cache
+
+The adapter now intercepts `eth_getProof` rather than caching transport output.
+It resolves the requested header, fetches the proof by canonical block hash,
+verifies account presence/absence under its state root, and verifies each exact
+requested storage slot/value under the authenticated storage root. Every cached
+node is a recomputed Keccak preimage from a complete verified proof. Query slots,
+proof count, node sizes and retained records are bounded; duplicates and changed
+values/addresses/roots reject before proof records enter the cache.
+
+Only a verified account supplies the code-hash-to-address/block mapping.
+`debug_dbGet` returns an already authenticated node or fetches `eth_getCode` for
+that proven account/block and checks the entire bytecode hash before caching.
+Both bare and geth `c`-prefixed code keys are supported. Unknown code hashes and
+unknown deletion siblings fail explicitly without network guessing. An ordinary
+empty storage value is accepted only after authenticated trie absence/inclusion;
+no empty execution witness is constructed.
+
+The real159321793 account fixture has absent slots0/2, present slot1=`0x8ab2`,
+and2055bytes of code. Its full proof and code cache path pass coherent
+slot/value/node/address/code-hash mutations and unknown-sibling refusals.
+
+`capture_host/prepare.py` verifies the pinned upstream revision, exact original
+source hashes and patch SHA before applying the optional-prefetch flag in a NEW
+detached worktree. The patch changes only `kona-host` configuration/routing and
+adds a fine-grained fallback regression; no client, guest, trie or KZG verifier
+is changed. Host compilation/acceptance is a separate gate:
+
+```sh
+$PY opstack/capture_host/prepare.py --source /path/to/pinned/optimism   --output /new/path/owned-kona-capture
+cd /new/path/owned-kona-capture/rust
+cargo +1.95 test --locked -p kona-host --no-default-features --features single   --lib explicitly_ignored_prefetch_keeps_authenticated_fine_grained_path
+```

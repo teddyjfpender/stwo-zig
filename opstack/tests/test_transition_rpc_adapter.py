@@ -56,8 +56,53 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(adapter.records,before)
         with self.assertRaisesRegex(ValueError,'unauthenticated'): adapter.retain({bytes(32):b'bad'})
         self.assertEqual(adapter.records,before)
-        for method in ('debug_dbGet','debug_executePayload','eth_sendRawTransaction','eth_call'):
+        for method in ('debug_executePayload','eth_sendRawTransaction','eth_call'):
             with self.assertRaisesRegex(ValueError,'unsupported'): adapter.dispatch(method,[])
+        with self.assertRaisesRegex(ValueError,'unknown'): adapter.dispatch('debug_dbGet',['0x'+'11'*32])
+
+    def test_real_storage_presence_absence_code_provenance_and_mutations(self):
+        f=json.loads(zlib.decompress((Path(__file__).parent/'fixtures/recent-storage-code.json.zlib').read_bytes()))
+        address=f['proof']['address'];slots=[A.storage_slot(x) for x in ('0x0','0x1','0x2')]
+        records,code=A.verified_proof(f['block'],address,slots,f['proof'])
+        self.assertEqual(code,C.keccak(C.unhex(f['code'])))
+        self.assertEqual([x['value']for x in f['proof']['storageProof']],['0x0','0x8ab2','0x0'])
+        self.assertTrue(records)
+        for mutation in ('value','slot','address','node','codehash'):
+            bad=copy.deepcopy(f['proof'])
+            if mutation=='value':bad['storageProof'][0]['value']='0x1'
+            elif mutation=='slot':bad['storageProof'][0]['key']='0x7'
+            elif mutation=='address':bad['address']='0x'+'11'*20
+            elif mutation=='codehash':bad['codeHash']='0x'+'22'*32
+            else:bad['storageProof'][0]['proof'][-1]+='00'
+            with self.assertRaises(ValueError):A.verified_proof(f['block'],address,slots,bad)
+        adapter=A.Adapter('https://example.invalid')
+        with patch.object(C,'rpc',side_effect=[f['block'],f['proof'],f['code']]) as rpc:
+            adapter.dispatch('eth_getProof',[address,['0x0','0x1','0x2'],{'blockHash':f['block']['hash'],'requireCanonical':True}])
+            got=adapter.dispatch('debug_dbGet',['0x63'+code.hex()])
+        self.assertEqual(got,f['code'])
+        self.assertEqual(rpc.call_args_list[-1].args[1],'eth_getCode')
+        with patch.object(C,'rpc') as rpc:
+            self.assertEqual(adapter.dispatch('debug_dbGet',['0x'+code.hex()]),f['code'])
+            with self.assertRaisesRegex(ValueError,'unknown'):adapter.dispatch('debug_dbGet',['0x'+'55'*32])
+            rpc.assert_not_called()
+        corrupt=A.Adapter('https://example.invalid')
+        with patch.object(C,'rpc',side_effect=[f['block'],f['proof'],'0x00']):
+            corrupt.dispatch('eth_getProof',[address,['0x0','0x1','0x2'],f['block']['hash']])
+            before=dict(corrupt.records)
+            with self.assertRaisesRegex(ValueError,'code hash'):corrupt.dispatch('debug_dbGet',['0x'+code.hex()])
+            self.assertEqual(corrupt.records,before)
+
+    def test_absence_is_opt_in_and_root_authenticated(self):
+        root=C.keccak(C.rlp(b''))
+        self.assertIsNone(C.verify_trie_value(root,bytes(32),[],allow_absence=True))
+        with self.assertRaises(ValueError):C.verify_trie_value(root,bytes(32),[])
+        leaf=C.rlp([b'\x20'+bytes(32),b'value'])
+        self.assertIsNone(C.verify_trie_value(C.keccak(leaf),bytes([1])*32,[leaf.hex()],allow_absence=True))
+        with self.assertRaises(ValueError):C.verify_trie_value(bytes(32),bytes([1])*32,[leaf.hex()],allow_absence=True)
+        adapter=A.Adapter('https://example.invalid')
+        with patch.object(C,'rpc') as rpc:
+            with self.assertRaisesRegex(ValueError,'duplicate'):adapter.dispatch('eth_getProof',['0x'+'00'*20,['0x0','0x'+'00'*32],'latest'])
+            rpc.assert_not_called()
 
     def test_real_header_and_unknown_hash_guard(self):
         block=json.loads((Path(__file__).parent/'fixtures/transition-159257842-headers.json').read_text())[0]

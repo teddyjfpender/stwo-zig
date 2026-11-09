@@ -98,7 +98,7 @@
   },
   "independent_vector_source": "https://raw.githubusercontent.com/ethereum/tests/c67e485ff8b5be9abc8ad15345ec21aa22e290d9/TrieTests/trietest.json",
   "remaining": {
-    "host_prefetch": "explicit host-only disable required; unsupported high-level L2PayloadWitness otherwise retries forever",
+    "host_prefetch": "Correction: high-level failure is retried before each miss, then fine-grained fallback DOES run. Explicit host-only disable avoids failed prefetch network traffic; no empty witness.",
     "state_and_code": "address/slot proof cache plus code-hash/address provenance needed; unknown siblings refuse",
     "blobs": "standard KZG verification and complete consumed sidecars still required",
     "historical_archive": "historical state proof window remains unavailable; new recent candidate separately pinned"
