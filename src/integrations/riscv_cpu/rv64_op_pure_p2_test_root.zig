@@ -114,3 +114,7 @@ test {
 test {
     _ = @import("poseidon2_outer/pure_p2_op_runtime.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/pure_p2_op_cpu_fixture.zig");
+}

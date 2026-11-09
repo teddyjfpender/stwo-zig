@@ -473,10 +473,10 @@ pub fn withSourceDirectoryWithOptions(a: std.mem.Allocator, config: Request.Conf
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.initForSourceSuite(a, profile, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected, authority.truth_local_keys, source_suite);
     defer inventory.deinit();
-    if (truth_local_security) |checked| {
+    if (source_suite == null) if (truth_local_security) |checked| {
         checked.added.augmentShape(&inventory.bounds.base.shape);
         try inventory.bounds.base.shape.validate();
-    }
+    };
     const output = try Terminal.require(&image, req[req.len - 1].base.cpu, cells.terminal);
     try callback(context, a, .{ .source_suite = source_suite, .source_security = source_security, .image = &image, .metadata = m, .requests = req, .setups = authority.setups, .cpu_keys = authority.cpu_keys, .truths = authority.native_truth.truths, .truth_keys = authority.truth_keys, .truth_local_keys = authority.truth_local_keys, .truth_local_security = truth_local_security, .miller = authority.miller, .inventory = &inventory, .expected = expected, .output = output, .output_address = image.symbols.output_data, .initial = cells.initial, .terminal = cells.terminal, .image_ns = image_ns, .program_ns = program_ns });
 }
@@ -697,10 +697,10 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.initForSourceSuite(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected, authority.truth_local_keys, source_suite);
     defer inventory.deinit();
-    if (truth_local_security) |checked| {
+    if (source_suite == null) if (truth_local_security) |checked| {
         checked.added.augmentShape(&inventory.bounds.base.shape);
         try inventory.bounds.base.shape.validate();
-    }
+    };
     if (mode == .prepare) {
         const admitted_ns = timer.read();
         const cache_snapshot = if (cache) |owner| owner.snapshot() else null;
