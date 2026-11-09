@@ -7,7 +7,7 @@
 //! bind the complete file bytes in its create-only manifest.
 
 const std = @import("std");
-const recovery_abi = @import("../../isa/ethereum_signer_recovery.zig");
+const recovery_abi = @import("../../isa/secp256k1_recovery_memory_abi.zig");
 const Cpu = @import("../cpu.zig").Cpu;
 const base_replay = @import("replay.zig");
 const base_types = @import("types.zig");

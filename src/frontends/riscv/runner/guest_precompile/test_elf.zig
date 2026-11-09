@@ -4,7 +4,7 @@ const std = @import("std");
 const custom0 = @import("../../isa/custom0.zig");
 const bulk_memcpy = @import("../../isa/bulk_memcpy_candidate_v1.zig");
 const execution_profile = @import("../../isa/execution_profile.zig");
-const signer_abi = @import("../../isa/ethereum_signer_recovery.zig");
+const signer_abi = @import("../../isa/secp256k1_recovery_memory_abi.zig");
 const stack_swap = @import("../../isa/stack_swap_candidate_v1.zig");
 const stack_swap_registry = @import("../../isa/stack_swap_private_registry_v1.zig");
 

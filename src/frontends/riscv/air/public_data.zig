@@ -9,14 +9,15 @@
 //! entering the transcript.
 
 const std = @import("std");
+const statement_prefix = @import("../recursion/protocol_statement_constants.zig");
 const profile = @import("../isa/profile.zig");
 const access_clock = @import("../access_clock.zig");
 
 /// First-class version of the base RISC-V statement transcript. This prefix is
 /// mixed before every public-data field, closing the ambiguity in which future
 /// layouts could otherwise share a transcript prefix with today's statement.
-pub const STATEMENT_TRANSCRIPT_DOMAIN: u32 = 0x5256_5354; // "RVST"
-pub const STATEMENT_TRANSCRIPT_VERSION: u32 = 1;
+pub const STATEMENT_TRANSCRIPT_DOMAIN = statement_prefix.STATEMENT_TRANSCRIPT_DOMAIN; // "RVST"
+pub const STATEMENT_TRANSCRIPT_VERSION = statement_prefix.STATEMENT_TRANSCRIPT_VERSION;
 
 pub const ValidationError = error{
     InputAddressOverflow,

@@ -437,7 +437,7 @@ test {
     _ = @import("air/memory_commitment/mod.zig");
     _ = @import("air/memory_commitment/poseidon2.zig");
     _ = @import("air/memory_commitment/poseidon2_air.zig");
-    _ = @import("air/memory_commitment/ethereum_node_v1.zig");
+    _ = @import("air/memory_commitment/binary_node9.zig");
     _ = @import("ethereum_commitment_v1_test_root.zig");
     _ = @import("air/memory_commitment/sparse_merkle.zig");
     _ = @import("air/memory_commitment/trace.zig");
@@ -661,7 +661,7 @@ test {
     _ = @import("isa/ethereum_bulk_memcpy_candidate_v1.zig");
     _ = @import("isa/ethereum_candidate_combined_authority_v1.zig");
     _ = @import("isa/ethereum_candidate_private_registry_v1.zig");
-    _ = @import("isa/ethereum_signer_recovery.zig");
+    _ = @import("isa/secp256k1_recovery_memory_abi.zig");
     _ = @import("keccakf_precompile_test_root.zig");
     _ = @import("poseidon_materialization_frontier_test_root.zig");
     _ = @import("prover/guest_precompile/ethereum_assembly.zig");

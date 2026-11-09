@@ -1,7 +1,7 @@
 //! Owned, duplicate-preserving successful signer-recovery call storage.
 
 const std = @import("std");
-const abi = @import("../../isa/ethereum_signer_recovery.zig");
+const abi = @import("../../isa/secp256k1_recovery_memory_abi.zig");
 
 /// A call multiplicity must remain representable as a canonical M31 value.
 pub const max_calls: usize = 0x7fff_fffe;

@@ -2,7 +2,7 @@
 //! is supplied independently by the receiver; it is never repeated in receipts.
 const std = @import("std");
 const A = @import("rv64_authenticated_execution.zig");
-const request = @import("rv64_ethereum_request.zig");
+const request = @import("content_sha256.zig");
 pub const Receipt = struct {
     schema: []const u8 = "rv64-authenticated-ethereum-batch-v1",
     index: u32,
@@ -55,13 +55,7 @@ pub fn writeEncoded(a: std.mem.Allocator, directory: std.fs.Dir, index: u32, fir
     try writeExclusive(directory, meta_name, json);
     return bytes.len;
 }
-pub fn writeExclusive(directory: std.fs.Dir, name: []const u8, bytes: []const u8) !void {
-    var file = try directory.createFile(name, .{ .exclusive = true });
-    errdefer directory.deleteFile(name) catch {};
-    defer file.close();
-    try file.writeAll(bytes);
-    try file.sync();
-}
+pub const writeExclusive = @import("exclusive_file.zig").writeExclusive;
 
 /// A crash leaves a verifiable durable prefix, never a claimed complete block.
 /// Only publish after proof+receipt files have synced and receiver accepted them.

@@ -2,7 +2,7 @@
 //! admission live here. A producer-selected root is never initial-image authority.
 //! Reuses the qualified nine-lane Poseidon node arithmetic, not its RV32 tree.
 const std = @import("std");
-pub const node = @import("../../../air/memory_commitment/ethereum_node_v1.zig");
+pub const node = @import("../../../air/memory_commitment/binary_node9.zig");
 const core = @import("stwo_core");
 pub const M31 = core.fields.m31.M31;
 pub const Digest = node.Digest;

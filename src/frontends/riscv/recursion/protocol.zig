@@ -14,7 +14,7 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const aggregation_types = @import("../aggregation/types.zig");
-const public_data = @import("../air/public_data.zig");
+const public_data = @import("protocol_statement_constants.zig");
 const channel = @import("poseidon2_channel.zig");
 
 const m31 = stwo_core.fields.m31;

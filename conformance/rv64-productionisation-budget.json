@@ -988,6 +988,15 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
+    },
+    {
+      "id": "c4_ethereum_product_ownership_20261110",
+      "net_code_budget": 800,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "owner": "ethereum-statement",
+      "decision": "https://github.com/teddyjfpender/stwo-zig/issues/352#issuecomment-6749772175",
+      "positive_growth_justification": "A real Ethereum product boundary with explicit typed lifecycle ownership, shared canonical primitives, transparent legacy producer provenance and strict P-3 placement. Growth is contained in private Owner/build/compatibility/checker wiring; no new waist/protocol/C ABI or launcher. Mechanical moves get no subtraction credit. Rollback is the owning slice with its consumers/tests; proof pins remain frozen."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

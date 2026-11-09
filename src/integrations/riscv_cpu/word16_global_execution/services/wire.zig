@@ -11,7 +11,7 @@ const G = @import("../protocol.zig");
 const Geo = @import("../../word16_execution/geometry.zig").Geometry;
 const Cells = @import("../../word16_execution/cells_wire.zig");
 const Cell = @import("../../word16_execution/memory/statement.zig").Cell;
-const Receipt = @import("../../rv64_ethereum_batch_receipt.zig");
+const Receipt = @import("../../exclusive_file.zig");
 pub const Limits = struct { max_cpus: usize = 256, max_truths: usize = 256, max_metadata_bytes: usize = 16 << 20, max_memory_words: u32 = (1 << 23) - 1, max_proof_bytes: u64 = 64 << 20, max_total_proof_bytes: u64 = 1 << 30, max_total_steps: u64 = 1 << 30, max_native_row_sum: u64 = 1 << 32 };
 pub const CompactRequest = struct {
     cpu: @FieldType(G.Old.Request, "cpu"),
