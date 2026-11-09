@@ -15,19 +15,14 @@ const Receiver = @import("gkr_receiver.zig");
 const ReceiverBudget = @import("receiver_budget.zig");
 
 pub const DEFAULT_WORKERS: usize = 8;
-pub const SERIAL_ENV = "STWO_RV64_SERIAL_NATIVE_VERIFY";
-pub const WORKERS_ENV = "STWO_RV64_NATIVE_VERIFY_WORKERS";
 const THREAD_STACK_BYTES: usize = 16 << 20;
 
 pub fn enabled() bool {
-    return !std.process.hasEnvVarConstant(SERIAL_ENV);
+    return true;
 }
 
-pub fn workers(a: std.mem.Allocator, native_workers: usize) usize {
-    const text = std.process.getEnvVarOwned(a, WORKERS_ENV) catch return @max(1, @min(native_workers, DEFAULT_WORKERS));
-    defer a.free(text);
-    const parsed = std.fmt.parseUnsigned(usize, text, 10) catch return @max(1, @min(native_workers, DEFAULT_WORKERS));
-    return @max(1, @min(parsed, engine.work_pool.MAX_WORKERS));
+pub fn workers(_: std.mem.Allocator, native_workers: usize) usize {
+    return @max(1, @min(native_workers, DEFAULT_WORKERS));
 }
 
 pub fn Job(comptime Image: type, comptime Keys: type, comptime Bundle: type, comptime Fixed: type, comptime Config: type) type {

@@ -118,20 +118,12 @@ pub const Backend = struct {
         }
         const numerical = try N.Api.load(library);
         const batch_available = numerical.stwo_rv64_batch_sum_on != null and numerical.stwo_rv64_batch_fold_on != null;
-        const batch_enabled = try batchEnabled(batch_available, std.process.hasEnvVarConstant("STWO_RV64_GKR_BATCH_ORACLES"), std.process.hasEnvVarConstant("STWO_RV64_GKR_SERIAL_ORACLES"));
-        const tree_flag = std.process.getEnvVarOwned(a, "STWO_RV64_GKR_BATCH_TREES") catch |err| switch (err) {
-            error.EnvironmentVariableNotFound => null,
-            else => return err,
-        };
-        defer if (tree_flag) |value| a.free(value);
+        const batch_enabled = try batchEnabled(batch_available, false, false);
+        const tree_flag: ?[]const u8 = null;
         const trees_enabled = try treeBatchEnabled(tree_flag, numerical.stwo_rv64_batch_layer_on != null);
-        const tail_enabled = std.process.hasEnvVarConstant("STWO_RV64_GKR_BATCH_TAIL");
+        const tail_enabled = false;
         if (tail_enabled and (!batch_enabled or numerical.stwo_rv64_batch_tail_on == null)) return error.MissingCudaBatchedTailSymbol;
-        const fold_sum_flag = std.process.getEnvVarOwned(a, "STWO_RV64_GKR_BATCH_FOLD_SUM") catch |err| switch (err) {
-            error.EnvironmentVariableNotFound => null,
-            else => return err,
-        };
-        defer if (fold_sum_flag) |value| a.free(value);
+        const fold_sum_flag: ?[]const u8 = null;
         const fold_sum_enabled = if (fold_sum_flag) |value| blk: {
             if (std.mem.eql(u8, value, "0")) break :blk false;
             if (!std.mem.eql(u8, value, "1")) return error.InvalidCudaBatchedFoldSumMode;

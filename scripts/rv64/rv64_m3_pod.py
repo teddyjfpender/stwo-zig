@@ -49,7 +49,6 @@ GPU_LOCK = M3 / "locks/gpu.lock"
 DEFAULT_PRODUCER_ENV = {
     "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
     "STWO_RV64_GPU_CPU_REPLAY": "1",
-    "STWO_RV64_CORE_SINGLE_STREAM": "1",
     "STWO_RV64_DEVICE_ARENA": "1",  # = auto: carve (free - reserve) at service start; 22G is the opt-in <=28 GB cap
     # M6 integrate default format (vectors/reports/rv64-m6-20261105/integrate/): diet-wire 4-ary folds + Merkle cap 3 in
     # fold circuits, on the flat (M5) native format. Receivers take the same selector from the run's plan
@@ -319,7 +318,7 @@ def produce(plan, job, run, nsys=None, counters=False, smaps=False, wrap=None):
     environment = {k: v for k, v in os.environ.items() if not k.startswith("STWO_RV64_")}
     environment.update(plan["resident_environment"])
     environment = B.worker_environment(worker, environment)
-    for key in ("STWO_RV64_GPU_HOST_RETAINED", "STWO_RV64_DEEP_TIMING", "STWO_RV64_DEEP_COORDINATES", "STWO_RV64_PCS_PHASE_TIMING"):
+    for key in ("STWO_RV64_GPU_HOST_RETAINED"):
         if key not in plan["resident_environment"]:
             environment.pop(key, None)
     environment["STWO_RV64_GPU_LIBRARY"] = plan["assets"]["library"]

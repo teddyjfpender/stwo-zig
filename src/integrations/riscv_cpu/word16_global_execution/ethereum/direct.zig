@@ -45,18 +45,11 @@ const Collector = @import("../services/collector.zig");
 ///   24628607 and 26235156: flat within noise at every setting (1.73-1.97,
 ///     1.56-1.70): 7 and 5 segments never fill a window of 4.
 /// Recommended pair: INFLIGHT=16 with LOCAL_LEDGER=1.
-fn envCount(name: []const u8, max: u8) ?u8 {
-    const text = std.posix.getenv(name) orelse return null;
-    const value = std.fmt.parseUnsigned(u8, text, 10) catch return null;
-    if (value == 0 or value > max) return null;
-    return value;
-}
 pub fn inflightOverride(inflight: u8) u8 {
-    return envCount("STWO_RV64_M8_CAPTURE_INFLIGHT", MAX_INFLIGHT) orelse inflight;
+    return inflight;
 }
 pub fn workersOverride(workers: u8) u8 {
-    if (workers == 0) return 0;
-    return envCount("STWO_RV64_M8_CAPTURE_WORKERS", Segments.MAX_WORKERS) orelse workers;
+    return workers;
 }
 pub const MAX_INFLIGHT = @import("capture_prefetch.zig").MAX_INFLIGHT;
 pub const Stats = struct {
@@ -163,7 +156,6 @@ const Job = struct {
         // takes all its range helpers (M6; `STWO_RV64_CAPTURE_CRITICAL=0` off).
         if (self.index == 0 and criticalFirst()) @import("../../word16_execution/cpu_source.zig").critical_capture = true;
         defer @import("../../word16_execution/cpu_source.zig").critical_capture = false;
-        lowerJobPriority();
         var timer = std.time.Timer.start() catch null;
         const tape = self.tape.?;
         self.tape = null;
@@ -228,14 +220,6 @@ fn criticalFirst() bool {
 /// `STWO_RV64_CAPTURE_JOB_NICE=N` (1..19): run batch admission/capture (and
 /// the range threads it spawns, which inherit it) at nice N, so the serial
 /// ordered ledger and the segment walks win CPU under a quota. Scheduling only.
-fn lowerJobPriority() void {
-    if (@import("builtin").os.tag != .linux) return;
-    const text = std.posix.getenv("STWO_RV64_CAPTURE_JOB_NICE") orelse return;
-    const nice = std.fmt.parseInt(u5, text, 10) catch return;
-    if (nice == 0 or nice > 19) return;
-    // setpriority(PRIO_PROCESS, 0 = calling thread on Linux, nice).
-    _ = std.os.linux.syscall3(.setpriority, 0, 0, nice);
-}
 /// Bounded in-order hand-over between the executing thread and the consumer.
 const Queue = struct {
     mutex: std.Thread.Mutex = .{},

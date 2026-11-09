@@ -292,7 +292,7 @@ class CudaBuildTests(unittest.TestCase):
         self.assertNotIn("nvrtccompile", sources.lower())
         self.assertNotIn("fallback(", sources.lower())
         policy = product_policy.read_json(PRODUCT)
-        self.assertEqual(10, len(policy["temporary_native_ambient_reads"]["files"]))
+        self.assertEqual(6, len(policy["temporary_native_ambient_reads"]["files"]))
         product_policy.validate_product_policy(
             policy, [], [NATIVE / entry["path"] for entry in closure["files"]],
         )

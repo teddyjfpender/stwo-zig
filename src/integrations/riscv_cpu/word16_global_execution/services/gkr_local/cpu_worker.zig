@@ -328,10 +328,7 @@ pub const CpuWorker = struct {
             if (self.scheme.device_om31_pcs_stage == null or self.numerical_gkr_stage == null or self.resident_composition_stage == null) return error.DeviceTraceRequiresResidentStages;
             const columns = try self.source.mainTraceColumns(a, self.setup);
             defer a.free(columns);
-            const prestage_trace = self.expected.ordinal == 0 and blk: {
-                const flag = std.posix.getenv("STWO_RV64_CPU0_PRESTAGE") orelse break :blk false;
-                break :blk std.mem.eql(u8, flag, "1");
-            };
+            const prestage_trace = false;
             if (prestage_trace) std.debug.print("GPU_CPU_PRESTAGE event=main_commit_enter ordinal=0 utc_ns={}\n", .{std.time.nanoTimestamp()});
             const committed = try stage.commit(stage.context, a, .{ .scope = .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = @splat(0), .ordinal = @intCast(self.expected.ordinal) }, .tree_index = 1, .config = self.config, .columns = columns });
             if (prestage_trace) std.debug.print("GPU_CPU_PRESTAGE event=main_commit_end ordinal=0 utc_ns={}\n", .{std.time.nanoTimestamp()});

@@ -50,10 +50,7 @@ pub const Context = struct {
         return @max(n, 1);
     }
     pub fn retainLimitFromEnv() !usize {
-        const text = std.posix.getenv("STWO_RV64_GPU_REPLAY_RETAIN_PER_DEVICE") orelse return default_retain;
-        const value = std.fmt.parseInt(usize, text, 10) catch return error.InvalidReplayRetainLimit;
-        if (value > 64) return error.InvalidReplayRetainLimit;
-        return value;
+        return default_retain;
     }
     pub fn deinit(self: *Context) void {
         std.debug.assert(self.compact_bytes == 0 and self.retained_live == 0);

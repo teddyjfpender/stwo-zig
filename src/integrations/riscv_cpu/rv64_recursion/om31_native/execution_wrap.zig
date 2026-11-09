@@ -1377,10 +1377,7 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     var shared = Pipelined{ .input = input, .options = options, .pipe = pipe, .plan = plan, .queue = try Dag.Queue.initPolicy(plan, options.lanes.len, options.max_pending_authorities, try Dag.Policy.fromEnv()), .nodes = nodes, .records = records, .prep_pool = prep_pool, .origin_ns = input.timer.read(), .scramble_seed = try Dag.scrambleSeedFromEnv() };
     if (shared.scramble_seed) |seed| std.debug.print("RECURSION_ADMISSION_ORDER policy=seeded_scramble seed={}\n", .{seed});
     if (input.stream != null) shared.queue.closeAllLeaves();
-    if (std.posix.getenv("STWO_RV64_RECURSION_LEAVES_PER_DEVICE")) |text| {
-        shared.leaves_per_device = std.fmt.parseUnsigned(usize, text, 10) catch return error.InvalidRecursionPipelineOption;
-        if (shared.leaves_per_device == 0) return error.InvalidRecursionPipelineOption;
-    }
+
     try shared.ready.ensureTotalCapacity(a, plan.count);
     defer shared.ready.deinit(a);
     try shared.finishing.ensureTotalCapacity(a, plan.count);
@@ -1566,8 +1563,7 @@ pub const Streaming = struct {
         // Streaming exists only on the pipelined executor. With
         // STWO_RV64_RECURSION_PIPELINE=0 (the M5 lane path) keep the M5
         // handoff instead of failing the request after native production
-        const value = std.posix.getenv("STWO_RV64_RECURSION_STREAM") orelse return true;
-        return !std.mem.eql(u8, value, "0");
+        return true;
     }
     pub fn create(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, options: ParallelOptions) !*Streaming {
         const n = setups.len + truths.len;

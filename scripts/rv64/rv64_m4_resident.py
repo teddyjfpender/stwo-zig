@@ -313,7 +313,7 @@ def serve(args):
     environment = {k: v for k, v in os.environ.items() if not k.startswith(("STWO_RV64_", "STWO_ZIG_RV64_SETUP_CACHE"))}
     environment.update(plan["resident_environment"])
     environment = B.worker_environment(worker, environment)
-    for k in ("STWO_RV64_GPU_HOST_RETAINED", "STWO_RV64_DEEP_TIMING", "STWO_RV64_DEEP_COORDINATES", "STWO_RV64_PCS_PHASE_TIMING"):
+    for k in ("STWO_RV64_GPU_HOST_RETAINED"):
         if k not in plan["resident_environment"]:
             environment.pop(k, None)
     environment["STWO_RV64_GPU_LIBRARY"] = plan["assets"]["library"]
@@ -651,7 +651,7 @@ def daemon(args):
     environment.update(plan["resident_environment"])
     environment = B.worker_environment({"device": "0,1", "device_caps_bytes": [plan["device_cap_bytes"]] * 2,
                                         "planned_cpu_workers": plan["jobs"][0]["segments"], "retained_scopes": 64}, environment)
-    for k in ("STWO_RV64_GPU_HOST_RETAINED", "STWO_RV64_DEEP_TIMING", "STWO_RV64_DEEP_COORDINATES", "STWO_RV64_PCS_PHASE_TIMING"):
+    for k in ("STWO_RV64_GPU_HOST_RETAINED"):
         if k not in plan["resident_environment"]:
             environment.pop(k, None)
     environment["STWO_RV64_GPU_LIBRARY"] = plan["assets"]["library"]

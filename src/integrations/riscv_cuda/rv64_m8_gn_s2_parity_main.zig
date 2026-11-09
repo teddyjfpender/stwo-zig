@@ -878,8 +878,8 @@ pub fn main() !void {
         };
     };
     std.debug.print("GPU_M8_GN_S2 event=flat_host digest_equal={} script_ns={}\n", .{ host_flat_equal, flat_ns });
-    const repeat = std.fmt.parseUnsigned(usize, env("STWO_RV64_M8_GN_S2_REPEAT") orelse "3", 10) catch return error.InvalidParityEnvironment;
-    const negatives = !std.mem.eql(u8, env("STWO_RV64_M8_GN_S2_NEGATIVES") orelse "1", "0");
+    const repeat = std.fmt.parseUnsigned(usize, "3", 10) catch return error.InvalidParityEnvironment;
+    const negatives = !std.mem.eql(u8, "1", "0");
     const constants = S2D.sealConstants(@splat(0), rec.execution, @intCast(rec.flat.len), tag);
     var rows: std.ArrayListUnmanaged(Row) = .empty;
     var ordinals: std.ArrayListUnmanaged(u32) = .empty;

@@ -378,24 +378,12 @@
     "issue": 329,
     "files": [
       {
-        "path": "native/circuit/base_witness.cu",
-        "sha256": "02dfb6a7bbb001662612765d694edf85cf5323372a46433816af6701deafb0d3"
-      },
-      {
         "path": "native/runtime/device_arena_runtime.cuh",
-        "sha256": "41885a48e78a61c3318ba6409b8a5cfdfa7469ce66bc6b3018dedb742b40bf56"
-      },
-      {
-        "path": "native/rv64/bridge_witness.cu",
-        "sha256": "613f0a306a481842b0d6527bb52cce5a6f947513e29ccd9156b69c9e2b7ce4a5"
+        "sha256": "81743a1202d7d06cc2d026e646f8f8bcb3487e7f9f5a5659d3c44a99e137a76a"
       },
       {
         "path": "native/rv64/circuit_fill_chain.cu",
-        "sha256": "9e03f6c42fef45faf2491a20a8bbf166d6fc933b9b8c5de8cc7a2857b99e2115"
-      },
-      {
-        "path": "native/rv64/deep.cu",
-        "sha256": "47ebd2fd4409de5140f2294527cd9837a8630f0df0b062d1e2b80d8ce2765a7b"
+        "sha256": "611249d4db003157fcfd29a600557fb15092b49be955fff710f60a1c922ce34e"
       },
       {
         "path": "native/rv64/deep_lazy.cuh",
@@ -406,16 +394,12 @@
         "sha256": "009e2f0adb9f77b2ae99ca8861b207e784cd4321ce566e082f18c01853bf5627"
       },
       {
-        "path": "native/rv64/keccak_witness.cu",
-        "sha256": "6b163fee886554908f84c152a6321e13e0e71054dc24f29e8fc576ee1ad8eeb0"
-      },
-      {
         "path": "native/rv64/pcs_native.cu",
-        "sha256": "bec0237757027c8021a9d17b8e5f018b58559fda422aaf97f9e05a1ccb63b13b"
+        "sha256": "169a0dc82c5f16b2636dde7ceb2263d4231f61b4aa40560848ef72fc10ffb8ce"
       },
       {
         "path": "native/rv64/pcs_pipeline.cuh",
-        "sha256": "8dba79af1fce27d4f030eabe2d313af7146eff81b1c31346c83cfbc7111977f9"
+        "sha256": "93743df247e703bda477a7f7dcde1a214af1723f9ea1e0e54ad4f650b89bd810"
       }
     ]
   }

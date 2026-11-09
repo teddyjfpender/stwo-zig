@@ -294,7 +294,7 @@ pub const Binding = struct {
         errdefer b.deinit();
         const a = b.arena.allocator();
         const strict = (try CPU.rv64_native_policy.current()).strictRoster();
-        const canonical = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false;
+        const canonical = false;
         const decls = try Plan.truthsWithOptions(a, warm_owner, .{ .v3 = config.execution_profile == .ethereum_services_v3, .uniform_throughput = self.options.uniform, .one_per_family = self.options.one_per_family, .coalesce_families = self.options.coalesce, .split_families = Plan.truthSplitEnabled(), .rung_bound = strict or canonical }, self.options.max_log);
         if (strict or canonical) {
             const classes = try a.alloc(Plan.CanonClass, decls.len);

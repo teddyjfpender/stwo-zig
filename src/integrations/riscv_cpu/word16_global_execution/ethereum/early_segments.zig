@@ -8,8 +8,6 @@ const Worker = @import("../services/gkr_local/cpu_worker.zig");
 const W = @import("../services/gkr_local/worker_protocol.zig");
 const D = @import("stwo_prover_api").device_pcs;
 const Budget = engine.host_budget_allocator.SharedHostBudget;
-pub const FLAG = "STWO_RV64_EARLY_NATIVE_SEGMENTS";
-pub const PARALLEL_SETUP_FLAG = "STWO_RV64_EARLY_SEGMENT_PARALLEL_SETUP";
 pub const SegmentStages = struct {
     source: Pipeline.DeviceSourceStage,
     projection: @import("../../word16_execution/cpu_source.zig").ProjectionStage,
@@ -106,7 +104,7 @@ pub const Owner = struct {
     pub fn create(options: Options) !*Owner {
         if (options.provider.lanes == 0 or options.provider.lanes > 4 or options.provider.host_budget == null or options.memory.host_budget == null or options.provider.host_budget.? != options.memory.host_budget.?) return error.EarlySegmentsHostBudgetRequired;
         const self = try options.allocator.create(Owner);
-        self.* = .{ .options = options, .parallel_setup = if (std.posix.getenv(PARALLEL_SETUP_FLAG)) |value| std.mem.eql(u8, value, "1") else false };
+        self.* = .{ .options = options, .parallel_setup = false };
         return self;
     }
     pub fn hook(self: *Owner) Capture.Ready {

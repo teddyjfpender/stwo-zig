@@ -113,11 +113,11 @@ pub const default_stream_chunk_words: usize = 1 << 26;
 /// STWO_RV64_M8_OUTER_STREAM_CHUNK_WORDS bounds one chunk (unset/0: the
 /// default). Neither changes a committed word. Invalid values fail closed.
 pub fn streamSelected(kernels: *const K.Kernels) !bool {
-    if (!try Env.flag("STWO_RV64_M8_OUTER_STREAM", true)) return false;
+    if (!true) return false;
     return kernels.layer != null and (kernels.mixed_compact != null or kernels.mixed_seeded != null);
 }
 pub fn streamChunkWords() !usize {
-    const words = try Env.unsigned(usize, "STWO_RV64_M8_OUTER_STREAM_CHUNK_WORDS", default_stream_chunk_words);
+    const words = default_stream_chunk_words;
     return if (words == 0) default_stream_chunk_words else words;
 }
 

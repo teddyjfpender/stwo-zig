@@ -41,21 +41,6 @@
         "scripts/rv64/rv64_m5_negative_corpus.py"
       ]
     },
-    "STWO_RV64_ASSIGNMENT_CRITICAL_CENSUS": {
-      "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig",
-        "src/integrations/riscv_cuda/rv64/blake_sample_plan.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/cpu_child.zig",
-        "text": "    const census = if (std.posix.getenv(\"STWO_RV64_ASSIGNMENT_CRITICAL_CENSUS\")) |v| std.mem.eql(u8, v, \"1\") else false;\n    const first_gg = ctx.circuit.blake_g_gate.items.len;\n    var channel = try begin(ctx, scope, instances);\n    const challenges = Challenges.For(C.F).drawForInstances(&channel, instances);\n    const gates = try ctx.scratch().alloc(engine.lookups.gkr_verifier.ForField(C.O).Gate, instances.len);\n    @memset(gates, .LogUp);\n    var artifact = try engine.lookups.verifier_kernel.partiallyVerifyBatch(C.F, ctx.gpa, gates, proof, &channel, Checks{ .ctx = ctx });\n    errdefer artifact.deinit(ctx.gpa);"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_BATCH_MAX_ORACLES": {
       "owner": "src/backends/cuda/native/rv64/batch.h",
       "default": "constexpr uint32_t STWO_RV64_BATCH_MAX_ORACLES = 128;",
@@ -82,21 +67,6 @@
         "tests/cuda/rv64/outer_gkr_bench.cu"
       ]
     },
-    "STWO_RV64_BLAKE_SAMPLE_CHECK": {
-      "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig",
-        "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig",
-        "text": "    const value = std.posix.getenv(\"STWO_RV64_BLAKE_SAMPLE_CHECK\") orelse return false;\n    if (std.mem.eql(u8, value, \"0\")) return false;\n    if (std.mem.eql(u8, value, \"1\")) return true;\n    return error.InvalidBlakeSampleCheckOption;\n}\npub const Recorder = struct {\n    allocator: std.mem.Allocator,\n    records: std.ArrayListUnmanaged(Record) = .empty,"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_BLAKE_SAMPLE_PREFILL": {
       "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig",
       "default": "false",
@@ -110,162 +80,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/blake_sample_capture.zig",
-        "text": "    const value = std.posix.getenv(\"STWO_RV64_BLAKE_SAMPLE_PREFILL\") orelse return false;\n    if (std.mem.eql(u8, value, \"0\")) return false;\n    if (std.mem.eql(u8, value, \"1\")) return true;\n    return error.InvalidBlakeSamplePrefillOption;\n}\npub fn enabled() !bool {\n    if (try prefillEnabled()) return true;\n    const value = std.posix.getenv(\"STWO_RV64_BLAKE_SAMPLE_CHECK\") orelse return false;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_CANON_RUNGS": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
-      "default": "strictRoster() or false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig",
-        "src/integrations/riscv_cuda/rv64/jobs/native_class_build.zig",
-        "src/integrations/riscv_cuda/rv64/native_request_inputs.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
-        "text": "                .canonical_rungs = if (std.posix.getenv(\"STWO_RV64_CANON_RUNGS\")) |flag| std.mem.eql(u8, flag, \"1\") else false,\n                .caches = caches,\n                .setup_cache = &shared.setup.?,\n                .fixed_cache = &shared.setup.?.fixed,\n                .memory = memory,\n                .provider = provider,\n                .gkr_budget = resources.?.gkr_bytes,\n            });"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_CAPTURE_DIGEST": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
-        "text": "    const digest_capture = if (std.posix.getenv(\"STWO_RV64_CAPTURE_DIGEST\")) |flag| std.mem.eql(u8, flag, \"1\") else false;\n    const captured_values_sha256: ?[64]u8 = if (digest_capture) std.fmt.bytesToHex(@import(\"capture_digest.zig\").digest(image.identity, &captured), .lower) else null;\n    b2i.capture = capture_inputs;\n    // Early Source callbacks may still borrow immutable ROM columns. Keep this\n    // owner until the early producer joins; Program.deinit follows that join.\n    if (!early_segments and !program.fixed_retired) try program.releaseFixedWitness();\n    const capture_cache_released = recycler.releaseCached();\n    // Explicit authenticated service scope; classic-only encodings stay closed."
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_CAPTURE_JOB_NICE": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig",
-      "default": "unchanged thread priority",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig",
-        "text": "    const text = std.posix.getenv(\"STWO_RV64_CAPTURE_JOB_NICE\") orelse return;\n    const nice = std.fmt.parseInt(u5, text, 10) catch return;\n    if (nice == 0 or nice > 19) return;\n    // setpriority(PRIO_PROCESS, 0 = calling thread on Linux, nice).\n    _ = std.os.linux.syscall3(.setpriority, 0, 0, nice);\n}\n/// Bounded in-order hand-over between the executing thread and the consumer.\nconst Queue = struct {"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_CAPTURE_PARALLEL_BOUNDARIES": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/collector.zig",
-      "default": "true",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/collector.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/collector.zig",
-        "text": "    const text = std.posix.getenv(\"STWO_RV64_CAPTURE_PARALLEL_BOUNDARIES\") orelse return true;\n    return !std.mem.eql(u8, text, \"0\");\n}\nfn sortChunk(cells: []R.types.Cell) void {\n    std.sort.pdq(R.types.Cell, cells, {}, less);\n}\nfn mergeRuns(x: []const R.types.Cell, y: []const R.types.Cell, out: []R.types.Cell) void {\n    var i: usize = 0;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_CAPTURE_PROGRAM_VIEW": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/capture_bench.zig",
-      "default": "true",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/capture_bench.zig",
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/capture_bench.zig",
-        "text": "    const compact_capture_program = if (std.posix.getenv(\"STWO_RV64_CAPTURE_PROGRAM_VIEW\")) |v| !std.mem.eql(u8, v, \"0\") else true;\n    var program = if (compact_capture_program) try Program.initCaptureWithAuthorityAndMetadataCache(a, &image.authority, &local_metadata) else try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &local_metadata);\n    defer program.deinit();\n    const program_ns = timer.read() - image_load_ns;\n    const cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);\n    if (cpu_layout.compact_decode) try program.makeCompact();\n    const import_start = timer.read();\n    var captured = if (direct_started) |started| direct: {"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_COMPACT_EAGER_STATE": {
-      "owner": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-        "src/integrations/riscv_cuda/rv64/jobs/outer_kernels.zig",
-        "src/integrations/riscv_cuda/rv64/pcs_native.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-        "text": "  const char *v = std::getenv(\"STWO_RV64_COMPACT_EAGER_STATE\");\n  return v && std::strcmp(v,\"1\")==0;\n}\n// Streaming source rebuild is the default for rolling sources. \"0\" restores\n// the established max-tree LDE plane; a positive value bounds one chunk.\ninline uint64_t pcsStreamBudget() {\n  const char *v = std::getenv(\"STWO_RV64_PCS_STREAM\");\n  if (v && std::strcmp(v, \"0\") == 0) return 0;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_COMPOSITION_DIRECT": {
-      "owner": "src/integrations/riscv_cuda/rv64/resident_composition.zig",
-      "default": "true",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64/rv64_m4_arena_sweep.py",
-        "src/integrations/riscv_cuda/rv64/resident_composition.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/resident_composition.zig",
-        "text": "        const result = Context{ .column_policy = if (std.posix.getenv(\"STWO_RV64_RC_COMPOSITION_COLUMNS\")) |v| std.mem.eql(u8, v, \"1\") else false, .direct_policy = !(if (std.posix.getenv(\"STWO_RV64_COMPOSITION_DIRECT\")) |v| std.mem.eql(u8, v, \"0\") else false), .compact_policy = !(false), .enqueue_policy = if (std.posix.getenv(\"STWO_RV64_COMPOSITION_ENQUEUE\")) |v| !std.mem.eql(u8, v, \"0\") else true, .workspace_policy = if (std.posix.getenv(\"STWO_RV64_RC_ROLE_WORKSPACE\")) |v| std.mem.eql(u8, v, \"1\") else false, .pool_trim = try PhasePoolTrim.Policy.init(try PhasePoolTrim.fromEnv(a), service.library.lookup(PhasePoolTrim.Trim, \"stwo_exec_context_pool_trim\")), .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{\n            .allocate = service.lease_allocate,\n            .release = service.lease_release,\n            .validate_range = service.lease_validate_range,\n            .upload = try sym(Native.Upload, &service.library, \"stwo_exec_context_memcpy_h2d_async\"),\n            .download = try sym(Native.Download, &service.library, \"stwo_exec_context_memcpy_d2h_async\"),\n            .sync = try sym(Native.Sync, &service.library, \"stwo_exec_context_sync\"),\n            .lane_stream = try sym(Native.LaneStream, &service.library, \"stwo_exec_context_lane_stream\"),"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_COMPOSITION_ENQUEUE": {
-      "owner": "src/integrations/riscv_cuda/rv64/resident_composition.zig",
-      "default": "true",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cuda/rv64/resident_composition.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/resident_composition.zig",
-        "text": "        const result = Context{ .column_policy = if (std.posix.getenv(\"STWO_RV64_RC_COMPOSITION_COLUMNS\")) |v| std.mem.eql(u8, v, \"1\") else false, .direct_policy = !(if (std.posix.getenv(\"STWO_RV64_COMPOSITION_DIRECT\")) |v| std.mem.eql(u8, v, \"0\") else false), .compact_policy = !(false), .enqueue_policy = if (std.posix.getenv(\"STWO_RV64_COMPOSITION_ENQUEUE\")) |v| !std.mem.eql(u8, v, \"0\") else true, .workspace_policy = if (std.posix.getenv(\"STWO_RV64_RC_ROLE_WORKSPACE\")) |v| std.mem.eql(u8, v, \"1\") else false, .pool_trim = try PhasePoolTrim.Policy.init(try PhasePoolTrim.fromEnv(a), service.library.lookup(PhasePoolTrim.Trim, \"stwo_exec_context_pool_trim\")), .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{\n            .allocate = service.lease_allocate,\n            .release = service.lease_release,\n            .validate_range = service.lease_validate_range,\n            .upload = try sym(Native.Upload, &service.library, \"stwo_exec_context_memcpy_h2d_async\"),\n            .download = try sym(Native.Download, &service.library, \"stwo_exec_context_memcpy_d2h_async\"),\n            .sync = try sym(Native.Sync, &service.library, \"stwo_exec_context_sync\"),\n            .lane_stream = try sym(Native.LaneStream, &service.library, \"stwo_exec_context_lane_stream\"),"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_CORE_SINGLE_STREAM": {
-      "owner": "src/integrations/riscv_cuda/rv64/core_witness.zig",
-      "default": "true",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "scripts/rv64/rv64_m3_pod.py",
-        "scripts/rv64/rv64_m4_arena_job.sh",
-        "src/integrations/riscv_cuda/rv64/core_witness.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/core_witness.zig",
-        "text": "    const value = std.posix.getenv(\"STWO_RV64_CORE_SINGLE_STREAM\") orelse return true;\n    return !std.mem.eql(u8, value, \"0\");\n}\npub const Context = struct {\n    service: *Service.Context,\n    single_stream_ingress: bool = false,\n    staging_byte_cap: usize = 64 << 20,\n    cpu: *Projection.Context,"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_CPU0_PRESTAGE": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig",
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
-        "text": "    const early_cpu = if (std.posix.getenv(\"STWO_RV64_CPU0_PRESTAGE\")) |flag| std.mem.eql(u8, flag, \"1\") else false;\n    const early_main = if (std.posix.getenv(EarlyCPU.FLAG)) |flag| std.mem.eql(u8, flag, \"1\") else false;\n    const early_segments = if (std.posix.getenv(EarlySegments.FLAG)) |flag| std.mem.eql(u8, flag, \"1\") else false;\n    // Refuse mixed speculative owners before starting boot/capture/callbacks.\n    const old_first = false;\n    if (early_main and (early_cpu or old_first)) return error.ConflictingEarlyCpuModes;\n    if (early_segments and (early_cpu or old_first or early_main)) return error.ConflictingEarlyCpuModes;\n    if (early_main and (!combined or !candidate or !direct_capture or count != 0 or session == null or stages.early_memory == null or capture_options.execution_workers == 0 or !@import(\"../../rv64_ethereum_segments.zig\").ramFirstPassEnabled())) return error.EarlyMainRequiresAdmittedResidentFirstPass;"
+        "text": "    const value = std.posix.getenv(\"STWO_RV64_BLAKE_SAMPLE_PREFILL\") orelse return false;\n    if (std.mem.eql(u8, value, \"0\")) return false;\n    if (std.mem.eql(u8, value, \"1\")) return true;\n    return error.InvalidBlakeSamplePrefillOption;\n}\npub fn enabled() !bool {\n    if (try prefillEnabled()) return true;\n    return false;"
       },
       "expires": "2026-12-09"
     },
@@ -311,40 +126,6 @@
         "src/backends/cuda/native/rv64/deep.cu"
       ]
     },
-    "STWO_RV64_DEEP_COORDINATES": {
-      "owner": "src/backends/cuda/native/rv64/deep.cu",
-      "default": "2",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64/rv64_m3_pod.py",
-        "scripts/rv64/rv64_m4_resident.py",
-        "scripts/rv64/rv64_resident_basket.py",
-        "src/backends/cuda/native/rv64/deep.cu"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/rv64/deep.cu",
-        "text": "  const char *coordinate_env = std::getenv(\"STWO_RV64_DEEP_COORDINATES\");\n  if (coordinate_env && std::strcmp(coordinate_env, \"0\") != 0 &&\n      std::strcmp(coordinate_env, \"1\") != 0 &&\n      std::strcmp(coordinate_env, \"2\") != 0)\n    return int(cudaErrorInvalidValue);\n  const char aggregation = coordinate_env ? coordinate_env[0] : '2';\n  if (aggregation == '2') {\n    // 1024 CTAs per group: ~6 resident CTAs per SM on a 170-SM part for the"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_DEEP_TIMING": {
-      "owner": "src/backends/cuda/native/rv64/deep.cu",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64/rv64_m3_pod.py",
-        "scripts/rv64/rv64_m4_resident.py",
-        "scripts/rv64/rv64_resident_basket.py",
-        "src/backends/cuda/native/rv64/deep.cu"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/rv64/deep.cu",
-        "text": "  const char *timing_env = std::getenv(\"STWO_RV64_DEEP_TIMING\");\n  const bool timing = timing_env && std::strcmp(timing_env, \"1\") == 0;\n  DeepTimings spans;\n  if (timing) {\n    int status = spans.create();\n    if (!status) status = int(cudaEventRecord(spans.events[0], c.stream));\n    if (status) return status;\n  }"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_DEVICE_ARENA": {
       "owner": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
       "default": "auto carve (free minus reserve); explicitly required by frozen global admission",
@@ -362,97 +143,7 @@
       ],
       "default_evidence": {
         "path": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "text": "  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA\")) {\n    if (!strcmp(v, \"0\")) c.enabled = false;\n    else if (!strcmp(v, \"1\") || !strcmp(v, \"auto\")) c.enabled = true;\n    else if (parse_bytes(v, &c.bytes) && c.bytes >= (uint64_t(1) << 20)) c.enabled = true;\n    else c.valid = false;\n  }\n  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_RESERVE\"))\n    if (!parse_bytes(v, &c.reserve)) c.valid = false;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_DEVICE_ARENA_CHUNK": {
-      "owner": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-      "default": "32 MiB",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "tests/cuda/rv64/node_observer_smoke.py"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "text": "  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_CHUNK\"))\n    if (!parse_bytes(v, &c.chunk) || c.chunk < (uint64_t(2) << 20)) c.valid = false;\n  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_SMALL_CHUNKS\"))\n    if (!parse_bytes(v, &c.small_chunks) || c.small_chunks == 0) c.valid = false;\n  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_PREMAP\")) {\n    if (!strcmp(v, \"0\")) c.premap = false;\n    else if (strcmp(v, \"1\")) c.valid = false;\n  }"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_DEVICE_ARENA_POISON": {
-      "owner": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-      "default": "disabled (-1)",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "tests/cuda/rv64/node_observer_smoke.py"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "text": "//   STWO_RV64_DEVICE_ARENA_POISON=<0..255>   test only: fill every arena\n//       allocation and every freed range with this byte (synchronously), so\n//       a proof that reads uninitialised or freed memory stops matching.\n//\n// Cross-context reuse: every context used to own a private async pool, so a\n// freed range was only ever reused by the stream that freed it. The arena is\n// shared by all contexts of a device, so a single-lane free records an event\n// (a fence) on the freeing stream; a later allocation by a different stream"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_DEVICE_ARENA_PREMAP": {
-      "owner": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-      "default": "true",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "tests/cuda/rv64/node_observer_smoke.py"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "text": "  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_PREMAP\")) {\n    if (!strcmp(v, \"0\")) c.premap = false;\n    else if (strcmp(v, \"1\")) c.valid = false;\n  }\n  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_POISON\")) {\n    uint64_t byte = 0;\n    if (parse_bytes(v, &byte) && byte <= 255) c.poison = int(byte);\n    else c.valid = false;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_DEVICE_ARENA_RESERVE": {
-      "owner": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-      "default": "2 GiB",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64/rv64_m4_arena_sweep.py",
-        "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "text": "  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_RESERVE\"))\n    if (!parse_bytes(v, &c.reserve)) c.valid = false;\n  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_STACK\"))\n    if (!parse_bytes(v, &c.stack)) c.valid = false;\n  if (const char *v = getenv(\"STWO_RV64_PINNED_STAGING\")) {\n    if (!strcmp(v, \"0\")) c.staging = false;\n    else if (!strcmp(v, \"1\")) c.staging = true;\n    else c.valid = false;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_DEVICE_ARENA_SMALL_CHUNKS": {
-      "owner": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-      "default": "16",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "tests/cuda/rv64/node_observer_smoke.py"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "text": "  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_SMALL_CHUNKS\"))\n    if (!parse_bytes(v, &c.small_chunks) || c.small_chunks == 0) c.valid = false;\n  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_PREMAP\")) {\n    if (!strcmp(v, \"0\")) c.premap = false;\n    else if (strcmp(v, \"1\")) c.valid = false;\n  }\n  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_POISON\")) {\n    uint64_t byte = 0;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_DEVICE_ARENA_STACK": {
-      "owner": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-      "default": "12544 bytes",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64/rv64_m4_arena_sweep.py",
-        "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "text": "  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_STACK\"))\n    if (!parse_bytes(v, &c.stack)) c.valid = false;\n  if (const char *v = getenv(\"STWO_RV64_PINNED_STAGING\")) {\n    if (!strcmp(v, \"0\")) c.staging = false;\n    else if (!strcmp(v, \"1\")) c.staging = true;\n    else c.valid = false;\n  }\n  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_CHUNK\"))"
+        "text": "//   STWO_RV64_DEVICE_ARENA=0|1|auto|<bytes>[K|M|G]   (M5 platform: default auto)\n//       1/auto: carve (free - reserve) once per device, at the first context\n//       creation on that device (service start), not at the first allocation.\n//       <bytes>: carve exactly that much (a hard device cap; overrun returns\n//       cudaErrorMemoryAllocation to the caller, which may evict idle PCS\n//       cache and retry, but there is never a driver/pool fallback).\n//   STWO_RV64_DEVICE_ARENA_RESERVE=<bytes>   left outside the arena (auto)\n//   STWO_RV64_DEVICE_ARENA_STACK=<bytes>     per-thread stack limit set"
       },
       "expires": "2026-12-09"
     },
@@ -464,21 +155,6 @@
       "references": [
         "tests/cuda/rv64/native/rv64/lease_diagnostics.cpp"
       ]
-    },
-    "STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION": {
-      "owner": "src/frontends/riscv/rv64/air/native_output_pages.zig",
-      "default": "false (variable absent)",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/frontends/riscv/rv64/air/native_output_pages.zig",
-        "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/frontends/riscv/rv64/air/native_output_pages.zig",
-        "text": "    if (std.process.hasEnvVarConstant(\"STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION\")) return;\n    const page_size = std.heap.pageSize();\n    const page_words = page_size / @sizeOf(M31);\n    if (output.len < page_words) return;\n    const first: *volatile M31 = &output[0];\n    first.* = M31.zero();\n    var offset = (page_size - @intFromPtr(output.ptr) % page_size) / @sizeOf(M31);\n    while (offset < output.len) : (offset += page_words) {"
-      },
-      "expires": "2026-12-09"
     },
     "STWO_RV64_DIVISION_ARTIFACT_DIR": {
       "owner": "src/integrations/riscv_cpu/tests/rv64_division_proof_test.zig",
@@ -522,51 +198,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_EARLY_NATIVE_MAIN": {
-      "owner": "src/integrations/riscv_cuda/rv64/trace_commit.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_cpu0.zig",
-        "src/integrations/riscv_cuda/rv64/trace_commit.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/trace_commit.zig",
-        "text": "        return .{ .mixed_compact = compact_call, .freeze_allocation_plan = if (std.posix.getenv(\"STWO_RV64_EARLY_NATIVE_MAIN\")) |value| std.mem.eql(u8, value, \"1\") else false, .service = service, .api = .{\n            .allocate = service.lease_allocate,\n            .release = service.lease_release,"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_EARLY_NATIVE_SEGMENTS": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_segments.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_segments.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_segments.zig",
-        "text": "pub const FLAG = \"STWO_RV64_EARLY_NATIVE_SEGMENTS\";\npub const PARALLEL_SETUP_FLAG = \"STWO_RV64_EARLY_SEGMENT_PARALLEL_SETUP\";\npub const SegmentStages = struct {\n    source: Pipeline.DeviceSourceStage,\n    projection: @import(\"../../word16_execution/cpu_source.zig\").ProjectionStage,\n    trace_commit: *const D.TraceCommitStage,\n    pcs: *const D.Stage,\n    numerical: *const @import(\"../services/gkr_local/child.zig\").NumericalStage,\n    composition: *const Worker.ResidentCompositionStage,\n};"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_EARLY_SEGMENT_PARALLEL_SETUP": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_segments.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_segments.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/early_segments.zig",
-        "text": "pub const PARALLEL_SETUP_FLAG = \"STWO_RV64_EARLY_SEGMENT_PARALLEL_SETUP\";\npub const SegmentStages = struct {\n    source: Pipeline.DeviceSourceStage,\n    projection: @import(\"../../word16_execution/cpu_source.zig\").ProjectionStage,\n    trace_commit: *const D.TraceCommitStage,\n    pcs: *const D.Stage,\n    numerical: *const @import(\"../services/gkr_local/child.zig\").NumericalStage,\n    composition: *const Worker.ResidentCompositionStage,"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_ETH_CPU_V1_ARTIFACT_DIR": {
       "owner": "src/integrations/riscv_cpu/tests/rv64_ethereum_cpu_proof_test.zig",
       "default": "disabled (no artifact output directory)",
@@ -603,21 +234,6 @@
       ],
       "status": "constant",
       "default": "compile-time test selector/header guard; FIRST_CASE defaults 0; other selectors are absent unless supplied by the test build"
-    },
-    "STWO_RV64_FIRST_PASS_RAM": {
-      "owner": "src/integrations/riscv_cpu/rv64_ethereum_segments.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cpu/rv64_ethereum_segments.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_ethereum_segments.zig",
-        "text": "    const text = std.posix.getenv(\"STWO_RV64_FIRST_PASS_RAM\") orelse return false;\n    return std.mem.eql(u8, text, \"1\");\n}\n\npub const Stats = struct {\n    segments: u32 = 0,\n    workers: u8 = 0,\n    /// Default-off bounded waiters for not-yet-published later checkpoints."
-      },
-      "expires": "2026-12-09"
     },
     "STWO_RV64_FIXTURE_WORDS_CUH": {
       "owner": "tests/cuda/rv64/fixture_words.cuh",
@@ -678,66 +294,6 @@
         "tests/cuda/rv64/outer_gkr_bench.cu"
       ]
     },
-    "STWO_RV64_GKR_BATCH_FOLD_SUM": {
-      "owner": "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-        "src/integrations/riscv_cuda/rv64/jobs/native_gkr.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-        "text": "        const fold_sum_flag = std.process.getEnvVarOwned(a, \"STWO_RV64_GKR_BATCH_FOLD_SUM\") catch |err| switch (err) {\n            error.EnvironmentVariableNotFound => null,\n            else => return err,\n        };\n        defer if (fold_sum_flag) |value| a.free(value);\n        const fold_sum_enabled = if (fold_sum_flag) |value| blk: {\n            if (std.mem.eql(u8, value, \"0\")) break :blk false;\n            if (!std.mem.eql(u8, value, \"1\")) return error.InvalidCudaBatchedFoldSumMode;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_GKR_BATCH_ORACLES": {
-      "owner": "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-      "default": "enabled when batched symbols are available and SERIAL_ORACLES is absent",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-        "src/integrations/riscv_cuda/rv64/jobs/native_gkr.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-        "text": "        const batch_enabled = try batchEnabled(batch_available, std.process.hasEnvVarConstant(\"STWO_RV64_GKR_BATCH_ORACLES\"), std.process.hasEnvVarConstant(\"STWO_RV64_GKR_SERIAL_ORACLES\"));\n        const tree_flag = std.process.getEnvVarOwned(a, \"STWO_RV64_GKR_BATCH_TREES\") catch |err| switch (err) {\n            error.EnvironmentVariableNotFound => null,\n            else => return err,\n        };\n        defer if (tree_flag) |value| a.free(value);\n        const trees_enabled = try treeBatchEnabled(tree_flag, numerical.stwo_rv64_batch_layer_on != null);\n        const tail_enabled = std.process.hasEnvVarConstant(\"STWO_RV64_GKR_BATCH_TAIL\");"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_GKR_BATCH_TAIL": {
-      "owner": "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-      "default": "false (variable absent)",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-        "src/integrations/riscv_cuda/rv64/jobs/native_gkr.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-        "text": "        const tail_enabled = std.process.hasEnvVarConstant(\"STWO_RV64_GKR_BATCH_TAIL\");\n        if (tail_enabled and (!batch_enabled or numerical.stwo_rv64_batch_tail_on == null)) return error.MissingCudaBatchedTailSymbol;\n        const fold_sum_flag = std.process.getEnvVarOwned(a, \"STWO_RV64_GKR_BATCH_FOLD_SUM\") catch |err| switch (err) {\n            error.EnvironmentVariableNotFound => null,\n            else => return err,\n        };\n        defer if (fold_sum_flag) |value| a.free(value);\n        const fold_sum_enabled = if (fold_sum_flag) |value| blk: {"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_GKR_BATCH_TREES": {
-      "owner": "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-        "src/integrations/riscv_cuda/rv64/jobs/native_gkr.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-        "text": "        const tree_flag = std.process.getEnvVarOwned(a, \"STWO_RV64_GKR_BATCH_TREES\") catch |err| switch (err) {\n            error.EnvironmentVariableNotFound => null,\n            else => return err,\n        };\n        defer if (tree_flag) |value| a.free(value);\n        const trees_enabled = try treeBatchEnabled(tree_flag, numerical.stwo_rv64_batch_layer_on != null);\n        const tail_enabled = std.process.hasEnvVarConstant(\"STWO_RV64_GKR_BATCH_TAIL\");\n        if (tail_enabled and (!batch_enabled or numerical.stwo_rv64_batch_tail_on == null)) return error.MissingCudaBatchedTailSymbol;"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_GKR_CLAIMS_WORD": {
       "owner": "src/backends/cuda/native/rv64/gkr_loop.h",
       "default": "constexpr uint32_t STWO_RV64_GKR_CLAIMS_WORD = 308;",
@@ -784,21 +340,6 @@
         "tests/cuda/rv64/gkr_loop_smoke.cu",
         "tests/cuda/rv64/outer_gkr_bench.cu"
       ]
-    },
-    "STWO_RV64_GKR_SERIAL_ORACLES": {
-      "owner": "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-      "default": "false (variable absent)",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-        "src/integrations/riscv_cuda/rv64/jobs/native_gkr.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/gkr_stage.zig",
-        "text": "        const batch_enabled = try batchEnabled(batch_available, std.process.hasEnvVarConstant(\"STWO_RV64_GKR_BATCH_ORACLES\"), std.process.hasEnvVarConstant(\"STWO_RV64_GKR_SERIAL_ORACLES\"));\n        const tree_flag = std.process.getEnvVarOwned(a, \"STWO_RV64_GKR_BATCH_TREES\") catch |err| switch (err) {\n            error.EnvironmentVariableNotFound => null,\n            else => return err,\n        };\n        defer if (tree_flag) |value| a.free(value);\n        const trees_enabled = try treeBatchEnabled(tree_flag, numerical.stwo_rv64_batch_layer_on != null);\n        const tail_enabled = std.process.hasEnvVarConstant(\"STWO_RV64_GKR_BATCH_TAIL\");"
-      },
-      "expires": "2026-12-09"
     },
     "STWO_RV64_GKR_STATE_WORDS": {
       "owner": "src/backends/cuda/native/rv64/gkr_loop.h",
@@ -1036,20 +577,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_GPU_REPLAY_RETAIN_PER_DEVICE": {
-      "owner": "src/integrations/riscv_cuda/rv64/cpu_replay.zig",
-      "default": "4",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/cpu_replay.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/cpu_replay.zig",
-        "text": "        const text = std.posix.getenv(\"STWO_RV64_GPU_REPLAY_RETAIN_PER_DEVICE\") orelse return default_retain;\n        const value = std.fmt.parseInt(usize, text, 10) catch return error.InvalidReplayRetainLimit;\n        if (value > 64) return error.InvalidReplayRetainLimit;\n        return value;\n    }\n    pub fn deinit(self: *Context) void {\n        std.debug.assert(self.compact_bytes == 0 and self.retained_live == 0);\n        self.* = undefined;"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_GPU_RETAINED_SCOPES": {
       "owner": "src/integrations/riscv_cuda/rv64/resident_router.zig",
       "default": "2",
@@ -1194,20 +721,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_KECCAK_FAMILY_PROFILE": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/keccak_family_profile.zig",
-      "default": "legacy",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/keccak_family_profile.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/keccak_family_profile.zig",
-        "text": "pub const ENV = \"STWO_RV64_KECCAK_FAMILY_PROFILE\";\npub const DOMAIN = \"rv64-m7/keccak-early-late/b16-q27-p20-fold4/v1\";\npub const Policy = enum {\n    legacy,\n    m7_keccak_early_late_b16_q27_p20_fold4_v1,\n\n    pub fn parse(text: []const u8) !Policy {\n        if (text.len == 0 or std.mem.eql(u8, text, \"legacy\")) return .legacy;"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_KECCAK_WITNESS": {
       "owner": "tests/cuda/rv64/cpu_witness_smoke.cu",
       "date": "2026-11-08",
@@ -1300,34 +813,6 @@
       "default_evidence": {
         "path": "src/backends/cuda/native/rv64/circuit_fill_chain.cu",
         "text": "  const char* min_text = std::getenv(\"STWO_RV64_M8_ASSIGNMENT_DUMP_MIN_LEVELS\");\n  const unsigned long min_levels = min_text ? std::strtoul(min_text, nullptr, 10) : 100000ul;\n  if (g.ends < min_levels || taken.exchange(1)) return 0;\n  if (const auto rc = cudaStreamSynchronize(stream)) return int(rc);\n  std::vector<uint32_t> host;\n  char path[4096];\n  std::snprintf(path, sizeof path, \"%s/assignment-node.bin\", dir);\n  FILE* f = std::fopen(path, \"wb\");"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_CAPTURE_INFLIGHT": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig",
-      "default": "inflight",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig",
-        "text": "    return envCount(\"STWO_RV64_M8_CAPTURE_INFLIGHT\", MAX_INFLIGHT) orelse inflight;\n}\npub fn workersOverride(workers: u8) u8 {\n    if (workers == 0) return 0;\n    return envCount(\"STWO_RV64_M8_CAPTURE_WORKERS\", Segments.MAX_WORKERS) orelse workers;\n}\npub const MAX_INFLIGHT = @import(\"capture_prefetch.zig\").MAX_INFLIGHT;\npub const Stats = struct {"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_CAPTURE_WORKERS": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig",
-      "default": "workers",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/direct.zig",
-        "text": "    return envCount(\"STWO_RV64_M8_CAPTURE_WORKERS\", Segments.MAX_WORKERS) orelse workers;\n}\npub const MAX_INFLIGHT = @import(\"capture_prefetch.zig\").MAX_INFLIGHT;\npub const Stats = struct {\n    batches: u32 = 0,\n    max_inflight: u8 = 0,\n    execution_ns: u64 = 0,\n    join_wait_ns: u64 = 0,"
       },
       "expires": "2026-12-09"
     },
@@ -1487,62 +972,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/gn_pack_record.zig",
         "text": "    if (std.posix.getenv(\"STWO_RV64_M8_GN_PACK_RECORD_MAIN\")) |v| if (std.mem.eql(u8, v, \"1\")) {\n        var mf = try r.dir.createFile(try std.fmt.bufPrint(&name_buf, \"seg-{}.main\", .{r.ordinal}), .{});\n        defer mf.close();\n        try mf.writeAll(std.mem.sliceAsBytes(host));\n    };\n    std.debug.print(\"GN_PACK_RECORD ordinal={} main_columns={} main_bytes={}\\n\", .{ r.ordinal, r.logs.len, total * 4 });\n}"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GN_S2_NEGATIVES": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
-      "default": "true",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
-        "text": "    const negatives = !std.mem.eql(u8, env(\"STWO_RV64_M8_GN_S2_NEGATIVES\") orelse \"1\", \"0\");\n    const constants = S2D.sealConstants(@splat(0), rec.execution, @intCast(rec.flat.len), tag);\n    var rows: std.ArrayListUnmanaged(Row) = .empty;\n    var ordinals: std.ArrayListUnmanaged(u32) = .empty;\n    var it = rec.segs.keyIterator();\n    while (it.next()) |k| try ordinals.append(a, k.*);\n    std.mem.sort(u32, ordinals.items, {}, std.sort.asc(u32));\n    for (ordinals.items) |ordinal| {"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GN_S2_REPEAT": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
-      "default": "3",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
-        "text": "    const repeat = std.fmt.parseUnsigned(usize, env(\"STWO_RV64_M8_GN_S2_REPEAT\") orelse \"3\", 10) catch return error.InvalidParityEnvironment;\n    const negatives = !std.mem.eql(u8, env(\"STWO_RV64_M8_GN_S2_NEGATIVES\") orelse \"1\", \"0\");\n    const constants = S2D.sealConstants(@splat(0), rec.execution, @intCast(rec.flat.len), tag);\n    var rows: std.ArrayListUnmanaged(Row) = .empty;\n    var ordinals: std.ArrayListUnmanaged(u32) = .empty;\n    var it = rec.segs.keyIterator();\n    while (it.next()) |k| try ordinals.append(a, k.*);\n    std.mem.sort(u32, ordinals.items, {}, std.sort.asc(u32));"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GN_SHAPE_FRAMING_INSTANCES": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
-      "default": "4",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
-        "text": "    const framing_instances = std.fmt.parseUnsigned(usize, env(\"STWO_RV64_M8_GN_SHAPE_FRAMING_INSTANCES\") orelse \"4\", 10) catch return error.InvalidParityEnvironment;\n    var builder = NCB.Builder{ .a = a, .env = build_env, .registry = &registry, .factory = &factory, .framing_instances = framing_instances, .fixed_setup_bytes = fixed_setup_bytes };\n    defer builder.deinit();\n    var native = ND.Native{ .stage1_hooks = registry.hooks(), .stage2_hooks = factory.hooks(), .shape_hooks = builder.hooks() };\n    const nf = native.factory();\n    var timer = try std.time.Timer.start();\n    const wb = G.WarmBlock{ .block = block, .capture = warm.end() };\n    const rows = try nf.vtable.shape.?(nf.ctx, a, wb);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_GN_SHAPE_LEGACY": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
-      "default": "true",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_class_build_parity_main.zig",
-        "text": "    const run_legacy = !std.mem.eql(u8, env(\"STWO_RV64_M8_GN_SHAPE_LEGACY\") orelse \"1\", \"0\");\n\n    var libs = try jobs.ops.Libraries.open(library, addon);\n    defer libs.close();\n    const Version = *const fn () callconv(.c) u32;\n    const wide = if (libs.base.lookup(Version, \"stwo_rv64_pcs_request_version\")) |version| version() >= 3 else false;\n    const profile = try Candidate.Profile.parse(manifest.profile);\n    const config = Candidate.configFor(profile);"
       },
       "expires": "2026-12-09"
     },
@@ -1818,7 +1247,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
-        "text": "        out.declare_words = try Env.optionalUnsigned(u64, \"STWO_RV64_M8_OUTER_DECLARE_WORDS\");\n        out.leaf_persistent = try Env.flag(\"STWO_RV64_M8_OUTER_LEAF_PERSISTENT\", false);\n        if (build_streams and try TC.streamSelected(kernels)) {\n            const fp: ?*const Plan.TreePlan = if (staged.statics.fixed_plan) |*f| f else null;\n            out.streams = try N.Streams.init(out.allocator, staged.plan(), fp, try TC.streamChunkWords(), kernels.compact_eager);\n        }\n        errdefer if (out.streams) |*st| st.deinit(out.allocator);\n        _ = try out.layout.add(.opaque_words, section_index, Plan.Section.words);"
+        "text": "        out.declare_words = try Env.optionalUnsigned(u64, \"STWO_RV64_M8_OUTER_DECLARE_WORDS\");\n        out.leaf_persistent = false;\n        if (build_streams and try TC.streamSelected(kernels)) {\n            const fp: ?*const Plan.TreePlan = if (staged.statics.fixed_plan) |*f| f else null;\n            out.streams = try N.Streams.init(out.allocator, staged.plan(), fp, try TC.streamChunkWords(), kernels.compact_eager);\n        }\n        errdefer if (out.streams) |*st| st.deinit(out.allocator);\n        _ = try out.layout.add(.opaque_words, section_index, Plan.Section.words);"
       },
       "expires": "2026-12-09"
     },
@@ -1899,21 +1328,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_M8_OUTER_LEAF_PERSISTENT": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
-      "default": "false",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
-        "text": "        out.leaf_persistent = try Env.flag(\"STWO_RV64_M8_OUTER_LEAF_PERSISTENT\", false);\n        if (build_streams and try TC.streamSelected(kernels)) {\n            const fp: ?*const Plan.TreePlan = if (staged.statics.fixed_plan) |*f| f else null;\n            out.streams = try N.Streams.init(out.allocator, staged.plan(), fp, try TC.streamChunkWords(), kernels.compact_eager);\n        }\n        errdefer if (out.streams) |*st| st.deinit(out.allocator);\n        _ = try out.layout.add(.opaque_words, section_index, Plan.Section.words);\n        if (snapshots) for (0..N.prefix_steps) |step| {"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_M8_OUTER_OODS_FAULT_ORDINAL": {
       "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_encode.zig",
       "default": "null",
@@ -1942,65 +1356,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_M8_OUTER_PCS_RESERVE_TREES": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
-      "default": "11 for direct OuterNodeJob; 0 in factory compatibility validation (not consumed there)",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_job.zig",
-        "text": "        out.pcs_reserve_trees = try Env.unsigned(u64, \"STWO_RV64_M8_OUTER_PCS_RESERVE_TREES\", out.pcs_reserve_trees);\n        out.declare_words = try Env.optionalUnsigned(u64, \"STWO_RV64_M8_OUTER_DECLARE_WORDS\");\n        out.leaf_persistent = try Env.flag(\"STWO_RV64_M8_OUTER_LEAF_PERSISTENT\", false);\n        if (build_streams and try TC.streamSelected(kernels)) {\n            const fp: ?*const Plan.TreePlan = if (staged.statics.fixed_plan) |*f| f else null;\n            out.streams = try N.Streams.init(out.allocator, staged.plan(), fp, try TC.streamChunkWords(), kernels.compact_eager);\n        }\n        errdefer if (out.streams) |*st| st.deinit(out.allocator);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_OUTER_STREAM": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_trace_commit.zig",
-      "default": "true",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/outer_trace_commit.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_trace_commit.zig",
-        "text": "    if (!try Env.flag(\"STWO_RV64_M8_OUTER_STREAM\", true)) return false;\n    return kernels.layer != null and (kernels.mixed_compact != null or kernels.mixed_seeded != null);\n}\npub fn streamChunkWords() !usize {\n    const words = try Env.unsigned(usize, \"STWO_RV64_M8_OUTER_STREAM_CHUNK_WORDS\", default_stream_chunk_words);\n    return if (words == 0) default_stream_chunk_words else words;\n}\n"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_OUTER_STREAM_CHUNK_WORDS": {
-      "owner": "src/integrations/riscv_cuda/rv64/jobs/outer_trace_commit.zig",
-      "default": "1 << 26 words; 0 selects that same default; factory compatibility validation parses with default 0 but does not consume it",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/jobs/outer_trace_commit.zig",
-        "src/integrations/riscv_cuda/rv64/outer_job_factory.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/jobs/outer_trace_commit.zig",
-        "text": "    const words = try Env.unsigned(usize, \"STWO_RV64_M8_OUTER_STREAM_CHUNK_WORDS\", default_stream_chunk_words);\n    return if (words == 0) default_stream_chunk_words else words;\n}\n\n/// Class-static stream schedule of one tree (host only; built in pre-stage).\npub const Stream = struct {\n    plan: StreamPlan.Plan,\n    /// Sorted-order LDE rows of every column (plan input, kept for enqueue)."
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_PARITY_BINDING": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-      "default": "true",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "text": "    if (!std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_BINDING\") orelse \"1\", \"0\") and !std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_STAGE1\") orelse \"1\", \"0\")) {\n        decorator.bsym = try NB.Symbols.load(&libs.base);\n        decorator.events = &events_api;\n    }\n    const wrapped = decorator.stage();\n    if (only == .all) stages.numerical = &wrapped;\n    const compare = libs.addon.lookup(Compare, \"stwo_rv64_jobs_native_compare_v1\") orelse return error.ParityRequiresCompareKernel;\n    var global = GlobalDecorator{ .a = a, .inner = stages.global_interaction orelse return error.ParityRequiresDeviceGlobal, .worker = worker, .symbols = try NGl.Symbols.load(&libs.base), .catalogue = NGl.Catalogue.init(a, &libs.base), .compare = compare, .peer = peer };"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_M8_PARITY_COMPOSITION": {
       "owner": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
       "default": "\"0\"",
@@ -2011,7 +1366,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "text": "    const composition_flag = env(\"STWO_RV64_M8_PARITY_COMPOSITION\") orelse \"0\";\n    const check_composition = only_composition or !std.mem.eql(u8, composition_flag, \"0\");\n    if (check_composition) stages.resident_composition = &wrapped_composition;\n    composition.device_claims = device_claims;\n    if (only == .all or only_composition) composition.global = &global;\n    // Truth/service compositions through the same producer (truth kernel).\n    if (check_composition and !std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_TRUTH\") orelse \"1\", \"0\")) {\n        composition.truth_inner = stages.truth_composition orelse return error.ParityRequiresTruthComposition;"
+        "text": "//!   STWO_RV64_M8_PARITY_COMPOSITION 0 (default) / 1: composition parity\n//!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots\n//!                                   patched from the native_global jobs' claims\n//!                                   (Stage2 layout, jobs/native_claims.zig)\n//!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too\n//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity\nconst std = @import(\"std\");\nconst CPU = @import(\"stwo_riscv_cpu_integration\");"
       },
       "expires": "2026-12-09"
     },
@@ -2042,7 +1397,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "text": "    const device_claims = std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_DEVICE_CLAIMS\") orelse \"0\", \"1\");\n    var stages = pool.stages();\n    var decorator = Decorator{ .a = a, .inner = pool.stages().numerical.?.*, .worker = worker, .symbols = try NG.Symbols.load(&libs.base), .catalogue = try Sources.Catalogue.init(a), .arena_bytes = arena_bytes, .peer = peer, .csym = try NC.Symbols.load(&libs.base) };\n    defer decorator.catalogue.deinit();\n    defer decorator.rows.deinit(a);\n    defer decorator.pending_binding.deinit(a);\n    const events_api = try Events.Api.load(&libs.base);\n    if (!std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_BINDING\") orelse \"1\", \"0\") and !std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_STAGE1\") orelse \"1\", \"0\")) {"
+        "text": "//!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots\n//!                                   patched from the native_global jobs' claims\n//!                                   (Stage2 layout, jobs/native_claims.zig)\n//!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too\n//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity\nconst std = @import(\"std\");\nconst CPU = @import(\"stwo_riscv_cpu_integration\");\nconst Main = CPU.rv64_ethereum_gkr_main;"
       },
       "expires": "2026-12-09"
     },
@@ -2086,34 +1441,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64_m8_gn_s2_parity_main.zig",
         "text": "    const peer = Peer{ .copy = libs.addon.lookup(PeerCopy, \"stwo_rv64_jobs_native_peer_copy_v1\") orelse return error.ParityRequiresPeerCopy, .source_device = std.fmt.parseUnsigned(c_int, env(\"STWO_RV64_M8_PARITY_SOURCE_DEVICE\") orelse \"0\", 10) catch return error.InvalidParityEnvironment };\n    const Version = *const fn () callconv(.c) u32;\n    const wide = if (libs.base.lookup(Version, \"stwo_rv64_pcs_request_version\")) |v| v() >= 3 else false;\n    std.debug.print(\"GPU_M8_GN_S2 phase=worker_ready device={} wide={}\\n\", .{ device, wide });\n\n    var config = try Router.Config.fromEnv(a);\n    defer config.deinit(a);\n    var recycler = Main.Recycler.init(std.heap.smp_allocator, 1 << 30);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_PARITY_STAGE1": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-      "default": "\"1\"",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "text": "//!   STWO_RV64_M8_PARITY_STAGE1      1 (default) / 0: Stage1 job checks\n//!   STWO_RV64_M8_PARITY_BINDING     1 (default) / 0: binding tail in Stage1\n//!   STWO_RV64_M8_PARITY_COMPOSITION 0 (default) / 1: composition parity\n//!   STWO_RV64_M8_PARITY_DEVICE_CLAIMS 0 (default) / 1: composition claim slots\n//!                                   patched from the native_global jobs' claims\n//!                                   (Stage2 layout, jobs/native_claims.zig)\n//!   STWO_RV64_M8_PARITY_TRUTH       1 (default) / 0: truth compositions too\n//!   STWO_RV64_M8_PARITY_PCS         0 (default) / 1: OODS + PCS parity"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_PARITY_TRUTH": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-      "default": "true",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_native_parity_main.zig",
-        "text": "    if (check_composition and !std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_TRUTH\") orelse \"1\", \"0\")) {\n        composition.truth_inner = stages.truth_composition orelse return error.ParityRequiresTruthComposition;\n        stages.truth_composition = composition.truthStage();\n    }\n    // STWO_RV64_M8_PARITY_PCS=1 (default 0): OODS + enqueue-only PCS at every\n    // legacy PCS (CPU segments and truths).\n    const check_pcs = std.mem.eql(u8, env(\"STWO_RV64_M8_PARITY_PCS\") orelse \"0\", \"1\") or only == .pcs;\n    var pcs_mutex: std.Thread.Mutex = .{};"
       },
       "expires": "2026-12-09"
     },
@@ -2174,48 +1501,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_M8_TRUTH_CLASS_SKEW": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig",
-      "default": "true",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig",
-        "text": "    const skew = !std.mem.eql(u8, env(\"STWO_RV64_M8_TRUTH_CLASS_SKEW\") orelse \"1\", \"0\");\n    const authority = if (skew) K.withSpan(rec.truth, if (rec.truth.count() > 1) rec.truth.count() - 1 else rec.truth.count() + 1, rec.truth.first() + 1) else rec.truth;\n    if (!std.mem.eql(u8, &key, &try K.classKey(authority, rec.config, fixed.root))) return error.ParityClassKeyNotSpanFree;\n    const class = try K.build(a, .{ .truth = authority, .config = rec.config, .fixed = fixed.columns, .fixed_root = fixed.root, .psym = sym.pcs, .wide_framing = wide });\n    errdefer {\n        class.deinit();\n        a.destroy(class);\n    }"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_TRUTH_NEGATIVES": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig",
-      "default": "true",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig",
-        "text": "    const negatives = !std.mem.eql(u8, env(\"STWO_RV64_M8_TRUTH_NEGATIVES\") orelse \"1\", \"0\");\n    var classes: std.ArrayListUnmanaged(*K.Class) = .empty;\n    var rows: std.ArrayListUnmanaged(Row) = .empty;\n    var negative_done = [2]bool{ false, false };\n    std.mem.sort(*Record, source.records.items, {}, struct {\n        fn less(_: void, x: *Record, y: *Record) bool {\n            return x.expected.ordinal < y.expected.ordinal;\n        }"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_TRUTH_REPEAT": {
-      "owner": "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig",
-      "default": "2",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64_m8_truth_parity_main.zig",
-        "text": "    const repeat = std.fmt.parseUnsigned(usize, env(\"STWO_RV64_M8_TRUTH_REPEAT\") orelse \"2\", 10) catch return error.InvalidParityEnvironment;\n    const negatives = !std.mem.eql(u8, env(\"STWO_RV64_M8_TRUTH_NEGATIVES\") orelse \"1\", \"0\");\n    var classes: std.ArrayListUnmanaged(*K.Class) = .empty;\n    var rows: std.ArrayListUnmanaged(Row) = .empty;\n    var negative_done = [2]bool{ false, false };\n    std.mem.sort(*Record, source.records.items, {}, struct {\n        fn less(_: void, x: *Record, y: *Record) bool {\n            return x.expected.ordinal < y.expected.ordinal;"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_M8_TRUTH_SPLIT": {
       "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig",
       "default": "false",
@@ -2228,23 +1513,7 @@
       ],
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig",
-        "text": "    return envFlag(\"STWO_RV64_M8_TRUTH_SPLIT\");\n}\n/// Same predicate gkr_main uses to pad declarations to canonical rungs.\nfn canonRungsEnabled() bool {\n    return @import(\"../../word16_execution/native_policy.zig\").strictRoster() or envFlag(\"STWO_RV64_CANON_RUNGS\");\n}\npub fn keccakTruthPolicyFor(options: KeccakTruthOptions, log: u32) KeccakPolicy {\n    if (!options.v3) return .triple_v2;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_M8_WITNESS_COALESCE": {
-      "owner": "src/backends/cuda/native/circuit/base_witness.cu",
-      "default": "true",
-      "status": "retire-after-native-default",
-      "date": "2026-11-08",
-      "references": [
-        "src/backends/cuda/native/circuit/base_witness.cu",
-        "src/backends/cuda/native/rv64/bridge_witness.cu",
-        "src/backends/cuda/native/rv64/keccak_witness.cu"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/circuit/base_witness.cu",
-        "text": "        const char *v = getenv(\"STWO_RV64_M8_WITNESS_COALESCE\");\n        // Default ON (M8 opt-combined): generate 0.298 -> generate 0.138 + generate_shared 0.102\n        // GPU-s per warm 24628607 request [M]; \"0\" restores the reference kernel.\n        base_coalesce = !(v && v[0] == '0' && !v[1]);\n    }\n    return base_coalesce == 1;\n}\n"
+        "text": "    /// M8 p-truth-split (`STWO_RV64_M8_TRUTH_SPLIT=1`, default off; coalesced\n    /// plans only): a family whose single coalesced truth the profile refuses\n    /// (source MAX_LOG, V3 shape, or no admissible canonical rung) is split\n    /// into consecutive bounded spans instead. Families that fit keep their\n    /// single truth, so every plan the profile admits today is unchanged.\n    split_families: bool = false,\n    /// Bound split spans by the top canonical rung of their family (set when\n    /// the producer pads to rungs: strict roster or STWO_RV64_CANON_RUNGS=1)."
       },
       "expires": "2026-12-09"
     },
@@ -2378,20 +1647,6 @@
       "status": "constant",
       "default": "compile-time test selector/header guard; FIRST_CASE defaults 0; other selectors are absent unless supplied by the test build"
     },
-    "STWO_RV64_NATIVE_VERIFY_WORKERS": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig",
-      "default": "max(1, min(native_workers, 8))",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig",
-        "text": "pub const WORKERS_ENV = \"STWO_RV64_NATIVE_VERIFY_WORKERS\";\nconst THREAD_STACK_BYTES: usize = 16 << 20;\n\npub fn enabled() bool {\n    return !std.process.hasEnvVarConstant(SERIAL_ENV);\n}\n\npub fn workers(a: std.mem.Allocator, native_workers: usize) usize {\n    const text = std.process.getEnvVarOwned(a, WORKERS_ENV) catch return @max(1, @min(native_workers, DEFAULT_WORKERS));\n    defer a.free(text);"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_NATIVE_VERSION": {
       "owner": "src/integrations/riscv_cpu/word16_execution/native_policy.zig",
       "default": "flat",
@@ -2427,20 +1682,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_OUTER_ASSIGNMENT_CHAIN": {
-      "owner": "src/integrations/riscv_cuda/rv64/outer_assignment.zig",
-      "default": "enabled when chain and width symbols are both available",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/outer_assignment.zig",
-        "text": "        const chain_option = std.posix.getenv(\"STWO_RV64_OUTER_ASSIGNMENT_CHAIN\");\n        const chain_enabled = if (chain_option) |value| blk: {\n            if (std.mem.eql(u8, value, \"0\")) break :blk false;\n            if (std.mem.eql(u8, value, \"1\")) break :blk true;\n            return error.InvalidAssignmentChainOption;\n        } else chain != null and width != null;\n        if (chain_enabled and (chain == null or width == null)) return error.MissingCircuitAssignmentChainKernel;\n        const plan: ?Runs.Plan = if (chain_enabled) try Runs.Plan.initChain(a, level_ends, task_count, width.?()) else if (narrow_enabled) try Runs.Plan.init(a, level_ends, task_count) else null;"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_OUTER_ASSIGNMENT_GRAPH": {
       "owner": "src/integrations/riscv_cuda/rv64/assignment_graphs.zig",
       "default": "false",
@@ -2453,20 +1694,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64/assignment_graphs.zig",
         "text": "    const text = std.posix.getenv(\"STWO_RV64_OUTER_ASSIGNMENT_GRAPH\") orelse return false;\n    if (std.mem.eql(u8, text, \"0\")) return false;\n    if (std.mem.eql(u8, text, \"1\")) return true;\n    return error.InvalidAssignmentGraphOption;\n}\npub fn steps(a: std.mem.Allocator, plan: *const Runs.Plan) ![]Step {\n    if (plan.runs.len == 0 or plan.runs.len > 65536) return error.InvalidAssignmentGraphPlan;\n    const out = try a.alloc(Step, plan.runs.len);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_OUTER_ASSIGNMENT_LEAF_IMMUTABLE": {
-      "owner": "src/integrations/riscv_cuda/rv64/outer_assignment.zig",
-      "default": "enabled for non-leaf installed class with class_hint hook",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/outer_assignment.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/outer_assignment.zig",
-        "text": "        if (std.posix.getenv(\"STWO_RV64_OUTER_ASSIGNMENT_LEAF_IMMUTABLE\")) |value| if (std.mem.eql(u8, value, \"1\")) return true;\n        return !Dev.class_is_leaf and Dev.class_hint != null;\n    }\n    pub fn rebind(self: *Prepared, library: *std.DynLib) !void {\n        const seed = library.lookup(Launch, \"stwo_circuit_assignment_seed_on\") orelse return error.MissingCircuitAssignmentKernel;\n        const level = library.lookup(Launch, \"stwo_circuit_assignment_level_on\") orelse return error.MissingCircuitAssignmentKernel;\n        if (seed == self.seed and level == self.level) return;\n        const capabilities = if (library.lookup(*const fn () callconv(.c) u32, \"stwo_circuit_assignment_capabilities\")) |query| query() else 0xfff;"
       },
       "expires": "2026-12-09"
     },
@@ -2651,7 +1878,7 @@
       ],
       "default_evidence": {
         "path": "src/backends/cuda/native/rv64/pcs_native.cu",
-        "text": "        std::getenv(\"STWO_RV64_PCS_IDLE_CACHE_BYTES\"), cap);\n    const char *phase = std::getenv(\"STWO_RV64_PCS_PHASE_BOUND\");\n    const bool phase_bound = phase && std::strcmp(phase,\"1\")==0;\n    rv64_pcs_idle_cache::requirePhaseRetirement(idle_cache, phase_bound);\n    if (phase_bound) std::printf(\"GPU_PCS_PHASE_BOUND enabled=1 zero_idle_cache=true joined_retirement=true\\n\");\n    token = next_token.fetch_add(1);\n    if (!token)\n      throw std::runtime_error(\"context token exhausted\");"
+        "text": "        std::getenv(\"STWO_RV64_PCS_IDLE_CACHE_BYTES\"), cap);\n    const char *phase = nullptr;\n    const bool phase_bound = phase && std::strcmp(phase,\"1\")==0;\n    rv64_pcs_idle_cache::requirePhaseRetirement(idle_cache, phase_bound);\n    if (phase_bound) std::printf(\"GPU_PCS_PHASE_BOUND enabled=1 zero_idle_cache=true joined_retirement=true\\n\");\n    token = next_token.fetch_add(1);\n    if (!token)\n      throw std::runtime_error(\"context token exhausted\");"
       },
       "expires": "2026-12-09"
     },
@@ -2672,38 +1899,6 @@
       "references": [
         "src/backends/cuda/native/rv64/pcs_native.h"
       ]
-    },
-    "STWO_RV64_PCS_PHASE_BOUND": {
-      "owner": "src/backends/cuda/native/rv64/pcs_native.cu",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/backends/cuda/native/rv64/pcs_native.cu",
-        "src/integrations/riscv_cuda/rv64/pcs_native.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/rv64/pcs_native.cu",
-        "text": "    const char *phase = std::getenv(\"STWO_RV64_PCS_PHASE_BOUND\");\n    const bool phase_bound = phase && std::strcmp(phase,\"1\")==0;\n    rv64_pcs_idle_cache::requirePhaseRetirement(idle_cache, phase_bound);\n    if (phase_bound) std::printf(\"GPU_PCS_PHASE_BOUND enabled=1 zero_idle_cache=true joined_retirement=true\\n\");\n    token = next_token.fetch_add(1);\n    if (!token)\n      throw std::runtime_error(\"context token exhausted\");\n    StwoCudaContextOptions options{1, device, 2, 32};"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_PCS_PHASE_TIMING": {
-      "owner": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64/rv64_m3_pod.py",
-        "scripts/rv64/rv64_m4_resident.py",
-        "scripts/rv64/rv64_resident_basket.py",
-        "src/backends/cuda/native/rv64/pcs_pipeline.cuh"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-        "text": "  const char *phase_env = std::getenv(\"STWO_RV64_PCS_PHASE_TIMING\");\n  const bool phase_timing = phase_env && std::strcmp(phase_env, \"1\") == 0;\n  std::array<cudaEvent_t, 8> phase_events{};\n  std::array<std::chrono::steady_clock::time_point, 8> phase_host{};\n  if (phase_timing) {\n    phase_events[0] = begin;\n    phase_events[7] = end;\n    for (size_t i = 1; i < 7; ++i) phase_events[i] = o.event();"
-      },
-      "expires": "2026-12-09"
     },
     "STWO_RV64_PCS_ROLLING_BETA2": {
       "owner": "src/backends/cuda/native/rv64/jobs/pcs_enqueue.cu",
@@ -2730,37 +1925,6 @@
       "references": [
         "src/backends/cuda/native/rv64/pcs_native.h"
       ]
-    },
-    "STWO_RV64_PCS_STREAM": {
-      "owner": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-      "default": "enabled; default chunk budget",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-        "src/integrations/riscv_cuda/rv64/pcs_native.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-        "text": "  const char *v = std::getenv(\"STWO_RV64_PCS_STREAM\");\n  if (v && std::strcmp(v, \"0\") == 0) return 0;\n  const char *w = std::getenv(\"STWO_RV64_PCS_STREAM_CHUNK_WORDS\");\n  if (w && *w) {\n    char *end = nullptr;\n    const unsigned long long parsed = std::strtoull(w, &end, 10);\n    if (end && !*end && parsed) return parsed;\n  }"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_PCS_STREAM_CHUNK_WORDS": {
-      "owner": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-      "default": "stream.kDefaultChunkWords (compile-time stream policy)",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64/rv64_m4_arena_sweep.py",
-        "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-        "src/integrations/riscv_cuda/rv64/pcs_native.zig"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/rv64/pcs_pipeline.cuh",
-        "text": "  const char *w = std::getenv(\"STWO_RV64_PCS_STREAM_CHUNK_WORDS\");\n  if (w && *w) {\n    char *end = nullptr;\n    const unsigned long long parsed = std::strtoull(w, &end, 10);\n    if (end && !*end && parsed) return parsed;\n  }\n  return stwo::cuda::rv64::stream::kDefaultChunkWords;\n}"
-      },
-      "expires": "2026-12-09"
     },
     "STWO_RV64_PHASE_CACHE_TRIM": {
       "owner": "src/integrations/riscv_cuda/rv64/pcs_native.zig",
@@ -2789,22 +1953,7 @@
       ],
       "default_evidence": {
         "path": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "text": "  if (const char *v = getenv(\"STWO_RV64_PINNED_STAGING\")) {\n    if (!strcmp(v, \"0\")) c.staging = false;\n    else if (!strcmp(v, \"1\")) c.staging = true;\n    else c.valid = false;\n  }\n  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_CHUNK\"))\n    if (!parse_bytes(v, &c.chunk) || c.chunk < (uint64_t(2) << 20)) c.valid = false;\n  if (const char *v = getenv(\"STWO_RV64_DEVICE_ARENA_SMALL_CHUNKS\"))"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_PINNED_STAGING_SLOT": {
-      "owner": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-      "default": "16 MiB",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64/rv64_m4_arena_sweep.py",
-        "src/backends/cuda/native/runtime/device_arena_runtime.cuh"
-      ],
-      "default_evidence": {
-        "path": "src/backends/cuda/native/runtime/device_arena_runtime.cuh",
-        "text": "//   STWO_RV64_PINNED_STAGING_SLOT=<bytes>    slot size (default 16M), 4 slots\n//   STWO_RV64_PINNED_STAGING_THREADS=<n>     memcpy workers per copy (default 8)\n//   STWO_RV64_DEVICE_ARENA_POISON=<0..255>   test only: fill every arena\n//       allocation and every freed range with this byte (synchronously), so\n//       a proof that reads uninitialised or freed memory stops matching.\n//\n// Cross-context reuse: every context used to own a private async pool, so a\n// freed range was only ever reused by the stream that freed it. The arena is"
+        "text": "//   STWO_RV64_PINNED_STAGING=0|1             pinned H2D/D2H bounce rings\n//       (M5 platform: default 1; v2 fills slots with a parallel memcpy pool)\n//   STWO_RV64_PINNED_STAGING_SLOT=<bytes>    slot size (default 16M), 4 slots\n//   STWO_RV64_PINNED_STAGING_THREADS=<n>     memcpy workers per copy (default 8)\n//   STWO_RV64_DEVICE_ARENA_POISON=<0..255>   test only: fill every arena\n//       allocation and every freed range with this byte (synchronously), so\n//       a proof that reads uninitialised or freed memory stops matching.\n//"
       },
       "expires": "2026-12-09"
     },
@@ -2838,36 +1987,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_RC_COMPOSITION_COLUMNS": {
-      "owner": "src/integrations/riscv_cuda/rv64/resident_composition.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cuda/rv64/resident_composition.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/resident_composition.zig",
-        "text": "        const result = Context{ .column_policy = if (std.posix.getenv(\"STWO_RV64_RC_COMPOSITION_COLUMNS\")) |v| std.mem.eql(u8, v, \"1\") else false, .direct_policy = !(if (std.posix.getenv(\"STWO_RV64_COMPOSITION_DIRECT\")) |v| std.mem.eql(u8, v, \"0\") else false), .compact_policy = !(false), .enqueue_policy = if (std.posix.getenv(\"STWO_RV64_COMPOSITION_ENQUEUE\")) |v| !std.mem.eql(u8, v, \"0\") else true, .workspace_policy = if (std.posix.getenv(\"STWO_RV64_RC_ROLE_WORKSPACE\")) |v| std.mem.eql(u8, v, \"1\") else false, .pool_trim = try PhasePoolTrim.Policy.init(try PhasePoolTrim.fromEnv(a), service.library.lookup(PhasePoolTrim.Trim, \"stwo_exec_context_pool_trim\")), .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{\n            .allocate = service.lease_allocate,\n            .release = service.lease_release,\n            .validate_range = service.lease_validate_range,\n            .upload = try sym(Native.Upload, &service.library, \"stwo_exec_context_memcpy_h2d_async\"),\n            .download = try sym(Native.Download, &service.library, \"stwo_exec_context_memcpy_d2h_async\"),\n            .sync = try sym(Native.Sync, &service.library, \"stwo_exec_context_sync\"),\n            .lane_stream = try sym(Native.LaneStream, &service.library, \"stwo_exec_context_lane_stream\"),"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_RC_INTER_REUSE": {
-      "owner": "src/integrations/riscv_cuda/rv64/trace_input_reuse.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cuda/rv64/trace_input_reuse.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/trace_input_reuse.zig",
-        "text": "    return if (std.posix.getenv(\"STWO_RV64_RC_INTER_REUSE\")) |v| std.mem.eql(u8, v, \"1\") else false;\n}\n\npub const Layout = struct {\n    order: [11]usize,\n    offsets: [11]usize,\n    logical_words: usize = 0,\n    tail_words: usize = 0,"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_RC_OUTER_CHUNKS": {
       "owner": "src/integrations/riscv_cuda/rv64/outer_chunks_runtime.zig",
       "default": "null",
@@ -2896,21 +2015,6 @@
       },
       "expires": "2026-12-09"
     },
-    "STWO_RV64_RC_ROLE_WORKSPACE": {
-      "owner": "src/integrations/riscv_cuda/rv64/resident_composition.zig",
-      "default": "false",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "conformance/rv64/presets/integration-stack-preset.json",
-        "src/integrations/riscv_cuda/rv64/resident_composition.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/resident_composition.zig",
-        "text": ".workspace_policy = if (std.posix.getenv(\"STWO_RV64_RC_ROLE_WORKSPACE\")) |v| std.mem.eql(u8, v, \"1\") else false"
-      },
-      "expires": "2026-12-09"
-    },
     "STWO_RV64_RECURSION_HOST_BYTES": {
       "owner": "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
       "default": "48 GiB",
@@ -2922,48 +2026,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cuda/rv64_combined_ethereum_main.zig",
         "text": "    const host_text = try env(a, \"STWO_RV64_RECURSION_HOST_BYTES\");\n    defer if (host_text) |v| a.free(v);\n    const host_bytes = if (host_text) |v| std.fmt.parseUnsigned(usize, v, 10) catch return error.InvalidCombinedHostBudget else 48 << 30;\n\n    const output_path = try outputDirectory(arguments);\n    // Identity binds this lifecycle to the explicit request and command. Actual\n    // proof scopes continue to bind authenticated statement/FIXED/MAIN roots.\n    var hash = std.crypto.hash.sha2.Sha256.init(.{});"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_RECURSION_LEAVES_PER_DEVICE": {
-      "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
-      "default": "1",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
-        "text": "    if (std.posix.getenv(\"STWO_RV64_RECURSION_LEAVES_PER_DEVICE\")) |text| {\n        shared.leaves_per_device = std.fmt.parseUnsigned(usize, text, 10) catch return error.InvalidRecursionPipelineOption;\n        if (shared.leaves_per_device == 0) return error.InvalidRecursionPipelineOption;\n    }\n    try shared.ready.ensureTotalCapacity(a, plan.count);\n    defer shared.ready.deinit(a);\n    try shared.finishing.ensureTotalCapacity(a, plan.count);\n    defer shared.finishing.deinit(a);"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_RECURSION_SCHED": {
-      "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig",
-      "default": ".m5",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/ready_dag.zig",
-        "text": "    try std.testing.expect((Policy.fromEnv() catch .critical) == .m5 or std.posix.getenv(\"STWO_RV64_RECURSION_SCHED\") != null);\n}"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_RECURSION_STREAM": {
-      "owner": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
-      "default": "true",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/execution_wrap.zig",
-        "text": "// sched M6: streaming native -> recursion handoff (STWO_RV64_RECURSION_STREAM,\n// default 1; 0 = the M5 sequential handoff). Scheduling only: every leaf graph,\n// fold graph and proof is built from exactly the inputs of the M5 path (the\n// same requests, stage-one bytes, encoded native proofs, keys and FIXED\n// authority), so proof bytes are unchanged. Native coordinator hook:\n// gkr_local/coordinator.zig `Stream`.\n//   sealed   (produce thread, after the stage-one barrier): inventory, stage\n//            views and the manifest are rebuilt here from the sealed bytes,"
       },
       "expires": "2026-12-09"
     },
@@ -3004,20 +2066,6 @@
       ],
       "status": "constant",
       "default": "compile-time test selector/header guard; FIRST_CASE defaults 0; other selectors are absent unless supplied by the test build"
-    },
-    "STWO_RV64_SERIAL_NATIVE_VERIFY": {
-      "owner": "src/integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig",
-      "default": "false (native verification overlap enabled)",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cpu/word16_global_execution/ethereum/native_verify_overlap.zig",
-        "text": "pub const SERIAL_ENV = \"STWO_RV64_SERIAL_NATIVE_VERIFY\";\npub const WORKERS_ENV = \"STWO_RV64_NATIVE_VERIFY_WORKERS\";\nconst THREAD_STACK_BYTES: usize = 16 << 20;\n\npub fn enabled() bool {\n    return !std.process.hasEnvVarConstant(SERIAL_ENV);\n}\n"
-      },
-      "expires": "2026-12-09"
     },
     "STWO_RV64_SERVICE_GEOMETRY_ELF": {
       "owner": "src/integrations/riscv_cpu/tests/rv64_service_geometry_test.zig",
@@ -3109,35 +2157,6 @@
       "default_evidence": {
         "path": "src/integrations/riscv_cpu/rv64_recursion/om31_native/topology_fingerprint.zig",
         "text": "    const dir_path = std.posix.getenv(\"STWO_RV64_TOPOLOGY_DUMP_DIR\") orelse return;\n    dump(ctx, dir_path, label, stage) catch |err| std.debug.print(\"TOPOLOGY_CENSUS dump_error={s}\\n\", .{@errorName(err)});\n}\n\nfn dump(ctx: *const C.Context, dir_path: []const u8, label: []const u8, stage: []const u8) !void {\n    var dir = try std.fs.cwd().makeOpenPath(dir_path, .{});\n    defer dir.close();\n    var name_buffer: [160]u8 = undefined;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_TRACE_STREAM": {
-      "owner": "src/integrations/riscv_cuda/rv64/trace_commit.zig",
-      "default": "enabled with StreamPlan.default_chunk_words",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "src/integrations/riscv_cuda/rv64/trace_commit.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/trace_commit.zig",
-        "text": "    if (std.posix.getenv(\"STWO_RV64_TRACE_STREAM\")) |v| if (std.mem.eql(u8, v, \"0\")) return null;\n    if (std.posix.getenv(\"STWO_RV64_TRACE_STREAM_CHUNK_WORDS\")) |v| {\n        const words = std.fmt.parseInt(usize, v, 10) catch return StreamPlan.default_chunk_words;\n        return if (words == 0) StreamPlan.default_chunk_words else words;\n    }\n    return StreamPlan.default_chunk_words;\n}\nconst B2n = *const fn ([*]const u32, usize, [*]u32, usize, u32, u32, [*]const u32, u32, u32, *anyopaque, *u32) callconv(.c) c_int;"
-      },
-      "expires": "2026-12-09"
-    },
-    "STWO_RV64_TRACE_STREAM_CHUNK_WORDS": {
-      "owner": "src/integrations/riscv_cuda/rv64/trace_commit.zig",
-      "default": "StreamPlan.default_chunk_words",
-      "status": "runtime",
-      "date": "2026-11-08",
-      "references": [
-        "scripts/rv64/rv64_m4_arena_sweep.py",
-        "src/integrations/riscv_cuda/rv64/trace_commit.zig"
-      ],
-      "default_evidence": {
-        "path": "src/integrations/riscv_cuda/rv64/trace_commit.zig",
-        "text": "    if (std.posix.getenv(\"STWO_RV64_TRACE_STREAM_CHUNK_WORDS\")) |v| {\n        const words = std.fmt.parseInt(usize, v, 10) catch return StreamPlan.default_chunk_words;\n        return if (words == 0) StreamPlan.default_chunk_words else words;\n    }\n    return StreamPlan.default_chunk_words;\n}\nconst B2n = *const fn ([*]const u32, usize, [*]u32, usize, u32, u32, [*]const u32, u32, u32, *anyopaque, *u32) callconv(.c) c_int;\nfn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {"
       },
       "expires": "2026-12-09"
     },

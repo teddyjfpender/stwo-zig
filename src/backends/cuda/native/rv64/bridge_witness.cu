@@ -150,7 +150,7 @@ __global__ void __launch_bounds__(128) witness_private(StwoRv64BridgeWitness j){
 // -1 = read STWO_RV64_M8_WITNESS_COALESCE once; tests may set 0/1 directly.
 static int bridge_coalesce=-1;
 static bool witness_coalesce(){
- if(bridge_coalesce<0){const char*v=getenv("STWO_RV64_M8_WITNESS_COALESCE");bridge_coalesce=!(v&&v[0]=='0'&&!v[1]); /* default ON (M8 opt-combined); kernel parity bit-exact [M] */}
+ if(bridge_coalesce<0){const char*v=nullptr;bridge_coalesce=!(v&&v[0]=='0'&&!v[1]); /* default ON (M8 opt-combined); kernel parity bit-exact [M] */}
  return bridge_coalesce==1;
 }
 } }

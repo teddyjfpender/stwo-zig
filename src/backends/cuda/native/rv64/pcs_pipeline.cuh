@@ -53,20 +53,11 @@ extern "C" int stwo_blake2s_mixed_seeded_eager_on(
 extern "C" int stwo_blake2s_layer_on(const void *, uint32_t, void *, void *);
 extern "C" int stwo_blake2s_mixed_seeded_eager_compact_on(uint32_t,uint32_t,const stwo::cuda::blake2s::MixedSegment*,uint32_t,uint32_t,const uint32_t*,uint64_t,uint32_t*,uint64_t,uint32_t*,uint64_t,void*);
 inline bool pcsCompactEager() {
-  const char *v = std::getenv("STWO_RV64_COMPACT_EAGER_STATE");
-  return v && std::strcmp(v,"1")==0;
+  return false;
 }
 // Streaming source rebuild is the default for rolling sources. "0" restores
 // the established max-tree LDE plane; a positive value bounds one chunk.
 inline uint64_t pcsStreamBudget() {
-  const char *v = std::getenv("STWO_RV64_PCS_STREAM");
-  if (v && std::strcmp(v, "0") == 0) return 0;
-  const char *w = std::getenv("STWO_RV64_PCS_STREAM_CHUNK_WORDS");
-  if (w && *w) {
-    char *end = nullptr;
-    const unsigned long long parsed = std::strtoull(w, &end, 10);
-    if (end && !*end && parsed) return parsed;
-  }
   return stwo::cuda::rv64::stream::kDefaultChunkWords;
 }
 extern "C" int stwo_blake2s_pow_persistent_on(const uint32_t *, uint32_t,
@@ -457,7 +448,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   // Opt-in diagnostics only: no extra events or synchronizations on the
   // default path. Stream elapsed includes any host enqueue gaps; the matching
   // host spans make those distinguishable from sustained device work.
-  const char *phase_env = std::getenv("STWO_RV64_PCS_PHASE_TIMING");
+  const char *phase_env = nullptr;
   const bool phase_timing = phase_env && std::strcmp(phase_env, "1") == 0;
   std::array<cudaEvent_t, 8> phase_events{};
   std::array<std::chrono::steady_clock::time_point, 8> phase_host{};

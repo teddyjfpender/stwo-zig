@@ -1171,7 +1171,7 @@ pub const Inventory = struct {
         const cpu = try Plan.cpus(a, owner, layout);
         errdefer a.free(cpu);
         const strict = (try CPU.rv64_native_policy.current()).strictRoster();
-        const canon_flag = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false;
+        const canon_flag = false;
         if (strict or canon_flag) {
             const classes = try a.alloc(Plan.CanonClass, cpu.len);
             defer a.free(classes);

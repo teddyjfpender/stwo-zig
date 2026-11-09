@@ -47,12 +47,7 @@ const Grouping = struct {
         if (narrow_enabled and narrow == null) return error.MissingCircuitAssignmentNarrowRunKernel;
         const chain = library.lookup(LaunchChain, "stwo_circuit_assignment_chain_run_on");
         const width = library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_chain_max_width");
-        const chain_option = std.posix.getenv("STWO_RV64_OUTER_ASSIGNMENT_CHAIN");
-        const chain_enabled = if (chain_option) |value| blk: {
-            if (std.mem.eql(u8, value, "0")) break :blk false;
-            if (std.mem.eql(u8, value, "1")) break :blk true;
-            return error.InvalidAssignmentChainOption;
-        } else chain != null and width != null;
+        const chain_enabled = chain != null and width != null;
         if (chain_enabled and (chain == null or width == null)) return error.MissingCircuitAssignmentChainKernel;
         const plan: ?Runs.Plan = if (chain_enabled) try Runs.Plan.initChain(a, level_ends, task_count, width.?()) else if (narrow_enabled) try Runs.Plan.init(a, level_ends, task_count) else null;
         const wide = if (chain_enabled) library.lookup(Launch, "stwo_circuit_assignment_wide_level_on") else null;
@@ -153,7 +148,7 @@ pub const ClassCache = struct {
         defer mutex.unlock();
         if (SamplePlan.enabled() catch return false) {
             if (t.blake_sample_prefill and (t.blake_sample_span == null or t.blake_sample_outputs == null)) return false;
-        } else if (std.posix.getenv("STWO_RV64_BLAKE_SAMPLE_CHECK")) |value| if (std.mem.eql(u8, value, "1") and t.blake_sample_span == null) return false;
+        }
         return !t.rejected and t.constants_stable and t.constants.len == t.n_constants;
     }
     /// A disk-loaded template that fails a use-time check (library capability,
@@ -788,7 +783,6 @@ pub const Prepared = struct {
         std.debug.print("\n", .{});
     }
     fn reusableClassPlan() bool {
-        if (std.posix.getenv("STWO_RV64_OUTER_ASSIGNMENT_LEAF_IMMUTABLE")) |value| if (std.mem.eql(u8, value, "1")) return true;
         return !Dev.class_is_leaf and Dev.class_hint != null;
     }
     pub fn rebind(self: *Prepared, library: *std.DynLib) !void {

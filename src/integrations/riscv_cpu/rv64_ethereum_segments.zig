@@ -34,8 +34,7 @@ pub fn minimalFirstPassEnabled() bool {
 }
 
 pub fn ramFirstPassEnabled() bool {
-    const text = std.posix.getenv("STWO_RV64_FIRST_PASS_RAM") orelse return false;
-    return std.mem.eql(u8, text, "1");
+    return false;
 }
 
 pub const Stats = struct {

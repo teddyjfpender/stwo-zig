@@ -1647,11 +1647,11 @@ pub const Hybrid = struct {
             k.graphs = try Graphs.Policy.fromEnv();
             // Node-job knobs are parsed per job; check them here so a bad
             // value fails the service at create, not at the first node.
-            _ = try Env.flag("STWO_RV64_M8_OUTER_STREAM", true);
-            _ = try Env.unsigned(usize, "STWO_RV64_M8_OUTER_STREAM_CHUNK_WORDS", 0);
-            _ = try Env.unsigned(u64, "STWO_RV64_M8_OUTER_PCS_RESERVE_TREES", 0);
+            _ = true;
+            _ = 0;
+            _ = 0;
             _ = try Env.optionalUnsigned(u64, "STWO_RV64_M8_OUTER_DECLARE_WORDS");
-            _ = try Env.flag("STWO_RV64_M8_OUTER_LEAF_PERSISTENT", false);
+            _ = false;
             _ = try CP.selected();
             _ = try CP.hostBudgetBytes();
             _ = try Checks.selected();

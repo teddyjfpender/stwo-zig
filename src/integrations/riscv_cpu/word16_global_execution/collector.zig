@@ -140,9 +140,7 @@ pub const Ledger = struct {
 const PARALLEL = 8;
 const PARALLEL_MIN = 1 << 16;
 fn parallelBoundaries(n: usize) bool {
-    if (n < PARALLEL_MIN) return false;
-    const text = std.posix.getenv("STWO_RV64_CAPTURE_PARALLEL_BOUNDARIES") orelse return true;
-    return !std.mem.eql(u8, text, "0");
+    return n >= PARALLEL_MIN;
 }
 fn sortChunk(cells: []R.types.Cell) void {
     std.sort.pdq(R.types.Cell, cells, {}, less);

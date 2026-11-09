@@ -530,9 +530,9 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     // `capture` against that independently loaded image.
     var direct_stats: DirectCapture.Stats = .{};
     const shared_walk_authority = false;
-    const early_cpu = if (std.posix.getenv("STWO_RV64_CPU0_PRESTAGE")) |flag| std.mem.eql(u8, flag, "1") else false;
-    const early_main = if (std.posix.getenv(EarlyCPU.FLAG)) |flag| std.mem.eql(u8, flag, "1") else false;
-    const early_segments = if (std.posix.getenv(EarlySegments.FLAG)) |flag| std.mem.eql(u8, flag, "1") else false;
+    const early_cpu = false;
+    const early_main = false;
+    const early_segments = false;
     // Refuse mixed speculative owners before starting boot/capture/callbacks.
     const old_first = false;
     if (early_main and (early_cpu or old_first)) return error.ConflictingEarlyCpuModes;
@@ -563,7 +563,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var local_metadata: ?MetadataCache.Cache = if (session == null) try MetadataCache.Cache.init(a, 64 << 20) else null;
     defer if (local_metadata) |*cache| cache.deinit();
     const caches = if (session) |shared| shared.caches() else @import("../../word16_execution/setup.zig").ImmutableCaches{ .native = &local_native.?, .program = &local_metadata.? };
-    const compact_capture_program = if (std.posix.getenv("STWO_RV64_CAPTURE_PROGRAM_VIEW")) |v| !std.mem.eql(u8, v, "0") else true;
+    const compact_capture_program = true;
     var program = if (compact_capture_program) try Program.initCaptureWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?) else try Program.initWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?);
     defer program.deinit();
     const program_ns = timer.read() - image_load_ns;
@@ -658,7 +658,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
                 .pcs = pcs,
                 .layout = cpu_layout,
                 .strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster(),
-                .canonical_rungs = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false,
+                .canonical_rungs = false,
                 .caches = caches,
                 .setup_cache = &shared.setup.?,
                 .fixed_cache = &shared.setup.?.fixed,
@@ -675,7 +675,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
                 .pcs = pcs,
                 .layout = cpu_layout,
                 .strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster(),
-                .canonical_rungs = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false,
+                .canonical_rungs = false,
                 .caches = caches,
                 .setup_cache = &shared.setup.?,
                 .fixed_cache = &shared.setup.?.fixed,
@@ -726,7 +726,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const capture_breakdown = .{ .image_load_ns = image_load_ns, .program_ns = program_ns, .pre_import_ns = import_start - image_load_ns - program_ns, .import_ns = packet_import_ns };
     b2i.capture_done_at_ns = since(process_start);
     const capture_inputs = CaptureInputs.of(&timer, import_start, capture_ns, &captured);
-    const digest_capture = if (std.posix.getenv("STWO_RV64_CAPTURE_DIGEST")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const digest_capture = false;
     const captured_values_sha256: ?[64]u8 = if (digest_capture) std.fmt.bytesToHex(@import("capture_digest.zig").digest(image.identity, &captured), .lower) else null;
     b2i.capture = capture_inputs;
     // Early Source callbacks may still borrow immutable ROM columns. Keep this
@@ -745,7 +745,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     // M6 native-format: rv64-m6-native/v2 (strict roster) ALWAYS pads every
     // declaration to exactly its class rung vector (fails closed otherwise).
     const strict_roster = (try @import("../../word16_execution/native_policy.zig").current()).strictRoster();
-    const canon_flag = if (std.posix.getenv("STWO_RV64_CANON_RUNGS")) |flag| std.mem.eql(u8, flag, "1") else false;
+    const canon_flag = false;
     if (strict_roster or canon_flag) {
         const Rungs = @import("canon_native_rungs.zig");
         const classes = try a.alloc(Plan.CanonClass, cpu.len + truths.len);

@@ -650,5 +650,5 @@ test "sched m6: gated (streaming) leaves never deadlock and keep admission bound
 }
 
 test "sched m6: policy env parse" {
-    try std.testing.expect((Policy.fromEnv() catch .critical) == .m5 or std.posix.getenv("STWO_RV64_RECURSION_SCHED") != null);
+    try std.testing.expectEqual(Policy.m5, try Policy.fromEnv());
 }

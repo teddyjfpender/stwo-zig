@@ -988,6 +988,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue #332: remove owner-local environment controls without maintained overrides by preserving exact absent-variable defaults, trim obsolete parsing/reporting paths, and shrink the precise #329 ambient-reader exception. Keep deferred GPU promotion, library/device selection, two-key fault arming, required negatives and preset overrides. Require live flag expiry dates; test unknown/missing/expired metadata and prohibit reference refresh from renewing decisions. No new launcher or ABI; code/test growth is paid by removed readers. This is an initial sweep, not a claim that the <60 live target or GPU qualification is complete."
+    },
+    {
+      "id": "c1_redundant_preset_and_scheduling_defaults",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #332 continuation: fold default-only preset values and dormant scheduling controls; remove obsolete passthrough keys and parsing branches. Preserve typed policies, all proof algorithms and negative tests, allocation-plan and device-selection controls, artifact controls that select stronger protocol settings, and deferred GPU-native promotion. No new launcher, ABI or proof-format boundary; remaining live-count debt is explicit."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

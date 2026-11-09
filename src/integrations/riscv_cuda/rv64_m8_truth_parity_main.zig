@@ -386,8 +386,8 @@ pub fn main() !void {
     std.debug.print("GPU_M8_TRUTH_PARITY event=legacy_done block={} truths={} digest_calls={} legacy_ns={}\n", .{ block, source.records.items.len, digest.calls, legacy_ns });
 
     // ---- post-hoc TruthJob runs ----
-    const repeat = std.fmt.parseUnsigned(usize, env("STWO_RV64_M8_TRUTH_REPEAT") orelse "2", 10) catch return error.InvalidParityEnvironment;
-    const negatives = !std.mem.eql(u8, env("STWO_RV64_M8_TRUTH_NEGATIVES") orelse "1", "0");
+    const repeat = std.fmt.parseUnsigned(usize, "2", 10) catch return error.InvalidParityEnvironment;
+    const negatives = !std.mem.eql(u8, "1", "0");
     var classes: std.ArrayListUnmanaged(*K.Class) = .empty;
     var rows: std.ArrayListUnmanaged(Row) = .empty;
     var negative_done = [2]bool{ false, false };
@@ -435,7 +435,7 @@ fn classFor(a: std.mem.Allocator, rec: *const Record, sym: *const TJ.Symbols, wi
     // as a service does when a class warmed on one request proves another.
     // Every job below runs with the record's own span, so byte identity
     // checks that nothing request-specific leaks from the class authority.
-    const skew = !std.mem.eql(u8, env("STWO_RV64_M8_TRUTH_CLASS_SKEW") orelse "1", "0");
+    const skew = !std.mem.eql(u8, "1", "0");
     const authority = if (skew) K.withSpan(rec.truth, if (rec.truth.count() > 1) rec.truth.count() - 1 else rec.truth.count() + 1, rec.truth.first() + 1) else rec.truth;
     if (!std.mem.eql(u8, &key, &try K.classKey(authority, rec.config, fixed.root))) return error.ParityClassKeyNotSpanFree;
     const class = try K.build(a, .{ .truth = authority, .config = rec.config, .fixed = fixed.columns, .fixed_root = fixed.root, .psym = sym.pcs, .wide_framing = wide });

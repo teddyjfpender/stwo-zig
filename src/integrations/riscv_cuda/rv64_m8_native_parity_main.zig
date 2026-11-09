@@ -1610,7 +1610,7 @@ pub fn main() !void {
     defer decorator.rows.deinit(a);
     defer decorator.pending_binding.deinit(a);
     const events_api = try Events.Api.load(&libs.base);
-    if (!std.mem.eql(u8, env("STWO_RV64_M8_PARITY_BINDING") orelse "1", "0") and !std.mem.eql(u8, env("STWO_RV64_M8_PARITY_STAGE1") orelse "1", "0")) {
+    if (!std.mem.eql(u8, "1", "0") and !std.mem.eql(u8, "1", "0")) {
         decorator.bsym = try NB.Symbols.load(&libs.base);
         decorator.events = &events_api;
     }
@@ -1635,7 +1635,7 @@ pub fn main() !void {
     composition.device_claims = device_claims;
     if (only == .all or only_composition) composition.global = &global;
     // Truth/service compositions through the same producer (truth kernel).
-    if (check_composition and !std.mem.eql(u8, env("STWO_RV64_M8_PARITY_TRUTH") orelse "1", "0")) {
+    if (check_composition and !std.mem.eql(u8, "1", "0")) {
         composition.truth_inner = stages.truth_composition orelse return error.ParityRequiresTruthComposition;
         stages.truth_composition = composition.truthStage();
     }

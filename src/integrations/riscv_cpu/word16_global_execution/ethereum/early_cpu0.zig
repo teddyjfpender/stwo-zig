@@ -4,7 +4,6 @@ const std = @import("std");
 const Pipeline = @import("../services/pipeline.zig");
 const W = @import("../services/gkr_local/worker_protocol.zig");
 const engine = @import("stwo_prover_engine");
-pub const FLAG = "STWO_RV64_EARLY_NATIVE_MAIN";
 pub const STACK_BYTES: usize = 2 << 20;
 /// One private source+MAIN-commit admission. Raw copies do not retain ownership.
 /// finish_joined follows Source.releaseMain and TC completion on success, or
