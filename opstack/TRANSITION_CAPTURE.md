@@ -488,3 +488,19 @@ The complete canonical recent input is now retained in the repository at
 replay instructions. `capture_host/unpack_fixture.py` authenticates the exact
 compressed bytes, decompresses those same bytes under a 16 MiB bound, and checks
 the raw OPD hash before writing it. Native replay is optional and explicit.
+
+## Source-only capacity before an RV64 run
+
+`capture_host/fixture_cost.py --manifest .../manifest.json` derives workload and
+bounds from the retained input without executing the guest. The new fixture has a
+23,452,512-byte decoded body, below 64 MiB, and 38,981 records below 131,072. All
+15 blobs select the existing dense folded evaluator (61,380 nonzero Fr scalars).
+Their Fiat–Shamir evaluation-point hashes account for 30,750 SHA-256 compression
+blocks. KZG already uses one batch pairing and immutable evaluation roots.
+
+The preimage payload is 19,925,728 bytes; hashing each retained record once models
+162,303 Keccak permutations. This is a source-work count, not measured calls,
+instructions or proving time. A short native phase census should separate L1
+preimage authentication, blob field evaluation, batch pairing and EVM execution
+before choosing another service. Existing dense folding, roots and witness
+verified-bit caches should not be proposed again as missing optimizations.
