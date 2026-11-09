@@ -244,10 +244,28 @@ jobs:
                   label = name + "-" + mode
                   binary, ir = out / label, out / (label + ".ll")
                   argv = ["zig", "test", "-O" + mode, "--test-filter", selected, "--dep", "stwo_core", "-Mroot=" + str(probe), "-O" + mode, "-Mstwo_core=" + str(root / "mod.zig"), "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
+                  if name == "main" and mode == "ReleaseFast":
+                      argv.append("--verbose-llvm-ir=" + str(out / "main-ReleaseFast-unoptimized.ll"))
                   result = subprocess.run(argv, capture_output=True, timeout=120)
                   for stream in ("stdout", "stderr"):
                       (out / (label + "." + stream)).write_bytes(getattr(result, stream))
                   records.append({"variant": name, "mode": mode, "argv": argv, "exit": result.returncode, "field_source_sha256": {field: hashlib.sha256((root / "fields" / field).read_bytes()).hexdigest() for field in ("m31.zig", "cm31.zig", "qm31.zig")}, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
+          cpuinfo = Path("/proc/cpuinfo").read_text()
+          (out / "cpuinfo.txt").write_text(cpuinfo)
+          (out / "lscpu.txt").write_text(subprocess.check_output(["lscpu"], text=True))
+          for target in ("x86_64_v3", "x86_64_v4", "znver4"):
+              supported = "avx2" in cpuinfo if target.endswith("v3") else all(flag in cpuinfo for flag in ("avx512f", "avx512bw", "avx512dq", "avx512vl", "avx512cd"))
+              if not supported:
+                  records.append({"variant": "main-explicit-" + target, "exit": 0, "status": "UNRUN_HOST_ISA_UNAVAILABLE"})
+                  continue
+              for mode in ("Debug", "ReleaseSafe", "ReleaseFast"):
+                  label = "main-explicit-" + target + "-" + mode
+                  binary, ir = out / label, out / (label + ".ll")
+                  argv = ["zig", "test", "-O" + mode, "-mcpu=" + target, "--test-filter", "qm31 integer:", "--dep", "stwo_core", "-Mroot=" + str(probe), "-O" + mode, "-mcpu=" + target, "-Mstwo_core=" + str(roots["main"] / "mod.zig"), "-femit-bin=" + str(binary), "-femit-llvm-ir=" + str(ir)]
+                  result = subprocess.run(argv, capture_output=True, timeout=120)
+                  for stream in ("stdout", "stderr"):
+                      (out / (label + "." + stream)).write_bytes(getattr(result, stream))
+                  records.append({"variant": "main-explicit-" + target, "mode": mode, "argv": argv, "exit": result.returncode, "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary.exists() else None, "llvm_ir_sha256": hashlib.sha256(ir.read_bytes()).hexdigest() if ir.exists() else None})
           report = {"scope": "source-pinned arithmetic diagnosis; no timing or full-proof qualification", "main_commit": main, "current_commit": current, "rejected_schoolbook_commit": rejected, "zig_version": subprocess.check_output(["zig", "version"], text=True).strip(), "host": platform.platform(), "probe_sha256": hashlib.sha256(probe.read_bytes()).hexdigest(), "runs": records}
           (out / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
           print(json.dumps(report, indent=2))
