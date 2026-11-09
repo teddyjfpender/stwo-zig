@@ -3,6 +3,29 @@ const std = @import("std");
 pub const DEFAULT_BYTES: usize = 32 << 30;
 pub const RECYCLER_CACHE_BYTES: usize = 4 << 30;
 pub const CPU_WRAP_RECYCLER_CACHE_BYTES: usize = 64 << 20;
+/// Explicit CPU producer experiment. Freed blocks stay outside requested-live
+/// accounting; the finite cache cap must be added when budgeting host capacity.
+pub fn cpuWrapRecyclerBytes(a: std.mem.Allocator) !usize {
+    const text = std.process.getEnvVarOwned(a, "STWO_RV64_CPU_WRAP_RECYCLE_BYTES") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return CPU_WRAP_RECYCLER_CACHE_BYTES,
+        else => return err,
+    };
+    defer a.free(text);
+    return parseCpuWrapRecyclerBytes(text);
+}
+fn parseCpuWrapRecyclerBytes(text: []const u8) !usize {
+    const bytes = try std.fmt.parseUnsigned(usize, text, 10);
+    if (bytes > RECYCLER_CACHE_BYTES) return error.InvalidCpuWrapRecyclerCap;
+    return bytes;
+}
+test "CPU wrapping recycler override is finite and leaves the default admission unchanged" {
+    try std.testing.expectEqual(@as(usize, 0), try parseCpuWrapRecyclerBytes("0"));
+    try std.testing.expectEqual(@as(usize, 1 << 30), try parseCpuWrapRecyclerBytes("1073741824"));
+    try std.testing.expectEqual(RECYCLER_CACHE_BYTES, try parseCpuWrapRecyclerBytes("4294967296"));
+    try std.testing.expectError(error.InvalidCpuWrapRecyclerCap, parseCpuWrapRecyclerBytes("4294967297"));
+    try std.testing.expectError(error.InvalidCharacter, parseCpuWrapRecyclerBytes("unbounded"));
+    try std.testing.expectEqual(@as(usize, 64 << 20), CPU_WRAP_RECYCLER_CACHE_BYTES);
+}
 /// Native physical verification evaluates CPU and delegation AIR on helpers.
 /// Keep their stack reservation explicit in the receiver budget.
 pub const WORKER_STACK_BYTES: usize = 8 << 20;

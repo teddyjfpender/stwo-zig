@@ -12,3 +12,11 @@ test "rv64 recursion: transcript walkers compile and the digest is Blake2s of th
     std.crypto.hash.blake2.Blake2s256.hash(&expected_input, &out, .{});
     for (digest, 0..) |word, i| try std.testing.expectEqual(std.mem.readInt(u32, out[4 * i ..][0..4], .little), word);
 }
+
+test {
+    _ = @import("rv64_recursion/om31_native/cpu_lanes.zig");
+}
+
+test {
+    _ = @import("word16_global_execution/ethereum/receiver_budget.zig");
+}

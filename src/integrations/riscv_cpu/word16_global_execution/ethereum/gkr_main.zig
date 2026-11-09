@@ -278,6 +278,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const strict_recursion_verify = std.mem.eql(u8, args[1], "verify-recursion-candidate") or std.mem.eql(u8, args[1], "verify-grouped-recursion-candidate");
     const resume_recursion = std.mem.eql(u8, args[1], "resume-recursion-candidate");
     const recurse = grouped_recursion or strict_recursion_verify or resume_recursion or std.mem.eql(u8, args[1], "recurse-candidate");
+    var cpu_wrap_recycler_cap: ?usize = null;
     // Standalone CPU wrapping changes allocation sizes between native
     // setup and circuit construction. Retaining the native recycler's
     // full cache here can exhaust RSS before the live budget refuses.
@@ -285,7 +286,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         if (recurse and recursion_factory == null) {
             try @import("stwo_circuit_cpu_integration").om31.prove.requirePinnedAir(base);
             if (!strict_recursion_verify) {
-                _ = recycler.setCap(ReceiverBudget.CPU_WRAP_RECYCLER_CACHE_BYTES);
+                cpu_wrap_recycler_cap = try ReceiverBudget.cpuWrapRecyclerBytes(base);
+                _ = recycler.setCap(cpu_wrap_recycler_cap.?);
             }
         }
     }
@@ -505,7 +507,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             // Reject an unexpected Ethereum endpoint before producing durable
             // recursive proofs or an accepted execution-root report.
             const recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, fixed_set, recursive_dir, resume_recursion, recursion_factory);
-            return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domainName(), .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .recursive = recursion });
+            return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domainName(), .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .cpu_wrap_recycler_cache_cap_bytes = cpu_wrap_recycler_cap, .recycler_stats = recycler.stats(), .recycler_cache_outside_requested_live_budget = true, .recursive = recursion });
         }
         const output = try Receiver.verifyWithPool(a, &image, &program, keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, verify, pcs, fixed_set, native_workers);
         if (fixed_cache) |owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .security_target = security_target, .security_profile = security_profile.name(), .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .setup_breakdown = setup_breakdown, .verify_ns = timer.read() - setup_ns, .physical_verify_workers = native_workers, .receiver_session_setup = if (receiver_session) |shared| shared.cache.stats else null, .receiver_session_budget = if (receiver_session) |shared| shared.budget.snapshot() else null, .receiver_source_keys = if (setup.identity_only) @as([]const u8, "identity-only") else "committed", .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_accounting_profile = source_bounds.?.accounting_profile, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees, .receiver_budget = receiver_budget.?.snapshot(), .receiver_recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .receiver_worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(try Request.effectiveWorkers(request.value)) });
