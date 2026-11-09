@@ -492,6 +492,33 @@ jobs:
           (out / "rv64-worker-frames.json").write_text(json.dumps(records, indent=2) + "\n")
           PY
 
+      - name: Retain frontend acceptance binary and assembly
+        if: always() && matrix.lane == 'riscv_frontend_acceptance'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, re, shutil, subprocess
+          from pathlib import Path
+          out = Path(os.environ["RUNNER_TEMP"]) / "focused-ci"
+          cache = (Path(os.environ["RUNNER_TOOL_CACHE"]) / "stwo-zig/focused/riscv_frontend_acceptance").resolve()
+          binaries = set()
+          for log in out.glob("riscv_frontend_acceptance-*.stderr"):
+              for raw in re.findall(rb"(?m)^(/[^\r\n]+/test) --cache-dir", log.read_bytes()):
+                  binary = Path(os.fsdecode(raw)).resolve(strict=True)
+                  if not binary.is_relative_to(cache):
+                      raise RuntimeError("frontend diagnostic binary escapes its compiler cache")
+                  binaries.add(binary)
+          records = []
+          for binary in sorted(binaries):
+              saved = out / ("frontend-test-" + binary.parent.name)
+              shutil.copyfile(binary, saved)
+              assembly = saved.with_suffix(".asm")
+              with assembly.open("wb") as stream:
+                  subprocess.run(["objdump", "-d", "--demangle", str(binary)], check=True, timeout=60, stdout=stream)
+              records.append({"binary": saved.name, "binary_sha256": hashlib.sha256(saved.read_bytes()).hexdigest(), "assembly": assembly.name, "assembly_sha256": hashlib.sha256(assembly.read_bytes()).hexdigest()})
+          (out / "frontend-binaries.json").write_text(json.dumps({"source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "binaries": records, "scope": "diagnostic assembly only; complete frontend suite remains mandatory"}, indent=2) + "\n")
+          PY
+
       - name: Retain lane timing receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4

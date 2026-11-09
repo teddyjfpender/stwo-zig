@@ -653,8 +653,14 @@ test "E-022 trace and witness geometry consumers retired their duplicate registr
     );
     try expectContains(
         trace_source,
-        "pub const MAX_FAMILY_COLUMNS: usize = composition_manifest.MAX_MAIN_COLUMNS;",
+        "pub const MAX_FAMILY_COLUMNS: usize = composition_manifest.MAX_MAIN_COLUMNS + @import(\"../air/x0_native_envelope_v1.zig\").MAX_HINT_COLUMNS;",
     );
+    const trace = @import("../../../runner/trace.zig");
+    const envelope = @import("../../x0_native_envelope_v1.zig");
+    try std.testing.expectEqual(@as(usize, 6), envelope.MAX_HINT_COLUMNS);
+    try std.testing.expectEqual(subject.MAX_MAIN_COLUMNS + 6, trace.MAX_FAMILY_COLUMNS);
+    for (subject.TRANSCRIPT_ORDER) |family|
+        try std.testing.expect(try envelope.mainColumnCount(family) <= trace.MAX_FAMILY_COLUMNS);
     try expectContains(
         trace_source,
         "return @intCast(composition_manifest.mainColumnCount(family));",

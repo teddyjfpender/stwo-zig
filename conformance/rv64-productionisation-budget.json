@@ -962,6 +962,13 @@
       "positive_growth_justification": "Preserve source-pinned unfinished command streams and prior completion records across cancellation, and protect complete-package required child discovery while eliminating duplicate execution."
     },
     {
+      "id": "a3_restored_frontend_negative_contracts",
+      "net_code_budget": 50,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Issue #330: repair four observed acceptance failures without changing protocol bytes, capacities, proof pins or throughput thresholds. Exercise an actually invalid direct graph after positively admitting a valid relation-only layout; pin the already-shipped version-six BLAKE3 codec and reject versions two/four/five; derive the existing six hint columns from their envelope owner and retain the exact capacity; normalize only the private subtree endpoint error to the existing continuation boundary's tested rejection, with independent admission-error propagation coverage. Existing assertions, complete suite and wrong-root rejection remain mandatory. No new API, flag or launcher; rollback reverts this bounded repair and retains failing evidence."
+    },
+    {
       "id": "a3_focused_releasefast_acceptance_diagnostic",
       "net_code_budget": 110,
       "flags_added_budget": 0,
