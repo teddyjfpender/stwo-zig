@@ -1,0 +1,14 @@
+{
+  "scope": "honest_prover_option_before_sumcheck_transcript_mix",
+  "default": "trimmed_unchanged",
+  "option": "fixed4",
+  "worker_default_changed": false,
+  "native_fixed4_verify": true,
+  "durable_declared_length_roundtrip": true,
+  "native_circuit_point_eta_marginal_receipt_parity": true,
+  "trailing_zero_coefficients_preserved": true,
+  "post_proof_padding": false,
+  "production_admission_open": false,
+  "security_qualified": false,
+  "purpose": "Enable deterministic source-geometry-only local GKR coefficient vector shapes without padding an already completed proof. Source instances, layer counts, round counts and all other dimensions remain receiver-derived."
+}

@@ -111,10 +111,16 @@ pub const Worker = struct {
     limits: Limits,
     scheme: W.Scheme,
     channel: W.Channel,
+    gkr_options: N.ProverOptions = .{},
     sealed: bool = false,
     consumed: bool = false,
     owns_scheme: bool = true,
     pub fn init(backing: std.mem.Allocator, key: *const Key, truth: R.Truth, builder: Base.SourceBuilder, expected: Manifest.Expected, limits: Limits) !Worker {
+        return initWithGkrOptions(backing, key, truth, builder, expected, limits, .{});
+    }
+    /// Honest prover encoding policy; default construction preserves the
+    /// trimmed control. The accepting protocol already admits lengths0..4.
+    pub fn initWithGkrOptions(backing: std.mem.Allocator, key: *const Key, truth: R.Truth, builder: Base.SourceBuilder, expected: Manifest.Expected, limits: Limits, gkr_options: N.ProverOptions) !Worker {
         try validateExpected(key, truth, expected);
         const shapes = try Shapes.shapes(truth);
         if (limits.live_bytes == 0 or limits.gkr_bytes == 0) return error.OpTruthLocalBudget;
@@ -136,7 +142,7 @@ pub const Worker = struct {
         var scheme = try W.Prover.init(a, key.base.profile.config());
         errdefer scheme.deinit(a);
         scheme.setCompactPolynomialStorage(1);
-        return .{ .allocator = a, .parent_allocator = backing, .budget_owner = owner, .key = key, .truth = truth, .source = source, .expected = expected, .limits = limits, .scheme = scheme, .channel = Protocol.begin(key.base.profile, expected, key.identity, key.base.root) };
+        return .{ .allocator = a, .parent_allocator = backing, .budget_owner = owner, .key = key, .truth = truth, .source = source, .expected = expected, .limits = limits, .gkr_options = gkr_options, .scheme = scheme, .channel = Protocol.begin(key.base.profile, expected, key.identity, key.base.root) };
     }
     pub fn deinit(self: *Worker) void {
         if (self.source) |*source| source.deinit();
@@ -166,7 +172,7 @@ pub const Worker = struct {
         defer child_owner.destroy();
         const child_a = child_owner.allocator();
         const scope = scopeFor(self.expected, self.scheme.trees.items[1].root(), pending.digest);
-        var child = try N.proveUnbound(child_a, scope, shapes, metadata);
+        var child = try N.proveUnboundWithOptions(child_a, scope, shapes, metadata, self.gkr_options);
         defer child.deinit(child_a);
         // The prover already has these exact terminal marginals. Re-verifying
         // its own GKR proof here adds no authority; the fresh receiver does so.

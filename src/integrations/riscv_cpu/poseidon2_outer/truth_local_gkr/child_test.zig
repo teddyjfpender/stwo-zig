@@ -18,7 +18,7 @@ fn digest(ctx: *C.Context, bytes: [32]u8) !@import("../full_p2_frame.zig").Diges
     for (&out, 0..) |*wire, i| wire.* = try circuit.builder.wrappers.guessU32(C.Q, ctx, circuit.builder.wrappers.u32Value(C.Q, std.mem.readInt(u32, bytes[i * 4 ..][0..4], .little)));
     return out;
 }
-test "OP truth local GKR native and constrained transcript receipt eta parity" {
+fn run(options: N.ProverOptions) !void {
     const M = core.fields.m31.M31;
     const Provider = struct {
         pub fn emitRange(_: @This(), _: Frame.Instance, row: usize, first: usize, count: usize, sink: anytype) !void {
@@ -28,8 +28,15 @@ test "OP truth local GKR native and constrained transcript receipt eta parity" {
     const shapes = [_]A.Shape{ .{ .original = .{ .kind = .product, .log_size = 5 } }, .{ .original = .{ .kind = .linear, .log_size = 5 } }, .{ .original = .{ .kind = .bytes, .log_size = 8 } } };
     const Hash = @import("../pure_p2_native.zig");
     const scope = N.Scope{ .statement = [_]u8{9} ** 32, .fixed = Hash.hashWords(&.{1}), .main = Hash.hashWords(&.{2}), .manifest = Hash.hashWords(&.{3}), .ordinal = 11 };
-    var produced = try N.proveUnbound(a, scope, shapes, Provider{});
+    var produced = try N.proveUnboundWithOptions(a, scope, shapes, Provider{}, options);
     defer produced.deinit(a);
+    if (options.coefficient_encoding == .fixed4) for (produced.result.proof.sumcheck_proofs) |sumcheck| for (sumcheck.round_polys) |poly| try std.testing.expectEqual(@as(usize, 4), poly.coeffsSlice().len);
+    const encoded = try N.encode(a, shapes, &produced.result.proof);
+    defer a.free(encoded);
+    var decoded = try N.decode(a, shapes, encoded);
+    defer decoded.deinit();
+    if (options.coefficient_encoding == .fixed4) for (decoded.proof.sumcheck_proofs) |sumcheck| for (sumcheck.round_polys) |poly| try std.testing.expectEqual(@as(usize, 4), poly.coeffsSlice().len);
+
     var native = try N.verifyPending(a, scope, shapes, &produced.result.proof, produced.digest);
     defer native.deinit(a);
     var owner = try C.PoseidonContext.init(a, 9);
@@ -39,7 +46,7 @@ test "OP truth local GKR native and constrained transcript receipt eta parity" {
     defer if (active) C.finish() catch {};
     const ctx = owner.algebra();
     const wires = Child.Scope{ .statement = try digest(ctx, scope.statement), .fixed = try root(ctx, scope.fixed), .main = try root(ctx, scope.main), .manifest = try root(ctx, scope.manifest), .ordinal = try circuit.builder.wrappers.guessU32(C.Q, ctx, circuit.builder.wrappers.u32Value(C.Q, scope.ordinal)) };
-    const proof = try G.wireProof(ctx, &produced.result.proof);
+    const proof = try G.wireProof(ctx, &decoded.proof);
     var pending = try Child.verify(ctx, wires, shapes, &proof);
     defer pending.artifact.deinit(a);
     try std.testing.expect(pending.eta.value().eql(native.eta));
@@ -54,4 +61,11 @@ test "OP truth local GKR native and constrained transcript receipt eta parity" {
     const v = pending.receipt[8];
     ctx.value_table.items[v.idx] = ctx.get(v).add(C.Q.one());
     try std.testing.expect(!try owner.isCircuitValid());
+}
+
+test "OP truth local GKR native and constrained transcript receipt eta parity" {
+    try run(.{});
+}
+test "OP truth local GKR fixed4 encoding precedes transcript and preserves native circuit parity" {
+    try run(.{ .coefficient_encoding = .fixed4 });
 }

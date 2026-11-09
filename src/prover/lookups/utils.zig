@@ -15,7 +15,9 @@ pub const LookupUtilsError = error{
 ///
 /// Inputs/outputs:
 /// - input coefficients are interpreted as `[c0, c1, ..., ck]` for `c0 + c1*x + ... + ck*x^k`.
-/// - all operations return normalized polynomials (`degree` matches last non-zero coefficient).
+/// - arithmetic constructors/operations normalize trailing zeros.
+/// - explicit protocol wire storage may retain its declared coefficient length;
+///   callers must preserve that length when hashing or serializing the vector.
 ///
 /// Invariants:
 /// - `len <= coeffs.len`

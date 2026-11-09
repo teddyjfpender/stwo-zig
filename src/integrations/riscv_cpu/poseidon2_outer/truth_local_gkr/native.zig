@@ -137,12 +137,16 @@ pub const Unbound = struct {
 /// Uses the bounded source/checkpointed engine. The caller must impose a numeric
 /// allocator budget before entering; this API grants no production admission.
 pub fn proveUnbound(a: std.mem.Allocator, scope: Scope, shapes: [3]Authority.Shape, provider: anytype) !Unbound {
+    return proveUnboundWithOptions(a, scope, shapes, provider, .{});
+}
+pub const ProverOptions = GP.Options;
+pub fn proveUnboundWithOptions(a: std.mem.Allocator, scope: Scope, shapes: [3]Authority.Shape, provider: anytype, options: ProverOptions) !Unbound {
     var channel = try begin(scope, shapes);
     const challenges = Challenges.draw(&channel);
     const frames = instances(shapes);
     var inputs = try Input.Batch(@TypeOf(provider)).init(a, &frames, &challenges, provider);
     defer inputs.deinit();
-    var result = try GP.proveBatchSourceCheckpointed(a, &channel, inputs.sources);
+    var result = try GP.proveBatchSourceCheckpointedWithOptions(a, &channel, inputs.sources, options);
     errdefer result.deinit(a);
     try Closure.close(a, result.proof.output_claims_by_instance);
     const digest = try receipt(scope, shapes, &result.proof, result.artifact.claims_to_verify_by_instance);

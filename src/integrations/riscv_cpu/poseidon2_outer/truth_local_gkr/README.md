@@ -25,7 +25,9 @@ Keccak rewrite.
 `worker.zig` constructs MAIN once, transfers it to the PCS, retains only durable
 metadata, generates owned INTER, and releases source metadata before native
 proving. Whole-worker and child numerical allocator limits are mandatory.
-FIXED setup is independently reconstructible. Its identity differs from the
+FIXED setup is independently reconstructible and remains outside the worker
+allocator, as do caller-owned input advice and returned serialized bytes. The
+coordinator must budget those owners separately. Its identity differs from the
 classic route even though FIXED bytes are identical. The manifest seals MAIN
 before the local child starts; the child's full receipt and original global
 claims enter the physical transcript.
@@ -55,3 +57,11 @@ must be chosen from the actual instance sizes, not from a tiny fixture.
 
 Security remains a 128-bit target under documented assumptions;
 `security_qualified=false`. There is no certified whole-protocol claim here.
+
+An explicit `initWithGkrOptions(..., .{ .coefficient_encoding = .fixed4 })`
+policy retains four coefficients **before** each sumcheck transcript mix.
+Trailing zeros are preserved through the wire and constrained verifier. This
+can make an honest service leaf's coefficient-vector topology depend only on
+source geometry; it does not pad a completed proof. Default construction keeps
+the existing trimmed encoding. A future source-only root factory must select
+and enforce its expected shape policy independently.

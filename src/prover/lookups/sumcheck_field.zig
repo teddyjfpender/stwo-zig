@@ -83,6 +83,9 @@ pub fn ForField(comptime Secure: type) type {
         /// Optional `fixFirstVariableInPlace(*O, allocator, challenge) !void`
         /// consumes exclusive internal state; on error it remains deinitializable.
         /// Original caller-owned oracles are cloned before this interface runs.
+        /// Honest-prover vector encoding policy, applied before transcript mix.
+        /// Verifiers already admit0..4 coefficients; the default is unchanged.
+        pub const Options = struct { coefficient_encoding: enum { trimmed, fixed4 } = .trimmed };
         pub fn proveBatch(
             comptime O: type,
             allocator: std.mem.Allocator,
@@ -91,7 +94,7 @@ pub fn ForField(comptime Secure: type) type {
             lambda: Secure,
             channel: anytype,
         ) (std.mem.Allocator.Error || SumcheckError || OracleErrorSet(O))!ProveBatchResult(O) {
-            return proveBatchImpl(O, allocator, claims_in, multivariate_polys_in, lambda, channel, false);
+            return proveBatchImpl(O, allocator, claims_in, multivariate_polys_in, lambda, channel, false, .{});
         }
 
         /// Consumes the oracle array and its elements on success and every
@@ -105,9 +108,12 @@ pub fn ForField(comptime Secure: type) type {
             lambda: Secure,
             channel: anytype,
         ) (std.mem.Allocator.Error || SumcheckError || OracleErrorSet(O))!ProveBatchResult(O) {
-            return proveBatchImpl(O, allocator, claims_in, multivariate_polys_in, lambda, channel, true);
+            return proveBatchImpl(O, allocator, claims_in, multivariate_polys_in, lambda, channel, true, .{});
         }
 
+        pub fn proveBatchOwnedWithOptions(comptime O: type, allocator: std.mem.Allocator, claims_in: []const Secure, multivariate_polys_in: []O, lambda: Secure, channel: anytype, options: Options) (std.mem.Allocator.Error || SumcheckError || OracleErrorSet(O))!ProveBatchResult(O) {
+            return proveBatchImpl(O, allocator, claims_in, multivariate_polys_in, lambda, channel, true, options);
+        }
         fn proveBatchImpl(
             comptime O: type,
             allocator: std.mem.Allocator,
@@ -116,6 +122,7 @@ pub fn ForField(comptime Secure: type) type {
             lambda: Secure,
             channel: anytype,
             comptime take_owned: bool,
+            options: Options,
         ) (std.mem.Allocator.Error || SumcheckError || OracleErrorSet(O))!ProveBatchResult(O) {
             var multivariate_polys: []O = if (take_owned) @constCast(multivariate_polys_in) else &.{};
             var initialized_polys: usize = if (take_owned) multivariate_polys.len else 0;
@@ -196,6 +203,16 @@ pub fn ForField(comptime Secure: type) type {
                 );
                 errdefer round_poly.deinit(allocator);
 
+                if (options.coefficient_encoding == .fixed4) {
+                    if (round_poly.coeffsSlice().len > 4) return SumcheckError.DegreeInvalid;
+                    const coefficients = try allocator.alloc(Secure, 4);
+                    @memset(coefficients, Secure.zero());
+                    @memcpy(coefficients[0..round_poly.len], round_poly.coeffsSlice());
+                    round_poly.deinit(allocator);
+                    // initOwned normalizes; this is intentional wire-preserving
+                    // storage, identical to the native decoder's representation.
+                    round_poly = .{ .coeffs = coefficients, .len = 4, .owns_coeffs = true };
+                }
                 channel.mixFelts(round_poly.coeffsSlice());
                 const challenge = channel.drawSecureFelt();
 
