@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Prove a complete admitted OP execution and freshly receive its durable proof.
 
-Uses the current native GPU-compatible service roster on CPU. No recursion,
-SNARK wrapping, or whole-protocol security qualification is implied.
+Uses the current service roster on CPU. An explicit recursive runner also
+produces and freshly receives an execution root. No SNARK or whole-protocol
+security qualification is implied.
 """
 
 import argparse
@@ -19,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from opstack.process_metrics import peak_rss_bytes
 from opstack.native_profiles import DEFAULT_NATIVE_PROFILE, NATIVE_PROFILES
+from opstack import cpu_recursion
 
 PROFILE = DEFAULT_NATIVE_PROFILE
 
@@ -228,7 +230,9 @@ def main():
         type=Path,
         help="explicit native admission JSON; defaults are written to the receipt directory",
     )
+    cpu_recursion.add_arguments(p)
     args = p.parse_args()
+    cpu_recursion.validate_arguments(args, p)
     if (
         not 1 <= args.workers <= 32
         or not 1 <= args.setup_workers <= 8
@@ -317,6 +321,11 @@ def main():
     }
     if args.resources:
         resources = json.loads(args.resources.read_text())
+    if args.recursive_runner is not None:
+        if resources["fixed_setup_bytes"] > min(
+            args.recursive_live_bytes, args.recursive_receiver_bytes
+        ):
+            raise ValueError("fixed-key admission exceeds recursive live limits")
     resource_path = root / "resources.json"
     resource_path.write_text(json.dumps(resources, indent=2) + "\n")
     # These environment variables select semantic/operational variants. Require
@@ -372,6 +381,9 @@ def main():
         "proof_verified": False,
         "stages": {},
     }
+    if args.recursive_runner is not None:
+        receipt["schema"] = "stwo.opstack.cpu-recursive-proof.v1"
+        receipt["recursive_root_verified"] = False
     if transition_preflight is not None:
         receipt["scope"] = "native anchored derivation and execution STARK bundle"
         receipt["transition_preflight"] = transition_preflight
@@ -410,6 +422,11 @@ def main():
             ],
         ),
     ]
+    if args.recursive_runner is not None:
+        # The strict recursive receiver verifies the native bundle itself.
+        # Produce the root first rather than putting a redundant cold native
+        # reception and corruption trials on its measured critical path.
+        stages = stages[:1]
     # Native production performs source/geometry/resource admission itself.
     # A separate cost census repeats execution and capture; make that explicit
     # rather than charging every complete proof request for it twice.
@@ -418,6 +435,8 @@ def main():
             0, ("plan", [*tool, "plan-candidate", request, "-", "0", resource_path])
         )
     for mode, command in stages:
+        if mode == "produce":
+            native_produce_start = time.monotonic_ns()
         receipt["stages"][mode] = measured(
             command,
             root / mode,
@@ -432,8 +451,39 @@ def main():
         checkpoint()
         if receipt["stages"][mode]["returncode"]:
             raise RuntimeError(f"CPU {mode} failed; see {root / mode}.stderr")
-    received = json.loads((root / "receive.stdout").read_text())
-    accept(received, config["expected_output"], args.native_profile)
+    if args.recursive_runner is not None:
+        def record_recursive_stage(name, row):
+            receipt["stages"][name] = row
+            checkpoint()
+
+        recursive = cpu_recursion.run(
+            args, config, root, resources["fixed_setup_bytes"], env,
+            measured, record_recursive_stage,
+        )
+        received = recursive["receiver"]["native"]
+        receipt["scope"] = "complete native OP execution bundle and recursive execution root; no L1 derivation"
+        receipt["recursive"] = recursive
+        receipt["recursive_runner_sha256"] = sha(args.recursive_runner)
+        receipt["recursive_root_verified"] = True
+        receipt["production_timing"] = {
+            "native_seconds": receipt["stages"]["produce"]["wall_ns"] / 1e9,
+            "recursive_seconds": receipt["stages"]["recursive_produce"]["wall_ns"] / 1e9,
+            "summed_producer_seconds": (
+                receipt["stages"]["produce"]["wall_ns"]
+                + receipt["stages"]["recursive_produce"]["wall_ns"]
+            ) / 1e9,
+            "native_start_to_root_seconds": (
+                recursive.pop("root_ready_monotonic_ns") - native_produce_start
+            ) / 1e9,
+            "scope": "execution/capture/native setup/proving plus recursive setup/wrap/fold; fresh reception and corruption trials follow root production",
+        }
+    else:
+        received = json.loads((root / "receive.stdout").read_text())
+    if args.recursive_runner is None:
+        accept(received, config["expected_output"], args.native_profile)
+    # Recursive mode already uses admit_receipt, including exact native output,
+    # profile, completeness and the envelope's unqualified security policy.
+    # Its nested native report intentionally has no separate security flag.
     receipt["receiver"] = received
     files = sorted((root / "proof").rglob("*"))
     receipt["artifacts"] = {
