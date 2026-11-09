@@ -44,6 +44,18 @@ class RefinementPublicationPolicyTest(unittest.TestCase):
         self.assertNotIn("git push", source)
         self.assertNotIn("--reuse-committed-sail-evidence", source.split("- name: Regenerate source-bound candidate with the live pinned owner", 1)[1].split("      - name:", 1)[0])
 
+    def test_candidate_exports_exact_inputs_before_expensive_provisioning(self):
+        source = (ROOT / ".github/workflows/riscv-sail-formal.yml").read_text()
+        export = source.split("- name: Export fresh candidate AIR before provisioning", 1)[1].split("      - name:", 1)[0]
+        self.assertIn("if: inputs.regenerate_bindings == true", export)
+        self.assertIn("zig build riscv-refinement-ir", export)
+        self.assertIn('test -s "$OUT/family-air/div.json"', export)
+        self.assertIn('= 17', export)
+        self.assertIn('= 46', export)
+        self.assertLess(source.index("- name: Export fresh candidate AIR"), source.index("- name: Setup Lean"))
+        generation = source.split("- name: Regenerate source-bound candidate with the live pinned owner", 1)[1].split("      - name:", 1)[0]
+        self.assertEqual(2, generation.count('--air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air"'))
+
     def test_pilot_composition_digests_follow_generated_air(self) -> None:
         composition = (
             ROOT / sail_lean_bridge.COMPOSITION_SOURCE

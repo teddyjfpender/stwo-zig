@@ -764,6 +764,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Reject the direct-schoolbook candidate after the retained uninstrumented FRI digest fails despite full frontend acceptance. Restore the original three-product arithmetic and test an explicit noinline boundary without changing oracle expectations. Execute the existing Debug field command before ReleaseFast so its evidence is retained even when an optimized command fails. Every existing core command remains required."
+    },
+    {
+      "id": "sail_candidate_fresh_air_inputs",
+      "net_code_budget": 30,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Repair the observed hosted candidate failure on missing AIR export by invoking the existing exact production export owner before expensive provisioning, retaining all 46 opcode inputs and binding both candidate generation/check to those same fresh paths. Add workflow ordering/input coverage; keep normal publication and receipt admission unchanged."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

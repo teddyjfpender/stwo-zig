@@ -108,6 +108,19 @@ jobs:
           set -e
           printf '%s\n' "$STATUS" > "$OUT/baseline-check-exit.txt"
 
+      - name: Export fresh candidate AIR before provisioning
+        if: inputs.regenerate_bindings == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
+          zig build riscv-refinement-ir \
+            -Driscv-refinement-ir-dir="$OUT/family-air" \
+            -Driscv-air-program-ir-dir="$OUT/opcode-air"
+          test -s "$OUT/family-air/div.json"
+          test "$(find "$OUT/family-air" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = 17
+          test "$(find "$OUT/opcode-air" -maxdepth 1 -type f -name '*.unsigned.json' | wc -l | tr -d ' ')" = 46
+
       - name: Setup Lean at the pinned toolchain
         uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9  # v1.5.0
         with:
@@ -234,9 +247,11 @@ jobs:
           set -euo pipefail
           OUT="$RUNNER_TEMP/riscv-sail-binding-candidate"
           python3 scripts/riscv/riscv_refinement.py generate --no-export-air \
+            --air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air" \
             --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
             --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/generation.log"
           python3 scripts/riscv/riscv_refinement.py check-generated --no-export-air \
+            --air-ir-dir "$OUT/family-air" --air-program-ir-dir "$OUT/opcode-air" \
             --sail-riscv-dir "$RUNNER_TOOL_CACHE/stwo-zig/riscv-formal/source/sail-riscv" \
             --sail-bin "$RUNNER_TEMP/sail/bin/sail" 2>&1 | tee "$OUT/check-generated.log"
 
