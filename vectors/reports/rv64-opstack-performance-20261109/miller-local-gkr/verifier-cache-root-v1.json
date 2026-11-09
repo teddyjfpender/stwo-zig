@@ -1,0 +1,64 @@
+{
+  "schema": "op-miller-verifier-cache-root/v1",
+  "default_enabled": false,
+  "limit_field": "native_omul.root_runtime.Limits.miller_cache_bytes",
+  "max_bytes": 8589934592,
+  "prover_session_changed": false,
+  "cpu_cache_enabled": false,
+  "protocol_or_wire_changed": false,
+  "root": {
+    "bytes": 693812,
+    "sha256": "edd53de28a56bdb2272f165cb9977a5b658427e82b0082d4d64e72e47fa06c32",
+    "members": 2,
+    "proof_reproduced": false,
+    "retained_root_accepted_unchanged": true,
+    "native_proof_absent": true
+  },
+  "cached": {
+    "cap_bytes": 1073741824,
+    "classes": 1,
+    "hits": 0,
+    "misses": 1,
+    "borrowed_leaves": 1,
+    "fallbacks": 0,
+    "peak_requested_bytes": 647619742
+  },
+  "fallback": {
+    "cap_bytes": 4096,
+    "classes": 0,
+    "hits": 0,
+    "misses": 0,
+    "borrowed_leaves": 0,
+    "fallbacks": 1,
+    "peak_requested_bytes": 2556
+  },
+  "ownership": [
+    "shared authority only from independently reconstructed verification cache",
+    "no copy/deinit of live shared Authority",
+    "fixed/prover data retired before borrowing",
+    "topology parent keys destroyed before leaf leases; cache destroyed last",
+    "final parent heap/external bytes0"
+  ],
+  "adversaries": [
+    "borrowed and uncached concrete key identity/full fixed-root parity",
+    "first lease release leaves second lease valid; last release yields zero leases",
+    "wrong expected source and cap variants rejected before acquisition",
+    "proving cache refused by borrowed verifier constructor",
+    "fallback whitelist rejects policy/class/template errors",
+    "retained full root wrong-VK/balanced-debt/membership/receipt/terminal/corruption controls passed"
+  ],
+  "checks": [
+    "named borrowed ownership runtime gate passed",
+    "named retained-root cached+fallback runtime gate passed",
+    "named cache fallback policy runtime gate passed",
+    "complete OP semantic gate passed"
+  ],
+  "security_qualified": false,
+  "security_label": "128-bit security target under documented assumptions",
+  "timing_speedup_claim": false,
+  "remaining": [
+    "opt-in integration review",
+    "prover/session cache still separate pending class-lifetime adapter",
+    "heavy tenfold target remains unmeasured; no heavy rerun"
+  ]
+}

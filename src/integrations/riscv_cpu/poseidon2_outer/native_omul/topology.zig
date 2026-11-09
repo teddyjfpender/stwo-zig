@@ -8,11 +8,22 @@ pub const Binding = struct { ordinal: u32, native_identity: [32]u8, kind: enum {
 /// No raw-Authority constructor: each leaf key is derived by a concrete source
 /// verifier builder, normalizing PCS geometry from its independently owned key.
 pub const SourceLeaf = struct {
-    authority: Authority,
+    /// Owned authority for legacy/prover constructors. Borrowed verifier leaves
+    /// must use key(); this field is deliberately never populated for them.
+    authority: Authority = undefined,
+    borrowed: ?@import("../miller_local_gkr/outer_key_cache.zig").Lease = null,
     binding: Binding,
     pub fn deinit(self: *SourceLeaf) void {
-        self.authority.deinit();
+        if (self.borrowed) |*lease| lease.release() catch unreachable else self.authority.deinit();
         self.* = undefined;
+    }
+    pub fn key(self: *const SourceLeaf) !*const Authority {
+        return if (self.borrowed) |*lease| try lease.key() else &self.authority;
+    }
+    pub fn retireProverData(self: *SourceLeaf) void {
+        // Cache entries are verification-only BEFORE a leaf can borrow one.
+        // Never retire or destroy another owner's authority through this view.
+        if (self.borrowed == null) @import("verifier_key.zig").retireProverData(&self.authority);
     }
     fn finish(a: std.mem.Allocator, profile: Profile, binding: Binding, produced: @import("../context.zig").Context) !SourceLeaf {
         var trace = produced;
@@ -86,6 +97,21 @@ pub const SourceLeaf = struct {
         defer scope.deinit();
         return finish(a, source.key.base.profile, .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .miller }, try normalized.build(a, true));
     }
+    pub fn initLocalMillerCachedForVerification(a: std.mem.Allocator, source: @import("../miller_local_gkr/leaf_test.zig").View, cache: *@import("../miller_local_gkr/outer_key_cache.zig").Cache) !SourceLeaf {
+        try @import("../miller_local_gkr/worker.zig").validateExpected(source.key, source.span, source.expected);
+        if (source.values.cap_log != 0) return error.OpRootLeafCapVariant;
+        if (cache.snapshot().phase != .verification) return error.MillerOuterCacheVerificationOnly;
+        var arena = std.heap.ArenaAllocator.init(a);
+        defer arena.deinit();
+        const instances = try (try source.key.geometry(source.span)).instances();
+        const lengths = try @import("../pure_p2_gkr_template.zig").fromProofFor(arena.allocator(), &instances, source.local);
+        var lease = try cache.acquireForVerification(source.key, source.span, source.expected.ordinal, lengths);
+        errdefer lease.release() catch unreachable;
+        try lease.requireView(source);
+        const authority = try lease.key();
+        if (authority.base.fixed_tree != null or authority.base.fixed.values.len != 0 or authority.base.usage.len != 0) return error.MillerOuterCacheVerificationOnly;
+        return .{ .borrowed = lease, .binding = .{ .ordinal = source.expected.ordinal, .native_identity = source.key.identity, .kind = .miller } };
+    }
     pub fn initMiller(a: std.mem.Allocator, source: @import("../pure_p2_tower_leaf_test.zig").View) !SourceLeaf {
         try source.key.validateSpan(source.span);
         const expected = try source.key.expected(source.span, source.expected.ordinal);
@@ -135,7 +161,7 @@ pub const Topology = struct {
     fn initMode(a: std.mem.Allocator, profile: Profile, execution: [32]u8, sources: []const SourceLeaf, verifier_only: bool) !Topology {
         if (sources.len == 0 or sources.len > 256) return error.InvalidOpRootTopologyCount;
         const bindings = try a.alloc(Binding, sources.len);
-        var self = Topology{ .allocator = a, .execution = execution, .leaf_count = sources.len, .leaf_bindings = bindings, .leaf_fingerprint = undefined, .profile = profile, .final = &sources[0].authority };
+        var self = Topology{ .allocator = a, .execution = execution, .leaf_count = sources.len, .leaf_bindings = bindings, .leaf_fingerprint = undefined, .profile = profile, .final = try sources[0].key() };
         errdefer self.deinit();
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update("OP_SOURCE_FOLD_TOPOLOGY_R6_V1");
@@ -144,7 +170,7 @@ pub const Topology = struct {
         std.mem.writeInt(u64, &count, @intCast(sources.len), .little);
         hash.update(&count);
         for (sources, bindings, 0..) |*source, *binding, i| {
-            const leaf = &source.authority;
+            const leaf = try source.key();
             if (source.binding.ordinal != i) return error.OpRootTopologyLeafOrder;
             binding.* = source.binding;
             if (leaf.base.n_outputs != 9 or leaf.base.profile != profile) return error.OpRootTopologyLeafAuthority;
@@ -158,7 +184,7 @@ pub const Topology = struct {
         }
         hash.final(&self.leaf_fingerprint);
         const level = try a.alloc(*const Authority, sources.len);
-        for (sources, level) |*source, *slot| slot.* = &source.authority;
+        for (sources, level) |*source, *slot| slot.* = try source.key();
         defer a.free(level);
         var n = level.len;
         while (n > 1) {

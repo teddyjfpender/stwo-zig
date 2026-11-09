@@ -157,3 +157,11 @@ test {
 test {
     _ = @import("poseidon2_outer/miller_local_gkr/outer_key_cache_physical_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/outer_key_cache_root_test.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/native_omul/root_runtime.zig");
+}

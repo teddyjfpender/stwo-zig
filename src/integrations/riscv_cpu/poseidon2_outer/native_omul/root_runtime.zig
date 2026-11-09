@@ -16,8 +16,12 @@ const Catalog = @import("../pure_p2_truth_leaf_test.zig");
 const Miller = @import("../pure_p2_tower_leaf_test.zig");
 const LocalCatalog = @import("../truth_local_gkr/leaf_test.zig");
 const LocalMiller = @import("../miller_local_gkr/leaf_test.zig");
-pub const Limits = struct { proof_bytes: usize = 2 << 20, sidecar_bytes: usize = 64 << 20 };
-pub const Verified = struct { members: usize, root_bytes: usize, source_ns: u64, root_verify_ns: u64, total_ns: u64 };
+pub const Limits = struct { proof_bytes: usize = 2 << 20, sidecar_bytes: usize = 64 << 20, miller_cache_bytes: usize = 0 };
+pub const CacheReport = struct { classes: usize, hits: usize, misses: usize, peak_requested_bytes: usize, borrowed_leaves: usize, fallbacks: usize };
+pub const Verified = struct { members: usize, root_bytes: usize, source_ns: u64, root_verify_ns: u64, total_ns: u64, miller_cache: ?CacheReport = null };
+fn cacheCapacityError(err: anyerror) bool {
+    return err == error.OutOfMemory or err == error.MillerOuterCacheEntryLimit;
+}
 const Context = struct {
     profile: @import("../op_profile.zig").Profile,
     metadata: Receiver.Metadata,
@@ -26,6 +30,7 @@ const Context = struct {
     verified: ?Verified = null,
     qualification: bool = false,
     qualification_miller: bool = false,
+    miller_cache_bytes: usize = 0,
     timer: std.time.Timer,
     fn receive(raw: ?*anyopaque, a: std.mem.Allocator, source: Runtime.SourceDirectory) !void {
         const self: *@This() = @ptrCast(@alignCast(raw orelse return error.MissingOpRootSession));
@@ -46,6 +51,16 @@ const Context = struct {
         }
         var templates = try Templates.decode(a, self.templates, source.setups.len + local_count);
         defer templates.deinit(a);
+        // Declared child cap is charged to the surrounding request budget. A
+        // cache allocation refusal is an optimization miss, never new admission.
+        var miller_cache: ?@import("../miller_local_gkr/outer_key_cache.zig").Cache = null;
+        if (self.miller_cache_bytes != 0) miller_cache = @import("../miller_local_gkr/outer_key_cache.zig").Cache.initForVerification(a, self.miller_cache_bytes, 256) catch |err| switch (err) {
+            error.OutOfMemory => null,
+            else => return err,
+        };
+        defer if (miller_cache) |*cache| cache.deinit() catch unreachable;
+        var cache_fallbacks: usize = 0;
+        var cached_leaves: usize = 0;
         const leaves = try a.alloc(Topology.SourceLeaf, plan.inventory.workers.len);
         var made: usize = 0;
         defer {
@@ -65,7 +80,7 @@ const Context = struct {
             const metadata = self.metadata.leaves[i];
             const view = CPU.ShapeView{ .op_span = span, .setup = setup, .request = request, .first = plan.inventory.first_ids[i], .expected = expected, .key = key, .manifest = plan.manifest, .main = metadata.main, .receipt = metadata.receipt orelse return error.MissingOpRootLocalAuthority, .claims = metadata.claims, .child = &local, .shape = &shape, .values = &values };
             leaves[made] = try Topology.SourceLeaf.initCpu(a, view);
-            @import("verifier_key.zig").retireProverData(&leaves[made].authority);
+            leaves[made].retireProverData();
             made += 1;
         }
         var template_index = source.setups.len;
@@ -84,7 +99,7 @@ const Context = struct {
                 if (metadata.claims.len != 2) return error.OpRootTruthClaims;
                 const view = LocalCatalog.View{ .key = local_key, .truth = truth, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .receipt = metadata.receipt orelse return error.MissingOpRootLocalAuthority, .claims = metadata.claims[0..2].*, .local = &local, .shape = &shape, .values = &values };
                 leaves[made] = try Topology.SourceLeaf.initLocalCatalog(a, view);
-                @import("verifier_key.zig").retireProverData(&leaves[made].authority);
+                leaves[made].retireProverData();
                 made += 1;
                 continue;
             }
@@ -93,7 +108,7 @@ const Context = struct {
             const metadata = self.metadata.leaves[i];
             const view = Catalog.View{ .key = key, .truth = truth, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .claims = metadata.claims, .shape = &shape, .values = &values };
             leaves[made] = try Topology.SourceLeaf.initCatalog(a, view);
-            @import("verifier_key.zig").retireProverData(&leaves[made].authority);
+            leaves[made].retireProverData();
             made += 1;
         }
         for (source.miller, 0..) |miller, j| {
@@ -109,8 +124,16 @@ const Context = struct {
                 const values = try Skeleton.init(arena.allocator(), &shape);
                 if (metadata.claims.len != 2) return error.OpRootTruthClaims;
                 const view = LocalMiller.View{ .key = key, .span = miller.span, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .receipt = metadata.receipt orelse return error.MissingOpRootLocalAuthority, .claims = metadata.claims[0..2].*, .local = &local, .shape = &shape, .values = &values };
-                leaves[made] = try Topology.SourceLeaf.initLocalMiller(a, view);
-                @import("verifier_key.zig").retireProverData(&leaves[made].authority);
+                leaves[made] = if (miller_cache) |*cache|
+                    Topology.SourceLeaf.initLocalMillerCachedForVerification(a, view, cache) catch |err| blk: {
+                        if (!cacheCapacityError(err)) return err;
+                        cache_fallbacks += 1;
+                        break :blk try Topology.SourceLeaf.initLocalMiller(a, view);
+                    }
+                else
+                    try Topology.SourceLeaf.initLocalMiller(a, view);
+                if (leaves[made].borrowed != null) cached_leaves += 1;
+                leaves[made].retireProverData();
                 made += 1;
                 continue;
             }
@@ -119,7 +142,7 @@ const Context = struct {
             if (metadata.claims.len != 4) return error.OpRootTruthClaims;
             const view = Miller.View{ .key = miller.key, .span = miller.span, .expected = plan.inventory.workers[i], .manifest = plan.manifest, .main = metadata.main, .claims = metadata.claims[0..4].*, .shape = &shape, .values = &values };
             leaves[made] = try Topology.SourceLeaf.initMiller(a, view);
-            @import("verifier_key.zig").retireProverData(&leaves[made].authority);
+            leaves[made].retireProverData();
             made += 1;
         }
         if (template_index != templates.shapes.len) return error.OpRootTemplateCoverage;
@@ -131,11 +154,16 @@ const Context = struct {
             if (self.qualification) try @import("qualification.zig").run(a, source, self.metadata, &plan, &topology, self.root);
             if (self.qualification_miller) try @import("qualification.zig").runMiller(a, source, self.metadata, &plan, &topology, self.root);
         }
-        self.verified = .{ .members = leaves.len, .root_bytes = self.root.len, .source_ns = source_ns, .root_verify_ns = self.timer.read() - source_ns, .total_ns = self.timer.read() };
+        const cache_report: ?CacheReport = if (miller_cache) |*cache| blk: {
+            const snap = cache.snapshot();
+            break :blk .{ .classes = snap.classes, .hits = snap.hits, .misses = snap.misses, .peak_requested_bytes = snap.bytes.peak_live_bytes, .borrowed_leaves = cached_leaves, .fallbacks = cache_fallbacks };
+        } else null;
+        self.verified = .{ .miller_cache = cache_report, .members = leaves.len, .root_bytes = self.root.len, .source_ns = source_ns, .root_verify_ns = self.timer.read() - source_ns, .total_ns = self.timer.read() };
         std.debug.print("OP_P2_ROOT_ONLY accepted=true complete=true members={} bytes={} source_ns={} root_verify_ns={} native_PCS_GKR_verified=false security_qualified=false\n", .{ leaves.len, self.root.len, source_ns, self.timer.read() - source_ns });
     }
 };
 fn validateLimits(limits: Limits) !void {
+    if (limits.miller_cache_bytes > 8 << 30) return error.OpRootInputBudget;
     if (limits.proof_bytes == 0 or limits.proof_bytes > 2 << 20 or limits.sidecar_bytes == 0 or limits.sidecar_bytes > 64 << 20) return error.OpRootInputBudget;
 }
 pub fn verifyBytes(a: std.mem.Allocator, config: @import("../../rv64_ethereum_request.zig").Config, source_directory: []const u8, profile: @import("../op_profile.zig").Profile, resources: Runtime.Resources, limits: Limits, root: []const u8, sidecar: []const u8, templates: []const u8) !Verified {
@@ -150,21 +178,23 @@ fn verifyBytesMode(a: std.mem.Allocator, config: @import("../../rv64_ethereum_re
     _ = try Templates.preflight(templates);
     var metadata = try Sidecar.decode(a, sidecar, .{ .bytes = limits.sidecar_bytes });
     defer metadata.deinit(a);
-    var context = Context{ .profile = profile, .metadata = metadata.metadata, .root = root, .templates = templates, .timer = try std.time.Timer.start(), .qualification = qualification };
+    var context = Context{ .profile = profile, .metadata = metadata.metadata, .root = root, .templates = templates, .timer = try std.time.Timer.start(), .qualification = qualification, .miller_cache_bytes = limits.miller_cache_bytes };
     try Runtime.withSourceDirectoryWithOptions(a, config, source_directory, profile, resources, options, &context, Context.receive);
     return context.verified orelse error.OpRootSourceIncomplete;
 }
 /// Test-only adapter for an independently rebuilt synthetic program image.
 /// Reuses the production source-only receiver; never reads native proof bytes.
 pub fn verifyFixtureSource(a: std.mem.Allocator, source: Runtime.SourceDirectory, root: []const u8, sidecar: []const u8, templates: []const u8, qualify_miller: bool) !Verified {
+    return verifyFixtureSourceWithLimits(a, source, root, sidecar, templates, qualify_miller, .{});
+}
+pub fn verifyFixtureSourceWithLimits(a: std.mem.Allocator, source: Runtime.SourceDirectory, root: []const u8, sidecar: []const u8, templates: []const u8, qualify_miller: bool, limits: Limits) !Verified {
     if (!@import("builtin").is_test) return error.OpRootFixtureOnly;
-    const limits = Limits{};
     try validateLimits(limits);
     if (root.len == 0 or root.len > limits.proof_bytes or sidecar.len > limits.sidecar_bytes or templates.len > Templates.MAX_BYTES) return error.OpRootInputBudget;
     _ = try Templates.preflight(templates);
     var metadata = try Sidecar.decode(a, sidecar, .{ .bytes = limits.sidecar_bytes });
     defer metadata.deinit(a);
-    var context = Context{ .profile = source.metadata.profile, .metadata = metadata.metadata, .root = root, .templates = templates, .timer = try std.time.Timer.start(), .qualification_miller = qualify_miller };
+    var context = Context{ .profile = source.metadata.profile, .metadata = metadata.metadata, .root = root, .templates = templates, .timer = try std.time.Timer.start(), .qualification_miller = qualify_miller, .miller_cache_bytes = limits.miller_cache_bytes };
     try Context.receive(&context, a, source);
     return context.verified orelse error.OpRootSourceIncomplete;
 }
@@ -201,4 +231,12 @@ test "OP pure P2 root reader rejects invalid caps before filesystem access" {
     const config = Request.Config{ .elf = "", .input = "", .elf_sha256 = "", .input_sha256 = "", .expected_output = "", .symbols = std.mem.zeroes(Symbols), .output_directory = "", .terminal_pc = 0 };
     try std.testing.expectError(error.OpRootInputBudget, verifyDirectory(std.testing.allocator, config, "missing-source", "missing-root", .op_target_b4_q72_p0_fold4_v1, .{}, .{ .proof_bytes = (2 << 20) + 1 }));
     try std.testing.expectError(error.OpRootInputBudget, verifyDirectory(std.testing.allocator, config, "missing-source", "missing-root", .op_target_b4_q72_p0_fold4_v1, .{}, .{ .sidecar_bytes = (64 << 20) + 1 }));
+}
+
+test "R6 Miller verifier cache fallback is restricted to capacity and defaults off" {
+    try std.testing.expectEqual(@as(usize, 0), (Limits{}).miller_cache_bytes);
+    try std.testing.expect(cacheCapacityError(error.OutOfMemory));
+    try std.testing.expect(cacheCapacityError(error.MillerOuterCacheEntryLimit));
+    for ([_]anyerror{ error.MillerOuterCacheClassMismatch, error.MillerOuterCacheRequestMismatch, error.MillerOuterCacheVerificationOnly, error.OpRootLeafCapVariant, error.InvalidOpGkrTemplateDegree, error.OpRootLeafSourceAuthority }) |err| try std.testing.expect(!cacheCapacityError(err));
+    try std.testing.expectError(error.OpRootInputBudget, validateLimits(.{ .miller_cache_bytes = (8 << 30) + 1 }));
 }
