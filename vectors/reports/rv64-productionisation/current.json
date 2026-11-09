@@ -2606,6 +2606,57 @@
       "developer_entrypoint_followup": "--dry-run Native CPU main fails: no Zig package owns changed path; canonical native_cpu CI lane exists but source path rule is missing",
       "qualification": "Pinned native macOS component/product-gate correctness, exact linker/source closure and small secure-profile CLI fixtures only. Fresh receivers use the same implementation in new processes. No external Rust oracle, 128-bit-security claim, Linux runtime, complete-block, whole-repository release, GPU, physical GPU memory or qualified timing evidence.",
       "evidence": "External archive keyed by receipt commit tree; complete native-product acceptance, proof files, mutant files, reports, fourteen test images and two CLI images."
+    },
+    "delivery_native_cpu_developer_path_owner": {
+      "baseline_commit": "e31483d40",
+      "tested_execution_commit": "c5330ee1409883f6277e1a5ed9089ee97ad79ac8",
+      "tested_execution_tree": "e52920f9fec64c6ad93f63df4276ab2d0f918901",
+      "status": "PASS_NATIVE_CPU_DEVELOPER_ROUTE_AND_SERIAL_LOCAL_EXECUTION",
+      "code": {
+        "added": 90,
+        "removed": 7,
+        "net": 83,
+        "budget": 90
+      },
+      "flags": {
+        "added": 0,
+        "removed": 0,
+        "live": 249
+      },
+      "scripts": {
+        "added": 0,
+        "removed": 0
+      },
+      "contracts": {
+        "tests": 94,
+        "passed": 94
+      },
+      "private_native_paths": "EXISTING_NATIVE_CPU_LANE_ONLY",
+      "shared_capability_consumers": [
+        "native_cpu",
+        "native_metal",
+        "aggregate_cpu",
+        "aggregate_metal"
+      ],
+      "existing_PR_lane_selection_unchanged_for_native_source_files": 8,
+      "CI_lane_definitions_unchanged": true,
+      "local_direct_zig_build_owner": "scripts/repo/zig_serial_build.py; -j1 with the existing build lock",
+      "optimization_limits_runtime_arguments_and_invalid_job_rejection_preserved": true,
+      "semantic_mode": "DEFERRED_WITHOUT_BUILD_OR_PROOF_EXECUTION",
+      "normal_mode": "PASS_ACTUAL_DEV_TEST_NATIVE_CPU_GATE_AND_INSTALL",
+      "execution_host": "macos",
+      "required_CI_host": "linux",
+      "installed_binary_sha256": "149522c3ea32d9b8c83c01bba227a52372dd638f2f70e4f83b774c34bd9aa74f",
+      "source_conformance": {
+        "count": 103,
+        "ordered_errors_unchanged": true
+      },
+      "workspace": {
+        "count": 393,
+        "ordered_findings_unchanged": true
+      },
+      "qualification": "Native macOS local-compatible routing/execution correctness. CI lane recipes, Linux host requirements and PR selections are preserved; this is not Linux execution, GPU, full release or timing qualification.",
+      "evidence": "External archive keyed by receipt commit tree; native-route acceptance, complete CI receipt, installed binary and contract/audit logs."
     }
   },
   "post_merge_hygiene": {
