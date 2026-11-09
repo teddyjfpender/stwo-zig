@@ -159,5 +159,13 @@ test "OP R7 persisted CPU physical artifact opening census" {
     try std.testing.expectEqual(@as(usize, 1114), refs + shifted);
     const json = try std.json.Stringify.valueAlloc(a, .{ .schema = "op-r7-physical-opening-census-v2", .source = "durable physical proof sampled_values after fresh source reception", .masks = masks, .columns = columns, .mask_sample_values = refs, .deep_sample_plan_terms = refs + shifted, .pcs = proof.commitment_scheme_proof.config, .root_only_accepted = false }, .{ .whitespace = .indent_2 });
     defer a.free(json);
-    try @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, "openings.json", json);
+    const existing = dir.readFileAlloc(a, "openings.json", 1 << 20) catch |err| switch (err) {
+        error.FileNotFound => {
+            try @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, "openings.json", json);
+            return;
+        },
+        else => return err,
+    };
+    defer a.free(existing);
+    if (!std.mem.eql(u8, existing, json)) return error.R7OpeningAuditMismatch;
 }

@@ -221,3 +221,15 @@ separate `OP R7 persisted CPU physical artifact opening census` test reads
 R7 recursive statement/fold/root admission and its composed source ledger
 remain closed. The old R6 golden proof remains separately byte-qualified;
 R7 intentionally uses a distinct eight-role authority and wire protocol.
+
+### Current eight-role frozen heavy source model
+
+`heavy-class-source-v2.json` refreshes classes 3 and 20 from the same pinned
+configuration, metadata and independently derived native source keys. No
+heavy guest executes and no heavy proof is supplied or produced. The current
+eight-role shape is 321,908,736 cells in each class versus 415,756,288 for R6
+(22.57% fewer). Genuine-input producers add a log-18 table; generic arithmetic
+remains log 22. This supersedes the historical seven-role figure of
+318,238,720 cells. Source-only peak is 3,655,278,362 accounted bytes under a
+12 GiB cap, with zero live allocations at teardown. It is a representation
+cost model, not a heavy execution acceptance or timing forecast.

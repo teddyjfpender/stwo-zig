@@ -1,0 +1,448 @@
+{
+  "schema": "op-r7-heavy-source-only-v1",
+  "records": [
+    {
+      "ordinal": 3,
+      "source_native_key": [
+        185,
+        196,
+        252,
+        107,
+        189,
+        122,
+        165,
+        20,
+        167,
+        167,
+        15,
+        81,
+        42,
+        237,
+        32,
+        106,
+        59,
+        171,
+        4,
+        193,
+        95,
+        71,
+        85,
+        132,
+        117,
+        78,
+        133,
+        73,
+        122,
+        249,
+        68,
+        45
+      ],
+      "old": {
+        "raw": [
+          36418,
+          4809612,
+          2522,
+          80066,
+          65536,
+          174158
+        ],
+        "rows": [
+          65536,
+          8388608,
+          4096,
+          131072,
+          65536,
+          262144
+        ],
+        "logs": [
+          16,
+          23,
+          12,
+          17,
+          16,
+          18
+        ],
+        "main_cells": 169689088,
+        "interaction_cells": 166821888,
+        "fixed_cells": 79245312,
+        "total_native_cells": 415756288
+      },
+      "r7": {
+        "raw": [
+          36418,
+          2400067,
+          2522,
+          80066,
+          65536,
+          174158,
+          566208,
+          149897
+        ],
+        "rows": [
+          65536,
+          4194304,
+          4096,
+          131072,
+          65536,
+          262144,
+          1048576,
+          262144
+        ],
+        "logs": [
+          16,
+          22,
+          12,
+          17,
+          16,
+          18,
+          20,
+          18
+        ],
+        "main_cells": 138231808,
+        "fixed_cells": 56700928,
+        "interaction_cells": 126976000,
+        "total_native_cells": 321908736,
+        "dot_calls": 2520,
+        "dot_terms": 566208
+      },
+      "setup_ns": 17221262000,
+      "phases": {
+        "proof_inputs": {
+          "eq": 0,
+          "arithmetic": 4,
+          "m31_to_u32": 0,
+          "poseidon": 0,
+          "variables": 554007,
+          "guessed_variables": 554002
+        },
+        "statement": {
+          "public_scope": {
+            "eq": 9,
+            "arithmetic": 23,
+            "m31_to_u32": 27,
+            "poseidon": 0,
+            "variables": 7873,
+            "guessed_variables": 7811
+          },
+          "local_gkr": {
+            "eq": 892,
+            "arithmetic": 255235,
+            "m31_to_u32": 0,
+            "poseidon": 10048,
+            "variables": 543193,
+            "guessed_variables": 76
+          },
+          "claims_shared": {
+            "eq": 0,
+            "arithmetic": 1146,
+            "m31_to_u32": 225,
+            "poseidon": 74,
+            "variables": 3212,
+            "guessed_variables": 54
+          },
+          "source_publics": {
+            "eq": 1460,
+            "arithmetic": 25367,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 52510,
+            "guessed_variables": 2134
+          },
+          "cpu_oods": {
+            "eq": 7926,
+            "arithmetic": 265719,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 445226,
+            "guessed_variables": 7926
+          },
+          "pcs_oods_and_transcript": {
+            "eq": 55,
+            "arithmetic": 1108,
+            "m31_to_u32": 0,
+            "poseidon": 49,
+            "variables": 2352,
+            "guessed_variables": 27
+          },
+          "pcs_sampled_mix_and_queries": {
+            "eq": 586,
+            "arithmetic": 161406,
+            "m31_to_u32": 0,
+            "poseidon": 4621,
+            "variables": 272919,
+            "guessed_variables": 562
+          },
+          "pcs_merkle": {
+            "eq": 9504,
+            "arithmetic": 726624,
+            "m31_to_u32": 0,
+            "poseidon": 49536,
+            "variables": 1915488,
+            "guessed_variables": 0
+          },
+          "deep": {
+            "eq": 2590,
+            "arithmetic": 103747,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 205728,
+            "guessed_variables": 2555
+          },
+          "fri": {
+            "eq": 10692,
+            "arithmetic": 425022,
+            "m31_to_u32": 0,
+            "poseidon": 15624,
+            "variables": 812562,
+            "guessed_variables": 1332
+          }
+        },
+        "frame": {
+          "eq": 2704,
+          "arithmetic": 6079,
+          "m31_to_u32": 0,
+          "poseidon": 114,
+          "variables": 10170,
+          "guessed_variables": 1352
+        },
+        "finalization": {
+          "eq": 0,
+          "arithmetic": 428587,
+          "m31_to_u32": 2270,
+          "poseidon": 0,
+          "variables": 2174,
+          "guessed_variables": 0
+        }
+      }
+    },
+    {
+      "ordinal": 20,
+      "source_native_key": [
+        34,
+        156,
+        196,
+        43,
+        57,
+        180,
+        168,
+        248,
+        229,
+        64,
+        222,
+        185,
+        155,
+        35,
+        238,
+        164,
+        69,
+        58,
+        109,
+        114,
+        106,
+        151,
+        107,
+        167,
+        50,
+        85,
+        225,
+        70,
+        180,
+        22,
+        182,
+        102
+      ],
+      "old": {
+        "raw": [
+          35736,
+          4554842,
+          2474,
+          76886,
+          65536,
+          167853
+        ],
+        "rows": [
+          65536,
+          8388608,
+          4096,
+          131072,
+          65536,
+          262144
+        ],
+        "logs": [
+          16,
+          23,
+          12,
+          17,
+          16,
+          18
+        ],
+        "main_cells": 169689088,
+        "interaction_cells": 166821888,
+        "fixed_cells": 79245312,
+        "total_native_cells": 415756288
+      },
+      "r7": {
+        "raw": [
+          35736,
+          2301951,
+          2474,
+          76886,
+          65536,
+          167853,
+          527184,
+          148187
+        ],
+        "rows": [
+          65536,
+          4194304,
+          4096,
+          131072,
+          65536,
+          262144,
+          1048576,
+          262144
+        ],
+        "logs": [
+          16,
+          22,
+          12,
+          17,
+          16,
+          18,
+          20,
+          18
+        ],
+        "main_cells": 138231808,
+        "fixed_cells": 56700928,
+        "interaction_cells": 126976000,
+        "total_native_cells": 321908736,
+        "dot_calls": 1944,
+        "dot_terms": 527184
+      },
+      "setup_ns": 17799025542,
+      "phases": {
+        "proof_inputs": {
+          "eq": 0,
+          "arithmetic": 4,
+          "m31_to_u32": 0,
+          "poseidon": 0,
+          "variables": 521929,
+          "guessed_variables": 521924
+        },
+        "statement": {
+          "public_scope": {
+            "eq": 9,
+            "arithmetic": 23,
+            "m31_to_u32": 27,
+            "poseidon": 0,
+            "variables": 7745,
+            "guessed_variables": 7683
+          },
+          "local_gkr": {
+            "eq": 886,
+            "arithmetic": 251336,
+            "m31_to_u32": 0,
+            "poseidon": 9860,
+            "variables": 534397,
+            "guessed_variables": 74
+          },
+          "claims_shared": {
+            "eq": 0,
+            "arithmetic": 1132,
+            "m31_to_u32": 217,
+            "poseidon": 74,
+            "variables": 3187,
+            "guessed_variables": 52
+          },
+          "source_publics": {
+            "eq": 1422,
+            "arithmetic": 24105,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 49365,
+            "guessed_variables": 2092
+          },
+          "cpu_oods": {
+            "eq": 7936,
+            "arithmetic": 259559,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 435182,
+            "guessed_variables": 7936
+          },
+          "pcs_oods_and_transcript": {
+            "eq": 55,
+            "arithmetic": 1086,
+            "m31_to_u32": 0,
+            "poseidon": 49,
+            "variables": 2330,
+            "guessed_variables": 27
+          },
+          "pcs_sampled_mix_and_queries": {
+            "eq": 586,
+            "arithmetic": 150692,
+            "m31_to_u32": 0,
+            "poseidon": 4296,
+            "variables": 254405,
+            "guessed_variables": 562
+          },
+          "pcs_merkle": {
+            "eq": 9504,
+            "arithmetic": 695520,
+            "m31_to_u32": 0,
+            "poseidon": 46872,
+            "variables": 1820448,
+            "guessed_variables": 0
+          },
+          "deep": {
+            "eq": 1998,
+            "arithmetic": 90099,
+            "m31_to_u32": 0,
+            "poseidon": 0,
+            "variables": 183834,
+            "guessed_variables": 1971
+          },
+          "fri": {
+            "eq": 10692,
+            "arithmetic": 425022,
+            "m31_to_u32": 0,
+            "poseidon": 15624,
+            "variables": 812562,
+            "guessed_variables": 1332
+          }
+        },
+        "frame": {
+          "eq": 2648,
+          "arithmetic": 5953,
+          "m31_to_u32": 0,
+          "poseidon": 111,
+          "variables": 9944,
+          "guessed_variables": 1324
+        },
+        "finalization": {
+          "eq": 0,
+          "arithmetic": 397420,
+          "m31_to_u32": 2230,
+          "poseidon": 0,
+          "variables": 2130,
+          "guessed_variables": 0
+        }
+      }
+    }
+  ],
+  "peak_live_bytes": 3655278362,
+  "source_only": true,
+  "execution_verified": false,
+  "native_proof_supplied": false,
+  "outer_proof_produced": false,
+  "production_admitted": false,
+  "protocol": "closed R7-v2, eight roles",
+  "artifact": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261109/opstack-cpu/native-dot-r7-fixture-v1/heavy-source-v2.json",
+  "opening_audit_controls": {
+    "missing_report_exclusive_write": "passed previously",
+    "existing_exact_report_reaudit": "passed twice",
+    "mismatched_existing_report_rejected": true,
+    "mismatched_report_and_proof_preserved": true,
+    "new_proof_produced_by_audit": false
+  }
+}
