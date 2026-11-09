@@ -47,7 +47,7 @@ Existing experimental or unavailable paths remain so.
 ## Compatibility and tests before the ledger change
 
 No symbol is removed or renamed, and the existing `om31` namespace is not
-implemented anew. Keep its concrete OM31 field, plain Blake2s Merkle family,
+implemented anew. Keep its concrete OM31 field, existing prefixed Blake2s Merkle family,
 raw-mod transcript authority, profile selection and wire framing unchanged.
 Unknown profile IDs, altered native VK sections, producer-supplied tables and
 invalid tree adjacency must retain their existing rejection behavior.

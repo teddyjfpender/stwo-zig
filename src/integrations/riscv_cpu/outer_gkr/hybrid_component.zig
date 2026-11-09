@@ -14,7 +14,7 @@ const Point = core.circle.CirclePoint(O);
 const Air = core.air.components.ForField(O);
 const Acc = core.air.accumulation.ForField(O);
 const Canonic = core.poly.circle.canonic.CanonicCoset;
-const Captured = @import("stwo_cairo_frontend").witness.composition_bundle.Component;
+const Captured = Outer.geometry.Component;
 pub const Component = struct {
     allocator: std.mem.Allocator,
     source: *const Captured,

@@ -16,7 +16,7 @@ const O = core.fields.om31.OM31;
 const M = core.fields.m31.M31;
 const IR = engine.air.secure_polynomial_program_v2;
 const Builder = IR.BuilderFor(O);
-const Captured = @import("stwo_cairo_frontend").witness.composition_bundle.Component;
+const Captured = Outer.geometry.Component;
 pub const PUBLIC_AUX_COLUMNS = 10;
 pub fn interactionWidth(component: P.Component) u32 {
     return if (P.gkrBound(component)) 16 else P.classicInteractionBaseColumns(component);

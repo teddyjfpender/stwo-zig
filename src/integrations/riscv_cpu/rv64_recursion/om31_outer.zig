@@ -180,7 +180,7 @@ const Statement = struct {
         try channel.mixFelts(ctx, &self.claims);
     }
     const Read = struct {
-        component: @import("stwo_cairo_frontend").witness.composition_bundle.Component,
+        component: Outer.geometry.Component,
         masks: []const []const []const F,
         offsets: [2][]std.ArrayList(i32),
         fn get(raw: *const anyopaque, tree: u8, col: u32, offset: i32) !F {

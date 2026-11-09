@@ -32,6 +32,7 @@ test "api signature: OM31 CPU proof and wire preserve field authority" {
     comptime @import("stwo_prover_api").assertProverEngine(P.Engine);
     try @import("std").testing.expect(P.Proof == @import("stwo_core").proof.ForField(P.O).StarkProof(P.H));
     try @import("std").testing.expect(@TypeOf(@as(om31.wire.Owned, undefined).proof) == P.Proof);
+    try @import("std").testing.expect(om31.geometry.Component == @import("stwo_cairo_frontend").witness.composition_bundle.Component);
     const verify_fn = @typeInfo(@TypeOf(om31.prove.verify)).@"fn";
     try @import("std").testing.expect(verify_fn.params[4].type.? == *const P.Proof);
 }
