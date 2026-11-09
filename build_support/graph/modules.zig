@@ -1,7 +1,6 @@
 //! Typed product declarations and focused Zig module construction.
 
 const std = @import("std");
-const package_ownership = @import("package_ownership.zig");
 const protocol_modules = @import("protocol_modules.zig");
 
 const product_spec = @import("product_spec.zig");
@@ -15,55 +14,9 @@ pub const proverProduct = product_spec.proverProduct;
 
 pub const ProtocolModules = protocol_modules.ProtocolModules;
 
-pub fn create(b: *std.Build, spec: ModuleSpec) *std.Build.Module {
-    spec.product.validate() catch |err| std.debug.panic(
-        "invalid build product {s}: {s}",
-        .{ spec.product.name, @errorName(err) },
-    );
-    return b.createModule(.{
-        .root_source_file = ownedRootSource(b, spec),
-        .target = spec.target,
-        .optimize = spec.optimize,
-    });
-}
-
-pub fn addPublic(b: *std.Build, name: []const u8, spec: ModuleSpec) *std.Build.Module {
-    spec.product.validate() catch |err| std.debug.panic(
-        "invalid public build product {s}: {s}",
-        .{ spec.product.name, @errorName(err) },
-    );
-    return b.addModule(name, .{
-        .root_source_file = ownedRootSource(b, spec),
-        .target = spec.target,
-        .optimize = spec.optimize,
-    });
-}
-
-/// Resolves package-owned roots; other roots remain aggregate-relative.
-fn ownedRootSource(b: *std.Build, spec: ModuleSpec) std.Build.LazyPath {
-    return source(
-        b,
-        spec.root_source_file,
-        spec.target,
-        spec.optimize,
-    );
-}
-
-pub fn source(
-    b: *std.Build,
-    root_source_file: []const u8,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) std.Build.LazyPath {
-    const owned = package_ownership.resolve(root_source_file) orelse
-        return b.path(root_source_file);
-    const dependency_options = .{
-        .target = target,
-        .optimize = optimize,
-    };
-    const dependency_name = package_ownership.dependencyName(owned.package);
-    return b.dependency(dependency_name, dependency_options).path(owned.sub_path);
-}
+pub const create = @import("module_factory.zig").create;
+pub const addPublic = @import("module_factory.zig").addPublic;
+pub const source = @import("module_factory.zig").source;
 
 pub fn createProtocolModules(
     b: *std.Build,
@@ -436,43 +389,8 @@ pub fn addMetalSessionImport(
     return metal_session;
 }
 
-/// Constructs the proof interchange codec against the selected protocol core.
-pub fn createProofWire(
-    b: *std.Build,
-    protocol: ProtocolModules,
-    product: Product,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Module {
-    const proof_wire = create(b, .{
-        .product = product,
-        .root_source_file = "src/waist/proof_wire/mod.zig",
-        .target = target,
-        .optimize = optimize,
-    });
-    proof_wire.addImport("stwo_core", protocol.core);
-    return proof_wire;
-}
-
-/// Declares a consumer's dependency on the package-owned proof-wire API.
-pub fn addProofWireImport(
-    b: *std.Build,
-    protocol: ProtocolModules,
-    product: Product,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-    consumer: *std.Build.Module,
-) *std.Build.Module {
-    const proof_wire = createProofWire(
-        b,
-        protocol,
-        product,
-        target,
-        optimize,
-    );
-    consumer.addImport("stwo_proof_wire", proof_wire);
-    return proof_wire;
-}
+pub const createProofWire = @import("facade_support.zig").createProofWire;
+pub const addProofWireImport = @import("facade_support.zig").addProofWireImport;
 
 pub const createNativeExamples = @import("facade_support.zig").createNativeExamples;
 

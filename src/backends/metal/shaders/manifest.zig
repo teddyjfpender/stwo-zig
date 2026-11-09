@@ -358,7 +358,13 @@ const composition_source = @embedFile("core/composition.metal");
 const relation_source = @embedFile("core/relation.metal");
 const decommit_kernels_source = @embedFile("core/decommit.metal");
 const polynomial_eval_source = @embedFile("core/polynomial_eval.metal");
-pub const blake3_interaction_source = @embedFile("blake3_interactions.metal");
+// Generated compiler phases are composed in order; full source and kernel digests stay exact.
+pub const blake3_interaction_source = @embedFile("blake3_interactions.metal") ++
+    @embedFile("blake3_lookup_interactions.metal") ++
+    @embedFile("blake3_composition_entry.metal") ++
+    @embedFile("blake3_direct_constraint_body.metal") ++
+    @embedFile("blake3_relation_constraint_body.metal") ++
+    @embedFile("blake3_composition_tail.metal");
 pub const blake3_interaction_inventory = @embedFile("blake3_interactions_exports.zig");
 const riscv_polynomials_source = @embedFile("core/riscv_polynomials.metal");
 

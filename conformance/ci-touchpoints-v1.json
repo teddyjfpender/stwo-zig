@@ -1725,6 +1725,7 @@
     {
       "prefixes": [
         "build_support/products/cairo_cuda.zig",
+        "build_support/products/cairo_cuda_registration.zig",
         "src/products/cairo/cuda/root.zig",
         "src/products/cairo/cuda",
         "src/products/native/tools/cuda_ec_composite_oracle"

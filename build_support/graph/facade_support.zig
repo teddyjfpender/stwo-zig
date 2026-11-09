@@ -1,11 +1,48 @@
 //! Package-owned Native, artifact and support imports for product facades.
 
 const std = @import("std");
-const graph = @import("modules.zig");
+const graph = @import("module_factory.zig");
 const ProtocolModules = @import("protocol_modules.zig").ProtocolModules;
 const Product = @import("product_spec.zig").Product;
 const create = graph.create;
-const createProofWire = graph.createProofWire;
+
+/// Constructs the proof interchange codec against the selected protocol core.
+pub fn createProofWire(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Module {
+    const proof_wire = create(b, .{
+        .product = product,
+        .root_source_file = "src/waist/proof_wire/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    proof_wire.addImport("stwo_core", protocol.core);
+    return proof_wire;
+}
+
+/// Declares a consumer's dependency on the package-owned proof-wire API.
+pub fn addProofWireImport(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const proof_wire = createProofWire(
+        b,
+        protocol,
+        product,
+        target,
+        optimize,
+    );
+    consumer.addImport("stwo_proof_wire", proof_wire);
+    return proof_wire;
+}
 
 /// Constructs Native example AIRs against their explicit dependencies.
 pub fn createNativeExamples(
