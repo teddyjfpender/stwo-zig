@@ -30,6 +30,7 @@
     "proof",
     "proof_json",
     "proof_of_work",
+    "proof_suites",
     "protocol_revision",
     "queries",
     "test_utils",

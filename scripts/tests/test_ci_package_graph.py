@@ -24,7 +24,7 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
 EXPECTED_PACKAGES = 27
-EXPECTED_EDGES = 100
+EXPECTED_EDGES = 107
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
@@ -187,7 +187,7 @@ class RepositoryGraphTest(unittest.TestCase):
         )
         self.assertEqual(lanes, frozenset({
             "artifact_store", "metal_session", "cairo_metal_integration",
-            "riscv_cpu_integration", "riscv_metal_integration", "circuit_metal_integration",
+            "riscv_cpu_integration", "riscv_cuda_integration", "riscv_metal_integration", "circuit_metal_integration",
         }))
         self.assertEqual(unowned, frozenset())
 
@@ -204,6 +204,7 @@ class RepositoryGraphTest(unittest.TestCase):
                     # The circuit prover evaluates the circuit AIR with the
                     # Cairo frontend's captured-AIR component.
                     "riscv_cpu_integration",
+                    "riscv_cuda_integration",
                     "riscv_metal_integration",
                     "circuit_cpu_integration",
                     "circuit_metal_integration",

@@ -321,6 +321,7 @@ def _validate_imports(
     contract: Contract,
     module_to_package: dict[str, str],
     failures: list[str],
+    generated_embeds: dict[str, Path] | None = None,
 ) -> None:
     allowed_named = (
         BUILTIN_MODULES
@@ -337,6 +338,9 @@ def _validate_imports(
     for source in sorted(sources):
         text = strip_comments(source.read_text(encoding="utf-8"))
         for embedded in EMBED_FILE_RE.findall(text):
+            if (embedded in contract.injected_modules and generated_embeds is not None
+                    and embedded in generated_embeds and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", embedded)):
+                continue
             target = (source.parent / embedded).resolve()
             if not _inside(target, contract.directory):
                 failures.append(
@@ -798,9 +802,10 @@ def check_repository(repository: Path) -> list[str]:
     for cycle in dependency_cycles(graph):
         failures.append(f"package workspace: dependency cycle {' -> '.join(cycle)}")
     _validate_layers(contracts, packages, failures)
+    generated_embeds = ci_package_graph.generated_embedded_assets(repository)
     for contract in contracts:
         _validate_manifest(contract, failures)
-        _validate_imports(contract, module_to_package, failures)
+        _validate_imports(contract, module_to_package, failures, generated_embeds)
         _validate_api(contract, failures)
         _validate_readme(repository, contract, failures)
         _validate_api_contract(contract, failures)

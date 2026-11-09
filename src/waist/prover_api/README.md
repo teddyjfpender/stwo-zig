@@ -94,6 +94,8 @@ implementation policy.
 `commit`, and `prove` signatures at compile time.
 
 
+The current primary module also exports `CpuCompositionPreparation`, `device_pcs`. These names are declared by the same package owner; their implementations and lifetime/error contracts remain in the linked source facade.
+
 ## Dependencies
 
 The sole dependency is:

@@ -28,6 +28,7 @@ pub fn build(b: *std.Build) void {
     root.addImport("stwo_prover", stwo_zig.module("stwo_prover"));
     root.addImport("stwo", stwo_zig.module("stwo"));
     const smoke = b.addExecutable(.{ .name = "consumer-smoke", .root_module = root });
+    b.installArtifact(smoke);
     const run = b.addRunArtifact(smoke);
     run.has_side_effects = true;
     b.getInstallStep().dependOn(&run.step);
@@ -72,13 +73,13 @@ def main() -> int:
             "}\n",
             encoding="utf-8",
         )
-        run(["zig", "build", "-Doptimize=ReleaseFast", "-j1"], package)
-        images = list((package / ".zig-cache" / "o").glob("*/consumer-smoke"))
-        if len(images) != 1:
-            raise RuntimeError("external consumer did not produce exactly one binary")
+        run(["zig", "build", "--prefix", str(package / "zig-out"), "-Doptimize=ReleaseFast", "-j1"], package)
+        image = package / "zig-out/bin/consumer-smoke"
+        if not image.is_file():
+            raise RuntimeError("external consumer did not install its binary")
         print(json.dumps({
-            "external_consumer_binary_sha256": hashlib.sha256(images[0].read_bytes()).hexdigest(),
-            "binary_bytes": images[0].stat().st_size,
+            "external_consumer_binary_sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
+            "binary_bytes": image.stat().st_size,
             "fixture_sha256": hashlib.sha256((package / "src/main.zig").read_bytes()).hexdigest(),
             "optimize": "ReleaseFast",
         }, sort_keys=True))

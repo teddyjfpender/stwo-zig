@@ -5,6 +5,8 @@
     .minimum_zig_version = "0.15.2",
     .paths = .{"."},
     .dependencies = .{
+        .stwo_core = .{ .path = "../../waist/core" },
+        .stwo_prover_engine = .{ .path = "../../engine/prover" },
         .stwo_backend_contracts = .{ .path = "../../waist/backend" },
     },
 }
