@@ -270,3 +270,7 @@ test {
 test {
     _ = @import("poseidon2_outer/native_dot/polynomials_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/miller_local_gkr/capacity_runtime_test.zig");
+}
