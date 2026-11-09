@@ -530,8 +530,7 @@ impl<P: CubicExtConfig> Div<&CubicExtField<P>> for CubicExtField<P> {
 impl_additive_ops_from_ref!(CubicExtField, CubicExtConfig);
 impl_multiplicative_ops_from_ref!(CubicExtField, CubicExtConfig);
 impl<P: CubicExtConfig> AddAssign<&Self> for CubicExtField<P> {
-    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
-    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
+    #[inline]
     fn add_assign(&mut self, other: &Self) {
         self.c0 += &other.c0;
         self.c1 += &other.c1;
@@ -549,8 +548,7 @@ impl<P: CubicExtConfig> SubAssign<&Self> for CubicExtField<P> {
 }
 
 impl<P: CubicExtConfig> MulAssign<&Self> for CubicExtField<P> {
-    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
-    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
+    #[inline]
     fn mul_assign(&mut self, other: &Self) {
         // Devegili OhEig Scott Dahab --- Multiplication and Squaring on
         // AbstractPairing-Friendly

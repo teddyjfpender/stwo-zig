@@ -100,16 +100,26 @@ the work. The cache also applies when the supplied residue fails its check.
 
 ## Pairing extension code-generation experiment
 
-`build.py --variant canonical-glv-hinted-inline` explicitly forces inlining of
-quadratic/cubic add/multiply and the sparse Fp6/Fp12 products, on RV64 only.
-Formulas, field storage, packets and service tags are unchanged. Native builds
-keep the original compiler policy. The flag remains off in existing variants.
+`build.py --variant canonical-glv-hinted-inline` explicitly forces RV64 inlining
+of quadratic multiplication and the sparse Fp6/Fp12 products. Other helpers keep
+their original policy; native builds and existing variants keep their original
+inlining annotations. Formulas, field storage, packets and tags are unchanged.
 
-The heavy OP 121065789 census attributes most instructions to pairing extension
-helpers. A fresh control reproduces 425,537,671 instructions; the inline guest
-uses 372,009,211 (12.58% fewer), with all 678,888 Fp2 calls unchanged. Native
-Kona and independent Unicorn agree on exact steps, PC, all registers, service
-counts and output. Two no-pairing blocks also agree, but retire 658 and 949 more
-instructions respectively (under 0.1%); this is not a universal speedup. No
-complete proof-time gain for the new ELF is established yet. See the
-[receipt](../vectors/reports/rv64-opstack-cpu-20261108/extension-inlining.json).
+A fresh control on heavy OP 121065789 uses 425,537,671 instructions; the selected
+guest uses **380,167,068**, 10.66% fewer, with all 678,888 Fp2 calls unchanged.
+Native Kona and independent Unicorn agree on output, exact steps, all registers,
+PC and service counts. Two smaller blocks also agree; against fresh controls,
+120794432 changes 796,452 → 796,470 and 121057303 changes 5,926,830 → 5,926,158.
+
+The controlled helper sweep checks instruction count together with program size.
+Forcing all six helpers saves 12.58% but grows text 2.34 → 4.79 MB. The selected
+set grows text to 2.74 MB and preserves ROM log 20. The first native prefix has
+exactly the same padded FIXED/MAIN/INTER cells in both source-bound planners.
+This is a geometry check at the same retirement budget, not a full-block timing
+or equal semantic endpoint comparison. The remaining service calls keep their
+original truth-proof cost. Full proving-time improvement remains unmeasured.
+
+A wider inlining trial grows text to 5.86 MB for only a small further saving.
+A narrower in-place Fp2 API passes all three blocks and native differential tests
+but saves only 0.54%, so that source is also removed. Their patches are retained
+as rejected experiments. See the [review and receipts](../vectors/reports/rv64-opstack-cpu-20261108/extension-codegen-review.json).

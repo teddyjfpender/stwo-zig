@@ -1,0 +1,217 @@
+diff --git a/opstack/build.py b/opstack/build.py
+index 50dfee529..5c92cd023 100755
+--- a/opstack/build.py
++++ b/opstack/build.py
+@@ -91,6 +91,11 @@ LEAN_VARIANTS["canonical-glv-hinted-inline"] = (
+     [*LEAN_VARIANTS["canonical-glv-hinted"][1], "extension-inline"],
+ )
+ 
++LEAN_VARIANTS["canonical-glv-hinted-inplace"] = (
++    "frontier",
++    [*LEAN_VARIANTS["canonical-glv-hinted"][1], "extension-inplace"],
++)
++
+ BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
+ 
+ 
+diff --git a/opstack/kona/lean/Cargo.toml b/opstack/kona/lean/Cargo.toml
+index f89c9d1be..cc557f1cc 100644
+--- a/opstack/kona/lean/Cargo.toml
++++ b/opstack/kona/lean/Cargo.toml
+@@ -26,6 +26,7 @@ bn254-service = ["dep:ark-bn254", "ark-bn254/stwo-montgomery-service"]
+ arithmetic-service = ["dep:revm-interpreter", "revm-interpreter/stwo-arith256-service"]
+ precompile-services = ["stwo-kona-execution/precompile-services"]
+ pairing-cache = ["precompile-services", "stwo-kona-execution/pairing-cache"]
++extension-inplace = ["bn254-canonical", "ark-bn254/stwo-inplace-service"]
+ extension-inline = ["stwo-kona-execution/extension-inline"]
+ pairing-hints = ["pairing-cache", "stwo-kona-execution/pairing-hints"]
+ jumpdest-service = ["dep:revm-bytecode", "revm-bytecode/stwo-jumpdest-service"]
+diff --git a/opstack/kona/vendor/ark-bn254/Cargo.toml b/opstack/kona/vendor/ark-bn254/Cargo.toml
+index 0bfbd6ff4..621a9dd9a 100644
+--- a/opstack/kona/vendor/ark-bn254/Cargo.toml
++++ b/opstack/kona/vendor/ark-bn254/Cargo.toml
+@@ -41,6 +41,7 @@ license = "MIT OR Apache-2.0"
+ repository = "https://github.com/arkworks-rs/algebra"
+ 
+ [features]
++stwo-inplace-service = ["stwo-canonical-service", "ark-ff/stwo-inplace-extensions"]
+ stwo-montgomery-service = []
+ stwo-canonical-service = []
+ asm = ["ark-ff/asm"]
+diff --git a/opstack/kona/vendor/ark-bn254/src/fields/fq2.rs b/opstack/kona/vendor/ark-bn254/src/fields/fq2.rs
+index 2a471f4fa..c97ce0293 100644
+--- a/opstack/kona/vendor/ark-bn254/src/fields/fq2.rs
++++ b/opstack/kona/vendor/ark-bn254/src/fields/fq2.rs
+@@ -22,6 +22,20 @@ impl Fp2Config for Fq2Config {
+         Some(canonical::product(a, a))
+     }
+ 
++    #[cfg(feature = "stwo-inplace-service")]
++    #[inline(always)]
++    fn mul_assign_specialized(a: &mut Fq2, b: &Fq2) -> bool {
++        canonical::product_assign(a, b);
++        true
++    }
++    #[cfg(feature = "stwo-inplace-service")]
++    #[inline(always)]
++    fn square_assign_specialized(a: &mut Fq2) -> bool {
++        let input = *a;
++        canonical::product_assign(a, &input);
++        true
++    }
++
+     type Fp = Fq;
+ 
+     /// NONRESIDUE = -1
+diff --git a/opstack/kona/vendor/ark-bn254/src/fields/fq2_canonical.rs b/opstack/kona/vendor/ark-bn254/src/fields/fq2_canonical.rs
+index 04f6cd1d4..346075a5e 100644
+--- a/opstack/kona/vendor/ark-bn254/src/fields/fq2_canonical.rs
++++ b/opstack/kona/vendor/ark-bn254/src/fields/fq2_canonical.rs
+@@ -44,3 +44,54 @@ fn product_full(a: &Fq2, b: &Fq2) -> Fq2 {
+ fn product_full(a: &Fq2, b: &Fq2) -> Fq2 {
+     Fq2::new(a.c0 * b.c0 - a.c1 * b.c1, a.c0 * b.c1 + a.c1 * b.c0)
+ }
++
++/// Write the admitted result directly into the receiver, avoiding a large
++/// Option<Fq2> return temporary and its caller copy. Scalar shortcuts retain
++/// the original formulas; all packet inputs are captured before output writes.
++#[cfg(feature = "stwo-inplace-service")]
++#[inline(always)]
++pub(super) fn product_assign(a: &mut Fq2, b: &Fq2) {
++    if (a.c1.0 .0[0] | a.c1.0 .0[1] | a.c1.0 .0[2] | a.c1.0 .0[3]) == 0
++        || (b.c1.0 .0[0] | b.c1.0 .0[1] | b.c1.0 .0[2] | b.c1.0 .0[3]) == 0
++    {
++        *a = product(a, b);
++        return;
++    }
++    product_full_assign(a, b);
++}
++#[cfg(all(feature = "stwo-inplace-service", target_arch = "riscv64"))]
++#[allow(unsafe_code)]
++#[inline(always)]
++fn product_full_assign(a: &mut Fq2, b: &Fq2) {
++    #[repr(C, align(32))]
++    struct Packet([u64; 16]);
++    let mut packet = Packet([
++        a.c0.0 .0[0],
++        a.c0.0 .0[1],
++        a.c0.0 .0[2],
++        a.c0.0 .0[3],
++        a.c1.0 .0[0],
++        a.c1.0 .0[1],
++        a.c1.0 .0[2],
++        a.c1.0 .0[3],
++        b.c0.0 .0[0],
++        b.c0.0 .0[1],
++        b.c0.0 .0[2],
++        b.c0.0 .0[3],
++        b.c1.0 .0[0],
++        b.c1.0 .0[1],
++        b.c1.0 .0[2],
++        b.c1.0 .0[3],
++    ]);
++    // SAFETY: initialized 128-byte packet, aligned to 32; the admitted
++    // canonical Fp2 relation overwrites exactly its first 64 bytes.
++    unsafe {
++        core::arch::asm!("ecall", in("a0") packet.0.as_mut_ptr(), in("a7") 0x0003_0102usize, options(nostack));
++    }
++    a.c0.0 .0 = [packet.0[0], packet.0[1], packet.0[2], packet.0[3]];
++    a.c1.0 .0 = [packet.0[4], packet.0[5], packet.0[6], packet.0[7]];
++}
++#[cfg(all(feature = "stwo-inplace-service", not(target_arch = "riscv64")))]
++fn product_full_assign(a: &mut Fq2, b: &Fq2) {
++    *a = product_full(a, b);
++}
+diff --git a/opstack/kona/vendor/ark-ff/Cargo.toml b/opstack/kona/vendor/ark-ff/Cargo.toml
+index c08c36f99..550243b6b 100644
+--- a/opstack/kona/vendor/ark-ff/Cargo.toml
++++ b/opstack/kona/vendor/ark-ff/Cargo.toml
+@@ -48,6 +48,7 @@ workspace = true
+ workspace = true
+ 
+ [features]
++stwo-inplace-extensions = []
+ # Explicit RV64 code-generation experiment; formulas and native builds unchanged.
+ stwo-inline-extensions = []
+ stwo-montgomery-services = []
+diff --git a/opstack/kona/vendor/ark-ff/Cargo.toml.orig b/opstack/kona/vendor/ark-ff/Cargo.toml.orig
+index 1a0557154..3ffb445ad 100644
+--- a/opstack/kona/vendor/ark-ff/Cargo.toml.orig
++++ b/opstack/kona/vendor/ark-ff/Cargo.toml.orig
+@@ -39,6 +39,7 @@ serde_derive.workspace = true
+ hex.workspace = true
+ 
+ [features]
++stwo-inplace-extensions = []
+ # Explicit RV64 code-generation experiment; formulas and native builds unchanged.
+ stwo-inline-extensions = []
+ stwo-montgomery-services = []
+diff --git a/opstack/kona/vendor/ark-ff/src/fields/models/fp2.rs b/opstack/kona/vendor/ark-ff/src/fields/models/fp2.rs
+index 78b8ec31e..6c8835fe8 100644
+--- a/opstack/kona/vendor/ark-ff/src/fields/models/fp2.rs
++++ b/opstack/kona/vendor/ark-ff/src/fields/models/fp2.rs
+@@ -26,6 +26,12 @@ pub trait Fp2Config: 'static + Send + Sync + Sized {
+         None
+     }
+ 
++    /// Complete in-place specialization; false preserves the original path.
++    #[inline(always)]
++    fn mul_assign_specialized(_a: &mut Fp2<Self>, _b: &Fp2<Self>) -> bool { false }
++    #[inline(always)]
++    fn square_assign_specialized(_a: &mut Fp2<Self>) -> bool { false }
++
+     /// Return `fe * Self::NONRESIDUE`.
+     /// Intended for specialization when [`Self::NONRESIDUE`] has a special
+     /// structure that can speed up multiplication
+@@ -88,6 +94,15 @@ impl<P: Fp2Config> QuadExtConfig for Fp2ConfigWrapper<P> {
+         P::square_specialized(a)
+     }
+ 
++    #[inline(always)]
++    fn mul_assign_specialized(a: &mut QuadExtField<Self>, b: &QuadExtField<Self>) -> bool {
++        P::mul_assign_specialized(a, b)
++    }
++    #[inline(always)]
++    fn square_assign_specialized(a: &mut QuadExtField<Self>) -> bool {
++        P::square_assign_specialized(a)
++    }
++
+     #[inline(always)]
+     fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {
+         P::mul_fp_by_nonresidue_in_place(fe)
+diff --git a/opstack/kona/vendor/ark-ff/src/fields/models/quadratic_extension.rs b/opstack/kona/vendor/ark-ff/src/fields/models/quadratic_extension.rs
+index 2afa33213..c0f2343cf 100644
+--- a/opstack/kona/vendor/ark-ff/src/fields/models/quadratic_extension.rs
++++ b/opstack/kona/vendor/ark-ff/src/fields/models/quadratic_extension.rs
+@@ -57,6 +57,13 @@ pub trait QuadExtConfig: 'static + Send + Sync + Sized {
+         None
+     }
+ 
++    /// In-place complete specialization avoids materializing Option<Self> in
++    /// service clients. False leaves the receiver untouched and uses the original path.
++    #[inline(always)]
++    fn mul_assign_specialized(_a: &mut QuadExtField<Self>, _b: &QuadExtField<Self>) -> bool { false }
++    #[inline(always)]
++    fn square_assign_specialized(_a: &mut QuadExtField<Self>) -> bool { false }
++
+     /// A specializable method for multiplying an element of the base field by
+     /// the quadratic non-residue. This is used in Karatsuba multiplication
+     /// and in complex squaring.
+@@ -279,6 +286,8 @@ impl<P: QuadExtConfig> Field for QuadExtField<P> {
+     }
+ 
+     fn square_in_place(&mut self) -> &mut Self {
++        #[cfg(feature = "stwo-inplace-extensions")]
++        if P::square_assign_specialized(self) { return self; }
+         if let Some(result) = P::square_specialized(self) {
+             *self = result;
+             return self;
+@@ -663,6 +672,8 @@ impl<P: QuadExtConfig> MulAssign<&Self> for QuadExtField<P> {
+     #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
+     #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
+     fn mul_assign(&mut self, other: &Self) {
++        #[cfg(feature = "stwo-inplace-extensions")]
++        if P::mul_assign_specialized(self, other) { return; }
+         if let Some(result) = P::mul_specialized(self, other) {
+             *self = result;
+             return;

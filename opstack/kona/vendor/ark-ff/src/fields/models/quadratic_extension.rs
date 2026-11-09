@@ -640,8 +640,7 @@ impl<P: QuadExtConfig> Div<&QuadExtField<P>> for QuadExtField<P> {
 }
 
 impl<P: QuadExtConfig> AddAssign<&Self> for QuadExtField<P> {
-    #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
-    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
+    #[inline]
     fn add_assign(&mut self, other: &Self) {
         self.c0 += &other.c0;
         self.c1 += &other.c1;

@@ -65,7 +65,6 @@ impl<P: Fp12Config> Fp12<P> {
     }
 
     #[cfg_attr(all(feature = "stwo-inline-extensions", target_arch = "riscv64"), inline(always))]
-    #[cfg_attr(not(all(feature = "stwo-inline-extensions", target_arch = "riscv64")), inline)]
     pub fn mul_by_034(
         &mut self,
         c0: &Fp2<Fp2Config<P>>,
