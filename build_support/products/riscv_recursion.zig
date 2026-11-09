@@ -47,13 +47,13 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
     context.b.step("test-riscv64-register-boundary-lanes", "Qualify dynamic register endpoints and scalar provider wires").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = register_lane_tests, .minimum = 7 }}));
     const ls_lane_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_ls_circuit_lanes_test_root.zig") });
     context.b.step("test-riscv64-ls-circuit-lanes", "Qualify dynamic LS boundary selection arithmetic wires").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = ls_lane_tests, .minimum = 6 }}));
-    const op_pure_p2_check = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = &.{"OP pure P2"} });
+    const op_pure_p2_check = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = test_filter.apply(context.b, &.{"OP pure P2"}) });
     context.b.step("check-riscv64-op-pure-p2", "Type-check OP P2 reference gates without emitting or running test binaries").dependOn(&op_pure_p2_check.step);
-    const op_truth_p2 = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = &.{"OP pure P2 complete catalog"} });
+    const op_truth_p2 = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = test_filter.apply(context.b, &.{"OP pure P2 complete catalog"}) });
     context.b.step("test-riscv64-op-truth-recursion", "Qualify complete native P2 truth catalog recursive statements and representative physical leaves").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = op_truth_p2, .minimum = 6 }}));
-    const op_tower_p2 = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = &.{"OP pure P2 complete Miller truth circuit"} });
+    const op_tower_p2 = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = test_filter.apply(context.b, &.{"OP pure P2 complete Miller truth circuit"}) });
     context.b.step("test-riscv64-op-tower-recursion", "Qualify complete OP Miller truth recursive statement and physical leaf").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = op_tower_p2, .minimum = 1 }}));
-    const op_pure_p2 = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = &.{"OP pure P2"} });
+    const op_pure_p2 = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_op_pure_p2_test_root.zig"), .filters = test_filter.apply(context.b, &.{"OP pure P2"}) });
     context.b.step("test-riscv64-op-pure-p2", "Qualify new OP pure-P2 numerical and physical gates without production admission").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = op_pure_p2, .minimum = 4 }}));
     for ([_]struct { name: []const u8, source: []const u8 }{
         .{ .name = "test-riscv64-poseidon-matched-blake-census", .source = "src/integrations/riscv_cpu/rv64_poseidon_matched_blake_census_test_root.zig" },
