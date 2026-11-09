@@ -41,6 +41,14 @@ test {
     _ = @import("recursion_arithmetic_fusion_test_root.zig");
     _ = @import("recursion_opening_accumulation_test_root.zig");
     _ = @import("air/guest_precompile/keccakf_row.zig");
+    _ = @import("air_semantics_partition_0_test_root.zig");
+    _ = @import("air_semantics_partition_1_test_root.zig");
+    _ = @import("guest_precompile_partition_0_test_root.zig");
+    _ = @import("guest_precompile_partition_1_test_root.zig");
+    _ = @import("air_semantics_partition_2_test_root.zig");
+    _ = @import("air_semantics_partition_3_test_root.zig");
+    _ = @import("guest_precompile_partition_2_test_root.zig");
+    _ = @import("guest_precompile_partition_3_test_root.zig");
     // Package root.
     _ = @import("access_clock.zig");
     _ = @import("air_semantics_test_root.zig");
