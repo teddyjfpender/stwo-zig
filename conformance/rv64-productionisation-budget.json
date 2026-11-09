@@ -547,6 +547,13 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Keep every upstream module and test source in the authenticated generation-only Cairo overlay, while making native prover module exports private so recording compilation need not emit unrelated externally reachable native code. Authenticate both registry inputs before any visibility mutation; preserve the public witness recording exporter path and all source/module declarations. Full support installation and differential overlays remain unchanged. Existing Cargo owners compile serially. Require exact existing bundle bytes/hash, full 64-program emission and fail-closed registry tests under unchanged 4 GiB/180-second guards before any provenance refresh. No public package API, runtime algorithm, golden byte, gate, ceiling, rejection, launcher or new flag changes. Rollback restores export visibility and leaves regeneration unqualified."
+    },
+    {
+      "id": "delivery_detached_preparation_air_imports",
+      "net_code_budget": 0,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Subtractive internal frontend import repair. Fourteen detached-preparation source owners pull the complete recursive AIR barrel and its concrete CPU proof fixture into an existing backend-free closure. Replace only exact barrel field references with the same file owners, and remove four unused forwarding aliases in internal shards. Preserve all public facade/ledger files, every function equation, source/test file, test discovery, gate, rejection rule and allowed source prefix. Round-trip every substitution against the canonical barrel mapping; require the unchanged full product-closure suite and bounded fresh CPU acceptance. Admit only the four mandatory family helper/test files beneath the already-declared generic proof-wire module, preserving every directory prefix, backend/frontend exclusion and parser/rejection test; no broad allowance is added. No contract, backend algorithm, wire, golden byte, flag or launcher change. Rollback restores the eighteen aliases and the explicit closure failure. Add one small existing-owner runtime regression pinning row-17 public claims and the exclusion of row-35 shared-provider claims from the prefix; raise the existing authority discovery floor from thirty to thirty-one. The eighteen removed aliases pay for this test and the four exact generic-codec admissions, retaining zero net code growth."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

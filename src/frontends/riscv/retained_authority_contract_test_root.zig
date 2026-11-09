@@ -6,3 +6,16 @@ test {
     _ = @import("air/guest_precompile/tests/relation_test.zig");
     _ = @import("recursion/tests/segment_range_authority_test.zig");
 }
+
+test "segment-leaf claim projection keeps shared provider out of prefix" {
+    const std = @import("std");
+    const bundle = @import("recursion/segment_leaf_outer_bundle.zig");
+    const Q = @import("stwo_core").fields.qm31.QM31;
+    var claims = std.mem.zeroes(bundle.Claims);
+    claims.public.public_logup_control = Q.one();
+    claims.statement.range_check = Q.one().add(Q.one());
+    const prefix = claims.prefixValues();
+    try std.testing.expect(prefix[17].eql(Q.one()));
+    try std.testing.expect(prefix[0].isZero());
+    try std.testing.expect(claims.sharedProviderValue().eql(Q.one().add(Q.one())));
+}

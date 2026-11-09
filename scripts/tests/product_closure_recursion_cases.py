@@ -559,7 +559,12 @@ class RecursionOwnershipTest(unittest.TestCase):
                 ("typed_air_h010_artifacts", "src/frontends/riscv/air/lang/artifacts/h010_embedded.zig"),
             )),
             generated_imports=frozenset({"std", "builtin"}),
-            allowed_files=frozenset(),
+            allowed_files=frozenset({
+                "src/waist/proof_wire/family.zig",
+                "src/waist/proof_wire/bounded_count_test.zig",
+                "src/waist/proof_wire/hash_family_test.zig",
+                "src/waist/proof_wire/wide_test.zig",
+            }),
             # Preparation owns witnesses and may use generic proving contracts.
             # Concrete backend and integration directories are deliberately absent.
             allowed_prefixes=("src/waist/core", "src/frontends/riscv", "src/engine/prover",

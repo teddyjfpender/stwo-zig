@@ -26,65 +26,63 @@ pub const fixed_wire = @import("fixed_wire.zig");
 
 pub const binary_authority = @import("binary_pair_authority.zig");
 
-pub const air = @import("air/mod.zig");
+pub const adapter = @import("air/universal_typed_component.zig");
 
-pub const adapter = air.universal_typed_component;
+pub const framework = @import("air/framework_interaction.zig");
 
-pub const framework = air.framework_interaction;
+pub const relation_interaction = @import("air/relation_interaction.zig");
 
-pub const relation_interaction = air.relation_interaction;
+pub const manifest_mod = @import("air/universal_adapter_manifest.zig");
 
-pub const manifest_mod = air.universal_adapter_manifest;
+pub const binding = @import("air/universal_relation_binding.zig");
 
-pub const binding = air.universal_relation_binding;
+pub const roster = @import("air/universal_roster.zig");
 
-pub const roster = air.universal_roster;
+pub const schedule = @import("air/verifier_schedule.zig");
 
-pub const schedule = air.verifier_schedule;
+pub const universal = @import("air/universal_challenges.zig");
 
-pub const universal = air.universal_challenges;
+pub const universal_manifest = @import("air/universal_manifest.zig");
 
-pub const universal_manifest = air.universal_manifest;
+pub const control_air = @import("air/control.zig");
 
-pub const control_air = air.control;
+pub const control_witness = @import("air/control_witness.zig");
 
-pub const control_witness = air.control_witness;
+pub const transcript_air = @import("air/transcript_air.zig");
 
-pub const transcript_air = air.transcript_air;
+pub const transcript_air_witness = @import("air/transcript_air_witness.zig");
 
-pub const transcript_air_witness = air.transcript_air_witness;
+pub const transcript_binding_air = @import("air/transcript_binding.zig");
 
-pub const transcript_binding_air = air.transcript_binding;
+pub const transcript_binding_witness = @import("air/transcript_binding_witness.zig");
 
-pub const transcript_binding_witness = air.transcript_binding_witness;
+pub const transcript_state_air = @import("air/transcript_state.zig");
 
-pub const transcript_state_air = air.transcript_state;
+pub const transcript_state_witness = @import("air/transcript_state_witness.zig");
 
-pub const transcript_state_witness = air.transcript_state_witness;
+pub const transcript_word_air = @import("air/transcript_word.zig");
 
-pub const transcript_word_air = air.transcript_word;
+pub const transcript_word_witness = @import("air/transcript_word_witness.zig");
 
-pub const transcript_word_witness = air.transcript_word_witness;
+pub const transcript_payload_air = @import("air/transcript_payload.zig");
 
-pub const transcript_payload_air = air.transcript_payload;
+pub const transcript_payload_witness = @import("air/transcript_payload_witness.zig");
 
-pub const transcript_payload_witness = air.transcript_payload_witness;
+pub const pow_check_air = @import("air/pow_check.zig");
 
-pub const pow_check_air = air.pow_check;
+pub const pow_check_witness = @import("air/pow_check_witness.zig");
 
-pub const pow_check_witness = air.pow_check_witness;
+pub const pow_frame_air = @import("air/pow_frame.zig");
 
-pub const pow_frame_air = air.pow_frame;
+pub const pow_frame_witness = @import("air/pow_frame_witness.zig");
 
-pub const pow_frame_witness = air.pow_frame_witness;
+pub const relation_challenge_air = @import("air/relation_challenge.zig");
 
-pub const relation_challenge_air = air.relation_challenge;
+pub const relation_challenge_witness = @import("air/relation_challenge_witness.zig");
 
-pub const relation_challenge_witness = air.relation_challenge_witness;
+pub const verifier_randomness_air = @import("air/verifier_randomness.zig");
 
-pub const verifier_randomness_air = air.verifier_randomness;
-
-pub const verifier_randomness_witness = air.verifier_randomness_witness;
+pub const verifier_randomness_witness = @import("air/verifier_randomness_witness.zig");
 
 pub const FORMAT_VERSION: u16 = 1;
 

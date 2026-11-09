@@ -1,10 +1,9 @@
 //! Independent claim replay and domain audit for a generated binary bundle.
 
 const std = @import("std");
-const air = @import("air/mod.zig");
-const relation_interaction = air.relation_interaction;
-const universal = air.universal_challenges;
-const shared_provider = air.universal_shared_provider;
+const relation_interaction = @import("air/relation_interaction.zig");
+const universal = @import("air/universal_challenges.zig");
+const shared_provider = @import("air/universal_shared_provider.zig");
 const poseidon_air = @import("../air/memory_commitment/poseidon2_air.zig");
 
 pub fn audit(
