@@ -4,6 +4,7 @@ const core = @import("stwo_core");
 const P = @import("pure_p2_worker_protocol.zig");
 const W = P.W;
 const R = @import("../word16_global_execution/services/roster.zig");
+const Store = @import("pure_p2_retained_main.zig").Store;
 const Legacy = @import("../word16_global_execution/services/gkr_local/cpu_worker.zig");
 pub const Key = struct {
     allocator: std.mem.Allocator,
@@ -13,16 +14,30 @@ pub const Key = struct {
     source_geometry: [32]u8,
     identity: [32]u8,
     root: W.H.Hash,
-    tree: W.Scheme.CommittedTree,
+    tree: ?W.Scheme.CommittedTree,
+    parked_store: ?*Store = null,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, profile: P.Profile) !Key {
         if (setup.op_only or setup.bridges.tower != null) return error.UnqualifiedOpProtocol;
-        return initMode(a, setup, profile, false);
+        return initMode(a, setup, profile, false, .resident, null);
     }
     pub fn initForOp(a: std.mem.Allocator, setup: *const R.CpuSetup, profile: P.Profile) !Key {
         if (!setup.op_only) return error.UnqualifiedOpSetup;
-        return initMode(a, setup, profile, true);
+        return initMode(a, setup, profile, true, .resident, null);
     }
-    fn initMode(a: std.mem.Allocator, setup: *const R.CpuSetup, profile: P.Profile, op_only: bool) !Key {
+    /// Construct/commit immutable FIXED exactly once, then retain a bounded
+    /// parked template. Worker appends acquire independent read-only leases.
+    pub fn initForOpParked(a: std.mem.Allocator, setup: *const R.CpuSetup, profile: P.Profile, store: *Store) !Key {
+        if (!setup.op_only) return error.UnqualifiedOpSetup;
+        return initMode(a, setup, profile, true, .parked, store);
+    }
+    /// Fresh receiver authority: independently derive the same commitment and
+    /// identities, then release wide values. This key can never append to PCS.
+    pub fn initForOpDigest(a: std.mem.Allocator, setup: *const R.CpuSetup, profile: P.Profile) !Key {
+        if (!setup.op_only) return error.UnqualifiedOpSetup;
+        return initMode(a, setup, profile, true, .digest, null);
+    }
+    const Storage = enum { resident, parked, digest };
+    fn initMode(a: std.mem.Allocator, setup: *const R.CpuSetup, profile: P.Profile, op_only: bool, storage: Storage, store: ?*Store) !Key {
         if (profile == .reference_b2_q24_p0) return error.InvalidOpPurePoseidonProfile;
         const columns = try setup.fixedColumns(a);
         defer a.free(columns);
@@ -34,19 +49,39 @@ pub const Key = struct {
         try scheme.commitBorrowedStreaming(a, columns, 64, &channel);
         var tree = scheme.trees.pop().?;
         errdefer tree.deinit(a);
-        try tree.share(a);
         const root = tree.root();
+        const authority = try deriveAuthority(a, setup, profile, op_only, root);
+        var key = Key{ .allocator = a, .profile = profile, .op_only = op_only, .source_root = setup.key.root, .source_geometry = authority.geometry, .identity = authority.identity, .root = root, .tree = null };
+        switch (storage) {
+            .resident => {
+                try tree.share(a);
+                key.tree = tree;
+            },
+            .parked => {
+                const owner = store orelse return error.MissingOpFixedStore;
+                _ = try owner.parkBound(a, &tree, key.storageBinding());
+                key.tree = tree;
+                key.parked_store = owner;
+            },
+            .digest => tree.deinit(a),
+        }
+        return key;
+    }
+    fn deriveAuthority(a: std.mem.Allocator, setup: *const R.CpuSetup, profile: P.Profile, op_only: bool, root: W.H.Hash) !struct { identity: [32]u8, geometry: [32]u8 } {
         var h = std.crypto.hash.sha2.Sha256.init(.{});
         h.update(if (op_only) "opstack-pure-p2/op-source-fixed-class/v1\x00" else "opstack-pure-p2/source-fixed-class/v1\x00");
         h.update(&profile.identity());
         h.update(&setup.materials.program.identity);
         h.update(&setup.key.root);
         h.update(&root);
-        const source_geometry = try geometryIdentity(a, setup, &h);
-        return .{ .allocator = a, .profile = profile, .op_only = op_only, .source_root = setup.key.root, .source_geometry = source_geometry, .identity = h.finalResult(), .root = root, .tree = tree };
+        const geometry = try geometryIdentity(a, setup, &h);
+        return .{ .identity = h.finalResult(), .geometry = geometry };
+    }
+    pub fn storageBinding(self: *const Key) @import("pure_p2_retained_main.zig").Binding {
+        return .{ .setup = self.identity, .statement = self.source_geometry };
     }
     pub fn deinit(self: *Key) void {
-        self.tree.deinit(self.allocator);
+        if (self.tree) |*tree| tree.deinit(self.allocator);
         self.* = undefined;
     }
     pub fn require(self: *const Key, setup: *const R.CpuSetup, profile: P.Profile) !void {
@@ -58,8 +93,11 @@ pub const Key = struct {
         return self.requireMode(setup, profile);
     }
     fn requireMode(self: *const Key, setup: *const R.CpuSetup, profile: P.Profile) !void {
-        if (profile != self.profile or !std.mem.eql(u8, &self.source_root, &setup.key.root) or !std.mem.eql(u8, &self.root, &self.tree.root())) return error.PoseidonNativeFixedAuthorityMismatch;
-        if (!std.mem.eql(u8, &self.source_geometry, &try geometryIdentity(self.allocator, setup, null))) return error.PoseidonNativeFixedGeometryMismatch;
+        if (profile != self.profile or !std.mem.eql(u8, &self.source_root, &setup.key.root)) return error.PoseidonNativeFixedAuthorityMismatch;
+        if (self.tree) |tree| if (!std.mem.eql(u8, &self.root, &tree.root())) return error.PoseidonNativeFixedAuthorityMismatch;
+        const authority = try deriveAuthority(self.allocator, setup, profile, self.op_only, self.root);
+        if (!std.mem.eql(u8, &self.source_geometry, &authority.geometry)) return error.PoseidonNativeFixedGeometryMismatch;
+        if (!std.mem.eql(u8, &self.identity, &authority.identity)) return error.PoseidonNativeFixedAuthorityMismatch;
     }
     pub fn statement(self: *const Key, setup: *const R.CpuSetup, request: anytype, first: anytype) [32]u8 {
         var h = std.crypto.hash.sha2.Sha256.init(.{});
@@ -89,10 +127,30 @@ pub const Key = struct {
     pub fn scope(self: *const Key) W.H.Hash {
         return self.root;
     }
+    /// Stage one needs only the independently committed fixed root/shape.
+    /// Materialize an owned lease only for this worker's physical proof; no
+    /// transcript draw, root mixing, polynomial construction or recommit.
+    pub fn materialize(self: *const Key, a: std.mem.Allocator, scheme: *W.Scheme) !void {
+        const store = self.parked_store orelse return;
+        const template = self.tree orelse return error.PoseidonNativeDigestCannotAppend;
+        if (scheme.trees.items.len == 0 or scheme.pending_commit != null) return error.PoseidonNativeFixedPhase;
+        const before = &scheme.trees.items[0];
+        if (!std.mem.eql(u8, &before.root(), &self.root) or before.columns.len != template.columns.len) return error.PoseidonNativeFixedAuthorityMismatch;
+        for (before.columns, template.columns) |actual, expected| if (actual.log_size != expected.log_size) return error.PoseidonNativeFixedGeometryMismatch;
+        if (!before.commitment.layers_parked) return error.PoseidonNativeFixedAlreadyMaterialized;
+        var lease = try store.leaseBound(a, &template, self.storageBinding());
+        errdefer lease.deinit(a);
+        if (!std.mem.eql(u8, &lease.root(), &self.root)) return error.PoseidonNativeFixedAuthorityMismatch;
+        for (lease.columns, template.columns) |actual, expected| if (actual.log_size != expected.log_size) return error.PoseidonNativeFixedGeometryMismatch;
+        var old = before.*;
+        before.* = lease;
+        old.deinit(a);
+    }
     pub fn append(self: *const Key, a: std.mem.Allocator, scheme: *W.Scheme, ch: *W.Channel) !void {
         if (scheme.trees.items.len != 0 or !std.meta.eql(scheme.config, self.profile.config())) return error.PoseidonNativeFixedPhase;
-        var tree = self.tree.retainShared();
-        errdefer tree.deinit(self.allocator);
+        const template = self.tree orelse return error.PoseidonNativeDigestCannotAppend;
+        var tree = if (self.parked_store) |store| try store.shapeBound(a, &template, self.storageBinding()) else template.retainShared();
+        errdefer tree.deinit(a);
         try scheme.appendCommittedTree(a, tree, ch);
     }
 };

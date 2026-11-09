@@ -15,7 +15,13 @@ const Inventory = @import("pure_p2_op_inventory.zig").Inventory;
 const Manifest = @import("pure_p2_manifest.zig");
 const a = std.testing.allocator;
 const Plan = @import("../word16_global_execution/ethereum/plan.zig");
-fn exercise(comptime compact: bool) !void {
+fn exercise(comptime compact: bool, comptime parked_fixed: bool) !void {
+    var temp = std.testing.tmpDir(.{});
+    defer temp.cleanup();
+    const path = try temp.dir.realpathAlloc(a, ".");
+    defer a.free(path);
+    var store = try @import("pure_p2_retained_main.zig").Store.init(a, path, 1 << 30, 128 << 20);
+    defer store.deinit();
     var pool: engine.work_pool.WorkPool = .{};
     try pool.initInPlaceWithOptions(.{ .worker_count = 8 });
     defer pool.deinit();
@@ -47,8 +53,19 @@ fn exercise(comptime compact: bool) !void {
             try std.testing.expect(declarations[i].geometry.cpu_compact_decode);
             try std.testing.expect(declarations[i].geometry.cpu_u8_pairs and declarations[i].geometry.cpu_fused_tail);
         }
-        keys[i] = try Key.initForOp(a, &setups[i], profile);
-        fresh_keys[i] = try Key.initForOp(a, &fresh[i], profile);
+        keys[i] = if (parked_fixed) try Key.initForOpParked(a, &setups[i], profile, &store) else try Key.initForOp(a, &setups[i], profile);
+        fresh_keys[i] = if (parked_fixed) try Key.initForOpDigest(a, &fresh[i], profile) else try Key.initForOp(a, &fresh[i], profile);
+        try std.testing.expectEqualSlices(u8, &keys[i].identity, &fresh_keys[i].identity);
+        try std.testing.expectEqualSlices(u8, &keys[i].root, &fresh_keys[i].root);
+        if (parked_fixed) {
+            const W = @import("pure_p2_worker_protocol.zig").W;
+            var empty = try W.Prover.init(a, profile.config());
+            defer empty.deinit(a);
+            var channel = W.Channel.init();
+            try std.testing.expectError(error.PoseidonNativeDigestCannotAppend, fresh_keys[i].append(a, &empty, &channel));
+            try std.testing.expectEqual(@as(usize, 0), empty.trees.items.len);
+            try std.testing.expectEqual(@as(usize, 0), store.mapped);
+        }
         made += 1;
     }
     var sha = try @import("../word16_global_execution/sha256/roster.zig").TruthSetup.init(a, F.SHA_LOG);
@@ -86,12 +103,6 @@ fn exercise(comptime compact: bool) !void {
     var bad_endpoint = expected;
     bad_endpoint.final_pc += 4;
     try std.testing.expect(std.meta.isError(Inventory.init(a, profile, &.{ &fresh[0], &fresh[1] }, &requests, &spans, &.{ &fresh_keys[0], &fresh_keys[1] }, &truths, &.{ &fk0, &fk1 }, &.{}, bad_endpoint)));
-    var temp = std.testing.tmpDir(.{});
-    defer temp.cleanup();
-    const path = try temp.dir.realpathAlloc(a, ".");
-    defer a.free(path);
-    var store = try @import("pure_p2_retained_main.zig").Store.init(a, path, 1 << 30, 128 << 20);
-    defer store.deinit();
     var cpus: [2]CPU.Worker = undefined;
     var count: usize = 0;
     defer for (cpus[0..count]) |*worker| worker.deinit();
@@ -132,7 +143,11 @@ fn exercise(comptime compact: bool) !void {
     var t1 = try tw1.complete(&pending, 3);
     defer t1.deinit(a);
     try std.testing.expectEqual(@as(usize, 0), store.mapped);
-    try std.testing.expectEqual(@as(usize, 0), store.reserved);
+    if (!parked_fixed) try std.testing.expectEqual(@as(usize, 0), store.reserved);
+    if (parked_fixed) {
+        try std.testing.expect(store.reserved > 0);
+        for (keys) |key| try std.testing.expect(key.tree.?.commitment.layers_parked);
+    }
     const claims = [_]Manifest.Claims{
         try CPU.verifyForOp(a, &fresh[0], requests[0], spans[0], receiver.workers[0], receiver.first_ids[0], &fresh_pending, 0, &fresh_keys[0], &c0, null),
         try CPU.verifyForOp(a, &fresh[1], requests[1], spans[1], receiver.workers[1], receiver.first_ids[1], &fresh_pending, 1, &fresh_keys[1], &c1, null),
@@ -167,8 +182,12 @@ fn exercise(comptime compact: bool) !void {
 }
 
 test "OP complete mixed native inventory fresh receiver closes all shards and providers" {
-    try exercise(false);
+    try exercise(false, false);
 }
 test "OP compact GKR byte pairs and LS-D64 close a complete mixed execution" {
-    try exercise(true);
+    try exercise(true, false);
+}
+
+test "OP bounded FIXED templates lease only during physical completion and digest receivers agree" {
+    try exercise(true, true);
 }

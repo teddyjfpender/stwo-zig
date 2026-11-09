@@ -17,6 +17,8 @@ const Coordinator = @import("../word16_global_execution/services/gkr_local/coord
 const Plan = @import("../word16_global_execution/ethereum/plan.zig");
 const Receiver = @import("../word16_global_execution/ethereum/receiver.zig");
 const Terminal = @import("../word16_global_execution/ethereum/terminal.zig");
+const ProgramMetadata = @import("../word16_execution/program_metadata.zig");
+const SourceKey = @import("../word16_global_execution/keccak/shared/key.zig").Key;
 const Keys = @import("../word16_global_execution/ethereum/keys.zig");
 const Key = @import("pure_p2_fixed_key.zig").Key;
 const Truth = @import("pure_p2_truth_worker.zig");
@@ -57,6 +59,7 @@ pub const Resources = struct {
 const Authority = struct {
     allocator: std.mem.Allocator,
     native_truth: Keys.Owner,
+    program_metadata: ProgramMetadata.Cache,
     setups: []*const R.CpuSetup,
     cpu_keys: []*const Key,
     truth_keys: []*const Truth.Key,
@@ -92,9 +95,10 @@ const Authority = struct {
         a.free(self.truth_keys);
         a.free(self.miller);
         self.native_truth.deinit();
+        self.program_metadata.deinit();
         self.* = undefined;
     }
-    fn init(a: std.mem.Allocator, image: *const Image.Owner, m: Metadata) !Authority {
+    fn init(a: std.mem.Allocator, image: *const Image.Owner, m: Metadata, fixed_store: ?*Store) !Authority {
         try m.validate();
         const setups = try a.alloc(*const R.CpuSetup, m.cpus.len);
         errdefer a.free(setups);
@@ -106,7 +110,9 @@ const Authority = struct {
         errdefer a.free(miller);
         var native_truth = try Keys.Owner.init(a, image, &.{}, m.truths);
         errdefer native_truth.deinit();
-        var self = Authority{ .allocator = a, .native_truth = native_truth, .setups = setups, .cpu_keys = cpu_keys, .truth_keys = truth_keys, .miller = miller };
+        var metadata = try ProgramMetadata.Cache.init(a, 256 << 20);
+        errdefer metadata.deinit();
+        var self = Authority{ .allocator = a, .native_truth = native_truth, .program_metadata = metadata, .setups = setups, .cpu_keys = cpu_keys, .truth_keys = truth_keys, .miller = miller };
         // Child-owner cleanup only on error; outer arrays/native_truth retain
         // the preceding error guards until successful return.
         errdefer {
@@ -143,19 +149,20 @@ const Authority = struct {
             try self.cpu_owners.ensureUnusedCapacity(a, 1);
             try self.key_owners.ensureUnusedCapacity(a, 1);
             const setup = try a.create(R.CpuSetup);
-            setup.* = R.CpuSetup.initForOpWithAuthorityAndSuiteAndCaches(a, &image.authority, d.geometry, d.bridges, @import("../word16_execution/pcs_suite.zig").Suite.production(), .{}) catch |err| {
+            setup.* = R.CpuSetup.initForOpWithAuthorityAndSuiteAndCaches(a, &image.authority, d.geometry, d.bridges, @import("../word16_execution/pcs_suite.zig").Suite.production(), .{ .program = &self.program_metadata }) catch |err| {
                 a.destroy(setup);
                 return err;
             };
             self.cpu_owners.appendAssumeCapacity(setup);
             setups[i] = setup;
             const key = try a.create(Key);
-            key.* = Key.initForOp(a, setup, m.profile) catch |err| {
+            key.* = (if (fixed_store) |store| Key.initForOpParked(a, setup, m.profile, store) else Key.initForOpDigest(a, setup, m.profile)) catch |err| {
                 a.destroy(key);
                 return err;
             };
             self.key_owners.appendAssumeCapacity(key);
             cpu_keys[i] = key;
+            try retireLegacyCpu(a, setup, key);
         }
         for (self.native_truth.truths, 0..) |truth, i| {
             var reused = false;
@@ -196,6 +203,22 @@ const Authority = struct {
         return self;
     }
 };
+/// P2 is the sole prover FIXED commitment here. Preserve the independently
+/// derived legacy source digest/suite/logshape without retaining its obsolete
+/// Blake nodes or original wide fixed witness. Legacy append fails closed.
+fn retireLegacyCpu(a: std.mem.Allocator, setup: *R.CpuSetup, key: *const Key) !void {
+    try key.requireForOp(setup, key.profile);
+    if (setup.key.root_only) return error.OpSourceFixedAlreadyRetired;
+    const logs = try a.alloc(u32, setup.key.tree.columns.len);
+    defer a.free(logs);
+    for (setup.key.tree.columns, logs) |column, *log| log.* = column.log_size;
+    var digest = try SourceKey.rootOnly(a, setup.key.suite, setup.key.root, logs);
+    errdefer digest.deinit();
+    try setup.releaseFixedWitness();
+    var old = setup.key;
+    setup.key = digest;
+    old.deinit();
+}
 fn requests(a: std.mem.Allocator, m: Metadata, cells: Cells.Owned) ![]P.Request {
     const out = try a.alloc(P.Request, m.requests.len);
     for (m.requests, out, 0..) |r, *v, i| v.* = r.expand(if (i == 0) cells.initial else &.{}, if (i + 1 == out.len) cells.terminal else &.{});
@@ -281,7 +304,7 @@ pub fn withSourceDirectory(a: std.mem.Allocator, config: Request.Config, path: [
     defer a.free(req);
     var bounds = try Bounds.deriveForOp(a, program.log_size, m.cpus, m.truths, req, m.spans, m.miller);
     defer bounds.deinit();
-    var authority = try Authority.init(a, &image, m);
+    var authority = try Authority.init(a, &image, m, null);
     defer authority.deinit();
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
@@ -388,16 +411,12 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         try std.fs.cwd().makePath(path);
         var out = try std.fs.cwd().openDir(path, .{});
         defer out.close();
-        try @import("../word16_execution/driver.zig").writeJson(a, out, "native-op-cost.json", .{ .schema = "op-native-capture-cost/v1", .admitted_complete_runtime = false, .main_coefficient_bytes = cost.main_coefficient_bytes, .merkle_node_upper_bytes = cost.merkle_node_upper_bytes, .disk_upper_bytes = cost.disk_upper_bytes, .max_cpu_restore_bytes = cost.max_cpu_restore_bytes, .declared_limits = resources, .capture_heap = capture_heap, .native_capture_payload_bytes = native_payload, .advice_capture_payload = advice_payload, .cpus = cost.cpus, .truths = cost.truths, .miller = cost.miller, .caveat = "Truth Merkle floor16 is conservative; fixed setup, GKR/source temporaries and allocator/stack RSS need actual runtime admission. This capture report grants no execution proof acceptance." });
+        try @import("../word16_execution/driver.zig").writeJson(a, out, "native-op-cost.json", .{ .schema = "op-native-capture-cost/v1", .admitted_complete_runtime = false, .main_coefficient_bytes = cost.main_coefficient_bytes, .merkle_node_upper_bytes = cost.merkle_node_upper_bytes, .disk_upper_bytes = cost.disk_upper_bytes, .max_cpu_restore_bytes = cost.max_cpu_restore_bytes, .fixed_classes = cost.fixed_classes, .fixed_coefficient_bytes = cost.fixed_coefficient_bytes, .fixed_merkle_node_upper_bytes = cost.fixed_merkle_node_upper_bytes, .combined_disk_upper_bytes = cost.combined_disk_upper_bytes, .declared_limits = resources, .capture_heap = capture_heap, .native_capture_payload_bytes = native_payload, .advice_capture_payload = advice_payload, .cpus = cost.cpus, .truths = cost.truths, .miller = cost.miller, .caveat = "Truth Merkle floor16 is conservative; fixed setup, GKR/source temporaries and allocator/stack RSS need actual runtime admission. This capture report grants no execution proof acceptance." });
         try @import("../word16_execution/driver.zig").writeJson(a, out, "native-op-plan.json", .{ .proof_verified = false, .complete_execution = true, .steps = captured.steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers, .metadata = metadata, .cells = bounds.base.shape.native_trace_cells, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns });
         std.debug.print("OP_NATIVE_CAPTURE complete=true proof_verified=false steps={} CPU={} truth={} miller={} cells={any} capture_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bounds.base.shape.native_trace_cells, capture_ns });
         return;
     }
-    var authority = try Authority.init(a, &image, metadata);
-    defer authority.deinit();
-    const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
-    var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
-    defer inventory.deinit();
+    if (cost.combined_disk_upper_bytes > resources.disk_bytes) return error.OpCombinedParkingDiskPlanExceeded;
     try std.fs.cwd().makePath(path);
     var dir = try std.fs.cwd().openDir(path, .{});
     defer dir.close();
@@ -406,10 +425,17 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     try std.fs.cwd().makePath(parking);
     var store = try Store.init(a, parking, resources.disk_bytes, resources.mapped_bytes);
     defer store.deinit();
+    var authority = try Authority.init(a, &image, metadata, &store);
+    defer authority.deinit();
+    const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
+    var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
+    defer inventory.deinit();
     var observations = try @import("../word16_global_execution/ethereum/observations.zig").Owner.init(a, if (config.profile_stages) inventory.workers.len else 0);
     defer observations.deinit();
     var phases: Producer.Timing = .{};
     const ready_ns = timer.read();
+    const setup_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot();
+    const immutable_fixed_disk_bytes = store.reserved;
     var bundle = try Producer.produce(a, &inventory, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, captured.native, &captured.advice, &store, .{
         .consume_memory_events = resources.consume_memory_events,
         .recorders = observations.pointers,
@@ -430,7 +456,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         const profiling = @import("../word16_global_execution/services/profiling.zig").Options{ .recorders = observations.pointers, .directory = dir };
         for (observations.pointers, 0..) |_, i| try profiling.finish(a, i);
     }
-    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - captured_at, .seal_and_park_ns = phases.stage_one_ns, .manifest_ns = phases.manifest_ns, .stage_two_prove_ns = phases.stage_two_ns, .prove_ns = prove_ns, .publish_payload_ns = timer.read() - publish_start, .total_before_receipt_ns = timer.read(), .production_admitted = false });
+    try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-timing.json", .{ .schema = "op-pure-p2-native-block/v1", .complete = true, .steps = captured.steps, .cpu = count, .truth = truth_declarations.len, .miller = tower.items.len, .native_bytes = bytes.len, .image_ns = image_ns, .program_ns = program_ns, .capture_ns = capture_ns, .setup_and_admission_ns = ready_ns - captured_at, .setup_heap = setup_heap, .immutable_fixed_classes = authority.key_owners.items.len, .immutable_fixed_disk_bytes = immutable_fixed_disk_bytes, .peak_parked_mapping_bytes = store.peak_mapped, .runtime_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot(), .planned_combined_disk_upper_bytes = cost.combined_disk_upper_bytes, .seal_and_park_ns = phases.stage_one_ns, .manifest_ns = phases.manifest_ns, .stage_two_prove_ns = phases.stage_two_ns, .prove_ns = prove_ns, .publish_payload_ns = timer.read() - publish_start, .total_before_receipt_ns = timer.read(), .production_admitted = false });
     try std.posix.fsync(dir.fd);
     std.debug.print("OP_NATIVE_PRODUCER complete=true steps={} CPU={} truth={} miller={} bytes={} capture_ns={} prove_ns={}\n", .{ captured.steps, count, truth_declarations.len, tower.items.len, bytes.len, capture_ns, prove_ns });
 }

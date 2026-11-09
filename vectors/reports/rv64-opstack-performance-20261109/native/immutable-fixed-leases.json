@@ -1,0 +1,68 @@
+{
+  "schema": "op-native-immutable-fixed-leases/v1",
+  "status": "qualified-small-exact-proof-and-mixed-native-closure",
+  "production_admitted": false,
+  "security": "128-bit security target under documented assumptions",
+  "changes": [
+    "Commit each immutable CPU FIXED class once, park exclusive template, stage one retains root and owned descriptors with zero mappings",
+    "Materialize a bounded read-only lease only for physical phase two; preserve root, ordered logs and transcript, then release it with proof",
+    "Fresh receivers independently reconstruct P2 FIXED root and source identity, retain digest only; digest append fails closed",
+    "Replace obsolete legacy Blake FIXED tree with rootOnly authority and retire raw fixed matrices after P2 sealing; share immutable decoded program metadata across classes",
+    "Admit combined parked MAIN and CPU FIXED coefficients, Merkle layers and page rounding before setup"
+  ],
+  "small": {
+    "block": 120794432,
+    "instructions": 796406,
+    "cpu": 1,
+    "truth": 2,
+    "miller": 0,
+    "bundle_bytes": 7048980,
+    "bundle_sha256": "ceb1bb7f64e1224b4db02007a4df4a11e902408fb540caa7ae31b2d6680581fd",
+    "byte_identical_to_prior_compact": true,
+    "fresh_digest_receiver_accepted": true,
+    "producer_wall_seconds": 16.94,
+    "native_prove_seconds": 12.829388375,
+    "producer_peak_rss_bytes": 3072114688,
+    "receiver_wall_seconds": 3.74,
+    "receiver_peak_rss_bytes": 2298413056,
+    "timing_caveat": "Correctness run while one focused test was compiling; no controlled speedup claim. Final additive setup/store telemetry was semantic-checked after this binary build."
+  },
+  "mixed_fixture": {
+    "steps": 19,
+    "cpu": 2,
+    "truth": 2,
+    "native_bytes": 3899052,
+    "fresh_global_ram_wire_closure": true,
+    "stage_one_fixed_mappings": 0,
+    "templates_still_parked_after_complete": true,
+    "digest_cannot_append": true,
+    "allocator_leak_check": true
+  },
+  "heavy_planning": {
+    "block": 121065789,
+    "instructions": 238226172,
+    "cpu_workers": 57,
+    "cpu_fixed_classes": 36,
+    "truth_workers": 13,
+    "miller_workers": 22,
+    "parked_main_upper_bytes": 143601034804,
+    "cpu_fixed_coefficients_bytes": 8287765120,
+    "cpu_fixed_merkle_upper_bytes": 43486542576,
+    "combined_before_fixed_page_rounding_bytes": 195375342500,
+    "disk_limit_bytes": 206158430208,
+    "heavy_runtime_executed": false,
+    "caveat": "Static source-derived combined disk admission. Actual all-class heap/store peak and active source/prover headroom must still be measured under hard host limits before heavy proving."
+  },
+  "artifacts": {
+    "root": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261108/opstack-cpu/pure-p2-native-small-fixed-leased",
+    "producer_log": "/private/tmp/op-native-small-fixed-leased-prove.log",
+    "receiver_log": "/private/tmp/op-native-small-fixed-leased-verify.log",
+    "mixed_log": "/private/tmp/op-native-fixed-inventory-gate.log"
+  },
+  "checks": [
+    "zig build check-rv64-op-native -Doptimize=ReleaseFast -j1",
+    "zig build rv64-op-native -Doptimize=ReleaseFast -j1",
+    "zig build test-riscv64-op-native-join -Doptimize=ReleaseFast -j1 -Driscv-test-filter=OP bounded FIXED templates lease only",
+    "real producer + separate receiver + SHA256 exact parity"
+  ]
+}

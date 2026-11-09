@@ -142,6 +142,11 @@ pub const Worker = struct {
         generation.end();
         Protocol.mixManifestAndClaims(&self.channel, pending.digest, claims);
         try self.scheme.commitBorrowedStreamingWithRecorder(a, headers, 64, self.native_recorder, &self.channel);
+        {
+            var fixed_lease = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "immutable_fixed_lease", "Acquire bounded immutable FIXED values for native proving");
+            defer fixed_lease.end();
+            try self.key.materialize(a, &self.scheme);
+        }
         self.consumed = true;
         const scheme = self.scheme;
         self.scheme = undefined;

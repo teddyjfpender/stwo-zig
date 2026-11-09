@@ -26,6 +26,10 @@ pub const Report = struct {
     merkle_node_upper_bytes: u64,
     disk_upper_bytes: u64,
     max_cpu_restore_bytes: u64,
+    fixed_classes: usize,
+    fixed_coefficient_bytes: u64,
+    fixed_merkle_node_upper_bytes: u64,
+    combined_disk_upper_bytes: u64,
     pub fn deinit(self: *Report) void {
         for (self.cpus) |cpu| self.allocator.free(cpu.roles);
         self.allocator.free(self.cpus);
@@ -130,7 +134,28 @@ pub fn derive(a: std.mem.Allocator, program: *const Program, declarations: []con
         out.* = .{ .declaration = d, .frontier_active_rows = 20 * @as(u64, d.calls), .frontier_padded_rows = rows(d.frontier_log), .arithmetic_active_rows = 32 * @as(u64, d.calls), .arithmetic_padded_rows = rows(d.arithmetic_log) };
     }
     _ = advice;
+    var fixed_classes: usize = 0;
+    var fixed_coefficients: u64 = 0;
+    var fixed_merkle: u64 = 0;
+    for (declarations, cpus, 0..) |declaration, cpu, i| {
+        var reused = false;
+        for (declarations[0..i]) |prior| if (std.meta.eql(prior, declaration)) {
+            reused = true;
+            break;
+        };
+        if (reused) continue;
+        fixed_classes += 1;
+        var max_log: u32 = 0;
+        for (cpu.roles) |role| if (role.widths[0] != 0) {
+            fixed_coefficients = try std.math.add(u64, fixed_coefficients, try std.math.mul(u64, try std.math.mul(u64, rows(role.log), role.widths[0]), 4));
+            max_log = @max(max_log, role.log);
+        };
+        fixed_merkle = try std.math.add(u64, fixed_merkle, try nodes(max_log, blowup));
+    }
     const coefficients = try std.math.mul(u64, main_cells, 4);
     const rounding = try std.math.mul(u64, cpus.len + truths.len + towers.len, std.heap.pageSize() - 1);
-    return .{ .allocator = a, .cpus = cpus, .truths = truths, .miller = towers, .main_coefficient_bytes = coefficients, .merkle_node_upper_bytes = merkle, .disk_upper_bytes = try std.math.add(u64, try std.math.add(u64, coefficients, merkle), rounding), .max_cpu_restore_bytes = max_restore };
+    const main_disk = try std.math.add(u64, try std.math.add(u64, coefficients, merkle), rounding);
+    const fixed_rounding = try std.math.mul(u64, fixed_classes, std.heap.pageSize() - 1);
+    const combined_disk = try std.math.add(u64, main_disk, try std.math.add(u64, try std.math.add(u64, fixed_coefficients, fixed_merkle), fixed_rounding));
+    return .{ .allocator = a, .cpus = cpus, .truths = truths, .miller = towers, .main_coefficient_bytes = coefficients, .merkle_node_upper_bytes = merkle, .disk_upper_bytes = main_disk, .max_cpu_restore_bytes = max_restore, .fixed_classes = fixed_classes, .fixed_coefficient_bytes = fixed_coefficients, .fixed_merkle_node_upper_bytes = fixed_merkle, .combined_disk_upper_bytes = combined_disk };
 }
