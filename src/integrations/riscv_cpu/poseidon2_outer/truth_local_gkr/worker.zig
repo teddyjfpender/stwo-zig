@@ -101,6 +101,7 @@ pub fn mixClaims(channel: *W.Channel, manifest: [36]u8, receipt: [36]u8, claims:
     channel.mixFelts(&claims);
 }
 pub const Worker = struct {
+    native_recorder: ?*@import("stwo_prover_api").stage_profile.Recorder = null,
     allocator: std.mem.Allocator,
     parent_allocator: std.mem.Allocator,
     budget_owner: *Budget,
@@ -155,7 +156,7 @@ pub const Worker = struct {
         self.consumed = true;
         try self.key.base.append(self.allocator, &self.scheme, &self.channel);
         const main = try self.source.?.takeMain();
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, main.columns, main.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         self.sealed = true;
         self.consumed = false;
         return .{ .main = self.scheme.trees.items[1].root(), .local = null };
@@ -172,26 +173,32 @@ pub const Worker = struct {
         defer child_owner.destroy();
         const child_a = child_owner.allocator();
         const scope = scopeFor(self.expected, self.scheme.trees.items[1].root(), pending.digest);
+        var local_stage = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "truth_local_gkr", "Source-streamed truth local GKR");
+        defer local_stage.end();
         var child = try N.proveUnboundWithOptions(child_a, scope, shapes, metadata, self.gkr_options);
         defer child.deinit(child_a);
         // The prover already has these exact terminal marginals. Re-verifying
         // its own GKR proof here adds no authority; the fresh receiver does so.
+        local_stage.end();
         const checked = child.terminal();
+        var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Truth terminal binding and unchanged global LogUp");
+        defer generation.end();
         const generated = try Components.generate(a, &self.source.?, shapes, metadata, checked, pending.shared, self.limits.interaction_bytes);
         var owns_inter = true;
         defer if (owns_inter) generated.commit.deinit(a);
         var components = try Components.Components.init(a, self.truth, checked, pending.shared, generated.claims);
         defer components.deinit();
         const handles = components.provers();
+        generation.end();
         mixClaims(&self.channel, pending.digest, child.digest, generated.claims);
         owns_inter = false;
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, generated.commit.columns, generated.commit.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, generated.commit.columns, generated.commit.backings, 64, self.native_recorder, &self.channel);
         self.source.?.deinit();
         self.source = null;
         const local = try N.encode(self.parent_allocator, shapes, &child.result.proof);
         errdefer self.parent_allocator.free(local);
         self.owns_scheme = false;
-        var proof = try W.Prover.prove(a, &handles, &self.channel, self.scheme, .{});
+        var proof = try W.Prover.prove(a, &handles, &self.channel, self.scheme, .{ .recorder = self.native_recorder });
         defer proof.deinit(a);
         return .{ .bytes = try W.Wire.encodeProofBytesBinary(self.parent_allocator, proof.proof), .local = local, .receipt = child.digest, .claims = generated.claims };
     }
