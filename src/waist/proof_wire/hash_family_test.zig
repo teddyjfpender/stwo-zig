@@ -137,3 +137,68 @@ test "caller selected hash reconstruction owns bytes and does not authenticate a
         try std.testing.checkAllAllocationFailures(a, C.reconstruct, .{wire});
     }
 }
+
+test "properties wire: CM31 seeded bounded shapes preserve canonical family round trips" {
+    // These are codec fixtures, not claims of STARK proof validity. Existing
+    // frozen headers/coordinate offsets and refusal tests remain independent.
+    var prng = std.Random.DefaultPrng.init(0x012d_3293_6102_268b);
+    const rng = prng.random();
+    inline for (.{ core.fields.qm31.QM31, core.fields.om31.OM31 }) |Secure| {
+        inline for (.{ Default, P1, P2 }) |H| {
+            const C = Checks(Secure, H);
+            const W = C.W;
+            for (0..12) |trial| {
+                var fixture = try C.fixture(a);
+                defer fixture.deinit(a);
+                var arena = std.heap.ArenaAllocator.init(a);
+                defer arena.deinit();
+                var wire = try W.proofToWire(arena.allocator(), fixture);
+                var hashes: [3]W.HashWire = undefined;
+                for (&hashes) |*hash| for (0..hash.len / 4) |coordinate| {
+                    std.mem.writeInt(u32, hash[4 * coordinate ..][0..4], rng.uintLessThan(u32, core.fields.m31.Modulus), .little);
+                };
+                var values: [3]W.SecureWire = undefined;
+                for (&values) |*value| for (value) |*limb| {
+                    limb.* = rng.uintLessThan(u32, core.fields.m31.Modulus);
+                };
+                if (trial == 0) {
+                    @memset(&values[0], 0);
+                    @memset(&values[1], 0);
+                    @memcpy(values[0][0..4], &[_]u32{ 5, 7, 11, 13 });
+                    @memcpy(values[1][0..4], &[_]u32{ 1303640556, 459797465, 1763438021, 535549304 });
+                }
+                const count = trial % 4; // zero through three; bounded before any codec allocation
+                wire.commitments = hashes[0..count];
+                wire.sampled_values[0][0] = values[0..count];
+                wire.decommitments[0].hash_witness = hashes[0..count];
+                wire.fri_proof.first_layer.commitment = hashes[0];
+                wire.fri_proof.first_layer.fri_witness = values[0..count];
+                wire.fri_proof.first_layer.decommitment.hash_witness = hashes[0..count];
+                wire.fri_proof.inner_layers = wire.fri_proof.inner_layers[0 .. trial % 2];
+                // A nonempty power-of-two final polynomial is a codec precondition.
+                wire.fri_proof.last_layer_poly = values[0 .. 1 + trial % 2];
+                var proof = try W.wireToProof(a, wire);
+                defer proof.deinit(a);
+                for ([_]bool{ false, true }) |binary| {
+                    const bytes = if (binary) try W.encodeProofBytesBinary(a, proof) else try W.encodeProofBytes(a, proof);
+                    defer a.free(bytes);
+                    var decoded = if (binary) try W.decodeProofBytesBinary(a, bytes) else try W.decodeProofBytes(a, bytes);
+                    defer decoded.deinit(a);
+                    const actual = try W.proofToWire(arena.allocator(), decoded);
+                    try std.testing.expectEqualDeep(wire, actual);
+                    const encoded = if (binary) try W.encodeProofBytesBinary(a, decoded) else try W.encodeProofBytes(a, decoded);
+                    defer a.free(encoded);
+                    try std.testing.expectEqualSlices(u8, bytes, encoded);
+                    if (binary) {
+                        for ([_]usize{ 0, 7, bytes.len - 1, rng.uintLessThan(usize, bytes.len) }) |cut|
+                            try std.testing.expectError(error.InvalidBinaryProof, W.decodeProofBytesBinary(a, bytes[0..cut]));
+                        const bad = try a.dupe(u8, bytes);
+                        defer a.free(bad);
+                        bad[0] ^= 0xff;
+                        try std.testing.expectError(error.UnsupportedBinaryVersion, W.decodeProofBytesBinary(a, bad));
+                    }
+                }
+            }
+        }
+    }
+}

@@ -180,11 +180,15 @@ test "qm31 integer: required regression discovery" {
 
 fn lawValue(comptime F: type, limbs: [8]u32) F {
     const M = core.fields.m31.M31;
-    if (F == M) return M.fromCanonical(limbs[0]);
-    if (F == core.fields.cm31.CM31) return F.fromU32Unchecked(limbs[0], limbs[1]);
-    var coordinates: [@typeInfo(@TypeOf(F.zero().toM31Array())).array.len]M = undefined;
-    for (&coordinates, 0..) |*x, i| x.* = M.fromCanonical(limbs[i]);
-    return F.fromM31Array(coordinates);
+    if (F == M) {
+        return M.fromCanonical(limbs[0]);
+    } else if (F == core.fields.cm31.CM31) {
+        return F.fromU32Unchecked(limbs[0], limbs[1]);
+    } else {
+        var coordinates: [@typeInfo(@TypeOf(F.zero().toM31Array())).array.len]M = undefined;
+        for (&coordinates, 0..) |*x, i| x.* = M.fromCanonical(limbs[i]);
+        return F.fromM31Array(coordinates);
+    }
 }
 fn lawBase(comptime F: type, x: core.fields.m31.M31) F {
     return if (F == core.fields.m31.M31) x else F.fromBase(x);
