@@ -2,7 +2,7 @@
 
 import unittest
 
-from opstack.build import bulk_environment
+from opstack.build import bulk_environment, execution_requirements, LEAN_VARIANTS
 
 
 class BuildEnvironment(unittest.TestCase):
@@ -25,3 +25,10 @@ class BuildEnvironment(unittest.TestCase):
         for value in ["0", "7", "1048577", "-8", "", "1.5"]:
             with self.assertRaises(ValueError):
                 bulk_environment({}, value)
+
+    def test_service_requirements_follow_features_including_diagnostic_aliases(self):
+        for name in ["canonical-glv-hinted-sparse", "canonical-glv-hinted-sparse-dense", "dense-probe-control", "dense-probe-candidate"]:
+            requirement = execution_requirements(LEAN_VARIANTS[name][1])
+            self.assertEqual(requirement["required_execution_profile"], "ethereum_services_op_v1", name)
+            self.assertEqual(requirement["extra_service_tags"], [0x40001], name)
+        self.assertIsNone(execution_requirements(["services-v3,montgomery-services"])["required_execution_profile"])

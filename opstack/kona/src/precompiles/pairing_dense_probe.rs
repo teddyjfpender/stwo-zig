@@ -1,6 +1,6 @@
 //! Synthetic non-cyclotomic square followed by dense multiplication.
 //! DP framing never asserts OP or pairing validity.
-use ark_bn254::{Fq, Fq2, Fq6, Fq12};
+use ark_bn254::{Fq, Fq12, Fq2, Fq6};
 use ark_ff::{Field, PrimeField};
 pub fn run() -> [u8; 43] {
     fn value(offset: u64) -> Fq12 {

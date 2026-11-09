@@ -109,6 +109,17 @@ LEAN_VARIANTS["canonical-glv-hinted-sparse-dense"] = (
 LEAN_VARIANTS["dense-probe-control"] = ("frontier", [*LEAN_VARIANTS["canonical-glv-hinted-sparse"][1], "pairing-dense-probe"])
 LEAN_VARIANTS["dense-probe-candidate"] = ("frontier", [*LEAN_VARIANTS["canonical-glv-hinted-sparse"][1], "pairing-dense-probe", "pairing-dense-service"])
 
+def execution_requirements(features):
+    """Bind the guest's selected services, including diagnostic build aliases."""
+    selected = set(",".join(features).split(","))
+    sparse = bool(selected & {"pairing-sparse-service", "pairing-packet-batching", "pairing-dense-service", "pairing-dense-probe"})
+    return {
+        "required_execution_profile": "ethereum_services_op_v1" if sparse else None,
+        "op_service_abi": "bn254-miller-line-640/v1" if sparse else None,
+        "extra_service_tags": [0x0004_0001] if sparse else [],
+    }
+
+
 BULK_DEFAULTS = {"COPY": 16, "UCOPY": 16, "SET": 16, "CMP": 8}
 
 
@@ -219,7 +230,9 @@ def main():
                     "--locked",
                     "--release",
                     "--features",
-                    "host,pairing-hints"
+                    "host,pairing-dense-probe"
+                    if args.variant.startswith("dense-probe-")
+                    else "host,pairing-hints"
                     if args.variant.startswith("canonical-glv-hinted")
                     else "host,brotli-probe"
                     if args.variant.startswith("brotli-")
@@ -310,12 +323,7 @@ def main():
     report = {
         "schema": "stwo.opstack.build.v1",
         "variant": args.variant,
-        "required_execution_profile": "ethereum_services_op_v1"
-        if args.variant.startswith("canonical-glv-hinted-sparse") else None,
-        "op_service_abi": "bn254-miller-line-640/v1"
-        if args.variant.startswith("canonical-glv-hinted-sparse") else None,
-        "extra_service_tags": [0x0004_0001]
-        if args.variant.startswith("canonical-glv-hinted-sparse") else [],
+        **execution_requirements(features),
         "guest_opt_level": args.guest_opt_level,
         "bulk_threshold_bytes": bulk_thresholds,
         "eager": args.eager,

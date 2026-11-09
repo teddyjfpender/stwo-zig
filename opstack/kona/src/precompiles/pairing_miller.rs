@@ -5,9 +5,9 @@ use super::PreparedG2;
 use alloc::sync::Arc;
 use ark_bn254::{Bn254, Config, Fq12, G1Affine, G1Projective};
 use ark_ec::{
-    AffineRepr, CurveGroup,
     bn::BnConfig,
     pairing::{MillerLoopOutput, Pairing},
+    AffineRepr, CurveGroup,
 };
 use ark_ff::{Field, One};
 
@@ -83,7 +83,9 @@ pub(super) fn run_skipping(groups: &[Group], seed: Option<(&Fq12, &Fq12)>, skip:
                 #[cfg(feature = "pairing-dense-service")]
                 super::dense::multiply(&mut value, if digit == 1 { w } else { inverse });
                 #[cfg(not(feature = "pairing-dense-service"))]
-                { value *= if digit == 1 { w } else { inverse }; }
+                {
+                    value *= if digit == 1 { w } else { inverse };
+                }
             }
             evaluate(&mut value);
         }
