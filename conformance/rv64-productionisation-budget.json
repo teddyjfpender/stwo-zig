@@ -981,6 +981,20 @@
       "flags_added_budget": 0,
       "scripts_added_budget": 0,
       "positive_growth_justification": "Issue #330: reuse the existing frontend test catalog, floor checker and hosted CPU lane to isolate the twelve unchanged failures from the complete ReleaseFast run. Literal leaf imports and exact filters retain original assertions; error traces improve diagnosis. Preserve complete mandatory suite, floors, golden pins and throughput thresholds. No copied tests, runtime flags or new launcher. Diagnostic result never substitutes for the complete gate; rollback removes the selection and lane together."
+    },
+    {
+      "id": "phase0_workspace_contracts_blocking",
+      "net_code_budget": 100,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "B1 / issue #331: reconcile real public exports, existing provider/import bindings and reachable contract tests, retain exact module identity, resolve generated embeds only through explicit declared aliases plus unambiguous existing product-owned asset records, and make the zero-finding audit a dedicated blocking PR check and fast-entrypoint command. Negative fixtures retain undeclared, missing, ambiguous and escaping asset rejection. No schema suppression, protocol/golden change, new runtime flag or launcher. Rollback reverts this bounded owner/gate transaction while retaining truthful declarations."
+    },
+    {
+      "id": "a3_remaining_nonblocking_frontend_benchmark_ownership",
+      "net_code_budget": 180,
+      "flags_added_budget": 0,
+      "scripts_added_budget": 0,
+      "positive_growth_justification": "Pre-edit issue330 comment6748065237 bounds the remaining shared-runner throughput separation. Preserve33 test names, exact assertion bodies and thresholds in the existing nonblocking lane.21 mixed correctness modules expose test-only fixtures without copies; mandatory correctness floors and frozen proof pins remain unchanged. Actual bounded source delta110 lines; no optimization or performance-PASS claim."
     }
   ],
   "results_owner": "vectors/reports/rv64-productionisation/current.json#budget_results"

@@ -74,6 +74,8 @@ defer prepared.deinit(allocator);
 - `stwo_cuda_backend` supplies provider-bound plans and admission receipts.
 - `stwo_riscv_frontend` owns RV32IM execution and AIR semantics.
 
+The existing build also consumes `stwo_circuit_cpu_integration`, `stwo_circuit_frontend`, `stwo_prover_api`, `stwo_riscv_cpu_integration`. Their providers stay explicit in the package manifest; injected aliases do not replace these concrete dependency edges.
+
 ## Build, test, and run
 
 The focused tests are host-independent and do not require CUDA, Metal, or

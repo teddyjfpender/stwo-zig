@@ -34,6 +34,7 @@
     "recovery",
     "riscv_polynomial_codegen",
     "runtime",
+    "secure_polynomial_v1",
     "shaders",
     "shared_runtime",
     "source_contract",
