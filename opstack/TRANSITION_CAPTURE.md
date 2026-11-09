@@ -527,3 +527,12 @@ conversions and route 122,995 remaining products through the admitted arith256_m
 relation. Both existing packet layouts are 160 bytes; narrowing that packet is
 not a claimed saving. Its configuration, roots and guest probes require separate
 qualification before any promotion.
+
+A bounded four-million-step prefix of the new raw fixture is retained in
+`transition-raw-prefix-4m-v1.json`. It stops before any crypto service call;
+preimage-table validation and registry JSON dominate that initial interval.
+This is neither completed execution nor a proof, and does not reach Brotli.
+`tools/pc_profile_report.py` checks exact ELF identity and total PC coverage before
+attribution; LLVM local PC-relative labels are excluded from function names.
+Phase-specific probes are required to study later initialization without a full
+transition replay.

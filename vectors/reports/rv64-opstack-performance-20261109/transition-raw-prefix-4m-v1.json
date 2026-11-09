@@ -1,0 +1,135 @@
+{
+  "schema": "op-pc-profile-attribution-v1",
+  "elf_sha256": "6713763c066e4a58fee071ed43ff997eba59d791dac80d1750080e94ddbe6468",
+  "input_sha256": "6037c7df72f4deb15f7309ab312c39e95ea909bdecf5cda86060e2c4d4bf45ee",
+  "execution_status": "step_limit",
+  "verified_output": false,
+  "instructions": 4000000,
+  "outside": 0,
+  "unmapped": 0,
+  "attributed": 4000000,
+  "top_symbols": [
+    {
+      "symbol": "<stwo_kona_execution::witness::Witness>::parse_bounded",
+      "instructions": 1442423
+    },
+    {
+      "symbol": "memcmp",
+      "instructions": 948792
+    },
+    {
+      "symbol": "<serde_json::read::SliceRead>::skip_to_escape",
+      "instructions": 399203
+    },
+    {
+      "symbol": "<serde_json::de::MapAccess<_> as serde_core::de::MapAccess>::next_key_seed::has_next_key::<serde_json::read::StrRead>",
+      "instructions": 297358
+    },
+    {
+      "symbol": "<serde_json::read::StrRead as serde_json::read::Read>::parse_str",
+      "instructions": 162931
+    },
+    {
+      "symbol": "memcpy",
+      "instructions": 150766
+    },
+    {
+      "symbol": "<alloy_primitives::bits::address::Address as serde_core::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 54136
+    },
+    {
+      "symbol": "<alloc::string::String as serde_core::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 50884
+    },
+    {
+      "symbol": "<kona_registry::superchain::Registry>::read_chain_list",
+      "instructions": 49684
+    },
+    {
+      "symbol": "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<kona_genesis::chain::config::ChainConfig as serde_core::de::Deserialize>::deserialize::__Visitor>",
+      "instructions": 47680
+    },
+    {
+      "symbol": "<ruint::Uint<256, 4>>::from_str_radix_pow2",
+      "instructions": 47527
+    },
+    {
+      "symbol": "<core::marker::PhantomData<core::option::Option<kona_genesis::chain::addresses::AddressList>> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 44472
+    },
+    {
+      "symbol": "<serde_json::de::Deserializer<serde_json::read::StrRead>>::parse_integer",
+      "instructions": 35121
+    },
+    {
+      "symbol": "<core::marker::PhantomData<core::option::Option<alloy_primitives::bits::address::Address>> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 25792
+    },
+    {
+      "symbol": "<serde_json::de::SeqAccess<_> as serde_core::de::SeqAccess>::next_element_seed::has_next_element::<serde_json::read::StrRead>",
+      "instructions": 23125
+    },
+    {
+      "symbol": "<alloy_primitives::bits::fixed::FixedBytes<32> as serde_core::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 22916
+    },
+    {
+      "symbol": "<core::marker::PhantomData<core::option::Option<kona_genesis::system::config::SystemConfig>> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 20621
+    },
+    {
+      "symbol": "<core::marker::PhantomData<core::option::Option<kona_genesis::chain::roles::Roles>> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 17544
+    },
+    {
+      "symbol": "<serde_json::de::Deserializer<serde_json::read::StrRead>>::deserialize_number::<<u64 as serde_core::de::Deserialize>::deserialize::PrimitiveVisitor>",
+      "instructions": 16344
+    },
+    {
+      "symbol": "<core::marker::PhantomData<kona_genesis::chain::hardfork::HardForkConfig> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 14223
+    },
+    {
+      "symbol": "<core::marker::PhantomData<kona_genesis::superchain::chain_list::SuperchainParent> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 12667
+    },
+    {
+      "symbol": "<core::marker::PhantomData<alloc::vec::Vec<alloc::string::String>> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 12508
+    },
+    {
+      "symbol": "<core::marker::PhantomData<core::option::Option<u64>> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 11011
+    },
+    {
+      "symbol": "<core::marker::PhantomData<alloy_eips::eip1898::NumHash> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 10812
+    },
+    {
+      "symbol": "<serde_json::de::Deserializer<serde_json::read::StrRead>>::parse_number",
+      "instructions": 9800
+    },
+    {
+      "symbol": "<alloc::raw_vec::RawVecInner>::finish_grow",
+      "instructions": 8793
+    },
+    {
+      "symbol": "<core::marker::PhantomData<core::option::Option<kona_genesis::superchain::chain_list::FaultProofs>> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 8639
+    },
+    {
+      "symbol": "memset",
+      "instructions": 8283
+    },
+    {
+      "symbol": "<serde_json::de::Deserializer<serde_json::read::StrRead>>::end_map",
+      "instructions": 7314
+    },
+    {
+      "symbol": "<core::marker::PhantomData<kona_genesis::genesis::ChainGenesis> as serde_core::de::DeserializeSeed>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+      "instructions": 7242
+    }
+  ],
+  "scope": "Existing exact-ELF PC counts; partial runs are not completed execution or proof",
+  "proof_verified": false
+}
