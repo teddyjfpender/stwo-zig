@@ -185,7 +185,11 @@ def frontend_root_step(root: Path, path: str) -> str | None:
     ):
         source = re.search(r'^\s*\.root = "([^"\n]+)",', body, re.M)
         floor = re.search(r'^\s*\.minimum = ([0-9][0-9_]*),', body, re.M)
-        if source and path == "src/frontends/riscv/" + source[1]:
+        partitions = re.search(r'\.partition_roots = &\.\{(.*?)\}', body, re.S)
+        sources = ([source[1]] if source else []) + (
+            re.findall(r'"([^"\n]+)"', partitions[1]) if partitions else []
+        )
+        if path in {"src/frontends/riscv/" + name for name in sources}:
             matches.append((step, int(floor[1].replace("_", "")) if floor else 0))
     if len(matches) != 1:
         return None

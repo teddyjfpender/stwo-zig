@@ -33,6 +33,14 @@ class DevTestPlanTests(unittest.TestCase):
             ("transcript_v2_test_root.zig", "test-recursion-transcript-v2"),
             ("main_trace_plan_execution_test_root.zig", "test-main-trace-plan-execution"),
             ("air_static_profile_registry_test_root.zig", "test-air-static-profile-registry"),
+            ("air_semantics_partition_0_test_root.zig", "test-air-semantics"),
+            ("air_semantics_partition_1_test_root.zig", "test-air-semantics"),
+            ("air_semantics_partition_2_test_root.zig", "test-air-semantics"),
+            ("air_semantics_partition_3_test_root.zig", "test-air-semantics"),
+            ("guest_precompile_partition_0_test_root.zig", "test-guest-precompile"),
+            ("guest_precompile_partition_1_test_root.zig", "test-guest-precompile"),
+            ("guest_precompile_partition_2_test_root.zig", "test-guest-precompile"),
+            ("guest_precompile_partition_3_test_root.zig", "test-guest-precompile"),
         ):
             for check_only in (False, True):
                 with self.subTest(filename=filename, check_only=check_only), mock.patch(

@@ -10,6 +10,8 @@ pub const Spec = struct {
     filters: []const []const u8 = &.{},
     minimum: usize = 0,
     strip: ?bool = null,
+    /// Complete compilation partitions; all run before the shared discovery floor.
+    partition_roots: []const []const u8 = &.{},
 };
 
 pub const specs = [_]Spec{
@@ -51,7 +53,7 @@ pub const specs = [_]Spec{
         .description = "Check retired interaction generation and retained memory layouts",
         .root = "air_semantics_test_root.zig",
         .filters = &.{ "interaction_gen:", "opcode memory:" },
-        .minimum = 5,
+        .minimum = 17,
     },
     .{
         .step = "test-infrastructure-component",
@@ -86,6 +88,7 @@ pub const specs = [_]Spec{
         .step = "test-runner",
         .description = "Run only RISC-V execution-runner tests",
         .root = "runner_test_root.zig",
+        .minimum = 436,
     },
     .{
         .step = "test-minimal-trace-parallel-replay",
@@ -187,6 +190,8 @@ pub const specs = [_]Spec{
         .step = "test-air-semantics",
         .description = "Run only RISC-V instruction-family AIR tests",
         .root = "air_semantics_test_root.zig",
+        .minimum = 835,
+        .partition_roots = &.{ "air_semantics_partition_0_test_root.zig", "air_semantics_partition_1_test_root.zig", "air_semantics_partition_2_test_root.zig", "air_semantics_partition_3_test_root.zig" },
         .imports_prover_engine = true,
     },
     .{
@@ -322,6 +327,8 @@ pub const specs = [_]Spec{
         .step = "test-guest-precompile",
         .description = "Run only proof-side guest-precompile protocol tests",
         .root = "guest_precompile_test_root.zig",
+        .minimum = 466,
+        .partition_roots = &.{ "guest_precompile_partition_0_test_root.zig", "guest_precompile_partition_1_test_root.zig", "guest_precompile_partition_2_test_root.zig", "guest_precompile_partition_3_test_root.zig" },
         .imports_prover_engine = true,
     },
     .{
@@ -384,42 +391,49 @@ pub const specs = [_]Spec{
         .step = "test-recursion-pair-node",
         .description = "Run the authenticated native R-009 pair-node boundary tests",
         .root = "pair_node_test_root.zig",
+        .minimum = 194,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-temporal-pair",
         .description = "Run the V2 adjacent-span temporal pair authority tests",
         .root = "temporal_pair_node_test_root.zig",
+        .minimum = 325,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-vm-composition",
         .description = "Run only the row-18 VM AIR authority and composition graph tests",
         .root = "recursion_vm_composition_test_root.zig",
+        .minimum = 228,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-composition-recorder",
         .description = "Run the compile-isolated authenticated AIR graph recorder tests",
         .root = "recursion_air_r012_composition_circuit_dev_test_root.zig",
+        .minimum = 18,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-segment-leaf-outer-v2",
         .description = "Run the authenticated V2 segment-leaf outer authority tests",
         .root = "segment_leaf_outer_authority_v2_test_root.zig",
+        .minimum = 301,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-segment-transcript-source-v2",
         .description = "Run the V2 scheduled-transcript outer source tests",
         .root = "segment_transcript_outer_source_v2_test_root.zig",
+        .minimum = 254,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-segment-transcript-components-v2",
         .description = "Run the V2 rows 0 through 9 component and tree-writer gates",
         .root = "segment_transcript_outer_components_v2_test_root.zig",
+        .minimum = 264,
         .imports_prover_engine = true,
     },
     .{
@@ -457,6 +471,7 @@ pub const specs = [_]Spec{
         .step = "test-recursion-segment-public-components-v2",
         .description = "Run the V2 public-spine typed AIR and component gates",
         .root = "segment_public_outer_components_v2_test_root.zig",
+        .minimum = 250,
         .imports_prover_engine = true,
     },
     .{
@@ -471,12 +486,14 @@ pub const specs = [_]Spec{
         .step = "test-recursion-segment-outer-manifest-v2",
         .description = "Run the versioned 38-component segment outer manifest tests",
         .root = "segment_outer_adapter_manifest_v2_test_root.zig",
+        .minimum = 248,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-segment-outer-cohort-v2",
         .description = "Run the strict 38-row SegmentV2 cohort and shared-schedule gates",
         .root = "segment_outer_cohort_v2_test_root.zig",
+        .minimum = 204,
         .imports_prover_engine = true,
     },
     .{
@@ -491,29 +508,34 @@ pub const specs = [_]Spec{
         .step = "test-recursion-segment-boundary-components-v2",
         .description = "Run the concrete V2 boundary source component adapter tests",
         .root = "segment_boundary_components_v2_test_root.zig",
+        .minimum = 98,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-fri-profile-measurements",
         .description = "Run exact receipt-backed frozen-V1 to V1.1 FRI profile comparisons",
         .root = "fri_profile_frontier_measurement_test_root.zig",
+        .minimum = 51,
     },
     .{
         .step = "test-recursion-parent-transcript-source",
         .description = "Run the authenticated two-child parent transcript source tests",
         .root = "outer_parent_transcript_source_test_root.zig",
+        .minimum = 64,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-parent-statement-source",
         .description = "Run the authenticated two-child parent statement source tests",
         .root = "outer_parent_statement_source_test_root.zig",
+        .minimum = 70,
         .imports_prover_engine = true,
     },
     .{
         .step = "test-recursion-binary-closure",
         .description = "Run only the binary-parent all-row global LogUp closure",
         .root = "binary_global_closure_outer_source_test_root.zig",
+        .minimum = 28,
         .imports_prover_engine = true,
     },
     .{
@@ -549,6 +571,7 @@ pub const specs = [_]Spec{
         .step = "test-poseidon-universal-degree3",
         .description = "Check compact universal Poseidon AIR against the retained permutation",
         .root = "poseidon2_universal_degree3_test_root.zig",
+        .minimum = 182,
         .imports_prover_engine = true,
     },
 };
