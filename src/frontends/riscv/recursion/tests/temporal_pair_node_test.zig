@@ -1,9 +1,9 @@
 const std = @import("std");
 
 const temporal = @import("../temporal_pair_node.zig");
-const protocol = @import("../protocol.zig");
-const span = @import("../span_statement.zig");
-const channel = @import("../poseidon2_channel.zig");
+const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
+const span = @import("stwo_riscv_rv32").modules.recursion_span_statement;
+const channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
 
 test "temporal V2 authenticates adjacent complete leaves without cross-child repair" {
     const fixture = try twoSegmentFixture();

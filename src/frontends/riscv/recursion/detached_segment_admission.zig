@@ -5,7 +5,7 @@ const QM31 = core.fields.qm31.QM31;
 const manifest_mod = @import("air/segment_outer_manifest_contract.zig");
 
 pub const AdmissionParametersV1 = struct {
-    query_reference: @import("air/query_bits_profile.zig").Reference,
+    query_reference: @import("stwo_riscv_recursion_air").modules.query_bits_profile.Reference,
     poseidon_active_rows: u32,
 
     pub fn validate(self: AdmissionParametersV1, manifest: *const manifest_mod.Manifest) ![manifest_mod.COMPONENT_COUNT]u32 {

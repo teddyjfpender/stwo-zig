@@ -2,24 +2,24 @@
 //! Poseidon provider is proved by ordered external shards.
 
 const std = @import("std");
-const statement_v2 = @import("../../air/statement_v2.zig");
+const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
 const ethereum_statement =
     @import("../../air/guest_precompile/ethereum_statement.zig");
 const ethereum_context =
     @import("../../recursion/ethereum_leaf_context.zig");
 const lookup_physical_v2 =
-    @import("../../air/lang/lookup_physical_manifest.zig");
+    @import("stwo_riscv_rv32").modules.air_lang_lookup_physical_manifest;
 const poseidon2_air =
-    @import("../../air/memory_commitment/poseidon2_air.zig");
-const base_verifier = @import("../verifier.zig");
+    @import("stwo_riscv_memory").modules.air_poseidon2_air;
+const base_verifier = @import("stwo_riscv_rv32").modules.prover_verifier;
 const provider_authority =
-    @import("../memory_provider_shards/authority.zig");
+    @import("stwo_riscv_memory").modules.prover_authority;
 const native_omit =
-    @import("../memory_provider_shards/native_provider_omit.zig");
+    @import("stwo_riscv_rv32").modules.prover_memory_provider_shards_native_provider_omit;
 const omit_protocol =
     @import("../memory_provider_shards/ethereum_omit_protocol.zig");
 const proof_authority =
-    @import("../memory_provider_shards/joint_proof_authority.zig");
+    @import("stwo_riscv_rv32").modules.prover_memory_provider_shards_joint_proof_authority;
 const ethereum_types = @import("ethereum_types.zig");
 
 pub const format_version: u16 = 1;

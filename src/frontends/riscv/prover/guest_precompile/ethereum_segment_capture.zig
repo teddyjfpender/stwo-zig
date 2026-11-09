@@ -1,18 +1,18 @@
 //! Transactional verifier capture for a full Ethereum SegmentV3 leaf.
 
 const std = @import("std");
-const statement_v2 = @import("../../air/statement_v2.zig");
+const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
-const global_v3 = @import("../../recursion/segment_leaf_local_authority.zig");
-const verified_link_v3 = @import("../../recursion/segment_leaf_local_verified_link.zig");
+const global_v3 = @import("stwo_riscv_recursion").modules.segment_leaf_local_authority;
+const verified_link_v3 = @import("stwo_riscv_recursion").modules.segment_leaf_local_verified_link;
 const ethereum_context = @import("../../recursion/ethereum_leaf_context.zig");
 const base_geometry_v2 =
-    @import("../../recursion/vm_composition_base_geometry.zig");
+    @import("stwo_riscv_rv32").modules.recursion_vm_composition_base_geometry;
 const extension_geometry_v2 =
     @import("../../recursion/ethereum_composition_extension_geometry.zig");
-const base_types = @import("../types.zig");
-const base_verifier = @import("../verifier.zig");
-const proof_capture_sha256 = @import("../proof_capture_sha256.zig");
+const base_types = @import("stwo_riscv_rv32").modules.prover_types;
+const base_verifier = @import("stwo_riscv_rv32").modules.prover_verifier;
+const proof_capture_sha256 = @import("stwo_riscv_rv32").modules.prover_proof_capture_sha256;
 const ethereum_types = @import("ethereum_types.zig");
 
 const Sha256 = std.crypto.hash.sha2.Sha256;

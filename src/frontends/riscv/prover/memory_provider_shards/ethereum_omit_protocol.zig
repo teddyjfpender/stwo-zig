@@ -6,28 +6,28 @@
 const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const aggregation_hash = @import("../../aggregation/hash.zig");
-const statement_v2 = @import("../../air/statement_v2.zig");
+const aggregation_hash = @import("stwo_riscv_memory").modules.primitives_aggregation_hash;
+const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
-const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
-const statement = @import("../../air/statement.zig");
-const statement_geometry = @import("../statement_geometry.zig");
-const statement_validation = @import("../statement_validation.zig");
+const poseidon2_air = @import("stwo_riscv_memory").modules.air_poseidon2_air;
+const lookup_physical_v2 = @import("stwo_riscv_rv32").modules.air_lang_lookup_physical_manifest;
+const statement = @import("stwo_riscv_rv32").modules.air_statement;
+const statement_geometry = @import("stwo_riscv_rv32").modules.prover_statement_geometry;
+const statement_validation = @import("stwo_riscv_rv32").modules.prover_statement_validation;
 const ethereum_transcript = @import("../guest_precompile/ethereum_transcript.zig");
-const authority = @import("authority.zig");
-const joint = @import("joint_protocol.zig");
-const harness = @import("proof_harness.zig");
-const proof_authority = @import("joint_proof_authority.zig");
-const provider_order = @import("provider_order_component.zig");
-const omission = @import("native_provider_omit.zig");
+const authority = @import("stwo_riscv_memory").modules.prover_authority;
+const joint = @import("stwo_riscv_rv32").modules.prover_memory_provider_shards_joint_protocol;
+const harness = @import("stwo_riscv_rv32").modules.prover_memory_provider_shards_proof_harness;
+const proof_authority = @import("stwo_riscv_rv32").modules.prover_memory_provider_shards_joint_proof_authority;
+const provider_order = @import("stwo_riscv_memory").modules.prover_provider_order_component;
+const omission = @import("stwo_riscv_rv32").modules.prover_memory_provider_shards_native_provider_omit;
 
 pub const format_version: u32 = 1;
 pub const ACTIVATES_PRODUCTION_PROOF = false;
 pub const OMIT_RECOMPUTE_CORE_IMPLEMENTED = true;
 pub const FRESH_PROVIDER_CLOSURE_REQUIRED = true;
 pub const Digest = aggregation_hash.Digest;
-const interaction_pow_bits = @import("../../air/transcript/mod.zig").INTERACTION_POW_BITS;
+const interaction_pow_bits = @import("stwo_riscv_rv32").modules.air_transcript_mod.INTERACTION_POW_BITS;
 
 /// The one place this module decides how the complete ordered call corpus is
 /// readmitted. `null` keeps the historical rehash; a token readmits the exact

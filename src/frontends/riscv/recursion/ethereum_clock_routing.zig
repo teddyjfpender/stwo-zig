@@ -1,6 +1,6 @@
 //! Fixed Ethereum clock-source coordinates. Native transcript payloads and
 //! recursive statement consumers use this same namespace and wire layout.
-const wire = @import("segment_statement.zig");
+const wire = @import("stwo_riscv_rv32").modules.recursion_segment_statement;
 
 pub const SCHEMA_VERSION: u32 = 1;
 pub const STATEMENT_SCOPE: u32 = 5;

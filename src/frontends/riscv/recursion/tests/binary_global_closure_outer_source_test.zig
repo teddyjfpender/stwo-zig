@@ -5,8 +5,8 @@ const m31 = stwo_core.fields.m31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
 const owner = @import("../binary_global_closure_outer_source.zig");
-const relation = @import("../../air/lang/relation.zig");
-const roster = @import("../air/universal_roster.zig");
+const relation = @import("stwo_riscv_air_lang").modules.relation;
+const roster = @import("stwo_riscv_air_lang").modules.framework_universal_roster;
 
 const GOLDEN_SOURCE_AUTHORITY_ID = comptimeHex32(
     "0d6b5747e08c9c39849b4b875685c0e48aa691ea1952171f23005e40fae79e69",

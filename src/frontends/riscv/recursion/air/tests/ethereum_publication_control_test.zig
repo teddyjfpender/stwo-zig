@@ -1,9 +1,9 @@
 const std = @import("std");
 const Air = @import("../ethereum_publication_control.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
-const legacy = @import("../vm_public_logup_control.zig").Air;
-const binding = @import("../universal_relation_binding.zig");
-const direct = @import("../direct_constraint_program.zig");
+const legacy = @import("stwo_riscv_recursion_air").modules.vm_public_logup_control.Air;
+const binding = @import("stwo_riscv_air_lang").modules.framework_universal_relation_binding;
+const direct = @import("stwo_riscv_air_lang").modules.framework_direct_constraint_program;
 test "Ethereum publication control preserves schedule tuples and rejects inactive values" {
     const allocator = std.testing.allocator;
     const identity = try Air.semanticIdentity(allocator);
@@ -83,7 +83,7 @@ test "Ethereum publication control joins canonical fields and rejects modulus al
 }
 
 test "Ethereum publication control authenticates claim sources against raw frame words" {
-    const interaction = @import("../relation_interaction.zig");
+    const interaction = @import("stwo_riscv_air_lang").modules.framework_relation_interaction;
     const QM31 = @import("stwo_core").fields.qm31.QM31;
     var definition = try Air.build(std.testing.allocator);
     defer definition.deinit();

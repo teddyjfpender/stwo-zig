@@ -148,7 +148,7 @@ pub fn def(comptime op: Op) Def {
 /// op: the packet ABI, tags and Wire35 IDs are the secp service's own
 /// (`ethereum_services/secp256k1.zig`, `word16_bridge/types.zig`), and every
 /// output equals that program's canonical result.
-pub const secp = @import("../../../ethereum_services/secp256k1.zig");
+pub const secp = @import("stwo_riscv_precompiles").modules.rv64_services_secp256k1;
 pub const SecpKind = secp.Kind;
 pub const SECP256K1_P: u256 = secp.MODULUS;
 

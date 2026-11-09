@@ -13,8 +13,8 @@ const geometry = @import("../../geometry.zig");
 const provider = @import("provider.zig");
 const D = @import("layout.zig");
 const E = @import("../../evaluation.zig");
-const support = @import("../../../../air/memory_commitment/hash_component_prepared_support.zig");
-const points = @import("../../../../air/component_point_support.zig");
+const support = @import("stwo_riscv_memory").modules.air_hash_component_prepared_support;
+const points = @import("stwo_riscv_air_lang").modules.shared_air_component_point_support;
 const TOTAL = D.FIXED + D.MAIN + D.INTERACTION;
 
 const lane = @import("../../lane.zig");

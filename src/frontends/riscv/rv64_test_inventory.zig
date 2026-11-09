@@ -1,188 +1,188 @@
 //! Literal RV64 test inventory, collected by the package inventory and checked
 //! together with it. Focused roots retain their independent test-count floors.
 test {
-    _ = @import("rv64/air/memory/native_frontier_wire_test.zig");
-    _ = @import("rv64/tests/frequent_operations_test.zig");
-    _ = @import("rv64/air/program/packed_control_test.zig");
-    _ = @import("rv64/air/full/packed_frame_test.zig");
-    _ = @import("rv64/air/full/tests/prepared_view_test.zig");
-    _ = @import("rv64/air/providers/tests/compact_hash_source_test.zig");
-    _ = @import("rv64/air/full/component.zig");
-    _ = @import("rv64/air/full/frame.zig");
-    _ = @import("rv64/air/full/tests/coset_evaluation_test.zig");
-    _ = @import("rv64/air/full/tests/parallel_test.zig");
-    _ = @import("rv64/air/geometry.zig");
-    _ = @import("rv64/air/lane.zig");
-    _ = @import("rv64/air/memory/permutation_point.zig");
-    _ = @import("rv64/air/memory/graph_model.zig");
-    _ = @import("rv64/air/memory/policy_air_test.zig");
-    _ = @import("rv64/air/memory/policy_test.zig");
-    _ = @import("rv64/air/memory/values_test.zig");
-    _ = @import("rv64/air/program/tests/component_test.zig");
-    _ = @import("rv64/air/program/tests/service_test.zig");
-    _ = @import("rv64/air/program/tests/setup_test.zig");
-    _ = @import("rv64/air/providers/tables.zig");
-    _ = @import("rv64/air/range/provider.zig");
-    _ = @import("rv64/air/tests/admission_test.zig");
-    _ = @import("rv64/air/tests/byte_operations_test.zig");
-    _ = @import("rv64/air/tests/byte_terms_test.zig");
-    _ = @import("rv64/air/tests/degree_test.zig");
-    _ = @import("rv64/air/tests/encoding_test.zig");
-    _ = @import("rv64/air/tests/inflation_reuse_test.zig");
-    _ = @import("rv64/air/tests/local_test.zig");
-    _ = @import("rv64/air/tests/memory_factoring_test.zig");
-    _ = @import("rv64/air/tests/relations_test.zig");
-    _ = @import("rv64/air/tests/representation_model_test.zig");
-    _ = @import("rv64/air/tests/state_cyclic_test.zig");
-    _ = @import("rv64/air/tests/weighted_sink_test.zig");
-    _ = @import("rv64/air/tests/packed_fields_test.zig");
-    _ = @import("rv64/air/tests/secp_lane_test.zig");
-    _ = @import("rv64/air/tests/packed_control_test.zig");
-    _ = @import("rv64/execution_test_root.zig");
-    _ = @import("rv64/tests/access_census_test.zig");
-    _ = @import("rv64/tests/compact_tape_test.zig");
-    _ = @import("rv64/tests/tape_wire_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.air_memory_native_frontier_wire_test;
+    _ = @import("stwo_riscv_rv64").modules.tests_frequent_operations_test;
+    _ = @import("stwo_riscv_rv64").modules.air_program_packed_control_test;
+    _ = @import("stwo_riscv_rv64").modules.air_full_packed_frame_test;
+    _ = @import("stwo_riscv_rv64").modules.air_full_tests_prepared_view_test;
+    _ = @import("stwo_riscv_rv64").modules.air_providers_tests_compact_hash_source_test;
+    _ = @import("stwo_riscv_rv64").modules.air_full_component;
+    _ = @import("stwo_riscv_rv64").modules.air_full_frame;
+    _ = @import("stwo_riscv_rv64").modules.air_full_tests_coset_evaluation_test;
+    _ = @import("stwo_riscv_rv64").modules.air_full_tests_parallel_test;
+    _ = @import("stwo_riscv_rv64").modules.air_geometry;
+    _ = @import("stwo_riscv_rv64").modules.air_lane;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_permutation_point;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_graph_model;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_policy_air_test;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_policy_test;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_values_test;
+    _ = @import("stwo_riscv_rv64").modules.air_program_tests_component_test;
+    _ = @import("stwo_riscv_rv64").modules.air_program_tests_service_test;
+    _ = @import("stwo_riscv_rv64").modules.air_program_tests_setup_test;
+    _ = @import("stwo_riscv_rv64").modules.air_providers_tables;
+    _ = @import("stwo_riscv_rv64").modules.air_range_provider;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_admission_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_byte_operations_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_byte_terms_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_degree_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_encoding_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_inflation_reuse_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_local_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_memory_factoring_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_relations_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_representation_model_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_state_cyclic_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_weighted_sink_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_packed_fields_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_secp_lane_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_packed_control_test;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_execution_test_root;
+    _ = @import("stwo_riscv_rv64").modules.tests_access_census_test;
+    _ = @import("stwo_riscv_rv64").modules.tests_compact_tape_test;
+    _ = @import("stwo_riscv_rv64").modules.tests_tape_wire_test;
     _ = @import("rv64/tests/ethereum_contract_test.zig");
-    _ = @import("rv64/tests/execution_test.zig");
-    _ = @import("rv64/tests/foundations_test.zig");
-    _ = @import("rv64/tests/memory_commitment_test.zig");
-    _ = @import("rv64/tests/service_session_test.zig");
-    _ = @import("rv64_air_test_root.zig");
-    _ = @import("rv64_coset_evaluation_test_root.zig");
-    _ = @import("rv64_execution_test_root.zig");
-    _ = @import("rv64_parallel_test_root.zig");
-    _ = @import("rv64_program_test_root.zig");
-    _ = @import("rv64/air/memory/batch_test.zig");
-    _ = @import("rv64/air/memory/cell_air_test.zig");
-    _ = @import("rv64/air/memory/chunk_air_test.zig");
-    _ = @import("rv64/air/memory/internal_relations.zig");
-    _ = @import("rv64/air/memory/node_air_test.zig");
-    _ = @import("rv64/air/memory/openings_test.zig");
-    _ = @import("rv64/air/memory/private_trace_test.zig");
-    _ = @import("rv64/air/memory/provider_interaction_test.zig");
-    _ = @import("rv64/air/providers/tests/degree_metadata_test.zig");
-    _ = @import("rv64/tests/boundary_capture_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.tests_execution_test;
+    _ = @import("stwo_riscv_rv64").modules.tests_foundations_test;
+    _ = @import("stwo_riscv_rv64").modules.tests_memory_commitment_test;
+    _ = @import("stwo_riscv_rv64").modules.tests_service_session_test;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_air_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_coset_evaluation_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_execution_test_root_4bef1028;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_parallel_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_program_test_root;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_batch_test;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_cell_air_test;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_chunk_air_test;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_internal_relations;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_node_air_test;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_openings_test;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_private_trace_test;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_provider_interaction_test;
+    _ = @import("stwo_riscv_rv64").modules.air_providers_tests_degree_metadata_test;
+    _ = @import("stwo_riscv_rv64").modules.tests_boundary_capture_test;
     _ = @import("rv64/tests/ethereum_services_test.zig");
-    _ = @import("rv64/air/memory/graph_air_test.zig");
-    _ = @import("rv64/air/memory/ownership_test.zig");
-    _ = @import("rv64/air/memory/terminal_air_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.air_memory_graph_air_test;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_ownership_test;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_terminal_air_test;
 }
 
 test {
-    _ = @import("rv64/air/tests/state_canonical_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.air_tests_state_canonical_test;
 }
 
 test {
-    _ = @import("rv64/air/tests/local_lanes_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.air_tests_local_lanes_test;
 }
 
 test {
-    _ = @import("rv64/air/tests/mixed_lane_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.air_tests_mixed_lane_test;
 }
 
 test {
-    _ = @import("rv64/air/memory/native_frontier_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.air_memory_native_frontier_test;
 }
 
 test {
-    _ = @import("rv64/air/memory/prepared_graph_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.air_memory_prepared_graph_test;
 }
 
 test {
-    _ = @import("rv64/air/delegations/tests/registry_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_tests_registry_test;
 }
 
 test {
-    _ = @import("rv64/air/word16/alu_merged_prefix_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.air_word16_alu_merged_prefix_test;
 }
 
 test {
-    _ = @import("rv64/air/word16/shift_word_merged_test.zig");
-    _ = @import("rv64/air/delegations/arith256/mod.zig");
-    _ = @import("rv64/air/delegations/arith256/tests.zig");
-    _ = @import("rv64/air/delegations/bulk_memory/tests.zig");
-    _ = @import("rv64/air/delegations/curves/mod.zig");
-    _ = @import("rv64/air/delegations/curves/secp_tests.zig");
-    _ = @import("rv64/air/delegations/curves/tests.zig");
-    _ = @import("rv64/air/delegations/division/word16_product/packed_test.zig");
-    _ = @import("rv64/air/delegations/division/word16_product/source_test.zig");
-    _ = @import("rv64/air/delegations/division/word16_product/test.zig");
-    _ = @import("rv64/air/delegations/keccak_sponge/tests.zig");
-    _ = @import("rv64/air/delegations/sha256/mod.zig");
-    _ = @import("rv64/air/delegations/sha256/native.zig");
-    _ = @import("rv64/air/delegations/sha256/tests.zig");
-    _ = @import("rv64/air/memory/load_store_dword/tests.zig");
-    _ = @import("rv64/air/memory/load_store/boundary_source.zig");
-    _ = @import("rv64/air/native_output_pages.zig");
-    _ = @import("rv64/air/providers/parallel_rows_test.zig");
-    _ = @import("rv64/air/tests/packed_om_fields_test.zig");
-    _ = @import("rv64/air/word16_cpu/rom_lookup_test.zig");
-    _ = @import("rv64/air/word16_index_control/authority_test.zig");
-    _ = @import("rv64/air/word16/alu_interaction_test.zig");
-    _ = @import("rv64/air/word16/alu_packed_rows_test.zig");
-    _ = @import("rv64/air/word16/alu_source_test.zig");
-    _ = @import("rv64/air/word16/alu_test.zig");
-    _ = @import("rv64/air/word16/binary_packed_rows_test.zig");
-    _ = @import("rv64/air/word16/binary_source_test.zig");
-    _ = @import("rv64/air/word16/binary_test.zig");
-    _ = @import("rv64/air/word16/binary_zbb_test.zig");
-    _ = @import("rv64/air/word16/shift_byte_packed_rows_test.zig");
-    _ = @import("rv64/air/word16/shift_byte_test.zig");
-    _ = @import("rv64/air/word16/shift_word_interaction_test.zig");
-    _ = @import("rv64/air/word16/shift_word_packed_rows_test.zig");
-    _ = @import("rv64/air/word16/shift_word_packed_table_test.zig");
-    _ = @import("rv64/air/word16/shift_word_source_test.zig");
-    _ = @import("rv64/air/word16/shift_word_test.zig");
-    _ = @import("rv64/air/word16/u16_source_test.zig");
-    _ = @import("rv64/candidate_isa_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.air_word16_shift_word_merged_test;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_arith256_mod;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_arith256_tests;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_bulk_memory_tests;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_curves_mod;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_curves_secp_tests;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_curves_tests;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_division_word16_product_packed_test;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_division_word16_product_source_test;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_division_word16_product_test;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_keccak_sponge_tests;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_sha256_mod;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_sha256_native;
+    _ = @import("stwo_riscv_rv64").modules.air_delegations_sha256_tests;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_load_store_dword_tests;
+    _ = @import("stwo_riscv_rv64").modules.air_memory_load_store_boundary_source;
+    _ = @import("stwo_riscv_rv64").modules.air_native_output_pages;
+    _ = @import("stwo_riscv_rv64").modules.air_providers_parallel_rows_test;
+    _ = @import("stwo_riscv_rv64").modules.air_tests_packed_om_fields_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_cpu_rom_lookup_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_index_control_authority_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_alu_interaction_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_alu_packed_rows_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_alu_source_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_alu_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_binary_packed_rows_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_binary_source_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_binary_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_binary_zbb_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_shift_byte_packed_rows_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_shift_byte_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_shift_word_interaction_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_shift_word_packed_rows_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_shift_word_packed_table_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_shift_word_source_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_shift_word_test;
+    _ = @import("stwo_riscv_rv64").modules.air_word16_u16_source_test;
+    _ = @import("stwo_riscv_rv64").modules.candidate_isa_test;
     _ = @import("rv64/ethereum_contract.zig");
     _ = @import("rv64/ethereum_execution.zig");
-    _ = @import("rv64/ethereum_services/arith256.zig");
-    _ = @import("rv64/ethereum_services/bulk_memory.zig");
-    _ = @import("rv64/ethereum_services/candidate_curves.zig");
-    _ = @import("rv64/ethereum_services/candidate_jumpdest.zig");
-    _ = @import("rv64/ethereum_services/candidate_services.zig");
-    _ = @import("rv64/ethereum_services/curves.zig");
-    _ = @import("rv64/ethereum_services/keccak_sponge.zig");
-    _ = @import("rv64/ethereum_services/secp256k1.zig");
-    _ = @import("rv64/ethereum_services/sha256.zig");
-    _ = @import("rv64/isa_audit.zig");
-    _ = @import("rv64/ram_word_set.zig");
-    _ = @import("rv64/tests/fast_execution_test.zig");
-    _ = @import("rv64/tests/zbb_binary_test.zig");
-    _ = @import("rv64_alu_parallel_interaction_test_root.zig");
-    _ = @import("rv64_arith256_truth_test_root.zig");
-    _ = @import("rv64_curves_truth_test_root.zig");
-    _ = @import("rv64_index_control_test_root.zig");
-    _ = @import("rv64_keccak_sponge_test_root.zig");
-    _ = @import("rv64_ls_dword_test_root.zig");
-    _ = @import("rv64_rom_lookup_test_root.zig");
-    _ = @import("rv64_sha256_truth_test_root.zig");
-    _ = @import("rv64_simd_fields_test_root.zig");
-    _ = @import("rv64_word16_alu_test_root.zig");
-    _ = @import("rv64_word16_binary_source_test_root.zig");
-    _ = @import("rv64_word16_bulk_memory_test_root.zig");
-    _ = @import("rv64_word16_chips_test_root.zig");
-    _ = @import("rv64_word16_division_product_test_root.zig");
-    _ = @import("rv64_word16_shift_packed_table_test_root.zig");
-    _ = @import("rv64_word16_shift_source_test_root.zig");
-    _ = @import("rv64_word16_shift_test_root.zig");
-    _ = @import("rv64_word16_shift_word_test_root.zig");
+    _ = @import("stwo_riscv_precompiles").modules.rv64_services_arith256;
+    _ = @import("stwo_riscv_rv64").modules.ethereum_services_bulk_memory;
+    _ = @import("stwo_riscv_rv64").modules.ethereum_services_candidate_curves;
+    _ = @import("stwo_riscv_rv64").modules.ethereum_services_candidate_jumpdest;
+    _ = @import("stwo_riscv_rv64").modules.ethereum_services_candidate_services;
+    _ = @import("stwo_riscv_rv64").modules.ethereum_services_curves;
+    _ = @import("stwo_riscv_rv64").modules.ethereum_services_keccak_sponge;
+    _ = @import("stwo_riscv_precompiles").modules.rv64_services_secp256k1;
+    _ = @import("stwo_riscv_precompiles").modules.rv64_services_sha256;
+    _ = @import("stwo_riscv_rv64").modules.isa_audit;
+    _ = @import("stwo_riscv_rv64").modules.ram_word_set;
+    _ = @import("stwo_riscv_rv64").modules.tests_fast_execution_test;
+    _ = @import("stwo_riscv_rv64").modules.tests_zbb_binary_test;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_alu_parallel_interaction_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_arith256_truth_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_curves_truth_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_index_control_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_keccak_sponge_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_ls_dword_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_rom_lookup_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_sha256_truth_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_simd_fields_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_word16_alu_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_word16_binary_source_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_word16_bulk_memory_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_word16_chips_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_word16_division_product_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_word16_shift_packed_table_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_word16_shift_source_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_word16_shift_test_root;
+    _ = @import("stwo_riscv_testing").modules.cases_rv64_word16_shift_word_test_root;
 }
 
 comptime {
-    _ = @import("retained_typed_component_test_root.zig");
+    _ = @import("stwo_riscv_testing").modules.cases_retained_typed_component_test_root;
 }
 
 comptime {
-    _ = @import("recursion/air/tests/universal_typed_component_test.zig");
+    _ = @import("stwo_riscv_testing").modules.cases_recursion_air_tests_universal_typed_component_test;
 }
 
 comptime {
-    _ = @import("recursion/air/tests/universal_typed_quotient_test.zig");
+    _ = @import("stwo_riscv_testing").modules.cases_recursion_air_tests_universal_typed_quotient_test;
 }
 
 comptime {
-    _ = @import("recursion/tests/fri_profile_frontier_test.zig");
-    _ = @import("retained_fri_frontier_test_root.zig");
+    _ = @import("stwo_riscv_recursion").modules.tests_fri_profile_frontier_test;
+    _ = @import("stwo_riscv_testing").modules.cases_retained_fri_frontier_test_root;
 }

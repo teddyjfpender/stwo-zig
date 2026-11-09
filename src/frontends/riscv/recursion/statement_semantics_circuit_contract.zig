@@ -8,9 +8,9 @@ pub fn Contract(comptime blake3: bool) type {
         pub const QM31 = stwo_core.fields.qm31.QM31;
         pub const Sha256 = std.crypto.hash.sha2.Sha256;
         pub const arithmetic = @import("arithmetic_circuit.zig");
-        pub const row11 = if (blake3) @import("air/statement_semantics_input_witness_blake3.zig") else @import("air/statement_semantics_input_witness.zig");
-        pub const statement_input = @import("air/statement_input.zig");
-        pub const statement = if (blake3) @import("span_statement_blake3.zig") else @import("span_statement.zig");
+        pub const row11 = if (blake3) @import("stwo_riscv_rv32").modules.recursion_air_statement_semantics_input_witness_blake3 else @import("stwo_riscv_rv32").modules.recursion_air_statement_semantics_input_witness;
+        pub const statement_input = @import("stwo_riscv_recursion_air").modules.statement_input;
+        pub const statement = if (blake3) @import("stwo_riscv_rv32").modules.recursion_span_statement_blake3 else @import("stwo_riscv_rv32").modules.recursion_span_statement;
         pub const BLAKE3 = blake3;
         pub const DIGEST_WORD_COUNT: usize = if (blake3) statement.DIGEST_WORD_COUNT else 8;
 

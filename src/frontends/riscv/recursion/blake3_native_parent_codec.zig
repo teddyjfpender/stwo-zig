@@ -2,19 +2,19 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const postcard = @import("interop_postcard");
-const suite = @import("blake3_engine_protocol.zig");
+const suite = @import("stwo_riscv_recursion_air").modules.protocol_recursion_blake3_engine_protocol;
 const artifact = @import("blake3_native_parent_artifact.zig");
 const components = @import("blake3_native_parent_components.zig");
-const universal = @import("air/universal_challenges.zig");
+const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
 pub const MAGIC = "B3NPART4";
 pub const VERSION: u32 = 3;
 pub const HEADER_BYTES = 8 + 4 + 32 + artifact.CLAIM_COUNT * 16 + 8;
-pub const MAX_PROOF_BYTES = @import("artifact_limits.zig").MAX_CANONICAL_PROOF_BYTES;
+pub const MAX_PROOF_BYTES = @import("stwo_riscv_rv32").modules.recursion_artifact_limits.MAX_CANONICAL_PROOF_BYTES;
 pub fn shape(a: std.mem.Allocator, admission: anytype) !postcard.proof_preflight.Shape {
     const owner = try components.Owned.init(a, admission);
     defer owner.deinit();
     try owner.bind(universal.UniversalRelations.dummy(), @splat(core.fields.qm31.QM31.zero()));
-    return @import("detached_proof_preflight.zig").shapeForEncoding(a, owner.admitted(), try admission.config(), MAX_PROOF_BYTES, @sizeOf(suite.Hasher.Hash), .raw_bytes);
+    return @import("stwo_riscv_rv32").modules.recursion_detached_proof_preflight.shapeForEncoding(a, owner.admitted(), try admission.config(), MAX_PROOF_BYTES, @sizeOf(suite.Hasher.Hash), .raw_bytes);
 }
 pub fn encode(a: std.mem.Allocator, owned: *const artifact.Owned, admission: anytype) ![]u8 {
     try owned.validate(admission);

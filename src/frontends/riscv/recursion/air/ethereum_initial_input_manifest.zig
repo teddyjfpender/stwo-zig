@@ -3,11 +3,11 @@
 //! input lane and packet bridge. Equations and widths come from their typed AIRs.
 //! This contract admits geometry; it does not establish a complete proof.
 const std = @import("std");
-const base = @import("universal_adapter_manifest.zig");
-const universal = @import("universal_manifest.zig");
+const base = @import("stwo_riscv_air_lang").modules.framework_universal_adapter_manifest;
+const universal = @import("stwo_riscv_rv32").modules.recursion_air_universal_manifest;
 const profile = @import("../incremental_ethereum_composition_profile.zig");
-const typed = @import("universal_typed_geometry.zig");
-const relation = @import("../../air/lang/relation.zig");
+const typed = @import("stwo_riscv_air_lang").modules.framework_universal_typed_geometry;
+const relation = @import("stwo_riscv_air_lang").modules.relation;
 pub const LaneAir = @import("ethereum_initial_input_lane.zig");
 pub const PacketAir = @import("ethereum_initial_input_packet.zig");
 pub const COMPONENT_COUNT = base.COMPONENT_COUNT + 2;
@@ -42,7 +42,7 @@ pub fn keyIndex(key: ComponentKey) u8 {
     return @intFromEnum(key);
 }
 
-const ProofProtocol = @import("manifest_proof_protocol.zig").Types(@This());
+const ProofProtocol = @import("stwo_riscv_air_lang").modules.framework_manifest_proof_protocol.Types(@This());
 pub const ClaimVector = ProofProtocol.ClaimVector;
 pub const ProofGate = ProofProtocol.ProofGate;
 

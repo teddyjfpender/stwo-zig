@@ -12,10 +12,10 @@ const verifier_types = core.verifier_types;
 const postcard = @import("interop_postcard");
 const proof_admission = @import("../../air/guest_precompile/ethereum_proof_admission.zig");
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
-const base_statement = @import("../../air/statement.zig");
+const base_statement = @import("stwo_riscv_rv32").modules.air_statement;
 const ethereum_types = @import("ethereum_types.zig");
-const framing = @import("proof_artifact_header.zig");
-const base_wire = @import("proof_artifact_wire.zig");
+const framing = @import("stwo_riscv_rv32").modules.prover_guest_precompile_proof_artifact_header;
+const base_wire = @import("stwo_riscv_rv32").modules.prover_guest_precompile_proof_artifact_wire;
 const wire = @import("ethereum_proof_artifact_wire.zig");
 
 pub fn ForSuite(comptime Suite: type) type {
@@ -47,7 +47,7 @@ pub fn ForSuite(comptime Suite: type) type {
             extension_claim: ethereum_types.ExtensionClaim,
             proof: Suite.Proof,
             input_words: []u32,
-            output_words: []@import("../../air/public_data.zig").OutputWord,
+            output_words: []@import("stwo_riscv_rv32").modules.air_public_data.OutputWord,
 
             pub fn deinit(self: *Decoded, allocator: std.mem.Allocator) void {
                 self.proof.deinit(allocator);
@@ -247,7 +247,7 @@ pub fn ForSuite(comptime Suite: type) type {
             for (statement.component_descs[0..statement.n_components]) |descriptor| {
                 tree0 = try checkedAdd(tree0, 2);
                 tree1 = try checkedAdd(tree1, descriptor.n_columns);
-                tree2 = try checkedAdd(tree2, @import("../../air/lookups/opcode_interaction.zig").nColumns(descriptor.family));
+                tree2 = try checkedAdd(tree2, @import("stwo_riscv_rv32").modules.air_lookups_opcode_interaction.nColumns(descriptor.family));
                 max_log_size = @max(max_log_size, descriptor.log_size);
             }
             for (statement.infra_descs[0..statement.n_infra]) |descriptor| {

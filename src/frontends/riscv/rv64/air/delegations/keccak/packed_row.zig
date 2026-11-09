@@ -3,7 +3,7 @@
 const core = @import("stwo_core");
 const M = core.fields.m31.M31;
 const L = @import("layout.zig");
-const Native = @import("../../../../air/guest_precompile/keccakf_witness.zig").Row;
+const Native = @import("stwo_riscv_precompiles").modules.air_keccakf_witness.Row;
 pub const PackedRow = struct {
     state_a: [25]u64 = @splat(0),
     state_b: [25]u64 = @splat(0),
@@ -50,5 +50,5 @@ pub const PackedRow = struct {
 };
 
 comptime {
-    if (@import("../../../../air/guest_precompile/keccakf_authority.zig").geometry.slot_base != 8) @compileError("Keccak packed metadata requires a+8b slices");
+    if (@import("stwo_riscv_precompiles").modules.air_keccakf_authority.geometry.slot_base != 8) @compileError("Keccak packed metadata requires a+8b slices");
 }

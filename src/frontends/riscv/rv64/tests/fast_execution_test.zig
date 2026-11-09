@@ -466,8 +466,8 @@ test "checkpoints: every segment re-executed by the reference from its image mee
 }
 
 test {
-    _ = @import("../ethereum_services/secp256k1.zig");
-    _ = @import("../ethereum_services/arith256.zig");
+    _ = @import("stwo_riscv_precompiles").modules.rv64_services_secp256k1;
+    _ = @import("stwo_riscv_precompiles").modules.rv64_services_arith256;
 }
 
 // M6 capture: the traced fast engine (`Engine.runTraced`) interleaved with

@@ -4,9 +4,9 @@
 //! consume the returned subtotal in its authenticated public memory sum.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../../air/lang/mod.zig");
-const effects = @import("relation_effect.zig");
-const arithmetic = @import("../arithmetic_circuit.zig");
+const lang = @import("../../compat/air/lang/mod.zig");
+const effects = @import("stwo_riscv_air_lang").modules.framework_relation_effect;
+const arithmetic = @import("stwo_riscv_recursion").modules.arithmetic_circuit;
 pub const lane = @import("ethereum_initial_input_lane.zig");
 const M31 = core.fields.m31.M31;
 const Id = lang.types.ValueId;
@@ -32,7 +32,7 @@ pub const SEMANTIC_DIGEST: lang.digest.Digest = blk: {
     _ = std.fmt.hexToBytes(&value, SEMANTIC_DIGEST_HEX) catch unreachable;
     break :blk value;
 };
-pub const Relation = @import("universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_air_lang").modules.framework_universal_relation_binding.Binding(@This());
 pub const Row = [LOGICAL_INPUT_COUNT]M31;
 pub const Preprocessing = [PREPROCESSED_COLUMN_COUNT]M31;
 pub const Definition = struct {

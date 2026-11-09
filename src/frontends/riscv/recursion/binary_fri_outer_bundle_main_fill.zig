@@ -2,7 +2,7 @@
 
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
-const poseidon_air = @import("../air/memory_commitment/poseidon2_air.zig");
+const poseidon_air = @import("stwo_riscv_memory").modules.air_poseidon2_air;
 const source_mod = @import("binary_fri_outer_source.zig");
 
 pub fn fill(

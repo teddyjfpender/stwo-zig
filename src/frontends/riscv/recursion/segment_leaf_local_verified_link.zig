@@ -11,10 +11,10 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 
-const public_data_v2 = @import("../air/public_data_v2.zig");
-const statement_v2 = @import("../air/statement_v2.zig");
-const channel = @import("poseidon2_channel.zig");
-const segment_v2 = @import("segment_statement.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
+const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
+const channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
+const segment_v2 = @import("stwo_riscv_rv32").modules.recursion_segment_statement;
 const global_v3 = @import("segment_leaf_local_authority.zig");
 const projection_v3 = @import("segment_leaf_local_projection.zig");
 

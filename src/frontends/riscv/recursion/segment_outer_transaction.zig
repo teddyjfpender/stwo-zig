@@ -31,13 +31,13 @@ pub fn ForBackend(comptime Backend: type, comptime Diagnostics: type) type {
         const recursion = struct {
             const engine = @import("engine.zig");
             const outer_parent_child_admission = @import("outer_parent_child_admission.zig");
-            const poseidon2_channel = @import("poseidon2_channel.zig");
-            const protocol = @import("protocol.zig");
+            const poseidon2_channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
+            const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
             const verifier_tree = @import("verifier_tree.zig");
             const air = struct {
                 const segment_outer_adapter_manifest_v2 = @import("air/segment_outer_adapter_manifest.zig");
-                const universal_challenges = @import("air/universal_challenges.zig");
-                const universal_shared_provider = @import("air/universal_shared_provider.zig");
+                const universal_challenges = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
+                const universal_shared_provider = @import("stwo_riscv_rv32").modules.recursion_air_universal_shared_provider;
             };
         };
         const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;

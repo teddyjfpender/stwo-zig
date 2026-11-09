@@ -4,7 +4,7 @@ const core = @import("stwo_core");
 const preparation = @import("blake3_native_parent_preparation.zig");
 const worker_mod = @import("blake3_native_parent_worker.zig");
 const artifact = @import("blake3_native_parent_artifact.zig");
-const verifier = @import("../prover/verifier.zig");
+const verifier = @import("stwo_riscv_rv32").modules.prover_verifier;
 const shared = @import("blake3_parent_pipeline.zig");
 pub const MAX_JOBS = shared.MAX_JOBS;
 pub const PREPARATION_STACK_BYTES = shared.PREPARATION_STACK_BYTES;
@@ -15,8 +15,8 @@ pub const Spans = shared.Spans;
 pub const Report = shared.Report;
 pub fn Job(comptime Engine: type) type {
     return struct {
-        statement: *const @import("../air/statement_v2.zig").RiscVStatementV2,
-        claim: *const @import("../air/statement.zig").RiscVInteractionClaim,
+        statement: *const @import("stwo_riscv_rv32").modules.air_statement_v2.RiscVStatementV2,
+        claim: *const @import("stwo_riscv_rv32").modules.air_statement.RiscVInteractionClaim,
         capture: *const verifier.VerifiedSegmentV2CaptureForEngine(Engine),
         config: core.pcs.PcsConfig,
         capacity: u32,

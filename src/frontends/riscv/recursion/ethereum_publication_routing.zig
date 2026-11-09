@@ -1,5 +1,5 @@
 //! Fixed Ethereum transcript/publication coordinates and raw-wire topology.
-const raw_layout = @import("segment_statement_transcript_layout.zig");
+const raw_layout = @import("stwo_riscv_rv32").modules.recursion_segment_statement_transcript_layout;
 pub const STATEMENT_SCOPE: u32 = 1114;
 pub const NativeField = enum(u8) { statement_authority, wire_id, protocol_id, completion };
 pub const NativeIdentityPhase = enum(u1) { raw_wire, native_authority };

@@ -164,7 +164,7 @@ pub fn deriveExpected(allocator: std.mem.Allocator, paths: [2][]const u8, mode: 
         input.* = try child.OwnedExpectedV1.decode(allocator, bytes);
         initialized += 1;
     }
-    _ = try @import("../air/public_data_v2.zig").PublicDataV2.authenticateAdjacent(&inputs[0].data, &inputs[1].data);
+    _ = try @import("stwo_riscv_rv32").modules.air_public_data_v2.PublicDataV2.authenticateAdjacent(&inputs[0].data, &inputs[1].data);
     const left = try inputs[0].data.authenticatedView();
     const right = try inputs[1].data.authenticatedView();
     const continuation = @import("span_continuation.zig");

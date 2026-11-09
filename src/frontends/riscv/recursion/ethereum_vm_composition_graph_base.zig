@@ -4,28 +4,28 @@
 //! lookup batches are lowered by the authenticated selected-batch compiler;
 //! infrastructure and semantic constraints reuse their production evaluators.
 
-const clock_component = @import("../air/clock_update_component.zig");
-const clock_interaction = @import("../air/clock_update_interaction.zig");
-const logup = @import("../air/logup.zig");
-const memory_interaction = @import("../air/memory_commitment/interaction.zig");
-const MemoryBoundaryPolicy = @import("../air/component.zig").MemoryBoundaryPolicy;
-const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
+const clock_component = @import("stwo_riscv_rv32").modules.air_clock_update_component;
+const clock_interaction = @import("stwo_riscv_rv32").modules.air_clock_update_interaction;
+const logup = @import("stwo_riscv_air_lang").modules.shared_air_logup;
+const memory_interaction = @import("stwo_riscv_memory").modules.air_interaction;
+const MemoryBoundaryPolicy = @import("stwo_riscv_rv32").modules.air_component.MemoryBoundaryPolicy;
+const merkle_node = @import("stwo_riscv_memory").modules.air_merkle_node;
 const circuit_profile_mod = @import("../prover/ethereum_circuit_profile.zig");
-const poseidon2_narrow = @import("../air/memory_commitment/poseidon2_narrow_degree3.zig");
-const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
-const program_commitment = @import("../air/program/commitment.zig");
-const program_interaction = @import("../air/program/interaction.zig");
-const semantic_eval = @import("../air/semantic_eval.zig");
-const statement_mod = @import("../air/statement.zig");
-const table_interaction = @import("../air/lookups/tables/interaction.zig");
-const table_schema = @import("../air/lookups/tables/schema.zig");
-const trace = @import("../runner/trace.zig");
+const poseidon2_narrow = @import("stwo_riscv_rv32").modules.air_memory_commitment_poseidon2_narrow_degree3;
+const poseidon2_air = @import("stwo_riscv_memory").modules.air_poseidon2_air;
+const program_commitment = @import("stwo_riscv_rv32").modules.air_program_commitment;
+const program_interaction = @import("stwo_riscv_rv32").modules.air_program_interaction;
+const semantic_eval = @import("stwo_riscv_rv32").modules.air_semantic_eval;
+const statement_mod = @import("stwo_riscv_rv32").modules.air_statement;
+const table_interaction = @import("stwo_riscv_rv32").modules.air_lookups_tables_interaction;
+const table_schema = @import("stwo_riscv_air_lang").modules.shared_air_lookups_tables_schema;
+const trace = @import("stwo_riscv_rv32").modules.runner_trace;
 
 const support = @import("ethereum_vm_composition_graph_support.zig");
-const circuit = @import("vm_air_composition_circuit.zig");
-const lookup_manifest = @import("../air/lang/lookup_physical_manifest.zig");
-const lookup_compiler = @import("vm_selected_lookup_compiler.zig");
-const profile_mod = @import("vm_air_profile_v2.zig");
+const circuit = @import("stwo_riscv_recursion").modules.vm_air_composition_circuit;
+const lookup_manifest = @import("stwo_riscv_rv32").modules.air_lang_lookup_physical_manifest;
+const lookup_compiler = @import("stwo_riscv_recursion").modules.vm_selected_lookup_compiler;
+const profile_mod = @import("stwo_riscv_rv32").modules.recursion_vm_air_profile_v2;
 
 const Scalar = support.Scalar;
 const SampleLayout = support.SampleLayoutV2;
@@ -497,7 +497,7 @@ fn appendMany(
 }
 
 fn currentBuilder() *support.Builder {
-    return @import("vm_air_composition_circuit_circuit.zig").currentBuilder();
+    return @import("stwo_riscv_recursion").modules.vm_air_composition_circuit_circuit.currentBuilder();
 }
 
 test "authenticated VM AIR ProfileV2 schema5 infrastructure recording equals native evaluator order" {
@@ -511,7 +511,7 @@ test "authenticated VM AIR ProfileV2 schema5 infrastructure recording equals nat
     defer circuit.uninstallBuilder();
     const z = QM31.fromU32Unchecked(41, 5, 8, 2);
     const alpha = QM31.fromU32Unchecked(7, 3, 1, 6);
-    const relation_mod = @import("../air/relation_challenges.zig");
+    const relation_mod = @import("stwo_riscv_air_lang").modules.shared_air_relation_challenges;
     var native_relations: relation_mod.Relations = undefined;
     inline for (std.meta.fields(relation_mod.Relations)) |field|
         @field(native_relations, field.name) = @TypeOf(@field(native_relations, field.name)).init(z, alpha);
@@ -523,10 +523,10 @@ test "authenticated VM AIR ProfileV2 schema5 infrastructure recording equals nat
         const sum_count = if (kind == .program) program_interaction.N_SUMS else poseidon2_narrow.N_SUMS;
         const constraint_count = if (kind == .program) program_interaction.N_FIXED_CONSTRAINTS else poseidon2_narrow.N_CONSTRAINTS + sum_count;
         const interaction_count = sum_count * 4;
-        var pp_columns: [2]@import("vm_composition_base_geometry.zig").ColumnV2 = undefined;
-        var main_columns: [main_count]@import("vm_composition_base_geometry.zig").ColumnV2 = undefined;
-        var interaction_columns: [interaction_count]@import("vm_composition_base_geometry.zig").ColumnV2 = undefined;
-        var base: @import("vm_composition_base_geometry.zig").GeometryV2 = undefined;
+        var pp_columns: [2]@import("stwo_riscv_rv32").modules.recursion_vm_composition_base_geometry.ColumnV2 = undefined;
+        var main_columns: [main_count]@import("stwo_riscv_rv32").modules.recursion_vm_composition_base_geometry.ColumnV2 = undefined;
+        var interaction_columns: [interaction_count]@import("stwo_riscv_rv32").modules.recursion_vm_composition_base_geometry.ColumnV2 = undefined;
+        var base: @import("stwo_riscv_rv32").modules.recursion_vm_composition_base_geometry.GeometryV2 = undefined;
         base.columns = .{ &pp_columns, &main_columns, &interaction_columns, &.{} };
         var main_offsets: [main_count + 1]u32 = undefined;
         var interaction_offsets: [interaction_count + 1]u32 = undefined;

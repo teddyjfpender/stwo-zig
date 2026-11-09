@@ -7,18 +7,18 @@
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const fixed_wire = @import("fixed_wire.zig");
+const fixed_wire = @import("stwo_riscv_recursion_air").modules.protocol_recursion_fixed_wire;
 const transcript_program = @import("transcript_program.zig");
-const schedule = @import("air/verifier_schedule.zig");
-const binding = @import("air/transcript_binding_witness.zig");
-const state = @import("air/transcript_state_witness.zig");
-const word = @import("air/transcript_word_witness.zig");
-const payload = @import("air/transcript_payload_witness.zig");
-const transcript_air = @import("air/transcript_air_witness.zig");
-const pow_check = @import("air/pow_check_witness.zig");
-const pow_frame = @import("air/pow_frame_witness.zig");
-const relation_challenge = @import("air/relation_challenge_witness.zig");
-const verifier_randomness = @import("air/verifier_randomness_witness.zig");
+const schedule = @import("stwo_riscv_recursion_air").modules.verifier_schedule;
+const binding = @import("stwo_riscv_recursion_air").modules.transcript_binding_witness;
+const state = @import("stwo_riscv_recursion_air").modules.transcript_state_witness;
+const word = @import("stwo_riscv_recursion_air").modules.transcript_word_witness;
+const payload = @import("stwo_riscv_recursion_air").modules.transcript_payload_witness;
+const transcript_air = @import("stwo_riscv_recursion_air").modules.transcript_air_witness;
+const pow_check = @import("stwo_riscv_recursion_air").modules.pow_check_witness;
+const pow_frame = @import("stwo_riscv_recursion_air").modules.pow_frame_witness;
+const relation_challenge = @import("stwo_riscv_recursion_air").modules.relation_challenge_witness;
+const verifier_randomness = @import("stwo_riscv_recursion_air").modules.verifier_randomness_witness;
 
 pub const FORMAT_VERSION: u16 = 1;
 

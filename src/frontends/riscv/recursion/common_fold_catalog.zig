@@ -1,10 +1,10 @@
 //! Common-fold statement profile. The frozen universal/CSP catalog is unchanged.
 const air = struct {
-    const field_public_word_v3 = @import("air/field_public_word.zig");
-    const field_statement_word_v3 = @import("air/field_statement_word.zig");
-    const fixed_wire_v3 = @import("air/fixed_wire.zig");
-    const universal_catalog = @import("air/universal_catalog.zig");
-    const vm_public_claim_hash = @import("air/vm_public_claim_hash.zig");
+    const field_public_word_v3 = @import("stwo_riscv_recursion_air").modules.field_public_word;
+    const field_statement_word_v3 = @import("stwo_riscv_recursion_air").modules.field_statement_word;
+    const fixed_wire_v3 = @import("stwo_riscv_recursion_air").modules.fixed_wire;
+    const universal_catalog = @import("stwo_riscv_recursion_air").modules.universal_catalog;
+    const vm_public_claim_hash = @import("stwo_riscv_recursion_air").modules.vm_public_claim_hash;
 };
 pub const Entry = air.universal_catalog.Entry;
 pub const LOGICAL_ROWS = blk: {

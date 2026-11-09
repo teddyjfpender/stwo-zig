@@ -3,11 +3,11 @@
 //! This proves byte custody, not auxiliary V2 document or namespace semantics.
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const legacy = @import("transcript_payload.zig");
-const clocks = @import("transcript_payload_clocks.zig");
-const ir = @import("../../air/lang/ir.zig");
-const digest = @import("../../air/lang/digest.zig");
-const types = @import("../../air/lang/types.zig");
+const legacy = @import("stwo_riscv_recursion_air").modules.transcript_payload;
+const clocks = @import("stwo_riscv_recursion_air").modules.transcript_payload_clocks;
+const ir = @import("stwo_riscv_air_lang").modules.ir;
+const digest = @import("stwo_riscv_air_lang").modules.digest;
+const types = @import("stwo_riscv_air_lang").modules.types;
 const routing = @import("../ethereum_publication_routing.zig");
 
 pub const STABLE_NAME = "recursion.ethereum_transcript_payload_raw.v1";
@@ -24,7 +24,7 @@ pub const MAXIMUM_CONSTRAINT_DEGREE = clocks.MAXIMUM_CONSTRAINT_DEGREE;
 pub const LOOKUP_BATCH_SIZE = clocks.LOOKUP_BATCH_SIZE;
 pub const INTERACTION_BATCH_COUNT = clocks.INTERACTION_BATCH_COUNT + 1;
 pub const INTERACTION_COLUMN_COUNT = clocks.INTERACTION_COLUMN_COUNT + 4;
-pub const Relation = @import("universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_air_lang").modules.framework_universal_relation_binding.Binding(@This());
 // Pinned by the isolated frontend semantic-identity gate before selection.
 pub const SEMANTIC_DIGEST_HEX = "991e77a54fc6e135eba0d8a2776a687d344675b3e307c61303e2624e387bdc74";
 pub const SEMANTIC_DIGEST: digest.Digest = blk: {
@@ -45,7 +45,7 @@ pub const Definition = struct {
         self.* = undefined;
     }
     pub fn validate(self: *const Definition) !void {
-        try @import("../../air/lang/validate.zig").validate(&self.arena);
+        try @import("stwo_riscv_air_lang").modules.validate.validate(&self.arena);
         const actual = try digest.computeIdentity(&self.arena);
         if (!std.meta.eql(actual.bytes, SEMANTIC_DIGEST) or
             self.arena.constraintsView().len != DIRECT_CONSTRAINT_COUNT or

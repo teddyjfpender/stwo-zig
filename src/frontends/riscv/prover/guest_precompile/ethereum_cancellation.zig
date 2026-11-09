@@ -1,21 +1,21 @@
 //! One global LogUp closure for the base plus combined Ethereum components.
 
 const std = @import("std");
-const logup = @import("../../air/logup.zig");
-const public_logup = @import("../../air/public_logup.zig");
-const statement_v2 = @import("../../air/statement_v2.zig");
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
-const base_statement = @import("../../air/statement.zig");
-const base_claims = @import("../../air/transcript/claims.zig");
-const base_types = @import("../types.zig");
+const logup = @import("stwo_riscv_air_lang").modules.shared_air_logup;
+const public_logup = @import("stwo_riscv_rv32").modules.air_public_logup;
+const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
+const lookup_physical_v2 = @import("stwo_riscv_rv32").modules.air_lang_lookup_physical_manifest;
+const base_statement = @import("stwo_riscv_rv32").modules.air_statement;
+const base_claims = @import("stwo_riscv_rv32").modules.air_transcript_claims;
+const base_types = @import("stwo_riscv_rv32").modules.prover_types;
 const ethereum_transcript = @import("ethereum_transcript.zig");
 const ethereum_types = @import("ethereum_types.zig");
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
-const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
-const statement_geometry = @import("../statement_geometry.zig");
-const statement_validation = @import("../statement_validation.zig");
-const native_provider_omit = @import("../memory_provider_shards/native_provider_omit.zig");
-const provider_authority = @import("../memory_provider_shards/authority.zig");
+const poseidon2_air = @import("stwo_riscv_memory").modules.air_poseidon2_air;
+const statement_geometry = @import("stwo_riscv_rv32").modules.prover_statement_geometry;
+const statement_validation = @import("stwo_riscv_rv32").modules.prover_statement_validation;
+const native_provider_omit = @import("stwo_riscv_rv32").modules.prover_memory_provider_shards_native_provider_omit;
+const provider_authority = @import("stwo_riscv_memory").modules.prover_authority;
 
 pub fn verifyDetailed(
     allocator: std.mem.Allocator,

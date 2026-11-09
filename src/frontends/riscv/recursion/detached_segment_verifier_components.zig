@@ -2,16 +2,16 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const catalog = @import("air/segment_leaf_catalog.zig");
-const binding = @import("air/universal_relation_binding.zig");
-const typed = @import("air/universal_typed_verifier_component.zig");
-const provider_relations = @import("air/universal_provider_relations.zig");
-const admission = @import("air/universal_provider_admission.zig");
-const range = @import("air/range_check_8_8_contract.zig");
-const table = @import("../air/lookups/tables/verifier.zig").LookupTableVerifier;
-const poseidon = @import("../air/memory_commitment/poseidon2_degree3_verifier.zig");
-const Wide = poseidon.Component(@import("../air/memory_commitment/poseidon2_wide_equations.zig"));
+const binding = @import("stwo_riscv_air_lang").modules.framework_universal_relation_binding;
+const typed = @import("stwo_riscv_air_lang").modules.framework_universal_typed_verifier_component;
+const provider_relations = @import("stwo_riscv_air_lang").modules.framework_universal_provider_relations;
+const admission = @import("stwo_riscv_rv32").modules.recursion_air_universal_provider_admission;
+const range = @import("stwo_riscv_rv32").modules.recursion_air_range_check_8_8_contract;
+const table = @import("stwo_riscv_rv32").modules.air_lookups_tables_verifier.LookupTableVerifier;
+const poseidon = @import("stwo_riscv_memory").modules.air_poseidon2_degree3_verifier;
+const Wide = poseidon.Component(@import("stwo_riscv_memory").modules.air_poseidon2_wide_equations);
 pub const manifest_mod = @import("air/segment_outer_manifest_contract.zig");
-pub const Relations = @import("air/universal_challenges.zig").UniversalRelations;
+pub const Relations = @import("stwo_riscv_air_lang").modules.framework_universal_challenges.UniversalRelations;
 pub const LOGICAL_ROWS = catalog.LOGICAL_ROWS;
 
 pub fn Component(comptime entry: catalog.Entry) type {

@@ -17,9 +17,9 @@ pub fn For(comptime leaf_outer: type) type {
         const boundary_authority = @import("segment_leaf_outer_authority.zig");
         const input_provider_authority = @import("segment_publication_input_provider_authority.zig");
         const input_provider_component = @import("air/segment_publication_input_provider_component.zig");
-        const shared_provider = @import("air/universal_shared_provider.zig");
-        const universal = @import("air/universal_challenges.zig");
-        const relation_interaction = @import("air/relation_interaction.zig");
+        const shared_provider = @import("stwo_riscv_rv32").modules.recursion_air_universal_shared_provider;
+        const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
+        const relation_interaction = @import("stwo_riscv_air_lang").modules.framework_relation_interaction;
         const noncore_audits = @import("segment_outer_noncore_audits.zig");
         const PreparedNativeV2LeafOuter = leaf_outer.PreparedNativeV2LeafOuter;
         const Manifest = manifest_mod.Manifest;
@@ -263,7 +263,7 @@ pub fn For(comptime leaf_outer: type) type {
             relations: *const universal.UniversalRelations,
             provider_relations: *const shared_provider.SharedProviderRelations,
         ) !GeneratedInteractionsV2 {
-            const generator = @import("air/interaction_generator.zig").Host{};
+            const generator = @import("stwo_riscv_recursion_air").modules.interaction_generator.Host{};
             return prepareInteractionsWithGenerator(self, audit_allocator, relations, provider_relations, &generator);
         }
 

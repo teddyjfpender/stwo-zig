@@ -26,8 +26,8 @@ const recursion = struct {
     const binary_global_closure_outer_source = @import("binary_global_closure_outer_source.zig");
     const outer_parent_child_admission = @import("outer_parent_child_admission.zig");
     const pair_node = @import("pair_node.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
-    const protocol = @import("protocol.zig");
+    const poseidon2_channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
+    const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
 };
 const admission = recursion.outer_parent_child_admission;
 const channel = recursion.poseidon2_channel;

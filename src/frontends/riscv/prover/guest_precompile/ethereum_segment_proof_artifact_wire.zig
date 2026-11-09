@@ -2,12 +2,12 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
-const statement_v2 = @import("../../air/statement_v2.zig");
+const lookup_physical_v2 = @import("stwo_riscv_rv32").modules.air_lang_lookup_physical_manifest;
+const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const global_v3 = @import("../../recursion/segment_leaf_local_authority.zig");
-const base_wire = @import("proof_artifact_wire.zig");
+const execution_profile = @import("stwo_riscv_isa").modules.execution_profile;
+const global_v3 = @import("stwo_riscv_recursion").modules.segment_leaf_local_authority;
+const base_wire = @import("stwo_riscv_rv32").modules.prover_guest_precompile_proof_artifact_wire;
 const ethereum_wire = @import("ethereum_proof_artifact_wire.zig");
 const metadata_wire = @import("ethereum_segment_artifact_metadata_wire.zig");
 const ethereum_interaction = @import("ethereum_interaction.zig");

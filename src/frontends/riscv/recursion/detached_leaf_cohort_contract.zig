@@ -16,7 +16,7 @@ pub fn For(comptime leaf_outer: type, comptime core_mod: type) type {
         pub const AUTHORITY_TRANSCRIPT_DOMAIN: u32 = 0x5343_5632; // "SCV2"
         pub const COMPONENT_COUNT: usize = manifest_mod.COMPONENT_COUNT;
         pub const UNIVERSAL_COMPONENT_COUNT: usize =
-            @import("air/universal_roster.zig").COMPONENT_COUNT;
+            @import("stwo_riscv_air_lang").modules.framework_universal_roster.COMPONENT_COUNT;
         pub const CORE_FIRST_ROW: usize = core_mod.NATIVE_V2_CORE_FIRST_ROW;
         pub const CORE_LAST_ROW: usize = core_mod.NATIVE_V2_CORE_LAST_ROW;
         pub const CORE_ROW_COUNT: usize = core_mod.NATIVE_V2_CORE_ROW_COUNT;
@@ -134,7 +134,7 @@ pub fn For(comptime leaf_outer: type, comptime core_mod: type) type {
 
         pub const PublicationAuthorityV1 = struct {
             context: @import("segment_leaf_authority_v2.zig").NativeTemporalContextV2,
-            statement_words: @import("span_statement.zig").StatementWords,
+            statement_words: @import("stwo_riscv_rv32").modules.recursion_span_statement.StatementWords,
             prepared_leaf_sha_id: [32]u8,
             cohort_authority_sha_id: [32]u8,
             manifest_sha_id: [32]u8,

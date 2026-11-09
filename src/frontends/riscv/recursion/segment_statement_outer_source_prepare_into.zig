@@ -141,7 +141,7 @@ pub fn generateInteractionInto(
     relations: *const universal.UniversalRelations,
     destination: *[Air.INTERACTION_COLUMN_COUNT][]M31,
 ) !QM31 {
-    const generator = @import("air/interaction_generator.zig").Host{};
+    const generator = @import("stwo_riscv_recursion_air").modules.interaction_generator.Host{};
     return generateInteractionIntoWithGenerator(workspace, authority, prepared, logical_rows, relations, destination, &generator);
 }
 

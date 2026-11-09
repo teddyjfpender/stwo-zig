@@ -11,27 +11,27 @@ const circle = stwo_core.circle;
 const canonic = stwo_core.poly.circle.canonic;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-const logup = @import("../air/logup.zig");
+const logup = @import("stwo_riscv_air_lang").modules.shared_air_logup;
 const ethereum_statement =
     @import("../air/guest_precompile/ethereum_statement.zig");
 const keccak_component =
-    @import("../air/guest_precompile/keccakf_component.zig");
+    @import("stwo_riscv_rv32").modules.air_guest_precompile_keccakf_component;
 const keccak_relations =
-    @import("../air/guest_precompile/keccakf_relations.zig");
+    @import("stwo_riscv_precompiles").modules.air_keccakf_relations;
 const keccak_table =
-    @import("../air/guest_precompile/keccakf_table_component.zig");
+    @import("stwo_riscv_precompiles").modules.air_keccakf_table_component;
 const keccak_tables =
-    @import("../air/guest_precompile/keccakf_tables.zig");
+    @import("stwo_riscv_precompiles").modules.air_keccakf_tables;
 const secp_bundle =
-    @import("../air/guest_precompile/secp256k1_component_bundle.zig");
+    @import("stwo_riscv_rv32").modules.air_guest_precompile_secp256k1_component_bundle;
 const secp_component =
-    @import("../air/guest_precompile/secp256k1_component.zig");
+    @import("stwo_riscv_precompiles").modules.air_secp256k1_component;
 const secp_config =
-    @import("../air/guest_precompile/secp256k1_component_config.zig");
+    @import("stwo_riscv_rv32").modules.air_guest_precompile_secp256k1_component_config;
 const secp_relations =
-    @import("../air/guest_precompile/secp256k1_relations.zig");
-const base_statement = @import("../air/statement.zig");
-const profile_mod = @import("vm_air_profile_v2.zig");
+    @import("stwo_riscv_precompiles").modules.air_secp256k1_relations;
+const base_statement = @import("stwo_riscv_rv32").modules.air_statement;
+const profile_mod = @import("stwo_riscv_rv32").modules.recursion_vm_air_profile_v2;
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 const Point = circle.CirclePointQM31;
@@ -127,15 +127,15 @@ pub const GeometryV2 = struct {
     }
 
     /// The B3EH caller has independently admitted the complete full-width key.
-    pub fn initBlake3(allocator: std.mem.Allocator, native: *const base_statement.Blake3ExecutionStatement, extension: *const ethereum_statement.Statement, pin: @import("../prover/blake3_commitment_plan.zig").Admission, logs: anytype, key_id: [32]u8, composition_log: u32) !GeometryV2 {
+    pub fn initBlake3(allocator: std.mem.Allocator, native: *const base_statement.Blake3ExecutionStatement, extension: *const ethereum_statement.Statement, pin: @import("stwo_riscv_rv32").modules.prover_blake3_commitment_plan.Admission, logs: anytype, key_id: [32]u8, composition_log: u32) !GeometryV2 {
         return initBlake3WithRanges(allocator, native, extension, pin, logs, key_id, composition_log, null);
     }
-    pub fn initBlake3WithRanges(allocator: std.mem.Allocator, native: *const base_statement.Blake3ExecutionStatement, extension: *const ethereum_statement.Statement, pin: @import("../prover/blake3_commitment_plan.zig").Admission, logs: anytype, key_id: [32]u8, composition_log: u32, ranges: ?@import("air/compact_range_geometry.zig").Plan) !GeometryV2 {
+    pub fn initBlake3WithRanges(allocator: std.mem.Allocator, native: *const base_statement.Blake3ExecutionStatement, extension: *const ethereum_statement.Statement, pin: @import("stwo_riscv_rv32").modules.prover_blake3_commitment_plan.Admission, logs: anytype, key_id: [32]u8, composition_log: u32, ranges: ?@import("stwo_riscv_air_lang").modules.framework_compact_range_geometry.Plan) !GeometryV2 {
         try @import("../prover/blake3_ethereum_statement.zig").validate(extension, native, pin, logs);
         var offsets = try @import("../prover/guest_precompile/ethereum_assembly.zig").blake3Offsets(native);
         if (ranges) |compact| {
-            _ = try (@import("../prover/compact_extension_contract.zig").ForProfile(@import("../prover/blake3_ethereum_profile.zig")){ .native = native, .extension = extension, .ranges = compact }).validate(pin, logs);
-            inline for (@import("air/compact_range_roster.zig").Roster.Airs) |Air| {
+            _ = try (@import("stwo_riscv_rv32").modules.prover_compact_extension_contract.ForProfile(@import("../prover/blake3_ethereum_profile.zig")){ .native = native, .extension = extension, .ranges = compact }).validate(pin, logs);
+            inline for (@import("stwo_riscv_air_lang").modules.framework_compact_range_roster.Roster.Airs) |Air| {
                 offsets.main_offset = try std.math.add(usize, offsets.main_offset, Air.PHYSICAL_MAIN_COLUMN_COUNT);
                 offsets.interaction_offset = try std.math.add(usize, offsets.interaction_offset, Air.INTERACTION_COLUMN_COUNT);
             }
@@ -144,9 +144,9 @@ pub const GeometryV2 = struct {
     }
     /// The Ethereum prefix of a separately admitted SHA-capable leaf retains
     /// identical equations, but its shared-table certificate covers three families.
-    pub fn initBlake3WithSha(allocator: std.mem.Allocator, native: *const base_statement.Blake3ExecutionStatement, extension: *const @import("../prover/blake3_ethereum_sha_statement.zig").Statement, pin: @import("../prover/blake3_commitment_plan.zig").Admission, logs: anytype, key_id: [32]u8, composition_log: u32, ranges: ?@import("air/compact_range_geometry.zig").Plan) !GeometryV2 {
+    pub fn initBlake3WithSha(allocator: std.mem.Allocator, native: *const base_statement.Blake3ExecutionStatement, extension: *const @import("../prover/blake3_ethereum_sha_statement.zig").Statement, pin: @import("stwo_riscv_rv32").modules.prover_blake3_commitment_plan.Admission, logs: anytype, key_id: [32]u8, composition_log: u32, ranges: ?@import("stwo_riscv_air_lang").modules.framework_compact_range_geometry.Plan) !GeometryV2 {
         try extension.validate(allocator, native, pin, logs);
-        if (ranges) |compact| _ = try (@import("../prover/compact_extension_contract.zig").ForProfile(@import("../prover/blake3_ethereum_sha_profile.zig")){ .allocator = allocator, .native = native, .extension = extension, .ranges = compact }).validate(pin, logs);
+        if (ranges) |compact| _ = try (@import("stwo_riscv_rv32").modules.prover_compact_extension_contract.ForProfile(@import("../prover/blake3_ethereum_sha_profile.zig")){ .allocator = allocator, .native = native, .extension = extension, .ranges = compact }).validate(pin, logs);
         const offsets = try @import("../prover/guest_precompile/ethereum_assembly.zig").blake3OffsetsWithRanges(native, ranges);
         return initAdmitted(allocator, key_id, .{ @intCast(offsets.preprocessed_offset), @intCast(offsets.main_offset), @intCast(offsets.interaction_offset) }, composition_log, &extension.ethereum);
     }

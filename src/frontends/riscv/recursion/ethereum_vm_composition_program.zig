@@ -7,25 +7,25 @@
 //! preprocessed commitment root before publishing a verified-node descriptor.
 
 const std = @import("std");
-const graph_mod = @import("air/composition_circuit.zig");
-const component_order = @import("../air/component_order.zig");
+const graph_mod = @import("stwo_riscv_rv32").modules.recursion_air_composition_circuit;
+const component_order = @import("stwo_riscv_rv32").modules.air_component_order;
 const ethereum_statement =
     @import("../air/guest_precompile/ethereum_statement.zig");
-const lookup_manifest = @import("../air/lang/lookup_physical_manifest.zig");
-const statement_mod = @import("../air/statement.zig");
-const transcript_claims = @import("../air/transcript/claims.zig");
+const lookup_manifest = @import("stwo_riscv_rv32").modules.air_lang_lookup_physical_manifest;
+const statement_mod = @import("stwo_riscv_rv32").modules.air_statement;
+const transcript_claims = @import("stwo_riscv_rv32").modules.air_transcript_claims;
 
-const base_geometry_mod = @import("vm_composition_base_geometry.zig");
+const base_geometry_mod = @import("stwo_riscv_rv32").modules.recursion_vm_composition_base_geometry;
 const base_graph = @import("ethereum_vm_composition_graph_base.zig");
-const circuit = @import("vm_air_composition_circuit.zig");
+const circuit = @import("stwo_riscv_recursion").modules.vm_air_composition_circuit;
 const extension_geometry_mod =
     @import("ethereum_composition_extension_geometry.zig");
 const extension_graph =
     @import("ethereum_vm_composition_graph_extension.zig");
 const relations_mod = @import("ethereum_composition_relations.zig");
-const selected_lookup = @import("vm_selected_lookup_compiler.zig");
-const profile_mod = @import("vm_air_profile_v2.zig");
-const protocol = @import("protocol.zig");
+const selected_lookup = @import("stwo_riscv_recursion").modules.vm_selected_lookup_compiler;
+const profile_mod = @import("stwo_riscv_rv32").modules.recursion_vm_air_profile_v2;
+const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
 const support = @import("ethereum_vm_composition_graph_support.zig");
 
 const Sha256 = std.crypto.hash.sha2.Sha256;

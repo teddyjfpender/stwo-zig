@@ -1,12 +1,12 @@
 //! Ethereum coefficient admission for full-width BLAKE3 execution providers.
 //! Hash geometry is verifier-derived from the admitted commitment schedules.
 const std = @import("std");
-const native_mod = @import("../air/statement.zig");
+const native_mod = @import("stwo_riscv_rv32").modules.air_statement;
 const ethereum = @import("../air/guest_precompile/ethereum_statement.zig");
-const common = @import("blake3_extension_bounds.zig");
-const plans = @import("blake3_commitment_plan.zig");
-const roster = @import("blake3_commitment_components.zig");
-const tables = @import("../air/lookups/tables/schema.zig");
+const common = @import("stwo_riscv_rv32").modules.prover_blake3_extension_bounds;
+const plans = @import("stwo_riscv_rv32").modules.prover_blake3_commitment_plan;
+const roster = @import("stwo_riscv_rv32").modules.prover_blake3_commitment_components;
+const tables = @import("stwo_riscv_air_lang").modules.shared_air_lookups_tables_schema;
 pub const Statement = ethereum.Statement;
 pub const HashLogs = [roster.Airs.len]u32;
 
@@ -24,9 +24,9 @@ pub fn validate(extension: *const Statement, native: *const native_mod.Blake3Exe
 
 pub fn validateExtensionGeometry(extension: *const Statement, total_steps: u32) !void {
     try extension.validateGeometry(total_steps);
-    const maximum = @import("../air/guest_precompile/keccakf_trace.zig").maximum_log_size;
+    const maximum = @import("stwo_riscv_rv32").modules.air_guest_precompile_keccakf_trace.maximum_log_size;
     const rows = extension.components[0].n_rows;
-    const min_log = @import("../air/guest_precompile/keccakf_trace.zig").minimum_log_size;
+    const min_log = @import("stwo_riscv_rv32").modules.air_guest_precompile_keccakf_trace.minimum_log_size;
     const log = if (rows == 0) min_log else @max(min_log, std.math.log2_int_ceil(u32, rows));
     if (log > maximum or extension.components[0].log_size != log) return error.InvalidComponentGeometry;
 }
@@ -37,10 +37,10 @@ fn admission(native: *const native_mod.Blake3ExecutionStatement, pin: plans.Admi
 /// Combined-profile verifier admission. SHA's fixed padding contributes even
 /// for zero calls; the old Ethereum profile continues to use `admission` above.
 pub fn admissionWithSha(a: std.mem.Allocator, native: *const native_mod.Blake3ExecutionStatement, pin: plans.Admission, logs: HashLogs, keccak: u32, signer: u32, sha: u32) !ethereum.Admission {
-    return admissionExtended(native, pin, logs, keccak, signer, sha, try @import("../air/guest_precompile/sha256_coefficient_bounds.zig").derive(a, sha));
+    return admissionExtended(native, pin, logs, keccak, signer, sha, try @import("stwo_riscv_rv32").modules.air_guest_precompile_sha256_coefficient_bounds.derive(a, sha));
 }
 
-fn admissionExtended(native: *const native_mod.Blake3ExecutionStatement, pin: plans.Admission, logs: HashLogs, keccak: u32, signer: u32, sha: u32, sha_bounds: @import("../air/guest_precompile/sha256_coefficient_bounds.zig").Bounds) !ethereum.Admission {
+fn admissionExtended(native: *const native_mod.Blake3ExecutionStatement, pin: plans.Admission, logs: HashLogs, keccak: u32, signer: u32, sha: u32, sha_bounds: @import("stwo_riscv_rv32").modules.air_guest_precompile_sha256_coefficient_bounds.Bounds) !ethereum.Admission {
     const external = try std.math.add(u32, try std.math.add(u32, keccak, signer), sha);
     try native.validateBlake3ExecutionWithExternal(external);
     try pin.validatePublic(&native.public_data);

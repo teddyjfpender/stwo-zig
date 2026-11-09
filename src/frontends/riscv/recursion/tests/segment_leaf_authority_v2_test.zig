@@ -3,15 +3,15 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const authority = @import("../mod.zig").segment_leaf_authority_v2;
-const public_data_v2 = @import("../../air/public_data_v2.zig");
-const public_logup_v2 = @import("../../air/public_logup_v2.zig");
-const relations_mod = @import("../../air/relation_challenges.zig");
-const statement_v1 = @import("../../air/statement.zig");
-const statement_v2 = @import("../../air/statement_v2.zig");
-const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
-const relation = @import("../../air/lang/relation.zig");
-const support = @import("../../air/public_data_test_support.zig");
+const authority = @import("../implementation.zig").segment_leaf_authority_v2;
+const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
+const public_logup_v2 = @import("stwo_riscv_rv32").modules.air_public_logup_v2;
+const relations_mod = @import("stwo_riscv_air_lang").modules.shared_air_relation_challenges;
+const statement_v1 = @import("stwo_riscv_rv32").modules.air_statement;
+const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
+const poseidon2_air = @import("stwo_riscv_memory").modules.air_poseidon2_air;
+const relation = @import("stwo_riscv_air_lang").modules.relation;
+const support = @import("stwo_riscv_rv32").modules.air_public_data_test_support;
 const frozen_v1 = @import("../segment_leaf_authority.zig");
 
 test "segment leaf V2 publishes every authenticated wire and native context word" {

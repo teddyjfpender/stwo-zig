@@ -6,17 +6,17 @@ const std = @import("std");
 const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
-const graph = @import("air/composition_circuit.zig");
+const graph = @import("stwo_riscv_rv32").modules.recursion_air_composition_circuit;
 const circuit = @import("vm_air_composition_circuit.zig");
-const geometry_mod = @import("vm_composition_base_geometry.zig");
-const lookup = @import("../air/lang/lookup_physical_manifest.zig");
+const geometry_mod = @import("stwo_riscv_rv32").modules.recursion_vm_composition_base_geometry;
+const lookup = @import("stwo_riscv_rv32").modules.air_lang_lookup_physical_manifest;
 const selected_lookup = @import("vm_selected_lookup_compiler.zig");
-const relations_mod = @import("../air/relation_challenges.zig");
-const transcript = @import("../air/transcript/claims.zig");
-const logup = @import("../air/logup.zig");
-const base_graph = @import("ethereum_vm_composition_graph_base.zig");
-const support = @import("ethereum_vm_composition_graph_support.zig");
-const program = @import("ethereum_vm_composition_program.zig");
+const relations_mod = @import("stwo_riscv_air_lang").modules.shared_air_relation_challenges;
+const transcript = @import("stwo_riscv_rv32").modules.air_transcript_claims;
+const logup = @import("stwo_riscv_air_lang").modules.shared_air_logup;
+const base_graph = @import("stwo_riscv_frontend").modules.recursion_ethereum_vm_composition_graph_base;
+const support = @import("stwo_riscv_frontend").modules.recursion_ethereum_vm_composition_graph_support;
+const program = @import("stwo_riscv_frontend").modules.recursion_ethereum_vm_composition_program;
 const Scalar = support.Scalar;
 
 pub fn prepare(

@@ -13,7 +13,7 @@ const Eval = @import("../../full/coset_evaluation.zig").Evaluation;
 const sinks = @import("../../evaluation.zig");
 const work = engine.work_pool;
 const Column = engine.air.accumulation.ColumnAccumulator;
-const points = @import("../../../../air/component_point_support.zig");
+const points = @import("stwo_riscv_air_lang").modules.shared_air_component_point_support;
 pub const MIN_STACK = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024;
 pub fn evaluatePart(component: *const C.Component, evaluation: *const Eval, part: usize, output: *Column, inverse: M, pool: ?*work.WorkPool) !void {
     const parameters_value = component.proverParameters();

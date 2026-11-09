@@ -12,12 +12,12 @@ const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const m31 = stwo_core.fields.m31;
 
-const relation = @import("../../air/lang/relation.zig");
+const relation = @import("stwo_riscv_air_lang").modules.relation;
 const air = @import("segment_publication_input_provider.zig");
-const universal = @import("universal_challenges.zig");
+const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
 const leaf_source = @import("../segment_leaf_authority_v2.zig");
 const boundary = @import("../segment_leaf_outer_authority.zig");
-const vm_leaf_context = @import("../vm_leaf_context_v2.zig");
+const vm_leaf_context = @import("stwo_riscv_rv32").modules.recursion_vm_leaf_context_v2;
 
 const shape_contract = @import("segment_publication_input_provider_shape.zig");
 pub const FORMAT_VERSION = shape_contract.FORMAT_VERSION;

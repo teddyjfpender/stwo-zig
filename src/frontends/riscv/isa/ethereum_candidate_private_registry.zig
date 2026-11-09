@@ -7,10 +7,10 @@
 
 const std = @import("std");
 
-const bulk = @import("bulk_memcpy_candidate.zig");
-const bulk_registry = @import("bulk_memcpy_private_registry.zig");
-const swap = @import("stack_swap_candidate.zig");
-const legacy_registry = @import("stack_swap_private_registry.zig");
+const bulk = @import("stwo_riscv_isa").modules.bulk_memcpy_candidate;
+const bulk_registry = @import("stwo_riscv_isa").modules.bulk_memcpy_private_registry;
+const swap = @import("stwo_riscv_isa").modules.stack_swap_candidate;
+const legacy_registry = @import("stwo_riscv_isa").modules.stack_swap_private_registry;
 
 pub const Digest = [32]u8;
 pub const production_active = false;

@@ -1,13 +1,13 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const subject = @import("../ethereum_initial_input_manifest.zig");
-const base = @import("../universal_adapter_manifest.zig");
-const universal = @import("../universal_manifest.zig");
+const base = @import("stwo_riscv_air_lang").modules.framework_universal_adapter_manifest;
+const universal = @import("stwo_riscv_rv32").modules.recursion_air_universal_manifest;
 const profile = @import("../../incremental_ethereum_composition_profile.zig");
 
 fn ordinaryManifest() !base.Manifest {
     var logs = [_]u32{4} ** base.COMPONENT_COUNT;
-    logs[@intFromEnum(base.ComponentKey.range_check_8_8)] = @import("../range_check_8_8_bridge.zig").LOG_SIZE;
+    logs[@intFromEnum(base.ComponentKey.range_check_8_8)] = @import("stwo_riscv_rv32").modules.recursion_air_range_check_8_8_bridge.LOG_SIZE;
     return universal.buildForCatalog(profile.StatementRoutingOuterCatalog, logs);
 }
 

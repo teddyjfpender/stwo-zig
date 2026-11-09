@@ -1,8 +1,8 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const QM31 = stwo_core.fields.qm31.QM31;
-const statement_mod = @import("../../air/statement.zig");
-const subject = @import("../vm_air_profile.zig");
+const statement_mod = @import("stwo_riscv_rv32").modules.air_statement;
+const subject = @import("stwo_riscv_rv32").modules.recursion_vm_air_profile;
 
 test "R-012 row18 profile derives exact dynamic VM schedule and detailed claim order" {
     const allocator = std.testing.allocator;
@@ -29,7 +29,7 @@ test "R-012 row18 profile derives exact dynamic VM schedule and detailed claim o
     claim.n_infra = statement.n_infra;
     var next: u32 = 1;
     for (statement.component_descs[0..statement.n_components], 0..) |descriptor, index| {
-        for (claim.opcode_claims[index][0..@import("../../air/lookups/opcode_entries.zig").batchCount(descriptor.family)]) |*slot| {
+        for (claim.opcode_claims[index][0..@import("stwo_riscv_rv32").modules.air_lookups_opcode_entries.batchCount(descriptor.family)]) |*slot| {
             slot.* = QM31.fromU32Unchecked(next, next + 1, next + 2, next + 3);
             next += 4;
         }

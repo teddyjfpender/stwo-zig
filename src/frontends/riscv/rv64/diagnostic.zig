@@ -1,6 +1,6 @@
 //! Execution diagnostics only. Does not produce or verify a proof.
 const std = @import("std");
-const rv64 = @import("mod.zig");
+const rv64 = @import("implementation.zig");
 
 const Vector = struct {
     instruction: u32,

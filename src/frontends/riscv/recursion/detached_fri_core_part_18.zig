@@ -36,7 +36,7 @@ pub fn Namespace(comptime context: type) type {
         const ColumnBuffer = context.d_ColumnBuffer;
         const TreeStorage = context.d_TreeStorage;
 
-        const shared_parameters = @import("air/verifier_component_parameters.zig");
+        const shared_parameters = @import("stwo_riscv_recursion_air").modules.verifier_component_parameters;
         pub const vmInputParameters = shared_parameters.vmInputParameters;
         pub const merkleRootParameters = shared_parameters.merkleRootParameters;
         pub const traceMerkleParameters = shared_parameters.traceMerkleParameters;

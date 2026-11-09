@@ -5,26 +5,26 @@ const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const PcsConfig = stwo_core.pcs.PcsConfig;
-const public_data_v2 = @import("../../air/public_data_v2.zig");
-const support = @import("../../air/public_data_test_support.zig");
-const relation_challenges = @import("../../air/relation_challenges.zig");
-const statement_v1 = @import("../../air/statement.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
+const support = @import("stwo_riscv_rv32").modules.air_public_data_test_support;
+const relation_challenges = @import("stwo_riscv_air_lang").modules.shared_air_relation_challenges;
+const statement_v1 = @import("stwo_riscv_rv32").modules.air_statement;
 const air_v2 = @import("../segment_leaf_outer_air.zig");
 const source_v2 = @import("../segment_leaf_authority_v2.zig");
 const boundary_v2 = @import("../segment_leaf_outer_authority.zig");
 const range_authority_v2 = @import("../segment_range_authority_v2.zig");
 const transcript_source_v2 = @import("../segment_transcript_outer_source_v2.zig");
 const transcript = @import("../transcript_program_v2.zig");
-const schedule = @import("../air/verifier_schedule.zig");
-const fixed_profile = @import("../fixed_profile.zig");
-const channel = @import("../poseidon2_channel.zig");
-const universal = @import("../air/universal_challenges.zig");
-const shared_provider = @import("../air/universal_shared_provider.zig");
-const universal_manifest = @import("../air/universal_manifest.zig");
-const universal_roster = @import("../air/universal_roster.zig");
+const schedule = @import("stwo_riscv_recursion_air").modules.verifier_schedule;
+const fixed_profile = @import("stwo_riscv_recursion_air").modules.protocol_recursion_fixed_profile;
+const channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
+const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
+const shared_provider = @import("stwo_riscv_rv32").modules.recursion_air_universal_shared_provider;
+const universal_manifest = @import("stwo_riscv_rv32").modules.recursion_air_universal_manifest;
+const universal_roster = @import("stwo_riscv_air_lang").modules.framework_universal_roster;
 const manifest_v2 = @import("../air/segment_outer_adapter_manifest.zig");
 const catalog_v2 = @import("../air/segment_outer_typed_catalog.zig");
-const range_bridge = @import("../air/range_check_8_8_bridge.zig");
+const range_bridge = @import("stwo_riscv_rv32").modules.recursion_air_range_check_8_8_bridge;
 const statement_components_v2 = @import("../segment_statement_outer_components.zig");
 const subject = @import("../segment_statement_outer_source_v2.zig");
 
@@ -439,7 +439,7 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
     const row11_placement = try statement_manifest.placement(
         .statement_semantics_input,
     );
-    const first_committed = @import("../air/framework_interaction.zig").committedRow(
+    const first_committed = @import("stwo_riscv_air_lang").modules.framework_framework_interaction.committedRow(
         0,
         row11_placement.geometry.log_size,
     );

@@ -3,10 +3,10 @@
 //! claim words and bytes consumed by the role-source arithmetic graph.
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const legacy = @import("vm_public_claim_input.zig");
-const ir = @import("../../air/lang/ir.zig");
-const digest = @import("../../air/lang/digest.zig");
-const types = @import("../../air/lang/types.zig");
+const legacy = @import("stwo_riscv_recursion_air").modules.vm_public_claim_input;
+const ir = @import("stwo_riscv_air_lang").modules.ir;
+const digest = @import("stwo_riscv_air_lang").modules.digest;
+const types = @import("stwo_riscv_air_lang").modules.types;
 
 pub const PROFILE_VERSION: u16 = 2;
 pub const STABLE_NAME = "recursion.ethereum_vm_public_claim_input.v2";
@@ -20,7 +20,7 @@ pub const MAXIMUM_CONSTRAINT_DEGREE = legacy.MAXIMUM_CONSTRAINT_DEGREE;
 pub const LOOKUP_BATCH_SIZE = legacy.LOOKUP_BATCH_SIZE;
 pub const INTERACTION_BATCH_COUNT = legacy.INTERACTION_BATCH_COUNT;
 pub const INTERACTION_COLUMN_COUNT = legacy.INTERACTION_COLUMN_COUNT;
-pub const Relation = @import("universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_air_lang").modules.framework_universal_relation_binding.Binding(@This());
 pub const SEMANTIC_DIGEST_HEX = "064801f229b955638e49c848d704cc91691e493038d6461898936e3f0b989bc6";
 pub const SEMANTIC_DIGEST: digest.Digest = blk: {
     var bytes: digest.Digest = undefined;
@@ -42,7 +42,7 @@ pub const Definition = struct {
     }
 
     pub fn validate(self: *const Definition) !void {
-        try @import("../../air/lang/validate.zig").validate(&self.arena);
+        try @import("stwo_riscv_air_lang").modules.validate.validate(&self.arena);
         const identity = try digest.computeIdentity(&self.arena);
         if (identity.format_version != digest.typed_effect_format_version or
             !std.meta.eql(identity.bytes, SEMANTIC_DIGEST) or

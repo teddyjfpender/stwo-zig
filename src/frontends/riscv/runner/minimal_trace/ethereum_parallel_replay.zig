@@ -7,10 +7,10 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const memory_state = @import("../memory_state.zig");
+const memory_state = @import("stwo_riscv_isa").modules.runner_memory_state;
 const ethereum_replay = @import("ethereum_replay.zig");
 const ethereum_types = @import("ethereum_types.zig");
-const base_replay = @import("replay.zig");
+const base_replay = @import("stwo_riscv_rv32").modules.runner_minimal_trace_replay;
 
 pub const MAX_WORKERS: usize = 32;
 pub const DEFAULT_STACK_SIZE: usize = 16 << 20;
@@ -269,6 +269,6 @@ pub fn validateCollection(
     return result;
 }
 
-fn cpuEqual(left: @import("../cpu.zig").Cpu, right: @import("../cpu.zig").Cpu) bool {
+fn cpuEqual(left: @import("stwo_riscv_isa").modules.runner_cpu.Cpu, right: @import("stwo_riscv_isa").modules.runner_cpu.Cpu) bool {
     return left.pc == right.pc and std.mem.eql(u32, &left.regs, &right.regs);
 }

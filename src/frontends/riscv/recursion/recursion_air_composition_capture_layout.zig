@@ -16,10 +16,10 @@ const qm31 = stwo_core.fields.qm31;
 const verifier_types = stwo_core.verifier_types;
 const Sha256 = std.crypto.hash.sha2.Sha256;
 
-const graph_mod = @import("air/composition_circuit.zig");
+const graph_mod = @import("stwo_riscv_rv32").modules.recursion_air_composition_circuit;
 const segment_manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
-const universal_manifest_mod = @import("air/universal_adapter_manifest.zig");
-const universal_roster = @import("air/universal_roster.zig");
+const universal_manifest_mod = @import("stwo_riscv_air_lang").modules.framework_universal_adapter_manifest;
+const universal_roster = @import("stwo_riscv_air_lang").modules.framework_universal_roster;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;
@@ -42,7 +42,7 @@ pub fn ethereumWrapperFixedGeometry(manifest: anytype, fri_log_blowup: u32) Erro
 }
 
 pub fn ethereumInitialWrapperFixedGeometryV1(manifest: anytype, fri_log_blowup: u32) Error!EthereumWrapperGeometryV1 {
-    return ethereumWrapperFixedGeometryForCount(@import("air/ethereum_initial_input_manifest.zig").COMPONENT_COUNT, manifest, fri_log_blowup);
+    return ethereumWrapperFixedGeometryForCount(@import("stwo_riscv_frontend").modules.recursion_air_ethereum_initial_input_manifest.COMPONENT_COUNT, manifest, fri_log_blowup);
 }
 
 fn ethereumWrapperFixedGeometryForCount(comptime component_count: usize, manifest: anytype, fri_log_blowup: u32) Error!EthereumWrapperGeometryV1 {
@@ -94,7 +94,7 @@ pub const HEAP_ALLOCATIONS_PER_SAMPLE_WRITE: usize = 0;
 pub const EMPTY_SAMPLE_COUNT: u32 = 0;
 pub const CANONICAL_EMPTY_LAYOUT_SCHEMA_VERSION: u16 = 1;
 
-pub const Error = std.mem.Allocator.Error || @import("air/ethereum_initial_input_manifest.zig").Error || segment_manifest_mod.Error ||
+pub const Error = std.mem.Allocator.Error || @import("stwo_riscv_frontend").modules.recursion_air_ethereum_initial_input_manifest.Error || segment_manifest_mod.Error ||
     universal_manifest_mod.Error || error{
     AliasedInput,
     ArithmeticOverflow,
@@ -247,7 +247,7 @@ pub const CaptureLayoutV3 = struct {
     }
 
     pub fn initEthereumInitialWrapperV1(allocator: std.mem.Allocator, manifest: anytype, capture: anytype) Error!CaptureLayoutV3 {
-        return initEthereumWrapperForCount(@import("air/ethereum_initial_input_manifest.zig").COMPONENT_COUNT, allocator, manifest, capture);
+        return initEthereumWrapperForCount(@import("stwo_riscv_frontend").modules.recursion_air_ethereum_initial_input_manifest.COMPONENT_COUNT, allocator, manifest, capture);
     }
 
     fn initEthereumWrapperForCount(comptime component_count: usize, allocator: std.mem.Allocator, manifest: anytype, capture: anytype) Error!CaptureLayoutV3 {
@@ -275,7 +275,7 @@ pub const CaptureLayoutV3 = struct {
     }
 
     pub fn validateAgainstEthereumInitialWrapperV1(self: *const CaptureLayoutV3, manifest: anytype) Error!void {
-        return self.validateAgainstEthereumWrapperForCount(@import("air/ethereum_initial_input_manifest.zig").COMPONENT_COUNT, manifest);
+        return self.validateAgainstEthereumWrapperForCount(@import("stwo_riscv_frontend").modules.recursion_air_ethereum_initial_input_manifest.COMPONENT_COUNT, manifest);
     }
 
     fn validateAgainstEthereumWrapperForCount(self: *const CaptureLayoutV3, comptime component_count: usize, manifest: anytype) Error!void {

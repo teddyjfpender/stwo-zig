@@ -26,9 +26,9 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const m31 = stwo_core.fields.m31;
 const recursion = struct {
     const outer_parent_child_admission = @import("outer_parent_child_admission.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
-    const protocol = @import("protocol.zig");
-    const span_statement = @import("span_statement.zig");
+    const poseidon2_channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
+    const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
+    const span_statement = @import("stwo_riscv_rv32").modules.recursion_span_statement;
     const temporal_pair_node = @import("temporal_pair_node.zig");
 };
 const channel = recursion.poseidon2_channel;
@@ -36,7 +36,7 @@ const protocol = recursion.protocol;
 const outer_admission = recursion.outer_parent_child_admission;
 const span_statement = recursion.span_statement;
 const temporal = recursion.temporal_pair_node;
-const public_data_v2 = @import("../air/public_data_v2.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
 
 pub const Digest = channel.Digest;
 pub const Sha256Digest = [32]u8;

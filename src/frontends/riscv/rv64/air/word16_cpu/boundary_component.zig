@@ -8,7 +8,7 @@ const B = @import("boundary.zig");
 const Lookup = @import("lookup.zig");
 const Scalar = @import("../providers/scalar_range.zig");
 const geometry = @import("../geometry.zig");
-const points = @import("../../../air/component_point_support.zig");
+const points = @import("stwo_riscv_air_lang").modules.shared_air_component_point_support;
 const Q = E.Q;
 pub const Kind = enum { boundary, range16, range8 };
 pub fn ChallengesFor(comptime C: type) type {

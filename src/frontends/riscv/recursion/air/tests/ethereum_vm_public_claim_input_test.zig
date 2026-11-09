@@ -1,11 +1,11 @@
 //! Ethereum routing changes exports only; CSP and canonical constraints stay exact.
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const legacy = @import("../vm_public_claim_input.zig");
+const legacy = @import("stwo_riscv_recursion_air").modules.vm_public_claim_input;
 const air = @import("../ethereum_vm_public_claim_input.zig");
-const witness = @import("../vm_public_claim_input_witness.zig");
-const types = @import("../../../air/lang/types.zig");
-const support = @import("../test_support.zig");
+const witness = @import("stwo_riscv_rv32").modules.recursion_air_vm_public_claim_input_witness;
+const types = @import("stwo_riscv_air_lang").modules.types;
+const support = @import("stwo_riscv_recursion_air").modules.test_support;
 
 test "ethereum row12 routing identity preserves CSP seal" {
     try std.testing.expectEqual(@as(u16, 2), air.PROFILE_VERSION);
@@ -98,7 +98,7 @@ test "ethereum row12 rejects malformed canonical main columns" {
     wide_byte[3] = M31.zero();
     const plan = try air.Relation.authenticate(&definition);
     const entries = try plan.entries(&definition.arena, air.SEMANTIC_DIGEST, definition.events, wide_byte);
-    try std.testing.expectEqual(@import("../../../air/lang/relation.zig").Domain.range_check_8_8, entries[5].domain);
+    try std.testing.expectEqual(@import("stwo_riscv_air_lang").modules.relation.Domain.range_check_8_8, entries[5].domain);
     try std.testing.expect(!entries[5].numerator.isZero());
 }
 

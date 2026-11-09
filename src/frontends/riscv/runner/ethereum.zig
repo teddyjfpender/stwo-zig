@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const result_mod = @import("result.zig");
-const segment_session = @import("segment_session.zig");
+const segment_session = @import("stwo_riscv_rv32").modules.runner_segment_session;
 
 pub const RunResult = result_mod.EthereumRunResult;
 pub const SegmentResult = result_mod.EthereumSegmentResult;

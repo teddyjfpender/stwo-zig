@@ -1,6 +1,6 @@
 //! Software CSP guest execution. Explicit linker ABI, no proving capability.
 const std = @import("std");
-const rv = @import("mod.zig");
+const rv = @import("implementation.zig");
 const allocator = std.heap.smp_allocator;
 const contract = @import("csp_contract.zig");
 const Config = contract.Config;

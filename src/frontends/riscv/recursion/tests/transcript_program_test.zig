@@ -3,12 +3,12 @@
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const fixed_profile = @import("../fixed_profile.zig");
-const fixed_wire = @import("../fixed_wire.zig");
-const channel = @import("../poseidon2_channel.zig");
-const protocol = @import("../protocol.zig");
+const fixed_profile = @import("stwo_riscv_recursion_air").modules.protocol_recursion_fixed_profile;
+const fixed_wire = @import("stwo_riscv_recursion_air").modules.protocol_recursion_fixed_wire;
+const channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
+const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
 const transcript = @import("../transcript_program.zig");
-const schedule = @import("../air/verifier_schedule.zig");
+const schedule = @import("stwo_riscv_recursion_air").modules.verifier_schedule;
 
 const M31 = stwo_core.fields.m31.M31;
 

@@ -2,7 +2,7 @@
 //! Derive transport sizes from AIR owners, never from a candidate capture.
 const core = @import("stwo_core");
 const catalog = @import("air/segment_leaf_catalog.zig");
-const provider = @import("air/universal_shared_geometry.zig");
+const provider = @import("stwo_riscv_rv32").modules.recursion_air_universal_shared_geometry;
 const EXTENSION_DEGREE = core.fields.qm31.SECURE_EXTENSION_DEGREE;
 
 // Use the same default composition split as the component prover contract.

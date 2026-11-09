@@ -2,11 +2,11 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const vm = @import("../vm_air_composition_circuit.zig");
-const graph = @import("composition_circuit.zig");
-const relations = @import("../../air/relation_challenges.zig");
-const t = @import("blake3_transcript_witness.zig");
-const scalar = @import("scalar_wire_source.zig");
-const lower = @import("verifier_arithmetic_lowering.zig");
+const graph = @import("stwo_riscv_rv32").modules.recursion_air_composition_circuit;
+const relations = @import("stwo_riscv_air_lang").modules.shared_air_relation_challenges;
+const t = @import("stwo_riscv_recursion_air").modules.blake3_transcript_witness;
+const scalar = @import("stwo_riscv_air_lang").modules.framework_scalar_wire_source;
+const lower = @import("stwo_riscv_rv32").modules.recursion_air_verifier_arithmetic_lowering;
 const M31 = core.fields.m31.M31;
 const relation_words = relations.RELATION_COUNT * 8;
 pub const COUNT = relation_words + 8;

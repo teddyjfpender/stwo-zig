@@ -34,131 +34,131 @@ pub const M31 = stwo_core.fields.m31.M31;
 
 pub const QM31 = stwo_core.fields.qm31.QM31;
 
-pub const air_digest = @import("../air/lang/digest.zig");
+pub const air_digest = @import("stwo_riscv_air_lang").modules.digest;
 
-pub const relation = @import("../air/lang/relation.zig");
+pub const relation = @import("stwo_riscv_air_lang").modules.relation;
 
 pub const binary_authority = @import("binary_pair_authority.zig");
 
 pub const captured_fri = @import("captured_fri.zig");
 
-pub const fixed_profile = @import("fixed_profile.zig");
+pub const fixed_profile = @import("stwo_riscv_recursion_air").modules.protocol_recursion_fixed_profile;
 
-pub const fixed_wire = @import("fixed_wire.zig");
+pub const fixed_wire = @import("stwo_riscv_recursion_air").modules.protocol_recursion_fixed_wire;
 
 pub const pair_node = @import("pair_node.zig");
 
-pub const protocol = @import("protocol.zig");
+pub const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
 
 pub const transcript_program = @import("transcript_program.zig");
 
-pub const composition = @import("air/composition_circuit.zig");
+pub const composition = @import("stwo_riscv_rv32").modules.recursion_air_composition_circuit;
 
-pub const composition_input_air = @import("air/vm_air_composition_input.zig");
+pub const composition_input_air = @import("stwo_riscv_recursion_air").modules.vm_air_composition_input;
 
-pub const composition_input_relation = @import("air/vm_air_composition_input_relation.zig");
+pub const composition_input_relation = @import("stwo_riscv_recursion_air").modules.vm_air_composition_input_relation;
 
-pub const composition_input_witness = @import("air/vm_air_composition_input_witness.zig");
+pub const composition_input_witness = @import("stwo_riscv_rv32").modules.recursion_air_vm_air_composition_input_witness;
 
-pub const composition_control_air = @import("air/vm_air_composition_control.zig").Air;
+pub const composition_control_air = @import("stwo_riscv_recursion_air").modules.vm_air_composition_control.Air;
 
-pub const composition_control_witness = @import("air/control_slice_witness.zig");
+pub const composition_control_witness = @import("stwo_riscv_recursion_air").modules.control_slice_witness;
 
-pub const query_bits_air = @import("air/query_bits.zig");
+pub const query_bits_air = @import("stwo_riscv_recursion_air").modules.query_bits;
 
-pub const query_bits_relation = @import("air/query_bits_relation.zig");
+pub const query_bits_relation = @import("stwo_riscv_recursion_air").modules.query_bits_relation;
 
-pub const query_bits_witness = @import("air/query_bits_witness.zig");
+pub const query_bits_witness = @import("stwo_riscv_recursion_air").modules.query_bits_witness;
 
-pub const query_mapping_air = @import("air/query_mapping.zig");
+pub const query_mapping_air = @import("stwo_riscv_recursion_air").modules.query_mapping;
 
-pub const query_mapping_relation = @import("air/query_mapping_relation.zig");
+pub const query_mapping_relation = @import("stwo_riscv_recursion_air").modules.query_mapping_relation;
 
-pub const query_mapping_witness = @import("air/query_mapping_witness.zig");
+pub const query_mapping_witness = @import("stwo_riscv_recursion_air").modules.query_mapping_witness;
 
-pub const merkle_root_air = @import("air/merkle_root.zig");
+pub const merkle_root_air = @import("stwo_riscv_recursion_air").modules.merkle_root;
 
-pub const merkle_root_relation = @import("air/merkle_root_relation.zig");
+pub const merkle_root_relation = @import("stwo_riscv_recursion_air").modules.merkle_root_relation;
 
-pub const merkle_root_witness = @import("air/merkle_root_witness.zig");
+pub const merkle_root_witness = @import("stwo_riscv_recursion_air").modules.merkle_root_witness;
 
-pub const trace_merkle_air = @import("air/trace_merkle.zig");
+pub const trace_merkle_air = @import("stwo_riscv_recursion_air").modules.trace_merkle;
 
-pub const trace_merkle_relation = @import("air/trace_merkle_relation.zig");
+pub const trace_merkle_relation = @import("stwo_riscv_recursion_air").modules.trace_merkle_relation;
 
-pub const trace_merkle_witness = @import("air/trace_merkle_witness.zig");
+pub const trace_merkle_witness = @import("stwo_riscv_recursion_air").modules.trace_merkle_witness;
 
-pub const pcs_air = @import("air/pcs_deep_input.zig");
+pub const pcs_air = @import("stwo_riscv_recursion_air").modules.pcs_deep_input;
 
-pub const pcs_relation = @import("air/pcs_deep_input_relation.zig");
+pub const pcs_relation = @import("stwo_riscv_recursion_air").modules.pcs_deep_input_relation;
 
-pub const pcs_witness = @import("air/pcs_deep_input_witness.zig");
+pub const pcs_witness = @import("stwo_riscv_rv32").modules.recursion_air_pcs_deep_input_witness;
 
-pub const fri_leaf_air = @import("air/fri_merkle_leaf.zig");
+pub const fri_leaf_air = @import("stwo_riscv_recursion_air").modules.fri_merkle_leaf;
 
-pub const fri_leaf_relation = @import("air/fri_merkle_leaf_relation.zig");
+pub const fri_leaf_relation = @import("stwo_riscv_recursion_air").modules.fri_merkle_leaf_relation;
 
-pub const fri_leaf_witness = @import("air/fri_merkle_leaf_witness.zig");
+pub const fri_leaf_witness = @import("stwo_riscv_recursion_air").modules.fri_merkle_leaf_witness;
 
-pub const fri_node_air = @import("air/fri_merkle_node.zig");
+pub const fri_node_air = @import("stwo_riscv_recursion_air").modules.fri_merkle_node;
 
-pub const fri_node_relation = @import("air/fri_merkle_node_relation.zig");
+pub const fri_node_relation = @import("stwo_riscv_recursion_air").modules.fri_merkle_node_relation;
 
-pub const fri_node_witness = @import("air/fri_merkle_node_witness.zig");
+pub const fri_node_witness = @import("stwo_riscv_recursion_air").modules.fri_merkle_node_witness;
 
-pub const fri_anchor_air = @import("air/fri_merkle_anchor.zig");
+pub const fri_anchor_air = @import("stwo_riscv_recursion_air").modules.fri_merkle_anchor;
 
-pub const fri_anchor_relation = @import("air/fri_merkle_anchor_relation.zig");
+pub const fri_anchor_relation = @import("stwo_riscv_recursion_air").modules.fri_merkle_anchor_relation;
 
-pub const fri_anchor_witness = @import("air/fri_merkle_anchor_witness.zig");
+pub const fri_anchor_witness = @import("stwo_riscv_recursion_air").modules.fri_merkle_anchor_witness;
 
-pub const fri_control_air = @import("air/fri_verifier_control.zig");
+pub const fri_control_air = @import("stwo_riscv_recursion_air").modules.fri_verifier_control;
 
-pub const fri_control_relation = @import("air/fri_verifier_control_relation.zig");
+pub const fri_control_relation = @import("stwo_riscv_recursion_air").modules.fri_verifier_control_relation;
 
-pub const fri_control_witness = @import("air/fri_verifier_control_witness.zig");
+pub const fri_control_witness = @import("stwo_riscv_recursion_air").modules.fri_verifier_control_witness;
 
-pub const fri_input_air = @import("air/fri_verifier_input.zig");
+pub const fri_input_air = @import("stwo_riscv_recursion_air").modules.fri_verifier_input;
 
-pub const fri_input_relation = @import("air/fri_verifier_input_relation.zig");
+pub const fri_input_relation = @import("stwo_riscv_recursion_air").modules.fri_verifier_input_relation;
 
-pub const fri_input_witness = @import("air/fri_verifier_input_witness.zig");
+pub const fri_input_witness = @import("stwo_riscv_rv32").modules.recursion_air_fri_verifier_input_witness;
 
-pub const statement_input_air = @import("air/statement_input.zig");
+pub const statement_input_air = @import("stwo_riscv_recursion_air").modules.statement_input;
 
-pub const multiply_air = @import("air/qm31_mul_full.zig");
+pub const multiply_air = @import("stwo_riscv_recursion_air").modules.qm31_mul_full;
 
-pub const multiply_witness = @import("air/qm31_mul_full_witness.zig");
+pub const multiply_witness = @import("stwo_riscv_recursion_air").modules.qm31_mul_full_witness;
 
-pub const inverse_air = @import("air/qm31_inv.zig");
+pub const inverse_air = @import("stwo_riscv_air_lang").modules.framework_qm31_inv;
 
-pub const inverse_witness = @import("air/qm31_inv_witness.zig");
+pub const inverse_witness = @import("stwo_riscv_recursion_air").modules.qm31_inv_witness;
 
-pub const linear_air = @import("air/linear_ops.zig");
+pub const linear_air = @import("stwo_riscv_air_lang").modules.framework_linear_ops;
 
-pub const linear_witness = @import("air/linear_ops_witness.zig");
+pub const linear_witness = @import("stwo_riscv_recursion_air").modules.linear_ops_witness;
 
-pub const lowering = @import("air/verifier_arithmetic_lowering.zig");
+pub const lowering = @import("stwo_riscv_rv32").modules.recursion_air_verifier_arithmetic_lowering;
 
-pub const merkle_path_air = @import("air/merkle_path.zig");
+pub const merkle_path_air = @import("stwo_riscv_recursion_air").modules.merkle_path;
 
-pub const merkle_path_relation = @import("air/merkle_path_relation.zig");
+pub const merkle_path_relation = @import("stwo_riscv_recursion_air").modules.merkle_path_relation;
 
-pub const merkle_path_witness = @import("air/merkle_path_witness.zig");
+pub const merkle_path_witness = @import("stwo_riscv_recursion_air").modules.merkle_path_witness;
 
-pub const merkle_path_poseidon = @import("air/merkle_path_poseidon_bridge.zig");
+pub const merkle_path_poseidon = @import("stwo_riscv_recursion_air").modules.merkle_path_poseidon_bridge;
 
-pub const schedule = @import("air/verifier_schedule.zig");
+pub const schedule = @import("stwo_riscv_recursion_air").modules.verifier_schedule;
 
-pub const universal_binding = @import("air/universal_relation_binding.zig");
+pub const universal_binding = @import("stwo_riscv_air_lang").modules.framework_universal_relation_binding;
 
-pub const universal = @import("air/universal_challenges.zig");
+pub const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
 
-pub const universal_roster = @import("air/universal_roster.zig");
+pub const universal_roster = @import("stwo_riscv_air_lang").modules.framework_universal_roster;
 
-pub const framework = @import("air/framework_interaction.zig");
+pub const framework = @import("stwo_riscv_air_lang").modules.framework_framework_interaction;
 
-pub const relation_interaction = @import("air/relation_interaction.zig");
+pub const relation_interaction = @import("stwo_riscv_air_lang").modules.framework_relation_interaction;
 
 pub const CompositionControlRelation = universal_binding.Binding(composition_control_air);
 

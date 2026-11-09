@@ -1,13 +1,13 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const ir = @import("../../../air/lang/ir.zig");
-const types = @import("../../../air/lang/types.zig");
-const support = @import("../test_support.zig");
-const state = @import("../transcript_state.zig");
-const payload = @import("../transcript_payload.zig");
+const ir = @import("stwo_riscv_air_lang").modules.ir;
+const types = @import("stwo_riscv_air_lang").modules.types;
+const support = @import("stwo_riscv_recursion_air").modules.test_support;
+const state = @import("stwo_riscv_recursion_air").modules.transcript_state;
+const payload = @import("stwo_riscv_recursion_air").modules.transcript_payload;
 const routed_state = @import("../ethereum_transcript_state.zig");
-const routed_payload = @import("../transcript_payload_clocks.zig");
-const witness = @import("../transcript_payload_witness.zig");
+const routed_payload = @import("stwo_riscv_recursion_air").modules.transcript_payload_clocks;
+const witness = @import("stwo_riscv_recursion_air").modules.transcript_payload_witness;
 const routing = @import("../../ethereum_publication_routing.zig");
 
 test "Ethereum native publication transcript identities preserve legacy seals" {
@@ -66,7 +66,7 @@ test "Ethereum native publication terminal exports input digest rather than draw
     const row = routed_state.logicalRow(original, true);
     const entries = try plan.entries(&definition.arena, routed_state.SEMANTIC_DIGEST, definition.events, row);
     for (entries[state.RELATION_EVENT_COUNT..], 0..) |entry, limb| {
-        try std.testing.expectEqual(@import("../../../air/lang/relation.zig").Domain.recursion_vm_public_claim_word, entry.domain);
+        try std.testing.expectEqual(@import("stwo_riscv_air_lang").modules.relation.Domain.recursion_vm_public_claim_word, entry.domain);
         try std.testing.expect(!entry.numerator.isZero());
         const values = try support.evaluateArena(std.testing.allocator, &definition.arena, &row);
         defer std.testing.allocator.free(values);
@@ -90,14 +90,14 @@ test "Ethereum native publication payload exports source values without fixed-va
     metadata.source_kind = .statement;
     metadata.item_index = routing.STATEMENT_SCOPE;
     metadata.limb_index = routing.rawIndex(.statement_authority, 0).?;
-    metadata.source_word_index = @import("../../poseidon2_channel.zig").RATE;
+    metadata.source_word_index = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel.RATE;
     for ([_]u32{ 3, 65535 }) |word| {
         const row = try routed_payload.logicalRow(metadata, M31.fromCanonical(word));
         const entries = try plan.entries(&definition.arena, routed_payload.SEMANTIC_DIGEST, definition.events, row);
         try std.testing.expect(entries[1].numerator.isZero()); // No duplicate verifier input.
         try std.testing.expect(entries[2].numerator.isZero()); // No clock alias.
         try std.testing.expect(!entries[3].numerator.isZero());
-        try std.testing.expectEqual(@import("../../../air/lang/relation.zig").Domain.recursion_vm_public_claim_word, entries[3].domain);
+        try std.testing.expectEqual(@import("stwo_riscv_air_lang").modules.relation.Domain.recursion_vm_public_claim_word, entries[3].domain);
         const values = try support.evaluateArena(std.testing.allocator, &definition.arena, &row);
         defer std.testing.allocator.free(values);
         const tuple = definition.arena.effectValues(definition.events[3]).?;

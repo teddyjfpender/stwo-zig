@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const frontier_mod = @import("../fri_profile_frontier.zig");
-const protocol = @import("../protocol.zig");
+const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
 
 const V1_COMPARISON_DIGEST_HEX =
     "1c4ef8a500738a109a6612868119b86f7416f08116ebf5abd8a6f36a539efde0";

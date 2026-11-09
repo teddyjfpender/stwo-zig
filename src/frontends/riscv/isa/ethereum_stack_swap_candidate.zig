@@ -7,9 +7,9 @@
 
 const std = @import("std");
 
-const execution_profile = @import("execution_profile.zig");
-const private_registry = @import("stack_swap_private_registry.zig");
-const stack_swap = @import("stack_swap_candidate.zig");
+const execution_profile = @import("stwo_riscv_isa").modules.execution_profile;
+const private_registry = @import("stwo_riscv_isa").modules.stack_swap_private_registry;
+const stack_swap = @import("stwo_riscv_isa").modules.stack_swap_candidate;
 
 pub const production_active = false;
 pub const schema_version: u16 = 1;

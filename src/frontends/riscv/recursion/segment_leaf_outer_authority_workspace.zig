@@ -446,7 +446,7 @@ pub const PreparedNativeVerifierOuterAuthorityV2 = struct {
 
     pub fn appendAuthorityPoseidonCallsInto(
         self: *const PreparedNativeVerifierOuterAuthorityV2,
-        destination: []@import("../air/memory_commitment/poseidon2_air.zig").Call,
+        destination: []@import("stwo_riscv_memory").modules.air_poseidon2_air.Call,
         data: *const public_data_v2.PublicDataV2,
         receipt: *const statement_v2.VerifiedReceipt,
         component_descs: []const statement_v1.FamilyComponentDesc,

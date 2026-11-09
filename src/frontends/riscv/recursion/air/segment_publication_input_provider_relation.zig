@@ -1,7 +1,7 @@
 //! Universal-relation binding for the SegmentV2 publication-input publisher.
 
 const air = @import("segment_publication_input_provider.zig");
-const factory = @import("universal_relation_binding.zig");
+const factory = @import("stwo_riscv_air_lang").modules.framework_universal_relation_binding;
 
 pub const Binding = factory.Binding(air);
 pub const Runtime = Binding.Runtime;
@@ -17,6 +17,6 @@ pub fn authenticate(definition: *const air.Definition) !Plan {
 
 pub fn events(
     definition: *const air.Definition,
-) [air.RELATION_EVENT_COUNT]@import("../../air/lang/types.zig").EffectId {
+) [air.RELATION_EVENT_COUNT]@import("stwo_riscv_air_lang").modules.types.EffectId {
     return Binding.events(definition);
 }

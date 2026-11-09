@@ -4,7 +4,7 @@
 //! three parity positions; `keccakf_throughput_tables.zig`). Its identity is
 //! mixed before roots by every owner that selects it.
 const L = @import("layout.zig");
-const authority = @import("../../../../air/guest_precompile/keccakf_authority.zig");
+const authority = @import("stwo_riscv_precompiles").modules.air_keccakf_authority;
 pub const THROUGHPUT_CHI = authority.geometry.chi_lookups_per_round;
 pub const THROUGHPUT_XOR5 = authority.geometry.xor5_lookups_per_round;
 pub const THROUGHPUT_LOOKUPS = THROUGHPUT_CHI + THROUGHPUT_XOR5;

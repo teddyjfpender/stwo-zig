@@ -6,10 +6,10 @@ const core = @import("stwo_core");
 const recursion = struct {
     const span_continuation_v1 = @import("span_continuation.zig");
     const outer_parent_child_admission = @import("outer_parent_child_admission_profile.zig");
-    const protocol = @import("protocol.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
+    const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
+    const poseidon2_channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
     const air = struct {
-        const universal_challenges = @import("air/universal_challenges.zig");
+        const universal_challenges = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
     };
 };
 const continuation = recursion.span_continuation_v1;

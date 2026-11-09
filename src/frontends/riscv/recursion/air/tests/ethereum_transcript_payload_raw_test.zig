@@ -1,16 +1,17 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
-const legacy = @import("../transcript_payload.zig");
-const clocks = @import("../transcript_payload_clocks.zig");
+const legacy = @import("stwo_riscv_recursion_air").modules.transcript_payload;
+const clocks = @import("stwo_riscv_recursion_air").modules.transcript_payload_clocks;
 const raw = @import("../ethereum_transcript_payload_raw.zig");
 const hash_air = @import("../ethereum_publication_hash.zig");
-const hash_witness = @import("../vm_public_claim_hash_witness.zig");
-const interaction = @import("../relation_interaction.zig");
-const relation = @import("../../../air/lang/relation.zig");
-const types = @import("../../../air/lang/types.zig");
-const support = @import("../test_support.zig");
-const channel = @import("../../poseidon2_channel.zig");
+const canonical_hash_witness_1910e1 = @import("stwo_riscv_recursion_air").modules.vm_public_claim_hash;
+const canonical_hash_witness_cf686b = @import("stwo_riscv_rv32").modules.recursion_air_vm_public_claim_hash_witness_contract;
+const interaction = @import("stwo_riscv_air_lang").modules.framework_relation_interaction;
+const relation = @import("stwo_riscv_air_lang").modules.relation;
+const types = @import("stwo_riscv_air_lang").modules.types;
+const support = @import("stwo_riscv_recursion_air").modules.test_support;
+const channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
 
 test "Ethereum raw transcript export preserves legacy seals and pins opt-in identity" {
     try std.testing.expectEqualDeep(legacy.SEMANTIC_DIGEST, (try legacy.identity(std.testing.allocator)).bytes);
@@ -67,11 +68,11 @@ test "Ethereum raw transcript export preserves constraints clock routing and dis
 
 test "Ethereum raw transcript and native wire hash require identical payload words" {
     const words = [_]M31{ M31.fromCanonical(75), M31.fromCanonical(65535), M31.fromCanonical(917) };
-    const domain = @import("../../segment_statement.zig").WIRE_ID_DOMAIN;
-    const metadata = try hash_witness.expectedRow(words.len, 1, 0);
-    var state = [_]M31{M31.zero()} ** hash_witness.STATE_WIDTH;
+    const domain = @import("stwo_riscv_rv32").modules.recursion_segment_statement.WIRE_ID_DOMAIN;
+    const metadata = try canonical_hash_witness_cf686b.expectedRow(words.len, 1, 0);
+    var state = [_]M31{M31.zero()} ** canonical_hash_witness_1910e1.STATE_WIDTH;
     state[state.len - 1] = M31.fromCanonical(domain);
-    const main = hash_witness.materialize(metadata, &words, state);
+    const main = canonical_hash_witness_cf686b.materialize(metadata, &words, state);
     const digest = channel.hashCanonicalWords(&words, domain);
     for (digest, main.output[0..digest.len]) |a, b| try std.testing.expectEqual(a, b.toU32());
     const hash_row = hash_air.fromLegacy(main.values() ++ metadata.values() ++ [_]M31{
@@ -138,14 +139,14 @@ test "Ethereum raw transcript root topology closes two raw uses without duplicat
     var router_definition = try router_air.build(allocator);
     defer router_definition.deinit();
     const router_plan = try router_air.Relation.authenticate(&router_definition);
-    const hash_count = (words.len + 1 + hash_witness.RATE - 1) / hash_witness.RATE;
+    const hash_count = (words.len + 1 + canonical_hash_witness_1910e1.RATE - 1) / canonical_hash_witness_1910e1.RATE;
     var hashes: [hash_count]hash_air.Relation.Row = undefined;
-    const domain = @import("../../segment_statement.zig").WIRE_ID_DOMAIN;
-    var state = [_]M31{M31.zero()} ** hash_witness.STATE_WIDTH;
+    const domain = @import("stwo_riscv_rv32").modules.recursion_segment_statement.WIRE_ID_DOMAIN;
+    var state = [_]M31{M31.zero()} ** canonical_hash_witness_1910e1.STATE_WIDTH;
     state[state.len - 1] = M31.fromCanonical(domain);
     for (&hashes, 0..) |*row, index| {
-        const metadata = try hash_witness.expectedRow(words.len, hash_count, index);
-        const main = hash_witness.materialize(metadata, &words, state);
+        const metadata = try canonical_hash_witness_cf686b.expectedRow(words.len, hash_count, index);
+        const main = canonical_hash_witness_cf686b.materialize(metadata, &words, state);
         row.* = hash_air.fromLegacy(main.values() ++ metadata.values() ++ [_]M31{
             M31.one(),                             M31.fromCanonical(domain), M31.fromCanonical(raw.RAW_WIRE_SCOPE),
             M31.fromCanonical(raw.RAW_WIRE_SCOPE), M31.fromCanonical(11),

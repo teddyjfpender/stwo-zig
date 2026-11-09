@@ -17,7 +17,7 @@ pub const manifest_magic = "B3SHADM1";
 pub const preprocessed = @import("guest_precompile/ethereum_sha_columns.zig").preprocessed;
 pub const mainWitness = @import("guest_precompile/ethereum_sha_columns.zig").main;
 pub const interactions = @import("guest_precompile/ethereum_sha_columns.zig").interactions;
-pub const execution_profile: @import("../isa/execution_profile.zig").ExecutionProfile = .rv32im_zkvm_ethereum_sha_v1;
+pub const execution_profile: @import("stwo_riscv_isa").modules.execution_profile.ExecutionProfile = .rv32im_zkvm_ethereum_sha_v1;
 pub fn externalCount(statement: *const admission.Statement) u32 {
     return statement.ethereum.counts.external_retirements +| statement.sha.call_count;
 }

@@ -91,7 +91,7 @@ pub fn Namespace(comptime context: type) type {
             relations: *const universal.UniversalRelations,
             closure_audit: ?*ClosureAudit,
         ) !Claims {
-            const generator = @import("air/interaction_generator.zig").Host{};
+            const generator = @import("stwo_riscv_recursion_air").modules.interaction_generator.Host{};
             return fillInteractionWithGenerator(allocator, authority, tree, evaluations, pcs_inputs, arithmetic_evaluations, invocations, query_witness, root_witness, merkle_paths, poseidon_calls, prepared_relation_rows, provider_relations, relations, closure_audit, &generator);
         }
 
@@ -132,7 +132,7 @@ pub fn Namespace(comptime context: type) type {
             relations: *const universal.UniversalRelations,
             closure_audit: ?*ClosureAudit,
         ) !NativeInteractionClaims {
-            const generator = @import("air/interaction_generator.zig").Host{};
+            const generator = @import("stwo_riscv_recursion_air").modules.interaction_generator.Host{};
             return fillNativeInteractionWithGenerator(allocator, authority, tree, evaluations, pcs_inputs, invocations, query_witness, root_witness, merkle_paths, poseidon_calls, prepared_relation_rows, provider_relations, relations, closure_audit, &generator);
         }
 

@@ -16,11 +16,11 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const m31 = stwo_core.fields.m31;
 const recursion = struct {
     const outer_parent_child_admission = @import("outer_parent_child_admission.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
+    const poseidon2_channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
     const segment_outer_cohort_v2 = @import("segment_public_wire_boundary.zig");
     const air = struct {
         const segment_outer_adapter_manifest_v2 = @import("air/segment_outer_manifest_contract.zig");
-        const universal_challenges = @import("air/universal_challenges.zig");
+        const universal_challenges = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
     };
 };
 const channel = recursion.poseidon2_channel;

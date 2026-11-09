@@ -271,7 +271,7 @@ pub fn rebuildNativeVerifierStages(
     infra_descs: []const statement_v1.InfraComponentDesc,
     outer: *const universal.UniversalRelations,
 ) Error!PreparedNativeVerifierOuterAuthorityV2 {
-    const generator = @import("air/interaction_generator.zig").Host{};
+    const generator = @import("stwo_riscv_recursion_air").modules.interaction_generator.Host{};
     return rebuildNativeVerifierStagesWithGenerator(workspace, authority, data, keys, native, native_sums, receipt, component_descs, infra_descs, outer, &generator);
 }
 

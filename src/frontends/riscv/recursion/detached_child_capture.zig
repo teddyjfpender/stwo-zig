@@ -7,18 +7,18 @@ const recursion = struct {
     const detached_child_views_v1 = @import("detached_child_views.zig");
     const detached_parent_protocol_v1 = @import("detached_parent_protocol.zig");
     const engine = @import("engine.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
-    const protocol = @import("protocol.zig");
+    const poseidon2_channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
+    const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
     const recording_poseidon_channel_v4 = @import("recording_poseidon_channel.zig");
     const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
-    const span_statement = @import("span_statement.zig");
+    const span_statement = @import("stwo_riscv_rv32").modules.recursion_span_statement;
 };
 const air = struct {
-    const composition_circuit = @import("air/composition_circuit.zig");
-    const universal_challenges = @import("air/universal_challenges.zig");
+    const composition_circuit = @import("stwo_riscv_rv32").modules.recursion_air_composition_circuit;
+    const universal_challenges = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
 };
 const riscv_air = struct {
-    const public_data_v2 = @import("../air/public_data_v2.zig");
+    const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
 };
 const std = @import("std");
 const core = @import("stwo_core");

@@ -7,8 +7,8 @@
 const std = @import("std");
 
 const bulk_authority_mod = @import("ethereum_bulk_memcpy_candidate.zig");
-const bulk_registry = @import("bulk_memcpy_private_registry.zig");
-const execution_profile = @import("execution_profile.zig");
+const bulk_registry = @import("stwo_riscv_isa").modules.bulk_memcpy_private_registry;
+const execution_profile = @import("stwo_riscv_isa").modules.execution_profile;
 const registry_mod = @import("ethereum_candidate_private_registry.zig");
 const swap_authority_mod = @import("ethereum_stack_swap_candidate.zig");
 

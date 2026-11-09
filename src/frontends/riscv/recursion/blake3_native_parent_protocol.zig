@@ -2,10 +2,10 @@
 //! Diagnostic admission only; this does not authorize existing production keys.
 const std = @import("std");
 const core = @import("stwo_core");
-const suite = @import("blake3_engine_protocol.zig");
+const suite = @import("stwo_riscv_recursion_air").modules.protocol_recursion_blake3_engine_protocol;
 const native = @import("air/blake3_native_parent_rows.zig");
-const registry = @import("air/universal_challenges.zig");
-const schema = @import("../air/lookups/tables/schema.zig");
+const registry = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
+const schema = @import("stwo_riscv_air_lang").modules.shared_air_lookups_tables_schema;
 const Hash = std.crypto.hash.sha2.Sha256;
 pub const VERSION: u32 = 4;
 pub const DOMAIN = "stwo-zig/blake3-native-child-parent/v4\x00";
@@ -17,7 +17,7 @@ pub const Context = struct {
     child_config: core.pcs.PcsConfig,
     graph_ids: [5][32]u8,
     transcript_plan_id: [32]u8,
-    pub fn fromSources(statement: *const @import("../air/statement_v2.zig").RiscVStatementV2, child_config: core.pcs.PcsConfig, sources: native.Sources) Context {
+    pub fn fromSources(statement: *const @import("stwo_riscv_rv32").modules.air_statement_v2.RiscVStatementV2, child_config: core.pcs.PcsConfig, sources: native.Sources) Context {
         return .{
             .child_wire_id = statement.public_data.wireId(),
             .child_authority_id = statement.authority_id,
@@ -113,7 +113,7 @@ fn word(hash: *Hash, value: u32) void {
 }
 fn configWords(hash: *Hash, config: core.pcs.PcsConfig) !void {
     const fri = config.fri_config;
-    if (config.pow_bits > core.channel.blake3.MAX_POW_BITS or fri.n_queries == 0 or fri.n_queries > std.math.maxInt(u32) or fri.log_blowup_factor == 0 or fri.log_blowup_factor > 30 or fri.log_last_layer_degree_bound > 30 or fri.fold_step == 0 or fri.fold_step > @import("air/fri_verifier_circuit.zig").MAX_FOLD_STEP) return error.InvalidBlake3ParentProfile;
+    if (config.pow_bits > core.channel.blake3.MAX_POW_BITS or fri.n_queries == 0 or fri.n_queries > std.math.maxInt(u32) or fri.log_blowup_factor == 0 or fri.log_blowup_factor > 30 or fri.log_last_layer_degree_bound > 30 or fri.fold_step == 0 or fri.fold_step > @import("stwo_riscv_rv32").modules.recursion_air_fri_verifier_circuit.MAX_FOLD_STEP) return error.InvalidBlake3ParentProfile;
     if (config.lifting_log_size) |lifting| if (lifting > 30) return error.InvalidBlake3ParentProfile;
     word(hash, @intFromBool(config.lifting_log_size != null));
     word(hash, config.lifting_log_size orelse 0);

@@ -3,7 +3,7 @@ pub fn For(comptime leaf_outer: type, comptime core_mod: type) type {
     return struct {
         const contract = @import("detached_leaf_cohort_contract.zig").For(leaf_outer, core_mod);
         const QM31 = @import("stwo_core").fields.qm31.QM31;
-        const DomainAudit = @import("air/relation_interaction.zig").DomainAudit;
+        const DomainAudit = @import("stwo_riscv_air_lang").modules.framework_relation_interaction.DomainAudit;
         const COMPONENT_COUNT = contract.COMPONENT_COUNT;
         const CORE_FIRST_ROW = contract.CORE_FIRST_ROW;
         const CORE_ROW_MASK = contract.CORE_ROW_MASK;

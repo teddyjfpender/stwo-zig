@@ -1,12 +1,12 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const QM31 = stwo_core.fields.qm31.QM31;
-const opcode_entries = @import("../../air/lookups/opcode_entries.zig");
-const relation_challenges = @import("../../air/relation_challenges.zig");
-const statement_mod = @import("../../air/statement.zig");
-const trace_mod = @import("../../runner/trace.zig");
-const vm_air_profile = @import("../vm_air_profile.zig");
-const subject = @import("../vm_leaf_context.zig");
+const opcode_entries = @import("stwo_riscv_rv32").modules.air_lookups_opcode_entries;
+const relation_challenges = @import("stwo_riscv_air_lang").modules.shared_air_relation_challenges;
+const statement_mod = @import("stwo_riscv_rv32").modules.air_statement;
+const trace_mod = @import("stwo_riscv_rv32").modules.runner_trace;
+const vm_air_profile = @import("stwo_riscv_rv32").modules.recursion_vm_air_profile;
+const subject = @import("stwo_riscv_rv32").modules.recursion_vm_leaf_context;
 
 test "R-012 verified VM leaf context owns exact detailed authority" {
     const allocator = std.testing.allocator;

@@ -36,14 +36,14 @@ pub fn For(comptime leaf_outer: type) type {
         const input_provider_component =
             @import("air/segment_publication_input_provider_component.zig");
         const input_provider_air = @import("air/segment_publication_input_provider.zig");
-        const shared_provider = @import("air/universal_shared_provider.zig");
-        const universal = @import("air/universal_challenges.zig");
-        const universal_manifest = @import("air/universal_manifest.zig");
-        const universal_roster = @import("air/universal_roster.zig");
-        const relation_interaction = @import("air/relation_interaction.zig");
-        const native_relations_mod = @import("../air/relation_challenges.zig");
+        const shared_provider = @import("stwo_riscv_rv32").modules.recursion_air_universal_shared_provider;
+        const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
+        const universal_manifest = @import("stwo_riscv_rv32").modules.recursion_air_universal_manifest;
+        const universal_roster = @import("stwo_riscv_air_lang").modules.framework_universal_roster;
+        const relation_interaction = @import("stwo_riscv_air_lang").modules.framework_relation_interaction;
+        const native_relations_mod = @import("stwo_riscv_air_lang").modules.shared_air_relation_challenges;
         const noncore_audits = @import("segment_outer_noncore_audits.zig");
-        const range_bridge = @import("air/range_check_8_8_bridge.zig");
+        const range_bridge = @import("stwo_riscv_rv32").modules.recursion_air_range_check_8_8_bridge;
         const contract = @import("detached_leaf_noncore_contract.zig");
         const support = @import("detached_leaf_noncore_support.zig").For(leaf_outer);
         const runtime = @import("detached_leaf_noncore_runtime.zig").For(leaf_outer);
@@ -496,7 +496,7 @@ pub fn For(comptime leaf_outer: type) type {
                 relations: *const universal.UniversalRelations,
                 provider_relations: *const shared_provider.SharedProviderRelations,
             ) !GeneratedInteractionsV2 {
-                const generator = @import("air/interaction_generator.zig").Host{};
+                const generator = @import("stwo_riscv_recursion_air").modules.interaction_generator.Host{};
                 return prepareInteractionsWithGenerator(self, audit_allocator, relations, provider_relations, &generator);
             }
 

@@ -5,17 +5,17 @@
 //! value whose deinitializer mirrors construction order exactly.
 
 const std = @import("std");
-const keccak_calls_mod = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
-const keccak_rows_mod = @import("../../runner/guest_precompile/keccakf.zig");
-const recovery_calls_mod = @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const recovery_rows_mod = @import("../../runner/guest_precompile/secp256k1_recover.zig");
-const keccak_caller = @import("../../air/guest_precompile/keccakf_caller.zig");
-const keccak_counters = @import("../../air/guest_precompile/keccakf_multiplicities.zig");
-const keccak_trace = @import("../../air/guest_precompile/keccakf_trace.zig");
-const recovery_caller = @import("../../air/guest_precompile/secp256k1_recovery_caller.zig");
-const recovery = @import("../../air/guest_precompile/secp256k1_recovery.zig");
-const secp_affine = @import("../../air/guest_precompile/secp256k1_affine.zig");
-const secp_bundle = @import("../../air/guest_precompile/secp256k1_component_bundle.zig");
+const keccak_calls_mod = @import("stwo_riscv_precompiles").modules.runner_keccakf_call_buffer;
+const keccak_rows_mod = @import("stwo_riscv_rv32").modules.runner_guest_precompile_keccakf;
+const recovery_calls_mod = @import("stwo_riscv_precompiles").modules.runner_secp256k1_recover_call_buffer;
+const recovery_rows_mod = @import("stwo_riscv_rv32").modules.runner_guest_precompile_secp256k1_recover;
+const keccak_caller = @import("stwo_riscv_rv32").modules.air_guest_precompile_keccakf_caller;
+const keccak_counters = @import("stwo_riscv_precompiles").modules.air_keccakf_multiplicities;
+const keccak_trace = @import("stwo_riscv_rv32").modules.air_guest_precompile_keccakf_trace;
+const recovery_caller = @import("stwo_riscv_rv32").modules.air_guest_precompile_secp256k1_recovery_caller;
+const recovery = @import("stwo_riscv_precompiles").modules.air_secp256k1_recovery;
+const secp_affine = @import("stwo_riscv_precompiles").modules.air_secp256k1_affine;
+const secp_bundle = @import("stwo_riscv_rv32").modules.air_guest_precompile_secp256k1_component_bundle;
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
 
 pub const Witness = struct {

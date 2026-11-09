@@ -2,15 +2,15 @@
 
 pub const std = @import("std");
 
-pub const digest = @import("../air/lang/digest.zig");
-pub const ir = @import("../air/lang/ir.zig");
-pub const relation = @import("../air/lang/relation.zig");
-pub const source = @import("../air/lang/source.zig");
-pub const types = @import("../air/lang/types.zig");
-pub const validate_mod = @import("../air/lang/validate.zig");
-pub const relation_effect = @import("air/relation_effect.zig");
-pub const relation_interaction = @import("air/relation_interaction.zig");
-pub const transcript_payload = @import("air/transcript_payload.zig");
+pub const digest = @import("stwo_riscv_air_lang").modules.digest;
+pub const ir = @import("stwo_riscv_air_lang").modules.ir;
+pub const relation = @import("stwo_riscv_air_lang").modules.relation;
+pub const source = @import("stwo_riscv_air_lang").modules.source;
+pub const types = @import("stwo_riscv_air_lang").modules.types;
+pub const validate_mod = @import("stwo_riscv_air_lang").modules.validate;
+pub const relation_effect = @import("stwo_riscv_air_lang").modules.framework_relation_effect;
+pub const relation_interaction = @import("stwo_riscv_air_lang").modules.framework_relation_interaction;
+pub const transcript_payload = @import("stwo_riscv_recursion_air").modules.transcript_payload;
 pub const source_v2 = @import("segment_leaf_layout.zig");
 
 pub const FORMAT_VERSION: u16 = 2;

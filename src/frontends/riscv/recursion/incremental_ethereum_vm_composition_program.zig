@@ -6,27 +6,27 @@
 
 const std = @import("std");
 
-const graph_mod = @import("air/composition_circuit.zig");
-const circuit = @import("vm_air_composition_circuit.zig");
-const base_geometry_mod = @import("vm_composition_base_geometry.zig");
+const graph_mod = @import("stwo_riscv_rv32").modules.recursion_air_composition_circuit;
+const circuit = @import("stwo_riscv_recursion").modules.vm_air_composition_circuit;
+const base_geometry_mod = @import("stwo_riscv_rv32").modules.recursion_vm_composition_base_geometry;
 const base_graph = @import("ethereum_vm_composition_graph_base.zig");
-const component_order = @import("../air/component_order.zig");
+const component_order = @import("stwo_riscv_rv32").modules.air_component_order;
 const ethereum_statement =
     @import("../air/guest_precompile/ethereum_statement.zig");
 const extension_geometry_mod =
     @import("ethereum_composition_extension_geometry.zig");
 const extension_graph =
     @import("ethereum_vm_composition_graph_extension.zig");
-const bridge = @import("../air/memory_commitment/incremental_bridge.zig");
-const bridge_external = @import("../prover/incremental_bridge_external.zig");
-const lookup_manifest = @import("../air/lang/lookup_physical_manifest.zig");
-const profile_mod = @import("vm_air_profile_v2.zig");
-const protocol = @import("protocol.zig");
+const bridge = @import("stwo_riscv_memory").modules.air_incremental_bridge;
+const bridge_external = @import("stwo_riscv_rv32").modules.prover_incremental_bridge_external;
+const lookup_manifest = @import("stwo_riscv_rv32").modules.air_lang_lookup_physical_manifest;
+const profile_mod = @import("stwo_riscv_rv32").modules.recursion_vm_air_profile_v2;
+const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
 const relations_mod = @import("ethereum_composition_relations.zig");
-const selected_lookup = @import("vm_selected_lookup_compiler.zig");
-const statement_mod = @import("../air/statement.zig");
+const selected_lookup = @import("stwo_riscv_recursion").modules.vm_selected_lookup_compiler;
+const statement_mod = @import("stwo_riscv_rv32").modules.air_statement;
 const support = @import("ethereum_vm_composition_graph_support.zig");
-const transcript_claims = @import("../air/transcript/claims.zig");
+const transcript_claims = @import("stwo_riscv_rv32").modules.air_transcript_claims;
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 const Scalar = support.Scalar;
@@ -428,8 +428,8 @@ fn compileInternal(
     );
     const oods_seed = try support.scalarInput(&builder, .oods_point);
     const root_values: [2]Scalar = if (statement_roots) .{
-        try builder.input(if (native_continuation_roots) .{ .native_continuation_root = 0 } else .{ .statement_word = @import("air/vm_statement_roots.zig").word_indices[0] }),
-        try builder.input(if (native_continuation_roots) .{ .native_continuation_root = 1 } else .{ .statement_word = @import("air/vm_statement_roots.zig").word_indices[1] }),
+        try builder.input(if (native_continuation_roots) .{ .native_continuation_root = 0 } else .{ .statement_word = @import("stwo_riscv_rv32").modules.recursion_air_vm_statement_roots.word_indices[0] }),
+        try builder.input(if (native_continuation_roots) .{ .native_continuation_root = 1 } else .{ .statement_word = @import("stwo_riscv_rv32").modules.recursion_air_vm_statement_roots.word_indices[1] }),
     } else .{
         Scalar.fromBase(@import("stwo_core").fields.m31.M31.fromU64(input.bridge.entry_root)),
         Scalar.fromBase(@import("stwo_core").fields.m31.M31.fromU64(input.bridge.exit_root)),
@@ -590,7 +590,7 @@ const SplitSampleLayoutV4 = struct {
     allocator: std.mem.Allocator,
     base_and_ethereum: []Scalar,
     bridge_values: [BRIDGE_SAMPLED_VALUE_COUNT]Scalar,
-    fixed_program_values: ?[@import("../air/program/interaction.zig").FIXED_COLUMN_COUNT]Scalar = null,
+    fixed_program_values: ?[@import("stwo_riscv_rv32").modules.air_program_interaction.FIXED_COLUMN_COUNT]Scalar = null,
 
     fn init(
         allocator: std.mem.Allocator,
@@ -605,7 +605,7 @@ const SplitSampleLayoutV4 = struct {
         );
         if (all.len != @as(
             usize,
-            @intCast(try add(try add(compact_count, BRIDGE_SAMPLED_VALUE_COUNT), if (fixed_program) @import("../air/program/interaction.zig").FIXED_COLUMN_COUNT else 0)),
+            @intCast(try add(try add(compact_count, BRIDGE_SAMPLED_VALUE_COUNT), if (fixed_program) @import("stwo_riscv_rv32").modules.air_program_interaction.FIXED_COLUMN_COUNT else 0)),
         ))
             return error.InvalidBridgeSampleLayout;
         const compact = try allocator.alloc(Scalar, compact_count);
@@ -633,7 +633,7 @@ const SplitSampleLayoutV4 = struct {
             source_at = ordinary_end;
             compact_at = compact_end;
             if (tree == 0 and fixed_program) {
-                const count = @import("../air/program/interaction.zig").FIXED_COLUMN_COUNT;
+                const count = @import("stwo_riscv_rv32").modules.air_program_interaction.FIXED_COLUMN_COUNT;
                 if (source_at + count > all.len) return error.InvalidBridgeSampleLayout;
                 result.fixed_program_values = all[source_at..][0..count].*;
                 source_at += count;
@@ -814,7 +814,7 @@ fn transcriptComponentForInfra(
 }
 
 fn fixedProgramSampleCount(profile: *const profile_mod.ProfileV2) u32 {
-    return if (profile.circuit_profile.programPolicy() == .fixed_decoded_table_v1) @import("../air/program/interaction.zig").FIXED_COLUMN_COUNT else 0;
+    return if (profile.circuit_profile.programPolicy() == .fixed_decoded_table_v1) @import("stwo_riscv_rv32").modules.air_program_interaction.FIXED_COLUMN_COUNT else 0;
 }
 
 fn bridgePrefix(

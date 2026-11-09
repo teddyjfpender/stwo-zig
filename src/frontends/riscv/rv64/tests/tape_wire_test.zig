@@ -1,5 +1,5 @@
 const std = @import("std");
-const rv = @import("../mod.zig");
+const rv = @import("../implementation.zig");
 const W = @import("../compact_tape_wire.zig");
 const T = rv.compact_tape;
 const a = std.testing.allocator;

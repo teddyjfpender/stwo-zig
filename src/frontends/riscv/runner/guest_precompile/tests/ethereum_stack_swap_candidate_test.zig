@@ -2,13 +2,13 @@
 
 const std = @import("std");
 
-const program_decode = @import("../../../air/program/decode.zig");
-const custom0 = @import("../../../isa/custom0.zig");
+const program_decode = @import("stwo_riscv_rv32").modules.air_program_decode;
+const custom0 = @import("stwo_riscv_isa").modules.custom0;
 const authority_mod = @import("../../../isa/ethereum_stack_swap_candidate.zig");
 const combined_decode =
     @import("../../../prover/guest_precompile/ethereum_stack_swap_candidate_decode.zig");
-const segment_session = @import("../../segment_session.zig");
-const test_elf = @import("../test_elf.zig");
+const segment_session = @import("stwo_riscv_rv32").modules.runner_segment_session;
+const test_elf = @import("stwo_riscv_rv32").modules.runner_guest_precompile_test_elf;
 
 test "Ethereum SWAP candidate authority binds the exact ELF and registry" {
     const elf = test_elf.buildEthereum();

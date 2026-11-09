@@ -1,9 +1,9 @@
 //! Detached boundary identity operations; shared by the canonical preparation owner.
-const recorder = @import("air/composition_graph_recorder.zig");
+const recorder = @import("stwo_riscv_rv32").modules.recursion_air_composition_graph_recorder;
 const S = recorder.Scalar;
 const recursion = struct {
-    const segment_statement_v2 = @import("segment_statement.zig");
-    const span_statement = @import("span_statement.zig");
+    const segment_statement_v2 = @import("stwo_riscv_rv32").modules.recursion_segment_statement;
+    const span_statement = @import("stwo_riscv_rv32").modules.recursion_span_statement;
 };
 const wire_layout = recursion.segment_statement_v2.fixed_layout;
 const span_layout = recursion.span_statement.canonical_layout;
@@ -16,7 +16,7 @@ const GraphCalls = graph.GraphCalls;
 const GraphSponge = graph.GraphSponge;
 const identity_preimage = recursion.segment_statement_v2.identity_preimage;
 const riscv_air = struct {
-    const public_data_v2 = @import("../air/public_data_v2.zig");
+    const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
 };
 
 pub fn identityOffset(phase: identity_preimage.Phase) usize {

@@ -6,10 +6,10 @@
 
 const std = @import("std");
 
-const program_decode = @import("../../air/program/decode.zig");
-const custom0 = @import("../../isa/custom0.zig");
+const program_decode = @import("stwo_riscv_rv32").modules.air_program_decode;
+const custom0 = @import("stwo_riscv_isa").modules.custom0;
 const authority_mod = @import("../../isa/ethereum_stack_swap_candidate.zig");
-const private_registry = @import("../../isa/stack_swap_private_registry.zig");
+const private_registry = @import("stwo_riscv_isa").modules.stack_swap_private_registry;
 
 pub const production_active = false;
 

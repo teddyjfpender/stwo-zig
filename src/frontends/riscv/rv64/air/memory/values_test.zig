@@ -99,7 +99,7 @@ test "RV64 value-only root: all-level reservation failures preserve the complete
 }
 
 test "RV64 value-only root: one-pass provider writer matches native sponge and all qualified permutation rows" {
-    const provider = @import("../../../air/memory_commitment/poseidon2_universal_degree3.zig");
+    const provider = @import("stwo_riscv_rv32").modules.air_memory_commitment_poseidon2_universal_degree3;
     const Q = @import("stwo_core").fields.qm31.QM31;
     const M = @import("stwo_core").fields.m31.M31;
     const physical = @import("../witness.zig").physical;

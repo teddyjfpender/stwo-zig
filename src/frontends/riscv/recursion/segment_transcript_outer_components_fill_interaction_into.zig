@@ -232,7 +232,7 @@ pub fn fillInteractionInto(
     relations: *const universal.UniversalRelations,
     destination: []const []M31,
 ) !Claims {
-    const generator = @import("air/interaction_generator.zig").Host{};
+    const generator = @import("stwo_riscv_recursion_air").modules.interaction_generator.Host{};
     return fillInteractionIntoWithGenerator(owner, workspace, prepared, manifest, relations, destination, &generator);
 }
 

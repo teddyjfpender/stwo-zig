@@ -2,11 +2,11 @@
 //! Rows 11 and 15 supply the inputs; shared arithmetic AIR evaluates both DAGs.
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const statement = @import("statement_semantics_circuit.zig");
-const claim = @import("vm_public_semantics_circuit.zig");
-const public_source = @import("segment_public_outer_source.zig");
-const statement_source = @import("segment_statement_outer_source.zig");
-const lowering = @import("air/verifier_arithmetic_lowering.zig");
+const statement = @import("stwo_riscv_recursion").modules.statement_semantics_circuit;
+const claim = @import("stwo_riscv_recursion").modules.vm_public_semantics_circuit;
+const public_source = @import("stwo_riscv_recursion").modules.segment_public_outer_source;
+const statement_source = @import("stwo_riscv_recursion").modules.segment_statement_outer_source;
+const lowering = @import("stwo_riscv_rv32").modules.recursion_air_verifier_arithmetic_lowering;
 
 pub const SCHEMA_VERSION: u16 = 1;
 pub const LANE_COUNT: usize = 2;

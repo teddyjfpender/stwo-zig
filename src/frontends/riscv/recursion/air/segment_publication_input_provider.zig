@@ -13,16 +13,16 @@
 
 const std = @import("std");
 
-const digest = @import("../../air/lang/digest.zig");
-const ir = @import("../../air/lang/ir.zig");
-const relation = @import("../../air/lang/relation.zig");
-const source = @import("../../air/lang/source.zig");
-const types = @import("../../air/lang/types.zig");
-const validate_mod = @import("../../air/lang/validate.zig");
-const direct_program = @import("direct_constraint_program.zig");
-const relation_effect = @import("relation_effect.zig");
+const digest = @import("stwo_riscv_air_lang").modules.digest;
+const ir = @import("stwo_riscv_air_lang").modules.ir;
+const relation = @import("stwo_riscv_air_lang").modules.relation;
+const source = @import("stwo_riscv_air_lang").modules.source;
+const types = @import("stwo_riscv_air_lang").modules.types;
+const validate_mod = @import("stwo_riscv_air_lang").modules.validate;
+const direct_program = @import("stwo_riscv_air_lang").modules.framework_direct_constraint_program;
+const relation_effect = @import("stwo_riscv_air_lang").modules.framework_relation_effect;
 const leaf_source = @import("../segment_leaf_layout.zig");
-const composition_tags = @import("verifier_parameter_tags.zig").vm_input;
+const composition_tags = @import("stwo_riscv_recursion_air").modules.verifier_parameter_tags.vm_input;
 
 pub const STABLE_NAME =
     "recursion.segment_v2.publication_input_provider.v1";

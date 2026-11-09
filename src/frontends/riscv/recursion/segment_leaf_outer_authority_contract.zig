@@ -7,17 +7,17 @@ pub const M31 = stwo_core.fields.m31.M31;
 pub const m31 = stwo_core.fields.m31;
 pub const QM31 = stwo_core.fields.qm31.QM31;
 
-pub const public_data_v2 = @import("../air/public_data_v2.zig");
-pub const native_relations = @import("../air/relation_challenges.zig");
-pub const statement_v1 = @import("../air/statement.zig");
-pub const statement_v2 = @import("../air/statement_v2.zig");
-pub const relation = @import("../air/lang/relation.zig");
+pub const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
+pub const native_relations = @import("stwo_riscv_air_lang").modules.shared_air_relation_challenges;
+pub const statement_v1 = @import("stwo_riscv_rv32").modules.air_statement;
+pub const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
+pub const relation = @import("stwo_riscv_air_lang").modules.relation;
 pub const air_v2 = @import("segment_leaf_outer_air.zig");
 pub const source_v2 = @import("segment_leaf_authority_v2.zig");
-pub const channel = @import("poseidon2_channel.zig");
-pub const direct_program = @import("air/direct_constraint_program.zig");
-pub const framework_interaction = @import("air/framework_interaction.zig");
-pub const universal = @import("air/universal_challenges.zig");
+pub const channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
+pub const direct_program = @import("stwo_riscv_air_lang").modules.framework_direct_constraint_program;
+pub const framework_interaction = @import("stwo_riscv_air_lang").modules.framework_framework_interaction;
+pub const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
 
 pub const NativeDigest = source_v2.Digest;
 pub const Sha256Digest = [32]u8;

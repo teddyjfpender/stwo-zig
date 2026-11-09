@@ -3,7 +3,7 @@
 const std = @import("std");
 const ram = @import("commitment.zig");
 const Memory = @import("../../memory.zig").Memory;
-const contract = @import("../../ethereum_contract.zig");
+const contract = @import("stwo_riscv_frontend").modules.rv64_ethereum_contract;
 
 pub fn readPage(memory: *const Memory, index: u64) !ram.Page {
     if (index >= @as(u64, 1) << ram.PAGE_DEPTH) return error.InvalidRamPage;

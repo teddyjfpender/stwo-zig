@@ -1,10 +1,10 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const legacy = @import("../vm_public_claim_hash.zig");
+const legacy = @import("stwo_riscv_recursion_air").modules.vm_public_claim_hash;
 const air = @import("../ethereum_publication_hash.zig");
-const binding = @import("../universal_relation_binding.zig");
-const types = @import("../../../air/lang/types.zig");
-const support = @import("../test_support.zig");
+const binding = @import("stwo_riscv_air_lang").modules.framework_universal_relation_binding;
+const types = @import("stwo_riscv_air_lang").modules.types;
+const support = @import("stwo_riscv_recursion_air").modules.test_support;
 
 test "ethereum publication hash identity preserves legacy seal" {
     const original = try legacy.identity(std.testing.allocator);

@@ -1,15 +1,15 @@
 //! Combined-profile dispatch over independent Keccak and signer-recovery tapes.
 
-const custom0 = @import("../../isa/custom0.zig");
-const execution_profile = @import("../../isa/execution_profile.zig");
-const Cpu = @import("../cpu.zig").Cpu;
-const Memory = @import("../memory.zig").Memory;
-const MemoryLayout = @import("../memory_state.zig").MemoryLayout;
-const StateChainTracker = @import("../state_chain.zig").StateChainTracker;
-const Trace = @import("../trace.zig").Trace;
-const keccakf_v1 = @import("keccakf.zig");
-const secp256k1_recover_v1 = @import("secp256k1_recover.zig");
-const session_state = @import("session_state.zig");
+const custom0 = @import("stwo_riscv_isa").modules.custom0;
+const execution_profile = @import("stwo_riscv_isa").modules.execution_profile;
+const Cpu = @import("stwo_riscv_isa").modules.runner_cpu.Cpu;
+const Memory = @import("stwo_riscv_isa").modules.runner_memory.Memory;
+const MemoryLayout = @import("stwo_riscv_isa").modules.runner_memory_state.MemoryLayout;
+const StateChainTracker = @import("stwo_riscv_isa").modules.runner_state_chain.StateChainTracker;
+const Trace = @import("stwo_riscv_rv32").modules.runner_trace.Trace;
+const keccakf_v1 = @import("stwo_riscv_rv32").modules.runner_guest_precompile_keccakf;
+const secp256k1_recover_v1 = @import("stwo_riscv_rv32").modules.runner_guest_precompile_secp256k1_recover;
+const session_state = @import("stwo_riscv_rv32").modules.runner_guest_precompile_session_state;
 
 pub const ExecutionProfile = execution_profile.ExecutionProfile;
 

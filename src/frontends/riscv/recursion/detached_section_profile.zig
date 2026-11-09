@@ -3,7 +3,7 @@
 //! Production callers supply it from their pinned parent admission; no API
 //! derives a trusted profile from candidate proof/public-input bytes.
 const recursion = struct {
-    const segment_statement_v2 = @import("segment_statement.zig");
+    const segment_statement_v2 = @import("stwo_riscv_rv32").modules.recursion_segment_statement;
 };
 const std = @import("std");
 const wire = recursion.segment_statement_v2;

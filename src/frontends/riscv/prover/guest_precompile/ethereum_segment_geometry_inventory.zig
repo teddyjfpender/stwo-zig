@@ -6,21 +6,21 @@
 //! provider planning, closure, and proof authority remain outside this API.
 
 const std = @import("std");
-const component_order = @import("../../air/component_order.zig");
-const base_statement = @import("../../air/statement.zig");
-const lookup_table_schema = @import("../../air/lookups/tables/schema.zig");
-const merkle_node = @import("../../air/memory_commitment/merkle_node.zig");
-const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
-const sparse_merkle = @import("../../air/memory_commitment/sparse_merkle.zig");
-const program_commitment = @import("../../air/program/commitment.zig");
-const execution_profile = @import("../../isa/profile.zig");
-const infra = @import("../../infra_trace.zig");
-const memory_state = @import("../../runner/memory_state.zig");
+const component_order = @import("stwo_riscv_rv32").modules.air_component_order;
+const base_statement = @import("stwo_riscv_rv32").modules.air_statement;
+const lookup_table_schema = @import("stwo_riscv_air_lang").modules.shared_air_lookups_tables_schema;
+const merkle_node = @import("stwo_riscv_memory").modules.air_merkle_node;
+const poseidon2_air = @import("stwo_riscv_memory").modules.air_poseidon2_air;
+const sparse_merkle = @import("stwo_riscv_memory").modules.air_sparse_merkle;
+const program_commitment = @import("stwo_riscv_rv32").modules.air_program_commitment;
+const execution_profile = @import("stwo_riscv_isa").modules.profile;
+const infra = @import("stwo_riscv_rv32").modules.infra_trace;
+const memory_state = @import("stwo_riscv_isa").modules.runner_memory_state;
 const runner_result = @import("../../runner/result.zig");
-const trace_mod = @import("../../runner/trace.zig");
-const segment_v2 = @import("../../recursion/segment_statement.zig");
-const statement_validation = @import("../statement_validation.zig");
-const base_types = @import("../types.zig");
+const trace_mod = @import("stwo_riscv_rv32").modules.runner_trace;
+const segment_v2 = @import("stwo_riscv_rv32").modules.recursion_segment_statement;
+const statement_validation = @import("stwo_riscv_rv32").modules.prover_statement_validation;
+const base_types = @import("stwo_riscv_rv32").modules.prover_types;
 
 pub const format_version: u16 = 1;
 const inventory_identity_domain =

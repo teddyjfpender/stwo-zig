@@ -5,10 +5,10 @@
 //! keys for short base tuples. Initial38 histogram admission is optional.
 const std = @import("std");
 const core = @import("stwo_core");
-const relation = @import("air/relation_interaction.zig");
-const universal = @import("air/universal_challenges.zig");
-const table_schema = @import("../air/lookups/tables/schema.zig");
-const table_counter = @import("../air/lookups/tables/counter.zig");
+const relation = @import("stwo_riscv_air_lang").modules.framework_relation_interaction;
+const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
+const table_schema = @import("stwo_riscv_air_lang").modules.shared_air_lookups_tables_schema;
+const table_counter = @import("stwo_riscv_air_lang").modules.shared_air_lookups_tables_counter;
 
 // Initial38 protocol component assignments, shared with its row materializer.
 pub const INITIAL_LANE_COMPONENT: u8 = 36;

@@ -10,28 +10,28 @@ pub const M31 = stwo_core.fields.m31.M31;
 
 pub const qm31 = stwo_core.fields.qm31;
 
-pub const relation = @import("../air/lang/relation.zig");
+pub const relation = @import("stwo_riscv_air_lang").modules.relation;
 
-pub const poseidon_air = @import("../air/memory_commitment/poseidon2_air.zig");
+pub const poseidon_air = @import("stwo_riscv_memory").modules.air_poseidon2_air;
 
 pub const capture_layout = @import("recursion_air_composition_capture_layout.zig");
 
-pub const graph_recorder = @import("air/composition_graph_recorder.zig");
+pub const graph_recorder = @import("stwo_riscv_rv32").modules.recursion_air_composition_graph_recorder;
 
 pub const recorder = graph_recorder;
 
 pub const manifest_mod = @import("air/segment_outer_adapter_manifest.zig");
 
-pub const universal_manifest_mod = @import("air/universal_adapter_manifest.zig");
+pub const universal_manifest_mod = @import("stwo_riscv_air_lang").modules.framework_universal_adapter_manifest;
 
-pub const universal_catalog = @import("air/universal_catalog.zig");
+pub const universal_catalog = @import("stwo_riscv_recursion_air").modules.universal_catalog;
 
-pub const universal_roster = @import("air/universal_roster.zig");
+pub const universal_roster = @import("stwo_riscv_air_lang").modules.framework_universal_roster;
 
-pub const shared_provider = @import("air/universal_shared_provider.zig");
+pub const shared_provider = @import("stwo_riscv_rv32").modules.recursion_air_universal_shared_provider;
 
 pub const shared_provider_composition =
-    @import("air/universal_shared_provider_composition.zig");
+    @import("stwo_riscv_rv32").modules.recursion_air_universal_shared_provider_composition;
 
 pub const complete_segment_cohort =
     @import("recursion_air_composition_segment_recorder_complete_segment_cohort.zig");

@@ -3,7 +3,7 @@
 //! checks arithmetic shape/routing; it does not authenticate Merkle roots itself.
 const std = @import("std");
 const core = @import("stwo_core");
-const circuit = @import("air/fri_verifier_circuit.zig");
+const circuit = @import("stwo_riscv_rv32").modules.recursion_air_fri_verifier_circuit;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 pub const Owned = struct {

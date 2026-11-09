@@ -2,8 +2,8 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const QM31 = stwo_core.fields.qm31.QM31;
-const digest = @import("../air/lang/digest.zig");
-const relation = @import("../air/lang/relation.zig");
+const digest = @import("stwo_riscv_air_lang").modules.digest;
+const relation = @import("stwo_riscv_air_lang").modules.relation;
 const manifest_mod = @import("air/segment_outer_manifest_contract.zig");
 
 pub const PUBLIC_WIRE_BOUNDARY_FORMAT_VERSION: u16 = 1;

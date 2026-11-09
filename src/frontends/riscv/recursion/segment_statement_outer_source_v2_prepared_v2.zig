@@ -243,7 +243,7 @@ pub fn wireRow(
     const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index) orelse memory_byte;
     std.debug.assert(register_byte == null or is_u16);
     const bytes = if (is_u16) bytesOfU16(value) else .{ M31.zero(), M31.zero() };
-    const hint_recipe = @import("../air/lang/hint_recipe.zig");
+    const hint_recipe = @import("stwo_riscv_air_lang").modules.hint_recipe;
     var low_hint: [2]u32 = undefined;
     var high_hint: [2]u32 = undefined;
     hint_recipe.evaluateField(hint_recipe.id(.field_inverse_or_zero), &.{if (memory_byte != null) bytes[0].toU32() else 0}, &low_hint) catch unreachable;

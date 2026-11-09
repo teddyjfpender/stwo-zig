@@ -353,7 +353,7 @@ inline fn evaluateRelationOp(
     values: anytype,
 ) M31 {
     return switch (op) {
-        .machine => |v| @import("air/closed_machine_expression.zig").evaluate(M31, v, values),
+        .machine => |v| @import("stwo_riscv_air_lang").modules.framework_closed_machine_expression.evaluate(M31, v, values),
         .constant => |value| M31.fromU64(value),
         .add => |binary| values[binary.lhs].add(values[binary.rhs]),
         .sub => |binary| values[binary.lhs].sub(values[binary.rhs]),

@@ -1,10 +1,10 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const air = @import("../ethereum_public_logup_input.zig");
-const legacy = @import("../vm_public_logup_input.zig");
-const digest = @import("../../../air/lang/digest.zig");
-const types = @import("../../../air/lang/types.zig");
-const support = @import("../test_support.zig");
+const legacy = @import("stwo_riscv_recursion_air").modules.vm_public_logup_input;
+const digest = @import("stwo_riscv_air_lang").modules.digest;
+const types = @import("stwo_riscv_air_lang").modules.types;
+const support = @import("stwo_riscv_recursion_air").modules.test_support;
 
 test "Ethereum role input identity preserves legacy seal" {
     var original = try legacy.build(std.testing.allocator);

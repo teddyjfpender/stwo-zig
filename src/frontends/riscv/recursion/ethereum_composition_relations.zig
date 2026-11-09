@@ -6,12 +6,12 @@
 //! identity while replaying the exact same `sum(alpha^i * value_i) - z`
 //! polynomial for the appended profile.
 
-const base_relations_mod = @import("../air/relation_challenges.zig");
+const base_relations_mod = @import("stwo_riscv_air_lang").modules.shared_air_relation_challenges;
 const keccak_relations_mod =
-    @import("../air/guest_precompile/keccakf_relations.zig");
+    @import("stwo_riscv_precompiles").modules.air_keccakf_relations;
 const secp_relations_mod =
-    @import("../air/guest_precompile/secp256k1_relations.zig");
-const circuit = @import("vm_air_composition_circuit.zig");
+    @import("stwo_riscv_precompiles").modules.air_secp256k1_relations;
+const circuit = @import("stwo_riscv_recursion").modules.vm_air_composition_circuit;
 
 pub const BASE_RELATION_COUNT: usize = base_relations_mod.RELATION_COUNT;
 pub const EXTENSION_RELATION_COUNT: usize = 13;

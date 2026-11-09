@@ -1,7 +1,7 @@
 //! Existing public-sum arithmetic evaluated from a verified native BLAKE3 capture.
 const std = @import("std");
 const core = @import("stwo_core");
-const verifier = @import("../../prover/verifier.zig");
+const verifier = @import("stwo_riscv_rv32").modules.prover_verifier;
 const authority = @import("../segment_public_native_sum_authority.zig");
 const arithmetic = @import("../arithmetic_circuit.zig");
 const bytes = @import("../segment_register_byte_layout.zig");
@@ -41,7 +41,7 @@ pub const Prepared = struct {
 };
 pub fn prepare(comptime Engine: type, a: std.mem.Allocator, capture: *const verifier.VerifiedSegmentV2CaptureForEngine(Engine)) !Prepared {
     comptime {
-        if (Engine.Hasher != @import("../blake3_engine_protocol.zig").Hasher) @compileError("native boundary adapter requires BLAKE3 capture");
+        if (Engine.Hasher != @import("stwo_riscv_recursion_air").modules.protocol_recursion_blake3_engine_protocol.Hasher) @compileError("native boundary adapter requires BLAKE3 capture");
     }
     try capture.validate();
     const view = try capture.public_data.data.authenticatedView();

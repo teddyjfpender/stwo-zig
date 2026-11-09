@@ -8,7 +8,7 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 
-const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
+const poseidon2_air = @import("stwo_riscv_memory").modules.air_poseidon2_air;
 
 pub const Call = poseidon2_air.Call;
 pub const Sha256Digest = [32]u8;

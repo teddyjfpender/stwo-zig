@@ -10,17 +10,17 @@ const std = @import("std");
 const CircuitProfileV1 = @import("../prover/ethereum_circuit_profile.zig").CircuitProfileV1;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
-const base_relations = @import("../air/relation_challenges.zig");
-const base_statement = @import("../air/statement.zig");
-const statement_v2 = @import("../air/statement_v2.zig");
-const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest.zig");
+const base_relations = @import("stwo_riscv_air_lang").modules.shared_air_relation_challenges;
+const base_statement = @import("stwo_riscv_rv32").modules.air_statement;
+const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
+const lookup_physical_v2 = @import("stwo_riscv_rv32").modules.air_lang_lookup_physical_manifest;
 const ethereum_statement = @import("../air/guest_precompile/ethereum_statement.zig");
-const keccak_component = @import("../air/guest_precompile/keccakf_component.zig");
-const keccak_table_component = @import("../air/guest_precompile/keccakf_table_component.zig");
-const secp_bundle = @import("../air/guest_precompile/secp256k1_component_bundle.zig");
-const secp_config = @import("../air/guest_precompile/secp256k1_component_config.zig");
-const vm_leaf_context = @import("vm_leaf_context.zig");
-const vm_leaf_context_v2 = @import("vm_leaf_context_v2.zig");
+const keccak_component = @import("stwo_riscv_rv32").modules.air_guest_precompile_keccakf_component;
+const keccak_table_component = @import("stwo_riscv_precompiles").modules.air_keccakf_table_component;
+const secp_bundle = @import("stwo_riscv_rv32").modules.air_guest_precompile_secp256k1_component_bundle;
+const secp_config = @import("stwo_riscv_rv32").modules.air_guest_precompile_secp256k1_component_config;
+const vm_leaf_context = @import("stwo_riscv_rv32").modules.recursion_vm_leaf_context;
+const vm_leaf_context_v2 = @import("stwo_riscv_rv32").modules.recursion_vm_leaf_context_v2;
 const ethereum_assembly = @import("../prover/guest_precompile/ethereum_assembly.zig");
 const ethereum_transcript = @import("../prover/guest_precompile/ethereum_transcript.zig");
 const ethereum_types = @import("../prover/guest_precompile/ethereum_types.zig");
@@ -685,7 +685,7 @@ fn componentSemanticDigest(
 ) [32]u8 {
     var hash = Sha256.init(.{});
     hash.update(COMPONENT_SEMANTIC_DOMAIN);
-    hash.update(&@import("../isa/execution_profile.zig").ethereum_semantic_digest);
+    hash.update(&@import("stwo_riscv_isa").modules.execution_profile.ethereum_semantic_digest);
     hashInt(&hash, u8, @intFromEnum(descriptor.kind));
     hashInt(&hash, u32, descriptor.preprocessed_columns);
     hashInt(&hash, u32, descriptor.main_columns);
@@ -774,8 +774,8 @@ comptime {
 
 test "Ethereum leaf context preserves legacy placement and authenticates V2" {
     const allocator = std.testing.allocator;
-    const public_data_v2 = @import("../air/public_data_v2.zig");
-    const public_support = @import("../air/public_data_test_support.zig");
+    const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
+    const public_support = @import("stwo_riscv_rv32").modules.air_public_data_test_support;
     const context_support = @import("ethereum_leaf_context_test_support.zig");
     var fixture = try public_support.Fixture.init();
     const source = fixture.leftSource();
@@ -923,8 +923,8 @@ test "Ethereum leaf context preserves legacy placement and authenticates V2" {
 
 test "Ethereum leaf context log18 admission remains explicit through retained validation" {
     const allocator = std.testing.allocator;
-    const public_data_v2 = @import("../air/public_data_v2.zig");
-    const public_support = @import("../air/public_data_test_support.zig");
+    const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
+    const public_support = @import("stwo_riscv_rv32").modules.air_public_data_test_support;
     const context_support = @import("ethereum_leaf_context_test_support.zig");
     var fixture = try public_support.Fixture.init();
     var source = fixture.leftSource();

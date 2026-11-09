@@ -5,9 +5,9 @@ const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const catalog = @import("air/segment_leaf_catalog.zig");
-const binding = @import("air/universal_relation_binding.zig");
-const universal = @import("air/universal_challenges.zig");
-const host = @import("air/interaction_generator.zig").Host;
+const binding = @import("stwo_riscv_air_lang").modules.framework_universal_relation_binding;
+const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
+const host = @import("stwo_riscv_recursion_air").modules.interaction_generator.Host;
 const parameters_mod = @import("segment_leaf_parameters.zig");
 const Admission = @import("detached_segment_admission.zig").AdmissionParametersV1;
 const Manifest = @import("air/segment_outer_manifest_contract.zig").Manifest;
@@ -32,9 +32,9 @@ pub fn ForBackend(comptime Backend: type) type {
                         const Air = entry.Air;
                         var definition = if (entry.requires_location) try Air.build(self.allocator, .generated) else try Air.build(self.allocator);
                         defer definition.deinit();
-                        const direct = try @import("air/direct_constraint_program.zig").authenticate(&definition.arena, Air.SEMANTIC_DIGEST, Air.LOGICAL_INPUT_COUNT);
+                        const direct = try @import("stwo_riscv_air_lang").modules.framework_direct_constraint_program.authenticate(&definition.arena, Air.SEMANTIC_DIGEST, Air.LOGICAL_INPUT_COUNT);
                         const parameters = try parameters_mod.parametersFor(entry, self.parameters);
-                        return @import("air/framework_device_interaction.zig").generateInto(Backend, Air, self.allocator, &direct, plan, rows, &parameters, log, relations, destination);
+                        return @import("stwo_riscv_air_lang").modules.framework_framework_device_interaction.generateInto(Backend, Air, self.allocator, &direct, plan, rows, &parameters, log, relations, destination);
                     }
                 }
             }

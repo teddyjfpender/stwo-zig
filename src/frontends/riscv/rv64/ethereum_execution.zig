@@ -1,13 +1,13 @@
 //! Bounded software Ethereum execution census. Never establishes a proof.
 const std = @import("std");
-const rv = @import("mod.zig");
+const rv = @import("stwo_riscv_rv64").modules.implementation;
 const contract = @import("ethereum_contract.zig");
-const services = @import("service_session.zig");
-const ethereum = @import("ethereum_services/session.zig");
-const access = @import("access_census.zig");
-const frequent = @import("frequent_operations.zig");
-const candidate = @import("ethereum_services/candidate_services.zig");
-const cisa = @import("candidate_isa.zig");
+const services = @import("stwo_riscv_rv64").modules.service_session;
+const ethereum = @import("stwo_riscv_rv64").modules.ethereum_services_session;
+const access = @import("stwo_riscv_rv64").modules.access_census;
+const frequent = @import("stwo_riscv_rv64").modules.frequent_operations;
+const candidate = @import("stwo_riscv_rv64").modules.ethereum_services_candidate_services;
+const cisa = @import("stwo_riscv_rv64").modules.candidate_isa;
 /// `ethereum_services_v3_candidate` = admitted v2 services plus execution-only
 /// candidate services (candidate_services.zig). Never proof-relevant: it is
 /// rejected with compact capture, RAM-boundary capture and access census.
@@ -562,5 +562,5 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
 }
 test {
     _ = candidate;
-    _ = @import("candidate_isa_test.zig");
+    _ = @import("stwo_riscv_rv64").modules.candidate_isa_test;
 }

@@ -8,13 +8,13 @@ const subject = @import("../segment_outer_cohort.zig");
 const shared_schedule = @import("../segment_shared_poseidon_schedule.zig");
 const manifest_mod = @import("../air/segment_outer_adapter_manifest.zig");
 const catalog_mod = @import("../air/segment_outer_typed_catalog.zig");
-const universal_manifest = @import("../air/universal_manifest.zig");
-const universal_roster = @import("../air/universal_roster.zig");
-const relation = @import("../../air/lang/relation.zig");
+const universal_manifest = @import("stwo_riscv_rv32").modules.recursion_air_universal_manifest;
+const universal_roster = @import("stwo_riscv_air_lang").modules.framework_universal_roster;
+const relation = @import("stwo_riscv_air_lang").modules.relation;
 const row17_witness_v2 =
-    @import("../air/vm_public_logup_control_witness.zig");
-const relation_interaction = @import("../air/relation_interaction.zig");
-const range_bridge = @import("../air/range_check_8_8_bridge.zig");
+    @import("stwo_riscv_recursion_air").modules.vm_public_logup_control_witness;
+const relation_interaction = @import("stwo_riscv_air_lang").modules.framework_relation_interaction;
+const range_bridge = @import("stwo_riscv_rv32").modules.recursion_air_range_check_8_8_bridge;
 const boundary_air = @import("../segment_leaf_outer_air.zig");
 const boundary_manifest = @import("../segment_leaf_outer_authority.zig");
 const input_provider_authority =
@@ -242,7 +242,7 @@ test "47-domain closure accepts same-domain cancellation only" {
 
     const one = QM31.one();
     const negative_one = one.neg();
-    const domain = @intFromEnum(@import("../../air/lang/relation.zig").Domain.memory_access);
+    const domain = @intFromEnum(@import("stwo_riscv_air_lang").modules.relation.Domain.memory_access);
     audits[0].values[domain] = one;
     audits[0].total = one;
     claims[0] = one;
@@ -265,7 +265,7 @@ test "47-domain closure accepts same-domain cancellation only" {
     // domains. Each of the 47 registries must close independently.
     claims = [_]QM31{QM31.zero()} ** subject.COMPONENT_COUNT;
     for (&audits) |*audit| audit.* = zeroAudit();
-    const other_domain = @intFromEnum(@import("../../air/lang/relation.zig").Domain.program_access);
+    const other_domain = @intFromEnum(@import("stwo_riscv_air_lang").modules.relation.Domain.program_access);
     audits[0].values[domain] = one;
     audits[0].values[other_domain] = negative_one;
     audits[0].total = QM31.zero();
@@ -278,10 +278,10 @@ test "47-domain closure accepts same-domain cancellation only" {
     // domains. Both are admitted, while a numerically balanced contribution
     // spanning unrelated registries remains forbidden.
     const poseidon_domain = @intFromEnum(
-        @import("../../air/lang/relation.zig").Domain.poseidon2,
+        @import("stwo_riscv_air_lang").modules.relation.Domain.poseidon2,
     );
     const poseidon_io_domain = @intFromEnum(
-        @import("../../air/lang/relation.zig").Domain.poseidon2_io,
+        @import("stwo_riscv_air_lang").modules.relation.Domain.poseidon2_io,
     );
     for (&audits) |*audit| audit.* = zeroAudit();
     audits[subject.ROW_34].values[poseidon_domain] = one;

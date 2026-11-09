@@ -7,28 +7,28 @@ const recursion = struct {
     const detached_segment_authority_boundary_v1 = @import("detached_segment_authority_boundary.zig");
     const detached_segment_protocol_v1 = @import("detached_segment_protocol.zig");
     const detached_segment_public_inputs_v1 = @import("detached_segment_public_inputs.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
+    const poseidon2_channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
     const segment_leaf_outer_authority_v2 = @import("segment_leaf_outer_authority.zig");
     const segment_leaf_statement_contract_v2 = @import("segment_leaf_statement_contract.zig");
     const segment_publication_input_provider_authority_v2 = @import("segment_publication_input_provider_authority.zig");
 };
 const air = struct {
-    const query_bits_profile = @import("air/query_bits_profile.zig");
-    const query_bits_witness = @import("air/query_bits_witness.zig");
-    const range_check_8_8_bridge = @import("air/range_check_8_8_bridge.zig");
+    const query_bits_profile = @import("stwo_riscv_recursion_air").modules.query_bits_profile;
+    const query_bits_witness = @import("stwo_riscv_recursion_air").modules.query_bits_witness;
+    const range_check_8_8_bridge = @import("stwo_riscv_rv32").modules.recursion_air_range_check_8_8_bridge;
     const segment_outer_adapter_manifest_v2 = @import("air/segment_outer_adapter_manifest.zig");
     const segment_outer_manifest_contract_v2 = @import("air/segment_outer_manifest_contract.zig");
     const segment_outer_typed_catalog_v2 = @import("air/segment_outer_typed_catalog.zig");
-    const universal_challenges = @import("air/universal_challenges.zig");
-    const universal_manifest = @import("air/universal_manifest.zig");
-    const verifier_wire_claims = @import("air/verifier_wire_claims.zig");
-    const vm_public_logup_control_witness_v2 = @import("air/vm_public_logup_control_witness.zig");
+    const universal_challenges = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
+    const universal_manifest = @import("stwo_riscv_rv32").modules.recursion_air_universal_manifest;
+    const verifier_wire_claims = @import("stwo_riscv_recursion_air").modules.verifier_wire_claims;
+    const vm_public_logup_control_witness_v2 = @import("stwo_riscv_recursion_air").modules.vm_public_logup_control_witness;
 };
 const riscv_air = struct {
-    const public_data_v2 = @import("../air/public_data_v2.zig");
+    const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
 };
 const testing_support = struct {
-    const public_data_v2_test_support = @import("../air/public_data_test_support.zig");
+    const public_data_v2_test_support = @import("stwo_riscv_rv32").modules.air_public_data_test_support;
 };
 const std = @import("std");
 const core = @import("stwo_core");

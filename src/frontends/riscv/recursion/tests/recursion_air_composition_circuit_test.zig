@@ -8,18 +8,18 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const canonic = stwo_core.poly.circle.canonic;
 
 const subject = @import("../recursion_air_composition_circuit.zig");
-const graph_mod = @import("../air/composition_circuit.zig");
-const control = @import("../air/control.zig");
-const control_relation = @import("../air/control_relation.zig");
-const direct = @import("../air/direct_constraint_program.zig");
-const manifest_mod = @import("../air/universal_adapter_manifest.zig");
-const roster = @import("../air/universal_roster.zig");
-const provider = @import("../air/universal_shared_provider.zig");
-const range_bridge = @import("../air/range_check_8_8_bridge.zig");
-const span_statement = @import("../span_statement.zig");
-const universal = @import("../air/universal_challenges.zig");
-const poseidon_air = @import("../../air/memory_commitment/poseidon2_air.zig");
-const table_interaction = @import("../../air/lookups/tables/interaction.zig");
+const graph_mod = @import("stwo_riscv_rv32").modules.recursion_air_composition_circuit;
+const control = @import("stwo_riscv_air_lang").modules.framework_control;
+const control_relation = @import("stwo_riscv_air_lang").modules.framework_control_relation;
+const direct = @import("stwo_riscv_air_lang").modules.framework_direct_constraint_program;
+const manifest_mod = @import("stwo_riscv_air_lang").modules.framework_universal_adapter_manifest;
+const roster = @import("stwo_riscv_air_lang").modules.framework_universal_roster;
+const provider = @import("stwo_riscv_rv32").modules.recursion_air_universal_shared_provider;
+const range_bridge = @import("stwo_riscv_rv32").modules.recursion_air_range_check_8_8_bridge;
+const span_statement = @import("stwo_riscv_rv32").modules.recursion_span_statement;
+const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
+const poseidon_air = @import("stwo_riscv_memory").modules.air_poseidon2_air;
+const table_interaction = @import("stwo_riscv_rv32").modules.air_lookups_tables_interaction;
 
 const LOG_SIZE: u32 = 4;
 const PROTOCOL_DEGREE: u8 = 3;
@@ -740,7 +740,7 @@ fn parentPublicSum(
     var sum = QM31.zero();
     for (words, 0..) |word, index| {
         const tuple = [_]M31{
-            M31.fromU64(@import("../air/statement_input.zig").PARENT_STATEMENT_SCOPE),
+            M31.fromU64(@import("stwo_riscv_recursion_air").modules.statement_input.PARENT_STATEMENT_SCOPE),
             M31.fromU64(index),
             word,
         };

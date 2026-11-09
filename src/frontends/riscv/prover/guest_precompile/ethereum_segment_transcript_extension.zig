@@ -10,22 +10,22 @@
 const std = @import("std");
 const pcs_core = @import("stwo_core").pcs;
 const stage_profile = @import("stwo_prover_api").stage_profile;
-const public_data_v2 = @import("../../air/public_data_v2.zig");
-const statement_v2 = @import("../../air/statement_v2.zig");
+const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
+const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
 const ethereum_statement = @import("../../air/guest_precompile/ethereum_statement.zig");
-const global_v3 = @import("../../recursion/segment_leaf_local_authority.zig");
+const global_v3 = @import("stwo_riscv_recursion").modules.segment_leaf_local_authority;
 const ethereum_context = @import("../../recursion/ethereum_leaf_context.zig");
-const keccak_calls_mod = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
-const keccak_rows_mod = @import("../../runner/guest_precompile/keccakf.zig");
-const recovery_calls_mod = @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const recovery_rows_mod = @import("../../runner/guest_precompile/secp256k1_recover.zig");
+const keccak_calls_mod = @import("stwo_riscv_precompiles").modules.runner_keccakf_call_buffer;
+const keccak_rows_mod = @import("stwo_riscv_rv32").modules.runner_guest_precompile_keccakf;
+const recovery_calls_mod = @import("stwo_riscv_precompiles").modules.runner_secp256k1_recover_call_buffer;
+const recovery_rows_mod = @import("stwo_riscv_rv32").modules.runner_guest_precompile_secp256k1_recover;
 const runner_result = @import("../../runner/result.zig");
 const orchestration = @import("ethereum_segment_orchestration.zig");
 const verifier = @import("ethereum_segment_verifier.zig");
 const omitted_capture =
     @import("ethereum_omitted_provider_fresh_capture.zig");
 const ethereum_types = @import("ethereum_types.zig");
-const base_types = @import("../types.zig");
+const base_types = @import("stwo_riscv_rv32").modules.prover_types;
 
 /// Additive engine-generic entrypoint. `prepareProjectedCore` receives the
 /// fully admitted native authority and exact full geometry before Tree1 sizing

@@ -8,9 +8,9 @@
 
 const std = @import("std");
 const recovery_abi = @import("../../isa/ethereum_signer_recovery.zig");
-const Cpu = @import("../cpu.zig").Cpu;
-const base_replay = @import("replay.zig");
-const base_types = @import("types.zig");
+const Cpu = @import("stwo_riscv_isa").modules.runner_cpu.Cpu;
+const base_replay = @import("stwo_riscv_rv32").modules.runner_minimal_trace_replay;
+const base_types = @import("stwo_riscv_rv32").modules.runner_minimal_trace_types;
 const types = @import("ethereum_types.zig");
 
 pub const MAGIC = "STWEMT01";

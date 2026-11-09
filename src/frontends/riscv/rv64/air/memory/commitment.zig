@@ -2,7 +2,7 @@
 //! admission live here. A producer-selected root is never initial-image authority.
 //! Reuses the qualified nine-lane Poseidon node arithmetic, not its RV32 tree.
 const std = @import("std");
-pub const node = @import("../../../air/memory_commitment/ethereum_node.zig");
+pub const node = @import("stwo_riscv_frontend").modules.air_memory_commitment_ethereum_node;
 const core = @import("stwo_core");
 pub const M31 = core.fields.m31.M31;
 pub const Digest = node.Digest;
@@ -15,7 +15,7 @@ pub const PAGE_WORDS = 3 + PAGE_CELLS * 5;
 pub const PAGE_ABSORPTIONS = (PAGE_WORDS + 1 + node.RATE - 1) / node.RATE;
 pub const PAGE_PERMUTATIONS = PAGE_ABSORPTIONS + 1;
 pub const Page = [PAGE_CELLS]Cell;
-const permutation = @import("../../../air/memory_commitment/poseidon2.zig");
+const permutation = @import("stwo_riscv_memory").modules.air_poseidon2;
 pub const PAGE_DOMAIN: u32 = 0x5241_4d50; // RAMP, distinct from ETN0/ETN1 nodes.
 
 pub const PermutationIO = struct { input: permutation.State, output: permutation.State };

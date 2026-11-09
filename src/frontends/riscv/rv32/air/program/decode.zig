@@ -1,0 +1,437 @@
+//! Program-relation projection of the canonical Sail-facing decoder.
+//!
+//! There is one instruction decoder in the repository. This module only maps
+//! an admitted architectural instruction into its proof-protocol tuple.
+
+const std = @import("std");
+const m31 = @import("stwo_core").fields.m31;
+const custom0 = @import("stwo_riscv_isa").modules.custom0;
+const isa_decode = @import("stwo_riscv_isa").modules.decode;
+const execution_profile = @import("stwo_riscv_isa").modules.execution_profile;
+const opcode_manifest = @import("stwo_riscv_isa").modules.opcode_manifest;
+const opcode_mod = @import("opcode.zig");
+
+pub const Opcode = opcode_mod.Opcode;
+pub const ProgramValues = [4]u32;
+pub const ExecutionProfile = execution_profile.ExecutionProfile;
+
+/// The first profile-local opcode follows the 46 pinned base protocol IDs.
+/// Keep this numeric: the closed base `Opcode` enum must not acquire an
+/// extension variant and silently alter base protocol surfaces.
+pub const poseidon2_v1_program_opcode_id: u32 = 46;
+pub const keccakf_v1_program_opcode_id: u32 = 46;
+/// The combined Ethereum profile admits Keccak-f and signer recovery at once;
+/// signer recovery therefore needs a distinct committed-program identity.
+pub const secp256k1_recover_v1_program_opcode_id: u32 = 47;
+/// Declared-only program-table identity for LLVM's canonical RISC-V `unimp`
+/// alignment word. This is not an executable opcode: fetched admission keeps
+/// rejecting it, while the Ethereum declared-program commitment binds the
+/// exact raw padding word with zero multiplicity.
+pub const ethereum_declared_padding_program_opcode_id: u32 = 48;
+pub const llvm_unimp_padding_word: u32 = 0xc0001073;
+
+pub const Error = error{
+    InvalidInstruction,
+    UnsupportedInstructionClass,
+};
+
+pub const ProfileError = Error || custom0.DecodeError;
+
+pub const DecodedInstruction = struct {
+    opcode: Opcode,
+    rd: u5,
+    rs1: u5,
+    rs2: u5,
+    imm: i32,
+};
+
+pub fn decodeInstruction(word: u32) Error!DecodedInstruction {
+    const decoded = isa_decode.DecodedInst.decode(word) catch
+        return Error.InvalidInstruction;
+    const proof_opcode = isa_decode.proofOpcode(decoded.opcode) catch
+        return Error.UnsupportedInstructionClass;
+    return .{
+        .opcode = proof_opcode,
+        .rd = decoded.rd,
+        .rs1 = decoded.rs1,
+        .rs2 = decoded.rs2,
+        .imm = decoded.imm,
+    };
+}
+
+/// Return the four values following `pc` in Stark-V's `program_access`
+/// relation. Signed immediates use their canonical M31 representation.
+pub fn decodeProgramWord(word: u32) Error!ProgramValues {
+    const inst = try decodeInstruction(word);
+    const id = inst.opcode.protocolId();
+    return switch (opcode_manifest.entry(inst.opcode).program_shape) {
+        .register => .{ id, inst.rd, inst.rs1, inst.rs2 },
+        .store => .{ id, inst.rs1, inst.rs2, immediateToFelt(inst.imm) },
+        .load => .{ id, inst.rs1, inst.rd, immediateToFelt(inst.imm) },
+        .shift_immediate => .{ id, inst.rd, inst.rs1, @as(u32, @bitCast(inst.imm)) & 0x1f },
+        .immediate => .{
+            id,
+            inst.rd,
+            inst.rs1,
+            @as(u32, @bitCast(inst.imm)) & 0xfff,
+        },
+        .jalr => .{ id, inst.rd, inst.rs1, immediateToFelt(inst.imm) },
+        .lui => .{ id, inst.rd, (word >> 12) & 0xfffff, 0 },
+        .auipc, .jal => .{ id, inst.rd, immediateToFelt(inst.imm), 0 },
+        .branch => .{
+            id,
+            inst.rs1,
+            inst.rs2,
+            immediateToFelt(inst.imm),
+        },
+        .fence => .{
+            id,
+            inst.rd,
+            inst.rs1,
+            @as(u32, @bitCast(inst.imm)) & 0xfff,
+        },
+    };
+}
+
+/// Decode a program word under an explicitly admitted execution profile.
+///
+/// Ordinary RV32IM words delegate to `decodeProgramWord`, preserving the Sail
+/// projection as the sole base authority. Only the CUSTOM-0 major opcode is
+/// routed through the profile decoder, which compares every reserved bit
+/// before assigning the profile-local protocol ID.
+pub fn decodeProgramWordForProfile(
+    selected_profile: ExecutionProfile,
+    word: u32,
+) ProfileError!ProgramValues {
+    if (@as(u7, @truncate(word)) != custom0.major_opcode)
+        return decodeProgramWord(word);
+
+    const inst = try custom0.decode(selected_profile, word);
+    return switch (inst.opcode) {
+        .sha256_compress_v1 => .{ @import("stwo_riscv_isa").modules.sha256_compression.proof_opcode_id, 0, inst.rs1, inst.rs2 },
+        .poseidon2_m31_permute_in_place_v1 => .{
+            poseidon2_v1_program_opcode_id,
+            0,
+            inst.rs1,
+            0,
+        },
+        .keccakf_1600_permute_in_place_v1 => .{
+            keccakf_v1_program_opcode_id,
+            0,
+            inst.rs1,
+            0,
+        },
+        .secp256k1_recover_signer_v1 => .{
+            secp256k1_recover_v1_program_opcode_id,
+            0,
+            inst.rs1,
+            0,
+        },
+    };
+}
+
+/// Whether `word` is the one canonical, declared-only padding word admitted
+/// by the Ethereum program-commitment policy.
+///
+/// This policy is intentionally disjoint from execution semantics. Callers
+/// must never use it to decode a fetched instruction.
+pub fn isDeclaredPaddingForProfile(
+    selected_profile: ExecutionProfile,
+    word: u32,
+) bool {
+    return (selected_profile == .rv32im_zkvm_ethereum_v1 or selected_profile == .rv32im_zkvm_ethereum_sha_v1) and
+        word == llvm_unimp_padding_word;
+}
+
+/// Decode a word from the complete declared program image.
+///
+/// LLVM emits `unimp` between aligned RISC-V functions even with unreachable
+/// traps disabled. The word is unreachable padding rather than executable
+/// guest code, but omitting it would leave the raw declared image outside the
+/// program root. The two 16-bit limbs make this projection injective and
+/// M31-safe. Fetched decoding remains exclusively
+/// `decodeProgramWordForProfile`, which rejects this word.
+pub fn decodeDeclaredProgramWordForProfile(
+    selected_profile: ExecutionProfile,
+    word: u32,
+) ProfileError!ProgramValues {
+    if (isDeclaredPaddingForProfile(selected_profile, word)) return .{
+        ethereum_declared_padding_program_opcode_id,
+        word & 0xffff,
+        word >> 16,
+        0,
+    };
+    return decodeProgramWordForProfile(selected_profile, word);
+}
+
+pub fn immediateToFelt(immediate: i32) u32 {
+    const signed: i64 = immediate;
+    const modulus: i64 = m31.Modulus;
+    return @intCast(@mod(signed, modulus));
+}
+
+fn encodeR(funct7: u32, funct3: u32) u32 {
+    return (funct7 << 25) | (3 << 20) | (2 << 15) | (funct3 << 12) | (1 << 7) | 0x33;
+}
+
+fn encodeI(immediate: i32, funct3: u32, instruction_opcode: u32) u32 {
+    const encoded: u32 = @bitCast(immediate);
+    return ((encoded & 0xfff) << 20) | (2 << 15) | (funct3 << 12) | (1 << 7) | instruction_opcode;
+}
+
+fn encodeS(funct3: u32) u32 {
+    return (3 << 20) | (2 << 15) | (funct3 << 12) | 0x23;
+}
+
+fn encodeB(funct3: u32) u32 {
+    return (3 << 20) | (2 << 15) | (funct3 << 12) | (4 << 8) | 0x63;
+}
+
+test "decoded program: every proof-bearing RV32IM word maps to its protocol id" {
+    const Case = struct { word: u32, opcode: Opcode };
+    const cases = [_]Case{
+        .{ .word = encodeR(0x00, 0), .opcode = .add },
+        .{ .word = encodeR(0x20, 0), .opcode = .sub },
+        .{ .word = encodeR(0x00, 1), .opcode = .sll },
+        .{ .word = encodeR(0x00, 2), .opcode = .slt },
+        .{ .word = encodeR(0x00, 3), .opcode = .sltu },
+        .{ .word = encodeR(0x00, 4), .opcode = .xor },
+        .{ .word = encodeR(0x00, 5), .opcode = .srl },
+        .{ .word = encodeR(0x20, 5), .opcode = .sra },
+        .{ .word = encodeR(0x00, 6), .opcode = .@"or" },
+        .{ .word = encodeR(0x00, 7), .opcode = .@"and" },
+        .{ .word = encodeI(-1, 0, 0x13), .opcode = .addi },
+        .{ .word = encodeI(-1, 2, 0x13), .opcode = .slti },
+        .{ .word = encodeI(-1, 3, 0x13), .opcode = .sltiu },
+        .{ .word = encodeI(-1, 4, 0x13), .opcode = .xori },
+        .{ .word = encodeI(-1, 6, 0x13), .opcode = .ori },
+        .{ .word = encodeI(-1, 7, 0x13), .opcode = .andi },
+        .{ .word = encodeI(3, 1, 0x13), .opcode = .slli },
+        .{ .word = encodeI(3, 5, 0x13), .opcode = .srli },
+        .{ .word = encodeI(0x403, 5, 0x13), .opcode = .srai },
+        .{ .word = encodeI(-4, 0, 0x03), .opcode = .lb },
+        .{ .word = encodeI(-4, 1, 0x03), .opcode = .lh },
+        .{ .word = encodeI(-4, 2, 0x03), .opcode = .lw },
+        .{ .word = encodeI(-4, 4, 0x03), .opcode = .lbu },
+        .{ .word = encodeI(-4, 5, 0x03), .opcode = .lhu },
+        .{ .word = encodeS(0), .opcode = .sb },
+        .{ .word = encodeS(1), .opcode = .sh },
+        .{ .word = encodeS(2), .opcode = .sw },
+        .{ .word = encodeB(0), .opcode = .beq },
+        .{ .word = encodeB(1), .opcode = .bne },
+        .{ .word = encodeB(4), .opcode = .blt },
+        .{ .word = encodeB(5), .opcode = .bge },
+        .{ .word = encodeB(6), .opcode = .bltu },
+        .{ .word = encodeB(7), .opcode = .bgeu },
+        .{ .word = 0x000000ef, .opcode = .jal },
+        .{ .word = encodeI(-1, 0, 0x67), .opcode = .jalr },
+        .{ .word = 0x123450b7, .opcode = .lui },
+        .{ .word = 0x12345097, .opcode = .auipc },
+        .{ .word = encodeR(0x01, 0), .opcode = .mul },
+        .{ .word = encodeR(0x01, 1), .opcode = .mulh },
+        .{ .word = encodeR(0x01, 2), .opcode = .mulhsu },
+        .{ .word = encodeR(0x01, 3), .opcode = .mulhu },
+        .{ .word = encodeR(0x01, 4), .opcode = .div },
+        .{ .word = encodeR(0x01, 5), .opcode = .divu },
+        .{ .word = encodeR(0x01, 6), .opcode = .rem },
+        .{ .word = encodeR(0x01, 7), .opcode = .remu },
+        .{ .word = 0x0ff0000f, .opcode = .fence },
+    };
+    try std.testing.expectEqual(@as(usize, 46), cases.len);
+    for (cases) |case| {
+        const decoded = try decodeInstruction(case.word);
+        try std.testing.expectEqual(case.opcode, decoded.opcode);
+        try std.testing.expectEqual(case.opcode.protocolId(), (try decodeProgramWord(case.word))[0]);
+    }
+}
+
+test "decoded program: pinned numeric tuple vectors" {
+    const cases = [_]struct { word: u32, expected: ProgramValues }{
+        .{ .word = 0x002081b3, .expected = .{ 0, 3, 1, 2 } },
+        .{ .word = 0xfff30293, .expected = .{ 10, 5, 6, 4095 } },
+        .{ .word = 0x00311093, .expected = .{ 16, 1, 2, 3 } },
+        .{ .word = 0x0082a203, .expected = .{ 21, 5, 4, 8 } },
+        .{ .word = 0x0042a623, .expected = .{ 26, 5, 4, 12 } },
+        .{ .word = 0xabcde3b7, .expected = .{ 35, 7, 0xabcde, 0 } },
+        .{ .word = 0x10000417, .expected = .{ 36, 8, 0x10000000, 0 } },
+        .{ .word = 0x010000ef, .expected = .{ 33, 1, 16, 0 } },
+        .{ .word = 0x00208463, .expected = .{ 27, 1, 2, 8 } },
+        .{ .word = 0xf5358f8f, .expected = .{ 45, 31, 11, 0xf53 } },
+    };
+    for (cases) |case| try std.testing.expectEqual(case.expected, try decodeProgramWord(case.word));
+}
+
+test "decoded program: negative signed immediates use canonical M31" {
+    const jalr = try decodeProgramWord(0xfff080e7);
+    try std.testing.expectEqual(m31.Modulus - 1, jalr[3]);
+    const branch = try decodeProgramWord(0xfe208ee3);
+    try std.testing.expectEqual(m31.Modulus - 4, branch[3]);
+}
+
+test "decoded program: rejects the manifest-owned proof preflight matrix" {
+    for (opcode_manifest.proof_rejection_vectors) |vector| {
+        const expected: Error = switch (vector.kind) {
+            .unsupported_instruction_class => Error.UnsupportedInstructionClass,
+            .invalid_instruction => Error.InvalidInstruction,
+        };
+        try std.testing.expectError(expected, decodeProgramWord(vector.word));
+    }
+}
+
+test "decoded program: Poseidon2 profile appends one exact CUSTOM-0 tuple" {
+    for (0..32) |register_index| {
+        const rs1: u5 = @intCast(register_index);
+        try std.testing.expectEqual(
+            ProgramValues{ poseidon2_v1_program_opcode_id, 0, rs1, 0 },
+            try decodeProgramWordForProfile(
+                .rv32im_zkvm_poseidon2_v1,
+                custom0.encodePoseidon2(rs1),
+            ),
+        );
+    }
+
+    const addi: u32 = 0x00100093;
+    try std.testing.expectEqual(
+        try decodeProgramWord(addi),
+        try decodeProgramWordForProfile(.rv32im_zkvm_poseidon2_v1, addi),
+    );
+}
+
+test "decoded program: Keccak-f profile owns the same isolated extension slot" {
+    for (0..32) |register_index| {
+        const rs1: u5 = @intCast(register_index);
+        try std.testing.expectEqual(
+            ProgramValues{ keccakf_v1_program_opcode_id, 0, rs1, 0 },
+            try decodeProgramWordForProfile(
+                .rv32im_zkvm_keccakf_v1,
+                custom0.encodeKeccakf(rs1),
+            ),
+        );
+    }
+    try std.testing.expectError(
+        error.InvalidPrecompileEncoding,
+        decodeProgramWordForProfile(
+            .rv32im_zkvm_poseidon2_v1,
+            custom0.encodeKeccakf(5),
+        ),
+    );
+}
+
+test "decoded program: Ethereum profile separates Keccak-f and signer recovery" {
+    for (0..32) |register_index| {
+        const rs1: u5 = @intCast(register_index);
+        try std.testing.expectEqual(
+            ProgramValues{ keccakf_v1_program_opcode_id, 0, rs1, 0 },
+            try decodeProgramWordForProfile(
+                .rv32im_zkvm_ethereum_v1,
+                custom0.encodeKeccakf(rs1),
+            ),
+        );
+        try std.testing.expectEqual(
+            ProgramValues{
+                secp256k1_recover_v1_program_opcode_id,
+                0,
+                rs1,
+                0,
+            },
+            try decodeProgramWordForProfile(
+                .rv32im_zkvm_ethereum_v1,
+                custom0.encodeSecp256k1Recover(rs1),
+            ),
+        );
+    }
+    try std.testing.expectError(
+        error.InvalidPrecompileEncoding,
+        decodeProgramWordForProfile(
+            .rv32im_zkvm_keccakf_v1,
+            custom0.encodeSecp256k1Recover(5),
+        ),
+    );
+}
+
+test "decoded program: CUSTOM-0 authority remains profile-separated" {
+    const canonical = custom0.encodePoseidon2(17);
+    try std.testing.expectError(error.InvalidInstruction, decodeProgramWord(canonical));
+    try std.testing.expectError(
+        error.RequiredCapabilityUnavailable,
+        decodeProgramWordForProfile(.rv32im_zkvm_v1, canonical),
+    );
+
+    // `rd` is reserved by v1. Keeping the CUSTOM-0 major opcode while setting
+    // it must not alias the admitted instruction.
+    try std.testing.expectError(
+        error.InvalidPrecompileEncoding,
+        decodeProgramWordForProfile(.rv32im_zkvm_poseidon2_v1, canonical | (1 << 7)),
+    );
+}
+
+test "decoded declared program: Ethereum unimp padding is exact and never executable" {
+    const expected = ProgramValues{
+        ethereum_declared_padding_program_opcode_id,
+        0x1073,
+        0xc000,
+        0,
+    };
+    try std.testing.expectEqual(
+        expected,
+        try decodeDeclaredProgramWordForProfile(
+            .rv32im_zkvm_ethereum_v1,
+            llvm_unimp_padding_word,
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidInstruction,
+        decodeProgramWordForProfile(
+            .rv32im_zkvm_ethereum_v1,
+            llvm_unimp_padding_word,
+        ),
+    );
+    inline for ([_]ExecutionProfile{
+        .rv32im_zkvm_v1,
+        .rv32im_zkvm_poseidon2_v1,
+        .rv32im_zkvm_keccakf_v1,
+    }) |selected_profile| {
+        try std.testing.expect(!isDeclaredPaddingForProfile(
+            selected_profile,
+            llvm_unimp_padding_word,
+        ));
+        try std.testing.expectError(
+            error.InvalidInstruction,
+            decodeDeclaredProgramWordForProfile(
+                selected_profile,
+                llvm_unimp_padding_word,
+            ),
+        );
+    }
+    inline for ([_]u32{ 1, 1 << 16, 1 << 31 }) |mutation| {
+        const mutated = llvm_unimp_padding_word ^ mutation;
+        try std.testing.expect(!isDeclaredPaddingForProfile(
+            .rv32im_zkvm_ethereum_v1,
+            mutated,
+        ));
+        try std.testing.expectError(
+            error.InvalidInstruction,
+            decodeDeclaredProgramWordForProfile(
+                .rv32im_zkvm_ethereum_v1,
+                mutated,
+            ),
+        );
+    }
+}
+
+comptime {
+    if (@typeInfo(Opcode).@"enum".fields.len != poseidon2_v1_program_opcode_id)
+        @compileError("Poseidon2 program opcode must append after every base opcode");
+    if (keccakf_v1_program_opcode_id != poseidon2_v1_program_opcode_id)
+        @compileError("exclusive extension profiles must share the one local program slot");
+    if (secp256k1_recover_v1_program_opcode_id !=
+        poseidon2_v1_program_opcode_id + 1)
+    {
+        @compileError("combined-profile signer opcode must append after Keccak-f");
+    }
+    if (ethereum_declared_padding_program_opcode_id !=
+        secp256k1_recover_v1_program_opcode_id + 1)
+    {
+        @compileError("Ethereum declared padding identity must remain pinned at 48");
+    }
+}

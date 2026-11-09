@@ -1,11 +1,11 @@
 //! Explicit full-width Ethereum profile; disjoint from base B3EX and legacy ETH1.
 const std = @import("std");
 const core = @import("stwo_core");
-const base = @import("blake3_execution_protocol.zig");
+const base = @import("stwo_riscv_rv32").modules.prover_blake3_execution_protocol;
 const admission = @import("blake3_ethereum_statement.zig");
-const Native = @import("../air/statement.zig").Blake3ExecutionStatement;
-const Pin = @import("blake3_commitment_plan.zig").Admission;
-const Airs = @import("blake3_commitment_components.zig").Airs;
+const Native = @import("stwo_riscv_rv32").modules.air_statement.Blake3ExecutionStatement;
+const Pin = @import("stwo_riscv_rv32").modules.prover_blake3_commitment_plan.Admission;
+const Airs = @import("stwo_riscv_rv32").modules.prover_blake3_commitment_components.Airs;
 pub fn mix(channel: anytype, config: core.pcs.PcsConfig, native: *const Native, extension: *const admission.Statement, pin: Pin, logs: admission.HashLogs) !void {
     try base.validateConfig(config);
     try admission.validate(extension, native, pin, logs);

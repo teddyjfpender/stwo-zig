@@ -2,20 +2,20 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const public_data_mod = @import("../air/public_data.zig");
+const public_data_mod = @import("stwo_riscv_rv32").modules.air_public_data;
 const leaf_owner = @import("segment_leaf_authority.zig");
-const claim = @import("vm_public_claim.zig");
+const claim = @import("stwo_riscv_rv32").modules.recursion_vm_public_claim;
 const source = @import("segment_statement_outer_source.zig");
-const framework = @import("air/framework_interaction.zig");
-const manifest_mod = @import("air/universal_adapter_manifest.zig");
-const roster = @import("air/universal_roster.zig");
-const shared_provider = @import("air/universal_shared_provider.zig");
-const universal = @import("air/universal_challenges.zig");
-const row10_relation = @import("air/statement_input_relation.zig");
-const row10_witness = @import("air/statement_input_witness.zig");
-const row11_relation = @import("air/statement_semantics_input_relation.zig");
-const row11_witness = @import("air/statement_semantics_input_witness.zig");
-const range_bridge = @import("air/range_check_8_8_bridge.zig");
+const framework = @import("stwo_riscv_air_lang").modules.framework_framework_interaction;
+const manifest_mod = @import("stwo_riscv_air_lang").modules.framework_universal_adapter_manifest;
+const roster = @import("stwo_riscv_air_lang").modules.framework_universal_roster;
+const shared_provider = @import("stwo_riscv_rv32").modules.recursion_air_universal_shared_provider;
+const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
+const row10_relation = @import("stwo_riscv_recursion_air").modules.statement_input_relation;
+const row10_witness = @import("stwo_riscv_rv32").modules.recursion_air_statement_input_witness;
+const row11_relation = @import("stwo_riscv_recursion_air").modules.statement_semantics_input_relation;
+const row11_witness = @import("stwo_riscv_rv32").modules.recursion_air_statement_semantics_input_witness;
+const range_bridge = @import("stwo_riscv_rv32").modules.recursion_air_range_check_8_8_bridge;
 
 // Shared fixtures and mutation helpers for this conformance suite.
 

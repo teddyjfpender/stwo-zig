@@ -27,4 +27,4 @@ pub fn validateGeometry(statement: *const admission.Statement, steps: u32) !void
     try statement.validateGeometry(steps);
 }
 
-pub const execution_profile: @import("../isa/execution_profile.zig").ExecutionProfile = .rv32im_zkvm_ethereum_v1;
+pub const execution_profile: @import("stwo_riscv_isa").modules.execution_profile.ExecutionProfile = .rv32im_zkvm_ethereum_v1;

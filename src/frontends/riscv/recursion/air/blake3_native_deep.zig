@@ -1,9 +1,9 @@
 //! Canonical DEEP preparation from authenticated native V2 geometry.
 const std = @import("std");
 const core = @import("stwo_core");
-const verifier = @import("../../prover/verifier.zig");
-const suite = @import("../blake3_engine_protocol.zig");
-const geometry_mod = @import("../vm_composition_base_geometry.zig");
+const verifier = @import("stwo_riscv_rv32").modules.prover_verifier;
+const suite = @import("stwo_riscv_recursion_air").modules.protocol_recursion_blake3_engine_protocol;
+const geometry_mod = @import("stwo_riscv_rv32").modules.recursion_vm_composition_base_geometry;
 const capture_mod = @import("../pcs_arithmetic_capture.zig");
 const deep = @import("pcs_deep_circuit.zig");
 pub const Prepared = struct {

@@ -1,3 +1,0 @@
-test "non-core custody focused inventory compiles" {
-    _ = @import("recursion/tests/segment_outer_noncore_audits_test.zig");
-}

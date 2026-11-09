@@ -15,7 +15,7 @@ const swap_authority_mod =
     @import("../../isa/ethereum_stack_swap_candidate.zig");
 const combined_decode =
     @import("../../prover/guest_precompile/ethereum_stack_swap_candidate_decode.zig");
-const segment_session = @import("../segment_session.zig");
+const segment_session = @import("stwo_riscv_rv32").modules.runner_segment_session;
 const receipt_mod =
     @import("ethereum_stack_swap_candidate_elf_receipt.zig");
 const combined_receipt_mod =
@@ -411,7 +411,7 @@ test "combined candidate contract v1: capability cannot promote the SWAP fixture
 }
 
 test "combined candidate contract v1: final capability requires cold reopened receipt" {
-    const test_elf = @import("test_elf.zig");
+    const test_elf = @import("stwo_riscv_rv32").modules.runner_guest_precompile_test_elf;
     const elf = test_elf.buildEthereumCombinedCandidate();
     const elf_identity = combined_receipt_mod.hashBytes(&elf);
     const source_files = [_]combined_receipt_mod.FileIdentity{

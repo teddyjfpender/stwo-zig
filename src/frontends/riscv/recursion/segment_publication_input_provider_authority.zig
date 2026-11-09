@@ -13,13 +13,13 @@ const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const m31 = stwo_core.fields.m31;
 
-const relation = @import("../air/lang/relation.zig");
+const relation = @import("stwo_riscv_air_lang").modules.relation;
 const air = @import("air/segment_publication_input_provider.zig");
 const binding = @import("air/segment_publication_input_provider_relation.zig");
 const witness = @import("air/segment_publication_input_provider_witness.zig");
-const direct_program = @import("air/direct_constraint_program.zig");
-const framework_interaction = @import("air/framework_interaction.zig");
-const universal = @import("air/universal_challenges.zig");
+const direct_program = @import("stwo_riscv_air_lang").modules.framework_direct_constraint_program;
+const framework_interaction = @import("stwo_riscv_air_lang").modules.framework_framework_interaction;
+const universal = @import("stwo_riscv_air_lang").modules.framework_universal_challenges;
 const boundary = @import("segment_leaf_outer_authority.zig");
 
 pub const FORMAT_VERSION = @import("segment_publication_input_provider_contract.zig").FORMAT_VERSION;
@@ -317,7 +317,7 @@ pub fn prepareInto(
     inputs: witness.InputsV2,
     relations: *const universal.UniversalRelations,
 ) Error!void {
-    const generator = @import("air/interaction_generator.zig").Host{};
+    const generator = @import("stwo_riscv_recursion_air").modules.interaction_generator.Host{};
     return prepareIntoWithGenerator(destination, workspace, authority, traces, inputs, relations, &generator);
 }
 

@@ -11,15 +11,15 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 
-const lookup_counter = @import("../air/lookups/tables/counter.zig");
-const lookup_schema = @import("../air/lookups/tables/schema.zig");
-const relation = @import("../air/lang/relation.zig");
-const span_statement = @import("span_statement.zig");
-const row11_air = @import("air/statement_semantics_input.zig");
-const row11_witness = @import("air/statement_semantics_input_witness.zig");
-const statement_input = @import("air/statement_input.zig");
-const range_bridge = @import("air/range_check_8_8_bridge.zig");
-const roster = @import("air/universal_roster.zig");
+const lookup_counter = @import("stwo_riscv_air_lang").modules.shared_air_lookups_tables_counter;
+const lookup_schema = @import("stwo_riscv_air_lang").modules.shared_air_lookups_tables_schema;
+const relation = @import("stwo_riscv_air_lang").modules.relation;
+const span_statement = @import("stwo_riscv_rv32").modules.recursion_span_statement;
+const row11_air = @import("stwo_riscv_recursion_air").modules.statement_semantics_input;
+const row11_witness = @import("stwo_riscv_rv32").modules.recursion_air_statement_semantics_input_witness;
+const statement_input = @import("stwo_riscv_recursion_air").modules.statement_input;
+const range_bridge = @import("stwo_riscv_rv32").modules.recursion_air_range_check_8_8_bridge;
+const roster = @import("stwo_riscv_air_lang").modules.framework_universal_roster;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SOURCE_AUTHORITY_FORMAT_VERSION: u16 = 1;

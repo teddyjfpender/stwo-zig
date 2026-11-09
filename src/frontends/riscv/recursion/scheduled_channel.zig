@@ -7,9 +7,9 @@
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const channel_mod = @import("poseidon2_channel.zig");
+const channel_mod = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
 const transcript = @import("transcript_program.zig");
-const schedule = @import("air/verifier_schedule.zig");
+const schedule = @import("stwo_riscv_recursion_air").modules.verifier_schedule;
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
@@ -216,9 +216,9 @@ test "scheduled channel differentially executes the full schedule for both schem
     try runFullScheduleDifferential(.recursion);
 }
 
-const fixed_profile = @import("fixed_profile.zig");
-const fixed_wire = @import("fixed_wire.zig");
-const protocol = @import("protocol.zig");
+const fixed_profile = @import("stwo_riscv_recursion_air").modules.protocol_recursion_fixed_profile;
+const fixed_wire = @import("stwo_riscv_recursion_air").modules.protocol_recursion_fixed_wire;
+const protocol = @import("stwo_riscv_recursion_air").modules.protocol_recursion_protocol;
 
 const TEST_DIMENSIONS = fixed_wire.Dimensions{
     .commitment_count = 4,

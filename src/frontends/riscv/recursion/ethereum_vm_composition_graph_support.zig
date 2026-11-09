@@ -14,12 +14,12 @@ const qm31 = stwo_core.fields.qm31;
 const canonic = stwo_core.poly.circle.canonic;
 const verifier_types = stwo_core.verifier_types;
 
-const graph_mod = @import("air/composition_circuit.zig");
-const logup = @import("../air/logup.zig");
-const base_geometry = @import("vm_composition_base_geometry.zig");
+const graph_mod = @import("stwo_riscv_rv32").modules.recursion_air_composition_circuit;
+const logup = @import("stwo_riscv_air_lang").modules.shared_air_logup;
+const base_geometry = @import("stwo_riscv_rv32").modules.recursion_vm_composition_base_geometry;
 const extension_geometry =
     @import("ethereum_composition_extension_geometry.zig");
-const circuit = @import("vm_air_composition_circuit.zig");
+const circuit = @import("stwo_riscv_recursion").modules.vm_air_composition_circuit;
 
 pub const Scalar = circuit.Scalar;
 pub const Builder = circuit.Builder;

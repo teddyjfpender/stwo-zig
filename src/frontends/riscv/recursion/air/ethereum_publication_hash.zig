@@ -3,10 +3,10 @@
 //! then the sole segment-active parameter. CSP retains its original ordering.
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const legacy = @import("vm_public_claim_hash.zig");
-const ir = @import("../../air/lang/ir.zig");
-const digest = @import("../../air/lang/digest.zig");
-const types = @import("../../air/lang/types.zig");
+const legacy = @import("stwo_riscv_recursion_air").modules.vm_public_claim_hash;
+const ir = @import("stwo_riscv_air_lang").modules.ir;
+const digest = @import("stwo_riscv_air_lang").modules.digest;
+const types = @import("stwo_riscv_air_lang").modules.types;
 
 pub const STABLE_NAME = "recursion.ethereum_publication_hash.v1";
 pub const PHYSICAL_MAIN_COLUMN_COUNT = legacy.PHYSICAL_MAIN_COLUMN_COUNT;
@@ -19,7 +19,7 @@ pub const MAXIMUM_CONSTRAINT_DEGREE = legacy.MAXIMUM_CONSTRAINT_DEGREE;
 pub const LOOKUP_BATCH_SIZE = legacy.LOOKUP_BATCH_SIZE;
 pub const INTERACTION_BATCH_COUNT = legacy.INTERACTION_BATCH_COUNT;
 pub const INTERACTION_COLUMN_COUNT = legacy.INTERACTION_COLUMN_COUNT;
-pub const Relation = @import("universal_relation_binding.zig").Binding(@This());
+pub const Relation = @import("stwo_riscv_air_lang").modules.framework_universal_relation_binding.Binding(@This());
 pub const SEMANTIC_DIGEST_HEX = "5ca22b7fd0a6e08537c18b391a148900182a827aca4ec8056251dabce6f483c3";
 pub const SEMANTIC_DIGEST: digest.Digest = blk: {
     var bytes: digest.Digest = undefined;
@@ -42,7 +42,7 @@ pub const Definition = struct {
     }
 
     pub fn validate(self: *const Definition) !void {
-        try @import("../../air/lang/validate.zig").validate(&self.arena);
+        try @import("stwo_riscv_air_lang").modules.validate.validate(&self.arena);
         const actual = try digest.computeIdentity(&self.arena);
         if (actual.format_version != digest.typed_effect_format_version or
             !std.meta.eql(actual.bytes, SEMANTIC_DIGEST) or

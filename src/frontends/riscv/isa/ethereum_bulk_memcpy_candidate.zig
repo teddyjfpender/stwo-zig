@@ -6,9 +6,9 @@
 
 const std = @import("std");
 
-const bulk = @import("bulk_memcpy_candidate.zig");
-const execution_profile = @import("execution_profile.zig");
-const private_registry = @import("bulk_memcpy_private_registry.zig");
+const bulk = @import("stwo_riscv_isa").modules.bulk_memcpy_candidate;
+const execution_profile = @import("stwo_riscv_isa").modules.execution_profile;
+const private_registry = @import("stwo_riscv_isa").modules.bulk_memcpy_private_registry;
 
 pub const production_active = false;
 pub const schema_version: u16 = 1;

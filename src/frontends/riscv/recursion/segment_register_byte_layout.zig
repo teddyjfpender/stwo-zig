@@ -2,8 +2,8 @@
 //! These bytes already have decomposition and range constraints in row 11.
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const wire = @import("segment_statement.zig");
-const span = @import("span_statement.zig");
+const wire = @import("stwo_riscv_rv32").modules.recursion_segment_statement;
+const span = @import("stwo_riscv_rv32").modules.recursion_span_statement;
 
 pub const Side = enum { entry, exit };
 pub const BYTE_COUNT: usize = 2 * 32 * 4;

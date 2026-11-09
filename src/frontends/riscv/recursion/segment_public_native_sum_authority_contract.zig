@@ -7,13 +7,13 @@ pub const m31 = stwo_core.fields.m31;
 pub const M31 = m31.M31;
 pub const QM31 = stwo_core.fields.qm31.QM31;
 
-pub const program_decode = @import("../air/program/decode.zig");
+pub const program_decode = @import("stwo_riscv_rv32").modules.air_program_decode;
 pub const arithmetic = @import("arithmetic_circuit.zig");
 pub const public_source = @import("segment_public_outer_source_v2.zig");
-pub const span_statement = @import("span_statement.zig");
-pub const wire_statement = @import("segment_statement.zig");
-pub const graph_mod = @import("air/composition_circuit.zig");
-pub const lowering = @import("air/verifier_arithmetic_lowering.zig");
+pub const span_statement = @import("stwo_riscv_rv32").modules.recursion_span_statement;
+pub const wire_statement = @import("stwo_riscv_rv32").modules.recursion_segment_statement;
+pub const graph_mod = @import("stwo_riscv_rv32").modules.recursion_air_composition_circuit;
+pub const lowering = @import("stwo_riscv_rv32").modules.recursion_air_verifier_arithmetic_lowering;
 pub const register_bytes = @import("segment_register_byte_layout.zig");
 
 pub const FORMAT_VERSION: u16 = 5;
@@ -445,7 +445,7 @@ pub fn addContinuationCompensation(
                     address,
                     baseValue(@as(u32, @intCast(limb))),
                 ),
-                baseValue(@import("../air/memory_commitment/sparse_merkle.zig").LEAF_DEPTH),
+                baseValue(@import("stwo_riscv_memory").modules.air_sparse_merkle.LEAF_DEPTH),
                 bytes[byte_index],
                 root,
             }, selectors[byte_index]);

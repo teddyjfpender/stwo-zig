@@ -7,23 +7,23 @@
 const std = @import("std");
 const prover_engine = @import("stwo_prover_engine");
 const residency_estimate = prover_engine.pcs.residency_estimate;
-const lookup_physical_v2 = @import("../../air/lang/lookup_physical_manifest.zig");
-const public_data_v2 = @import("../../air/public_data_v2.zig");
-const statement_v2 = @import("../../air/statement_v2.zig");
+const lookup_physical_v2 = @import("stwo_riscv_rv32").modules.air_lang_lookup_physical_manifest;
+const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
+const statement_v2 = @import("stwo_riscv_rv32").modules.air_statement_v2;
 const proof_admission = @import("../../air/guest_precompile/ethereum_proof_admission.zig");
 const statement_mod = @import("../../air/guest_precompile/ethereum_statement.zig");
-const poseidon2_air = @import("../../air/memory_commitment/poseidon2_air.zig");
-const candidate = @import("../../air/lang/typed_poseidon2_degree_bounded_candidate.zig");
-const candidate_residency = @import("../../air/lang/typed_poseidon2_degree_bounded_residency.zig");
-const keccak_calls_mod = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
-const keccak_rows_mod = @import("../../runner/guest_precompile/keccakf.zig");
-const recovery_calls_mod = @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig");
-const recovery_rows_mod = @import("../../runner/guest_precompile/secp256k1_recover.zig");
+const poseidon2_air = @import("stwo_riscv_memory").modules.air_poseidon2_air;
+const candidate = @import("stwo_riscv_memory").modules.typed_typed_poseidon2_degree_bounded_candidate;
+const candidate_residency = @import("stwo_riscv_memory").modules.typed_typed_poseidon2_degree_bounded_residency;
+const keccak_calls_mod = @import("stwo_riscv_precompiles").modules.runner_keccakf_call_buffer;
+const keccak_rows_mod = @import("stwo_riscv_rv32").modules.runner_guest_precompile_keccakf;
+const recovery_calls_mod = @import("stwo_riscv_precompiles").modules.runner_secp256k1_recover_call_buffer;
+const recovery_rows_mod = @import("stwo_riscv_rv32").modules.runner_guest_precompile_secp256k1_recover;
 const runner_result = @import("../../runner/result.zig");
-const commitment_witness = @import("../commitment_witness.zig");
-const proof_workspace = @import("../proof_workspace.zig");
-const statement_geometry = @import("../statement_geometry.zig");
-const base_types = @import("../types.zig");
+const commitment_witness = @import("stwo_riscv_rv32").modules.prover_commitment_witness;
+const proof_workspace = @import("stwo_riscv_rv32").modules.prover_proof_workspace;
+const statement_geometry = @import("stwo_riscv_rv32").modules.prover_statement_geometry;
+const base_types = @import("stwo_riscv_rv32").modules.prover_types;
 const ethereum_interaction = @import("ethereum_interaction.zig");
 const ethereum_main = @import("ethereum_main.zig");
 const ethereum_preprocessed = @import("ethereum_preprocessed.zig");
@@ -461,7 +461,7 @@ pub const RemovedPoseidonColumns = struct {
 
 fn removeLegacyPoseidonColumnsInternal(
     allocator: std.mem.Allocator,
-    core: *const @import("../../air/statement.zig").RiscVStatement,
+    core: *const @import("stwo_riscv_rv32").modules.air_statement.RiscVStatement,
     tree1_log_sizes: []const u32,
 ) !RemovedPoseidonColumns {
     const base_main_column_count: usize = @intCast(core.nMainColumns());
@@ -542,7 +542,7 @@ fn candidateEstimateInternal(
 }
 
 fn validateClockAuthority(
-    trace: *const @import("../../runner/trace.zig").Trace,
+    trace: *const @import("stwo_riscv_rv32").modules.runner_trace.Trace,
     keccak_calls: usize,
     keccak_rows: usize,
     recovery_calls: usize,
@@ -569,7 +569,7 @@ fn validateClockAuthority(
 pub const testing = struct {
     pub fn removeLegacyPoseidonColumns(
         allocator: std.mem.Allocator,
-        core: *const @import("../../air/statement.zig").RiscVStatement,
+        core: *const @import("stwo_riscv_rv32").modules.air_statement.RiscVStatement,
         tree1_log_sizes: []const u32,
     ) !RemovedPoseidonColumns {
         return removeLegacyPoseidonColumnsInternal(

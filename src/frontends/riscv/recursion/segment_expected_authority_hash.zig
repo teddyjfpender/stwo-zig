@@ -3,14 +3,14 @@ const std = @import("std");
 const core = @import("stwo_core");
 const m31 = core.fields.m31;
 const M31 = m31.M31;
-const channel = @import("poseidon2_channel.zig");
+const channel = @import("stwo_riscv_memory").modules.primitives_recursion_poseidon2_channel;
 const Digest = channel.Digest;
-const statement_v1 = @import("../air/statement_geometry.zig");
-const public_data_v2 = @import("../air/public_data_v2.zig");
-const projection = @import("../air/statement_public_projection.zig");
-const preimage = @import("../air/statement_authority_preimage.zig");
-const poseidon2 = @import("../air/memory_commitment/poseidon2.zig");
-const poseidon2_air = @import("../air/memory_commitment/poseidon2_call.zig");
+const statement_v1 = @import("stwo_riscv_rv32").modules.air_statement_geometry;
+const public_data_v2 = @import("stwo_riscv_rv32").modules.air_public_data_v2;
+const projection = @import("stwo_riscv_rv32").modules.air_statement_public_projection;
+const preimage = @import("stwo_riscv_rv32").modules.air_statement_authority_preimage;
+const poseidon2 = @import("stwo_riscv_memory").modules.air_poseidon2;
+const poseidon2_air = @import("stwo_riscv_memory").modules.air_poseidon2_call;
 pub const Error = projection.Error || preimage.ValidationError || error{ AliasedDestination, PoseidonCallCountMismatch };
 
 /// Receipt-free expected hash program from public statement and admitted native
