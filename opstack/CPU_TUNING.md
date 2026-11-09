@@ -114,8 +114,10 @@ Both default to false. They change producer custody, not the native profile,
 source statement, manifest or receiver policy. They do not configure the older
 Ethereum/D2 driver illustrated above.
 
-Metadata parking writes inactive CPU advice once into the existing quota-charged,
-unlinked store and restores only the active shard. Auxiliary retirement frees
+On the detached route, metadata parking now writes each completed capture
+shard immediately into the existing quota-charged, unlinked store and restores
+only the active shard. The classic pure-P2 route retains its post-capture
+parking behavior. Auxiliary retirement frees
 post-seal LS32/LS-D64 raw fixed masks and SHIFT histograms after validating the
 saved packed MAIN multiplicities. The later binding reads that already-retained
 MAIN; it does not reconstruct a table or discard an authenticated obligation.
@@ -205,3 +207,24 @@ verifier as though the formats were interchangeable.
 See [current delivery evidence](COMPLETION.md#complete-grouped-small-execution)
 for exact receipts, proof sizes, controls and security qualifications. None of
 these measurements establishes the complete heavy-block tenfold target.
+
+## Streaming capture custody
+
+The detached native producer's optional `park_cpu_metadata` now applies during
+ordered capture, before inactive metadata from every shard accumulates. The
+chronological RAM ledger first consumes the compact tape; raw CPU capture rows
+are retired; only then may the custody hook move immutable metadata to disk.
+Planning uses retained public boundaries and fact censuses. Before either proof
+stage consumes metadata, the same descriptor and SHA-256 checks restore it into
+the explicitly budgeted heap. Disk quota is shared with retained MAIN.
+
+An actual two-CPU split of selected OP120794432 produces the exact same
+6,315,160-byte native bundle, metadata and public cells as the unparked control.
+Fresh receivers/callback checks pass; an injected failure immediately after
+parking releases every file quota and heap/external owner. This is not a measured
+RSS multiplier. The metadata payload model for the selected heavy guest falls
+from 13.34 GB retained across capture to at most 234.9 MB for one full shard;
+other facts, RAM events, key/witness/PCS scratch and disk retention are additional.
+The 256-worker cap is unchanged, and this does not qualify the anchored replay.
+
+[Qualification receipt](../vectors/reports/rv64-opstack-cpu-20261109/streaming-capture-custody-v1.json).
