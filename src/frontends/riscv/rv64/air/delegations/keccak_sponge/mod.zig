@@ -17,3 +17,5 @@ pub const equations = @import("equations.zig");
 pub const source = @import("source.zig");
 pub const interaction = @import("interaction.zig");
 pub const component = @import("component.zig");
+/// Explicit source-only namespace; execution/profile admission stays closed.
+pub const serialized = @import("serialized/mod.zig");

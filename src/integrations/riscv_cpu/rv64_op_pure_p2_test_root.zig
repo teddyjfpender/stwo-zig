@@ -122,3 +122,16 @@ test {
 test {
     _ = @import("poseidon2_outer/miller_local_gkr/fixture_source.zig");
 }
+test {
+    _ = @import("poseidon2_outer/sponge_local_gkr/authority.zig");
+}
+test {
+    _ = @import("poseidon2_outer/sponge_local_gkr/source.zig");
+}
+
+test {
+    _ = @import("poseidon2_outer/sponge_local_gkr/fractions.zig");
+}
+test {
+    _ = @import("poseidon2_outer/sponge_local_gkr/native.zig");
+}
