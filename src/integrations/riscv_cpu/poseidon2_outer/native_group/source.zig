@@ -68,6 +68,14 @@ pub const Stream = struct {
     /// Transfers the finalized context on success. Callers must independently
     /// derive a key from the same known source group before proving/verifying.
     pub fn finish(self: *Stream) !P.PoseidonContext {
+        return self.finishMode(false);
+    }
+    /// Explicit source experiment only. The typed R7 wrapper installs the dot
+    /// scope per member; all output folding and final custody remain shared.
+    pub fn finishForNativeDot(self: *Stream) !P.PoseidonContext {
+        return self.finishMode(true);
+    }
+    fn finishMode(self: *Stream, comptime native_dot: bool) !P.PoseidonContext {
         if (!self.owns or self.poisoned) return error.NativeGroupPhase;
         errdefer self.poisoned = true;
         if (self.poisoned or self.appended != self.count) return error.NativeGroupCoverage;
@@ -92,7 +100,7 @@ pub const Stream = struct {
         try P.finish();
         active = false;
         try self.owner.setOutputs(&self.roots[0]);
-        try self.owner.finalize();
+        if (native_dot) try self.owner.finalizeForNativeDot() else try self.owner.finalize();
         if (!self.trace_only) for (self.roots[0], try self.expectedOutput()) |port, expected| if (!self.owner.algebra().get(port).eql(expected)) return error.NativeGroupOutputMismatch;
         if (self.owner.algebra().circuit.blake_g_gate.items.len != 0) return error.NativeGroupUnexpectedBlake;
         self.owns = false;

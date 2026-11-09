@@ -243,3 +243,7 @@ test {
 test {
     _ = @import("poseidon2_outer/native_group/runtime_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/native_dot/group_source_test.zig");
+}
