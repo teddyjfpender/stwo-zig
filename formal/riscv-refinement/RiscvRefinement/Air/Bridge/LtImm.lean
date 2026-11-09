@@ -29,9 +29,9 @@ def manifestId : Kind → Nat
 
 def contentDigest : Kind → String
   | .signed =>
-      "7733d881f13d427c5bb0978fc6e3c50e883742cb87e9ad986431a3c61bbb88be"
+      "3f13a56fdda720dec95e0d1021478e37f4829fb85c2de838ed832f7f7f5d2401"
   | .unsigned =>
-      "251fdf2d0e21e0c7119cab0be1c9dab0992f506a70e6813382cc1816ddfdff49"
+      "c1b3083b57ac57da0f4c4e5a5b55a4cc89b53d578e0bf6523bd273f106b22aac"
 
 def program : Kind → LocalProgram
   | .signed => Programs.slti

@@ -182,8 +182,8 @@ def Kind.manifestId : Kind → Nat
   | .bne => 28
 
 def Kind.contentDigest : Kind → String
-  | .beq => "f94078384cb280f7dae5248b9bee2c9acc4706a156b7742c1ef7ae654de3ce42"
-  | .bne => "6150babc0e63e9bc49cd9d369e2bccdb85e70a808727aa294c02632430d01a5f"
+  | .beq => "ddf4c4a0002601c6a1b5f824d5926494e983f3b1a52cf95cd495b3971795e9fc"
+  | .bne => "59f964af02d827005c7507ac6a8d2ace33f19cd8d49ab89d391bb2bf39d8f58a"
 
 structure Row where
   kind : Kind
