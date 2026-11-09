@@ -267,7 +267,7 @@ const Authority = struct {
             try self.cpu_owners.ensureUnusedCapacity(a, 1);
             try self.key_owners.ensureUnusedCapacity(a, 1);
             const setup = try a.create(R.CpuSetup);
-            setup.* = R.CpuSetup.initForOpWithAuthorityAndSuiteAndCaches(a, &image.authority, d.geometry, d.bridges, @import("../word16_execution/pcs_suite.zig").Suite.production(), .{ .program = &self.program_metadata }) catch |err| {
+            setup.* = @import("pure_p2_op_source_setup.zig").init(a, image, d, &self.program_metadata) catch |err| {
                 a.destroy(setup);
                 return err;
             };
@@ -593,66 +593,29 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
     try Request.validateBudgetForOp(config);
     var timer = try std.time.Timer.start();
-    var image = try Image.Owner.initForOp(a, config);
-    defer image.deinit();
-    const image_ns = timer.read();
-    var program = try Program.initWithAuthority(a, &image.authority);
-    defer program.deinit();
-    const layout = Plan.CpuLayout.forOpGkr();
-    try program.makeCompact();
-    const program_ns = timer.read() - image_ns;
-    const capture_start = timer.read();
-    var captured = try Capture.Owner.init(a, config, &image, &program);
-    defer captured.deinit();
-    const captured_at = timer.read();
-    const capture_ns = captured_at - capture_start;
+    var captured_plan = try @import("pure_p2_op_capture_plan.zig").Owner.init(a, config, profile, .{ .local_truth = local_truth, .truth_limits = .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .gkr_bytes = resources.gkr_bytes } }, &timer);
+    defer captured_plan.deinit();
+    const image = captured_plan.image;
+    const program = captured_plan.program;
+    const captured = &captured_plan.captured;
+    const declarations = captured_plan.declarations;
+    const req = captured_plan.requests;
+    const spans = captured_plan.spans;
+    const compact = captured_plan.compact;
     const count = captured.native.len;
-    const declarations = try a.alloc(Wire.CpuDeclaration, count);
-    defer a.free(declarations);
-    const req = try a.alloc(P.Request, count);
-    defer a.free(req);
-    const spans = try a.alloc(T.OpTowerSpan, count);
-    defer a.free(spans);
-    const compact = try a.alloc(Wire.CompactRequest, count);
-    defer a.free(compact);
-    var next: u32 = 1;
-    var total: [T.FAMILIES]u32 = @splat(0);
-    for (captured.native, 0..) |n, i| {
-        declarations[i] = try Plan.cpuForSegment(n, &captured.advice, i, count, captured.advice.initial.len, layout);
-        const calls = std.math.cast(u32, captured.advice.tower[i].len) orelse return error.InvalidOpTowerCoverage;
-        spans[i] = if (calls == 0) .{} else .{ .calls = calls, .first_id = next };
-        next = try std.math.add(u32, next, calls);
-        if (calls != 0) declarations[i].bridges.tower = try @import("../word16_execution/coverage.zig").minimalPrefixLog(try std.math.mul(u32, calls, 32));
-        req[i] = try Coordinator.requestView(captured.native, &captured.advice, i);
-        try Coordinator.routeDword(&req[i], declarations[i].bridges, captured.advice.events[i]);
-        for (&total, req[i].calls) |*sum, value| sum.* = try std.math.add(u32, sum.*, value);
-        total[0] = try std.math.add(u32, total[0], req[i].sponge.perms);
-    }
-    try Coordinator.assignSpongeIds(req);
-    for (req, compact) |r, *out| out.* = Wire.CompactRequest.from(r);
-    var tower = std.ArrayList(Bounds.OpTowerTruthDeclaration).empty;
-    defer tower.deinit(a);
-    var first: u32 = 1;
-    while (first < next) {
-        const calls = @min(1023, next - first);
-        const log = @max(15, try @import("../word16_execution/coverage.zig").minimalPrefixLog(try std.math.mul(u32, calls, 32)));
-        try tower.append(a, .{ .calls = calls, .first_id = first, .frontier_log = log, .arithmetic_log = log });
-        first += calls;
-    }
-    const reserved_workers = try std.math.add(usize, count, tower.items.len);
-    if (reserved_workers > @import("pure_p2_manifest.zig").MAX_WORKERS) return error.InvalidOpNativeInventory;
-    const truth_declarations = if (local_truth)
-        try @import("pure_p2_truth_local_plan.zig").declarations(a, total, profile.config(), .{ .live_bytes = resources.truth_live_bytes, .main_bytes = resources.truth_main_bytes, .interaction_bytes = resources.truth_interaction_bytes, .gkr_bytes = resources.gkr_bytes }, @import("pure_p2_manifest.zig").MAX_WORKERS - reserved_workers)
-    else
-        try Plan.truthsForServiceCounts(a, total, .{}, 18);
-    defer a.free(truth_declarations);
+    const tower = struct { items: []Bounds.OpTowerTruthDeclaration }{ .items = captured_plan.tower };
+    const truth_declarations = captured_plan.truths;
+    const image_ns = captured_plan.timing.image_ns;
+    const program_ns = captured_plan.timing.program_ns;
+    const capture_ns = captured_plan.timing.capture_ns;
+    const captured_at = captured_plan.timing.captured_at;
     const metadata = Metadata{ .schema = if (source_suite != null) 3 else if (local_truth) 2 else 1, .profile = profile, .cpus = declarations, .requests = compact, .spans = spans, .truths = truth_declarations, .miller = tower.items, .memory_words = @intCast(captured.advice.initial.len) };
     try metadata.validate();
     var bounds = try Bounds.deriveForOp(a, program.log_size, declarations, truth_declarations, req, spans, tower.items);
     defer bounds.deinit();
     const source_security = if (source_suite) |suite| try SuiteSecurity.check(profile, &bounds, truth_declarations, tower.items, suite) else null;
     const truth_local_security = if (local_truth) (if (source_security) |checked| checked.truth else try TruthLocalSecurity.check(profile, &bounds, truth_declarations)) else null;
-    var cost = try @import("pure_p2_op_cost.zig").derive(a, &program, declarations, req, spans, captured.native, &captured.advice, truth_declarations, tower.items, bounds.base.shape.native_trace_cells[1], profile.config().fri_config.log_blowup_factor);
+    var cost = try @import("pure_p2_op_cost.zig").derive(a, program, declarations, req, spans, captured.native, &captured.advice, truth_declarations, tower.items, bounds.base.shape.native_trace_cells[1], profile.config().fri_config.log_blowup_factor);
     defer cost.deinit();
     const capture_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot();
     const Ownership = @import("../word16_global_execution/ethereum/capture_ownership.zig");
@@ -681,7 +644,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
     try std.fs.cwd().makePath(parking);
     var store = try Store.init(a, parking, main_disk_limit, main_mapped_limit);
     defer store.deinit();
-    var authority = try Authority.init(a, &image, metadata, &store, cache, source_suite);
+    var authority = try Authority.init(a, image, metadata, &store, cache, source_suite);
     defer authority.deinit();
     var cpu_metadata_disk_bytes: u64 = 0;
     if (resources.park_cpu_metadata and mode == .prove) {
@@ -694,7 +657,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         const remaining = try std.math.add(u64, cost.disk_upper_bytes, cpu_metadata_disk_bytes);
         if (remaining > store.disk_limit - store.reserved) return error.OpCombinedParkingDiskPlanExceeded;
     }
-    const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
+    const expected = try Receiver.expectedFromRequests(image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.initForSourceSuite(a, profile, authority.setups, req, spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected, authority.truth_local_keys, source_suite);
     defer inventory.deinit();
     if (source_suite == null) if (truth_local_security) |checked| {
@@ -715,7 +678,7 @@ fn produceDirectoryMode(a: std.mem.Allocator, config: Request.Config, path: []co
         std.crypto.hash.sha2.Sha256.hash(metadata_bytes, &metadata_digest, .{});
         const initial_digest = cellsDigest(captured.advice.initial);
         const terminal_digest = cellsDigest(captured.advice.terminal);
-        const output = try Terminal.require(&image, req[req.len - 1].base.cpu, captured.advice.terminal);
+        const output = try Terminal.require(image, req[req.len - 1].base.cpu, captured.advice.terminal);
         const prepared_heap = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?.snapshot();
         try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-prepare-metadata.json", metadata);
         try @import("../word16_execution/driver.zig").writeJson(a, dir, "native-op-prepare.json", .{
