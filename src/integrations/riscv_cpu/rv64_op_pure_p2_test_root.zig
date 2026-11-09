@@ -253,3 +253,7 @@ test {
     _ = @import("poseidon2_outer/native_dot/fold_canonical_test.zig");
     _ = @import("poseidon2_outer/native_group/terminal_blake/proof_test.zig");
 }
+
+test {
+    _ = @import("poseidon2_outer/native_group/terminal_blake/actual_test.zig");
+}
