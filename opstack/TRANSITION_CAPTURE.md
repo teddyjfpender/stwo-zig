@@ -340,3 +340,24 @@ account leaves and identified exactly one missing-code leaf, hash
 The coherent-root tests exclude unrelated valid-looking leaves and reject
 corrupted cached hashes. `--stop-on-adapter-failure` ends diagnostic capture at
 the first surfaced error rather than exhausting the deadline blindly.
+
+### Recovering transient proof RPC failures
+
+The refreshed code leaf recovered the actual internal contract address and its
+11674-byte code, verified against the missing hash. A later fail-fast capture
+isolated a genuine upstream RPC-32603 on one storage proof. The identical public
+query subsequently succeeded offline and its account/storage nodes were verified
+under the same pinned root; no proof check was relaxed.
+
+The adapter retries only transient RPC-32603, selected HTTP rate/service errors,
+and transport failures, at most twice and within the unchanged capture deadline.
+Unsupported methods and proof/hash/canonicality validation failures never retry.
+`--verified-records /path/to/records.json` can add those recovered exact Keccak
+preimages to a NEW resumed KV after full hash/conflict/budget checks. Provenance
+is independently imported as before. This avoids wasting another capture on a
+known recovered proof, while remaining explicit about incomplete execution.
+
+`transition_capture.py pack --claim /path/to/claim.json` supports the independently
+pinned new transition. Omitting `--claim` preserves the historical receipt's claim.
+Packing is still only container validation; neither it nor KZG sidecar validation
+claims full derivation or a STARK proof.

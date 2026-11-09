@@ -43,4 +43,18 @@ class ResumeGuards(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Keccak'):R.resume_kv(previous,root/'forged',candidate,pin,'host',64)
 
 
+class SupplementGuards(unittest.TestCase):
+    def test_only_exact_hash_preimages_enter_new_capture_cache(self):
+        spec=importlib.util.spec_from_file_location('capture_run_supplement',Path(__file__).parents[1]/'capture_host/run.py')
+        R=importlib.util.module_from_spec(spec);spec.loader.exec_module(R)
+        with tempfile.TemporaryDirectory()as directory:
+            root=Path(directory);kv=root/'kv';kv.mkdir();value=b'verified proof node';digest=R.C.keccak(value)
+            path=root/'records.json';path.write_text(json.dumps([[digest.hex(),value.hex()]]))
+            result=R.supplement_records(kv,[path],1024)
+            self.assertEqual(result['rows_added'],1)
+            self.assertEqual(R.supplement_records(kv,[path],1024)['rows_added'],0)
+            path.write_text(json.dumps([[digest.hex(),b'forged'.hex()]]))
+            with self.assertRaisesRegex(ValueError,'hash'):R.supplement_records(kv,[path],1024)
+
+
 if __name__=='__main__':unittest.main()

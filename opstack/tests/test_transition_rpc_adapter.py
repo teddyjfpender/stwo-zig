@@ -104,6 +104,36 @@ class AdapterTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'duplicate'):adapter.dispatch('eth_getProof',['0x'+'00'*20,['0x0','0x'+'00'*32],'latest'])
             rpc.assert_not_called()
 
+    def test_actual_recovered_internal_contract_code_provenance(self):
+        import tempfile
+        f=json.loads(zlib.decompress((Path(__file__).parent/'fixtures/recovered-code-provenance.json.zlib').read_bytes()))
+        self.assertEqual(len(C.unhex(f['code'])),11674)
+        self.assertEqual(C.keccak(C.unhex(f['code'])).hex(),f['code_hash'])
+        with tempfile.TemporaryDirectory()as directory:
+            file=Path(directory)/'proof.json';file.write_text(json.dumps({'schema':'op-code-provenance-v1','entries':{f['code_hash']:f['entry']}}))
+            adapter=A.Adapter('https://example.invalid',code_provenance=[file],provenance_block=f['expected_block'])
+            with patch.object(C,'rpc',return_value='0x'+f['code'])as rpc:
+                self.assertEqual(adapter.dispatch('debug_dbGet',['0x'+f['code_hash']]),'0x'+f['code'])
+            self.assertEqual(rpc.call_args.args[2][0],'0x2fe53fae908cabb66429e35215eb3fe297868271')
+
+    def test_transient_rpc_retry_is_bounded_and_never_retries_validation(self):
+        adapter=A.Adapter('https://example.invalid')
+        transient=C.RpcFailure('rpc_error',None,-32603)
+        with patch.object(C,'rpc',side_effect=[transient,'valid']),patch('time.sleep'):
+            self.assertEqual(adapter.remote('eth_chainId',[]),'valid')
+        self.assertEqual(adapter.transport_retries,1)
+        with patch.object(C,'rpc',side_effect=transient)as rpc,patch('time.sleep'):
+            with self.assertRaises(C.RpcFailure):adapter.remote('eth_chainId',[])
+            self.assertEqual(rpc.call_count,3)
+        for error in (C.RpcFailure('method_unavailable',403,-32601),ValueError('invalid trie proof')):
+            with patch.object(C,'rpc',side_effect=error)as rpc,patch('time.sleep'):
+                with self.assertRaises(type(error)):adapter.remote('eth_chainId',[])
+                self.assertEqual(rpc.call_count,1)
+        adapter.deadline=0
+        with patch.object(C,'rpc')as rpc:
+            with self.assertRaises(C.RpcFailure):adapter.remote('eth_chainId',[])
+            rpc.assert_not_called()
+
     def test_durable_code_provenance_reverified_without_new_account_query(self):
         import tempfile
         f=json.loads(zlib.decompress((Path(__file__).parent/'fixtures/recent-storage-code.json.zlib').read_bytes()))

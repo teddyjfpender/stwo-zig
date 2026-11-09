@@ -675,6 +675,7 @@ def main():
     p.add_argument("--resume", action="store_true")
     p.add_argument("--output", type=Path, required=True)
     p = commands.add_parser("pack")
+    p.add_argument("--claim", type=Path, help="independently pinned new claim; historical receipt remains the default")
     p.add_argument("--records", type=Path, required=True)
     p.add_argument("--sidecars", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
@@ -732,6 +733,8 @@ def main():
         write_new(args.output / "records.json", (json.dumps(records) + "\n").encode())
         write_new(args.output / "capture.json", (json.dumps(result, indent=2) + "\n").encode())
     else:
+        if args.claim is not None:
+            claim = read_json(args.claim, 1 << 20)
         data = pack(claim, read_json(args.records), read_json(args.sidecars), not args.raw)
         result = inspect_container(data, claim)
         result["preimage_hashes_verified"] = True

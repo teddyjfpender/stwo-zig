@@ -215,8 +215,25 @@ class Adapter:
         self.method_counts = {}
         self.failures = []
         self.failure_count = 0
+        self.transport_retries = 0
+        self.deadline = None
         for provenance in code_provenance:
             self.load_provenance(provenance, provenance_block)
+
+    def remote(self, method, params, *, cap=MAX_RESPONSE, timeout=12):
+        import time
+        for attempt in range(3):
+            remaining = self.deadline - time.monotonic() if self.deadline is not None else timeout
+            if remaining <= 0:
+                raise C.RpcFailure("capture_deadline")
+            try:
+                return C.rpc(self.upstream, method, params, cap=cap, timeout=min(timeout,remaining))
+            except C.RpcFailure as error:
+                transient = error.report["rpc_code"] == -32603 or error.report["http_status"] in (429,502,503,504) or error.report["status"] == "transport_unavailable"
+                if attempt == 2 or not transient:
+                    raise
+                self.transport_retries += 1
+                time.sleep(min(.25 * (2 ** attempt), max(0, remaining)))
 
     def remember_code(self, code, address, block, proof):
         if code is None or code.hex() in self.code_proofs:
@@ -306,7 +323,7 @@ class Adapter:
             return
         def fetch(n):
             try:
-                block = C.rpc(self.upstream, "eth_getBlockByNumber", [hex(n), False], cap=MAX_RESPONSE, timeout=4)
+                block = self.remote("eth_getBlockByNumber", [hex(n), False], cap=MAX_RESPONSE, timeout=4)
                 C.header_rlp(block)
                 return block if int(block["number"], 16) == n else None
             except (C.RpcFailure, ValueError, KeyError, TypeError):
@@ -338,7 +355,7 @@ class Adapter:
             block = dict(cached["block"])
             block["transactions"] = [tx["hash"] for tx in block["transactions"]]
         else:
-            block = C.rpc(self.upstream, method, [identifier, False], cap=MAX_RESPONSE)
+            block = self.remote(method, [identifier, False], cap=MAX_RESPONSE)
         encoded = C.header_rlp(block)
         if is_hash and C.unhex(block["hash"], 32) != C.unhex(identifier, 32):
             raise ValueError("requested header hash mismatch")
@@ -362,7 +379,7 @@ class Adapter:
             if method == "debug_getRawHeader":
                 return "0x" + C.header_rlp(block).hex()
             cached = self.transport_cache.load(block["hash"]) if self.transport_cache is not None else None
-            receipts = cached["receipts"] if cached is not None else C.rpc(self.upstream, "eth_getBlockReceipts", [block["number"]], cap=MAX_RESPONSE)
+            receipts = cached["receipts"] if cached is not None else self.remote("eth_getBlockReceipts", [block["number"]], cap=MAX_RESPONSE)
             raw, records = ordered_receipts(block, receipts)
             self.retain(records)
             return ["0x" + r.hex() for r in raw]
@@ -379,7 +396,7 @@ class Adapter:
                     raise ValueError("invalid canonical proof block")
                 identifier = identifier["blockHash"]
             block = self.block(identifier)
-            result = C.rpc(self.upstream, method, [address, ["0x" + s.hex() for s in slots],
+            result = self.remote(method, [address, ["0x" + s.hex() for s in slots],
                            {"blockHash": block["hash"], "requireCanonical": True}], cap=MAX_RESPONSE)
             records, code = verified_proof(block, address, slots, result)
             if code is not None and code not in self.code_accounts and len(self.code_accounts) >= 8192:
@@ -402,7 +419,7 @@ class Adapter:
                     self.missing_preimages[key.hex()] = self.missing_preimages.get(key.hex(), 0) + 1
                 raise UnsupportedMethod("unknown authenticated preimage; no guessed sibling/code")
             address, block = self.code_accounts[key]
-            raw = C.unhex(C.rpc(self.upstream, "eth_getCode", [address, {"blockHash": block, "requireCanonical": True}], cap=2 << 20))
+            raw = C.unhex(self.remote("eth_getCode", [address, {"blockHash": block, "requireCanonical": True}], cap=2 << 20))
             if len(raw) > 1 << 20 or C.keccak(raw) != key:
                 raise ValueError("code hash mismatch")
             self.retain({key: raw})
@@ -415,7 +432,7 @@ class Adapter:
         # The host/receiver must still authenticate their contents. No generic
         # debug_dbGet or execution-witness passthrough exists.
         if method in ("eth_chainId", "eth_getBlockByHash", "eth_getBlockByNumber"):
-            return C.rpc(self.upstream, method, params, cap=MAX_RESPONSE)
+            return self.remote(method, params, cap=MAX_RESPONSE)
         raise UnsupportedMethod("unsupported capture method; no fabricated preimage/witness")
 
     def record_failure(self, request, error):
@@ -448,7 +465,7 @@ class Adapter:
         directory.mkdir(parents=True, exist_ok=False)
         C.write_new(directory / "code-provenance.json", (json.dumps({"schema":"op-code-provenance-v1","entries":self.code_proofs}) + "\n").encode())
         C.write_new(directory / "records.json", (json.dumps([(k.hex(), v.hex()) for k, v in sorted(self.records.items())]) + "\n").encode())
-        C.write_new(directory / "capture.json", (json.dumps({"records": len(self.records), "bytes": self.record_bytes, "preimage_hashes_verified": True, "complete_witness": False, "derivation_accepted": False, "proof_verified": False, "missing_preimages": self.missing_preimages, "method_counts": self.method_counts, "prefetched_headers": self.prefetched_headers, "failure_count": self.failure_count, "failures": self.failures}, indent=2) + "\n").encode())
+        C.write_new(directory / "capture.json", (json.dumps({"records": len(self.records), "bytes": self.record_bytes, "preimage_hashes_verified": True, "complete_witness": False, "derivation_accepted": False, "proof_verified": False, "missing_preimages": self.missing_preimages, "method_counts": self.method_counts, "prefetched_headers": self.prefetched_headers, "failure_count": self.failure_count, "transport_retries": self.transport_retries, "failures": self.failures}, indent=2) + "\n").encode())
 
 
 def serve(adapter, port, max_requests, seconds):
@@ -516,6 +533,8 @@ def main():
     if not 1 <= a.seconds <= 180 or not 1 <= a.max_requests <= 10000 or not 1024 <= a.port <= 65535:
         raise ValueError("adapter limits invalid")
     adapter = Adapter(a.rpc, header_window=a.header_window, transport_cache=a.transport_cache, cache_claim=a.cache_claim, code_provenance=a.code_provenance, provenance_block=a.provenance_block)
+    import time
+    adapter.deadline = time.monotonic() + a.seconds
     try:
         if a.block:
             adapter.dispatch("debug_getRawHeader", [a.block])

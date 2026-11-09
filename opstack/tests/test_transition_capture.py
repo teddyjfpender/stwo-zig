@@ -1,5 +1,7 @@
 """Offline material recovery, authenticated headers and parser/resource guards."""
 import importlib.util
+import contextlib
+import sys
 import io
 import json
 from pathlib import Path
@@ -35,6 +37,15 @@ class TransitionCaptureTests(unittest.TestCase):
         self.assertEqual(result["records"], 1)
         for name in ("preimage_hashes_verified", "kzg_verified", "derivation_accepted", "proof_verified"):
             self.assertFalse(result[name])
+
+    def test_pack_explicit_independently_selected_claim(self):
+        with tempfile.TemporaryDirectory()as directory:
+            root=Path(directory);claim=json.loads(json.dumps(self.claim));claim['anchor']['number']+=1
+            (root/'claim.json').write_text(json.dumps(claim));(root/'records.json').write_text(json.dumps(self.rows));(root/'sidecars.json').write_text('[]')
+            args=['capture','pack','--claim',str(root/'claim.json'),'--records',str(root/'records.json'),'--sidecars',str(root/'sidecars.json'),'--output',str(root/'input.opd')]
+            with patch.object(sys,'argv',args),contextlib.redirect_stdout(io.StringIO()):capture.main()
+            data=(root/'input.opd').read_bytes();self.assertFalse(capture.inspect_container(data,claim)['derivation_accepted'])
+            with self.assertRaisesRegex(ValueError,'checkpoint'):capture.inspect_container(data,self.claim)
 
     def test_duplicate_and_forged_preimages(self):
         with self.assertRaisesRegex(ValueError, "preimage"):

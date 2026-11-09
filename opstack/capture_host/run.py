@@ -106,7 +106,31 @@ def kv_usage(path):
     return decoded,allocated,count
 
 
-def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resume=None,header_window=1,transport_cache=None,stop_on_failure=False,code_provenance=(),refresh_missing_code=False):
+
+def supplement_records(kv, paths, limit):
+    decoded,allocated,count=kv_usage(kv);added=added_bytes=0;inputs=[]
+    if len(paths)>16:raise ValueError('supplement file count cap')
+    for path in paths:
+        rows=C.read_json(path,16<<20)
+        if not isinstance(rows,list)or len(rows)>1000000:raise ValueError('supplement row cap')
+        inputs.append({'path':str(path),'sha256':hash_file(path)})
+        for key,value in rows:
+            digest=C.unhex(key,32);raw=C.unhex(value)
+            if len(raw)>1<<20 or C.keccak(raw)!=digest:raise ValueError('supplement preimage hash mismatch')
+            name=(bytes([2])+digest[1:]).hex();folder=kv/name[:4];file=folder/(name[4:]+'.txt')
+            if file.exists():
+                if C.unhex(file.read_text())!=raw:raise ValueError('supplement source conflict')
+                continue
+            if decoded+len(raw)>limit or count+1>1000000:raise ValueError('supplement KV cap')
+            folder.mkdir(exist_ok=True)
+            with file.open('xb')as f:f.write(raw.hex().encode())
+            decoded+=len(raw);count+=1;added+=1;added_bytes+=len(raw)
+    _,allocated,_=kv_usage(kv)
+    if allocated>4<<30:raise ValueError('supplement filesystem cap')
+    return {'inputs':inputs,'rows_added':added,'decoded_bytes_added':added_bytes}
+
+
+def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resume=None,header_window=1,transport_cache=None,stop_on_failure=False,code_provenance=(),refresh_missing_code=False,verified_records=()):
     if not 1<=seconds<=180 or not 1<=kv_limit<=64 << 20 or not 1<=header_window<=32:
         raise ValueError('capture limits invalid')
     for url in (l1,l2,beacon):C.endpoint_label(url)
@@ -130,6 +154,7 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
     output.mkdir(parents=True,exist_ok=False)
     evict=[bytes.fromhex(x['leaf_hash'])for x in refresh['evictions']]if refresh else ()
     resumed=resume_kv(resume,output/'kv',v,pin,hash_file(binary),kv_limit,evict) if resume else None
+    supplements=supplement_records(output/'kv',verified_records,kv_limit) if verified_records else None
     started=time.monotonic()
     deadline=started+seconds
     children=[];logs=[];host=None;reason='failed';peak=0;peak_allocated=0
@@ -194,7 +219,7 @@ def run(source,candidate,l1,l2,beacon,output,seconds=180,kv_limit=64 << 20,resum
                 'upstream_revision':pin['revision'],'patch_sha256':pin['patch_sha256'],'host_sha256':hash_file(binary),
                 'candidate':v,'upstream_native_client_accepted':reason=='native_accepted',
                 'complete_exported_witness':False,'derivation_accepted':False,'proof_verified':False,'guest_executed':False,
-                'host_exit_code':host.returncode if host else None,'resumed_kv':resumed,'header_window':header_window,'transport_cache':str(transport_cache) if transport_cache else None,'stop_on_adapter_failure':stop_on_failure,'code_provenance_inputs':[{'sha256':hash_file(p),'path':str(p)}for p in provenance_paths],'code_provenance_refresh':refresh}
+                'host_exit_code':host.returncode if host else None,'resumed_kv':resumed,'header_window':header_window,'transport_cache':str(transport_cache) if transport_cache else None,'stop_on_adapter_failure':stop_on_failure,'code_provenance_inputs':[{'sha256':hash_file(p),'path':str(p)}for p in provenance_paths],'code_provenance_refresh':refresh,'verified_record_supplements':supplements}
         C.write_new(output/'capture-run.json',(json.dumps(result,indent=2)+'\n').encode())
     return result
 
@@ -203,8 +228,8 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--source',type=Path,required=True);p.add_argument('--candidate',type=Path,required=True)
     p.add_argument('--l1-rpc',required=True);p.add_argument('--l2-rpc',required=True);p.add_argument('--beacon',required=True)
-    p.add_argument('--output',type=Path,required=True);p.add_argument('--seconds',type=int,default=180);p.add_argument('--resume',type=Path);p.add_argument('--header-window',type=int,default=1);p.add_argument('--transport-cache',type=Path);p.add_argument('--stop-on-adapter-failure',action='store_true');p.add_argument('--code-provenance',type=Path,action='append',default=[]);p.add_argument('--refresh-missing-code-provenance',action='store_true')
+    p.add_argument('--output',type=Path,required=True);p.add_argument('--seconds',type=int,default=180);p.add_argument('--resume',type=Path);p.add_argument('--header-window',type=int,default=1);p.add_argument('--transport-cache',type=Path);p.add_argument('--stop-on-adapter-failure',action='store_true');p.add_argument('--code-provenance',type=Path,action='append',default=[]);p.add_argument('--refresh-missing-code-provenance',action='store_true');p.add_argument('--verified-records',type=Path,action='append',default=[])
     a=p.parse_args()
-    try:print(json.dumps(run(a.source.resolve(),a.candidate.resolve(),a.l1_rpc,a.l2_rpc,a.beacon,a.output.absolute(),a.seconds,resume=a.resume.resolve() if a.resume else None,header_window=a.header_window,transport_cache=a.transport_cache.resolve() if a.transport_cache else None,stop_on_failure=a.stop_on_adapter_failure,code_provenance=[p.resolve()for p in a.code_provenance],refresh_missing_code=a.refresh_missing_code_provenance),indent=2))
+    try:print(json.dumps(run(a.source.resolve(),a.candidate.resolve(),a.l1_rpc,a.l2_rpc,a.beacon,a.output.absolute(),a.seconds,resume=a.resume.resolve() if a.resume else None,header_window=a.header_window,transport_cache=a.transport_cache.resolve() if a.transport_cache else None,stop_on_failure=a.stop_on_adapter_failure,code_provenance=[p.resolve()for p in a.code_provenance],refresh_missing_code=a.refresh_missing_code_provenance,verified_records=[p.resolve()for p in a.verified_records]),indent=2))
     except (ValueError,OSError,KeyError,TypeError,subprocess.SubprocessError) as error:
         print(json.dumps({'status':'capture_host_failed','error_type':type(error).__name__}));raise SystemExit(1)from None
