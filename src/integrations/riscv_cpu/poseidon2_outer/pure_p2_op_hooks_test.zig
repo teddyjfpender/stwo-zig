@@ -13,6 +13,7 @@ const Audit = struct {
     cpus: usize = 0,
     truths: usize = 0,
     miller: usize = 0,
+    source_called: bool = false,
     finished: bool = false,
     fail_first: bool = false,
     corrupt_terminal: bool = false,
@@ -85,6 +86,22 @@ const Audit = struct {
         state.output = v.output;
         state.finished = true;
     }
+    fn source(raw: ?*anyopaque, _: std.mem.Allocator, v: Runtime.SourceDirectory) !void {
+        const state = self(raw);
+        try std.testing.expectEqual(@as(usize, 0), state.next);
+        try std.testing.expect(!state.finished);
+        try std.testing.expectEqual(v.setups.len, v.cpu_keys.len);
+        try std.testing.expectEqual(v.truths.len, v.truth_keys.len);
+        try std.testing.expectEqual(v.metadata.memory_words, v.initial.len);
+        try std.testing.expectEqual(v.initial.len, v.terminal.len);
+        try std.testing.expectEqual(v.image.terminal_pc, v.expected.final_pc);
+        try std.testing.expectEqualSlices(u8, &v.image.identity, &v.expected.admission.image_identity);
+        try std.testing.expectEqualSlices(u8, &v.image.expected_output, &v.output);
+        for (v.setups, v.cpu_keys) |setup, key| try key.requireForOp(setup, v.metadata.profile);
+        for (v.truths, v.truth_keys) |truth_value, key| try key.require(truth_value);
+        state.output = v.output;
+        state.source_called = true;
+    }
     fn hooks(state: *Audit) Runtime.ReceptionHooks {
         return .{ .context = state, .complete = complete, .fragments = .{ .context = state, .cpu = cpu, .truth = truth, .miller = tower } };
     }
@@ -144,5 +161,18 @@ test "OP real native receiver capture hooks finish only after physical closure a
     try std.testing.expect(std.meta.isError(Runtime.verifyDirectoryWithHooks(alloc, config.value, path, profile, limits, later_bad.hooks())));
     try std.testing.expect(later_bad.next > 0 and later_bad.next < honest.next and !later_bad.finished);
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
-    std.debug.print("OP_NATIVE_HOOKS fragments={} default_and_typed=true callback_abort_clean=true later_proof_refused=true terminal_after_all_fragments_refused=true complete_only_after_all_gates=true\n", .{honest.next});
+    // Root-only source reception must not open any native proof file. It
+    // checks policy/geometry only and therefore triggers no fragment/complete.
+    try tmp.dir.deleteFile("native-op.bin");
+    var source_only = Audit{ .halt = config.value.symbols.halt_flag };
+    try Runtime.withSourceDirectory(alloc, config.value, path, profile, limits, &source_only, Audit.source);
+    try std.testing.expect(source_only.source_called and source_only.next == 0 and !source_only.finished);
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
+    var tighter = limits;
+    tighter.live_bytes = 1;
+    var wrong_budget = Audit{ .halt = config.value.symbols.halt_flag };
+    try std.testing.expectError(error.OpSourceBudgetMismatch, Runtime.withSourceDirectory(alloc, config.value, path, profile, tighter, &wrong_budget, Audit.source));
+    try std.testing.expect(!wrong_budget.source_called);
+    try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
+    std.debug.print("OP_NATIVE_HOOKS fragments={} default_and_typed=true callback_abort_clean=true later_proof_refused=true terminal_after_all_fragments_refused=true complete_only_after_all_gates=true source_only_without_native_file=true\n", .{honest.next});
 }

@@ -252,6 +252,8 @@ pub const SourceDirectory = struct {
 /// public cells as authenticated. No borrowed pointer may outlive callback.
 pub fn withSourceDirectory(a: std.mem.Allocator, config: Request.Config, path: []const u8, profile: Profile, resources: Resources, context: ?*anyopaque, callback: *const fn (?*anyopaque, std.mem.Allocator, SourceDirectory) anyerror!void) !void {
     if (!engine.host_budget_allocator.SharedHostBudget.isAllocator(a)) return error.OpNativeRequiresSharedHostBudget;
+    const budget = engine.host_budget_allocator.SharedHostBudget.fromAllocator(a).?;
+    if (resources.live_bytes == 0 or budget.snapshot().limit > resources.live_bytes) return error.OpSourceBudgetMismatch;
     try Request.validateBudgetForOp(config);
     var timer = try std.time.Timer.start();
     var image = try Image.Owner.initForOp(a, config);
@@ -283,7 +285,6 @@ pub fn withSourceDirectory(a: std.mem.Allocator, config: Request.Config, path: [
     const expected = try Receiver.expectedFromRequests(&image, program.identity, req, config.max_steps, config.batch_steps, true);
     var inventory = try Inv.Inventory.init(a, profile, authority.setups, req, m.spans, authority.cpu_keys, authority.native_truth.truths, authority.truth_keys, authority.miller, expected);
     defer inventory.deinit();
-    _ = resources;
     const output = try Terminal.require(&image, req[req.len - 1].base.cpu, cells.terminal);
     try callback(context, a, .{ .image = &image, .metadata = m, .requests = req, .setups = authority.setups, .cpu_keys = authority.cpu_keys, .truths = authority.native_truth.truths, .truth_keys = authority.truth_keys, .miller = authority.miller, .inventory = &inventory, .expected = expected, .output = output, .output_address = image.symbols.output_data, .initial = cells.initial, .terminal = cells.terminal, .image_ns = image_ns, .program_ns = program_ns });
 }
