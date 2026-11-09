@@ -110,8 +110,8 @@
   },
   "sparse_cells": {
     "current32row_with_frontier": 14772,
-    "candidate12direct_rows_plus4scaled_coeff_rows_plus20frontier": 11584,
-    "scale_row_bound": 418,
+    "candidate12direct_rows_plus4scaled_coeff_rows_plus20frontier": 11616,
+    "scale_row_bound": 426,
     "scope": "conditional source-shape estimate; no provider or AIR admission"
   },
   "heavy_active_cost": {
@@ -120,8 +120,8 @@
     "source_validated_g2_cache_entries": 87,
     "original_homogeneous_preparation_arithmetic_cells": 101212668,
     "subgroup_arithmetic_cells": 77360400,
-    "seeded_miller_dense_tail_sparse_cells": 421668576,
-    "subtotal": 600241644,
+    "seeded_miller_dense_tail_sparse_cells": 422604000,
+    "subtotal": 601177068,
     "excluded": [
       "canonical public-input and hint frontiers",
       "G1/G2 curve checks and psi terminal4coords",
@@ -132,6 +132,14 @@
       "GKR facts/memory",
       "recursion openings/graph and whole wall time"
     ]
+  },
+  "separate_BYTE_table": {
+    "main_plus_inter": 17,
+    "log": 8,
+    "cells_per_proof": 4352,
+    "planned_square_opening_columns": 805,
+    "planned_multiply_opening_columns": 1189,
+    "scope": "additional table cost excluded from original9456/14748active provider figures; full pairing role-opening sum remains unqualified"
   },
   "source_pin": {
     "opstack/kona/vendor/ark-bn254/src/curves/mod.rs": "274aeb949f0a8660e5dbbbba3f23172ebcdd38805acb9408f21de27de439d4a1",
@@ -150,67 +158,67 @@
         "first_call": 0,
         "calls": 8,
         "private_validated_g2_points": 11,
-        "padded_arithmetic_cells": 113922048
+        "padded_arithmetic_cells": 114184192
       },
       {
         "first_call": 8,
         "calls": 8,
         "private_validated_g2_points": 11,
-        "padded_arithmetic_cells": 113922048
+        "padded_arithmetic_cells": 114184192
       },
       {
         "first_call": 16,
         "calls": 8,
         "private_validated_g2_points": 11,
-        "padded_arithmetic_cells": 113922048
+        "padded_arithmetic_cells": 114184192
       },
       {
         "first_call": 24,
         "calls": 8,
         "private_validated_g2_points": 11,
-        "padded_arithmetic_cells": 113922048
+        "padded_arithmetic_cells": 114184192
       },
       {
         "first_call": 32,
         "calls": 8,
         "private_validated_g2_points": 11,
-        "padded_arithmetic_cells": 113922048
+        "padded_arithmetic_cells": 114184192
       },
       {
         "first_call": 40,
         "calls": 8,
         "private_validated_g2_points": 11,
-        "padded_arithmetic_cells": 113922048
+        "padded_arithmetic_cells": 114184192
       },
       {
         "first_call": 48,
         "calls": 8,
         "private_validated_g2_points": 11,
-        "padded_arithmetic_cells": 113922048
+        "padded_arithmetic_cells": 114184192
       },
       {
         "first_call": 56,
         "calls": 8,
         "private_validated_g2_points": 11,
-        "padded_arithmetic_cells": 113922048
+        "padded_arithmetic_cells": 114184192
       },
       {
         "first_call": 64,
         "calls": 8,
         "private_validated_g2_points": 11,
-        "padded_arithmetic_cells": 113922048
+        "padded_arithmetic_cells": 114184192
       },
       {
         "first_call": 72,
         "calls": 8,
         "private_validated_g2_points": 11,
-        "padded_arithmetic_cells": 113922048
+        "padded_arithmetic_cells": 114184192
       },
       {
         "first_call": 80,
         "calls": 4,
         "private_validated_g2_points": 7,
-        "padded_arithmetic_cells": 63809536
+        "padded_arithmetic_cells": 64071680
       }
     ],
     "role_totals": {
@@ -264,14 +272,14 @@
       },
       "line_scaling": {
         "active_rows": 116928,
-        "padded_arithmetic_cells": 150667264,
+        "padded_arithmetic_cells": 153550848,
         "log_histogram": {
           "15": 11
         }
       }
     },
     "total_private_g2_validations": 117,
-    "padded_arithmetic_cells": 1203030016,
+    "padded_arithmetic_cells": 1205913600,
     "largest_source_checkpoint_fact_bytes_52": 1799356416,
     "scope": "conditional role padding / inherited range model, NOT a whole-worker memory budget; excludes frontiers/fixed/branches/global closure and recursion"
   }

@@ -103,13 +103,22 @@ These widths are geometry calculations, not physically qualified layouts.
 Forty interaction columns are a conditional allowance based on BYTE512/SSA16
 terminal bindings plus global Wire; exact relation accounting may change it.
 
-Adding four existing-style 418-cell scaling rows and the complete 20-Fq,
-57-cell input frontier gives **11,584 active cells per line**, compared with
+Adding four existing-style 426-cell scaling rows and the complete 20-Fq,
+57-cell input frontier gives **11,616 active cells per line**, compared with
 **14,772** for the current 32-row Miller-line provider. This is a conditional
 source-shape saving, not a measured wall-time result. A whole-pairing local SSA
 may remove repeated internal frontiers/global Wire columns, but this estimate
-conservatively retains them. The direct dense square/multiply reference costs
-are 9,456/14,748 active cells, including their original frontiers.
+conservatively retains them. The 426-cell scaling row retains the shared Miller
+component's eight Wire columns even for zero global weight. A 418-cell
+alternative is valid only with an independently sized scaling component or
+relocated global Wire authority; this receipt does not assume that redesign.
+
+The direct dense square/multiply reference costs are 9,456/14,748 active cells,
+including their original frontiers but excluding the new separate BYTE table:
+17 columns at log8 add 4,352 cells per proof. Planned standalone square/multiply
+opening widths are 805/1,189 columns (40 arithmetic INTER +57 frontier +17 table
+included). The full pairing proof's multi-role opening-width sum remains
+unqualified.
 
 ## Whole-request and bounded private-cache cost
 
@@ -120,8 +129,8 @@ On the retained 84-call/336-pair positive corpus, a single source-validated
 |---|---:|
 | Exact homogeneous preparation (87 Q) | 101,212,668 |
 | Subgroup steps (87 Q) | 77,360,400 |
-| Seeded Miller squares/products, inverse/tail, direct lines | 421,668,576 |
-| Subtotal | 600,241,644 |
+| Seeded Miller squares/products, inverse/tail, direct lines | 422,604,000 |
+| Subtotal | 601,177,068 |
 
 This subtotal excludes public-input/hint frontiers, curve checks/psi endpoint,
 branch/infinity selectors, fixed columns, all padding, closure and recursion.
@@ -135,7 +144,7 @@ and repeats validation/preparation across workers. The retained requests need
 **117 private G2 validations across 11 groups**, not 87. Every new group owns
 its complete scalar/point/line source closure. The modeled roles use independent
 power-of-two geometry; the current U15 scaling-row minimum log15 is retained.
-The result is **1,203,030,016 padded arithmetic cells** before the listed
+The result is **1,205,913,600 padded arithmetic cells** before the listed
 exclusions. The largest individual BYTE512+SSA16 checkpoint is **1,799,356,416
 bytes** at the current 52-byte/fact source estimate. This is not a whole-worker
 memory bound: all banks, MAIN, retained coefficients, provider tables, transcript,
